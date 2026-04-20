@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
 import SplitReveal from "../ui/SplitReveal";
+import { useStackingSection } from "../../hooks/useStackingSection";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -127,7 +128,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
     >
       <div>
         {plan.tag && (
-          <span className="inline-block font-[font2] uppercase text-[10px] tracking-wider bg-[#D3FD50] text-black px-2 py-1 rounded-full mb-3">
+          <span className="inline-block font-[font2] uppercase text-[10px] tracking-wider bg-ember text-white px-2 py-1 rounded-full mb-3">
             {plan.tag}
           </span>
         )}
@@ -156,7 +157,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
             >
               <span
                 className={`mt-1.5 inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
-                  isDark ? "bg-[#D3FD50]" : "bg-black"
+                  isDark ? "bg-linen" : "bg-black"
                 }`}
               />
               <span>{f}</span>
@@ -170,8 +171,8 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
         rel="noopener noreferrer"
         className={`mt-6 w-full text-center font-[font2] uppercase tracking-wide rounded-full py-3 text-sm transition-colors ${
           isDark
-            ? "bg-[#D3FD50] text-black hover:bg-white"
-            : "bg-black text-white hover:bg-[#25D366]"
+            ? "bg-linen text-black hover:bg-white"
+            : "bg-black text-white hover:bg-ember"
         }`}
       >
         Compra
@@ -182,6 +183,9 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
 
 const ServicesSection = () => {
   const rootRef = useRef<HTMLElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useStackingSection(rootRef, innerRef, { tilt: 4 });
 
   useGSAP(
     () => {
@@ -217,8 +221,12 @@ const ServicesSection = () => {
       ref={rootRef}
       id="servicios"
       data-nav-color="black"
-      className="bg-white text-black scroll-mt-20 relative z-10"
+      className="bg-[#faf7f2] text-black scroll-mt-20 relative z-10"
     >
+      <div
+        ref={innerRef}
+        className="will-change-transform origin-center"
+      >
       <div className="px-3 lg:px-8 pt-32 pb-16">
         <SplitReveal
           text={"Lo que\nhacemos"}
@@ -226,7 +234,7 @@ const ServicesSection = () => {
         />
         <div className="sv-reveal lg:pl-[40%] lg:mt-16 mt-8 p-3">
           <p className="font-[font1] lg:text-4xl text-lg leading-tight lg:leading-snug">
-            En DayanaPNL acompañamos procesos reales de reprogramación
+            Con Dayana Beltrán acompañamos procesos reales de reprogramación
             neurolingüística. No vendemos motivación: trabajamos creencias,
             patrones y emociones para que vuelvas a tomar el control de tu
             vida, tus relaciones y tu propósito.
@@ -292,6 +300,7 @@ const ServicesSection = () => {
           </div>
           <PlanCard plan={coursePlan} variant="dark" />
         </div>
+      </div>
       </div>
     </section>
   );

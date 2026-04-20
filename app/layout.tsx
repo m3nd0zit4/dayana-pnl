@@ -3,8 +3,9 @@ import "./globals.css";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "Dayana PNL",
-  description: "Dayana PNL",
+  title: "Dayana Beltrán — Maestra PNL",
+  description:
+    "Dayana Beltrán, maestra en Programación Neurolingüística. Terapias 1:1 y cursos en vivo para reprogramar creencias, patrones y emociones.",
 };
 
 export default function RootLayout({

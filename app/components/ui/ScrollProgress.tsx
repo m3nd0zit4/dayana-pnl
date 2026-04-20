@@ -32,11 +32,14 @@ const ScrollProgress = () => {
   }, []);
 
   return (
-    <div className="fixed top-0 right-0 h-screen w-[3px] z-40 pointer-events-none bg-white/5">
+    <div className="fixed top-0 right-0 h-screen w-[3px] z-40 pointer-events-none bg-black/10">
       <div
         ref={barRef}
-        className="h-full w-full bg-[#D3FD50] origin-top"
-        style={{ transform: "scaleY(0)" }}
+        className="h-full w-full origin-top"
+        style={{
+          transform: "scaleY(0)",
+          background: "linear-gradient(to bottom, #e0d5c6, #a85c3e)",
+        }}
       />
     </div>
   );
