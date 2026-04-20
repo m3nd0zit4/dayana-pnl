@@ -7,16 +7,10 @@ const HomeBottomText = () => {
 
   return (
     <div className="font-[font2] flex flex-col lg:flex-row items-center justify-center gap-3 lg:gap-4 px-4 pb-6 lg:pb-0 relative z-10">
-      <p className="hidden lg:block absolute lg:w-[20vw] lg:right-20 lg:bottom-72 font-[font1] lg:text-lg lg:leading-relaxed">
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        Acompañamos procesos reales de reprogramación neurolingüística para que
-        sueltes lo que te frena y empieces a vivir desde tu potencial. Terapias
-        1:1 y cursos en vivo, con resultados que se sienten.
-      </p>
 
       <a
         href="#testimonios"
-        className="lg:border-3 border-2 hover:border-[#D3FD50] hover:text-[#D3FD50] lg:h-44 flex items-center px-3 pt-1 lg:px-14 border-white rounded-full uppercase"
+        className="lg:border-3 border-2 hover:border-linen hover:text-linen lg:h-44 flex items-center px-3 pt-1 lg:px-14 border-white rounded-full uppercase"
       >
         <span className="text-[8vw] lg:text-[5vw] lg:mt-6">Testimonios</span>
       </a>
