@@ -38,7 +38,7 @@ const ScrollProgress = () => {
         className="h-full w-full origin-top"
         style={{
           transform: "scaleY(0)",
-          background: "linear-gradient(to bottom, #e0d5c6, #a85c3e)",
+          background: "linear-gradient(to bottom, #ece3d4, #edc3b1)",
         }}
       />
     </div>

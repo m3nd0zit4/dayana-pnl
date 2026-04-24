@@ -9,7 +9,7 @@ const FloatingWhatsApp = () => {
 
   useEffect(() => {
     const onScroll = () => {
-      setVisible(window.scrollY > window.innerHeight * 0.8);
+      setVisible(window.scrollY > window.innerHeight * 1.2);
       const contact = document.getElementById("contacto");
       if (contact) {
         const rect = contact.getBoundingClientRect();

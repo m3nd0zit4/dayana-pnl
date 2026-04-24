@@ -1,12 +1,15 @@
 "use client";
 
 import { useContext, useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { NavbarColorContext, NavbarContext } from "../../context/NavContext";
 
 const Navbar = () => {
   const navGreenRef = useRef<HTMLDivElement>(null);
   const [, setNavOpen] = useContext(NavbarContext);
   const [navColor, setNavColor] = useContext(NavbarColorContext);
+  const pathname = usePathname();
+  const homeHref = pathname === "/" ? "#hero" : "/#hero";
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>("[data-nav-color]");
@@ -40,7 +43,7 @@ const Navbar = () => {
   return (
     <div className="z-30 flex fixed top-0 w-full items-start justify-between pointer-events-none">
       <a
-        href="#hero"
+        href={homeHref}
         className="lg:p-5 p-3 pointer-events-auto font-[font2] uppercase leading-none select-none"
         style={{ color: navColor }}
         aria-label="Dayana Beltran PNL"

@@ -26,20 +26,48 @@ const SmoothScroll = () => {
     gsap.ticker.add(raf);
     gsap.ticker.lagSmoothing(0);
 
+    const scrollToHash = (hash: string, delayMs = 0) => {
+      if (!hash || hash === "#" || hash.length < 2) return false;
+      const el = document.querySelector<HTMLElement>(hash);
+      if (!el) return false;
+      const run = () => lenis.scrollTo(el, { offset: 0, duration: 1.2 });
+      if (delayMs > 0) window.setTimeout(run, delayMs);
+      else run();
+      return true;
+    };
+
     const handleAnchorClick = (e: MouseEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)
+        return;
       const target = e.target as HTMLElement | null;
       if (!target) return;
-      const anchor = target.closest<HTMLAnchorElement>("a[href^='#']");
+      const anchor = target.closest<HTMLAnchorElement>("a[href]");
       if (!anchor) return;
-      const href = anchor.getAttribute("href");
-      if (!href || href === "#" || href.length < 2) return;
-      const el = document.querySelector<HTMLElement>(href);
-      if (!el) return;
-      e.preventDefault();
-      lenis.scrollTo(el, { offset: 0, duration: 1.2 });
+      if (anchor.target && anchor.target !== "_self") return;
+
+      const href = anchor.getAttribute("href") || "";
+      let hash = "";
+      if (href.startsWith("#")) {
+        hash = href;
+      } else if (href.startsWith("/#")) {
+        if (window.location.pathname !== "/") return;
+        hash = href.substring(1);
+      } else {
+        return;
+      }
+
+      if (scrollToHash(hash)) {
+        e.preventDefault();
+        history.replaceState(null, "", hash);
+      }
     };
 
     document.addEventListener("click", handleAnchorClick);
+
+    if (window.location.hash) {
+      window.setTimeout(() => scrollToHash(window.location.hash), 50);
+    }
 
     return () => {
       document.removeEventListener("click", handleAnchorClick);
