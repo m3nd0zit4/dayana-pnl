@@ -1,0 +1,361 @@
+"use client";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useEffect, useRef, useState } from "react";
+import { buildWhatsAppUrl } from "../../../lib/contact";
+import {
+  COURSE_PLAN,
+  THERAPY_PLANS,
+  formatUsd,
+  type Plan,
+} from "../../../lib/plans";
+import { usePayPalModal } from "../../context/PayPalModalContext";
+import { PayPalBrandRow } from "../payments/PayPalBrandRow";
+import SplitReveal from "../ui/SplitReveal";
+import { useStackingSection } from "../../hooks/useStackingSection";
+
+gsap.registerPlugin(ScrollTrigger);
+
+type PlanCardProps = {
+  plan: Plan;
+  variant?: "light" | "dark";
+};
+
+const Spinner = () => (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-3.5 w-3.5 animate-spin"
+    fill="none"
+    aria-hidden
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeOpacity="0.25"
+    />
+    <path
+      d="M21 12a9 9 0 0 0-9-9"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const PlanPaymentActions = ({
+  plan,
+  isDark,
+}: {
+  plan: Plan;
+  isDark: boolean;
+}) => {
+  const { openPayPal } = usePayPalModal();
+  const [ready, setReady] = useState(false);
+  const [mpLoading, setMpLoading] = useState<null | "full">(null);
+  const [mpError, setMpError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  const startMercadoPago = async (mode: "full") => {
+    setMpError(null);
+    setMpLoading(mode);
+    try {
+      const res = await fetch("/api/mercadopago/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: plan.id, mode }),
+      });
+      const data = (await res.json()) as { init_point?: string; error?: string };
+      if (!res.ok || !data.init_point) {
+        setMpError(
+          "No se pudo abrir el checkout. Revisa la configuración o escribe por WhatsApp."
+        );
+        return;
+      }
+      window.location.href = data.init_point;
+    } catch {
+      setMpError("Error de red. Intenta de nuevo.");
+    } finally {
+      setMpLoading(null);
+    }
+  };
+
+  const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
+  const payBusy = mpLoading !== null;
+
+  if (!ready) {
+    return (
+      <div className="mt-6 flex min-h-[130px] flex-col gap-2" aria-busy="true">
+        <div className={`h-11 animate-pulse rounded-full ${pulse}`} />
+        <div className={`h-11 animate-pulse rounded-full ${pulse}`} />
+        <div className={`mx-auto h-3 w-36 animate-pulse rounded-full ${pulse}`} />
+      </div>
+    );
+  }
+
+  const mpFullClass = isDark
+    ? "border-[#009ee3]/50 bg-[#009ee3]/15 text-white hover:bg-[#009ee3]/25 hover:border-[#009ee3]/80"
+    : "border-[#009ee3]/40 bg-white text-[#009ee3] hover:bg-[#009ee3]/5 hover:border-[#009ee3]/70";
+
+  const mpSubtitle = isDark
+    ? "text-white/55 group-hover:text-white/75"
+    : "text-[#009ee3]/65 group-hover:text-[#009ee3]/90";
+
+  return (
+    <div className="mt-6 flex flex-col gap-2.5">
+      <button
+        type="button"
+        disabled={payBusy}
+        onClick={() => openPayPal(plan.id)}
+        className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none ${
+          isDark
+            ? "border-white/15 bg-white text-[#003087] shadow-[0_8px_28px_rgba(0,0,0,0.35)] hover:border-[#009cde] hover:bg-[#f4f9ff]"
+            : "border-[#b8daf3] bg-gradient-to-b from-white via-[#f8fbff] to-[#e9f4fc] text-[#003087] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_24px_rgba(0,48,135,0.08)] hover:border-[#009cde] hover:shadow-[0_10px_28px_rgba(0,48,135,0.12)]"
+        }`}
+      >
+        <PayPalBrandRow
+          tone="onLight"
+          subtitle="Saldo o tarjeta"
+          className="items-center"
+        />
+      </button>
+      <button
+        type="button"
+        disabled={payBusy}
+        onClick={() => startMercadoPago("full")}
+        aria-busy={mpLoading === "full"}
+        className={`group relative w-full rounded-full border px-3 py-2.5 text-center transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
+      >
+        <span className="flex flex-col items-center gap-1.5 leading-none">
+          <span className="inline-flex items-center gap-2 font-[font2] text-sm uppercase tracking-wide">
+            {mpLoading === "full" ? (
+              <>
+                <Spinner />
+                Abriendo checkout…
+              </>
+            ) : (
+              "Mercado Pago"
+            )}
+          </span>
+          <span
+            className={`font-[font2] text-[8px] uppercase tracking-[0.3em] transition-colors ${mpSubtitle}`}
+          >
+            {mpLoading === "full"
+              ? "Redirigiendo de forma segura"
+              : "débito o crédito"}
+          </span>
+        </span>
+      </button>
+      {mpError && (
+        <p
+          role="alert"
+          className={`font-[font1] text-center text-[11px] ${
+            isDark ? "text-red-200/95" : "text-red-700/90"
+          }`}
+        >
+          {mpError}
+        </p>
+      )}
+      <a
+        href={buildWhatsAppUrl(plan.whatsappMessage)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`w-full text-center font-[font1] text-[11px] uppercase tracking-[0.3em] py-1 transition-colors ${
+          isDark
+            ? "text-white/60 hover:text-linen"
+            : "text-black/60 hover:text-black"
+        }`}
+      >
+        Prefiero WhatsApp
+      </a>
+    </div>
+  );
+};
+
+const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
+  const isDark = Boolean(variant === "dark" || plan.highlight);
+  const base = isDark
+    ? "bg-black text-white border-black"
+    : "bg-white text-black border-black";
+
+  return (
+    <div
+      className={`sv-card border rounded-2xl p-6 flex flex-col justify-between h-full ${base} transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl`}
+    >
+      <div>
+        {plan.tag && (
+          <span className="inline-block font-[font2] uppercase text-[10px] tracking-wider bg-blush text-black px-2 py-1 rounded-full mb-3">
+            {plan.tag}
+          </span>
+        )}
+        <div className="font-[font2] uppercase text-[11px] tracking-wider opacity-60">
+          {plan.title}
+        </div>
+        <div className="font-[font2] uppercase text-2xl lg:text-3xl mt-1 leading-tight">
+          {plan.sessions}
+        </div>
+        <div className="mt-5 flex items-baseline gap-2">
+          <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+            {formatUsd(plan.amountUsd)}
+          </span>
+          <span className="font-[font1] text-xs opacity-60">USD</span>
+        </div>
+        {plan.unitPrice && (
+          <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
+            {plan.unitPrice}
+          </div>
+        )}
+        <ul className="mt-5 space-y-2">
+          {plan.features.map((f) => (
+            <li
+              key={f}
+              className="font-[font1] text-sm flex items-start gap-2 leading-snug"
+            >
+              <span
+                className={`mt-1.5 inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+                  isDark ? "bg-linen" : "bg-black"
+                }`}
+              />
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <PlanPaymentActions plan={plan} isDark={isDark} />
+    </div>
+  );
+};
+
+const ServicesSection = () => {
+  const rootRef = useRef<HTMLElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+
+  useStackingSection(rootRef, innerRef, { tilt: 4 });
+
+  useGSAP(
+    () => {
+      gsap.utils.toArray<HTMLElement>(".sv-reveal").forEach((el) => {
+        gsap.from(el, {
+          y: 50,
+          opacity: 0,
+          duration: 0.9,
+          ease: "power3.out",
+          scrollTrigger: { trigger: el, start: "top 88%" },
+        });
+      });
+
+      gsap.utils.toArray<HTMLElement>(".sv-card").forEach((el, i) => {
+        const fromSide = i % 2 === 0 ? -60 : 60;
+        gsap.from(el, {
+          x: fromSide,
+          y: 40,
+          rotation: fromSide > 0 ? 2.5 : -2.5,
+          opacity: 0,
+          duration: 0.9,
+          delay: (i % 3) * 0.08,
+          ease: "power3.out",
+          scrollTrigger: { trigger: el, start: "top 90%" },
+        });
+      });
+    },
+    { scope: rootRef }
+  );
+
+  return (
+    <section
+      ref={rootRef}
+      id="servicios"
+      data-nav-color="black"
+      className="bg-[#faf7f2] text-black scroll-mt-20 relative z-10"
+    >
+      <div
+        ref={innerRef}
+        className="will-change-transform origin-center"
+      >
+      <div className="px-3 lg:px-8 pt-32 pb-16">
+        <SplitReveal
+          text={"Lo que\nhacemos"}
+          className="font-[font2] text-[16vw] lg:text-[12vw] uppercase leading-[0.85]"
+        />
+        <div className="sv-reveal lg:pl-[40%] lg:mt-16 mt-8 p-3">
+          <p className="font-[font1] lg:text-4xl text-lg leading-tight lg:leading-snug">
+            Con Dayana Beltrán acompañamos procesos reales de reprogramación
+            neurolingüística. No vendemos motivación: trabajamos creencias,
+            patrones y emociones para que vuelvas a tomar el control de tu
+            vida, tus relaciones y tu propósito.
+          </p>
+        </div>
+      </div>
+
+      <div className="px-3 lg:px-8 py-16 border-t border-black/10">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12 sv-reveal">
+          <h3 className="font-[font2] text-6xl lg:text-[8vw] uppercase leading-[0.9]">
+            Terapias 1:1
+          </h3>
+          <p className="font-[font1] lg:max-w-md text-base lg:text-lg leading-snug">
+            Paquetes de sesiones de PNL vía videollamada. Elige el ritmo que
+            mejor se adapta a tu proceso.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {THERAPY_PLANS.map((plan) => (
+            <PlanCard key={plan.id} plan={plan} />
+          ))}
+        </div>
+      </div>
+
+      <div className="px-3 lg:px-8 py-16 border-t border-black/10 pb-28">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12 sv-reveal">
+          <h3 className="font-[font2] text-6xl lg:text-[8vw] uppercase leading-[0.9]">
+            Cursos en vivo
+          </h3>
+          <p className="font-[font1] lg:max-w-md text-base lg:text-lg leading-snug">
+            Encuentros grupales en Google Meet. Cupo limitado para que cada
+            participante tenga espacio real para transformar.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+          <div className="sv-card border border-black rounded-2xl p-8 flex flex-col justify-between">
+            <div>
+              <div className="font-[font2] uppercase text-[11px] tracking-wider text-black/60">
+                Modalidad
+              </div>
+              <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-none">
+                Google Meet
+              </div>
+            </div>
+            <p className="font-[font1] text-base mt-6 text-black/70 leading-snug">
+              En vivo, con interacción directa con Dayana.
+            </p>
+          </div>
+          <div className="sv-card border border-black rounded-2xl p-8 flex flex-col justify-between">
+            <div>
+              <div className="font-[font2] uppercase text-[11px] tracking-wider text-black/60">
+                Cupos
+              </div>
+              <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-none">
+                30 máx.
+              </div>
+            </div>
+            <p className="font-[font1] text-base mt-6 text-black/70 leading-snug">
+              Espacio garantizado para cada participante.
+            </p>
+          </div>
+          <PlanCard plan={COURSE_PLAN} variant="dark" />
+        </div>
+      </div>
+      </div>
+    </section>
+  );
+};
+
+export default ServicesSection;
