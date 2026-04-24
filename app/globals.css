@@ -3,8 +3,9 @@
 @theme {
   --color-ink: #0a0a0a;
   --color-paper: #ffffff;
-  --color-linen: #e0d5c6;
-  --color-ember: #a85c3e;
+  --color-linen: #ece3d4;
+  --color-blush: #edc3b1;
+  --color-sand: #d4b896;
 }
 
 @font-face {

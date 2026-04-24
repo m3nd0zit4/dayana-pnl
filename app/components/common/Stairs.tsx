@@ -60,9 +60,9 @@ const Stairs = ({ children }: { children: ReactNode }) => {
       >
         <div className="h-full w-full flex">
           <div className="stair h-full w-1/5 bg-black"></div>
+          <div className="stair h-full w-1/5 bg-blush"></div>
           <div className="stair h-full w-1/5 bg-linen"></div>
-          <div className="stair h-full w-1/5 bg-ember"></div>
-          <div className="stair h-full w-1/5 bg-linen"></div>
+          <div className="stair h-full w-1/5 bg-sand"></div>
           <div className="stair h-full w-1/5 bg-black"></div>
         </div>
       </div>

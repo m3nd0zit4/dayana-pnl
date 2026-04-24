@@ -3,121 +3,184 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
+import {
+  COURSE_PLAN,
+  THERAPY_PLANS,
+  formatUsd,
+  type Plan,
+} from "../../../lib/plans";
+import { usePayPalModal } from "../../context/PayPalModalContext";
+import { PayPalBrandRow } from "../payments/PayPalBrandRow";
 import SplitReveal from "../ui/SplitReveal";
 import { useStackingSection } from "../../hooks/useStackingSection";
 
 gsap.registerPlugin(ScrollTrigger);
-
-type Plan = {
-  id: string;
-  title: string;
-  sessions: string;
-  price: string;
-  unitPrice?: string;
-  tag?: string;
-  highlight?: boolean;
-  features: string[];
-  message: string;
-};
-
-const therapyPlans: Plan[] = [
-  {
-    id: "t1",
-    title: "Inicio",
-    sessions: "1 Sesión",
-    price: "$80",
-    unitPrice: "por sesión",
-    features: [
-      "Videollamada 1:1",
-      "Plan personalizado",
-      "Seguimiento por WhatsApp",
-    ],
-    message:
-      "Hola Dayana, me interesa el paquete de 1 sesión de terapia PNL ($80 USD).",
-  },
-  {
-    id: "t3",
-    title: "Exploración",
-    sessions: "3 Sesiones",
-    price: "$120",
-    unitPrice: "$40 por sesión",
-    features: [
-      "3 encuentros 1:1",
-      "Ahorro vs. sesión suelta",
-      "Ejercicios entre sesiones",
-    ],
-    message:
-      "Hola Dayana, me interesa el paquete de 3 sesiones de terapia PNL ($120 USD).",
-  },
-  {
-    id: "t6",
-    title: "Transformación",
-    sessions: "6 Sesiones",
-    price: "$240",
-    unitPrice: "$40 por sesión",
-    tag: "Más elegido",
-    highlight: true,
-    features: [
-      "6 encuentros 1:1",
-      "Cambios sostenidos",
-      "Material de apoyo incluido",
-    ],
-    message:
-      "Hola Dayana, me interesa el paquete de 6 sesiones de terapia PNL ($240 USD).",
-  },
-  {
-    id: "t12",
-    title: "Inmersión",
-    sessions: "12 Sesiones",
-    price: "$480",
-    unitPrice: "$40 por sesión",
-    features: [
-      "12 encuentros 1:1",
-      "Seguimiento extendido",
-      "Ajuste de proceso personalizado",
-    ],
-    message:
-      "Hola Dayana, me interesa el paquete de 12 sesiones de terapia PNL ($480 USD).",
-  },
-  {
-    id: "t24",
-    title: "Maestría",
-    sessions: "24 Sesiones",
-    price: "$900",
-    unitPrice: "$37.5 por sesión",
-    features: [
-      "24 encuentros profundos",
-      "Mejor ahorro por sesión",
-      "Acompañamiento continuo",
-    ],
-    message:
-      "Hola Dayana, me interesa el paquete de 24 sesiones de terapia PNL ($900 USD).",
-  },
-];
-
-const coursePlan: Plan = {
-  id: "curso",
-  title: "Curso en vivo",
-  sessions: "Inscripción",
-  price: "$30",
-  unitPrice: "por persona",
-  features: [
-    "Grupo en Google Meet",
-    "Cupo máximo 30 personas",
-    "Espacio real para compartir",
-  ],
-  message: "Hola Dayana, quiero inscribirme al próximo curso en vivo ($30 USD).",
-};
 
 type PlanCardProps = {
   plan: Plan;
   variant?: "light" | "dark";
 };
 
+const Spinner = () => (
+  <svg
+    viewBox="0 0 24 24"
+    className="h-3.5 w-3.5 animate-spin"
+    fill="none"
+    aria-hidden
+  >
+    <circle
+      cx="12"
+      cy="12"
+      r="9"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeOpacity="0.25"
+    />
+    <path
+      d="M21 12a9 9 0 0 0-9-9"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const PlanPaymentActions = ({
+  plan,
+  isDark,
+}: {
+  plan: Plan;
+  isDark: boolean;
+}) => {
+  const { openPayPal } = usePayPalModal();
+  const [ready, setReady] = useState(false);
+  const [mpLoading, setMpLoading] = useState<null | "full">(null);
+  const [mpError, setMpError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  const startMercadoPago = async (mode: "full") => {
+    setMpError(null);
+    setMpLoading(mode);
+    try {
+      const res = await fetch("/api/mercadopago/create-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId: plan.id, mode }),
+      });
+      const data = (await res.json()) as { init_point?: string; error?: string };
+      if (!res.ok || !data.init_point) {
+        setMpError(
+          "No se pudo abrir el checkout. Revisa la configuración o escribe por WhatsApp."
+        );
+        return;
+      }
+      window.location.href = data.init_point;
+    } catch {
+      setMpError("Error de red. Intenta de nuevo.");
+    } finally {
+      setMpLoading(null);
+    }
+  };
+
+  const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
+  const payBusy = mpLoading !== null;
+
+  if (!ready) {
+    return (
+      <div className="mt-6 flex min-h-[130px] flex-col gap-2" aria-busy="true">
+        <div className={`h-11 animate-pulse rounded-full ${pulse}`} />
+        <div className={`h-11 animate-pulse rounded-full ${pulse}`} />
+        <div className={`mx-auto h-3 w-36 animate-pulse rounded-full ${pulse}`} />
+      </div>
+    );
+  }
+
+  const mpFullClass = isDark
+    ? "border-[#009ee3]/50 bg-[#009ee3]/15 text-white hover:bg-[#009ee3]/25 hover:border-[#009ee3]/80"
+    : "border-[#009ee3]/40 bg-white text-[#009ee3] hover:bg-[#009ee3]/5 hover:border-[#009ee3]/70";
+
+  const mpSubtitle = isDark
+    ? "text-white/55 group-hover:text-white/75"
+    : "text-[#009ee3]/65 group-hover:text-[#009ee3]/90";
+
+  return (
+    <div className="mt-6 flex flex-col gap-2.5">
+      <button
+        type="button"
+        disabled={payBusy}
+        onClick={() => openPayPal(plan.id)}
+        className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none ${
+          isDark
+            ? "border-white/15 bg-white text-[#003087] shadow-[0_8px_28px_rgba(0,0,0,0.35)] hover:border-[#009cde] hover:bg-[#f4f9ff]"
+            : "border-[#b8daf3] bg-gradient-to-b from-white via-[#f8fbff] to-[#e9f4fc] text-[#003087] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_24px_rgba(0,48,135,0.08)] hover:border-[#009cde] hover:shadow-[0_10px_28px_rgba(0,48,135,0.12)]"
+        }`}
+      >
+        <PayPalBrandRow
+          tone="onLight"
+          subtitle="Saldo o tarjeta"
+          className="items-center"
+        />
+      </button>
+      <button
+        type="button"
+        disabled={payBusy}
+        onClick={() => startMercadoPago("full")}
+        aria-busy={mpLoading === "full"}
+        className={`group relative w-full rounded-full border px-3 py-2.5 text-center transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
+      >
+        <span className="flex flex-col items-center gap-1.5 leading-none">
+          <span className="inline-flex items-center gap-2 font-[font2] text-sm uppercase tracking-wide">
+            {mpLoading === "full" ? (
+              <>
+                <Spinner />
+                Abriendo checkout…
+              </>
+            ) : (
+              "Mercado Pago"
+            )}
+          </span>
+          <span
+            className={`font-[font2] text-[8px] uppercase tracking-[0.3em] transition-colors ${mpSubtitle}`}
+          >
+            {mpLoading === "full"
+              ? "Redirigiendo de forma segura"
+              : "débito o crédito"}
+          </span>
+        </span>
+      </button>
+      {mpError && (
+        <p
+          role="alert"
+          className={`font-[font1] text-center text-[11px] ${
+            isDark ? "text-red-200/95" : "text-red-700/90"
+          }`}
+        >
+          {mpError}
+        </p>
+      )}
+      <a
+        href={buildWhatsAppUrl(plan.whatsappMessage)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`w-full text-center font-[font1] text-[11px] uppercase tracking-[0.3em] py-1 transition-colors ${
+          isDark
+            ? "text-white/60 hover:text-linen"
+            : "text-black/60 hover:text-black"
+        }`}
+      >
+        Prefiero WhatsApp
+      </a>
+    </div>
+  );
+};
+
 const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
-  const isDark = variant === "dark" || plan.highlight;
+  const isDark = Boolean(variant === "dark" || plan.highlight);
   const base = isDark
     ? "bg-black text-white border-black"
     : "bg-white text-black border-black";
@@ -128,7 +191,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
     >
       <div>
         {plan.tag && (
-          <span className="inline-block font-[font2] uppercase text-[10px] tracking-wider bg-ember text-white px-2 py-1 rounded-full mb-3">
+          <span className="inline-block font-[font2] uppercase text-[10px] tracking-wider bg-blush text-black px-2 py-1 rounded-full mb-3">
             {plan.tag}
           </span>
         )}
@@ -140,7 +203,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
         </div>
         <div className="mt-5 flex items-baseline gap-2">
           <span className="font-[font1] text-4xl lg:text-5xl leading-none">
-            {plan.price}
+            {formatUsd(plan.amountUsd)}
           </span>
           <span className="font-[font1] text-xs opacity-60">USD</span>
         </div>
@@ -165,18 +228,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
           ))}
         </ul>
       </div>
-      <a
-        href={buildWhatsAppUrl(plan.message)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`mt-6 w-full text-center font-[font2] uppercase tracking-wide rounded-full py-3 text-sm transition-colors ${
-          isDark
-            ? "bg-linen text-black hover:bg-white"
-            : "bg-black text-white hover:bg-ember"
-        }`}
-      >
-        Compra
-      </a>
+      <PlanPaymentActions plan={plan} isDark={isDark} />
     </div>
   );
 };
@@ -254,7 +306,7 @@ const ServicesSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {therapyPlans.map((plan) => (
+          {THERAPY_PLANS.map((plan) => (
             <PlanCard key={plan.id} plan={plan} />
           ))}
         </div>
@@ -298,7 +350,7 @@ const ServicesSection = () => {
               Espacio garantizado para cada participante.
             </p>
           </div>
-          <PlanCard plan={coursePlan} variant="dark" />
+          <PlanCard plan={COURSE_PLAN} variant="dark" />
         </div>
       </div>
       </div>

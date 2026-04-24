@@ -3,24 +3,30 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { useContext, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { NavbarContext } from "../../context/NavContext";
 
 type MenuItem = {
   label: string;
-  href: string;
+  hash: string;
   marquee: string;
 };
 
 const menuItems: MenuItem[] = [
-  { label: "Inicio", href: "#hero", marquee: "Cambia tu realidad" },
-  { label: "Servicios", href: "#servicios", marquee: "Terapias y cursos en vivo" },
-  { label: "Testimonios", href: "#testimonios", marquee: "Historias reales" },
-  { label: "Contacto", href: "#contacto", marquee: "Hablemos por WhatsApp" },
+  { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
+  { label: "Servicios", hash: "#servicios", marquee: "Terapias y cursos en vivo" },
+  { label: "Testimonios", hash: "#testimonios", marquee: "Historias reales" },
+  { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },
+  { label: "Redes", hash: "#redes", marquee: "Sigue a Dayana" },
 ];
 
 const FullScreenNav = () => {
   const fullNavLinksRef = useRef<HTMLDivElement>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  const resolveHref = (hash: string) =>
+    pathname === "/" ? hash : `/${hash}`;
 
   const [navOpen, setNavOpen] = useContext(NavbarContext);
 
@@ -74,21 +80,21 @@ const FullScreenNav = () => {
     <div
       ref={fullScreenRef}
       id="fullscreennav"
-      className="fullscreennav hidden text-white overflow-hidden h-screen w-full z-50 fixed top-0 left-0"
+      className="fullscreennav hidden text-white h-screen w-full z-50 fixed top-0 left-0 overflow-y-auto overflow-x-hidden"
     >
       <div className="h-screen w-full fixed">
         <div className="h-full w-full flex">
           <div className="stairing h-full w-1/5 bg-black"></div>
+          <div className="stairing h-full w-1/5 bg-blush"></div>
           <div className="stairing h-full w-1/5 bg-linen"></div>
-          <div className="stairing h-full w-1/5 bg-ember"></div>
-          <div className="stairing h-full w-1/5 bg-linen"></div>
+          <div className="stairing h-full w-1/5 bg-sand"></div>
           <div className="stairing h-full w-1/5 bg-black"></div>
         </div>
       </div>
       <div ref={fullNavLinksRef} className="relative">
         <div className="navlink flex w-full justify-between lg:p-5 p-2 items-start">
           <a
-            href="#hero"
+            href={resolveHref("#hero")}
             onClick={handleMenuClick}
             className="font-[font2] uppercase leading-none select-none text-white"
             aria-label="Dayana Beltrán — Maestra en PNL"
@@ -109,17 +115,17 @@ const FullScreenNav = () => {
           </div>
         </div>
 
-        <div className="py-20 lg:py-28">
+        <div className="py-12 lg:py-16">
           {menuItems.map((item, idx) => (
             <a
               key={item.label}
-              href={item.href}
+              href={resolveHref(item.hash)}
               onClick={handleMenuClick}
               className={`link origin-top relative block border-t border-white ${
                 idx === menuItems.length - 1 ? "border-b" : ""
               }`}
             >
-              <h1 className="font-[font2] text-5xl lg:text-[8vw] text-center lg:leading-[0.8] lg:pt-10 pt-3 pb-3 lg:pb-0 uppercase">
+              <h1 className="font-[font2] text-4xl lg:text-[6.2vw] text-center lg:leading-[0.85] lg:pt-5 pt-3 pb-3 lg:pb-4 uppercase">
                 {item.label}
               </h1>
               <div className="moveLink absolute text-black flex top-0 bg-linen w-full h-full overflow-hidden items-center">
@@ -127,10 +133,10 @@ const FullScreenNav = () => {
                   {Array.from({ length: 6 }).map((_, i) => (
                     <span
                       key={i}
-                      className="whitespace-nowrap font-[font2] lg:text-[8vw] text-5xl lg:leading-[0.8] uppercase px-6 lg:px-12 flex items-center gap-6 lg:gap-12"
+                      className="whitespace-nowrap font-[font2] lg:text-[6.2vw] text-4xl lg:leading-[0.85] uppercase px-6 lg:px-12 flex items-center gap-6 lg:gap-12"
                     >
                       {item.marquee}
-                      <span className="inline-block w-3 h-3 lg:w-5 lg:h-5 rounded-full bg-black shrink-0"></span>
+                      <span className="inline-block w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-black shrink-0"></span>
                     </span>
                   ))}
                 </div>
@@ -138,10 +144,10 @@ const FullScreenNav = () => {
                   {Array.from({ length: 6 }).map((_, i) => (
                     <span
                       key={i}
-                      className="whitespace-nowrap font-[font2] lg:text-[8vw] text-5xl lg:leading-[0.8] uppercase px-6 lg:px-12 flex items-center gap-6 lg:gap-12"
+                      className="whitespace-nowrap font-[font2] lg:text-[6.2vw] text-4xl lg:leading-[0.85] uppercase px-6 lg:px-12 flex items-center gap-6 lg:gap-12"
                     >
                       {item.marquee}
-                      <span className="inline-block w-3 h-3 lg:w-5 lg:h-5 rounded-full bg-black shrink-0"></span>
+                      <span className="inline-block w-3 h-3 lg:w-4 lg:h-4 rounded-full bg-black shrink-0"></span>
                     </span>
                   ))}
                 </div>

@@ -100,9 +100,9 @@ const TestimonialsSection = () => {
         className="absolute inset-0 pointer-events-none opacity-80"
         style={{
           background: [
-            "radial-gradient(60% 40% at 15% 20%, rgba(224,213,198,0.12), transparent 60%)",
-            "radial-gradient(50% 45% at 85% 75%, rgba(168,92,62,0.18), transparent 65%)",
-            "radial-gradient(70% 50% at 50% 110%, rgba(224,213,198,0.08), transparent 70%)",
+            "radial-gradient(60% 40% at 15% 20%, rgba(236,227,212,0.14), transparent 60%)",
+            "radial-gradient(50% 45% at 85% 75%, rgba(237,195,177,0.16), transparent 65%)",
+            "radial-gradient(70% 50% at 50% 110%, rgba(212,184,150,0.10), transparent 70%)",
           ].join(","),
         }}
       />
@@ -145,7 +145,7 @@ const TestimonialsSection = () => {
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
                 style={{
                   background:
-                    "radial-gradient(60% 80% at 50% 0%, rgba(224,213,198,0.18), transparent 70%)",
+                    "radial-gradient(60% 80% at 50% 0%, rgba(237,195,177,0.20), transparent 70%)",
                 }}
               />
               <div className="relative aspect-video w-full bg-black/50 flex items-center justify-center">
