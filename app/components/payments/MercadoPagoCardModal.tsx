@@ -19,6 +19,25 @@ type UiState =
   | { kind: "error"; message: string }
   | { kind: "success"; paymentId?: number; status?: string };
 
+type Breakdown = {
+  subtotal: string;
+  fee: string;
+  total: string;
+  currency: string;
+};
+
+const formatBreakdown = (value: string, currency: string): string => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return `${value} ${currency}`;
+  if (currency === "COP") {
+    return `${n.toLocaleString("es-CO", { maximumFractionDigits: 0 })} ${currency}`;
+  }
+  return `${n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ${currency}`;
+};
+
 type CardFormData = {
   token: string;
   paymentMethodId: string;
@@ -119,20 +138,15 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
     [plan]
   );
   const checkoutAmount = useMemo(() => {
-    if (!plan) return 0;
-    const currency = (
-      process.env.NEXT_PUBLIC_MERCADOPAGO_CURRENCY ?? "USD"
-    ).toUpperCase();
-    if (currency === "COP") {
-      const rate = Number(process.env.NEXT_PUBLIC_MERCADOPAGO_USD_TO_COP ?? "4000");
-      if (Number.isFinite(rate) && rate > 0) {
-        return Math.round(plan.amountUsd * rate);
-      }
+    if (breakdown) {
+      const n = Number(breakdown.total);
+      if (Number.isFinite(n) && n > 0) return n;
     }
-    return plan.amountUsd;
-  }, [plan]);
+    return 0;
+  }, [breakdown]);
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
+  const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const formControllerRef = useRef<CardFormController | null>(null);
   const [formId, setFormId] = useState("");
@@ -141,10 +155,40 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
   useEffect(() => {
     if (!open) {
       setUi({ kind: "idle" });
+      setBreakdown(null);
       setFormId("");
       isInitializingRef.current = false;
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !plan) return;
+    let cancelled = false;
+    void fetch("/api/payments/quote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ planId: plan.id, provider: "mercadopago" }),
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as Partial<Breakdown>;
+        if (cancelled) return;
+        if (data.subtotal && data.fee && data.total && data.currency) {
+          setBreakdown({
+            subtotal: data.subtotal,
+            fee: data.fee,
+            total: data.total,
+            currency: data.currency,
+          });
+        }
+      })
+      .catch(() => {
+        /* sin desglose previo */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, plan]);
 
   useEffect(() => {
     if (!open || !plan) return;
@@ -180,6 +224,7 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
 
   useEffect(() => {
     if (!open || !plan || !formId) return;
+    if (checkoutAmount <= 0) return;
     let cancelled = false;
 
     const destroyForm = () => {
@@ -415,7 +460,32 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
             </div>
             <div className="font-[font2] uppercase text-xl mt-1">{plan.title}</div>
             <div className="font-[font1] text-sm text-white/70">{plan.sessions}</div>
-            <div className="font-[font1] text-2xl mt-2 text-linen">{amountLabel} USD</div>
+
+            {breakdown ? (
+              <div className="mt-3 space-y-1.5 font-[font1] text-sm">
+                <div className="flex justify-between text-white/70">
+                  <span>Subtotal</span>
+                  <span>{formatBreakdown(breakdown.subtotal, breakdown.currency)}</span>
+                </div>
+                <div className="flex justify-between text-white/55">
+                  <span>Comisión Mercado Pago</span>
+                  <span>+ {formatBreakdown(breakdown.fee, breakdown.currency)}</span>
+                </div>
+                <div className="border-t border-linen/12 my-2" />
+                <div className="flex justify-between items-baseline">
+                  <span className="font-[font2] uppercase text-[10px] tracking-[0.3em] text-linen/70">
+                    Total a pagar
+                  </span>
+                  <span className="font-[font1] text-2xl text-linen">
+                    {formatBreakdown(breakdown.total, breakdown.currency)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="font-[font1] text-2xl mt-2 text-linen">
+                {amountLabel} USD
+              </div>
+            )}
           </div>
 
           {ui.kind === "loading" && (
@@ -483,8 +553,12 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
               </div>
               <p className="font-[font1] text-sm text-white/70 mt-3 max-w-sm leading-snug">
                 Mercado Pago confirmó tu pago de{" "}
-                <span className="text-linen">{amountLabel} USD</span>. Ya puedes
-                agendar por WhatsApp.
+                <span className="text-linen">
+                  {breakdown
+                    ? formatBreakdown(breakdown.total, breakdown.currency)
+                    : `${amountLabel} USD`}
+                </span>
+                . Ya puedes agendar por WhatsApp.
               </p>
               {ui.paymentId && (
                 <div className="font-[font1] text-[11px] text-white/40 mt-3 break-all w-full">
@@ -495,7 +569,11 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
               <div className="flex flex-col sm:flex-row gap-2 w-full mt-6">
                 <a
                   href={buildWhatsAppUrl(
-                    `Hola Dayana, pagué con Mercado Pago por ${amountLabel} USD${
+                    `Hola Dayana, pagué con Mercado Pago por ${
+                      breakdown
+                        ? formatBreakdown(breakdown.total, breakdown.currency)
+                        : `${amountLabel} USD`
+                    }${
                       ui.paymentId ? `. Ref: ${ui.paymentId}` : "."
                     } Quiero agendar.`
                   )}

@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
+import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { getPlan, isPlanId } from "../../../../lib/plans";
 
 type Body = {
@@ -10,7 +11,6 @@ type Body = {
   issuer_id?: string | null;
   issuerId?: string | null;
   installments?: number | string;
-  transaction_amount?: number | string;
   payer?: {
     email?: string;
     identification?: {
@@ -72,17 +72,26 @@ export async function POST(req: Request) {
     );
   }
 
-  const transactionAmountRaw =
-    Number(body.transaction_amount) > 0
-      ? Number(body.transaction_amount)
-      : plan.amountUsd;
+  // El monto SIEMPRE se calcula server-side a partir del plan + comisión.
+  // No confiamos en `transaction_amount` que mande el cliente.
+  let grossAmount: number;
+  try {
+    grossAmount = mercadoPagoItemAmount(plan).gross;
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "amount_error";
+    console.error("[mercadopago] card amount", message);
+    return NextResponse.json(
+      { ok: false, message: "Configuración de monto inválida." },
+      { status: 500 }
+    );
+  }
 
   const identificationType = body.payer?.identification?.type?.trim();
   const identificationNumber = body.payer?.identification?.number?.trim();
 
   const paymentBody = {
     token: body.token,
-    transaction_amount: transactionAmountRaw,
+    transaction_amount: grossAmount,
     installments,
     payment_method_id: paymentMethodId,
     issuer_id: issuerId ?? undefined,
