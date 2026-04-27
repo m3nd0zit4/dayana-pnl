@@ -12,6 +12,12 @@ type PayPalModalProps = {
   onClose: () => void;
 };
 
+type Breakdown = {
+  subtotal: string;
+  fee: string;
+  total: string;
+};
+
 type UiState =
   | { kind: "idle" }
   | { kind: "loading" }
@@ -19,11 +25,21 @@ type UiState =
   | { kind: "error"; message: string }
   | { kind: "success"; orderID: string; captureId?: string };
 
+const usdLabel = (value: string): string => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return `${value} USD`;
+  return `${n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} USD`;
+};
+
 const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const open = planId !== null;
   const plan = planId ? getPlan(planId) : null;
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
+  const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
@@ -31,6 +47,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   useEffect(() => {
     if (!open) {
       setUi({ kind: "idle" });
+      setBreakdown(null);
     }
   }, [open]);
 
@@ -61,6 +78,34 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       closeButtonRef.current?.focus();
     }, 60);
     return () => window.clearTimeout(t);
+  }, [open, plan]);
+
+  useEffect(() => {
+    if (!open || !plan) return;
+    let cancelled = false;
+    void fetch("/api/payments/quote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ planId: plan.id, provider: "paypal" }),
+    })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as Partial<Breakdown>;
+        if (cancelled) return;
+        if (data.subtotal && data.fee && data.total) {
+          setBreakdown({
+            subtotal: data.subtotal,
+            fee: data.fee,
+            total: data.total,
+          });
+        }
+      })
+      .catch(() => {
+        /* sin desglose previo: se muestra solo el subtotal del plan */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, plan]);
 
   useEffect(() => {
@@ -130,11 +175,15 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             const data = (await res.json()) as {
               orderID?: string;
               message?: string;
+              breakdown?: Breakdown;
             };
             if (!res.ok || !data.orderID) {
               throw new Error(
                 data.message ?? "No se pudo crear la orden en PayPal."
               );
+            }
+            if (data.breakdown && !cancelled) {
+              setBreakdown(data.breakdown);
             }
             return data.orderID;
           },
@@ -275,12 +324,39 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             </div>
             <div className="font-[font2] uppercase text-xl mt-1">{plan.title}</div>
             <div className="font-[font1] text-sm text-white/70">{plan.sessions}</div>
-            <div className="font-[font1] text-2xl mt-2 text-linen">{amountLabel} USD</div>
+
+            {breakdown ? (
+              <div className="mt-3 space-y-1.5 font-[font1] text-sm">
+                <div className="flex justify-between text-white/70">
+                  <span>Subtotal</span>
+                  <span>{usdLabel(breakdown.subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-white/55">
+                  <span>Comisión PayPal</span>
+                  <span>+ {usdLabel(breakdown.fee)}</span>
+                </div>
+                <div className="border-t border-linen/12 my-2" />
+                <div className="flex justify-between items-baseline">
+                  <span className="font-[font2] uppercase text-[10px] tracking-[0.3em] text-linen/70">
+                    Total a pagar
+                  </span>
+                  <span className="font-[font1] text-2xl text-linen">
+                    {usdLabel(breakdown.total)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="font-[font1] text-2xl mt-2 text-linen">
+                {amountLabel} USD
+              </div>
+            )}
           </div>
 
           {ui.kind === "success" && (
             <PayPalSuccess
-              amountLabel={amountLabel}
+              amountLabel={
+                breakdown ? usdLabel(breakdown.total) : `${amountLabel} USD`
+              }
               orderID={ui.orderID}
               captureId={ui.captureId}
               onClose={onClose}
@@ -360,7 +436,7 @@ const PayPalSuccess = ({
   onClose,
 }: PayPalSuccessProps) => {
   const whatsappHref = buildWhatsAppUrl(
-    `Hola Dayana, pagué con PayPal por ${amountLabel} USD. Orden: ${orderID}${
+    `Hola Dayana, pagué con PayPal por ${amountLabel}. Orden: ${orderID}${
       captureId ? `. Captura: ${captureId}.` : "."
     } Quiero agendar.`
   );
@@ -372,8 +448,8 @@ const PayPalSuccess = ({
       </div>
       <p className="font-[font1] text-sm text-white/70 mt-3 max-w-sm leading-snug">
         PayPal confirmó tu pago de{" "}
-        <span className="text-linen">{amountLabel} USD</span>. El siguiente paso
-        es coordinar por WhatsApp.
+        <span className="text-linen">{amountLabel}</span>. El siguiente paso es
+        coordinar por WhatsApp.
       </p>
       <div className="font-[font1] text-[11px] text-white/40 mt-3 break-all w-full">
         Orden: {orderID}

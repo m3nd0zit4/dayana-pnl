@@ -4,6 +4,7 @@ import {
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
 import { getPlan, isPlanId, type PlanId } from "../../../../lib/plans";
+import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +33,10 @@ export async function POST(req: NextRequest) {
 
   const planId = body.planId as PlanId;
   const plan = getPlan(planId);
-  const amountValue = plan.amountUsd.toFixed(2);
+  const breakdown = grossUpUsd(plan.amountUsd, paypalFee());
+  const amountValue = breakdown.gross.toFixed(2);
+  const itemTotalValue = breakdown.net.toFixed(2);
+  const handlingValue = breakdown.fee.toFixed(2);
 
   try {
     const accessToken = await getPayPalAccessToken();
@@ -43,6 +47,8 @@ export async function POST(req: NextRequest) {
       sessions: plan.sessions,
       amountValue,
       currencyCode: PAYPAL_CURRENCY,
+      itemTotalValue,
+      handlingValue,
     });
 
     return NextResponse.json({
@@ -52,6 +58,11 @@ export async function POST(req: NextRequest) {
       planId: plan.id,
       planTitle: plan.title,
       sessions: plan.sessions,
+      breakdown: {
+        subtotal: itemTotalValue,
+        fee: handlingValue,
+        total: amountValue,
+      },
     });
   } catch (error) {
     const message =

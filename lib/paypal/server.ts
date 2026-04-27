@@ -41,11 +41,58 @@ type CreateOrderInput = {
   sessions: string;
   amountValue: string;
   currencyCode: string;
+  /** Subtotal (precio neto del plan) en formato "0.00". Si está, se envía breakdown. */
+  itemTotalValue?: string;
+  /** Comisión que paga el cliente en formato "0.00". */
+  handlingValue?: string;
 };
 
 export const createPayPalOrderRequest = async (
   input: CreateOrderInput
 ): Promise<{ id: string }> => {
+  const hasBreakdown =
+    typeof input.itemTotalValue === "string" &&
+    typeof input.handlingValue === "string";
+
+  const purchaseUnit: Record<string, unknown> = {
+    reference_id: input.planId.slice(0, 256),
+    description: `${input.planTitle} — ${input.sessions}`.slice(0, 127),
+    custom_id: input.planId.slice(0, 127),
+    amount: hasBreakdown
+      ? {
+          currency_code: input.currencyCode,
+          value: input.amountValue,
+          breakdown: {
+            item_total: {
+              currency_code: input.currencyCode,
+              value: input.itemTotalValue,
+            },
+            handling: {
+              currency_code: input.currencyCode,
+              value: input.handlingValue,
+            },
+          },
+        }
+      : {
+          currency_code: input.currencyCode,
+          value: input.amountValue,
+        },
+  };
+
+  if (hasBreakdown) {
+    purchaseUnit.items = [
+      {
+        name: `${input.planTitle} — ${input.sessions}`.slice(0, 127),
+        quantity: "1",
+        category: "DIGITAL_GOODS",
+        unit_amount: {
+          currency_code: input.currencyCode,
+          value: input.itemTotalValue,
+        },
+      },
+    ];
+  }
+
   const res = await fetch(`${apiBase()}/v2/checkout/orders`, {
     method: "POST",
     headers: {
@@ -55,17 +102,7 @@ export const createPayPalOrderRequest = async (
     },
     body: JSON.stringify({
       intent: "CAPTURE",
-      purchase_units: [
-        {
-          reference_id: input.planId.slice(0, 256),
-          description: `${input.planTitle} — ${input.sessions}`.slice(0, 127),
-          custom_id: input.planId.slice(0, 127),
-          amount: {
-            currency_code: input.currencyCode,
-            value: input.amountValue,
-          },
-        },
-      ],
+      purchase_units: [purchaseUnit],
       application_context: {
         shipping_preference: "NO_SHIPPING",
         user_action: "PAY_NOW",
