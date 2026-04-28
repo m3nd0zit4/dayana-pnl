@@ -428,6 +428,7 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
           <MercadoPagoBrandRow
             tone="onDark"
             subtitle="Tarjeta dentro de la página"
+            logoHeight={28}
             className="items-start text-left"
           />
           <button

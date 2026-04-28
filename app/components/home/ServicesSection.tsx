@@ -12,7 +12,9 @@ import {
   type Plan,
 } from "../../../lib/plans";
 import { usePayPalModal } from "../../context/PayPalModalContext";
+import { useMercadoPagoCheckoutModal } from "../../context/MercadoPagoCheckoutModalContext";
 import { PayPalBrandRow } from "../payments/PayPalBrandRow";
+import { MercadoPagoBrandRow } from "../payments/MercadoPagoBrandRow";
 import SplitReveal from "../ui/SplitReveal";
 import { useStackingSection } from "../../hooks/useStackingSection";
 
@@ -23,30 +25,6 @@ type PlanCardProps = {
   variant?: "light" | "dark";
 };
 
-const Spinner = () => (
-  <svg
-    viewBox="0 0 24 24"
-    className="h-3.5 w-3.5 animate-spin"
-    fill="none"
-    aria-hidden
-  >
-    <circle
-      cx="12"
-      cy="12"
-      r="9"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeOpacity="0.25"
-    />
-    <path
-      d="M21 12a9 9 0 0 0-9-9"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 const PlanPaymentActions = ({
   plan,
   isDark,
@@ -55,40 +33,15 @@ const PlanPaymentActions = ({
   isDark: boolean;
 }) => {
   const { openPayPal } = usePayPalModal();
+  const { openMercadoPago } = useMercadoPagoCheckoutModal();
   const [ready, setReady] = useState(false);
-  const [mpLoading, setMpLoading] = useState<null | "full">(null);
-  const [mpError, setMpError] = useState<string | null>(null);
 
   useEffect(() => {
     setReady(true);
   }, []);
 
-  const startMercadoPago = async (mode: "full") => {
-    setMpError(null);
-    setMpLoading(mode);
-    try {
-      const res = await fetch("/api/mercadopago/create-preference", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: plan.id, mode }),
-      });
-      const data = (await res.json()) as { init_point?: string; error?: string };
-      if (!res.ok || !data.init_point) {
-        setMpError(
-          "No se pudo abrir el checkout. Revisa la configuración o escribe por WhatsApp."
-        );
-        return;
-      }
-      window.location.href = data.init_point;
-    } catch {
-      setMpError("Error de red. Intenta de nuevo.");
-    } finally {
-      setMpLoading(null);
-    }
-  };
-
   const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
-  const payBusy = mpLoading !== null;
+  const payBusy = false;
 
   if (!ready) {
     return (
@@ -101,12 +54,8 @@ const PlanPaymentActions = ({
   }
 
   const mpFullClass = isDark
-    ? "border-[#009ee3]/50 bg-[#009ee3]/15 text-white hover:bg-[#009ee3]/25 hover:border-[#009ee3]/80"
-    : "border-[#009ee3]/40 bg-white text-[#009ee3] hover:bg-[#009ee3]/5 hover:border-[#009ee3]/70";
-
-  const mpSubtitle = isDark
-    ? "text-white/55 group-hover:text-white/75"
-    : "text-[#009ee3]/65 group-hover:text-[#009ee3]/90";
+    ? "border-white/15 bg-white shadow-[0_8px_28px_rgba(0,0,0,0.35)] hover:border-[#00bcff] hover:bg-[#f4fbff]"
+    : "border-[#b8e6f8] bg-gradient-to-b from-white via-[#f6fcff] to-[#e6f4fb] shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_24px_rgba(10,0,128,0.08)] hover:border-[#00bcff] hover:shadow-[0_10px_28px_rgba(10,0,128,0.12)]";
 
   return (
     <div className="mt-6 flex flex-col gap-2.5">
@@ -129,40 +78,15 @@ const PlanPaymentActions = ({
       <button
         type="button"
         disabled={payBusy}
-        onClick={() => startMercadoPago("full")}
-        aria-busy={mpLoading === "full"}
-        className={`group relative w-full rounded-full border px-3 py-2.5 text-center transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
+        onClick={() => openMercadoPago(plan.id)}
+        className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
       >
-        <span className="flex flex-col items-center gap-1.5 leading-none">
-          <span className="inline-flex items-center gap-2 font-[font2] text-sm uppercase tracking-wide">
-            {mpLoading === "full" ? (
-              <>
-                <Spinner />
-                Abriendo checkout…
-              </>
-            ) : (
-              "Mercado Pago"
-            )}
-          </span>
-          <span
-            className={`font-[font2] text-[8px] uppercase tracking-[0.3em] transition-colors ${mpSubtitle}`}
-          >
-            {mpLoading === "full"
-              ? "Redirigiendo de forma segura"
-              : "débito o crédito"}
-          </span>
-        </span>
+        <MercadoPagoBrandRow
+          tone="onLight"
+          logoHeight={35}
+          className="items-center"
+        />
       </button>
-      {mpError && (
-        <p
-          role="alert"
-          className={`font-[font1] text-center text-[11px] ${
-            isDark ? "text-red-200/95" : "text-red-700/90"
-          }`}
-        >
-          {mpError}
-        </p>
-      )}
       <a
         href={buildWhatsAppUrl(plan.whatsappMessage)}
         target="_blank"
