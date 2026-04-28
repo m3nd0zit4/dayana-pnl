@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import SplitReveal from "../ui/SplitReveal";
 import { useStackingSection } from "../../hooks/useStackingSection";
 
@@ -47,6 +47,7 @@ const TestimonialsSection = () => {
   const rootRef = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
 
   useStackingSection(rootRef, innerRef, {
     tilt: -5,
@@ -148,14 +149,43 @@ const TestimonialsSection = () => {
                 />
                 <div className="relative aspect-video w-full bg-black/50 flex items-center justify-center">
                   {t.youtubeId ? (
-                    <iframe
-                      className="w-full h-full"
-                      src={`https://www.youtube-nocookie.com/embed/${t.youtubeId}`}
-                      title={t.name}
-                      loading="lazy"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
+                    activeVideoId === t.id ? (
+                      <iframe
+                        className="w-full h-full"
+                        src={`https://www.youtube-nocookie.com/embed/${t.youtubeId}`}
+                        title={t.name}
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setActiveVideoId(t.id)}
+                        className="relative h-full w-full overflow-hidden"
+                        aria-label={`Activar video de ${t.name}`}
+                      >
+                        <img
+                          src={`https://i.ytimg.com/vi/${t.youtubeId}/hqdefault.jpg`}
+                          alt={`Miniatura de ${t.name}`}
+                          className="h-full w-full object-cover opacity-80"
+                          loading="lazy"
+                        />
+                        <span className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 transition-colors hover:bg-black/15">
+                          <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/45 px-4 py-2 text-[10px] font-[font1] uppercase tracking-[0.22em] text-white/90">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              className="h-3.5 w-3.5"
+                              aria-hidden="true"
+                            >
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                            Ver testimonio
+                          </span>
+                        </span>
+                      </button>
+                    )
                   ) : (
                     <div className="flex flex-col items-center gap-3 text-linen/60">
                       <svg
