@@ -137,6 +137,8 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
     () => (plan ? formatUsd(plan.amountUsd) : ""),
     [plan]
   );
+  const [ui, setUi] = useState<UiState>({ kind: "idle" });
+  const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
   const checkoutAmount = useMemo(() => {
     if (breakdown) {
       const n = Number(breakdown.total);
@@ -144,9 +146,6 @@ const MercadoPagoCardModal = ({ planId, onClose }: MercadoPagoCardModalProps) =>
     }
     return 0;
   }, [breakdown]);
-
-  const [ui, setUi] = useState<UiState>({ kind: "idle" });
-  const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const formControllerRef = useRef<CardFormController | null>(null);
   const [formId, setFormId] = useState("");
