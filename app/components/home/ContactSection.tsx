@@ -43,7 +43,7 @@ const ContactSection = () => {
         className="px-3 lg:px-8 py-32 text-center will-change-transform origin-center"
       >
         <SplitReveal
-          text={"¿Lista para\ndar el paso?"}
+          text={"¿Listo para\ndar el paso?"}
           className="font-[font2] text-5xl lg:text-[8vw] uppercase leading-[0.95]"
         />
         <p className="ct-reveal font-[font1] mt-8 lg:mt-12 mx-auto max-w-2xl text-lg lg:text-2xl text-white/80">
