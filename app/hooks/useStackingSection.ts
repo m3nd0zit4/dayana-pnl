@@ -10,12 +10,13 @@ gsap.registerPlugin(ScrollTrigger);
 type Options = {
   tilt?: number;
   isLast?: boolean;
+  tiltScrubEnd?: string;
 };
 
 export const useStackingSection = (
   sectionRef: RefObject<HTMLElement | null>,
   innerRef: RefObject<HTMLDivElement | null>,
-  { tilt = -4, isLast = false }: Options = {}
+  { tilt = -4, isLast = false, tiltScrubEnd = "top 30%" }: Options = {}
 ) => {
   useGSAP(
     () => {
@@ -30,7 +31,7 @@ export const useStackingSection = (
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top bottom",
-            end: "top 30%",
+            end: tiltScrubEnd,
             scrub: true,
             invalidateOnRefresh: true,
           },
