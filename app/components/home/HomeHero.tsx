@@ -53,14 +53,14 @@ const HomeHero = () => {
       if (videoRef.current) {
         gsap.set(videoRef.current, {
           opacity: 0,
-          scale: 1.1,
-          filter: "blur(24px)",
+          scale: 1,
+          filter: "blur(0px)",
         });
 
         if (prefersReducedMotion) {
           gsap.set(videoRef.current, {
             opacity: 1,
-            filter: "blur(10px)",
+            filter: "blur(0px)",
           });
         } else {
           gsap.to(videoRef.current, {
@@ -105,43 +105,18 @@ const HomeHero = () => {
           },
           "<+=0.25"
         );
-      }
 
-      if (videoRef.current && overlayRef.current && !prefersReducedMotion) {
-        gsap.fromTo(
-          videoRef.current,
-          { filter: "blur(24px)", scale: 1.1 },
-          {
-            filter: "blur(0px)",
-            scale: 1,
-            ease: "power2.out",
-            immediateRender: false,
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top top",
-              end: "+=350",
-              scrub: 0.3,
-              invalidateOnRefresh: true,
+        if (i === 2 && overlayRef.current && !prefersReducedMotion) {
+          tl.to(
+            overlayRef.current,
+            {
+              opacity: 0.2,
+              duration: 1.1,
+              ease: "none",
             },
-          }
-        );
-
-        gsap.fromTo(
-          overlayRef.current,
-          { opacity: 0.35 },
-          {
-            opacity: 0.2,
-            ease: "none",
-            immediateRender: false,
-            scrollTrigger: {
-              trigger: sectionRef.current,
-              start: "top top",
-              end: "+=350",
-              scrub: 0.3,
-              invalidateOnRefresh: true,
-            },
-          }
-        );
+            "<"
+          );
+        }
       }
     },
     { scope: sectionRef }

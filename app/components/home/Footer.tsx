@@ -81,6 +81,13 @@ const socials: SocialItem[] = [
     href: SOCIAL_LINKS.tiktok,
     icon: <TikTokIcon />,
   },
+  {
+    key: "tiktok-2",
+    label: "TikTok",
+    handle: "@dayanapnl2",
+    href: "https://www.tiktok.com/@dayanapnl2",
+    icon: <TikTokIcon />,
+  },
   // {
   //   key: "instagram",
   //   label: "Instagram",
