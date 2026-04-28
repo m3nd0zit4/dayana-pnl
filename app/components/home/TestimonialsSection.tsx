@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SplitReveal from "../ui/SplitReveal";
 import { useStackingSection } from "../../hooks/useStackingSection";
 
@@ -43,11 +43,103 @@ const testimonials: Testimonial[] = [
   },
 ];
 
+const TestimonialVideo = ({
+  youtubeId,
+  name,
+}: {
+  youtubeId: string | null;
+  name: string;
+}) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isIframeLoading, setIsIframeLoading] = useState(false);
+  const [shouldMountPlayer, setShouldMountPlayer] = useState(false);
+
+  useEffect(() => {
+    if (!youtubeId || !containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry.isIntersecting) return;
+        setShouldMountPlayer(true);
+        observer.disconnect();
+      },
+      { root: null, rootMargin: "220px 0px", threshold: 0.01 }
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [youtubeId]);
+
+  useEffect(() => {
+    if (!shouldMountPlayer) return;
+    setIsIframeLoading(true);
+  }, [shouldMountPlayer]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative aspect-video w-full bg-black/50 flex items-center justify-center"
+    >
+      {youtubeId ? (
+        shouldMountPlayer ? (
+          <>
+            <iframe
+              className="w-full h-full"
+              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`}
+              title={name}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onLoad={() => setIsIframeLoading(false)}
+            />
+            {isIframeLoading ? (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 pointer-events-none">
+                <div className="flex items-center gap-3 rounded-full border border-white/20 bg-black/50 px-4 py-2">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="font-[font1] text-[10px] uppercase tracking-[0.22em] text-white/85">
+                    Cargando video
+                  </span>
+                </div>
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShouldMountPlayer(true)}
+            className="relative h-full w-full overflow-hidden"
+            aria-label={`Activar video de ${name}`}
+          >
+            <img
+              src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
+              alt={`Miniatura de ${name}`}
+              className="h-full w-full object-cover opacity-80"
+              loading="lazy"
+            />
+            <span className="absolute inset-0 z-10 flex items-center justify-center bg-black/25">
+              <span className="inline-flex h-12 w-[72px] items-center justify-center rounded-xl bg-[#FF0000] shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-6 w-6 text-white"
+                  aria-hidden="true"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+            </span>
+          </button>
+        )
+      ) : null}
+    </div>
+  );
+};
+
 const TestimonialsSection = () => {
   const rootRef = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
-  const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
 
   useStackingSection(rootRef, innerRef, {
     tilt: -5,
@@ -147,61 +239,10 @@ const TestimonialsSection = () => {
                       "radial-gradient(60% 80% at 50% 0%, rgba(237,195,177,0.20), transparent 70%)",
                   }}
                 />
-                <div className="relative aspect-video w-full bg-black/50 flex items-center justify-center">
-                  {t.youtubeId ? (
-                    activeVideoId === t.id ? (
-                      <iframe
-                        className="w-full h-full"
-                        src={`https://www.youtube-nocookie.com/embed/${t.youtubeId}`}
-                        title={t.name}
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setActiveVideoId(t.id)}
-                        className="relative h-full w-full overflow-hidden"
-                        aria-label={`Activar video de ${t.name}`}
-                      >
-                        <img
-                          src={`https://i.ytimg.com/vi/${t.youtubeId}/hqdefault.jpg`}
-                          alt={`Miniatura de ${t.name}`}
-                          className="h-full w-full object-cover opacity-80"
-                          loading="lazy"
-                        />
-                        <span className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 transition-colors hover:bg-black/15">
-                          <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/45 px-4 py-2 text-[10px] font-[font1] uppercase tracking-[0.22em] text-white/90">
-                            <svg
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              className="h-3.5 w-3.5"
-                              aria-hidden="true"
-                            >
-                              <path d="M8 5v14l11-7z" />
-                            </svg>
-                            Ver testimonio
-                          </span>
-                        </span>
-                      </button>
-                    )
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 text-linen/60">
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="w-12 h-12"
-                        aria-hidden="true"
-                      >
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                      <span className="font-[font1] text-sm uppercase tracking-wider">
-                        Video próximo
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <TestimonialVideo
+                  youtubeId={t.youtubeId}
+                  name={t.name}
+                />
                 <div className="relative p-5">
                   <div className="font-[font2] uppercase text-lg">{t.name}</div>
                   <div className="font-[font1] text-sm text-white/70 mt-1">
