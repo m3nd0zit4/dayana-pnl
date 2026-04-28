@@ -43,3 +43,5 @@ next-env.d.ts
 
 # agent skills (local; not published to GitHub)
 .agents/skills/
+
+.vercel
