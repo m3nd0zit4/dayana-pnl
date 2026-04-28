@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import NavContext from "./context/NavContext";
 import { PayPalModalProvider } from "./context/PayPalModalContext";
+import { MercadoPagoCheckoutModalProvider } from "./context/MercadoPagoCheckoutModalContext";
 import Stairs from "./components/common/Stairs";
 import Navbar from "./components/Navigation/Navbar";
 import FullScreenNav from "./components/Navigation/FullScreenNav";
@@ -13,15 +14,17 @@ const Providers = ({ children }: { children: ReactNode }) => {
   return (
     <NavContext>
       <PayPalModalProvider>
-        <SmoothScroll />
-        <ScrollTriggerRefresher />
-        <Stairs>
-          <div className="overflow-x-hidden">
-            <Navbar />
-            <FullScreenNav />
-            {children}
-          </div>
-        </Stairs>
+        <MercadoPagoCheckoutModalProvider>
+          <SmoothScroll />
+          <ScrollTriggerRefresher />
+          <Stairs>
+            <div className="overflow-x-hidden">
+              <Navbar />
+              <FullScreenNav />
+              {children}
+            </div>
+          </Stairs>
+        </MercadoPagoCheckoutModalProvider>
       </PayPalModalProvider>
     </NavContext>
   );

@@ -1,8 +1,19 @@
 import type { Plan } from "../plans";
+import {
+  grossUpInt,
+  grossUpUsd,
+  mercadoPagoFee,
+  type FeeBreakdown,
+} from "../pricing/fees";
 
-/** Mercado Pago preference item amount (server-only). */
+/**
+ * Mercado Pago preference item amount (server-only).
+ * Devuelve el NETO + COMISIÓN por separado, así el checkout muestra el desglose.
+ */
 export function mercadoPagoItemAmount(plan: Plan): {
-  unit_price: number;
+  net: number;
+  fee: number;
+  gross: number;
   currency_id: string;
 } {
   const currency = (process.env.MERCADOPAGO_CURRENCY ?? "USD").toUpperCase();
@@ -11,12 +22,12 @@ export function mercadoPagoItemAmount(plan: Plan): {
     if (!Number.isFinite(rate) || rate <= 0) {
       throw new Error("MERCADOPAGO_USD_TO_COP must be a positive number");
     }
-    return {
-      unit_price: Math.round(plan.amountUsd * rate),
-      currency_id: "COP",
-    };
+    const netCop = Math.round(plan.amountUsd * rate);
+    const breakdown: FeeBreakdown = grossUpInt(netCop, mercadoPagoFee());
+    return { ...breakdown, currency_id: "COP" };
   }
-  return { unit_price: plan.amountUsd, currency_id: "USD" };
+  const breakdown = grossUpUsd(plan.amountUsd, mercadoPagoFee());
+  return { ...breakdown, currency_id: "USD" };
 }
 
 export function siteBaseUrl(): string {
