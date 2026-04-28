@@ -16,47 +16,55 @@ const Stairs = ({ children }: { children: ReactNode }) => {
 
   useGSAP(
     () => {
+      if (!stairParentRef.current || !pageRef.current) return;
+      const stairs = gsap.utils.toArray<HTMLElement>(
+        ".stair",
+        stairParentRef.current
+      );
+      if (stairs.length === 0) return;
+
+      const failSafeTimer = window.setTimeout(() => {
+        if (stairParentRef.current) {
+          gsap.set(stairParentRef.current, { display: "none", autoAlpha: 0 });
+        }
+      }, 2200);
+
       const tl = gsap.timeline({
         onComplete: () => {
-          ScrollTrigger.refresh();
+          window.clearTimeout(failSafeTimer);
+          try {
+            ScrollTrigger.refresh();
+          } catch {
+            // Never block the whole page if refresh fails during route transitions.
+          }
         },
       });
-      tl.to(stairParentRef.current, {
-        display: "block",
-      });
-      tl.from(".stair", {
+      tl.set(stairParentRef.current, { display: "block", autoAlpha: 1 });
+      tl.from(stairs, {
         height: 0,
-        stagger: {
-          amount: -0.2,
-        },
+        stagger: { amount: -0.2 },
       });
-      tl.to(".stair", {
+      tl.to(stairs, {
         y: "100%",
-        stagger: {
-          amount: -0.25,
-        },
+        stagger: { amount: -0.25 },
       });
-      tl.to(stairParentRef.current, {
-        display: "none",
-      });
-      tl.to(".stair", {
-        y: "0%",
-      });
+      tl.set(stairParentRef.current, { display: "none", autoAlpha: 0 });
+      tl.set(stairs, { y: "0%" });
 
-      gsap.from(pageRef.current, {
-        opacity: 0,
-        duration: 0.6,
-        ease: "power2.out",
-      });
+      gsap.fromTo(
+        pageRef.current,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.6, ease: "power2.out" }
+      );
     },
-    [currentPath]
+    { dependencies: [currentPath], scope: stairParentRef }
   );
 
   return (
     <div>
       <div
         ref={stairParentRef}
-        className="h-screen w-full fixed z-20 top-0"
+        className="h-screen w-full fixed z-20 top-0 pointer-events-none hidden"
       >
         <div className="h-full w-full flex">
           <div className="stair h-full w-1/5 bg-black"></div>

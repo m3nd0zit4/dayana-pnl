@@ -8,22 +8,42 @@ gsap.registerPlugin(ScrollTrigger);
 
 const ScrollTriggerRefresher = () => {
   useEffect(() => {
-    const refresh = () => ScrollTrigger.refresh();
+    let rafId: number | null = null;
+    let timeoutId: number | null = null;
+    const safeRefresh = () => {
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        if (rafId !== null) window.cancelAnimationFrame(rafId);
+        rafId = window.requestAnimationFrame(() => {
+          try {
+            ScrollTrigger.refresh();
+          } catch {
+            // Ignore transient DOM state during hydration/iframe mutations.
+          }
+        });
+      }, 80);
+    };
 
     const timers: number[] = [];
-    timers.push(window.setTimeout(refresh, 100));
-    timers.push(window.setTimeout(refresh, 600));
-    timers.push(window.setTimeout(refresh, 1800));
+    timers.push(window.setTimeout(safeRefresh, 120));
+    timers.push(window.setTimeout(safeRefresh, 700));
 
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(refresh).catch(() => undefined);
+      document.fonts.ready.then(safeRefresh).catch(() => undefined);
     }
 
-    window.addEventListener("load", refresh);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") safeRefresh();
+    };
+    window.addEventListener("load", safeRefresh);
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
-      window.removeEventListener("load", refresh);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+      window.removeEventListener("load", safeRefresh);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

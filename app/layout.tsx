@@ -15,12 +15,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const shouldLoadVercelInsights = process.env.VERCEL === "1";
+
   return (
     <html lang="es">
       <body>
         <Providers>{children}</Providers>
-        <Analytics />
-        <SpeedInsights />
+        {shouldLoadVercelInsights ? <Analytics /> : null}
+        {shouldLoadVercelInsights ? <SpeedInsights /> : null}
       </body>
     </html>
   );

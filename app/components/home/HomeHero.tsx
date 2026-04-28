@@ -137,7 +137,7 @@ const HomeHero = () => {
           muted
           loop
           playsInline
-          preload="auto"
+          preload="metadata"
           className="absolute inset-0 h-full w-full object-cover will-change-transform"
         />
         <div
