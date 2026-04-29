@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import HomeBottomText from "./HomeBottomText";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -19,8 +19,27 @@ const HomeHero = () => {
   const phraseRefs = useRef<Array<HTMLDivElement | null>>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
 
   useEffect(() => {
+    if (!sectionRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry.isIntersecting) return;
+        setShouldLoadVideo(true);
+        observer.disconnect();
+      },
+      { root: null, rootMargin: "220px 0px", threshold: 0.01 }
+    );
+
+    observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!shouldLoadVideo) return;
     const v = videoRef.current;
     if (!v) return;
     const tryPlay = () => {
@@ -38,7 +57,7 @@ const HomeHero = () => {
     };
     if (v.readyState >= 2) tryPlay();
     else v.addEventListener("loadeddata", tryPlay, { once: true });
-  }, []);
+  }, [shouldLoadVideo]);
 
   useGSAP(
     () => {
@@ -47,10 +66,11 @@ const HomeHero = () => {
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
       ).matches;
+      const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
 
       gsap.set(phraseRefs.current.slice(1), { opacity: 0, yPercent: 60 });
 
-      if (videoRef.current) {
+      if (videoRef.current && shouldLoadVideo) {
         gsap.set(videoRef.current, {
           opacity: 0,
           scale: 1,
@@ -72,52 +92,101 @@ const HomeHero = () => {
         }
       }
 
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top top",
-          end: "+=1200",
-          pin: true,
-          scrub: 0.3,
-          anticipatePin: 1,
-          invalidateOnRefresh: true,
-        },
-      });
+      if (isDesktop) {
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top top",
+            end: "+=1200",
+            pin: true,
+            scrub: 0.3,
+            anticipatePin: 1,
+            invalidateOnRefresh: true,
+          },
+        });
 
+        for (let i = 1; i < phrases.length; i++) {
+          tl.to(
+            phraseRefs.current[i - 1],
+            {
+              opacity: 0,
+              yPercent: -60,
+              duration: 1,
+              ease: "power2.inOut",
+            },
+            "+=0.6"
+          );
+          tl.to(
+            phraseRefs.current[i],
+            {
+              opacity: 1,
+              yPercent: 0,
+              duration: 1,
+              ease: "power2.inOut",
+            },
+            "<+=0.25"
+          );
+
+          if (i === 2 && overlayRef.current && !prefersReducedMotion) {
+            tl.to(
+              overlayRef.current,
+              {
+                opacity: 0.2,
+                duration: 1.1,
+                ease: "none",
+              },
+              "<"
+            );
+          }
+        }
+        return;
+      }
+
+      if (prefersReducedMotion) return;
+
+      const loopTl = gsap.timeline({ repeat: -1, repeatDelay: 0.35 });
       for (let i = 1; i < phrases.length; i++) {
-        tl.to(
+        loopTl.to(
           phraseRefs.current[i - 1],
           {
             opacity: 0,
             yPercent: -60,
-            duration: 1,
+            duration: 0.65,
             ease: "power2.inOut",
           },
-          "+=0.6"
+          "+=0.8"
         );
-        tl.to(
+        loopTl.to(
           phraseRefs.current[i],
           {
             opacity: 1,
             yPercent: 0,
-            duration: 1,
+            duration: 0.65,
             ease: "power2.inOut",
           },
-          "<+=0.25"
+          "<+=0.15"
         );
-
-        if (i === 2 && overlayRef.current && !prefersReducedMotion) {
-          tl.to(
-            overlayRef.current,
-            {
-              opacity: 0.2,
-              duration: 1.1,
-              ease: "none",
-            },
-            "<"
-          );
-        }
       }
+      loopTl.to(
+        phraseRefs.current[phrases.length - 1],
+        {
+          opacity: 0,
+          yPercent: -60,
+          duration: 0.65,
+          ease: "power2.inOut",
+        },
+        "+=0.8"
+      );
+      loopTl.to(
+        phraseRefs.current[0],
+        {
+          opacity: 1,
+          yPercent: 0,
+          duration: 0.65,
+          ease: "power2.inOut",
+        },
+        "<+=0.15"
+      );
     },
     { scope: sectionRef }
   );
@@ -130,16 +199,30 @@ const HomeHero = () => {
       className="bg-black text-white relative overflow-hidden"
     >
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <video
-          ref={videoRef}
-          src="/video.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-          className="absolute inset-0 h-full w-full object-cover will-change-transform"
-        />
+        {shouldLoadVideo ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster="/video-poster.webp"
+            className="absolute inset-0 h-full w-full object-cover will-change-transform"
+          >
+            <source src="/video.webm" type="video/webm" />
+            <source src="/video.mp4" type="video/mp4" />
+          </video>
+        ) : (
+          <img
+            src="/video-poster.webp"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="eager"
+            decoding="async"
+          />
+        )}
         <div
           ref={overlayRef}
           className="absolute inset-0 bg-black"
