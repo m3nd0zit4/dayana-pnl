@@ -21,6 +21,10 @@ export const useStackingSection = (
   useGSAP(
     () => {
       if (!sectionRef.current || !innerRef.current) return;
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      const enableAdvancedScroll = !prefersReducedMotion;
 
       gsap.fromTo(
         innerRef.current,
@@ -32,13 +36,13 @@ export const useStackingSection = (
             trigger: sectionRef.current,
             start: "top bottom",
             end: tiltScrubEnd,
-            scrub: true,
+            scrub: enableAdvancedScroll,
             invalidateOnRefresh: true,
           },
         }
       );
 
-      if (!isLast) {
+      if (!isLast && enableAdvancedScroll) {
         ScrollTrigger.create({
           trigger: sectionRef.current,
           start: "bottom bottom",
