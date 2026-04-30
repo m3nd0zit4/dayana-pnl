@@ -19,26 +19,30 @@ type Testimonial = {
 const testimonials: Testimonial[] = [
   {
     id: 1,
-    name: "Luz",
-    excerpt: "Su historia, en sus palabras.",
-    youtubeId: "uUqnsYrpXck",
+    name: "Nury",
+    excerpt:
+      "A través de estas terapias he aprendido a priorizarme y a encontrar una seguridad que no tenía. Me siento mucho más tranquila; ha sido un cambio profundo y favorable para mi bienestar personal.",
+    youtubeId: "KHlVFKENIFw",
   },
   {
     id: 2,
     name: "Teresa",
-    excerpt: "Su historia, en sus palabras.",
+    excerpt:
+      "Estaba pasando por un momento muy difícil en mi vida y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante con alegría.",
     youtubeId: "LnumJ4E208Y",
   },
   {
     id: 3,
-    name: "Nury",
-    excerpt: "Su historia, en sus palabras.",
-    youtubeId: "KHlVFKENIFw",
+    name: "Luz",
+    excerpt:
+      "Llegué en un momento de crisis emocional, pero gracias al proceso con Dayana, hoy tengo una visión clara, enfoque y, sobre todo, una armonía que me permite tomar mejores decisiones para mi vida.",
+    youtubeId: "uUqnsYrpXck",
   },
   {
     id: 4,
     name: "Glenda",
-    excerpt: "Su historia, en sus palabras.",
+    excerpt:
+      "He logrado identificar y reprogramar esas ideas limitantes y traumas del pasado que no me dejaban avanzar. Pasé de estar en modo supervivencia a vivir con libertad, consciencia y la valentía necesaria para alcanzar mis metas.",
     youtubeId: "ccWpOuvL90I",
   },
 ];
@@ -245,9 +249,9 @@ const TestimonialsSection = () => {
                 />
                 <div className="relative p-5">
                   <div className="font-[font2] uppercase text-lg">{t.name}</div>
-                  <div className="font-[font1] text-sm text-white/70 mt-1">
+                  <p className="font-[font1] text-sm text-white/75 mt-2 leading-relaxed">
                     {t.excerpt}
-                  </div>
+                  </p>
                 </div>
               </div>
             ))}

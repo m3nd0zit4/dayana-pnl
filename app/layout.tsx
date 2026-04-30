@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import Providers from "./providers";
+import { CookieConsentProvider } from "./context/CookieConsentContext";
+import ConsentBasedVercelInsights from "./components/legal/ConsentBasedVercelInsights";
+import CookieConsentBanner from "./components/legal/CookieConsentBanner";
 
 export const metadata: Metadata = {
   title: "Dayana Beltrán — Maestra PNL",
@@ -15,14 +16,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const shouldLoadVercelInsights = process.env.VERCEL === "1";
+  const analyticsAllowed = process.env.VERCEL === "1";
 
   return (
     <html lang="es">
       <body>
-        <Providers>{children}</Providers>
-        {shouldLoadVercelInsights ? <Analytics /> : null}
-        {shouldLoadVercelInsights ? <SpeedInsights /> : null}
+        <CookieConsentProvider analyticsAllowed={analyticsAllowed}>
+          <Providers>{children}</Providers>
+          <ConsentBasedVercelInsights />
+          <CookieConsentBanner />
+        </CookieConsentProvider>
       </body>
     </html>
   );

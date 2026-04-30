@@ -14,12 +14,15 @@ const Page = () => (
   <LegalLayout
     eyebrow="Legal"
     title="Política de cookies"
-    updatedAt="19 de abril de 2026"
+    updatedAt="29 de abril de 2026"
   >
     <p>
       Esta política explica qué son las cookies y cómo las utilizamos en el
-      sitio de {BRAND.name}. Al continuar navegando aceptas el uso de cookies
-      descrito a continuación.
+      sitio de {BRAND.name}. Las cookies estrictamente necesarias permiten el
+      funcionamiento básico del sitio. La analítica de rendimiento solo se
+      activa si eliges &quot;Aceptar analítica&quot; en el aviso que aparece en
+      tu primera visita (puedes cambiar de idea borrando el almacenamiento del
+      sitio en tu navegador y volviendo a entrar).
     </p>
 
     <h2 className="font-[font2] uppercase text-xl lg:text-2xl text-white pt-4">
@@ -41,10 +44,13 @@ const Page = () => (
         navegación durante la sesión). No se pueden desactivar.
       </li>
       <li>
-        <strong className="text-white">Analítica (opcional):</strong> cuando
-        habilitemos herramientas de medición anónima, se usarán cookies de
-        rendimiento para entender qué contenido resulta relevante. No se
-        recogen datos que permitan identificarte.
+        <strong className="text-white">Analítica (opcional):</strong> en los
+        entornos alojados en Vercel, si aceptas desde el aviso de cookies,
+        cargamos <strong className="text-white">Vercel Web Analytics</strong> y{" "}
+        <strong className="text-white">Vercel Speed Insights</strong> para
+        medir de forma agregada visitas, rendimiento y experiencia de uso. El
+        proveedor puede usar cookies o tecnologías similares según su política.
+        No activamos estas herramientas hasta que des tu consentimiento.
       </li>
       <li>
         <strong className="text-white">Terceros incrustados:</strong> al
