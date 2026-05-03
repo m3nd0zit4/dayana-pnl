@@ -9,6 +9,7 @@ import {
   COURSE_PLAN,
   THERAPY_PLANS,
   formatUsd,
+  getPlanUnitPriceLabel,
   type Plan,
 } from "../../../lib/plans";
 import { usePayPalModal } from "../../context/PayPalModalContext";
@@ -105,6 +106,7 @@ const PlanPaymentActions = ({
 
 const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
   const isDark = Boolean(variant === "dark" || plan.highlight);
+  const unitPriceLabel = getPlanUnitPriceLabel(plan);
   const base = isDark
     ? "bg-black text-white border-black"
     : "bg-white text-black border-black";
@@ -131,9 +133,9 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
           </span>
           <span className="font-[font1] text-xs opacity-60">USD</span>
         </div>
-        {plan.unitPrice && (
+        {unitPriceLabel && (
           <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
-            {plan.unitPrice}
+            {unitPriceLabel}
           </div>
         )}
         <ul className="mt-5 space-y-2">

@@ -14,12 +14,45 @@ export type Plan = {
   title: string;
   sessions: string;
   amountUsd: number;
+  /** Solo productos que no son terapia por sesión (p. ej. curso: "por persona"). */
   unitPrice?: string;
   tag?: string;
   highlight?: boolean;
   features: string[];
   whatsappMessage: string;
 };
+
+const THERAPY_SESSION_COUNT: Record<Exclude<PlanId, "course-live">, number> = {
+  "therapy-1": 1,
+  "therapy-3": 3,
+  "therapy-6": 6,
+  "therapy-12": 12,
+  "therapy-24": 24,
+};
+
+function formatPerSessionFromTotal(amountUsd: number, sessionCount: number): string {
+  if (sessionCount <= 0) return "";
+  if (sessionCount === 1) return "por sesión";
+  const per = amountUsd / sessionCount;
+  const rounded = Math.round(per * 100) / 100;
+  const hasFraction = Math.abs(rounded - Math.round(rounded)) > 1e-9;
+  const num = hasFraction
+    ? rounded.toLocaleString("en-US", {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 2,
+      })
+    : String(Math.round(rounded));
+  return `$${num} por sesión`;
+}
+
+/** Texto bajo el precio: terapía = derivado de `amountUsd` / sesiones; curso = `unitPrice` del plan. */
+export function getPlanUnitPriceLabel(plan: Plan): string | undefined {
+  if (plan.kind === "therapy") {
+    const n = THERAPY_SESSION_COUNT[plan.id as Exclude<PlanId, "course-live">];
+    return formatPerSessionFromTotal(plan.amountUsd, n);
+  }
+  return plan.unitPrice;
+}
 
 export const CURRENCY = "usd";
 
@@ -30,10 +63,11 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Inicio",
     sessions: "1 Sesión",
     amountUsd: 80,
-    unitPrice: "por sesión",
     features: [
       "Videollamada 1:1",
-      "Plan personalizado",
+      "Personalizado",
+      "Duración: 1 hora",
+      "Modalidad: Videollamada",
       "Seguimiento por WhatsApp",
     ],
     whatsappMessage:
@@ -44,12 +78,12 @@ export const PLANS: Record<PlanId, Plan> = {
     kind: "therapy",
     title: "Exploración",
     sessions: "3 Sesiones",
-    amountUsd: 120,
-    unitPrice: "$40 por sesión",
+    amountUsd: 140,
     features: [
       "3 encuentros 1:1",
       "Ahorro vs. sesión suelta",
-      "Ejercicios entre sesiones",
+      "Duración: 1 hora",
+      "Modalidad: Videollamada"
     ],
     whatsappMessage:
       "Hola Dayana, me interesa el paquete de 3 sesiones de terapia PNL ($120 USD).",
@@ -59,14 +93,14 @@ export const PLANS: Record<PlanId, Plan> = {
     kind: "therapy",
     title: "Transformación",
     sessions: "6 Sesiones",
-    amountUsd: 240,
-    unitPrice: "$40 por sesión",
+    amountUsd: 280,
     tag: "Más elegido",
     highlight: true,
     features: [
       "6 encuentros 1:1",
       "Cambios sostenidos",
-      "Material de apoyo incluido",
+      "Duración: 1 hora",
+      "Modalidad: Videollamada",
     ],
     whatsappMessage:
       "Hola Dayana, me interesa el paquete de 6 sesiones de terapia PNL ($240 USD).",
@@ -76,12 +110,13 @@ export const PLANS: Record<PlanId, Plan> = {
     kind: "therapy",
     title: "Inmersión",
     sessions: "12 Sesiones",
-    amountUsd: 480,
-    unitPrice: "$40 por sesión",
+    amountUsd: 520,
     features: [
       "12 encuentros 1:1",
       "Seguimiento extendido",
       "Ajuste de proceso personalizado",
+      "Duración: 1 hora",
+      "Modalidad: Videollamada",
     ],
     whatsappMessage:
       "Hola Dayana, me interesa el paquete de 12 sesiones de terapia PNL ($480 USD).",
@@ -92,11 +127,12 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Maestría",
     sessions: "24 Sesiones",
     amountUsd: 900,
-    unitPrice: "$37.5 por sesión",
     features: [
       "24 encuentros profundos",
       "Mejor ahorro por sesión",
       "Acompañamiento continuo",
+      "Duración: 1 hora",
+      "Modalidad: Videollamada",
     ],
     whatsappMessage:
       "Hola Dayana, me interesa el paquete de 24 sesiones de terapia PNL ($900 USD).",
@@ -106,7 +142,7 @@ export const PLANS: Record<PlanId, Plan> = {
     kind: "course",
     title: "Curso en vivo",
     sessions: "Inscripción",
-    amountUsd: 30,
+    amountUsd: 35,
     unitPrice: "por persona",
     features: [
       "Grupo en Google Meet",
