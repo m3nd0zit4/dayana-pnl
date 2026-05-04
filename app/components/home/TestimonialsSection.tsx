@@ -223,8 +223,8 @@ const TestimonialsSection = () => {
 
         <div className="tt-reveal lg:pl-[40%] mt-8 lg:mt-12 mb-20 lg:mb-24 p-3">
           <p className="font-[font1] lg:text-3xl text-lg leading-snug">
-            Lo que pasa cuando alguien decide dejar atrás patrones viejos. Estos
-            videos son el reflejo de procesos reales con Dayana Beltrán.
+            Lo que pasa cuando alguien decide invertir en reprogramar su mente, se eliminan las creencias limitantes y sus vidas empizan a cambiar. Estos
+            videos son el reflejo de procesos reales con Dayana Beltrán. 
           </p>
         </div>
 

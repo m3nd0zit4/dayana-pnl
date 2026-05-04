@@ -9,7 +9,7 @@ import {
   COURSE_PLAN,
   THERAPY_PLANS,
   formatUsd,
-  getPlanUnitPriceLabel,
+  getTherapySavingsUsd,
   type Plan,
 } from "../../../lib/plans";
 import { usePayPalModal } from "../../context/PayPalModalContext";
@@ -106,10 +106,57 @@ const PlanPaymentActions = ({
 
 const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
   const isDark = Boolean(variant === "dark" || plan.highlight);
-  const unitPriceLabel = getPlanUnitPriceLabel(plan);
+  const listPriceRef = useRef<HTMLSpanElement>(null);
   const base = isDark
     ? "bg-black text-white border-black"
     : "bg-white text-black border-black";
+
+  const therapy = plan.kind === "therapy" ? plan.therapyPresentation : null;
+  const savingsUsd = getTherapySavingsUsd(plan);
+  const showTherapyPromo =
+    therapy != null &&
+    plan.listAmountUsd != null &&
+    savingsUsd != null &&
+    savingsUsd > 0;
+
+  useEffect(() => {
+    const el = listPriceRef.current;
+    if (!showTherapyPromo || !el) return;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    gsap.killTweensOf(el);
+    const tween = gsap.fromTo(
+      el,
+      {
+        opacity: 0.68,
+        scale: 1,
+        filter: "brightness(1)",
+      },
+      {
+        opacity: 1,
+        scale: 1.05,
+        filter: isDark
+          ? "brightness(1.4) drop-shadow(0 0 18px rgba(255,255,255,0.22))"
+          : "brightness(1.05) drop-shadow(0 0 14px rgba(225,90,90,0.28))",
+        duration: 2.2,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+        transformOrigin: "0% 50%",
+      }
+    );
+    return () => {
+      tween.kill();
+      gsap.set(el, { clearProps: "opacity,scale,filter" });
+    };
+  }, [showTherapyPromo, isDark]);
+
+  const dotClass = isDark ? "bg-linen" : "bg-black";
+  const savingsClass = isDark ? "text-[#EBAEE0]" : "text-[#B328D4]";
 
   return (
     <div
@@ -127,32 +174,103 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
         <div className="font-[font2] uppercase text-2xl lg:text-3xl mt-1 leading-tight">
           {plan.sessions}
         </div>
-        <div className="mt-5 flex items-baseline gap-2">
-          <span className="font-[font1] text-4xl lg:text-5xl leading-none">
-            {formatUsd(plan.amountUsd)}
-          </span>
-          <span className="font-[font1] text-xs opacity-60">USD</span>
-        </div>
-        {unitPriceLabel && (
-          <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
-            {unitPriceLabel}
+
+        {therapy ? (
+          <div className="mt-5">
+            {showTherapyPromo ? (
+              <div className="space-y-1">
+                <div
+                  className={`font-[font2] text-[14px] font-bold uppercase tracking-[0.2em] ${
+                    isDark ? "text-white" : "text-black/80"
+                  }`}
+                >
+                  Valor real
+                </div>
+                <span
+                  ref={listPriceRef}
+                  className={`font-[font1] inline-block text-3xl lg:text-4xl font-semibold leading-tight line-through decoration-2 decoration-from-font ${
+                    isDark
+                      ? "text-[#FF0000] decoration-[#FF0000]/75"
+                      : "text-[#FF0000] decoration-[#FF0000]/75"
+                  }`}
+                >
+                  {formatUsd(plan.listAmountUsd!)} USD
+                </span>
+                <div
+                  className={`font-[font2] text-[14px] uppercase font-bold tracking-[0.25em] pt-3 ${
+                    isDark ? "text-blush" : "text-black/80"
+                  }`}
+                >
+                  Promoción especial
+                </div>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="font-[font1] text-4xl lg:text-[2.75rem] leading-none tracking-tight">
+                    {formatUsd(plan.amountUsd)}
+                  </span>
+                  <span className="font-[font1] text-sm ">USD</span>
+                </div>
+                <p
+                  className={`font-[font1] text-[16px] font-medium tracking-wide pt-2.5 ${savingsClass}`}
+                >
+                  Ahorras {formatUsd(savingsUsd)} USD
+                </p>
+              </div>
+            ) : (
+              <div className="flex items-baseline gap-2">
+                <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                  {formatUsd(plan.amountUsd)}
+                </span>
+                <span className="font-[font1] text-xs opacity-60">USD</span>
+              </div>
+            )}
+
+            <p className="font-[font1] text-[15px] font-medium leading-snug mt-6">
+              {therapy.sessionsHeadline}
+            </p>
+            <ul className="mt-3 space-y-1.5">
+              {plan.features.map((line) => (
+                <li
+                  key={line}
+                  className={`font-[font1] text-[12.5px] flex items-start gap-2 leading-snug ${
+                    isDark ? "text-white/82" : "text-black/82"
+                  }`}
+                >
+                  <span
+                    className={`mt-1.5 inline-block w-1 h-1 rounded-full shrink-0 ${dotClass}`}
+                  />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
           </div>
+        ) : (
+          <>
+            <div className="mt-5 flex items-baseline gap-2">
+              <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                {formatUsd(plan.amountUsd)}
+              </span>
+              <span className="font-[font1] text-xs opacity-60">USD</span>
+            </div>
+            {plan.unitPrice && (
+              <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
+                {plan.unitPrice}
+              </div>
+            )}
+            <ul className="mt-5 space-y-2">
+              {plan.features.map((f) => (
+                <li
+                  key={f}
+                  className="font-[font1] text-sm flex items-start gap-2 leading-snug"
+                >
+                  <span
+                    className={`mt-1.5 inline-block w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`}
+                  />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
-        <ul className="mt-5 space-y-2">
-          {plan.features.map((f) => (
-            <li
-              key={f}
-              className="font-[font1] text-sm flex items-start gap-2 leading-snug"
-            >
-              <span
-                className={`mt-1.5 inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
-                  isDark ? "bg-linen" : "bg-black"
-                }`}
-              />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
       </div>
       <PlanPaymentActions plan={plan} isDark={isDark} />
     </div>
@@ -213,8 +331,8 @@ const ServicesSection = () => {
         <div className="sv-reveal lg:pl-[40%] lg:mt-16 mt-8 p-3">
           <p className="font-[font1] lg:text-4xl text-lg leading-tight lg:leading-snug">
             Con Dayana Beltrán acompañamos procesos reales de reprogramación
-            neurolingüística. No vendemos motivación: trabajamos creencias,
-            patrones y emociones para que vuelvas a tomar el control de tu
+            neurolingüística. No vendemos motivación: trabajamos creencias limitantes,
+            patrones y emociones negativas como colera, tristeza, miedo, dolor, culpa, ansiedad, traumas y fobias para que vuelvas a tomar el control de tu
             vida, tus relaciones y tu propósito.
           </p>
         </div>
@@ -225,9 +343,12 @@ const ServicesSection = () => {
           <h3 className="font-[font2] text-6xl lg:text-[8vw] uppercase leading-[0.9]">
             Terapias 1:1
           </h3>
+          
+          <h3 className="font-[font2] text-3xl lg:text-[4vw] uppercase leading-[0.9]">
+            de Reprogramacion Neuronal 
+          </h3>
           <p className="font-[font1] lg:max-w-md text-base lg:text-lg leading-snug">
-            Paquetes de sesiones de PNL vía videollamada. Elige el ritmo que
-            mejor se adapta a tu proceso.
+            Sesiones privadas para transformar emociones negativas, creencias limitantes y patrones desde la raiz.
           </p>
         </div>
 
