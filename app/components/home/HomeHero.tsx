@@ -10,8 +10,8 @@ gsap.registerPlugin(ScrollTrigger);
 
 const phrases: Array<[string, string]> = [
   ["Cambiamos", "Realidades"],
-  ["Cambiamos", "Creencias"],
-  ["Cambiamos", "Tu vida"],
+  ["Reprogramamos", "Tu mente"],
+  ["Cambiamos", "Creencias Limitantes"],
 ];
 
 const HomeHero = () => {
@@ -247,10 +247,10 @@ const HomeHero = () => {
                   textShadow: "0 2px 40px rgba(0,0,0,0.55)",
                 }}
               >
-                <div className="lg:text-[12vw] text-[16vw] uppercase lg:leading-[10vw] leading-[14vw]">
+                <div className="lg:text-[10vw] text-[14vw] uppercase lg:leading-[10vw] leading-[14vw]">
                   {phrase[0]}
                 </div>
-                <div className="lg:text-[12vw] text-[16vw] uppercase lg:leading-[10vw] leading-[14vw]">
+                <div className="lg:text-[10vw] text-[14vw] uppercase lg:leading-[10vw] leading-[14vw]">
                   {phrase[1]}
                 </div>
               </div>
