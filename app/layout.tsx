@@ -6,9 +6,9 @@ import ConsentBasedVercelInsights from "./components/legal/ConsentBasedVercelIns
 import CookieConsentBanner from "./components/legal/CookieConsentBanner";
 
 export const metadata: Metadata = {
-  title: "Dayana Beltrán — Maestra PNL",
+  title: "Dayana Beltrán PNL — Reprogramadora Neuronal",
   description:
-    "Dayana Beltrán, maestra en Programación Neurolingüística. Terapias 1:1 y cursos en vivo para reprogramar creencias, patrones y emociones.",
+    "Dayana Beltrán Coach en PNL, especialisada en Neurociencia y Neuroplasticidad. Sesiones Privadas 1:1, cursos y talleres en vivo para reprogramar creencias limitantes, patrones y emociones negativas.",
 };
 
 export default function RootLayout({
