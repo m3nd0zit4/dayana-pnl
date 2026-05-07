@@ -4,7 +4,8 @@ export type PlanId =
   | "therapy-6"
   | "therapy-12"
   | "therapy-24"
-  | "course-live";
+  | "course-live"
+  | "workshop-virtual";
 
 export type PlanKind = "therapy" | "course";
 
@@ -162,6 +163,20 @@ export const PLANS: Record<PlanId, Plan> = {
     whatsappMessage:
       "Hola Dayana, quiero inscribirme al próximo curso en vivo ($35 USD).",
   },
+  "workshop-virtual": {
+    id: "workshop-virtual",
+    kind: "course",
+    title: "Taller virtual",
+    sessions: "Saca tu mejor versión",
+    /** Checkout en USD (~200.000 COP aprox. según TRM del día). */
+    amountUsd: 50,
+    features: [
+      "Taller virtual jornada completa",
+      "Sábado 16 de mayo · 7:30 a.m. a 4:30 p.m.",
+    ],
+    whatsappMessage:
+      "Hola Dayana, quiero asegurar mi cupo para el taller virtual Saca Tu Mejor Versión (16 de mayo, $50 USD). Te envío comprobante o necesito ayuda con el pago.",
+  },
 };
 
 export const THERAPY_PLANS: Plan[] = [
@@ -173,6 +188,8 @@ export const THERAPY_PLANS: Plan[] = [
 ];
 
 export const COURSE_PLAN: Plan = PLANS["course-live"];
+
+export const WORKSHOP_VIRTUAL_PLAN: Plan = PLANS["workshop-virtual"];
 
 export const isPlanId = (value: unknown): value is PlanId =>
   typeof value === "string" && value in PLANS;
