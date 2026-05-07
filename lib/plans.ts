@@ -161,7 +161,7 @@ export const PLANS: Record<PlanId, Plan> = {
       "Espacio real para compartir",
     ],
     whatsappMessage:
-      "Hola Dayana, quiero inscribirme al próximo curso en vivo ($35 USD).",
+      "Hola Dayana, quiero información e inscripción al próximo curso en vivo por Google Meet.",
   },
   "workshop-virtual": {
     id: "workshop-virtual",

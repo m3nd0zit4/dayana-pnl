@@ -13,6 +13,7 @@ import {
 } from "../../../lib/plans";
 import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
 import SplitReveal from "../ui/SplitReveal";
+import WhatsAppButton from "../ui/WhatsAppButton";
 import { useStackingSection } from "../../hooks/useStackingSection";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -24,6 +25,7 @@ type PlanCardProps = {
 
 const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
   const isDark = Boolean(variant === "dark" || plan.highlight);
+  const isCourseWhatsAppOnly = plan.kind === "course";
   const listPriceRef = useRef<HTMLSpanElement>(null);
   const base = isDark
     ? "bg-black text-white border-black"
@@ -163,16 +165,29 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
           </div>
         ) : (
           <>
-            <div className="mt-5 flex items-baseline gap-2">
-              <span className="font-[font1] text-4xl lg:text-5xl leading-none">
-                {formatUsd(plan.amountUsd)}
-              </span>
-              <span className="font-[font1] text-xs opacity-60">USD</span>
-            </div>
-            {plan.unitPrice && (
-              <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
-                {plan.unitPrice}
-              </div>
+            {!isCourseWhatsAppOnly && (
+              <>
+                <div className="mt-5 flex items-baseline gap-2">
+                  <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                    {formatUsd(plan.amountUsd)}
+                  </span>
+                  <span className="font-[font1] text-xs opacity-60">USD</span>
+                </div>
+                {plan.unitPrice && (
+                  <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
+                    {plan.unitPrice}
+                  </div>
+                )}
+              </>
+            )}
+            {isCourseWhatsAppOnly && (
+              <p
+                className={`font-[font1] text-sm mt-5 leading-snug ${
+                  isDark ? "text-white/75" : "text-black/70"
+                }`}
+              >
+                Valor e inscripción los coordinamos contigo por WhatsApp.
+              </p>
             )}
             <ul className="mt-5 space-y-2">
               {plan.features.map((f) => (
@@ -190,7 +205,18 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
           </>
         )}
       </div>
-      <PlanCheckoutButtons plan={plan} isDark={isDark} />
+      {isCourseWhatsAppOnly ? (
+        <div className="mt-6 w-full">
+          <WhatsAppButton
+            message={plan.whatsappMessage}
+            label="Inscribirme por WhatsApp"
+            size="lg"
+            className="w-full"
+          />
+        </div>
+      ) : (
+        <PlanCheckoutButtons plan={plan} isDark={isDark} />
+      )}
     </div>
   );
 };
