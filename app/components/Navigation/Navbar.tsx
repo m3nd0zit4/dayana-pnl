@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NavbarColorContext, NavbarContext } from "../../context/NavContext";
 
@@ -10,6 +10,7 @@ const Navbar = () => {
   const [navColor, setNavColor] = useContext(NavbarColorContext);
   const pathname = usePathname();
   const homeHref = pathname === "/" ? "#hero" : "/#hero";
+  const [logoVisible, setLogoVisible] = useState(true);
 
   useEffect(() => {
     const sections = document.querySelectorAll<HTMLElement>("[data-nav-color]");
@@ -32,6 +33,55 @@ const Navbar = () => {
     return () => observer.disconnect();
   }, [setNavColor]);
 
+  /** Solo el logo: oculto al bajar cuando ya pasamos el hero; visible al subir o cerca del tope. */
+  const pastHeroRef = useRef(false);
+
+  useEffect(() => {
+    const hero = document.getElementById("hero");
+    if (!hero) {
+      pastHeroRef.current = true;
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        pastHeroRef.current = !entry.isIntersecting;
+      },
+      { threshold: 0, rootMargin: "0px 0px -8% 0px" }
+    );
+    io.observe(hero);
+    return () => io.disconnect();
+  }, [pathname]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mq.matches) {
+      setLogoVisible(true);
+      return;
+    }
+
+    const nearTopPx = 56;
+    const onLenisScroll = (e: Event) => {
+      const ce = e as CustomEvent<{ scroll: number; direction: number }>;
+      const scroll = ce.detail?.scroll ?? 0;
+      const direction = ce.detail?.direction ?? 0;
+
+      if (scroll <= nearTopPx) {
+        setLogoVisible(true);
+        return;
+      }
+      if (!pastHeroRef.current) {
+        setLogoVisible(true);
+        return;
+      }
+      // Lenis: direction 1 = scroll hacia arriba, -1 = hacia abajo (README oficial).
+      if (direction === 1) setLogoVisible(true);
+      else if (direction === -1) setLogoVisible(false);
+    };
+
+    window.addEventListener("lenis-scroll", onLenisScroll);
+    return () => window.removeEventListener("lenis-scroll", onLenisScroll);
+  }, [pathname]);
+
   const handleMouseEnter = () => {
     if (navGreenRef.current) navGreenRef.current.style.height = "100%";
   };
@@ -42,19 +92,27 @@ const Navbar = () => {
 
   return (
     <div className="z-30 flex fixed top-0 w-full items-start justify-between pointer-events-none">
-      <a
-        href={homeHref}
-        className="lg:p-5 p-3 pointer-events-auto font-[font2] uppercase leading-none select-none"
-        style={{ color: navColor }}
-        aria-label="Dayana Beltran PNL"
+      <div
+        className={`overflow-hidden transition-[transform,opacity] duration-300 ease-out will-change-transform lg:p-5 p-3 pointer-events-auto ${
+          logoVisible
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-[140%] opacity-0 pointer-events-none"
+        }`}
       >
-        <span className="block text-sm lg:text-base tracking-[0.14em]">
-          Dayana Beltr&aacute;n
-        </span>
-        <span className="block text-[10px] lg:text-xs tracking-[0.5em] mt-1.5 opacity-70">
-          PNL
-        </span>
-      </a>
+        <a
+          href={homeHref}
+          className="block font-[font2] uppercase leading-none select-none"
+          style={{ color: navColor }}
+          aria-label="Dayana Beltran PNL"
+        >
+          <span className="block text-sm lg:text-base tracking-[0.14em]">
+            Dayana Beltr&aacute;n
+          </span>
+          <span className="block text-[10px] lg:text-xs tracking-[0.5em] mt-1.5 opacity-70">
+            PNL
+          </span>
+        </a>
+      </div>
       <div
         onClick={() => setNavOpen(true)}
         onMouseEnter={handleMouseEnter}
