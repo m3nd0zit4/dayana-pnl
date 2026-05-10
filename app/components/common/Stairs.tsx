@@ -27,6 +27,9 @@ const Stairs = ({ children }: { children: ReactNode }) => {
         if (stairParentRef.current) {
           gsap.set(stairParentRef.current, { display: "none", autoAlpha: 0 });
         }
+        if (pageRef.current) {
+          gsap.set(pageRef.current, { opacity: 1, clearProps: "opacity" });
+        }
       }, 2200);
 
       const tl = gsap.timeline({
@@ -64,17 +67,20 @@ const Stairs = ({ children }: { children: ReactNode }) => {
     <div>
       <div
         ref={stairParentRef}
-        className="h-screen w-full fixed z-20 top-0 pointer-events-none hidden"
+        className="fixed inset-0 z-[100] flex h-[100dvh] w-full pointer-events-none bg-black"
+        aria-hidden="true"
       >
-        <div className="h-full w-full flex">
-          <div className="stair h-full w-1/5 bg-black"></div>
+        <div className="flex h-full w-full">
           <div className="stair h-full w-1/5 bg-blush"></div>
           <div className="stair h-full w-1/5 bg-linen"></div>
           <div className="stair h-full w-1/5 bg-sand"></div>
-          <div className="stair h-full w-1/5 bg-black"></div>
+          <div className="stair h-full w-1/5 bg-linen"></div>
+          <div className="stair h-full w-1/5 bg-blush"></div>
         </div>
       </div>
-      <div ref={pageRef}>{children}</div>
+      <div ref={pageRef} className="opacity-0">
+        {children}
+      </div>
     </div>
   );
 };
