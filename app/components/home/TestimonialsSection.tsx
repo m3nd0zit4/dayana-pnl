@@ -19,31 +19,31 @@ type Testimonial = {
 const testimonials: Testimonial[] = [
   {
     id: 1,
-    name: "Nury",
-    excerpt:
-      "A través de estas terapias he aprendido a priorizarme y a encontrar una seguridad que no tenía. Me siento mucho más tranquila; ha sido un cambio profundo y favorable para mi bienestar personal.",
-    youtubeId: "KHlVFKENIFw",
-  },
-  {
-    id: 2,
     name: "Teresa",
     excerpt:
       "Estaba pasando por un momento muy difícil en mi vida y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante con alegría.",
     youtubeId: "LnumJ4E208Y",
   },
   {
-    id: 3,
+    id: 2,
     name: "Luz",
     excerpt:
       "Llegué en un momento de crisis emocional, pero gracias al proceso con Dayana, hoy tengo una visión clara, enfoque y, sobre todo, una armonía que me permite tomar mejores decisiones para mi vida.",
     youtubeId: "uUqnsYrpXck",
   },
   {
-    id: 4,
+    id: 3,
     name: "Glenda",
     excerpt:
       "He logrado identificar y reprogramar esas ideas limitantes y traumas del pasado que no me dejaban avanzar. Pasé de estar en modo supervivencia a vivir con libertad, consciencia y la valentía necesaria para alcanzar mis metas.",
     youtubeId: "ccWpOuvL90I",
+  },
+  {
+    id: 4,
+    name: "Nury",
+    excerpt:
+      "A través de estas terapias he aprendido a priorizarme y a encontrar una seguridad que no tenía. Me siento mucho más tranquila; ha sido un cambio profundo y favorable para mi bienestar personal.",
+    youtubeId: "KHlVFKENIFw",
   },
 ];
 

@@ -24,7 +24,17 @@ const SmoothScroll = () => {
       touchMultiplier: 1.5,
     });
 
-    lenis.on("scroll", ScrollTrigger.update);
+    lenis.on("scroll", (instance) => {
+      ScrollTrigger.update();
+      window.dispatchEvent(
+        new CustomEvent("lenis-scroll", {
+          detail: {
+            scroll: instance.scroll,
+            direction: instance.direction,
+          },
+        })
+      );
+    });
 
     const raf = (time: number) => {
       lenis.raf(time * 1000);
