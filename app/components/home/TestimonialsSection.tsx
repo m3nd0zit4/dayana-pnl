@@ -3,7 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import SplitReveal from "../ui/SplitReveal";
 import { useStackingSection } from "../../hooks/useStackingSection";
 
@@ -54,55 +54,40 @@ const TestimonialVideo = ({
   youtubeId: string | null;
   name: string;
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const [isIframeLoading, setIsIframeLoading] = useState(false);
-  const [shouldMountPlayer, setShouldMountPlayer] = useState(false);
+  /** Solo tras clic: evita cargar iframes de YouTube hasta que la persona lo pida. */
+  const [playRequested, setPlayRequested] = useState(false);
 
-  useEffect(() => {
-    if (!youtubeId || !containerRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry.isIntersecting) return;
-        setShouldMountPlayer(true);
-        observer.disconnect();
-      },
-      { root: null, rootMargin: "220px 0px", threshold: 0.01 }
-    );
-
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, [youtubeId]);
-
-  useEffect(() => {
-    if (!shouldMountPlayer) return;
+  const handlePlayClick = () => {
+    setPlayRequested(true);
     setIsIframeLoading(true);
-  }, [shouldMountPlayer]);
+  };
+
+  const embedSrc =
+    playRequested && youtubeId
+      ? `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&playsinline=1&rel=0&modestbranding=1`
+      : undefined;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative aspect-video w-full bg-black/50 flex items-center justify-center"
-    >
+    <div className="relative aspect-video w-full bg-white/[0.04] flex items-center justify-center">
       {youtubeId ? (
-        shouldMountPlayer ? (
+        playRequested ? (
           <>
             <iframe
               className="w-full h-full"
-              src={`https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`}
-              title={name}
+              src={embedSrc}
+              title={`Video de ${name}`}
               loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
               onLoad={() => setIsIframeLoading(false)}
             />
             {isIframeLoading ? (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/45 pointer-events-none">
-                <div className="flex items-center gap-3 rounded-full border border-white/20 bg-black/50 px-4 py-2">
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  <span className="font-[font1] text-[10px] uppercase tracking-[0.22em] text-white/85">
-                    Cargando video
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] pointer-events-none">
+                <div className="flex items-center gap-3 rounded-full border border-white/25 bg-white/15 px-5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                  <span className="font-[font1] text-xs font-medium tracking-wide text-white">
+                    Cargando…
                   </span>
                 </div>
               </div>
@@ -111,26 +96,29 @@ const TestimonialVideo = ({
         ) : (
           <button
             type="button"
-            onClick={() => setShouldMountPlayer(true)}
-            className="relative h-full w-full overflow-hidden"
-            aria-label={`Activar video de ${name}`}
+            onClick={handlePlayClick}
+            className="relative h-full w-full cursor-pointer overflow-hidden"
+            aria-label={`Reproducir video de ${name} en YouTube`}
           >
             <img
               src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
               alt={`Miniatura de ${name}`}
-              className="h-full w-full object-cover opacity-80"
+              className="h-full w-full object-cover opacity-90"
               loading="lazy"
             />
-            <span className="absolute inset-0 z-10 flex items-center justify-center bg-black/25">
-              <span className="inline-flex h-12 w-[72px] items-center justify-center rounded-xl bg-[#FF0000] shadow-[0_8px_20px_rgba(0,0,0,0.35)]">
+            <span className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-t from-black/35 via-black/10 to-transparent">
+              <span className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-gradient-to-b from-white/28 to-white/[0.12] px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-md">
                 <svg
                   viewBox="0 0 24 24"
                   fill="currentColor"
-                  className="h-6 w-6 text-white"
+                  className="h-5 w-5 shrink-0 text-white drop-shadow-sm"
                   aria-hidden="true"
                 >
                   <path d="M8 5v14l11-7z" />
                 </svg>
+                <span className="font-[font1] text-sm font-medium tracking-wide text-white drop-shadow-sm">
+                  Ver video
+                </span>
               </span>
             </span>
           </button>
