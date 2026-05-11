@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 import {
   COURSE_PLAN,
   THERAPY_PLANS,
+  formatCop,
   formatUsd,
   getTherapySavingsUsd,
   type Plan,
@@ -129,6 +130,15 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
                   </span>
                   <span className="font-[font1] text-sm ">USD</span>
                 </div>
+                {plan.amountCop != null && (
+                  <div
+                    className={`font-[font1] text-[11px] ${
+                      isDark ? "text-white/62" : "text-black/58"
+                    }`}
+                  >
+                    {formatCop(plan.amountCop)} COP aprox.
+                  </div>
+                )}
                 <p
                   className={`font-[font1] text-[16px] font-medium tracking-wide pt-2.5 ${savingsClass}`}
                 >
@@ -136,12 +146,23 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
                 </p>
               </div>
             ) : (
-              <div className="flex items-baseline gap-2">
-                <span className="font-[font1] text-4xl lg:text-5xl leading-none">
-                  {formatUsd(plan.amountUsd)}
-                </span>
-                <span className="font-[font1] text-xs opacity-60">USD</span>
-              </div>
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                    {formatUsd(plan.amountUsd)}
+                  </span>
+                  <span className="font-[font1] text-xs opacity-60">USD</span>
+                </div>
+                {plan.amountCop != null && (
+                  <div
+                    className={`font-[font1] text-[11px] mt-1 ${
+                      isDark ? "text-white/62" : "text-black/58"
+                    }`}
+                  >
+                    {formatCop(plan.amountCop)} COP aprox.
+                  </div>
+                )}
+              </>
             )}
 
             <p className="font-[font1] text-[15px] font-medium leading-snug mt-6">
