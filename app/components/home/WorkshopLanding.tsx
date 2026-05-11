@@ -4,23 +4,23 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef } from "react";
-import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
-import {
-  WORKSHOP_VIRTUAL_PLAN,
-  formatUsd,
-} from "../../../lib/plans";
+import { WORKSHOP_VIRTUAL_PLAN } from "../../../lib/plans";
+import WhatsAppButton from "../ui/WhatsAppButton";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const focusTopics = [
+  "Metodologías de herramientas coaching en desarrollo personal",
   "Despertar de conciencia",
   "Introspección profunda",
-  "Identificación de creencias limitantes",
-  "Metodologías y estructuras para crear metas, proyectos y objetivos",
-  "Definición clara de metas y enfoque personal",
+  "Identificación de creencias limitantes y bloqueos",
+  "Metodologías y estructuras coaching para crear metas, proyectos y objetivos",
+  "Definición clara de metas y enfoque",
   "Ley de causa y efecto",
-  "Reprogramación de eventos emocionales",
+  "Reprogramación de creencias limitantes y bloqueos",
+  "Corte de lasos energeticos",
   "Programación de futuro",
+  "Listos a tomar acción",
 ];
 
 const daySchedule = [
@@ -59,17 +59,16 @@ const daySchedule = [
   {
     time: "1:20 p.m. – 3:30 p.m.",
     title:
-      "Reprogramación de eventos emocionales y creencias limitantes (trabajo profundo grupal)",
+      "Reprogramación de eventos emocionales y creencias limitantes + corte de losos energeticos (trabajo profundo grupal)",
   },
   {
     time: "3:30 p.m. – 4:30 p.m.",
-    title: "Programación de futuro y cierre",
+    title: "Programación de futuro para tomar acción y cierre",
   },
 ];
 
 const WorkshopLanding = () => {
   const rootRef = useRef<HTMLElement>(null);
-  const priceRef = useRef<HTMLSpanElement>(null);
   const heroTitleRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -122,24 +121,6 @@ const WorkshopLanding = () => {
         });
       });
 
-      if (!prefersReducedMotion && priceRef.current) {
-        gsap.fromTo(
-          priceRef.current,
-          {
-            scale: 1,
-            filter: "brightness(1)",
-          },
-          {
-            scale: 1.04,
-            filter: "brightness(1.08)",
-            duration: 1.9,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.inOut",
-            transformOrigin: "50% 50%",
-          }
-        );
-      }
     },
     { scope: rootRef }
   );
@@ -265,26 +246,11 @@ const WorkshopLanding = () => {
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
           <aside className="wk-reveal lg:col-span-7 rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
             <div className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-white/60">
-              Inversión
+              Inscripción
             </div>
-            <div className="mt-3 flex flex-col items-start gap-1">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span
-                  ref={priceRef}
-                  className="font-[font1] text-5xl lg:text-7xl leading-none"
-                >
-                  {formatUsd(WORKSHOP_VIRTUAL_PLAN.amountUsd)}
-                </span>
-                <span className="font-[font1] text-lg lg:text-2xl text-white/80 pb-1">
-                  USD
-                </span>
-              </div>
-              <span className="font-[font1] text-sm lg:text-base text-white/55">
-                ~ $200.000 COP aprox.
-              </span>
-            </div>
-            <p className="font-[font1] mt-5 text-white/80 leading-snug max-w-2xl">
-              Este taller puede marcar un antes y un después en tu vida.
+            <p className="font-[font1] mt-4 text-white/82 leading-snug max-w-2xl text-lg lg:text-2xl">
+              Reserva tu cupo directamente por WhatsApp. Te guiamos en todo el
+              proceso y confirmamos tu inscripción de inmediato.
             </p>
           </aside>
 
@@ -293,12 +259,14 @@ const WorkshopLanding = () => {
               Reserva tu cupo
             </h3>
             <p className="font-[font1] text-sm text-black/65 leading-snug mt-4">
-              Elige PayPal o Mercado Pago como en los planes del sitio. Si ya
-              pagaste, usa WhatsApp para enviar tu comprobante y confirmar cupo.
+              Escríbenos por WhatsApp y te compartimos el paso a paso para
+              asegurar tu lugar en el taller.
             </p>
-            <PlanCheckoutButtons
-              plan={WORKSHOP_VIRTUAL_PLAN}
-              isDark={false}
+            <WhatsAppButton
+              message={WORKSHOP_VIRTUAL_PLAN.whatsappMessage}
+              label="Reservar por WhatsApp"
+              size="lg"
+              className="mt-6 w-full"
             />
           </div>
         </div>
