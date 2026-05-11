@@ -21,6 +21,8 @@ export type Plan = {
   sessions: string;
   /** Precio promocional cobrado (checkout). */
   amountUsd: number;
+  /** Referencia local en COP para mostrar en UI. */
+  amountCop?: number;
   /**
    * Valor de referencia (lista) mayor que `amountUsd` cuando hay promoción.
    * Si no se define o es igual a `amountUsd`, la carta muestra un solo precio.
@@ -52,6 +54,7 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Terapia",
     sessions: "1 Sesión Privada",
     amountUsd: 80,
+    amountCop: 320000,
     therapyPresentation: {
       sessionsHeadline: "1 sesión Personalizada(1 a 1)",
     },
@@ -69,6 +72,7 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Terapia Basica",
     sessions: "Paquete de 3 Sesiones",
     amountUsd: 140,
+    amountCop: 560000,
     listAmountUsd: 240,
     therapyPresentation: {
       sessionsHeadline: "3 sesiones privadas (1 a 1)",
@@ -91,6 +95,7 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Terapia Inicio de Transformacion",
     sessions: "Paquete de 6 Sesiones",
     amountUsd: 280,
+    amountCop: 1120000,
     listAmountUsd: 480,
     tag: "Más elegido",
     highlight: true,
@@ -114,6 +119,7 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Terapia Transformacion Avanzada",
     sessions: "Paquete de 12 Sesiones",
     amountUsd: 560,
+    amountCop: 2240000,
     listAmountUsd: 960,
     therapyPresentation: {
       sessionsHeadline: "12 sesiones privadas (1 a 1)",
@@ -134,6 +140,7 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Terapia Transformacion Premium",
     sessions: "Paquete de 24 Sesiones",
     amountUsd: 1120,
+    amountCop: 4480000,
     listAmountUsd: 1920,
     therapyPresentation: {
       sessionsHeadline: "24 sesiones privadas (1 a 1)",
@@ -154,6 +161,7 @@ export const PLANS: Record<PlanId, Plan> = {
     title: "Curso en vivo",
     sessions: "Inscripción",
     amountUsd: 35,
+    amountCop: 140000,
     unitPrice: "por persona",
     features: [
       "Grupo en Google Meet",
@@ -170,6 +178,7 @@ export const PLANS: Record<PlanId, Plan> = {
     sessions: "Saca tu mejor versión",
     /** Checkout en USD (~200.000 COP aprox. según TRM del día). */
     amountUsd: 50,
+    amountCop: 200000,
     features: [
       "Taller virtual jornada completa",
       "Sábado 16 de mayo · 7:30 a.m. a 4:30 p.m.",
@@ -202,4 +211,11 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+const copFormatter = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  maximumFractionDigits: 0,
+});
+
 export const formatUsd = (usd: number): string => usdFormatter.format(usd);
+export const formatCop = (cop: number): string => copFormatter.format(cop);
