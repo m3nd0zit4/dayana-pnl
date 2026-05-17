@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import WorkshopLanding from "../components/home/WorkshopLanding";
+import WorkshopsListing from "../components/home/WorkshopsListing";
 import Footer from "../components/home/Footer";
 import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 
 export const metadata: Metadata = {
-  title: "Taller Virtual — Saca Tu Mejor Versión | Dayana Beltrán PNL",
+  title: "Talleres Virtuales | Dayana Beltrán PNL",
   description:
-    "Para personas que se sabotean o repiten patrones: un día intensivo de PNL para clarificar metas, reprogramar creencias y alinear tu vida. Virtual, sábado 16 de mayo, jornada completa con Dayana Beltrán.",
+    "Talleres virtuales de transformación con Dayana Beltrán. Revisa ediciones realizadas y consulta por WhatsApp para próximas fechas, terapias o cursos en vivo.",
 };
 
-const WorkshopPage = () => {
+const WorkshopsPage = () => {
   return (
     <>
       <main>
-        <WorkshopLanding />
+        <WorkshopsListing />
       </main>
       <Footer />
       <FloatingWhatsApp />
@@ -21,4 +21,4 @@ const WorkshopPage = () => {
   );
 };
 
-export default WorkshopPage;
+export default WorkshopsPage;
