@@ -47,6 +47,28 @@ const testimonials: Testimonial[] = [
   },
 ];
 
+function buildYoutubeEmbedUrl(videoId: string): string {
+  const params = new URLSearchParams({
+    autoplay: "1",
+    playsinline: "1",
+    rel: "0",
+    modestbranding: "1",
+    enablejsapi: "1",
+  });
+
+  if (typeof window !== "undefined") {
+    params.set("origin", window.location.origin);
+    const prefersTouch =
+      window.matchMedia("(pointer: coarse)").matches ||
+      "ontouchstart" in window;
+    if (prefersTouch) {
+      params.set("mute", "1");
+    }
+  }
+
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}
+
 const TestimonialVideo = ({
   youtubeId,
   name,
@@ -54,75 +76,93 @@ const TestimonialVideo = ({
   youtubeId: string | null;
   name: string;
 }) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(false);
-  /** Solo tras clic: evita cargar iframes de YouTube hasta que la persona lo pida. */
-  const [playRequested, setPlayRequested] = useState(false);
+  const [startsMuted, setStartsMuted] = useState(false);
 
   const handlePlayClick = () => {
-    setPlayRequested(true);
+    if (!youtubeId || isPlaying) return;
+
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const touchDevice =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(pointer: coarse)").matches ||
+        "ontouchstart" in window);
+    setStartsMuted(touchDevice);
     setIsIframeLoading(true);
+    setIsPlaying(true);
+
+    // Asignar src en el mismo gesto del usuario (evita doble toque en móvil).
+    iframe.src = buildYoutubeEmbedUrl(youtubeId);
   };
 
-  const embedSrc =
-    playRequested && youtubeId
-      ? `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&playsinline=1&rel=0&modestbranding=1`
-      : undefined;
+  if (!youtubeId) {
+    return <div className="relative aspect-video w-full bg-white/[0.04]" />;
+  }
 
   return (
-    <div className="relative aspect-video w-full bg-white/[0.04] flex items-center justify-center">
-      {youtubeId ? (
-        playRequested ? (
-          <>
-            <iframe
-              className="w-full h-full"
-              src={embedSrc}
-              title={`Video de ${name}`}
-              loading="lazy"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              onLoad={() => setIsIframeLoading(false)}
-            />
-            {isIframeLoading ? (
-              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] pointer-events-none">
-                <div className="flex items-center gap-3 rounded-full border border-white/25 bg-white/15 px-5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md">
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
-                  <span className="font-[font1] text-xs font-medium tracking-wide text-white">
-                    Cargando…
-                  </span>
-                </div>
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={handlePlayClick}
-            className="relative h-full w-full cursor-pointer overflow-hidden"
-            aria-label={`Reproducir video de ${name} en YouTube`}
-          >
-            <img
-              src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
-              alt={`Miniatura de ${name}`}
-              className="h-full w-full object-cover opacity-90"
-              loading="lazy"
-            />
-            <span className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-t from-black/35 via-black/10 to-transparent">
-              <span className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-gradient-to-b from-white/28 to-white/[0.12] px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-md">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="h-5 w-5 shrink-0 text-white drop-shadow-sm"
-                  aria-hidden="true"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                <span className="font-[font1] text-sm font-medium tracking-wide text-white drop-shadow-sm">
-                  Ver video
-                </span>
+    <div className="relative aspect-video w-full bg-white/[0.04]">
+      <iframe
+        ref={iframeRef}
+        className="h-full w-full"
+        title={`Video de ${name}`}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        onLoad={() => setIsIframeLoading(false)}
+      />
+
+      {!isPlaying ? (
+        <button
+          type="button"
+          onClick={handlePlayClick}
+          className="absolute inset-0 z-10 h-full w-full cursor-pointer overflow-hidden"
+          aria-label={`Reproducir video de ${name}`}
+        >
+          <img
+            src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
+            alt={`Miniatura de ${name}`}
+            className="h-full w-full object-cover opacity-90"
+            loading="lazy"
+          />
+          <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/35 via-black/10 to-transparent">
+            <span className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-gradient-to-b from-white/28 to-white/[0.12] px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-md">
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="h-5 w-5 shrink-0 text-white drop-shadow-sm"
+                aria-hidden="true"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span className="font-[font1] text-sm font-medium tracking-wide text-white drop-shadow-sm">
+                Ver video
               </span>
             </span>
-          </button>
-        )
+          </span>
+        </button>
+      ) : null}
+
+      {isPlaying && isIframeLoading ? (
+        <div
+          className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] pointer-events-none"
+          aria-hidden
+        >
+          <div className="flex items-center gap-3 rounded-full border border-white/25 bg-white/15 px-5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+            <span className="font-[font1] text-xs font-medium tracking-wide text-white">
+              Cargando…
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {isPlaying && !isIframeLoading && startsMuted ? (
+        <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 text-center font-[font1] text-[10px] leading-snug text-white/90 drop-shadow-sm">
+          Toca el icono de sonido en el reproductor para activar el audio
+        </p>
       ) : null}
     </div>
   );
