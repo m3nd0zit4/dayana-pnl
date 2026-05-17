@@ -21,12 +21,6 @@ type MenuItem =
       announcement?: string;
     };
 
-/** Taller virtual en menú y anuncio: hasta el 16 de mayo de 2026 (fin del día, hora local). */
-function isTallerVirtualNavPromoActive(at = new Date()): boolean {
-  const end = new Date(2026, 4, 16, 23, 59, 59, 999);
-  return at.getTime() <= end.getTime();
-}
-
 const menuItemsBase: MenuItem[] = [
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
   { label: "Servicios", hash: "#servicios", marquee: "Terapias y cursos en vivo" },
@@ -38,13 +32,15 @@ const menuItemsBase: MenuItem[] = [
 const tallerVirtualItem: MenuItem = {
   label: "Taller virtual",
   path: "/taller-virtual",
-  marquee: "Curso en vivo por Google Meet",
-  announcement: "Inscripciones · hasta 16 may 2026",
+  marquee: "Saca tu mejor versión · edición 2026",
+  announcement: "Proximamente",
 };
 
-const menuItems: MenuItem[] = isTallerVirtualNavPromoActive()
-  ? [...menuItemsBase.slice(0, 3), tallerVirtualItem, ...menuItemsBase.slice(3)]
-  : menuItemsBase;
+const menuItems: MenuItem[] = [
+  ...menuItemsBase.slice(0, 3),
+  tallerVirtualItem,
+  ...menuItemsBase.slice(3),
+];
 
 /** Tamaños originales del menú (antes del primer ajuste por clamp). */
 const linkTitleClass =
