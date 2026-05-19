@@ -198,7 +198,7 @@ const HomeHero = () => {
       data-nav-color="white"
       className="bg-black text-white relative overflow-hidden"
     >
-      <div className="absolute inset-0 z-0 pointer-events-none">
+      <div className="absolute inset-0 z-0 min-h-full min-w-full pointer-events-none">
         {shouldLoadVideo ? (
           <video
             ref={videoRef}
@@ -208,6 +208,8 @@ const HomeHero = () => {
             playsInline
             preload="metadata"
             poster="/video-poster.webp"
+            width={1920}
+            height={1080}
             className="absolute inset-0 h-full w-full object-cover will-change-transform"
           >
             <source src="/video.webm" type="video/webm" />
@@ -218,9 +220,12 @@ const HomeHero = () => {
             src="/video-poster.webp"
             alt=""
             aria-hidden="true"
+            width={1920}
+            height={1080}
             className="absolute inset-0 h-full w-full object-cover"
             loading="eager"
             decoding="async"
+            fetchPriority="high"
           />
         )}
         <div

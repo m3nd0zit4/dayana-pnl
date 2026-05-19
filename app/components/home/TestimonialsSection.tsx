@@ -76,16 +76,13 @@ const TestimonialVideo = ({
   youtubeId: string | null;
   name: string;
 }) => {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isIframeLoading, setIsIframeLoading] = useState(false);
   const [startsMuted, setStartsMuted] = useState(false);
+  const [embedSrc, setEmbedSrc] = useState<string | null>(null);
 
   const handlePlayClick = () => {
     if (!youtubeId || isPlaying) return;
-
-    const iframe = iframeRef.current;
-    if (!iframe) return;
 
     const touchDevice =
       typeof window !== "undefined" &&
@@ -94,9 +91,7 @@ const TestimonialVideo = ({
     setStartsMuted(touchDevice);
     setIsIframeLoading(true);
     setIsPlaying(true);
-
-    // Asignar src en el mismo gesto del usuario (evita doble toque en móvil).
-    iframe.src = buildYoutubeEmbedUrl(youtubeId);
+    setEmbedSrc(buildYoutubeEmbedUrl(youtubeId));
   };
 
   if (!youtubeId) {
@@ -105,14 +100,16 @@ const TestimonialVideo = ({
 
   return (
     <div className="relative aspect-video w-full bg-white/[0.04]">
-      <iframe
-        ref={iframeRef}
-        className="h-full w-full"
-        title={`Video de ${name}`}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowFullScreen
-        onLoad={() => setIsIframeLoading(false)}
-      />
+      {isPlaying && embedSrc ? (
+        <iframe
+          src={embedSrc}
+          className="absolute inset-0 h-full w-full"
+          title={`Video de ${name}`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          onLoad={() => setIsIframeLoading(false)}
+        />
+      ) : null}
 
       {!isPlaying ? (
         <button
@@ -124,8 +121,11 @@ const TestimonialVideo = ({
           <img
             src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
             alt={`Miniatura de ${name}`}
+            width={480}
+            height={360}
             className="h-full w-full object-cover opacity-90"
             loading="lazy"
+            decoding="async"
           />
           <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/35 via-black/10 to-transparent">
             <span className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-gradient-to-b from-white/28 to-white/[0.12] px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-md">
