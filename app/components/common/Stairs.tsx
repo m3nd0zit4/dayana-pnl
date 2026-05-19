@@ -19,6 +19,16 @@ const Stairs = ({ children }: { children: ReactNode }) => {
   useGSAP(
     () => {
       if (!stairParentRef.current || !pageRef.current) return;
+
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      if (prefersReducedMotion) {
+        gsap.set(stairParentRef.current, { display: "none", autoAlpha: 1 });
+        gsap.set(pageRef.current, { opacity: 1 });
+        return;
+      }
+
       const stairs = gsap.utils.toArray<HTMLElement>(
         ".stair",
         stairParentRef.current
@@ -98,7 +108,7 @@ const Stairs = ({ children }: { children: ReactNode }) => {
     <div ref={rootRef} className="relative isolate min-h-dvh">
       <div
         ref={pageRef}
-        className="relative z-0 min-h-dvh opacity-0 [will-change:opacity]"
+        className="stairs-page-content relative z-0 min-h-dvh opacity-0 [will-change:opacity]"
       >
         {children}
       </div>
