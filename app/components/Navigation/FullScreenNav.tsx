@@ -32,8 +32,8 @@ const menuItemsBase: MenuItem[] = [
 const tallerVirtualItem: MenuItem = {
   label: "Taller virtual",
   path: "/taller-virtual",
-  marquee: "Saca tu mejor versión · edición 2026",
-  announcement: "Proximamente",
+  marquee: "Próximo taller virtual",
+  announcement: "Próximamente",
 };
 
 const menuItems: MenuItem[] = [

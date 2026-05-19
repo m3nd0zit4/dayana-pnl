@@ -61,6 +61,12 @@ body {
   background: #000;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .stairs-page-content {
+    opacity: 1 !important;
+  }
+}
+
 .moveX {
   animation-name: moveAnimation;
   animation-duration: 30s;

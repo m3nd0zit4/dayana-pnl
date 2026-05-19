@@ -6,7 +6,7 @@ import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 export const metadata: Metadata = {
   title: "Talleres Virtuales | Dayana Beltrán PNL",
   description:
-    "Talleres virtuales de transformación con Dayana Beltrán. Revisa ediciones realizadas y consulta por WhatsApp para próximas fechas, terapias o cursos en vivo.",
+    "Talleres virtuales de transformación con Dayana Beltrán. Próxima edición en preparación; consulta por WhatsApp para avisarte de fechas, terapias o cursos en vivo.",
 };
 
 const WorkshopsPage = () => {
