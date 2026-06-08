@@ -45,3 +45,6 @@ next-env.d.ts
 .agents/skills/
 
 .vercel
+
+# clerk configuration (can include secrets)
+/.clerk/

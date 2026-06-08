@@ -1,0 +1,462 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ContactSource {
+  TIKTOK
+  INSTAGRAM
+  YOUTUBE
+  WEB
+  WHATSAPP_DIRECT
+  REFERRAL
+  OTHER
+}
+
+enum ProductKind {
+  THERAPY
+  COURSE
+  WORKSHOP
+}
+
+enum EnrollmentStatus {
+  LEAD
+  PENDING_PAYMENT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  PAYPAL
+  MERCADO_PAGO
+  MANUAL
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  FAILED
+  REFUNDED
+}
+
+enum TherapySessionStatus {
+  PENDING_SCHEDULE
+  SCHEDULED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+  RESCHEDULED
+}
+
+enum ContactNoteKind {
+  TEXT
+  HANDWRITTEN
+}
+
+enum WorkshopEditionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  COMPLETED
+}
+
+enum StaffRole {
+  OWNER
+  OPERATOR
+  READONLY
+  DEVELOPER
+}
+
+enum MessageChannel {
+  WHATSAPP_LINK
+  WHATSAPP_API
+  EMAIL
+  SMS
+  INTERNAL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum NotificationCampaignStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Contact {
+  id                  String        @id @default(cuid())
+  phoneE164           String        @unique @map("phone_e164")
+  phoneCountryIso     String?       @map("phone_country_iso") @db.Char(2)
+  email               String?       @unique
+  firstName           String        @map("first_name")
+  lastName            String?       @map("last_name")
+  displayName         String?       @map("display_name")
+  countryIso          String?       @map("country_iso") @db.Char(2)
+  timezone            String        @default("America/Bogota")
+  preferredLocale     String        @default("es") @map("preferred_locale")
+  source              ContactSource @default(WEB)
+  sourceDetail        String?       @map("source_detail")
+  tiktokHandle        String?       @map("tiktok_handle")
+  notes               String?       @db.Text
+  consentDataAt       DateTime?     @map("consent_data_at")
+  consentMarketingAt  DateTime?     @map("consent_marketing_at")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  enrollments            Enrollment[]
+  tags                   ContactTag[]
+  messageLogs            MessageLog[]
+  notificationDeliveries NotificationDelivery[]
+  contactNotes           ContactNote[]
+
+  @@index([createdAt])
+  @@index([countryIso])
+  @@index([consentMarketingAt])
+  @@map("contacts")
+}
+
+model Product {
+  id            String      @id
+  kind          ProductKind
+  title         String
+  sessionsLabel String      @map("sessions_label")
+  sessionsCount Int?        @map("sessions_count")
+  description   String?     @db.Text
+  isActive      Boolean     @default(true) @map("is_active")
+  sortOrder     Int         @default(0) @map("sort_order")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  prices           ProductPrice[]
+  enrollments      Enrollment[]
+  workshopEditions WorkshopEdition[]
+
+  @@index([kind])
+  @@map("products")
+}
+
+model ProductPrice {
+  id              String   @id @default(cuid())
+  productId       String   @map("product_id")
+  currency        String   @db.Char(3)
+  amountMinor     Int      @map("amount_minor")
+  listAmountMinor Int?     @map("list_amount_minor")
+  validFrom       DateTime @default(now()) @map("valid_from")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, currency])
+  @@map("product_prices")
+}
+
+model WorkshopEdition {
+  id               String                @id @default(cuid())
+  slug             String                @unique
+  productId        String?               @map("product_id")
+  title            String
+  editionLabel     String?               @map("edition_label")
+  cardSummary      String?               @map("card_summary") @db.Text
+  status           WorkshopEditionStatus @default(DRAFT)
+  startsAt         DateTime?             @map("starts_at")
+  endsAt           DateTime?             @map("ends_at")
+  timezone         String                @default("America/Bogota")
+  dateLabel        String?               @map("date_label")
+  scheduleLabel    String?               @map("schedule_label")
+  capacity         Int?
+  whatsappTemplate String?               @map("whatsapp_template") @db.Text
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+
+  product                Product?                 @relation(fields: [productId], references: [id])
+  enrollments            Enrollment[]
+  notificationCampaigns  NotificationCampaign[]
+
+  @@map("workshop_editions")
+}
+
+model Enrollment {
+  id                 String           @id @default(cuid())
+  contactId          String           @map("contact_id")
+  productId          String           @map("product_id")
+  workshopEditionId  String?          @map("workshop_edition_id")
+  status             EnrollmentStatus @default(LEAD)
+  label              String?
+  isPrimary          Boolean          @default(false) @map("is_primary")
+  parentEnrollmentId String?          @map("parent_enrollment_id")
+  sessionsTotal      Int?             @map("sessions_total")
+  sessionsUsed       Int              @default(0) @map("sessions_used")
+  currency           String?          @db.Char(3)
+  amountMinor        Int?             @map("amount_minor")
+  externalRef        String?          @map("external_ref")
+  leadAt             DateTime?        @map("lead_at")
+  paidAt             DateTime?        @map("paid_at")
+  completedAt        DateTime?        @map("completed_at")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  contact          Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  product          Product          @relation(fields: [productId], references: [id])
+  workshopEdition  WorkshopEdition? @relation(fields: [workshopEditionId], references: [id])
+  parentEnrollment Enrollment?      @relation("EnrollmentRenewals", fields: [parentEnrollmentId], references: [id])
+  childEnrollments Enrollment[]     @relation("EnrollmentRenewals")
+  payments         Payment[]
+  therapyPackage   TherapyPackage?
+  contactNotes     ContactNote[]
+
+  @@index([contactId, status])
+  @@index([contactId, productId])
+  @@index([status])
+  @@index([updatedAt])
+  @@map("enrollments")
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  enrollmentId      String          @map("enrollment_id")
+  provider          PaymentProvider
+  providerPaymentId String          @map("provider_payment_id")
+  providerOrderId   String?         @map("provider_order_id")
+  status            PaymentStatus
+  currency          String          @db.Char(3)
+  amountMinor       Int             @map("amount_minor")
+  feeMinor          Int?            @map("fee_minor")
+  netMinor          Int?            @map("net_minor")
+  payerEmail        String?         @map("payer_email")
+  payerCountryIso   String?         @map("payer_country_iso") @db.Char(2)
+  rawPayload        Json?           @map("raw_payload")
+  paidAt            DateTime?       @map("paid_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerPaymentId])
+  @@index([enrollmentId])
+  @@index([status, paidAt])
+  @@map("payments")
+}
+
+model TherapyPackage {
+  id                  String   @id @default(cuid())
+  enrollmentId        String   @unique @map("enrollment_id")
+  totalSessions       Int      @map("total_sessions")
+  usedSessions        Int      @default(0) @map("used_sessions")
+  meetDefaultUrl      String?  @map("meet_default_url")
+  reprogrammingNotes  String?  @map("reprogramming_notes") @db.Text
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  enrollment Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  sessions   TherapySession[]
+
+  @@map("therapy_packages")
+}
+
+model TherapySession {
+  id               String               @id @default(cuid())
+  therapyPackageId String               @map("therapy_package_id")
+  sessionNumber    Int                  @map("session_number")
+  scheduledAt      DateTime?            @map("scheduled_at")
+  durationMinutes  Int                  @default(60) @map("duration_minutes")
+  status           TherapySessionStatus @default(SCHEDULED)
+  meetUrl          String?              @map("meet_url")
+  clinicalNotes    String?              @map("clinical_notes") @db.Text
+  completedAt      DateTime?            @map("completed_at")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  therapyPackage TherapyPackage @relation(fields: [therapyPackageId], references: [id], onDelete: Cascade)
+  contactNotes   ContactNote[]
+
+  @@unique([therapyPackageId, sessionNumber])
+  @@index([scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("therapy_sessions")
+}
+
+model ContactNote {
+  id               String          @id @default(cuid())
+  contactId        String          @map("contact_id")
+  kind             ContactNoteKind @default(TEXT)
+  title            String?
+  bodyText         String?         @map("body_text") @db.Text
+  therapySessionId String?         @map("therapy_session_id")
+  enrollmentId     String?         @map("enrollment_id")
+  attachmentUrl    String?         @map("attachment_url")
+  attachmentMime   String?         @map("attachment_mime")
+  attachmentName   String?         @map("attachment_name")
+  createdByStaffId String?         @map("created_by_staff_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  contact        Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  therapySession TherapySession? @relation(fields: [therapySessionId], references: [id], onDelete: SetNull)
+  enrollment     Enrollment?     @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  createdByStaff StaffUser?      @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([contactId, createdAt(sort: Desc)])
+  @@index([therapySessionId])
+  @@map("contact_notes")
+}
+
+model StaffUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  displayName  String    @map("display_name")
+  role         StaffRole @default(OPERATOR)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  auditLogs    AuditLog[]
+  messageLogs  MessageLog[]
+  contactNotes ContactNote[]
+
+  @@map("staff_users")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  staffUserId String?  @map("staff_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  changes     Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  staffUser StaffUser? @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contacts ContactTag[]
+
+  @@map("tags")
+}
+
+model ContactTag {
+  contactId String   @map("contact_id")
+  tagId     String   @map("tag_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([contactId, tagId])
+  @@index([tagId])
+  @@map("contact_tags")
+}
+
+model MessageTemplate {
+  id          String       @id @default(cuid())
+  key         String
+  title       String       @default("")
+  locale      String       @default("es")
+  body        String       @db.Text
+  productKind ProductKind? @map("product_kind")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  messageLogs MessageLog[]
+
+  @@unique([key, locale])
+  @@map("message_templates")
+}
+
+model MessageLog {
+  id           String         @id @default(cuid())
+  contactId    String         @map("contact_id")
+  templateId   String?        @map("template_id")
+  staffUserId  String?        @map("staff_user_id")
+  channel      MessageChannel @default(WHATSAPP_LINK)
+  bodySnapshot String         @map("body_snapshot") @db.Text
+  sentAt       DateTime       @default(now()) @map("sent_at")
+
+  contact   Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  template  MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  staffUser StaffUser?       @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+
+  @@index([contactId, sentAt])
+  @@map("message_logs")
+}
+
+model WebhookEvent {
+  id          String          @id @default(cuid())
+  provider    PaymentProvider
+  eventId     String          @map("event_id")
+  processedAt DateTime        @default(now()) @map("processed_at")
+  payload     Json?
+
+  @@unique([provider, eventId])
+  @@map("webhook_events")
+}
+
+model NotificationCampaign {
+  id                String                     @id @default(cuid())
+  name              String
+  templateKey       String                     @map("template_key")
+  channels          Json
+  audience          String                     @default("ALL_CONTACTS")
+  workshopEditionId String?                    @map("workshop_edition_id")
+  status            NotificationCampaignStatus @default(DRAFT)
+  totalTargets      Int                        @default(0) @map("total_targets")
+  sentCount         Int                        @default(0) @map("sent_count")
+  failedCount       Int                        @default(0) @map("failed_count")
+  skippedCount      Int                        @default(0) @map("skipped_count")
+  createdByStaffId  String?                    @map("created_by_staff_id")
+  startedAt         DateTime?                  @map("started_at")
+  completedAt       DateTime?                  @map("completed_at")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+
+  workshopEdition WorkshopEdition?       @relation(fields: [workshopEditionId], references: [id], onDelete: SetNull)
+  deliveries      NotificationDelivery[]
+
+  @@index([createdAt])
+  @@map("notification_campaigns")
+}
+
+model NotificationDelivery {
+  id           String                     @id @default(cuid())
+  campaignId   String?                    @map("campaign_id")
+  contactId    String                     @map("contact_id")
+  channel      MessageChannel
+  status       NotificationDeliveryStatus @default(PENDING)
+  templateKey  String?                    @map("template_key")
+  subject      String?
+  bodySnapshot String                     @map("body_snapshot") @db.Text
+  recipient    String?
+  providerId   String?                    @map("provider_id")
+  errorMessage String?                    @map("error_message") @db.Text
+  sentAt       DateTime?                  @map("sent_at")
+  createdAt    DateTime                   @default(now()) @map("created_at")
+
+  campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact               @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([contactId, createdAt])
+  @@map("notification_deliveries")
+}
