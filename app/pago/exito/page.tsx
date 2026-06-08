@@ -6,6 +6,7 @@ import {
   buildWhatsAppUrl,
 } from "../../../lib/contact";
 import { formatUsd, getPlan, isPlanId } from "../../../lib/plans";
+import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ type SearchParams = {
   collection_status?: string;
   status?: string;
   external_reference?: string;
+  enrollmentId?: string;
   payment_id?: string;
   merchant_order_id?: string;
   preference_id?: string;
@@ -260,10 +262,28 @@ const Page = async ({ searchParams }: PageProps) => {
         )}
 
         {isSuccess && (
-          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-10">
-            El siguiente paso es agendar tu primera sesión con Dayana. Elige
-            cuándo empezamos.
+          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
+            Completa tus datos para vincular el pago y agendar por WhatsApp.
           </p>
+        )}
+
+        {isSuccess && (
+          <PostPaymentLeadForm
+            enrollmentId={
+              params.enrollmentId ??
+              (params.external_reference &&
+              !isPlanId(params.external_reference)
+                ? params.external_reference
+                : undefined)
+            }
+            planId={
+              params.external_reference && isPlanId(params.external_reference)
+                ? params.external_reference
+                : params.plan && isPlanId(params.plan)
+                  ? params.plan
+                  : undefined
+            }
+          />
         )}
 
         <div className="flex flex-col sm:flex-row gap-3">

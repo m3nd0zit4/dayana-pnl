@@ -5,8 +5,6 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
 import {
-  COURSE_PLAN,
-  THERAPY_PLANS,
   formatCop,
   formatUsd,
   getTherapySavingsUsd,
@@ -242,7 +240,12 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
   );
 };
 
-const ServicesSection = () => {
+type ServicesSectionProps = {
+  therapyPlans: Plan[];
+  coursePlan: Plan | null;
+};
+
+const ServicesSection = ({ therapyPlans, coursePlan }: ServicesSectionProps) => {
   const rootRef = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
@@ -318,7 +321,7 @@ const ServicesSection = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {THERAPY_PLANS.map((plan) => (
+          {therapyPlans.map((plan) => (
             <PlanCard key={plan.id} plan={plan} />
           ))}
         </div>
@@ -362,7 +365,7 @@ const ServicesSection = () => {
               Espacio garantizado para cada participante.
             </p>
           </div>
-          <PlanCard plan={COURSE_PLAN} variant="dark" />
+          {coursePlan && <PlanCard plan={coursePlan} variant="dark" />}
         </div>
       </div>
       </div>

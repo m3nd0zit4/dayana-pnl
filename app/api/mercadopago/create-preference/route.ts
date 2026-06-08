@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
-import { getPlan, isPlanId, type PlanId } from "../../../../lib/plans";
+import { isPlanId } from "../../../../lib/plans";
+import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import {
   mercadoPagoItemAmount,
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
+import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
 
 type Body = {
   planId?: string;
+  enrollmentId?: string;
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
   mode?: "full" | "cards";
 };
@@ -28,12 +31,28 @@ export async function POST(req: Request) {
   }
 
   const planId = body.planId;
-  if (!planId || !isPlanId(planId)) {
+  if (!planId || !isPlanId(planId) || !(await isActivePlanId(planId))) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
   const mode = body.mode === "cards" ? "cards" : "full";
-  const plan = getPlan(planId as PlanId);
+  const plan = await getPlanFromDb(planId);
+  if (!plan) {
+    return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+  }
+
+  let enrollmentId = body.enrollmentId;
+  try {
+    if (!enrollmentId) {
+      const enrollment = await createPendingPaymentEnrollment({
+        productId: planId,
+      });
+      enrollmentId = enrollment.id;
+    }
+  } catch (e) {
+    console.error("[mercadopago] enrollment create failed", e);
+    return NextResponse.json({ error: "crm_unavailable" }, { status: 503 });
+  }
 
   let net: number;
   let fee: number;
@@ -67,13 +86,15 @@ export async function POST(req: Request) {
     });
   }
 
+  const successUrl = `${base}/pago/exito?enrollmentId=${encodeURIComponent(enrollmentId)}`;
+
   const preferenceBody: Record<string, unknown> = {
     items,
-    external_reference: planId,
+    external_reference: enrollmentId,
     back_urls: {
-      success: `${base}/pago/exito`,
+      success: successUrl,
       failure: `${base}/pago/cancelado`,
-      pending: `${base}/pago/exito`,
+      pending: successUrl,
     },
     statement_descriptor: "DAYANA PNL",
     binary_mode: mode === "cards",
@@ -119,7 +140,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "no_init_point" }, { status: 502 });
     }
 
-    return NextResponse.json({ init_point, mode });
+    return NextResponse.json({ init_point, mode, enrollmentId });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("[mercadopago] preference exception", message);

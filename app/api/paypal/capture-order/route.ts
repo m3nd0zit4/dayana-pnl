@@ -1,27 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
+import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import {
   capturePayPalOrderRequest,
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
+import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Body = { orderID?: unknown };
 
-/** PayPal order IDs are alphanumeric; keep validation loose but safe. */
 const isLikelyOrderId = (value: string): boolean =>
   /^[A-Za-z0-9_-]{10,64}$/.test(value);
 
-const extractCaptureId = (payload: unknown): string | undefined => {
-  if (!payload || typeof payload !== "object") return undefined;
+const extractCapture = (payload: unknown): {
+  captureId?: string;
+  enrollmentRef?: string;
+  amountMinor?: number;
+  currency?: string;
+} => {
+  if (!payload || typeof payload !== "object") return {};
   const p = payload as {
     purchase_units?: Array<{
-      payments?: { captures?: Array<{ id?: string }> };
+      custom_id?: string;
+      reference_id?: string;
+      payments?: {
+        captures?: Array<{
+          id?: string;
+          status?: string;
+          amount?: { currency_code?: string; value?: string };
+        }>;
+      };
     }>;
   };
-  const captures = p.purchase_units?.[0]?.payments?.captures;
-  return captures?.[0]?.id;
+  const unit = p.purchase_units?.[0];
+  const capture = unit?.payments?.captures?.[0];
+  const amountValue = Number(capture?.amount?.value ?? 0);
+  return {
+    captureId: capture?.id,
+    enrollmentRef: unit?.custom_id ?? unit?.reference_id,
+    amountMinor: Math.round(amountValue * 100),
+    currency: capture?.amount?.currency_code ?? "USD",
+  };
 };
 
 export async function POST(req: NextRequest) {
@@ -47,7 +68,8 @@ export async function POST(req: NextRequest) {
   try {
     const accessToken = await getPayPalAccessToken();
     const result = await capturePayPalOrderRequest(accessToken, orderID);
-    const captureId = extractCaptureId(result);
+    const { captureId, enrollmentRef, amountMinor, currency } =
+      extractCapture(result);
     const status =
       typeof result === "object" &&
       result !== null &&
@@ -56,10 +78,31 @@ export async function POST(req: NextRequest) {
         ? (result as { status: string }).status
         : "COMPLETED";
 
+    let enrollmentId: string | null = null;
+    if (enrollmentRef) {
+      enrollmentId = await resolveEnrollmentFromReference(enrollmentRef);
+    }
+
+    if (enrollmentId && captureId && amountMinor != null) {
+      await recordPayment({
+        enrollmentId,
+        provider: PaymentProvider.PAYPAL,
+        providerPaymentId: captureId,
+        providerOrderId: orderID,
+        status:
+          status === "COMPLETED" ? PaymentStatus.APPROVED : PaymentStatus.PENDING,
+        currency: currency ?? "USD",
+        amountMinor,
+        rawPayload: result,
+        paidAt: status === "COMPLETED" ? new Date() : undefined,
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       orderID,
       captureId,
+      enrollmentId,
       status,
     });
   } catch (error) {

@@ -16,7 +16,7 @@ export const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@dayanapnl",
   instagram: "https://www.instagram.com/dayanapnl",
   youtube: "https://www.youtube.com/@dianabeltranpnl",
-  email: "mailto:contacto@dayanapnl.com",
+  email: "mailto:contacto@dayanabeltran.com",
 } as const;
 
 export type SocialKey = keyof typeof SOCIAL_LINKS;

@@ -1,0 +1,72 @@
+import { NextRequest, NextResponse } from "next/server";
+import type { ContactSource } from "@prisma/client";
+import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
+import { writeAuditLog } from "@/lib/crm/audit";
+import { getContactById } from "@/lib/crm/contacts";
+import { prisma } from "@/lib/db";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export const dynamic = "force-dynamic";
+
+export async function GET(_req: NextRequest, ctx: Ctx) {
+  const staff = await resolveAdminStaff();
+  if (staff instanceof NextResponse) return staff;
+
+  const { id } = await ctx.params;
+  const contact = await getContactById(id);
+  if (!contact) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  return NextResponse.json({ contact });
+}
+
+export async function PATCH(req: NextRequest, ctx: Ctx) {
+  const staff = await requireWriteStaff();
+  if (staff instanceof NextResponse) return staff;
+
+  const { id } = await ctx.params;
+  const body = await req.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  const now = new Date();
+  const displayName =
+    body.displayName?.trim() ||
+    (body.lastName
+      ? `${body.firstName?.trim() ?? ""} ${body.lastName.trim()}`.trim()
+      : body.firstName?.trim()) ||
+    undefined;
+
+  const contact = await prisma.contact.update({
+    where: { id },
+    data: {
+      firstName: body.firstName,
+      lastName: body.lastName ?? null,
+      displayName: displayName ?? null,
+      email: body.email?.trim() || null,
+      countryIso: body.countryIso?.toUpperCase() || null,
+      timezone: body.timezone,
+      preferredLocale: body.preferredLocale,
+      source: body.source as ContactSource | undefined,
+      sourceDetail: body.sourceDetail?.trim() || null,
+      tiktokHandle: body.tiktokHandle?.trim() || null,
+      notes: body.notes ?? null,
+      ...(body.consentData === true ? { consentDataAt: now } : {}),
+      ...(body.consentMarketing === true ? { consentMarketingAt: now } : {}),
+      ...(body.consentData === false ? { consentDataAt: null } : {}),
+      ...(body.consentMarketing === false ? { consentMarketingAt: null } : {}),
+    },
+  });
+
+  await writeAuditLog({
+    staffUserId: staff.id,
+    action: "UPDATE",
+    entityType: "Contact",
+    entityId: id,
+    changes: body,
+  });
+
+  return NextResponse.json({ contact });
+}
