@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
-import { getPlan, isPlanId } from "../../../../lib/plans";
+import { isPlanId } from "../../../../lib/plans";
+import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 
 type Body = {
   planId?: string;
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!body.planId || !isPlanId(body.planId)) {
+  if (!body.planId || !isPlanId(body.planId) || !(await isActivePlanId(body.planId))) {
     return NextResponse.json(
       { ok: false, message: "Plan inválido." },
       { status: 400 }
@@ -59,7 +60,13 @@ export async function POST(req: Request) {
     ? Math.trunc(installmentsRaw)
     : 1;
 
-  const plan = getPlan(body.planId);
+  const plan = await getPlanFromDb(body.planId);
+  if (!plan) {
+    return NextResponse.json(
+      { ok: false, message: "Plan no disponible." },
+      { status: 400 }
+    );
+  }
   const email = body.payer?.email?.trim();
   if (!email) {
     return NextResponse.json(

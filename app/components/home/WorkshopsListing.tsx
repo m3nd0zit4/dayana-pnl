@@ -117,7 +117,12 @@ const WorkshopCard = ({ workshop }: { workshop: Workshop }) => {
   );
 };
 
-const WorkshopsListing = () => {
+type WorkshopsListingProps = {
+  workshops?: Workshop[];
+};
+
+const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) => {
+  const workshops = workshopsProp ?? WORKSHOPS;
   const rootRef = useRef<HTMLElement>(null);
 
   useGSAP(
@@ -166,7 +171,7 @@ const WorkshopsListing = () => {
         </p>
 
         <div className="wk-list-reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6">
-          {WORKSHOPS.map((workshop) => (
+          {workshops.map((workshop) => (
             <WorkshopCard key={workshop.slug} workshop={workshop} />
           ))}
         </div>

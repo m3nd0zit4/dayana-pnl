@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import NavContext from "./context/NavContext";
 import { PayPalModalProvider } from "./context/PayPalModalContext";
 import { MercadoPagoCheckoutModalProvider } from "./context/MercadoPagoCheckoutModalContext";
@@ -10,24 +11,33 @@ import FullScreenNav from "./components/Navigation/FullScreenNav";
 import ScrollTriggerRefresher from "./components/common/ScrollTriggerRefresher";
 import SmoothScroll from "./components/common/SmoothScroll";
 
+const MarketingChrome = ({ children }: { children: ReactNode }) => (
+  <NavContext>
+    <PayPalModalProvider>
+      <MercadoPagoCheckoutModalProvider>
+        <SmoothScroll />
+        <ScrollTriggerRefresher />
+        <Stairs>
+          <div className="overflow-x-hidden">
+            <Navbar />
+            <FullScreenNav />
+            {children}
+          </div>
+        </Stairs>
+      </MercadoPagoCheckoutModalProvider>
+    </PayPalModalProvider>
+  </NavContext>
+);
+
 const Providers = ({ children }: { children: ReactNode }) => {
-  return (
-    <NavContext>
-      <PayPalModalProvider>
-        <MercadoPagoCheckoutModalProvider>
-          <SmoothScroll />
-          <ScrollTriggerRefresher />
-          <Stairs>
-            <div className="overflow-x-hidden">
-              <Navbar />
-              <FullScreenNav />
-              {children}
-            </div>
-          </Stairs>
-        </MercadoPagoCheckoutModalProvider>
-      </PayPalModalProvider>
-    </NavContext>
-  );
+  const pathname = usePathname();
+  const isAdmin = pathname?.startsWith("/admin");
+
+  if (isAdmin) {
+    return <>{children}</>;
+  }
+
+  return <MarketingChrome>{children}</MarketingChrome>;
 };
 
 export default Providers;

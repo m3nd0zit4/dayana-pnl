@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
-import { getPlan, isPlanId, type PlanId } from "../../../../lib/plans";
+import { isPlanId } from "../../../../lib/plans";
+import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 
 export const runtime = "nodejs";
@@ -16,11 +17,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  if (!isPlanId(body.planId)) {
+  if (!isPlanId(body.planId) || !(await isActivePlanId(body.planId))) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
-  const plan = getPlan(body.planId as PlanId);
+  const plan = await getPlanFromDb(body.planId);
+  if (!plan) {
+    return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+  }
   const provider = body.provider === "mercadopago" ? "mercadopago" : "paypal";
 
   if (provider === "paypal") {
