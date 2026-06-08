@@ -17,8 +17,10 @@ const CONNECTION_CLOSED_MARKERS = [
   "Socket closed",
 ] as const;
 
+type PrismaExtended = ReturnType<typeof buildPrismaClient>;
+
 const globalForPrisma = globalThis as unknown as {
-  prisma: ReturnType<typeof buildPrismaClient> | undefined;
+  prisma: PrismaExtended | undefined;
 };
 
 /** WebSocket requerido por @neondatabase/serverless en runtime Node (dev + Vercel Node). */
@@ -82,8 +84,24 @@ function buildPrismaClient() {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? buildPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+function getPrismaClient(): PrismaExtended {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = buildPrismaClient();
+  }
+  return globalForPrisma.prisma;
 }
+
+/**
+ * Lazy singleton: no conecta a Neon al importar el módulo (necesario para
+ * `next build` en Vercel cuando DATABASE_URL aún no está en el entorno de build).
+ */
+export const prisma = new Proxy({} as PrismaExtended, {
+  get(_target, prop, receiver) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client as object, prop, receiver);
+    if (typeof value === "function") {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
