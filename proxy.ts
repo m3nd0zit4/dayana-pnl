@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { NextResponse } from "next/server";
 
-export default auth((req) => {
+export const proxy = auth((req) => {
   if (isCrmUiPreview()) {
     return NextResponse.next();
   }
