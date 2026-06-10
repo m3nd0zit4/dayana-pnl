@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { deleteContactNote, updateContactNote } from "@/lib/crm/contact-notes";
 import { canEditClinicalNotes } from "@/lib/crm/staff";
 
@@ -27,7 +27,7 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "UPDATE",
     entityType: "ContactNote",
@@ -52,7 +52,7 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "DELETE",
     entityType: "ContactNote",

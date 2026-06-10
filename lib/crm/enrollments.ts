@@ -224,7 +224,10 @@ export const updateEnrollmentStatus = async (
   enrollmentId: string,
   status: EnrollmentStatus
 ) => {
-  const enrollment = await getEnrollmentById(enrollmentId);
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: { product: true },
+  });
   if (!enrollment) {
     throw new EnrollmentValidationError("Enrollment not found", "NOT_FOUND");
   }

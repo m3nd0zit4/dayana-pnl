@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import {
   completeTherapySession,
   markTherapySessionNoShow,
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
         title: body.noteTitle,
         createdByStaffId: staff.id,
       });
-      await writeAuditLog({
+      fireAuditLog({
         staffUserId: staff.id,
         action: "COMPLETE",
         entityType: "TherapySession",
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       durationMinutes: body.durationMinutes,
     });
 
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "SCHEDULE",
       entityType: "TherapySession",
@@ -77,7 +77,7 @@ export async function PATCH(req: NextRequest) {
   try {
     if (body.action === "no_show") {
       const session = await markTherapySessionNoShow(body.sessionId);
-      await writeAuditLog({
+      fireAuditLog({
         staffUserId: staff.id,
         action: "NO_SHOW",
         entityType: "TherapySession",
@@ -92,7 +92,7 @@ export async function PATCH(req: NextRequest) {
       durationMinutes: body.durationMinutes,
     });
 
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "UPDATE",
       entityType: "TherapySession",

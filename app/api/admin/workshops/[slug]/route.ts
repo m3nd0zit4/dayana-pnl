@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { WorkshopEditionStatus } from "@prisma/client";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { prisma } from "@/lib/db";
 
 type Ctx = { params: Promise<{ slug: string }> };
@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     },
   });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "UPDATE",
     entityType: "WorkshopEdition",
@@ -51,7 +51,7 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   const { slug } = await ctx.params;
   const edition = await prisma.workshopEdition.delete({ where: { slug } });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "DELETE",
     entityType: "WorkshopEdition",

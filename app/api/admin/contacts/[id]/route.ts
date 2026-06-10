@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ContactSource } from "@prisma/client";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { getContactById } from "@/lib/crm/contacts";
 import { prisma } from "@/lib/db";
 
@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     },
   });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "UPDATE",
     entityType: "Contact",

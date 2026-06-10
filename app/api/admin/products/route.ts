@@ -2,7 +2,7 @@ import { ProductKind } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createProduct,
   deactivateProduct,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         body.listAmountUsd != null ? Number(body.listAmountUsd) : null,
     });
 
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "CREATE",
       entityType: "Product",
@@ -99,7 +99,7 @@ export async function PATCH(req: NextRequest) {
       sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,
     });
 
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "UPDATE",
       entityType: "Product",
@@ -132,7 +132,7 @@ export async function DELETE(req: NextRequest) {
 
   try {
     const product = await deactivateProduct(body.id);
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "DELETE",
       entityType: "Product",

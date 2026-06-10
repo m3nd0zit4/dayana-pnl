@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { StaffRole } from "@prisma/client";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { validateStaffPassword } from "@/lib/auth/password-policy";
+import { fireAuditLog } from "@/lib/crm/audit";
 import {
   canManageTeam,
   createStaffUser,
   listStaffUsers,
 } from "@/lib/crm/staff";
+import { createStaffSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -33,23 +35,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body?.email || !body?.password || !body?.displayName) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  const raw = await req.json().catch(() => null);
+  const parsed = createStaffSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "invalid_fields", details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  const passwordCheck = validateStaffPassword(parsed.data.password);
+  if (!passwordCheck.ok) {
+    return NextResponse.json(
+      { error: "weak_password", message: passwordCheck.error },
+      { status: 400 }
+    );
   }
 
   const created = await createStaffUser({
-    email: body.email,
-    password: body.password,
-    displayName: body.displayName,
-    role: (body.role as StaffRole) ?? "OPERATOR",
+    email: parsed.data.email,
+    password: parsed.data.password,
+    displayName: parsed.data.displayName,
+    role: parsed.data.role as StaffRole,
   });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
-    action: "CREATE",
+    action: "STAFF_CREATED",
     entityType: "StaffUser",
     entityId: created.id,
+    changes: { role: created.role, email: created.email },
   });
 
   const { passwordHash: _, ...safe } = created;

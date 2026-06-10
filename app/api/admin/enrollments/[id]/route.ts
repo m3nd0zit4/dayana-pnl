@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EnrollmentStatus } from "@prisma/client";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import {
   EnrollmentValidationError,
   getEnrollmentById,
@@ -32,6 +32,11 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
   const body = await req.json().catch(() => null);
 
+  const hasMetaUpdate =
+    body?.label !== undefined ||
+    body?.isPrimary !== undefined ||
+    body?.sessionsUsed !== undefined;
+
   let enrollment;
   try {
     if (body?.status) {
@@ -43,19 +48,21 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    enrollment = await prisma.enrollment.update({
-      where: { id },
-      data: {
-        label: body?.label ?? enrollment.label,
-        isPrimary: body?.isPrimary ?? enrollment.isPrimary,
-        sessionsUsed: body?.sessionsUsed ?? enrollment.sessionsUsed,
-      },
-      include: {
-        product: true,
-        contact: true,
-        therapyPackage: { include: { sessions: { orderBy: { sessionNumber: "asc" } } } },
-      },
-    });
+    if (hasMetaUpdate) {
+      enrollment = await prisma.enrollment.update({
+        where: { id },
+        data: {
+          label: body?.label ?? enrollment.label,
+          isPrimary: body?.isPrimary ?? enrollment.isPrimary,
+          sessionsUsed: body?.sessionsUsed ?? enrollment.sessionsUsed,
+        },
+        include: {
+          product: true,
+          contact: true,
+          therapyPackage: { include: { sessions: { orderBy: { sessionNumber: "asc" } } } },
+        },
+      });
+    }
   } catch (e) {
     if (e instanceof EnrollmentValidationError) {
       return NextResponse.json({ error: e.code }, { status: 409 });
@@ -63,7 +70,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     throw e;
   }
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "UPDATE",
     entityType: "Enrollment",

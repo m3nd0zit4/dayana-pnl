@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ContactSource } from "@prisma/client";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { searchContacts, upsertContactByPhone } from "@/lib/crm/contacts";
+import { createContactSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -37,18 +38,21 @@ export async function POST(req: NextRequest) {
   const staff = await requireWriteStaff();
   if (staff instanceof NextResponse) return staff;
 
-  const body = await req.json().catch(() => null);
-  if (!body?.phone || !body?.firstName) {
+  const raw = await req.json().catch(() => null);
+  const parsed = createContactSchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
+
+  const body = parsed.data;
 
   try {
     const { contact } = await upsertContactByPhone({
       phone: body.phone,
       phoneCountry: body.phoneCountry,
       firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email,
+      lastName: body.lastName ?? undefined,
+      email: body.email ?? undefined,
       countryIso: body.countryIso,
       timezone: body.timezone,
       preferredLocale: body.preferredLocale,
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
       consentMarketing: body.consentMarketing === true,
     });
 
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "CREATE",
       entityType: "Contact",
