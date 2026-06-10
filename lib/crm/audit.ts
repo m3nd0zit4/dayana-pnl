@@ -19,3 +19,8 @@ export const writeAuditLog = async (input: {
         : undefined,
     },
   });
+
+/** Non-blocking audit write — does not delay API responses. */
+export const fireAuditLog = (input: Parameters<typeof writeAuditLog>[0]) => {
+  void writeAuditLog(input).catch(() => undefined);
+};

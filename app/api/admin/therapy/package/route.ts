@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { updateTherapyPackage } from "@/lib/crm/therapy";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest) {
     reprogrammingNotes: body.reprogrammingNotes,
   });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "UPDATE",
     entityType: "TherapyPackage",

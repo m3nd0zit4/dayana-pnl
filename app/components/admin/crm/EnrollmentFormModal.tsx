@@ -153,6 +153,7 @@ const EnrollmentFormModal = ({
             value={status}
             options={enrollmentStatusSelectOptions()}
             onChange={(v) => setStatus(v as EnrollmentStatus)}
+            panelMinWidth={200}
             searchMinOptions={99}
           />
           <div>

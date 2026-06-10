@@ -1,0 +1,74 @@
+import { z } from "zod";
+
+export const createStaffSchema = z.object({
+  email: z.string().email().max(200),
+  password: z.string().min(12).max(200),
+  displayName: z.string().min(1).max(120),
+  role: z
+    .enum(["OWNER", "OPERATOR", "READONLY", "DEVELOPER"])
+    .optional()
+    .default("OPERATOR"),
+});
+
+export const manualPaymentSchema = z.object({
+  enrollmentId: z.string().min(1),
+  amountMinor: z.number().int().positive(),
+  currency: z.string().min(3).max(3),
+  reference: z.string().max(120).optional(),
+  providerPaymentId: z.string().max(120).optional(),
+});
+
+export const broadcastSchema = z.object({
+  templateKey: z.string().min(1).max(80).default("workshop_open"),
+  name: z.string().min(1).max(120).default("Campaña CRM"),
+  audience: z.enum(["ALL_CONTACTS", "MARKETING_CONSENT"]).default("ALL_CONTACTS"),
+  channels: z.array(z.enum(["EMAIL", "SMS", "WHATSAPP"])).optional(),
+  workshopEditionId: z.string().optional(),
+  runNow: z.boolean().optional(),
+});
+
+export const testEmailSchema = z.object({
+  subject: z.string().min(1).max(200),
+  message: z.string().min(1).max(5000),
+  to: z.string().email().max(200).optional(),
+});
+
+export const createContactSchema = z.object({
+  phone: z.string().min(6).max(30),
+  firstName: z.string().min(1).max(120),
+  lastName: z.string().max(120).optional().nullable(),
+  email: z.string().email().max(200).optional().nullable(),
+  phoneCountry: z.string().max(4).optional(),
+  countryIso: z.string().max(4).optional(),
+  timezone: z.string().max(80).optional(),
+  preferredLocale: z.string().max(10).optional(),
+  source: z
+    .enum([
+      "WEB",
+      "WHATSAPP_DIRECT",
+      "INSTAGRAM",
+      "REFERRAL",
+      "OTHER",
+    ])
+    .optional(),
+  sourceDetail: z.string().max(200).optional(),
+  notes: z.string().max(2000).optional(),
+  consentData: z.boolean().optional(),
+  consentMarketing: z.boolean().optional(),
+});
+
+export const createEnrollmentSchema = z.object({
+  contactId: z.string().min(1),
+  productId: z.string().min(1),
+  workshopEditionId: z.string().optional(),
+  status: z
+    .enum([
+      "LEAD",
+      "PENDING_PAYMENT",
+      "ACTIVE",
+      "COMPLETED",
+      "CANCELLED",
+    ])
+    .optional(),
+  label: z.string().max(120).optional(),
+});

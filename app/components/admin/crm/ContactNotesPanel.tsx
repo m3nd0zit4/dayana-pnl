@@ -30,16 +30,39 @@ const snippet = (text: string | null, max = 100) => {
 };
 
 const NoteAttachmentPreview = ({
-  url,
+  contactId,
+  noteId,
   mime,
   name,
   expanded,
 }: {
-  url: string;
+  contactId: string;
+  noteId: string;
   mime: string | null;
   name: string | null;
   expanded: boolean;
 }) => {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expanded) {
+      setUrl(null);
+      return;
+    }
+    let cancelled = false;
+    void fetch(`/api/admin/contacts/${contactId}/notes/${noteId}/attachment`)
+      .then((r) => r.json())
+      .then((d: { url?: string }) => {
+        if (!cancelled && d.url) setUrl(d.url);
+      })
+      .catch(() => {
+        if (!cancelled) setUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [contactId, noteId, expanded]);
+
   if (!expanded) {
     const isPdf = mime === "application/pdf";
     return (
@@ -47,6 +70,12 @@ const NoteAttachmentPreview = ({
         {isPdf ? <FileText className="size-4" /> : <ImageIcon className="size-4" />}
         <span>{name ?? "Adjunto"}</span>
       </div>
+    );
+  }
+
+  if (!url) {
+    return (
+      <p className="mt-2 text-xs text-[var(--crm-muted)]">Cargando adjunto…</p>
     );
   }
 
@@ -369,7 +398,8 @@ const ContactNotesPanel = ({ contactId }: Props) => {
                       ) : null}
                       {note.attachmentUrl && (
                         <NoteAttachmentPreview
-                          url={note.attachmentUrl}
+                          contactId={contactId}
+                          noteId={note.id}
                           mime={note.attachmentMime}
                           name={note.attachmentName}
                           expanded={expanded}

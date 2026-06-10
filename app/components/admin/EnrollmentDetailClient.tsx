@@ -207,45 +207,34 @@ const EnrollmentDetailClient = ({
 
 
   const patchEnrollment = async (status: EnrollmentStatus) => {
+    const prevStatus = enrollment.status;
+    if (prevStatus === status) return;
 
-    setBusy(true);
+    setEnrollment((e) => ({ ...e, status }));
 
     const res = await fetch(`/api/admin/enrollments/${enrollment.id}`, {
-
       method: "PATCH",
-
       headers: { "content-type": "application/json" },
-
       body: JSON.stringify({ status }),
-
     });
 
     const data = (await res.json()) as { enrollment?: typeof enrollment; error?: string };
 
-    setBusy(false);
-
     if (!res.ok) {
-
+      setEnrollment((e) => ({ ...e, status: prevStatus }));
       if (data.error === "ACTIVE_THERAPY_EXISTS") {
-
         toast("Este contacto ya tiene otra terapia activa", "error");
-
       } else {
-
         toast(data.error ?? "No se pudo actualizar el estado", "error");
-
       }
-
       return;
-
     }
 
-    if (data.enrollment) setEnrollment((e) => ({ ...e, status: data.enrollment!.status }));
-
+    if (data.enrollment) {
+      setEnrollment((e) => ({ ...e, status: data.enrollment!.status }));
+    }
     toast(`Estado cambiado a «${enrollmentStatusLabel(status)}»`);
-
     void refreshPackage();
-
   };
 
 
@@ -330,7 +319,7 @@ const EnrollmentDetailClient = ({
 
       toast("Sesión actualizada");
 
-      await refreshPackage();
+      void refreshPackage();
 
     } else {
 
@@ -384,7 +373,7 @@ const EnrollmentDetailClient = ({
 
       setCompleteSessionId(null);
 
-      await refreshPackage();
+      void refreshPackage();
 
     } else toast("Error al completar", "error");
 
@@ -518,44 +507,27 @@ const EnrollmentDetailClient = ({
           <label className="text-xs text-[var(--crm-muted)]">Estado</label>
 
           <SearchableSelect
-
             label="Estado"
-
             hideLabel
-
             value={enrollment.status}
-
             options={enrollmentStatusSelectOptions()}
-
             onChange={(next) => {
-
               const status = next as EnrollmentStatus;
-
+              if (status === enrollment.status) return;
               if (status === EnrollmentStatus.CANCELLED) {
-
                 confirm({
-
                   title: "Cancelar servicio",
-
                   message: "¿Marcar este enrollment como cancelado?",
-
                   onConfirm: () => patchEnrollment(status),
-
                 });
-
               } else {
-
                 void patchEnrollment(status);
-
               }
-
             }}
-
-            disabled={!canWrite || busy}
-
+            disabled={!canWrite}
             className="w-auto min-w-[160px]"
-
-            buttonClassName="text-sm"
+            menuVariant="status"
+            panelMinWidth={200}
 
             searchMinOptions={99}
 

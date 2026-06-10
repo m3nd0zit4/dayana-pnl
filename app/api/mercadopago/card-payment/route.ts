@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 type Body = {
   planId?: string;
@@ -22,6 +26,12 @@ type Body = {
 };
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`mp:card:${ip}`, 15, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!token?.trim()) {
     return NextResponse.json(

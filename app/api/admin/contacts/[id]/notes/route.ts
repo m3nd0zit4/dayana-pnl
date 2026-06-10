@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createContactNote,
   deleteContactNote,
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
     createdByStaffId: staff.id,
   });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "CREATE",
     entityType: "ContactNote",

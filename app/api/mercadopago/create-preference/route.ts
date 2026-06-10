@@ -6,6 +6,10 @@ import {
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 type Body = {
   planId?: string;
@@ -15,6 +19,12 @@ type Body = {
 };
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`mp:preference:${ip}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!token?.trim()) {
     return NextResponse.json(

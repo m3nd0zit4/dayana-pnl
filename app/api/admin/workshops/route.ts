@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { WorkshopEditionStatus } from "@prisma/client";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { uniqueSlug } from "@/lib/crm/slug";
 import { prisma } from "@/lib/db";
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  await writeAuditLog({
+  fireAuditLog({
     staffUserId: staff.id,
     action: "UPSERT",
     entityType: "WorkshopEdition",

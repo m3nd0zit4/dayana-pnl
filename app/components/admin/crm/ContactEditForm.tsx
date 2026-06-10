@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { ContactSource } from "@prisma/client";
 import { contactToFormValues, type ContactFormValues } from "@/app/config/contact-form";
 import ContactFormFields from "./ContactFormFields";
@@ -26,7 +25,6 @@ type Contact = {
 };
 
 const ContactEditForm = ({ contact }: { contact: Contact }) => {
-  const router = useRouter();
   const [values, setValues] = useState<ContactFormValues>(() =>
     contactToFormValues(contact)
   );
@@ -67,7 +65,6 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
       return;
     }
     setSaved(true);
-    router.refresh();
   };
 
   return (

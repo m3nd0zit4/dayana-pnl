@@ -43,6 +43,10 @@ type Props = {
   priorityCount?: number;
   /** Mostrar búsqueda si hay al menos N opciones. */
   searchMinOptions?: number;
+  /** Ancho mínimo del menú (evita truncar etiquetas largas). */
+  panelMinWidth?: number;
+  /** Estilo compacto tipo badge para selectores de estado en filas. */
+  menuVariant?: "default" | "status";
 };
 
 const PANEL_Z = 60;
@@ -67,6 +71,8 @@ const SearchableSelect = ({
   buttonClassName = "",
   priorityCount,
   searchMinOptions = 8,
+  panelMinWidth,
+  menuVariant = "default",
 }: Props) => {
   const autoId = useId();
   const id = idProp ?? autoId;
@@ -116,15 +122,17 @@ const SearchableSelect = ({
       Math.min(LIST_MAX_HEIGHT, openUp ? spaceAbove - PANEL_GAP : spaceBelow - PANEL_GAP)
     );
 
+    const width = Math.max(rect.width, panelMinWidth ?? 0);
+
     setPosition({
       left: rect.left,
-      width: rect.width,
+      width,
       maxHeight,
       ...(openUp
         ? { bottom: window.innerHeight - rect.top + PANEL_GAP }
         : { top: rect.bottom + PANEL_GAP }),
     });
-  }, [showSearch, allowEmpty]);
+  }, [showSearch, allowEmpty, panelMinWidth]);
 
   useLayoutEffect(() => {
     if (!open) {
@@ -161,9 +169,9 @@ const SearchableSelect = ({
   }, [open]);
 
   const pick = (next: string) => {
-    onChange(next);
     setOpen(false);
     setQuery("");
+    if (next !== value) onChange(next);
   };
 
   const renderOption = (o: SearchableSelectOption) => (
@@ -172,12 +180,12 @@ const SearchableSelect = ({
         type="button"
         role="option"
         aria-selected={value === o.value}
-        className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--crm-linen)]/50 ${
-          value === o.value ? "bg-[var(--crm-accent-soft)]" : ""
+        className={`crm-searchable-option flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--crm-linen)]/50 ${
+          value === o.value ? "bg-[var(--crm-accent-soft)] font-medium" : ""
         }`}
         onClick={() => pick(o.value)}
       >
-        <span className="min-w-0 truncate">{o.label}</span>
+        <span className="whitespace-nowrap">{o.label}</span>
         {o.hint && (
           <span className="shrink-0 font-mono text-xs text-[var(--crm-muted)]">
             {o.hint}
@@ -193,7 +201,9 @@ const SearchableSelect = ({
     open && position ? (
       <div
         ref={panelRef}
-        className="overflow-hidden rounded-xl border border-[var(--crm-border)] bg-white shadow-lg"
+        className={`crm-searchable-panel overflow-hidden rounded-xl border border-[var(--crm-border)] bg-white shadow-lg ${
+          menuVariant === "status" ? "crm-searchable-panel--status" : ""
+        }`}
         style={{
           position: "fixed",
           left: position.left,
@@ -226,7 +236,7 @@ const SearchableSelect = ({
               <button
                 type="button"
                 role="option"
-                className="w-full px-3 py-2 text-left text-sm text-[var(--crm-muted)] hover:bg-[var(--crm-linen)]/50"
+                className="crm-searchable-option w-full px-3 py-2 text-left text-sm text-[var(--crm-muted)] hover:bg-[var(--crm-linen)]/50"
                 onClick={() => pick("")}
               >
                 {emptyLabel}
@@ -286,7 +296,9 @@ const SearchableSelect = ({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-required={required || undefined}
-        className={`crm-select flex w-full items-center justify-between gap-2 text-left disabled:opacity-50 ${buttonClassName}`}
+        className={`crm-searchable-trigger crm-select flex w-full items-center justify-between gap-2 text-left disabled:opacity-50 ${
+          menuVariant === "status" ? "crm-searchable-trigger--status" : ""
+        } ${open ? "is-open" : ""} ${buttonClassName}`}
         onClick={() => !disabled && setOpen((o) => !o)}
       >
         <span
@@ -294,7 +306,11 @@ const SearchableSelect = ({
         >
           {display}
         </span>
-        <ChevronDown className="size-4 shrink-0 text-[var(--crm-muted)]" />
+        <ChevronDown
+          className={`size-4 shrink-0 text-[var(--crm-muted)] transition-transform duration-150 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
       {typeof document !== "undefined" && panel

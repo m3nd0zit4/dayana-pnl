@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { requireBroadcastStaff } from "@/lib/auth/api-staff";
 import {
   NOTIFICATION_CHANNELS,
   type NotificationAudience,
@@ -13,6 +13,7 @@ import {
   runBroadcastCampaign,
 } from "@/lib/notifications/campaigns";
 import { emitCampaignRun } from "@/lib/inngest/events";
+import { broadcastSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ const parseChannels = (raw: unknown): OutboundChannel[] => {
 };
 
 export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
+  const staff = await requireBroadcastStaff();
   if (staff instanceof NextResponse) return staff;
 
   if (!isNotificationsEnabled()) {
@@ -37,17 +38,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const body = await req.json().catch(() => null);
-  const templateKey = String(body?.templateKey ?? "workshop_open").trim();
-  const name = String(body?.name ?? "Campaña CRM").trim();
-  const audience = (body?.audience === "MARKETING_CONSENT"
-    ? "MARKETING_CONSENT"
-    : "ALL_CONTACTS") as NotificationAudience;
-  const channels = parseChannels(body?.channels);
-  const workshopEditionId = body?.workshopEditionId
-    ? String(body.workshopEditionId)
-    : undefined;
-  const runNow = body?.runNow !== false;
+  const raw = await req.json().catch(() => null);
+  const parsed = broadcastSchema.safeParse(raw ?? {});
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid_fields" }, { status: 400 });
+  }
+
+  const templateKey = parsed.data.templateKey;
+  const name = parsed.data.name;
+  const audience = parsed.data.audience as NotificationAudience;
+  const channels = parseChannels(parsed.data.channels);
+  const workshopEditionId = parsed.data.workshopEditionId;
+  const runNow = parsed.data.runNow !== false;
 
   if (channels.length === 0) {
     return NextResponse.json({ error: "no_channels" }, { status: 400 });

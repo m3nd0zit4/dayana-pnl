@@ -100,16 +100,11 @@ const AdminSignInForm = () => {
         >
           {loading ? "Entrando…" : "Entrar al panel"}
         </button>
-      </form>
 
-      <p className="mt-6 text-center text-[11px] leading-relaxed text-[var(--crm-muted)]">
-        Sin base de datos: <code className="text-[var(--crm-foreground)]">CRM_UI_PREVIEW=true</code>{" "}
-        en <code className="text-[var(--crm-foreground)]">.env</code> y abre{" "}
-        <code className="text-[var(--crm-foreground)]">/admin</code>.
-        <br />
-        Con Neon: <code className="text-[var(--crm-foreground)]">npm run db:seed</code> y las
-        variables <code className="text-[var(--crm-foreground)]">STAFF_OWNER_*</code>.
-      </p>
+        <p className="text-center text-[11px] text-[var(--crm-muted)]">
+          La sesión permanece activa hasta 30 días en este dispositivo.
+        </p>
+      </form>
     </div>
   );
 };

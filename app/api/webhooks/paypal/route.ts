@@ -5,17 +5,23 @@ import {
   registerWebhookEvent,
   resolveEnrollmentFromReference,
 } from "@/lib/crm/payments";
-import { verifyPayPalWebhookHeaders } from "@/lib/webhooks/verify";
+import { verifyPayPalWebhook } from "@/lib/webhooks/verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
-  if (!verifyPayPalWebhookHeaders(req)) {
+  const rawBody = await req.text();
+  if (!(await verifyPayPalWebhook(req, rawBody))) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => null);
+  let body: unknown;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    body = null;
+  }
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }

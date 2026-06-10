@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EnrollmentStatus } from "@prisma/client";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
-import { writeAuditLog } from "@/lib/crm/audit";
+import { fireAuditLog } from "@/lib/crm/audit";
+import { createEnrollmentSchema } from "@/lib/validations/admin";
 import { createEnrollment } from "@/lib/crm/enrollments";
 import { listEnrollmentsAdmin } from "@/lib/crm/enrollments-list";
 
@@ -39,10 +40,13 @@ export async function POST(req: NextRequest) {
   const staff = await requireWriteStaff();
   if (staff instanceof NextResponse) return staff;
 
-  const body = await req.json().catch(() => null);
-  if (!body?.contactId || !body?.productId) {
+  const raw = await req.json().catch(() => null);
+  const parsed = createEnrollmentSchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
+
+  const body = parsed.data;
 
   try {
     const enrollment = await createEnrollment({
@@ -51,10 +55,9 @@ export async function POST(req: NextRequest) {
       workshopEditionId: body.workshopEditionId,
       status: (body.status as EnrollmentStatus) ?? EnrollmentStatus.LEAD,
       label: body.label,
-      isPrimary: body.isPrimary,
     });
 
-    await writeAuditLog({
+    fireAuditLog({
       staffUserId: staff.id,
       action: "CREATE",
       entityType: "Enrollment",

@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, Plus, Sparkles } from "lucide-react";
+import { Copy, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
 import CrmPageShell from "./CrmPageShell";
@@ -13,17 +13,20 @@ type Template = {
   body: string;
 };
 
-type Props = { preview: boolean };
+type Props = {
+  preview: boolean;
+  initialTemplates?: Template[];
+};
 
 const VARIABLE_HINTS = [
   { token: "{{first_name}}", label: "nombre" },
   { token: "{{product_title}}", label: "producto" },
 ] as const;
 
-const MessagesPageClient = ({ preview }: Props) => {
-  const { canManageTeam, toast } = useCrm();
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
+const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
+  const { canManageTeam, toast, confirm } = useCrm();
+  const [templates, setTemplates] = useState<Template[]>(initialTemplates ?? []);
+  const [loading, setLoading] = useState(initialTemplates === undefined);
   const [editing, setEditing] = useState<Template | null>(null);
   const [form, setForm] = useState({ title: "", body: "" });
 
@@ -35,7 +38,10 @@ const MessagesPageClient = ({ preview }: Props) => {
     }
     setLoading(true);
     fetch("/api/admin/messages/templates")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error("load_failed");
+        return r.json();
+      })
       .then((d) =>
         setTemplates(
           (d.templates ?? [])
@@ -55,12 +61,14 @@ const MessagesPageClient = ({ preview }: Props) => {
             )
         )
       )
+      .catch(() => toast("Error al cargar mensajes", "error"))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
+    if (initialTemplates !== undefined) return;
     load();
-  }, [preview]);
+  }, [preview, initialTemplates]);
 
   const copyBody = async (body: string) => {
     try {
@@ -107,6 +115,27 @@ const MessagesPageClient = ({ preview }: Props) => {
       setEditing(null);
       load();
     } else toast("Error al guardar", "error");
+  };
+
+  const remove = (template: Template) => {
+    confirm({
+      title: "Eliminar mensaje",
+      message: `¿Borrar «${template.title}»? No se puede deshacer.`,
+      onConfirm: async () => {
+        const res = await fetch("/api/admin/messages/templates", {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id: template.id }),
+        });
+        if (!res.ok) {
+          toast("No se pudo eliminar el mensaje", "error");
+          return;
+        }
+        if (editing?.id === template.id) setEditing(null);
+        toast("Mensaje eliminado");
+        load();
+      },
+    });
   };
 
   return (
@@ -224,16 +253,26 @@ const MessagesPageClient = ({ preview }: Props) => {
                     Copiar
                   </button>
                   {canManageTeam && !preview && (
-                    <button
-                      type="button"
-                      className="crm-btn-ghost text-xs"
-                      onClick={() => {
-                        setEditing(t);
-                        setForm({ title: t.title, body: t.body });
-                      }}
-                    >
-                      Editar
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        className="crm-btn-ghost text-xs"
+                        onClick={() => {
+                          setEditing(t);
+                          setForm({ title: t.title, body: t.body });
+                        }}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="crm-btn-ghost inline-flex items-center gap-1 text-xs text-red-700"
+                        onClick={() => remove(t)}
+                      >
+                        <Trash2 className="size-3.5" />
+                        Borrar
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
