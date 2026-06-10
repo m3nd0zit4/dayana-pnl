@@ -141,14 +141,6 @@ export const scheduleTherapySession = async (input: {
   meetUrl?: string;
   durationMinutes?: number;
 }) => {
-  const pkg = await prisma.therapyPackage.findUnique({
-    where: { id: input.therapyPackageId },
-  });
-  if (!pkg) throw new Error("PACKAGE_NOT_FOUND");
-  if (input.sessionNumber > pkg.totalSessions) {
-    throw new Error("INVALID_SESSION_NUMBER");
-  }
-
   const existing = await prisma.therapySession.findUnique({
     where: {
       therapyPackageId_sessionNumber: {
@@ -156,10 +148,16 @@ export const scheduleTherapySession = async (input: {
         sessionNumber: input.sessionNumber,
       },
     },
+    include: { therapyPackage: true },
   });
 
   if (!existing) {
     throw new Error("SLOT_NOT_FOUND");
+  }
+
+  const pkg = existing.therapyPackage;
+  if (input.sessionNumber > pkg.totalSessions) {
+    throw new Error("INVALID_SESSION_NUMBER");
   }
 
   if (existing.status === TherapySessionStatus.COMPLETED) {

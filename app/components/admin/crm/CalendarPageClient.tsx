@@ -106,22 +106,25 @@ const CalendarPageClient = () => {
     return formatWeekRange(anchorDate);
   }, [viewMode, anchorDate]);
 
-  const loadEvents = useCallback(async () => {
-    setLoading(true);
-    const { from, to } = range();
-    const params = new URLSearchParams({
-      from: from.toISOString(),
-      to: to.toISOString(),
-    });
-    const res = await fetch(`/api/admin/calendar/sessions?${params}`);
-    if (res.ok) {
-      const data = (await res.json()) as { sessions?: CalendarSessionEvent[] };
-      setEvents(data.sessions ?? []);
-    } else {
-      toast("Error al cargar calendario", "error");
-    }
-    setLoading(false);
-  }, [range, toast]);
+  const loadEvents = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
+      const { from, to } = range();
+      const params = new URLSearchParams({
+        from: from.toISOString(),
+        to: to.toISOString(),
+      });
+      const res = await fetch(`/api/admin/calendar/sessions?${params}`);
+      if (res.ok) {
+        const data = (await res.json()) as { sessions?: CalendarSessionEvent[] };
+        setEvents(data.sessions ?? []);
+      } else if (!opts?.silent) {
+        toast("Error al cargar calendario", "error");
+      }
+      if (!opts?.silent) setLoading(false);
+    },
+    [range, toast]
+  );
 
   const loadPending = useCallback(async () => {
     if (!canWrite) return;
@@ -393,8 +396,10 @@ const CalendarPageClient = () => {
               setScheduleSlot(null);
             }}
             onScheduled={() => {
-              void loadEvents();
-              void loadPending();
+              void Promise.all([
+                loadEvents({ silent: true }),
+                loadPending(),
+              ]);
             }}
             therapyPackageId={scheduleSlot.therapyPackageId}
             sessionNumber={scheduleSlot.sessionNumber}

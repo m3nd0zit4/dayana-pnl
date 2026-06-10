@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CrmDateTimePicker from "./CrmDateTimePicker";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
 
@@ -89,8 +90,8 @@ const ScheduleSessionModal = ({
     setBusy(false);
     if (res.ok) {
       toast("Sesión agendada");
-      onScheduled?.();
       onClose();
+      onScheduled?.();
     } else {
       const d = (await res.json()) as { error?: string };
       toast(d.error ?? "Error al agendar", "error");
@@ -114,12 +115,12 @@ const ScheduleSessionModal = ({
           <label className="crm-label" htmlFor="sched-at">
             Fecha y hora
           </label>
-          <input
+          <CrmDateTimePicker
             id="sched-at"
-            type="datetime-local"
-            className="crm-input mt-1"
             value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
+            onChange={setScheduledAt}
+            disabled={busy}
+            className="mt-1"
           />
           <p className="mt-1 text-[10px] text-[var(--crm-muted)]">
             Zona del contacto: {contactTimezone}. El calendario interno usa{" "}
