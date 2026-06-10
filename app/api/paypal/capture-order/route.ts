@@ -5,6 +5,10 @@ import {
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
 import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,6 +50,12 @@ const extractCapture = (payload: unknown): {
 };
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`paypal:capture:${ip}`, 20, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;

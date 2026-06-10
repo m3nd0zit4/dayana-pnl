@@ -7,6 +7,10 @@ import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +20,12 @@ const PAYPAL_CURRENCY = "USD";
 type Body = { planId?: unknown; enrollmentId?: unknown };
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`paypal:create:${ip}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
