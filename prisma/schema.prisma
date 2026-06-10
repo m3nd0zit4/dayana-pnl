@@ -323,11 +323,31 @@ model StaffUser {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  auditLogs    AuditLog[]
-  messageLogs  MessageLog[]
-  contactNotes ContactNote[]
+  auditLogs     AuditLog[]
+  messageLogs   MessageLog[]
+  contactNotes  ContactNote[]
+  staffSessions StaffSession[]
 
   @@map("staff_users")
+}
+
+model StaffSession {
+  id           String    @id @default(cuid())
+  staffUserId  String    @map("staff_user_id")
+  sessionToken String    @unique @map("session_token")
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address")
+  deviceLabel  String?   @map("device_label")
+  lastSeenAt   DateTime  @map("last_seen_at")
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffUserId])
+  @@index([expiresAt])
+  @@map("staff_sessions")
 }
 
 model AuditLog {
