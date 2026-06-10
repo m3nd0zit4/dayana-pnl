@@ -35,12 +35,15 @@ const emptyForm = () => ({
   description: "",
 });
 
-type Props = { preview: boolean };
+type Props = {
+  preview: boolean;
+  initialProducts?: Product[];
+};
 
-const ProductsPageClient = ({ preview }: Props) => {
+const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
+  const [loading, setLoading] = useState(initialProducts === undefined);
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -60,8 +63,9 @@ const ProductsPageClient = ({ preview }: Props) => {
   }, [preview, toast]);
 
   useEffect(() => {
+    if (initialProducts !== undefined) return;
     load();
-  }, [load]);
+  }, [initialProducts, load]);
 
   const openEdit = (p: Product) => {
     const price = p.prices[0];

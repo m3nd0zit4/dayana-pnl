@@ -30,6 +30,7 @@ const CrmMenu = () => {
                 <li key={item.href}>
                   <Link
                     href={item.href}
+                    prefetch={external ? undefined : false}
                     {...(external
                       ? { target: "_blank", rel: "noopener noreferrer" }
                       : {})}

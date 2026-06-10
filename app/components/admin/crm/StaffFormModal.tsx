@@ -88,7 +88,7 @@ const StaffFormModal = ({ open, onClose, onSaved }: Props) => {
             type="password"
             className="crm-input"
             required
-            minLength={8}
+            minLength={12}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />

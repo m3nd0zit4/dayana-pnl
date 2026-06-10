@@ -33,7 +33,8 @@ Pégalas en tu `.env` local (no las subas a git). Si ves `prisma:error … conne
 |----------|----------|
 | `DIRECT_URL` | Migraciones Prisma, seed, Studio |
 | `DATABASE_URL` | App (pooler Neon + `pgbouncer=true`) |
-| `AUTH_SECRET` | Login staff (`openssl rand -base64 32`) |
+| `AUTH_SECRET` | Login staff (`openssl rand -base64 32`). Sesión **30 días** por dispositivo. Ver `docs/security-crm.md`. |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Opcional: rate limit distribuido en login y pagos |
 | `STAFF_OWNER_EMAIL` | Usuario OWNER del seed |
 | `STAFF_OWNER_PASSWORD` | Contraseña del OWNER |
 | `STAFF_OWNER_NAME` | Nombre visible en el panel |

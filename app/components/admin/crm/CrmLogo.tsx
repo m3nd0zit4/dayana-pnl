@@ -8,6 +8,7 @@ type Props = {
 const CrmLogo = ({ href = "/admin" }: Props) => (
   <Link
     href={href}
+    prefetch={false}
     className="mb-4 block font-[font2] uppercase leading-none select-none text-[var(--crm-foreground)] hover:opacity-80 transition-opacity"
     aria-label="CRM Dayana Beltrán PNL"
   >

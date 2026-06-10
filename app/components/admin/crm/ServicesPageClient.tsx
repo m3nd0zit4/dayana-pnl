@@ -49,6 +49,7 @@ const ServicesPageClient = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<Enrollment | null>(null);
   const [loading, setLoading] = useState(!preview && initialRows.length === 0);
+  const [statusSavingId, setStatusSavingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (preview) {
@@ -100,13 +101,26 @@ const ServicesPageClient = ({
   }, [searchParams, preview, load, initialStatus, initialQ]);
 
   const updateStatus = async (id: string, next: EnrollmentStatus) => {
+    const prev = rows.find((r) => r.id === id);
+    if (!prev || prev.status === next) return;
+
+    setStatusSavingId(id);
+    setRows((list) =>
+      list.map((r) => (r.id === id ? { ...r, status: next } : r))
+    );
+
     const res = await fetch(`/api/admin/enrollments/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ status: next }),
     });
-    const data = (await res.json()) as { error?: string };
+    const data = (await res.json()) as { error?: string; enrollment?: Enrollment };
+    setStatusSavingId(null);
+
     if (!res.ok) {
+      setRows((list) =>
+        list.map((r) => (r.id === id ? { ...r, status: prev.status } : r))
+      );
       toast(
         data.error === "ACTIVE_THERAPY_EXISTS"
           ? "Ya hay otra terapia activa para este contacto"
@@ -115,8 +129,15 @@ const ServicesPageClient = ({
       );
       return;
     }
+
+    if (data.enrollment) {
+      setRows((list) =>
+        list.map((r) =>
+          r.id === id ? { ...r, status: data.enrollment!.status } : r
+        )
+      );
+    }
     toast(`Estado cambiado a «${enrollmentStatusLabel(next)}»`);
-    load();
   };
 
   const applyFilters = (e: React.FormEvent) => {
@@ -161,6 +182,7 @@ const ServicesPageClient = ({
               value={status}
               options={enrollmentStatusSelectOptions(true)}
               onChange={setStatus}
+              panelMinWidth={200}
               searchMinOptions={99}
             />
           </div>
@@ -218,6 +240,7 @@ const ServicesPageClient = ({
                           options={enrollmentStatusSelectOptions()}
                           onChange={(next) => {
                             const status = next as EnrollmentStatus;
+                            if (status === en.status) return;
                             if (status === EnrollmentStatus.CANCELLED) {
                               confirm({
                                 title: "Cancelar servicio",
@@ -228,8 +251,10 @@ const ServicesPageClient = ({
                               void updateStatus(en.id, status);
                             }
                           }}
+                          disabled={statusSavingId === en.id}
                           className="w-auto"
-                          buttonClassName="text-[10px] uppercase"
+                          menuVariant="status"
+                          panelMinWidth={200}
                           searchMinOptions={99}
                         />
                       ) : (

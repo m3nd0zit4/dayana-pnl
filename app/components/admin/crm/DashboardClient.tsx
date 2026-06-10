@@ -14,19 +14,34 @@ import CrmPaymentsChart from "./CrmPaymentsChart";
 import CrmPipelineChart from "./CrmPipelineChart";
 import StatCard from "./StatCard";
 
-const DashboardClient = () => {
-  const [data, setData] = useState<DashboardStats | null>(null);
-  const [error, setError] = useState<string | null>(null);
+type Props = {
+  initialData?: DashboardStats | null;
+  dbError?: boolean;
+};
+
+const DashboardClient = ({ initialData, dbError = false }: Props) => {
+  const [data, setData] = useState<DashboardStats | null>(initialData ?? null);
+  const [error, setError] = useState<string | null>(
+    dbError ? "No se pudo cargar el dashboard. Revisa la base de datos." : null
+  );
 
   useEffect(() => {
-    fetch("/api/admin/dashboard")
-      .then((r) => {
+    if (initialData !== undefined) return;
+    fetch("/api/admin/dashboard", { credentials: "same-origin" })
+      .then(async (r) => {
+        if (r.status === 401) throw new Error("unauthorized");
         if (!r.ok) throw new Error("fetch");
-        return r.json();
+        return r.json() as Promise<DashboardStats>;
       })
-      .then((json: DashboardStats) => setData(json))
-      .catch(() => setError("No se pudo cargar el dashboard. Revisa la base de datos."));
-  }, []);
+      .then((json) => setData(json))
+      .catch((err: Error) => {
+        setError(
+          err.message === "unauthorized"
+            ? "Sesión expirada. Vuelve a iniciar sesión."
+            : "No se pudo cargar el dashboard. Revisa la base de datos."
+        );
+      });
+  }, [initialData]);
 
   if (error) {
     return (

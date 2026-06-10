@@ -64,6 +64,26 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
     if (!open) reset();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      const res = await fetch("/api/admin/products");
+      if (!res.ok || cancelled) return;
+      const data = (await res.json()) as {
+        products?: (ProductOption & { isActive: boolean })[];
+      };
+      if (cancelled) return;
+      const active = (data.products ?? []).filter((p) => p.isActive);
+      setProducts(active);
+      const first = groupProductsByKind(active)[0]?.items[0];
+      if (first) setProductId(first.id);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
   const submitContact = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -115,15 +135,10 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
     const data = (await res.json()) as { contact: { id: string } };
     setCreatedContactId(data.contact.id);
 
-    const prodRes = await fetch("/api/admin/products");
-    const prodData = (await prodRes.json()) as {
-      products?: (ProductOption & { isActive: boolean })[];
-    };
-    const active = (prodData.products ?? []).filter((p) => p.isActive);
-    setProducts(active);
-    const groups = groupProductsByKind(active);
-    const first = groups[0]?.items[0];
-    if (first) setProductId(first.id);
+    if (!productId) {
+      const first = groupProductsByKind(products)[0]?.items[0];
+      if (first) setProductId(first.id);
+    }
     setStep("service");
   };
 
