@@ -46,7 +46,7 @@ flowchart LR
 3. **Servicios** (`/admin/services`) — Verifica el enrollment (estado `PENDING_PAYMENT` → `ACTIVE` tras pago). Cambia estado desde el desplegable si hace falta.
 4. **Pagos** (`/admin/payments`) — Confirma el pago aprobado; enlaces a contacto y servicio.
 5. **Terapias** (`/admin/therapies`) — Si es terapia 1:1, aparece en la lista con próxima sesión.
-6. **Detalle del servicio** (`/admin/enrollments/[id]`) — Agendar sesiones, Meet, notas clínicas, marcar completada o no-show.
+6. **Detalle del servicio** (`/admin/enrollments/[id]`) — Agendar sesiones, Meet, cuaderno clínico, marcar completada o no-show.
 7. **WhatsApp** — Botón **Abrir chat** en cada contacto (enlace directo). **Mensajes rápidos**: copiar texto y pegarlo tú misma en WhatsApp.
 
 ## 3. Cliente manual (sin pago web)
