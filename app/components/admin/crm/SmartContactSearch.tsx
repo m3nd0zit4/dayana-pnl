@@ -161,9 +161,11 @@ const SmartContactSearch = ({
   return (
     <div ref={wrapRef} className={`relative ${compact ? "min-w-0 flex-1" : ""}`}>
       <label
-        className={`flex items-center gap-2.5 rounded-xl border border-black/[0.06] bg-white px-3.5 py-2 transition-all focus-within:border-[var(--crm-accent)] focus-within:ring-2 focus-within:ring-[var(--crm-accent-soft)] ${
-          compact ? "w-full" : ""
-        }`}
+        className={
+          compact
+            ? "crm-search-field w-full"
+            : "flex items-center gap-2.5 rounded-xl border border-black/[0.06] bg-white px-3.5 py-2 transition-all focus-within:border-[var(--crm-accent)] focus-within:ring-2 focus-within:ring-[var(--crm-accent-soft)]"
+        }
       >
         <Search className="size-[18px] shrink-0 text-[var(--crm-muted)]" strokeWidth={2} />
         <input

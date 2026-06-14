@@ -4,7 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { crmMenuSections } from "@/app/config/crm-menu-items";
 
-const CrmMenu = () => {
+type Props = {
+  showLabels?: boolean;
+  onNavigate?: () => void;
+};
+
+const CrmMenu = ({ showLabels = false, onNavigate }: Props) => {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
@@ -17,7 +22,9 @@ const CrmMenu = () => {
     <nav className="mt-4 flex flex-col gap-2.5 text-sm" aria-label="Menú CRM">
       {crmMenuSections.map((section) => (
         <div key={section.title}>
-          <p className="mb-1 hidden px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--crm-muted)] lg:block">
+          <p
+            className={`mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--crm-muted)] ${showLabels ? "block" : "hidden lg:block"}`}
+          >
             {section.title}
           </p>
           <ul className="flex flex-col gap-0.5">
@@ -31,10 +38,13 @@ const CrmMenu = () => {
                   <Link
                     href={item.href}
                     prefetch={external ? undefined : false}
+                    onClick={onNavigate}
                     {...(external
                       ? { target: "_blank", rel: "noopener noreferrer" }
                       : {})}
-                    className={`flex h-9 w-full items-center justify-center gap-2.5 rounded-xl px-2.5 transition-colors lg:justify-start ${
+                    className={`flex h-10 w-full items-center gap-2.5 rounded-xl px-2.5 transition-colors ${
+                      showLabels ? "justify-start" : "justify-center lg:justify-start"
+                    } ${
                       active
                         ? "crm-active-menu"
                         : "text-[var(--crm-muted)] hover:bg-[var(--crm-linen)]/50 hover:text-[var(--crm-foreground)]"
@@ -45,7 +55,9 @@ const CrmMenu = () => {
                       strokeWidth={active ? 2.25 : 1.75}
                       aria-hidden
                     />
-                    <span className="hidden text-[13px] leading-none lg:inline">
+                    <span
+                      className={`text-[13px] leading-none ${showLabels ? "inline" : "hidden lg:inline"}`}
+                    >
                       {item.label}
                     </span>
                   </Link>

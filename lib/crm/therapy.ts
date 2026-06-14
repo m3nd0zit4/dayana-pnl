@@ -1,9 +1,4 @@
-import {
-  ContactNoteKind,
-  EnrollmentStatus,
-  TherapySessionStatus,
-  type Prisma,
-} from "@prisma/client";
+import { EnrollmentStatus, TherapySessionStatus } from "@prisma/client";
 import { prisma } from "../db";
 
 export const ensureTherapyPackage = async (
@@ -54,14 +49,7 @@ export const ensureTherapyPackage = async (
   return pkg;
 };
 
-export const completeTherapySession = async (
-  sessionId: string,
-  noteInput?: {
-    bodyText?: string;
-    title?: string;
-    createdByStaffId?: string;
-  }
-) => {
+export const completeTherapySession = async (sessionId: string) => {
   const session = await prisma.therapySession.findUnique({
     where: { id: sessionId },
     include: {
@@ -77,8 +65,7 @@ export const completeTherapySession = async (
     throw new Error("NO_SESSIONS_LEFT");
   }
 
-  const noteBody = noteInput?.bodyText?.trim();
-  const tx: Prisma.PrismaPromise<unknown>[] = [
+  await prisma.$transaction([
     prisma.therapySession.update({
       where: { id: sessionId },
       data: {
@@ -94,25 +81,7 @@ export const completeTherapySession = async (
       where: { id: pkg.enrollmentId },
       data: { sessionsUsed: { increment: 1 } },
     }),
-  ];
-
-  if (noteBody) {
-    tx.push(
-      prisma.contactNote.create({
-        data: {
-          contactId: pkg.enrollment.contactId,
-          kind: ContactNoteKind.TEXT,
-          title: noteInput?.title ?? `Sesión ${session.sessionNumber}`,
-          bodyText: noteBody,
-          therapySessionId: sessionId,
-          enrollmentId: pkg.enrollment.id,
-          createdByStaffId: noteInput?.createdByStaffId ?? null,
-        },
-      })
-    );
-  }
-
-  await prisma.$transaction(tx);
+  ]);
 
   const updatedPkg = await prisma.therapyPackage.findUnique({
     where: { id: pkg.id },

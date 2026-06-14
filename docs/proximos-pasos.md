@@ -4,8 +4,10 @@ Orden sugerido después de tener correo (Resend) funcionando.
 
 ## 1. Producción (Vercel)
 
-- [ ] Variables en **Vercel → Settings → Environment Variables** (mismas que `.env`): `RESEND_API_KEY`, `NOTIFICATIONS_*`, `DATABASE_URL`, pagos, `AUTH_SECRET`.
+- [ ] Variables en **Vercel → Settings → Environment Variables** (mismas que `.env`): `RESEND_API_KEY`, `NOTIFICATIONS_*`, `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, pagos.
+- [ ] **Vercel Blob:** Dashboard → Storage → Blob → conectar store `dayana-pnl-blob` al proyecto (OIDC automático: `BLOB_STORE_ID`). Redeploy. Local: `bun run env:pull`.
 - [ ] `NOTIFICATIONS_DRY_RUN=false` solo en Production.
+- [ ] Tras deploy: `bun run db:migrate:deploy` (incluye tablas del cuaderno clínico).
 - [ ] Redeploy del sitio.
 
 ## 2. Correo
@@ -38,6 +40,7 @@ Sirve para: confirmación post-pago en segundo plano, recordatorios de sesión, 
 3. **Talleres** → megáfono → aviso masivo por correo.
 4. **Notificaciones** → redactar y **Enviarme este correo** para revisar antes de enviar a todos.
 5. **Terapias** — agendar sesiones y Meet.
+6. **Cuaderno clínico** — pestaña Cuaderno en la ficha del contacto (dibujo, hojas, subidas con Blob configurado).
 
 ## 6. Más adelante (no urgente)
 

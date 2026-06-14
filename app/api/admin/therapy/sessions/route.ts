@@ -7,8 +7,6 @@ import {
   scheduleTherapySession,
   updateTherapySession,
 } from "@/lib/crm/therapy";
-import { canEditClinicalNotes } from "@/lib/crm/staff";
-
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
@@ -22,14 +20,7 @@ export async function POST(req: NextRequest) {
 
   try {
     if (body.action === "complete") {
-      if (body.noteText && !canEditClinicalNotes(staff.role)) {
-        return NextResponse.json({ error: "forbidden_notes" }, { status: 403 });
-      }
-      const session = await completeTherapySession(body.sessionId, {
-        bodyText: body.noteText,
-        title: body.noteTitle,
-        createdByStaffId: staff.id,
-      });
+      const session = await completeTherapySession(body.sessionId);
       fireAuditLog({
         staffUserId: staff.id,
         action: "COMPLETE",

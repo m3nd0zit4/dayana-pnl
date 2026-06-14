@@ -149,7 +149,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           {canManageTeam && !preview && (
             <button
               type="button"
-              className="crm-btn-primary"
+              className="crm-btn-primary crm-btn-compact"
               onClick={() => {
                 setCreating(true);
                 setEditing(null);
@@ -157,7 +157,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
               }}
             >
               <Plus className="size-4" />
-              Nuevo producto
+              <span className="hidden sm:inline">Nuevo producto</span>
             </button>
           )}
         </div>

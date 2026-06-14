@@ -150,9 +150,9 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
             </p>
           </div>
           {canManageTeam && !preview && (
-            <button type="button" className="crm-btn-primary" onClick={startNew}>
+            <button type="button" className="crm-btn-primary crm-btn-compact" onClick={startNew}>
               <Plus className="size-4" />
-              Nuevo mensaje
+              <span className="hidden sm:inline">Nuevo mensaje</span>
             </button>
           )}
         </div>

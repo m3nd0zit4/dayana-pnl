@@ -2,15 +2,18 @@
 
 import type { ContactSource } from "@prisma/client";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ContactEditForm from "@/app/components/admin/crm/ContactEditForm";
 import QuickMessagesPanel from "@/app/components/admin/crm/QuickMessagesPanel";
 import WhatsAppContactBlock from "@/app/components/admin/crm/WhatsAppContactBlock";
 import ContactNotesPanel from "@/app/components/admin/crm/ContactNotesPanel";
+import CrmSegmentedControl from "@/app/components/admin/crm/CrmSegmentedControl";
 import RegisterPaymentModal from "@/app/components/admin/crm/RegisterPaymentModal";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
+import { stripEphemeralNotebookParams } from "@/lib/crm/contact-notebook-url";
 import { productSelectOptions } from "@/lib/crm/form-select-options";
 import {
   groupProductsByKind,
@@ -51,32 +54,13 @@ type Contact = {
   enrollments: Enrollment[];
 };
 
-const TABS = ["resumen", "servicios", "pagos", "notas"] as const;
-type Tab = (typeof TABS)[number];
-
-const tabBtn = (active: boolean) =>
-  `rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
-    active
-      ? "bg-[var(--crm-accent-soft)] text-[var(--crm-accent)]"
-      : "text-[var(--crm-muted)] hover:bg-black/[0.04]"
-  }`;
-
-const ServiceFlowGuide = () => (
-  <div className="rounded-lg border border-[var(--crm-border)] bg-[var(--crm-linen)]/25 p-3 text-xs text-[var(--crm-muted)]">
-    <p className="mb-2 font-medium text-[var(--crm-foreground)]">Próximos pasos</p>
-    <ol className="list-decimal space-y-1 pl-4">
-      <li>Crear servicio (queda en Lead si no activas)</li>
-      <li>Activar cuando haya pago o acuerdo</li>
-      <li>
-        Terapias activas →{" "}
-        <Link href="/admin/calendar" className="text-[var(--crm-accent)] hover:underline">
-          Calendario
-        </Link>{" "}
-        o «Gestionar» en el servicio
-      </li>
-    </ol>
-  </div>
-);
+const TABS = [
+  { id: "resumen" as const, label: "Resumen" },
+  { id: "servicios" as const, label: "Servicios" },
+  { id: "pagos" as const, label: "Pagos" },
+  { id: "notas" as const, label: "Cuaderno" },
+];
+type Tab = (typeof TABS)[number]["id"];
 
 const ContactDetailClient = ({
   contact: initial,
@@ -87,8 +71,23 @@ const ContactDetailClient = ({
 }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { canWrite, toast } = useCrm();
+  const { canWrite, toast, focusMode, setFocusMode } = useCrm();
   const [contact, setContact] = useState(initial);
+  const notebookIntentRef = useRef<{
+    createOnMount: boolean;
+    therapySessionId: string | null;
+  } | null>(null);
+  const notebookIntentContactRef = useRef(contact.id);
+  if (notebookIntentContactRef.current !== contact.id) {
+    notebookIntentContactRef.current = contact.id;
+    notebookIntentRef.current = null;
+  }
+  if (notebookIntentRef.current === null) {
+    notebookIntentRef.current = {
+      createOnMount: searchParams.get("newPage") === "1",
+      therapySessionId: searchParams.get("sessionId"),
+    };
+  }
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState<Tab>(
     initialTab === "servicios" || initialTab === "pagos" || initialTab === "notas"
@@ -100,6 +99,14 @@ const ContactDetailClient = ({
   const [productId, setProductId] = useState(flatProducts[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [paymentEnrollment, setPaymentEnrollment] = useState<Enrollment | null>(null);
+  const [notebookMounted, setNotebookMounted] = useState(
+    () =>
+      searchParams.get("tab") === "notas" || searchParams.get("focus") === "1"
+  );
+
+  useEffect(() => {
+    if (tab === "notas") setNotebookMounted(true);
+  }, [tab]);
 
   useEffect(() => {
     saveContactRecent({
@@ -115,10 +122,65 @@ const ContactDetailClient = ({
     product_title: contact.enrollments[0]?.product.title ?? "tu proceso",
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!stripEphemeralNotebookParams(params)) return;
+    const qs = params.toString();
+    router.replace(`/admin/contacts/${contact.id}${qs ? `?${qs}` : ""}`, {
+      scroll: false,
+    });
+  }, [contact.id, router, searchParams]);
+
+  useLayoutEffect(() => {
     const t = searchParams.get("tab");
     if (t === "servicios" || t === "pagos" || t === "resumen" || t === "notas") setTab(t);
-  }, [searchParams]);
+    setFocusMode(searchParams.get("focus") === "1");
+  }, [searchParams, setFocusMode]);
+
+  const exitFocusMode = useCallback(() => {
+    setFocusMode(false);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("focus");
+    const qs = params.toString();
+    router.replace(`/admin/contacts/${contact.id}${qs ? `?${qs}` : ""}`, {
+      scroll: false,
+    });
+  }, [contact.id, router, searchParams, setFocusMode]);
+
+  useEffect(() => {
+    if (!focusMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") exitFocusMode();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode, exitFocusMode]);
+
+  useEffect(() => {
+    if (tab !== "notas") return;
+    void import("@excalidraw/excalidraw");
+  }, [tab]);
+
+  const goToTab = (next: Tab) => {
+    setTab(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "resumen") {
+      params.delete("tab");
+    } else {
+      params.set("tab", next);
+    }
+    const qs = params.toString();
+    router.replace(`/admin/contacts/${contact.id}${qs ? `?${qs}` : ""}`, {
+      scroll: false,
+    });
+    if (next === "notas") {
+      requestAnimationFrame(() => {
+        document
+          .getElementById("cuaderno-clinico")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  };
 
   const addService = async () => {
     if (!productId || !canWrite) return;
@@ -164,204 +226,216 @@ const ContactDetailClient = ({
     }))
   );
 
-  return (
-    <div className="space-y-6">
-      <div className="crm-surface-card p-5">
-        <h1 className="crm-section-title text-lg">
-          {contact.firstName} {contact.lastName ?? ""}
-        </h1>
-        <div className="mt-4">
-          <WhatsAppContactBlock phoneE164={contact.phoneE164} compact />
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {TABS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={tabBtn(tab === t)}
-              onClick={() => setTab(t)}
-            >
-              {t === "resumen"
-                ? "Resumen"
-                : t === "servicios"
-                  ? "Servicios"
-                  : t === "notas"
-                    ? "Notas"
-                    : "Pagos"}
-            </button>
-          ))}
-        </div>
-      </div>
+  const focusFromUrl = searchParams.get("focus") === "1";
+  const isFocusNotebook = focusFromUrl && tab === "notas";
 
-      {tab === "resumen" && (
+  const notebookProps = {
+    contactId: contact.id,
+    contactName: `${contact.firstName} ${contact.lastName ?? ""}`.trim(),
+    initialPageId: searchParams.get("pageId"),
+    createOnMount: notebookIntentRef.current.createOnMount,
+    initialTherapySessionId: notebookIntentRef.current.therapySessionId,
+  };
+
+  return (
+    <div className={isFocusNotebook ? "crm-focus-workspace" : "space-y-4"}>
+      {!isFocusNotebook && (
+        <div className="crm-contact-header space-y-3">
+          <h1 className="crm-contact-name">
+            {contact.firstName} {contact.lastName ?? ""}
+          </h1>
+          <WhatsAppContactBlock phoneE164={contact.phoneE164} compact />
+          <CrmSegmentedControl
+            value={tab}
+            onChange={goToTab}
+            segments={TABS}
+            aria-label="Secciones del contacto"
+          />
+        </div>
+      )}
+
+      {!isFocusNotebook && tab === "resumen" && (
         <>
           <ContactEditForm contact={contact} />
-          <section className="crm-surface-card p-5">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="crm-font-display text-[10px] text-[var(--crm-muted)]">
-                Servicios
-              </h2>
+          <section>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-[var(--crm-muted)]">Servicios</h2>
               <button
                 type="button"
-                className="text-xs font-medium text-[var(--crm-accent)] hover:underline"
-                onClick={() => setTab("servicios")}
+                className="crm-btn-ghost text-sm"
+                onClick={() => goToTab("servicios")}
               >
-                {contact.enrollments.length > 0 ? "Ver todos →" : "Agregar servicio →"}
+                {contact.enrollments.length > 0 ? "Ver todos" : "Agregar"}
               </button>
             </div>
-            {contact.enrollments.length === 0 ? (
-              <p className="text-sm text-[var(--crm-muted)]">
-                Sin servicios vinculados. Un servicio indica qué producto tiene o consultó esta
-                persona (terapia, curso o taller).
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {contact.enrollments.slice(0, 4).map((en) => (
-                  <li
+            <div className="crm-group">
+              {contact.enrollments.length === 0 ? (
+                <p className="px-4 py-5 text-sm text-[var(--crm-muted)]">Sin servicios</p>
+              ) : (
+                contact.enrollments.slice(0, 5).map((en) => (
+                  <Link
                     key={en.id}
-                    className="flex items-center justify-between gap-2 text-sm"
+                    href={`/admin/enrollments/${en.id}`}
+                    className="crm-group-row is-interactive"
                   >
-                    <span>
-                      {en.product.title}{" "}
-                      <span className="text-xs text-[var(--crm-muted)]">
-                        · {enrollmentStatusLabel(en.status)}
+                    <div className="min-w-0 flex-1">
+                      <span className="font-medium">{en.product.title}</span>
+                      <span className="ml-2 text-xs text-[var(--crm-muted)]">
+                        {enrollmentStatusLabel(en.status)}
                       </span>
-                    </span>
-                    <Link
-                      href={`/admin/enrollments/${en.id}`}
-                      className="shrink-0 text-xs text-[var(--crm-accent)] hover:underline"
-                    >
-                      Gestionar
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+                    </div>
+                    <ChevronRight className="crm-group-chevron" aria-hidden />
+                  </Link>
+                ))
+              )}
+            </div>
           </section>
-          <section className="crm-surface-card p-5">
+          <section className="crm-surface-card p-4">
             <QuickMessagesPanel vars={messageVars} />
           </section>
         </>
       )}
 
-      {tab === "servicios" && (
+      {!isFocusNotebook && tab === "servicios" && (
         <section className="space-y-4">
           {canWrite && flatProducts.length > 0 && (
-            <div className="crm-surface-card space-y-3 p-4">
-              <div className="flex flex-wrap gap-2">
-                <SearchableSelect
-                  label="Producto"
-                  hideLabel
-                  value={productId}
-                  options={productSelectOptions(flatProducts)}
-                  onChange={setProductId}
-                  className="min-w-[200px] flex-1"
-                  searchPlaceholder="Buscar producto…"
-                />
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void addService()}
-                  className="crm-btn-secondary"
-                >
-                  Nuevo servicio
-                </button>
-              </div>
-              <ServiceFlowGuide />
+            <div className="crm-filters">
+              <SearchableSelect
+                label="Producto"
+                hideLabel
+                value={productId}
+                options={productSelectOptions(flatProducts)}
+                onChange={setProductId}
+                className="min-w-0 flex-1 sm:min-w-[200px]"
+                searchPlaceholder="Buscar producto…"
+              />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void addService()}
+                className="crm-btn-primary crm-btn-compact"
+              >
+                Nuevo servicio
+              </button>
             </div>
           )}
           {canWrite && flatProducts.length === 0 && (
-            <p className="crm-surface-card p-4 text-sm text-[var(--crm-muted)]">
+            <p className="text-sm text-[var(--crm-muted)]">
               No hay productos activos.{" "}
-              <Link href="/admin/products" className="text-[var(--crm-accent)] hover:underline">
+              <Link href="/admin/products" className="text-[var(--crm-accent)]">
                 Configura el catálogo
               </Link>
               .
             </p>
           )}
-          <ul className="space-y-3">
-            {contact.enrollments.length === 0 && (
-              <p className="text-sm text-[var(--crm-muted)]">Sin servicios aún.</p>
-            )}
-            {contact.enrollments.map((en) => (
-              <li key={en.id} className="crm-surface-card p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-semibold">{en.product.title}</div>
+          <div className="crm-group">
+            {contact.enrollments.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-[var(--crm-muted)]">Sin servicios</p>
+            ) : (
+              contact.enrollments.map((en) => (
+                <div key={en.id} className="crm-group-row">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold">{en.product.title}</div>
                     <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
                       {enrollmentStatusLabel(en.status)}
                       {en.sessionsTotal != null &&
                         ` · ${en.sessionsUsed}/${en.sessionsTotal} sesiones`}
                     </div>
+                    {en.product.kind === "THERAPY" &&
+                      en.sessionsTotal != null &&
+                      en.sessionsTotal > 0 && (
+                        <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-black/[0.06]">
+                          <div
+                            className="h-full rounded-full bg-[var(--crm-accent)]"
+                            style={{
+                              width: `${Math.min(100, (en.sessionsUsed / en.sessionsTotal) * 100)}%`,
+                            }}
+                          />
+                        </div>
+                      )}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-2">
                     {canWrite && !en.payments.some((p) => p.status === "APPROVED") && (
                       <button
                         type="button"
-                        className="crm-btn-secondary text-xs"
+                        className="crm-btn-secondary crm-btn-compact"
                         onClick={() => setPaymentEnrollment(en)}
                       >
-                        Registrar pago
+                        Pago
                       </button>
                     )}
                     <Link
                       href={`/admin/enrollments/${en.id}`}
-                      className="text-xs font-medium text-[var(--crm-accent)] hover:underline"
+                      className="crm-btn-ghost text-xs"
                     >
-                      Gestionar →
+                      Gestionar
                     </Link>
                   </div>
                 </div>
-                {en.product.kind === "THERAPY" && en.sessionsTotal != null && en.sessionsTotal > 0 && (
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
-                    <div
-                      className="h-full rounded-full bg-[var(--crm-accent)]"
-                      style={{
-                        width: `${Math.min(100, (en.sessionsUsed / en.sessionsTotal) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+              ))
+            )}
+          </div>
         </section>
       )}
 
-      {tab === "notas" && <ContactNotesPanel contactId={contact.id} />}
+      {notebookMounted && (
+        <div
+          className={
+            tab === "notas" || isFocusNotebook
+              ? isFocusNotebook
+                ? "crm-focus-workspace flex min-h-0 flex-1 flex-col"
+                : undefined
+              : "hidden"
+          }
+          aria-hidden={tab !== "notas" && !isFocusNotebook}
+        >
+          <ContactNotesPanel
+            {...notebookProps}
+            focusMode={isFocusNotebook}
+            onEnterFocus={
+              isFocusNotebook
+                ? undefined
+                : () => {
+                    setFocusMode(true);
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set("tab", "notas");
+                    params.set("focus", "1");
+                    router.replace(`/admin/contacts/${contact.id}?${params}`, {
+                      scroll: false,
+                    });
+                  }
+            }
+            onExitFocus={isFocusNotebook ? exitFocusMode : undefined}
+          />
+        </div>
+      )}
 
-      {tab === "pagos" && (
-        <section className="crm-surface-card p-5">
-          <h2 className="crm-font-display mb-3 text-[10px] text-[var(--crm-muted)]">
-            Historial de pagos
-          </h2>
-          {allPayments.length === 0 ? (
-            <p className="text-sm text-[var(--crm-muted)]">Sin pagos registrados.</p>
-          ) : (
-            <ul className="divide-y divide-[var(--crm-border)] text-sm">
-              {allPayments.map((p) => (
-                <li key={p.id} className="flex flex-wrap justify-between gap-2 py-3">
-                  <div>
-                    <span className="font-medium">{p.productTitle}</span>
-                    <div className="text-xs text-[var(--crm-muted)]">
+      {!isFocusNotebook && tab === "pagos" && (
+        <section>
+          <div className="crm-group">
+            {allPayments.length === 0 ? (
+              <p className="px-4 py-6 text-sm text-[var(--crm-muted)]">Sin pagos</p>
+            ) : (
+              allPayments.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/admin/enrollments/${p.enrollmentId}`}
+                  className="crm-group-row is-interactive"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{p.productTitle}</p>
+                    <p className="text-xs text-[var(--crm-muted)]">
                       {p.provider} · {p.status}
-                    </div>
+                    </p>
                   </div>
-                  <div className="text-right">
-                    <div>
-                      {(p.amountMinor / 100).toFixed(2)} {p.currency}
-                    </div>
-                    <Link
-                      href={`/admin/enrollments/${p.enrollmentId}`}
-                      className="text-xs text-[var(--crm-accent)] hover:underline"
-                    >
-                      Ver servicio
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <span className="shrink-0 text-sm tabular-nums">
+                    {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                  </span>
+                  <ChevronRight className="crm-group-chevron" aria-hidden />
+                </Link>
+              ))
+            )}
+          </div>
         </section>
       )}
 

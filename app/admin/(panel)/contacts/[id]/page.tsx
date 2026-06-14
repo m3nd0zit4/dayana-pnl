@@ -40,7 +40,7 @@ const ContactDetailPage = async ({ params }: Props) => {
     <CrmPageShell>
       <Link
         href="/admin/contacts"
-        className="mb-6 inline-flex text-xs font-medium text-[var(--crm-accent)] hover:underline"
+        className="crm-back-link"
       >
         ← Contactos
       </Link>

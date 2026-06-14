@@ -41,6 +41,8 @@ type CrmContextValue = {
   canWrite: boolean;
   canEditNotes: boolean;
   canManageTeam: boolean;
+  focusMode: boolean;
+  setFocusMode: (active: boolean) => void;
   toast: {
     (message: string, variant?: ToastVariant): number;
     (options: ToastOptions): number;
@@ -92,6 +94,7 @@ const CrmProvider = ({
     message: string;
     onConfirm: () => void | Promise<void>;
   } | null>(null);
+  const [focusMode, setFocusMode] = useState(false);
 
   const dismissToast = useCallback((id: number) => {
     const t = timeoutsRef.current.get(id);
@@ -148,18 +151,20 @@ const CrmProvider = ({
       canWrite: preview ? false : canWriteCrm(staffRole),
       canEditNotes: preview ? false : canEditClinicalNotes(staffRole),
       canManageTeam: preview ? false : canManageTeam(staffRole),
+      focusMode,
+      setFocusMode,
       toast,
       dismissToast,
       confirm,
     }),
-    [role, preview, staffRole, toast, dismissToast, confirm]
+    [role, preview, staffRole, focusMode, toast, dismissToast, confirm]
   );
 
   return (
     <CrmContext.Provider value={value}>
       {children}
       <div
-        className="pointer-events-none fixed bottom-4 right-4 z-[100] flex max-w-sm flex-col gap-2"
+        className="crm-toast-stack pointer-events-none fixed z-[100] flex flex-col gap-2"
         aria-live="polite"
       >
         {toasts.map((t) => (
@@ -212,8 +217,11 @@ const CrmProvider = ({
           message={confirmState.message}
           onClose={() => setConfirmState(null)}
           onConfirm={async () => {
-            await confirmState.onConfirm();
-            setConfirmState(null);
+            try {
+              await confirmState.onConfirm();
+            } finally {
+              setConfirmState(null);
+            }
           }}
         />
       )}

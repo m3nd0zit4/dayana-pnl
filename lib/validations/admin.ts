@@ -57,6 +57,30 @@ export const createContactSchema = z.object({
   consentMarketing: z.boolean().optional(),
 });
 
+export const createNotebookPageSchema = z.object({
+  title: z.string().max(120).optional(),
+  kind: z.enum(["CANVAS", "UPLOAD"]).optional(),
+  background: z.enum(["BLANK", "RULED", "GRID"]).optional(),
+  therapySessionId: z.string().min(1).optional().nullable(),
+  enrollmentId: z.string().min(1).optional().nullable(),
+});
+
+export const updateNotebookPageSchema = z.object({
+  title: z.string().max(120).optional().nullable(),
+  background: z.enum(["BLANK", "RULED", "GRID"]).optional(),
+  canvasData: z.unknown().optional().nullable(),
+  bodyText: z.string().max(5000).optional().nullable(),
+  therapySessionId: z.string().min(1).optional().nullable(),
+  enrollmentId: z.string().min(1).optional().nullable(),
+  attachmentUrl: z.string().url().optional().nullable(),
+  attachmentMime: z.string().max(120).optional().nullable(),
+  attachmentName: z.string().max(200).optional().nullable(),
+});
+
+export const reorderNotebookPagesSchema = z.object({
+  orderedIds: z.array(z.string().min(1)).min(1),
+});
+
 export const createEnrollmentSchema = z.object({
   contactId: z.string().min(1),
   productId: z.string().min(1),

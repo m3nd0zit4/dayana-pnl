@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 type Props = {
@@ -12,6 +13,12 @@ type Props = {
 };
 
 const CrmModal = ({ title, open, onClose, children, large }: Props) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -25,9 +32,9 @@ const CrmModal = ({ title, open, onClose, children, large }: Props) => {
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       className="crm-modal-backdrop"
       role="dialog"
@@ -39,7 +46,7 @@ const CrmModal = ({ title, open, onClose, children, large }: Props) => {
     >
       <div className={`crm-modal ${large ? "crm-modal-lg" : ""}`}>
         <div className="mb-5 flex items-start justify-between gap-4">
-          <h2 id="crm-modal-title" className="crm-section-title text-base">
+          <h2 id="crm-modal-title" className="crm-page-title text-lg">
             {title}
           </h2>
           <button
@@ -53,7 +60,8 @@ const CrmModal = ({ title, open, onClose, children, large }: Props) => {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

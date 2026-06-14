@@ -49,7 +49,7 @@ type Props = {
   menuVariant?: "default" | "status";
 };
 
-const PANEL_Z = 60;
+const PANEL_Z = 110;
 const PANEL_GAP = 4;
 const PANEL_MIN_HEIGHT = 120;
 const LIST_MAX_HEIGHT = 224;
@@ -180,17 +180,11 @@ const SearchableSelect = ({
         type="button"
         role="option"
         aria-selected={value === o.value}
-        className={`crm-searchable-option flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--crm-linen)]/50 ${
-          value === o.value ? "bg-[var(--crm-accent-soft)] font-medium" : ""
-        }`}
+        className={`crm-searchable-option${value === o.value ? " is-selected" : ""}`}
         onClick={() => pick(o.value)}
       >
-        <span className="whitespace-nowrap">{o.label}</span>
-        {o.hint && (
-          <span className="shrink-0 font-mono text-xs text-[var(--crm-muted)]">
-            {o.hint}
-          </span>
-        )}
+        <span>{o.label}</span>
+        {o.hint && <span className="crm-searchable-option-hint">{o.hint}</span>}
       </button>
     </li>
   );
@@ -201,8 +195,8 @@ const SearchableSelect = ({
     open && position ? (
       <div
         ref={panelRef}
-        className={`crm-searchable-panel overflow-hidden rounded-xl border border-[var(--crm-border)] bg-white shadow-lg ${
-          menuVariant === "status" ? "crm-searchable-panel--status" : ""
+        className={`crm-searchable-panel${
+          menuVariant === "status" ? " crm-searchable-panel--status" : ""
         }`}
         style={{
           position: "fixed",
@@ -214,20 +208,19 @@ const SearchableSelect = ({
         }}
       >
         {showSearch && (
-          <div className="flex items-center gap-2 border-b border-[var(--crm-border)] px-3 py-2">
-            <Search className="size-4 shrink-0 text-[var(--crm-muted)]" />
+          <div className="crm-searchable-panel-search">
+            <Search className="size-4 shrink-0 text-[var(--crm-muted)]" aria-hidden />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
               autoFocus
             />
           </div>
         )}
         <ul
-          className="crm-no-scrollbar overflow-y-auto py-1"
+          className="crm-searchable-panel-list crm-no-scrollbar"
           role="listbox"
           style={{ maxHeight: position.maxHeight }}
         >
@@ -236,7 +229,7 @@ const SearchableSelect = ({
               <button
                 type="button"
                 role="option"
-                className="crm-searchable-option w-full px-3 py-2 text-left text-sm text-[var(--crm-muted)] hover:bg-[var(--crm-linen)]/50"
+                className="crm-searchable-option crm-searchable-option--empty"
                 onClick={() => pick("")}
               >
                 {emptyLabel}
@@ -244,19 +237,14 @@ const SearchableSelect = ({
             </li>
           )}
           {query.trim() !== "" && filtered.length === 0 && (
-            <li className="px-3 py-2 text-xs text-[var(--crm-muted)]">
-              Sin coincidencias
-            </li>
+            <li className="crm-searchable-empty">Sin coincidencias</li>
           )}
           {listOptions.flatMap((o, i) => {
             const nodes: React.ReactNode[] = [];
             if (query.trim() === "" && o.group && o.group !== lastGroup) {
               lastGroup = o.group;
               nodes.push(
-                <li
-                  key={`g-${o.group}-${i}`}
-                  className="crm-font-display px-3 pb-1 pt-2 text-[10px] text-[var(--crm-muted)]"
-                >
+                <li key={`g-${o.group}-${i}`} className="crm-searchable-group-label">
                   {o.group}
                 </li>
               );
@@ -269,7 +257,7 @@ const SearchableSelect = ({
             ) {
               nodes.push(
                 <li key={`div-${i}`} aria-hidden>
-                  <div className="my-1 border-t border-[var(--crm-border)]" />
+                  <div className="crm-searchable-divider" />
                 </li>
               );
             }
@@ -296,21 +284,19 @@ const SearchableSelect = ({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-required={required || undefined}
-        className={`crm-searchable-trigger crm-select flex w-full items-center justify-between gap-2 text-left disabled:opacity-50 ${
-          menuVariant === "status" ? "crm-searchable-trigger--status" : ""
-        } ${open ? "is-open" : ""} ${buttonClassName}`}
+        className={`crm-searchable-trigger${
+          menuVariant === "status" ? " crm-searchable-trigger--status" : ""
+        }${open ? " is-open" : ""}${buttonClassName ? ` ${buttonClassName}` : ""}`}
         onClick={() => !disabled && setOpen((o) => !o)}
       >
         <span
-          className={`min-w-0 truncate ${!value && allowEmpty ? "text-[var(--crm-muted)]" : ""}`}
+          className={`crm-searchable-trigger-label${
+            !value && allowEmpty ? " is-placeholder" : ""
+          }`}
         >
           {display}
         </span>
-        <ChevronDown
-          className={`size-4 shrink-0 text-[var(--crm-muted)] transition-transform duration-150 ${
-            open ? "rotate-180" : ""
-          }`}
-        />
+        <ChevronDown className="crm-searchable-trigger-chevron" aria-hidden />
       </button>
 
       {typeof document !== "undefined" && panel

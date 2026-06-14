@@ -7,22 +7,17 @@ import { EnrollmentStatus } from "@prisma/client";
 import Link from "next/link";
 
 import { useCallback, useState } from "react";
+import { BookOpen } from "lucide-react";
 
-import CrmModal from "@/app/components/admin/crm/CrmModal";
 import RegisterPaymentModal, {
   type RegisteredPayment,
 } from "@/app/components/admin/crm/RegisterPaymentModal";
-
-import ScheduleSessionModal, {
-
-  toLocalInput,
-
-} from "@/app/components/admin/crm/ScheduleSessionModal";
 
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
+import { contactNotebookPath } from "@/lib/crm/contact-notebook-url";
 
 
 
@@ -45,11 +40,13 @@ type Session = {
 
 
 const sessionStatusLabel = (status: string) => {
-
-  if (status === "PENDING_SCHEDULE") return "Pendiente de agendar";
-
+  if (status === "PENDING_SCHEDULE") return "Pendiente";
+  if (status === "COMPLETED") return "Completada";
+  if (status === "NO_SHOW") return "No asistió";
+  if (status === "SCHEDULED") return "Agendada";
+  if (status === "RESCHEDULED") return "Reagendada";
+  if (status === "CANCELLED") return "Cancelada";
   return status;
-
 };
 
 
@@ -122,35 +119,11 @@ const EnrollmentDetailClient = ({
 
   const [enrollment, setEnrollment] = useState(initial);
 
-  const [meetDefaultUrl, setMeetDefaultUrl] = useState(
-
-    initial.therapyPackage?.meetDefaultUrl ?? ""
-
-  );
-
-  const [reprogrammingNotes, setReprogrammingNotes] = useState(
-
-    initial.therapyPackage?.reprogrammingNotes ?? ""
-
-  );
-
   const [busy, setBusy] = useState(false);
 
   const [paymentOpen, setPaymentOpen] = useState(false);
 
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-
-  const [scheduleSessionNumber, setScheduleSessionNumber] = useState(1);
-
-  const [completeOpen, setCompleteOpen] = useState(false);
-
-  const [completeSessionId, setCompleteSessionId] = useState<string | null>(null);
-
-  const [completeNote, setCompleteNote] = useState("");
-
   const pkg = enrollment.therapyPackage;
-
-  const tz = enrollment.contact.timezone;
 
 
 
@@ -239,144 +212,47 @@ const EnrollmentDetailClient = ({
 
 
 
-  const savePackageMeta = async () => {
+  const completeSession = (sessionId: string, sessionNumber: number) => {
+    if (!pkg || sessionId.startsWith("placeholder")) return;
 
-    if (!pkg) return;
+    confirm({
+      title: `Completar sesión ${sessionNumber}`,
+      message: "¿Marcar esta sesión como completada?",
+      onConfirm: async () => {
+        setBusy(true);
+        const res = await fetch("/api/admin/therapy/sessions", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "complete",
+            sessionId,
+            therapyPackageId: pkg.id,
+            sessionNumber,
+          }),
+        });
+        setBusy(false);
 
-    setBusy(true);
-
-    const res = await fetch("/api/admin/therapy/package", {
-
-      method: "PATCH",
-
-      headers: { "content-type": "application/json" },
-
-      body: JSON.stringify({
-
-        therapyPackageId: pkg.id,
-
-        meetDefaultUrl: meetDefaultUrl || null,
-
-        reprogrammingNotes: reprogrammingNotes || null,
-
-      }),
-
+        if (res.ok) {
+          toast({
+            message: "Sesión completada",
+            variant: "success",
+            duration: 8000,
+            action: canEditNotes
+              ? {
+                  label: `Añadir hoja de sesión ${sessionNumber}`,
+                  href: contactNotebookPath(enrollment.contact.id, {
+                    newPage: true,
+                    sessionId,
+                  }),
+                }
+              : undefined,
+          });
+          void refreshPackage();
+        } else {
+          toast("Error al completar", "error");
+        }
+      },
     });
-
-    setBusy(false);
-
-    if (res.ok) toast("Paquete de terapia guardado");
-
-    else toast("Error al guardar paquete", "error");
-
-  };
-
-
-
-  const openSchedule = (sessionNumber: number) => {
-
-    setScheduleSessionNumber(sessionNumber);
-
-    setScheduleOpen(true);
-
-  };
-
-
-
-  const nextPendingSession = () => {
-
-    const pending = pkg?.sessions.find((s) => s.status === "PENDING_SCHEDULE");
-
-    return pending?.sessionNumber ?? (pkg?.usedSessions ?? 0) + 1;
-
-  };
-
-
-
-  const patchSession = async (
-
-    sessionId: string,
-
-    body: Record<string, unknown>
-
-  ) => {
-
-    setBusy(true);
-
-    const res = await fetch("/api/admin/therapy/sessions", {
-
-      method: "PATCH",
-
-      headers: { "content-type": "application/json" },
-
-      body: JSON.stringify({ sessionId, ...body }),
-
-    });
-
-    setBusy(false);
-
-    if (res.ok) {
-
-      toast("Sesión actualizada");
-
-      void refreshPackage();
-
-    } else {
-
-      const d = (await res.json()) as { error?: string };
-
-      toast(d.error ?? "Error", "error");
-
-    }
-
-  };
-
-
-
-  const submitComplete = async () => {
-
-    if (!completeSessionId || !pkg) return;
-
-    setBusy(true);
-
-    const res = await fetch("/api/admin/therapy/sessions", {
-
-      method: "POST",
-
-      headers: { "content-type": "application/json" },
-
-      body: JSON.stringify({
-
-        action: "complete",
-
-        sessionId: completeSessionId,
-
-        therapyPackageId: pkg.id,
-
-        sessionNumber: 1,
-
-        noteText: completeNote || undefined,
-
-      }),
-
-    });
-
-    setBusy(false);
-
-    if (res.ok) {
-
-      toast("Sesión completada");
-
-      setCompleteOpen(false);
-
-      setCompleteNote("");
-
-      setCompleteSessionId(null);
-
-      void refreshPackage();
-
-    } else toast("Error al completar", "error");
-
   };
 
 
@@ -476,30 +352,6 @@ const EnrollmentDetailClient = ({
 
           · {enrollment.contact.phoneE164}
 
-          {canEditNotes && (
-
-            <>
-
-              {" "}
-
-              ·{" "}
-
-              <Link
-
-                href={`/admin/contacts/${enrollment.contact.id}?tab=notas`}
-
-                className="text-[var(--crm-accent)] hover:underline"
-
-              >
-
-                Notas clínicas
-
-              </Link>
-
-            </>
-
-          )}
-
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -533,6 +385,16 @@ const EnrollmentDetailClient = ({
 
           />
 
+          {canEditNotes && (
+            <Link
+              href={contactNotebookPath(enrollment.contact.id)}
+              className="crm-btn-secondary inline-flex items-center gap-1.5 text-xs"
+            >
+              <BookOpen className="size-3.5" aria-hidden />
+              Cuaderno
+            </Link>
+          )}
+
           {enrollment.sessionsTotal != null && (
 
             <span className="text-xs text-[var(--crm-muted)]">
@@ -543,21 +405,6 @@ const EnrollmentDetailClient = ({
 
           )}
 
-          {canWrite && pkg && (
-
-            <Link
-
-              href="/admin/calendar"
-
-              className="text-xs font-medium text-[var(--crm-accent)] hover:underline"
-
-            >
-
-              Ver calendario →
-
-            </Link>
-
-          )}
 
         </div>
 
@@ -627,282 +474,38 @@ const EnrollmentDetailClient = ({
       )}
 
       {pkg && (
-
         <section className="crm-surface-card space-y-4 p-5">
-
-          <h2 className={sectionHeading}>Terapia 1:1</h2>
-
-
-
-          <div className="grid gap-3 sm:grid-cols-2">
-
-            <div>
-
-              <label className="crm-label">Meet por defecto</label>
-
-              <input
-
-                className="crm-input"
-
-                value={meetDefaultUrl}
-
-                disabled={!canWrite}
-
-                onChange={(e) => setMeetDefaultUrl(e.target.value)}
-
-                placeholder="https://meet.google.com/..."
-
-              />
-
-            </div>
-
-            <div className="sm:col-span-2">
-
-              <label className="crm-label">Notas de reprogramación</label>
-
-              <textarea
-
-                className="crm-textarea min-h-[80px]"
-
-                value={reprogrammingNotes}
-
-                disabled={!canWrite}
-
-                onChange={(e) => setReprogrammingNotes(e.target.value)}
-
-                placeholder="Acuerdos de reprogramación del paquete…"
-
-              />
-
-            </div>
-
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className={sectionHeading}>Sesiones</h2>
+            <p className="text-xs text-[var(--crm-muted)]">
+              Agenda en Google Calendar
+            </p>
           </div>
-
-          {canWrite && (
-
-            <button
-
-              type="button"
-
-              disabled={busy}
-
-              onClick={() => void savePackageMeta()}
-
-              className="crm-btn-secondary text-xs"
-
-            >
-
-              Guardar enlace y notas del paquete
-
-            </button>
-
-          )}
-
-
 
           <div className="overflow-x-auto">
-
             <table className="w-full text-left text-sm">
-
               <thead>
-
                 <tr className="border-b border-[var(--crm-border)] text-[10px] uppercase text-[var(--crm-muted)]">
-
                   <th className="py-2 pr-2">#</th>
-
                   <th className="py-2 pr-2">Estado</th>
-
-                  <th className="py-2 pr-2">Fecha</th>
-
-                  <th className="py-2 pr-2">Meet</th>
-
-                  <th className="py-2">Acciones</th>
-
+                  <th className="py-2">Acción</th>
                 </tr>
-
               </thead>
-
               <tbody>
-
                 {allSessions.map((s) => (
-
                   <SessionRow
-
                     key={s.id}
-
                     session={s}
-
-                    tz={tz}
-
                     canWrite={canWrite}
-
                     busy={busy}
-
-                    onPatch={patchSession}
-
-                    onSchedule={() => openSchedule(s.sessionNumber)}
-
-                    onComplete={() => {
-
-                      setCompleteSessionId(s.id);
-
-                      setCompleteNote("");
-
-                      setCompleteOpen(true);
-
-                    }}
-
-                    onNoShow={(id) =>
-
-                      confirm({
-
-                        title: "No-show",
-
-                        message: `¿Marcar sesión ${s.sessionNumber} como no asistió?`,
-
-                        onConfirm: () => patchSession(id, { action: "no_show" }),
-
-                      })
-
-                    }
-
+                    onComplete={() => completeSession(s.id, s.sessionNumber)}
                   />
-
                 ))}
-
               </tbody>
-
             </table>
-
           </div>
-
-
-
-          {canWrite && (
-
-            <div className="border-t border-[var(--crm-border)] pt-4">
-
-              <button
-
-                type="button"
-
-                className="crm-btn-primary text-xs"
-
-                onClick={() => openSchedule(nextPendingSession())}
-
-              >
-
-                Agendar sesión
-
-              </button>
-
-            </div>
-
-          )}
-
         </section>
-
       )}
-
-
-
-      {pkg && (
-
-        <ScheduleSessionModal
-
-          open={scheduleOpen}
-
-          onClose={() => setScheduleOpen(false)}
-
-          onScheduled={() => void refreshPackage()}
-
-          therapyPackageId={pkg.id}
-
-          sessionNumber={scheduleSessionNumber}
-
-          meetDefaultUrl={meetDefaultUrl || pkg.meetDefaultUrl}
-
-          contactTimezone={tz}
-
-          contactName={enrollment.contact.firstName}
-
-          productTitle={enrollment.product.title}
-
-        />
-
-      )}
-
-
-
-      <CrmModal
-
-        open={completeOpen}
-
-        title="Completar sesión"
-
-        onClose={() => setCompleteOpen(false)}
-
-      >
-
-        <div className="space-y-4 text-sm">
-
-          <p className="text-[var(--crm-muted)]">
-
-            Opcional: añade una nota clínica vinculada al contacto.
-
-          </p>
-
-          <textarea
-
-            className="crm-textarea min-h-[120px]"
-
-            value={completeNote}
-
-            onChange={(e) => setCompleteNote(e.target.value)}
-
-            placeholder="Notas de la sesión…"
-
-            disabled={!canEditNotes}
-
-          />
-
-          <div className="flex justify-end gap-2">
-
-            <button
-
-              type="button"
-
-              className="crm-btn-secondary"
-
-              onClick={() => setCompleteOpen(false)}
-
-            >
-
-              Cancelar
-
-            </button>
-
-            <button
-
-              type="button"
-
-              className="crm-btn-primary"
-
-              disabled={busy}
-
-              onClick={() => void submitComplete()}
-
-            >
-
-              Completar sesión
-
-            </button>
-
-          </div>
-
-        </div>
-
-      </CrmModal>
 
 
 
@@ -926,207 +529,43 @@ const EnrollmentDetailClient = ({
 
 
 const SessionRow = ({
-
   session: s,
-
-  tz,
-
   canWrite,
-
   busy,
-
-  onPatch,
-
-  onSchedule,
-
   onComplete,
-
-  onNoShow,
-
 }: {
-
   session: Session;
-
-  tz: string;
-
   canWrite: boolean;
-
   busy: boolean;
-
-  onPatch: (id: string, body: Record<string, unknown>) => void;
-
-  onSchedule: () => void;
-
   onComplete: () => void;
-
-  onNoShow: (id: string) => void;
-
 }) => {
-
-  const [localAt, setLocalAt] = useState(toLocalInput(s.scheduledAt, tz));
-
-  const [localMeet, setLocalMeet] = useState(s.meetUrl ?? "");
-
-
-
-  const isPending = s.status === "PENDING_SCHEDULE";
-
-  const isScheduled = s.status === "SCHEDULED" || s.status === "RESCHEDULED";
-
-
+  const isCompleted = s.status === "COMPLETED";
+  const canComplete =
+    canWrite && !isCompleted && !s.id.startsWith("placeholder");
 
   return (
-
-    <tr className="border-b border-black/[0.04] align-top">
-
-      <td className="py-2 pr-2 font-medium">{s.sessionNumber}</td>
-
-      <td className="py-2 pr-2 text-xs">{sessionStatusLabel(s.status)}</td>
-
-      <td className="py-2 pr-2">
-
-        {canWrite && isScheduled ? (
-
-          <input
-
-            type="datetime-local"
-
-            className="crm-input min-w-[160px] text-xs"
-
-            value={localAt}
-
-            onChange={(e) => setLocalAt(e.target.value)}
-
-            onBlur={() => {
-
-              if (!localAt) return;
-
-              onPatch(s.id, {
-
-                scheduledAt: new Date(localAt).toISOString(),
-
-              });
-
-            }}
-
-          />
-
-        ) : isPending ? (
-
-          <span className="text-xs italic text-[var(--crm-muted)]">
-
-            Pendiente de agendar
-
-          </span>
-
-        ) : (
-
-          <span className="text-xs">
-
-            {s.scheduledAt
-
-              ? new Date(s.scheduledAt).toLocaleString("es-CO", { timeZone: tz })
-
-              : "—"}
-
-          </span>
-
-        )}
-
-      </td>
-
-      <td className="py-2 pr-2">
-
-        {canWrite && isScheduled ? (
-
-          <input
-
-            className="crm-input min-w-[120px] text-xs"
-
-            value={localMeet}
-
-            onChange={(e) => setLocalMeet(e.target.value)}
-
-            onBlur={() => onPatch(s.id, { meetUrl: localMeet || null })}
-
-          />
-
-        ) : (
-
-          <span className="text-xs">{s.meetUrl ?? "—"}</span>
-
-        )}
-
-      </td>
-
-      <td className="py-2">
-
-        {canWrite && isPending && !s.id.startsWith("placeholder") && (
-
-          <button
-
-            type="button"
-
-            disabled={busy}
-
-            className="text-left text-xs text-[var(--crm-accent)] hover:underline"
-
-            onClick={onSchedule}
-
-          >
-
-            Agendar
-
-          </button>
-
-        )}
-
-        {canWrite && isScheduled && (
-
-          <div className="flex flex-col gap-1">
-
+    <tr className="border-b border-black/[0.04] align-middle">
+      <td className="py-2.5 pr-2 font-medium">{s.sessionNumber}</td>
+      <td className="py-2.5 pr-2 text-xs">{sessionStatusLabel(s.status)}</td>
+      <td className="py-2.5">
+        <div className="flex flex-wrap items-center gap-3">
+          {canComplete && (
             <button
-
               type="button"
-
               disabled={busy}
-
-              className="text-left text-xs text-[var(--crm-accent)] hover:underline"
-
+              className="crm-btn-primary text-xs"
               onClick={onComplete}
-
             >
-
               Completar
-
             </button>
-
-            <button
-
-              type="button"
-
-              disabled={busy}
-
-              className="text-left text-xs text-[var(--crm-muted)] hover:underline"
-
-              onClick={() => onNoShow(s.id)}
-
-            >
-
-              No-show
-
-            </button>
-
-          </div>
-
-        )}
-
+          )}
+          {isCompleted && (
+            <span className="text-xs text-[var(--crm-muted)]">Completada</span>
+          )}
+        </div>
       </td>
-
     </tr>
-
   );
-
 };
 
 

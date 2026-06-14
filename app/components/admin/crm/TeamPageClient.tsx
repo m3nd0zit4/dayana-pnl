@@ -42,11 +42,11 @@ const TeamPageClient = ({
           {canManage && !preview && (
             <button
               type="button"
-              className="crm-btn-primary"
+              className="crm-btn-primary crm-btn-compact"
               onClick={() => setModalOpen(true)}
             >
               <Plus className="size-4" />
-              Añadir usuario
+              <span className="hidden sm:inline">Añadir usuario</span>
             </button>
           )}
         </div>

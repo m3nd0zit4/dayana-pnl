@@ -1,5 +1,4 @@
 import {
-  Calendar,
   CalendarDays,
   CreditCard,
   ExternalLink,
@@ -33,7 +32,6 @@ export const crmMenuSections: CrmMenuSection[] = [
     items: [
       { icon: Users, label: "Contactos", href: "/admin/contacts" },
       { icon: Layers, label: "Servicios", href: "/admin/services" },
-      { icon: Calendar, label: "Calendario", href: "/admin/calendar" },
       { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
       { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
     ],
