@@ -55,9 +55,15 @@ enum TherapySessionStatus {
   RESCHEDULED
 }
 
-enum ContactNoteKind {
-  TEXT
-  HANDWRITTEN
+enum NotebookPageKind {
+  CANVAS
+  UPLOAD
+}
+
+enum NotebookPageBackground {
+  BLANK
+  RULED
+  GRID
 }
 
 enum WorkshopEditionStatus {
@@ -120,7 +126,7 @@ model Contact {
   tags                   ContactTag[]
   messageLogs            MessageLog[]
   notificationDeliveries NotificationDelivery[]
-  contactNotes           ContactNote[]
+  notebookPages          ContactNotebookPage[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -215,7 +221,7 @@ model Enrollment {
   childEnrollments Enrollment[]     @relation("EnrollmentRenewals")
   payments         Payment[]
   therapyPackage   TherapyPackage?
-  contactNotes     ContactNote[]
+  notebookPages    ContactNotebookPage[]
 
   @@index([contactId, status])
   @@index([contactId, productId])
@@ -280,7 +286,7 @@ model TherapySession {
   updatedAt        DateTime             @updatedAt @map("updated_at")
 
   therapyPackage TherapyPackage @relation(fields: [therapyPackageId], references: [id], onDelete: Cascade)
-  contactNotes   ContactNote[]
+  notebookPages  ContactNotebookPage[]
 
   @@unique([therapyPackageId, sessionNumber])
   @@index([scheduledAt])
@@ -288,29 +294,33 @@ model TherapySession {
   @@map("therapy_sessions")
 }
 
-model ContactNote {
-  id               String          @id @default(cuid())
-  contactId        String          @map("contact_id")
-  kind             ContactNoteKind @default(TEXT)
-  title            String?
-  bodyText         String?         @map("body_text") @db.Text
-  therapySessionId String?         @map("therapy_session_id")
-  enrollmentId     String?         @map("enrollment_id")
-  attachmentUrl    String?         @map("attachment_url")
-  attachmentMime   String?         @map("attachment_mime")
-  attachmentName   String?         @map("attachment_name")
-  createdByStaffId String?         @map("created_by_staff_id")
-  createdAt        DateTime        @default(now()) @map("created_at")
-  updatedAt        DateTime        @updatedAt @map("updated_at")
+model ContactNotebookPage {
+  id               String                 @id @default(cuid())
+  contactId        String                 @map("contact_id")
+  title            String
+  sortOrder        Int                    @map("sort_order")
+  kind             NotebookPageKind       @default(CANVAS)
+  background       NotebookPageBackground @default(BLANK)
+  canvasData       Json?                  @map("canvas_data")
+  bodyText         String?                @map("body_text") @db.Text
+  attachmentUrl    String?                @map("attachment_url")
+  attachmentMime   String?                @map("attachment_mime")
+  attachmentName   String?                @map("attachment_name")
+  previewUrl       String?                @map("preview_url")
+  therapySessionId String?                @map("therapy_session_id")
+  enrollmentId     String?                @map("enrollment_id")
+  createdByStaffId String?                @map("created_by_staff_id")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
 
   contact        Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
   therapySession TherapySession? @relation(fields: [therapySessionId], references: [id], onDelete: SetNull)
   enrollment     Enrollment?     @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
   createdByStaff StaffUser?      @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
 
-  @@index([contactId, createdAt(sort: Desc)])
-  @@index([therapySessionId])
-  @@map("contact_notes")
+  @@index([contactId, sortOrder])
+  @@index([contactId, updatedAt(sort: Desc)])
+  @@map("contact_notebook_pages")
 }
 
 model StaffUser {
@@ -325,8 +335,8 @@ model StaffUser {
 
   auditLogs     AuditLog[]
   messageLogs   MessageLog[]
-  contactNotes  ContactNote[]
-  staffSessions StaffSession[]
+  notebookPages  ContactNotebookPage[]
+  staffSessions  StaffSession[]
 
   @@map("staff_users")
 }

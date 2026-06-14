@@ -14,12 +14,14 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
-    "email:sample": "bun run scripts/send-example-email.ts"
+    "email:sample": "bun run scripts/send-example-email.ts",
+    "env:pull": "vercel env pull .env.local"
   },
   "prisma": {
     "seed": "bunx tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
     "@gsap/react": "^2.1.2",
     "@mercadopago/sdk-react": "^1.0.7",
     "@neondatabase/serverless": "^1.1.0",

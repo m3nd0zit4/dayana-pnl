@@ -42,8 +42,8 @@ Al desactivar un usuario (`isActive = false`), pierde acceso en el siguiente req
 - Mutaciones: verificación de `Origin`/`Referer` (CSRF básico)
 - RBAC:
   - **OWNER**: equipo, productos, broadcast, test-email
-  - **OPERATOR**: escritura CRM + pagos manuales + notas clínicas
-  - **DEVELOPER**: escritura sin notas clínicas ni pagos manuales
+  - **OPERATOR**: escritura CRM + pagos manuales + cuaderno clínico
+  - **DEVELOPER**: escritura sin cuaderno clínico ni pagos manuales
   - **READONLY**: solo lectura
 
 ## Webhooks de pago
@@ -69,6 +69,20 @@ Sin Upstash, el fallback es rate limit en memoria (solo dev / instancia única).
 4. Revisar `/admin/audit` (LOGIN_FAILED, SESSION_REVOKED, STAFF_CREATED).
 5. Cambiar contraseña del staff (vía seed/DB hasta existir UI de cambio).
 
-## Adjuntos de notas clínicas
+## Cuaderno clínico (ContactNotebookPage)
 
-La vista previa pasa por `/api/admin/contacts/.../attachment` (requiere sesión staff). El SDK actual de Vercel Blob solo permite `access: public`; no exponer URLs fuera del CRM.
+| Dato | Almacenamiento |
+|------|----------------|
+| Trazos Excalidraw | `canvasData` (JSON) en Postgres |
+| Miniatura PNG | Vercel Blob `contacts/{contactId}/notebook/{pageId}/preview-*.png` |
+| Hojas UPLOAD (PDF/imagen) | Blob `contacts/{contactId}/notebook/{pageId}/upload-*` |
+
+**Acceso:** lectura con cualquier rol staff autenticado; escritura solo `OWNER` y `OPERATOR` (`canEditClinicalNotes`). `READONLY` ve el lienzo en modo lectura.
+
+**Auditoría:** CREATE / UPDATE / DELETE de hojas en `fireAuditLog` (entidad `ContactNotebookPage`).
+
+**Borrado:** al eliminar una hoja se borran blobs de `previewUrl` y `attachmentUrl` asociados.
+
+**Retención:** sin caducidad automática; borrado manual por staff con permiso de escritura.
+
+**Producción:** requiere Vercel Blob conectado al proyecto (OIDC: `BLOB_STORE_ID` + `VERCEL_OIDC_TOKEN`) o `BLOB_READ_WRITE_TOKEN` fuera de Vercel; sin Blob el dibujo (JSON) sigue guardándose.
