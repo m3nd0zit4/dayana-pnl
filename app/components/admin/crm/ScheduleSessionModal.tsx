@@ -123,8 +123,8 @@ const ScheduleSessionModal = ({
             className="mt-1"
           />
           <p className="mt-1 text-[10px] text-[var(--crm-muted)]">
-            Zona del contacto: {contactTimezone}. El calendario interno usa{" "}
-            {OPERATIONAL_TZ}.
+            Zona del contacto: {contactTimezone}. Las sesiones se agendan aquí;
+            Dayana usa Google Calendar para la vista semanal.
           </p>
         </div>
         <div>

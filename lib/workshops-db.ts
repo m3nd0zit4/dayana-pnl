@@ -1,6 +1,7 @@
 import { WorkshopEditionStatus } from "@prisma/client";
 import { prisma } from "./db";
 import type { Workshop, WorkshopStatus } from "./workshops";
+import { PROXIMO_WORKSHOP_SLUG } from "./workshops";
 
 const statusToUi = (status: WorkshopEditionStatus): WorkshopStatus => {
   switch (status) {
@@ -33,7 +34,11 @@ export const getWorkshopsFromDb = async (): Promise<Workshop[]> => {
       dateLabel: e.dateLabel ?? "",
       scheduleLabel: e.scheduleLabel ?? "",
       whatsappMessage: e.whatsappTemplate ?? undefined,
-    }));
+    })).sort((a, b) => {
+      if (a.slug === PROXIMO_WORKSHOP_SLUG) return -1;
+      if (b.slug === PROXIMO_WORKSHOP_SLUG) return 1;
+      return 0;
+    });
   } catch {
     const { WORKSHOPS } = await import("./workshops");
     return WORKSHOPS;

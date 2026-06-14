@@ -34,6 +34,12 @@ export const WORKSHOPS: Workshop[] = [
   },
 ];
 
+/** Placeholder fijo en la web pública — no editable desde el CRM. */
+export const PROXIMO_WORKSHOP_SLUG = "proximo-taller";
+
+export const isLockedWorkshopSlug = (slug: string): boolean =>
+  slug === PROXIMO_WORKSHOP_SLUG;
+
 const STATUS_LABEL: Record<WorkshopStatus, string> = {
   completed: "Completado",
   upcoming: "Próximamente",

@@ -4,6 +4,7 @@ import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { uniqueSlug } from "@/lib/crm/slug";
 import { prisma } from "@/lib/db";
+import { isLockedWorkshopSlug } from "@/lib/workshops";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,9 @@ export async function POST(req: NextRequest) {
   }
 
   let slug = String(body.slug ?? "").trim();
+  if (slug && isLockedWorkshopSlug(slug)) {
+    return NextResponse.json({ error: "locked_edition" }, { status: 403 });
+  }
   if (!slug) {
     slug = await uniqueSlug(body.title, async (s) => {
       const found = await prisma.workshopEdition.findUnique({ where: { slug: s } });

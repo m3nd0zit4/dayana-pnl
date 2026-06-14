@@ -2,11 +2,25 @@ import WorkshopsPageClient from "@/app/components/admin/crm/WorkshopsPageClient"
 import type { WorkshopRow } from "@/app/components/admin/crm/WorkshopFormModal";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { prisma } from "@/lib/db";
+import { PROXIMO_WORKSHOP_SLUG } from "@/lib/workshops";
 import { WorkshopEditionStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
 const PREVIEW_WORKSHOPS: WorkshopRow[] = [
+  {
+    id: "pw-proximo",
+    slug: PROXIMO_WORKSHOP_SLUG,
+    title: "Próximo taller",
+    editionLabel: null,
+    cardSummary: null,
+    status: WorkshopEditionStatus.DRAFT,
+    dateLabel: null,
+    scheduleLabel: null,
+    capacity: null,
+    whatsappTemplate: null,
+    startsAt: null,
+  },
   {
     id: "pw1",
     slug: "saca-tu-mejor-version",
@@ -48,16 +62,34 @@ const toRow = (e: {
   startsAt: e.startsAt?.toISOString() ?? null,
 });
 
+const sortEditions = (rows: WorkshopRow[]): WorkshopRow[] =>
+  [...rows].sort((a, b) => {
+    if (a.slug === PROXIMO_WORKSHOP_SLUG) return -1;
+    if (b.slug === PROXIMO_WORKSHOP_SLUG) return 1;
+    return 0;
+  });
+
 const WorkshopsAdminPage = async () => {
   const preview = isCrmUiPreview();
   let editions = PREVIEW_WORKSHOPS;
 
   if (!preview) {
     try {
+      await prisma.workshopEdition.upsert({
+        where: { slug: PROXIMO_WORKSHOP_SLUG },
+        create: {
+          slug: PROXIMO_WORKSHOP_SLUG,
+          title: "Próximo taller",
+          status: WorkshopEditionStatus.DRAFT,
+          productId: "workshop-virtual",
+        },
+        update: {},
+      });
+
       const rows = await prisma.workshopEdition.findMany({
         orderBy: { createdAt: "desc" },
       });
-      editions = rows.map(toRow);
+      editions = sortEditions(rows.map(toRow));
     } catch {
       editions = [];
     }

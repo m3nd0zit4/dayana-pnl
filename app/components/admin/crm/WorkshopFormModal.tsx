@@ -4,6 +4,7 @@ import { WorkshopEditionStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
+import { isLockedWorkshopSlug } from "@/lib/workshops";
 
 export type WorkshopRow = {
   id: string;
@@ -51,6 +52,10 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
 
   useEffect(() => {
     if (!open) return;
+    if (edition?.slug && isLockedWorkshopSlug(edition.slug)) {
+      onClose();
+      return;
+    }
     if (edition) {
       setSlug(edition.slug);
       setTitle(edition.title);

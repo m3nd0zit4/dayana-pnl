@@ -37,7 +37,7 @@ type Props = {
   placeholder?: string;
 };
 
-const PANEL_Z = 70;
+const PANEL_Z = 110;
 const PANEL_GAP = 6;
 
 const CrmDateTimePicker = ({

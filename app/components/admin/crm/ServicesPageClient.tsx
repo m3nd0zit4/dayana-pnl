@@ -162,11 +162,11 @@ const ServicesPageClient = ({
           {!preview && (
             <button
               type="button"
-              className="crm-btn-primary"
+              className="crm-btn-primary crm-btn-compact"
               onClick={() => setModalOpen(true)}
             >
               <Plus className="size-4" />
-              Nuevo servicio
+              <span className="hidden sm:inline">Nuevo servicio</span>
             </button>
           )}
         </div>
