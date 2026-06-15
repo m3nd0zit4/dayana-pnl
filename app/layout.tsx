@@ -5,10 +5,54 @@ import { CookieConsentProvider } from "./context/CookieConsentContext";
 import ConsentBasedVercelInsights from "./components/legal/ConsentBasedVercelInsights";
 import CookieConsentBanner from "./components/legal/CookieConsentBanner";
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+  "https://dayanabeltran.com";
+
+const siteTitle = "Dayana Beltrán PNL — Reprogramadora Neuronal";
+const siteDescription =
+  "Dayana Beltrán Coach en PNL, especialisada en Neurociencia y Neuroplasticidad. Sesiones Privadas 1:1, cursos y talleres en vivo para reprogramar creencias limitantes, patrones y emociones negativas.";
+
 export const metadata: Metadata = {
-  title: "Dayana Beltrán PNL — Reprogramadora Neuronal",
-  description:
-    "Dayana Beltrán Coach en PNL, especialisada en Neurociencia y Neuroplasticidad. Sesiones Privadas 1:1, cursos y talleres en vivo para reprogramar creencias limitantes, patrones y emociones negativas.",
+  metadataBase: new URL(siteUrl),
+  title: siteTitle,
+  description: siteDescription,
+  icons: {
+    icon: [
+      { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/site.webmanifest",
+  appleWebApp: {
+    title: "Dayana B",
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    url: siteUrl,
+    siteName: "Dayana Beltrán PNL",
+    title: siteTitle,
+    description: siteDescription,
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1083,
+        height: 568,
+        alt: "Dayana Beltrán PNL — Cambiamos Realidades",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({

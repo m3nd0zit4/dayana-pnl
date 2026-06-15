@@ -34,7 +34,13 @@ const BroadcastNotifyModal = ({
       title: "Enviar aviso por correo",
       message: `Se enviará el aviso del taller a ${audienceLabel}. Si la lista es grande (cientos o miles de contactos), el envío se procesará en segundo plano y puede tardar varios minutos. ¿Continuar?`,
       onConfirm: async () => {
+        const editionId = workshopEditionId;
+        const title = workshopTitle;
+        const audienceValue = audience;
+
         setLoading(true);
+        onClose();
+
         const loadingToastId = toast({
           title: "En proceso",
           message: "Preparando y encolando la campaña…",
@@ -45,13 +51,11 @@ const BroadcastNotifyModal = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: workshopTitle
-                ? `Taller: ${workshopTitle}`
-                : "Campaña CRM",
+              name: title ? `Taller: ${title}` : "Campaña CRM",
               templateKey: "workshop_open",
               channels: ["EMAIL"],
-              audience,
-              workshopEditionId,
+              audience: audienceValue,
+              workshopEditionId: editionId,
               runNow: true,
             }),
           });
@@ -108,7 +112,6 @@ const BroadcastNotifyModal = ({
               variant: "success",
             });
           }
-          onClose();
         } finally {
           dismissToast(loadingToastId);
           setLoading(false);
