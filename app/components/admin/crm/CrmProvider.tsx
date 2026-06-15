@@ -217,11 +217,9 @@ const CrmProvider = ({
           message={confirmState.message}
           onClose={() => setConfirmState(null)}
           onConfirm={async () => {
-            try {
-              await confirmState.onConfirm();
-            } finally {
-              setConfirmState(null);
-            }
+            const handler = confirmState.onConfirm;
+            setConfirmState(null);
+            await handler();
           }}
         />
       )}
