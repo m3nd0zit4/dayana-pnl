@@ -1,7 +1,7 @@
 "use client";
 
-import { FileText, ImageIcon, Loader2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
 import { useCrm } from "../CrmProvider";
 
 type Props = {
@@ -22,35 +22,12 @@ const NotebookUploadViewer = ({
   onUploaded,
 }: Props) => {
   const { toast } = useCrm();
-  const [url, setUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!mime) {
-      setUrl(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    void fetch(
-      `/api/admin/contacts/${contactId}/notebook/pages/${pageId}/attachment`
-    )
-      .then((r) => r.json())
-      .then((d: { url?: string }) => {
-        if (!cancelled) setUrl(d.url ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setUrl(null);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [contactId, pageId, mime]);
+  const attachmentSrc = mime
+    ? `/api/admin/contacts/${contactId}/notebook/pages/${pageId}/attachment`
+    : null;
 
   const uploadFile = async (file: File) => {
     setUploading(true);
@@ -119,13 +96,7 @@ const NotebookUploadViewer = ({
     );
   }
 
-  if (loading) {
-    return (
-      <p className="p-6 text-sm text-[var(--crm-muted)]">Cargando adjunto…</p>
-    );
-  }
-
-  if (!url) {
+  if (!attachmentSrc) {
     return (
       <p className="p-6 text-sm text-[var(--crm-muted)]">
         No se pudo cargar el adjunto.
@@ -136,7 +107,7 @@ const NotebookUploadViewer = ({
   if (mime === "application/pdf") {
     return (
       <iframe
-        src={url}
+        src={attachmentSrc}
         title={name ?? "PDF"}
         className="crm-notebook-upload-frame"
         loading="lazy"
@@ -147,7 +118,7 @@ const NotebookUploadViewer = ({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={url}
+      src={attachmentSrc}
       alt={name ?? "Imagen"}
       className="crm-notebook-upload-image"
       loading="lazy"

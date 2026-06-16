@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { isPlanId } from "@/lib/plans";
 import { isActivePlanId } from "@/lib/plans-from-db";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
-import { rateLimit } from "@/lib/api/rate-limit";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,9 +16,8 @@ type Body = {
 };
 
 export async function POST(req: NextRequest) {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = rateLimit(`checkout:${ip}`, 60, 60_000);
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`checkout:${ip}`, 60, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }

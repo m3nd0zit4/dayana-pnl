@@ -7,6 +7,11 @@ import {
 } from "../../../../lib/mercadopago/amount";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
 import {
+  assertEnrollmentPayable,
+  enrollmentPaymentErrorStatus,
+  EnrollmentPaymentError,
+} from "@/lib/crm/enrollment-payment";
+import {
   clientIp,
   rateLimitDistributed,
 } from "@/lib/api/rate-limit-distributed";
@@ -51,15 +56,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
-  let enrollmentId = body.enrollmentId;
+  let enrollmentId = body.enrollmentId?.trim();
   try {
-    if (!enrollmentId) {
+    if (enrollmentId) {
+      await assertEnrollmentPayable(enrollmentId, planId);
+    } else {
       const enrollment = await createPendingPaymentEnrollment({
         productId: planId,
       });
       enrollmentId = enrollment.id;
     }
   } catch (e) {
+    if (e instanceof EnrollmentPaymentError) {
+      return NextResponse.json(
+        { error: e.code, message: e.message },
+        { status: enrollmentPaymentErrorStatus(e.code) }
+      );
+    }
     console.error("[mercadopago] enrollment create failed", e);
     return NextResponse.json({ error: "crm_unavailable" }, { status: 503 });
   }

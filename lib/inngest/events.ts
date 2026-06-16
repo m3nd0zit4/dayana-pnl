@@ -1,10 +1,14 @@
+import { isInngestConfigured } from "./config";
+
+export { isInngestConfigured, assertInngestKeysPaired } from "./config";
+
 const shouldEmitInngest = (): boolean => {
   if (process.env.NODE_ENV !== "production") return true;
-  return Boolean(process.env.INNGEST_EVENT_KEY?.trim());
+  return isInngestConfigured();
 };
 
 export const emitPaymentApproved = async (enrollmentId: string) => {
-  if (!shouldEmitInngest() && process.env.NODE_ENV === "production") {
+  if (!shouldEmitInngest()) {
     return;
   }
   try {
@@ -19,6 +23,7 @@ export const emitPaymentApproved = async (enrollmentId: string) => {
 };
 
 export const emitLeadStale = async (enrollmentId: string) => {
+  if (!shouldEmitInngest()) return;
   try {
     const { inngest } = await import("./client");
     await inngest.send({
@@ -41,12 +46,4 @@ export const emitCampaignRun = async (campaignId: string) => {
   } catch (e) {
     console.warn("[inngest] notification/campaign.run emit failed", e);
   }
-};
-
-/** Envío directo sin Inngest (p. ej. pago sin claves aún). */
-export const runPaymentConfirmationNow = async (enrollmentId: string) => {
-  const { sendPaymentConfirmation } = await import(
-    "../notifications/payment-confirmation"
-  );
-  return sendPaymentConfirmation(enrollmentId);
 };

@@ -7,7 +7,10 @@ import {
   getEnrollmentById,
 } from "@/lib/crm/enrollments";
 import { upsertContactByPhone } from "@/lib/crm/contacts";
-import { rateLimit } from "@/lib/api/rate-limit";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,9 +40,8 @@ const sourceMap: Record<string, ContactSource> = {
 };
 
 export async function POST(req: NextRequest) {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = rateLimit(`leads:${ip}`, 30, 60_000);
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`leads:${ip}`, 30, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }

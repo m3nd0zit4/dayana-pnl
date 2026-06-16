@@ -8,6 +8,24 @@ import { usePathname } from "next/navigation";
 
 gsap.registerPlugin(ScrollTrigger);
 
+/** Altura visible real del viewport (evita huecos con 100dvh en prod / iOS). */
+function getViewportHeight() {
+  return Math.round(window.visualViewport?.height ?? window.innerHeight);
+}
+
+function syncStairsOverlayHeight(el: HTMLElement | null) {
+  if (!el) return;
+  const h = getViewportHeight();
+  el.style.height = `${h}px`;
+  el.style.minHeight = `${h}px`;
+}
+
+function clearStairsOverlayHeight(el: HTMLElement | null) {
+  if (!el) return;
+  el.style.removeProperty("height");
+  el.style.removeProperty("min-height");
+}
+
 const Stairs = ({ children }: { children: ReactNode }) => {
   const currentPath = usePathname();
 
@@ -35,6 +53,19 @@ const Stairs = ({ children }: { children: ReactNode }) => {
       );
       if (stairs.length === 0) return;
 
+      window.scrollTo(0, 0);
+      syncStairsOverlayHeight(stairParentRef.current);
+
+      const onViewportChange = () => {
+        if (
+          stairParentRef.current &&
+          stairParentRef.current.style.display !== "none"
+        ) {
+          syncStairsOverlayHeight(stairParentRef.current);
+        }
+      };
+      window.visualViewport?.addEventListener("resize", onViewportChange);
+
       const failSafeTimer = window.setTimeout(() => {
         if (stairParentRef.current) {
           gsap.set(stairParentRef.current, { display: "none", autoAlpha: 1 });
@@ -43,6 +74,8 @@ const Stairs = ({ children }: { children: ReactNode }) => {
           gsap.set(pageRef.current, { opacity: 1 });
         }
         gsap.set(stairs, { y: "0%", clearProps: "height" });
+        clearStairsOverlayHeight(stairParentRef.current);
+        window.visualViewport?.removeEventListener("resize", onViewportChange);
       }, 4000);
 
       const finish = () => {
@@ -53,6 +86,8 @@ const Stairs = ({ children }: { children: ReactNode }) => {
           gsap.set(pageRef.current, { opacity: 1 });
         }
         gsap.set(stairs, { y: "0%", clearProps: "height" });
+        clearStairsOverlayHeight(stairParentRef.current);
+        window.visualViewport?.removeEventListener("resize", onViewportChange);
       };
 
       const tl = gsap.timeline({
@@ -68,6 +103,7 @@ const Stairs = ({ children }: { children: ReactNode }) => {
       });
 
       tl.set(stairParentRef.current, { display: "flex", autoAlpha: 1 });
+      tl.add(() => syncStairsOverlayHeight(stairParentRef.current));
       tl.set(pageRef.current, { opacity: 0 });
 
       tl.from(stairs, {
@@ -100,6 +136,12 @@ const Stairs = ({ children }: { children: ReactNode }) => {
         duration: 0.35,
         ease: "power2.out",
       });
+
+      return () => {
+        window.clearTimeout(failSafeTimer);
+        window.visualViewport?.removeEventListener("resize", onViewportChange);
+        clearStairsOverlayHeight(stairParentRef.current);
+      };
     },
     { dependencies: [currentPath], scope: rootRef }
   );
@@ -114,10 +156,10 @@ const Stairs = ({ children }: { children: ReactNode }) => {
       </div>
       <div
         ref={stairParentRef}
-        className="fixed inset-0 z-[100] flex h-[100dvh] w-full pointer-events-none bg-transparent hidden"
+        className="stairs-overlay fixed inset-0 z-[100] flex w-full pointer-events-none bg-transparent hidden overflow-hidden"
         aria-hidden="true"
       >
-        <div className="flex h-full w-full">
+        <div className="flex h-full min-h-full w-full">
           <div className="stair h-full w-1/5 bg-blush"></div>
           <div className="stair h-full w-1/5 bg-linen"></div>
           <div className="stair h-full w-1/5 bg-sand"></div>

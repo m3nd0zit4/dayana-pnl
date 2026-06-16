@@ -6,6 +6,15 @@ import {
 } from "../../../../lib/paypal/server";
 import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
 import {
+  assertEnrollmentPayable,
+  assertPayPalCaptureAmount,
+  enrollmentPaymentErrorStatus,
+  EnrollmentPaymentError,
+} from "@/lib/crm/enrollment-payment";
+import { getPlanFromDb } from "@/lib/plans-from-db";
+import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
+import { prisma } from "@/lib/db";
+import {
   clientIp,
   rateLimitDistributed,
 } from "@/lib/api/rate-limit-distributed";
@@ -93,7 +102,39 @@ export async function POST(req: NextRequest) {
       enrollmentId = await resolveEnrollmentFromReference(enrollmentRef);
     }
 
-    if (enrollmentId && captureId && amountMinor != null) {
+    if (enrollmentId && captureId && amountMinor != null && currency) {
+      const row = await prisma.enrollment.findUnique({
+        where: { id: enrollmentId },
+        select: { productId: true },
+      });
+      if (!row) {
+        return NextResponse.json(
+          { error: "NOT_FOUND", message: "Enrollment not found" },
+          { status: 404 }
+        );
+      }
+
+      try {
+        await assertEnrollmentPayable(enrollmentId, row.productId);
+        const plan = await getPlanFromDb(row.productId);
+        if (!plan) {
+          return NextResponse.json(
+            { error: "invalid_plan", message: "Plan no disponible" },
+            { status: 400 }
+          );
+        }
+        const expectedGross = grossUpUsd(plan.amountUsd, paypalFee()).gross;
+        assertPayPalCaptureAmount(amountMinor, currency, expectedGross);
+      } catch (e) {
+        if (e instanceof EnrollmentPaymentError) {
+          return NextResponse.json(
+            { error: e.code, message: e.message },
+            { status: enrollmentPaymentErrorStatus(e.code) }
+          );
+        }
+        throw e;
+      }
+
       await recordPayment({
         enrollmentId,
         provider: PaymentProvider.PAYPAL,

@@ -92,9 +92,9 @@ Abre Prisma Studio en el navegador.
 
 ## 7. Producción (Vercel u otro)
 
-1. Añade las mismas env vars en el hosting.
-2. En el build/deploy ejecuta `prisma migrate deploy` (ya va en `npm run build` vía `prisma generate`).
-3. Ejecuta el seed **una vez** en producción (CLI con `DATABASE_URL` de prod) o crea el OWNER manualmente.
+1. Añade las env vars en el hosting (ver [`docs/proximos-pasos.md`](proximos-pasos.md) y [`docs/production-deploy.md`](production-deploy.md)).
+2. El build ejecuta `prisma migrate deploy` además de `prisma generate` (requiere `DIRECT_URL` en el entorno de **Build** de Vercel).
+3. Ejecuta el seed **una vez** en producción (`bun run db:seed`) o crea el OWNER manualmente.
 4. **Nunca** uses `CRM_UI_PREVIEW=true` en producción.
 
 ## 8. Checklist rápido

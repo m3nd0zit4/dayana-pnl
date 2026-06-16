@@ -3,6 +3,10 @@ import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +14,12 @@ export const dynamic = "force-dynamic";
 type Body = { planId?: unknown; provider?: "paypal" | "mercadopago" };
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`quote:${ip}`, 60, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;

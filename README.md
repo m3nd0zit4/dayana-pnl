@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dayana Beltrán PNL
 
-## Getting Started
+Sitio público + CRM staff (`/admin`) — Next.js 16, Neon PostgreSQL, Prisma, NextAuth, Vercel.
 
-First, run the development server:
+## Desarrollo local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+cp .env.example .env
+# Completa DATABASE_URL, DIRECT_URL, AUTH_SECRET, etc.
+
+bun install
+bun run db:migrate:deploy
+bun run db:seed
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Panel: [http://localhost:3000/admin/sign-in](http://localhost:3000/admin/sign-in)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sincronizar env desde Vercel: `bun run env:pull`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Producción
 
-## Learn More
+Merge a `main` → deploy automático en Vercel.
 
-To learn more about Next.js, take a look at the following resources:
+**Antes del merge**, completa:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [`docs/proximos-pasos.md`](docs/proximos-pasos.md) — checklist
+- [`docs/production-deploy.md`](docs/production-deploy.md) — dashboards (PayPal, MP, Inngest, Upstash)
+- [`docs/security-crm.md`](docs/security-crm.md) — seguridad CRM
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Comando | Uso |
+|---------|-----|
+| `bun dev` | Servidor desarrollo |
+| `npm run build` | generate + migrate deploy + build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript |
+| `bun run db:seed` | Productos + OWNER inicial |
+| `bun run email:sample` | Probar correo Resend |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentación
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [`docs/db-setup.md`](docs/db-setup.md) — Neon + Prisma
+- [`docs/inngest-setup.md`](docs/inngest-setup.md) — automatizaciones
+- [`docs/notifications-setup.md`](docs/notifications-setup.md) — correo/SMS

@@ -64,18 +64,8 @@ export const recordPayment = async (
   if (input.status === PaymentStatus.APPROVED) {
     await markEnrollmentPaid(input.enrollmentId);
 
-    const { emitPaymentApproved, runPaymentConfirmationNow } = await import(
-      "../inngest/events"
-    );
+    const { emitPaymentApproved } = await import("../inngest/events");
     await emitPaymentApproved(input.enrollmentId);
-
-    const { isNotificationsEnabled } = await import("../notifications/config");
-    const inngestConfigured = Boolean(process.env.INNGEST_EVENT_KEY?.trim());
-    if (isNotificationsEnabled() && !inngestConfigured) {
-      void runPaymentConfirmationNow(input.enrollmentId).catch((e) =>
-        console.warn("[notifications] payment confirmation failed", e)
-      );
-    }
   }
 
   return payment;

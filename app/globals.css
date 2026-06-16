@@ -67,6 +67,18 @@ body {
   }
 }
 
+/* Cubrir viewport completo en 1.er paint (no mezclar inset-0 con height: 100dvh). */
+.stairs-overlay {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+@supports (height: 100lvh) {
+  .stairs-overlay {
+    min-height: 100lvh;
+  }
+}
+
 .moveX {
   animation-name: moveAnimation;
   animation-duration: 30s;

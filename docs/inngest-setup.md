@@ -1,26 +1,33 @@
 # Inngest (CRM Dayana)
 
-Automatizaciones: post-pago, recordatorios de sesión, leads sin seguimiento.
+Automatizaciones: post-pago, recordatorios de sesión, campañas masivas.
 
-## Variables
+## Variables (ambas obligatorias en Production)
 
-En `.env` (ver `.env.example`):
+```env
+INNGEST_EVENT_KEY=
+INNGEST_SIGNING_KEY=
+```
 
-- `INNGEST_EVENT_KEY` — clave de eventos del dashboard Inngest
-- `INNGEST_SIGNING_KEY` — firma del endpoint `/api/inngest`
-
-Sin estas variables el endpoint sigue registrado pero los eventos desde `lib/inngest/events.ts` no se entregan en producción.
+Sin **ambas** claves, la app falla al arrancar en Vercel Production. No configures solo una.
 
 ## Desarrollo local
 
-1. Crea cuenta en [Inngest](https://www.inngest.com) y copia las claves al `.env`.
-2. Arranca la app: `bun dev`
-3. En otra terminal: `npx inngest-cli@latest dev -u http://localhost:3000/api/inngest`
+1. Cuenta en [Inngest](https://www.inngest.com) → copia claves al `.env`.
+2. `bun dev`
+3. `npx inngest-cli@latest dev -u http://localhost:3000/api/inngest`
 
 ## Producción
 
-Configura las mismas variables en Vercel y registra la URL `https://tu-dominio.com/api/inngest` en el dashboard Inngest.
+1. Variables en Vercel Production.
+2. Dashboard Inngest → sync `https://dayanabeltran.com/api/inngest`
 
-## Funciones
+## Flujos
 
-Definidas en `lib/inngest/functions.ts` (lead stale, recordatorios, etc.).
+| Evento | Función |
+|--------|---------|
+| `payment/approved` | Correo confirmación post-pago |
+| `notification/campaign.run` | Broadcast >10 contactos |
+| Cron diario | Recordatorios de sesión |
+
+Definidas en `lib/inngest/functions.ts`.
