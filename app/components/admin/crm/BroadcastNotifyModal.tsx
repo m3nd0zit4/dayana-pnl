@@ -74,7 +74,7 @@ const BroadcastNotifyModal = ({
                 title: "Lista demasiado grande",
                 message:
                   data.hint ??
-                  "Para enviar a muchos contactos necesitas Inngest (INNGEST_EVENT_KEY).",
+                  "Para enviar a muchos contactos necesitas Inngest (INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY).",
                 variant: "error",
                 duration: 10000,
               });

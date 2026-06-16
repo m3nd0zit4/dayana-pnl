@@ -14,24 +14,38 @@ Guía operativa del panel staff (`/admin`).
 
 ### Variables obligatorias en producción
 
+Validadas al arrancar (`lib/env.server.ts` + `instrumentation.ts`):
+
 ```env
-AUTH_SECRET=          # openssl rand -base64 32
+AUTH_SECRET=                    # min 32 chars
 DATABASE_URL=
 DIRECT_URL=
+NEXT_PUBLIC_SITE_URL=           # HTTPS, no localhost
 MERCADOPAGO_WEBHOOK_SECRET=
 PAYPAL_WEBHOOK_ID=
+PAYPAL_MODE=live
+INNGEST_EVENT_KEY=              # ambas claves Inngest
+INNGEST_SIGNING_KEY=
+UPSTASH_REDIS_REST_URL=          # rate limit distribuido
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
-**Nunca** definir `CRM_UI_PREVIEW=true` en producción.
+**Nunca** definir `CRM_UI_PREVIEW=true` en producción. En local, preview solo funciona **sin** `DATABASE_URL`.
 
 ### Rate limit de login
 
 - 5 intentos fallidos por email / 15 min
 - 20 intentos por IP / hora
 
+## Pagos — integridad
+
+- `assertEnrollmentPayable()` valida inscripción antes de cobrar (plan, estado, sin pago previo).
+- PayPal capture valida monto vs precio del plan.
+- Webhooks MP/PayPal: firma obligatoria fuera de desarrollo local; MP rechaza firmas >5 min.
+
 ## Sesiones activas
 
-Las sesiones de staff se registran en base de datos (30 días, revocables al cerrar sesión). No hay panel en el CRM para gestionarlas desde Equipo.
+Las sesiones de staff se registran en base de datos (30 días, revocables al cerrar sesión).
 
 Al desactivar un usuario (`isActive = false`), pierde acceso en el siguiente request.
 
@@ -40,49 +54,28 @@ Al desactivar un usuario (`isActive = false`), pierde acceso en el siguiente req
 - Protegidas por `proxy.ts` + `resolveAdminStaff()` en cada handler
 - Sin sesión: **401** `{ error: "UNAUTHORIZED" }`
 - Mutaciones: verificación de `Origin`/`Referer` (CSRF básico)
-- RBAC:
-  - **OWNER**: equipo, productos, broadcast, test-email
-  - **OPERATOR**: escritura CRM + pagos manuales + cuaderno clínico
-  - **DEVELOPER**: escritura sin cuaderno clínico ni pagos manuales
-  - **READONLY**: solo lectura
+- RBAC: OWNER / OPERATOR / DEVELOPER / READONLY
 
 ## Webhooks de pago
 
-En producción los webhooks **se rechazan** si faltan secretos. PayPal usa la API `verify-webhook-signature`.
+En producción y preview los webhooks **se rechazan** si faltan secretos (solo `NODE_ENV=development` local omite verificación).
 
-## Rate limit distribuido (opcional)
+## Rate limit distribuido
 
-Para límites consistentes en Vercel serverless:
+**Obligatorio en Production** (`UPSTASH_*`). Rutas públicas: leads, checkout, quote, pagos.
 
-```env
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-```
+## Headers HTTP
 
-Sin Upstash, el fallback es rate limit en memoria (solo dev / instancia única).
+Security headers en todas las rutas (`next.config.ts`). CSP en modo report-only.
+
+## Cuaderno clínico
+
+Subidas y miniaturas en Blob con **`access: private`**. Descarga vía API autenticada que hace proxy con `get()` (no URLs públicas directas).
+
+**Producción:** Vercel Blob conectado (OIDC). Dibujo JSON en Postgres sin Blob.
 
 ## Runbook — cuenta comprometida
 
-1. En `/admin/team`, desactivar el usuario afectado (o pedir a OWNER).
-2. OWNER: **Cerrar otras sesiones** en Equipo (o revocar todas vía API).
-3. Rotar `AUTH_SECRET` fuerza re-login global (último recurso).
-4. Revisar `/admin/audit` (LOGIN_FAILED, SESSION_REVOKED, STAFF_CREATED).
-5. Cambiar contraseña del staff (vía seed/DB hasta existir UI de cambio).
-
-## Cuaderno clínico (ContactNotebookPage)
-
-| Dato | Almacenamiento |
-|------|----------------|
-| Trazos Excalidraw | `canvasData` (JSON) en Postgres |
-| Miniatura PNG | Vercel Blob `contacts/{contactId}/notebook/{pageId}/preview-*.png` |
-| Hojas UPLOAD (PDF/imagen) | Blob `contacts/{contactId}/notebook/{pageId}/upload-*` |
-
-**Acceso:** lectura con cualquier rol staff autenticado; escritura solo `OWNER` y `OPERATOR` (`canEditClinicalNotes`). `READONLY` ve el lienzo en modo lectura.
-
-**Auditoría:** CREATE / UPDATE / DELETE de hojas en `fireAuditLog` (entidad `ContactNotebookPage`).
-
-**Borrado:** al eliminar una hoja se borran blobs de `previewUrl` y `attachmentUrl` asociados.
-
-**Retención:** sin caducidad automática; borrado manual por staff con permiso de escritura.
-
-**Producción:** requiere Vercel Blob conectado al proyecto (OIDC: `BLOB_STORE_ID` + `VERCEL_OIDC_TOKEN`) o `BLOB_READ_WRITE_TOKEN` fuera de Vercel; sin Blob el dibujo (JSON) sigue guardándose.
+1. Desactivar usuario en `/admin/team`.
+2. Revisar `/admin/audit`.
+3. Rotar `AUTH_SECRET` como último recurso.

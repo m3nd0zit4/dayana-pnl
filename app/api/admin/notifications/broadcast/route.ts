@@ -13,6 +13,7 @@ import {
   runBroadcastCampaign,
 } from "@/lib/notifications/campaigns";
 import { emitCampaignRun } from "@/lib/inngest/events";
+import { isInngestConfigured } from "@/lib/inngest/config";
 import { broadcastSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     if (runNow) {
       const started = Date.now();
-      const inngestConfigured = Boolean(process.env.INNGEST_EVENT_KEY?.trim());
+      const inngestConfigured = isInngestConfigured();
 
       if (inngestConfigured) {
         await emitCampaignRun(campaign.id);
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error: "inngest_required",
-            hint: `Más de ${BROADCAST_SYNC_MAX_CONTACTS} contactos requiere Inngest (INNGEST_EVENT_KEY).`,
+            hint: `Más de ${BROADCAST_SYNC_MAX_CONTACTS} contactos requiere Inngest (INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY).`,
           },
           { status: 422 }
         );
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       campaign: updated,
       contactCount: contacts.length,
-      queued: runNow && Boolean(process.env.INNGEST_EVENT_KEY?.trim()),
+      queued: runNow && isInngestConfigured(),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "broadcast_failed";
