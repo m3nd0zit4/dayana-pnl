@@ -1,31 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import CheckoutCountrySelect from "../payments/CheckoutCountrySelect";
 
 type Props = {
   enrollmentId?: string;
   planId?: string;
-  defaultCountry?: string;
+  mode: "legacy" | "email-only";
 };
-
-const COUNTRY_OPTIONS = [
-  { code: "CO", label: "Colombia (+57)" },
-  { code: "MX", label: "México (+52)" },
-  { code: "US", label: "Estados Unidos (+1)" },
-  { code: "ES", label: "España (+34)" },
-  { code: "AR", label: "Argentina (+54)" },
-  { code: "CL", label: "Chile (+56)" },
-  { code: "PE", label: "Perú (+51)" },
-  { code: "EC", label: "Ecuador (+593)" },
-  { code: "VE", label: "Venezuela (+58)" },
-  { code: "PA", label: "Panamá (+507)" },
-];
 
 const PostPaymentLeadForm = ({
   enrollmentId,
   planId,
+  mode,
   defaultCountry = "CO",
-}: Props) => {
+}: Props & { defaultCountry?: string }) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -43,23 +32,36 @@ const PostPaymentLeadForm = ({
       setError("Debes aceptar el tratamiento de datos personales.");
       return;
     }
+    if (mode === "email-only" && !email.trim()) {
+      setError("Ingresa un correo válido.");
+      return;
+    }
     setStatus("loading");
     setError(null);
     try {
+      const body =
+        mode === "email-only"
+          ? {
+              email: email.trim(),
+              consentData: true,
+              enrollmentId,
+            }
+          : {
+              firstName,
+              lastName: lastName || undefined,
+              phone,
+              phoneCountry,
+              email: email || undefined,
+              consentData: true,
+              source: "web",
+              enrollmentId,
+              planId,
+            };
+
       const res = await fetch("/api/leads", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          firstName,
-          lastName: lastName || undefined,
-          phone,
-          phoneCountry,
-          email: email || undefined,
-          consentData: true,
-          source: "web",
-          enrollmentId,
-          planId,
-        }),
+        body: JSON.stringify(body),
       });
       const data = (await res.json()) as { error?: string; message?: string };
       if (!res.ok) {
@@ -78,9 +80,70 @@ const PostPaymentLeadForm = ({
     return (
       <div className="rounded-2xl border border-linen/20 bg-linen/[0.06] p-6 mb-10">
         <p className="font-[font1] text-white/90 text-base leading-relaxed">
-          Datos guardados. Ya puedes agendar por WhatsApp con el botón de abajo.
+          {mode === "email-only"
+            ? "Correo guardado. Ya puedes agendar por WhatsApp con el botón de abajo."
+            : "Datos guardados. Ya puedes agendar por WhatsApp con el botón de abajo."}
         </p>
       </div>
+    );
+  }
+
+  if (mode === "email-only") {
+    return (
+      <form
+        onSubmit={submit}
+        className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 mb-10 space-y-4"
+      >
+        <div>
+          <h2 className="font-[font2] uppercase text-sm tracking-[0.25em] text-linen/80 mb-1">
+            Correo de contacto (opcional)
+          </h2>
+          <p className="font-[font1] text-white/60 text-sm">
+            Tu pago ya quedó vinculado. Si quieres recibir confirmaciones por
+            correo, déjanos tu email.
+          </p>
+        </div>
+
+        <label className="block">
+          <span className="font-[font1] text-xs text-white/50 mb-1 block">
+            Correo
+          </span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
+          />
+        </label>
+
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            className="mt-1"
+          />
+          <span className="font-[font1] text-xs text-white/60 leading-relaxed">
+            Acepto el tratamiento de mis datos según el{" "}
+            <a href="/aviso-privacidad" className="text-linen underline">
+              aviso de privacidad
+            </a>
+            .
+          </span>
+        </label>
+
+        {error && (
+          <p className="font-[font1] text-sm text-red-300/90">{error}</p>
+        )}
+
+        <button
+          type="submit"
+          disabled={status === "loading"}
+          className="w-full rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-white transition-colors disabled:opacity-50"
+        >
+          {status === "loading" ? "Guardando…" : "Guardar correo"}
+        </button>
+      </form>
     );
   }
 
@@ -91,10 +154,11 @@ const PostPaymentLeadForm = ({
     >
       <div>
         <h2 className="font-[font2] uppercase text-sm tracking-[0.25em] text-linen/80 mb-1">
-          Tus datos de contacto
+          Vincular tu pago
         </h2>
         <p className="font-[font1] text-white/60 text-sm">
-          Para vincular tu pago y coordinar por WhatsApp (clientes de cualquier país).
+          Este pago aún no tiene contacto identificado. Indica tu teléfono para
+          vincularlo en el CRM.
         </p>
       </div>
 
@@ -122,22 +186,11 @@ const PostPaymentLeadForm = ({
         </label>
       </div>
 
-      <label className="block">
-        <span className="font-[font1] text-xs text-white/50 mb-1 block">
-          País del número
-        </span>
-        <select
-          value={phoneCountry}
-          onChange={(e) => setPhoneCountry(e.target.value)}
-          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
-        >
-          {COUNTRY_OPTIONS.map((c) => (
-            <option key={c.code} value={c.code}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <CheckoutCountrySelect
+        value={phoneCountry}
+        onChange={setPhoneCountry}
+        disabled={status === "loading"}
+      />
 
       <label className="block">
         <span className="font-[font1] text-xs text-white/50 mb-1 block">
@@ -190,7 +243,7 @@ const PostPaymentLeadForm = ({
         disabled={status === "loading"}
         className="w-full rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-white transition-colors disabled:opacity-50"
       >
-        {status === "loading" ? "Guardando…" : "Guardar mis datos"}
+        {status === "loading" ? "Guardando…" : "Vincular mi pago"}
       </button>
     </form>
   );

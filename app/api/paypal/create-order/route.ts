@@ -6,13 +6,12 @@ import {
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
-import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
 import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
 import {
-  assertEnrollmentPayable,
-  enrollmentPaymentErrorStatus,
-  EnrollmentPaymentError,
-} from "@/lib/crm/enrollment-payment";
+  beginCheckoutEnrollment,
+  mapCheckoutBeginError,
+} from "@/lib/crm/checkout-enrollment";
+import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import {
   clientIp,
   rateLimitDistributed,
@@ -23,7 +22,23 @@ export const dynamic = "force-dynamic";
 
 const PAYPAL_CURRENCY = "USD";
 
-type Body = { planId?: unknown; enrollmentId?: unknown };
+type Body = CheckoutContactBody & {
+  planId?: unknown;
+};
+
+function parseContactBody(body: Body): CheckoutContactBody {
+  return {
+    phone: typeof body.phone === "string" ? body.phone : undefined,
+    phoneCountry:
+      typeof body.phoneCountry === "string" ? body.phoneCountry : undefined,
+    firstName: typeof body.firstName === "string" ? body.firstName : undefined,
+    lastName: typeof body.lastName === "string" ? body.lastName : undefined,
+    email: typeof body.email === "string" ? body.email : undefined,
+    consentData: body.consentData === true,
+    enrollmentId:
+      typeof body.enrollmentId === "string" ? body.enrollmentId : undefined,
+  };
+}
 
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
@@ -62,33 +77,22 @@ export async function POST(req: NextRequest) {
   const itemTotalValue = breakdown.net.toFixed(2);
   const handlingValue = breakdown.fee.toFixed(2);
 
-  let enrollmentId =
-    typeof body.enrollmentId === "string" ? body.enrollmentId.trim() : undefined;
-  const createdEnrollmentThisRequest = !enrollmentId;
+  let enrollmentId: string | undefined;
+  let createdEnrollmentThisRequest = false;
 
   try {
-    if (enrollmentId) {
-      await assertEnrollmentPayable(enrollmentId, planId);
-    } else {
-      const enrollment = await createPendingPaymentEnrollment({
-        productId: planId,
-      });
-      enrollmentId = enrollment.id;
-    }
+    const begun = await beginCheckoutEnrollment({
+      planId,
+      contact: parseContactBody(body),
+    });
+    enrollmentId = begun.enrollmentId;
+    createdEnrollmentThisRequest = begun.createdEnrollment;
   } catch (e) {
-    if (e instanceof EnrollmentPaymentError) {
-      return NextResponse.json(
-        { error: e.code, message: e.message },
-        { status: enrollmentPaymentErrorStatus(e.code) }
-      );
-    }
+    const mapped = mapCheckoutBeginError(e);
     console.error("[paypal] enrollment create failed", e);
     return NextResponse.json(
-      {
-        error: "crm_unavailable",
-        message: "No se pudo iniciar el registro del pago.",
-      },
-      { status: 503 }
+      { error: mapped.error, message: mapped.message },
+      { status: mapped.status }
     );
   }
 

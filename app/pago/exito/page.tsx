@@ -6,6 +6,8 @@ import {
   buildWhatsAppUrl,
 } from "../../../lib/contact";
 import { formatUsd, getPlan, isPlanId } from "../../../lib/plans";
+import { getEnrollmentById } from "../../../lib/crm/enrollments";
+import { isPlaceholderContactPhone } from "../../../lib/crm/checkout-placeholder";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 
@@ -174,6 +176,35 @@ const Page = async ({ searchParams }: PageProps) => {
         result.planTitle ? ` del plan ${result.planTitle}` : ""
       }. ¿Puedes ayudarme a completarlo?`;
 
+  const enrollmentId =
+    params.enrollmentId ??
+    (params.external_reference && !isPlanId(params.external_reference)
+      ? params.external_reference
+      : undefined);
+
+  let postPaymentMode: "none" | "legacy" | "email-only" = "none";
+  if (isSuccess && enrollmentId) {
+    try {
+      const enrollment = await getEnrollmentById(enrollmentId);
+      if (enrollment) {
+        if (isPlaceholderContactPhone(enrollment.contact.phoneE164)) {
+          postPaymentMode = "legacy";
+        } else if (!enrollment.contact.email) {
+          postPaymentMode = "email-only";
+        }
+      }
+    } catch {
+      postPaymentMode = "none";
+    }
+  }
+
+  const planId =
+    params.external_reference && isPlanId(params.external_reference)
+      ? params.external_reference
+      : params.plan && isPlanId(params.plan)
+        ? params.plan
+        : undefined;
+
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
       {failedEnrollmentId ? (
@@ -273,28 +304,32 @@ const Page = async ({ searchParams }: PageProps) => {
           </p>
         )}
 
-        {isSuccess && (
+        {isSuccess && postPaymentMode === "none" && (
           <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
-            Completa tus datos para vincular el pago y agendar por WhatsApp.
+            Tu pago quedó vinculado a tu contacto. Agenda tu primera sesión por
+            WhatsApp cuando quieras.
           </p>
         )}
 
-        {isSuccess && (
+        {isSuccess && postPaymentMode === "legacy" && (
+          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
+            Para vincular este pago en nuestro sistema, confirma tu teléfono a
+            continuación.
+          </p>
+        )}
+
+        {isSuccess && postPaymentMode === "email-only" && (
+          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
+            Tu pago quedó vinculado. Si quieres, puedes dejar tu correo para
+            recibir confirmaciones.
+          </p>
+        )}
+
+        {isSuccess && postPaymentMode !== "none" && (
           <PostPaymentLeadForm
-            enrollmentId={
-              params.enrollmentId ??
-              (params.external_reference &&
-              !isPlanId(params.external_reference)
-                ? params.external_reference
-                : undefined)
-            }
-            planId={
-              params.external_reference && isPlanId(params.external_reference)
-                ? params.external_reference
-                : params.plan && isPlanId(params.plan)
-                  ? params.plan
-                  : undefined
-            }
+            enrollmentId={enrollmentId}
+            planId={planId}
+            mode={postPaymentMode}
           />
         )}
 

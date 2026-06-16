@@ -1,5 +1,6 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "../db";
+import { isPlaceholderContactPhone } from "./checkout-placeholder";
 
 export class EnrollmentPaymentError extends Error {
   constructor(
@@ -31,13 +32,25 @@ export const assertEnrollmentPayable = async (
 ): Promise<PayableEnrollment> => {
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: enrollmentId },
-    select: { id: true, productId: true, status: true },
+    select: {
+      id: true,
+      productId: true,
+      status: true,
+      contact: { select: { phoneE164: true } },
+    },
   });
 
   if (!enrollment) {
     throw new EnrollmentPaymentError(
       "Enrollment not found",
       "NOT_FOUND"
+    );
+  }
+
+  if (isPlaceholderContactPhone(enrollment.contact.phoneE164)) {
+    throw new EnrollmentPaymentError(
+      "Enrollment contact is not identified",
+      "INVALID_STATUS"
     );
   }
 

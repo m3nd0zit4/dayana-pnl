@@ -16,12 +16,14 @@ export async function GET(req: NextRequest) {
   const status = req.nextUrl.searchParams.get("status") ?? undefined;
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
   const cursor = req.nextUrl.searchParams.get("cursor") ?? undefined;
+  const unlinked = req.nextUrl.searchParams.get("unlinked") === "1";
 
   const enrollments = await listEnrollmentsAdmin({
     status,
     q,
     cursor,
     limit: 100,
+    unlinked,
   });
 
   if (process.env.NODE_ENV === "development") {

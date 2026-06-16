@@ -6,7 +6,6 @@ import {
 import { prisma } from "../db";
 import {
   isPlaceholderContactPhone,
-  PLACEHOLDER_PHONE_PREFIX,
 } from "./checkout-placeholder";
 import { getProduct, productSessionsTotal } from "./products";
 import { ensureTherapyPackage } from "./therapy";
@@ -103,7 +102,7 @@ export const createEnrollment = async (input: {
 };
 
 export const createPendingPaymentEnrollment = async (input: {
-  contactId?: string;
+  contactId: string;
   productId: string;
 }): Promise<
   Prisma.EnrollmentGetPayload<{ include: { product: true; contact: true } }>
@@ -113,18 +112,14 @@ export const createPendingPaymentEnrollment = async (input: {
     throw new EnrollmentValidationError("Product not found", "PRODUCT_NOT_FOUND");
   }
 
-  let contactId = input.contactId;
-  if (!contactId) {
-    const placeholder = await prisma.contact.create({
-      data: {
-        phoneE164: `${PLACEHOLDER_PHONE_PREFIX}${Date.now()}${Math.floor(Math.random() * 1000)}`,
-        firstName: "Pendiente",
-        source: "WEB",
-        notes: "Contacto temporal hasta completar datos post-pago",
-      },
-    });
-    contactId = placeholder.id;
+  if (!input.contactId?.trim()) {
+    throw new EnrollmentValidationError(
+      "contactId is required for checkout",
+      "MISSING_CONTACT"
+    );
   }
+
+  const contactId = input.contactId.trim();
 
   const price = product.prices[0];
   const sessionsTotal = productSessionsTotal(product);

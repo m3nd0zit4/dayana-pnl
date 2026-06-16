@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isPlanId } from "@/lib/plans";
 import { isActivePlanId } from "@/lib/plans-from-db";
-import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import {
+  beginCheckoutEnrollment,
+  mapCheckoutBeginError,
+  type CheckoutContactBody,
+} from "@/lib/crm/checkout-enrollment";
 import {
   clientIp,
   rateLimitDistributed,
@@ -10,9 +14,8 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Body = {
+type Body = CheckoutContactBody & {
   planId?: string;
-  contactId?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -34,19 +37,31 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const enrollment = await createPendingPaymentEnrollment({
-      productId: body.planId,
-      contactId: body.contactId,
+    const { contactId, enrollmentId } = await beginCheckoutEnrollment({
+      planId: body.planId,
+      contact: {
+        phone: body.phone,
+        phoneCountry: body.phoneCountry,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        email: body.email,
+        consentData: body.consentData === true,
+        enrollmentId: body.enrollmentId,
+      },
     });
 
     return NextResponse.json({
-      enrollmentId: enrollment.id,
-      contactId: enrollment.contactId,
-      productId: enrollment.productId,
-      status: enrollment.status,
+      enrollmentId,
+      contactId,
+      productId: body.planId,
+      status: "PENDING_PAYMENT",
     });
   } catch (e) {
+    const mapped = mapCheckoutBeginError(e);
     console.error("[checkout/enrollment]", e);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    return NextResponse.json(
+      { error: mapped.error, message: mapped.message },
+      { status: mapped.status }
+    );
   }
 }

@@ -1,5 +1,6 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
 
 const STATUS_LABELS: Record<EnrollmentStatus, string> = {
   LEAD: "Leads",
@@ -27,6 +28,7 @@ export const getDashboardStats = async () => {
     enrollmentsByStatus,
     recentContacts,
     activeTherapyRows,
+    unlinkedPaidEnrollments,
   ] = await Promise.all([
     prisma.enrollment.count({
       where: {
@@ -83,6 +85,13 @@ export const getDashboardStats = async () => {
         therapyPackage: { select: { usedSessions: true, totalSessions: true } },
       },
     }),
+    prisma.enrollment.count({
+      where: {
+        status: EnrollmentStatus.ACTIVE,
+        contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } },
+        payments: { some: { status: PaymentStatus.APPROVED } },
+      },
+    }),
   ]);
 
   const dayMap = new Map<string, number>();
@@ -116,7 +125,13 @@ export const getDashboardStats = async () => {
   }));
 
   return {
-    stats: { leads, paymentsToday, activeTherapies, contacts },
+    stats: {
+      leads,
+      paymentsToday,
+      activeTherapies,
+      contacts,
+      unlinkedPaidEnrollments,
+    },
     paymentsByDay,
     pipeline,
     recentContacts,
@@ -135,7 +150,13 @@ export const getDashboardStats = async () => {
 export type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>;
 
 export const PREVIEW_DASHBOARD: DashboardStats = {
-  stats: { leads: 4, paymentsToday: 2, activeTherapies: 8, contacts: 42 },
+  stats: {
+    leads: 4,
+    paymentsToday: 2,
+    activeTherapies: 8,
+    contacts: 42,
+    unlinkedPaidEnrollments: 0,
+  },
   paymentsByDay: [
     { date: "18 may", amountUsd: 0 },
     { date: "19 may", amountUsd: 160 },
