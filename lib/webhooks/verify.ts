@@ -1,10 +1,10 @@
 import crypto from "crypto";
 import { getPayPalAccessToken } from "@/lib/paypal/server";
 
-const isProduction = () =>
-  process.env.NODE_ENV === "production" ||
-  process.env.VERCEL_ENV === "production";
+/** Local dev only — skip webhook signature verification. */
+const isLocalDevelopment = () => process.env.NODE_ENV === "development";
 
+const MP_SIGNATURE_MAX_AGE_MS = 5 * 60 * 1000;
 /** Mercado Pago x-signature (when MERCADOPAGO_WEBHOOK_SECRET is set). */
 export const verifyMercadoPagoWebhook = (
   req: Request,
@@ -12,8 +12,8 @@ export const verifyMercadoPagoWebhook = (
 ): boolean => {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim();
   if (!secret) {
-    if (isProduction()) {
-      console.error("[webhook mp] MERCADOPAGO_WEBHOOK_SECRET missing in production");
+    if (!isLocalDevelopment()) {
+      console.error("[webhook mp] MERCADOPAGO_WEBHOOK_SECRET missing");
       return false;
     }
     return true;
@@ -36,6 +36,12 @@ export const verifyMercadoPagoWebhook = (
   const v1 = parts.v1;
   if (!ts || !v1) return false;
 
+  const tsMs = Number(ts) * 1000;
+  if (!Number.isFinite(tsMs) || Date.now() - tsMs > MP_SIGNATURE_MAX_AGE_MS) {
+    console.warn("[webhook mp] signature timestamp expired or invalid");
+    return false;
+  }
+
   const dataId =
     req.headers.get("x-data-id") ??
     (() => {
@@ -54,7 +60,10 @@ export const verifyMercadoPagoWebhook = (
     .digest("hex");
 
   try {
-    return crypto.timingSafeEqual(Buffer.from(v1), Buffer.from(expected));
+    const expectedBuf = Buffer.from(expected, "hex");
+    const v1Buf = Buffer.from(v1, "hex");
+    if (expectedBuf.length !== v1Buf.length) return false;
+    return crypto.timingSafeEqual(v1Buf, expectedBuf);
   } catch {
     return false;
   }
@@ -67,8 +76,8 @@ export const verifyPayPalWebhook = async (
 ): Promise<boolean> => {
   const webhookId = process.env.PAYPAL_WEBHOOK_ID?.trim();
   if (!webhookId) {
-    if (isProduction()) {
-      console.error("[webhook paypal] PAYPAL_WEBHOOK_ID missing in production");
+    if (!isLocalDevelopment()) {
+      console.error("[webhook paypal] PAYPAL_WEBHOOK_ID missing");
       return false;
     }
     return true;

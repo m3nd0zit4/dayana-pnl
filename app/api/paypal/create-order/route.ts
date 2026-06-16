@@ -8,6 +8,11 @@ import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
 import {
+  assertEnrollmentPayable,
+  enrollmentPaymentErrorStatus,
+  EnrollmentPaymentError,
+} from "@/lib/crm/enrollment-payment";
+import {
   clientIp,
   rateLimitDistributed,
 } from "@/lib/api/rate-limit-distributed";
@@ -57,19 +62,30 @@ export async function POST(req: NextRequest) {
   const handlingValue = breakdown.fee.toFixed(2);
 
   let enrollmentId =
-    typeof body.enrollmentId === "string" ? body.enrollmentId : undefined;
+    typeof body.enrollmentId === "string" ? body.enrollmentId.trim() : undefined;
 
   try {
-    if (!enrollmentId) {
+    if (enrollmentId) {
+      await assertEnrollmentPayable(enrollmentId, planId);
+    } else {
       const enrollment = await createPendingPaymentEnrollment({
         productId: planId,
       });
       enrollmentId = enrollment.id;
     }
   } catch (e) {
+    if (e instanceof EnrollmentPaymentError) {
+      return NextResponse.json(
+        { error: e.code, message: e.message },
+        { status: enrollmentPaymentErrorStatus(e.code) }
+      );
+    }
     console.error("[paypal] enrollment create failed", e);
     return NextResponse.json(
-      { error: "crm_unavailable", message: "No se pudo iniciar el registro del pago." },
+      {
+        error: "crm_unavailable",
+        message: "No se pudo iniciar el registro del pago.",
+      },
       { status: 503 }
     );
   }
@@ -79,7 +95,7 @@ export async function POST(req: NextRequest) {
     const { id } = await createPayPalOrderRequest({
       accessToken,
       planId: plan.id,
-      enrollmentId,
+      enrollmentId: enrollmentId!,
       planTitle: plan.title,
       sessions: plan.sessions,
       amountValue,
