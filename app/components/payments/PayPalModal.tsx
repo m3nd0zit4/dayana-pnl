@@ -1,12 +1,14 @@
 "use client";
 
 import { loadScript } from "@paypal/paypal-js";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { WHATSAPP_NUMBER, buildWhatsAppUrl } from "../../../lib/contact";
 import { formatUsd, getPlan, type PlanId } from "../../../lib/plans";
 import { PayPalBrandRow } from "./PayPalBrandRow";
+import CheckoutContactStep, {
+  type CheckoutContactPayload,
+} from "./CheckoutContactStep";
 
 type PayPalModalProps = {
   planId: PlanId | null;
@@ -21,6 +23,7 @@ type Breakdown = {
 
 type UiState =
   | { kind: "idle" }
+  | { kind: "contact" }
   | { kind: "loading" }
   | { kind: "buttons" }
   | { kind: "error"; message: string }
@@ -41,6 +44,10 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
+  const [contactPayload, setContactPayload] = useState<CheckoutContactPayload | null>(
+    null
+  );
+  const contactPayloadRef = useRef<CheckoutContactPayload | null>(null);
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
@@ -63,6 +70,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     if (!open) {
       setUi({ kind: "idle" });
       setBreakdown(null);
+      setContactPayload(null);
+      contactPayloadRef.current = null;
       if (!checkoutSucceededRef.current) {
         abandonPendingCheckout();
       }
@@ -70,6 +79,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     } else {
       checkoutSucceededRef.current = false;
       pendingEnrollmentIdRef.current = undefined;
+      setUi({ kind: "contact" });
     }
   }, [open]);
 
@@ -131,10 +141,11 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   }, [open, plan]);
 
   useEffect(() => {
-    if (!open || !plan || !paypalHostRef.current) return;
+    if (!open || !plan || !contactPayload || ui.kind === "success") return;
 
     let cancelled = false;
     const host = paypalHostRef.current;
+    if (!host) return;
 
     const teardownButtons = async () => {
       const close = buttonsCloseRef.current;
@@ -191,10 +202,14 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             height: 48,
           },
           createOrder: async () => {
+            const contact = contactPayloadRef.current;
+            if (!contact) {
+              throw new Error("Completa tus datos de contacto primero.");
+            }
             const res = await fetch("/api/paypal/create-order", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ planId: plan.id }),
+              body: JSON.stringify({ planId: plan.id, ...contact }),
             });
             const data = (await res.json()) as {
               orderID?: string;
@@ -290,7 +305,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       cancelled = true;
       void teardownButtons();
     };
-  }, [open, plan]);
+  }, [open, plan, contactPayload, ui.kind]);
 
   if (!open || !plan) return null;
   if (typeof document === "undefined") return null;
@@ -385,6 +400,17 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             )}
           </div>
 
+          {ui.kind === "contact" && (
+            <CheckoutContactStep
+              submitLabel="Continuar con PayPal"
+              onSubmit={(payload) => {
+                contactPayloadRef.current = payload;
+                setContactPayload(payload);
+                setUi({ kind: "loading" });
+              }}
+            />
+          )}
+
           {ui.kind === "success" && (
             <PayPalSuccess
               amountLabel={
@@ -414,8 +440,10 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
 
           <div
             ref={paypalHostRef}
-            className={`min-h-[52px] ${ui.kind === "success" ? "hidden" : ""} ${ui.kind === "loading" ? "pointer-events-none opacity-40" : ""}`}
-            aria-hidden={ui.kind === "success"}
+            className={`min-h-[52px] ${
+              ui.kind === "success" || ui.kind === "contact" ? "hidden" : ""
+            } ${ui.kind === "loading" ? "pointer-events-none opacity-40" : ""}`}
+            aria-hidden={ui.kind === "success" || ui.kind === "contact"}
           />
 
           {ui.kind === "error" && (
@@ -497,14 +525,6 @@ const PayPalSuccess = ({
         )}
       </div>
       <div className="flex flex-col gap-2 w-full mt-6">
-        {enrollmentId && (
-          <Link
-            href={`/pago/exito?enrollmentId=${encodeURIComponent(enrollmentId)}&status=approved`}
-            className="w-full rounded-full bg-white/10 border border-linen/25 text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3 hover:bg-linen/10 transition-colors text-center"
-          >
-            Completar mis datos
-          </Link>
-        )}
         <div className="flex flex-col sm:flex-row gap-2">
           <a
             href={whatsappHref}

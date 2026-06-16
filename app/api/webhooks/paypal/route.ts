@@ -5,6 +5,9 @@ import {
   registerWebhookEvent,
   resolveEnrollmentFromReference,
 } from "@/lib/crm/payments";
+import { enrichContactFromPayer } from "@/lib/crm/contacts";
+import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
+import { prisma } from "@/lib/db";
 import { verifyPayPalWebhook } from "@/lib/webhooks/verify";
 
 export const runtime = "nodejs";
@@ -81,6 +84,7 @@ export async function POST(req: NextRequest) {
 
   const amountValue = Number(capture.amount?.value ?? 0);
   const amountMinor = Math.round(amountValue * 100);
+  const payer = extractPayPalPayer(resource);
 
   try {
     await recordPayment({
@@ -97,7 +101,18 @@ export async function POST(req: NextRequest) {
       amountMinor,
       rawPayload: payload,
       paidAt: approved ? new Date() : undefined,
+      payerEmail: payer.email,
     });
+
+    if (approved) {
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { id: enrollmentId },
+        select: { contactId: true },
+      });
+      if (enrollment) {
+        await enrichContactFromPayer(enrollment.contactId, payer);
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {

@@ -6,7 +6,7 @@ import { listEnrollmentsAdmin } from "@/lib/crm/enrollments-list";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; unlinked?: string }>;
 };
 
 const ServicesPage = async ({ searchParams }: Props) => {
@@ -14,6 +14,7 @@ const ServicesPage = async ({ searchParams }: Props) => {
   const sp = await searchParams;
   const initialStatus = sp.status ?? "all";
   const initialQ = sp.q?.trim() ?? "";
+  const initialUnlinked = sp.unlinked === "1";
 
   if (preview) {
     return (
@@ -27,6 +28,7 @@ const ServicesPage = async ({ searchParams }: Props) => {
     const rows = await listEnrollmentsAdmin({
       status: initialStatus,
       q: initialQ,
+      unlinked: initialUnlinked,
     });
     return (
       <Suspense fallback={<p className="p-6 text-sm text-[var(--crm-muted)]">Cargando…</p>}>
@@ -35,6 +37,7 @@ const ServicesPage = async ({ searchParams }: Props) => {
           initialRows={rows}
           initialStatus={initialStatus}
           initialQ={initialQ}
+          initialUnlinked={initialUnlinked}
         />
       </Suspense>
     );

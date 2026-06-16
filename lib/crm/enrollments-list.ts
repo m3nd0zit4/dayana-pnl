@@ -1,4 +1,4 @@
-import { EnrollmentStatus, type Prisma } from "@prisma/client";
+import { EnrollmentStatus, PaymentStatus, type Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import { PLACEHOLDER_PHONE_PREFIX } from "./checkout-placeholder";
 
@@ -7,16 +7,28 @@ export type EnrollmentListFilters = {
   q?: string;
   cursor?: string;
   limit?: number;
+  unlinked?: boolean;
 };
+
+export const listUnlinkedPaidEnrollments = async (
+  filters: Omit<EnrollmentListFilters, "unlinked"> = {}
+) =>
+  listEnrollmentsAdmin({ ...filters, unlinked: true });
 
 export const listEnrollmentsAdmin = async (filters: EnrollmentListFilters = {}) => {
   const q = filters.q?.trim() ?? "";
   const limit = filters.limit ?? 100;
 
-  const where: Prisma.EnrollmentWhereInput = {
-    NOT: { contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } },
-  };
-  if (filters.status && filters.status !== "all") {
+  const where: Prisma.EnrollmentWhereInput = {};
+
+  if (filters.unlinked) {
+    where.status = EnrollmentStatus.ACTIVE;
+    where.contact = { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } };
+    where.payments = { some: { status: PaymentStatus.APPROVED } };
+  } else {
+    where.NOT = { contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } };
+  }
+  if (filters.status && filters.status !== "all" && !filters.unlinked) {
     where.status = filters.status as EnrollmentStatus;
   }
   if (q) {

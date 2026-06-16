@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ContactSource } from "@prisma/client";
+import { prisma } from "@/lib/db";
 import { isPlanId } from "@/lib/plans";
 import {
   attachContactToEnrollment,
@@ -7,6 +8,7 @@ import {
   getEnrollmentById,
 } from "@/lib/crm/enrollments";
 import { upsertContactByPhone } from "@/lib/crm/contacts";
+import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import {
   clientIp,
   rateLimitDistributed,
@@ -55,6 +57,45 @@ export async function POST(req: NextRequest) {
 
   const phone = typeof body.phone === "string" ? body.phone : "";
   const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+  const emailOnly =
+    !phone &&
+    typeof body.email === "string" &&
+    body.email.trim() &&
+    typeof body.enrollmentId === "string" &&
+    body.enrollmentId.trim();
+
+  if (emailOnly) {
+    if (!body.consentData) {
+      return NextResponse.json(
+        { error: "consent_required", message: "Debes aceptar el tratamiento de datos" },
+        { status: 400 }
+      );
+    }
+    try {
+      const enrollment = await getEnrollmentById(body.enrollmentId!.trim());
+      if (!enrollment) {
+        return NextResponse.json(
+          { error: "not_found", message: "Servicio no encontrado" },
+          { status: 404 }
+        );
+      }
+      if (isPlaceholderContactPhone(enrollment.contact.phoneE164)) {
+        return NextResponse.json(
+          { error: "legacy_contact", message: "Completa teléfono y nombre" },
+          { status: 400 }
+        );
+      }
+      await prisma.contact.update({
+        where: { id: enrollment.contactId },
+        data: { email: body.email!.trim().toLowerCase() },
+      });
+      return NextResponse.json({ ok: true, contactId: enrollment.contactId });
+    } catch (e) {
+      console.error("[leads] email-only", e);
+      return NextResponse.json({ error: "server_error" }, { status: 500 });
+    }
+  }
+
   if (!phone || !firstName) {
     return NextResponse.json(
       { error: "missing_fields", message: "Teléfono y nombre son obligatorios" },
