@@ -12,12 +12,13 @@ import { BookOpen } from "lucide-react";
 import RegisterPaymentModal, {
   type RegisteredPayment,
 } from "@/app/components/admin/crm/RegisterPaymentModal";
-
+import ScheduleSessionModal from "@/app/components/admin/crm/ScheduleSessionModal";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { contactNotebookPath } from "@/lib/crm/contact-notebook-url";
+import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
 
 
 
@@ -52,8 +53,14 @@ const sessionStatusLabel = (status: string) => {
 
 
 const sectionHeading =
-
   "mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--crm-muted)]";
+
+const SCHEDULABLE_STATUSES = new Set([
+  "PENDING_SCHEDULE",
+  "SCHEDULED",
+  "RESCHEDULED",
+  "CANCELLED",
+]);
 
 
 
@@ -123,6 +130,8 @@ const EnrollmentDetailClient = ({
 
   const [paymentOpen, setPaymentOpen] = useState(false);
 
+  const [scheduleSession, setScheduleSession] = useState<Session | null>(null);
+
   const pkg = enrollment.therapyPackage;
 
 
@@ -136,43 +145,30 @@ const EnrollmentDetailClient = ({
     );
 
     const data = (await res.json()) as {
-
-      therapyPackage?: typeof initial.therapyPackage;
-
+      therapyPackage?: (NonNullable<typeof initial.therapyPackage> & {
+        enrollment?: { status: string; sessionsUsed: number };
+      }) | null;
     };
 
     if (data.therapyPackage) {
-
+      const pkg = data.therapyPackage;
       setEnrollment((e) => ({
-
         ...e,
-
+        status: pkg.enrollment?.status ?? e.status,
+        sessionsUsed: pkg.enrollment?.sessionsUsed ?? pkg.usedSessions ?? e.sessionsUsed,
         therapyPackage: {
-
-          ...data.therapyPackage!,
-
-          sessions: data.therapyPackage!.sessions.map((s) => ({
-
+          ...pkg,
+          sessions: pkg.sessions.map((s) => ({
             ...s,
-
             scheduledAt:
-
               typeof s.scheduledAt === "string"
-
                 ? s.scheduledAt
-
                 : s.scheduledAt
-
                   ? new Date(s.scheduledAt as unknown as string).toISOString()
-
                   : null,
-
           })),
-
         },
-
       }));
-
     }
 
   }, [enrollment.id]);
@@ -256,6 +252,40 @@ const EnrollmentDetailClient = ({
   };
 
 
+
+  const uncompleteSession = (sessionId: string, sessionNumber: number) => {
+    if (!pkg || sessionId.startsWith("placeholder")) return;
+
+    confirm({
+      title: `Deshacer sesión ${sessionNumber}`,
+      message:
+        "¿Quitar el completado de esta sesión? Se restará del contador y el servicio volverá a activo si estaba marcado como completado.",
+      onConfirm: async () => {
+        setBusy(true);
+        const res = await fetch("/api/admin/therapy/sessions", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "uncomplete",
+            sessionId,
+            therapyPackageId: pkg.id,
+            sessionNumber,
+          }),
+        });
+        setBusy(false);
+
+        const data = (await res.json()) as { error?: string };
+        if (res.ok) {
+          toast("Sesión desmarcada como completada");
+          void refreshPackage();
+        } else if (data.error === "ACTIVE_THERAPY_EXISTS") {
+          toast("Este contacto ya tiene otra terapia activa", "error");
+        } else {
+          toast("No se pudo deshacer el completado", "error");
+        }
+      },
+    });
+  };
 
   const handlePaymentSuccess = (payment: RegisteredPayment) => {
     setEnrollment((e) => ({
@@ -488,6 +518,7 @@ const EnrollmentDetailClient = ({
                 <tr className="border-b border-[var(--crm-border)] text-[10px] uppercase text-[var(--crm-muted)]">
                   <th className="py-2 pr-2">#</th>
                   <th className="py-2 pr-2">Estado</th>
+                  <th className="py-2 pr-2">Fecha</th>
                   <th className="py-2">Acción</th>
                 </tr>
               </thead>
@@ -496,9 +527,12 @@ const EnrollmentDetailClient = ({
                   <SessionRow
                     key={s.id}
                     session={s}
+                    timezone={enrollment.contact.timezone}
                     canWrite={canWrite}
                     busy={busy}
                     onComplete={() => completeSession(s.id, s.sessionNumber)}
+                    onUncomplete={() => uncompleteSession(s.id, s.sessionNumber)}
+                    onSchedule={() => setScheduleSession(s)}
                   />
                 ))}
               </tbody>
@@ -508,6 +542,24 @@ const EnrollmentDetailClient = ({
       )}
 
 
+
+      {pkg && scheduleSession && (
+        <ScheduleSessionModal
+          open={scheduleSession != null}
+          onClose={() => setScheduleSession(null)}
+          onScheduled={() => {
+            setScheduleSession(null);
+            void refreshPackage();
+          }}
+          therapyPackageId={pkg.id}
+          sessionNumber={scheduleSession.sessionNumber}
+          meetDefaultUrl={pkg.meetDefaultUrl}
+          contactTimezone={enrollment.contact.timezone}
+          contactName={enrollment.contact.firstName}
+          productTitle={enrollment.product.title}
+          initialScheduledAt={scheduleSession.scheduledAt ?? undefined}
+        />
+      )}
 
       <RegisterPaymentModal
         open={paymentOpen}
@@ -530,25 +582,50 @@ const EnrollmentDetailClient = ({
 
 const SessionRow = ({
   session: s,
+  timezone,
   canWrite,
   busy,
   onComplete,
+  onUncomplete,
+  onSchedule,
 }: {
   session: Session;
+  timezone: string;
   canWrite: boolean;
   busy: boolean;
   onComplete: () => void;
+  onUncomplete: () => void;
+  onSchedule: () => void;
 }) => {
   const isCompleted = s.status === "COMPLETED";
-  const canComplete =
-    canWrite && !isCompleted && !s.id.startsWith("placeholder");
+  const isPlaceholder = s.id.startsWith("placeholder");
+  const canComplete = canWrite && !isCompleted && !isPlaceholder;
+  const canUncomplete = canWrite && isCompleted && !isPlaceholder;
+  const canSchedule =
+    canWrite &&
+    !isPlaceholder &&
+    !isCompleted &&
+    SCHEDULABLE_STATUSES.has(s.status);
 
   return (
     <tr className="border-b border-black/[0.04] align-middle">
       <td className="py-2.5 pr-2 font-medium">{s.sessionNumber}</td>
       <td className="py-2.5 pr-2 text-xs">{sessionStatusLabel(s.status)}</td>
+      <td className="py-2.5 pr-2 text-xs text-[var(--crm-muted)]">
+        {s.scheduledAt ? formatSessionDateTimeEs(s.scheduledAt, timezone) : "—"}
+      </td>
       <td className="py-2.5">
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {canSchedule && (
+            <button
+              type="button"
+              disabled={busy}
+              className="crm-btn-secondary text-xs"
+              onClick={onSchedule}
+            >
+              {s.scheduledAt ? "Cambiar fecha" : "Agregar fecha"}
+            </button>
+          )}
           {canComplete && (
             <button
               type="button"
@@ -559,7 +636,17 @@ const SessionRow = ({
               Completar
             </button>
           )}
-          {isCompleted && (
+          {canUncomplete && (
+            <button
+              type="button"
+              disabled={busy}
+              className="crm-btn-secondary text-xs"
+              onClick={onUncomplete}
+            >
+              Quitar completado
+            </button>
+          )}
+          {isCompleted && !canUncomplete && (
             <span className="text-xs text-[var(--crm-muted)]">Completada</span>
           )}
         </div>

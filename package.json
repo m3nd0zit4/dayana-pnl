@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "email:sample": "bun run scripts/send-example-email.ts",
-    "env:pull": "vercel env pull .env.local",
+    "env:pull": "vercel env pull .env --environment=preview --yes",
+    "env:pull:production": "vercel env pull .env.production --environment=production --yes",
     "typecheck": "tsc --noEmit"
   },
   "prisma": {

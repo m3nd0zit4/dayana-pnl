@@ -32,7 +32,7 @@ Copia desde `.env.example`. **Obligatorias en Production:**
 
 **Blob:** store **Private** conectado al proyecto (OIDC automático). Redeploy tras conectar.
 
-Local: `bun run env:pull` → `.env.local`
+Local: `bun run env:pull` → `.env` (Vercel Preview). Ver [`docs/dev-environment.md`](dev-environment.md)
 
 ## 2. Webhooks (obligatorios en prod)
 

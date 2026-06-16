@@ -15,8 +15,11 @@ const PREVIEW_ACTIVE = [
     status: "ACTIVE",
     sessionsUsed: 2,
     sessionsTotal: 6,
+    therapyPackageId: "prev-pkg-1",
+    meetDefaultUrl: null,
     nextSessionAt: new Date(Date.now() + 86400000).toISOString(),
     nextSessionNumber: 3,
+    schedulableSessionNumber: 3,
   },
 ];
 

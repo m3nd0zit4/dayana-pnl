@@ -5,6 +5,7 @@ import {
   completeTherapySession,
   markTherapySessionNoShow,
   scheduleTherapySession,
+  uncompleteTherapySession,
   updateTherapySession,
 } from "@/lib/crm/therapy";
 export const dynamic = "force-dynamic";
@@ -24,6 +25,20 @@ export async function POST(req: NextRequest) {
       fireAuditLog({
         staffUserId: staff.id,
         action: "COMPLETE",
+        entityType: "TherapySession",
+        entityId: body.sessionId,
+      });
+      return NextResponse.json({ session });
+    }
+
+    if (body.action === "uncomplete") {
+      if (!body.sessionId) {
+        return NextResponse.json({ error: "missing_session_id" }, { status: 400 });
+      }
+      const session = await uncompleteTherapySession(body.sessionId);
+      fireAuditLog({
+        staffUserId: staff.id,
+        action: "UNCOMPLETE",
         entityType: "TherapySession",
         entityId: body.sessionId,
       });

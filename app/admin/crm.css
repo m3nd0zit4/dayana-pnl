@@ -1220,6 +1220,8 @@
 }
 
 .crm-datetime-popover {
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border-radius: var(--crm-radius-lg);
   border: 0.5px solid var(--crm-separator);
@@ -1230,15 +1232,21 @@
 }
 
 .crm-datetime-popover-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.5rem 0.75rem;
-  padding: 0.75rem 0.75rem 0.5rem;
-  align-items: start;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.875rem;
+  min-height: 0;
+  padding: 1rem 1rem 0.625rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: #fffcf8;
 }
 
 .crm-datetime-popover-calendar {
+  width: 100%;
   min-width: 0;
   background: #fffcf8;
 }
@@ -1256,37 +1264,66 @@
 }
 
 .crm-datetime-calendar .react-calendar__navigation {
-  margin-bottom: 8px;
+  margin-bottom: 0.75rem;
 }
 
 .crm-datetime-calendar .react-calendar__navigation button {
-  min-width: 32px;
-  min-height: 32px;
-  font-size: 0.8125rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  font-size: 1rem;
+  border-radius: 0.5rem;
+}
+
+.crm-datetime-calendar .react-calendar__navigation__label {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .crm-datetime-calendar .react-calendar__month-view__weekdays__weekday {
-  font-size: 0.5625rem;
-  padding: 0.35rem 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0;
 }
 
 .crm-datetime-calendar .react-calendar__month-view__days__day {
-  padding: 0.2rem !important;
+  padding: 0.25rem !important;
 }
 
 .crm-datetime-calendar .react-calendar__tile {
-  max-height: 38px;
-  font-size: 0.75rem;
-  border-radius: 8px;
+  min-height: 2.75rem;
+  max-height: none;
+  aspect-ratio: 1;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-radius: 0.625rem;
+  padding: 0.35rem !important;
+}
+
+.crm-datetime-calendar .react-calendar__tile:enabled:hover,
+.crm-datetime-calendar .react-calendar__tile:enabled:focus {
+  background: var(--crm-accent-soft);
+}
+
+.crm-datetime-calendar .react-calendar__tile--active {
+  background: var(--crm-accent) !important;
+  color: #fffcf8 !important;
+}
+
+.crm-datetime-calendar .react-calendar__tile--now {
+  background: rgba(212, 184, 150, 0.22);
 }
 
 .crm-datetime-popover-footer {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.75rem;
   border-top: 1px solid var(--crm-border);
   padding: 0.5rem 0.75rem;
   background: #f0e9de;
+  border-radius: 0 0 var(--crm-radius-lg) var(--crm-radius-lg);
 }
 
 .crm-datetime-popover .crm-datetime-action-btn {
@@ -1332,8 +1369,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0.25rem 0.15rem;
-  min-width: 6.5rem;
+  width: 100%;
+  min-width: 0;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--crm-border);
 }
 
 .crm-datetime-time-label {
@@ -1346,17 +1385,20 @@
 
 .crm-datetime-time-fields {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .crm-datetime-time-select {
-  width: 3.25rem;
+  width: 3.5rem;
+  min-height: 2.5rem;
   border-radius: 0.65rem;
   border: 1px solid var(--crm-border);
   background: #fff;
-  padding: 0.45rem 0.35rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 0.4rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--crm-foreground);
   text-align: center;
@@ -1368,6 +1410,16 @@
 .crm-datetime-time-select:focus {
   border-color: var(--crm-accent);
   box-shadow: 0 0 0 2px var(--crm-accent-soft);
+}
+
+.crm-datetime-period-select {
+  width: auto;
+  min-width: 4.75rem;
+  min-height: 2.5rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .crm-datetime-time-sep {
@@ -1622,18 +1674,41 @@
   inset: 0;
   z-index: 1;
   pointer-events: auto;
-  touch-action: none;
 }
 
 .crm-notebook-canvas-host .excalidraw {
   width: 100% !important;
   height: 100% !important;
   --theme-filter: none;
+  /* Asegura que menús, colores y toolbar reciban clics (por encima del canvas interactivo) */
+  --ui-pointerEvents: all;
 }
 
-.crm-notebook-canvas-host .excalidraw .App-menu_top,
+/*
+ * No bajar z-index de la UI: el canvas interactivo usa z-index 2 y va después en el DOM;
+ * si la UI queda en 2, el lienzo tapa toolbar y panel de propiedades (trazo, fondo, etc.).
+ */
 .crm-notebook-canvas-host .excalidraw .layer-ui__wrapper {
-  z-index: 2;
+  z-index: var(--zIndex-layerUI, 4);
+}
+
+.crm-notebook-canvas-host .excalidraw .layer-ui__wrapper .Island,
+.crm-notebook-canvas-host .excalidraw .FixedSideContainer > *,
+.crm-notebook-canvas-host .excalidraw .App-bottom-bar > .Island,
+.crm-notebook-canvas-host .excalidraw .App-toolbar {
+  pointer-events: auto;
+}
+
+.crm-notebook-canvas-host .excalidraw canvas {
+  touch-action: none;
+}
+
+/* Panel de propiedades (trazo, fondo, grosor…) — scroll si no cabe en pantalla */
+.crm-notebook-canvas-host .excalidraw .App-bottom-bar > .Island .panelColumn {
+  max-height: min(52vh, calc(100% - 3.5rem));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 /* Ocultar pantalla de bienvenida — overlay bloqueaba clics en el lienzo */
@@ -1644,10 +1719,6 @@
   display: none !important;
   pointer-events: none !important;
   visibility: hidden !important;
-}
-
-.crm-notebook-canvas-host .excalidraw canvas {
-  pointer-events: auto !important;
 }
 
 .crm-notebook-canvas-loading {

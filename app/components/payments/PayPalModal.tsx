@@ -160,7 +160,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
         setUi({
           kind: "error",
           message:
-            "Falta NEXT_PUBLIC_PAYPAL_CLIENT_ID. Añádelo en .env.local y reinicia el servidor.",
+            "Falta NEXT_PUBLIC_PAYPAL_CLIENT_ID. Añádelo en .env y reinicia el servidor.",
         });
         return;
       }

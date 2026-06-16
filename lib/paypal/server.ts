@@ -13,7 +13,7 @@ export const getPayPalAccessToken = async (): Promise<string> => {
   const secret = process.env.PAYPAL_CLIENT_SECRET;
   if (!clientId || !secret) {
     throw new Error(
-      "Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET. Set them in .env.local."
+      "Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET. Set them in .env."
     );
   }
   const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
