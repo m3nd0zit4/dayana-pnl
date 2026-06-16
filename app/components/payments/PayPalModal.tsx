@@ -1,6 +1,7 @@
 "use client";
 
 import { loadScript } from "@paypal/paypal-js";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { WHATSAPP_NUMBER, buildWhatsAppUrl } from "../../../lib/contact";
@@ -23,7 +24,7 @@ type UiState =
   | { kind: "loading" }
   | { kind: "buttons" }
   | { kind: "error"; message: string }
-  | { kind: "success"; orderID: string; captureId?: string };
+  | { kind: "success"; orderID: string; captureId?: string; enrollmentId?: string };
 
 const usdLabel = (value: string): string => {
   const n = Number(value);
@@ -43,11 +44,32 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
+  const pendingEnrollmentIdRef = useRef<string | undefined>(undefined);
+  const checkoutSucceededRef = useRef(false);
+
+  const abandonPendingCheckout = () => {
+    const id = pendingEnrollmentIdRef.current;
+    if (!id) return;
+    pendingEnrollmentIdRef.current = undefined;
+    void fetch("/api/checkout/abandon", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ enrollmentId: id }),
+      keepalive: true,
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     if (!open) {
       setUi({ kind: "idle" });
       setBreakdown(null);
+      if (!checkoutSucceededRef.current) {
+        abandonPendingCheckout();
+      }
+      checkoutSucceededRef.current = false;
+    } else {
+      checkoutSucceededRef.current = false;
+      pendingEnrollmentIdRef.current = undefined;
     }
   }, [open]);
 
@@ -127,6 +149,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       host.innerHTML = "";
     };
 
+    let enrollmentIdRef: string | undefined;
+
     const run = async () => {
       setUi({ kind: "loading" });
       await teardownButtons();
@@ -136,7 +160,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
         setUi({
           kind: "error",
           message:
-            "Falta NEXT_PUBLIC_PAYPAL_CLIENT_ID. Añádelo en .env.local y reinicia el servidor.",
+            "Falta NEXT_PUBLIC_PAYPAL_CLIENT_ID. Añádelo en .env y reinicia el servidor.",
         });
         return;
       }
@@ -174,6 +198,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             });
             const data = (await res.json()) as {
               orderID?: string;
+              enrollmentId?: string;
               message?: string;
               breakdown?: Breakdown;
             };
@@ -185,6 +210,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             if (data.breakdown && !cancelled) {
               setBreakdown(data.breakdown);
             }
+            enrollmentIdRef = data.enrollmentId;
+            pendingEnrollmentIdRef.current = data.enrollmentId;
             return data.orderID;
           },
           onApprove: async (data) => {
@@ -196,6 +223,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             const payload = (await res.json()) as {
               ok?: boolean;
               captureId?: string;
+              enrollmentId?: string;
               message?: string;
             };
             if (!res.ok || !payload.ok) {
@@ -204,11 +232,14 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               );
             }
             await teardownButtons();
+            checkoutSucceededRef.current = true;
+            pendingEnrollmentIdRef.current = undefined;
             if (!cancelled) {
               setUi({
                 kind: "success",
                 orderID: data.orderID,
                 captureId: payload.captureId,
+                enrollmentId: payload.enrollmentId ?? enrollmentIdRef,
               });
             }
           },
@@ -216,6 +247,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             console.error(err);
             if (!cancelled) {
               void teardownButtons();
+              abandonPendingCheckout();
               setUi({
                 kind: "error",
                 message:
@@ -225,6 +257,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           },
           onCancel: async () => {
             await teardownButtons();
+            abandonPendingCheckout();
             if (!cancelled) {
               setUi({
                 kind: "error",
@@ -359,6 +392,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               }
               orderID={ui.orderID}
               captureId={ui.captureId}
+              enrollmentId={ui.enrollmentId}
               onClose={onClose}
             />
           )}
@@ -426,6 +460,7 @@ type PayPalSuccessProps = {
   amountLabel: string;
   orderID: string;
   captureId?: string;
+  enrollmentId?: string;
   onClose: () => void;
 };
 
@@ -433,6 +468,7 @@ const PayPalSuccess = ({
   amountLabel,
   orderID,
   captureId,
+  enrollmentId,
   onClose,
 }: PayPalSuccessProps) => {
   const whatsappHref = buildWhatsAppUrl(
@@ -460,22 +496,32 @@ const PayPalSuccess = ({
           </>
         )}
       </div>
-      <div className="flex flex-col sm:flex-row gap-2 w-full mt-6">
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full sm:flex-1 rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3 hover:bg-white transition-colors text-center"
-        >
-          Agendar por WhatsApp
-        </a>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-full sm:flex-1 rounded-full border border-linen/30 text-white/80 font-[font2] uppercase text-xs tracking-[0.25em] py-3 hover:bg-linen/5 cursor-pointer"
-        >
-          Cerrar
-        </button>
+      <div className="flex flex-col gap-2 w-full mt-6">
+        {enrollmentId && (
+          <Link
+            href={`/pago/exito?enrollmentId=${encodeURIComponent(enrollmentId)}&status=approved`}
+            className="w-full rounded-full bg-white/10 border border-linen/25 text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3 hover:bg-linen/10 transition-colors text-center"
+          >
+            Completar mis datos
+          </Link>
+        )}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:flex-1 rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3 hover:bg-white transition-colors text-center"
+          >
+            Agendar por WhatsApp
+          </a>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:flex-1 rounded-full border border-linen/30 text-white/80 font-[font2] uppercase text-xs tracking-[0.25em] py-3 hover:bg-linen/5 cursor-pointer"
+          >
+            Cerrar
+          </button>
+        </div>
       </div>
       <p className="mt-4 font-[font1] text-[11px] text-white/35">
         o escríbenos al {WHATSAPP_NUMBER}

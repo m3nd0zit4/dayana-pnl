@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCookieConsent } from "../../context/CookieConsentContext";
 
 const CookieConsentBanner = () => {
+  const pathname = usePathname();
   const { status, acceptAnalytics, rejectAnalytics } = useCookieConsent();
 
+  if (pathname?.startsWith("/admin")) return null;
   if (status !== "unset") return null;
 
   return (

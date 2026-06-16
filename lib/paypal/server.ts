@@ -13,7 +13,7 @@ export const getPayPalAccessToken = async (): Promise<string> => {
   const secret = process.env.PAYPAL_CLIENT_SECRET;
   if (!clientId || !secret) {
     throw new Error(
-      "Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET. Set them in .env.local."
+      "Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET. Set them in .env."
     );
   }
   const auth = Buffer.from(`${clientId}:${secret}`).toString("base64");
@@ -37,6 +37,8 @@ export const getPayPalAccessToken = async (): Promise<string> => {
 type CreateOrderInput = {
   accessToken: string;
   planId: string;
+  /** CRM enrollment id stored in PayPal custom_id */
+  enrollmentId: string;
   planTitle: string;
   sessions: string;
   amountValue: string;
@@ -55,9 +57,9 @@ export const createPayPalOrderRequest = async (
     typeof input.handlingValue === "string";
 
   const purchaseUnit: Record<string, unknown> = {
-    reference_id: input.planId.slice(0, 256),
+    reference_id: input.enrollmentId.slice(0, 256),
     description: `${input.planTitle} — ${input.sessions}`.slice(0, 127),
-    custom_id: input.planId.slice(0, 127),
+    custom_id: input.enrollmentId.slice(0, 127),
     amount: hasBreakdown
       ? {
           currency_code: input.currencyCode,

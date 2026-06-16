@@ -1,17 +1,36 @@
 import { NextResponse } from "next/server";
-import { getPlan, isPlanId, type PlanId } from "../../../../lib/plans";
+import { isPlanId } from "../../../../lib/plans";
+import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import {
   mercadoPagoItemAmount,
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
+import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
+import {
+  assertEnrollmentPayable,
+  enrollmentPaymentErrorStatus,
+  EnrollmentPaymentError,
+} from "@/lib/crm/enrollment-payment";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 type Body = {
   planId?: string;
+  enrollmentId?: string;
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
   mode?: "full" | "cards";
 };
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`mp:preference:${ip}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
   if (!token?.trim()) {
     return NextResponse.json(
@@ -28,12 +47,37 @@ export async function POST(req: Request) {
   }
 
   const planId = body.planId;
-  if (!planId || !isPlanId(planId)) {
+  if (!planId || !isPlanId(planId) || !(await isActivePlanId(planId))) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
   const mode = body.mode === "cards" ? "cards" : "full";
-  const plan = getPlan(planId as PlanId);
+  const plan = await getPlanFromDb(planId);
+  if (!plan) {
+    return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+  }
+
+  let enrollmentId = body.enrollmentId?.trim();
+  const createdEnrollmentThisRequest = !enrollmentId;
+  try {
+    if (enrollmentId) {
+      await assertEnrollmentPayable(enrollmentId, planId);
+    } else {
+      const enrollment = await createPendingPaymentEnrollment({
+        productId: planId,
+      });
+      enrollmentId = enrollment.id;
+    }
+  } catch (e) {
+    if (e instanceof EnrollmentPaymentError) {
+      return NextResponse.json(
+        { error: e.code, message: e.message },
+        { status: enrollmentPaymentErrorStatus(e.code) }
+      );
+    }
+    console.error("[mercadopago] enrollment create failed", e);
+    return NextResponse.json({ error: "crm_unavailable" }, { status: 503 });
+  }
 
   let net: number;
   let fee: number;
@@ -67,13 +111,16 @@ export async function POST(req: Request) {
     });
   }
 
+  const successUrl = `${base}/pago/exito?enrollmentId=${encodeURIComponent(enrollmentId)}`;
+  const cancelUrl = `${base}/pago/cancelado?enrollmentId=${encodeURIComponent(enrollmentId)}`;
+
   const preferenceBody: Record<string, unknown> = {
     items,
-    external_reference: planId,
+    external_reference: enrollmentId,
     back_urls: {
-      success: `${base}/pago/exito`,
-      failure: `${base}/pago/cancelado`,
-      pending: `${base}/pago/exito`,
+      success: successUrl,
+      failure: cancelUrl,
+      pending: successUrl,
     },
     statement_descriptor: "DAYANA PNL",
     binary_mode: mode === "cards",
@@ -102,6 +149,9 @@ export async function POST(req: Request) {
     };
 
     if (!res.ok) {
+      if (createdEnrollmentThisRequest) {
+        await abandonCheckoutEnrollment(enrollmentId);
+      }
       console.error("[mercadopago] preference failed", res.status, data);
       return NextResponse.json(
         { error: "preference_failed", detail: data.message },
@@ -116,11 +166,17 @@ export async function POST(req: Request) {
         : data.init_point;
 
     if (!init_point) {
+      if (createdEnrollmentThisRequest) {
+        await abandonCheckoutEnrollment(enrollmentId);
+      }
       return NextResponse.json({ error: "no_init_point" }, { status: 502 });
     }
 
-    return NextResponse.json({ init_point, mode });
+    return NextResponse.json({ init_point, mode, enrollmentId });
   } catch (e) {
+    if (createdEnrollmentThisRequest && enrollmentId) {
+      await abandonCheckoutEnrollment(enrollmentId);
+    }
     const message = e instanceof Error ? e.message : String(e);
     console.error("[mercadopago] preference exception", message);
     return NextResponse.json({ error: "network" }, { status: 502 });

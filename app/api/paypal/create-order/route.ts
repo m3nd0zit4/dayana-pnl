@@ -3,17 +3,35 @@ import {
   createPayPalOrderRequest,
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
-import { getPlan, isPlanId, type PlanId } from "../../../../lib/plans";
+import { isPlanId } from "../../../../lib/plans";
+import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
+import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
+import {
+  assertEnrollmentPayable,
+  enrollmentPaymentErrorStatus,
+  EnrollmentPaymentError,
+} from "@/lib/crm/enrollment-payment";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PAYPAL_CURRENCY = "USD";
 
-type Body = { planId?: unknown };
+type Body = { planId?: unknown; enrollmentId?: unknown };
 
 export async function POST(req: NextRequest) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`paypal:create:${ip}`, 30, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -24,25 +42,62 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  if (!isPlanId(body.planId)) {
+  if (!isPlanId(body.planId) || !(await isActivePlanId(body.planId))) {
     return NextResponse.json(
       { error: "invalid_plan", message: "Plan no reconocido" },
       { status: 400 }
     );
   }
 
-  const planId = body.planId as PlanId;
-  const plan = getPlan(planId);
+  const planId = body.planId;
+  const plan = await getPlanFromDb(planId);
+  if (!plan) {
+    return NextResponse.json(
+      { error: "invalid_plan", message: "Plan no disponible" },
+      { status: 400 }
+    );
+  }
   const breakdown = grossUpUsd(plan.amountUsd, paypalFee());
   const amountValue = breakdown.gross.toFixed(2);
   const itemTotalValue = breakdown.net.toFixed(2);
   const handlingValue = breakdown.fee.toFixed(2);
+
+  let enrollmentId =
+    typeof body.enrollmentId === "string" ? body.enrollmentId.trim() : undefined;
+  const createdEnrollmentThisRequest = !enrollmentId;
+
+  try {
+    if (enrollmentId) {
+      await assertEnrollmentPayable(enrollmentId, planId);
+    } else {
+      const enrollment = await createPendingPaymentEnrollment({
+        productId: planId,
+      });
+      enrollmentId = enrollment.id;
+    }
+  } catch (e) {
+    if (e instanceof EnrollmentPaymentError) {
+      return NextResponse.json(
+        { error: e.code, message: e.message },
+        { status: enrollmentPaymentErrorStatus(e.code) }
+      );
+    }
+    console.error("[paypal] enrollment create failed", e);
+    return NextResponse.json(
+      {
+        error: "crm_unavailable",
+        message: "No se pudo iniciar el registro del pago.",
+      },
+      { status: 503 }
+    );
+  }
 
   try {
     const accessToken = await getPayPalAccessToken();
     const { id } = await createPayPalOrderRequest({
       accessToken,
       planId: plan.id,
+      enrollmentId: enrollmentId!,
       planTitle: plan.title,
       sessions: plan.sessions,
       amountValue,
@@ -53,6 +108,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       orderID: id,
+      enrollmentId,
       amountValue,
       currency: PAYPAL_CURRENCY,
       planId: plan.id,
@@ -65,6 +121,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (createdEnrollmentThisRequest && enrollmentId) {
+      await abandonCheckoutEnrollment(enrollmentId);
+    }
     const message =
       error instanceof Error ? error.message : "Error desconocido";
     console.error("[paypal] create-order failed", message);

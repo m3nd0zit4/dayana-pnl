@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
-import { getPlan, isPlanId, type PlanId } from "../../../../lib/plans";
+import { isPlanId } from "../../../../lib/plans";
+import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
+import {
+  clientIp,
+  rateLimitDistributed,
+} from "@/lib/api/rate-limit-distributed";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +14,12 @@ export const dynamic = "force-dynamic";
 type Body = { planId?: unknown; provider?: "paypal" | "mercadopago" };
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const rl = await rateLimitDistributed(`quote:${ip}`, 60, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -16,11 +27,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  if (!isPlanId(body.planId)) {
+  if (!isPlanId(body.planId) || !(await isActivePlanId(body.planId))) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
-  const plan = getPlan(body.planId as PlanId);
+  const plan = await getPlanFromDb(body.planId);
+  if (!plan) {
+    return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+  }
   const provider = body.provider === "mercadopago" ? "mercadopago" : "paypal";
 
   if (provider === "paypal") {

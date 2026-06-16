@@ -201,8 +201,9 @@ export const COURSE_PLAN: Plan = PLANS["course-live"];
 export const WORKSHOP_VIRTUAL_PLAN: Plan = PLANS["workshop-virtual"];
 
 export const isPlanId = (value: unknown): value is PlanId =>
-  typeof value === "string" && value in PLANS;
+  typeof value === "string" && /^[a-z0-9][a-z0-9-]*$/.test(value);
 
+/** Catálogo estático (fallback); en checkout y web usar `getPlanFromDb`. */
 export const getPlan = (id: PlanId): Plan => PLANS[id];
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
