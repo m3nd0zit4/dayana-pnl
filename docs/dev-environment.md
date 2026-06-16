@@ -50,7 +50,7 @@ Variables obligatorias en **Preview (dev)**:
 | `DIRECT_URL` | directa → `/neondb_dev` (también en **Build**) |
 | `AUTH_SECRET` | login staff |
 
-Si el build falla con `DIRECT_URL not found`, añádela en Vercel → Preview → rama `dev`.
+Si el build falla con `DIRECT_URL not found`, asegura `DATABASE_URL` en Vercel Preview (rama `dev`) con **Build** habilitado. El script de build deriva `DIRECT_URL` del pooler si falta.
 
 ## Inngest en local
 

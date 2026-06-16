@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { assertInngestKeysPaired } from "@/lib/inngest/config";
+import { ensurePrismaDatabaseEnv } from "@/lib/env/prisma-database";
 
 const isDev = () => process.env.NODE_ENV === "development";
 const isVercelProduction = () => process.env.VERCEL_ENV === "production";
@@ -60,7 +61,7 @@ const productionSchema = z
 
 const previewSchema = z.object({
   AUTH_SECRET: nonEmpty.min(32).optional(),
-  DATABASE_URL: nonEmpty.optional(),
+  DATABASE_URL: nonEmpty,
   DIRECT_URL: nonEmpty.optional(),
 });
 
@@ -85,11 +86,20 @@ export const validateServerEnv = (): void => {
   }
 
   if (shouldValidatePreviewEnv()) {
+    try {
+      ensurePrismaDatabaseEnv();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      throw new Error(`[env] Preview environment validation failed:\n${message}`);
+    }
+
     const partial = previewSchema.safeParse(process.env);
     if (!partial.success) {
-      console.warn(
-        "[env] Preview environment warnings:",
-        partial.error.issues.map((i) => i.message).join("; ")
+      const details = partial.error.issues
+        .map((i) => `${i.path.join(".")}: ${i.message}`)
+        .join("\n");
+      throw new Error(
+        `[env] Preview environment validation failed:\n${details}`
       );
     }
 
