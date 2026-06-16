@@ -5,24 +5,36 @@ import {
   mercadoPagoItemAmount,
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
-import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
 import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
 import {
-  assertEnrollmentPayable,
-  enrollmentPaymentErrorStatus,
-  EnrollmentPaymentError,
-} from "@/lib/crm/enrollment-payment";
+  beginCheckoutEnrollment,
+  mapCheckoutBeginError,
+  type CheckoutContactBody,
+} from "@/lib/crm/checkout-enrollment";
 import {
   clientIp,
   rateLimitDistributed,
 } from "@/lib/api/rate-limit-distributed";
 
-type Body = {
+type Body = CheckoutContactBody & {
   planId?: string;
-  enrollmentId?: string;
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
   mode?: "full" | "cards";
 };
+
+function parseContactBody(body: Body): CheckoutContactBody {
+  return {
+    phone: typeof body.phone === "string" ? body.phone : undefined,
+    phoneCountry:
+      typeof body.phoneCountry === "string" ? body.phoneCountry : undefined,
+    firstName: typeof body.firstName === "string" ? body.firstName : undefined,
+    lastName: typeof body.lastName === "string" ? body.lastName : undefined,
+    email: typeof body.email === "string" ? body.email : undefined,
+    consentData: body.consentData === true,
+    enrollmentId:
+      typeof body.enrollmentId === "string" ? body.enrollmentId : undefined,
+  };
+}
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
@@ -57,26 +69,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
-  let enrollmentId = body.enrollmentId?.trim();
-  const createdEnrollmentThisRequest = !enrollmentId;
+  let enrollmentId: string | undefined;
+  let createdEnrollmentThisRequest = false;
+
   try {
-    if (enrollmentId) {
-      await assertEnrollmentPayable(enrollmentId, planId);
-    } else {
-      const enrollment = await createPendingPaymentEnrollment({
-        productId: planId,
-      });
-      enrollmentId = enrollment.id;
-    }
+    const begun = await beginCheckoutEnrollment({
+      planId,
+      contact: parseContactBody(body),
+    });
+    enrollmentId = begun.enrollmentId;
+    createdEnrollmentThisRequest = begun.createdEnrollment;
   } catch (e) {
-    if (e instanceof EnrollmentPaymentError) {
-      return NextResponse.json(
-        { error: e.code, message: e.message },
-        { status: enrollmentPaymentErrorStatus(e.code) }
-      );
-    }
+    const mapped = mapCheckoutBeginError(e);
     console.error("[mercadopago] enrollment create failed", e);
-    return NextResponse.json({ error: "crm_unavailable" }, { status: 503 });
+    return NextResponse.json(
+      { error: mapped.error, message: mapped.message },
+      { status: mapped.status }
+    );
   }
 
   let net: number;

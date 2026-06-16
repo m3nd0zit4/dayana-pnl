@@ -6,7 +6,7 @@ import { normalizePhone, type NormalizedPhone } from "../phone";
 export type UpsertContactInput = {
   phone: string;
   phoneCountry?: string;
-  firstName: string;
+  firstName?: string;
   lastName?: string;
   email?: string;
   countryIso?: string;
@@ -19,9 +19,25 @@ export type UpsertContactInput = {
   notes?: string;
 };
 
+const DEFAULT_CHECKOUT_FIRST_NAME = "Cliente";
+
+function buildDisplayName(
+  firstName: string,
+  lastName: string | null,
+  phoneE164: string
+): string {
+  if (lastName) return `${firstName} ${lastName}`;
+  if (firstName !== DEFAULT_CHECKOUT_FIRST_NAME) return firstName;
+  return phoneE164;
+}
+
 export const upsertContactByPhone = async (
   input: UpsertContactInput
-): Promise<{ contact: Prisma.ContactGetPayload<object>; phone: NormalizedPhone }> => {
+): Promise<{
+  contact: Prisma.ContactGetPayload<object>;
+  phone: NormalizedPhone;
+  created: boolean;
+}> => {
   const defaultCountry = (
     input.countryIso?.toUpperCase() ||
     input.phoneCountry?.toUpperCase() ||
@@ -34,43 +50,105 @@ export const upsertContactByPhone = async (
   }
 
   const now = new Date();
-  const data: Prisma.ContactCreateInput = {
-    phoneE164: normalized.phoneE164,
-    phoneCountryIso: normalized.phoneCountryIso,
-    firstName: input.firstName.trim(),
-    lastName: input.lastName?.trim() || null,
-    displayName: input.lastName
-      ? `${input.firstName.trim()} ${input.lastName.trim()}`
-      : input.firstName.trim(),
-    email: input.email?.trim() || null,
-    countryIso: input.countryIso?.toUpperCase() || normalized.phoneCountryIso,
-    timezone: input.timezone || "America/Bogota",
-    preferredLocale: input.preferredLocale || "es",
-    source: input.source ?? "WEB",
-    sourceDetail: input.sourceDetail ?? null,
-    notes: input.notes ?? null,
-    consentDataAt: input.consentData ? now : undefined,
-    consentMarketingAt: input.consentMarketing ? now : undefined,
-  };
+  const firstNameTrim = input.firstName?.trim() ?? "";
+  const lastNameTrim = input.lastName?.trim() || null;
+  const emailTrim = input.email?.trim() || null;
 
-  const contact = await prisma.contact.upsert({
+  const existing = await prisma.contact.findUnique({
     where: { phoneE164: normalized.phoneE164 },
-    create: data,
-    update: {
-      firstName: data.firstName,
-      lastName: data.lastName,
-      displayName: data.displayName,
-      email: data.email ?? undefined,
-      countryIso: data.countryIso,
-      timezone: data.timezone,
-      preferredLocale: data.preferredLocale,
-      notes: data.notes ?? undefined,
-      ...(input.consentData ? { consentDataAt: now } : {}),
-      ...(input.consentMarketing ? { consentMarketingAt: now } : {}),
-    },
   });
 
-  return { contact, phone: normalized };
+  if (!existing) {
+    const firstName = firstNameTrim || DEFAULT_CHECKOUT_FIRST_NAME;
+    const contact = await prisma.contact.create({
+      data: {
+        phoneE164: normalized.phoneE164,
+        phoneCountryIso: normalized.phoneCountryIso,
+        firstName,
+        lastName: lastNameTrim,
+        displayName: buildDisplayName(firstName, lastNameTrim, normalized.phoneE164),
+        email: emailTrim,
+        countryIso: input.countryIso?.toUpperCase() || normalized.phoneCountryIso,
+        timezone: input.timezone || "America/Bogota",
+        preferredLocale: input.preferredLocale || "es",
+        source: input.source ?? "WEB",
+        sourceDetail: input.sourceDetail ?? null,
+        notes: input.notes ?? null,
+        consentDataAt: input.consentData ? now : undefined,
+        consentMarketingAt: input.consentMarketing ? now : undefined,
+      },
+    });
+    return { contact, phone: normalized, created: true };
+  }
+
+  const update: Prisma.ContactUpdateInput = {
+    countryIso: input.countryIso?.toUpperCase() || normalized.phoneCountryIso,
+    ...(input.consentData ? { consentDataAt: now } : {}),
+    ...(input.consentMarketing ? { consentMarketingAt: now } : {}),
+    ...(emailTrim ? { email: emailTrim } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    ...(input.timezone ? { timezone: input.timezone } : {}),
+    ...(input.preferredLocale ? { preferredLocale: input.preferredLocale } : {}),
+  };
+
+  if (firstNameTrim) {
+    update.firstName = firstNameTrim;
+    update.lastName = lastNameTrim;
+    update.displayName = buildDisplayName(
+      firstNameTrim,
+      lastNameTrim,
+      normalized.phoneE164
+    );
+  }
+
+  const contact = await prisma.contact.update({
+    where: { id: existing.id },
+    data: update,
+  });
+
+  return { contact, phone: normalized, created: false };
+};
+
+const GENERIC_CONTACT_NAMES = new Set([
+  DEFAULT_CHECKOUT_FIRST_NAME,
+  "Pendiente",
+  "Cliente",
+]);
+
+/** Fill missing email or generic name from payment provider payer data. */
+export const enrichContactFromPayer = async (
+  contactId: string,
+  input: { email?: string; firstName?: string; lastName?: string }
+): Promise<void> => {
+  const contact = await prisma.contact.findUnique({ where: { id: contactId } });
+  if (!contact) return;
+
+  const update: Prisma.ContactUpdateInput = {};
+  const emailTrim = input.email?.trim().toLowerCase();
+  if (emailTrim && !contact.email) {
+    update.email = emailTrim;
+  }
+
+  const firstNameTrim = input.firstName?.trim();
+  const lastNameTrim = input.lastName?.trim();
+  const nameIsGeneric = GENERIC_CONTACT_NAMES.has(contact.firstName);
+
+  if (firstNameTrim && nameIsGeneric) {
+    update.firstName = firstNameTrim;
+    update.lastName = lastNameTrim ?? contact.lastName;
+    update.displayName = buildDisplayName(
+      firstNameTrim,
+      (lastNameTrim ?? contact.lastName) || null,
+      contact.phoneE164
+    );
+  }
+
+  if (Object.keys(update).length === 0) return;
+
+  await prisma.contact.update({
+    where: { id: contactId },
+    data: update,
+  });
 };
 
 export const getContactById = async (id: string) =>

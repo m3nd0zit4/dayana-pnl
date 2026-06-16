@@ -5,6 +5,8 @@ import {
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
 import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
+import { enrichContactFromPayer } from "@/lib/crm/contacts";
+import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
 import {
   assertEnrollmentPayable,
   assertPayPalCaptureAmount,
@@ -146,7 +148,18 @@ export async function POST(req: NextRequest) {
         amountMinor,
         rawPayload: result,
         paidAt: status === "COMPLETED" ? new Date() : undefined,
+        payerEmail: extractPayPalPayer(result).email,
       });
+
+      if (status === "COMPLETED") {
+        const enrollment = await prisma.enrollment.findUnique({
+          where: { id: enrollmentId },
+          select: { contactId: true },
+        });
+        if (enrollment) {
+          await enrichContactFromPayer(enrollment.contactId, extractPayPalPayer(result));
+        }
+      }
     }
 
     return NextResponse.json({

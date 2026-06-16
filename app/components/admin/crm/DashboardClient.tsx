@@ -70,6 +70,17 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           <StatCard label="Contactos" value={stats.contacts} />
         </div>
 
+        {stats.unlinkedPaidEnrollments > 0 && (
+          <Link
+            href="/admin/services?unlinked=1"
+            className="block rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15 transition-colors"
+          >
+            {stats.unlinkedPaidEnrollments} pago
+            {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
+            (legacy) — revisar en Servicios
+          </Link>
+        )}
+
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <CrmPaymentsChart data={paymentsByDay} />
           <CrmPipelineChart

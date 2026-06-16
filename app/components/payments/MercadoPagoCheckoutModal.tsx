@@ -5,6 +5,9 @@ import { createPortal } from "react-dom";
 import { WHATSAPP_NUMBER, buildWhatsAppUrl } from "../../../lib/contact";
 import { formatUsd, getPlan, type PlanId } from "../../../lib/plans";
 import { MercadoPagoBrandRow } from "./MercadoPagoBrandRow";
+import CheckoutContactStep, {
+  type CheckoutContactPayload,
+} from "./CheckoutContactStep";
 
 type MercadoPagoCheckoutModalProps = {
   planId: PlanId | null;
@@ -20,6 +23,7 @@ type Breakdown = {
 
 type UiState =
   | { kind: "idle" }
+  | { kind: "contact" }
   | { kind: "loading" }
   | { kind: "ready" }
   | { kind: "redirecting" }
@@ -48,12 +52,18 @@ const MercadoPagoCheckoutModal = ({
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
+  const [contactPayload, setContactPayload] = useState<CheckoutContactPayload | null>(
+    null
+  );
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) {
       setUi({ kind: "idle" });
       setBreakdown(null);
+      setContactPayload(null);
+    } else {
+      setUi({ kind: "contact" });
     }
   }, [open]);
 
@@ -87,7 +97,7 @@ const MercadoPagoCheckoutModal = ({
   }, [open, plan]);
 
   useEffect(() => {
-    if (!open || !plan) return;
+    if (!open || !plan || !contactPayload) return;
     let cancelled = false;
     setUi({ kind: "loading" });
     void fetch("/api/payments/quote", {
@@ -127,7 +137,7 @@ const MercadoPagoCheckoutModal = ({
     return () => {
       cancelled = true;
     };
-  }, [open, plan]);
+  }, [open, plan, contactPayload]);
 
   if (!open || !plan) return null;
   if (typeof document === "undefined") return null;
@@ -137,13 +147,17 @@ const MercadoPagoCheckoutModal = ({
   };
 
   const goToCheckout = async () => {
-    if (!plan) return;
+    if (!plan || !contactPayload) return;
     setUi({ kind: "redirecting" });
     try {
       const res = await fetch("/api/mercadopago/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: plan.id, mode: "full" }),
+        body: JSON.stringify({
+          planId: plan.id,
+          mode: "full",
+          ...contactPayload,
+        }),
       });
       const data = (await res.json()) as {
         init_point?: string;
@@ -250,6 +264,15 @@ const MercadoPagoCheckoutModal = ({
               </div>
             )}
           </div>
+
+          {ui.kind === "contact" && (
+            <CheckoutContactStep
+              submitLabel="Continuar al pago"
+              onSubmit={(payload) => {
+                setContactPayload(payload);
+              }}
+            />
+          )}
 
           {ui.kind === "loading" && (
             <div className="flex flex-col items-center py-8 gap-3">

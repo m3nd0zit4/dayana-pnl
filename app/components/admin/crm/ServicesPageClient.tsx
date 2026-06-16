@@ -32,6 +32,7 @@ type Props = {
   initialRows?: Enrollment[];
   initialStatus?: string;
   initialQ?: string;
+  initialUnlinked?: boolean;
 };
 
 const ServicesPageClient = ({
@@ -39,6 +40,7 @@ const ServicesPageClient = ({
   initialRows = [],
   initialStatus = "all",
   initialQ = "",
+  initialUnlinked = false,
 }: Props) => {
   const { canWrite, toast, confirm } = useCrm();
   const router = useRouter();
@@ -46,6 +48,9 @@ const ServicesPageClient = ({
   const [rows, setRows] = useState<Enrollment[]>(initialRows);
   const [status, setStatus] = useState(searchParams.get("status") ?? initialStatus);
   const [q, setQ] = useState(searchParams.get("q") ?? initialQ);
+  const [unlinked, setUnlinked] = useState(
+    searchParams.get("unlinked") === "1" || initialUnlinked
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<Enrollment | null>(null);
   const [loading, setLoading] = useState(!preview && initialRows.length === 0);
@@ -80,25 +85,32 @@ const ServicesPageClient = ({
     const params = new URLSearchParams();
     if (status !== "all") params.set("status", status);
     if (q.trim()) params.set("q", q.trim());
+    if (unlinked) params.set("unlinked", "1");
     fetch(`/api/admin/enrollments?${params}`)
       .then((r) => r.json())
       .then((enData) => setRows(enData.enrollments ?? []))
       .finally(() => setLoading(false));
-  }, [preview, status, q]);
+  }, [preview, status, q, unlinked]);
 
   useEffect(() => {
     const urlStatus = searchParams.get("status") ?? "all";
     const urlQ = searchParams.get("q") ?? "";
+    const urlUnlinked = searchParams.get("unlinked") === "1";
     setStatus(urlStatus);
     setQ(urlQ);
+    setUnlinked(urlUnlinked);
     if (preview) {
       load();
       return;
     }
-    if (urlStatus !== initialStatus || urlQ !== initialQ) {
+    if (
+      urlStatus !== initialStatus ||
+      urlQ !== initialQ ||
+      urlUnlinked !== initialUnlinked
+    ) {
       load();
     }
-  }, [searchParams, preview, load, initialStatus, initialQ]);
+  }, [searchParams, preview, load, initialStatus, initialQ, initialUnlinked]);
 
   const updateStatus = async (id: string, next: EnrollmentStatus) => {
     const prev = rows.find((r) => r.id === id);
@@ -145,6 +157,7 @@ const ServicesPageClient = ({
     const p = new URLSearchParams();
     if (status !== "all") p.set("status", status);
     if (q.trim()) p.set("q", q.trim());
+    if (unlinked) p.set("unlinked", "1");
     router.push(`/admin/services?${p}`);
   };
 
@@ -170,6 +183,13 @@ const ServicesPageClient = ({
             </button>
           )}
         </div>
+
+        {unlinked && (
+          <p className="crm-alert-warning text-sm">
+            Mostrando pagos aprobados con contacto placeholder (legacy). Abre cada
+            servicio para vincular el contacto real.
+          </p>
+        )}
 
         <form
           onSubmit={applyFilters}
@@ -200,6 +220,21 @@ const ServicesPageClient = ({
           </div>
           <button type="submit" className="crm-btn-secondary">
             Filtrar
+          </button>
+          <button
+            type="button"
+            className={`crm-btn-secondary ${unlinked ? "ring-2 ring-amber-400/60" : ""}`}
+            onClick={() => {
+              const next = !unlinked;
+              setUnlinked(next);
+              const p = new URLSearchParams();
+              if (status !== "all") p.set("status", status);
+              if (q.trim()) p.set("q", q.trim());
+              if (next) p.set("unlinked", "1");
+              router.push(`/admin/services?${p}`);
+            }}
+          >
+            Sin identificar
           </button>
         </form>
 

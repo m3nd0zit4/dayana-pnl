@@ -32,22 +32,24 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  Web[Landing_y_checkout] --> Lead[POST_leads_o_webhook]
-  Lead --> Contact[Contacto_en_DB]
-  Contact --> Enroll[Enrollment]
+  Web[Landing_checkout] --> ContactStep[Teléfono_y_consentimiento]
+  ContactStep --> Upsert[Upsert_contacto_E164]
+  Upsert --> Enroll[Enrollment_PENDING_PAYMENT]
   Enroll --> Pay[Pago_aprobado]
   Pay --> Active[Estado_ACTIVE]
+  Active --> CRM[Visible_en_Contactos_y_Servicios]
   Active --> Therapy[Terapias_y_sesiones]
-  Therapy --> WA[Plantilla_WhatsApp]
 ```
 
-1. **Web pública** — El cliente elige un plan en `#servicios`, paga con PayPal o Mercado Pago (o deja datos en `/pago/exito`).
-2. **Contactos** (`/admin/contacts`) — Aparece el contacto (teléfono E.164). Ábrelo y revisa pestañas **Resumen**, **Servicios**, **Pagos**.
-3. **Servicios** (`/admin/services`) — Verifica el enrollment (estado `PENDING_PAYMENT` → `ACTIVE` tras pago). Cambia estado desde el desplegable si hace falta.
-4. **Pagos** (`/admin/payments`) — Confirma el pago aprobado; enlaces a contacto y servicio.
-5. **Terapias** (`/admin/therapies`) — Si es terapia 1:1, aparece en la lista con próxima sesión.
-6. **Detalle del servicio** (`/admin/enrollments/[id]`) — Agendar sesiones, Meet, cuaderno clínico, marcar completada o no-show.
-7. **WhatsApp** — Botón **Abrir chat** en cada contacto (enlace directo). **Mensajes rápidos**: copiar texto y pegarlo tú misma en WhatsApp.
+1. **Web pública** — El cliente elige un plan en `#servicios`. Antes de PayPal o Mercado Pago debe indicar **teléfono** (obligatorio) y aceptar el tratamiento de datos; el nombre y correo son opcionales.
+2. **Vinculación automática** — El servidor hace upsert del contacto por teléfono E.164 (si ya existe, se reutiliza; si no, se crea). El enrollment y el pago quedan ligados a ese contacto desde el inicio.
+3. **Contactos** (`/admin/contacts`) — Aparece el contacto con teléfono real. Ábrelo y revisa pestañas **Resumen**, **Servicios**, **Pagos**.
+4. **Servicios** (`/admin/services`) — Verifica el enrollment (`PENDING_PAYMENT` → `ACTIVE` tras pago). Pagos legacy sin identificar: filtro **Sin identificar** o aviso en el dashboard.
+5. **Pagos** (`/admin/payments`) — Confirma el pago aprobado; enlaces a contacto y servicio.
+6. **Página de éxito** (`/pago/exito`) — Si el contacto ya está vinculado, solo muestra confirmación y WhatsApp; opcionalmente pide correo si falta. Pagos antiguos con placeholder pueden pedir teléfono para vincular manualmente.
+7. **Terapias** (`/admin/therapies`) — Si es terapia 1:1, aparece en la lista con próxima sesión.
+8. **Detalle del servicio** (`/admin/enrollments/[id]`) — Agendar sesiones, Meet, cuaderno clínico, marcar completada o no-show.
+9. **WhatsApp** — Botón **Abrir chat** en cada contacto (enlace directo). **Mensajes rápidos**: copiar texto y pegarlo tú misma en WhatsApp.
 
 ## 3. Cliente manual (sin pago web)
 
