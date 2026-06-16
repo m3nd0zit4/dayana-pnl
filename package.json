@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
@@ -15,7 +15,8 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "email:sample": "bun run scripts/send-example-email.ts",
-    "env:pull": "vercel env pull .env.local"
+    "env:pull": "vercel env pull .env.local",
+    "typecheck": "tsc --noEmit"
   },
   "prisma": {
     "seed": "bunx tsx prisma/seed.ts"
