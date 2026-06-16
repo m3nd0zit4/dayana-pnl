@@ -58,12 +58,6 @@ const productionSchema = z
     "NEXT_PUBLIC_PAYPAL_CLIENT_ID must match PAYPAL_CLIENT_ID"
   );
 
-const previewSchema = z.object({
-  AUTH_SECRET: nonEmpty.min(32).optional(),
-  DATABASE_URL: nonEmpty.optional(),
-  DIRECT_URL: nonEmpty.optional(),
-});
-
 let validated = false;
 
 export const validateServerEnv = (): void => {
@@ -85,14 +79,6 @@ export const validateServerEnv = (): void => {
   }
 
   if (shouldValidatePreviewEnv()) {
-    const partial = previewSchema.safeParse(process.env);
-    if (!partial.success) {
-      console.warn(
-        "[env] Preview environment warnings:",
-        partial.error.issues.map((i) => i.message).join("; ")
-      );
-    }
-
     const eventKey = process.env.INNGEST_EVENT_KEY?.trim();
     const signingKey = process.env.INNGEST_SIGNING_KEY?.trim();
     if (Boolean(eventKey) !== Boolean(signingKey)) {

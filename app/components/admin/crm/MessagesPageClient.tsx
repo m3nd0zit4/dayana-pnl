@@ -1,7 +1,7 @@
 "use client";
 
-import { Copy, Plus, Sparkles, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronDown, Copy, Plus, Sparkles, Trash2 } from "lucide-react";
+import { useEffect, useId, useState } from "react";
 import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
 import CrmPageShell from "./CrmPageShell";
 import { useCrm } from "./CrmProvider";
@@ -23,12 +23,105 @@ const VARIABLE_HINTS = [
   { token: "{{product_title}}", label: "producto" },
 ] as const;
 
+const MessageTemplateCard = ({
+  template,
+  expanded,
+  onToggle,
+  canManageTeam,
+  preview,
+  onCopy,
+  onEdit,
+  onRemove,
+}: {
+  template: Template;
+  expanded: boolean;
+  onToggle: () => void;
+  canManageTeam: boolean;
+  preview: boolean;
+  onCopy: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+}) => {
+  const bodyId = useId();
+
+  return (
+    <article className="crm-surface-card overflow-hidden">
+      <div className="flex items-start gap-2 p-4 sm:p-5">
+        <button
+          type="button"
+          className="mt-0.5 flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-lg text-[var(--crm-muted)] transition-colors hover:bg-black/[0.04] hover:text-[var(--crm-foreground)]"
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          aria-label={expanded ? "Ocultar texto" : "Ver texto"}
+          onClick={onToggle}
+        >
+          <ChevronDown
+            className={`size-4 transition-transform duration-200 ${
+              expanded ? "rotate-180" : ""
+            }`}
+            aria-hidden
+          />
+        </button>
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            className="w-full text-left"
+            aria-expanded={expanded}
+            aria-controls={bodyId}
+            onClick={onToggle}
+          >
+            <span className="text-sm font-semibold leading-snug">{template.title}</span>
+            {!expanded ? (
+              <span className="mt-1 block truncate text-xs text-[var(--crm-muted)]">
+                {template.body.replace(/\s+/g, " ").trim()}
+              </span>
+            ) : null}
+          </button>
+        </div>
+        <div className="flex shrink-0 flex-wrap justify-end gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            className="crm-btn-ghost inline-flex items-center gap-1 text-xs"
+            onClick={onCopy}
+          >
+            <Copy className="size-3.5" />
+            <span className="hidden sm:inline">Copiar</span>
+          </button>
+          {canManageTeam && !preview && (
+            <>
+              <button type="button" className="crm-btn-ghost text-xs" onClick={onEdit}>
+                Editar
+              </button>
+              <button
+                type="button"
+                className="crm-btn-ghost inline-flex items-center gap-1 text-xs text-red-700"
+                onClick={onRemove}
+              >
+                <Trash2 className="size-3.5" />
+                <span className="hidden sm:inline">Borrar</span>
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      {expanded ? (
+        <div id={bodyId} className="border-t border-[var(--crm-border)] px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--crm-muted)]">
+            {template.body}
+          </p>
+        </div>
+      ) : null}
+    </article>
+  );
+};
+
 const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [templates, setTemplates] = useState<Template[]>(initialTemplates ?? []);
   const [loading, setLoading] = useState(initialTemplates === undefined);
   const [editing, setEditing] = useState<Template | null>(null);
   const [form, setForm] = useState({ title: "", body: "" });
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set());
 
   const load = () => {
     if (preview) {
@@ -69,6 +162,15 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
     if (initialTemplates !== undefined) return;
     load();
   }, [preview, initialTemplates]);
+
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const copyBody = async (body: string) => {
     try {
@@ -132,6 +234,11 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
           return;
         }
         if (editing?.id === template.id) setEditing(null);
+        setExpandedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(template.id);
+          return next;
+        });
         toast("Mensaje eliminado");
         load();
       },
@@ -218,7 +325,7 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {loading && (
             <p className="text-sm text-[var(--crm-muted)]">Cargando…</p>
           )}
@@ -240,46 +347,20 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
             </div>
           )}
           {templates.map((t) => (
-            <article key={t.id} className="crm-surface-card p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-semibold">{t.title}</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="crm-btn-ghost inline-flex items-center gap-1 text-xs"
-                    onClick={() => void copyBody(t.body)}
-                  >
-                    <Copy className="size-3.5" />
-                    Copiar
-                  </button>
-                  {canManageTeam && !preview && (
-                    <>
-                      <button
-                        type="button"
-                        className="crm-btn-ghost text-xs"
-                        onClick={() => {
-                          setEditing(t);
-                          setForm({ title: t.title, body: t.body });
-                        }}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-btn-ghost inline-flex items-center gap-1 text-xs text-red-700"
-                        onClick={() => remove(t)}
-                      >
-                        <Trash2 className="size-3.5" />
-                        Borrar
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-[var(--crm-muted)]">
-                {t.body}
-              </p>
-            </article>
+            <MessageTemplateCard
+              key={t.id}
+              template={t}
+              expanded={expandedIds.has(t.id)}
+              onToggle={() => toggleExpanded(t.id)}
+              canManageTeam={canManageTeam}
+              preview={preview}
+              onCopy={() => void copyBody(t.body)}
+              onEdit={() => {
+                setEditing(t);
+                setForm({ title: t.title, body: t.body });
+              }}
+              onRemove={() => remove(t)}
+            />
           ))}
         </div>
       </div>

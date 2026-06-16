@@ -90,14 +90,23 @@ bun run db:studio
 
 Abre Prisma Studio en el navegador.
 
-## 7. Producción (Vercel u otro)
+## 7. Desarrollo aislado (local + rama `dev`)
+
+No uses la misma base que producción. Ver **[`docs/dev-environment.md`](dev-environment.md)**.
+
+Resumen:
+
+- **Producción:** base `neondb` en Neon → Vercel **Production** (`main`).
+- **Dev:** base `neondb_dev` → `.env` local y Vercel **Preview (dev)**. Sincronizar: `bun run env:pull`.
+
+## 8. Producción (Vercel u otro)
 
 1. Añade las env vars en el hosting (ver [`docs/proximos-pasos.md`](proximos-pasos.md) y [`docs/production-deploy.md`](production-deploy.md)).
-2. El build ejecuta `prisma migrate deploy` además de `prisma generate` (requiere `DIRECT_URL` en el entorno de **Build** de Vercel).
+2. El build ejecuta `prisma migrate deploy` además de `prisma generate` (requiere `DIRECT_URL` en el entorno de **Build** de Vercel — también en **Preview** si despliegas la rama `dev`).
 3. Ejecuta el seed **una vez** en producción (`bun run db:seed`) o crea el OWNER manualmente.
 4. **Nunca** uses `CRM_UI_PREVIEW=true` en producción.
 
-## 8. Checklist rápido
+## 9. Checklist rápido
 
 - [ ] `DIRECT_URL` y `DATABASE_URL` (pooler + `pgbouncer=true`) en `.env`
 - [ ] `AUTH_SECRET` generado
@@ -107,7 +116,7 @@ Abre Prisma Studio en el navegador.
 - [ ] Login en `/admin/sign-in` OK
 - [ ] Crear un contacto de prueba en `/admin/contacts`
 
-## 9. Modelo ↔ formularios del CRM
+## 10. Modelo ↔ formularios del CRM
 
 | Pantalla | Tabla(s) principal(es) |
 |----------|-------------------------|

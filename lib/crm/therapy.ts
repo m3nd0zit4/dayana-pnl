@@ -1,4 +1,4 @@
-import { EnrollmentStatus, TherapySessionStatus } from "@prisma/client";
+import { EnrollmentStatus, ProductKind, TherapySessionStatus } from "@prisma/client";
 import { prisma } from "../db";
 
 export const ensureTherapyPackage = async (
@@ -96,6 +96,79 @@ export const completeTherapySession = async (sessionId: string) => {
       },
     });
   }
+
+  return prisma.therapySession.findUnique({
+    where: { id: sessionId },
+    include: { therapyPackage: true },
+  });
+};
+
+export const uncompleteTherapySession = async (sessionId: string) => {
+  const session = await prisma.therapySession.findUnique({
+    where: { id: sessionId },
+    include: {
+      therapyPackage: {
+        include: { enrollment: { include: { product: true } } },
+      },
+    },
+  });
+  if (!session) throw new Error("SESSION_NOT_FOUND");
+  if (session.status !== TherapySessionStatus.COMPLETED) {
+    throw new Error("SESSION_NOT_COMPLETED");
+  }
+
+  const pkg = session.therapyPackage;
+  if (pkg.usedSessions <= 0) {
+    throw new Error("NO_USED_SESSIONS");
+  }
+
+  const enrollment = pkg.enrollment;
+  const revertingEnrollmentFromCompleted =
+    enrollment.status === EnrollmentStatus.COMPLETED;
+
+  if (
+    revertingEnrollmentFromCompleted &&
+    enrollment.product.kind === ProductKind.THERAPY
+  ) {
+    const otherActive = await prisma.enrollment.findFirst({
+      where: {
+        contactId: enrollment.contactId,
+        status: EnrollmentStatus.ACTIVE,
+        product: { kind: "THERAPY" },
+        id: { not: enrollment.id },
+      },
+    });
+    if (otherActive) {
+      throw new Error("ACTIVE_THERAPY_EXISTS");
+    }
+  }
+
+  const restoreStatus = session.scheduledAt
+    ? TherapySessionStatus.SCHEDULED
+    : TherapySessionStatus.PENDING_SCHEDULE;
+
+  await prisma.$transaction([
+    prisma.therapySession.update({
+      where: { id: sessionId },
+      data: {
+        status: restoreStatus,
+        completedAt: null,
+      },
+    }),
+    prisma.therapyPackage.update({
+      where: { id: pkg.id },
+      data: { usedSessions: { decrement: 1 } },
+    }),
+    prisma.enrollment.update({
+      where: { id: pkg.enrollmentId },
+      data: {
+        sessionsUsed: { decrement: 1 },
+        ...(revertingEnrollmentFromCompleted
+          ? { status: EnrollmentStatus.ACTIVE, completedAt: null }
+          : {}),
+      },
+    }),
+  ]);
 
   return prisma.therapySession.findUnique({
     where: { id: sessionId },

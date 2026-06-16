@@ -11,14 +11,29 @@ export type TherapyListRow = {
   status: string;
   sessionsUsed: number;
   sessionsTotal: number | null;
+  therapyPackageId: string | null;
+  meetDefaultUrl: string | null;
   nextSessionAt: string | null;
   nextSessionNumber: number | null;
+  schedulableSessionNumber: number | null;
 };
 
 const mapEnrollment = (
   e: Awaited<ReturnType<typeof fetchTherapyEnrollments>>[number]
 ): TherapyListRow => {
-  const nextSession = e.therapyPackage?.sessions[0] ?? null;
+  const sessions = e.therapyPackage?.sessions ?? [];
+  const nextScheduled = sessions
+    .filter(
+      (s) =>
+        s.scheduledAt &&
+        (s.status === "SCHEDULED" || s.status === "RESCHEDULED")
+    )
+    .sort(
+      (a, b) =>
+        (a.scheduledAt?.getTime() ?? 0) - (b.scheduledAt?.getTime() ?? 0)
+    )[0];
+  const nextIncomplete = sessions.find((s) => s.status !== "COMPLETED");
+
   return {
     enrollmentId: e.id,
     contactId: e.contact.id,
@@ -29,8 +44,12 @@ const mapEnrollment = (
     status: e.status,
     sessionsUsed: e.sessionsUsed,
     sessionsTotal: e.sessionsTotal,
-    nextSessionAt: nextSession?.scheduledAt?.toISOString() ?? null,
-    nextSessionNumber: nextSession?.sessionNumber ?? null,
+    therapyPackageId: e.therapyPackage?.id ?? null,
+    meetDefaultUrl: e.therapyPackage?.meetDefaultUrl ?? null,
+    nextSessionAt: nextScheduled?.scheduledAt?.toISOString() ?? null,
+    nextSessionNumber: nextScheduled?.sessionNumber ?? null,
+    schedulableSessionNumber:
+      nextScheduled?.sessionNumber ?? nextIncomplete?.sessionNumber ?? null,
   };
 };
 
@@ -55,12 +74,12 @@ const fetchTherapyEnrollments = (statuses: EnrollmentStatus[]) =>
       therapyPackage: {
         include: {
           sessions: {
-            where: {
-              status: "SCHEDULED",
-              scheduledAt: { not: null },
+            orderBy: { sessionNumber: "asc" },
+            select: {
+              sessionNumber: true,
+              status: true,
+              scheduledAt: true,
             },
-            orderBy: { scheduledAt: "asc" },
-            take: 1,
           },
         },
       },

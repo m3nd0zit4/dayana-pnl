@@ -6,9 +6,17 @@ Pasos manuales en dashboards (el código valida env al arrancar en Vercel Produc
 
 ### 1. Neon PostgreSQL
 
-- `DATABASE_URL` → host **pooler**, `?pgbouncer=true&connection_limit=1`
-- `DIRECT_URL` → host **directo**, puerto 5432
-- Añade **ambas** en Vercel → Environment Variables → **Production** y marca **Build** para `DIRECT_URL`
+- **Production:** `neondb` → Vercel **Production** (`main`)
+- **Preview / dev:** `neondb_dev` → Vercel **Preview** (rama `dev`) y `.env` local
+
+| Variable | Production | Preview (dev) |
+|----------|------------|---------------|
+| `DATABASE_URL` | pooler → `/neondb` | pooler → `/neondb_dev` |
+| `DIRECT_URL` | directa → `/neondb` | directa → `/neondb_dev` |
+
+Marca **Build** para `DIRECT_URL` en ambos entornos (necesario para `prisma migrate deploy` en el build).
+
+Ver [`docs/dev-environment.md`](dev-environment.md) para crear `neondb_dev` y variables locales.
 
 ### 2. Vercel — env vars Production
 

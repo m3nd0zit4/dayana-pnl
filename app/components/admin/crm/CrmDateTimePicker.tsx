@@ -14,10 +14,11 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import {
   formatDateTimeShortEs,
-  HOUR_OPTIONS,
+  HOUR_OPTIONS_12,
   MINUTE_OPTIONS,
-  pad2,
   parseDateTimeLocal,
+  to12Hour,
+  to24Hour,
   toDateTimeLocal,
 } from "@/lib/crm/datetime-local";
 
@@ -26,6 +27,7 @@ type PanelPosition = {
   top?: number;
   bottom?: number;
   width: number;
+  maxHeight: number;
 };
 
 type Props = {
@@ -46,7 +48,7 @@ const CrmDateTimePicker = ({
   onChange,
   disabled = false,
   className = "",
-  placeholder = "dd/mm/aaaa, hh:mm",
+  placeholder = "dd/mm/aaaa, hh:mm a. m.",
 }: Props) => {
   const autoId = useId();
   const id = idProp ?? autoId;
@@ -75,15 +77,18 @@ const CrmDateTimePicker = ({
     if (!trigger) return;
 
     const rect = trigger.getBoundingClientRect();
-    const panelHeight = 320;
-    const spaceBelow = window.innerHeight - rect.bottom - PANEL_GAP;
-    const spaceAbove = rect.top - PANEL_GAP;
-    const openUp = spaceBelow < panelHeight && spaceAbove > spaceBelow;
-    const width = Math.min(Math.max(rect.width, 300), 360);
+    const viewportMargin = 12;
+    const spaceBelow = window.innerHeight - rect.bottom - PANEL_GAP - viewportMargin;
+    const spaceAbove = rect.top - PANEL_GAP - viewportMargin;
+    const openUp = spaceBelow < 360 && spaceAbove > spaceBelow;
+    const available = Math.max(220, openUp ? spaceAbove : spaceBelow);
+    const maxHeight = Math.min(520, available);
+    const width = Math.min(Math.max(rect.width, 400), 440);
 
     setPosition({
       left: Math.min(rect.left, window.innerWidth - width - 8),
       width,
+      maxHeight,
       ...(openUp
         ? { bottom: window.innerHeight - rect.top + PANEL_GAP }
         : { top: rect.bottom + PANEL_GAP }),
@@ -140,9 +145,18 @@ const CrmDateTimePicker = ({
     emit(next, hour, minute);
   };
 
-  const pickHour = (h: number) => {
-    setHour(h);
-    emit(date, h, minute);
+  const pickHour12 = (h12: number) => {
+    const { period } = to12Hour(hour);
+    const h24 = to24Hour(h12, period);
+    setHour(h24);
+    emit(date, h24, minute);
+  };
+
+  const pickPeriod = (period: "AM" | "PM") => {
+    const { hour12 } = to12Hour(hour);
+    const h24 = to24Hour(hour12, period);
+    setHour(h24);
+    emit(date, h24, minute);
   };
 
   const pickMinute = (m: number) => {
@@ -166,6 +180,8 @@ const CrmDateTimePicker = ({
     setOpen(false);
   };
 
+  const { hour12, period } = to12Hour(hour);
+
   const panel =
     open && position ? (
       <div
@@ -177,12 +193,13 @@ const CrmDateTimePicker = ({
           position: "fixed",
           left: position.left,
           width: position.width,
+          maxHeight: position.maxHeight,
           top: position.top,
           bottom: position.bottom,
           zIndex: PANEL_Z,
         }}
       >
-        <div className="crm-datetime-popover-body">
+        <div className="crm-datetime-popover-body" data-lenis-prevent>
           <div className="crm-datetime-popover-calendar">
             <Calendar
               className="crm-calendar crm-datetime-calendar"
@@ -206,14 +223,14 @@ const CrmDateTimePicker = ({
               <select
                 id={`${id}-hour`}
                 className="crm-datetime-time-select"
-                value={hour}
+                value={hour12}
                 disabled={disabled}
                 aria-label="Hora"
-                onChange={(e) => pickHour(Number(e.target.value))}
+                onChange={(e) => pickHour12(Number(e.target.value))}
               >
-                {HOUR_OPTIONS.map((h) => (
+                {HOUR_OPTIONS_12.map((h) => (
                   <option key={h} value={h}>
-                    {pad2(h)}
+                    {h}
                   </option>
                 ))}
               </select>
@@ -230,12 +247,22 @@ const CrmDateTimePicker = ({
               >
                 {MINUTE_OPTIONS.map((m) => (
                   <option key={m} value={m}>
-                    {pad2(m)}
+                    {String(m).padStart(2, "0")}
                   </option>
                 ))}
               </select>
+              <select
+                id={`${id}-period`}
+                className="crm-datetime-time-select crm-datetime-period-select"
+                value={period}
+                disabled={disabled}
+                aria-label="a. m. o p. m."
+                onChange={(e) => pickPeriod(e.target.value as "AM" | "PM")}
+              >
+                <option value="AM">a. m.</option>
+                <option value="PM">p. m.</option>
+              </select>
             </div>
-            <p className="crm-datetime-time-hint">24 h</p>
           </div>
         </div>
         <div className="crm-datetime-popover-footer">

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, RefreshCw } from "lucide-react";
+import { Calendar, ChevronRight, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import type { TherapyListRow } from "@/lib/crm/therapies-list";
+import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
@@ -143,6 +144,17 @@ const TherapiesPageClient = ({
                         }}
                       />
                     </div>
+                  )}
+                  {tab === "active" && row.nextSessionAt && (
+                    <p className="mt-2 inline-flex items-center gap-1 text-xs text-[var(--crm-foreground)]">
+                      <Calendar className="size-3.5 text-[var(--crm-muted)]" aria-hidden />
+                      Próxima: {formatSessionDateTimeEs(row.nextSessionAt, row.timezone)}
+                      {row.nextSessionNumber != null ? (
+                        <span className="text-[var(--crm-muted)]">
+                          · sesión {row.nextSessionNumber}
+                        </span>
+                      ) : null}
+                    </p>
                   )}
                   {tab === "lead" && (
                     <p className="mt-2 text-xs text-amber-800">
