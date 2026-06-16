@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
 
   try {
     const blob = await put(path, file, {
-      access: "public",
+      access: "private",
       contentType: mime,
     });
 

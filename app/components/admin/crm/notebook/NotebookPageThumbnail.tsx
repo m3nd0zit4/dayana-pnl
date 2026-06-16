@@ -1,7 +1,6 @@
 "use client";
 
 import { FileText, ImageIcon } from "lucide-react";
-import { useEffect, useState } from "react";
 import type { NotebookPageKind } from "@prisma/client";
 
 type Props = {
@@ -19,34 +18,15 @@ const NotebookPageThumbnail = ({
   previewUrl,
   attachmentMime,
 }: Props) => {
-  const [url, setUrl] = useState<string | null>(null);
+  const previewSrc = previewUrl
+    ? `/api/admin/contacts/${contactId}/notebook/pages/${pageId}/attachment?type=preview`
+    : null;
 
-  useEffect(() => {
-    if (!previewUrl) {
-      setUrl(null);
-      return;
-    }
-    let cancelled = false;
-    void fetch(
-      `/api/admin/contacts/${contactId}/notebook/pages/${pageId}/attachment?type=preview`
-    )
-      .then((r) => r.json())
-      .then((d: { url?: string }) => {
-        if (!cancelled && d.url) setUrl(d.url);
-      })
-      .catch(() => {
-        if (!cancelled) setUrl(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [contactId, pageId, previewUrl]);
-
-  if (url) {
+  if (previewSrc) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={url}
+        src={previewSrc}
         alt=""
         className="crm-notebook-thumb-img"
         loading="lazy"
