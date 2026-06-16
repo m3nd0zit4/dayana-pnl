@@ -38,7 +38,7 @@ export async function GET(req: NextRequest, ctx: RouteCtx) {
     : "public";
 
   const result = await get(blobUrl, { access });
-  if (!result?.stream) {
+  if (!result || result.statusCode !== 200 || !result.stream) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 

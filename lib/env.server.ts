@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { assertInngestKeysPaired } from "@/lib/inngest/config";
-import { ensurePrismaDatabaseEnv } from "@/lib/env/prisma-database";
 
 const isDev = () => process.env.NODE_ENV === "development";
 const isVercelProduction = () => process.env.VERCEL_ENV === "production";
@@ -59,12 +58,6 @@ const productionSchema = z
     "NEXT_PUBLIC_PAYPAL_CLIENT_ID must match PAYPAL_CLIENT_ID"
   );
 
-const previewSchema = z.object({
-  AUTH_SECRET: nonEmpty.min(32).optional(),
-  DATABASE_URL: nonEmpty,
-  DIRECT_URL: nonEmpty.optional(),
-});
-
 let validated = false;
 
 export const validateServerEnv = (): void => {
@@ -86,23 +79,6 @@ export const validateServerEnv = (): void => {
   }
 
   if (shouldValidatePreviewEnv()) {
-    try {
-      ensurePrismaDatabaseEnv();
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      throw new Error(`[env] Preview environment validation failed:\n${message}`);
-    }
-
-    const partial = previewSchema.safeParse(process.env);
-    if (!partial.success) {
-      const details = partial.error.issues
-        .map((i) => `${i.path.join(".")}: ${i.message}`)
-        .join("\n");
-      throw new Error(
-        `[env] Preview environment validation failed:\n${details}`
-      );
-    }
-
     const eventKey = process.env.INNGEST_EVENT_KEY?.trim();
     const signingKey = process.env.INNGEST_SIGNING_KEY?.trim();
     if (Boolean(eventKey) !== Boolean(signingKey)) {

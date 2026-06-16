@@ -42,15 +42,13 @@ npx prisma migrate status   # muestra database "neondb_dev" o "neondb"
 
 ## Vercel Preview (rama `dev`)
 
-Variables obligatorias en **Preview (dev)**:
+Variables obligatorias en **Preview**:
 
-| Variable | Valor |
-|----------|--------|
-| `DATABASE_URL` | pooler → `/neondb_dev` |
-| `DIRECT_URL` | directa → `/neondb_dev` (también en **Build**) |
+| Variable | Valor dev |
+|----------|-----------|
+| `DATABASE_URL` | pooler → `/neondb_dev` (**Build** + Runtime) |
+| `DIRECT_URL` | directa → `/neondb_dev` (**Build** + Runtime) |
 | `AUTH_SECRET` | login staff |
-
-Si el build falla con `DIRECT_URL not found`, asegura `DATABASE_URL` en Vercel Preview (rama `dev`) con **Build** habilitado. El script de build deriva `DIRECT_URL` del pooler si falta.
 
 ## Inngest en local
 
@@ -72,4 +70,4 @@ npx inngest-cli@latest dev -u http://localhost:3000/api/inngest
 
 **Datos de prod en local:** `.env` aún apunta a `/neondb`. Cambia a `neondb_dev` o `bun run env:pull`.
 
-**Build Preview falla:** falta `DIRECT_URL` en Vercel Preview (dev).
+**Build Preview falla:** falta `DATABASE_URL` o `DIRECT_URL` en Vercel Preview (Build habilitado).
