@@ -44,11 +44,32 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
+  const pendingEnrollmentIdRef = useRef<string | undefined>(undefined);
+  const checkoutSucceededRef = useRef(false);
+
+  const abandonPendingCheckout = () => {
+    const id = pendingEnrollmentIdRef.current;
+    if (!id) return;
+    pendingEnrollmentIdRef.current = undefined;
+    void fetch("/api/checkout/abandon", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ enrollmentId: id }),
+      keepalive: true,
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     if (!open) {
       setUi({ kind: "idle" });
       setBreakdown(null);
+      if (!checkoutSucceededRef.current) {
+        abandonPendingCheckout();
+      }
+      checkoutSucceededRef.current = false;
+    } else {
+      checkoutSucceededRef.current = false;
+      pendingEnrollmentIdRef.current = undefined;
     }
   }, [open]);
 
@@ -190,6 +211,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               setBreakdown(data.breakdown);
             }
             enrollmentIdRef = data.enrollmentId;
+            pendingEnrollmentIdRef.current = data.enrollmentId;
             return data.orderID;
           },
           onApprove: async (data) => {
@@ -210,6 +232,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               );
             }
             await teardownButtons();
+            checkoutSucceededRef.current = true;
+            pendingEnrollmentIdRef.current = undefined;
             if (!cancelled) {
               setUi({
                 kind: "success",
@@ -223,6 +247,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             console.error(err);
             if (!cancelled) {
               void teardownButtons();
+              abandonPendingCheckout();
               setUi({
                 kind: "error",
                 message:
@@ -232,6 +257,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           },
           onCancel: async () => {
             await teardownButtons();
+            abandonPendingCheckout();
             if (!cancelled) {
               setUi({
                 kind: "error",

@@ -5,6 +5,7 @@ import {
   WHATSAPP_NUMBER,
   buildWhatsAppUrl,
 } from "../../../lib/contact";
+import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 
 export const metadata: Metadata = {
   title: `Pago cancelado — ${BRAND.name}`,
@@ -12,9 +13,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const Page = () => {
+type PageProps = {
+  searchParams: Promise<{ enrollmentId?: string }>;
+};
+
+const Page = async ({ searchParams }: PageProps) => {
+  const params = await searchParams;
+  const enrollmentId = params.enrollmentId;
+
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
+      <CheckoutAbandonCleanup enrollmentId={enrollmentId} />
       <div
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none opacity-80"

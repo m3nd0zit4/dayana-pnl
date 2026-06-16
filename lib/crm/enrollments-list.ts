@@ -1,5 +1,6 @@
 import { EnrollmentStatus, type Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { PLACEHOLDER_PHONE_PREFIX } from "./checkout-placeholder";
 
 export type EnrollmentListFilters = {
   status?: string;
@@ -12,7 +13,9 @@ export const listEnrollmentsAdmin = async (filters: EnrollmentListFilters = {}) 
   const q = filters.q?.trim() ?? "";
   const limit = filters.limit ?? 100;
 
-  const where: Prisma.EnrollmentWhereInput = {};
+  const where: Prisma.EnrollmentWhereInput = {
+    NOT: { contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } },
+  };
   if (filters.status && filters.status !== "all") {
     where.status = filters.status as EnrollmentStatus;
   }

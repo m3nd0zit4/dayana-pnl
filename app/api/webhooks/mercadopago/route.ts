@@ -83,14 +83,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, enrollment_not_found: true });
     }
 
-    const approved = payment.status === "approved";
+    const mpStatus = payment.status ?? "";
+    const approved = mpStatus === "approved";
+    const failed =
+      mpStatus === "rejected" ||
+      mpStatus === "cancelled" ||
+      mpStatus === "charged_back";
     const amountMinor = Math.round((payment.transaction_amount ?? 0) * 100);
 
     await recordPayment({
       enrollmentId,
       provider: PaymentProvider.MERCADO_PAGO,
       providerPaymentId: String(payment.id ?? paymentId),
-      status: approved ? PaymentStatus.APPROVED : PaymentStatus.PENDING,
+      status: approved
+        ? PaymentStatus.APPROVED
+        : failed
+          ? PaymentStatus.FAILED
+          : PaymentStatus.PENDING,
       currency: payment.currency_id ?? "USD",
       amountMinor,
       payerEmail: payment.payer?.email,

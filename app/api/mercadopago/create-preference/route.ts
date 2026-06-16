@@ -6,6 +6,7 @@ import {
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
 import {
   assertEnrollmentPayable,
   enrollmentPaymentErrorStatus,
@@ -57,6 +58,7 @@ export async function POST(req: Request) {
   }
 
   let enrollmentId = body.enrollmentId?.trim();
+  const createdEnrollmentThisRequest = !enrollmentId;
   try {
     if (enrollmentId) {
       await assertEnrollmentPayable(enrollmentId, planId);
@@ -110,13 +112,14 @@ export async function POST(req: Request) {
   }
 
   const successUrl = `${base}/pago/exito?enrollmentId=${encodeURIComponent(enrollmentId)}`;
+  const cancelUrl = `${base}/pago/cancelado?enrollmentId=${encodeURIComponent(enrollmentId)}`;
 
   const preferenceBody: Record<string, unknown> = {
     items,
     external_reference: enrollmentId,
     back_urls: {
       success: successUrl,
-      failure: `${base}/pago/cancelado`,
+      failure: cancelUrl,
       pending: successUrl,
     },
     statement_descriptor: "DAYANA PNL",
@@ -146,6 +149,9 @@ export async function POST(req: Request) {
     };
 
     if (!res.ok) {
+      if (createdEnrollmentThisRequest) {
+        await abandonCheckoutEnrollment(enrollmentId);
+      }
       console.error("[mercadopago] preference failed", res.status, data);
       return NextResponse.json(
         { error: "preference_failed", detail: data.message },
@@ -160,11 +166,17 @@ export async function POST(req: Request) {
         : data.init_point;
 
     if (!init_point) {
+      if (createdEnrollmentThisRequest) {
+        await abandonCheckoutEnrollment(enrollmentId);
+      }
       return NextResponse.json({ error: "no_init_point" }, { status: 502 });
     }
 
     return NextResponse.json({ init_point, mode, enrollmentId });
   } catch (e) {
+    if (createdEnrollmentThisRequest && enrollmentId) {
+      await abandonCheckoutEnrollment(enrollmentId);
+    }
     const message = e instanceof Error ? e.message : String(e);
     console.error("[mercadopago] preference exception", message);
     return NextResponse.json({ error: "network" }, { status: 502 });

@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import ContactDetailClient from "@/app/components/admin/ContactDetailClient";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import { getContactById } from "@/lib/crm/contacts";
+import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import { getActiveProducts } from "@/lib/crm/products";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 
@@ -35,6 +36,9 @@ const ContactDetailPage = async ({ params }: Props) => {
   }
 
   if (!contact) notFound();
+  if (isPlaceholderContactPhone(contact.phoneE164)) {
+    redirect("/admin/contacts");
+  }
 
   return (
     <CrmPageShell>
