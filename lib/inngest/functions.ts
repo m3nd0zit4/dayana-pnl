@@ -15,6 +15,7 @@ import {
 } from "../notifications/campaigns";
 import { sendPaymentConfirmation } from "../notifications/payment-confirmation";
 import { renderQuickMessage } from "../crm/render-message";
+import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 
 export const paymentApprovedFn = inngest.createFunction(
   { id: "payment-approved" },
@@ -175,9 +176,21 @@ export const campaignBroadcastFn = inngest.createFunction(
   }
 );
 
+export const staleCheckoutCleanupFn = inngest.createFunction(
+  { id: "stale-checkout-cleanup" },
+  { cron: "0 5 * * *" },
+  async ({ step }) => {
+    const abandoned = await step.run("abandon-stale-checkouts", () =>
+      abandonStalePlaceholderCheckouts()
+    );
+    return { abandoned };
+  }
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
   leadStaleFn,
   campaignBroadcastFn,
+  staleCheckoutCleanupFn,
 ];

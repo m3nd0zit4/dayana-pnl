@@ -74,6 +74,10 @@ export async function POST(req: NextRequest) {
   const approved =
     capture.status === "COMPLETED" ||
     resource?.status === "COMPLETED";
+  const failed =
+    capture.status === "DECLINED" ||
+    capture.status === "FAILED" ||
+    resource?.status === "VOIDED";
 
   const amountValue = Number(capture.amount?.value ?? 0);
   const amountMinor = Math.round(amountValue * 100);
@@ -84,7 +88,11 @@ export async function POST(req: NextRequest) {
       provider: PaymentProvider.PAYPAL,
       providerPaymentId: capture.id,
       providerOrderId: resource?.id,
-      status: approved ? PaymentStatus.APPROVED : PaymentStatus.PENDING,
+      status: approved
+        ? PaymentStatus.APPROVED
+        : failed
+          ? PaymentStatus.FAILED
+          : PaymentStatus.PENDING,
       currency: capture.amount?.currency_code ?? "USD",
       amountMinor,
       rawPayload: payload,

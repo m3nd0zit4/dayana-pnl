@@ -7,6 +7,7 @@ import {
 } from "../../../lib/contact";
 import { formatUsd, getPlan, isPlanId } from "../../../lib/plans";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
+import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,14 @@ const Page = async ({ searchParams }: PageProps) => {
     result.status === "processing" || result.status === "pending";
   const isFailed = result.status === "failed";
 
+  const failedEnrollmentId =
+    isFailed
+      ? (params.enrollmentId ??
+          (params.external_reference && !isPlanId(params.external_reference)
+            ? params.external_reference
+            : undefined))
+      : undefined;
+
   const heading = isSuccess
     ? "Pago confirmado"
     : isProcessing
@@ -167,6 +176,9 @@ const Page = async ({ searchParams }: PageProps) => {
 
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
+      {failedEnrollmentId ? (
+        <CheckoutAbandonCleanup enrollmentId={failedEnrollmentId} />
+      ) : null}
       <div
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none opacity-80"

@@ -4,6 +4,10 @@ import {
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "../db";
+import {
+  isPlaceholderContactPhone,
+  PLACEHOLDER_PHONE_PREFIX,
+} from "./checkout-placeholder";
 import { getProduct, productSessionsTotal } from "./products";
 import { ensureTherapyPackage } from "./therapy";
 
@@ -113,7 +117,7 @@ export const createPendingPaymentEnrollment = async (input: {
   if (!contactId) {
     const placeholder = await prisma.contact.create({
       data: {
-        phoneE164: `+pending${Date.now()}${Math.floor(Math.random() * 1000)}`,
+        phoneE164: `${PLACEHOLDER_PHONE_PREFIX}${Date.now()}${Math.floor(Math.random() * 1000)}`,
         firstName: "Pendiente",
         source: "WEB",
         notes: "Contacto temporal hasta completar datos post-pago",
@@ -209,7 +213,7 @@ export const attachContactToEnrollment = async (
   });
   if (!enrollment) return null;
 
-  if (enrollment.contact.phoneE164.startsWith("+pending")) {
+  if (isPlaceholderContactPhone(enrollment.contact.phoneE164)) {
     await prisma.contact.delete({ where: { id: enrollment.contactId } }).catch(() => {});
   }
 

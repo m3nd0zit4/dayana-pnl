@@ -1,5 +1,6 @@
 import { EnrollmentStatus, type ContactSource, type Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { PLACEHOLDER_PHONE_PREFIX } from "./checkout-placeholder";
 import { normalizePhone, type NormalizedPhone } from "../phone";
 
 export type UpsertContactInput = {
@@ -107,7 +108,9 @@ export type ContactLightRow = {
 
 const buildContactWhere = (filters: ContactSearchFilters): Prisma.ContactWhereInput => {
   const q = (filters.q ?? "").trim();
-  const and: Prisma.ContactWhereInput[] = [];
+  const and: Prisma.ContactWhereInput[] = [
+    { NOT: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } },
+  ];
 
   if (q) {
     const digits = q.replace(/\D/g, "");
@@ -196,6 +199,7 @@ export const searchContactsLight = async (
 
 export const listContactsLight = async (limit = 200) =>
   prisma.contact.findMany({
+    where: { NOT: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } },
     orderBy: { firstName: "asc" },
     take: limit,
     select: {

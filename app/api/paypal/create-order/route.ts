@@ -7,6 +7,7 @@ import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import { createPendingPaymentEnrollment } from "@/lib/crm/enrollments";
+import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
 import {
   assertEnrollmentPayable,
   enrollmentPaymentErrorStatus,
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
 
   let enrollmentId =
     typeof body.enrollmentId === "string" ? body.enrollmentId.trim() : undefined;
+  const createdEnrollmentThisRequest = !enrollmentId;
 
   try {
     if (enrollmentId) {
@@ -119,6 +121,9 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
+    if (createdEnrollmentThisRequest && enrollmentId) {
+      await abandonCheckoutEnrollment(enrollmentId);
+    }
     const message =
       error instanceof Error ? error.message : "Error desconocido";
     console.error("[paypal] create-order failed", message);

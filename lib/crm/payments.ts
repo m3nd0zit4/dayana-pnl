@@ -4,6 +4,7 @@ import {
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "../db";
+import { abandonCheckoutEnrollment } from "./checkout-placeholder";
 import { markEnrollmentPaid } from "./enrollments";
 
 export type RecordPaymentInput = {
@@ -66,6 +67,8 @@ export const recordPayment = async (
 
     const { emitPaymentApproved } = await import("../inngest/events");
     await emitPaymentApproved(input.enrollmentId);
+  } else if (input.status === PaymentStatus.FAILED) {
+    await abandonCheckoutEnrollment(input.enrollmentId);
   }
 
   return payment;
