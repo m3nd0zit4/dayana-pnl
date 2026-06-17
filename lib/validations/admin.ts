@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+export const deleteContactSchema = z.object({
+  phoneConfirm: z.string().min(6).max(30),
+});
+
 export const createStaffSchema = z.object({
   email: z.string().email().max(200),
   password: z.string().min(12).max(200),

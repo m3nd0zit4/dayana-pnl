@@ -6,6 +6,7 @@ import { ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import ContactEditForm from "@/app/components/admin/crm/ContactEditForm";
+import DeleteContactDialog from "@/app/components/admin/crm/DeleteContactDialog";
 import QuickMessagesPanel from "@/app/components/admin/crm/QuickMessagesPanel";
 import WhatsAppContactBlock from "@/app/components/admin/crm/WhatsAppContactBlock";
 import ContactNotesPanel from "@/app/components/admin/crm/ContactNotesPanel";
@@ -99,6 +100,9 @@ const ContactDetailClient = ({
   const [productId, setProductId] = useState(flatProducts[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [paymentEnrollment, setPaymentEnrollment] = useState<Enrollment | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [notebookMounted, setNotebookMounted] = useState(
     () =>
       searchParams.get("tab") === "notas" || searchParams.get("focus") === "1"
@@ -218,6 +222,30 @@ const ContactDetailClient = ({
     }
   };
 
+  const deleteContact = async (phoneConfirm: string) => {
+    setDeleteBusy(true);
+    setDeleteError(null);
+    const res = await fetch(`/api/admin/contacts/${contact.id}`, {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phoneConfirm }),
+    });
+    setDeleteBusy(false);
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    if (!res.ok) {
+      setDeleteError(
+        data.error === "phone_mismatch"
+          ? "El teléfono no coincide. Escribe exactamente el número mostrado."
+          : "No se pudo eliminar el contacto"
+      );
+      return;
+    }
+    toast("Contacto eliminado");
+    setDeleteOpen(false);
+    router.push("/admin/contacts");
+    router.refresh();
+  };
+
   const allPayments = contact.enrollments.flatMap((en) =>
     en.payments.map((p) => ({
       ...p,
@@ -293,6 +321,26 @@ const ContactDetailClient = ({
           <section className="crm-surface-card p-4">
             <QuickMessagesPanel vars={messageVars} />
           </section>
+          {canWrite && (
+            <section className="crm-surface-card border border-red-200/80 p-4">
+              <h2 className="text-sm font-semibold text-[var(--crm-danger)]">
+                Zona de riesgo
+              </h2>
+              <p className="mt-1 text-sm text-[var(--crm-muted)]">
+                Elimina este contacto y todos sus datos del CRM.
+              </p>
+              <button
+                type="button"
+                className="crm-btn-danger mt-3"
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeleteOpen(true);
+                }}
+              >
+                Eliminar contacto…
+              </button>
+            </section>
+          )}
         </>
       )}
 
@@ -451,6 +499,18 @@ const ContactDetailClient = ({
           onSuccess={() => router.refresh()}
         />
       )}
+
+      <DeleteContactDialog
+        open={deleteOpen}
+        contactName={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
+        phoneE164={contact.phoneE164}
+        busy={deleteBusy}
+        error={deleteError}
+        onClose={() => {
+          if (!deleteBusy) setDeleteOpen(false);
+        }}
+        onConfirm={deleteContact}
+      />
     </div>
   );
 };

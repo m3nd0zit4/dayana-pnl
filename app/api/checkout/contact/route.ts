@@ -4,8 +4,6 @@ import {
   mapCheckoutBeginError,
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
-import { isPlanId } from "@/lib/plans";
-import { isActivePlanId } from "@/lib/plans-from-db";
 import {
   clientIp,
   rateLimitDistributed,
@@ -20,7 +18,7 @@ type Body = CheckoutContactBody & {
 
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
-  const rl = await rateLimitDistributed(`checkout:${ip}`, 60, 60_000);
+  const rl = await rateLimitDistributed(`checkout:contact:${ip}`, 60, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
@@ -32,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  if (!body.planId || !isPlanId(body.planId) || !(await isActivePlanId(body.planId))) {
+  if (!body.planId?.trim()) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
@@ -49,14 +47,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      contactId,
-      contactCreated,
-      productId: body.planId,
-    });
+    return NextResponse.json({ contactId, contactCreated, productId: body.planId });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
-    console.error("[checkout/enrollment]", e);
+    console.error("[checkout/contact]", e);
     return NextResponse.json(
       { error: mapped.error, message: mapped.message },
       { status: mapped.status }

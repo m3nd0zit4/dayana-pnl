@@ -65,22 +65,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
-  const pendingEnrollmentIdRef = useRef<string | undefined>(undefined);
   const checkoutSucceededRef = useRef(false);
   const paypalFlowActiveRef = useRef(false);
-  const orderCreatedRef = useRef(false);
-
-  const abandonPendingCheckout = useCallback(() => {
-    const id = pendingEnrollmentIdRef.current;
-    if (!id) return;
-    pendingEnrollmentIdRef.current = undefined;
-    void fetch("/api/checkout/abandon", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ enrollmentId: id }),
-      keepalive: true,
-    }).catch(() => {});
-  }, []);
 
   const requestClose = useCallback(() => {
     if (paypalFlowActiveRef.current) {
@@ -97,7 +83,6 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
 
   const retryPayPalButtons = useCallback(() => {
     paypalFlowActiveRef.current = false;
-    orderCreatedRef.current = Boolean(pendingEnrollmentIdRef.current);
     setUi({ kind: "loading" });
     setButtonsEpoch((n) => n + 1);
   }, []);
@@ -109,20 +94,14 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       setContactPayload(null);
       contactPayloadRef.current = null;
       paypalFlowActiveRef.current = false;
-      orderCreatedRef.current = false;
-      if (!checkoutSucceededRef.current) {
-        abandonPendingCheckout();
-      }
       checkoutSucceededRef.current = false;
       setButtonsEpoch(0);
     } else {
       checkoutSucceededRef.current = false;
-      pendingEnrollmentIdRef.current = undefined;
-      orderCreatedRef.current = false;
       paypalFlowActiveRef.current = false;
       setUi({ kind: "contact" });
     }
-  }, [open, abandonPendingCheckout]);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -271,12 +250,10 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               body: JSON.stringify({
                 planId: plan.id,
                 ...contact,
-                enrollmentId: pendingEnrollmentIdRef.current,
               }),
             });
             const data = await readJsonResponse<{
               orderID?: string;
-              enrollmentId?: string;
               message?: string;
               breakdown?: Breakdown;
             }>(res);
@@ -289,9 +266,6 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             if (data.breakdown && !cancelled) {
               setBreakdown(data.breakdown);
             }
-            enrollmentIdRef = data.enrollmentId;
-            pendingEnrollmentIdRef.current = data.enrollmentId;
-            orderCreatedRef.current = true;
             return data.orderID;
           },
           onApprove: async (data) => {
@@ -315,8 +289,6 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               paypalFlowActiveRef.current = false;
               await teardownButtons(true);
               checkoutSucceededRef.current = true;
-              pendingEnrollmentIdRef.current = undefined;
-              orderCreatedRef.current = false;
               if (!cancelled) {
                 setUi({
                   kind: "success",
@@ -353,10 +325,6 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
                 });
               }
               return;
-            }
-
-            if (!orderCreatedRef.current) {
-              abandonPendingCheckout();
             }
 
             if (!cancelled) {
@@ -421,7 +389,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
         void teardownButtons(true);
       }
     };
-  }, [open, plan, contactPayload, buttonsEpoch, abandonPendingCheckout]);
+  }, [open, plan, contactPayload, buttonsEpoch]);
 
   if (!open || !plan) return null;
   if (typeof document === "undefined") return null;
@@ -522,8 +490,35 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               submitLabel="Continuar con PayPal"
               onSubmit={(payload) => {
                 contactPayloadRef.current = payload;
-                setContactPayload(payload);
                 setUi({ kind: "loading" });
+                void (async () => {
+                  try {
+                    const res = await fetch("/api/checkout/contact", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ planId: plan.id, ...payload }),
+                    });
+                    const data = await readJsonResponse<{
+                      contactId?: string;
+                      message?: string;
+                    }>(res);
+                    if (!res.ok || !data.contactId) {
+                      throw new Error(
+                        data.message ?? "No se pudo registrar tu contacto."
+                      );
+                    }
+                    setContactPayload(payload);
+                  } catch (e) {
+                    setUi({
+                      kind: "error",
+                      message:
+                        e instanceof Error
+                          ? e.message
+                          : "No se pudo registrar tu contacto.",
+                      retryable: false,
+                    });
+                  }
+                })();
               }}
             />
           )}
