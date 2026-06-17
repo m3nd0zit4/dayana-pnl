@@ -15,6 +15,7 @@ Copia desde `.env.example`. **Obligatorias en Production:**
 | `PAYPAL_MODE` | `live` |
 | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` | Credenciales Live |
 | `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | Igual que `PAYPAL_CLIENT_ID` |
+| `PAYPAL_MODE` | `live` en producción (el SDK del navegador usa este valor vía `/api/paypal/sdk-config`) |
 | `PAYPAL_WEBHOOK_ID` | Webhook Live registrado |
 | `MERCADOPAGO_ACCESS_TOKEN` | Token producción (no `TEST-`) |
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Public key producción |

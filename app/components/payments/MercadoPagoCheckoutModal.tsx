@@ -270,6 +270,7 @@ const MercadoPagoCheckoutModal = ({
               submitLabel="Continuar al pago"
               onSubmit={(payload) => {
                 setContactPayload(payload);
+                setUi({ kind: "loading" });
               }}
             />
           )}
