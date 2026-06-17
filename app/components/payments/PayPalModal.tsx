@@ -1,9 +1,15 @@
 "use client";
 
 import { loadScript } from "@paypal/paypal-js";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { WHATSAPP_NUMBER, buildWhatsAppUrl } from "../../../lib/contact";
+import {
+  buildPayPalScriptOptions,
+  fetchPayPalSdkConfig,
+  isBenignPayPalSdkError,
+  readJsonResponse,
+} from "../../../lib/paypal/client";
 import { formatUsd, getPlan, type PlanId } from "../../../lib/plans";
 import { PayPalBrandRow } from "./PayPalBrandRow";
 import CheckoutContactStep, {
@@ -21,12 +27,18 @@ type Breakdown = {
   total: string;
 };
 
+const PAYPAL_CANCEL_MESSAGE =
+  "Cancelaste el pago en PayPal. Puedes reintentar o cerrar el modal.";
+
+const PAYPAL_ERROR_MESSAGE =
+  "PayPal cerró el pago o hubo un error. Prueba de nuevo o usa tarjeta (Compra).";
+
 type UiState =
   | { kind: "idle" }
   | { kind: "contact" }
   | { kind: "loading" }
   | { kind: "buttons" }
-  | { kind: "error"; message: string }
+  | { kind: "error"; message: string; retryable?: boolean }
   | { kind: "success"; orderID: string; captureId?: string; enrollmentId?: string };
 
 const usdLabel = (value: string): string => {
@@ -47,14 +59,18 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const [contactPayload, setContactPayload] = useState<CheckoutContactPayload | null>(
     null
   );
+  const [buttonsEpoch, setButtonsEpoch] = useState(0);
+
   const contactPayloadRef = useRef<CheckoutContactPayload | null>(null);
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
   const pendingEnrollmentIdRef = useRef<string | undefined>(undefined);
   const checkoutSucceededRef = useRef(false);
+  const paypalFlowActiveRef = useRef(false);
+  const orderCreatedRef = useRef(false);
 
-  const abandonPendingCheckout = () => {
+  const abandonPendingCheckout = useCallback(() => {
     const id = pendingEnrollmentIdRef.current;
     if (!id) return;
     pendingEnrollmentIdRef.current = undefined;
@@ -64,7 +80,27 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       body: JSON.stringify({ enrollmentId: id }),
       keepalive: true,
     }).catch(() => {});
-  };
+  }, []);
+
+  const requestClose = useCallback(() => {
+    if (paypalFlowActiveRef.current) {
+      setUi({
+        kind: "error",
+        message:
+          "Hay un pago de PayPal en curso. Complétalo o cancélalo en la ventana de PayPal antes de cerrar.",
+        retryable: true,
+      });
+      return;
+    }
+    onClose();
+  }, [onClose]);
+
+  const retryPayPalButtons = useCallback(() => {
+    paypalFlowActiveRef.current = false;
+    orderCreatedRef.current = Boolean(pendingEnrollmentIdRef.current);
+    setUi({ kind: "loading" });
+    setButtonsEpoch((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -72,16 +108,21 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       setBreakdown(null);
       setContactPayload(null);
       contactPayloadRef.current = null;
+      paypalFlowActiveRef.current = false;
+      orderCreatedRef.current = false;
       if (!checkoutSucceededRef.current) {
         abandonPendingCheckout();
       }
       checkoutSucceededRef.current = false;
+      setButtonsEpoch(0);
     } else {
       checkoutSucceededRef.current = false;
       pendingEnrollmentIdRef.current = undefined;
+      orderCreatedRef.current = false;
+      paypalFlowActiveRef.current = false;
       setUi({ kind: "contact" });
     }
-  }, [open]);
+  }, [open, abandonPendingCheckout]);
 
   useEffect(() => {
     if (!open) return;
@@ -97,12 +138,12 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        requestClose();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, requestClose]);
 
   useEffect(() => {
     if (!open || !plan) return;
@@ -122,7 +163,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     })
       .then(async (res) => {
         if (!res.ok) return;
-        const data = (await res.json()) as Partial<Breakdown>;
+        const data = await readJsonResponse<Partial<Breakdown>>(res);
         if (cancelled) return;
         if (data.subtotal && data.fee && data.total) {
           setBreakdown({
@@ -141,13 +182,13 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   }, [open, plan]);
 
   useEffect(() => {
-    if (!open || !plan || !contactPayload || ui.kind === "success") return;
+    if (!open || !plan || !contactPayload || checkoutSucceededRef.current) return;
 
     let cancelled = false;
-    const host = paypalHostRef.current;
-    if (!host) return;
 
-    const teardownButtons = async () => {
+    const teardownButtons = async (force = false) => {
+      if (paypalFlowActiveRef.current && !force) return;
+      const host = paypalHostRef.current;
       const close = buttonsCloseRef.current;
       buttonsCloseRef.current = null;
       if (close) {
@@ -157,14 +198,14 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           /* ignore */
         }
       }
-      host.innerHTML = "";
+      if (host) host.replaceChildren();
     };
 
     let enrollmentIdRef: string | undefined;
 
     const run = async () => {
       setUi({ kind: "loading" });
-      await teardownButtons();
+      await teardownButtons(true);
 
       const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
       if (!clientId) {
@@ -177,11 +218,10 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       }
 
       try {
-        const paypal = await loadScript({
-          clientId,
-          currency: "USD",
-          intent: "capture",
-        });
+        const sdkConfig = await fetchPayPalSdkConfig();
+        const paypal = await loadScript(
+          buildPayPalScriptOptions(sdkConfig.clientId, sdkConfig.environment)
+        );
 
         if (cancelled) return;
 
@@ -189,6 +229,23 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           setUi({
             kind: "error",
             message: "No se pudo cargar el SDK de PayPal. Revisa la red o el client id.",
+            retryable: true,
+          });
+          return;
+        }
+
+        let host = paypalHostRef.current;
+        for (let attempt = 0; attempt < 3 && !host; attempt += 1) {
+          await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolve());
+          });
+          host = paypalHostRef.current;
+        }
+        if (!host) {
+          setUi({
+            kind: "error",
+            message: "No se pudo iniciar PayPal. Cierra y vuelve a abrir el modal.",
+            retryable: true,
           });
           return;
         }
@@ -202,22 +259,29 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             height: 48,
           },
           createOrder: async () => {
+            paypalFlowActiveRef.current = true;
             const contact = contactPayloadRef.current;
             if (!contact) {
+              paypalFlowActiveRef.current = false;
               throw new Error("Completa tus datos de contacto primero.");
             }
             const res = await fetch("/api/paypal/create-order", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ planId: plan.id, ...contact }),
+              body: JSON.stringify({
+                planId: plan.id,
+                ...contact,
+                enrollmentId: pendingEnrollmentIdRef.current,
+              }),
             });
-            const data = (await res.json()) as {
+            const data = await readJsonResponse<{
               orderID?: string;
               enrollmentId?: string;
               message?: string;
               breakdown?: Breakdown;
-            };
+            }>(res);
             if (!res.ok || !data.orderID) {
+              paypalFlowActiveRef.current = false;
               throw new Error(
                 data.message ?? "No se pudo crear la orden en PayPal."
               );
@@ -227,73 +291,123 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             }
             enrollmentIdRef = data.enrollmentId;
             pendingEnrollmentIdRef.current = data.enrollmentId;
+            orderCreatedRef.current = true;
             return data.orderID;
           },
           onApprove: async (data) => {
-            const res = await fetch("/api/paypal/capture-order", {
-              method: "POST",
-              headers: { "content-type": "application/json" },
-              body: JSON.stringify({ orderID: data.orderID }),
-            });
-            const payload = (await res.json()) as {
-              ok?: boolean;
-              captureId?: string;
-              enrollmentId?: string;
-              message?: string;
-            };
-            if (!res.ok || !payload.ok) {
-              throw new Error(
-                payload.message ?? "No se pudo confirmar el pago."
-              );
-            }
-            await teardownButtons();
-            checkoutSucceededRef.current = true;
-            pendingEnrollmentIdRef.current = undefined;
-            if (!cancelled) {
-              setUi({
-                kind: "success",
-                orderID: data.orderID,
-                captureId: payload.captureId,
-                enrollmentId: payload.enrollmentId ?? enrollmentIdRef,
+            try {
+              const res = await fetch("/api/paypal/capture-order", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ orderID: data.orderID }),
               });
+              const payload = await readJsonResponse<{
+                ok?: boolean;
+                captureId?: string;
+                enrollmentId?: string;
+                message?: string;
+              }>(res);
+              if (!res.ok || !payload.ok) {
+                throw new Error(
+                  payload.message ?? "No se pudo confirmar el pago."
+                );
+              }
+              paypalFlowActiveRef.current = false;
+              await teardownButtons(true);
+              checkoutSucceededRef.current = true;
+              pendingEnrollmentIdRef.current = undefined;
+              orderCreatedRef.current = false;
+              if (!cancelled) {
+                setUi({
+                  kind: "success",
+                  orderID: data.orderID,
+                  captureId: payload.captureId,
+                  enrollmentId: payload.enrollmentId ?? enrollmentIdRef,
+                });
+              }
+            } catch (e) {
+              paypalFlowActiveRef.current = false;
+              if (!cancelled) {
+                setUi({
+                  kind: "error",
+                  message:
+                    e instanceof Error
+                      ? e.message
+                      : "No se pudo confirmar el pago.",
+                  retryable: true,
+                });
+              }
+              throw e;
             }
           },
           onError: (err) => {
-            console.error(err);
-            if (!cancelled) {
-              void teardownButtons();
+            if (cancelled) return;
+            paypalFlowActiveRef.current = false;
+
+            if (isBenignPayPalSdkError(err)) {
+              if (!cancelled) {
+                setUi({
+                  kind: "error",
+                  message: PAYPAL_CANCEL_MESSAGE,
+                  retryable: true,
+                });
+              }
+              return;
+            }
+
+            if (!orderCreatedRef.current) {
               abandonPendingCheckout();
+            }
+
+            if (!cancelled) {
               setUi({
                 kind: "error",
-                message:
-                  "PayPal cerró el pago o hubo un error. Prueba de nuevo o usa tarjeta (Compra).",
+                message: PAYPAL_ERROR_MESSAGE,
+                retryable: true,
               });
             }
           },
-          onCancel: async () => {
-            await teardownButtons();
-            abandonPendingCheckout();
+          onCancel: () => {
+            if (cancelled) return;
+            paypalFlowActiveRef.current = false;
             if (!cancelled) {
               setUi({
                 kind: "error",
-                message:
-                  "Cancelaste el pago en PayPal. Cierra y vuelve a abrir PayPal cuando quieras.",
+                message: PAYPAL_CANCEL_MESSAGE,
+                retryable: true,
               });
             }
           },
         });
 
+        if (!buttons.isEligible()) {
+          setUi({
+            kind: "error",
+            message:
+              "PayPal no está disponible en este navegador. Prueba con tarjeta (Compra) o WhatsApp.",
+          });
+          return;
+        }
+
         buttonsCloseRef.current = () => buttons.close();
         await buttons.render(host);
         if (!cancelled) setUi({ kind: "buttons" });
       } catch (e) {
+        paypalFlowActiveRef.current = false;
         if (!cancelled) {
+          const base =
+            e instanceof Error
+              ? e.message
+              : "Error al iniciar PayPal. Verifica PAYPAL_CLIENT_ID / SECRET y PAYPAL_MODE.";
+          const hint =
+            base.toLowerCase().includes("failed to load") ||
+            base.toLowerCase().includes("script")
+              ? " Si tu Client ID es de producción, usa PAYPAL_MODE=live (no sandbox)."
+              : "";
           setUi({
             kind: "error",
-            message:
-              e instanceof Error
-                ? e.message
-                : "Error al iniciar PayPal. Verifica PAYPAL_CLIENT_ID / SECRET y PAYPAL_MODE.",
+            message: `${base}${hint}`,
+            retryable: true,
           });
         }
       }
@@ -303,20 +417,23 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
 
     return () => {
       cancelled = true;
-      void teardownButtons();
+      if (!paypalFlowActiveRef.current) {
+        void teardownButtons(true);
+      }
     };
-  }, [open, plan, contactPayload, ui.kind]);
+  }, [open, plan, contactPayload, buttonsEpoch, abandonPendingCheckout]);
 
   if (!open || !plan) return null;
   if (typeof document === "undefined") return null;
 
   const backdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
-      onClose();
+      requestClose();
     }
   };
 
   const amountLabel = formatUsd(plan.amountUsd);
+  const showPayPalHost = ui.kind === "buttons" || ui.kind === "loading";
 
   const content = (
     <div
@@ -345,7 +462,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           <button
             type="button"
             ref={closeButtonRef}
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="Cerrar"
             className="flex items-center justify-center w-8 h-8 rounded-full text-white/60 hover:text-linen hover:bg-linen/10 transition-colors cursor-pointer"
           >
@@ -441,19 +558,30 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           <div
             ref={paypalHostRef}
             className={`min-h-[52px] ${
-              ui.kind === "success" || ui.kind === "contact" ? "hidden" : ""
-            } ${ui.kind === "loading" ? "pointer-events-none opacity-40" : ""}`}
-            aria-hidden={ui.kind === "success" || ui.kind === "contact"}
+              showPayPalHost ? "" : "hidden"
+            } ${ui.kind === "loading" ? "sr-only" : ""}`}
+            aria-hidden={!showPayPalHost || ui.kind === "loading"}
           />
 
           {ui.kind === "error" && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-4 w-full rounded-full border border-linen/30 py-3 font-[font2] uppercase text-xs tracking-[0.2em] text-white/80 hover:bg-linen/5 cursor-pointer"
-            >
-              Cerrar
-            </button>
+            <div className="flex flex-col gap-2 mt-4">
+              {ui.retryable && contactPayload && (
+                <button
+                  type="button"
+                  onClick={retryPayPalButtons}
+                  className="w-full rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.2em] py-3 hover:bg-white transition-colors cursor-pointer"
+                >
+                  Reintentar PayPal
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={requestClose}
+                className="w-full rounded-full border border-linen/30 py-3 font-[font2] uppercase text-xs tracking-[0.2em] text-white/80 hover:bg-linen/5 cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -496,7 +624,6 @@ const PayPalSuccess = ({
   amountLabel,
   orderID,
   captureId,
-  enrollmentId,
   onClose,
 }: PayPalSuccessProps) => {
   const whatsappHref = buildWhatsAppUrl(
