@@ -5,12 +5,12 @@ import {
   mercadoPagoItemAmount,
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
-import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
 import {
-  beginCheckoutEnrollment,
+  beginCheckoutContact,
   mapCheckoutBeginError,
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
+import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import {
   clientIp,
   rateLimitDistributed,
@@ -31,8 +31,6 @@ function parseContactBody(body: Body): CheckoutContactBody {
     lastName: typeof body.lastName === "string" ? body.lastName : undefined,
     email: typeof body.email === "string" ? body.email : undefined,
     consentData: body.consentData === true,
-    enrollmentId:
-      typeof body.enrollmentId === "string" ? body.enrollmentId : undefined,
   };
 }
 
@@ -69,24 +67,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
-  let enrollmentId: string | undefined;
-  let createdEnrollmentThisRequest = false;
-
+  let contactId: string;
   try {
-    const begun = await beginCheckoutEnrollment({
+    const begun = await beginCheckoutContact({
       planId,
       contact: parseContactBody(body),
     });
-    enrollmentId = begun.enrollmentId;
-    createdEnrollmentThisRequest = begun.createdEnrollment;
+    contactId = begun.contactId;
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
-    console.error("[mercadopago] enrollment create failed", e);
+    console.error("[mercadopago] contact register failed", e);
     return NextResponse.json(
       { error: mapped.error, message: mapped.message },
       { status: mapped.status }
     );
   }
+
+  const checkoutReference = encodeCheckoutReference(contactId, planId);
 
   let net: number;
   let fee: number;
@@ -120,12 +117,12 @@ export async function POST(req: Request) {
     });
   }
 
-  const successUrl = `${base}/pago/exito?enrollmentId=${encodeURIComponent(enrollmentId)}`;
-  const cancelUrl = `${base}/pago/cancelado?enrollmentId=${encodeURIComponent(enrollmentId)}`;
+  const successUrl = `${base}/pago/exito`;
+  const cancelUrl = `${base}/pago/cancelado`;
 
   const preferenceBody: Record<string, unknown> = {
     items,
-    external_reference: enrollmentId,
+    external_reference: checkoutReference,
     back_urls: {
       success: successUrl,
       failure: cancelUrl,
@@ -158,9 +155,6 @@ export async function POST(req: Request) {
     };
 
     if (!res.ok) {
-      if (createdEnrollmentThisRequest) {
-        await abandonCheckoutEnrollment(enrollmentId);
-      }
       console.error("[mercadopago] preference failed", res.status, data);
       return NextResponse.json(
         { error: "preference_failed", detail: data.message },
@@ -175,17 +169,16 @@ export async function POST(req: Request) {
         : data.init_point;
 
     if (!init_point) {
-      if (createdEnrollmentThisRequest) {
-        await abandonCheckoutEnrollment(enrollmentId);
-      }
       return NextResponse.json({ error: "no_init_point" }, { status: 502 });
     }
 
-    return NextResponse.json({ init_point, mode, enrollmentId });
+    return NextResponse.json({
+      init_point,
+      mode,
+      contactId,
+      checkoutReference,
+    });
   } catch (e) {
-    if (createdEnrollmentThisRequest && enrollmentId) {
-      await abandonCheckoutEnrollment(enrollmentId);
-    }
     const message = e instanceof Error ? e.message : String(e);
     console.error("[mercadopago] preference exception", message);
     return NextResponse.json({ error: "network" }, { status: 502 });

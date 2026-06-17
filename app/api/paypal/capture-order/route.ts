@@ -4,15 +4,17 @@ import {
   capturePayPalOrderRequest,
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
-import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
+import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
+import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import {
   assertEnrollmentPayable,
   assertPayPalCaptureAmount,
   enrollmentPaymentErrorStatus,
   EnrollmentPaymentError,
 } from "@/lib/crm/enrollment-payment";
+import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import { prisma } from "@/lib/db";
@@ -100,25 +102,17 @@ export async function POST(req: NextRequest) {
         : "COMPLETED";
 
     let enrollmentId: string | null = null;
-    if (enrollmentRef) {
-      enrollmentId = await resolveEnrollmentFromReference(enrollmentRef);
-    }
 
-    if (enrollmentId && captureId && amountMinor != null && currency) {
-      const row = await prisma.enrollment.findUnique({
-        where: { id: enrollmentId },
-        select: { productId: true },
-      });
-      if (!row) {
-        return NextResponse.json(
-          { error: "NOT_FOUND", message: "Enrollment not found" },
-          { status: 404 }
-        );
-      }
+    if (
+      enrollmentRef &&
+      captureId &&
+      amountMinor != null &&
+      currency
+    ) {
+      const checkout = parseCheckoutReference(enrollmentRef);
 
-      try {
-        await assertEnrollmentPayable(enrollmentId, row.productId);
-        const plan = await getPlanFromDb(row.productId);
+      if (checkout) {
+        const plan = await getPlanFromDb(checkout.planId);
         if (!plan) {
           return NextResponse.json(
             { error: "invalid_plan", message: "Plan no disponible" },
@@ -127,37 +121,98 @@ export async function POST(req: NextRequest) {
         }
         const expectedGross = grossUpUsd(plan.amountUsd, paypalFee()).gross;
         assertPayPalCaptureAmount(amountMinor, currency, expectedGross);
-      } catch (e) {
-        if (e instanceof EnrollmentPaymentError) {
-          return NextResponse.json(
-            { error: e.code, message: e.message },
-            { status: enrollmentPaymentErrorStatus(e.code) }
+
+        enrollmentId = await fulfillCheckoutPayment({
+          contactId: checkout.contactId,
+          productId: checkout.planId,
+          provider: PaymentProvider.PAYPAL,
+          providerPaymentId: captureId,
+          providerOrderId: orderID,
+          status:
+            status === "COMPLETED"
+              ? PaymentStatus.APPROVED
+              : PaymentStatus.PENDING,
+          currency: currency ?? "USD",
+          amountMinor,
+          rawPayload: result,
+          paidAt: status === "COMPLETED" ? new Date() : undefined,
+          payerEmail: extractPayPalPayer(result).email,
+        });
+
+        if (status === "COMPLETED") {
+          await enrichContactFromPayer(
+            checkout.contactId,
+            extractPayPalPayer(result)
           );
         }
-        throw e;
-      }
+      } else {
+        enrollmentId = await resolveEnrollmentFromReference(enrollmentRef);
+        if (!enrollmentId) {
+          return NextResponse.json(
+            { error: "NOT_FOUND", message: "Enrollment not found" },
+            { status: 404 }
+          );
+        }
 
-      await recordPayment({
-        enrollmentId,
-        provider: PaymentProvider.PAYPAL,
-        providerPaymentId: captureId,
-        providerOrderId: orderID,
-        status:
-          status === "COMPLETED" ? PaymentStatus.APPROVED : PaymentStatus.PENDING,
-        currency: currency ?? "USD",
-        amountMinor,
-        rawPayload: result,
-        paidAt: status === "COMPLETED" ? new Date() : undefined,
-        payerEmail: extractPayPalPayer(result).email,
-      });
-
-      if (status === "COMPLETED") {
-        const enrollment = await prisma.enrollment.findUnique({
+        const row = await prisma.enrollment.findUnique({
           where: { id: enrollmentId },
-          select: { contactId: true },
+          select: { productId: true },
         });
-        if (enrollment) {
-          await enrichContactFromPayer(enrollment.contactId, extractPayPalPayer(result));
+        if (!row) {
+          return NextResponse.json(
+            { error: "NOT_FOUND", message: "Enrollment not found" },
+            { status: 404 }
+          );
+        }
+
+        try {
+          await assertEnrollmentPayable(enrollmentId, row.productId);
+          const plan = await getPlanFromDb(row.productId);
+          if (!plan) {
+            return NextResponse.json(
+              { error: "invalid_plan", message: "Plan no disponible" },
+              { status: 400 }
+            );
+          }
+          const expectedGross = grossUpUsd(plan.amountUsd, paypalFee()).gross;
+          assertPayPalCaptureAmount(amountMinor, currency, expectedGross);
+        } catch (e) {
+          if (e instanceof EnrollmentPaymentError) {
+            return NextResponse.json(
+              { error: e.code, message: e.message },
+              { status: enrollmentPaymentErrorStatus(e.code) }
+            );
+          }
+          throw e;
+        }
+
+        await recordPayment({
+          enrollmentId,
+          provider: PaymentProvider.PAYPAL,
+          providerPaymentId: captureId,
+          providerOrderId: orderID,
+          status:
+            status === "COMPLETED"
+              ? PaymentStatus.APPROVED
+              : PaymentStatus.PENDING,
+          currency: currency ?? "USD",
+          amountMinor,
+          rawPayload: result,
+          paidAt: status === "COMPLETED" ? new Date() : undefined,
+          payerEmail: extractPayPalPayer(result).email,
+        });
+
+        if (status === "COMPLETED") {
+          const enrollment = await prisma.enrollment.findUnique({
+            where: { id: enrollmentId },
+            select: { contactId: true },
+          });
+          if (enrollment) {
+            await enrichContactFromPayer(
+              enrollment.contactId,
+              extractPayPalPayer(result)
+            );
+          }
         }
       }
     }

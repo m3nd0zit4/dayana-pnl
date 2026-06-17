@@ -5,6 +5,8 @@ import {
   registerWebhookEvent,
   resolveEnrollmentFromReference,
 } from "@/lib/crm/payments";
+import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
+import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
 import { prisma } from "@/lib/db";
@@ -69,11 +71,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  const enrollmentId = await resolveEnrollmentFromReference(reference);
-  if (!enrollmentId) {
-    return NextResponse.json({ ok: true, enrollment_not_found: true });
-  }
-
   const approved =
     capture.status === "COMPLETED" ||
     resource?.status === "COMPLETED";
@@ -85,8 +82,38 @@ export async function POST(req: NextRequest) {
   const amountValue = Number(capture.amount?.value ?? 0);
   const amountMinor = Math.round(amountValue * 100);
   const payer = extractPayPalPayer(resource);
+  const checkout = parseCheckoutReference(reference);
 
   try {
+    if (checkout) {
+      if (!approved) {
+        return NextResponse.json({ ok: true, skipped_unpaid: true });
+      }
+
+      const enrollmentId = await fulfillCheckoutPayment({
+        contactId: checkout.contactId,
+        productId: checkout.planId,
+        provider: PaymentProvider.PAYPAL,
+        providerPaymentId: capture.id,
+        providerOrderId: resource?.id,
+        status: PaymentStatus.APPROVED,
+        currency: capture.amount?.currency_code ?? "USD",
+        amountMinor,
+        rawPayload: payload,
+        paidAt: new Date(),
+        payerEmail: payer.email,
+      });
+
+      await enrichContactFromPayer(checkout.contactId, payer);
+
+      return NextResponse.json({ ok: true, enrollmentId });
+    }
+
+    const enrollmentId = await resolveEnrollmentFromReference(reference);
+    if (!enrollmentId) {
+      return NextResponse.json({ ok: true, enrollment_not_found: true });
+    }
+
     await recordPayment({
       enrollmentId,
       provider: PaymentProvider.PAYPAL,

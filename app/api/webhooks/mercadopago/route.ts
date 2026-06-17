@@ -5,6 +5,8 @@ import {
   registerWebhookEvent,
   resolveEnrollmentFromReference,
 } from "@/lib/crm/payments";
+import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
+import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import { verifyMercadoPagoWebhook } from "@/lib/webhooks/verify";
 
 export const runtime = "nodejs";
@@ -76,13 +78,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    const enrollmentId = await resolveEnrollmentFromReference(
-      payment.external_reference
-    );
-    if (!enrollmentId) {
-      return NextResponse.json({ ok: true, enrollment_not_found: true });
-    }
-
     const mpStatus = payment.status ?? "";
     const approved = mpStatus === "approved";
     const failed =
@@ -90,11 +85,41 @@ export async function POST(req: NextRequest) {
       mpStatus === "cancelled" ||
       mpStatus === "charged_back";
     const amountMinor = Math.round((payment.transaction_amount ?? 0) * 100);
+    const providerPaymentId = String(payment.id ?? paymentId);
+    const checkout = parseCheckoutReference(payment.external_reference);
+
+    if (checkout) {
+      if (!approved) {
+        return NextResponse.json({ ok: true, skipped_unpaid: true });
+      }
+
+      await fulfillCheckoutPayment({
+        contactId: checkout.contactId,
+        productId: checkout.planId,
+        provider: PaymentProvider.MERCADO_PAGO,
+        providerPaymentId,
+        status: PaymentStatus.APPROVED,
+        currency: payment.currency_id ?? "USD",
+        amountMinor,
+        payerEmail: payment.payer?.email,
+        rawPayload: payment,
+        paidAt: new Date(),
+      });
+
+      return NextResponse.json({ ok: true });
+    }
+
+    const enrollmentId = await resolveEnrollmentFromReference(
+      payment.external_reference
+    );
+    if (!enrollmentId) {
+      return NextResponse.json({ ok: true, enrollment_not_found: true });
+    }
 
     await recordPayment({
       enrollmentId,
       provider: PaymentProvider.MERCADO_PAGO,
-      providerPaymentId: String(payment.id ?? paymentId),
+      providerPaymentId,
       status: approved
         ? PaymentStatus.APPROVED
         : failed

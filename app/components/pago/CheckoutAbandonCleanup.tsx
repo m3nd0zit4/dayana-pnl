@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { isCheckoutReference } from "@/lib/crm/checkout-reference";
 
 type Props = {
   enrollmentId?: string;
 };
 
-/** Best-effort cleanup of placeholder checkout rows when payment did not succeed. */
+/** Best-effort cleanup of legacy placeholder checkout enrollments (pre-2026 flow). */
 const CheckoutAbandonCleanup = ({ enrollmentId }: Props) => {
   const ran = useRef(false);
 
   useEffect(() => {
     const id = enrollmentId?.trim();
-    if (!id || ran.current) return;
+    if (!id || isCheckoutReference(id) || ran.current) return;
     ran.current = true;
 
     void fetch("/api/checkout/abandon", {

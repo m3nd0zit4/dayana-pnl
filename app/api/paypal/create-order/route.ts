@@ -6,12 +6,12 @@ import {
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
-import { abandonCheckoutEnrollment } from "@/lib/crm/checkout-placeholder";
 import {
-  beginCheckoutEnrollment,
+  beginCheckoutContact,
   mapCheckoutBeginError,
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
+import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import {
   clientIp,
   rateLimitDistributed,
@@ -35,8 +35,6 @@ function parseContactBody(body: Body): CheckoutContactBody {
     lastName: typeof body.lastName === "string" ? body.lastName : undefined,
     email: typeof body.email === "string" ? body.email : undefined,
     consentData: body.consentData === true,
-    enrollmentId:
-      typeof body.enrollmentId === "string" ? body.enrollmentId : undefined,
   };
 }
 
@@ -77,31 +75,30 @@ export async function POST(req: NextRequest) {
   const itemTotalValue = breakdown.net.toFixed(2);
   const handlingValue = breakdown.fee.toFixed(2);
 
-  let enrollmentId: string | undefined;
-  let createdEnrollmentThisRequest = false;
-
+  let contactId: string;
   try {
-    const begun = await beginCheckoutEnrollment({
+    const begun = await beginCheckoutContact({
       planId,
       contact: parseContactBody(body),
     });
-    enrollmentId = begun.enrollmentId;
-    createdEnrollmentThisRequest = begun.createdEnrollment;
+    contactId = begun.contactId;
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
-    console.error("[paypal] enrollment create failed", e);
+    console.error("[paypal] contact register failed", e);
     return NextResponse.json(
       { error: mapped.error, message: mapped.message },
       { status: mapped.status }
     );
   }
 
+  const checkoutReference = encodeCheckoutReference(contactId, planId);
+
   try {
     const accessToken = await getPayPalAccessToken();
     const { id } = await createPayPalOrderRequest({
       accessToken,
       planId: plan.id,
-      enrollmentId: enrollmentId!,
+      checkoutReference,
       planTitle: plan.title,
       sessions: plan.sessions,
       amountValue,
@@ -112,7 +109,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       orderID: id,
-      enrollmentId,
+      contactId,
+      checkoutReference,
       amountValue,
       currency: PAYPAL_CURRENCY,
       planId: plan.id,
@@ -125,9 +123,6 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    if (createdEnrollmentThisRequest && enrollmentId) {
-      await abandonCheckoutEnrollment(enrollmentId);
-    }
     const message =
       error instanceof Error ? error.message : "Error desconocido";
     console.error("[paypal] create-order failed", message);

@@ -269,8 +269,34 @@ const MercadoPagoCheckoutModal = ({
             <CheckoutContactStep
               submitLabel="Continuar al pago"
               onSubmit={(payload) => {
-                setContactPayload(payload);
                 setUi({ kind: "loading" });
+                void (async () => {
+                  try {
+                    const res = await fetch("/api/checkout/contact", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ planId: plan.id, ...payload }),
+                    });
+                    const data = (await res.json()) as {
+                      contactId?: string;
+                      message?: string;
+                    };
+                    if (!res.ok || !data.contactId) {
+                      throw new Error(
+                        data.message ?? "No se pudo registrar tu contacto."
+                      );
+                    }
+                    setContactPayload(payload);
+                  } catch (e) {
+                    setUi({
+                      kind: "error",
+                      message:
+                        e instanceof Error
+                          ? e.message
+                          : "No se pudo registrar tu contacto.",
+                    });
+                  }
+                })();
               }}
             />
           )}

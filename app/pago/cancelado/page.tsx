@@ -6,6 +6,7 @@ import {
   buildWhatsAppUrl,
 } from "../../../lib/contact";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
+import { isCheckoutReference } from "@/lib/crm/checkout-reference";
 
 export const metadata: Metadata = {
   title: `Pago cancelado — ${BRAND.name}`,
@@ -19,11 +20,14 @@ type PageProps = {
 
 const Page = async ({ searchParams }: PageProps) => {
   const params = await searchParams;
-  const enrollmentId = params.enrollmentId;
+  const legacyEnrollmentId =
+    params.enrollmentId && !isCheckoutReference(params.enrollmentId)
+      ? params.enrollmentId
+      : undefined;
 
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">
-      <CheckoutAbandonCleanup enrollmentId={enrollmentId} />
+      <CheckoutAbandonCleanup enrollmentId={legacyEnrollmentId} />
       <div
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none opacity-80"
