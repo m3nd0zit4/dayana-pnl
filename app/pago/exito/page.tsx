@@ -8,6 +8,11 @@ import {
 import { formatUsd, getPlan, isPlanId } from "../../../lib/plans";
 import { getEnrollmentById } from "../../../lib/crm/enrollments";
 import { isPlaceholderContactPhone } from "../../../lib/crm/checkout-placeholder";
+import {
+  isCheckoutReference,
+  parseCheckoutReference,
+} from "../../../lib/crm/checkout-reference";
+import { findEnrollmentForCheckout } from "../../../lib/crm/checkout-fulfillment";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 
@@ -51,16 +56,24 @@ const resolveReturn = (params: SearchParams): Resolved => {
     let planSessions: string | undefined;
     let amountLabel: string | undefined;
 
-    if (ext && isPlanId(ext)) {
-      const plan = getPlan(ext);
-      planTitle = plan.title;
-      planSessions = plan.sessions;
-      amountLabel = formatUsd(plan.amountUsd);
-    } else if (params.plan && isPlanId(params.plan)) {
-      const plan = getPlan(params.plan);
-      planTitle = plan.title;
-      planSessions = plan.sessions;
-      amountLabel = formatUsd(plan.amountUsd);
+    if (ext) {
+      const checkout = parseCheckoutReference(ext);
+      if (checkout && isPlanId(checkout.planId)) {
+        const plan = getPlan(checkout.planId);
+        planTitle = plan.title;
+        planSessions = plan.sessions;
+        amountLabel = formatUsd(plan.amountUsd);
+      } else if (isPlanId(ext)) {
+        const plan = getPlan(ext);
+        planTitle = plan.title;
+        planSessions = plan.sessions;
+        amountLabel = formatUsd(plan.amountUsd);
+      } else if (params.plan && isPlanId(params.plan)) {
+        const plan = getPlan(params.plan);
+        planTitle = plan.title;
+        planSessions = plan.sessions;
+        amountLabel = formatUsd(plan.amountUsd);
+      }
     }
 
     const ref =
@@ -139,12 +152,14 @@ const Page = async ({ searchParams }: PageProps) => {
   const isFailed = result.status === "failed";
 
   const failedEnrollmentId =
-    isFailed
-      ? (params.enrollmentId ??
-          (params.external_reference && !isPlanId(params.external_reference)
-            ? params.external_reference
-            : undefined))
-      : undefined;
+    isFailed && params.enrollmentId && !isCheckoutReference(params.enrollmentId)
+      ? params.enrollmentId
+      : isFailed &&
+          params.external_reference &&
+          !isPlanId(params.external_reference) &&
+          !isCheckoutReference(params.external_reference)
+        ? params.external_reference
+        : undefined;
 
   const heading = isSuccess
     ? "Pago confirmado"
@@ -176,11 +191,25 @@ const Page = async ({ searchParams }: PageProps) => {
         result.planTitle ? ` del plan ${result.planTitle}` : ""
       }. ¿Puedes ayudarme a completarlo?`;
 
-  const enrollmentId =
-    params.enrollmentId ??
-    (params.external_reference && !isPlanId(params.external_reference)
-      ? params.external_reference
-      : undefined);
+  let enrollmentId =
+    params.enrollmentId &&
+    !isCheckoutReference(params.enrollmentId)
+      ? params.enrollmentId
+      : undefined;
+
+  const extRef = params.external_reference;
+  if (!enrollmentId && extRef && !isPlanId(extRef)) {
+    const checkout = parseCheckoutReference(extRef);
+    if (checkout) {
+      enrollmentId =
+        (await findEnrollmentForCheckout(
+          checkout.contactId,
+          checkout.planId
+        )) ?? undefined;
+    } else if (!isCheckoutReference(extRef)) {
+      enrollmentId = extRef;
+    }
+  }
 
   let postPaymentMode: "none" | "legacy" | "email-only" = "none";
   if (isSuccess && enrollmentId) {
@@ -199,11 +228,13 @@ const Page = async ({ searchParams }: PageProps) => {
   }
 
   const planId =
-    params.external_reference && isPlanId(params.external_reference)
-      ? params.external_reference
-      : params.plan && isPlanId(params.plan)
-        ? params.plan
-        : undefined;
+    extRef && isCheckoutReference(extRef)
+      ? parseCheckoutReference(extRef)?.planId
+      : extRef && isPlanId(extRef)
+        ? extRef
+        : params.plan && isPlanId(params.plan)
+          ? params.plan
+          : undefined;
 
   return (
     <main className="relative min-h-screen bg-black text-white overflow-hidden">

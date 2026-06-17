@@ -1,10 +1,12 @@
 import {
+  EnrollmentStatus,
   PaymentProvider,
   PaymentStatus,
   type Prisma,
 } from "@prisma/client";
 import { prisma } from "../db";
 import { abandonCheckoutEnrollment } from "./checkout-placeholder";
+import { parseCheckoutReference } from "./checkout-reference";
 import { markEnrollmentPaid } from "./enrollments";
 
 export type RecordPaymentInput = {
@@ -68,7 +70,13 @@ export const recordPayment = async (
     const { emitPaymentApproved } = await import("../inngest/events");
     await emitPaymentApproved(input.enrollmentId);
   } else if (input.status === PaymentStatus.FAILED) {
-    await abandonCheckoutEnrollment(input.enrollmentId);
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: input.enrollmentId },
+      select: { status: true },
+    });
+    if (enrollment?.status === EnrollmentStatus.PENDING_PAYMENT) {
+      await abandonCheckoutEnrollment(input.enrollmentId);
+    }
   }
 
   return payment;
@@ -96,6 +104,10 @@ export const registerWebhookEvent = async (
 export const resolveEnrollmentFromReference = async (
   externalReference: string
 ): Promise<string | null> => {
+  if (parseCheckoutReference(externalReference)) {
+    return null;
+  }
+
   const byId = await prisma.enrollment.findUnique({
     where: { id: externalReference },
     select: { id: true },
