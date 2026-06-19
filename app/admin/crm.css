@@ -1648,6 +1648,87 @@
   color: #92400e;
   background: rgba(251, 191, 36, 0.12);
   border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.crm-notebook-blob-warn-dismiss {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #92400e;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.crm-notebook-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  border-radius: var(--crm-radius-lg, 0.75rem);
+  border: 1px dashed rgba(0, 0, 0, 0.12);
+  background: var(--crm-surface, #fff);
+}
+
+.crm-notebook-placeholder-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--crm-muted);
+  margin-bottom: 0.75rem;
+}
+
+.crm-notebook-placeholder-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--crm-foreground);
+}
+
+.crm-notebook-placeholder-desc {
+  margin-top: 0.35rem;
+  max-width: 22rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--crm-muted);
+}
+
+.crm-notebook-layout--single {
+  grid-template-columns: 1fr;
+}
+
+.crm-notebook-title-static {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--crm-foreground);
+}
+
+.crm-notebook-canvas-host--minimal .excalidraw .App-menu__left,
+.crm-notebook-canvas-host--minimal .excalidraw .sidebar,
+.crm-notebook-canvas-host--minimal .excalidraw .App-menu__left .Stack,
+.crm-notebook-canvas-host--minimal .excalidraw .main-menu-trigger {
+  display: none !important;
+}
+
+.crm-notebook-canvas-host--minimal .excalidraw .App-toolbar {
+  gap: 0.25rem;
+}
+
+.crm-notebook-canvas-host--minimal .excalidraw .App-bottom-bar > .Island .panelColumn {
+  max-height: min(40vh, calc(100% - 3.5rem));
 }
 
 .crm-notebook-canvas-stage {
