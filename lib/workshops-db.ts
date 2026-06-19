@@ -1,46 +1,93 @@
 import { WorkshopEditionStatus } from "@prisma/client";
 import { prisma } from "./db";
-import type { Workshop, WorkshopStatus } from "./workshops";
-import { PROXIMO_WORKSHOP_SLUG } from "./workshops";
+import {
+  mapEditionToCard,
+  mapEditionToDetail,
+  type WorkshopEditionRecord,
+} from "./workshop-edition-mapper";
+import {
+  PROXIMO_WORKSHOP_SLUG,
+  WORKSHOPS,
+  buildPublicWorkshopListing,
+  type WorkshopCard,
+  type WorkshopDetail,
+} from "./workshops";
 
-const statusToUi = (status: WorkshopEditionStatus): WorkshopStatus => {
-  switch (status) {
-    case WorkshopEditionStatus.OPEN:
-      return "open";
-    case WorkshopEditionStatus.COMPLETED:
-      return "completed";
-    default:
-      return "upcoming";
-  }
-};
+const editionSelect = {
+  slug: true,
+  title: true,
+  editionLabel: true,
+  cardSummary: true,
+  status: true,
+  dateLabel: true,
+  scheduleLabel: true,
+  whatsappTemplate: true,
+  heroLine1: true,
+  heroLine2: true,
+  heroLine3: true,
+  detailSummary: true,
+  intro: true,
+  focusTopics: true,
+  daySchedule: true,
+  topicsSectionTitle: true,
+  topicsSectionDescription: true,
+  scheduleSectionDescription: true,
+  metaTitle: true,
+  metaDescription: true,
+  introOpen: true,
+} satisfies Record<keyof WorkshopEditionRecord, true>;
 
-export const getWorkshopsFromDb = async (): Promise<Workshop[]> => {
+const crmEditionWhere = {
+  slug: { not: PROXIMO_WORKSHOP_SLUG },
+} as const;
+
+export const getWorkshopsFromDb = async (): Promise<WorkshopCard[]> => {
   try {
     const editions = await prisma.workshopEdition.findMany({
+      where: crmEditionWhere,
       orderBy: { startsAt: "desc" },
+      select: editionSelect,
     });
 
-    if (editions.length === 0) {
-      const { WORKSHOPS } = await import("./workshops");
-      return WORKSHOPS;
-    }
+    if (editions.length === 0) return WORKSHOPS;
 
-    return editions.map((e) => ({
-      slug: e.slug,
-      status: statusToUi(e.status),
-      editionLabel: e.editionLabel ?? "",
-      title: e.title,
-      cardSummary: e.cardSummary ?? "",
-      dateLabel: e.dateLabel ?? "",
-      scheduleLabel: e.scheduleLabel ?? "",
-      whatsappMessage: e.whatsappTemplate ?? undefined,
-    })).sort((a, b) => {
-      if (a.slug === PROXIMO_WORKSHOP_SLUG) return -1;
-      if (b.slug === PROXIMO_WORKSHOP_SLUG) return 1;
-      return 0;
-    });
+    return buildPublicWorkshopListing(editions.map(mapEditionToCard));
   } catch {
-    const { WORKSHOPS } = await import("./workshops");
     return WORKSHOPS;
   }
 };
+
+export const getOpenWorkshopDetailBySlug = async (
+  slug: string
+): Promise<WorkshopDetail | null> => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: editionSelect,
+  });
+
+  if (
+    !edition ||
+    edition.slug === PROXIMO_WORKSHOP_SLUG ||
+    edition.status !== WorkshopEditionStatus.OPEN
+  ) {
+    return null;
+  }
+
+  return mapEditionToDetail(edition);
+};
+
+export const getActiveOpenWorkshop = async (): Promise<WorkshopDetail | null> => {
+  const edition = await prisma.workshopEdition.findFirst({
+    where: {
+      status: WorkshopEditionStatus.OPEN,
+      slug: { not: PROXIMO_WORKSHOP_SLUG },
+    },
+    orderBy: { updatedAt: "desc" },
+    select: editionSelect,
+  });
+
+  if (!edition) return null;
+  return mapEditionToDetail(edition);
+};
+
+export { crmEditionWhere };

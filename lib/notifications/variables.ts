@@ -49,12 +49,20 @@ export const paymentVars = (
 export const workshopVars = (
   contact: Contact,
   edition: WorkshopEdition
-): TemplateVars => ({
-  ...contactVars(contact),
-  workshop_title: edition.title,
-  workshop_edition: edition.editionLabel ?? "",
-  workshop_date: edition.dateLabel ?? "",
-  workshop_schedule: edition.scheduleLabel ?? "",
-  workshop_summary: edition.cardSummary ?? "",
-  workshop_url: `${siteUrl()}/#talleres`,
-});
+): TemplateVars => {
+  const baseUrl = siteUrl();
+  const workshopUrl =
+    edition.status === "OPEN"
+      ? `${baseUrl}/taller-virtual/${edition.slug}`
+      : `${baseUrl}/taller-virtual`;
+
+  return {
+    ...contactVars(contact),
+    workshop_title: edition.title,
+    workshop_edition: edition.editionLabel ?? "",
+    workshop_date: edition.dateLabel ?? "",
+    workshop_schedule: edition.scheduleLabel ?? "",
+    workshop_summary: edition.cardSummary ?? "",
+    workshop_url: workshopUrl,
+  };
+};

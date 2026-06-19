@@ -184,6 +184,19 @@ model WorkshopEdition {
   scheduleLabel    String?               @map("schedule_label")
   capacity         Int?
   whatsappTemplate String?               @map("whatsapp_template") @db.Text
+  heroLine1        String?               @map("hero_line_1")
+  heroLine2        String?               @map("hero_line_2")
+  heroLine3        String?               @map("hero_line_3")
+  detailSummary    String?               @map("detail_summary") @db.Text
+  intro            String?               @db.Text
+  focusTopics      Json?                 @map("focus_topics")
+  daySchedule      Json?                 @map("day_schedule")
+  topicsSectionTitle       String?       @map("topics_section_title")
+  topicsSectionDescription String?       @map("topics_section_description") @db.Text
+  scheduleSectionDescription String?       @map("schedule_section_description") @db.Text
+  metaTitle        String?               @map("meta_title")
+  metaDescription  String?               @map("meta_description") @db.Text
+  introOpen        String?               @map("intro_open") @db.Text
   createdAt        DateTime              @default(now()) @map("created_at")
   updatedAt        DateTime              @updatedAt @map("updated_at")
 

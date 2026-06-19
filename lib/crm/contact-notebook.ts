@@ -136,12 +136,73 @@ const resolveSessionContext = async (
 };
 
 export const listNotebookPages = async (contactId: string) => {
-  const pages = await prisma.contactNotebookPage.findMany({
-    where: { contactId },
+  const page = await prisma.contactNotebookPage.findFirst({
+    where: { contactId, kind: NotebookPageKind.CANVAS },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     select: pageListSelect,
   });
-  return pages.map(mapListItem);
+  return page ? [mapListItem(page)] : [];
+};
+
+/** Keep one CANVAS page per contact; remove legacy extras (oldest wins). */
+export const consolidateContactCanvasPages = async (contactId: string) => {
+  const pages = await prisma.contactNotebookPage.findMany({
+    where: { contactId, kind: NotebookPageKind.CANVAS },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true,
+      previewUrl: true,
+      attachmentUrl: true,
+    },
+  });
+
+  if (pages.length <= 1) return pages[0]?.id ?? null;
+
+  const [keep, ...remove] = pages;
+  for (const page of remove) {
+    await prisma.contactNotebookPage.delete({ where: { id: page.id } });
+    await deleteBlobUrls([page.previewUrl, page.attachmentUrl]);
+  }
+
+  const uploadPages = await prisma.contactNotebookPage.findMany({
+    where: { contactId, kind: NotebookPageKind.UPLOAD },
+    select: { id: true, previewUrl: true, attachmentUrl: true },
+  });
+  for (const page of uploadPages) {
+    await prisma.contactNotebookPage.delete({ where: { id: page.id } });
+    await deleteBlobUrls([page.previewUrl, page.attachmentUrl]);
+  }
+
+  return keep.id;
+};
+
+export const getOrCreateContactCanvas = async (input: {
+  contactId: string;
+  createdByStaffId?: string | null;
+}) => {
+  await consolidateContactCanvasPages(input.contactId);
+
+  const existing = await prisma.contactNotebookPage.findFirst({
+    where: { contactId: input.contactId, kind: NotebookPageKind.CANVAS },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: pageDetailSelect,
+  });
+
+  if (existing) return mapDetail(existing);
+
+  const page = await prisma.contactNotebookPage.create({
+    data: {
+      contactId: input.contactId,
+      title: "Cuaderno",
+      sortOrder: 0,
+      kind: NotebookPageKind.CANVAS,
+      background: NotebookPageBackground.BLANK,
+      createdByStaffId: input.createdByStaffId ?? null,
+    },
+    select: pageDetailSelect,
+  });
+
+  return mapDetail(page);
 };
 
 export const getNotebookPage = async (pageId: string, contactId: string) => {
@@ -161,6 +222,16 @@ export const createNotebookPage = async (input: {
   enrollmentId?: string | null;
   createdByStaffId?: string | null;
 }) => {
+  const kind = input.kind ?? NotebookPageKind.CANVAS;
+  if (kind === NotebookPageKind.CANVAS) {
+    const existing = await prisma.contactNotebookPage.findFirst({
+      where: { contactId: input.contactId, kind: NotebookPageKind.CANVAS },
+    });
+    if (existing) {
+      throw new Error("SINGLE_PAGE_ONLY");
+    }
+  }
+
   const count = await prisma.contactNotebookPage.count({
     where: { contactId: input.contactId },
   });

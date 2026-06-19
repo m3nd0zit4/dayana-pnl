@@ -100,3 +100,39 @@ export const createEnrollmentSchema = z.object({
     .optional(),
   label: z.string().max(120).optional(),
 });
+
+const workshopScheduleSlotSchema = z.object({
+  startTime: z.string().min(1).max(20),
+  endTime: z.string().min(1).max(20),
+  title: z.string().min(1).max(500),
+  time: z.string().max(120).optional(),
+});
+
+export const workshopEditionSchema = z.object({
+  slug: z.string().min(1).max(120).optional(),
+  title: z.string().min(1).max(200),
+  editionLabel: z.string().max(120).optional().nullable(),
+  cardSummary: z.string().max(5000).optional().nullable(),
+  status: z
+    .enum(["DRAFT", "OPEN", "CLOSED", "COMPLETED"])
+    .optional(),
+  dateLabel: z.string().max(200).optional().nullable(),
+  scheduleLabel: z.string().max(200).optional().nullable(),
+  capacity: z.number().int().min(0).optional().nullable(),
+  whatsappTemplate: z.string().max(5000).optional().nullable(),
+  startsAt: z.string().datetime().optional().nullable(),
+  productId: z.string().optional().nullable(),
+  heroLine1: z.string().max(200).optional().nullable(),
+  heroLine2: z.string().max(200).optional().nullable(),
+  heroLine3: z.string().max(200).optional().nullable(),
+  detailSummary: z.string().max(5000).optional().nullable(),
+  intro: z.string().max(5000).optional().nullable(),
+  focusTopics: z.array(z.string().min(1).max(500)).optional().nullable(),
+  daySchedule: z.array(workshopScheduleSlotSchema).optional().nullable(),
+  topicsSectionTitle: z.string().max(200).optional().nullable(),
+  topicsSectionDescription: z.string().max(5000).optional().nullable(),
+  scheduleSectionDescription: z.string().max(5000).optional().nullable(),
+  metaTitle: z.string().max(200).optional().nullable(),
+  metaDescription: z.string().max(500).optional().nullable(),
+  introOpen: z.string().max(5000).optional().nullable(),
+});
