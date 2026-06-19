@@ -1,16 +1,18 @@
 "use client";
 
 import { WorkshopEditionStatus } from "@prisma/client";
-import { Megaphone, Pencil, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { ExternalLink, Megaphone, Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import BroadcastNotifyModal from "./BroadcastNotifyModal";
 import { useCrm } from "./CrmProvider";
-import WorkshopFormModal, { type WorkshopRow } from "./WorkshopFormModal";
-import { isLockedWorkshopSlug, PROXIMO_WORKSHOP_SLUG } from "@/lib/workshops";
+import WorkshopFormModal, {
+  mapApiEditionToRow,
+  type WorkshopRow,
+} from "./WorkshopFormModal";
 
 const STATUS_LABEL: Record<WorkshopEditionStatus, string> = {
   DRAFT: "Borrador",
@@ -20,25 +22,58 @@ const STATUS_LABEL: Record<WorkshopEditionStatus, string> = {
 };
 
 type Props = {
-  editions: WorkshopRow[];
   preview: boolean;
+  initialEditions?: WorkshopRow[];
+  loadError?: string;
 };
 
-const WorkshopsPageClient = ({ editions, preview }: Props) => {
-  const router = useRouter();
+const WorkshopsPageClient = ({
+  preview,
+  initialEditions,
+  loadError: initialLoadError,
+}: Props) => {
   const { confirm, toast } = useCrm();
+  const [editions, setEditions] = useState<WorkshopRow[]>(initialEditions ?? []);
+  const [loading, setLoading] = useState(!preview && initialEditions === undefined);
+  const [loadError, setLoadError] = useState<string | null>(initialLoadError ?? null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<WorkshopRow | null>(null);
   const [notifyEdition, setNotifyEdition] = useState<WorkshopRow | null>(null);
 
-  const proximo = useMemo(
-    () => editions.find((e) => e.slug === PROXIMO_WORKSHOP_SLUG) ?? null,
-    [editions]
-  );
-  const otherEditions = useMemo(
-    () => editions.filter((e) => e.slug !== PROXIMO_WORKSHOP_SLUG),
-    [editions]
-  );
+  const load = useCallback(() => {
+    if (preview) {
+      setEditions([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setLoadError(null);
+    fetch("/api/admin/workshops")
+      .then((res) => {
+        if (!res.ok) throw new Error("fetch_failed");
+        return res.json();
+      })
+      .then((data: { editions?: Parameters<typeof mapApiEditionToRow>[0][] }) => {
+        setEditions((data.editions ?? []).map(mapApiEditionToRow));
+      })
+      .catch(() => {
+        setEditions([]);
+        setLoadError("No se pudieron cargar las ediciones de taller.");
+      })
+      .finally(() => setLoading(false));
+  }, [preview]);
+
+  useEffect(() => {
+    if (preview || initialEditions !== undefined) return;
+    load();
+  }, [preview, initialEditions, load]);
+
+  const sortedEditions = [...editions].sort((a, b) => {
+    if (a.status === WorkshopEditionStatus.OPEN) return -1;
+    if (b.status === WorkshopEditionStatus.OPEN) return 1;
+    return a.title.localeCompare(b.title, "es");
+  });
 
   const openCreate = () => {
     setEditing(null);
@@ -46,13 +81,11 @@ const WorkshopsPageClient = ({ editions, preview }: Props) => {
   };
 
   const openEdit = (row: WorkshopRow) => {
-    if (isLockedWorkshopSlug(row.slug)) return;
     setEditing(row);
     setModalOpen(true);
   };
 
   const remove = (slug: string) => {
-    if (isLockedWorkshopSlug(slug)) return;
     confirm({
       title: "Eliminar edición",
       message:
@@ -63,7 +96,7 @@ const WorkshopsPageClient = ({ editions, preview }: Props) => {
         });
         if (res.ok) {
           toast("Edición de taller eliminada");
-          router.refresh();
+          load();
         } else {
           const data = (await res.json().catch(() => ({}))) as { error?: string };
           toast(
@@ -78,9 +111,21 @@ const WorkshopsPageClient = ({ editions, preview }: Props) => {
   };
 
   const EditionActions = ({ e }: { e: WorkshopRow }) => {
-    if (preview || isLockedWorkshopSlug(e.slug)) return null;
+    if (preview) return null;
     return (
       <>
+        {e.status === WorkshopEditionStatus.OPEN && (
+          <Link
+            href={`/taller-virtual/${e.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="crm-btn-icon size-8"
+            aria-label="Ver en web"
+            title="Ver en web"
+          >
+            <ExternalLink className="size-4" />
+          </Link>
+        )}
         <button
           type="button"
           className="crm-btn-icon size-8"
@@ -130,59 +175,51 @@ const WorkshopsPageClient = ({ editions, preview }: Props) => {
           }
         />
 
-        {proximo && (
-          <section>
-            <h2 className="mb-2 text-sm font-semibold text-[var(--crm-muted)]">
-              Próximo taller
-            </h2>
-            <div className="crm-surface-card border-dashed p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold">
-                    {proximo.title || "Próximo taller"}
-                  </div>
-                  {proximo.editionLabel && (
-                    <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
-                      {proximo.editionLabel}
-                    </div>
-                  )}
-                  <p className="mt-2 text-xs text-[var(--crm-muted)]">
-                    Placeholder fijo en la web. Se gestiona desde código, no desde el CRM.
-                  </p>
-                </div>
-                <span className="shrink-0 rounded-full border border-[var(--crm-border)] bg-[var(--crm-linen)]/40 px-3 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--crm-accent)]">
-                  {STATUS_LABEL[proximo.status]}
-                </span>
-              </div>
-              <EditionMeta e={proximo} />
-            </div>
-          </section>
+        {loadError && (
+          <p className="text-sm text-[var(--crm-danger)]" role="alert">
+            {loadError}
+          </p>
         )}
 
         <section>
-          <h2 className="mb-2 text-sm font-semibold text-[var(--crm-muted)]">
-            Ediciones
-          </h2>
           <div className="crm-group">
-            {otherEditions.length === 0 ? (
+            {loading ? (
+              <div className="crm-empty">
+                <p className="crm-empty-title">Cargando ediciones…</p>
+              </div>
+            ) : sortedEditions.length === 0 ? (
               <div className="crm-empty">
                 <p className="crm-empty-title">Sin ediciones</p>
                 {!preview && (
-                  <button type="button" className="crm-btn-secondary crm-btn-compact" onClick={openCreate}>
+                  <button
+                    type="button"
+                    className="crm-btn-secondary crm-btn-compact"
+                    onClick={openCreate}
+                  >
                     Crear edición
                   </button>
                 )}
               </div>
             ) : (
-              otherEditions.map((e) => (
+              sortedEditions.map((e) => (
                 <div key={e.id} className="crm-group-row">
                   <div className="min-w-0 flex-1">
-                    <div className="font-semibold">{e.title}</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{e.title}</span>
+                      {e.status === WorkshopEditionStatus.OPEN && (
+                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+                          Activo en web
+                        </span>
+                      )}
+                    </div>
                     {e.editionLabel && (
                       <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
                         {e.editionLabel}
                       </div>
                     )}
+                    <p className="mt-0.5 font-mono text-[11px] text-[var(--crm-muted)]">
+                      /taller-virtual/{e.slug}
+                    </p>
                     <EditionMeta e={e} />
                   </div>
                   <span className="hidden shrink-0 rounded-full border border-[var(--crm-border)] bg-[var(--crm-linen)]/40 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--crm-accent)] sm:inline">
@@ -202,7 +239,9 @@ const WorkshopsPageClient = ({ editions, preview }: Props) => {
         open={modalOpen}
         edition={editing}
         onClose={() => setModalOpen(false)}
-        onSaved={() => router.refresh()}
+        onSaved={() => {
+          load();
+        }}
       />
 
       <BroadcastNotifyModal

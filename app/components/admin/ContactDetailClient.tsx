@@ -4,7 +4,7 @@ import type { ContactSource } from "@prisma/client";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import ContactEditForm from "@/app/components/admin/crm/ContactEditForm";
 import DeleteContactDialog from "@/app/components/admin/crm/DeleteContactDialog";
 import QuickMessagesPanel from "@/app/components/admin/crm/QuickMessagesPanel";
@@ -74,21 +74,6 @@ const ContactDetailClient = ({
   const searchParams = useSearchParams();
   const { canWrite, toast, focusMode, setFocusMode } = useCrm();
   const [contact, setContact] = useState(initial);
-  const notebookIntentRef = useRef<{
-    createOnMount: boolean;
-    therapySessionId: string | null;
-  } | null>(null);
-  const notebookIntentContactRef = useRef(contact.id);
-  if (notebookIntentContactRef.current !== contact.id) {
-    notebookIntentContactRef.current = contact.id;
-    notebookIntentRef.current = null;
-  }
-  if (notebookIntentRef.current === null) {
-    notebookIntentRef.current = {
-      createOnMount: searchParams.get("newPage") === "1",
-      therapySessionId: searchParams.get("sessionId"),
-    };
-  }
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState<Tab>(
     initialTab === "servicios" || initialTab === "pagos" || initialTab === "notas"
@@ -103,14 +88,10 @@ const ContactDetailClient = ({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [notebookMounted, setNotebookMounted] = useState(
-    () =>
-      searchParams.get("tab") === "notas" || searchParams.get("focus") === "1"
+  const focusFromUrl = searchParams.get("focus") === "1";
+  const [notebookOpen, setNotebookOpen] = useState(
+    () => focusFromUrl && searchParams.get("tab") === "notas"
   );
-
-  useEffect(() => {
-    if (tab === "notas") setNotebookMounted(true);
-  }, [tab]);
 
   useEffect(() => {
     saveContactRecent({
@@ -138,11 +119,14 @@ const ContactDetailClient = ({
   useLayoutEffect(() => {
     const t = searchParams.get("tab");
     if (t === "servicios" || t === "pagos" || t === "resumen" || t === "notas") setTab(t);
-    setFocusMode(searchParams.get("focus") === "1");
+    const focus = searchParams.get("focus") === "1";
+    setFocusMode(focus);
+    if (focus && t === "notas") setNotebookOpen(true);
   }, [searchParams, setFocusMode]);
 
   const exitFocusMode = useCallback(() => {
     setFocusMode(false);
+    setNotebookOpen(false);
     const params = new URLSearchParams(searchParams.toString());
     params.delete("focus");
     const qs = params.toString();
@@ -150,6 +134,21 @@ const ContactDetailClient = ({
       scroll: false,
     });
   }, [contact.id, router, searchParams, setFocusMode]);
+
+  const openNotebook = useCallback(() => {
+    setNotebookOpen(true);
+    setFocusMode(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", "notas");
+    params.set("focus", "1");
+    router.replace(`/admin/contacts/${contact.id}?${params.toString()}`, {
+      scroll: false,
+    });
+  }, [contact.id, router, searchParams, setFocusMode]);
+
+  const preloadNotebook = useCallback(() => {
+    void import("@excalidraw/excalidraw");
+  }, []);
 
   useEffect(() => {
     if (!focusMode) return;
@@ -159,11 +158,6 @@ const ContactDetailClient = ({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [focusMode, exitFocusMode]);
-
-  useEffect(() => {
-    if (tab !== "notas") return;
-    void import("@excalidraw/excalidraw");
-  }, [tab]);
 
   const goToTab = (next: Tab) => {
     setTab(next);
@@ -254,15 +248,11 @@ const ContactDetailClient = ({
     }))
   );
 
-  const focusFromUrl = searchParams.get("focus") === "1";
   const isFocusNotebook = focusFromUrl && tab === "notas";
 
   const notebookProps = {
     contactId: contact.id,
     contactName: `${contact.firstName} ${contact.lastName ?? ""}`.trim(),
-    initialPageId: searchParams.get("pageId"),
-    createOnMount: notebookIntentRef.current.createOnMount,
-    initialTherapySessionId: notebookIntentRef.current.therapySessionId,
   };
 
   return (
@@ -426,33 +416,20 @@ const ContactDetailClient = ({
         </section>
       )}
 
-      {notebookMounted && (
+      {(tab === "notas" || isFocusNotebook) && (
         <div
           className={
-            tab === "notas" || isFocusNotebook
-              ? isFocusNotebook
-                ? "crm-focus-workspace flex min-h-0 flex-1 flex-col"
-                : undefined
-              : "hidden"
+            isFocusNotebook
+              ? "crm-focus-workspace flex min-h-0 flex-1 flex-col"
+              : undefined
           }
-          aria-hidden={tab !== "notas" && !isFocusNotebook}
         >
           <ContactNotesPanel
             {...notebookProps}
             focusMode={isFocusNotebook}
-            onEnterFocus={
-              isFocusNotebook
-                ? undefined
-                : () => {
-                    setFocusMode(true);
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.set("tab", "notas");
-                    params.set("focus", "1");
-                    router.replace(`/admin/contacts/${contact.id}?${params}`, {
-                      scroll: false,
-                    });
-                  }
-            }
+            notebookOpen={notebookOpen}
+            onOpenNotebook={openNotebook}
+            onPreloadNotebook={preloadNotebook}
             onExitFocus={isFocusNotebook ? exitFocusMode : undefined}
           />
         </div>

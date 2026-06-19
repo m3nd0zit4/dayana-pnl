@@ -8,7 +8,7 @@ import { useRef } from "react";
 import {
   WORKSHOPS,
   getWorkshopStatusLabel,
-  type Workshop,
+  type WorkshopCard,
 } from "../../../lib/workshops";
 import WhatsAppButton from "../ui/WhatsAppButton";
 
@@ -17,7 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 const GENERAL_WORKSHOP_WHATSAPP =
   "Hola Dayana, me interesa información sobre talleres virtuales y próximas fechas.";
 
-const statusBadgeClass = (status: Workshop["status"]) => {
+const statusBadgeClass = (status: WorkshopCard["status"]) => {
   if (status === "completed") {
     return "border-black/20 bg-black text-white";
   }
@@ -27,7 +27,7 @@ const statusBadgeClass = (status: Workshop["status"]) => {
   return "border-black/15 bg-white text-black/80";
 };
 
-const statusDotClass = (status: Workshop["status"]) => {
+const statusDotClass = (status: WorkshopCard["status"]) => {
   if (status === "completed") return "bg-emerald-600";
   if (status === "open") return "bg-emerald-500";
   return "bg-amber-500";
@@ -60,12 +60,13 @@ const UpcomingWorkshopCard = () => (
   </article>
 );
 
-const WorkshopCard = ({ workshop }: { workshop: Workshop }) => {
+const WorkshopCardItem = ({ workshop }: { workshop: WorkshopCard }) => {
   if (workshop.status === "upcoming") {
     return <UpcomingWorkshopCard />;
   }
 
   const statusLabel = getWorkshopStatusLabel(workshop.status);
+  const detailHref = `/taller-virtual/${workshop.slug}`;
 
   return (
     <article className="wk-card group flex h-full flex-col rounded-3xl border border-black/15 bg-white p-6 lg:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
@@ -103,14 +104,22 @@ const WorkshopCard = ({ workshop }: { workshop: Workshop }) => {
         </div>
       </div>
 
-      {workshop.status === "open" && workshop.whatsappMessage ? (
-        <div className="mt-6">
-          <WhatsAppButton
-            message={workshop.whatsappMessage}
-            label="Inscribirme por WhatsApp"
-            size="md"
-            className="w-full"
-          />
+      {workshop.status === "open" ? (
+        <div className="mt-6 flex flex-col gap-3">
+          <Link
+            href={detailHref}
+            className="inline-flex w-full items-center justify-center rounded-full border border-black bg-black px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/85"
+          >
+            Ver taller
+          </Link>
+          {workshop.whatsappMessage ? (
+            <WhatsAppButton
+              message={workshop.whatsappMessage}
+              label="Inscribirme por WhatsApp"
+              size="md"
+              className="w-full"
+            />
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -118,12 +127,13 @@ const WorkshopCard = ({ workshop }: { workshop: Workshop }) => {
 };
 
 type WorkshopsListingProps = {
-  workshops?: Workshop[];
+  workshops?: WorkshopCard[];
 };
 
 const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) => {
   const workshops = workshopsProp ?? WORKSHOPS;
   const rootRef = useRef<HTMLElement>(null);
+  const hasOpen = workshops.some((w) => w.status === "open");
 
   useGSAP(
     () => {
@@ -165,14 +175,14 @@ const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) =
           Talleres
         </h1>
         <p className="wk-list-reveal mt-6 max-w-3xl font-[font1] text-lg leading-snug text-black/78 lg:text-2xl">
-          Jornadas intensivas de transformación con Dayana Beltrán. La edición
-          &ldquo;Saca tu mejor versión&rdquo; (mayo 2026) ya se realizó; aquí
-          verás el próximo taller cuando abramos fechas.
+          {hasOpen
+            ? "Jornadas intensivas de transformación con Dayana Beltrán. Hay inscripciones abiertas: entra al taller activo para ver el programa completo."
+            : "Jornadas intensivas de transformación con Dayana Beltrán. Cuando abramos una nueva edición, la verás aquí."}
         </p>
 
         <div className="wk-list-reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6">
           {workshops.map((workshop) => (
-            <WorkshopCard key={workshop.slug} workshop={workshop} />
+            <WorkshopCardItem key={workshop.slug} workshop={workshop} />
           ))}
         </div>
 

@@ -5,7 +5,11 @@ import {
 } from "@prisma/client";
 import { hashStaffPassword } from "../lib/auth/password";
 import { PLANS, type PlanId } from "../lib/plans";
-import { WORKSHOPS } from "../lib/workshops";
+import {
+  PROXIMO_WORKSHOP_SLUG,
+  WORKSHOP_DETAIL_SEED,
+  WORKSHOPS,
+} from "../lib/workshops";
 
 const prisma = new PrismaClient();
 
@@ -94,7 +98,10 @@ async function seedProducts() {
 
 async function seedWorkshops() {
   for (const w of WORKSHOPS) {
-    if (!w.slug) continue;
+    if (!w.slug || w.slug === PROXIMO_WORKSHOP_SLUG) continue;
+
+    const landing =
+      w.slug === "saca-tu-mejor-version" ? WORKSHOP_DETAIL_SEED : null;
 
     await prisma.workshopEdition.upsert({
       where: { slug: w.slug },
@@ -112,6 +119,18 @@ async function seedWorkshops() {
           w.slug === "saca-tu-mejor-version"
             ? new Date("2026-05-16T12:30:00.000Z")
             : null,
+        heroLine1: landing?.heroLines[0] ?? null,
+        heroLine2: landing?.heroLines[1] ?? null,
+        heroLine3: landing?.heroLines[2] ?? null,
+        detailSummary: landing?.detailSummary ?? null,
+        intro: landing?.intro ?? null,
+        focusTopics: landing?.focusTopics ?? undefined,
+        daySchedule: landing?.daySchedule ?? undefined,
+        topicsSectionTitle: landing?.topicsSectionTitle ?? null,
+        topicsSectionDescription: landing?.topicsSectionDescription ?? null,
+        scheduleSectionDescription: landing?.scheduleSectionDescription ?? null,
+        metaTitle: landing?.metaTitle ?? null,
+        metaDescription: landing?.metaDescription ?? null,
       },
       update: {
         title: w.title || "Próximo taller",
@@ -121,6 +140,22 @@ async function seedWorkshops() {
         dateLabel: w.dateLabel || null,
         scheduleLabel: w.scheduleLabel || null,
         whatsappTemplate: w.whatsappMessage ?? null,
+        ...(landing
+          ? {
+              heroLine1: landing.heroLines[0],
+              heroLine2: landing.heroLines[1],
+              heroLine3: landing.heroLines[2],
+              detailSummary: landing.detailSummary,
+              intro: landing.intro,
+              focusTopics: landing.focusTopics,
+              daySchedule: landing.daySchedule,
+              topicsSectionTitle: landing.topicsSectionTitle,
+              topicsSectionDescription: landing.topicsSectionDescription,
+              scheduleSectionDescription: landing.scheduleSectionDescription,
+              metaTitle: landing.metaTitle,
+              metaDescription: landing.metaDescription,
+            }
+          : {}),
       },
     });
   }

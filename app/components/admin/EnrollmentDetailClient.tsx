@@ -235,10 +235,9 @@ const EnrollmentDetailClient = ({
             duration: 8000,
             action: canEditNotes
               ? {
-                  label: `Añadir hoja de sesión ${sessionNumber}`,
+                  label: "Abrir cuaderno clínico",
                   href: contactNotebookPath(enrollment.contact.id, {
-                    newPage: true,
-                    sessionId,
+                    focus: true,
                   }),
                 }
               : undefined,
@@ -417,7 +416,7 @@ const EnrollmentDetailClient = ({
 
           {canEditNotes && (
             <Link
-              href={contactNotebookPath(enrollment.contact.id)}
+              href={contactNotebookPath(enrollment.contact.id, { focus: true })}
               className="crm-btn-secondary inline-flex items-center gap-1.5 text-xs"
             >
               <BookOpen className="size-3.5" aria-hidden />
