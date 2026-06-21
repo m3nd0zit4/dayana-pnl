@@ -503,3 +503,11 @@ model NotificationDelivery {
   @@index([contactId, createdAt])
   @@map("notification_deliveries")
 }
+
+model SiteSetting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
