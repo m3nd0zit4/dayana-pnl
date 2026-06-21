@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { WHATSAPP_NUMBER, buildWhatsAppUrl } from "../../../lib/contact";
-import { formatUsd, getPlan, type PlanId } from "../../../lib/plans";
+import { formatCop, formatUsd, type PlanId } from "../../../lib/plans";
+import { useCheckoutPlan } from "./useCheckoutPlan";
 import { MercadoPagoBrandRow } from "./MercadoPagoBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
@@ -55,7 +56,7 @@ const MercadoPagoCheckoutModal = ({
   onClose,
 }: MercadoPagoCheckoutModalProps) => {
   const open = planId !== null;
-  const plan = planId ? getPlan(planId) : null;
+  const { plan, loading: planLoading } = useCheckoutPlan(open ? planId : null);
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
@@ -145,8 +146,9 @@ const MercadoPagoCheckoutModal = ({
     };
   }, [open, plan, contactPayload]);
 
-  if (!open || !plan) return null;
+  if (!open) return null;
   if (typeof document === "undefined") return null;
+  if (planLoading || !plan) return null;
 
   const backdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
@@ -272,9 +274,16 @@ const MercadoPagoCheckoutModal = ({
                 ) : null}
               </div>
             ) : (
-              <div className="font-[font1] text-2xl mt-2 text-linen">
-                {amountLabel} USD
-              </div>
+              <>
+                <div className="font-[font1] text-2xl mt-2 text-linen">
+                  {amountLabel} USD
+                </div>
+                {plan.amountCop != null ? (
+                  <div className="font-[font1] text-sm text-white/50 mt-1">
+                    ≈ {formatCop(plan.amountCop)} COP aprox.
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
 
