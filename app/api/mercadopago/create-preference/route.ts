@@ -16,6 +16,9 @@ import {
   rateLimitDistributed,
 } from "@/lib/api/rate-limit-distributed";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 type Body = CheckoutContactBody & {
   planId?: string;
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
@@ -24,6 +27,7 @@ type Body = CheckoutContactBody & {
 
 function parseContactBody(body: Body): CheckoutContactBody {
   return {
+    contactId: typeof body.contactId === "string" ? body.contactId : undefined,
     phone: typeof body.phone === "string" ? body.phone : undefined,
     phoneCountry:
       typeof body.phoneCountry === "string" ? body.phoneCountry : undefined,

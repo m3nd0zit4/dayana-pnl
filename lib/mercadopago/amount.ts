@@ -5,28 +5,49 @@ import {
   mercadoPagoFee,
   type FeeBreakdown,
 } from "../pricing/fees";
+import {
+  getMercadoPagoSiteCurrency,
+  getUsdToCopRate,
+  mercadoPagoCheckoutUsesCop,
+  type MercadoPagoCurrencyId,
+} from "./currency";
+
+export type MercadoPagoItemAmount = FeeBreakdown & {
+  currency_id: MercadoPagoCurrencyId;
+  /** USD breakdown when checkout settles in COP but catalog is USD. */
+  referenceUsd?: FeeBreakdown;
+};
 
 /**
  * Mercado Pago preference item amount (server-only).
  * Devuelve el NETO + COMISIÓN por separado, así el checkout muestra el desglose.
  */
-export function mercadoPagoItemAmount(plan: Plan): {
-  net: number;
-  fee: number;
-  gross: number;
-  currency_id: string;
-} {
-  const currency = (process.env.MERCADOPAGO_CURRENCY ?? "USD").toUpperCase();
-  if (currency === "COP") {
-    const rate = Number(process.env.MERCADOPAGO_USD_TO_COP ?? "4000");
-    if (!Number.isFinite(rate) || rate <= 0) {
-      throw new Error("MERCADOPAGO_USD_TO_COP must be a positive number");
-    }
+export function mercadoPagoItemAmount(plan: Plan): MercadoPagoItemAmount {
+  const siteCurrency = getMercadoPagoSiteCurrency();
+  const fee = mercadoPagoFee();
+
+  if (mercadoPagoCheckoutUsesCop()) {
+    const rate = getUsdToCopRate();
     const netCop = Math.round(plan.amountUsd * rate);
-    const breakdown: FeeBreakdown = grossUpInt(netCop, mercadoPagoFee());
+    const breakdown = grossUpInt(netCop, fee);
+    const result: MercadoPagoItemAmount = {
+      ...breakdown,
+      currency_id: "COP",
+    };
+    if (siteCurrency === "USD") {
+      result.referenceUsd = grossUpUsd(plan.amountUsd, fee);
+    }
+    return result;
+  }
+
+  if (siteCurrency === "COP") {
+    const rate = getUsdToCopRate();
+    const netCop = Math.round(plan.amountUsd * rate);
+    const breakdown = grossUpInt(netCop, fee);
     return { ...breakdown, currency_id: "COP" };
   }
-  const breakdown = grossUpUsd(plan.amountUsd, mercadoPagoFee());
+
+  const breakdown = grossUpUsd(plan.amountUsd, fee);
   return { ...breakdown, currency_id: "USD" };
 }
 

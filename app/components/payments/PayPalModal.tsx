@@ -15,6 +15,9 @@ import { PayPalBrandRow } from "./PayPalBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
 } from "./CheckoutContactStep";
+import CheckoutPaymentModalFrame, {
+  usePaymentModalScrollLock,
+} from "./CheckoutPaymentModalFrame";
 
 type PayPalModalProps = {
   planId: PlanId | null;
@@ -62,6 +65,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const [buttonsEpoch, setButtonsEpoch] = useState(0);
 
   const contactPayloadRef = useRef<CheckoutContactPayload | null>(null);
+  const checkoutContactIdRef = useRef<string | null>(null);
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const buttonsCloseRef = useRef<null | (() => Promise<void>)>(null);
@@ -93,6 +97,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       setBreakdown(null);
       setContactPayload(null);
       contactPayloadRef.current = null;
+      checkoutContactIdRef.current = null;
       paypalFlowActiveRef.current = false;
       checkoutSucceededRef.current = false;
       setButtonsEpoch(0);
@@ -103,14 +108,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open]);
+  usePaymentModalScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
@@ -240,6 +238,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           createOrder: async () => {
             paypalFlowActiveRef.current = true;
             const contact = contactPayloadRef.current;
+            const contactId = checkoutContactIdRef.current;
             if (!contact) {
               paypalFlowActiveRef.current = false;
               throw new Error("Completa tus datos de contacto primero.");
@@ -249,6 +248,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
                 planId: plan.id,
+                contactId: contactId ?? undefined,
                 ...contact,
               }),
             });
@@ -404,53 +404,21 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
   const showPayPalHost = ui.kind === "buttons" || ui.kind === "loading";
 
   const content = (
-    <div
-      aria-modal="true"
-      role="dialog"
-      aria-label={`Pago PayPal — ${plan.title}`}
-      className="fixed inset-0 z-[101] flex items-center justify-center p-4 lg:p-6 bg-black/80 backdrop-blur-md animate-[fadeIn_200ms_ease-out]"
-      onMouseDown={backdropClick}
-    >
-      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl bg-ink text-white border border-linen/15 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)] animate-[popIn_240ms_cubic-bezier(0.22,1,0.36,1)]">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none rounded-2xl opacity-80"
-          style={{
-            background:
-              "radial-gradient(60% 40% at 0% 0%, rgba(236,227,212,0.10), transparent 60%), radial-gradient(50% 45% at 100% 100%, rgba(237,195,177,0.14), transparent 65%)",
-          }}
+    <CheckoutPaymentModalFrame
+      ariaLabel={`Pago PayPal — ${plan.title}`}
+      gradientBackground="radial-gradient(60% 40% at 0% 0%, rgba(236,227,212,0.10), transparent 60%), radial-gradient(50% 45% at 100% 100%, rgba(237,195,177,0.14), transparent 65%)"
+      closeButtonRef={closeButtonRef}
+      onClose={requestClose}
+      onBackdropClick={backdropClick}
+      header={
+        <PayPalBrandRow
+          tone="onDark"
+          subtitle="Checkout seguro"
+          className="items-start text-left"
         />
-
-        <div className="relative flex items-center justify-between gap-3 px-6 pt-5 pb-4 border-b border-linen/10">
-          <PayPalBrandRow
-            tone="onDark"
-            subtitle="Checkout seguro"
-            className="items-start text-left"
-          />
-          <button
-            type="button"
-            ref={closeButtonRef}
-            onClick={requestClose}
-            aria-label="Cerrar"
-            className="flex items-center justify-center w-8 h-8 rounded-full text-white/60 hover:text-linen hover:bg-linen/10 transition-colors cursor-pointer"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4"
-              aria-hidden="true"
-            >
-              <path d="M18 6L6 18" />
-              <path d="M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="relative px-6 pt-5 pb-6">
+      }
+    >
+      <div className="relative">
           <div className="rounded-xl border border-linen/12 bg-linen/[0.04] p-4 mb-5">
             <div className="font-[font2] uppercase text-[10px] tracking-[0.35em] text-linen/70">
               {plan.kind === "course" ? "Curso en vivo" : "Terapia PNL"}
@@ -507,6 +475,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
                         data.message ?? "No se pudo registrar tu contacto."
                       );
                     }
+                    checkoutContactIdRef.current = data.contactId;
                     setContactPayload(payload);
                   } catch (e) {
                     setUi({
@@ -578,30 +547,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               </button>
             </div>
           )}
-        </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        @keyframes popIn {
-          0% {
-            opacity: 0;
-            transform: translateY(8px) scale(0.98);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-      `}</style>
-    </div>
+    </CheckoutPaymentModalFrame>
   );
 
   return createPortal(content, document.body);
