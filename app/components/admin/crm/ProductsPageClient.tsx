@@ -38,15 +38,22 @@ const emptyForm = () => ({
 type Props = {
   preview: boolean;
   initialProducts?: Product[];
+  initialUsdToCopRate?: number;
 };
 
-const ProductsPageClient = ({ preview, initialProducts }: Props) => {
+const ProductsPageClient = ({
+  preview,
+  initialProducts,
+  initialUsdToCopRate = 3500,
+}: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [loading, setLoading] = useState(initialProducts === undefined);
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [usdToCopRate, setUsdToCopRate] = useState(String(initialUsdToCopRate));
+  const [rateSaving, setRateSaving] = useState(false);
 
   const load = useCallback(() => {
     if (preview) {
@@ -135,6 +142,42 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
 
   const showForm = creating || editing;
 
+  const saveUsdToCopRate = async () => {
+    if (!canManageTeam || preview) return;
+    const parsed = Number(usdToCopRate.replace(/\s/g, ""));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      toast("Ingresa una tasa válida (número positivo)", "error");
+      return;
+    }
+    setRateSaving(true);
+    try {
+      const res = await fetch("/api/admin/site-settings", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ usdToCopRate: Math.round(parsed) }),
+      });
+      if (!res.ok) {
+        toast("No se pudo guardar la tasa", "error");
+        return;
+      }
+      const data = (await res.json()) as { usdToCopRate?: number };
+      if (data.usdToCopRate != null) {
+        setUsdToCopRate(String(data.usdToCopRate));
+      }
+      toast("Tasa actualizada — la web refleja el cambio al instante");
+    } catch {
+      toast("Error de red al guardar la tasa", "error");
+    } finally {
+      setRateSaving(false);
+    }
+  };
+
+  const ratePreviewCop = (usd: number) => {
+    const r = Number(usdToCopRate.replace(/\s/g, ""));
+    if (!Number.isFinite(r) || r <= 0) return null;
+    return Math.round(usd * r).toLocaleString("es-CO");
+  };
+
   return (
     <CrmPageShell>
       <div className="space-y-6">
@@ -142,8 +185,8 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           <div>
             <h1 className="crm-section-title text-xl">Productos</h1>
             <p className="crm-section-subtitle mt-1 max-w-xl">
-              Precios y planes de la landing (#servicios) y del checkout. Los cambios
-              se reflejan en la web al guardar.
+              Precios USD, tasa COP y planes de la landing (#servicios). Al guardar,
+              la web se actualiza sola.
             </p>
           </div>
           {canManageTeam && !preview && (
@@ -161,6 +204,47 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
             </button>
           )}
         </div>
+
+        {canManageTeam && !preview && (
+          <div className="crm-surface-card space-y-3 p-5">
+            <div>
+              <h2 className="text-sm font-semibold">Tasa USD → COP (referencia web)</h2>
+              <p className="mt-1 text-xs text-[var(--crm-muted)]">
+                Se usa en las cartas de precio (&quot;COP aprox.&quot;) y en Mercado
+                Pago. Ejemplo: $80 USD × tasa = valor mostrado en pesos.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-[10rem] flex-1 sm:max-w-xs">
+                <label className="crm-label" htmlFor="usd-to-cop-rate">
+                  COP por 1 USD
+                </label>
+                <input
+                  id="usd-to-cop-rate"
+                  type="number"
+                  min={1}
+                  step={1}
+                  className="crm-input"
+                  value={usdToCopRate}
+                  onChange={(e) => setUsdToCopRate(e.target.value)}
+                />
+              </div>
+              <button
+                type="button"
+                className="crm-btn-primary"
+                disabled={rateSaving}
+                onClick={() => void saveUsdToCopRate()}
+              >
+                {rateSaving ? "Guardando…" : "Guardar tasa"}
+              </button>
+            </div>
+            {ratePreviewCop(80) ? (
+              <p className="text-xs text-[var(--crm-muted)]">
+                Vista previa: $80 USD ≈ ${ratePreviewCop(80)} COP aprox.
+              </p>
+            ) : null}
+          </div>
+        )}
 
         {showForm && canManageTeam && (
           <div className="crm-surface-card space-y-3 p-5">

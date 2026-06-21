@@ -7,7 +7,6 @@ import {
 } from "../pricing/fees";
 import {
   getMercadoPagoSiteCurrency,
-  getUsdToCopRate,
   mercadoPagoCheckoutUsesCop,
   type MercadoPagoCurrencyId,
 } from "./currency";
@@ -22,13 +21,15 @@ export type MercadoPagoItemAmount = FeeBreakdown & {
  * Mercado Pago preference item amount (server-only).
  * Devuelve el NETO + COMISIÓN por separado, así el checkout muestra el desglose.
  */
-export function mercadoPagoItemAmount(plan: Plan): MercadoPagoItemAmount {
+export function mercadoPagoItemAmount(
+  plan: Plan,
+  usdToCopRate: number
+): MercadoPagoItemAmount {
   const siteCurrency = getMercadoPagoSiteCurrency();
   const fee = mercadoPagoFee();
 
   if (mercadoPagoCheckoutUsesCop()) {
-    const rate = getUsdToCopRate();
-    const netCop = Math.round(plan.amountUsd * rate);
+    const netCop = Math.round(plan.amountUsd * usdToCopRate);
     const breakdown = grossUpInt(netCop, fee);
     const result: MercadoPagoItemAmount = {
       ...breakdown,
@@ -41,8 +42,7 @@ export function mercadoPagoItemAmount(plan: Plan): MercadoPagoItemAmount {
   }
 
   if (siteCurrency === "COP") {
-    const rate = getUsdToCopRate();
-    const netCop = Math.round(plan.amountUsd * rate);
+    const netCop = Math.round(plan.amountUsd * usdToCopRate);
     const breakdown = grossUpInt(netCop, fee);
     return { ...breakdown, currency_id: "COP" };
   }

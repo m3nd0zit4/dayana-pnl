@@ -3,6 +3,7 @@ import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
+import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import {
   clientIp,
   rateLimitDistributed,
@@ -49,8 +50,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { net, fee, gross, currency_id, referenceUsd } =
-      mercadoPagoItemAmount(plan);
+    const usdToCopRate = await resolveUsdToCopRate();
+    const { net, fee, gross, currency_id, referenceUsd } = mercadoPagoItemAmount(
+      plan,
+      usdToCopRate
+    );
     const isCop = currency_id === "COP";
     const fmt = (n: number): string =>
       isCop ? String(Math.round(n)) : n.toFixed(2);

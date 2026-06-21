@@ -5,18 +5,25 @@ import ContactSection from "./components/home/ContactSection";
 import Footer from "./components/home/Footer";
 import FloatingWhatsApp from "./components/ui/FloatingWhatsApp";
 import { getPublicPlans } from "@/lib/plans-from-db";
+import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
+import {
+  applyCopToPlan,
+  applyCopToPlans,
+  getUsdToCopRateFromEnv,
+} from "@/lib/pricing/usd-to-cop";
 import { COURSE_PLAN, THERAPY_PLANS } from "@/lib/plans";
 
 const Home = async () => {
-  let therapyPlans = THERAPY_PLANS;
-  let coursePlan = COURSE_PLAN;
+  const rate = await resolveUsdToCopRate().catch(() => getUsdToCopRateFromEnv());
+  let therapyPlans = applyCopToPlans(THERAPY_PLANS, rate);
+  let coursePlan = applyCopToPlan(COURSE_PLAN, rate);
 
   try {
     const fromDb = await getPublicPlans();
     if (fromDb.therapyPlans.length > 0) therapyPlans = fromDb.therapyPlans;
     if (fromDb.coursePlan) coursePlan = fromDb.coursePlan;
   } catch {
-    /* fallback estático */
+    /* catálogo estático con COP según tasa */
   }
 
   return (
