@@ -1,10 +1,17 @@
 import { ContactSource } from "@prisma/client";
 import { upsertContactByPhone } from "./contacts";
+import { parseCheckoutContactFields } from "../validations/checkout-contact";
 
 export class CheckoutContactError extends Error {
   constructor(
     message: string,
-    readonly code: "CONSENT_REQUIRED" | "INVALID_PHONE" | "MISSING_PHONE"
+    readonly code:
+      | "CONSENT_REQUIRED"
+      | "INVALID_PHONE"
+      | "MISSING_PHONE"
+      | "MISSING_EMAIL"
+      | "INVALID_EMAIL"
+      | "INVALID_CONTACT"
   ) {
     super(message);
     this.name = "CheckoutContactError";
@@ -12,6 +19,8 @@ export class CheckoutContactError extends Error {
 }
 
 export type ResolveCheckoutContactInput = {
+  /** Reuse contact from a prior step in the same checkout session. */
+  contactId?: string;
   phone?: string;
   phoneCountry?: string;
   firstName?: string;
@@ -29,28 +38,30 @@ export type ResolveCheckoutContactResult = {
 export const resolveCheckoutContact = async (
   input: ResolveCheckoutContactInput
 ): Promise<ResolveCheckoutContactResult> => {
-  const phone = typeof input.phone === "string" ? input.phone.trim() : "";
-  if (!phone) {
-    throw new CheckoutContactError(
-      "Teléfono obligatorio para iniciar el pago",
-      "MISSING_PHONE"
-    );
+  const parsed = parseCheckoutContactFields({
+    contactId: input.contactId,
+    phone: input.phone,
+    phoneCountry: input.phoneCountry,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    email: input.email,
+    consentData: input.consentData === true ? true : undefined,
+  });
+
+  if (!parsed.ok) {
+    throw new CheckoutContactError(parsed.message, parsed.code);
   }
 
-  if (!input.consentData) {
-    throw new CheckoutContactError(
-      "Debes aceptar el tratamiento de datos personales",
-      "CONSENT_REQUIRED"
-    );
-  }
+  const data = parsed.data;
 
   try {
     const { contact, created } = await upsertContactByPhone({
-      phone,
-      phoneCountry: input.phoneCountry,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      email: input.email,
+      ...(data.contactId ? { contactId: data.contactId } : {}),
+      phone: data.phone,
+      phoneCountry: data.phoneCountry,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
       countryIso: input.countryIso,
       source: ContactSource.WEB,
       consentData: true,
@@ -75,6 +86,9 @@ export const checkoutContactErrorStatus = (
     case "CONSENT_REQUIRED":
     case "MISSING_PHONE":
     case "INVALID_PHONE":
+    case "MISSING_EMAIL":
+    case "INVALID_EMAIL":
+    case "INVALID_CONTACT":
       return 400;
     default:
       return 400;

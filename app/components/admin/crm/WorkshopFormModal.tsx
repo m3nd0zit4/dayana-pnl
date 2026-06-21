@@ -115,7 +115,6 @@ type Props = {
 };
 
 const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
-  const [slug, setSlug] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editionLabel, setEditionLabel] = useState("");
@@ -133,7 +132,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   useEffect(() => {
     if (!open) return;
     if (edition) {
-      setSlug(edition.slug);
       setTitle(edition.title);
       setDescription(
         edition.cardSummary?.trim() ||
@@ -149,7 +147,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setDaySchedule(edition.daySchedule ?? []);
       setIntroOpen(edition.introOpen ?? "");
     } else {
-      setSlug("");
       setTitle("");
       setDescription("");
       setEditionLabel("");
@@ -174,7 +171,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
     const trimmedSchedule = normalizeWorkshopSchedule(daySchedule);
 
     const payload = {
-      slug: slug.trim() || undefined,
       title: trimmedTitle,
       cardSummary: trimmedDescription || undefined,
       editionLabel: editionLabel || undefined,
@@ -186,11 +182,16 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       introOpen: introOpen.trim() || undefined,
     };
 
-    const res = await fetch("/api/admin/workshops", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await fetch(
+      edition
+        ? `/api/admin/workshops/${encodeURIComponent(edition.slug)}`
+        : "/api/admin/workshops",
+      {
+        method: edition ? "PATCH" : "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
 
     setLoading(false);
     if (!res.ok) {
@@ -285,22 +286,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
               onChange={(e) => setScheduleLabel(e.target.value)}
               placeholder="7:30 a.m. – 4:30 p.m. · virtual"
             />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="crm-label" htmlFor="w-slug">
-              Slug URL
-            </label>
-            <input
-              id="w-slug"
-              className="crm-input font-mono text-sm"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="Se genera solo si lo dejas vacío"
-            />
-            <p className="mt-1 text-xs text-[var(--crm-muted)]">
-              Página pública: /taller-virtual/{slug.trim() || "…"} (solo con
-              estado Abierto)
-            </p>
           </div>
         </div>
 

@@ -82,12 +82,23 @@ const SmoothScroll = () => {
 
     document.addEventListener("click", handleAnchorClick);
 
+    const lockLenis = () => {
+      lenis.stop();
+    };
+    const unlockLenis = () => {
+      lenis.start();
+    };
+    window.addEventListener("lenis-lock", lockLenis);
+    window.addEventListener("lenis-unlock", unlockLenis);
+
     if (window.location.hash) {
       window.setTimeout(() => scrollToHash(window.location.hash), 50);
     }
 
     return () => {
       document.removeEventListener("click", handleAnchorClick);
+      window.removeEventListener("lenis-lock", lockLenis);
+      window.removeEventListener("lenis-unlock", unlockLenis);
       gsap.ticker.remove(raf);
       lenis.destroy();
     };

@@ -49,16 +49,27 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { net, fee, gross, currency_id } = mercadoPagoItemAmount(plan);
+    const { net, fee, gross, currency_id, referenceUsd } =
+      mercadoPagoItemAmount(plan);
     const isCop = currency_id === "COP";
     const fmt = (n: number): string =>
       isCop ? String(Math.round(n)) : n.toFixed(2);
+    const fmtUsd = (n: number): string => n.toFixed(2);
+
     return NextResponse.json({
       provider: "mercadopago",
       currency: currency_id,
       subtotal: fmt(net),
       fee: fmt(fee),
       total: fmt(gross),
+      ...(referenceUsd
+        ? {
+            referenceCurrency: "USD" as const,
+            referenceSubtotal: fmtUsd(referenceUsd.net),
+            referenceFee: fmtUsd(referenceUsd.fee),
+            referenceTotal: fmtUsd(referenceUsd.gross),
+          }
+        : {}),
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "amount_error";
