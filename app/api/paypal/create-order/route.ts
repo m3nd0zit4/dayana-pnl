@@ -28,6 +28,7 @@ type Body = CheckoutContactBody & {
 
 function parseContactBody(body: Body): CheckoutContactBody {
   return {
+    contactId: typeof body.contactId === "string" ? body.contactId : undefined,
     phone: typeof body.phone === "string" ? body.phone : undefined,
     phoneCountry:
       typeof body.phoneCountry === "string" ? body.phoneCountry : undefined,

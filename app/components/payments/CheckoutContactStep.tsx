@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  checkoutContactFieldsSchema,
+  type CheckoutContactFields,
+} from "@/lib/validations/checkout-contact";
+import {
+  readStoredCheckoutContact,
+  writeStoredCheckoutContact,
+} from "@/lib/checkout-contact-storage";
 import CheckoutCountrySelect from "./CheckoutCountrySelect";
 
-export type CheckoutContactPayload = {
-  phone: string;
-  phoneCountry: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  consentData: true;
-};
+export type CheckoutContactPayload = Pick<
+  CheckoutContactFields,
+  "phone" | "phoneCountry" | "email" | "firstName" | "lastName" | "consentData"
+>;
 
 type Props = {
   defaultCountry?: string;
@@ -35,25 +39,52 @@ const CheckoutContactStep = ({
   const [consent, setConsent] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const stored = readStoredCheckoutContact();
+    if (!stored) return;
+    setEmail(stored.email);
+    setPhone(stored.phone);
+    setPhoneCountry(stored.phoneCountry || defaultCountry);
+    if (stored.firstName) setFirstName(stored.firstName);
+    if (stored.lastName) setLastName(stored.lastName);
+  }, [defaultCountry]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) {
-      setLocalError("El teléfono es obligatorio.");
-      return;
-    }
-    if (!consent) {
-      setLocalError("Debes aceptar el tratamiento de datos personales.");
-      return;
-    }
-    setLocalError(null);
-    onSubmit({
+
+    const parsed = checkoutContactFieldsSchema.safeParse({
       phone: phone.trim(),
       phoneCountry,
       firstName: firstName.trim() || undefined,
       lastName: lastName.trim() || undefined,
-      email: email.trim() || undefined,
-      consentData: true,
+      email: email.trim(),
+      consentData: consent ? true : undefined,
     });
+
+    if (!parsed.success) {
+      setLocalError(parsed.error.issues[0]?.message ?? "Revisa tus datos.");
+      return;
+    }
+
+    setLocalError(null);
+    const payload: CheckoutContactPayload = {
+      phone: parsed.data.phone,
+      phoneCountry: parsed.data.phoneCountry ?? defaultCountry,
+      email: parsed.data.email.toLowerCase(),
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+      consentData: true,
+    };
+
+    writeStoredCheckoutContact({
+      email: payload.email,
+      phone: payload.phone,
+      phoneCountry: payload.phoneCountry,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+    });
+
+    onSubmit(payload);
   };
 
   const displayError = error ?? localError;
@@ -65,8 +96,8 @@ const CheckoutContactStep = ({
           Tus datos de contacto
         </h2>
         <p className="font-[font1] text-white/60 text-sm">
-          WhatsApp o teléfono obligatorio para vincular tu pago. El nombre es
-          opcional.
+          Correo y WhatsApp vinculan tu pago al CRM, envían confirmaciones y
+          evitan duplicados si reintentas con otro número.
         </p>
       </div>
 
@@ -79,6 +110,7 @@ const CheckoutContactStep = ({
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             disabled={disabled}
+            autoComplete="given-name"
             className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50"
           />
         </label>
@@ -90,10 +122,28 @@ const CheckoutContactStep = ({
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             disabled={disabled}
+            autoComplete="family-name"
             className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50"
           />
         </label>
       </div>
+
+      <label className="block">
+        <span className="font-[font1] text-xs text-white/50 mb-1 block">
+          Correo electrónico *
+        </span>
+        <input
+          required
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={disabled}
+          placeholder="tu@correo.com"
+          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50"
+        />
+      </label>
 
       <CheckoutCountrySelect
         value={phoneCountry}
@@ -108,23 +158,12 @@ const CheckoutContactStep = ({
         <input
           required
           type="tel"
+          inputMode="tel"
+          autoComplete="tel-national"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           disabled={disabled}
           placeholder="300 123 4567"
-          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50"
-        />
-      </label>
-
-      <label className="block">
-        <span className="font-[font1] text-xs text-white/50 mb-1 block">
-          Correo (opcional)
-        </span>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={disabled}
           className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50"
         />
       </label>

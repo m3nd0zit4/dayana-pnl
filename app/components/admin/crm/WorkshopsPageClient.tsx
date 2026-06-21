@@ -1,7 +1,7 @@
 "use client";
 
 import { WorkshopEditionStatus } from "@prisma/client";
-import { ExternalLink, Megaphone, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Megaphone, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import CrmNewButton from "./CrmNewButton";
@@ -39,6 +39,21 @@ const WorkshopsPageClient = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<WorkshopRow | null>(null);
   const [notifyEdition, setNotifyEdition] = useState<WorkshopRow | null>(null);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  const workshopPublicUrl = (slug: string) =>
+    `${window.location.origin}/taller-virtual/${slug}`;
+
+  const copyWorkshopUrl = async (slug: string) => {
+    try {
+      await navigator.clipboard.writeText(workshopPublicUrl(slug));
+      setCopiedSlug(slug);
+      toast("URL del taller copiada");
+      window.setTimeout(() => setCopiedSlug(null), 2000);
+    } catch {
+      toast("No se pudo copiar la URL", "error");
+    }
+  };
 
   const load = useCallback(() => {
     if (preview) {
@@ -112,8 +127,28 @@ const WorkshopsPageClient = ({
 
   const EditionActions = ({ e }: { e: WorkshopRow }) => {
     if (preview) return null;
+    const urlCopied = copiedSlug === e.slug;
     return (
       <>
+        {e.status === WorkshopEditionStatus.OPEN && (
+          <button
+            type="button"
+            className="crm-btn-secondary crm-btn-compact inline-flex items-center gap-1.5 px-2.5 text-[11px]"
+            onClick={() => void copyWorkshopUrl(e.slug)}
+          >
+            {urlCopied ? (
+              <>
+                <Check className="size-3.5" aria-hidden="true" />
+                Copiada
+              </>
+            ) : (
+              <>
+                <Copy className="size-3.5" aria-hidden="true" />
+                Copiar link
+              </>
+            )}
+          </button>
+        )}
         {e.status === WorkshopEditionStatus.OPEN && (
           <Link
             href={`/taller-virtual/${e.slug}`}
@@ -217,9 +252,6 @@ const WorkshopsPageClient = ({
                         {e.editionLabel}
                       </div>
                     )}
-                    <p className="mt-0.5 font-mono text-[11px] text-[var(--crm-muted)]">
-                      /taller-virtual/{e.slug}
-                    </p>
                     <EditionMeta e={e} />
                   </div>
                   <span className="hidden shrink-0 rounded-full border border-[var(--crm-border)] bg-[var(--crm-linen)]/40 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--crm-accent)] sm:inline">
@@ -241,6 +273,7 @@ const WorkshopsPageClient = ({
         onClose={() => setModalOpen(false)}
         onSaved={() => {
           load();
+          toast("Taller guardado.");
         }}
       />
 

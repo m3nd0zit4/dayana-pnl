@@ -1,6 +1,12 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
+import {
+  getDateKeyInTz,
+  getStartOfDayInTz,
+  getStartOfNextDayInTz,
+  OPERATIONAL_TZ,
+} from "@/lib/crm/operational-timezone";
 
 const STATUS_LABELS: Record<EnrollmentStatus, string> = {
   LEAD: "Leads",
@@ -12,12 +18,11 @@ const STATUS_LABELS: Record<EnrollmentStatus, string> = {
 };
 
 export const getDashboardStats = async () => {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const now = new Date();
+  const startOfToday = getStartOfDayInTz(now, OPERATIONAL_TZ);
+  const startOfTomorrow = getStartOfNextDayInTz(now, OPERATIONAL_TZ);
 
-  const since = new Date();
-  since.setDate(since.getDate() - 13);
-  since.setHours(0, 0, 0, 0);
+  const since = new Date(startOfToday.getTime() - 13 * 24 * 60 * 60 * 1000);
 
   const [
     leads,
@@ -40,7 +45,7 @@ export const getDashboardStats = async () => {
     prisma.payment.count({
       where: {
         status: PaymentStatus.APPROVED,
-        paidAt: { gte: startOfDay },
+        paidAt: { gte: startOfToday, lt: startOfTomorrow },
       },
     }),
     prisma.enrollment.count({
@@ -96,27 +101,33 @@ export const getDashboardStats = async () => {
 
   const dayMap = new Map<string, number>();
   for (let i = 0; i < 14; i++) {
-    const d = new Date(since);
-    d.setDate(since.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const d = new Date(since.getTime() + i * 24 * 60 * 60 * 1000);
+    const key = getDateKeyInTz(d, OPERATIONAL_TZ);
     dayMap.set(key, 0);
   }
 
   for (const p of paymentsRecent) {
     if (!p.paidAt) continue;
-    const key = p.paidAt.toISOString().slice(0, 10);
+    const key = getDateKeyInTz(p.paidAt, OPERATIONAL_TZ);
     const usd =
       p.currency === "USD" ? p.amountMinor / 100 : p.amountMinor / 100;
     dayMap.set(key, (dayMap.get(key) ?? 0) + usd);
   }
 
-  const paymentsByDay = [...dayMap.entries()].map(([iso, amountUsd]) => {
-    const d = new Date(iso + "T12:00:00");
-    return {
-      date: d.toLocaleDateString("es-CO", { day: "numeric", month: "short" }),
-      amountUsd: Math.round(amountUsd * 100) / 100,
-    };
-  });
+  const paymentsByDay = [...dayMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([iso, amountUsd]) => {
+      const [y, m, d] = iso.split("-").map(Number);
+      const labelDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+      return {
+        date: labelDate.toLocaleDateString("es-CO", {
+          day: "numeric",
+          month: "short",
+          timeZone: OPERATIONAL_TZ,
+        }),
+        amountUsd: Math.round(amountUsd * 100) / 100,
+      };
+    });
 
   const pipeline = enrollmentsByStatus.map((row) => ({
     status: row.status,

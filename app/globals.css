@@ -103,3 +103,47 @@ body {
     transform: translateX(-100%);
   }
 }
+
+/* Modal de pago (PayPal / Mercado Pago) — scroll en tarjeta abierta */
+.checkout-payment-modal {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(236, 227, 212, 0.4) transparent;
+}
+
+.checkout-payment-modal::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+
+.checkout-payment-modal::-webkit-scrollbar-thumb {
+  background: rgba(236, 227, 212, 0.35);
+  border-radius: 999px;
+}
+
+.checkout-payment-modal__header {
+  /* Sombra sutil al hacer scroll para separar del contenido */
+  box-shadow: 0 1px 0 rgba(236, 227, 212, 0.06);
+}
+
+@keyframes checkoutModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes checkoutModalPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

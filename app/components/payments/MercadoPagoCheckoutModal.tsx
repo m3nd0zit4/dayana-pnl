@@ -8,6 +8,9 @@ import { MercadoPagoBrandRow } from "./MercadoPagoBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
 } from "./CheckoutContactStep";
+import CheckoutPaymentModalFrame, {
+  usePaymentModalScrollLock,
+} from "./CheckoutPaymentModalFrame";
 
 type MercadoPagoCheckoutModalProps = {
   planId: PlanId | null;
@@ -19,6 +22,10 @@ type Breakdown = {
   fee: string;
   total: string;
   currency: string;
+  referenceCurrency?: string;
+  referenceSubtotal?: string;
+  referenceFee?: string;
+  referenceTotal?: string;
 };
 
 type UiState =
@@ -55,6 +62,7 @@ const MercadoPagoCheckoutModal = ({
   const [contactPayload, setContactPayload] = useState<CheckoutContactPayload | null>(
     null
   );
+  const [checkoutContactId, setCheckoutContactId] = useState<string | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -62,19 +70,13 @@ const MercadoPagoCheckoutModal = ({
       setUi({ kind: "idle" });
       setBreakdown(null);
       setContactPayload(null);
+      setCheckoutContactId(null);
     } else {
       setUi({ kind: "contact" });
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [open]);
+  usePaymentModalScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
@@ -123,6 +125,10 @@ const MercadoPagoCheckoutModal = ({
           fee: data.fee,
           total: data.total,
           currency: data.currency,
+          referenceCurrency: data.referenceCurrency,
+          referenceSubtotal: data.referenceSubtotal,
+          referenceFee: data.referenceFee,
+          referenceTotal: data.referenceTotal,
         });
         setUi({ kind: "ready" });
       })
@@ -156,6 +162,7 @@ const MercadoPagoCheckoutModal = ({
         body: JSON.stringify({
           planId: plan.id,
           mode: "full",
+          contactId: checkoutContactId ?? undefined,
           ...contactPayload,
         }),
       });
@@ -183,54 +190,22 @@ const MercadoPagoCheckoutModal = ({
   const amountLabel = formatUsd(plan.amountUsd);
 
   const content = (
-    <div
-      aria-modal="true"
-      role="dialog"
-      aria-label={`Pago Mercado Pago — ${plan.title}`}
-      className="fixed inset-0 z-[101] flex items-center justify-center p-4 lg:p-6 bg-black/80 backdrop-blur-md animate-[fadeIn_200ms_ease-out]"
-      onMouseDown={backdropClick}
-    >
-      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl bg-ink text-white border border-linen/15 shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)] animate-[popIn_240ms_cubic-bezier(0.22,1,0.36,1)]">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none rounded-2xl opacity-80"
-          style={{
-            background:
-              "radial-gradient(60% 40% at 0% 0%, rgba(0,158,227,0.18), transparent 60%), radial-gradient(50% 45% at 100% 100%, rgba(236,227,212,0.10), transparent 65%)",
-          }}
+    <CheckoutPaymentModalFrame
+      ariaLabel={`Pago Mercado Pago — ${plan.title}`}
+      gradientBackground="radial-gradient(60% 40% at 0% 0%, rgba(0,158,227,0.18), transparent 60%), radial-gradient(50% 45% at 100% 100%, rgba(236,227,212,0.10), transparent 65%)"
+      closeButtonRef={closeButtonRef}
+      onClose={onClose}
+      onBackdropClick={backdropClick}
+      header={
+        <MercadoPagoBrandRow
+          tone="onDark"
+          subtitle="Checkout seguro"
+          logoHeight={28}
+          className="items-start text-left"
         />
-
-        <div className="relative flex items-center justify-between gap-3 px-6 pt-5 pb-4 border-b border-linen/10">
-          <MercadoPagoBrandRow
-            tone="onDark"
-            subtitle="Checkout seguro"
-            logoHeight={28}
-            className="items-start text-left"
-          />
-          <button
-            type="button"
-            ref={closeButtonRef}
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="flex items-center justify-center w-8 h-8 rounded-full text-white/60 hover:text-linen hover:bg-linen/10 transition-colors cursor-pointer"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4"
-              aria-hidden="true"
-            >
-              <path d="M18 6L6 18" />
-              <path d="M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="relative px-6 pt-5 pb-6">
+      }
+    >
+      <div className="relative">
           <div className="rounded-xl border border-linen/12 bg-linen/[0.04] p-4 mb-5">
             <div className="font-[font2] uppercase text-[10px] tracking-[0.35em] text-linen/70">
               {plan.kind === "course" ? "Curso en vivo" : "Terapia PNL"}
@@ -240,6 +215,37 @@ const MercadoPagoCheckoutModal = ({
 
             {breakdown ? (
               <div className="mt-3 space-y-1.5 font-[font1] text-sm">
+                {breakdown.referenceCurrency === "USD" &&
+                breakdown.referenceTotal ? (
+                  <>
+                    <div className="flex justify-between text-white/55">
+                      <span>Precio del plan</span>
+                      <span>
+                        {formatBreakdown(
+                          breakdown.referenceSubtotal ?? breakdown.referenceTotal,
+                          "USD"
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-white/55">
+                      <span>Comisión Mercado Pago</span>
+                      <span>
+                        +{" "}
+                        {formatBreakdown(
+                          breakdown.referenceFee ?? "0",
+                          "USD"
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-white/70">
+                      <span>Equivalente USD</span>
+                      <span>
+                        {formatBreakdown(breakdown.referenceTotal, "USD")}
+                      </span>
+                    </div>
+                    <div className="border-t border-linen/12 my-2" />
+                  </>
+                ) : null}
                 <div className="flex justify-between text-white/70">
                   <span>Subtotal</span>
                   <span>{formatBreakdown(breakdown.subtotal, breakdown.currency)}</span>
@@ -251,12 +257,19 @@ const MercadoPagoCheckoutModal = ({
                 <div className="border-t border-linen/12 my-2" />
                 <div className="flex justify-between items-baseline">
                   <span className="font-[font2] uppercase text-[10px] tracking-[0.3em] text-linen/70">
-                    Total a pagar
+                    Total en Mercado Pago
                   </span>
                   <span className="font-[font1] text-2xl text-linen">
                     {formatBreakdown(breakdown.total, breakdown.currency)}
                   </span>
                 </div>
+                {breakdown.currency === "COP" ? (
+                  <p className="font-[font1] text-[11px] text-white/45 leading-snug pt-1">
+                    Mercado Pago cobra en pesos colombianos (COP). El monto en
+                    checkout coincide con este total. Para pagar en dólares usa
+                    PayPal.
+                  </p>
+                ) : null}
               </div>
             ) : (
               <div className="font-[font1] text-2xl mt-2 text-linen">
@@ -286,6 +299,7 @@ const MercadoPagoCheckoutModal = ({
                         data.message ?? "No se pudo registrar tu contacto."
                       );
                     }
+                    setCheckoutContactId(data.contactId);
                     setContactPayload(payload);
                   } catch (e) {
                     setUi({
@@ -320,7 +334,8 @@ const MercadoPagoCheckoutModal = ({
             <>
               <p className="font-[font1] text-[12px] text-white/55 leading-snug mb-3">
                 Vas a ser redirigido a Mercado Pago para completar el pago de
-                forma segura. Aceptan tarjeta débito, crédito y PSE.
+                forma segura. Aceptan tarjeta débito, crédito y PSE
+                {breakdown?.currency === "COP" ? " en pesos colombianos" : ""}.
               </p>
               <button
                 type="button"
@@ -360,20 +375,8 @@ const MercadoPagoCheckoutModal = ({
           <p className="mt-4 font-[font1] text-[11px] text-white/35 text-center">
             ¿Prefieres otra forma? Escríbenos al {WHATSAPP_NUMBER}
           </p>
-        </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes popIn {
-          0% { opacity: 0; transform: translateY(8px) scale(0.98); }
-          100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-      `}</style>
-    </div>
+    </CheckoutPaymentModalFrame>
   );
 
   return createPortal(content, document.body);
