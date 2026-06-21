@@ -1,7 +1,7 @@
-import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { revalidatePublicCatalog } from "@/lib/crm/revalidate-catalog";
 import {
   getUsdToCopRateSetting,
   setUsdToCopRateSetting,
@@ -11,11 +11,6 @@ import { parseUsdToCopRate } from "@/lib/pricing/usd-to-cop";
 import { canManageTeam } from "@/lib/crm/staff";
 
 export const dynamic = "force-dynamic";
-
-const revalidateCatalog = () => {
-  revalidatePath("/");
-  revalidatePath("/api/plans");
-};
 
 export async function GET() {
   const staff = await resolveAdminStaff();
@@ -52,7 +47,7 @@ export async function PATCH(req: NextRequest) {
       entityId: "usd_to_cop_rate",
       changes: { usdToCopRate: rate },
     });
-    revalidateCatalog();
+    revalidatePublicCatalog();
     return NextResponse.json({ usdToCopRate: rate, source: "crm" });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";

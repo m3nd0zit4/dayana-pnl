@@ -1,5 +1,5 @@
 import { ProductKind } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePublicCatalog } from "@/lib/crm/revalidate-catalog";
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
@@ -12,11 +12,6 @@ import {
 import { canManageTeam } from "@/lib/crm/staff";
 
 export const dynamic = "force-dynamic";
-
-const revalidateCatalog = () => {
-  revalidatePath("/");
-  revalidatePath("/api/plans");
-};
 
 export async function GET() {
   const staff = await resolveAdminStaff();
@@ -58,7 +53,7 @@ export async function POST(req: NextRequest) {
       entityId: product.id,
     });
 
-    revalidateCatalog();
+    revalidatePublicCatalog();
     return NextResponse.json({ product });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
@@ -107,7 +102,7 @@ export async function PATCH(req: NextRequest) {
       changes: body,
     });
 
-    revalidateCatalog();
+    revalidatePublicCatalog();
     return NextResponse.json({ product });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
@@ -138,7 +133,7 @@ export async function DELETE(req: NextRequest) {
       entityType: "Product",
       entityId: body.id,
     });
-    revalidateCatalog();
+    revalidatePublicCatalog();
     return NextResponse.json({ product });
   } catch {
     return NextResponse.json({ error: "not_found" }, { status: 404 });

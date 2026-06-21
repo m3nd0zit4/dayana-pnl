@@ -5,14 +5,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const { therapyPlans, coursePlan, allPlans } = await getPublicPlans();
+    const { therapyPlans, coursePlan, allPlans, usdToCopRate } =
+      await getPublicPlans();
     return NextResponse.json(
-      { therapyPlans, coursePlan, allPlans },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-        },
-      }
+      { therapyPlans, coursePlan, allPlans, usdToCopRate },
+      { headers: { "Cache-Control": "no-store" } }
     );
   } catch {
     return NextResponse.json({ error: "unavailable" }, { status: 503 });

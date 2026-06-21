@@ -5,7 +5,8 @@ import {
   WHATSAPP_NUMBER,
   buildWhatsAppUrl,
 } from "../../../lib/contact";
-import { formatUsd, getPlan, isPlanId } from "../../../lib/plans";
+import { formatUsd, isPlanId, type PlanId } from "../../../lib/plans";
+import { getPlanFromDb } from "@/lib/plans-from-db";
 import { getEnrollmentById } from "../../../lib/crm/enrollments";
 import { isPlaceholderContactPhone } from "../../../lib/crm/checkout-placeholder";
 import {
@@ -40,9 +41,7 @@ type SearchParams = {
 
 type Resolved = {
   status: "succeeded" | "processing" | "pending" | "failed" | "unknown";
-  amountLabel?: string;
-  planTitle?: string;
-  planSessions?: string;
+  planId?: PlanId;
   refLabel?: string;
   legacyStripe?: boolean;
 };
@@ -52,28 +51,19 @@ const resolveReturn = (params: SearchParams): Resolved => {
   const ext = params.external_reference;
 
   if (mpStatus || params.payment_id || ext) {
-    let planTitle: string | undefined;
-    let planSessions: string | undefined;
-    let amountLabel: string | undefined;
+    let planId: PlanId | undefined;
 
     if (ext) {
       const checkout = parseCheckoutReference(ext);
       if (checkout && isPlanId(checkout.planId)) {
-        const plan = getPlan(checkout.planId);
-        planTitle = plan.title;
-        planSessions = plan.sessions;
-        amountLabel = formatUsd(plan.amountUsd);
+        planId = checkout.planId;
       } else if (isPlanId(ext)) {
-        const plan = getPlan(ext);
-        planTitle = plan.title;
-        planSessions = plan.sessions;
-        amountLabel = formatUsd(plan.amountUsd);
+        planId = ext;
       } else if (params.plan && isPlanId(params.plan)) {
-        const plan = getPlan(params.plan);
-        planTitle = plan.title;
-        planSessions = plan.sessions;
-        amountLabel = formatUsd(plan.amountUsd);
+        planId = params.plan;
       }
+    } else if (params.plan && isPlanId(params.plan)) {
+      planId = params.plan;
     }
 
     const ref =
@@ -84,42 +74,34 @@ const resolveReturn = (params: SearchParams): Resolved => {
     if (mpStatus === "approved") {
       return {
         status: "succeeded",
-        amountLabel,
-        planTitle,
-        planSessions,
+        planId,
         refLabel: ref ? String(ref) : undefined,
       };
     }
     if (mpStatus === "pending" || mpStatus === "in_process") {
       return {
         status: "pending",
-        amountLabel,
-        planTitle,
-        planSessions,
+        planId,
         refLabel: ref ? String(ref) : undefined,
       };
     }
     if (mpStatus === "rejected" || mpStatus === "failure") {
       return {
         status: "failed",
-        planTitle,
-        planSessions,
+        planId,
         refLabel: ref ? String(ref) : undefined,
       };
     }
     if (params.payment_id && !mpStatus) {
       return {
         status: "succeeded",
-        amountLabel,
-        planTitle,
-        planSessions,
+        planId,
         refLabel: String(params.payment_id),
       };
     }
     return {
       status: "unknown",
-      planTitle,
-      planSessions,
+      planId,
       refLabel: ref ? String(ref) : undefined,
     };
   }
@@ -128,10 +110,8 @@ const resolveReturn = (params: SearchParams): Resolved => {
     return {
       status: "unknown",
       legacyStripe: true,
-      planTitle:
-        params.plan && isPlanId(params.plan)
-          ? getPlan(params.plan).title
-          : undefined,
+      planId:
+        params.plan && isPlanId(params.plan) ? params.plan : undefined,
     };
   }
 
@@ -145,6 +125,12 @@ type PageProps = {
 const Page = async ({ searchParams }: PageProps) => {
   const params = await searchParams;
   const result = resolveReturn(params);
+
+  const plan =
+    result.planId != null ? await getPlanFromDb(result.planId) : null;
+  const planTitle = plan?.title;
+  const planSessions = plan?.sessions;
+  const amountLabel = plan ? formatUsd(plan.amountUsd) : undefined;
 
   const isSuccess = result.status === "succeeded";
   const isProcessing =
@@ -183,12 +169,12 @@ const Page = async ({ searchParams }: PageProps) => {
 
   const whatsappMessage = isSuccess
     ? `Hola Dayana, acabo de completar mi pago${
-        result.amountLabel ? ` por ${result.amountLabel} USD` : ""
+        amountLabel ? ` por ${amountLabel} USD` : ""
       }${
-        result.planTitle ? ` del plan ${result.planTitle}` : ""
+        planTitle ? ` del plan ${planTitle}` : ""
       }. Quiero agendar mi primera sesión.`
     : `Hola Dayana, tuve un problema con el pago online${
-        result.planTitle ? ` del plan ${result.planTitle}` : ""
+        planTitle ? ` del plan ${planTitle}` : ""
       }. ¿Puedes ayudarme a completarlo?`;
 
   let enrollmentId =
@@ -289,15 +275,15 @@ const Page = async ({ searchParams }: PageProps) => {
                 </div>
               </div>
               <div className="min-w-0">
-                {result.planTitle && (
+                {planTitle && (
                   <div className="font-[font2] uppercase text-xs tracking-[0.3em] text-linen/70">
-                    {result.planTitle}
-                    {result.planSessions ? ` · ${result.planSessions}` : ""}
+                    {planTitle}
+                    {planSessions ? ` · ${planSessions}` : ""}
                   </div>
                 )}
-                {result.amountLabel && (
+                {amountLabel && (
                   <div className="font-[font1] text-3xl mt-1 leading-none">
-                    {result.amountLabel}{" "}
+                    {amountLabel}{" "}
                     <span className="font-[font2] uppercase text-xs tracking-[0.3em] text-white/55">
                       USD
                     </span>
