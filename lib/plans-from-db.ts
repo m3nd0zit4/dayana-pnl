@@ -1,5 +1,7 @@
 import { ProductKind } from "@prisma/client";
 import { getActiveProducts, latestUsdPrice } from "./crm/products";
+import { resolveUsdToCopRate } from "./crm/site-settings";
+import { applyCopToPlan, applyCopToPlans } from "./pricing/usd-to-cop";
 import { PLANS, type Plan, type PlanId } from "./plans";
 import { prisma } from "./db";
 
@@ -31,7 +33,6 @@ export const productToPlan = (
     sessions: product.sessionsLabel,
     amountUsd,
     listAmountUsd,
-    amountCop: fallback?.amountCop,
     unitPrice: fallback?.unitPrice,
     tag: fallback?.tag,
     highlight: fallback?.highlight,
@@ -49,17 +50,19 @@ export const productToPlan = (
 };
 
 export const getPublicPlans = async () => {
+  const usdToCopRate = await resolveUsdToCopRate();
   const products = await getActiveProducts();
-  const plans = products.map(productToPlan);
+  const plans = applyCopToPlans(products.map(productToPlan), usdToCopRate);
   const therapyPlans = plans.filter((p) => p.kind === "therapy");
   const coursePlan =
     plans.find((p) => p.id === "course-live") ??
     plans.find((p) => p.kind === "course" && p.id !== "workshop-virtual") ??
     null;
-  return { therapyPlans, coursePlan, allPlans: plans };
+  return { therapyPlans, coursePlan, allPlans: plans, usdToCopRate };
 };
 
 export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
+  const usdToCopRate = await resolveUsdToCopRate();
   const product = await prisma.product.findUnique({
     where: { id: planId },
     include: {
@@ -72,9 +75,9 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
   });
   if (!product || !product.isActive) {
     const fallback = PLANS[planId as PlanId];
-    return fallback ?? null;
+    return fallback ? applyCopToPlan(fallback, usdToCopRate) : null;
   }
-  return productToPlan(product);
+  return applyCopToPlan(productToPlan(product), usdToCopRate);
 };
 
 export const isActivePlanId = async (planId: string): Promise<boolean> => {

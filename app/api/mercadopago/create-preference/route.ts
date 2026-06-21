@@ -11,6 +11,7 @@ import {
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
+import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import {
   clientIp,
   rateLimitDistributed,
@@ -93,7 +94,8 @@ export async function POST(req: Request) {
   let fee: number;
   let currency_id: string;
   try {
-    ({ net, fee, currency_id } = mercadoPagoItemAmount(plan));
+    const usdToCopRate = await resolveUsdToCopRate();
+    ({ net, fee, currency_id } = mercadoPagoItemAmount(plan, usdToCopRate));
   } catch (e) {
     const message = e instanceof Error ? e.message : "amount_error";
     console.error("[mercadopago] amount", message);
