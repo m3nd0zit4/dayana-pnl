@@ -128,6 +128,10 @@ const TestimonialsSection = () => {
       // Mobile uses a static stacked layout (below); the scroll animation is
       // desktop-only. Reduced-motion rests on the first testimonial.
       if (!desktop || reduce || !pinWrapRef.current || !targetRef.current) {
+        // Static fallback: panel fully open, poster hidden, first testimonial shown.
+        if (targetRef.current)
+          gsap.set(targetRef.current, { clipPath: "inset(0% 0% 0% 0% round 0px)" });
+        gsap.set(".tt-cover", { autoAlpha: 0 });
         gsap.set(".tt-overlay", { autoAlpha: 1 });
         gsap.set(".tt-desc", { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
         gsap.set(".tt-vid", { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
@@ -171,11 +175,18 @@ const TestimonialsSection = () => {
           scrub: 0.55,
           pin: true,
           pinSpacing: false,
+          // Pin via transform (not position:fixed) so engaging/releasing the pin
+          // never reflows the absolutely-positioned wrapper → no layout shift (CLS).
+          pinType: "transform",
           invalidateOnRefresh: true,
         },
       });
 
-      tl.to(targetRef.current, { width: "100vw", height: "100vh", marginLeft: 0, borderRadius: 0, ease: "none", duration: 1 })
+      // Expand via clip-path (paint-only) instead of width/height (layout) so the
+      // scroll-linked growth never triggers layout shift (CLS) under Lenis.
+      gsap.set(targetRef.current, { clipPath: "inset(28% 39% 28% 39% round 18px)" });
+
+      tl.to(targetRef.current, { clipPath: "inset(0% 0% 0% 0% round 0px)", ease: "none", duration: 1 })
         .to(".tt-center", { autoAlpha: 0, duration: 1 }, "<")
         .to(".tt-cover", { autoAlpha: 0, ease: "none", duration: 0.8 }, "<")
         .to(".tt-overlay", { autoAlpha: 1, duration: 0.2 })
@@ -273,7 +284,8 @@ const TestimonialsSection = () => {
       >
         <div
           ref={targetRef}
-          className="pointer-events-auto relative ml-[15%] h-[44vh] w-[44%] overflow-hidden rounded-2xl bg-terracotta ring-1 ring-white/10 lg:ml-[38%] lg:w-[22%]"
+          className="pointer-events-auto absolute inset-0 h-full w-full overflow-hidden bg-terracotta will-change-[clip-path]"
+          style={{ clipPath: "inset(28% 39% 28% 39% round 18px)" }}
         >
           <div
             aria-hidden="true"
@@ -282,8 +294,9 @@ const TestimonialsSection = () => {
           />
 
           {/* Collapsed-state cover — a B&W duotone portrait that turns the panel
-              into a deliberate "poster". Cross-dissolves out as it expands. */}
-          <div className="tt-cover pointer-events-none absolute inset-0 z-[6]">
+              into a deliberate "poster". Positioned to fill the clipped window
+              (matches the clip-path inset). Cross-dissolves out as it expands. */}
+          <div className="tt-cover pointer-events-none absolute inset-x-[39%] inset-y-[28%] z-[6] overflow-hidden">
             <img
               src="/dayana-photos/opt/IMG_4009-900.webp"
               alt="Dayana Beltrán"
