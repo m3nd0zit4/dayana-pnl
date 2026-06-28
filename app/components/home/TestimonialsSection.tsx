@@ -3,17 +3,16 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
 import { useRef, useState } from "react";
-import SplitReveal from "../ui/SplitReveal";
-import { useStackingSection } from "../../hooks/useStackingSection";
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 type Testimonial = {
   id: number;
   name: string;
   excerpt: string;
-  youtubeId: string | null;
+  youtubeId: string;
 };
 
 const testimonials: Testimonial[] = [
@@ -21,271 +20,341 @@ const testimonials: Testimonial[] = [
     id: 1,
     name: "Teresa",
     excerpt:
-      "Estaba pasando por un momento muy difícil en mi vida y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante con alegría.",
+      "Estaba pasando por un momento muy difícil y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante.",
     youtubeId: "LnumJ4E208Y",
   },
   {
     id: 2,
     name: "Luz",
     excerpt:
-      "Llegué en un momento de crisis emocional, pero gracias al proceso con Dayana, hoy tengo una visión clara, enfoque y, sobre todo, una armonía que me permite tomar mejores decisiones para mi vida.",
+      "Llegué en un momento de crisis emocional, pero gracias al proceso con Dayana hoy tengo una visión clara, enfoque y, sobre todo, una armonía que me permite tomar mejores decisiones para mi vida.",
     youtubeId: "uUqnsYrpXck",
   },
   {
     id: 3,
     name: "Glenda",
     excerpt:
-      "He logrado identificar y reprogramar esas ideas limitantes y traumas del pasado que no me dejaban avanzar. Pasé de estar en modo supervivencia a vivir con libertad, consciencia y la valentía necesaria para alcanzar mis metas.",
+      "He logrado identificar y reprogramar esas ideas limitantes y traumas del pasado que no me dejaban avanzar. Pasé de estar en modo supervivencia a vivir con libertad, consciencia y valentía.",
     youtubeId: "ccWpOuvL90I",
   },
   {
     id: 4,
     name: "Nury",
     excerpt:
-      "A través de estas terapias he aprendido a priorizarme y a encontrar una seguridad que no tenía. Me siento mucho más tranquila; ha sido un cambio profundo y favorable para mi bienestar personal.",
+      "A través de estas terapias aprendí a priorizarme y a encontrar una seguridad que no tenía. Me siento mucho más tranquila; ha sido un cambio profundo y favorable para mi bienestar personal.",
     youtubeId: "KHlVFKENIFw",
   },
 ];
 
-function buildYoutubeEmbedUrl(videoId: string): string {
+// One tile per person (no repeats), in a tight 2×2 cluster that sits right
+// above the panel. z = depth/parallax speed.
+const TILES = [
+  { top: "4vh", left: "9%", width: "34%", mLeft: "7%", mWidth: "62%", z: 200 },
+  { top: "10vh", left: "55%", width: "35%", mLeft: "40%", mWidth: "58%", z: -340 },
+  { top: "46vh", left: "13%", width: "34%", mLeft: "8%", mWidth: "60%", z: 110 },
+  { top: "50vh", left: "54%", width: "35%", mLeft: "40%", mWidth: "58%", z: -460 },
+].map((t, i) => ({ ...t, t: testimonials[i] }));
+
+function embedUrl(videoId: string): string {
   const params = new URLSearchParams({
     autoplay: "1",
     playsinline: "1",
     rel: "0",
     modestbranding: "1",
-    enablejsapi: "1",
   });
-
-  if (typeof window !== "undefined") {
-    params.set("origin", window.location.origin);
-    const prefersTouch =
-      window.matchMedia("(pointer: coarse)").matches ||
-      "ontouchstart" in window;
-    if (prefersTouch) {
-      params.set("mute", "1");
-    }
-  }
-
+  if (typeof window !== "undefined") params.set("origin", window.location.origin);
   return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
 }
 
-const TestimonialVideo = ({
-  youtubeId,
-  name,
+// Controlled tile — playback is owned by the parent so only ONE video can be
+// mounted/playing at a time (clicking another swaps the single iframe).
+const Tile = ({
+  t,
+  uid,
+  playing,
+  onPlay,
 }: {
-  youtubeId: string | null;
-  name: string;
-}) => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isIframeLoading, setIsIframeLoading] = useState(false);
-  const [startsMuted, setStartsMuted] = useState(false);
-  const [embedSrc, setEmbedSrc] = useState<string | null>(null);
-
-  const handlePlayClick = () => {
-    if (!youtubeId || isPlaying) return;
-
-    const touchDevice =
-      typeof window !== "undefined" &&
-      (window.matchMedia("(pointer: coarse)").matches ||
-        "ontouchstart" in window);
-    setStartsMuted(touchDevice);
-    setIsIframeLoading(true);
-    setIsPlaying(true);
-    setEmbedSrc(buildYoutubeEmbedUrl(youtubeId));
-  };
-
-  if (!youtubeId) {
-    return <div className="relative aspect-video w-full bg-white/[0.04]" />;
-  }
-
-  return (
-    <div className="relative aspect-video w-full bg-white/[0.04]">
-      {isPlaying && embedSrc ? (
-        <iframe
-          src={embedSrc}
-          className="absolute inset-0 h-full w-full"
-          title={`Video de ${name}`}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          onLoad={() => setIsIframeLoading(false)}
+  t: Testimonial;
+  uid: string;
+  playing: boolean;
+  onPlay: (uid: string) => void;
+}) => (
+  <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-white/[0.04]">
+    {playing ? (
+      <iframe
+        src={embedUrl(t.youtubeId)}
+        title={`Video de ${t.name}`}
+        className="absolute inset-0 h-full w-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+      />
+    ) : (
+      <button
+        type="button"
+        onClick={() => onPlay(uid)}
+        className="group absolute inset-0 h-full w-full cursor-pointer"
+        aria-label={`Reproducir video de ${t.name}`}
+      >
+        <img
+          src={`https://i.ytimg.com/vi/${t.youtubeId}/hqdefault.jpg`}
+          alt={`Testimonio de ${t.name}`}
+          className="h-full w-full object-cover grayscale-[0.35] transition-all duration-700 ease-out group-hover:grayscale-0"
+          loading="lazy"
+          decoding="async"
         />
-      ) : null}
-
-      {!isPlaying ? (
-        <button
-          type="button"
-          onClick={handlePlayClick}
-          className="absolute inset-0 z-10 h-full w-full cursor-pointer overflow-hidden"
-          aria-label={`Reproducir video de ${name}`}
-        >
-          <img
-            src={`https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg`}
-            alt={`Miniatura de ${name}`}
-            width={480}
-            height={360}
-            className="h-full w-full object-cover opacity-90"
-            loading="lazy"
-            decoding="async"
-          />
-          <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/35 via-black/10 to-transparent">
-            <span className="inline-flex items-center gap-2.5 rounded-full border border-white/30 bg-gradient-to-b from-white/28 to-white/[0.12] px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.45)] backdrop-blur-md">
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-5 w-5 shrink-0 text-white drop-shadow-sm"
-                aria-hidden="true"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              <span className="font-[font1] text-sm font-medium tracking-wide text-white drop-shadow-sm">
-                Ver video
-              </span>
-            </span>
+        <span className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/40 to-transparent">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/15 px-4 py-2 backdrop-blur-md">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4 text-white"><path d="M8 5v14l11-7z" /></svg>
+            <span className="font-[font2] text-[11px] uppercase tracking-[0.18em] text-white">{t.name}</span>
           </span>
-        </button>
-      ) : null}
-
-      {isPlaying && isIframeLoading ? (
-        <div
-          className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 backdrop-blur-[2px] pointer-events-none"
-          aria-hidden
-        >
-          <div className="flex items-center gap-3 rounded-full border border-white/25 bg-white/15 px-5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md">
-            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
-            <span className="font-[font1] text-xs font-medium tracking-wide text-white">
-              Cargando…
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {isPlaying && !isIframeLoading && startsMuted ? (
-        <p className="pointer-events-none absolute bottom-2 left-2 right-2 z-20 text-center font-[font1] text-[10px] leading-snug text-white/90 drop-shadow-sm">
-          Toca el icono de sonido en el reproductor para activar el audio
-        </p>
-      ) : null}
-    </div>
-  );
-};
+        </span>
+      </button>
+    )}
+  </div>
+);
 
 const TestimonialsSection = () => {
-  const rootRef = useRef<HTMLElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pinWrapRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<HTMLDivElement>(null);
 
-  useStackingSection(rootRef, innerRef, {
-    tilt: -5,
-    tiltScrubEnd: "top 8%",
-  });
+  // Single source of truth for playback → one video at a time.
+  const [playingUid, setPlayingUid] = useState<string | null>(null);
 
   useGSAP(
     () => {
-      gsap.utils.toArray<HTMLElement>(".tt-reveal").forEach((el) => {
-        gsap.from(el, {
-          y: 50,
-          opacity: 0,
-          duration: 0.9,
-          ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 88%" },
-        });
-      });
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const desktop = window.matchMedia("(min-width: 1024px)").matches;
+      // Mobile uses a static stacked layout (below); the scroll animation is
+      // desktop-only. Reduced-motion rests on the first testimonial.
+      if (!desktop || reduce || !pinWrapRef.current || !targetRef.current) {
+        gsap.set(".tt-overlay", { autoAlpha: 1 });
+        gsap.set(".tt-desc", { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
+        gsap.set(".tt-vid", { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
+        return;
+      }
 
-      if (!gridRef.current) return;
-      const cards = gsap.utils.toArray<HTMLElement>(
-        gridRef.current.querySelectorAll(".tt-card")
+      const dim = "rgba(255,255,255,0.28)";
+      const bright = "rgba(255,255,255,1)";
+      const duration = 0.8;
+      const pause = 0.5;
+      const stagger = 0.05;
+
+      const headingX = (i: number) => {
+        const items = gsap.utils.toArray<HTMLElement>(".tt-name");
+        return items[i] ? -items[i].offsetLeft : 0;
+      };
+
+      const splits = testimonials.map((_, idx) =>
+        SplitText.create(`.tt-desc-${idx}`, { type: "lines", mask: "lines", linesClass: "tt-line" })
       );
+      splits.forEach((s) => gsap.set(s.lines, { yPercent: 110 }));
+      gsap.set(".tt-name", { color: dim });
+      gsap.set(".tt-name-0", { color: bright });
+      gsap.set(".tt-heading", { transformOrigin: "0% 50%", force3D: true });
+      gsap.set(".tt-vid", { autoAlpha: 0 });
+      gsap.set(".tt-vid-0", { autoAlpha: 1 });
 
-      cards.forEach((card, i) => {
-        gsap.from(card, {
-          y: 80,
-          opacity: 0,
-          duration: 1.0,
-          delay: i * 0.14,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: gridRef.current,
-            start: "top 85%",
-            once: true,
-          },
+      gsap.utils.toArray<HTMLElement>(".tt-tile").forEach((el) => {
+        gsap.to(el, {
+          yPercent: parseFloat(el.dataset.speed ?? "0") * 50,
+          ease: "none",
+          scrollTrigger: { trigger: el, start: "top bottom", end: "bottom top", scrub: true },
         });
       });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: pinWrapRef.current,
+          start: "center center",
+          end: "+=400%",
+          scrub: 0.55,
+          pin: true,
+          pinSpacing: false,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      tl.to(targetRef.current, { width: "100vw", height: "100vh", marginLeft: 0, borderRadius: 0, ease: "none", duration: 1 })
+        .to(".tt-center", { autoAlpha: 0, duration: 1 }, "<")
+        .to(".tt-cover", { autoAlpha: 0, ease: "none", duration: 0.8 }, "<")
+        .to(".tt-overlay", { autoAlpha: 1, duration: 0.2 })
+        .to(splits[0].lines, { yPercent: 0, stagger, duration, ease: "none" })
+        .to({}, { duration: pause });
+
+      for (let s = 0; s < testimonials.length - 1; s++) {
+        const next = s + 1;
+        const label = `s${next}`;
+        tl.addLabel(label);
+        tl.to(".tt-heading", { x: () => headingX(next), duration, ease: "power1.inOut" }, label)
+          .to(splits[s].lines, { yPercent: -110, stagger, duration, ease: "none" }, label)
+          .to(`.tt-name-${s}`, { color: dim, duration }, label)
+          .to(`.tt-name-${next}`, { color: bright, duration }, label)
+          .to(`.tt-vid-${s}`, { autoAlpha: 0, duration }, label)
+          .to(`.tt-vid-${next}`, { autoAlpha: 1, duration }, label)
+          .to(splits[next].lines, { yPercent: 0, stagger, duration, ease: "none" }, label)
+          .to({}, { duration: pause });
+      }
+
+      return () => splits.forEach((s) => s.revert());
     },
-    { scope: rootRef }
+    { scope: containerRef }
   );
 
   return (
     <section
-      ref={rootRef}
+      ref={containerRef}
       id="testimonios"
       data-nav-color="white"
-      className="bg-black text-white scroll-mt-20 relative z-10 overflow-hidden"
+      className="relative z-10 bg-black text-white"
     >
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none opacity-80"
-        style={{
-          background: [
-            "radial-gradient(60% 40% at 15% 20%, rgba(236,227,212,0.14), transparent 60%)",
-            "radial-gradient(50% 45% at 85% 75%, rgba(237,195,177,0.16), transparent 65%)",
-            "radial-gradient(70% 50% at 50% 110%, rgba(212,184,150,0.10), transparent 70%)",
-          ].join(","),
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-[0.08]"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>\")",
-        }}
-      />
-
-      <div
-        ref={innerRef}
-        className="relative px-3 lg:px-8 pt-36 pb-24 lg:pt-44 lg:pb-32 will-change-transform origin-center"
-      >
-        <SplitReveal
-          text={"Historias\nreales"}
-          className="font-[font2] text-[16vw] lg:text-[12vw] uppercase leading-[0.85]"
-        />
-
-        <div className="tt-reveal lg:pl-[40%] mt-8 lg:mt-12 mb-20 lg:mb-24 p-3">
-          <p className="font-[font1] lg:text-3xl text-lg leading-snug">
-            Lo que pasa cuando alguien decide invertir en reprogramar su mente, se eliminan las creencias limitantes y sus vidas empizan a cambiar. Estos
-            videos son el reflejo de procesos reales con Dayana Beltrán. 
-          </p>
-        </div>
-
-        <div ref={gridRef} className="space-y-14 lg:space-y-20">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-            {testimonials.map((t) => (
-              <div
-                key={t.id}
-                className="tt-card group relative rounded-2xl overflow-hidden border border-linen/15 bg-gradient-to-br from-linen/[0.06] via-white/[0.02] to-transparent backdrop-blur-[2px] hover:border-linen/50 hover:from-linen/[0.12] transition-colors will-change-transform"
-              >
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                  style={{
-                    background:
-                      "radial-gradient(60% 80% at 50% 0%, rgba(237,195,177,0.20), transparent 70%)",
-                  }}
-                />
-                <TestimonialVideo
-                  youtubeId={t.youtubeId}
-                  name={t.name}
-                />
-                <div className="relative p-5">
-                  <div className="font-[font2] uppercase text-lg">{t.name}</div>
-                  <p className="font-[font1] text-sm text-white/75 mt-2 leading-relaxed">
-                    {t.excerpt}
-                  </p>
-                </div>
+      {/* MOBILE — clean stacked list (the scroll animation is desktop-only) */}
+      <div className="px-5 pt-24 pb-20 lg:hidden">
+        <span className="block font-[font2] text-[11px] uppercase tracking-[0.42em] text-terracotta">
+          Testimonios
+        </span>
+        <h2 className="mt-4 font-[font2] text-[15vw] uppercase leading-[0.85]">
+          Historias<br />reales
+        </h2>
+        <div className="mt-12 flex flex-col gap-12">
+          {testimonials.map((t, idx) => (
+            <div key={t.id}>
+              <Tile t={t} uid={`m${idx}`} playing={playingUid === `m${idx}`} onPlay={setPlayingUid} />
+              <div className="mt-5 flex items-baseline gap-4">
+                <span className="font-[font2] text-xs tracking-[0.2em] text-terracotta">0{idx + 1}</span>
+                <h3 className="font-[font2] text-2xl uppercase">{t.name}</h3>
               </div>
-            ))}
+              <p className="mt-3 font-[font1] leading-relaxed text-white/70">“{t.excerpt}”</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* DESKTOP — the cinematic scatter → expand → cycle */}
+      <div className="hidden h-[580vh] w-full overflow-x-clip lg:block">
+        {/* Sticky title — fades as the panel expands */}
+      <div className="tt-center pointer-events-none sticky top-0 left-0 z-[5] flex h-screen w-full flex-col items-center justify-center px-6 text-center">
+        <span className="font-[font2] text-[11px] uppercase tracking-[0.42em] text-terracotta">
+          Testimonios
+        </span>
+        <h2 className="mt-4 font-[font2] text-[15vw] uppercase leading-[0.85] lg:text-[12vw]">
+          Historias<br />reales
+        </h2>
+      </div>
+
+      {/* Scattered video field */}
+      <div className="absolute inset-0 h-full w-full">
+        {TILES.map((tile, i) => (
+          <div
+            key={i}
+            data-speed={tile.z / 500}
+            className="tt-tile absolute top-(--top) left-(--m-left) w-(--m-width) shadow-[0_1vw_3vw_rgba(0,0,0,0.45)] lg:left-(--left) lg:w-(--width)"
+            style={
+              {
+                "--top": tile.top,
+                "--left": tile.left,
+                "--width": tile.width,
+                "--m-left": tile.mLeft,
+                "--m-width": tile.mWidth,
+                transform: `perspective(1200px) translateZ(${tile.z}px)`,
+              } as React.CSSProperties
+            }
+          >
+            <Tile t={tile.t} uid={`s${i}`} playing={playingUid === `s${i}`} onPlay={setPlayingUid} />
+          </div>
+        ))}
+      </div>
+
+      {/* Pinned expanding solid panel */}
+      <div
+        ref={pinWrapRef}
+        className="pointer-events-none absolute left-0 z-[8] flex h-screen w-full items-center justify-start overflow-hidden"
+        style={{ top: "80vh" }}
+      >
+        <div
+          ref={targetRef}
+          className="pointer-events-auto relative ml-[15%] h-[44vh] w-[44%] overflow-hidden rounded-2xl bg-terracotta ring-1 ring-white/10 lg:ml-[38%] lg:w-[22%]"
+        >
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{ background: "radial-gradient(120% 100% at 80% 10%, rgba(255,255,255,0.16), transparent 55%)" }}
+          />
+
+          {/* Collapsed-state cover — a B&W duotone portrait that turns the panel
+              into a deliberate "poster". Cross-dissolves out as it expands. */}
+          <div className="tt-cover pointer-events-none absolute inset-0 z-[6]">
+            <img
+              src="/dayana-photos/opt/IMG_4009-900.webp"
+              alt="Dayana Beltrán"
+              className="absolute inset-0 h-full w-full object-cover object-top opacity-95 mix-blend-luminosity contrast-[1.08]"
+              loading="lazy"
+              decoding="async"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(180deg, rgba(120,46,30,0.35) 0%, transparent 28%, transparent 46%, rgba(120,46,30,0.55) 78%, #9a4129 100%)" }}
+            />
+            <div className="absolute inset-x-0 top-0 flex items-center justify-between px-[5vw] pt-[5vw] font-[font2] text-[2.4vw] uppercase tracking-[0.24em] text-white/85 lg:px-[1.6vw] lg:pt-[1.5vw] lg:text-[0.72vw]">
+              <span>Voces reales</span>
+              <span className="text-white/55">04</span>
+            </div>
+            <div className="absolute inset-x-0 bottom-0 px-[5vw] pb-[5vw] lg:px-[1.6vw] lg:pb-[1.6vw]">
+              <h3 className="font-[font2] text-[8vw] uppercase leading-[0.85] text-white lg:text-[2.1vw]">
+                Historias<br />reales
+              </h3>
+              <p className="mt-[1.4vw] font-[font1] text-[3vw] leading-snug text-white/80 lg:mt-[0.6vw] lg:text-[0.8vw]">
+                Transformaciones reales, contadas en video.
+              </p>
+            </div>
           </div>
 
+          <div className="tt-overlay absolute inset-0 z-10 text-white opacity-0">
+            {/* label */}
+            <div className="absolute inset-x-[7vw] top-[7vw] flex items-center justify-between font-[font2] text-[3vw] uppercase tracking-[0.24em] lg:inset-x-[4vw] lg:top-[4vw] lg:text-[0.9vw]">
+              <span>Voces reales</span>
+              <span className="text-white/55">Testimonios</span>
+            </div>
+
+            {/* names band — vertically centred, slides horizontally */}
+            <div className="absolute inset-x-0 top-[30%] overflow-hidden px-[7vw] lg:top-[28%] lg:px-[4vw]">
+              <h3 className="tt-heading flex w-max items-center gap-[10vw] whitespace-nowrap font-[font2] text-[22vw] uppercase leading-[0.85] tracking-tight will-change-transform lg:gap-[7vw] lg:text-[8.5vw]">
+                {testimonials.map((t, idx) => (
+                  <span key={t.id} className={`tt-name tt-name-${idx}`}>
+                    {t.name}
+                  </span>
+                ))}
+              </h3>
+            </div>
+
+            {/* quote — bottom-left, FIXED vw width so SplitText wraps correctly */}
+            <div className="absolute bottom-[7vw] left-[7vw] w-[82vw] lg:bottom-[4vw] lg:left-[4vw] lg:w-[42vw]">
+              <div className="relative h-[40vw] min-h-[32vw] lg:h-[11vw] lg:min-h-[9vw]">
+                {testimonials.map((t, idx) => (
+                  <p
+                    key={t.id}
+                    className={`tt-desc tt-desc-${idx} absolute inset-0 m-0 w-full font-[font1] text-[4vw] leading-[1.5] lg:text-[1.2vw]`}
+                  >
+                    “{t.excerpt}”
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* video — bottom-right, the current person, cross-fades with the cycle */}
+            <div className="pointer-events-auto absolute bottom-[7vw] right-[7vw] w-[58vw] lg:bottom-[4vw] lg:right-[4vw] lg:w-[34vw]">
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl shadow-[0_1vw_3vw_rgba(0,0,0,0.35)]">
+                {testimonials.map((t, idx) => (
+                  <div key={t.id} className={`tt-vid tt-vid-${idx} absolute inset-0`}>
+                    <Tile t={t} uid={`p${idx}`} playing={playingUid === `p${idx}`} onPlay={setPlayingUid} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
       </div>
     </section>
   );

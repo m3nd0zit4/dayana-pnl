@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { type CountryCode } from "libphonenumber-js";
 import {
   checkoutContactFieldsSchema,
   type CheckoutContactFields,
@@ -9,6 +10,11 @@ import {
   readStoredCheckoutContact,
   writeStoredCheckoutContact,
 } from "@/lib/checkout-contact-storage";
+import {
+  validateLocalPhone,
+  getLocalPhonePlaceholder,
+  sanitizeLocalPhoneInput,
+} from "@/lib/phone";
 import CheckoutCountrySelect from "./CheckoutCountrySelect";
 
 export type CheckoutContactPayload = Pick<
@@ -38,6 +44,7 @@ const CheckoutContactStep = ({
   const [phoneCountry, setPhoneCountry] = useState(defaultCountry);
   const [consent, setConsent] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = readStoredCheckoutContact();
@@ -49,8 +56,36 @@ const CheckoutContactStep = ({
     if (stored.lastName) setLastName(stored.lastName);
   }, [defaultCountry]);
 
+  const handlePhoneChange = (raw: string) => {
+    const country = phoneCountry as CountryCode;
+    const digits = sanitizeLocalPhoneInput(raw, country);
+    setPhone(digits);
+    if (digits.length >= 6) {
+      const { hint } = validateLocalPhone(digits, country);
+      setPhoneError(hint);
+    } else {
+      setPhoneError(null);
+    }
+  };
+
+  const handleCountryChange = (iso: string) => {
+    setPhoneCountry(iso);
+    if (phone.length >= 6) {
+      const { hint } = validateLocalPhone(phone, iso as CountryCode);
+      setPhoneError(hint);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const country = phoneCountry as CountryCode;
+    const { normalized, hint } = validateLocalPhone(phone, country);
+    if (!normalized) {
+      setPhoneError(hint ?? "Por favor ingresa un número válido.");
+      return;
+    }
+    setPhoneError(null);
 
     const parsed = checkoutContactFieldsSchema.safeParse({
       phone: phone.trim(),
@@ -62,7 +97,12 @@ const CheckoutContactStep = ({
     });
 
     if (!parsed.success) {
-      setLocalError(parsed.error.issues[0]?.message ?? "Revisa tus datos.");
+      const issue = parsed.error.issues[0];
+      if (issue?.path[0] === "phone") {
+        setPhoneError(issue.message);
+      } else {
+        setLocalError(issue?.message ?? "Revisa tus datos.");
+      }
       return;
     }
 
@@ -147,26 +187,37 @@ const CheckoutContactStep = ({
 
       <CheckoutCountrySelect
         value={phoneCountry}
-        onChange={setPhoneCountry}
+        onChange={handleCountryChange}
         disabled={disabled}
       />
 
-      <label className="block">
-        <span className="font-[font1] text-xs text-white/50 mb-1 block">
-          WhatsApp / teléfono *
-        </span>
-        <input
-          required
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel-national"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          disabled={disabled}
-          placeholder="300 123 4567"
-          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50"
-        />
-      </label>
+      <div className="block">
+        <label className="block">
+          <span className="font-[font1] text-xs text-white/50 mb-1 block">
+            WhatsApp / teléfono *
+          </span>
+          <input
+            required
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            value={phone}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            disabled={disabled}
+            placeholder={getLocalPhonePlaceholder(phoneCountry as CountryCode)}
+            className={`w-full rounded-lg bg-black/40 border px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50 ${
+              phoneError
+                ? "border-red-400/70 focus:outline-none focus:ring-1 focus:ring-red-400/50"
+                : "border-linen/20"
+            }`}
+          />
+        </label>
+        {phoneError && (
+          <p className="font-[font1] text-xs text-red-300/90 mt-1">
+            {phoneError}
+          </p>
+        )}
+      </div>
 
       <label className="flex items-start gap-3 cursor-pointer">
         <input

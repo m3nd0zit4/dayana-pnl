@@ -1,29 +1,25 @@
 import { ProductKind, type Product } from "@prisma/client";
 import { prisma } from "../db";
 
+type ProductPrice = { currency: string; amountMinor: number; listAmountMinor: number | null };
+
+const priceInclude = {
+  prices: {
+    orderBy: { validFrom: "desc" as const },
+  },
+} as const;
+
 export const getProduct = async (productId: string) =>
   prisma.product.findUnique({
     where: { id: productId },
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
+    include: priceInclude,
   });
 
 export const getActiveProducts = async () =>
   prisma.product.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
+    include: priceInclude,
   });
 
 export const productSessionsTotal = (product: Product): number | null => {
@@ -32,8 +28,11 @@ export const productSessionsTotal = (product: Product): number | null => {
 };
 
 export const latestUsdPrice = (
-  product: Product & {
-    prices: { amountMinor: number; listAmountMinor: number | null }[];
-  }
-): { amountMinor: number; listAmountMinor: number | null } | null =>
-  product.prices[0] ?? null;
+  product: Product & { prices: ProductPrice[] }
+): ProductPrice | null =>
+  product.prices.find((p) => p.currency === "USD") ?? null;
+
+export const latestCopPrice = (
+  product: Product & { prices: ProductPrice[] }
+): ProductPrice | null =>
+  product.prices.find((p) => p.currency === "COP") ?? null;

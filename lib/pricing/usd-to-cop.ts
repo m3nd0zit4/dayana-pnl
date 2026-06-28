@@ -28,6 +28,9 @@ export const usdToCopApprox = (usd: number, rate: number): number =>
 export const applyCopToPlan = (plan: Plan, rate: number): Plan => ({
   ...plan,
   amountCop: usdToCopApprox(plan.amountUsd, rate),
+  listAmountCop: plan.listAmountUsd != null
+    ? usdToCopApprox(plan.listAmountUsd, rate)
+    : undefined,
 });
 
 export const applyCopToPlans = (plans: Plan[], rate: number): Plan[] =>
