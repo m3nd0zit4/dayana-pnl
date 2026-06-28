@@ -173,20 +173,27 @@ const TestimonialsSection = () => {
           start: "center center",
           end: "+=400%",
           scrub: 0.55,
-          pin: true,
-          pinSpacing: false,
-          // Pin via transform (not position:fixed) so engaging/releasing the pin
-          // never reflows the absolutely-positioned wrapper → no layout shift (CLS).
-          pinType: "transform",
+          // No ScrollTrigger pin: holding the panel via position:fixed reflows the
+          // absolutely-positioned wrapper (large CLS). Instead the timeline below
+          // translates it (transform = no layout shift) over the same scrub.
           invalidateOnRefresh: true,
         },
       });
 
       // Expand via clip-path (paint-only) instead of width/height (layout) so the
       // scroll-linked growth never triggers layout shift (CLS) under Lenis.
-      gsap.set(targetRef.current, { clipPath: "inset(28% 39% 28% 39% round 18px)" });
+      // Driven by a single proxy value so all four insets move in lockstep —
+      // GSAP's native clip-path string tween interpolates them unevenly.
+      const clip = { p: 0 };
+      const applyClip = () => {
+        const v = 1 - clip.p;
+        gsap.set(targetRef.current, {
+          clipPath: `inset(${28 * v}% ${39 * v}% ${28 * v}% ${39 * v}% round ${18 * v}px)`,
+        });
+      };
+      applyClip();
 
-      tl.to(targetRef.current, { clipPath: "inset(0% 0% 0% 0% round 0px)", ease: "none", duration: 1 })
+      tl.to(clip, { p: 1, ease: "none", duration: 1, onUpdate: applyClip }, 0)
         .to(".tt-center", { autoAlpha: 0, duration: 1 }, "<")
         .to(".tt-cover", { autoAlpha: 0, ease: "none", duration: 0.8 }, "<")
         .to(".tt-overlay", { autoAlpha: 1, duration: 0.2 })
@@ -206,6 +213,15 @@ const TestimonialsSection = () => {
           .to(splits[next].lines, { yPercent: 0, stagger, duration, ease: "none" }, label)
           .to({}, { duration: pause });
       }
+
+      // Hold the panel in view by translating it (transform → no CLS) exactly as
+      // far as the page scrolls over the timeline. Spans the whole timeline at
+      // position 0 so it stays in lockstep with the scrub.
+      tl.to(
+        pinWrapRef.current,
+        { y: () => window.innerHeight * 4, ease: "none", duration: tl.duration() },
+        0
+      );
 
       return () => splits.forEach((s) => s.revert());
     },
