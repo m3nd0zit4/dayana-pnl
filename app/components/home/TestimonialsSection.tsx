@@ -128,10 +128,6 @@ const TestimonialsSection = () => {
       // Mobile uses a static stacked layout (below); the scroll animation is
       // desktop-only. Reduced-motion rests on the first testimonial.
       if (!desktop || reduce || !pinWrapRef.current || !targetRef.current) {
-        // Static fallback: panel fully open, poster hidden, first testimonial shown.
-        if (targetRef.current)
-          gsap.set(targetRef.current, { clipPath: "inset(0% 0% 0% 0% round 0px)" });
-        gsap.set(".tt-cover", { autoAlpha: 0 });
         gsap.set(".tt-overlay", { autoAlpha: 1 });
         gsap.set(".tt-desc", { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
         gsap.set(".tt-vid", { autoAlpha: (i: number) => (i === 0 ? 1 : 0) });
@@ -173,27 +169,13 @@ const TestimonialsSection = () => {
           start: "center center",
           end: "+=400%",
           scrub: 0.55,
-          // No ScrollTrigger pin: holding the panel via position:fixed reflows the
-          // absolutely-positioned wrapper (large CLS). Instead the timeline below
-          // translates it (transform = no layout shift) over the same scrub.
+          pin: true,
+          pinSpacing: false,
           invalidateOnRefresh: true,
         },
       });
 
-      // Expand via clip-path (paint-only) instead of width/height (layout) so the
-      // scroll-linked growth never triggers layout shift (CLS) under Lenis.
-      // Driven by a single proxy value so all four insets move in lockstep —
-      // GSAP's native clip-path string tween interpolates them unevenly.
-      const clip = { p: 0 };
-      const applyClip = () => {
-        const v = 1 - clip.p;
-        gsap.set(targetRef.current, {
-          clipPath: `inset(${28 * v}% ${39 * v}% ${28 * v}% ${39 * v}% round ${18 * v}px)`,
-        });
-      };
-      applyClip();
-
-      tl.to(clip, { p: 1, ease: "none", duration: 1, onUpdate: applyClip }, 0)
+      tl.to(targetRef.current, { width: "100vw", height: "100vh", marginLeft: 0, borderRadius: 0, ease: "none", duration: 1 })
         .to(".tt-center", { autoAlpha: 0, duration: 1 }, "<")
         .to(".tt-cover", { autoAlpha: 0, ease: "none", duration: 0.8 }, "<")
         .to(".tt-overlay", { autoAlpha: 1, duration: 0.2 })
@@ -213,15 +195,6 @@ const TestimonialsSection = () => {
           .to(splits[next].lines, { yPercent: 0, stagger, duration, ease: "none" }, label)
           .to({}, { duration: pause });
       }
-
-      // Hold the panel in view by translating it (transform → no CLS) exactly as
-      // far as the page scrolls over the timeline. Spans the whole timeline at
-      // position 0 so it stays in lockstep with the scrub.
-      tl.to(
-        pinWrapRef.current,
-        { y: () => window.innerHeight * 4, ease: "none", duration: tl.duration() },
-        0
-      );
 
       return () => splits.forEach((s) => s.revert());
     },
@@ -300,8 +273,7 @@ const TestimonialsSection = () => {
       >
         <div
           ref={targetRef}
-          className="pointer-events-auto absolute inset-0 h-full w-full overflow-hidden bg-terracotta will-change-[clip-path]"
-          style={{ clipPath: "inset(28% 39% 28% 39% round 18px)" }}
+          className="pointer-events-auto relative ml-[15%] h-[44vh] w-[44%] overflow-hidden rounded-2xl bg-terracotta ring-1 ring-white/10 lg:ml-[38%] lg:w-[22%]"
         >
           <div
             aria-hidden="true"
@@ -310,9 +282,8 @@ const TestimonialsSection = () => {
           />
 
           {/* Collapsed-state cover — a B&W duotone portrait that turns the panel
-              into a deliberate "poster". Positioned to fill the clipped window
-              (matches the clip-path inset). Cross-dissolves out as it expands. */}
-          <div className="tt-cover pointer-events-none absolute inset-x-[39%] inset-y-[28%] z-[6] overflow-hidden">
+              into a deliberate "poster". Cross-dissolves out as it expands. */}
+          <div className="tt-cover pointer-events-none absolute inset-0 z-[6]">
             <img
               src="/dayana-photos/opt/IMG_4009-900.webp"
               alt="Dayana Beltrán"
