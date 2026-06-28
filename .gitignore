@@ -50,3 +50,9 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# codegraph index (generated locally)
+/.codegraph/
+
+# stray npm lockfile — project uses bun.lock
+/package-lock.json

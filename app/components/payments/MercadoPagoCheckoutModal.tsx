@@ -217,38 +217,18 @@ const MercadoPagoCheckoutModal = ({
 
             {breakdown ? (
               <div className="mt-3 space-y-1.5 font-[font1] text-sm">
-                {breakdown.referenceCurrency === "USD" &&
-                breakdown.referenceTotal ? (
-                  <>
-                    <div className="flex justify-between text-white/55">
-                      <span>Precio del plan</span>
-                      <span>
-                        {formatBreakdown(
-                          breakdown.referenceSubtotal ?? breakdown.referenceTotal,
-                          "USD"
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-white/55">
-                      <span>Comisión Mercado Pago</span>
-                      <span>
-                        +{" "}
-                        {formatBreakdown(
-                          breakdown.referenceFee ?? "0",
-                          "USD"
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-white/70">
-                      <span>Equivalente USD</span>
-                      <span>
-                        {formatBreakdown(breakdown.referenceTotal, "USD")}
-                      </span>
-                    </div>
-                    <div className="border-t border-linen/12 my-2" />
-                  </>
-                ) : null}
-                <div className="flex justify-between text-white/70">
+                {/* COP primary: big total first */}
+                <div className="flex justify-between items-baseline">
+                  <span className="font-[font2] uppercase text-[10px] tracking-[0.3em] text-linen/70">
+                    Total a pagar
+                  </span>
+                  <span className="font-[font1] text-2xl text-linen">
+                    {formatBreakdown(breakdown.total, breakdown.currency)}
+                  </span>
+                </div>
+                <div className="border-t border-linen/12 my-2" />
+                {/* breakdown detail */}
+                <div className="flex justify-between text-white/55">
                   <span>Subtotal</span>
                   <span>{formatBreakdown(breakdown.subtotal, breakdown.currency)}</span>
                 </div>
@@ -256,31 +236,25 @@ const MercadoPagoCheckoutModal = ({
                   <span>Comisión Mercado Pago</span>
                   <span>+ {formatBreakdown(breakdown.fee, breakdown.currency)}</span>
                 </div>
-                <div className="border-t border-linen/12 my-2" />
-                <div className="flex justify-between items-baseline">
-                  <span className="font-[font2] uppercase text-[10px] tracking-[0.3em] text-linen/70">
-                    Total en Mercado Pago
-                  </span>
-                  <span className="font-[font1] text-2xl text-linen">
-                    {formatBreakdown(breakdown.total, breakdown.currency)}
-                  </span>
-                </div>
-                {breakdown.currency === "COP" ? (
-                  <p className="font-[font1] text-[11px] text-white/45 leading-snug pt-1">
-                    Mercado Pago cobra en pesos colombianos (COP). El monto en
-                    checkout coincide con este total. Para pagar en dólares usa
-                    PayPal.
-                  </p>
+                {/* USD reference (small, muted) */}
+                {breakdown.referenceCurrency === "USD" && breakdown.referenceTotal ? (
+                  <div className="flex justify-between text-white/40 text-[11px] pt-1">
+                    <span>Referencia USD</span>
+                    <span>≈ {formatBreakdown(breakdown.referenceTotal, "USD")}</span>
+                  </div>
                 ) : null}
               </div>
             ) : (
+              /* Before breakdown loads: COP primary */
               <>
                 <div className="font-[font1] text-2xl mt-2 text-linen">
-                  {amountLabel} USD
+                  {plan.amountCop != null
+                    ? `${formatCop(plan.amountCop)} COP`
+                    : `${amountLabel} USD`}
                 </div>
                 {plan.amountCop != null ? (
-                  <div className="font-[font1] text-sm text-white/50 mt-1">
-                    ≈ {formatCop(plan.amountCop)} COP aprox.
+                  <div className="font-[font1] text-sm text-white/50 mt-0.5">
+                    ≈ {amountLabel} USD
                   </div>
                 ) : null}
               </>

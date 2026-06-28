@@ -1,4 +1,4 @@
-import HomeHero from "./components/home/HomeHero";
+import Hero from "./components/home/Hero";
 import ServicesSection from "./components/home/ServicesSection";
 import TestimonialsSection from "./components/home/TestimonialsSection";
 import ContactSection from "./components/home/ContactSection";
@@ -12,11 +12,17 @@ import {
   getUsdToCopRateFromEnv,
 } from "@/lib/pricing/usd-to-cop";
 import { COURSE_PLAN, THERAPY_PLANS } from "@/lib/plans";
+import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const Home = async () => {
-  const rate = await resolveUsdToCopRate().catch(() => getUsdToCopRateFromEnv());
+  const [rate, userCountry] = await Promise.all([
+    resolveUsdToCopRate().catch(() => getUsdToCopRateFromEnv()),
+    getServerUserCountry().catch(() => null),
+  ]);
   let therapyPlans = applyCopToPlans(THERAPY_PLANS, rate);
   let coursePlan = applyCopToPlan(COURSE_PLAN, rate);
+
+  const isColombia = userCountry === "CO";
 
   try {
     const fromDb = await getPublicPlans();
@@ -26,13 +32,22 @@ const Home = async () => {
     /* catálogo estático con COP según tasa */
   }
 
+  // Hide plans that have no price for the user's region
+  const visibleTherapyPlans = therapyPlans.filter((p) =>
+    isColombia ? p.amountCop != null : p.amountUsd > 0
+  );
+  const visibleCoursePlan =
+    coursePlan && (isColombia ? coursePlan.amountCop != null : coursePlan.amountUsd > 0)
+      ? coursePlan
+      : null;
+
   return (
     <>
       <main>
-        <HomeHero />
+        <Hero />
+        <ContactSection userCountry={userCountry} />
         <TestimonialsSection />
-        <ServicesSection therapyPlans={therapyPlans} coursePlan={coursePlan} />
-        <ContactSection />
+        <ServicesSection therapyPlans={visibleTherapyPlans} coursePlan={visibleCoursePlan} userCountry={userCountry} />
       </main>
       <Footer />
       <FloatingWhatsApp />

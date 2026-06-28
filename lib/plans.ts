@@ -23,6 +23,8 @@ export type Plan = {
   amountUsd: number;
   /** Referencia COP aprox. en UI — calculada con la tasa USD→COP del CRM. */
   amountCop?: number;
+  /** Precio lista en COP (calculado de listAmountUsd × tasa). */
+  listAmountCop?: number;
   /**
    * Valor de referencia (lista) mayor que `amountUsd` cuando hay promoción.
    * Si no se define o es igual a `amountUsd`, la carta muestra un solo precio.

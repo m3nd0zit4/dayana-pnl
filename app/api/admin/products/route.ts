@@ -29,9 +29,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  if (!body?.title || !body?.kind || body?.amountUsd == null) {
+  if (!body?.title || !body?.kind || (body?.amountUsd == null && body?.amountCop == null)) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
+  // Default amountUsd to 0 when creating from COP tab (can be set later via USD tab)
+  if (body.amountUsd == null) body.amountUsd = 0;
 
   try {
     const product = await createProduct({
@@ -44,6 +46,8 @@ export async function POST(req: NextRequest) {
       amountUsd: Number(body.amountUsd),
       listAmountUsd:
         body.listAmountUsd != null ? Number(body.listAmountUsd) : null,
+      amountCop: body.amountCop != null ? Number(body.amountCop) : null,
+      listAmountCop: body.listAmountCop != null ? Number(body.listAmountCop) : null,
     });
 
     fireAuditLog({
@@ -89,6 +93,18 @@ export async function PATCH(req: NextRequest) {
         body.listAmountUsd !== undefined
           ? body.listAmountUsd != null
             ? Number(body.listAmountUsd)
+            : null
+          : undefined,
+      amountCop:
+        body.amountCop !== undefined
+          ? body.amountCop != null
+            ? Number(body.amountCop)
+            : null
+          : undefined,
+      listAmountCop:
+        body.listAmountCop !== undefined
+          ? body.listAmountCop != null
+            ? Number(body.listAmountCop)
             : null
           : undefined,
       sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,

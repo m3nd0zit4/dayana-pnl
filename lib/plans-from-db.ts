@@ -1,7 +1,7 @@
 import { ProductKind } from "@prisma/client";
-import { getActiveProducts, latestUsdPrice } from "./crm/products";
+import { getActiveProducts, latestCopPrice, latestUsdPrice } from "./crm/products";
 import { resolveUsdToCopRate } from "./crm/site-settings";
-import { applyCopToPlan, applyCopToPlans } from "./pricing/usd-to-cop";
+import { applyCopToPlan } from "./pricing/usd-to-cop";
 import { PLANS, type Plan, type PlanId } from "./plans";
 import { prisma } from "./db";
 
@@ -18,11 +18,17 @@ export const productToPlan = (
   product: Awaited<ReturnType<typeof getActiveProducts>>[number]
 ): Plan => {
   const fallback = PLANS[product.id as PlanId];
-  const price = latestUsdPrice(product);
-  const amountUsd = price ? price.amountMinor / 100 : fallback?.amountUsd ?? 0;
-  const listAmountUsd = price?.listAmountMinor
-    ? price.listAmountMinor / 100
+  const usdPrice = latestUsdPrice(product);
+  const copPrice = latestCopPrice(product);
+
+  const amountUsd = usdPrice ? usdPrice.amountMinor / 100 : fallback?.amountUsd ?? 0;
+  const listAmountUsd = usdPrice?.listAmountMinor
+    ? usdPrice.listAmountMinor / 100
     : fallback?.listAmountUsd;
+
+  // COP stored as full pesos (no centavos), so amountMinor = pesos directly
+  const amountCop = copPrice ? copPrice.amountMinor : undefined;
+  const listAmountCop = copPrice?.listAmountMinor ?? undefined;
 
   const kind = kindToPlanKind(product.kind);
 
@@ -33,6 +39,8 @@ export const productToPlan = (
     sessions: product.sessionsLabel,
     amountUsd,
     listAmountUsd,
+    amountCop,
+    listAmountCop,
     unitPrice: fallback?.unitPrice,
     tag: fallback?.tag,
     highlight: fallback?.highlight,
@@ -52,7 +60,8 @@ export const productToPlan = (
 export const getPublicPlans = async () => {
   const usdToCopRate = await resolveUsdToCopRate();
   const products = await getActiveProducts();
-  const plans = applyCopToPlans(products.map(productToPlan), usdToCopRate);
+  // amountCop stays undefined if not stored — caller filters cards without a price
+  const plans = products.map(productToPlan);
   const therapyPlans = plans.filter((p) => p.kind === "therapy");
   const coursePlan =
     plans.find((p) => p.id === "course-live") ??
@@ -67,9 +76,7 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
     where: { id: planId },
     include: {
       prices: {
-        where: { currency: "USD" },
         orderBy: { validFrom: "desc" },
-        take: 1,
       },
     },
   });
@@ -77,7 +84,11 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
     const fallback = PLANS[planId as PlanId];
     return fallback ? applyCopToPlan(fallback, usdToCopRate) : null;
   }
-  return applyCopToPlan(productToPlan(product), usdToCopRate);
+  const plan = productToPlan(product);
+  if (plan.amountCop == null) {
+    return applyCopToPlan(plan, usdToCopRate);
+  }
+  return plan;
 };
 
 export const isActivePlanId = async (planId: string): Promise<boolean> => {

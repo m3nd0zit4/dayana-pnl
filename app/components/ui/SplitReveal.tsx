@@ -46,7 +46,7 @@ const SplitReveal = ({
   return (
     <div ref={ref} className={className}>
       {lines.map((line, li) => (
-        <span key={li} className="block overflow-hidden">
+        <span key={li} className="block overflow-hidden whitespace-nowrap">
           {Array.from(line).map((char, ci) => (
             <span key={ci} className="sr-char inline-block">
               {char === " " ? "\u00A0" : char}

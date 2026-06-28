@@ -242,8 +242,42 @@ async function seedStaffOwner() {
   console.log(`Staff OWNER seeded: ${email}`);
 }
 
+const COP_PRICES: Record<string, { amount: number; listAmount?: number }> = {
+  "therapy-1":  { amount: 280_000 },
+  "therapy-3":  { amount: 490_000,   listAmount: 840_000 },
+  "therapy-6":  { amount: 980_000,   listAmount: 1_680_000 },
+  "therapy-12": { amount: 1_960_000, listAmount: 3_360_000 },
+  "therapy-24": { amount: 3_920_000, listAmount: 6_720_000 },
+  "course-live":{ amount: 122_500 },
+};
+
+async function seedCopPrices() {
+  for (const [productId, { amount, listAmount }] of Object.entries(COP_PRICES)) {
+    const existing = await prisma.productPrice.findFirst({
+      where: { productId, currency: "COP" },
+      orderBy: { validFrom: "desc" },
+    });
+    if (
+      !existing ||
+      existing.amountMinor !== amount ||
+      existing.listAmountMinor !== (listAmount ?? null)
+    ) {
+      await prisma.productPrice.create({
+        data: {
+          productId,
+          currency: "COP",
+          amountMinor: amount,
+          listAmountMinor: listAmount ?? null,
+        },
+      });
+      console.log(`COP price set for ${productId}: ${amount.toLocaleString("es-CO")}`);
+    }
+  }
+}
+
 async function main() {
   await seedProducts();
+  await seedCopPrices();
   await seedWorkshops();
   await seedMessageTemplates();
   await seedTags();

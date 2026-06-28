@@ -19,6 +19,7 @@ type Payment = {
   status: PaymentStatus;
   currency: string;
   amountMinor: number;
+  payerCountryIso: string | null;
   paidAt: string | null;
   createdAt: string;
   enrollment: {
@@ -37,6 +38,7 @@ const PREVIEW: Payment[] = [
     status: PaymentStatus.APPROVED,
     currency: "USD",
     amountMinor: 16000,
+    payerCountryIso: "US",
     paidAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     enrollment: {
@@ -110,6 +112,9 @@ const PaymentsPageClient = ({ preview }: Props) => {
                     </div>
                     <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
                       {p.provider} · {STATUS_LABEL[p.status]}
+                      {p.payerCountryIso && (
+                        <span className="ml-1.5 opacity-70">· {p.payerCountryIso}</span>
+                      )}
                     </div>
                     <Link
                       href={preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`}
