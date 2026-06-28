@@ -10,6 +10,7 @@ const Navbar = () => {
   const [navColor, setNavColor] = useContext(NavbarColorContext);
   const pathname = usePathname();
   const homeHref = pathname === "/" ? "#hero" : "/#hero";
+  const isHome = pathname === "/";
   const [logoVisible, setLogoVisible] = useState(true);
 
   useEffect(() => {
@@ -92,27 +93,25 @@ const Navbar = () => {
 
   return (
     <div className="z-30 flex fixed top-0 w-full items-start justify-between pointer-events-none">
-      <div
-        className={`overflow-hidden transition-[transform,opacity] duration-300 ease-out will-change-transform lg:p-5 p-3 pointer-events-auto ${
-          logoVisible
-            ? "translate-y-0 opacity-100"
-            : "-translate-y-[140%] opacity-0 pointer-events-none"
-        }`}
-      >
-        <a
-          href={homeHref}
-          className="block font-[font2] uppercase leading-none select-none"
-          style={{ color: navColor }}
-          aria-label="Dayana Beltran PNL"
+      {/* Home shows the DB mark via the masthead intro; other routes show it here. */}
+      {!isHome && (
+        <div
+          className={`overflow-hidden transition-[transform,opacity] duration-300 ease-out will-change-transform lg:p-5 p-3 pointer-events-auto ${
+            logoVisible
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-[140%] opacity-0 pointer-events-none"
+          }`}
         >
-          <span className="block text-sm lg:text-base tracking-[0.14em]">
-            Dayana Beltr&aacute;n
-          </span>
-          <span className="block text-[10px] lg:text-xs tracking-[0.5em] mt-1.5 opacity-70">
-            PNL
-          </span>
-        </a>
-      </div>
+          <a
+            href={homeHref}
+            className="block uppercase leading-none select-none text-2xl lg:text-[28px]"
+            style={{ color: navColor, fontFamily: "var(--font-grotesk)", fontWeight: 700, letterSpacing: "-0.02em" }}
+            aria-label="Dayana Beltrán"
+          >
+            DB<span style={{ color: "var(--color-terracotta)" }}>.</span>
+          </a>
+        </div>
+      )}
       <div
         onClick={() => setNavOpen(true)}
         onMouseEnter={handleMouseEnter}

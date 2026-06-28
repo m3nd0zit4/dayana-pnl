@@ -9,6 +9,7 @@ import {
 } from "@/lib/crm/enrollments";
 import { upsertContactByPhone } from "@/lib/crm/contacts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
+import { notifyNewLead } from "@/lib/notifications/lead-notify";
 import {
   clientIp,
   rateLimitDistributed,
@@ -30,6 +31,10 @@ type Body = {
   consentData?: boolean;
   source?: string;
   sourceDetail?: string;
+  /** Web contact form extras — used only for the notification email. */
+  interest?: string;
+  message?: string;
+  notify?: boolean;
 };
 
 const sourceMap: Record<string, ContactSource> = {
@@ -143,6 +148,24 @@ export async function POST(req: NextRequest) {
         status: "LEAD",
       });
       enrollmentId = enrollment.id;
+    }
+
+    // Web contact form → transactional emails (best-effort; never blocks).
+    if (body.notify) {
+      try {
+        await notifyNewLead({
+          firstName,
+          lastName: body.lastName,
+          phoneE164: contact.phoneE164 ?? phone,
+          phoneCountry: body.phoneCountry,
+          email: body.email,
+          interest: body.interest,
+          message: body.message,
+          source: sourceKey,
+        });
+      } catch {
+        /* notification is non-critical */
+      }
     }
 
     return NextResponse.json({

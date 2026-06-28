@@ -7,6 +7,12 @@ import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 
+type ProductPrice = {
+  currency: string;
+  amountMinor: number;
+  listAmountMinor: number | null;
+};
+
 type Product = {
   id: string;
   kind: ProductKind;
@@ -16,7 +22,7 @@ type Product = {
   description: string | null;
   isActive: boolean;
   sortOrder: number;
-  prices: { amountMinor: number; listAmountMinor: number | null }[];
+  prices: ProductPrice[];
 };
 
 const KIND_LABEL: Record<ProductKind, string> = {
@@ -33,27 +39,27 @@ const emptyForm = () => ({
   amountUsd: "",
   listAmountUsd: "",
   description: "",
+  isActive: true,
 });
+
+const emptyCopForm = () => ({ amountCop: "", listAmountCop: "" });
+
+type View = "usd" | "cop";
 
 type Props = {
   preview: boolean;
   initialProducts?: Product[];
-  initialUsdToCopRate?: number;
 };
 
-const ProductsPageClient = ({
-  preview,
-  initialProducts,
-  initialUsdToCopRate = 3500,
-}: Props) => {
+const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [loading, setLoading] = useState(initialProducts === undefined);
   const [editing, setEditing] = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
-  const [usdToCopRate, setUsdToCopRate] = useState(String(initialUsdToCopRate));
-  const [rateSaving, setRateSaving] = useState(false);
+  const [copForm, setCopForm] = useState(emptyCopForm);
+  const [view, setView] = useState<View>("usd");
 
   const load = useCallback(() => {
     if (preview) {
@@ -74,8 +80,12 @@ const ProductsPageClient = ({
     load();
   }, [initialProducts, load]);
 
+  const usdPrice = (p: Product) => p.prices.find((pr) => pr.currency === "USD") ?? null;
+  const copPrice = (p: Product) => p.prices.find((pr) => pr.currency === "COP") ?? null;
+
   const openEdit = (p: Product) => {
-    const price = p.prices[0];
+    const usd = usdPrice(p);
+    const cop = copPrice(p);
     setEditing(p);
     setCreating(false);
     setForm({
@@ -83,16 +93,20 @@ const ProductsPageClient = ({
       title: p.title,
       sessionsLabel: p.sessionsLabel,
       sessionsCount: p.sessionsCount?.toString() ?? "",
-      amountUsd: price ? String(price.amountMinor / 100) : "",
-      listAmountUsd: price?.listAmountMinor
-        ? String(price.listAmountMinor / 100)
-        : "",
+      amountUsd: usd ? String(usd.amountMinor / 100) : "",
+      listAmountUsd: usd?.listAmountMinor ? String(usd.listAmountMinor / 100) : "",
       description: p.description ?? "",
+      isActive: p.isActive,
+    });
+    setCopForm({
+      amountCop: cop ? String(cop.amountMinor) : "",
+      listAmountCop: cop?.listAmountMinor ? String(cop.listAmountMinor) : "",
     });
   };
 
   const save = async () => {
     if (!canManageTeam) return;
+
     const payload = {
       ...(creating ? {} : { id: editing!.id }),
       kind: form.kind,
@@ -100,8 +114,16 @@ const ProductsPageClient = ({
       sessionsLabel: form.sessionsLabel || form.title,
       sessionsCount: form.sessionsCount ? Number(form.sessionsCount) : null,
       description: form.description,
-      amountUsd: Number(form.amountUsd),
-      listAmountUsd: form.listAmountUsd ? Number(form.listAmountUsd) : null,
+      isActive: form.isActive,
+      ...(view === "usd"
+        ? {
+            amountUsd: Number(form.amountUsd),
+            listAmountUsd: form.listAmountUsd ? Number(form.listAmountUsd) : null,
+          }
+        : {
+            amountCop: copForm.amountCop ? Number(copForm.amountCop) : null,
+            listAmountCop: copForm.listAmountCop ? Number(copForm.listAmountCop) : null,
+          }),
     };
 
     const res = await fetch("/api/admin/products", {
@@ -142,42 +164,6 @@ const ProductsPageClient = ({
 
   const showForm = creating || editing;
 
-  const saveUsdToCopRate = async () => {
-    if (!canManageTeam || preview) return;
-    const parsed = Number(usdToCopRate.replace(/\s/g, ""));
-    if (!Number.isFinite(parsed) || parsed <= 0) {
-      toast("Ingresa una tasa válida (número positivo)", "error");
-      return;
-    }
-    setRateSaving(true);
-    try {
-      const res = await fetch("/api/admin/site-settings", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ usdToCopRate: Math.round(parsed) }),
-      });
-      if (!res.ok) {
-        toast("No se pudo guardar la tasa", "error");
-        return;
-      }
-      const data = (await res.json()) as { usdToCopRate?: number };
-      if (data.usdToCopRate != null) {
-        setUsdToCopRate(String(data.usdToCopRate));
-      }
-      toast("Tasa actualizada — la web refleja el cambio al instante");
-    } catch {
-      toast("Error de red al guardar la tasa", "error");
-    } finally {
-      setRateSaving(false);
-    }
-  };
-
-  const ratePreviewCop = (usd: number) => {
-    const r = Number(usdToCopRate.replace(/\s/g, ""));
-    if (!Number.isFinite(r) || r <= 0) return null;
-    return Math.round(usd * r).toLocaleString("es-CO");
-  };
-
   return (
     <CrmPageShell>
       <div className="space-y-6">
@@ -185,8 +171,8 @@ const ProductsPageClient = ({
           <div>
             <h1 className="crm-section-title text-xl">Productos</h1>
             <p className="crm-section-subtitle mt-1 max-w-xl">
-              Precios USD, tasa COP y planes de la landing (#servicios). Al guardar,
-              la web se actualiza sola.
+              USD e Internacional (PayPal) · COP e Colombia (Mercado Pago). Los precios
+              en cada moneda se editan de forma independiente.
             </p>
           </div>
           {canManageTeam && !preview && (
@@ -197,6 +183,7 @@ const ProductsPageClient = ({
                 setCreating(true);
                 setEditing(null);
                 setForm(emptyForm());
+                setCopForm(emptyCopForm());
               }}
             >
               <Plus className="size-4" />
@@ -205,52 +192,33 @@ const ProductsPageClient = ({
           )}
         </div>
 
-        {canManageTeam && !preview && (
-          <div className="crm-surface-card space-y-3 p-5">
-            <div>
-              <h2 className="text-sm font-semibold">Tasa USD → COP (referencia web)</h2>
-              <p className="mt-1 text-xs text-[var(--crm-muted)]">
-                Se usa en las cartas de precio (&quot;COP aprox.&quot;) y en Mercado
-                Pago. Ejemplo: $80 USD × tasa = valor mostrado en pesos.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="min-w-[10rem] flex-1 sm:max-w-xs">
-                <label className="crm-label" htmlFor="usd-to-cop-rate">
-                  COP por 1 USD
-                </label>
-                <input
-                  id="usd-to-cop-rate"
-                  type="number"
-                  min={1}
-                  step={1}
-                  className="crm-input"
-                  value={usdToCopRate}
-                  onChange={(e) => setUsdToCopRate(e.target.value)}
-                />
-              </div>
-              <button
-                type="button"
-                className="crm-btn-primary"
-                disabled={rateSaving}
-                onClick={() => void saveUsdToCopRate()}
-              >
-                {rateSaving ? "Guardando…" : "Guardar tasa"}
-              </button>
-            </div>
-            {ratePreviewCop(80) ? (
-              <p className="text-xs text-[var(--crm-muted)]">
-                Vista previa: $80 USD ≈ ${ratePreviewCop(80)} COP aprox.
-              </p>
-            ) : null}
-          </div>
-        )}
+        {/* View tabs */}
+        <div className="flex gap-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-linen)]/30 p-1 w-fit">
+          {(["usd", "cop"] as View[]).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setView(v)}
+              className={`rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
+                view === v
+                  ? "bg-white shadow-sm text-[var(--crm-text)]"
+                  : "text-[var(--crm-muted)] hover:text-[var(--crm-text)]"
+              }`}
+            >
+              {v === "usd" ? "Internacional (USD)" : "Colombia (COP)"}
+            </button>
+          ))}
+        </div>
 
+
+        {/* Edit / Create form */}
         {showForm && canManageTeam && (
-          <div className="crm-surface-card space-y-3 p-5">
+          <div className="crm-surface-card space-y-4 p-5">
             <h2 className="text-sm font-semibold">
               {creating ? "Nuevo producto" : `Editar: ${editing?.title}`}
             </h2>
+
+            {/* General fields */}
             <div className="grid gap-3 sm:grid-cols-2">
               <SearchableSelect
                 label="Tipo"
@@ -293,29 +261,71 @@ const ProductsPageClient = ({
                   }
                 />
               </div>
-              <div>
-                <label className="crm-label">Precio USD</label>
-                <input
-                  type="number"
-                  className="crm-input"
-                  value={form.amountUsd}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, amountUsd: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="crm-label">Precio lista USD (opcional)</label>
-                <input
-                  type="number"
-                  className="crm-input"
-                  value={form.listAmountUsd}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
-                  }
-                />
+            </div>
+
+            {/* Price fields — tab-dependent */}
+            <div className="border-t border-[var(--crm-border)] pt-4">
+              <p className="text-[10px] uppercase tracking-widest text-[var(--crm-muted)] mb-3">
+                {view === "usd"
+                  ? "Precio Internacional — USD (PayPal)"
+                  : "Precio Colombia — COP (Mercado Pago)"}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {view === "usd" ? (
+                  <>
+                    <div>
+                      <label className="crm-label">Precio USD</label>
+                      <input
+                        type="number"
+                        className="crm-input"
+                        value={form.amountUsd}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, amountUsd: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="crm-label">Precio lista USD (opcional)</label>
+                      <input
+                        type="number"
+                        className="crm-input"
+                        value={form.listAmountUsd}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="crm-label">Precio COP</label>
+                      <input
+                        type="number"
+                        className="crm-input"
+                        value={copForm.amountCop}
+                        onChange={(e) =>
+                          setCopForm((f) => ({ ...f, amountCop: e.target.value }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="crm-label">Precio lista COP (opcional)</label>
+                      <input
+                        type="number"
+                        className="crm-input"
+                        value={copForm.listAmountCop}
+                        onChange={(e) =>
+                          setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
+                        }
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
+
+            {/* Description */}
             <div>
               <label className="crm-label">Fichas / descripción (una por línea)</label>
               <textarea
@@ -326,8 +336,30 @@ const ProductsPageClient = ({
                 }
               />
             </div>
-            <div className="flex gap-2">
-              <button type="button" className="crm-btn-primary" onClick={() => void save()}>
+
+            {/* Active toggle */}
+            {!creating && (
+              <label className="flex items-center gap-2.5 cursor-pointer select-none w-fit">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-[var(--crm-border)] accent-[var(--crm-accent)] cursor-pointer"
+                  checked={form.isActive}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isActive: e.target.checked }))
+                  }
+                />
+                <span className="text-sm text-[var(--crm-text)]">
+                  Producto activo (visible en la web)
+                </span>
+              </label>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                className="crm-btn-primary"
+                onClick={() => void save()}
+              >
                 Guardar
               </button>
               <button
@@ -344,6 +376,7 @@ const ProductsPageClient = ({
           </div>
         )}
 
+        {/* Product table */}
         <div className="crm-surface-card overflow-hidden">
           {loading ? (
             <p className="p-6 text-sm text-[var(--crm-muted)]">Cargando…</p>
@@ -353,14 +386,19 @@ const ProductsPageClient = ({
                 <tr className="border-b border-[var(--crm-border)] bg-[var(--crm-linen)]/30 text-left text-[10px] uppercase tracking-widest text-[var(--crm-muted)]">
                   <th className="p-3 font-medium">Producto</th>
                   <th className="p-3 font-medium">Tipo</th>
-                  <th className="p-3 font-medium">Precio</th>
+                  <th className="p-3 font-medium">
+                    {view === "usd" ? "Precio USD" : "Precio COP"}
+                  </th>
                   <th className="p-3 font-medium">Activo</th>
                   <th className="p-3 font-medium" />
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => {
-                  const price = p.prices[0];
+                  const usd = usdPrice(p);
+                  const cop = copPrice(p);
+                  const displayPrice = view === "usd" ? usd : cop;
+                  const currency = view === "usd" ? "USD" : "COP";
                   return (
                     <tr key={p.id} className="crm-table-row">
                       <td className="p-3 font-medium">{p.title}</td>
@@ -368,16 +406,42 @@ const ProductsPageClient = ({
                         {KIND_LABEL[p.kind]}
                       </td>
                       <td className="p-3">
-                        {price
-                          ? `$${(price.amountMinor / 100).toFixed(0)} USD`
-                          : "—"}
-                        {price?.listAmountMinor ? (
-                          <span className="ml-1 text-[10px] line-through text-[var(--crm-muted)]">
-                            ${(price.listAmountMinor / 100).toFixed(0)}
-                          </span>
-                        ) : null}
+                        {displayPrice ? (
+                          <>
+                            {view === "usd"
+                              ? (displayPrice.amountMinor / 100).toLocaleString("en-US", {
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 2,
+                                })
+                              : displayPrice.amountMinor.toLocaleString("es-CO")}{" "}
+                            {currency}
+                            {displayPrice.listAmountMinor ? (
+                              <span className="ml-1 text-[10px] line-through text-[var(--crm-muted)]">
+                                {view === "usd"
+                                  ? (displayPrice.listAmountMinor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                                  : displayPrice.listAmountMinor.toLocaleString("es-CO")}
+                              </span>
+                            ) : null}
+                          </>
+                        ) : (
+                          <span className="text-[var(--crm-muted)]">—</span>
+                        )}
                       </td>
-                      <td className="p-3">{p.isActive ? "Sí" : "No"}</td>
+                      <td className="p-3">
+                        {!p.isActive ? (
+                          <span className="inline-block rounded-full bg-[var(--crm-linen)] px-2 py-0.5 text-[10px] font-medium text-[var(--crm-muted)]">
+                            Inactivo
+                          </span>
+                        ) : !displayPrice ? (
+                          <span className="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                            Sin precio · No visible
+                          </span>
+                        ) : (
+                          <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800">
+                            Activo
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 text-right">
                         {canManageTeam && !preview && (
                           <div className="flex justify-end gap-2">

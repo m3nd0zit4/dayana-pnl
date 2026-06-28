@@ -6,6 +6,11 @@
   --color-linen: #ece3d4;
   --color-blush: #edc3b1;
   --color-sand: #d4b896;
+  --color-terracotta: #c0654a;
+  --color-hero-paper: #f0ece4;
+
+  --font-grotesk: "Space Grotesk", sans-serif;
+  --font-mono: "DM Mono", monospace;
 }
 
 @font-face {
@@ -18,6 +23,554 @@
   font-family: font2;
   src: url(/fonts/Lausanne-500.woff2) format("woff2");
   font-display: swap;
+}
+
+/* Reference replica type system: Space Grotesk (display) + DM Mono (labels) */
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 500;
+  font-style: normal;
+  src: url(/fonts/SpaceGrotesk-500.woff2) format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 700;
+  font-style: normal;
+  src: url(/fonts/SpaceGrotesk-700.woff2) format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  font-weight: 400;
+  font-style: normal;
+  src: url(/fonts/DMMono-400.woff2) format("woff2");
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Mono";
+  font-weight: 500;
+  font-style: normal;
+  src: url(/fonts/DMMono-500.woff2) format("woff2");
+  font-display: swap;
+}
+
+/* ───────────────────────────  MASTHEAD (logo-mask intro)  ────────────────── */
+.mh {
+  position: relative;
+  z-index: 1;
+  background: #0a0a0a;
+  --mh-warm: url("/hero/hero-mask.webp");
+  --mh-bw: url("/hero/hero-mask-rev.webp");
+  /* Dayana stays horizontally centred; bias slightly up to keep the face framed. */
+  --mh-focus: 50% 26%;
+}
+.mh-pin {
+  position: relative;
+  height: 100svh;
+  width: 100%;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+.mh-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #0a0a0a var(--mh-warm) var(--mh-focus) / cover no-repeat;
+  /* Cinematic vignette: darkens the top (docked DB legibility) and the base
+     (scroll cue) without touching Dayana's centred face. */
+  box-shadow:
+    inset 0 130px 120px -70px rgba(10, 10, 10, 0.55),
+    inset 0 -180px 150px -80px rgba(10, 10, 10, 0.5);
+  will-change: transform;
+}
+.mh-ink {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #0a0a0a;
+}
+.mh-logo {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-grotesk);
+  font-weight: 700;
+  font-size: min(58vh, 46vw);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: var(--mh-bw) var(--mh-focus) / cover no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+/* Fallback if background-clip:text is unsupported — show a solid DB, never black. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .mh-logo {
+    background: none;
+    color: var(--color-linen);
+    -webkit-text-fill-color: var(--color-linen);
+  }
+}
+.mh-cue {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.mh-cue svg {
+  animation: heroScrollBob 2s ease-in-out infinite;
+}
+.mh-brand {
+  position: fixed;
+  z-index: 40;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-grotesk);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.mh-brand-dot {
+  color: var(--color-terracotta);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mh-cue svg {
+    animation: none;
+  }
+}
+
+/* ─────────────────────────  HERO — fluid reveal (replica)  ───────────────── */
+.hero-fluid {
+  position: relative;
+  min-height: 100svh;
+  background: var(--color-hero-paper);
+  overflow: hidden;
+  isolation: isolate;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hero-fluid {
+    cursor: none;
+  }
+}
+
+/* 3D tilt stage (Lando-style) — wraps the photo/canvas/ghost visual layers.
+   Transform is driven by JS (perspective + rotate + scale); rests flat. */
+.hero-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+/* Layer 0 — art-directed photo (LCP + non-GL fallback) */
+.hero-photo-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    var(--color-hero-paper)
+    url("data:image/webp;base64,UklGRnYAAABXRUJQVlA4IGoAAAAwBACdASoWAA4APu1kq04ppaQiMAgBMB2JYgCdMoADKg8ujjKw0VQG5IAA/papSUc7MCm/uCIA3iPvKfcP2hbZ1BfmxTdd+zQ1Lvv4T97jV7uCcjKfLYjmQeC3OTXGAvHp+wQkR6nGH4AA")
+    center top / cover no-repeat;
+}
+.hero-photo-wrap #hero-photo {
+  position: absolute;
+  inset: -6% 0 0 0;
+  width: 100%;
+  height: 112%;
+  object-fit: cover;
+  object-position: center top;
+  will-change: transform;
+}
+
+/* Layer 1 — fluid reveal canvas (fades in once GL ready) */
+#hero-gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transform-origin: center center;
+  transition: opacity 0.7s ease;
+}
+
+/* Layer 2 — oversized ghost word (depth) */
+.hero-ghost {
+  position: absolute;
+  z-index: 2;
+  left: -2vw;
+  bottom: 7vh;
+  font-family: var(--font-grotesk);
+  font-weight: 700;
+  font-size: 34vw;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(240, 236, 228, 0.16);
+  pointer-events: none;
+  user-select: none;
+  will-change: transform;
+}
+.hero-ghost .ghost-dot {
+  -webkit-text-stroke: 0;
+  color: var(--color-terracotta);
+}
+
+/* Layer 3 — legibility scrim (above canvas, below text) */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(17, 17, 17, 0.5) 0%, rgba(17, 17, 17, 0.06) 40%, transparent 62%),
+    linear-gradient(to top, rgba(17, 17, 17, 0.5) 0%, rgba(17, 17, 17, 0.05) 46%, transparent 64%);
+}
+
+/* Scroll-driven deepen overlay (immersion on exit) */
+.hero-deepen {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #0a0a0a;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Layer 4 — foreground content */
+.hero-content {
+  position: absolute;
+  z-index: 4;
+  left: clamp(20px, 5vw, 96px);
+  bottom: clamp(48px, 12vh, 132px);
+  max-width: min(620px, 58vw);
+  color: #fff;
+  will-change: transform;
+}
+.hero-logo {
+  color: #fff;
+}
+.dline-mask {
+  display: block;
+  overflow: hidden;
+}
+.dline {
+  display: block;
+  will-change: transform;
+}
+/* Original brand logotype — Lausanne (font2), uppercase + tracked. */
+.hero-logo-name {
+  display: block;
+  font-family: font2;
+  font-weight: 500;
+  text-transform: uppercase;
+  font-size: clamp(44px, 7.6vw, 116px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.hero-logo-sub {
+  display: block;
+  font-family: font2;
+  text-transform: uppercase;
+  font-size: clamp(11px, 1.3vw, 15px);
+  letter-spacing: 0.42em;
+  margin-top: 18px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Social rail — left edge */
+.hero-social {
+  position: absolute;
+  z-index: 4;
+  left: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hero-social a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  transition: color 0.2s;
+}
+.hero-social a:hover {
+  color: #fff;
+}
+
+/* Scroll cue — bottom right */
+.scroll-hint {
+  position: absolute;
+  z-index: 4;
+  right: clamp(20px, 4vw, 56px);
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s;
+}
+.scroll-hint svg {
+  animation: heroScrollBob 2s ease-in-out infinite;
+}
+.scroll-hint:hover {
+  color: #fff;
+}
+@keyframes heroScrollBob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 1;
+  }
+}
+
+/* Custom cursor — outer translates (instant), inner scales (eased) */
+.hero-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  transform: translate(var(--x, 50vw), var(--y, 50vh));
+  will-change: transform;
+}
+.hero-cursor-dot {
+  position: relative;
+  display: block;
+  width: 38px;
+  height: 38px;
+  margin: -19px 0 0 -19px;
+  border: 1.5px solid var(--color-terracotta);
+  border-radius: 50%;
+  box-shadow: 0 0 14px rgba(192, 101, 74, 0.45);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.3s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease;
+}
+.hero-cursor-dot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: var(--color-terracotta);
+  border-radius: 50%;
+}
+.hero-cursor.is-active .hero-cursor-dot {
+  opacity: 1;
+  transform: scale(1);
+}
+.hero-cursor.is-hover .hero-cursor-dot {
+  transform: scale(1.7);
+  background: rgba(192, 101, 74, 0.16);
+}
+
+/* Scroll-reveal helper (for body sections) */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── Responsive ── */
+@media (max-width: 767px) {
+  .hero-photo-wrap {
+    background-image: url("data:image/webp;base64,UklGRtIAAABXRUJQVlA4IMYAAABwBQCdASoWABwAPu1qqk8ppiOiMBgIATAdiUATpmHUt+F+GNAdqxYuDmC9/tKXJAaEZgrgAP6WJJeJ34LPzur9zaI8RhUsrbIjMvfdJqb9ezVy+6xHO4OA2AvAXzJgQorl3hwRcJMav2rXCFEWejHup/7MG9dLTYgwQxFcucXFfk8MyKn6sn2as2G6DOXVfeWkrq31SDGOCElLARKUg1+cbw8cFZFUMisH6rqUzxOSGR0hfeDg28HfrA6ZmzxfjJA2QNUYAAA=");
+  }
+  .hero-scrim {
+    background: linear-gradient(
+      to top,
+      rgba(17, 17, 17, 0.8) 0%,
+      rgba(17, 17, 17, 0.28) 40%,
+      transparent 66%
+    );
+  }
+  .hero-content {
+    left: 0;
+    right: 0;
+    bottom: clamp(72px, 16vh, 128px);
+    max-width: none;
+    padding: 0 22px;
+    text-align: center;
+  }
+  .hero-social {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 22px;
+    transform: none;
+    flex-direction: row;
+    justify-content: center;
+    gap: 24px;
+  }
+  .hero-social a {
+    gap: 0;
+    font-size: 0; /* icons only */
+  }
+  .scroll-hint {
+    display: none;
+  }
+  .hero-ghost {
+    bottom: auto;
+    top: 11vh;
+    font-size: 46vw;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint svg {
+    animation: none;
+  }
+}
+@media (hover: none), (pointer: coarse) {
+  .hero-cursor {
+    display: none;
+  }
+  .hero-fluid {
+    cursor: auto;
+  }
+}
+
+/* ════════════════  HERO — fluid + logo-mask, one scroll sequence  ═════════════
+   Load: only Dayana's centred portrait + the WebGL fluid. On scroll the masked
+   "DB" rises in from below, docks at header centre, and the scene deepens to ink
+   — a seamless bridge into the dark contact form below. */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  background: #0a0a0a;
+  overflow: hidden;
+  isolation: isolate;
+  --hero-bw: url("/hero/hero-mask-rev.webp");
+  --hero-focus: 50% 26%;
+}
+.hero-pin {
+  position: relative;
+  height: 100svh;
+  width: 100%;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+/* Fluid stage — centred portrait (LCP + non-GL fallback) under the GL canvas */
+.hero-stage-fluid {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  will-change: transform;
+}
+/* Soft premium vignette for the load state */
+.hero-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 38%, transparent 42%, rgba(10, 10, 10, 0.5) 100%),
+    linear-gradient(to top, rgba(10, 10, 10, 0.55) 0%, transparent 34%);
+}
+/* Logo mask — Dayana's B&W portrait shows through the "DB" letterforms */
+.hero-mark {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-grotesk);
+  font-weight: 700;
+  font-size: min(58vh, 46vw);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: var(--hero-bw) var(--hero-focus) / cover no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .hero-mark {
+    background: none;
+    color: var(--color-linen);
+    -webkit-text-fill-color: var(--color-linen);
+  }
+}
+/* Phones: widen the mask so the DB fills the frame (vw caps it otherwise). */
+@media (max-width: 767px) {
+  .hero-mark {
+    font-size: min(50vh, 86vw);
+  }
+}
+/* Docked header mark (crossfades in as the logo reaches the top) */
+.hero-dock {
+  position: fixed;
+  z-index: 40;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-grotesk);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.hero-dock-dot {
+  color: var(--color-terracotta);
+}
+.hero .scroll-hint {
+  z-index: 7;
 }
 
 html.lenis,

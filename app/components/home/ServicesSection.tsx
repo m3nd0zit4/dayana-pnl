@@ -20,11 +20,13 @@ gsap.registerPlugin(ScrollTrigger);
 type PlanCardProps = {
   plan: Plan;
   variant?: "light" | "dark";
+  userCountry?: string | null;
 };
 
-const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
+const PlanCard = ({ plan, variant = "light", userCountry }: PlanCardProps) => {
   const isDark = Boolean(variant === "dark" || plan.highlight);
   const isCourseWhatsAppOnly = plan.kind === "course";
+  const isColombia = userCountry === "CO";
   const listPriceRef = useRef<HTMLSpanElement>(null);
   const base = isDark
     ? "bg-black text-white border-black"
@@ -32,6 +34,10 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
 
   const therapy = plan.kind === "therapy" ? plan.therapyPresentation : null;
   const savingsUsd = getTherapySavingsUsd(plan);
+  const savingsCop =
+    plan.listAmountCop != null && plan.amountCop != null
+      ? plan.listAmountCop - plan.amountCop
+      : null;
   const showTherapyPromo =
     therapy != null &&
     plan.listAmountUsd != null &&
@@ -79,7 +85,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
 
   return (
     <div
-      className={`sv-card border rounded-2xl p-6 flex flex-col justify-between h-full ${base} transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl`}
+      className={`sv-card border rounded-2xl p-6 flex flex-col justify-between h-full ${base} transition-[transform,box-shadow,border-color] duration-300 ease-out will-change-transform hover:-translate-y-1.5 hover:border-terracotta hover:shadow-[0_28px_64px_-22px_rgba(0,0,0,0.4)]`}
     >
       <div>
         {plan.tag && (
@@ -96,7 +102,58 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
 
         {therapy ? (
           <div className="mt-5">
-            {showTherapyPromo ? (
+            {isColombia ? (
+              /* ── Colombia: COP primary ── */
+              <div className="space-y-1">
+                {showTherapyPromo && plan.listAmountCop != null ? (
+                  <>
+                    <div
+                      className={`font-[font2] text-[14px] font-bold uppercase tracking-[0.2em] ${
+                        isDark ? "text-white" : "text-black/80"
+                      }`}
+                    >
+                      Valor real
+                    </div>
+                    <span
+                      ref={listPriceRef}
+                      className="font-[font1] inline-block text-3xl lg:text-4xl font-semibold leading-tight line-through decoration-2 decoration-from-font text-[#FF0000] decoration-[#FF0000]/75"
+                    >
+                      {formatCop(plan.listAmountCop)} COP
+                    </span>
+                    <div
+                      className={`font-[font2] text-[14px] uppercase font-bold tracking-[0.25em] pt-3 ${
+                        isDark ? "text-blush" : "text-black/80"
+                      }`}
+                    >
+                      Promoción especial
+                    </div>
+                  </>
+                ) : null}
+                {plan.amountCop != null ? (
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="font-[font1] text-4xl lg:text-[2.75rem] leading-none tracking-tight">
+                      {formatCop(plan.amountCop)}
+                    </span>
+                    <span className="font-[font1] text-sm">COP</span>
+                  </div>
+                ) : null}
+                <div
+                  className={`font-[font1] text-[11px] ${
+                    isDark ? "text-white/50" : "text-black/45"
+                  }`}
+                >
+                  ≈ {formatUsd(plan.amountUsd)} USD
+                </div>
+                {showTherapyPromo && savingsCop != null ? (
+                  <p
+                    className={`font-[font1] text-[16px] font-medium tracking-wide pt-2.5 ${savingsClass}`}
+                  >
+                    Ahorras {formatCop(savingsCop)} COP
+                  </p>
+                ) : null}
+              </div>
+            ) : showTherapyPromo ? (
+              /* ── International: USD promo ── */
               <div className="space-y-1">
                 <div
                   className={`font-[font2] text-[14px] font-bold uppercase tracking-[0.2em] ${
@@ -107,11 +164,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
                 </div>
                 <span
                   ref={listPriceRef}
-                  className={`font-[font1] inline-block text-3xl lg:text-4xl font-semibold leading-tight line-through decoration-2 decoration-from-font ${
-                    isDark
-                      ? "text-[#FF0000] decoration-[#FF0000]/75"
-                      : "text-[#FF0000] decoration-[#FF0000]/75"
-                  }`}
+                  className="font-[font1] inline-block text-3xl lg:text-4xl font-semibold leading-tight line-through decoration-2 decoration-from-font text-[#FF0000] decoration-[#FF0000]/75"
                 >
                   {formatUsd(plan.listAmountUsd!)} USD
                 </span>
@@ -126,17 +179,8 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
                   <span className="font-[font1] text-4xl lg:text-[2.75rem] leading-none tracking-tight">
                     {formatUsd(plan.amountUsd)}
                   </span>
-                  <span className="font-[font1] text-sm ">USD</span>
+                  <span className="font-[font1] text-sm">USD</span>
                 </div>
-                {plan.amountCop != null && (
-                  <div
-                    className={`font-[font1] text-[11px] ${
-                      isDark ? "text-white/62" : "text-black/58"
-                    }`}
-                  >
-                    {formatCop(plan.amountCop)} COP aprox.
-                  </div>
-                )}
                 <p
                   className={`font-[font1] text-[16px] font-medium tracking-wide pt-2.5 ${savingsClass}`}
                 >
@@ -144,23 +188,13 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
                 </p>
               </div>
             ) : (
-              <>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-[font1] text-4xl lg:text-5xl leading-none">
-                    {formatUsd(plan.amountUsd)}
-                  </span>
-                  <span className="font-[font1] text-xs opacity-60">USD</span>
-                </div>
-                {plan.amountCop != null && (
-                  <div
-                    className={`font-[font1] text-[11px] mt-1 ${
-                      isDark ? "text-white/62" : "text-black/58"
-                    }`}
-                  >
-                    {formatCop(plan.amountCop)} COP aprox.
-                  </div>
-                )}
-              </>
+              /* ── International: USD simple ── */
+              <div className="flex items-baseline gap-2">
+                <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                  {formatUsd(plan.amountUsd)}
+                </span>
+                <span className="font-[font1] text-xs opacity-60">USD</span>
+              </div>
             )}
 
             <p className="font-[font1] text-[15px] font-medium leading-snug mt-6">
@@ -185,19 +219,35 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
         ) : (
           <>
             {!isCourseWhatsAppOnly && (
-              <>
-                <div className="mt-5 flex items-baseline gap-2">
-                  <span className="font-[font1] text-4xl lg:text-5xl leading-none">
-                    {formatUsd(plan.amountUsd)}
-                  </span>
-                  <span className="font-[font1] text-xs opacity-60">USD</span>
-                </div>
-                {plan.unitPrice && (
-                  <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
-                    {plan.unitPrice}
-                  </div>
+              <div className="mt-5">
+                {isColombia && plan.amountCop != null ? (
+                  <>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                        {formatCop(plan.amountCop)}
+                      </span>
+                      <span className="font-[font1] text-xs opacity-60">COP</span>
+                    </div>
+                    <div className={`font-[font1] text-[11px] mt-0.5 ${isDark ? "text-white/50" : "text-black/45"}`}>
+                      ≈ {formatUsd(plan.amountUsd)} USD
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-[font1] text-4xl lg:text-5xl leading-none">
+                        {formatUsd(plan.amountUsd)}
+                      </span>
+                      <span className="font-[font1] text-xs opacity-60">USD</span>
+                    </div>
+                    {plan.unitPrice && (
+                      <div className="font-[font1] text-[11px] opacity-60 mt-0.5">
+                        {plan.unitPrice}
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
+              </div>
             )}
             {isCourseWhatsAppOnly && (
               <p
@@ -234,7 +284,7 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
           />
         </div>
       ) : (
-        <PlanCheckoutButtons plan={plan} isDark={isDark} />
+        <PlanCheckoutButtons plan={plan} isDark={isDark} userCountry={userCountry} />
       )}
     </div>
   );
@@ -243,39 +293,57 @@ const PlanCard = ({ plan, variant = "light" }: PlanCardProps) => {
 type ServicesSectionProps = {
   therapyPlans: Plan[];
   coursePlan: Plan | null;
+  userCountry?: string | null;
 };
 
-const ServicesSection = ({ therapyPlans, coursePlan }: ServicesSectionProps) => {
+const ServicesSection = ({ therapyPlans, coursePlan, userCountry }: ServicesSectionProps) => {
   const rootRef = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
-  useStackingSection(rootRef, innerRef, { tilt: 4 });
+  useStackingSection(rootRef, innerRef, { tilt: 4, isLast: true });
 
   useGSAP(
     () => {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
       gsap.utils.toArray<HTMLElement>(".sv-reveal").forEach((el) => {
         gsap.from(el, {
-          y: 50,
+          y: 56,
           opacity: 0,
-          duration: 0.9,
-          ease: "power3.out",
+          duration: 1,
+          ease: "power4.out",
           scrollTrigger: { trigger: el, start: "top 88%" },
         });
       });
 
       gsap.utils.toArray<HTMLElement>(".sv-card").forEach((el, i) => {
-        const fromSide = i % 2 === 0 ? -60 : 60;
+        const fromSide = i % 2 === 0 ? -58 : 58;
         gsap.from(el, {
           x: fromSide,
-          y: 40,
+          y: 54,
+          scale: 0.92,
           rotation: fromSide > 0 ? 2.5 : -2.5,
           opacity: 0,
-          duration: 0.9,
-          delay: (i % 3) * 0.08,
+          duration: 1,
+          delay: (i % 3) * 0.09,
           ease: "power3.out",
-          scrollTrigger: { trigger: el, start: "top 90%" },
+          scrollTrigger: { trigger: el, start: "top 88%" },
         });
       });
+
+      // Heading parallax — the giant title drifts up slower than the scroll for depth.
+      if (!reduce) {
+        gsap.to(".sv-head", {
+          yPercent: -14,
+          ease: "none",
+          scrollTrigger: {
+            trigger: rootRef.current,
+            start: "top bottom",
+            end: "top top",
+            scrub: true,
+          },
+        });
+      }
     },
     { scope: rootRef }
   );
@@ -285,7 +353,7 @@ const ServicesSection = ({ therapyPlans, coursePlan }: ServicesSectionProps) => 
       ref={rootRef}
       id="servicios"
       data-nav-color="black"
-      className="bg-[#faf7f2] text-black scroll-mt-20 relative z-10"
+      className="bg-[#faf7f2] text-black scroll-mt-20 relative z-10 rounded-t-[1.75rem] lg:rounded-t-[3.5rem] shadow-[0_-34px_80px_-24px_rgba(0,0,0,0.55)]"
     >
       <div
         ref={innerRef}
@@ -294,7 +362,7 @@ const ServicesSection = ({ therapyPlans, coursePlan }: ServicesSectionProps) => 
       <div className="px-3 lg:px-8 pt-32 pb-16">
         <SplitReveal
           text={"Lo que\nhacemos"}
-          className="font-[font2] text-[16vw] lg:text-[12vw] uppercase leading-[0.85]"
+          className="sv-head font-[font2] text-[16vw] lg:text-[12vw] uppercase leading-[0.85]"
         />
         <div className="sv-reveal lg:pl-[40%] lg:mt-16 mt-8 p-3">
           <p className="font-[font1] lg:text-4xl text-lg leading-tight lg:leading-snug">
@@ -322,7 +390,7 @@ const ServicesSection = ({ therapyPlans, coursePlan }: ServicesSectionProps) => 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {therapyPlans.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} />
+            <PlanCard key={plan.id} plan={plan} userCountry={userCountry} />
           ))}
         </div>
       </div>
@@ -365,7 +433,7 @@ const ServicesSection = ({ therapyPlans, coursePlan }: ServicesSectionProps) => 
               Espacio garantizado para cada participante.
             </p>
           </div>
-          {coursePlan && <PlanCard plan={coursePlan} variant="dark" />}
+          {coursePlan && <PlanCard plan={coursePlan} variant="dark" userCountry={userCountry} />}
         </div>
       </div>
       </div>

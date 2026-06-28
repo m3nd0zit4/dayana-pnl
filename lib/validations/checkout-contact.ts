@@ -1,24 +1,38 @@
 import { z } from "zod";
+import { type CountryCode } from "libphonenumber-js";
+import { normalizePhoneWithCountry } from "@/lib/phone";
 
-export const checkoutContactFieldsSchema = z.object({
-  contactId: z.string().trim().min(1).optional(),
-  phone: z.string().trim().min(1, "El teléfono es obligatorio."),
-  phoneCountry: z
-    .string()
-    .trim()
-    .length(2, "Selecciona un país.")
-    .optional()
-    .default("CO"),
-  firstName: z.string().trim().max(120).optional(),
-  lastName: z.string().trim().max(120).optional(),
-  email: z
-    .string()
-    .trim()
-    .min(1, "El correo es obligatorio.")
-    .email("Introduce un correo válido.")
-    .max(200),
-  consentData: z.literal(true),
-});
+export const checkoutContactFieldsSchema = z
+  .object({
+    contactId: z.string().trim().min(1).optional(),
+    phone: z.string().trim().min(1, "El teléfono es obligatorio."),
+    phoneCountry: z
+      .string()
+      .trim()
+      .length(2, "Selecciona un país.")
+      .optional()
+      .default("CO"),
+    firstName: z.string().trim().max(120).optional(),
+    lastName: z.string().trim().max(120).optional(),
+    email: z
+      .string()
+      .trim()
+      .min(1, "El correo es obligatorio.")
+      .email("Introduce un correo válido.")
+      .max(200),
+    consentData: z.literal(true),
+  })
+  .superRefine((data, ctx) => {
+    const country = (data.phoneCountry ?? "CO") as CountryCode;
+    const normalized = normalizePhoneWithCountry(data.phone, country);
+    if (!normalized) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["phone"],
+        message: "Por favor ingresa un número válido.",
+      });
+    }
+  });
 
 export type CheckoutContactFields = z.infer<typeof checkoutContactFieldsSchema>;
 
@@ -50,7 +64,11 @@ export const parseCheckoutContactFields = (
     };
   }
   if (path === "phone") {
-    return { ok: false, message: issue.message, code: "MISSING_PHONE" };
+    const code =
+      issue.message === "El teléfono es obligatorio."
+        ? "MISSING_PHONE"
+        : "INVALID_PHONE";
+    return { ok: false, message: issue.message, code };
   }
   if (path === "consentData") {
     return {
@@ -71,5 +89,6 @@ export type CheckoutContactFieldErrorCode =
   | "MISSING_EMAIL"
   | "INVALID_EMAIL"
   | "MISSING_PHONE"
+  | "INVALID_PHONE"
   | "CONSENT_REQUIRED"
   | "INVALID_CONTACT";
