@@ -41,7 +41,7 @@ flowchart LR
   Active --> Therapy[Terapias_y_sesiones]
 ```
 
-1. **Web pública** — El cliente elige un plan en `#servicios`. Antes de PayPal o Mercado Pago debe indicar **teléfono** (obligatorio) y aceptar el tratamiento de datos; el nombre y correo son opcionales.
+1. **Web pública** — El cliente elige un plan en `/servicios`. Antes de PayPal o Mercado Pago debe indicar **teléfono** (obligatorio) y aceptar el tratamiento de datos; el nombre y correo son opcionales.
 2. **Vinculación automática** — El servidor hace upsert del contacto por teléfono E.164 (si ya existe, se reutiliza; si no, se crea). El enrollment y el pago quedan ligados a ese contacto desde el inicio.
 3. **Contactos** (`/admin/contacts`) — Aparece el contacto con teléfono real. Ábrelo y revisa pestañas **Resumen**, **Servicios**, **Pagos**.
 4. **Servicios** (`/admin/services`) — Verifica el enrollment (`PENDING_PAYMENT` → `ACTIVE` tras pago). Pagos legacy sin identificar: filtro **Sin identificar** o aviso en el dashboard.

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
+import { invalidateCached } from "./hooks/useReferenceData";
 
 type ProductPrice = {
   currency: string;
@@ -107,6 +108,8 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const save = async () => {
     if (!canManageTeam) return;
 
+    // Ambas monedas viajan en un solo guardado; amountUsd vacío se omite
+    // (PATCH no lo toca) y amountCop vacío viaja null (borra el precio COP).
     const payload = {
       ...(creating ? {} : { id: editing!.id }),
       kind: form.kind,
@@ -115,15 +118,10 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       sessionsCount: form.sessionsCount ? Number(form.sessionsCount) : null,
       description: form.description,
       isActive: form.isActive,
-      ...(view === "usd"
-        ? {
-            amountUsd: Number(form.amountUsd),
-            listAmountUsd: form.listAmountUsd ? Number(form.listAmountUsd) : null,
-          }
-        : {
-            amountCop: copForm.amountCop ? Number(copForm.amountCop) : null,
-            listAmountCop: copForm.listAmountCop ? Number(copForm.listAmountCop) : null,
-          }),
+      ...(form.amountUsd !== "" ? { amountUsd: Number(form.amountUsd) } : {}),
+      listAmountUsd: form.listAmountUsd ? Number(form.listAmountUsd) : null,
+      amountCop: copForm.amountCop ? Number(copForm.amountCop) : null,
+      listAmountCop: copForm.listAmountCop ? Number(copForm.listAmountCop) : null,
     };
 
     const res = await fetch("/api/admin/products", {
@@ -136,6 +134,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       toast(creating ? "Producto creado" : "Producto actualizado");
       setEditing(null);
       setCreating(false);
+      invalidateCached("products");
       load();
     } else {
       const d = (await res.json()) as { error?: string };
@@ -156,6 +155,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
         });
         if (res.ok) {
           toast("Producto eliminado o desactivado");
+          invalidateCached("products");
           load();
         } else toast("No se pudo eliminar", "error");
       },
@@ -171,8 +171,8 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           <div>
             <h1 className="crm-section-title text-xl">Productos</h1>
             <p className="crm-section-subtitle mt-1 max-w-xl">
-              USD e Internacional (PayPal) · COP e Colombia (Mercado Pago). Los precios
-              en cada moneda se editan de forma independiente.
+              USD e Internacional (PayPal) · COP e Colombia (Mercado Pago). Ambos
+              precios se editan y guardan juntos.
             </p>
           </div>
           {canManageTeam && !preview && (
@@ -263,65 +263,63 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
               </div>
             </div>
 
-            {/* Price fields — tab-dependent */}
+            {/* Price fields — both currencies in one save */}
             <div className="border-t border-[var(--crm-border)] pt-4">
               <p className="text-[10px] uppercase tracking-widest text-[var(--crm-muted)] mb-3">
-                {view === "usd"
-                  ? "Precio Internacional — USD (PayPal)"
-                  : "Precio Colombia — COP (Mercado Pago)"}
+                Precio Internacional — USD (PayPal)
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
-                {view === "usd" ? (
-                  <>
-                    <div>
-                      <label className="crm-label">Precio USD</label>
-                      <input
-                        type="number"
-                        className="crm-input"
-                        value={form.amountUsd}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, amountUsd: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="crm-label">Precio lista USD (opcional)</label>
-                      <input
-                        type="number"
-                        className="crm-input"
-                        value={form.listAmountUsd}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
-                        }
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <label className="crm-label">Precio COP</label>
-                      <input
-                        type="number"
-                        className="crm-input"
-                        value={copForm.amountCop}
-                        onChange={(e) =>
-                          setCopForm((f) => ({ ...f, amountCop: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label className="crm-label">Precio lista COP (opcional)</label>
-                      <input
-                        type="number"
-                        className="crm-input"
-                        value={copForm.listAmountCop}
-                        onChange={(e) =>
-                          setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
-                        }
-                      />
-                    </div>
-                  </>
-                )}
+                <div>
+                  <label className="crm-label">Precio USD</label>
+                  <input
+                    type="number"
+                    className="crm-input"
+                    value={form.amountUsd}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, amountUsd: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="crm-label">Precio lista USD (opcional)</label>
+                  <input
+                    type="number"
+                    className="crm-input"
+                    value={form.listAmountUsd}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="border-t border-[var(--crm-border)] pt-4">
+              <p className="text-[10px] uppercase tracking-widest text-[var(--crm-muted)] mb-3">
+                Precio Colombia — COP (Mercado Pago)
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="crm-label">Precio COP</label>
+                  <input
+                    type="number"
+                    className="crm-input"
+                    value={copForm.amountCop}
+                    onChange={(e) =>
+                      setCopForm((f) => ({ ...f, amountCop: e.target.value }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="crm-label">Precio lista COP (opcional)</label>
+                  <input
+                    type="number"
+                    className="crm-input"
+                    value={copForm.listAmountCop}
+                    onChange={(e) =>
+                      setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
+                    }
+                  />
+                </div>
               </div>
             </div>
 

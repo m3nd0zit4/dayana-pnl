@@ -18,8 +18,10 @@ const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
   const displayName = staff?.displayName ?? "Vista previa";
   const role: StaffRole | "PREVIEW" = staff?.role ?? "PREVIEW";
 
+  const aiEnabled = Boolean(process.env.GEMINI_API_KEY?.trim());
+
   return (
-    <CrmProvider role={role} preview={preview}>
+    <CrmProvider role={role} preview={preview} aiEnabled={aiEnabled}>
       <CrmShell displayName={displayName} role={role} preview={preview}>
         {children}
       </CrmShell>

@@ -114,9 +114,9 @@ const socials: SocialItem[] = [
 ];
 
 const quickLinks = [
-  { label: "Testimonios", hash: "#testimonios" },
-  { label: "Servicios", hash: "#servicios" },
-  { label: "Contacto", hash: "#contacto" },
+  { label: "Testimonios", href: "#testimonios" },
+  { label: "Servicios", href: "/servicios" },
+  { label: "Contacto", href: "#contacto" },
 ];
 
 const Footer = () => {
@@ -246,9 +246,9 @@ const Footer = () => {
             </div>
             <ul className="space-y-3">
               {quickLinks.map((l) => (
-                <li key={l.hash}>
+                <li key={l.label}>
                   <a
-                    href={resolveHref(l.hash)}
+                    href={l.href.startsWith("#") ? resolveHref(l.href) : l.href}
                     className="group inline-flex items-center gap-2 font-[font1] text-lg text-white/80 transition-colors hover:text-linen"
                   >
                     <span className="transition-transform duration-300 group-hover:translate-x-1">{l.label}</span>

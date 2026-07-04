@@ -144,7 +144,7 @@ const ContactNotebookPanel = ({
   const patchPage = async (
     pageId: string,
     patch: Record<string, unknown>
-  ): Promise<NotebookPageDetail | null> => {
+  ): Promise<boolean> => {
     const res = await fetch(
       `/api/admin/contacts/${contactId}/notebook/pages/${pageId}`,
       {
@@ -153,24 +153,17 @@ const ContactNotebookPanel = ({
         body: JSON.stringify(patch),
       }
     );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { page: NotebookPageDetail };
-    return data.page;
+    return res.ok;
   };
 
+  // Deliberately does not touch `page` state: echoing the saved scene back
+  // into React would re-render the editor mid-drawing.
   const handleSaveCanvas = async (pageId: string, canvasData: unknown) => {
     const isActive = savePageIdRef.current === pageId;
     if (isActive) setSaveStatus("saving");
-    const updated = await patchPage(pageId, { canvasData });
-    if (!updated) {
-      if (isActive) setSaveStatus("error");
-      return false;
-    }
-    if (isActive) {
-      setPage(updated);
-      setSaveStatus("saved");
-    }
-    return true;
+    const ok = await patchPage(pageId, { canvasData });
+    if (isActive) setSaveStatus(ok ? "saved" : "error");
+    return ok;
   };
 
   const handlePreview = async (pageId: string, blob: Blob) => {
@@ -178,15 +171,10 @@ const ContactNotebookPanel = ({
     if (!savePageIdRef.current || savePageIdRef.current !== pageId) return;
     const form = new FormData();
     form.append("file", blob, "preview.png");
-    const res = await fetch(
+    await fetch(
       `/api/admin/contacts/${contactId}/notebook/pages/${pageId}/preview`,
       { method: "POST", body: form }
     );
-    if (!res.ok) return;
-    const data = (await res.json()) as { page: NotebookPageDetail };
-    if (savePageIdRef.current === data.page.id) {
-      setPage(data.page);
-    }
   };
 
   const handleBackgroundChange = (background: NotebookPageBackground) => {
@@ -206,8 +194,8 @@ const ContactNotebookPanel = ({
 
   const blobWarnMessage =
     process.env.NODE_ENV === "production"
-      ? "Conecta Vercel Blob Storage al proyecto en el dashboard de Vercel para miniaturas."
-      : "Para miniaturas en local, conecta Vercel Blob o ejecuta bun run env:pull.";
+      ? "Conecta Vercel Blob Storage al proyecto en el dashboard de Vercel para guardar los dibujos."
+      : "Para guardar dibujos en Vercel Blob en local, conéctalo o ejecuta bun run env:pull.";
 
   if (loading) {
     return (

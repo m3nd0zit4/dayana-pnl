@@ -20,11 +20,16 @@ type Props = {
   values: ContactFormValues;
   onChange: (patch: Partial<ContactFormValues>) => void;
   mode: "create" | "edit";
+  /** Campos rellenados por IA — se resaltan hasta que el staff los edite. */
+  aiFilled?: ReadonlySet<string>;
 };
 
-const ContactFormFields = ({ values, onChange, mode }: Props) => {
+const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
   const countryIso = values.countryIso || values.phoneCountry || "CO";
   const country = getCountryByIso(countryIso);
+
+  const aiCls = (field: keyof ContactFormValues) =>
+    aiFilled?.has(field) ? " crm-input-ai" : "";
 
   const applyCountry = (iso2: string) => {
     if (!iso2) return;
@@ -82,7 +87,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
               <label className="crm-label" htmlFor="cf-phone">
                 Teléfono WhatsApp *
               </label>
-              <div className="crm-phone-field">
+              <div className={`crm-phone-field${aiCls("phone")}`}>
                 <span className="crm-phone-prefix" aria-hidden>
                   {country?.dialCode ?? "+57"}
                 </span>
@@ -137,7 +142,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
           </label>
           <input
             id="cf-fn"
-            className="crm-input"
+            className={`crm-input${aiCls("firstName")}`}
             required
             value={values.firstName}
             onChange={(e) => onChange({ firstName: e.target.value })}
@@ -149,7 +154,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
           </label>
           <input
             id="cf-ln"
-            className="crm-input"
+            className={`crm-input${aiCls("lastName")}`}
             value={values.lastName}
             onChange={(e) => onChange({ lastName: e.target.value })}
           />
@@ -160,7 +165,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
           </label>
           <input
             id="cf-dn"
-            className="crm-input"
+            className={`crm-input${aiCls("displayName")}`}
             placeholder="Opcional · si vacío se arma con nombre + apellido"
             value={values.displayName}
             onChange={(e) => onChange({ displayName: e.target.value })}
@@ -173,7 +178,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
           <input
             id="cf-email"
             type="email"
-            className="crm-input"
+            className={`crm-input${aiCls("email")}`}
             value={values.email}
             onChange={(e) => onChange({ email: e.target.value })}
           />
@@ -184,7 +189,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
           </label>
           <input
             id="cf-tt"
-            className="crm-input"
+            className={`crm-input${aiCls("tiktokHandle")}`}
             placeholder="@dayana"
             value={values.tiktokHandle}
             onChange={(e) => onChange({ tiktokHandle: e.target.value })}
@@ -240,7 +245,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
           </label>
           <input
             id="cf-sd"
-            className="crm-input"
+            className={`crm-input${aiCls("sourceDetail")}`}
             placeholder="Ej. taller mayo, anuncio TikTok…"
             value={values.sourceDetail}
             onChange={(e) => onChange({ sourceDetail: e.target.value })}
@@ -274,7 +279,7 @@ const ContactFormFields = ({ values, onChange, mode }: Props) => {
         </label>
         <textarea
           id="cf-notes"
-          className="crm-textarea"
+          className={`crm-textarea${aiCls("notes")}`}
           placeholder="Contexto clínico, preferencias, historial breve…"
           value={values.notes}
           onChange={(e) => onChange({ notes: e.target.value })}

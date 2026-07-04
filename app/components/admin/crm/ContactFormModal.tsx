@@ -1,23 +1,24 @@
 "use client";
 
 import { EnrollmentStatus } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   emptyContactForm,
   type ContactFormValues,
 } from "@/app/config/contact-form";
 import { productSelectOptions } from "@/lib/crm/form-select-options";
-import {
-  groupProductsByKind,
-  type ProductOption,
-} from "@/lib/crm/product-kind-labels";
-import { getCountryByIso } from "@/lib/countries";
+import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
+import { getCountryByIso, suggestTimezoneForCountry } from "@/lib/countries";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { getLocalPhonePlaceholder } from "@/lib/phone";
 import type { CountryCode } from "libphonenumber-js";
+import type { ExtractedContactFields } from "@/lib/ai/contact-extraction";
 import ContactFormFields from "./ContactFormFields";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
+import SmartPasteBox from "./SmartPasteBox";
+import { useCrm } from "./CrmProvider";
+import { useActiveProducts } from "./hooks/useReferenceData";
 
 type Step = "contact" | "service";
 
@@ -32,18 +33,77 @@ type Props = {
   onSaved: (result?: SavedResult) => void;
 };
 
+const DRAFT_KEY = "crm-contact-draft";
+const DRAFT_DEBOUNCE_MS = 400;
+
+const readDraft = (): ContactFormValues | null => {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ContactFormValues>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return { ...emptyContactForm(), ...parsed };
+  } catch {
+    return null;
+  }
+};
+
+const clearDraft = () => {
+  try {
+    sessionStorage.removeItem(DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
+};
+
 const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
+  const { aiEnabled } = useCrm();
   const [step, setStep] = useState<Step>("contact");
   const [values, setValues] = useState<ContactFormValues>(emptyContactForm);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [createdContactId, setCreatedContactId] = useState<string | null>(null);
-  const [products, setProducts] = useState<ProductOption[]>([]);
   const [productId, setProductId] = useState("");
   const [activateNow, setActivateNow] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [aiFilled, setAiFilled] = useState<ReadonlySet<string>>(new Set());
+  const [pendingPaste, setPendingPaste] = useState<string | null>(null);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const patch = (p: Partial<ContactFormValues>) =>
+  // Los productos solo se necesitan en el paso 2; la caché evita re-fetch
+  // en cada apertura del modal.
+  const { products } = useActiveProducts(open && step === "service");
+
+  // La edición manual de un campo retira su resaltado de "sugerido por IA".
+  const patch = (p: Partial<ContactFormValues>) => {
     setValues((v) => ({ ...v, ...p }));
+    setAiFilled((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set(prev);
+      for (const key of Object.keys(p)) next.delete(key);
+      return next.size === prev.size ? prev : next;
+    });
+  };
+
+  const applyAiFields = (fields: ExtractedContactFields) => {
+    const p: Partial<ContactFormValues> = {};
+    if (fields.firstName) p.firstName = fields.firstName;
+    if (fields.lastName) p.lastName = fields.lastName;
+    if (fields.email) p.email = fields.email;
+    if (fields.phone) p.phone = fields.phone;
+    if (fields.countryIso) {
+      p.countryIso = fields.countryIso;
+      p.phoneCountry = fields.countryIso;
+      p.timezone = suggestTimezoneForCountry(fields.countryIso);
+    }
+    if (fields.preferredLocale) p.preferredLocale = fields.preferredLocale;
+    if (fields.source) p.source = fields.source;
+    if (fields.sourceDetail) p.sourceDetail = fields.sourceDetail;
+    if (fields.notes) p.notes = fields.notes;
+
+    setValues((v) => ({ ...v, ...p }));
+    setAiFilled(new Set(Object.keys(p)));
+  };
 
   const reset = () => {
     setStep("contact");
@@ -52,7 +112,9 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
     setCreatedContactId(null);
     setProductId("");
     setActivateNow(false);
-    setProducts([]);
+    setDraftRestored(false);
+    setAiFilled(new Set());
+    setPendingPaste(null);
   };
 
   const handleClose = () => {
@@ -60,29 +122,51 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
     onClose();
   };
 
-  useEffect(() => {
-    if (!open) reset();
-  }, [open]);
+  // Transiciones open/close resueltas durante el render (sin efecto):
+  // al cerrar se limpia todo; al abrir se restaura el borrador si existe.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) {
+      reset();
+    } else {
+      const draft = readDraft();
+      if (draft) {
+        setValues(draft);
+        setDraftRestored(true);
+      }
+    }
+  }
+
+  // Producto por defecto al llegar la lista en el paso 2.
+  if (step === "service" && !productId) {
+    const first = groupProductsByKind(products)[0]?.items[0];
+    if (first) setProductId(first.id);
+  }
 
   useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    void (async () => {
-      const res = await fetch("/api/admin/products");
-      if (!res.ok || cancelled) return;
-      const data = (await res.json()) as {
-        products?: (ProductOption & { isActive: boolean })[];
-      };
-      if (cancelled) return;
-      const active = (data.products ?? []).filter((p) => p.isActive);
-      setProducts(active);
-      const first = groupProductsByKind(active)[0]?.items[0];
-      if (first) setProductId(first.id);
-    })();
+    if (!open || step !== "contact") return;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(() => {
+      try {
+        const isEmpty =
+          JSON.stringify(values) === JSON.stringify(emptyContactForm());
+        if (isEmpty) sessionStorage.removeItem(DRAFT_KEY);
+        else sessionStorage.setItem(DRAFT_KEY, JSON.stringify(values));
+      } catch {
+        /* storage lleno o bloqueado — el borrador es best-effort */
+      }
+    }, DRAFT_DEBOUNCE_MS);
     return () => {
-      cancelled = true;
+      if (draftTimer.current) clearTimeout(draftTimer.current);
     };
-  }, [open]);
+  }, [values, open, step]);
+
+  const discardDraft = () => {
+    clearDraft();
+    setValues(emptyContactForm());
+    setDraftRestored(false);
+  };
 
   const submitContact = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,11 +218,8 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
     }
     const data = (await res.json()) as { contact: { id: string } };
     setCreatedContactId(data.contact.id);
-
-    if (!productId) {
-      const first = groupProductsByKind(products)[0]?.items[0];
-      if (first) setProductId(first.id);
-    }
+    clearDraft();
+    setDraftRestored(false);
     setStep("service");
   };
 
@@ -198,8 +279,51 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
       large
     >
       {step === "contact" ? (
-        <form className="space-y-4" onSubmit={submitContact}>
-          <ContactFormFields values={values} onChange={patch} mode="create" />
+        <form
+          className="space-y-4"
+          onSubmit={submitContact}
+          onPaste={(e) => {
+            if (!aiEnabled) return;
+            const target = e.target as HTMLElement;
+            // Un pegado largo en cualquier campo ofrece el autocompletado.
+            if (target.closest("[data-smart-paste]")) return;
+            const pasted = e.clipboardData.getData("text");
+            if (pasted.trim().length > 120) setPendingPaste(pasted);
+          }}
+        >
+          {aiEnabled && (
+            <div data-smart-paste>
+              <SmartPasteBox
+                onExtracted={applyAiFields}
+                pendingText={pendingPaste}
+                onConsumePendingText={() => setPendingPaste(null)}
+              />
+            </div>
+          )}
+          {aiFilled.size > 0 && (
+            <p className="rounded-lg border border-purple-200 bg-purple-50/60 px-3 py-2 text-xs text-purple-900">
+              Campos sugeridos por IA resaltados — revísalos antes de crear el
+              contacto.
+            </p>
+          )}
+          {draftRestored && (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-linen)]/40 px-3 py-2 text-xs text-[var(--crm-muted)]">
+              <span>Borrador restaurado — seguiste donde ibas.</span>
+              <button
+                type="button"
+                className="crm-btn-ghost text-xs"
+                onClick={discardDraft}
+              >
+                Descartar
+              </button>
+            </div>
+          )}
+          <ContactFormFields
+            values={values}
+            onChange={patch}
+            mode="create"
+            aiFilled={aiFilled}
+          />
           {error && (
             <p className="text-sm text-[var(--crm-danger)]" role="alert">
               {error}

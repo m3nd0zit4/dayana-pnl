@@ -13,14 +13,6 @@ import {
 
 const prisma = new PrismaClient();
 
-const SESSIONS_BY_PLAN: Partial<Record<PlanId, number>> = {
-  "therapy-1": 1,
-  "therapy-3": 3,
-  "therapy-6": 6,
-  "therapy-12": 12,
-  "therapy-24": 24,
-};
-
 const planKindToProduct = (kind: "therapy" | "course", id: PlanId): ProductKind => {
   if (kind === "therapy") return ProductKind.THERAPY;
   if (id === "workshop-virtual") return ProductKind.WORKSHOP;
@@ -45,7 +37,7 @@ async function seedProducts() {
   for (const plan of Object.values(PLANS)) {
     const kind = planKindToProduct(plan.kind, plan.id);
     const sessionsCount =
-      plan.kind === "therapy" ? SESSIONS_BY_PLAN[plan.id as PlanId] ?? null : null;
+      plan.kind === "therapy" ? plan.sessionsCount ?? null : null;
 
     await prisma.product.upsert({
       where: { id: plan.id },

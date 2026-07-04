@@ -4,10 +4,17 @@ import { useState } from "react";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
 
+export type CreatedStaffMember = {
+  id: string;
+  displayName: string;
+  email: string;
+  role: string;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (member: CreatedStaffMember) => void;
 };
 
 const ROLES = [
@@ -44,10 +51,13 @@ const StaffFormModal = ({ open, onClose, onSaved }: Props) => {
       );
       return;
     }
+    const data = (await res.json().catch(() => ({}))) as {
+      staff?: CreatedStaffMember;
+    };
     setDisplayName("");
     setEmail("");
     setPassword("");
-    onSaved();
+    if (data.staff) onSaved(data.staff);
     onClose();
   };
 

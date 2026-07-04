@@ -315,6 +315,7 @@ model ContactNotebookPage {
   kind             NotebookPageKind       @default(CANVAS)
   background       NotebookPageBackground @default(BLANK)
   canvasData       Json?                  @map("canvas_data")
+  canvasUrl        String?                @map("canvas_url")
   bodyText         String?                @map("body_text") @db.Text
   attachmentUrl    String?                @map("attachment_url")
   attachmentMime   String?                @map("attachment_mime")

@@ -41,6 +41,8 @@ type CrmContextValue = {
   canWrite: boolean;
   canEditNotes: boolean;
   canManageTeam: boolean;
+  /** true cuando GEMINI_API_KEY está configurada — habilita el autocompletado con IA. */
+  aiEnabled: boolean;
   focusMode: boolean;
   setFocusMode: (active: boolean) => void;
   toast: {
@@ -82,10 +84,12 @@ const CrmProvider = ({
   children,
   role,
   preview,
+  aiEnabled = false,
 }: {
   children: ReactNode;
   role: StaffRole | "PREVIEW";
   preview: boolean;
+  aiEnabled?: boolean;
 }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
@@ -151,13 +155,14 @@ const CrmProvider = ({
       canWrite: preview ? false : canWriteCrm(staffRole),
       canEditNotes: preview ? false : canEditClinicalNotes(staffRole),
       canManageTeam: preview ? false : canManageTeam(staffRole),
+      aiEnabled: preview ? false : aiEnabled,
       focusMode,
       setFocusMode,
       toast,
       dismissToast,
       confirm,
     }),
-    [role, preview, staffRole, focusMode, toast, dismissToast, confirm]
+    [role, preview, staffRole, aiEnabled, focusMode, toast, dismissToast, confirm]
   );
 
   return (

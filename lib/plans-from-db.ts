@@ -37,6 +37,7 @@ export const productToPlan = (
     kind,
     title: product.title,
     sessions: product.sessionsLabel,
+    sessionsCount: product.sessionsCount ?? fallback?.sessionsCount,
     amountUsd,
     listAmountUsd,
     amountCop,

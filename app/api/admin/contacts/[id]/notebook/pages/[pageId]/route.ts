@@ -5,6 +5,7 @@ import { fireAuditLog } from "@/lib/crm/audit";
 import {
   deleteNotebookPage,
   getNotebookPage,
+  MAX_CANVAS_JSON_BYTES,
   updateNotebookPage,
 } from "@/lib/crm/contact-notebook";
 import { canEditClinicalNotes } from "@/lib/crm/staff";
@@ -34,7 +35,21 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx) {
   }
 
   const { id: contactId, pageId } = await ctx.params;
-  const raw = await req.json().catch(() => null);
+  const rawText = await req.text().catch(() => null);
+  // Reject oversized bodies before JSON.parse; 64 KB envelope allowance for
+  // the non-canvas fields around canvasData.
+  if (
+    rawText !== null &&
+    Buffer.byteLength(rawText, "utf8") > MAX_CANVAS_JSON_BYTES + 64 * 1024
+  ) {
+    return NextResponse.json({ error: "canvas_too_large" }, { status: 413 });
+  }
+  let raw: unknown = null;
+  try {
+    raw = rawText === null ? null : JSON.parse(rawText);
+  } catch {
+    raw = null;
+  }
   const parsed = updateNotebookPageSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });

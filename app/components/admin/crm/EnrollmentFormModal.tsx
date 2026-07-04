@@ -1,33 +1,27 @@
 "use client";
 
 import { EnrollmentStatus } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  contactSelectOptions,
   enrollmentStatusSelectOptions,
   productSelectOptions,
   workshopSelectOptions,
 } from "@/lib/crm/form-select-options";
-import {
-  groupProductsByKind,
-  type ProductOption,
-} from "@/lib/crm/product-kind-labels";
+import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
+import ContactPickerField from "./ContactPickerField";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
-
-type Workshop = { id: string; slug: string; title: string };
-type Contact = {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  phoneE164?: string;
-};
+import {
+  useActiveProducts,
+  useWorkshopEditions,
+} from "./hooks/useReferenceData";
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
   preselectedContactId?: string;
+  preselectedContactLabel?: string;
 };
 
 const EnrollmentFormModal = ({
@@ -35,10 +29,10 @@ const EnrollmentFormModal = ({
   onClose,
   onSaved,
   preselectedContactId,
+  preselectedContactLabel,
 }: Props) => {
-  const [products, setProducts] = useState<ProductOption[]>([]);
-  const [workshops, setWorkshops] = useState<Workshop[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const { products } = useActiveProducts(open);
+  const { workshops } = useWorkshopEditions(open);
   const [contactId, setContactId] = useState(preselectedContactId ?? "");
   const [productId, setProductId] = useState("");
   const [workshopEditionId, setWorkshopEditionId] = useState("");
@@ -47,35 +41,21 @@ const EnrollmentFormModal = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setContactId(preselectedContactId ?? "");
-    setError(null);
+  // Reset al abrir + producto por defecto al llegar la lista — ajuste de
+  // estado durante el render, sin efectos.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setContactId(preselectedContactId ?? "");
+      setError(null);
+    }
+  }
 
-    fetch("/api/admin/contacts/search?limit=200")
-      .then((r) => r.json())
-      .then((d: { contacts?: Contact[] }) => {
-        const list = d.contacts ?? [];
-        setContacts(list);
-        if (!preselectedContactId && list[0]) setContactId(list[0].id);
-      });
-
-    fetch("/api/admin/products")
-      .then((r) => r.json())
-      .then((d: { products: (ProductOption & { isActive: boolean })[] }) => {
-        const active = (d.products ?? []).filter((p) => p.isActive);
-        setProducts(active);
-        const groups = groupProductsByKind(active);
-        const first = groups[0]?.items[0];
-        if (first) setProductId(first.id);
-      });
-
-    fetch("/api/admin/workshops")
-      .then((r) => r.json())
-      .then((d: { editions: { id: string; slug: string; title: string }[] }) =>
-        setWorkshops(d.editions ?? [])
-      );
-  }, [open, preselectedContactId]);
+  if (open && !productId) {
+    const first = groupProductsByKind(products)[0]?.items[0];
+    if (first) setProductId(first.id);
+  }
 
   const selectedProduct = products.find((p) => p.id === productId);
   const showWorkshop = selectedProduct?.kind === "WORKSHOP";
@@ -115,14 +95,19 @@ const EnrollmentFormModal = ({
   return (
     <CrmModal title="Nuevo servicio (enrollment)" open={open} onClose={onClose} large>
       <form className="space-y-4" onSubmit={submit}>
-        <SearchableSelect
+        <ContactPickerField
           id="en-contact"
           label="Contacto *"
           value={contactId}
-          options={contactSelectOptions(contacts)}
-          onChange={setContactId}
-          placeholder="Seleccionar contacto…"
-          searchPlaceholder="Buscar por nombre o teléfono…"
+          onSelect={(c) => setContactId(c?.id ?? "")}
+          initialContact={
+            preselectedContactId
+              ? {
+                  id: preselectedContactId,
+                  label: preselectedContactLabel ?? "Contacto seleccionado",
+                }
+              : null
+          }
           required
         />
         <SearchableSelect

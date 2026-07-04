@@ -1,7 +1,6 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import CrmPageShell from "./CrmPageShell";
 import StaffFormModal from "./StaffFormModal";
@@ -21,12 +20,12 @@ type Props = {
 };
 
 const TeamPageClient = ({
-  team,
+  team: initialTeam,
   currentId,
   canManage,
   preview,
 }: Props) => {
-  const router = useRouter();
+  const [team, setTeam] = useState<Member[]>(initialTeam);
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
@@ -77,7 +76,7 @@ const TeamPageClient = ({
       <StaffFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={() => router.refresh()}
+        onSaved={(member) => setTeam((prev) => [...prev, member])}
       />
     </CrmPageShell>
   );

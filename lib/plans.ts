@@ -19,6 +19,8 @@ export type Plan = {
   kind: PlanKind;
   title: string;
   sessions: string;
+  /** Nº de sesiones del paquete (solo terapia). */
+  sessionsCount?: number;
   /** Precio promocional cobrado (checkout). */
   amountUsd: number;
   /** Referencia COP aprox. en UI — calculada con la tasa USD→COP del CRM. */
@@ -53,25 +55,27 @@ export const PLANS: Record<PlanId, Plan> = {
   "therapy-1": {
     id: "therapy-1",
     kind: "therapy",
-    title: "Terapia",
-    sessions: "1 Sesión Privada",
+    title: "Sesión Única",
+    sessions: "1 sesión",
+    sessionsCount: 1,
     amountUsd: 80,
     therapyPresentation: {
-      sessionsHeadline: "1 sesión Personalizada(1 a 1)",
+      sessionsHeadline: "1 sesión personalizada (1 a 1)",
     },
     features: [
       "1 hora por sesión",
-      "Modalidad: Seciones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
+      "Modalidad: Sesiones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
       "Reprogramación de 1 a 2 eventos",
     ],
     whatsappMessage:
-      "Hola Dayana, me interesa el paquete de 1 sesión de terapia PNL ($80 USD).",
+      "Hola Dayana, me interesa la Sesión Única de terapia PNL ($80 USD).",
   },
   "therapy-3": {
     id: "therapy-3",
     kind: "therapy",
-    title: "Terapia Basica",
-    sessions: "Paquete de 3 Sesiones",
+    title: "Primer Paso",
+    sessions: "3 sesiones",
+    sessionsCount: 3,
     amountUsd: 140,
     listAmountUsd: 240,
     therapyPresentation: {
@@ -79,21 +83,22 @@ export const PLANS: Record<PlanId, Plan> = {
     },
     features: [
       "1 hora por sesión",
-      "Modalidad: Seciones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
+      "Modalidad: Sesiones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
       "Reprogramación de 1 a 2 eventos por sesión",
       "Semana 1: se realizan dos sesiones (ejemplo: martes y jueves)",
       "Semana 2: se realiza la tercera sesión (Inicio de semana)",
       "Duración total: 1 semana y media",
     ],
     whatsappMessage:
-      "Hola Dayana, me interesa el paquete de 3 sesiones de terapia PNL ($140 USD).",
+      "Hola Dayana, me interesa el paquete Primer Paso (3 sesiones de terapia PNL, $140 USD).",
   },
-  
+
   "therapy-6": {
     id: "therapy-6",
     kind: "therapy",
-    title: "Terapia Inicio de Transformacion",
-    sessions: "Paquete de 6 Sesiones",
+    title: "Transformación",
+    sessions: "6 sesiones",
+    sessionsCount: 6,
     amountUsd: 280,
     listAmountUsd: 480,
     tag: "Más elegido",
@@ -103,20 +108,21 @@ export const PLANS: Record<PlanId, Plan> = {
     },
     features: [
       "1 hora por sesión",
-      "Modalidad: Seciones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
+      "Modalidad: Sesiones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
       "Reprogramación de 1 a 2 eventos por sesión",
       "Calendario: 2 sesiones por semana durante 3 semanas (6 terapias en total).",
       "Duración aproximada del paquete: 3 semanas.",
     ],
     whatsappMessage:
-      "Hola Dayana, me interesa el paquete de 6 sesiones de terapia PNL ($280 USD).",
+      "Hola Dayana, me interesa el paquete Transformación (6 sesiones de terapia PNL, $280 USD).",
   },
-  
+
   "therapy-12": {
     id: "therapy-12",
     kind: "therapy",
-    title: "Terapia Transformacion Avanzada",
-    sessions: "Paquete de 12 Sesiones",
+    title: "Evolución Profunda",
+    sessions: "12 sesiones",
+    sessionsCount: 12,
     amountUsd: 560,
     listAmountUsd: 960,
     therapyPresentation: {
@@ -124,19 +130,20 @@ export const PLANS: Record<PlanId, Plan> = {
     },
     features: [
       "1 hora por sesión",
-      "Modalidad: Seciones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
+      "Modalidad: Sesiones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
       "Reprogramación de 1 a 2 eventos por sesión",
       "Calendario: 2 sesiones por semana durante 6 semanas (12 terapias en total).",
       "Duración aproximada del proceso: 1 mes y 2 semanas.",
     ],
     whatsappMessage:
-      "Hola Dayana, me interesa el paquete de 12 sesiones de terapia PNL ($560 USD).",
+      "Hola Dayana, me interesa el paquete Evolución Profunda (12 sesiones de terapia PNL, $560 USD).",
   },
   "therapy-24": {
     id: "therapy-24",
     kind: "therapy",
-    title: "Terapia Transformacion Premium",
-    sessions: "Paquete de 24 Sesiones",
+    title: "Acompañamiento Total",
+    sessions: "24 sesiones",
+    sessionsCount: 24,
     amountUsd: 1120,
     listAmountUsd: 1920,
     therapyPresentation: {
@@ -144,13 +151,13 @@ export const PLANS: Record<PlanId, Plan> = {
     },
     features: [
       "1 hora por sesión",
-      "Modalidad: Seciones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
+      "Modalidad: Sesiones 1:1 en vivo por Google Meet (desde la comodidad de tu casa)",
       "Reprogramación de 1 a 2 eventos por sesión",
       "Calendario: 2 sesiones por semana durante 12 semanas (24 terapias en total).",
       "Duración aproximada del proceso: 2 meses y 2 semanas.",
     ],
     whatsappMessage:
-      "Hola Dayana, me interesa el paquete de 24 sesiones de terapia PNL ($1120 USD).",
+      "Hola Dayana, me interesa el paquete Acompañamiento Total (24 sesiones de terapia PNL, $1120 USD).",
   },
   "course-live": {
     id: "course-live",

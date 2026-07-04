@@ -6,6 +6,7 @@ import CrmModal from "./CrmModal";
 import ScheduleSlotEditor from "./ScheduleSlotEditor";
 import SearchableSelect from "./SearchableSelect";
 import StringListEditor from "./StringListEditor";
+import { invalidateCached } from "./hooks/useReferenceData";
 import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
 
@@ -198,6 +199,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setError("No se pudo guardar el taller.");
       return;
     }
+    invalidateCached("workshops");
     onSaved();
     onClose();
   };

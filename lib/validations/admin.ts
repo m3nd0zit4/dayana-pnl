@@ -50,7 +50,9 @@ export const createContactSchema = z.object({
     .enum([
       "WEB",
       "WHATSAPP_DIRECT",
+      "TIKTOK",
       "INSTAGRAM",
+      "YOUTUBE",
       "REFERRAL",
       "OTHER",
     ])

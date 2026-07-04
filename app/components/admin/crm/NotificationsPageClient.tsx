@@ -2,23 +2,12 @@
 
 import { Mail, Send } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { CampaignListItem } from "@/lib/crm/notification-campaigns";
 import CrmPageShell from "./CrmPageShell";
 import { useCrm } from "./CrmProvider";
 
-type CampaignRow = {
-  id: string;
-  name: string;
-  templateKey: string;
-  status: string;
-  totalTargets: number;
-  sentCount: number;
-  failedCount: number;
-  skippedCount: number;
-  createdAt: string;
-  workshopTitle: string | null;
-};
+type CampaignRow = CampaignListItem;
 
 type Props = {
   preview: boolean;
@@ -41,22 +30,37 @@ const campaignStatusLabel = (status: string) => {
 
 const NotificationsPageClient = ({
   preview,
-  campaigns,
+  campaigns: initialCampaigns,
   staffEmail,
 }: Props) => {
-  const router = useRouter();
   const { toast, dismissToast, canWrite } = useCrm();
+  const [campaigns, setCampaigns] = useState<CampaignRow[]>(initialCampaigns);
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
   const hasRunning = campaigns.some((c) => c.status === "RUNNING");
 
+  // Mientras hay campañas RUNNING se consulta un endpoint JSON pequeño en
+  // lugar de refrescar toda la página (router.refresh re-renderizaba todo el RSC).
   useEffect(() => {
     if (!hasRunning || preview) return;
-    const id = setInterval(() => router.refresh(), 5000);
-    return () => clearInterval(id);
-  }, [hasRunning, preview, router]);
+    let cancelled = false;
+    const id = setInterval(() => {
+      void fetch("/api/admin/notifications/campaigns")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { campaigns?: CampaignRow[] } | null) => {
+          if (!cancelled && d?.campaigns) setCampaigns(d.campaigns);
+        })
+        .catch(() => {
+          /* siguiente tick reintenta */
+        });
+    }, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [hasRunning, preview]);
 
   const sendPreview = async () => {
     if (!subject.trim() || !message.trim()) {
