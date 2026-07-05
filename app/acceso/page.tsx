@@ -18,9 +18,8 @@ export const metadata: Metadata = {
  */
 const Page = () => (
   <MemberAuthShell
-    eyebrow="Portal"
-    title="Bienvenida"
-    description="Entra con tu correo. Según tu cuenta, te llevamos a tus clases o al panel del equipo."
+    title="Entrar"
+    description="Un solo acceso: te llevamos a tus clases o al panel del equipo según tu cuenta."
   >
     <Suspense
       fallback={

@@ -2,57 +2,57 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 type MemberAuthShellProps = {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   children: ReactNode;
 };
 
-const MemberAuthShell = ({
-  eyebrow,
-  title,
-  description,
-  children,
-}: MemberAuthShellProps) => (
-  <main className="relative min-h-screen bg-black text-white overflow-hidden">
+/** Marco minimalista para las páginas de acceso: marca, título, contenido. */
+const MemberAuthShell = ({ title, description, children }: MemberAuthShellProps) => (
+  <main className="relative flex min-h-screen flex-col bg-black text-white">
     <div
       aria-hidden="true"
-      className="absolute inset-0 pointer-events-none opacity-80"
+      className="pointer-events-none absolute inset-0 opacity-60"
       style={{
-        background: [
-          "radial-gradient(60% 40% at 15% 10%, rgba(236,227,212,0.10), transparent 60%)",
-          "radial-gradient(50% 45% at 85% 90%, rgba(237,195,177,0.12), transparent 65%)",
-        ].join(","),
+        background:
+          "radial-gradient(55% 40% at 50% 0%, rgba(237,195,177,0.10), transparent 65%)",
       }}
     />
 
-    <section className="relative px-4 pt-28 lg:pt-36 pb-24 max-w-md mx-auto">
-      <Link
-        href="/"
-        className="inline-flex items-center gap-2 font-[font1] text-[13px] text-white/50 transition-colors hover:text-white"
-      >
-        <span aria-hidden>←</span>
-        Volver a dayanabeltran.com
-      </Link>
+    <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-16">
+      <div className="w-full max-w-[360px]">
+        <Link
+          href="/"
+          className="mx-auto block w-fit text-center font-[font2] uppercase leading-none transition-opacity hover:opacity-80"
+        >
+          <span className="block text-sm tracking-[0.16em] text-linen">
+            Dayana Beltrán
+          </span>
+          <span className="mt-1.5 block text-[9px] tracking-[0.5em] text-white/40">
+            PNL
+          </span>
+        </Link>
 
-      <div className="mt-10 mb-8">
-        <div className="font-[font2] uppercase text-xs tracking-[0.4em] text-linen/80 mb-4">
-          {eyebrow}
-        </div>
-        <h1 className="font-[font2] uppercase text-3xl lg:text-4xl leading-[0.95]">
+        <h1 className="mt-10 text-center font-[font2] uppercase text-lg tracking-[0.08em]">
           {title}
         </h1>
         {description ? (
-          <p className="mt-4 font-[font1] text-white/70 text-sm leading-relaxed">
+          <p className="mx-auto mt-2 max-w-[300px] text-center font-[font1] text-[13px] leading-relaxed text-white/50">
             {description}
           </p>
         ) : null}
-      </div>
 
-      <div className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 sm:p-8">
-        {children}
+        <div className="mt-8">{children}</div>
+
+        <Link
+          href="/"
+          className="mx-auto mt-10 block w-fit font-[font1] text-[12px] text-white/35 transition-colors hover:text-white/70"
+        >
+          ← Volver al inicio
+        </Link>
       </div>
-    </section>
+    </div>
   </main>
 );
 

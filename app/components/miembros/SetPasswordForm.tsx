@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 
 const inputClass =
-  "w-full rounded-lg border border-linen/20 bg-black/40 px-4 py-3 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-linen/50 focus:outline-none";
+  "w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/35 transition-colors focus:border-linen/60 focus:outline-none";
 
 const labelClass =
   "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.25em] text-white/50";
@@ -119,7 +119,7 @@ const SetPasswordForm = ({ token, email }: SetPasswordFormProps) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-full bg-linen py-3.5 font-[font2] uppercase text-xs tracking-[0.25em] text-black transition-colors hover:bg-white disabled:opacity-60"
+        className="w-full rounded-xl bg-linen py-3.5 font-[font2] uppercase text-xs tracking-[0.25em] text-black transition-colors hover:bg-white disabled:opacity-60"
       >
         {loading ? "Guardando…" : "Crear contraseña y entrar"}
       </button>
