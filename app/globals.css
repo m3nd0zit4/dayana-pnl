@@ -700,3 +700,63 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+/* --- Portal de miembros: cuerpo markdown de los módulos --- */
+.prose-portal h1,
+.prose-portal h2,
+.prose-portal h3 {
+  font-family: font2, sans-serif;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  margin: 2em 0 0.7em;
+}
+.prose-portal h1 { font-size: 1.5rem; }
+.prose-portal h2 { font-size: 1.25rem; }
+.prose-portal h3 { font-size: 1.05rem; }
+.prose-portal p { margin: 0 0 1.1em; }
+.prose-portal ul,
+.prose-portal ol {
+  margin: 0 0 1.1em;
+  padding-left: 1.4em;
+}
+.prose-portal ul { list-style: disc; }
+.prose-portal ol { list-style: decimal; }
+.prose-portal li { margin-bottom: 0.4em; }
+.prose-portal a {
+  color: var(--color-linen, #ece3d4);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.prose-portal strong { color: #fff; }
+.prose-portal blockquote {
+  border-left: 2px solid rgba(237, 195, 177, 0.5);
+  padding-left: 1em;
+  margin: 1.4em 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-style: italic;
+}
+.prose-portal hr {
+  border: none;
+  border-top: 1px solid rgba(236, 227, 212, 0.15);
+  margin: 2em 0;
+}
+.prose-portal code {
+  background: rgba(236, 227, 212, 0.1);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.prose-portal table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.4em 0;
+  font-size: 0.9em;
+}
+.prose-portal th,
+.prose-portal td {
+  border: 1px solid rgba(236, 227, 212, 0.15);
+  padding: 0.5em 0.75em;
+  text-align: left;
+}

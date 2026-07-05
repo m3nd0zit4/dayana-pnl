@@ -116,6 +116,7 @@ const socials: SocialItem[] = [
 const quickLinks = [
   { label: "Testimonios", href: "#testimonios" },
   { label: "Servicios", href: "/servicios" },
+  { label: "Miembros", href: "/miembros" },
   { label: "Contacto", href: "#contacto" },
 ];
 

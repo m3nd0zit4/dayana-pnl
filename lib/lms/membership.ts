@@ -111,3 +111,22 @@ export const setMembershipPaidUntil = async (
     where: { id: enrollmentId },
     data: { paidUntil },
   });
+
+/** Approved payments of the membership, newest first (portal history). */
+export const getMembershipPayments = async (
+  enrollmentId: string,
+  take = 12
+) =>
+  prisma.payment.findMany({
+    where: { enrollmentId, status: PaymentStatus.APPROVED },
+    orderBy: [{ paidAt: "desc" }, { createdAt: "desc" }],
+    take,
+    select: {
+      id: true,
+      provider: true,
+      currency: true,
+      amountMinor: true,
+      paidAt: true,
+      createdAt: true,
+    },
+  });

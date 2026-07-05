@@ -26,6 +26,7 @@ const menuItemsBase: MenuItem[] = [
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
   { label: "Servicios", path: "/servicios", marquee: "Terapias y cursos en vivo" },
   { label: "Testimonios", hash: "#testimonios", marquee: "Historias reales" },
+  { label: "Miembros", path: "/miembros", marquee: "Tus clases y grabaciones" },
   { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },
   { label: "Redes", hash: "#redes", marquee: "Sigue a Dayana" },
 ];
