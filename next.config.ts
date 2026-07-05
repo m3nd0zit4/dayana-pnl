@@ -25,6 +25,12 @@ const cspReportOnly = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "prisma", "ws"],
+  async redirects() {
+    return [
+      // El listado de servicios se retiró; el CRM gestiona por tipo.
+      { source: "/admin/services", destination: "/admin/curso", permanent: false },
+    ];
+  },
   async headers() {
     return [
       {

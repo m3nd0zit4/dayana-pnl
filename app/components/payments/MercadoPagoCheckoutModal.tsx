@@ -56,7 +56,11 @@ const MercadoPagoCheckoutModal = ({
   onClose,
 }: MercadoPagoCheckoutModalProps) => {
   const open = planId !== null;
-  const { plan, loading: planLoading } = useCheckoutPlan(open ? planId : null);
+  const {
+    plan,
+    loading: planLoading,
+    error: planError,
+  } = useCheckoutPlan(open ? planId : null);
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
@@ -148,6 +152,35 @@ const MercadoPagoCheckoutModal = ({
 
   if (!open) return null;
   if (typeof document === "undefined") return null;
+
+  if (planError) {
+    return createPortal(
+      <div
+        className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div className="w-full max-w-sm rounded-2xl border border-linen/20 bg-black p-6 text-center">
+          <p className="font-[font1] text-sm leading-relaxed text-white/80">
+            No pudimos cargar el plan en este momento. Intenta de nuevo en unos
+            segundos o escríbenos por WhatsApp.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-5 rounded-full border border-linen/30 px-6 py-2.5 font-[font2] uppercase text-xs tracking-[0.25em] text-white/80 hover:bg-linen/5"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>,
+      document.body
+    );
+  }
+
   if (planLoading || !plan) return null;
 
   const backdropClick = (e: React.MouseEvent<HTMLDivElement>) => {

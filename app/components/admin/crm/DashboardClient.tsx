@@ -72,12 +72,12 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
 
         {stats.unlinkedPaidEnrollments > 0 && (
           <Link
-            href="/admin/services?unlinked=1"
+            href="/admin/payments"
             className="block rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15 transition-colors"
           >
             {stats.unlinkedPaidEnrollments} pago
             {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
-            (legacy) — revisar en Servicios
+            (legacy) — revisar en Pagos
           </Link>
         )}
 

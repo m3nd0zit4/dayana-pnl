@@ -1,11 +1,6 @@
 import { getPublicPlans } from "../plans-from-db";
-import { resolveUsdToCopRate } from "../crm/site-settings";
-import {
-  applyCopToPlan,
-  applyCopToPlans,
-  getUsdToCopRateFromEnv,
-} from "./usd-to-cop";
-import { COURSE_PLAN, THERAPY_PLANS, type Plan } from "../plans";
+import { applyCopToPlan, getUsdToCopRateFromEnv } from "./usd-to-cop";
+import type { Plan } from "../plans";
 import { getServerUserCountry } from "../geo/user-country";
 
 export type VisiblePublicPlans = {
@@ -16,27 +11,27 @@ export type VisiblePublicPlans = {
 };
 
 /**
- * Planes públicos con precios vivos del CRM (fallback estático con COP por
- * tasa), filtrados por región del visitante. Usado por la landing y /servicios.
- * Llama a headers() (país por IP) — la ruta que lo use se vuelve dinámica.
+ * Planes públicos desde el CRM (DB), filtrados por región del visitante.
+ * Los planes sin fila COP explícita muestran el COP aproximado por tasa —
+ * igual que el checkout. Llama a headers() (país por IP) — la ruta que lo
+ * use se vuelve dinámica.
  */
 export const getVisiblePublicPlans = async (): Promise<VisiblePublicPlans> => {
-  const [rate, userCountry] = await Promise.all([
-    resolveUsdToCopRate().catch(() => getUsdToCopRateFromEnv()),
+  const [fromDb, userCountry] = await Promise.all([
+    getPublicPlans().catch(() => null),
     getServerUserCountry().catch(() => null),
   ]);
-  let therapyPlans = applyCopToPlans(THERAPY_PLANS, rate);
-  let coursePlan: Plan | null = applyCopToPlan(COURSE_PLAN, rate);
+
+  const rate = fromDb?.usdToCopRate ?? getUsdToCopRateFromEnv();
+  const withApproxCop = (plan: Plan): Plan =>
+    plan.amountCop == null ? applyCopToPlan(plan, rate) : plan;
+
+  const therapyPlans = (fromDb?.therapyPlans ?? []).map(withApproxCop);
+  const coursePlan = fromDb?.coursePlan
+    ? withApproxCop(fromDb.coursePlan)
+    : null;
 
   const isColombia = userCountry === "CO";
-
-  try {
-    const fromDb = await getPublicPlans();
-    if (fromDb.therapyPlans.length > 0) therapyPlans = fromDb.therapyPlans;
-    if (fromDb.coursePlan) coursePlan = fromDb.coursePlan;
-  } catch {
-    /* catálogo estático con COP según tasa */
-  }
 
   // Ocultar planes sin precio para la región del visitante
   const visibleTherapyPlans = therapyPlans.filter((p) =>

@@ -31,9 +31,9 @@ const loadEnv = () => {
 loadEnv();
 
 import { prisma } from "../lib/db";
-import { PLANS, type PlanId } from "../lib/plans";
+import { SEED_PLANS_BY_ID as PLANS } from "../prisma/seed-data";
 
-const THERAPY_IDS: PlanId[] = [
+const THERAPY_IDS: string[] = [
   "therapy-1",
   "therapy-3",
   "therapy-6",

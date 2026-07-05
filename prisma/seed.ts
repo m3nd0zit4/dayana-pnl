@@ -4,7 +4,7 @@ import {
   WorkshopEditionStatus,
 } from "@prisma/client";
 import { hashStaffPassword } from "../lib/auth/password";
-import { PLANS, type PlanId } from "../lib/plans";
+import { COP_PRICES, SEED_PLANS } from "./seed-data";
 import {
   PROXIMO_WORKSHOP_SLUG,
   WORKSHOP_DETAIL_SEED,
@@ -13,7 +13,7 @@ import {
 
 const prisma = new PrismaClient();
 
-const planKindToProduct = (kind: "therapy" | "course", id: PlanId): ProductKind => {
+const planKindToProduct = (kind: "therapy" | "course", id: string): ProductKind => {
   if (kind === "therapy") return ProductKind.THERAPY;
   if (id === "workshop-virtual") return ProductKind.WORKSHOP;
   return ProductKind.COURSE;
@@ -34,10 +34,17 @@ const workshopStatusMap = (
 
 async function seedProducts() {
   let order = 0;
-  for (const plan of Object.values(PLANS)) {
+  for (const plan of SEED_PLANS) {
     const kind = planKindToProduct(plan.kind, plan.id);
     const sessionsCount =
       plan.kind === "therapy" ? plan.sessionsCount ?? null : null;
+    const content = {
+      unitPriceLabel: plan.unitPrice ?? null,
+      tag: plan.tag ?? null,
+      highlight: plan.highlight ?? false,
+      whatsappMessage: plan.whatsappMessage,
+      therapyHeadline: plan.therapyPresentation?.sessionsHeadline ?? null,
+    };
 
     await prisma.product.upsert({
       where: { id: plan.id },
@@ -50,6 +57,7 @@ async function seedProducts() {
         description: plan.features.join("\n"),
         isActive: true,
         sortOrder: order++,
+        ...content,
       },
       update: {
         kind,
@@ -58,6 +66,7 @@ async function seedProducts() {
         sessionsCount,
         description: plan.features.join("\n"),
         sortOrder: order - 1,
+        ...content,
       },
     });
 
@@ -258,15 +267,6 @@ async function seedStaffOwner() {
   });
   console.log(`Staff OWNER seeded: ${email}`);
 }
-
-const COP_PRICES: Record<string, { amount: number; listAmount?: number }> = {
-  "therapy-1":  { amount: 280_000 },
-  "therapy-3":  { amount: 490_000,   listAmount: 840_000 },
-  "therapy-6":  { amount: 980_000,   listAmount: 1_680_000 },
-  "therapy-12": { amount: 1_960_000, listAmount: 3_360_000 },
-  "therapy-24": { amount: 3_920_000, listAmount: 6_720_000 },
-  "course-live":{ amount: 122_500 },
-};
 
 async function seedCopPrices() {
   for (const [productId, { amount, listAmount }] of Object.entries(COP_PRICES)) {
