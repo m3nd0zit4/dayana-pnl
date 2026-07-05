@@ -15,6 +15,8 @@ type Props = {
   fromUsd: number | null;
   fromCop: number | null;
   isColombia: boolean;
+  courseUsd: number | null;
+  courseCop: number | null;
 };
 
 /**
@@ -22,7 +24,13 @@ type Props = {
  * Mantiene el contrato de apilado (id, shell redondeado, useStackingSection
  * isLast) del que depende el pin de TestimonialsSection.
  */
-const ServicesTeaser = ({ fromUsd, fromCop, isColombia }: Props) => {
+const ServicesTeaser = ({
+  fromUsd,
+  fromCop,
+  isColombia,
+  courseUsd,
+  courseCop,
+}: Props) => {
   const rootRef = useRef<HTMLElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
 
@@ -72,6 +80,12 @@ const ServicesTeaser = ({ fromUsd, fromCop, isColombia }: Props) => {
             {fromLabel && (
               <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-black/50 mt-6">
                 {fromLabel} · sesión única
+              </p>
+            )}
+            {courseUsd != null && (
+              <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-black/50 mt-2">
+                Curso en vivo {formatUsd(courseUsd)} USD
+                {courseCop != null ? ` · ${formatCop(courseCop)} COP` : ""} / mes
               </p>
             )}
             <div className="mt-10">

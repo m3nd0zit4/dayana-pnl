@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowRight, Lock } from "lucide-react";
 import { BRAND } from "@/lib/contact";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { getPublishedModules } from "@/lib/lms/course-content";
@@ -18,22 +19,22 @@ const Page = async () => {
     : [];
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <div>
-        <div className="mb-3 font-[font2] uppercase text-xs tracking-[0.4em] text-linen/70">
-          Material del curso
-        </div>
-        <h1 className="font-[font2] uppercase text-3xl leading-[0.95] lg:text-5xl">
+        <h1 className="portal-display text-2xl text-[var(--portal-foreground)] lg:text-3xl">
           Módulos
         </h1>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--portal-muted)]">
+          El material del curso, en orden. Léelo a tu ritmo.
+        </p>
       </div>
 
       {!isCurrent && (
-        <div className="rounded-2xl border border-blush/25 bg-blush/[0.06] p-5 font-[font1] text-sm text-white/80">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Renueva tu mensualidad para leer los módulos.{" "}
           <Link
             href="/miembros/cuenta"
-            className="text-linen underline underline-offset-4"
+            className="font-semibold underline underline-offset-4"
           >
             Renovar
           </Link>
@@ -48,36 +49,36 @@ const Page = async () => {
               {isCurrent ? (
                 <Link
                   href={`/miembros/modulos/${mod.id}`}
-                  className="flex items-center gap-5 rounded-2xl border border-linen/10 bg-linen/[0.03] px-6 py-5 transition-colors hover:border-linen/30"
+                  className="portal-card flex items-center gap-4 px-5 py-4 transition-shadow hover:shadow-md"
                 >
-                  <span className="font-[font2] text-sm text-white/35">
-                    {String(i + 1).padStart(2, "0")}
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[rgba(212,184,150,0.3)] text-sm font-semibold text-[var(--portal-accent)]">
+                    {i + 1}
                   </span>
-                  <span className="font-[font1] text-base text-white/90">
-                    {mod.title}
-                  </span>
-                  <span aria-hidden className="ml-auto text-white/30">
-                    →
-                  </span>
+                  <span className="text-sm font-medium">{mod.title}</span>
+                  <ArrowRight
+                    className="ml-auto size-4 text-[var(--portal-muted)]"
+                    aria-hidden
+                  />
                 </Link>
               ) : (
-                <div className="flex items-center gap-5 rounded-2xl border border-linen/10 bg-linen/[0.02] px-6 py-5 opacity-60">
-                  <span className="font-[font2] text-sm text-white/35">
-                    {String(i + 1).padStart(2, "0")}
+                <div className="portal-card flex items-center gap-4 px-5 py-4 opacity-70">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-semibold text-neutral-500">
+                    {i + 1}
                   </span>
-                  <span className="font-[font1] text-base text-white/70">
+                  <span className="text-sm font-medium text-[var(--portal-muted)]">
                     {mod.title}
                   </span>
-                  <span className="ml-auto font-[font2] uppercase text-[9px] tracking-[0.2em] text-white/40">
-                    Bloqueado
-                  </span>
+                  <Lock
+                    className="ml-auto size-4 text-[var(--portal-muted)]"
+                    aria-hidden
+                  />
                 </div>
               )}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="font-[font1] text-sm text-white/50">
+        <p className="text-sm text-[var(--portal-muted)]">
           Los módulos se publicarán aquí muy pronto.
         </p>
       )}

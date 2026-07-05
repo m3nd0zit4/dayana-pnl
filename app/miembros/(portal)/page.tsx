@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ArrowRight, BookOpen, CalendarDays, Video } from "lucide-react";
 import { BRAND } from "@/lib/contact";
 import { requirePortalContext } from "@/lib/lms/portal";
 import {
@@ -31,16 +32,16 @@ const Page = async () => {
     : [{ upcoming: [], past: [], now: new Date() }, []];
 
   const nextClass = upcoming[0] ?? null;
-  const latestRecording =
-    past.find((c) => isRecordingVisible(c, now)) ?? null;
+  const latestRecording = past.find((c) => isRecordingVisible(c, now)) ?? null;
+  const visibleRecordings = past.filter((c) => isRecordingVisible(c, now)).length;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <div>
-        <div className="mb-3 font-[font2] uppercase text-xs tracking-[0.4em] text-linen/70">
+        <div className="portal-display text-[11px] text-[var(--portal-muted)]">
           Hola, {contact.firstName}
         </div>
-        <h1 className="font-[font2] uppercase text-3xl leading-[0.95] lg:text-5xl">
+        <h1 className="portal-display mt-1 text-2xl text-[var(--portal-foreground)] lg:text-3xl">
           {courseProduct?.title ?? "Portal de miembros"}
         </h1>
       </div>
@@ -52,20 +53,48 @@ const Page = async () => {
         hasEnrollment={membership.enrollment != null}
       />
 
-      <section>
-        <h2 className="mb-4 font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+      {/* Stats row */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="portal-card p-4">
+          <div className="portal-display flex items-center gap-2 text-[10px] text-[var(--portal-muted)]">
+            <CalendarDays className="size-3.5" aria-hidden /> Próxima clase
+          </div>
+          <div className="mt-2 text-sm font-semibold">
+            {nextClass?.scheduledAt
+              ? nextClass.scheduledAt.toLocaleDateString("es-CO", {
+                  day: "numeric",
+                  month: "long",
+                })
+              : "Por programar"}
+          </div>
+        </div>
+        <div className="portal-card p-4">
+          <div className="portal-display flex items-center gap-2 text-[10px] text-[var(--portal-muted)]">
+            <Video className="size-3.5" aria-hidden /> Grabaciones activas
+          </div>
+          <div className="mt-2 text-sm font-semibold">{visibleRecordings}</div>
+        </div>
+        <div className="portal-card p-4">
+          <div className="portal-display flex items-center gap-2 text-[10px] text-[var(--portal-muted)]">
+            <BookOpen className="size-3.5" aria-hidden /> Módulos publicados
+          </div>
+          <div className="mt-2 text-sm font-semibold">{modules.length}</div>
+        </div>
+      </div>
+
+      {/* Next class */}
+      <section className="portal-card p-5 sm:p-6">
+        <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
           Próxima clase en vivo
         </h2>
         {nextClass?.scheduledAt ? (
-          <div className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6">
-            <div className="font-[font1] text-lg text-white">
-              {nextClass.title}
-            </div>
-            <div className="mt-1 font-[font1] text-sm text-white/60">
+          <div className="mt-3">
+            <div className="text-base font-semibold">{nextClass.title}</div>
+            <div className="mt-1 text-sm text-[var(--portal-muted)]">
               {formatDateTime(nextClass.scheduledAt)}
             </div>
             {nextClass.description ? (
-              <p className="mt-3 font-[font1] text-sm leading-relaxed text-white/70">
+              <p className="mt-3 text-sm leading-relaxed text-[#33302b]">
                 {nextClass.description}
               </p>
             ) : null}
@@ -74,92 +103,97 @@ const Page = async () => {
                 href={nextClass.meetUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-5 inline-block rounded-full bg-linen px-7 py-3 font-[font2] uppercase text-xs tracking-[0.25em] text-black transition-colors hover:bg-white"
+                className="portal-btn-primary mt-4"
               >
                 Unirme por Google Meet
               </a>
             ) : !isCurrent ? (
-              <p className="mt-4 font-[font1] text-xs text-blush">
+              <p className="mt-3 text-xs text-[var(--portal-danger)]">
                 Renueva tu mensualidad para ver el enlace de la clase.
               </p>
             ) : null}
           </div>
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="mt-3 text-sm text-[var(--portal-muted)]">
             Aún no hay una próxima clase programada. Te avisaremos por correo y
             WhatsApp.
           </p>
         )}
       </section>
 
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+      {/* Latest recording */}
+      <section className="portal-card p-5 sm:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
             Última grabación
           </h2>
           <Link
             href="/miembros/clases"
-            className="font-[font1] text-xs text-linen underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-[var(--portal-accent)] hover:underline"
           >
-            Ver todas
+            Ver todas <ArrowRight className="size-3.5" aria-hidden />
           </Link>
         </div>
         {latestRecording?.recordingPostedAt ? (
           isCurrent ? (
-            <div className="space-y-3">
+            <div className="mt-4 space-y-2">
               <DriveRecordingEmbed
                 url={latestRecording.recordingUrl!}
                 title={latestRecording.title}
               />
-              <div className="flex items-center justify-between font-[font1] text-xs text-white/50">
-                <span>{latestRecording.title}</span>
+              <div className="flex items-center justify-between text-xs text-[var(--portal-muted)]">
+                <span className="font-medium text-[var(--portal-foreground)]">
+                  {latestRecording.title}
+                </span>
                 <span>
-                  Disponible {recordingDaysLeft(latestRecording.recordingPostedAt)}{" "}
-                  días más
+                  Disponible{" "}
+                  {recordingDaysLeft(latestRecording.recordingPostedAt)} días
+                  más
                 </span>
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 font-[font1] text-sm text-white/70">
+            <p className="mt-3 text-sm text-[#33302b]">
               Hay una grabación reciente esperándote. Renueva tu mensualidad
               para verla.
-            </div>
+            </p>
           )
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="mt-3 text-sm text-[var(--portal-muted)]">
             Todavía no hay grabaciones disponibles.
           </p>
         )}
       </section>
 
-      <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+      {/* Modules */}
+      <section className="portal-card p-5 sm:p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
             Módulos del curso
           </h2>
           <Link
             href="/miembros/modulos"
-            className="font-[font1] text-xs text-linen underline-offset-4 hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-[var(--portal-accent)] hover:underline"
           >
-            Ver todos
+            Ver todos <ArrowRight className="size-3.5" aria-hidden />
           </Link>
         </div>
         {modules.length > 0 ? (
-          <ul className="space-y-2">
-            {modules.slice(0, 3).map((mod, i) => (
+          <ul className="mt-3 divide-y divide-[var(--portal-border)]">
+            {modules.slice(0, 4).map((mod, i) => (
               <li key={mod.id}>
                 <Link
-                  href={isCurrent ? `/miembros/modulos/${mod.id}` : "/miembros/cuenta"}
-                  className="flex items-center gap-4 rounded-xl border border-linen/10 bg-linen/[0.03] px-5 py-4 transition-colors hover:border-linen/25"
+                  href={
+                    isCurrent ? `/miembros/modulos/${mod.id}` : "/miembros/cuenta"
+                  }
+                  className="flex items-center gap-4 py-3 transition-colors hover:bg-[rgba(236,227,212,0.35)]"
                 >
-                  <span className="font-[font2] text-xs text-white/35">
-                    {String(i + 1).padStart(2, "0")}
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[rgba(212,184,150,0.3)] text-xs font-semibold text-[var(--portal-accent)]">
+                    {i + 1}
                   </span>
-                  <span className="font-[font1] text-sm text-white/85">
-                    {mod.title}
-                  </span>
+                  <span className="text-sm font-medium">{mod.title}</span>
                   {!isCurrent && (
-                    <span className="ml-auto font-[font2] uppercase text-[9px] tracking-[0.2em] text-white/40">
+                    <span className="portal-display ml-auto text-[9px] text-[var(--portal-muted)]">
                       Bloqueado
                     </span>
                   )}
@@ -168,7 +202,7 @@ const Page = async () => {
             ))}
           </ul>
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="mt-3 text-sm text-[var(--portal-muted)]">
             Los módulos se publicarán aquí muy pronto.
           </p>
         )}

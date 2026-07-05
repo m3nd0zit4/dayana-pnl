@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 
-const inputClass =
-  "w-full rounded-lg border border-linen/20 bg-black/40 px-4 py-3 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-linen/50 focus:outline-none";
-
 const labelClass =
-  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.25em] text-white/50";
+  "portal-display mb-1.5 block text-[10px] text-[var(--portal-muted)]";
 
 const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -68,7 +65,7 @@ const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
             autoComplete="current-password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className={inputClass}
+            className="portal-input"
           />
         </label>
       )}
@@ -85,7 +82,7 @@ const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder="Mínimo 12 caracteres"
-          className={inputClass}
+          className="portal-input"
         />
       </label>
 
@@ -98,27 +95,27 @@ const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className={inputClass}
+          className="portal-input"
         />
       </label>
 
       {error && (
-        <p className="font-[font1] text-sm text-blush" role="alert">
+        <p className="text-sm text-[var(--portal-danger)]" role="alert">
           {error}
         </p>
       )}
       {done && (
-        <p className="font-[font1] text-sm text-linen" role="status">
+        <p className="text-sm text-[var(--portal-success)]" role="status">
           Contraseña actualizada.
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-full border border-linen/30 px-7 py-3 font-[font2] uppercase text-xs tracking-[0.25em] text-white/85 transition-colors hover:bg-linen/5 hover:text-white disabled:opacity-60"
-      >
-        {loading ? "Guardando…" : hasPassword ? "Cambiar contraseña" : "Crear contraseña"}
+      <button type="submit" disabled={loading} className="portal-btn-secondary">
+        {loading
+          ? "Guardando…"
+          : hasPassword
+            ? "Cambiar contraseña"
+            : "Crear contraseña"}
       </button>
     </form>
   );

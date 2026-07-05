@@ -39,19 +39,15 @@ const Page = async () => {
       : null;
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       <div>
-        <div className="mb-3 font-[font2] uppercase text-xs tracking-[0.4em] text-linen/70">
+        <h1 className="portal-display text-2xl text-[var(--portal-foreground)] lg:text-3xl">
           Mi cuenta
-        </div>
-        <h1 className="font-[font2] uppercase text-3xl leading-[0.95] lg:text-5xl">
-          {contact.displayName ?? contact.firstName}
         </h1>
-        {contact.email ? (
-          <p className="mt-3 font-[font1] text-sm text-white/55">
-            {contact.email}
-          </p>
-        ) : null}
+        <p className="mt-2 text-sm text-[var(--portal-muted)]">
+          {contact.displayName ?? contact.firstName}
+          {contact.email ? ` · ${contact.email}` : ""}
+        </p>
       </div>
 
       <MembershipStatusCard
@@ -61,23 +57,30 @@ const Page = async () => {
         hasEnrollment={membership.enrollment != null}
       />
 
-      <section>
-        <h2 className="mb-2 font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+      <section className="portal-card p-5 sm:p-6">
+        <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
           {membership.enrollment ? "Pagar mi mes" : "Activar membresía"}
         </h2>
         {coursePlan ? (
-          <div className="max-w-md">
-            <p className="font-[font1] text-sm leading-relaxed text-white/65">
+          <div className="mt-3 max-w-md">
+            <p className="text-sm leading-relaxed text-[#33302b]">
               Cada pago suma un mes de acceso a las clases en vivo, grabaciones
               y módulos. Usa el correo con el que estás registrada aquí
               {contact.email ? (
                 <>
                   {" "}
-                  (<span className="text-white/85">{contact.email}</span>)
+                  (<strong>{contact.email}</strong>)
                 </>
               ) : null}
               .
             </p>
+            <div className="mt-2 text-sm text-[var(--portal-muted)]">
+              {formatUsd(coursePlan.amountUsd)} USD
+              {coursePlan.amountCop != null
+                ? ` · ${formatCop(coursePlan.amountCop)} COP`
+                : ""}{" "}
+              / mes
+            </div>
             <RenewMembership
               plan={coursePlan}
               userCountry={userCountry}
@@ -91,28 +94,28 @@ const Page = async () => {
             />
           </div>
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="mt-3 text-sm text-[var(--portal-muted)]">
             El pago online no está disponible en este momento. Escríbenos por
             WhatsApp para renovar.
           </p>
         )}
       </section>
 
-      <section>
-        <h2 className="mb-4 font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+      <section className="portal-card p-5 sm:p-6">
+        <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
           Historial de pagos
         </h2>
         {payments.length > 0 ? (
-          <ul className="divide-y divide-linen/10 rounded-2xl border border-linen/10">
+          <ul className="mt-3 divide-y divide-[var(--portal-border)]">
             {payments.map((payment) => (
               <li
                 key={payment.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
+                className="flex flex-wrap items-center justify-between gap-2 py-3"
               >
-                <div className="font-[font1] text-sm text-white/85">
+                <div className="text-sm font-semibold">
                   {formatAmount(payment.currency, payment.amountMinor)}
                 </div>
-                <div className="font-[font1] text-xs text-white/45">
+                <div className="text-xs text-[var(--portal-muted)]">
                   {PROVIDER_LABELS[payment.provider] ?? payment.provider}
                   {" · "}
                   {(payment.paidAt ?? payment.createdAt).toLocaleDateString(
@@ -124,23 +127,25 @@ const Page = async () => {
             ))}
           </ul>
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="mt-3 text-sm text-[var(--portal-muted)]">
             Aún no hay pagos registrados.
           </p>
         )}
       </section>
 
-      <section className="max-w-md">
-        <h2 className="mb-2 font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+      <section className="portal-card max-w-xl p-5 sm:p-6">
+        <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
           Contraseña
         </h2>
         {!account.passwordHash && account.googleSub ? (
-          <p className="mb-4 font-[font1] text-sm leading-relaxed text-white/65">
+          <p className="mt-3 text-sm leading-relaxed text-[#33302b]">
             Entras con Google. Si quieres, crea también una contraseña para
             poder entrar con tu correo.
           </p>
         ) : null}
-        <ChangePasswordForm hasPassword={Boolean(account.passwordHash)} />
+        <div className="mt-4">
+          <ChangePasswordForm hasPassword={Boolean(account.passwordHash)} />
+        </div>
       </section>
     </div>
   );

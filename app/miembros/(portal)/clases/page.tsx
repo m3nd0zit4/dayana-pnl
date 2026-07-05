@@ -29,27 +29,24 @@ const Page = async () => {
     : { upcoming: [], past: [], now: new Date() };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-6">
       <div>
-        <div className="mb-3 font-[font2] uppercase text-xs tracking-[0.4em] text-linen/70">
-          Clases en vivo
-        </div>
-        <h1 className="font-[font2] uppercase text-3xl leading-[0.95] lg:text-5xl">
+        <h1 className="portal-display text-2xl text-[var(--portal-foreground)] lg:text-3xl">
           Tus clases
         </h1>
-        <p className="mt-4 max-w-xl font-[font1] text-sm leading-relaxed text-white/60">
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-[var(--portal-muted)]">
           Las clases son en vivo por Google Meet. La grabación queda disponible
           aquí durante un mes.
         </p>
       </div>
 
       {!isCurrent && (
-        <div className="rounded-2xl border border-blush/25 bg-blush/[0.06] p-5 font-[font1] text-sm text-white/80">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Tu mensualidad no está al día — los enlaces y grabaciones están
           bloqueados.{" "}
           <Link
             href="/miembros/cuenta"
-            className="text-linen underline underline-offset-4"
+            className="font-semibold underline underline-offset-4"
           >
             Renueva aquí
           </Link>
@@ -58,28 +55,23 @@ const Page = async () => {
       )}
 
       <section>
-        <h2 className="mb-4 font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+        <h2 className="portal-display mb-3 text-[11px] text-[var(--portal-muted)]">
           Próximas
         </h2>
         {upcoming.length > 0 ? (
           <ul className="space-y-3">
             {upcoming.map((cls) => (
-              <li
-                key={cls.id}
-                className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6"
-              >
+              <li key={cls.id} className="portal-card p-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="font-[font1] text-lg text-white">
-                      {cls.title}
-                    </div>
+                    <div className="text-base font-semibold">{cls.title}</div>
                     {cls.scheduledAt ? (
-                      <div className="mt-1 font-[font1] text-sm text-white/60">
+                      <div className="mt-1 text-sm text-[var(--portal-muted)]">
                         {formatDateTime(cls.scheduledAt)}
                       </div>
                     ) : null}
                     {cls.description ? (
-                      <p className="mt-3 max-w-xl font-[font1] text-sm leading-relaxed text-white/70">
+                      <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#33302b]">
                         {cls.description}
                       </p>
                     ) : null}
@@ -89,7 +81,7 @@ const Page = async () => {
                       href={cls.meetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-full bg-linen px-6 py-3 font-[font2] uppercase text-xs tracking-[0.25em] text-black transition-colors hover:bg-white"
+                      className="portal-btn-primary"
                     >
                       Google Meet
                     </a>
@@ -99,66 +91,67 @@ const Page = async () => {
             ))}
           </ul>
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="text-sm text-[var(--portal-muted)]">
             No hay clases programadas por ahora.
           </p>
         )}
       </section>
 
       <section>
-        <h2 className="mb-4 font-[font2] uppercase text-sm tracking-[0.3em] text-white/55">
+        <h2 className="portal-display mb-3 text-[11px] text-[var(--portal-muted)]">
           Grabaciones
         </h2>
         {past.length > 0 ? (
-          <ul className="space-y-8">
+          <ul className="space-y-4">
             {past.map((cls) => {
               const visible = isRecordingVisible(cls, now);
               return (
-                <li key={cls.id} className="space-y-3">
+                <li key={cls.id} className="portal-card p-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
-                      <span className="font-[font1] text-base text-white">
+                      <span className="text-base font-semibold">
                         {cls.title}
                       </span>
                       {cls.scheduledAt ? (
-                        <span className="ml-3 font-[font1] text-xs text-white/45">
+                        <span className="ml-3 text-xs text-[var(--portal-muted)]">
                           {formatDate(cls.scheduledAt)}
                         </span>
                       ) : null}
                     </div>
                     {visible && cls.recordingPostedAt ? (
-                      <span className="font-[font1] text-xs text-blush">
-                        Disponible {recordingDaysLeft(cls.recordingPostedAt, now)}{" "}
-                        días más
+                      <span className="portal-display rounded-full bg-[rgba(237,195,177,0.4)] px-3 py-1 text-[9px] text-[var(--portal-accent)]">
+                        {recordingDaysLeft(cls.recordingPostedAt, now)} días más
                       </span>
                     ) : null}
                   </div>
 
-                  {visible ? (
-                    isCurrent ? (
-                      <DriveRecordingEmbed
-                        url={cls.recordingUrl!}
-                        title={cls.title}
-                      />
+                  <div className="mt-3">
+                    {visible ? (
+                      isCurrent ? (
+                        <DriveRecordingEmbed
+                          url={cls.recordingUrl!}
+                          title={cls.title}
+                        />
+                      ) : (
+                        <p className="text-sm text-[#33302b]">
+                          Grabación disponible — renueva tu mensualidad para
+                          verla.
+                        </p>
+                      )
                     ) : (
-                      <div className="rounded-2xl border border-linen/10 bg-linen/[0.03] p-5 font-[font1] text-sm text-white/60">
-                        Grabación disponible — renueva tu mensualidad para
-                        verla.
-                      </div>
-                    )
-                  ) : (
-                    <div className="rounded-2xl border border-linen/10 bg-linen/[0.02] p-5 font-[font1] text-sm text-white/40">
-                      {cls.recordingUrl || cls.recordingHiddenAt
-                        ? "La grabación de esta clase ya no está disponible (las grabaciones duran un mes)."
-                        : "Esta clase no tiene grabación disponible."}
-                    </div>
-                  )}
+                      <p className="text-sm text-[var(--portal-muted)]">
+                        {cls.recordingUrl || cls.recordingHiddenAt
+                          ? "La grabación de esta clase ya no está disponible (las grabaciones duran un mes)."
+                          : "Esta clase no tiene grabación disponible."}
+                      </p>
+                    )}
+                  </div>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <p className="font-[font1] text-sm text-white/50">
+          <p className="text-sm text-[var(--portal-muted)]">
             Aquí aparecerán las grabaciones de las clases pasadas.
           </p>
         )}

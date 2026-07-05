@@ -4,8 +4,10 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef } from "react";
-import type { Plan } from "../../../lib/plans";
+import Link from "next/link";
+import { formatCop, formatUsd, type Plan } from "../../../lib/plans";
 import WhatsAppButton from "../ui/WhatsAppButton";
+import DualCurrencyCheckout from "../payments/DualCurrencyCheckout";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -45,7 +47,10 @@ const CourseAndCta = ({ coursePlan }: Props) => {
               participante tenga espacio real para transformar.
             </p>
             <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-black/45 mt-3">
-              Plataforma de cursos online — próximamente
+              Incluye portal de miembros: clases en vivo, grabaciones y módulos ·{" "}
+              <Link href="/acceso" className="underline underline-offset-4 hover:text-black">
+                ya soy miembro
+              </Link>
             </p>
           </div>
         </div>
@@ -86,9 +91,19 @@ const CourseAndCta = ({ coursePlan }: Props) => {
                 <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-tight">
                   {coursePlan.sessions}
                 </div>
-                <p className="font-[font1] text-sm mt-5 leading-snug text-white/75">
-                  Valor e inscripción los coordinamos contigo por WhatsApp.
-                </p>
+                <div className="mt-4">
+                  <div className="font-[font1] text-3xl leading-none">
+                    {formatUsd(coursePlan.amountUsd)}{" "}
+                    <span className="font-[font2] uppercase text-xs tracking-[0.25em] text-white/55">
+                      USD{coursePlan.unitPrice ? ` ${coursePlan.unitPrice}` : ""}
+                    </span>
+                  </div>
+                  {coursePlan.amountCop != null && (
+                    <div className="font-[font1] text-sm mt-1.5 text-white/70">
+                      {formatCop(coursePlan.amountCop)} COP con Mercado Pago
+                    </div>
+                  )}
+                </div>
                 <ul className="mt-5 space-y-2">
                   {coursePlan.features.map((f) => (
                     <li
@@ -101,13 +116,8 @@ const CourseAndCta = ({ coursePlan }: Props) => {
                   ))}
                 </ul>
               </div>
-              <div className="mt-6 w-full">
-                <WhatsAppButton
-                  message={coursePlan.whatsappMessage}
-                  label="Inscribirme por WhatsApp"
-                  size="lg"
-                  className="w-full"
-                />
+              <div className="w-full">
+                <DualCurrencyCheckout plan={coursePlan} isDark />
               </div>
             </div>
           )}

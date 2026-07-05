@@ -38,7 +38,9 @@ const RenewMembership = ({ plan, userCountry, prefill }: RenewMembershipProps) =
     });
   }, [prefill]);
 
-  return <PlanCheckoutButtons plan={plan} isDark userCountry={userCountry} />;
+  return (
+    <PlanCheckoutButtons plan={plan} isDark={false} userCountry={userCountry} />
+  );
 };
 
 export default RenewMembership;

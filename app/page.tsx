@@ -7,7 +7,8 @@ import FloatingWhatsApp from "./components/ui/FloatingWhatsApp";
 import { getVisiblePublicPlans } from "@/lib/pricing/public-plans";
 
 const Home = async () => {
-  const { therapyPlans, userCountry, isColombia } = await getVisiblePublicPlans();
+  const { therapyPlans, coursePlan, userCountry, isColombia } =
+    await getVisiblePublicPlans();
 
   const fromUsd =
     therapyPlans.length > 0
@@ -24,7 +25,13 @@ const Home = async () => {
         <Hero />
         <ContactSection userCountry={userCountry} />
         <TestimonialsSection />
-        <ServicesTeaser fromUsd={fromUsd} fromCop={fromCop} isColombia={isColombia} />
+        <ServicesTeaser
+          fromUsd={fromUsd}
+          fromCop={fromCop}
+          isColombia={isColombia}
+          courseUsd={coursePlan?.amountUsd ?? null}
+          courseCop={coursePlan?.amountCop ?? null}
+        />
       </main>
       <Footer />
       <FloatingWhatsApp />
