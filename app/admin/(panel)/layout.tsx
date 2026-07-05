@@ -12,7 +12,7 @@ const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
   const staff = preview ? null : await getStaffSession();
 
   if (!preview && !staff) {
-    redirect("/admin/sign-in");
+    redirect("/acceso");
   }
 
   const displayName = staff?.displayName ?? "Vista previa";

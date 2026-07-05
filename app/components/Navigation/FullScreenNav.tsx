@@ -208,7 +208,7 @@ const FullScreenNav = () => {
           ))}
           <div className="navlink mt-6 flex justify-center px-1 pb-2 sm:mt-8 lg:justify-end">
             <Link
-              href="/admin/sign-in"
+              href="/acceso"
               onClick={handleMenuClick}
               className="inline-flex min-h-11 items-center justify-center border border-white/45 bg-white/10 px-7 py-3 font-[font2] text-[11px] uppercase tracking-[0.32em] text-white transition-colors hover:border-linen hover:bg-linen hover:text-black sm:px-9 sm:text-xs sm:tracking-[0.35em]"
             >

@@ -72,7 +72,7 @@ const SetPasswordForm = ({ token, email }: SetPasswordFormProps) => {
       }
     }
 
-    window.location.href = "/miembros/acceso";
+    window.location.href = "/acceso";
   };
 
   return (

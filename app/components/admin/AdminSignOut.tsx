@@ -6,7 +6,7 @@ import { signOut } from "next-auth/react";
 const AdminSignOut = () => (
   <button
     type="button"
-    onClick={() => signOut({ callbackUrl: "/admin/sign-in" })}
+    onClick={() => signOut({ callbackUrl: "/acceso" })}
     className="crm-btn-icon size-9 text-[var(--crm-muted)] hover:text-[var(--crm-danger)]"
     aria-label="Cerrar sesión"
     title="Cerrar sesión"

@@ -41,7 +41,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       : undefined),
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE },
   pages: {
-    signIn: "/admin/sign-in",
+    signIn: "/acceso",
   },
   cookies: {
     sessionToken: {

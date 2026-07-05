@@ -1,32 +1,17 @@
-import type { Metadata } from "next";
-import { Suspense } from "react";
-import { isGoogleAuthEnabled } from "@/auth";
-import { BRAND } from "@/lib/contact";
-import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
-import MemberSignInForm from "@/app/components/miembros/MemberSignInForm";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: `Acceso miembros — ${BRAND.name}`,
-  description: "Entra al portal de miembros: clases en vivo, grabaciones y módulos.",
-  robots: { index: false, follow: false },
+type PageProps = {
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 };
 
-const Page = () => (
-  <MemberAuthShell
-    eyebrow="Portal de miembros"
-    title="Bienvenida de vuelta"
-    description="Tus clases en vivo, grabaciones y módulos del curso, en un solo lugar."
-  >
-    <Suspense
-      fallback={
-        <p className="animate-pulse font-[font1] text-sm text-white/50">
-          Cargando acceso…
-        </p>
-      }
-    >
-      <MemberSignInForm googleEnabled={isGoogleAuthEnabled()} />
-    </Suspense>
-  </MemberAuthShell>
-);
+/** El acceso es único en /acceso; esta ruta queda por compatibilidad. */
+const Page = async ({ searchParams }: PageProps) => {
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  if (params.callbackUrl) query.set("callbackUrl", params.callbackUrl);
+  if (params.error) query.set("error", params.error);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  redirect(`/acceso${suffix}`);
+};
 
 export default Page;

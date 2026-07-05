@@ -34,7 +34,7 @@ const AdminNotFound = () => (
           Ir al panel
         </Link>
         <Link
-          href="/admin/sign-in"
+          href="/acceso"
           className="crm-btn-secondary px-6 py-2.5 text-center"
         >
           Iniciar sesión

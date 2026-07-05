@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const PortalLayout = async ({ children }: { children: ReactNode }) => {
   const member = await getMemberSession();
   if (!member) {
-    redirect("/miembros/acceso");
+    redirect("/acceso");
   }
 
   return (

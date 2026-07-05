@@ -59,7 +59,7 @@ const PortalNav = ({ firstName }: { firstName: string }) => {
           </span>
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/miembros/acceso" })}
+            onClick={() => signOut({ callbackUrl: "/acceso" })}
             className="rounded-full border border-linen/20 px-3.5 py-2 font-[font2] uppercase text-[10px] tracking-[0.2em] text-white/60 transition-colors hover:bg-linen/10 hover:text-white"
           >
             Salir

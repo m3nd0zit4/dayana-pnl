@@ -87,7 +87,7 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
       <p className="text-center font-[font1] text-[13px] text-white/50">
         ¿Ya tienes cuenta?{" "}
         <Link
-          href="/miembros/acceso"
+          href="/acceso"
           className="text-linen underline-offset-4 hover:underline"
         >
           Inicia sesión

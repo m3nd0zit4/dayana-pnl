@@ -22,7 +22,7 @@ export type PortalContext = {
 export const requirePortalContext = async (): Promise<PortalContext> => {
   const member = await getMemberSession();
   if (!member) {
-    redirect("/miembros/acceso");
+    redirect("/acceso");
   }
 
   const membership = await getMembershipForContact(member.contact.id);
