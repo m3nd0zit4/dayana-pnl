@@ -80,6 +80,11 @@ enum StaffRole {
   DEVELOPER
 }
 
+enum MemberAuthTokenPurpose {
+  INVITE
+  PASSWORD_RESET
+}
+
 enum MessageChannel {
   WHATSAPP_LINK
   WHATSAPP_API
@@ -127,6 +132,8 @@ model Contact {
   messageLogs            MessageLog[]
   notificationDeliveries NotificationDelivery[]
   notebookPages          ContactNotebookPage[]
+  memberAccount          MemberAccount?
+  memberAuthTokens       MemberAuthToken[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -135,20 +142,27 @@ model Contact {
 }
 
 model Product {
-  id            String      @id
-  kind          ProductKind
-  title         String
-  sessionsLabel String      @map("sessions_label")
-  sessionsCount Int?        @map("sessions_count")
-  description   String?     @db.Text
-  isActive      Boolean     @default(true) @map("is_active")
-  sortOrder     Int         @default(0) @map("sort_order")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id              String      @id
+  kind            ProductKind
+  title           String
+  sessionsLabel   String      @map("sessions_label")
+  sessionsCount   Int?        @map("sessions_count")
+  description     String?     @db.Text
+  isActive        Boolean     @default(true) @map("is_active")
+  sortOrder       Int         @default(0) @map("sort_order")
+  unitPriceLabel  String?     @map("unit_price_label")
+  tag             String?
+  highlight       Boolean     @default(false)
+  whatsappMessage String?     @map("whatsapp_message") @db.Text
+  therapyHeadline String?     @map("therapy_headline")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
-  prices           ProductPrice[]
-  enrollments      Enrollment[]
-  workshopEditions WorkshopEdition[]
+  prices            ProductPrice[]
+  enrollments       Enrollment[]
+  workshopEditions  WorkshopEdition[]
+  courseModules     CourseModule[]
+  liveClassSessions LiveClassSession[]
 
   @@index([kind])
   @@map("products")
@@ -221,6 +235,7 @@ model Enrollment {
   currency           String?          @db.Char(3)
   amountMinor        Int?             @map("amount_minor")
   externalRef        String?          @map("external_ref")
+  paidUntil          DateTime?        @map("paid_until")
   leadAt             DateTime?        @map("lead_at")
   paidAt             DateTime?        @map("paid_at")
   completedAt        DateTime?        @map("completed_at")
@@ -240,6 +255,7 @@ model Enrollment {
   @@index([contactId, productId])
   @@index([status])
   @@index([updatedAt])
+  @@index([paidUntil])
   @@map("enrollments")
 }
 
@@ -258,6 +274,7 @@ model Payment {
   payerCountryIso   String?         @map("payer_country_iso") @db.Char(2)
   rawPayload        Json?           @map("raw_payload")
   paidAt            DateTime?       @map("paid_at")
+  membershipAppliedAt DateTime?     @map("membership_applied_at")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 
@@ -511,4 +528,90 @@ model SiteSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("site_settings")
+}
+
+model MemberAccount {
+  id              String    @id @default(cuid())
+  contactId       String    @unique @map("contact_id")
+  passwordHash    String?   @map("password_hash")
+  googleSub       String?   @unique @map("google_sub")
+  emailVerifiedAt DateTime? @map("email_verified_at")
+  lastLoginAt     DateTime? @map("last_login_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  contact  Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  sessions MemberSession[]
+
+  @@map("member_accounts")
+}
+
+model MemberSession {
+  id              String    @id @default(cuid())
+  memberAccountId String    @map("member_account_id")
+  sessionToken    String    @unique @map("session_token")
+  userAgent       String?   @map("user_agent")
+  ipAddress       String?   @map("ip_address")
+  deviceLabel     String?   @map("device_label")
+  lastSeenAt      DateTime  @map("last_seen_at")
+  expiresAt       DateTime  @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  memberAccount MemberAccount @relation(fields: [memberAccountId], references: [id], onDelete: Cascade)
+
+  @@index([memberAccountId])
+  @@index([expiresAt])
+  @@map("member_sessions")
+}
+
+model MemberAuthToken {
+  id               String                 @id @default(cuid())
+  contactId        String                 @map("contact_id")
+  tokenHash        String                 @unique @map("token_hash")
+  purpose          MemberAuthTokenPurpose
+  expiresAt        DateTime               @map("expires_at")
+  usedAt           DateTime?              @map("used_at")
+  createdByStaffId String?                @map("created_by_staff_id")
+  createdAt        DateTime               @default(now()) @map("created_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId])
+  @@map("member_auth_tokens")
+}
+
+model CourseModule {
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  title       String
+  bodyMd      String?  @map("body_md") @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isPublished Boolean  @default(false) @map("is_published")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder])
+  @@map("course_modules")
+}
+
+model LiveClassSession {
+  id                String    @id @default(cuid())
+  productId         String    @map("product_id")
+  title             String
+  description       String?   @db.Text
+  scheduledAt       DateTime? @map("scheduled_at")
+  meetUrl           String?   @map("meet_url")
+  recordingUrl      String?   @map("recording_url")
+  recordingPostedAt DateTime? @map("recording_posted_at")
+  recordingHiddenAt DateTime? @map("recording_hidden_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, scheduledAt])
+  @@map("live_class_sessions")
 }

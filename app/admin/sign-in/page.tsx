@@ -9,6 +9,10 @@ const SignInPage = async () => {
   const session = await auth();
   const staff = await getStaffSession();
 
+  if (session?.user?.kind === "member") {
+    redirect("/miembros");
+  }
+
   if (session?.user?.id && !staff) {
     redirect("/api/auth/signout?callbackUrl=/admin/sign-in");
   }

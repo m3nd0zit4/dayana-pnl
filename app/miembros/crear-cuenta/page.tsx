@@ -1,0 +1,59 @@
+import type { Metadata } from "next";
+import { BRAND } from "@/lib/contact";
+import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
+import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
+import RequestAccessForm from "@/app/components/miembros/RequestAccessForm";
+import SetPasswordForm from "@/app/components/miembros/SetPasswordForm";
+
+export const metadata: Metadata = {
+  title: `Crea tu cuenta — ${BRAND.name}`,
+  description: "Crea tu cuenta del portal de miembros.",
+  robots: { index: false, follow: false },
+};
+
+export const dynamic = "force-dynamic";
+
+type PageProps = {
+  searchParams: Promise<{ token?: string }>;
+};
+
+const Page = async ({ searchParams }: PageProps) => {
+  const { token } = await searchParams;
+
+  if (token) {
+    const peek = await peekMemberAuthToken(token);
+    if (peek) {
+      return (
+        <MemberAuthShell
+          eyebrow="Portal de miembros"
+          title="Crea tu contraseña"
+          description="Con ella entrarás al portal para ver tus clases, grabaciones y módulos."
+        >
+          <SetPasswordForm token={token} email={peek.email} />
+        </MemberAuthShell>
+      );
+    }
+
+    return (
+      <MemberAuthShell
+        eyebrow="Portal de miembros"
+        title="Enlace vencido"
+        description="Este enlace ya no es válido. Escribe tu correo y te enviamos uno nuevo."
+      >
+        <RequestAccessForm buttonLabel="Enviarme un enlace nuevo" />
+      </MemberAuthShell>
+    );
+  }
+
+  return (
+    <MemberAuthShell
+      eyebrow="Portal de miembros"
+      title="Crea tu cuenta"
+      description="Escribe el correo con el que te inscribiste al curso y te enviamos un enlace para crear tu contraseña."
+    >
+      <RequestAccessForm buttonLabel="Enviarme el enlace" />
+    </MemberAuthShell>
+  );
+};
+
+export default Page;

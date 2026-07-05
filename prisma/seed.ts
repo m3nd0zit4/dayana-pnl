@@ -175,6 +175,31 @@ async function seedMessageTemplates() {
       title: "Seguimiento lead",
       body: "Hola {{first_name}}, ¿sigues interesada en {{product_title}}? Estoy aquí para resolver dudas.",
     },
+    {
+      key: "member_invite",
+      title: "Invitación portal de miembros",
+      body: "Hola {{first_name}}, ya puedes crear tu cuenta del portal de miembros. Crea tu contraseña aquí: {{set_password_url}}",
+    },
+    {
+      key: "member_password_reset",
+      title: "Restablecer contraseña portal",
+      body: "Hola {{first_name}}, recibimos tu solicitud para restablecer la contraseña. Crea una nueva aquí: {{reset_url}}",
+    },
+    {
+      key: "membership_payment_due",
+      title: "Mensualidad por vencer",
+      body: "Hola {{first_name}}, tu mensualidad del curso vence el {{paid_until_date}}. Renueva aquí para no perder acceso: {{portal_url}}",
+    },
+    {
+      key: "membership_overdue",
+      title: "Mensualidad vencida",
+      body: "Hola {{first_name}}, tu mensualidad del curso venció el {{paid_until_date}}. Renueva aquí para recuperar acceso: {{portal_url}}",
+    },
+    {
+      key: "new_recording_posted",
+      title: "Nueva grabación disponible",
+      body: "Hola {{first_name}}, ya está disponible la grabación de {{class_title}}. Estará un mes en el portal: {{portal_url}}",
+    },
   ];
 
   for (const t of templates) {
