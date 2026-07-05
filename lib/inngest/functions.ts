@@ -6,7 +6,7 @@ import {
 } from "@prisma/client";
 import { inngest } from "./client";
 import { prisma } from "../db";
-import { isNotificationsEnabled } from "../notifications/config";
+import { isNotificationsEnabled, siteUrl } from "../notifications/config";
 import { dispatchAndRecord } from "../notifications/dispatch";
 import {
   BROADCAST_BATCH_SIZE,
@@ -20,6 +20,7 @@ import { sendMemberInviteEmail } from "../notifications/member-emails";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { applyMembershipExtension } from "../lms/membership";
+import { RECORDING_RETENTION_DAYS } from "../lms/course-content";
 import { createMemberAuthToken } from "../auth/member-tokens";
 
 export const paymentApprovedFn = inngest.createFunction(
@@ -238,10 +239,130 @@ export const staleCheckoutCleanupFn = inngest.createFunction(
   }
 );
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+const MEMBERSHIP_REMINDER_CHANNELS = ["EMAIL", "WHATSAPP_API"] as const;
+
+/**
+ * Daily membership reminders. Each window is exactly one day wide and the
+ * cron runs once a day, so every enrollment gets at most one "due soon" and
+ * one "overdue" notice per cycle — no dedupe table needed.
+ */
+export const membershipDueReminderFn = inngest.createFunction(
+  { id: "membership-due-reminder" },
+  { cron: "0 13 * * *" },
+  async ({ step }) => {
+    const now = Date.now();
+    const windows = [
+      {
+        key: "membership_payment_due",
+        gte: new Date(now + 3 * DAY_MS),
+        lt: new Date(now + 4 * DAY_MS),
+        fallback:
+          "Hola {{first_name}}, tu mensualidad del curso vence el {{paid_until_date}}. Renueva aquí: {{portal_url}}",
+      },
+      {
+        key: "membership_overdue",
+        gte: new Date(now - 2 * DAY_MS),
+        lt: new Date(now - 1 * DAY_MS),
+        fallback:
+          "Hola {{first_name}}, tu mensualidad del curso venció el {{paid_until_date}}. Renueva aquí: {{portal_url}}",
+      },
+    ];
+
+    let sent = 0;
+    let targets = 0;
+
+    for (const window of windows) {
+      const enrollments = await step.run(`find-${window.key}`, async () =>
+        prisma.enrollment.findMany({
+          where: {
+            status: EnrollmentStatus.ACTIVE,
+            product: { kind: ProductKind.COURSE },
+            paidUntil: { gte: window.gte, lt: window.lt },
+          },
+          include: { contact: true },
+        })
+      );
+
+      const template = await step.run(`template-${window.key}`, async () =>
+        prisma.messageTemplate.findUnique({
+          where: { key_locale: { key: window.key, locale: "es" } },
+        })
+      );
+      const body = template?.body ?? window.fallback;
+
+      for (const enrollment of enrollments) {
+        targets += 1;
+        await step.run(`${window.key}-${enrollment.id}`, async () => {
+          const contact = enrollment.contact;
+          const paidUntil = enrollment.paidUntil
+            ? new Date(enrollment.paidUntil as string | Date)
+            : null;
+          const vars = {
+            first_name: contact.firstName,
+            paid_until_date:
+              paidUntil?.toLocaleDateString("es-CO", { dateStyle: "long" }) ??
+              "",
+            portal_url: `${siteUrl()}/miembros`,
+          };
+          const rendered = renderQuickMessage(body, vars);
+
+          if (!isNotificationsEnabled()) {
+            await prisma.messageLog.create({
+              data: {
+                contactId: contact.id,
+                bodySnapshot: rendered,
+                channel: "INTERNAL",
+              },
+            });
+            return;
+          }
+
+          for (const channel of MEMBERSHIP_REMINDER_CHANNELS) {
+            const { result } = await dispatchAndRecord({
+              contactId: contact.id,
+              channel,
+              templateKey: window.key,
+              body: rendered,
+              vars,
+            });
+            if (result.status === NotificationDeliveryStatus.SENT) sent += 1;
+          }
+        });
+      }
+    }
+
+    return { targets, sent };
+  }
+);
+
+/** Hides class recordings 30 days after they were posted (URL kept for staff). */
+export const recordingAutoHideFn = inngest.createFunction(
+  { id: "recording-auto-hide" },
+  { cron: "30 5 * * *" },
+  async ({ step }) => {
+    const hidden = await step.run("hide-expired-recordings", async () => {
+      const cutoff = new Date(Date.now() - RECORDING_RETENTION_DAYS * DAY_MS);
+      const result = await prisma.liveClassSession.updateMany({
+        where: {
+          recordingUrl: { not: null },
+          recordingHiddenAt: null,
+          recordingPostedAt: { lt: cutoff },
+        },
+        data: { recordingHiddenAt: new Date() },
+      });
+      return result.count;
+    });
+    return { hidden };
+  }
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
   leadStaleFn,
   campaignBroadcastFn,
   staleCheckoutCleanupFn,
+  membershipDueReminderFn,
+  recordingAutoHideFn,
 ];

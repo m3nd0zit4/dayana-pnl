@@ -70,6 +70,7 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
   const [rows, setRows] = useState<LiveClassRow[]>(initialClasses);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
+  const [notifyingId, setNotifyingId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (preview) return;
@@ -136,6 +137,34 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
     toast(editor.id ? "Clase actualizada" : "Clase creada");
     setEditor(null);
     void reload();
+  };
+
+  const notifyRecording = (row: LiveClassRow) => {
+    confirm({
+      title: "Notificar grabación",
+      message: `Se avisará por correo y WhatsApp a los miembros al día que la grabación de «${row.title}» está disponible.`,
+      onConfirm: async () => {
+        setNotifyingId(row.id);
+        const res = await fetch(`/api/admin/lms/classes/${row.id}/notify`, {
+          method: "POST",
+        });
+        setNotifyingId(null);
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as {
+            error?: string;
+          } | null;
+          toast(
+            data?.error === "forbidden"
+              ? "Solo la propietaria puede enviar avisos masivos"
+              : "No se pudo notificar",
+            "error"
+          );
+          return;
+        }
+        const data = (await res.json()) as { targets: number; sent: number };
+        toast(`Aviso enviado (${data.sent} envíos a ${data.targets} miembros)`);
+      },
+    });
   };
 
   const remove = (row: LiveClassRow) => {
@@ -222,6 +251,18 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
 
                   {!preview && canWrite && (
                     <div className="flex flex-wrap items-center gap-2">
+                      {row.recordingUrl && !row.recordingHiddenAt && (
+                        <button
+                          type="button"
+                          className="crm-btn-secondary text-xs"
+                          disabled={notifyingId === row.id}
+                          onClick={() => notifyRecording(row)}
+                        >
+                          {notifyingId === row.id
+                            ? "Notificando…"
+                            : "Notificar grabación"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="crm-btn-secondary text-xs"

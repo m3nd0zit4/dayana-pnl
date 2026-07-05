@@ -56,12 +56,16 @@ export const getClassesForCourse = async (productId: string) => {
   });
 
   const now = new Date();
+  // A class with a recording is watchable material even if its scheduledAt
+  // is (still) in the future — treat it as past/recorded.
   const upcoming = classes
-    .filter((c) => c.scheduledAt && c.scheduledAt > now)
+    .filter((c) => c.scheduledAt && c.scheduledAt > now && !c.recordingUrl)
     .sort(
       (a, b) => (a.scheduledAt?.getTime() ?? 0) - (b.scheduledAt?.getTime() ?? 0)
     );
-  const past = classes.filter((c) => !c.scheduledAt || c.scheduledAt <= now);
+  const past = classes.filter(
+    (c) => !c.scheduledAt || c.scheduledAt <= now || c.recordingUrl
+  );
 
   return { upcoming, past, now };
 };
