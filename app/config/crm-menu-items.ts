@@ -2,6 +2,7 @@ import {
   CalendarDays,
   CreditCard,
   ExternalLink,
+  GraduationCap,
   HeartPulse,
   ClipboardList,
   Layers,
@@ -32,6 +33,7 @@ export const crmMenuSections: CrmMenuSection[] = [
     items: [
       { icon: Users, label: "Contactos", href: "/admin/contacts" },
       { icon: Layers, label: "Servicios", href: "/admin/services" },
+      { icon: GraduationCap, label: "Curso", href: "/admin/curso" },
       { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
       { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
     ],
