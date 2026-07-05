@@ -1,6 +1,8 @@
 import {
   EnrollmentStatus,
   NotificationDeliveryStatus,
+  PaymentStatus,
+  ProductKind,
 } from "@prisma/client";
 import { inngest } from "./client";
 import { prisma } from "../db";
@@ -14,8 +16,11 @@ import {
   startCampaignRun,
 } from "../notifications/campaigns";
 import { sendPaymentConfirmation } from "../notifications/payment-confirmation";
+import { sendMemberInviteEmail } from "../notifications/member-emails";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
+import { applyMembershipExtension } from "../lms/membership";
+import { createMemberAuthToken } from "../auth/member-tokens";
 
 export const paymentApprovedFn = inngest.createFunction(
   { id: "payment-approved" },
@@ -36,6 +41,52 @@ export const paymentApprovedFn = inngest.createFunction(
       if (!isNotificationsEnabled()) return { skipped: "disabled" };
       return sendPaymentConfirmation(enrollmentId);
     });
+
+    if (enrollment.product.kind === ProductKind.COURSE) {
+      // Safety net for extensions recordPayment swallowed (idempotent —
+      // membershipAppliedAt marks payments already counted).
+      await step.run("ensure-membership-extension", async () => {
+        const pending = await prisma.payment.findMany({
+          where: {
+            enrollmentId,
+            status: PaymentStatus.APPROVED,
+            membershipAppliedAt: null,
+          },
+          select: { id: true },
+        });
+        let extended = 0;
+        for (const payment of pending) {
+          const result = await applyMembershipExtension(payment.id);
+          if (result.extended) extended += 1;
+        }
+        return { pending: pending.length, extended };
+      });
+
+      await step.run("member-portal-invite", async () => {
+        const contact = await prisma.contact.findUnique({
+          where: { id: enrollment.contactId },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            memberAccount: { select: { id: true } },
+          },
+        });
+        if (!contact?.email) return { skipped: "no_email" };
+        if (contact.memberAccount) return { skipped: "has_account" };
+
+        const rawToken = await createMemberAuthToken({
+          contactId: contact.id,
+          purpose: "INVITE",
+        });
+        const { result } = await sendMemberInviteEmail({
+          contactId: contact.id,
+          firstName: contact.firstName,
+          rawToken,
+        });
+        return { status: result.status };
+      });
+    }
   }
 );
 
