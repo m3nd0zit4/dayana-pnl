@@ -11,7 +11,6 @@ export const metadata: Metadata = {
 
 const Page = () => (
   <MemberAuthShell
-    eyebrow="Portal de miembros"
     title="Recupera tu acceso"
     description="Escribe tu correo y te enviamos un enlace para crear una nueva contraseña."
   >

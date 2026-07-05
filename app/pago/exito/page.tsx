@@ -16,6 +16,7 @@ import {
   parseCheckoutReference,
 } from "../../../lib/crm/checkout-reference";
 import { findEnrollmentForCheckout } from "../../../lib/crm/checkout-fulfillment";
+import { syncMercadoPagoPayment } from "../../../lib/crm/mercadopago-payments";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 
@@ -178,6 +179,19 @@ const Page = async ({ searchParams }: PageProps) => {
     : `Hola Dayana, tuve un problema con el pago online${
         planTitle ? ` del plan ${planTitle}` : ""
       }. ¿Puedes ayudarme a completarlo?`;
+
+  // Mercado Pago returns here with `payment_id` on approved checkouts.
+  // Registration must not depend solely on the webhook arriving (a
+  // misconfigured or missing dashboard webhook silently drops it) — reconcile
+  // synchronously so the Payment/Enrollment rows exist before the lookups
+  // below run. Safe to repeat: recordPayment/fulfillCheckoutPayment are
+  // idempotent per provider+providerPaymentId, so a webhook that fires later
+  // (or already fired) is a no-op.
+  if (isSuccess && params.payment_id) {
+    await syncMercadoPagoPayment(params.payment_id).catch((e) => {
+      console.error("[pago/exito] mercadopago reconciliation failed", e);
+    });
+  }
 
   let enrollmentId =
     params.enrollmentId &&

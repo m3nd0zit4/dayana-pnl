@@ -6,7 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 const inputClass =
-  "w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/35 transition-colors focus:border-linen/60 focus:outline-none";
+  "w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none";
+
+const labelClass =
+  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50";
 
 const MemberSignInForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
   const searchParams = useSearchParams();
@@ -44,13 +47,13 @@ const MemberSignInForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {googleEnabled ? (
         <>
           <button
             type="button"
             onClick={() => signIn("google", { redirectTo: callbackUrl })}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/12 bg-white/[0.04] py-3.5 font-[font1] text-sm text-white/90 transition-colors hover:bg-white/[0.09]"
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-linen/20 bg-black/20 py-3.5 font-[font1] text-sm text-white/90 transition-colors hover:border-linen/40 hover:bg-linen/[0.06]"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden>
               <path
@@ -74,45 +77,46 @@ const MemberSignInForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
           </button>
 
           <div className="flex items-center gap-3" aria-hidden>
-            <span className="h-px flex-1 bg-white/10" />
+            <span className="h-px flex-1 bg-linen/15" />
             <span className="font-[font1] text-[11px] text-white/35">o</span>
-            <span className="h-px flex-1 bg-white/10" />
+            <span className="h-px flex-1 bg-linen/15" />
           </div>
         </>
       ) : null}
 
-      <form onSubmit={submit} className="space-y-3">
-        <input
-          type="email"
-          required
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Correo electrónico"
-          aria-label="Correo electrónico"
-          className={inputClass}
-        />
+      <form onSubmit={submit} className="space-y-4">
+        <label className="block">
+          <span className={labelClass}>Correo electrónico</span>
+          <input
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="tu@email.com"
+            className={inputClass}
+          />
+        </label>
 
-        <div>
+        <label className="block">
+          <span className={labelClass}>Contraseña</span>
           <input
             type="password"
             required
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Contraseña"
-            aria-label="Contraseña"
             className={inputClass}
           />
           <div className="mt-2 text-right">
             <Link
               href="/miembros/recuperar"
-              className="font-[font1] text-[12px] text-white/40 transition-colors hover:text-white/80"
+              className="font-[font1] text-[12px] text-white/40 transition-colors hover:text-terracotta"
             >
               Olvidé mi contraseña
             </Link>
           </div>
-        </div>
+        </label>
 
         {error && (
           <p className="font-[font1] text-[13px] text-blush" role="alert">
@@ -129,7 +133,7 @@ const MemberSignInForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
         </button>
       </form>
 
-      <p className="pt-2 text-center font-[font1] text-[13px] text-white/45">
+      <p className="pt-1 text-center font-[font1] text-[13px] text-white/45">
         ¿Primera vez aquí?{" "}
         <Link
           href="/miembros/crear-cuenta"

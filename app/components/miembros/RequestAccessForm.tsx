@@ -54,10 +54,10 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form onSubmit={submit} className="space-y-4">
       <label className="block">
-        <span className="mb-2 block font-[font2] uppercase text-[10px] tracking-[0.25em] text-white/50">
-          Email
+        <span className="mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50">
+          Correo electrónico
         </span>
         <input
           type="email"
@@ -66,12 +66,12 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="tu@email.com"
-          className="w-full rounded-xl border border-white/12 bg-white/[0.04] px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/35 transition-colors focus:border-linen/60 focus:outline-none"
+          className="w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none"
         />
       </label>
 
       {error && (
-        <p className="font-[font1] text-sm text-blush" role="alert">
+        <p className="font-[font1] text-[13px] text-blush" role="alert">
           {error}
         </p>
       )}

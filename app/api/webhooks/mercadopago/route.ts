@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PaymentProvider, PaymentStatus } from "@prisma/client";
-import {
-  recordPayment,
-  registerWebhookEvent,
-  resolveEnrollmentFromReference,
-} from "@/lib/crm/payments";
-import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
-import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
+import { PaymentProvider } from "@prisma/client";
+import { registerWebhookEvent } from "@/lib/crm/payments";
+import { syncMercadoPagoPayment } from "@/lib/crm/mercadopago-payments";
 import { verifyMercadoPagoWebhook } from "@/lib/webhooks/verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const getAccessToken = () => process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -53,86 +46,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  const token = getAccessToken();
-  if (!token) {
+  if (!process.env.MERCADOPAGO_ACCESS_TOKEN?.trim()) {
     return NextResponse.json({ error: "missing_token" }, { status: 503 });
   }
 
   try {
-    const res = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    const payment = (await res.json()) as {
-      id?: number;
-      status?: string;
-      external_reference?: string;
-      transaction_amount?: number;
-      currency_id?: string;
-      payer?: { email?: string };
-    };
-
-    if (!payment.external_reference) {
-      return NextResponse.json({ ok: true, skipped: true });
-    }
-
-    const mpStatus = payment.status ?? "";
-    const approved = mpStatus === "approved";
-    const failed =
-      mpStatus === "rejected" ||
-      mpStatus === "cancelled" ||
-      mpStatus === "charged_back";
-    const amountMinor = Math.round((payment.transaction_amount ?? 0) * 100);
-    const providerPaymentId = String(payment.id ?? paymentId);
-    const checkout = parseCheckoutReference(payment.external_reference);
-
-    if (checkout) {
-      if (!approved) {
-        return NextResponse.json({ ok: true, skipped_unpaid: true });
-      }
-
-      await fulfillCheckoutPayment({
-        contactId: checkout.contactId,
-        productId: checkout.planId,
-        provider: PaymentProvider.MERCADO_PAGO,
-        providerPaymentId,
-        status: PaymentStatus.APPROVED,
-        currency: payment.currency_id ?? "USD",
-        amountMinor,
-        payerEmail: payment.payer?.email,
-        rawPayload: payment,
-        paidAt: new Date(),
-      });
-
-      return NextResponse.json({ ok: true });
-    }
-
-    const enrollmentId = await resolveEnrollmentFromReference(
-      payment.external_reference
-    );
-    if (!enrollmentId) {
-      return NextResponse.json({ ok: true, enrollment_not_found: true });
-    }
-
-    await recordPayment({
-      enrollmentId,
-      provider: PaymentProvider.MERCADO_PAGO,
-      providerPaymentId,
-      status: approved
-        ? PaymentStatus.APPROVED
-        : failed
-          ? PaymentStatus.FAILED
-          : PaymentStatus.PENDING,
-      currency: payment.currency_id ?? "USD",
-      amountMinor,
-      payerEmail: payment.payer?.email,
-      rawPayload: payment,
-      paidAt: approved ? new Date() : undefined,
-    });
-
-    return NextResponse.json({ ok: true });
+    const result = await syncMercadoPagoPayment(paymentId);
+    return NextResponse.json({ ok: true, ...result });
   } catch (e) {
     console.error("[webhook mercadopago]", e);
     return NextResponse.json({ error: "processing_failed" }, { status: 500 });

@@ -25,7 +25,6 @@ const Page = async ({ searchParams }: PageProps) => {
     if (peek) {
       return (
         <MemberAuthShell
-          eyebrow="Portal de miembros"
           title="Crea tu contraseña"
           description="Con ella entrarás al portal para ver tus clases, grabaciones y módulos."
         >
@@ -36,7 +35,6 @@ const Page = async ({ searchParams }: PageProps) => {
 
     return (
       <MemberAuthShell
-        eyebrow="Portal de miembros"
         title="Enlace vencido"
         description="Este enlace ya no es válido. Escribe tu correo y te enviamos uno nuevo."
       >
@@ -47,7 +45,6 @@ const Page = async ({ searchParams }: PageProps) => {
 
   return (
     <MemberAuthShell
-      eyebrow="Portal de miembros"
       title="Crea tu cuenta"
       description="Escribe el correo con el que te inscribiste al curso y te enviamos un enlace para crear tu contraseña."
     >
