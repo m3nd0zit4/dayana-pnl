@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { after } from "next/server";
 import { PaymentProvider } from "@prisma/client";
 import { registerWebhookEvent } from "@/lib/crm/payments";
 import { syncMercadoPagoPayment } from "@/lib/crm/mercadopago-payments";
@@ -31,30 +32,33 @@ export async function POST(req: NextRequest) {
     data?: { id?: string };
   };
 
-  const eventId = String(payload.id ?? `${payload.type}-${payload.data?.id ?? Date.now()}`);
-  const isNew = await registerWebhookEvent(
-    PaymentProvider.MERCADO_PAGO,
-    eventId,
-    payload
-  );
-  if (!isNew) {
-    return NextResponse.json({ ok: true, duplicate: true });
-  }
-
   const paymentId = payload.data?.id;
   if (!paymentId) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  if (!process.env.MERCADOPAGO_ACCESS_TOKEN?.trim()) {
-    return NextResponse.json({ error: "missing_token" }, { status: 503 });
-  }
+  const eventId = String(payload.id ?? `${payload.type}-${paymentId}`);
 
-  try {
-    const result = await syncMercadoPagoPayment(paymentId);
-    return NextResponse.json({ ok: true, ...result });
-  } catch (e) {
-    console.error("[webhook mercadopago]", e);
-    return NextResponse.json({ error: "processing_failed" }, { status: 500 });
-  }
+  // Mercado Pago's webhook delivery times out fast and marks a slow response
+  // as "Falla en entrega" (502) even if we'd have succeeded a moment later —
+  // that silently dropped every payment that hit a cold start. Acknowledge
+  // immediately; do the actual DB writes + the callback fetch to MP's own
+  // Payments API afterward. `after()` extends the Vercel function's lifetime
+  // via waitUntil, so this still runs to completion.
+  after(async () => {
+    try {
+      const isNew = await registerWebhookEvent(
+        PaymentProvider.MERCADO_PAGO,
+        eventId,
+        payload
+      );
+      if (!isNew) return;
+
+      await syncMercadoPagoPayment(String(paymentId));
+    } catch (e) {
+      console.error("[webhook mercadopago]", e);
+    }
+  });
+
+  return NextResponse.json({ ok: true });
 }
