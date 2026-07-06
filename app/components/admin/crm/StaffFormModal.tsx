@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
 
@@ -64,39 +67,30 @@ const StaffFormModal = ({ open, onClose, onSaved }: Props) => {
   return (
     <CrmModal title="Añadir miembro del equipo" open={open} onClose={onClose}>
       <form className="space-y-4" onSubmit={submit}>
-        <div>
-          <label className="crm-label" htmlFor="s-name">
-            Nombre visible
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="s-name">Nombre visible</Label>
+          <Input
             id="s-name"
-            className="crm-input"
             required
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
-        <div>
-          <label className="crm-label" htmlFor="s-email">
-            Email
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="s-email">Email</Label>
+          <Input
             id="s-email"
             type="email"
-            className="crm-input"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div>
-          <label className="crm-label" htmlFor="s-pass">
-            Contraseña
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="s-pass">Contraseña</Label>
+          <Input
             id="s-pass"
             type="password"
-            className="crm-input"
             required
             minLength={12}
             value={password}
@@ -112,17 +106,17 @@ const StaffFormModal = ({ open, onClose, onSaved }: Props) => {
           searchMinOptions={99}
         />
         {error && (
-          <p className="text-sm text-[var(--crm-danger)]" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
         )}
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="crm-btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
-          </button>
-          <button type="submit" className="crm-btn-primary" disabled={loading}>
+          </Button>
+          <Button type="submit" disabled={loading}>
             {loading ? "Creando…" : "Crear usuario"}
-          </button>
+          </Button>
         </div>
       </form>
     </CrmModal>

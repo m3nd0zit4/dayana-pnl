@@ -20,6 +20,8 @@ import {
   groupProductsByKind,
   type ProductOption,
 } from "@/lib/crm/product-kind-labels";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { saveContactRecent } from "@/lib/crm/contact-search-recents";
 
@@ -258,8 +260,8 @@ const ContactDetailClient = ({
   return (
     <div className={isFocusNotebook ? "crm-focus-workspace" : "space-y-4"}>
       {!isFocusNotebook && (
-        <div className="crm-contact-header space-y-3">
-          <h1 className="crm-contact-name">
+        <div className="space-y-3">
+          <h1 className="text-xl font-semibold tracking-tight">
             {contact.firstName} {contact.lastName ?? ""}
           </h1>
           <WhatsAppContactBlock phoneE164={contact.phoneE164} compact />
@@ -277,59 +279,59 @@ const ContactDetailClient = ({
           <ContactEditForm contact={contact} />
           <section>
             <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-[var(--crm-muted)]">Servicios</h2>
-              <button
-                type="button"
-                className="crm-btn-ghost text-sm"
-                onClick={() => goToTab("servicios")}
-              >
+              <h2 className="text-sm font-semibold text-muted-foreground">Servicios</h2>
+              <Button variant="ghost" size="sm" onClick={() => goToTab("servicios")}>
                 {contact.enrollments.length > 0 ? "Ver todos" : "Agregar"}
-              </button>
+              </Button>
             </div>
-            <div className="crm-group">
-              {contact.enrollments.length === 0 ? (
-                <p className="px-4 py-5 text-sm text-[var(--crm-muted)]">Sin servicios</p>
-              ) : (
-                contact.enrollments.slice(0, 5).map((en) => (
-                  <Link
-                    key={en.id}
-                    href={`/admin/enrollments/${en.id}`}
-                    className="crm-group-row is-interactive"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <span className="font-medium">{en.product.title}</span>
-                      <span className="ml-2 text-xs text-[var(--crm-muted)]">
-                        {enrollmentStatusLabel(en.status)}
-                      </span>
-                    </div>
-                    <ChevronRight className="crm-group-chevron" aria-hidden />
-                  </Link>
-                ))
-              )}
-            </div>
+            <Card className="overflow-hidden py-0">
+              <CardContent className="divide-y divide-border p-0">
+                {contact.enrollments.length === 0 ? (
+                  <p className="px-4 py-5 text-sm text-muted-foreground">Sin servicios</p>
+                ) : (
+                  contact.enrollments.slice(0, 5).map((en) => (
+                    <Link
+                      key={en.id}
+                      href={`/admin/enrollments/${en.id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium">{en.product.title}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          {enrollmentStatusLabel(en.status)}
+                        </span>
+                      </div>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
           </section>
-          <section className="crm-surface-card p-4">
-            <QuickMessagesPanel vars={messageVars} />
-          </section>
+          <Card>
+            <CardContent>
+              <QuickMessagesPanel vars={messageVars} />
+            </CardContent>
+          </Card>
           {canWrite && (
-            <section className="crm-surface-card border border-red-200/80 p-4">
-              <h2 className="text-sm font-semibold text-[var(--crm-danger)]">
-                Zona de riesgo
-              </h2>
-              <p className="mt-1 text-sm text-[var(--crm-muted)]">
-                Elimina este contacto y todos sus datos del CRM.
-              </p>
-              <button
-                type="button"
-                className="crm-btn-danger mt-3"
-                onClick={() => {
-                  setDeleteError(null);
-                  setDeleteOpen(true);
-                }}
-              >
-                Eliminar contacto…
-              </button>
-            </section>
+            <Card className="border-destructive/30">
+              <CardContent>
+                <h2 className="text-sm font-semibold text-destructive">Zona de riesgo</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Elimina este contacto y todos sus datos del CRM.
+                </p>
+                <Button
+                  variant="destructive"
+                  className="mt-3"
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteOpen(true);
+                  }}
+                >
+                  Eliminar contacto…
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </>
       )}
@@ -337,7 +339,7 @@ const ContactDetailClient = ({
       {!isFocusNotebook && tab === "servicios" && (
         <section className="space-y-4">
           {canWrite && flatProducts.length > 0 && (
-            <div className="crm-filters">
+            <div className="flex flex-wrap items-end gap-3">
               <SearchableSelect
                 label="Producto"
                 hideLabel
@@ -347,72 +349,66 @@ const ContactDetailClient = ({
                 className="min-w-0 flex-1 sm:min-w-[200px]"
                 searchPlaceholder="Buscar producto…"
               />
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void addService()}
-                className="crm-btn-primary crm-btn-compact"
-              >
+              <Button disabled={busy} size="sm" onClick={() => void addService()}>
                 Nuevo servicio
-              </button>
+              </Button>
             </div>
           )}
           {canWrite && flatProducts.length === 0 && (
-            <p className="text-sm text-[var(--crm-muted)]">
+            <p className="text-sm text-muted-foreground">
               No hay productos activos.{" "}
-              <Link href="/admin/products" className="text-[var(--crm-accent)]">
+              <Link href="/admin/products" className="text-primary">
                 Configura el catálogo
               </Link>
               .
             </p>
           )}
-          <div className="crm-group">
-            {contact.enrollments.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-[var(--crm-muted)]">Sin servicios</p>
-            ) : (
-              contact.enrollments.map((en) => (
-                <div key={en.id} className="crm-group-row">
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold">{en.product.title}</div>
-                    <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
-                      {enrollmentStatusLabel(en.status)}
-                      {en.sessionsTotal != null &&
-                        ` · ${en.sessionsUsed}/${en.sessionsTotal} sesiones`}
+          <Card className="overflow-hidden py-0">
+            <CardContent className="divide-y divide-border p-0">
+              {contact.enrollments.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-muted-foreground">Sin servicios</p>
+              ) : (
+                contact.enrollments.map((en) => (
+                  <div key={en.id} className="flex items-center gap-3 p-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold">{en.product.title}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {enrollmentStatusLabel(en.status)}
+                        {en.sessionsTotal != null &&
+                          ` · ${en.sessionsUsed}/${en.sessionsTotal} sesiones`}
+                      </div>
+                      {en.product.kind === "THERAPY" &&
+                        en.sessionsTotal != null &&
+                        en.sessionsTotal > 0 && (
+                          <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-primary"
+                              style={{
+                                width: `${Math.min(100, (en.sessionsUsed / en.sessionsTotal) * 100)}%`,
+                              }}
+                            />
+                          </div>
+                        )}
                     </div>
-                    {en.product.kind === "THERAPY" &&
-                      en.sessionsTotal != null &&
-                      en.sessionsTotal > 0 && (
-                        <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-black/[0.06]">
-                          <div
-                            className="h-full rounded-full bg-[var(--crm-accent)]"
-                            style={{
-                              width: `${Math.min(100, (en.sessionsUsed / en.sessionsTotal) * 100)}%`,
-                            }}
-                          />
-                        </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      {canWrite && !en.payments.some((p) => p.status === "APPROVED") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPaymentEnrollment(en)}
+                        >
+                          Pago
+                        </Button>
                       )}
+                      <Button variant="ghost" size="sm" render={<Link href={`/admin/enrollments/${en.id}`} />}>
+                        Gestionar
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 flex-col items-end gap-2">
-                    {canWrite && !en.payments.some((p) => p.status === "APPROVED") && (
-                      <button
-                        type="button"
-                        className="crm-btn-secondary crm-btn-compact"
-                        onClick={() => setPaymentEnrollment(en)}
-                      >
-                        Pago
-                      </button>
-                    )}
-                    <Link
-                      href={`/admin/enrollments/${en.id}`}
-                      className="crm-btn-ghost text-xs"
-                    >
-                      Gestionar
-                    </Link>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </section>
       )}
 
@@ -437,30 +433,32 @@ const ContactDetailClient = ({
 
       {!isFocusNotebook && tab === "pagos" && (
         <section>
-          <div className="crm-group">
-            {allPayments.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-[var(--crm-muted)]">Sin pagos</p>
-            ) : (
-              allPayments.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/admin/enrollments/${p.enrollmentId}`}
-                  className="crm-group-row is-interactive"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">{p.productTitle}</p>
-                    <p className="text-xs text-[var(--crm-muted)]">
-                      {p.provider} · {p.status}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-sm tabular-nums">
-                    {(p.amountMinor / 100).toFixed(2)} {p.currency}
-                  </span>
-                  <ChevronRight className="crm-group-chevron" aria-hidden />
-                </Link>
-              ))
-            )}
-          </div>
+          <Card className="overflow-hidden py-0">
+            <CardContent className="divide-y divide-border p-0">
+              {allPayments.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-muted-foreground">Sin pagos</p>
+              ) : (
+                allPayments.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/admin/enrollments/${p.enrollmentId}`}
+                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">{p.productTitle}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {p.provider} · {p.status}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm tabular-nums">
+                      {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                    </span>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </Link>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </section>
       )}
 

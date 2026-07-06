@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ContactSource } from "@prisma/client";
 import { contactToFormValues, type ContactFormValues } from "@/app/config/contact-form";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import ContactFormFields from "./ContactFormFields";
 
 type Contact = {
@@ -68,28 +70,25 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
   };
 
   return (
-    <form
-      onSubmit={save}
-      className="crm-surface-card mb-8 space-y-4 border-l-4 border-l-[var(--crm-blush)] p-5"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="crm-section-title text-sm">Datos del contacto</h2>
-      </div>
-      <ContactFormFields values={values} onChange={patch} mode="edit" />
-      {error && (
-        <p className="text-sm text-[var(--crm-danger)]" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="flex items-center gap-3">
-        <button type="submit" className="crm-btn-primary" disabled={loading}>
-          {loading ? "Guardando…" : "Guardar cambios"}
-        </button>
-        {saved && (
-          <span className="text-sm text-[var(--crm-success)]">Guardado</span>
-        )}
-      </div>
-    </form>
+    <Card className="mb-8 border-l-4 border-l-accent">
+      <CardContent>
+        <form onSubmit={save} className="space-y-4">
+          <h2 className="text-sm font-semibold">Datos del contacto</h2>
+          <ContactFormFields values={values} onChange={patch} mode="edit" />
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+            {saved && <span className="text-sm text-green-700">Guardado</span>}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

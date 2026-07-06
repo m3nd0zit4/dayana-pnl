@@ -11,6 +11,12 @@ import {
   sanitizeLocalPhoneInput,
   validateLocalPhone,
 } from "@/lib/phone";
+import { cn } from "@/lib/utils";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { Input } from "@/app/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/app/components/ui/input-group";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import CountrySelect from "./CountrySelect";
 import SearchableSelect from "./SearchableSelect";
 import TimezoneSelect from "./TimezoneSelect";
@@ -29,7 +35,7 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
   const country = getCountryByIso(countryIso);
 
   const aiCls = (field: keyof ContactFormValues) =>
-    aiFilled?.has(field) ? " crm-input-ai" : "";
+    aiFilled?.has(field) ? "border-purple-300 ring-2 ring-purple-100" : "";
 
   const applyCountry = (iso2: string) => {
     if (!iso2) return;
@@ -67,7 +73,7 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
 
   return (
     <div className="space-y-4">
-      <p className="crm-font-display text-[10px] text-[var(--crm-muted)]">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
         Identidad y contacto
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -83,17 +89,14 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
 
         {mode === "create" && (
           <>
-            <div className="sm:col-span-2">
-              <label className="crm-label" htmlFor="cf-phone">
-                Teléfono WhatsApp *
-              </label>
-              <div className={`crm-phone-field${aiCls("phone")}`}>
-                <span className="crm-phone-prefix" aria-hidden>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="cf-phone">Teléfono WhatsApp *</Label>
+              <InputGroup className={cn("h-9", aiCls("phone"))}>
+                <InputGroupAddon className="text-foreground">
                   {country?.dialCode ?? "+57"}
-                </span>
-                <input
+                </InputGroupAddon>
+                <InputGroupInput
                   id="cf-phone"
-                  className="crm-phone-input"
                   required
                   inputMode="numeric"
                   autoComplete="tel-national"
@@ -103,14 +106,13 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
                   onBlur={handlePhoneBlur}
                   aria-describedby="cf-phone-hint"
                 />
-              </div>
+              </InputGroup>
               <p
                 id="cf-phone-hint"
-                className={`mt-1 text-[11px] ${
-                  phoneHint
-                    ? "text-[var(--crm-danger)]"
-                    : "text-[var(--crm-muted)]"
-                }`}
+                className={cn(
+                  "text-[11px]",
+                  phoneHint ? "text-destructive" : "text-muted-foreground"
+                )}
               >
                 {phoneHint ??
                   "Solo el móvil local, sin + ni prefijo (ya está en País)."}
@@ -128,68 +130,58 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
         )}
 
         {mode === "edit" && (
-          <div className="sm:col-span-2 rounded-xl border border-[var(--crm-border)] bg-white/60 px-4 py-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--crm-muted)]">
+          <div className="rounded-xl border border-border bg-card px-4 py-3 sm:col-span-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               Teléfono WhatsApp
             </p>
             <p className="mt-1 font-mono text-sm">{values.phone}</p>
           </div>
         )}
 
-        <div>
-          <label className="crm-label" htmlFor="cf-fn">
-            Nombre *
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="cf-fn">Nombre *</Label>
+          <Input
             id="cf-fn"
-            className={`crm-input${aiCls("firstName")}`}
             required
+            className={aiCls("firstName")}
             value={values.firstName}
             onChange={(e) => onChange({ firstName: e.target.value })}
           />
         </div>
-        <div>
-          <label className="crm-label" htmlFor="cf-ln">
-            Apellido
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="cf-ln">Apellido</Label>
+          <Input
             id="cf-ln"
-            className={`crm-input${aiCls("lastName")}`}
+            className={aiCls("lastName")}
             value={values.lastName}
             onChange={(e) => onChange({ lastName: e.target.value })}
           />
         </div>
-        <div className="sm:col-span-2">
-          <label className="crm-label" htmlFor="cf-dn">
-            Nombre para mostrar
-          </label>
-          <input
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="cf-dn">Nombre para mostrar</Label>
+          <Input
             id="cf-dn"
-            className={`crm-input${aiCls("displayName")}`}
+            className={aiCls("displayName")}
             placeholder="Opcional · si vacío se arma con nombre + apellido"
             value={values.displayName}
             onChange={(e) => onChange({ displayName: e.target.value })}
           />
         </div>
-        <div>
-          <label className="crm-label" htmlFor="cf-email">
-            Email
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="cf-email">Email</Label>
+          <Input
             id="cf-email"
             type="email"
-            className={`crm-input${aiCls("email")}`}
+            className={aiCls("email")}
             value={values.email}
             onChange={(e) => onChange({ email: e.target.value })}
           />
         </div>
-        <div>
-          <label className="crm-label" htmlFor="cf-tt">
-            TikTok (@usuario)
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="cf-tt">TikTok (@usuario)</Label>
+          <Input
             id="cf-tt"
-            className={`crm-input${aiCls("tiktokHandle")}`}
+            className={aiCls("tiktokHandle")}
             placeholder="@dayana"
             value={values.tiktokHandle}
             onChange={(e) => onChange({ tiktokHandle: e.target.value })}
@@ -197,7 +189,7 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
         </div>
       </div>
 
-      <p className="crm-font-display pt-2 text-[10px] text-[var(--crm-muted)]">
+      <p className="pt-2 text-[10px] text-muted-foreground uppercase tracking-wide">
         Ubicación e idioma
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -219,11 +211,11 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
             value={values.timezone}
             onChange={(timezone) => onChange({ timezone })}
           />
-          <p className="mt-1 text-[11px] text-[var(--crm-muted)]">{timezoneHint}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">{timezoneHint}</p>
         </div>
       </div>
 
-      <p className="crm-font-display pt-2 text-[10px] text-[var(--crm-muted)]">
+      <p className="pt-2 text-[10px] text-muted-foreground uppercase tracking-wide">
         Origen y consentimiento
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -239,13 +231,11 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
             searchMinOptions={99}
           />
         </div>
-        <div>
-          <label className="crm-label" htmlFor="cf-sd">
-            Detalle origen
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="cf-sd">Detalle origen</Label>
+          <Input
             id="cf-sd"
-            className={`crm-input${aiCls("sourceDetail")}`}
+            className={aiCls("sourceDetail")}
             placeholder="Ej. taller mayo, anuncio TikTok…"
             value={values.sourceDetail}
             onChange={(e) => onChange({ sourceDetail: e.target.value })}
@@ -254,32 +244,26 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
       </div>
       <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={values.consentData}
-            onChange={(e) => onChange({ consentData: e.target.checked })}
-            className="rounded border-[var(--crm-border)]"
+            onCheckedChange={(checked) => onChange({ consentData: checked === true })}
           />
           Consentimiento datos (RGPD / aviso privacidad)
         </label>
         <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={values.consentMarketing}
-            onChange={(e) => onChange({ consentMarketing: e.target.checked })}
-            className="rounded border-[var(--crm-border)]"
+            onCheckedChange={(checked) => onChange({ consentMarketing: checked === true })}
           />
           Consentimiento marketing
         </label>
       </div>
 
-      <div>
-        <label className="crm-label" htmlFor="cf-notes">
-          Notas internas
-        </label>
-        <textarea
+      <div className="space-y-1.5">
+        <Label htmlFor="cf-notes">Notas internas</Label>
+        <Textarea
           id="cf-notes"
-          className={`crm-textarea${aiCls("notes")}`}
+          className={aiCls("notes")}
           placeholder="Contexto clínico, preferencias, historial breve…"
           value={values.notes}
           onChange={(e) => onChange({ notes: e.target.value })}

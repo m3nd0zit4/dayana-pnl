@@ -13,6 +13,8 @@ import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { getLocalPhonePlaceholder } from "@/lib/phone";
 import type { CountryCode } from "libphonenumber-js";
 import type { ExtractedContactFields } from "@/lib/ai/contact-extraction";
+import { Button } from "@/app/components/ui/button";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import ContactFormFields from "./ContactFormFields";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
@@ -307,15 +309,11 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
             </p>
           )}
           {draftRestored && (
-            <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-linen)]/40 px-3 py-2 text-xs text-[var(--crm-muted)]">
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               <span>Borrador restaurado — seguiste donde ibas.</span>
-              <button
-                type="button"
-                className="crm-btn-ghost text-xs"
-                onClick={discardDraft}
-              >
+              <Button type="button" variant="ghost" size="sm" onClick={discardDraft}>
                 Descartar
-              </button>
+              </Button>
             </div>
           )}
           <ContactFormFields
@@ -325,22 +323,22 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
             aiFilled={aiFilled}
           />
           {error && (
-            <p className="text-sm text-[var(--crm-danger)]" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {error}
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" className="crm-btn-secondary" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
-            </button>
-            <button type="submit" className="crm-btn-primary" disabled={loading}>
+            </Button>
+            <Button type="submit" disabled={loading}>
               {loading ? "Guardando…" : "Crear contacto"}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
         <form className="space-y-4" onSubmit={submitService}>
-          <p className="text-sm text-[var(--crm-muted)]">
+          <p className="text-sm text-muted-foreground">
             Contacto creado. Puedes vincular un producto ahora o hacerlo después desde la ficha.
           </p>
           {productGroups.length > 0 ? (
@@ -353,38 +351,33 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
                 onChange={setProductId}
                 searchPlaceholder="Buscar producto…"
               />
-              <label className="flex items-center gap-2 text-sm text-[var(--crm-muted)]">
-                <input
-                  type="checkbox"
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Checkbox
                   checked={activateNow}
-                  onChange={(e) => setActivateNow(e.target.checked)}
+                  onCheckedChange={(checked) => setActivateNow(checked === true)}
                 />
                 Activar ya (terapia → aparece en Terapias con paquete de sesiones)
               </label>
             </>
           ) : (
-            <p className="rounded-lg border border-[var(--crm-border)] bg-[var(--crm-linen)]/30 p-3 text-sm text-[var(--crm-muted)]">
+            <p className="rounded-lg border border-border bg-secondary/30 p-3 text-sm text-muted-foreground">
               No hay productos activos en el catálogo. Crea uno en Productos o continúa sin
               servicio.
             </p>
           )}
           {error && (
-            <p className="text-sm text-[var(--crm-danger)]" role="alert">
+            <p className="text-sm text-destructive" role="alert">
               {error}
             </p>
           )}
           <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <button
-              type="button"
-              className="crm-btn-secondary"
-              onClick={finishWithoutService}
-            >
+            <Button type="button" variant="outline" onClick={finishWithoutService}>
               Omitir por ahora
-            </button>
+            </Button>
             {productGroups.length > 0 && (
-              <button type="submit" className="crm-btn-primary" disabled={loading}>
+              <Button type="submit" disabled={loading}>
                 {loading ? "Creando…" : "Crear servicio"}
-              </button>
+              </Button>
             )}
           </div>
         </form>

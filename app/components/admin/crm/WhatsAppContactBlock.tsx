@@ -2,6 +2,7 @@
 
 import { Copy, MessageCircle } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { Button } from "@/app/components/ui/button";
 import { useCrm } from "./CrmProvider";
 
 type Props = {
@@ -29,7 +30,7 @@ const WhatsAppContactBlock = ({
 
   if (!chatUrl) {
     return (
-      <p className="text-xs text-[var(--crm-muted)]">
+      <p className="text-xs text-muted-foreground">
         Ingresa un teléfono válido con código de país (ej. +57…) para abrir WhatsApp.
       </p>
     );
@@ -43,35 +44,27 @@ const WhatsAppContactBlock = ({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-[#128C7E]">
+          <p className="text-[10px] font-semibold text-[#128C7E] uppercase tracking-wide">
             {label}
           </p>
-          <p className="mt-1 font-mono text-sm text-[var(--crm-foreground)]">
-            {phoneE164}
-          </p>
+          <p className="mt-1 font-mono text-sm text-foreground">{phoneE164}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a
-            href={chatUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="crm-btn-primary inline-flex items-center gap-2 bg-[#25D366] hover:opacity-90"
+          <Button
+            className="bg-[#25D366] hover:bg-[#25D366]/90"
+            render={<a href={chatUrl} target="_blank" rel="noopener noreferrer" />}
           >
-            <MessageCircle className="size-4" />
+            <MessageCircle />
             Abrir chat
-          </a>
-          <button
-            type="button"
-            className="crm-btn-secondary inline-flex items-center gap-1.5 text-xs"
-            onClick={() => void copyPhone()}
-          >
-            <Copy className="size-3.5" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => void copyPhone()}>
+            <Copy />
             Copiar número
-          </button>
+          </Button>
         </div>
       </div>
       {!compact && (
-        <p className="mt-2 text-[11px] text-[var(--crm-muted)]">
+        <p className="mt-2 text-[11px] text-muted-foreground">
           Se abre WhatsApp con este contacto. Usa los mensajes rápidos de abajo para copiar el
           texto y pegarlo tú misma.
         </p>

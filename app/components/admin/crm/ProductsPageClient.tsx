@@ -3,6 +3,22 @@
 import { ProductKind } from "@prisma/client";
 import { Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { Textarea } from "@/app/components/ui/textarea";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
@@ -169,16 +185,15 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="crm-section-title text-xl">Productos</h1>
-            <p className="crm-section-subtitle mt-1 max-w-xl">
+            <h1 className="text-xl font-semibold tracking-tight">Productos</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               USD e Internacional (PayPal) · COP e Colombia (Mercado Pago). Ambos
               precios se editan y guardan juntos.
             </p>
           </div>
           {canManageTeam && !preview && (
-            <button
-              type="button"
-              className="crm-btn-primary crm-btn-compact"
+            <Button
+              size="sm"
               onClick={() => {
                 setCreating(true);
                 setEditing(null);
@@ -186,287 +201,253 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                 setCopForm(emptyCopForm());
               }}
             >
-              <Plus className="size-4" />
+              <Plus />
               <span className="hidden sm:inline">Nuevo producto</span>
-            </button>
+            </Button>
           )}
         </div>
 
-        {/* View tabs */}
-        <div className="flex gap-1 rounded-lg border border-[var(--crm-border)] bg-[var(--crm-linen)]/30 p-1 w-fit">
-          {(["usd", "cop"] as View[]).map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setView(v)}
-              className={`rounded-md px-4 py-1.5 text-xs font-medium transition-colors ${
-                view === v
-                  ? "bg-white shadow-sm text-[var(--crm-text)]"
-                  : "text-[var(--crm-muted)] hover:text-[var(--crm-text)]"
-              }`}
-            >
-              {v === "usd" ? "Internacional (USD)" : "Colombia (COP)"}
-            </button>
-          ))}
-        </div>
-
+        <Tabs value={view} onValueChange={(v) => typeof v === "string" && setView(v as View)}>
+          <TabsList>
+            <TabsTrigger value="usd">Internacional (USD)</TabsTrigger>
+            <TabsTrigger value="cop">Colombia (COP)</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Edit / Create form */}
         {showForm && canManageTeam && (
-          <div className="crm-surface-card space-y-4 p-5">
-            <h2 className="text-sm font-semibold">
-              {creating ? "Nuevo producto" : `Editar: ${editing?.title}`}
-            </h2>
+          <Card>
+            <CardContent className="space-y-4">
+              <h2 className="text-sm font-semibold">
+                {creating ? "Nuevo producto" : `Editar: ${editing?.title}`}
+              </h2>
 
-            {/* General fields */}
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SearchableSelect
-                label="Tipo"
-                value={form.kind}
-                options={Object.entries(KIND_LABEL).map(([value, label]) => ({
-                  value,
-                  label,
-                }))}
-                onChange={(kind) =>
-                  setForm((f) => ({ ...f, kind: kind as ProductKind }))
-                }
-                searchMinOptions={99}
-              />
-              <div>
-                <label className="crm-label">Título</label>
-                <input
-                  className="crm-input"
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="crm-label">Etiqueta sesiones</label>
-                <input
-                  className="crm-input"
-                  value={form.sessionsLabel}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, sessionsLabel: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <label className="crm-label">Nº sesiones (terapia)</label>
-                <input
-                  type="number"
-                  className="crm-input"
-                  value={form.sessionsCount}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, sessionsCount: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Price fields — both currencies in one save */}
-            <div className="border-t border-[var(--crm-border)] pt-4">
-              <p className="text-[10px] uppercase tracking-widest text-[var(--crm-muted)] mb-3">
-                Precio Internacional — USD (PayPal)
-              </p>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="crm-label">Precio USD</label>
-                  <input
-                    type="number"
-                    className="crm-input"
-                    value={form.amountUsd}
+                <SearchableSelect
+                  label="Tipo"
+                  value={form.kind}
+                  options={Object.entries(KIND_LABEL).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                  onChange={(kind) =>
+                    setForm((f) => ({ ...f, kind: kind as ProductKind }))
+                  }
+                  searchMinOptions={99}
+                />
+                <div className="space-y-1.5">
+                  <Label>Título</Label>
+                  <Input
+                    value={form.title}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Etiqueta sesiones</Label>
+                  <Input
+                    value={form.sessionsLabel}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, amountUsd: e.target.value }))
+                      setForm((f) => ({ ...f, sessionsLabel: e.target.value }))
                     }
                   />
                 </div>
-                <div>
-                  <label className="crm-label">Precio lista USD (opcional)</label>
-                  <input
+                <div className="space-y-1.5">
+                  <Label>Nº sesiones (terapia)</Label>
+                  <Input
                     type="number"
-                    className="crm-input"
-                    value={form.listAmountUsd}
+                    value={form.sessionsCount}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="border-t border-[var(--crm-border)] pt-4">
-              <p className="text-[10px] uppercase tracking-widest text-[var(--crm-muted)] mb-3">
-                Precio Colombia — COP (Mercado Pago)
-              </p>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="crm-label">Precio COP</label>
-                  <input
-                    type="number"
-                    className="crm-input"
-                    value={copForm.amountCop}
-                    onChange={(e) =>
-                      setCopForm((f) => ({ ...f, amountCop: e.target.value }))
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="crm-label">Precio lista COP (opcional)</label>
-                  <input
-                    type="number"
-                    className="crm-input"
-                    value={copForm.listAmountCop}
-                    onChange={(e) =>
-                      setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
+                      setForm((f) => ({ ...f, sessionsCount: e.target.value }))
                     }
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Description */}
-            <div>
-              <label className="crm-label">Fichas / descripción (una por línea)</label>
-              <textarea
-                className="crm-input min-h-[100px]"
-                value={form.description}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, description: e.target.value }))
-                }
-              />
-            </div>
+              <div className="border-t border-border pt-4">
+                <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
+                  Precio Internacional — USD (PayPal)
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Precio USD</Label>
+                    <Input
+                      type="number"
+                      value={form.amountUsd}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, amountUsd: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Precio lista USD (opcional)</Label>
+                    <Input
+                      type="number"
+                      value={form.listAmountUsd}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-border pt-4">
+                <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
+                  Precio Colombia — COP (Mercado Pago)
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Precio COP</Label>
+                    <Input
+                      type="number"
+                      value={copForm.amountCop}
+                      onChange={(e) =>
+                        setCopForm((f) => ({ ...f, amountCop: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Precio lista COP (opcional)</Label>
+                    <Input
+                      type="number"
+                      value={copForm.listAmountCop}
+                      onChange={(e) =>
+                        setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
 
-            {/* Active toggle */}
-            {!creating && (
-              <label className="flex items-center gap-2.5 cursor-pointer select-none w-fit">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-[var(--crm-border)] accent-[var(--crm-accent)] cursor-pointer"
-                  checked={form.isActive}
+              <div className="space-y-1.5">
+                <Label>Fichas / descripción (una por línea)</Label>
+                <Textarea
+                  className="min-h-[100px]"
+                  value={form.description}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, isActive: e.target.checked }))
+                    setForm((f) => ({ ...f, description: e.target.value }))
                   }
                 />
-                <span className="text-sm text-[var(--crm-text)]">
-                  Producto activo (visible en la web)
-                </span>
-              </label>
-            )}
+              </div>
 
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                className="crm-btn-primary"
-                onClick={() => void save()}
-              >
-                Guardar
-              </button>
-              <button
-                type="button"
-                className="crm-btn-secondary"
-                onClick={() => {
-                  setEditing(null);
-                  setCreating(false);
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
+              {!creating && (
+                <label className="flex w-fit cursor-pointer items-center gap-2.5 select-none">
+                  <Checkbox
+                    checked={form.isActive}
+                    onCheckedChange={(checked) =>
+                      setForm((f) => ({ ...f, isActive: checked === true }))
+                    }
+                  />
+                  <span className="text-sm">Producto activo (visible en la web)</span>
+                </label>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <Button onClick={() => void save()}>Guardar</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditing(null);
+                    setCreating(false);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Product table */}
-        <div className="crm-surface-card overflow-hidden">
-          {loading ? (
-            <p className="p-6 text-sm text-[var(--crm-muted)]">Cargando…</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[var(--crm-border)] bg-[var(--crm-linen)]/30 text-left text-[10px] uppercase tracking-widest text-[var(--crm-muted)]">
-                  <th className="p-3 font-medium">Producto</th>
-                  <th className="p-3 font-medium">Tipo</th>
-                  <th className="p-3 font-medium">
-                    {view === "usd" ? "Precio USD" : "Precio COP"}
-                  </th>
-                  <th className="p-3 font-medium">Activo</th>
-                  <th className="p-3 font-medium" />
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => {
-                  const usd = usdPrice(p);
-                  const cop = copPrice(p);
-                  const displayPrice = view === "usd" ? usd : cop;
-                  const currency = view === "usd" ? "USD" : "COP";
-                  return (
-                    <tr key={p.id} className="crm-table-row">
-                      <td className="p-3 font-medium">{p.title}</td>
-                      <td className="p-3 text-[var(--crm-muted)]">
-                        {KIND_LABEL[p.kind]}
-                      </td>
-                      <td className="p-3">
-                        {displayPrice ? (
-                          <>
-                            {view === "usd"
-                              ? (displayPrice.amountMinor / 100).toLocaleString("en-US", {
-                                  minimumFractionDigits: 0,
-                                  maximumFractionDigits: 2,
-                                })
-                              : displayPrice.amountMinor.toLocaleString("es-CO")}{" "}
-                            {currency}
-                            {displayPrice.listAmountMinor ? (
-                              <span className="ml-1 text-[10px] line-through text-[var(--crm-muted)]">
-                                {view === "usd"
-                                  ? (displayPrice.listAmountMinor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })
-                                  : displayPrice.listAmountMinor.toLocaleString("es-CO")}
-                              </span>
-                            ) : null}
-                          </>
-                        ) : (
-                          <span className="text-[var(--crm-muted)]">—</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {!p.isActive ? (
-                          <span className="inline-block rounded-full bg-[var(--crm-linen)] px-2 py-0.5 text-[10px] font-medium text-[var(--crm-muted)]">
-                            Inactivo
-                          </span>
-                        ) : !displayPrice ? (
-                          <span className="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                            Sin precio · No visible
-                          </span>
-                        ) : (
-                          <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800">
-                            Activo
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3 text-right">
-                        {canManageTeam && !preview && (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              className="crm-btn-ghost text-xs"
-                              onClick={() => openEdit(p)}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              className="crm-btn-ghost text-xs text-red-700"
-                              onClick={() => remove(p.id)}
-                            >
-                              Eliminar
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <Card className="overflow-hidden py-0">
+          <CardContent className="p-0">
+            {loading ? (
+              <p className="p-6 text-sm text-muted-foreground">Cargando…</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Producto</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>{view === "usd" ? "Precio USD" : "Precio COP"}</TableHead>
+                    <TableHead>Activo</TableHead>
+                    <TableHead />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((p) => {
+                    const usd = usdPrice(p);
+                    const cop = copPrice(p);
+                    const displayPrice = view === "usd" ? usd : cop;
+                    const currency = view === "usd" ? "USD" : "COP";
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.title}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {KIND_LABEL[p.kind]}
+                        </TableCell>
+                        <TableCell>
+                          {displayPrice ? (
+                            <>
+                              {view === "usd"
+                                ? (displayPrice.amountMinor / 100).toLocaleString("en-US", {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2,
+                                  })
+                                : displayPrice.amountMinor.toLocaleString("es-CO")}{" "}
+                              {currency}
+                              {displayPrice.listAmountMinor ? (
+                                <span className="ml-1 text-[10px] text-muted-foreground line-through">
+                                  {view === "usd"
+                                    ? (displayPrice.listAmountMinor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })
+                                    : displayPrice.listAmountMinor.toLocaleString("es-CO")}
+                                </span>
+                              ) : null}
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {!p.isActive ? (
+                            <Badge variant="secondary">Inactivo</Badge>
+                          ) : !displayPrice ? (
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+                              Sin precio · No visible
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">
+                              Activo
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {canManageTeam && !preview && (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openEdit(p)}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={() => remove(p.id)}
+                              >
+                                Eliminar
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </CrmPageShell>
   );

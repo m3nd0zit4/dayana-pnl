@@ -7,12 +7,12 @@ type Props = {
 };
 
 const CrmPageHeader = ({ title, action, trailing }: Props) => (
-  <header className="crm-page-header">
-    <div className="crm-page-header-main">
-      <h1 className="crm-page-title">{title}</h1>
-      {action ? <div className="crm-page-header-action">{action}</div> : null}
+  <header className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex items-center gap-3">
+      <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+      {action}
     </div>
-    {trailing ? <div className="crm-page-header-trailing">{trailing}</div> : null}
+    {trailing}
   </header>
 );
 

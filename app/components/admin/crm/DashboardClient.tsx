@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DashboardStats } from "@/lib/crm/dashboard-stats";
-import CrmPageHeader from "./CrmPageHeader";
+import { Alert, AlertDescription } from "@/app/components/ui/alert";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageShell from "./CrmPageShell";
 import CrmPaymentsChart from "./CrmPaymentsChart";
 import CrmPipelineChart from "./CrmPipelineChart";
@@ -42,7 +44,10 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
   if (error) {
     return (
       <CrmPageShell>
-        <p className="crm-alert-warning">{error}</p>
+        <Alert>
+          <TriangleAlert />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </CrmPageShell>
     );
   }
@@ -50,7 +55,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
   if (!data) {
     return (
       <CrmPageShell>
-        <p className="text-sm text-[var(--crm-muted)] animate-pulse">Cargando…</p>
+        <p className="animate-pulse text-sm text-muted-foreground">Cargando…</p>
       </CrmPageShell>
     );
   }
@@ -61,7 +66,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
   return (
     <CrmPageShell>
       <div className="space-y-5">
-        <CrmPageHeader title="Dashboard" />
+        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Leads / pendientes" value={stats.leads} />
@@ -73,7 +78,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
         {stats.unlinkedPaidEnrollments > 0 && (
           <Link
             href="/admin/payments"
-            className="block rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15 transition-colors"
+            className="block rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 transition-colors hover:bg-amber-500/15"
           >
             {stats.unlinkedPaidEnrollments} pago
             {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
@@ -90,56 +95,65 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <section>
-            <h2 className="mb-2 text-sm font-semibold text-[var(--crm-muted)]">
+            <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
               Contactos recientes
             </h2>
-            <div className="crm-group">
-              {recentContacts.length === 0 ? (
-                <p className="px-4 py-6 text-sm text-[var(--crm-muted)]">Sin contactos</p>
-              ) : (
-                recentContacts.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/admin/contacts/${c.id}`}
-                    className="crm-group-row is-interactive"
-                  >
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {c.firstName} {c.lastName ?? ""}
-                    </span>
-                    <span className="shrink-0 font-mono text-xs text-[var(--crm-muted)]">
-                      {c.phoneE164}
-                    </span>
-                    <ChevronRight className="crm-group-chevron" aria-hidden />
-                  </Link>
-                ))
-              )}
-            </div>
-            <Link href="/admin/contacts" className="crm-btn-ghost mt-3 inline-flex text-sm">
+            <Card className="overflow-hidden py-0">
+              <CardContent className="divide-y divide-border p-0">
+                {recentContacts.length === 0 ? (
+                  <p className="px-4 py-6 text-sm text-muted-foreground">Sin contactos</p>
+                ) : (
+                  recentContacts.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/admin/contacts/${c.id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium text-sm">
+                        {c.firstName} {c.lastName ?? ""}
+                      </span>
+                      <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                        {c.phoneE164}
+                      </span>
+                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    </Link>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-3"
+              render={<Link href="/admin/contacts" />}
+            >
               Ver todos
-            </Link>
+            </Button>
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-semibold text-[var(--crm-muted)]">
+            <h2 className="mb-2 text-sm font-semibold text-muted-foreground">
               Terapias en curso
             </h2>
-            <div className="crm-group">
-              {activeTherapyRows.length === 0 ? (
-                <p className="px-4 py-6 text-sm text-[var(--crm-muted)]">Sin terapias activas</p>
-              ) : (
-                activeTherapyRows.map((row) => (
-                  <div key={row.id} className="crm-group-row">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{row.contactName}</p>
-                      <p className="mt-0.5 text-xs text-[var(--crm-muted)]">
-                        {row.productTitle}
-                        {row.sessions ? ` · ${row.sessions} sesiones` : ""}
-                      </p>
+            <Card className="overflow-hidden py-0">
+              <CardContent className="divide-y divide-border p-0">
+                {activeTherapyRows.length === 0 ? (
+                  <p className="px-4 py-6 text-sm text-muted-foreground">Sin terapias activas</p>
+                ) : (
+                  activeTherapyRows.map((row) => (
+                    <div key={row.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm">{row.contactName}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {row.productTitle}
+                          {row.sessions ? ` · ${row.sessions} sesiones` : ""}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
           </section>
         </div>
       </div>

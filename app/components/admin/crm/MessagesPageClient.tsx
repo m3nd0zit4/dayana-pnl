@@ -3,6 +3,11 @@
 import { ChevronDown, Copy, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import CrmPageShell from "./CrmPageShell";
 import { useCrm } from "./CrmProvider";
 
@@ -45,11 +50,11 @@ const MessageTemplateCard = ({
   const bodyId = useId();
 
   return (
-    <article className="crm-surface-card overflow-hidden">
+    <Card className="overflow-hidden py-0">
       <div className="flex items-start gap-2 p-4 sm:p-5">
         <button
           type="button"
-          className="mt-0.5 flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-lg text-[var(--crm-muted)] transition-colors hover:bg-black/[0.04] hover:text-[var(--crm-foreground)]"
+          className="mt-0.5 flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-expanded={expanded}
           aria-controls={bodyId}
           aria-label={expanded ? "Ocultar texto" : "Ver texto"}
@@ -72,46 +77,43 @@ const MessageTemplateCard = ({
           >
             <span className="text-sm font-semibold leading-snug">{template.title}</span>
             {!expanded ? (
-              <span className="mt-1 block truncate text-xs text-[var(--crm-muted)]">
+              <span className="mt-1 block truncate text-xs text-muted-foreground">
                 {template.body.replace(/\s+/g, " ").trim()}
               </span>
             ) : null}
           </button>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            className="crm-btn-ghost inline-flex items-center gap-1 text-xs"
-            onClick={onCopy}
-          >
-            <Copy className="size-3.5" />
+          <Button variant="ghost" size="sm" onClick={onCopy}>
+            <Copy />
             <span className="hidden sm:inline">Copiar</span>
-          </button>
+          </Button>
           {canManageTeam && !preview && (
             <>
-              <button type="button" className="crm-btn-ghost text-xs" onClick={onEdit}>
+              <Button variant="ghost" size="sm" onClick={onEdit}>
                 Editar
-              </button>
-              <button
-                type="button"
-                className="crm-btn-ghost inline-flex items-center gap-1 text-xs text-red-700"
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
                 onClick={onRemove}
               >
-                <Trash2 className="size-3.5" />
+                <Trash2 />
                 <span className="hidden sm:inline">Borrar</span>
-              </button>
+              </Button>
             </>
           )}
         </div>
       </div>
       {expanded ? (
-        <div id={bodyId} className="border-t border-[var(--crm-border)] px-4 pb-4 pt-3 sm:px-5 sm:pb-5">
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--crm-muted)]">
+        <div id={bodyId} className="border-t border-border px-4 pt-3 pb-4 sm:px-5 sm:pb-5">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground">
             {template.body}
           </p>
         </div>
       ) : null}
-    </article>
+    </Card>
   );
 };
 
@@ -250,101 +252,86 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="crm-section-title text-xl">Mensajes rápidos</h1>
-            <p className="crm-section-subtitle mt-1 max-w-xl">
+            <h1 className="text-xl font-semibold tracking-tight">Mensajes rápidos</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               Tus textos personalizados para copiar y pegar en WhatsApp. En la ficha
               del contacto el nombre se sustituye solo al copiar.
             </p>
           </div>
           {canManageTeam && !preview && (
-            <button type="button" className="crm-btn-primary crm-btn-compact" onClick={startNew}>
-              <Plus className="size-4" />
+            <Button size="sm" onClick={startNew}>
+              <Plus />
               <span className="hidden sm:inline">Nuevo mensaje</span>
-            </button>
+            </Button>
           )}
         </div>
 
         {editing && canManageTeam && (
-          <div className="crm-surface-card space-y-4 p-5">
-            <div className="flex items-center gap-2">
-              <Sparkles className="size-4 text-[var(--crm-accent)]" />
-              <h2 className="text-sm font-semibold">
-                {editing.id ? "Editar mensaje" : "Nuevo mensaje"}
-              </h2>
-            </div>
-
-            <div>
-              <label className="crm-label" htmlFor="msg-title">
-                Cómo lo identificas tú
-              </label>
-              <input
-                id="msg-title"
-                className="crm-input mt-1"
-                placeholder="Seguimiento después del taller"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label className="crm-label" htmlFor="msg-body">
-                Texto para WhatsApp
-              </label>
-              <textarea
-                id="msg-body"
-                className="crm-textarea mt-1 min-h-[160px] text-sm leading-relaxed"
-                value={form.body}
-                onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-              />
-              <div className="mt-2 flex flex-wrap gap-2">
-                {VARIABLE_HINTS.map((v) => (
-                  <button
-                    key={v.token}
-                    type="button"
-                    className="rounded-full border border-[var(--crm-border)] bg-[var(--crm-linen)]/30 px-3 py-1 text-[11px] text-[var(--crm-muted)] transition hover:border-[var(--crm-accent)] hover:text-[var(--crm-foreground)]"
-                    onClick={() => insertToken(v.token)}
-                  >
-                    + {v.label}
-                  </button>
-                ))}
+          <Card>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="size-4 text-primary" />
+                <h2 className="text-sm font-semibold">
+                  {editing.id ? "Editar mensaje" : "Nuevo mensaje"}
+                </h2>
               </div>
-            </div>
 
-            <div className="flex gap-2 pt-1">
-              <button type="button" className="crm-btn-primary" onClick={() => void save()}>
-                Guardar
-              </button>
-              <button
-                type="button"
-                className="crm-btn-secondary"
-                onClick={() => setEditing(null)}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="msg-title">Cómo lo identificas tú</Label>
+                <Input
+                  id="msg-title"
+                  placeholder="Seguimiento después del taller"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="msg-body">Texto para WhatsApp</Label>
+                <Textarea
+                  id="msg-body"
+                  className="min-h-[160px] text-sm leading-relaxed"
+                  value={form.body}
+                  onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {VARIABLE_HINTS.map((v) => (
+                    <button
+                      key={v.token}
+                      type="button"
+                      className="rounded-full border border-border bg-secondary/50 px-3 py-1 text-[11px] text-muted-foreground transition hover:border-primary hover:text-foreground"
+                      onClick={() => insertToken(v.token)}
+                    >
+                      + {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button onClick={() => void save()}>Guardar</Button>
+                <Button variant="outline" onClick={() => setEditing(null)}>
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <div className="space-y-3">
-          {loading && (
-            <p className="text-sm text-[var(--crm-muted)]">Cargando…</p>
-          )}
+          {loading && <p className="text-sm text-muted-foreground">Cargando…</p>}
           {!loading && templates.length === 0 && !editing && (
-            <div className="crm-surface-card p-8 text-center">
-              <p className="text-sm text-[var(--crm-muted)]">
+            <Card className="p-8 text-center">
+              <p className="text-sm text-muted-foreground">
                 Aún no tienes mensajes propios.
               </p>
               {canManageTeam && !preview && (
-                <button
-                  type="button"
-                  className="crm-btn-primary mt-4"
-                  onClick={startNew}
-                >
-                  <Plus className="size-4" />
+                <Button className="mt-4" onClick={startNew}>
+                  <Plus />
                   Crear el primero
-                </button>
+                </Button>
               )}
-            </div>
+            </Card>
           )}
           {templates.map((t) => (
             <MessageTemplateCard
