@@ -1,8 +1,20 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import type { ReactNode } from "react";
+import { useIsMobile } from "@/app/hooks/use-mobile";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/app/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/app/components/ui/drawer";
 
 type Props = {
   title: string;
@@ -12,56 +24,48 @@ type Props = {
   large?: boolean;
 };
 
+/**
+ * Bottom sheet on mobile (matches the old .crm-modal behavior: anchored to
+ * the viewport bottom, rounded top only), centered dialog on desktop —
+ * same prop surface as before so every consumer (9+ modals) needs zero
+ * call-site changes.
+ */
 const CrmModal = ({ title, open, onClose, children, large }: Props) => {
-  const [mounted, setMounted] = useState(false);
+  const isMobile = useIsMobile();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const onOpenChange = (next: boolean) => {
+    if (!next) onClose();
+  };
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [open, onClose]);
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className={large ? "[--drawer-height:92dvh]" : undefined}>
+          <DrawerHeader>
+            <DrawerTitle>{title}</DrawerTitle>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            {children}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
-  if (!open || !mounted) return null;
-
-  return createPortal(
-    <div
-      className="crm-modal-backdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="crm-modal-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className={`crm-modal ${large ? "crm-modal-lg" : ""}`}>
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <h2 id="crm-modal-title" className="crm-page-title text-lg">
-            {title}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="crm-btn-icon size-8 shrink-0"
-            aria-label="Cerrar"
-          >
-            <X className="size-4" />
-          </button>
-        </div>
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "max-h-[92vh] overflow-y-auto sm:max-w-lg",
+          large && "sm:max-w-2xl"
+        )}
+      >
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
         {children}
-      </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 };
 
