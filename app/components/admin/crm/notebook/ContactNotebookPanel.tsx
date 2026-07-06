@@ -34,8 +34,6 @@ const BACKGROUND_OPTIONS: { value: NotebookPageBackground; label: string }[] = [
   { value: "GRID", label: "Cuadrícula" },
 ];
 
-const BLOB_WARN_DISMISS_KEY = "crm-notebook-blob-warn-dismissed";
-
 const ContactNotebookPanel = ({
   contactId,
   focusMode = false,
@@ -48,7 +46,6 @@ const ContactNotebookPanel = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [blobConfigured, setBlobConfigured] = useState(true);
-  const [showBlobWarn, setShowBlobWarn] = useState(false);
   const initRef = useRef<{ contactId: string; done: boolean }>({
     contactId: "",
     done: false,
@@ -63,6 +60,7 @@ const ContactNotebookPanel = ({
     });
     if (!res.ok) {
       if (res.status === 403) throw new Error("forbidden");
+      if (res.status === 503) throw new Error("blob_not_configured");
       throw new Error("load_failed");
     }
     const data = (await res.json()) as {
@@ -94,8 +92,15 @@ const ContactNotebookPanel = ({
           pages?: { id: string }[];
           blobConfigured?: boolean;
         };
-        if (typeof listData.blobConfigured === "boolean") {
-          setBlobConfigured(listData.blobConfigured);
+        const blobIsConfigured = listData.blobConfigured !== false;
+        setBlobConfigured(blobIsConfigured);
+
+        if (!blobIsConfigured) {
+          if (cancelled) return;
+          setPage(null);
+          setLoading(false);
+          initRef.current.done = true;
+          return;
         }
 
         let canvasPage: NotebookPageDetail | null = null;
@@ -131,15 +136,6 @@ const ContactNotebookPanel = ({
       cancelled = true;
     };
   }, [contactId, canEditNotes, loadCanvas]);
-
-  useEffect(() => {
-    if (blobConfigured) {
-      setShowBlobWarn(false);
-      return;
-    }
-    if (sessionStorage.getItem(BLOB_WARN_DISMISS_KEY) === "1") return;
-    setShowBlobWarn(true);
-  }, [blobConfigured]);
 
   const patchPage = async (
     pageId: string,
@@ -194,8 +190,8 @@ const ContactNotebookPanel = ({
 
   const blobWarnMessage =
     process.env.NODE_ENV === "production"
-      ? "Conecta Vercel Blob Storage al proyecto en el dashboard de Vercel para guardar los dibujos."
-      : "Para guardar dibujos en Vercel Blob en local, conéctalo o ejecuta bun run env:pull.";
+      ? "Conecta Vercel Blob Storage al proyecto en el dashboard de Vercel para activar el cuaderno."
+      : "Conecta Vercel Blob en local (o ejecuta bun run env:pull) para activar el cuaderno.";
 
   if (loading) {
     return (
@@ -221,6 +217,21 @@ const ContactNotebookPanel = ({
         >
           Recargar
         </button>
+      </section>
+    );
+  }
+
+  if (!blobConfigured) {
+    return (
+      <section className="crm-notebook-panel">
+        <div className="crm-notebook-empty">
+          <p className="text-sm font-medium text-[var(--crm-foreground)]">
+            Cuaderno clínico no configurado
+          </p>
+          <p className="mt-1.5 text-sm text-[var(--crm-muted)]">
+            {blobWarnMessage}
+          </p>
+        </div>
       </section>
     );
   }
@@ -285,22 +296,6 @@ const ContactNotebookPanel = ({
               )}
             </div>
           </div>
-
-          {showBlobWarn && (
-            <div className="crm-notebook-blob-warn">
-              <span>{blobWarnMessage} El dibujo se guarda en la base de datos.</span>
-              <button
-                type="button"
-                className="crm-notebook-blob-warn-dismiss"
-                onClick={() => {
-                  sessionStorage.setItem(BLOB_WARN_DISMISS_KEY, "1");
-                  setShowBlobWarn(false);
-                }}
-              >
-                Entendido
-              </button>
-            </div>
-          )}
 
           <NotebookCanvasEditor
             pageId={page.id}
