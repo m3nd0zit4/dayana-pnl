@@ -795,7 +795,9 @@ body {
   --sidebar-accent-foreground: #141210;
   --sidebar-border: rgba(20, 18, 16, 0.08);
   --sidebar-ring: rgba(212, 184, 150, 0.35);
-  --sidebar-width: 13.5rem;
+  /* Actual width is set via SidebarProvider's style prop in CrmShell.tsx —
+     the Sidebar component sets --sidebar-width inline on its own wrapper,
+     which wins over anything declared here regardless. */
 }
 
 @layer base {

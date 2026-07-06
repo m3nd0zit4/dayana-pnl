@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Menu } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import SmartContactSearch from "@/app/components/admin/crm/SmartContactSearch";
 import AdminSignOut from "@/app/components/admin/AdminSignOut";
 
@@ -8,29 +8,10 @@ type Props = {
   displayName: string;
   role: string;
   preview: boolean;
-  menuOpen: boolean;
-  onOpenMenu: () => void;
 };
 
-const CrmNavBar = ({
-  displayName,
-  role,
-  preview,
-  menuOpen,
-  onOpenMenu,
-}: Props) => (
+const CrmNavBar = ({ displayName, role, preview }: Props) => (
   <header className="crm-navbar sticky top-0 z-20 flex w-full shrink-0 items-center gap-2 px-3 py-2.5 backdrop-blur-xl backdrop-saturate-150 sm:gap-3 sm:px-4 lg:px-5">
-    <button
-      type="button"
-      className="crm-btn-icon crm-menu-trigger size-10 shrink-0 lg:hidden"
-      onClick={onOpenMenu}
-      aria-label={menuOpen ? "Cerrar menú" : "Abrir menú"}
-      aria-expanded={menuOpen}
-      aria-controls="crm-mobile-drawer"
-    >
-      <Menu className="size-5" strokeWidth={1.75} />
-    </button>
-
     {!preview ? (
       <SmartContactSearch compact placeholder="Buscar…" />
     ) : (

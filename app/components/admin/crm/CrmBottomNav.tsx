@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CreditCard, HeartPulse, Menu, Users } from "lucide-react";
+import { useSidebar } from "@/app/components/ui/sidebar";
 
-type Props = {
-  onOpenMenu: () => void;
-};
-
+/**
+ * Deliberately curated 3-shortcut subset — not derived from crmMenuSections.
+ * "Más" opens the full nav via the shadcn Sidebar's own mobile sheet.
+ */
 const tabs = [
   { href: "/admin/contacts", label: "Contactos", icon: Users },
   { href: "/admin/therapies", label: "Terapias", icon: HeartPulse },
   { href: "/admin/payments", label: "Pagos", icon: CreditCard },
 ] as const;
 
-const CrmBottomNav = ({ onOpenMenu }: Props) => {
+const CrmBottomNav = () => {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -41,7 +43,7 @@ const CrmBottomNav = ({ onOpenMenu }: Props) => {
       <button
         type="button"
         className="crm-bottom-nav-item"
-        onClick={onOpenMenu}
+        onClick={() => setOpenMobile(true)}
         aria-label="Más opciones"
       >
         <Menu className="size-[22px]" strokeWidth={1.75} />
