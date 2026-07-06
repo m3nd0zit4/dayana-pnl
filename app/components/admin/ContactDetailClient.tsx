@@ -400,7 +400,7 @@ const ContactDetailClient = ({
                           Pago
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" render={<Link href={`/admin/enrollments/${en.id}`} />}>
+                      <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/admin/enrollments/${en.id}`} />}>
                         Gestionar
                       </Button>
                     </div>

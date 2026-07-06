@@ -119,7 +119,7 @@ const TherapiesPageClient = ({
                   {tab === "active" ? "Sin terapias activas" : "Sin terapias por activar"}
                 </p>
                 {tab === "active" && (
-                  <Button variant="ghost" size="sm" className="mt-2" render={<Link href="/admin/contacts" />}>
+                  <Button variant="ghost" size="sm" className="mt-2" nativeButton={false} render={<Link href="/admin/contacts" />}>
                     Ir a contactos
                   </Button>
                 )}
@@ -165,6 +165,7 @@ const TherapiesPageClient = ({
                       variant="outline"
                       size="sm"
                       className="shrink-0"
+                      nativeButton={false}
                       render={<Link href={`/admin/enrollments/${row.enrollmentId}`} />}
                     >
                       {tab === "lead" ? "Activar" : "Gestionar"}

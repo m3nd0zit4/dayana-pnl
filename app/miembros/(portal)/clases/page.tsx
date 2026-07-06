@@ -82,7 +82,7 @@ const Page = async () => {
                         ) : null}
                       </div>
                       {isCurrent && cls.meetUrl ? (
-                        <Button render={<a href={cls.meetUrl} target="_blank" rel="noopener noreferrer" />}>
+                        <Button nativeButton={false} render={<a href={cls.meetUrl} target="_blank" rel="noopener noreferrer" />}>
                           Google Meet
                         </Button>
                       ) : null}

@@ -74,14 +74,14 @@ const Page = async ({ params }: PageProps) => {
       {(prev || next) && (
         <div className="mt-4 flex items-center justify-between gap-3">
           {prev ? (
-            <Button variant="outline" render={<Link href={`/miembros/modulos/${prev.id}`} />}>
+            <Button variant="outline" nativeButton={false} render={<Link href={`/miembros/modulos/${prev.id}`} />}>
               ← Anterior
             </Button>
           ) : (
             <span />
           )}
           {next ? (
-            <Button render={<Link href={`/miembros/modulos/${next.id}`} />}>
+            <Button nativeButton={false} render={<Link href={`/miembros/modulos/${next.id}`} />}>
               Siguiente →
             </Button>
           ) : null}

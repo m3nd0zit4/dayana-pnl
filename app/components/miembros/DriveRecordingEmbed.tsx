@@ -11,7 +11,7 @@ const DriveRecordingEmbed = ({ url, title }: DriveRecordingEmbedProps) => {
 
   if (!previewUrl) {
     return (
-      <Button variant="outline" render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
+      <Button variant="outline" nativeButton={false} render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
         Ver grabación
       </Button>
     );

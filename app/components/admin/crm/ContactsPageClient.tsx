@@ -157,6 +157,7 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                       className="shrink-0 text-[#128C7E]"
                       aria-label="WhatsApp"
                       onClick={(e) => e.stopPropagation()}
+                      nativeButton={false}
                       render={
                         <a
                           href={buildContactWhatsAppUrl(c.phoneE164)!}

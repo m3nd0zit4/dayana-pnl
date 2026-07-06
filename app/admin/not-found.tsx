@@ -28,8 +28,8 @@ const AdminNotFound = () => (
           o inicia sesión de nuevo si tu sesión expiró.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Button render={<Link href="/admin" />}>Ir al panel</Button>
-          <Button variant="outline" render={<Link href="/acceso" />}>
+          <Button nativeButton={false} render={<Link href="/admin" />}>Ir al panel</Button>
+          <Button variant="outline" nativeButton={false} render={<Link href="/acceso" />}>
             Iniciar sesión
           </Button>
         </div>

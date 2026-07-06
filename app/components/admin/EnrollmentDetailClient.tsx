@@ -321,6 +321,7 @@ const EnrollmentDetailClient = ({
             <Button
               variant="outline"
               size="sm"
+              nativeButton={false}
               render={<Link href={contactNotebookPath(enrollment.contact.id, { focus: true })} />}
             >
               <BookOpen aria-hidden />

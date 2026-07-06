@@ -68,7 +68,7 @@ const MembershipStatusCard = ({
         </div>
 
         {(!isCurrent || expiringSoon) && (
-          <Button className="mt-4" render={<Link href="/miembros/cuenta" />}>
+          <Button className="mt-4" nativeButton={false} render={<Link href="/miembros/cuenta" />}>
             {isCurrent
               ? "Renovar ahora"
               : hasEnrollment

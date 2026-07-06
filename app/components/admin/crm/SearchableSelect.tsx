@@ -85,6 +85,16 @@ const SearchableSelect = ({
 
   // --- Few options: plain dropdown, no search box (Select) ---
   if (!showSearch) {
+    // Base UI's Select.Value resolves its label from Root's `items`/
+    // `itemToStringLabel` (it doesn't mirror rendered SelectItem children
+    // like Radix does) — without this it displays the raw value string.
+    const emptyItem: SearchableSelectOption = { value: EMPTY_OPTION_VALUE, label: emptyLabel };
+    const selectItems: SearchableSelectOption[] = allowEmpty
+      ? [emptyItem, ...options]
+      : options;
+    const selectedItem =
+      selectItems.find((o) => o.value === (value || EMPTY_OPTION_VALUE)) ?? null;
+
     return (
       <div className={cn("flex flex-col gap-1.5", className)}>
         {!hideLabel && (
@@ -93,10 +103,13 @@ const SearchableSelect = ({
           </Label>
         )}
         <Select
-          value={value || (allowEmpty ? EMPTY_OPTION_VALUE : "")}
-          onValueChange={(next) =>
-            onChange(!next || next === EMPTY_OPTION_VALUE ? "" : next)
-          }
+          items={selectItems}
+          itemToStringLabel={(item: SearchableSelectOption | null) => item?.label ?? ""}
+          value={selectedItem}
+          onValueChange={(next: SearchableSelectOption | null) => {
+            if (!next) return;
+            onChange(next.value === EMPTY_OPTION_VALUE ? "" : next.value);
+          }}
           disabled={disabled}
         >
           <SelectTrigger
@@ -108,14 +121,14 @@ const SearchableSelect = ({
           </SelectTrigger>
           <SelectContent style={contentStyle}>
             {allowEmpty && (
-              <SelectItem value={EMPTY_OPTION_VALUE}>{emptyLabel}</SelectItem>
+              <SelectItem value={emptyItem}>{emptyLabel}</SelectItem>
             )}
             {options.map((o, i) => (
               <Fragment key={o.value}>
                 {priorityCount != null && priorityCount > 0 && i === priorityCount && (
                   <SelectSeparator />
                 )}
-                <SelectItem value={o.value}>
+                <SelectItem value={o}>
                   {o.label}
                   {o.hint ? ` (${o.hint})` : ""}
                 </SelectItem>

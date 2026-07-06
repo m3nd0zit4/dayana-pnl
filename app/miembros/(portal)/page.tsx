@@ -108,6 +108,7 @@ const Page = async () => {
               {isCurrent && nextClass.meetUrl ? (
                 <Button
                   className="mt-4"
+                  nativeButton={false}
                   render={
                     <a href={nextClass.meetUrl} target="_blank" rel="noopener noreferrer" />
                   }

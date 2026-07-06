@@ -52,6 +52,7 @@ const WhatsAppContactBlock = ({
         <div className="flex flex-wrap gap-2">
           <Button
             className="bg-[#25D366] hover:bg-[#25D366]/90"
+            nativeButton={false}
             render={<a href={chatUrl} target="_blank" rel="noopener noreferrer" />}
           >
             <MessageCircle />

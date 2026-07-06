@@ -125,6 +125,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
               variant="ghost"
               size="sm"
               className="mt-3"
+              nativeButton={false}
               render={<Link href="/admin/contacts" />}
             >
               Ver todos

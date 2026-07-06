@@ -154,6 +154,7 @@ const WorkshopsPageClient = ({
             size="icon"
             aria-label="Ver en web"
             title="Ver en web"
+            nativeButton={false}
             render={
               <Link href={`/taller-virtual/${e.slug}`} target="_blank" rel="noopener noreferrer" />
             }
