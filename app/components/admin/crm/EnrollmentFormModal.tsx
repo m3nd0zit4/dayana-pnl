@@ -8,6 +8,9 @@ import {
   workshopSelectOptions,
 } from "@/lib/crm/form-select-options";
 import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import ContactPickerField from "./ContactPickerField";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
@@ -141,13 +144,10 @@ const EnrollmentFormModal = ({
             panelMinWidth={200}
             searchMinOptions={99}
           />
-          <div>
-            <label className="crm-label" htmlFor="en-label">
-              Etiqueta interna
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="en-label">Etiqueta interna</Label>
+            <Input
               id="en-label"
-              className="crm-input"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Opcional"
@@ -155,17 +155,17 @@ const EnrollmentFormModal = ({
           </div>
         </div>
         {error && (
-          <p className="text-sm text-[var(--crm-danger)]" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
         )}
         <div className="flex justify-end gap-2">
-          <button type="button" className="crm-btn-secondary" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
-          </button>
-          <button type="submit" className="crm-btn-primary" disabled={loading}>
+          </Button>
+          <Button type="submit" disabled={loading}>
             {loading ? "Creando…" : "Crear servicio"}
-          </button>
+          </Button>
         </div>
       </form>
     </CrmModal>

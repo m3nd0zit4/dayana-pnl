@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import CrmDateTimePicker from "./CrmDateTimePicker";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
@@ -106,51 +109,40 @@ const ScheduleSessionModal = ({
     >
       <div className="space-y-4 text-sm">
         {(contactName || productTitle) && (
-          <p className="text-[var(--crm-muted)]">
+          <p className="text-muted-foreground">
             {contactName}
             {productTitle && <> · {productTitle}</>}
           </p>
         )}
-        <div>
-          <label className="crm-label" htmlFor="sched-at">
-            Fecha y hora
-          </label>
+        <div className="space-y-1.5">
+          <Label htmlFor="sched-at">Fecha y hora</Label>
           <CrmDateTimePicker
             id="sched-at"
             value={scheduledAt}
             onChange={setScheduledAt}
             disabled={busy}
-            className="mt-1"
           />
-          <p className="mt-1 text-[10px] text-[var(--crm-muted)]">
+          <p className="text-[10px] text-muted-foreground">
             Zona del contacto: {contactTimezone}. Las sesiones se agendan aquí;
             Dayana usa Google Calendar para la vista semanal.
           </p>
         </div>
-        <div>
-          <label className="crm-label" htmlFor="sched-meet">
-            Link Meet
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="sched-meet">Link Meet</Label>
+          <Input
             id="sched-meet"
-            className="crm-input mt-1"
             value={meetUrl}
             onChange={(e) => setMeetUrl(e.target.value)}
             placeholder="https://meet.google.com/..."
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" className="crm-btn-secondary" onClick={onClose}>
+          <Button variant="outline" onClick={onClose}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            className="crm-btn-primary"
-            disabled={busy || !scheduledAt}
-            onClick={() => void submit()}
-          >
+          </Button>
+          <Button disabled={busy || !scheduledAt} onClick={() => void submit()}>
             {busy ? "Agendando…" : "Agendar"}
-          </button>
+          </Button>
         </div>
       </div>
     </CrmModal>

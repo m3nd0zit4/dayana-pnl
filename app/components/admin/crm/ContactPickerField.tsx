@@ -7,6 +7,8 @@ import {
   saveContactRecent,
   type ContactRecentHit,
 } from "@/lib/crm/contact-search-recents";
+import { Button } from "@/app/components/ui/button";
+import { Label } from "@/app/components/ui/label";
 
 export type PickerContact = ContactRecentHit & {
   displayName?: string | null;
@@ -115,13 +117,11 @@ const ContactPickerField = ({
     <button
       key={c.id}
       type="button"
-      className="block w-full px-3 py-2.5 text-left hover:bg-[var(--crm-linen)]/40"
+      className="block w-full px-3 py-2.5 text-left hover:bg-muted/50"
       onClick={() => pick(c)}
     >
       <div className="text-sm font-medium">{contactLabel(c)}</div>
-      <div className="font-mono text-[11px] text-[var(--crm-muted)]">
-        {c.phoneE164}
-      </div>
+      <div className="font-mono text-[11px] text-muted-foreground">{c.phoneE164}</div>
     </button>
   );
 
@@ -129,24 +129,24 @@ const ContactPickerField = ({
 
   return (
     <div ref={wrapRef} className="relative">
-      <label className="crm-label" htmlFor={id}>
-        {label}
-      </label>
+      <Label htmlFor={id}>{label}</Label>
       {value && selectedLabel && !open ? (
-        <div className="crm-input flex items-center justify-between gap-2">
+        <div className="mt-1.5 flex h-9 items-center justify-between gap-2 rounded-lg border border-input px-2.5">
           <span className="truncate text-sm">{selectedLabel}</span>
-          <button
+          <Button
             type="button"
-            className="crm-btn-icon size-6 shrink-0"
+            variant="ghost"
+            size="icon"
+            className="size-6 shrink-0"
             aria-label="Quitar contacto seleccionado"
             onClick={clear}
           >
             <X className="size-3.5" />
-          </button>
+          </Button>
         </div>
       ) : (
-        <div className="crm-input flex items-center gap-2">
-          <Search className="size-4 shrink-0 text-[var(--crm-muted)]" />
+        <div className="mt-1.5 flex h-9 items-center gap-2 rounded-lg border border-input px-2.5 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+          <Search className="size-4 shrink-0 text-muted-foreground" />
           <input
             id={id}
             type="search"
@@ -164,31 +164,29 @@ const ContactPickerField = ({
               if (e.key === "Escape") setOpen(false);
             }}
             placeholder={placeholder}
-            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--crm-muted)]"
+            className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             autoComplete="off"
           />
         </div>
       )}
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-72 overflow-auto rounded-xl border border-[var(--crm-border)] bg-white py-1 shadow-lg">
+        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
           {showRecents && (
             <>
-              <p className="crm-font-display flex items-center gap-1.5 px-3 pb-1 pt-2 text-[10px] text-[var(--crm-muted)]">
+              <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">
                 <Clock className="size-3" />
                 Recientes
               </p>
               {recents.map((c) => renderRow(c))}
-              <div className="my-1 border-t border-[var(--crm-border)]" />
+              <div className="my-1 border-t border-border" />
             </>
           )}
           {loading && (
-            <p className="px-3 py-2 text-xs text-[var(--crm-muted)]">Buscando…</p>
+            <p className="px-3 py-2 text-xs text-muted-foreground">Buscando…</p>
           )}
           {!loading && hits.length === 0 && (
-            <p className="px-3 py-2 text-xs text-[var(--crm-muted)]">
-              Sin coincidencias
-            </p>
+            <p className="px-3 py-2 text-xs text-muted-foreground">Sin coincidencias</p>
           )}
           {!loading && hits.map((c) => renderRow(c))}
         </div>
