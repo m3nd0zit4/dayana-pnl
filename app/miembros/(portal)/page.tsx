@@ -11,6 +11,8 @@ import {
 } from "@/lib/lms/course-content";
 import MembershipStatusCard from "@/app/components/miembros/MembershipStatusCard";
 import DriveRecordingEmbed from "@/app/components/miembros/DriveRecordingEmbed";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 
 export const metadata: Metadata = {
   title: `Portal de miembros — ${BRAND.name}`,
@@ -38,10 +40,10 @@ const Page = async () => {
   return (
     <div className="space-y-6">
       <div>
-        <div className="portal-display text-[11px] text-[var(--portal-muted)]">
+        <div className="text-[11px] text-muted-foreground uppercase tracking-wide">
           Hola, {contact.firstName}
         </div>
-        <h1 className="portal-display mt-1 text-2xl text-[var(--portal-foreground)] lg:text-3xl">
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight lg:text-3xl">
           {courseProduct?.title ?? "Portal de miembros"}
         </h1>
       </div>
@@ -53,160 +55,168 @@ const Page = async () => {
         hasEnrollment={membership.enrollment != null}
       />
 
-      {/* Stats row */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="portal-card p-4">
-          <div className="portal-display flex items-center gap-2 text-[10px] text-[var(--portal-muted)]">
-            <CalendarDays className="size-3.5" aria-hidden /> Próxima clase
-          </div>
-          <div className="mt-2 text-sm font-semibold">
-            {nextClass?.scheduledAt
-              ? nextClass.scheduledAt.toLocaleDateString("es-CO", {
-                  day: "numeric",
-                  month: "long",
-                })
-              : "Por programar"}
-          </div>
-        </div>
-        <div className="portal-card p-4">
-          <div className="portal-display flex items-center gap-2 text-[10px] text-[var(--portal-muted)]">
-            <Video className="size-3.5" aria-hidden /> Grabaciones activas
-          </div>
-          <div className="mt-2 text-sm font-semibold">{visibleRecordings}</div>
-        </div>
-        <div className="portal-card p-4">
-          <div className="portal-display flex items-center gap-2 text-[10px] text-[var(--portal-muted)]">
-            <BookOpen className="size-3.5" aria-hidden /> Módulos publicados
-          </div>
-          <div className="mt-2 text-sm font-semibold">{modules.length}</div>
-        </div>
+        <Card className="py-4">
+          <CardContent className="px-4">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wide">
+              <CalendarDays className="size-3.5" aria-hidden /> Próxima clase
+            </div>
+            <div className="mt-2 text-sm font-semibold">
+              {nextClass?.scheduledAt
+                ? nextClass.scheduledAt.toLocaleDateString("es-CO", {
+                    day: "numeric",
+                    month: "long",
+                  })
+                : "Por programar"}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent className="px-4">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wide">
+              <Video className="size-3.5" aria-hidden /> Grabaciones activas
+            </div>
+            <div className="mt-2 text-sm font-semibold">{visibleRecordings}</div>
+          </CardContent>
+        </Card>
+        <Card className="py-4">
+          <CardContent className="px-4">
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wide">
+              <BookOpen className="size-3.5" aria-hidden /> Módulos publicados
+            </div>
+            <div className="mt-2 text-sm font-semibold">{modules.length}</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Next class */}
-      <section className="portal-card p-5 sm:p-6">
-        <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
-          Próxima clase en vivo
-        </h2>
-        {nextClass?.scheduledAt ? (
-          <div className="mt-3">
-            <div className="text-base font-semibold">{nextClass.title}</div>
-            <div className="mt-1 text-sm text-[var(--portal-muted)]">
-              {formatDateTime(nextClass.scheduledAt)}
-            </div>
-            {nextClass.description ? (
-              <p className="mt-3 text-sm leading-relaxed text-[#33302b]">
-                {nextClass.description}
-              </p>
-            ) : null}
-            {isCurrent && nextClass.meetUrl ? (
-              <a
-                href={nextClass.meetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="portal-btn-primary mt-4"
-              >
-                Unirme por Google Meet
-              </a>
-            ) : !isCurrent ? (
-              <p className="mt-3 text-xs text-[var(--portal-danger)]">
-                Renueva tu mensualidad para ver el enlace de la clase.
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-[var(--portal-muted)]">
-            Aún no hay una próxima clase programada. Te avisaremos por correo y
-            WhatsApp.
-          </p>
-        )}
-      </section>
-
-      {/* Latest recording */}
-      <section className="portal-card p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
-            Última grabación
+      <Card>
+        <CardContent>
+          <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
+            Próxima clase en vivo
           </h2>
-          <Link
-            href="/miembros/clases"
-            className="inline-flex items-center gap-1 text-xs text-[var(--portal-accent)] hover:underline"
-          >
-            Ver todas <ArrowRight className="size-3.5" aria-hidden />
-          </Link>
-        </div>
-        {latestRecording?.recordingPostedAt ? (
-          isCurrent ? (
-            <div className="mt-4 space-y-2">
-              <DriveRecordingEmbed
-                url={latestRecording.recordingUrl!}
-                title={latestRecording.title}
-              />
-              <div className="flex items-center justify-between text-xs text-[var(--portal-muted)]">
-                <span className="font-medium text-[var(--portal-foreground)]">
-                  {latestRecording.title}
-                </span>
-                <span>
-                  Disponible{" "}
-                  {recordingDaysLeft(latestRecording.recordingPostedAt)} días
-                  más
-                </span>
+          {nextClass?.scheduledAt ? (
+            <div className="mt-3">
+              <div className="text-base font-semibold">{nextClass.title}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {formatDateTime(nextClass.scheduledAt)}
               </div>
+              {nextClass.description ? (
+                <p className="mt-3 text-sm leading-relaxed">
+                  {nextClass.description}
+                </p>
+              ) : null}
+              {isCurrent && nextClass.meetUrl ? (
+                <Button
+                  className="mt-4"
+                  render={
+                    <a href={nextClass.meetUrl} target="_blank" rel="noopener noreferrer" />
+                  }
+                >
+                  Unirme por Google Meet
+                </Button>
+              ) : !isCurrent ? (
+                <p className="mt-3 text-xs text-destructive">
+                  Renueva tu mensualidad para ver el enlace de la clase.
+                </p>
+              ) : null}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-[#33302b]">
-              Hay una grabación reciente esperándote. Renueva tu mensualidad
-              para verla.
+            <p className="mt-3 text-sm text-muted-foreground">
+              Aún no hay una próxima clase programada. Te avisaremos por correo y
+              WhatsApp.
             </p>
-          )
-        ) : (
-          <p className="mt-3 text-sm text-[var(--portal-muted)]">
-            Todavía no hay grabaciones disponibles.
-          </p>
-        )}
-      </section>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Modules */}
-      <section className="portal-card p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="portal-display text-[11px] text-[var(--portal-muted)]">
-            Módulos del curso
-          </h2>
-          <Link
-            href="/miembros/modulos"
-            className="inline-flex items-center gap-1 text-xs text-[var(--portal-accent)] hover:underline"
-          >
-            Ver todos <ArrowRight className="size-3.5" aria-hidden />
-          </Link>
-        </div>
-        {modules.length > 0 ? (
-          <ul className="mt-3 divide-y divide-[var(--portal-border)]">
-            {modules.slice(0, 4).map((mod, i) => (
-              <li key={mod.id}>
-                <Link
-                  href={
-                    isCurrent ? `/miembros/modulos/${mod.id}` : "/miembros/cuenta"
-                  }
-                  className="flex items-center gap-4 py-3 transition-colors hover:bg-[rgba(236,227,212,0.35)]"
-                >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[rgba(212,184,150,0.3)] text-xs font-semibold text-[var(--portal-accent)]">
-                    {i + 1}
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
+              Última grabación
+            </h2>
+            <Link
+              href="/miembros/clases"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Ver todas <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </div>
+          {latestRecording?.recordingPostedAt ? (
+            isCurrent ? (
+              <div className="mt-4 space-y-2">
+                <DriveRecordingEmbed
+                  url={latestRecording.recordingUrl!}
+                  title={latestRecording.title}
+                />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {latestRecording.title}
                   </span>
-                  <span className="text-sm font-medium">{mod.title}</span>
-                  {!isCurrent && (
-                    <span className="portal-display ml-auto text-[9px] text-[var(--portal-muted)]">
-                      Bloqueado
+                  <span>
+                    Disponible{" "}
+                    {recordingDaysLeft(latestRecording.recordingPostedAt)} días
+                    más
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm">
+                Hay una grabación reciente esperándote. Renueva tu mensualidad
+                para verla.
+              </p>
+            )
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Todavía no hay grabaciones disponibles.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
+              Módulos del curso
+            </h2>
+            <Link
+              href="/miembros/modulos"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Ver todos <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </div>
+          {modules.length > 0 ? (
+            <ul className="mt-3 divide-y divide-border">
+              {modules.slice(0, 4).map((mod, i) => (
+                <li key={mod.id}>
+                  <Link
+                    href={
+                      isCurrent ? `/miembros/modulos/${mod.id}` : "/miembros/cuenta"
+                    }
+                    className="flex items-center gap-4 py-3 transition-colors hover:bg-secondary/40"
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent/40 text-xs font-semibold text-primary">
+                      {i + 1}
                     </span>
-                  )}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-3 text-sm text-[var(--portal-muted)]">
-            Los módulos se publicarán aquí muy pronto.
-          </p>
-        )}
-      </section>
+                    <span className="text-sm font-medium">{mod.title}</span>
+                    {!isCurrent && (
+                      <span className="ml-auto text-[9px] text-muted-foreground uppercase tracking-wide">
+                        Bloqueado
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Los módulos se publicarán aquí muy pronto.
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

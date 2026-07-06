@@ -1,9 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { BookOpen, Home, LogOut, User, Video } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+} from "@/app/components/ui/sidebar";
 
 const LINKS = [
   { href: "/miembros", label: "Inicio", icon: Home, exact: true },
@@ -16,90 +29,95 @@ const isActive = (pathname: string, href: string, exact: boolean) =>
   exact ? pathname === href : pathname.startsWith(href);
 
 const Brand = () => (
-  <Link href="/miembros" className="portal-display block leading-none">
-    <span className="block text-sm tracking-[0.14em] text-[var(--portal-foreground)]">
-      Dayana Beltrán
-    </span>
-    <span className="mt-1 block text-[9px] tracking-[0.45em] text-[var(--portal-muted)]">
+  <Link href="/miembros" className="block leading-none uppercase">
+    <span className="block text-sm tracking-[0.14em]">Dayana Beltrán</span>
+    <span className="mt-1 block text-[9px] tracking-[0.45em] text-muted-foreground">
       Portal del curso
     </span>
   </Link>
 );
 
-const PortalSidebar = ({ firstName }: { firstName: string }) => {
+const PortalSidebar = ({
+  firstName,
+  children,
+}: {
+  firstName: string;
+  children: ReactNode;
+}) => {
   const pathname = usePathname();
 
   return (
-    <>
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--portal-sidebar-w)] flex-col border-r border-[var(--portal-border)] bg-[var(--portal-card)] px-4 py-6 lg:flex">
-        <Brand />
-
-        <nav aria-label="Portal" className="mt-8 flex flex-1 flex-col gap-1">
-          {LINKS.map(({ href, label, icon: Icon, exact }) => (
-            <Link
-              key={href}
-              href={href}
-              data-active={isActive(pathname, href, exact)}
-              className="portal-sidebar-link"
-            >
-              <Icon className="size-4 shrink-0" aria-hidden />
-              {label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="border-t border-[var(--portal-border)] pt-4">
-          <div className="px-1 text-xs text-[var(--portal-muted)]">
-            {firstName}
-          </div>
-          <button
-            type="button"
-            onClick={() => signOut({ callbackUrl: "/acceso" })}
-            className="portal-sidebar-link mt-2 w-full"
-          >
-            <LogOut className="size-4 shrink-0" aria-hidden />
-            Salir
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 border-b border-[var(--portal-border)] bg-[var(--portal-card)]/95 backdrop-blur lg:hidden">
-        <div className="flex items-center justify-between px-4 pt-3">
+    <SidebarProvider style={{ "--sidebar-width": "15rem" } as CSSProperties}>
+      <Sidebar collapsible="offcanvas" className="border-r border-border">
+        <SidebarHeader className="px-3 py-5">
           <Brand />
-          <button
-            type="button"
+        </SidebarHeader>
+        <SidebarContent className="px-2">
+          <SidebarMenu>
+            {LINKS.map(({ href, label, icon: Icon, exact }) => (
+              <SidebarMenuItem key={href}>
+                <SidebarMenuButton
+                  isActive={isActive(pathname, href, exact)}
+                  render={<Link href={href} />}
+                >
+                  <Icon />
+                  {label}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+        <SidebarFooter className="border-t border-border px-3 py-4">
+          <div className="px-1 text-xs text-muted-foreground">{firstName}</div>
+          <Button
+            variant="ghost"
+            className="mt-2 w-full justify-start"
             onClick={() => signOut({ callbackUrl: "/acceso" })}
-            aria-label="Salir"
-            className="rounded-full border border-[var(--portal-border)] p-2 text-[var(--portal-muted)]"
           >
-            <LogOut className="size-4" aria-hidden />
-          </button>
-        </div>
-        <nav
-          aria-label="Portal"
-          className="flex gap-1 overflow-x-auto px-3 py-2"
-        >
-          {LINKS.map(({ href, label, exact }) => {
-            const active = isActive(pathname, href, exact);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`portal-display whitespace-nowrap rounded-full px-3.5 py-2 text-[10px] ${
-                  active
-                    ? "bg-[var(--portal-accent)] text-white"
-                    : "text-[var(--portal-muted)]"
-                }`}
-              >
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-      </header>
-    </>
+            <LogOut />
+            Salir
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
+
+      <SidebarInset className="bg-transparent">
+        {/* Mobile top bar — kept as its own always-visible header (not
+            Sidebar's Sheet): only 4 items, always reachable in one tap. */}
+        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between px-4 pt-3">
+            <Brand />
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/acceso" })}
+              aria-label="Salir"
+              className="rounded-full border border-border p-2 text-muted-foreground"
+            >
+              <LogOut className="size-4" aria-hidden />
+            </button>
+          </div>
+          <nav aria-label="Portal" className="flex gap-1 overflow-x-auto px-3 py-2">
+            {LINKS.map(({ href, label, exact }) => {
+              const active = isActive(pathname, href, exact);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`rounded-full px-3.5 py-2 text-[10px] whitespace-nowrap uppercase ${
+                    active ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+        </header>
+
+        <main className="min-h-screen px-4 pt-6 pb-16 lg:px-8 lg:pt-10">
+          <div className="mx-auto w-full max-w-4xl">{children}</div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

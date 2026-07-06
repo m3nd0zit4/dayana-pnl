@@ -7,6 +7,8 @@ import remarkGfm from "remark-gfm";
 import { BRAND } from "@/lib/contact";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { getPublishedModule, getPublishedModules } from "@/lib/lms/course-content";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 
 export const metadata: Metadata = {
   title: `Módulo — ${BRAND.name}`,
@@ -45,47 +47,43 @@ const Page = async ({ params }: PageProps) => {
     <article className="mx-auto max-w-2xl">
       <Link
         href="/miembros/modulos"
-        className="inline-flex items-center gap-1.5 text-[13px] text-[var(--portal-muted)] transition-colors hover:text-[var(--portal-foreground)]"
+        className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-3.5" aria-hidden /> Todos los módulos
       </Link>
 
-      <div className="portal-card mt-4 px-6 py-8 sm:px-10 sm:py-10">
-        {index >= 0 && (
-          <div className="portal-display text-[10px] text-[var(--portal-muted)]">
-            Módulo {index + 1} de {allModules.length}
-          </div>
-        )}
-        <h1 className="portal-display mt-2 text-xl leading-snug text-[var(--portal-foreground)] lg:text-2xl">
-          {courseModule.title}
-        </h1>
+      <Card className="mt-4">
+        <CardContent className="px-6 py-8 sm:px-10 sm:py-10">
+          {index >= 0 && (
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+              Módulo {index + 1} de {allModules.length}
+            </div>
+          )}
+          <h1 className="mt-2 text-xl leading-snug font-semibold lg:text-2xl">
+            {courseModule.title}
+          </h1>
 
-        <div className="prose-portal mt-8">
-          <Markdown remarkPlugins={[remarkGfm]}>
-            {courseModule.bodyMd ?? ""}
-          </Markdown>
-        </div>
-      </div>
+          <div className="prose-portal mt-8">
+            <Markdown remarkPlugins={[remarkGfm]}>
+              {courseModule.bodyMd ?? ""}
+            </Markdown>
+          </div>
+        </CardContent>
+      </Card>
 
       {(prev || next) && (
         <div className="mt-4 flex items-center justify-between gap-3">
           {prev ? (
-            <Link
-              href={`/miembros/modulos/${prev.id}`}
-              className="portal-btn-secondary"
-            >
+            <Button variant="outline" render={<Link href={`/miembros/modulos/${prev.id}`} />}>
               ← Anterior
-            </Link>
+            </Button>
           ) : (
             <span />
           )}
           {next ? (
-            <Link
-              href={`/miembros/modulos/${next.id}`}
-              className="portal-btn-primary"
-            >
+            <Button render={<Link href={`/miembros/modulos/${next.id}`} />}>
               Siguiente →
-            </Link>
+            </Button>
           ) : null}
         </div>
       )}

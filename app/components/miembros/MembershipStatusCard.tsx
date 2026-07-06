@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { CalendarClock } from "lucide-react";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 
 type MembershipStatusCardProps = {
   paidUntil: Date | null;
@@ -29,55 +32,52 @@ const MembershipStatusCard = ({
       };
 
   return (
-    <div className="portal-card p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="portal-display flex items-center gap-2 text-[11px] text-[var(--portal-muted)]">
-          <CalendarClock className="size-4" aria-hidden />
-          Tu membresía
+    <Card>
+      <CardContent>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground uppercase tracking-wide">
+            <CalendarClock className="size-4" aria-hidden />
+            Tu membresía
+          </div>
+          <Badge className={chip.cls}>{chip.label}</Badge>
         </div>
-        <span
-          className={`portal-display rounded-full px-3 py-1 text-[10px] ${chip.cls}`}
-        >
-          {chip.label}
-        </span>
-      </div>
 
-      <div className="mt-3 text-sm leading-relaxed text-[#33302b]">
-        {isCurrent && paidUntil ? (
-          <>
-            Tienes acceso hasta el{" "}
-            <strong>{formatDate(paidUntil)}</strong>
-            {daysLeft != null ? (
-              <span className="text-[var(--portal-muted)]">
-                {" "}
-                · {daysLeft} día{daysLeft === 1 ? "" : "s"}
-              </span>
-            ) : null}
-            .
-          </>
-        ) : hasEnrollment && paidUntil ? (
-          <>
-            Tu mensualidad venció el <strong>{formatDate(paidUntil)}</strong>.
-            Renueva para recuperar el acceso a clases, grabaciones y módulos.
-          </>
-        ) : (
-          <>
-            Activa tu mensualidad para acceder a las clases en vivo,
-            grabaciones y módulos.
-          </>
+        <div className="mt-3 text-sm leading-relaxed">
+          {isCurrent && paidUntil ? (
+            <>
+              Tienes acceso hasta el <strong>{formatDate(paidUntil)}</strong>
+              {daysLeft != null ? (
+                <span className="text-muted-foreground">
+                  {" "}
+                  · {daysLeft} día{daysLeft === 1 ? "" : "s"}
+                </span>
+              ) : null}
+              .
+            </>
+          ) : hasEnrollment && paidUntil ? (
+            <>
+              Tu mensualidad venció el <strong>{formatDate(paidUntil)}</strong>.
+              Renueva para recuperar el acceso a clases, grabaciones y módulos.
+            </>
+          ) : (
+            <>
+              Activa tu mensualidad para acceder a las clases en vivo,
+              grabaciones y módulos.
+            </>
+          )}
+        </div>
+
+        {(!isCurrent || expiringSoon) && (
+          <Button className="mt-4" render={<Link href="/miembros/cuenta" />}>
+            {isCurrent
+              ? "Renovar ahora"
+              : hasEnrollment
+                ? "Renovar mi mes"
+                : "Activar membresía"}
+          </Button>
         )}
-      </div>
-
-      {(!isCurrent || expiringSoon) && (
-        <Link href="/miembros/cuenta" className="portal-btn-primary mt-4">
-          {isCurrent
-            ? "Renovar ahora"
-            : hasEnrollment
-              ? "Renovar mi mes"
-              : "Activar membresía"}
-        </Link>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

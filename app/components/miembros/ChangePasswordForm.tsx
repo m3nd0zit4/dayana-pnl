@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-
-const labelClass =
-  "portal-display mb-1.5 block text-[10px] text-[var(--portal-muted)]";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 
 const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -57,24 +57,21 @@ const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
   return (
     <form onSubmit={submit} className="space-y-4">
       {hasPassword && (
-        <label className="block">
-          <span className={labelClass}>Contraseña actual</span>
-          <input
+        <div className="space-y-1.5">
+          <Label>Contraseña actual</Label>
+          <Input
             type="password"
             required
             autoComplete="current-password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="portal-input"
           />
-        </label>
+        </div>
       )}
 
-      <label className="block">
-        <span className={labelClass}>
-          {hasPassword ? "Nueva contraseña" : "Crea una contraseña"}
-        </span>
-        <input
+      <div className="space-y-1.5">
+        <Label>{hasPassword ? "Nueva contraseña" : "Crea una contraseña"}</Label>
+        <Input
           type="password"
           required
           minLength={12}
@@ -82,41 +79,39 @@ const ChangePasswordForm = ({ hasPassword }: { hasPassword: boolean }) => {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder="Mínimo 12 caracteres"
-          className="portal-input"
         />
-      </label>
+      </div>
 
-      <label className="block">
-        <span className={labelClass}>Confírmala</span>
-        <input
+      <div className="space-y-1.5">
+        <Label>Confírmala</Label>
+        <Input
           type="password"
           required
           minLength={12}
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="portal-input"
         />
-      </label>
+      </div>
 
       {error && (
-        <p className="text-sm text-[var(--portal-danger)]" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
       {done && (
-        <p className="text-sm text-[var(--portal-success)]" role="status">
+        <p className="text-sm text-green-700" role="status">
           Contraseña actualizada.
         </p>
       )}
 
-      <button type="submit" disabled={loading} className="portal-btn-secondary">
+      <Button type="submit" variant="outline" disabled={loading}>
         {loading
           ? "Guardando…"
           : hasPassword
             ? "Cambiar contraseña"
             : "Crear contraseña"}
-      </button>
+      </Button>
     </form>
   );
 };

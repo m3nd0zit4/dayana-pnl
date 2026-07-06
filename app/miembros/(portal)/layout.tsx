@@ -14,10 +14,9 @@ const PortalLayout = async ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="portal-app">
-      <PortalSidebar firstName={member.contact.firstName} />
-      <main className="min-h-screen px-4 pb-16 pt-6 lg:pl-[calc(var(--portal-sidebar-w)+2rem)] lg:pr-8 lg:pt-10">
-        <div className="mx-auto w-full max-w-4xl">{children}</div>
-      </main>
+      <PortalSidebar firstName={member.contact.firstName}>
+        {children}
+      </PortalSidebar>
     </div>
   );
 };

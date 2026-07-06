@@ -1,4 +1,5 @@
 import { drivePreviewUrl } from "@/lib/lms/drive";
+import { Button } from "@/app/components/ui/button";
 
 type DriveRecordingEmbedProps = {
   url: string;
@@ -10,19 +11,14 @@ const DriveRecordingEmbed = ({ url, title }: DriveRecordingEmbedProps) => {
 
   if (!previewUrl) {
     return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="portal-btn-secondary"
-      >
+      <Button variant="outline" render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
         Ver grabación
-      </a>
+      </Button>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--portal-border,rgba(20,18,16,0.08))] bg-black">
+    <div className="overflow-hidden rounded-xl border border-border bg-black">
       <iframe
         src={previewUrl}
         title={`Grabación — ${title}`}
