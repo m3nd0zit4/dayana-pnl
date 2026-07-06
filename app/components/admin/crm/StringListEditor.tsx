@@ -2,6 +2,9 @@
 
 import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 
 type Props = {
   label: string;
@@ -62,28 +65,24 @@ const StringListEditor = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="crm-label mb-0">{label}</span>
-        <button
-          type="button"
-          className="crm-btn-ghost text-xs"
-          onClick={() => insertAt(items.length)}
-        >
-          <Plus className="mr-1 inline size-3.5" />
+        <Label>{label}</Label>
+        <Button type="button" variant="ghost" size="sm" onClick={() => insertAt(items.length)}>
+          <Plus className="inline" />
           {addLabel}
-        </button>
+        </Button>
       </div>
       {items.length === 0 ? (
-        <p className="text-sm text-[var(--crm-muted)]">Sin ítems. Agrega uno.</p>
+        <p className="text-sm text-muted-foreground">Sin ítems. Agrega uno.</p>
       ) : (
         <>
           <ul className="space-y-2">
             {items.map((item, index) => (
               <li key={index} className="flex items-center gap-1.5">
-                <input
+                <Input
                   ref={(el) => {
                     inputsRef.current[index] = el;
                   }}
-                  className="crm-input min-w-0 flex-1"
+                  className="min-w-0 flex-1"
                   value={item}
                   placeholder={placeholder}
                   onChange={(e) => updateAt(index, e.target.value)}
@@ -101,39 +100,45 @@ const StringListEditor = ({
                     }
                   }}
                 />
-                <button
+                <Button
                   type="button"
-                  className="crm-btn-icon size-7 shrink-0"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
                   aria-label="Subir ítem"
                   title="Subir"
                 >
                   <ChevronUp className="size-3.5" />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="crm-btn-icon size-7 shrink-0"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
                   onClick={() => move(index, 1)}
                   disabled={index === items.length - 1}
                   aria-label="Bajar ítem"
                   title="Bajar"
                 >
                   <ChevronDown className="size-3.5" />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="crm-btn-icon size-7 shrink-0 text-red-700"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0 text-destructive"
                   onClick={() => removeAt(index)}
                   aria-label="Quitar ítem"
                   title="Quitar"
                 >
                   <X className="size-3.5" />
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
-          <p className="text-[11px] text-[var(--crm-muted)]">
+          <p className="text-[11px] text-muted-foreground">
             Enter agrega el siguiente · Backspace en vacío lo quita
           </p>
         </>

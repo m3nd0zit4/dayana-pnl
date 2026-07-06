@@ -4,9 +4,15 @@ import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Checkbox } from "@/app/components/ui/checkbox";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
-import CursoTabs from "./CursoTabs";
 import { useCrm } from "./CrmProvider";
 
 export type CourseModuleRow = {
@@ -146,104 +152,89 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="crm-section-title text-xl">Curso · Módulos</h1>
-            <p className="crm-section-subtitle mt-1">
+            <h1 className="text-xl font-semibold tracking-tight">Curso · Módulos</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               El material que Dayana enviaba por WhatsApp, ahora en el portal.
               Acepta Markdown (negritas, listas, títulos). Solo los publicados
               son visibles para los miembros.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <CursoTabs />
-            {!preview && canWrite && (
-              <button
-                type="button"
-                className="crm-btn-primary crm-btn-compact"
-                onClick={() => openEditor()}
-              >
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">Nuevo módulo</span>
-              </button>
-            )}
-          </div>
+          {!preview && canWrite && (
+            <Button size="sm" onClick={() => openEditor()}>
+              <Plus />
+              <span className="hidden sm:inline">Nuevo módulo</span>
+            </Button>
+          )}
         </div>
 
-        <div className="crm-surface-card overflow-hidden">
-          <ul className="divide-y divide-[var(--crm-border)]">
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0">
             {rows.length === 0 && (
-              <li className="p-8 text-center text-sm text-[var(--crm-muted)]">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 Sin módulos. Crea el primero con «Nuevo módulo».
-              </li>
+              </div>
             )}
             {rows.map((row, index) => (
-              <li key={row.id} className="crm-table-row p-4">
+              <div key={row.id} className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="w-8 text-center text-xs font-semibold text-[var(--crm-muted)]">
+                    <span className="w-8 text-center text-xs font-semibold text-muted-foreground">
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <div>
                       <div className="text-sm font-semibold">{row.title}</div>
-                      <span
-                        className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                      <Badge
+                        className={
                           row.isPublished
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-neutral-200 text-neutral-600"
-                        }`}
+                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-100 dark:text-emerald-700"
+                            : "bg-neutral-200 text-neutral-600 dark:bg-neutral-200 dark:text-neutral-600"
+                        }
                       >
                         {row.isPublished ? "Publicado" : "Borrador"}
-                      </span>
+                      </Badge>
                     </div>
                   </div>
 
                   {!preview && canWrite && (
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <button
-                        type="button"
-                        className="crm-btn-icon size-8"
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label="Subir"
                         disabled={index === 0 || reordering}
                         onClick={() => void move(index, -1)}
                       >
-                        <ArrowUp className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-btn-icon size-8"
+                        <ArrowUp />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label="Bajar"
                         disabled={index === rows.length - 1 || reordering}
                         onClick={() => void move(index, 1)}
                       >
-                        <ArrowDown className="size-4" />
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-btn-secondary text-xs"
+                        <ArrowDown />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => void togglePublished(row)}
                       >
                         {row.isPublished ? "Ocultar" : "Publicar"}
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-btn-secondary text-xs"
-                        onClick={() => openEditor(row)}
-                      >
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => openEditor(row)}>
                         Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-btn-ghost text-xs"
-                        onClick={() => remove(row)}
-                      >
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => remove(row)}>
                         Eliminar
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <CrmModal
@@ -254,38 +245,38 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
       >
         {editor && (
           <div className="space-y-4">
-            <label className="block">
-              <span className="crm-label">Título *</span>
-              <input
-                className="crm-input"
+            <div className="space-y-1.5">
+              <Label>Título *</Label>
+              <Input
                 value={editor.title}
                 onChange={(e) => setEditor({ ...editor, title: e.target.value })}
                 placeholder="Módulo 1 · Introducción a la PNL"
               />
-            </label>
+            </div>
 
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <span className="crm-label mb-0">Contenido (Markdown)</span>
-                <button
+                <Label className="mb-0">Contenido (Markdown)</Label>
+                <Button
                   type="button"
-                  className="crm-btn-ghost text-xs"
+                  variant="ghost"
+                  size="sm"
                   onClick={() =>
                     setEditor({ ...editor, showPreview: !editor.showPreview })
                   }
                 >
                   {editor.showPreview ? "Editar" : "Vista previa"}
-                </button>
+                </Button>
               </div>
               {editor.showPreview ? (
-                <div className="crm-surface-card max-h-[50vh] overflow-y-auto p-4 text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
+                <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-border bg-card p-4 text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
                   <Markdown remarkPlugins={[remarkGfm]}>
                     {editor.bodyMd || "*Sin contenido*"}
                   </Markdown>
                 </div>
               ) : (
-                <textarea
-                  className="crm-input min-h-[45vh] font-mono text-[13px]"
+                <Textarea
+                  className="min-h-[45vh] font-mono text-[13px]"
                   value={editor.bodyMd}
                   onChange={(e) =>
                     setEditor({ ...editor, bodyMd: e.target.value })
@@ -296,32 +287,22 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
             </div>
 
             <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={editor.isPublished}
-                onChange={(e) =>
-                  setEditor({ ...editor, isPublished: e.target.checked })
+                onCheckedChange={(checked) =>
+                  setEditor({ ...editor, isPublished: checked === true })
                 }
               />
               Publicado (visible para miembros al día)
             </label>
 
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="crm-btn-secondary"
-                onClick={() => setEditor(null)}
-              >
+              <Button variant="outline" onClick={() => setEditor(null)}>
                 Cancelar
-              </button>
-              <button
-                type="button"
-                className="crm-btn-primary"
-                disabled={saving}
-                onClick={() => void save()}
-              >
+              </Button>
+              <Button disabled={saving} onClick={() => void save()}>
                 {saving ? "Guardando…" : "Guardar"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

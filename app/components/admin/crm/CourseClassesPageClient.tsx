@@ -4,9 +4,13 @@ import { Plus, Video } from "lucide-react";
 import { useCallback, useState } from "react";
 import { drivePreviewUrl } from "@/lib/lms/drive";
 import { RECORDING_RETENTION_DAYS } from "@/lib/lms/course-content";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+import { Textarea } from "@/app/components/ui/textarea";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
-import CursoTabs from "./CursoTabs";
 import { useCrm } from "./CrmProvider";
 
 export type LiveClassRow = {
@@ -190,49 +194,42 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="crm-section-title text-xl">Curso · Clases</h1>
-            <p className="crm-section-subtitle mt-1">
+            <h1 className="text-xl font-semibold tracking-tight">Curso · Clases</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               Programa las clases en vivo (Google Meet) y pega el enlace de la
               grabación de Drive al terminar. La grabación se oculta sola a los{" "}
               {RECORDING_RETENTION_DAYS} días.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <CursoTabs />
-            {!preview && canWrite && (
-              <button
-                type="button"
-                className="crm-btn-primary crm-btn-compact"
-                onClick={() => openEditor()}
-              >
-                <Plus className="size-4" />
-                <span className="hidden sm:inline">Nueva clase</span>
-              </button>
-            )}
-          </div>
+          {!preview && canWrite && (
+            <Button size="sm" onClick={() => openEditor()}>
+              <Plus />
+              <span className="hidden sm:inline">Nueva clase</span>
+            </Button>
+          )}
         </div>
 
-        <div className="crm-surface-card overflow-hidden">
-          <ul className="divide-y divide-[var(--crm-border)]">
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0">
             {rows.length === 0 && (
-              <li className="p-8 text-center text-sm text-[var(--crm-muted)]">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 Sin clases. Crea la primera con «Nueva clase».
-              </li>
+              </div>
             )}
             {rows.map((row) => (
-              <li key={row.id} className="crm-table-row p-4">
+              <div key={row.id} className="p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold">{row.title}</div>
-                    <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
+                    <div className="mt-0.5 text-xs text-muted-foreground">
                       {formatDateTime(row.scheduledAt)}
                       {row.meetUrl ? " · Meet configurado" : " · Sin enlace Meet"}
                     </div>
                     <div className="mt-1 flex items-center gap-1.5 text-xs">
-                      <Video className="size-3.5 text-[var(--crm-muted)]" aria-hidden />
+                      <Video className="size-3.5 text-muted-foreground" aria-hidden />
                       {row.recordingUrl ? (
                         row.recordingHiddenAt ? (
-                          <span className="text-[var(--crm-muted)]">
+                          <span className="text-muted-foreground">
                             Grabación oculta (venció el mes)
                           </span>
                         ) : row.recordingPostedAt ? (
@@ -244,7 +241,7 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
                           <span className="text-emerald-700">Grabación publicada</span>
                         )
                       ) : (
-                        <span className="text-[var(--crm-muted)]">Sin grabación</span>
+                        <span className="text-muted-foreground">Sin grabación</span>
                       )}
                     </div>
                   </div>
@@ -252,38 +249,30 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
                   {!preview && canWrite && (
                     <div className="flex flex-wrap items-center gap-2">
                       {row.recordingUrl && !row.recordingHiddenAt && (
-                        <button
-                          type="button"
-                          className="crm-btn-secondary text-xs"
+                        <Button
+                          variant="outline"
+                          size="sm"
                           disabled={notifyingId === row.id}
                           onClick={() => notifyRecording(row)}
                         >
                           {notifyingId === row.id
                             ? "Notificando…"
                             : "Notificar grabación"}
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        type="button"
-                        className="crm-btn-secondary text-xs"
-                        onClick={() => openEditor(row)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => openEditor(row)}>
                         Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="crm-btn-ghost text-xs"
-                        onClick={() => remove(row)}
-                      >
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => remove(row)}>
                         Eliminar
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <CrmModal
@@ -294,85 +283,72 @@ const CourseClassesPageClient = ({ preview, initialClasses }: Props) => {
       >
         {editor && (
           <div className="space-y-4">
-            <label className="block">
-              <span className="crm-label">Título *</span>
-              <input
-                className="crm-input"
+            <div className="space-y-1.5">
+              <Label>Título *</Label>
+              <Input
                 value={editor.title}
                 onChange={(e) => setEditor({ ...editor, title: e.target.value })}
                 placeholder="Clase 5 · Anclajes"
               />
-            </label>
+            </div>
 
-            <label className="block">
-              <span className="crm-label">Descripción</span>
-              <textarea
-                className="crm-input min-h-20"
+            <div className="space-y-1.5">
+              <Label>Descripción</Label>
+              <Textarea
+                className="min-h-20"
                 value={editor.description}
                 onChange={(e) =>
                   setEditor({ ...editor, description: e.target.value })
                 }
               />
-            </label>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="crm-label">Fecha y hora</span>
-                <input
+              <div className="space-y-1.5">
+                <Label>Fecha y hora</Label>
+                <Input
                   type="datetime-local"
-                  className="crm-input"
                   value={editor.scheduledAtLocal}
                   onChange={(e) =>
                     setEditor({ ...editor, scheduledAtLocal: e.target.value })
                   }
                 />
-              </label>
-              <label className="block">
-                <span className="crm-label">Enlace Google Meet</span>
-                <input
-                  className="crm-input"
+              </div>
+              <div className="space-y-1.5">
+                <Label>Enlace Google Meet</Label>
+                <Input
                   value={editor.meetUrl}
                   onChange={(e) =>
                     setEditor({ ...editor, meetUrl: e.target.value })
                   }
                   placeholder="https://meet.google.com/…"
                 />
-              </label>
+              </div>
             </div>
 
-            <label className="block">
-              <span className="crm-label">Grabación (enlace de Google Drive)</span>
-              <input
-                className="crm-input"
+            <div className="space-y-1.5">
+              <Label>Grabación (enlace de Google Drive)</Label>
+              <Input
                 value={editor.recordingUrl}
                 onChange={(e) =>
                   setEditor({ ...editor, recordingUrl: e.target.value })
                 }
                 placeholder="https://drive.google.com/file/d/…/view"
               />
-              <span className="mt-1 block text-xs text-[var(--crm-muted)]">
+              <p className="text-xs text-muted-foreground">
                 En Drive, comparte el archivo como «Cualquier persona con el
                 enlace — Lector». Al pegarlo aquí empieza a contar el mes de
                 disponibilidad.
-              </span>
-            </label>
+              </p>
+            </div>
 
             <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="crm-btn-secondary"
-                onClick={() => setEditor(null)}
-              >
+              <Button variant="outline" onClick={() => setEditor(null)}>
                 Cancelar
-              </button>
-              <button
-                type="button"
-                className="crm-btn-primary"
-                disabled={saving}
-                onClick={() => void save()}
-              >
+              </Button>
+              <Button disabled={saving} onClick={() => void save()}>
                 {saving ? "Guardando…" : "Guardar"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

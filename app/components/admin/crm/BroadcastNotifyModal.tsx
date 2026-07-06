@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/app/components/ui/button";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
@@ -123,8 +124,8 @@ const BroadcastNotifyModal = ({
     <CrmModal open={open} title="Notificar contactos" onClose={onClose}>
       <div className="space-y-4 text-sm">
         {workshopTitle && (
-          <p className="rounded-xl bg-[var(--crm-surface)] px-3 py-2 text-[var(--crm-muted)]">
-            Taller: <strong className="text-[var(--crm-ink)]">{workshopTitle}</strong>
+          <p className="rounded-xl bg-secondary/40 px-3 py-2 text-muted-foreground">
+            Taller: <strong className="text-foreground">{workshopTitle}</strong>
           </p>
         )}
 
@@ -146,11 +147,9 @@ const BroadcastNotifyModal = ({
           searchMinOptions={99}
         />
 
-        <p className="text-[11px] leading-relaxed text-[var(--crm-muted)]">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
           Cada contacto con correo recibirá el aviso con el diseño de la marca.
-          Listas grandes se envían en lotes en segundo plano — revisa el progreso
-          en{" "}
-          <span className="text-[var(--crm-accent)]">Notificaciones</span>.
+          Listas grandes se envían en lotes en segundo plano.
         </p>
 
         <p className="rounded-lg border border-sky-200/80 bg-sky-50/80 px-3 py-2 text-[11px] leading-relaxed text-sky-900">
@@ -160,22 +159,12 @@ const BroadcastNotifyModal = ({
         </p>
 
         <div className="flex justify-end gap-2 pt-2">
-          <button
-            type="button"
-            className="crm-btn-secondary"
-            onClick={onClose}
-            disabled={loading}
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            className="crm-btn-primary"
-            disabled={loading}
-            onClick={handleSend}
-          >
+          </Button>
+          <Button disabled={loading} onClick={handleSend}>
             {loading ? "Enviando…" : "Enviar campaña"}
-          </button>
+          </Button>
         </div>
       </div>
     </CrmModal>

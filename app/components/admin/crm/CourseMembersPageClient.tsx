@@ -4,9 +4,13 @@ import Link from "next/link";
 import { CreditCard, Mail, CalendarClock } from "lucide-react";
 import { useCallback, useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
-import CursoTabs from "./CursoTabs";
 import RegisterPaymentModal from "./RegisterPaymentModal";
 import { useCrm } from "./CrmProvider";
 
@@ -121,42 +125,39 @@ const CourseMembersPageClient = ({
   return (
     <CrmPageShell>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="crm-section-title text-xl">Curso · Miembros</h1>
-            <p className="crm-section-subtitle mt-1">
-              Membresías mensuales de «{courseTitle}». Cada pago aprobado suma
-              un mes de acceso al portal.
-            </p>
-          </div>
-          <CursoTabs />
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Curso · Miembros</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Membresías mensuales de «{courseTitle}». Cada pago aprobado suma
+            un mes de acceso al portal.
+          </p>
         </div>
 
-        <div className="crm-surface-card overflow-hidden">
-          <ul className="divide-y divide-[var(--crm-border)]">
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0">
             {rows.length === 0 && (
-              <li className="p-8 text-center text-sm text-[var(--crm-muted)]">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 Sin miembros todavía. Se crean al pagar el curso o al vincular
                 el producto desde un contacto.
-              </li>
+              </div>
             )}
             {rows.map((row) => {
               const chip = membershipChip(row);
               return (
-                <li key={row.enrollmentId} className="crm-table-row p-4">
+                <div key={row.enrollmentId} className="p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <Link
                         href={preview ? "#" : `/admin/contacts/${row.contact.id}`}
-                        className="text-sm font-semibold text-[var(--crm-foreground)] hover:underline"
+                        className="text-sm font-semibold hover:underline"
                       >
                         {row.contact.firstName} {row.contact.lastName ?? ""}
                       </Link>
-                      <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
+                      <div className="mt-0.5 text-xs text-muted-foreground">
                         {row.contact.email ?? "Sin email"} ·{" "}
                         {row.contact.phoneE164}
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-[var(--crm-muted)]">
+                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span>
                           Último pago: {formatDate(row.lastPaymentAt)} (
                           {row.paymentsCount})
@@ -169,20 +170,16 @@ const CourseMembersPageClient = ({
                     </div>
 
                     <div className="text-right">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${chip.cls}`}
-                      >
-                        {chip.label}
-                      </span>
-                      <div className="mt-1 text-xs text-[var(--crm-muted)]">
+                      <Badge className={chip.cls}>{chip.label}</Badge>
+                      <div className="mt-1 text-xs text-muted-foreground">
                         Vigente hasta: {formatDate(row.paidUntil)}
                       </div>
 
                       {!preview && canWrite && (
                         <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            className="crm-btn-secondary inline-flex items-center gap-1.5 text-xs"
+                          <Button
+                            variant="outline"
+                            size="sm"
                             disabled={
                               invitingId === row.contact.id ||
                               !row.contact.email
@@ -194,41 +191,41 @@ const CourseMembersPageClient = ({
                                 : "El contacto no tiene email"
                             }
                           >
-                            <Mail className="size-3.5" aria-hidden />
+                            <Mail aria-hidden />
                             {invitingId === row.contact.id
                               ? "Enviando…"
                               : row.hasAccount
                                 ? "Reenviar acceso"
                                 : "Invitar"}
-                          </button>
-                          <button
-                            type="button"
-                            className="crm-btn-secondary inline-flex items-center gap-1.5 text-xs"
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setPaymentTarget(row)}
                           >
-                            <CreditCard className="size-3.5" aria-hidden />
+                            <CreditCard aria-hidden />
                             Registrar pago
-                          </button>
-                          <button
-                            type="button"
-                            className="crm-btn-ghost inline-flex items-center gap-1.5 text-xs"
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               setAdjustTarget(row);
                               setAdjustDate(toDateInputValue(row.paidUntil));
                             }}
                           >
-                            <CalendarClock className="size-3.5" aria-hidden />
+                            <CalendarClock aria-hidden />
                             Ajustar vigencia
-                          </button>
+                          </Button>
                         </div>
                       )}
                     </div>
                   </div>
-                </li>
+                </div>
               );
             })}
-          </ul>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       {paymentTarget && (
@@ -250,7 +247,7 @@ const CourseMembersPageClient = ({
         onClose={() => setAdjustTarget(null)}
       >
         <div className="space-y-4">
-          <p className="text-sm text-[var(--crm-muted)]">
+          <p className="text-sm text-muted-foreground">
             Fija hasta cuándo tiene acceso{" "}
             <strong>
               {adjustTarget?.contact.firstName}{" "}
@@ -258,31 +255,21 @@ const CourseMembersPageClient = ({
             </strong>
             . Deja el campo vacío para quitar la vigencia.
           </p>
-          <label className="block">
-            <span className="crm-label">Vigente hasta</span>
-            <input
+          <div className="space-y-1.5">
+            <Label>Vigente hasta</Label>
+            <Input
               type="date"
-              className="crm-input"
               value={adjustDate}
               onChange={(e) => setAdjustDate(e.target.value)}
             />
-          </label>
+          </div>
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              className="crm-btn-secondary"
-              onClick={() => setAdjustTarget(null)}
-            >
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>
               Cancelar
-            </button>
-            <button
-              type="button"
-              className="crm-btn-primary"
-              disabled={adjustSaving}
-              onClick={() => void saveAdjust()}
-            >
+            </Button>
+            <Button disabled={adjustSaving} onClick={() => void saveAdjust()}>
               {adjustSaving ? "Guardando…" : "Guardar"}
-            </button>
+            </Button>
           </div>
         </div>
       </CrmModal>
