@@ -5,7 +5,6 @@ import {
   GraduationCap,
   HeartPulse,
   ClipboardList,
-  Bell,
   MessageSquare,
   Package,
   Users,
@@ -47,7 +46,6 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Comunicación",
     items: [
       { icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
-      { icon: Bell, label: "Notificaciones", href: "/admin/notifications" },
     ],
   },
   {

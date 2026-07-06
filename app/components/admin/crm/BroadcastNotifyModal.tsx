@@ -103,7 +103,6 @@ const BroadcastNotifyModal = ({
               message: `${countLabel} — se procesará en segundo plano. Puede tardar varios minutos.`,
               variant: "info",
               duration: 12000,
-              action: { label: "Ver progreso en Notificaciones", href: "/admin/notifications" },
             });
           } else {
             toast({
