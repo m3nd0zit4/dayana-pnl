@@ -10,6 +10,8 @@ import Navbar from "./components/Navigation/Navbar";
 import FullScreenNav from "./components/Navigation/FullScreenNav";
 import ScrollTriggerRefresher from "./components/common/ScrollTriggerRefresher";
 import SmoothScroll from "./components/common/SmoothScroll";
+import { TooltipProvider } from "./components/ui/tooltip";
+import { Toaster } from "./components/ui/sonner";
 
 const MarketingChrome = ({ children }: { children: ReactNode }) => (
   <NavContext>
@@ -39,7 +41,12 @@ const Providers = ({ children }: { children: ReactNode }) => {
     pathname.startsWith("/miembros") || pathname.startsWith("/acceso");
 
   if (isAdmin) {
-    return <>{children}</>;
+    return (
+      <TooltipProvider>
+        {children}
+        <Toaster />
+      </TooltipProvider>
+    );
   }
 
   if (isPortal) {

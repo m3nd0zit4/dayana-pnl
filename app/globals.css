@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-ink: #0a0a0a;
@@ -698,5 +702,104 @@ body {
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@theme inline {
+  /* Literal names, not var(--font-sans) — @theme inline resolves at parse
+     time and we removed next/font's Geist injection (brand already has its
+     own fonts loaded via @font-face above; CRM/portal set font1 on their
+     wrapper divs, this is only a fallback for shadcn components outside them). */
+  --font-heading: font2, "Space Grotesk", sans-serif;
+  --font-sans: font1, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * shadcn theme, mapped from the existing brand tokens (crm.css/portal.css —
+ * both use byte-identical values, confirmed) rather than shadcn's generic
+ * defaults. No dark mode: neither the CRM nor the portal has one today.
+ * `@custom-variant dark` above stays class-based (`.dark` ancestor) rather
+ * than OS-preference-based specifically so that stray `dark:` utility
+ * classes baked into generated shadcn components stay permanently inert
+ * (nothing in this app ever applies a `.dark` class).
+ */
+:root {
+  --background: #f6f2eb;
+  --foreground: #141210;
+  --card: #fffcf8;
+  --card-foreground: #141210;
+  --popover: #fffcf8;
+  --popover-foreground: #141210;
+  --primary: #5c4a3a;
+  --primary-foreground: #ece3d4;
+  --secondary: #ece3d4;
+  --secondary-foreground: #141210;
+  --muted: #efe8dc;
+  --muted-foreground: #6f655c;
+  --accent: #edc3b1;
+  --accent-foreground: #141210;
+  --destructive: #b33a3a;
+  --destructive-foreground: #fffcf8;
+  --border: rgba(20, 18, 16, 0.08);
+  --input: rgba(20, 18, 16, 0.12);
+  --ring: rgba(212, 184, 150, 0.35);
+  --chart-1: #5c4a3a;
+  --chart-2: #edc3b1;
+  --chart-3: #3d7a52;
+  --chart-4: #b8860b;
+  --chart-5: #d4b896;
+  --radius: 0.625rem;
+  --sidebar: #fffcf8;
+  --sidebar-foreground: #141210;
+  --sidebar-primary: #5c4a3a;
+  --sidebar-primary-foreground: #ece3d4;
+  --sidebar-accent: #ece3d4;
+  --sidebar-accent-foreground: #141210;
+  --sidebar-border: rgba(20, 18, 16, 0.08);
+  --sidebar-ring: rgba(212, 184, 150, 0.35);
+  --sidebar-width: 13.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
 }
