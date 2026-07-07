@@ -126,6 +126,16 @@ const ContactDetailClient = ({
     if (focus && t === "notas") setNotebookOpen(true);
   }, [searchParams, setFocusMode]);
 
+  // focusMode lives in CrmProvider (shared across the whole /admin layout),
+  // so it hides the sidebar/navbar app-wide, not just on this page. The only
+  // other place that clears it is exitFocusMode() (the notebook's own close
+  // button) — if this page is left any other way (browser back, sign out,
+  // a direct link) while in focus mode, the app is stranded without a
+  // sidebar on whatever page comes next. Reset it defensively on unmount.
+  useEffect(() => {
+    return () => setFocusMode(false);
+  }, [setFocusMode]);
+
   const exitFocusMode = useCallback(() => {
     setFocusMode(false);
     setNotebookOpen(false);
