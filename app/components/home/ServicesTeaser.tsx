@@ -59,6 +59,14 @@ const ServicesTeaser = ({
       ? `Desde ${formatUsd(fromUsd)} USD`
       : null;
 
+  const courseLabel = isColombia
+    ? courseCop != null
+      ? `${formatCop(courseCop)} COP`
+      : null
+    : courseUsd != null
+      ? `${formatUsd(courseUsd)} USD`
+      : null;
+
   return (
     <section
       ref={rootRef}
@@ -82,10 +90,9 @@ const ServicesTeaser = ({
                 {fromLabel} · sesión única
               </p>
             )}
-            {courseUsd != null && (
+            {courseLabel && (
               <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-black/50 mt-2">
-                Curso en vivo {formatUsd(courseUsd)} USD
-                {courseCop != null ? ` · ${formatCop(courseCop)} COP` : ""} / mes
+                Curso en vivo {courseLabel} / mes
               </p>
             )}
             <div className="mt-10">

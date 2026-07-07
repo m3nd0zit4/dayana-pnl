@@ -112,19 +112,28 @@ const Navbar = () => {
           </a>
         </div>
       )}
-      <div
-        onClick={() => setNavOpen(true)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className="lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer pointer-events-auto"
-      >
+      <div className="flex items-center pointer-events-auto">
+        <a
+          href="/acceso"
+          className="hidden sm:inline-flex items-center rounded-full border lg:px-5 px-4 lg:py-2.5 py-2 uppercase lg:text-xs text-[11px] tracking-[0.18em] transition-colors duration-300 hover:bg-terracotta hover:text-white hover:border-terracotta mr-3 lg:mr-4"
+          style={{ color: navColor, borderColor: navColor, fontFamily: "var(--font-grotesk)" }}
+        >
+          Ingresar
+        </a>
         <div
-          ref={navGreenRef}
-          className="bg-linen transition-all absolute top-0 h-0 w-full"
-        />
-        <div className="relative h-full lg:px-6 px-5 flex flex-col justify-center items-end gap-1">
-          <div className="lg:w-10 w-7 h-0.5 bg-white" />
-          <div className="lg:w-6 w-4 h-0.5 bg-white" />
+          onClick={() => setNavOpen(true)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer"
+        >
+          <div
+            ref={navGreenRef}
+            className="bg-linen transition-all absolute top-0 h-0 w-full"
+          />
+          <div className="relative h-full lg:px-6 px-5 flex flex-col justify-center items-end gap-1">
+            <div className="lg:w-10 w-7 h-0.5 bg-white" />
+            <div className="lg:w-6 w-4 h-0.5 bg-white" />
+          </div>
         </div>
       </div>
     </div>
