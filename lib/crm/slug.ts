@@ -13,7 +13,7 @@ export const uniqueSlug = async (
   base: string,
   exists: (slug: string) => Promise<boolean>
 ): Promise<string> => {
-  let slug = slugify(base);
+  const slug = slugify(base);
   if (!(await exists(slug))) return slug;
   for (let i = 2; i < 100; i++) {
     const candidate = `${slug}-${i}`;

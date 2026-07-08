@@ -12,6 +12,7 @@ const MEMBER_PUBLIC_PAGES = new Set([
 const MEMBER_PUBLIC_APIS = new Set([
   "/api/miembros/auth/set-password",
   "/api/miembros/auth/request-access",
+  "/api/miembros/auth/signup",
 ]);
 
 /** Rutas de acceso históricas — todas llevan al acceso único. */
