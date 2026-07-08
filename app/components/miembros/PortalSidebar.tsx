@@ -5,6 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { BookOpen, Home, LogOut, User, Video } from "lucide-react";
+import type { MembershipLockState } from "@/lib/lms/membership";
 import { Button } from "@/app/components/ui/button";
 import {
   Sidebar,
@@ -17,6 +18,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/app/components/ui/sidebar";
+import MembershipLockOverlay from "./MembershipLockOverlay";
 
 const LINKS = [
   { href: "/miembros", label: "Inicio", icon: Home, exact: true },
@@ -45,9 +47,11 @@ const Brand = () => (
 
 const PortalSidebar = ({
   firstName,
+  lockState,
   children,
 }: {
   firstName: string;
+  lockState: MembershipLockState;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -144,7 +148,14 @@ const PortalSidebar = ({
         </header>
 
         <main className="min-h-screen px-4 pt-6 pb-16 lg:px-8 lg:pt-10">
-          <div className="mx-auto w-full max-w-4xl">{children}</div>
+          <div className="mx-auto w-full max-w-4xl">
+            <MembershipLockOverlay
+              lockState={lockState}
+              bypass={pathname === ACCOUNT_LINK.href}
+            >
+              {children}
+            </MembershipLockOverlay>
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

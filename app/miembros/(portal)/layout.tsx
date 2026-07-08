@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { getMemberSession } from "@/lib/auth/member-session";
+import {
+  getMembershipForContact,
+  getMembershipLockState,
+} from "@/lib/lms/membership";
 import PortalSidebar from "@/app/components/miembros/PortalSidebar";
 import "../portal.css";
 
@@ -12,9 +16,12 @@ const PortalLayout = async ({ children }: { children: ReactNode }) => {
     redirect("/acceso");
   }
 
+  const membership = await getMembershipForContact(member.contact.id);
+  const lockState = getMembershipLockState(membership);
+
   return (
     <div className="portal-app">
-      <PortalSidebar firstName={member.contact.firstName}>
+      <PortalSidebar firstName={member.contact.firstName} lockState={lockState}>
         {children}
       </PortalSidebar>
     </div>

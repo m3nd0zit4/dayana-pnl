@@ -77,6 +77,38 @@ export type MembershipInfo = {
   daysLeft: number | null;
 };
 
+/** Days of soft-warning access after paidUntil lapses, before a hard block. */
+export const MEMBERSHIP_GRACE_DAYS = 2;
+
+export type MembershipLockState =
+  | { kind: "none" }
+  | { kind: "warning"; daysUntilBlocked: number }
+  | { kind: "blocked"; neverPaid: boolean };
+
+/**
+ * Someone who was never an active/paying member (no paidUntil ever set —
+ * a brand-new signup, or a lead enrollment that never got activated) is
+ * blocked immediately. Someone whose membership just lapsed gets a
+ * MEMBERSHIP_GRACE_DAYS warning window before the same hard block kicks in.
+ */
+export const getMembershipLockState = (
+  membership: MembershipInfo
+): MembershipLockState => {
+  if (membership.isCurrent) return { kind: "none" };
+  if (!membership.paidUntil) return { kind: "blocked", neverPaid: true };
+
+  const daysSinceExpiry = Math.floor(
+    (Date.now() - membership.paidUntil.getTime()) / (24 * 60 * 60 * 1000)
+  );
+  if (daysSinceExpiry <= MEMBERSHIP_GRACE_DAYS) {
+    return {
+      kind: "warning",
+      daysUntilBlocked: Math.max(0, MEMBERSHIP_GRACE_DAYS - daysSinceExpiry),
+    };
+  }
+  return { kind: "blocked", neverPaid: false };
+};
+
 export const getMembershipForContact = async (
   contactId: string
 ): Promise<MembershipInfo> => {
