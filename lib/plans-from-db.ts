@@ -90,7 +90,8 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
     return null;
   }
   const plan = productToPlan(product);
-  if (plan.amountCop == null) {
+  // Derivar COP solo con USD real — nunca producir un plan cobrable en $0.
+  if (plan.amountCop == null && plan.amountUsd > 0) {
     return applyCopToPlan(plan, usdToCopRate);
   }
   return plan;

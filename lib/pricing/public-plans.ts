@@ -23,8 +23,12 @@ export const getVisiblePublicPlans = async (): Promise<VisiblePublicPlans> => {
   ]);
 
   const rate = fromDb?.usdToCopRate ?? getUsdToCopRateFromEnv();
+  // Solo derivar COP cuando hay USD real: un plan sin precio USD no debe
+  // volverse "COP $0" visible (y comprable) para Colombia.
   const withApproxCop = (plan: Plan): Plan =>
-    plan.amountCop == null ? applyCopToPlan(plan, rate) : plan;
+    plan.amountCop == null && plan.amountUsd > 0
+      ? applyCopToPlan(plan, rate)
+      : plan;
 
   const therapyPlans = (fromDb?.therapyPlans ?? []).map(withApproxCop);
   const coursePlan = fromDb?.coursePlan
