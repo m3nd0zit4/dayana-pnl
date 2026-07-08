@@ -11,7 +11,6 @@ import {
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
-import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import {
   clientIp,
   rateLimitDistributed,
@@ -94,10 +93,13 @@ export async function POST(req: Request) {
   let fee: number;
   let currency_id: string;
   try {
-    const usdToCopRate = await resolveUsdToCopRate();
-    ({ net, fee, currency_id } = mercadoPagoItemAmount(plan, usdToCopRate));
+    ({ net, fee, currency_id } = mercadoPagoItemAmount(plan));
   } catch (e) {
     const message = e instanceof Error ? e.message : "amount_error";
+    if (message === "no_cop_price") {
+      // Plan sin precio COP en el CRM: no se vende en COP.
+      return NextResponse.json({ error: "no_cop_price" }, { status: 400 });
+    }
     console.error("[mercadopago] amount", message);
     return NextResponse.json({ error: "config" }, { status: 500 });
   }

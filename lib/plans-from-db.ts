@@ -1,7 +1,6 @@
 import { ProductKind } from "@prisma/client";
 import { getActiveProducts, latestCopPrice, latestUsdPrice } from "./crm/products";
 import { resolveUsdToCopRate } from "./crm/site-settings";
-import { applyCopToPlan } from "./pricing/usd-to-cop";
 import type { Plan } from "./plans";
 import { prisma } from "./db";
 
@@ -77,7 +76,6 @@ export const getPublicPlans = async () => {
 };
 
 export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
-  const usdToCopRate = await resolveUsdToCopRate();
   const product = await prisma.product.findUnique({
     where: { id: planId },
     include: {
@@ -89,12 +87,9 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
   if (!product || !product.isActive) {
     return null;
   }
-  const plan = productToPlan(product);
-  // Derivar COP solo con USD real — nunca producir un plan cobrable en $0.
-  if (plan.amountCop == null && plan.amountUsd > 0) {
-    return applyCopToPlan(plan, usdToCopRate);
-  }
-  return plan;
+  // Sin derivación automática: el plan lleva exactamente los precios del
+  // CRM. Sin fila COP → amountCop queda undefined y el flujo COP se niega.
+  return productToPlan(product);
 };
 
 export const isActivePlanId = async (planId: string): Promise<boolean> => {
