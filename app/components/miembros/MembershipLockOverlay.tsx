@@ -35,7 +35,7 @@ export const MembershipWarningBanner = ({
           size="sm"
           className="mt-2.5"
           nativeButton={false}
-          render={<Link href="/miembros/cuenta" />}
+          render={<Link href="/servicios#curso" />}
         >
           Renovar ahora
         </Button>
@@ -69,7 +69,7 @@ export const MembershipBlockScreen = ({
   children: React.ReactNode;
 }) => (
   <div className="relative min-h-screen">
-    <div aria-hidden className="pointer-events-none blur-md brightness-95 select-none">
+    <div aria-hidden className="pointer-events-none blur-[3px] brightness-97 select-none">
       {children}
     </div>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 px-6 backdrop-blur-sm">
@@ -98,7 +98,7 @@ export const MembershipBlockScreen = ({
             : "Tu mensualidad lleva más de dos días vencida. Renueva para recuperar el acceso al material del curso."}
         </p>
         <Link
-          href="/miembros/cuenta"
+          href="/servicios#curso"
           className="mt-8 inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 font-[font2] text-sm tracking-[0.15em] text-primary-foreground uppercase transition-transform duration-300 hover:-translate-y-0.5"
         >
           Pagar ahora
