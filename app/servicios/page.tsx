@@ -25,7 +25,11 @@ const ServiciosPage = async () => {
         <TherapyTiers therapyPlans={therapyPlans} userCountry={userCountry} />
         <ComparisonSection therapyPlans={therapyPlans} isColombia={isColombia} />
         <FaqSection />
-        <CourseAndCta coursePlan={coursePlan} />
+        <CourseAndCta
+          coursePlan={coursePlan}
+          isColombia={isColombia}
+          userCountry={userCountry}
+        />
       </main>
       <Footer />
       <FloatingWhatsApp />

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
-import { formatCop, type Plan } from "../../../lib/plans";
+import { type Plan } from "../../../lib/plans";
 import { usePayPalModal } from "../../context/PayPalModalContext";
 import { useMercadoPagoCheckoutModal } from "../../context/MercadoPagoCheckoutModalContext";
 import { PayPalBrandRow } from "./PayPalBrandRow";
@@ -17,11 +17,12 @@ type Props = {
 const PlanCheckoutButtons = ({ plan, isDark, userCountry }: Props) => {
   const { openPayPal } = usePayPalModal();
   const { openMercadoPago } = useMercadoPagoCheckoutModal();
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setReady(true);
-  }, []);
+  // "Mounted" sin setState-en-efecto: evita el mismatch de hidratación.
+  const ready = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   const isColombia = userCountry === "CO";
   const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
@@ -49,18 +50,11 @@ const PlanCheckoutButtons = ({ plan, isDark, userCountry }: Props) => {
           onClick={() => openMercadoPago(plan.id)}
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
         >
-          <div className="flex flex-col items-center">
-            <MercadoPagoBrandRow
-              tone="onLight"
-              logoHeight={35}
-              className="items-center"
-            />
-            {plan.amountCop != null && (
-              <span className="text-[10px] font-[font1] text-black/50 -mt-0.5">
-                {formatCop(plan.amountCop)} COP
-              </span>
-            )}
-          </div>
+          <MercadoPagoBrandRow
+            tone="onLight"
+            logoHeight={35}
+            className="items-center"
+          />
         </button>
       ) : (
         <button

@@ -7,15 +7,17 @@ import { useRef } from "react";
 import Link from "next/link";
 import { formatCop, formatUsd, type Plan } from "../../../lib/plans";
 import WhatsAppButton from "../ui/WhatsAppButton";
-import DualCurrencyCheckout from "../payments/DualCurrencyCheckout";
+import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
 
 gsap.registerPlugin(ScrollTrigger);
 
 type Props = {
   coursePlan: Plan | null;
+  isColombia: boolean;
+  userCountry?: string | null;
 };
 
-const CourseAndCta = ({ coursePlan }: Props) => {
+const CourseAndCta = ({ coursePlan, isColombia, userCountry }: Props) => {
   const rootRef = useRef<HTMLElement>(null);
 
   useGSAP(
@@ -34,7 +36,12 @@ const CourseAndCta = ({ coursePlan }: Props) => {
   );
 
   return (
-    <section ref={rootRef} data-nav-color="black" className="bg-[#faf7f2] text-black">
+    <section
+      ref={rootRef}
+      id="curso"
+      data-nav-color="black"
+      className="scroll-mt-20 bg-[#faf7f2] text-black"
+    >
       {/* ── Curso en vivo ── */}
       <div className="px-3 lg:px-8 py-16 lg:py-24 border-t border-black/10">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12 cc-reveal">
@@ -91,19 +98,29 @@ const CourseAndCta = ({ coursePlan }: Props) => {
                 <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-tight">
                   {coursePlan.sessions}
                 </div>
-                <div className="mt-4">
-                  <div className="font-[font1] text-3xl leading-none">
-                    {formatUsd(coursePlan.amountUsd)}{" "}
-                    <span className="font-[font2] uppercase text-xs tracking-[0.25em] text-white/55">
-                      USD{coursePlan.unitPrice ? ` ${coursePlan.unitPrice}` : ""}
-                    </span>
-                  </div>
-                  {coursePlan.amountCop != null && (
-                    <div className="font-[font1] text-sm mt-1.5 text-white/70">
-                      {formatCop(coursePlan.amountCop)} COP con Mercado Pago
+                {/* Precio por región — mismo criterio automático que las terapias */}
+                {isColombia && coursePlan.amountCop != null ? (
+                  <div className="mt-4">
+                    <div className="font-[font1] text-3xl leading-none">
+                      {formatCop(coursePlan.amountCop)}{" "}
+                      <span className="font-[font2] uppercase text-xs tracking-[0.25em] text-white/55">
+                        COP{coursePlan.unitPrice ? ` ${coursePlan.unitPrice}` : ""}
+                      </span>
                     </div>
-                  )}
-                </div>
+                    <div className="font-[font1] text-sm mt-1.5 text-white/70">
+                      ≈ {formatUsd(coursePlan.amountUsd)} USD
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <div className="font-[font1] text-3xl leading-none">
+                      {formatUsd(coursePlan.amountUsd)}{" "}
+                      <span className="font-[font2] uppercase text-xs tracking-[0.25em] text-white/55">
+                        USD{coursePlan.unitPrice ? ` ${coursePlan.unitPrice}` : ""}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <ul className="mt-5 space-y-2">
                   {coursePlan.features.map((f) => (
                     <li
@@ -117,7 +134,12 @@ const CourseAndCta = ({ coursePlan }: Props) => {
                 </ul>
               </div>
               <div className="w-full">
-                <DualCurrencyCheckout plan={coursePlan} isDark />
+                {/* Un solo botón según región — mismo gating que las terapias */}
+                <PlanCheckoutButtons
+                  plan={coursePlan}
+                  isDark
+                  userCountry={userCountry}
+                />
               </div>
             </div>
           )}

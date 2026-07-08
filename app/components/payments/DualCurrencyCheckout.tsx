@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
-import { formatCop, formatUsd, type Plan } from "../../../lib/plans";
+import { formatUsd, type Plan } from "../../../lib/plans";
 import { usePayPalModal } from "../../context/PayPalModalContext";
 import { useMercadoPagoCheckoutModal } from "../../context/MercadoPagoCheckoutModalContext";
 import { PayPalBrandRow } from "./PayPalBrandRow";
@@ -55,16 +55,11 @@ const DualCurrencyCheckout = ({ plan, isDark = true }: Props) => {
           onClick={() => openMercadoPago(plan.id)}
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer ${mpClass}`}
         >
-          <div className="flex flex-col items-center">
-            <MercadoPagoBrandRow
-              tone="onLight"
-              logoHeight={35}
-              className="items-center"
-            />
-            <span className="text-[10px] font-[font1] text-black/50 -mt-0.5">
-              {formatCop(plan.amountCop)} COP
-            </span>
-          </div>
+          <MercadoPagoBrandRow
+            tone="onLight"
+            logoHeight={35}
+            className="items-center"
+          />
         </button>
       )}
 
