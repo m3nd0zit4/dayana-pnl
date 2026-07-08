@@ -36,7 +36,7 @@ export const MembershipWarningBanner = ({
           size="sm"
           className="mt-2.5"
           nativeButton={false}
-          render={<Link href="/servicios#curso" />}
+          render={<Link href="/miembros/cuenta" />}
         >
           Renovar ahora
         </Button>
@@ -70,7 +70,7 @@ export const MembershipBlockScreen = ({
   children: React.ReactNode;
 }) => (
   <div className="relative min-h-screen">
-    <div aria-hidden className="pointer-events-none blur-[1.5px] brightness-98 select-none">
+    <div aria-hidden className="pointer-events-none blur-[0.5px] brightness-99 select-none">
       {children}
     </div>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 px-6 backdrop-blur-sm">
