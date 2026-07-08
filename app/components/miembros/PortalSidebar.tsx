@@ -18,7 +18,10 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/app/components/ui/sidebar";
-import MembershipLockOverlay from "./MembershipLockOverlay";
+import {
+  MembershipBlockScreen,
+  MembershipWarningBanner,
+} from "./MembershipLockOverlay";
 
 const LINKS = [
   { href: "/miembros", label: "Inicio", icon: Home, exact: true },
@@ -55,8 +58,11 @@ const PortalSidebar = ({
   children: ReactNode;
 }) => {
   const pathname = usePathname();
+  const bypass = pathname === ACCOUNT_LINK.href;
+  const blocked = !bypass && lockState.kind === "blocked";
+  const warning = !bypass && lockState.kind === "warning";
 
-  return (
+  const shell = (
     <SidebarProvider style={{ "--sidebar-width": "15rem" } as CSSProperties}>
       <Sidebar collapsible="offcanvas" className="border-r border-border">
         <SidebarHeader className="px-3 py-5">
@@ -149,17 +155,21 @@ const PortalSidebar = ({
 
         <main className="min-h-screen px-4 pt-6 pb-16 lg:px-8 lg:pt-10">
           <div className="mx-auto w-full max-w-4xl">
-            <MembershipLockOverlay
-              lockState={lockState}
-              bypass={pathname === ACCOUNT_LINK.href}
-            >
-              {children}
-            </MembershipLockOverlay>
+            {warning && lockState.kind === "warning" && (
+              <MembershipWarningBanner daysUntilBlocked={lockState.daysUntilBlocked} />
+            )}
+            {children}
           </div>
         </main>
       </SidebarInset>
     </SidebarProvider>
   );
+
+  if (blocked && lockState.kind === "blocked") {
+    return <MembershipBlockScreen neverPaid={lockState.neverPaid}>{shell}</MembershipBlockScreen>;
+  }
+
+  return shell;
 };
 
 export default PortalSidebar;
