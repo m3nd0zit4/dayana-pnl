@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { EnrollmentStatus, ProductKind } from "@prisma/client";
-import { prisma } from "@/lib/db";
 import { createMemberAuthToken } from "@/lib/auth/member-tokens";
-import { getMemberByEmail } from "@/lib/crm/member-accounts";
+import {
+  getMemberByEmail,
+  getOrCreateContactForEmailSignup,
+} from "@/lib/crm/member-accounts";
 import { clientIp, rateLimitDistributed } from "@/lib/api/rate-limit-distributed";
 import {
   sendMemberInviteEmail,
@@ -13,8 +14,15 @@ import { requestAccessSchema } from "@/lib/validations/member";
 export const dynamic = "force-dynamic";
 
 /**
- * Always answers { ok: true } so the endpoint can't be used to enumerate
- * which emails exist. Sends an invite (no password yet) or a reset link.
+ * Open self-service signup + "forgot password", in one endpoint: an unknown
+ * email creates a new lead Contact and gets an invite link; a known email
+ * without a password yet gets the same invite link; a known email that
+ * already has a password gets a reset link. No prior enrollment/payment is
+ * required to create the account — course content itself is gated
+ * separately (membership.isCurrent) once the member is logged in.
+ *
+ * Always answers { ok: true } (never { error: "STAFF_EMAIL..." } etc.) so
+ * the endpoint can't be used to enumerate which emails belong to staff.
  */
 export const POST = async (req: Request) => {
   const ip = clientIp(req);
@@ -45,36 +53,33 @@ export const POST = async (req: Request) => {
   }
 
   const member = await getMemberByEmail(email);
-  if (!member) {
-    return NextResponse.json({ ok: true });
+
+  let contactId: string;
+  let firstName: string;
+  let isReset: boolean;
+
+  if (member) {
+    contactId = member.contact.id;
+    firstName = member.contact.firstName;
+    isReset = Boolean(member.account?.passwordHash);
+  } else {
+    try {
+      const contact = await getOrCreateContactForEmailSignup(email);
+      contactId = contact.id;
+      firstName = contact.firstName;
+      isReset = false;
+    } catch {
+      // Staff email (or any other creation failure) — pretend it worked.
+      return NextResponse.json({ ok: true });
+    }
   }
 
-  const hasCourseEnrollment = await prisma.enrollment.findFirst({
-    where: {
-      contactId: member.contact.id,
-      product: { kind: ProductKind.COURSE },
-      status: {
-        in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED],
-      },
-    },
-    select: { id: true },
-  });
-
-  if (!member.account && !hasCourseEnrollment) {
-    return NextResponse.json({ ok: true });
-  }
-
-  const isReset = Boolean(member.account?.passwordHash);
   const rawToken = await createMemberAuthToken({
-    contactId: member.contact.id,
+    contactId,
     purpose: isReset ? "PASSWORD_RESET" : "INVITE",
   });
 
-  const payload = {
-    contactId: member.contact.id,
-    firstName: member.contact.firstName,
-    rawToken,
-  };
+  const payload = { contactId, firstName, rawToken };
   if (isReset) {
     await sendMemberPasswordResetEmail(payload);
   } else {

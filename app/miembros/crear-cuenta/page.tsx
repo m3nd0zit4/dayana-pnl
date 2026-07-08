@@ -46,7 +46,7 @@ const Page = async ({ searchParams }: PageProps) => {
   return (
     <MemberAuthShell
       title="Crea tu cuenta"
-      description="Escribe el correo con el que te inscribiste al curso y te enviamos un enlace para crear tu contraseña."
+      description="Escribe tu correo y te enviamos un enlace para crear tu contraseña y entrar al portal."
     >
       <RequestAccessForm buttonLabel="Enviarme el enlace" />
     </MemberAuthShell>

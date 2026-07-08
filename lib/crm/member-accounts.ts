@@ -9,6 +9,9 @@ import { getStaffByEmail } from "@/lib/crm/staff";
  */
 export const GOOGLE_PLACEHOLDER_PHONE_PREFIX = "+google";
 
+/** Same idea as GOOGLE_PLACEHOLDER_PHONE_PREFIX, for open email/password signup. */
+export const EMAIL_SIGNUP_PLACEHOLDER_PHONE_PREFIX = "+signup";
+
 export type MemberWithContact = {
   contact: Contact;
   account: MemberAccount | null;
@@ -107,6 +110,38 @@ export const upsertMemberAccountForGoogle = async (input: {
       googleSub: input.googleSub,
       emailVerifiedAt: new Date(),
       lastLoginAt: new Date(),
+    },
+  });
+};
+
+/**
+ * Open self-service signup: anyone can create a portal account with just an
+ * email (no prior enrollment/payment required — access to course content is
+ * gated separately by membership.isCurrent once logged in). Creates the lead
+ * Contact if the email is unknown; the MemberAccount itself is created later
+ * once they set a password via the invite-token flow (setMemberPassword).
+ * Throws when the email belongs to a staff user.
+ */
+export const getOrCreateContactForEmailSignup = async (
+  email: string
+): Promise<Contact> => {
+  const normalized = email.trim().toLowerCase();
+
+  const staff = await getStaffByEmail(normalized);
+  if (staff) {
+    throw new Error("STAFF_EMAIL_SIGNUP_FORBIDDEN");
+  }
+
+  const existing = await prisma.contact.findUnique({ where: { email: normalized } });
+  if (existing) return existing;
+
+  return prisma.contact.create({
+    data: {
+      email: normalized,
+      firstName: normalized.split("@")[0],
+      phoneE164: `${EMAIL_SIGNUP_PLACEHOLDER_PHONE_PREFIX}:${crypto.randomUUID()}`,
+      source: ContactSource.WEB,
+      sourceDetail: "member-signup",
     },
   });
 };
