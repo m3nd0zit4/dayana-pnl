@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/app/components/ui/input-group";
+import { Label } from "@/app/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
 
@@ -125,85 +130,67 @@ const RegisterPaymentModal = ({
   return (
     <CrmModal open={open} title="Registrar pago" onClose={onClose}>
       <div className="space-y-4 text-sm">
-        <div className="rounded-xl border border-[var(--crm-border)] bg-[var(--crm-linen)]/25 px-4 py-3">
+        <div className="rounded-xl border border-border bg-secondary/25 px-4 py-3">
           <p className="font-medium">{productTitle}</p>
-          <p className="mt-0.5 text-xs text-[var(--crm-muted)]">{contactName}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{contactName}</p>
           {suggestedUsd && (
-            <p className="mt-2 text-xs text-[var(--crm-accent)]">
+            <p className="mt-2 text-xs text-primary">
               Precio del servicio: ${suggestedUsd} {currency}
             </p>
           )}
         </div>
 
         <div>
-          <p className="crm-label mb-2">Monto rápido ({currency})</p>
-          <div className="flex flex-wrap gap-2">
+          <Label className="mb-2">Monto rápido ({currency})</Label>
+          <ToggleGroup
+            value={amountUsd ? [amountUsd] : []}
+            onValueChange={(v) => v[0] && setAmountUsd(v[0])}
+            className="flex-wrap"
+          >
             {quickAmounts.map((n) => (
-              <button
-                key={n}
-                type="button"
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  amountUsd === n.toFixed(2) || amountUsd === String(n)
-                    ? "border-[var(--crm-accent)] bg-[var(--crm-accent-soft)] text-[var(--crm-accent)]"
-                    : "border-[var(--crm-border)] text-[var(--crm-muted)] hover:border-[var(--crm-sand)]"
-                }`}
-                onClick={() => setAmountUsd(n.toFixed(2))}
-              >
+              <ToggleGroupItem key={n} value={n.toFixed(2)} className="rounded-full">
                 ${n.toFixed(0)}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </div>
 
-        <div>
-          <label className="crm-label" htmlFor="reg-pay-amount">
-            Monto ({currency})
-          </label>
-          <div className="crm-phone-field mt-1">
-            <span className="crm-phone-prefix" aria-hidden>
-              $
-            </span>
-            <input
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-pay-amount">Monto ({currency})</Label>
+          <InputGroup>
+            <InputGroupAddon>$</InputGroupAddon>
+            <InputGroupInput
               id="reg-pay-amount"
               type="text"
               inputMode="decimal"
-              className="crm-phone-input"
               placeholder="80.00"
               value={amountUsd}
               onChange={(e) => setAmountUsd(e.target.value)}
               disabled={busy}
               autoFocus
             />
-          </div>
+          </InputGroup>
         </div>
 
         <div>
-          <p className="crm-label mb-2">Método</p>
-          <div className="flex flex-wrap gap-2">
+          <Label className="mb-2">Método</Label>
+          <ToggleGroup
+            value={[method]}
+            onValueChange={(v) => v[0] && setMethod(v[0] as typeof method)}
+            className="flex-wrap"
+          >
             {PAYMENT_METHODS.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                  method === m.id
-                    ? "border-[var(--crm-accent)] bg-[var(--crm-accent-soft)] text-[var(--crm-accent)]"
-                    : "border-[var(--crm-border)] text-[var(--crm-muted)] hover:border-[var(--crm-sand)]"
-                }`}
-                onClick={() => setMethod(m.id)}
-              >
+              <ToggleGroupItem key={m.id} value={m.id} className="rounded-full">
                 {m.label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </div>
 
-        <div>
-          <label className="crm-label" htmlFor="reg-pay-ref">
-            Referencia (opcional)
-          </label>
-          <input
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-pay-ref">Referencia (opcional)</Label>
+          <Input
             id="reg-pay-ref"
-            className="crm-input mt-1"
             placeholder="Ej. comprobante, últimos dígitos, nota breve…"
             value={reference}
             onChange={(e) => setReference(e.target.value)}
@@ -211,29 +198,22 @@ const RegisterPaymentModal = ({
           />
         </div>
 
-        <p className="text-xs text-[var(--crm-muted)]">
+        <p className="text-xs text-muted-foreground">
           Al guardar, el pago queda aprobado y el servicio pasa a{" "}
-          <strong className="font-medium text-[var(--crm-foreground)]">Activo</strong>{" "}
+          <strong className="font-medium text-foreground">Activo</strong>{" "}
           automáticamente (si no hay otra terapia activa).
         </p>
 
         <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            className="crm-btn-secondary"
-            onClick={onClose}
-            disabled={busy}
-          >
+          <Button variant="outline" onClick={onClose} disabled={busy}>
             Cancelar
-          </button>
-          <button
-            type="button"
-            className="crm-btn-primary"
+          </Button>
+          <Button
             onClick={() => void submit()}
             disabled={busy || !amountUsd.trim()}
           >
             {busy ? "Guardando…" : "Registrar pago"}
-          </button>
+          </Button>
         </div>
       </div>
     </CrmModal>

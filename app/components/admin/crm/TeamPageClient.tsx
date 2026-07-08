@@ -1,8 +1,9 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageShell from "./CrmPageShell";
 import StaffFormModal from "./StaffFormModal";
 
@@ -21,12 +22,12 @@ type Props = {
 };
 
 const TeamPageClient = ({
-  team,
+  team: initialTeam,
   currentId,
   canManage,
   preview,
 }: Props) => {
-  const router = useRouter();
+  const [team, setTeam] = useState<Member[]>(initialTeam);
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
@@ -34,50 +35,46 @@ const TeamPageClient = ({
       <div className="space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="crm-section-title text-xl">Equipo</h1>
-            <p className="crm-section-subtitle mt-1 max-w-xl">
+            <h1 className="text-xl font-semibold tracking-tight">Equipo</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               Usuarios con acceso al CRM. Solo OWNER puede invitar a más personas.
             </p>
           </div>
           {canManage && !preview && (
-            <button
-              type="button"
-              className="crm-btn-primary crm-btn-compact"
-              onClick={() => setModalOpen(true)}
-            >
-              <Plus className="size-4" />
+            <Button size="sm" onClick={() => setModalOpen(true)}>
+              <Plus />
               <span className="hidden sm:inline">Añadir usuario</span>
-            </button>
+            </Button>
           )}
         </div>
 
-        <div className="crm-surface-card overflow-hidden">
-          <ul className="divide-y divide-[var(--crm-border)]">
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0">
             {team.map((u) => (
-              <li
+              <div
                 key={u.id}
-                className="flex items-center justify-between gap-4 p-4 crm-table-row"
+                className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/50"
               >
                 <div>
                   <div className="text-sm font-semibold">{u.displayName}</div>
-                  <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {u.email}
                   </div>
                 </div>
-                <div className="crm-font-display text-[10px] tracking-widest text-[var(--crm-accent)]">
+                <div className="font-[font2] text-[10px] tracking-widest text-primary uppercase">
                   {u.role}
                   {currentId === u.id ? " · tú" : ""}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <StaffFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={() => router.refresh()}
+        onSaved={(member) => setTeam((prev) => [...prev, member])}
       />
     </CrmPageShell>
   );

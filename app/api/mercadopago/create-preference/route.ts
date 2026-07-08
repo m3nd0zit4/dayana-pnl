@@ -139,6 +139,11 @@ export async function POST(req: Request) {
   };
   if (allowAutoReturn) {
     preferenceBody.auto_return = "approved";
+    // Explicit per-preference URL (only when publicly reachable): registering
+    // a payment must not depend on whichever webhook is configured — or not
+    // — in the MP dashboard. That silent misconfiguration is what let
+    // approved payments never reach the CRM.
+    preferenceBody.notification_url = `${base}/api/webhooks/mercadopago`;
   }
 
   try {

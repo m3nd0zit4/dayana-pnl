@@ -2,17 +2,19 @@
 
 import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { Button } from "@/app/components/ui/button";
 
 const AdminSignOut = () => (
-  <button
-    type="button"
-    onClick={() => signOut({ callbackUrl: "/admin/sign-in" })}
-    className="crm-btn-icon size-9 text-[var(--crm-muted)] hover:text-[var(--crm-danger)]"
+  <Button
+    variant="ghost"
+    size="icon"
+    onClick={() => signOut({ callbackUrl: "/acceso" })}
+    className="text-muted-foreground hover:text-destructive"
     aria-label="Cerrar sesión"
     title="Cerrar sesión"
   >
-    <LogOut className="size-[18px]" strokeWidth={1.75} />
-  </button>
+    <LogOut />
+  </Button>
 );
 
 export default AdminSignOut;

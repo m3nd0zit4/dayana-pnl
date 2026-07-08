@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { Button } from "@/app/components/ui/button";
 
 type Props = {
   label?: string;
@@ -16,15 +17,10 @@ const CrmNewButton = ({
   disabled = false,
   className = "",
 }: Props) => (
-  <button
-    type="button"
-    className={`crm-btn-primary crm-btn-compact${className ? ` ${className}` : ""}`}
-    onClick={onClick}
-    disabled={disabled}
-  >
-    <Plus className="size-4" strokeWidth={2} aria-hidden />
+  <Button size="sm" onClick={onClick} disabled={disabled} className={className}>
+    <Plus strokeWidth={2} aria-hidden />
     <span className="hidden sm:inline">{label}</span>
-  </button>
+  </Button>
 );
 
 export default CrmNewButton;

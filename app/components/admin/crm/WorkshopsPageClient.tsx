@@ -4,6 +4,9 @@ import { WorkshopEditionStatus } from "@prisma/client";
 import { Check, Copy, ExternalLink, Megaphone, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
@@ -131,68 +134,62 @@ const WorkshopsPageClient = ({
     return (
       <>
         {e.status === WorkshopEditionStatus.OPEN && (
-          <button
-            type="button"
-            className="crm-btn-secondary crm-btn-compact inline-flex items-center gap-1.5 px-2.5 text-[11px]"
-            onClick={() => void copyWorkshopUrl(e.slug)}
-          >
+          <Button variant="outline" size="sm" onClick={() => void copyWorkshopUrl(e.slug)}>
             {urlCopied ? (
               <>
-                <Check className="size-3.5" aria-hidden="true" />
+                <Check aria-hidden="true" />
                 Copiada
               </>
             ) : (
               <>
-                <Copy className="size-3.5" aria-hidden="true" />
+                <Copy aria-hidden="true" />
                 Copiar link
               </>
             )}
-          </button>
+          </Button>
         )}
         {e.status === WorkshopEditionStatus.OPEN && (
-          <Link
-            href={`/taller-virtual/${e.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="crm-btn-icon size-8"
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="Ver en web"
             title="Ver en web"
+            nativeButton={false}
+            render={
+              <Link href={`/taller-virtual/${e.slug}`} target="_blank" rel="noopener noreferrer" />
+            }
           >
-            <ExternalLink className="size-4" />
-          </Link>
+            <ExternalLink />
+          </Button>
         )}
-        <button
-          type="button"
-          className="crm-btn-icon size-8"
+        <Button
+          variant="ghost"
+          size="icon"
           aria-label="Notificar contactos"
           title="Notificar contactos"
           onClick={() => setNotifyEdition(e)}
         >
-          <Megaphone className="size-4" />
-        </button>
-        <button
-          type="button"
-          className="crm-btn-icon size-8"
-          aria-label="Editar"
-          onClick={() => openEdit(e)}
-        >
-          <Pencil className="size-4" />
-        </button>
-        <button
-          type="button"
-          className="crm-btn-icon size-8 text-[var(--crm-danger)]"
+          <Megaphone />
+        </Button>
+        <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => openEdit(e)}>
+          <Pencil />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-destructive"
           aria-label="Eliminar"
           onClick={() => remove(e.slug)}
         >
-          <Trash2 className="size-4" />
-        </button>
+          <Trash2 />
+        </Button>
       </>
     );
   };
 
   const EditionMeta = ({ e }: { e: WorkshopRow }) =>
     e.dateLabel ? (
-      <p className="mt-2 text-xs text-[var(--crm-muted)]">
+      <p className="mt-2 text-xs text-muted-foreground">
         {e.dateLabel}
         {e.scheduleLabel ? ` · ${e.scheduleLabel}` : ""}
       </p>
@@ -211,59 +208,57 @@ const WorkshopsPageClient = ({
         />
 
         {loadError && (
-          <p className="text-sm text-[var(--crm-danger)]" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             {loadError}
           </p>
         )}
 
         <section>
-          <div className="crm-group">
-            {loading ? (
-              <div className="crm-empty">
-                <p className="crm-empty-title">Cargando ediciones…</p>
-              </div>
-            ) : sortedEditions.length === 0 ? (
-              <div className="crm-empty">
-                <p className="crm-empty-title">Sin ediciones</p>
-                {!preview && (
-                  <button
-                    type="button"
-                    className="crm-btn-secondary crm-btn-compact"
-                    onClick={openCreate}
-                  >
-                    Crear edición
-                  </button>
-                )}
-              </div>
-            ) : (
-              sortedEditions.map((e) => (
-                <div key={e.id} className="crm-group-row">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">{e.title}</span>
-                      {e.status === WorkshopEditionStatus.OPEN && (
-                        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-                          Activo en web
-                        </span>
-                      )}
-                    </div>
-                    {e.editionLabel && (
-                      <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
-                        {e.editionLabel}
-                      </div>
-                    )}
-                    <EditionMeta e={e} />
-                  </div>
-                  <span className="hidden shrink-0 rounded-full border border-[var(--crm-border)] bg-[var(--crm-linen)]/40 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--crm-accent)] sm:inline">
-                    {STATUS_LABEL[e.status]}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <EditionActions e={e} />
-                  </div>
+          <Card className="overflow-hidden py-0">
+            <CardContent className="divide-y divide-border p-0">
+              {loading ? (
+                <div className="p-8 text-center">
+                  <p className="text-sm font-semibold">Cargando ediciones…</p>
                 </div>
-              ))
-            )}
-          </div>
+              ) : sortedEditions.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-sm font-semibold">Sin ediciones</p>
+                  {!preview && (
+                    <Button variant="outline" size="sm" className="mt-3" onClick={openCreate}>
+                      Crear edición
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                sortedEditions.map((e) => (
+                  <div key={e.id} className="flex flex-wrap items-center gap-3 p-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">{e.title}</span>
+                        {e.status === WorkshopEditionStatus.OPEN && (
+                          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-100 dark:text-emerald-800">
+                            Activo en web
+                          </Badge>
+                        )}
+                      </div>
+                      {e.editionLabel && (
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          {e.editionLabel}
+                        </div>
+                      )}
+                      <EditionMeta e={e} />
+                    </div>
+                    <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
+                      {STATUS_LABEL[e.status]}
+                    </Badge>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <EditionActions e={e} />
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
         </section>
       </div>
 

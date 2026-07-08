@@ -1,0 +1,177 @@
+"use client";
+
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useRef } from "react";
+import Link from "next/link";
+import { formatCop, formatUsd, type Plan } from "../../../lib/plans";
+import WhatsAppButton from "../ui/WhatsAppButton";
+import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
+
+gsap.registerPlugin(ScrollTrigger);
+
+type Props = {
+  coursePlan: Plan | null;
+  isColombia: boolean;
+  userCountry?: string | null;
+};
+
+const CourseAndCta = ({ coursePlan, isColombia, userCountry }: Props) => {
+  const rootRef = useRef<HTMLElement>(null);
+
+  useGSAP(
+    () => {
+      gsap.utils.toArray<HTMLElement>(".cc-reveal").forEach((el) => {
+        gsap.from(el, {
+          y: 56,
+          opacity: 0,
+          duration: 1,
+          ease: "power4.out",
+          scrollTrigger: { trigger: el, start: "top 88%" },
+        });
+      });
+    },
+    { scope: rootRef }
+  );
+
+  return (
+    <section
+      ref={rootRef}
+      id="curso"
+      data-nav-color="black"
+      className="scroll-mt-20 bg-[#faf7f2] text-black"
+    >
+      {/* ── Curso en vivo ── */}
+      <div className="px-3 lg:px-8 py-16 lg:py-24 border-t border-black/10">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12 cc-reveal">
+          <h2 className="font-[font2] text-5xl lg:text-[6vw] uppercase leading-[0.9]">
+            Cursos en vivo
+          </h2>
+          <div className="lg:max-w-md">
+            <p className="font-[font1] text-base lg:text-lg leading-snug">
+              Encuentros grupales en Google Meet. Cupo limitado para que cada
+              participante tenga espacio real para transformar.
+            </p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-black/45 mt-3">
+              Incluye portal de miembros: clases en vivo, grabaciones y módulos ·{" "}
+              <Link href="/acceso" className="underline underline-offset-4 hover:text-black">
+                ya soy miembro
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+          <div className="cc-reveal border border-black rounded-2xl p-8 flex flex-col justify-between bg-white">
+            <div>
+              <div className="font-[font2] uppercase text-[11px] tracking-wider text-black/60">
+                Modalidad
+              </div>
+              <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-none">
+                Google Meet
+              </div>
+            </div>
+            <p className="font-[font1] text-base mt-6 text-black/70 leading-snug">
+              En vivo, con interacción directa con Dayana.
+            </p>
+          </div>
+          <div className="cc-reveal border border-black rounded-2xl p-8 flex flex-col justify-between bg-white">
+            <div>
+              <div className="font-[font2] uppercase text-[11px] tracking-wider text-black/60">
+                Cupos
+              </div>
+              <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-none">
+                30 máx.
+              </div>
+            </div>
+            <p className="font-[font1] text-base mt-6 text-black/70 leading-snug">
+              Espacio garantizado para cada participante.
+            </p>
+          </div>
+          {coursePlan && (
+            <div className="cc-reveal border border-black rounded-2xl p-8 flex flex-col justify-between bg-black text-white">
+              <div>
+                <div className="font-[font2] uppercase text-[11px] tracking-wider opacity-60">
+                  {coursePlan.title}
+                </div>
+                <div className="font-[font2] uppercase text-3xl lg:text-4xl mt-2 leading-tight">
+                  {coursePlan.sessions}
+                </div>
+                {/* Precio por región — mismo criterio automático que las terapias */}
+                {isColombia && coursePlan.amountCop != null ? (
+                  <div className="mt-4">
+                    <div className="font-[font1] text-3xl leading-none">
+                      {formatCop(coursePlan.amountCop)}{" "}
+                      <span className="font-[font2] uppercase text-xs tracking-[0.25em] text-white/55">
+                        COP{coursePlan.unitPrice ? ` ${coursePlan.unitPrice}` : ""}
+                      </span>
+                    </div>
+                    <div className="font-[font1] text-sm mt-1.5 text-white/70">
+                      ≈ {formatUsd(coursePlan.amountUsd)} USD
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <div className="font-[font1] text-3xl leading-none">
+                      {formatUsd(coursePlan.amountUsd)}{" "}
+                      <span className="font-[font2] uppercase text-xs tracking-[0.25em] text-white/55">
+                        USD{coursePlan.unitPrice ? ` ${coursePlan.unitPrice}` : ""}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <ul className="mt-5 space-y-2">
+                  {coursePlan.features.map((f) => (
+                    <li
+                      key={f}
+                      className="font-[font1] text-sm flex items-start gap-2 leading-snug"
+                    >
+                      <span className="mt-1.5 inline-block w-1.5 h-1.5 rounded-full shrink-0 bg-linen" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="w-full">
+                {/* Un solo botón según región — mismo gating que las terapias */}
+                <PlanCheckoutButtons
+                  plan={coursePlan}
+                  isDark
+                  userCountry={userCountry}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── CTA final ── */}
+      <div className="bg-ink text-linen rounded-t-[1.75rem] lg:rounded-t-[3.5rem]">
+        <div className="px-3 lg:px-8 py-20 lg:py-28 text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.35em] text-blush mb-6 cc-reveal">
+            ¿Aún con dudas?
+          </p>
+          <h2 className="font-[font2] text-5xl lg:text-[7vw] uppercase leading-[0.9] cc-reveal">
+            Hablemos antes
+            <br />
+            de decidir
+          </h2>
+          <p className="font-[font1] text-base lg:text-xl text-linen/80 mt-6 max-w-xl mx-auto cc-reveal">
+            Escríbenos por WhatsApp y definimos juntas el paquete que mejor se
+            ajusta a tu momento.
+          </p>
+          <div className="mt-10 flex justify-center cc-reveal">
+            <WhatsAppButton
+              message="Hola Dayana, estoy viendo los paquetes de terapia y me gustaría orientación para elegir."
+              label="Escribir por WhatsApp"
+              size="lg"
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default CourseAndCta;

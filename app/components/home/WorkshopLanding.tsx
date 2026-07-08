@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -227,7 +227,7 @@ const WorkshopLanding = ({ workshop }: WorkshopLandingProps) => {
                 className="sm:flex-1"
               />
               <Link
-                href="/#servicios"
+                href="/servicios"
                 className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/20 sm:flex-1"
               >
                 Ver servicios

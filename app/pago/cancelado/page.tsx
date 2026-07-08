@@ -9,7 +9,7 @@ import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup
 import { isCheckoutReference } from "@/lib/crm/checkout-reference";
 
 export const metadata: Metadata = {
-  title: `Pago cancelado — ${BRAND.name}`,
+  title: `Pago cancelado â€” ${BRAND.name}`,
   description: "Tu pago no fue procesado. Puedes intentarlo de nuevo.",
   robots: { index: false, follow: false },
 };
@@ -48,21 +48,21 @@ const Page = async ({ searchParams }: PageProps) => {
         </h1>
 
         <p className="font-[font1] text-white/75 text-base lg:text-lg leading-relaxed mb-10">
-          El pago no se completó. Nada quedó registrado en tu método de pago.
-          Puedes reintentar desde la página de servicios o escribirnos por
+          El pago no se completÃ³. Nada quedÃ³ registrado en tu mÃ©todo de pago.
+          Puedes reintentar desde la pÃ¡gina de servicios o escribirnos por
           WhatsApp y lo hacemos contigo paso a paso.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
-            href="/#servicios"
+            href="/servicios"
             className="w-full sm:flex-1 rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-white transition-colors text-center"
           >
             Reintentar el pago
           </Link>
           <a
             href={buildWhatsAppUrl(
-              "Hola Dayana, intenté hacer un pago online pero quedó cancelado. ¿Puedes ayudarme a completarlo?"
+              "Hola Dayana, intentÃ© hacer un pago online pero quedÃ³ cancelado. Â¿Puedes ayudarme a completarlo?"
             )}
             target="_blank"
             rel="noopener noreferrer"
@@ -73,7 +73,7 @@ const Page = async ({ searchParams }: PageProps) => {
         </div>
 
         <div className="mt-8 font-[font1] text-[11px] text-white/40 tracking-wide">
-          o escríbenos al {WHATSAPP_NUMBER}
+          o escrÃ­benos al {WHATSAPP_NUMBER}
         </div>
       </section>
     </main>

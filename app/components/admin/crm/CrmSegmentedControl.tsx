@@ -1,5 +1,7 @@
 "use client";
 
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+
 type Segment<T extends string> = {
   id: T;
   label: string;
@@ -21,29 +23,21 @@ const CrmSegmentedControl = <T extends string>({
   className = "",
   "aria-label": ariaLabel = "Secciones",
 }: Props<T>) => (
-  <div
-    className={`crm-segmented ${className}`.trim()}
-    role="tablist"
-    aria-label={ariaLabel}
+  <Tabs
+    value={value}
+    onValueChange={(next) => {
+      if (typeof next === "string") onChange(next as T);
+    }}
+    className={className}
   >
-    {segments.map((seg) => {
-      const active = seg.id === value;
-      const label =
-        seg.count != null ? `${seg.label} (${seg.count})` : seg.label;
-      return (
-        <button
-          key={seg.id}
-          type="button"
-          role="tab"
-          aria-selected={active}
-          className={`crm-segmented-item${active ? " is-active" : ""}`}
-          onClick={() => onChange(seg.id)}
-        >
-          {label}
-        </button>
-      );
-    })}
-  </div>
+    <TabsList aria-label={ariaLabel}>
+      {segments.map((seg) => (
+        <TabsTrigger key={seg.id} value={seg.id}>
+          {seg.count != null ? `${seg.label} (${seg.count})` : seg.label}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+  </Tabs>
 );
 
 export default CrmSegmentedControl;

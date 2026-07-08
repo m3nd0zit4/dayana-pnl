@@ -1,5 +1,11 @@
 "use client";
 
+import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+
 type Props = {
   label: string;
   items: string[];
@@ -8,6 +14,11 @@ type Props = {
   addLabel?: string;
 };
 
+/**
+ * Lista dinámica pensada para muchos ítems:
+ * Enter agrega el siguiente y lo enfoca; Backspace en un ítem vacío lo quita;
+ * flechas reordenan.
+ */
 const StringListEditor = ({
   label,
   items,
@@ -15,6 +26,15 @@ const StringListEditor = ({
   placeholder = "Nuevo ítem",
   addLabel = "Agregar",
 }: Props) => {
+  const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const pendingFocus = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (pendingFocus.current === null) return;
+    inputsRef.current[pendingFocus.current]?.focus();
+    pendingFocus.current = null;
+  });
+
   const updateAt = (index: number, value: string) => {
     const next = [...items];
     next[index] = value;
@@ -23,43 +43,105 @@ const StringListEditor = ({
 
   const removeAt = (index: number) => {
     onChange(items.filter((_, i) => i !== index));
+    pendingFocus.current = Math.max(0, index - 1);
   };
 
-  const addItem = () => {
-    onChange([...items, ""]);
+  const insertAt = (index: number) => {
+    const next = [...items];
+    next.splice(index, 0, "");
+    onChange(next);
+    pendingFocus.current = index;
+  };
+
+  const move = (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= items.length) return;
+    const next = [...items];
+    [next[index], next[target]] = [next[target], next[index]];
+    onChange(next);
+    pendingFocus.current = target;
   };
 
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <span className="crm-label mb-0">{label}</span>
-        <button type="button" className="crm-btn-ghost text-xs" onClick={addItem}>
+        <Label>{label}</Label>
+        <Button type="button" variant="ghost" size="sm" onClick={() => insertAt(items.length)}>
+          <Plus className="inline" />
           {addLabel}
-        </button>
+        </Button>
       </div>
       {items.length === 0 ? (
-        <p className="text-sm text-[var(--crm-muted)]">Sin ítems. Agrega uno.</p>
+        <p className="text-sm text-muted-foreground">Sin ítems. Agrega uno.</p>
       ) : (
-        <ul className="space-y-2">
-          {items.map((item, index) => (
-            <li key={index} className="flex gap-2">
-              <input
-                className="crm-input min-w-0 flex-1"
-                value={item}
-                placeholder={placeholder}
-                onChange={(e) => updateAt(index, e.target.value)}
-              />
-              <button
-                type="button"
-                className="crm-btn-secondary crm-btn-compact shrink-0"
-                onClick={() => removeAt(index)}
-                aria-label="Quitar ítem"
-              >
-                Quitar
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-2">
+            {items.map((item, index) => (
+              <li key={index} className="flex items-center gap-1.5">
+                <Input
+                  ref={(el) => {
+                    inputsRef.current[index] = el;
+                  }}
+                  className="min-w-0 flex-1"
+                  value={item}
+                  placeholder={placeholder}
+                  onChange={(e) => updateAt(index, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      insertAt(index + 1);
+                    } else if (
+                      e.key === "Backspace" &&
+                      item === "" &&
+                      items.length > 1
+                    ) {
+                      e.preventDefault();
+                      removeAt(index);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  aria-label="Subir ítem"
+                  title="Subir"
+                >
+                  <ChevronUp className="size-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0"
+                  onClick={() => move(index, 1)}
+                  disabled={index === items.length - 1}
+                  aria-label="Bajar ítem"
+                  title="Bajar"
+                >
+                  <ChevronDown className="size-3.5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-7 shrink-0 text-destructive"
+                  onClick={() => removeAt(index)}
+                  aria-label="Quitar ítem"
+                  title="Quitar"
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-muted-foreground">
+            Enter agrega el siguiente · Backspace en vacío lo quita
+          </p>
+        </>
       )}
     </div>
   );

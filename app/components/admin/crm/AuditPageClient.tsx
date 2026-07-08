@@ -1,6 +1,9 @@
 "use client";
 
+import { TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Alert, AlertDescription } from "@/app/components/ui/alert";
+import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageShell from "./CrmPageShell";
 
 type Log = {
@@ -47,33 +50,38 @@ const AuditPageClient = ({ preview }: Props) => {
     <CrmPageShell>
       <div className="space-y-6">
         <div>
-          <h1 className="crm-section-title text-xl">Auditoría</h1>
-          <p className="crm-section-subtitle mt-1">
+          <h1 className="text-xl font-semibold tracking-tight">Auditoría</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             Registro de acciones del staff en el CRM (OWNER).
           </p>
         </div>
-        {error && <p className="crm-alert-warning">{error}</p>}
-        <div className="crm-surface-card overflow-hidden">
-          <ul className="divide-y divide-[var(--crm-border)] text-sm">
+        {error && (
+          <Alert>
+            <TriangleAlert />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0 text-sm">
             {logs.length === 0 && !error && (
-              <li className="p-6 text-[var(--crm-muted)]">Sin registros aún.</li>
+              <div className="p-6 text-muted-foreground">Sin registros aún.</div>
             )}
             {logs.map((l) => (
-              <li key={l.id} className="p-4">
+              <div key={l.id} className="p-4">
                 <div className="font-medium">
                   {l.action} · {l.entityType}{" "}
-                  <span className="font-mono text-xs text-[var(--crm-muted)]">
+                  <span className="font-mono text-xs text-muted-foreground">
                     {l.entityId.slice(0, 8)}…
                   </span>
                 </div>
-                <div className="mt-1 text-xs text-[var(--crm-muted)]">
+                <div className="mt-1 text-xs text-muted-foreground">
                   {l.staffUser?.displayName ?? "—"} ·{" "}
                   {new Date(l.createdAt).toLocaleString("es-CO")}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </CrmPageShell>
   );

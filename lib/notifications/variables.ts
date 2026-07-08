@@ -43,6 +43,10 @@ export const paymentVars = (
     ),
     site_url: siteUrl(),
     admin_contact_url: `${siteUrl()}/admin/contacts/${contact.id}`,
+    membership_paid_until: enrollment.paidUntil
+      ? enrollment.paidUntil.toLocaleDateString("es-CO", { dateStyle: "long" })
+      : "",
+    portal_url: `${siteUrl()}/miembros`,
   };
 };
 

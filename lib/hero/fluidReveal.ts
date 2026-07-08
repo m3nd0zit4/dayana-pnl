@@ -151,6 +151,15 @@ export function initFluidReveal(
     (canvas.getContext("experimental-webgl", ctxOpts) as WebGLRenderingContext | null);
   if (!gl) return noop;
 
+  // A lost context (e.g. re-mount over a canvas whose context was released)
+  // makes every GL call a silent no-op and shader compiles "fail" with a null
+  // info log. Bail out quietly — the static <picture> underneath is the
+  // designed fallback — and ask the browser to restore for the next mount.
+  if (gl.isContextLost()) {
+    gl.getExtension("WEBGL_lose_context")?.restoreContext();
+    return noop;
+  }
+
   // ── Offscreen 2D trail canvas (sim resolution) ──
   const trailCanvas = document.createElement("canvas");
   trailCanvas.width = SIM_W;
@@ -173,7 +182,11 @@ export function initFluidReveal(
     gl!.shaderSource(s, src);
     gl!.compileShader(s);
     if (!gl!.getShaderParameter(s, gl!.COMPILE_STATUS)) {
-      console.error("[fluid] shader:", gl!.getShaderInfoLog(s));
+      // Null/empty info log = context lost mid-init; not a real GLSL error.
+      const info = gl!.getShaderInfoLog(s);
+      if (info && !gl!.isContextLost()) {
+        console.warn("[fluid] shader:", info);
+      }
       gl!.deleteShader(s);
       return null;
     }
@@ -188,8 +201,15 @@ export function initFluidReveal(
     gl!.attachShader(p, vs);
     gl!.attachShader(p, fs);
     gl!.linkProgram(p);
+    // Shaders live on inside the linked program; drop the handles.
+    gl!.deleteShader(vs);
+    gl!.deleteShader(fs);
     if (!gl!.getProgramParameter(p, gl!.LINK_STATUS)) {
-      console.error("[fluid] program:", gl!.getProgramInfoLog(p));
+      const info = gl!.getProgramInfoLog(p);
+      if (info && !gl!.isContextLost()) {
+        console.warn("[fluid] program:", info);
+      }
+      gl!.deleteProgram(p);
       return null;
     }
     return p;
@@ -255,10 +275,12 @@ export function initFluidReveal(
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
   }
+  const ownedTextures: WebGLTexture[] = [];
   function loadTex(src: string): Promise<Img | null> {
     return new Promise((resolve) => {
       const tex = gl!.createTexture();
       if (!tex) return resolve(null);
+      ownedTextures.push(tex);
       const file = src.split("/").pop() ?? src;
       const domImg = document.querySelector<HTMLImageElement>(`img[src*="${file}"]`);
       if (domImg && domImg.complete && domImg.naturalWidth) {
@@ -490,7 +512,25 @@ export function initFluidReveal(
     io.disconnect();
     heroEl.removeEventListener("mousemove", onMove);
     heroEl.removeEventListener("mouseleave", onLeave);
-    const lose = gl!.getExtension("WEBGL_lose_context");
-    lose?.loseContext();
+
+    gl!.deleteProgram(simProg);
+    gl!.deleteProgram(compProg);
+    gl!.deleteBuffer(quadBuf);
+    gl!.deleteTexture(trailTex);
+    for (const f of [fboA, fboB]) {
+      gl!.deleteFramebuffer(f.fbo);
+      gl!.deleteTexture(f.tex);
+    }
+    for (const tex of ownedTextures) gl!.deleteTexture(tex);
+
+    // Releasing the context immediately breaks React Strict Mode / fast
+    // remounts: the SAME canvas is reused and getContext() hands back the
+    // now-permanently-lost context, so every shader "fails" with a null log.
+    // Only lose the context once the canvas has really left the DOM.
+    setTimeout(() => {
+      if (!canvas.isConnected) {
+        gl!.getExtension("WEBGL_lose_context")?.loseContext();
+      }
+    }, 0);
   };
 }

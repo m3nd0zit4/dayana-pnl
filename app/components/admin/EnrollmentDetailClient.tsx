@@ -1,14 +1,9 @@
 "use client";
 
-
-
 import { EnrollmentStatus } from "@prisma/client";
-
 import Link from "next/link";
-
 import { useCallback, useState } from "react";
 import { BookOpen } from "lucide-react";
-
 import RegisterPaymentModal, {
   type RegisteredPayment,
 } from "@/app/components/admin/crm/RegisterPaymentModal";
@@ -19,26 +14,25 @@ import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { contactNotebookPath } from "@/lib/crm/contact-notebook-url";
 import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
-
-
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/app/components/ui/table";
 
 type Session = {
-
   id: string;
-
   sessionNumber: number;
-
   status: string;
-
   scheduledAt: string | null;
-
   meetUrl: string | null;
-
   durationMinutes: number | null;
-
 };
-
-
 
 const sessionStatusLabel = (status: string) => {
   if (status === "PENDING_SCHEDULE") return "Pendiente";
@@ -50,10 +44,7 @@ const sessionStatusLabel = (status: string) => {
   return status;
 };
 
-
-
-const sectionHeading =
-  "mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--crm-muted)]";
+const sectionHeading = "mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 
 const SCHEDULABLE_STATUSES = new Set([
   "PENDING_SCHEDULE",
@@ -62,86 +53,45 @@ const SCHEDULABLE_STATUSES = new Set([
   "CANCELLED",
 ]);
 
-
-
 const EnrollmentDetailClient = ({
-
   enrollment: initial,
-
 }: {
-
   enrollment: {
-
     id: string;
-
     status: string;
-
     sessionsTotal: number | null;
-
     sessionsUsed: number;
-
     amountMinor: number | null;
-
     currency: string | null;
-
     contact: { id: string; firstName: string; phoneE164: string; timezone: string };
-
     product: { title: string; kind: string };
-
     therapyPackage: {
-
       id: string;
-
       totalSessions: number;
-
       usedSessions: number;
-
       meetDefaultUrl: string | null;
-
       reprogrammingNotes: string | null;
-
       sessions: Session[];
-
     } | null;
-
     payments: {
-
       id: string;
-
       status: string;
-
       amountMinor: number;
-
       currency: string;
-
       provider: string;
-
     }[];
-
   };
-
 }) => {
-
   const { canWrite, canEditNotes, toast, confirm } = useCrm();
-
   const [enrollment, setEnrollment] = useState(initial);
-
   const [busy, setBusy] = useState(false);
-
   const [paymentOpen, setPaymentOpen] = useState(false);
-
   const [scheduleSession, setScheduleSession] = useState<Session | null>(null);
-
   const pkg = enrollment.therapyPackage;
 
-
-
   const refreshPackage = useCallback(async () => {
-
     const res = await fetch(
-
       `/api/admin/therapy/sessions?enrollmentId=${enrollment.id}`
-
     );
 
     const data = (await res.json()) as {
@@ -170,10 +120,7 @@ const EnrollmentDetailClient = ({
         },
       }));
     }
-
   }, [enrollment.id]);
-
-
 
   const patchEnrollment = async (status: EnrollmentStatus) => {
     const prevStatus = enrollment.status;
@@ -205,8 +152,6 @@ const EnrollmentDetailClient = ({
     toast(`Estado cambiado a «${enrollmentStatusLabel(status)}»`);
     void refreshPackage();
   };
-
-
 
   const completeSession = (sessionId: string, sessionNumber: number) => {
     if (!pkg || sessionId.startsWith("placeholder")) return;
@@ -249,8 +194,6 @@ const EnrollmentDetailClient = ({
       },
     });
   };
-
-
 
   const uncompleteSession = (sessionId: string, sessionNumber: number) => {
     if (!pkg || sessionId.startsWith("placeholder")) return;
@@ -312,81 +255,43 @@ const EnrollmentDetailClient = ({
       enrollment.status === EnrollmentStatus.PENDING_PAYMENT);
 
   const progress =
-
     pkg && pkg.totalSessions > 0
-
       ? (pkg.usedSessions / pkg.totalSessions) * 100
-
       : enrollment.sessionsTotal
-
         ? (enrollment.sessionsUsed / enrollment.sessionsTotal) * 100
-
         : 0;
 
-
-
   const allSessions =
-
     pkg?.sessions.length
-
       ? pkg.sessions
-
       : pkg
-
         ? Array.from({ length: pkg.totalSessions }, (_, i) => ({
-
             id: `placeholder-${i + 1}`,
-
             sessionNumber: i + 1,
-
             status: "PENDING_SCHEDULE",
-
             scheduledAt: null,
-
             meetUrl: null,
-
             durationMinutes: 60,
-
           }))
-
         : [];
 
-
-
   return (
-
     <div className="space-y-8">
-
       <div>
-
         <h1 className="text-xl font-semibold tracking-tight">
-
           {enrollment.product.title}
-
         </h1>
-
-        <p className="mt-2 text-sm text-[var(--crm-muted)]">
-
+        <p className="mt-2 text-sm text-muted-foreground">
           <Link
-
             href={`/admin/contacts/${enrollment.contact.id}`}
-
-            className="text-[var(--crm-accent)] hover:underline"
-
+            className="text-primary hover:underline"
           >
-
             {enrollment.contact.firstName}
-
           </Link>{" "}
-
           · {enrollment.contact.phoneE164}
-
         </p>
-
         <div className="mt-4 flex flex-wrap items-center gap-3">
-
-          <label className="text-xs text-[var(--crm-muted)]">Estado</label>
-
+          <span className="text-xs text-muted-foreground">Estado</span>
           <SearchableSelect
             label="Estado"
             hideLabel
@@ -409,138 +314,120 @@ const EnrollmentDetailClient = ({
             className="w-auto min-w-[160px]"
             menuVariant="status"
             panelMinWidth={200}
-
             searchMinOptions={99}
-
           />
 
           {canEditNotes && (
-            <Link
-              href={contactNotebookPath(enrollment.contact.id, { focus: true })}
-              className="crm-btn-secondary inline-flex items-center gap-1.5 text-xs"
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={contactNotebookPath(enrollment.contact.id, { focus: true })} />}
             >
-              <BookOpen className="size-3.5" aria-hidden />
+              <BookOpen aria-hidden />
               Cuaderno
-            </Link>
+            </Button>
           )}
 
           {enrollment.sessionsTotal != null && (
-
-            <span className="text-xs text-[var(--crm-muted)]">
-
+            <span className="text-xs text-muted-foreground">
               Sesiones {enrollment.sessionsUsed}/{enrollment.sessionsTotal}
-
             </span>
-
           )}
-
-
         </div>
-
-        <div className="mt-3 h-2 max-w-md overflow-hidden rounded-full bg-black/[0.06]">
-
+        <div className="mt-3 h-2 max-w-md overflow-hidden rounded-full bg-muted">
           <div
-
-            className="h-full rounded-full bg-[var(--crm-accent)] transition-all"
-
+            className="h-full rounded-full bg-primary transition-all"
             style={{ width: `${Math.min(100, progress)}%` }}
-
           />
-
         </div>
-
       </div>
 
       {canWrite && (
-        <section className="crm-surface-card p-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h2 className={sectionHeading}>Pago del servicio</h2>
-              {hasApprovedPayment ? (
-                <p className="text-sm text-[var(--crm-muted)]">
-                  {enrollment.payments.length} pago(s) registrado(s)
-                </p>
-              ) : (
-                <p className="text-sm text-[var(--crm-muted)]">
-                  Sin pago aún
-                  {enrollment.amountMinor
-                    ? ` · precio referencia $${(enrollment.amountMinor / 100).toFixed(2)} ${enrollment.currency ?? "USD"}`
-                    : ""}
-                </p>
-              )}
+        <Card>
+          <CardContent>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className={sectionHeading}>Pago del servicio</h2>
+                {hasApprovedPayment ? (
+                  <p className="text-sm text-muted-foreground">
+                    {enrollment.payments.length} pago(s) registrado(s)
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Sin pago aún
+                    {enrollment.amountMinor
+                      ? ` · precio referencia $${(enrollment.amountMinor / 100).toFixed(2)} ${enrollment.currency ?? "USD"}`
+                      : ""}
+                  </p>
+                )}
+              </div>
+              <Button size="sm" disabled={busy} onClick={() => setPaymentOpen(true)}>
+                {hasApprovedPayment ? "Registrar otro pago" : "Registrar pago"}
+              </Button>
             </div>
-            <button
-              type="button"
-              className="crm-btn-primary text-xs"
-              disabled={busy}
-              onClick={() => setPaymentOpen(true)}
-            >
-              {hasApprovedPayment ? "Registrar otro pago" : "Registrar pago"}
-            </button>
-          </div>
 
-          {needsPayment && (
-            <p className="mt-3 rounded-lg border border-[var(--crm-blush-soft)] bg-[var(--crm-blush-soft)]/40 px-3 py-2 text-xs text-[var(--crm-accent)]">
-              Tip: al registrar el pago el servicio se activa solo — no hace falta cambiar el estado a mano.
-            </p>
-          )}
+            {needsPayment && (
+              <p className="mt-3 rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs text-primary">
+                Tip: al registrar el pago el servicio se activa solo — no hace falta cambiar el estado a mano.
+              </p>
+            )}
 
-          {enrollment.payments.length > 0 && (
-            <ul className="mt-4 divide-y divide-[var(--crm-border)] text-sm">
-              {enrollment.payments.map((p) => (
-                <li key={p.id} className="flex justify-between gap-3 py-2.5 first:pt-0">
-                  <span className="text-[var(--crm-muted)]">
-                    {p.provider} · {p.status}
-                  </span>
-                  <span className="font-medium">
-                    {(p.amountMinor / 100).toFixed(2)} {p.currency}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+            {enrollment.payments.length > 0 && (
+              <ul className="mt-4 divide-y divide-border text-sm">
+                {enrollment.payments.map((p) => (
+                  <li key={p.id} className="flex justify-between gap-3 py-2.5 first:pt-0">
+                    <span className="text-muted-foreground">
+                      {p.provider} · {p.status}
+                    </span>
+                    <span className="font-medium">
+                      {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {pkg && (
-        <section className="crm-surface-card space-y-4 p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className={sectionHeading}>Sesiones</h2>
-            <p className="text-xs text-[var(--crm-muted)]">
-              Agenda en Google Calendar
-            </p>
-          </div>
+        <Card>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className={sectionHeading}>Sesiones</h2>
+              <p className="text-xs text-muted-foreground">Agenda en Google Calendar</p>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-[var(--crm-border)] text-[10px] uppercase text-[var(--crm-muted)]">
-                  <th className="py-2 pr-2">#</th>
-                  <th className="py-2 pr-2">Estado</th>
-                  <th className="py-2 pr-2">Fecha</th>
-                  <th className="py-2">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allSessions.map((s) => (
-                  <SessionRow
-                    key={s.id}
-                    session={s}
-                    timezone={enrollment.contact.timezone}
-                    canWrite={canWrite}
-                    busy={busy}
-                    onComplete={() => completeSession(s.id, s.sessionNumber)}
-                    onUncomplete={() => uncompleteSession(s.id, s.sessionNumber)}
-                    onSchedule={() => setScheduleSession(s)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Acción</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allSessions.map((s) => (
+                    <SessionRow
+                      key={s.id}
+                      session={s}
+                      timezone={enrollment.contact.timezone}
+                      canWrite={canWrite}
+                      busy={busy}
+                      onComplete={() => completeSession(s.id, s.sessionNumber)}
+                      onUncomplete={() => uncompleteSession(s.id, s.sessionNumber)}
+                      onSchedule={() => setScheduleSession(s)}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
-
-
 
       {pkg && scheduleSession && (
         <ScheduleSessionModal
@@ -570,14 +457,9 @@ const EnrollmentDetailClient = ({
         currency={enrollment.currency ?? "USD"}
         onSuccess={handlePaymentSuccess}
       />
-
     </div>
-
   );
-
 };
-
-
 
 const SessionRow = ({
   session: s,
@@ -607,54 +489,36 @@ const SessionRow = ({
     SCHEDULABLE_STATUSES.has(s.status);
 
   return (
-    <tr className="border-b border-black/[0.04] align-middle">
-      <td className="py-2.5 pr-2 font-medium">{s.sessionNumber}</td>
-      <td className="py-2.5 pr-2 text-xs">{sessionStatusLabel(s.status)}</td>
-      <td className="py-2.5 pr-2 text-xs text-[var(--crm-muted)]">
+    <TableRow>
+      <TableCell className="font-medium">{s.sessionNumber}</TableCell>
+      <TableCell className="text-xs">{sessionStatusLabel(s.status)}</TableCell>
+      <TableCell className="text-xs text-muted-foreground">
         {s.scheduledAt ? formatSessionDateTimeEs(s.scheduledAt, timezone) : "—"}
-      </td>
-      <td className="py-2.5">
+      </TableCell>
+      <TableCell>
         <div className="flex flex-wrap items-center gap-2">
           {canSchedule && (
-            <button
-              type="button"
-              disabled={busy}
-              className="crm-btn-secondary text-xs"
-              onClick={onSchedule}
-            >
+            <Button variant="outline" size="sm" disabled={busy} onClick={onSchedule}>
               {s.scheduledAt ? "Cambiar fecha" : "Agregar fecha"}
-            </button>
+            </Button>
           )}
           {canComplete && (
-            <button
-              type="button"
-              disabled={busy}
-              className="crm-btn-primary text-xs"
-              onClick={onComplete}
-            >
+            <Button size="sm" disabled={busy} onClick={onComplete}>
               Completar
-            </button>
+            </Button>
           )}
           {canUncomplete && (
-            <button
-              type="button"
-              disabled={busy}
-              className="crm-btn-secondary text-xs"
-              onClick={onUncomplete}
-            >
+            <Button variant="outline" size="sm" disabled={busy} onClick={onUncomplete}>
               Quitar completado
-            </button>
+            </Button>
           )}
           {isCompleted && !canUncomplete && (
-            <span className="text-xs text-[var(--crm-muted)]">Completada</span>
+            <span className="text-xs text-muted-foreground">Completada</span>
           )}
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 };
 
-
-
 export default EnrollmentDetailClient;
-

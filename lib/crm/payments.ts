@@ -67,6 +67,12 @@ export const recordPayment = async (
   if (input.status === PaymentStatus.APPROVED) {
     await markEnrollmentPaid(input.enrollmentId);
 
+    // Course memberships: each approved payment buys one month of access.
+    // Must never break the webhook path; the Inngest payment-approved fn
+    // retries any extension this swallows.
+    const { applyMembershipExtension } = await import("../lms/membership");
+    await applyMembershipExtension(payment.id).catch(() => undefined);
+
     const { emitPaymentApproved } = await import("../inngest/events");
     await emitPaymentApproved(input.enrollmentId);
   } else if (input.status === PaymentStatus.FAILED) {

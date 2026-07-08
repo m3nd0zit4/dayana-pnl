@@ -9,7 +9,7 @@ const CrmLogo = ({ href = "/admin" }: Props) => (
   <Link
     href={href}
     prefetch={false}
-    className="mb-4 block font-[font2] uppercase leading-none select-none text-[var(--crm-foreground)] hover:opacity-80 transition-opacity"
+    className="block px-2 py-1 font-[font2] text-foreground uppercase leading-none transition-opacity select-none hover:opacity-80"
     aria-label="CRM Dayana Beltrán PNL"
   >
     <span className="block text-sm tracking-[0.14em] lg:text-base">

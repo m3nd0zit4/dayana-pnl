@@ -112,20 +112,38 @@ const Navbar = () => {
           </a>
         </div>
       )}
-      <div
-        onClick={() => setNavOpen(true)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className="lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer pointer-events-auto"
-      >
+      <div className="flex items-center pointer-events-auto">
         <div
-          ref={navGreenRef}
-          className="bg-linen transition-all absolute top-0 h-0 w-full"
-        />
-        <div className="relative h-full lg:px-6 px-5 flex flex-col justify-center items-end gap-1">
-          <div className="lg:w-10 w-7 h-0.5 bg-white" />
-          <div className="lg:w-6 w-4 h-0.5 bg-white" />
+          onClick={() => setNavOpen(true)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer"
+        >
+          <div
+            ref={navGreenRef}
+            className="bg-linen transition-all absolute top-0 h-0 w-full"
+          />
+          <div className="relative h-full lg:px-6 px-5 flex flex-col justify-center items-end gap-1">
+            <div className="lg:w-10 w-7 h-0.5 bg-white" />
+            <div className="lg:w-6 w-4 h-0.5 bg-white" />
+          </div>
         </div>
+        <a
+          href="/acceso"
+          className="group relative hidden sm:inline-flex items-center overflow-hidden rounded-full border lg:px-5 px-4 lg:py-2.5 py-2 uppercase lg:text-xs text-[11px] tracking-[0.18em] ml-3 lg:ml-4"
+          style={{ borderColor: navColor, fontFamily: "var(--font-grotesk)" }}
+        >
+          <span
+            className="absolute inset-0 -translate-x-full bg-terracotta transition-transform duration-500 ease-[cubic-bezier(0.65,0,0.35,1)] group-hover:translate-x-0"
+            aria-hidden
+          />
+          <span
+            className="relative transition-colors duration-500 delay-75 group-hover:text-white"
+            style={{ color: navColor }}
+          >
+            Ingresar
+          </span>
+        </a>
       </div>
     </div>
   );

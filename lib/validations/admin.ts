@@ -50,7 +50,9 @@ export const createContactSchema = z.object({
     .enum([
       "WEB",
       "WHATSAPP_DIRECT",
+      "TIKTOK",
       "INSTAGRAM",
+      "YOUTUBE",
       "REFERRAL",
       "OTHER",
     ])
@@ -135,4 +137,26 @@ export const workshopEditionSchema = z.object({
   metaTitle: z.string().max(200).optional().nullable(),
   metaDescription: z.string().max(500).optional().nullable(),
   introOpen: z.string().max(5000).optional().nullable(),
+});
+
+export const courseModuleSchema = z.object({
+  title: z.string().min(1).max(200),
+  bodyMd: z.string().max(100_000).optional().nullable(),
+  isPublished: z.boolean().optional(),
+});
+
+export const reorderCourseModulesSchema = z.object({
+  orderedIds: z.array(z.string().min(1)).min(1),
+});
+
+export const liveClassSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(5000).optional().nullable(),
+  scheduledAt: z.string().datetime().optional().nullable(),
+  meetUrl: z.string().url().max(500).optional().nullable(),
+  recordingUrl: z.string().url().max(1000).optional().nullable(),
+});
+
+export const membershipPaidUntilSchema = z.object({
+  paidUntil: z.string().datetime().nullable(),
 });
