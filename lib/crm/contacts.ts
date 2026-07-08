@@ -1,4 +1,9 @@
-import { EnrollmentStatus, type ContactSource, type Prisma } from "@prisma/client";
+import {
+  EnrollmentStatus,
+  PaymentStatus,
+  type ContactSource,
+  type Prisma,
+} from "@prisma/client";
 import type { CountryCode } from "libphonenumber-js";
 import { prisma } from "../db";
 import { PLACEHOLDER_PHONE_PREFIX } from "./checkout-placeholder";
@@ -354,7 +359,16 @@ const listInclude = {
       },
     },
     take: 5,
-    include: { product: true },
+    include: {
+      product: true,
+      // Basta un pago aprobado para saber que el contacto llegó comprando
+      // (checkout), no pidiendo que lo contacten.
+      payments: {
+        where: { status: PaymentStatus.APPROVED },
+        take: 1,
+        select: { id: true },
+      },
+    },
   },
 } satisfies Prisma.ContactInclude;
 

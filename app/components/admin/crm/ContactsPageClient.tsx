@@ -29,6 +29,8 @@ export type ContactRow = {
   phoneE164: string;
   countryIso: string | null;
   source: string;
+  /** Tiene al menos un pago aprobado — llegó comprando, no pidiendo contacto. */
+  hasPayment: boolean;
   enrollments: {
     status: string;
     product: { title: string };
@@ -134,9 +136,10 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 font-semibold">
                         {c.firstName} {c.lastName ?? ""}
-                        {/* Se registró solo desde la web (formulario, compra
-                            o portal) — nadie del equipo lo ha contactado aún. */}
-                        {c.source === "WEB" && (
+                        {/* Se registró solo desde la web (formulario o portal)
+                            sin comprar — hay que contactarlo. Quien ya pagó
+                            no necesita el aviso. */}
+                        {c.source === "WEB" && !c.hasPayment && (
                           <Badge className="bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-100 dark:text-amber-700">
                             Por contactar
                           </Badge>
