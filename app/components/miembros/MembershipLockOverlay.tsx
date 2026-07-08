@@ -69,7 +69,7 @@ export const MembershipBlockScreen = ({
   children: React.ReactNode;
 }) => (
   <div className="relative min-h-screen">
-    <div aria-hidden className="pointer-events-none blur-[3px] brightness-97 select-none">
+    <div aria-hidden className="pointer-events-none blur-[1.5px] brightness-98 select-none">
       {children}
     </div>
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/75 px-6 backdrop-blur-sm">
