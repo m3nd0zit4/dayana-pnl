@@ -1,5 +1,4 @@
 import { getPublicPlans } from "../plans-from-db";
-import { applyCopToPlan, getUsdToCopRateFromEnv } from "./usd-to-cop";
 import type { Plan } from "../plans";
 import { getServerUserCountry } from "../geo/user-country";
 
@@ -12,9 +11,10 @@ export type VisiblePublicPlans = {
 
 /**
  * Planes públicos desde el CRM (DB), filtrados por región del visitante.
- * Los planes sin fila COP explícita muestran el COP aproximado por tasa —
- * igual que el checkout. Llama a headers() (país por IP) — la ruta que lo
- * use se vuelve dinámica.
+ * Sin precio explícito en la moneda de la región, el plan NO se muestra —
+ * no se deriva ningún COP automático; el precio que se ve (y se cobra) es
+ * siempre el que está escrito en el CRM. Llama a headers() (país por IP) —
+ * la ruta que lo use se vuelve dinámica.
  */
 export const getVisiblePublicPlans = async (): Promise<VisiblePublicPlans> => {
   const [fromDb, userCountry] = await Promise.all([
@@ -22,29 +22,18 @@ export const getVisiblePublicPlans = async (): Promise<VisiblePublicPlans> => {
     getServerUserCountry().catch(() => null),
   ]);
 
-  const rate = fromDb?.usdToCopRate ?? getUsdToCopRateFromEnv();
-  // Solo derivar COP cuando hay USD real: un plan sin precio USD no debe
-  // volverse "COP $0" visible (y comprable) para Colombia.
-  const withApproxCop = (plan: Plan): Plan =>
-    plan.amountCop == null && plan.amountUsd > 0
-      ? applyCopToPlan(plan, rate)
-      : plan;
-
-  const therapyPlans = (fromDb?.therapyPlans ?? []).map(withApproxCop);
-  const coursePlan = fromDb?.coursePlan
-    ? withApproxCop(fromDb.coursePlan)
-    : null;
+  const therapyPlans = fromDb?.therapyPlans ?? [];
+  const coursePlan = fromDb?.coursePlan ?? null;
 
   const isColombia = userCountry === "CO";
 
-  // Ocultar planes sin precio para la región del visitante
-  const visibleTherapyPlans = therapyPlans.filter((p) =>
-    isColombia ? p.amountCop != null : p.amountUsd > 0
-  );
+  // Visible solo con precio explícito para la región del visitante.
+  const visibleForRegion = (p: Plan) =>
+    isColombia ? p.amountCop != null && p.amountCop > 0 : p.amountUsd > 0;
+
+  const visibleTherapyPlans = therapyPlans.filter(visibleForRegion);
   const visibleCoursePlan =
-    coursePlan && (isColombia ? coursePlan.amountCop != null : coursePlan.amountUsd > 0)
-      ? coursePlan
-      : null;
+    coursePlan && visibleForRegion(coursePlan) ? coursePlan : null;
 
   return {
     therapyPlans: visibleTherapyPlans,

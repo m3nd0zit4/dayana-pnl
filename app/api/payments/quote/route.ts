@@ -3,7 +3,6 @@ import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
-import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import {
   clientIp,
   rateLimitDistributed,
@@ -50,11 +49,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const usdToCopRate = await resolveUsdToCopRate();
-    const { net, fee, gross, currency_id, referenceUsd } = mercadoPagoItemAmount(
-      plan,
-      usdToCopRate
-    );
+    const { net, fee, gross, currency_id, referenceUsd } =
+      mercadoPagoItemAmount(plan);
     const isCop = currency_id === "COP";
     const fmt = (n: number): string =>
       isCop ? String(Math.round(n)) : n.toFixed(2);
@@ -77,6 +73,9 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "amount_error";
+    if (message === "no_cop_price") {
+      return NextResponse.json({ error: "no_cop_price" }, { status: 400 });
+    }
     console.error("[quote] mercadopago amount", message);
     return NextResponse.json({ error: "config" }, { status: 500 });
   }

@@ -66,11 +66,9 @@ type View = "usd" | "cop";
 type Props = {
   preview: boolean;
   initialProducts?: Product[];
-  /** Tasa USD→COP vigente (SiteSetting) para mostrar el COP derivado. */
-  usdToCopRate: number;
 };
 
-const ProductsPageClient = ({ preview, initialProducts, usdToCopRate }: Props) => {
+const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [loading, setLoading] = useState(initialProducts === undefined);
@@ -404,13 +402,6 @@ const ProductsPageClient = ({ preview, initialProducts, usdToCopRate }: Props) =
                                 </span>
                               ) : null}
                             </>
-                          ) : view === "cop" && usd ? (
-                            // Sin fila COP: la web cobra el COP derivado del
-                            // USD por la tasa vigente — mostrar esa verdad.
-                            <span className="text-muted-foreground">
-                              ≈ {Math.round((usd.amountMinor / 100) * usdToCopRate).toLocaleString("es-CO")} COP
-                              <span className="ml-1 text-[10px] uppercase">auto</span>
-                            </span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
@@ -423,12 +414,12 @@ const ProductsPageClient = ({ preview, initialProducts, usdToCopRate }: Props) =
                               Activo
                             </Badge>
                           ) : view === "cop" && usd ? (
-                            <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-100 dark:text-sky-700">
-                              Activo · COP automático
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+                              Sin COP · Oculto en Colombia
                             </Badge>
                           ) : view === "usd" && cop ? (
-                            <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-100 dark:text-sky-700">
-                              Solo Colombia (COP)
+                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+                              Sin USD · Oculto internacional
                             </Badge>
                           ) : (
                             <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
