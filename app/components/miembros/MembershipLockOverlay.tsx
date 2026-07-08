@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 import { useState } from "react";
 import { TriangleAlert, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
@@ -104,6 +105,13 @@ export const MembershipBlockScreen = ({
           Pagar ahora
           <span aria-hidden>→</span>
         </Link>
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/acceso" })}
+          className="mt-6 block w-full font-[font1] text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Cerrar sesión
+        </button>
       </div>
     </div>
   </div>
