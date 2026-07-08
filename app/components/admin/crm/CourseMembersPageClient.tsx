@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CreditCard, Mail, CalendarClock } from "lucide-react";
+import { Copy, CreditCard, KeyRound, Mail, CalendarClock } from "lucide-react";
 import { useCallback, useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
 import { Badge } from "@/app/components/ui/badge";
@@ -67,6 +67,12 @@ const CourseMembersPageClient = ({
   );
   const [adjustDate, setAdjustDate] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
+  const [grantingId, setGrantingId] = useState<string | null>(null);
+  const [grantedAccess, setGrantedAccess] = useState<{
+    name: string;
+    email: string | null;
+    password: string;
+  } | null>(null);
 
   const reload = useCallback(async () => {
     if (preview) return;
@@ -96,6 +102,26 @@ const CourseMembersPageClient = ({
       return;
     }
     toast("Invitación enviada");
+  };
+
+  const grantAccess = async (row: CourseMemberRow) => {
+    setGrantingId(row.contact.id);
+    const res = await fetch(
+      `/api/admin/lms/members/${row.contact.id}/grant-access`,
+      { method: "POST" }
+    );
+    setGrantingId(null);
+    if (!res.ok) {
+      toast("No se pudo otorgar el acceso", "error");
+      return;
+    }
+    const data = (await res.json()) as { email: string | null; password: string };
+    setGrantedAccess({
+      name: `${row.contact.firstName} ${row.contact.lastName ?? ""}`.trim(),
+      email: data.email,
+      password: data.password,
+    });
+    void reload();
   };
 
   const saveAdjust = async () => {
@@ -201,6 +227,18 @@ const CourseMembersPageClient = ({
                           <Button
                             variant="outline"
                             size="sm"
+                            disabled={grantingId === row.contact.id}
+                            onClick={() => void grantAccess(row)}
+                            title="Genera una contraseña directa, sin depender del correo"
+                          >
+                            <KeyRound aria-hidden />
+                            {grantingId === row.contact.id
+                              ? "Generando…"
+                              : "Otorgar acceso"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setPaymentTarget(row)}
                           >
                             <CreditCard aria-hidden />
@@ -272,6 +310,46 @@ const CourseMembersPageClient = ({
             </Button>
           </div>
         </div>
+      </CrmModal>
+
+      <CrmModal
+        title="Acceso otorgado"
+        open={!!grantedAccess}
+        onClose={() => setGrantedAccess(null)}
+      >
+        {grantedAccess && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Comparte esto con <strong>{grantedAccess.name}</strong> por
+              WhatsApp o el canal que uses — no se muestra de nuevo.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Correo</Label>
+              <Input readOnly value={grantedAccess.email ?? "Sin email registrado"} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Contraseña</Label>
+              <div className="flex gap-2">
+                <Input readOnly value={grantedAccess.password} className="font-mono" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Copiar contraseña"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(grantedAccess.password);
+                    toast("Contraseña copiada");
+                  }}
+                >
+                  <Copy />
+                </Button>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setGrantedAccess(null)}>Listo</Button>
+            </div>
+          </div>
+        )}
       </CrmModal>
     </CrmPageShell>
   );

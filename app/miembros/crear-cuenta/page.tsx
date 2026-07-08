@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/contact";
 import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
 import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
+import MemberSignupForm from "@/app/components/miembros/MemberSignupForm";
 import RequestAccessForm from "@/app/components/miembros/RequestAccessForm";
 import SetPasswordForm from "@/app/components/miembros/SetPasswordForm";
 
@@ -46,9 +47,9 @@ const Page = async ({ searchParams }: PageProps) => {
   return (
     <MemberAuthShell
       title="Crea tu cuenta"
-      description="Escribe tu correo y te enviamos un enlace para crear tu contraseña y entrar al portal."
+      description="Entra de una vez — no necesitas esperar ningún correo. Tu acceso al material del curso se activa cuando tu pago quede al día."
     >
-      <RequestAccessForm buttonLabel="Enviarme el enlace" />
+      <MemberSignupForm />
     </MemberAuthShell>
   );
 };
