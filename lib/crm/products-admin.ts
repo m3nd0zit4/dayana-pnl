@@ -1,21 +1,17 @@
-import { ProductKind, type Prisma } from "@prisma/client";
+import { ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { uniqueSlug } from "./slug";
 
-export type ProductWithPrice = Prisma.ProductGetPayload<{
-  include: { prices: true };
-}>;
+const priceInclude = {
+  prices: {
+    orderBy: { validFrom: "desc" as const },
+  },
+} as const;
 
 export const listAllProducts = async () =>
   prisma.product.findMany({
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
+    include: priceInclude,
   });
 
 export const createProduct = async (input: {
@@ -27,6 +23,8 @@ export const createProduct = async (input: {
   description?: string;
   amountUsd: number;
   listAmountUsd?: number | null;
+  amountCop?: number | null;
+  listAmountCop?: number | null;
   sortOrder?: number;
 }) => {
   const id =
@@ -49,6 +47,25 @@ export const createProduct = async (input: {
   const maxOrder = await prisma.product.aggregate({ _max: { sortOrder: true } });
   const sortOrder = input.sortOrder ?? (maxOrder._max.sortOrder ?? 0) + 1;
 
+  const priceRows = [
+    {
+      currency: "USD",
+      amountMinor: Math.round(input.amountUsd * 100),
+      listAmountMinor: input.listAmountUsd ? Math.round(input.listAmountUsd * 100) : null,
+    },
+    ...(input.amountCop != null
+      ? [
+          {
+            currency: "COP",
+            amountMinor: Math.round(input.amountCop),
+            listAmountMinor: input.listAmountCop
+              ? Math.round(input.listAmountCop)
+              : null,
+          },
+        ]
+      : []),
+  ];
+
   const product = await prisma.product.create({
     data: {
       id,
@@ -59,19 +76,9 @@ export const createProduct = async (input: {
       description: input.description?.trim() || null,
       isActive: true,
       sortOrder,
-      prices: {
-        create: {
-          currency: "USD",
-          amountMinor: Math.round(input.amountUsd * 100),
-          listAmountMinor: input.listAmountUsd
-            ? Math.round(input.listAmountUsd * 100)
-            : null,
-        },
-      },
+      prices: { create: priceRows },
     },
-    include: {
-      prices: { orderBy: { validFrom: "desc" }, take: 1 },
-    },
+    include: priceInclude,
   });
 
   return product;
@@ -88,32 +95,25 @@ export const updateProduct = async (
     kind?: ProductKind;
     amountUsd?: number;
     listAmountUsd?: number | null;
+    amountCop?: number | null;
+    listAmountCop?: number | null;
     sortOrder?: number;
   }
 ) => {
   const existing = await prisma.product.findUnique({
     where: { id },
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
+    include: priceInclude,
   });
   if (!existing) throw new Error("NOT_FOUND");
 
   const nextKind = input.kind ?? existing.kind;
   const nextSessions =
     input.sessionsCount !== undefined ? input.sessionsCount : existing.sessionsCount;
-  if (
-    nextKind === ProductKind.THERAPY &&
-    (!nextSessions || nextSessions < 1)
-  ) {
+  if (nextKind === ProductKind.THERAPY && (!nextSessions || nextSessions < 1)) {
     throw new Error("THERAPY_REQUIRES_SESSIONS");
   }
 
-  const product = await prisma.product.update({
+  await prisma.product.update({
     where: { id },
     data: {
       title: input.title?.trim(),
@@ -124,47 +124,47 @@ export const updateProduct = async (
       kind: input.kind,
       sortOrder: input.sortOrder,
     },
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
   });
 
   if (input.amountUsd !== undefined) {
     const amountMinor = Math.round(input.amountUsd * 100);
     const listAmountMinor =
-      input.listAmountUsd != null
-        ? Math.round(input.listAmountUsd * 100)
-        : null;
-    const latest = existing.prices[0];
+      input.listAmountUsd != null ? Math.round(input.listAmountUsd * 100) : null;
+    const latestUsd = existing.prices.find((p) => p.currency === "USD");
     if (
-      !latest ||
-      latest.amountMinor !== amountMinor ||
-      latest.listAmountMinor !== listAmountMinor
+      !latestUsd ||
+      latestUsd.amountMinor !== amountMinor ||
+      latestUsd.listAmountMinor !== listAmountMinor
     ) {
       await prisma.productPrice.create({
-        data: {
-          productId: id,
-          currency: "USD",
-          amountMinor,
-          listAmountMinor,
-        },
+        data: { productId: id, currency: "USD", amountMinor, listAmountMinor },
       });
+    }
+  }
+
+  if (input.amountCop !== undefined) {
+    if (input.amountCop == null) {
+      await prisma.productPrice.deleteMany({ where: { productId: id, currency: "COP" } });
+    } else {
+      const amountMinor = Math.round(input.amountCop);
+      const listAmountMinor =
+        input.listAmountCop != null ? Math.round(input.listAmountCop) : null;
+      const latestCop = existing.prices.find((p) => p.currency === "COP");
+      if (
+        !latestCop ||
+        latestCop.amountMinor !== amountMinor ||
+        latestCop.listAmountMinor !== listAmountMinor
+      ) {
+        await prisma.productPrice.create({
+          data: { productId: id, currency: "COP", amountMinor, listAmountMinor },
+        });
+      }
     }
   }
 
   return prisma.product.findUnique({
     where: { id },
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
+    include: priceInclude,
   });
 };
 
@@ -174,24 +174,12 @@ export const deactivateProduct = async (id: string) => {
     return prisma.product.update({
       where: { id },
       data: { isActive: false },
-      include: {
-        prices: {
-          where: { currency: "USD" },
-          orderBy: { validFrom: "desc" },
-          take: 1,
-        },
-      },
+      include: priceInclude,
     });
   }
   await prisma.productPrice.deleteMany({ where: { productId: id } });
   return prisma.product.delete({
     where: { id },
-    include: {
-      prices: {
-        where: { currency: "USD" },
-        orderBy: { validFrom: "desc" },
-        take: 1,
-      },
-    },
+    include: priceInclude,
   });
 };

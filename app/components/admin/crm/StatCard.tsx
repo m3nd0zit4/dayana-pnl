@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { Card, CardContent } from "@/app/components/ui/card";
 
 type Props = {
   label: string;
@@ -8,10 +9,12 @@ type Props = {
 };
 
 const StatCard = ({ label, value }: Props) => (
-  <div className="crm-surface-card crm-stat-card">
-    <p className="crm-stat-value">{value}</p>
-    <p className="crm-stat-label">{label}</p>
-  </div>
+  <Card className="py-4">
+    <CardContent className="px-4">
+      <p className="text-2xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{label}</p>
+    </CardContent>
+  </Card>
 );
 
 export default StatCard;

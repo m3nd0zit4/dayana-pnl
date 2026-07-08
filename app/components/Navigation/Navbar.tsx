@@ -10,6 +10,7 @@ const Navbar = () => {
   const [navColor, setNavColor] = useContext(NavbarColorContext);
   const pathname = usePathname();
   const homeHref = pathname === "/" ? "#hero" : "/#hero";
+  const isHome = pathname === "/";
   const [logoVisible, setLogoVisible] = useState(true);
 
   useEffect(() => {
@@ -92,41 +93,57 @@ const Navbar = () => {
 
   return (
     <div className="z-30 flex fixed top-0 w-full items-start justify-between pointer-events-none">
-      <div
-        className={`overflow-hidden transition-[transform,opacity] duration-300 ease-out will-change-transform lg:p-5 p-3 pointer-events-auto ${
-          logoVisible
-            ? "translate-y-0 opacity-100"
-            : "-translate-y-[140%] opacity-0 pointer-events-none"
-        }`}
-      >
-        <a
-          href={homeHref}
-          className="block font-[font2] uppercase leading-none select-none"
-          style={{ color: navColor }}
-          aria-label="Dayana Beltran PNL"
+      {/* Home shows the DB mark via the masthead intro; other routes show it here. */}
+      {!isHome && (
+        <div
+          className={`overflow-hidden transition-[transform,opacity] duration-300 ease-out will-change-transform lg:p-5 p-3 pointer-events-auto ${
+            logoVisible
+              ? "translate-y-0 opacity-100"
+              : "-translate-y-[140%] opacity-0 pointer-events-none"
+          }`}
         >
-          <span className="block text-sm lg:text-base tracking-[0.14em]">
-            Dayana Beltr&aacute;n
-          </span>
-          <span className="block text-[10px] lg:text-xs tracking-[0.5em] mt-1.5 opacity-70">
-            PNL
+          <a
+            href={homeHref}
+            className="block uppercase leading-none select-none text-2xl lg:text-[28px]"
+            style={{ color: navColor, fontFamily: "var(--font-grotesk)", fontWeight: 700, letterSpacing: "-0.02em" }}
+            aria-label="Dayana Beltrán"
+          >
+            DB<span style={{ color: "var(--color-terracotta)" }}>.</span>
+          </a>
+        </div>
+      )}
+      <div className="flex items-center pointer-events-auto">
+        <div
+          onClick={() => setNavOpen(true)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className="lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer"
+        >
+          <div
+            ref={navGreenRef}
+            className="bg-linen transition-all absolute top-0 h-0 w-full"
+          />
+          <div className="relative h-full lg:px-6 px-5 flex flex-col justify-center items-end gap-1">
+            <div className="lg:w-10 w-7 h-0.5 bg-white" />
+            <div className="lg:w-6 w-4 h-0.5 bg-white" />
+          </div>
+        </div>
+        <a
+          href="/acceso"
+          className="group relative hidden sm:inline-flex items-center overflow-hidden rounded-full border lg:px-5 px-4 lg:py-2.5 py-2 uppercase lg:text-xs text-[11px] tracking-[0.18em] ml-3 lg:ml-4"
+          style={{ borderColor: navColor, fontFamily: "var(--font-grotesk)" }}
+        >
+          <span
+            className="absolute inset-0 -translate-x-full bg-terracotta transition-transform duration-500 ease-[cubic-bezier(0.65,0,0.35,1)] group-hover:translate-x-0"
+            aria-hidden
+          />
+          <span
+            className="relative transition-colors duration-500 delay-75 group-hover:text-white"
+            style={{ color: navColor }}
+          >
+            Ingresar
           </span>
         </a>
-      </div>
-      <div
-        onClick={() => setNavOpen(true)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className="lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer pointer-events-auto"
-      >
-        <div
-          ref={navGreenRef}
-          className="bg-linen transition-all absolute top-0 h-0 w-full"
-        />
-        <div className="relative h-full lg:px-6 px-5 flex flex-col justify-center items-end gap-1">
-          <div className="lg:w-10 w-7 h-0.5 bg-white" />
-          <div className="lg:w-6 w-4 h-0.5 bg-white" />
-        </div>
       </div>
     </div>
   );

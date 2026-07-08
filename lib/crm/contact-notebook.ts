@@ -5,6 +5,11 @@ import {
 } from "@prisma/client";
 import { del } from "@vercel/blob";
 import { prisma } from "../db";
+import { isBlobConfigured } from "../storage/blob";
+import {
+  loadCanvasSceneFromBlob,
+  saveCanvasSceneToBlob,
+} from "./notebook-canvas-blob";
 
 export const MAX_NOTEBOOK_PAGES_PER_CONTACT = 200;
 export const MAX_CANVAS_JSON_BYTES = 2 * 1024 * 1024;
@@ -16,6 +21,7 @@ const pageListSelect = {
   sortOrder: true,
   kind: true,
   background: true,
+  canvasUrl: true,
   bodyText: true,
   attachmentUrl: true,
   attachmentMime: true,
@@ -42,6 +48,7 @@ export type NotebookPageListItem = {
   sortOrder: number;
   kind: NotebookPageKind;
   background: NotebookPageBackground;
+  canvasUrl: string | null;
   bodyText: string | null;
   attachmentUrl: string | null;
   attachmentMime: string | null;
@@ -75,6 +82,7 @@ const mapListItem = (p: PageRow): NotebookPageListItem => ({
   sortOrder: p.sortOrder,
   kind: p.kind,
   background: p.background,
+  canvasUrl: p.canvasUrl,
   bodyText: p.bodyText,
   attachmentUrl: p.attachmentUrl,
   attachmentMime: p.attachmentMime,
@@ -89,10 +97,15 @@ const mapListItem = (p: PageRow): NotebookPageListItem => ({
   productTitle: p.enrollment?.product.title ?? null,
 });
 
-const mapDetail = (p: PageDetailRow): NotebookPageDetail => ({
-  ...mapListItem(p),
-  canvasData: p.canvasData ?? null,
-});
+// DB column wins when present: a Blob-outage fallback save writes the newer
+// scene there while an older canvasUrl may still point at a stale blob.
+const resolveDetail = async (p: PageDetailRow): Promise<NotebookPageDetail> => {
+  let canvasData: unknown = p.canvasData ?? null;
+  if (canvasData == null && p.canvasUrl) {
+    canvasData = await loadCanvasSceneFromBlob(p.canvasUrl);
+  }
+  return { ...mapListItem(p), canvasData };
+};
 
 const deleteBlobUrls = async (urls: (string | null | undefined)[]) => {
   for (const url of urls) {
@@ -105,13 +118,6 @@ const deleteBlobUrls = async (urls: (string | null | undefined)[]) => {
   }
 };
 
-export const assertCanvasDataSize = (data: unknown) => {
-  if (data == null) return;
-  const bytes = Buffer.byteLength(JSON.stringify(data), "utf8");
-  if (bytes > MAX_CANVAS_JSON_BYTES) {
-    throw new Error("CANVAS_TOO_LARGE");
-  }
-};
 
 const resolveSessionContext = async (
   contactId: string,
@@ -153,6 +159,7 @@ export const consolidateContactCanvasPages = async (contactId: string) => {
       id: true,
       previewUrl: true,
       attachmentUrl: true,
+      canvasUrl: true,
     },
   });
 
@@ -161,16 +168,16 @@ export const consolidateContactCanvasPages = async (contactId: string) => {
   const [keep, ...remove] = pages;
   for (const page of remove) {
     await prisma.contactNotebookPage.delete({ where: { id: page.id } });
-    await deleteBlobUrls([page.previewUrl, page.attachmentUrl]);
+    await deleteBlobUrls([page.previewUrl, page.attachmentUrl, page.canvasUrl]);
   }
 
   const uploadPages = await prisma.contactNotebookPage.findMany({
     where: { contactId, kind: NotebookPageKind.UPLOAD },
-    select: { id: true, previewUrl: true, attachmentUrl: true },
+    select: { id: true, previewUrl: true, attachmentUrl: true, canvasUrl: true },
   });
   for (const page of uploadPages) {
     await prisma.contactNotebookPage.delete({ where: { id: page.id } });
-    await deleteBlobUrls([page.previewUrl, page.attachmentUrl]);
+    await deleteBlobUrls([page.previewUrl, page.attachmentUrl, page.canvasUrl]);
   }
 
   return keep.id;
@@ -188,7 +195,7 @@ export const getOrCreateContactCanvas = async (input: {
     select: pageDetailSelect,
   });
 
-  if (existing) return mapDetail(existing);
+  if (existing) return resolveDetail(existing);
 
   const page = await prisma.contactNotebookPage.create({
     data: {
@@ -202,7 +209,7 @@ export const getOrCreateContactCanvas = async (input: {
     select: pageDetailSelect,
   });
 
-  return mapDetail(page);
+  return resolveDetail(page);
 };
 
 export const getNotebookPage = async (pageId: string, contactId: string) => {
@@ -210,7 +217,7 @@ export const getNotebookPage = async (pageId: string, contactId: string) => {
     where: { id: pageId, contactId },
     select: pageDetailSelect,
   });
-  return page ? mapDetail(page) : null;
+  return page ? resolveDetail(page) : null;
 };
 
 export const createNotebookPage = async (input: {
@@ -268,7 +275,7 @@ export const createNotebookPage = async (input: {
     select: pageDetailSelect,
   });
 
-  return mapDetail(page);
+  return resolveDetail(page);
 };
 
 export const updateNotebookPage = async (
@@ -293,8 +300,39 @@ export const updateNotebookPage = async (
   });
   if (!existing) return null;
 
+  // Canvas scenes go to Blob (DB keeps the pointer); the JSONB column is only
+  // a fallback when Blob is unconfigured or the upload fails. In either
+  // fallback the column stays authoritative because reads prefer it.
+  let canvasColumnValue: Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined;
+  let canvasUrlValue: string | null | undefined;
   if (data.canvasData !== undefined) {
-    assertCanvasDataSize(data.canvasData);
+    if (data.canvasData === null) {
+      canvasColumnValue = Prisma.JsonNull;
+      canvasUrlValue = null;
+    } else {
+      const serialized = JSON.stringify(data.canvasData);
+      if (Buffer.byteLength(serialized, "utf8") > MAX_CANVAS_JSON_BYTES) {
+        throw new Error("CANVAS_TOO_LARGE");
+      }
+      if (isBlobConfigured()) {
+        try {
+          canvasUrlValue = await saveCanvasSceneToBlob(
+            contactId,
+            pageId,
+            serialized
+          );
+          canvasColumnValue = Prisma.JsonNull;
+        } catch (err) {
+          console.warn(
+            `[notebook] Blob upload failed for page ${pageId}, falling back to DB:`,
+            err instanceof Error ? err.message : err
+          );
+          canvasColumnValue = data.canvasData as Prisma.InputJsonValue;
+        }
+      } else {
+        canvasColumnValue = data.canvasData as Prisma.InputJsonValue;
+      }
+    }
   }
 
   let therapySessionId = data.therapySessionId;
@@ -329,12 +367,8 @@ export const updateNotebookPage = async (
           : data.title,
       kind: data.kind,
       background: data.background,
-      canvasData:
-        data.canvasData === undefined
-          ? undefined
-          : data.canvasData === null
-            ? Prisma.JsonNull
-            : (data.canvasData as Prisma.InputJsonValue),
+      canvasData: canvasColumnValue,
+      canvasUrl: canvasUrlValue,
       bodyText: data.bodyText === undefined ? undefined : data.bodyText,
       therapySessionId:
         therapySessionId === undefined ? undefined : therapySessionId,
@@ -347,10 +381,22 @@ export const updateNotebookPage = async (
         data.attachmentName === undefined ? undefined : data.attachmentName,
       previewUrl: data.previewUrl === undefined ? undefined : data.previewUrl,
     },
-    select: pageDetailSelect,
+    select: pageListSelect,
   });
 
-  return mapDetail(page);
+  if (
+    typeof canvasUrlValue === "string" &&
+    existing.canvasUrl &&
+    existing.canvasUrl !== canvasUrlValue
+  ) {
+    await deleteBlobUrls([existing.canvasUrl]);
+  } else if (canvasUrlValue === null && existing.canvasUrl) {
+    await deleteBlobUrls([existing.canvasUrl]);
+  }
+
+  // Metadata only — echoing the scene back would make every autosave
+  // round-trip the whole drawing.
+  return mapListItem(page);
 };
 
 export const reorderNotebookPages = async (
@@ -388,6 +434,6 @@ export const deleteNotebookPage = async (pageId: string, contactId: string) => {
   if (!page) return false;
 
   await prisma.contactNotebookPage.delete({ where: { id: pageId } });
-  await deleteBlobUrls([page.previewUrl, page.attachmentUrl]);
+  await deleteBlobUrls([page.previewUrl, page.attachmentUrl, page.canvasUrl]);
   return true;
 };

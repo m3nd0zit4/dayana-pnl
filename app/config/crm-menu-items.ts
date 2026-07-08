@@ -1,15 +1,16 @@
 import {
+  BookOpen,
   CalendarDays,
   CreditCard,
   ExternalLink,
+  GraduationCap,
   HeartPulse,
   ClipboardList,
-  Layers,
-  Bell,
   MessageSquare,
   Package,
   Users,
   UsersRound,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 
@@ -18,6 +19,8 @@ export type CrmMenuItem = {
   label: string;
   href: string;
   external?: boolean;
+  /** One level of nesting only (sidebar sub-items). */
+  items?: Omit<CrmMenuItem, "items">[];
 };
 
 export type CrmMenuSection = {
@@ -31,7 +34,16 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Clientes",
     items: [
       { icon: Users, label: "Contactos", href: "/admin/contacts" },
-      { icon: Layers, label: "Servicios", href: "/admin/services" },
+      {
+        icon: GraduationCap,
+        label: "Curso",
+        href: "/admin/curso",
+        items: [
+          { icon: UsersRound, label: "Miembros", href: "/admin/curso" },
+          { icon: Video, label: "Clases", href: "/admin/curso/clases" },
+          { icon: BookOpen, label: "Módulos", href: "/admin/curso/modulos" },
+        ],
+      },
       { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
       { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
     ],
@@ -47,7 +59,6 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Comunicación",
     items: [
       { icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
-      { icon: Bell, label: "Notificaciones", href: "/admin/notifications" },
     ],
   },
   {

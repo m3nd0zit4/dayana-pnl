@@ -1,4 +1,4 @@
-import { EnrollmentStatus } from "@prisma/client";
+import { EnrollmentStatus, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { createEnrollment } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
@@ -29,13 +29,33 @@ export const fulfillCheckoutPayment = async (
   });
   if (existing) return existing.enrollmentId;
 
+  const { contactId: _c, productId: _p, ...paymentInput } = input;
+
+  // Course = monthly membership: renewals land on the contact's existing
+  // enrollment instead of piling up duplicate ACTIVE enrollments.
+  const product = await prisma.product.findUnique({
+    where: { id: input.productId },
+    select: { kind: true },
+  });
+  if (product?.kind === ProductKind.COURSE) {
+    const existingEnrollmentId = await findEnrollmentForCheckout(
+      input.contactId,
+      input.productId
+    );
+    if (existingEnrollmentId) {
+      await recordPayment({
+        ...paymentInput,
+        enrollmentId: existingEnrollmentId,
+      });
+      return existingEnrollmentId;
+    }
+  }
+
   const enrollment = await createEnrollment({
     contactId: input.contactId,
     productId: input.productId,
     status: EnrollmentStatus.ACTIVE,
   });
-
-  const { contactId: _c, productId: _p, ...paymentInput } = input;
 
   try {
     await recordPayment({

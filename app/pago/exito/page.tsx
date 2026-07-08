@@ -5,15 +5,18 @@ import {
   WHATSAPP_NUMBER,
   buildWhatsAppUrl,
 } from "../../../lib/contact";
+import { ProductKind } from "@prisma/client";
 import { formatUsd, isPlanId, type PlanId } from "../../../lib/plans";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { getEnrollmentById } from "../../../lib/crm/enrollments";
+import { getMemberByContactId } from "@/lib/crm/member-accounts";
 import { isPlaceholderContactPhone } from "../../../lib/crm/checkout-placeholder";
 import {
   isCheckoutReference,
   parseCheckoutReference,
 } from "../../../lib/crm/checkout-reference";
 import { findEnrollmentForCheckout } from "../../../lib/crm/checkout-fulfillment";
+import { syncMercadoPagoPayment } from "../../../lib/crm/mercadopago-payments";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 
@@ -177,6 +180,19 @@ const Page = async ({ searchParams }: PageProps) => {
         planTitle ? ` del plan ${planTitle}` : ""
       }. ¿Puedes ayudarme a completarlo?`;
 
+  // Mercado Pago returns here with `payment_id` on approved checkouts.
+  // Registration must not depend solely on the webhook arriving (a
+  // misconfigured or missing dashboard webhook silently drops it) — reconcile
+  // synchronously so the Payment/Enrollment rows exist before the lookups
+  // below run. Safe to repeat: recordPayment/fulfillCheckoutPayment are
+  // idempotent per provider+providerPaymentId, so a webhook that fires later
+  // (or already fired) is a no-op.
+  if (isSuccess && params.payment_id) {
+    await syncMercadoPagoPayment(params.payment_id).catch((e) => {
+      console.error("[pago/exito] mercadopago reconciliation failed", e);
+    });
+  }
+
   let enrollmentId =
     params.enrollmentId &&
     !isCheckoutReference(params.enrollmentId)
@@ -198,6 +214,7 @@ const Page = async ({ searchParams }: PageProps) => {
   }
 
   let postPaymentMode: "none" | "legacy" | "email-only" = "none";
+  let coursePortal: "invite" | "account" | null = null;
   if (isSuccess && enrollmentId) {
     try {
       const enrollment = await getEnrollmentById(enrollmentId);
@@ -206,6 +223,13 @@ const Page = async ({ searchParams }: PageProps) => {
           postPaymentMode = "legacy";
         } else if (!enrollment.contact.email) {
           postPaymentMode = "email-only";
+        }
+
+        if (enrollment.product.kind === ProductKind.COURSE) {
+          const member = await getMemberByContactId(enrollment.contactId);
+          const hasAccess =
+            member?.account?.passwordHash || member?.account?.googleSub;
+          coursePortal = hasAccess ? "account" : "invite";
         }
       }
     } catch {
@@ -348,6 +372,42 @@ const Page = async ({ searchParams }: PageProps) => {
             planId={planId}
             mode={postPaymentMode}
           />
+        )}
+
+        {isSuccess && coursePortal && (
+          <div className="rounded-2xl border border-blush/25 bg-blush/[0.06] p-6 mb-10">
+            <div className="font-[font2] uppercase text-xs tracking-[0.3em] text-blush mb-3">
+              Portal de miembros
+            </div>
+            {coursePortal === "invite" ? (
+              <>
+                <p className="font-[font1] text-white/80 text-sm lg:text-base leading-relaxed mb-5">
+                  Te enviamos un correo para crear tu cuenta del portal de
+                  miembros: ahí encontrarás el enlace de las clases en vivo,
+                  las grabaciones y los módulos del curso.
+                </p>
+                <Link
+                  href="/miembros/crear-cuenta"
+                  className="inline-block rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] px-8 py-3.5 hover:bg-white transition-colors"
+                >
+                  Crear mi cuenta
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="font-[font1] text-white/80 text-sm lg:text-base leading-relaxed mb-5">
+                  Tu mensualidad quedó al día. Entra al portal para ver las
+                  próximas clases, grabaciones y módulos.
+                </p>
+                <Link
+                  href="/miembros"
+                  className="inline-block rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] px-8 py-3.5 hover:bg-white transition-colors"
+                >
+                  Entrar al portal
+                </Link>
+              </>
+            )}
+          </div>
         )}
 
         <div className="flex flex-col sm:flex-row gap-3">

@@ -4,6 +4,7 @@ import { ChevronDown, Copy } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { renderQuickMessage } from "@/lib/crm/render-message";
 import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
+import { Button } from "@/app/components/ui/button";
 import { useCrm } from "./CrmProvider";
 
 export type QuickMessageTemplate = {
@@ -64,19 +65,19 @@ const QuickMessagesPanel = ({ vars, preview }: Props) => {
     <div className="space-y-0">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 rounded-lg py-1 text-left transition-colors hover:text-[var(--crm-foreground)]"
+        className="flex w-full items-center justify-between gap-3 rounded-lg py-1 text-left transition-colors hover:text-foreground"
         aria-expanded={expanded}
         aria-controls={panelId}
         onClick={() => setExpanded((open) => !open)}
       >
-        <span className="crm-font-display text-[10px] text-[var(--crm-muted)]">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
           Mensajes rápidos
-          <span className="ml-2 font-[font1] normal-case tracking-normal text-[var(--crm-muted)]/80">
+          <span className="ml-2 normal-case tracking-normal text-muted-foreground/80">
             ({templates.length})
           </span>
         </span>
         <ChevronDown
-          className={`size-4 shrink-0 text-[var(--crm-muted)] transition-transform duration-200 ${
+          className={`size-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
             expanded ? "rotate-180" : ""
           }`}
           aria-hidden
@@ -88,24 +89,15 @@ const QuickMessagesPanel = ({ vars, preview }: Props) => {
           {templates.map((t) => {
             const previewText = renderQuickMessage(t.body, vars);
             return (
-              <li
-                key={t.id}
-                className="rounded-xl border border-[var(--crm-border)] bg-white/70 p-3"
-              >
+              <li key={t.id} className="rounded-xl border border-border bg-card p-3">
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-xs font-semibold text-[var(--crm-foreground)]">
-                    {t.title}
-                  </span>
-                  <button
-                    type="button"
-                    className="crm-btn-ghost shrink-0 inline-flex items-center gap-1 text-xs"
-                    onClick={() => void copyMessage(t.body)}
-                  >
-                    <Copy className="size-3.5" />
+                  <span className="text-xs font-semibold">{t.title}</span>
+                  <Button variant="ghost" size="sm" onClick={() => void copyMessage(t.body)}>
+                    <Copy />
                     Copiar
-                  </button>
+                  </Button>
                 </div>
-                <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-[var(--crm-muted)]">
+                <p className="mt-2 text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
                   {previewText}
                 </p>
               </li>

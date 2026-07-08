@@ -6,6 +6,10 @@ import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ContactSearch from "@/app/components/admin/ContactSearch";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import CountrySelect from "./CountrySelect";
 import SearchableSelect from "./SearchableSelect";
 import { contactSourceSelectOptions } from "@/lib/crm/form-select-options";
@@ -75,7 +79,7 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
 
         <ContactSearch initialQ={initialQ} />
 
-        <form onSubmit={applyFilters} className="crm-filters">
+        <form onSubmit={applyFilters} className="flex flex-wrap items-end gap-3">
           <div className="min-w-0 flex-1 sm:min-w-[200px]">
             <CountrySelect
               id="f-country"
@@ -98,73 +102,78 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
               searchMinOptions={99}
             />
           </div>
-          <label className="flex min-h-[2.25rem] items-center gap-2 text-sm text-[var(--crm-muted)]">
-            <input
-              type="checkbox"
+          <label className="flex min-h-9 items-center gap-2 text-sm text-muted-foreground">
+            <Checkbox
               checked={activeTherapy}
-              onChange={(e) => setActiveTherapy(e.target.checked)}
+              onCheckedChange={(checked) => setActiveTherapy(checked === true)}
             />
             Terapia activa
           </label>
-          <button type="submit" className="crm-btn-secondary">
+          <Button type="submit" variant="outline">
             Filtrar
-          </button>
+          </Button>
         </form>
 
-        <div className="crm-group">
-          {rows.length === 0 ? (
-            <div className="crm-empty">
-              <p className="crm-empty-title">Sin resultados</p>
-              <p className="text-sm text-[var(--crm-muted)]">
-                Crea un contacto o ajusta la búsqueda.
-              </p>
-            </div>
-          ) : (
-            rows.map((c) => (
-              <div key={c.id} className="crm-group-row is-interactive">
-                <Link
-                  href={preview ? "#" : `/admin/contacts/${c.id}`}
-                  className="flex min-w-0 flex-1 items-center gap-3"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="font-semibold">
-                      {c.firstName} {c.lastName ?? ""}
-                    </div>
-                    <div className="mt-0.5 font-mono text-xs text-[var(--crm-muted)]">
-                      {c.phoneE164}
-                      {c.countryIso ? ` · ${formatCountryLabel(c.countryIso)}` : ""}
-                    </div>
-                    {c.enrollments.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {c.enrollments.slice(0, 2).map((en, i) => (
-                          <span
-                            key={`${c.id}-${i}`}
-                            className="rounded-md bg-[var(--crm-fill-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--crm-foreground)]"
-                          >
-                            {en.product.title} · {enrollmentStatusLabel(en.status)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <ChevronRight className="crm-group-chevron shrink-0" aria-hidden />
-                </Link>
-                {!preview && buildContactWhatsAppUrl(c.phoneE164) && (
-                  <a
-                    href={buildContactWhatsAppUrl(c.phoneE164)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="crm-btn-icon size-9 shrink-0 text-[#128C7E]"
-                    aria-label="WhatsApp"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MessageCircle className="size-4" strokeWidth={1.75} />
-                  </a>
-                )}
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0">
+            {rows.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm font-semibold">Sin resultados</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Crea un contacto o ajusta la búsqueda.
+                </p>
               </div>
-            ))
-          )}
-        </div>
+            ) : (
+              rows.map((c) => (
+                <div key={c.id} className="flex items-center gap-2 p-4 transition-colors hover:bg-muted/50">
+                  <Link
+                    href={preview ? "#" : `/admin/contacts/${c.id}`}
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-semibold">
+                        {c.firstName} {c.lastName ?? ""}
+                      </div>
+                      <div className="mt-0.5 font-mono text-xs text-muted-foreground">
+                        {c.phoneE164}
+                        {c.countryIso ? ` · ${formatCountryLabel(c.countryIso)}` : ""}
+                      </div>
+                      {c.enrollments.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {c.enrollments.slice(0, 2).map((en, i) => (
+                            <Badge key={`${c.id}-${i}`} variant="secondary" className="text-[10px]">
+                              {en.product.title} · {enrollmentStatusLabel(en.status)}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  </Link>
+                  {!preview && buildContactWhatsAppUrl(c.phoneE164) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0 text-[#128C7E]"
+                      aria-label="WhatsApp"
+                      onClick={(e) => e.stopPropagation()}
+                      nativeButton={false}
+                      render={
+                        <a
+                          href={buildContactWhatsAppUrl(c.phoneE164)!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
+                      }
+                    >
+                      <MessageCircle strokeWidth={1.75} />
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <ContactFormModal

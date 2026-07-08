@@ -65,6 +65,24 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        {/* LCP hero image — preloaded per breakpoint, exactly matching the
+            <picture> sources in Hero so the fetch is reused (faster FCP/LCP). */}
+        <link
+          rel="preload"
+          as="image"
+          type="image/avif"
+          media="(min-width: 768px)"
+          imageSrcSet="/hero/hero-desktop.avif 1500w, /hero/hero-desktop-2200.avif 2200w"
+          imageSizes="100vw"
+        />
+        <link
+          rel="preload"
+          as="image"
+          type="image/avif"
+          media="(max-width: 767px)"
+          imageSrcSet="/hero/hero-mobile.avif 900w, /hero/hero-mobile-1320.avif 1320w"
+          imageSizes="100vw"
+        />
         <link
           rel="preload"
           href="/fonts/Lausanne-300.woff2"
@@ -75,6 +93,20 @@ export default function RootLayout({
         <link
           rel="preload"
           href="/fonts/Lausanne-500.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/SpaceGrotesk-700.woff2"
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/fonts/DMMono-500.woff2"
           as="font"
           type="font/woff2"
           crossOrigin="anonymous"

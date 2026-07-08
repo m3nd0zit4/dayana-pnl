@@ -40,9 +40,12 @@ export const paymentConfirmationHtml = (vars: TemplateVars): string => {
 
   return wrapEmailHtml({
     preheader: `Pago confirmado · ${vars.payment_amount} · ${vars.product_title}`,
+    eyebrow: "Confirmación de pago",
     title: "Pago confirmado",
     bodyHtml,
     summaryRows,
+    footnote:
+      "Este correo es informativo. Si no realizaste este pago, contáctanos.",
     ctaPrimary: hasTherapySessions
       ? {
           label: "Coordinar por WhatsApp",

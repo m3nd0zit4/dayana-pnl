@@ -4,7 +4,7 @@ import {
   WorkshopEditionStatus,
 } from "@prisma/client";
 import { hashStaffPassword } from "../lib/auth/password";
-import { PLANS, type PlanId } from "../lib/plans";
+import { COP_PRICES, SEED_PLANS } from "./seed-data";
 import {
   PROXIMO_WORKSHOP_SLUG,
   WORKSHOP_DETAIL_SEED,
@@ -13,15 +13,7 @@ import {
 
 const prisma = new PrismaClient();
 
-const SESSIONS_BY_PLAN: Partial<Record<PlanId, number>> = {
-  "therapy-1": 1,
-  "therapy-3": 3,
-  "therapy-6": 6,
-  "therapy-12": 12,
-  "therapy-24": 24,
-};
-
-const planKindToProduct = (kind: "therapy" | "course", id: PlanId): ProductKind => {
+const planKindToProduct = (kind: "therapy" | "course", id: string): ProductKind => {
   if (kind === "therapy") return ProductKind.THERAPY;
   if (id === "workshop-virtual") return ProductKind.WORKSHOP;
   return ProductKind.COURSE;
@@ -42,10 +34,17 @@ const workshopStatusMap = (
 
 async function seedProducts() {
   let order = 0;
-  for (const plan of Object.values(PLANS)) {
+  for (const plan of SEED_PLANS) {
     const kind = planKindToProduct(plan.kind, plan.id);
     const sessionsCount =
-      plan.kind === "therapy" ? SESSIONS_BY_PLAN[plan.id as PlanId] ?? null : null;
+      plan.kind === "therapy" ? plan.sessionsCount ?? null : null;
+    const content = {
+      unitPriceLabel: plan.unitPrice ?? null,
+      tag: plan.tag ?? null,
+      highlight: plan.highlight ?? false,
+      whatsappMessage: plan.whatsappMessage,
+      therapyHeadline: plan.therapyPresentation?.sessionsHeadline ?? null,
+    };
 
     await prisma.product.upsert({
       where: { id: plan.id },
@@ -58,6 +57,7 @@ async function seedProducts() {
         description: plan.features.join("\n"),
         isActive: true,
         sortOrder: order++,
+        ...content,
       },
       update: {
         kind,
@@ -66,6 +66,7 @@ async function seedProducts() {
         sessionsCount,
         description: plan.features.join("\n"),
         sortOrder: order - 1,
+        ...content,
       },
     });
 
@@ -183,6 +184,31 @@ async function seedMessageTemplates() {
       title: "Seguimiento lead",
       body: "Hola {{first_name}}, ¿sigues interesada en {{product_title}}? Estoy aquí para resolver dudas.",
     },
+    {
+      key: "member_invite",
+      title: "Invitación portal de miembros",
+      body: "Hola {{first_name}}, ya puedes crear tu cuenta del portal de miembros. Crea tu contraseña aquí: {{set_password_url}}",
+    },
+    {
+      key: "member_password_reset",
+      title: "Restablecer contraseña portal",
+      body: "Hola {{first_name}}, recibimos tu solicitud para restablecer la contraseña. Crea una nueva aquí: {{reset_url}}",
+    },
+    {
+      key: "membership_payment_due",
+      title: "Mensualidad por vencer",
+      body: "Hola {{first_name}}, tu mensualidad del curso vence el {{paid_until_date}}. Renueva aquí para no perder acceso: {{portal_url}}",
+    },
+    {
+      key: "membership_overdue",
+      title: "Mensualidad vencida",
+      body: "Hola {{first_name}}, tu mensualidad del curso venció el {{paid_until_date}}. Renueva aquí para recuperar acceso: {{portal_url}}",
+    },
+    {
+      key: "new_recording_posted",
+      title: "Nueva grabación disponible",
+      body: "Hola {{first_name}}, ya está disponible la grabación de {{class_title}}. Estará un mes en el portal: {{portal_url}}",
+    },
   ];
 
   for (const t of templates) {
@@ -242,8 +268,33 @@ async function seedStaffOwner() {
   console.log(`Staff OWNER seeded: ${email}`);
 }
 
+async function seedCopPrices() {
+  for (const [productId, { amount, listAmount }] of Object.entries(COP_PRICES)) {
+    const existing = await prisma.productPrice.findFirst({
+      where: { productId, currency: "COP" },
+      orderBy: { validFrom: "desc" },
+    });
+    if (
+      !existing ||
+      existing.amountMinor !== amount ||
+      existing.listAmountMinor !== (listAmount ?? null)
+    ) {
+      await prisma.productPrice.create({
+        data: {
+          productId,
+          currency: "COP",
+          amountMinor: amount,
+          listAmountMinor: listAmount ?? null,
+        },
+      });
+      console.log(`COP price set for ${productId}: ${amount.toLocaleString("es-CO")}`);
+    }
+  }
+}
+
 async function main() {
   await seedProducts();
+  await seedCopPrices();
   await seedWorkshops();
   await seedMessageTemplates();
   await seedTags();

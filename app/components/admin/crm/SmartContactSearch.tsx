@@ -146,13 +146,13 @@ const SmartContactSearch = ({
     <Link
       key={c.id}
       href={`/admin/contacts/${c.id}`}
-      className="block px-3 py-2.5 hover:bg-[var(--crm-linen)]/40"
+      className="block px-3 py-2.5 hover:bg-secondary/40"
       onClick={() => openContact(c)}
     >
       <div className="text-sm font-medium">
         {c.firstName} {c.lastName ?? ""}
       </div>
-      <div className="font-mono text-[11px] text-[var(--crm-muted)]">
+      <div className="font-mono text-[11px] text-muted-foreground">
         {c.phoneE164}
       </div>
     </Link>
@@ -163,11 +163,11 @@ const SmartContactSearch = ({
       <label
         className={
           compact
-            ? "crm-search-field w-full"
-            : "flex items-center gap-2.5 rounded-xl border border-black/[0.06] bg-white px-3.5 py-2 transition-all focus-within:border-[var(--crm-accent)] focus-within:ring-2 focus-within:ring-[var(--crm-accent-soft)]"
+            ? "flex min-h-9 w-full items-center gap-2 rounded-lg bg-muted px-3 transition-colors focus-within:bg-muted/70"
+            : "flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2 transition-all focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40"
         }
       >
-        <Search className="size-[18px] shrink-0 text-[var(--crm-muted)]" strokeWidth={2} />
+        <Search className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={2} />
         <input
           ref={inputRef}
           type="search"
@@ -188,16 +188,16 @@ const SmartContactSearch = ({
             if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-sm text-[var(--crm-foreground)] outline-none placeholder:text-[var(--crm-muted)]"
+          className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           autoComplete="off"
         />
       </label>
 
       {showEmptyPanel && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-[var(--crm-border)] bg-white py-1 shadow-lg">
+        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
           {recents.length > 0 && (
             <>
-              <p className="crm-font-display flex items-center gap-1.5 px-3 pb-1 pt-2 text-[10px] text-[var(--crm-muted)]">
+              <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">
                 <Clock className="size-3" />
                 Recientes
               </p>
@@ -206,10 +206,8 @@ const SmartContactSearch = ({
           )}
           {SEARCH_SHORTCUTS.length > 0 && (
             <>
-              {recents.length > 0 && (
-                <div className="my-1 border-t border-[var(--crm-border)]" />
-              )}
-              <p className="crm-font-display flex items-center gap-1.5 px-3 pb-1 pt-2 text-[10px] text-[var(--crm-muted)]">
+              {recents.length > 0 && <div className="my-1 border-t border-border" />}
+              <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">
                 <Zap className="size-3" />
                 Atajos
               </p>
@@ -219,37 +217,35 @@ const SmartContactSearch = ({
                   <button
                     key={item.href}
                     type="button"
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-[var(--crm-linen)]/40"
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-secondary/40"
                     onClick={() => {
                       router.push(item.href);
                       setOpen(false);
                     }}
                   >
-                    <Icon className="size-4 shrink-0 text-[var(--crm-muted)]" strokeWidth={1.75} />
+                    <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
                     <span>{item.label}</span>
                   </button>
                 );
               })}
             </>
           )}
-          <p className="border-t border-[var(--crm-border)] px-3 py-2 text-[11px] text-[var(--crm-muted)]">
+          <p className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">
             Escribe nombre, teléfono o email para buscar contactos.
           </p>
         </div>
       )}
 
       {showResultsPanel && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-[var(--crm-border)] bg-white py-1 shadow-lg">
-          {loading && (
-            <p className="px-3 py-2 text-xs text-[var(--crm-muted)]">Buscando…</p>
-          )}
+        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
+          {loading && <p className="px-3 py-2 text-xs text-muted-foreground">Buscando…</p>}
           {!loading && results.length === 0 && (
-            <p className="px-3 py-2 text-xs text-[var(--crm-muted)]">Sin coincidencias</p>
+            <p className="px-3 py-2 text-xs text-muted-foreground">Sin coincidencias</p>
           )}
           {results.map((c) => renderContactRow(c))}
           <button
             type="button"
-            className="w-full border-t border-[var(--crm-border)] px-3 py-2 text-left text-xs font-medium text-[var(--crm-accent)] hover:bg-[var(--crm-linen)]/30"
+            className="w-full border-t border-border px-3 py-2 text-left text-xs font-medium text-primary hover:bg-secondary/30"
             onClick={goToList}
           >
             Ver todos los resultados →

@@ -3,7 +3,12 @@
 import { useState } from "react";
 import type { ContactSource } from "@prisma/client";
 import { contactToFormValues, type ContactFormValues } from "@/app/config/contact-form";
+import type { ExtractedContactFields } from "@/lib/ai/contact-extraction";
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import ContactFormFields from "./ContactFormFields";
+import SmartPasteBox from "./SmartPasteBox";
+import { useCrm } from "./CrmProvider";
 
 type Contact = {
   id: string;
@@ -25,15 +30,39 @@ type Contact = {
 };
 
 const ContactEditForm = ({ contact }: { contact: Contact }) => {
+  const { aiEnabled } = useCrm();
   const [values, setValues] = useState<ContactFormValues>(() =>
     contactToFormValues(contact)
   );
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiFilled, setAiFilled] = useState<ReadonlySet<string>>(new Set());
 
-  const patch = (p: Partial<ContactFormValues>) =>
+  const patch = (p: Partial<ContactFormValues>) => {
     setValues((v) => ({ ...v, ...p }));
+    setAiFilled((prev) => {
+      if (prev.size === 0) return prev;
+      const next = new Set(prev);
+      for (const key of Object.keys(p)) next.delete(key);
+      return next.size === prev.size ? prev : next;
+    });
+  };
+
+  const applyAiFields = (fields: ExtractedContactFields) => {
+    const p: Partial<ContactFormValues> = {};
+    if (fields.firstName) p.firstName = fields.firstName;
+    if (fields.lastName) p.lastName = fields.lastName;
+    if (fields.email) p.email = fields.email;
+    if (fields.countryIso) p.countryIso = fields.countryIso;
+    if (fields.preferredLocale) p.preferredLocale = fields.preferredLocale;
+    if (fields.source) p.source = fields.source;
+    if (fields.sourceDetail) p.sourceDetail = fields.sourceDetail;
+    if (fields.notes) p.notes = fields.notes;
+
+    setValues((v) => ({ ...v, ...p }));
+    setAiFilled(new Set(Object.keys(p)));
+  };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,28 +97,33 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
   };
 
   return (
-    <form
-      onSubmit={save}
-      className="crm-surface-card mb-8 space-y-4 border-l-4 border-l-[var(--crm-blush)] p-5"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="crm-section-title text-sm">Datos del contacto</h2>
-      </div>
-      <ContactFormFields values={values} onChange={patch} mode="edit" />
-      {error && (
-        <p className="text-sm text-[var(--crm-danger)]" role="alert">
-          {error}
-        </p>
-      )}
-      <div className="flex items-center gap-3">
-        <button type="submit" className="crm-btn-primary" disabled={loading}>
-          {loading ? "Guardando…" : "Guardar cambios"}
-        </button>
-        {saved && (
-          <span className="text-sm text-[var(--crm-success)]">Guardado</span>
-        )}
-      </div>
-    </form>
+    <Card className="mb-8 border-l-4 border-l-accent">
+      <CardContent>
+        <form onSubmit={save} className="space-y-4">
+          <h2 className="text-sm font-semibold">Datos del contacto</h2>
+          {aiEnabled && (
+            <SmartPasteBox onExtracted={applyAiFields} />
+          )}
+          <ContactFormFields
+            values={values}
+            onChange={patch}
+            mode="edit"
+            aiFilled={aiFilled}
+          />
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <Button type="submit" disabled={loading}>
+              {loading ? "Guardando…" : "Guardar cambios"}
+            </Button>
+            {saved && <span className="text-sm text-green-700">Guardado</span>}
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

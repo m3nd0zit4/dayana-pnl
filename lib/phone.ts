@@ -27,7 +27,7 @@ export const getLocalPhonePlaceholder = (countryIso: CountryCode): string =>
 
 /** Limpia entrada humana: espacios, guiones, 00…, caracteres invisibles de WhatsApp. */
 export const sanitizePhoneInput = (raw: string): string => {
-  let s = raw.replace(INVISIBLE_CHARS, "").trim();
+  const s = raw.replace(INVISIBLE_CHARS, "").trim();
   if (!s) return "";
 
   const stripped = s.replace(/[\s().\-\u2010-\u2015]/g, "");

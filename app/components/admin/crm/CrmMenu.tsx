@@ -1,73 +1,145 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { crmMenuSections } from "@/app/config/crm-menu-items";
+import { useState } from "react";
+import { crmMenuSections, type CrmMenuItem } from "@/app/config/crm-menu-items";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/app/components/ui/collapsible";
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu as SidebarMenuRoot,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+} from "@/app/components/ui/sidebar";
 
 type Props = {
-  showLabels?: boolean;
   onNavigate?: () => void;
 };
 
-const CrmMenu = ({ showLabels = false, onNavigate }: Props) => {
-  const pathname = usePathname();
+const isActive = (pathname: string, href: string) => {
+  if (href === "/") return false;
+  if (href === "/admin") return pathname === "/admin";
+  return pathname === href || pathname.startsWith(`${href}/`);
+};
 
-  const isActive = (href: string) => {
-    if (href === "/") return false;
-    if (href === "/admin") return pathname === "/admin";
-    return pathname === href || pathname.startsWith(`${href}/`);
-  };
+const CrmMenuParentItem = ({
+  item,
+  pathname,
+  onNavigate,
+}: {
+  item: CrmMenuItem;
+  pathname: string;
+  onNavigate?: () => void;
+}) => {
+  const Icon = item.icon;
+  const external = item.external === true;
+  const children = item.items ?? [];
+  const childActive = children.some((c) => isActive(pathname, c.href));
+
+  // Auto-expand when landing on a child route; otherwise follow whatever
+  // the user last toggled.
+  const [open, setOpen] = useState(childActive);
+  const [trackedPathname, setTrackedPathname] = useState(pathname);
+  if (pathname !== trackedPathname) {
+    setTrackedPathname(pathname);
+    if (childActive) setOpen(true);
+  }
+
+  if (children.length === 0) {
+    const active = isActive(pathname, item.href);
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={active}
+          tooltip={item.label}
+          render={
+            <Link
+              href={item.href}
+              prefetch={external ? undefined : false}
+              onClick={onNavigate}
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            />
+          }
+        >
+          <Icon />
+          <span>{item.label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
 
   return (
-    <nav className="mt-4 flex flex-col gap-2.5 text-sm" aria-label="Menú CRM">
-      {crmMenuSections.map((section) => (
-        <div key={section.title}>
-          <p
-            className={`mb-1 px-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--crm-muted)] ${showLabels ? "block" : "hidden lg:block"}`}
-          >
-            {section.title}
-          </p>
-          <ul className="flex flex-col gap-0.5">
-            {section.items.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              const external = item.external === true;
-
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <SidebarMenuItem>
+        <CollapsibleTrigger
+          render={
+            <SidebarMenuButton isActive={childActive} tooltip={item.label} />
+          }
+        >
+          <Icon />
+          <span>{item.label}</span>
+          <ChevronRight
+            className={`ml-auto transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub>
+            {children.map((child) => {
+              const ChildIcon = child.icon;
               return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    prefetch={external ? undefined : false}
-                    onClick={onNavigate}
-                    {...(external
-                      ? { target: "_blank", rel: "noopener noreferrer" }
-                      : {})}
-                    className={`flex h-10 w-full items-center gap-2.5 rounded-xl px-2.5 transition-colors ${
-                      showLabels ? "justify-start" : "justify-center lg:justify-start"
-                    } ${
-                      active
-                        ? "crm-active-menu"
-                        : "text-[var(--crm-muted)] hover:bg-[var(--crm-linen)]/50 hover:text-[var(--crm-foreground)]"
-                    }`}
+                <SidebarMenuSubItem key={child.href}>
+                  <SidebarMenuSubButton
+                    isActive={isActive(pathname, child.href)}
+                    render={
+                      <Link href={child.href} prefetch={false} onClick={onNavigate} />
+                    }
                   >
-                    <Icon
-                      className={`size-[18px] shrink-0 ${active ? "text-[var(--crm-accent)]" : ""}`}
-                      strokeWidth={active ? 2.25 : 1.75}
-                      aria-hidden
-                    />
-                    <span
-                      className={`text-[13px] leading-none ${showLabels ? "inline" : "hidden lg:inline"}`}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
+                    <ChildIcon />
+                    <span>{child.label}</span>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
               );
             })}
-          </ul>
-        </div>
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+};
+
+const CrmMenu = ({ onNavigate }: Props) => {
+  const pathname = usePathname();
+
+  return (
+    <>
+      {crmMenuSections.map((section) => (
+        <SidebarGroup key={section.title}>
+          <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenuRoot>
+              {section.items.map((item) => (
+                <CrmMenuParentItem
+                  key={item.href}
+                  item={item}
+                  pathname={pathname}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </SidebarMenuRoot>
+          </SidebarGroupContent>
+        </SidebarGroup>
       ))}
-    </nav>
+    </>
   );
 };
 

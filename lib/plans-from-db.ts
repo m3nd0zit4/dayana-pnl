@@ -1,58 +1,73 @@
 import { ProductKind } from "@prisma/client";
-import { getActiveProducts, latestUsdPrice } from "./crm/products";
+import { getActiveProducts, latestCopPrice, latestUsdPrice } from "./crm/products";
 import { resolveUsdToCopRate } from "./crm/site-settings";
-import { applyCopToPlan, applyCopToPlans } from "./pricing/usd-to-cop";
-import { PLANS, type Plan, type PlanId } from "./plans";
+import { applyCopToPlan } from "./pricing/usd-to-cop";
+import type { Plan } from "./plans";
 import { prisma } from "./db";
 
 const kindToPlanKind = (kind: ProductKind): Plan["kind"] =>
   kind === ProductKind.THERAPY ? "therapy" : "course";
 
-const featuresFromDescription = (description: string | null, fallback: string[]) => {
-  if (!description?.trim()) return fallback;
-  const lines = description.split("\n").map((l) => l.trim()).filter(Boolean);
-  return lines.length > 0 ? lines : fallback;
+const featuresFromDescription = (description: string | null): string[] => {
+  if (!description?.trim()) return [];
+  return description
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
 };
 
+/**
+ * La DB es la única fuente de verdad del catálogo: Product lleva el
+ * contenido (título, features, tag, WhatsApp) y ProductPrice los precios.
+ */
 export const productToPlan = (
   product: Awaited<ReturnType<typeof getActiveProducts>>[number]
 ): Plan => {
-  const fallback = PLANS[product.id as PlanId];
-  const price = latestUsdPrice(product);
-  const amountUsd = price ? price.amountMinor / 100 : fallback?.amountUsd ?? 0;
-  const listAmountUsd = price?.listAmountMinor
-    ? price.listAmountMinor / 100
-    : fallback?.listAmountUsd;
+  const usdPrice = latestUsdPrice(product);
+  const copPrice = latestCopPrice(product);
+
+  const amountUsd = usdPrice ? usdPrice.amountMinor / 100 : 0;
+  const listAmountUsd = usdPrice?.listAmountMinor
+    ? usdPrice.listAmountMinor / 100
+    : undefined;
+
+  // COP stored as full pesos (no centavos), so amountMinor = pesos directly
+  const amountCop = copPrice ? copPrice.amountMinor : undefined;
+  const listAmountCop = copPrice?.listAmountMinor ?? undefined;
 
   const kind = kindToPlanKind(product.kind);
 
   return {
-    id: product.id as PlanId,
+    id: product.id,
     kind,
     title: product.title,
     sessions: product.sessionsLabel,
+    sessionsCount: product.sessionsCount ?? undefined,
     amountUsd,
     listAmountUsd,
-    unitPrice: fallback?.unitPrice,
-    tag: fallback?.tag,
-    highlight: fallback?.highlight,
+    amountCop,
+    listAmountCop,
+    unitPrice: product.unitPriceLabel ?? undefined,
+    tag: product.tag ?? undefined,
+    highlight: product.highlight || undefined,
     therapyPresentation:
       kind === "therapy"
-        ? fallback?.therapyPresentation ?? {
-            sessionsHeadline: product.sessionsLabel,
+        ? {
+            sessionsHeadline: product.therapyHeadline ?? product.sessionsLabel,
           }
         : undefined,
-    features: featuresFromDescription(product.description, fallback?.features ?? []),
+    features: featuresFromDescription(product.description),
     whatsappMessage:
-      fallback?.whatsappMessage ??
-      `Hola Dayana, me interesa ${product.title} ($${amountUsd} USD).`,
+      product.whatsappMessage ??
+      `Hola Dayana, me interesa ${product.title}.`,
   };
 };
 
 export const getPublicPlans = async () => {
   const usdToCopRate = await resolveUsdToCopRate();
   const products = await getActiveProducts();
-  const plans = applyCopToPlans(products.map(productToPlan), usdToCopRate);
+  // amountCop stays undefined if not stored — caller filters cards without a price
+  const plans = products.map(productToPlan);
   const therapyPlans = plans.filter((p) => p.kind === "therapy");
   const coursePlan =
     plans.find((p) => p.id === "course-live") ??
@@ -67,17 +82,18 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
     where: { id: planId },
     include: {
       prices: {
-        where: { currency: "USD" },
         orderBy: { validFrom: "desc" },
-        take: 1,
       },
     },
   });
   if (!product || !product.isActive) {
-    const fallback = PLANS[planId as PlanId];
-    return fallback ? applyCopToPlan(fallback, usdToCopRate) : null;
+    return null;
   }
-  return applyCopToPlan(productToPlan(product), usdToCopRate);
+  const plan = productToPlan(product);
+  if (plan.amountCop == null) {
+    return applyCopToPlan(plan, usdToCopRate);
+  }
+  return plan;
 };
 
 export const isActivePlanId = async (planId: string): Promise<boolean> => {
@@ -85,6 +101,5 @@ export const isActivePlanId = async (planId: string): Promise<boolean> => {
     where: { id: planId },
     select: { isActive: true },
   });
-  if (product) return product.isActive;
-  return planId in PLANS;
+  return product?.isActive ?? false;
 };

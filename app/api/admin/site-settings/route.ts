@@ -5,8 +5,8 @@ import { revalidatePublicCatalog } from "@/lib/crm/revalidate-catalog";
 import {
   getUsdToCopRateSetting,
   setUsdToCopRateSetting,
+  resolveUsdToCopRate,
 } from "@/lib/crm/site-settings";
-import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import { parseUsdToCopRate } from "@/lib/pricing/usd-to-cop";
 import { canManageTeam } from "@/lib/crm/staff";
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PaymentStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 
@@ -19,6 +20,7 @@ type Payment = {
   status: PaymentStatus;
   currency: string;
   amountMinor: number;
+  payerCountryIso: string | null;
   paidAt: string | null;
   createdAt: string;
   enrollment: {
@@ -37,6 +39,7 @@ const PREVIEW: Payment[] = [
     status: PaymentStatus.APPROVED,
     currency: "USD",
     amountMinor: 16000,
+    payerCountryIso: "US",
     paidAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
     enrollment: {
@@ -69,8 +72,8 @@ const PaymentsPageClient = ({ preview }: Props) => {
     <CrmPageShell>
       <div className="space-y-6">
         <div>
-          <h1 className="crm-section-title text-xl">Pagos</h1>
-          <p className="crm-section-subtitle mt-1">
+          <h1 className="text-xl font-semibold tracking-tight">Pagos</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
             PayPal, Mercado Pago y registros manuales vinculados a cada servicio.
           </p>
         </div>
@@ -92,51 +95,59 @@ const PaymentsPageClient = ({ preview }: Props) => {
           />
         </div>
 
-        <div className="crm-surface-card overflow-hidden">
-          {loading ? (
-            <p className="p-6 text-sm text-[var(--crm-muted)]">Cargando…</p>
-          ) : (
-            <ul className="divide-y divide-[var(--crm-border)]">
-              {rows.length === 0 && (
-                <li className="p-8 text-center text-sm text-[var(--crm-muted)]">
-                  Sin pagos registrados.
-                </li>
-              )}
-              {rows.map((p) => (
-                <li key={p.id} className="crm-table-row flex flex-wrap justify-between gap-3 p-4">
-                  <div>
-                    <div className="text-sm font-semibold">
-                      {(p.amountMinor / 100).toFixed(2)} {p.currency}
-                    </div>
-                    <div className="mt-0.5 text-xs text-[var(--crm-muted)]">
-                      {p.provider} · {STATUS_LABEL[p.status]}
-                    </div>
-                    <Link
-                      href={preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`}
-                      className="mt-1 block text-xs text-[var(--crm-accent)] hover:underline"
-                    >
-                      {p.enrollment.contact.firstName}{" "}
-                      {p.enrollment.contact.lastName ?? ""} — {p.enrollment.product.title}
-                    </Link>
-                    {!preview && (
+        <Card className="overflow-hidden py-0">
+          <CardContent className="p-0">
+            {loading ? (
+              <p className="p-6 text-sm text-muted-foreground">Cargando…</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {rows.length === 0 && (
+                  <div className="p-8 text-center text-sm text-muted-foreground">
+                    Sin pagos registrados.
+                  </div>
+                )}
+                {rows.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex flex-wrap justify-between gap-3 p-4 transition-colors hover:bg-muted/50"
+                  >
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {p.provider} · {STATUS_LABEL[p.status]}
+                        {p.payerCountryIso && (
+                          <span className="ml-1.5 opacity-70">· {p.payerCountryIso}</span>
+                        )}
+                      </div>
                       <Link
-                        href={`/admin/enrollments/${p.enrollment.id}`}
-                        className="mt-1 block text-xs text-[var(--crm-muted)] hover:underline"
+                        href={preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`}
+                        className="mt-1 block text-xs text-primary hover:underline"
                       >
-                        Ver servicio →
+                        {p.enrollment.contact.firstName}{" "}
+                        {p.enrollment.contact.lastName ?? ""} — {p.enrollment.product.title}
                       </Link>
-                    )}
+                      {!preview && (
+                        <Link
+                          href={`/admin/enrollments/${p.enrollment.id}`}
+                          className="mt-1 block text-xs text-muted-foreground hover:underline"
+                        >
+                          Ver servicio →
+                        </Link>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {p.paidAt
+                        ? new Date(p.paidAt).toLocaleString("es-CO")
+                        : new Date(p.createdAt).toLocaleString("es-CO")}
+                    </div>
                   </div>
-                  <div className="text-xs text-[var(--crm-muted)]">
-                    {p.paidAt
-                      ? new Date(p.paidAt).toLocaleString("es-CO")
-                      : new Date(p.createdAt).toLocaleString("es-CO")}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </CrmPageShell>
   );

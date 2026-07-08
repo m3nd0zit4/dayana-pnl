@@ -114,9 +114,10 @@ const socials: SocialItem[] = [
 ];
 
 const quickLinks = [
-  { label: "Testimonios", hash: "#testimonios" },
-  { label: "Servicios", hash: "#servicios" },
-  { label: "Contacto", hash: "#contacto" },
+  { label: "Testimonios", href: "#testimonios" },
+  { label: "Servicios", href: "/servicios" },
+  { label: "Miembros", href: "/miembros" },
+  { label: "Contacto", href: "#contacto" },
 ];
 
 const Footer = () => {
@@ -127,6 +128,31 @@ const Footer = () => {
 
   useGSAP(
     () => {
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // Parallax lift — the headline rises as the footer enters from under Servicios.
+      if (!reduce) {
+        gsap.to(".fo-head", {
+          yPercent: -16,
+          ease: "none",
+          scrollTrigger: {
+            trigger: rootRef.current,
+            start: "top bottom",
+            end: "bottom bottom",
+            scrub: true,
+          },
+        });
+
+        // Masked line reveal for the big headline.
+        gsap.from(".fo-line", {
+          yPercent: 115,
+          duration: 1.1,
+          stagger: 0.12,
+          ease: "power4.out",
+          scrollTrigger: { trigger: rootRef.current, start: "top 78%", once: true },
+        });
+      }
+
       gsap.utils.toArray<HTMLElement>(".fo-reveal").forEach((el, i) => {
         gsap.from(el, {
           y: 40,
@@ -171,8 +197,13 @@ const Footer = () => {
       ref={rootRef}
       id="redes"
       data-nav-color="white"
-      className="relative z-10 bg-black text-white border-t border-linen/10 overflow-hidden"
+      className="relative z-10 bg-black text-white overflow-hidden"
     >
+      {/* Seam — the cream Servicios above melts into the black footer. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#faf7f2]/12 to-transparent"
+      />
       <div
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none opacity-70"
@@ -185,11 +216,13 @@ const Footer = () => {
       />
 
       <div className="relative px-3 lg:px-8 pt-24 pb-10 max-w-[1600px] mx-auto">
-        <div className="fo-reveal mb-16 lg:mb-24">
-          <div className="font-[font2] uppercase leading-[0.95]">
-            <div className="text-[11vw] lg:text-[7.5vw]">Vive la</div>
-            <div className="text-[11vw] lg:text-[7.5vw] text-linen">
-              transformación
+        <div className="mb-16 lg:mb-24">
+          <div className="fo-head font-[font2] uppercase leading-[0.95] will-change-transform">
+            <div className="overflow-hidden">
+              <div className="fo-line text-[11vw] lg:text-[7.5vw]">Vive la</div>
+            </div>
+            <div className="overflow-hidden">
+              <div className="fo-line text-[11vw] lg:text-[7.5vw] text-linen">transformación</div>
             </div>
           </div>
         </div>
@@ -214,12 +247,24 @@ const Footer = () => {
             </div>
             <ul className="space-y-3">
               {quickLinks.map((l) => (
-                <li key={l.hash}>
+                <li key={l.label}>
                   <a
-                    href={resolveHref(l.hash)}
-                    className="font-[font1] text-lg hover:text-linen transition-colors"
+                    href={l.href.startsWith("#") ? resolveHref(l.href) : l.href}
+                    className="group inline-flex items-center gap-2 font-[font1] text-lg text-white/80 transition-colors hover:text-linen"
                   >
-                    {l.label}
+                    <span className="transition-transform duration-300 group-hover:translate-x-1">{l.label}</span>
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="h-3.5 w-3.5 -translate-x-2 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
                   </a>
                 </li>
               ))}
@@ -238,9 +283,9 @@ const Footer = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${s.label} ${s.handle}`}
-                    className="group flex items-center gap-3 rounded-xl border border-linen/15 bg-linen/[0.03] hover:border-linen/50 hover:bg-linen/[0.08] transition-colors px-4 py-3"
+                    className="group flex items-center gap-3 rounded-xl border border-linen/15 bg-linen/[0.03] px-4 py-3 transition-[transform,border-color,background-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-terracotta/50 hover:bg-linen/[0.08]"
                   >
-                    <span className="text-linen group-hover:text-white transition-colors">
+                    <span className="text-linen transition-[transform,color] duration-300 group-hover:scale-110 group-hover:text-terracotta">
                       {s.icon}
                     </span>
                     <span className="flex flex-col leading-tight">

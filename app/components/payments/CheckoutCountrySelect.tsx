@@ -29,6 +29,8 @@ type Props = {
   value: string;
   onChange: (iso2: string) => void;
   disabled?: boolean;
+  /** Light theme for use on a light/cream surface (default is the dark checkout theme). */
+  light?: boolean;
 };
 
 const CheckoutCountrySelect = ({
@@ -37,9 +39,40 @@ const CheckoutCountrySelect = ({
   value,
   onChange,
   disabled = false,
+  light = false,
 }: Props) => {
   const autoId = useId();
   const id = idProp ?? autoId;
+
+  const C = light
+    ? {
+        label: "text-black/55",
+        trigger: "border-black/15 bg-black/[0.03] text-black",
+        triggerOpen: "border-black/35 ring-1 ring-black/10",
+        panel: "border-black/10 bg-white shadow-[0_16px_48px_rgba(0,0,0,0.18)]",
+        searchBorder: "border-black/10",
+        icon: "text-black/40",
+        searchInput: "text-black placeholder:text-black/35",
+        empty: "text-black/45",
+        divider: "border-black/10",
+        item: "text-black/80 hover:bg-black/[0.05]",
+        itemSel: "bg-terracotta/15 text-terracotta",
+        hint: "text-black/40",
+      }
+    : {
+        label: "text-white/50",
+        trigger: "border-linen/20 bg-black/40 text-white",
+        triggerOpen: "border-linen/40 ring-1 ring-linen/20",
+        panel: "border-linen/20 bg-ink shadow-[0_16px_48px_rgba(0,0,0,0.55)]",
+        searchBorder: "border-linen/15",
+        icon: "text-white/40",
+        searchInput: "text-white placeholder:text-white/35",
+        empty: "text-white/45",
+        divider: "border-linen/10",
+        item: "text-white/85 hover:bg-white/5",
+        itemSel: "bg-linen/15 text-linen",
+        hint: "text-white/45",
+      };
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [position, setPosition] = useState<{
@@ -156,7 +189,7 @@ const CheckoutCountrySelect = ({
     open && position ? (
       <div
         ref={panelRef}
-        className="checkout-country-panel rounded-lg border border-linen/20 bg-ink shadow-[0_16px_48px_rgba(0,0,0,0.55)] flex flex-col overflow-hidden"
+        className={`checkout-country-panel rounded-lg border ${C.panel} flex flex-col overflow-hidden`}
         style={{
           position: "fixed",
           left: position.left,
@@ -169,15 +202,15 @@ const CheckoutCountrySelect = ({
         onWheel={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-linen/15 px-3 py-2 h-11">
-          <Search className="size-4 shrink-0 text-white/40" aria-hidden />
+        <div className={`flex shrink-0 items-center gap-2 border-b ${C.searchBorder} px-3 py-2 h-11`}>
+          <Search className={`size-4 shrink-0 ${C.icon}`} aria-hidden />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar país o prefijo…"
             autoFocus
-            className="w-full bg-transparent font-[font1] text-sm text-white placeholder:text-white/35 outline-none"
+            className={`w-full bg-transparent font-[font1] text-sm ${C.searchInput} outline-none`}
           />
         </div>
         <ul
@@ -186,28 +219,26 @@ const CheckoutCountrySelect = ({
           style={{ height: position.listHeight, maxHeight: position.listHeight }}
         >
           {query.trim() !== "" && filtered.length === 0 && (
-            <li className="px-3 py-2 font-[font1] text-sm text-white/45">
+            <li className={`px-3 py-2 font-[font1] text-sm ${C.empty}`}>
               Sin coincidencias
             </li>
           )}
           {listOptions.map((o, i) => (
             <li key={o.value}>
               {query.trim() === "" && i === PRIORITY_COUNTRY_COUNT ? (
-                <div className="my-1 border-t border-linen/10" aria-hidden />
+                <div className={`my-1 border-t ${C.divider}`} aria-hidden />
               ) : null}
               <button
                 type="button"
                 role="option"
                 aria-selected={value === o.value}
                 className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left font-[font1] text-sm transition-colors ${
-                  value === o.value
-                    ? "bg-linen/15 text-linen"
-                    : "text-white/85 hover:bg-white/5"
+                  value === o.value ? C.itemSel : C.item
                 }`}
                 onClick={() => pick(o.value)}
               >
                 <span className="truncate">{o.label}</span>
-                <span className="shrink-0 font-mono text-xs text-white/45">
+                <span className={`shrink-0 font-mono text-xs ${C.hint}`}>
                   {o.hint}
                 </span>
               </button>
@@ -219,7 +250,7 @@ const CheckoutCountrySelect = ({
 
   return (
     <div ref={wrapRef} className="block">
-      <span className="font-[font1] text-xs text-white/50 mb-1 block">{label}</span>
+      <span className={`font-[font1] text-xs ${C.label} mb-1 block`}>{label}</span>
       <button
         ref={triggerRef}
         id={id}
@@ -227,14 +258,14 @@ const CheckoutCountrySelect = ({
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-linen/20 bg-black/40 px-3 py-2.5 text-left font-[font1] text-sm text-white transition-colors disabled:opacity-50 ${
-          open ? "border-linen/40 ring-1 ring-linen/20" : ""
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left font-[font1] text-sm transition-colors disabled:opacity-50 ${C.trigger} ${
+          open ? C.triggerOpen : ""
         }`}
         onClick={() => !disabled && setOpen((o) => !o)}
       >
         <span className="truncate">{display}</span>
         <ChevronDown
-          className={`size-4 shrink-0 text-white/45 transition-transform ${
+          className={`size-4 shrink-0 ${C.icon} transition-transform ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden
