@@ -22,8 +22,14 @@ const LINKS = [
   { href: "/miembros", label: "Inicio", icon: Home, exact: true },
   { href: "/miembros/clases", label: "Clases", icon: Video, exact: false },
   { href: "/miembros/modulos", label: "Módulos", icon: BookOpen, exact: false },
-  { href: "/miembros/cuenta", label: "Mi cuenta", icon: User, exact: false },
 ];
+
+const ACCOUNT_LINK = {
+  href: "/miembros/cuenta",
+  label: "Mi cuenta",
+  icon: User,
+  exact: false,
+};
 
 const isActive = (pathname: string, href: string, exact: boolean) =>
   exact ? pathname === href : pathname.startsWith(href);
@@ -69,9 +75,20 @@ const PortalSidebar = ({
         </SidebarContent>
         <SidebarFooter className="border-t border-border px-3 py-4">
           <div className="px-1 text-xs text-muted-foreground">{firstName}</div>
+          <SidebarMenu className="mt-2">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={isActive(pathname, ACCOUNT_LINK.href, ACCOUNT_LINK.exact)}
+                render={<Link href={ACCOUNT_LINK.href} />}
+              >
+                <ACCOUNT_LINK.icon />
+                {ACCOUNT_LINK.label}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
           <Button
             variant="ghost"
-            className="mt-2 w-full justify-start"
+            className="mt-1 w-full justify-start"
             onClick={() => signOut({ callbackUrl: "/acceso" })}
           >
             <LogOut />
@@ -86,14 +103,27 @@ const PortalSidebar = ({
         <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur lg:hidden">
           <div className="flex items-center justify-between px-4 pt-3">
             <Brand />
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/acceso" })}
-              aria-label="Salir"
-              className="rounded-full border border-border p-2 text-muted-foreground"
-            >
-              <LogOut className="size-4" aria-hidden />
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href={ACCOUNT_LINK.href}
+                aria-label={ACCOUNT_LINK.label}
+                className={`rounded-full border p-2 ${
+                  isActive(pathname, ACCOUNT_LINK.href, ACCOUNT_LINK.exact)
+                    ? "border-primary text-primary"
+                    : "border-border text-muted-foreground"
+                }`}
+              >
+                <User className="size-4" aria-hidden />
+              </Link>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/acceso" })}
+                aria-label="Salir"
+                className="rounded-full border border-border p-2 text-muted-foreground"
+              >
+                <LogOut className="size-4" aria-hidden />
+              </button>
+            </div>
           </div>
           <nav aria-label="Portal" className="flex gap-1 overflow-x-auto px-3 py-2">
             {LINKS.map(({ href, label, exact }) => {

@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Lock } from "lucide-react";
 import { BRAND } from "@/lib/contact";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { getPublishedModules } from "@/lib/lms/course-content";
+import { getCompletedModuleIds } from "@/lib/lms/module-progress";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
-import { cn } from "@/lib/utils";
-
-const moduleRowClass =
-  "flex items-center gap-4 rounded-xl bg-card px-5 py-4 text-sm ring-1 ring-foreground/10 transition-shadow";
+import ModulesList from "@/app/components/miembros/ModulesList";
 
 export const metadata: Metadata = {
   title: `Módulos — ${BRAND.name}`,
@@ -16,12 +13,14 @@ export const metadata: Metadata = {
 };
 
 const Page = async () => {
-  const { membership, courseProduct } = await requirePortalContext();
+  const { contact, membership, courseProduct } = await requirePortalContext();
   const isCurrent = membership.isCurrent;
 
-  const modules = courseProduct
-    ? await getPublishedModules(courseProduct.id)
-    : [];
+  const [modules, completedIds] = await Promise.all([
+    courseProduct ? getPublishedModules(courseProduct.id) : Promise.resolve([]),
+    getCompletedModuleIds(contact.id),
+  ]);
+  const completedCount = modules.filter((m) => completedIds.has(m.id)).length;
 
   return (
     <div className="space-y-6">
@@ -31,6 +30,9 @@ const Page = async () => {
         </h1>
         <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
           El material del curso, en orden. Léelo a tu ritmo.
+          {modules.length > 0 && isCurrent
+            ? ` ${completedCount}/${modules.length} completados.`
+            : ""}
         </p>
       </div>
 
@@ -47,34 +49,7 @@ const Page = async () => {
       )}
 
       {modules.length > 0 ? (
-        <ul className="space-y-3">
-          {modules.map((mod, i) => (
-            <li key={mod.id}>
-              {isCurrent ? (
-                <Link
-                  href={`/miembros/modulos/${mod.id}`}
-                  className={cn(moduleRowClass, "hover:shadow-md")}
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/40 text-sm font-semibold text-primary">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm font-medium">{mod.title}</span>
-                  <ArrowRight className="ml-auto size-4 text-muted-foreground" aria-hidden />
-                </Link>
-              ) : (
-                <div className={cn(moduleRowClass, "opacity-70")}>
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-sm font-semibold text-neutral-500">
-                    {i + 1}
-                  </span>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {mod.title}
-                  </span>
-                  <Lock className="ml-auto size-4 text-muted-foreground" aria-hidden />
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <ModulesList modules={modules} isCurrent={isCurrent} completedIds={completedIds} />
       ) : (
         <p className="text-sm text-muted-foreground">
           Los módulos se publicarán aquí muy pronto.

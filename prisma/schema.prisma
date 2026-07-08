@@ -134,6 +134,7 @@ model Contact {
   notebookPages          ContactNotebookPage[]
   memberAccount          MemberAccount?
   memberAuthTokens       MemberAuthToken[]
+  moduleProgress         CourseModuleProgress[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -591,10 +592,25 @@ model CourseModule {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product  Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  progress CourseModuleProgress[]
 
   @@index([productId, sortOrder])
   @@map("course_modules")
+}
+
+model CourseModuleProgress {
+  id          String   @id @default(cuid())
+  contactId   String   @map("contact_id")
+  moduleId    String   @map("module_id")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  contact Contact      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  module  CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, moduleId])
+  @@index([moduleId])
+  @@map("course_module_progress")
 }
 
 model LiveClassSession {

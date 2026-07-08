@@ -7,8 +7,10 @@ import remarkGfm from "remark-gfm";
 import { BRAND } from "@/lib/contact";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { getPublishedModule, getPublishedModules } from "@/lib/lms/course-content";
+import { getCompletedModuleIds } from "@/lib/lms/module-progress";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import ModuleCompleteToggle from "@/app/components/miembros/ModuleCompleteToggle";
 
 export const metadata: Metadata = {
   title: `Módulo — ${BRAND.name}`,
@@ -21,7 +23,7 @@ type PageProps = {
 
 const Page = async ({ params }: PageProps) => {
   const { id } = await params;
-  const { membership, courseProduct } = await requirePortalContext();
+  const { contact, membership, courseProduct } = await requirePortalContext();
 
   if (!membership.isCurrent) {
     redirect("/miembros/cuenta");
@@ -30,9 +32,10 @@ const Page = async ({ params }: PageProps) => {
     notFound();
   }
 
-  const [courseModule, allModules] = await Promise.all([
+  const [courseModule, allModules, completedIds] = await Promise.all([
     getPublishedModule(courseProduct.id, id),
     getPublishedModules(courseProduct.id),
+    getCompletedModuleIds(contact.id),
   ]);
   if (!courseModule) {
     notFound();
@@ -54,11 +57,17 @@ const Page = async ({ params }: PageProps) => {
 
       <Card className="mt-4">
         <CardContent className="px-6 py-8 sm:px-10 sm:py-10">
-          {index >= 0 && (
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-              Módulo {index + 1} de {allModules.length}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {index >= 0 && (
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Módulo {index + 1} de {allModules.length}
+              </div>
+            )}
+            <ModuleCompleteToggle
+              moduleId={courseModule.id}
+              initialCompleted={completedIds.has(courseModule.id)}
+            />
+          </div>
           <h1 className="mt-2 text-xl leading-snug font-semibold lg:text-2xl">
             {courseModule.title}
           </h1>

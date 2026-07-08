@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, BookOpen, CalendarDays, Video } from "lucide-react";
+import { Check } from "lucide-react";
 import { BRAND } from "@/lib/contact";
 import { requirePortalContext } from "@/lib/lms/portal";
 import {
@@ -9,6 +10,7 @@ import {
   isRecordingVisible,
   recordingDaysLeft,
 } from "@/lib/lms/course-content";
+import { getCompletedModuleIds } from "@/lib/lms/module-progress";
 import MembershipStatusCard from "@/app/components/miembros/MembershipStatusCard";
 import DriveRecordingEmbed from "@/app/components/miembros/DriveRecordingEmbed";
 import { Button } from "@/app/components/ui/button";
@@ -26,16 +28,22 @@ const Page = async () => {
   const { contact, membership, courseProduct } = await requirePortalContext();
   const isCurrent = membership.isCurrent;
 
-  const [{ upcoming, past, now }, modules] = courseProduct
+  const [{ upcoming, past, now }, modules, completedIds] = courseProduct
     ? await Promise.all([
         getClassesForCourse(courseProduct.id),
         getPublishedModules(courseProduct.id),
+        getCompletedModuleIds(contact.id),
       ])
-    : [{ upcoming: [], past: [], now: new Date() }, []];
+    : [{ upcoming: [], past: [], now: new Date() }, [], new Set<string>()];
 
   const nextClass = upcoming[0] ?? null;
   const latestRecording = past.find((c) => isRecordingVisible(c, now)) ?? null;
   const visibleRecordings = past.filter((c) => isRecordingVisible(c, now)).length;
+  const completedCount = modules.filter((m) => completedIds.has(m.id)).length;
+  const continueModule =
+    isCurrent && modules.length > 0
+      ? (modules.find((m) => !completedIds.has(m.id)) ?? null)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -82,9 +90,12 @@ const Page = async () => {
         <Card className="py-4">
           <CardContent className="px-4">
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-wide">
-              <BookOpen className="size-3.5" aria-hidden /> Módulos publicados
+              <BookOpen className="size-3.5" aria-hidden /> Módulos
             </div>
-            <div className="mt-2 text-sm font-semibold">{modules.length}</div>
+            <div className="mt-2 text-sm font-semibold">
+              {isCurrent ? `${completedCount}/${modules.length}` : modules.length}
+              {isCurrent && modules.length > 0 ? " completados" : ""}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -188,28 +199,49 @@ const Page = async () => {
               Ver todos <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </div>
+
+          {continueModule && (
+            <Button
+              className="mt-3"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/miembros/modulos/${continueModule.id}`} />}
+            >
+              {completedCount > 0 ? "Continuar" : "Empezar"}: {continueModule.title}
+            </Button>
+          )}
+
           {modules.length > 0 ? (
             <ul className="mt-3 divide-y divide-border">
-              {modules.slice(0, 4).map((mod, i) => (
-                <li key={mod.id}>
-                  <Link
-                    href={
-                      isCurrent ? `/miembros/modulos/${mod.id}` : "/miembros/cuenta"
-                    }
-                    className="flex items-center gap-4 py-3 transition-colors hover:bg-secondary/40"
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent/40 text-xs font-semibold text-primary">
-                      {i + 1}
-                    </span>
-                    <span className="text-sm font-medium">{mod.title}</span>
-                    {!isCurrent && (
-                      <span className="ml-auto text-[9px] text-muted-foreground uppercase tracking-wide">
-                        Bloqueado
+              {modules.slice(0, 4).map((mod, i) => {
+                const completed = completedIds.has(mod.id);
+                return (
+                  <li key={mod.id}>
+                    <Link
+                      href={
+                        isCurrent ? `/miembros/modulos/${mod.id}` : "/miembros/cuenta"
+                      }
+                      className="flex items-center gap-4 py-3 transition-colors hover:bg-secondary/40"
+                    >
+                      <span
+                        className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                          completed
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-accent/40 text-primary"
+                        }`}
+                      >
+                        {completed ? <Check className="size-3.5" /> : i + 1}
                       </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
+                      <span className="text-sm font-medium">{mod.title}</span>
+                      {!isCurrent && (
+                        <span className="ml-auto text-[9px] text-muted-foreground uppercase tracking-wide">
+                          Bloqueado
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
