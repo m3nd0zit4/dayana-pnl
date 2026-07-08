@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import { Clock, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -121,7 +122,9 @@ const ContactPickerField = ({
       onClick={() => pick(c)}
     >
       <div className="text-sm font-medium">{contactLabel(c)}</div>
-      <div className="font-mono text-[11px] text-muted-foreground">{c.phoneE164}</div>
+      <div className="font-mono text-[11px] text-muted-foreground">
+        {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
+      </div>
     </button>
   );
 
@@ -171,7 +174,9 @@ const ContactPickerField = ({
       )}
 
       {open && (
-        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
+        // En flujo (no absolute): dentro de un modal con overflow, un
+        // dropdown flotante se recorta en el borde — así el modal crece.
+        <div className="mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
           {showRecents && (
             <>
               <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">

@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { Calendar, ChevronRight, RefreshCw, TriangleAlert } from "lucide-react";
 import { useState } from "react";
@@ -130,7 +131,7 @@ const TherapiesPageClient = ({
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">{row.contactName}</p>
                     <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                      {row.phoneE164} · {row.timezone}
+                      {displayContactPhone(row.phoneE164) ?? "Sin teléfono"} · {row.timezone}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {row.productTitle} · {enrollmentStatusLabel(row.status)}

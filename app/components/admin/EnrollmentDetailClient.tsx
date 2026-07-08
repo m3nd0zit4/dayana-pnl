@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import { EnrollmentStatus } from "@prisma/client";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -288,7 +289,7 @@ const EnrollmentDetailClient = ({
           >
             {enrollment.contact.firstName}
           </Link>{" "}
-          · {enrollment.contact.phoneE164}
+          · {displayContactPhone(enrollment.contact.phoneE164) ?? "Sin teléfono"}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <span className="text-xs text-muted-foreground">Estado</span>

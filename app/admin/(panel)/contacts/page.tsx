@@ -38,6 +38,7 @@ const ContactsPage = async ({ searchParams }: Props) => {
           phoneE164: c.phoneE164,
           countryIso: null,
           source: "WEB",
+          hasPayment: true,
           enrollments: c.enrollments.map((en) => ({
             status: "ACTIVE",
             product: { title: en.product.title },
@@ -72,6 +73,7 @@ const ContactsPage = async ({ searchParams }: Props) => {
         phoneE164: c.phoneE164,
         countryIso: c.countryIso,
         source: c.source,
+        hasPayment: c.enrollments.some((en) => en.payments.length > 0),
         enrollments: c.enrollments.map((en) => ({
           status: en.status,
           product: { title: en.product.title },

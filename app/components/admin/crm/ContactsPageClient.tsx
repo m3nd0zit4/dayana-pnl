@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { ChevronRight, MessageCircle } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
@@ -28,6 +29,8 @@ export type ContactRow = {
   phoneE164: string;
   countryIso: string | null;
   source: string;
+  /** Tiene al menos un pago aprobado — llegó comprando, no pidiendo contacto. */
+  hasPayment: boolean;
   enrollments: {
     status: string;
     product: { title: string };
@@ -131,11 +134,19 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                     className="flex min-w-0 flex-1 items-center gap-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold">
+                      <div className="flex flex-wrap items-center gap-2 font-semibold">
                         {c.firstName} {c.lastName ?? ""}
+                        {/* Se registró solo desde la web (formulario o portal)
+                            sin comprar — hay que contactarlo. Quien ya pagó
+                            no necesita el aviso. */}
+                        {c.source === "WEB" && !c.hasPayment && (
+                          <Badge className="bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+                            Por contactar
+                          </Badge>
+                        )}
                       </div>
                       <div className="mt-0.5 font-mono text-xs text-muted-foreground">
-                        {c.phoneE164}
+                        {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
                         {c.countryIso ? ` · ${formatCountryLabel(c.countryIso)}` : ""}
                       </div>
                       {c.enrollments.length > 0 && (

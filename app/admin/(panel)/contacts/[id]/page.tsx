@@ -1,4 +1,3 @@
-import type { ProductKind } from "@prisma/client";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -6,7 +5,6 @@ import ContactDetailClient from "@/app/components/admin/ContactDetailClient";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import { getContactById } from "@/lib/crm/contacts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
-import { getActiveProducts } from "@/lib/crm/products";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 
 export const dynamic = "force-dynamic";
@@ -21,16 +19,9 @@ const ContactDetailPage = async ({ params }: Props) => {
   }
 
   let contact;
-  let products: { id: string; title: string; kind: ProductKind }[] = [];
 
   try {
     contact = await getContactById(id);
-    const prods = await getActiveProducts();
-    products = prods.map((p) => ({
-      id: p.id,
-      title: p.title,
-      kind: p.kind,
-    }));
   } catch {
     notFound();
   }
@@ -60,7 +51,6 @@ const ContactDetailPage = async ({ params }: Props) => {
               })),
             })),
           }}
-          products={products}
         />
       </Suspense>
     </CrmPageShell>
