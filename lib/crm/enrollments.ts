@@ -63,6 +63,30 @@ export const createEnrollment = async (input: {
     );
   }
 
+  // Idempotencia: el mismo producto no puede quedar dos veces "pendiente"
+  // para el mismo contacto — un reintento o doble click debe gestionar el
+  // servicio existente, no apilar duplicados. Re-comprar sí es válido
+  // cuando el anterior ya está ACTIVE/COMPLETED/CANCELLED, y las
+  // renovaciones (parentEnrollmentId) no pasan por aquí.
+  if (!input.parentEnrollmentId) {
+    const pending = await prisma.enrollment.findFirst({
+      where: {
+        contactId: input.contactId,
+        productId: input.productId,
+        status: {
+          in: [EnrollmentStatus.LEAD, EnrollmentStatus.PENDING_PAYMENT],
+        },
+      },
+      select: { id: true },
+    });
+    if (pending) {
+      throw new EnrollmentValidationError(
+        "Contact already has this product pending",
+        "DUPLICATE_SERVICE"
+      );
+    }
+  }
+
   const price = product.prices[0];
 
   const enrollment = await prisma.enrollment.create({

@@ -203,7 +203,9 @@ const ContactDetailClient = ({
     setBusy(false);
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
-      enrollment?: Enrollment;
+      // POST /api/admin/enrollments incluye product pero NO payments.
+      enrollment?: Omit<Enrollment, "payments"> &
+        Partial<Pick<Enrollment, "payments">>;
     };
     if (!res.ok) {
       toast(
@@ -211,15 +213,24 @@ const ContactDetailClient = ({
           ? "Ya hay una terapia activa para este contacto"
           : data.error === "THERAPY_MISSING_SESSIONS"
             ? "El producto de terapia no tiene sesiones configuradas"
-            : "Error al crear servicio",
+            : data.error === "DUPLICATE_SERVICE"
+              ? "Este contacto ya tiene ese servicio pendiente — gestiónalo en la lista"
+              : "Error al crear servicio",
         "error"
       );
       return;
     }
     if (data.enrollment) {
+      // La API devuelve el enrollment recién creado sin payments —
+      // normalizar antes de mezclarlo al estado o el render truena
+      // en en.payments.map.
+      const created: Enrollment = {
+        ...data.enrollment,
+        payments: data.enrollment.payments ?? [],
+      };
       setContact((c) => ({
         ...c,
-        enrollments: [data.enrollment!, ...c.enrollments],
+        enrollments: [created, ...c.enrollments],
       }));
       toast("Servicio creado — abre «Gestionar» en la lista o el detalle del enrollment");
     } else {

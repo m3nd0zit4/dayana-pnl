@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, MessageCircle } from "lucide-react";
+import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { Button } from "@/app/components/ui/button";
 import { useCrm } from "./CrmProvider";
@@ -27,6 +28,15 @@ const WhatsAppContactBlock = ({
       toast("No se pudo copiar", "error");
     }
   };
+
+  if (!hasRealContactPhone(phoneE164)) {
+    return (
+      <p className="rounded-xl border border-dashed border-border px-4 py-3 text-xs text-muted-foreground">
+        Este contacto aún no tiene teléfono (cuenta creada con Google o correo).
+        Agrégalo en «Datos del contacto» para habilitar WhatsApp.
+      </p>
+    );
+  }
 
   if (!chatUrl) {
     return (

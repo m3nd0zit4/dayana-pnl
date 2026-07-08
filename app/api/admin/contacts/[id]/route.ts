@@ -9,6 +9,8 @@ import {
 } from "@/lib/crm/delete-contact";
 import { getContactById } from "@/lib/crm/contacts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
+import { hasRealContactPhone } from "@/lib/crm/contact-phone";
+import { normalizePhoneWithCountry } from "@/lib/phone";
 import { prisma } from "@/lib/db";
 import { deleteContactSchema } from "@/lib/validations/admin";
 
@@ -46,26 +48,65 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       : body.firstName?.trim()) ||
     undefined;
 
-  const contact = await prisma.contact.update({
-    where: { id },
-    data: {
-      firstName: body.firstName,
-      lastName: body.lastName ?? null,
-      displayName: displayName ?? null,
-      email: body.email?.trim() || null,
-      countryIso: body.countryIso?.toUpperCase() || null,
-      timezone: body.timezone,
-      preferredLocale: body.preferredLocale,
-      source: body.source as ContactSource | undefined,
-      sourceDetail: body.sourceDetail?.trim() || null,
-      tiktokHandle: body.tiktokHandle?.trim() || null,
-      notes: body.notes ?? null,
-      ...(body.consentData === true ? { consentDataAt: now } : {}),
-      ...(body.consentMarketing === true ? { consentMarketingAt: now } : {}),
-      ...(body.consentData === false ? { consentDataAt: null } : {}),
-      ...(body.consentMarketing === false ? { consentMarketingAt: null } : {}),
-    },
-  });
+  // Completar teléfono: solo para contactos SIN número real (cuentas creadas
+  // con Google o correo, placeholder "+google:/+signup:"). Un teléfono real
+  // ya existente no se cambia por PATCH — es la identidad del contacto y la
+  // confirmación de borrado depende de él.
+  let phoneUpdate: { phoneE164: string; phoneCountryIso: string } | undefined;
+  if (typeof body.phone === "string" && body.phone.trim()) {
+    const existing = await prisma.contact.findUnique({
+      where: { id },
+      select: { phoneE164: true },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    if (hasRealContactPhone(existing.phoneE164)) {
+      return NextResponse.json({ error: "phone_locked" }, { status: 400 });
+    }
+    const normalized = normalizePhoneWithCountry(
+      body.phone,
+      ((body.phoneCountry as string | undefined)?.toUpperCase() ??
+        "CO") as CountryCode
+    );
+    if (!normalized) {
+      return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
+    }
+    phoneUpdate = normalized;
+  }
+
+  let contact;
+  try {
+    contact = await prisma.contact.update({
+      where: { id },
+      data: {
+        ...(phoneUpdate ?? {}),
+        firstName: body.firstName,
+        lastName: body.lastName ?? null,
+        displayName: displayName ?? null,
+        email: body.email?.trim() || null,
+        countryIso: body.countryIso?.toUpperCase() || null,
+        timezone: body.timezone,
+        preferredLocale: body.preferredLocale,
+        source: body.source as ContactSource | undefined,
+        sourceDetail: body.sourceDetail?.trim() || null,
+        tiktokHandle: body.tiktokHandle?.trim() || null,
+        notes: body.notes ?? null,
+        ...(body.consentData === true ? { consentDataAt: now } : {}),
+        ...(body.consentMarketing === true ? { consentMarketingAt: now } : {}),
+        ...(body.consentData === false ? { consentDataAt: null } : {}),
+        ...(body.consentMarketing === false ? { consentMarketingAt: null } : {}),
+      },
+    });
+  } catch (e) {
+    const code =
+      e && typeof e === "object" && "code" in e ? String(e.code) : "";
+    if (code === "P2002") {
+      // phoneE164 es único — el número ya pertenece a otro contacto.
+      return NextResponse.json({ error: "phone_taken" }, { status: 409 });
+    }
+    throw e;
+  }
 
   fireAuditLog({
     staffUserId: staff.id,

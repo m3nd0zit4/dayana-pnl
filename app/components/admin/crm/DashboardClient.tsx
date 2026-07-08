@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { ChevronRight, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -113,7 +114,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
                         {c.firstName} {c.lastName ?? ""}
                       </span>
                       <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                        {c.phoneE164}
+                        {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
                       </span>
                       <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                     </Link>

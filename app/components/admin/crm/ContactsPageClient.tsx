@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { ChevronRight, MessageCircle } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
@@ -135,7 +136,7 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                         {c.firstName} {c.lastName ?? ""}
                       </div>
                       <div className="mt-0.5 font-mono text-xs text-muted-foreground">
-                        {c.phoneE164}
+                        {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
                         {c.countryIso ? ` · ${formatCountryLabel(c.countryIso)}` : ""}
                       </div>
                       {c.enrollments.length > 0 && (

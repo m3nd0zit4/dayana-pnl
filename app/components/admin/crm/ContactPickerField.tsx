@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import { Clock, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -121,7 +122,9 @@ const ContactPickerField = ({
       onClick={() => pick(c)}
     >
       <div className="text-sm font-medium">{contactLabel(c)}</div>
-      <div className="font-mono text-[11px] text-muted-foreground">{c.phoneE164}</div>
+      <div className="font-mono text-[11px] text-muted-foreground">
+        {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
+      </div>
     </button>
   );
 

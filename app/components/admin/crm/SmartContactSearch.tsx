@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Fuse from "fuse.js";
 import { Clock, Search, Zap } from "lucide-react";
 import Link from "next/link";
@@ -153,7 +154,7 @@ const SmartContactSearch = ({
         {c.firstName} {c.lastName ?? ""}
       </div>
       <div className="font-mono text-[11px] text-muted-foreground">
-        {c.phoneE164}
+        {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
       </div>
     </Link>
   );

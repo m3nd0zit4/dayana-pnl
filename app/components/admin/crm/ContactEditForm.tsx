@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ContactSource } from "@prisma/client";
 import { contactToFormValues, type ContactFormValues } from "@/app/config/contact-form";
 import type { ExtractedContactFields } from "@/lib/ai/contact-extraction";
+import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import ContactFormFields from "./ContactFormFields";
@@ -31,9 +32,13 @@ type Contact = {
 
 const ContactEditForm = ({ contact }: { contact: Contact }) => {
   const { aiEnabled } = useCrm();
-  const [values, setValues] = useState<ContactFormValues>(() =>
-    contactToFormValues(contact)
-  );
+  // Cuenta creada con Google/correo: el "teléfono" es un placeholder
+  // (+google:/+signup:) — arrancar el campo vacío y permitir capturarlo.
+  const phoneMissing = !hasRealContactPhone(contact.phoneE164);
+  const [values, setValues] = useState<ContactFormValues>(() => {
+    const initial = contactToFormValues(contact);
+    return phoneMissing ? { ...initial, phone: "" } : initial;
+  });
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +78,9 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        ...(phoneMissing && values.phone?.trim()
+          ? { phone: values.phone, phoneCountry: values.phoneCountry }
+          : {}),
         firstName: values.firstName,
         lastName: values.lastName || null,
         displayName: values.displayName || null,
@@ -90,7 +98,14 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
     });
     setLoading(false);
     if (!res.ok) {
-      setError("No se pudieron guardar los cambios.");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(
+        data.error === "phone_taken"
+          ? "Ese número ya pertenece a otro contacto."
+          : data.error === "invalid_phone"
+            ? "El teléfono no es válido para el país elegido."
+            : "No se pudieron guardar los cambios."
+      );
       return;
     }
     setSaved(true);
@@ -109,6 +124,7 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
             onChange={patch}
             mode="edit"
             aiFilled={aiFilled}
+            allowPhoneEdit={phoneMissing}
           />
           {error && (
             <p className="text-sm text-destructive" role="alert">

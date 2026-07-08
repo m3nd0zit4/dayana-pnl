@@ -1,5 +1,6 @@
 "use client";
 
+import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { Copy, CreditCard, KeyRound, Mail, CalendarClock } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -181,7 +182,7 @@ const CourseMembersPageClient = ({
                       </Link>
                       <div className="mt-0.5 text-xs text-muted-foreground">
                         {row.contact.email ?? "Sin email"} ·{" "}
-                        {row.contact.phoneE164}
+                        {displayContactPhone(row.contact.phoneE164) ?? "Sin teléfono"}
                       </div>
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span>

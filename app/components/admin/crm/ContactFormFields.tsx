@@ -28,11 +28,22 @@ type Props = {
   mode: "create" | "edit";
   /** Campos rellenados por IA — se resaltan hasta que el staff los edite. */
   aiFilled?: ReadonlySet<string>;
+  /** En edición: permite CAPTURAR el teléfono cuando el contacto no tiene
+   * uno real (cuenta creada con Google/correo). Un teléfono existente sigue
+   * siendo de solo lectura. */
+  allowPhoneEdit?: boolean;
 };
 
-const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
+const ContactFormFields = ({
+  values,
+  onChange,
+  mode,
+  aiFilled,
+  allowPhoneEdit = false,
+}: Props) => {
   const countryIso = values.countryIso || values.phoneCountry || "CO";
   const country = getCountryByIso(countryIso);
+  const phoneEditable = mode === "create" || allowPhoneEdit;
 
   const aiCls = (field: keyof ContactFormValues) =>
     aiFilled?.has(field) ? "border-purple-300 ring-2 ring-purple-100" : "";
@@ -87,17 +98,19 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
           />
         </div>
 
-        {mode === "create" && (
+        {phoneEditable && (
           <>
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="cf-phone">Teléfono WhatsApp *</Label>
+              <Label htmlFor="cf-phone">
+                Teléfono WhatsApp {mode === "create" ? "*" : "(sin registrar)"}
+              </Label>
               <InputGroup className={cn("h-9", aiCls("phone"))}>
                 <InputGroupAddon className="text-foreground">
                   {country?.dialCode ?? "+57"}
                 </InputGroupAddon>
                 <InputGroupInput
                   id="cf-phone"
-                  required
+                  required={mode === "create"}
                   inputMode="numeric"
                   autoComplete="tel-national"
                   placeholder={getLocalPhonePlaceholder(countryCode)}
@@ -129,7 +142,7 @@ const ContactFormFields = ({ values, onChange, mode, aiFilled }: Props) => {
           </>
         )}
 
-        {mode === "edit" && (
+        {mode === "edit" && !allowPhoneEdit && (
           <div className="rounded-xl border border-border bg-card px-4 py-3 sm:col-span-2">
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               Teléfono WhatsApp
