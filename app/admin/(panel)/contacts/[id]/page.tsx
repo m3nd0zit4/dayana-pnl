@@ -44,11 +44,11 @@ const ContactDetailPage = async ({ params }: Props) => {
     <CrmPageShell>
       <Link
         href="/admin/contacts"
-        className="crm-back-link"
+        className="mb-3 inline-flex items-center gap-0.5 text-sm font-medium text-primary hover:opacity-75"
       >
         ← Contactos
       </Link>
-      <Suspense fallback={<p className="text-sm text-[var(--crm-muted)]">Cargando…</p>}>
+      <Suspense fallback={<p className="text-sm text-muted-foreground">Cargando…</p>}>
         <ContactDetailClient
           contact={{
             ...contact,

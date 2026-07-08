@@ -17,7 +17,7 @@ const EnrollmentPage = async ({ params }: Props) => {
     <CrmPageShell>
       <Link
         href={`/admin/contacts/${enrollment.contactId}`}
-        className="mb-6 inline-flex text-xs font-medium text-[var(--crm-accent)] hover:underline"
+        className="mb-6 inline-flex text-xs font-medium text-primary hover:underline"
       >
         ← {enrollment.contact.firstName}
       </Link>

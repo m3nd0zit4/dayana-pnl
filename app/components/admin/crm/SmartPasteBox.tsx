@@ -3,6 +3,8 @@
 import { ChevronDown, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { ExtractedContactFields } from "@/lib/ai/contact-extraction";
+import { Button } from "@/app/components/ui/button";
+import { Textarea } from "@/app/components/ui/textarea";
 
 type Props = {
   onExtracted: (fields: ExtractedContactFields) => void;
@@ -83,8 +85,8 @@ const SmartPasteBox = ({ onExtracted, pendingText, onConsumePendingText }: Props
       </button>
       {effectiveExpanded && (
         <div className="space-y-2 px-3 pb-3">
-          <textarea
-            className="crm-textarea min-h-[90px] bg-white"
+          <Textarea
+            className="min-h-[90px] bg-white"
             placeholder="Pega aquí la conversación de WhatsApp o cualquier texto con los datos del contacto…"
             value={effectiveText}
             onChange={(e) => {
@@ -93,23 +95,18 @@ const SmartPasteBox = ({ onExtracted, pendingText, onConsumePendingText }: Props
             }}
           />
           {error && (
-            <p className="text-xs text-[var(--crm-danger)]" role="alert">
+            <p className="text-xs text-destructive" role="alert">
               {error}
             </p>
           )}
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] text-[var(--crm-muted)]">
+            <p className="text-[11px] text-muted-foreground">
               La IA sugiere; tú confirmas antes de guardar.
             </p>
-            <button
-              type="button"
-              className="crm-btn-primary crm-btn-compact"
-              disabled={loading}
-              onClick={() => void run()}
-            >
+            <Button size="sm" disabled={loading} onClick={() => void run()}>
               <Sparkles className="size-3.5" />
               {loading ? "Extrayendo…" : "Autocompletar"}
-            </button>
+            </Button>
           </div>
         </div>
       )}

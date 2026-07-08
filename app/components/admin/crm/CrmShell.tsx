@@ -46,7 +46,7 @@ const CrmShell = ({
     >
       <Sidebar
         collapsible="offcanvas"
-        className="border-r border-[var(--crm-border)]"
+        className="border-r border-border"
       >
         <SidebarHeader>
           <CrmLogo />
