@@ -15,7 +15,6 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu as SidebarMenuRoot,
-  SidebarMenuAction,
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarMenuSub,
@@ -46,52 +45,53 @@ const CrmMenuParentItem = ({
   const external = item.external === true;
   const children = item.items ?? [];
   const childActive = children.some((c) => isActive(pathname, c.href));
-  const active = isActive(pathname, item.href) || childActive;
 
-  // Auto-expand when landing on the parent or a child route; otherwise
-  // follow whatever the user last toggled.
-  const [open, setOpen] = useState(childActive || active);
+  // Auto-expand when landing on a child route; otherwise follow whatever
+  // the user last toggled.
+  const [open, setOpen] = useState(childActive);
   const [trackedPathname, setTrackedPathname] = useState(pathname);
   if (pathname !== trackedPathname) {
     setTrackedPathname(pathname);
-    if (childActive || active) setOpen(true);
+    if (childActive) setOpen(true);
   }
 
-  const link = (
-    <SidebarMenuButton
-      isActive={active}
-      tooltip={item.label}
-      render={
-        <Link
-          href={item.href}
-          prefetch={external ? undefined : false}
-          onClick={onNavigate}
-          {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-        />
-      }
-    >
-      <Icon />
-      <span>{item.label}</span>
-    </SidebarMenuButton>
-  );
-
   if (children.length === 0) {
-    return <SidebarMenuItem>{link}</SidebarMenuItem>;
+    const active = isActive(pathname, item.href);
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          isActive={active}
+          tooltip={item.label}
+          render={
+            <Link
+              href={item.href}
+              prefetch={external ? undefined : false}
+              onClick={onNavigate}
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            />
+          }
+        >
+          <Icon />
+          <span>{item.label}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
   }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <SidebarMenuItem>
-        {link}
         <CollapsibleTrigger
           render={
-            <SidebarMenuAction aria-label={open ? "Contraer" : "Expandir"}>
-              <ChevronRight
-                className={`transition-transform duration-200 ${open ? "rotate-90" : ""}`}
-              />
-            </SidebarMenuAction>
+            <SidebarMenuButton isActive={childActive} tooltip={item.label} />
           }
-        />
+        >
+          <Icon />
+          <span>{item.label}</span>
+          <ChevronRight
+            className={`ml-auto transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+          />
+        </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub>
             {children.map((child) => {
