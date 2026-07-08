@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { GeneratedModuleContent } from "@/lib/ai/module-generation";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
@@ -14,6 +15,7 @@ import { Textarea } from "@/app/components/ui/textarea";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
+import ModuleAiGenerateBox from "./ModuleAiGenerateBox";
 
 export type CourseModuleRow = {
   id: string;
@@ -37,11 +39,24 @@ type EditorState = {
 };
 
 const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
-  const { canWrite, toast, confirm } = useCrm();
+  const { canWrite, aiEnabled, toast, confirm } = useCrm();
   const [rows, setRows] = useState<CourseModuleRow[]>(initialModules);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
+
+  const applyAiContent = (content: GeneratedModuleContent) => {
+    setEditor((e) =>
+      e
+        ? {
+            ...e,
+            title: e.title.trim() ? e.title : content.title,
+            bodyMd: content.bodyMd,
+            showPreview: false,
+          }
+        : e
+    );
+  };
 
   const reload = useCallback(async () => {
     if (preview) return;
@@ -253,6 +268,8 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
                 placeholder="Módulo 1 · Introducción a la PNL"
               />
             </div>
+
+            {aiEnabled && <ModuleAiGenerateBox onGenerated={applyAiContent} />}
 
             <div>
               <div className="mb-1 flex items-center justify-between">

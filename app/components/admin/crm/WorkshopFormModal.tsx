@@ -2,14 +2,17 @@
 
 import { WorkshopEditionStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
+import type { ExtractedWorkshopFields } from "@/lib/ai/workshop-extraction";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import CrmModal from "./CrmModal";
+import { useCrm } from "./CrmProvider";
 import ScheduleSlotEditor from "./ScheduleSlotEditor";
 import SearchableSelect from "./SearchableSelect";
 import StringListEditor from "./StringListEditor";
+import WorkshopSmartPasteBox from "./WorkshopSmartPasteBox";
 import { invalidateCached } from "./hooks/useReferenceData";
 import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
@@ -120,6 +123,7 @@ type Props = {
 };
 
 const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
+  const { aiEnabled } = useCrm();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editionLabel, setEditionLabel] = useState("");
@@ -164,6 +168,21 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
     }
     setError(null);
   }, [open, edition]);
+
+  const applyAiFields = (fields: ExtractedWorkshopFields) => {
+    if (fields.title) setTitle(fields.title);
+    if (fields.description) setDescription(fields.description);
+    if (fields.editionLabel) setEditionLabel(fields.editionLabel);
+    if (fields.dateLabel) setDateLabel(fields.dateLabel);
+    if (fields.scheduleLabel) setScheduleLabel(fields.scheduleLabel);
+    if (fields.focusTopics && fields.focusTopics.length > 0) {
+      setFocusTopics(fields.focusTopics);
+    }
+    if (fields.daySchedule && fields.daySchedule.length > 0) {
+      setDaySchedule(fields.daySchedule);
+    }
+    if (fields.introOpen) setIntroOpen(fields.introOpen);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,6 +239,8 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
           Título corto para la web; la descripción aparece en la tarjeta y en
           la landing. Completa temas, cronograma y CTA abajo.
         </p>
+
+        {aiEnabled && <WorkshopSmartPasteBox onExtracted={applyAiFields} />}
 
         <div className="space-y-1.5">
           <Label htmlFor="w-title">Título *</Label>
