@@ -13,6 +13,7 @@ const CursoPage = async () => {
       <CourseMembersPageClient
         preview
         courseTitle="Curso en vivo"
+        courseProductId={null}
         initialMembers={[]}
       />
     );
@@ -28,6 +29,7 @@ const CursoPage = async () => {
     <CourseMembersPageClient
       preview={false}
       courseTitle={course?.title ?? "Curso"}
+      courseProductId={course?.id ?? null}
       initialMembers={members}
     />
   );

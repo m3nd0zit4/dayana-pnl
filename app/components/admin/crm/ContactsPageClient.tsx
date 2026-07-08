@@ -132,8 +132,15 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                     className="flex min-w-0 flex-1 items-center gap-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold">
+                      <div className="flex flex-wrap items-center gap-2 font-semibold">
                         {c.firstName} {c.lastName ?? ""}
+                        {/* Se registró solo desde la web (formulario, compra
+                            o portal) — nadie del equipo lo ha contactado aún. */}
+                        {c.source === "WEB" && (
+                          <Badge className="bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+                            Por contactar
+                          </Badge>
+                        )}
                       </div>
                       <div className="mt-0.5 font-mono text-xs text-muted-foreground">
                         {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}

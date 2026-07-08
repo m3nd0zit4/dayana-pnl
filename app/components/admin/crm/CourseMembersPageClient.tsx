@@ -2,7 +2,7 @@
 
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
-import { Copy, CreditCard, KeyRound, Mail, CalendarClock } from "lucide-react";
+import { Copy, CreditCard, KeyRound, Mail, CalendarClock, UserPlus } from "lucide-react";
 import { useCallback, useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
 import { Badge } from "@/app/components/ui/badge";
@@ -10,6 +10,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import ContactPickerField from "./ContactPickerField";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
 import RegisterPaymentModal from "./RegisterPaymentModal";
@@ -18,6 +19,7 @@ import { useCrm } from "./CrmProvider";
 type Props = {
   preview: boolean;
   courseTitle: string;
+  courseProductId: string | null;
   initialMembers: CourseMemberRow[];
 };
 
@@ -55,6 +57,7 @@ const toDateInputValue = (iso: string | null) => {
 const CourseMembersPageClient = ({
   preview,
   courseTitle,
+  courseProductId,
   initialMembers,
 }: Props) => {
   const { canWrite, toast } = useCrm();
@@ -74,6 +77,39 @@ const CourseMembersPageClient = ({
     email: string | null;
     password: string;
   } | null>(null);
+  const [newMemberOpen, setNewMemberOpen] = useState(false);
+  const [newMemberContactId, setNewMemberContactId] = useState("");
+  const [newMemberError, setNewMemberError] = useState<string | null>(null);
+  const [newMemberBusy, setNewMemberBusy] = useState(false);
+
+  const addMember = async () => {
+    if (!newMemberContactId || !courseProductId) return;
+    setNewMemberBusy(true);
+    setNewMemberError(null);
+    const res = await fetch("/api/admin/enrollments", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contactId: newMemberContactId,
+        productId: courseProductId,
+        status: "ACTIVE",
+      }),
+    });
+    setNewMemberBusy(false);
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setNewMemberError(
+        data.error === "DUPLICATE_SERVICE"
+          ? "Ese contacto ya tiene el curso pendiente."
+          : "No se pudo agregar el miembro."
+      );
+      return;
+    }
+    toast("Miembro agregado — registra su pago o ajusta la vigencia");
+    setNewMemberOpen(false);
+    setNewMemberContactId("");
+    void reload();
+  };
 
   const reload = useCallback(async () => {
     if (preview) return;
@@ -152,12 +188,27 @@ const CourseMembersPageClient = ({
   return (
     <CrmPageShell>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Curso · Miembros</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Membresías mensuales de «{courseTitle}». Cada pago aprobado suma
-            un mes de acceso al portal.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Curso · Miembros</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Membresías mensuales de «{courseTitle}». Cada pago aprobado suma
+              un mes de acceso al portal.
+            </p>
+          </div>
+          {!preview && canWrite && courseProductId && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setNewMemberError(null);
+                setNewMemberContactId("");
+                setNewMemberOpen(true);
+              }}
+            >
+              <UserPlus />
+              Nuevo miembro
+            </Button>
+          )}
         </div>
 
         <Card className="overflow-hidden py-0">
@@ -308,6 +359,51 @@ const CourseMembersPageClient = ({
             </Button>
             <Button disabled={adjustSaving} onClick={() => void saveAdjust()}>
               {adjustSaving ? "Guardando…" : "Guardar"}
+            </Button>
+          </div>
+        </div>
+      </CrmModal>
+
+      <CrmModal
+        title="Nuevo miembro"
+        open={newMemberOpen}
+        onClose={() => setNewMemberOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            El miembro debe existir como contacto. Búscalo aquí; si aún no
+            está registrado,{" "}
+            <Link href="/admin/contacts" className="text-primary underline-offset-4 hover:underline">
+              créalo primero en Contactos
+            </Link>
+            .
+          </p>
+          <ContactPickerField
+            id="nm-contact"
+            label="Contacto *"
+            value={newMemberContactId}
+            onSelect={(c) => setNewMemberContactId(c?.id ?? "")}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            Se crea la inscripción al curso sin vigencia. Después registra su
+            pago («Registrar pago») o fija la fecha («Ajustar vigencia») y
+            envíale el acceso al portal.
+          </p>
+          {newMemberError && (
+            <p className="text-sm text-destructive" role="alert">
+              {newMemberError}
+            </p>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setNewMemberOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={newMemberBusy || !newMemberContactId}
+              onClick={() => void addMember()}
+            >
+              {newMemberBusy ? "Agregando…" : "Agregar miembro"}
             </Button>
           </div>
         </div>

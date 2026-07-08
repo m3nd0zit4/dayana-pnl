@@ -15,14 +15,8 @@ import RegisterPaymentModal from "@/app/components/admin/crm/RegisterPaymentModa
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { stripEphemeralNotebookParams } from "@/lib/crm/contact-notebook-url";
-import { productSelectOptions } from "@/lib/crm/form-select-options";
-import {
-  groupProductsByKind,
-  type ProductOption,
-} from "@/lib/crm/product-kind-labels";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { saveContactRecent } from "@/lib/crm/contact-search-recents";
 
 type Enrollment = {
@@ -65,27 +59,19 @@ const TABS = [
 ];
 type Tab = (typeof TABS)[number]["id"];
 
-const ContactDetailClient = ({
-  contact: initial,
-  products,
-}: {
-  contact: Contact;
-  products: ProductOption[];
-}) => {
+const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { canWrite, toast, focusMode, setFocusMode } = useCrm();
-  const [contact, setContact] = useState(initial);
+  // Sin ediciones locales del contacto: usar el prop directo hace que
+  // router.refresh() traiga siempre el estado fresco del servidor.
+  const contact = initial;
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState<Tab>(
     initialTab === "servicios" || initialTab === "pagos" || initialTab === "notas"
       ? initialTab
       : "resumen"
   );
-  const productGroups = groupProductsByKind(products);
-  const flatProducts = productGroups.flatMap((g) => g.items);
-  const [productId, setProductId] = useState(flatProducts[0]?.id ?? "");
-  const [busy, setBusy] = useState(false);
   const [paymentEnrollment, setPaymentEnrollment] = useState<Enrollment | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
@@ -189,53 +175,6 @@ const ContactDetailClient = ({
           .getElementById("cuaderno-clinico")
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
-    }
-  };
-
-  const addService = async () => {
-    if (!productId || !canWrite) return;
-    setBusy(true);
-    const res = await fetch("/api/admin/enrollments", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ contactId: contact.id, productId }),
-    });
-    setBusy(false);
-    const data = (await res.json().catch(() => ({}))) as {
-      error?: string;
-      // POST /api/admin/enrollments incluye product pero NO payments.
-      enrollment?: Omit<Enrollment, "payments"> &
-        Partial<Pick<Enrollment, "payments">>;
-    };
-    if (!res.ok) {
-      toast(
-        data.error === "ACTIVE_THERAPY_EXISTS"
-          ? "Ya hay una terapia activa para este contacto"
-          : data.error === "THERAPY_MISSING_SESSIONS"
-            ? "El producto de terapia no tiene sesiones configuradas"
-            : data.error === "DUPLICATE_SERVICE"
-              ? "Este contacto ya tiene ese servicio pendiente — gestiónalo en la lista"
-              : "Error al crear servicio",
-        "error"
-      );
-      return;
-    }
-    if (data.enrollment) {
-      // La API devuelve el enrollment recién creado sin payments —
-      // normalizar antes de mezclarlo al estado o el render truena
-      // en en.payments.map.
-      const created: Enrollment = {
-        ...data.enrollment,
-        payments: data.enrollment.payments ?? [],
-      };
-      setContact((c) => ({
-        ...c,
-        enrollments: [created, ...c.enrollments],
-      }));
-      toast("Servicio creado — abre «Gestionar» en la lista o el detalle del enrollment");
-    } else {
-      toast("Servicio creado");
-      router.refresh();
     }
   };
 
@@ -359,31 +298,8 @@ const ContactDetailClient = ({
 
       {!isFocusNotebook && tab === "servicios" && (
         <section className="space-y-4">
-          {canWrite && flatProducts.length > 0 && (
-            <div className="flex flex-wrap items-end gap-3">
-              <SearchableSelect
-                label="Producto"
-                hideLabel
-                value={productId}
-                options={productSelectOptions(flatProducts)}
-                onChange={setProductId}
-                className="min-w-0 flex-1 sm:min-w-[200px]"
-                searchPlaceholder="Buscar producto…"
-              />
-              <Button disabled={busy} size="sm" onClick={() => void addService()}>
-                Nuevo servicio
-              </Button>
-            </div>
-          )}
-          {canWrite && flatProducts.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No hay productos activos.{" "}
-              <Link href="/admin/products" className="text-primary">
-                Configura el catálogo
-              </Link>
-              .
-            </p>
-          )}
+          {/* Solo lectura: los servicios se crean desde su propia sección
+              (Curso · Miembros, Talleres, Terapias), no desde el contacto. */}
           <Card className="overflow-hidden py-0">
             <CardContent className="divide-y divide-border p-0">
               {contact.enrollments.length === 0 ? (
