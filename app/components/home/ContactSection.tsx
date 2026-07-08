@@ -17,7 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const INTERESTS = [
   "Sesión privada 1:1",
-  "Curso / formación",
+  "Clases",
   "Taller virtual",
   "Aún no lo sé",
 ] as const;
