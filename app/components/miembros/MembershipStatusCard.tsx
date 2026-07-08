@@ -9,6 +9,10 @@ type MembershipStatusCardProps = {
   isCurrent: boolean;
   daysLeft: number | null;
   hasEnrollment: boolean;
+  /** Hide the CTA button — e.g. on /cuenta itself, where the real payment
+   * section is already right below and a "Renovar" link back to the same
+   * page would be a dead click. */
+  hideAction?: boolean;
 };
 
 const formatDate = (date: Date) =>
@@ -19,6 +23,7 @@ const MembershipStatusCard = ({
   isCurrent,
   daysLeft,
   hasEnrollment,
+  hideAction = false,
 }: MembershipStatusCardProps) => {
   const expiringSoon = isCurrent && daysLeft != null && daysLeft <= 7;
 
@@ -67,7 +72,7 @@ const MembershipStatusCard = ({
           )}
         </div>
 
-        {(!isCurrent || expiringSoon) && (
+        {!hideAction && (!isCurrent || expiringSoon) && (
           <Button className="mt-4" nativeButton={false} render={<Link href="/miembros/cuenta" />}>
             {isCurrent
               ? "Renovar ahora"

@@ -56,6 +56,7 @@ const Page = async () => {
         isCurrent={membership.isCurrent}
         daysLeft={membership.daysLeft}
         hasEnrollment={membership.enrollment != null}
+        hideAction
       />
 
       <Card>
