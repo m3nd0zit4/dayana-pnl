@@ -123,7 +123,8 @@ export const upsertMemberAccountForGoogle = async (input: {
  * Throws when the email belongs to a staff user.
  */
 export const getOrCreateContactForEmailSignup = async (
-  email: string
+  email: string,
+  name?: string | null
 ): Promise<Contact> => {
   const normalized = email.trim().toLowerCase();
 
@@ -135,10 +136,15 @@ export const getOrCreateContactForEmailSignup = async (
   const existing = await prisma.contact.findUnique({ where: { email: normalized } });
   if (existing) return existing;
 
+  const trimmedName = name?.trim();
+  const [firstName, ...restName] = trimmedName ? trimmedName.split(/\s+/) : [];
+
   return prisma.contact.create({
     data: {
       email: normalized,
-      firstName: normalized.split("@")[0],
+      firstName: firstName || normalized.split("@")[0],
+      lastName: restName.length > 0 ? restName.join(" ") : null,
+      displayName: trimmedName || null,
       phoneE164: `${EMAIL_SIGNUP_PLACEHOLDER_PHONE_PREFIX}:${crypto.randomUUID()}`,
       source: ContactSource.WEB,
       sourceDetail: "member-signup",

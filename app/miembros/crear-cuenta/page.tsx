@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isGoogleAuthEnabled } from "@/auth";
 import { BRAND } from "@/lib/contact";
 import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
 import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
@@ -49,7 +50,7 @@ const Page = async ({ searchParams }: PageProps) => {
       title="Crea tu cuenta"
       description="Entra de una vez — no necesitas esperar ningún correo. Tu acceso al material del curso se activa cuando tu pago quede al día."
     >
-      <MemberSignupForm />
+      <MemberSignupForm googleEnabled={isGoogleAuthEnabled()} />
     </MemberAuthShell>
   );
 };

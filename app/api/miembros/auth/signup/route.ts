@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  name: z.string().max(200).optional(),
 });
 
 /**
@@ -63,7 +64,7 @@ export const POST = async (req: Request) => {
     if (existing) {
       contactId = existing.contact.id;
     } else {
-      const contact = await getOrCreateContactForEmailSignup(email);
+      const contact = await getOrCreateContactForEmailSignup(email, parsed.data.name);
       contactId = contact.id;
     }
   } catch {
