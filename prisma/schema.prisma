@@ -13,6 +13,7 @@ enum ContactSource {
   INSTAGRAM
   YOUTUBE
   WEB
+  WEB_LEAD_FORM
   WHATSAPP_DIRECT
   REFERRAL
   OTHER
@@ -135,6 +136,7 @@ model Contact {
   memberAccount          MemberAccount?
   memberAuthTokens       MemberAuthToken[]
   moduleProgress         CourseModuleProgress[]
+  classProgress          CourseClassProgress[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -251,6 +253,8 @@ model Enrollment {
   payments         Payment[]
   therapyPackage   TherapyPackage?
   notebookPages    ContactNotebookPage[]
+  paymentVerificationCodes PaymentVerificationCode[]
+  promoCodeRedemption      PromoCodeRedemption?
 
   @@index([contactId, status])
   @@index([contactId, productId])
@@ -285,6 +289,70 @@ model Payment {
   @@index([enrollmentId])
   @@index([status, paidAt])
   @@map("payments")
+}
+
+// Gate before registering a manual payment: a 6-digit code is emailed to a
+// fixed personal address (Dayana) and must be entered back to confirm.
+model PaymentVerificationCode {
+  id           String    @id @default(cuid())
+  codeHash     String    @map("code_hash")
+  email        String
+  staffUserId  String    @map("staff_user_id")
+  enrollmentId String?   @map("enrollment_id")
+  attempts     Int       @default(0)
+  usedAt       DateTime? @map("used_at")
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  staffUser  StaffUser   @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  @@index([staffUserId])
+  @@map("payment_verification_codes")
+}
+
+enum PromoDiscountType {
+  PERCENT
+  FIXED_AMOUNT
+}
+
+// Applies at checkout, before payment. PERCENT works in both currencies as a
+// ratio; FIXED_AMOUNT needs its own value per currency since 20 USD and 20
+// COP are not comparable — a fixed code is only usable in a currency it has
+// an amount configured for.
+model PromoCode {
+  id             String            @id @default(cuid())
+  code           String            @unique
+  description    String?
+  discountType   PromoDiscountType @map("discount_type")
+  percentOff     Int?              @map("percent_off")
+  amountOffUsdMinor Int?           @map("amount_off_usd_minor")
+  amountOffCopMinor Int?           @map("amount_off_cop_minor")
+  isActive       Boolean           @default(true) @map("is_active")
+  maxRedemptions Int?              @map("max_redemptions")
+  timesRedeemed  Int               @default(0) @map("times_redeemed")
+  expiresAt      DateTime?         @map("expires_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  redemptions PromoCodeRedemption[]
+
+  @@map("promo_codes")
+}
+
+model PromoCodeRedemption {
+  id            String   @id @default(cuid())
+  promoCodeId   String   @map("promo_code_id")
+  enrollmentId  String   @unique @map("enrollment_id")
+  currency      String   @db.Char(3)
+  discountMinor Int      @map("discount_minor")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  promoCode  PromoCode  @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([promoCodeId])
+  @@map("promo_code_redemptions")
 }
 
 model TherapyPackage {
@@ -369,6 +437,7 @@ model StaffUser {
   messageLogs   MessageLog[]
   notebookPages  ContactNotebookPage[]
   staffSessions  StaffSession[]
+  paymentVerificationCodes PaymentVerificationCode[]
 
   @@map("staff_users")
 }
@@ -594,6 +663,7 @@ model CourseModule {
 
   product  Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
   progress CourseModuleProgress[]
+  classes  LiveClassSession[]
 
   @@index([productId, sortOrder])
   @@map("course_modules")
@@ -616,6 +686,7 @@ model CourseModuleProgress {
 model LiveClassSession {
   id                String    @id @default(cuid())
   productId         String    @map("product_id")
+  moduleId          String?   @map("module_id")
   title             String
   description       String?   @db.Text
   scheduledAt       DateTime? @map("scheduled_at")
@@ -623,11 +694,29 @@ model LiveClassSession {
   recordingUrl      String?   @map("recording_url")
   recordingPostedAt DateTime? @map("recording_posted_at")
   recordingHiddenAt DateTime? @map("recording_hidden_at")
+  sortOrder         Int       @default(0) @map("sort_order")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product  Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  module   CourseModule?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  progress CourseClassProgress[]
 
   @@index([productId, scheduledAt])
+  @@index([moduleId, sortOrder])
   @@map("live_class_sessions")
+}
+
+model CourseClassProgress {
+  id          String   @id @default(cuid())
+  contactId   String   @map("contact_id")
+  classId     String   @map("class_id")
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  contact Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  class   LiveClassSession @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, classId])
+  @@index([classId])
+  @@map("course_class_progress")
 }
