@@ -25,6 +25,15 @@ const cspReportOnly = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "prisma", "ws"],
+  experimental: {
+    // Turbopack's persistent dev cache (.next/dev, on by default since 16.1)
+    // can go stale after an unclean dev-server restart: route handlers under
+    // dynamic segments (e.g. the NextAuth catch-all) silently stop resolving
+    // and fall through to the app 404 page while everything else still hits
+    // its cached entry. That's the ClientFetchError "<!DOCTYPE" auth error.
+    // Disabled for dev only — build caching is unaffected.
+    turbopackFileSystemCacheForDev: false,
+  },
   async redirects() {
     return [
       // El listado de servicios se retiró; el CRM gestiona por tipo.
