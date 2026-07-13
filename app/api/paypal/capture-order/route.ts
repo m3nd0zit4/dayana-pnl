@@ -119,7 +119,14 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-        const expectedGross = grossUpUsd(plan.amountUsd, paypalFee()).gross;
+        // The discount is read back from the reference (baked in at
+        // create-order time), never re-validated here — the code could have
+        // expired or hit its cap in the minutes since checkout started, and
+        // re-checking would wrongly reject a payment that was already
+        // correctly charged at the discounted price.
+        const discountMinor = checkout.discountMinor ?? 0;
+        const discountedNetUsd = Math.max(0, plan.amountUsd - discountMinor / 100);
+        const expectedGross = grossUpUsd(discountedNetUsd, paypalFee()).gross;
         assertPayPalCaptureAmount(amountMinor, currency, expectedGross);
 
         enrollmentId = await fulfillCheckoutPayment({
@@ -137,6 +144,9 @@ export async function POST(req: NextRequest) {
           rawPayload: result,
           paidAt: status === "COMPLETED" ? new Date() : undefined,
           payerEmail: extractPayPalPayer(result).email,
+          promoCodeRedemption: checkout.promoCode
+            ? { code: checkout.promoCode, discountMinor }
+            : undefined,
         });
 
         if (status === "COMPLETED") {

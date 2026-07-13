@@ -20,6 +20,11 @@ export const manualPaymentSchema = z.object({
   currency: z.string().min(3).max(3),
   reference: z.string().max(120).optional(),
   providerPaymentId: z.string().max(120).optional(),
+  code: z.string().min(4).max(8),
+});
+
+export const requestPaymentOtpSchema = z.object({
+  enrollmentId: z.string().min(1),
 });
 
 export const broadcastSchema = z.object({
@@ -155,6 +160,16 @@ export const liveClassSchema = z.object({
   scheduledAt: z.string().datetime().optional().nullable(),
   meetUrl: z.string().url().max(500).optional().nullable(),
   recordingUrl: z.string().url().max(1000).optional().nullable(),
+  moduleId: z.string().min(1).optional().nullable(),
+});
+
+export const reorderCourseClassesSchema = z.object({
+  moduleId: z.string().min(1),
+  orderedIds: z.array(z.string().min(1)).min(1),
+});
+
+export const assignClassModuleSchema = z.object({
+  moduleId: z.string().min(1).nullable(),
 });
 
 export const membershipPaidUntilSchema = z.object({

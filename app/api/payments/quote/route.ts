@@ -3,6 +3,7 @@ import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
+import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
   rateLimitDistributed,
@@ -11,7 +12,11 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Body = { planId?: unknown; provider?: "paypal" | "mercadopago" };
+type Body = {
+  planId?: unknown;
+  provider?: "paypal" | "mercadopago";
+  promoCode?: unknown;
+};
 
 export async function POST(req: Request) {
   const ip = clientIp(req);
@@ -36,21 +41,71 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
   const provider = body.provider === "mercadopago" ? "mercadopago" : "paypal";
+  const rawPromoCode =
+    typeof body.promoCode === "string" ? body.promoCode.trim() : "";
 
   if (provider === "paypal") {
-    const b = grossUpUsd(plan.amountUsd, paypalFee());
+    let discountMinor = 0;
+    let promoCode: string | undefined;
+    let promoCodeError: string | undefined;
+    if (rawPromoCode) {
+      const validation = await validatePromoCode(
+        rawPromoCode,
+        "USD",
+        Math.round(plan.amountUsd * 100)
+      );
+      if (validation.ok) {
+        discountMinor = validation.discountMinor;
+        promoCode = validation.promoCode.code;
+      } else {
+        promoCodeError = validation.error;
+      }
+    }
+    const discountedNet = Math.max(0, plan.amountUsd - discountMinor / 100);
+    const b = grossUpUsd(discountedNet, paypalFee());
     return NextResponse.json({
       provider: "paypal",
       currency: "USD",
-      subtotal: b.net.toFixed(2),
+      // Subtotal is always the plan's original price — the discount and fee
+      // are separate line items, not baked into it. Only "total" reflects
+      // what the discount actually changes.
+      subtotal: plan.amountUsd.toFixed(2),
       fee: b.fee.toFixed(2),
       total: b.gross.toFixed(2),
+      discountMinor,
+      promoCode,
+      promoCodeError,
     });
   }
 
   try {
-    const { net, fee, gross, currency_id, referenceUsd } =
-      mercadoPagoItemAmount(plan);
+    let discountMinor = 0;
+    let promoCode: string | undefined;
+    let promoCodeError: string | undefined;
+    if (rawPromoCode) {
+      const validation = await validatePromoCode(
+        rawPromoCode,
+        "COP",
+        plan.amountCop ?? 0
+      );
+      if (validation.ok) {
+        discountMinor = validation.discountMinor;
+        promoCode = validation.promoCode.code;
+      } else {
+        promoCodeError = validation.error;
+      }
+    }
+    const discountedPlan =
+      discountMinor > 0
+        ? { ...plan, amountCop: Math.max(0, (plan.amountCop ?? 0) - discountMinor) }
+        : plan;
+
+    const { fee, gross, currency_id, referenceUsd } =
+      mercadoPagoItemAmount(discountedPlan);
+    // Subtotal always reflects the plan's original (pre-discount) price —
+    // computed with the UNdiscounted plan, never `discountedPlan`, so the
+    // discount only shows up in its own line and in the final total.
+    const { net: originalNet } = mercadoPagoItemAmount(plan);
     const isCop = currency_id === "COP";
     const fmt = (n: number): string =>
       isCop ? String(Math.round(n)) : n.toFixed(2);
@@ -59,9 +114,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       provider: "mercadopago",
       currency: currency_id,
-      subtotal: fmt(net),
+      subtotal: fmt(originalNet),
       fee: fmt(fee),
       total: fmt(gross),
+      discountMinor,
+      promoCode,
+      promoCodeError,
       ...(referenceUsd
         ? {
             referenceCurrency: "USD" as const,

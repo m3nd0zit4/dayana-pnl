@@ -27,6 +27,9 @@ type Breakdown = {
   referenceSubtotal?: string;
   referenceFee?: string;
   referenceTotal?: string;
+  discountMinor?: number;
+  promoCode?: string;
+  promoCodeError?: string;
 };
 
 type UiState =
@@ -110,7 +113,11 @@ const MercadoPagoCheckoutModal = ({
     void fetch("/api/payments/quote", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ planId: plan.id, provider: "mercadopago" }),
+      body: JSON.stringify({
+        planId: plan.id,
+        provider: "mercadopago",
+        promoCode: contactPayload.promoCode,
+      }),
     })
       .then(async (res) => {
         const data = (await res.json()) as Partial<Breakdown> & {
@@ -134,6 +141,9 @@ const MercadoPagoCheckoutModal = ({
           referenceSubtotal: data.referenceSubtotal,
           referenceFee: data.referenceFee,
           referenceTotal: data.referenceTotal,
+          discountMinor: data.discountMinor,
+          promoCode: data.promoCode,
+          promoCodeError: data.promoCodeError,
         });
         setUi({ kind: "ready" });
       })
@@ -269,6 +279,19 @@ const MercadoPagoCheckoutModal = ({
                   <span>Comisión Mercado Pago</span>
                   <span>+ {formatBreakdown(breakdown.fee, breakdown.currency)}</span>
                 </div>
+                {breakdown.promoCode && breakdown.discountMinor ? (
+                  <div className="flex justify-between text-emerald-300/90">
+                    <span>Código {breakdown.promoCode}</span>
+                    <span>
+                      − {formatBreakdown(String(breakdown.discountMinor), breakdown.currency)}
+                    </span>
+                  </div>
+                ) : null}
+                {breakdown.promoCodeError ? (
+                  <div className="text-[11px] text-amber-300/80 pt-1">
+                    Código promocional no válido — se cobra el precio normal.
+                  </div>
+                ) : null}
                 {/* USD reference (small, muted) */}
                 {breakdown.referenceCurrency === "USD" && breakdown.referenceTotal ? (
                   <div className="flex justify-between text-white/40 text-[11px] pt-1">

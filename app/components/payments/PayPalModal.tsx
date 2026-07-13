@@ -29,6 +29,9 @@ type Breakdown = {
   subtotal: string;
   fee: string;
   total: string;
+  discountMinor?: number;
+  promoCode?: string;
+  promoCodeError?: string;
 };
 
 const PAYPAL_CANCEL_MESSAGE =
@@ -141,7 +144,11 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     void fetch("/api/payments/quote", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ planId: plan.id, provider: "paypal" }),
+      body: JSON.stringify({
+        planId: plan.id,
+        provider: "paypal",
+        promoCode: contactPayload?.promoCode,
+      }),
     })
       .then(async (res) => {
         if (!res.ok) return;
@@ -152,6 +159,9 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             subtotal: data.subtotal,
             fee: data.fee,
             total: data.total,
+            discountMinor: data.discountMinor,
+            promoCode: data.promoCode,
+            promoCodeError: data.promoCodeError,
           });
         }
       })
@@ -161,7 +171,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
     return () => {
       cancelled = true;
     };
-  }, [open, plan]);
+  }, [open, plan, contactPayload]);
 
   useEffect(() => {
     if (!open || !plan || !contactPayload || checkoutSucceededRef.current) return;
@@ -471,6 +481,17 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
                   <span>Comisión PayPal</span>
                   <span>+ {usdLabel(breakdown.fee)}</span>
                 </div>
+                {breakdown.promoCode && breakdown.discountMinor ? (
+                  <div className="flex justify-between text-emerald-300/90">
+                    <span>Código {breakdown.promoCode}</span>
+                    <span>− {usdLabel((breakdown.discountMinor / 100).toFixed(2))}</span>
+                  </div>
+                ) : null}
+                {breakdown.promoCodeError ? (
+                  <div className="text-[11px] text-amber-300/80 pt-1">
+                    Código promocional no válido — se cobra el precio normal.
+                  </div>
+                ) : null}
                 <div className="border-t border-linen/12 my-2" />
                 <div className="flex justify-between items-baseline">
                   <span className="font-[font2] uppercase text-[10px] tracking-[0.3em] text-linen/70">

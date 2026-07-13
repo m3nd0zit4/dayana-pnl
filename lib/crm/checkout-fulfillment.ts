@@ -2,6 +2,7 @@ import { EnrollmentStatus, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { createEnrollment } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
+import { redeemPromoCode } from "./promo-codes";
 
 export type FulfillCheckoutPaymentInput = Omit<
   RecordPaymentInput,
@@ -9,6 +10,32 @@ export type FulfillCheckoutPaymentInput = Omit<
 > & {
   contactId: string;
   productId: string;
+  /** Discount already baked into `amountMinor` — recorded here for bookkeeping only. */
+  promoCodeRedemption?: { code: string; discountMinor: number };
+};
+
+const redeemIfPresent = async (
+  enrollmentId: string,
+  currency: string,
+  promo?: { code: string; discountMinor: number }
+): Promise<void> => {
+  if (!promo) return;
+  try {
+    const row = await prisma.promoCode.findUnique({
+      where: { code: promo.code.trim().toUpperCase() },
+      select: { id: true },
+    });
+    if (!row) return;
+    await redeemPromoCode({
+      promoCodeId: row.id,
+      enrollmentId,
+      currency,
+      discountMinor: promo.discountMinor,
+    });
+  } catch (e) {
+    // Bookkeeping only — never let redemption tracking break a real payment.
+    console.error("[checkout-fulfillment] promo redemption failed", e);
+  }
 };
 
 /**
@@ -29,7 +56,7 @@ export const fulfillCheckoutPayment = async (
   });
   if (existing) return existing.enrollmentId;
 
-  const { contactId: _c, productId: _p, ...paymentInput } = input;
+  const { contactId: _c, productId: _p, promoCodeRedemption, ...paymentInput } = input;
 
   // Course = monthly membership: renewals land on the contact's existing
   // enrollment instead of piling up duplicate ACTIVE enrollments.
@@ -47,6 +74,7 @@ export const fulfillCheckoutPayment = async (
         ...paymentInput,
         enrollmentId: existingEnrollmentId,
       });
+      await redeemIfPresent(existingEnrollmentId, input.currency, promoCodeRedemption);
       return existingEnrollmentId;
     }
   }
@@ -62,6 +90,7 @@ export const fulfillCheckoutPayment = async (
       ...paymentInput,
       enrollmentId: enrollment.id,
     });
+    await redeemIfPresent(enrollment.id, input.currency, promoCodeRedemption);
   } catch (e) {
     const raced = await prisma.payment.findUnique({
       where: {

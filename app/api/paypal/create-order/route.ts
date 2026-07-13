@@ -12,6 +12,7 @@ import {
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
+import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
   rateLimitDistributed,
@@ -24,6 +25,7 @@ const PAYPAL_CURRENCY = "USD";
 
 type Body = CheckoutContactBody & {
   planId?: unknown;
+  promoCode?: unknown;
 };
 
 function parseContactBody(body: Body): CheckoutContactBody {
@@ -71,7 +73,27 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  const breakdown = grossUpUsd(plan.amountUsd, paypalFee());
+
+  let discountMinor = 0;
+  let appliedPromoCode: string | undefined;
+  if (typeof body.promoCode === "string" && body.promoCode.trim()) {
+    const validation = await validatePromoCode(
+      body.promoCode,
+      "USD",
+      Math.round(plan.amountUsd * 100)
+    );
+    if (!validation.ok) {
+      return NextResponse.json(
+        { error: "invalid_promo_code", reason: validation.error },
+        { status: 400 }
+      );
+    }
+    discountMinor = validation.discountMinor;
+    appliedPromoCode = validation.promoCode.code;
+  }
+
+  const discountedNetUsd = Math.max(0, plan.amountUsd - discountMinor / 100);
+  const breakdown = grossUpUsd(discountedNetUsd, paypalFee());
   const amountValue = breakdown.gross.toFixed(2);
   const itemTotalValue = breakdown.net.toFixed(2);
   const handlingValue = breakdown.fee.toFixed(2);
@@ -92,7 +114,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const checkoutReference = encodeCheckoutReference(contactId, planId);
+  const checkoutReference = encodeCheckoutReference(
+    contactId,
+    planId,
+    appliedPromoCode ? { code: appliedPromoCode, discountMinor } : undefined
+  );
 
   try {
     const accessToken = await getPayPalAccessToken();
@@ -118,10 +144,16 @@ export async function POST(req: NextRequest) {
       planTitle: plan.title,
       sessions: plan.sessions,
       breakdown: {
-        subtotal: itemTotalValue,
+        // Display-only: the actual PayPal item total (`itemTotalValue`,
+        // used above to build the order) is the discounted net — this
+        // field is just what the UI shows as "Subtotal", which must stay
+        // the plan's original price regardless of any discount applied.
+        subtotal: plan.amountUsd.toFixed(2),
         fee: handlingValue,
         total: amountValue,
       },
+      discountMinor,
+      promoCode: appliedPromoCode,
     });
   } catch (error) {
     const message =

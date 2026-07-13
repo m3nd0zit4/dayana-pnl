@@ -11,6 +11,7 @@ import {
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
+import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
   rateLimitDistributed,
@@ -21,6 +22,7 @@ export const dynamic = "force-dynamic";
 
 type Body = CheckoutContactBody & {
   planId?: string;
+  promoCode?: string;
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
   mode?: "full" | "cards";
 };
@@ -87,13 +89,42 @@ export async function POST(req: Request) {
     );
   }
 
-  const checkoutReference = encodeCheckoutReference(contactId, planId);
+  let discountMinor = 0;
+  let appliedPromoCode: string | undefined;
+  if (body.promoCode?.trim()) {
+    const validation = await validatePromoCode(
+      body.promoCode,
+      "COP",
+      plan.amountCop ?? 0
+    );
+    if (!validation.ok) {
+      return NextResponse.json(
+        { error: "invalid_promo_code", reason: validation.error },
+        { status: 400 }
+      );
+    }
+    discountMinor = validation.discountMinor;
+    appliedPromoCode = validation.promoCode.code;
+  }
+
+  const checkoutReference = encodeCheckoutReference(
+    contactId,
+    planId,
+    appliedPromoCode
+      ? { code: appliedPromoCode, discountMinor }
+      : undefined
+  );
+
+  const discountedPlan =
+    discountMinor > 0
+      ? { ...plan, amountCop: Math.max(0, (plan.amountCop ?? 0) - discountMinor) }
+      : plan;
 
   let net: number;
   let fee: number;
   let currency_id: string;
   try {
-    ({ net, fee, currency_id } = mercadoPagoItemAmount(plan));
+    ({ net, fee, currency_id } = mercadoPagoItemAmount(discountedPlan));
   } catch (e) {
     const message = e instanceof Error ? e.message : "amount_error";
     if (message === "no_cop_price") {
@@ -190,6 +221,8 @@ export async function POST(req: Request) {
       mode,
       contactId,
       checkoutReference,
+      discountMinor,
+      promoCode: appliedPromoCode,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);

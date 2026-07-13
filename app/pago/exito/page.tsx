@@ -6,7 +6,8 @@ import {
   buildWhatsAppUrl,
 } from "../../../lib/contact";
 import { ProductKind } from "@prisma/client";
-import { formatUsd, isPlanId, type PlanId } from "../../../lib/plans";
+import { formatCop, formatUsd, isPlanId, type PlanId } from "../../../lib/plans";
+import { minorToMajor } from "@/lib/crm/money";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { getEnrollmentById } from "../../../lib/crm/enrollments";
 import { getMemberByContactId } from "@/lib/crm/member-accounts";
@@ -133,7 +134,12 @@ const Page = async ({ searchParams }: PageProps) => {
     result.planId != null ? await getPlanFromDb(result.planId) : null;
   const planTitle = plan?.title;
   const planSessions = plan?.sessions;
-  const amountLabel = plan ? formatUsd(plan.amountUsd) : undefined;
+  // The actual charged amount/currency — never the plan's static USD sticker
+  // price, since COP checkouts (Mercado Pago) charge in COP, not USD. This
+  // fallback only applies until the real enrollment/payment resolves below
+  // (or stays as-is for unknown/legacy return links with no enrollment).
+  let amountLabel = plan ? formatUsd(plan.amountUsd) : undefined;
+  let paymentCurrency: "USD" | "COP" | undefined = plan ? "USD" : undefined;
 
   const isSuccess = result.status === "succeeded";
   const isProcessing =
@@ -169,16 +175,6 @@ const Page = async ({ searchParams }: PageProps) => {
         : result.legacyStripe
           ? "Stripe ya no está activo"
           : "Referencia";
-
-  const whatsappMessage = isSuccess
-    ? `Hola Dayana, acabo de completar mi pago${
-        amountLabel ? ` por ${amountLabel} USD` : ""
-      }${
-        planTitle ? ` del plan ${planTitle}` : ""
-      }. Quiero agendar mi primera sesión.`
-    : `Hola Dayana, tuve un problema con el pago online${
-        planTitle ? ` del plan ${planTitle}` : ""
-      }. ¿Puedes ayudarme a completarlo?`;
 
   // Mercado Pago returns here with `payment_id` on approved checkouts.
   // Registration must not depend solely on the webhook arriving (a
@@ -231,11 +227,29 @@ const Page = async ({ searchParams }: PageProps) => {
             member?.account?.passwordHash || member?.account?.googleSub;
           coursePortal = hasAccess ? "account" : "invite";
         }
+
+        const paid = enrollment.payments.find((p) => p.status === "APPROVED");
+        if (paid) {
+          paymentCurrency = paid.currency === "COP" ? "COP" : "USD";
+          const major = minorToMajor(paid.amountMinor, paid.currency);
+          amountLabel =
+            paymentCurrency === "COP" ? formatCop(major) : formatUsd(major);
+        }
       }
     } catch {
       postPaymentMode = "none";
     }
   }
+
+  const whatsappMessage = isSuccess
+    ? `Hola Dayana, acabo de completar mi pago${
+        amountLabel ? ` por ${amountLabel} ${paymentCurrency ?? "USD"}` : ""
+      }${
+        planTitle ? ` del plan ${planTitle}` : ""
+      }. Quiero agendar mi primera sesión.`
+    : `Hola Dayana, tuve un problema con el pago online${
+        planTitle ? ` del plan ${planTitle}` : ""
+      }. ¿Puedes ayudarme a completarlo?`;
 
   const planId =
     extRef && isCheckoutReference(extRef)
@@ -309,7 +323,7 @@ const Page = async ({ searchParams }: PageProps) => {
                   <div className="font-[font1] text-3xl mt-1 leading-none">
                     {amountLabel}{" "}
                     <span className="font-[font2] uppercase text-xs tracking-[0.3em] text-white/55">
-                      USD
+                      {paymentCurrency ?? "USD"}
                     </span>
                   </div>
                 )}

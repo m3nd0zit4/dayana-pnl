@@ -99,6 +99,9 @@ export const syncMercadoPagoPayment = async (
       payerEmail: payment.payer?.email,
       rawPayload: payment,
       paidAt: new Date(),
+      promoCodeRedemption: checkout.promoCode
+        ? { code: checkout.promoCode, discountMinor: checkout.discountMinor ?? 0 }
+        : undefined,
     });
     return { outcome: "recorded", enrollmentId };
   }

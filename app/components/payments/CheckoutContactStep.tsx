@@ -20,7 +20,7 @@ import CheckoutCountrySelect from "./CheckoutCountrySelect";
 export type CheckoutContactPayload = Pick<
   CheckoutContactFields,
   "phone" | "phoneCountry" | "email" | "firstName" | "lastName" | "consentData"
->;
+> & { promoCode?: string };
 
 type Props = {
   defaultCountry?: string;
@@ -42,6 +42,7 @@ const CheckoutContactStep = ({
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [phoneCountry, setPhoneCountry] = useState(defaultCountry);
+  const [promoCode, setPromoCode] = useState("");
   const [consent, setConsent] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -114,6 +115,7 @@ const CheckoutContactStep = ({
       firstName: parsed.data.firstName,
       lastName: parsed.data.lastName,
       consentData: true,
+      promoCode: promoCode.trim() || undefined,
     };
 
     writeStoredCheckoutContact({
@@ -218,6 +220,19 @@ const CheckoutContactStep = ({
           </p>
         )}
       </div>
+
+      <label className="block">
+        <span className="font-[font1] text-xs text-white/50 mb-1 block">
+          Código promocional (opcional)
+        </span>
+        <input
+          value={promoCode}
+          onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+          disabled={disabled}
+          placeholder="Ej. VERANO2026"
+          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm disabled:opacity-50 uppercase"
+        />
+      </label>
 
       <label className="flex items-start gap-3 cursor-pointer">
         <input
