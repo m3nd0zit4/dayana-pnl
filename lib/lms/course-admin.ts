@@ -88,6 +88,13 @@ export const listCourseModulesAdmin = async (productId: string) =>
   prisma.courseModule.findMany({
     where: { productId },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    include: { _count: { select: { classes: true } } },
+  });
+
+export const getCourseModuleAdmin = async (id: string) =>
+  prisma.courseModule.findUnique({
+    where: { id },
+    include: { classes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
   });
 
 export const createCourseModule = async (input: {
@@ -140,25 +147,52 @@ export const listLiveClassesAdmin = async (productId: string) =>
     orderBy: [{ scheduledAt: { sort: "desc", nulls: "first" } }],
   });
 
+export const listClassesForModule = async (moduleId: string) =>
+  prisma.liveClassSession.findMany({
+    where: { moduleId },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+
+/** Classes not yet assigned to any week — the admin's cleanup tray. */
+export const listUnassignedClasses = async (productId: string) =>
+  prisma.liveClassSession.findMany({
+    where: { productId, moduleId: null },
+    orderBy: [{ scheduledAt: { sort: "desc", nulls: "first" } }],
+  });
+
 export const createLiveClass = async (input: {
   productId: string;
+  moduleId?: string | null;
   title: string;
   description?: string | null;
   scheduledAt?: Date | null;
   meetUrl?: string | null;
   recordingUrl?: string | null;
-}) =>
-  prisma.liveClassSession.create({
+}) => {
+  let sortOrder = 0;
+  if (input.moduleId) {
+    const last = await prisma.liveClassSession.findFirst({
+      where: { moduleId: input.moduleId },
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+    sortOrder = (last?.sortOrder ?? -1) + 1;
+  }
+
+  return prisma.liveClassSession.create({
     data: {
       productId: input.productId,
+      moduleId: input.moduleId ?? null,
       title: input.title,
       description: input.description ?? null,
       scheduledAt: input.scheduledAt ?? null,
       meetUrl: input.meetUrl ?? null,
       recordingUrl: input.recordingUrl ?? null,
       recordingPostedAt: input.recordingUrl ? new Date() : null,
+      sortOrder,
     },
   });
+};
 
 export const updateLiveClass = async (
   id: string,
@@ -192,3 +226,38 @@ export const updateLiveClass = async (
 
 export const deleteLiveClass = async (id: string) =>
   prisma.liveClassSession.delete({ where: { id } });
+
+export const reorderCourseClasses = async (
+  moduleId: string,
+  orderedIds: string[]
+) => {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.liveClassSession.updateMany({
+        where: { id, moduleId },
+        data: { sortOrder: index },
+      })
+    )
+  );
+};
+
+/** Moves a class into a week (or back to unassigned with `moduleId: null`).
+ *  Appends to the end of the target module's order. */
+export const assignClassToModule = async (
+  classId: string,
+  moduleId: string | null
+) => {
+  let sortOrder = 0;
+  if (moduleId) {
+    const last = await prisma.liveClassSession.findFirst({
+      where: { moduleId },
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+    sortOrder = (last?.sortOrder ?? -1) + 1;
+  }
+  return prisma.liveClassSession.update({
+    where: { id: classId },
+    data: { moduleId, sortOrder },
+  });
+};

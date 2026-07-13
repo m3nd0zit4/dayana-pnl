@@ -20,7 +20,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const { scheduledAt, ...rest } = parsed.data;
+  // moduleId moves through the dedicated /assign endpoint (it also has to
+  // pick a sortOrder within the target module) — never through this general
+  // content-fields update.
+  const { scheduledAt, moduleId: _moduleId, ...rest } = parsed.data;
   const liveClass = await updateLiveClass(id, {
     ...rest,
     ...(scheduledAt !== undefined

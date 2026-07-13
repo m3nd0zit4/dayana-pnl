@@ -3,20 +3,33 @@ import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createLiveClass,
+  listClassesForModule,
   listLiveClassesAdmin,
+  listUnassignedClasses,
   requireCourseProduct,
 } from "@/lib/lms/course-admin";
 import { liveClassSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const staff = await resolveAdminStaff();
   if (staff instanceof NextResponse) return staff;
+
+  const moduleId = req.nextUrl.searchParams.get("moduleId");
+  if (moduleId) {
+    const classes = await listClassesForModule(moduleId);
+    return NextResponse.json({ classes });
+  }
 
   const course = await requireCourseProduct().catch(() => null);
   if (!course) {
     return NextResponse.json({ error: "no_course_product" }, { status: 404 });
+  }
+
+  if (req.nextUrl.searchParams.get("unassigned") === "1") {
+    const classes = await listUnassignedClasses(course.id);
+    return NextResponse.json({ classes });
   }
 
   const classes = await listLiveClassesAdmin(course.id);
@@ -39,6 +52,7 @@ export async function POST(req: NextRequest) {
 
   const liveClass = await createLiveClass({
     productId: course.id,
+    moduleId: parsed.data.moduleId,
     title: parsed.data.title,
     description: parsed.data.description,
     scheduledAt: parsed.data.scheduledAt

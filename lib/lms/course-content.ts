@@ -49,6 +49,29 @@ export const getPublishedModule = async (productId: string, id: string) =>
     where: { id, productId, isPublished: true },
   });
 
+/**
+ * Modules with their ordered classes nested — the single query the course
+ * player's sidebar and the dashboard's progress calc both build from.
+ * Unassigned classes (moduleId null) are deliberately excluded: they aren't
+ * visible anywhere in the student portal until staff assigns them to a week.
+ */
+export const getCourseOutline = async (productId: string) =>
+  prisma.courseModule.findMany({
+    where: { productId, isPublished: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    include: {
+      classes: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      },
+    },
+  });
+
+export const getPublishedClass = async (productId: string, id: string) =>
+  prisma.liveClassSession.findFirst({
+    where: { id, productId, module: { isPublished: true } },
+    include: { module: true },
+  });
+
 export const getClassesForCourse = async (productId: string) => {
   const classes = await prisma.liveClassSession.findMany({
     where: { productId },

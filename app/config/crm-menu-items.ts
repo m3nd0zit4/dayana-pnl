@@ -8,9 +8,9 @@ import {
   ClipboardList,
   MessageSquare,
   Package,
+  Tag,
   Users,
   UsersRound,
-  Video,
   type LucideIcon,
 } from "lucide-react";
 
@@ -40,7 +40,6 @@ export const crmMenuSections: CrmMenuSection[] = [
         href: "/admin/curso",
         items: [
           { icon: UsersRound, label: "Miembros", href: "/admin/curso" },
-          { icon: Video, label: "Clases", href: "/admin/curso/clases" },
           { icon: BookOpen, label: "Módulos", href: "/admin/curso/modulos" },
         ],
       },
@@ -52,7 +51,8 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Catálogo",
     items: [
       { icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
-      { icon: Package, label: "Productos", href: "/admin/products" },
+      { icon: Package, label: "Paquetes", href: "/admin/products" },
+      { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
     ],
   },
   {

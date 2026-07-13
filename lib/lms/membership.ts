@@ -20,6 +20,14 @@ export const getCourseProduct = async (): Promise<Product | null> =>
     orderBy: { sortOrder: "asc" },
   });
 
+/** All active courses — the "My Learning" dashboard iterates this, ready for
+ *  more than one COURSE product without touching `getCourseProduct` callers. */
+export const listCourseProducts = async (): Promise<Product[]> =>
+  prisma.product.findMany({
+    where: { kind: ProductKind.COURSE, isActive: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
 export type MembershipExtensionResult = {
   extended: boolean;
   paidUntil?: Date;
@@ -143,6 +151,49 @@ export const setMembershipPaidUntil = async (
     where: { id: enrollmentId },
     data: { paidUntil },
   });
+
+export type EnrolledCourse = {
+  product: Product;
+  membership: MembershipInfo;
+};
+
+/**
+ * One row per course product the contact has an active/completed enrollment
+ * for — the "My Learning" dashboard's data source. A contact could have
+ * multiple enrollments for the same course over time (renewals); only the
+ * most recent per product is kept.
+ */
+export const getEnrolledCourses = async (
+  contactId: string
+): Promise<EnrolledCourse[]> => {
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      contactId,
+      product: { kind: ProductKind.COURSE },
+      status: { in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED] },
+    },
+    orderBy: [{ paidUntil: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+    include: { product: true },
+  });
+
+  const byProduct = new Map<string, Enrollment & { product: Product }>();
+  for (const en of enrollments) {
+    if (!byProduct.has(en.productId)) byProduct.set(en.productId, en);
+  }
+
+  const now = Date.now();
+  return [...byProduct.values()].map((enrollment) => {
+    const paidUntil = enrollment.paidUntil;
+    const isCurrent = paidUntil != null && paidUntil.getTime() > now;
+    const daysLeft = paidUntil
+      ? Math.ceil((paidUntil.getTime() - now) / (24 * 60 * 60 * 1000))
+      : null;
+    return {
+      product: enrollment.product,
+      membership: { enrollment, paidUntil, isCurrent, daysLeft },
+    };
+  });
+};
 
 /** Approved payments of the membership, newest first (portal history). */
 export const getMembershipPayments = async (

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import Markdown from "react-markdown";
@@ -23,6 +24,7 @@ export type CourseModuleRow = {
   bodyMd: string | null;
   sortOrder: number;
   isPublished: boolean;
+  classCount: number;
 };
 
 type Props = {
@@ -198,15 +200,20 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
                     </span>
                     <div>
                       <div className="text-sm font-semibold">{row.title}</div>
-                      <Badge
-                        className={
-                          row.isPublished
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-100 dark:text-emerald-700"
-                            : "bg-neutral-200 text-neutral-600 dark:bg-neutral-200 dark:text-neutral-600"
-                        }
-                      >
-                        {row.isPublished ? "Publicado" : "Borrador"}
-                      </Badge>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge
+                          className={
+                            row.isPublished
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-100 dark:text-emerald-700"
+                              : "bg-neutral-200 text-neutral-600 dark:bg-neutral-200 dark:text-neutral-600"
+                          }
+                        >
+                          {row.isPublished ? "Publicado" : "Borrador"}
+                        </Badge>
+                        <Badge variant="secondary">
+                          {row.classCount} {row.classCount === 1 ? "clase" : "clases"}
+                        </Badge>
+                      </div>
                     </div>
                   </div>
 
@@ -237,8 +244,13 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
                       >
                         {row.isPublished ? "Ocultar" : "Publicar"}
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => openEditor(row)}>
-                        Editar
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        nativeButton={false}
+                        render={<Link href={`/admin/curso/modulos/${row.id}`} />}
+                      >
+                        Gestionar clases
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => remove(row)}>
                         Eliminar

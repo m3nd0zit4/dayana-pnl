@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 
-const ModuleCompleteToggle = ({
-  moduleId,
+const ClassCompleteToggle = ({
+  classId,
   initialCompleted,
   onChange,
 }: {
-  moduleId: string;
+  classId: string;
   initialCompleted: boolean;
   onChange?: (completed: boolean) => void;
 }) => {
@@ -19,7 +19,7 @@ const ModuleCompleteToggle = ({
   const toggle = async () => {
     setLoading(true);
     const next = !completed;
-    const res = await fetch(`/api/miembros/modules/${moduleId}/progress`, {
+    const res = await fetch(`/api/miembros/classes/${classId}/progress`, {
       method: next ? "POST" : "DELETE",
     });
     setLoading(false);
@@ -37,9 +37,9 @@ const ModuleCompleteToggle = ({
       onClick={() => void toggle()}
     >
       <Check />
-      {completed ? "Completado" : "Marcar como completado"}
+      {completed ? "Completada" : "Marcar como completada"}
     </Button>
   );
 };
 
-export default ModuleCompleteToggle;
+export default ClassCompleteToggle;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { BookOpen, Home, LogOut, User, Video } from "lucide-react";
+import { Home, LogOut, User } from "lucide-react";
 import type { MembershipLockState } from "@/lib/lms/membership";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -23,11 +23,7 @@ import {
   MembershipWarningBanner,
 } from "./MembershipLockOverlay";
 
-const LINKS = [
-  { href: "/miembros", label: "Inicio", icon: Home, exact: true },
-  { href: "/miembros/clases", label: "Clases", icon: Video, exact: false },
-  { href: "/miembros/modulos", label: "Módulos", icon: BookOpen, exact: false },
-];
+const LINKS = [{ href: "/miembros", label: "Inicio", icon: Home, exact: true }];
 
 const ACCOUNT_LINK = {
   href: "/miembros/cuenta",
@@ -58,9 +54,16 @@ const PortalSidebar = ({
   children: ReactNode;
 }) => {
   const pathname = usePathname();
-  const bypass = pathname === ACCOUNT_LINK.href;
-  const blocked = !bypass && lockState.kind === "blocked";
-  const warning = !bypass && lockState.kind === "warning";
+  const bypassBanner = pathname === ACCOUNT_LINK.href;
+  // The dashboard (course cards, each showing its own lock/CTA) and the
+  // course player (its own inline "unlock full access" paywall in the main
+  // pane) render their own locked states — the whole-shell block only
+  // applies to the rest of the portal. The warning banner (grace period,
+  // not yet blocked) still applies everywhere else it always has.
+  const bypassBlock =
+    bypassBanner || pathname === "/miembros" || pathname.startsWith("/miembros/curso/");
+  const blocked = !bypassBlock && lockState.kind === "blocked";
+  const warning = !bypassBanner && lockState.kind === "warning";
 
   const shell = (
     <SidebarProvider style={{ "--sidebar-width": "15rem" } as CSSProperties}>
