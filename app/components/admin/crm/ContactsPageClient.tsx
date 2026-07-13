@@ -136,12 +136,15 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2 font-semibold">
                         {c.firstName} {c.lastName ?? ""}
-                        {/* Se registró solo desde la web (formulario o portal)
-                            sin comprar — hay que contactarlo. Quien ya pagó
-                            no necesita el aviso. */}
-                        {c.source === "WEB" && !c.hasPayment && (
-                          <Badge className="bg-amber-100 text-[10px] text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-                            Por contactar
+                        {/* Llegó por el formulario "Hablemos sin prisa" del home
+                            y aún no tiene servicio ni pago — está esperando
+                            que lo contacten. Al asignarle un servicio (con o
+                            sin pago) deja de estar pendiente. */}
+                        {c.source === "WEB_LEAD_FORM" &&
+                          !c.hasPayment &&
+                          c.enrollments.length === 0 && (
+                          <Badge className="bg-violet-100 text-[10px] text-violet-700 dark:bg-violet-100 dark:text-violet-700">
+                            Contacto pendiente
                           </Badge>
                         )}
                       </div>

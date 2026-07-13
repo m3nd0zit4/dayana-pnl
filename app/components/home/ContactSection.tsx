@@ -136,7 +136,7 @@ const ContactSection = ({ userCountry }: Props) => {
           email: email.trim() || undefined,
           phone: normalized!.phoneE164,
           phoneCountry: country,
-          source: "web",
+          source: "web_lead_form",
           sourceDetail: interest,
           interest,
           notify: true,

@@ -42,6 +42,7 @@ const sourceMap: Record<string, ContactSource> = {
   instagram: ContactSource.INSTAGRAM,
   youtube: ContactSource.YOUTUBE,
   web: ContactSource.WEB,
+  web_lead_form: ContactSource.WEB_LEAD_FORM,
   whatsapp: ContactSource.WHATSAPP_DIRECT,
   referral: ContactSource.REFERRAL,
 };
