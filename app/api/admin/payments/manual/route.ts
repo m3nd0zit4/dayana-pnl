@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import { requireManualPaymentStaff } from "@/lib/auth/api-staff";
+import { consumePaymentOtp, peekPaymentOtp } from "@/lib/auth/payment-otp";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { prisma } from "@/lib/db";
 import { recordPayment } from "@/lib/crm/payments";
 import { manualPaymentSchema } from "@/lib/validations/admin";
 
@@ -15,6 +17,32 @@ export async function POST(req: NextRequest) {
   const parsed = manualPaymentSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  }
+
+  const otp = await peekPaymentOtp({
+    staffUserId: staff.id,
+    code: parsed.data.code,
+  });
+  if (!otp.ok) {
+    return NextResponse.json({ error: otp.error }, { status: 400 });
+  }
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: parsed.data.enrollmentId },
+    select: { amountMinor: true, currency: true },
+  });
+  if (!enrollment) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (
+    enrollment.amountMinor != null &&
+    enrollment.currency === parsed.data.currency &&
+    parsed.data.amountMinor > enrollment.amountMinor
+  ) {
+    return NextResponse.json(
+      { error: "AMOUNT_EXCEEDS_SERVICE_PRICE", maxAmountMinor: enrollment.amountMinor },
+      { status: 400 }
+    );
   }
 
   const providerPaymentId =
@@ -32,6 +60,8 @@ export async function POST(req: NextRequest) {
       amountMinor: parsed.data.amountMinor,
       paidAt: new Date(),
     });
+
+    await consumePaymentOtp(staff.id);
 
     fireAuditLog({
       staffUserId: staff.id,

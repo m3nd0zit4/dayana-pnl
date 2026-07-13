@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
+import { formatMoneyMinor } from "@/lib/crm/money";
 
 const STATUS_LABEL: Record<PaymentStatus, string> = {
   PENDING: "Pendiente",
@@ -113,7 +114,7 @@ const PaymentsPageClient = ({ preview }: Props) => {
                   >
                     <div>
                       <div className="text-sm font-semibold">
-                        {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                        {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
                       </div>
                       <div className="mt-0.5 text-xs text-muted-foreground">
                         {p.provider} · {STATUS_LABEL[p.status]}
