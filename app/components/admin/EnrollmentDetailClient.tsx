@@ -3,6 +3,7 @@
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import { EnrollmentStatus } from "@prisma/client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { BookOpen } from "lucide-react";
 import RegisterPaymentModal, {
@@ -15,6 +16,7 @@ import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { contactNotebookPath } from "@/lib/crm/contact-notebook-url";
 import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
+import { formatMoneyMinor } from "@/lib/crm/money";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import {
@@ -84,8 +86,10 @@ const EnrollmentDetailClient = ({
   };
 }) => {
   const { canWrite, canEditNotes, toast, confirm } = useCrm();
+  const router = useRouter();
   const [enrollment, setEnrollment] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [scheduleSession, setScheduleSession] = useState<Session | null>(null);
   const pkg = enrollment.therapyPackage;
@@ -249,6 +253,35 @@ const EnrollmentDetailClient = ({
   };
 
   const hasApprovedPayment = enrollment.payments.some((p) => p.status === "APPROVED");
+
+  const deleteService = () => {
+    confirm({
+      title: "Eliminar servicio",
+      message: `¿Eliminar «${enrollment.product.title}» de ${enrollment.contact.firstName}? No tiene pagos registrados — esta acción no se puede deshacer.`,
+      onConfirm: async () => {
+        setDeleting(true);
+        const res = await fetch(`/api/admin/enrollments/${enrollment.id}`, {
+          method: "DELETE",
+        });
+        setDeleting(false);
+
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          toast(
+            data.error === "HAS_APPROVED_PAYMENT"
+              ? "Este servicio ya tiene un pago registrado — no se puede eliminar"
+              : "No se pudo eliminar el servicio",
+            "error"
+          );
+          return;
+        }
+
+        toast("Servicio eliminado");
+        router.push(`/admin/contacts/${enrollment.contact.id}`);
+        router.refresh();
+      },
+    });
+  };
   const needsPayment =
     canWrite &&
     !hasApprovedPayment &&
@@ -358,7 +391,7 @@ const EnrollmentDetailClient = ({
                   <p className="text-sm text-muted-foreground">
                     Sin pago aún
                     {enrollment.amountMinor
-                      ? ` · precio referencia $${(enrollment.amountMinor / 100).toFixed(2)} ${enrollment.currency ?? "USD"}`
+                      ? ` · precio referencia $${formatMoneyMinor(enrollment.amountMinor, enrollment.currency ?? "USD")} ${enrollment.currency ?? "USD"}`
                       : ""}
                   </p>
                 )}
@@ -382,11 +415,25 @@ const EnrollmentDetailClient = ({
                       {p.provider} · {p.status}
                     </span>
                     <span className="font-medium">
-                      {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                      {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
                     </span>
                   </li>
                 ))}
               </ul>
+            )}
+
+            {!hasApprovedPayment && (
+              <div className="mt-4 border-t border-border pt-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  disabled={deleting}
+                  onClick={deleteService}
+                >
+                  {deleting ? "Eliminando…" : "Eliminar servicio"}
+                </Button>
+              </div>
             )}
           </CardContent>
         </Card>

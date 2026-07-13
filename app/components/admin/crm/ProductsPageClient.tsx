@@ -19,6 +19,7 @@ import {
 } from "@/app/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Textarea } from "@/app/components/ui/textarea";
+import CrmModal from "./CrmModal";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
@@ -47,6 +48,13 @@ const KIND_LABEL: Record<ProductKind, string> = {
   COURSE: "Curso",
   WORKSHOP: "Taller",
 };
+
+// Solo para mostrar un equivalente aproximado junto al precio USD en esta
+// tabla — no es la tasa real de cobro (esa vive en lib/pricing/usd-to-cop.ts
+// y se resuelve en checkout).
+const DISPLAY_USD_TO_COP_RATE = 3000;
+const formatCopApprox = (usdAmount: number) =>
+  Math.round(usdAmount * DISPLAY_USD_TO_COP_RATE).toLocaleString("es-CO");
 
 const emptyForm = () => ({
   kind: "THERAPY" as ProductKind,
@@ -88,7 +96,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
     fetch("/api/admin/products")
       .then((r) => r.json())
       .then((d) => setProducts(d.products ?? []))
-      .catch(() => toast("Error al cargar productos", "error"))
+      .catch(() => toast("Error al cargar paquetes", "error"))
       .finally(() => setLoading(false));
   }, [preview, toast]);
 
@@ -147,7 +155,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
     });
 
     if (res.ok) {
-      toast(creating ? "Producto creado" : "Producto actualizado");
+      toast(creating ? "Paquete creado" : "Paquete actualizado");
       setEditing(null);
       setCreating(false);
       invalidateCached("products");
@@ -160,7 +168,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
 
   const remove = (id: string) => {
     confirm({
-      title: "Eliminar producto",
+      title: "Eliminar paquete",
       message:
         "Si tiene servicios vinculados se desactivará; si no, se borra. La web pública dejará de mostrarlo.",
       onConfirm: async () => {
@@ -170,7 +178,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           body: JSON.stringify({ id }),
         });
         if (res.ok) {
-          toast("Producto eliminado o desactivado");
+          toast("Paquete eliminado o desactivado");
           invalidateCached("products");
           load();
         } else toast("No se pudo eliminar", "error");
@@ -185,7 +193,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Productos</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Paquetes</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
               USD e Internacional (PayPal) · COP e Colombia (Mercado Pago). Ambos
               precios se editan y guardan juntos.
@@ -202,7 +210,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
               }}
             >
               <Plus />
-              <span className="hidden sm:inline">Nuevo producto</span>
+              <span className="hidden sm:inline">Nuevo paquete</span>
             </Button>
           )}
         </div>
@@ -215,13 +223,16 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
         </Tabs>
 
         {/* Edit / Create form */}
-        {showForm && canManageTeam && (
-          <Card>
-            <CardContent className="space-y-4">
-              <h2 className="text-sm font-semibold">
-                {creating ? "Nuevo producto" : `Editar: ${editing?.title}`}
-              </h2>
-
+        <CrmModal
+          title={creating ? "Nuevo paquete" : `Editar: ${editing?.title ?? ""}`}
+          open={!!showForm && canManageTeam}
+          onClose={() => {
+            setEditing(null);
+            setCreating(false);
+          }}
+          large
+        >
+          <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <SearchableSelect
                   label="Tipo"
@@ -337,7 +348,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                       setForm((f) => ({ ...f, isActive: checked === true }))
                     }
                   />
-                  <span className="text-sm">Producto activo (visible en la web)</span>
+                  <span className="text-sm">Paquete activo (visible en la web)</span>
                 </label>
               )}
 
@@ -353,9 +364,8 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                   Cancelar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+          </div>
+        </CrmModal>
 
         <Card className="overflow-hidden py-0">
           <CardContent className="p-0">
@@ -365,7 +375,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Producto</TableHead>
+                    <TableHead>Paquete</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>{view === "usd" ? "Precio USD" : "Precio COP"}</TableHead>
                     <TableHead>Activo</TableHead>
@@ -401,6 +411,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                                     : displayPrice.listAmountMinor.toLocaleString("es-CO")}
                                 </span>
                               ) : null}
+                              {view === "usd" && (
+                                <div className="mt-0.5 text-xs text-muted-foreground">
+                                  ≈ ${formatCopApprox(displayPrice.amountMinor / 100)} COP
+                                </div>
+                              )}
                             </>
                           ) : (
                             <span className="text-muted-foreground">—</span>

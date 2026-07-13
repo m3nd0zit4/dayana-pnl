@@ -12,6 +12,10 @@ import WhatsAppContactBlock from "@/app/components/admin/crm/WhatsAppContactBloc
 import ContactNotesPanel from "@/app/components/admin/crm/ContactNotesPanel";
 import CrmSegmentedControl from "@/app/components/admin/crm/CrmSegmentedControl";
 import RegisterPaymentModal from "@/app/components/admin/crm/RegisterPaymentModal";
+import AddEnrollmentModal from "@/app/components/admin/crm/AddEnrollmentModal";
+import CrmModal from "@/app/components/admin/crm/CrmModal";
+import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
+import { formatMoneyMinor } from "@/lib/crm/money";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { stripEphemeralNotebookParams } from "@/lib/crm/contact-notebook-url";
@@ -73,6 +77,9 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
       : "resumen"
   );
   const [paymentEnrollment, setPaymentEnrollment] = useState<Enrollment | null>(null);
+  const [addEnrollmentOpen, setAddEnrollmentOpen] = useState(false);
+  const [pickEnrollmentOpen, setPickEnrollmentOpen] = useState(false);
+  const [pickedEnrollmentId, setPickedEnrollmentId] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -210,6 +217,19 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
     }))
   );
 
+  const startRegisterPayment = () => {
+    if (contact.enrollments.length === 0) {
+      toast("Agrega un servicio primero para poder registrarle un pago", "error");
+      return;
+    }
+    if (contact.enrollments.length === 1) {
+      setPaymentEnrollment(contact.enrollments[0]);
+      return;
+    }
+    setPickedEnrollmentId(contact.enrollments[0].id);
+    setPickEnrollmentOpen(true);
+  };
+
   const isFocusNotebook = focusFromUrl && tab === "notas";
 
   const notebookProps = {
@@ -298,8 +318,13 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
 
       {!isFocusNotebook && tab === "servicios" && (
         <section className="space-y-4">
-          {/* Solo lectura: los servicios se crean desde su propia sección
-              (Curso · Miembros, Talleres, Terapias), no desde el contacto. */}
+          {canWrite && (
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => setAddEnrollmentOpen(true)}>
+                Agregar servicio
+              </Button>
+            </div>
+          )}
           <Card className="overflow-hidden py-0">
             <CardContent className="divide-y divide-border p-0">
               {contact.enrollments.length === 0 ? (
@@ -328,13 +353,15 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
                         )}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-2">
-                      {canWrite && !en.payments.some((p) => p.status === "APPROVED") && (
+                      {canWrite && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setPaymentEnrollment(en)}
                         >
-                          Pago
+                          {en.payments.some((p) => p.status === "APPROVED")
+                            ? "Registrar otro pago"
+                            : "Pago"}
                         </Button>
                       )}
                       <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/admin/enrollments/${en.id}`} />}>
@@ -369,7 +396,14 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
       )}
 
       {!isFocusNotebook && tab === "pagos" && (
-        <section>
+        <section className="space-y-4">
+          {canWrite && (
+            <div className="flex justify-end">
+              <Button size="sm" onClick={startRegisterPayment}>
+                Registrar pago
+              </Button>
+            </div>
+          )}
           <Card className="overflow-hidden py-0">
             <CardContent className="divide-y divide-border p-0">
               {allPayments.length === 0 ? (
@@ -388,7 +422,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
                       </p>
                     </div>
                     <span className="shrink-0 text-sm tabular-nums">
-                      {(p.amountMinor / 100).toFixed(2)} {p.currency}
+                      {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
                     </span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                   </Link>
@@ -398,6 +432,49 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
           </Card>
         </section>
       )}
+
+      <AddEnrollmentModal
+        open={addEnrollmentOpen}
+        onClose={() => setAddEnrollmentOpen(false)}
+        contactId={contact.id}
+        onSuccess={() => router.refresh()}
+      />
+
+      <CrmModal
+        title="¿A qué servicio corresponde el pago?"
+        open={pickEnrollmentOpen}
+        onClose={() => setPickEnrollmentOpen(false)}
+      >
+        <div className="space-y-4 text-sm">
+          <SearchableSelect
+            id="pick-payment-enrollment"
+            label="Servicio"
+            value={pickedEnrollmentId}
+            onChange={setPickedEnrollmentId}
+            options={contact.enrollments.map((en) => ({
+              value: en.id,
+              label: en.product.title,
+              hint: enrollmentStatusLabel(en.status),
+            }))}
+          />
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" onClick={() => setPickEnrollmentOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={!pickedEnrollmentId}
+              onClick={() => {
+                const en = contact.enrollments.find((e) => e.id === pickedEnrollmentId);
+                if (!en) return;
+                setPickEnrollmentOpen(false);
+                setPaymentEnrollment(en);
+              }}
+            >
+              Continuar
+            </Button>
+          </div>
+        </div>
+      </CrmModal>
 
       {paymentEnrollment && (
         <RegisterPaymentModal

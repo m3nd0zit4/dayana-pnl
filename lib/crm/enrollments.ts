@@ -296,3 +296,27 @@ export const updateEnrollmentStatus = async (
 
   return updated;
 };
+
+/**
+ * Hard-deletes an enrollment with no approved payment (a "service" that was
+ * only a lead/pending draft). Payments/TherapyPackage/TherapySessions cascade
+ * at the DB level — an enrollment that has ever been paid must be cancelled
+ * instead, never deleted, so the payment ledger is never silently dropped.
+ */
+export const deleteEnrollment = async (enrollmentId: string) => {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: { payments: { where: { status: "APPROVED" }, select: { id: true } } },
+  });
+  if (!enrollment) {
+    throw new EnrollmentValidationError("Enrollment not found", "NOT_FOUND");
+  }
+  if (enrollment.payments.length > 0) {
+    throw new EnrollmentValidationError(
+      "Cannot delete an enrollment with an approved payment",
+      "HAS_APPROVED_PAYMENT"
+    );
+  }
+
+  await prisma.enrollment.delete({ where: { id: enrollmentId } });
+};

@@ -4,6 +4,7 @@ import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   EnrollmentValidationError,
+  deleteEnrollment,
   getEnrollmentById,
   updateEnrollmentStatus,
 } from "@/lib/crm/enrollments";
@@ -79,4 +80,30 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   });
 
   return NextResponse.json({ enrollment });
+}
+
+export async function DELETE(_req: NextRequest, ctx: Ctx) {
+  const staff = await requireWriteStaff();
+  if (staff instanceof NextResponse) return staff;
+
+  const { id } = await ctx.params;
+
+  try {
+    await deleteEnrollment(id);
+  } catch (e) {
+    if (e instanceof EnrollmentValidationError) {
+      const status = e.code === "NOT_FOUND" ? 404 : 409;
+      return NextResponse.json({ error: e.code }, { status });
+    }
+    throw e;
+  }
+
+  fireAuditLog({
+    staffUserId: staff.id,
+    action: "DELETE",
+    entityType: "Enrollment",
+    entityId: id,
+  });
+
+  return NextResponse.json({ ok: true });
 }
