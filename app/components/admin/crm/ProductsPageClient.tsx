@@ -35,6 +35,7 @@ type Product = {
   id: string;
   kind: ProductKind;
   title: string;
+  imageUrl: string | null;
   sessionsLabel: string;
   sessionsCount: number | null;
   description: string | null;
@@ -59,6 +60,7 @@ const formatCopApprox = (usdAmount: number) =>
 const emptyForm = () => ({
   kind: "THERAPY" as ProductKind,
   title: "",
+  imageUrl: "",
   sessionsLabel: "",
   sessionsCount: "",
   amountUsd: "",
@@ -116,6 +118,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
     setForm({
       kind: p.kind,
       title: p.title,
+      imageUrl: p.imageUrl ?? "",
       sessionsLabel: p.sessionsLabel,
       sessionsCount: p.sessionsCount?.toString() ?? "",
       amountUsd: usd ? String(usd.amountMinor / 100) : "",
@@ -138,6 +141,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       ...(creating ? {} : { id: editing!.id }),
       kind: form.kind,
       title: form.title,
+      imageUrl: form.imageUrl.trim() || null,
       sessionsLabel: form.sessionsLabel || form.title,
       sessionsCount: form.sessionsCount ? Number(form.sessionsCount) : null,
       description: form.description,
@@ -252,6 +256,30 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                     value={form.title}
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Imagen de portada (URL)</Label>
+                  <div className="flex items-start gap-3">
+                    <Input
+                      value={form.imageUrl}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, imageUrl: e.target.value }))
+                      }
+                      placeholder="https://…/portada-curso.jpg"
+                    />
+                    {form.imageUrl.trim() && (
+                      // eslint-disable-next-line @next/next/no-img-element -- arbitrary external URL, no next/image domain config for it
+                      <img
+                        src={form.imageUrl.trim()}
+                        alt=""
+                        className="h-12 w-20 shrink-0 rounded-md object-cover ring-1 ring-border"
+                        onError={(e) => (e.currentTarget.style.visibility = "hidden")}
+                      />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Aparece como portada en el panel de miembros (curso) y en la web pública.
+                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Etiqueta sesiones</Label>

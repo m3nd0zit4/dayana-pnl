@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       id: body.id,
       kind: body.kind as ProductKind,
       title: body.title,
+      imageUrl: body.imageUrl ?? null,
       sessionsLabel: body.sessionsLabel ?? body.title,
       sessionsCount: body.sessionsCount ?? null,
       description: body.description,
@@ -83,6 +84,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const product = await updateProduct(body.id, {
       title: body.title,
+      imageUrl: body.imageUrl !== undefined ? body.imageUrl : undefined,
       sessionsLabel: body.sessionsLabel,
       sessionsCount: body.sessionsCount,
       description: body.description,

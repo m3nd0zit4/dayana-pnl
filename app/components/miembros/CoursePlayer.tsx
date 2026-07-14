@@ -2,14 +2,27 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
+import { signOut } from "next-auth/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ChevronLeft, ChevronRight, LogOut, User } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import { Progress } from "@/app/components/ui/progress";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/app/components/ui/sidebar";
 import DriveRecordingEmbed from "./DriveRecordingEmbed";
 import ClassCompleteToggle from "./ClassCompleteToggle";
 import ModuleCompleteToggle from "./ModuleCompleteToggle";
+import LessonComments from "./LessonComments";
 import CourseOutlineSidebar, { readingId } from "./CourseOutlineSidebar";
 
 export type OutlineClass = {
@@ -37,8 +50,10 @@ type Props = {
   completedClassIds: string[];
   completedModuleIds: string[];
   selectedClassId: string | null;
+  percent: number;
   isCurrent: boolean;
   neverPaid: boolean;
+  viewerContactId: string;
 };
 
 const RECORDING_RETENTION_DAYS = 30;
@@ -60,6 +75,13 @@ const formatDateTime = (iso: string) =>
     iso
   ).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}`;
 
+type FlatItem = {
+  id: string;
+  title: string;
+  moduleTitle: string;
+  moduleIndex: number;
+};
+
 const CoursePlayer = ({
   productId,
   courseTitle,
@@ -67,8 +89,10 @@ const CoursePlayer = ({
   completedClassIds: initialCompletedClasses,
   completedModuleIds: initialCompletedModules,
   selectedClassId: initialSelected,
+  percent,
   isCurrent,
   neverPaid,
+  viewerContactId,
 }: Props) => {
   const router = useRouter();
   const [completedClassIds, setCompletedClassIds] = useState(
@@ -85,151 +109,267 @@ const CoursePlayer = ({
     ? null
     : modules.find((m) => readingId(m.id) === selectedId) ?? null;
 
+  const flatItems = useMemo<FlatItem[]>(() => {
+    const items: FlatItem[] = [];
+    modules.forEach((m, index) => {
+      if (m.bodyMd?.trim()) {
+        items.push({ id: readingId(m.id), title: "Introducción", moduleTitle: m.title, moduleIndex: index });
+      }
+      m.classes.forEach((c) => {
+        items.push({ id: c.id, title: c.title, moduleTitle: m.title, moduleIndex: index });
+      });
+    });
+    return items;
+  }, [modules]);
+
+  const selectedIndex = flatItems.findIndex((it) => it.id === selectedId);
+  const prevItem = selectedIndex > 0 ? flatItems[selectedIndex - 1] : null;
+  const nextItem =
+    selectedIndex >= 0 && selectedIndex < flatItems.length - 1
+      ? flatItems[selectedIndex + 1]
+      : null;
+  const currentBreadcrumb =
+    selectedIndex >= 0 ? flatItems[selectedIndex] : null;
+
   const selectItem = (id: string) => {
     setSelectedId(id);
     router.replace(`/miembros/curso/${productId}?c=${id}`, { scroll: false });
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <div className="rounded-xl border border-border bg-card lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto">
-        <div className="border-b border-border px-4 py-3">
-          <h1 className="text-sm font-semibold">{courseTitle}</h1>
-        </div>
-        <CourseOutlineSidebar
-          modules={modules}
-          completedClassIds={completedClassIds}
-          completedModuleIds={completedModuleIds}
-          selectedId={selectedId}
-          isCurrent={isCurrent}
-          onSelect={selectItem}
-        />
-      </div>
+    <SidebarProvider style={{ "--sidebar-width": "17rem" } as CSSProperties}>
+      <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
+        <SidebarHeader className="px-3 py-5">
+          <p className="text-sm leading-none tracking-[0.14em] uppercase">Dayana Beltrán</p>
+          <p className="mt-1 text-[9px] tracking-[0.45em] text-muted-foreground uppercase">
+            Portal del curso
+          </p>
+          <p className="mt-3 truncate text-xs font-semibold text-sidebar-foreground">
+            {courseTitle}
+          </p>
+        </SidebarHeader>
+        <SidebarContent className="px-2 py-2">
+          <CourseOutlineSidebar
+            modules={modules}
+            completedClassIds={completedClassIds}
+            completedModuleIds={completedModuleIds}
+            selectedId={selectedId}
+            isCurrent={isCurrent}
+            onSelect={selectItem}
+          />
+        </SidebarContent>
+      </Sidebar>
 
-      <div className="min-w-0">
-        {!isCurrent ? (
-          <Card className="border-primary/30">
-            <CardContent className="py-10 text-center">
-              <p className="text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
-                Portal del curso
-              </p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">
-                {neverPaid ? "Activa tu membresía para continuar" : "Renueva para seguir viendo el curso"}
-              </h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-                {neverPaid
-                  ? "Tu cuenta está lista — activa tu mensualidad para ver las clases en vivo, grabaciones y el contenido de cada módulo."
-                  : "Tu mensualidad venció. Renueva para recuperar el acceso a las clases y grabaciones."}
-              </p>
-              <Button
-                className="mt-6"
-                nativeButton={false}
-                render={<Link href="/servicios#curso" />}
+      <SidebarInset className="bg-transparent">
+        <header className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card/95 px-4 py-3 backdrop-blur lg:px-8">
+          <div className="flex min-w-0 items-center gap-2">
+            <SidebarTrigger className="lg:hidden" />
+            <div className="min-w-0">
+              <Link
+                href="/miembros"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
-                {neverPaid ? "Activar acceso" : "Renovar ahora"}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : selectedReadingModule ? (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold tracking-tight">
-              {selectedReadingModule.title}
-            </h2>
-            <Card>
-              <CardContent className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
-                <Markdown remarkPlugins={[remarkGfm]}>
-                  {selectedReadingModule.bodyMd || ""}
-                </Markdown>
+                ← Mi aprendizaje
+              </Link>
+              <h1 className="truncate text-sm font-semibold tracking-tight">{courseTitle}</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {isCurrent && (
+              <div className="hidden w-40 shrink-0 sm:block">
+                <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Progreso</span>
+                  <span className="font-medium text-foreground">{percent}%</span>
+                </div>
+                <Progress value={percent} />
+              </div>
+            )}
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <Link
+                href="/miembros/cuenta"
+                className="hidden items-center gap-1 hover:text-foreground sm:inline-flex"
+              >
+                <User className="size-3.5" aria-hidden />
+                Mi cuenta
+              </Link>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/acceso" })}
+                className="inline-flex items-center gap-1 hover:text-foreground"
+              >
+                <LogOut className="size-3.5" aria-hidden />
+                Salir
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="px-4 py-6 lg:px-8">
+          <div className="min-w-0">
+          {!isCurrent ? (
+            <Card className="border-primary/30">
+              <CardContent className="py-10 text-center">
+                <p className="text-[11px] tracking-[0.3em] text-muted-foreground uppercase">
+                  Portal del curso
+                </p>
+                <h2 className="mt-3 text-2xl font-semibold tracking-tight">
+                  {neverPaid ? "Activa tu membresía para continuar" : "Renueva para seguir viendo el curso"}
+                </h2>
+                <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+                  {neverPaid
+                    ? "Tu cuenta está lista — activa tu mensualidad para ver las clases en vivo, grabaciones y el contenido de cada módulo."
+                    : "Tu mensualidad venció. Renueva para recuperar el acceso a las clases y grabaciones."}
+                </p>
+                <Button
+                  className="mt-6"
+                  nativeButton={false}
+                  render={<Link href="/servicios#curso" />}
+                >
+                  {neverPaid ? "Activar acceso" : "Renovar ahora"}
+                </Button>
               </CardContent>
             </Card>
-            <ModuleCompleteToggle
-              moduleId={selectedReadingModule.id}
-              initialCompleted={completedModuleIds.has(selectedReadingModule.id)}
-              onChange={(completed) =>
-                setCompletedModuleIds((prev) => {
-                  const next = new Set(prev);
-                  if (completed) next.add(selectedReadingModule.id);
-                  else next.delete(selectedReadingModule.id);
-                  return next;
-                })
-              }
-            />
-          </div>
-        ) : !selectedClass ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              El contenido de este curso se publicará aquí pronto.
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-semibold tracking-tight">{selectedClass.title}</h2>
-              {selectedClass.description && (
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {selectedClass.description}
+          ) : selectedReadingModule ? (
+            <div className="space-y-4">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                  Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Lectura
                 </p>
+                <h2 className="mt-1 text-xl font-semibold tracking-tight">
+                  {selectedReadingModule.title}
+                </h2>
+              </div>
+              <Card>
+                <CardContent className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
+                  <Markdown remarkPlugins={[remarkGfm]}>
+                    {selectedReadingModule.bodyMd || ""}
+                  </Markdown>
+                </CardContent>
+              </Card>
+              <ModuleCompleteToggle
+                moduleId={selectedReadingModule.id}
+                initialCompleted={completedModuleIds.has(selectedReadingModule.id)}
+                onChange={(completed) =>
+                  setCompletedModuleIds((prev) => {
+                    const next = new Set(prev);
+                    if (completed) next.add(selectedReadingModule.id);
+                    else next.delete(selectedReadingModule.id);
+                    return next;
+                  })
+                }
+              />
+            </div>
+          ) : !selectedClass ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                El contenido de este curso se publicará aquí pronto.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                  Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Clase
+                </p>
+                <h2 className="mt-1 text-xl font-semibold tracking-tight">{selectedClass.title}</h2>
+                {selectedClass.description && (
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {selectedClass.description}
+                  </p>
+                )}
+              </div>
+
+              {isRecordingVisible(selectedClass) ? (
+                <>
+                  <div className="max-w-5xl">
+                    <DriveRecordingEmbed
+                      url={selectedClass.recordingUrl!}
+                      title={selectedClass.title}
+                    />
+                  </div>
+                  <ClassCompleteToggle
+                    classId={selectedClass.id}
+                    initialCompleted={completedClassIds.has(selectedClass.id)}
+                    onChange={(completed) =>
+                      setCompletedClassIds((prev) => {
+                        const next = new Set(prev);
+                        if (completed) next.add(selectedClass.id);
+                        else next.delete(selectedClass.id);
+                        return next;
+                      })
+                    }
+                  />
+                </>
+              ) : selectedClass.recordingUrl ? (
+                <Card>
+                  <CardContent className="py-6 text-sm text-muted-foreground">
+                    La grabación de esta clase venció (disponible por{" "}
+                    {RECORDING_RETENTION_DAYS} días desde su publicación).
+                  </CardContent>
+                </Card>
+              ) : selectedClass.scheduledAt ? (
+                <Card>
+                  <CardContent className="space-y-3 py-6">
+                    <p className="text-sm font-medium">
+                      Próxima sesión en vivo: {formatDateTime(selectedClass.scheduledAt)}
+                    </p>
+                    {selectedClass.meetUrl && (
+                      <Button
+                        nativeButton={false}
+                        render={
+                          <a href={selectedClass.meetUrl} target="_blank" rel="noopener noreferrer" />
+                        }
+                      >
+                        Unirme por Google Meet
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      La grabación aparecerá aquí mismo después de la clase.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-6 text-sm text-muted-foreground">
+                    Esta clase aún no tiene fecha. Te avisaremos por correo y WhatsApp.
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="border-t border-border pt-6">
+                <LessonComments
+                  key={selectedClass.id}
+                  classId={selectedClass.id}
+                  viewerContactId={viewerContactId}
+                />
+              </div>
+            </div>
+          )}
+
+          {isCurrent && (prevItem || nextItem) && (
+            <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-4">
+              {prevItem ? (
+                <Button variant="outline" onClick={() => selectItem(prevItem.id)}>
+                  <ChevronLeft />
+                  <span className="max-w-40 truncate sm:max-w-56">{prevItem.title}</span>
+                </Button>
+              ) : (
+                <span />
+              )}
+              {nextItem ? (
+                <Button onClick={() => selectItem(nextItem.id)}>
+                  <span className="max-w-40 truncate sm:max-w-56">{nextItem.title}</span>
+                  <ChevronRight />
+                </Button>
+              ) : (
+                <span />
               )}
             </div>
-
-            {isRecordingVisible(selectedClass) ? (
-              <>
-                <DriveRecordingEmbed
-                  url={selectedClass.recordingUrl!}
-                  title={selectedClass.title}
-                />
-                <ClassCompleteToggle
-                  classId={selectedClass.id}
-                  initialCompleted={completedClassIds.has(selectedClass.id)}
-                  onChange={(completed) =>
-                    setCompletedClassIds((prev) => {
-                      const next = new Set(prev);
-                      if (completed) next.add(selectedClass.id);
-                      else next.delete(selectedClass.id);
-                      return next;
-                    })
-                  }
-                />
-              </>
-            ) : selectedClass.recordingUrl ? (
-              <Card>
-                <CardContent className="py-6 text-sm text-muted-foreground">
-                  La grabación de esta clase venció (disponible por{" "}
-                  {RECORDING_RETENTION_DAYS} días desde su publicación).
-                </CardContent>
-              </Card>
-            ) : selectedClass.scheduledAt ? (
-              <Card>
-                <CardContent className="space-y-3 py-6">
-                  <p className="text-sm font-medium">
-                    Próxima sesión en vivo: {formatDateTime(selectedClass.scheduledAt)}
-                  </p>
-                  {selectedClass.meetUrl && (
-                    <Button
-                      nativeButton={false}
-                      render={
-                        <a href={selectedClass.meetUrl} target="_blank" rel="noopener noreferrer" />
-                      }
-                    >
-                      Unirme por Google Meet
-                    </Button>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    La grabación aparecerá aquí mismo después de la clase.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="py-6 text-sm text-muted-foreground">
-                  Esta clase aún no tiene fecha. Te avisaremos por correo y WhatsApp.
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

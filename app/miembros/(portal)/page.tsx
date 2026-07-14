@@ -40,6 +40,7 @@ const Page = async () => {
       return {
         productId: product.id,
         title: product.title,
+        imageUrl: product.imageUrl,
         percent: progress.percent,
         completedClasses: progress.completedClasses,
         totalClasses: progress.totalClasses,

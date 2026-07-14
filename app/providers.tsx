@@ -54,6 +54,7 @@ const Providers = ({ children }: { children: ReactNode }) => {
       <PayPalModalProvider>
         <MercadoPagoCheckoutModalProvider>
           {children}
+          <Toaster />
         </MercadoPagoCheckoutModalProvider>
       </PayPalModalProvider>
     );

@@ -137,6 +137,7 @@ model Contact {
   memberAuthTokens       MemberAuthToken[]
   moduleProgress         CourseModuleProgress[]
   classProgress          CourseClassProgress[]
+  lessonComments         LessonComment[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -148,6 +149,7 @@ model Product {
   id              String      @id
   kind            ProductKind
   title           String
+  imageUrl        String?     @map("image_url")
   sessionsLabel   String      @map("sessions_label")
   sessionsCount   Int?        @map("sessions_count")
   description     String?     @db.Text
@@ -701,6 +703,7 @@ model LiveClassSession {
   product  Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
   module   CourseModule?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   progress CourseClassProgress[]
+  comments LessonComment[]
 
   @@index([productId, scheduledAt])
   @@index([moduleId, sortOrder])
@@ -719,4 +722,19 @@ model CourseClassProgress {
   @@unique([contactId, classId])
   @@index([classId])
   @@map("course_class_progress")
+}
+
+model LessonComment {
+  id        String    @id @default(cuid())
+  classId   String    @map("class_id")
+  contactId String    @map("contact_id")
+  body      String    @db.Text
+  hiddenAt  DateTime? @map("hidden_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  class   LiveClassSession @relation(fields: [classId], references: [id], onDelete: Cascade)
+  contact Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([classId, createdAt])
+  @@map("lesson_comments")
 }

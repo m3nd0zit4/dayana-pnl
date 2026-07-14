@@ -23,6 +23,7 @@ const ProductsPage = async () => {
         id: p.id,
         kind: p.kind,
         title: p.title,
+        imageUrl: p.imageUrl,
         sessionsLabel: p.sessionsLabel,
         sessionsCount: p.sessionsCount,
         description: p.description,

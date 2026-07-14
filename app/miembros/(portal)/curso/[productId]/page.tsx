@@ -73,8 +73,10 @@ const Page = async ({ params, searchParams }: PageProps) => {
       completedClassIds={[...completedClassIds]}
       completedModuleIds={[...completedModuleIds]}
       selectedClassId={selectedClassId}
+      percent={progress.percent}
       isCurrent={isCurrent}
       neverPaid={neverPaid}
+      viewerContactId={member.contact.id}
     />
   );
 };

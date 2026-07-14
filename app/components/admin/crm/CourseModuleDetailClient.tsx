@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, Plus, Video } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, MessageCircle, Plus, Video } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,6 +18,7 @@ import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 import ModuleAiGenerateBox from "./ModuleAiGenerateBox";
 import ClassEditorModal, { type ClassEditorRow } from "./ClassEditorModal";
+import ClassCommentsModal from "./ClassCommentsModal";
 
 export type ModuleDetail = {
   id: string;
@@ -66,6 +67,8 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
   const [unassigned, setUnassigned] = useState<UnassignedClass[]>([]);
   const [assignTarget, setAssignTarget] = useState("");
   const [assigning, setAssigning] = useState(false);
+
+  const [commentsFor, setCommentsFor] = useState<ClassEditorRow | null>(null);
 
   const reload = useCallback(async () => {
     if (preview) return;
@@ -383,6 +386,10 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                       <Button variant="outline" size="sm" onClick={() => openEditClass(row)}>
                         Editar
                       </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setCommentsFor(row)}>
+                        <MessageCircle />
+                        Comentarios
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => unassignClass(row)}>
                         Quitar del módulo
                       </Button>
@@ -436,6 +443,14 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
         editingRow={editing}
         onClose={() => setEditorOpen(false)}
         onSaved={onClassSaved}
+      />
+
+      <ClassCommentsModal
+        key={commentsFor?.id ?? "none"}
+        open={!!commentsFor}
+        classId={commentsFor?.id ?? null}
+        classTitle={commentsFor?.title ?? ""}
+        onClose={() => setCommentsFor(null)}
       />
     </CrmPageShell>
   );

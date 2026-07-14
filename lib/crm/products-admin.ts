@@ -18,6 +18,7 @@ export const createProduct = async (input: {
   id?: string;
   kind: ProductKind;
   title: string;
+  imageUrl?: string | null;
   sessionsLabel: string;
   sessionsCount?: number | null;
   description?: string;
@@ -71,6 +72,7 @@ export const createProduct = async (input: {
       id,
       kind: input.kind,
       title: input.title.trim(),
+      imageUrl: input.imageUrl?.trim() || null,
       sessionsLabel: input.sessionsLabel.trim(),
       sessionsCount: input.sessionsCount ?? null,
       description: input.description?.trim() || null,
@@ -88,6 +90,7 @@ export const updateProduct = async (
   id: string,
   input: {
     title?: string;
+    imageUrl?: string | null;
     sessionsLabel?: string;
     sessionsCount?: number | null;
     description?: string;
@@ -117,6 +120,8 @@ export const updateProduct = async (
     where: { id },
     data: {
       title: input.title?.trim(),
+      imageUrl:
+        input.imageUrl !== undefined ? input.imageUrl?.trim() || null : undefined,
       sessionsLabel: input.sessionsLabel?.trim(),
       sessionsCount: input.sessionsCount,
       description: input.description?.trim(),
