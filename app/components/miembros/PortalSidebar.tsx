@@ -101,6 +101,7 @@ const PortalSidebar = ({
             <span className="hidden text-foreground sm:inline">{firstName}</span>
             <Link
               href={ACCOUNT_LINK.href}
+              aria-label={ACCOUNT_LINK.label}
               className={`inline-flex items-center gap-1 hover:text-foreground ${
                 isActive(pathname, ACCOUNT_LINK.href, ACCOUNT_LINK.exact) ? "text-primary" : ""
               }`}
@@ -111,6 +112,7 @@ const PortalSidebar = ({
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: "/acceso" })}
+              aria-label="Salir"
               className="inline-flex items-center gap-1 hover:text-foreground"
             >
               <LogOut className="size-3.5" aria-hidden />

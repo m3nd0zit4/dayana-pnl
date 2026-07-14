@@ -187,18 +187,20 @@ const CoursePlayer = ({
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <Link
                 href="/miembros/cuenta"
-                className="hidden items-center gap-1 hover:text-foreground sm:inline-flex"
+                aria-label="Mi cuenta"
+                className="inline-flex items-center gap-1 hover:text-foreground"
               >
                 <User className="size-3.5" aria-hidden />
-                Mi cuenta
+                <span className="hidden sm:inline">Mi cuenta</span>
               </Link>
               <button
                 type="button"
                 onClick={() => signOut({ callbackUrl: "/acceso" })}
+                aria-label="Salir"
                 className="inline-flex items-center gap-1 hover:text-foreground"
               >
                 <LogOut className="size-3.5" aria-hidden />
-                Salir
+                <span className="hidden sm:inline">Salir</span>
               </button>
             </div>
           </div>
