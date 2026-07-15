@@ -13,7 +13,7 @@ import ScheduleSlotEditor from "./ScheduleSlotEditor";
 import SearchableSelect from "./SearchableSelect";
 import StringListEditor from "./StringListEditor";
 import WorkshopSmartPasteBox from "./WorkshopSmartPasteBox";
-import { invalidateCached } from "./hooks/useReferenceData";
+import { invalidateCached, useActiveProducts } from "./hooks/useReferenceData";
 import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
 
@@ -42,6 +42,7 @@ export type WorkshopRow = {
   metaTitle: string | null;
   metaDescription: string | null;
   introOpen: string | null;
+  productId: string | null;
 };
 
 const STATUSES: { value: WorkshopEditionStatus; label: string }[] = [
@@ -83,6 +84,7 @@ type ApiEdition = {
   metaTitle: string | null;
   metaDescription: string | null;
   introOpen: string | null;
+  productId: string | null;
 };
 
 export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
@@ -113,6 +115,7 @@ export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
   metaTitle: e.metaTitle,
   metaDescription: e.metaDescription,
   introOpen: e.introOpen,
+  productId: e.productId,
 });
 
 type Props = {
@@ -124,6 +127,8 @@ type Props = {
 
 const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   const { aiEnabled } = useCrm();
+  const { products } = useActiveProducts();
+  const workshopProducts = products.filter((p) => p.kind === "WORKSHOP");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editionLabel, setEditionLabel] = useState("");
@@ -135,6 +140,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   const [focusTopics, setFocusTopics] = useState<string[]>([]);
   const [daySchedule, setDaySchedule] = useState<WorkshopScheduleSlot[]>([]);
   const [introOpen, setIntroOpen] = useState("");
+  const [productId, setProductId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -155,6 +161,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setFocusTopics(edition.focusTopics ?? []);
       setDaySchedule(edition.daySchedule ?? []);
       setIntroOpen(edition.introOpen ?? "");
+      setProductId(edition.productId ?? "");
     } else {
       setTitle("");
       setDescription("");
@@ -165,6 +172,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setFocusTopics([]);
       setDaySchedule([]);
       setIntroOpen("");
+      setProductId("");
     }
     setError(null);
   }, [open, edition]);
@@ -204,6 +212,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       focusTopics: trimmedTopics.length > 0 ? trimmedTopics : undefined,
       daySchedule: trimmedSchedule.length > 0 ? trimmedSchedule : undefined,
       introOpen: introOpen.trim() || undefined,
+      productId: productId || undefined,
     };
 
     const res = await fetch(
@@ -301,6 +310,23 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
               placeholder="7:30 a.m. – 4:30 p.m. · virtual"
             />
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <SearchableSelect
+            id="w-product"
+            label="Producto vinculado (cobro)"
+            value={productId}
+            options={workshopProducts.map((p) => ({ value: p.id, label: p.title }))}
+            onChange={setProductId}
+            allowEmpty
+            emptyLabel="Sin producto (solo WhatsApp, sin pago en línea)"
+          />
+          <p className="text-xs text-muted-foreground">
+            Define el precio que se cobra al pagar en línea y qué compra
+            desbloquea la página de este taller. Créalo primero en
+            Productos si aún no existe (tipo &quot;Taller&quot;).
+          </p>
         </div>
 
         <StringListEditor

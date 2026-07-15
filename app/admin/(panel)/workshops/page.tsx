@@ -31,6 +31,7 @@ const PREVIEW_WORKSHOPS: WorkshopRow[] = [
     metaTitle: null,
     metaDescription: null,
     introOpen: null,
+    productId: null,
   },
 ];
 
