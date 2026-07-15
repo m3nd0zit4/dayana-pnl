@@ -57,3 +57,6 @@ next-env.d.ts
 # stray npm lockfile — project uses bun.lock
 /package-lock.json
 .gstack/
+
+# git worktrees (local scratch, not published)
+.worktrees/
