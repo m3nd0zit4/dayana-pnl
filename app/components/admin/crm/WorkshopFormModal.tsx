@@ -212,7 +212,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       focusTopics: trimmedTopics.length > 0 ? trimmedTopics : undefined,
       daySchedule: trimmedSchedule.length > 0 ? trimmedSchedule : undefined,
       introOpen: introOpen.trim() || undefined,
-      productId: productId || undefined,
+      productId: productId || null,
     };
 
     const res = await fetch(
