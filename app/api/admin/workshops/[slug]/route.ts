@@ -42,6 +42,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     capacity: parsed.data.capacity,
     whatsappTemplate: parsed.data.whatsappTemplate,
     startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
+    productId: parsed.data.productId,
     heroLine1: parsed.data.heroLine1,
     heroLine2: parsed.data.heroLine2,
     heroLine3: parsed.data.heroLine3,

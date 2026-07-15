@@ -21,7 +21,7 @@ const toInput = (body: ReturnType<typeof workshopEditionSchema.parse>) => ({
   capacity: body.capacity,
   whatsappTemplate: body.whatsappTemplate,
   startsAt: body.startsAt ? new Date(body.startsAt) : null,
-  productId: body.productId ?? "workshop-virtual",
+  productId: body.productId ?? null,
   heroLine1: body.heroLine1,
   heroLine2: body.heroLine2,
   heroLine3: body.heroLine3,

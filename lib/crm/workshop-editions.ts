@@ -82,13 +82,18 @@ export const upsertWorkshopEdition = async (
       slug,
       status,
       ...editionData(enriched),
-      product: {
-        connect: { id: enriched.productId ?? "workshop-virtual" },
-      },
+      ...(enriched.productId
+        ? { product: { connect: { id: enriched.productId } } }
+        : {}),
     },
     update: {
       ...editionData(enriched),
       status,
+      ...(enriched.productId !== undefined
+        ? enriched.productId
+          ? { product: { connect: { id: enriched.productId } } }
+          : { product: { disconnect: true } }
+        : {}),
     },
   });
 };
@@ -108,6 +113,11 @@ export const updateWorkshopEditionBySlug = async (
     data: {
       ...editionData(enriched),
       ...(enriched.status !== undefined ? { status: enriched.status } : {}),
+      ...(enriched.productId !== undefined
+        ? enriched.productId
+          ? { product: { connect: { id: enriched.productId } } }
+          : { product: { disconnect: true } }
+        : {}),
     },
   });
 };
