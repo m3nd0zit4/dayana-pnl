@@ -11,6 +11,7 @@ import { parseWorkshopSchedule } from "./workshop-schedule";
 
 export type WorkshopEditionRecord = Pick<
   WorkshopEdition,
+  | "id"
   | "slug"
   | "title"
   | "editionLabel"
@@ -32,6 +33,7 @@ export type WorkshopEditionRecord = Pick<
   | "metaTitle"
   | "metaDescription"
   | "introOpen"
+  | "productId"
 >;
 
 const statusToUi = (status: WorkshopEditionStatus): WorkshopStatus => {
@@ -94,6 +96,8 @@ export const mapEditionToDetail = (
 
   return {
     ...card,
+    id: edition.id,
+    productId: edition.productId,
     heroLines,
     detailSummary:
       edition.detailSummary?.trim() ||

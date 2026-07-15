@@ -14,6 +14,7 @@ import {
 } from "./workshops";
 
 const editionSelect = {
+  id: true,
   slug: true,
   title: true,
   editionLabel: true,
@@ -35,6 +36,7 @@ const editionSelect = {
   metaTitle: true,
   metaDescription: true,
   introOpen: true,
+  productId: true,
 } satisfies Record<keyof WorkshopEditionRecord, true>;
 
 const crmEditionWhere = {

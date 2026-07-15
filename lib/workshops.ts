@@ -22,6 +22,8 @@ export type WorkshopCard = {
 
 /** Landing completa de un taller activo. */
 export type WorkshopDetail = WorkshopCard & {
+  id: string;
+  productId: string | null;
   heroLines: [string, string, string];
   detailSummary: string;
   intro: string;
