@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import type { WorkshopDetail } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
