@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import type { WorkshopDetail } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
-import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
+import AccountAccessCard from "./AccountAccessCard";
+import WorkshopPaymentSection from "./WorkshopPaymentSection";
 
 type WorkshopTeaserProps = {
   workshop: WorkshopDetail;
@@ -17,8 +19,9 @@ const WorkshopTeaser = ({
   userCountry,
   hasMemberSession,
 }: WorkshopTeaserProps) => {
-  const currentPath = `/taller-virtual/${workshop.slug}`;
-  const callbackUrl = encodeURIComponent(currentPath);
+  // ?autopay=1 tells WorkshopPaymentSection to auto-open the payment modal
+  // once the visitor lands back here after creating an account / logging in.
+  const callbackUrl = `/taller-virtual/${workshop.slug}?autopay=1`;
 
   return (
     <section className="bg-[#faf7f2] text-black min-h-screen">
@@ -58,32 +61,23 @@ const WorkshopTeaser = ({
           </div>
         </article>
 
-        <article className="mt-10 rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
-          {hasMemberSession ? (
-            plan ? (
-              <PlanCheckoutButtons plan={plan} isDark userCountry={userCountry} />
-            ) : (
-              <p className="text-sm text-white/60">
-                El pago en línea para este taller aún no está configurado.
-              </p>
-            )
-          ) : (
-            <div className="flex flex-col gap-3">
-              <Link
-                href={`/miembros/crear-cuenta?callbackUrl=${callbackUrl}`}
-                className="inline-flex items-center justify-center rounded-full bg-linen px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-white"
-              >
-                Crear cuenta
-              </Link>
-              <Link
-                href={`/acceso?callbackUrl=${callbackUrl}`}
-                className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/20"
-              >
-                Ya tengo cuenta
-              </Link>
-            </div>
-          )}
-        </article>
+        {hasMemberSession ? (
+          <article className="mt-10 rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
+            <Suspense
+              fallback={<div className="h-[100px]" aria-hidden />}
+            >
+              <WorkshopPaymentSection plan={plan} userCountry={userCountry} />
+            </Suspense>
+          </article>
+        ) : (
+          <div className="mt-10">
+            <AccountAccessCard
+              title="Inscripción"
+              description="Crea tu cuenta o inicia sesión para continuar con el pago de este taller."
+              callbackUrl={callbackUrl}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

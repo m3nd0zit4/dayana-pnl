@@ -2,6 +2,7 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { NavbarColorContext, NavbarContext } from "../../context/NavContext";
 
 const Navbar = () => {
@@ -9,6 +10,9 @@ const Navbar = () => {
   const [, setNavOpen] = useContext(NavbarContext);
   const [navColor, setNavColor] = useContext(NavbarColorContext);
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+  const isLoggedInMember =
+    status === "authenticated" && session?.user?.kind === "member";
   const homeHref = pathname === "/" ? "#hero" : "/#hero";
   const isHome = pathname === "/";
   const [logoVisible, setLogoVisible] = useState(true);
@@ -129,7 +133,7 @@ const Navbar = () => {
           </div>
         </div>
         <a
-          href="/acceso"
+          href={isLoggedInMember ? "/miembros" : "/acceso"}
           className="group relative hidden sm:inline-flex items-center overflow-hidden rounded-full border lg:px-5 px-4 lg:py-2.5 py-2 uppercase lg:text-xs text-[11px] tracking-[0.18em] ml-3 lg:ml-4"
           style={{ borderColor: navColor, fontFamily: "var(--font-grotesk)" }}
         >
@@ -141,7 +145,9 @@ const Navbar = () => {
             className="relative transition-colors duration-500 delay-75 group-hover:text-white"
             style={{ color: navColor }}
           >
-            Ingresar
+            {isLoggedInMember
+              ? (session?.user?.name?.split(" ")[0] ?? "Mi cuenta")
+              : "Ingresar"}
           </span>
         </a>
       </div>

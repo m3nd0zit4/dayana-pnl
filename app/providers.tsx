@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { SessionProvider } from "next-auth/react";
 import NavContext from "./context/NavContext";
 import { PayPalModalProvider } from "./context/PayPalModalContext";
 import { MercadoPagoCheckoutModalProvider } from "./context/MercadoPagoCheckoutModalContext";
@@ -31,7 +32,7 @@ const MarketingChrome = ({ children }: { children: ReactNode }) => (
   </NavContext>
 );
 
-const Providers = ({ children }: { children: ReactNode }) => {
+const ProvidersInner = ({ children }: { children: ReactNode }) => {
   const pathname = usePathname() ?? "";
   const isAdmin = pathname.startsWith("/admin");
   // Portal de miembros + acceso: sin chrome de la landing (Stairs, navbar,
@@ -62,5 +63,18 @@ const Providers = ({ children }: { children: ReactNode }) => {
 
   return <MarketingChrome>{children}</MarketingChrome>;
 };
+
+// Client-side session read for UI that needs to react to auth state (e.g.
+// the public header's logged-in indicator) without forcing every page into
+// server-dynamic rendering — this repo has no Partial Prerendering enabled,
+// so a server-side session read anywhere in the root layout's tree would
+// opt every route out of static generation. useSession() sidesteps that
+// entirely: it fetches after hydration, at the cost of a brief "logged out"
+// flash before it resolves.
+const Providers = ({ children }: { children: ReactNode }) => (
+  <SessionProvider>
+    <ProvidersInner>{children}</ProvidersInner>
+  </SessionProvider>
+);
 
 export default Providers;
