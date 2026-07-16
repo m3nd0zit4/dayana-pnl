@@ -113,7 +113,11 @@ const Navbar = () => {
           </a>
         </div>
       )}
-      <div className="flex items-center pointer-events-auto">
+      {/* ml-auto: on the home page the logo slot above is absent, and
+          justify-between with a single child would push this cluster to the
+          LEFT edge — dragging the account menu (right-anchored, 210px wide)
+          past the left viewport edge, where it rendered clipped. */}
+      <div className="ml-auto flex items-center pointer-events-auto">
         <div
           onClick={() => setNavOpen(true)}
           onMouseEnter={handleMouseEnter}

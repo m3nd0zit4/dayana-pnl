@@ -29,6 +29,8 @@ export type ContactRow = {
   phoneE164: string;
   countryIso: string | null;
   source: string;
+  /** ISO date string — cuándo se creó el contacto. */
+  createdAt: string;
   /** Tiene al menos un pago aprobado — llegó comprando, no pidiendo contacto. */
   hasPayment: boolean;
   enrollments: {
@@ -151,6 +153,12 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
                       <div className="mt-0.5 font-mono text-xs text-muted-foreground">
                         {displayContactPhone(c.phoneE164) ?? "Sin teléfono"}
                         {c.countryIso ? ` · ${formatCountryLabel(c.countryIso)}` : ""}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        Creado el{" "}
+                        {new Date(c.createdAt).toLocaleDateString("es-CO", {
+                          dateStyle: "medium",
+                        })}
                       </div>
                       {c.enrollments.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1">

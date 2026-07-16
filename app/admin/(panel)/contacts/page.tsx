@@ -38,6 +38,7 @@ const ContactsPage = async ({ searchParams }: Props) => {
           phoneE164: c.phoneE164,
           countryIso: null,
           source: "WEB",
+          createdAt: new Date().toISOString(),
           hasPayment: true,
           enrollments: c.enrollments.map((en) => ({
             status: "ACTIVE",
@@ -73,6 +74,7 @@ const ContactsPage = async ({ searchParams }: Props) => {
         phoneE164: c.phoneE164,
         countryIso: c.countryIso,
         source: c.source,
+        createdAt: c.createdAt.toISOString(),
         hasPayment: c.enrollments.some((en) => en.payments.length > 0),
         enrollments: c.enrollments.map((en) => ({
           status: en.status,
