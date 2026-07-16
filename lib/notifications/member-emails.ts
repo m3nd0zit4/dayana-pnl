@@ -2,15 +2,19 @@ import { dispatchAndRecord } from "./dispatch";
 import { siteUrl } from "./config";
 import { wrapEmailHtml, varsToPlainParagraphs, escapeHtml } from "./templates/email-layout";
 
-const setPasswordUrl = (rawToken: string) =>
-  `${siteUrl()}/miembros/crear-cuenta?token=${rawToken}`;
+const setPasswordUrl = (rawToken: string, callbackUrl?: string | null) =>
+  `${siteUrl()}/miembros/crear-cuenta?token=${rawToken}${
+    callbackUrl ? `&callbackUrl=${encodeURIComponent(callbackUrl)}` : ""
+  }`;
 
 export const sendMemberInviteEmail = async (input: {
   contactId: string;
   firstName: string;
   rawToken: string;
+  /** Relative path to land on after setting the password (e.g. a workshop page). */
+  callbackUrl?: string | null;
 }) => {
-  const url = setPasswordUrl(input.rawToken);
+  const url = setPasswordUrl(input.rawToken, input.callbackUrl);
   const name = input.firstName.trim() || "Hola";
   const subject = "Tu acceso al portal de miembros";
   const bodyText = [
@@ -44,8 +48,10 @@ export const sendMemberPasswordResetEmail = async (input: {
   contactId: string;
   firstName: string;
   rawToken: string;
+  /** Relative path to land on after setting the password. */
+  callbackUrl?: string | null;
 }) => {
-  const url = setPasswordUrl(input.rawToken);
+  const url = setPasswordUrl(input.rawToken, input.callbackUrl);
   const name = input.firstName.trim() || "Hola";
   const subject = "Restablece tu contraseña del portal";
   const bodyText = [

@@ -12,9 +12,12 @@ const labelClass =
 type SetPasswordFormProps = {
   token: string;
   email: string | null;
+  /** Already-validated same-site path to land on after login (default /miembros). */
+  callbackUrl?: string | null;
 };
 
-const SetPasswordForm = ({ token, email }: SetPasswordFormProps) => {
+const SetPasswordForm = ({ token, email, callbackUrl }: SetPasswordFormProps) => {
+  const destination = callbackUrl ?? "/miembros";
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -64,10 +67,10 @@ const SetPasswordForm = ({ token, email }: SetPasswordFormProps) => {
         email: loginEmail,
         password,
         redirect: false,
-        callbackUrl: "/miembros",
+        callbackUrl: destination,
       });
       if (!result?.error) {
-        window.location.href = result?.url ?? "/miembros";
+        window.location.href = result?.url ?? destination;
         return;
       }
     }

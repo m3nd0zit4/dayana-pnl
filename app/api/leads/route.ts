@@ -8,6 +8,7 @@ import {
   getEnrollmentById,
 } from "@/lib/crm/enrollments";
 import { upsertContactByPhone } from "@/lib/crm/contacts";
+import { inviteContactToPortal } from "@/lib/crm/member-accounts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import { notifyNewLead } from "@/lib/notifications/lead-notify";
 import {
@@ -167,6 +168,15 @@ export async function POST(req: NextRequest) {
       } catch {
         /* notification is non-critical */
       }
+    }
+
+    // Every lead with an email gets a portal account invite (set-password
+    // link). Skips automatically when they already have an account.
+    // Best-effort — the lead itself must never fail on email problems.
+    try {
+      await inviteContactToPortal(contact.id);
+    } catch (e) {
+      console.error("[leads] portal invite failed", e);
     }
 
     return NextResponse.json({

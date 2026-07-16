@@ -7,6 +7,19 @@ export const setPasswordSchema = z.object({
 
 export const requestAccessSchema = z.object({
   email: z.string().email().max(320),
+  /** Optional display name, used to seed the contact on first signup. */
+  name: z.string().trim().max(120).optional().nullable(),
+  /**
+   * Relative path to land on after the emailed link sets the password
+   * (e.g. back to a workshop page). Must be a same-site path — "/x", never
+   * "//host" or absolute URLs (open-redirect guard).
+   */
+  callbackUrl: z
+    .string()
+    .max(500)
+    .regex(/^\/(?!\/)/)
+    .optional()
+    .nullable(),
 });
 
 export const changePasswordSchema = z.object({

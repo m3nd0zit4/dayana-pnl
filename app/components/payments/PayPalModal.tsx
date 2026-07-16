@@ -37,8 +37,10 @@ type Breakdown = {
 const PAYPAL_CANCEL_MESSAGE =
   "Cancelaste el pago en PayPal. Puedes reintentar o cerrar el modal.";
 
+// Neutral for both funding paths (PayPal balance AND guest card) — a card
+// decline lands here too, so never suggest "usa tarjeta" as the fix.
 const PAYPAL_ERROR_MESSAGE =
-  "PayPal cerró el pago o hubo un error. Prueba de nuevo o usa tarjeta (Compra).";
+  "No se pudo completar el pago. Revisa los datos e intenta de nuevo, o escríbenos por WhatsApp.";
 
 type UiState =
   | { kind: "idle" }
@@ -582,11 +584,16 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
             </div>
           )}
 
+          {/* While loading, hide with `invisible` (visibility:hidden keeps
+              the layout box at full modal width) — NOT sr-only, whose 1px
+              clipped box makes PayPal size its button/card iframes against
+              a 1px container at render() time, collapsing the guest card
+              form. */}
           <div
             ref={paypalHostRef}
             className={`min-h-[52px] ${
               showPayPalHost ? "" : "hidden"
-            } ${ui.kind === "loading" ? "sr-only" : ""}`}
+            } ${ui.kind === "loading" ? "invisible" : ""}`}
             aria-hidden={!showPayPalHost || ui.kind === "loading"}
           />
 

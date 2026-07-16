@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { isGoogleAuthEnabled } from "@/auth";
 import { BRAND } from "@/lib/contact";
 import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
@@ -16,11 +17,15 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; callbackUrl?: string }>;
 };
 
+/** Same-site relative paths only — open-redirect guard for the emailed link. */
+const safeCallbackUrl = (value: string | undefined): string | null =>
+  value && value.startsWith("/") && !value.startsWith("//") ? value : null;
+
 const Page = async ({ searchParams }: PageProps) => {
-  const { token } = await searchParams;
+  const { token, callbackUrl } = await searchParams;
 
   if (token) {
     const peek = await peekMemberAuthToken(token);
@@ -28,9 +33,13 @@ const Page = async ({ searchParams }: PageProps) => {
       return (
         <MemberAuthShell
           title="Crea tu contraseña"
-          description="Con ella entrarás al portal para ver tus clases, grabaciones y módulos."
+          description="Con ella entrarás a tu cuenta y a tus compras."
         >
-          <SetPasswordForm token={token} email={peek.email} />
+          <SetPasswordForm
+            token={token}
+            email={peek.email}
+            callbackUrl={safeCallbackUrl(callbackUrl)}
+          />
         </MemberAuthShell>
       );
     }
@@ -48,9 +57,11 @@ const Page = async ({ searchParams }: PageProps) => {
   return (
     <MemberAuthShell
       title="Crea tu cuenta"
-      description="Entra de una vez — no necesitas esperar ningún correo. Tu acceso al material del curso se activa cuando tu pago quede al día."
+      description="Escribe tu correo y te enviamos un enlace para crear tu contraseña."
     >
-      <MemberSignupForm googleEnabled={isGoogleAuthEnabled()} />
+      <Suspense fallback={null}>
+        <MemberSignupForm googleEnabled={isGoogleAuthEnabled()} />
+      </Suspense>
     </MemberAuthShell>
   );
 };

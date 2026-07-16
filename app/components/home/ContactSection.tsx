@@ -113,7 +113,8 @@ const ContactSection = ({ userCountry }: Props) => {
 
     const next: FieldErrors = {};
     if (!firstName.trim()) next.firstName = "¿Cómo te llamas?";
-    if (email.trim() && !EMAIL_RE.test(email.trim())) next.email = "Revisa tu correo.";
+    if (!email.trim()) next.email = "Déjame tu correo para crear tu acceso.";
+    else if (!EMAIL_RE.test(email.trim())) next.email = "Revisa tu correo.";
     const { normalized, hint } = validateLocalPhone(phone, country as CountryCode);
     if (!phone.trim()) next.phone = "Déjame un teléfono para contactarte.";
     else if (!normalized) next.phone = hint ?? "Revisa el número.";
@@ -133,7 +134,7 @@ const ContactSection = ({ userCountry }: Props) => {
         body: JSON.stringify({
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
-          email: email.trim() || undefined,
+          email: email.trim(),
           phone: normalized!.phoneE164,
           phoneCountry: country,
           source: "web_lead_form",
@@ -219,7 +220,8 @@ const ContactSection = ({ userCountry }: Props) => {
                     ¡Gracias, {firstName.trim() || "ya casi"}!
                   </h3>
                   <p className="mt-4 max-w-md font-[font1] text-lg leading-snug text-black/70">
-                    Recibí tus datos. Te contacto muy pronto.
+                    Recibí tus datos. Te contacto muy pronto — y te enviamos
+                    un correo para crear tu acceso a tu cuenta.
                   </p>
                 </div>
               ) : (
@@ -254,13 +256,14 @@ const ContactSection = ({ userCountry }: Props) => {
                   </div>
 
                   <label className="ct-field block">
-                    <span className={labelCls}>Correo <span className="text-black/30">(opcional)</span></span>
+                    <span className={labelCls}>Correo</span>
                     <input
                       value={email}
                       onChange={(e) => { setEmail(e.target.value); clearErr("email"); }}
                       type="email"
                       inputMode="email"
                       autoComplete="email"
+                      required
                       placeholder="tu@correo.com"
                       aria-invalid={!!errors.email}
                       className={`${fieldInput} ${errBorder(errors.email)}`}

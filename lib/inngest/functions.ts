@@ -16,12 +16,11 @@ import {
   startCampaignRun,
 } from "../notifications/campaigns";
 import { sendPaymentConfirmation } from "../notifications/payment-confirmation";
-import { sendMemberInviteEmail } from "../notifications/member-emails";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
+import { inviteContactToPortal } from "../crm/member-accounts";
 import { applyMembershipExtension } from "../lms/membership";
 import { RECORDING_RETENTION_DAYS } from "../lms/course-content";
-import { createMemberAuthToken } from "../auth/member-tokens";
 
 export const paymentApprovedFn = inngest.createFunction(
   { id: "payment-approved" },
@@ -64,38 +63,12 @@ export const paymentApprovedFn = inngest.createFunction(
       });
     }
 
-    if (
-      enrollment.product.kind === ProductKind.COURSE ||
-      enrollment.product.kind === ProductKind.WORKSHOP
-    ) {
-      // Member-portal access is shared by courses and paid workshops —
-      // both need the buyer to be able to log into /miembros to view
-      // gated content.
-      await step.run("member-portal-invite", async () => {
-        const contact = await prisma.contact.findUnique({
-          where: { id: enrollment.contactId },
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            memberAccount: { select: { id: true } },
-          },
-        });
-        if (!contact?.email) return { skipped: "no_email" };
-        if (contact.memberAccount) return { skipped: "has_account" };
-
-        const rawToken = await createMemberAuthToken({
-          contactId: contact.id,
-          purpose: "INVITE",
-        });
-        const { result } = await sendMemberInviteEmail({
-          contactId: contact.id,
-          firstName: contact.firstName,
-          rawToken,
-        });
-        return { status: result.status };
-      });
-    }
+    // Every buyer gets a portal-account invite, regardless of product kind
+    // — an account is how they get back to gated content and self-service
+    // account management. Skips automatically if they already have one.
+    await step.run("member-portal-invite", async () =>
+      inviteContactToPortal(enrollment.contactId)
+    );
   }
 );
 

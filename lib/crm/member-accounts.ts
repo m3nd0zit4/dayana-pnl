@@ -86,6 +86,52 @@ export const updateMemberProfile = async (
   });
 };
 
+export type InviteContactResult =
+  | { status: "sent" }
+  | { status: "skipped"; reason: "no_email" | "has_account" };
+
+/**
+ * Invites a contact to the member portal: creates a single-use INVITE token
+ * and emails the set-your-password link. Shared by every surface that
+ * auto-creates accounts (home lead form, post-payment inngest step). Skips
+ * silently when the contact has no email or already has a MemberAccount.
+ * The email dispatch itself is gated by NOTIFICATIONS_ENABLED and always
+ * records a NotificationDelivery row (see lib/notifications/dispatch.ts).
+ */
+export const inviteContactToPortal = async (
+  contactId: string,
+  options?: { callbackUrl?: string | null }
+): Promise<InviteContactResult> => {
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      memberAccount: { select: { id: true } },
+    },
+  });
+  if (!contact?.email) return { status: "skipped", reason: "no_email" };
+  if (contact.memberAccount) return { status: "skipped", reason: "has_account" };
+
+  const { createMemberAuthToken } = await import("@/lib/auth/member-tokens");
+  const { sendMemberInviteEmail } = await import(
+    "@/lib/notifications/member-emails"
+  );
+
+  const rawToken = await createMemberAuthToken({
+    contactId: contact.id,
+    purpose: "INVITE",
+  });
+  await sendMemberInviteEmail({
+    contactId: contact.id,
+    firstName: contact.firstName,
+    rawToken,
+    callbackUrl: options?.callbackUrl ?? null,
+  });
+  return { status: "sent" };
+};
+
 const DELETION_REQUEST_TAG_SLUG = "solicitud-eliminar-cuenta";
 
 /**

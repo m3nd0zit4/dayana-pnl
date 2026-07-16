@@ -4,7 +4,7 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { MailCheck } from "lucide-react";
 
 const inputClass =
   "w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none";
@@ -12,56 +12,45 @@ const inputClass =
 const labelClass =
   "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50";
 
-const MIN_LENGTH = 12;
-
 /**
- * Open self-service signup: email + password (+ Google) creates the
- * account — and the lead Contact if the email is new — immediately, then
- * logs in. No email has to arrive for someone to get in. Course access
- * itself stays gated by membership.isCurrent once inside the portal.
+ * Email-first signup: name + email → invite email with a set-your-password
+ * link. The on-screen response is the same whether the email is new or
+ * already registered (an already-registered email gets a "ya tienes cuenta"
+ * / reset email instead), so the form can't be used to probe which emails
+ * exist, and nobody can claim an account without access to the inbox.
+ * Google stays as the instant path — OAuth proves inbox ownership itself.
  */
 const MemberSignupForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/miembros";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (password.length < MIN_LENGTH) {
-      setError(`La contraseña debe tener al menos ${MIN_LENGTH} caracteres.`);
-      return;
-    }
-    if (password !== confirm) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
-
     setLoading(true);
-    const res = await fetch("/api/miembros/auth/signup", {
+
+    const res = await fetch("/api/miembros/auth/request-access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name: name.trim() || undefined }),
+      body: JSON.stringify({
+        email,
+        name: name.trim() || undefined,
+        // Only same-site paths; the API validates again server-side.
+        callbackUrl: callbackUrl.startsWith("/") ? callbackUrl : undefined,
+      }),
     });
+    setLoading(false);
 
     if (!res.ok) {
-      setLoading(false);
       const data = (await res.json().catch(() => null)) as {
         error?: string;
-        message?: string;
       } | null;
-      if (data?.error === "already_registered") {
-        setError("Ya tienes cuenta con este correo — inicia sesión abajo.");
-      } else if (data?.error === "weak_password" && data.message) {
-        setError(data.message);
-      } else if (data?.error === "rate_limited") {
+      if (data?.error === "rate_limited") {
         setError("Demasiados intentos. Espera unos minutos y vuelve a intentar.");
       } else {
         setError("Algo salió mal. Intenta de nuevo.");
@@ -69,21 +58,38 @@ const MemberSignupForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
       return;
     }
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-      callbackUrl,
-    });
-    setLoading(false);
-
-    if (result?.error) {
-      setError("Tu cuenta se creó, pero no pudimos entrar automáticamente. Inicia sesión.");
-      return;
-    }
-
-    window.location.href = result?.url ?? callbackUrl;
+    setSent(true);
   };
+
+  if (sent) {
+    return (
+      <div className="space-y-4 text-center">
+        <MailCheck
+          className="mx-auto h-10 w-10 text-terracotta"
+          aria-hidden
+        />
+        <h2 className="font-[font2] text-lg uppercase tracking-[0.12em] text-white">
+          Revisa tu correo
+        </h2>
+        <p className="font-[font1] text-sm leading-relaxed text-white/70">
+          Te enviamos un enlace a{" "}
+          <span className="text-white">{email}</span> para crear tu
+          contraseña y entrar. Si ya tenías cuenta, el correo te lo dirá.
+        </p>
+        <p className="font-[font1] text-[12px] text-white/40">
+          ¿No llega? Revisa spam o promoción, o{" "}
+          <button
+            type="button"
+            onClick={() => setSent(false)}
+            className="text-linen underline-offset-4 hover:underline"
+          >
+            intenta de nuevo
+          </button>
+          .
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -149,51 +155,10 @@ const MemberSignupForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
           />
         </label>
 
-        <label className="block">
-          <span className={labelClass}>Crea una contraseña</span>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              required
-              minLength={MIN_LENGTH}
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={`Mínimo ${MIN_LENGTH} caracteres`}
-              className={`${inputClass} pr-11`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-white/40 transition-colors hover:text-white/80"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </div>
-          {password.length > 0 && (
-            <p
-              className={`mt-1.5 font-[font1] text-[11px] ${
-                password.length >= MIN_LENGTH ? "text-emerald-400/80" : "text-white/40"
-              }`}
-            >
-              {password.length}/{MIN_LENGTH} caracteres mínimos
-            </p>
-          )}
-        </label>
-
-        <label className="block">
-          <span className={labelClass}>Confírmala</span>
-          <input
-            type={showPassword ? "text" : "password"}
-            required
-            minLength={MIN_LENGTH}
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            className={inputClass}
-          />
-        </label>
+        <p className="font-[font1] text-[12px] leading-relaxed text-white/40">
+          Te enviaremos un enlace a tu correo para crear tu contraseña y
+          activar tu cuenta.
+        </p>
 
         {error && (
           <p className="font-[font1] text-[13px] text-blush" role="alert">
@@ -206,7 +171,7 @@ const MemberSignupForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
           disabled={loading}
           className="w-full rounded-xl bg-linen py-3.5 font-[font2] uppercase text-xs tracking-[0.25em] text-black transition-colors hover:bg-white disabled:opacity-60"
         >
-          {loading ? "Creando cuenta…" : "Crear mi cuenta"}
+          {loading ? "Enviando…" : "Crear mi cuenta"}
         </button>
 
         <p className="text-center font-[font1] text-[13px] text-white/50">

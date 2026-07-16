@@ -53,6 +53,7 @@ export const POST = async (req: Request) => {
   }
 
   const member = await getMemberByEmail(email);
+  const callbackUrl = parsed.data.callbackUrl ?? null;
 
   let contactId: string;
   let firstName: string;
@@ -64,7 +65,10 @@ export const POST = async (req: Request) => {
     isReset = Boolean(member.account?.passwordHash);
   } else {
     try {
-      const contact = await getOrCreateContactForEmailSignup(email);
+      const contact = await getOrCreateContactForEmailSignup(
+        email,
+        parsed.data.name
+      );
       contactId = contact.id;
       firstName = contact.firstName;
       isReset = false;
@@ -79,7 +83,7 @@ export const POST = async (req: Request) => {
     purpose: isReset ? "PASSWORD_RESET" : "INVITE",
   });
 
-  const payload = { contactId, firstName, rawToken };
+  const payload = { contactId, firstName, rawToken, callbackUrl };
   if (isReset) {
     await sendMemberPasswordResetEmail(payload);
   } else {
