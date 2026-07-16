@@ -47,6 +47,84 @@ export const getMemberAccountByGoogleSub = async (googleSub: string) =>
     include: { contact: true },
   });
 
+export type UpdateMemberProfileInput = {
+  firstName: string;
+  lastName?: string | null;
+  /** Already validated E164 (+573001234567). Omit/null = keep current phone. */
+  phoneE164?: string | null;
+  phoneCountryIso?: string | null;
+};
+
+/** Self-service profile edit from the member portal. Email is the login
+ * identity and is deliberately NOT editable here. */
+export const updateMemberProfile = async (
+  contactId: string,
+  input: UpdateMemberProfileInput
+): Promise<Contact> => {
+  if (input.phoneE164) {
+    const existing = await prisma.contact.findUnique({
+      where: { phoneE164: input.phoneE164 },
+      select: { id: true },
+    });
+    if (existing && existing.id !== contactId) {
+      throw new Error("PHONE_TAKEN");
+    }
+  }
+
+  return prisma.contact.update({
+    where: { id: contactId },
+    data: {
+      firstName: input.firstName,
+      lastName: input.lastName?.trim() || null,
+      ...(input.phoneE164
+        ? {
+            phoneE164: input.phoneE164,
+            phoneCountryIso: input.phoneCountryIso ?? null,
+          }
+        : {}),
+    },
+  });
+};
+
+const DELETION_REQUEST_TAG_SLUG = "solicitud-eliminar-cuenta";
+
+/**
+ * Marks a member's account-deletion request for staff to process in the CRM:
+ * tags the contact and appends a dated note. Idempotent — repeating the
+ * request doesn't duplicate the tag and only adds another note line.
+ */
+export const requestMemberAccountDeletion = async (
+  contactId: string
+): Promise<void> => {
+  const tag = await prisma.tag.upsert({
+    where: { slug: DELETION_REQUEST_TAG_SLUG },
+    create: {
+      slug: DELETION_REQUEST_TAG_SLUG,
+      label: "Solicitud de eliminación de cuenta",
+    },
+    update: {},
+  });
+
+  await prisma.contactTag.upsert({
+    where: { contactId_tagId: { contactId, tagId: tag.id } },
+    create: { contactId, tagId: tag.id },
+    update: {},
+  });
+
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { notes: true },
+  });
+  const stamp = new Date().toLocaleDateString("es-CO", { dateStyle: "medium" });
+  const line = `[${stamp}] La miembro solicitó eliminar su cuenta desde el portal.`;
+  await prisma.contact.update({
+    where: { id: contactId },
+    data: {
+      notes: contact?.notes ? `${contact.notes}\n${line}` : line,
+    },
+  });
+};
+
 export const setMemberPassword = async (
   contactId: string,
   passwordHash: string

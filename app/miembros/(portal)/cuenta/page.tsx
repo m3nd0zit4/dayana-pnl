@@ -3,11 +3,15 @@ import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { BRAND } from "@/lib/contact";
 import { formatCop, formatUsd } from "@/lib/plans";
 import { getVisiblePublicPlans } from "@/lib/pricing/public-plans";
+import Link from "next/link";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { getMembershipPayments } from "@/lib/lms/membership";
+import { getMemberWorkshops } from "@/lib/crm/member-workshops";
 import MembershipStatusCard from "@/app/components/miembros/MembershipStatusCard";
 import RenewMembership from "@/app/components/miembros/RenewMembership";
 import ChangePasswordForm from "@/app/components/miembros/ChangePasswordForm";
+import ProfileForm from "@/app/components/miembros/ProfileForm";
+import DeleteAccountRequest from "@/app/components/miembros/DeleteAccountRequest";
 import { Card, CardContent } from "@/app/components/ui/card";
 
 export const metadata: Metadata = {
@@ -30,14 +34,23 @@ const Page = async () => {
   const { contact, account, membership } = await requirePortalContext();
   const { coursePlan, userCountry } = await getVisiblePublicPlans();
 
-  const payments = membership.enrollment
-    ? await getMembershipPayments(membership.enrollment.id)
-    : [];
+  const [payments, workshops] = await Promise.all([
+    membership.enrollment
+      ? getMembershipPayments(membership.enrollment.id)
+      : Promise.resolve([]),
+    getMemberWorkshops(contact.id),
+  ]);
 
   const parsedPhone =
     contact.phoneE164.startsWith("+") && !contact.phoneE164.includes(":")
       ? parsePhoneNumberFromString(contact.phoneE164)
       : null;
+
+  // Members who only bought workshops shouldn't see course-membership
+  // copy ("Pagar mi mes") — it reads like a bill for something they never
+  // signed up for. Fresh accounts with no purchases still see it, since
+  // activating the course is their most likely next step.
+  const workshopOnly = workshops.length > 0 && membership.enrollment == null;
 
   return (
     <div className="space-y-6">
@@ -51,14 +64,71 @@ const Page = async () => {
         </p>
       </div>
 
-      <MembershipStatusCard
-        paidUntil={membership.paidUntil}
-        isCurrent={membership.isCurrent}
-        daysLeft={membership.daysLeft}
-        hasEnrollment={membership.enrollment != null}
-        hideAction
-      />
+      <Card>
+        <CardContent>
+          <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
+            Mi perfil
+          </h2>
+          <div className="mt-4 max-w-xl">
+            <ProfileForm
+              initialFirstName={contact.firstName}
+              initialLastName={contact.lastName ?? ""}
+              initialPhone={parsedPhone?.isValid() ? parsedPhone.number : ""}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
+      {workshops.length > 0 && (
+        <Card>
+          <CardContent>
+            <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
+              Mis talleres
+            </h2>
+            <ul className="mt-3 divide-y divide-border">
+              {workshops.map((w) => (
+                <li
+                  key={w.enrollmentId}
+                  className="flex flex-wrap items-center justify-between gap-2 py-3"
+                >
+                  <div>
+                    <div className="text-sm font-semibold">{w.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {w.dateLabel ? `${w.dateLabel} · ` : ""}
+                      {w.paidAt
+                        ? `Pagado el ${w.paidAt.toLocaleDateString("es-CO", { dateStyle: "medium" })}`
+                        : "Acceso activo"}
+                      {w.currency && w.amountMinor != null
+                        ? ` · ${formatAmount(w.currency, w.amountMinor)}`
+                        : ""}
+                    </div>
+                  </div>
+                  {w.slug ? (
+                    <Link
+                      href={`/taller-virtual/${w.slug}`}
+                      className="text-sm font-medium underline-offset-4 hover:underline"
+                    >
+                      Ver taller
+                    </Link>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {!workshopOnly && (
+        <MembershipStatusCard
+          paidUntil={membership.paidUntil}
+          isCurrent={membership.isCurrent}
+          daysLeft={membership.daysLeft}
+          hasEnrollment={membership.enrollment != null}
+          hideAction
+        />
+      )}
+
+      {!workshopOnly && (
       <Card>
         <CardContent>
           <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
@@ -104,7 +174,9 @@ const Page = async () => {
           )}
         </CardContent>
       </Card>
+      )}
 
+      {!workshopOnly && (
       <Card>
         <CardContent>
           <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
@@ -138,6 +210,7 @@ const Page = async () => {
           )}
         </CardContent>
       </Card>
+      )}
 
       <Card className="max-w-xl">
         <CardContent>
@@ -152,6 +225,17 @@ const Page = async () => {
           ) : null}
           <div className="mt-4">
             <ChangePasswordForm hasPassword={Boolean(account.passwordHash)} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-xl border-destructive/30">
+        <CardContent>
+          <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
+            Eliminar cuenta
+          </h2>
+          <div className="mt-4">
+            <DeleteAccountRequest />
           </div>
         </CardContent>
       </Card>

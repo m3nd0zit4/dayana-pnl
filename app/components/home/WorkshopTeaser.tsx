@@ -70,12 +70,17 @@ const WorkshopTeaser = ({
             </Suspense>
           </article>
         ) : (
-          <div className="mt-10">
-            <AccountAccessCard
-              title="Inscripción"
-              description="Crea tu cuenta o inicia sesión para continuar con el pago de este taller."
-              callbackUrl={callbackUrl}
-            />
+          /* Center-screen account gate: the teaser stays visible but blurred
+             behind; the card asks for an account before anything else. Sits
+             below the navbar (z-30) so the menu and account icon stay usable. */
+          <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-sm px-4">
+            <div className="w-full max-w-md">
+              <AccountAccessCard
+                title="Inscripción"
+                description="Crea tu cuenta o inicia sesión para continuar con el pago de este taller."
+                callbackUrl={callbackUrl}
+              />
+            </div>
           </div>
         )}
       </div>
