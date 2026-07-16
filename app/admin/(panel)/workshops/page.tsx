@@ -30,7 +30,6 @@ const PREVIEW_WORKSHOPS: WorkshopRow[] = [
     scheduleSectionDescription: null,
     metaTitle: null,
     metaDescription: null,
-    introOpen: null,
     productId: null,
   },
 ];

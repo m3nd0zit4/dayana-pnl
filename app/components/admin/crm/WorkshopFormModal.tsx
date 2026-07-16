@@ -41,7 +41,6 @@ export type WorkshopRow = {
   scheduleSectionDescription: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
-  introOpen: string | null;
   productId: string | null;
 };
 
@@ -83,7 +82,6 @@ type ApiEdition = {
   scheduleSectionDescription: string | null;
   metaTitle: string | null;
   metaDescription: string | null;
-  introOpen: string | null;
   productId: string | null;
 };
 
@@ -114,7 +112,6 @@ export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
   scheduleSectionDescription: e.scheduleSectionDescription,
   metaTitle: e.metaTitle,
   metaDescription: e.metaDescription,
-  introOpen: e.introOpen,
   productId: e.productId,
 });
 
@@ -139,7 +136,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   const [scheduleLabel, setScheduleLabel] = useState("");
   const [focusTopics, setFocusTopics] = useState<string[]>([]);
   const [daySchedule, setDaySchedule] = useState<WorkshopScheduleSlot[]>([]);
-  const [introOpen, setIntroOpen] = useState("");
   const [productId, setProductId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -160,7 +156,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setScheduleLabel(edition.scheduleLabel ?? "");
       setFocusTopics(edition.focusTopics ?? []);
       setDaySchedule(edition.daySchedule ?? []);
-      setIntroOpen(edition.introOpen ?? "");
       setProductId(edition.productId ?? "");
     } else {
       setTitle("");
@@ -171,7 +166,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setScheduleLabel("");
       setFocusTopics([]);
       setDaySchedule([]);
-      setIntroOpen("");
       setProductId("");
     }
     setError(null);
@@ -189,7 +183,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
     if (fields.daySchedule && fields.daySchedule.length > 0) {
       setDaySchedule(fields.daySchedule);
     }
-    if (fields.introOpen) setIntroOpen(fields.introOpen);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -211,7 +204,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       scheduleLabel: scheduleLabel || undefined,
       focusTopics: trimmedTopics.length > 0 ? trimmedTopics : undefined,
       daySchedule: trimmedSchedule.length > 0 ? trimmedSchedule : undefined,
-      introOpen: introOpen.trim() || undefined,
       productId: productId || null,
     };
 
@@ -341,20 +333,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
           items={daySchedule}
           onChange={setDaySchedule}
         />
-
-        <div className="space-y-1.5">
-          <Label htmlFor="w-cta">Mensaje de inscripción (CTA)</Label>
-          <Textarea
-            id="w-cta"
-            value={introOpen}
-            onChange={(e) => setIntroOpen(e.target.value)}
-            placeholder="Escríbenos por WhatsApp para reservar tu cupo…"
-          />
-          <p className="text-xs text-muted-foreground">
-            Si lo dejas vacío, se usa un texto predeterminado. El botón de
-            WhatsApp también se genera solo con el título.
-          </p>
-        </div>
 
         {error && (
           <p className="text-sm text-destructive" role="alert">

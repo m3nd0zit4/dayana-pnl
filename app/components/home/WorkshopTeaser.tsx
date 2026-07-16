@@ -2,15 +2,24 @@ import Link from "next/link";
 import type { WorkshopDetail } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
 import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
-import WhatsAppButton from "../ui/WhatsAppButton";
 
 type WorkshopTeaserProps = {
   workshop: WorkshopDetail;
   plan: Plan | null;
   userCountry?: string | null;
+  /** Visitor has an authenticated member-portal session (not necessarily paid yet). */
+  hasMemberSession: boolean;
 };
 
-const WorkshopTeaser = ({ workshop, plan, userCountry }: WorkshopTeaserProps) => {
+const WorkshopTeaser = ({
+  workshop,
+  plan,
+  userCountry,
+  hasMemberSession,
+}: WorkshopTeaserProps) => {
+  const currentPath = `/taller-virtual/${workshop.slug}`;
+  const callbackUrl = encodeURIComponent(currentPath);
+
   return (
     <section className="bg-[#faf7f2] text-black min-h-screen">
       <div className="px-3 lg:px-8 pt-24 lg:pt-28 pb-16 max-w-[1400px] mx-auto">
@@ -50,30 +59,30 @@ const WorkshopTeaser = ({ workshop, plan, userCountry }: WorkshopTeaserProps) =>
         </article>
 
         <article className="mt-10 rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
-          <div className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-white/60">
-            Inscripción
-          </div>
-          <p className="font-[font1] mt-4 text-white/82 leading-snug max-w-2xl text-lg">
-            El programa completo se desbloquea al confirmar tu pago. Ya
-            pagaste e iniciaste sesión y no ves el contenido? Escríbenos.
-          </p>
-
-          {plan ? (
-            <PlanCheckoutButtons plan={plan} isDark userCountry={userCountry} />
+          {hasMemberSession ? (
+            plan ? (
+              <PlanCheckoutButtons plan={plan} isDark userCountry={userCountry} />
+            ) : (
+              <p className="text-sm text-white/60">
+                El pago en línea para este taller aún no está configurado.
+              </p>
+            )
           ) : (
-            <p className="mt-6 text-sm text-white/60">
-              El pago en línea para este taller aún no está configurado.
-            </p>
+            <div className="flex flex-col gap-3">
+              <Link
+                href={`/miembros/crear-cuenta?callbackUrl=${callbackUrl}`}
+                className="inline-flex items-center justify-center rounded-full bg-linen px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-white"
+              >
+                Crear cuenta
+              </Link>
+              <Link
+                href={`/acceso?callbackUrl=${callbackUrl}`}
+                className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/20"
+              >
+                Ya tengo cuenta
+              </Link>
+            </div>
           )}
-
-          <div className="mt-4">
-            <WhatsAppButton
-              message={workshop.whatsappMessage}
-              label="Consultar por WhatsApp"
-              size="lg"
-              className="w-full"
-            />
-          </div>
         </article>
       </div>
     </section>

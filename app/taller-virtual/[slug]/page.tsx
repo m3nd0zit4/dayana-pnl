@@ -34,8 +34,10 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
   if (!workshop) notFound();
 
   let hasAccess = false;
+  let hasMemberSession = false;
   if (workshop.productId) {
     const member = await getMemberSession();
+    hasMemberSession = !!member;
     if (member) {
       hasAccess = await hasActiveWorkshopEnrollment(
         member.contact.id,
@@ -61,7 +63,12 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
         {hasAccess ? (
           <WorkshopLanding workshop={workshop} />
         ) : (
-          <WorkshopTeaser workshop={workshop} plan={plan} userCountry={userCountry} />
+          <WorkshopTeaser
+            workshop={workshop}
+            plan={plan}
+            userCountry={userCountry}
+            hasMemberSession={hasMemberSession}
+          />
         )}
       </main>
       <Footer />
