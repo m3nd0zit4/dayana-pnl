@@ -62,7 +62,15 @@ export const paymentApprovedFn = inngest.createFunction(
         }
         return { pending: pending.length, extended };
       });
+    }
 
+    if (
+      enrollment.product.kind === ProductKind.COURSE ||
+      enrollment.product.kind === ProductKind.WORKSHOP
+    ) {
+      // Member-portal access is shared by courses and paid workshops —
+      // both need the buyer to be able to log into /miembros to view
+      // gated content.
       await step.run("member-portal-invite", async () => {
         const contact = await prisma.contact.findUnique({
           where: { id: enrollment.contactId },

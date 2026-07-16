@@ -211,6 +211,7 @@ const Page = async ({ searchParams }: PageProps) => {
 
   let postPaymentMode: "none" | "legacy" | "email-only" = "none";
   let coursePortal: "invite" | "account" | null = null;
+  let portalKind: "COURSE" | "WORKSHOP" | null = null;
   if (isSuccess && enrollmentId) {
     try {
       const enrollment = await getEnrollmentById(enrollmentId);
@@ -221,11 +222,15 @@ const Page = async ({ searchParams }: PageProps) => {
           postPaymentMode = "email-only";
         }
 
-        if (enrollment.product.kind === ProductKind.COURSE) {
+        if (
+          enrollment.product.kind === ProductKind.COURSE ||
+          enrollment.product.kind === ProductKind.WORKSHOP
+        ) {
           const member = await getMemberByContactId(enrollment.contactId);
           const hasAccess =
             member?.account?.passwordHash || member?.account?.googleSub;
           coursePortal = hasAccess ? "account" : "invite";
+          portalKind = enrollment.product.kind;
         }
 
         const paid = enrollment.payments.find((p) => p.status === "APPROVED");
@@ -396,9 +401,9 @@ const Page = async ({ searchParams }: PageProps) => {
             {coursePortal === "invite" ? (
               <>
                 <p className="font-[font1] text-white/80 text-sm lg:text-base leading-relaxed mb-5">
-                  Te enviamos un correo para crear tu cuenta del portal de
-                  miembros: ahí encontrarás el enlace de las clases en vivo,
-                  las grabaciones y los módulos del curso.
+                  {portalKind === "WORKSHOP"
+                    ? "Te enviamos un correo para crear tu cuenta del portal de miembros: con ella podrás volver a entrar a la página completa de tu taller cuando quieras."
+                    : "Te enviamos un correo para crear tu cuenta del portal de miembros: ahí encontrarás el enlace de las clases en vivo, las grabaciones y los módulos del curso."}
                 </p>
                 <Link
                   href="/miembros/crear-cuenta"
@@ -410,8 +415,9 @@ const Page = async ({ searchParams }: PageProps) => {
             ) : (
               <>
                 <p className="font-[font1] text-white/80 text-sm lg:text-base leading-relaxed mb-5">
-                  Tu mensualidad quedó al día. Entra al portal para ver las
-                  próximas clases, grabaciones y módulos.
+                  {portalKind === "WORKSHOP"
+                    ? "Ya tienes cuenta del portal. Entra para ver la página completa de tu taller."
+                    : "Tu mensualidad quedó al día. Entra al portal para ver las próximas clases, grabaciones y módulos."}
                 </p>
                 <Link
                   href="/miembros"
