@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { type CountryCode } from "libphonenumber-js";
 import {
   checkoutContactFieldsSchema,
@@ -47,6 +48,8 @@ const CheckoutContactStep = ({
   const [localError, setLocalError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
+  const { data: session, status: sessionStatus } = useSession();
+
   useEffect(() => {
     const stored = readStoredCheckoutContact();
     if (!stored) return;
@@ -56,6 +59,27 @@ const CheckoutContactStep = ({
     if (stored.firstName) setFirstName(stored.firstName);
     if (stored.lastName) setLastName(stored.lastName);
   }, [defaultCountry]);
+
+  // Logged-in member: prefill identity from the session so paying doesn't
+  // mean re-typing data we already have. Fills only empty fields — a stored
+  // checkout draft or anything the user typed wins. Phone stays manual (the
+  // session doesn't carry it). State adjustment during render (the React-
+  // recommended alternative to setState-in-effect); runs once per mount.
+  const [sessionPrefilled, setSessionPrefilled] = useState(false);
+  if (
+    !sessionPrefilled &&
+    sessionStatus === "authenticated" &&
+    session?.user?.kind === "member"
+  ) {
+    setSessionPrefilled(true);
+    const sessionEmail = session.user.email ?? "";
+    const [sessionFirst, ...sessionRest] = (session.user.name ?? "")
+      .split(/\s+/)
+      .filter(Boolean);
+    setEmail((v) => v || sessionEmail);
+    setFirstName((v) => v || sessionFirst || "");
+    setLastName((v) => v || sessionRest.join(" "));
+  }
 
   const handlePhoneChange = (raw: string) => {
     const country = phoneCountry as CountryCode;
