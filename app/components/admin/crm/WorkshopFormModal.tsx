@@ -124,7 +124,9 @@ type Props = {
 
 const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   const { aiEnabled } = useCrm();
-  const { products } = useActiveProducts();
+  // Gated on `open` like the other call sites — no products fetch until the
+  // modal is actually opened.
+  const { products } = useActiveProducts(open);
   const workshopProducts = products.filter((p) => p.kind === "WORKSHOP");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -309,7 +311,16 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
             id="w-product"
             label="Producto vinculado (cobro)"
             value={productId}
-            options={workshopProducts.map((p) => ({ value: p.id, label: p.title }))}
+            options={[
+              ...workshopProducts.map((p) => ({ value: p.id, label: p.title })),
+              // A linked product that's been deactivated (or its kind
+              // changed) no longer appears in the active list — surface it
+              // instead of showing a confusingly blank picker while the
+              // link silently persists.
+              ...(productId && !workshopProducts.some((p) => p.id === productId)
+                ? [{ value: productId, label: `(producto inactivo) ${productId}` }]
+                : []),
+            ]}
             onChange={setProductId}
             allowEmpty
             emptyLabel="Sin producto (solo WhatsApp, sin pago en línea)"

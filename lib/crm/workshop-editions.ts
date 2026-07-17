@@ -55,6 +55,18 @@ const editionData = (input: WorkshopEditionInput) => ({
   introOpen: input.introOpen ?? null,
 });
 
+/**
+ * Prisma update fragment for the product relation: undefined = leave the
+ * existing link untouched, null/"" = disconnect, id = connect. Shared by
+ * both write paths so the omitted/null/id contract can't drift.
+ */
+const productRelationUpdate = (productId: string | null | undefined) =>
+  productId !== undefined
+    ? productId
+      ? { product: { connect: { id: productId } } }
+      : { product: { disconnect: true as const } }
+    : {};
+
 export const closeOtherOpenWorkshops = async (exceptSlug?: string) => {
   await prisma.workshopEdition.updateMany({
     where: {
@@ -89,11 +101,7 @@ export const upsertWorkshopEdition = async (
     update: {
       ...editionData(enriched),
       status,
-      ...(enriched.productId !== undefined
-        ? enriched.productId
-          ? { product: { connect: { id: enriched.productId } } }
-          : { product: { disconnect: true } }
-        : {}),
+      ...productRelationUpdate(enriched.productId),
     },
   });
 };
@@ -113,11 +121,7 @@ export const updateWorkshopEditionBySlug = async (
     data: {
       ...editionData(enriched),
       ...(enriched.status !== undefined ? { status: enriched.status } : {}),
-      ...(enriched.productId !== undefined
-        ? enriched.productId
-          ? { product: { connect: { id: enriched.productId } } }
-          : { product: { disconnect: true } }
-        : {}),
+      ...productRelationUpdate(enriched.productId),
     },
   });
 };
