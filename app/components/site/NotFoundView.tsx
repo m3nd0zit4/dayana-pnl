@@ -33,14 +33,14 @@ const NotFoundView = () => {
         </div>
 
         <h1 className="font-[font2] uppercase text-4xl lg:text-6xl leading-[0.95] mb-6">
-          Esta pÃ¡gina
+          Esta página
           <br />
           no existe
         </h1>
 
         <p className="font-[font1] text-white/75 text-base lg:text-lg leading-relaxed mb-10 max-w-lg">
-          El enlace puede estar desactualizado o la ruta cambiÃ³. Vuelve al
-          inicio, explora los servicios o escrÃ­benos por WhatsApp y te
+          El enlace puede estar desactualizado o la ruta cambió. Vuelve al
+          inicio, explora los servicios o escríbenos por WhatsApp y te
           orientamos.
         </p>
 
@@ -61,7 +61,7 @@ const NotFoundView = () => {
 
         <a
           href={buildWhatsAppUrl(
-            "Hola Dayana, estaba buscando algo en tu web y me saliÃ³ un error 404. Â¿Me puedes ayudar?"
+            "Hola Dayana, estaba buscando algo en tu web y me salió un error 404. ¿Me puedes ayudar?"
           )}
           target="_blank"
           rel="noopener noreferrer"
@@ -71,7 +71,7 @@ const NotFoundView = () => {
         </a>
 
         <p className="mt-8 font-[font1] text-[11px] text-white/40 tracking-wide">
-          {WHATSAPP_NUMBER} Â· contacto@dayanabeltran.com
+          {WHATSAPP_NUMBER} · contacto@dayanabeltran.com
         </p>
       </section>
     </main>

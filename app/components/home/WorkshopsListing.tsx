@@ -15,7 +15,7 @@ import WhatsAppButton from "../ui/WhatsAppButton";
 gsap.registerPlugin(ScrollTrigger);
 
 const GENERAL_WORKSHOP_WHATSAPP =
-  "Hola Dayana, me interesa informaciÃ³n sobre talleres virtuales y prÃ³ximas fechas.";
+  "Hola Dayana, me interesa información sobre talleres virtuales y próximas fechas.";
 
 const statusBadgeClass = (status: WorkshopCard["status"]) => {
   if (status === "completed") {
@@ -36,7 +36,7 @@ const statusDotClass = (status: WorkshopCard["status"]) => {
 const UpcomingWorkshopCard = () => (
   <article
     className="wk-card group relative flex min-h-[300px] items-center justify-center overflow-hidden rounded-3xl border border-white/45 bg-white/15 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.5)] backdrop-blur-xl"
-    aria-label="PrÃ³ximo taller â€” prÃ³ximamente"
+    aria-label="Próximo taller — próximamente"
   >
     <div
       aria-hidden
@@ -55,7 +55,7 @@ const UpcomingWorkshopCard = () => (
       className="pointer-events-none absolute inset-0 bg-white/20 backdrop-blur-md"
     />
     <span className="relative font-[font2] text-3xl uppercase tracking-[0.28em] text-black/60 lg:text-4xl">
-      PrÃ³ximamente
+      Próximamente
     </span>
   </article>
 );
@@ -176,8 +176,8 @@ const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) =
         </h1>
         <p className="wk-list-reveal mt-6 max-w-3xl font-[font1] text-lg leading-snug text-black/78 lg:text-2xl">
           {hasOpen
-            ? "Jornadas intensivas de transformaciÃ³n con Dayana BeltrÃ¡n. Hay inscripciones abiertas: entra al taller activo para ver el programa completo."
-            : "Jornadas intensivas de transformaciÃ³n con Dayana BeltrÃ¡n. Cuando abramos una nueva ediciÃ³n, la verÃ¡s aquÃ­."}
+            ? "Jornadas intensivas de transformación con Dayana Beltrán. Hay inscripciones abiertas: entra al taller activo para ver el programa completo."
+            : "Jornadas intensivas de transformación con Dayana Beltrán. Cuando abramos una nueva edición, la verás aquí."}
         </p>
 
         <div className="wk-list-reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6">
@@ -188,10 +188,10 @@ const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) =
 
         <article className="wk-list-reveal mt-14 rounded-3xl border border-black/10 bg-black p-7 text-white lg:p-10">
           <div className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-white/60">
-            Â¿Quieres el siguiente taller?
+            ¿Quieres el siguiente taller?
           </div>
           <p className="mt-4 max-w-2xl font-[font1] text-base leading-snug text-white/82 lg:text-xl">
-            Cuando abramos una nueva ediciÃ³n, la verÃ¡s aquÃ­. Mientras tanto,
+            Cuando abramos una nueva edición, la verás aquí. Mientras tanto,
             puedes consultar por WhatsApp o explorar terapias y cursos en vivo.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
