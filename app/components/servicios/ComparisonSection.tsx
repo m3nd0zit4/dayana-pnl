@@ -66,7 +66,7 @@ const ComparisonSection = ({ therapyPlans, isColombia }: Props) => {
   ];
 
   return (
-    <section className="bg-[#faf7f2] text-black border-t border-black/10">
+    <section data-nav-color="black" className="bg-[#faf7f2] text-black border-t border-black/10">
       <div className="px-3 lg:px-8 py-16 lg:py-24">
         <h2 className="font-[font2] text-4xl lg:text-[4.5vw] uppercase leading-[0.9] mb-3">
           ¿Qué incluye cada paquete?

@@ -24,7 +24,7 @@ const WorkshopTeaser = ({
   const callbackUrl = `/taller-virtual/${workshop.slug}?autopay=1`;
 
   return (
-    <section className="bg-[#faf7f2] text-black min-h-screen">
+    <section data-nav-color="black" className="bg-[#faf7f2] text-black min-h-screen">
       <div className="px-3 lg:px-8 pt-24 lg:pt-28 pb-16 max-w-[1400px] mx-auto">
         <Link
           href="/taller-virtual"

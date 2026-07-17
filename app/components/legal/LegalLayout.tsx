@@ -17,7 +17,7 @@ const LegalLayout = ({
 }: LegalLayoutProps) => {
   return (
     <>
-      <main className="relative bg-black text-white">
+      <main data-nav-color="white" className="relative bg-black text-white">
         <div
           aria-hidden="true"
           className="absolute inset-0 pointer-events-none opacity-80"

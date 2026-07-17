@@ -26,7 +26,7 @@ const Page = async ({ searchParams }: PageProps) => {
       : undefined;
 
   return (
-    <main className="relative min-h-screen bg-black text-white overflow-hidden">
+    <main data-nav-color="white" className="relative min-h-screen bg-black text-white overflow-hidden">
       <CheckoutAbandonCleanup enrollmentId={legacyEnrollmentId} />
       <div
         aria-hidden="true"

@@ -78,7 +78,7 @@ const WorkshopLanding = ({ workshop }: WorkshopLandingProps) => {
   );
 
   return (
-    <section ref={rootRef} className="bg-[#faf7f2] text-black min-h-screen">
+    <section ref={rootRef} data-nav-color="black" className="bg-[#faf7f2] text-black min-h-screen">
       <div className="px-3 lg:px-8 pt-24 lg:pt-28 pb-16 max-w-[1400px] mx-auto">
         <Link
           href="/taller-virtual"

@@ -163,7 +163,7 @@ const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) =
   );
 
   return (
-    <section ref={rootRef} className="min-h-screen bg-[#faf7f2] text-black">
+    <section ref={rootRef} data-nav-color="black" className="min-h-screen bg-[#faf7f2] text-black">
       <div className="mx-auto max-w-[1400px] px-3 pb-24 pt-24 lg:px-8 lg:pt-28">
         <div className="wk-list-reveal">
           <span className="inline-flex items-center rounded-full border border-black/15 px-4 py-1.5 font-[font2] text-[10px] uppercase tracking-[0.25em]">

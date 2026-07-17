@@ -27,7 +27,7 @@ const FAQS: { q: string; a: string }[] = [
 
 const FaqSection = () => {
   return (
-    <section className="bg-[#faf7f2] text-black border-t border-black/10">
+    <section data-nav-color="black" className="bg-[#faf7f2] text-black border-t border-black/10">
       <div className="px-3 lg:px-8 py-16 lg:py-24 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-12">
         <h2 className="font-[font2] text-4xl lg:text-[4.5vw] uppercase leading-[0.9] mb-10 lg:mb-0">
           Preguntas frecuentes

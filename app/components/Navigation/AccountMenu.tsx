@@ -52,6 +52,9 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
 
   const pillBase =
     "inline-flex items-center justify-center rounded-full border uppercase tracking-[0.16em] lg:text-[11px] text-[10px] lg:px-4 px-3 lg:py-2.5 py-2 transition-colors";
+  // navColor "white" = sección oscura debajo: el hover negro sería invisible.
+  const hoverBg =
+    navColor === "white" ? "hover:bg-white/10" : "hover:bg-black/5";
 
   if (!kind) {
     return (
@@ -61,7 +64,7 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
       >
         <a
           href="/acceso"
-          className={`${pillBase} hover:bg-black/5`}
+          className={`${pillBase} ${hoverBg}`}
           style={{ borderColor: navColor, color: navColor }}
         >
           Ingresar
@@ -87,7 +90,7 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center justify-center rounded-full border lg:h-10 h-8 lg:w-10 w-8 transition-colors hover:bg-black/5 cursor-pointer"
+        className={`inline-flex items-center justify-center rounded-full border lg:h-10 h-8 lg:w-10 w-8 transition-colors ${hoverBg} cursor-pointer`}
         style={{ borderColor: navColor, color: navColor }}
       >
         <User className="lg:h-[18px] lg:w-[18px] h-4 w-4" aria-hidden />
