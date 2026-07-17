@@ -9,6 +9,11 @@ export function buildPayPalScriptOptions(
     currency: "USD",
     intent: "capture",
     environment,
+    // Explicitly request the guest card button instead of leaving it to
+    // PayPal's eligibility heuristics — without this the "Debit or Credit
+    // Card" option (and its inline billing-address form) can silently
+    // disappear or degrade for some buyers/devices.
+    enableFunding: "card",
   };
 }
 
