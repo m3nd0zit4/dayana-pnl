@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -19,6 +20,7 @@ const ProfileForm = ({
   initialPhone,
 }: ProfileFormProps) => {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
   const [phone, setPhone] = useState(initialPhone);
@@ -60,6 +62,8 @@ const ProfileForm = ({
     }
 
     setDone(true);
+    // Refresh the JWT's display name (header greeting) + re-render the page.
+    await updateSession().catch(() => undefined);
     router.refresh();
   };
 

@@ -153,7 +153,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
+      // Client called useSession().update() — refresh the display name from
+      // the CRM contact so the header greeting reflects profile edits
+      // without forcing a re-login.
+      if (trigger === "update" && token.kind === "member" && token.contactId) {
+        const contact = await prisma.contact.findUnique({
+          where: { id: token.contactId as string },
+          select: { firstName: true, displayName: true },
+        });
+        if (contact) {
+          token.name = contact.displayName ?? contact.firstName;
+        }
+        return token;
+      }
+
       if (user) {
         if (account?.provider === "google") {
           const memberAccount = await getMemberAccountByGoogleSub(
