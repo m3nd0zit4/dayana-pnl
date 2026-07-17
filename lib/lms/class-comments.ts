@@ -100,3 +100,41 @@ export const deleteCommentAsStaff = async (commentId: string): Promise<void> => 
     data: { hiddenAt: new Date() },
   });
 };
+
+export type RecentCommentRow = LessonCommentRow & {
+  classId: string;
+  classTitle: string;
+  moduleId: string | null;
+  moduleTitle: string | null;
+};
+
+/** Cross-class feed for the CRM "Comentarios" monitoring page — newest first. */
+export const listRecentCommentsForProduct = async (
+  productId: string,
+  limit = 100
+): Promise<RecentCommentRow[]> => {
+  const rows = await prisma.lessonComment.findMany({
+    where: { hiddenAt: null, class: { productId } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      ...commentSelect,
+      classId: true,
+      class: {
+        select: {
+          title: true,
+          moduleId: true,
+          module: { select: { title: true } },
+        },
+      },
+    },
+  });
+
+  return rows.map((row) => ({
+    ...toRow(row),
+    classId: row.classId,
+    classTitle: row.class.title,
+    moduleId: row.class.moduleId,
+    moduleTitle: row.class.module?.title ?? null,
+  }));
+};

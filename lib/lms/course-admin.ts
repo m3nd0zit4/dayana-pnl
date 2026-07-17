@@ -84,17 +84,41 @@ export const listCourseMembersAdmin = async (
   }));
 };
 
-export const listCourseModulesAdmin = async (productId: string) =>
-  prisma.courseModule.findMany({
+export const listCourseModulesAdmin = async (productId: string) => {
+  const modules = await prisma.courseModule.findMany({
     where: { productId },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-    include: { _count: { select: { classes: true } } },
+    include: {
+      _count: { select: { classes: true } },
+      classes: {
+        select: { _count: { select: { comments: { where: { hiddenAt: null } } } } },
+      },
+    },
   });
+
+  // Prisma can't count a two-hop relation (module -> classes -> comments) in
+  // one _count, so sum the per-class counts fetched above instead of a
+  // second query per module. classCount is flattened here too (not left as
+  // _count.classes) so every consumer — initial SSR render and the client's
+  // reload() alike — gets the same shape from this one function.
+  return modules.map(({ classes, _count, ...mod }) => ({
+    ...mod,
+    classCount: _count.classes,
+    commentCount: classes.reduce((sum, c) => sum + c._count.comments, 0),
+  }));
+};
 
 export const getCourseModuleAdmin = async (id: string) =>
   prisma.courseModule.findUnique({
     where: { id },
-    include: { classes: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] } },
+    include: {
+      classes: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        include: {
+          _count: { select: { comments: { where: { hiddenAt: null } } } },
+        },
+      },
+    },
   });
 
 export const createCourseModule = async (input: {
@@ -151,6 +175,9 @@ export const listClassesForModule = async (moduleId: string) =>
   prisma.liveClassSession.findMany({
     where: { moduleId },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    include: {
+      _count: { select: { comments: { where: { hiddenAt: null } } } },
+    },
   });
 
 /** Classes not yet assigned to any week — the admin's cleanup tray. */

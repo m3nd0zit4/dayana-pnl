@@ -6,6 +6,7 @@ import {
   GraduationCap,
   HeartPulse,
   ClipboardList,
+  MessageCircle,
   MessageSquare,
   Package,
   Tag,
@@ -41,6 +42,7 @@ export const crmMenuSections: CrmMenuSection[] = [
         items: [
           { icon: UsersRound, label: "Miembros", href: "/admin/curso" },
           { icon: BookOpen, label: "Módulos", href: "/admin/curso/modulos" },
+          { icon: MessageCircle, label: "Comentarios", href: "/admin/curso/comentarios" },
         ],
       },
       { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },

@@ -30,6 +30,7 @@ export type ModuleDetail = {
 export type ModuleClassRow = ClassEditorRow & {
   recordingPostedAt: string | null;
   recordingHiddenAt: string | null;
+  commentCount: number;
 };
 
 type UnassignedClass = { id: string; title: string; scheduledAt: string | null };
@@ -349,6 +350,16 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                         )
                       ) : (
                         <span className="text-muted-foreground">Sin grabación</span>
+                      )}
+                      {row.commentCount > 0 && (
+                        <>
+                          <span className="text-muted-foreground">·</span>
+                          <MessageCircle className="size-3.5 text-muted-foreground" aria-hidden />
+                          <span className="text-muted-foreground">
+                            {row.commentCount}{" "}
+                            {row.commentCount === 1 ? "comentario" : "comentarios"}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>

@@ -46,6 +46,7 @@ const CourseModuleDetailPage = async ({ params }: Props) => {
         recordingUrl: c.recordingUrl,
         recordingPostedAt: c.recordingPostedAt ? c.recordingPostedAt.toISOString() : null,
         recordingHiddenAt: c.recordingHiddenAt ? c.recordingHiddenAt.toISOString() : null,
+        commentCount: c._count.comments,
       }))}
     />
   );

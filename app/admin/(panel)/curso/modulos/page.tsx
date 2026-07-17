@@ -27,7 +27,8 @@ const CursoModulosPage = async () => {
         bodyMd: m.bodyMd,
         sortOrder: m.sortOrder,
         isPublished: m.isPublished,
-        classCount: m._count.classes,
+        classCount: m.classCount,
+        commentCount: m.commentCount,
       }))}
     />
   );

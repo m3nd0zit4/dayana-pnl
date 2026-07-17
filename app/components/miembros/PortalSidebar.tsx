@@ -11,8 +11,6 @@ import {
   MembershipWarningBanner,
 } from "./MembershipLockOverlay";
 
-const LINKS = [{ href: "/miembros", label: "Inicio", exact: true }];
-
 const ACCOUNT_LINK = {
   href: "/miembros/cuenta",
   label: "Mi cuenta",
@@ -79,24 +77,7 @@ const PortalSidebar = ({
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3 lg:px-8">
-          <div className="flex items-center gap-6">
-            <Brand />
-            <nav className="hidden items-center gap-1 sm:flex">
-              {LINKS.map(({ href, label, exact }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                    isActive(pathname, href, exact)
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          </div>
+          <Brand />
           <div className="flex items-center gap-3 text-xs text-muted-foreground sm:gap-4">
             <span className="hidden text-foreground sm:inline">{firstName}</span>
             <Link
@@ -120,21 +101,6 @@ const PortalSidebar = ({
             </button>
           </div>
         </div>
-        <nav aria-label="Portal" className="flex gap-1 overflow-x-auto px-3 pb-2 sm:hidden">
-          {LINKS.map(({ href, label, exact }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`rounded-full px-3.5 py-1.5 text-[10px] whitespace-nowrap uppercase ${
-                isActive(pathname, href, exact)
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
       </header>
 
       <main className="px-4 pt-6 pb-16 lg:px-8 lg:pt-8">

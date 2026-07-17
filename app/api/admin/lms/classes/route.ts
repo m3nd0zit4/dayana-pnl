@@ -18,7 +18,11 @@ export async function GET(req: NextRequest) {
 
   const moduleId = req.nextUrl.searchParams.get("moduleId");
   if (moduleId) {
-    const classes = await listClassesForModule(moduleId);
+    const rows = await listClassesForModule(moduleId);
+    const classes = rows.map(({ _count, ...row }) => ({
+      ...row,
+      commentCount: _count.comments,
+    }));
     return NextResponse.json({ classes });
   }
 

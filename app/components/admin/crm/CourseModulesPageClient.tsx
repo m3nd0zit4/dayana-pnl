@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowDown, ArrowUp, MessageCircle, Plus } from "lucide-react";
 import { useCallback, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -25,6 +26,7 @@ export type CourseModuleRow = {
   sortOrder: number;
   isPublished: boolean;
   classCount: number;
+  commentCount: number;
 };
 
 type Props = {
@@ -32,8 +34,10 @@ type Props = {
   initialModules: CourseModuleRow[];
 };
 
+/** Create-only — editing an existing module (title/content/published) lives
+ *  on the detail page, not here. This modal used to also support editing an
+ *  existing row, but no button ever opened it that way; removed as dead code. */
 type EditorState = {
-  id: string | null;
   title: string;
   bodyMd: string;
   isPublished: boolean;
@@ -42,6 +46,7 @@ type EditorState = {
 
 const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
   const { canWrite, aiEnabled, toast, confirm } = useCrm();
+  const router = useRouter();
   const [rows, setRows] = useState<CourseModuleRow[]>(initialModules);
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -68,18 +73,8 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
     if (data.modules) setRows(data.modules);
   }, [preview]);
 
-  const openEditor = (row?: CourseModuleRow) => {
-    setEditor(
-      row
-        ? {
-            id: row.id,
-            title: row.title,
-            bodyMd: row.bodyMd ?? "",
-            isPublished: row.isPublished,
-            showPreview: false,
-          }
-        : { id: null, title: "", bodyMd: "", isPublished: false, showPreview: false }
-    );
+  const openEditor = () => {
+    setEditor({ title: "", bodyMd: "", isPublished: false, showPreview: false });
   };
 
   const save = async () => {
@@ -90,27 +85,29 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
     }
 
     setSaving(true);
-    const res = await fetch(
-      editor.id ? `/api/admin/lms/modules/${editor.id}` : "/api/admin/lms/modules",
-      {
-        method: editor.id ? "PATCH" : "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          title: editor.title.trim(),
-          bodyMd: editor.bodyMd || null,
-          isPublished: editor.isPublished,
-        }),
-      }
-    );
+    const res = await fetch("/api/admin/lms/modules", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        title: editor.title.trim(),
+        bodyMd: editor.bodyMd || null,
+        isPublished: editor.isPublished,
+      }),
+    });
     setSaving(false);
 
     if (!res.ok) {
       toast("No se pudo guardar el módulo", "error");
       return;
     }
-    toast(editor.id ? "Módulo actualizado" : "Módulo creado");
+    const data = (await res.json()) as { module?: { id: string } };
+    toast("Módulo creado");
     setEditor(null);
-    void reload();
+    if (data.module?.id) {
+      router.push(`/admin/curso/modulos/${data.module.id}`);
+    } else {
+      void reload();
+    }
   };
 
   const togglePublished = async (row: CourseModuleRow) => {
@@ -213,6 +210,12 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
                         <Badge variant="secondary">
                           {row.classCount} {row.classCount === 1 ? "clase" : "clases"}
                         </Badge>
+                        {row.commentCount > 0 && (
+                          <Badge variant="secondary" className="gap-1">
+                            <MessageCircle className="size-3" aria-hidden />
+                            {row.commentCount}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -265,7 +268,7 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
       </div>
 
       <CrmModal
-        title={editor?.id ? "Editar módulo" : "Nuevo módulo"}
+        title="Nuevo módulo"
         open={!!editor}
         onClose={() => setEditor(null)}
         large

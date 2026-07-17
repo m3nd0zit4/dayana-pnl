@@ -27,14 +27,18 @@ type Tab = "progress" | "completed";
 const CourseCover = ({ title, imageUrl }: { title: string; imageUrl: string | null }) =>
   imageUrl ? (
     // eslint-disable-next-line @next/next/no-img-element -- arbitrary staff-provided URL, no next/image domain config for it
-    <img src={imageUrl} alt="" className="aspect-video w-full object-cover" />
+    <img src={imageUrl} alt="" className="size-full object-cover" />
   ) : (
-    <div className="flex aspect-video w-full items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
+    <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
       <GraduationCap className="size-10 text-primary/50" aria-hidden />
       <span className="sr-only">{title}</span>
     </div>
   );
 
+/** Full-width row, not a grid tile — a grid with 1-2 items always reads as
+ *  mostly empty space. Matches Coursera's actual "My Learning" list, which
+ *  is rows, not a card mosaic, and scales the same whether there's 1 course
+ *  or 20. */
 const CourseCard = ({ course }: { course: CourseCardData }) => {
   const isComplete = course.totalClasses > 0 && course.percent === 100;
   const started = course.completedClasses > 0;
@@ -58,40 +62,45 @@ const CourseCard = ({ course }: { course: CourseCardData }) => {
 
   return (
     <Card className="overflow-hidden py-0 transition-shadow hover:shadow-md">
-      <CourseCover title={course.title} imageUrl={course.imageUrl} />
-      <CardContent className="flex flex-1 flex-col gap-3 py-4">
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
-            {BRAND.name}
-          </p>
-          <h2 className="mt-0.5 line-clamp-2 text-base leading-snug font-semibold">
-            {course.title}
-          </h2>
+      <CardContent className="flex flex-col gap-5 p-0 sm:flex-row sm:items-stretch">
+        <div className="h-40 shrink-0 sm:h-auto sm:w-64">
+          <CourseCover title={course.title} imageUrl={course.imageUrl} />
         </div>
 
-        {course.totalClasses > 0 ? (
-          <div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>{course.percent}% completo</span>
-              <span>
-                {course.completedClasses}/{course.totalClasses} clases
-              </span>
-            </div>
-            <Progress value={course.percent} className="mt-1.5" />
+        <div className="flex flex-1 flex-col gap-3 p-5 pt-0 sm:py-5 sm:pl-0">
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
+              {BRAND.name}
+            </p>
+            <h2 className="mt-0.5 text-lg leading-snug font-semibold">{course.title}</h2>
           </div>
-        ) : (
-          <p className="text-xs text-muted-foreground">El contenido se publicará pronto.</p>
-        )}
 
-        {!course.isCurrent && (
-          <Badge className="w-fit bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-            {course.neverPaid ? "Sin activar" : "Membresía vencida"}
-          </Badge>
-        )}
+          {course.totalClasses > 0 ? (
+            <div className="max-w-sm">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{course.percent}% completo</span>
+                <span>
+                  {course.completedClasses}/{course.totalClasses} clases
+                </span>
+              </div>
+              <Progress value={course.percent} className="mt-1.5" />
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">El contenido se publicará pronto.</p>
+          )}
 
-        <Button className="mt-1 w-full" nativeButton={false} render={<Link href={href} />}>
-          {cta}
-        </Button>
+          {!course.isCurrent && (
+            <Badge className="w-fit bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+              {course.neverPaid ? "Sin activar" : "Membresía vencida"}
+            </Badge>
+          )}
+
+          <div className="mt-auto pt-1">
+            <Button nativeButton={false} render={<Link href={href} />}>
+              {cta}
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -140,7 +149,7 @@ const LearningDashboard = ({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="space-y-4">
           {visible.map((course) => (
             <CourseCard key={course.productId} course={course} />
           ))}

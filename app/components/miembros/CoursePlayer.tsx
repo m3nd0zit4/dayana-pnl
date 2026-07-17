@@ -283,7 +283,7 @@ const CoursePlayer = ({
 
               {isRecordingVisible(selectedClass) ? (
                 <>
-                  <div className="max-w-5xl">
+                  <div className="max-w-6xl">
                     <DriveRecordingEmbed
                       url={selectedClass.recordingUrl!}
                       title={selectedClass.title}
