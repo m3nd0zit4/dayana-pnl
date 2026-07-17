@@ -11,7 +11,6 @@ import { parseWorkshopSchedule } from "./workshop-schedule";
 
 export type WorkshopEditionRecord = Pick<
   WorkshopEdition,
-  | "id"
   | "slug"
   | "title"
   | "editionLabel"
@@ -96,7 +95,6 @@ export const mapEditionToDetail = (
 
   return {
     ...card,
-    id: edition.id,
     productId: edition.productId,
     heroLines,
     detailSummary:

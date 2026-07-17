@@ -14,7 +14,6 @@ import {
 } from "./workshops";
 
 const editionSelect = {
-  id: true,
   slug: true,
   title: true,
   editionLabel: true,
