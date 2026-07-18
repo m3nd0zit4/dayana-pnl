@@ -10,12 +10,8 @@ import {
   getWorkshopStatusLabel,
   type WorkshopCard,
 } from "../../../lib/workshops";
-import WhatsAppButton from "../ui/WhatsAppButton";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const GENERAL_WORKSHOP_WHATSAPP =
-  "Hola Dayana, me interesa información sobre talleres virtuales y próximas fechas.";
 
 const statusBadgeClass = (status: WorkshopCard["status"]) => {
   if (status === "completed") {
@@ -105,21 +101,13 @@ const WorkshopCardItem = ({ workshop }: { workshop: WorkshopCard }) => {
       </div>
 
       {workshop.status === "open" ? (
-        <div className="mt-6 flex flex-col gap-3">
+        <div className="mt-6">
           <Link
             href={detailHref}
             className="inline-flex w-full items-center justify-center rounded-full border border-black bg-black px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/85"
           >
-            Ver taller
+            Ver taller e inscribirme
           </Link>
-          {workshop.whatsappMessage ? (
-            <WhatsAppButton
-              message={workshop.whatsappMessage}
-              label="Inscribirme por WhatsApp"
-              size="md"
-              className="w-full"
-            />
-          ) : null}
         </div>
       ) : null}
     </article>
@@ -192,18 +180,12 @@ const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) =
           </div>
           <p className="mt-4 max-w-2xl font-[font1] text-base leading-snug text-white/82 lg:text-xl">
             Cuando abramos una nueva edición, la verás aquí. Mientras tanto,
-            puedes consultar por WhatsApp o explorar terapias y cursos en vivo.
+            puedes explorar terapias y cursos en vivo.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <WhatsAppButton
-              message={GENERAL_WORKSHOP_WHATSAPP}
-              label="Consultar por WhatsApp"
-              size="lg"
-              className="sm:flex-1"
-            />
             <Link
               href="/servicios"
-              className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/20 sm:flex-1"
+              className="inline-flex items-center justify-center rounded-full bg-linen px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-white sm:flex-1"
             >
               Ver servicios
             </Link>

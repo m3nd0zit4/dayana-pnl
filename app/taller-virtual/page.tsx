@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import WorkshopsListing from "../components/home/WorkshopsListing";
 import Footer from "../components/home/Footer";
-import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import { getWorkshopsFromDb } from "@/lib/workshops-db";
 
 export const metadata: Metadata = {
@@ -19,7 +18,6 @@ const WorkshopsPage = async () => {
         <WorkshopsListing workshops={workshops} />
       </main>
       <Footer />
-      <FloatingWhatsApp />
     </>
   );
 };
