@@ -18,6 +18,8 @@ export type WorkshopCard = {
   dateLabel: string;
   scheduleLabel: string;
   whatsappMessage?: string;
+  /** Producto cobrable vinculado — habilita el botón de pago en la tarjeta. */
+  productId?: string | null;
 };
 
 /** Landing completa de un taller activo. */

@@ -60,6 +60,7 @@ export const mapEditionToCard = (edition: WorkshopEditionRecord): WorkshopCard =
   dateLabel: edition.dateLabel ?? "",
   scheduleLabel: edition.scheduleLabel ?? "",
   whatsappMessage: edition.whatsappTemplate ?? undefined,
+  productId: edition.productId,
 });
 
 export const mapEditionToDetail = (

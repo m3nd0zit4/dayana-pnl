@@ -16,17 +16,27 @@ type MemberSignInFormProps = {
   /** Overrides the ?callbackUrl= query param — for inline embeds (e.g. the
    *  workshop payment gate) where the URL carries no callback. */
   callbackUrl?: string;
+  /** Inline embeds: called on successful credentials sign-in instead of
+   *  navigating to callbackUrl. */
+  onSuccess?: () => void;
+  initialEmail?: string;
+  /** Inline embeds: flip the host UI to the signup wizard instead of
+   *  navigating to /miembros/crear-cuenta. */
+  onSwitchToSignup?: () => void;
 };
 
 const MemberSignInForm = ({
   googleEnabled,
   callbackUrl: callbackUrlProp,
+  onSuccess,
+  initialEmail,
+  onSwitchToSignup,
 }: MemberSignInFormProps) => {
   const searchParams = useSearchParams();
   const callbackUrl =
     callbackUrlProp ?? searchParams.get("callbackUrl") ?? "/miembros";
   const oauthError = searchParams.get("error");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(
     oauthError
@@ -54,6 +64,10 @@ const MemberSignInForm = ({
       return;
     }
 
+    if (onSuccess) {
+      onSuccess();
+      return;
+    }
     window.location.href = result?.url ?? callbackUrl;
   };
 
@@ -146,16 +160,26 @@ const MemberSignInForm = ({
 
       <p className="pt-1 text-center font-[font1] text-[13px] text-white/45">
         ¿Primera vez aquí?{" "}
-        <Link
-          href={
-            callbackUrl !== "/miembros"
-              ? `/miembros/crear-cuenta?callbackUrl=${encodeURIComponent(callbackUrl)}`
-              : "/miembros/crear-cuenta"
-          }
-          className="text-linen underline-offset-4 hover:underline"
-        >
-          Crea tu cuenta
-        </Link>
+        {onSwitchToSignup ? (
+          <button
+            type="button"
+            onClick={onSwitchToSignup}
+            className="text-linen underline-offset-4 hover:underline"
+          >
+            Crea tu cuenta
+          </button>
+        ) : (
+          <Link
+            href={
+              callbackUrl !== "/miembros"
+                ? `/miembros/crear-cuenta?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : "/miembros/crear-cuenta"
+            }
+            className="text-linen underline-offset-4 hover:underline"
+          >
+            Crea tu cuenta
+          </Link>
+        )}
       </p>
     </div>
   );

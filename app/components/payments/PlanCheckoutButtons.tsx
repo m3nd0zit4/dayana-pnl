@@ -14,6 +14,8 @@ type Props = {
   userCountry?: string | null;
   /** Workshops are payment-only — no WhatsApp escape hatch. */
   showWhatsApp?: boolean;
+  /** Intercept the click (e.g. auth gate) instead of opening the modal. */
+  onPay?: (provider: "paypal" | "mercadopago") => void;
 };
 
 const PlanCheckoutButtons = ({
@@ -21,6 +23,7 @@ const PlanCheckoutButtons = ({
   isDark,
   userCountry,
   showWhatsApp = true,
+  onPay,
 }: Props) => {
   const { openPayPal } = usePayPalModal();
   const { openMercadoPago } = useMercadoPagoCheckoutModal();
@@ -54,7 +57,9 @@ const PlanCheckoutButtons = ({
         <button
           type="button"
           disabled={payBusy}
-          onClick={() => openMercadoPago(plan.id)}
+          onClick={() =>
+            onPay ? onPay("mercadopago") : openMercadoPago(plan.id)
+          }
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
         >
           <MercadoPagoBrandRow
@@ -67,7 +72,7 @@ const PlanCheckoutButtons = ({
         <button
           type="button"
           disabled={payBusy}
-          onClick={() => openPayPal(plan.id)}
+          onClick={() => (onPay ? onPay("paypal") : openPayPal(plan.id))}
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none ${
             isDark
               ? "border-white/15 bg-white text-[#003087] shadow-[0_8px_28px_rgba(0,0,0,0.35)] hover:border-[#009cde] hover:bg-[#f4f9ff]"

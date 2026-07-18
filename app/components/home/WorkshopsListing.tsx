@@ -4,12 +4,14 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
 import {
   WORKSHOPS,
   getWorkshopStatusLabel,
   type WorkshopCard,
 } from "../../../lib/workshops";
+import type { Plan } from "../../../lib/plans";
+import WorkshopCheckoutCta from "./WorkshopCheckoutCta";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -56,7 +58,19 @@ const UpcomingWorkshopCard = () => (
   </article>
 );
 
-const WorkshopCardItem = ({ workshop }: { workshop: WorkshopCard }) => {
+type WorkshopCardItemProps = {
+  workshop: WorkshopCard;
+  plan?: Plan | null;
+  userCountry?: string | null;
+  googleEnabled?: boolean;
+};
+
+const WorkshopCardItem = ({
+  workshop,
+  plan,
+  userCountry,
+  googleEnabled = false,
+}: WorkshopCardItemProps) => {
   if (workshop.status === "upcoming") {
     return <UpcomingWorkshopCard />;
   }
@@ -101,13 +115,37 @@ const WorkshopCardItem = ({ workshop }: { workshop: WorkshopCard }) => {
       </div>
 
       {workshop.status === "open" ? (
-        <div className="mt-6">
-          <Link
-            href={detailHref}
-            className="inline-flex w-full items-center justify-center rounded-full border border-black bg-black px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/85"
-          >
-            Ver taller e inscribirme
-          </Link>
+        <div className="mt-4">
+          {plan ? (
+            <>
+              <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
+                <WorkshopCheckoutCta
+                  plan={plan}
+                  userCountry={userCountry}
+                  isDark={false}
+                  googleEnabled={googleEnabled}
+                  autopayReturnPath="/taller-virtual"
+                />
+              </Suspense>
+              <div className="mt-3 text-center">
+                <Link
+                  href={detailHref}
+                  className="font-[font1] text-[12px] text-black/55 underline-offset-4 transition-colors hover:text-black hover:underline"
+                >
+                  Ver detalles del taller →
+                </Link>
+              </div>
+            </>
+          ) : (
+            /* Sin plan resuelto (producto sin precio o fallback estático):
+               conserva el enlace al detalle. */
+            <Link
+              href={detailHref}
+              className="mt-2 inline-flex w-full items-center justify-center rounded-full border border-black bg-black px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/85"
+            >
+              Ver taller
+            </Link>
+          )}
         </div>
       ) : null}
     </article>
@@ -116,9 +154,18 @@ const WorkshopCardItem = ({ workshop }: { workshop: WorkshopCard }) => {
 
 type WorkshopsListingProps = {
   workshops?: WorkshopCard[];
+  /** Plan por productId de cada taller abierto — habilita el pago en tarjeta. */
+  plans?: Record<string, Plan>;
+  userCountry?: string | null;
+  googleEnabled?: boolean;
 };
 
-const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) => {
+const WorkshopsListing = ({
+  workshops: workshopsProp,
+  plans,
+  userCountry,
+  googleEnabled = false,
+}: WorkshopsListingProps) => {
   const workshops = workshopsProp ?? WORKSHOPS;
   const rootRef = useRef<HTMLElement>(null);
   const hasOpen = workshops.some((w) => w.status === "open");
@@ -170,7 +217,15 @@ const WorkshopsListing = ({ workshops: workshopsProp }: WorkshopsListingProps) =
 
         <div className="wk-list-reveal mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-6">
           {workshops.map((workshop) => (
-            <WorkshopCardItem key={workshop.slug} workshop={workshop} />
+            <WorkshopCardItem
+              key={workshop.slug}
+              workshop={workshop}
+              plan={
+                workshop.productId ? plans?.[workshop.productId] ?? null : null
+              }
+              userCountry={userCountry}
+              googleEnabled={googleEnabled}
+            />
           ))}
         </div>
 

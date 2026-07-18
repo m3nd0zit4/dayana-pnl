@@ -2,15 +2,12 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { WorkshopDetail } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
-import AccountAccessCard from "./AccountAccessCard";
-import WorkshopPaymentSection from "./WorkshopPaymentSection";
+import WorkshopCheckoutCta from "./WorkshopCheckoutCta";
 
 type WorkshopTeaserProps = {
   workshop: WorkshopDetail;
   plan: Plan | null;
   userCountry?: string | null;
-  /** Visitor has an authenticated member-portal session (not necessarily paid yet). */
-  hasMemberSession: boolean;
   googleEnabled: boolean;
 };
 
@@ -18,13 +15,8 @@ const WorkshopTeaser = ({
   workshop,
   plan,
   userCountry,
-  hasMemberSession,
   googleEnabled,
 }: WorkshopTeaserProps) => {
-  // ?autopay=1 tells WorkshopPaymentSection to auto-open the payment modal
-  // once the visitor lands back here after creating an account / logging in.
-  const callbackUrl = `/taller-virtual/${workshop.slug}?autopay=1`;
-
   return (
     <section data-nav-color="black" className="bg-[#faf7f2] text-black min-h-screen">
       <div className="px-3 lg:px-8 pt-24 lg:pt-28 pb-16 max-w-[1400px] mx-auto">
@@ -63,30 +55,28 @@ const WorkshopTeaser = ({
           </div>
         </article>
 
-        {hasMemberSession ? (
-          <article className="mt-10 rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
-            <Suspense
-              fallback={<div className="h-[100px]" aria-hidden />}
-            >
-              <WorkshopPaymentSection plan={plan} userCountry={userCountry} />
-            </Suspense>
-          </article>
-        ) : (
-          /* Center-screen account gate with the sign-in form embedded — the
-             visitor logs in right here and lands back on this page with the
-             payment modal opening. Sits below the navbar (z-30) so the menu
-             and account icon stay usable. */
-          <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-sm px-4">
-            <div className="w-full max-w-md">
-              <AccountAccessCard
-                title="Inscripción"
-                description="Inicia sesión o crea tu cuenta para continuar con el pago de este taller."
-                callbackUrl={callbackUrl}
-                googleEnabled={googleEnabled}
-              />
-            </div>
+        {/* Payment card is always visible; auth (login/onboarding) only
+            appears on demand when a logged-out visitor clicks pay. */}
+        <article className="mt-10 rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
+          <div className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-white/60">
+            Inscripción
           </div>
-        )}
+          {plan ? (
+            <Suspense fallback={<div className="h-[100px]" aria-hidden />}>
+              <WorkshopCheckoutCta
+                plan={plan}
+                userCountry={userCountry}
+                isDark
+                googleEnabled={googleEnabled}
+                autopayReturnPath={`/taller-virtual/${workshop.slug}`}
+              />
+            </Suspense>
+          ) : (
+            <p className="mt-4 font-[font1] text-sm text-white/60">
+              El pago en línea para este taller aún no está configurado.
+            </p>
+          )}
+        </article>
       </div>
     </section>
   );
