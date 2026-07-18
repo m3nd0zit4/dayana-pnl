@@ -11,9 +11,20 @@ const inputClass =
 const labelClass =
   "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50";
 
-const MemberSignInForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
+type MemberSignInFormProps = {
+  googleEnabled: boolean;
+  /** Overrides the ?callbackUrl= query param — for inline embeds (e.g. the
+   *  workshop payment gate) where the URL carries no callback. */
+  callbackUrl?: string;
+};
+
+const MemberSignInForm = ({
+  googleEnabled,
+  callbackUrl: callbackUrlProp,
+}: MemberSignInFormProps) => {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/miembros";
+  const callbackUrl =
+    callbackUrlProp ?? searchParams.get("callbackUrl") ?? "/miembros";
   const oauthError = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -136,7 +147,11 @@ const MemberSignInForm = ({ googleEnabled }: { googleEnabled: boolean }) => {
       <p className="pt-1 text-center font-[font1] text-[13px] text-white/45">
         ¿Primera vez aquí?{" "}
         <Link
-          href="/miembros/crear-cuenta"
+          href={
+            callbackUrl !== "/miembros"
+              ? `/miembros/crear-cuenta?callbackUrl=${encodeURIComponent(callbackUrl)}`
+              : "/miembros/crear-cuenta"
+          }
           className="text-linen underline-offset-4 hover:underline"
         >
           Crea tu cuenta

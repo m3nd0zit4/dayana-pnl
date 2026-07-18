@@ -11,6 +11,7 @@ type WorkshopTeaserProps = {
   userCountry?: string | null;
   /** Visitor has an authenticated member-portal session (not necessarily paid yet). */
   hasMemberSession: boolean;
+  googleEnabled: boolean;
 };
 
 const WorkshopTeaser = ({
@@ -18,6 +19,7 @@ const WorkshopTeaser = ({
   plan,
   userCountry,
   hasMemberSession,
+  googleEnabled,
 }: WorkshopTeaserProps) => {
   // ?autopay=1 tells WorkshopPaymentSection to auto-open the payment modal
   // once the visitor lands back here after creating an account / logging in.
@@ -70,15 +72,17 @@ const WorkshopTeaser = ({
             </Suspense>
           </article>
         ) : (
-          /* Center-screen account gate: the teaser stays visible but blurred
-             behind; the card asks for an account before anything else. Sits
-             below the navbar (z-30) so the menu and account icon stay usable. */
+          /* Center-screen account gate with the sign-in form embedded — the
+             visitor logs in right here and lands back on this page with the
+             payment modal opening. Sits below the navbar (z-30) so the menu
+             and account icon stay usable. */
           <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/45 backdrop-blur-sm px-4">
             <div className="w-full max-w-md">
               <AccountAccessCard
                 title="Inscripción"
-                description="Crea tu cuenta o inicia sesión para continuar con el pago de este taller."
+                description="Inicia sesión o crea tu cuenta para continuar con el pago de este taller."
                 callbackUrl={callbackUrl}
+                googleEnabled={googleEnabled}
               />
             </div>
           </div>

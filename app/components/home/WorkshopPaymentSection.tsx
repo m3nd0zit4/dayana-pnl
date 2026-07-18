@@ -61,7 +61,14 @@ const WorkshopPaymentSection = ({
     );
   }
 
-  return <PlanCheckoutButtons plan={plan} isDark userCountry={userCountry} />;
+  return (
+    <PlanCheckoutButtons
+      plan={plan}
+      isDark
+      userCountry={userCountry}
+      showWhatsApp={false}
+    />
+  );
 };
 
 export default WorkshopPaymentSection;

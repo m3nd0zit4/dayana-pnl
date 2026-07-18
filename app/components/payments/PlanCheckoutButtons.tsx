@@ -12,9 +12,16 @@ type Props = {
   plan: Plan;
   isDark: boolean;
   userCountry?: string | null;
+  /** Workshops are payment-only — no WhatsApp escape hatch. */
+  showWhatsApp?: boolean;
 };
 
-const PlanCheckoutButtons = ({ plan, isDark, userCountry }: Props) => {
+const PlanCheckoutButtons = ({
+  plan,
+  isDark,
+  userCountry,
+  showWhatsApp = true,
+}: Props) => {
   const { openPayPal } = usePayPalModal();
   const { openMercadoPago } = useMercadoPagoCheckoutModal();
   // "Mounted" sin setState-en-efecto: evita el mismatch de hidratación.
@@ -74,18 +81,20 @@ const PlanCheckoutButtons = ({ plan, isDark, userCountry }: Props) => {
           />
         </button>
       )}
-      <a
-        href={buildWhatsAppUrl(plan.whatsappMessage)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`w-full text-center font-[font1] text-[11px] uppercase tracking-[0.3em] py-1 transition-colors ${
-          isDark
-            ? "text-white/60 hover:text-linen"
-            : "text-black/60 hover:text-black"
-        }`}
-      >
-        Prefiero WhatsApp
-      </a>
+      {showWhatsApp && (
+        <a
+          href={buildWhatsAppUrl(plan.whatsappMessage)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`w-full text-center font-[font1] text-[11px] uppercase tracking-[0.3em] py-1 transition-colors ${
+            isDark
+              ? "text-white/60 hover:text-linen"
+              : "text-black/60 hover:text-black"
+          }`}
+        >
+          Prefiero WhatsApp
+        </a>
+      )}
     </div>
   );
 };

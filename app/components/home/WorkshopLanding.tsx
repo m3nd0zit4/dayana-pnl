@@ -11,7 +11,6 @@ import {
   type WorkshopDetail,
 } from "../../../lib/workshops";
 import { getScheduleSlotLabel } from "../../../lib/workshop-schedule";
-import WhatsAppButton from "../ui/WhatsAppButton";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -210,32 +209,7 @@ const WorkshopLanding = ({ workshop }: WorkshopLandingProps) => {
         </div>
       )}
 
-      <div className="px-3 lg:px-8 py-16 border-t border-black/10 pb-24">
-        <div className="max-w-[1400px] mx-auto">
-          <article className="wk-reveal rounded-3xl border border-black/10 bg-black text-white p-7 lg:p-10">
-            <div className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-white/60">
-              Inscripción
-            </div>
-            <p className="font-[font1] mt-4 text-white/82 leading-snug max-w-2xl text-lg lg:text-2xl">
-              {workshop.ctaMessage}
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <WhatsAppButton
-                message={workshop.whatsappMessage}
-                label="Consultar por WhatsApp"
-                size="lg"
-                className="sm:flex-1"
-              />
-              <Link
-                href="/servicios"
-                className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/10 px-6 py-3 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-white/20 sm:flex-1"
-              >
-                Ver servicios
-              </Link>
-            </div>
-          </article>
-        </div>
-      </div>
+      <div className="pb-24" aria-hidden />
     </section>
   );
 };

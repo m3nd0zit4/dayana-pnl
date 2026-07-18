@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import WorkshopLanding from "@/app/components/home/WorkshopLanding";
 import WorkshopTeaser from "@/app/components/home/WorkshopTeaser";
 import Footer from "@/app/components/home/Footer";
-import FloatingWhatsApp from "@/app/components/ui/FloatingWhatsApp";
+import { isGoogleAuthEnabled } from "@/auth";
 import { getOpenWorkshopDetailBySlug } from "@/lib/workshops-db";
 import { getMemberSession } from "@/lib/auth/member-session";
 import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
@@ -68,11 +68,11 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
             plan={plan}
             userCountry={userCountry}
             hasMemberSession={hasMemberSession}
+            googleEnabled={isGoogleAuthEnabled()}
           />
         )}
       </main>
       <Footer />
-      <FloatingWhatsApp />
     </>
   );
 };
