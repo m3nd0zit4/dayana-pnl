@@ -74,16 +74,18 @@ const WorkshopCheckoutCta = ({
       // Don't flash the auth overlay at someone who is actually logged in —
       // resolve the session once and act on the truth.
       pendingProviderRef.current = provider;
-      void getSession().then((session) => {
-        const pending = pendingProviderRef.current;
-        pendingProviderRef.current = null;
-        if (!pending) return;
-        if (session?.user) {
-          openCheckout(pending);
-        } else {
-          setAuthOverlay({ provider: pending, mode: "wizard" });
-        }
-      });
+      void getSession()
+        .catch(() => null)
+        .then((session) => {
+          const pending = pendingProviderRef.current;
+          pendingProviderRef.current = null;
+          if (!pending) return;
+          if (session?.user) {
+            openCheckout(pending);
+          } else {
+            setAuthOverlay({ provider: pending, mode: "wizard" });
+          }
+        });
       return;
     }
     setAuthOverlay({ provider, mode: "wizard" });

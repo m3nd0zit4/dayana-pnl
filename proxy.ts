@@ -13,6 +13,7 @@ const MEMBER_PUBLIC_APIS = new Set([
   "/api/miembros/auth/set-password",
   "/api/miembros/auth/request-access",
   "/api/miembros/auth/signup",
+  "/api/miembros/auth/email-status",
 ]);
 
 /** Rutas de acceso históricas — todas llevan al acceso único. */
