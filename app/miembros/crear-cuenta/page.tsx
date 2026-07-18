@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { isGoogleAuthEnabled } from "@/auth";
 import { BRAND } from "@/lib/contact";
 import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
 import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
-import MemberSignupForm from "@/app/components/miembros/MemberSignupForm";
+import OnboardingWizard from "@/app/components/miembros/OnboardingWizard";
 import RequestAccessForm from "@/app/components/miembros/RequestAccessForm";
 import SetPasswordForm from "@/app/components/miembros/SetPasswordForm";
 
@@ -57,11 +56,12 @@ const Page = async ({ searchParams }: PageProps) => {
   return (
     <MemberAuthShell
       title="Crea tu cuenta"
-      description="Escribe tu correo y te enviamos un enlace para crear tu contraseña."
+      description="Cuatro pasos y entras directo — sin esperar correos."
     >
-      <Suspense fallback={null}>
-        <MemberSignupForm googleEnabled={isGoogleAuthEnabled()} />
-      </Suspense>
+      <OnboardingWizard
+        googleEnabled={isGoogleAuthEnabled()}
+        callbackUrl={safeCallbackUrl(callbackUrl) ?? undefined}
+      />
     </MemberAuthShell>
   );
 };

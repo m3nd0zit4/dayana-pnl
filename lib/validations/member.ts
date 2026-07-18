@@ -27,6 +27,22 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(1).max(200),
 });
 
+/** Direct signup from the onboarding wizard — creates the account at once. */
+export const signupSchema = z.object({
+  email: z.string().email().max(320),
+  firstName: z.string().trim().min(1).max(80),
+  lastName: z.string().trim().max(80).optional().nullable(),
+  /** Local mobile digits; country carried separately. */
+  phone: z.string().trim().min(1).max(24),
+  phoneCountry: z.string().trim().length(2),
+  password: z.string().min(1).max(200),
+  consentData: z.literal(true),
+});
+
+export const emailStatusSchema = z.object({
+  email: z.string().email().max(320),
+});
+
 export const updateProfileSchema = z.object({
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().max(80).optional().nullable(),
