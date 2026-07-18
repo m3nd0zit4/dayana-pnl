@@ -7,8 +7,8 @@ import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import {
-  beginCheckoutContact,
   mapCheckoutBeginError,
+  resolveCheckoutContactIdForRequest,
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
@@ -26,6 +26,7 @@ const PAYPAL_CURRENCY = "USD";
 type Body = CheckoutContactBody & {
   planId?: unknown;
   promoCode?: unknown;
+  fromSession?: unknown;
 };
 
 function parseContactBody(body: Body): CheckoutContactBody {
@@ -100,11 +101,11 @@ export async function POST(req: NextRequest) {
 
   let contactId: string;
   try {
-    const begun = await beginCheckoutContact({
+    contactId = await resolveCheckoutContactIdForRequest({
       planId,
       contact: parseContactBody(body),
+      fromSession: body.fromSession === true,
     });
-    contactId = begun.contactId;
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[paypal] contact register failed", e);

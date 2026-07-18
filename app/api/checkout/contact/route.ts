@@ -4,6 +4,7 @@ import {
   mapCheckoutBeginError,
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
+import { resolveSessionCheckoutContact } from "@/lib/crm/checkout-session-contact";
 import {
   clientIp,
   rateLimitDistributed,
@@ -14,6 +15,9 @@ export const dynamic = "force-dynamic";
 
 type Body = CheckoutContactBody & {
   planId?: string;
+  /** Resolve the contact from the signed-in session instead of (or anchored
+   *  to) the posted fields. Server-side only — posted contactId is ignored. */
+  fromSession?: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -34,10 +38,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
+  let sessionContactId: string | undefined;
+  if (body.fromSession === true) {
+    const resolved = await resolveSessionCheckoutContact();
+    if (!resolved) {
+      return NextResponse.json({ error: "no_session" }, { status: 401 });
+    }
+
+    const hasFields = Boolean(body.phone?.trim());
+    if (!hasFields) {
+      if (resolved.status === "complete") {
+        return NextResponse.json({
+          contactId: resolved.contactId,
+          complete: true,
+          prefill: resolved.prefill,
+        });
+      }
+      return NextResponse.json({ complete: false, prefill: resolved.prefill });
+    }
+
+    // Fallback-form submit: anchor to the session contact so the payment
+    // registers to the signed-in identity, never a client-chosen id.
+    sessionContactId = resolved.contactId ?? undefined;
+  }
+
   try {
     const { contactId, contactCreated } = await beginCheckoutContact({
       planId: body.planId,
       contact: {
+        ...(sessionContactId ? { contactId: sessionContactId } : {}),
         phone: body.phone,
         phoneCountry: body.phoneCountry,
         firstName: body.firstName,

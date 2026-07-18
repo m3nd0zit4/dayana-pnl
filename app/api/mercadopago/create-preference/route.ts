@@ -6,8 +6,8 @@ import {
   siteBaseUrl,
 } from "../../../../lib/mercadopago/amount";
 import {
-  beginCheckoutContact,
   mapCheckoutBeginError,
+  resolveCheckoutContactIdForRequest,
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
@@ -25,6 +25,7 @@ type Body = CheckoutContactBody & {
   promoCode?: string;
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
   mode?: "full" | "cards";
+  fromSession?: boolean;
 };
 
 function parseContactBody(body: Body): CheckoutContactBody {
@@ -75,11 +76,11 @@ export async function POST(req: Request) {
 
   let contactId: string;
   try {
-    const begun = await beginCheckoutContact({
+    contactId = await resolveCheckoutContactIdForRequest({
       planId,
       contact: parseContactBody(body),
+      fromSession: body.fromSession === true,
     });
-    contactId = begun.contactId;
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[mercadopago] contact register failed", e);

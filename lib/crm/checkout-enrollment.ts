@@ -3,6 +3,7 @@ import {
   resolveCheckoutContact,
   type ResolveCheckoutContactInput,
 } from "./checkout-contact";
+import { resolveSessionCheckoutContact } from "./checkout-session-contact";
 import { EnrollmentValidationError } from "./enrollments";
 
 export type CheckoutContactBody = ResolveCheckoutContactInput & {
@@ -27,6 +28,41 @@ export async function beginCheckoutContact(
 ): Promise<BeginCheckoutContactResult> {
   const { contactId, created } = await resolveCheckoutContact(input.contact);
   return { contactId, contactCreated: created };
+}
+
+/**
+ * Contact resolution for the payment-creation routes. With `fromSession`,
+ * the signed-in identity wins: a complete session contact is used directly
+ * (no fields needed), an incomplete one anchors the posted fields to it,
+ * and an expired session falls back to the plain posted-fields path.
+ */
+export async function resolveCheckoutContactIdForRequest(input: {
+  planId: string;
+  contact: CheckoutContactBody;
+  fromSession?: boolean;
+}): Promise<string> {
+  if (input.fromSession === true) {
+    const resolved = await resolveSessionCheckoutContact();
+    if (resolved) {
+      if (resolved.status === "complete") {
+        return resolved.contactId;
+      }
+      const begun = await beginCheckoutContact({
+        planId: input.planId,
+        contact: {
+          ...input.contact,
+          contactId: resolved.contactId ?? undefined,
+        },
+      });
+      return begun.contactId;
+    }
+  }
+
+  const begun = await beginCheckoutContact({
+    planId: input.planId,
+    contact: input.contact,
+  });
+  return begun.contactId;
 }
 
 export function mapCheckoutBeginError(e: unknown): {
