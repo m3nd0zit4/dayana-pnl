@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import CountrySelect from "./CountrySelect";
 import SearchableSelect from "./SearchableSelect";
-import { contactSourceSelectOptions } from "@/lib/crm/form-select-options";
+import { contactFilterSourceSelectOptions } from "@/lib/crm/form-select-options";
 import ContactFormModal from "./ContactFormModal";
 import { formatCountryLabel } from "@/lib/countries";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
@@ -100,7 +100,7 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
               id="f-source"
               label="Origen"
               value={source}
-              options={contactSourceSelectOptions()}
+              options={contactFilterSourceSelectOptions()}
               onChange={setSource}
               allowEmpty
               emptyLabel="Todos"

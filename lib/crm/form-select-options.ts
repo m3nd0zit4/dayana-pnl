@@ -14,6 +14,17 @@ export const contactSourceSelectOptions = (): SelectOption[] =>
     label: o.label,
   }));
 
+/**
+ * The contacts-list filter, unlike the create/edit form, must also let staff
+ * isolate WEB_LEAD_FORM (home "Hablemos sin prisa" submissions, badged
+ * "Contacto pendiente") — a system-assigned source nobody picks manually,
+ * so it's deliberately absent from CONTACT_SOURCE_OPTIONS.
+ */
+export const contactFilterSourceSelectOptions = (): SelectOption[] => [
+  ...contactSourceSelectOptions(),
+  { value: "WEB_LEAD_FORM" satisfies ContactSource, label: "Formulario web (lead)" },
+];
+
 export const enrollmentStatusSelectOptions = (
   includeAll = false
 ): SelectOption[] => {
