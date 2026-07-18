@@ -85,8 +85,15 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
   );
   const [prefill, setPrefill] = useState<CheckoutContactPrefill | null>(null);
   const [buttonsEpoch, setButtonsEpoch] = useState(0);
+  // Promo entry for the session fast-path (the contact form — where promo
+  // normally lives — is skipped there).
+  const [sessionPromoDraft, setSessionPromoDraft] = useState("");
+  const [sessionPromo, setSessionPromo] = useState<string | undefined>(
+    undefined
+  );
 
   const contactPayloadRef = useRef<ContactState | null>(null);
+  const sessionPromoRef = useRef<string | undefined>(undefined);
   // True when the session path is live: submits/orders carry fromSession so
   // the server anchors the payment to the signed-in contact.
   const fromSessionRef = useRef(false);
@@ -122,8 +129,11 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
       setBreakdown(null);
       setContactPayload(null);
       setPrefill(null);
+      setSessionPromoDraft("");
+      setSessionPromo(undefined);
       contactPayloadRef.current = null;
       checkoutContactIdRef.current = null;
+      sessionPromoRef.current = undefined;
       fromSessionRef.current = false;
       paypalFlowActiveRef.current = false;
       checkoutSucceededRef.current = false;
@@ -214,7 +224,7 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
         promoCode:
           contactPayload && !isSessionContact(contactPayload)
             ? contactPayload.promoCode
-            : undefined,
+            : sessionPromo,
       }),
     })
       .then(async (res) => {
@@ -238,7 +248,7 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
     return () => {
       cancelled = true;
     };
-  }, [open, plan, contactPayload]);
+  }, [open, plan, contactPayload, sessionPromo]);
 
   useEffect(() => {
     if (!open || !plan || !contactPayload || checkoutSucceededRef.current) return;
@@ -331,7 +341,9 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
               body: JSON.stringify({
                 planId: plan.id,
                 contactId: contactId ?? undefined,
-                ...(isSessionContact(contact) ? {} : contact),
+                ...(isSessionContact(contact)
+                  ? { promoCode: sessionPromoRef.current }
+                  : contact),
                 ...(fromSessionRef.current ? { fromSession: true } : {}),
               }),
             });
@@ -654,6 +666,37 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
               {ui.message}
             </div>
           )}
+
+          {/* Session fast-path skips the contact form, so promo entry lives
+              here instead. Applying re-quotes; createOrder reads the ref. */}
+          {ui.kind === "buttons" &&
+            contactPayload &&
+            isSessionContact(contactPayload) && (
+              <form
+                className="mb-4 flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const code = sessionPromoDraft.trim() || undefined;
+                  sessionPromoRef.current = code;
+                  setSessionPromo(code);
+                }}
+              >
+                <input
+                  value={sessionPromoDraft}
+                  onChange={(e) =>
+                    setSessionPromoDraft(e.target.value.toUpperCase())
+                  }
+                  placeholder="Código promocional (opcional)"
+                  className="min-w-0 flex-1 rounded-lg bg-black/40 border border-linen/20 px-3 py-2 text-white font-[font1] text-sm uppercase placeholder:normal-case"
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-lg border border-linen/30 px-4 font-[font2] uppercase text-[10px] tracking-[0.2em] text-white/80 hover:bg-linen/5"
+                >
+                  Aplicar
+                </button>
+              </form>
+            )}
 
           {/* While loading, hide with `invisible` (visibility:hidden keeps
               the layout box at full modal width) — NOT sr-only, whose 1px

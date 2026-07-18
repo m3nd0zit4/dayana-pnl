@@ -83,6 +83,11 @@ const MercadoPagoCheckoutModal = ({
   );
   const [prefill, setPrefill] = useState<CheckoutContactPrefill | null>(null);
   const [checkoutContactId, setCheckoutContactId] = useState<string | null>(null);
+  // Promo entry for the session fast-path (the contact form is skipped there).
+  const [sessionPromoDraft, setSessionPromoDraft] = useState("");
+  const [sessionPromo, setSessionPromo] = useState<string | undefined>(
+    undefined
+  );
   const fromSessionRef = useRef(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -93,6 +98,8 @@ const MercadoPagoCheckoutModal = ({
       setContactPayload(null);
       setPrefill(null);
       setCheckoutContactId(null);
+      setSessionPromoDraft("");
+      setSessionPromo(undefined);
       fromSessionRef.current = false;
       return;
     }
@@ -174,7 +181,7 @@ const MercadoPagoCheckoutModal = ({
         planId: plan.id,
         provider: "mercadopago",
         promoCode: isSessionContact(contactPayload)
-          ? undefined
+          ? sessionPromo
           : contactPayload.promoCode,
       }),
     })
@@ -217,7 +224,7 @@ const MercadoPagoCheckoutModal = ({
     return () => {
       cancelled = true;
     };
-  }, [open, plan, contactPayload]);
+  }, [open, plan, contactPayload, sessionPromo]);
 
   if (!open) return null;
   if (typeof document === "undefined") return null;
@@ -267,7 +274,9 @@ const MercadoPagoCheckoutModal = ({
           planId: plan.id,
           mode: "full",
           contactId: checkoutContactId ?? undefined,
-          ...(isSessionContact(contactPayload) ? {} : contactPayload),
+          ...(isSessionContact(contactPayload)
+            ? { promoCode: sessionPromo }
+            : contactPayload),
           ...(fromSessionRef.current ? { fromSession: true } : {}),
         }),
       });
@@ -436,6 +445,32 @@ const MercadoPagoCheckoutModal = ({
 
           {(ui.kind === "ready" || ui.kind === "redirecting") && (
             <>
+              {contactPayload && isSessionContact(contactPayload) && (
+                <form
+                  className="mb-4 flex gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setSessionPromo(sessionPromoDraft.trim() || undefined);
+                  }}
+                >
+                  <input
+                    value={sessionPromoDraft}
+                    onChange={(e) =>
+                      setSessionPromoDraft(e.target.value.toUpperCase())
+                    }
+                    disabled={ui.kind === "redirecting"}
+                    placeholder="Código promocional (opcional)"
+                    className="min-w-0 flex-1 rounded-lg bg-black/40 border border-linen/20 px-3 py-2 text-white font-[font1] text-sm uppercase placeholder:normal-case disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={ui.kind === "redirecting"}
+                    className="shrink-0 rounded-lg border border-linen/30 px-4 font-[font2] uppercase text-[10px] tracking-[0.2em] text-white/80 hover:bg-linen/5 disabled:opacity-50"
+                  >
+                    Aplicar
+                  </button>
+                </form>
+              )}
               <p className="font-[font1] text-[12px] text-white/55 leading-snug mb-3">
                 Vas a ser redirigido a Mercado Pago para completar el pago de
                 forma segura. Aceptan tarjeta débito, crédito y PSE

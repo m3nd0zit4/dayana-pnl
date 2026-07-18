@@ -52,7 +52,7 @@ const DualCurrencyCheckout = ({ plan, isDark = true }: Props) => {
       {plan.amountCop != null && (
         <button
           type="button"
-          onClick={() => openMercadoPago(plan.id)}
+          onClick={() => openMercadoPago(plan.id, { sessionFirst: true })}
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer ${mpClass}`}
         >
           <MercadoPagoBrandRow
@@ -65,7 +65,7 @@ const DualCurrencyCheckout = ({ plan, isDark = true }: Props) => {
 
       <button
         type="button"
-        onClick={() => openPayPal(plan.id)}
+        onClick={() => openPayPal(plan.id, { sessionFirst: true })}
         className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer ${paypalClass}`}
       >
         <div className="flex flex-col items-center">

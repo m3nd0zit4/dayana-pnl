@@ -58,7 +58,9 @@ const PlanCheckoutButtons = ({
           type="button"
           disabled={payBusy}
           onClick={() =>
-            onPay ? onPay("mercadopago") : openMercadoPago(plan.id)
+            onPay
+              ? onPay("mercadopago")
+              : openMercadoPago(plan.id, { sessionFirst: true })
           }
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-60 disabled:pointer-events-none ${mpFullClass}`}
         >
@@ -72,7 +74,9 @@ const PlanCheckoutButtons = ({
         <button
           type="button"
           disabled={payBusy}
-          onClick={() => (onPay ? onPay("paypal") : openPayPal(plan.id))}
+          onClick={() =>
+            onPay ? onPay("paypal") : openPayPal(plan.id, { sessionFirst: true })
+          }
           className={`group flex w-full items-center justify-center gap-1 rounded-full border px-3 py-2.5 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none ${
             isDark
               ? "border-white/15 bg-white text-[#003087] shadow-[0_8px_28px_rgba(0,0,0,0.35)] hover:border-[#009cde] hover:bg-[#f4f9ff]"
