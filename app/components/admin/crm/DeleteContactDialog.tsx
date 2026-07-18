@@ -16,32 +16,35 @@ import { Label } from "@/app/components/ui/label";
 type Props = {
   open: boolean;
   contactName: string;
-  phoneE164: string;
+  /** What the staff member must retype: the real phone, or (for
+   *  Google/email-signup leads with no captured number) the full name. */
+  confirmTarget: { kind: "phone" | "name"; value: string };
   busy: boolean;
   error: string | null;
   onClose: () => void;
-  onConfirm: (phoneConfirm: string) => void | Promise<void>;
+  onConfirm: (confirm: string) => void | Promise<void>;
 };
 
 const DeleteContactDialog = ({
   open,
   contactName,
-  phoneE164,
+  confirmTarget,
   busy,
   error,
   onClose,
   onConfirm,
 }: Props) => {
   const inputId = useId();
-  const [phoneConfirm, setPhoneConfirm] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const isPhone = confirmTarget.kind === "phone";
 
   useEffect(() => {
     if (!open) {
-      setPhoneConfirm("");
+      setConfirm("");
     }
   }, [open]);
 
-  const canSubmit = phoneConfirm.trim().length > 0 && !busy;
+  const canSubmit = confirm.trim().length > 0 && !busy;
 
   return (
     <AlertDialog open={open} onOpenChange={(next) => !next && !busy && onClose()}>
@@ -55,19 +58,21 @@ const DeleteContactDialog = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <p className="text-sm">
-          Escribe el teléfono{" "}
-          <span className="font-mono font-semibold tabular-nums">{phoneE164}</span>{" "}
+          Escribe {isPhone ? "el teléfono" : "el nombre completo"}{" "}
+          <span className="font-mono font-semibold tabular-nums">
+            {confirmTarget.value}
+          </span>{" "}
           para confirmar.
         </p>
         <div className="space-y-1.5">
-          <Label htmlFor={inputId}>Teléfono</Label>
+          <Label htmlFor={inputId}>{isPhone ? "Teléfono" : "Nombre completo"}</Label>
           <Input
             id={inputId}
-            type="tel"
+            type={isPhone ? "tel" : "text"}
             autoComplete="off"
-            placeholder={phoneE164}
-            value={phoneConfirm}
-            onChange={(e) => setPhoneConfirm(e.target.value)}
+            placeholder={confirmTarget.value}
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
             disabled={busy}
           />
         </div>
@@ -83,7 +88,7 @@ const DeleteContactDialog = ({
           <Button
             variant="destructive"
             disabled={!canSubmit}
-            onClick={() => void onConfirm(phoneConfirm)}
+            onClick={() => void onConfirm(confirm)}
           >
             {busy ? "Eliminando…" : "Eliminar contacto"}
           </Button>

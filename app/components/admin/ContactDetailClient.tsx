@@ -16,6 +16,7 @@ import AddEnrollmentModal from "@/app/components/admin/crm/AddEnrollmentModal";
 import CrmModal from "@/app/components/admin/crm/CrmModal";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { formatMoneyMinor } from "@/lib/crm/money";
+import { contactDeleteConfirmationTarget } from "@/lib/crm/contact-phone";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { stripEphemeralNotebookParams } from "@/lib/crm/contact-notebook-url";
@@ -185,22 +186,32 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
     }
   };
 
-  const deleteContact = async (phoneConfirm: string) => {
+  const deleteConfirmTarget = contactDeleteConfirmationTarget(contact);
+
+  const deleteContact = async (confirm: string) => {
     setDeleteBusy(true);
     setDeleteError(null);
     const res = await fetch(`/api/admin/contacts/${contact.id}`, {
       method: "DELETE",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phoneConfirm }),
+      body: JSON.stringify({ confirm }),
     });
     setDeleteBusy(false);
     const data = (await res.json().catch(() => ({}))) as { error?: string };
     if (!res.ok) {
-      setDeleteError(
-        data.error === "phone_mismatch"
-          ? "El teléfono no coincide. Escribe exactamente el número mostrado."
-          : "No se pudo eliminar el contacto"
-      );
+      if (data.error === "confirmation_mismatch") {
+        setDeleteError(
+          deleteConfirmTarget.kind === "phone"
+            ? "El teléfono no coincide. Escribe exactamente el número mostrado."
+            : "El nombre no coincide. Escribe exactamente el nombre mostrado."
+        );
+      } else if (data.error === "placeholder") {
+        setDeleteError(
+          "Este contacto es un checkout abandonado y se limpia solo — no se puede borrar manualmente."
+        );
+      } else {
+        setDeleteError("No se pudo eliminar el contacto");
+      }
       return;
     }
     toast("Contacto eliminado");
@@ -492,7 +503,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
       <DeleteContactDialog
         open={deleteOpen}
         contactName={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
-        phoneE164={contact.phoneE164}
+        confirmTarget={deleteConfirmTarget}
         busy={deleteBusy}
         error={deleteError}
         onClose={() => {

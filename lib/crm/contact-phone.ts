@@ -18,3 +18,18 @@ export const hasRealContactPhone = (phone: string): boolean =>
 /** The phone for display/WhatsApp, or null when the contact has none yet. */
 export const displayContactPhone = (phone: string): string | null =>
   hasRealContactPhone(phone) ? phone : null;
+
+/** The confirmation value the delete dialog must show/collect for a contact:
+ *  the real phone, or (Google/email-signup leads with no captured number)
+ *  their full name instead. Client-safe — no server-only imports. */
+export const contactDeleteConfirmationTarget = (contact: {
+  phoneE164: string;
+  firstName: string;
+  lastName: string | null;
+}): { kind: "phone" | "name"; value: string } =>
+  hasRealContactPhone(contact.phoneE164)
+    ? { kind: "phone", value: contact.phoneE164 }
+    : {
+        kind: "name",
+        value: `${contact.firstName} ${contact.lastName ?? ""}`.trim(),
+      };

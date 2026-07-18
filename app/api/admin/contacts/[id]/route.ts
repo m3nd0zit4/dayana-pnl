@@ -4,7 +4,7 @@ import type { CountryCode } from "libphonenumber-js";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
-  contactPhoneConfirmationMatches,
+  contactDeleteConfirmationMatches,
   deleteContactAndRelations,
 } from "@/lib/crm/delete-contact";
 import { getContactById } from "@/lib/crm/contacts";
@@ -155,13 +155,13 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
     "CO") as CountryCode;
 
   if (
-    !contactPhoneConfirmationMatches(
-      existing.phoneE164,
-      parsed.data.phoneConfirm,
+    !contactDeleteConfirmationMatches(
+      existing,
+      parsed.data.confirm,
       defaultCountry
     )
   ) {
-    return NextResponse.json({ error: "phone_mismatch" }, { status: 400 });
+    return NextResponse.json({ error: "confirmation_mismatch" }, { status: 400 });
   }
 
   try {

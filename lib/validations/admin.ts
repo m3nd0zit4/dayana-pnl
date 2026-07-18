@@ -1,7 +1,10 @@
 import { z } from "zod";
 
 export const deleteContactSchema = z.object({
-  phoneConfirm: z.string().min(6).max(30),
+  /** The phone (real contacts) or full name (placeholder-phone leads —
+   *  Google/email signups with no captured number yet) shown for the staff
+   *  member to retype as a delete confirmation. */
+  confirm: z.string().min(1).max(120),
 });
 
 export const createStaffSchema = z.object({
