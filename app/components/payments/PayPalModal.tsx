@@ -15,6 +15,7 @@ import { useCheckoutPlan } from "./useCheckoutPlan";
 import { PayPalBrandRow } from "./PayPalBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
+  type CheckoutContactPrefill,
 } from "./CheckoutContactStep";
 import CheckoutPaymentModalFrame, {
   usePaymentModalScrollLock,
@@ -22,8 +23,18 @@ import CheckoutPaymentModalFrame, {
 
 type PayPalModalProps = {
   planId: PlanId | null;
+  /** Resolve the signed-in session's contact first; skip the contact form
+   *  when it's complete. */
+  sessionFirst?: boolean;
   onClose: () => void;
 };
+
+/** Sentinel contact state for the session fast-path: the server already
+ *  knows the contact, so create-order posts `fromSession` instead of fields. */
+type SessionContactSentinel = { fromSession: true };
+type ContactState = CheckoutContactPayload | SessionContactSentinel;
+const isSessionContact = (c: ContactState): c is SessionContactSentinel =>
+  "fromSession" in c;
 
 type Breakdown = {
   subtotal: string;
@@ -59,7 +70,7 @@ const usdLabel = (value: string): string => {
   })} USD`;
 };
 
-const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
+const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps) => {
   const open = planId !== null;
   const {
     plan,
@@ -69,12 +80,16 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
-  const [contactPayload, setContactPayload] = useState<CheckoutContactPayload | null>(
+  const [contactPayload, setContactPayload] = useState<ContactState | null>(
     null
   );
+  const [prefill, setPrefill] = useState<CheckoutContactPrefill | null>(null);
   const [buttonsEpoch, setButtonsEpoch] = useState(0);
 
-  const contactPayloadRef = useRef<CheckoutContactPayload | null>(null);
+  const contactPayloadRef = useRef<ContactState | null>(null);
+  // True when the session path is live: submits/orders carry fromSession so
+  // the server anchors the payment to the signed-in contact.
+  const fromSessionRef = useRef(false);
   const checkoutContactIdRef = useRef<string | null>(null);
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -106,17 +121,64 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       setUi({ kind: "idle" });
       setBreakdown(null);
       setContactPayload(null);
+      setPrefill(null);
       contactPayloadRef.current = null;
       checkoutContactIdRef.current = null;
+      fromSessionRef.current = false;
       paypalFlowActiveRef.current = false;
       checkoutSucceededRef.current = false;
       setButtonsEpoch(0);
-    } else {
-      checkoutSucceededRef.current = false;
-      paypalFlowActiveRef.current = false;
-      setUi({ kind: "contact" });
+      return;
     }
-  }, [open]);
+
+    checkoutSucceededRef.current = false;
+    paypalFlowActiveRef.current = false;
+
+    if (!sessionFirst) {
+      setUi({ kind: "contact" });
+      return;
+    }
+
+    // Session fast-path: ask the server for the signed-in contact. Complete →
+    // straight to the PayPal buttons; incomplete/expired → prefilled form.
+    let cancelled = false;
+    setUi({ kind: "loading" });
+    void (async () => {
+      try {
+        const res = await fetch("/api/checkout/contact", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ planId, fromSession: true }),
+        });
+        const data = await readJsonResponse<{
+          contactId?: string;
+          complete?: boolean;
+          prefill?: CheckoutContactPrefill;
+        }>(res);
+        if (cancelled) return;
+
+        if (res.ok && data.complete && data.contactId) {
+          fromSessionRef.current = true;
+          checkoutContactIdRef.current = data.contactId;
+          const sentinel: SessionContactSentinel = { fromSession: true };
+          contactPayloadRef.current = sentinel;
+          setContactPayload(sentinel);
+          return;
+        }
+
+        if (res.ok && data.complete === false) {
+          fromSessionRef.current = true;
+          setPrefill(data.prefill ?? null);
+        }
+        setUi({ kind: "contact" });
+      } catch {
+        if (!cancelled) setUi({ kind: "contact" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, planId, sessionFirst]);
 
   usePaymentModalScrollLock(open);
 
@@ -149,7 +211,10 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
       body: JSON.stringify({
         planId: plan.id,
         provider: "paypal",
-        promoCode: contactPayload?.promoCode,
+        promoCode:
+          contactPayload && !isSessionContact(contactPayload)
+            ? contactPayload.promoCode
+            : undefined,
       }),
     })
       .then(async (res) => {
@@ -266,7 +331,8 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
               body: JSON.stringify({
                 planId: plan.id,
                 contactId: contactId ?? undefined,
-                ...contact,
+                ...(isSessionContact(contact) ? {} : contact),
+                ...(fromSessionRef.current ? { fromSession: true } : {}),
               }),
             });
             const data = await readJsonResponse<{
@@ -521,6 +587,7 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
           {ui.kind === "contact" && (
             <CheckoutContactStep
               submitLabel="Continuar con PayPal"
+              prefill={prefill}
               onSubmit={(payload) => {
                 contactPayloadRef.current = payload;
                 setUi({ kind: "loading" });
@@ -529,7 +596,11 @@ const PayPalModal = ({ planId, onClose }: PayPalModalProps) => {
                     const res = await fetch("/api/checkout/contact", {
                       method: "POST",
                       headers: { "content-type": "application/json" },
-                      body: JSON.stringify({ planId: plan.id, ...payload }),
+                      body: JSON.stringify({
+                        planId: plan.id,
+                        ...payload,
+                        ...(fromSessionRef.current ? { fromSession: true } : {}),
+                      }),
                     });
                     const data = await readJsonResponse<{
                       contactId?: string;

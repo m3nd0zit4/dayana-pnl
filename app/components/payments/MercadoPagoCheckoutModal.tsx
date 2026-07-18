@@ -8,6 +8,7 @@ import { useCheckoutPlan } from "./useCheckoutPlan";
 import { MercadoPagoBrandRow } from "./MercadoPagoBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
+  type CheckoutContactPrefill,
 } from "./CheckoutContactStep";
 import CheckoutPaymentModalFrame, {
   usePaymentModalScrollLock,
@@ -15,8 +16,17 @@ import CheckoutPaymentModalFrame, {
 
 type MercadoPagoCheckoutModalProps = {
   planId: PlanId | null;
+  /** Resolve the signed-in session's contact first; skip the contact form
+   *  when it's complete. */
+  sessionFirst?: boolean;
   onClose: () => void;
 };
+
+/** Session fast-path sentinel — the server already knows the contact. */
+type SessionContactSentinel = { fromSession: true };
+type ContactState = CheckoutContactPayload | SessionContactSentinel;
+const isSessionContact = (c: ContactState): c is SessionContactSentinel =>
+  "fromSession" in c;
 
 type Breakdown = {
   subtotal: string;
@@ -56,6 +66,7 @@ const formatBreakdown = (value: string, currency: string): string => {
 
 const MercadoPagoCheckoutModal = ({
   planId,
+  sessionFirst = false,
   onClose,
 }: MercadoPagoCheckoutModalProps) => {
   const open = planId !== null;
@@ -67,10 +78,12 @@ const MercadoPagoCheckoutModal = ({
 
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
-  const [contactPayload, setContactPayload] = useState<CheckoutContactPayload | null>(
+  const [contactPayload, setContactPayload] = useState<ContactState | null>(
     null
   );
+  const [prefill, setPrefill] = useState<CheckoutContactPrefill | null>(null);
   const [checkoutContactId, setCheckoutContactId] = useState<string | null>(null);
+  const fromSessionRef = useRef(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -78,11 +91,55 @@ const MercadoPagoCheckoutModal = ({
       setUi({ kind: "idle" });
       setBreakdown(null);
       setContactPayload(null);
+      setPrefill(null);
       setCheckoutContactId(null);
-    } else {
-      setUi({ kind: "contact" });
+      fromSessionRef.current = false;
+      return;
     }
-  }, [open]);
+
+    if (!sessionFirst) {
+      setUi({ kind: "contact" });
+      return;
+    }
+
+    // Session fast-path: complete contact → straight to quote/ready;
+    // incomplete or expired session → prefilled contact form.
+    let cancelled = false;
+    setUi({ kind: "loading" });
+    void (async () => {
+      try {
+        const res = await fetch("/api/checkout/contact", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ planId, fromSession: true }),
+        });
+        const data = (await res.json()) as {
+          contactId?: string;
+          complete?: boolean;
+          prefill?: CheckoutContactPrefill;
+        };
+        if (cancelled) return;
+
+        if (res.ok && data.complete && data.contactId) {
+          fromSessionRef.current = true;
+          setCheckoutContactId(data.contactId);
+          setContactPayload({ fromSession: true });
+          return;
+        }
+
+        if (res.ok && data.complete === false) {
+          fromSessionRef.current = true;
+          setPrefill(data.prefill ?? null);
+        }
+        setUi({ kind: "contact" });
+      } catch {
+        if (!cancelled) setUi({ kind: "contact" });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, planId, sessionFirst]);
 
   usePaymentModalScrollLock(open);
 
@@ -116,7 +173,9 @@ const MercadoPagoCheckoutModal = ({
       body: JSON.stringify({
         planId: plan.id,
         provider: "mercadopago",
-        promoCode: contactPayload.promoCode,
+        promoCode: isSessionContact(contactPayload)
+          ? undefined
+          : contactPayload.promoCode,
       }),
     })
       .then(async (res) => {
@@ -208,7 +267,8 @@ const MercadoPagoCheckoutModal = ({
           planId: plan.id,
           mode: "full",
           contactId: checkoutContactId ?? undefined,
-          ...contactPayload,
+          ...(isSessionContact(contactPayload) ? {} : contactPayload),
+          ...(fromSessionRef.current ? { fromSession: true } : {}),
         }),
       });
       const data = (await res.json()) as {
@@ -320,6 +380,7 @@ const MercadoPagoCheckoutModal = ({
           {ui.kind === "contact" && (
             <CheckoutContactStep
               submitLabel="Continuar al pago"
+              prefill={prefill}
               onSubmit={(payload) => {
                 setUi({ kind: "loading" });
                 void (async () => {
@@ -327,7 +388,11 @@ const MercadoPagoCheckoutModal = ({
                     const res = await fetch("/api/checkout/contact", {
                       method: "POST",
                       headers: { "content-type": "application/json" },
-                      body: JSON.stringify({ planId: plan.id, ...payload }),
+                      body: JSON.stringify({
+                        planId: plan.id,
+                        ...payload,
+                        ...(fromSessionRef.current ? { fromSession: true } : {}),
+                      }),
                     });
                     const data = (await res.json()) as {
                       contactId?: string;

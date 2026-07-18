@@ -11,10 +11,12 @@ import {
 import MercadoPagoCheckoutModal from "../components/payments/MercadoPagoCheckoutModal";
 import { isPlanId, type PlanId } from "../../lib/plans";
 
+import type { OpenCheckoutOptions } from "./PayPalModalContext";
+
 type MercadoPagoCheckoutModalContextValue = {
   isOpen: boolean;
   planId: PlanId | null;
-  openMercadoPago: (planId: PlanId) => void;
+  openMercadoPago: (planId: PlanId, options?: OpenCheckoutOptions) => void;
   closeMercadoPago: () => void;
 };
 
@@ -26,31 +28,41 @@ export const MercadoPagoCheckoutModalProvider = ({
 }: {
   children: ReactNode;
 }) => {
-  const [planId, setPlanId] = useState<PlanId | null>(null);
+  const [state, setState] = useState<{
+    planId: PlanId;
+    sessionFirst: boolean;
+  } | null>(null);
 
-  const openMercadoPago = useCallback((id: PlanId) => {
-    if (!isPlanId(id)) return;
-    setPlanId(id);
-  }, []);
+  const openMercadoPago = useCallback(
+    (id: PlanId, options?: OpenCheckoutOptions) => {
+      if (!isPlanId(id)) return;
+      setState({ planId: id, sessionFirst: options?.sessionFirst === true });
+    },
+    []
+  );
 
   const closeMercadoPago = useCallback(() => {
-    setPlanId(null);
+    setState(null);
   }, []);
 
   const value = useMemo<MercadoPagoCheckoutModalContextValue>(
     () => ({
-      isOpen: planId !== null,
-      planId,
+      isOpen: state !== null,
+      planId: state?.planId ?? null,
       openMercadoPago,
       closeMercadoPago,
     }),
-    [planId, openMercadoPago, closeMercadoPago]
+    [state, openMercadoPago, closeMercadoPago]
   );
 
   return (
     <MercadoPagoCheckoutModalContext.Provider value={value}>
       {children}
-      <MercadoPagoCheckoutModal planId={planId} onClose={closeMercadoPago} />
+      <MercadoPagoCheckoutModal
+        planId={state?.planId ?? null}
+        sessionFirst={state?.sessionFirst ?? false}
+        onClose={closeMercadoPago}
+      />
     </MercadoPagoCheckoutModalContext.Provider>
   );
 };

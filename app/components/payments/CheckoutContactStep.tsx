@@ -23,11 +23,21 @@ export type CheckoutContactPayload = Pick<
   "phone" | "phoneCountry" | "email" | "firstName" | "lastName" | "consentData"
 > & { promoCode?: string };
 
+export type CheckoutContactPrefill = {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneCountry?: string;
+};
+
 type Props = {
   defaultCountry?: string;
   disabled?: boolean;
   error?: string | null;
   submitLabel?: string;
+  /** Server-resolved identity (session contact) — seeds the fields; anything
+   *  the user types afterwards wins. */
+  prefill?: CheckoutContactPrefill | null;
   onSubmit: (payload: CheckoutContactPayload) => void;
 };
 
@@ -36,13 +46,16 @@ const CheckoutContactStep = ({
   disabled = false,
   error = null,
   submitLabel = "Continuar al pago",
+  prefill = null,
   onSubmit,
 }: Props) => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState(prefill?.firstName ?? "");
+  const [lastName, setLastName] = useState(prefill?.lastName ?? "");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneCountry, setPhoneCountry] = useState(defaultCountry);
+  const [email, setEmail] = useState(prefill?.email ?? "");
+  const [phoneCountry, setPhoneCountry] = useState(
+    prefill?.phoneCountry || defaultCountry
+  );
   const [promoCode, setPromoCode] = useState("");
   const [consent, setConsent] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -53,23 +66,25 @@ const CheckoutContactStep = ({
   useEffect(() => {
     const stored = readStoredCheckoutContact();
     if (!stored) return;
-    setEmail(stored.email);
-    setPhone(stored.phone);
-    setPhoneCountry(stored.phoneCountry || defaultCountry);
-    if (stored.firstName) setFirstName(stored.firstName);
-    if (stored.lastName) setLastName(stored.lastName);
+    // Server prefill (session identity) wins over the local draft; the
+    // draft only fills what's still empty. Phone is never in the prefill.
+    setEmail((v) => v || stored.email);
+    setPhone((v) => v || stored.phone);
+    setPhoneCountry((v) => v || stored.phoneCountry || defaultCountry);
+    if (stored.firstName) setFirstName((v) => v || stored.firstName || "");
+    if (stored.lastName) setLastName((v) => v || stored.lastName || "");
   }, [defaultCountry]);
 
-  // Logged-in member: prefill identity from the session so paying doesn't
-  // mean re-typing data we already have. Fills only empty fields — a stored
-  // checkout draft or anything the user typed wins. Phone stays manual (the
-  // session doesn't carry it). State adjustment during render (the React-
-  // recommended alternative to setState-in-effect); runs once per mount.
+  // Logged-in visitor (member or staff): prefill identity from the session so
+  // paying doesn't mean re-typing data we already have. Fills only empty
+  // fields — a stored checkout draft or anything the user typed wins. Phone
+  // stays manual (the session doesn't carry it). State adjustment during
+  // render (the React-recommended alternative to setState-in-effect).
   const [sessionPrefilled, setSessionPrefilled] = useState(false);
   if (
     !sessionPrefilled &&
     sessionStatus === "authenticated" &&
-    session?.user?.kind === "member"
+    session?.user?.kind
   ) {
     setSessionPrefilled(true);
     const sessionEmail = session.user.email ?? "";

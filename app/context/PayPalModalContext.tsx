@@ -11,41 +11,54 @@ import {
 import { isPlanId, type PlanId } from "../../lib/plans";
 import PayPalModal from "../components/payments/PayPalModal";
 
+export type OpenCheckoutOptions = {
+  /** Try to resolve the contact from the signed-in session and skip the
+   *  contact form when it's complete. */
+  sessionFirst?: boolean;
+};
+
 type PayPalModalContextValue = {
   isOpen: boolean;
   planId: PlanId | null;
-  openPayPal: (planId: PlanId) => void;
+  openPayPal: (planId: PlanId, options?: OpenCheckoutOptions) => void;
   closePayPal: () => void;
 };
 
 const PayPalModalContext = createContext<PayPalModalContextValue | null>(null);
 
 export const PayPalModalProvider = ({ children }: { children: ReactNode }) => {
-  const [planId, setPlanId] = useState<PlanId | null>(null);
+  const [state, setState] = useState<{
+    planId: PlanId;
+    sessionFirst: boolean;
+  } | null>(null);
 
-  const openPayPal = useCallback((id: PlanId) => {
+  const openPayPal = useCallback((id: PlanId, options?: OpenCheckoutOptions) => {
     if (!isPlanId(id)) return;
-    setPlanId(id);
+    setState({ planId: id, sessionFirst: options?.sessionFirst === true });
   }, []);
 
   const closePayPal = useCallback(() => {
-    setPlanId(null);
+    setState(null);
   }, []);
 
   const value = useMemo<PayPalModalContextValue>(
     () => ({
-      isOpen: planId !== null,
-      planId,
+      isOpen: state !== null,
+      planId: state?.planId ?? null,
       openPayPal,
       closePayPal,
     }),
-    [planId, openPayPal, closePayPal]
+    [state, openPayPal, closePayPal]
   );
 
   return (
     <PayPalModalContext.Provider value={value}>
       {children}
-      <PayPalModal planId={planId} onClose={closePayPal} />
+      <PayPalModal
+        planId={state?.planId ?? null}
+        sessionFirst={state?.sessionFirst ?? false}
+        onClose={closePayPal}
+      />
     </PayPalModalContext.Provider>
   );
 };
