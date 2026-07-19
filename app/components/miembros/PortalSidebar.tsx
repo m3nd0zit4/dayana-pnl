@@ -3,22 +3,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
-import { LogOut, User } from "lucide-react";
 import type { MembershipLockState } from "@/lib/lms/membership";
+import PortalUserMenu from "./PortalUserMenu";
 import {
   MembershipBlockScreen,
   MembershipWarningBanner,
 } from "./MembershipLockOverlay";
 
-const ACCOUNT_LINK = {
-  href: "/miembros/cuenta",
-  label: "Mi cuenta",
-  exact: false,
-};
-
-const isActive = (pathname: string, href: string, exact: boolean) =>
-  exact ? pathname === href : pathname.startsWith(href);
+const ACCOUNT_HREF = "/miembros/cuenta";
 
 const Brand = () => (
   <Link href="/miembros" className="block leading-none uppercase">
@@ -31,15 +23,17 @@ const Brand = () => (
 
 const PortalSidebar = ({
   firstName,
+  avatarUrl,
   lockState,
   children,
 }: {
   firstName: string;
+  avatarUrl: string | null;
   lockState: MembershipLockState;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
-  const bypassBanner = pathname === ACCOUNT_LINK.href;
+  const bypassBanner = pathname.startsWith(ACCOUNT_HREF);
   // The dashboard (course cards, each showing its own lock/CTA) and the
   // course player (its own inline "unlock full access" paywall in the main
   // pane) render their own locked states — the whole-shell block only
@@ -80,25 +74,7 @@ const PortalSidebar = ({
           <Brand />
           <div className="flex items-center gap-3 text-xs text-muted-foreground sm:gap-4">
             <span className="hidden text-foreground sm:inline">{firstName}</span>
-            <Link
-              href={ACCOUNT_LINK.href}
-              aria-label={ACCOUNT_LINK.label}
-              className={`inline-flex items-center gap-1 hover:text-foreground ${
-                isActive(pathname, ACCOUNT_LINK.href, ACCOUNT_LINK.exact) ? "text-primary" : ""
-              }`}
-            >
-              <User className="size-3.5" aria-hidden />
-              <span className="hidden sm:inline">{ACCOUNT_LINK.label}</span>
-            </Link>
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/acceso" })}
-              aria-label="Salir"
-              className="inline-flex items-center gap-1 hover:text-foreground"
-            >
-              <LogOut className="size-3.5" aria-hidden />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
+            <PortalUserMenu displayName={firstName} avatarUrl={avatarUrl} />
           </div>
         </div>
       </header>

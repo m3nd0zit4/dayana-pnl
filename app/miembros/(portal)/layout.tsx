@@ -10,7 +10,13 @@ import "../portal.css";
 
 export const dynamic = "force-dynamic";
 
-const PortalLayout = async ({ children }: { children: ReactNode }) => {
+const PortalLayout = async ({
+  children,
+  modal,
+}: {
+  children: ReactNode;
+  modal: ReactNode;
+}) => {
   const member = await getMemberSession();
   if (!member) {
     redirect("/acceso");
@@ -21,9 +27,14 @@ const PortalLayout = async ({ children }: { children: ReactNode }) => {
 
   return (
     <div className="portal-app">
-      <PortalSidebar firstName={member.contact.firstName} lockState={lockState}>
+      <PortalSidebar
+        firstName={member.contact.firstName}
+        avatarUrl={member.contact.avatarUrl}
+        lockState={lockState}
+      >
         {children}
       </PortalSidebar>
+      {modal}
     </div>
   );
 };

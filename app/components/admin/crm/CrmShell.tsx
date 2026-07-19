@@ -20,11 +20,13 @@ const CrmShell = ({
   children,
   displayName,
   role,
+  avatarUrl,
   preview,
 }: {
   children: React.ReactNode;
   displayName: string;
   role: StaffRole | "PREVIEW";
+  avatarUrl: string | null;
   preview: boolean;
 }) => {
   const { focusMode } = useCrm();
@@ -57,7 +59,12 @@ const CrmShell = ({
       </Sidebar>
 
       <SidebarInset className="min-w-0 overflow-hidden bg-transparent">
-        <CrmNavBar displayName={displayName} role={role} preview={preview} />
+        <CrmNavBar
+          displayName={displayName}
+          role={role}
+          avatarUrl={avatarUrl}
+          preview={preview}
+        />
         <main className="crm-main-scroll crm-main-with-bottom-nav flex min-h-0 flex-1 flex-col overflow-y-auto">
           {preview && (
             <div className="px-4 pt-3 md:px-5 lg:px-6">

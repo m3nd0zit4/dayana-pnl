@@ -8,7 +8,13 @@ import { getStaffSession } from "@/lib/auth/staff-session";
 
 export const dynamic = "force-dynamic";
 
-const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
+const PanelLayout = async ({
+  children,
+  modal,
+}: {
+  children: React.ReactNode;
+  modal: React.ReactNode;
+}) => {
   const preview = isCrmUiPreview();
   const staff = preview ? null : await getStaffSession();
 
@@ -18,13 +24,20 @@ const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
 
   const displayName = staff?.displayName ?? "Vista previa";
   const role: StaffRole | "PREVIEW" = staff?.role ?? "PREVIEW";
+  const avatarUrl = staff?.avatarUrl ?? null;
 
   const aiEnabled = isAiConfigured();
 
   return (
     <CrmProvider role={role} preview={preview} aiEnabled={aiEnabled}>
-      <CrmShell displayName={displayName} role={role} preview={preview}>
+      <CrmShell
+        displayName={displayName}
+        role={role}
+        avatarUrl={avatarUrl}
+        preview={preview}
+      >
         {children}
+        {modal}
       </CrmShell>
     </CrmProvider>
   );

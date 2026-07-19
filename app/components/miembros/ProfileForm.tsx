@@ -6,24 +6,33 @@ import { useSession } from "next-auth/react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
+import AppearanceThemeToggle from "@/app/components/shared/settings/AppearanceThemeToggle";
+import { LOCALE_OPTIONS, WORK_DESCRIPTION_OPTIONS } from "@/lib/profile-options";
 
 type ProfileFormProps = {
   initialFirstName: string;
   initialLastName: string;
   /** E164 (+573001234567) or empty when the contact only has a placeholder phone. */
   initialPhone: string;
+  initialWorkDescription: string;
+  initialPreferredLocale: string;
 };
 
 const ProfileForm = ({
   initialFirstName,
   initialLastName,
   initialPhone,
+  initialWorkDescription,
+  initialPreferredLocale,
 }: ProfileFormProps) => {
   const router = useRouter();
   const { update: updateSession } = useSession();
   const [firstName, setFirstName] = useState(initialFirstName);
   const [lastName, setLastName] = useState(initialLastName);
   const [phone, setPhone] = useState(initialPhone);
+  const [workDescription, setWorkDescription] = useState(initialWorkDescription);
+  const [preferredLocale, setPreferredLocale] = useState(initialPreferredLocale);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +50,8 @@ const ProfileForm = ({
         firstName: firstName.trim(),
         lastName: lastName.trim() || null,
         phone: phone.trim() || null,
+        workDescription: workDescription || null,
+        preferredLocale,
       }),
     });
     setLoading(false);
@@ -104,6 +115,31 @@ const ProfileForm = ({
         <p className="text-xs text-muted-foreground">
           Formato internacional con el signo +. Déjalo vacío para no cambiarlo.
         </p>
+      </div>
+
+      <SearchableSelect
+        id="pf-work"
+        label="¿Qué te describe mejor?"
+        value={workDescription}
+        options={WORK_DESCRIPTION_OPTIONS}
+        onChange={setWorkDescription}
+        allowEmpty
+        emptyLabel="Prefiero no decir"
+        searchMinOptions={99}
+      />
+
+      <SearchableSelect
+        id="pf-locale"
+        label="Idioma"
+        value={preferredLocale}
+        options={LOCALE_OPTIONS}
+        onChange={setPreferredLocale}
+        searchMinOptions={99}
+      />
+
+      <div className="space-y-1.5">
+        <Label>Apariencia</Label>
+        <AppearanceThemeToggle />
       </div>
 
       {error && (
