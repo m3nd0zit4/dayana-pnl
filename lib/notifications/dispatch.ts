@@ -44,13 +44,21 @@ const resolveRecipient = async (
 ): Promise<string | null> => {
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
-    select: { email: true, phoneE164: true, consentMarketingAt: true },
+    select: {
+      email: true,
+      phoneE164: true,
+      consentMarketingAt: true,
+      notifyEmail: true,
+      notifySms: true,
+      notifyWhatsapp: true,
+    },
   });
   if (!contact) return null;
 
-  if (channel === "EMAIL") return contact.email;
-  if (channel === "SMS" || channel === "WHATSAPP_API") {
-    return contact.phoneE164;
+  if (channel === "EMAIL") return contact.notifyEmail ? contact.email : null;
+  if (channel === "SMS") return contact.notifySms ? contact.phoneE164 : null;
+  if (channel === "WHATSAPP_API") {
+    return contact.notifyWhatsapp ? contact.phoneE164 : null;
   }
   return null;
 };

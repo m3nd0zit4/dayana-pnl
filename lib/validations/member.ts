@@ -48,4 +48,13 @@ export const updateProfileSchema = z.object({
   lastName: z.string().trim().max(80).optional().nullable(),
   /** Full international format (+57 300 123 4567). Empty/omitted = keep current. */
   phone: z.string().trim().max(24).optional().nullable(),
+  workDescription: z.string().trim().max(80).optional().nullable(),
+  themePreference: z.enum(["light", "dark", "system"]).optional(),
+  preferredLocale: z.enum(["es", "en"]).optional(),
+});
+
+export const updateNotificationPrefsSchema = z.object({
+  notifyEmail: z.boolean(),
+  notifySms: z.boolean(),
+  notifyWhatsapp: z.boolean(),
 });

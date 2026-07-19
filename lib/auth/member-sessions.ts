@@ -88,3 +88,22 @@ export const revokeAllMemberSessionsExcept = async (
 export const revokeAllMemberSessions = async (memberAccountId: string) => {
   await revokeAllMemberSessionsExcept(memberAccountId);
 };
+
+export const listMemberSessions = async (memberAccountId: string) =>
+  prisma.memberSession.findMany({
+    where: {
+      memberAccountId,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+    orderBy: { lastSeenAt: "desc" },
+    select: {
+      id: true,
+      deviceLabel: true,
+      userAgent: true,
+      ipAddress: true,
+      lastSeenAt: true,
+      createdAt: true,
+      expiresAt: true,
+    },
+  });

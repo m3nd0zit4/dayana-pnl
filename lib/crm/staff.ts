@@ -54,3 +54,32 @@ export const updateStaffPassword = async (id: string, password: string) => {
 export const listStaffUsers = async () =>
   prisma.staffUser.findMany({ orderBy: { createdAt: "asc" } });
 
+/** Self-service profile edit from the CRM. Email/role are managed by an
+ * OWNER via the team screen and are deliberately NOT editable here. */
+export const updateStaffProfile = async (
+  id: string,
+  input: { displayName: string; themePreference?: "light" | "dark" | "system" }
+) =>
+  prisma.staffUser.update({
+    where: { id },
+    data: {
+      displayName: input.displayName,
+      ...(input.themePreference ? { themePreference: input.themePreference } : {}),
+    },
+  });
+
+export const updateStaffAvatar = async (id: string, avatarUrl: string | null) =>
+  prisma.staffUser.update({
+    where: { id },
+    data: { avatarUrl },
+  });
+
+export const updateStaffNotificationPrefs = async (
+  id: string,
+  prefs: { notifyEmail: boolean }
+) =>
+  prisma.staffUser.update({
+    where: { id },
+    data: prefs,
+  });
+

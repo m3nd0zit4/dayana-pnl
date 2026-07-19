@@ -178,3 +178,12 @@ export const assignClassModuleSchema = z.object({
 export const membershipPaidUntilSchema = z.object({
   paidUntil: z.string().datetime().nullable(),
 });
+
+export const updateStaffProfileSchema = z.object({
+  displayName: z.string().trim().min(1).max(120),
+  themePreference: z.enum(["light", "dark", "system"]).optional(),
+});
+
+export const updateStaffNotificationPrefsSchema = z.object({
+  notifyEmail: z.boolean(),
+});

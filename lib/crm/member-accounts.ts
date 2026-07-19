@@ -53,6 +53,9 @@ export type UpdateMemberProfileInput = {
   /** Already validated E164 (+573001234567). Omit/null = keep current phone. */
   phoneE164?: string | null;
   phoneCountryIso?: string | null;
+  workDescription?: string | null;
+  themePreference?: "light" | "dark" | "system";
+  preferredLocale?: "es" | "en";
 };
 
 /** Self-service profile edit from the member portal. Email is the login
@@ -82,9 +85,38 @@ export const updateMemberProfile = async (
             phoneCountryIso: input.phoneCountryIso ?? null,
           }
         : {}),
+      ...(input.workDescription !== undefined
+        ? { workDescription: input.workDescription?.trim() || null }
+        : {}),
+      ...(input.themePreference ? { themePreference: input.themePreference } : {}),
+      ...(input.preferredLocale ? { preferredLocale: input.preferredLocale } : {}),
     },
   });
 };
+
+export const updateMemberAvatar = async (
+  contactId: string,
+  avatarUrl: string | null
+): Promise<Contact> =>
+  prisma.contact.update({
+    where: { id: contactId },
+    data: { avatarUrl },
+  });
+
+export type MemberNotificationPrefs = {
+  notifyEmail: boolean;
+  notifySms: boolean;
+  notifyWhatsapp: boolean;
+};
+
+export const updateMemberNotificationPrefs = async (
+  contactId: string,
+  prefs: MemberNotificationPrefs
+): Promise<Contact> =>
+  prisma.contact.update({
+    where: { id: contactId },
+    data: prefs,
+  });
 
 export type InviteContactResult =
   | { status: "sent" }

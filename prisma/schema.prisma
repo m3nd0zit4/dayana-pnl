@@ -119,6 +119,12 @@ model Contact {
   countryIso          String?       @map("country_iso") @db.Char(2)
   timezone            String        @default("America/Bogota")
   preferredLocale     String        @default("es") @map("preferred_locale")
+  avatarUrl           String?       @map("avatar_url")
+  workDescription     String?       @map("work_description")
+  themePreference     String        @default("system") @map("theme_preference")
+  notifyEmail         Boolean       @default(true) @map("notify_email")
+  notifySms           Boolean       @default(true) @map("notify_sms")
+  notifyWhatsapp      Boolean       @default(true) @map("notify_whatsapp")
   source              ContactSource @default(WEB)
   sourceDetail        String?       @map("source_detail")
   tiktokHandle        String?       @map("tiktok_handle")
@@ -426,14 +432,17 @@ model ContactNotebookPage {
 }
 
 model StaffUser {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String    @map("password_hash")
-  displayName  String    @map("display_name")
-  role         StaffRole @default(OPERATOR)
-  isActive     Boolean   @default(true) @map("is_active")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  displayName     String    @map("display_name")
+  role            StaffRole @default(OPERATOR)
+  isActive        Boolean   @default(true) @map("is_active")
+  avatarUrl       String?   @map("avatar_url")
+  themePreference String    @default("system") @map("theme_preference")
+  notifyEmail     Boolean   @default(true) @map("notify_email")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   auditLogs     AuditLog[]
   messageLogs   MessageLog[]

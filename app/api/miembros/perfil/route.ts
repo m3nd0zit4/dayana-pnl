@@ -36,6 +36,9 @@ export const PATCH = async (req: Request) => {
       lastName: parsed.data.lastName,
       phoneE164,
       phoneCountryIso,
+      workDescription: parsed.data.workDescription,
+      themePreference: parsed.data.themePreference,
+      preferredLocale: parsed.data.preferredLocale,
     });
   } catch (e) {
     if (e instanceof Error && e.message === "PHONE_TAKEN") {
