@@ -9,6 +9,10 @@ const MEMBER_PUBLIC_PAGES = new Set([
   "/miembros/recuperar",
 ]);
 
+/** Where a member with no real phone (Google/email signup) must land before
+ *  anything else in the portal — onboarding isn't done until this is filled. */
+const MEMBER_PROFILE_GATE_PATH = "/miembros/completar-perfil";
+
 const MEMBER_PUBLIC_APIS = new Set([
   "/api/miembros/auth/set-password",
   "/api/miembros/auth/request-access",
@@ -91,6 +95,23 @@ export const proxy = auth((req) => {
       `${pathname}${req.nextUrl.search}`
     );
     return NextResponse.redirect(acceso);
+  }
+
+  // Onboarding isn't done until a real phone is on file — Google/email
+  // signup skip that step entirely (Google never asks for it; the legacy
+  // request-access path can create a placeholder-phone lead too). Applies
+  // only inside /miembros: workshop/course checkout pages live outside this
+  // matcher and already collect the phone themselves via the payment modal's
+  // contact-form fallback, so a member mid-checkout is never redirected here.
+  if (
+    isMemberArea &&
+    isMember &&
+    req.auth?.user?.needsPhone &&
+    pathname !== MEMBER_PROFILE_GATE_PATH
+  ) {
+    const gate = new URL(MEMBER_PROFILE_GATE_PATH, req.nextUrl.origin);
+    gate.searchParams.set("callbackUrl", `${pathname}${req.nextUrl.search}`);
+    return NextResponse.redirect(gate);
   }
 });
 

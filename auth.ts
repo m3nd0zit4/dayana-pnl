@@ -26,6 +26,7 @@ import {
 } from "@/lib/crm/member-accounts";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/crm/audit";
+import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
@@ -273,6 +274,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.id = contactId;
           session.user.kind = "member";
           session.user.sessionId = sessionId;
+          const contact = await prisma.contact.findUnique({
+            where: { id: contactId },
+            select: { phoneE164: true },
+          });
+          session.user.needsPhone = contact
+            ? !hasRealContactPhone(contact.phoneE164)
+            : false;
         }
         return session;
       }
