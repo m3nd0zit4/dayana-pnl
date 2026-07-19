@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "next-themes";
 import NavContext from "./context/NavContext";
 import { PayPalModalProvider } from "./context/PayPalModalContext";
 import { MercadoPagoCheckoutModalProvider } from "./context/MercadoPagoCheckoutModalContext";
@@ -41,23 +42,30 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   const isPortal =
     pathname.startsWith("/miembros") || pathname.startsWith("/acceso");
 
+  // Dark mode is scoped to the CRM + member portal only — the public
+  // marketing site (MarketingChrome below) never mounts ThemeProvider, so
+  // its `dark:` utility classes stay permanently inert there.
   if (isAdmin) {
     return (
-      <TooltipProvider>
-        {children}
-        <Toaster />
-      </TooltipProvider>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <TooltipProvider>
+          {children}
+          <Toaster />
+        </TooltipProvider>
+      </ThemeProvider>
     );
   }
 
   if (isPortal) {
     return (
-      <PayPalModalProvider>
-        <MercadoPagoCheckoutModalProvider>
-          {children}
-          <Toaster />
-        </MercadoPagoCheckoutModalProvider>
-      </PayPalModalProvider>
+      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+        <PayPalModalProvider>
+          <MercadoPagoCheckoutModalProvider>
+            {children}
+            <Toaster />
+          </MercadoPagoCheckoutModalProvider>
+        </PayPalModalProvider>
+      </ThemeProvider>
     );
   }
 

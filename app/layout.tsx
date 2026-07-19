@@ -63,7 +63,7 @@ export default function RootLayout({
   const analyticsAllowed = process.env.VERCEL === "1";
 
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <head>
         {/* LCP hero image — preloaded per breakpoint, exactly matching the
             <picture> sources in Hero so the fetch is reused (faster FCP/LCP). */}

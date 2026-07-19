@@ -755,11 +755,10 @@ body {
 /*
  * shadcn theme, mapped from the existing brand tokens (crm.css/portal.css —
  * both use byte-identical values, confirmed) rather than shadcn's generic
- * defaults. No dark mode: neither the CRM nor the portal has one today.
- * `@custom-variant dark` above stays class-based (`.dark` ancestor) rather
- * than OS-preference-based specifically so that stray `dark:` utility
- * classes baked into generated shadcn components stay permanently inert
- * (nothing in this app ever applies a `.dark` class).
+ * defaults. Dark mode lives in the `.dark` block below, applied via
+ * next-themes (attribute="class") — scoped to the CRM (/admin) and member
+ * portal (/miembros) layouts only, never the public marketing site.
+ * `@custom-variant dark` above stays class-based (`.dark` ancestor) to match.
  */
 :root {
   --background: #f6f2eb;
@@ -798,6 +797,41 @@ body {
   /* Actual width is set via SidebarProvider's style prop in CrmShell.tsx —
      the Sidebar component sets --sidebar-width inline on its own wrapper,
      which wins over anything declared here regardless. */
+}
+
+.dark {
+  --background: #1a1512;
+  --foreground: #f3ece1;
+  --card: #221b16;
+  --card-foreground: #f3ece1;
+  --popover: #221b16;
+  --popover-foreground: #f3ece1;
+  --primary: #c9a688;
+  --primary-foreground: #1a1512;
+  --secondary: #322820;
+  --secondary-foreground: #f3ece1;
+  --muted: #2a221c;
+  --muted-foreground: #a99c8d;
+  --accent: #4a3226;
+  --accent-foreground: #f3ece1;
+  --destructive: #e05a5a;
+  --destructive-foreground: #1a1512;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: rgba(212, 184, 150, 0.4);
+  --chart-1: #c9a688;
+  --chart-2: #edc3b1;
+  --chart-3: #4f9868;
+  --chart-4: #d4a017;
+  --chart-5: #a67c52;
+  --sidebar: #171310;
+  --sidebar-foreground: #f3ece1;
+  --sidebar-primary: #c9a688;
+  --sidebar-primary-foreground: #1a1512;
+  --sidebar-accent: #2a221c;
+  --sidebar-accent-foreground: #f3ece1;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: rgba(212, 184, 150, 0.4);
 }
 
 @layer base {
