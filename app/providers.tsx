@@ -41,6 +41,9 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // se necesitan (renovación de membresía en /miembros/cuenta).
   const isPortal =
     pathname.startsWith("/miembros") || pathname.startsWith("/acceso");
+  // Linktree-style link hub: meant to be a fast, chrome-free landing target
+  // from social bios — skips the marketing site's Stairs transition/navbar.
+  const isEnlaces = pathname.startsWith("/enlaces");
 
   // Dark mode is scoped to the CRM + member portal only — the public
   // marketing site (MarketingChrome below) never mounts ThemeProvider, so
@@ -53,6 +56,15 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
           <Toaster />
         </TooltipProvider>
       </ThemeProvider>
+    );
+  }
+
+  if (isEnlaces) {
+    return (
+      <>
+        {children}
+        <Toaster />
+      </>
     );
   }
 
