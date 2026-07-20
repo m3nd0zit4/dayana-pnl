@@ -34,22 +34,22 @@ const TikTokIcon = () => (
   </svg>
 );
 
-// const InstagramIcon = () => (
-//   <svg
-//     viewBox="0 0 24 24"
-//     fill="none"
-//     stroke="currentColor"
-//     strokeWidth="1.8"
-//     strokeLinecap="round"
-//     strokeLinejoin="round"
-//     aria-hidden="true"
-//     className="h-6 w-6"
-//   >
-//     <rect x="3" y="3" width="18" height="18" rx="5" />
-//     <circle cx="12" cy="12" r="4" />
-//     <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
-//   </svg>
-// );
+const InstagramIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className="h-6 w-6"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+  </svg>
+);
 
 const YoutubeIcon = () => (
   <svg
@@ -82,19 +82,12 @@ const socials: SocialItem[] = [
     icon: <TikTokIcon />,
   },
   {
-    key: "tiktok-2",
-    label: "TikTok",
-    handle: "@dayanapnl2",
-    href: "https://www.tiktok.com/@dayanapnl2",
-    icon: <TikTokIcon />,
+    key: "instagram",
+    label: "Instagram",
+    handle: "@dayana.pnl",
+    href: SOCIAL_LINKS.instagram,
+    icon: <InstagramIcon />,
   },
-  // {
-  //   key: "instagram",
-  //   label: "Instagram",
-  //   handle: "@dayanapnl",
-  //   href: SOCIAL_LINKS.instagram,
-  //   icon: <InstagramIcon />,
-  // },
   {
     key: "youtube",
     label: "YouTube",
