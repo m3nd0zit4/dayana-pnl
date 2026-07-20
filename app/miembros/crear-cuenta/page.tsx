@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { isGoogleAuthEnabled } from "@/auth";
 import { BRAND } from "@/lib/contact";
 import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
 import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
@@ -59,7 +58,6 @@ const Page = async ({ searchParams }: PageProps) => {
       description="Cuatro pasos y entras directo — sin esperar correos."
     >
       <OnboardingWizard
-        googleEnabled={isGoogleAuthEnabled()}
         callbackUrl={safeCallbackUrl(callbackUrl) ?? undefined}
       />
     </MemberAuthShell>

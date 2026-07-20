@@ -156,7 +156,6 @@ const WorkshopCheckoutCta = ({
               {authOverlay.mode === "wizard" ? (
                 <>
                   <OnboardingWizard
-                    googleEnabled={googleEnabled}
                     callbackUrl={callbackUrl}
                     onComplete={() => continueAfterAuth(authOverlay.provider)}
                     onSwitchToLogin={(email) =>

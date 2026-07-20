@@ -30,6 +30,11 @@ import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
+/** Google sign-IN still works (existing Google-linked accounts need it to
+ *  log back in). Google is removed only from account CREATION — see
+ *  OnboardingWizard, which never renders a Google button regardless of this
+ *  flag — since new-signup-mid-checkout is what let an onboarding-incomplete
+ *  account (placeholder phone) reach payment before the contact step ran. */
 export const isGoogleAuthEnabled = () =>
   Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
