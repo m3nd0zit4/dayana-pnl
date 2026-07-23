@@ -221,6 +221,12 @@ const AgentPanelSession = ({
     const text = message.text.trim();
     if ((text.length === 0 && message.files.length === 0) || isBusy) return;
 
+    // PromptInputTextarea is controlled (`value={input}`), so PromptInput's
+    // own `form.reset()` after submit only resets the uncontrolled DOM value
+    // — the next render immediately overwrites it back to `input` state,
+    // which is why the box kept showing the sent text. Clear it ourselves.
+    setInput("");
+
     if (message.files.length === 0) {
       await agent.send({ message: text });
       return;
