@@ -373,7 +373,20 @@ export type PromptInputButtonProps = ComponentProps<typeof InputGroupButton> & {
 
 export const PromptInputButton = ({ variant = "ghost", className, size, tooltip, ...props }: PromptInputButtonProps) => {
   const resolvedSize = size ?? (Children.count(props.children) > 1 ? "sm" : "icon-sm");
-  const button = <InputGroupButton className={cn(className)} size={resolvedSize} type="button" variant={variant} {...props} />;
+  // A hover tooltip alone doesn't give icon-only buttons an accessible name —
+  // screen readers and keyboard/touch users never see it. Derive aria-label
+  // from a string tooltip unless the caller already set one explicitly.
+  const ariaLabel = props["aria-label"] ?? (typeof tooltip === "string" ? tooltip : undefined);
+  const button = (
+    <InputGroupButton
+      className={cn(className)}
+      size={resolvedSize}
+      type="button"
+      variant={variant}
+      {...props}
+      aria-label={ariaLabel}
+    />
+  );
 
   if (!tooltip) return button;
 

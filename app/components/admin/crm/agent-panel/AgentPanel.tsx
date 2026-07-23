@@ -16,14 +16,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/app/components/ui/command";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -69,16 +61,44 @@ const SKILLS = [
 
 type ContactHit = { id: string; firstName: string; lastName: string | null; phoneE164: string };
 
-type MenuMode = "root" | "mention" | "skills";
+type SubPanel = "mention" | "skills" | null;
 
-const ActionMenuContent = ({ onInsertText }: { onInsertText: (text: string) => void }) => {
-  const [mode, setMode] = useState<MenuMode>("root");
+/**
+ * Root "+" menu content — just three items. Selecting Mención/Skills closes
+ * this menu normally (default `closeOnClick`) and opens a SEPARATE, plain
+ * `Popover` (see `SubPanelContent` below) rather than swapping this same
+ * menu's content in place. Base UI `Menu.Item` has a documented "press +
+ * drag to item + release" gesture path that force-closes the menu and
+ * ignores `closeOnClick={false}` once a mousedown on the trigger goes
+ * unresolved past ~200ms — exactly what an internal mode-swap triggers, since
+ * replacing the item list mid-interaction can leave that gesture "armed".
+ * Two independent, non-nested popups sidesteps it entirely.
+ */
+const RootMenuContent = ({ onSelect }: { onSelect: (panel: NonNullable<SubPanel>) => void }) => (
+  <>
+    <PromptInputActionAddAttachments label="Archivos" />
+    <DropdownMenuItem onClick={() => onSelect("mention")}>
+      <UserRound className="mr-2 size-4" /> Mención
+    </DropdownMenuItem>
+    <DropdownMenuItem onClick={() => onSelect("skills")}>
+      <Lightbulb className="mr-2 size-4" /> Skills
+    </DropdownMenuItem>
+  </>
+);
+
+const SubPanelContent = ({
+  panel,
+  onInsertText,
+}: {
+  panel: NonNullable<SubPanel>;
+  onInsertText: (text: string) => void;
+}) => {
   const [query, setQuery] = useState("");
   const [contacts, setContacts] = useState<ContactHit[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (mode !== "mention") return;
+    if (panel !== "mention") return;
     const t = setTimeout(() => {
       setLoading(true);
       const params = new URLSearchParams();
@@ -91,59 +111,54 @@ const ActionMenuContent = ({ onInsertText }: { onInsertText: (text: string) => v
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [mode, query]);
+  }, [panel, query]);
 
-  if (mode === "mention") {
+  if (panel === "skills") {
     return (
-      <Command className="w-72" shouldFilter={false}>
-        <CommandInput placeholder="Buscar contacto…" value={query} onValueChange={setQuery} autoFocus />
-        <CommandList>
-          {loading && <CommandEmpty>Buscando…</CommandEmpty>}
-          {!loading && contacts.length === 0 && <CommandEmpty>Sin resultados</CommandEmpty>}
-          <CommandGroup>
-            {contacts.map((c) => (
-              <CommandItem
-                key={c.id}
-                onSelect={() => onInsertText(`contacto "${c.firstName} ${c.lastName ?? ""}".trim() (id: ${c.id})`)}
-              >
-                <UserRound className="size-4" />
-                {c.firstName} {c.lastName ?? ""}
-                <span className="ml-auto font-mono text-xs text-muted-foreground">{c.phoneE164}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </Command>
-    );
-  }
-
-  if (mode === "skills") {
-    return (
-      <Command className="w-72">
-        <CommandList>
-          <CommandGroup heading="Skills">
-            {SKILLS.map((skill) => (
-              <CommandItem key={skill.id} onSelect={() => onInsertText(skill.prompt)}>
-                <Lightbulb className="size-4" />
-                {skill.name}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </CommandList>
-      </Command>
+      <div className="flex flex-col gap-0.5">
+        {SKILLS.map((skill) => (
+          <button
+            key={skill.id}
+            type="button"
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+            onClick={() => onInsertText(skill.prompt)}
+          >
+            <Lightbulb className="size-4 shrink-0" />
+            {skill.name}
+          </button>
+        ))}
+      </div>
     );
   }
 
   return (
-    <>
-      <PromptInputActionAddAttachments label="Archivos" />
-      <DropdownMenuItem onClick={() => setMode("mention")}>
-        <UserRound className="mr-2 size-4" /> Mención
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => setMode("skills")}>
-        <Lightbulb className="mr-2 size-4" /> Skills
-      </DropdownMenuItem>
-    </>
+    <div className="flex flex-col gap-1.5">
+      <input
+        autoFocus
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Buscar contacto…"
+        className="w-full rounded-md border border-input bg-transparent px-2 py-1 text-sm outline-none focus-visible:border-ring"
+      />
+      {loading && <p className="px-2 py-1 text-xs text-muted-foreground">Buscando…</p>}
+      {!loading && contacts.length === 0 && (
+        <p className="px-2 py-1 text-xs text-muted-foreground">Sin resultados</p>
+      )}
+      {contacts.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+          onClick={() => onInsertText(`contacto "${`${c.firstName} ${c.lastName ?? ""}`.trim()}" (id: ${c.id})`)}
+        >
+          <UserRound className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">
+            {c.firstName} {c.lastName ?? ""}
+          </span>
+          <span className="font-mono text-xs text-muted-foreground">{c.phoneE164}</span>
+        </button>
+      ))}
+    </div>
   );
 };
 
@@ -159,7 +174,20 @@ const AgentPanelSession = ({
   const existing = useMemo(() => getThread(threadId), [threadId]);
   const titleRef = useRef(existing?.title ?? "Nueva conversación");
   const [input, setInput] = useState("");
+  const [subPanel, setSubPanel] = useState<SubPanel>(null);
+  const subPanelRef = useRef<HTMLDivElement>(null);
   const sentSeedRef = useRef(false);
+
+  useEffect(() => {
+    if (!subPanel) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (subPanelRef.current && !subPanelRef.current.contains(e.target as Node)) {
+        setSubPanel(null);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [subPanel]);
 
   const agent = useEveAgent({
     initialEvents: existing?.events ?? [],
@@ -210,7 +238,10 @@ const AgentPanelSession = ({
     void agent.send({ inputResponses: [{ requestId, optionId }] });
   };
 
-  const insertText = (text: string) => setInput((prev) => (prev ? `${prev} ${text}` : text));
+  const insertText = (text: string) => {
+    setInput((prev) => (prev ? `${prev} ${text}` : text));
+    setSubPanel(null);
+  };
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -240,7 +271,15 @@ const AgentPanelSession = ({
         <p className="shrink-0 px-3 pb-1 text-xs text-destructive">{agent.error.message}</p>
       )}
 
-      <div className="shrink-0 p-2.5">
+      <div className="relative shrink-0 p-2.5">
+        {subPanel && (
+          <div
+            ref={subPanelRef}
+            className="absolute bottom-full left-2.5 z-10 mb-2 w-72 rounded-lg border border-border bg-popover p-2 text-popover-foreground shadow-md ring-1 ring-foreground/10"
+          >
+            <SubPanelContent panel={subPanel} onInsertText={insertText} />
+          </div>
+        )}
         <PromptInput
           onSubmit={(message) => void handleSubmit(message)}
           onError={(err) => console.error(err)}
@@ -253,7 +292,7 @@ const AgentPanelSession = ({
                   <Paperclip className="size-4" />
                 </PromptInputActionMenuTrigger>
                 <PromptInputActionMenuContent>
-                  <ActionMenuContent onInsertText={insertText} />
+                  <RootMenuContent onSelect={setSubPanel} />
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
             </PromptInputTools>
