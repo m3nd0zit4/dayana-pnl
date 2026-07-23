@@ -17,6 +17,10 @@
 /.next/
 /out/
 
+# eve (CRM agent) dev/build artifacts
+/.eve/
+/.output/
+
 # production
 /build
 
@@ -60,3 +64,7 @@ next-env.d.ts
 
 # git worktrees (local scratch, not published)
 .worktrees/
+
+# Claude Code local runtime state (per-machine, not shared)
+/.claude/settings.local.json
+/.claude/scheduled_tasks.lock

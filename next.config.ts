@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withEve } from "eve/next";
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -56,4 +57,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withEve(nextConfig);

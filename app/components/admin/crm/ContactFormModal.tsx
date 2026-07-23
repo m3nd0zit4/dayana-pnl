@@ -8,18 +8,15 @@ import {
 } from "@/app/config/contact-form";
 import { productSelectOptions } from "@/lib/crm/form-select-options";
 import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
-import { getCountryByIso, suggestTimezoneForCountry } from "@/lib/countries";
+import { getCountryByIso } from "@/lib/countries";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { getLocalPhonePlaceholder } from "@/lib/phone";
 import type { CountryCode } from "libphonenumber-js";
-import type { ExtractedContactFields } from "@/lib/ai/contact-extraction";
 import { Button } from "@/app/components/ui/button";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import ContactFormFields from "./ContactFormFields";
 import CrmModal from "./CrmModal";
 import SearchableSelect from "./SearchableSelect";
-import SmartPasteBox from "./SmartPasteBox";
-import { useCrm } from "./CrmProvider";
 import { useActiveProducts } from "./hooks/useReferenceData";
 
 type Step = "contact" | "service";
@@ -59,7 +56,6 @@ const clearDraft = () => {
 };
 
 const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
-  const { aiEnabled } = useCrm();
   const [step, setStep] = useState<Step>("contact");
   const [values, setValues] = useState<ContactFormValues>(emptyContactForm);
   const [error, setError] = useState<string | null>(null);
@@ -68,43 +64,14 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
   const [productId, setProductId] = useState("");
   const [activateNow, setActivateNow] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
-  const [aiFilled, setAiFilled] = useState<ReadonlySet<string>>(new Set());
-  const [pendingPaste, setPendingPaste] = useState<string | null>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Los productos solo se necesitan en el paso 2; la caché evita re-fetch
   // en cada apertura del modal.
   const { products } = useActiveProducts(open && step === "service");
 
-  // La edición manual de un campo retira su resaltado de "sugerido por IA".
   const patch = (p: Partial<ContactFormValues>) => {
     setValues((v) => ({ ...v, ...p }));
-    setAiFilled((prev) => {
-      if (prev.size === 0) return prev;
-      const next = new Set(prev);
-      for (const key of Object.keys(p)) next.delete(key);
-      return next.size === prev.size ? prev : next;
-    });
-  };
-
-  const applyAiFields = (fields: ExtractedContactFields) => {
-    const p: Partial<ContactFormValues> = {};
-    if (fields.firstName) p.firstName = fields.firstName;
-    if (fields.lastName) p.lastName = fields.lastName;
-    if (fields.email) p.email = fields.email;
-    if (fields.phone) p.phone = fields.phone;
-    if (fields.countryIso) {
-      p.countryIso = fields.countryIso;
-      p.phoneCountry = fields.countryIso;
-      p.timezone = suggestTimezoneForCountry(fields.countryIso);
-    }
-    if (fields.preferredLocale) p.preferredLocale = fields.preferredLocale;
-    if (fields.source) p.source = fields.source;
-    if (fields.sourceDetail) p.sourceDetail = fields.sourceDetail;
-    if (fields.notes) p.notes = fields.notes;
-
-    setValues((v) => ({ ...v, ...p }));
-    setAiFilled(new Set(Object.keys(p)));
   };
 
   const reset = () => {
@@ -115,8 +82,6 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
     setProductId("");
     setActivateNow(false);
     setDraftRestored(false);
-    setAiFilled(new Set());
-    setPendingPaste(null);
   };
 
   const handleClose = () => {
@@ -281,33 +246,7 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
       large
     >
       {step === "contact" ? (
-        <form
-          className="space-y-4"
-          onSubmit={submitContact}
-          onPaste={(e) => {
-            if (!aiEnabled) return;
-            const target = e.target as HTMLElement;
-            // Un pegado largo en cualquier campo ofrece el autocompletado.
-            if (target.closest("[data-smart-paste]")) return;
-            const pasted = e.clipboardData.getData("text");
-            if (pasted.trim().length > 120) setPendingPaste(pasted);
-          }}
-        >
-          {aiEnabled && (
-            <div data-smart-paste>
-              <SmartPasteBox
-                onExtracted={applyAiFields}
-                pendingText={pendingPaste}
-                onConsumePendingText={() => setPendingPaste(null)}
-              />
-            </div>
-          )}
-          {aiFilled.size > 0 && (
-            <p className="rounded-lg border border-purple-200 bg-purple-50/60 px-3 py-2 text-xs text-purple-900">
-              Campos sugeridos por IA resaltados — revísalos antes de crear el
-              contacto.
-            </p>
-          )}
+        <form className="space-y-4" onSubmit={submitContact}>
           {draftRestored && (
             <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
               <span>Borrador restaurado — seguiste donde ibas.</span>
@@ -316,12 +255,7 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
               </Button>
             </div>
           )}
-          <ContactFormFields
-            values={values}
-            onChange={patch}
-            mode="create"
-            aiFilled={aiFilled}
-          />
+          <ContactFormFields values={values} onChange={patch} mode="create" />
           {error && (
             <p className="text-sm text-destructive" role="alert">
               {error}

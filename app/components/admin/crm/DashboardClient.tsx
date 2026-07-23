@@ -2,16 +2,53 @@
 
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
-import { ChevronRight, TriangleAlert } from "lucide-react";
+import { ChevronRight, Send, Sparkles, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DashboardStats } from "@/lib/crm/dashboard-stats";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import { Input } from "@/app/components/ui/input";
+import { useCrm } from "./CrmProvider";
 import CrmPageShell from "./CrmPageShell";
 import CrmPaymentsChart from "./CrmPaymentsChart";
 import CrmPipelineChart from "./CrmPipelineChart";
 import StatCard from "./StatCard";
+
+const AskAgentBox = () => {
+  const { agentEnabled, askAgent } = useCrm();
+  const [value, setValue] = useState("");
+
+  if (!agentEnabled) return null;
+
+  const submit = () => {
+    const message = value.trim();
+    if (!message) return;
+    askAgent(message);
+    setValue("");
+  };
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+      className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm"
+    >
+      <Sparkles className="size-4 shrink-0 text-muted-foreground" />
+      <Input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Pregunta lo que quieras…"
+        className="border-0 shadow-none focus-visible:ring-0"
+      />
+      <Button type="submit" size="icon" variant="ghost" disabled={!value.trim()} aria-label="Preguntar">
+        <Send className="size-4" />
+      </Button>
+    </form>
+  );
+};
 
 type Props = {
   initialData?: DashboardStats | null;
@@ -68,6 +105,8 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
     <CrmPageShell>
       <div className="space-y-5">
         <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
+
+        <AskAgentBox />
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="Leads / pendientes" value={stats.leads} />

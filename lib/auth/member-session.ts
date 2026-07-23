@@ -5,7 +5,7 @@ import {
   touchMemberSession,
   validateMemberSession,
 } from "@/lib/auth/member-sessions";
-import { readRequestMeta } from "@/lib/auth/staff-sessions";
+import { readRequestMeta } from "@/lib/auth/request-meta";
 
 export type MemberSessionData = {
   contact: Contact;

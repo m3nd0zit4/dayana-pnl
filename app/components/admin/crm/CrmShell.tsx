@@ -3,11 +3,14 @@
 import type { StaffRole } from "@prisma/client";
 import type { CSSProperties } from "react";
 import AdminPreviewBanner from "@/app/components/admin/AdminPreviewBanner";
+import AgentPanel from "@/app/components/admin/crm/agent-panel/AgentPanel";
+import AgentThreadsMenuSection from "@/app/components/admin/crm/AgentThreadsMenuSection";
 import CrmBottomNav from "@/app/components/admin/crm/CrmBottomNav";
 import CrmLogo from "@/app/components/admin/crm/CrmLogo";
 import CrmMenu from "@/app/components/admin/crm/CrmMenu";
 import CrmNavBar from "@/app/components/admin/crm/CrmNavBar";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -29,7 +32,7 @@ const CrmShell = ({
   avatarUrl: string | null;
   preview: boolean;
 }) => {
-  const { focusMode } = useCrm();
+  const { focusMode, agentEnabled, agentPanelExpanded } = useCrm();
 
   if (focusMode) {
     return (
@@ -55,10 +58,16 @@ const CrmShell = ({
         </SidebarHeader>
         <SidebarContent>
           <CrmMenu />
+          {agentEnabled && <AgentThreadsMenuSection />}
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset className="min-w-0 overflow-hidden bg-transparent">
+      <SidebarInset
+        className={cn(
+          "min-w-0 overflow-hidden bg-transparent",
+          agentEnabled && agentPanelExpanded && "min-w-[26rem]"
+        )}
+      >
         <CrmNavBar
           displayName={displayName}
           role={role}
@@ -77,6 +86,8 @@ const CrmShell = ({
           <CrmBottomNav />
         </div>
       </SidebarInset>
+
+      {agentEnabled && <AgentPanel />}
     </SidebarProvider>
   );
 };

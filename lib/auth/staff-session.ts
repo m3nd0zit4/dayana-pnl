@@ -1,11 +1,8 @@
 import { auth } from "@/auth";
 import type { StaffUser } from "@prisma/client";
 import { getStaffById } from "@/lib/crm/staff";
-import {
-  readRequestMeta,
-  touchStaffSession,
-  validateStaffSession,
-} from "@/lib/auth/staff-sessions";
+import { readRequestMeta } from "@/lib/auth/request-meta";
+import { touchStaffSession, validateStaffSession } from "@/lib/auth/staff-sessions";
 
 export const getStaffSession = async (): Promise<StaffUser | null> => {
   const session = await auth();
