@@ -15,10 +15,10 @@ const PromoCard = ({ title, description, href, icon: Icon, image }: PromoCardPro
   image ? (
     <Link
       href={href}
-      className="block w-full max-w-xs overflow-hidden rounded-2xl transition-shadow hover:shadow-md"
+      className="inline-block w-fit max-w-full overflow-hidden rounded-2xl transition-shadow hover:shadow-md"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- local gif in public/, animated (next/image would strip animation) */}
-      <img src={image} alt={title} className="block w-full" />
+      {/* eslint-disable-next-line @next/next/no-img-element -- local gif in public/, animated (next/image would strip animation); cropped tight to its content, rendered at native size (no w-full stretch) */}
+      <img src={image} alt={title} className="block max-w-full" />
     </Link>
   ) : (
     <Link href={href} className="block">
