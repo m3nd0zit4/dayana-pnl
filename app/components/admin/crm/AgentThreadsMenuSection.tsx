@@ -55,6 +55,7 @@ const AgentThreadsMenuSection = () => {
                     <SidebarMenuSubButton
                       render={<button type="button" />}
                       onClick={() => openAgentThread(thread.id)}
+                      className="hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent active:text-sidebar-foreground"
                     >
                       <MessageSquareText />
                       <span className="truncate">{thread.title}</span>

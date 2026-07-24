@@ -2,48 +2,52 @@
 
 import Link from "next/link";
 import type { EveDynamicToolPart, EveMessage, EveMessagePart } from "eve/react";
-import { Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ChevronRight, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/app/components/ui/button";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import { groupToolParts } from "./agent-message/group-tool-parts";
+import { TOOL_LABELS } from "./agent-message/tool-labels";
+import { ToolStepsGroup } from "./agent-message/ToolStepsGroup";
+import { Confirmation, ConfirmationAction, ConfirmationActions, ConfirmationTitle } from "./ai-elements/confirmation";
 import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from "./ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "./ai-elements/reasoning";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "./ai-elements/tool";
-import { extractRefs } from "./extract-refs";
+import { extractRefs, type EntityRef } from "./extract-refs";
+import { refTypeIcon } from "./ref-icons";
 
 type InputResponder = (requestId: string, optionId: string) => void;
 
-const TOOL_LABELS: Record<string, string> = {
-  search_contacts: "Buscando contactos",
-  get_contact: "Consultando contacto",
-  list_enrollments: "Listando inscripciones",
-  get_enrollment: "Consultando inscripción",
-  get_therapy_package: "Consultando paquete de terapia",
-  list_products: "Listando productos",
-  dashboard_stats: "Consultando estadísticas",
-  query_audit_log: "Consultando auditoría",
-  complete_therapy_session: "Completando sesión",
-  uncomplete_therapy_session: "Revirtiendo sesión",
-  schedule_therapy_session: "Agendando sesión",
-  mark_therapy_session_no_show: "Marcando inasistencia",
-  update_therapy_session: "Actualizando sesión",
+const collectMessageRefs = (message: EveMessage): EntityRef[] => {
+  const out: EntityRef[] = [];
+  for (const part of message.parts) {
+    if (part.type === "dynamic-tool" && "output" in part) {
+      for (const ref of extractRefs(part.output)) {
+        if (!out.some((r) => r.href === ref.href)) out.push(ref);
+      }
+    }
+  }
+  return out;
 };
 
-const RefChips = ({ output }: { output: unknown }) => {
-  const refs = extractRefs(output);
+const RefChips = ({ refs }: { refs: EntityRef[] }) => {
   if (refs.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1.5 pt-1">
-      {refs.map((ref) => (
-        <Link
-          key={ref.href}
-          href={ref.href}
-          target="_blank"
-          className="inline-flex items-center rounded-full border border-border bg-background px-2 py-0.5 text-xs text-foreground transition-colors hover:bg-accent"
-        >
-          {ref.type} ↗
-        </Link>
-      ))}
+      {refs.map((ref) => {
+        const Icon = refTypeIcon(ref.type);
+        return (
+          <Link
+            key={ref.href}
+            href={ref.href}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-accent"
+          >
+            <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+            {ref.label ?? ref.type}
+            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+          </Link>
+        );
+      })}
     </div>
   );
 };
@@ -72,13 +76,14 @@ const ToolPart = ({
         <ToolOutput
           output={"output" in part ? part.output : undefined}
           errorText={"errorText" in part ? part.errorText : undefined}
-        >
-          {"output" in part ? <RefChips output={part.output} /> : null}
-        </ToolOutput>
+        />
       </ToolContent>
     </Tool>
   );
 };
+
+const optionButtonVariant = (style: "danger" | "primary" | "default" | undefined) =>
+  style === "danger" ? "destructive" : style === "primary" ? "default" : "outline";
 
 const ApprovalPrompt = ({
   part,
@@ -93,21 +98,67 @@ const ApprovalPrompt = ({
   if (!request) return null;
 
   return (
-    <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-      <p className="mb-2 font-medium text-amber-900 dark:text-amber-200">{request.prompt}</p>
-      <div className="flex flex-wrap gap-2">
+    <Confirmation>
+      <ConfirmationTitle>{request.prompt}</ConfirmationTitle>
+      <ConfirmationActions>
         {(request.options ?? []).map((opt) => (
-          <Button
+          <ConfirmationAction
             key={opt.id}
             size="sm"
             disabled={!canRespond}
-            variant={opt.style === "danger" ? "destructive" : opt.style === "primary" ? "default" : "outline"}
+            variant={optionButtonVariant(opt.style)}
             onClick={() => onRespond(request.requestId, opt.id)}
           >
             {opt.label}
-          </Button>
+          </ConfirmationAction>
         ))}
-      </div>
+      </ConfirmationActions>
+    </Confirmation>
+  );
+};
+
+/**
+ * `ask_question` renders inline as part of the conversation — plain prose
+ * plus a button row, like the assistant just asked something out loud —
+ * instead of the generic `Tool` card chrome (icon, collapsible header,
+ * raw parameter JSON) other tool calls get. It shares the same
+ * approval-requested/-responded state machine, just with a chat-native look.
+ */
+const AskQuestionPart = ({
+  part,
+  canRespond,
+  onRespond,
+}: {
+  part: EveDynamicToolPart;
+  canRespond: boolean;
+  onRespond: InputResponder;
+}) => {
+  const request = part.toolMetadata?.eve?.inputRequest;
+  if (!request) return null;
+
+  const response = part.toolMetadata?.eve?.inputResponse;
+  const answeredOption = request.options?.find((opt) => opt.id === response?.optionId);
+  const answeredLabel = answeredOption?.label ?? response?.text;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <MessageResponse>{request.prompt}</MessageResponse>
+      {part.state === "approval-requested" && (
+        <ConfirmationActions className="justify-start">
+          {(request.options ?? []).map((opt) => (
+            <ConfirmationAction
+              key={opt.id}
+              size="sm"
+              disabled={!canRespond}
+              variant={optionButtonVariant(opt.style)}
+              onClick={() => onRespond(request.requestId, opt.id)}
+            >
+              {opt.label}
+            </ConfirmationAction>
+          ))}
+        </ConfirmationActions>
+      )}
+      {answeredLabel && <p className="text-xs text-muted-foreground">→ {answeredLabel}</p>}
     </div>
   );
 };
@@ -140,6 +191,9 @@ const AgentMessagePart = ({
         </Reasoning>
       );
     case "dynamic-tool":
+      if (part.toolName === "ask_question") {
+        return <AskQuestionPart part={part} canRespond={canRespond} onRespond={onRespond} />;
+      }
       return <ToolPart part={part} canRespond={canRespond} onRespond={onRespond} />;
     default:
       return null;
@@ -171,6 +225,9 @@ const AgentMessage = ({
     .map((p) => p.text)
     .join("\n\n");
 
+  const renderItems = groupToolParts(message.parts);
+  const refs = isUser ? [] : collectMessageRefs(message);
+
   const handleCopy = async () => {
     await navigator.clipboard.writeText(textContent);
     toast("Copiado", "success");
@@ -184,15 +241,20 @@ const AgentMessage = ({
   return (
     <Message from={message.role} data-optimistic={message.metadata?.optimistic ? "true" : undefined}>
       <MessageContent>
-        {message.parts.map((part, index) => (
-          <AgentMessagePart
-            key={index}
-            part={part}
-            canRespond={canRespond}
-            onRespond={onRespond}
-            showCaret={isStreaming && !isUser && index === lastTextIndex}
-          />
-        ))}
+        {renderItems.map((item, index) =>
+          item.type === "tool-group" ? (
+            <ToolStepsGroup key={`group-${index}`} parts={item.parts} />
+          ) : (
+            <AgentMessagePart
+              key={index}
+              part={item.part}
+              canRespond={canRespond}
+              onRespond={onRespond}
+              showCaret={isStreaming && !isUser && message.parts.indexOf(item.part) === lastTextIndex}
+            />
+          )
+        )}
+        <RefChips refs={refs} />
       </MessageContent>
 
       {!isUser && textContent && (

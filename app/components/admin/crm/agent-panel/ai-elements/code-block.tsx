@@ -29,7 +29,7 @@ export const CodeBlock = ({
 
   return (
     <div className={cn("group/code-block relative", className)}>
-      <pre className="max-h-64 overflow-auto p-3 pr-10 text-xs">
+      <pre className="max-h-64 overflow-x-hidden overflow-y-auto p-3 pr-10 text-xs">
         <code className="whitespace-pre-wrap break-words">{code}</code>
       </pre>
       <Button

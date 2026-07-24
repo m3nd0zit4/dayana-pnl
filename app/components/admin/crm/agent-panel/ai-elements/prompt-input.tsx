@@ -282,7 +282,7 @@ export const PromptInputTextarea = ({
   onChange,
   onKeyDown,
   className,
-  placeholder = "Pregunta lo que quieras…",
+  placeholder = "Pregunta",
   ...props
 }: PromptInputTextareaProps) => {
   const attachments = usePromptInputAttachments();
