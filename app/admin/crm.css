@@ -31,6 +31,7 @@
   --crm-dropdown-z: 110;
   --crm-touch: 44px;
   --crm-bottom-nav-h: 3.25rem;
+  --crm-ask-pill-clearance: 4.5rem;
 
   min-height: 100vh;
   background: var(--crm-background);
@@ -100,7 +101,12 @@
 }
 
 .crm-main-with-bottom-nav {
-  padding-bottom: calc(var(--crm-bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+  /* Bottom tab bar + clearance for the floating "Pregunta" pill, which is
+     ALSO fixed above the tab bar and would otherwise hide the last bit of
+     scrollable content (e.g. the dashboard's third card) behind it. */
+  padding-bottom: calc(
+    var(--crm-bottom-nav-h) + env(safe-area-inset-bottom, 0px) + var(--crm-ask-pill-clearance)
+  );
 }
 
 @media (min-width: 1024px) {
