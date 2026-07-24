@@ -66,6 +66,24 @@ const discountSummary = (p: PromoCode): string => {
   return parts.join(" · ") || "—";
 };
 
+/** Shared between the desktop table cell and the mobile card row. */
+const PromoStatusBadge = ({ p }: { p: PromoCode }) => {
+  const expired = p.expiresAt ? new Date(p.expiresAt) < new Date() : false;
+  const maxedOut = p.maxRedemptions != null && p.timesRedeemed >= p.maxRedemptions;
+  if (!p.isActive) return <Badge variant="secondary">Inactivo</Badge>;
+  if (expired)
+    return (
+      <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">Vencido</Badge>
+    );
+  if (maxedOut)
+    return (
+      <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">Agotado</Badge>
+    );
+  return (
+    <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">Activo</Badge>
+  );
+};
+
 const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>(initialPromoCodes ?? []);
@@ -348,77 +366,97 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
             ) : promoCodes.length === 0 ? (
               <p className="p-6 text-sm text-muted-foreground">Sin códigos promocionales</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Descuento</TableHead>
-                    <TableHead>Canjes</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {promoCodes.map((p) => {
-                    const expired = p.expiresAt ? new Date(p.expiresAt) < new Date() : false;
-                    const maxedOut =
-                      p.maxRedemptions != null && p.timesRedeemed >= p.maxRedemptions;
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">
-                          {p.code}
-                          {p.description && (
-                            <div className="text-xs font-normal text-muted-foreground">
-                              {p.description}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {discountSummary(p)}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {p.timesRedeemed}
-                          {p.maxRedemptions != null ? ` / ${p.maxRedemptions}` : ""}
-                        </TableCell>
-                        <TableCell>
-                          {!p.isActive ? (
-                            <Badge variant="secondary">Inactivo</Badge>
-                          ) : expired ? (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-                              Vencido
-                            </Badge>
-                          ) : maxedOut ? (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-                              Agotado
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">
-                              Activo
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {canManageTeam && !preview && (
-                            <div className="flex justify-end gap-2">
-                              <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                                Editar
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive"
-                                onClick={() => remove(p)}
-                              >
-                                Eliminar
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
+              <>
+                <div className="hidden lg:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Descuento</TableHead>
+                        <TableHead>Canjes</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead />
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {promoCodes.map((p) => (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium">
+                            {p.code}
+                            {p.description && (
+                              <div className="text-xs font-normal text-muted-foreground">
+                                {p.description}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {discountSummary(p)}
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {p.timesRedeemed}
+                            {p.maxRedemptions != null ? ` / ${p.maxRedemptions}` : ""}
+                          </TableCell>
+                          <TableCell>
+                            <PromoStatusBadge p={p} />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {canManageTeam && !preview && (
+                              <div className="flex justify-end gap-2">
+                                <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive"
+                                  onClick={() => remove(p)}
+                                >
+                                  Eliminar
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="divide-y divide-border lg:hidden">
+                  {promoCodes.map((p) => (
+                    <div key={p.id} className="flex items-start justify-between gap-3 p-4">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium">{p.code}</div>
+                        {p.description && (
+                          <div className="text-xs text-muted-foreground">{p.description}</div>
+                        )}
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {discountSummary(p)} · {p.timesRedeemed}
+                          {p.maxRedemptions != null ? ` / ${p.maxRedemptions}` : ""} canjes
+                        </div>
+                        <div className="mt-1.5">
+                          <PromoStatusBadge p={p} />
+                        </div>
+                      </div>
+                      {canManageTeam && !preview && (
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
+                            Editar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive"
+                            onClick={() => remove(p)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

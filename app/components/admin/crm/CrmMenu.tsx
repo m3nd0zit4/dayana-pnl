@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { crmMenuSections, type CrmMenuItem } from "@/app/config/crm-menu-items";
+import { crmHomeItem, crmMenuSections, type CrmMenuItem } from "@/app/config/crm-menu-items";
 import {
   Collapsible,
   CollapsibleContent,
@@ -122,6 +122,14 @@ const CrmMenu = ({ onNavigate }: Props) => {
 
   return (
     <>
+      <SidebarGroup>
+        <SidebarGroupContent>
+          <SidebarMenuRoot>
+            <CrmMenuParentItem item={crmHomeItem} pathname={pathname} onNavigate={onNavigate} />
+          </SidebarMenuRoot>
+        </SidebarGroupContent>
+      </SidebarGroup>
+
       {crmMenuSections.map((section) => (
         <SidebarGroup key={section.title}>
           <SidebarGroupLabel>{section.title}</SidebarGroupLabel>

@@ -12,6 +12,7 @@ import {
   saveContactRecent,
   type ContactRecentHit,
 } from "@/lib/crm/contact-search-recents";
+import { cn } from "@/lib/utils";
 
 export type SearchContactHit = ContactRecentHit & {
   displayName: string | null;
@@ -95,6 +96,18 @@ const SmartContactSearch = ({
   }, [initialQ]);
 
   useEffect(() => {
+    if (!compact) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [compact]);
+
+  useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -164,11 +177,14 @@ const SmartContactSearch = ({
       <label
         className={
           compact
-            ? "flex min-h-9 w-full items-center gap-2 rounded-lg bg-muted px-3 transition-colors focus-within:bg-muted/70"
+            ? "flex min-h-9 w-full items-center gap-2 rounded-lg bg-[var(--crm-topbar-accent)] px-3 transition-colors focus-within:bg-[var(--crm-topbar-accent)]/70"
             : "flex items-center gap-2.5 rounded-xl border border-border bg-card px-3.5 py-2 transition-all focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40"
         }
       >
-        <Search className="size-[18px] shrink-0 text-muted-foreground" strokeWidth={2} />
+        <Search
+          className={cn("size-[18px] shrink-0", compact ? "text-[var(--crm-topbar-foreground)]/60" : "text-muted-foreground")}
+          strokeWidth={2}
+        />
         <input
           ref={inputRef}
           type="search"
@@ -189,13 +205,23 @@ const SmartContactSearch = ({
             if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
-          className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          className={cn(
+            "min-w-0 flex-1 bg-transparent text-sm outline-none",
+            compact
+              ? "text-[var(--crm-topbar-foreground)] placeholder:text-[var(--crm-topbar-foreground)]/50"
+              : "text-foreground placeholder:text-muted-foreground"
+          )}
           autoComplete="off"
         />
+        {compact && (
+          <kbd className="hidden shrink-0 items-center gap-0.5 rounded border border-[var(--crm-topbar-foreground)]/20 px-1.5 py-0.5 font-mono text-[10px] text-[var(--crm-topbar-foreground)]/50 sm:flex">
+            Ctrl K
+          </kbd>
+        )}
       </label>
 
       {showEmptyPanel && (
-        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
+        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg">
           {recents.length > 0 && (
             <>
               <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">
@@ -238,7 +264,7 @@ const SmartContactSearch = ({
       )}
 
       {showResultsPanel && (
-        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
+        <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-80 overflow-auto rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-lg">
           {loading && <p className="px-3 py-2 text-xs text-muted-foreground">Buscando…</p>}
           {!loading && results.length === 0 && (
             <p className="px-3 py-2 text-xs text-muted-foreground">Sin coincidencias</p>

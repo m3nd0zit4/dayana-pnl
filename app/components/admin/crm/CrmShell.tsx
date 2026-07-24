@@ -1,12 +1,14 @@
 "use client";
 
 import type { StaffRole } from "@prisma/client";
+import Link from "next/link";
+import { Settings } from "lucide-react";
 import type { CSSProperties } from "react";
 import AdminPreviewBanner from "@/app/components/admin/AdminPreviewBanner";
+import AgentAskPill from "@/app/components/admin/crm/agent-panel/AgentAskPill";
 import AgentPanel from "@/app/components/admin/crm/agent-panel/AgentPanel";
 import AgentThreadsMenuSection from "@/app/components/admin/crm/AgentThreadsMenuSection";
 import CrmBottomNav from "@/app/components/admin/crm/CrmBottomNav";
-import CrmLogo from "@/app/components/admin/crm/CrmLogo";
 import CrmMenu from "@/app/components/admin/crm/CrmMenu";
 import CrmNavBar from "@/app/components/admin/crm/CrmNavBar";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
@@ -14,10 +16,20 @@ import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
-  SidebarHeader,
+  SidebarFooter,
   SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarProvider,
+  useSidebar,
 } from "@/app/components/ui/sidebar";
+
+/** Lives inside SidebarProvider so it can close the mobile drawer on nav. */
+const CrmMenuWithAutoClose = () => {
+  const { setOpenMobile } = useSidebar();
+  return <CrmMenu onNavigate={() => setOpenMobile(false)} />;
+};
 
 const CrmShell = ({
   children,
@@ -32,7 +44,8 @@ const CrmShell = ({
   avatarUrl: string | null;
   preview: boolean;
 }) => {
-  const { focusMode, agentEnabled, agentPanelExpanded } = useCrm();
+  const { focusMode, agentEnabled, agentPanelOpen, agentPanelExpanded } = useCrm();
+  const panelTakingOver = agentEnabled && agentPanelOpen && agentPanelExpanded;
 
   if (focusMode) {
     return (
@@ -47,47 +60,64 @@ const CrmShell = ({
   return (
     <SidebarProvider
       style={{ "--sidebar-width": "13.5rem" } as CSSProperties}
-      className="crm-app min-h-0"
+      className="crm-app h-[100dvh] min-h-0 flex-col"
     >
-      <Sidebar
-        collapsible="offcanvas"
-        className="border-r border-border"
-      >
-        <SidebarHeader>
-          <CrmLogo />
-        </SidebarHeader>
-        <SidebarContent>
-          <CrmMenu />
-          {agentEnabled && <AgentThreadsMenuSection />}
-        </SidebarContent>
-      </Sidebar>
+      <CrmNavBar
+        displayName={displayName}
+        role={role}
+        avatarUrl={avatarUrl}
+        preview={preview}
+      />
 
-      <SidebarInset
-        className={cn(
-          "min-w-0 overflow-hidden bg-transparent",
-          agentEnabled && agentPanelExpanded && "min-w-[26rem]"
-        )}
-      >
-        <CrmNavBar
-          displayName={displayName}
-          role={role}
-          avatarUrl={avatarUrl}
-          preview={preview}
-        />
-        <main className="crm-main-scroll crm-main-with-bottom-nav flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {preview && (
-            <div className="px-4 pt-3 md:px-5 lg:px-6">
-              <AdminPreviewBanner />
+      <div className="min-h-0 flex-1 bg-[var(--crm-topbar)] p-2">
+        <div className="h-full min-h-0 rounded-xl bg-card shadow-sm">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl [transform:translateZ(0)]">
+            <div className="flex min-h-0 flex-1">
+              <Sidebar
+                collapsible="offcanvas"
+                className="top-0 bottom-0 h-auto border-r border-sidebar-border"
+              >
+                <SidebarContent>
+                  <CrmMenuWithAutoClose />
+                  {agentEnabled && <AgentThreadsMenuSection />}
+                </SidebarContent>
+                <SidebarFooter>
+                  <SidebarMenu>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton tooltip="Configuración" render={<Link href="/admin/mi-cuenta/general" />}>
+                        <Settings />
+                        <span>Configuración</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarFooter>
+              </Sidebar>
+
+              <SidebarInset
+                className={cn(
+                  "min-w-0 overflow-hidden bg-transparent",
+                  panelTakingOver && "hidden"
+                )}
+              >
+                <main className="crm-main-scroll crm-main-with-bottom-nav flex min-h-0 flex-1 flex-col overflow-y-auto">
+                  {preview && (
+                    <div className="px-4 pt-3 md:px-5 lg:px-6">
+                      <AdminPreviewBanner />
+                    </div>
+                  )}
+                  {children}
+                </main>
+                <div className="lg:hidden">
+                  <CrmBottomNav />
+                </div>
+              </SidebarInset>
+
+              {agentEnabled && <AgentPanel />}
+              {agentEnabled && <AgentAskPill />}
             </div>
-          )}
-          {children}
-        </main>
-        <div className="lg:hidden">
-          <CrmBottomNav />
+          </div>
         </div>
-      </SidebarInset>
-
-      {agentEnabled && <AgentPanel />}
+      </div>
     </SidebarProvider>
   );
 };

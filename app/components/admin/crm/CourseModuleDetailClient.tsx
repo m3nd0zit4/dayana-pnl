@@ -412,7 +412,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                 </p>
               </div>
               <div className="flex flex-wrap items-end gap-3">
-                <div className="min-w-[240px] flex-1">
+                <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                   <SearchableSelect
                     label="Clase sin asignar"
                     hideLabel

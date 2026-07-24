@@ -4,17 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { UserContent } from "ai";
 import { useEveAgent } from "eve/react";
 import {
+  Check,
   ChevronDown,
   ChevronsLeftRight,
   Lightbulb,
+  Mic,
   Paperclip,
   Send,
   SquarePen,
-  Sparkles,
   UserRound,
   X,
 } from "lucide-react";
+import { useIsMobile } from "@/app/hooks/use-mobile";
 import { Button } from "@/app/components/ui/button";
+import { ButtonGroup, ButtonGroupSeparator } from "@/app/components/ui/button-group";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +26,9 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import AgentMessage from "./AgentMessage";
+import AgentPanelMobile from "./AgentPanelMobile";
 import { Conversation, ConversationContent, ConversationScrollButton } from "./ai-elements/conversation";
 import {
   PromptInput,
@@ -31,30 +36,34 @@ import {
   PromptInputActionMenu,
   PromptInputActionMenuContent,
   PromptInputActionMenuTrigger,
-  PromptInputFooter,
+  PromptInputButton,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
   type PromptInputMessage,
 } from "./ai-elements/prompt-input";
 import { deriveTitle, getThread, listThreads, upsertThread, type AgentThread } from "./thread-store";
+import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
 
 const newThreadId = () => crypto.randomUUID();
 
 const SKILLS = [
   {
     id: "stale-checkout-review",
-    name: "Revisión de checkouts vencidos",
+    name: "Checkouts pendientes",
+    description: "Pagos atascados que necesitan seguimiento",
     prompt: "Revisa los checkouts pendientes de pago y resume cuáles necesitan atención.",
   },
   {
     id: "contact-dedupe-check",
-    name: "Detección de contactos duplicados",
+    name: "Posibles duplicados",
+    description: "Compara contactos que podrían ser la misma persona",
     prompt: "Busca contactos que puedan estar duplicados y compáralos.",
   },
   {
     id: "therapy-schedule-audit",
-    name: "Auditoría de agenda de terapia",
+    name: "Sesiones sin agendar",
+    description: "Paquetes activos con terapias pendientes o vencidas",
     prompt: "Revisa los paquetes de terapia activos y encuentra sesiones sin agendar o vencidas.",
   },
 ] as const;
@@ -120,11 +129,14 @@ const SubPanelContent = ({
           <button
             key={skill.id}
             type="button"
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+            className="flex items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
             onClick={() => onInsertText(skill.prompt)}
           >
-            <Lightbulb className="size-4 shrink-0" />
-            {skill.name}
+            <Lightbulb className="mt-0.5 size-4 shrink-0" />
+            <span className="flex flex-col">
+              <span>{skill.name}</span>
+              <span className="text-xs text-muted-foreground">{skill.description}</span>
+            </span>
           </button>
         ))}
       </div>
@@ -162,7 +174,7 @@ const SubPanelContent = ({
   );
 };
 
-const AgentPanelSession = ({
+export const AgentPanelSession = ({
   threadId,
   seedMessage,
   onTitleChange,
@@ -177,6 +189,17 @@ const AgentPanelSession = ({
   const [subPanel, setSubPanel] = useState<SubPanel>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
   const sentSeedRef = useRef(false);
+  // Text already in the box when dictation starts — live transcript is appended
+  // after it and replaced wholesale on every recognition event (interim included),
+  // rather than accumulated, so partial words correct themselves as you speak.
+  const dictationBaseRef = useRef("");
+  const stt = useSpeechToText((text) =>
+    setInput(dictationBaseRef.current ? `${dictationBaseRef.current} ${text}` : text),
+  );
+  const handleMicToggle = () => {
+    if (!stt.isRecording) dictationBaseRef.current = input;
+    stt.toggle();
+  };
 
   useEffect(() => {
     if (!subPanel) return;
@@ -253,12 +276,12 @@ const AgentPanelSession = ({
     <div className="flex min-h-0 flex-1 flex-col">
       {agent.data.messages.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground">
-          <Sparkles className="size-5" />
+          <DayanaAiLogo className="size-20" active={isBusy} />
           Pregúntame sobre contactos, inscripciones o sesiones de terapia.
         </div>
       ) : (
         <Conversation className="min-h-0 flex-1">
-          <ConversationContent className="mx-auto w-full max-w-3xl gap-6">
+          <ConversationContent className="mx-auto w-full max-w-2xl gap-6">
             {agent.data.messages.map((message, index) => (
               <AgentMessage
                 key={message.id}
@@ -268,6 +291,12 @@ const AgentPanelSession = ({
                 onRespond={handleRespond}
               />
             ))}
+            {agent.status === "submitted" && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <DayanaAiLogo className="size-8" active />
+                Pensando…
+              </div>
+            )}
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
@@ -276,8 +305,12 @@ const AgentPanelSession = ({
       {agent.status === "error" && agent.error && (
         <p className="shrink-0 px-3 pb-1 text-xs text-destructive">{agent.error.message}</p>
       )}
+      {stt.error && <p className="shrink-0 px-3 pb-1 text-xs text-destructive">{stt.error}</p>}
 
-      <div className="relative shrink-0 p-2.5">
+      <div
+        className="relative mx-auto w-full max-w-2xl shrink-0 p-2.5"
+        style={{ paddingBottom: "max(0.625rem, env(safe-area-inset-bottom))" }}
+      >
         {subPanel && (
           <div
             ref={subPanelRef}
@@ -289,23 +322,79 @@ const AgentPanelSession = ({
         <PromptInput
           onSubmit={(message) => void handleSubmit(message)}
           onError={(err) => console.error(err)}
+          className="gap-1.5 rounded-full py-1 pr-1.5 pl-2"
         >
-          <PromptInputTextarea disabled={isBusy} value={input} onChange={(e) => setInput(e.target.value)} />
-          <PromptInputFooter>
-            <PromptInputTools>
-              <PromptInputActionMenu>
-                <PromptInputActionMenuTrigger tooltip="Adjuntar / mencionar / skills">
-                  <Paperclip className="size-4" />
-                </PromptInputActionMenuTrigger>
-                <PromptInputActionMenuContent>
-                  <RootMenuContent onSelect={setSubPanel} />
-                </PromptInputActionMenuContent>
-              </PromptInputActionMenu>
-            </PromptInputTools>
-            <PromptInputSubmit status={agent.status} onStop={agent.stop} disabled={isBusy || !input.trim()}>
-              <Send className="size-4" />
-            </PromptInputSubmit>
-          </PromptInputFooter>
+          {/* Same fixed-slot + overflow trick as the dashboard composer — keeps
+              this pill's height stable while the logo renders bigger. */}
+          <div className="relative size-6 shrink-0">
+            <DayanaAiLogo
+              className="absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2"
+              active={isBusy}
+            />
+          </div>
+          <PromptInputTextarea
+            disabled={isBusy}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="min-h-0 max-h-32 py-1.5"
+          />
+          <PromptInputTools className="shrink-0">
+            <PromptInputActionMenu>
+              <PromptInputActionMenuTrigger tooltip="Adjuntar / mencionar / skills">
+                <Paperclip className="size-4" />
+              </PromptInputActionMenuTrigger>
+              <PromptInputActionMenuContent>
+                <RootMenuContent onSelect={setSubPanel} />
+              </PromptInputActionMenuContent>
+            </PromptInputActionMenu>
+            {stt.isSupported && (
+              <ButtonGroup>
+                <PromptInputButton
+                  type="button"
+                  aria-pressed={stt.isRecording}
+                  disabled={stt.isRequesting}
+                  tooltip={
+                    stt.error ??
+                    (stt.isRequesting
+                      ? "Solicitando permiso del micrófono…"
+                      : stt.isRecording
+                        ? "Detener dictado"
+                        : "Dictar por voz")
+                  }
+                  className={stt.isRecording ? "text-destructive animate-pulse" : undefined}
+                  onClick={handleMicToggle}
+                >
+                  <Mic className="size-4" />
+                </PromptInputButton>
+                <ButtonGroupSeparator />
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <PromptInputButton type="button" tooltip="Idioma del dictado" className="px-1">
+                        <ChevronDown className="size-3.5" />
+                      </PromptInputButton>
+                    }
+                  />
+                  <DropdownMenuContent align="start">
+                    {STT_LANGUAGES.map((lang) => (
+                      <DropdownMenuItem key={lang.code} onClick={() => stt.setLanguage(lang.code)}>
+                        <span className="flex-1">{lang.label}</span>
+                        {stt.language === lang.code && <Check className="size-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </ButtonGroup>
+            )}
+          </PromptInputTools>
+          <PromptInputSubmit
+            status={agent.status}
+            onStop={agent.stop}
+            disabled={isBusy || !input.trim()}
+            className="static size-8 shrink-0"
+          >
+            <Send className="size-4" />
+          </PromptInputSubmit>
         </PromptInput>
       </div>
     </div>
@@ -332,6 +421,7 @@ const AgentPanel = () => {
   // for its own open/wasOpen tracking, and avoids the multi-branch setState
   // sequence tripping react-hooks/set-state-in-effect inside a useEffect.
   const [lastAppliedAction, setLastAppliedAction] = useState<typeof pendingAgentAction>(null);
+  const isMobile = useIsMobile();
 
   if (agentPanelOpen && pendingAgentAction && pendingAgentAction !== lastAppliedAction) {
     setLastAppliedAction(pendingAgentAction);
@@ -344,10 +434,17 @@ const AgentPanel = () => {
       setTitle(getThread(pendingAgentAction.value)?.title ?? "Conversación");
       setSeed(undefined);
     }
-    clearPendingAgentAction();
   }
 
-  if (!agentPanelOpen) return null;
+  // Clearing pendingAgentAction touches CrmProvider's state, not this
+  // component's own — updating another component's state during render
+  // (as the block above safely does for its own local state) isn't safe,
+  // so this one part of the adjustment is deferred to an effect.
+  useEffect(() => {
+    if (lastAppliedAction && lastAppliedAction === pendingAgentAction) {
+      clearPendingAgentAction();
+    }
+  }, [lastAppliedAction, pendingAgentAction, clearPendingAgentAction]);
 
   const startNewThread = () => {
     setThreadId(newThreadId());
@@ -361,10 +458,29 @@ const AgentPanel = () => {
     setSeed(undefined);
   };
 
+  if (isMobile) {
+    return (
+      <AgentPanelMobile
+        open={agentPanelOpen}
+        onOpenChange={setAgentPanelOpen}
+        title={title}
+        threads={threads}
+        onThreadsMenuOpen={() => setThreads(listThreads())}
+        threadId={threadId}
+        seed={seed}
+        onTitleChange={setTitle}
+        onNewThread={startNewThread}
+        onSwitchThread={switchThread}
+      />
+    );
+  }
+
+  if (!agentPanelOpen) return null;
+
   return (
     <aside
-      className={`sticky top-0 flex h-svh min-h-0 shrink-0 flex-col border-l border-border bg-popover text-popover-foreground transition-[width] duration-200 ${
-        agentPanelExpanded ? "w-[min(56rem,calc(100%-26rem))]" : "w-96"
+      className={`flex h-full min-h-0 flex-col border-l border-border bg-popover text-popover-foreground ${
+        agentPanelExpanded ? "w-full flex-1" : "w-96 shrink-0"
       }`}
     >
       <header className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-2">
