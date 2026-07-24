@@ -1,6 +1,7 @@
 import { MessageChannel } from "@prisma/client";
 import { prisma } from "../db";
 import { buildWhatsAppUrl } from "../contact";
+import { isQuickMessageTemplate } from "./quick-message-templates";
 
 export const renderTemplate = (
   body: string,
@@ -17,6 +18,15 @@ export const getMessageTemplate = async (key: string, locale = "es") =>
   prisma.messageTemplate.findUnique({
     where: { key_locale: { key, locale } },
   });
+
+/** Operator-facing templates only — excludes system templates (payment receipts, cron reminders). */
+export const listQuickMessageTemplates = async (locale = "es") => {
+  const templates = await prisma.messageTemplate.findMany({
+    where: { locale },
+    orderBy: { key: "asc" },
+  });
+  return templates.filter((t) => isQuickMessageTemplate(t.key));
+};
 
 export const logMessage = async (input: {
   contactId: string;

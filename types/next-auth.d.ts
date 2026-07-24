@@ -10,6 +10,7 @@ declare module "next-auth" {
       kind: SessionUserKind;
       role?: StaffRole;
       sessionId?: string;
+      avatarUrl?: string | null;
       /** Member only: contact still has a placeholder phone (Google/email
        *  signup that never captured a real number) — onboarding incomplete. */
       needsPhone?: boolean;

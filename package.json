@@ -43,7 +43,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
-    "eve": "^0.27.0",
+    "eve": "0.27.1",
     "fuse.js": "^7.1.0",
     "gsap": "^3.15.0",
     "inngest": "^3.49.3",
@@ -92,5 +92,8 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "patchedDependencies": {
+    "eve@0.27.1": "patches/eve@0.27.1.patch"
+  }
 }

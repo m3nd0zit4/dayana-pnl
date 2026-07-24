@@ -276,11 +276,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.sessionId = sessionId;
           const contact = await prisma.contact.findUnique({
             where: { id: contactId },
-            select: { phoneE164: true },
+            select: { phoneE164: true, avatarUrl: true },
           });
           session.user.needsPhone = contact
             ? !hasRealContactPhone(contact.phoneE164)
             : false;
+          session.user.avatarUrl = contact?.avatarUrl ?? null;
         }
         return session;
       }
@@ -306,6 +307,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.kind = "staff";
         session.user.role = staff.role;
         session.user.sessionId = sessionId;
+        session.user.avatarUrl = staff.avatarUrl ?? null;
       }
       return session;
     },

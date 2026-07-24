@@ -34,11 +34,14 @@ type CrmUserMenuProps = {
 
 const CrmUserMenu = ({ displayName, role, avatarUrl }: CrmUserMenuProps) => (
   <DropdownMenu>
-    <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+    <DropdownMenuTrigger className="flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <Avatar>
         {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
         <AvatarFallback>{initials(displayName)}</AvatarFallback>
       </Avatar>
+      <span className="hidden max-w-32 truncate text-sm font-medium text-[var(--crm-topbar-foreground)] md:block">
+        {displayName}
+      </span>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="end" className="w-56">
       <DropdownMenuGroup>

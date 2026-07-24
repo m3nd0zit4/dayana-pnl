@@ -1,5 +1,5 @@
 import type { StaffRole } from "@prisma/client";
-import { canWriteCrm } from "@/lib/crm/staff-permissions";
+import { canManageTeam, canRecordManualPayments, canWriteCrm } from "@/lib/crm/staff-permissions";
 import { writeAuditLog } from "@/lib/crm/audit";
 
 /**
@@ -33,6 +33,24 @@ export const requireWriteStaff = (ctx: AgentToolContext) => {
   const staff = getCallerStaff(ctx);
   if (!canWriteCrm(staff.role)) {
     throw new AgentPermissionError("Tu rol (solo lectura) no permite modificar datos en el CRM.");
+  }
+  return staff;
+};
+
+/** Team management (create staff, change roles) is OWNER-only, same as the /admin/staff UI. */
+export const requireManageTeam = (ctx: AgentToolContext) => {
+  const staff = getCallerStaff(ctx);
+  if (!canManageTeam(staff.role)) {
+    throw new AgentPermissionError("Solo el OWNER puede gestionar el equipo.");
+  }
+  return staff;
+};
+
+/** Manual payment recording is gated the same way the /admin/payments manual-entry UI gates it. */
+export const requireManualPaymentStaff = (ctx: AgentToolContext) => {
+  const staff = getCallerStaff(ctx);
+  if (!canRecordManualPayments(staff.role)) {
+    throw new AgentPermissionError("Tu rol no permite registrar pagos manuales.");
   }
   return staff;
 };
