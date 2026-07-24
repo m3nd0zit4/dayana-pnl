@@ -91,7 +91,7 @@ const ActiveSessionsTable = ({
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="hidden overflow-hidden rounded-md border lg:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -139,6 +139,39 @@ const ActiveSessionsTable = ({
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="divide-y divide-border rounded-md border lg:hidden">
+        {sessions.map((s) => (
+          <div key={s.id} className="flex items-start justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">
+                {s.deviceLabel ?? "Dispositivo desconocido"}
+                {s.id === currentSessionId && (
+                  <Badge variant="secondary" className="ml-2">
+                    Actual
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">{s.ipAddress ?? "—"}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Creada {formatDate(s.createdAt)} · Última actividad {formatDate(s.lastSeenAt)}
+              </div>
+            </div>
+            {s.id !== currentSessionId && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="shrink-0"
+                disabled={revokingId === s.id}
+                onClick={() => revoke(s.id)}
+              >
+                {revokingId === s.id ? "Cerrando…" : "Cerrar sesión"}
+              </Button>
+            )}
+          </div>
+        ))}
       </div>
 
       {error && (

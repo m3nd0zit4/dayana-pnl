@@ -31,14 +31,25 @@
   --crm-dropdown-z: 110;
   --crm-touch: 44px;
   --crm-bottom-nav-h: 3.25rem;
-  --crm-sidebar-w: 4.5rem;
-  --crm-sidebar-w-lg: 13.5rem;
 
   min-height: 100vh;
   background: var(--crm-background);
   color: var(--crm-foreground);
   font-family: font1, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Top bar only is always dark, independent of the site's own light/dark
+   toggle — the sidebar stays on the normal light `--sidebar-*` tokens (see
+   globals.css), it's only the header row that's deliberately a fixed dark
+   band. Kept as its own `--crm-topbar-*` set (not `--sidebar-*`) precisely
+   so the two can differ — sharing the sidebar tokens would force both dark
+   or both light together. */
+.crm-app {
+  --crm-topbar: #171310;
+  --crm-topbar-foreground: #f3ece1;
+  --crm-topbar-accent: #2a221c;
+  --crm-topbar-border: rgba(255, 255, 255, 0.08);
 }
 
 .crm-app .crm-font-display {
@@ -1199,7 +1210,6 @@
 
 /* Portales en document.body — modales, drawer, dropdowns */
 .crm-modal-backdrop,
-.crm-drawer-backdrop,
 .crm-searchable-panel,
 .crm-datetime-popover {
   --crm-ink: #0a0a0a;
@@ -2090,63 +2100,6 @@
 .crm-menu-trigger {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-}
-
-/* Portales en document.body — layout drawer/modal (tokens arriba) */
-.crm-drawer-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  display: block;
-  background: rgba(10, 10, 10, 0.4);
-  animation: crm-fade-in 0.2s ease-out;
-  touch-action: manipulation;
-}
-
-.crm-drawer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: min(18rem, 88vw);
-  display: flex;
-  flex-direction: column;
-  background: var(--crm-card);
-  border-right: 1px solid var(--crm-border);
-  box-shadow: var(--crm-shadow-md);
-  animation: crm-drawer-in 0.25s ease-out;
-}
-
-.crm-drawer-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 1rem 1rem 0.5rem;
-  border-bottom: 1px solid var(--crm-border);
-}
-
-.crm-drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.75rem;
-}
-
-.crm-drawer-footer {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem calc(0.875rem + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--crm-border);
-}
-
-@keyframes crm-drawer-in {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
 }
 
 @keyframes crm-fade-in {

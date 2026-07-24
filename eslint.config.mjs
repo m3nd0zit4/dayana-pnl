@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // eve (CRM agent) dev/build artifacts — bundled output, not source.
+    ".eve/**",
+    ".output/**",
   ]),
 ]);
 

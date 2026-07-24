@@ -705,6 +705,16 @@ body {
   }
 }
 
+/* CRM agent panel — "thinking" text shimmer (app/components/admin/crm/agent-panel/ai-elements/shimmer.tsx) */
+@keyframes shimmer-sweep {
+  from {
+    background-position: 100% center;
+  }
+  to {
+    background-position: 0% center;
+  }
+}
+
 @theme inline {
   /* Literal names, not var(--font-sans) — @theme inline resolves at parse
      time and we removed next/font's Geist injection (brand already has its

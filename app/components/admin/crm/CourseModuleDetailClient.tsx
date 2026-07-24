@@ -5,7 +5,6 @@ import { ArrowDown, ArrowLeft, ArrowUp, MessageCircle, Plus, Video } from "lucid
 import { useCallback, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { GeneratedModuleContent } from "@/lib/ai/module-generation";
 import { RECORDING_RETENTION_DAYS } from "@/lib/lms/course-content";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
@@ -16,7 +15,6 @@ import { Textarea } from "@/app/components/ui/textarea";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
-import ModuleAiGenerateBox from "./ModuleAiGenerateBox";
 import ClassEditorModal, { type ClassEditorRow } from "./ClassEditorModal";
 import ClassCommentsModal from "./ClassCommentsModal";
 
@@ -54,7 +52,7 @@ const recordingExpiry = (postedAt: string) => {
 };
 
 const CourseModuleDetailClient = ({ preview, module: initialModule, initialClasses }: Props) => {
-  const { canWrite, aiEnabled, toast, confirm } = useCrm();
+  const { canWrite, toast, confirm } = useCrm();
   const [mod, setMod] = useState(initialModule);
   const [savingModule, setSavingModule] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -90,15 +88,6 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
   useEffect(() => {
     void loadUnassigned();
   }, [loadUnassigned]);
-
-  const applyAiContent = (content: GeneratedModuleContent) => {
-    setMod((m) => ({
-      ...m,
-      title: m.title.trim() ? m.title : content.title,
-      bodyMd: content.bodyMd,
-    }));
-    setShowPreview(false);
-  };
 
   const saveModule = async () => {
     if (!mod.title.trim()) {
@@ -256,8 +245,6 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                 disabled={!canWrite || preview}
               />
             </div>
-
-            {aiEnabled && <ModuleAiGenerateBox onGenerated={applyAiContent} />}
 
             <div>
               <div className="mb-1 flex items-center justify-between">
@@ -425,7 +412,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                 </p>
               </div>
               <div className="flex flex-wrap items-end gap-3">
-                <div className="min-w-[240px] flex-1">
+                <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                   <SearchableSelect
                     label="Clase sin asignar"
                     hideLabel

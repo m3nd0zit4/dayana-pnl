@@ -85,7 +85,7 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
         <ContactSearch initialQ={initialQ} />
 
         <form onSubmit={applyFilters} className="flex flex-wrap items-end gap-3">
-          <div className="min-w-[200px] flex-1">
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto">
             <CountrySelect
               id="f-country"
               label="País"
@@ -95,7 +95,7 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
               emptyLabel="Todos los países"
             />
           </div>
-          <div className="min-w-[160px] flex-1">
+          <div className="min-w-0 flex-1 basis-full sm:basis-auto">
             <SearchableSelect
               id="f-source"
               label="Origen"

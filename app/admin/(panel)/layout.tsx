@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import CrmProvider from "@/app/components/admin/crm/CrmProvider";
 import CrmShell from "@/app/components/admin/crm/CrmShell";
 import type { StaffRole } from "@prisma/client";
-import { isAiConfigured } from "@/lib/ai/gemini";
+import { isAgentEnabled } from "@/lib/agent/is-agent-enabled";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 
@@ -26,10 +26,11 @@ const PanelLayout = async ({
   const role: StaffRole | "PREVIEW" = staff?.role ?? "PREVIEW";
   const avatarUrl = staff?.avatarUrl ?? null;
 
-  const aiEnabled = isAiConfigured();
+  // Phase 1: agent panel is OWNER-only, mirroring `agent/channels/eve.ts`'s auth gate.
+  const agentEnabled = isAgentEnabled() && role === "OWNER";
 
   return (
-    <CrmProvider role={role} preview={preview} aiEnabled={aiEnabled}>
+    <CrmProvider role={role} preview={preview} agentEnabled={agentEnabled}>
       <CrmShell
         displayName={displayName}
         role={role}

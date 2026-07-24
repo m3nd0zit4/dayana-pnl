@@ -57,6 +57,69 @@ const DISPLAY_USD_TO_COP_RATE = 3000;
 const formatCopApprox = (usdAmount: number) =>
   Math.round(usdAmount * DISPLAY_USD_TO_COP_RATE).toLocaleString("es-CO");
 
+/** Shared between the desktop table cell and the mobile card row. */
+const ProductPriceDisplay = ({
+  view,
+  displayPrice,
+}: {
+  view: View;
+  displayPrice: ProductPrice | null;
+}) =>
+  displayPrice ? (
+    <>
+      {view === "usd"
+        ? (displayPrice.amountMinor / 100).toLocaleString("en-US", {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+          })
+        : displayPrice.amountMinor.toLocaleString("es-CO")}{" "}
+      {view === "usd" ? "USD" : "COP"}
+      {displayPrice.listAmountMinor ? (
+        <span className="ml-1 text-[10px] text-muted-foreground line-through">
+          {view === "usd"
+            ? (displayPrice.listAmountMinor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })
+            : displayPrice.listAmountMinor.toLocaleString("es-CO")}
+        </span>
+      ) : null}
+      {view === "usd" && (
+        <div className="mt-0.5 text-xs text-muted-foreground">
+          ≈ ${formatCopApprox(displayPrice.amountMinor / 100)} COP
+        </div>
+      )}
+    </>
+  ) : (
+    <span className="text-muted-foreground">—</span>
+  );
+
+const ProductStatusBadge = ({
+  view,
+  isActive,
+  displayPrice,
+  usd,
+  cop,
+}: {
+  view: View;
+  isActive: boolean;
+  displayPrice: ProductPrice | null;
+  usd: ProductPrice | null;
+  cop: ProductPrice | null;
+}) =>
+  !isActive ? (
+    <Badge variant="secondary">Inactivo</Badge>
+  ) : displayPrice ? (
+    <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">Activo</Badge>
+  ) : view === "cop" && usd ? (
+    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+      Sin COP · Oculto en Colombia
+    </Badge>
+  ) : view === "usd" && cop ? (
+    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+      Sin USD · Oculto internacional
+    </Badge>
+  ) : (
+    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">Sin precio · No visible</Badge>
+  );
+
 const emptyForm = () => ({
   kind: "THERAPY" as ProductKind,
   title: "",
@@ -400,102 +463,112 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
             {loading ? (
               <p className="p-6 text-sm text-muted-foreground">Cargando…</p>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Paquete</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>{view === "usd" ? "Precio USD" : "Precio COP"}</TableHead>
-                    <TableHead>Activo</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                <div className="hidden lg:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Paquete</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>{view === "usd" ? "Precio USD" : "Precio COP"}</TableHead>
+                        <TableHead>Activo</TableHead>
+                        <TableHead />
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((p) => {
+                        const usd = usdPrice(p);
+                        const cop = copPrice(p);
+                        const displayPrice = view === "usd" ? usd : cop;
+                        return (
+                          <TableRow key={p.id}>
+                            <TableCell className="font-medium">{p.title}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {KIND_LABEL[p.kind]}
+                            </TableCell>
+                            <TableCell>
+                              <ProductPriceDisplay view={view} displayPrice={displayPrice} />
+                            </TableCell>
+                            <TableCell>
+                              <ProductStatusBadge
+                                view={view}
+                                isActive={p.isActive}
+                                displayPrice={displayPrice}
+                                usd={usd}
+                                cop={cop}
+                              />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {canManageTeam && !preview && (
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEdit(p)}
+                                  >
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive"
+                                    onClick={() => remove(p.id)}
+                                  >
+                                    Eliminar
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="divide-y divide-border lg:hidden">
                   {products.map((p) => {
                     const usd = usdPrice(p);
                     const cop = copPrice(p);
                     const displayPrice = view === "usd" ? usd : cop;
-                    const currency = view === "usd" ? "USD" : "COP";
                     return (
-                      <TableRow key={p.id}>
-                        <TableCell className="font-medium">{p.title}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {KIND_LABEL[p.kind]}
-                        </TableCell>
-                        <TableCell>
-                          {displayPrice ? (
-                            <>
-                              {view === "usd"
-                                ? (displayPrice.amountMinor / 100).toLocaleString("en-US", {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2,
-                                  })
-                                : displayPrice.amountMinor.toLocaleString("es-CO")}{" "}
-                              {currency}
-                              {displayPrice.listAmountMinor ? (
-                                <span className="ml-1 text-[10px] text-muted-foreground line-through">
-                                  {view === "usd"
-                                    ? (displayPrice.listAmountMinor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })
-                                    : displayPrice.listAmountMinor.toLocaleString("es-CO")}
-                                </span>
-                              ) : null}
-                              {view === "usd" && (
-                                <div className="mt-0.5 text-xs text-muted-foreground">
-                                  ≈ ${formatCopApprox(displayPrice.amountMinor / 100)} COP
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {!p.isActive ? (
-                            <Badge variant="secondary">Inactivo</Badge>
-                          ) : displayPrice ? (
-                            <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">
-                              Activo
-                            </Badge>
-                          ) : view === "cop" && usd ? (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-                              Sin COP · Oculto en Colombia
-                            </Badge>
-                          ) : view === "usd" && cop ? (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-                              Sin USD · Oculto internacional
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-                              Sin precio · No visible
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {canManageTeam && !preview && (
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEdit(p)}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive"
-                                onClick={() => remove(p.id)}
-                              >
-                                Eliminar
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
+                      <div key={p.id} className="flex items-start justify-between gap-3 p-4">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium">{p.title}</div>
+                          <div className="text-xs text-muted-foreground">{KIND_LABEL[p.kind]}</div>
+                          <div className="mt-1.5 text-sm">
+                            <ProductPriceDisplay view={view} displayPrice={displayPrice} />
+                          </div>
+                          <div className="mt-1.5">
+                            <ProductStatusBadge
+                              view={view}
+                              isActive={p.isActive}
+                              displayPrice={displayPrice}
+                              usd={usd}
+                              cop={cop}
+                            />
+                          </div>
+                        </div>
+                        {canManageTeam && !preview && (
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
+                              Editar
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              onClick={() => remove(p.id)}
+                            >
+                              Eliminar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

@@ -5,6 +5,7 @@ import {
   ExternalLink,
   GraduationCap,
   HeartPulse,
+  Home,
   ClipboardList,
   MessageCircle,
   MessageSquare,
@@ -29,7 +30,9 @@ export type CrmMenuSection = {
   items: CrmMenuItem[];
 };
 
-/** Sin «Inicio»: el logo del sidebar lleva a /admin. */
+/** Standalone item rendered above every section, no group label — the logo lives in the top bar now, not the sidebar, so this is the only "go home" link. */
+export const crmHomeItem: CrmMenuItem = { icon: Home, label: "Inicio", href: "/admin" };
+
 export const crmMenuSections: CrmMenuSection[] = [
   {
     title: "Clientes",

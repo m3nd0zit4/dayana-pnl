@@ -447,7 +447,7 @@ const EnrollmentDetailClient = ({
               <p className="text-xs text-muted-foreground">Agenda en Google Calendar</p>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="hidden lg:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -472,6 +472,21 @@ const EnrollmentDetailClient = ({
                   ))}
                 </TableBody>
               </Table>
+            </div>
+
+            <div className="divide-y divide-border lg:hidden">
+              {allSessions.map((s) => (
+                <SessionCard
+                  key={s.id}
+                  session={s}
+                  timezone={enrollment.contact.timezone}
+                  canWrite={canWrite}
+                  busy={busy}
+                  onComplete={() => completeSession(s.id, s.sessionNumber)}
+                  onUncomplete={() => uncompleteSession(s.id, s.sessionNumber)}
+                  onSchedule={() => setScheduleSession(s)}
+                />
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -509,15 +524,19 @@ const EnrollmentDetailClient = ({
   );
 };
 
-const SessionRow = ({
-  session: s,
-  timezone,
-  canWrite,
-  busy,
-  onComplete,
-  onUncomplete,
-  onSchedule,
-}: {
+/** Session status flags — shared by the desktop table row and mobile card. */
+const sessionFlags = (s: Session, canWrite: boolean) => {
+  const isCompleted = s.status === "COMPLETED";
+  const isPlaceholder = s.id.startsWith("placeholder");
+  return {
+    isCompleted,
+    canComplete: canWrite && !isCompleted && !isPlaceholder,
+    canUncomplete: canWrite && isCompleted && !isPlaceholder,
+    canSchedule: canWrite && !isPlaceholder && !isCompleted && SCHEDULABLE_STATUSES.has(s.status),
+  };
+};
+
+type SessionRowProps = {
   session: Session;
   timezone: string;
   canWrite: boolean;
@@ -525,16 +544,44 @@ const SessionRow = ({
   onComplete: () => void;
   onUncomplete: () => void;
   onSchedule: () => void;
-}) => {
-  const isCompleted = s.status === "COMPLETED";
-  const isPlaceholder = s.id.startsWith("placeholder");
-  const canComplete = canWrite && !isCompleted && !isPlaceholder;
-  const canUncomplete = canWrite && isCompleted && !isPlaceholder;
-  const canSchedule =
-    canWrite &&
-    !isPlaceholder &&
-    !isCompleted &&
-    SCHEDULABLE_STATUSES.has(s.status);
+};
+
+const SessionActions = ({
+  session: s,
+  busy,
+  onComplete,
+  onUncomplete,
+  onSchedule,
+  canSchedule,
+  canComplete,
+  canUncomplete,
+  isCompleted,
+}: SessionRowProps & ReturnType<typeof sessionFlags>) => (
+  <div className="flex flex-wrap items-center gap-2">
+    {canSchedule && (
+      <Button variant="outline" size="sm" disabled={busy} onClick={onSchedule}>
+        {s.scheduledAt ? "Cambiar fecha" : "Agregar fecha"}
+      </Button>
+    )}
+    {canComplete && (
+      <Button size="sm" disabled={busy} onClick={onComplete}>
+        Completar
+      </Button>
+    )}
+    {canUncomplete && (
+      <Button variant="outline" size="sm" disabled={busy} onClick={onUncomplete}>
+        Quitar completado
+      </Button>
+    )}
+    {isCompleted && !canUncomplete && (
+      <span className="text-xs text-muted-foreground">Completada</span>
+    )}
+  </div>
+);
+
+const SessionRow = (props: SessionRowProps) => {
+  const { session: s, timezone, canWrite } = props;
+  const flags = sessionFlags(s, canWrite);
 
   return (
     <TableRow>
@@ -544,28 +591,29 @@ const SessionRow = ({
         {s.scheduledAt ? formatSessionDateTimeEs(s.scheduledAt, timezone) : "—"}
       </TableCell>
       <TableCell>
-        <div className="flex flex-wrap items-center gap-2">
-          {canSchedule && (
-            <Button variant="outline" size="sm" disabled={busy} onClick={onSchedule}>
-              {s.scheduledAt ? "Cambiar fecha" : "Agregar fecha"}
-            </Button>
-          )}
-          {canComplete && (
-            <Button size="sm" disabled={busy} onClick={onComplete}>
-              Completar
-            </Button>
-          )}
-          {canUncomplete && (
-            <Button variant="outline" size="sm" disabled={busy} onClick={onUncomplete}>
-              Quitar completado
-            </Button>
-          )}
-          {isCompleted && !canUncomplete && (
-            <span className="text-xs text-muted-foreground">Completada</span>
-          )}
-        </div>
+        <SessionActions {...props} {...flags} />
       </TableCell>
     </TableRow>
+  );
+};
+
+const SessionCard = (props: SessionRowProps) => {
+  const { session: s, timezone, canWrite } = props;
+  const flags = sessionFlags(s, canWrite);
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium">Sesión {s.sessionNumber}</span>
+        <span className="text-xs text-muted-foreground">{sessionStatusLabel(s.status)}</span>
+      </div>
+      <div className="mt-1 text-xs text-muted-foreground">
+        {s.scheduledAt ? formatSessionDateTimeEs(s.scheduledAt, timezone) : "—"}
+      </div>
+      <div className="mt-2">
+        <SessionActions {...props} {...flags} />
+      </div>
+    </div>
   );
 };
 

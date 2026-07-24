@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CreditCard, HeartPulse, Menu, Users } from "lucide-react";
+import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ const navItemClass =
 const CrmBottomNav = () => {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
+  const { setAgentPanelOpen } = useCrm();
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -50,7 +52,10 @@ const CrmBottomNav = () => {
       <button
         type="button"
         className={navItemClass}
-        onClick={() => setOpenMobile(true)}
+        onClick={() => {
+          setAgentPanelOpen(false);
+          setOpenMobile(true);
+        }}
         aria-label="Más opciones"
       >
         <Menu className="size-[22px]" strokeWidth={1.75} />

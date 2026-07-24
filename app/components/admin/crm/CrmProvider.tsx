@@ -28,14 +28,28 @@ export type ToastOptions = {
   action?: { label: string; href: string };
 };
 
+/** What the agent panel should do the next time it (re)mounts a session. */
+export type PendingAgentAction = { type: "message"; value: string } | { type: "thread"; value: string };
+
 type CrmContextValue = {
   role: StaffRole | "PREVIEW";
   preview: boolean;
   canWrite: boolean;
   canEditNotes: boolean;
   canManageTeam: boolean;
-  /** true cuando GEMINI_API_KEY está configurada — habilita el autocompletado con IA. */
-  aiEnabled: boolean;
+  /** true cuando el agente CRM (eve) está habilitado para este staff — ver CRM_AGENT_ENABLED. */
+  agentEnabled: boolean;
+  agentPanelOpen: boolean;
+  setAgentPanelOpen: (open: boolean) => void;
+  agentPanelExpanded: boolean;
+  setAgentPanelExpanded: (expanded: boolean) => void;
+  /** Acción pendiente para el panel: sembrar un mensaje nuevo o cambiar a un hilo existente. */
+  pendingAgentAction: PendingAgentAction | null;
+  clearPendingAgentAction: () => void;
+  /** Abre el panel del agente y envía este mensaje en una conversación nueva. */
+  askAgent: (message: string) => void;
+  /** Abre el panel del agente sobre un hilo existente (p.ej. desde la lista del sidebar). */
+  openAgentThread: (threadId: string) => void;
   focusMode: boolean;
   setFocusMode: (active: boolean) => void;
   toast: {
@@ -76,12 +90,12 @@ const CrmProvider = ({
   children,
   role,
   preview,
-  aiEnabled = false,
+  agentEnabled = false,
 }: {
   children: ReactNode;
   role: StaffRole | "PREVIEW";
   preview: boolean;
-  aiEnabled?: boolean;
+  agentEnabled?: boolean;
 }) => {
   const router = useRouter();
   // confirmState holds the last content (never cleared on close) so the
@@ -94,6 +108,21 @@ const CrmProvider = ({
   } | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [agentPanelOpen, setAgentPanelOpen] = useState(false);
+  const [agentPanelExpanded, setAgentPanelExpanded] = useState(false);
+  const [pendingAgentAction, setPendingAgentAction] = useState<PendingAgentAction | null>(null);
+
+  const askAgent = useCallback((message: string) => {
+    setPendingAgentAction({ type: "message", value: message });
+    setAgentPanelOpen(true);
+  }, []);
+
+  const openAgentThread = useCallback((threadId: string) => {
+    setPendingAgentAction({ type: "thread", value: threadId });
+    setAgentPanelOpen(true);
+  }, []);
+
+  const clearPendingAgentAction = useCallback(() => setPendingAgentAction(null), []);
 
   const dismissToast = useCallback((id: number) => {
     sonnerToast.dismiss(id);
@@ -139,14 +168,37 @@ const CrmProvider = ({
       canWrite: preview ? false : canWriteCrm(staffRole),
       canEditNotes: preview ? false : canEditClinicalNotes(staffRole),
       canManageTeam: preview ? false : canManageTeam(staffRole),
-      aiEnabled: preview ? false : aiEnabled,
+      agentEnabled: preview ? false : agentEnabled,
+      agentPanelOpen,
+      setAgentPanelOpen,
+      agentPanelExpanded,
+      setAgentPanelExpanded,
+      pendingAgentAction,
+      clearPendingAgentAction,
+      askAgent,
+      openAgentThread,
       focusMode,
       setFocusMode,
       toast,
       dismissToast,
       confirm,
     }),
-    [role, preview, staffRole, aiEnabled, focusMode, toast, dismissToast, confirm]
+    [
+      role,
+      preview,
+      staffRole,
+      agentEnabled,
+      agentPanelOpen,
+      agentPanelExpanded,
+      pendingAgentAction,
+      clearPendingAgentAction,
+      askAgent,
+      openAgentThread,
+      focusMode,
+      toast,
+      dismissToast,
+      confirm,
+    ]
   );
 
   return (

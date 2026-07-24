@@ -1,10 +1,16 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { Bell, ExternalLink, PanelLeft } from "lucide-react";
+import { useState } from "react";
+import CrmLogo from "@/app/components/admin/crm/CrmLogo";
 import SmartContactSearch from "@/app/components/admin/crm/SmartContactSearch";
 import CrmUserMenu from "@/app/components/admin/crm/CrmUserMenu";
+import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import { Button } from "@/app/components/ui/button";
 import { Separator } from "@/app/components/ui/separator";
+import { useSidebar } from "@/app/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 type Props = {
   displayName: string;
@@ -13,33 +19,75 @@ type Props = {
   preview: boolean;
 };
 
-const CrmNavBar = ({ displayName, role, avatarUrl, preview }: Props) => (
-  <header className="sticky top-0 z-20 flex w-full shrink-0 items-center gap-2 border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur-xl backdrop-saturate-150 sm:gap-3 sm:px-4 lg:px-5">
-    {!preview ? (
-      <SmartContactSearch compact placeholder="Buscar…" />
-    ) : (
-      <div className="min-w-0 flex-1" />
-    )}
+const iconButtonClass =
+  "text-[var(--crm-topbar-foreground)]/70 hover:bg-[var(--crm-topbar-accent)] hover:text-[var(--crm-topbar-foreground)]";
 
-    <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+const CrmNavBar = ({ displayName, role, avatarUrl, preview }: Props) => {
+  const { agentEnabled, agentPanelOpen, setAgentPanelOpen } = useCrm();
+  const [agentButtonHovered, setAgentButtonHovered] = useState(false);
+  const { setOpenMobile } = useSidebar();
+
+  return (
+    <header className="sticky top-0 z-30 flex h-14 w-full shrink-0 items-center gap-4 bg-[var(--crm-topbar)] px-3 text-[var(--crm-topbar-foreground)] sm:px-4 lg:px-5">
       <Button
         variant="ghost"
         size="icon"
-        className="text-muted-foreground hover:text-foreground"
-        aria-label="Abrir sitio público"
-        nativeButton={false}
-        render={<a href="/" target="_blank" rel="noopener noreferrer" />}
+        className={cn("shrink-0 lg:hidden", iconButtonClass)}
+        aria-label="Abrir menú"
+        onClick={() => {
+          setAgentPanelOpen(false);
+          setOpenMobile(true);
+        }}
       >
-        <ExternalLink />
+        <PanelLeft />
       </Button>
 
-      <Separator orientation="vertical" className="mx-0.5 hidden h-6 md:block" />
+      <CrmLogo />
 
-      {!preview && (
-        <CrmUserMenu displayName={displayName} role={role} avatarUrl={avatarUrl} />
-      )}
-    </div>
-  </header>
-);
+      <div className="mx-auto hidden min-w-0 w-full max-w-xl lg:block">{!preview && <SmartContactSearch compact placeholder="Buscar…" />}</div>
+      <div className="flex-1 lg:hidden" />
+
+      <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+        {agentEnabled && (
+          <Button
+            variant={agentPanelOpen ? "secondary" : "ghost"}
+            size="icon"
+            className={cn("relative hidden lg:inline-flex", iconButtonClass)}
+            aria-label="Asistente CRM"
+            onClick={() => setAgentPanelOpen(!agentPanelOpen)}
+            onMouseEnter={() => setAgentButtonHovered(true)}
+            onMouseLeave={() => setAgentButtonHovered(false)}
+          >
+            {/* Button's own hit area stays the fixed icon size; the logo
+                renders bigger and overflows it via absolute positioning. */}
+            <DayanaAiLogo
+              className="absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2"
+              active={agentButtonHovered}
+            />
+          </Button>
+        )}
+
+        <Button variant="ghost" size="icon" className={iconButtonClass} aria-label="Notificaciones">
+          <Bell />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className={iconButtonClass}
+          aria-label="Abrir sitio público"
+          nativeButton={false}
+          render={<a href="/" target="_blank" rel="noopener noreferrer" />}
+        >
+          <ExternalLink />
+        </Button>
+
+        <Separator orientation="vertical" className="mx-0.5 hidden h-6 bg-[var(--crm-topbar-border)] md:block" />
+
+        {!preview && <CrmUserMenu displayName={displayName} role={role} avatarUrl={avatarUrl} />}
+      </div>
+    </header>
+  );
+};
 
 export default CrmNavBar;
