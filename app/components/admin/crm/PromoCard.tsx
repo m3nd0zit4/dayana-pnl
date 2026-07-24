@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { ArrowUpRight, type LucideIcon } from "lucide-react";
 import { buttonVariants } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -15,10 +15,33 @@ const PromoCard = ({ title, description, href, icon: Icon, image }: PromoCardPro
   image ? (
     <Link
       href={href}
-      className="inline-block w-fit max-w-full overflow-hidden rounded-2xl transition-shadow hover:shadow-md"
+      className="group relative inline-block w-fit max-w-full overflow-hidden rounded-2xl transition-shadow hover:shadow-md"
     >
+      {/* Static poster shows at rest; the gif only plays on hover — two
+          stacked <img>s cross-fading via opacity, same technique as
+          DayanaAiLogo, just CSS-driven (group-hover) instead of a JS prop. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- local png in public/, poster frame for the gif below */}
+      <img
+        src={image.replace(/\.gif$/, "-static.png")}
+        alt={title}
+        className="block max-w-full transition-opacity duration-200 group-hover:opacity-0"
+      />
       {/* eslint-disable-next-line @next/next/no-img-element -- local gif in public/, animated (next/image would strip animation); cropped tight to its content, rendered at native size (no w-full stretch) */}
-      <img src={image} alt={title} className="block max-w-full" />
+      <img
+        src={image}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+      />
+      <span
+        className={cn(
+          buttonVariants({ variant: "secondary", size: "xs" }),
+          "absolute right-2 bottom-2 gap-1 shadow-sm"
+        )}
+      >
+        Ver
+        <ArrowUpRight className="size-3.5" />
+      </span>
     </Link>
   ) : (
     <Link href={href} className="block">

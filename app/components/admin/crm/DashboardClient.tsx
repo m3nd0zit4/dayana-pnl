@@ -213,7 +213,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6 py-6 text-center">
+        <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6 py-10 text-center">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">{greeting()}</h1>
             <p className="text-muted-foreground">Sigamos haciendo crecer tu negocio.</p>
@@ -232,7 +232,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           </Link>
         )}
 
-        <div className="mt-2 grid justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PromoCard
             title="Pagos"
             description="Revisa pagos recientes y resuelve los que quedaron sin identificar."
