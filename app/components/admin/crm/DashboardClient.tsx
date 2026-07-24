@@ -232,7 +232,7 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           </Link>
         )}
 
-        <div className="mt-2 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-2 grid justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PromoCard
             title="Pagos"
             description="Revisa pagos recientes y resuelve los que quedaron sin identificar."

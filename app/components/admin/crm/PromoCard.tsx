@@ -13,7 +13,10 @@ type PromoCardProps = {
 /** Column variant of `LearningDashboard.tsx`'s `CourseCard`/`CourseCover` idiom. An `image` (gif) already bakes in its own title/description art, so it IS the whole card — no separate text block. Without one, falls back to the gradient+icon block plus title/description/"Ver" pill. */
 const PromoCard = ({ title, description, href, icon: Icon, image }: PromoCardProps) =>
   image ? (
-    <Link href={href} className="block overflow-hidden rounded-2xl transition-shadow hover:shadow-md">
+    <Link
+      href={href}
+      className="block w-full max-w-xs overflow-hidden rounded-2xl transition-shadow hover:shadow-md"
+    >
       {/* eslint-disable-next-line @next/next/no-img-element -- local gif in public/, animated (next/image would strip animation) */}
       <img src={image} alt={title} className="block w-full" />
     </Link>
