@@ -8,6 +8,7 @@ import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import { APPROVAL_OPTION_LABELS, isFrameworkApprovalGate } from "./agent-message/framework-approval";
 import { groupToolParts } from "./agent-message/group-tool-parts";
+import { sanitizePromptText } from "./agent-message/sanitize-text";
 import { TOOL_LABELS } from "./agent-message/tool-labels";
 import { ToolStepsGroup } from "./agent-message/ToolStepsGroup";
 import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from "./ai-elements/message";
@@ -88,7 +89,9 @@ const InputRequestPrompt = ({ part }: { part: EveDynamicToolPart }) => {
   if (!request) return null;
 
   const isGate = isFrameworkApprovalGate(request);
-  const prompt = isGate ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}` : request.prompt;
+  const prompt = isGate
+    ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}`
+    : sanitizePromptText(request.prompt);
 
   const response = part.toolMetadata?.eve?.inputResponse;
   const answeredOption = request.options?.find((opt) => opt.id === response?.optionId);
