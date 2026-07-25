@@ -5,6 +5,7 @@ import type { EveDynamicToolPart, EveMessage } from "eve/react";
 import { Input } from "@/app/components/ui/input";
 import { ConfirmationAction, ConfirmationActions } from "../ai-elements/confirmation";
 import { APPROVAL_OPTION_LABELS, isFrameworkApprovalGate } from "./framework-approval";
+import { sanitizePromptText } from "./sanitize-text";
 import { TOOL_LABELS } from "./tool-labels";
 
 export type InputResponse = { optionId?: string; text?: string };
@@ -47,7 +48,9 @@ export const PendingInputBar = ({
   if (!request) return null;
 
   const isGate = isFrameworkApprovalGate(request);
-  const prompt = isGate ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}` : request.prompt;
+  const prompt = isGate
+    ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}`
+    : sanitizePromptText(request.prompt);
   const hasOptions = (request.options?.length ?? 0) > 0;
 
   const submitFreeform = () => {

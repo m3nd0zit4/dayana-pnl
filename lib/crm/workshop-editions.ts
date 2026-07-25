@@ -2,6 +2,8 @@ import { WorkshopEditionStatus } from "@prisma/client";
 import { enrichWorkshopInput } from "./workshop-enrichment";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
 import { prisma } from "../db";
+import { crmEditionWhere } from "../workshops-db";
+import { uniqueSlug } from "./slug";
 export type WorkshopEditionInput = {
   slug?: string;
   title: string;
@@ -125,3 +127,20 @@ export const updateWorkshopEditionBySlug = async (
     },
   });
 };
+
+/** Same filter/order the admin workshops list route uses — every real edition, newest first, excluding the virtual "proximo-taller" placeholder. */
+export const listWorkshopEditionsAdmin = async () =>
+  prisma.workshopEdition.findMany({
+    where: crmEditionWhere,
+    orderBy: { createdAt: "desc" },
+  });
+
+export const getWorkshopEditionBySlug = async (slug: string) =>
+  prisma.workshopEdition.findUnique({
+    where: { slug },
+    include: { product: { include: { prices: true } } },
+  });
+
+/** Same slug-generation the admin create route uses (app/api/admin/workshops/route.ts) — collision-checked against real WorkshopEdition rows. */
+export const generateWorkshopSlug = async (title: string) =>
+  uniqueSlug(title, async (s) => !!(await prisma.workshopEdition.findUnique({ where: { slug: s } })));
