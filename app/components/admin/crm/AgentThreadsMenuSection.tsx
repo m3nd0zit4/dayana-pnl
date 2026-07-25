@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, MessageSquareText } from "lucide-react";
+import { ChevronRight, MessageSquareText, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import {
@@ -13,7 +13,7 @@ import {
   SidebarMenuSubItem,
 } from "@/app/components/ui/sidebar";
 import { useCrm } from "./CrmProvider";
-import { listThreads, type AgentThread } from "./agent-panel/thread-store";
+import { deleteThread, listThreads, type AgentThread } from "./agent-panel/thread-store";
 
 /**
  * `crmMenuSections` (app/config/crm-menu-items.ts) is static, `Link`-driven
@@ -29,6 +29,12 @@ const AgentThreadsMenuSection = () => {
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
     if (next) setThreads(listThreads());
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    deleteThread(id);
+    setThreads(listThreads());
   };
 
   return (
@@ -51,15 +57,23 @@ const AgentThreadsMenuSection = () => {
             ) : (
               <SidebarMenuSub className="mr-0 ml-0 border-l-0 px-0">
                 {threads.map((thread) => (
-                  <SidebarMenuSubItem key={thread.id}>
+                  <SidebarMenuSubItem key={thread.id} className="flex items-center gap-0.5">
                     <SidebarMenuSubButton
                       render={<button type="button" />}
                       onClick={() => openAgentThread(thread.id)}
-                      className="hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent active:text-sidebar-foreground"
+                      className="min-w-0 flex-1 hover:bg-transparent hover:text-sidebar-foreground active:bg-transparent active:text-sidebar-foreground"
                     >
                       <MessageSquareText />
                       <span className="truncate">{thread.title}</span>
                     </SidebarMenuSubButton>
+                    <button
+                      type="button"
+                      aria-label="Eliminar conversación"
+                      onClick={(e) => handleDelete(e, thread.id)}
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
                   </SidebarMenuSubItem>
                 ))}
               </SidebarMenuSub>

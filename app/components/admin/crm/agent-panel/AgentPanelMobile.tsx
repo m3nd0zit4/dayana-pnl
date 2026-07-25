@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, SquarePen, X } from "lucide-react";
+import { ChevronDown, SquarePen, Trash2, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import {
   DropdownMenu,
@@ -26,6 +26,7 @@ type Props = {
   onTitleChange: (title: string) => void;
   onNewThread: () => void;
   onSwitchThread: (thread: AgentThread) => void;
+  onDeleteThread: (id: string) => void;
 };
 
 /**
@@ -45,6 +46,7 @@ const AgentPanelMobile = ({
   onTitleChange,
   onNewThread,
   onSwitchThread,
+  onDeleteThread,
 }: Props) => {
   const [threadsMenuOpen, setThreadsMenuOpen] = useState(false);
   const { setOpenMobile } = useSidebar();
@@ -80,8 +82,19 @@ const AgentPanelMobile = ({
                 <p className="px-2 py-1.5 text-xs text-muted-foreground">Sin conversaciones aún</p>
               )}
               {threads.map((t) => (
-                <DropdownMenuItem key={t.id} onClick={() => onSwitchThread(t)}>
-                  <span className="truncate">{t.title}</span>
+                <DropdownMenuItem key={t.id} onClick={() => onSwitchThread(t)} className="justify-between">
+                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
+                  <button
+                    type="button"
+                    aria-label="Eliminar conversación"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteThread(t.id);
+                    }}
+                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="size-3.5" />
+                  </button>
                 </DropdownMenuItem>
               ))}
               {threads.length > 0 && <DropdownMenuSeparator />}
