@@ -2,20 +2,19 @@
 
 import Link from "next/link";
 import type { EveDynamicToolPart, EveMessage, EveMessagePart } from "eve/react";
-import { ChevronRight, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
+import { APPROVAL_OPTION_LABELS, isFrameworkApprovalGate } from "./agent-message/framework-approval";
 import { groupToolParts } from "./agent-message/group-tool-parts";
 import { TOOL_LABELS } from "./agent-message/tool-labels";
 import { ToolStepsGroup } from "./agent-message/ToolStepsGroup";
-import { Confirmation, ConfirmationAction, ConfirmationActions, ConfirmationTitle } from "./ai-elements/confirmation";
 import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from "./ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "./ai-elements/reasoning";
 import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "./ai-elements/tool";
 import { extractRefs, type EntityRef } from "./extract-refs";
 import { refTypeIcon } from "./ref-icons";
-
-type InputResponder = (requestId: string, optionId: string) => void;
 
 const collectMessageRefs = (message: EveMessage): EntityRef[] => {
   const out: EntityRef[] = [];
@@ -52,27 +51,14 @@ const RefChips = ({ refs }: { refs: EntityRef[] }) => {
   );
 };
 
-const ToolPart = ({
-  part,
-  canRespond,
-  onRespond,
-}: {
-  part: EveDynamicToolPart;
-  canRespond: boolean;
-  onRespond: InputResponder;
-}) => {
+const ToolPart = ({ part }: { part: EveDynamicToolPart }) => {
   const label = TOOL_LABELS[part.toolName] ?? part.toolName;
 
   return (
-    <Tool
-      defaultOpen={part.state === "approval-requested" || part.state === "approval-responded"}
-    >
+    <Tool>
       <ToolHeader state={part.state} title={label} toolName={part.toolName} />
       <ToolContent>
         <ToolInput input={"input" in part ? part.input : undefined} />
-        {part.state === "approval-requested" && (
-          <ApprovalPrompt part={part} canRespond={canRespond} onRespond={onRespond} />
-        )}
         <ToolOutput
           output={"output" in part ? part.output : undefined}
           errorText={"errorText" in part ? part.errorText : undefined}
@@ -82,82 +68,56 @@ const ToolPart = ({
   );
 };
 
-const optionButtonVariant = (style: "danger" | "primary" | "default" | undefined) =>
-  style === "danger" ? "destructive" : style === "primary" ? "default" : "outline";
-
-const ApprovalPrompt = ({
-  part,
-  canRespond,
-  onRespond,
-}: {
-  part: EveDynamicToolPart;
-  canRespond: boolean;
-  onRespond: InputResponder;
-}) => {
-  const request = part.toolMetadata?.eve?.inputRequest;
-  if (!request) return null;
-
-  return (
-    <Confirmation>
-      <ConfirmationTitle>{request.prompt}</ConfirmationTitle>
-      <ConfirmationActions>
-        {(request.options ?? []).map((opt) => (
-          <ConfirmationAction
-            key={opt.id}
-            size="sm"
-            disabled={!canRespond}
-            variant={optionButtonVariant(opt.style)}
-            onClick={() => onRespond(request.requestId, opt.id)}
-          >
-            {opt.label}
-          </ConfirmationAction>
-        ))}
-      </ConfirmationActions>
-    </Confirmation>
-  );
-};
-
 /**
- * `ask_question` renders inline as part of the conversation — plain prose
- * plus a button row, like the assistant just asked something out loud —
- * instead of the generic `Tool` card chrome (icon, collapsible header,
- * raw parameter JSON) other tool calls get. It shares the same
- * approval-requested/-responded state machine, just with a chat-native look.
+ * Renders any blocking input request the agent needs from a human — both the
+ * model's own `ask_question` calls and the framework's non-bypassable
+ * write-tool approval gate — through one consistent chat-native look: plain
+ * prose, no `Tool` card chrome. The framework gate arrives with English
+ * defaults (`display: "confirmation"`, options `[{id:"approve"},{id:"deny"}]`,
+ * prompt `"Approve tool call: X"` — see
+ * node_modules/eve/dist/src/harness/input-extraction.js) so its prompt is
+ * overridden in Spanish via `isFrameworkApprovalGate`; a genuine
+ * `ask_question` already arrives in Spanish per agent/instructions.md and is
+ * rendered as-is. The answer controls themselves (option buttons / freeform
+ * field) render separately, docked above the composer — see
+ * `agent-message/PendingInputBar.tsx` — so they stay reachable without
+ * scrolling back to wherever this message sits in the conversation.
  */
-const AskQuestionPart = ({
-  part,
-  canRespond,
-  onRespond,
-}: {
-  part: EveDynamicToolPart;
-  canRespond: boolean;
-  onRespond: InputResponder;
-}) => {
+const InputRequestPrompt = ({ part }: { part: EveDynamicToolPart }) => {
   const request = part.toolMetadata?.eve?.inputRequest;
   if (!request) return null;
+
+  const isGate = isFrameworkApprovalGate(request);
+  const prompt = isGate ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}` : request.prompt;
 
   const response = part.toolMetadata?.eve?.inputResponse;
   const answeredOption = request.options?.find((opt) => opt.id === response?.optionId);
-  const answeredLabel = answeredOption?.label ?? response?.text;
+  const answeredLabel = isGate
+    ? response?.optionId
+      ? APPROVAL_OPTION_LABELS[response.optionId as "approve" | "deny"]
+      : response?.text
+    : (answeredOption?.label ?? response?.text);
+
+  const isPending = part.state === "approval-requested";
+  const toolInput = "input" in part ? part.input : undefined;
 
   return (
     <div className="flex flex-col gap-2">
-      <MessageResponse>{request.prompt}</MessageResponse>
-      {part.state === "approval-requested" && (
-        <ConfirmationActions className="justify-start">
-          {(request.options ?? []).map((opt) => (
-            <ConfirmationAction
-              key={opt.id}
-              size="sm"
-              disabled={!canRespond}
-              variant={optionButtonVariant(opt.style)}
-              onClick={() => onRespond(request.requestId, opt.id)}
-            >
-              {opt.label}
-            </ConfirmationAction>
-          ))}
-        </ConfirmationActions>
+      <MessageResponse>{prompt}</MessageResponse>
+
+      {isGate && toolInput != null && (
+        <Collapsible className="group">
+          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
+            Ver detalles técnicos
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ToolInput input={toolInput} />
+          </CollapsibleContent>
+        </Collapsible>
       )}
+
+      {isPending && <p className="text-xs text-muted-foreground">Responde abajo ↓</p>}
       {answeredLabel && <p className="text-xs text-muted-foreground">→ {answeredLabel}</p>}
     </div>
   );
@@ -166,13 +126,9 @@ const AskQuestionPart = ({
 const AgentMessagePart = ({
   part,
   showCaret,
-  canRespond,
-  onRespond,
 }: {
   part: EveMessagePart;
   showCaret: boolean;
-  canRespond: boolean;
-  onRespond: InputResponder;
 }) => {
   switch (part.type) {
     case "step-start":
@@ -191,10 +147,10 @@ const AgentMessagePart = ({
         </Reasoning>
       );
     case "dynamic-tool":
-      if (part.toolName === "ask_question") {
-        return <AskQuestionPart part={part} canRespond={canRespond} onRespond={onRespond} />;
+      if (part.state === "approval-requested" || part.state === "approval-responded") {
+        return <InputRequestPrompt part={part} />;
       }
-      return <ToolPart part={part} canRespond={canRespond} onRespond={onRespond} />;
+      return <ToolPart part={part} />;
     default:
       return null;
   }
@@ -203,13 +159,9 @@ const AgentMessagePart = ({
 const AgentMessage = ({
   message,
   isStreaming,
-  canRespond,
-  onRespond,
 }: {
   message: EveMessage;
   isStreaming: boolean;
-  canRespond: boolean;
-  onRespond: InputResponder;
 }) => {
   const { toast } = useCrm();
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
@@ -248,8 +200,6 @@ const AgentMessage = ({
             <AgentMessagePart
               key={index}
               part={item.part}
-              canRespond={canRespond}
-              onRespond={onRespond}
               showCaret={isStreaming && !isUser && message.parts.indexOf(item.part) === lastTextIndex}
             />
           )
