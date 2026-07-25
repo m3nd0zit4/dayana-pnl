@@ -28,6 +28,7 @@ import {
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import AgentMessage from "./AgentMessage";
+import { findPendingInputPart, PendingInputBar } from "./agent-message/PendingInputBar";
 import AgentPanelMobile from "./AgentPanelMobile";
 import { Conversation, ConversationContent, ConversationScrollButton } from "./ai-elements/conversation";
 import {
@@ -263,14 +264,16 @@ export const AgentPanelSession = ({
     await agent.send({ message: parts });
   };
 
-  const handleRespond = (requestId: string, optionId: string) => {
-    void agent.send({ inputResponses: [{ requestId, optionId }] });
+  const handleRespond = (requestId: string, response: { optionId?: string; text?: string }) => {
+    void agent.send({ inputResponses: [{ requestId, ...response }] });
   };
 
   const insertText = (text: string) => {
     setInput((prev) => (prev ? `${prev} ${text}` : text));
     setSubPanel(null);
   };
+
+  const pendingInputPart = findPendingInputPart(agent.data.messages);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -286,9 +289,7 @@ export const AgentPanelSession = ({
               <AgentMessage
                 key={message.id}
                 message={message}
-                canRespond={!isBusy}
                 isStreaming={agent.status === "streaming" && index === agent.data.messages.length - 1}
-                onRespond={handleRespond}
               />
             ))}
             {agent.status === "submitted" && (
@@ -300,6 +301,10 @@ export const AgentPanelSession = ({
           </ConversationContent>
           <ConversationScrollButton />
         </Conversation>
+      )}
+
+      {pendingInputPart && (
+        <PendingInputBar part={pendingInputPart} canRespond={!isBusy} onRespond={handleRespond} />
       )}
 
       {agent.status === "error" && agent.error && (
