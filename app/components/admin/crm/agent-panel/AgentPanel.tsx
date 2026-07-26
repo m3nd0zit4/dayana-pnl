@@ -291,6 +291,7 @@ export const AgentPanelSession = ({
                 key={message.id}
                 message={message}
                 isStreaming={agent.status === "streaming" && index === agent.data.messages.length - 1}
+                isLastMessage={index === agent.data.messages.length - 1}
               />
             ))}
             {agent.status === "submitted" && (

@@ -84,7 +84,7 @@ const ToolPart = ({ part }: { part: EveDynamicToolPart }) => {
  * `agent-message/PendingInputBar.tsx` — so they stay reachable without
  * scrolling back to wherever this message sits in the conversation.
  */
-const InputRequestPrompt = ({ part }: { part: EveDynamicToolPart }) => {
+const InputRequestPrompt = ({ part, isLastMessage }: { part: EveDynamicToolPart; isLastMessage: boolean }) => {
   const request = part.toolMetadata?.eve?.inputRequest;
   if (!request) return null;
 
@@ -101,7 +101,12 @@ const InputRequestPrompt = ({ part }: { part: EveDynamicToolPart }) => {
       : response?.text
     : (answeredOption?.label ?? response?.text);
 
-  const isPending = part.state === "approval-requested";
+  // A live pause can only ever be the last part of the last message (the run
+  // can't emit anything further until it's resolved) — restricting to that
+  // matches `findPendingInputPart` and keeps a long-answered ask_question
+  // (whose resolution eve's event log has no way to record) from showing the
+  // "responde abajo" hint forever after reopening an old thread.
+  const isPending = part.state === "approval-requested" && isLastMessage;
   const toolInput = "input" in part ? part.input : undefined;
 
   return (
@@ -129,9 +134,11 @@ const InputRequestPrompt = ({ part }: { part: EveDynamicToolPart }) => {
 const AgentMessagePart = ({
   part,
   showCaret,
+  isLastMessage,
 }: {
   part: EveMessagePart;
   showCaret: boolean;
+  isLastMessage: boolean;
 }) => {
   switch (part.type) {
     case "step-start":
@@ -151,7 +158,7 @@ const AgentMessagePart = ({
       );
     case "dynamic-tool":
       if (part.state === "approval-requested" || part.state === "approval-responded") {
-        return <InputRequestPrompt part={part} />;
+        return <InputRequestPrompt part={part} isLastMessage={isLastMessage} />;
       }
       return <ToolPart part={part} />;
     default:
@@ -162,9 +169,11 @@ const AgentMessagePart = ({
 const AgentMessage = ({
   message,
   isStreaming,
+  isLastMessage,
 }: {
   message: EveMessage;
   isStreaming: boolean;
+  isLastMessage: boolean;
 }) => {
   const { toast } = useCrm();
   const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
@@ -204,6 +213,7 @@ const AgentMessage = ({
               key={index}
               part={item.part}
               showCaret={isStreaming && !isUser && message.parts.indexOf(item.part) === lastTextIndex}
+              isLastMessage={isLastMessage}
             />
           )
         )}
