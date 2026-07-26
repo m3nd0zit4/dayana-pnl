@@ -122,6 +122,53 @@ enum MessageDeliveryStatus {
   RECEIVED
 }
 
+enum NotificationSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+/// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
+/// valores por defecto viven en lib/notifications/platform/catalog.ts — este
+/// enum solo garantiza integridad referencial.
+enum NotificationEventType {
+  // Pagos y ventas
+  PAYMENT_APPROVED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  MANUAL_PAYMENT_RECORDED
+  PAYMENT_WEBHOOK_FAILED
+  // Embudo e inscripciones
+  LEAD_CREATED
+  WEB_LEAD_SUBMITTED
+  ENROLLMENT_PENDING_PAYMENT
+  ENROLLMENT_ACTIVATED
+  ENROLLMENT_STATUS_CHANGED
+  CHECKOUT_ABANDONED
+  LEAD_STALE
+  // Terapias
+  THERAPY_SESSION_SCHEDULED
+  THERAPY_SESSION_RESCHEDULED
+  THERAPY_SESSION_COMPLETED
+  THERAPY_SESSION_NO_SHOW
+  // Curso y membresía
+  MEMBER_SIGNED_UP
+  MEMBERSHIP_DUE_SOON
+  MEMBERSHIP_OVERDUE
+  MEMBERSHIP_EXTENDED
+  LESSON_COMMENT_POSTED
+  CLASS_RECORDING_PUBLISHED
+  // Sistema, seguridad y comunicación
+  LOGIN_FAILED
+  LOGIN_SUCCEEDED
+  STAFF_USER_CREATED
+  AGENT_ACTION_EXECUTED
+  CAMPAIGN_COMPLETED
+  NOTIFICATION_DELIVERY_FAILED
+  SYSTEM_ALERT
+}
+
 model Contact {
   id                  String        @id @default(cuid())
   phoneE164           String        @unique @map("phone_e164")
@@ -139,6 +186,7 @@ model Contact {
   notifyEmail         Boolean       @default(true) @map("notify_email")
   notifySms           Boolean       @default(true) @map("notify_sms")
   notifyWhatsapp      Boolean       @default(true) @map("notify_whatsapp")
+  notifyInApp         Boolean       @default(true) @map("notify_in_app")
   source              ContactSource @default(WEB)
   sourceDetail        String?       @map("source_detail")
   tiktokHandle        String?       @map("tiktok_handle")
@@ -152,6 +200,7 @@ model Contact {
   tags                   ContactTag[]
   messageLogs            MessageLog[]
   notificationDeliveries NotificationDelivery[]
+  notificationRecipients NotificationRecipient[]
   notebookPages          ContactNotebookPage[]
   memberAccount          MemberAccount?
   memberAuthTokens       MemberAuthToken[]
@@ -463,6 +512,9 @@ model StaffUser {
   notebookPages  ContactNotebookPage[]
   staffSessions  StaffSession[]
   paymentVerificationCodes PaymentVerificationCode[]
+  notificationRecipients   NotificationRecipient[]
+  notificationPreferences  StaffNotificationPreference[]
+  notificationDeliveries   NotificationDelivery[]
 
   @@map("staff_users")
 }
@@ -624,7 +676,11 @@ model NotificationCampaign {
 model NotificationDelivery {
   id           String                     @id @default(cuid())
   campaignId   String?                    @map("campaign_id")
-  contactId    String                     @map("contact_id")
+  /// Opcional: los envíos dirigidos al staff no tienen contacto asociado.
+  contactId    String?                    @map("contact_id")
+  staffUserId  String?                    @map("staff_user_id")
+  /// Enlaza el correo con el elemento del feed que lo originó.
+  platformNotificationId String?          @map("platform_notification_id")
   channel      MessageChannel
   status       NotificationDeliveryStatus @default(PENDING)
   templateKey  String?                    @map("template_key")
@@ -637,11 +693,80 @@ model NotificationDelivery {
   createdAt    DateTime                   @default(now()) @map("created_at")
 
   campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  contact  Contact               @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact  Contact?              @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  staffUser            StaffUser?            @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  platformNotification PlatformNotification? @relation(fields: [platformNotificationId], references: [id], onDelete: SetNull)
 
   @@index([campaignId])
   @@index([contactId, createdAt])
+  @@index([staffUserId, createdAt])
+  @@index([status, createdAt])
   @@map("notification_deliveries")
+}
+
+/// Un evento de la plataforma, guardado una sola vez. El fan-out por
+/// destinatario vive en NotificationRecipient.
+model PlatformNotification {
+  id         String                @id @default(cuid())
+  eventType  NotificationEventType @map("event_type")
+  severity   NotificationSeverity  @default(INFO)
+  title      String
+  body       String?               @db.Text
+  entityType String?               @map("entity_type")
+  entityId   String?               @map("entity_id")
+  /// Ruta interna a la que lleva la notificación (p. ej. /admin/contacts/abc).
+  href       String?
+  metadata   Json?
+  createdAt  DateTime              @default(now()) @map("created_at")
+
+  recipients NotificationRecipient[]
+  deliveries NotificationDelivery[]
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([entityType, entityId])
+  @@map("platform_notifications")
+}
+
+/// Fan-out: exactamente uno de staffUserId / contactId está presente. La
+/// invariante se impone en emit.ts — Postgres no puede expresarla en un unique
+/// porque NULL nunca colisiona.
+model NotificationRecipient {
+  id             String    @id @default(cuid())
+  notificationId String    @map("notification_id")
+  staffUserId    String?   @map("staff_user_id")
+  contactId      String?   @map("contact_id")
+  readAt         DateTime? @map("read_at")
+  dismissedAt    DateTime? @map("dismissed_at")
+  /// Marca de idempotencia del fan-out por correo.
+  emailedAt      DateTime? @map("emailed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  notification PlatformNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  staffUser    StaffUser?           @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  contact      Contact?             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, staffUserId])
+  @@unique([notificationId, contactId])
+  @@index([staffUserId, createdAt(sort: Desc)])
+  @@index([contactId, createdAt(sort: Desc)])
+  @@map("notification_recipients")
+}
+
+/// Preferencias por evento. La ausencia de fila significa "usa el valor por
+/// defecto del catálogo" — nunca se precrean filas.
+model StaffNotificationPreference {
+  id          String                @id @default(cuid())
+  staffUserId String                @map("staff_user_id")
+  eventType   NotificationEventType @map("event_type")
+  inApp       Boolean               @default(true) @map("in_app")
+  email       Boolean               @default(false)
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@unique([staffUserId, eventType])
+  @@map("staff_notification_preferences")
 }
 
 model SiteSetting {
