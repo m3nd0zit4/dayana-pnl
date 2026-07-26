@@ -11,6 +11,7 @@ import { upsertContactByPhone } from "@/lib/crm/contacts";
 import { inviteContactToPortal } from "@/lib/crm/member-accounts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import { notifyNewLead } from "@/lib/notifications/lead-notify";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import {
   clientIp,
   rateLimitDistributed,
@@ -178,6 +179,24 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.error("[leads] portal invite failed", e);
     }
+
+    fireNotification({
+      eventType: "WEB_LEAD_SUBMITTED",
+      title: `Formulario web: ${[firstName, body.lastName].filter(Boolean).join(" ")}`,
+      body: [
+        contact.phoneE164 ?? phone,
+        body.email?.trim() || null,
+        body.interest ? `Interés: ${body.interest}` : null,
+        body.message?.trim() || null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      href: `/admin/contacts/${contact.id}`,
+      entityType: "Contact",
+      entityId: contact.id,
+      metadata: { source: sourceKey, enrollmentId: enrollmentId ?? null },
+      staff: "ALL",
+    });
 
     return NextResponse.json({
       ok: true,

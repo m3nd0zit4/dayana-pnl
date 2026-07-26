@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { renderQuickMessage } from "@/lib/crm/render-message";
 import { siteUrl } from "@/lib/notifications/config";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
+import { broadcastPlatformNotification } from "@/lib/notifications/platform/emit";
 import { isRecordingVisible } from "@/lib/lms/course-content";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,18 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
       if (result.status === "SENT") sent += 1;
     }
   }
+
+  // Feed del portal para los mismos miembros que recibieron el mensaje.
+  // Nunca puede tumbar la respuesta del envío que ya ocurrió.
+  await broadcastPlatformNotification({
+    eventType: "CLASS_RECORDING_PUBLISHED",
+    title: `Ya está la grabación de ${liveClass.title}`,
+    body: "Estará disponible un mes en el portal del curso.",
+    href: "/miembros/clases",
+    entityType: "LiveClassSession",
+    entityId: id,
+    contactIds: enrollments.map((enrollment) => enrollment.contactId),
+  }).catch(() => undefined);
 
   fireAuditLog({
     staffUserId: staff.id,

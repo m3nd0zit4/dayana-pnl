@@ -1,5 +1,19 @@
 import { EnrollmentStatus, ProductKind, TherapySessionStatus } from "@prisma/client";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
+import { OPERATIONAL_TZ } from "./operational-timezone";
+
+const contactName = (contact: {
+  displayName: string | null;
+  firstName: string;
+}): string => contact.displayName ?? contact.firstName;
+
+const formatSessionMoment = (at: Date): string =>
+  new Intl.DateTimeFormat("es-CO", {
+    timeZone: OPERATIONAL_TZ,
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(at);
 
 export const ensureTherapyPackage = async (
   enrollmentId: string,
@@ -54,7 +68,15 @@ export const completeTherapySession = async (sessionId: string) => {
     where: { id: sessionId },
     include: {
       therapyPackage: {
-        include: { enrollment: { select: { id: true, contactId: true } } },
+        include: {
+          enrollment: {
+            select: {
+              id: true,
+              contactId: true,
+              contact: { select: { displayName: true, firstName: true } },
+            },
+          },
+        },
       },
     },
   });
@@ -96,6 +118,17 @@ export const completeTherapySession = async (sessionId: string) => {
       },
     });
   }
+
+  const who = contactName(pkg.enrollment.contact);
+  fireNotification({
+    eventType: "THERAPY_SESSION_COMPLETED",
+    title: `Sesión ${session.sessionNumber} completada: ${who}`,
+    body: `Van ${updatedPkg?.usedSessions ?? pkg.usedSessions + 1} de ${pkg.totalSessions} sesiones.`,
+    href: `/admin/enrollments/${pkg.enrollmentId}`,
+    entityType: "TherapySession",
+    entityId: sessionId,
+    staff: "ALL",
+  });
 
   return prisma.therapySession.findUnique({
     where: { id: sessionId },
@@ -190,7 +223,18 @@ export const scheduleTherapySession = async (input: {
         sessionNumber: input.sessionNumber,
       },
     },
-    include: { therapyPackage: true },
+    include: {
+      therapyPackage: {
+        include: {
+          enrollment: {
+            select: {
+              contactId: true,
+              contact: { select: { displayName: true, firstName: true } },
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!existing) {
@@ -217,7 +261,7 @@ export const scheduleTherapySession = async (input: {
     throw new Error("SESSION_NOT_SCHEDULABLE");
   }
 
-  return prisma.therapySession.update({
+  const updated = await prisma.therapySession.update({
     where: { id: existing.id },
     data: {
       scheduledAt: input.scheduledAt,
@@ -226,6 +270,21 @@ export const scheduleTherapySession = async (input: {
       status: TherapySessionStatus.SCHEDULED,
     },
   });
+
+  fireNotification({
+    eventType: "THERAPY_SESSION_SCHEDULED",
+    title: `Sesión ${input.sessionNumber} agendada: ${contactName(
+      pkg.enrollment.contact
+    )}`,
+    body: `${formatSessionMoment(input.scheduledAt)} (hora de Colombia).`,
+    entityType: "TherapySession",
+    entityId: updated.id,
+    metadata: { enrollmentId: pkg.enrollmentId },
+    staff: "ALL",
+    contactIds: [pkg.enrollment.contactId],
+  });
+
+  return updated;
 };
 
 export const getTherapyPackageByEnrollment = async (enrollmentId: string) =>
@@ -268,8 +327,37 @@ export const updateTherapySession = async (
     },
   });
 
-export const markTherapySessionNoShow = async (sessionId: string) =>
-  prisma.therapySession.update({
+export const markTherapySessionNoShow = async (sessionId: string) => {
+  const session = await prisma.therapySession.update({
     where: { id: sessionId },
     data: { status: TherapySessionStatus.NO_SHOW },
   });
+
+  // Read separately instead of widening the update's `include`: callers
+  // serialize this return value straight to the client.
+  const pkg = await prisma.therapyPackage.findUnique({
+    where: { id: session.therapyPackageId },
+    select: {
+      enrollmentId: true,
+      enrollment: {
+        select: { contact: { select: { displayName: true, firstName: true } } },
+      },
+    },
+  });
+
+  fireNotification({
+    eventType: "THERAPY_SESSION_NO_SHOW",
+    title: `Inasistencia en la sesión ${session.sessionNumber}${
+      pkg ? `: ${contactName(pkg.enrollment.contact)}` : ""
+    }`,
+    body: session.scheduledAt
+      ? `Estaba agendada para ${formatSessionMoment(session.scheduledAt)}.`
+      : null,
+    href: pkg ? `/admin/enrollments/${pkg.enrollmentId}` : null,
+    entityType: "TherapySession",
+    entityId: sessionId,
+    staff: "ALL",
+  });
+
+  return session;
+};

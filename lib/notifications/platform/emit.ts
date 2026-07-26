@@ -227,17 +227,40 @@ export const broadcastPlatformNotification = async (
 /**
  * Dispara el reparto por correo sin bloquear al llamante — nunca queremos un
  * viaje de ida y vuelta a Resend dentro del webhook de pagos.
+ *
+ * Se prefiere Inngest y se deja `after()` como red de seguridad. El motivo es
+ * que `after()` lanza fuera del ámbito de una petición, y ahí caeríamos en una
+ * promesa flotante: en Vercel la invocación puede congelarse antes de que se
+ * resuelva, perdiendo el correo en silencio. Justo esos son los llamadores sin
+ * petición — los crons de Inngest, auth.ts y las tools de eve. Inngest además
+ * reintenta y deja rastro visible del fallo.
+ *
+ * `deliverNotificationEmails` es idempotente (marca `emailedAt`), así que si
+ * ambos caminos llegaran a ejecutarse no se envía nada dos veces.
  */
 const scheduleNotificationEmails = (notificationId: string) => {
-  const run = async () => {
+  const runInline = async () => {
     const { deliverNotificationEmails } = await import("./email");
     await deliverNotificationEmails(notificationId);
   };
-  try {
-    after(() => run().catch(() => undefined));
-  } catch {
-    void run().catch(() => undefined);
-  }
+
+  const fallbackInline = () => {
+    try {
+      after(() => runInline().catch(() => undefined));
+    } catch {
+      void runInline().catch(() => undefined);
+    }
+  };
+
+  const handOff = async () => {
+    const { emitPlatformNotificationEmail } = await import("@/lib/inngest/events");
+    const queued = await emitPlatformNotificationEmail(notificationId);
+    // Sin Inngest configurado (local/preview) el emisor no encola nada; ahí el
+    // reparto en proceso es la única vía.
+    if (!queued) fallbackInline();
+  };
+
+  void handOff().catch(() => fallbackInline());
 };
 
 /**

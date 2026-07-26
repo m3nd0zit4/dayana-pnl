@@ -35,6 +35,36 @@ export const emitLeadStale = async (enrollmentId: string) => {
   }
 };
 
+/**
+ * Saca el reparto por correo de una notificación del camino de la petición.
+ *
+ * `deliverNotificationEmails` es idempotente (estampa `emailedAt` por
+ * destinatario), así que convivir con el `after()` de emit.ts es seguro: la
+ * segunda pasada no encuentra destinatarios pendientes y no envía nada.
+ */
+/**
+ * A diferencia del resto de emisores de este archivo, devuelve un booleano: el
+ * llamante (scheduleNotificationEmails en platform/emit.ts) necesita saber si
+ * el trabajo quedó realmente encolado para, si no, repartir el correo en
+ * proceso. Devolver void haría que el respaldo se ejecutara siempre.
+ */
+export const emitPlatformNotificationEmail = async (
+  notificationId: string
+): Promise<boolean> => {
+  if (!shouldEmitInngest()) return false;
+  try {
+    const { inngest } = await import("./client");
+    await inngest.send({
+      name: "notification/platform.email",
+      data: { notificationId },
+    });
+    return true;
+  } catch (e) {
+    console.warn("[inngest] notification/platform.email emit failed", e);
+    return false;
+  }
+};
+
 export const emitCampaignRun = async (campaignId: string) => {
   if (!shouldEmitInngest()) return;
   try {

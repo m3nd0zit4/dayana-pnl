@@ -23,7 +23,16 @@ import {
   isNotificationsEnabled,
   type OutboundChannel,
 } from "./config";
+import { fireNotification } from "./platform/emit";
 import type { TemplateVars } from "./variables";
+
+const CHANNEL_LABEL: Record<MessageChannel, string> = {
+  WHATSAPP_LINK: "enlace de WhatsApp",
+  WHATSAPP_API: "WhatsApp",
+  EMAIL: "correo",
+  SMS: "SMS",
+  INTERNAL: "mensaje interno",
+};
 
 export type DispatchPayload = {
   contactId: string;
@@ -216,6 +225,23 @@ export const recordDelivery = async (input: {
         channel: input.channel,
         bodySnapshot: input.bodySnapshot,
       },
+    });
+  }
+
+  // Solo FAILED: SKIPPED es una decisión nuestra (canal apagado, contacto sin
+  // dato), no un fallo del proveedor, y llenaría la campana de ruido.
+  if (input.result.status === NotificationDeliveryStatus.FAILED) {
+    fireNotification({
+      eventType: "NOTIFICATION_DELIVERY_FAILED",
+      title: `No se pudo entregar un ${CHANNEL_LABEL[input.channel]}`,
+      body: [input.result.recipient, input.result.errorMessage]
+        .filter(Boolean)
+        .join(" · "),
+      href: "/admin/messages",
+      entityType: "NotificationDelivery",
+      entityId: delivery.id,
+      metadata: { channel: input.channel, contactId: input.contactId },
+      staff: "ALL",
     });
   }
 

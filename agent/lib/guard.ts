@@ -1,6 +1,7 @@
 import type { StaffRole } from "@prisma/client";
 import { canManageTeam, canRecordManualPayments, canWriteCrm } from "@/lib/crm/staff-permissions";
 import { writeAuditLog } from "@/lib/crm/audit";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 
 /**
  * Shape of the caller identity eve threads onto every tool call, set by
@@ -75,5 +76,16 @@ export const auditAgentWrite = async (
     entityType: input.entityType,
     entityId: input.entityId,
     changes: input.changes,
+  });
+
+  fireNotification({
+    eventType: "AGENT_ACTION_EXECUTED",
+    title: `El asistente ejecutó ${input.action} sobre ${input.entityType}`,
+    body: `A nombre de un usuario con rol ${staff.role}.`,
+    href: "/admin/audit",
+    entityType: input.entityType,
+    entityId: input.entityId,
+    metadata: { action: input.action, staffUserId: staff.staffId },
+    staff: "ALL",
   });
 };
