@@ -1,11 +1,13 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getActiveProducts } from "@/lib/crm/products";
+import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description: "List active products (therapies, courses, workshops) with their kind and session count.",
   inputSchema: z.object({}),
-  async execute() {
+  async execute(_input, ctx) {
+    requireStaff(ctx);
     const products = await getActiveProducts();
     return {
       products: products.map((p) => ({

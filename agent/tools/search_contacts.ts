@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { searchContactsLight } from "@/lib/crm/contacts";
+import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
@@ -9,7 +10,8 @@ export default defineTool({
     q: z.string().min(1).describe("Free-text query: name, phone digits, or email"),
     limit: z.number().int().min(1).max(50).optional(),
   }),
-  async execute({ q, limit }) {
+  async execute({ q, limit }, ctx) {
+    requireStaff(ctx);
     const rows = await searchContactsLight({ q, limit });
     return {
       contacts: rows.map((c) => ({

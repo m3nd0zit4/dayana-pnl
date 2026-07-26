@@ -28,6 +28,15 @@ export const getCallerStaff = (ctx: AgentToolContext): { staffId: string; role: 
   return { staffId: current.principalId, role };
 };
 
+/**
+ * Minimum bar for EVERY tool, including read-only ones: the turn must be
+ * running on behalf of a real staff user. Without this, any principal that
+ * reaches the channel (a `local-dev` fallback, a future non-staff
+ * authenticator) could read the whole CRM through the read tools, since only
+ * the write tools used to check the caller at all.
+ */
+export const requireStaff = (ctx: AgentToolContext) => getCallerStaff(ctx);
+
 /** Same write-role rule the CRM API routes already enforce — the agent can never exceed it. */
 export const requireWriteStaff = (ctx: AgentToolContext) => {
   const staff = getCallerStaff(ctx);

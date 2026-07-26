@@ -1,12 +1,14 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getTherapyPackageByEnrollment } from "@/lib/crm/therapy";
+import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
     "Get a therapy package (and all its sessions) by enrollment id — use to check progress, find gaps in scheduling, or get a session id before scheduling/completing it.",
   inputSchema: z.object({ enrollmentId: z.string().min(1) }),
-  async execute({ enrollmentId }) {
+  async execute({ enrollmentId }, ctx) {
+    requireStaff(ctx);
     const pkg = await getTherapyPackageByEnrollment(enrollmentId);
     if (!pkg) return { found: false as const };
 
