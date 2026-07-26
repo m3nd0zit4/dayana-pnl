@@ -102,8 +102,11 @@ export const PendingInputBar = ({
           ))}
         </ConfirmationActions>
       )}
+      {/* Wraps because at phone width the hint + a max-w-xs field + the send
+          button overflow the sheet horizontally; the field keeps a floor so
+          it stays usable once it drops onto its own line. */}
       {request.allowFreeform && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {hasOptions && <span className="text-xs text-muted-foreground">o escribe tu respuesta</span>}
           <Input
             value={freeformValue}
@@ -113,7 +116,7 @@ export const PendingInputBar = ({
             }}
             disabled={!canRespond}
             placeholder="Escribe tu respuesta…"
-            className="max-w-xs"
+            className="min-w-40 flex-1 sm:max-w-xs"
           />
           <ConfirmationAction size="sm" disabled={!canRespond || !freeformValue.trim()} onClick={submitFreeform}>
             Enviar
