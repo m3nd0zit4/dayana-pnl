@@ -136,6 +136,11 @@ export const emitPlatformNotification = async (
     );
   }
 
+  // Interruptor por evento del panel de ajustes. Se consulta antes de resolver
+  // destinatarios para no gastar consultas en algo que no se va a emitir.
+  const { isEventTypeGloballyDisabled } = await import("./site-config");
+  if (await isEventTypeGloballyDisabled(input.eventType)) return null;
+
   const [staffIds, contactIds] = await Promise.all([
     resolveStaffTargets(input),
     resolveContactTargets(input),

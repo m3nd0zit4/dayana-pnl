@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, ExternalLink, PanelLeft } from "lucide-react";
+import { ExternalLink, PanelLeft } from "lucide-react";
 import { useState } from "react";
 import CrmLogo from "@/app/components/admin/crm/CrmLogo";
+import CrmNotificationBell from "@/app/components/admin/crm/CrmNotificationBell";
 import SmartContactSearch from "@/app/components/admin/crm/SmartContactSearch";
 import CrmUserMenu from "@/app/components/admin/crm/CrmUserMenu";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
@@ -67,9 +68,7 @@ const CrmNavBar = ({ displayName, role, avatarUrl, preview }: Props) => {
           </Button>
         )}
 
-        <Button variant="ghost" size="icon" className={iconButtonClass} aria-label="Notificaciones">
-          <Bell />
-        </Button>
+        <CrmNotificationBell className={iconButtonClass} />
 
         <Button
           variant="ghost"

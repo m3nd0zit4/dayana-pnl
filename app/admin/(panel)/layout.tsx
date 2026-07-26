@@ -29,8 +29,18 @@ const PanelLayout = async ({
   // Phase 1: agent panel is OWNER-only, mirroring `agent/channels/eve.ts`'s auth gate.
   const agentEnabled = isAgentEnabled() && role === "OWNER";
 
+  // Interruptor del stream SSE de la campana. Apagado ⇒ el feed se degrada a
+  // sondeo periódico. En vista previa nunca hay sesión, así que nunca hay stream.
+  const streamEnabled =
+    !preview && process.env.NOTIFICATIONS_STREAM_ENABLED === "true";
+
   return (
-    <CrmProvider role={role} preview={preview} agentEnabled={agentEnabled}>
+    <CrmProvider
+      role={role}
+      preview={preview}
+      agentEnabled={agentEnabled}
+      streamEnabled={streamEnabled}
+    >
       <CrmShell
         displayName={displayName}
         role={role}

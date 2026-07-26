@@ -21,6 +21,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/app/components/ui/sidebar";
+import { useCrm } from "./CrmProvider";
 
 type Props = {
   onNavigate?: () => void;
@@ -119,6 +120,19 @@ const CrmMenuParentItem = ({
 
 const CrmMenu = ({ onNavigate }: Props) => {
   const pathname = usePathname();
+  // `canManageTeam` ya viene resuelto en el contexto (OWNER). Se usa para no
+  // pintar enlaces que la propia ruta va a rebotar: `/admin/ajustes` redirige
+  // a `/admin` si el rol no es OWNER, y un enlace que rebota confunde más de
+  // lo que ayuda.
+  const { canManageTeam } = useCrm();
+
+  const sections = crmMenuSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.ownerOnly || canManageTeam),
+    }))
+    // Una sección que se queda sin elementos no debe dejar su encabezado suelto.
+    .filter((section) => section.items.length > 0);
 
   return (
     <>
@@ -130,7 +144,7 @@ const CrmMenu = ({ onNavigate }: Props) => {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      {crmMenuSections.map((section) => (
+      {sections.map((section) => (
         <SidebarGroup key={section.title}>
           <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
           <SidebarGroupContent>

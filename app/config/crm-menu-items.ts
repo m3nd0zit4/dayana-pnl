@@ -7,9 +7,11 @@ import {
   HeartPulse,
   Home,
   ClipboardList,
+  Bell,
   MessageCircle,
   MessageSquare,
   Package,
+  Settings,
   Tag,
   Users,
   UsersRound,
@@ -21,6 +23,14 @@ export type CrmMenuItem = {
   label: string;
   href: string;
   external?: boolean;
+  /**
+   * Solo se muestra a quien puede administrar el equipo (OWNER).
+   *
+   * El filtrado lo hace `CrmMenu`. Es cosmético: cada ruta y cada endpoint
+   * vuelve a exigir el rol por su cuenta. Está aquí para no pintar un enlace
+   * que lleva a un rebote — un enlace visible que da 403 es peor que ninguno.
+   */
+  ownerOnly?: boolean;
   /** One level of nesting only (sidebar sub-items). */
   items?: Omit<CrmMenuItem, "items">[];
 };
@@ -63,6 +73,7 @@ export const crmMenuSections: CrmMenuSection[] = [
   {
     title: "Comunicación",
     items: [
+      { icon: Bell, label: "Notificaciones", href: "/admin/notificaciones" },
       { icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
     ],
   },
@@ -76,6 +87,12 @@ export const crmMenuSections: CrmMenuSection[] = [
   {
     title: "Sitio",
     items: [
+      {
+        icon: Settings,
+        label: "Ajustes",
+        href: "/admin/ajustes",
+        ownerOnly: true,
+      },
       {
         icon: ExternalLink,
         label: "Web pública",

@@ -33,6 +33,13 @@ const Page = async () => {
                 description: "Recordatorios y avisos por WhatsApp.",
                 checked: contact.notifyWhatsapp,
               },
+              {
+                key: "notifyInApp",
+                label: "Notificaciones en el portal",
+                description:
+                  "Avisos dentro del portal, en la campana. No salen de la plataforma.",
+                checked: contact.notifyInApp,
+              },
             ]}
           />
         </div>

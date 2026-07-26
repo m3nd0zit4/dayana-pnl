@@ -1,35 +1,31 @@
 import { redirect } from "next/navigation";
 import { getStaffSession } from "@/lib/auth/staff-session";
-import NotificationTogglesForm from "@/app/components/shared/settings/NotificationTogglesForm";
-import { Card, CardContent } from "@/app/components/ui/card";
+import { resolveStaffPreferences } from "@/lib/notifications/platform/preferences";
+import StaffNotificationPreferencesForm from "@/app/components/shared/settings/StaffNotificationPreferencesForm";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Envoltorio delgado a propósito: esta página está espejada por la ruta
+ * interceptora `@modal/(.)mi-cuenta/notificaciones`, que solo reexporta este
+ * default. Toda la UI y el estado viven en `StaffNotificationPreferencesForm`,
+ * así que el modal y la página completa renderizan lo mismo sin duplicar nada.
+ */
 const Page = async () => {
   const staff = await getStaffSession();
   if (!staff) redirect("/acceso");
 
+  const preferences = await resolveStaffPreferences(staff.id, staff.role);
+
   return (
-    <Card>
-      <CardContent>
-        <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
-          Notificaciones
-        </h2>
-        <div className="mt-4 max-w-xl">
-          <NotificationTogglesForm
-            saveUrl="/api/admin/staff/me/notificaciones"
-            items={[
-              {
-                key: "notifyEmail",
-                label: "Correo",
-                description: "Alertas del sistema y avisos operativos por email.",
-                checked: staff.notifyEmail,
-              },
-            ]}
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <StaffNotificationPreferencesForm
+      initialPreferences={preferences.map(({ eventType, inApp, email }) => ({
+        eventType,
+        inApp,
+        email,
+      }))}
+      initialNotifyEmail={staff.notifyEmail}
+    />
   );
 };
 
