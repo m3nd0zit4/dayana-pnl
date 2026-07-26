@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Users, LogIn, ArrowUpRight } from "lucide-react";
+import { Sparkles, Star, Users, LogIn, ArrowUpRight } from "lucide-react";
 import {
   BRAND,
   SOCIAL_LINKS,
@@ -78,6 +78,15 @@ const INTERNAL_LINKS: LinkRow[] = [
     internal: true,
   },
 ];
+
+const TESTIMONIALS_LINK: LinkRow = {
+  key: "testimonios",
+  label: "Testimonios",
+  sublabel: "Lo que dicen quienes ya vivieron el proceso",
+  href: "/",
+  icon: <Star className="h-5 w-5" />,
+  internal: true,
+};
 
 const SOCIAL_LINKS_LIST: LinkRow[] = [
   {
@@ -295,19 +304,23 @@ const LinktreePage = () => {
         </div>
 
         <div className="mt-9 w-full">
-          <SectionLabel>Explora</SectionLabel>
-          <div className="flex flex-col gap-3">
-            {INTERNAL_LINKS.map((row, i) => (
-              <Row key={row.key} row={row} delay={200 + i * 60} />
-            ))}
-          </div>
+          <Row row={TESTIMONIALS_LINK} delay={200} />
         </div>
 
         <div className="mt-8 w-full">
           <SectionLabel>Sígueme</SectionLabel>
           <div className="flex flex-col gap-3">
             {SOCIAL_LINKS_LIST.map((row, i) => (
-              <Row key={row.key} row={row} delay={380 + i * 60} />
+              <Row key={row.key} row={row} delay={260 + i * 60} />
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-8 w-full">
+          <SectionLabel>Explora</SectionLabel>
+          <div className="flex flex-col gap-3">
+            {INTERNAL_LINKS.map((row, i) => (
+              <Row key={row.key} row={row} delay={440 + i * 60} />
             ))}
           </div>
         </div>
