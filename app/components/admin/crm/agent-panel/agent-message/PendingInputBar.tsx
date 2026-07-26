@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { EveDynamicToolPart, EveMessage } from "eve/react";
+import { X } from "lucide-react";
 import { Input } from "@/app/components/ui/input";
 import { ConfirmationAction, ConfirmationActions } from "../ai-elements/confirmation";
 import { APPROVAL_OPTION_LABELS, isFrameworkApprovalGate } from "./framework-approval";
@@ -12,19 +13,23 @@ export type InputResponse = { optionId?: string; text?: string };
 export type InputResponder = (requestId: string, response: InputResponse) => void;
 
 /**
- * Finds the single input request the agent is currently blocked on, across
- * every message — the run pauses until it's resolved, so there's at most one
- * at a time. Used to render it docked above the composer instead of wherever
- * it happens to sit in the scrolled conversation history.
+ * Finds the single input request the agent is genuinely blocked on right
+ * now. A live pause can only ever be the last part of the last message — the
+ * run structurally cannot emit anything further until it's resolved — so we
+ * only look there. This matters because eve's persisted event log has no
+ * "resolved" event for a plain `ask_question` (unlike approval-gated write
+ * tools, which get a correlating `action.result`); reopening an old thread
+ * replays that stale request forever stuck in `approval-requested` state.
+ * Restricting to the last message means a long-answered question buried
+ * earlier in history is never mistaken for a live one.
  */
 export const findPendingInputPart = (messages: readonly EveMessage[]): EveDynamicToolPart | null => {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const parts = messages[i].parts;
-    for (let j = parts.length - 1; j >= 0; j--) {
-      const part = parts[j];
-      if (part.type === "dynamic-tool" && part.state === "approval-requested") {
-        return part;
-      }
+  const lastMessage = messages[messages.length - 1];
+  if (!lastMessage) return null;
+  for (let j = lastMessage.parts.length - 1; j >= 0; j--) {
+    const part = lastMessage.parts[j];
+    if (part.type === "dynamic-tool" && part.state === "approval-requested") {
+      return part;
     }
   }
   return null;
@@ -60,9 +65,28 @@ export const PendingInputBar = ({
     setFreeformValue("");
   };
 
+  // Sends a real (if terse) answer through the normal response channel — the
+  // model sees an explicit decline instead of the question just vanishing,
+  // so it can react and stop pursuing whatever it was asking about.
+  const dismiss = () => {
+    if (!canRespond) return;
+    onRespond(request.requestId, { text: "Cancelar, no quiero continuar con esto por ahora." });
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-2xl shrink-0 flex-col gap-2 border-t border-border px-3 pt-2.5 pb-1">
-      <p className="text-sm text-foreground">{prompt}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="flex-1 text-sm text-foreground">{prompt}</p>
+        <button
+          type="button"
+          aria-label="Cerrar pregunta"
+          disabled={!canRespond}
+          onClick={dismiss}
+          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
       {hasOptions && (
         <ConfirmationActions className="justify-start">
           {(request.options ?? []).map((opt) => (
