@@ -23,8 +23,13 @@ type Props = {
   feedUrl: string;
   streamUrl: string;
   streamEnabled: boolean;
-  /** Página de historial completo a la que apunta el pie del popover. */
-  historyHref: string;
+  /**
+   * Destino del enlace del pie. Omitirlo quita el pie entero: no toda
+   * superficie tiene una página de historial a la que mandar al usuario.
+   */
+  historyHref?: string;
+  /** Texto del enlace del pie, para superficies que no van a un historial. */
+  historyLabel?: string;
   /** false ⇒ campana inerte (vista previa del CRM). */
   enabled?: boolean;
   /** Clases del botón disparador, para que cada superficie ponga su tema. */
@@ -40,6 +45,7 @@ const NotificationBellPopover = ({
   streamUrl,
   streamEnabled,
   historyHref,
+  historyLabel = "Ver todo el historial",
   enabled = true,
   triggerClassName,
   onNewItems,
@@ -200,18 +206,20 @@ const NotificationBellPopover = ({
           )}
         </ScrollArea>
 
-        <div className="border-t border-border p-1.5">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-muted-foreground hover:text-foreground"
-            nativeButton={false}
-            render={<Link href={historyHref} />}
-            onClick={() => setOpen(false)}
-          >
-            Ver todo el historial
-          </Button>
-        </div>
+        {historyHref && (
+          <div className="border-t border-border p-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full text-muted-foreground hover:text-foreground"
+              nativeButton={false}
+              render={<Link href={historyHref} />}
+              onClick={() => setOpen(false)}
+            >
+              {historyLabel}
+            </Button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
