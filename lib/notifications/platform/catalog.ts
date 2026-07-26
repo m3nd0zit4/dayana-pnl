@@ -382,6 +382,21 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: true,
     roles: OWNER_DEV,
   },
+  INBOX_MESSAGE_RECEIVED: {
+    label: "Mensaje nuevo en la bandeja",
+    description:
+      "Alguien escribió por WhatsApp, Instagram o Messenger.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "INFO",
+    audience: "STAFF",
+    defaultInApp: true,
+    // Nunca por correo: quien atiende la bandeja ya la tiene abierta, y un
+    // cliente hablador generaría una avalancha de correos.
+    defaultEmail: false,
+    roles: WRITE_ROLES,
+    // Un hilo activo son muchos mensajes seguidos; se agrupan por conversación.
+    coalesceWindowSec: 300,
+  },
 };
 
 const ALL_EVENT_TYPES = Object.keys(

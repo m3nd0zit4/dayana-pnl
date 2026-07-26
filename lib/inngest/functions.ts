@@ -22,6 +22,8 @@ import {
   NOTIFICATION_RETENTION_RULES,
   runNotificationRetentionRule,
 } from "../notifications/platform/retention";
+import { processNormalizedEvent } from "../meta/ingest";
+import type { NormalizedEvent } from "../meta/inbound";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { inviteContactToPortal } from "../crm/member-accounts";
@@ -419,6 +421,31 @@ export const notificationRetentionFn = inngest.createFunction(
   }
 );
 
+/**
+ * Ingesta de los webhooks de Meta (WhatsApp, Messenger e Instagram).
+ *
+ * `concurrency` con clave por hilo y límite 1 es el punto importante: sin ella,
+ * tres mensajes seguidos del mismo cliente se procesan en paralelo y el hilo
+ * queda desordenado. La clave incluye el canal, así que hilos distintos siguen
+ * avanzando a la vez.
+ */
+export const metaWebhookFn = inngest.createFunction(
+  {
+    id: "meta-webhook-received",
+    concurrency: { key: "event.data.threadKey", limit: 1 },
+    retries: 3,
+  },
+  { event: "meta/webhook.received" },
+  async ({ event, step }) => {
+    const object = event.data.object as string;
+    const normalized = event.data.event as NormalizedEvent;
+
+    return step.run("process-meta-event", () =>
+      processNormalizedEvent(object, normalized)
+    );
+  }
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
@@ -429,4 +456,5 @@ export const inngestFunctions = [
   recordingAutoHideFn,
   platformNotificationEmailFn,
   notificationRetentionFn,
+  metaWebhookFn,
 ];

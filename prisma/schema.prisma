@@ -129,6 +129,20 @@ enum NotificationSeverity {
   ERROR
 }
 
+/// Canal de Meta de un hilo de la bandeja de entrada.
+enum ConversationChannel {
+  WHATSAPP
+  MESSENGER
+  INSTAGRAM
+}
+
+enum ConversationStatus {
+  OPEN
+  /// Respondimos y esperamos al cliente.
+  PENDING
+  CLOSED
+}
+
 /// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
 /// valores por defecto viven en lib/notifications/platform/catalog.ts — este
 /// enum solo garantiza integridad referencial.
@@ -167,6 +181,8 @@ enum NotificationEventType {
   CAMPAIGN_COMPLETED
   NOTIFICATION_DELIVERY_FAILED
   SYSTEM_ALERT
+  // Bandeja de entrada
+  INBOX_MESSAGE_RECEIVED
 }
 
 model Contact {
@@ -207,6 +223,8 @@ model Contact {
   moduleProgress         CourseModuleProgress[]
   classProgress          CourseClassProgress[]
   lessonComments         LessonComment[]
+  conversations          Conversation[]
+  channelIdentities      ContactChannelIdentity[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -515,6 +533,9 @@ model StaffUser {
   notificationRecipients   NotificationRecipient[]
   notificationPreferences  StaffNotificationPreference[]
   notificationDeliveries   NotificationDelivery[]
+  assignedConversations    Conversation[]
+  conversationMessages     ConversationMessage[]
+  linkedChannelIdentities  ContactChannelIdentity[]
 
   @@map("staff_users")
 }
@@ -639,14 +660,117 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
-/// Ingesta idempotente del webhook de WhatsApp Cloud API.
-model WhatsAppWebhookEvent {
+/// Ingesta idempotente del webhook de Meta (WhatsApp, Messenger e Instagram).
+///
+/// `eventId` es el id del **mensaje** (`wamid…` / `mid…`), no el de la entrega:
+/// Meta reintenta el mismo mensaje con envoltorios distintos, así que dedupear
+/// por entrega dejaría pasar duplicados.
+model MetaWebhookEvent {
   id          String   @id @default(cuid())
+  /// Campo `object` de nivel superior: whatsapp_business_account | page | instagram.
+  object      String
   eventId     String   @unique @map("event_id")
   processedAt DateTime @default(now()) @map("processed_at")
   payload     Json?
 
-  @@map("whatsapp_webhook_events")
+  @@map("meta_webhook_events")
+}
+
+/// Un hilo con una persona en un canal de Meta.
+///
+/// La identidad externa es la clave: teléfono (WhatsApp), PSID (Messenger) o
+/// IGSID (Instagram). Instagram y Messenger no entregan teléfono ni correo, así
+/// que `contactId` puede quedarse nulo indefinidamente — no es un error.
+model Conversation {
+  id               String              @id @default(cuid())
+  channel          ConversationChannel
+  externalThreadId String              @map("external_thread_id")
+  /// Cuenta de Meta que recibió el mensaje (phone_number_id, page id o ig id).
+  metaAccountId    String              @map("meta_account_id")
+
+  contactId        String?             @map("contact_id")
+
+  participantName      String? @map("participant_name")
+  participantHandle    String? @map("participant_handle")
+  participantAvatarUrl String? @map("participant_avatar_url")
+
+  status          ConversationStatus @default(OPEN)
+  assignedStaffId String?            @map("assigned_staff_id")
+
+  lastMessageAt DateTime  @default(now()) @map("last_message_at")
+  /// Base de la ventana de 24 h de Meta. Nulo = el cliente nunca escribió.
+  lastInboundAt DateTime? @map("last_inbound_at")
+  unreadCount   Int       @default(0) @map("unread_count")
+
+  /// Borrador del agente o del staff. Nunca se envía solo.
+  draftBody      String?   @map("draft_body") @db.Text
+  draftSource    String?   @map("draft_source")
+  draftUpdatedAt DateTime? @map("draft_updated_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  contact       Contact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedStaff StaffUser?            @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages      ConversationMessage[]
+
+  @@unique([channel, externalThreadId])
+  @@index([status, lastMessageAt(sort: Desc)])
+  @@index([contactId, lastMessageAt(sort: Desc)])
+  @@index([assignedStaffId, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id             String                @id @default(cuid())
+  conversationId String                @map("conversation_id")
+  direction      MessageDirection
+  status         MessageDeliveryStatus @default(SENT)
+
+  /// `wamid…` / `mid…` — clave de idempotencia frente a los reintentos de Meta.
+  externalMessageId String? @unique @map("external_message_id")
+  /// Mensaje al que responde (`context.id` en WhatsApp, `reply_to.mid` en Messenger).
+  replyToExternalId String? @map("reply_to_external_id")
+
+  body String? @db.Text
+  /// Adjuntos ya rehospedados en Blob — las URLs de Meta caducan.
+  attachments Json?
+
+  /// Presente solo cuando lo envió el staff desde el CRM.
+  staffUserId String? @map("staff_user_id")
+  /// Un mensaje que Meta nos devuelve porque se envió desde la app de Meta.
+  isEcho      Boolean @default(false) @map("is_echo")
+
+  sentAt       DateTime  @default(now()) @map("sent_at")
+  deliveredAt  DateTime? @map("delivered_at")
+  readAt       DateTime? @map("read_at")
+  failedReason String?   @map("failed_reason")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  staffUser    StaffUser?   @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, sentAt])
+  @@map("conversation_messages")
+}
+
+/// Puente entre un contacto del CRM y su identidad en cada canal. Es lo que
+/// permite reconocer a la misma persona la próxima vez que escriba por
+/// Instagram, donde no hay teléfono con el que emparejar.
+model ContactChannelIdentity {
+  id              String              @id @default(cuid())
+  contactId       String              @map("contact_id")
+  channel         ConversationChannel
+  externalId      String              @map("external_id")
+  displayName     String?             @map("display_name")
+  linkedByStaffId String?             @map("linked_by_staff_id")
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  contact       Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  linkedByStaff StaffUser? @relation(fields: [linkedByStaffId], references: [id], onDelete: SetNull)
+
+  @@unique([channel, externalId])
+  @@index([contactId])
+  @@map("contact_channel_identities")
 }
 
 model NotificationCampaign {

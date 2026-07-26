@@ -65,6 +65,30 @@ export const emitPlatformNotificationEmail = async (
   }
 };
 
+/**
+ * Encola un evento entrante de Meta.
+ *
+ * Devuelve un booleano, como `emitPlatformNotificationEmail`: si no se pudo
+ * encolar, la ruta del webhook lo procesa en línea. Un mensaje de un cliente no
+ * puede desaparecer porque Inngest no esté configurado — a diferencia de un
+ * correo de notificación, aquí no hay segunda oportunidad.
+ */
+export const emitMetaWebhook = async (data: {
+  object: string;
+  threadKey: string;
+  event: unknown;
+}): Promise<boolean> => {
+  if (!shouldEmitInngest()) return false;
+  try {
+    const { inngest } = await import("./client");
+    await inngest.send({ name: "meta/webhook.received", data });
+    return true;
+  } catch (e) {
+    console.warn("[inngest] meta/webhook.received emit failed", e);
+    return false;
+  }
+};
+
 export const emitCampaignRun = async (campaignId: string) => {
   if (!shouldEmitInngest()) return;
   try {
