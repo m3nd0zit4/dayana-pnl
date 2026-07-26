@@ -108,6 +108,20 @@ enum NotificationCampaignStatus {
   FAILED
 }
 
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageDeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
 model Contact {
   id                  String        @id @default(cuid())
   phoneE164           String        @unique @map("phone_e164")
@@ -519,6 +533,12 @@ model MessageTemplate {
   locale      String       @default("es")
   body        String       @db.Text
   productKind ProductKind? @map("product_kind")
+
+  /// Metadatos de la plantilla equivalente aprobada en WhatsApp Cloud API.
+  metaTemplateName   String? @map("meta_template_name")
+  metaTemplateLang   String? @map("meta_template_lang")
+  metaApprovalStatus String? @map("meta_approval_status")
+
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
@@ -537,11 +557,22 @@ model MessageLog {
   bodySnapshot String         @map("body_snapshot") @db.Text
   sentAt       DateTime       @default(now()) @map("sent_at")
 
+  /// Estado de conversación de WhatsApp Cloud API (entrada y salida).
+  direction         MessageDirection      @default(OUTBOUND)
+  status            MessageDeliveryStatus @default(SENT)
+  providerMessageId String?               @map("provider_message_id")
+  waContextId       String?               @map("wa_context_id")
+  mediaUrl          String?               @map("media_url")
+  deliveredAt       DateTime?             @map("delivered_at")
+  readAt            DateTime?             @map("read_at")
+  failedReason      String?               @map("failed_reason")
+
   contact   Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
   template  MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   staffUser StaffUser?       @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
 
   @@index([contactId, sentAt])
+  @@index([providerMessageId])
   @@map("message_logs")
 }
 
@@ -554,6 +585,16 @@ model WebhookEvent {
 
   @@unique([provider, eventId])
   @@map("webhook_events")
+}
+
+/// Ingesta idempotente del webhook de WhatsApp Cloud API.
+model WhatsAppWebhookEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique @map("event_id")
+  processedAt DateTime @default(now()) @map("processed_at")
+  payload     Json?
+
+  @@map("whatsapp_webhook_events")
 }
 
 model NotificationCampaign {
