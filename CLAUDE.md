@@ -56,10 +56,25 @@ Pricing: amounts stored as **minor units** (centavos/cents). USD→COP rate reso
 - `lead-stale-followup` — triggered by `enrollment/lead.stale`
 - `notification-campaign-run` — batched broadcast
 - `stale-checkout-cleanup` — cron 05:00 UTC daily
+- `platform-notification-email` — email fan-out for a platform notification
+- `notification-retention` — cron 06:00 UTC daily, prunes old feed rows
 
 ### Notifications
 
-`lib/notifications/` — dispatches via email (Resend), SMS, WhatsApp API. Gated by `NOTIFICATIONS_ENABLED=true` and `NOTIFICATIONS_DRY_RUN` flags. `dispatchAndRecord` writes a `NotificationDelivery` row regardless of outcome.
+Two separate systems. Don't confuse them.
+
+**Outbound messaging** — `lib/notifications/` dispatches via email (Resend), SMS, WhatsApp API. Gated by `NOTIFICATIONS_ENABLED=true` and `NOTIFICATIONS_DRY_RUN`. `dispatchAndRecord` writes a `NotificationDelivery` row regardless of outcome. Note `NOTIFICATIONS_DRY_RUN` **defaults to ON outside production** — check `/admin/ajustes/integraciones`, which surfaces it as a `degraded` state, before concluding a send failed.
+
+**In-app feed** — `lib/notifications/platform/` powers the bell in the CRM top bar and the member portal.
+
+- `catalog.ts` is the single source of truth: every event type maps to its Spanish label, group, severity, audience (`STAFF` / `MEMBER` / `BOTH`), default routing, receiving staff roles, and optional `coalesceWindowSec`. It drives rendering, the preferences matrix, and recipient resolution. **To add an event: add it to the `NotificationEventType` enum in `schema.prisma`, migrate, then add its catalog entry** — the `Record` is exhaustive, so TypeScript will fail until you do.
+- `emit.ts` — `fireNotification` (non-blocking, for request paths) and `emitPlatformNotification` (awaited, for Inngest steps / eve tools). Recipients are always explicit; audience-wide sends go through `broadcastPlatformNotification`, which caps at 2000 and chunks inserts.
+- Storage is one `PlatformNotification` row per event plus a `NotificationRecipient` row per person, carrying `readAt` / `dismissedAt` / `emailedAt`.
+- Staff preferences are absence-defaulted: **no row means "use the catalog default"**, so adding an event type never needs a backfill. `StaffUser.notifyEmail` is a master switch AND-ed over the per-event flag. Members get one `Contact.notifyInApp` toggle, not a matrix.
+- Freshness is SSE (`/api/*/notifications/stream`), which is server-side polling over a held socket — Neon has no usable `LISTEN/NOTIFY` here. The client elects one leader tab per browser over a `BroadcastChannel`. `NOTIFICATIONS_STREAM_ENABLED=false` degrades it to 60s polling; use that if function concurrency or cost becomes a problem.
+- Retention windows and per-event kill switches are `SiteSetting` rows, editable at `/admin/ajustes/notificaciones` without a deploy.
+
+`fireNotification` uses `after()` from `next/server`, falling back to a plain promise outside a request scope. Prefer that over a bare floating promise anywhere new — on Vercel the invocation can freeze once the response is returned, silently dropping the write.
 
 ### Geo-based pricing
 
@@ -87,7 +102,9 @@ COP prices are stored as **full pesos** (no centavos), so `amountMinor` for COP 
 | `PAYPAL_MODE` | `sandbox` or `live` |
 | `MERCADOPAGO_ACCESS_TOKEN` | Must be production token (not `TEST-`) in prod |
 | `NOTIFICATIONS_ENABLED` | `true` to actually send |
-| `NOTIFICATIONS_DRY_RUN` | `true` to skip external calls |
+| `NOTIFICATIONS_DRY_RUN` | `true` to skip external calls — **defaults ON outside production** |
+| `NOTIFICATIONS_STREAM_ENABLED` | `true` for SSE on the bell; unset falls back to 60s polling |
+| `NOTIFICATIONS_PRUNE_DELIVERIES` | `true` to let the retention cron prune `NotificationDelivery` |
 | `UPSTASH_REDIS_REST_URL/TOKEN` | Distributed rate limiting |
 | `CRM_UI_PREVIEW` | `true` only in preview — disables auth for UI preview |
 

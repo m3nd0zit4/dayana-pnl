@@ -3,12 +3,20 @@ import {
   ProductKind,
   type Prisma,
 } from "@prisma/client";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
 import {
   isPlaceholderContactPhone,
 } from "./checkout-placeholder";
+import { ENROLLMENT_STATUS_LABEL } from "./enrollment-labels";
+import { formatMoneyMinor } from "./money";
 import { getProduct, productSessionsTotal } from "./products";
 import { ensureTherapyPackage } from "./therapy";
+
+const contactName = (contact: {
+  displayName: string | null;
+  firstName: string;
+}): string => contact.displayName ?? contact.firstName;
 
 export class EnrollmentValidationError extends Error {
   constructor(
@@ -112,6 +120,20 @@ export const createEnrollment = async (input: {
   if (status === EnrollmentStatus.LEAD) {
     const { emitLeadStale } = await import("../inngest/events");
     void emitLeadStale(enrollment.id);
+
+    const contact = await prisma.contact.findUnique({
+      where: { id: input.contactId },
+      select: { displayName: true, firstName: true },
+    });
+    fireNotification({
+      eventType: "LEAD_CREATED",
+      title: `Nuevo lead: ${contact ? contactName(contact) : "contacto sin nombre"}`,
+      body: `Interés: ${enrollment.product.title}`,
+      href: `/admin/enrollments/${enrollment.id}`,
+      entityType: "Enrollment",
+      entityId: enrollment.id,
+      staff: "ALL",
+    });
   }
 
   if (
@@ -148,7 +170,7 @@ export const createPendingPaymentEnrollment = async (input: {
   const price = product.prices[0];
   const sessionsTotal = productSessionsTotal(product);
 
-  return prisma.enrollment.create({
+  const enrollment = await prisma.enrollment.create({
     data: {
       contactId,
       productId: input.productId,
@@ -162,6 +184,25 @@ export const createPendingPaymentEnrollment = async (input: {
     },
     include: { product: true, contact: true },
   });
+
+  const currency = enrollment.currency ?? "USD";
+  fireNotification({
+    eventType: "ENROLLMENT_PENDING_PAYMENT",
+    title: `Checkout iniciado: ${contactName(enrollment.contact)} — ${product.title}`,
+    body:
+      enrollment.amountMinor != null
+        ? `${currency} ${formatMoneyMinor(
+            enrollment.amountMinor,
+            currency
+          )} sin pagar todavía.`
+        : "Sin precio asignado.",
+    href: `/admin/enrollments/${enrollment.id}`,
+    entityType: "Enrollment",
+    entityId: enrollment.id,
+    staff: "ALL",
+  });
+
+  return enrollment;
 };
 
 export const getEnrollmentById = async (id: string) =>
@@ -218,6 +259,16 @@ export const markEnrollmentPaid = async (enrollmentId: string) => {
   if (updated.product.kind === ProductKind.THERAPY && updated.sessionsTotal) {
     await ensureTherapyPackage(enrollmentId, updated.sessionsTotal);
   }
+
+  fireNotification({
+    eventType: "ENROLLMENT_ACTIVATED",
+    title: `Inscripción activada: ${contactName(updated.contact)} — ${updated.product.title}`,
+    body: "El pago quedó confirmado y el acceso ya está activo.",
+    entityType: "Enrollment",
+    entityId: enrollmentId,
+    staff: "ALL",
+    contactIds: [updated.contactId],
+  });
 
   return updated;
 };
@@ -293,6 +344,19 @@ export const updateEnrollmentStatus = async (
   ) {
     await ensureTherapyPackage(enrollmentId, updated.sessionsTotal);
   }
+
+  fireNotification({
+    eventType: "ENROLLMENT_STATUS_CHANGED",
+    title: `${contactName(updated.contact)} — ${updated.product.title}: ${
+      ENROLLMENT_STATUS_LABEL[status]
+    }`,
+    body: `Antes estaba en "${ENROLLMENT_STATUS_LABEL[enrollment.status]}".`,
+    href: `/admin/enrollments/${enrollmentId}`,
+    entityType: "Enrollment",
+    entityId: enrollmentId,
+    metadata: { from: enrollment.status, to: status },
+    staff: "ALL",
+  });
 
   return updated;
 };

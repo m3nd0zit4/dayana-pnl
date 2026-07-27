@@ -19,6 +19,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/app/components/ui/sidebar";
+import MemberNotificationBell from "./MemberNotificationBell";
 import DriveRecordingEmbed from "./DriveRecordingEmbed";
 import ClassCompleteToggle from "./ClassCompleteToggle";
 import ModuleCompleteToggle from "./ModuleCompleteToggle";
@@ -185,6 +186,10 @@ const CoursePlayer = ({
               </div>
             )}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              {/* Esta cabecera es la del reproductor, hermana de la del shell:
+                  PortalSidebar hace early-return aquí y no pinta la suya, así
+                  que la campana tiene que repetirse en este lado. */}
+              <MemberNotificationBell className="-my-1" />
               <Link
                 href="/miembros/cuenta"
                 aria-label="Mi cuenta"

@@ -69,6 +69,72 @@ export const verifyMercadoPagoWebhook = (
   }
 };
 
+/**
+ * Meta webhook `X-Hub-Signature-256` (WhatsApp, Messenger e Instagram comparten
+ * el mismo esquema y la misma app, así que un solo verificador cubre los tres).
+ *
+ * La firma es HMAC-SHA256 del cuerpo **crudo**: la ruta debe leer `req.text()`
+ * una sola vez y parsear desde esa cadena. Volver a serializar el JSON cambia
+ * los espacios y la firma deja de coincidir.
+ */
+export const verifyMetaWebhook = (req: Request, rawBody: string): boolean => {
+  const secret = process.env.META_APP_SECRET?.trim();
+  if (!secret) {
+    if (!isLocalDevelopment()) {
+      console.error("[webhook meta] META_APP_SECRET missing");
+      return false;
+    }
+    return true;
+  }
+
+  const header = req.headers.get("x-hub-signature-256");
+  if (!header) {
+    console.warn("[webhook meta] missing x-hub-signature-256");
+    return false;
+  }
+
+  const [algorithm, signature] = header.split("=");
+  if (algorithm !== "sha256" || !signature) return false;
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody, "utf8")
+    .digest("hex");
+
+  try {
+    const expectedBuf = Buffer.from(expected, "hex");
+    const signatureBuf = Buffer.from(signature, "hex");
+    if (expectedBuf.length !== signatureBuf.length) return false;
+    return crypto.timingSafeEqual(signatureBuf, expectedBuf);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Handshake de suscripción de Meta. Devuelve el `hub.challenge` a repetir, o
+ * null si el token no coincide — la ruta responde 403 en ese caso.
+ */
+export const resolveMetaSubscription = (req: Request): string | null => {
+  const url = new URL(req.url);
+  const mode = url.searchParams.get("hub.mode");
+  const token = url.searchParams.get("hub.verify_token");
+  const challenge = url.searchParams.get("hub.challenge");
+
+  const expected = process.env.META_WEBHOOK_VERIFY_TOKEN?.trim();
+  if (!expected) {
+    console.error("[webhook meta] META_WEBHOOK_VERIFY_TOKEN missing");
+    return null;
+  }
+  if (mode !== "subscribe" || !challenge) return null;
+  if (!token || token !== expected) {
+    console.warn("[webhook meta] verify token mismatch");
+    return null;
+  }
+
+  return challenge;
+};
+
 /** PayPal webhook via REST verify API. */
 export const verifyPayPalWebhook = async (
   req: Request,

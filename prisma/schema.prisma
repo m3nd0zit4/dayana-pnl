@@ -108,6 +108,108 @@ enum NotificationCampaignStatus {
   FAILED
 }
 
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageDeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+enum NotificationSeverity {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+/// Canal de Meta de un hilo de la bandeja de entrada.
+enum ConversationChannel {
+  WHATSAPP
+  MESSENGER
+  INSTAGRAM
+}
+
+enum ConversationStatus {
+  OPEN
+  /// Respondimos y esperamos al cliente.
+  PENDING
+  CLOSED
+}
+
+/// Red social conectada para publicar contenido.
+enum SocialProvider {
+  TIKTOK
+  INSTAGRAM
+  FACEBOOK
+}
+
+enum SocialMediaType {
+  VIDEO
+  PHOTO
+}
+
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  /// Reclamado por el worker; impide que dos ejecuciones publiquen lo mismo.
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
+}
+
+/// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
+/// valores por defecto viven en lib/notifications/platform/catalog.ts — este
+/// enum solo garantiza integridad referencial.
+enum NotificationEventType {
+  // Pagos y ventas
+  PAYMENT_APPROVED
+  PAYMENT_FAILED
+  PAYMENT_REFUNDED
+  MANUAL_PAYMENT_RECORDED
+  PAYMENT_WEBHOOK_FAILED
+  // Embudo e inscripciones
+  LEAD_CREATED
+  WEB_LEAD_SUBMITTED
+  ENROLLMENT_PENDING_PAYMENT
+  ENROLLMENT_ACTIVATED
+  ENROLLMENT_STATUS_CHANGED
+  CHECKOUT_ABANDONED
+  LEAD_STALE
+  // Terapias
+  THERAPY_SESSION_SCHEDULED
+  THERAPY_SESSION_RESCHEDULED
+  THERAPY_SESSION_COMPLETED
+  THERAPY_SESSION_NO_SHOW
+  // Curso y membresía
+  MEMBER_SIGNED_UP
+  MEMBERSHIP_DUE_SOON
+  MEMBERSHIP_OVERDUE
+  MEMBERSHIP_EXTENDED
+  LESSON_COMMENT_POSTED
+  CLASS_RECORDING_PUBLISHED
+  // Sistema, seguridad y comunicación
+  LOGIN_FAILED
+  LOGIN_SUCCEEDED
+  STAFF_USER_CREATED
+  AGENT_ACTION_EXECUTED
+  CAMPAIGN_COMPLETED
+  NOTIFICATION_DELIVERY_FAILED
+  SYSTEM_ALERT
+  // Bandeja de entrada
+  INBOX_MESSAGE_RECEIVED
+  // Publicación en redes
+  SOCIAL_POST_PUBLISHED
+  SOCIAL_POST_FAILED
+}
+
 model Contact {
   id                  String        @id @default(cuid())
   phoneE164           String        @unique @map("phone_e164")
@@ -125,6 +227,7 @@ model Contact {
   notifyEmail         Boolean       @default(true) @map("notify_email")
   notifySms           Boolean       @default(true) @map("notify_sms")
   notifyWhatsapp      Boolean       @default(true) @map("notify_whatsapp")
+  notifyInApp         Boolean       @default(true) @map("notify_in_app")
   source              ContactSource @default(WEB)
   sourceDetail        String?       @map("source_detail")
   tiktokHandle        String?       @map("tiktok_handle")
@@ -138,12 +241,15 @@ model Contact {
   tags                   ContactTag[]
   messageLogs            MessageLog[]
   notificationDeliveries NotificationDelivery[]
+  notificationRecipients NotificationRecipient[]
   notebookPages          ContactNotebookPage[]
   memberAccount          MemberAccount?
   memberAuthTokens       MemberAuthToken[]
   moduleProgress         CourseModuleProgress[]
   classProgress          CourseClassProgress[]
   lessonComments         LessonComment[]
+  conversations          Conversation[]
+  channelIdentities      ContactChannelIdentity[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -449,6 +555,14 @@ model StaffUser {
   notebookPages  ContactNotebookPage[]
   staffSessions  StaffSession[]
   paymentVerificationCodes PaymentVerificationCode[]
+  notificationRecipients   NotificationRecipient[]
+  notificationPreferences  StaffNotificationPreference[]
+  notificationDeliveries   NotificationDelivery[]
+  assignedConversations    Conversation[]
+  conversationMessages     ConversationMessage[]
+  linkedChannelIdentities  ContactChannelIdentity[]
+  socialAccounts           SocialAccount[]
+  socialPosts              SocialPost[]
 
   @@map("staff_users")
 }
@@ -519,6 +633,12 @@ model MessageTemplate {
   locale      String       @default("es")
   body        String       @db.Text
   productKind ProductKind? @map("product_kind")
+
+  /// Metadatos de la plantilla equivalente aprobada en WhatsApp Cloud API.
+  metaTemplateName   String? @map("meta_template_name")
+  metaTemplateLang   String? @map("meta_template_lang")
+  metaApprovalStatus String? @map("meta_approval_status")
+
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
@@ -537,11 +657,22 @@ model MessageLog {
   bodySnapshot String         @map("body_snapshot") @db.Text
   sentAt       DateTime       @default(now()) @map("sent_at")
 
+  /// Estado de conversación de WhatsApp Cloud API (entrada y salida).
+  direction         MessageDirection      @default(OUTBOUND)
+  status            MessageDeliveryStatus @default(SENT)
+  providerMessageId String?               @map("provider_message_id")
+  waContextId       String?               @map("wa_context_id")
+  mediaUrl          String?               @map("media_url")
+  deliveredAt       DateTime?             @map("delivered_at")
+  readAt            DateTime?             @map("read_at")
+  failedReason      String?               @map("failed_reason")
+
   contact   Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
   template  MessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   staffUser StaffUser?       @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
 
   @@index([contactId, sentAt])
+  @@index([providerMessageId])
   @@map("message_logs")
 }
 
@@ -554,6 +685,196 @@ model WebhookEvent {
 
   @@unique([provider, eventId])
   @@map("webhook_events")
+}
+
+/// Ingesta idempotente del webhook de Meta (WhatsApp, Messenger e Instagram).
+///
+/// `eventId` es el id del **mensaje** (`wamid…` / `mid…`), no el de la entrega:
+/// Meta reintenta el mismo mensaje con envoltorios distintos, así que dedupear
+/// por entrega dejaría pasar duplicados.
+model MetaWebhookEvent {
+  id          String   @id @default(cuid())
+  /// Campo `object` de nivel superior: whatsapp_business_account | page | instagram.
+  object      String
+  eventId     String   @unique @map("event_id")
+  processedAt DateTime @default(now()) @map("processed_at")
+  payload     Json?
+
+  @@map("meta_webhook_events")
+}
+
+/// Un hilo con una persona en un canal de Meta.
+///
+/// La identidad externa es la clave: teléfono (WhatsApp), PSID (Messenger) o
+/// IGSID (Instagram). Instagram y Messenger no entregan teléfono ni correo, así
+/// que `contactId` puede quedarse nulo indefinidamente — no es un error.
+model Conversation {
+  id               String              @id @default(cuid())
+  channel          ConversationChannel
+  externalThreadId String              @map("external_thread_id")
+  /// Cuenta de Meta que recibió el mensaje (phone_number_id, page id o ig id).
+  metaAccountId    String              @map("meta_account_id")
+
+  contactId        String?             @map("contact_id")
+
+  participantName      String? @map("participant_name")
+  participantHandle    String? @map("participant_handle")
+  participantAvatarUrl String? @map("participant_avatar_url")
+
+  status          ConversationStatus @default(OPEN)
+  assignedStaffId String?            @map("assigned_staff_id")
+
+  lastMessageAt DateTime  @default(now()) @map("last_message_at")
+  /// Base de la ventana de 24 h de Meta. Nulo = el cliente nunca escribió.
+  lastInboundAt DateTime? @map("last_inbound_at")
+  unreadCount   Int       @default(0) @map("unread_count")
+
+  /// Borrador del agente o del staff. Nunca se envía solo.
+  draftBody      String?   @map("draft_body") @db.Text
+  draftSource    String?   @map("draft_source")
+  draftUpdatedAt DateTime? @map("draft_updated_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  contact       Contact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedStaff StaffUser?            @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages      ConversationMessage[]
+
+  @@unique([channel, externalThreadId])
+  @@index([status, lastMessageAt(sort: Desc)])
+  @@index([contactId, lastMessageAt(sort: Desc)])
+  @@index([assignedStaffId, lastMessageAt(sort: Desc)])
+  @@map("conversations")
+}
+
+model ConversationMessage {
+  id             String                @id @default(cuid())
+  conversationId String                @map("conversation_id")
+  direction      MessageDirection
+  status         MessageDeliveryStatus @default(SENT)
+
+  /// `wamid…` / `mid…` — clave de idempotencia frente a los reintentos de Meta.
+  externalMessageId String? @unique @map("external_message_id")
+  /// Mensaje al que responde (`context.id` en WhatsApp, `reply_to.mid` en Messenger).
+  replyToExternalId String? @map("reply_to_external_id")
+
+  body String? @db.Text
+  /// Adjuntos ya rehospedados en Blob — las URLs de Meta caducan.
+  attachments Json?
+
+  /// Presente solo cuando lo envió el staff desde el CRM.
+  staffUserId String? @map("staff_user_id")
+  /// Un mensaje que Meta nos devuelve porque se envió desde la app de Meta.
+  isEcho      Boolean @default(false) @map("is_echo")
+
+  sentAt       DateTime  @default(now()) @map("sent_at")
+  deliveredAt  DateTime? @map("delivered_at")
+  readAt       DateTime? @map("read_at")
+  failedReason String?   @map("failed_reason")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  staffUser    StaffUser?   @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+
+  @@index([conversationId, sentAt])
+  @@map("conversation_messages")
+}
+
+/// Una cuenta de red social conectada por OAuth.
+///
+/// Los tokens se guardan cifrados (lib/crypto/secret-box.ts): son credenciales
+/// de publicación sobre la cuenta real, no datos de configuración.
+model SocialAccount {
+  id       String         @id @default(cuid())
+  provider SocialProvider
+  /// Id estable de la cuenta en el proveedor (`open_id` en TikTok).
+  externalId  String      @map("external_id")
+  displayName String?     @map("display_name")
+  username    String?
+  avatarUrl   String?     @map("avatar_url")
+
+  accessTokenEnc  String    @map("access_token_enc") @db.Text
+  refreshTokenEnc String?   @map("refresh_token_enc") @db.Text
+  /// Caducidad del access token; por debajo se refresca antes de usarlo.
+  expiresAt       DateTime? @map("expires_at")
+  /// Caducidad del refresh token. Pasada, hay que reconectar a mano.
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  scopes          String?
+
+  /// Falso cuando el proveedor revoca el permiso: la UI pide reconectar.
+  isActive  Boolean @default(true) @map("is_active")
+  lastError String? @map("last_error")
+
+  connectedByStaffId String?  @map("connected_by_staff_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  connectedByStaff StaffUser?   @relation(fields: [connectedByStaffId], references: [id], onDelete: SetNull)
+  posts            SocialPost[]
+
+  @@unique([provider, externalId])
+  @@map("social_accounts")
+}
+
+/// Una publicación programada o publicada en una red social.
+model SocialPost {
+  id        String           @id @default(cuid())
+  accountId String           @map("account_id")
+  mediaType SocialMediaType  @default(VIDEO) @map("media_type")
+  status    SocialPostStatus @default(DRAFT)
+
+  caption String? @db.Text
+  /// URLs en Blob. TikTok exige dominio verificado para PULL_FROM_URL, así que
+  /// el publicador descarga de aquí y sube los bytes (FILE_UPLOAD).
+  mediaUrls Json   @map("media_urls")
+
+  /// PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY.
+  /// Sin auditoría de TikTok solo se acepta SELF_ONLY.
+  privacyLevel   String  @default("SELF_ONLY") @map("privacy_level")
+  disableComment Boolean @default(false) @map("disable_comment")
+  disableDuet    Boolean @default(false) @map("disable_duet")
+  disableStitch  Boolean @default(false) @map("disable_stitch")
+
+  scheduledAt DateTime? @map("scheduled_at")
+  publishedAt DateTime? @map("published_at")
+
+  /// `publish_id` del proveedor, para consultar el estado.
+  externalPublishId String? @map("external_publish_id")
+  externalPostId    String? @map("external_post_id")
+  postUrl           String? @map("post_url")
+  failedReason      String? @map("failed_reason")
+  attemptCount      Int     @default(0) @map("attempt_count")
+
+  createdByStaffId String?  @map("created_by_staff_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  account        SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdByStaff StaffUser?    @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([accountId, createdAt(sort: Desc)])
+  @@map("social_posts")
+}
+
+/// Puente entre un contacto del CRM y su identidad en cada canal. Es lo que
+/// permite reconocer a la misma persona la próxima vez que escriba por
+/// Instagram, donde no hay teléfono con el que emparejar.
+model ContactChannelIdentity {
+  id              String              @id @default(cuid())
+  contactId       String              @map("contact_id")
+  channel         ConversationChannel
+  externalId      String              @map("external_id")
+  displayName     String?             @map("display_name")
+  linkedByStaffId String?             @map("linked_by_staff_id")
+  createdAt       DateTime            @default(now()) @map("created_at")
+
+  contact       Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  linkedByStaff StaffUser? @relation(fields: [linkedByStaffId], references: [id], onDelete: SetNull)
+
+  @@unique([channel, externalId])
+  @@index([contactId])
+  @@map("contact_channel_identities")
 }
 
 model NotificationCampaign {
@@ -583,7 +904,11 @@ model NotificationCampaign {
 model NotificationDelivery {
   id           String                     @id @default(cuid())
   campaignId   String?                    @map("campaign_id")
-  contactId    String                     @map("contact_id")
+  /// Opcional: los envíos dirigidos al staff no tienen contacto asociado.
+  contactId    String?                    @map("contact_id")
+  staffUserId  String?                    @map("staff_user_id")
+  /// Enlaza el correo con el elemento del feed que lo originó.
+  platformNotificationId String?          @map("platform_notification_id")
   channel      MessageChannel
   status       NotificationDeliveryStatus @default(PENDING)
   templateKey  String?                    @map("template_key")
@@ -596,11 +921,80 @@ model NotificationDelivery {
   createdAt    DateTime                   @default(now()) @map("created_at")
 
   campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  contact  Contact               @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact  Contact?              @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  staffUser            StaffUser?            @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  platformNotification PlatformNotification? @relation(fields: [platformNotificationId], references: [id], onDelete: SetNull)
 
   @@index([campaignId])
   @@index([contactId, createdAt])
+  @@index([staffUserId, createdAt])
+  @@index([status, createdAt])
   @@map("notification_deliveries")
+}
+
+/// Un evento de la plataforma, guardado una sola vez. El fan-out por
+/// destinatario vive en NotificationRecipient.
+model PlatformNotification {
+  id         String                @id @default(cuid())
+  eventType  NotificationEventType @map("event_type")
+  severity   NotificationSeverity  @default(INFO)
+  title      String
+  body       String?               @db.Text
+  entityType String?               @map("entity_type")
+  entityId   String?               @map("entity_id")
+  /// Ruta interna a la que lleva la notificación (p. ej. /admin/contacts/abc).
+  href       String?
+  metadata   Json?
+  createdAt  DateTime              @default(now()) @map("created_at")
+
+  recipients NotificationRecipient[]
+  deliveries NotificationDelivery[]
+
+  @@index([createdAt])
+  @@index([eventType, createdAt])
+  @@index([entityType, entityId])
+  @@map("platform_notifications")
+}
+
+/// Fan-out: exactamente uno de staffUserId / contactId está presente. La
+/// invariante se impone en emit.ts — Postgres no puede expresarla en un unique
+/// porque NULL nunca colisiona.
+model NotificationRecipient {
+  id             String    @id @default(cuid())
+  notificationId String    @map("notification_id")
+  staffUserId    String?   @map("staff_user_id")
+  contactId      String?   @map("contact_id")
+  readAt         DateTime? @map("read_at")
+  dismissedAt    DateTime? @map("dismissed_at")
+  /// Marca de idempotencia del fan-out por correo.
+  emailedAt      DateTime? @map("emailed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  notification PlatformNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  staffUser    StaffUser?           @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  contact      Contact?             @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, staffUserId])
+  @@unique([notificationId, contactId])
+  @@index([staffUserId, createdAt(sort: Desc)])
+  @@index([contactId, createdAt(sort: Desc)])
+  @@map("notification_recipients")
+}
+
+/// Preferencias por evento. La ausencia de fila significa "usa el valor por
+/// defecto del catálogo" — nunca se precrean filas.
+model StaffNotificationPreference {
+  id          String                @id @default(cuid())
+  staffUserId String                @map("staff_user_id")
+  eventType   NotificationEventType @map("event_type")
+  inApp       Boolean               @default(true) @map("in_app")
+  email       Boolean               @default(false)
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@unique([staffUserId, eventType])
+  @@map("staff_notification_preferences")
 }
 
 model SiteSetting {

@@ -26,6 +26,7 @@ import {
 } from "@/lib/crm/member-accounts";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/crm/audit";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -98,6 +99,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               entityType: "StaffUser",
               entityId: staff.id,
             }).catch(() => undefined);
+            fireNotification({
+              eventType: "LOGIN_FAILED",
+              title: `Intento de acceso fallido: ${staff.displayName}`,
+              body: `Contraseña incorrecta para ${staff.email}.`,
+              entityType: "StaffUser",
+              entityId: staff.id,
+              staff: "ALL",
+            });
             return null;
           }
 
@@ -222,6 +231,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           entityId: user.id!,
           changes: { sessionId: dbSession.id },
         }).catch(() => undefined);
+        fireNotification({
+          eventType: "LOGIN_SUCCEEDED",
+          title: `Inicio de sesión: ${user.name ?? user.email ?? "miembro del equipo"}`,
+          entityType: "StaffUser",
+          entityId: user.id!,
+          staff: "ALL",
+        });
         return token;
       }
 

@@ -7,6 +7,8 @@ import {
   type Product,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 
 /** How much access a single monthly payment buys. */
 export const MEMBERSHIP_MONTHS_PER_PAYMENT = 1;
@@ -41,8 +43,8 @@ export type MembershipExtensionResult = {
  */
 export const applyMembershipExtension = async (
   paymentId: string
-): Promise<MembershipExtensionResult> =>
-  prisma.$transaction(async (tx) => {
+): Promise<MembershipExtensionResult> => {
+  const outcome = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.findUnique({
       where: { id: paymentId },
       include: { enrollment: { include: { product: true } } },
@@ -54,7 +56,7 @@ export const applyMembershipExtension = async (
       payment.membershipAppliedAt ||
       payment.enrollment.product.kind !== ProductKind.COURSE
     ) {
-      return { extended: false };
+      return { extended: false as const };
     }
 
     const claimed = await tx.payment.updateMany({
@@ -62,7 +64,7 @@ export const applyMembershipExtension = async (
       data: { membershipAppliedAt: new Date() },
     });
     if (claimed.count === 0) {
-      return { extended: false };
+      return { extended: false as const };
     }
 
     const now = new Date();
@@ -75,8 +77,32 @@ export const applyMembershipExtension = async (
       data: { paidUntil },
     });
 
-    return { extended: true, paidUntil };
+    return {
+      extended: true as const,
+      paidUntil,
+      enrollmentId: payment.enrollmentId,
+      contactId: payment.enrollment.contactId,
+      productTitle: payment.enrollment.product.title,
+    };
   });
+
+  if (!outcome.extended) return { extended: false };
+
+  fireNotification({
+    eventType: "MEMBERSHIP_EXTENDED",
+    title: `Tu acceso a ${outcome.productTitle} sigue activo`,
+    body: `Con este pago quedas al día hasta el ${new Intl.DateTimeFormat(
+      "es-CO",
+      { timeZone: OPERATIONAL_TZ, dateStyle: "long" }
+    ).format(outcome.paidUntil)}.`,
+    href: "/miembros/cuenta/facturacion",
+    entityType: "Enrollment",
+    entityId: outcome.enrollmentId,
+    contactIds: [outcome.contactId],
+  });
+
+  return { extended: true, paidUntil: outcome.paidUntil };
+};
 
 export type MembershipInfo = {
   enrollment: (Enrollment & { product: Product }) | null;

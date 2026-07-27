@@ -57,4 +57,6 @@ export const updateNotificationPrefsSchema = z.object({
   notifyEmail: z.boolean(),
   notifySms: z.boolean(),
   notifyWhatsapp: z.boolean(),
+  /** Avisos dentro del portal (la campana). Opcional: clientes viejos no lo mandan. */
+  notifyInApp: z.boolean().optional(),
 });

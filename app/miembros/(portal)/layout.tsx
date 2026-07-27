@@ -25,12 +25,17 @@ const PortalLayout = async ({
   const membership = await getMembershipForContact(member.contact.id);
   const lockState = getMembershipLockState(membership);
 
+  // Interruptor del stream SSE de la campana. Apagado ⇒ el feed se degrada a
+  // sondeo periódico. Mismo criterio que el panel del CRM.
+  const streamEnabled = process.env.NOTIFICATIONS_STREAM_ENABLED === "true";
+
   return (
     <div className="portal-app">
       <PortalSidebar
         firstName={member.contact.firstName}
         avatarUrl={member.contact.avatarUrl}
         lockState={lockState}
+        streamEnabled={streamEnabled}
       >
         {children}
       </PortalSidebar>

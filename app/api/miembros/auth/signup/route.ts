@@ -5,6 +5,7 @@ import { getMemberByEmail } from "@/lib/crm/member-accounts";
 import { setMemberPassword } from "@/lib/crm/member-accounts";
 import { getStaffByEmail } from "@/lib/crm/staff";
 import { writeAuditLog } from "@/lib/crm/audit";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { hashPassword } from "@/lib/auth/password";
 import { validateStaffPassword } from "@/lib/auth/password-policy";
 import { normalizePhoneWithCountry } from "@/lib/phone";
@@ -147,6 +148,16 @@ export const POST = async (req: Request) => {
     entityId: account.id,
     changes: { contactId, source: "wizard" },
   }).catch(() => undefined);
+
+  fireNotification({
+    eventType: "MEMBER_SIGNED_UP",
+    title: `Nueva cuenta de miembro: ${displayName}`,
+    body: `${email} · ${normalized.phoneE164}`,
+    href: `/admin/contacts/${contactId}`,
+    entityType: "Contact",
+    entityId: contactId,
+    staff: "ALL",
+  });
 
   return NextResponse.json({ ok: true, email });
 };

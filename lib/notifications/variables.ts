@@ -8,6 +8,10 @@ export const contactVars = (contact: Contact): TemplateVars => ({
   last_name: contact.lastName ?? "",
   display_name: contact.displayName ?? contact.firstName,
   phone: contact.phoneE164,
+  // campaignEmailHtml falls back to `href: vars.site_url` when a template has
+  // no workshop link. Without it the CTA href is undefined and escapeHtml
+  // throws, failing every non-workshop campaign send.
+  site_url: siteUrl(),
 });
 
 export const paymentVars = (

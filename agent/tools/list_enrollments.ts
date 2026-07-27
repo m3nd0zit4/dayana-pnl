@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { listEnrollmentsAdmin } from "@/lib/crm/enrollments-list";
+import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
@@ -12,7 +13,8 @@ export default defineTool({
     q: z.string().optional(),
     limit: z.number().int().min(1).max(100).optional(),
   }),
-  async execute({ status, q, limit }) {
+  async execute({ status, q, limit }, ctx) {
+    requireStaff(ctx);
     const rows = await listEnrollmentsAdmin({ status, q, limit });
     return {
       enrollments: rows.map((e) => ({

@@ -52,10 +52,28 @@ const productionSchema = z
       .string()
       .optional()
       .refine((v) => v !== "true", "CRM_UI_PREVIEW must not be true in production"),
+    CRM_AGENT_ENABLED: z.string().optional(),
+    GEMINI_API_KEY: z.string().optional(),
+    // Loopback-based auth bypass for the eve channel — local dev only.
+    CRM_AGENT_LOCAL_DEV_AUTH: z
+      .string()
+      .optional()
+      .refine(
+        (v) => v !== "true",
+        "CRM_AGENT_LOCAL_DEV_AUTH must not be true in production"
+      ),
   })
   .refine(
     (env) => env.NEXT_PUBLIC_PAYPAL_CLIENT_ID === env.PAYPAL_CLIENT_ID,
     "NEXT_PUBLIC_PAYPAL_CLIENT_ID must match PAYPAL_CLIENT_ID"
+  )
+  // Without the key the panel renders for the OWNER and every message fails
+  // with a provider error — fail the deploy instead of shipping a dead agent.
+  .refine(
+    (env) =>
+      env.CRM_AGENT_ENABLED !== "true" ||
+      (env.GEMINI_API_KEY?.trim().length ?? 0) > 0,
+    "CRM_AGENT_ENABLED=true requires a non-empty GEMINI_API_KEY"
   );
 
 let validated = false;

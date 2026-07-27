@@ -4,6 +4,9 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { MembershipLockState } from "@/lib/lms/membership";
+import MemberNotificationBell, {
+  MemberNotificationsProvider,
+} from "./MemberNotificationBell";
 import PortalUserMenu from "./PortalUserMenu";
 import {
   MembershipBlockScreen,
@@ -25,11 +28,13 @@ const PortalSidebar = ({
   firstName,
   avatarUrl,
   lockState,
+  streamEnabled,
   children,
 }: {
   firstName: string;
   avatarUrl: string | null;
   lockState: MembershipLockState;
+  streamEnabled: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -55,15 +60,20 @@ const PortalSidebar = ({
   // second, competing piece of chrome. It renders its own header (back
   // link, progress, account/logout) instead.
   if (isCoursePlayer) {
+    // Ojo: aquí la cabecera la pinta CoursePlayer, no este archivo. La campana
+    // vive dentro de esa cabecera (ver CoursePlayer.tsx); lo único que hace
+    // falta desde aquí es que el proveedor la envuelva.
     return (
-      <div className="min-h-screen bg-background">
-        {warning && lockState.kind === "warning" && (
-          <div className="px-4 pt-4 lg:px-8">
-            <MembershipWarningBanner daysUntilBlocked={lockState.daysUntilBlocked} />
-          </div>
-        )}
-        {children}
-      </div>
+      <MemberNotificationsProvider streamEnabled={streamEnabled}>
+        <div className="min-h-screen bg-background">
+          {warning && lockState.kind === "warning" && (
+            <div className="px-4 pt-4 lg:px-8">
+              <MembershipWarningBanner daysUntilBlocked={lockState.daysUntilBlocked} />
+            </div>
+          )}
+          {children}
+        </div>
+      </MemberNotificationsProvider>
     );
   }
 
@@ -72,8 +82,9 @@ const PortalSidebar = ({
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3 lg:px-8">
           <Brand />
-          <div className="flex items-center gap-3 text-xs text-muted-foreground sm:gap-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground sm:gap-3">
             <span className="hidden text-foreground sm:inline">{firstName}</span>
+            <MemberNotificationBell />
             <PortalUserMenu displayName={firstName} avatarUrl={avatarUrl} />
           </div>
         </div>
@@ -90,11 +101,18 @@ const PortalSidebar = ({
     </div>
   );
 
-  if (blocked && lockState.kind === "blocked") {
-    return <MembershipBlockScreen neverPaid={lockState.neverPaid}>{shell}</MembershipBlockScreen>;
-  }
+  const body =
+    blocked && lockState.kind === "blocked" ? (
+      <MembershipBlockScreen neverPaid={lockState.neverPaid}>{shell}</MembershipBlockScreen>
+    ) : (
+      shell
+    );
 
-  return shell;
+  return (
+    <MemberNotificationsProvider streamEnabled={streamEnabled}>
+      {body}
+    </MemberNotificationsProvider>
+  );
 };
 
 export default PortalSidebar;
