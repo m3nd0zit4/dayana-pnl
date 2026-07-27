@@ -4,6 +4,7 @@ import { getMemberSession } from "@/lib/auth/member-session";
 import { getEnrolledCourses } from "@/lib/lms/membership";
 import { addComment, listCommentsForClass, CommentValidationError } from "@/lib/lms/class-comments";
 import { notifyStaffOfNewComment } from "@/lib/notifications/staff-alert";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,16 @@ export async function POST(req: NextRequest, ctx: RouteCtx) {
       contactName: result.contactFirstName,
       body: comment.body,
     }).catch((e) => console.error("[comments] staff notify failed", e));
+    fireNotification({
+      eventType: "LESSON_COMMENT_POSTED",
+      title: `${result.contactFirstName} comentó en ${result.cls.title}`,
+      body: comment.body.slice(0, 240),
+      href: "/admin/curso/comentarios",
+      entityType: "LiveClassSession",
+      entityId: id,
+      metadata: { commentId: comment.id, contactId: result.contactId },
+      staff: "ALL",
+    });
     return NextResponse.json({ comment });
   } catch (e) {
     if (e instanceof CommentValidationError) {

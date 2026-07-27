@@ -16,6 +16,16 @@ import {
   startCampaignRun,
 } from "../notifications/campaigns";
 import { sendPaymentConfirmation } from "../notifications/payment-confirmation";
+import { deliverNotificationEmails } from "../notifications/platform/email";
+import { emitPlatformNotification } from "../notifications/platform/emit";
+import {
+  NOTIFICATION_RETENTION_RULES,
+  runNotificationRetentionRule,
+} from "../notifications/platform/retention";
+import { processNormalizedEvent } from "../meta/ingest";
+import type { NormalizedEvent } from "../meta/inbound";
+import { findDuePosts } from "../crm/social-posts";
+import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { inviteContactToPortal } from "../crm/member-accounts";
@@ -236,6 +246,7 @@ export const membershipDueReminderFn = inngest.createFunction(
     const windows = [
       {
         key: "membership_payment_due",
+        eventType: "MEMBERSHIP_DUE_SOON" as const,
         gte: new Date(now + 3 * DAY_MS),
         lt: new Date(now + 4 * DAY_MS),
         fallback:
@@ -243,6 +254,7 @@ export const membershipDueReminderFn = inngest.createFunction(
       },
       {
         key: "membership_overdue",
+        eventType: "MEMBERSHIP_OVERDUE" as const,
         gte: new Date(now - 2 * DAY_MS),
         lt: new Date(now - 1 * DAY_MS),
         fallback:
@@ -310,6 +322,38 @@ export const membershipDueReminderFn = inngest.createFunction(
             if (result.status === NotificationDeliveryStatus.SENT) sent += 1;
           }
         });
+
+        // Paso aparte a propósito: si el envío de mensajes se reintenta, el
+        // step memoizado de arriba no vuelve a correr y esto tampoco duplica
+        // la notificación del feed.
+        await step.run(`notify-${window.key}-${enrollment.id}`, async () => {
+          const contact = enrollment.contact;
+          const paidUntil = enrollment.paidUntil
+            ? new Date(enrollment.paidUntil as string | Date)
+            : null;
+          const paidUntilLabel =
+            paidUntil?.toLocaleDateString("es-CO", { dateStyle: "long" }) ?? "";
+          const memberName = contact.displayName ?? contact.firstName;
+          const dueSoon = window.eventType === "MEMBERSHIP_DUE_SOON";
+
+          return emitPlatformNotification({
+            eventType: window.eventType,
+            title: dueSoon
+              ? `Mensualidad por vencer el ${paidUntilLabel}`
+              : `Mensualidad vencida el ${paidUntilLabel}`,
+            body: dueSoon
+              ? `La mensualidad del curso de ${memberName} vence el ${paidUntilLabel}. Renueva desde el portal para no perder el acceso.`
+              : `La mensualidad del curso de ${memberName} venció el ${paidUntilLabel}. El acceso al curso está en riesgo hasta que se registre el pago.`,
+            // El portal es donde se resuelve; el staff ve al miembro en el
+            // título y llega a la ficha desde el CRM.
+            href: "/miembros",
+            entityType: "Enrollment",
+            entityId: enrollment.id,
+            metadata: { contactId: contact.id, paidUntil: paidUntilLabel },
+            contactIds: [contact.id],
+            staff: "ALL",
+          });
+        });
       }
     }
 
@@ -338,6 +382,120 @@ export const recordingAutoHideFn = inngest.createFunction(
   }
 );
 
+/**
+ * Reparte por correo una notificación del feed fuera del camino de la petición.
+ *
+ * `deliverNotificationEmails` solo toma destinatarios con `emailedAt` nulo y lo
+ * estampa al terminar, así que es idempotente: convive sin duplicar con el
+ * `after()` que emit.ts ya dispara, y un reintento de Inngest no reenvía nada.
+ */
+export const platformNotificationEmailFn = inngest.createFunction(
+  { id: "platform-notification-email" },
+  { event: "notification/platform.email" },
+  async ({ event, step }) => {
+    const notificationId = event.data.notificationId as string;
+    return step.run("deliver-notification-emails", () =>
+      deliverNotificationEmails(notificationId)
+    );
+  }
+);
+
+/**
+ * Poda diaria del feed de notificaciones. Va a las 06:00 UTC, después del
+ * cierre de checkouts (05:00) y del ocultado de grabaciones (05:30), para no
+ * competir por la misma conexión de Neon.
+ *
+ * Cada regla corre en su propio paso: si una falla, las demás ya quedaron
+ * confirmadas y el reintento no repite el trabajo hecho. Los borrados van
+ * paginados dentro de `retention.ts` — ver ahí las claves de `SiteSetting`.
+ */
+export const notificationRetentionFn = inngest.createFunction(
+  { id: "notification-retention" },
+  { cron: "0 6 * * *" },
+  async ({ step }) => {
+    const deleted: Record<string, number> = {};
+    for (const rule of NOTIFICATION_RETENTION_RULES) {
+      deleted[rule] = await step.run(`retention-${rule}`, () =>
+        runNotificationRetentionRule(rule)
+      );
+    }
+    return deleted;
+  }
+);
+
+/**
+ * Ingesta de los webhooks de Meta (WhatsApp, Messenger e Instagram).
+ *
+ * `concurrency` con clave por hilo y límite 1 es el punto importante: sin ella,
+ * tres mensajes seguidos del mismo cliente se procesan en paralelo y el hilo
+ * queda desordenado. La clave incluye el canal, así que hilos distintos siguen
+ * avanzando a la vez.
+ */
+export const metaWebhookFn = inngest.createFunction(
+  {
+    id: "meta-webhook-received",
+    concurrency: { key: "event.data.threadKey", limit: 1 },
+    retries: 3,
+  },
+  { event: "meta/webhook.received" },
+  async ({ event, step }) => {
+    const object = event.data.object as string;
+    const normalized = event.data.event as NormalizedEvent;
+
+    return step.run("process-meta-event", () =>
+      processNormalizedEvent(object, normalized)
+    );
+  }
+);
+
+/**
+ * Barre las publicaciones cuya hora ya pasó y lanza una tarea por cada una.
+ *
+ * Cada 5 minutos: la granularidad de programación es "el minuto más cercano a
+ * cinco", que para contenido de redes sobra. Un `sleepUntil` por publicación
+ * sería más exacto pero deja tareas dormidas semanas, imposibles de cancelar
+ * cuando el operador borra el post.
+ */
+export const socialPostSchedulerFn = inngest.createFunction(
+  { id: "social-post-scheduler" },
+  { cron: "*/5 * * * *" },
+  async ({ step }) => {
+    const due = await step.run("find-due-posts", () => findDuePosts());
+    if (due.length === 0) return { due: 0 };
+
+    await Promise.all(
+      due.map((post) =>
+        step.sendEvent(`publish-${post.id}`, {
+          name: "social/post.publish",
+          data: { postId: post.id },
+        })
+      )
+    );
+
+    return { due: due.length };
+  }
+);
+
+/**
+ * Publica una entrada concreta.
+ *
+ * `retries: 0` es deliberado: `publishSocialPost` ya reclama la fila y registra
+ * el fallo, y un reintento ciego arriesga subir el mismo vídeo dos veces si el
+ * error ocurrió después de que TikTok lo aceptara.
+ */
+export const socialPostPublishFn = inngest.createFunction(
+  {
+    id: "social-post-publish",
+    concurrency: { key: "event.data.postId", limit: 1 },
+    retries: 0,
+  },
+  { event: "social/post.publish" },
+  async ({ event, step }) => {
+    const postId = event.data.postId as string;
+    return step.run("publish-social-post", () => publishSocialPost(postId));
+  }
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
@@ -346,4 +504,9 @@ export const inngestFunctions = [
   staleCheckoutCleanupFn,
   membershipDueReminderFn,
   recordingAutoHideFn,
+  platformNotificationEmailFn,
+  notificationRetentionFn,
+  metaWebhookFn,
+  socialPostSchedulerFn,
+  socialPostPublishFn,
 ];

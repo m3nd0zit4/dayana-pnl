@@ -107,6 +107,8 @@ export type MemberNotificationPrefs = {
   notifyEmail: boolean;
   notifySms: boolean;
   notifyWhatsapp: boolean;
+  /** Avisos en el portal. Omitir deja el valor actual sin tocar. */
+  notifyInApp?: boolean;
 };
 
 export const updateMemberNotificationPrefs = async (

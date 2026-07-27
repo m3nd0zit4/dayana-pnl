@@ -1,6 +1,7 @@
 import type { StaffRole } from "@prisma/client";
 import { canManageTeam, canRecordManualPayments, canWriteCrm } from "@/lib/crm/staff-permissions";
 import { writeAuditLog } from "@/lib/crm/audit";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 
 /**
  * Shape of the caller identity eve threads onto every tool call, set by
@@ -27,6 +28,15 @@ export const getCallerStaff = (ctx: AgentToolContext): { staffId: string; role: 
   }
   return { staffId: current.principalId, role };
 };
+
+/**
+ * Minimum bar for EVERY tool, including read-only ones: the turn must be
+ * running on behalf of a real staff user. Without this, any principal that
+ * reaches the channel (a `local-dev` fallback, a future non-staff
+ * authenticator) could read the whole CRM through the read tools, since only
+ * the write tools used to check the caller at all.
+ */
+export const requireStaff = (ctx: AgentToolContext) => getCallerStaff(ctx);
 
 /** Same write-role rule the CRM API routes already enforce — the agent can never exceed it. */
 export const requireWriteStaff = (ctx: AgentToolContext) => {
@@ -66,5 +76,16 @@ export const auditAgentWrite = async (
     entityType: input.entityType,
     entityId: input.entityId,
     changes: input.changes,
+  });
+
+  fireNotification({
+    eventType: "AGENT_ACTION_EXECUTED",
+    title: `El asistente ejecutó ${input.action} sobre ${input.entityType}`,
+    body: `A nombre de un usuario con rol ${staff.role}.`,
+    href: "/admin/audit",
+    entityType: input.entityType,
+    entityId: input.entityId,
+    metadata: { action: input.action, staffUserId: staff.staffId },
+    staff: "ALL",
   });
 };

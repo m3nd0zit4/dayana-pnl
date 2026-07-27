@@ -6,10 +6,10 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/app/components/ui/dialog";
-import SettingsNav, { type SettingsNavItem } from "./SettingsNav";
+import SettingsNav, { type SettingsNavGroup } from "./SettingsNav";
 
 type SettingsModalShellProps = {
-  navItems: SettingsNavItem[];
+  navGroups: SettingsNavGroup[];
   children: React.ReactNode;
 };
 
@@ -22,7 +22,10 @@ type SettingsModalShellProps = {
  * Fixed overall card size (title + nav never scroll) — only the tab content
  * pane on the right scrolls, so wide tables/long forms don't clip the card.
  */
-const SettingsModalShell = ({ navItems, children }: SettingsModalShellProps) => {
+const SettingsModalShell = ({
+  navGroups,
+  children,
+}: SettingsModalShellProps) => {
   const router = useRouter();
 
   return (
@@ -38,7 +41,7 @@ const SettingsModalShell = ({ navItems, children }: SettingsModalShellProps) => 
         </DialogTitle>
         <div className="flex min-h-0 flex-1">
           <div className="w-40 shrink-0 overflow-y-auto border-r p-3 sm:w-48">
-            <SettingsNav items={navItems} />
+            <SettingsNav groups={navGroups} />
           </div>
           <div className="min-w-0 flex-1 overflow-y-auto p-5">{children}</div>
         </div>

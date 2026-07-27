@@ -39,6 +39,12 @@ type CrmContextValue = {
   canManageTeam: boolean;
   /** true cuando el agente CRM (eve) está habilitado para este staff — ver CRM_AGENT_ENABLED. */
   agentEnabled: boolean;
+  /**
+   * true cuando la campana puede abrir el stream SSE — ver
+   * NOTIFICATIONS_STREAM_ENABLED. En false el feed se degrada a sondeo; es el
+   * interruptor de emergencia si el coste del stream se dispara.
+   */
+  streamEnabled: boolean;
   agentPanelOpen: boolean;
   setAgentPanelOpen: (open: boolean) => void;
   agentPanelExpanded: boolean;
@@ -91,11 +97,13 @@ const CrmProvider = ({
   role,
   preview,
   agentEnabled = false,
+  streamEnabled = false,
 }: {
   children: ReactNode;
   role: StaffRole | "PREVIEW";
   preview: boolean;
   agentEnabled?: boolean;
+  streamEnabled?: boolean;
 }) => {
   const router = useRouter();
   // confirmState holds the last content (never cleared on close) so the
@@ -169,6 +177,7 @@ const CrmProvider = ({
       canEditNotes: preview ? false : canEditClinicalNotes(staffRole),
       canManageTeam: preview ? false : canManageTeam(staffRole),
       agentEnabled: preview ? false : agentEnabled,
+      streamEnabled: preview ? false : streamEnabled,
       agentPanelOpen,
       setAgentPanelOpen,
       agentPanelExpanded,
@@ -188,6 +197,7 @@ const CrmProvider = ({
       preview,
       staffRole,
       agentEnabled,
+      streamEnabled,
       agentPanelOpen,
       agentPanelExpanded,
       pendingAgentAction,

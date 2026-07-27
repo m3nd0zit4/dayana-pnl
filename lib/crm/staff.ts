@@ -1,4 +1,5 @@
 import type { StaffRole } from "@prisma/client";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
 import { hashStaffPassword } from "../auth/password";
 
@@ -33,7 +34,7 @@ export const createStaffUser = async (input: {
   role?: StaffRole;
 }) => {
   const passwordHash = await hashStaffPassword(input.password);
-  return prisma.staffUser.create({
+  const staff = await prisma.staffUser.create({
     data: {
       email: input.email.trim().toLowerCase(),
       passwordHash,
@@ -41,6 +42,18 @@ export const createStaffUser = async (input: {
       role: input.role ?? "OPERATOR",
     },
   });
+
+  fireNotification({
+    eventType: "STAFF_USER_CREATED",
+    title: `Nuevo usuario del equipo: ${staff.displayName}`,
+    body: `${staff.email} · rol ${staff.role}`,
+    href: "/admin/team",
+    entityType: "StaffUser",
+    entityId: staff.id,
+    staff: "ALL",
+  });
+
+  return staff;
 };
 
 export const updateStaffPassword = async (id: string, password: string) => {

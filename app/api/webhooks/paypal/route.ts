@@ -8,8 +8,10 @@ import {
 import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
 import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
+import { fireAuditLog } from "@/lib/crm/audit";
 import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
 import { prisma } from "@/lib/db";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { verifyPayPalWebhook } from "@/lib/webhooks/verify";
 
 export const runtime = "nodejs";
@@ -18,6 +20,20 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   if (!(await verifyPayPalWebhook(req, rawBody))) {
+    fireAuditLog({
+      action: "WEBHOOK_REJECTED",
+      entityType: "WebhookEvent",
+      entityId: "paypal",
+      changes: { reason: "invalid_signature" },
+    });
+    fireNotification({
+      eventType: "PAYMENT_WEBHOOK_FAILED",
+      title: "Webhook de PayPal rechazado por firma inválida",
+      body: "PayPal reintentará el aviso; si persiste, revisa PAYPAL_WEBHOOK_ID.",
+      href: "/admin/payments",
+      metadata: { provider: "PAYPAL", reason: "invalid_signature" },
+      staff: "ALL",
+    });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
 
@@ -144,6 +160,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[webhook paypal]", e);
+    const message = e instanceof Error ? e.message : String(e);
+    fireAuditLog({
+      action: "WEBHOOK_FAILED",
+      entityType: "WebhookEvent",
+      entityId: eventId,
+      changes: { provider: "PAYPAL", reference, error: message },
+    });
+    fireNotification({
+      eventType: "PAYMENT_WEBHOOK_FAILED",
+      title: "Falló el webhook de PayPal",
+      body: `No se pudo registrar el cobro ${capture.id}. ${message}`,
+      href: "/admin/payments",
+      entityType: "WebhookEvent",
+      entityId: eventId,
+      metadata: { provider: "PAYPAL", reference, captureId: capture.id },
+      staff: "ALL",
+    });
     return NextResponse.json({ error: "processing_failed" }, { status: 500 });
   }
 }

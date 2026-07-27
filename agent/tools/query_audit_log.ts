@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { listAuditLogs } from "@/lib/crm/audit";
+import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
@@ -10,7 +11,8 @@ export default defineTool({
     action: z.string().optional(),
     limit: z.number().int().min(1).max(100).optional(),
   }),
-  async execute({ entityType, action, limit }) {
+  async execute({ entityType, action, limit }, ctx) {
+    requireStaff(ctx);
     const logs = await listAuditLogs({ entityType, action, limit });
     return {
       logs: logs.map((l) => ({

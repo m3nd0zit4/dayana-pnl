@@ -4,10 +4,23 @@ import {
   PaymentStatus,
   type Prisma,
 } from "@prisma/client";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
 import { abandonCheckoutEnrollment } from "./checkout-placeholder";
 import { parseCheckoutReference } from "./checkout-reference";
 import { markEnrollmentPaid } from "./enrollments";
+import { formatMoneyMinor } from "./money";
+
+const PROVIDER_LABEL: Record<PaymentProvider, string> = {
+  PAYPAL: "PayPal",
+  MERCADO_PAGO: "Mercado Pago",
+  MANUAL: "Registro manual",
+};
+
+const contactName = (contact: {
+  displayName: string | null;
+  firstName: string;
+}): string => contact.displayName ?? contact.firstName;
 
 export type RecordPaymentInput = {
   enrollmentId: string;
@@ -64,8 +77,40 @@ export const recordPayment = async (
     },
   });
 
+  const amountLabel = `${payment.currency} ${formatMoneyMinor(
+    payment.amountMinor,
+    payment.currency
+  )}`;
+
   if (input.status === PaymentStatus.APPROVED) {
-    await markEnrollmentPaid(input.enrollmentId);
+    const enrollment = await markEnrollmentPaid(input.enrollmentId);
+    const who = contactName(enrollment.contact);
+
+    fireNotification({
+      eventType: "PAYMENT_APPROVED",
+      title: `Pago aprobado: ${who} — ${amountLabel}`,
+      body: `${enrollment.product.title} · ${PROVIDER_LABEL[input.provider]}`,
+      entityType: "Payment",
+      entityId: payment.id,
+      metadata: {
+        enrollmentId: input.enrollmentId,
+        provider: input.provider,
+      },
+      staff: "ALL",
+      contactIds: [enrollment.contactId],
+    });
+
+    if (input.provider === PaymentProvider.MANUAL) {
+      fireNotification({
+        eventType: "MANUAL_PAYMENT_RECORDED",
+        title: `Pago manual registrado: ${who} — ${amountLabel}`,
+        body: enrollment.product.title,
+        href: `/admin/enrollments/${input.enrollmentId}`,
+        entityType: "Payment",
+        entityId: payment.id,
+        staff: "ALL",
+      });
+    }
 
     // Course memberships: each approved payment buys one month of access.
     // Must never break the webhook path; the Inngest payment-approved fn
@@ -78,11 +123,54 @@ export const recordPayment = async (
   } else if (input.status === PaymentStatus.FAILED) {
     const enrollment = await prisma.enrollment.findUnique({
       where: { id: input.enrollmentId },
-      select: { status: true },
+      select: {
+        status: true,
+        label: true,
+        contact: { select: { displayName: true, firstName: true } },
+      },
     });
+
+    const who = enrollment ? contactName(enrollment.contact) : null;
+    fireNotification({
+      eventType: "PAYMENT_FAILED",
+      title: who
+        ? `Pago rechazado: ${who} — ${amountLabel}`
+        : `Pago rechazado — ${amountLabel}`,
+      body: `${PROVIDER_LABEL[input.provider]}${
+        enrollment?.label ? ` · ${enrollment.label}` : ""
+      }`,
+      href: `/admin/enrollments/${input.enrollmentId}`,
+      entityType: "Payment",
+      entityId: payment.id,
+      staff: "ALL",
+    });
+
     if (enrollment?.status === EnrollmentStatus.PENDING_PAYMENT) {
       await abandonCheckoutEnrollment(input.enrollmentId);
     }
+  } else if (input.status === PaymentStatus.REFUNDED) {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { id: input.enrollmentId },
+      select: {
+        contactId: true,
+        label: true,
+        contact: { select: { displayName: true, firstName: true } },
+      },
+    });
+
+    fireNotification({
+      eventType: "PAYMENT_REFUNDED",
+      title: enrollment
+        ? `Pago reembolsado: ${contactName(enrollment.contact)} — ${amountLabel}`
+        : `Pago reembolsado — ${amountLabel}`,
+      body: `${PROVIDER_LABEL[input.provider]}${
+        enrollment?.label ? ` · ${enrollment.label}` : ""
+      }`,
+      entityType: "Payment",
+      entityId: payment.id,
+      staff: "ALL",
+      contactIds: enrollment ? [enrollment.contactId] : undefined,
+    });
   }
 
   return payment;

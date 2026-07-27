@@ -1,4 +1,5 @@
 import { isDryRun } from "../config";
+import { graphPost, whatsAppCredentials } from "@/lib/meta/client";
 
 export type SendWhatsAppInput = {
   toE164: string;
@@ -10,9 +11,17 @@ export type SendWhatsAppResult = {
   messageId?: string;
 };
 
-const toWhatsAppRecipient = (e164: string): string =>
-  e164.replace(/\D/g, "");
+const toWhatsAppRecipient = (e164: string): string => e164.replace(/\D/g, "");
 
+/**
+ * Envío suelto por WhatsApp Cloud API, para el camino de notificaciones.
+ *
+ * OJO con el nombre: manda **texto libre**, no una plantilla, así que solo
+ * funciona dentro de la ventana de 24 h. Se conserva tal cual porque los
+ * llamantes de `lib/notifications/` dependen de esta firma; para responder en
+ * un hilo de la bandeja usa `sendMetaMessage` de `lib/meta/send.ts`, que sí
+ * resuelve la ventana y cae a plantilla cuando toca.
+ */
 export const sendWhatsAppTemplateMessage = async (
   input: SendWhatsAppInput
 ): Promise<SendWhatsAppResult> => {
@@ -24,41 +33,25 @@ export const sendWhatsAppTemplateMessage = async (
     return { providerId: "dry-run" };
   }
 
-  const token = process.env.WHATSAPP_API_TOKEN?.trim();
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
-
-  if (!token || !phoneNumberId) {
+  const credentials = whatsAppCredentials();
+  if (!credentials) {
     throw new Error(
       "WhatsApp API no configurada: WHATSAPP_API_TOKEN y WHATSAPP_PHONE_NUMBER_ID"
     );
   }
 
-  const res = await fetch(
-    `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
+  const data = await graphPost<{ messages?: { id?: string }[] }>(
+    `${credentials.accountId}/messages`,
     {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: toWhatsAppRecipient(input.toE164),
-        type: "text",
-        text: { preview_url: true, body: input.body },
-      }),
-    }
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: toWhatsAppRecipient(input.toE164),
+      type: "text",
+      text: { preview_url: true, body: input.body },
+    },
+    credentials
   );
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`WhatsApp API error: ${res.status} ${err}`);
-  }
-
-  const data = (await res.json()) as {
-    messages?: { id?: string }[];
-  };
   return {
     providerId: "whatsapp-cloud",
     messageId: data.messages?.[0]?.id,

@@ -1,12 +1,14 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getContactById } from "@/lib/crm/contacts";
+import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
     "Get full detail for one contact by id: profile, and their enrollments with products, payment status, and therapy package if any.",
   inputSchema: z.object({ contactId: z.string().min(1) }),
-  async execute({ contactId }) {
+  async execute({ contactId }, ctx) {
+    requireStaff(ctx);
     const contact = await getContactById(contactId);
     if (!contact) return { found: false as const };
 

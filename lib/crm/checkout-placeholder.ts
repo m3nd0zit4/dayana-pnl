@@ -1,4 +1,8 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
+import {
+  emitPlatformNotification,
+  fireNotification,
+} from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
 
 /** Temporary checkout contacts — never shown in CRM lists. */
@@ -12,7 +16,10 @@ export const isPlaceholderContactPhone = (phone: string): boolean =>
  * Safe no-op when payment already approved or contact is real.
  */
 export const abandonCheckoutEnrollment = async (
-  enrollmentId: string
+  enrollmentId: string,
+  // The stale sweep passes `false` so a nightly purge of 100 checkouts emits
+  // one summary notification instead of 100 individual ones.
+  options: { notify?: boolean } = {}
 ): Promise<{ abandoned: boolean; reason?: string }> => {
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: enrollmentId },
@@ -51,6 +58,17 @@ export const abandonCheckoutEnrollment = async (
     await prisma.contact.delete({ where: { id: contactId } }).catch(() => {});
   }
 
+  if (options.notify !== false) {
+    fireNotification({
+      eventType: "CHECKOUT_ABANDONED",
+      title: `Checkout abandonado: ${enrollment.label ?? "servicio sin nombre"}`,
+      body: "El cliente llegó al pago y no lo completó. Se borró el registro temporal.",
+      entityType: "Enrollment",
+      entityId: enrollmentId,
+      staff: "ALL",
+    });
+  }
+
   return { abandoned: true };
 };
 
@@ -73,8 +91,24 @@ export const abandonStalePlaceholderCheckouts = async (): Promise<number> => {
 
   let abandoned = 0;
   for (const row of stale) {
-    const result = await abandonCheckoutEnrollment(row.id);
+    const result = await abandonCheckoutEnrollment(row.id, { notify: false });
     if (result.abandoned) abandoned += 1;
   }
+
+  if (abandoned > 0) {
+    // Runs from the daily cron, outside any request scope, so awaiting the
+    // emit is what guarantees it lands. It can never break the sweep.
+    await emitPlatformNotification({
+      eventType: "CHECKOUT_ABANDONED",
+      title:
+        abandoned === 1
+          ? "Se limpió 1 checkout abandonado"
+          : `Se limpiaron ${abandoned} checkouts abandonados`,
+      body: `Checkouts sin pago con más de ${STALE_CHECKOUT_HOURS} horas.`,
+      metadata: { count: abandoned },
+      staff: "ALL",
+    }).catch(() => undefined);
+  }
+
   return abandoned;
 };

@@ -8,7 +8,9 @@ const NAV_ITEMS = [
 ];
 
 const CuentaModalLayout = ({ children }: { children: React.ReactNode }) => (
-  <SettingsModalShell navItems={NAV_ITEMS}>{children}</SettingsModalShell>
+  <SettingsModalShell navGroups={[{ items: NAV_ITEMS }]}>
+    {children}
+  </SettingsModalShell>
 );
 
 export default CuentaModalLayout;

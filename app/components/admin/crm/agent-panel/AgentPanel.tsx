@@ -225,6 +225,11 @@ export const AgentPanelSession = ({
         titleRef.current = deriveTitle(firstUserText);
         onTitleChange(titleRef.current);
       }
+      // A run that fails before eve confirms anything finishes with zero
+      // events. Persisting that produced a thread whose title was the
+      // operator's question but whose transcript was empty on reopen — worse
+      // than no thread at all, since it looks like the message was saved.
+      if (snapshot.events.length === 0) return;
       upsertThread(threadId, {
         title: titleRef.current,
         session: snapshot.session,
@@ -232,6 +237,40 @@ export const AgentPanelSession = ({
       });
     },
   });
+
+  // `onFinish` is the only place a thread got written, so closing the panel
+  // (desktop unmounts the aside, mobile unmounts the drawer's session) while a
+  // run was still streaming threw the whole conversation away. Mirror the
+  // latest snapshot into a ref and flush it on unmount so a partial run
+  // survives.
+  const latestRef = useRef<{
+    events: typeof agent.events;
+    session?: typeof agent.session;
+    firstUserText?: string;
+  }>({ events: [] });
+
+  useEffect(() => {
+    latestRef.current = {
+      events: agent.events,
+      session: agent.session,
+      firstUserText: agent.data.messages
+        .find((m) => m.role === "user")
+        ?.parts.find((p) => p.type === "text")?.text,
+    };
+  });
+
+  useEffect(
+    () => () => {
+      const { events, session, firstUserText } = latestRef.current;
+      if (events.length === 0) return;
+      const title =
+        titleRef.current === "Nueva conversación" && firstUserText
+          ? deriveTitle(firstUserText)
+          : titleRef.current;
+      upsertThread(threadId, { title, session, events });
+    },
+    [threadId]
+  );
 
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
 
@@ -252,17 +291,27 @@ export const AgentPanelSession = ({
     // which is why the box kept showing the sent text. Clear it ourselves.
     setInput("");
 
-    if (message.files.length === 0) {
-      await agent.send({ message: text });
-      return;
-    }
+    // PromptInput deliberately keeps the composer intact when onSubmit throws
+    // ("user may want to retry"), but that only covers the uncontrolled DOM
+    // value — clearing our own state above defeated it, so a send that failed
+    // (model unreachable, router misconfigured) silently ate what was typed.
+    // Put it back and rethrow so PromptInput keeps the attachments too.
+    try {
+      if (message.files.length === 0) {
+        await agent.send({ message: text });
+        return;
+      }
 
-    const parts: UserContent = [];
-    if (text.length > 0) parts.push({ type: "text", text });
-    for (const file of message.files) {
-      parts.push({ type: "file", data: file.url ?? "", filename: file.filename, mediaType: file.mediaType });
+      const parts: UserContent = [];
+      if (text.length > 0) parts.push({ type: "text", text });
+      for (const file of message.files) {
+        parts.push({ type: "file", data: file.url ?? "", filename: file.filename, mediaType: file.mediaType });
+      }
+      await agent.send({ message: parts });
+    } catch (err) {
+      setInput(text);
+      throw err;
     }
-    await agent.send({ message: parts });
   };
 
   const handleRespond = (requestId: string, response: { optionId?: string; text?: string }) => {
@@ -394,10 +443,13 @@ export const AgentPanelSession = ({
               </ButtonGroup>
             )}
           </PromptInputTools>
+          {/* While a run is in flight this button IS the stop control, so it
+              must stay clickable — gating it on `isBusy` (as it used to) left
+              a square "Detener" icon that never fired and no way to cancel. */}
           <PromptInputSubmit
             status={agent.status}
             onStop={agent.stop}
-            disabled={isBusy || !input.trim()}
+            disabled={isBusy ? false : !input.trim()}
             className="static size-8 shrink-0"
           >
             <Send className="size-4" />

@@ -22,7 +22,7 @@ const CuentaLayout = ({ children }: { children: React.ReactNode }) => (
       </h1>
     </div>
     <div className="flex flex-col gap-6 sm:flex-row">
-      <SettingsNav items={NAV_ITEMS} />
+      <SettingsNav groups={[{ items: NAV_ITEMS }]} />
       <div className="min-w-0 flex-1 space-y-6">{children}</div>
     </div>
   </div>

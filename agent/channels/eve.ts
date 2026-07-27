@@ -25,4 +25,17 @@ function crmStaffAuth(): AuthFn<Request> {
   };
 }
 
-export default eveChannel({ auth: [crmStaffAuth(), localDev()] });
+/**
+ * `localDev()` is NOT a NODE_ENV gate — it authenticates any request whose URL
+ * host is loopback (or when VERCEL_ENV=development), handing out a `local-dev`
+ * principal with no staff attributes. Since this channel is reached through a
+ * Next rewrite (and, on Vercel, through service-to-service routing), we cannot
+ * assume the host eve sees is the public one, so leaving it in the chain risks
+ * an unauthenticated caller reaching the agent in a real deployment. Opt in
+ * explicitly instead — fail closed when the flag is absent.
+ */
+const allowLocalDevAuth = process.env.CRM_AGENT_LOCAL_DEV_AUTH === "true";
+
+export default eveChannel({
+  auth: allowLocalDevAuth ? [crmStaffAuth(), localDev()] : [crmStaffAuth()],
+});

@@ -7,6 +7,7 @@ import { renderQuickMessage } from "@/lib/crm/render-message";
 import { prisma } from "@/lib/db";
 import type { NotificationAudience, OutboundChannel } from "./config";
 import { dispatchAndRecord } from "./dispatch";
+import { fireNotification } from "./platform/emit";
 import { contactVars, workshopVars } from "./variables";
 
 export const BROADCAST_BATCH_SIZE = 25;
@@ -199,12 +200,27 @@ export const startCampaignRun = async (campaignId: string) => {
 };
 
 export const finalizeCampaignRun = async (campaignId: string) => {
-  await prisma.notificationCampaign.update({
+  const campaign = await prisma.notificationCampaign.update({
     where: { id: campaignId },
     data: {
       status: NotificationCampaignStatus.COMPLETED,
       completedAt: new Date(),
     },
+  });
+
+  fireNotification({
+    eventType: "CAMPAIGN_COMPLETED",
+    title: `Campaña "${campaign.name}" finalizada`,
+    body: `${campaign.sentCount} enviados · ${campaign.failedCount} fallidos · ${campaign.skippedCount} omitidos`,
+    href: "/admin/messages",
+    entityType: "NotificationCampaign",
+    entityId: campaignId,
+    metadata: {
+      sent: campaign.sentCount,
+      failed: campaign.failedCount,
+      skipped: campaign.skippedCount,
+    },
+    staff: "ALL",
   });
 };
 
