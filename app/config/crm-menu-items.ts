@@ -11,7 +11,6 @@ import {
   MessageCircle,
   MessageSquare,
   Package,
-  Settings,
   Tag,
   Users,
   UsersRound,
@@ -87,14 +86,9 @@ export const crmMenuSections: CrmMenuSection[] = [
   {
     title: "Sitio",
     items: [
-      {
-        // Sin `ownerOnly`: bajo `/admin/ajustes` cuelgan ahora también los
-        // ajustes personales, que son de cualquier rol. El propio centro de
-        // ajustes esconde los grupos de OWNER a quien no lo es.
-        icon: Settings,
-        label: "Ajustes",
-        href: "/admin/ajustes",
-      },
+      // "Ajustes" no va aquí: vive en el pie de la barra lateral, un único
+      // botón para toda la configuración. Tenerlo en los dos sitios era
+      // justo la duplicación que había que quitar.
       {
         icon: ExternalLink,
         label: "Web pública",

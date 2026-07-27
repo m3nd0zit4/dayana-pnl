@@ -19,13 +19,15 @@ const Page = async () => {
     getCurrentSessionId(),
   ]);
 
+  // Mismo envoltorio que el resto de páginas de ajustes.
   return (
-    <Card>
-      <CardContent>
-        <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
-          Sesiones activas
-        </h2>
-        <div className="mt-4">
+    <div className="space-y-6">
+      <Card>
+        <CardContent className="space-y-4">
+          <h2 className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            Sesiones activas
+          </h2>
+          <div>
           <ActiveSessionsTable
             sessions={sessions.map((s) => ({
               id: s.id,
@@ -39,9 +41,10 @@ const Page = async () => {
             revokeAllUrl="/api/admin/staff/me/sesiones/revocar-todas"
             signInUrl="/acceso"
           />
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

@@ -8,13 +8,7 @@ import { getStaffSession } from "@/lib/auth/staff-session";
 
 export const dynamic = "force-dynamic";
 
-const PanelLayout = async ({
-  children,
-  modal,
-}: {
-  children: React.ReactNode;
-  modal: React.ReactNode;
-}) => {
+const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
   const preview = isCrmUiPreview();
   const staff = preview ? null : await getStaffSession();
 
@@ -48,7 +42,6 @@ const PanelLayout = async ({
         preview={preview}
       >
         {children}
-        {modal}
       </CrmShell>
     </CrmProvider>
   );
