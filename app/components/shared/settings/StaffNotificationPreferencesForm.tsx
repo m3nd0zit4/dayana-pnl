@@ -13,8 +13,8 @@ import NotificationPreferenceMatrix, {
 /**
  * Componente autocontenido de preferencias de notificación del staff.
  *
- * Se mantiene autocontenido a propósito: la página de `/admin/mi-cuenta/
- * notificaciones` está espejada por una ruta interceptora (`@modal`) que solo
+ * Se mantiene autocontenido a propósito: la página de `/admin/ajustes/
+ * mis-notificaciones` está espejada por una ruta interceptora (`@modal`) que solo
  * hace `export { default } from ...`. Si el estado viviera en la página, el
  * modal se quedaría sin él.
  */

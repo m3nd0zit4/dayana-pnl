@@ -88,10 +88,12 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Sitio",
     items: [
       {
+        // Sin `ownerOnly`: bajo `/admin/ajustes` cuelgan ahora también los
+        // ajustes personales, que son de cualquier rol. El propio centro de
+        // ajustes esconde los grupos de OWNER a quien no lo es.
         icon: Settings,
         label: "Ajustes",
         href: "/admin/ajustes",
-        ownerOnly: true,
       },
       {
         icon: ExternalLink,

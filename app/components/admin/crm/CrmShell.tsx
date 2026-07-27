@@ -84,7 +84,7 @@ const CrmShell = ({
                 <SidebarFooter>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton tooltip="Configuración" render={<Link href="/admin/mi-cuenta/general" />}>
+                      <SidebarMenuButton tooltip="Configuración" render={<Link href="/admin/ajustes" />}>
                         <Settings />
                         <span>Configuración</span>
                       </SidebarMenuButton>

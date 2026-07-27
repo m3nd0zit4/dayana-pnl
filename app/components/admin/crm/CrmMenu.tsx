@@ -121,9 +121,8 @@ const CrmMenuParentItem = ({
 const CrmMenu = ({ onNavigate }: Props) => {
   const pathname = usePathname();
   // `canManageTeam` ya viene resuelto en el contexto (OWNER). Se usa para no
-  // pintar enlaces que la propia ruta va a rebotar: `/admin/ajustes` redirige
-  // a `/admin` si el rol no es OWNER, y un enlace que rebota confunde más de
-  // lo que ayuda.
+  // pintar enlaces que la propia ruta va a rebotar: un enlace visible que da
+  // 403 confunde más de lo que ayuda.
   const { canManageTeam } = useCrm();
 
   const sections = crmMenuSections

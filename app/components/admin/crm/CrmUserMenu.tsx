@@ -53,7 +53,7 @@ const CrmUserMenu = ({ displayName, role, avatarUrl }: CrmUserMenuProps) => (
         </DropdownMenuLabel>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
-      <DropdownMenuItem render={<Link href="/admin/mi-cuenta/general" />}>
+      <DropdownMenuItem render={<Link href="/admin/ajustes/perfil" />}>
         <Settings />
         Mi cuenta
       </DropdownMenuItem>
