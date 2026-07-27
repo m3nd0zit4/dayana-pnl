@@ -39,6 +39,16 @@ export type IntegrationHealth = {
   status: IntegrationHealthStatus;
   detail: string;
   canTest: boolean;
+  /**
+   * Variables de entorno que hay que definir para que la integración funcione.
+   *
+   * Vive aquí y no en el componente porque el nombre exacto de la variable es
+   * la única instrucción accionable de toda la pantalla: si la UI la escribe a
+   * mano, el día que cambie el proveedor la pantalla miente y nadie se entera.
+   */
+  requiredEnv: string[];
+  /** Qué se desbloquea al encenderla, en una línea. */
+  enables: string;
 };
 
 const envSet = (name: string): boolean =>
@@ -65,6 +75,24 @@ const outboundDetail = (readyDetail: string): string => {
   return readyDetail;
 };
 
+/**
+ * Correo tiene dos caminos válidos. Se muestra el que está en uso; cuando no
+ * hay ninguno se recomienda Resend, que es el que documenta el proyecto.
+ */
+const EMAIL_ENV_RESEND = ["RESEND_API_KEY"];
+const EMAIL_ENV_SMTP = ["SMTP_HOST", "SMTP_USER", "SMTP_PASS"];
+
+export const SMS_REQUIRED_ENV = [
+  "TWILIO_ACCOUNT_SID",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_FROM_NUMBER",
+];
+
+const WHATSAPP_REQUIRED_ENV = [
+  "WHATSAPP_API_TOKEN",
+  "WHATSAPP_PHONE_NUMBER_ID",
+];
+
 export const getIntegrationHealth = (): IntegrationHealth[] => {
   const provider = emailProviderId();
   const emailConfigured = provider !== null;
@@ -84,6 +112,9 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
       // En modo simulado la prueba sigue siendo útil: confirma el flujo y deja
       // constancia en el registro sin gastar cuota del proveedor.
       canTest: emailConfigured || dryRun,
+      requiredEnv: provider === "smtp" ? EMAIL_ENV_SMTP : EMAIL_ENV_RESEND,
+      enables:
+        "Confirmaciones de pago, recordatorios, campañas y los correos que escribe el asistente.",
     },
     {
       id: "sms",
@@ -93,6 +124,9 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
         ? outboundDetail("Twilio configurado.")
         : "Sin configurar: faltan TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN o TWILIO_FROM_NUMBER.",
       canTest: false,
+      requiredEnv: SMS_REQUIRED_ENV,
+      enables:
+        "Recordatorios de sesión y avisos de pago por mensaje de texto, además del envío de SMS desde el asistente.",
     },
     {
       id: "whatsapp",
@@ -102,6 +136,9 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
         ? outboundDetail("WhatsApp Cloud API configurada.")
         : "Sin configurar: faltan WHATSAPP_API_TOKEN o WHATSAPP_PHONE_NUMBER_ID.",
       canTest: false,
+      requiredEnv: WHATSAPP_REQUIRED_ENV,
+      enables:
+        "Enviar plantillas de WhatsApp desde el CRM sin abrir la app en el teléfono.",
     },
     {
       id: "inngest",
@@ -111,6 +148,9 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
         ? "Inngest configurado: recordatorios, campañas y limpieza automática corren."
         : "Sin configurar: faltan INNGEST_EVENT_KEY e INNGEST_SIGNING_KEY. Los crons no corren.",
       canTest: false,
+      requiredEnv: ["INNGEST_EVENT_KEY", "INNGEST_SIGNING_KEY"],
+      enables:
+        "Recordatorios diarios, seguimiento de prospectos, campañas por lotes y limpieza de checkouts abandonados.",
     },
     {
       id: "redis",
@@ -120,6 +160,9 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
         ? "Upstash configurado: el límite de peticiones es distribuido."
         : "Sin Upstash: el límite de peticiones es solo en memoria y no se comparte entre instancias.",
       canTest: false,
+      requiredEnv: ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      enables:
+        "Límite de peticiones compartido entre todas las instancias, no solo dentro de una.",
     },
     {
       id: "database",
@@ -129,6 +172,8 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
         ? "DATABASE_URL definida. (No se verifica la conexión desde esta pantalla.)"
         : "Falta DATABASE_URL.",
       canTest: false,
+      requiredEnv: ["DATABASE_URL", "DIRECT_URL"],
+      enables: "Todo el CRM y el sitio público. Sin ella no arranca nada.",
     },
     {
       id: "agent",
@@ -138,6 +183,9 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
         ? "Asistente habilitado (CRM_AGENT_ENABLED)."
         : "Apagado: CRM_AGENT_ENABLED no es \"true\".",
       canTest: false,
+      requiredEnv: ["CRM_AGENT_ENABLED", "GEMINI_API_KEY"],
+      enables:
+        "El chat del panel: consultar el CRM, redactar mensajes y ejecutar acciones con tu aprobación.",
     },
   ];
 };
