@@ -3,7 +3,10 @@ import { always } from "eve/tools/approval";
 import { z } from "zod";
 import { getContactById } from "@/lib/crm/contacts";
 import { getMessageTemplate } from "@/lib/crm/messages";
-import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
+import {
+  isAgentSendableTemplate,
+  missingTemplateVariables,
+} from "@/lib/crm/quick-message-templates";
 import { renderQuickMessage } from "@/lib/crm/render-message";
 import { isDryRun, isNotificationsEnabled, siteUrl } from "@/lib/notifications/config";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
@@ -26,10 +29,14 @@ export default defineTool({
   async execute({ contactId, templateKey, vars }, ctx) {
     requireWriteStaff(ctx);
 
-    // Same gate as prepare_customer_whatsapp_message: system templates
-    // (payment_confirmation, session_reminder, …) are never agent-addressable.
-    if (!isQuickMessageTemplate(templateKey)) {
-      throw new Error("Esa plantilla es de uso interno del sistema, no está disponible aquí.");
+    // Las transaccionales las envía el flujo que puede rellenarlas. Un aviso de
+    // restablecimiento de contraseña que nadie pidió tiene forma de phishing, y
+    // un "tu mensualidad venció" equivocado es una llamada a soporte.
+    if (!isAgentSendableTemplate(templateKey)) {
+      throw new Error(
+        "Esa plantilla es transaccional: la envía el sistema cuando corresponde, no yo. " +
+          "Si necesitas decirle algo parecido, escríbelo con send_contact_email."
+      );
     }
 
     const template = await getMessageTemplate(templateKey);
@@ -54,6 +61,18 @@ export default defineTool({
     // `site_url` backs the default CTA the campaign layout renders when the
     // template carries no workshop link — without it the email build fails.
     const mergedVars = { ...contactVars(contact), site_url: siteUrl(), ...vars };
+
+    // renderQuickMessage solo sustituye las variables que recibe: cualquiera que
+    // falte se entrega tal cual, así que el cliente vería «{{reset_url}}» en su
+    // correo. Se comprueba antes de enviar, no después.
+    const missing = missingTemplateVariables(template.body, mergedVars);
+    if (missing.length > 0) {
+      throw new Error(
+        `A la plantilla «${template.title}» le faltan datos: ${missing.join(", ")}. ` +
+          "Pásalos en `vars` o escribe el correo con send_contact_email."
+      );
+    }
+
     const body = renderQuickMessage(template.body, mergedVars);
 
     // No `subject`/`html`: dispatch derives both from the template title via

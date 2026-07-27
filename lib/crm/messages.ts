@@ -1,7 +1,11 @@
 import { MessageChannel } from "@prisma/client";
 import { prisma } from "../db";
 import { buildWhatsAppUrl } from "../contact";
-import { isQuickMessageTemplate } from "./quick-message-templates";
+import {
+  isAgentSendableTemplate,
+  isQuickMessageTemplate,
+  templateVariableNames,
+} from "./quick-message-templates";
 
 export const renderTemplate = (
   body: string,
@@ -26,6 +30,31 @@ export const listQuickMessageTemplates = async (locale = "es") => {
     orderBy: { key: "asc" },
   });
   return templates.filter((t) => isQuickMessageTemplate(t.key));
+};
+
+/**
+ * Plantillas que el asistente puede usar, anotadas por canal.
+ *
+ * Los dos canales no permiten lo mismo: WhatsApp pasa por una persona que
+ * revisa el texto antes de enviarlo, el correo no. Devolver ambas banderas —
+ * junto con las variables que pide cada plantilla — evita que el modelo
+ * descubra la diferencia a base de errores.
+ */
+export const listAgentTemplates = async (locale = "es") => {
+  const templates = await prisma.messageTemplate.findMany({
+    where: { locale },
+    orderBy: { key: "asc" },
+  });
+  return templates
+    .filter((t) => isAgentSendableTemplate(t.key) || isQuickMessageTemplate(t.key))
+    .map((t) => ({
+      key: t.key,
+      title: t.title,
+      body: t.body,
+      requiredVars: templateVariableNames(t.body),
+      canEmail: isAgentSendableTemplate(t.key),
+      canWhatsApp: isQuickMessageTemplate(t.key),
+    }));
 };
 
 export const logMessage = async (input: {
