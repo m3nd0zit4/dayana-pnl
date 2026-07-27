@@ -24,6 +24,8 @@ import {
 } from "../notifications/platform/retention";
 import { processNormalizedEvent } from "../meta/ingest";
 import type { NormalizedEvent } from "../meta/inbound";
+import { findDuePosts } from "../crm/social-posts";
+import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { inviteContactToPortal } from "../crm/member-accounts";
@@ -446,6 +448,54 @@ export const metaWebhookFn = inngest.createFunction(
   }
 );
 
+/**
+ * Barre las publicaciones cuya hora ya pasó y lanza una tarea por cada una.
+ *
+ * Cada 5 minutos: la granularidad de programación es "el minuto más cercano a
+ * cinco", que para contenido de redes sobra. Un `sleepUntil` por publicación
+ * sería más exacto pero deja tareas dormidas semanas, imposibles de cancelar
+ * cuando el operador borra el post.
+ */
+export const socialPostSchedulerFn = inngest.createFunction(
+  { id: "social-post-scheduler" },
+  { cron: "*/5 * * * *" },
+  async ({ step }) => {
+    const due = await step.run("find-due-posts", () => findDuePosts());
+    if (due.length === 0) return { due: 0 };
+
+    await Promise.all(
+      due.map((post) =>
+        step.sendEvent(`publish-${post.id}`, {
+          name: "social/post.publish",
+          data: { postId: post.id },
+        })
+      )
+    );
+
+    return { due: due.length };
+  }
+);
+
+/**
+ * Publica una entrada concreta.
+ *
+ * `retries: 0` es deliberado: `publishSocialPost` ya reclama la fila y registra
+ * el fallo, y un reintento ciego arriesga subir el mismo vídeo dos veces si el
+ * error ocurrió después de que TikTok lo aceptara.
+ */
+export const socialPostPublishFn = inngest.createFunction(
+  {
+    id: "social-post-publish",
+    concurrency: { key: "event.data.postId", limit: 1 },
+    retries: 0,
+  },
+  { event: "social/post.publish" },
+  async ({ event, step }) => {
+    const postId = event.data.postId as string;
+    return step.run("publish-social-post", () => publishSocialPost(postId));
+  }
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
@@ -457,4 +507,6 @@ export const inngestFunctions = [
   platformNotificationEmailFn,
   notificationRetentionFn,
   metaWebhookFn,
+  socialPostSchedulerFn,
+  socialPostPublishFn,
 ];

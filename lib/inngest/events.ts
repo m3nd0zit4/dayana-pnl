@@ -89,6 +89,27 @@ export const emitMetaWebhook = async (data: {
   }
 };
 
+/**
+ * Encola la publicación de una entrada en redes.
+ *
+ * Devuelve booleano porque el llamante ("publicar ahora") necesita poder decir
+ * que no se encoló, en vez de dejar al operador esperando una publicación que
+ * nunca se intentó.
+ */
+export const emitSocialPostPublish = async (
+  postId: string
+): Promise<boolean> => {
+  if (!shouldEmitInngest()) return false;
+  try {
+    const { inngest } = await import("./client");
+    await inngest.send({ name: "social/post.publish", data: { postId } });
+    return true;
+  } catch (e) {
+    console.warn("[inngest] social/post.publish emit failed", e);
+    return false;
+  }
+};
+
 export const emitCampaignRun = async (campaignId: string) => {
   if (!shouldEmitInngest()) return;
   try {

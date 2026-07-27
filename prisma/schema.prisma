@@ -143,6 +143,28 @@ enum ConversationStatus {
   CLOSED
 }
 
+/// Red social conectada para publicar contenido.
+enum SocialProvider {
+  TIKTOK
+  INSTAGRAM
+  FACEBOOK
+}
+
+enum SocialMediaType {
+  VIDEO
+  PHOTO
+}
+
+enum SocialPostStatus {
+  DRAFT
+  SCHEDULED
+  /// Reclamado por el worker; impide que dos ejecuciones publiquen lo mismo.
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  CANCELED
+}
+
 /// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
 /// valores por defecto viven en lib/notifications/platform/catalog.ts — este
 /// enum solo garantiza integridad referencial.
@@ -183,6 +205,9 @@ enum NotificationEventType {
   SYSTEM_ALERT
   // Bandeja de entrada
   INBOX_MESSAGE_RECEIVED
+  // Publicación en redes
+  SOCIAL_POST_PUBLISHED
+  SOCIAL_POST_FAILED
 }
 
 model Contact {
@@ -536,6 +561,8 @@ model StaffUser {
   assignedConversations    Conversation[]
   conversationMessages     ConversationMessage[]
   linkedChannelIdentities  ContactChannelIdentity[]
+  socialAccounts           SocialAccount[]
+  socialPosts              SocialPost[]
 
   @@map("staff_users")
 }
@@ -751,6 +778,83 @@ model ConversationMessage {
 
   @@index([conversationId, sentAt])
   @@map("conversation_messages")
+}
+
+/// Una cuenta de red social conectada por OAuth.
+///
+/// Los tokens se guardan cifrados (lib/crypto/secret-box.ts): son credenciales
+/// de publicación sobre la cuenta real, no datos de configuración.
+model SocialAccount {
+  id       String         @id @default(cuid())
+  provider SocialProvider
+  /// Id estable de la cuenta en el proveedor (`open_id` en TikTok).
+  externalId  String      @map("external_id")
+  displayName String?     @map("display_name")
+  username    String?
+  avatarUrl   String?     @map("avatar_url")
+
+  accessTokenEnc  String    @map("access_token_enc") @db.Text
+  refreshTokenEnc String?   @map("refresh_token_enc") @db.Text
+  /// Caducidad del access token; por debajo se refresca antes de usarlo.
+  expiresAt       DateTime? @map("expires_at")
+  /// Caducidad del refresh token. Pasada, hay que reconectar a mano.
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  scopes          String?
+
+  /// Falso cuando el proveedor revoca el permiso: la UI pide reconectar.
+  isActive  Boolean @default(true) @map("is_active")
+  lastError String? @map("last_error")
+
+  connectedByStaffId String?  @map("connected_by_staff_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  connectedByStaff StaffUser?   @relation(fields: [connectedByStaffId], references: [id], onDelete: SetNull)
+  posts            SocialPost[]
+
+  @@unique([provider, externalId])
+  @@map("social_accounts")
+}
+
+/// Una publicación programada o publicada en una red social.
+model SocialPost {
+  id        String           @id @default(cuid())
+  accountId String           @map("account_id")
+  mediaType SocialMediaType  @default(VIDEO) @map("media_type")
+  status    SocialPostStatus @default(DRAFT)
+
+  caption String? @db.Text
+  /// URLs en Blob. TikTok exige dominio verificado para PULL_FROM_URL, así que
+  /// el publicador descarga de aquí y sube los bytes (FILE_UPLOAD).
+  mediaUrls Json   @map("media_urls")
+
+  /// PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY.
+  /// Sin auditoría de TikTok solo se acepta SELF_ONLY.
+  privacyLevel   String  @default("SELF_ONLY") @map("privacy_level")
+  disableComment Boolean @default(false) @map("disable_comment")
+  disableDuet    Boolean @default(false) @map("disable_duet")
+  disableStitch  Boolean @default(false) @map("disable_stitch")
+
+  scheduledAt DateTime? @map("scheduled_at")
+  publishedAt DateTime? @map("published_at")
+
+  /// `publish_id` del proveedor, para consultar el estado.
+  externalPublishId String? @map("external_publish_id")
+  externalPostId    String? @map("external_post_id")
+  postUrl           String? @map("post_url")
+  failedReason      String? @map("failed_reason")
+  attemptCount      Int     @default(0) @map("attempt_count")
+
+  createdByStaffId String?  @map("created_by_staff_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  account        SocialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdByStaff StaffUser?    @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([accountId, createdAt(sort: Desc)])
+  @@map("social_posts")
 }
 
 /// Puente entre un contacto del CRM y su identidad en cada canal. Es lo que

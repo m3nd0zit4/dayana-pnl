@@ -382,6 +382,28 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: true,
     roles: OWNER_DEV,
   },
+  SOCIAL_POST_PUBLISHED: {
+    label: "Publicación enviada",
+    description: "Una publicación programada salió a la red social.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "SUCCESS",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: WRITE_ROLES,
+  },
+  SOCIAL_POST_FAILED: {
+    label: "Publicación fallida",
+    description: "Una publicación programada no se pudo enviar.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "ERROR",
+    audience: "STAFF",
+    defaultInApp: true,
+    // Sí por correo: si falla de madrugada, nadie está mirando la campana y el
+    // contenido programado simplemente no sale.
+    defaultEmail: true,
+    roles: WRITE_ROLES,
+  },
   INBOX_MESSAGE_RECEIVED: {
     label: "Mensaje nuevo en la bandeja",
     description:
