@@ -3,7 +3,6 @@ import type {
   NotificationSeverity,
   Prisma,
 } from "@prisma/client";
-import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { NOTIFICATION_CATALOG } from "./catalog";
 import {
@@ -230,6 +229,32 @@ export const broadcastPlatformNotification = async (
 };
 
 /**
+ * Ejecuta `task` después de responder, cuando hay una petición de Next; si no,
+ * simplemente lo espera.
+ *
+ * `next/server` se carga de forma perezosa a propósito. Importarlo arriba rompe
+ * al asistente: eve compila las tools a ESM y las corre con Node a secas, donde
+ * el especificador `next/server` no resuelve —el paquete no declara `exports` y
+ * ESM no prueba extensiones— y el sidecar muere al arrancar. Las tools llegan
+ * aquí a través de `agent/lib/guard.ts`, así que basta con que el módulo exista
+ * en el grafo para tumbarlo. Con la importación dinámica el especificador solo
+ * se evalúa dentro de una petición, que es el único sitio donde `after` sirve.
+ *
+ * El `await` previo no rompe `after()`: AsyncLocalStorage propaga el contexto de
+ * la petición a través de los microtasks, así que sigue encontrándolo.
+ */
+const runAfterResponse = async (task: () => Promise<void>) => {
+  try {
+    const { after } = await import("next/server");
+    after(task);
+  } catch {
+    // Fuera del ámbito de una petición (crons de Inngest, tools de eve,
+    // auth.ts) la invocación ya es de larga duración: esperar es lo correcto.
+    await task();
+  }
+};
+
+/**
  * Dispara el reparto por correo sin bloquear al llamante — nunca queremos un
  * viaje de ida y vuelta a Resend dentro del webhook de pagos.
  *
@@ -250,11 +275,7 @@ const scheduleNotificationEmails = (notificationId: string) => {
   };
 
   const fallbackInline = () => {
-    try {
-      after(() => runInline().catch(() => undefined));
-    } catch {
-      void runInline().catch(() => undefined);
-    }
+    void runAfterResponse(() => runInline().catch(() => undefined));
   };
 
   const handOff = async () => {
@@ -278,9 +299,7 @@ const scheduleNotificationEmails = (notificationId: string) => {
  * así que el `void` del catch es correcto.
  */
 export const fireNotification = (input: EmitInput) => {
-  try {
-    after(() => emitPlatformNotification(input).catch(() => undefined));
-  } catch {
-    void emitPlatformNotification(input).catch(() => undefined);
-  }
+  void runAfterResponse(async () => {
+    await emitPlatformNotification(input).catch(() => undefined);
+  });
 };
