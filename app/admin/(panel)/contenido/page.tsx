@@ -35,6 +35,7 @@ const ContentPage = async ({
         username: account.username,
         isActive: account.isActive,
         lastError: account.lastError,
+        expiresInDays: account.expiresInDays,
       }))}
       // Las fechas cruzan como ISO strings, igual que en el resto del panel.
       initialPosts={posts.map((post) => ({

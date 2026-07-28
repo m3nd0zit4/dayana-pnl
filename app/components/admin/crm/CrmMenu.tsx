@@ -123,12 +123,21 @@ const CrmMenu = ({ onNavigate }: Props) => {
   // `canManageTeam` ya viene resuelto en el contexto (OWNER). Se usa para no
   // pintar enlaces que la propia ruta va a rebotar: un enlace visible que da
   // 403 confunde más de lo que ayuda.
-  const { canManageTeam } = useCrm();
+  const { canManageTeam, metaInboxEnabled, socialPublishingEnabled } = useCrm();
+
+  // Mismo motivo que `ownerOnly`, con 404 en vez de 403: las páginas detrás de
+  // un interruptor hacen `notFound()` cuando está apagado.
+  const flagEnabled = (flag: CrmMenuItem["flag"]): boolean => {
+    if (!flag) return true;
+    return flag === "metaInbox" ? metaInboxEnabled : socialPublishingEnabled;
+  };
 
   const sections = crmMenuSections
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => !item.ownerOnly || canManageTeam),
+      items: section.items.filter(
+        (item) => (!item.ownerOnly || canManageTeam) && flagEnabled(item.flag)
+      ),
     }))
     // Una sección que se queda sin elementos no debe dejar su encabezado suelto.
     .filter((section) => section.items.length > 0);

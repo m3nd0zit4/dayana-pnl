@@ -4,10 +4,14 @@ import { isDryRun } from "@/lib/notifications/config";
 import {
   graphPost,
   MetaApiError,
-  pageCredentials,
   whatsAppCredentials,
   type MetaCredentials,
 } from "./client";
+import {
+  CREDENTIAL_EXPIRED_MESSAGE,
+  reportPageCredentialFailure,
+  resolvePageCredentials,
+} from "./credentials";
 import { resolveWindow, type WindowState } from "./window";
 
 /**
@@ -164,10 +168,12 @@ export const sendMetaMessage = async (
 
   const window = resolveWindow(conversation.channel, conversation.lastInboundAt);
 
+  const pageCredentialsUsed =
+    conversation.channel === "WHATSAPP" ? null : await resolvePageCredentials();
   const credentials =
     conversation.channel === "WHATSAPP"
       ? whatsAppCredentials()
-      : pageCredentials();
+      : pageCredentialsUsed;
 
   if (!credentials) {
     throw new MetaSendError(
@@ -191,12 +197,29 @@ export const sendMetaMessage = async (
       // La ventana se valida antes de llegar a la red: es un error del operador,
       // no un fallo de envío, así que no deja una fila fallida en el hilo.
       if (e instanceof MetaWindowError) throw e;
-      failedReason =
-        e instanceof MetaApiError
-          ? `${e.message}${e.code ? ` (código ${e.code})` : ""}`
-          : e instanceof Error
-            ? e.message
-            : "Error desconocido";
+
+      // Token de Página muerto: se marca la conexión como caída para que la
+      // pantalla de Conexiones ofrezca reconectar, y el motivo que queda en el
+      // hilo dice qué hacer en vez de un "código 190" que nadie puede accionar.
+      // Solo aplica al token de Página guardado en la base: el de WhatsApp vive
+      // en el entorno y no hay nada que marcar como caído.
+      const storedAccountId =
+        conversation.channel !== "WHATSAPP" &&
+        pageCredentialsUsed?.source === "db"
+          ? pageCredentialsUsed.socialAccountId
+          : null;
+
+      if (e instanceof MetaApiError && e.isAuthError && storedAccountId) {
+        await reportPageCredentialFailure(e, storedAccountId);
+        failedReason = CREDENTIAL_EXPIRED_MESSAGE;
+      } else {
+        failedReason =
+          e instanceof MetaApiError
+            ? `${e.message}${e.code ? ` (código ${e.code})` : ""}`
+            : e instanceof Error
+              ? e.message
+              : "Error desconocido";
+      }
     }
   }
 

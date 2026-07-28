@@ -1,7 +1,8 @@
 import { Prisma, type ConversationChannel } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { fireNotification } from "@/lib/notifications/platform/emit";
-import { pageCredentials, whatsAppCredentials } from "./client";
+import { whatsAppCredentials } from "./client";
+import { resolvePageCredentials } from "./credentials";
 import type { NormalizedEvent, NormalizedMessage } from "./inbound";
 import { rehostAttachment, type StoredAttachment } from "./media";
 
@@ -19,8 +20,8 @@ const UNIQUE_VIOLATION = "P2002";
 const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === UNIQUE_VIOLATION;
 
-const credentialsFor = (channel: ConversationChannel) =>
-  channel === "WHATSAPP" ? whatsAppCredentials() : pageCredentials();
+const credentialsFor = async (channel: ConversationChannel) =>
+  channel === "WHATSAPP" ? whatsAppCredentials() : resolvePageCredentials();
 
 /**
  * Reserva el id del mensaje. Devuelve false si ya se había procesado.
@@ -76,7 +77,7 @@ const storeAttachments = async (
 ): Promise<StoredAttachment[]> => {
   if (message.attachments.length === 0) return [];
 
-  const credentials = credentialsFor(message.channel);
+  const credentials = await credentialsFor(message.channel);
   if (!credentials) {
     return message.attachments.map((attachment) => ({
       kind: attachment.kind,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { toDetailView } from "@/app/components/admin/crm/inbox/serialize";
 import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
 import {
   assignConversation,
@@ -35,7 +36,7 @@ export const GET = async (_req: Request, { params }: Params) => {
     await markConversationRead(id);
   }
 
-  return NextResponse.json(conversation);
+  return NextResponse.json(toDetailView(conversation));
 };
 
 /** Acciones sobre el hilo: asignar, cambiar estado, vincular contacto, borrador. */

@@ -121,6 +121,7 @@ export const getConversation = async (
   });
   if (!conversation) return null;
 
+
   const window = resolveWindow(conversation.channel, conversation.lastInboundAt);
 
   return {

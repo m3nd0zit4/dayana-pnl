@@ -6,11 +6,18 @@
  */
 
 export type InboxChannel = "WHATSAPP" | "MESSENGER" | "INSTAGRAM";
+export type InboxStatus = "OPEN" | "PENDING" | "CLOSED";
 
 export const CHANNEL_LABEL: Record<InboxChannel, string> = {
   WHATSAPP: "WhatsApp",
   MESSENGER: "Messenger",
   INSTAGRAM: "Instagram",
+};
+
+export const STATUS_LABEL: Record<InboxStatus, string> = {
+  OPEN: "Abierta",
+  PENDING: "Esperando",
+  CLOSED: "Cerrada",
 };
 
 export type ConversationContact = {
@@ -22,18 +29,30 @@ export type ConversationContact = {
   email?: string | null;
 };
 
+export type StaffRef = { id: string; displayName: string };
+
 export type ConversationListItem = {
   id: string;
   channel: InboxChannel;
-  status: "OPEN" | "PENDING" | "CLOSED";
+  status: InboxStatus;
   participantName: string | null;
   participantHandle: string | null;
+  participantAvatarUrl: string | null;
   externalThreadId: string;
   lastMessageAt: string;
   unreadCount: number;
   contact: ConversationContact | null;
-  assignedStaff: { id: string; displayName: string } | null;
-  messages: { body: string | null; direction: string; sentAt: string }[];
+  assignedStaff: StaffRef | null;
+  lastMessage: { body: string | null; direction: string } | null;
+};
+
+/** Adjunto ya rehospedado en Blob; `url` es null si la rehospedación falló. */
+export type MessageAttachment = {
+  kind: string;
+  url: string | null;
+  mimeType: string | null;
+  caption: string | null;
+  unavailableReason?: string;
 };
 
 export type ConversationMessageView = {
@@ -41,28 +60,65 @@ export type ConversationMessageView = {
   direction: "INBOUND" | "OUTBOUND";
   status: string;
   body: string | null;
+  attachments: MessageAttachment[];
   failedReason: string | null;
   sentAt: string;
   isEcho: boolean;
-  staffUser: { id: string; displayName: string } | null;
+  staffUser: StaffRef | null;
 };
+
+export type WindowRequirement = "free" | "template" | "human_agent" | "closed";
 
 export type WindowView = {
   isOpen: boolean;
-  requirement: "free" | "template" | "human_agent" | "closed";
+  requirement: WindowRequirement;
+  expiresAt: string | null;
 };
 
 export type ConversationDetailView = {
   id: string;
   channel: InboxChannel;
-  status: "OPEN" | "PENDING" | "CLOSED";
+  status: InboxStatus;
   participantName: string | null;
+  participantAvatarUrl: string | null;
   externalThreadId: string;
   unreadCount: number;
   draftBody: string | null;
   draftSource: string | null;
   contact: ConversationContact | null;
+  assignedStaff: StaffRef | null;
   messages: ConversationMessageView[];
   window: WindowView;
   windowNotice: string | null;
 };
+
+export type InboxFilters = {
+  channel: InboxChannel | "ALL";
+  status: InboxStatus | "ALL";
+  assignedToMe: boolean;
+  unlinkedOnly: boolean;
+  search: string;
+};
+
+export const EMPTY_FILTERS: InboxFilters = {
+  channel: "ALL",
+  status: "ALL",
+  assignedToMe: false,
+  unlinkedOnly: false,
+  search: "",
+};
+
+/** Traduce los códigos del API a algo que un operador pueda leer. */
+export const INBOX_ERROR_MESSAGE: Record<string, string> = {
+  empty_message: "Escribe un mensaje antes de enviar.",
+  missing_contact: "Elige un contacto para vincular.",
+  unknown_action: "Esa acción no existe.",
+  not_found: "La conversación ya no existe.",
+  inbox_disabled: "La bandeja está desactivada.",
+  read_only: "Tu rol no permite responder.",
+};
+
+export const humanizeInboxError = (code: string | undefined): string =>
+  (code && INBOX_ERROR_MESSAGE[code]) ||
+  code ||
+  "No se pudo completar la acción.";

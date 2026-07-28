@@ -45,6 +45,8 @@ type CrmContextValue = {
    * interruptor de emergencia si el coste del stream se dispara.
    */
   streamEnabled: boolean;
+  metaInboxEnabled: boolean;
+  socialPublishingEnabled: boolean;
   agentPanelOpen: boolean;
   setAgentPanelOpen: (open: boolean) => void;
   agentPanelExpanded: boolean;
@@ -98,12 +100,16 @@ const CrmProvider = ({
   preview,
   agentEnabled = false,
   streamEnabled = false,
+  metaInboxEnabled = false,
+  socialPublishingEnabled = false,
 }: {
   children: ReactNode;
   role: StaffRole | "PREVIEW";
   preview: boolean;
   agentEnabled?: boolean;
   streamEnabled?: boolean;
+  metaInboxEnabled?: boolean;
+  socialPublishingEnabled?: boolean;
 }) => {
   const router = useRouter();
   // confirmState holds the last content (never cleared on close) so the
@@ -178,6 +184,8 @@ const CrmProvider = ({
       canManageTeam: preview ? false : canManageTeam(staffRole),
       agentEnabled: preview ? false : agentEnabled,
       streamEnabled: preview ? false : streamEnabled,
+      metaInboxEnabled: preview ? false : metaInboxEnabled,
+      socialPublishingEnabled: preview ? false : socialPublishingEnabled,
       agentPanelOpen,
       setAgentPanelOpen,
       agentPanelExpanded,
@@ -198,6 +206,8 @@ const CrmProvider = ({
       staffRole,
       agentEnabled,
       streamEnabled,
+      metaInboxEnabled,
+      socialPublishingEnabled,
       agentPanelOpen,
       agentPanelExpanded,
       pendingAgentAction,

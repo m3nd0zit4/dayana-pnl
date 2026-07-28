@@ -31,8 +31,14 @@ export const enforcePrivacyLevel = (requested: string): PrivacyLevel => {
   return isTikTokAudited() ? level : "SELF_ONLY";
 };
 
-export const listSocialAccounts = () =>
-  prisma.socialAccount.findMany({
+/**
+ * Cuentas conectadas, con la caducidad ya en días.
+ *
+ * El cálculo vive aquí y no en el componente porque `Date.now()` dentro de un
+ * render es impuro: en el servidor y en el cliente da valores distintos.
+ */
+export const listSocialAccounts = async () => {
+  const rows = await prisma.socialAccount.findMany({
     orderBy: { createdAt: "asc" },
     select: {
       id: true,
@@ -46,6 +52,15 @@ export const listSocialAccounts = () =>
       createdAt: true,
     },
   });
+
+  const now = Date.now();
+  return rows.map((row) => ({
+    ...row,
+    expiresInDays: row.expiresAt
+      ? Math.floor((row.expiresAt.getTime() - now) / 86_400_000)
+      : null,
+  }));
+};
 
 export type CreatePostInput = {
   accountId: string;

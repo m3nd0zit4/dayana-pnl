@@ -808,7 +808,13 @@ model SocialAccount {
   username    String?
   avatarUrl   String?     @map("avatar_url")
 
-  accessTokenEnc  String    @map("access_token_enc") @db.Text
+  /// Nulo cuando la cuenta está desconectada. La fila sobrevive porque
+  /// `SocialPost.account` cascadea: borrarla se llevaría el historial de
+  /// publicaciones por delante.
+  accessTokenEnc  String?   @map("access_token_enc") @db.Text
+  /// En Meta guarda el token de usuario de larga duración. Meta no tiene
+  /// `grant_type=refresh_token`, pero ese token es funcionalmente eso: es el
+  /// que se vuelve a presentar para acuñar un token de Página nuevo.
   refreshTokenEnc String?   @map("refresh_token_enc") @db.Text
   /// Caducidad del access token; por debajo se refresca antes de usarlo.
   expiresAt       DateTime? @map("expires_at")
@@ -819,6 +825,13 @@ model SocialAccount {
   /// Falso cuando el proveedor revoca el permiso: la UI pide reconectar.
   isActive  Boolean @default(true) @map("is_active")
   lastError String? @map("last_error")
+
+  /// Datos propios de cada proveedor: id de Página, id de la cuenta de
+  /// Instagram, estado de la suscripción a webhooks. Json y no columnas porque
+  /// cada proveedor guarda cosas distintas y nada de esto se filtra con `where`.
+  metadata      Json?     @map("metadata")
+  /// Última comprobación del token contra el proveedor.
+  lastCheckedAt DateTime? @map("last_checked_at")
 
   connectedByStaffId String?  @map("connected_by_staff_id")
   createdAt          DateTime @default(now()) @map("created_at")
