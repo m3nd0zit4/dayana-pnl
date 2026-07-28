@@ -1,4 +1,5 @@
 import { isAgentEnabled } from "@/lib/agent/is-agent-enabled";
+import { GOOGLE_CONNECTOR_ENV, isGoogleEnabled } from "@/lib/google/connect";
 import { isInngestConfigured } from "@/lib/inngest/config";
 import {
   emailProviderId,
@@ -29,7 +30,8 @@ export type IntegrationHealthId =
   | "inngest"
   | "redis"
   | "database"
-  | "agent";
+  | "agent"
+  | "google";
 
 export type IntegrationHealthStatus = "ok" | "not_configured" | "degraded";
 
@@ -186,6 +188,21 @@ export const getIntegrationHealth = (): IntegrationHealth[] => {
       requiredEnv: ["CRM_AGENT_ENABLED", "GEMINI_API_KEY"],
       enables:
         "El chat del panel: consultar el CRM, redactar mensajes y ejecutar acciones con tu aprobación.",
+    },
+    {
+      id: "google",
+      label: "Cuentas de Google",
+      // Igual que el resto de esta pantalla, esto solo dice si el conector
+      // está declarado. Cuántas cuentas hay conectadas de verdad se ve en
+      // /admin/ajustes/google, que sí consulta la base de datos.
+      status: isGoogleEnabled() ? "ok" : "not_configured",
+      detail: isGoogleEnabled()
+        ? "Conector declarado. Las cuentas se conectan en Ajustes → Google."
+        : `Falta ${GOOGLE_CONNECTOR_ENV}. Se define tras crear el conector con \`vercel connect create\`.`,
+      canTest: false,
+      requiredEnv: [GOOGLE_CONNECTOR_ENV],
+      enables:
+        "Calendario, Contactos y Drive para el asistente, sobre las cuentas de Google que conectes.",
     },
   ];
 };

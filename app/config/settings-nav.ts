@@ -37,6 +37,7 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
     label: "Canales",
     items: [
       { href: "/admin/ajustes/integraciones", label: "Integraciones" },
+      { href: "/admin/ajustes/google", label: "Google" },
     ],
   },
   {

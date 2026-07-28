@@ -143,6 +143,16 @@ enum ConversationStatus {
   CLOSED
 }
 
+/// Servicio de Google que una cuenta conectada expone al agente.
+///
+/// Cada servicio añade sus propios scopes al consentimiento, así que activar
+/// uno nuevo sobre una cuenta ya conectada obliga a volver a autorizarla.
+enum GoogleService {
+  CALENDAR
+  CONTACTS
+  DRIVE
+}
+
 /// Red social conectada para publicar contenido.
 enum SocialProvider {
   TIKTOK
@@ -493,6 +503,10 @@ model TherapySession {
   durationMinutes  Int                  @default(60) @map("duration_minutes")
   status           TherapySessionStatus @default(SCHEDULED)
   meetUrl          String?              @map("meet_url")
+  /// Evento de Google Calendar que representa esta sesión, si se sincronizó.
+  /// Guardarlo hace que volver a sincronizar actualice el evento en vez de
+  /// crear uno nuevo cada vez.
+  googleEventId    String?              @map("google_event_id")
   clinicalNotes    String?              @map("clinical_notes") @db.Text
   completedAt      DateTime?            @map("completed_at")
   createdAt        DateTime             @default(now()) @map("created_at")
@@ -563,6 +577,7 @@ model StaffUser {
   linkedChannelIdentities  ContactChannelIdentity[]
   socialAccounts           SocialAccount[]
   socialPosts              SocialPost[]
+  googleAccounts           GoogleAccount[]
 
   @@map("staff_users")
 }
@@ -860,6 +875,46 @@ model SocialPost {
 /// Puente entre un contacto del CRM y su identidad en cada canal. Es lo que
 /// permite reconocer a la misma persona la próxima vez que escriba por
 /// Instagram, donde no hay teléfono con el que emparejar.
+/// Una cuenta de Google conectada desde /admin/ajustes/google.
+///
+/// Aquí no hay tokens: los guarda Vercel Connect y esta tabla solo lleva la
+/// metadata que la UI necesita (a nombre de quién está, qué expone, si sigue
+/// viva). Por eso no reutiliza `SocialAccount`, que sí cifra tokens propios y
+/// cuelga de `SocialPost`.
+model GoogleAccount {
+  id String @id @default(cuid())
+
+  /// Sujeto que se le pasa a Vercel Connect (`subject: { type: "user", id }`).
+  ///
+  /// Connect no soporta instalaciones multi-tenant en conectores OAuth
+  /// propios, así que varias cuentas de Google se consiguen dando un sujeto
+  /// distinto a cada una. El permiso de Google queda atado a este valor: si se
+  /// regenera o se reutiliza, se pierde o se cruza el acceso.
+  connectSubject String @unique @map("connect_subject")
+
+  /// Se rellenan tras la primera autorización correcta; antes de eso la fila
+  /// existe pero todavía no representa ninguna cuenta real.
+  email       String?
+  displayName String? @map("display_name")
+  avatarUrl   String? @map("avatar_url")
+
+  services GoogleService[]
+
+  /// Falso mientras no se complete el consentimiento, y de nuevo cuando Connect
+  /// dice que el permiso ya no existe. La UI ofrece reconectar en ambos casos.
+  isActive  Boolean @default(false) @map("is_active")
+  lastError String? @map("last_error")
+
+  connectedByStaffId String?  @map("connected_by_staff_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  connectedByStaff StaffUser? @relation(fields: [connectedByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, createdAt(sort: Desc)])
+  @@map("google_accounts")
+}
+
 model ContactChannelIdentity {
   id              String              @id @default(cuid())
   contactId       String              @map("contact_id")
