@@ -103,6 +103,9 @@ const ContentPageClient = ({
   const [disableStitch, setDisableStitch] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editCaption, setEditCaption] = useState("");
+  const [editScheduledAt, setEditScheduledAt] = useState("");
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -177,6 +180,35 @@ const ContentPageClient = ({
       setScheduledAt("");
       if (fileRef.current) fileRef.current.value = "";
       toast(scheduledAt ? "Publicación programada." : "Borrador guardado.");
+      await load();
+    } catch {
+      toast("No se pudo guardar. Revisa tu conexión.", "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Guarda los cambios de una publicación que aún no salió. */
+  const saveEdit = async (id: string) => {
+    setBusy(id);
+    try {
+      const res = await fetch(`/api/admin/social/posts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caption: editCaption.trim() || null,
+          scheduledAt: editScheduledAt
+            ? new Date(editScheduledAt).toISOString()
+            : null,
+        }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        toast(humanize(data.error), "error");
+        return;
+      }
+      toast("Publicación actualizada.");
+      setEditingId(null);
       await load();
     } catch {
       toast("No se pudo guardar. Revisa tu conexión.", "error");
@@ -468,6 +500,28 @@ const ContentPageClient = ({
               <span className="flex shrink-0 gap-1">
                 <Button
                   size="sm"
+                  variant="ghost"
+                  disabled={busy === post.id}
+                  onClick={() => {
+                    setEditingId(post.id);
+                    setEditCaption(post.caption ?? "");
+                    // `datetime-local` quiere `YYYY-MM-DDTHH:mm` en hora local.
+                    setEditScheduledAt(
+                      post.scheduledAt
+                        ? new Date(
+                            new Date(post.scheduledAt).getTime() -
+                              new Date().getTimezoneOffset() * 60000
+                          )
+                            .toISOString()
+                            .slice(0, 16)
+                        : ""
+                    );
+                  }}
+                >
+                  Editar
+                </Button>
+                <Button
+                  size="sm"
                   variant="outline"
                   disabled={busy === post.id}
                   onClick={() =>
@@ -497,6 +551,44 @@ const ContentPageClient = ({
                   Cancelar
                 </Button>
               </span>
+            )}
+
+            {editingId === post.id && (
+              <div className="w-full space-y-2 border-t pt-3">
+                <Label htmlFor={`edit-caption-${post.id}`}>Descripción</Label>
+                <Textarea
+                  id={`edit-caption-${post.id}`}
+                  value={editCaption}
+                  onChange={(e) => setEditCaption(e.target.value)}
+                  rows={3}
+                  maxLength={2200}
+                />
+                <Label htmlFor={`edit-when-${post.id}`}>
+                  Programar para (vacío = borrador)
+                </Label>
+                <Input
+                  id={`edit-when-${post.id}`}
+                  type="datetime-local"
+                  value={editScheduledAt}
+                  onChange={(e) => setEditScheduledAt(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    disabled={busy === post.id}
+                    onClick={() => void saveEdit(post.id)}
+                  >
+                    {busy === post.id ? "Guardando…" : "Guardar"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Descartar
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         ))}

@@ -88,4 +88,11 @@ export const toDetailView = (
     expiresAt: conversation.window.expiresAt?.toISOString() ?? null,
   },
   windowNotice: conversation.windowNotice,
+  templates: conversation.templates.map((template) => ({
+    id: template.id,
+    title: template.title,
+    name: template.name,
+    language: template.language,
+    body: template.body,
+  })),
 });

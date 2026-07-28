@@ -75,6 +75,15 @@ export type WindowView = {
   expiresAt: string | null;
 };
 
+/** Plantilla aprobada por Meta, la única vía fuera de la ventana de 24 h. */
+export type WhatsAppTemplateOption = {
+  id: string;
+  title: string;
+  name: string;
+  language: string;
+  body: string;
+};
+
 export type ConversationDetailView = {
   id: string;
   channel: InboxChannel;
@@ -90,6 +99,8 @@ export type ConversationDetailView = {
   messages: ConversationMessageView[];
   window: WindowView;
   windowNotice: string | null;
+  /** Vacío dentro de la ventana; solo se resuelven cuando hacen falta. */
+  templates: WhatsAppTemplateOption[];
 };
 
 export type InboxFilters = {

@@ -97,6 +97,7 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
   const [draftIsAgent, setDraftIsAgent] = useState(detail.draftSource === "AGENT");
   const [sending, setSending] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   // El borrador se inicializa una vez por hilo: el padre monta este componente
@@ -179,10 +180,43 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
     }
   };
 
-  const windowBlocked =
-    detail.window.requirement === "closed" ||
-    detail.window.requirement === "template";
-  const composerDisabled = !canWrite || sending || windowBlocked;
+  // Fuera de la ventana de WhatsApp no se puede escribir libre, pero SÍ se
+  // puede mandar una plantilla aprobada: bloquear las dos cosas dejaba esos
+  // hilos sin ninguna salida.
+  const needsTemplate = detail.window.requirement === "template";
+  const windowClosed = detail.window.requirement === "closed";
+  const composerDisabled = !canWrite || sending || windowClosed || needsTemplate;
+
+  const sendTemplate = async (templateId: string) => {
+    const template = detail.templates.find((t) => t.id === templateId);
+    if (!template || sending) return;
+
+    setSending(true);
+    try {
+      const res = await fetch(`/api/admin/inbox/${detail.id}/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // El cuerpo viaja para dejar rastro legible en el hilo; lo que Meta
+          // envía de verdad es la plantilla aprobada.
+          body: template.body,
+          template: { name: template.name, language: template.language },
+        }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        toast(humanizeInboxError(data.error), "error");
+        return;
+      }
+      toast("Plantilla enviada.");
+      onRefresh();
+    } catch {
+      toast("No se pudo enviar la plantilla. Revisa tu conexión.", "error");
+    } finally {
+      setSending(false);
+    }
+  };
 
   const title = useMemo(
     () =>
@@ -299,6 +333,58 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
           </p>
         )}
 
+        {/* Fuera de la ventana de WhatsApp: plantilla aprobada o nada. */}
+        {needsTemplate && canWrite && (
+          <div className="space-y-2 rounded-md border border-dashed p-3">
+            {detail.templates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No hay ninguna plantilla aprobada por Meta. Créala en WhatsApp
+                Manager y márcala en <strong>Mensajes rápidos</strong> con su
+                nombre y estado de aprobación para poder usarla aquí.
+              </p>
+            ) : (
+              <>
+                <label
+                  htmlFor="tpl"
+                  className="text-xs font-medium text-muted-foreground"
+                >
+                  Enviar una plantilla aprobada
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <select
+                    id="tpl"
+                    className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1.5 text-sm"
+                    value={selectedTemplate}
+                    onChange={(e) => setSelectedTemplate(e.target.value)}
+                  >
+                    <option value="">Elige una plantilla…</option>
+                    {detail.templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.title}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    size="sm"
+                    disabled={!selectedTemplate || sending}
+                    onClick={() => void sendTemplate(selectedTemplate)}
+                  >
+                    {sending ? "Enviando…" : "Enviar plantilla"}
+                  </Button>
+                </div>
+                {selectedTemplate && (
+                  <p className="whitespace-pre-wrap rounded bg-muted p-2 text-xs">
+                    {
+                      detail.templates.find((t) => t.id === selectedTemplate)
+                        ?.body
+                    }
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Textarea
             value={draft}
@@ -309,9 +395,11 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
               setDraftIsAgent(false);
             }}
             placeholder={
-              windowBlocked
-                ? "No se puede escribir en esta conversación ahora mismo."
-                : "Escribe tu respuesta…"
+              needsTemplate
+                ? "Pasaron más de 24 h: usa una plantilla aprobada."
+                : windowClosed
+                  ? "Meta no permite escribir hasta que la persona vuelva a contactar."
+                  : "Escribe tu respuesta…"
             }
             disabled={composerDisabled}
             rows={2}
