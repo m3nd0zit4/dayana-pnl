@@ -193,8 +193,13 @@ const ContactSection = ({ userCountry }: Props) => {
           </p>
           {/* Visible business description — Google's OAuth verification
               crawls page text, not the <meta> tag, so the same copy that
-              already lives in metadata needs a real place on the page too. */}
-          <p className="ct-reveal mt-3 max-w-md font-[font1] text-sm lg:text-base leading-snug text-black/50">
+              already lives in metadata needs a real place on the page too.
+              Deliberately NOT ct-reveal: that class starts every element at
+              opacity:0 via gsap.from() until it's scrolled into view, which
+              made this invisible to a renderer that doesn't scroll — exactly
+              what tripped Google's "doesn't explain the app's purpose"
+              check even though the text was already in the server HTML. */}
+          <p className="mt-3 max-w-md font-[font1] text-sm lg:text-base leading-snug text-black/50">
             Dayana Beltrán, coach en PNL especializada en Neurociencia y
             Neuroplasticidad. Sesiones privadas 1:1, cursos y talleres en
             vivo para reprogramar creencias limitantes, patrones y
