@@ -1,3 +1,5 @@
+import { throwGoogleApiError } from "./api-error";
+
 /**
  * Google Calendar, la parte que usamos.
  *
@@ -7,16 +9,6 @@
  */
 
 const CALENDAR_BASE = "https://www.googleapis.com/calendar/v3";
-
-export class GoogleApiError extends Error {
-  constructor(
-    message: string,
-    public readonly status: number,
-    public readonly reason?: string
-  ) {
-    super(message);
-  }
-}
 
 const request = async <T>(
   token: string,
@@ -32,19 +24,7 @@ const request = async <T>(
     },
   });
 
-  if (!res.ok) {
-    // El cuerpo de error de Google trae el motivo real (`notFound`,
-    // `insufficientPermissions`…), que es lo único accionable; el status por sí
-    // solo no distingue "no existe" de "no tienes ese scope".
-    const body = (await res.json().catch(() => ({}))) as {
-      error?: { message?: string; errors?: { reason?: string }[] };
-    };
-    throw new GoogleApiError(
-      body.error?.message ?? `Google Calendar HTTP ${res.status}`,
-      res.status,
-      body.error?.errors?.[0]?.reason
-    );
-  }
+  if (!res.ok) await throwGoogleApiError("calendar", res);
 
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
 };

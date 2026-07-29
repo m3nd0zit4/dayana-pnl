@@ -1,4 +1,4 @@
-import { GoogleApiError } from "./calendar";
+import { throwGoogleApiError } from "./api-error";
 
 /**
  * Google People (Contactos), solo lectura.
@@ -51,16 +51,7 @@ const request = async <T>(token: string, path: string): Promise<T> => {
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (!res.ok) {
-    const body = (await res.json().catch(() => ({}))) as {
-      error?: { message?: string; status?: string };
-    };
-    throw new GoogleApiError(
-      body.error?.message ?? `Google People HTTP ${res.status}`,
-      res.status,
-      body.error?.status
-    );
-  }
+  if (!res.ok) await throwGoogleApiError("people", res);
 
   return (await res.json()) as T;
 };

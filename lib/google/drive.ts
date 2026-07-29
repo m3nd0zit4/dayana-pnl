@@ -1,4 +1,4 @@
-import { GoogleApiError } from "./calendar";
+import { throwGoogleApiError } from "./api-error";
 
 /**
  * Google Drive, limitado a subir y compartir.
@@ -21,16 +21,8 @@ export type DriveFile = {
   webContentLink?: string;
 };
 
-const parseError = async (res: Response, label: string): Promise<never> => {
-  const body = (await res.json().catch(() => ({}))) as {
-    error?: { message?: string; errors?: { reason?: string }[] };
-  };
-  throw new GoogleApiError(
-    body.error?.message ?? `${label} HTTP ${res.status}`,
-    res.status,
-    body.error?.errors?.[0]?.reason
-  );
-};
+const parseError = (res: Response): Promise<never> =>
+  throwGoogleApiError("drive", res);
 
 /**
  * Sube un archivo con `multipart`: metadata y contenido en una sola petición.
@@ -77,7 +69,7 @@ export const uploadFile = async (
     body: new Uint8Array(body),
   });
 
-  if (!res.ok) return parseError(res, "Google Drive");
+  if (!res.ok) return parseError(res);
   return (await res.json()) as DriveFile;
 };
 
@@ -104,7 +96,7 @@ export const shareFileWithLink = async (
     }
   );
 
-  if (!res.ok) await parseError(res, "Google Drive");
+  if (!res.ok) await parseError(res);
 };
 
 /**
@@ -125,7 +117,7 @@ export const listAppFiles = async (
     headers: { Authorization: `Bearer ${token}` },
   });
 
-  if (!res.ok) return parseError(res, "Google Drive");
+  if (!res.ok) return parseError(res);
   const data = (await res.json()) as { files?: DriveFile[] };
   return data.files ?? [];
 };

@@ -64,6 +64,13 @@ tool to approximate it. Say which service is missing and that it is enabled in
 `/admin/ajustes/google`. Same for an account that comes back as unauthorized —
 only a person can reconnect it.
 
+The same applies when a tool reports that a Google API is **not enabled in the
+Google Cloud project**, or that the account did not grant the permission. Those
+errors already carry the exact link or screen that fixes them: relay it as
+written and stop. Retrying, or trying the same thing through another Google
+tool, produces the identical error and reads to the operator as the assistant
+being stuck.
+
 **Calendar.** `list_calendar_events` is read-only; use it before proposing a
 time so you are not scheduling on top of something. `create_calendar_event` and
 `update_calendar_event` are generic. For a therapy session use
