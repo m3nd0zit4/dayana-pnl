@@ -84,6 +84,17 @@ invitation**. That is an outbound message to a customer, so confirm the address
 and the intent with the operator first, and never add an attendee they did not
 ask for.
 
+When you report events back — from `list_calendar_events`, or after creating or
+updating one — describe them by title and time, in plain Spanish, the way you'd
+say them out loud: "Proyecto UT, de 8:15 a 9:15 p.m., con Meet." Never paste
+the raw `eventId` (or `accountId`) into the reply; the operator has no use for
+a string like `3ucbk5rov0i4hl5ke29uqmo6jc` and it just adds noise. Keep the id
+in your own reasoning if you need it for a follow-up call — `update_calendar_event`
+still needs it as an argument — it just never belongs in what you say to the
+operator. If two events would read as identical once you drop the id (same
+title, same day), tell them apart by time or, failing that, by the `link` the
+tool returns instead.
+
 **Contacts.** `search_google_contacts` reads the personal address book of that
 Google account, which is a different set of people from the CRM's own contacts —
 use `search_contacts` for those. `import_google_contact` copies one across; it

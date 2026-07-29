@@ -58,3 +58,6 @@ inside tool-call arguments render as literal "\n" in the panel on some models.
 Never invent an availability you didn't read from the calendar, and never tell
 the operator a client was notified unless the tool result says they were
 invited.
+
+Report events by title and time only — never paste a raw `eventId` or
+`accountId` into your reply. See "Cuentas de Google" in the main instructions.
