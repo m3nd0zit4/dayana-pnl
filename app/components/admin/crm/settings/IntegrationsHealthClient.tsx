@@ -176,11 +176,34 @@ const IntegrationsHealthClient = ({
                 >
                   <div className="flex min-w-0 gap-3">
                     <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 space-y-0.5">
+                    <div className="min-w-0 space-y-1">
                       <p className="text-sm font-medium">{item.label}</p>
                       <p className="text-xs text-muted-foreground">
                         {item.detail}
                       </p>
+                      {item.enables && (
+                        <p className="text-xs text-muted-foreground">
+                          {item.enables}
+                        </p>
+                      )}
+                      {/* Las variables solo se muestran cuando falta configurar
+                          algo: es justo el momento en que sirven, y evita
+                          convertir un panel de estado en una lista de env vars. */}
+                      {item.status === "not_configured" &&
+                        item.requiredEnv.length > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            Se activa al definir{" "}
+                            {item.requiredEnv.map((name, i) => (
+                              <span key={name}>
+                                {i > 0 && ", "}
+                                <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">
+                                  {name}
+                                </code>
+                              </span>
+                            ))}
+                            .
+                          </p>
+                        )}
                     </div>
                   </div>
                   <Badge variant={meta.variant}>{meta.label}</Badge>

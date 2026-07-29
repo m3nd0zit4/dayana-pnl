@@ -37,6 +37,10 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
     label: "Canales",
     items: [
       { href: "/admin/ajustes/integraciones", label: "Integraciones" },
+      { href: "/admin/ajustes/google", label: "Google" },
+      // Integraciones responde "¿están puestas las llaves?" (entorno);
+      // Redes sociales responde "¿qué cuentas están enlazadas?" (base de datos).
+      { href: "/admin/ajustes/conexiones", label: "Redes sociales" },
     ],
   },
   {

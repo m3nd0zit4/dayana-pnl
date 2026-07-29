@@ -1,8 +1,10 @@
 import {
   BookOpen,
   CalendarDays,
+  Clapperboard,
   CreditCard,
   ExternalLink,
+  Inbox,
   GraduationCap,
   HeartPulse,
   Home,
@@ -30,6 +32,14 @@ export type CrmMenuItem = {
    * que lleva a un rebote — un enlace visible que da 403 es peor que ninguno.
    */
   ownerOnly?: boolean;
+  /**
+   * Solo se muestra si la función correspondiente está encendida.
+   *
+   * Las páginas detrás de un interruptor hacen `notFound()` cuando está
+   * apagado, así que pintar el enlace sin comprobarlo llevaría a un 404 — el
+   * mismo problema que `ownerOnly` evita con los 403.
+   */
+  flag?: "metaInbox" | "socialPublishing";
   /** One level of nesting only (sidebar sub-items). */
   items?: Omit<CrmMenuItem, "items">[];
 };
@@ -72,8 +82,20 @@ export const crmMenuSections: CrmMenuSection[] = [
   {
     title: "Comunicación",
     items: [
+      {
+        icon: Inbox,
+        label: "Bandeja de entrada",
+        href: "/admin/inbox",
+        flag: "metaInbox",
+      },
       { icon: Bell, label: "Notificaciones", href: "/admin/notificaciones" },
       { icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
+      {
+        icon: Clapperboard,
+        label: "Contenido",
+        href: "/admin/contenido",
+        flag: "socialPublishing",
+      },
     ],
   },
   {

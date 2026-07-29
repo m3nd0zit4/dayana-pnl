@@ -3,6 +3,7 @@ import type {
   ConversationChannel,
   ConversationStatus,
 } from "@prisma/client";
+import { toListItem } from "@/app/components/admin/crm/inbox/serialize";
 import { resolveAdminStaff } from "@/lib/auth/api-staff";
 import { listConversations } from "@/lib/crm/conversations";
 import { isMetaInboxEnabled } from "@/lib/meta/client";
@@ -30,7 +31,7 @@ export const GET = async (req: Request) => {
   const status = url.searchParams.get("status");
   const assigned = url.searchParams.get("assigned");
 
-  const result = await listConversations({
+  const { items, nextCursor } = await listConversations({
     channel:
       channel && CHANNELS.has(channel as ConversationChannel)
         ? (channel as ConversationChannel)
@@ -47,5 +48,5 @@ export const GET = async (req: Request) => {
     cursor: url.searchParams.get("cursor") ?? undefined,
   });
 
-  return NextResponse.json(result);
+  return NextResponse.json({ items: items.map(toListItem), nextCursor });
 };

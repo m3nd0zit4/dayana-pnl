@@ -1,5 +1,12 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getStaffSession } from "@/lib/auth/staff-session";
 import { fireAuditLog } from "@/lib/crm/audit";
+import {
+  destinationPath,
+  stateCookieName,
+  type OAuthDest,
+} from "@/lib/social/oauth-state";
 import { isTikTokEnabled } from "@/lib/tiktok/client";
 import {
   exchangeCodeForToken,
@@ -11,36 +18,47 @@ import { fetchUserInfo } from "@/lib/tiktok/publish";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const back = (req: Request, params: Record<string, string>) =>
-  NextResponse.redirect(
-    new URL(`/admin/contenido?${new URLSearchParams(params)}`, req.url)
-  );
-
 /**
  * Vuelta del OAuth de TikTok.
  *
- * Siempre redirige a la UI con un parámetro legible en vez de devolver JSON:
- * aquí llega un navegador, no un cliente de API.
+ * Redirige siempre con un código legible; nunca JSON, porque aquí llega un
+ * navegador. El destino es un carácter firmado resuelto contra un mapa fijo, no
+ * una URL de la petición.
  */
+const back = (req: Request, dest: OAuthDest, tiktok: string) =>
+  NextResponse.redirect(
+    new URL(`${destinationPath(dest)}?tiktok=${tiktok}`, req.url)
+  );
+
 export const GET = async (req: Request) => {
   if (!isTikTokEnabled()) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 
   const url = new URL(req.url);
-  const error = url.searchParams.get("error");
-  if (error) {
-    return back(req, { tiktok: "denied", reason: error });
+  const jar = await cookies();
+  const nonceCookie = jar.get(stateCookieName("tiktok"))?.value;
+  jar.delete(stateCookieName("tiktok"));
+
+  const verified = verifyState(url.searchParams.get("state") ?? "");
+  if (!verified) return back(req, "c", "bad_state");
+
+  if (!nonceCookie || nonceCookie !== verified.nonce) {
+    return back(req, verified.dest, "bad_state");
   }
 
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  if (!code || !state) return back(req, { tiktok: "invalid" });
+  const staff = await getStaffSession();
+  if (!staff || staff.id !== verified.staffUserId || staff.role !== "OWNER") {
+    return back(req, verified.dest, "bad_state");
+  }
 
-  // El state va firmado con AUTH_SECRET; sin esto, cualquiera podría inducir
-  // una conexión con un código ajeno.
-  const verified = verifyState(state);
-  if (!verified) return back(req, { tiktok: "bad_state" });
+  // El motivo que devuelve TikTok no se propaga a la URL: la pantalla solo
+  // sabe leer códigos de un mapa fijo, y reenviar texto del proveedor sería
+  // meter una cadena ajena en la query sin necesidad.
+  if (url.searchParams.get("error")) return back(req, verified.dest, "denied");
+
+  const code = url.searchParams.get("code");
+  if (!code) return back(req, verified.dest, "invalid");
 
   try {
     const token = await exchangeCodeForToken(code);
@@ -59,19 +77,19 @@ export const GET = async (req: Request) => {
       /* opcional */
     }
 
-    const account = await persistAccount(token, verified.staffUserId, profile);
+    const account = await persistAccount(token, staff.id, profile);
 
     fireAuditLog({
-      staffUserId: verified.staffUserId,
+      staffUserId: staff.id,
       action: "SOCIAL_ACCOUNT_CONNECTED",
       entityType: "SocialAccount",
       entityId: account.id,
       changes: { provider: "TIKTOK", username: account.username },
     });
 
-    return back(req, { tiktok: "connected" });
+    return back(req, verified.dest, "connected");
   } catch (e) {
     console.error("[tiktok callback]", e);
-    return back(req, { tiktok: "error" });
+    return back(req, verified.dest, "error");
   }
 };

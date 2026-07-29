@@ -5,6 +5,8 @@ import type { StaffRole } from "@prisma/client";
 import { isAgentEnabled } from "@/lib/agent/is-agent-enabled";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
+import { isMetaInboxEnabled } from "@/lib/meta/client";
+import { isTikTokEnabled } from "@/lib/tiktok/client";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,9 @@ const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
       preview={preview}
       agentEnabled={agentEnabled}
       streamEnabled={streamEnabled}
+      // Sin esto el menú pintaría enlaces a páginas que hacen notFound().
+      metaInboxEnabled={isMetaInboxEnabled()}
+      socialPublishingEnabled={isTikTokEnabled()}
     >
       <CrmShell
         displayName={displayName}

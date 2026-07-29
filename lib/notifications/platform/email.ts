@@ -151,6 +151,22 @@ export const deliverNotificationEmails = async (notificationId: string) => {
 
   const smsText = composeSmsBody(notification.title, notification.body);
 
+  /**
+   * Buzón de avisos del equipo, configurable en /admin/ajustes/notificaciones.
+   *
+   * Existe porque el correo de una cuenta de staff es además su usuario de
+   * acceso, y no siempre es un buzón que reciba: el dominio puede estar
+   * configurado solo para enviar, y entonces cada aviso rebota en silencio
+   * (Resend acepta el envío y el rebote llega después, así que la entrega queda
+   * registrada como SENT). Con esto se redirige el correo del equipo sin tocar
+   * con qué credenciales entra nadie.
+   *
+   * Solo afecta al correo hacia el staff; los miembros siguen recibiendo en su
+   * propia dirección.
+   */
+  const { getNotificationSiteConfig } = await import("./site-config");
+  const alertInbox = (await getNotificationSiteConfig()).staffAlertInbox;
+
   let sent = 0;
   let skipped = 0;
   let smsSent = 0;
@@ -158,7 +174,7 @@ export const deliverNotificationEmails = async (notificationId: string) => {
   for (const recipient of notification.recipients) {
     const isStaff = Boolean(recipient.staffUserId);
     const to = isStaff
-      ? recipient.staffUser?.email
+      ? alertInbox ?? recipient.staffUser?.email
       : recipient.contact?.email;
 
     // El interruptor maestro se combina con AND sobre la preferencia por evento.

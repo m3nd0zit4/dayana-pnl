@@ -14,7 +14,14 @@ export const notifyStaffOfNewComment = async (input: {
   body: string;
 }): Promise<void> => {
   if (!isNotificationsEnabled()) return;
-  const to = process.env.STAFF_OWNER_EMAIL?.trim();
+
+  // El buzón de avisos del equipo manda sobre STAFF_OWNER_EMAIL: esa variable
+  // suele apuntar a la dirección con la que se entra al panel, que no siempre
+  // es un buzón capaz de recibir. Configurable en /admin/ajustes/notificaciones.
+  const { getNotificationSiteConfig } = await import("./platform/site-config");
+  const to =
+    (await getNotificationSiteConfig()).staffAlertInbox ??
+    process.env.STAFF_OWNER_EMAIL?.trim();
   if (!to || !emailProviderId()) return;
 
   const title = "Nuevo comentario en el curso";

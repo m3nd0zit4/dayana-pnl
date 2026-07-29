@@ -123,6 +123,13 @@ export const getConversation = async (
 
   const window = resolveWindow(conversation.channel, conversation.lastInboundAt);
 
+  // Solo se consultan cuando hacen falta: dentro de la ventana el operador
+  // escribe libre y una consulta extra por cada apertura de hilo sobra.
+  const templates =
+    window.requirement === "template"
+      ? await listApprovedWhatsAppTemplates()
+      : [];
+
   return {
     ...conversation,
     // Se devuelven en orden cronológico; la consulta va al revés solo para
@@ -130,7 +137,54 @@ export const getConversation = async (
     messages: [...conversation.messages].reverse(),
     window,
     windowNotice: explainWindow(window),
+    templates,
   };
+};
+
+export type WhatsAppTemplateOption = {
+  id: string;
+  key: string;
+  title: string;
+  /** Nombre exacto de la plantilla aprobada en WhatsApp Cloud API. */
+  name: string;
+  language: string;
+  body: string;
+};
+
+/**
+ * Plantillas que WhatsApp acepta fuera de la ventana de 24 h.
+ *
+ * Solo sirven las que existen **y están aprobadas** en Meta: mandar el nombre de
+ * una plantilla que Meta no conoce falla en el envío, no al guardarla, así que
+ * filtrar aquí es lo que evita ofrecer algo que no se puede enviar.
+ */
+export const listApprovedWhatsAppTemplates = async (): Promise<
+  WhatsAppTemplateOption[]
+> => {
+  const rows = await prisma.messageTemplate.findMany({
+    where: {
+      metaTemplateName: { not: null },
+      metaApprovalStatus: { equals: "APPROVED", mode: "insensitive" },
+    },
+    orderBy: { title: "asc" },
+    select: {
+      id: true,
+      key: true,
+      title: true,
+      body: true,
+      metaTemplateName: true,
+      metaTemplateLang: true,
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    key: row.key,
+    title: row.title?.trim() || row.key.replace(/-/g, " "),
+    name: row.metaTemplateName!,
+    language: row.metaTemplateLang?.trim() || "es",
+    body: row.body,
+  }));
 };
 
 /** Estado agregado para el stream SSE. Debe ser una sola consulta barata. */

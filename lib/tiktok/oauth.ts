@@ -1,6 +1,10 @@
-import crypto from "crypto";
 import { prisma } from "@/lib/db";
 import { openSecret, sealSecret } from "@/lib/crypto/secret-box";
+import {
+  issueOAuthState,
+  verifyOAuthState,
+  type OAuthDest,
+} from "@/lib/social/oauth-state";
 import {
   TIKTOK_API_BASE,
   TIKTOK_AUTH_URL,
@@ -26,20 +30,21 @@ type TokenResponse = {
   token_type: string;
 };
 
-/** El `state` va firmado para que el callback no acepte uno fabricado. */
+/**
+ * El `state` va firmado para que el callback no acepte uno fabricado.
+ *
+ * La firma vive en `lib/social/oauth-state.ts`, compartida con Meta: así el
+ * `purpose` y el destino entran en la firma y un state de TikTok no vale en el
+ * callback de Meta.
+ */
 export const buildAuthorizationUrl = (
-  staffUserId: string
-): { url: string; state: string } | null => {
+  staffUserId: string,
+  dest: OAuthDest = "c"
+): { url: string; state: string; nonce: string } | null => {
   const config = tiktokConfig();
   if (!config) return null;
 
-  const nonce = crypto.randomBytes(16).toString("base64url");
-  const payload = `${staffUserId}.${Date.now()}.${nonce}`;
-  const signature = crypto
-    .createHmac("sha256", process.env.AUTH_SECRET ?? "")
-    .update(payload)
-    .digest("base64url");
-  const state = `${payload}.${signature}`;
+  const { state, nonce } = issueOAuthState("tiktok", staffUserId, dest);
 
   const params = new URLSearchParams({
     client_key: config.clientKey,
@@ -49,35 +54,11 @@ export const buildAuthorizationUrl = (
     state,
   });
 
-  return { url: `${TIKTOK_AUTH_URL}?${params}`, state };
+  return { url: `${TIKTOK_AUTH_URL}?${params}`, state, nonce };
 };
 
-const STATE_MAX_AGE_MS = 10 * 60 * 1000;
-
-export const verifyState = (state: string): { staffUserId: string } | null => {
-  const parts = state.split(".");
-  if (parts.length !== 4) return null;
-
-  const [staffUserId, issuedAt, nonce, signature] = parts;
-  const expected = crypto
-    .createHmac("sha256", process.env.AUTH_SECRET ?? "")
-    .update(`${staffUserId}.${issuedAt}.${nonce}`)
-    .digest("base64url");
-
-  try {
-    const a = Buffer.from(signature);
-    const b = Buffer.from(expected);
-    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  } catch {
-    return null;
-  }
-
-  // Un state viejo suele ser una pestaña abandonada, pero limitar la ventana
-  // reduce el margen para reutilizarlo.
-  if (Date.now() - Number(issuedAt) > STATE_MAX_AGE_MS) return null;
-
-  return { staffUserId };
-};
+export const verifyState = (state: string) =>
+  verifyOAuthState("tiktok", state);
 
 const requestToken = async (
   body: Record<string, string>
@@ -168,7 +149,7 @@ export const getValidAccessToken = async (accountId: string): Promise<string> =>
     where: { id: accountId },
   });
   if (!account) throw new Error("La cuenta conectada no existe.");
-  if (!account.isActive) {
+  if (!account.isActive || !account.accessTokenEnc) {
     throw new Error("La cuenta de TikTok está desconectada. Vuelve a conectarla.");
   }
 

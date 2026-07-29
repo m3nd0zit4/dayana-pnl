@@ -58,6 +58,9 @@ Pricing: amounts stored as **minor units** (centavos/cents). USD→COP rate reso
 - `stale-checkout-cleanup` — cron 05:00 UTC daily
 - `platform-notification-email` — email fan-out for a platform notification
 - `notification-retention` — cron 06:00 UTC daily, prunes old feed rows
+- `meta-webhook-received` — inbound Meta messages, serialized per thread
+- `social-post-scheduler` — cron every 5 min, claims due posts
+- `social-post-publish` — publishes one post (`retries: 0` on purpose — a blind retry could upload the same video twice)
 
 ### Notifications
 
@@ -75,6 +78,29 @@ Two separate systems. Don't confuse them.
 - Retention windows and per-event kill switches are `SiteSetting` rows, editable at `/admin/ajustes/notificaciones` without a deploy.
 
 `fireNotification` uses `after()` from `next/server`, falling back to a plain promise outside a request scope. Prefer that over a bare floating promise anywhere new — on Vercel the invocation can freeze once the response is returned, silently dropping the write.
+
+### Social channels (Meta inbox + TikTok publishing)
+
+Two surfaces, one shared account store.
+
+**Inbox** (`/admin/inbox`) — WhatsApp, Instagram DMs and Facebook Messenger in one thread list. All three arrive at **one webhook**, `app/api/webhooks/meta/route.ts`, discriminated by the payload's top-level `object` field. Signature verification runs over the **raw body** (`verifyMetaWebhook`), so the route reads `req.text()` once and parses from that string — re-serializing the JSON changes the bytes the HMAC covers.
+
+- `lib/meta/inbound.ts` normalizes all three shapes into `NormalizedEvent`; nothing downstream knows the differences. It never throws — an unrecognized payload yields `[]`, because a 500 just makes Meta retry the same broken thing.
+- Work is queued on Inngest with `concurrency: { key: threadKey, limit: 1 }`. That serialization is the point: without it three fast messages from one person are processed in parallel and the thread reads out of order. If Inngest is unconfigured the route falls back to inline processing via `after()` — a customer message must not vanish because an env var is unset.
+- Idempotency is `MetaWebhookEvent.eventId`, keyed on the **message** id (`wamid…`/`mid…`), not the delivery — Meta re-sends the same message inside different envelopes.
+- Echoes (`is_echo`) are stored as OUTBOUND, not dropped: when Dayana replies from her phone the CRM thread stays correct.
+- Meta closes the reply window 24 h after the customer's last message. `lib/meta/window.ts` resolves `free | template | human_agent | closed`; out-of-window WhatsApp requires an **approved template** (`MessageTemplate.metaTemplateName` + `metaApprovalStatus`), and Messenger/Instagram get the `HUMAN_AGENT` tag up to 7 days. The composer reflects this rather than letting Meta reject the send.
+- Instagram and Messenger give an opaque PSID/IGSID — **never a phone or email**. An unlinked conversation is a normal state. `ContactChannelIdentity` records a manual link so the next thread from that person resolves automatically.
+
+**Publishing** (`/admin/contenido`) — schedule and publish TikTok videos. Note the hard limits: **TikTok has no DM API** for an ordinary app (Business Messaging is a partner-only beta) and its comment endpoints all require `advertiser_id`, so they cover ads and not organic posts. There is no TikTok inbox to build. Uploads use chunked `FILE_UPLOAD`, not `PULL_FROM_URL`, because TikTok only pulls from domains verified in its console and the media lives on Vercel Blob. Unaudited apps may only post `SELF_ONLY`; `enforcePrivacyLevel` applies that at save time rather than letting the cron discover it. `TIKTOK_AUDITED=true` lifts it.
+
+**Connections** (`/admin/ajustes/conexiones`, OWNER only) — one-click OAuth linking. Connecting a Meta Page also calls `POST /{page-id}/subscribed_apps`, which is what removes the manual webhook step in Meta's console and covers Messenger *and* Instagram at once.
+
+- `lib/social/oauth-state.ts` is the shared signed state for every provider. It **throws** when `AUTH_SECRET` is missing (an empty key would make every forged state verify), puts the provider inside the signature so a TikTok state cannot be replayed at the Meta callback, and binds the state single-use to the browser with an httpOnly nonce cookie. The redirect target is one character inside the signature resolved through a frozen map — no request value ever becomes a URL.
+- `lib/meta/credentials.ts` resolves page credentials **DB first, env fallback**. `lib/meta/client.ts` keeps its sync signatures; only `send.ts` and `ingest.ts` call the async resolver. With no linked account the env path behaves exactly as before, so a System User token in Vercel keeps working.
+- There is **no auto-refresh**: Meta long-lived tokens cannot be extended without a human, so the screen shows a countdown and a Reconnect button. A code-190 failure marks the connection down and rewrites the thread error to say who can fix it, since an OPERATOR cannot open that screen.
+- **Disconnect deactivates, never deletes** — `SocialPost.account` cascades, so deleting an account would take its publishing history with it.
+- `getSocialConnections()` (`lib/crm/social-accounts.ts`) is the DB-backed twin of `getIntegrationHealth()`. It lives separately because the latter is deliberately pure-env and zero-I/O so `ajustes/integraciones` can call it synchronously — don't put DB reads in it.
 
 ### Geo-based pricing
 
@@ -107,5 +133,11 @@ COP prices are stored as **full pesos** (no centavos), so `amountMinor` for COP 
 | `NOTIFICATIONS_PRUNE_DELIVERIES` | `true` to let the retention cron prune `NotificationDelivery` |
 | `UPSTASH_REDIS_REST_URL/TOKEN` | Distributed rate limiting |
 | `CRM_UI_PREVIEW` | `true` only in preview — disables auth for UI preview |
+| `META_INBOX_ENABLED` | `true` to show `/admin/inbox` and accept its API routes |
+| `META_APP_SECRET` | HMAC key for `X-Hub-Signature-256`; also the OAuth code exchange |
+| `META_LOGIN_CONFIG_ID` | Facebook Login for Business config — replaces `scope` |
+| `META_PAGE_ID` / `META_PAGE_ACCESS_TOKEN` | **Fallback** only; a linked account in the DB wins |
+| `SOCIAL_PUBLISHING_ENABLED` | `true` to show `/admin/contenido` |
+| `TIKTOK_AUDITED` | `true` only after TikTok's audit — until then every post is forced `SELF_ONLY` |
 
 Production env validated at startup via `lib/env.server.ts` (Zod schema, throws on missing vars).

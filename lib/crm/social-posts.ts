@@ -31,8 +31,14 @@ export const enforcePrivacyLevel = (requested: string): PrivacyLevel => {
   return isTikTokAudited() ? level : "SELF_ONLY";
 };
 
-export const listSocialAccounts = () =>
-  prisma.socialAccount.findMany({
+/**
+ * Cuentas conectadas, con la caducidad ya en días.
+ *
+ * El cálculo vive aquí y no en el componente porque `Date.now()` dentro de un
+ * render es impuro: en el servidor y en el cliente da valores distintos.
+ */
+export const listSocialAccounts = async () => {
+  const rows = await prisma.socialAccount.findMany({
     orderBy: { createdAt: "asc" },
     select: {
       id: true,
@@ -46,6 +52,15 @@ export const listSocialAccounts = () =>
       createdAt: true,
     },
   });
+
+  const now = Date.now();
+  return rows.map((row) => ({
+    ...row,
+    expiresInDays: row.expiresAt
+      ? Math.floor((row.expiresAt.getTime() - now) / 86_400_000)
+      : null,
+  }));
+};
 
 export type CreatePostInput = {
   accountId: string;
@@ -111,6 +126,71 @@ export const getSocialPost = (id: string) =>
     where: { id },
     include: { account: { select: { id: true, provider: true, isActive: true } } },
   });
+
+export type UpdatePostInput = {
+  caption?: string | null;
+  privacyLevel?: string;
+  scheduledAt?: Date | null;
+  disableComment?: boolean;
+  disableDuet?: boolean;
+  disableStitch?: boolean;
+};
+
+/**
+ * Edita una publicación que todavía no salió.
+ *
+ * El `where` incluye el estado a propósito: PUBLISHING ya está en vuelo y
+ * PUBLISHED es irreversible, así que editarlas cambiaría un registro que ya no
+ * describe lo que se envió.
+ */
+export const updateSocialPost = async (
+  id: string,
+  input: UpdatePostInput,
+  staffUserId: string
+) => {
+  const updated = await prisma.socialPost.updateMany({
+    where: { id, status: { in: ["DRAFT", "SCHEDULED", "FAILED"] } },
+    data: {
+      ...(input.caption !== undefined ? { caption: input.caption } : {}),
+      ...(input.privacyLevel !== undefined
+        ? { privacyLevel: enforcePrivacyLevel(input.privacyLevel) }
+        : {}),
+      ...(input.scheduledAt !== undefined
+        ? {
+            scheduledAt: input.scheduledAt,
+            // Poner fecha la mete en la cola; quitarla la devuelve a borrador.
+            status: input.scheduledAt ? "SCHEDULED" : "DRAFT",
+          }
+        : {}),
+      ...(input.disableComment !== undefined
+        ? { disableComment: input.disableComment }
+        : {}),
+      ...(input.disableDuet !== undefined
+        ? { disableDuet: input.disableDuet }
+        : {}),
+      ...(input.disableStitch !== undefined
+        ? { disableStitch: input.disableStitch }
+        : {}),
+    },
+  });
+
+  if (updated.count === 0) {
+    throw new Error("Esa publicación ya no se puede editar.");
+  }
+
+  await writeAuditLog({
+    staffUserId,
+    action: "SOCIAL_POST_UPDATED",
+    entityType: "SocialPost",
+    entityId: id,
+    changes: {
+      ...input,
+      scheduledAt: input.scheduledAt?.toISOString() ?? input.scheduledAt,
+    },
+  });
+
+  return { id };
+};
 
 export const cancelSocialPost = async (id: string, staffUserId: string) => {
   // Solo se cancela lo que aún no salió. PUBLISHING ya está en vuelo y
