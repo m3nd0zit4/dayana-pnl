@@ -191,6 +191,15 @@ const ContactSection = ({ userCountry }: Props) => {
           <p className="ct-reveal mt-7 max-w-md font-[font1] text-lg lg:text-xl leading-snug text-black/70">
             Déjame tus datos y te escribo personalmente.
           </p>
+          {/* Visible business description — Google's OAuth verification
+              crawls page text, not the <meta> tag, so the same copy that
+              already lives in metadata needs a real place on the page too. */}
+          <p className="ct-reveal mt-3 max-w-md font-[font1] text-sm lg:text-base leading-snug text-black/50">
+            Dayana Beltrán, coach en PNL especializada en Neurociencia y
+            Neuroplasticidad. Sesiones privadas 1:1, cursos y talleres en
+            vivo para reprogramar creencias limitantes, patrones y
+            emociones negativas.
+          </p>
 
           <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-20 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:items-start">
             {/* What happens next — short, scannable */}
