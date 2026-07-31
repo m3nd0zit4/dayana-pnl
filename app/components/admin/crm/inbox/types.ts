@@ -127,6 +127,11 @@ export const INBOX_ERROR_MESSAGE: Record<string, string> = {
   not_found: "La conversación ya no existe.",
   inbox_disabled: "La bandeja está desactivada.",
   read_only: "Tu rol no permite responder.",
+  missing_file: "Elige un archivo primero.",
+  unsupported_type: "Ese tipo de archivo no se puede enviar por esta vía.",
+  file_too_large: "El archivo pesa más de lo que permite Meta para ese tipo.",
+  upload_failed: "No se pudo subir el archivo. Intenta de nuevo.",
+  blob_not_configured: "El almacenamiento de archivos no está configurado.",
 };
 
 export const humanizeInboxError = (code: string | undefined): string =>

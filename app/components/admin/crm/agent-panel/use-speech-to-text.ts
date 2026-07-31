@@ -64,6 +64,15 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
   useEffect(() => {
     onTranscriptRef.current = onTranscript;
   });
+  // `recognition.stop()` is async — the engine still fires one more
+  // onresult (the finalized last phrase) before onend, sometimes hundreds
+  // of ms later (mobile network STT engines especially). A caller that
+  // clears the input right after calling stop() — e.g. sending mid-dictation
+  // — would see that late event repopulate the box with the transcript that
+  // was just sent. This flips synchronously in stop(), independent of the
+  // async onend, so onresult can ignore anything after a stop was requested
+  // while onend still fires normally to update isRecording/bands.
+  const activeRef = useRef(false);
 
   // Web Speech API exposes no audio data of its own, so the volume bars run
   // off a second, independent tap on the same microphone via Web Audio.
@@ -87,6 +96,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
   }, []);
 
   const stop = useCallback(() => {
+    activeRef.current = false;
     recognitionRef.current?.stop();
     stopAudioAnalysis();
   }, [stopAudioAnalysis]);
@@ -139,7 +149,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     // event would replay stale text into the current input. Guard every
     // handler on still being the live instance before acting.
     recognition.onresult = (event) => {
-      if (recognitionRef.current !== recognition) return;
+      if (recognitionRef.current !== recognition || !activeRef.current) return;
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results.item(i);
@@ -152,12 +162,14 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     };
     recognition.onerror = (event) => {
       if (recognitionRef.current !== recognition) return;
+      activeRef.current = false;
       setError(ERROR_MESSAGES[event.error] ?? `Error de dictado: ${event.error}`);
       setIsRecording(false);
       stopAudioAnalysis();
     };
     recognition.onend = () => {
       if (recognitionRef.current !== recognition) return;
+      activeRef.current = false;
       setIsRecording(false);
       stopAudioAnalysis();
     };
@@ -165,6 +177,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     recognitionRef.current = recognition;
     try {
       recognition.start();
+      activeRef.current = true;
       setIsRecording(true);
     } catch {
       // start() throws InvalidStateError if a recognition session is already

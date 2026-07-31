@@ -1,4 +1,4 @@
-import type { Conversation } from "@prisma/client";
+import type { Conversation, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import {
@@ -22,6 +22,13 @@ import { resolveWindow, type WindowState } from "./window";
  * cubren los dos canales. Solo cambia el id del destinatario.
  */
 
+export type SendAttachment = {
+  /** URL pública en Blob — Meta la descarga con `link`, no hace falta subirla aparte. */
+  url: string;
+  mimeType: string;
+  filename: string;
+};
+
 export type SendInput = {
   conversationId: string;
   body: string;
@@ -33,6 +40,16 @@ export type SendInput = {
     /** Parámetros posicionales del cuerpo de la plantilla. */
     variables?: string[];
   } | null;
+  attachment?: SendAttachment | null;
+};
+
+type MediaKind = "image" | "video" | "audio" | "document";
+
+const mediaKindFor = (mimeType: string): MediaKind => {
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+  return "document";
 };
 
 export type SendResult = {
@@ -109,6 +126,48 @@ const sendWhatsApp = async (
     return readMessageId(res);
   }
 
+  if (input.attachment) {
+    const kind = mediaKindFor(input.attachment.mimeType);
+    // WhatsApp audio messages reject a `caption` field outright — the only
+    // media type of the four that doesn't support one. The text isn't
+    // dropped, just delivered as its own follow-up message below.
+    const caption = kind !== "audio" && input.body ? input.body : undefined;
+    const res = await graphPost<GraphMessageResponse>(
+      `${credentials.accountId}/messages`,
+      {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: kind,
+        [kind]: {
+          link: input.attachment.url,
+          ...(caption ? { caption } : {}),
+          ...(kind === "document" ? { filename: input.attachment.filename } : {}),
+        },
+      },
+      credentials
+    );
+    const messageId = readMessageId(res);
+
+    if (kind === "audio" && input.body) {
+      // Best-effort: the audio already delivered, so a caption failure
+      // shouldn't turn the whole reply into a failed row.
+      await graphPost<GraphMessageResponse>(
+        `${credentials.accountId}/messages`,
+        {
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to,
+          type: "text",
+          text: { preview_url: true, body: input.body },
+        },
+        credentials
+      ).catch((e) => console.warn("[meta] caption follow-up failed", e));
+    }
+
+    return messageId;
+  }
+
   const res = await graphPost<GraphMessageResponse>(
     `${credentials.accountId}/messages`,
     {
@@ -136,15 +195,56 @@ const sendViaPage = async (
     );
   }
 
+  const messagingFields = {
+    messaging_type:
+      window.requirement === "human_agent" ? "MESSAGE_TAG" : "RESPONSE",
+    // Amplía la ventana a 7 días; requiere la función Human Agent aprobada.
+    ...(window.requirement === "human_agent" ? { tag: "HUMAN_AGENT" } : {}),
+  };
+
+  if (input.attachment) {
+    const kind = mediaKindFor(input.attachment.mimeType);
+    const res = await graphPost<GraphMessageResponse>(
+      `${credentials.accountId}/messages`,
+      {
+        recipient: { id: conversation.externalThreadId },
+        // Messenger/Instagram's attachment payload has no caption field —
+        // any body text rides along as a second, separate message below.
+        message: {
+          attachment: {
+            type: kind === "document" ? "file" : kind,
+            payload: { url: input.attachment.url, is_reusable: true },
+          },
+        },
+        ...messagingFields,
+      },
+      credentials
+    );
+    const messageId = readMessageId(res);
+
+    if (input.body) {
+      // Best-effort: the attachment already delivered, so a caption failure
+      // shouldn't turn the whole reply into a failed row.
+      await graphPost<GraphMessageResponse>(
+        `${credentials.accountId}/messages`,
+        {
+          recipient: { id: conversation.externalThreadId },
+          message: { text: input.body },
+          ...messagingFields,
+        },
+        credentials
+      ).catch((e) => console.warn("[meta] caption follow-up failed", e));
+    }
+
+    return messageId;
+  }
+
   const res = await graphPost<GraphMessageResponse>(
     `${credentials.accountId}/messages`,
     {
       recipient: { id: conversation.externalThreadId },
       message: { text: input.body },
-      messaging_type:
-        window.requirement === "human_agent" ? "MESSAGE_TAG" : "RESPONSE",
-      // Amplía la ventana a 7 días; requiere la función Human Agent aprobada.
-      ...(window.requirement === "human_agent" ? { tag: "HUMAN_AGENT" } : {}),
+      ...messagingFields,
     },
     credentials
   );
@@ -223,6 +323,20 @@ export const sendMetaMessage = async (
     }
   }
 
+  // Same `StoredAttachment` shape inbound attachments persist as (see
+  // `lib/meta/media.ts`) — `MessageBubble` already renders that shape
+  // regardless of direction, so an outbound one needs no UI-side changes.
+  const attachments = input.attachment
+    ? [
+        {
+          kind: mediaKindFor(input.attachment.mimeType),
+          url: input.attachment.url,
+          mimeType: input.attachment.mimeType,
+          caption: input.body || null,
+        },
+      ]
+    : undefined;
+
   const message = await prisma.conversationMessage.create({
     data: {
       conversationId: conversation.id,
@@ -230,6 +344,7 @@ export const sendMetaMessage = async (
       status: failedReason ? "FAILED" : "SENT",
       externalMessageId,
       body: input.body,
+      attachments: attachments as unknown as Prisma.InputJsonValue | undefined,
       staffUserId: input.staffUserId ?? null,
       failedReason,
     },

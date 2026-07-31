@@ -1,6 +1,6 @@
 "use client";
 
-import { Send, Sparkles, UserPlus } from "lucide-react";
+import { Paperclip, Send, Sparkles, UserPlus, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -24,6 +24,13 @@ type Props = {
   busy: boolean;
   onRefresh: () => void;
 };
+
+type PendingAttachment = { url: string; mimeType: string; filename: string };
+
+/** Mismo set que valida `POST /api/admin/inbox/upload` — mantenerlos en
+ * sincronía evita que el picker ofrezca algo que el servidor va a rechazar. */
+const ACCEPTED_ATTACHMENT_TYPES =
+  "image/jpeg,image/png,image/webp,image/gif,video/mp4,audio/ogg,audio/mpeg,application/pdf";
 
 /**
  * Hora absoluta, no relativa.
@@ -98,6 +105,9 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
   const [sending, setSending] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [attachment, setAttachment] = useState<PendingAttachment | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   // El borrador se inicializa una vez por hilo: el padre monta este componente
@@ -144,14 +154,38 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so picking the same file again later still fires onChange.
+    e.target.value = "";
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/inbox/upload", { method: "POST", body: form });
+      const data = (await res.json().catch(() => ({}))) as Partial<PendingAttachment> & { error?: string };
+      if (!res.ok || !data.url || !data.mimeType) {
+        toast(humanizeInboxError(data.error), "error");
+        return;
+      }
+      setAttachment({ url: data.url, mimeType: data.mimeType, filename: data.filename ?? file.name });
+    } catch {
+      toast("No se pudo subir el archivo. Revisa tu conexión.", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const send = async () => {
-    if (!draft.trim() || sending) return;
+    if ((!draft.trim() && !attachment) || sending) return;
     setSending(true);
     try {
       const res = await fetch(`/api/admin/inbox/${detail.id}/reply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: draft }),
+        body: JSON.stringify({ body: draft, attachment }),
       });
 
       if (res.status === 409) {
@@ -172,6 +206,7 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
 
       setDraft("");
       setDraftIsAgent(false);
+      setAttachment(null);
       onRefresh();
     } catch {
       toast("No se pudo enviar. Revisa tu conexión.", "error");
@@ -385,7 +420,40 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
           </div>
         )}
 
+        {attachment && (
+          <div className="flex items-center gap-2 rounded-md border border-dashed px-2 py-1.5 text-xs">
+            <Paperclip className="size-3.5 shrink-0" aria-hidden />
+            <span className="min-w-0 flex-1 truncate">{attachment.filename}</span>
+            <button
+              type="button"
+              aria-label="Quitar adjunto"
+              onClick={() => setAttachment(null)}
+              className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+        )}
+
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPTED_ATTACHMENT_TYPES}
+            className="hidden"
+            onChange={(e) => void handleFileChange(e)}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={composerDisabled || uploading || Boolean(attachment)}
+            aria-label="Adjuntar archivo"
+            title="Adjuntar archivo"
+          >
+            <Paperclip className="size-4" aria-hidden />
+          </Button>
           <Textarea
             value={draft}
             onChange={(e) => {
@@ -399,7 +467,9 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
                 ? "Pasaron más de 24 h: usa una plantilla aprobada."
                 : windowClosed
                   ? "Meta no permite escribir hasta que la persona vuelva a contactar."
-                  : "Escribe tu respuesta…"
+                  : uploading
+                    ? "Subiendo archivo…"
+                    : "Escribe tu respuesta…"
             }
             disabled={composerDisabled}
             rows={2}
@@ -408,7 +478,7 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
           />
           <Button
             onClick={() => void send()}
-            disabled={composerDisabled || !draft.trim() || busy}
+            disabled={composerDisabled || (!draft.trim() && !attachment) || busy || uploading}
             aria-label="Enviar"
             title="Enviar"
           >

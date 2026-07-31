@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { UserContent } from "ai";
+import { defaultMessageReducer } from "eve/client";
 import { useEveAgent } from "eve/react";
 import {
   Check,
@@ -189,6 +190,31 @@ export const AgentPanelSession = ({
 }) => {
   const existing = useMemo(() => getThread(threadId), [threadId]);
   const titleRef = useRef(existing?.title ?? "Nueva conversación");
+  // Prior turns render from this static snapshot instead of being fed to
+  // `useEveAgent` as `initialEvents`. Reason: eve parks a session on
+  // `session.waiting` between turns and keeps its `sessionId` — the normal
+  // case, where reopening the thread resumes it cleanly. But a turn that
+  // ended in `session.completed`/`session.failed` (any failed send, mainly)
+  // makes eve's own client reset the persisted session state to blank (see
+  // `advanceSession` in eve/client) — sessionId gone. Handing that blank
+  // state to `useEveAgent` makes it silently start a brand-new backend
+  // session on the next send, whose turn numbering restarts at turn_0 — and
+  // if the old turn_0 were also sitting in the live store's `initialEvents`,
+  // it would collide (eve keys messages by turn id alone, not
+  // session-scoped): the real reply gets merged into the stale old bubble
+  // instead of appearing, which reads as "the agent never responds" for any
+  // reopened thread whose last turn failed. Keeping history entirely out of
+  // the live store's turn-id space sidesteps the collision unconditionally
+  // — the live store only ever sees turns from *this* mount, so there is
+  // nothing for a fresh turn_0 to collide with, whether or not the resumed
+  // session turned out to still be alive.
+  const pastMessages = useMemo(() => {
+    if (!existing || existing.events.length === 0) return [];
+    const reducer = defaultMessageReducer();
+    let data = reducer.initial();
+    for (const event of existing.events) data = reducer.reduce(data, event);
+    return data.messages;
+  }, [existing]);
   const [input, setInput] = useState("");
   const [subPanel, setSubPanel] = useState<SubPanel>(null);
   const subPanelRef = useRef<HTMLDivElement>(null);
@@ -217,7 +243,6 @@ export const AgentPanelSession = ({
   }, [subPanel]);
 
   const agent = useEveAgent({
-    initialEvents: existing?.events ?? [],
     initialSession: existing?.session,
     onFinish: (snapshot) => {
       const firstUserText = snapshot.data.messages
@@ -232,10 +257,15 @@ export const AgentPanelSession = ({
       // operator's question but whose transcript was empty on reopen — worse
       // than no thread at all, since it looks like the message was saved.
       if (snapshot.events.length === 0) return;
+      // `snapshot.events` is this mount's live store, which — per the
+      // `pastMessages` comment above — never received `existing.events` as
+      // `initialEvents`. Prepend them by hand so persisting a turn doesn't
+      // overwrite the thread's earlier history with just what happened since
+      // this mount.
       upsertThread(threadId, {
         title: titleRef.current,
         session: snapshot.session,
-        events: snapshot.events,
+        events: [...(existing?.events ?? []), ...snapshot.events],
       });
     },
   });
@@ -269,9 +299,14 @@ export const AgentPanelSession = ({
         titleRef.current === "Nueva conversación" && firstUserText
           ? deriveTitle(firstUserText)
           : titleRef.current;
-      upsertThread(threadId, { title, session, events });
+      // Same merge as `onFinish` — `events` here is live-only too.
+      upsertThread(threadId, {
+        title,
+        session,
+        events: [...(existing?.events ?? []), ...events],
+      });
     },
-    [threadId]
+    [threadId, existing]
   );
 
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
@@ -378,7 +413,7 @@ export const AgentPanelSession = ({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {agent.data.messages.length === 0 ? (
+      {pastMessages.length === 0 && agent.data.messages.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground">
           <DayanaAiLogo className="size-20" active={isBusy} />
           Pregúntame sobre contactos, inscripciones o sesiones de terapia.
@@ -386,6 +421,17 @@ export const AgentPanelSession = ({
       ) : (
         <Conversation className="min-h-0 flex-1">
           <ConversationContent className="mx-auto w-full max-w-2xl gap-6">
+            {/* Read-only history from before this mount — never live, so it
+                can't collide with this mount's own turn ids (see the
+                `pastMessages` comment above). */}
+            {pastMessages.map((message) => (
+              // Prefixed: eve numbers turns fresh per session, so a past
+              // message's id can collide with a live one from this mount's
+              // own (possibly brand-new) session — these are two separate
+              // arrays sharing one list visually, and React keys must be
+              // unique across all of it, not just within each map.
+              <AgentMessage key={`past-${message.id}`} message={message} isStreaming={false} isLastMessage={false} />
+            ))}
             {agent.data.messages.map((message, index) => (
               <AgentMessage
                 key={message.id}
