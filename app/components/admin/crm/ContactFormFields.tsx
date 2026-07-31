@@ -152,11 +152,11 @@ const ContactFormFields = ({
         )}
 
         <div className="space-y-1.5">
-          <Label htmlFor="cf-fn">Nombre *</Label>
+          <Label htmlFor="cf-fn">Nombre</Label>
           <Input
             id="cf-fn"
-            required
             className={aiCls("firstName")}
+            placeholder="Opcional · si no lo tienes aún, el contacto se muestra por su teléfono"
             value={values.firstName}
             onChange={(e) => onChange({ firstName: e.target.value })}
           />
