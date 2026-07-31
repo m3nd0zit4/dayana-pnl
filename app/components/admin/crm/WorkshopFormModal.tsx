@@ -126,9 +126,6 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   // modal is actually opened.
   const { products } = useActiveProducts(open);
   const workshopProducts = products.filter((p) => p.kind === "WORKSHOP");
-  const selectedProduct = workshopProducts.find((p) => p.id === productId);
-  const selectedProductHasCop =
-    selectedProduct?.prices.some((pr) => pr.currency === "COP" && pr.amountMinor > 0) ?? true;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editionLabel, setEditionLabel] = useState("");
@@ -143,6 +140,9 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState<WorkshopDocumentItem[]>([]);
+  const selectedProduct = workshopProducts.find((p) => p.id === productId);
+  const selectedProductHasCop =
+    selectedProduct?.prices.some((pr) => pr.currency === "COP" && pr.amountMinor > 0) ?? true;
 
   useEffect(() => {
     if (!open) return;
