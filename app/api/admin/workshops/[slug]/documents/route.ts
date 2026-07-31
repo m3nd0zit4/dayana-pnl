@@ -83,7 +83,8 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     });
 
     return NextResponse.json({ document });
-  } catch {
+  } catch (err) {
+    console.error("workshop document upload failed", err);
     return NextResponse.json({ error: "blob_upload_failed" }, { status: 500 });
   }
 }
