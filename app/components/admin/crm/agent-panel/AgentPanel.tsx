@@ -47,7 +47,7 @@ import {
 } from "./ai-elements/prompt-input";
 import { deleteThread, deriveTitle, getThread, listThreads, upsertThread, type AgentThread } from "./thread-store";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
-import { VoiceWave } from "./VoiceWave";
+import { VoiceBars } from "./VoiceBars";
 
 const newThreadId = () => crypto.randomUUID();
 
@@ -394,21 +394,34 @@ export const AgentPanelSession = ({
               active={isBusy}
             />
           </div>
-          {/* The textarea stays mounted (its `name="message"` field is what
-              PromptInput's form-data submit reads) but visually hidden while
-              recording, with the bars overlaid in its place — sr-only rather
-              than unmounting keeps that field participating in the form. */}
-          <div className="relative min-h-8 min-w-0 flex-1">
+          {/* InputGroup (the pill this all sits in) has a `has-[>textarea]:h-auto`
+              rule that only matches while the textarea is its DIRECT child —
+              that's what lets the pill grow for multi-line text. Wrapping it
+              unconditionally in a div (to anchor the recording-state bars
+              overlay) broke that selector and capped the pill at a fixed
+              height even while idle. Only wrap while actually recording,
+              when a fixed height is correct anyway (the field is sr-only —
+              still mounted so its `name="message"` value keeps participating
+              in PromptInput's form-data submit — and nothing should be
+              growing the pill while there's no visible text to grow it). */}
+          {stt.isRecording ? (
+            <div className="relative min-h-8 min-w-0 flex-1">
+              <PromptInputTextarea
+                disabled={isBusy}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="sr-only"
+              />
+              <VoiceBars bands={stt.bands} className="absolute inset-x-0 top-1/2 -translate-y-1/2" />
+            </div>
+          ) : (
             <PromptInputTextarea
               disabled={isBusy}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className={stt.isRecording ? "sr-only" : "min-h-0 max-h-32 py-1.5"}
+              className="min-h-0 max-h-32 py-1.5"
             />
-            {stt.isRecording && (
-              <VoiceWave volume={stt.volume} className="absolute inset-x-0 top-1/2 -translate-y-1/2" />
-            )}
-          </div>
+          )}
           <PromptInputTools className="shrink-0">
             {!stt.isRecording && (
               <PromptInputActionMenu>

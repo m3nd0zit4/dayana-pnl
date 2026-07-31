@@ -32,6 +32,11 @@ const MEDIA_ERROR_MESSAGES: Record<string, string> = {
   NotReadableError: "El micrófono está siendo usado por otra aplicación.",
 };
 
+// Matches the bar count LiveKit's Agents UI bar visualizer defaults to at
+// its non-icon/sm sizes (see agent-audio-visualizer-bar.tsx's `_barCount`).
+const BAND_COUNT = 5;
+const SILENT_BANDS = new Array<number>(BAND_COUNT).fill(0);
+
 
 /** `onTranscript` fires on every recognition event — interim and final alike —
  * with the full text spoken so far this session, so callers can render it live. */
@@ -40,10 +45,12 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Overall mic volume (0..1) for the recording-state waveform, resampled
-  // from the analyser on every animation frame. 0 whenever not recording, so
-  // callers can render it unconditionally.
-  const [volume, setVolume] = useState(0);
+  // Per-bar volume (0..1 each) for the recording-state bar visualizer,
+  // resampled from the analyser on every animation frame — one band per
+  // bar, same shape LiveKit's Agents UI bar visualizer expects from
+  // `useMultibandTrackVolume`. All-zero whenever not recording, so callers
+  // can render it unconditionally.
+  const [bands, setBands] = useState<number[]>(SILENT_BANDS);
   // Starts false to match SSR output exactly, then flips in an effect —
   // effects only run post-hydration, so this never disagrees with the
   // server-rendered HTML the way a `typeof window` branch in the initial
@@ -71,7 +78,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     streamRef.current = null;
     void audioCtxRef.current?.close();
     audioCtxRef.current = null;
-    setVolume(0);
+    setBands(SILENT_BANDS);
   }, []);
 
   const setLanguage = useCallback((next: SttLanguage) => {
@@ -167,27 +174,58 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
       return;
     }
 
-    // Sample the analyser's overall level on every frame. Guarded on still
+    // Sample the analyser's per-band level on every frame. Guarded on still
     // being the live recognition instance for the same reason the
     // recognition handlers are — a late frame from a stream that's already
-    // been torn down must not resurrect the waveform.
+    // been torn down must not resurrect the bars.
     const Ctx = window.AudioContext ?? window.webkitAudioContext;
     if (!Ctx) return;
     const audioCtx = new Ctx();
     audioCtxRef.current = audioCtx;
+    // Browsers' autoplay policy can hand back a `suspended` context even
+    // from a click handler — by this point we're past an `await` (the
+    // getUserMedia prompt above), which is enough for some engines to no
+    // longer treat this as inside the original user gesture. A suspended
+    // context still accepts `.connect()` calls without error, it just never
+    // processes audio — `getByteFrequencyData` silently reads all zeros
+    // forever, which is exactly "the bars never move" with no error to
+    // surface. Resuming explicitly is the documented fix.
+    void audioCtx.resume();
     const source = audioCtx.createMediaStreamSource(stream);
     const analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.6;
+    // Lower than the library default (0.8) so peaks aren't smeared out
+    // before they ever reach `setBands` — each bar's own CSS transition
+    // already smooths the visible motion, so oversmoothing here on top of
+    // that just flattened everything.
+    analyser.smoothingTimeConstant = 0.35;
     source.connect(analyser);
     const data = new Uint8Array(analyser.frequencyBinCount);
+    // Voice energy sits in the lower half of the spectrum (fundamentals +
+    // formants); bins above that are near-silent for speech and would
+    // starve whichever bars got mapped to them. Only that lower half gets
+    // split across the bars.
+    const voiceBandEnd = Math.floor(data.length * 0.5);
+    const bucketSize = Math.floor(voiceBandEnd / BAND_COUNT);
 
     const tick = () => {
       if (recognitionRef.current !== recognition) return;
       analyser.getByteFrequencyData(data);
-      let sum = 0;
-      for (let i = 0; i < data.length; i++) sum += data[i];
-      setVolume(Math.min(1, sum / data.length / 160));
+      const next = new Array<number>(BAND_COUNT);
+      for (let b = 0; b < BAND_COUNT; b++) {
+        let sum = 0;
+        const start = b * bucketSize;
+        for (let j = 0; j < bucketSize; j++) sum += data[start + j];
+        const raw = Math.min(1, sum / bucketSize / 100);
+        // A linear raw->bar mapping read as barely-there: normal speech
+        // rarely pushes a band past ~0.3, the flattest part of the range.
+        // Square-rooting is a cheap gamma correction that pulls quiet
+        // bands up disproportionately while still topping out at 1 for
+        // loud ones, so talking normally now swings the bars through most
+        // of their visible range instead of a sliver of it.
+        next[b] = raw > 0.02 ? Math.min(1, Math.sqrt(raw) * 1.6) : 0;
+      }
+      setBands(next);
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -200,5 +238,5 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
 
   useEffect(() => stop, [stop]);
 
-  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, stop, volume, error };
+  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, stop, bands, error };
 };

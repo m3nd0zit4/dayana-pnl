@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
-import { VoiceWave } from "./VoiceWave";
+import { VoiceBars } from "./VoiceBars";
 
 /**
  * Global floating "Ask anything" pill for mobile — the phone-width
@@ -73,7 +73,7 @@ const AgentAskPill = () => {
           />
         </div>
         {stt.isRecording ? (
-          <VoiceWave volume={stt.volume} className="px-1" />
+          <VoiceBars bands={stt.bands} className="px-1" />
         ) : (
           <Input
             value={value}
