@@ -32,6 +32,9 @@ const MEDIA_ERROR_MESSAGES: Record<string, string> = {
   NotReadableError: "El micrófono está siendo usado por otra aplicación.",
 };
 
+const BAR_COUNT = 24;
+const SILENT_LEVELS = new Array<number>(BAR_COUNT).fill(0);
+
 /** `onTranscript` fires on every recognition event — interim and final alike —
  * with the full text spoken so far this session, so callers can render it live. */
 export const useSpeechToText = (onTranscript: (text: string) => void) => {
@@ -39,6 +42,10 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Per-bar volume (0..1) for the recording-state waveform, resampled from the
+  // analyser on every animation frame. Silent (all-zero) whenever not
+  // recording, so callers can render it unconditionally.
+  const [levels, setLevels] = useState<number[]>(SILENT_LEVELS);
   // Starts false to match SSR output exactly, then flips in an effect —
   // effects only run post-hydration, so this never disagrees with the
   // server-rendered HTML the way a `typeof window` branch in the initial
@@ -53,6 +60,22 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     onTranscriptRef.current = onTranscript;
   });
 
+  // Web Speech API exposes no audio data of its own, so the volume bars run
+  // off a second, independent tap on the same microphone via Web Audio.
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  const stopAudioAnalysis = useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    void audioCtxRef.current?.close();
+    audioCtxRef.current = null;
+    setLevels(SILENT_LEVELS);
+  }, []);
+
   const setLanguage = useCallback((next: SttLanguage) => {
     setLanguageState(next);
     window.localStorage.setItem(STORAGE_KEY, next);
@@ -60,7 +83,8 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
 
   const stop = useCallback(() => {
     recognitionRef.current?.stop();
-  }, []);
+    stopAudioAnalysis();
+  }, [stopAudioAnalysis]);
 
   const start = useCallback(async () => {
     const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -79,11 +103,13 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     // SpeechRecognition.start() alone doesn't reliably surface the browser's
     // native mic permission prompt on every engine — requesting getUserMedia
     // first is the standard way to force that prompt when permission is still
-    // in its default "ask" state. We only need the prompt, not the stream.
+    // in its default "ask" state. Unlike before, the stream is kept open: the
+    // volume-bar visualizer taps it independently via Web Audio, since
+    // SpeechRecognition itself exposes no audio data.
     setIsRequesting(true);
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (err) {
       const name = err instanceof Error ? err.name : "";
       setError(MEDIA_ERROR_MESSAGES[name] ?? "No se pudo acceder al micrófono.");
@@ -91,6 +117,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
       return;
     }
     setIsRequesting(false);
+    streamRef.current = stream;
 
     const recognition = new Ctor();
     recognition.lang = language;
@@ -122,10 +149,12 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
       if (recognitionRef.current !== recognition) return;
       setError(ERROR_MESSAGES[event.error] ?? `Error de dictado: ${event.error}`);
       setIsRecording(false);
+      stopAudioAnalysis();
     };
     recognition.onend = () => {
       if (recognitionRef.current !== recognition) return;
       setIsRecording(false);
+      stopAudioAnalysis();
     };
 
     recognitionRef.current = recognition;
@@ -136,8 +165,41 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
       // start() throws InvalidStateError if a recognition session is already
       // active on this instance (e.g. a fast double-click) — nothing to recover.
       setIsRecording(false);
+      stopAudioAnalysis();
+      return;
     }
-  }, [language]);
+
+    // Resample the analyser into BAR_COUNT buckets on every frame. Guarded on
+    // still being the live recognition instance for the same reason the
+    // recognition handlers are — a late frame from a stream that's already
+    // been torn down must not resurrect the bars.
+    const Ctx = window.AudioContext ?? window.webkitAudioContext;
+    if (!Ctx) return;
+    const audioCtx = new Ctx();
+    audioCtxRef.current = audioCtx;
+    const source = audioCtx.createMediaStreamSource(stream);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.6;
+    source.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    const bucketSize = Math.floor(data.length / BAR_COUNT);
+
+    const tick = () => {
+      if (recognitionRef.current !== recognition) return;
+      analyser.getByteFrequencyData(data);
+      const next = new Array<number>(BAR_COUNT);
+      for (let i = 0; i < BAR_COUNT; i++) {
+        let sum = 0;
+        const start = i * bucketSize;
+        for (let j = 0; j < bucketSize; j++) sum += data[start + j];
+        next[i] = Math.min(1, sum / bucketSize / 160);
+      }
+      setLevels(next);
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  }, [language, stopAudioAnalysis]);
 
   const toggle = useCallback(() => {
     if (isRecording) stop();
@@ -146,5 +208,5 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
 
   useEffect(() => stop, [stop]);
 
-  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, error };
+  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, stop, levels, error };
 };

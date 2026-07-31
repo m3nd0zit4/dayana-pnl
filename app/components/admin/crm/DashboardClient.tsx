@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ChevronDown, Mic, Send, TrendingUp, TriangleAlert } from "lucide-react";
+import { Check, ChevronDown, Mic, Send, Square, TrendingUp, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DashboardStats } from "@/lib/crm/dashboard-stats";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
@@ -22,6 +22,7 @@ import { useCrm } from "./CrmProvider";
 import CrmPageShell from "./CrmPageShell";
 import PromoCard from "./PromoCard";
 import { STT_LANGUAGES, useSpeechToText } from "./agent-panel/use-speech-to-text";
+import { VoiceBars } from "./agent-panel/VoiceBars";
 
 const greeting = () => {
   const hour = new Date().getHours();
@@ -64,6 +65,10 @@ const HeroAskAgentBox = () => {
   if (!agentEnabled || agentPanelOpen || isMobile) return null;
 
   const submit = () => {
+    // Sending mid-recording is one of the two ways to end dictation (the
+    // other is the stop button) — the transcript captured so far is what
+    // gets sent, nothing more is awaited from the mic.
+    if (stt.isRecording) stt.stop();
     const message = value.trim();
     if (!message) return;
     askAgent(message);
@@ -90,12 +95,16 @@ const HeroAskAgentBox = () => {
             active={hovered}
           />
         </div>
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="Pregunta"
-          className="h-auto border-0 py-1.5 text-base shadow-none focus-visible:ring-0"
-        />
+        {stt.isRecording ? (
+          <VoiceBars levels={stt.levels} className="px-1" />
+        ) : (
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Pregunta"
+            className="h-auto border-0 py-1.5 text-base shadow-none focus-visible:ring-0"
+          />
+        )}
         {stt.isSupported && (
           <ButtonGroup className="shrink-0">
             <Button
@@ -104,29 +113,33 @@ const HeroAskAgentBox = () => {
               variant="ghost"
               className={cn("rounded-full", stt.isRecording && "animate-pulse text-destructive")}
               disabled={stt.isRequesting}
-              aria-label={stt.isRecording ? "Detener dictado" : "Dictar por voz"}
+              aria-label={stt.isRecording ? "Detener grabación" : "Dictar por voz"}
               onClick={handleMicToggle}
             >
-              <Mic className="size-4" />
+              {stt.isRecording ? <Square className="size-4 fill-current" /> : <Mic className="size-4" />}
             </Button>
-            <ButtonGroupSeparator />
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button type="button" size="icon" variant="ghost" className="rounded-full px-1" aria-label="Idioma del dictado">
-                    <ChevronDown className="size-3.5" />
-                  </Button>
-                }
-              />
-              <DropdownMenuContent align="start">
-                {STT_LANGUAGES.map((lang) => (
-                  <DropdownMenuItem key={lang.code} onClick={() => stt.setLanguage(lang.code)}>
-                    <span className="flex-1">{lang.label}</span>
-                    {stt.language === lang.code && <Check className="size-4" />}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {!stt.isRecording && (
+              <>
+                <ButtonGroupSeparator />
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button type="button" size="icon" variant="ghost" className="rounded-full px-1" aria-label="Idioma del dictado">
+                        <ChevronDown className="size-3.5" />
+                      </Button>
+                    }
+                  />
+                  <DropdownMenuContent align="start">
+                    {STT_LANGUAGES.map((lang) => (
+                      <DropdownMenuItem key={lang.code} onClick={() => stt.setLanguage(lang.code)}>
+                        <span className="flex-1">{lang.label}</span>
+                        {stt.language === lang.code && <Check className="size-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
           </ButtonGroup>
         )}
         <Button

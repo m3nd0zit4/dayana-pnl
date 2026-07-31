@@ -42,4 +42,7 @@ interface SpeechRecognition extends EventTarget {
 interface Window {
   SpeechRecognition?: new () => SpeechRecognition;
   webkitSpeechRecognition?: new () => SpeechRecognition;
+  // Safari still requires the webkit-prefixed constructor for the Web Audio
+  // API too, same as SpeechRecognition above.
+  webkitAudioContext?: typeof AudioContext;
 }

@@ -11,6 +11,7 @@ import {
   Mic,
   Paperclip,
   Send,
+  Square,
   SquarePen,
   Trash2,
   UserRound,
@@ -46,6 +47,7 @@ import {
 } from "./ai-elements/prompt-input";
 import { deleteThread, deriveTitle, getThread, listThreads, upsertThread, type AgentThread } from "./thread-store";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
+import { VoiceBars } from "./VoiceBars";
 
 const newThreadId = () => crypto.randomUUID();
 
@@ -282,6 +284,10 @@ export const AgentPanelSession = ({
   }, [seedMessage]);
 
   const handleSubmit = async (message: PromptInputMessage) => {
+    // Sending mid-recording is one of the two ways to end dictation (the
+    // other is the stop button) — the transcript captured so far is what
+    // gets sent, nothing more is awaited from the mic.
+    if (stt.isRecording) stt.stop();
     const text = message.text.trim();
     if ((text.length === 0 && message.files.length === 0) || isBusy) return;
 
@@ -388,21 +394,32 @@ export const AgentPanelSession = ({
               active={isBusy}
             />
           </div>
-          <PromptInputTextarea
-            disabled={isBusy}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="min-h-0 max-h-32 py-1.5"
-          />
+          {/* The textarea stays mounted (its `name="message"` field is what
+              PromptInput's form-data submit reads) but visually hidden while
+              recording, with the bars overlaid in its place — sr-only rather
+              than unmounting keeps that field participating in the form. */}
+          <div className="relative min-h-8 min-w-0 flex-1">
+            <PromptInputTextarea
+              disabled={isBusy}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className={stt.isRecording ? "sr-only" : "min-h-0 max-h-32 py-1.5"}
+            />
+            {stt.isRecording && (
+              <VoiceBars levels={stt.levels} className="absolute inset-x-0 top-1/2 -translate-y-1/2" />
+            )}
+          </div>
           <PromptInputTools className="shrink-0">
-            <PromptInputActionMenu>
-              <PromptInputActionMenuTrigger tooltip="Adjuntar / mencionar / skills">
-                <Paperclip className="size-4" />
-              </PromptInputActionMenuTrigger>
-              <PromptInputActionMenuContent>
-                <RootMenuContent onSelect={setSubPanel} />
-              </PromptInputActionMenuContent>
-            </PromptInputActionMenu>
+            {!stt.isRecording && (
+              <PromptInputActionMenu>
+                <PromptInputActionMenuTrigger tooltip="Adjuntar / mencionar / skills">
+                  <Paperclip className="size-4" />
+                </PromptInputActionMenuTrigger>
+                <PromptInputActionMenuContent>
+                  <RootMenuContent onSelect={setSubPanel} />
+                </PromptInputActionMenuContent>
+              </PromptInputActionMenu>
+            )}
             {stt.isSupported && (
               <ButtonGroup>
                 <PromptInputButton
@@ -414,38 +431,44 @@ export const AgentPanelSession = ({
                     (stt.isRequesting
                       ? "Solicitando permiso del micrófono…"
                       : stt.isRecording
-                        ? "Detener dictado"
+                        ? "Detener grabación"
                         : "Dictar por voz")
                   }
                   className={stt.isRecording ? "text-destructive animate-pulse" : undefined}
                   onClick={handleMicToggle}
                 >
-                  <Mic className="size-4" />
+                  {stt.isRecording ? <Square className="size-4 fill-current" /> : <Mic className="size-4" />}
                 </PromptInputButton>
-                <ButtonGroupSeparator />
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <PromptInputButton type="button" tooltip="Idioma del dictado" className="px-1">
-                        <ChevronDown className="size-3.5" />
-                      </PromptInputButton>
-                    }
-                  />
-                  <DropdownMenuContent align="start">
-                    {STT_LANGUAGES.map((lang) => (
-                      <DropdownMenuItem key={lang.code} onClick={() => stt.setLanguage(lang.code)}>
-                        <span className="flex-1">{lang.label}</span>
-                        {stt.language === lang.code && <Check className="size-4" />}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {!stt.isRecording && (
+                  <>
+                    <ButtonGroupSeparator />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        render={
+                          <PromptInputButton type="button" tooltip="Idioma del dictado" className="px-1">
+                            <ChevronDown className="size-3.5" />
+                          </PromptInputButton>
+                        }
+                      />
+                      <DropdownMenuContent align="start">
+                        {STT_LANGUAGES.map((lang) => (
+                          <DropdownMenuItem key={lang.code} onClick={() => stt.setLanguage(lang.code)}>
+                            <span className="flex-1">{lang.label}</span>
+                            {stt.language === lang.code && <Check className="size-4" />}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </>
+                )}
               </ButtonGroup>
             )}
           </PromptInputTools>
           {/* While a run is in flight this button IS the stop control, so it
               must stay clickable — gating it on `isBusy` (as it used to) left
-              a square "Detener" icon that never fired and no way to cancel. */}
+              a square "Detener" icon that never fired and no way to cancel.
+              While recording it's the other of the two ways to end dictation
+              (see handleSubmit) — sending whatever's been transcribed so far. */}
           <PromptInputSubmit
             status={agent.status}
             onStop={agent.stop}
