@@ -5,7 +5,7 @@ import type {
 } from "@prisma/client";
 import { prisma } from "../db";
 import { writeAuditLog } from "./audit";
-import { sendMetaMessage } from "../meta/send";
+import { sendMetaMessage, type SendAttachment } from "../meta/send";
 import { resolveWindow, explainWindow, type WindowState } from "../meta/window";
 
 /**
@@ -336,6 +336,7 @@ export type ReplyInput = {
     language: string;
     variables?: string[];
   } | null;
+  attachment?: SendAttachment | null;
 };
 
 /** Responde en un hilo. Deja rastro en el audit log como toda escritura del CRM. */
@@ -345,6 +346,7 @@ export const replyToConversation = async (input: ReplyInput) => {
     body: input.body,
     staffUserId: input.staffUserId,
     template: input.template,
+    attachment: input.attachment,
   });
 
   await writeAuditLog({
@@ -355,6 +357,7 @@ export const replyToConversation = async (input: ReplyInput) => {
     changes: {
       chars: input.body.length,
       template: input.template?.name ?? null,
+      attachment: input.attachment?.mimeType ?? null,
       dryRun: result.dryRun,
     },
   });

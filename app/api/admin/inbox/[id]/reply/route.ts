@@ -29,10 +29,21 @@ export const POST = async (req: Request, { params }: Params) => {
   const input = payload as {
     body?: string;
     template?: { name: string; language: string; variables?: string[] } | null;
+    attachment?: { url: string; mimeType: string; filename: string } | null;
   };
 
-  const text = input.body?.trim();
-  if (!text) {
+  const text = input.body?.trim() ?? "";
+  const attachment =
+    input.attachment &&
+    typeof input.attachment.url === "string" &&
+    typeof input.attachment.mimeType === "string" &&
+    typeof input.attachment.filename === "string"
+      ? input.attachment
+      : null;
+
+  // Free text always needs content, but an attachment carries its own —
+  // an empty caption is a normal way to send a plain file.
+  if (!text && !attachment) {
     return NextResponse.json({ error: "empty_message" }, { status: 400 });
   }
 
@@ -42,6 +53,7 @@ export const POST = async (req: Request, { params }: Params) => {
       body: text,
       staffUserId: staff.id,
       template: input.template ?? null,
+      attachment,
     });
     return NextResponse.json(result);
   } catch (e) {
