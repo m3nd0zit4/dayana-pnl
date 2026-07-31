@@ -107,6 +107,35 @@ export const graphPost = async <T>(
   return (await res.json()) as T;
 };
 
+/**
+ * POST multipart a la Graph API — subida de medios (WhatsApp `/media`,
+ * adjuntos binarios de Messenger/Instagram). Sin `Content-Type` manual: fetch
+ * lo fija con el boundary correcto a partir del `FormData`.
+ */
+export const graphPostForm = async <T>(
+  path: string,
+  form: FormData,
+  credentials: Pick<MetaCredentials, "token">
+): Promise<T> => {
+  const res = await fetch(`${GRAPH_HOST}/${META_GRAPH_VERSION}/${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${credentials.token}` },
+    body: form,
+  });
+
+  if (!res.ok) {
+    const { message, body } = await readGraphError(res);
+    throw new MetaApiError(message, {
+      status: res.status,
+      code: body.error?.code,
+      subcode: body.error?.error_subcode,
+      traceId: body.error?.fbtrace_id,
+    });
+  }
+
+  return (await res.json()) as T;
+};
+
 /** GET a la Graph API — perfiles de usuario y metadatos de adjuntos. */
 export const graphGet = async <T>(
   path: string,

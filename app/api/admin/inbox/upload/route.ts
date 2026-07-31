@@ -34,10 +34,12 @@ const MAX_BYTES: Record<string, number> = {
 /**
  * Sube un adjunto saliente a Blob para la bandeja de entrada.
  *
- * Igual que `rehostAttachment` en el sentido inverso: Meta pide un `link`
- * público para mandar medios (WhatsApp) o un `payload.url` (Messenger/
- * Instagram), así que el archivo tiene que vivir en una URL alcanzable antes
- * de llamar a la Graph API — no hay forma de mandar los bytes inline.
+ * `access: "private"` — este store está configurado sin acceso público (ver
+ * el mismo problema documentado en `AgentPanel.tsx` para los adjuntos del
+ * agente), y de todos modos Meta nunca alcanzaría una URL nuestra. El envío
+ * (`lib/meta/send.ts`) baja los bytes con el token del store y se los manda
+ * a la Graph API directo (`/media` de WhatsApp, adjunto binario en
+ * Messenger/Instagram) — nunca por `link`/`payload.url`.
  */
 export const POST = async (req: Request) => {
   if (!isMetaInboxEnabled()) {
@@ -65,7 +67,7 @@ export const POST = async (req: Request) => {
 
   try {
     const blob = await put(`inbox/outbound/${crypto.randomUUID()}.${extension}`, file, {
-      access: "public",
+      access: "private",
       contentType: file.type,
       addRandomSuffix: false,
     });

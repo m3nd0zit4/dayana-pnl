@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import {
   graphPost,
+  graphPostForm,
   MetaApiError,
   whatsAppCredentials,
   type MetaCredentials,
@@ -12,6 +13,7 @@ import {
   reportPageCredentialFailure,
   resolvePageCredentials,
 } from "./credentials";
+import { readOutboundAttachmentBytes } from "./media";
 import { resolveWindow, type WindowState } from "./window";
 
 /**
@@ -23,7 +25,9 @@ import { resolveWindow, type WindowState } from "./window";
  */
 
 export type SendAttachment = {
-  /** URL pública en Blob — Meta la descarga con `link`, no hace falta subirla aparte. */
+  /** URL del store privado de Blob — nunca se le pasa a Meta directamente
+   * (no la alcanzaría). El envío baja los bytes con nuestro propio token y
+   * se los sube a Meta él mismo. */
   url: string;
   mimeType: string;
   filename: string;
@@ -77,6 +81,28 @@ type GraphMessageResponse = {
 
 const readMessageId = (res: GraphMessageResponse): string | null =>
   res.messages?.[0]?.id ?? res.message_id ?? null;
+
+const fetchAttachmentBytes = async (attachment: SendAttachment): Promise<ArrayBuffer> => {
+  const downloaded = await readOutboundAttachmentBytes(attachment.url);
+  if (!downloaded) throw new MetaSendError("No se pudo leer el adjunto para enviarlo.");
+  return downloaded.buffer;
+};
+
+/** Sube los bytes al endpoint de medios de WhatsApp y devuelve el `media_id`
+ * que reemplaza a `link` en el mensaje — el store de Blob es privado, así
+ * que un `link` público nunca fue una opción real aquí. */
+const uploadWhatsAppMedia = async (
+  buffer: ArrayBuffer,
+  mimeType: string,
+  credentials: MetaCredentials
+): Promise<string> => {
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("file", new Blob([buffer], { type: mimeType }));
+  const res = await graphPostForm<{ id?: string }>(`${credentials.accountId}/media`, form, credentials);
+  if (!res.id) throw new MetaSendError("WhatsApp no devolvió un id de medio.");
+  return res.id;
+};
 
 const sendWhatsApp = async (
   conversation: Conversation,
@@ -132,6 +158,8 @@ const sendWhatsApp = async (
     // media type of the four that doesn't support one. The text isn't
     // dropped, just delivered as its own follow-up message below.
     const caption = kind !== "audio" && input.body ? input.body : undefined;
+    const bytes = await fetchAttachmentBytes(input.attachment);
+    const mediaId = await uploadWhatsAppMedia(bytes, input.attachment.mimeType, credentials);
     const res = await graphPost<GraphMessageResponse>(
       `${credentials.accountId}/messages`,
       {
@@ -140,7 +168,7 @@ const sendWhatsApp = async (
         to,
         type: kind,
         [kind]: {
-          link: input.attachment.url,
+          id: mediaId,
           ...(caption ? { caption } : {}),
           ...(kind === "document" ? { filename: input.attachment.filename } : {}),
         },
@@ -195,7 +223,7 @@ const sendViaPage = async (
     );
   }
 
-  const messagingFields = {
+  const messagingFields: { messaging_type: string; tag?: string } = {
     messaging_type:
       window.requirement === "human_agent" ? "MESSAGE_TAG" : "RESPONSE",
     // Amplía la ventana a 7 días; requiere la función Human Agent aprobada.
@@ -204,22 +232,24 @@ const sendViaPage = async (
 
   if (input.attachment) {
     const kind = mediaKindFor(input.attachment.mimeType);
-    const res = await graphPost<GraphMessageResponse>(
-      `${credentials.accountId}/messages`,
-      {
-        recipient: { id: conversation.externalThreadId },
-        // Messenger/Instagram's attachment payload has no caption field —
-        // any body text rides along as a second, separate message below.
-        message: {
-          attachment: {
-            type: kind === "document" ? "file" : kind,
-            payload: { url: input.attachment.url, is_reusable: true },
-          },
-        },
-        ...messagingFields,
-      },
-      credentials
+    const bytes = await fetchAttachmentBytes(input.attachment);
+    // Messenger/Instagram's attachment payload has no caption field — any
+    // body text rides along as a second, separate message below. No public
+    // URL either (private Blob store): the bytes travel as multipart
+    // `filedata`, same as WhatsApp's `/media` upload above.
+    const form = new FormData();
+    form.append("recipient", JSON.stringify({ id: conversation.externalThreadId }));
+    form.append(
+      "message",
+      JSON.stringify({
+        attachment: { type: kind === "document" ? "file" : kind, payload: { is_reusable: true } },
+      })
     );
+    form.append("messaging_type", messagingFields.messaging_type);
+    if (messagingFields.tag) form.append("tag", messagingFields.tag);
+    form.append("filedata", new Blob([bytes], { type: input.attachment.mimeType }), input.attachment.filename);
+
+    const res = await graphPostForm<GraphMessageResponse>(`${credentials.accountId}/messages`, form, credentials);
     const messageId = readMessageId(res);
 
     if (input.body) {
