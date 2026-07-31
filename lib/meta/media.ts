@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { get, put } from "@vercel/blob";
 import { isBlobConfigured } from "@/lib/storage/blob";
 import {
   graphFetchMedia,
@@ -6,6 +6,22 @@ import {
   type MetaCredentials,
 } from "./client";
 import type { NormalizedAttachment } from "./inbound";
+
+/**
+ * Baja del store privado los bytes de un adjunto saliente ya subido por
+ * `POST /api/admin/inbox/upload`. Contraparte de `rehostAttachment`: esa
+ * función baja de Meta y sube a Blob; esta baja de Blob para mandarlo a
+ * Meta — el store nunca es público, así que no hay `link`/`payload.url`
+ * posible en ningún sentido.
+ */
+export const readOutboundAttachmentBytes = async (
+  url: string
+): Promise<{ buffer: ArrayBuffer; contentType: string } | null> => {
+  const result = await get(url, { access: "private" });
+  if (!result || result.stream === null) return null;
+  const buffer = await new Response(result.stream).arrayBuffer();
+  return { buffer, contentType: result.blob.contentType ?? "application/octet-stream" };
+};
 
 export type StoredAttachment = {
   kind: string;
