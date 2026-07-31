@@ -1,4 +1,12 @@
 import type { Conversation, Prisma } from "@prisma/client";
+// Imported directly (not via `lib/storage/blob.ts`, which this whole module
+// tree is reachable from through `agent/tools/*` → `lib/crm/conversations.ts`
+// → here): that file pulls in `next/server` for its route-response helper,
+// and eve's own build process — unlike Next.js's bundler — can't resolve
+// that import (same class of bug already worked around in
+// `lib/auth/agent-channel-session.ts`, which documents it). `get()` alone
+// has no such dependency.
+import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import {
@@ -13,7 +21,6 @@ import {
   reportPageCredentialFailure,
   resolvePageCredentials,
 } from "./credentials";
-import { readOutboundAttachmentBytes } from "./media";
 import { resolveWindow, type WindowState } from "./window";
 
 /**
@@ -82,10 +89,15 @@ type GraphMessageResponse = {
 const readMessageId = (res: GraphMessageResponse): string | null =>
   res.messages?.[0]?.id ?? res.message_id ?? null;
 
+/** Baja del store privado los bytes de un adjunto saliente ya subido por
+ * `POST /api/admin/inbox/upload` — la contraparte de `rehostAttachment`
+ * (que baja de Meta y sube a Blob) en sentido inverso. */
 const fetchAttachmentBytes = async (attachment: SendAttachment): Promise<ArrayBuffer> => {
-  const downloaded = await readOutboundAttachmentBytes(attachment.url);
-  if (!downloaded) throw new MetaSendError("No se pudo leer el adjunto para enviarlo.");
-  return downloaded.buffer;
+  const result = await get(attachment.url, { access: "private" });
+  if (!result || result.stream === null) {
+    throw new MetaSendError("No se pudo leer el adjunto para enviarlo.");
+  }
+  return new Response(result.stream).arrayBuffer();
 };
 
 /** Sube los bytes al endpoint de medios de WhatsApp y devuelve el `media_id`
