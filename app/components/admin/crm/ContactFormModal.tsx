@@ -274,6 +274,7 @@ const ContactFormModal = ({ open, onClose, onSaved }: Props) => {
         <form className="space-y-4" onSubmit={submitService}>
           <p className="text-sm text-muted-foreground">
             Contacto creado. Puedes vincular un producto ahora o hacerlo después desde la ficha.
+            {!values.firstName.trim() && " Aún no tiene nombre — puedes agregarlo cuando lo sepas."}
           </p>
           {productGroups.length > 0 ? (
             <>

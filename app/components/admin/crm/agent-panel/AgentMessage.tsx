@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { EveDynamicToolPart, EveMessage, EveMessagePart } from "eve/react";
-import { ChevronDown, ChevronRight, Copy, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, FileIcon, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
@@ -131,6 +131,55 @@ const InputRequestPrompt = ({ part, isLastMessage }: { part: EveDynamicToolPart;
   );
 };
 
+const formatBytes = (size: number | undefined): string | undefined => {
+  if (size === undefined) return undefined;
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+/**
+ * A sent/received attachment — eve's own scaffold (`web-template.d.ts`'s
+ * default agent-message.tsx) renders these the same way: a thumbnail for
+ * images, a generic file chip otherwise. Without this the chat silently
+ * dropped every attachment from the transcript — the message still sent
+ * (and the model still saw it), there was just no `case "file"` here, so
+ * nothing showed the operator that a file had gone out at all.
+ */
+const AttachmentPart = ({ part }: { part: Extract<EveMessagePart, { type: "file" }> }) => {
+  const label = part.filename ?? "Adjunto";
+  const detail = [part.mediaType, formatBytes(part.size)].filter(Boolean).join(" · ");
+  const isImage = part.mediaType.startsWith("image/") && part.url !== undefined;
+
+  const body = (
+    <span className="flex max-w-sm items-center gap-3 rounded-md border border-border bg-background/60 p-2 text-sm">
+      {isImage ? (
+        // part.url is often a data: URI (inlined attachments never touch
+        // Blob storage, see AgentPanel.tsx's handleSubmit) — next/image
+        // can't optimize that, so a plain <img> is the right call here.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img alt={label} className="size-12 shrink-0 rounded-sm object-cover" src={part.url} />
+      ) : (
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-muted text-muted-foreground">
+          <FileIcon className="size-4" />
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{label}</span>
+        {detail && <span className="block truncate text-muted-foreground">{detail}</span>}
+      </span>
+    </span>
+  );
+
+  return part.url ? (
+    <a href={part.url} target="_blank" rel="noreferrer" download={part.filename}>
+      {body}
+    </a>
+  ) : (
+    body
+  );
+};
+
 const AgentMessagePart = ({
   part,
   showCaret,
@@ -173,6 +222,8 @@ const AgentMessagePart = ({
           <ReasoningContent>{part.text}</ReasoningContent>
         </Reasoning>
       );
+    case "file":
+      return <AttachmentPart part={part} />;
     case "dynamic-tool":
       if (part.state === "approval-requested" || part.state === "approval-responded") {
         return <InputRequestPrompt part={part} isLastMessage={isLastMessage} />;

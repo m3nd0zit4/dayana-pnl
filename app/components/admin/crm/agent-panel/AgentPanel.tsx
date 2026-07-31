@@ -297,6 +297,26 @@ export const AgentPanelSession = ({
     // which is why the box kept showing the sent text. Clear it ourselves.
     setInput("");
 
+    // A failed turn leaves the underlying eve session dead — eve's own store
+    // never clears its accumulated events on that failure, and the *next*
+    // send silently lands on a brand-new session whose turn numbering
+    // restarts at turn_0. Since eve keys messages by turn id alone (not
+    // session-scoped), that new turn_0 response collides with the old
+    // failed turn_0's message id and gets merged into it — the failed
+    // exchange's bubble "eats" the retry's real answer. The failed exchange
+    // is already persisted to thread history (onFinish already ran for it),
+    // so it's safe to clear the live view before retrying — that's what
+    // stops the collision, since there's nothing left with a matching id.
+    if (agent.status === "error") {
+      agent.reset();
+      // The failed exchange already derived a title from itself (onFinish
+      // ran for it too) — without resetting this back, the fresh
+      // conversation the reset just started would keep showing that stale
+      // title instead of deriving its own from whatever comes next.
+      titleRef.current = "Nueva conversación";
+      onTitleChange(titleRef.current);
+    }
+
     // PromptInput deliberately keeps the composer intact when onSubmit throws
     // ("user may want to retry"), but that only covers the uncontrolled DOM
     // value — clearing our own state above defeated it, so a send that failed
@@ -308,10 +328,35 @@ export const AgentPanelSession = ({
         return;
       }
 
+      // `file.url` here is a `URL.createObjectURL(file)` blob: URL — only
+      // ever valid inside this tab (see PromptInput's attachments context),
+      // so sending it straight to the model meant the server received a URL
+      // it could never fetch: every file attachment failed silently.
+      // Uploading to Blob first (tried initially) doesn't fix it either —
+      // this project's store is configured private-access-only ("Cannot use
+      // public access on a private store"), and even a private blob isn't
+      // fetchable by Gemini regardless, since generateContent only accepts
+      // inline base64 or a URI from Gemini's own upload API, never an
+      // arbitrary authenticated URL. Inlining as a data: URI sidesteps all
+      // of that — no upload, no fetch, the bytes just travel in the request
+      // body, exactly the `inline_data` shape Gemini already wants.
+      const inlined = await Promise.all(
+        message.files.map(async (file) => {
+          const blob = await fetch(file.url).then((r) => r.blob());
+          const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(new Error(`No se pudo leer "${file.filename}".`));
+            reader.readAsDataURL(blob);
+          });
+          return { ...file, url: dataUrl };
+        })
+      );
+
       const parts: UserContent = [];
       if (text.length > 0) parts.push({ type: "text", text });
-      for (const file of message.files) {
-        parts.push({ type: "file", data: file.url ?? "", filename: file.filename, mediaType: file.mediaType });
+      for (const file of inlined) {
+        parts.push({ type: "file", data: file.url, filename: file.filename, mediaType: file.mediaType });
       }
       await agent.send({ message: parts });
     } catch (err) {

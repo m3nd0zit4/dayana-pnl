@@ -31,7 +31,10 @@ export type UpsertContactInput = {
   notes?: string;
 };
 
-const DEFAULT_CHECKOUT_FIRST_NAME = "Cliente";
+// A handful of legacy contacts (created before name became genuinely
+// optional) have this literal string stored as their firstName — kept only
+// so enrichContactFromPayer below still recognizes them as nameless.
+const LEGACY_GENERIC_FIRST_NAMES = new Set(["Cliente", "Pendiente"]);
 
 function buildDisplayName(
   firstName: string,
@@ -39,7 +42,11 @@ function buildDisplayName(
   phoneE164: string
 ): string {
   if (lastName) return `${firstName} ${lastName}`;
-  if (firstName !== DEFAULT_CHECKOUT_FIRST_NAME) return firstName;
+  // A contact with no real name has its phone number as firstName (see the
+  // create branch below) — this is a no-op in that case, since firstName
+  // already equals phoneE164, kept only as a safety net for legacy rows
+  // still holding the old "Cliente" placeholder.
+  if (firstName) return firstName;
   return phoneE164;
 }
 
@@ -179,7 +186,17 @@ export const upsertContactByPhone = async (
   });
 
   if (!existing) {
-    const firstName = firstNameTrim || DEFAULT_CHECKOUT_FIRST_NAME;
+    // firstName is NOT NULL at the DB level but genuinely optional at every
+    // layer above it (many real contacts start as "we have the number, not
+    // the name" — a WhatsApp lead, a walk-in). Falling back to a fixed
+    // placeholder like "Cliente" would make every nameless contact render
+    // identically across the CRM (contact lists, enrollment views, the
+    // agent panel, etc. — most render `firstName` directly, not
+    // `displayName`), so two different nameless people would be
+    // indistinguishable. The phone number is already how buildDisplayName
+    // represents a nameless contact, so using it as firstName itself makes
+    // every one of those existing call sites correct for free.
+    const firstName = firstNameTrim || normalized.phoneE164;
     const contact = await prisma.contact.create({
       data: {
         phoneE164: normalized.phoneE164,
@@ -218,12 +235,6 @@ export const upsertContactByPhone = async (
   return { contact, phone: normalized, created: false };
 };
 
-const GENERIC_CONTACT_NAMES = new Set([
-  DEFAULT_CHECKOUT_FIRST_NAME,
-  "Pendiente",
-  "Cliente",
-]);
-
 /** Fill missing email or generic name from payment provider payer data. */
 export const enrichContactFromPayer = async (
   contactId: string,
@@ -240,7 +251,12 @@ export const enrichContactFromPayer = async (
 
   const firstNameTrim = input.firstName?.trim();
   const lastNameTrim = input.lastName?.trim();
-  const nameIsGeneric = GENERIC_CONTACT_NAMES.has(contact.firstName);
+  // A nameless contact has its own phone number as firstName (see the
+  // create branch above) — that, or one of the old fixed placeholder
+  // strings a legacy row might still carry, both mean "no real name yet."
+  const nameIsGeneric =
+    contact.firstName === contact.phoneE164 ||
+    LEGACY_GENERIC_FIRST_NAMES.has(contact.firstName);
 
   if (firstNameTrim && nameIsGeneric) {
     update.firstName = firstNameTrim;
