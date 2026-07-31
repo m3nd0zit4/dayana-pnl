@@ -434,7 +434,7 @@ export const AgentPanelSession = ({
                         ? "Detener grabación"
                         : "Dictar por voz")
                   }
-                  className={stt.isRecording ? "text-destructive animate-pulse" : undefined}
+                  className={stt.isRecording ? "text-destructive" : undefined}
                   onClick={handleMicToggle}
                 >
                   {stt.isRecording ? <Square className="size-4 fill-current" /> : <Mic className="size-4" />}

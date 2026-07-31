@@ -88,7 +88,7 @@ const AgentAskPill = () => {
               type="button"
               size="icon"
               variant="ghost"
-              className={cn("rounded-full", stt.isRecording && "animate-pulse text-destructive")}
+              className={cn("rounded-full", stt.isRecording && "text-destructive")}
               disabled={stt.isRequesting}
               aria-label={stt.isRecording ? "Detener grabación" : "Dictar por voz"}
               onClick={handleMicToggle}

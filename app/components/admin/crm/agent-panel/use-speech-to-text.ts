@@ -32,7 +32,7 @@ const MEDIA_ERROR_MESSAGES: Record<string, string> = {
   NotReadableError: "El micrófono está siendo usado por otra aplicación.",
 };
 
-const BAR_COUNT = 24;
+const BAR_COUNT = 5;
 const SILENT_LEVELS = new Array<number>(BAR_COUNT).fill(0);
 
 /** `onTranscript` fires on every recognition event — interim and final alike —
