@@ -47,7 +47,7 @@ import {
 } from "./ai-elements/prompt-input";
 import { deleteThread, deriveTitle, getThread, listThreads, upsertThread, type AgentThread } from "./thread-store";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
-import { VoiceBars } from "./VoiceBars";
+import { VoiceWave } from "./VoiceWave";
 
 const newThreadId = () => crypto.randomUUID();
 
@@ -406,7 +406,7 @@ export const AgentPanelSession = ({
               className={stt.isRecording ? "sr-only" : "min-h-0 max-h-32 py-1.5"}
             />
             {stt.isRecording && (
-              <VoiceBars levels={stt.levels} className="absolute inset-x-0 top-1/2 -translate-y-1/2" />
+              <VoiceWave volume={stt.volume} className="absolute inset-x-0 top-1/2 -translate-y-1/2" />
             )}
           </div>
           <PromptInputTools className="shrink-0">

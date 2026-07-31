@@ -22,7 +22,7 @@ import { useCrm } from "./CrmProvider";
 import CrmPageShell from "./CrmPageShell";
 import PromoCard from "./PromoCard";
 import { STT_LANGUAGES, useSpeechToText } from "./agent-panel/use-speech-to-text";
-import { VoiceBars } from "./agent-panel/VoiceBars";
+import { VoiceWave } from "./agent-panel/VoiceWave";
 
 const greeting = () => {
   const hour = new Date().getHours();
@@ -96,7 +96,7 @@ const HeroAskAgentBox = () => {
           />
         </div>
         {stt.isRecording ? (
-          <VoiceBars levels={stt.levels} className="px-1" />
+          <VoiceWave volume={stt.volume} className="px-1" />
         ) : (
           <Input
             value={value}

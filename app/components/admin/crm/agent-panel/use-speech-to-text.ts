@@ -32,8 +32,6 @@ const MEDIA_ERROR_MESSAGES: Record<string, string> = {
   NotReadableError: "El micrófono está siendo usado por otra aplicación.",
 };
 
-const BAR_COUNT = 5;
-const SILENT_LEVELS = new Array<number>(BAR_COUNT).fill(0);
 
 /** `onTranscript` fires on every recognition event — interim and final alike —
  * with the full text spoken so far this session, so callers can render it live. */
@@ -42,10 +40,10 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Per-bar volume (0..1) for the recording-state waveform, resampled from the
-  // analyser on every animation frame. Silent (all-zero) whenever not
-  // recording, so callers can render it unconditionally.
-  const [levels, setLevels] = useState<number[]>(SILENT_LEVELS);
+  // Overall mic volume (0..1) for the recording-state waveform, resampled
+  // from the analyser on every animation frame. 0 whenever not recording, so
+  // callers can render it unconditionally.
+  const [volume, setVolume] = useState(0);
   // Starts false to match SSR output exactly, then flips in an effect —
   // effects only run post-hydration, so this never disagrees with the
   // server-rendered HTML the way a `typeof window` branch in the initial
@@ -73,7 +71,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     streamRef.current = null;
     void audioCtxRef.current?.close();
     audioCtxRef.current = null;
-    setLevels(SILENT_LEVELS);
+    setVolume(0);
   }, []);
 
   const setLanguage = useCallback((next: SttLanguage) => {
@@ -169,10 +167,10 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
       return;
     }
 
-    // Resample the analyser into BAR_COUNT buckets on every frame. Guarded on
-    // still being the live recognition instance for the same reason the
+    // Sample the analyser's overall level on every frame. Guarded on still
+    // being the live recognition instance for the same reason the
     // recognition handlers are — a late frame from a stream that's already
-    // been torn down must not resurrect the bars.
+    // been torn down must not resurrect the waveform.
     const Ctx = window.AudioContext ?? window.webkitAudioContext;
     if (!Ctx) return;
     const audioCtx = new Ctx();
@@ -183,19 +181,13 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     analyser.smoothingTimeConstant = 0.6;
     source.connect(analyser);
     const data = new Uint8Array(analyser.frequencyBinCount);
-    const bucketSize = Math.floor(data.length / BAR_COUNT);
 
     const tick = () => {
       if (recognitionRef.current !== recognition) return;
       analyser.getByteFrequencyData(data);
-      const next = new Array<number>(BAR_COUNT);
-      for (let i = 0; i < BAR_COUNT; i++) {
-        let sum = 0;
-        const start = i * bucketSize;
-        for (let j = 0; j < bucketSize; j++) sum += data[start + j];
-        next[i] = Math.min(1, sum / bucketSize / 160);
-      }
-      setLevels(next);
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+      setVolume(Math.min(1, sum / data.length / 160));
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -208,5 +200,5 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
 
   useEffect(() => stop, [stop]);
 
-  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, stop, levels, error };
+  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, stop, volume, error };
 };
