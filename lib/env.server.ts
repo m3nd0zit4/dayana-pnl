@@ -53,7 +53,7 @@ const productionSchema = z
       .optional()
       .refine((v) => v !== "true", "CRM_UI_PREVIEW must not be true in production"),
     CRM_AGENT_ENABLED: z.string().optional(),
-    NVIDIA_API_KEY: z.string().optional(),
+    GEMINI_API_KEY: z.string().optional(),
     // Loopback-based auth bypass for the eve channel — local dev only.
     CRM_AGENT_LOCAL_DEV_AUTH: z
       .string()
@@ -72,8 +72,8 @@ const productionSchema = z
   .refine(
     (env) =>
       env.CRM_AGENT_ENABLED !== "true" ||
-      (env.NVIDIA_API_KEY?.trim().length ?? 0) > 0,
-    "CRM_AGENT_ENABLED=true requires a non-empty NVIDIA_API_KEY"
+      (env.GEMINI_API_KEY?.trim().length ?? 0) > 0,
+    "CRM_AGENT_ENABLED=true requires a non-empty GEMINI_API_KEY"
   );
 
 let validated = false;

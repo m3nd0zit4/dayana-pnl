@@ -230,7 +230,7 @@ export const getIntegrationHealth = (
         ? "Asistente habilitado (CRM_AGENT_ENABLED)."
         : "Apagado: CRM_AGENT_ENABLED no es \"true\".",
       canTest: false,
-      requiredEnv: ["CRM_AGENT_ENABLED", "NVIDIA_API_KEY"],
+      requiredEnv: ["CRM_AGENT_ENABLED", "GEMINI_API_KEY"],
       enables:
         "El chat del panel: consultar el CRM, redactar mensajes y ejecutar acciones con tu aprobación.",
     },

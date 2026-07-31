@@ -1,10 +1,10 @@
 import {
   siFacebook,
   siGoogle,
+  siGooglegemini,
   siInstagram,
   siMeta,
   siNeon,
-  siNvidia,
   siPaypal,
   siResend,
   siTiktok,
@@ -33,9 +33,8 @@ export type BrandVisual =
  * Marcas reales de `simple-icons` para las filas cuyo id no depende de nada
  * más (a diferencia de "email", que se resuelve aparte según el proveedor
  * activo). `redis` usa el ícono de Upstash porque es quien lo aloja, no
- * Redis Labs; `database` usa el de Neon por lo mismo; `agent` usa NVIDIA
- * porque es el proveedor del modelo que corre detrás del asistente
- * (`NVIDIA_API_KEY`, servido vía NIM en integrate.api.nvidia.com).
+ * Redis Labs; `database` usa el de Neon por lo mismo; `agent` usa Gemini
+ * porque es el modelo que corre detrás del asistente (`GEMINI_API_KEY`).
  */
 const BRAND_BY_ID: Record<string, BrandVisual> = {
   whatsapp: { kind: "icon", hex: siWhatsapp.hex, path: siWhatsapp.path, title: siWhatsapp.title },
@@ -43,9 +42,9 @@ const BRAND_BY_ID: Record<string, BrandVisual> = {
   database: { kind: "icon", hex: siNeon.hex, path: siNeon.path, title: siNeon.title },
   agent: {
     kind: "icon",
-    hex: siNvidia.hex,
-    path: siNvidia.path,
-    title: siNvidia.title,
+    hex: siGooglegemini.hex,
+    path: siGooglegemini.path,
+    title: siGooglegemini.title,
   },
   google: { kind: "icon", hex: siGoogle.hex, path: siGoogle.path, title: siGoogle.title },
   paypal: { kind: "icon", hex: siPaypal.hex, path: siPaypal.path, title: siPaypal.title },
