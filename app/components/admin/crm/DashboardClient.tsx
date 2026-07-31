@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ChevronDown, Mic, Send, Square, TrendingUp, TriangleAlert } from "lucide-react";
+import { Check, ChevronDown, Mic, Paperclip, Send, Square, TrendingUp, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DashboardStats } from "@/lib/crm/dashboard-stats";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
@@ -48,6 +48,8 @@ const HeroAskAgentBox = () => {
   const isMobile = useIsMobile();
   const [value, setValue] = useState("");
   const [hovered, setHovered] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Text already in the box when dictation starts — onTranscript reports the
   // full session transcript on every event (interim included), so it must
   // replace what dictation itself has produced so far, not append to it.
@@ -58,6 +60,11 @@ const HeroAskAgentBox = () => {
   const handleMicToggle = () => {
     if (!stt.isRecording) dictationBaseRef.current = value;
     stt.toggle();
+  };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (picked.length > 0) setFiles((prev) => [...prev, ...picked]);
   };
 
   // Never show two live composers at once — the side panel has its own,
@@ -70,13 +77,35 @@ const HeroAskAgentBox = () => {
     // gets sent, nothing more is awaited from the mic.
     if (stt.isRecording) stt.stop();
     const message = value.trim();
-    if (!message) return;
-    askAgent(message);
+    if (!message && files.length === 0) return;
+    askAgent(message, files.length > 0 ? files : undefined);
     setValue("");
+    setFiles([]);
   };
 
   return (
     <div className="w-full">
+      {files.length > 0 && (
+        <div className="mb-2 flex flex-wrap justify-center gap-1.5">
+          {files.map((file, i) => (
+            <span
+              key={`${file.name}-${i}`}
+              className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs"
+            >
+              <Paperclip className="size-3" aria-hidden />
+              <span className="max-w-40 truncate">{file.name}</span>
+              <button
+                type="button"
+                aria-label={`Quitar ${file.name}`}
+                onClick={() => setFiles((prev) => prev.filter((_, j) => j !== i))}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <X className="size-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -104,6 +133,27 @@ const HeroAskAgentBox = () => {
             placeholder="Pregunta"
             className="h-auto border-0 py-1.5 text-base shadow-none focus-visible:ring-0"
           />
+        )}
+        {!stt.isRecording && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="shrink-0 rounded-full"
+              aria-label="Adjuntar archivo"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="size-4" />
+            </Button>
+          </>
         )}
         {stt.isSupported && (
           <ButtonGroup className="shrink-0">
@@ -147,7 +197,7 @@ const HeroAskAgentBox = () => {
           size="icon"
           variant="ghost"
           className="shrink-0 rounded-full"
-          disabled={!value.trim()}
+          disabled={!value.trim() && files.length === 0}
           aria-label="Preguntar"
         >
           <Send className="size-4" />

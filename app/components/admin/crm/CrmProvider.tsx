@@ -29,7 +29,9 @@ export type ToastOptions = {
 };
 
 /** What the agent panel should do the next time it (re)mounts a session. */
-export type PendingAgentAction = { type: "message"; value: string } | { type: "thread"; value: string };
+export type PendingAgentAction =
+  | { type: "message"; value: string; files?: File[] }
+  | { type: "thread"; value: string };
 
 type CrmContextValue = {
   role: StaffRole | "PREVIEW";
@@ -55,7 +57,7 @@ type CrmContextValue = {
   pendingAgentAction: PendingAgentAction | null;
   clearPendingAgentAction: () => void;
   /** Abre el panel del agente y envía este mensaje en una conversación nueva. */
-  askAgent: (message: string) => void;
+  askAgent: (message: string, files?: File[]) => void;
   /** Abre el panel del agente sobre un hilo existente (p.ej. desde la lista del sidebar). */
   openAgentThread: (threadId: string) => void;
   focusMode: boolean;
@@ -126,8 +128,8 @@ const CrmProvider = ({
   const [agentPanelExpanded, setAgentPanelExpanded] = useState(false);
   const [pendingAgentAction, setPendingAgentAction] = useState<PendingAgentAction | null>(null);
 
-  const askAgent = useCallback((message: string) => {
-    setPendingAgentAction({ type: "message", value: message });
+  const askAgent = useCallback((message: string, files?: File[]) => {
+    setPendingAgentAction({ type: "message", value: message, files });
     setAgentPanelOpen(true);
   }, []);
 

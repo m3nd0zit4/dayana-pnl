@@ -23,6 +23,7 @@ type Props = {
   onThreadsMenuOpen: () => void;
   threadId: string;
   seed: string | undefined;
+  seedFiles?: File[];
   onTitleChange: (title: string) => void;
   onNewThread: () => void;
   onSwitchThread: (thread: AgentThread) => void;
@@ -43,6 +44,7 @@ const AgentPanelMobile = ({
   onThreadsMenuOpen,
   threadId,
   seed,
+  seedFiles,
   onTitleChange,
   onNewThread,
   onSwitchThread,
@@ -118,7 +120,13 @@ const AgentPanelMobile = ({
         </DrawerHeader>
 
         {open && (
-          <AgentPanelSession key={threadId} threadId={threadId} seedMessage={seed} onTitleChange={onTitleChange} />
+          <AgentPanelSession
+            key={threadId}
+            threadId={threadId}
+            seedMessage={seed}
+            seedFiles={seedFiles}
+            onTitleChange={onTitleChange}
+          />
         )}
       </DrawerContent>
     </Drawer>

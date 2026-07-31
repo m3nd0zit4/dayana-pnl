@@ -52,6 +52,18 @@ import { VoiceBars } from "./VoiceBars";
 
 const newThreadId = () => crypto.randomUUID();
 
+/** Gemini's `generateContent` only accepts inline base64 or its own upload
+ * URI, never an arbitrary URL — so every file this panel sends, whatever its
+ * source (a `PromptInput` blob: URL, a raw `File` from the dashboard's
+ * lighter ask-boxes), ends up inlined as a data: URI before it travels. */
+const fileToDataUrl = (file: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.readAsDataURL(file);
+  });
+
 const SKILLS = [
   {
     id: "stale-checkout-review",
@@ -182,10 +194,12 @@ const SubPanelContent = ({
 export const AgentPanelSession = ({
   threadId,
   seedMessage,
+  seedFiles,
   onTitleChange,
 }: {
   threadId: string;
   seedMessage?: string;
+  seedFiles?: File[];
   onTitleChange: (title: string) => void;
 }) => {
   const existing = useMemo(() => getThread(threadId), [threadId]);
@@ -312,11 +326,23 @@ export const AgentPanelSession = ({
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
 
   useEffect(() => {
-    if (sentSeedRef.current || !seedMessage) return;
+    if (sentSeedRef.current || (!seedMessage && !seedFiles?.length)) return;
     sentSeedRef.current = true;
-    void agent.send({ message: seedMessage });
+    if (!seedFiles?.length) {
+      void agent.send({ message: seedMessage ?? "" });
+      return;
+    }
+    void (async () => {
+      const parts: UserContent = [];
+      if (seedMessage) parts.push({ type: "text", text: seedMessage });
+      for (const file of seedFiles) {
+        const dataUrl = await fileToDataUrl(file);
+        parts.push({ type: "file", data: dataUrl, filename: file.name, mediaType: file.type });
+      }
+      await agent.send({ message: parts });
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seedMessage]);
+  }, [seedMessage, seedFiles]);
 
   const handleSubmit = async (message: PromptInputMessage) => {
     // Sending mid-recording is one of the two ways to end dictation (the
@@ -378,12 +404,7 @@ export const AgentPanelSession = ({
       const inlined = await Promise.all(
         message.files.map(async (file) => {
           const blob = await fetch(file.url).then((r) => r.blob());
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(new Error(`No se pudo leer "${file.filename}".`));
-            reader.readAsDataURL(blob);
-          });
+          const dataUrl = await fileToDataUrl(blob);
           return { ...file, url: dataUrl };
         })
       );
@@ -600,6 +621,7 @@ const AgentPanel = () => {
   const [title, setTitle] = useState("Nueva conversación");
   const [threads, setThreads] = useState<AgentThread[]>([]);
   const [seed, setSeed] = useState<string | undefined>(undefined);
+  const [seedFiles, setSeedFiles] = useState<File[] | undefined>(undefined);
   // Tracks the last pendingAgentAction object already applied — comparing it
   // against the current one from CrmProvider lets us adjust local state
   // directly during render (React's documented pattern for "adjust state
@@ -615,10 +637,12 @@ const AgentPanel = () => {
       setThreadId(newThreadId());
       setTitle("Nueva conversación");
       setSeed(pendingAgentAction.value);
+      setSeedFiles(pendingAgentAction.files);
     } else {
       setThreadId(pendingAgentAction.value);
       setTitle(getThread(pendingAgentAction.value)?.title ?? "Conversación");
       setSeed(undefined);
+      setSeedFiles(undefined);
     }
   }
 
@@ -636,12 +660,14 @@ const AgentPanel = () => {
     setThreadId(newThreadId());
     setTitle("Nueva conversación");
     setSeed(undefined);
+    setSeedFiles(undefined);
   };
 
   const switchThread = (thread: AgentThread) => {
     setThreadId(thread.id);
     setTitle(thread.title);
     setSeed(undefined);
+    setSeedFiles(undefined);
   };
 
   const handleDeleteThread = (id: string) => {
@@ -660,6 +686,7 @@ const AgentPanel = () => {
         onThreadsMenuOpen={() => setThreads(listThreads())}
         threadId={threadId}
         seed={seed}
+        seedFiles={seedFiles}
         onTitleChange={setTitle}
         onNewThread={startNewThread}
         onSwitchThread={switchThread}
@@ -735,7 +762,13 @@ const AgentPanel = () => {
         </Button>
       </header>
 
-      <AgentPanelSession key={threadId} threadId={threadId} seedMessage={seed} onTitleChange={setTitle} />
+      <AgentPanelSession
+        key={threadId}
+        threadId={threadId}
+        seedMessage={seed}
+        seedFiles={seedFiles}
+        onTitleChange={setTitle}
+      />
     </aside>
   );
 };
