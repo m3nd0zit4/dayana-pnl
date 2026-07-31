@@ -17,7 +17,7 @@ export const buildWhatsAppUrl = (message: string): string => {
 export const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@dayanapnl",
   instagram: "https://www.instagram.com/dayana.pnl",
-  youtube: "https://www.youtube.com/@dianabeltranpnl",
+  youtube: "https://www.youtube.com/@dayanabeltranpnl",
   email: "mailto:contacto@dayanabeltran.com",
 } as const;
 

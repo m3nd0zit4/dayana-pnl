@@ -45,6 +45,13 @@ export const createProduct = async (input: {
     throw new Error("THERAPY_REQUIRES_SESSIONS");
   }
 
+  if (
+    input.kind === ProductKind.WORKSHOP &&
+    !(input.amountCop != null && input.amountCop > 0)
+  ) {
+    throw new Error("WORKSHOP_REQUIRES_COP");
+  }
+
   const maxOrder = await prisma.product.aggregate({ _max: { sortOrder: true } });
   const sortOrder = input.sortOrder ?? (maxOrder._max.sortOrder ?? 0) + 1;
 
@@ -114,6 +121,14 @@ export const updateProduct = async (
     input.sessionsCount !== undefined ? input.sessionsCount : existing.sessionsCount;
   if (nextKind === ProductKind.THERAPY && (!nextSessions || nextSessions < 1)) {
     throw new Error("THERAPY_REQUIRES_SESSIONS");
+  }
+
+  const nextAmountCop =
+    input.amountCop !== undefined
+      ? input.amountCop
+      : existing.prices.find((p) => p.currency === "COP")?.amountMinor ?? null;
+  if (nextKind === ProductKind.WORKSHOP && !(nextAmountCop != null && nextAmountCop > 0)) {
+    throw new Error("WORKSHOP_REQUIRES_COP");
   }
 
   await prisma.product.update({

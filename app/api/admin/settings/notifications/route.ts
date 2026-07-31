@@ -41,6 +41,8 @@ const patchSchema = z
       .optional(),
     disabledEventTypes: z.array(z.enum(EVENT_TYPES)).max(EVENT_TYPES.length).optional(),
     staffAlertInbox: z.union([z.email(), z.literal("")]).nullable().optional(),
+    enabledOverride: z.boolean().nullable().optional(),
+    dryRunOverride: z.boolean().nullable().optional(),
   })
   .refine(
     (value) => Object.keys(value).length > 0,

@@ -98,6 +98,8 @@ const Tile = ({
         <img
           src={`https://i.ytimg.com/vi/${t.youtubeId}/hqdefault.jpg`}
           alt={`Testimonio de ${t.name}`}
+          width={480}
+          height={360}
           className="h-full w-full object-cover grayscale-[0.35] transition-all duration-700 ease-out group-hover:grayscale-0"
           loading="lazy"
           decoding="async"
@@ -287,6 +289,8 @@ const TestimonialsSection = () => {
             <img
               src="/dayana-photos/opt/IMG_4009-900.webp"
               alt="Dayana Beltrán"
+              width={900}
+              height={1200}
               className="absolute inset-0 h-full w-full object-cover object-top opacity-95 mix-blend-luminosity contrast-[1.08]"
               loading="lazy"
               decoding="async"

@@ -6,7 +6,7 @@ import {
   STATE_COOKIE_MAX_AGE_S,
   type OAuthDest,
 } from "@/lib/social/oauth-state";
-import { isTikTokEnabled } from "@/lib/tiktok/client";
+import { resolveSocialPublishingEnabled } from "@/lib/tiktok/resolve-flags";
 import { buildAuthorizationUrl } from "@/lib/tiktok/oauth";
 
 export const runtime = "nodejs";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * perfil real, así que no es una acción de operador.
  */
 export const GET = async (req: Request) => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 

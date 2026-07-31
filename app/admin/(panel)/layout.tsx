@@ -2,11 +2,11 @@ import { redirect } from "next/navigation";
 import CrmProvider from "@/app/components/admin/crm/CrmProvider";
 import CrmShell from "@/app/components/admin/crm/CrmShell";
 import type { StaffRole } from "@prisma/client";
-import { isAgentEnabled } from "@/lib/agent/is-agent-enabled";
+import { resolveAgentEnabled } from "@/lib/agent/resolve-agent-enabled";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { isMetaInboxEnabled } from "@/lib/meta/client";
-import { isTikTokEnabled } from "@/lib/tiktok/client";
+import { resolveSocialPublishingEnabled } from "@/lib/tiktok/resolve-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
   const avatarUrl = staff?.avatarUrl ?? null;
 
   // Phase 1: agent panel is OWNER-only, mirroring `agent/channels/eve.ts`'s auth gate.
-  const agentEnabled = isAgentEnabled() && role === "OWNER";
+  const agentEnabled = (await resolveAgentEnabled()) && role === "OWNER";
 
   // Interruptor del stream SSE de la campana. Apagado ⇒ el feed se degrada a
   // sondeo periódico. En vista previa nunca hay sesión, así que nunca hay stream.
@@ -38,7 +38,7 @@ const PanelLayout = async ({ children }: { children: React.ReactNode }) => {
       streamEnabled={streamEnabled}
       // Sin esto el menú pintaría enlaces a páginas que hacen notFound().
       metaInboxEnabled={isMetaInboxEnabled()}
-      socialPublishingEnabled={isTikTokEnabled()}
+      socialPublishingEnabled={await resolveSocialPublishingEnabled()}
     >
       <CrmShell
         displayName={displayName}

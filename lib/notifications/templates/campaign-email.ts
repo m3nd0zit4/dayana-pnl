@@ -14,7 +14,8 @@ export const campaignEmailSubject = (
 export const campaignEmailHtml = (
   templateTitle: string,
   body: string,
-  vars: TemplateVars
+  vars: TemplateVars,
+  unsubscribeUrl?: string
 ): string => {
   const plain = renderQuickMessage(body, vars);
   const paragraphs = plain
@@ -42,6 +43,7 @@ export const campaignEmailHtml = (
     ctaPrimary: vars.workshop_url
       ? { label: "Ver talleres en la web", href: vars.workshop_url }
       : { label: "Visitar dayanabeltran.com", href: vars.site_url },
+    unsubscribeUrl,
   });
 };
 

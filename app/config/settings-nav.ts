@@ -34,13 +34,14 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
     ],
   },
   {
-    label: "Canales",
+    label: "Conexiones y canales",
     items: [
+      // Un solo hub agrupado (Pagos / Redes sociales / Google / Sistema) en
+      // vez de tres pantallas sin enlazar — ver lib/integrations/catalog.ts.
       { href: "/admin/ajustes/integraciones", label: "Integraciones" },
-      { href: "/admin/ajustes/google", label: "Google" },
-      // Integraciones responde "¿están puestas las llaves?" (entorno);
-      // Redes sociales responde "¿qué cuentas están enlazadas?" (base de datos).
-      { href: "/admin/ajustes/conexiones", label: "Redes sociales" },
+      // Por dónde se puede hablar con el asistente, no a qué llama — ver
+      // lib/crm/agent-channels.ts.
+      { href: "/admin/ajustes/canales", label: "Canales del agente" },
     ],
   },
   {

@@ -1,4 +1,4 @@
-import { isDryRun } from "../config";
+import { resolveDryRun } from "../platform/resolve";
 
 export type SendSmsInput = {
   toE164: string;
@@ -11,7 +11,7 @@ export type SendSmsResult = {
 };
 
 export const sendSms = async (input: SendSmsInput): Promise<SendSmsResult> => {
-  if (isDryRun()) {
+  if (await resolveDryRun()) {
     console.info("[notifications:dry-run] sms", {
       to: input.toE164,
       preview: input.body.slice(0, 80),

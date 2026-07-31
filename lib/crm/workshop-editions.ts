@@ -144,3 +144,34 @@ export const getWorkshopEditionBySlug = async (slug: string) =>
 /** Same slug-generation the admin create route uses (app/api/admin/workshops/route.ts) — collision-checked against real WorkshopEdition rows. */
 export const generateWorkshopSlug = async (title: string) =>
   uniqueSlug(title, async (s) => !!(await prisma.workshopEdition.findUnique({ where: { slug: s } })));
+
+export const listWorkshopDocuments = (workshopEditionId: string) =>
+  prisma.workshopDocument.findMany({
+    where: { workshopEditionId },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+
+/** WorkshopDetail (the public DTO) only carries a slug, not the edition's
+ *  id — resolve it here rather than threading a new field through that type. */
+export const listWorkshopDocumentsBySlug = async (slug: string) => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+  return edition ? listWorkshopDocuments(edition.id) : [];
+};
+
+export const createWorkshopDocument = (input: {
+  workshopEditionId: string;
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}) => prisma.workshopDocument.create({ data: input });
+
+export const deleteWorkshopDocument = async (id: string) => {
+  const doc = await prisma.workshopDocument.findUnique({ where: { id } });
+  if (!doc) return null;
+  await prisma.workshopDocument.delete({ where: { id } });
+  return doc;
+};

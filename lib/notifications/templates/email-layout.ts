@@ -38,6 +38,8 @@ export type EmailLayoutOptions = {
   ctaSecondary?: { label: string; href: string };
   /** Muted fine-print under the content (e.g. legal note). */
   footnote?: string;
+  /** One-click unsubscribe link, rendered small in the footer. */
+  unsubscribeUrl?: string;
 };
 
 // The site is a geometric-sans brand (Space Grotesk). Email clients can't load
@@ -153,6 +155,11 @@ export const wrapEmailHtml = (opts: EmailLayoutOptions): string => {
                 <a href="mailto:contacto@dayanabeltran.com" style="color:${c.ink};text-decoration:none;border-bottom:1px solid ${c.sand};">contacto@dayanabeltran.com</a>
               </p>
               <p style="margin:0;font-family:${fontSans};font-size:11px;color:${c.muted};">WhatsApp ${escapeHtml(WHATSAPP_NUMBER)} &middot; <a href="https://wa.me/${waDigits}" style="color:${c.terracotta};text-decoration:none;">escribir</a></p>
+              ${
+                opts.unsubscribeUrl
+                  ? `<p style="margin:10px 0 0;font-family:${fontSans};font-size:10px;"><a href="${escapeHtml(opts.unsubscribeUrl)}" style="color:${c.muted};text-decoration:underline;">Dejar de recibir estos correos</a></p>`
+                  : ""
+              }
             </td>
           </tr>
         </table>

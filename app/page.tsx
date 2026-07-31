@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Hero from "./components/home/Hero";
 import ServicesTeaser from "./components/home/ServicesTeaser";
 import TestimonialsSection from "./components/home/TestimonialsSection";
@@ -5,6 +6,14 @@ import ContactSection from "./components/home/ContactSection";
 import Footer from "./components/home/Footer";
 import FloatingWhatsApp from "./components/ui/FloatingWhatsApp";
 import { getVisiblePublicPlans } from "@/lib/pricing/public-plans";
+import { SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo/site-meta";
+
+export const metadata: Metadata = {
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/" },
+  openGraph: { url: "/", type: "website" },
+};
 
 const Home = async () => {
   const { therapyPlans, coursePlan, userCountry, isColombia } =

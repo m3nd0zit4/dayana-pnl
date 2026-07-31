@@ -23,7 +23,10 @@ export type OAuthPurpose = "tiktok" | "meta";
  */
 const DESTINATIONS = {
   c: "/admin/contenido",
-  x: "/admin/ajustes/conexiones",
+  // Sin ancla: `back()` en los callbacks concatena `?param=...` después de
+  // este path, y un `#fragmento` antes de la query rompería el parseo (el
+  // navegador leería la query como parte del fragmento).
+  x: "/admin/ajustes/integraciones",
 } as const;
 
 export type OAuthDest = keyof typeof DESTINATIONS;

@@ -344,8 +344,25 @@ model WorkshopEdition {
   product                Product?                 @relation(fields: [productId], references: [id])
   enrollments            Enrollment[]
   notificationCampaigns  NotificationCampaign[]
+  documents              WorkshopDocument[]
 
   @@map("workshop_editions")
+}
+
+model WorkshopDocument {
+  id                String   @id @default(cuid())
+  workshopEditionId String   @map("workshop_edition_id")
+  url               String   @db.Text
+  filename          String
+  mimeType          String   @map("mime_type")
+  sizeBytes         Int      @map("size_bytes")
+  sortOrder         Int      @default(0) @map("sort_order")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  workshopEdition WorkshopEdition @relation(fields: [workshopEditionId], references: [id], onDelete: Cascade)
+
+  @@index([workshopEditionId])
+  @@map("workshop_documents")
 }
 
 model Enrollment {

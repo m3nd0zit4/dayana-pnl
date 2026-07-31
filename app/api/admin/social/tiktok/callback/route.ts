@@ -7,7 +7,7 @@ import {
   stateCookieName,
   type OAuthDest,
 } from "@/lib/social/oauth-state";
-import { isTikTokEnabled } from "@/lib/tiktok/client";
+import { resolveSocialPublishingEnabled } from "@/lib/tiktok/resolve-flags";
 import {
   exchangeCodeForToken,
   persistAccount,
@@ -31,7 +31,7 @@ const back = (req: Request, dest: OAuthDest, tiktok: string) =>
   );
 
 export const GET = async (req: Request) => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 

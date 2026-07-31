@@ -3,7 +3,11 @@ import { z } from "zod";
 import { requireTestEmailStaff } from "@/lib/auth/api-staff";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/notifications/channels/email";
-import { isDryRun, isNotificationsEnabled, siteUrl } from "@/lib/notifications/config";
+import { siteUrl } from "@/lib/notifications/config";
+import {
+  resolveDryRun,
+  resolveNotificationsEnabled,
+} from "@/lib/notifications/platform/resolve";
 import { wrapEmailHtml } from "@/lib/notifications/templates/email-layout";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +30,7 @@ export const POST = async (req: Request) => {
   }
 
   const to = parsed.data.to?.trim() || staff.email;
-  const dryRun = isDryRun();
+  const dryRun = await resolveDryRun();
   const sentAt = new Date();
   const subject = "Correo de prueba — CRM Dayana Beltrán PNL";
 
@@ -98,6 +102,6 @@ export const POST = async (req: Request) => {
     to,
     providerId,
     dryRun,
-    notificationsEnabled: isNotificationsEnabled(),
+    notificationsEnabled: await resolveNotificationsEnabled(),
   });
 };

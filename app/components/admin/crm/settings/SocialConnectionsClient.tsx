@@ -10,6 +10,7 @@ import { useCallback, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import { SimpleIconGlyph, SOCIAL_PROVIDER_BRAND } from "@/lib/integrations/brand";
 import type {
   ConnectedAccountView,
   SocialConnection,
@@ -262,7 +263,14 @@ const SocialConnectionsClient = ({
                       <p className="truncate text-sm font-medium">
                         {account.displayName ?? account.username ?? "—"}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                        {/* El avatar de arriba es de la cuenta; este ícono dice
+                            la plataforma — una conexión Meta trae Facebook e
+                            Instagram bajo el mismo enlace y hay que distinguirlas. */}
+                        <SimpleIconGlyph
+                          visual={SOCIAL_PROVIDER_BRAND[account.provider]}
+                          className="size-3 shrink-0"
+                        />
                         {PROVIDER_LABEL[account.provider] ?? account.provider}
                         {account.username ? ` · @${account.username}` : ""}
                       </p>

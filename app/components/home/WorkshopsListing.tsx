@@ -11,6 +11,7 @@ import {
   type WorkshopCard,
 } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
+import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
 import WorkshopCheckoutCta from "./WorkshopCheckoutCta";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -76,7 +77,8 @@ const WorkshopCardItem = ({
   }
 
   const statusLabel = getWorkshopStatusLabel(workshop.status);
-  const detailHref = `/taller-virtual/${workshop.slug}`;
+  const isColombia = userCountry === "CO";
+  const visiblePlan = plan && isPlanVisibleForRegion(plan, isColombia) ? plan : null;
 
   return (
     <article className="wk-card group flex h-full flex-col rounded-3xl border border-black/15 bg-white p-6 lg:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
@@ -116,35 +118,20 @@ const WorkshopCardItem = ({
 
       {workshop.status === "open" ? (
         <div className="mt-4">
-          {plan ? (
-            <>
-              <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
-                <WorkshopCheckoutCta
-                  plan={plan}
-                  userCountry={userCountry}
-                  isDark={false}
-                  googleEnabled={googleEnabled}
-                  autopayReturnPath="/taller-virtual"
-                />
-              </Suspense>
-              <div className="mt-3 text-center">
-                <Link
-                  href={detailHref}
-                  className="font-[font1] text-[12px] text-black/55 underline-offset-4 transition-colors hover:text-black hover:underline"
-                >
-                  Ver detalles del taller →
-                </Link>
-              </div>
-            </>
+          {visiblePlan ? (
+            <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
+              <WorkshopCheckoutCta
+                plan={visiblePlan}
+                userCountry={userCountry}
+                isDark={false}
+                googleEnabled={googleEnabled}
+                autopayReturnPath="/taller-virtual"
+              />
+            </Suspense>
           ) : (
-            /* Sin plan resuelto (producto sin precio o fallback estático):
-               conserva el enlace al detalle. */
-            <Link
-              href={detailHref}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-full border border-black bg-black px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/85"
-            >
-              Ver taller
-            </Link>
+            <p className="mt-2 text-center font-[font1] text-sm text-black/55">
+              El pago en línea para este taller aún no está configurado.
+            </p>
           )}
         </div>
       ) : null}

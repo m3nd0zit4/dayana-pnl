@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import LegalLayout from "../components/legal/LegalLayout";
 import { BRAND, SOCIAL_LINKS } from "../../lib/contact";
 
+const title = `Política de cookies — ${BRAND.name}`;
+const description =
+  "Información sobre el uso de cookies y tecnologías similares en el sitio de Dayana Beltrán.";
+
 export const metadata: Metadata = {
-  title: `Política de cookies — ${BRAND.name}`,
-  description:
-    "Información sobre el uso de cookies y tecnologías similares en el sitio de Dayana Beltrán.",
+  title,
+  description,
+  alternates: { canonical: "/cookies" },
+  openGraph: { title, description, url: "/cookies", type: "website" },
 };
 
 const email = SOCIAL_LINKS.email.replace("mailto:", "");

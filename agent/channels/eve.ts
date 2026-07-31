@@ -1,6 +1,7 @@
 import { eveChannel } from "eve/channels/eve";
 import { localDev, type AuthFn } from "eve/channels/auth";
 import { getStaffFromRequest } from "@/lib/auth/agent-channel-session";
+import { isAgentChannelEnabled } from "@/lib/crm/agent-channels";
 
 /**
  * Phase 1: only OWNER gets the agent panel. Returning null here (rather than
@@ -9,6 +10,11 @@ import { getStaffFromRequest } from "@/lib/auth/agent-channel-session";
  */
 function crmStaffAuth(): AuthFn<Request> {
   return async (request) => {
+    // Checked before the staff lookup so a disabled channel fails closed even
+    // if the session lookup itself is slow or flaky — the toggle in
+    // /admin/ajustes/canales must never depend on how auth resolves.
+    if (!(await isAgentChannelEnabled("eve"))) return null;
+
     const staff = await getStaffFromRequest(request);
     if (!staff || staff.role !== "OWNER") return null;
 

@@ -5,13 +5,13 @@ import {
   listSocialAccounts,
   listSocialPosts,
 } from "@/lib/crm/social-posts";
-import { isTikTokEnabled } from "@/lib/tiktok/client";
+import { resolveSocialPublishingEnabled } from "@/lib/tiktok/resolve-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const GET = async () => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 
@@ -27,7 +27,7 @@ export const GET = async () => {
 };
 
 export const POST = async (req: Request) => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 

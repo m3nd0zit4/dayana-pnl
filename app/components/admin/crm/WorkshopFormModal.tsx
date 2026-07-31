@@ -2,6 +2,7 @@
 
 import { WorkshopEditionStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -10,6 +11,7 @@ import CrmModal from "./CrmModal";
 import ScheduleSlotEditor from "./ScheduleSlotEditor";
 import SearchableSelect from "./SearchableSelect";
 import StringListEditor from "./StringListEditor";
+import WorkshopDocumentsPanel, { type WorkshopDocumentItem } from "./WorkshopDocumentsPanel";
 import { invalidateCached, useActiveProducts } from "./hooks/useReferenceData";
 import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
@@ -124,6 +126,9 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   // modal is actually opened.
   const { products } = useActiveProducts(open);
   const workshopProducts = products.filter((p) => p.kind === "WORKSHOP");
+  const selectedProduct = workshopProducts.find((p) => p.id === productId);
+  const selectedProductHasCop =
+    selectedProduct?.prices.some((pr) => pr.currency === "COP" && pr.amountMinor > 0) ?? true;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editionLabel, setEditionLabel] = useState("");
@@ -137,6 +142,7 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   const [productId, setProductId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [documents, setDocuments] = useState<WorkshopDocumentItem[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -167,6 +173,25 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setProductId("");
     }
     setError(null);
+  }, [open, edition]);
+
+  useEffect(() => {
+    if (!open || !edition) {
+      setDocuments([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/admin/workshops/${encodeURIComponent(edition.slug)}/documents`)
+      .then((r) => r.json())
+      .then((d: { documents?: WorkshopDocumentItem[] }) => {
+        if (!cancelled) setDocuments(d.documents ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setDocuments([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, edition]);
 
   const submit = async (e: React.FormEvent) => {
@@ -310,6 +335,11 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
             desbloquea la página de este taller. Créalo primero en
             Productos si aún no existe (tipo &quot;Taller&quot;).
           </p>
+          {selectedProduct && !selectedProductHasCop && (
+            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+              Sin COP · Oculto en Colombia
+            </Badge>
+          )}
         </div>
 
         <StringListEditor
@@ -324,6 +354,18 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
           items={daySchedule}
           onChange={setDaySchedule}
         />
+
+        {edition ? (
+          <WorkshopDocumentsPanel
+            slug={edition.slug}
+            documents={documents}
+            onChange={setDocuments}
+          />
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Guarda el taller primero para poder subir documentos.
+          </p>
+        )}
 
         {error && (
           <p className="text-sm text-destructive" role="alert">

@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
 import { type Plan } from "../../../lib/plans";
+import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
 import { usePayPalModal } from "../../context/PayPalModalContext";
 import { useMercadoPagoCheckoutModal } from "../../context/MercadoPagoCheckoutModalContext";
 import { PayPalBrandRow } from "./PayPalBrandRow";
@@ -37,6 +38,13 @@ const PlanCheckoutButtons = ({
   const isColombia = userCountry === "CO";
   const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
   const payBusy = false;
+
+  // Defense-in-depth: callers should already filter out plans without a
+  // real price for the visitor's region, but never render a pay button
+  // that would only fail at checkout with no_cop_price.
+  if (!isPlanVisibleForRegion(plan, isColombia)) {
+    return null;
+  }
 
   if (!ready) {
     return (

@@ -2,7 +2,7 @@ import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { blobNotConfiguredResponse, isBlobConfigured } from "@/lib/storage/blob";
-import { isTikTokEnabled } from "@/lib/tiktok/client";
+import { resolveSocialPublishingEnabled } from "@/lib/tiktok/resolve-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ const EXTENSION: Record<string, string> = {
  * que no hace falta que TikTok pueda alcanzar este dominio ni verificarlo.
  */
 export const POST = async (req: Request) => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 

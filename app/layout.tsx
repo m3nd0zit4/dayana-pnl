@@ -4,19 +4,39 @@ import Providers from "./providers";
 import { CookieConsentProvider } from "./context/CookieConsentContext";
 import ConsentBasedVercelInsights from "./components/legal/ConsentBasedVercelInsights";
 import CookieConsentBanner from "./components/legal/CookieConsentBanner";
+import JsonLd from "./components/seo/JsonLd";
+import { getSiteUrl } from "@/lib/site-url";
+import { SITE_TITLE, SITE_DESCRIPTION } from "@/lib/seo/site-meta";
+import { buildOrganizationSchema } from "@/lib/seo/schema";
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-  "https://dayanabeltran.com";
-
-const siteTitle = "Dayana Beltrán PNL — Reprogramadora Neuronal";
-const siteDescription =
-  "Dayana Beltrán Coach en PNL, especialisada en Neurociencia y Neuroplasticidad. Sesiones Privadas 1:1, cursos y talleres en vivo para reprogramar creencias limitantes, patrones y emociones negativas.";
+const siteUrl = getSiteUrl();
+const siteTitle = SITE_TITLE;
+const siteDescription = SITE_DESCRIPTION;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: siteTitle,
   description: siteDescription,
+  keywords: [
+    "PNL",
+    "programación neurolingüística",
+    "coaching PNL",
+    "terapia online",
+    "reprogramación neurolingüística",
+    "Dayana Beltrán",
+  ],
+  alternates: {
+    canonical: siteUrl,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+    },
+  },
   icons: {
     icon: [
       { url: "/favicon-96x96.png", sizes: "96x96", type: "image/png" },
@@ -113,6 +133,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <JsonLd data={buildOrganizationSchema()} />
         <CookieConsentProvider analyticsAllowed={analyticsAllowed}>
           <Providers>{children}</Providers>
           <ConsentBasedVercelInsights />

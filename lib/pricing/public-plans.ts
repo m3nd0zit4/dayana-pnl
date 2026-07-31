@@ -1,6 +1,7 @@
 import { getPublicPlans } from "../plans-from-db";
 import type { Plan } from "../plans";
 import { getServerUserCountry } from "../geo/user-country";
+import { isPlanVisibleForRegion } from "./plan-visibility";
 
 export type VisiblePublicPlans = {
   therapyPlans: Plan[];
@@ -28,8 +29,7 @@ export const getVisiblePublicPlans = async (): Promise<VisiblePublicPlans> => {
   const isColombia = userCountry === "CO";
 
   // Visible solo con precio explícito para la región del visitante.
-  const visibleForRegion = (p: Plan) =>
-    isColombia ? p.amountCop != null && p.amountCop > 0 : p.amountUsd > 0;
+  const visibleForRegion = (p: Plan) => isPlanVisibleForRegion(p, isColombia);
 
   const visibleTherapyPlans = therapyPlans.filter(visibleForRegion);
   const visibleCoursePlan =

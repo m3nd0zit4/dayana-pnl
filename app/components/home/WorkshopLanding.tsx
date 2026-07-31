@@ -14,11 +14,24 @@ import { getScheduleSlotLabel } from "../../../lib/workshop-schedule";
 
 gsap.registerPlugin(ScrollTrigger);
 
-type WorkshopLandingProps = {
-  workshop: WorkshopDetail;
+type WorkshopDocument = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
 };
 
-const WorkshopLanding = ({ workshop }: WorkshopLandingProps) => {
+type WorkshopLandingProps = {
+  workshop: WorkshopDetail;
+  documents?: WorkshopDocument[];
+};
+
+const formatDocSize = (bytes: number) => {
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const WorkshopLanding = ({ workshop, documents = [] }: WorkshopLandingProps) => {
   const rootRef = useRef<HTMLElement>(null);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const statusLabel = getWorkshopStatusLabel(workshop.status);
@@ -203,6 +216,30 @@ const WorkshopLanding = ({ workshop }: WorkshopLandingProps) => {
                     {slot.title}
                   </p>
                 </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {documents.length > 0 && (
+        <div className="px-3 lg:px-8 py-16 border-t border-black/10">
+          <div className="max-w-[1400px] mx-auto">
+            <h2 className="wk-reveal font-[font2] text-4xl sm:text-5xl lg:text-6xl uppercase leading-[0.92] mb-10">
+              Materiales
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {documents.map((doc) => (
+                <a
+                  key={doc.id}
+                  href={`/api/workshops/${workshop.slug}/documents/${doc.id}`}
+                  className="wk-reveal flex items-center justify-between gap-3 rounded-2xl border border-black/10 bg-white px-4 py-4 font-[font1] text-sm lg:text-base leading-snug transition-colors hover:border-black/30"
+                >
+                  <span className="truncate">{doc.filename}</span>
+                  <span className="shrink-0 font-[font2] text-[10px] uppercase tracking-[0.2em] text-black/55">
+                    Descargar · {formatDocSize(doc.sizeBytes)}
+                  </span>
+                </a>
               ))}
             </div>
           </div>

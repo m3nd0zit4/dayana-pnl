@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import WorkshopLanding from "@/app/components/home/WorkshopLanding";
-import WorkshopTeaser from "@/app/components/home/WorkshopTeaser";
 import Footer from "@/app/components/home/Footer";
-import { isGoogleAuthEnabled } from "@/auth";
+import JsonLd from "@/app/components/seo/JsonLd";
 import { getOpenWorkshopDetailBySlug } from "@/lib/workshops-db";
 import { getMemberSession } from "@/lib/auth/member-session";
 import { resolveSessionCheckoutContact } from "@/lib/crm/checkout-session-contact";
 import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
-import { getPlanFromDb } from "@/lib/plans-from-db";
-import { getServerUserCountry } from "@/lib/geo/user-country";
+import { listWorkshopDocumentsBySlug } from "@/lib/crm/workshop-editions";
+import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +25,13 @@ export async function generateMetadata({
   return {
     title: workshop.metadata.title,
     description: workshop.metadata.description,
+    alternates: { canonical: `/taller-virtual/${slug}` },
+    openGraph: {
+      title: workshop.metadata.title,
+      description: workshop.metadata.description,
+      url: `/taller-virtual/${slug}`,
+      type: "website",
+    },
   };
 }
 
@@ -59,26 +65,25 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
     hasAccess = true;
   }
 
-  const [plan, userCountry] = workshop.productId
-    ? await Promise.all([
-        getPlanFromDb(workshop.productId),
-        getServerUserCountry(),
-      ])
-    : [null, null];
+  // The details page doesn't exist for people who haven't paid — send them
+  // back to the listing instead of a locked/teaser view.
+  if (!hasAccess) {
+    redirect("/taller-virtual");
+  }
+
+  const documents = await listWorkshopDocumentsBySlug(slug);
 
   return (
     <>
+      <JsonLd
+        data={buildBreadcrumbSchema([
+          { name: "Inicio", url: "/" },
+          { name: "Talleres", url: "/taller-virtual" },
+          { name: workshop.title, url: `/taller-virtual/${slug}` },
+        ])}
+      />
       <main>
-        {hasAccess ? (
-          <WorkshopLanding workshop={workshop} />
-        ) : (
-          <WorkshopTeaser
-            workshop={workshop}
-            plan={plan}
-            userCountry={userCountry}
-            googleEnabled={isGoogleAuthEnabled()}
-          />
-        )}
+        <WorkshopLanding workshop={workshop} documents={documents} />
       </main>
       <Footer />
     </>

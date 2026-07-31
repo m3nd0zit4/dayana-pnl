@@ -3,17 +3,17 @@ import { always } from "eve/tools/approval";
 import { z } from "zod";
 import { getContactById } from "@/lib/crm/contacts";
 import { templateVariableNames } from "@/lib/crm/quick-message-templates";
-import {
-  isDryRun,
-  isNotificationsEnabled,
-  smsProviderReady,
-} from "@/lib/notifications/config";
+import { smsProviderReady } from "@/lib/notifications/config";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
 import { SMS_REQUIRED_ENV } from "@/lib/notifications/health";
 // Misma regla que usa el reparto de notificaciones para decidir si un teléfono
 // es marcable: se comparte para que no se separen con el tiempo.
 import { isDialableE164 } from "@/lib/notifications/platform/email";
 import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
+import {
+  resolveDryRun,
+  resolveNotificationsEnabled,
+} from "@/lib/notifications/platform/resolve";
 import { requireWriteStaff, auditAgentWrite } from "@/agent/lib/guard";
 
 /** "A, B y C" — leerlo como lista en español ahorra una ida y vuelta. */
@@ -77,7 +77,7 @@ export default defineTool({
       );
     }
 
-    if (!isNotificationsEnabled()) {
+    if (!(await resolveNotificationsEnabled())) {
       throw new Error(
         "Los envíos están desactivados (NOTIFICATIONS_ENABLED). Actívalo en /admin/ajustes/integraciones."
       );
@@ -128,7 +128,7 @@ export default defineTool({
       deliveryId: delivery.id,
       status: result.status,
       recipient: result.recipient,
-      dryRun: isDryRun(),
+      dryRun: await resolveDryRun(),
       note:
         result.status === "SKIPPED"
           ? "Se registró pero NO se envió — revisa la configuración."

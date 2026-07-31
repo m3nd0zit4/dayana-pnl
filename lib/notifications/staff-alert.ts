@@ -1,5 +1,6 @@
 import { sendEmail } from "./channels/email";
-import { emailProviderId, isNotificationsEnabled, siteUrl } from "./config";
+import { emailProviderId, siteUrl } from "./config";
+import { resolveNotificationsEnabled } from "./platform/resolve";
 import { escapeHtml, varsToPlainParagraphs, wrapEmailHtml } from "./templates/email-layout";
 
 /**
@@ -13,7 +14,7 @@ export const notifyStaffOfNewComment = async (input: {
   contactName: string;
   body: string;
 }): Promise<void> => {
-  if (!isNotificationsEnabled()) return;
+  if (!(await resolveNotificationsEnabled())) return;
 
   // El buzón de avisos del equipo manda sobre STAFF_OWNER_EMAIL: esa variable
   // suele apuntar a la dirección con la que se entra al panel, que no siempre

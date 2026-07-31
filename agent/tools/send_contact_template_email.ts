@@ -8,9 +8,13 @@ import {
   missingTemplateVariables,
 } from "@/lib/crm/quick-message-templates";
 import { renderQuickMessage } from "@/lib/crm/render-message";
-import { isDryRun, isNotificationsEnabled, siteUrl } from "@/lib/notifications/config";
+import { siteUrl } from "@/lib/notifications/config";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
 import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
+import {
+  resolveDryRun,
+  resolveNotificationsEnabled,
+} from "@/lib/notifications/platform/resolve";
 import { contactVars } from "@/lib/notifications/variables";
 import { requireWriteStaff, auditAgentWrite } from "@/agent/lib/guard";
 
@@ -52,7 +56,7 @@ export default defineTool({
         "Ese contacto desactivó las notificaciones por correo. No puedo escribirle."
       );
     }
-    if (!isNotificationsEnabled()) {
+    if (!(await resolveNotificationsEnabled())) {
       throw new Error(
         "Los envíos están desactivados (NOTIFICATIONS_ENABLED). Actívalo en /admin/ajustes/integraciones."
       );
@@ -113,7 +117,7 @@ export default defineTool({
       status: result.status,
       recipient: result.recipient,
       templateKey,
-      dryRun: isDryRun(),
+      dryRun: await resolveDryRun(),
       note:
         result.status === "SKIPPED"
           ? "Se registró pero NO se envió — revisa la configuración."

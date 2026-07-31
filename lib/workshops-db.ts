@@ -91,4 +91,24 @@ export const getActiveOpenWorkshop = async (): Promise<WorkshopDetail | null> =>
   return mapEditionToDetail(edition);
 };
 
+/**
+ * Raw event timing for JSON-LD — kept separate from the display DTO.
+ * Rendered on the /taller-virtual listing page, not the [slug] detail page:
+ * that route redirects anonymous visitors away whenever the edition has a
+ * linked product (see app/taller-virtual/[slug]/page.tsx), so it's not a
+ * page crawlers ever actually see content on.
+ */
+export const getWorkshopEventTiming = async (
+  slug: string
+): Promise<{
+  startsAt: Date | null;
+  endsAt: Date | null;
+  status: WorkshopEditionStatus;
+} | null> => {
+  return prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: { startsAt: true, endsAt: true, status: true },
+  });
+};
+
 export { crmEditionWhere };

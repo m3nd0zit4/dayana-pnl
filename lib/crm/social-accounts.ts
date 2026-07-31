@@ -8,7 +8,7 @@ import {
   META_CONNECT_REQUIRED_ENV,
 } from "../meta/config";
 import { unsubscribePageWebhooks } from "../meta/subscriptions";
-import { isTikTokEnabled } from "../tiktok/client";
+import { resolveSocialPublishingEnabled } from "../tiktok/resolve-flags";
 
 /**
  * Estado de las cuentas enlazadas, para la pantalla de Conexiones.
@@ -151,6 +151,7 @@ export const getSocialConnections = async (): Promise<SocialConnection[]> => {
   const metaAccounts = meta.map(toAccountView);
   const tiktokAccounts = tiktok.map(toAccountView);
   const metaConfigured = isMetaConnectConfigured();
+  const tiktokEnabled = await resolveSocialPublishingEnabled();
 
   const facebookRow = meta.find((r) => r.provider === "FACEBOOK");
 
@@ -180,8 +181,8 @@ export const getSocialConnections = async (): Promise<SocialConnection[]> => {
       label: "TikTok",
       description:
         "Enlaza la cuenta para programar y publicar vídeos desde el CRM.",
-      status: statusFor(isTikTokEnabled(), tiktokAccounts),
-      detail: isTikTokEnabled()
+      status: statusFor(tiktokEnabled, tiktokAccounts),
+      detail: tiktokEnabled
         ? tiktokAccounts.length === 0
           ? "Sin cuenta enlazada todavía."
           : tiktokAccounts.every((a) => a.isActive)
@@ -190,7 +191,7 @@ export const getSocialConnections = async (): Promise<SocialConnection[]> => {
         : "Falta registrar la app en developers.tiktok.com.",
       requiredEnv: TIKTOK_REQUIRED_ENV,
       enables: "Programación y publicación de contenido.",
-      connectHref: isTikTokEnabled()
+      connectHref: tiktokEnabled
         ? "/api/admin/social/tiktok/connect?dest=x"
         : null,
       redirectUri:

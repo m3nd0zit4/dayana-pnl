@@ -1,5 +1,10 @@
 import type { StaffRole } from "@prisma/client";
-import { canManageTeam, canRecordManualPayments, canWriteCrm } from "@/lib/crm/staff-permissions";
+import {
+  canBroadcastNotifications,
+  canManageTeam,
+  canRecordManualPayments,
+  canWriteCrm,
+} from "@/lib/crm/staff-permissions";
 import { writeAuditLog } from "@/lib/crm/audit";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 
@@ -61,6 +66,17 @@ export const requireManualPaymentStaff = (ctx: AgentToolContext) => {
   const staff = getCallerStaff(ctx);
   if (!canRecordManualPayments(staff.role)) {
     throw new AgentPermissionError("Tu rol no permite registrar pagos manuales.");
+  }
+  return staff;
+};
+
+/** Bulk/campaign sends are gated the same way the /admin/messages broadcast route gates them. */
+export const requireBroadcastStaff = (ctx: AgentToolContext) => {
+  const staff = requireWriteStaff(ctx);
+  if (!canBroadcastNotifications(staff.role)) {
+    throw new AgentPermissionError(
+      "Tu rol no permite lanzar envíos masivos. Solo el OWNER puede hacerlo."
+    );
   }
   return staff;
 };

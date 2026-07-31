@@ -3,7 +3,10 @@ import ContentPageClient from "@/app/components/admin/crm/social/ContentPageClie
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { canWriteCrm } from "@/lib/crm/staff-permissions";
 import { listSocialAccounts, listSocialPosts } from "@/lib/crm/social-posts";
-import { isTikTokAudited, isTikTokEnabled } from "@/lib/tiktok/client";
+import {
+  resolveSocialPublishingEnabled,
+  resolveTiktokAudited,
+} from "@/lib/tiktok/resolve-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -12,21 +15,22 @@ const ContentPage = async ({
 }: {
   searchParams: Promise<{ tiktok?: string }>;
 }) => {
-  if (!isTikTokEnabled()) notFound();
+  if (!(await resolveSocialPublishingEnabled())) notFound();
 
   const staff = await getStaffSession();
   if (!staff) return null;
 
-  const [{ tiktok }, accounts, posts] = await Promise.all([
+  const [{ tiktok }, accounts, posts, audited] = await Promise.all([
     searchParams,
     listSocialAccounts(),
     listSocialPosts(),
+    resolveTiktokAudited(),
   ]);
 
   return (
     <ContentPageClient
       canWrite={canWriteCrm(staff.role)}
-      audited={isTikTokAudited()}
+      audited={audited}
       connectResult={tiktok ?? null}
       initialAccounts={accounts.map((account) => ({
         id: account.id,

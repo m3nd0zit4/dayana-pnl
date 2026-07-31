@@ -264,7 +264,9 @@ const ContentPageClient = ({
         <div className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <strong>TikTok todavía no auditó la app.</strong> Todo saldrá en modo
           privado (solo tú), y la cuenta debe estar en privado al publicar.
-          Cuando aprueben la auditoría, pon <code>TIKTOK_AUDITED=true</code>.
+          Cuando aprueben la auditoría, actívalo en{" "}
+          <code>/admin/ajustes/integraciones</code> (o pon{" "}
+          <code>TIKTOK_AUDITED=true</code>).
         </div>
       )}
 

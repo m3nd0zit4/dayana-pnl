@@ -7,11 +7,11 @@ import { requireManageTeam, auditAgentWrite } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Create a payable product (kind: workshop) so a workshop edition can charge for online payment — the same thing an operator would create on /admin/products first. OWNER-only, separate from create_workshop/update_workshop. Use the returned product id as productId when calling create_workshop or update_workshop.",
+    "Create a payable product (kind: workshop) so a workshop edition can charge for online payment — the same thing an operator would create on /admin/products first. Both USD and COP prices are required: without a COP price, Colombian visitors would see a pay button that fails at checkout. OWNER-only, separate from create_workshop/update_workshop. Use the returned product id as productId when calling create_workshop or update_workshop.",
   inputSchema: z.object({
     title: z.string().min(1).max(200),
     amountUsd: z.number().positive().describe("Price in whole USD, e.g. 49.99"),
-    amountCop: z.number().positive().optional().describe("Price in whole COP pesos (no centavos) — optional"),
+    amountCop: z.number().positive().describe("Price in whole COP pesos (no centavos) — required, ask the operator if not given"),
     sessionsLabel: z.string().max(120).optional().describe("Short label, e.g. 'Taller en vivo' — defaults to that if omitted"),
   }),
   approval: always(),

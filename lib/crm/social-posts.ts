@@ -1,7 +1,7 @@
 import type { Prisma, SocialPostStatus } from "@prisma/client";
 import { prisma } from "../db";
 import { writeAuditLog } from "./audit";
-import { isTikTokAudited } from "../tiktok/client";
+import { resolveTiktokAudited } from "../tiktok/resolve-flags";
 
 /**
  * Programación y estado de las publicaciones en redes.
@@ -24,11 +24,13 @@ export type PrivacyLevel = (typeof PRIVACY_LEVELS)[number];
  * rechazada al publicar. Se fuerza aquí para que el fallo no aparezca media
  * hora después, cuando salte el cron, sino al guardar.
  */
-export const enforcePrivacyLevel = (requested: string): PrivacyLevel => {
+export const enforcePrivacyLevel = async (
+  requested: string
+): Promise<PrivacyLevel> => {
   const level = (PRIVACY_LEVELS as readonly string[]).includes(requested)
     ? (requested as PrivacyLevel)
     : "SELF_ONLY";
-  return isTikTokAudited() ? level : "SELF_ONLY";
+  return (await resolveTiktokAudited()) ? level : "SELF_ONLY";
 };
 
 /**
@@ -84,7 +86,7 @@ export const createSocialPost = async (input: CreatePostInput) => {
       accountId: input.accountId,
       caption: input.caption ?? null,
       mediaUrls: input.mediaUrls as unknown as Prisma.InputJsonValue,
-      privacyLevel: enforcePrivacyLevel(input.privacyLevel),
+      privacyLevel: await enforcePrivacyLevel(input.privacyLevel),
       scheduledAt: input.scheduledAt ?? null,
       // Sin fecha queda en borrador; con fecha entra a la cola del cron.
       status: input.scheduledAt ? "SCHEDULED" : "DRAFT",
@@ -148,13 +150,16 @@ export const updateSocialPost = async (
   input: UpdatePostInput,
   staffUserId: string
 ) => {
+  const privacyLevel =
+    input.privacyLevel !== undefined
+      ? await enforcePrivacyLevel(input.privacyLevel)
+      : undefined;
+
   const updated = await prisma.socialPost.updateMany({
     where: { id, status: { in: ["DRAFT", "SCHEDULED", "FAILED"] } },
     data: {
       ...(input.caption !== undefined ? { caption: input.caption } : {}),
-      ...(input.privacyLevel !== undefined
-        ? { privacyLevel: enforcePrivacyLevel(input.privacyLevel) }
-        : {}),
+      ...(privacyLevel !== undefined ? { privacyLevel } : {}),
       ...(input.scheduledAt !== undefined
         ? {
             scheduledAt: input.scheduledAt,

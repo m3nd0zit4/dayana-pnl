@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import LegalLayout from "../components/legal/LegalLayout";
 import { BRAND, SOCIAL_LINKS } from "../../lib/contact";
 
+const title = `Términos y condiciones — ${BRAND.name}`;
+const description =
+  "Términos y condiciones que regulan el uso del sitio y la contratación de terapias y cursos con Dayana Beltrán.";
+
 export const metadata: Metadata = {
-  title: `Términos y condiciones — ${BRAND.name}`,
-  description:
-    "Términos y condiciones que regulan el uso del sitio y la contratación de terapias y cursos con Dayana Beltrán.",
+  title,
+  description,
+  alternates: { canonical: "/terminos" },
+  openGraph: { title, description, url: "/terminos", type: "website" },
 };
 
 const email = SOCIAL_LINKS.email.replace("mailto:", "");

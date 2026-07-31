@@ -29,6 +29,32 @@ export const setSiteSetting = async (
   });
 };
 
+export const deleteSiteSetting = async (key: string): Promise<void> => {
+  await prisma.siteSetting.deleteMany({ where: { key } });
+};
+
+/** `null` = sin fila = "usa el valor de entorno". */
+export const getSiteSettingBoolean = async (
+  key: string
+): Promise<boolean | null> => {
+  const raw = await getSiteSetting(key);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return null;
+};
+
+/** `value: null` borra la fila (vuelve a "automático" = entorno). */
+export const setSiteSettingBoolean = async (
+  key: string,
+  value: boolean | null
+): Promise<void> => {
+  if (value == null) {
+    await deleteSiteSetting(key);
+    return;
+  }
+  await setSiteSetting(key, String(value));
+};
+
 export const getUsdToCopRateSetting = async (): Promise<number | null> =>
   getSiteSettingNumber(USD_TO_COP_SETTING_KEY);
 

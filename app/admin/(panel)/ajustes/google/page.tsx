@@ -1,25 +1,17 @@
-import GoogleAccountsClient from "@/app/components/admin/crm/settings/GoogleAccountsClient";
-import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
-import { listGoogleAccounts } from "@/lib/crm/google-accounts";
-import { isGoogleEnabled } from "@/lib/google/connect";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
+/**
+ * Absorbido por el hub de `/admin/ajustes/integraciones` (sección `#google`).
+ * Se mantiene como redirect, no se borra, para no romper enlaces guardados.
+ */
 const Page = async ({
   searchParams,
 }: {
   searchParams: Promise<{ google?: string }>;
 }) => {
-  await requireOwnerSettings();
-
   const { google } = await searchParams;
-
-  return (
-    <GoogleAccountsClient
-      enabled={isGoogleEnabled()}
-      initialAccounts={await listGoogleAccounts()}
-      connectResult={google ?? null}
-    />
+  redirect(
+    `/admin/ajustes/integraciones${google ? `?google=${google}` : ""}#google`
   );
 };
 

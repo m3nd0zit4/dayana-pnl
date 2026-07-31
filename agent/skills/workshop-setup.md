@@ -12,8 +12,10 @@ Use this whenever the operator asks to create, set up, or publish a workshop/tal
    repeats the title verbatim, which reads as lazy.
 3. Ask about payment: call list_products and offer any active workshop-kind products as
    options. If none exist, or the operator wants a new one, offer to create one via
-   create_workshop_product (title + USD price, COP optional) before continuing — or
-   "sin pago en línea" (leave productId empty) as a valid choice.
+   create_workshop_product (title + both USD and COP prices — both are required, since
+   a workshop product with no COP price would show Colombian visitors a pay button that
+   fails at checkout) before continuing — or "sin pago en línea" (leave productId empty)
+   as a valid choice.
 4. Ask for capacity, a display date (dateLabel), and a schedule label — all optional,
    explain they're free text, not parsed dates.
 5. Offer focusTopics and daySchedule as optional extras, don't force them.
@@ -33,5 +35,10 @@ operator, they don't use it — the title is what matters to them.
 For edits, use get_workshop_edition to see the current values first, then only ask
 about what the operator wants to change — update_workshop still needs the current
 title resent even when unrelated fields are the only thing changing.
+
+If the operator asks about downloadable materials (PDFs, handouts) for a workshop,
+use list_workshop_documents to report what's already attached — you cannot upload
+one yourself; say plainly that documents are added from the admin panel (/admin →
+Talleres), not from this chat.
 
 Never invent a product link, a date, or a capacity number the operator didn't give you.

@@ -198,6 +198,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const save = async () => {
     if (!canManageTeam) return;
 
+    if (form.kind === "WORKSHOP" && !copForm.amountCop) {
+      toast("Los talleres requieren un precio COP (Mercado Pago) además del USD.", "error");
+      return;
+    }
+
     // Ambas monedas viajan en un solo guardado; amountUsd vacío se omite
     // (PATCH no lo toca) y amountCop vacío viaja null (borra el precio COP).
     const payload = {
@@ -229,7 +234,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       load();
     } else {
       const d = (await res.json()) as { error?: string };
-      toast(d.error ?? "Error al guardar", "error");
+      const message =
+        d.error === "WORKSHOP_REQUIRES_COP"
+          ? "Los talleres requieren un precio COP (Mercado Pago) además del USD."
+          : (d.error ?? "Error al guardar");
+      toast(message, "error");
     }
   };
 
@@ -395,10 +404,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
               <div className="border-t border-border pt-4">
                 <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
                   Precio Colombia — COP (Mercado Pago)
+                  {form.kind === "WORKSHOP" ? " (requerido para talleres)" : ""}
                 </p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label>Precio COP</Label>
+                    <Label>Precio COP{form.kind === "WORKSHOP" ? " *" : ""}</Label>
                     <Input
                       type="number"
                       value={copForm.amountCop}

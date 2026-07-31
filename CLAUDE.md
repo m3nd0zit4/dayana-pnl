@@ -68,6 +68,8 @@ Two separate systems. Don't confuse them.
 
 **Outbound messaging** — `lib/notifications/` dispatches via email (Resend), SMS, WhatsApp API. Gated by `NOTIFICATIONS_ENABLED=true` and `NOTIFICATIONS_DRY_RUN`. `dispatchAndRecord` writes a `NotificationDelivery` row regardless of outcome. Note `NOTIFICATIONS_DRY_RUN` **defaults to ON outside production** — check `/admin/ajustes/integraciones`, which surfaces it as a `degraded` state, before concluding a send failed.
 
+Every outbound email — transactional, campaign, and the agent's own send tools — converges on `dispatchToChannel` (`lib/notifications/dispatch.ts`). Only sends with a `campaignId` (real bulk campaigns, from `/admin/messages` or `agent/tools/send_bulk_email.ts`) get a `List-Unsubscribe`/`List-Unsubscribe-Post` header and a visible unsubscribe footer link (`lib/notifications/unsubscribe-token.ts` signs the token, `app/api/unsubscribe/route.ts` handles it) — **don't** add these to a 1:1 send. `List-Unsubscribe` is exactly the signal Gmail's classifier uses to route a message into Promotions instead of Primary, so putting it on every email (payment confirmations, the agent's 1:1 replies) misfiles them; confirmed empirically (`category:promotions` search) before this was scoped down to `campaignId`-only. `app/api/webhooks/resend/route.ts` listens for `email.bounced`/`email.complained` and flips `Contact.notifyEmail` off automatically — don't re-enable it for a contact without checking why it went off. The agent's own bulk-send tool (`agent/tools/send_bulk_email.ts`, OWNER-only) reuses the same `lib/notifications/campaigns.ts` batch pipeline as `/admin/messages` — there is still no bulk SMS/WhatsApp tool.
+
 **In-app feed** — `lib/notifications/platform/` powers the bell in the CRM top bar and the member portal.
 
 - `catalog.ts` is the single source of truth: every event type maps to its Spanish label, group, severity, audience (`STAFF` / `MEMBER` / `BOTH`), default routing, receiving staff roles, and optional `coalesceWindowSec`. It drives rendering, the preferences matrix, and recipient resolution. **To add an event: add it to the `NotificationEventType` enum in `schema.prisma`, migrate, then add its catalog entry** — the `Record` is exhaustive, so TypeScript will fail until you do.
@@ -130,6 +132,7 @@ COP prices are stored as **full pesos** (no centavos), so `amountMinor` for COP 
 | `NOTIFICATIONS_ENABLED` | `true` to actually send |
 | `NOTIFICATIONS_DRY_RUN` | `true` to skip external calls — **defaults ON outside production** |
 | `NOTIFICATIONS_STREAM_ENABLED` | `true` for SSE on the bell; unset falls back to 60s polling |
+| `RESEND_WEBHOOK_SECRET` | Signs `/api/webhooks/resend` (bounce/complaint → auto-suppress `Contact.notifyEmail`) |
 | `NOTIFICATIONS_PRUNE_DELIVERIES` | `true` to let the retention cron prune `NotificationDelivery` |
 | `UPSTASH_REDIS_REST_URL/TOKEN` | Distributed rate limiting |
 | `CRM_UI_PREVIEW` | `true` only in preview — disables auth for UI preview |

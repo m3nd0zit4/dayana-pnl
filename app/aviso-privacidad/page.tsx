@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import LegalLayout from "../components/legal/LegalLayout";
 import { BRAND, SOCIAL_LINKS, WHATSAPP_NUMBER } from "../../lib/contact";
 
+const title = `Aviso de privacidad — ${BRAND.name}`;
+const description =
+  "Política de tratamiento de datos personales de Dayana Beltrán. Conoce qué información recopilamos, con qué finalidad y tus derechos como titular.";
+
 export const metadata: Metadata = {
-  title: `Aviso de privacidad — ${BRAND.name}`,
-  description:
-    "Política de tratamiento de datos personales de Dayana Beltrán. Conoce qué información recopilamos, con qué finalidad y tus derechos como titular.",
+  title,
+  description,
+  alternates: { canonical: "/aviso-privacidad" },
+  openGraph: { title, description, url: "/aviso-privacidad", type: "website" },
 };
 
 const email = SOCIAL_LINKS.email.replace("mailto:", "");

@@ -76,6 +76,10 @@ export const DISABLED_EVENT_TYPES_KEY = "notification_disabled_event_types";
 /** Correo que recibe copia de las alertas de staff. */
 export const STAFF_ALERT_INBOX_KEY = "notification_staff_alert_inbox";
 
+/** Tri-estado: sin fila = usa `NOTIFICATIONS_ENABLED`/`NOTIFICATIONS_DRY_RUN` del entorno. */
+export const NOTIFICATIONS_ENABLED_OVERRIDE_KEY = "notifications.enabled.override";
+export const NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY = "notifications.dryRun.override";
+
 export const MIN_RETENTION_DAYS = 1;
 export const MAX_RETENTION_DAYS = 3650;
 
@@ -85,6 +89,14 @@ export type NotificationSiteConfig = {
   retentionOverridden: Record<RetentionSettingField, boolean>;
   disabledEventTypes: NotificationEventType[];
   staffAlertInbox: string | null;
+  enabledOverride: boolean | null;
+  dryRunOverride: boolean | null;
+};
+
+const parseTriStateBoolean = (raw: string | null | undefined): boolean | null => {
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return null;
 };
 
 /** Recorta a rango; un valor inválido cae al default, igual que en `retention.ts`. */
@@ -129,6 +141,8 @@ export const getNotificationSiteConfig =
       ...Object.values(RETENTION_SETTING_KEYS),
       DISABLED_EVENT_TYPES_KEY,
       STAFF_ALERT_INBOX_KEY,
+      NOTIFICATIONS_ENABLED_OVERRIDE_KEY,
+      NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY,
     ];
 
     const rows = await prisma.siteSetting.findMany({
@@ -156,6 +170,12 @@ export const getNotificationSiteConfig =
         byKey.get(DISABLED_EVENT_TYPES_KEY)
       ),
       staffAlertInbox: inbox ? inbox : null,
+      enabledOverride: parseTriStateBoolean(
+        byKey.get(NOTIFICATIONS_ENABLED_OVERRIDE_KEY)
+      ),
+      dryRunOverride: parseTriStateBoolean(
+        byKey.get(NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY)
+      ),
     };
   };
 
@@ -164,6 +184,9 @@ export type NotificationSiteConfigPatch = {
   disabledEventTypes?: string[];
   /** `null` o cadena vacía borra el override. */
   staffAlertInbox?: string | null;
+  /** `null` borra la fila (vuelve a "automático" = entorno). */
+  enabledOverride?: boolean | null;
+  dryRunOverride?: boolean | null;
 };
 
 /**
@@ -203,17 +226,66 @@ export const setNotificationSiteConfig = async (
     });
   }
 
-  if (writes.length === 0) return;
+  const deletes: string[] = [];
 
-  await prisma.$transaction(
-    writes.map((row) =>
+  if (patch.enabledOverride !== undefined) {
+    if (patch.enabledOverride == null) {
+      deletes.push(NOTIFICATIONS_ENABLED_OVERRIDE_KEY);
+    } else {
+      writes.push({
+        key: NOTIFICATIONS_ENABLED_OVERRIDE_KEY,
+        value: String(patch.enabledOverride),
+      });
+    }
+  }
+
+  if (patch.dryRunOverride !== undefined) {
+    if (patch.dryRunOverride == null) {
+      deletes.push(NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY);
+    } else {
+      writes.push({
+        key: NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY,
+        value: String(patch.dryRunOverride),
+      });
+    }
+  }
+
+  if (writes.length === 0 && deletes.length === 0) return;
+
+  await prisma.$transaction([
+    ...writes.map((row) =>
       prisma.siteSetting.upsert({
         where: { key: row.key },
         create: { key: row.key, value: row.value },
         update: { value: row.value },
       })
-    )
-  );
+    ),
+    ...deletes.map((key) => prisma.siteSetting.deleteMany({ where: { key } })),
+  ]);
+};
+
+/**
+ * Solo estas 2 claves: el camino caliente de envío no debe pagar el `findMany`
+ * de las 5+ claves de retención por cada correo/SMS que sale.
+ */
+export const getNotificationRuntimeOverrides = async (): Promise<{
+  enabledOverride: boolean | null;
+  dryRunOverride: boolean | null;
+}> => {
+  const rows = await prisma.siteSetting.findMany({
+    where: {
+      key: {
+        in: [NOTIFICATIONS_ENABLED_OVERRIDE_KEY, NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY],
+      },
+    },
+    select: { key: true, value: true },
+  });
+  const byKey = new Map(rows.map((row) => [row.key, row.value]));
+
+  return {
+    enabledOverride: parseTriStateBoolean(byKey.get(NOTIFICATIONS_ENABLED_OVERRIDE_KEY)),
+    dryRunOverride: parseTriStateBoolean(byKey.get(NOTIFICATIONS_DRY_RUN_OVERRIDE_KEY)),
+  };
 };
 
 /**

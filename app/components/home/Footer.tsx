@@ -91,7 +91,7 @@ const socials: SocialItem[] = [
   {
     key: "youtube",
     label: "YouTube",
-    handle: "@dayanapnl",
+    handle: "@dayanabeltranpnl",
     href: SOCIAL_LINKS.youtube,
     icon: <YoutubeIcon />,
   },

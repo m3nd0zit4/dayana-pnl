@@ -5,7 +5,7 @@ import {
 } from "@prisma/client";
 import { renderQuickMessage } from "@/lib/crm/render-message";
 import { prisma } from "@/lib/db";
-import { sendEmail } from "./channels/email";
+import { buildUnsubscribeHeaders, sendEmail } from "./channels/email";
 import { sendSms } from "./channels/sms";
 import { sendWhatsAppTemplateMessage } from "./channels/whatsapp";
 import {
@@ -20,11 +20,16 @@ import {
 } from "./templates/payment-confirmation";
 import {
   channelConfigured,
-  isNotificationsEnabled,
+  siteUrl,
   type OutboundChannel,
 } from "./config";
 import { fireNotification } from "./platform/emit";
+import { resolveNotificationsEnabled } from "./platform/resolve";
+import { createUnsubscribeToken } from "./unsubscribe-token";
 import type { TemplateVars } from "./variables";
+
+const unsubscribeUrlFor = (contactId: string): string =>
+  `${siteUrl()}/api/unsubscribe?token=${createUnsubscribeToken(contactId)}`;
 
 const CHANNEL_LABEL: Record<MessageChannel, string> = {
   WHATSAPP_LINK: "enlace de WhatsApp",
@@ -88,7 +93,16 @@ const buildEmailContent = (
   const subject =
     payload.subject ?? campaignEmailSubject(templateTitle, vars);
   const html =
-    payload.html ?? campaignEmailHtml(templateTitle, payload.body, vars);
+    payload.html ??
+    campaignEmailHtml(
+      templateTitle,
+      payload.body,
+      vars,
+      // Solo los envíos de campaña real llevan el link visible de baja: es la
+      // señal que Gmail usa para mandar un correo a Promociones, y un 1:1 no
+      // es una campaña aunque use la misma plantilla.
+      payload.campaignId ? unsubscribeUrlFor(payload.contactId) : undefined
+    );
   const text =
     payload.text ?? campaignPlainText(payload.body, vars);
 
@@ -103,7 +117,7 @@ export const dispatchToChannel = async (
   errorMessage?: string;
   recipient?: string;
 }> => {
-  if (!isNotificationsEnabled()) {
+  if (!(await resolveNotificationsEnabled())) {
     return {
       status: NotificationDeliveryStatus.SKIPPED,
       errorMessage: "NOTIFICATIONS_ENABLED no está activo",
@@ -154,6 +168,13 @@ export const dispatchToChannel = async (
         subject,
         html,
         text,
+        // El header List-Unsubscribe es EXACTAMENTE la señal que Gmail usa
+        // para clasificar un correo como Promociones — ponerlo en cada envío
+        // 1:1 (confirmación de pago, respuesta del agente) los manda a
+        // Promociones sin necesidad. Solo aplica a un envío de campaña real.
+        headers: payload.campaignId
+          ? buildUnsubscribeHeaders(unsubscribeUrlFor(payload.contactId))
+          : undefined,
       });
       providerId = result.providerId;
       messageId = result.messageId;

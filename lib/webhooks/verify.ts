@@ -135,6 +135,56 @@ export const resolveMetaSubscription = (req: Request): string | null => {
   return challenge;
 };
 
+/**
+ * Resend webhook (Svix scheme): `svix-id.svix-timestamp.rawBody` HMAC-SHA256
+ * with the secret's base64 payload after the `whsec_` prefix, compared against
+ * any of the space-separated `v1,<sig>` values in `svix-signature` (Svix
+ * rotates/multi-signs during secret rollover, so more than one may be valid).
+ */
+export const verifyResendWebhook = (req: Request, rawBody: string): boolean => {
+  const secret = process.env.RESEND_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    if (!isLocalDevelopment()) {
+      console.error("[webhook resend] RESEND_WEBHOOK_SECRET missing");
+      return false;
+    }
+    return true;
+  }
+
+  const svixId = req.headers.get("svix-id");
+  const svixTimestamp = req.headers.get("svix-timestamp");
+  const svixSignature = req.headers.get("svix-signature");
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    console.warn("[webhook resend] missing svix headers");
+    return false;
+  }
+
+  const secretBytes = Buffer.from(secret.replace(/^whsec_/, ""), "base64");
+  const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
+  const expected = crypto
+    .createHmac("sha256", secretBytes)
+    .update(signedContent, "utf8")
+    .digest("base64");
+
+  const candidates = svixSignature
+    .split(" ")
+    .map((p) => p.split(",")[1])
+    .filter(Boolean);
+
+  try {
+    const expectedBuf = Buffer.from(expected, "base64");
+    return candidates.some((sig) => {
+      const sigBuf = Buffer.from(sig, "base64");
+      return (
+        sigBuf.length === expectedBuf.length &&
+        crypto.timingSafeEqual(sigBuf, expectedBuf)
+      );
+    });
+  } catch {
+    return false;
+  }
+};
+
 /** PayPal webhook via REST verify API. */
 export const verifyPayPalWebhook = async (
   req: Request,

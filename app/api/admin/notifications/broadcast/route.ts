@@ -4,7 +4,6 @@ import {
   NOTIFICATION_CHANNELS,
   type NotificationAudience,
   type OutboundChannel,
-  isNotificationsEnabled,
   getConfiguredChannels,
 } from "@/lib/notifications/config";
 import {
@@ -14,6 +13,7 @@ import {
 } from "@/lib/notifications/campaigns";
 import { emitCampaignRun } from "@/lib/inngest/events";
 import { isInngestConfigured } from "@/lib/inngest/config";
+import { resolveNotificationsEnabled } from "@/lib/notifications/platform/resolve";
 import { broadcastSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const staff = await requireBroadcastStaff();
   if (staff instanceof NextResponse) return staff;
 
-  if (!isNotificationsEnabled()) {
+  if (!(await resolveNotificationsEnabled())) {
     return NextResponse.json(
       {
         error: "notifications_disabled",

@@ -1,27 +1,24 @@
-import SocialConnectionsClient from "@/app/components/admin/crm/settings/SocialConnectionsClient";
-import { getSocialConnections } from "@/lib/crm/social-accounts";
-import { requireOwnerSettings } from "../owner-gate";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
+/**
+ * Absorbido por el hub de `/admin/ajustes/integraciones` (sección
+ * `#redes-sociales`). Se mantiene como redirect, no se borra, para no romper
+ * enlaces guardados ni los `dest` de OAuth que todavía apuntan aquí (ver
+ * `lib/social/oauth-state.ts` — el mapa de destinos también se actualiza en
+ * este cambio).
+ */
 const Page = async ({
   searchParams,
 }: {
   searchParams: Promise<{ meta?: string; tiktok?: string }>;
 }) => {
-  await requireOwnerSettings();
-
-  const [params, connections] = await Promise.all([
-    searchParams,
-    getSocialConnections(),
-  ]);
-
-  return (
-    <SocialConnectionsClient
-      initialConnections={connections}
-      metaResult={params.meta ?? null}
-      tiktokResult={params.tiktok ?? null}
-    />
+  const params = await searchParams;
+  const query = new URLSearchParams();
+  if (params.meta) query.set("meta", params.meta);
+  if (params.tiktok) query.set("tiktok", params.tiktok);
+  const qs = query.toString();
+  redirect(
+    `/admin/ajustes/integraciones${qs ? `?${qs}` : ""}#redes-sociales`
   );
 };
 

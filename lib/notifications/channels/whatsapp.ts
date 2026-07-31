@@ -1,5 +1,5 @@
-import { isDryRun } from "../config";
 import { graphPost, whatsAppCredentials } from "@/lib/meta/client";
+import { resolveDryRun } from "../platform/resolve";
 
 export type SendWhatsAppInput = {
   toE164: string;
@@ -25,7 +25,7 @@ const toWhatsAppRecipient = (e164: string): string => e164.replace(/\D/g, "");
 export const sendWhatsAppTemplateMessage = async (
   input: SendWhatsAppInput
 ): Promise<SendWhatsAppResult> => {
-  if (isDryRun()) {
+  if (await resolveDryRun()) {
     console.info("[notifications:dry-run] whatsapp", {
       to: input.toE164,
       preview: input.body.slice(0, 80),

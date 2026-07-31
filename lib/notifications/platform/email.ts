@@ -2,12 +2,13 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "../channels/email";
 import { sendSms } from "../channels/sms";
-import { isNotificationsEnabled, siteUrl, smsProviderReady } from "../config";
+import { siteUrl, smsProviderReady } from "../config";
 import {
   escapeHtml,
   wrapEmailHtml,
 } from "../templates/email-layout";
 import { NOTIFICATION_CATALOG } from "./catalog";
+import { resolveNotificationsEnabled } from "./resolve";
 
 /** Tope de caracteres del SMS: dos segmentos GSM-7. Más allá se cobra de más. */
 const SMS_MAX_CHARS = 300;
@@ -77,7 +78,7 @@ const absoluteHref = (href: string | null): string | undefined => {
  * `smsedAt` en `NotificationRecipient`; no se añade aquí porque exige migración.
  */
 export const deliverNotificationEmails = async (notificationId: string) => {
-  if (!isNotificationsEnabled()) return { sent: 0, skipped: 0, smsSent: 0 };
+  if (!(await resolveNotificationsEnabled())) return { sent: 0, skipped: 0, smsSent: 0 };
 
   const smsReady = smsProviderReady();
 

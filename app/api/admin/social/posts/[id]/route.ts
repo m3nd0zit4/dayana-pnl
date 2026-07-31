@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { cancelSocialPost, updateSocialPost } from "@/lib/crm/social-posts";
 import { emitSocialPostPublish } from "@/lib/inngest/events";
-import { isTikTokEnabled } from "@/lib/tiktok/client";
+import { resolveSocialPublishingEnabled } from "@/lib/tiktok/resolve-flags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ type Params = { params: Promise<{ id: string }> };
 
 /** Edita una publicación que aún no salió. */
 export const PATCH = async (req: Request, { params }: Params) => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 
@@ -78,7 +78,7 @@ export const PATCH = async (req: Request, { params }: Params) => {
 };
 
 export const POST = async (req: Request, { params }: Params) => {
-  if (!isTikTokEnabled()) {
+  if (!(await resolveSocialPublishingEnabled())) {
     return NextResponse.json({ error: "tiktok_disabled" }, { status: 404 });
   }
 

@@ -1,6 +1,6 @@
 import type { Conversation } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { isDryRun } from "@/lib/notifications/config";
+import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import {
   graphPost,
   MetaApiError,
@@ -183,7 +183,7 @@ export const sendMetaMessage = async (
     );
   }
 
-  const dryRun = isDryRun();
+  const dryRun = await resolveDryRun();
   let externalMessageId: string | null = null;
   let failedReason: string | null = null;
 

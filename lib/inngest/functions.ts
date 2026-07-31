@@ -6,8 +6,9 @@ import {
 } from "@prisma/client";
 import { inngest } from "./client";
 import { prisma } from "../db";
-import { isNotificationsEnabled, siteUrl } from "../notifications/config";
+import { siteUrl } from "../notifications/config";
 import { dispatchAndRecord } from "../notifications/dispatch";
+import { resolveNotificationsEnabled } from "../notifications/platform/resolve";
 import {
   BROADCAST_BATCH_SIZE,
   finalizeCampaignRun,
@@ -48,7 +49,7 @@ export const paymentApprovedFn = inngest.createFunction(
     if (!enrollment) return { skipped: "enrollment_not_found" };
 
     await step.run("payment-confirmation-notifications", async () => {
-      if (!isNotificationsEnabled()) return { skipped: "disabled" };
+      if (!(await resolveNotificationsEnabled())) return { skipped: "disabled" };
       return sendPaymentConfirmation(enrollmentId);
     });
 
@@ -142,7 +143,7 @@ export const sessionReminderFn = inngest.createFunction(
         };
         const rendered = renderQuickMessage(templateBody, vars);
 
-        if (isNotificationsEnabled()) {
+        if (await resolveNotificationsEnabled()) {
           for (const channel of ["EMAIL", "SMS", "WHATSAPP_API"] as const) {
             const { result } = await dispatchAndRecord({
               contactId: contact.id,
@@ -300,7 +301,7 @@ export const membershipDueReminderFn = inngest.createFunction(
           };
           const rendered = renderQuickMessage(body, vars);
 
-          if (!isNotificationsEnabled()) {
+          if (!(await resolveNotificationsEnabled())) {
             await prisma.messageLog.create({
               data: {
                 contactId: contact.id,

@@ -39,7 +39,10 @@ const getJson = async <T,>(url: string): Promise<T> => {
   return (await res.json()) as T;
 };
 
-export type ActiveProduct = ProductOption & { isActive: boolean };
+export type ActiveProduct = ProductOption & {
+  isActive: boolean;
+  prices: { currency: string; amountMinor: number }[];
+};
 
 export const useActiveProducts = (enabled = true) => {
   const [products, setProducts] = useState<ActiveProduct[] | null>(null);

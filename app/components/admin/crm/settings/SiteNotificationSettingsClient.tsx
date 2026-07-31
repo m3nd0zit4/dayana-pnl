@@ -25,6 +25,9 @@ type Config = {
   retention: Retention;
   disabledEventTypes: NotificationEventType[];
   staffAlertInbox: string | null;
+  /** `null` = automático (usa el entorno). */
+  enabledOverride: boolean | null;
+  dryRunOverride: boolean | null;
 };
 
 type Props = {
@@ -34,13 +37,18 @@ type Props = {
     dryRun: boolean;
     emailProvider: string | null;
   };
+  /** Valor crudo de `NOTIFICATIONS_ENABLED`/`NOTIFICATIONS_DRY_RUN`, sin fusionar con el override. */
+  envFloor: { enabled: boolean; dryRun: boolean };
 };
 
 const ALL_EVENT_TYPES = Object.keys(
   NOTIFICATION_CATALOG
 ) as NotificationEventType[];
 
-const SiteNotificationSettingsClient = ({ initialConfig, runtime }: Props) => {
+const SiteNotificationSettingsClient = ({
+  initialConfig,
+  envFloor,
+}: Props) => {
   const [retention, setRetention] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       Object.entries(initialConfig.retention).map(([k, v]) => [k, String(v)])
@@ -53,6 +61,45 @@ const SiteNotificationSettingsClient = ({ initialConfig, runtime }: Props) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  const [enabledOverride, setEnabledOverride] = useState<boolean | null>(
+    initialConfig.enabledOverride
+  );
+  const [dryRunOverride, setDryRunOverride] = useState<boolean | null>(
+    initialConfig.dryRunOverride
+  );
+  const [overrideBusy, setOverrideBusy] = useState<
+    "enabled" | "dryRun" | null
+  >(null);
+  const [overrideError, setOverrideError] = useState<string | null>(null);
+
+  const effectiveEnabled = enabledOverride ?? envFloor.enabled;
+  const effectiveDryRun = dryRunOverride ?? envFloor.dryRun;
+
+  const patchOverride = async (
+    field: "enabledOverride" | "dryRunOverride",
+    value: boolean | null
+  ) => {
+    setOverrideError(null);
+    setOverrideBusy(field === "enabledOverride" ? "enabled" : "dryRun");
+    try {
+      const res = await fetch("/api/admin/settings/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!res.ok) {
+        setOverrideError("No se pudo actualizar. Intenta de nuevo.");
+        return;
+      }
+      if (field === "enabledOverride") setEnabledOverride(value);
+      else setDryRunOverride(value);
+    } catch {
+      setOverrideError("No se pudo contactar con el servidor.");
+    } finally {
+      setOverrideBusy(null);
+    }
+  };
 
   const sections = groupEventTypes(ALL_EVENT_TYPES);
 
@@ -102,7 +149,7 @@ const SiteNotificationSettingsClient = ({ initialConfig, runtime }: Props) => {
 
   return (
     <div className="space-y-6">
-      {/* ── Estado de envío (solo lectura, viene del entorno) ─────────────── */}
+      {/* ── Estado de envío ───────────────────────────────────────────────── */}
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-1">
@@ -110,45 +157,111 @@ const SiteNotificationSettingsClient = ({ initialConfig, runtime }: Props) => {
               Estado de envío
             </h2>
             <p className="text-sm text-muted-foreground">
-              Solo lectura. Estos dos interruptores viven en las variables de
-              entorno de Vercel — no se cambian desde esta pantalla.
+              Por defecto siguen la variable de entorno de Vercel, pero se
+              pueden forzar desde aquí sin redeploy. &quot;Automático&quot;
+              quiere decir que no hay override guardado en la base de datos.
             </p>
           </div>
 
+          {overrideError && (
+            <p className="text-sm text-destructive" role="alert">
+              {overrideError}
+            </p>
+          )}
+
           <dl className="divide-y divide-border text-sm">
-            <div className="flex flex-wrap items-center justify-between gap-2 py-3">
-              <div>
+            <div className="flex flex-wrap items-start justify-between gap-3 py-3">
+              <div className="min-w-0 space-y-0.5">
                 <dt className="font-medium">NOTIFICATIONS_ENABLED</dt>
                 <dd className="text-xs text-muted-foreground">
                   Interruptor general de envíos salientes.
                 </dd>
               </div>
-              <Badge variant={runtime.enabled ? "default" : "secondary"}>
-                {runtime.enabled ? "Activado" : "Apagado"}
-              </Badge>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    Entorno: {envFloor.enabled ? "Activado" : "Apagado"}
+                  </Badge>
+                  <Badge variant={enabledOverride == null ? "outline" : "default"}>
+                    {enabledOverride == null
+                      ? "Automático"
+                      : enabledOverride
+                        ? "Forzado: activado"
+                        : "Forzado: apagado"}
+                  </Badge>
+                  <Switch
+                    aria-label="NOTIFICATIONS_ENABLED"
+                    checked={effectiveEnabled}
+                    disabled={overrideBusy === "enabled"}
+                    onCheckedChange={(checked) =>
+                      void patchOverride("enabledOverride", Boolean(checked))
+                    }
+                  />
+                </div>
+                {enabledOverride != null && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+                    disabled={overrideBusy === "enabled"}
+                    onClick={() => void patchOverride("enabledOverride", null)}
+                  >
+                    Restablecer a automático
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 py-3">
-              <div>
+            <div className="flex flex-wrap items-start justify-between gap-3 py-3">
+              <div className="min-w-0 space-y-0.5">
                 <dt className="font-medium">NOTIFICATIONS_DRY_RUN</dt>
                 <dd className="text-xs text-muted-foreground">
                   Modo simulado: se registra el envío pero no sale nada.
                 </dd>
               </div>
-              <Badge variant={runtime.dryRun ? "destructive" : "secondary"}>
-                {runtime.dryRun ? "Simulación activa" : "Envío real"}
-              </Badge>
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    Entorno: {envFloor.dryRun ? "Simulación" : "Envío real"}
+                  </Badge>
+                  <Badge variant={dryRunOverride == null ? "outline" : "default"}>
+                    {dryRunOverride == null
+                      ? "Automático"
+                      : dryRunOverride
+                        ? "Forzado: simulación"
+                        : "Forzado: envío real"}
+                  </Badge>
+                  <Switch
+                    aria-label="NOTIFICATIONS_DRY_RUN"
+                    checked={effectiveDryRun}
+                    disabled={overrideBusy === "dryRun"}
+                    onCheckedChange={(checked) =>
+                      void patchOverride("dryRunOverride", Boolean(checked))
+                    }
+                  />
+                </div>
+                {dryRunOverride != null && (
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+                    disabled={overrideBusy === "dryRun"}
+                    onClick={() => void patchOverride("dryRunOverride", null)}
+                  >
+                    Restablecer a automático
+                  </button>
+                )}
+              </div>
             </div>
           </dl>
 
-          {runtime.dryRun && (
+          {effectiveDryRun && (
             <Alert>
               <TriangleAlert />
               <AlertTitle>No está saliendo ningún correo</AlertTitle>
               <AlertDescription>
                 El modo simulado está activo. Todo se registra como si se
-                hubiera enviado, pero nadie recibe nada. Fuera de producción
-                viene encendido por defecto: para enviar de verdad hay que
-                poner <code>NOTIFICATIONS_DRY_RUN=false</code> en Vercel.
+                hubiera enviado, pero nadie recibe nada.
+                {dryRunOverride == null
+                  ? " Fuera de producción viene encendido por defecto: para enviar de verdad hay que poner NOTIFICATIONS_DRY_RUN=false en Vercel, o forzarlo arriba."
+                  : " Está forzado desde esta pantalla — usa \"Restablecer a automático\" para volver al valor del entorno."}
               </AlertDescription>
             </Alert>
           )}
