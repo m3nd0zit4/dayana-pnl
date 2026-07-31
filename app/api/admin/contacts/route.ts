@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     const { contact } = await upsertContactByPhone({
       phone: body.phone,
       phoneCountry: body.phoneCountry,
-      firstName: body.firstName,
+      firstName: body.firstName ?? undefined,
       lastName: body.lastName ?? undefined,
       email: body.email ?? undefined,
       countryIso: body.countryIso,

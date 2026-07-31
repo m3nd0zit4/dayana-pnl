@@ -47,7 +47,12 @@ export const testEmailSchema = z.object({
 
 export const createContactSchema = z.object({
   phone: z.string().min(6).max(30),
-  firstName: z.string().min(1).max(120),
+  // Not mandatory — plenty of real contacts start as "we have the number,
+  // not the name" (a WhatsApp lead, a walk-in). Phone is still the one
+  // required identifying field; see upsertContactByPhone's displayName
+  // fallback (shows the phone itself, not a fake placeholder name) for how
+  // a nameless contact renders everywhere else in the CRM.
+  firstName: z.string().max(120).optional().nullable(),
   lastName: z.string().max(120).optional().nullable(),
   email: z.string().email().max(200).optional().nullable(),
   phoneCountry: z.string().max(4).optional(),

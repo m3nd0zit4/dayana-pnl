@@ -6,7 +6,7 @@ import { requireWriteStaff, auditAgentWrite } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Create a new contact (or update the matching one if the phone/email already exists). Always confirm the phone number and name with the operator before calling this.",
+    "Create a new contact (or update the matching one if the phone/email already exists). Only the phone number is required — name is optional. Confirm the phone number with the operator before calling this; if they don't have a name yet, don't block on it — offer to create the contact without one (it'll show by its phone number until a name is added) and suggest adding a name once they know it.",
   inputSchema: z.object({
     phone: z.string().min(4).describe("Phone number, any format — will be normalized"),
     phoneCountry: z.string().length(2).optional().describe("ISO country code for parsing, e.g. CO"),
