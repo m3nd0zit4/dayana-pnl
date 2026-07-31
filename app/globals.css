@@ -2,6 +2,16 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* node_modules is gitignored, so Tailwind's automatic content detection
+ * never scans it — a class that only appears inside a prebuilt dependency
+ * bundle (like streamdown's link/button component) never gets its CSS
+ * generated. Without this, streamdown's `wrap-anywhere` utility is present
+ * in the DOM but has no matching rule, so a long unbroken string (a raw
+ * URL with no spaces) never wraps and the element's box grows past the
+ * chat panel's width — it renders, just off-screen to the right, which
+ * reads as the text having vanished. */
+@source "../node_modules/streamdown/dist";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {

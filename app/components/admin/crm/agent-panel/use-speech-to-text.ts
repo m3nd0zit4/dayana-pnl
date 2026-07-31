@@ -101,7 +101,13 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
     // on every event (not just once a phrase finalizes) is what makes the
     // textarea update live while the user is still speaking.
     let finalTranscript = "";
+    // A stopped recognition instance can still fire a late onresult/onend
+    // after toggle() has already created and swapped in a new one — each
+    // handler closes over its own `recognition`/`finalTranscript`, so a late
+    // event would replay stale text into the current input. Guard every
+    // handler on still being the live instance before acting.
     recognition.onresult = (event) => {
+      if (recognitionRef.current !== recognition) return;
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results.item(i);
@@ -113,10 +119,14 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
       if (combined) onTranscriptRef.current(combined);
     };
     recognition.onerror = (event) => {
+      if (recognitionRef.current !== recognition) return;
       setError(ERROR_MESSAGES[event.error] ?? `Error de dictado: ${event.error}`);
       setIsRecording(false);
     };
-    recognition.onend = () => setIsRecording(false);
+    recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return;
+      setIsRecording(false);
+    };
 
     recognitionRef.current = recognition;
     try {

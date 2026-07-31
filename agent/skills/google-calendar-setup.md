@@ -24,7 +24,28 @@ their availability, or agree a time with a client.
 5. Offer concrete slots. Ask, don't assume, about duration when it isn't a
    therapy session; therapy sessions already carry their own `durationMinutes`.
 
+## Therapy or something else?
+
+Not every appointment is a therapy session — don't default to the therapy path
+just because the request came through the CRM. Use it only when:
+
+- the operator's own words say so ("sesión", "terapia", names a package), or
+- the appointment is for a contact who already has an active `TherapyPackage`
+  and nothing in the request suggests otherwise.
+
+Anything else — a call, a meeting, an errand, "bloquéame el jueves a las 3" — is
+a plain appointment: use `create_calendar_event` directly and skip the whole
+"Therapy sessions" section below, including `schedule_therapy_session`. Don't
+create or touch a `TherapySession` row for something that isn't one.
+
+If it's genuinely unclear which this is, ask outright before scheduling
+anything — "¿esto es una sesión de terapia o una cita aparte?" — rather than
+guessing either way.
+
 ## Therapy sessions
+
+Only follow this section once the branch above has confirmed it's actually a
+therapy session.
 
 6. The session must already have a date. If it doesn't, schedule it first with
    `schedule_therapy_session`, then sync — `sync_therapy_session_to_calendar`

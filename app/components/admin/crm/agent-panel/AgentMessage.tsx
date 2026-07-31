@@ -135,15 +135,32 @@ const AgentMessagePart = ({
   part,
   showCaret,
   isLastMessage,
+  isUser,
 }: {
   part: EveMessagePart;
   showCaret: boolean;
   isLastMessage: boolean;
+  isUser: boolean;
 }) => {
   switch (part.type) {
     case "step-start":
       return null;
     case "text":
+      // What the operator typed is not markdown — running it through
+      // Streamdown means a raw pasted URL (or any text GFM autolinks) goes
+      // through its link-safety button component, which has no max-width of
+      // its own. Combined with this bubble's `w-fit` sizing, an unbroken
+      // string sized wider than the panel doesn't wrap, it just grows the
+      // bubble past the panel edge — the text renders, just off-screen.
+      // Assistant replies keep Streamdown: they legitimately contain
+      // markdown and links the tools returned (Calendar/Meet URLs, etc.).
+      if (isUser) {
+        return (
+          <p className="w-full min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap">
+            {part.text}
+          </p>
+        );
+      }
       return (
         <MessageResponse caret={showCaret ? "block" : undefined} isAnimating={showCaret}>
           {part.text}
@@ -214,6 +231,7 @@ const AgentMessage = ({
               part={item.part}
               showCaret={isStreaming && !isUser && message.parts.indexOf(item.part) === lastTextIndex}
               isLastMessage={isLastMessage}
+              isUser={isUser}
             />
           )
         )}
