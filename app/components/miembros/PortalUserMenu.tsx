@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogOut, Settings } from "lucide-react";
+import { LayoutDashboard, LogOut, Settings } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -29,9 +29,12 @@ const initials = (name: string) =>
 type PortalUserMenuProps = {
   displayName: string;
   avatarUrl: string | null;
+  /** True when this "member" session is really the OWNER's staff session,
+   *  bridged in via lib/auth/portal-viewer.ts — show her a way back to the CRM. */
+  isOwner?: boolean;
 };
 
-const PortalUserMenu = ({ displayName, avatarUrl }: PortalUserMenuProps) => (
+const PortalUserMenu = ({ displayName, avatarUrl, isOwner = false }: PortalUserMenuProps) => (
   <DropdownMenu>
     <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <Avatar size="sm">
@@ -48,10 +51,17 @@ const PortalUserMenu = ({ displayName, avatarUrl }: PortalUserMenuProps) => (
         </DropdownMenuLabel>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
-      <DropdownMenuItem render={<Link href="/miembros/cuenta/general" />}>
-        <Settings />
-        Mi cuenta
-      </DropdownMenuItem>
+      {isOwner ? (
+        <DropdownMenuItem render={<Link href="/admin" />}>
+          <LayoutDashboard />
+          CRM
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuItem render={<Link href="/miembros/cuenta/general" />}>
+          <Settings />
+          Mi cuenta
+        </DropdownMenuItem>
+      )}
       <DropdownMenuSeparator />
       <DropdownMenuItem
         variant="destructive"

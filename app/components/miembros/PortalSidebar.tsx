@@ -29,12 +29,14 @@ const PortalSidebar = ({
   avatarUrl,
   lockState,
   streamEnabled,
+  isOwner = false,
   children,
 }: {
   firstName: string;
   avatarUrl: string | null;
   lockState: MembershipLockState;
   streamEnabled: boolean;
+  isOwner?: boolean;
   children: ReactNode;
 }) => {
   const pathname = usePathname();
@@ -85,7 +87,7 @@ const PortalSidebar = ({
           <div className="flex items-center gap-2 text-xs text-muted-foreground sm:gap-3">
             <span className="hidden text-foreground sm:inline">{firstName}</span>
             <MemberNotificationBell />
-            <PortalUserMenu displayName={firstName} avatarUrl={avatarUrl} />
+            <PortalUserMenu displayName={firstName} avatarUrl={avatarUrl} isOwner={isOwner} />
           </div>
         </div>
       </header>
