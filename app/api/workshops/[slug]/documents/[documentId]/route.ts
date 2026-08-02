@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
-import { getMemberSession } from "@/lib/auth/member-session";
-import { resolveSessionCheckoutContact } from "@/lib/crm/checkout-session-contact";
-import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
+import { resolveWorkshopAccess } from "@/lib/crm/workshop-access";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +16,14 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   });
   if (!edition) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  // Same access model as the workshop detail page — re-verified here, on
-  // every download, not just once at page render. No productId means no
-  // purchase to key access off of, so (unlike the page) we block by
-  // default rather than treating it as fully public.
-  let hasAccess = false;
-  if (edition.productId) {
-    const member = await getMemberSession();
-    if (member) {
-      hasAccess = await hasActiveWorkshopEnrollment(member.contact.id, edition.productId);
-    } else {
-      const sessionContact = await resolveSessionCheckoutContact();
-      if (sessionContact?.contactId) {
-        hasAccess = await hasActiveWorkshopEnrollment(sessionContact.contactId, edition.productId);
-      }
-    }
-  }
+  // Same access model as the workshop detail page (OWNER always, member/
+  // staff-as-contact with a real enrollment) — re-verified here on every
+  // download, not just once at page render. No productId means no purchase
+  // to key access off of, so (unlike the page) we block by default rather
+  // than treating it as fully public.
+  const { hasAccess } = edition.productId
+    ? await resolveWorkshopAccess(edition.productId)
+    : { hasAccess: false };
   if (!hasAccess) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
