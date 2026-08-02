@@ -35,7 +35,7 @@ const WorkshopsPageClient = ({
   initialEditions,
   loadError: initialLoadError,
 }: Props) => {
-  const { confirm, toast } = useCrm();
+  const { confirm, toast, canManageTeam: canPreview } = useCrm();
   const [editions, setEditions] = useState<WorkshopRow[]>(initialEditions ?? []);
   const [loading, setLoading] = useState(!preview && initialEditions === undefined);
   const [loadError, setLoadError] = useState<string | null>(initialLoadError ?? null);
@@ -148,12 +148,12 @@ const WorkshopsPageClient = ({
             )}
           </Button>
         )}
-        {e.status === WorkshopEditionStatus.OPEN && (
+        {(e.status === WorkshopEditionStatus.OPEN || canPreview) && (
           <Button
             variant="ghost"
             size="icon"
             aria-label="Ver en web"
-            title="Ver en web"
+            title={canPreview ? "Ver en web (tú siempre ves la versión pagada)" : "Ver en web"}
             nativeButton={false}
             render={
               <Link href={`/taller-virtual/${e.slug}`} target="_blank" rel="noopener noreferrer" />

@@ -77,6 +77,26 @@ export const getOpenWorkshopDetailBySlug = async (
   return mapEditionToDetail(edition);
 };
 
+/**
+ * OWNER-only CRM preview: same shape as getOpenWorkshopDetailBySlug but
+ * without the OPEN-status restriction, so DRAFT/CLOSED editions can be
+ * reviewed before publish. Never used on a public route.
+ */
+export const getWorkshopDetailForPreview = async (
+  slug: string
+): Promise<WorkshopDetail | null> => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: editionSelect,
+  });
+
+  if (!edition || edition.slug === PROXIMO_WORKSHOP_SLUG) {
+    return null;
+  }
+
+  return mapEditionToDetail(edition);
+};
+
 export const getActiveOpenWorkshop = async (): Promise<WorkshopDetail | null> => {
   const edition = await prisma.workshopEdition.findFirst({
     where: {

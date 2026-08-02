@@ -85,6 +85,10 @@ export const parseCheckoutContactFields = (
   };
 };
 
+export const lookupContactSchema = z.object({
+  email: z.string().trim().email().max(200),
+});
+
 export type CheckoutContactFieldErrorCode =
   | "MISSING_EMAIL"
   | "INVALID_EMAIL"

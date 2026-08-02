@@ -56,6 +56,41 @@ export const createStaffUser = async (input: {
   return staff;
 };
 
+/** OWNER-only edit from the team screen. Email is deliberately not editable
+ * here (it's the login identifier — see updateStaffProfile). Guards against
+ * dropping the team to zero active OWNERs, since nothing else would stop
+ * that and it would lock everyone out of /admin/ajustes and team management. */
+export const updateStaffUser = async (
+  id: string,
+  input: { displayName?: string; role?: StaffRole; isActive?: boolean }
+) => {
+  const current = await prisma.staffUser.findUnique({ where: { id } });
+  if (!current) {
+    throw new Error("NOT_FOUND");
+  }
+
+  const willStayOwner = (input.role ?? current.role) === "OWNER";
+  const willStayActive = (input.isActive ?? current.isActive) === true;
+  const losesOwnerStatus = current.role === "OWNER" && current.isActive && !(willStayOwner && willStayActive);
+  if (losesOwnerStatus) {
+    const otherActiveOwners = await prisma.staffUser.count({
+      where: { role: "OWNER", isActive: true, id: { not: id } },
+    });
+    if (otherActiveOwners === 0) {
+      throw new Error("LAST_OWNER");
+    }
+  }
+
+  return prisma.staffUser.update({
+    where: { id },
+    data: {
+      ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
+      ...(input.role !== undefined ? { role: input.role } : {}),
+      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
+    },
+  });
+};
+
 export const updateStaffPassword = async (id: string, password: string) => {
   const passwordHash = await hashStaffPassword(password);
   return prisma.staffUser.update({
