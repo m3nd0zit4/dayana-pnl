@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogOut, Settings } from "lucide-react";
+import { BookOpen, LogOut, Settings } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -57,6 +57,14 @@ const CrmUserMenu = ({ displayName, role, avatarUrl }: CrmUserMenuProps) => (
         <Settings />
         Mi cuenta
       </DropdownMenuItem>
+      {/* OWNER only — lib/auth/portal-viewer.ts bridges her staff session
+          into the course portal. Other staff roles stay CRM-only. */}
+      {role === "OWNER" ? (
+        <DropdownMenuItem render={<Link href="/miembros" />}>
+          <BookOpen />
+          Portal del curso
+        </DropdownMenuItem>
+      ) : null}
       <DropdownMenuSeparator />
       <DropdownMenuItem
         variant="destructive"

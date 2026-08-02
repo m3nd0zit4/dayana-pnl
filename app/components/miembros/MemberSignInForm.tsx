@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -33,8 +33,8 @@ const MemberSignInForm = ({
   onSwitchToSignup,
 }: MemberSignInFormProps) => {
   const searchParams = useSearchParams();
-  const callbackUrl =
-    callbackUrlProp ?? searchParams.get("callbackUrl") ?? "/miembros";
+  const explicitCallbackUrl = callbackUrlProp ?? searchParams.get("callbackUrl");
+  const callbackUrl = explicitCallbackUrl ?? "/miembros";
   const oauthError = searchParams.get("error");
   const [email, setEmail] = useState(initialEmail ?? "");
   const [password, setPassword] = useState("");
@@ -68,6 +68,19 @@ const MemberSignInForm = ({
       onSuccess();
       return;
     }
+
+    // No explicit destination was requested (a plain /acceso visit, not a
+    // deep link) — if this account also has CRM access, let her choose
+    // instead of silently landing in the course portal. proxy.ts applies
+    // the same rule when she revisits /acceso already signed in.
+    if (!explicitCallbackUrl) {
+      const session = await getSession();
+      if (session?.user?.kind === "staff" && session.user.role === "OWNER") {
+        window.location.href = "/acceso/portal";
+        return;
+      }
+    }
+
     window.location.href = result?.url ?? callbackUrl;
   };
 

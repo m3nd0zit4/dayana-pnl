@@ -43,8 +43,11 @@ export const proxy = auth((req) => {
   const isOwnerStaff = isStaff && req.auth?.user?.role === "OWNER";
 
   // Sesión activa en cualquier página de acceso → directo a su panel.
+  // OWNER tiene acceso a los dos (CRM + portal del curso) — que elija.
   if (isSignIn && isStaff) {
-    return NextResponse.redirect(new URL("/admin", req.nextUrl.origin));
+    return NextResponse.redirect(
+      new URL(isOwnerStaff ? "/acceso/portal" : "/admin", req.nextUrl.origin)
+    );
   }
   if (isSignIn && isMember) {
     return NextResponse.redirect(new URL("/miembros", req.nextUrl.origin));
