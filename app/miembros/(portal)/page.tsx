@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BRAND } from "@/lib/contact";
-import { getMemberSession } from "@/lib/auth/member-session";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getCourseProduct, getEnrolledCourses } from "@/lib/lms/membership";
 import { getCourseProgress } from "@/lib/lms/class-progress";
 import LearningDashboard, {
@@ -14,10 +14,10 @@ export const metadata: Metadata = {
 };
 
 const Page = async () => {
-  const member = await getMemberSession();
+  const member = await getPortalViewer();
   if (!member) redirect("/acceso");
 
-  let enrolled = await getEnrolledCourses(member.contact.id);
+  let enrolled = await getEnrolledCourses(member.contact.id, { isOwner: member.isOwner });
 
   // Edge case: a portal account with no enrollment record at all (e.g. the
   // enrollment was removed after signup). Show the site's course as a

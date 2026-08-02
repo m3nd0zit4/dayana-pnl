@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { getMemberSession } from "@/lib/auth/member-session";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import {
   getMembershipForContact,
   getMembershipLockState,
@@ -17,12 +17,14 @@ const PortalLayout = async ({
   children: ReactNode;
   modal: ReactNode;
 }) => {
-  const member = await getMemberSession();
+  const member = await getPortalViewer();
   if (!member) {
     redirect("/acceso");
   }
 
-  const membership = await getMembershipForContact(member.contact.id);
+  const membership = await getMembershipForContact(member.contact.id, {
+    isOwner: member.isOwner,
+  });
   const lockState = getMembershipLockState(membership);
 
   // Interruptor del stream SSE de la campana. Apagado ⇒ el feed se degrada a

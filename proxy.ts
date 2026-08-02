@@ -37,6 +37,10 @@ export const proxy = auth((req) => {
   const kind = req.auth?.user?.kind;
   const isStaff = Boolean(req.auth?.user?.id) && kind === "staff";
   const isMember = Boolean(req.auth?.user?.id) && kind === "member";
+  // OWNER-only exception to "staff never touch the member portal": lets the
+  // owner browse /miembros (courses, workshops) via lib/auth/portal-viewer.ts's
+  // read-only bridge. Every other staff role stays fully blocked, unchanged.
+  const isOwnerStaff = isStaff && req.auth?.user?.role === "OWNER";
 
   // Sesión activa en cualquier página de acceso → directo a su panel.
   if (isSignIn && isStaff) {
@@ -53,17 +57,18 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(acceso);
   }
 
-  // Members never touch the CRM; staff never touch the member portal.
+  // Members never touch the CRM; staff never touch the member portal
+  // (except OWNER, see isOwnerStaff above).
   if (isMember && isAdminApi) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
   if (isMember && isAdmin) {
     return NextResponse.redirect(new URL("/miembros", req.nextUrl.origin));
   }
-  if (isStaff && isMemberApi) {
+  if (isStaff && isMemberApi && !isOwnerStaff) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
-  if (isStaff && isMemberArea) {
+  if (isStaff && isMemberArea && !isOwnerStaff) {
     return NextResponse.redirect(new URL("/admin", req.nextUrl.origin));
   }
 
@@ -71,7 +76,7 @@ export const proxy = auth((req) => {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  if (isMemberApi && !isMember && !MEMBER_PUBLIC_APIS.has(pathname)) {
+  if (isMemberApi && !isMember && !isOwnerStaff && !MEMBER_PUBLIC_APIS.has(pathname)) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
@@ -88,7 +93,12 @@ export const proxy = auth((req) => {
     return NextResponse.redirect(acceso);
   }
 
-  if (isMemberArea && !isMember && !MEMBER_PUBLIC_PAGES.has(pathname)) {
+  if (
+    isMemberArea &&
+    !isMember &&
+    !isOwnerStaff &&
+    !MEMBER_PUBLIC_PAGES.has(pathname)
+  ) {
     const acceso = new URL("/acceso", req.nextUrl.origin);
     acceso.searchParams.set(
       "callbackUrl",

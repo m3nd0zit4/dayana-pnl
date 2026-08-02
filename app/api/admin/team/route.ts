@@ -7,8 +7,9 @@ import {
   canManageTeam,
   createStaffUser,
   listStaffUsers,
+  updateStaffUser,
 } from "@/lib/crm/staff";
-import { createStaffSchema } from "@/lib/validations/admin";
+import { createStaffSchema, updateStaffSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -69,4 +70,47 @@ export async function POST(req: NextRequest) {
 
   const { passwordHash: _, ...safe } = created;
   return NextResponse.json({ staff: safe });
+}
+
+export async function PATCH(req: NextRequest) {
+  const staff = await requireWriteStaff();
+  if (staff instanceof NextResponse) return staff;
+
+  if (!canManageTeam(staff.role)) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const raw = await req.json().catch(() => null);
+  const parsed = updateStaffSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "invalid_fields", details: parsed.error.flatten() },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const { id, ...changes } = parsed.data;
+    const updated = await updateStaffUser(id, changes);
+
+    fireAuditLog({
+      staffUserId: staff.id,
+      action: "STAFF_UPDATED",
+      entityType: "StaffUser",
+      entityId: updated.id,
+      changes,
+    });
+
+    const { passwordHash: _, ...safe } = updated;
+    return NextResponse.json({ staff: safe });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "error";
+    if (msg === "NOT_FOUND") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    if (msg === "LAST_OWNER") {
+      return NextResponse.json({ error: "last_owner" }, { status: 409 });
+    }
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
 }

@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import type { CountryCode } from "libphonenumber-js";
 import { prisma } from "../db";
+import { isRealContactPhone } from "./checkout-session-contact";
 import { PLACEHOLDER_PHONE_PREFIX } from "./checkout-placeholder";
 import {
   normalizePhone,
@@ -274,6 +275,41 @@ export const enrichContactFromPayer = async (
     where: { id: contactId },
     data: update,
   });
+};
+
+export type ContactPrefill = {
+  firstName?: string;
+  lastName?: string;
+  phoneCountry?: string;
+};
+
+/**
+ * Anonymous-checkout autofill lookup. Deliberately narrow: never returns the
+ * phone number itself (only its country), and only for contacts with a real
+ * (non-placeholder) phone and a real (non-generic) name on file — see
+ * isRealContactPhone in checkout-session-contact.ts for the same bar the
+ * signed-in fast path already uses. Callers must rate-limit by IP and email
+ * before calling this — see app/api/checkout/contact-lookup/route.ts.
+ */
+export const lookupContactPrefillByEmail = async (
+  email: string
+): Promise<ContactPrefill | null> => {
+  const contact = await prisma.contact.findFirst({
+    where: { email: { equals: email.trim().toLowerCase(), mode: "insensitive" } },
+  });
+  if (!contact) return null;
+  if (!isRealContactPhone(contact.phoneE164)) return null;
+
+  const nameIsGeneric =
+    contact.firstName === contact.phoneE164 ||
+    LEGACY_GENERIC_FIRST_NAMES.has(contact.firstName);
+  if (nameIsGeneric) return null;
+
+  return {
+    firstName: contact.firstName,
+    lastName: contact.lastName ?? undefined,
+    phoneCountry: contact.phoneCountryIso ?? undefined,
+  };
 };
 
 export const getContactById = async (id: string) =>
