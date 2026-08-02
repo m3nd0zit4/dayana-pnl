@@ -184,6 +184,13 @@ export const membershipPaidUntilSchema = z.object({
   paidUntil: z.string().datetime().nullable(),
 });
 
+export const updateStaffSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().trim().min(1).max(120).optional(),
+  role: z.enum(["OWNER", "OPERATOR", "READONLY", "DEVELOPER"]).optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const updateStaffProfileSchema = z.object({
   displayName: z.string().trim().min(1).max(120),
   themePreference: z.enum(["light", "dark", "system"]).optional(),

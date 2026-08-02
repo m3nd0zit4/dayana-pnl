@@ -1,17 +1,19 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageShell from "./CrmPageShell";
-import StaffFormModal from "./StaffFormModal";
+import StaffFormModal, { type CreatedStaffMember } from "./StaffFormModal";
 
 type Member = {
   id: string;
   displayName: string;
   email: string;
   role: string;
+  isActive: boolean;
 };
 
 type Props = {
@@ -29,6 +31,26 @@ const TeamPageClient = ({
 }: Props) => {
   const [team, setTeam] = useState<Member[]>(initialTeam);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Member | null>(null);
+
+  const openCreate = () => {
+    setEditing(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (member: Member) => {
+    setEditing(member);
+    setModalOpen(true);
+  };
+
+  const handleSaved = (member: CreatedStaffMember) => {
+    setTeam((prev) => {
+      const exists = prev.some((u) => u.id === member.id);
+      return exists
+        ? prev.map((u) => (u.id === member.id ? { ...u, ...member } : u))
+        : [...prev, member];
+    });
+  };
 
   return (
     <CrmPageShell>
@@ -41,7 +63,7 @@ const TeamPageClient = ({
             </p>
           </div>
           {canManage && !preview && (
-            <Button size="sm" onClick={() => setModalOpen(true)}>
+            <Button size="sm" onClick={openCreate}>
               <Plus />
               <span className="hidden sm:inline">Añadir usuario</span>
             </Button>
@@ -56,14 +78,30 @@ const TeamPageClient = ({
                 className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-muted/50"
               >
                 <div>
-                  <div className="text-sm font-semibold">{u.displayName}</div>
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    {u.displayName}
+                    {!u.isActive && <Badge variant="destructive">Inactivo</Badge>}
+                  </div>
                   <div className="mt-0.5 text-xs text-muted-foreground">
                     {u.email}
                   </div>
                 </div>
-                <div className="font-[font2] text-[10px] tracking-widest text-primary uppercase">
-                  {u.role}
-                  {currentId === u.id ? " · tú" : ""}
+                <div className="flex items-center gap-3">
+                  <div className="font-[font2] text-[10px] tracking-widest text-primary uppercase">
+                    {u.role}
+                    {currentId === u.id ? " · tú" : ""}
+                  </div>
+                  {canManage && !preview && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Editar"
+                      title="Editar"
+                      onClick={() => openEdit(u)}
+                    >
+                      <Pencil />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -74,7 +112,9 @@ const TeamPageClient = ({
       <StaffFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSaved={(member) => setTeam((prev) => [...prev, member])}
+        onSaved={handleSaved}
+        editing={editing}
+        isSelf={editing?.id === currentId}
       />
     </CrmPageShell>
   );

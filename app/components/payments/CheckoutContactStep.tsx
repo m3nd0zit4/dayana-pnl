@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { type CountryCode } from "libphonenumber-js";
 import {
@@ -95,6 +95,52 @@ const CheckoutContactStep = ({
     setFirstName((v) => v || sessionFirst || "");
     setLastName((v) => v || sessionRest.join(" "));
   }
+
+  // Anonymous returning-buyer autofill: signed-in visitors already get the
+  // full session prefill above, so this only fires for logged-out visitors.
+  // Silent — never blocks or gates the form, only fills fields the visitor
+  // hasn't already touched themselves, and never touches phone/consent.
+  const lookedUpEmailRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (sessionStatus === "authenticated") return;
+    const normalized = email.trim().toLowerCase();
+    if (!normalized.includes("@")) return;
+    if (lookedUpEmailRef.current === normalized) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      lookedUpEmailRef.current = normalized;
+      fetch("/api/checkout/contact-lookup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: normalized }),
+        signal: controller.signal,
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then(
+          (
+            data: {
+              found?: boolean;
+              prefill?: { firstName?: string; lastName?: string; phoneCountry?: string };
+            } | null
+          ) => {
+            if (!data?.found || !data.prefill) return;
+            const { prefill } = data;
+            if (prefill.firstName) setFirstName((v) => v || prefill.firstName || "");
+            if (prefill.lastName) setLastName((v) => v || prefill.lastName || "");
+            if (prefill.phoneCountry) {
+              setPhoneCountry((v) => (v === defaultCountry ? prefill.phoneCountry || v : v));
+            }
+          }
+        )
+        .catch(() => undefined);
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [email, sessionStatus, defaultCountry]);
 
   const handlePhoneChange = (raw: string) => {
     const country = phoneCountry as CountryCode;

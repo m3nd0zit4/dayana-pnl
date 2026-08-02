@@ -11,6 +11,7 @@ const PREVIEW_TEAM = [
     displayName: "Dayana Beltrán",
     email: "contacto@dayanabeltran.com",
     role: "OWNER",
+    isActive: true,
   },
 ];
 
@@ -23,7 +24,14 @@ const TeamPage = async () => {
   if (!preview && current) {
     canManage = canManageTeam(current.role);
     try {
-      team = await listStaffUsers();
+      const rows = await listStaffUsers();
+      team = rows.map((u) => ({
+        id: u.id,
+        displayName: u.displayName,
+        email: u.email,
+        role: u.role,
+        isActive: u.isActive,
+      }));
     } catch {
       team = [];
     }
