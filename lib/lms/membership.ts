@@ -143,9 +143,20 @@ export const getMembershipLockState = (
   return { kind: "blocked", neverPaid: false };
 };
 
+/** Synthetic membership for the owner-portal bridge — always current, no real Enrollment/Payment. */
+const OWNER_MEMBERSHIP: MembershipInfo = {
+  enrollment: null,
+  paidUntil: null,
+  isCurrent: true,
+  daysLeft: null,
+};
+
 export const getMembershipForContact = async (
-  contactId: string
+  contactId: string,
+  opts: { isOwner?: boolean } = {}
 ): Promise<MembershipInfo> => {
+  if (opts.isOwner) return OWNER_MEMBERSHIP;
+
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       contactId,
@@ -190,8 +201,14 @@ export type EnrolledCourse = {
  * most recent per product is kept.
  */
 export const getEnrolledCourses = async (
-  contactId: string
+  contactId: string,
+  opts: { isOwner?: boolean } = {}
 ): Promise<EnrolledCourse[]> => {
+  if (opts.isOwner) {
+    const products = await listCourseProducts();
+    return products.map((product) => ({ product, membership: OWNER_MEMBERSHIP }));
+  }
+
   const enrollments = await prisma.enrollment.findMany({
     where: {
       contactId,

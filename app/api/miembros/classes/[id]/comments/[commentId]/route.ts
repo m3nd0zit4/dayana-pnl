@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getMemberSession } from "@/lib/auth/member-session";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { deleteOwnComment, CommentValidationError } from "@/lib/lms/class-comments";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 type RouteCtx = { params: Promise<{ id: string; commentId: string }> };
 
 export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
-  const member = await getMemberSession();
+  const member = await getPortalViewer();
   if (!member) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }

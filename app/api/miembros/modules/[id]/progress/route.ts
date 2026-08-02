@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getMemberSession } from "@/lib/auth/member-session";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getMembershipForContact } from "@/lib/lms/membership";
 import { getPublishedModule } from "@/lib/lms/course-content";
 import {
@@ -12,10 +12,12 @@ export const dynamic = "force-dynamic";
 type RouteCtx = { params: Promise<{ id: string }> };
 
 const requireCurrentMember = async (moduleId: string) => {
-  const member = await getMemberSession();
+  const member = await getPortalViewer();
   if (!member) return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
 
-  const membership = await getMembershipForContact(member.contact.id);
+  const membership = await getMembershipForContact(member.contact.id, {
+    isOwner: member.isOwner,
+  });
   if (!membership.isCurrent) {
     return { error: NextResponse.json({ error: "membership_inactive" }, { status: 403 }) };
   }

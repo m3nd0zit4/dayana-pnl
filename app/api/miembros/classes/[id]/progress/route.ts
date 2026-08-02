@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getMemberSession } from "@/lib/auth/member-session";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getEnrolledCourses } from "@/lib/lms/membership";
 import {
   markClassComplete,
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 type RouteCtx = { params: Promise<{ id: string }> };
 
 const requireCurrentMember = async (classId: string) => {
-  const member = await getMemberSession();
+  const member = await getPortalViewer();
   if (!member) {
     return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
   }
@@ -25,7 +25,7 @@ const requireCurrentMember = async (classId: string) => {
     return { error: NextResponse.json({ error: "not_found" }, { status: 404 }) };
   }
 
-  const courses = await getEnrolledCourses(member.contact.id);
+  const courses = await getEnrolledCourses(member.contact.id, { isOwner: member.isOwner });
   const course = courses.find((c) => c.product.id === cls.productId);
   if (!course?.membership.isCurrent) {
     return {

@@ -64,6 +64,7 @@ type WorkshopCardItemProps = {
   plan?: Plan | null;
   userCountry?: string | null;
   googleEnabled?: boolean;
+  hasAccess?: boolean;
 };
 
 const WorkshopCardItem = ({
@@ -71,6 +72,7 @@ const WorkshopCardItem = ({
   plan,
   userCountry,
   googleEnabled = false,
+  hasAccess = false,
 }: WorkshopCardItemProps) => {
   if (workshop.status === "upcoming") {
     return <UpcomingWorkshopCard />;
@@ -118,7 +120,14 @@ const WorkshopCardItem = ({
 
       {workshop.status === "open" ? (
         <div className="mt-4">
-          {visiblePlan ? (
+          {hasAccess ? (
+            <Link
+              href={`/taller-virtual/${workshop.slug}`}
+              className="inline-flex w-full items-center justify-center rounded-full bg-black px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-white transition-colors hover:bg-black/85"
+            >
+              Ver taller
+            </Link>
+          ) : visiblePlan ? (
             <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
               <WorkshopCheckoutCta
                 plan={visiblePlan}
@@ -145,6 +154,9 @@ type WorkshopsListingProps = {
   plans?: Record<string, Plan>;
   userCountry?: string | null;
   googleEnabled?: boolean;
+  /** Por slug: true si el visitante ya puede entrar (owner o ya inscrito) — la
+   *  tarjeta muestra "Ver taller" en vez del botón de pago. */
+  accessBySlug?: Record<string, boolean>;
 };
 
 const WorkshopsListing = ({
@@ -152,6 +164,7 @@ const WorkshopsListing = ({
   plans,
   userCountry,
   googleEnabled = false,
+  accessBySlug,
 }: WorkshopsListingProps) => {
   const workshops = workshopsProp ?? WORKSHOPS;
   const rootRef = useRef<HTMLElement>(null);
@@ -212,6 +225,7 @@ const WorkshopsListing = ({
               }
               userCountry={userCountry}
               googleEnabled={googleEnabled}
+              hasAccess={accessBySlug?.[workshop.slug] ?? false}
             />
           ))}
         </div>

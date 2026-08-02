@@ -7,6 +7,7 @@ import { getWorkshopsFromDb, getWorkshopEventTiming } from "@/lib/workshops-db";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { isPlanVisibleForRegion } from "@/lib/pricing/plan-visibility";
+import { resolveWorkshopAccess } from "@/lib/crm/workshop-access";
 import type { Plan } from "@/lib/plans";
 import { buildBreadcrumbSchema, buildWorkshopEventSchema } from "@/lib/seo/schema";
 
@@ -68,6 +69,18 @@ const WorkshopsPage = async () => {
     if (plan && isPlanVisibleForRegion(plan, isColombia)) plans[id] = plan;
   }
 
+  // Owner (any status) or an already-enrolled visitor sees "Ver taller"
+  // instead of a pay button — resolved once here so the card and the real
+  // gate on /taller-virtual/[slug] can never disagree.
+  const openWorkshops = workshops.filter((w) => w.status === "open");
+  const accessEntries = await Promise.all(
+    openWorkshops.map(
+      async (w) =>
+        [w.slug, (await resolveWorkshopAccess(w.productId ?? null)).hasAccess] as const
+    )
+  );
+  const accessBySlug = Object.fromEntries(accessEntries);
+
   return (
     <>
       <JsonLd
@@ -83,6 +96,7 @@ const WorkshopsPage = async () => {
           plans={plans}
           userCountry={userCountry}
           googleEnabled={isGoogleAuthEnabled()}
+          accessBySlug={accessBySlug}
         />
       </main>
       <Footer />

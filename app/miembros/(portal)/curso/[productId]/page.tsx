@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ProductKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { BRAND } from "@/lib/contact";
-import { getMemberSession } from "@/lib/auth/member-session";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getEnrolledCourses } from "@/lib/lms/membership";
 import { getCourseOutline } from "@/lib/lms/course-content";
 import { getCompletedClassIds, getCourseProgress } from "@/lib/lms/class-progress";
@@ -26,13 +26,15 @@ const Page = async ({ params, searchParams }: PageProps) => {
   const { productId } = await params;
   const { c: selectedFromUrl } = await searchParams;
 
-  const member = await getMemberSession();
+  const member = await getPortalViewer();
   if (!member) redirect("/acceso");
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product || product.kind !== ProductKind.COURSE) notFound();
 
-  const enrolledCourses = await getEnrolledCourses(member.contact.id);
+  const enrolledCourses = await getEnrolledCourses(member.contact.id, {
+    isOwner: member.isOwner,
+  });
   const enrolled = enrolledCourses.find((c) => c.product.id === productId);
   const isCurrent = enrolled?.membership.isCurrent ?? false;
   const neverPaid = !enrolled || enrolled.membership.paidUntil == null;
