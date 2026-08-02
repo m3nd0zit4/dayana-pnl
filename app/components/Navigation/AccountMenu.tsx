@@ -42,6 +42,9 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
 
   const kind =
     status === "authenticated" ? (session?.user?.kind ?? null) : null;
+  // OWNER staff also has course-portal access (lib/auth/portal-viewer.ts) —
+  // everyone else on staff stays CRM-only.
+  const isOwnerStaff = kind === "staff" && session?.user?.role === "OWNER";
   const displayName = session?.user?.name ?? null;
   const firstName = displayName?.split(" ")[0] ?? null;
   const avatarUrl = session?.user?.avatarUrl ?? null;
@@ -111,13 +114,21 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
 
         <DropdownMenuGroup>
           {kind === "staff" ? (
-            /* Staff sessions can't enter /miembros (the portal validates
-               kind === "member"), so no portal cross-link — logging in
-               there would replace their CRM session. */
-            <DropdownMenuItem render={<Link href="/admin" />}>
-              <LayoutDashboard />
-              CRM
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem render={<Link href="/admin" />}>
+                <LayoutDashboard />
+                CRM
+              </DropdownMenuItem>
+              {/* OWNER only — lib/auth/portal-viewer.ts bridges her staff
+                  session into the course portal. Other staff roles stay
+                  CRM-only; /miembros still rejects them. */}
+              {isOwnerStaff ? (
+                <DropdownMenuItem render={<Link href="/miembros" />}>
+                  <BookOpen />
+                  Portal del curso
+                </DropdownMenuItem>
+              ) : null}
+            </>
           ) : (
             <>
               <DropdownMenuItem render={<Link href="/miembros" />}>

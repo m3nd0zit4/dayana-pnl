@@ -6,8 +6,11 @@ import {
 } from "@prisma/client";
 import type { CountryCode } from "libphonenumber-js";
 import { prisma } from "../db";
-import { isRealContactPhone } from "./checkout-session-contact";
 import { PLACEHOLDER_PHONE_PREFIX } from "./checkout-placeholder";
+import {
+  GOOGLE_PLACEHOLDER_PHONE_PREFIX,
+  EMAIL_SIGNUP_PLACEHOLDER_PHONE_PREFIX,
+} from "./member-accounts";
 import {
   normalizePhone,
   normalizePhoneWithCountry,
@@ -284,12 +287,25 @@ export type ContactPrefill = {
 };
 
 /**
+ * Duplicated from lib/crm/checkout-session-contact.ts's isRealContactPhone
+ * (same bar) rather than imported: that file pulls in "@/auth", and this
+ * module is reachable from eve's agent tools, whose separate build step
+ * can't resolve next-auth's "next/server" import — see the fix in commit
+ * 242fc83 for the same class of bug. Keep this in sync with the original.
+ */
+const isRealContactPhone = (phoneE164: string): boolean =>
+  phoneE164.startsWith("+") &&
+  !phoneE164.startsWith(PLACEHOLDER_PHONE_PREFIX) &&
+  !phoneE164.startsWith(GOOGLE_PLACEHOLDER_PHONE_PREFIX) &&
+  !phoneE164.startsWith(EMAIL_SIGNUP_PLACEHOLDER_PHONE_PREFIX);
+
+/**
  * Anonymous-checkout autofill lookup. Deliberately narrow: never returns the
  * phone number itself (only its country), and only for contacts with a real
  * (non-placeholder) phone and a real (non-generic) name on file — see
- * isRealContactPhone in checkout-session-contact.ts for the same bar the
- * signed-in fast path already uses. Callers must rate-limit by IP and email
- * before calling this — see app/api/checkout/contact-lookup/route.ts.
+ * isRealContactPhone above for the same bar the signed-in fast path already
+ * uses. Callers must rate-limit by IP and email before calling this — see
+ * app/api/checkout/contact-lookup/route.ts.
  */
 export const lookupContactPrefillByEmail = async (
   email: string

@@ -38,6 +38,7 @@ const PortalLayout = async ({
         avatarUrl={member.contact.avatarUrl}
         lockState={lockState}
         streamEnabled={streamEnabled}
+        isOwner={member.isOwner}
       >
         {children}
       </PortalSidebar>
