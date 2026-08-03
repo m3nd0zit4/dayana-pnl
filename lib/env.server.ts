@@ -48,6 +48,11 @@ const productionSchema = z
     NOTIFICATIONS_DRY_RUN: z.literal("false"),
     RESEND_API_KEY: nonEmpty,
     NOTIFICATIONS_EMAIL_FROM: nonEmpty,
+    MUX_TOKEN_ID: nonEmpty,
+    MUX_TOKEN_SECRET: nonEmpty,
+    MUX_WEBHOOK_SECRET: nonEmpty,
+    MUX_SIGNING_KEY_ID: nonEmpty,
+    MUX_SIGNING_KEY_PRIVATE: nonEmpty,
     CRM_UI_PREVIEW: z
       .string()
       .optional()

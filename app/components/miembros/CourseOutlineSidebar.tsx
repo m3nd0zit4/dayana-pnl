@@ -24,7 +24,13 @@ type Props = {
 };
 
 const classSubtitle = (cls: OutlineClass): string => {
-  if (cls.recordingUrl) return "Video";
+  if (cls.recordingUrl || cls.muxPlaybackId) {
+    if (cls.recordingDurationSec) {
+      const min = Math.max(1, Math.round(cls.recordingDurationSec / 60));
+      return `Video · ${min} min`;
+    }
+    return "Video";
+  }
   if (cls.scheduledAt) {
     return `En vivo · ${new Date(cls.scheduledAt).toLocaleDateString("es-CO", {
       day: "numeric",

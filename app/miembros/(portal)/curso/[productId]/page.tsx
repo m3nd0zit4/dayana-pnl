@@ -64,6 +64,8 @@ const Page = async ({ params, searchParams }: PageProps) => {
           scheduledAt: cls.scheduledAt ? cls.scheduledAt.toISOString() : null,
           meetUrl: cls.meetUrl,
           recordingUrl: cls.recordingUrl,
+          muxPlaybackId: cls.recordingStatus === "READY" ? cls.muxPlaybackId : null,
+          recordingDurationSec: cls.recordingDurationSec,
           recordingPostedAt: cls.recordingPostedAt
             ? cls.recordingPostedAt.toISOString()
             : null,

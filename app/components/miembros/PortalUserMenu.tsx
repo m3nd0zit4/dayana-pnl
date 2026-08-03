@@ -51,15 +51,14 @@ const PortalUserMenu = ({ displayName, avatarUrl, isOwner = false }: PortalUserM
         </DropdownMenuLabel>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
-      {isOwner ? (
+      <DropdownMenuItem render={<Link href="/miembros/cuenta/general" />}>
+        <Settings />
+        Mi cuenta
+      </DropdownMenuItem>
+      {isOwner && (
         <DropdownMenuItem render={<Link href="/admin" />}>
           <LayoutDashboard />
           CRM
-        </DropdownMenuItem>
-      ) : (
-        <DropdownMenuItem render={<Link href="/miembros/cuenta/general" />}>
-          <Settings />
-          Mi cuenta
         </DropdownMenuItem>
       )}
       <DropdownMenuSeparator />
