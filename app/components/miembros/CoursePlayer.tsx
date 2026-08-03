@@ -326,6 +326,7 @@ const CoursePlayer = ({
                     </div>
                     {selectedClass.contentType !== "QUIZ" && (
                       <ClassCompleteToggle
+                        key={selectedClass.id}
                         classId={selectedClass.id}
                         initialCompleted={completedClassIds.has(selectedClass.id)}
                         onChange={(completed) =>
@@ -437,6 +438,7 @@ const CoursePlayer = ({
                         )}
                       </div>
                       <ClassCompleteToggle
+                        key={selectedClass.id}
                         classId={selectedClass.id}
                         initialCompleted={completedClassIds.has(selectedClass.id)}
                         onChange={(completed) =>
