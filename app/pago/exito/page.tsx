@@ -20,6 +20,8 @@ import { findEnrollmentForCheckout } from "../../../lib/crm/checkout-fulfillment
 import { syncMercadoPagoPayment } from "../../../lib/crm/mercadopago-payments";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
+import PurchaseConversionTracking from "../../components/pago/PurchaseConversionTracking";
+import { purchaseEventId } from "@/lib/meta/capi";
 
 export const dynamic = "force-dynamic";
 
@@ -139,7 +141,12 @@ const Page = async ({ searchParams }: PageProps) => {
   // fallback only applies until the real enrollment/payment resolves below
   // (or stays as-is for unknown/legacy return links with no enrollment).
   let amountLabel = plan ? formatUsd(plan.amountUsd) : undefined;
+  let amountValue = plan?.amountUsd;
   let paymentCurrency: "USD" | "COP" | undefined = plan ? "USD" : undefined;
+  // Mismo string que calcula el step de Inngest para la Conversions API: es lo
+  // que hace que Meta cuente UNA compra y no dos. Se deriva del id del pago,
+  // así que ambos lados llegan al mismo valor sin coordinarse.
+  let purchaseEventIdValue: string | undefined;
 
   const isSuccess = result.status === "succeeded";
   const isProcessing =
@@ -237,6 +244,8 @@ const Page = async ({ searchParams }: PageProps) => {
         if (paid) {
           paymentCurrency = paid.currency === "COP" ? "COP" : "USD";
           const major = minorToMajor(paid.amountMinor, paid.currency);
+          amountValue = major;
+          purchaseEventIdValue = purchaseEventId(paid.id);
           amountLabel =
             paymentCurrency === "COP" ? formatCop(major) : formatUsd(major);
         }
@@ -269,6 +278,15 @@ const Page = async ({ searchParams }: PageProps) => {
     <main data-nav-color="white" className="relative min-h-screen bg-black text-white overflow-hidden">
       {failedEnrollmentId ? (
         <CheckoutAbandonCleanup enrollmentId={failedEnrollmentId} />
+      ) : null}
+      {isSuccess ? (
+        <PurchaseConversionTracking
+          refLabel={result.refLabel}
+          value={amountValue}
+          currency={paymentCurrency}
+          planId={planId}
+          eventId={purchaseEventIdValue}
+        />
       ) : null}
       <div
         aria-hidden="true"

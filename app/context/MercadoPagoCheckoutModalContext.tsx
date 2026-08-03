@@ -10,6 +10,7 @@ import {
 } from "react";
 import MercadoPagoCheckoutModal from "../components/payments/MercadoPagoCheckoutModal";
 import { isPlanId, type PlanId } from "../../lib/plans";
+import { pushDataLayerEvent } from "../../lib/analytics/dataLayer";
 
 import type { OpenCheckoutOptions } from "./PayPalModalContext";
 
@@ -32,10 +33,14 @@ export const MercadoPagoCheckoutModalProvider = ({
     planId: PlanId;
     sessionFirst: boolean;
   } | null>(null);
-
   const openMercadoPago = useCallback(
     (id: PlanId, options?: OpenCheckoutOptions) => {
       if (!isPlanId(id)) return;
+      // Ver nota en PayPalModalContext: el dataLayer no transmite por sí mismo.
+      pushDataLayerEvent("begin_checkout", {
+        plan_id: id,
+        provider: "mercadopago",
+      });
       setState({ planId: id, sessionFirst: options?.sessionFirst === true });
     },
     []
