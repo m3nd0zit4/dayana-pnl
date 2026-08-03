@@ -21,6 +21,8 @@ import DashboardDotBackground from "./DashboardDotBackground";
 import { useCrm } from "./CrmProvider";
 import CrmPageShell from "./CrmPageShell";
 import PromoCard from "./PromoCard";
+import CrmPaymentsChart from "./CrmPaymentsChart";
+import CrmPipelineChart from "./CrmPipelineChart";
 import { STT_LANGUAGES, useSpeechToText } from "./agent-panel/use-speech-to-text";
 import { VoiceBars } from "./agent-panel/VoiceBars";
 
@@ -282,6 +284,11 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
             <p className="text-muted-foreground">Sigamos haciendo crecer tu negocio.</p>
           </div>
           <HeroAskAgentBox />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CrmPaymentsChart data={data.paymentsByDay} />
+          <CrmPipelineChart data={data.pipeline} />
         </div>
 
         {stats.unlinkedPaidEnrollments > 0 && (

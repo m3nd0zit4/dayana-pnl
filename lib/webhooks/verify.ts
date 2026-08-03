@@ -1,5 +1,8 @@
 import crypto from "crypto";
+import type { Webhooks } from "@mux/mux-node/resources/webhooks/webhooks";
+type UnwrapWebhookEvent = Webhooks.UnwrapWebhookEvent;
 import { getPayPalAccessToken } from "@/lib/paypal/server";
+import { getMuxClient } from "@/lib/mux/client";
 
 /** Local dev only — skip webhook signature verification. */
 const isLocalDevelopment = () => process.env.NODE_ENV === "development";
@@ -261,5 +264,32 @@ export const verifyPayPalWebhook = async (
   } catch (e) {
     console.error("[webhook paypal] verify error", e);
     return false;
+  }
+};
+
+/**
+ * Mux webhook signature + parse in one call, via the official SDK
+ * (`mux.webhooks.unwrap`) instead of hand-rolled HMAC like the other
+ * verifiers here — Mux's signature scheme (timestamped, versioned) is
+ * SDK-maintained rather than a stable-enough contract to reimplement.
+ * Same raw-body discipline as the rest of this file: the route reads
+ * `req.text()` once and this function verifies over those exact bytes.
+ */
+export const verifyAndParseMuxWebhook = async (
+  req: Request,
+  rawBody: string
+): Promise<UnwrapWebhookEvent | null> => {
+  const secret = process.env.MUX_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    console.error("[webhook mux] MUX_WEBHOOK_SECRET missing");
+    return null;
+  }
+
+  try {
+    const mux = getMuxClient();
+    return await mux.webhooks.unwrap(rawBody, req.headers, secret);
+  } catch (e) {
+    console.warn("[webhook mux] signature verification failed", e);
+    return null;
   }
 };

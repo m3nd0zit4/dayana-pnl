@@ -18,6 +18,10 @@ const cspReportOnly = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
+  // Mux Player uses MSE (blob: video src) backed by HLS segment fetches over
+  // connect-src, which already allows any https: origin below — media-src
+  // still needs its own entry since it has no such catch-all fallback.
+  "media-src 'self' blob: https://stream.mux.com",
   "connect-src 'self' https://api.mercadopago.com https://api-m.paypal.com https://api-m.sandbox.paypal.com https://www.paypal.com https:",
   "frame-src 'self' https://www.paypal.com https://www.sandbox.paypal.com https://www.mercadopago.com https://www.youtube.com https://www.youtube-nocookie.com https://drive.google.com",
   "base-uri 'self'",

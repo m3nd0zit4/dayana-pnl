@@ -17,11 +17,12 @@ export const recordingVisibleUntil = (
 export const isRecordingVisible = (
   cls: Pick<
     LiveClassSession,
-    "recordingUrl" | "recordingPostedAt" | "recordingHiddenAt"
+    "recordingUrl" | "muxPlaybackId" | "recordingPostedAt" | "recordingHiddenAt"
   >,
   now: Date = new Date()
 ): boolean => {
-  if (!cls.recordingUrl || cls.recordingHiddenAt) return false;
+  if ((!cls.recordingUrl && !cls.muxPlaybackId) || cls.recordingHiddenAt)
+    return false;
   if (!cls.recordingPostedAt) return false;
   return recordingVisibleUntil(cls.recordingPostedAt) > now;
 };
@@ -81,13 +82,15 @@ export const getClassesForCourse = async (productId: string) => {
   const now = new Date();
   // A class with a recording is watchable material even if its scheduledAt
   // is (still) in the future — treat it as past/recorded.
+  const hasRecording = (c: (typeof classes)[number]) =>
+    Boolean(c.recordingUrl || c.muxPlaybackId);
   const upcoming = classes
-    .filter((c) => c.scheduledAt && c.scheduledAt > now && !c.recordingUrl)
+    .filter((c) => c.scheduledAt && c.scheduledAt > now && !hasRecording(c))
     .sort(
       (a, b) => (a.scheduledAt?.getTime() ?? 0) - (b.scheduledAt?.getTime() ?? 0)
     );
   const past = classes.filter(
-    (c) => !c.scheduledAt || c.scheduledAt <= now || c.recordingUrl
+    (c) => !c.scheduledAt || c.scheduledAt <= now || hasRecording(c)
   );
 
   return { upcoming, past, now };
