@@ -3,6 +3,9 @@ import "./globals.css";
 import Providers from "./providers";
 import { CookieConsentProvider } from "./context/CookieConsentContext";
 import ConsentBasedVercelInsights from "./components/legal/ConsentBasedVercelInsights";
+import ConsentBasedGtm from "./components/analytics/ConsentBasedGtm";
+import ConsentModeDefaults from "./components/analytics/ConsentModeDefaults";
+import MetaPixel from "./components/analytics/MetaPixel";
 import CookieConsentBanner from "./components/legal/CookieConsentBanner";
 import JsonLd from "./components/seo/JsonLd";
 import { getSiteUrl } from "@/lib/site-url";
@@ -27,6 +30,13 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: siteUrl,
+  },
+  other: {
+    // Verificación de dominio de Meta (Business Portfolio "Dayana Beltrán").
+    // Necesaria para Aggregated Event Measurement: sin dominio verificado, Meta
+    // limita qué eventos del Pixel se pueden usar y priorizar en campañas.
+    // Tiene que quedar en el <head> — Meta no lo lee si lo inyecta JS.
+    "facebook-domain-verification": "3jdjygzjg6js8b8ww6jghbymhyyewc",
   },
   robots: {
     index: true,
@@ -133,10 +143,13 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <ConsentModeDefaults />
         <JsonLd data={buildOrganizationSchema()} />
         <CookieConsentProvider analyticsAllowed={analyticsAllowed}>
           <Providers>{children}</Providers>
           <ConsentBasedVercelInsights />
+          <ConsentBasedGtm />
+          <MetaPixel />
           <CookieConsentBanner />
         </CookieConsentProvider>
       </body>

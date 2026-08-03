@@ -10,18 +10,28 @@ import {
   type ReactNode,
 } from "react";
 import {
-  readAnalyticsConsent,
-  writeAnalyticsConsent,
-  type AnalyticsConsentValue,
+  CONSENT_DENIED,
+  CONSENT_GRANTED,
+  readConsent,
+  writeConsent,
+  type ConsentCategories,
 } from "../../lib/cookies/consent";
 
-type ConsentStatus = "hydrating" | "unset" | AnalyticsConsentValue;
+type ConsentStatus = "hydrating" | "unset" | "set";
 
 type CookieConsentContextValue = {
   status: ConsentStatus;
+  /** Elección del visitante. Todo en false mientras no haya decidido. */
+  consent: ConsentCategories;
+  /** El despliegue permite cargar analítica (producción/preview en Vercel). */
   analyticsAllowed: boolean;
-  acceptAnalytics: () => void;
-  rejectAnalytics: () => void;
+  /** Listos para medir uso del sitio: decisión tomada + aceptada + desplegado. */
+  analyticsEnabled: boolean;
+  /** Listos para píxeles publicitarios (Meta, Google Ads). */
+  marketingEnabled: boolean;
+  acceptAll: () => void;
+  rejectAll: () => void;
+  savePreferences: (value: ConsentCategories) => void;
 };
 
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(
@@ -36,31 +46,40 @@ export const CookieConsentProvider = ({
   analyticsAllowed: boolean;
 }) => {
   const [status, setStatus] = useState<ConsentStatus>("hydrating");
+  const [consent, setConsent] = useState<ConsentCategories>(CONSENT_DENIED);
 
   useEffect(() => {
-    const stored = readAnalyticsConsent();
-    setStatus(stored ?? "unset");
+    const stored = readConsent();
+    if (stored) {
+      setConsent(stored);
+      setStatus("set");
+    } else {
+      setStatus("unset");
+    }
   }, []);
 
-  const acceptAnalytics = useCallback(() => {
-    writeAnalyticsConsent("accepted");
-    setStatus("accepted");
+  const commit = useCallback((value: ConsentCategories) => {
+    writeConsent(value);
+    setConsent(value);
+    setStatus("set");
   }, []);
 
-  const rejectAnalytics = useCallback(() => {
-    writeAnalyticsConsent("rejected");
-    setStatus("rejected");
-  }, []);
+  const acceptAll = useCallback(() => commit(CONSENT_GRANTED), [commit]);
+  const rejectAll = useCallback(() => commit(CONSENT_DENIED), [commit]);
 
-  const value = useMemo(
-    () => ({
+  const value = useMemo<CookieConsentContextValue>(() => {
+    const decided = status === "set";
+    return {
       status,
+      consent,
       analyticsAllowed,
-      acceptAnalytics,
-      rejectAnalytics,
-    }),
-    [status, analyticsAllowed, acceptAnalytics, rejectAnalytics]
-  );
+      analyticsEnabled: decided && consent.analytics && analyticsAllowed,
+      marketingEnabled: decided && consent.marketing && analyticsAllowed,
+      acceptAll,
+      rejectAll,
+      savePreferences: commit,
+    };
+  }, [status, consent, analyticsAllowed, acceptAll, rejectAll, commit]);
 
   return (
     <CookieConsentContext.Provider value={value}>

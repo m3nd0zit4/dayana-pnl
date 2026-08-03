@@ -19,15 +19,18 @@ const Page = () => (
   <LegalLayout
     eyebrow="Legal"
     title="Política de cookies"
-    updatedAt="29 de abril de 2026"
+    updatedAt="2 de agosto de 2026"
   >
     <p>
       Esta política explica qué son las cookies y cómo las utilizamos en el
       sitio de {BRAND.name}. Las cookies estrictamente necesarias permiten el
-      funcionamiento básico del sitio. La analítica de rendimiento solo se
-      activa si eliges &quot;Aceptar analítica&quot; en el aviso que aparece en
-      tu primera visita (puedes cambiar de idea borrando el almacenamiento del
-      sitio en tu navegador y volviendo a entrar).
+      funcionamiento básico del sitio y no se pueden desactivar. Todo lo demás
+      se divide en dos finalidades independientes —{" "}
+      <strong className="text-white">analítica</strong> y{" "}
+      <strong className="text-white">publicidad</strong> — que puedes aceptar
+      por separado en el aviso que aparece en tu primera visita. Aceptar
+      analítica no activa publicidad. Puedes cambiar de idea borrando el
+      almacenamiento del sitio en tu navegador y volviendo a entrar.
     </p>
 
     <h2 className="font-[font2] uppercase text-xl lg:text-2xl text-white pt-4">
@@ -50,12 +53,26 @@ const Page = () => (
       </li>
       <li>
         <strong className="text-white">Analítica (opcional):</strong> en los
-        entornos alojados en Vercel, si aceptas desde el aviso de cookies,
-        cargamos <strong className="text-white">Vercel Web Analytics</strong> y{" "}
-        <strong className="text-white">Vercel Speed Insights</strong> para
-        medir de forma agregada visitas, rendimiento y experiencia de uso. El
-        proveedor puede usar cookies o tecnologías similares según su política.
-        No activamos estas herramientas hasta que des tu consentimiento.
+        entornos alojados en Vercel, si aceptas esta finalidad, cargamos{" "}
+        <strong className="text-white">Vercel Web Analytics</strong>,{" "}
+        <strong className="text-white">Vercel Speed Insights</strong> y{" "}
+        <strong className="text-white">Google Analytics 4</strong> para medir de
+        forma agregada visitas, rendimiento y experiencia de uso. El proveedor
+        puede usar cookies o tecnologías similares según su política.
+      </li>
+      <li>
+        <strong className="text-white">Publicidad (opcional):</strong> si
+        aceptas esta finalidad, cargamos{" "}
+        <strong className="text-white">Meta Pixel</strong> y las etiquetas de{" "}
+        <strong className="text-white">Google Ads</strong> para saber qué
+        anuncio te trajo hasta aquí y para mostrar anuncios a quienes ya
+        visitaron el sitio. Cuando completas una compra podemos enviar además
+        el mismo evento desde nuestro servidor a Meta (
+        <em>Conversions API</em>) y a Google (<em>conversiones mejoradas</em>),
+        incluyendo tu correo o teléfono siempre cifrados con una función hash
+        irreversible, para que la medición no se pierda cuando el navegador
+        bloquea las cookies. Este envío desde servidor solo ocurre si aceptaste
+        esta finalidad: no es una forma de esquivar tu elección.
       </li>
       <li>
         <strong className="text-white">Terceros incrustados:</strong> al

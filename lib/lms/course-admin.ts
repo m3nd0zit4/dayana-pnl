@@ -1,5 +1,7 @@
-import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
+import { EnrollmentStatus, PaymentStatus, RecordingStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getMuxClient } from "@/lib/mux/client";
+import { getSiteUrl } from "@/lib/site-url";
 import { getCourseProduct } from "./membership";
 
 /** Resolves the single active course; LMS admin routes operate on it implicitly. */
@@ -286,5 +288,95 @@ export const assignClassToModule = async (
   return prisma.liveClassSession.update({
     where: { id: classId },
     data: { moduleId, sortOrder },
+  });
+};
+
+/**
+ * Issues a Mux Direct Upload URL for a class and resets the row to
+ * `UPLOADING`, clearing any prior asset — re-recording replaces, same as
+ * pasting a new Drive URL used to overwrite the old one.
+ */
+export const createRecordingUpload = async (classId: string) => {
+  const mux = getMuxClient();
+  const upload = await mux.video.uploads.create({
+    cors_origin: getSiteUrl(),
+    new_asset_settings: {
+      playback_policy: ["signed"],
+      mp4_support: "none",
+    },
+  });
+
+  await prisma.liveClassSession.update({
+    where: { id: classId },
+    data: {
+      muxUploadId: upload.id,
+      muxAssetId: null,
+      muxPlaybackId: null,
+      recordingStatus: RecordingStatus.UPLOADING,
+      recordingDurationSec: null,
+      recordingErrorMessage: null,
+    },
+  });
+
+  return { uploadUrl: upload.url, uploadId: upload.id };
+};
+
+/** Clears every recording field (Mux and legacy Drive) — works for either provider. */
+export const clearRecording = async (classId: string) =>
+  prisma.liveClassSession.update({
+    where: { id: classId },
+    data: {
+      recordingUrl: null,
+      muxUploadId: null,
+      muxAssetId: null,
+      muxPlaybackId: null,
+      recordingStatus: RecordingStatus.NONE,
+      recordingDurationSec: null,
+      recordingErrorMessage: null,
+      recordingPostedAt: null,
+      recordingHiddenAt: null,
+    },
+  });
+
+/** `video.upload.asset_created` — the asset exists, encoding hasn't finished. */
+export const handleMuxAssetCreated = async (
+  uploadId: string,
+  assetId: string
+) => {
+  await prisma.liveClassSession.updateMany({
+    where: { muxUploadId: uploadId },
+    data: { muxAssetId: assetId, recordingStatus: RecordingStatus.PROCESSING },
+  });
+};
+
+/** `video.asset.ready` — restarts the 30-day visibility window, same as a new Drive link. */
+export const handleMuxAssetReady = async (
+  assetId: string,
+  playbackId: string,
+  durationSec: number | null
+) => {
+  await prisma.liveClassSession.updateMany({
+    where: { muxAssetId: assetId },
+    data: {
+      muxPlaybackId: playbackId,
+      recordingStatus: RecordingStatus.READY,
+      recordingDurationSec: durationSec,
+      recordingPostedAt: new Date(),
+      recordingHiddenAt: null,
+    },
+  });
+};
+
+/** `video.asset.errored` — surfaces the failure on the class row for staff. */
+export const handleMuxAssetErrored = async (
+  assetId: string,
+  message: string | null
+) => {
+  await prisma.liveClassSession.updateMany({
+    where: { muxAssetId: assetId },
+    data: {
+      recordingStatus: RecordingStatus.ERRORED,
+      recordingErrorMessage: message,
+    },
   });
 };

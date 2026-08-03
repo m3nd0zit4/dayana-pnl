@@ -21,6 +21,7 @@ import {
 } from "@/app/components/ui/sidebar";
 import MemberNotificationBell from "./MemberNotificationBell";
 import DriveRecordingEmbed from "./DriveRecordingEmbed";
+import MuxRecordingEmbed from "./MuxRecordingEmbed";
 import ClassCompleteToggle from "./ClassCompleteToggle";
 import ModuleCompleteToggle from "./ModuleCompleteToggle";
 import LessonComments from "./LessonComments";
@@ -33,6 +34,8 @@ export type OutlineClass = {
   scheduledAt: string | null;
   meetUrl: string | null;
   recordingUrl: string | null;
+  muxPlaybackId: string | null;
+  recordingDurationSec: number | null;
   recordingPostedAt: string | null;
   recordingHiddenAt: string | null;
 };
@@ -64,7 +67,8 @@ const RECORDING_RETENTION_DAYS = 30;
  *  imported here directly without pulling a server-only dependency into the
  *  browser bundle. */
 const isRecordingVisible = (cls: OutlineClass, now = Date.now()): boolean => {
-  if (!cls.recordingUrl || cls.recordingHiddenAt || !cls.recordingPostedAt) return false;
+  if ((!cls.recordingUrl && !cls.muxPlaybackId) || cls.recordingHiddenAt || !cls.recordingPostedAt)
+    return false;
   const visibleUntil =
     new Date(cls.recordingPostedAt).getTime() +
     RECORDING_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -105,6 +109,10 @@ const CoursePlayer = ({
   const [selectedId, setSelectedId] = useState(initialSelected);
 
   const allClasses = useMemo(() => modules.flatMap((m) => m.classes), [modules]);
+  const livePercent =
+    allClasses.length > 0
+      ? Math.round((completedClassIds.size / allClasses.length) * 100)
+      : percent;
   const selectedClass = allClasses.find((c) => c.id === selectedId) ?? null;
   const selectedReadingModule = selectedClass
     ? null
@@ -150,6 +158,20 @@ const CoursePlayer = ({
           </p>
         </SidebarHeader>
         <SidebarContent className="px-2 py-2">
+          {isCurrent && allClasses.length > 0 && (
+            <Card size="sm" className="mx-1 mb-3">
+              <CardContent className="space-y-2 px-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium text-sidebar-foreground">Tu progreso</span>
+                  <span className="text-muted-foreground">{livePercent}%</span>
+                </div>
+                <Progress value={livePercent} className="h-1.5" />
+                <p className="text-xs text-muted-foreground">
+                  {completedClassIds.size} de {allClasses.length} clases completadas
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <CourseOutlineSidebar
             modules={modules}
             completedClassIds={completedClassIds}
@@ -180,9 +202,9 @@ const CoursePlayer = ({
               <div className="hidden w-40 shrink-0 sm:block">
                 <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Progreso</span>
-                  <span className="font-medium text-foreground">{percent}%</span>
+                  <span className="font-medium text-foreground">{livePercent}%</span>
                 </div>
-                <Progress value={percent} />
+                <Progress value={livePercent} />
               </div>
             )}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -274,40 +296,72 @@ const CoursePlayer = ({
             </Card>
           ) : (
             <div className="space-y-4">
-              <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                  Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Clase
-                </p>
-                <h2 className="mt-1 text-xl font-semibold tracking-tight">{selectedClass.title}</h2>
-                {selectedClass.description && (
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {selectedClass.description}
+              {!isRecordingVisible(selectedClass) && (
+                <div>
+                  <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                    Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Clase
                   </p>
-                )}
-              </div>
+                  <h2 className="mt-1 text-xl font-semibold tracking-tight">{selectedClass.title}</h2>
+                  {selectedClass.description && (
+                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                      {selectedClass.description}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {isRecordingVisible(selectedClass) ? (
-                <>
-                  <div className="max-w-6xl">
+                <Card className="overflow-hidden py-0">
+                  {selectedClass.muxPlaybackId ? (
+                    <MuxRecordingEmbed
+                      key={selectedClass.id}
+                      classId={selectedClass.id}
+                      title={selectedClass.title}
+                    />
+                  ) : (
                     <DriveRecordingEmbed
                       url={selectedClass.recordingUrl!}
                       title={selectedClass.title}
                     />
-                  </div>
-                  <ClassCompleteToggle
-                    classId={selectedClass.id}
-                    initialCompleted={completedClassIds.has(selectedClass.id)}
-                    onChange={(completed) =>
-                      setCompletedClassIds((prev) => {
-                        const next = new Set(prev);
-                        if (completed) next.add(selectedClass.id);
-                        else next.delete(selectedClass.id);
-                        return next;
-                      })
-                    }
-                  />
-                </>
-              ) : selectedClass.recordingUrl ? (
+                  )}
+                  <CardContent className="space-y-6 pt-6">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                          Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Clase
+                        </p>
+                        <h2 className="mt-1 text-xl font-semibold tracking-tight">
+                          {selectedClass.title}
+                        </h2>
+                        {selectedClass.description && (
+                          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                            {selectedClass.description}
+                          </p>
+                        )}
+                      </div>
+                      <ClassCompleteToggle
+                        classId={selectedClass.id}
+                        initialCompleted={completedClassIds.has(selectedClass.id)}
+                        onChange={(completed) =>
+                          setCompletedClassIds((prev) => {
+                            const next = new Set(prev);
+                            if (completed) next.add(selectedClass.id);
+                            else next.delete(selectedClass.id);
+                            return next;
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="border-t border-border pt-6">
+                      <LessonComments
+                        key={selectedClass.id}
+                        classId={selectedClass.id}
+                        viewerContactId={viewerContactId}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : selectedClass.recordingUrl || selectedClass.muxPlaybackId ? (
                 <Card>
                   <CardContent className="py-6 text-sm text-muted-foreground">
                     La grabación de esta clase venció (disponible por{" "}
@@ -343,13 +397,15 @@ const CoursePlayer = ({
                 </Card>
               )}
 
-              <div className="border-t border-border pt-6">
-                <LessonComments
-                  key={selectedClass.id}
-                  classId={selectedClass.id}
-                  viewerContactId={viewerContactId}
-                />
-              </div>
+              {!isRecordingVisible(selectedClass) && (
+                <div className="border-t border-border pt-6">
+                  <LessonComments
+                    key={selectedClass.id}
+                    classId={selectedClass.id}
+                    viewerContactId={viewerContactId}
+                  />
+                </div>
+              )}
             </div>
           )}
 

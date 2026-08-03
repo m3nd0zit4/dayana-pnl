@@ -11,14 +11,16 @@ const DriveRecordingEmbed = ({ url, title }: DriveRecordingEmbedProps) => {
 
   if (!previewUrl) {
     return (
-      <Button variant="outline" nativeButton={false} render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
-        Ver grabación
-      </Button>
+      <div className="p-(--card-spacing)">
+        <Button variant="outline" nativeButton={false} render={<a href={url} target="_blank" rel="noopener noreferrer" />}>
+          Ver grabación
+        </Button>
+      </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-black">
+    <div className="bg-black">
       <iframe
         src={previewUrl}
         title={`Grabación — ${title}`}

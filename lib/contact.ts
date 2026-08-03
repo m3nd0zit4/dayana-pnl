@@ -18,6 +18,10 @@ export const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@dayanapnl",
   instagram: "https://www.instagram.com/dayana.pnl",
   youtube: "https://www.youtube.com/@dayanabeltranpnl",
+  // Página propiedad del Business Portfolio "Dayana Beltrán" (1006626455523319).
+  // URL por id porque la página aún no tiene nombre de usuario; si se le asigna
+  // uno, conviene cambiarla aquí para que `sameAs` use la forma corta.
+  facebook: "https://www.facebook.com/profile.php?id=1244614882070058",
   email: "mailto:contacto@dayanabeltran.com",
 } as const;
 

@@ -106,7 +106,7 @@ const SOCIAL_LINKS_LIST: LinkRow[] = [
   {
     key: "youtube",
     label: "YouTube",
-    sublabel: "@dianabeltranpnl",
+    sublabel: "@dayanabeltranpnl",
     href: SOCIAL_LINKS.youtube,
     icon: <YoutubeIcon />,
   },

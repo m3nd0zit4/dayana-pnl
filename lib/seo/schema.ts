@@ -29,7 +29,12 @@ export const buildOrganizationSchema = () => {
     image: `${siteUrl}/og-image.png`,
     foundingDate: String(BRAND.startedYear),
     email: SOCIAL_LINKS.email.replace(/^mailto:/, ""),
-    sameAs: [SOCIAL_LINKS.instagram, SOCIAL_LINKS.tiktok, SOCIAL_LINKS.youtube],
+    sameAs: [
+      SOCIAL_LINKS.instagram,
+      SOCIAL_LINKS.tiktok,
+      SOCIAL_LINKS.youtube,
+      SOCIAL_LINKS.facebook,
+    ],
     contactPoint: {
       "@type": "ContactPoint",
       telephone: WHATSAPP_NUMBER,

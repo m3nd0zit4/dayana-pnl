@@ -31,6 +31,9 @@ export type ModuleClassRow = ClassEditorRow & {
   commentCount: number;
 };
 
+const hasRecording = (row: ModuleClassRow) =>
+  Boolean(row.recordingUrl || row.muxPlaybackId);
+
 type UnassignedClass = { id: string; title: string; scheduledAt: string | null };
 
 type Props = {
@@ -58,7 +61,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
   const [showPreview, setShowPreview] = useState(false);
 
   const [classes, setClasses] = useState<ModuleClassRow[]>(initialClasses);
-  const [editing, setEditing] = useState<ClassEditorRow | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
@@ -112,12 +115,18 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
     toast("Módulo actualizado");
   };
 
+  // Derived (not stored) so the modal's row always reflects the latest
+  // `classes` list — reload() (fired after an upload starts/finishes)
+  // updates `classes`, and this recomputes on the same render instead of
+  // needing an effect to resync a separate snapshot.
+  const editingRow = editingId ? (classes.find((c) => c.id === editingId) ?? null) : null;
+
   const openNewClass = () => {
-    setEditing(null);
+    setEditingId(null);
     setEditorOpen(true);
   };
   const openEditClass = (row: ClassEditorRow) => {
-    setEditing(row);
+    setEditingId(row.id);
     setEditorOpen(true);
   };
   const onClassSaved = () => {
@@ -325,7 +334,15 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                     </div>
                     <div className="mt-1 flex items-center gap-1.5 text-xs">
                       <Video className="size-3.5 text-muted-foreground" aria-hidden />
-                      {row.recordingUrl ? (
+                      {row.recordingStatus === "UPLOADING" ? (
+                        <span className="text-muted-foreground">Subiendo…</span>
+                      ) : row.recordingStatus === "PROCESSING" ? (
+                        <span className="text-muted-foreground">Procesando en Mux…</span>
+                      ) : row.recordingStatus === "ERRORED" ? (
+                        <span className="text-destructive">
+                          Error: {row.recordingErrorMessage ?? "no se pudo procesar"}
+                        </span>
+                      ) : hasRecording(row) ? (
                         row.recordingHiddenAt ? (
                           <span className="text-muted-foreground">Grabación oculta (venció el mes)</span>
                         ) : row.recordingPostedAt ? (
@@ -371,7 +388,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                       >
                         <ArrowDown />
                       </Button>
-                      {row.recordingUrl && !row.recordingHiddenAt && (
+                      {hasRecording(row) && row.recordingStatus !== "ERRORED" && !row.recordingHiddenAt && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -438,9 +455,10 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
       <ClassEditorModal
         moduleId={mod.id}
         open={editorOpen}
-        editingRow={editing}
+        editingRow={editingRow}
         onClose={() => setEditorOpen(false)}
         onSaved={onClassSaved}
+        onRecordingChange={() => void reload()}
       />
 
       <ClassCommentsModal

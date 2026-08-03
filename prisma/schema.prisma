@@ -175,6 +175,14 @@ enum SocialPostStatus {
   CANCELED
 }
 
+enum RecordingStatus {
+  NONE
+  UPLOADING
+  PROCESSING
+  READY
+  ERRORED
+}
+
 /// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
 /// valores por defecto viven en lib/notifications/platform/catalog.ts — este
 /// enum solo garantiza integridad referencial.
@@ -221,31 +229,38 @@ enum NotificationEventType {
 }
 
 model Contact {
-  id                  String        @id @default(cuid())
-  phoneE164           String        @unique @map("phone_e164")
-  phoneCountryIso     String?       @map("phone_country_iso") @db.Char(2)
-  email               String?       @unique
-  firstName           String        @map("first_name")
-  lastName            String?       @map("last_name")
-  displayName         String?       @map("display_name")
-  countryIso          String?       @map("country_iso") @db.Char(2)
-  timezone            String        @default("America/Bogota")
-  preferredLocale     String        @default("es") @map("preferred_locale")
-  avatarUrl           String?       @map("avatar_url")
-  workDescription     String?       @map("work_description")
-  themePreference     String        @default("system") @map("theme_preference")
-  notifyEmail         Boolean       @default(true) @map("notify_email")
-  notifySms           Boolean       @default(true) @map("notify_sms")
-  notifyWhatsapp      Boolean       @default(true) @map("notify_whatsapp")
-  notifyInApp         Boolean       @default(true) @map("notify_in_app")
-  source              ContactSource @default(WEB)
-  sourceDetail        String?       @map("source_detail")
-  tiktokHandle        String?       @map("tiktok_handle")
-  notes               String?       @db.Text
-  consentDataAt       DateTime?     @map("consent_data_at")
-  consentMarketingAt  DateTime?     @map("consent_marketing_at")
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedAt           DateTime      @updatedAt @map("updated_at")
+  id                 String        @id @default(cuid())
+  phoneE164          String        @unique @map("phone_e164")
+  phoneCountryIso    String?       @map("phone_country_iso") @db.Char(2)
+  email              String?       @unique
+  firstName          String        @map("first_name")
+  lastName           String?       @map("last_name")
+  displayName        String?       @map("display_name")
+  countryIso         String?       @map("country_iso") @db.Char(2)
+  timezone           String        @default("America/Bogota")
+  preferredLocale    String        @default("es") @map("preferred_locale")
+  avatarUrl          String?       @map("avatar_url")
+  workDescription    String?       @map("work_description")
+  themePreference    String        @default("system") @map("theme_preference")
+  notifyEmail        Boolean       @default(true) @map("notify_email")
+  notifySms          Boolean       @default(true) @map("notify_sms")
+  notifyWhatsapp     Boolean       @default(true) @map("notify_whatsapp")
+  notifyInApp        Boolean       @default(true) @map("notify_in_app")
+  source             ContactSource @default(WEB)
+  sourceDetail       String?       @map("source_detail")
+  tiktokHandle       String?       @map("tiktok_handle")
+  notes              String?       @db.Text
+  consentDataAt      DateTime?     @map("consent_data_at")
+  consentMarketingAt DateTime?     @map("consent_marketing_at")
+  /// Consentimiento para medición publicitaria (Meta CAPI, Google Ads).
+  /// Deliberadamente separado de `consentMarketingAt`: aceptar recibir
+  /// comunicaciones comerciales no es aceptar que se envíen datos a
+  /// plataformas de anuncios. Sin esta fecha, CAPI no envía nada de este
+  /// contacto — el envío desde servidor recupera señal que el navegador
+  /// bloquea por motivos técnicos, no consentimiento que el usuario negó.
+  consentAdTrackingAt DateTime?    @map("consent_ad_tracking_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
 
   enrollments            Enrollment[]
   tags                   ContactTag[]
@@ -311,40 +326,40 @@ model ProductPrice {
 }
 
 model WorkshopEdition {
-  id               String                @id @default(cuid())
-  slug             String                @unique
-  productId        String?               @map("product_id")
-  title            String
-  editionLabel     String?               @map("edition_label")
-  cardSummary      String?               @map("card_summary") @db.Text
-  status           WorkshopEditionStatus @default(DRAFT)
-  startsAt         DateTime?             @map("starts_at")
-  endsAt           DateTime?             @map("ends_at")
-  timezone         String                @default("America/Bogota")
-  dateLabel        String?               @map("date_label")
-  scheduleLabel    String?               @map("schedule_label")
-  capacity         Int?
-  whatsappTemplate String?               @map("whatsapp_template") @db.Text
-  heroLine1        String?               @map("hero_line_1")
-  heroLine2        String?               @map("hero_line_2")
-  heroLine3        String?               @map("hero_line_3")
-  detailSummary    String?               @map("detail_summary") @db.Text
-  intro            String?               @db.Text
-  focusTopics      Json?                 @map("focus_topics")
-  daySchedule      Json?                 @map("day_schedule")
-  topicsSectionTitle       String?       @map("topics_section_title")
-  topicsSectionDescription String?       @map("topics_section_description") @db.Text
-  scheduleSectionDescription String?       @map("schedule_section_description") @db.Text
-  metaTitle        String?               @map("meta_title")
-  metaDescription  String?               @map("meta_description") @db.Text
-  introOpen        String?               @map("intro_open") @db.Text
-  createdAt        DateTime              @default(now()) @map("created_at")
-  updatedAt        DateTime              @updatedAt @map("updated_at")
+  id                         String                @id @default(cuid())
+  slug                       String                @unique
+  productId                  String?               @map("product_id")
+  title                      String
+  editionLabel               String?               @map("edition_label")
+  cardSummary                String?               @map("card_summary") @db.Text
+  status                     WorkshopEditionStatus @default(DRAFT)
+  startsAt                   DateTime?             @map("starts_at")
+  endsAt                     DateTime?             @map("ends_at")
+  timezone                   String                @default("America/Bogota")
+  dateLabel                  String?               @map("date_label")
+  scheduleLabel              String?               @map("schedule_label")
+  capacity                   Int?
+  whatsappTemplate           String?               @map("whatsapp_template") @db.Text
+  heroLine1                  String?               @map("hero_line_1")
+  heroLine2                  String?               @map("hero_line_2")
+  heroLine3                  String?               @map("hero_line_3")
+  detailSummary              String?               @map("detail_summary") @db.Text
+  intro                      String?               @db.Text
+  focusTopics                Json?                 @map("focus_topics")
+  daySchedule                Json?                 @map("day_schedule")
+  topicsSectionTitle         String?               @map("topics_section_title")
+  topicsSectionDescription   String?               @map("topics_section_description") @db.Text
+  scheduleSectionDescription String?               @map("schedule_section_description") @db.Text
+  metaTitle                  String?               @map("meta_title")
+  metaDescription            String?               @map("meta_description") @db.Text
+  introOpen                  String?               @map("intro_open") @db.Text
+  createdAt                  DateTime              @default(now()) @map("created_at")
+  updatedAt                  DateTime              @updatedAt @map("updated_at")
 
-  product                Product?                 @relation(fields: [productId], references: [id])
-  enrollments            Enrollment[]
-  notificationCampaigns  NotificationCampaign[]
-  documents              WorkshopDocument[]
+  product               Product?               @relation(fields: [productId], references: [id])
+  enrollments           Enrollment[]
+  notificationCampaigns NotificationCampaign[]
+  documents             WorkshopDocument[]
 
   @@map("workshop_editions")
 }
@@ -386,14 +401,14 @@ model Enrollment {
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
-  contact          Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  product          Product          @relation(fields: [productId], references: [id])
-  workshopEdition  WorkshopEdition? @relation(fields: [workshopEditionId], references: [id])
-  parentEnrollment Enrollment?      @relation("EnrollmentRenewals", fields: [parentEnrollmentId], references: [id])
-  childEnrollments Enrollment[]     @relation("EnrollmentRenewals")
-  payments         Payment[]
-  therapyPackage   TherapyPackage?
-  notebookPages    ContactNotebookPage[]
+  contact                  Contact                   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  product                  Product                   @relation(fields: [productId], references: [id])
+  workshopEdition          WorkshopEdition?          @relation(fields: [workshopEditionId], references: [id])
+  parentEnrollment         Enrollment?               @relation("EnrollmentRenewals", fields: [parentEnrollmentId], references: [id])
+  childEnrollments         Enrollment[]              @relation("EnrollmentRenewals")
+  payments                 Payment[]
+  therapyPackage           TherapyPackage?
+  notebookPages            ContactNotebookPage[]
   paymentVerificationCodes PaymentVerificationCode[]
   promoCodeRedemption      PromoCodeRedemption?
 
@@ -406,23 +421,27 @@ model Enrollment {
 }
 
 model Payment {
-  id                String          @id @default(cuid())
-  enrollmentId      String          @map("enrollment_id")
-  provider          PaymentProvider
-  providerPaymentId String          @map("provider_payment_id")
-  providerOrderId   String?         @map("provider_order_id")
-  status            PaymentStatus
-  currency          String          @db.Char(3)
-  amountMinor       Int             @map("amount_minor")
-  feeMinor          Int?            @map("fee_minor")
-  netMinor          Int?            @map("net_minor")
-  payerEmail        String?         @map("payer_email")
-  payerCountryIso   String?         @map("payer_country_iso") @db.Char(2)
-  rawPayload        Json?           @map("raw_payload")
-  paidAt            DateTime?       @map("paid_at")
-  membershipAppliedAt DateTime?     @map("membership_applied_at")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  id                  String          @id @default(cuid())
+  enrollmentId        String          @map("enrollment_id")
+  provider            PaymentProvider
+  providerPaymentId   String          @map("provider_payment_id")
+  providerOrderId     String?         @map("provider_order_id")
+  status              PaymentStatus
+  currency            String          @db.Char(3)
+  amountMinor         Int             @map("amount_minor")
+  feeMinor            Int?            @map("fee_minor")
+  netMinor            Int?            @map("net_minor")
+  payerEmail          String?         @map("payer_email")
+  payerCountryIso     String?         @map("payer_country_iso") @db.Char(2)
+  rawPayload          Json?           @map("raw_payload")
+  paidAt              DateTime?       @map("paid_at")
+  membershipAppliedAt DateTime?       @map("membership_applied_at")
+  /// Marca de que ya se envió el evento Purchase a Meta CAPI. `recordPayment`
+  /// usa upsert y puede reemitir `payment/approved`, así que sin este sello el
+  /// mismo pago se enviaría varias veces.
+  capiSentAt          DateTime?       @map("capi_sent_at")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
 
   enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
 
@@ -462,19 +481,19 @@ enum PromoDiscountType {
 // COP are not comparable — a fixed code is only usable in a currency it has
 // an amount configured for.
 model PromoCode {
-  id             String            @id @default(cuid())
-  code           String            @unique
-  description    String?
-  discountType   PromoDiscountType @map("discount_type")
-  percentOff     Int?              @map("percent_off")
-  amountOffUsdMinor Int?           @map("amount_off_usd_minor")
-  amountOffCopMinor Int?           @map("amount_off_cop_minor")
-  isActive       Boolean           @default(true) @map("is_active")
-  maxRedemptions Int?              @map("max_redemptions")
-  timesRedeemed  Int               @default(0) @map("times_redeemed")
-  expiresAt      DateTime?         @map("expires_at")
-  createdAt      DateTime          @default(now()) @map("created_at")
-  updatedAt      DateTime          @updatedAt @map("updated_at")
+  id                String            @id @default(cuid())
+  code              String            @unique
+  description       String?
+  discountType      PromoDiscountType @map("discount_type")
+  percentOff        Int?              @map("percent_off")
+  amountOffUsdMinor Int?              @map("amount_off_usd_minor")
+  amountOffCopMinor Int?              @map("amount_off_cop_minor")
+  isActive          Boolean           @default(true) @map("is_active")
+  maxRedemptions    Int?              @map("max_redemptions")
+  timesRedeemed     Int               @default(0) @map("times_redeemed")
+  expiresAt         DateTime?         @map("expires_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
 
   redemptions PromoCodeRedemption[]
 
@@ -497,16 +516,16 @@ model PromoCodeRedemption {
 }
 
 model TherapyPackage {
-  id                  String   @id @default(cuid())
-  enrollmentId        String   @unique @map("enrollment_id")
-  totalSessions       Int      @map("total_sessions")
-  usedSessions        Int      @default(0) @map("used_sessions")
-  meetDefaultUrl      String?  @map("meet_default_url")
-  reprogrammingNotes  String?  @map("reprogramming_notes") @db.Text
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(cuid())
+  enrollmentId       String   @unique @map("enrollment_id")
+  totalSessions      Int      @map("total_sessions")
+  usedSessions       Int      @default(0) @map("used_sessions")
+  meetDefaultUrl     String?  @map("meet_default_url")
+  reprogrammingNotes String?  @map("reprogramming_notes") @db.Text
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
-  enrollment Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  enrollment Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
   sessions   TherapySession[]
 
   @@map("therapy_packages")
@@ -529,7 +548,7 @@ model TherapySession {
   createdAt        DateTime             @default(now()) @map("created_at")
   updatedAt        DateTime             @updatedAt @map("updated_at")
 
-  therapyPackage TherapyPackage @relation(fields: [therapyPackageId], references: [id], onDelete: Cascade)
+  therapyPackage TherapyPackage        @relation(fields: [therapyPackageId], references: [id], onDelete: Cascade)
   notebookPages  ContactNotebookPage[]
 
   @@unique([therapyPackageId, sessionNumber])
@@ -581,10 +600,10 @@ model StaffUser {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  auditLogs     AuditLog[]
-  messageLogs   MessageLog[]
-  notebookPages  ContactNotebookPage[]
-  staffSessions  StaffSession[]
+  auditLogs                AuditLog[]
+  messageLogs              MessageLog[]
+  notebookPages            ContactNotebookPage[]
+  staffSessions            StaffSession[]
   paymentVerificationCodes PaymentVerificationCode[]
   notificationRecipients   NotificationRecipient[]
   notificationPreferences  StaffNotificationPreference[]
@@ -671,8 +690,8 @@ model MessageTemplate {
   metaTemplateLang   String? @map("meta_template_lang")
   metaApprovalStatus String? @map("meta_approval_status")
 
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   messageLogs MessageLog[]
 
@@ -747,7 +766,7 @@ model Conversation {
   /// Cuenta de Meta que recibió el mensaje (phone_number_id, page id o ig id).
   metaAccountId    String              @map("meta_account_id")
 
-  contactId        String?             @map("contact_id")
+  contactId String? @map("contact_id")
 
   participantName      String? @map("participant_name")
   participantHandle    String? @map("participant_handle")
@@ -791,7 +810,7 @@ model ConversationMessage {
   /// Mensaje al que responde (`context.id` en WhatsApp, `reply_to.mid` en Messenger).
   replyToExternalId String? @map("reply_to_external_id")
 
-  body String? @db.Text
+  body        String? @db.Text
   /// Adjuntos ya rehospedados en Blob — las URLs de Meta caducan.
   attachments Json?
 
@@ -817,27 +836,27 @@ model ConversationMessage {
 /// Los tokens se guardan cifrados (lib/crypto/secret-box.ts): son credenciales
 /// de publicación sobre la cuenta real, no datos de configuración.
 model SocialAccount {
-  id       String         @id @default(cuid())
-  provider SocialProvider
+  id          String         @id @default(cuid())
+  provider    SocialProvider
   /// Id estable de la cuenta en el proveedor (`open_id` en TikTok).
-  externalId  String      @map("external_id")
-  displayName String?     @map("display_name")
+  externalId  String         @map("external_id")
+  displayName String?        @map("display_name")
   username    String?
-  avatarUrl   String?     @map("avatar_url")
+  avatarUrl   String?        @map("avatar_url")
 
   /// Nulo cuando la cuenta está desconectada. La fila sobrevive porque
   /// `SocialPost.account` cascadea: borrarla se llevaría el historial de
   /// publicaciones por delante.
-  accessTokenEnc  String?   @map("access_token_enc") @db.Text
+  accessTokenEnc   String?   @map("access_token_enc") @db.Text
   /// En Meta guarda el token de usuario de larga duración. Meta no tiene
   /// `grant_type=refresh_token`, pero ese token es funcionalmente eso: es el
   /// que se vuelve a presentar para acuñar un token de Página nuevo.
-  refreshTokenEnc String?   @map("refresh_token_enc") @db.Text
+  refreshTokenEnc  String?   @map("refresh_token_enc") @db.Text
   /// Caducidad del access token; por debajo se refresca antes de usarlo.
-  expiresAt       DateTime? @map("expires_at")
+  expiresAt        DateTime? @map("expires_at")
   /// Caducidad del refresh token. Pasada, hay que reconectar a mano.
   refreshExpiresAt DateTime? @map("refresh_expires_at")
-  scopes          String?
+  scopes           String?
 
   /// Falso cuando el proveedor revoca el permiso: la UI pide reconectar.
   isActive  Boolean @default(true) @map("is_active")
@@ -868,10 +887,10 @@ model SocialPost {
   mediaType SocialMediaType  @default(VIDEO) @map("media_type")
   status    SocialPostStatus @default(DRAFT)
 
-  caption String? @db.Text
+  caption   String? @db.Text
   /// URLs en Blob. TikTok exige dominio verificado para PULL_FROM_URL, así que
   /// el publicador descarga de aquí y sube los bytes (FILE_UPLOAD).
-  mediaUrls Json   @map("media_urls")
+  mediaUrls Json    @map("media_urls")
 
   /// PUBLIC_TO_EVERYONE | MUTUAL_FOLLOW_FRIENDS | FOLLOWER_OF_CREATOR | SELF_ONLY.
   /// Sin auditoría de TikTok solo se acepta SELF_ONLY.
@@ -987,26 +1006,26 @@ model NotificationCampaign {
 }
 
 model NotificationDelivery {
-  id           String                     @id @default(cuid())
-  campaignId   String?                    @map("campaign_id")
+  id                     String                     @id @default(cuid())
+  campaignId             String?                    @map("campaign_id")
   /// Opcional: los envíos dirigidos al staff no tienen contacto asociado.
-  contactId    String?                    @map("contact_id")
-  staffUserId  String?                    @map("staff_user_id")
+  contactId              String?                    @map("contact_id")
+  staffUserId            String?                    @map("staff_user_id")
   /// Enlaza el correo con el elemento del feed que lo originó.
-  platformNotificationId String?          @map("platform_notification_id")
-  channel      MessageChannel
-  status       NotificationDeliveryStatus @default(PENDING)
-  templateKey  String?                    @map("template_key")
-  subject      String?
-  bodySnapshot String                     @map("body_snapshot") @db.Text
-  recipient    String?
-  providerId   String?                    @map("provider_id")
-  errorMessage String?                    @map("error_message") @db.Text
-  sentAt       DateTime?                  @map("sent_at")
-  createdAt    DateTime                   @default(now()) @map("created_at")
+  platformNotificationId String?                    @map("platform_notification_id")
+  channel                MessageChannel
+  status                 NotificationDeliveryStatus @default(PENDING)
+  templateKey            String?                    @map("template_key")
+  subject                String?
+  bodySnapshot           String                     @map("body_snapshot") @db.Text
+  recipient              String?
+  providerId             String?                    @map("provider_id")
+  errorMessage           String?                    @map("error_message") @db.Text
+  sentAt                 DateTime?                  @map("sent_at")
+  createdAt              DateTime                   @default(now()) @map("created_at")
 
-  campaign NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  contact  Contact?              @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  campaign             NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact              Contact?              @relation(fields: [contactId], references: [id], onDelete: Cascade)
   staffUser            StaffUser?            @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
   platformNotification PlatformNotification? @relation(fields: [platformNotificationId], references: [id], onDelete: SetNull)
 
@@ -1174,19 +1193,25 @@ model CourseModuleProgress {
 }
 
 model LiveClassSession {
-  id                String    @id @default(cuid())
-  productId         String    @map("product_id")
-  moduleId          String?   @map("module_id")
-  title             String
-  description       String?   @db.Text
-  scheduledAt       DateTime? @map("scheduled_at")
-  meetUrl           String?   @map("meet_url")
-  recordingUrl      String?   @map("recording_url")
-  recordingPostedAt DateTime? @map("recording_posted_at")
-  recordingHiddenAt DateTime? @map("recording_hidden_at")
-  sortOrder         Int       @default(0) @map("sort_order")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  id                    String          @id @default(cuid())
+  productId             String          @map("product_id")
+  moduleId              String?         @map("module_id")
+  title                 String
+  description           String?         @db.Text
+  scheduledAt           DateTime?       @map("scheduled_at")
+  meetUrl               String?         @map("meet_url")
+  recordingUrl          String?         @map("recording_url")
+  recordingPostedAt     DateTime?       @map("recording_posted_at")
+  recordingHiddenAt     DateTime?       @map("recording_hidden_at")
+  muxUploadId           String?         @map("mux_upload_id")
+  muxAssetId            String?         @map("mux_asset_id")
+  muxPlaybackId         String?         @map("mux_playback_id")
+  recordingStatus       RecordingStatus @default(NONE) @map("recording_status")
+  recordingDurationSec  Int?            @map("recording_duration_sec")
+  recordingErrorMessage String?         @map("recording_error_message") @db.Text
+  sortOrder             Int             @default(0) @map("sort_order")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
 
   product  Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
   module   CourseModule?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)

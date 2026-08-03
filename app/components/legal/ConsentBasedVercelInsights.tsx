@@ -9,9 +9,9 @@ import { useCookieConsent } from "../../context/CookieConsentContext";
  * y el despliegue permite cargarlas (producción/preview en Vercel).
  */
 const ConsentBasedVercelInsights = () => {
-  const { status, analyticsAllowed } = useCookieConsent();
+  const { analyticsEnabled } = useCookieConsent();
 
-  if (status !== "accepted" || !analyticsAllowed) return null;
+  if (!analyticsEnabled) return null;
 
   return (
     <>

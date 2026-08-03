@@ -142,5 +142,8 @@ COP prices are stored as **full pesos** (no centavos), so `amountMinor` for COP 
 | `META_PAGE_ID` / `META_PAGE_ACCESS_TOKEN` | **Fallback** only; a linked account in the DB wins |
 | `SOCIAL_PUBLISHING_ENABLED` | `true` to show `/admin/contenido` |
 | `TIKTOK_AUDITED` | `true` only after TikTok's audit — until then every post is forced `SELF_ONLY` |
+| `MUX_TOKEN_ID` / `MUX_TOKEN_SECRET` | Mux API credentials — provisioned by `vercel integration add mux` |
+| `MUX_WEBHOOK_SECRET` | Signs `/api/webhooks/mux`; created by hand in the Mux dashboard, not by the marketplace install |
+| `MUX_SIGNING_KEY_ID` / `MUX_SIGNING_KEY_PRIVATE` | Signs playback JWTs for course recordings; separate credential pair from the API token, created by hand in the Mux dashboard |
 
 Production env validated at startup via `lib/env.server.ts` (Zod schema, throws on missing vars).
