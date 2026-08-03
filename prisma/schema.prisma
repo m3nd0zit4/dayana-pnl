@@ -244,6 +244,13 @@ model Contact {
   notes               String?       @db.Text
   consentDataAt       DateTime?     @map("consent_data_at")
   consentMarketingAt  DateTime?     @map("consent_marketing_at")
+  /// Consentimiento para medición publicitaria (Meta CAPI, Google Ads).
+  /// Deliberadamente separado de `consentMarketingAt`: aceptar recibir
+  /// comunicaciones comerciales no es aceptar que se envíen datos a
+  /// plataformas de anuncios. Sin esta fecha, CAPI no envía nada de este
+  /// contacto — el envío desde servidor recupera señal que el navegador
+  /// bloquea por motivos técnicos, no consentimiento que el usuario negó.
+  consentAdTrackingAt DateTime?     @map("consent_ad_tracking_at")
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
@@ -421,6 +428,10 @@ model Payment {
   rawPayload        Json?           @map("raw_payload")
   paidAt            DateTime?       @map("paid_at")
   membershipAppliedAt DateTime?     @map("membership_applied_at")
+  /// Marca de que ya se envió el evento Purchase a Meta CAPI. `recordPayment`
+  /// usa upsert y puede reemitir `payment/approved`, así que sin este sello el
+  /// mismo pago se enviaría varias veces.
+  capiSentAt        DateTime?       @map("capi_sent_at")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 

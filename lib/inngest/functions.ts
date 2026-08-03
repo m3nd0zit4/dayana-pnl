@@ -32,6 +32,7 @@ import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { inviteContactToPortal } from "../crm/member-accounts";
 import { applyMembershipExtension } from "../lms/membership";
 import { RECORDING_RETENTION_DAYS } from "../lms/course-content";
+import { sendPurchaseToMetaCapi } from "../meta/capi-purchase";
 
 export const paymentApprovedFn = inngest.createFunction(
   { id: "payment-approved" },
@@ -79,6 +80,12 @@ export const paymentApprovedFn = inngest.createFunction(
     // account management. Skips automatically if they already have one.
     await step.run("member-portal-invite", async () =>
       inviteContactToPortal(enrollment.contactId)
+    );
+
+    // Meta CAPI: la mitad servidor del Purchase. El Pixel del navegador manda
+    // el mismo evento con el mismo `event_id` y Meta lo cuenta una sola vez.
+    await step.run("meta-capi-purchase", async () =>
+      sendPurchaseToMetaCapi(enrollmentId)
     );
   }
 );
@@ -371,7 +378,7 @@ export const recordingAutoHideFn = inngest.createFunction(
       const cutoff = new Date(Date.now() - RECORDING_RETENTION_DAYS * DAY_MS);
       const result = await prisma.liveClassSession.updateMany({
         where: {
-          recordingUrl: { not: null },
+          OR: [{ recordingUrl: { not: null } }, { muxPlaybackId: { not: null } }],
           recordingHiddenAt: null,
           recordingPostedAt: { lt: cutoff },
         },
