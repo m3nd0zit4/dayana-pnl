@@ -24,6 +24,12 @@ type Props = {
 };
 
 const classSubtitle = (cls: OutlineClass): string => {
+  if (cls.contentType === "TEXT") return "Lectura";
+  if (cls.contentType === "PDF") return "PDF";
+  if (cls.contentType === "QUIZ") {
+    const n = cls.quiz?.questions.length ?? 0;
+    return n === 1 ? "Cuestionario · 1 pregunta" : `Cuestionario · ${n} preguntas`;
+  }
   if (cls.recordingUrl || cls.muxPlaybackId) {
     if (cls.recordingDurationSec) {
       const min = Math.max(1, Math.round(cls.recordingDurationSec / 60));

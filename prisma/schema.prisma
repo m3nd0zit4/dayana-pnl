@@ -183,6 +183,16 @@ enum RecordingStatus {
   ERRORED
 }
 
+/// Qué tipo de contenido es este item dentro del módulo — antes solo existían
+/// clases de video; ahora un módulo puede mezclar video, lectura, material
+/// descargable y cuestionarios.
+enum LessonContentType {
+  VIDEO
+  TEXT
+  PDF
+  QUIZ
+}
+
 /// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
 /// valores por defecto viven en lib/notifications/platform/catalog.ts — este
 /// enum solo garantiza integridad referencial.
@@ -229,38 +239,38 @@ enum NotificationEventType {
 }
 
 model Contact {
-  id                 String        @id @default(cuid())
-  phoneE164          String        @unique @map("phone_e164")
-  phoneCountryIso    String?       @map("phone_country_iso") @db.Char(2)
-  email              String?       @unique
-  firstName          String        @map("first_name")
-  lastName           String?       @map("last_name")
-  displayName        String?       @map("display_name")
-  countryIso         String?       @map("country_iso") @db.Char(2)
-  timezone           String        @default("America/Bogota")
-  preferredLocale    String        @default("es") @map("preferred_locale")
-  avatarUrl          String?       @map("avatar_url")
-  workDescription    String?       @map("work_description")
-  themePreference    String        @default("system") @map("theme_preference")
-  notifyEmail        Boolean       @default(true) @map("notify_email")
-  notifySms          Boolean       @default(true) @map("notify_sms")
-  notifyWhatsapp     Boolean       @default(true) @map("notify_whatsapp")
-  notifyInApp        Boolean       @default(true) @map("notify_in_app")
-  source             ContactSource @default(WEB)
-  sourceDetail       String?       @map("source_detail")
-  tiktokHandle       String?       @map("tiktok_handle")
-  notes              String?       @db.Text
-  consentDataAt      DateTime?     @map("consent_data_at")
-  consentMarketingAt DateTime?     @map("consent_marketing_at")
+  id                  String        @id @default(cuid())
+  phoneE164           String        @unique @map("phone_e164")
+  phoneCountryIso     String?       @map("phone_country_iso") @db.Char(2)
+  email               String?       @unique
+  firstName           String        @map("first_name")
+  lastName            String?       @map("last_name")
+  displayName         String?       @map("display_name")
+  countryIso          String?       @map("country_iso") @db.Char(2)
+  timezone            String        @default("America/Bogota")
+  preferredLocale     String        @default("es") @map("preferred_locale")
+  avatarUrl           String?       @map("avatar_url")
+  workDescription     String?       @map("work_description")
+  themePreference     String        @default("system") @map("theme_preference")
+  notifyEmail         Boolean       @default(true) @map("notify_email")
+  notifySms           Boolean       @default(true) @map("notify_sms")
+  notifyWhatsapp      Boolean       @default(true) @map("notify_whatsapp")
+  notifyInApp         Boolean       @default(true) @map("notify_in_app")
+  source              ContactSource @default(WEB)
+  sourceDetail        String?       @map("source_detail")
+  tiktokHandle        String?       @map("tiktok_handle")
+  notes               String?       @db.Text
+  consentDataAt       DateTime?     @map("consent_data_at")
+  consentMarketingAt  DateTime?     @map("consent_marketing_at")
   /// Consentimiento para medición publicitaria (Meta CAPI, Google Ads).
   /// Deliberadamente separado de `consentMarketingAt`: aceptar recibir
   /// comunicaciones comerciales no es aceptar que se envíen datos a
   /// plataformas de anuncios. Sin esta fecha, CAPI no envía nada de este
   /// contacto — el envío desde servidor recupera señal que el navegador
   /// bloquea por motivos técnicos, no consentimiento que el usuario negó.
-  consentAdTrackingAt DateTime?    @map("consent_ad_tracking_at")
-  createdAt          DateTime      @default(now()) @map("created_at")
-  updatedAt          DateTime      @updatedAt @map("updated_at")
+  consentAdTrackingAt DateTime?     @map("consent_ad_tracking_at")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
 
   enrollments            Enrollment[]
   tags                   ContactTag[]
@@ -1193,25 +1203,31 @@ model CourseModuleProgress {
 }
 
 model LiveClassSession {
-  id                    String          @id @default(cuid())
-  productId             String          @map("product_id")
-  moduleId              String?         @map("module_id")
+  id                    String            @id @default(cuid())
+  productId             String            @map("product_id")
+  moduleId              String?           @map("module_id")
   title                 String
-  description           String?         @db.Text
-  scheduledAt           DateTime?       @map("scheduled_at")
-  meetUrl               String?         @map("meet_url")
-  recordingUrl          String?         @map("recording_url")
-  recordingPostedAt     DateTime?       @map("recording_posted_at")
-  recordingHiddenAt     DateTime?       @map("recording_hidden_at")
-  muxUploadId           String?         @map("mux_upload_id")
-  muxAssetId            String?         @map("mux_asset_id")
-  muxPlaybackId         String?         @map("mux_playback_id")
-  recordingStatus       RecordingStatus @default(NONE) @map("recording_status")
-  recordingDurationSec  Int?            @map("recording_duration_sec")
-  recordingErrorMessage String?         @map("recording_error_message") @db.Text
-  sortOrder             Int             @default(0) @map("sort_order")
-  createdAt             DateTime        @default(now()) @map("created_at")
-  updatedAt             DateTime        @updatedAt @map("updated_at")
+  description           String?           @db.Text
+  scheduledAt           DateTime?         @map("scheduled_at")
+  meetUrl               String?           @map("meet_url")
+  recordingUrl          String?           @map("recording_url")
+  recordingPostedAt     DateTime?         @map("recording_posted_at")
+  recordingHiddenAt     DateTime?         @map("recording_hidden_at")
+  muxUploadId           String?           @map("mux_upload_id")
+  muxAssetId            String?           @map("mux_asset_id")
+  muxPlaybackId         String?           @map("mux_playback_id")
+  recordingStatus       RecordingStatus   @default(NONE) @map("recording_status")
+  recordingDurationSec  Int?              @map("recording_duration_sec")
+  recordingErrorMessage String?           @map("recording_error_message") @db.Text
+  contentType           LessonContentType @default(VIDEO) @map("content_type")
+  bodyMd                String?           @map("body_md") @db.Text
+  materialUrl           String?           @map("material_url") @db.Text
+  materialFileName      String?           @map("material_file_name")
+  materialSizeBytes     Int?              @map("material_size_bytes")
+  quizJson              Json?             @map("quiz_json")
+  sortOrder             Int               @default(0) @map("sort_order")
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
 
   product  Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
   module   CourseModule?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)

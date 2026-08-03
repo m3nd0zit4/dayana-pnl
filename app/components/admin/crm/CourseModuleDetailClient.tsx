@@ -1,7 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, MessageCircle, Plus, Video } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  FileText,
+  ListChecks,
+  MessageCircle,
+  Plus,
+  Video,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -328,32 +337,64 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                     <div className="text-sm font-semibold">
                       {index + 1}. {row.title}
                     </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {formatDateTime(row.scheduledAt)}
-                      {row.meetUrl ? " · Meet configurado" : " · Sin enlace Meet"}
-                    </div>
+                    {row.contentType === "VIDEO" && (
+                      <div className="mt-0.5 text-xs text-muted-foreground">
+                        {formatDateTime(row.scheduledAt)}
+                        {row.meetUrl ? " · Meet configurado" : " · Sin enlace Meet"}
+                      </div>
+                    )}
                     <div className="mt-1 flex items-center gap-1.5 text-xs">
-                      <Video className="size-3.5 text-muted-foreground" aria-hidden />
-                      {row.recordingStatus === "UPLOADING" ? (
-                        <span className="text-muted-foreground">Subiendo…</span>
-                      ) : row.recordingStatus === "PROCESSING" ? (
-                        <span className="text-muted-foreground">Procesando en Mux…</span>
-                      ) : row.recordingStatus === "ERRORED" ? (
-                        <span className="text-destructive">
-                          Error: {row.recordingErrorMessage ?? "no se pudo procesar"}
-                        </span>
-                      ) : hasRecording(row) ? (
-                        row.recordingHiddenAt ? (
-                          <span className="text-muted-foreground">Grabación oculta (venció el mes)</span>
-                        ) : row.recordingPostedAt ? (
+                      {row.contentType === "VIDEO" ? (
+                        <>
+                          <Video className="size-3.5 text-muted-foreground" aria-hidden />
+                          {row.recordingStatus === "UPLOADING" ? (
+                            <span className="text-muted-foreground">Subiendo…</span>
+                          ) : row.recordingStatus === "PROCESSING" ? (
+                            <span className="text-muted-foreground">Procesando en Mux…</span>
+                          ) : row.recordingStatus === "ERRORED" ? (
+                            <span className="text-destructive">
+                              Error: {row.recordingErrorMessage ?? "no se pudo procesar"}
+                            </span>
+                          ) : hasRecording(row) ? (
+                            row.recordingHiddenAt ? (
+                              <span className="text-muted-foreground">Grabación oculta (venció el mes)</span>
+                            ) : row.recordingPostedAt ? (
+                              <span className="text-emerald-700">
+                                Grabación visible hasta el {recordingExpiry(row.recordingPostedAt)}
+                              </span>
+                            ) : (
+                              <span className="text-emerald-700">Grabación publicada</span>
+                            )
+                          ) : (
+                            <span className="text-muted-foreground">Sin grabación</span>
+                          )}
+                        </>
+                      ) : row.contentType === "TEXT" ? (
+                        <>
+                          <FileText className="size-3.5 text-muted-foreground" aria-hidden />
                           <span className="text-emerald-700">
-                            Grabación visible hasta el {recordingExpiry(row.recordingPostedAt)}
+                            {row.bodyMd?.trim() ? "Lectura lista" : "Lectura vacía"}
                           </span>
-                        ) : (
-                          <span className="text-emerald-700">Grabación publicada</span>
-                        )
+                        </>
+                      ) : row.contentType === "PDF" ? (
+                        <>
+                          <FileText className="size-3.5 text-muted-foreground" aria-hidden />
+                          <span className={row.materialFileName ? "text-emerald-700" : "text-muted-foreground"}>
+                            {row.materialFileName ?? "Sin PDF"}
+                          </span>
+                        </>
                       ) : (
-                        <span className="text-muted-foreground">Sin grabación</span>
+                        <>
+                          <ListChecks className="size-3.5 text-muted-foreground" aria-hidden />
+                          <span className="text-emerald-700">
+                            {(() => {
+                              const n = Array.isArray((row.quizJson as { questions?: unknown[] } | null)?.questions)
+                                ? (row.quizJson as { questions: unknown[] }).questions.length
+                                : 0;
+                              return n === 1 ? "1 pregunta" : `${n} preguntas`;
+                            })()}
+                          </span>
+                        </>
                       )}
                       {row.commentCount > 0 && (
                         <>
