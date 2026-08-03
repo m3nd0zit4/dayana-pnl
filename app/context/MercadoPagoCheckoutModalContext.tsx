@@ -11,6 +11,7 @@ import {
 import MercadoPagoCheckoutModal from "../components/payments/MercadoPagoCheckoutModal";
 import { isPlanId, type PlanId } from "../../lib/plans";
 import { pushDataLayerEvent } from "../../lib/analytics/dataLayer";
+import { trackMetaEvent } from "../components/analytics/MetaPixel";
 
 import type { OpenCheckoutOptions } from "./PayPalModalContext";
 
@@ -40,6 +41,11 @@ export const MercadoPagoCheckoutModalProvider = ({
       pushDataLayerEvent("begin_checkout", {
         plan_id: id,
         provider: "mercadopago",
+      });
+      // Ver nota en PayPalModalContext.
+      trackMetaEvent("InitiateCheckout", {
+        content_ids: [id],
+        content_type: "product",
       });
       setState({ planId: id, sessionFirst: options?.sessionFirst === true });
     },

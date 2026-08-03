@@ -11,6 +11,7 @@ import {
 import { isPlanId, type PlanId } from "../../lib/plans";
 import PayPalModal from "../components/payments/PayPalModal";
 import { pushDataLayerEvent } from "../../lib/analytics/dataLayer";
+import { trackMetaEvent } from "../components/analytics/MetaPixel";
 
 export type OpenCheckoutOptions = {
   /** Try to resolve the contact from the signed-in session and skip the
@@ -37,6 +38,9 @@ export const PayPalModalProvider = ({ children }: { children: ReactNode }) => {
     // El push al dataLayer es inerte por sí solo: nada sale del navegador hasta
     // que una etiqueta dispare, y eso lo gobierna Consent Mode.
     pushDataLayerEvent("begin_checkout", { plan_id: id, provider: "paypal" });
+    // El Pixel solo existe si hubo consentimiento publicitario; `trackMetaEvent`
+    // no hace nada cuando `fbq` no se cargó, así que no hace falta comprobarlo.
+    trackMetaEvent("InitiateCheckout", { content_ids: [id], content_type: "product" });
     setState({ planId: id, sessionFirst: options?.sessionFirst === true });
   }, []);
 

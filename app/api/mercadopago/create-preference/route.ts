@@ -11,6 +11,7 @@ import {
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
+import { recordAdTrackingConsent } from "@/lib/crm/contacts";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
@@ -89,6 +90,15 @@ export async function POST(req: Request) {
       { status: mapped.status }
     );
   }
+
+  // Ver la nota equivalente en paypal/create-order: único punto común a todas
+  // las vías de compra, y un fallo aquí no puede tumbar el pago.
+  await recordAdTrackingConsent(
+    contactId,
+    body.consentAdTracking === true
+  ).catch((e) =>
+    console.error("[mercadopago] ad-tracking consent not recorded", e)
+  );
 
   let discountMinor = 0;
   let appliedPromoCode: string | undefined;

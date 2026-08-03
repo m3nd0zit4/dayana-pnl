@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
         lastName: body.lastName,
         email: body.email,
         consentData: body.consentData === true,
+        consentAdTracking: body.consentAdTracking === true,
       },
     });
 

@@ -12,6 +12,7 @@ import {
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
+import { recordAdTrackingConsent } from "@/lib/crm/contacts";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
@@ -114,6 +115,12 @@ export async function POST(req: NextRequest) {
       { status: mapped.status }
     );
   }
+
+  // Consentimiento publicitario: se registra aquí porque es el único punto por
+  // el que pasan todas las vías de compra. Un fallo no puede tumbar el pago.
+  await recordAdTrackingConsent(contactId, body.consentAdTracking === true).catch(
+    (e) => console.error("[paypal] ad-tracking consent not recorded", e)
+  );
 
   const checkoutReference = encodeCheckoutReference(
     contactId,
