@@ -12,6 +12,7 @@ import {
 } from "../../../lib/paypal/client";
 import { formatCop, formatUsd, type PlanId } from "../../../lib/plans";
 import { useCheckoutPlan } from "./useCheckoutPlan";
+import { useCookieConsent } from "../../context/CookieConsentContext";
 import { PayPalBrandRow } from "./PayPalBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
@@ -97,6 +98,15 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
   // True when the session path is live: submits/orders carry fromSession so
   // the server anchors the payment to the signed-in contact.
   const fromSessionRef = useRef(false);
+  const { marketingEnabled } = useCookieConsent();
+  // En ref porque `createOrder` se entrega al SDK de PayPal y captura el valor
+  // del render en que se montó; leerlo del ref evita mandar un consentimiento
+  // caducado si el visitante cambia sus preferencias con el modal abierto.
+  const adTrackingConsentRef = useRef(marketingEnabled);
+  useEffect(() => {
+    adTrackingConsentRef.current = marketingEnabled;
+  }, [marketingEnabled]);
+
   const checkoutContactIdRef = useRef<string | null>(null);
   const paypalHostRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -345,6 +355,7 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
                   ? { promoCode: sessionPromoRef.current }
                   : contact),
                 ...(fromSessionRef.current ? { fromSession: true } : {}),
+                consentAdTracking: adTrackingConsentRef.current,
               }),
             });
             const data = await readJsonResponse<{

@@ -32,6 +32,9 @@ export type UpsertContactInput = {
   sourceDetail?: string;
   consentData?: boolean;
   consentMarketing?: boolean;
+  /** Consentimiento de medición publicitaria (Meta CAPI, Google Ads). Sin él
+   *  el envío desde servidor no manda nada de este contacto. */
+  consentAdTracking?: boolean;
   notes?: string;
 };
 
@@ -79,6 +82,7 @@ const buildContactUpdate = (
   countryIso: input.countryIso?.toUpperCase() || normalized.phoneCountryIso,
   ...(input.consentData ? { consentDataAt: now } : {}),
   ...(input.consentMarketing ? { consentMarketingAt: now } : {}),
+  ...(input.consentAdTracking ? { consentAdTrackingAt: now } : {}),
   ...(emailTrim ? { email: emailTrim } : {}),
   ...(input.notes !== undefined ? { notes: input.notes } : {}),
   ...(input.timezone ? { timezone: input.timezone } : {}),
@@ -217,6 +221,7 @@ export const upsertContactByPhone = async (
         notes: input.notes ?? null,
         consentDataAt: input.consentData ? now : undefined,
         consentMarketingAt: input.consentMarketing ? now : undefined,
+        consentAdTrackingAt: input.consentAdTracking ? now : undefined,
       },
     });
     return { contact, phone: normalized, created: true };
@@ -284,6 +289,26 @@ export type ContactPrefill = {
   firstName?: string;
   lastName?: string;
   phoneCountry?: string;
+};
+
+/**
+ * Registra (o retira) el consentimiento de medición publicitaria del contacto.
+ *
+ * Se llama al crear el pago, que es el único punto por el que pasan todas las
+ * rutas de compra —incluida la vía rápida de sesión, que no vuelve a hacer
+ * upsert del contacto y por eso nunca recibiría el consentimiento de otro modo.
+ *
+ * Retirar es tan importante como conceder: si alguien desmarca "Publicidad",
+ * la fecha se borra y la Conversions API deja de enviar eventos suyos.
+ */
+export const recordAdTrackingConsent = async (
+  contactId: string,
+  granted: boolean
+): Promise<void> => {
+  await prisma.contact.update({
+    where: { id: contactId },
+    data: { consentAdTrackingAt: granted ? new Date() : null },
+  });
 };
 
 /**

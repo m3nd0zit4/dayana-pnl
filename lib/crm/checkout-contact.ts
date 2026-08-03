@@ -28,6 +28,9 @@ export type ResolveCheckoutContactInput = {
   email?: string;
   countryIso?: string;
   consentData?: boolean;
+  /** Casilla "Publicidad" del banner de cookies en el momento del checkout.
+   *  Es lo que habilita el envío por Conversions API para este contacto. */
+  consentAdTracking?: boolean;
 };
 
 export type ResolveCheckoutContactResult = {
@@ -65,6 +68,7 @@ export const resolveCheckoutContact = async (
       countryIso: input.countryIso,
       source: ContactSource.WEB,
       consentData: true,
+      consentAdTracking: input.consentAdTracking === true,
     });
 
     return { contactId: contact.id, created };

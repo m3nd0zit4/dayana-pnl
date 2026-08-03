@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { WHATSAPP_NUMBER, buildWhatsAppUrl } from "../../../lib/contact";
 import { formatCop, formatUsd, type PlanId } from "../../../lib/plans";
 import { useCheckoutPlan } from "./useCheckoutPlan";
+import { useCookieConsent } from "../../context/CookieConsentContext";
 import { MercadoPagoBrandRow } from "./MercadoPagoBrandRow";
 import CheckoutContactStep, {
   type CheckoutContactPayload,
@@ -76,6 +77,7 @@ const MercadoPagoCheckoutModal = ({
     error: planError,
   } = useCheckoutPlan(open ? planId : null);
 
+  const { marketingEnabled } = useCookieConsent();
   const [ui, setUi] = useState<UiState>({ kind: "idle" });
   const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
   const [contactPayload, setContactPayload] = useState<ContactState | null>(
@@ -278,6 +280,7 @@ const MercadoPagoCheckoutModal = ({
             ? { promoCode: sessionPromo }
             : contactPayload),
           ...(fromSessionRef.current ? { fromSession: true } : {}),
+          consentAdTracking: marketingEnabled,
         }),
       });
       const data = (await res.json()) as {
