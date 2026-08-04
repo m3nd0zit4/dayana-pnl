@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
       : null,
     meetUrl: parsed.data.meetUrl,
     recordingUrl: parsed.data.recordingUrl,
+    contentType: parsed.data.contentType,
+    bodyMd: parsed.data.bodyMd,
+    quizJson: parsed.data.quizJson,
   });
 
   fireAuditLog({

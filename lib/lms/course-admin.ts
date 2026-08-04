@@ -1,8 +1,23 @@
-import { EnrollmentStatus, PaymentStatus, RecordingStatus } from "@prisma/client";
+import {
+  EnrollmentStatus,
+  LessonContentType,
+  PaymentStatus,
+  RecordingStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getMuxClient } from "@/lib/mux/client";
 import { getSiteUrl } from "@/lib/site-url";
 import { getCourseProduct } from "./membership";
+
+/** Shape of `quizJson` — an ordered list of single-answer multiple-choice
+ *  questions. Kept as one JSON blob rather than normalized tables: a quiz is
+ *  authored and read as a whole, never queried question-by-question. */
+export type QuizQuestion = {
+  id: string;
+  prompt: string;
+  options: Array<{ id: string; text: string; correct: boolean }>;
+};
+export type QuizJson = { questions: QuizQuestion[] };
 
 /** Resolves the single active course; LMS admin routes operate on it implicitly. */
 export const requireCourseProduct = async () => {
@@ -197,6 +212,9 @@ export const createLiveClass = async (input: {
   scheduledAt?: Date | null;
   meetUrl?: string | null;
   recordingUrl?: string | null;
+  contentType?: LessonContentType;
+  bodyMd?: string | null;
+  quizJson?: QuizJson | null;
 }) => {
   let sortOrder = 0;
   if (input.moduleId) {
@@ -218,6 +236,9 @@ export const createLiveClass = async (input: {
       meetUrl: input.meetUrl ?? null,
       recordingUrl: input.recordingUrl ?? null,
       recordingPostedAt: input.recordingUrl ? new Date() : null,
+      contentType: input.contentType ?? LessonContentType.VIDEO,
+      bodyMd: input.bodyMd ?? null,
+      quizJson: input.quizJson ?? undefined,
       sortOrder,
     },
   });
@@ -231,12 +252,18 @@ export const updateLiveClass = async (
     scheduledAt?: Date | null;
     meetUrl?: string | null;
     recordingUrl?: string | null;
+    contentType?: LessonContentType;
+    bodyMd?: string | null;
+    quizJson?: QuizJson | null;
   }
 ) => {
   const current = await prisma.liveClassSession.findUnique({ where: { id } });
   if (!current) return null;
 
   const data: Record<string, unknown> = { ...input };
+  if ("quizJson" in input) {
+    data.quizJson = input.quizJson ?? undefined;
+  }
 
   if ("recordingUrl" in input) {
     const next = input.recordingUrl ?? null;
@@ -252,6 +279,27 @@ export const updateLiveClass = async (
 
   return prisma.liveClassSession.update({ where: { id }, data });
 };
+
+/** Uploads a PDF material to Blob storage (private) and attaches it to the class. */
+export const uploadClassMaterial = async (
+  classId: string,
+  file: { url: string; filename: string; sizeBytes: number }
+) =>
+  prisma.liveClassSession.update({
+    where: { id: classId },
+    data: {
+      materialUrl: file.url,
+      materialFileName: file.filename,
+      materialSizeBytes: file.sizeBytes,
+    },
+  });
+
+/** Clears the attached PDF material. */
+export const clearClassMaterial = async (classId: string) =>
+  prisma.liveClassSession.update({
+    where: { id: classId },
+    data: { materialUrl: null, materialFileName: null, materialSizeBytes: null },
+  });
 
 export const deleteLiveClass = async (id: string) =>
   prisma.liveClassSession.delete({ where: { id } });

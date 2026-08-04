@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { BRAND } from "@/lib/contact";
 import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getEnrolledCourses } from "@/lib/lms/membership";
-import { getCourseOutline } from "@/lib/lms/course-content";
+import { getCourseOutline, sanitizeQuizForMember } from "@/lib/lms/course-content";
 import { getCompletedClassIds, getCourseProgress } from "@/lib/lms/class-progress";
 import { getCompletedModuleIds } from "@/lib/lms/module-progress";
 import CoursePlayer from "@/app/components/miembros/CoursePlayer";
@@ -72,6 +72,11 @@ const Page = async ({ params, searchParams }: PageProps) => {
           recordingHiddenAt: cls.recordingHiddenAt
             ? cls.recordingHiddenAt.toISOString()
             : null,
+          contentType: cls.contentType,
+          bodyMd: cls.bodyMd,
+          materialFileName: cls.materialFileName,
+          materialSizeBytes: cls.materialSizeBytes,
+          quiz: cls.contentType === "QUIZ" ? sanitizeQuizForMember(cls.quizJson) : null,
         })),
       }))}
       completedClassIds={[...completedClassIds]}
