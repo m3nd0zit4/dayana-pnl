@@ -1,5 +1,20 @@
 import type { LiveClassSession } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import type { QuizJson } from "./course-admin";
+
+/** Strips `correct` flags before a quiz reaches the client — grading happens
+ *  server-side on submit (see the quiz API route), never in the browser. */
+export const sanitizeQuizForMember = (quizJson: unknown) => {
+  const quiz = quizJson as QuizJson | null;
+  if (!quiz) return null;
+  return {
+    questions: quiz.questions.map((q) => ({
+      id: q.id,
+      prompt: q.prompt,
+      options: q.options.map((o) => ({ id: o.id, text: o.text })),
+    })),
+  };
+};
 
 /** Recordings disappear from the portal this many days after being posted. */
 export const RECORDING_RETENTION_DAYS = 30;

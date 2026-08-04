@@ -24,6 +24,12 @@ type Props = {
 };
 
 const classSubtitle = (cls: OutlineClass): string => {
+  if (cls.contentType === "TEXT") return "Lectura";
+  if (cls.contentType === "PDF") return "PDF";
+  if (cls.contentType === "QUIZ") {
+    const n = cls.quiz?.questions.length ?? 0;
+    return n === 1 ? "Cuestionario · 1 pregunta" : `Cuestionario · ${n} preguntas`;
+  }
   if (cls.recordingUrl || cls.muxPlaybackId) {
     if (cls.recordingDurationSec) {
       const min = Math.max(1, Math.round(cls.recordingDurationSec / 60));
@@ -138,9 +144,9 @@ const CourseOutlineSidebar = ({
                 <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                   Módulo {index + 1}
                 </p>
-                <div className="mt-0.5 flex items-center gap-1.5">
+                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
                   {moduleDone && <Check className="size-3.5 shrink-0 text-primary" aria-hidden />}
-                  <span className="truncate font-semibold">{mod.title}</span>
+                  <span className="block min-w-0 truncate font-semibold">{mod.title}</span>
                 </div>
                 {total > 0 && (
                   <div className="mt-0.5 text-xs text-muted-foreground">

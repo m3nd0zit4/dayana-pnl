@@ -49,6 +49,11 @@ const CourseModuleDetailPage = async ({ params }: Props) => {
         recordingErrorMessage: c.recordingErrorMessage,
         recordingPostedAt: c.recordingPostedAt ? c.recordingPostedAt.toISOString() : null,
         recordingHiddenAt: c.recordingHiddenAt ? c.recordingHiddenAt.toISOString() : null,
+        contentType: c.contentType,
+        bodyMd: c.bodyMd,
+        materialFileName: c.materialFileName,
+        materialSizeBytes: c.materialSizeBytes,
+        quizJson: c.quizJson,
         commentCount: c._count.comments,
       }))}
     />

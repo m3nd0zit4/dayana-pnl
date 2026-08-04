@@ -162,6 +162,24 @@ export const reorderCourseModulesSchema = z.object({
   orderedIds: z.array(z.string().min(1)).min(1),
 });
 
+const quizOptionSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1).max(300),
+  correct: z.boolean(),
+});
+const quizQuestionSchema = z.object({
+  id: z.string().min(1),
+  prompt: z.string().min(1).max(500),
+  options: z
+    .array(quizOptionSchema)
+    .min(2)
+    .max(8)
+    .refine((opts) => opts.some((o) => o.correct), "Cada pregunta necesita una respuesta correcta"),
+});
+export const quizJsonSchema = z.object({
+  questions: z.array(quizQuestionSchema).min(1).max(50),
+});
+
 export const liveClassSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000).optional().nullable(),
@@ -169,6 +187,9 @@ export const liveClassSchema = z.object({
   meetUrl: z.string().url().max(500).optional().nullable(),
   recordingUrl: z.string().url().max(1000).optional().nullable(),
   moduleId: z.string().min(1).optional().nullable(),
+  contentType: z.enum(["VIDEO", "TEXT", "PDF", "QUIZ"]).optional(),
+  bodyMd: z.string().max(20000).optional().nullable(),
+  quizJson: quizJsonSchema.optional().nullable(),
 });
 
 export const reorderCourseClassesSchema = z.object({

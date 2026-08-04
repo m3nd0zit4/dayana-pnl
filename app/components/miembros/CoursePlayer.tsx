@@ -7,7 +7,8 @@ import { useMemo, useState } from "react";
 import { signOut } from "next-auth/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ChevronLeft, ChevronRight, LogOut, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, LogOut, User } from "lucide-react";
+import type { LessonContentType } from "@prisma/client";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Progress } from "@/app/components/ui/progress";
@@ -25,6 +26,7 @@ import MuxRecordingEmbed from "./MuxRecordingEmbed";
 import ClassCompleteToggle from "./ClassCompleteToggle";
 import ModuleCompleteToggle from "./ModuleCompleteToggle";
 import LessonComments from "./LessonComments";
+import QuizPlayer, { type SanitizedQuiz } from "./QuizPlayer";
 import CourseOutlineSidebar, { readingId } from "./CourseOutlineSidebar";
 
 export type OutlineClass = {
@@ -38,6 +40,11 @@ export type OutlineClass = {
   recordingDurationSec: number | null;
   recordingPostedAt: string | null;
   recordingHiddenAt: string | null;
+  contentType: LessonContentType;
+  bodyMd: string | null;
+  materialFileName: string | null;
+  materialSizeBytes: number | null;
+  quiz: SanitizedQuiz | null;
 };
 
 export type OutlineModule = {
@@ -294,6 +301,97 @@ const CoursePlayer = ({
                 El contenido de este curso se publicará aquí pronto.
               </CardContent>
             </Card>
+          ) : selectedClass.contentType !== "VIDEO" ? (
+            <div className="space-y-4">
+              <Card>
+                <CardContent className="space-y-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+                        Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} ·{" "}
+                        {selectedClass.contentType === "TEXT"
+                          ? "Lectura"
+                          : selectedClass.contentType === "PDF"
+                            ? "Material"
+                            : "Cuestionario"}
+                      </p>
+                      <h2 className="mt-1 text-xl font-semibold tracking-tight">
+                        {selectedClass.title}
+                      </h2>
+                      {selectedClass.description && (
+                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                          {selectedClass.description}
+                        </p>
+                      )}
+                    </div>
+                    {selectedClass.contentType !== "QUIZ" && (
+                      <ClassCompleteToggle
+                        key={selectedClass.id}
+                        classId={selectedClass.id}
+                        initialCompleted={completedClassIds.has(selectedClass.id)}
+                        onChange={(completed) =>
+                          setCompletedClassIds((prev) => {
+                            const next = new Set(prev);
+                            if (completed) next.add(selectedClass.id);
+                            else next.delete(selectedClass.id);
+                            return next;
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+
+                  {selectedClass.contentType === "TEXT" && (
+                    <div className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
+                      <Markdown remarkPlugins={[remarkGfm]}>
+                        {selectedClass.bodyMd || "*Sin contenido*"}
+                      </Markdown>
+                    </div>
+                  )}
+
+                  {selectedClass.contentType === "PDF" &&
+                    (selectedClass.materialFileName ? (
+                      <Button
+                        variant="outline"
+                        nativeButton={false}
+                        render={<a href={`/api/miembros/classes/${selectedClass.id}/material`} />}
+                      >
+                        <Download />
+                        Descargar {selectedClass.materialFileName}
+                      </Button>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        El material aún no está disponible.
+                      </p>
+                    ))}
+
+                  {selectedClass.contentType === "QUIZ" &&
+                    (selectedClass.quiz && selectedClass.quiz.questions.length > 0 ? (
+                      <QuizPlayer
+                        key={selectedClass.id}
+                        classId={selectedClass.id}
+                        quiz={selectedClass.quiz}
+                        alreadyCompleted={completedClassIds.has(selectedClass.id)}
+                        onSubmitted={() =>
+                          setCompletedClassIds((prev) => new Set(prev).add(selectedClass.id))
+                        }
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Este cuestionario aún no tiene preguntas.
+                      </p>
+                    ))}
+
+                  <div className="border-t border-border pt-6">
+                    <LessonComments
+                      key={selectedClass.id}
+                      classId={selectedClass.id}
+                      viewerContactId={viewerContactId}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <div className="space-y-4">
               {!isRecordingVisible(selectedClass) && (
@@ -340,6 +438,7 @@ const CoursePlayer = ({
                         )}
                       </div>
                       <ClassCompleteToggle
+                        key={selectedClass.id}
                         classId={selectedClass.id}
                         initialCompleted={completedClassIds.has(selectedClass.id)}
                         onChange={(completed) =>
