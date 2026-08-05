@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Star, Users, LogIn, ArrowUpRight } from "lucide-react";
+import { Sparkles, Star, Users, LogIn, ArrowUpRight, Video } from "lucide-react";
 import {
   BRAND,
   SOCIAL_LINKS,
@@ -43,6 +43,8 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
+type BrandTone = "default" | "instagram" | "tiktok" | "youtube" | "whatsapp" | "webinar";
+
 type LinkRow = {
   key: string;
   label: string;
@@ -50,6 +52,7 @@ type LinkRow = {
   href: string;
   icon: React.ReactNode;
   internal?: boolean;
+  tone?: BrandTone;
 };
 
 const INTERNAL_LINKS: LinkRow[] = [
@@ -95,6 +98,7 @@ const SOCIAL_LINKS_LIST: LinkRow[] = [
     sublabel: "@dayana.pnl",
     href: SOCIAL_LINKS.instagram,
     icon: <InstagramIcon />,
+    tone: "instagram",
   },
   {
     key: "tiktok",
@@ -102,6 +106,7 @@ const SOCIAL_LINKS_LIST: LinkRow[] = [
     sublabel: "@dayanapnl",
     href: SOCIAL_LINKS.tiktok,
     icon: <TikTokIcon />,
+    tone: "tiktok",
   },
   {
     key: "youtube",
@@ -109,13 +114,48 @@ const SOCIAL_LINKS_LIST: LinkRow[] = [
     sublabel: "@dayanabeltranpnl",
     href: SOCIAL_LINKS.youtube,
     icon: <YoutubeIcon />,
+    tone: "youtube",
   },
 ];
 
+const glassBase =
+  "lt-fade lt-press group relative flex w-full items-center gap-3.5 overflow-hidden rounded-[1.35rem] border border-white/20 bg-white/[0.12] px-4 py-3.5 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.12)] backdrop-blur-xl transition-[transform,border-color,background-color,box-shadow] duration-300 hover:-translate-y-0.5 hover:bg-white/[0.18] active:translate-y-0 active:scale-[0.985]";
+
+const toneIcon: Record<BrandTone, string> = {
+  default:
+    "bg-white/10 text-linen ring-1 ring-inset ring-white/15 group-hover:bg-terracotta/25 group-hover:text-blush",
+  instagram:
+    "bg-gradient-to-br from-[#f58529] via-[#dd2a7b] to-[#8134af] text-white ring-1 ring-white/25 shadow-[0_6px_16px_-6px_rgba(221,42,123,0.7)]",
+  tiktok:
+    "bg-black text-white ring-1 ring-[#25F4EE]/50 shadow-[0_0_0_1px_rgba(254,44,85,0.35),0_6px_16px_-6px_rgba(37,244,238,0.5)]",
+  youtube:
+    "bg-[#FF0000] text-white ring-1 ring-white/25 shadow-[0_6px_16px_-6px_rgba(255,0,0,0.55)]",
+  whatsapp:
+    "bg-[#25D366] text-white ring-1 ring-white/30 shadow-[0_6px_16px_-6px_rgba(37,211,102,0.55)]",
+  webinar:
+    "bg-gradient-to-br from-terracotta to-[#a8543c] text-white ring-1 ring-white/25 shadow-[0_6px_16px_-6px_rgba(192,101,74,0.55)]",
+};
+
+const toneHover: Partial<Record<BrandTone, string>> = {
+  instagram: "hover:border-[#dd2a7b]/45 hover:shadow-[0_12px_36px_-14px_rgba(221,42,123,0.45)]",
+  tiktok: "hover:border-[#25F4EE]/40 hover:shadow-[0_12px_36px_-14px_rgba(37,244,238,0.35)]",
+  youtube: "hover:border-[#FF0000]/45 hover:shadow-[0_12px_36px_-14px_rgba(255,0,0,0.4)]",
+  whatsapp: "hover:border-[#25D366]/50",
+  webinar: "hover:border-terracotta/50 hover:shadow-[0_12px_36px_-14px_rgba(192,101,74,0.4)]",
+  default: "hover:border-white/35",
+};
+
 const Row = ({ row, delay }: { row: LinkRow; delay: number }) => {
+  const tone = row.tone ?? "default";
   const content = (
     <>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-linen/10 text-linen ring-1 ring-inset ring-white/5 transition-colors duration-200 group-hover:bg-terracotta/20 group-hover:text-blush">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"
+      />
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105 ${toneIcon[tone]}`}
+      >
         {row.icon}
       </span>
       <span className="min-w-0 flex-1">
@@ -128,13 +168,11 @@ const Row = ({ row, delay }: { row: LinkRow; delay: number }) => {
           </span>
         )}
       </span>
-      <ArrowUpRight className="h-4 w-4 shrink-0 text-white/35 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-terracotta" />
+      <ArrowUpRight className="h-4 w-4 shrink-0 text-white/40 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-white/80" />
     </>
   );
 
-  const className =
-    "lt-fade lt-row group flex w-full items-center gap-3.5 rounded-2xl border border-white/15 bg-black/25 px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md transition-[transform,border-color,background-color] duration-200 hover:-translate-y-0.5 hover:border-terracotta/45 hover:bg-black/35 active:translate-y-0 active:scale-[0.99]";
-
+  const className = `${glassBase} ${toneHover[tone] ?? ""}`;
   const style = { animationDelay: `${delay}ms` };
 
   if (row.internal) {
@@ -158,7 +196,7 @@ const Row = ({ row, delay }: { row: LinkRow; delay: number }) => {
   );
 };
 
-type CtaVariant = "solid" | "outline";
+type CtaVariant = "whatsapp" | "community" | "webinar";
 
 const Cta = ({
   href,
@@ -168,6 +206,7 @@ const Cta = ({
   badge,
   variant,
   delay,
+  internal,
 }: {
   href: string;
   icon: React.ReactNode;
@@ -176,43 +215,69 @@ const Cta = ({
   badge?: string;
   variant: CtaVariant;
   delay: number;
+  internal?: boolean;
 }) => {
   const variantClass =
-    variant === "solid"
-      ? "bg-gradient-to-br from-[#2fdb70] to-[#0f9d58] shadow-[0_10px_28px_-10px_rgba(37,211,102,0.6)] hover:shadow-[0_14px_32px_-8px_rgba(37,211,102,0.7)]"
-      : "border border-[#3fdc7a]/40 bg-[#25D366]/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] hover:border-[#3fdc7a]/60 hover:bg-[#25D366]/[0.14]";
+    variant === "whatsapp"
+      ? "border border-[#3fdc7a]/35 bg-gradient-to-br from-[#2fdb70]/95 to-[#0f9d58] shadow-[0_12px_32px_-12px_rgba(37,211,102,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_16px_40px_-10px_rgba(37,211,102,0.75)]"
+      : variant === "community"
+        ? "border border-[#3fdc7a]/30 bg-[#25D366]/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-[#3fdc7a]/55 hover:bg-[#25D366]/[0.22]"
+        : "border border-white/25 bg-gradient-to-br from-terracotta/90 to-[#a8543c] shadow-[0_12px_32px_-12px_rgba(192,101,74,0.55),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_16px_40px_-10px_rgba(192,101,74,0.65)]";
+
+  const className = `lt-fade lt-press group relative flex w-full items-center gap-3.5 overflow-hidden rounded-[1.35rem] px-4 py-3.5 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] ${variantClass}`;
+  const style = { animationDelay: `${delay}ms` };
+
+  const inner = (
+    <>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/55 to-transparent"
+      />
+      <span
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition-transform duration-300 group-hover:scale-105 ${
+          variant === "community"
+            ? "bg-[#25D366]/25 ring-1 ring-[#3fdc7a]/40"
+            : "bg-white/15 ring-1 ring-white/30"
+        }`}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-[font2] text-sm uppercase tracking-wide text-white">
+            {title}
+          </span>
+          {badge && (
+            <span className="rounded-full bg-white/20 px-2 py-0.5 font-[font2] text-[9px] uppercase tracking-wider text-white backdrop-blur-sm">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 block truncate font-[font1] text-xs text-white/75">
+          {subtitle}
+        </span>
+      </span>
+      <ArrowUpRight className="h-4 w-4 shrink-0 text-white/70 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+    </>
+  );
+
+  if (internal) {
+    return (
+      <Link href={href} className={className} style={style}>
+        {inner}
+      </Link>
+    );
+  }
 
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={`lt-fade group relative flex w-full items-center gap-3.5 rounded-2xl px-4 py-3.5 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] ${variantClass}`}
-      style={{ animationDelay: `${delay}ms` }}
+      className={className}
+      style={style}
     >
-      <span
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white ${
-          variant === "solid" ? "bg-white/15 ring-1 ring-white/25" : "bg-[#25D366]/20 ring-1 ring-[#3fdc7a]/30"
-        }`}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1 text-left">
-        <span className="flex items-center gap-2">
-          <span className="font-[font2] text-sm uppercase tracking-wide text-white">
-            {title}
-          </span>
-          {badge && (
-            <span className="rounded-full bg-white/20 px-2 py-0.5 font-[font2] text-[9px] uppercase tracking-wider text-white">
-              {badge}
-            </span>
-          )}
-        </span>
-        <span className="mt-0.5 block truncate font-[font1] text-xs text-white/70">
-          {subtitle}
-        </span>
-      </span>
-      <ArrowUpRight className="h-4 w-4 shrink-0 text-white/60 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      {inner}
     </a>
   );
 };
@@ -226,18 +291,23 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const LinktreePage = () => {
+type Props = {
+  webinarActive?: boolean;
+  webinarCtaTitle?: string;
+  webinarCtaSubtitle?: string;
+};
+
+const LinktreePage = ({
+  webinarActive = false,
+  webinarCtaTitle = "Webinar gratuito",
+  webinarCtaSubtitle = "Regístrate al webinar gratis en vivo",
+}: Props) => {
   const whatsappHref = buildWhatsAppUrl(
     "Hola Dayana, te escribo desde tu página de enlaces."
   );
 
   return (
     <main className="relative min-h-[100dvh] overflow-hidden bg-[#59493a] text-white">
-      {/* Banner sized to the photo's own aspect ratio — shown close to native
-          resolution instead of stretched to cover the whole viewport height
-          (which upscaled it 2-3x on tall phone screens and blurred it).
-          Fades into the flat page color below rather than needing a heavy
-          dark wash over everything. */}
       <div className="relative h-[34vh] max-h-[300px] w-full overflow-hidden">
         <picture>
           <source srcSet="/dayana-photos/opt/enlaces-bg-1181.avif" type="image/avif" />
@@ -279,7 +349,10 @@ const LinktreePage = () => {
           </picture>
         </div>
 
-        <h1 className="lt-fade mt-4 font-[font2] uppercase text-xl tracking-[0.14em] text-white" style={{ animationDelay: "60ms" }}>
+        <h1
+          className="lt-fade mt-4 font-[font2] text-xl uppercase tracking-[0.14em] text-white"
+          style={{ animationDelay: "60ms" }}
+        >
           {BRAND.name}
         </h1>
 
@@ -289,7 +362,7 @@ const LinktreePage = () => {
             icon={<WhatsAppIcon />}
             title="Escríbeme por WhatsApp"
             subtitle={WHATSAPP_NUMBER}
-            variant="solid"
+            variant="whatsapp"
             delay={140}
           />
           <Cta
@@ -298,9 +371,21 @@ const LinktreePage = () => {
             title="Comunidad de WhatsApp"
             subtitle="Únete y acompaña el proceso con otras personas"
             badge="Gratis"
-            variant="outline"
+            variant="community"
             delay={180}
           />
+          {webinarActive && (
+            <Cta
+              href="/webinar-gratuito"
+              icon={<Video className="h-5 w-5" />}
+              title={webinarCtaTitle}
+              subtitle={webinarCtaSubtitle}
+              badge="Gratis"
+              variant="webinar"
+              delay={200}
+              internal
+            />
+          )}
         </div>
 
         <div className="mt-9 w-full">
@@ -325,7 +410,10 @@ const LinktreePage = () => {
           </div>
         </div>
 
-        <p className="lt-fade mt-10 pb-4 font-[font1] text-[11px] text-white/40" style={{ animationDelay: "700ms" }}>
+        <p
+          className="lt-fade mt-10 pb-4 font-[font1] text-[11px] text-white/40"
+          style={{ animationDelay: "700ms" }}
+        >
           © {new Date().getFullYear()} {BRAND.shortName}
         </p>
       </div>
@@ -338,6 +426,9 @@ const LinktreePage = () => {
           }
           .lt-glow {
             animation: lt-pulse 3.6s ease-in-out infinite;
+          }
+          .lt-press:active {
+            transition-duration: 120ms;
           }
         }
         @keyframes lt-fade-in {

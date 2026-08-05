@@ -16,6 +16,7 @@ import {
   Tag,
   Users,
   UsersRound,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 
@@ -75,6 +76,7 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Catálogo",
     items: [
       { icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
+      { icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
       { icon: Package, label: "Paquetes", href: "/admin/products" },
       { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
     ],

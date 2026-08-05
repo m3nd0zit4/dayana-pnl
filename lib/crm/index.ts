@@ -8,3 +8,5 @@ export * from "./audit";
 export * from "./staff";
 export * from "./conversations";
 export * from "./google-accounts";
+export * from "./tags";
+export * from "./free-webinar";

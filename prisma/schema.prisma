@@ -374,6 +374,34 @@ model WorkshopEdition {
   @@map("workshop_editions")
 }
 
+/// Singleton-style landing for the free webinar funnel (`/webinar-gratuito`).
+/// One row per slug; seed creates `gratuito`. Toggle `isActive` to publish/unpublish.
+/// `startsAt` is the real UTC instant; staff enter date/time in OPERATIONAL_TZ.
+/// When `startsAtHasTime` is false, only the calendar date is shown publicly
+/// (`startsAt` is stored as noon in OPERATIONAL_TZ as a date anchor).
+model FreeWebinar {
+  id                String    @id @default(cuid())
+  slug              String    @unique @default("gratuito")
+  isActive          Boolean   @default(false) @map("is_active")
+  headline          String
+  subheadline       String?   @db.Text
+  body              String?   @db.Text
+  startsAt          DateTime? @map("starts_at")
+  startsAtHasTime   Boolean   @default(true) @map("starts_at_has_time")
+  videoUrl          String?   @map("video_url") @db.Text
+  learnSectionTitle String?   @map("learn_section_title")
+  learnItems        Json      @map("learn_items")
+  faq               Json?
+  ctaLabel          String    @default("Registrarme gratis") @map("cta_label")
+  formTitle         String    @default("Reserva tu lugar") @map("form_title")
+  metaTitle         String?   @map("meta_title")
+  metaDescription   String?   @map("meta_description") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  @@map("free_webinars")
+}
+
 model WorkshopDocument {
   id                String   @id @default(cuid())
   workshopEditionId String   @map("workshop_edition_id")

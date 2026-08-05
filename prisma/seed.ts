@@ -226,6 +226,7 @@ async function seedTags() {
     { slug: "terapia-activa", label: "Terapia activa" },
     { slug: "alumni-curso", label: "Alumni curso" },
     { slug: "lead-sin-pago", label: "Lead sin pago" },
+    { slug: "webinar-gratuito", label: "Webinar gratuito" },
   ];
 
   for (const t of tags) {
@@ -235,6 +236,61 @@ async function seedTags() {
       update: { label: t.label },
     });
   }
+}
+
+async function seedFreeWebinar() {
+  const learnItems = [
+    "Qué es la PNL aplicada a tu día a día (sin jerga innecesaria).",
+    "Cómo identificar un patrón mental que te está costando paz o resultados.",
+    "Un ejercicio práctico que puedes usar desde el mismo día.",
+    "Qué cambia en una sesión 1:1 frente a un taller o al curso en vivo.",
+    "Cómo saber si este camino es para ti — sin presión de compra.",
+  ];
+  const faq = [
+    {
+      q: "¿El webinar tiene costo?",
+      a: "No. El acceso es completamente gratuito; solo necesitas registrarte con tus datos de contacto.",
+    },
+    {
+      q: "¿Necesito experiencia previa en PNL?",
+      a: "No. Está pensado para quienes están empezando o quieren claridad antes de dar el siguiente paso.",
+    },
+    {
+      q: "¿Cómo me conecto?",
+      a: "Tras registrarte te escribimos con el enlace y los detalles de la sesión en vivo.",
+    },
+    {
+      q: "¿Habrá repetición?",
+      a: "Priorizamos la experiencia en vivo. Si hay replay, te lo avisamos por el mismo correo o WhatsApp.",
+    },
+    {
+      q: "¿Me van a vender algo durante el webinar?",
+      a: "Habrá espacio para conocer los acompañamientos de Dayana, pero el webinar en sí es gratuito y sin compromiso.",
+    },
+  ];
+
+  await prisma.freeWebinar.upsert({
+    where: { slug: "gratuito" },
+    create: {
+      slug: "gratuito",
+      isActive: false,
+      headline: "Reprograma tu mente con PNL — webinar gratuito en vivo",
+      subheadline:
+        "Una sesión abierta con Dayana Beltrán para entender cómo la PNL y la neuroplasticidad pueden ayudarte a soltar patrones que te frenan.",
+      body: "Si sientes que repites las mismas historias, emociones o bloqueos — este webinar es un primer paso claro, sin compromiso y 100% gratis.",
+      startsAt: null,
+      startsAtHasTime: false,
+      learnItems,
+      faq,
+      ctaLabel: "Registrarme gratis",
+      formTitle: "Reserva tu lugar",
+      metaTitle: "Webinar gratuito de PNL | Dayana Beltrán",
+      metaDescription:
+        "Regístrate al webinar gratuito en vivo con Dayana Beltrán. PNL, neurociencia y un primer paso claro para reprogramar patrones que te frenan.",
+    },
+    update: {},
+  });
+  console.log("Free webinar landing seeded: gratuito (inactive until schedule is set)");
 }
 
 async function seedStaffOwner() {
@@ -298,6 +354,7 @@ async function main() {
   await seedWorkshops();
   await seedMessageTemplates();
   await seedTags();
+  await seedFreeWebinar();
   await seedStaffOwner();
   console.log("Seed completed.");
 }
