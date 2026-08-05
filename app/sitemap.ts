@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { isFreeWebinarActive } from "@/lib/crm/free-webinar";
 import { getSiteUrl } from "@/lib/site-url";
 
 export const revalidate = 3600;
@@ -21,11 +22,24 @@ const STATIC_ROUTES: {
 // anonymous visitors to /taller-virtual whenever the edition has a linked
 // product (see app/taller-virtual/[slug]/page.tsx), so it isn't a page
 // crawlers can actually land on.
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
   const now = new Date();
 
-  return STATIC_ROUTES.map((route) => ({
+  const routes = [...STATIC_ROUTES];
+  try {
+    if (await isFreeWebinarActive()) {
+      routes.push({
+        path: "/webinar-gratuito",
+        changeFrequency: "weekly",
+        priority: 0.85,
+      });
+    }
+  } catch {
+    /* DB unavailable — omit webinar from sitemap */
+  }
+
+  return routes.map((route) => ({
     url: `${siteUrl}${route.path}`,
     lastModified: now,
     changeFrequency: route.changeFrequency,

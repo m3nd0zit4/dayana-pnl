@@ -10,6 +10,11 @@ import {
 import { upsertContactByPhone } from "@/lib/crm/contacts";
 import { inviteContactToPortal } from "@/lib/crm/member-accounts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
+import {
+  ensureWebinarGratuitoTag,
+  isWebinarInterest,
+  WEBINAR_GRATUITO_TAG_SLUG,
+} from "@/lib/crm/tags";
 import { notifyNewLead } from "@/lib/notifications/lead-notify";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import {
@@ -37,6 +42,8 @@ type Body = {
   interest?: string;
   message?: string;
   notify?: boolean;
+  /** Optional CRM tag slug (e.g. webinar-gratuito). */
+  tag?: string;
 };
 
 const sourceMap: Record<string, ContactSource> = {
@@ -132,6 +139,18 @@ export async function POST(req: NextRequest) {
       sourceDetail: body.sourceDetail,
       consentData: true,
     });
+
+    const wantsWebinarTag =
+      body.tag === WEBINAR_GRATUITO_TAG_SLUG ||
+      isWebinarInterest(body.sourceDetail) ||
+      isWebinarInterest(body.interest);
+    if (wantsWebinarTag) {
+      try {
+        await ensureWebinarGratuitoTag(contact.id);
+      } catch (e) {
+        console.error("[leads] webinar tag failed", e);
+      }
+    }
 
     let enrollmentId = body.enrollmentId;
 
