@@ -98,14 +98,16 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
               </span>
             </div>
 
+            {/* Solo móvil: en desktop el formulario ya está a la derecha y
+                este CTA duplica el submit del registro. */}
             <button
               type="button"
               onClick={scrollToRegistro}
-              className="mt-7 inline-flex items-center justify-center gap-3 rounded-full bg-terracotta px-8 py-3.5 font-[font2] text-xs uppercase tracking-[0.28em] text-white transition-[background-color,transform] duration-300 hover:-translate-y-0.5 hover:bg-[#a8543c]"
+              className="mt-7 inline-flex items-center justify-center gap-3 rounded-full bg-terracotta px-8 py-3.5 font-[font2] text-xs uppercase tracking-[0.28em] text-white transition-[background-color,transform] duration-300 hover:-translate-y-0.5 hover:bg-[#a8543c] lg:hidden"
             >
               {webinar.ctaLabel}
             </button>
-            <p className="mt-3 font-[font1] text-xs text-black/40">
+            <p className="mt-3 font-[font1] text-xs text-black/40 lg:hidden">
               {BRAND.shortName} · sin costo
             </p>
 
