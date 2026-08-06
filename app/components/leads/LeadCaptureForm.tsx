@@ -12,7 +12,7 @@ import { WEBINAR_INTEREST_LABEL } from "@/lib/crm/webinar-interest";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type Status = "idle" | "sending" | "sent";
+type Status = "idle" | "sending" | "sent" | "already";
 type FieldErrors = {
   firstName?: string;
   email?: string;
@@ -115,11 +115,14 @@ const LeadCaptureForm = ({
         }),
       });
 
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        alreadyRegistered?: boolean;
+        webinar?: boolean;
+      };
+
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as {
-          error?: string;
-          message?: string;
-        };
         if (data.error === "invalid_phone") {
           setErrors({ phone: data.message ?? "Número de teléfono inválido." });
         } else if (data.error === "rate_limited") {
@@ -132,7 +135,10 @@ const LeadCaptureForm = ({
         setStatus("idle");
         return;
       }
-      setStatus("sent");
+
+      setStatus(
+        data.webinar && data.alreadyRegistered ? "already" : "sent"
+      );
     } catch {
       setServerError("Sin conexión. Revisa tu internet e inténtalo de nuevo.");
       setStatus("idle");
@@ -158,7 +164,8 @@ const LeadCaptureForm = ({
       : "border-black/15 focus:border-terracotta";
   };
 
-  if (status === "sent") {
+  if (status === "sent" || status === "already") {
+    const isAlready = status === "already";
     return (
       <div
         id={formId}
@@ -181,11 +188,15 @@ const LeadCaptureForm = ({
           </svg>
         </span>
         <h3 className="mt-6 font-[font2] text-2xl uppercase leading-[0.95] lg:text-3xl">
-          ¡Gracias, {firstName.trim() || "ya casi"}!
+          {isAlready
+            ? `Ya estabas registrada, ${firstName.trim() || "gracias"}`
+            : `¡Gracias, ${firstName.trim() || "ya casi"}!`}
         </h3>
         <p className="mt-4 max-w-md font-[font1] text-base leading-snug text-black/70 lg:text-lg">
           {fixedInterest === WEBINAR_INTEREST_LABEL
-            ? "Tu lugar quedó reservado. Te escribimos pronto con los detalles del webinar y el enlace de acceso."
+            ? isAlready
+              ? "Tu lugar en el webinar gratuito sigue activo. Te escribimos al correo con los detalles y el enlace cuando toque — no necesitas registrarte otra vez."
+              : "Tu lugar quedó reservado. Te enviamos un correo de confirmación y te escribimos con los detalles del webinar y el enlace de acceso."
             : "Recibí tus datos. Te contacto muy pronto — y te enviamos un correo para crear tu acceso a tu cuenta."}
         </p>
       </div>

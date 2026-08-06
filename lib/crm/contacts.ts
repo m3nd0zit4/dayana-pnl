@@ -85,6 +85,9 @@ const buildContactUpdate = (
   ...(input.consentAdTracking ? { consentAdTrackingAt: now } : {}),
   ...(emailTrim ? { email: emailTrim } : {}),
   ...(input.notes !== undefined ? { notes: input.notes } : {}),
+  ...(input.sourceDetail !== undefined
+    ? { sourceDetail: input.sourceDetail }
+    : {}),
   ...(input.timezone ? { timezone: input.timezone } : {}),
   ...(input.preferredLocale ? { preferredLocale: input.preferredLocale } : {}),
   ...(firstNameTrim
@@ -357,6 +360,10 @@ export const getContactById = async (id: string) =>
   prisma.contact.findUnique({
     where: { id },
     include: {
+      tags: {
+        include: { tag: true },
+        orderBy: { createdAt: "asc" },
+      },
       enrollments: {
         orderBy: { createdAt: "desc" },
         include: {

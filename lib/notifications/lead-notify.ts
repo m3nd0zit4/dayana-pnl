@@ -7,7 +7,11 @@ import {
   leadNotificationHtml,
   leadNotificationSubject,
   leadNotificationText,
+  webinarConfirmationHtml,
+  webinarConfirmationSubject,
+  webinarConfirmationText,
   type LeadEmailInput,
+  type WebinarLeadEmailInput,
 } from "./templates/lead-notification";
 
 /** Where the "new contact" notification lands (Dayana's inbox). */
@@ -45,6 +49,59 @@ export async function notifyNewLead(input: LeadEmailInput): Promise<void> {
       });
     } catch (e) {
       console.error("[lead-notify] confirm", e instanceof Error ? e.message : e);
+    }
+  }
+}
+
+/**
+ * Webinar gratuito: notify Dayana + send a dedicated confirmation (or
+ * "already registered") email to the attendee. Does not send the generic
+ * lead-confirmation copy.
+ */
+export async function notifyWebinarRegistration(
+  input: WebinarLeadEmailInput
+): Promise<void> {
+  try {
+    await sendEmail({
+      to: leadInbox(),
+      subject: input.alreadyRegistered
+        ? `Re-registro webinar · ${[input.firstName, input.lastName].filter(Boolean).join(" ")}`
+        : `Nuevo registro webinar · ${[input.firstName, input.lastName].filter(Boolean).join(" ")}`,
+      html: leadNotificationHtml({
+        ...input,
+        interest: input.interest ?? "Webinar gratuito",
+        message: input.alreadyRegistered
+          ? "Ya tenía la etiqueta de webinar gratuito (re-registro)."
+          : input.message,
+      }),
+      text: leadNotificationText({
+        ...input,
+        interest: input.interest ?? "Webinar gratuito",
+        message: input.alreadyRegistered
+          ? "Ya tenía la etiqueta de webinar gratuito (re-registro)."
+          : input.message,
+      }),
+    });
+  } catch (e) {
+    console.error(
+      "[lead-notify] webinar admin",
+      e instanceof Error ? e.message : e
+    );
+  }
+
+  if (input.email && input.email.includes("@")) {
+    try {
+      await sendEmail({
+        to: input.email,
+        subject: webinarConfirmationSubject(input),
+        html: webinarConfirmationHtml(input),
+        text: webinarConfirmationText(input),
+      });
+    } catch (e) {
+      console.error(
+        "[lead-notify] webinar confirm",
+        e instanceof Error ? e.message : e
+      );
     }
   }
 }

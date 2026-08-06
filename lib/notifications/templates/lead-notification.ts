@@ -120,3 +120,73 @@ export const leadConfirmationText = (i: LeadEmailInput): string =>
   ]
     .filter(Boolean)
     .join("\n");
+
+// ── Webinar gratuito confirmation ───────────────────────────────────────────
+export type WebinarLeadEmailInput = LeadEmailInput & {
+  alreadyRegistered?: boolean;
+  /** Human-readable schedule tip, e.g. "15 de agosto · 19:00 (hora Colombia)". */
+  scheduleLabel?: string | null;
+};
+
+export const webinarConfirmationSubject = (
+  i: WebinarLeadEmailInput
+): string =>
+  i.alreadyRegistered
+    ? `Ya estabas registrada — webinar gratuito · Dayana Beltrán`
+    : `Tu lugar está reservado — webinar gratuito · Dayana Beltrán`;
+
+export const webinarConfirmationHtml = (i: WebinarLeadEmailInput): string => {
+  const body = varsToPlainParagraphs(
+    i.alreadyRegistered
+      ? [
+          `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
+          `Ya tenías tu lugar en el <strong style="font-weight:600;">webinar gratuito</strong>. No hace falta registrarte otra vez — tu inscripción sigue activa.`,
+          i.scheduleLabel
+            ? `Fecha prevista: <strong style="font-weight:600;">${escapeHtml(i.scheduleLabel)}</strong>.`
+            : `Cuando confirmemos o actualicemos la fecha y el enlace, te escribimos al mismo correo.`,
+        ]
+      : [
+          `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
+          `¡Listo! Tu lugar en el <strong style="font-weight:600;">webinar gratuito</strong> quedó reservado.`,
+          i.scheduleLabel
+            ? `Fecha prevista: <strong style="font-weight:600;">${escapeHtml(i.scheduleLabel)}</strong>.`
+            : `Te enviaremos por este correo (y WhatsApp si hace falta) la fecha confirmada y el enlace de acceso.`,
+          `Si no fuiste tú quien se registró, puedes ignorar este mensaje.`,
+        ]
+  );
+
+  return wrapEmailHtml({
+    preheader: i.alreadyRegistered
+      ? "Ya estabas registrada en el webinar gratuito."
+      : "Tu lugar en el webinar gratuito está reservado.",
+    eyebrow: "Webinar gratuito",
+    title: i.alreadyRegistered
+      ? "Ya estabas registrada"
+      : "Registro confirmado",
+    bodyHtml: body,
+    ctaPrimary: {
+      label: "Ver la página del webinar",
+      href: `${siteUrl()}/webinar-gratuito`,
+    },
+    footnote:
+      "Recibes este correo porque te registraste en dayanabeltran.com/webinar-gratuito.",
+  });
+};
+
+export const webinarConfirmationText = (i: WebinarLeadEmailInput): string =>
+  [
+    `Hola ${i.firstName},`,
+    ``,
+    i.alreadyRegistered
+      ? `Ya tenías tu lugar en el webinar gratuito. Tu inscripción sigue activa.`
+      : `¡Listo! Tu lugar en el webinar gratuito quedó reservado.`,
+    i.scheduleLabel ? `Fecha prevista: ${i.scheduleLabel}.` : "",
+    i.alreadyRegistered
+      ? `Cuando actualicemos la fecha o el enlace, te escribimos al mismo correo.`
+      : `Te enviaremos la fecha confirmada y el enlace de acceso.`,
+    ``,
+    `Dayana Beltrán PNL`,
+    `${siteUrl()}/webinar-gratuito`,
+  ]
+    .filter(Boolean)
+    .join("\n");

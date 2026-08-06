@@ -11,11 +11,17 @@ import { upsertContactByPhone } from "@/lib/crm/contacts";
 import { inviteContactToPortal } from "@/lib/crm/member-accounts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import {
+  contactHasTag,
   ensureWebinarGratuitoTag,
   isWebinarInterest,
   WEBINAR_GRATUITO_TAG_SLUG,
+  WEBINAR_INTEREST_LABEL,
 } from "@/lib/crm/tags";
-import { notifyNewLead } from "@/lib/notifications/lead-notify";
+import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
+import {
+  notifyNewLead,
+  notifyWebinarRegistration,
+} from "@/lib/notifications/lead-notify";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import {
   clientIp,
@@ -56,6 +62,48 @@ const sourceMap: Record<string, ContactSource> = {
   referral: ContactSource.REFERRAL,
 };
 
+const webinarScheduleLabel = async (): Promise<string | null> => {
+  try {
+    const webinar = await ensureFreeWebinar();
+    if (!webinar.startsAtDateKey) return null;
+    const [y, m, d] = webinar.startsAtDateKey.split("-").map(Number);
+    if (!y || !m || !d) return webinar.startsAtDateKey;
+    const date = new Date(Date.UTC(y, m - 1, d, 12));
+    const datePart = date.toLocaleDateString("es-CO", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    if (webinar.startsAtHasTime && webinar.startsAtTimeHm) {
+      return `${datePart} · ${webinar.startsAtTimeHm} (${webinar.operationalTimezone})`;
+    }
+    return `${datePart} (fecha confirmada; hora por confirmar)`;
+  } catch {
+    return null;
+  }
+};
+
+const appendWebinarNote = async (
+  contactId: string,
+  alreadyRegistered: boolean
+): Promise<void> => {
+  const stamp = new Date().toLocaleDateString("es-CO", { dateStyle: "medium" });
+  const line = alreadyRegistered
+    ? `[${stamp}] Re-registro webinar gratuito (ya tenía la etiqueta).`
+    : `[${stamp}] Registro webinar gratuito.`;
+  const current = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { notes: true },
+  });
+  await prisma.contact.update({
+    where: { id: contactId },
+    data: {
+      notes: current?.notes ? `${current.notes}\n${line}` : line,
+    },
+  });
+};
+
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
   const rl = await rateLimitDistributed(`leads:${ip}`, 30, 60_000);
@@ -71,7 +119,8 @@ export async function POST(req: NextRequest) {
   }
 
   const phone = typeof body.phone === "string" ? body.phone : "";
-  const firstName = typeof body.firstName === "string" ? body.firstName.trim() : "";
+  const firstName =
+    typeof body.firstName === "string" ? body.firstName.trim() : "";
   const emailOnly =
     !phone &&
     typeof body.email === "string" &&
@@ -82,7 +131,10 @@ export async function POST(req: NextRequest) {
   if (emailOnly) {
     if (!body.consentData) {
       return NextResponse.json(
-        { error: "consent_required", message: "Debes aceptar el tratamiento de datos" },
+        {
+          error: "consent_required",
+          message: "Debes aceptar el tratamiento de datos",
+        },
         { status: 400 }
       );
     }
@@ -113,21 +165,39 @@ export async function POST(req: NextRequest) {
 
   if (!phone || !firstName) {
     return NextResponse.json(
-      { error: "missing_fields", message: "Teléfono y nombre son obligatorios" },
+      {
+        error: "missing_fields",
+        message: "Teléfono y nombre son obligatorios",
+      },
       { status: 400 }
     );
   }
 
   if (!body.consentData) {
     return NextResponse.json(
-      { error: "consent_required", message: "Debes aceptar el tratamiento de datos" },
+      {
+        error: "consent_required",
+        message: "Debes aceptar el tratamiento de datos",
+      },
       { status: 400 }
     );
   }
 
   try {
     const sourceKey = (body.source ?? "web").toLowerCase();
-    const { contact } = await upsertContactByPhone({
+    const interestValue =
+      typeof body.interest === "string" ? body.interest.trim() : "";
+    const sourceDetailValue =
+      (typeof body.sourceDetail === "string" && body.sourceDetail.trim()) ||
+      interestValue ||
+      undefined;
+
+    const wantsWebinarTag =
+      body.tag === WEBINAR_GRATUITO_TAG_SLUG ||
+      isWebinarInterest(sourceDetailValue) ||
+      isWebinarInterest(interestValue);
+
+    const { contact, created } = await upsertContactByPhone({
       phone,
       phoneCountry: body.phoneCountry,
       firstName,
@@ -136,17 +206,23 @@ export async function POST(req: NextRequest) {
       countryIso: body.countryIso,
       timezone: body.timezone,
       source: sourceMap[sourceKey] ?? ContactSource.WEB,
-      sourceDetail: body.sourceDetail,
+      // Always refresh detalle origen so CRM shows the current interest
+      // (e.g. Webinar gratuito) even when the contact already existed.
+      sourceDetail: wantsWebinarTag
+        ? WEBINAR_INTEREST_LABEL
+        : sourceDetailValue,
       consentData: true,
     });
 
-    const wantsWebinarTag =
-      body.tag === WEBINAR_GRATUITO_TAG_SLUG ||
-      isWebinarInterest(body.sourceDetail) ||
-      isWebinarInterest(body.interest);
+    let alreadyRegistered = false;
     if (wantsWebinarTag) {
       try {
+        alreadyRegistered = await contactHasTag(
+          contact.id,
+          WEBINAR_GRATUITO_TAG_SLUG
+        );
         await ensureWebinarGratuitoTag(contact.id);
+        await appendWebinarNote(contact.id, alreadyRegistered);
       } catch (e) {
         console.error("[leads] webinar tag failed", e);
       }
@@ -172,40 +248,63 @@ export async function POST(req: NextRequest) {
       enrollmentId = enrollment.id;
     }
 
-    // Web contact form → transactional emails (best-effort; never blocks).
+    // Transactional emails (best-effort; never blocks the lead).
     if (body.notify) {
       try {
-        await notifyNewLead({
-          firstName,
-          lastName: body.lastName,
-          phoneE164: contact.phoneE164 ?? phone,
-          phoneCountry: body.phoneCountry,
-          email: body.email,
-          interest: body.interest,
-          message: body.message,
-          source: sourceKey,
-        });
+        if (wantsWebinarTag) {
+          await notifyWebinarRegistration({
+            firstName,
+            lastName: body.lastName,
+            phoneE164: contact.phoneE164 ?? phone,
+            phoneCountry: body.phoneCountry,
+            email: body.email,
+            interest: WEBINAR_INTEREST_LABEL,
+            message: body.message,
+            source: sourceKey,
+            alreadyRegistered,
+            scheduleLabel: await webinarScheduleLabel(),
+          });
+        } else {
+          await notifyNewLead({
+            firstName,
+            lastName: body.lastName,
+            phoneE164: contact.phoneE164 ?? phone,
+            phoneCountry: body.phoneCountry,
+            email: body.email,
+            interest: body.interest,
+            message: body.message,
+            source: sourceKey,
+          });
+        }
       } catch {
         /* notification is non-critical */
       }
     }
 
-    // Every lead with an email gets a portal account invite (set-password
-    // link). Skips automatically when they already have an account.
-    // Best-effort — the lead itself must never fail on email problems.
-    try {
-      await inviteContactToPortal(contact.id);
-    } catch (e) {
-      console.error("[leads] portal invite failed", e);
+    // Portal invite for general leads only. Webinar registrants get the
+    // webinar confirmation email instead — a set-password invite confuses
+    // the "ya estás registrada / enlace del webinar" flow.
+    if (!wantsWebinarTag) {
+      try {
+        await inviteContactToPortal(contact.id);
+      } catch (e) {
+        console.error("[leads] portal invite failed", e);
+      }
     }
 
     fireNotification({
       eventType: "WEB_LEAD_SUBMITTED",
-      title: `Formulario web: ${[firstName, body.lastName].filter(Boolean).join(" ")}`,
+      title: wantsWebinarTag
+        ? `${alreadyRegistered ? "Re-registro" : "Registro"} webinar: ${[firstName, body.lastName].filter(Boolean).join(" ")}`
+        : `Formulario web: ${[firstName, body.lastName].filter(Boolean).join(" ")}`,
       body: [
         contact.phoneE164 ?? phone,
         body.email?.trim() || null,
-        body.interest ? `Interés: ${body.interest}` : null,
+        wantsWebinarTag
+          ? `Interés: ${WEBINAR_INTEREST_LABEL}`
+          : body.interest
+            ? `Interés: ${body.interest}`
+            : null,
         body.message?.trim() || null,
       ]
         .filter(Boolean)
@@ -213,7 +312,12 @@ export async function POST(req: NextRequest) {
       href: `/admin/contacts/${contact.id}`,
       entityType: "Contact",
       entityId: contact.id,
-      metadata: { source: sourceKey, enrollmentId: enrollmentId ?? null },
+      metadata: {
+        source: sourceKey,
+        enrollmentId: enrollmentId ?? null,
+        webinar: wantsWebinarTag,
+        alreadyRegistered,
+      },
       staff: "ALL",
     });
 
@@ -221,6 +325,9 @@ export async function POST(req: NextRequest) {
       ok: true,
       contactId: contact.id,
       enrollmentId: enrollmentId ?? null,
+      created,
+      alreadyRegistered,
+      webinar: wantsWebinarTag,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown";

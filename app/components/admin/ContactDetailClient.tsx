@@ -53,6 +53,7 @@ type Contact = {
   tiktokHandle: string | null;
   consentDataAt: Date | null;
   consentMarketingAt: Date | null;
+  tags?: { tag: { id: string; slug: string; label: string } }[];
   enrollments: Enrollment[];
 };
 
@@ -255,6 +256,18 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
           <h1 className="text-xl font-semibold tracking-tight">
             {contact.firstName} {contact.lastName ?? ""}
           </h1>
+          {contact.tags && contact.tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {contact.tags.map(({ tag }) => (
+                <span
+                  key={tag.id}
+                  className="inline-flex rounded-full border border-terracotta/25 bg-terracotta/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-terracotta"
+                >
+                  {tag.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
           <WhatsAppContactBlock phoneE164={contact.phoneE164} compact />
           <CrmSegmentedControl
             value={tab}

@@ -40,3 +40,14 @@ export const ensureWebinarGratuitoTag = async (
     WEBINAR_GRATUITO_TAG_SLUG,
     WEBINAR_GRATUITO_TAG_LABEL
   );
+
+export const contactHasTag = async (
+  contactId: string,
+  slug: string
+): Promise<boolean> => {
+  const row = await prisma.contactTag.findFirst({
+    where: { contactId, tag: { slug } },
+    select: { contactId: true },
+  });
+  return Boolean(row);
+};
