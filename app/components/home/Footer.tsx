@@ -62,6 +62,17 @@ const YoutubeIcon = () => (
   </svg>
 );
 
+const FacebookIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    className="h-6 w-6"
+  >
+    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.412c0-3.026 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.971H15.83c-1.491 0-1.956.931-1.956 1.886v2.265h3.328l-.532 3.489h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
+  </svg>
+);
+
 const WhatsAppIcon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -94,6 +105,15 @@ const socials: SocialItem[] = [
     handle: "@dayanabeltranpnl",
     href: SOCIAL_LINKS.youtube,
     icon: <YoutubeIcon />,
+  },
+  {
+    key: "facebook",
+    label: "Facebook",
+    // La página no tiene nombre de usuario todavía, así que se muestra el
+    // nombre visible en vez de un @handle inventado.
+    handle: "Dayana Beltrán PNL",
+    href: SOCIAL_LINKS.facebook,
+    icon: <FacebookIcon />,
   },
   {
     key: "whatsapp",
