@@ -17,21 +17,29 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      # prisma validate resuelve env() del schema; no conecta a la DB. Placeholders
+      # bastan — sin esto CI falla en P1012 (DIRECT_URL) antes de lint/typecheck.
       - run: bunx prisma validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+          DIRECT_URL: postgresql://ci:ci@127.0.0.1:5432/ci
 
       - run: bun run lint
 
       - run: bun run typecheck
 
-  # Corre en paralelo a `check` a propósito: lint ya falla en main/dev con
-  # ~29 errores preexistentes de react-hooks (set-state-in-effect / refs) en el
-  # CRM. Arreglarlos es un refactor de 20+ componentes, fuera del alcance del
-  # harness e2e. Si e2e dependiera de check, nunca se ejecutaría mientras lint
-  # siga rojo — y CI ya está rojo hoy por esa razón.
+  # Corre en paralelo a `check` a propósito: si lint/typecheck fallan, el harness
+  # e2e sigue dando señal. Antes `needs: check` lo bloqueaba por completo.
   e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # eve (withEve / next.dev) exige Node.js >= 24. El runner de Ubuntu trae 22
+      # por defecto y el proceso eve:dev tumba el webServer de Playwright.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
 
       - uses: oven-sh/setup-bun@v2
         with:

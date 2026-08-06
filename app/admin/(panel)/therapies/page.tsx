@@ -36,28 +36,27 @@ const TherapiesPage = async () => {
     );
   }
 
+  let initialActive: Awaited<ReturnType<typeof listActiveTherapies>> = [];
+  let initialLeads: Awaited<ReturnType<typeof listTherapyLeads>> = [];
+  let loadError: string | undefined;
+
   try {
-    const [initialActive, initialLeads] = await Promise.all([
+    [initialActive, initialLeads] = await Promise.all([
       listActiveTherapies(),
       listTherapyLeads(),
     ]);
-    return (
-      <TherapiesPageClient
-        preview={false}
-        initialActive={initialActive}
-        initialLeads={initialLeads}
-      />
-    );
   } catch {
-    return (
-      <TherapiesPageClient
-        preview={false}
-        initialActive={[]}
-        initialLeads={[]}
-        loadError="Base de datos no disponible"
-      />
-    );
+    loadError = "Base de datos no disponible";
   }
+
+  return (
+    <TherapiesPageClient
+      preview={false}
+      initialActive={initialActive}
+      initialLeads={initialLeads}
+      loadError={loadError}
+    />
+  );
 };
 
 export default TherapiesPage;
