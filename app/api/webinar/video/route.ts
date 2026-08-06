@@ -69,8 +69,8 @@ export async function GET(req: NextRequest) {
   if (contentRange) headers.set("Content-Range", contentRange);
   if (contentLength) headers.set("Content-Length", contentLength);
 
-  const status =
-    result.statusCode === 206 || contentRange ? 206 : result.statusCode;
+  // Blob `get()` types status as 200 | 304; Range responses surface via Content-Range.
+  const status = contentRange ? 206 : 200;
 
   return new NextResponse(result.stream, { status, headers });
 }
