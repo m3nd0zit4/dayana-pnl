@@ -15,7 +15,20 @@ const eslintConfig = defineConfig([
     // eve (CRM agent) dev/build artifacts — bundled output, not source.
     ".eve/**",
     ".output/**",
+    // Worktrees de git: copias completas del repo dentro del proyecto. Sin
+    // esto ESLint lintea cada archivo dos veces y duplica cada error.
+    ".worktrees/**",
   ]),
+  {
+    // Los fixtures de Playwright reciben un callback llamado `use`
+    // (`async ({ page }, use) => { await use(valor) }`). La regla de hooks lo
+    // confunde con el `use` de React y falla. No es código de React: aquí no
+    // hay componentes ni hooks.
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    rules: {
+      "react-hooks/rules-of-hooks": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

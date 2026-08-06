@@ -22,3 +22,49 @@ jobs:
       - run: bun run lint
 
       - run: bun run typecheck
+
+  # Corre en paralelo a `check` a propósito: lint ya falla en main/dev con
+  # ~29 errores preexistentes de react-hooks (set-state-in-effect / refs) en el
+  # CRM. Arreglarlos es un refactor de 20+ componentes, fuera del alcance del
+  # harness e2e. Si e2e dependiera de check, nunca se ejecutaría mientras lint
+  # siga rojo — y CI ya está rojo hoy por esa razón.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
+      - run: bunx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      # Sin caché hay que instalar igualmente las libs del sistema.
+      - run: bunx playwright install-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+
+      # Corre contra `CRM_UI_PREVIEW`, sin base de datos: ver la nota de
+      # cabecera de `playwright.config.ts`. Eso cubre 16 de 28 rutas del CRM;
+      # el Tier B (sesión real) solo se activa si existe un DATABASE_URL
+      # apuntando a una rama Neon de scratch.
+      - run: bun run e2e
+        env:
+          CRM_UI_PREVIEW: "true"
+          AUTH_SECRET: ci-only-secret-at-least-32-characters-long
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
