@@ -21,9 +21,11 @@ const ALLOWED_CONTENT_TYPES = [
  * Client-upload token exchange for the free-webinar promo video.
  *
  * Browser → Blob directly (via `@vercel/blob/client` `upload`), so size is not
- * capped by the serverless request body. The admin UI then PATCHes
- * `/api/admin/webinar` with the returned URL (and `onUploadCompleted` does the
- * same when Vercel can reach this host).
+ * capped by the serverless request body. The store is private-only — client
+ * must use `access: "private"`. Public landing plays via `/api/webinar/video`.
+ *
+ * The admin UI then PATCHes `/api/admin/webinar` with the returned URL (and
+ * `onUploadCompleted` does the same when Vercel can reach this host).
  */
 export const POST = async (req: Request) => {
   const staff = await requireWriteStaff();

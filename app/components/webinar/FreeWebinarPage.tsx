@@ -114,7 +114,11 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
             {webinar.videoUrl ? (
               <div className="mt-8 overflow-hidden rounded-2xl border border-black/8 bg-black shadow-[0_20px_50px_-28px_rgba(0,0,0,0.45)]">
                 <video
-                  src={webinar.videoUrl}
+                  src={`/api/webinar/video?v=${encodeURIComponent(
+                    String(webinar.updatedAt instanceof Date
+                      ? webinar.updatedAt.getTime()
+                      : webinar.updatedAt)
+                  )}`}
                   controls
                   playsInline
                   preload="metadata"

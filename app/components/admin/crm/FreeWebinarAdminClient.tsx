@@ -221,11 +221,13 @@ const FreeWebinarAdminClient = ({
     try {
       // Direct browser → Vercel Blob. Avoids the ~4.5 MB serverless body limit
       // that killed the previous FormData POST for any real promo video.
+      // Store is private-only (`dayana-pnl-blob`); public uploads are denied.
+      // Playback goes through `/api/webinar/video` (server-side get).
       const blob = await upload(
         `webinar/${crypto.randomUUID()}.${VIDEO_EXT[contentType] ?? "mp4"}`,
         file,
         {
-          access: "public",
+          access: "private",
           handleUploadUrl: "/api/admin/webinar/video",
           contentType,
           multipart: true,
@@ -255,13 +257,17 @@ const FreeWebinarAdminClient = ({
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       setError(
-        /blob_not_configured|not configured|No token/i.test(msg)
-          ? "Almacenamiento de archivos no configurado."
-          : /too large|maximumSize|413/i.test(msg)
-            ? "El video es demasiado grande (máx. 200 MB)."
-            : /content.?type|unsupported|415/i.test(msg)
-              ? "Usa MP4, MOV o WebM."
-              : "No se pudo subir el video. Reintenta o usa un archivo más liviano."
+        /blob_not_configured|not configured|No token|valid token/i.test(msg)
+          ? "Almacenamiento de archivos no configurado o token inválido. En local hace falta BLOB_READ_WRITE_TOKEN (vercel env pull)."
+          : /Access denied|access denied/i.test(msg)
+            ? "Blob rechazó la subida (acceso denegado). El store es privado — si el error persiste, revisa BLOB_READ_WRITE_TOKEN / OIDC."
+            : /too large|maximumSize|413/i.test(msg)
+              ? "El video es demasiado grande (máx. 200 MB)."
+              : /content.?type|unsupported|415/i.test(msg)
+                ? "Usa MP4, MOV o WebM."
+                : msg
+                  ? `No se pudo subir el video: ${msg}`
+                  : "No se pudo subir el video. Reintenta o usa un archivo más liviano."
       );
     } finally {
       setUploading(false);
@@ -426,7 +432,7 @@ const FreeWebinarAdminClient = ({
             {videoUrl ? (
               <div className="space-y-3">
                 <video
-                  src={videoUrl}
+                  src={`/api/webinar/video?v=${encodeURIComponent(videoUrl.slice(-24))}`}
                   controls
                   className="aspect-video w-full max-w-lg rounded-xl bg-black/90"
                 />
