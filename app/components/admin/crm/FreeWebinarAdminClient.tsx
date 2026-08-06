@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { upload } from "@vercel/blob/client";
 import { ExternalLink, Trash2, Upload } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
@@ -23,6 +24,24 @@ import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";
 type Props = {
   initial: FreeWebinarPublic;
   operationalTimezone?: string;
+};
+
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+
+const VIDEO_EXT: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+};
+
+/** Windows often sends an empty File.type for .mp4/.mov — fall back to extension. */
+const resolveVideoType = (file: File): string | null => {
+  if (file.type && VIDEO_EXT[file.type]) return file.type;
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".mp4")) return "video/mp4";
+  if (name.endsWith(".mov") || name.endsWith(".qt")) return "video/quicktime";
+  if (name.endsWith(".webm")) return "video/webm";
+  return null;
 };
 
 const FreeWebinarAdminClient = ({
@@ -55,6 +74,7 @@ const FreeWebinarAdminClient = ({
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<PublishBlocker[]>([]);
   const [done, setDone] = useState(false);
@@ -184,34 +204,68 @@ const FreeWebinarAdminClient = ({
 
   const uploadVideo = async (file: File) => {
     setError(null);
+    setDone(false);
+    setUploadPct(0);
+
+    const contentType = resolveVideoType(file);
+    if (!contentType) {
+      setError("Usa MP4, MOV o WebM.");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      setError("El video es demasiado grande (máx. 200 MB).");
+      return;
+    }
+
     setUploading(true);
     try {
-      const form = new FormData();
-      form.set("file", file);
-      const res = await fetch("/api/admin/webinar/video", {
-        method: "POST",
-        body: form,
+      // Direct browser → Vercel Blob. Avoids the ~4.5 MB serverless body limit
+      // that killed the previous FormData POST for any real promo video.
+      const blob = await upload(
+        `webinar/${crypto.randomUUID()}.${VIDEO_EXT[contentType] ?? "mp4"}`,
+        file,
+        {
+          access: "public",
+          handleUploadUrl: "/api/admin/webinar/video",
+          contentType,
+          multipart: true,
+          onUploadProgress: ({ percentage }) => {
+            setUploadPct(Math.round(percentage));
+          },
+        }
+      );
+
+      const res = await fetch("/api/admin/webinar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoUrl: blob.url }),
       });
       const data = (await res.json().catch(() => ({}))) as {
         webinar?: FreeWebinarPublic;
         error?: string;
+        message?: string;
       };
       if (!res.ok) {
-        setError(
-          data.error === "blob_not_configured"
-            ? "Almacenamiento de archivos no configurado."
-            : data.error === "file_too_large"
-              ? "El video es demasiado grande (máx. 200 MB)."
-              : data.error === "unsupported_type"
-                ? "Usa MP4, MOV o WebM."
-                : "No se pudo subir el video."
-        );
+        setError(data.message ?? "El video subió, pero no se pudo guardar la URL.");
         return;
       }
       if (data.webinar) applyWebinar(data.webinar);
+      else setVideoUrl(blob.url);
       setDone(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      setError(
+        /blob_not_configured|not configured|No token/i.test(msg)
+          ? "Almacenamiento de archivos no configurado."
+          : /too large|maximumSize|413/i.test(msg)
+            ? "El video es demasiado grande (máx. 200 MB)."
+            : /content.?type|unsupported|415/i.test(msg)
+              ? "Usa MP4, MOV o WebM."
+              : "No se pudo subir el video. Reintenta o usa un archivo más liviano."
+      );
     } finally {
       setUploading(false);
+      setUploadPct(null);
       if (fileRef.current) fileRef.current.value = "";
     }
   };
@@ -385,7 +439,11 @@ const FreeWebinarAdminClient = ({
                     onClick={() => fileRef.current?.click()}
                   >
                     <Upload className="size-3.5" />
-                    Reemplazar
+                    {uploading
+                      ? uploadPct != null
+                        ? `Subiendo… ${uploadPct}%`
+                        : "Subiendo…"
+                      : "Reemplazar"}
                   </Button>
                   <Button
                     type="button"
@@ -408,19 +466,31 @@ const FreeWebinarAdminClient = ({
                 onClick={() => fileRef.current?.click()}
               >
                 <Upload className="size-3.5" />
-                {uploading ? "Subiendo…" : "Subir video (MP4 / MOV / WebM)"}
+                {uploading
+                  ? uploadPct != null
+                    ? `Subiendo… ${uploadPct}%`
+                    : "Subiendo…"
+                  : "Subir video (MP4 / MOV / WebM)"}
               </Button>
             )}
             <input
               ref={fileRef}
               type="file"
-              accept="video/mp4,video/quicktime,video/webm"
+              accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) void uploadVideo(file);
               }}
             />
+            {uploading && uploadPct != null ? (
+              <div className="h-1.5 w-full max-w-lg overflow-hidden rounded-full bg-black/10">
+                <div
+                  className="h-full rounded-full bg-terracotta transition-[width] duration-200"
+                  style={{ width: `${uploadPct}%` }}
+                />
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
