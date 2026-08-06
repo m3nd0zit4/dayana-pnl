@@ -9,6 +9,7 @@ import {
   AccordionTrigger,
 } from "@/app/components/ui/accordion";
 import { Badge } from "@/app/components/ui/badge";
+import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 import type { OutlineClass, OutlineModule } from "./CoursePlayer";
 
 /** Sentinel id for a module's own overview/reading content, distinct from a class id. */
@@ -23,7 +24,7 @@ type Props = {
   onSelect: (id: string) => void;
 };
 
-const classSubtitle = (cls: OutlineClass): string => {
+const classSubtitle = (cls: OutlineClass): ReactNode => {
   if (cls.contentType === "TEXT") return "Lectura";
   if (cls.contentType === "PDF") return "PDF";
   if (cls.contentType === "QUIZ") {
@@ -38,10 +39,12 @@ const classSubtitle = (cls: OutlineClass): string => {
     return "Video";
   }
   if (cls.scheduledAt) {
-    return `En vivo · ${new Date(cls.scheduledAt).toLocaleDateString("es-CO", {
-      day: "numeric",
-      month: "short",
-    })}`;
+    return (
+      <>
+        En vivo ·{" "}
+        <LocalInstantText startsAtIso={cls.scheduledAt} mode="datetime" placeholder="…" />
+      </>
+    );
   }
   return "Por programar";
 };
@@ -83,7 +86,7 @@ const OutlineRow = ({
 }: {
   icon: ReactNode;
   title: string;
-  subtitle: string;
+  subtitle: ReactNode;
   selected: boolean;
   onSelect: () => void;
 }) => (

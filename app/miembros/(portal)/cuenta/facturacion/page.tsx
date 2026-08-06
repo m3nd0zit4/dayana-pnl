@@ -7,6 +7,7 @@ import { getMembershipPayments } from "@/lib/lms/membership";
 import { getMemberWorkshops } from "@/lib/crm/member-workshops";
 import MembershipStatusCard from "@/app/components/miembros/MembershipStatusCard";
 import RenewMembership from "@/app/components/miembros/RenewMembership";
+import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 import { Card, CardContent } from "@/app/components/ui/card";
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -59,7 +60,20 @@ const Page = async () => {
                   <div>
                     <div className="text-sm font-semibold">{w.title}</div>
                     <div className="text-xs text-muted-foreground">
-                      {w.dateLabel ? `${w.dateLabel} · ` : ""}
+                      {w.startsAtIso ? (
+                        <>
+                          <LocalInstantText
+                            startsAtIso={w.startsAtIso}
+                            mode="date"
+                            placeholder={w.dateLabel ?? "…"}
+                          />
+                          {" · "}
+                        </>
+                      ) : w.dateLabel ? (
+                        `${w.dateLabel} · `
+                      ) : (
+                        ""
+                      )}
                       {w.paidAt
                         ? `Pagado el ${w.paidAt.toLocaleDateString("es-CO", { dateStyle: "medium" })}`
                         : "Acceso activo"}

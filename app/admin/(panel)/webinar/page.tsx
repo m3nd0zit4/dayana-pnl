@@ -1,16 +1,20 @@
 import FreeWebinarAdminClient from "@/app/components/admin/crm/FreeWebinarAdminClient";
 import { ensureFreeWebinar, DEFAULT_FREE_WEBINAR } from "@/lib/crm/free-webinar";
-import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
+import {
+  getOperationalTimezone,
+} from "@/lib/crm/operational-timezone";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 
 export const dynamic = "force-dynamic";
 
 const WebinarAdminPage = async () => {
+  const operationalTimezone = await getOperationalTimezone();
+
   if (isCrmUiPreview()) {
     const now = new Date();
     return (
       <FreeWebinarAdminClient
-        operationalTimezone={OPERATIONAL_TZ}
+        operationalTimezone={operationalTimezone}
         initial={{
           id: "preview",
           slug: "gratuito",
@@ -23,7 +27,7 @@ const WebinarAdminPage = async () => {
           startsAtDateKey: null,
           startsAtTimeHm: null,
           startsAtHasTime: false,
-          operationalTimezone: OPERATIONAL_TZ,
+          operationalTimezone,
           videoUrl: null,
           learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
           learnItems: DEFAULT_FREE_WEBINAR.learnItems,
@@ -42,7 +46,7 @@ const WebinarAdminPage = async () => {
   return (
     <FreeWebinarAdminClient
       initial={webinar}
-      operationalTimezone={OPERATIONAL_TZ}
+      operationalTimezone={webinar.operationalTimezone ?? operationalTimezone}
     />
   );
 };

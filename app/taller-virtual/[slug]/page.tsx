@@ -11,6 +11,7 @@ import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
 import { listWorkshopDocumentsBySlug } from "@/lib/crm/workshop-editions";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
+import { getServerUserCountry } from "@/lib/geo/user-country";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,7 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
   }
 
   const documents = await listWorkshopDocumentsBySlug(slug);
+  const userCountry = await getServerUserCountry();
 
   return (
     <>
@@ -97,7 +99,11 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
         ])}
       />
       <main>
-        <WorkshopLanding workshop={workshop} documents={documents} />
+        <WorkshopLanding
+          workshop={workshop}
+          documents={documents}
+          userCountry={userCountry}
+        />
       </main>
       <Footer />
     </>

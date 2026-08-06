@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/contact";
 import LinktreePage from "@/app/components/enlaces/LinktreePage";
 import { getFreeWebinar } from "@/lib/crm/free-webinar";
+import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = `Enlaces — ${BRAND.name}`;
 const description =
@@ -20,18 +21,21 @@ const Page = async () => {
   let webinarActive = false;
   let webinarCtaTitle = "Webinar gratuito";
   let webinarCtaSubtitle = "Registro webinar gratis en vivo";
+  let webinarStartsAtIso: string | null = null;
+  let webinarHasTime = true;
+
+  const userCountry = await getServerUserCountry();
 
   try {
     const webinar = await getFreeWebinar();
     if (webinar?.isActive && webinar.startsAt) {
       webinarActive = true;
       webinarCtaTitle = "Webinar gratuito";
-      // Server-side label in CRM TZ as a hint; visitor page shows local time.
-      webinarCtaSubtitle = webinar.startsAtDateKey
-        ? webinar.startsAtHasTime && webinar.startsAtTimeHm
-          ? `${webinar.startsAtDateKey} · ${webinar.startsAtTimeHm}`
-          : webinar.startsAtDateKey
-        : "Regístrate al webinar gratis en vivo";
+      webinarStartsAtIso = webinar.startsAtIso;
+      webinarHasTime = webinar.startsAtHasTime;
+      webinarCtaSubtitle = webinarHasTime
+        ? "Webinar gratis en vivo"
+        : "Fecha confirmada · hora por definir";
     }
   } catch {
     /* DB down — hide webinar CTA */
@@ -42,6 +46,9 @@ const Page = async () => {
       webinarActive={webinarActive}
       webinarCtaTitle={webinarCtaTitle}
       webinarCtaSubtitle={webinarCtaSubtitle}
+      webinarStartsAtIso={webinarStartsAtIso}
+      webinarHasTime={webinarHasTime}
+      userCountry={userCountry}
     />
   );
 };

@@ -18,6 +18,8 @@ export type WorkshopEditionRecord = Pick<
   | "status"
   | "dateLabel"
   | "scheduleLabel"
+  | "startsAt"
+  | "timezone"
   | "whatsappTemplate"
   | "heroLine1"
   | "heroLine2"
@@ -59,6 +61,8 @@ export const mapEditionToCard = (edition: WorkshopEditionRecord): WorkshopCard =
   cardSummary: edition.cardSummary ?? "",
   dateLabel: edition.dateLabel ?? "",
   scheduleLabel: edition.scheduleLabel ?? "",
+  startsAtIso: edition.startsAt ? edition.startsAt.toISOString() : null,
+  scheduleTimezone: edition.timezone || "America/Bogota",
   whatsappMessage: edition.whatsappTemplate ?? undefined,
   productId: edition.productId,
 });

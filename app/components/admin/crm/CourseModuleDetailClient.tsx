@@ -15,6 +15,8 @@ import { useCallback, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { RECORDING_RETENTION_DAYS } from "@/lib/lms/course-content";
+import { DEFAULT_OPERATIONAL_TZ } from "@/lib/datetime/zoned-time";
+import { formatLocalDateTimeMedium } from "@/lib/datetime/visitor-schedule";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -51,10 +53,8 @@ type Props = {
   initialClasses: ModuleClassRow[];
 };
 
-const formatDateTime = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })
-    : "Sin fecha";
+const formatDateTime = (iso: string | null, timeZone: string) =>
+  iso ? formatLocalDateTimeMedium(iso, timeZone) : "Sin fecha";
 
 const recordingExpiry = (postedAt: string) => {
   const until = new Date(
@@ -68,6 +68,9 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
   const [mod, setMod] = useState(initialModule);
   const [savingModule, setSavingModule] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [operationalTimezone, setOperationalTimezone] = useState(
+    DEFAULT_OPERATIONAL_TZ
+  );
 
   const [classes, setClasses] = useState<ModuleClassRow[]>(initialClasses);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -100,6 +103,21 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
   useEffect(() => {
     void loadUnassigned();
   }, [loadUnassigned]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/admin/site-settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { operationalTimezone?: string } | null) => {
+        if (!cancelled && data?.operationalTimezone) {
+          setOperationalTimezone(data.operationalTimezone);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const saveModule = async () => {
     if (!mod.title.trim()) {
@@ -339,7 +357,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                     </div>
                     {row.contentType === "VIDEO" && (
                       <div className="mt-0.5 text-xs text-muted-foreground">
-                        {formatDateTime(row.scheduledAt)}
+                        {formatDateTime(row.scheduledAt, operationalTimezone)}
                         {row.meetUrl ? " · Meet configurado" : " · Sin enlace Meet"}
                       </div>
                     )}
@@ -479,7 +497,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                     options={unassigned.map((c) => ({
                       value: c.id,
                       label: c.title,
-                      hint: formatDateTime(c.scheduledAt),
+                      hint: formatDateTime(c.scheduledAt, operationalTimezone),
                     }))}
                     placeholder="Buscar clase sin asignar…"
                   />
@@ -500,6 +518,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
         onClose={() => setEditorOpen(false)}
         onSaved={onClassSaved}
         onRecordingChange={() => void reload()}
+        operationalTimezone={operationalTimezone}
       />
 
       <ClassCommentsModal

@@ -15,7 +15,7 @@ import {
   type FreeWebinarFaqItem,
   type PublishBlocker,
 } from "@/lib/crm/free-webinar-publish";
-import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
+import { OPERATIONAL_TZ } from "@/lib/datetime/zoned-time";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import StringListEditor from "@/app/components/admin/crm/StringListEditor";
 import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";

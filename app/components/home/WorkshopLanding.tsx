@@ -10,7 +10,8 @@ import {
   getWorkshopStatusLabel,
   type WorkshopDetail,
 } from "../../../lib/workshops";
-import { getScheduleSlotLabel } from "../../../lib/workshop-schedule";
+import LocalInstantText from "@/app/components/datetime/LocalInstantText";
+import WorkshopSlotLocalTime from "@/app/components/datetime/WorkshopSlotLocalTime";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -24,6 +25,7 @@ type WorkshopDocument = {
 type WorkshopLandingProps = {
   workshop: WorkshopDetail;
   documents?: WorkshopDocument[];
+  userCountry?: string | null;
 };
 
 const formatDocSize = (bytes: number) => {
@@ -31,7 +33,11 @@ const formatDocSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const WorkshopLanding = ({ workshop, documents = [] }: WorkshopLandingProps) => {
+const WorkshopLanding = ({
+  workshop,
+  documents = [],
+  userCountry = null,
+}: WorkshopLandingProps) => {
   const rootRef = useRef<HTMLElement>(null);
   const heroTitleRef = useRef<HTMLDivElement>(null);
   const statusLabel = getWorkshopStatusLabel(workshop.status);
@@ -152,10 +158,28 @@ const WorkshopLanding = ({ workshop, documents = [] }: WorkshopLandingProps) => 
                 {statusLabel}
               </span>
               <div className="font-[font1] text-xl lg:text-2xl leading-tight">
-                {workshop.dateLabel}
+                {workshop.startsAtIso ? (
+                  <LocalInstantText
+                    startsAtIso={workshop.startsAtIso}
+                    mode="date"
+                    userCountry={userCountry}
+                    placeholder={workshop.dateLabel || "…"}
+                  />
+                ) : (
+                  workshop.dateLabel
+                )}
               </div>
               <div className="font-[font1] text-sm text-black/60">
-                {workshop.scheduleLabel}
+                {workshop.startsAtIso ? (
+                  <LocalInstantText
+                    startsAtIso={workshop.startsAtIso}
+                    mode="timeWithPlace"
+                    userCountry={userCountry}
+                    placeholder={workshop.scheduleLabel || "…"}
+                  />
+                ) : (
+                  workshop.scheduleLabel
+                )}
               </div>
             </div>
           </div>
@@ -210,7 +234,12 @@ const WorkshopLanding = ({ workshop, documents = [] }: WorkshopLandingProps) => 
                   className="wk-reveal rounded-2xl border border-black/10 bg-white px-4 py-4 lg:px-6 lg:py-5 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-2 lg:gap-6"
                 >
                   <div className="font-[font2] text-xs uppercase tracking-[0.2em] text-black/55">
-                    {getScheduleSlotLabel(slot)}
+                    <WorkshopSlotLocalTime
+                      slot={slot}
+                      startsAtIso={workshop.startsAtIso}
+                      scheduleTimezone={workshop.scheduleTimezone}
+                      userCountry={userCountry}
+                    />
                   </div>
                   <p className="font-[font1] text-sm lg:text-base leading-snug">
                     {slot.title}

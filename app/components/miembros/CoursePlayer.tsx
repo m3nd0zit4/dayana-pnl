@@ -28,6 +28,7 @@ import ModuleCompleteToggle from "./ModuleCompleteToggle";
 import LessonComments from "./LessonComments";
 import QuizPlayer, { type SanitizedQuiz } from "./QuizPlayer";
 import CourseOutlineSidebar, { readingId } from "./CourseOutlineSidebar";
+import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 
 export type OutlineClass = {
   id: string;
@@ -81,11 +82,6 @@ const isRecordingVisible = (cls: OutlineClass, now = Date.now()): boolean => {
     RECORDING_RETENTION_DAYS * 24 * 60 * 60 * 1000;
   return visibleUntil > now;
 };
-
-const formatDateTime = (iso: string) =>
-  `${new Date(iso).toLocaleDateString("es-CO", { dateStyle: "full" })} · ${new Date(
-    iso
-  ).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}`;
 
 type FlatItem = {
   id: string;
@@ -471,7 +467,11 @@ const CoursePlayer = ({
                 <Card>
                   <CardContent className="space-y-3 py-6">
                     <p className="text-sm font-medium">
-                      Próxima sesión en vivo: {formatDateTime(selectedClass.scheduledAt)}
+                      Próxima sesión en vivo:{" "}
+                      <LocalInstantText
+                        startsAtIso={selectedClass.scheduledAt}
+                        mode="datetimeWithPlace"
+                      />
                     </p>
                     {selectedClass.meetUrl && (
                       <Button

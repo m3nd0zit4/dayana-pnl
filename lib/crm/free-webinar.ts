@@ -1,9 +1,11 @@
 import type { FreeWebinar, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
-  OPERATIONAL_TZ,
+  DEFAULT_OPERATIONAL_TZ,
   getDateKeyInTz,
+  getOperationalTimezone,
   getTimeHmInTz,
+  normalizeTimeHm,
   zonedDateTimeToUtc,
 } from "@/lib/crm/operational-timezone";
 import {
@@ -87,7 +89,10 @@ const parseFaq = (raw: Prisma.JsonValue | null): FreeWebinarFaqItem[] => {
   return out;
 };
 
-export const toFreeWebinarPublic = (row: FreeWebinar): FreeWebinarPublic => {
+export const toFreeWebinarPublic = (
+  row: FreeWebinar,
+  operationalTimezone: string = DEFAULT_OPERATIONAL_TZ
+): FreeWebinarPublic => {
   const startsAt = row.startsAt;
   const startsAtHasTime = startsAt ? row.startsAtHasTime : false;
   return {
@@ -99,13 +104,15 @@ export const toFreeWebinarPublic = (row: FreeWebinar): FreeWebinarPublic => {
     body: row.body,
     startsAt,
     startsAtIso: startsAt ? startsAt.toISOString() : null,
-    startsAtDateKey: startsAt ? getDateKeyInTz(startsAt, OPERATIONAL_TZ) : null,
+    startsAtDateKey: startsAt
+      ? getDateKeyInTz(startsAt, operationalTimezone)
+      : null,
     startsAtTimeHm:
       startsAt && startsAtHasTime
-        ? getTimeHmInTz(startsAt, OPERATIONAL_TZ)
+        ? getTimeHmInTz(startsAt, operationalTimezone)
         : null,
     startsAtHasTime,
-    operationalTimezone: OPERATIONAL_TZ,
+    operationalTimezone,
     videoUrl: row.videoUrl,
     learnSectionTitle: row.learnSectionTitle,
     learnItems: parseLearnItems(row.learnItems),
@@ -182,20 +189,22 @@ type ResolvedSchedule =
   | { startsAt: Date; startsAtHasTime: boolean }
   | { startsAt: null; startsAtHasTime: false };
 
-const resolveSchedule = (
+const resolveSchedule = async (
   input: FreeWebinarUpdateInput
-): ResolvedSchedule | undefined => {
+): Promise<ResolvedSchedule | undefined> => {
   if (input.startsAtLocal === null) {
     return { startsAt: null, startsAtHasTime: false };
   }
   if (input.startsAtLocal !== undefined) {
-    const time = input.startsAtLocal.time?.trim() ?? "";
-    const hasTime = /^\d{1,2}:\d{2}$/.test(time);
+    const rawTime = input.startsAtLocal.time?.trim() ?? "";
+    const normalized = rawTime ? normalizeTimeHm(rawTime) : null;
+    const hasTime = Boolean(normalized);
+    const tz = await getOperationalTimezone();
     return {
       startsAt: zonedDateTimeToUtc(
         input.startsAtLocal.date,
-        hasTime ? time : DATE_ONLY_ANCHOR_TIME,
-        OPERATIONAL_TZ
+        hasTime && normalized ? normalized : DATE_ONLY_ANCHOR_TIME,
+        tz
       ),
       startsAtHasTime: hasTime,
     };
@@ -210,7 +219,7 @@ const resolveSchedule = (
     };
   }
   if (input.startsAtHasTime !== undefined) {
-    return undefined; // flag alone is not enough without a date
+    return undefined;
   }
   return undefined;
 };
@@ -219,7 +228,9 @@ export const getFreeWebinar = async (
   slug: string = FREE_WEBINAR_SLUG
 ): Promise<FreeWebinarPublic | null> => {
   const row = await prisma.freeWebinar.findUnique({ where: { slug } });
-  return row ? toFreeWebinarPublic(row) : null;
+  if (!row) return null;
+  const tz = await getOperationalTimezone();
+  return toFreeWebinarPublic(row, tz);
 };
 
 export const isFreeWebinarActive = async (
@@ -235,8 +246,9 @@ export const isFreeWebinarActive = async (
 export const ensureFreeWebinar = async (
   slug: string = FREE_WEBINAR_SLUG
 ): Promise<FreeWebinarPublic> => {
+  const tz = await getOperationalTimezone();
   const existing = await prisma.freeWebinar.findUnique({ where: { slug } });
-  if (existing) return toFreeWebinarPublic(existing);
+  if (existing) return toFreeWebinarPublic(existing, tz);
 
   const created = await prisma.freeWebinar.create({
     data: {
@@ -257,7 +269,7 @@ export const ensureFreeWebinar = async (
       metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
     },
   });
-  return toFreeWebinarPublic(created);
+  return toFreeWebinarPublic(created, tz);
 };
 
 export class FreeWebinarPublishError extends Error {
@@ -279,7 +291,7 @@ export const updateFreeWebinar = async (
   if (input.headline !== undefined) data.headline = input.headline;
   if (input.subheadline !== undefined) data.subheadline = input.subheadline;
   if (input.body !== undefined) data.body = input.body;
-  const schedule = resolveSchedule(input);
+  const schedule = await resolveSchedule(input);
   if (schedule !== undefined) {
     data.startsAt = schedule.startsAt;
     data.startsAtHasTime = schedule.startsAtHasTime;
@@ -298,6 +310,8 @@ export const updateFreeWebinar = async (
   }
   if (input.isActive !== undefined) data.isActive = input.isActive;
 
+  const tz = await getOperationalTimezone();
+
   if (input.isActive === true) {
     const current = await prisma.freeWebinar.findUniqueOrThrow({
       where: { slug },
@@ -308,27 +322,32 @@ export const updateFreeWebinar = async (
       schedule !== undefined
         ? schedule.startsAtHasTime
         : current.startsAtHasTime;
-    const preview = toFreeWebinarPublic({
-      ...current,
-      headline:
-        typeof data.headline === "string" ? data.headline : current.headline,
-      subheadline:
-        data.subheadline === undefined
-          ? current.subheadline
-          : (data.subheadline as string | null),
-      body:
-        data.body === undefined ? current.body : (data.body as string | null),
-      startsAt: nextStartsAt,
-      startsAtHasTime: nextHasTime,
-      learnItems:
-        input.learnItems !== undefined
-          ? (input.learnItems as Prisma.JsonValue)
-          : current.learnItems,
-      ctaLabel:
-        typeof data.ctaLabel === "string" ? data.ctaLabel : current.ctaLabel,
-      formTitle:
-        typeof data.formTitle === "string" ? data.formTitle : current.formTitle,
-    });
+    const preview = toFreeWebinarPublic(
+      {
+        ...current,
+        headline:
+          typeof data.headline === "string" ? data.headline : current.headline,
+        subheadline:
+          data.subheadline === undefined
+            ? current.subheadline
+            : (data.subheadline as string | null),
+        body:
+          data.body === undefined ? current.body : (data.body as string | null),
+        startsAt: nextStartsAt,
+        startsAtHasTime: nextHasTime,
+        learnItems:
+          input.learnItems !== undefined
+            ? (input.learnItems as Prisma.JsonValue)
+            : current.learnItems,
+        ctaLabel:
+          typeof data.ctaLabel === "string" ? data.ctaLabel : current.ctaLabel,
+        formTitle:
+          typeof data.formTitle === "string"
+            ? data.formTitle
+            : current.formTitle,
+      },
+      tz
+    );
     const blockers = getPublishBlockers(preview);
     if (blockers.length > 0) {
       throw new FreeWebinarPublishError(blockers);
@@ -339,7 +358,7 @@ export const updateFreeWebinar = async (
     where: { slug },
     data,
   });
-  return toFreeWebinarPublic(row);
+  return toFreeWebinarPublic(row, tz);
 };
 
 export const clearFreeWebinarSchedule = async (
@@ -370,5 +389,6 @@ export const resetFreeWebinar = async (
       metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
     },
   });
-  return toFreeWebinarPublic(row);
+  const tz = await getOperationalTimezone();
+  return toFreeWebinarPublic(row, tz);
 };

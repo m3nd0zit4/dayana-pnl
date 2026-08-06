@@ -8,6 +8,7 @@ export type MemberWorkshop = {
   /** Public page for the linked edition, when one exists. */
   slug: string | null;
   dateLabel: string | null;
+  startsAtIso: string | null;
   paidAt: Date | null;
   currency: string | null;
   amountMinor: number | null;
@@ -35,7 +36,7 @@ export const getMemberWorkshops = async (
           workshopEditions: {
             orderBy: { updatedAt: "desc" },
             take: 1,
-            select: { slug: true, title: true, dateLabel: true },
+            select: { slug: true, title: true, dateLabel: true, startsAt: true },
           },
         },
       },
@@ -50,6 +51,7 @@ export const getMemberWorkshops = async (
       title: edition?.title ?? en.product.title,
       slug: edition?.slug ?? null,
       dateLabel: edition?.dateLabel ?? null,
+      startsAtIso: edition?.startsAt ? edition.startsAt.toISOString() : null,
       paidAt: en.paidAt,
       currency: en.currency,
       amountMinor: en.amountMinor,

@@ -15,6 +15,11 @@ import WorkshopDocumentsPanel, { type WorkshopDocumentItem } from "./WorkshopDoc
 import { invalidateCached, useActiveProducts } from "./hooks/useReferenceData";
 import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
+import {
+  DEFAULT_OPERATIONAL_TZ,
+  getDateKeyInTz,
+  getTimeHmInTz,
+} from "@/lib/datetime/zoned-time";
 
 export type WorkshopRow = {
   id: string;
@@ -28,6 +33,7 @@ export type WorkshopRow = {
   capacity: number | null;
   whatsappTemplate: string | null;
   startsAt: string | null;
+  timezone?: string | null;
   heroLine1: string | null;
   heroLine2: string | null;
   heroLine3: string | null;
@@ -69,6 +75,7 @@ type ApiEdition = {
   capacity: number | null;
   whatsappTemplate: string | null;
   startsAt: string | Date | null;
+  timezone?: string | null;
   heroLine1: string | null;
   heroLine2: string | null;
   heroLine3: string | null;
@@ -99,6 +106,7 @@ export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
     e.startsAt instanceof Date
       ? e.startsAt.toISOString()
       : e.startsAt,
+  timezone: e.timezone ?? null,
   heroLine1: e.heroLine1,
   heroLine2: e.heroLine2,
   heroLine3: e.heroLine3,
@@ -117,11 +125,18 @@ export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
 type Props = {
   open: boolean;
   edition: WorkshopRow | null;
+  operationalTimezone?: string;
   onClose: () => void;
   onSaved: () => void;
 };
 
-const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
+const WorkshopFormModal = ({
+  open,
+  edition,
+  operationalTimezone = DEFAULT_OPERATIONAL_TZ,
+  onClose,
+  onSaved,
+}: Props) => {
   // Gated on `open` like the other call sites — no products fetch until the
   // modal is actually opened.
   const { products } = useActiveProducts(open);
@@ -134,6 +149,8 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
   );
   const [dateLabel, setDateLabel] = useState("");
   const [scheduleLabel, setScheduleLabel] = useState("");
+  const [dateKey, setDateKey] = useState("");
+  const [timeHm, setTimeHm] = useState("");
   const [focusTopics, setFocusTopics] = useState<string[]>([]);
   const [daySchedule, setDaySchedule] = useState<WorkshopScheduleSlot[]>([]);
   const [productId, setProductId] = useState<string>("");
@@ -158,6 +175,15 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setStatus(edition.status);
       setDateLabel(edition.dateLabel ?? "");
       setScheduleLabel(edition.scheduleLabel ?? "");
+      if (edition.startsAt) {
+        const d = new Date(edition.startsAt);
+        const tz = edition.timezone || operationalTimezone;
+        setDateKey(getDateKeyInTz(d, tz));
+        setTimeHm(getTimeHmInTz(d, tz));
+      } else {
+        setDateKey("");
+        setTimeHm("");
+      }
       setFocusTopics(edition.focusTopics ?? []);
       setDaySchedule(edition.daySchedule ?? []);
       setProductId(edition.productId ?? "");
@@ -168,12 +194,14 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       setStatus(WorkshopEditionStatus.DRAFT);
       setDateLabel("");
       setScheduleLabel("");
+      setDateKey("");
+      setTimeHm("");
       setFocusTopics([]);
       setDaySchedule([]);
       setProductId("");
     }
     setError(null);
-  }, [open, edition]);
+  }, [open, edition, operationalTimezone]);
 
   useEffect(() => {
     if (!open || !edition) {
@@ -211,6 +239,9 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
       status,
       dateLabel: dateLabel || undefined,
       scheduleLabel: scheduleLabel || undefined,
+      startsAtLocal: dateKey
+        ? { date: dateKey, time: timeHm.trim() || null }
+        : null,
       focusTopics: trimmedTopics.length > 0 ? trimmedTopics : undefined,
       daySchedule: trimmedSchedule.length > 0 ? trimmedSchedule : undefined,
       productId: productId || null,
@@ -292,21 +323,43 @@ const WorkshopFormModal = ({ open, edition, onClose, onSaved }: Props) => {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="w-date">Fecha (tarjeta)</Label>
+            <Label htmlFor="w-date-key">Fecha del taller *</Label>
+            <Input
+              id="w-date-key"
+              type="date"
+              value={dateKey}
+              onChange={(e) => setDateKey(e.target.value)}
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Zona CRM: {operationalTimezone}. En la web cada visitante ve su
+              hora local.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="w-time">Hora de inicio (opcional)</Label>
+            <Input
+              id="w-time"
+              type="time"
+              value={timeHm}
+              onChange={(e) => setTimeHm(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="w-date">Texto fecha (opcional)</Label>
             <Input
               id="w-date"
               value={dateLabel}
               onChange={(e) => setDateLabel(e.target.value)}
-              placeholder="16 de mayo de 2026"
+              placeholder="Solo si quieres forzar un texto"
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="w-sched">Horario resumen (tarjeta)</Label>
+            <Label htmlFor="w-sched">Texto horario (opcional)</Label>
             <Input
               id="w-sched"
               value={scheduleLabel}
               onChange={(e) => setScheduleLabel(e.target.value)}
-              placeholder="7:30 a.m. – 4:30 p.m. · virtual"
+              placeholder="Ej. jornada completa · virtual"
             />
           </div>
         </div>

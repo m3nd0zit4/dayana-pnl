@@ -28,6 +28,7 @@ import type { NormalizedEvent } from "../meta/inbound";
 import { findDuePosts } from "../crm/social-posts";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
+import { formatInstantForContact } from "../datetime/visitor-schedule";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { inviteContactToPortal } from "../crm/member-accounts";
 import { applyMembershipExtension } from "../lms/membership";
@@ -133,19 +134,19 @@ export const sessionReminderFn = inngest.createFunction(
           : null;
 
       await step.run(`reminder-${session.id}`, async () => {
+        const formatted = scheduledAt
+          ? formatInstantForContact(scheduledAt, {
+              timezone: contact.timezone,
+              countryIso: contact.countryIso ?? contact.phoneCountryIso,
+            })
+          : null;
         const vars = {
           first_name: contact.firstName,
           last_name: contact.lastName ?? "",
           display_name: contact.displayName ?? contact.firstName,
           phone: contact.phoneE164,
-          session_date:
-            scheduledAt?.toLocaleDateString("es-CO", { dateStyle: "long" }) ??
-            "",
-          session_time:
-            scheduledAt?.toLocaleTimeString("es-CO", {
-              hour: "2-digit",
-              minute: "2-digit",
-            }) ?? "",
+          session_date: formatted?.date ?? "",
+          session_time: formatted?.timeWithPlace ?? "",
           meet_url: session.meetUrl ?? "",
         };
         const rendered = renderQuickMessage(templateBody, vars);

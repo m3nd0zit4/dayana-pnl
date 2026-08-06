@@ -17,6 +17,10 @@ export type WorkshopCard = {
   cardSummary: string;
   dateLabel: string;
   scheduleLabel: string;
+  /** UTC instant for visitor-local display; null = fall back to dateLabel text. */
+  startsAtIso: string | null;
+  /** IANA zone used when the schedule was entered (CRM operational TZ at save). */
+  scheduleTimezone: string;
   whatsappMessage?: string;
   /** Producto cobrable vinculado — habilita el botón de pago en la tarjeta. */
   productId?: string | null;
@@ -154,6 +158,8 @@ export const PROXIMO_WORKSHOP_CARD: WorkshopCard = {
   cardSummary: "",
   dateLabel: "",
   scheduleLabel: "",
+  startsAtIso: null,
+  scheduleTimezone: "America/Bogota",
 };
 
 export const isVirtualWorkshopSlug = (slug: string): boolean =>
@@ -186,6 +192,8 @@ const WORKSHOP_CATALOG: WorkshopCard[] = [
     cardSummary: WORKSHOP_DETAIL_SEED.detailSummary,
     dateLabel: "16 de mayo de 2026",
     scheduleLabel: "7:30 a.m. – 4:30 p.m. · virtual",
+    startsAtIso: "2026-05-16T12:30:00.000Z",
+    scheduleTimezone: "America/Bogota",
     whatsappMessage:
       "Hola Dayana, me interesa información sobre próximos talleres virtuales o nuevas fechas de Saca tu mejor versión.",
   },

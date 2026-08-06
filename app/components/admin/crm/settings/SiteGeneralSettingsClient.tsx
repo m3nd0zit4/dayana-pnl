@@ -5,6 +5,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import TimezoneSelect from "@/app/components/admin/crm/TimezoneSelect";
 
 type RateSource = "crm" | "env_or_default";
 
@@ -18,19 +19,22 @@ type Props = {
 const SiteGeneralSettingsClient = ({
   initialRate,
   initialSource,
-  operationalTimezone,
+  operationalTimezone: initialTz,
   publicSiteUrl,
 }: Props) => {
   const [rate, setRate] = useState(String(initialRate));
   const [source, setSource] = useState<RateSource>(initialSource);
-  const [saving, setSaving] = useState(false);
+  const [timezone, setTimezone] = useState(initialTz);
+  const [savingRate, setSavingRate] = useState(false);
+  const [savingTz, setSavingTz] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [doneRate, setDoneRate] = useState(false);
+  const [doneTz, setDoneTz] = useState(false);
 
-  const save = async () => {
+  const saveRate = async () => {
     setError(null);
-    setDone(false);
-    setSaving(true);
+    setDoneRate(false);
+    setSavingRate(true);
 
     try {
       const res = await fetch("/api/admin/site-settings", {
@@ -55,16 +59,92 @@ const SiteGeneralSettingsClient = ({
 
       if (data.usdToCopRate != null) setRate(String(data.usdToCopRate));
       if (data.source) setSource(data.source);
-      setDone(true);
+      setDoneRate(true);
     } catch {
       setError("No se pudo guardar. Revisa tu conexión.");
     } finally {
-      setSaving(false);
+      setSavingRate(false);
+    }
+  };
+
+  const saveTimezone = async () => {
+    setError(null);
+    setDoneTz(false);
+    setSavingTz(true);
+    try {
+      const res = await fetch("/api/admin/site-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operationalTimezone: timezone }),
+      });
+      const data = (await res.json()) as {
+        operationalTimezone?: string;
+        error?: string;
+      };
+      if (!res.ok) {
+        setError(
+          data.error === "invalid_timezone"
+            ? "Zona horaria inválida."
+            : "No se pudo guardar la zona horaria."
+        );
+        return;
+      }
+      if (data.operationalTimezone) setTimezone(data.operationalTimezone);
+      setDoneTz(true);
+    } catch {
+      setError("No se pudo guardar. Revisa tu conexión.");
+    } finally {
+      setSavingTz(false);
     }
   };
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardContent className="space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Zona horaria del CRM
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Al crear webinars, talleres, clases o eventos, las fechas y horas
+              que escribes se interpretan en esta zona y se guardan en UTC. En
+              la web, el portal y los correos cada persona ve su hora local.
+            </p>
+          </div>
+
+          <div className="max-w-md space-y-3">
+            <TimezoneSelect
+              id="operational-timezone"
+              label="Zona operativa"
+              value={timezone}
+              onChange={(tz) => {
+                setDoneTz(false);
+                setTimezone(tz);
+              }}
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Valor actual: <span className="font-mono">{timezone}</span>
+            </p>
+          </div>
+
+          {doneTz && (
+            <p className="text-sm text-emerald-600" role="status">
+              Zona horaria actualizada.
+            </p>
+          )}
+
+          <Button
+            type="button"
+            disabled={savingTz || timezone === initialTz}
+            onClick={() => void saveTimezone()}
+          >
+            {savingTz ? "Guardando…" : "Guardar zona horaria"}
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="space-y-4">
           <div className="space-y-1">
@@ -86,9 +166,9 @@ const SiteGeneralSettingsClient = ({
               min={1}
               step={1}
               value={rate}
-              disabled={saving}
+              disabled={savingRate}
               onChange={(e) => {
-                setDone(false);
+                setDoneRate(false);
                 setRate(e.target.value);
               }}
             />
@@ -104,14 +184,14 @@ const SiteGeneralSettingsClient = ({
               {error}
             </p>
           )}
-          {done && (
+          {doneRate && (
             <p className="text-sm text-emerald-600" role="status">
               Tasa actualizada.
             </p>
           )}
 
-          <Button type="button" disabled={saving} onClick={save}>
-            {saving ? "Guardando…" : "Guardar tasa"}
+          <Button type="button" disabled={savingRate} onClick={() => void saveRate()}>
+            {savingRate ? "Guardando…" : "Guardar tasa"}
           </Button>
         </CardContent>
       </Card>
@@ -130,20 +210,10 @@ const SiteGeneralSettingsClient = ({
 
           <dl className="divide-y divide-border text-sm">
             <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
-              <dt className="text-muted-foreground">Zona horaria operativa</dt>
-              <dd className="font-mono">{operationalTimezone}</dd>
-            </div>
-            <div className="flex flex-wrap items-baseline justify-between gap-2 py-3">
               <dt className="text-muted-foreground">URL pública</dt>
               <dd className="font-mono break-all">{publicSiteUrl}</dd>
             </div>
           </dl>
-
-          <p className="text-xs text-muted-foreground">
-            La zona horaria operativa (America/Bogota) es una constante del
-            código: la usan los reportes del panel, los recordatorios y los
-            cortes por día. Cambiarla requiere un despliegue.
-          </p>
         </CardContent>
       </Card>
     </div>

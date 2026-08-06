@@ -1,19 +1,27 @@
 import { EnrollmentStatus, ProductKind, TherapySessionStatus } from "@prisma/client";
 import { fireNotification } from "@/lib/notifications/platform/emit";
+import { formatInstantForContact } from "@/lib/datetime/visitor-schedule";
 import { prisma } from "../db";
-import { OPERATIONAL_TZ } from "./operational-timezone";
 
 const contactName = (contact: {
   displayName: string | null;
   firstName: string;
 }): string => contact.displayName ?? contact.firstName;
 
-const formatSessionMoment = (at: Date): string =>
-  new Intl.DateTimeFormat("es-CO", {
-    timeZone: OPERATIONAL_TZ,
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(at);
+const formatSessionMoment = (
+  at: Date,
+  contact?: {
+    timezone?: string | null;
+    countryIso?: string | null;
+    phoneCountryIso?: string | null;
+  }
+): string => {
+  const f = formatInstantForContact(at, {
+    timezone: contact?.timezone,
+    countryIso: contact?.countryIso ?? contact?.phoneCountryIso,
+  });
+  return `${f.dateTime} · ${f.place}`;
+};
 
 export const ensureTherapyPackage = async (
   enrollmentId: string,
@@ -229,7 +237,15 @@ export const scheduleTherapySession = async (input: {
           enrollment: {
             select: {
               contactId: true,
-              contact: { select: { displayName: true, firstName: true } },
+              contact: {
+                select: {
+                  displayName: true,
+                  firstName: true,
+                  timezone: true,
+                  countryIso: true,
+                  phoneCountryIso: true,
+                },
+              },
             },
           },
         },
@@ -276,7 +292,7 @@ export const scheduleTherapySession = async (input: {
     title: `Sesión ${input.sessionNumber} agendada: ${contactName(
       pkg.enrollment.contact
     )}`,
-    body: `${formatSessionMoment(input.scheduledAt)} (hora de Colombia).`,
+    body: `${formatSessionMoment(input.scheduledAt, pkg.enrollment.contact)}.`,
     entityType: "TherapySession",
     entityId: updated.id,
     metadata: { enrollmentId: pkg.enrollmentId },
@@ -340,7 +356,17 @@ export const markTherapySessionNoShow = async (sessionId: string) => {
     select: {
       enrollmentId: true,
       enrollment: {
-        select: { contact: { select: { displayName: true, firstName: true } } },
+        select: {
+          contact: {
+            select: {
+              displayName: true,
+              firstName: true,
+              timezone: true,
+              countryIso: true,
+              phoneCountryIso: true,
+            },
+          },
+        },
       },
     },
   });
@@ -351,7 +377,10 @@ export const markTherapySessionNoShow = async (sessionId: string) => {
       pkg ? `: ${contactName(pkg.enrollment.contact)}` : ""
     }`,
     body: session.scheduledAt
-      ? `Estaba agendada para ${formatSessionMoment(session.scheduledAt)}.`
+      ? `Estaba agendada para ${formatSessionMoment(
+          session.scheduledAt,
+          pkg?.enrollment.contact
+        )}.`
       : null,
     href: pkg ? `/admin/enrollments/${pkg.enrollmentId}` : null,
     entityType: "TherapySession",

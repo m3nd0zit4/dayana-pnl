@@ -1,6 +1,6 @@
 import SiteGeneralSettingsClient from "@/app/components/admin/crm/settings/SiteGeneralSettingsClient";
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
-import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
+import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { getUsdToCopRateSetting, resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import { siteUrl } from "@/lib/notifications/config";
 
@@ -11,12 +11,13 @@ const Page = async () => {
 
   const usdToCopRate = await resolveUsdToCopRate();
   const fromCrm = await getUsdToCopRateSetting();
+  const operationalTimezone = await getOperationalTimezone();
 
   return (
     <SiteGeneralSettingsClient
       initialRate={usdToCopRate}
       initialSource={fromCrm != null ? "crm" : "env_or_default"}
-      operationalTimezone={OPERATIONAL_TZ}
+      operationalTimezone={operationalTimezone}
       publicSiteUrl={siteUrl()}
     />
   );

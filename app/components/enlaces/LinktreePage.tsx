@@ -7,6 +7,7 @@ import {
   WHATSAPP_COMMUNITY_URL,
   buildWhatsAppUrl,
 } from "@/lib/contact";
+import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 
 const TikTokIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
@@ -237,7 +238,7 @@ const Cta = ({
   href: string;
   icon: React.ReactNode;
   title: string;
-  subtitle: string;
+  subtitle: React.ReactNode;
   badge?: string;
   variant: CtaVariant;
   delay: number;
@@ -321,12 +322,18 @@ type Props = {
   webinarActive?: boolean;
   webinarCtaTitle?: string;
   webinarCtaSubtitle?: string;
+  webinarStartsAtIso?: string | null;
+  webinarHasTime?: boolean;
+  userCountry?: string | null;
 };
 
 const LinktreePage = ({
   webinarActive = false,
   webinarCtaTitle = "Webinar gratuito",
   webinarCtaSubtitle = "Regístrate al webinar gratis en vivo",
+  webinarStartsAtIso = null,
+  webinarHasTime = true,
+  userCountry = null,
 }: Props) => {
   const whatsappHref = buildWhatsAppUrl(
     "Hola Dayana, te escribo desde tu página de enlaces."
@@ -405,7 +412,18 @@ const LinktreePage = ({
               href="/webinar-gratuito"
               icon={<Video className="h-5 w-5" />}
               title={webinarCtaTitle}
-              subtitle={webinarCtaSubtitle}
+              subtitle={
+                webinarStartsAtIso ? (
+                  <LocalInstantText
+                    startsAtIso={webinarStartsAtIso}
+                    mode={webinarHasTime ? "datetimeWithPlace" : "date"}
+                    userCountry={userCountry}
+                    placeholder={webinarCtaSubtitle}
+                  />
+                ) : (
+                  webinarCtaSubtitle
+                )
+              }
               badge="Gratis"
               variant="webinar"
               delay={200}

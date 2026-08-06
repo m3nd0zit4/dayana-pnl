@@ -8,11 +8,10 @@ import {
 } from "@/lib/crm/free-webinar";
 import { siteUrl } from "@/lib/notifications/config";
 import { requireWriteStaff, auditAgentWrite } from "@/agent/lib/guard";
-import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
 
 export default defineTool({
   description:
-    "Update the free webinar landing (/webinar-gratuito). Pass only fields you want to change. Schedule uses startsAtDate (YYYY-MM-DD) in America/Bogota; startsAtTime (HH:mm) is optional until confirmed. Setting isActive true requires headline, subheadline, date, and at least one learn item. Registrations are tagged webinar-gratuito.",
+    "Update the free webinar landing (/webinar-gratuito). Pass only fields you want to change. Schedule uses startsAtDate (YYYY-MM-DD) in the CRM operational timezone; startsAtTime (HH:mm) is optional until confirmed. Setting isActive true requires headline, subheadline, date, and at least one learn item. Registrations are tagged webinar-gratuito.",
   inputSchema: z.object({
     isActive: z
       .boolean()
@@ -25,14 +24,14 @@ export default defineTool({
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional()
-      .describe("Calendar date in America/Bogota"),
+      .describe("Calendar date in the CRM operational timezone"),
     startsAtTime: z
       .string()
       .regex(/^\d{1,2}:\d{2}$/)
       .nullable()
       .optional()
       .describe(
-        "Local time HH:mm in America/Bogota; omit or null for date-only (time TBD)"
+        "Local time HH:mm in the CRM operational timezone; omit or null for date-only (time TBD)"
       ),
     clearSchedule: z
       .boolean()
@@ -76,7 +75,7 @@ export default defineTool({
         ok: false as const,
         error: "needs_date_with_time",
         message:
-          "Si pasas startsAtTime también necesitas startsAtDate (zona America/Bogota).",
+          "Si pasas startsAtTime también necesitas startsAtDate (zona operativa del CRM).",
       };
     }
 
@@ -110,7 +109,7 @@ export default defineTool({
           startsAtDate: webinar.startsAtDateKey,
           startsAtTime: webinar.startsAtTimeHm,
           startsAtHasTime: webinar.startsAtHasTime,
-          operationalTimezone: OPERATIONAL_TZ,
+          operationalTimezone: webinar.operationalTimezone,
           link:
             webinar.isActive && webinar.startsAt
               ? `${siteUrl()}/webinar-gratuito`

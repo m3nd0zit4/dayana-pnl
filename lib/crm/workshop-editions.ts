@@ -15,6 +15,7 @@ export type WorkshopEditionInput = {
   capacity?: number | null;
   whatsappTemplate?: string | null;
   startsAt?: Date | null;
+  timezone?: string | null;
   productId?: string | null;
   heroLine1?: string | null;
   heroLine2?: string | null;
@@ -40,6 +41,7 @@ const editionData = (input: WorkshopEditionInput) => ({
   capacity: input.capacity ?? null,
   whatsappTemplate: input.whatsappTemplate ?? null,
   startsAt: input.startsAt ?? null,
+  timezone: input.timezone ?? "America/Bogota",
   heroLine1: input.heroLine1 ?? null,
   heroLine2: input.heroLine2 ?? null,
   heroLine3: input.heroLine3 ?? null,

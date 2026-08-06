@@ -4,11 +4,17 @@ import { useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import {
+  DEFAULT_OPERATIONAL_TZ,
+  getDateKeyInTz,
+  getTimeHmInTz,
+  zonedDateTimeToUtc,
+} from "@/lib/datetime/zoned-time";
 import CrmDateTimePicker from "./CrmDateTimePicker";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
 
-const OPERATIONAL_TZ = "America/Bogota";
+const OPERATIONAL_TZ = DEFAULT_OPERATIONAL_TZ;
 
 export type ScheduleSessionPayload = {
   therapyPackageId: string;
@@ -36,17 +42,16 @@ type Props = {
 const toLocalInput = (iso: string | null | undefined, tz: string) => {
   if (!iso) return "";
   const d = new Date(iso);
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(d);
-  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+  if (Number.isNaN(d.getTime())) return "";
+  return `${getDateKeyInTz(d, tz)}T${getTimeHmInTz(d, tz)}`;
+};
+
+/** `datetime-local` value (YYYY-MM-DDTHH:mm) interpreted in `tz` → UTC ISO. */
+const localInputToUtcIso = (localValue: string, tz: string): string => {
+  const [dateKey, timePart] = localValue.split("T");
+  if (!dateKey || !timePart) throw new Error("INVALID_ZONED_DATETIME");
+  const timeHm = timePart.slice(0, 5);
+  return zonedDateTimeToUtc(dateKey, timeHm, tz).toISOString();
 };
 
 const ScheduleSessionModal = ({
@@ -80,13 +85,21 @@ const ScheduleSessionModal = ({
   const submit = async () => {
     if (!scheduledAt) return;
     setBusy(true);
+    let scheduledAtIso: string;
+    try {
+      scheduledAtIso = localInputToUtcIso(scheduledAt, contactTimezone);
+    } catch {
+      setBusy(false);
+      toast("Fecha u hora inválida", "error");
+      return;
+    }
     const res = await fetch("/api/admin/therapy/sessions", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         therapyPackageId,
         sessionNumber,
-        scheduledAt: new Date(scheduledAt).toISOString(),
+        scheduledAt: scheduledAtIso,
         meetUrl: meetUrl || undefined,
       }),
     });

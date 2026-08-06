@@ -13,6 +13,7 @@ import {
 import type { Plan } from "../../../lib/plans";
 import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
 import WorkshopCheckoutCta from "./WorkshopCheckoutCta";
+import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -111,10 +112,28 @@ const WorkshopCardItem = ({
           {statusLabel}
         </div>
         <div className="font-[font1] mt-1 text-lg leading-tight">
-          {workshop.dateLabel}
+          {workshop.startsAtIso ? (
+            <LocalInstantText
+              startsAtIso={workshop.startsAtIso}
+              mode="date"
+              userCountry={userCountry}
+              placeholder={workshop.dateLabel || "…"}
+            />
+          ) : (
+            workshop.dateLabel
+          )}
         </div>
         <div className="font-[font1] text-sm text-black/60">
-          {workshop.scheduleLabel}
+          {workshop.startsAtIso ? (
+            <LocalInstantText
+              startsAtIso={workshop.startsAtIso}
+              mode="timeWithPlace"
+              userCountry={userCountry}
+              placeholder={workshop.scheduleLabel || "…"}
+            />
+          ) : (
+            workshop.scheduleLabel
+          )}
         </div>
       </div>
 

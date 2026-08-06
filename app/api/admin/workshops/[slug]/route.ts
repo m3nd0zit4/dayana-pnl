@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { updateWorkshopEditionBySlug } from "@/lib/crm/workshop-editions";
+import {
+  getOperationalTimezone,
+  zonedDateTimeToUtc,
+} from "@/lib/crm/operational-timezone";
 import { prisma } from "@/lib/db";
 import { isVirtualWorkshopSlug } from "@/lib/workshops";
 import { workshopEditionSchema } from "@/lib/validations/admin";
@@ -10,6 +14,8 @@ import { WorkshopEditionStatus } from "@prisma/client";
 type Ctx = { params: Promise<{ slug: string }> };
 
 export const dynamic = "force-dynamic";
+
+const DATE_ONLY_ANCHOR = "12:00";
 
 export async function PATCH(req: NextRequest, ctx: Ctx) {
   const staff = await requireWriteStaff();
@@ -32,6 +38,31 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  const tz = await getOperationalTimezone();
+  let startsAt: Date | null | undefined = undefined;
+  if (parsed.data.startsAtLocal !== undefined) {
+    if (parsed.data.startsAtLocal === null) {
+      startsAt = null;
+    } else {
+      const time = parsed.data.startsAtLocal.time?.trim() ?? "";
+      const hasTime = /^\d{1,2}:\d{2}$/.test(time);
+      try {
+        startsAt = zonedDateTimeToUtc(
+          parsed.data.startsAtLocal.date,
+          hasTime ? time : DATE_ONLY_ANCHOR,
+          tz
+        );
+      } catch {
+        return NextResponse.json(
+          { error: "invalid_datetime", message: "Fecha u hora inválida." },
+          { status: 400 }
+        );
+      }
+    }
+  } else if (parsed.data.startsAt !== undefined) {
+    startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
+  }
+
   const edition = await updateWorkshopEditionBySlug(slug, {
     title: parsed.data.title,
     editionLabel: parsed.data.editionLabel,
@@ -41,7 +72,8 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     scheduleLabel: parsed.data.scheduleLabel,
     capacity: parsed.data.capacity,
     whatsappTemplate: parsed.data.whatsappTemplate,
-    startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null,
+    startsAt,
+    timezone: tz,
     productId: parsed.data.productId,
     heroLine1: parsed.data.heroLine1,
     heroLine2: parsed.data.heroLine2,

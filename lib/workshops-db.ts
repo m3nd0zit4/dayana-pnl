@@ -21,6 +21,8 @@ const editionSelect = {
   status: true,
   dateLabel: true,
   scheduleLabel: true,
+  startsAt: true,
+  timezone: true,
   whatsappTemplate: true,
   heroLine1: true,
   heroLine2: true,

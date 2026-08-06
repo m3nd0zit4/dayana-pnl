@@ -39,6 +39,8 @@ const WorkshopsPageClient = ({
   const [editions, setEditions] = useState<WorkshopRow[]>(initialEditions ?? []);
   const [loading, setLoading] = useState(!preview && initialEditions === undefined);
   const [loadError, setLoadError] = useState<string | null>(initialLoadError ?? null);
+  const [operationalTimezone, setOperationalTimezone] =
+    useState("America/Bogota");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<WorkshopRow | null>(null);
   const [notifyEdition, setNotifyEdition] = useState<WorkshopRow | null>(null);
@@ -72,8 +74,14 @@ const WorkshopsPageClient = ({
         if (!res.ok) throw new Error("fetch_failed");
         return res.json();
       })
-      .then((data: { editions?: Parameters<typeof mapApiEditionToRow>[0][] }) => {
+      .then((data: {
+        editions?: Parameters<typeof mapApiEditionToRow>[0][];
+        operationalTimezone?: string;
+      }) => {
         setEditions((data.editions ?? []).map(mapApiEditionToRow));
+        if (data.operationalTimezone) {
+          setOperationalTimezone(data.operationalTimezone);
+        }
       })
       .catch(() => {
         setEditions([]);
@@ -265,6 +273,7 @@ const WorkshopsPageClient = ({
       <WorkshopFormModal
         open={modalOpen}
         edition={editing}
+        operationalTimezone={operationalTimezone}
         onClose={() => setModalOpen(false)}
         onSaved={() => {
           load();

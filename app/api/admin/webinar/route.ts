@@ -9,7 +9,7 @@ import {
   PUBLISH_BLOCKER_LABELS,
   type FreeWebinarFaqItem,
 } from "@/lib/crm/free-webinar";
-import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
+import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ const startsAtLocalSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z
     .string()
-    .regex(/^\d{1,2}:\d{2}$/)
+    .regex(/^\d{1,2}:\d{2}(:\d{2})?$/)
     .nullable()
     .optional(),
 });
@@ -51,7 +51,7 @@ export async function GET() {
   const webinar = await ensureFreeWebinar();
   return NextResponse.json({
     webinar,
-    operationalTimezone: OPERATIONAL_TZ,
+    operationalTimezone: await getOperationalTimezone(),
   });
 }
 
@@ -96,7 +96,7 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({
       webinar,
-      operationalTimezone: OPERATIONAL_TZ,
+      operationalTimezone: await getOperationalTimezone(),
     });
   } catch (e) {
     if (e instanceof FreeWebinarPublishError) {

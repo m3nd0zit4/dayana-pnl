@@ -136,6 +136,17 @@ export const workshopEditionSchema = z.object({
   capacity: z.number().int().min(0).optional().nullable(),
   whatsappTemplate: z.string().max(5000).optional().nullable(),
   startsAt: z.string().datetime().optional().nullable(),
+  startsAtLocal: z
+    .object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      time: z
+        .string()
+        .regex(/^\d{1,2}:\d{2}$/)
+        .nullable()
+        .optional(),
+    })
+    .nullable()
+    .optional(),
   productId: z.string().optional().nullable(),
   heroLine1: z.string().max(200).optional().nullable(),
   heroLine2: z.string().max(200).optional().nullable(),

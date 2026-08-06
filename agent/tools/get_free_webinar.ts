@@ -3,11 +3,10 @@ import { z } from "zod";
 import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
 import { siteUrl } from "@/lib/notifications/config";
 import { requireStaff } from "@/agent/lib/guard";
-import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
 
 export default defineTool({
   description:
-    "Get the free webinar landing config (headline, schedule in CRM timezone America/Bogota, active flag, learn items, FAQ). There is a single landing at /webinar-gratuito — not multiple editions.",
+    "Get the free webinar landing config (headline, schedule in CRM operational timezone, active flag, learn items, FAQ). There is a single landing at /webinar-gratuito — not multiple editions.",
   inputSchema: z.object({}),
   async execute(_input, ctx) {
     requireStaff(ctx);
@@ -23,7 +22,7 @@ export default defineTool({
         startsAtDate: webinar.startsAtDateKey,
         startsAtTime: webinar.startsAtTimeHm,
         startsAtHasTime: webinar.startsAtHasTime,
-        operationalTimezone: OPERATIONAL_TZ,
+        operationalTimezone: webinar.operationalTimezone,
         videoUrl: webinar.videoUrl,
         learnSectionTitle: webinar.learnSectionTitle,
         learnItems: webinar.learnItems,

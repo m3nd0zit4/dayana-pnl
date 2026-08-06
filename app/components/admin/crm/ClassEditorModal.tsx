@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { UpChunk } from "@mux/upchunk";
 import type { LessonContentType, RecordingStatus } from "@prisma/client";
 import Markdown from "react-markdown";
@@ -8,6 +8,12 @@ import remarkGfm from "remark-gfm";
 import { Plus, Trash2 } from "lucide-react";
 import { drivePreviewUrl } from "@/lib/lms/drive";
 import type { QuizJson } from "@/lib/lms/course-admin";
+import {
+  DEFAULT_OPERATIONAL_TZ,
+  getDateKeyInTz,
+  getTimeHmInTz,
+  zonedDateTimeToUtc,
+} from "@/lib/datetime/zoned-time";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -103,11 +109,14 @@ const emptyEditor: EditorState = {
   quiz: { questions: [] },
 };
 
-const editorFromRow = (row: ClassEditorRow): EditorState => ({
+const editorFromRow = (
+  row: ClassEditorRow,
+  timeZone: string
+): EditorState => ({
   id: row.id,
   title: row.title,
   description: row.description ?? "",
-  scheduledAtLocal: toLocalInput(row.scheduledAt),
+  scheduledAtLocal: toLocalInput(row.scheduledAt, timeZone),
   meetUrl: row.meetUrl ?? "",
   recordingUrl: row.recordingUrl ?? "",
   contentType: row.contentType,
@@ -115,11 +124,17 @@ const editorFromRow = (row: ClassEditorRow): EditorState => ({
   quiz: isQuizJson(row.quizJson) ? row.quizJson : { questions: [] },
 });
 
-const toLocalInput = (iso: string | null) => {
+const toLocalInput = (iso: string | null, timeZone: string) => {
   if (!iso) return "";
   const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if (Number.isNaN(d.getTime())) return "";
+  return `${getDateKeyInTz(d, timeZone)}T${getTimeHmInTz(d, timeZone)}`;
+};
+
+const localInputToUtcIso = (localValue: string, timeZone: string): string => {
+  const [dateKey, timePart] = localValue.split("T");
+  if (!dateKey || !timePart) throw new Error("INVALID_ZONED_DATETIME");
+  return zonedDateTimeToUtc(dateKey, timePart.slice(0, 5), timeZone).toISOString();
 };
 
 export type ClassEditorHandle = {
@@ -135,6 +150,8 @@ type Props = {
   onSaved: () => void;
   /** Called after an upload starts or a recording is cleared, so the parent can refetch status. */
   onRecordingChange: () => void;
+  /** IANA zone for datetime-local interpretation (CRM operational TZ). */
+  operationalTimezone?: string;
 };
 
 const ClassEditorModal = ({
@@ -144,11 +161,37 @@ const ClassEditorModal = ({
   onClose,
   onSaved,
   onRecordingChange,
+  operationalTimezone: operationalTimezoneProp,
 }: Props) => {
   const { toast } = useCrm();
-  const [editor, setEditor] = useState<EditorState>(() =>
-    editingRow ? editorFromRow(editingRow) : { ...emptyEditor }
+  const [crmTz, setCrmTz] = useState(
+    operationalTimezoneProp ?? DEFAULT_OPERATIONAL_TZ
   );
+  const [editor, setEditor] = useState<EditorState>(() =>
+    editingRow
+      ? editorFromRow(editingRow, operationalTimezoneProp ?? DEFAULT_OPERATIONAL_TZ)
+      : { ...emptyEditor }
+  );
+
+  useEffect(() => {
+    if (operationalTimezoneProp) {
+      setCrmTz(operationalTimezoneProp);
+      return;
+    }
+    let cancelled = false;
+    void fetch("/api/admin/site-settings")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { operationalTimezone?: string } | null) => {
+        if (!cancelled && data?.operationalTimezone) {
+          setCrmTz(data.operationalTimezone);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [operationalTimezoneProp]);
+
   const [saving, setSaving] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [clearingRecording, setClearingRecording] = useState(false);
@@ -170,7 +213,7 @@ const ClassEditorModal = ({
     setHasLegacyDrive(Boolean(editingRow?.recordingUrl));
     setUploadProgress(null);
     setShowBodyPreview(false);
-    setEditor(editingRow ? editorFromRow(editingRow) : { ...emptyEditor });
+    setEditor(editingRow ? editorFromRow(editingRow, crmTz) : { ...emptyEditor });
   }
 
   const uploadRecording = (file: File) => {
@@ -342,15 +385,21 @@ const ClassEditorModal = ({
     const body: Record<string, unknown> = {
       title: editor.title.trim(),
       description: editor.description.trim() || null,
-      scheduledAt: editor.scheduledAtLocal
-        ? new Date(editor.scheduledAtLocal).toISOString()
-        : null,
+      scheduledAt: null as string | null,
       meetUrl: editor.meetUrl.trim() || null,
       recordingUrl: recordingUrl || null,
       contentType: editor.contentType,
       bodyMd: editor.contentType === "TEXT" ? editor.bodyMd.trim() || null : null,
       quizJson: editor.contentType === "QUIZ" ? editor.quiz : null,
     };
+    if (editor.scheduledAtLocal) {
+      try {
+        body.scheduledAt = localInputToUtcIso(editor.scheduledAtLocal, crmTz);
+      } catch {
+        toast("Fecha u hora inválida", "error");
+        return;
+      }
+    }
     if (!body.title) {
       toast("Falta el título", "error");
       return;
@@ -440,6 +489,11 @@ const ClassEditorModal = ({
                     setEditor((s) => ({ ...s, scheduledAtLocal: e.target.value }))
                   }
                 />
+                <p className="text-[10px] text-muted-foreground">
+                  Zona CRM:{" "}
+                  <span className="font-mono text-foreground/70">{crmTz}</span>.
+                  En el portal cada miembro ve su hora local.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label>Enlace Google Meet</Label>
