@@ -21,8 +21,6 @@ const PENDING_CONTRACT = new Set<string>([
   "/admin/curso/comentarios",
   "/admin/payments",
   "/admin/webinar",
-  "/admin/products",
-  "/admin/promo-codes",
   "/admin/notificaciones",
   "/admin/messages",
   "/admin/team",
