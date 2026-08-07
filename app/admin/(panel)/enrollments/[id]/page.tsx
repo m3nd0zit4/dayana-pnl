@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import EnrollmentDetailClient from "@/app/components/admin/EnrollmentDetailClient";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
@@ -15,12 +14,7 @@ const EnrollmentPage = async ({ params }: Props) => {
 
   return (
     <CrmPageShell>
-      <Link
-        href={`/admin/contacts/${enrollment.contactId}`}
-        className="mb-6 inline-flex text-xs font-medium text-primary hover:underline"
-      >
-        ← {enrollment.contact.firstName}
-      </Link>
+      {/* «Volver» lo pinta CrmPageHeader dentro del cliente, junto al título. */}
       <EnrollmentDetailClient
         enrollment={{
           ...enrollment,

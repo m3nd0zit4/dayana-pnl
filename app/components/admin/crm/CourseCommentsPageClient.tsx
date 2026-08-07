@@ -3,9 +3,16 @@
 import Link from "next/link";
 import { MessageCircleOff } from "lucide-react";
 import { useState } from "react";
-import { Card, CardContent } from "@/app/components/ui/card";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import { useCrm } from "./CrmProvider";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmRowActions,
+  CrmRowDelete,
+} from "./ui";
 
 export type CourseCommentRow = {
   id: string;
@@ -34,6 +41,8 @@ const CourseCommentsPageClient = ({ preview, initialComments }: Props) => {
     confirm({
       title: "Eliminar comentario",
       message: `¿Eliminar el comentario de ${row.contactFirstName}? No se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch(
           `/api/admin/lms/classes/${row.classId}/comments/${row.id}`,
@@ -51,61 +60,55 @@ const CourseCommentsPageClient = ({ preview, initialComments }: Props) => {
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Curso · Comentarios</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Todo lo que los miembros preguntan o comentan en cada clase, en un solo lugar.
-          </p>
-        </div>
+      <CrmPageHeader
+        title="Curso · Comentarios"
+        description="Todo lo que los miembros preguntan o comentan en cada clase, en un solo lugar."
+      />
 
-        <Card className="overflow-hidden py-0">
-          <CardContent className="divide-y divide-border p-0">
-            {preview || comments.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-12 text-center">
-                <MessageCircleOff className="size-8 text-muted-foreground/50" aria-hidden />
-                <p className="text-sm text-muted-foreground">Sin comentarios todavía.</p>
-              </div>
-            ) : (
-              comments.map((row) => (
-                <div key={row.id} className="p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{row.contactFirstName}</p>
-                      {row.moduleId ? (
-                        <Link
-                          href={`/admin/curso/modulos/${row.moduleId}`}
-                          className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-                        >
-                          {row.moduleTitle ? `${row.moduleTitle} · ` : ""}
-                          {row.classTitle}
-                        </Link>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">{row.classTitle}</p>
-                      )}
-                      <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap">
-                        {row.body}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-xs text-muted-foreground">
-                        {formatDateTime(row.createdAt)}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => remove(row)}
-                        className="text-xs text-destructive hover:underline"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
+      <CrmDataList>
+        {preview || comments.length === 0 ? (
+          <CrmEmptyState
+            icon={MessageCircleOff}
+            title="Sin comentarios todavía"
+            description="Cuando alguien comente en una clase aparecerá aquí, con enlace a su módulo."
+          />
+        ) : (
+          comments.map((row) => (
+            <CrmDataListRow
+              key={row.id}
+              className="items-start"
+              actions={
+                <CrmRowActions>
+                  <CrmRowDelete onClick={() => remove(row)} />
+                </CrmRowActions>
+              }
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <p className="text-sm font-semibold">{row.contactFirstName}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDateTime(row.createdAt)}
+                  </span>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                {row.moduleId ? (
+                  <Link
+                    href={`/admin/curso/modulos/${row.moduleId}`}
+                    className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    {row.moduleTitle ? `${row.moduleTitle} · ` : ""}
+                    {row.classTitle}
+                  </Link>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{row.classTitle}</p>
+                )}
+                <p className="mt-1.5 text-sm leading-relaxed whitespace-pre-wrap">
+                  {row.body}
+                </p>
+              </div>
+            </CrmDataListRow>
+          ))
+        )}
+      </CrmDataList>
     </CrmPageShell>
   );
 };
