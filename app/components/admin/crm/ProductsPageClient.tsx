@@ -110,17 +110,17 @@ const ProductStatusBadge = ({
   !isActive ? (
     <Badge variant="secondary">Inactivo</Badge>
   ) : displayPrice ? (
-    <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">Activo</Badge>
+    <Badge className="border-success/40 bg-success/10 text-success">Activo</Badge>
   ) : view === "cop" && usd ? (
-    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+    <Badge className="border-warning/40 bg-warning/10 text-warning">
       Sin COP · Oculto en Colombia
     </Badge>
   ) : view === "usd" && cop ? (
-    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+    <Badge className="border-warning/40 bg-warning/10 text-warning">
       Sin USD · Oculto internacional
     </Badge>
   ) : (
-    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">Sin precio · No visible</Badge>
+    <Badge className="border-warning/40 bg-warning/10 text-warning">Sin precio · No visible</Badge>
   );
 
 const emptyForm = () => ({

@@ -47,7 +47,7 @@ const FaqListEditor = ({ label, items, onChange }: Props) => {
           {items.map((item, index) => (
             <li
               key={index}
-              className="space-y-2 rounded-xl border border-black/8 bg-white/60 p-3"
+              className="space-y-2 rounded-xl border border-border bg-card p-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="font-mono text-[11px] text-muted-foreground">

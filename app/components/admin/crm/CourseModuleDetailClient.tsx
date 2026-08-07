@@ -391,11 +391,11 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                             row.recordingHiddenAt ? (
                               <span className="text-muted-foreground">Grabación oculta (venció el mes)</span>
                             ) : row.recordingPostedAt ? (
-                              <span className="text-emerald-700">
+                              <span className="text-success">
                                 Grabación visible hasta el {recordingExpiry(row.recordingPostedAt)}
                               </span>
                             ) : (
-                              <span className="text-emerald-700">Grabación publicada</span>
+                              <span className="text-success">Grabación publicada</span>
                             )
                           ) : (
                             <span className="text-muted-foreground">Sin grabación</span>
@@ -404,21 +404,21 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                       ) : row.contentType === "TEXT" ? (
                         <>
                           <FileText className="size-3.5 text-muted-foreground" aria-hidden />
-                          <span className="text-emerald-700">
+                          <span className="text-success">
                             {row.bodyMd?.trim() ? "Lectura lista" : "Lectura vacía"}
                           </span>
                         </>
                       ) : row.contentType === "PDF" ? (
                         <>
                           <FileText className="size-3.5 text-muted-foreground" aria-hidden />
-                          <span className={row.materialFileName ? "text-emerald-700" : "text-muted-foreground"}>
+                          <span className={row.materialFileName ? "text-success" : "text-muted-foreground"}>
                             {row.materialFileName ?? "Sin PDF"}
                           </span>
                         </>
                       ) : (
                         <>
                           <ListChecks className="size-3.5 text-muted-foreground" aria-hidden />
-                          <span className="text-emerald-700">
+                          <span className="text-success">
                             {(() => {
                               const n = Array.isArray((row.quizJson as { questions?: unknown[] } | null)?.questions)
                                 ? (row.quizJson as { questions: unknown[] }).questions.length

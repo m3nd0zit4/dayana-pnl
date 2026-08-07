@@ -472,7 +472,7 @@ const FreeWebinarAdminClient = ({
             </p>
 
             {videoReady && muxPlaybackId ? (
-              <div className="overflow-hidden rounded-xl bg-black/90 max-w-lg">
+              <div className="overflow-hidden rounded-xl bg-black max-w-lg">
                 <WebinarMuxVideo playbackId={muxPlaybackId} title={headline} />
               </div>
             ) : null}
@@ -535,7 +535,7 @@ const FreeWebinarAdminClient = ({
               }}
             />
             {uploading && uploadPct != null ? (
-              <div className="h-1.5 w-full max-w-lg overflow-hidden rounded-full bg-black/10">
+              <div className="h-1.5 w-full max-w-lg overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full bg-terracotta transition-[width] duration-200"
                   style={{ width: `${uploadPct}%` }}

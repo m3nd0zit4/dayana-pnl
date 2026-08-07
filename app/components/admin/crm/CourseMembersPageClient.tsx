@@ -38,20 +38,20 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const membershipChip = (row: CourseMemberRow) => {
   if (row.status === "CANCELLED" || row.status === "REFUNDED") {
-    return { label: row.status === "CANCELLED" ? "Cancelado" : "Reembolsado", cls: "bg-neutral-200 text-neutral-600" };
+    return { label: row.status === "CANCELLED" ? "Cancelado" : "Reembolsado", cls: "border-border bg-muted text-muted-foreground" };
   }
   if (!row.paidUntil) {
-    return { label: "Sin vigencia", cls: "bg-neutral-200 text-neutral-600" };
+    return { label: "Sin vigencia", cls: "border-border bg-muted text-muted-foreground" };
   }
   const paidUntil = new Date(row.paidUntil).getTime();
   const now = Date.now();
   if (paidUntil <= now) {
-    return { label: "Vencido", cls: "bg-red-100 text-red-700" };
+    return { label: "Vencido", cls: "border-destructive/40 bg-destructive/10 text-destructive" };
   }
   if (paidUntil - now <= 7 * DAY_MS) {
-    return { label: "Vence pronto", cls: "bg-amber-100 text-amber-700" };
+    return { label: "Vence pronto", cls: "border-warning/40 bg-warning/10 text-warning" };
   }
-  return { label: "Al día", cls: "bg-emerald-100 text-emerald-700" };
+  return { label: "Al día", cls: "border-success/40 bg-success/10 text-success" };
 };
 
 const formatDate = (iso: string | null) =>

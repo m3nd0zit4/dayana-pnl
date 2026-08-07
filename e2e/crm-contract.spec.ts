@@ -244,7 +244,7 @@ test.describe("CRM · dark mode", () => {
    *
    * Vaciar esta lista es lo último que hace ese trabajo.
    */
-  const PENDING_DARK_MODE = new Set<string>(["/admin/webinar", "/admin/contacts"]);
+  const PENDING_DARK_MODE = new Set<string>([]);
 
   const DARK_ROUTES = ["/admin/webinar", "/admin/contacts"].filter(
     (path) => baselineMode || !PENDING_DARK_MODE.has(path),
