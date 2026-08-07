@@ -17,6 +17,13 @@ sharing one codebase:
 Memorable thing: warm, human, editorial — a solo practitioner's brand, not a SaaS
 product. Nothing here should read as generic startup chrome.
 
+> **Building a CRM screen?** This file covers the visual language — type, colour,
+> spacing. The *layout* rules for `/admin` — where the primary action goes, how
+> lists and empty states are built, what a public-page link looks like — are in
+> [`docs/crm-ui-contract.md`](docs/crm-ui-contract.md), and they are enforced by
+> `e2e/crm-contract.spec.ts`. Read that one before touching a page under
+> `app/components/admin/crm/`.
+
 ## Typography
 
 Two type systems, deliberately different per surface — this is intentional, not drift:
@@ -43,7 +50,12 @@ fallback chain behind the real brand font, never as the lead.
 
 All colors are CSS custom properties in `app/globals.css`, mapped into Tailwind via
 `@theme inline` — no default Tailwind/shadcn palette values are used unmodified.
-Single palette (no dark mode; `.dark` variant is wired but never applied).
+**Dark mode is live.** `ThemeProvider` is mounted for `/admin` and for
+`/miembros` (`app/providers.tsx`), `.dark` redefines the full token set in
+`globals.css`, and there is a user-facing toggle in settings
+(`AppearanceThemeToggle`). Anything hardcoded to a light value — a hex, a
+`text-black/55`, a `bg-white/80` — will look broken the moment someone flips
+it. `bun run check:tokens` enforces this.
 
 | Token | Value | Use |
 |---|---|---|
@@ -58,7 +70,9 @@ Single palette (no dark mode; `.dark` variant is wired but never applied).
 | `--destructive` | `#b33a3a` | Errors/destructive actions |
 | `--border` | `rgba(20,18,16,0.08)` | Hairline borders — subtle, not gray-500 |
 | `--sidebar*` | mirrors `--card`/`--primary`/`--border` | App-shell sidebar (CRM + course player) |
-| `--chart-1..5` | brown/blush/green/gold/sand | Reserved for future data-viz, unused today |
+| `--success` | `#3d7a52` | Positive states — «Activo», «Al día» |
+| `--warning` | `#b8860b` | Needs attention, not a failure |
+| `--chart-1..5` | brown/blush/green/gold/sand | Data-viz — used by `CrmPaymentsChart` and `CrmPipelineChart` |
 
 Marketing-site-only extra tokens (`--color-ink`, `--color-paper`, `--color-linen`,
 `--color-blush`, `--color-sand`, `--color-terracotta`) exist alongside the shadcn set
