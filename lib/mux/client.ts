@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import Mux from "@mux/mux-node";
 
 /**
@@ -43,6 +42,3 @@ export const isMuxSigningConfigured = (): boolean =>
     process.env.MUX_SIGNING_KEY_ID?.trim() &&
       process.env.MUX_SIGNING_KEY_PRIVATE?.trim()
   );
-
-export const muxNotConfiguredResponse = () =>
-  NextResponse.json({ error: "mux_not_configured" }, { status: 503 });

@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getEnrolledCourses } from "@/lib/lms/membership";
 import { isRecordingVisible } from "@/lib/lms/course-content";
-import { getMuxClient, isMuxSigningConfigured, muxNotConfiguredResponse } from "@/lib/mux/client";
+import { getMuxClient, isMuxSigningConfigured } from "@/lib/mux/client";
+import { muxNotConfiguredResponse } from "@/lib/mux/http";
 
 export const dynamic = "force-dynamic";
 
