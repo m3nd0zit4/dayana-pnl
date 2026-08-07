@@ -91,15 +91,83 @@ export const recordWebinarRegistration = async (
   });
 };
 
+/**
+ * Página del panel. Nunca carga la tabla entera: con 10k registradas, traerlas
+ * todas revienta la memoria del servidor y el DOM del navegador por igual.
+ */
 export const listWebinarRegistrations = async (
   webinarId: string,
-  take = 500
-): Promise<WebinarRegistrationRow[]> =>
-  prisma.webinarRegistration.findMany({
-    where: { webinarId },
+  opts: { take?: number; skip?: number; q?: string } = {}
+): Promise<WebinarRegistrationRow[]> => {
+  const q = opts.q?.trim();
+  return prisma.webinarRegistration.findMany({
+    where: {
+      webinarId,
+      ...(q
+        ? {
+            contact: {
+              OR: [
+                { firstName: { contains: q, mode: "insensitive" } },
+                { lastName: { contains: q, mode: "insensitive" } },
+                { email: { contains: q, mode: "insensitive" } },
+                { phoneE164: { contains: q } },
+              ],
+            },
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
-    take,
+    take: opts.take ?? 50,
+    skip: opts.skip ?? 0,
     select: LIST_SELECT,
+  });
+};
+
+/** Contadores para la cabecera del panel — agregados, no filas. */
+export const webinarRegistrationStats = async (
+  webinarId: string
+): Promise<{
+  total: number;
+  linkSent: number;
+  reminder24h: number;
+  reminder1h: number;
+  unreachable: number;
+}> => {
+  const [total, linkSent, reminder24h, reminder1h, unreachable] =
+    await prisma.$transaction([
+      prisma.webinarRegistration.count({ where: { webinarId } }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, linkEmailSentAt: { not: null } },
+      }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, reminder24hSentAt: { not: null } },
+      }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, reminder1hSentAt: { not: null } },
+      }),
+      prisma.webinarRegistration.count({
+        where: {
+          webinarId,
+          OR: [{ contact: { email: null } }, { contact: { notifyEmail: false } }],
+        },
+      }),
+    ]);
+  return { total, linkSent, reminder24h, reminder1h, unreachable };
+};
+
+export const countPendingLinkRecipients = async (
+  webinarId: string
+): Promise<number> =>
+  prisma.webinarRegistration.count({
+    where: { webinarId, linkEmailSentAt: null, contact: EMAILABLE_CONTACT },
+  });
+
+export const countPendingReminderRecipients = async (
+  webinarId: string,
+  kind: ReminderKind
+): Promise<number> =>
+  prisma.webinarRegistration.count({
+    where: { webinarId, [reminderFlag(kind)]: null, contact: EMAILABLE_CONTACT },
   });
 
 export const countWebinarRegistrations = async (

@@ -28,12 +28,14 @@ import StringListEditor from "@/app/components/admin/crm/StringListEditor";
 import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";
 import WebinarRegistrantsPanel, {
   type WebinarRegistrantRow,
+  type WebinarRegistrationStats,
 } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
 
 type Props = {
   initial: FreeWebinarPublic;
   operationalTimezone?: string;
   registrations?: WebinarRegistrantRow[];
+  registrationStats?: WebinarRegistrationStats;
 };
 
 const WebinarMuxVideo = dynamic(
@@ -48,6 +50,13 @@ const FreeWebinarAdminClient = ({
   initial,
   operationalTimezone = OPERATIONAL_TZ,
   registrations = [],
+  registrationStats = {
+    total: 0,
+    linkSent: 0,
+    reminder24h: 0,
+    reminder1h: 0,
+    unreachable: 0,
+  },
 }: Props) => {
   const { toast } = useCrm();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -672,7 +681,10 @@ const FreeWebinarAdminClient = ({
           </Button>
         </CrmFormActions>
 
-        <WebinarRegistrantsPanel registrations={registrations} />
+        <WebinarRegistrantsPanel
+          registrations={registrations}
+          stats={registrationStats}
+        />
       </div>
     </CrmPageShell>
   );
