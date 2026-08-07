@@ -156,9 +156,17 @@ test.describe("CRM · contrato de patrones", () => {
           const link = page.locator("[data-crm-public-link]").first();
           await expect(link).toBeAttached();
 
-          const anchor = link.locator("a").or(link).first();
-          await expect(anchor).toHaveAttribute("target", "_blank");
-          await expect(anchor).toHaveAttribute("rel", /noopener/);
+          // Cuando la página pública devolvería 404 —webinar apagado, taller
+          // sin publicar— el enlace se pinta deshabilitado y no es un ancla,
+          // así que no tiene ni `target` ni `rel`. Lo que se exige entonces es
+          // que explique el motivo, que es el punto de `disabledReason`.
+          if (await link.isDisabled()) {
+            await expect(link).toHaveAttribute("title", /.+/);
+            return;
+          }
+
+          await expect(link).toHaveAttribute("target", "_blank");
+          await expect(link).toHaveAttribute("rel", /noopener/);
         });
       }
 
@@ -254,11 +262,16 @@ test.describe("CRM · dark mode", () => {
     test(`${path} responde al cambio de tema`, async ({ page }) => {
       await gotoCrm(page, path);
 
-      // Se mide el `<body>`, no `[data-crm-page]`: ese contenedor es
-      // transparente por diseño, así que su color calculado es el mismo en
-      // ambos temas y la comprobación pasaría siempre.
+      // Se mide `.crm-app`, que es el único elemento de la cadena que declara
+      // un `background` propio. Ni `[data-crm-page]` ni `<body>` lo hacen: son
+      // transparentes, devuelven el mismo color calculado en ambos temas y la
+      // comprobación pasaría —o fallaría— sin decir nada del tema.
       const readBg = () =>
-        page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+        page.evaluate(() => {
+          const el = document.querySelector(".crm-app");
+          if (!el) throw new Error("no se encontró .crm-app");
+          return getComputedStyle(el).backgroundColor;
+        });
 
       const light = await readBg();
 
