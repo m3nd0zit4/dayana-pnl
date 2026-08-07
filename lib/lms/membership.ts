@@ -16,19 +16,43 @@ export const MEMBERSHIP_MONTHS_PER_PAYMENT = 1;
 /** Days before expiry when the portal starts nudging the member to renew. */
 export const MEMBERSHIP_WARNING_DAYS = 7;
 
-export const getCourseProduct = async (): Promise<Product | null> =>
+/**
+ * El producto que realmente se cobra: la mensualidad. Es el único COURSE que
+ * NO es contenido de la biblioteca, así que un pago suyo abre todos los cursos
+ * (ver `getEnrolledCourses`).
+ */
+export const getMembershipProduct = async (): Promise<Product | null> =>
   prisma.product.findFirst({
-    where: { kind: ProductKind.COURSE, isActive: true },
+    where: {
+      kind: ProductKind.COURSE,
+      isActive: true,
+      isCourseContent: false,
+    },
     orderBy: { sortOrder: "asc" },
   });
 
-/** All active courses — the "My Learning" dashboard iterates this, ready for
- *  more than one COURSE product without touching `getCourseProduct` callers. */
-export const listCourseProducts = async (): Promise<Product[]> =>
-  prisma.product.findMany({
-    where: { kind: ProductKind.COURSE, isActive: true },
+/**
+ * Los cursos de la biblioteca. Antes de sembrar el currículo no existe ninguno
+ * y los módulos cuelgan directamente del producto de la mensualidad — por eso
+ * el respaldo: sin cursos de contenido, la mensualidad **es** el curso.
+ */
+export const listCourseProducts = async (): Promise<Product[]> => {
+  const courses = await prisma.product.findMany({
+    where: {
+      kind: ProductKind.COURSE,
+      isActive: true,
+      isCourseContent: true,
+    },
     orderBy: { sortOrder: "asc" },
   });
+  if (courses.length > 0) return courses;
+
+  const membership = await getMembershipProduct();
+  return membership ? [membership] : [];
+};
+
+export const getCourseProduct = async (): Promise<Product | null> =>
+  (await listCourseProducts())[0] ?? null;
 
 export type MembershipExtensionResult = {
   extended: boolean;
@@ -157,17 +181,37 @@ export const getMembershipForContact = async (
 ): Promise<MembershipInfo> => {
   if (opts.isOwner) return OWNER_MEMBERSHIP;
 
-  const enrollment = await prisma.enrollment.findFirst({
-    where: {
-      contactId,
-      product: { kind: ProductKind.COURSE },
-      status: {
-        in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED],
+  // La mensualidad manda; una inscripción a un curso suelto solo se usa si no
+  // hay membresía.
+  const enrollment =
+    (await prisma.enrollment.findFirst({
+      where: {
+        contactId,
+        product: { kind: ProductKind.COURSE, isCourseContent: false },
+        status: {
+          in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED],
+        },
       },
-    },
-    orderBy: [{ paidUntil: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-    include: { product: true },
-  });
+      orderBy: [
+        { paidUntil: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+      include: { product: true },
+    })) ??
+    (await prisma.enrollment.findFirst({
+      where: {
+        contactId,
+        product: { kind: ProductKind.COURSE },
+        status: {
+          in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED],
+        },
+      },
+      orderBy: [
+        { paidUntil: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+      include: { product: true },
+    }));
 
   const paidUntil = enrollment?.paidUntil ?? null;
   const now = Date.now();
@@ -194,11 +238,29 @@ export type EnrolledCourse = {
   membership: MembershipInfo;
 };
 
+const membershipInfoFrom = (
+  enrollment: Enrollment & { product: Product }
+): MembershipInfo => {
+  const paidUntil = enrollment.paidUntil;
+  const now = Date.now();
+  return {
+    enrollment,
+    paidUntil,
+    isCurrent: paidUntil != null && paidUntil.getTime() > now,
+    daysLeft: paidUntil
+      ? Math.ceil((paidUntil.getTime() - now) / (24 * 60 * 60 * 1000))
+      : null,
+  };
+};
+
 /**
- * One row per course product the contact has an active/completed enrollment
- * for — the "My Learning" dashboard's data source. A contact could have
- * multiple enrollments for the same course over time (renewals); only the
- * most recent per product is kept.
+ * Los cursos a los que el contacto tiene acceso — la fuente del dashboard y el
+ * gate de quiz, material y playback.
+ *
+ * El acceso es **all-access**: una mensualidad vigente (inscripción al producto
+ * que no es contenido) abre todos los cursos de la biblioteca. Las
+ * inscripciones directas a un curso concreto se respetan encima, por si alguna
+ * vez se vende un curso suelto o quedó una inscripción histórica.
  */
 export const getEnrolledCourses = async (
   contactId: string,
@@ -218,24 +280,36 @@ export const getEnrolledCourses = async (
     orderBy: [{ paidUntil: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     include: { product: true },
   });
+  if (enrollments.length === 0) return [];
 
+  // Solo la más reciente por producto (las renovaciones crean filas nuevas).
   const byProduct = new Map<string, Enrollment & { product: Product }>();
   for (const en of enrollments) {
     if (!byProduct.has(en.productId)) byProduct.set(en.productId, en);
   }
 
-  const now = Date.now();
-  return [...byProduct.values()].map((enrollment) => {
-    const paidUntil = enrollment.paidUntil;
-    const isCurrent = paidUntil != null && paidUntil.getTime() > now;
-    const daysLeft = paidUntil
-      ? Math.ceil((paidUntil.getTime() - now) / (24 * 60 * 60 * 1000))
-      : null;
-    return {
+  const membershipEnrollment = [...byProduct.values()].find(
+    (en) => !en.product.isCourseContent
+  );
+
+  const result = new Map<string, EnrolledCourse>();
+
+  if (membershipEnrollment) {
+    const membership = membershipInfoFrom(membershipEnrollment);
+    for (const product of await listCourseProducts()) {
+      result.set(product.id, { product, membership });
+    }
+  }
+
+  for (const enrollment of byProduct.values()) {
+    if (!enrollment.product.isCourseContent) continue;
+    result.set(enrollment.productId, {
       product: enrollment.product,
-      membership: { enrollment, paidUntil, isCurrent, daysLeft },
-    };
-  });
+      membership: membershipInfoFrom(enrollment),
+    });
+  }
+
+  return [...result.values()];
 };
 
 /** Approved payments of the membership, newest first (portal history). */

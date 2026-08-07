@@ -32,12 +32,19 @@ export const recordingVisibleUntil = (
 export const isRecordingVisible = (
   cls: Pick<
     LiveClassSession,
-    "recordingUrl" | "muxPlaybackId" | "recordingPostedAt" | "recordingHiddenAt"
+    | "recordingUrl"
+    | "muxPlaybackId"
+    | "recordingPostedAt"
+    | "recordingHiddenAt"
+    | "evergreen"
   >,
   now: Date = new Date()
 ): boolean => {
   if ((!cls.recordingUrl && !cls.muxPlaybackId) || cls.recordingHiddenAt)
     return false;
+  // El contenido permanente de la biblioteca no caduca: sin él, un curso
+  // pregrabado se vaciaría solo al mes de publicarse.
+  if (cls.evergreen) return true;
   if (!cls.recordingPostedAt) return false;
   return recordingVisibleUntil(cls.recordingPostedAt) > now;
 };

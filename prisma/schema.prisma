@@ -285,6 +285,7 @@ model Contact {
   lessonComments         LessonComment[]
   conversations          Conversation[]
   channelIdentities      ContactChannelIdentity[]
+  webinarRegistrations   WebinarRegistration[]
 
   @@index([createdAt])
   @@index([countryIso])
@@ -296,6 +297,9 @@ model Product {
   id              String      @id
   kind            ProductKind
   title           String
+  /// Curso de la biblioteca (contenedor de módulos), no un ítem de checkout.
+  /// El acceso lo abre la membresía mensual — ver lib/lms/membership.ts.
+  isCourseContent Boolean     @default(false) @map("is_course_content")
   imageUrl        String?     @map("image_url")
   sessionsLabel   String      @map("sessions_label")
   sessionsCount   Int?        @map("sessions_count")
@@ -388,7 +392,20 @@ model FreeWebinar {
   body              String?   @db.Text
   startsAt          DateTime? @map("starts_at")
   startsAtHasTime   Boolean   @default(true) @map("starts_at_has_time")
+  /// Enlace de la reunión (Google Meet). Al cambiarlo se reenvía por correo a
+  /// todas las registradas: `updateFreeWebinar` limpia `linkEmailSentAt`.
+  meetUrl           String?   @map("meet_url") @db.Text
+  /// Legado: URL del blob privado de Vercel. El vídeo promocional se sirve por
+  /// Mux (`muxPlaybackId`); se conserva la columna para no perder el objeto.
   videoUrl          String?   @map("video_url") @db.Text
+  /// Vídeo promocional en Mux. A diferencia de las grabaciones del curso, la
+  /// política de reproducción es `public` — es una landing de marketing.
+  muxUploadId       String?         @map("mux_upload_id")
+  muxAssetId        String?         @map("mux_asset_id")
+  muxPlaybackId     String?         @map("mux_playback_id")
+  videoStatus       RecordingStatus @default(NONE) @map("video_status")
+  videoDurationSec  Int?            @map("video_duration_sec")
+  videoErrorMessage String?         @map("video_error_message") @db.Text
   learnSectionTitle String?   @map("learn_section_title")
   learnItems        Json      @map("learn_items")
   faq               Json?
@@ -399,7 +416,30 @@ model FreeWebinar {
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
+  registrations WebinarRegistration[]
+
   @@map("free_webinars")
+}
+
+/// Una fila por persona registrada al webinar. Los contactos ya llevan la
+/// etiqueta `webinar-gratuito`; esta tabla existe para el estado de envío por
+/// persona (enlace + recordatorios), que una ventana temporal no puede dar.
+/// Cambiar `meetUrl` limpia `linkEmailSentAt`; cambiar `startsAt` limpia los
+/// dos recordatorios — así una reprogramación no deja a nadie sin aviso.
+model WebinarRegistration {
+  id                String    @id @default(cuid())
+  webinarId         String    @map("webinar_id")
+  contactId         String    @map("contact_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  linkEmailSentAt   DateTime? @map("link_email_sent_at")
+  reminder24hSentAt DateTime? @map("reminder_24h_sent_at")
+  reminder1hSentAt  DateTime? @map("reminder_1h_sent_at")
+
+  webinar FreeWebinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
+  contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([webinarId, contactId])
+  @@map("webinar_registrations")
 }
 
 model WorkshopDocument {
@@ -1201,6 +1241,9 @@ model MemberAuthToken {
 model CourseModule {
   id          String   @id @default(cuid())
   productId   String   @map("product_id")
+  /// Clave estable del currículo versionado (content/curriculum/**). Null en
+  /// los módulos creados a mano desde el admin.
+  slug        String?
   title       String
   bodyMd      String?  @map("body_md") @db.Text
   sortOrder   Int      @default(0) @map("sort_order")
@@ -1212,6 +1255,7 @@ model CourseModule {
   progress CourseModuleProgress[]
   classes  LiveClassSession[]
 
+  @@unique([productId, slug])
   @@index([productId, sortOrder])
   @@map("course_modules")
 }
@@ -1234,6 +1278,8 @@ model LiveClassSession {
   id                    String            @id @default(cuid())
   productId             String            @map("product_id")
   moduleId              String?           @map("module_id")
+  /// Clave estable del currículo versionado; null en las clases creadas a mano.
+  slug                  String?
   title                 String
   description           String?           @db.Text
   scheduledAt           DateTime?         @map("scheduled_at")
@@ -1253,6 +1299,9 @@ model LiveClassSession {
   materialFileName      String?           @map("material_file_name")
   materialSizeBytes     Int?              @map("material_size_bytes")
   quizJson              Json?             @map("quiz_json")
+  /// Contenido permanente de la biblioteca: no caduca a los 30 días como la
+  /// réplica de una clase en vivo (ver RECORDING_RETENTION_DAYS).
+  evergreen             Boolean           @default(false)
   sortOrder             Int               @default(0) @map("sort_order")
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
@@ -1262,6 +1311,7 @@ model LiveClassSession {
   progress CourseClassProgress[]
   comments LessonComment[]
 
+  @@unique([productId, slug])
   @@index([productId, scheduledAt])
   @@index([moduleId, sortOrder])
   @@map("live_class_sessions")
