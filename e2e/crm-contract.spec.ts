@@ -16,10 +16,6 @@ import { previewRoutes, type CrmRoute } from "./routes";
 const PENDING_CONTRACT = new Set<string>([
   "/admin",
   "/admin/webinar",
-  "/admin/notificaciones",
-  "/admin/messages",
-  "/admin/team",
-  "/admin/audit",
 ]);
 
 /** Etiquetas que delatan una acción primaria de creación. */

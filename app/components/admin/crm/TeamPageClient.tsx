@@ -1,12 +1,15 @@
 "use client";
 
-import { Pencil, Plus } from "lucide-react";
+import { Users } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import CrmNewButton from "./CrmNewButton";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import { useCrm } from "./CrmProvider";
 import StaffFormModal, { type CreatedStaffMember } from "./StaffFormModal";
+import { CrmEmptyState, CrmRowActions, CrmRowEdit } from "./ui";
 
 type Member = {
   id: string;
@@ -29,6 +32,7 @@ const TeamPageClient = ({
   canManage,
   preview,
 }: Props) => {
+  const { toast } = useCrm();
   const [team, setTeam] = useState<Member[]>(initialTeam);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
@@ -44,34 +48,39 @@ const TeamPageClient = ({
   };
 
   const handleSaved = (member: CreatedStaffMember) => {
+    let existed = false;
     setTeam((prev) => {
-      const exists = prev.some((u) => u.id === member.id);
-      return exists
+      existed = prev.some((u) => u.id === member.id);
+      return existed
         ? prev.map((u) => (u.id === member.id ? { ...u, ...member } : u))
         : [...prev, member];
     });
+    // Esta pantalla no daba ninguna señal al guardar: la fila cambiaba y ya.
+    toast(existed ? "Usuario actualizado" : "Usuario añadido");
   };
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Equipo</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Usuarios con acceso al CRM. Solo OWNER puede invitar a más personas.
-            </p>
-          </div>
-          {canManage && !preview && (
-            <Button size="sm" onClick={openCreate}>
-              <Plus />
-              <span className="hidden sm:inline">Añadir usuario</span>
-            </Button>
-          )}
-        </div>
+      <CrmPageHeader
+        title="Equipo"
+        description="Usuarios con acceso al CRM. Solo OWNER puede invitar a más personas."
+        action={
+          canManage && !preview ? (
+            <CrmNewButton label="Añadir usuario" onClick={openCreate} />
+          ) : undefined
+        }
+      />
 
+      <div className="space-y-6">
         <Card className="overflow-hidden py-0">
           <CardContent className="divide-y divide-border p-0">
+            {team.length === 0 && (
+              <CrmEmptyState
+                icon={Users}
+                title="Sin usuarios"
+                description="Añade a alguien para darle acceso al panel."
+              />
+            )}
             {team.map((u) => (
               <div
                 key={u.id}
@@ -92,15 +101,9 @@ const TeamPageClient = ({
                     {currentId === u.id ? " · tú" : ""}
                   </div>
                   {canManage && !preview && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Editar"
-                      title="Editar"
-                      onClick={() => openEdit(u)}
-                    >
-                      <Pencil />
-                    </Button>
+                    <CrmRowActions>
+                      <CrmRowEdit onClick={() => openEdit(u)} />
+                    </CrmRowActions>
                   )}
                 </div>
               </div>

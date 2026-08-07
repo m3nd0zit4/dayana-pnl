@@ -1,10 +1,11 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { ScrollText } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Card, CardContent } from "@/app/components/ui/card";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import { CrmEmptyState, CrmErrorState } from "./ui";
 
 type Log = {
   id: string;
@@ -48,23 +49,21 @@ const AuditPageClient = ({ preview }: Props) => {
 
   return (
     <CrmPageShell>
+      <CrmPageHeader
+        title="Auditoría"
+        description="Registro de acciones del staff en el CRM (OWNER)."
+      />
+
       <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Auditoría</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Registro de acciones del staff en el CRM (OWNER).
-          </p>
-        </div>
-        {error && (
-          <Alert>
-            <TriangleAlert />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        {error ? <CrmErrorState message={error} /> : null}
         <Card className="overflow-hidden py-0">
           <CardContent className="divide-y divide-border p-0 text-sm">
             {logs.length === 0 && !error && (
-              <div className="p-6 text-muted-foreground">Sin registros aún.</div>
+              <CrmEmptyState
+                icon={ScrollText}
+                title="Sin registros aún"
+                description="Aquí queda constancia de las acciones destructivas del equipo."
+              />
             )}
             {logs.map((l) => (
               <div key={l.id} className="p-4">
