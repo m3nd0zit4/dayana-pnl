@@ -1,4 +1,3 @@
-import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import CrmLoadingState from "@/app/components/admin/crm/ui/CrmLoadingState";
 import { Skeleton } from "@/app/components/ui/skeleton";
 
@@ -11,17 +10,25 @@ import { Skeleton } from "@/app/components/ui/skeleton";
  *
  * Reproduce la forma de una página migrada — cabecera y lista — para que la
  * transición al contenido real no dé un salto de layout.
+ *
+ * A propósito **no** usa `CrmPageShell`: durante la transición el esqueleto y
+ * la página real conviven un instante en el DOM, y si ambos llevaran el
+ * marcador `data-crm-page` habría dos. El contrato exige exactamente uno, y
+ * tiene razón — el marcador identifica la página, no cualquier cosa que ocupe
+ * su sitio.
  */
 const PanelLoading = () => (
-  <CrmPageShell>
-    <div className="space-y-4">
-      <Skeleton className="h-7 w-48" />
-      <Skeleton className="h-4 w-72" />
+  <div className="crm-page-shell">
+    <div className="mx-auto w-full max-w-6xl space-y-6">
+      <div className="space-y-4">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-4 w-72" />
+      </div>
+      <div className="overflow-hidden rounded-xl border">
+        <CrmLoadingState rows={5} />
+      </div>
     </div>
-    <div className="overflow-hidden rounded-xl border">
-      <CrmLoadingState rows={5} />
-    </div>
-  </CrmPageShell>
+  </div>
 );
 
 export default PanelLoading;
