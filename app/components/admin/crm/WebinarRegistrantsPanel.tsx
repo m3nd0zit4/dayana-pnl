@@ -23,8 +23,17 @@ export type WebinarRegistrantRow = {
   reminder1hSentAt: string | null;
 };
 
+export type WebinarRegistrationStats = {
+  total: number;
+  linkSent: number;
+  reminder24h: number;
+  reminder1h: number;
+  unreachable: number;
+};
+
 type Props = {
   registrations: WebinarRegistrantRow[];
+  stats: WebinarRegistrationStats;
 };
 
 const shortDate = (iso: string): string =>
@@ -55,8 +64,8 @@ const SentMark = ({ at, label }: { at: string | null; label: string }) =>
  * Solo lectura: reenviar «a una sola persona» no existe a propósito — cambiar
  * el enlace ya devuelve a todo el mundo a la cola, que es el caso real.
  */
-const WebinarRegistrantsPanel = ({ registrations }: Props) => {
-  const withoutEmail = registrations.filter((r) => !r.email).length;
+const WebinarRegistrantsPanel = ({ registrations, stats }: Props) => {
+  const showingAll = stats.total <= registrations.length;
 
   return (
     <Card className="border-black/8 bg-white/80">
@@ -65,10 +74,34 @@ const WebinarRegistrantsPanel = ({ registrations }: Props) => {
           Registradas
         </CardTitle>
         <span className="rounded-full bg-black/[0.06] px-2.5 py-0.5 text-xs font-medium text-black/60">
-          {registrations.length}
+          {stats.total.toLocaleString("es-CO")}
         </span>
       </CardHeader>
       <CardContent className="space-y-3">
+        {stats.total > 0 ? (
+          <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(
+              [
+                ["Enlace enviado", stats.linkSent],
+                ["Recordatorio 24 h", stats.reminder24h],
+                ["Recordatorio 1 h", stats.reminder1h],
+                ["Sin correo / baja", stats.unreachable],
+              ] as const
+            ).map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-xl border border-black/8 bg-black/[0.02] px-3 py-2"
+              >
+                <dt className="text-[10px] uppercase tracking-wider text-black/45">
+                  {label}
+                </dt>
+                <dd className="mt-0.5 text-base font-semibold text-black/80">
+                  {value.toLocaleString("es-CO")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         {registrations.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Todavía nadie se ha registrado.
@@ -137,10 +170,18 @@ const WebinarRegistrantsPanel = ({ registrations }: Props) => {
                 </tbody>
               </table>
             </div>
-            {withoutEmail > 0 ? (
+            {!showingAll ? (
+              <p className="text-xs text-black/50">
+                Mostrando las {registrations.length} más recientes de{" "}
+                {stats.total.toLocaleString("es-CO")}. Busca a alguien concreto
+                desde Contactos.
+              </p>
+            ) : null}
+            {stats.unreachable > 0 ? (
               <p className="text-xs text-amber-700">
-                {withoutEmail} sin correo: no reciben ni el enlace ni los
-                recordatorios. Escríbeles por WhatsApp desde su ficha.
+                {stats.unreachable.toLocaleString("es-CO")} sin correo o dadas de
+                baja: no reciben ni el enlace ni los recordatorios. Escríbeles
+                por WhatsApp desde su ficha.
               </p>
             ) : null}
           </>

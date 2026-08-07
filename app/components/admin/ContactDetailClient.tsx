@@ -56,7 +56,54 @@ type Contact = {
   consentMarketingAt: Date | null;
   tags?: { tag: { id: string; slug: string; label: string } }[];
   enrollments: Enrollment[];
+  /**
+   * El webinar gratuito se lista en Servicios sin ser un Enrollment: es
+   * gratuito, no pasa por checkout, y a escala de 10k registradas inflaría los
+   * contadores del dashboard. Aquí solo se muestra.
+   */
+  webinarRegistrations?: WebinarRegistrationRow[];
 };
+
+export type WebinarRegistrationRow = {
+  id: string;
+  createdAt: Date | string;
+  linkEmailSentAt: Date | string | null;
+  reminder24hSentAt: Date | string | null;
+  reminder1hSentAt: Date | string | null;
+  webinar: {
+    slug: string;
+    startsAt: Date | string | null;
+    startsAtHasTime: boolean;
+    meetUrl: string | null;
+  };
+};
+
+const shortDate = (v: Date | string): string =>
+  new Date(v).toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+
+/** Resume en una línea qué correos del webinar ya le llegaron a esta persona. */
+const webinarSendSummary = (r: WebinarRegistrationRow): string => {
+  const done: string[] = [];
+  if (r.linkEmailSentAt) done.push("enlace");
+  if (r.reminder24hSentAt) done.push("24 h");
+  if (r.reminder1hSentAt) done.push("1 h");
+  return done.length ? `Enviado: ${done.join(", ")}` : "Sin correos aún";
+};
+
+const WebinarServiceRow = ({ r }: { r: WebinarRegistrationRow }) => (
+  <Link
+    href="/admin/webinar"
+    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+  >
+    <div className="min-w-0 flex-1">
+      <span className="font-medium">Webinar gratuito</span>
+      <span className="ml-2 text-xs text-muted-foreground">
+        Registrada {shortDate(r.createdAt)} · {webinarSendSummary(r)}
+      </span>
+    </div>
+    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+  </Link>
+);
 
 const TABS = [
   { id: "resumen" as const, label: "Resumen" },
@@ -73,6 +120,8 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   // Sin ediciones locales del contacto: usar el prop directo hace que
   // router.refresh() traiga siempre el estado fresco del servidor.
   const contact = initial;
+  const webinarRegistrations = contact.webinarRegistrations ?? [];
+  const serviceCount = contact.enrollments.length + webinarRegistrations.length;
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState<Tab>(
     initialTab === "servicios" || initialTab === "pagos" || initialTab === "notas"
@@ -290,12 +339,15 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
             <div className="mb-2 flex items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-muted-foreground">Servicios</h2>
               <Button variant="ghost" size="sm" onClick={() => goToTab("servicios")}>
-                {contact.enrollments.length > 0 ? "Ver todos" : "Agregar"}
+                {serviceCount > 0 ? "Ver todos" : "Agregar"}
               </Button>
             </div>
             <Card className="overflow-hidden py-0">
               <CardContent className="divide-y divide-border p-0">
-                {contact.enrollments.length === 0 ? (
+                {webinarRegistrations.slice(0, 2).map((r) => (
+                  <WebinarServiceRow key={r.id} r={r} />
+                ))}
+                {serviceCount === 0 ? (
                   <p className="px-4 py-5 text-sm text-muted-foreground">Sin servicios</p>
                 ) : (
                   contact.enrollments.slice(0, 5).map((en) => (
@@ -356,7 +408,10 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
           )}
           <Card className="overflow-hidden py-0">
             <CardContent className="divide-y divide-border p-0">
-              {contact.enrollments.length === 0 ? (
+              {webinarRegistrations.map((r) => (
+                <WebinarServiceRow key={r.id} r={r} />
+              ))}
+              {serviceCount === 0 ? (
                 <p className="px-4 py-6 text-sm text-muted-foreground">Sin servicios</p>
               ) : (
                 contact.enrollments.map((en) => (

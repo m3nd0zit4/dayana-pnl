@@ -1,7 +1,13 @@
 import FreeWebinarAdminClient from "@/app/components/admin/crm/FreeWebinarAdminClient";
 import type { WebinarRegistrantRow } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
 import { ensureFreeWebinar, DEFAULT_FREE_WEBINAR } from "@/lib/crm/free-webinar";
-import { listWebinarRegistrations } from "@/lib/crm/webinar-registrations";
+import {
+  listWebinarRegistrations,
+  webinarRegistrationStats,
+} from "@/lib/crm/webinar-registrations";
+
+/** Primera página del panel; el resto se pide desde el cliente. */
+const PAGE_SIZE = 50;
 import {
   getOperationalTimezone,
 } from "@/lib/crm/operational-timezone";
@@ -18,6 +24,13 @@ const WebinarAdminPage = async () => {
       <FreeWebinarAdminClient
         operationalTimezone={operationalTimezone}
         registrations={[]}
+        registrationStats={{
+          total: 0,
+          linkSent: 0,
+          reminder24h: 0,
+          reminder1h: 0,
+          unreachable: 0,
+        }}
         initial={{
           id: "preview",
           slug: "gratuito",
@@ -50,7 +63,18 @@ const WebinarAdminPage = async () => {
   }
 
   const webinar = await ensureFreeWebinar();
-  const rows = await listWebinarRegistrations(webinar.id).catch(() => []);
+  // Solo la primera página. Con 10k registradas, traerlas todas reventaría el
+  // servidor y el DOM; los totales salen de contadores agregados.
+  const [rows, stats] = await Promise.all([
+    listWebinarRegistrations(webinar.id, { take: PAGE_SIZE }).catch(() => []),
+    webinarRegistrationStats(webinar.id).catch(() => ({
+      total: 0,
+      linkSent: 0,
+      reminder24h: 0,
+      reminder1h: 0,
+      unreachable: 0,
+    })),
+  ]);
 
   // Se aplana aquí: el panel es un componente cliente y las fechas tienen que
   // cruzar la frontera como cadenas.
@@ -72,6 +96,7 @@ const WebinarAdminPage = async () => {
       initial={webinar}
       operationalTimezone={webinar.operationalTimezone ?? operationalTimezone}
       registrations={registrations}
+      registrationStats={stats}
     />
   );
 };

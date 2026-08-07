@@ -372,6 +372,17 @@ export const getContactById = async (id: string) =>
           therapyPackage: true,
         },
       },
+      // El webinar gratuito se muestra en Servicios pero NO es un Enrollment:
+      // es gratis, no pasa por checkout, y a 10k registradas ensuciaría los
+      // contadores del dashboard. Se renderiza como fila aparte.
+      webinarRegistrations: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          webinar: {
+            select: { slug: true, startsAt: true, startsAtHasTime: true, meetUrl: true },
+          },
+        },
+      },
     },
   });
 
