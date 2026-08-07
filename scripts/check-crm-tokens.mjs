@@ -99,7 +99,7 @@ for (const root of ROOTS) {
  * arreglas casos, baja también la constante en el mismo commit; si sube,
  * significa que has introducido deriva nueva.
  */
-const BASELINE = 109;
+const BASELINE = 95;
 
 if (findings.length > BASELINE) {
   console.error(
