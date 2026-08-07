@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
-import Link from "next/link";
-import { upload } from "@vercel/blob/client";
-import { ExternalLink, Trash2, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import * as UpChunk from "@mux/upchunk";
+import { Trash2, Upload, Video } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
@@ -17,37 +17,39 @@ import {
   type PublishBlocker,
 } from "@/lib/crm/free-webinar-publish";
 import { OPERATIONAL_TZ } from "@/lib/datetime/zoned-time";
+import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
+import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import {
+  CrmFormActions,
+  CrmPublicLink,
+} from "@/app/components/admin/crm/ui";
 import StringListEditor from "@/app/components/admin/crm/StringListEditor";
 import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";
+import WebinarRegistrantsPanel, {
+  type WebinarRegistrantRow,
+} from "@/app/components/admin/crm/WebinarRegistrantsPanel";
 
 type Props = {
   initial: FreeWebinarPublic;
   operationalTimezone?: string;
+  registrations?: WebinarRegistrantRow[];
 };
 
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+const WebinarMuxVideo = dynamic(
+  () => import("@/app/components/webinar/WebinarMuxVideo"),
+  { ssr: false }
+);
 
-const VIDEO_EXT: Record<string, string> = {
-  "video/mp4": "mp4",
-  "video/quicktime": "mov",
-  "video/webm": "webm",
-};
-
-/** Windows often sends an empty File.type for .mp4/.mov — fall back to extension. */
-const resolveVideoType = (file: File): string | null => {
-  if (file.type && VIDEO_EXT[file.type]) return file.type;
-  const name = file.name.toLowerCase();
-  if (name.endsWith(".mp4")) return "video/mp4";
-  if (name.endsWith(".mov") || name.endsWith(".qt")) return "video/quicktime";
-  if (name.endsWith(".webm")) return "video/webm";
-  return null;
-};
+/** Mux tarda en codificar; se sondea hasta que el vídeo queda listo. */
+const RECONCILE_MS = 5000;
 
 const FreeWebinarAdminClient = ({
   initial,
   operationalTimezone = OPERATIONAL_TZ,
+  registrations = [],
 }: Props) => {
+  const { toast } = useCrm();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [isActive, setIsActive] = useState(initial.isActive);
@@ -56,7 +58,12 @@ const FreeWebinarAdminClient = ({
   const [body, setBody] = useState(initial.body ?? "");
   const [dateKey, setDateKey] = useState(initial.startsAtDateKey ?? "");
   const [timeHm, setTimeHm] = useState(initial.startsAtTimeHm ?? "");
-  const [videoUrl, setVideoUrl] = useState(initial.videoUrl ?? "");
+  const [meetUrl, setMeetUrl] = useState(initial.meetUrl ?? "");
+  const [videoStatus, setVideoStatus] = useState(initial.videoStatus);
+  const [muxPlaybackId, setMuxPlaybackId] = useState(initial.muxPlaybackId);
+  const [videoErrorMessage, setVideoErrorMessage] = useState(
+    initial.videoErrorMessage
+  );
   const [learnSectionTitle, setLearnSectionTitle] = useState(
     initial.learnSectionTitle ?? "Lo que vas a llevarte"
   );
@@ -77,9 +84,15 @@ const FreeWebinarAdminClient = ({
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<PublishBlocker[]>([]);
-  const [done, setDone] = useState(false);
+  const [linkNotice, setLinkNotice] = useState<string | null>(null);
 
   const hasSchedule = Boolean(dateKey);
+  const videoProcessing =
+    videoStatus === "UPLOADING" || videoStatus === "PROCESSING";
+  const videoReady = videoStatus === "READY" && Boolean(muxPlaybackId);
+  const pendingLinkCount = registrations.filter(
+    (r) => !r.linkEmailSentAt && r.email && r.notifyEmail
+  ).length;
 
   const savePayload = (overrides: Record<string, unknown> = {}) => ({
     isActive,
@@ -89,7 +102,7 @@ const FreeWebinarAdminClient = ({
     startsAtLocal: dateKey
       ? { date: dateKey, time: timeHm.trim() || null }
       : null,
-    videoUrl: videoUrl.trim() || null,
+    meetUrl: meetUrl.trim() || null,
     learnSectionTitle: learnSectionTitle.trim() || null,
     learnItems: learnItems.map((l) => l.trim()).filter(Boolean),
     faq: faq
@@ -109,7 +122,10 @@ const FreeWebinarAdminClient = ({
     setBody(webinar.body ?? "");
     setDateKey(webinar.startsAtDateKey ?? "");
     setTimeHm(webinar.startsAtTimeHm ?? "");
-    setVideoUrl(webinar.videoUrl ?? "");
+    setMeetUrl(webinar.meetUrl ?? "");
+    setVideoStatus(webinar.videoStatus);
+    setMuxPlaybackId(webinar.muxPlaybackId);
+    setVideoErrorMessage(webinar.videoErrorMessage);
     setLearnSectionTitle(webinar.learnSectionTitle ?? "Lo que vas a llevarte");
     setLearnItems(webinar.learnItems.length ? webinar.learnItems : [""]);
     setFaq(webinar.faq);
@@ -127,6 +143,8 @@ const FreeWebinarAdminClient = ({
     });
     const data = (await res.json().catch(() => ({}))) as {
       webinar?: FreeWebinarPublic;
+      meetUrlChanged?: boolean;
+      linkEmailsReset?: number;
       error?: string;
       blockers?: PublishBlocker[];
       message?: string;
@@ -140,13 +158,24 @@ const FreeWebinarAdminClient = ({
       err.messageEs = data.message;
       throw err;
     }
-    return data.webinar!;
+    return data;
+  };
+
+  /** El PATCH es el que dispara el envío del enlace: hay que decirlo. */
+  const noticeForLink = (
+    meetUrlChanged: boolean | undefined,
+    webinar: FreeWebinarPublic
+  ): string | null => {
+    if (!meetUrlChanged) return null;
+    if (!webinar.meetUrl) return "Se quitó el enlace de la reunión.";
+    return pendingLinkCount > 0
+      ? `Enlace guardado. Se está enviando por correo a ${pendingLinkCount} registrada${pendingLinkCount === 1 ? "" : "s"}.`
+      : "Enlace guardado. Se enviará a quien se registre a partir de ahora.";
   };
 
   const onToggle = async (next: boolean) => {
     setError(null);
     setBlockers([]);
-    setDone(false);
     setToggling(true);
     const prev = isActive;
     setIsActive(next);
@@ -155,9 +184,10 @@ const FreeWebinarAdminClient = ({
         next && hasSchedule
           ? savePayload({ isActive: true })
           : { isActive: next };
-      const webinar = await patch(payload);
-      applyWebinar(webinar);
-      setDone(true);
+      const data = await patch(payload);
+      applyWebinar(data.webinar!);
+      setLinkNotice(noticeForLink(data.meetUrlChanged, data.webinar!));
+      toast("Guardado");
     } catch (e) {
       setIsActive(prev);
       const err = e as Error & { blockers?: PublishBlocker[]; messageEs?: string };
@@ -175,7 +205,6 @@ const FreeWebinarAdminClient = ({
   const onSave = async () => {
     setError(null);
     setBlockers([]);
-    setDone(false);
     if (!headline.trim()) {
       setError("El titular es obligatorio.");
       return;
@@ -185,10 +214,12 @@ const FreeWebinarAdminClient = ({
       return;
     }
     setSaving(true);
+    setLinkNotice(null);
     try {
-      const webinar = await patch(savePayload());
-      applyWebinar(webinar);
-      setDone(true);
+      const data = await patch(savePayload());
+      applyWebinar(data.webinar!);
+      setLinkNotice(noticeForLink(data.meetUrlChanged, data.webinar!));
+      toast("Guardado");
     } catch (e) {
       const err = e as Error & { blockers?: PublishBlocker[]; messageEs?: string };
       if (err.blockers?.length) {
@@ -202,79 +233,84 @@ const FreeWebinarAdminClient = ({
     }
   };
 
-  const uploadVideo = async (file: File) => {
+  /**
+   * Subida directa navegador → Mux con UpChunk (troceada y reanudable), igual
+   * que las grabaciones del curso. El servidor solo entrega la URL firmada, así
+   * que el límite de tamaño del cuerpo de una función no aplica.
+   */
+  const uploadVideo = (file: File) => {
     setError(null);
-    setDone(false);
     setUploadPct(0);
-
-    const contentType = resolveVideoType(file);
-    if (!contentType) {
-      setError("Usa MP4, MOV o WebM.");
-      return;
-    }
-    if (file.size > MAX_VIDEO_BYTES) {
-      setError("El video es demasiado grande (máx. 200 MB).");
-      return;
-    }
-
     setUploading(true);
-    try {
-      // Direct browser → Vercel Blob. Avoids the ~4.5 MB serverless body limit
-      // that killed the previous FormData POST for any real promo video.
-      // Store is private-only (`dayana-pnl-blob`); public uploads are denied.
-      // Playback goes through `/api/webinar/video` (server-side get).
-      const blob = await upload(
-        `webinar/${crypto.randomUUID()}.${VIDEO_EXT[contentType] ?? "mp4"}`,
-        file,
-        {
-          access: "private",
-          handleUploadUrl: "/api/admin/webinar/video",
-          contentType,
-          multipart: true,
-          onUploadProgress: ({ percentage }) => {
-            setUploadPct(Math.round(percentage));
-          },
-        }
-      );
+    setVideoErrorMessage(null);
 
-      const res = await fetch("/api/admin/webinar", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoUrl: blob.url }),
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        webinar?: FreeWebinarPublic;
-        error?: string;
-        message?: string;
-      };
-      if (!res.ok) {
-        setError(data.message ?? "El video subió, pero no se pudo guardar la URL.");
-        return;
-      }
-      if (data.webinar) applyWebinar(data.webinar);
-      else setVideoUrl(blob.url);
-      setDone(true);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "";
-      setError(
-        /blob_not_configured|not configured|No token|valid token/i.test(msg)
-          ? "Almacenamiento de archivos no configurado o token inválido. En local hace falta BLOB_READ_WRITE_TOKEN (vercel env pull)."
-          : /Access denied|access denied/i.test(msg)
-            ? "Blob rechazó la subida (acceso denegado). El store es privado — si el error persiste, revisa BLOB_READ_WRITE_TOKEN / OIDC."
-            : /too large|maximumSize|413/i.test(msg)
-              ? "El video es demasiado grande (máx. 200 MB)."
-              : /content.?type|unsupported|415/i.test(msg)
-                ? "Usa MP4, MOV o WebM."
-                : msg
-                  ? `No se pudo subir el video: ${msg}`
-                  : "No se pudo subir el video. Reintenta o usa un archivo más liviano."
-      );
-    } finally {
+    const chunked = UpChunk.createUpload({
+      file,
+      endpoint: async () => {
+        const res = await fetch("/api/admin/webinar/video", { method: "POST" });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          throw new Error(
+            data.error === "mux_not_configured"
+              ? "Mux no está configurado (faltan MUX_TOKEN_ID / MUX_TOKEN_SECRET)."
+              : "No se pudo iniciar la subida."
+          );
+        }
+        const data = (await res.json()) as { uploadUrl: string };
+        return data.uploadUrl;
+      },
+    });
+
+    chunked.on("progress", (e) => {
+      setUploadPct(Math.round((e.detail as number) ?? 0));
+    });
+
+    chunked.on("error", (e) => {
+      const detail = e.detail as { message?: string } | undefined;
+      setError(detail?.message ?? "No se pudo subir el video.");
       setUploading(false);
       setUploadPct(null);
       if (fileRef.current) fileRef.current.value = "";
-    }
+    });
+
+    chunked.on("success", () => {
+      setUploading(false);
+      setUploadPct(null);
+      // Mux aún tiene que codificar. El sondeo de `videoProcessing` lo termina.
+      setVideoStatus("PROCESSING");
+      setMuxPlaybackId(null);
+      if (fileRef.current) fileRef.current.value = "";
+    });
   };
+
+  // Mux no puede llamar a `localhost`, y en producción un webhook perdido
+  // dejaría el vídeo colgado en «procesando». Este sondeo pregunta el estado
+  // real a la API de Mux hasta que queda listo (o falla).
+  useEffect(() => {
+    if (!videoProcessing) return;
+    let cancelled = false;
+
+    const tick = async () => {
+      const res = await fetch("/api/admin/webinar/video").catch(() => null);
+      if (!res?.ok || cancelled) return;
+      const data = (await res.json().catch(() => ({}))) as {
+        webinar?: FreeWebinarPublic;
+      };
+      if (cancelled || !data.webinar) return;
+      setVideoStatus(data.webinar.videoStatus);
+      setMuxPlaybackId(data.webinar.muxPlaybackId);
+      setVideoErrorMessage(data.webinar.videoErrorMessage);
+    };
+
+    const id = setInterval(() => void tick(), RECONCILE_MS);
+    void tick();
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [videoProcessing]);
 
   const removeVideo = async () => {
     setError(null);
@@ -289,7 +325,7 @@ const FreeWebinarAdminClient = ({
         return;
       }
       if (data.webinar) applyWebinar(data.webinar);
-      setDone(true);
+      toast("Guardado");
     } finally {
       setUploading(false);
     }
@@ -297,36 +333,40 @@ const FreeWebinarAdminClient = ({
 
   return (
     <CrmPageShell>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="font-[font2] text-2xl uppercase tracking-wide text-[var(--crm-ink)]">
-            Webinar gratuito
-          </h1>
-          <p className="mt-1 max-w-xl text-sm text-black/55">
+      <CrmPageHeader
+        title="Webinar gratuito"
+        description={
+          <>
             Fecha en zona del CRM (
-            <span className="font-mono text-black/70">{operationalTimezone}</span>
+            <span className="font-mono text-foreground">{operationalTimezone}</span>
             ). La hora es opcional hasta que la confirmes. En la web cada
             visitante ve su zona local. El video es opcional.
-          </p>
-        </div>
-        <Link
-          href="/webinar-gratuito"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-medium uppercase tracking-wider text-black/70 transition-colors hover:border-terracotta/40 hover:text-terracotta"
-        >
-          Ver página
-          <ExternalLink className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+          </>
+        }
+        // Talleres ya podía copiar el enlace de cada edición; esta página, que
+        // tiene una URL fija, no tenía forma de copiarla. Y cuando el webinar
+        // está apagado la página pública devuelve 404, así que el botón se
+        // muestra deshabilitado con el motivo en vez de llevar a un error.
+        secondaryActions={
+          <CrmPublicLink
+            href="/webinar-gratuito"
+            copy
+            disabledReason={
+              isActive
+                ? undefined
+                : "La página está oculta: actívala para poder verla."
+            }
+          />
+        }
+      />
 
-      <Card className="mb-6 border-black/8 bg-white/80">
+      <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
           <div>
-            <p className="text-sm font-medium text-black/80">
+            <p className="text-sm font-medium text-foreground">
               Página pública activa
             </p>
-            <p className="mt-0.5 text-xs text-black/45">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               {isActive
                 ? "Visible en /webinar-gratuito y en Enlaces."
                 : "Oculta (404). El botón en Enlaces también desaparece."}
@@ -341,7 +381,7 @@ const FreeWebinarAdminClient = ({
       </Card>
 
       <div className="flex flex-col gap-6">
-        <Card className="border-black/8 bg-white/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
               Contenido principal
@@ -418,7 +458,7 @@ const FreeWebinarAdminClient = ({
           </CardContent>
         </Card>
 
-        <Card className="border-black/8 bg-white/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
               Video (opcional)
@@ -427,48 +467,37 @@ const FreeWebinarAdminClient = ({
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
               Si subes un video, aparece en la landing. Si no hay video, esa
-              sección no se muestra.
+              sección no se muestra. Se procesa en Mux — puede tardar un par de
+              minutos antes de estar disponible.
             </p>
-            {videoUrl ? (
-              <div className="space-y-3">
-                <video
-                  src={`/api/webinar/video?v=${encodeURIComponent(videoUrl.slice(-24))}`}
-                  controls
-                  className="aspect-video w-full max-w-lg rounded-xl bg-black/90"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={uploading}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    <Upload className="size-3.5" />
-                    {uploading
-                      ? uploadPct != null
-                        ? `Subiendo… ${uploadPct}%`
-                        : "Subiendo…"
-                      : "Reemplazar"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive"
-                    disabled={uploading}
-                    onClick={() => void removeVideo()}
-                  >
-                    <Trash2 className="size-3.5" />
-                    Quitar video
-                  </Button>
-                </div>
+
+            {videoReady && muxPlaybackId ? (
+              <div className="overflow-hidden rounded-xl bg-black/90 max-w-lg">
+                <WebinarMuxVideo playbackId={muxPlaybackId} title={headline} />
               </div>
-            ) : (
+            ) : null}
+
+            {videoProcessing ? (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+                <Video className="size-4 animate-pulse" />
+                Procesando en Mux… esta pantalla se actualiza sola.
+              </div>
+            ) : null}
+
+            {videoStatus === "ERRORED" ? (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                Mux no pudo procesar el video.
+                {videoErrorMessage ? ` ${videoErrorMessage}` : ""} Vuelve a
+                subirlo.
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="outline"
-                disabled={uploading}
+                size="sm"
+                disabled={uploading || videoProcessing}
                 onClick={() => fileRef.current?.click()}
               >
                 <Upload className="size-3.5" />
@@ -476,9 +505,25 @@ const FreeWebinarAdminClient = ({
                   ? uploadPct != null
                     ? `Subiendo… ${uploadPct}%`
                     : "Subiendo…"
-                  : "Subir video (MP4 / MOV / WebM)"}
+                  : videoReady
+                    ? "Reemplazar"
+                    : "Subir video (MP4 / MOV / WebM)"}
               </Button>
-            )}
+              {videoReady || videoStatus === "ERRORED" ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  disabled={uploading}
+                  onClick={() => void removeVideo()}
+                >
+                  <Trash2 className="size-3.5" />
+                  Quitar video
+                </Button>
+              ) : null}
+            </div>
+
             <input
               ref={fileRef}
               type="file"
@@ -486,7 +531,7 @@ const FreeWebinarAdminClient = ({
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) void uploadVideo(file);
+                if (file) uploadVideo(file);
               }}
             />
             {uploading && uploadPct != null ? (
@@ -500,7 +545,39 @@ const FreeWebinarAdminClient = ({
           </CardContent>
         </Card>
 
-        <Card className="border-black/8 bg-white/80">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base uppercase tracking-wide">
+              Enlace de la reunión
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="meetUrl">Enlace de Google Meet</Label>
+              <Input
+                id="meetUrl"
+                type="url"
+                value={meetUrl}
+                onChange={(e) => setMeetUrl(e.target.value)}
+                placeholder="https://meet.google.com/abc-defg-hij"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Al guardar, el enlace se envía por correo a todas las
+                registradas que aún no lo tienen. Si lo cambias, se reenvía a
+                todas. Déjalo vacío hasta tenerlo — quien se registre recibirá
+                su confirmación igual, y el enlace le llegará después.
+              </p>
+            </div>
+            {meetUrl.trim() && pendingLinkCount > 0 ? (
+              <p className="rounded-lg bg-terracotta/8 px-3 py-2 text-xs text-terracotta">
+                {pendingLinkCount} registrada
+                {pendingLinkCount === 1 ? "" : "s"} sin el enlace todavía.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
               Temas / qué van a llevarse
@@ -526,7 +603,7 @@ const FreeWebinarAdminClient = ({
           </CardContent>
         </Card>
 
-        <Card className="border-black/8 bg-white/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
               Preguntas frecuentes
@@ -537,7 +614,7 @@ const FreeWebinarAdminClient = ({
           </CardContent>
         </Card>
 
-        <Card className="border-black/8 bg-white/80">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
               SEO (opcional)
@@ -564,24 +641,28 @@ const FreeWebinarAdminClient = ({
         </Card>
 
         {error && (
-          <p className="text-sm text-[#b4543a]" role="alert">
+          <p className="text-sm text-destructive" role="alert">
             {error}
           </p>
         )}
         {blockers.length > 0 && (
-          <ul className="list-inside list-disc text-sm text-[#b4543a]">
+          <ul className="list-inside list-disc text-sm text-destructive">
             {blockers.map((b) => (
               <li key={b}>{PUBLISH_BLOCKER_LABELS[b]}</li>
             ))}
           </ul>
         )}
-        {done && !error && (
-          <p className="text-sm text-emerald-700" role="status">
-            Guardado.
+        {/* El éxito ya no se pinta en verde aquí: va por toast, como en el
+            resto del panel. El aviso del enlace sí se queda inline porque
+            explica un efecto secundario del guardado (se reenvía el Meet) y
+            conviene que permanezca en pantalla. */}
+        {linkNotice && !error && (
+          <p className="text-sm text-terracotta" role="status">
+            {linkNotice}
           </p>
         )}
 
-        <div>
+        <CrmFormActions>
           <Button
             type="button"
             disabled={saving || toggling || uploading}
@@ -589,7 +670,9 @@ const FreeWebinarAdminClient = ({
           >
             {saving ? "Guardando…" : "Guardar cambios"}
           </Button>
-        </div>
+        </CrmFormActions>
+
+        <WebinarRegistrantsPanel registrations={registrations} />
       </div>
     </CrmPageShell>
   );

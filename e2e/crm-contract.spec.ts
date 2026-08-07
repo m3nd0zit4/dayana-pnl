@@ -13,10 +13,21 @@ import { previewRoutes, type CrmRoute } from "./routes";
  * rutas a la lista para «arreglar» un fallo — el fallo significa que la
  * migración de esa ruta está incompleta.
  */
-const PENDING_CONTRACT = new Set<string>([
-  "/admin",
-  "/admin/webinar",
-]);
+const PENDING_CONTRACT = new Set<string>([]);
+
+/**
+ * Exenciones permanentes. No es lo mismo que `PENDING_CONTRACT`: estas rutas no
+ * están pendientes de migrar, es que la regla no les aplica.
+ *
+ * El panel de inicio no es una página de lista: es un saludo centrado con el
+ * cuadro del agente debajo, y su `<h1>` es ese saludo. Meterlo en
+ * `CrmPageHeader` —título a la izquierda, acciones a la derecha— no lo haría
+ * más consistente, lo convertiría en otra pantalla. Eso sería rediseño, y este
+ * trabajo es de consistencia.
+ *
+ * Añadir algo aquí exige explicar por qué, no solo que falle.
+ */
+const CONTRACT_EXEMPT = new Set<string>(["/admin"]);
 
 /** Etiquetas que delatan una acción primaria de creación. */
 const CREATE_LABEL = /^\s*(Nuevo|Nueva|Crear|Añadir|Agregar)\b/i;
@@ -32,7 +43,9 @@ const MAX_CONTENT_WIDTH = 1200;
 const baselineMode = process.env.CRM_CONTRACT_BASELINE === "1";
 
 const contractRoutes = previewRoutes.filter(
-  (r) => baselineMode || !PENDING_CONTRACT.has(r.path),
+  (r) =>
+    !CONTRACT_EXEMPT.has(r.path) &&
+    (baselineMode || !PENDING_CONTRACT.has(r.path)),
 );
 
 test.describe("CRM · contrato de patrones", () => {
