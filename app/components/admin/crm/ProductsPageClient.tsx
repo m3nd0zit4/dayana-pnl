@@ -1,29 +1,32 @@
 "use client";
 
 import { ProductKind } from "@prisma/client";
-import { Plus } from "lucide-react";
+import { Package } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/app/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Textarea } from "@/app/components/ui/textarea";
 import CrmModal from "./CrmModal";
+import CrmNewButton from "./CrmNewButton";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import CrmSegmentedControl from "./CrmSegmentedControl";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 import { invalidateCached } from "./hooks/useReferenceData";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmFormActions,
+  CrmLoadingState,
+  CrmRowActions,
+  CrmRowDelete,
+  CrmRowEdit,
+} from "./ui";
 
 type ProductPrice = {
   currency: string;
@@ -107,17 +110,17 @@ const ProductStatusBadge = ({
   !isActive ? (
     <Badge variant="secondary">Inactivo</Badge>
   ) : displayPrice ? (
-    <Badge className="bg-green-100 text-green-800 dark:bg-green-100 dark:text-green-800">Activo</Badge>
+    <Badge className="border-success/40 bg-success/10 text-success">Activo</Badge>
   ) : view === "cop" && usd ? (
-    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+    <Badge className="border-warning/40 bg-warning/10 text-warning">
       Sin COP · Oculto en Colombia
     </Badge>
   ) : view === "usd" && cop ? (
-    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+    <Badge className="border-warning/40 bg-warning/10 text-warning">
       Sin USD · Oculto internacional
     </Badge>
   ) : (
-    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">Sin precio · No visible</Badge>
+    <Badge className="border-warning/40 bg-warning/10 text-warning">Sin precio · No visible</Badge>
   );
 
 const emptyForm = () => ({
@@ -247,6 +250,8 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       title: "Eliminar paquete",
       message:
         "Si tiene servicios vinculados se desactivará; si no, se borra. La web pública dejará de mostrarlo.",
+      confirmLabel: "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch("/api/admin/products", {
           method: "DELETE",
@@ -266,40 +271,37 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Paquetes</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              USD e Internacional (PayPal) · COP e Colombia (Mercado Pago). Ambos
-              precios se editan y guardan juntos.
-            </p>
-          </div>
-          {canManageTeam && !preview && (
-            <Button
-              size="sm"
+      <CrmPageHeader
+        title="Paquetes"
+        description="USD e Internacional (PayPal) · COP y Colombia (Mercado Pago). Ambos precios se editan y guardan juntos."
+        action={
+          canManageTeam && !preview ? (
+            <CrmNewButton
+              label="Nuevo paquete"
               onClick={() => {
                 setCreating(true);
                 setEditing(null);
                 setForm(emptyForm());
                 setCopForm(emptyCopForm());
               }}
-            >
-              <Plus />
-              <span className="hidden sm:inline">Nuevo paquete</span>
-            </Button>
-          )}
-        </div>
+            />
+          ) : undefined
+        }
+        trailing={
+          <CrmSegmentedControl
+            value={view}
+            onChange={setView}
+            aria-label="Moneda"
+            segments={[
+              { id: "usd" as View, label: "Internacional (USD)" },
+              { id: "cop" as View, label: "Colombia (COP)" },
+            ]}
+          />
+        }
+      />
 
-        <Tabs value={view} onValueChange={(v) => typeof v === "string" && setView(v as View)}>
-          <TabsList>
-            <TabsTrigger value="usd">Internacional (USD)</TabsTrigger>
-            <TabsTrigger value="cop">Colombia (COP)</TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Edit / Create form */}
-        <CrmModal
+      {/* Edit / Create form */}
+      <CrmModal
           title={creating ? "Nuevo paquete" : `Editar: ${editing?.title ?? ""}`}
           open={!!showForm && canManageTeam}
           onClose={() => {
@@ -453,8 +455,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                 </label>
               )}
 
-              <div className="flex gap-2 pt-1">
-                <Button onClick={() => void save()}>Guardar</Button>
+              <CrmFormActions size="sm">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -464,125 +465,67 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                 >
                   Cancelar
                 </Button>
-              </div>
+                <Button onClick={() => void save()}>Guardar</Button>
+              </CrmFormActions>
           </div>
         </CrmModal>
 
-        <Card className="overflow-hidden py-0">
-          <CardContent className="p-0">
-            {loading ? (
-              <p className="p-6 text-sm text-muted-foreground">Cargando…</p>
-            ) : (
-              <>
-                <div className="hidden lg:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Paquete</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>{view === "usd" ? "Precio USD" : "Precio COP"}</TableHead>
-                        <TableHead>Activo</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {products.map((p) => {
-                        const usd = usdPrice(p);
-                        const cop = copPrice(p);
-                        const displayPrice = view === "usd" ? usd : cop;
-                        return (
-                          <TableRow key={p.id}>
-                            <TableCell className="font-medium">{p.title}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {KIND_LABEL[p.kind]}
-                            </TableCell>
-                            <TableCell>
-                              <ProductPriceDisplay view={view} displayPrice={displayPrice} />
-                            </TableCell>
-                            <TableCell>
-                              <ProductStatusBadge
-                                view={view}
-                                isActive={p.isActive}
-                                displayPrice={displayPrice}
-                                usd={usd}
-                                cop={cop}
-                              />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {canManageTeam && !preview && (
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => openEdit(p)}
-                                  >
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive"
-                                    onClick={() => remove(p.id)}
-                                  >
-                                    Eliminar
-                                  </Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+      {/*
+        Antes esta lista se enviaba dos veces: una `<Table>` para `lg` y una
+        lista de tarjetas duplicada para móvil, con el mismo contenido escrito
+        dos veces y mantenido a mano. Ahora es una sola fila que se reordena
+        sola: las columnas quedan alineadas en pantalla ancha porque cada celda
+        tiene su anchura, y se apilan en móvil sin media query aparte.
+      */}
+      <CrmDataList>
+        {loading ? (
+          <CrmLoadingState rows={4} />
+        ) : products.length === 0 ? (
+          <CrmEmptyState
+            icon={Package}
+            title="Sin paquetes"
+            description="Los paquetes son lo que se vende en la web: terapias, cursos y talleres."
+          />
+        ) : (
+          products.map((p) => {
+            const usd = usdPrice(p);
+            const cop = copPrice(p);
+            const displayPrice = view === "usd" ? usd : cop;
+            return (
+              <CrmDataListRow
+                key={p.id}
+                actions={
+                  canManageTeam && !preview ? (
+                    <CrmRowActions>
+                      <CrmRowEdit onClick={() => openEdit(p)} />
+                      <CrmRowDelete onClick={() => remove(p.id)} />
+                    </CrmRowActions>
+                  ) : undefined
+                }
+              >
+                <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                  <div className="text-sm font-medium">{p.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {KIND_LABEL[p.kind]}
+                  </div>
                 </div>
-
-                <div className="divide-y divide-border lg:hidden">
-                  {products.map((p) => {
-                    const usd = usdPrice(p);
-                    const cop = copPrice(p);
-                    const displayPrice = view === "usd" ? usd : cop;
-                    return (
-                      <div key={p.id} className="flex items-start justify-between gap-3 p-4">
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium">{p.title}</div>
-                          <div className="text-xs text-muted-foreground">{KIND_LABEL[p.kind]}</div>
-                          <div className="mt-1.5 text-sm">
-                            <ProductPriceDisplay view={view} displayPrice={displayPrice} />
-                          </div>
-                          <div className="mt-1.5">
-                            <ProductStatusBadge
-                              view={view}
-                              isActive={p.isActive}
-                              displayPrice={displayPrice}
-                              usd={usd}
-                              cop={cop}
-                            />
-                          </div>
-                        </div>
-                        {canManageTeam && !preview && (
-                          <div className="flex shrink-0 flex-col items-end gap-1">
-                            <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                              Editar
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive"
-                              onClick={() => remove(p.id)}
-                            >
-                              Eliminar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                <div className="text-sm sm:w-40">
+                  <ProductPriceDisplay view={view} displayPrice={displayPrice} />
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                <div className="sm:w-36">
+                  <ProductStatusBadge
+                    view={view}
+                    isActive={p.isActive}
+                    displayPrice={displayPrice}
+                    usd={usd}
+                    cop={cop}
+                  />
+                </div>
+              </CrmDataListRow>
+            );
+          })
+        )}
+      </CrmDataList>
     </CrmPageShell>
   );
 };

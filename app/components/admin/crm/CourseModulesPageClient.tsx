@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, MessageCircle, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Layers, MessageCircle } from "lucide-react";
 import { useCallback, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -13,9 +13,12 @@ import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
+import CrmNewButton from "./CrmNewButton";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
+import { CrmEmptyState, CrmFormActions } from "./ui";
 
 export type CourseModuleRow = {
   id: string;
@@ -113,6 +116,8 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
     confirm({
       title: "Eliminar módulo",
       message: `¿Eliminar «${row.title}»? Esta acción no se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch(`/api/admin/lms/modules/${row.id}`, {
           method: "DELETE",
@@ -148,30 +153,25 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Curso · Módulos</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              El material que Dayana enviaba por WhatsApp, ahora en el portal.
-              Acepta Markdown (negritas, listas, títulos). Solo los publicados
-              son visibles para los miembros.
-            </p>
-          </div>
-          {!preview && canWrite && (
-            <Button size="sm" onClick={() => openEditor()}>
-              <Plus />
-              <span className="hidden sm:inline">Nuevo módulo</span>
-            </Button>
-          )}
-        </div>
+      <CrmPageHeader
+        title="Curso · Módulos"
+        description="El material que Dayana enviaba por WhatsApp, ahora en el portal. Acepta Markdown (negritas, listas, títulos). Solo los publicados son visibles para los miembros."
+        action={
+          !preview && canWrite ? (
+            <CrmNewButton label="Nuevo módulo" onClick={() => openEditor()} />
+          ) : undefined
+        }
+      />
 
+      <div className="space-y-6">
         <Card className="overflow-hidden py-0">
           <CardContent className="divide-y divide-border p-0">
             {rows.length === 0 && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Sin módulos. Crea el primero con «Nuevo módulo».
-              </div>
+              <CrmEmptyState
+                icon={Layers}
+                title="Sin módulos"
+                description="Crea el primero para empezar a montar el temario del curso."
+              />
             )}
             {rows.map((row, index) => (
               <div key={row.id} className="p-4">
@@ -186,8 +186,8 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
                         <Badge
                           className={
                             row.isPublished
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-100 dark:text-emerald-700"
-                              : "bg-neutral-200 text-neutral-600 dark:bg-neutral-200 dark:text-neutral-600"
+                              ? "border-success/40 bg-success/10 text-success"
+                              : "border-border bg-muted text-muted-foreground"
                           }
                         >
                           {row.isPublished ? "Publicado" : "Borrador"}
@@ -311,14 +311,14 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
               Publicado (visible para miembros al día)
             </label>
 
-            <div className="flex justify-end gap-2">
+            <CrmFormActions size="sm">
               <Button variant="outline" onClick={() => setEditor(null)}>
                 Cancelar
               </Button>
               <Button disabled={saving} onClick={() => void save()}>
                 {saving ? "Guardando…" : "Guardar"}
               </Button>
-            </div>
+            </CrmFormActions>
           </div>
         )}
       </CrmModal>

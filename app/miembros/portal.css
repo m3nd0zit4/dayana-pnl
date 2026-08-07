@@ -1,186 +1,23 @@
-/* Portal de miembros — mismo lenguaje visual del CRM (linen, blush, ink)
-   con layout tipo aula: sidebar + tarjetas. */
+/*
+ * Portal de miembros — raíz del tema.
+ *
+ * Este archivo tenía 186 líneas: un juego de tokens `--portal-*` que duplicaba
+ * valor a valor los de `globals.css`, más `.portal-card`, `.portal-btn-primary`,
+ * `.portal-btn-secondary`, `.portal-input`, `.portal-sidebar-link`,
+ * `.portal-display` y `.prose-portal`. Ninguna de esas clases tenía un solo
+ * consumidor, y ningún componente referenciaba `var(--portal-*)`: los
+ * componentes del portal usan `Button` y `Card` de shadcn desde hace tiempo.
+ *
+ * Como los tokens `--portal-*` tampoco tenían bloque `.dark`, el portal se
+ * comportaba igual que el CRM — fondo y color clavados en claro por mucho que
+ * el interruptor de tema dijera otra cosa. Al colgar de los tokens
+ * compartidos, el tema funciona sin nada más.
+ */
 
 .portal-app {
-  --portal-ink: #0a0a0a;
-  --portal-linen: #ece3d4;
-  --portal-blush: #edc3b1;
-  --portal-sand: #d4b896;
-  --portal-background: #f6f2eb;
-  --portal-foreground: #141210;
-  --portal-muted: #6f655c;
-  --portal-border: rgba(20, 18, 16, 0.08);
-  --portal-card: #fffcf8;
-  --portal-accent: #5c4a3a;
-  --portal-accent-hover: #3d3228;
-  --portal-success: #3d7a52;
-  --portal-warning: #b8860b;
-  --portal-danger: #b33a3a;
-  --portal-sidebar-w: 15rem;
-
   min-height: 100vh;
-  background: var(--portal-background);
-  color: var(--portal-foreground);
+  background: var(--background);
+  color: var(--foreground);
   font-family: font1, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
-}
-
-.portal-display {
-  font-family: font2, font1, sans-serif;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.portal-card {
-  background: var(--portal-card);
-  border-radius: 14px;
-  border: 0.5px solid var(--portal-border);
-  box-shadow: 0 1px 2px rgba(20, 18, 16, 0.04);
-}
-
-.portal-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  background: var(--portal-accent);
-  color: #fff;
-  font-family: font2, sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  padding: 0.8rem 1.75rem;
-  transition: background-color 0.2s ease;
-}
-.portal-btn-primary:hover {
-  background: var(--portal-accent-hover);
-}
-.portal-btn-primary:disabled {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.portal-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 999px;
-  border: 1px solid rgba(92, 74, 58, 0.35);
-  color: var(--portal-accent);
-  background: transparent;
-  font-family: font2, sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  padding: 0.8rem 1.5rem;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-.portal-btn-secondary:hover {
-  background: rgba(236, 227, 212, 0.5);
-  border-color: var(--portal-accent);
-}
-.portal-btn-secondary:disabled {
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.portal-input {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid rgba(20, 18, 16, 0.12);
-  background: #fff;
-  padding: 0.7rem 0.9rem;
-  font-size: 0.875rem;
-  color: var(--portal-foreground);
-  transition: border-color 0.15s ease;
-}
-.portal-input:focus {
-  outline: none;
-  border-color: var(--portal-accent);
-}
-
-.portal-sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  border-radius: 10px;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.85rem;
-  color: var(--portal-muted);
-  transition: background-color 0.15s ease, color 0.15s ease;
-}
-.portal-sidebar-link:hover {
-  background: rgba(236, 227, 212, 0.55);
-  color: var(--portal-foreground);
-}
-.portal-sidebar-link[data-active="true"] {
-  background: var(--portal-accent);
-  color: #fff;
-}
-
-/* Cuerpo markdown de los módulos (lectura clara, tipo aula) */
-.prose-portal {
-  color: #33302b;
-  font-size: 15.5px;
-  line-height: 1.75;
-}
-.prose-portal h1,
-.prose-portal h2,
-.prose-portal h3 {
-  font-family: font2, sans-serif;
-  text-transform: uppercase;
-  color: var(--portal-foreground, #141210);
-  letter-spacing: 0.05em;
-  line-height: 1.2;
-  margin: 2em 0 0.7em;
-}
-.prose-portal h1 { font-size: 1.4rem; }
-.prose-portal h2 { font-size: 1.15rem; }
-.prose-portal h3 { font-size: 1rem; }
-.prose-portal p { margin: 0 0 1.1em; }
-.prose-portal ul,
-.prose-portal ol {
-  margin: 0 0 1.1em;
-  padding-left: 1.4em;
-}
-.prose-portal ul { list-style: disc; }
-.prose-portal ol { list-style: decimal; }
-.prose-portal li { margin-bottom: 0.4em; }
-.prose-portal a {
-  color: var(--portal-accent, #5c4a3a);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.prose-portal strong { color: var(--portal-foreground, #141210); }
-.prose-portal blockquote {
-  border-left: 3px solid var(--portal-blush, #edc3b1);
-  padding-left: 1em;
-  margin: 1.4em 0;
-  color: var(--portal-muted, #6f655c);
-  font-style: italic;
-}
-.prose-portal hr {
-  border: none;
-  border-top: 1px solid var(--portal-border, rgba(20, 18, 16, 0.08));
-  margin: 2em 0;
-}
-.prose-portal code {
-  background: rgba(212, 184, 150, 0.25);
-  border-radius: 4px;
-  padding: 0.1em 0.35em;
-  font-size: 0.9em;
-}
-.prose-portal table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 1.4em 0;
-  font-size: 0.9em;
-}
-.prose-portal th,
-.prose-portal td {
-  border: 1px solid var(--portal-border, rgba(20, 18, 16, 0.08));
-  padding: 0.5em 0.75em;
-  text-align: left;
 }

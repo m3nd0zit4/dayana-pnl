@@ -67,11 +67,17 @@ type CrmContextValue = {
     (options: ToastOptions): number;
   };
   dismissToast: (id: number) => void;
-  confirm: (opts: {
-    title: string;
-    message: string;
-    onConfirm: () => void | Promise<void>;
-  }) => void;
+  confirm: (opts: ConfirmOptions) => void;
+};
+
+export type ConfirmOptions = {
+  title: string;
+  message: string;
+  /** Verbo de la acción: «Eliminar», «Revocar»… Evita el genérico «Confirmar». */
+  confirmLabel?: string;
+  /** Tiñe el botón de confirmar. Para todo lo que borra o revoca. */
+  destructive?: boolean;
+  onConfirm: () => void | Promise<void>;
 };
 
 const CrmContext = createContext<CrmContextValue | null>(null);
@@ -117,11 +123,7 @@ const CrmProvider = ({
   // confirmState holds the last content (never cleared on close) so the
   // dialog keeps showing it while AlertDialog's close animation plays;
   // confirmOpen alone drives visibility.
-  const [confirmState, setConfirmState] = useState<{
-    title: string;
-    message: string;
-    onConfirm: () => void | Promise<void>;
-  } | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmOptions | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
@@ -167,13 +169,10 @@ const CrmProvider = ({
     [router]
   );
 
-  const confirm = useCallback(
-    (opts: { title: string; message: string; onConfirm: () => void | Promise<void> }) => {
-      setConfirmState(opts);
-      setConfirmOpen(true);
-    },
-    []
-  );
+  const confirm = useCallback((opts: ConfirmOptions) => {
+    setConfirmState(opts);
+    setConfirmOpen(true);
+  }, []);
 
   const staffRole = role === "PREVIEW" ? "READONLY" : role;
 
@@ -230,6 +229,8 @@ const CrmProvider = ({
         open={confirmOpen}
         title={confirmState?.title ?? ""}
         message={confirmState?.message ?? ""}
+        confirmLabel={confirmState?.confirmLabel}
+        destructive={confirmState?.destructive}
         onClose={() => setConfirmOpen(false)}
         onConfirm={async () => {
           const handler = confirmState?.onConfirm;

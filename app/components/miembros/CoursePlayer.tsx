@@ -41,6 +41,7 @@ export type OutlineClass = {
   recordingDurationSec: number | null;
   recordingPostedAt: string | null;
   recordingHiddenAt: string | null;
+  evergreen: boolean;
   contentType: LessonContentType;
   bodyMd: string | null;
   materialFileName: string | null;
@@ -75,8 +76,9 @@ const RECORDING_RETENTION_DAYS = 30;
  *  imported here directly without pulling a server-only dependency into the
  *  browser bundle. */
 const isRecordingVisible = (cls: OutlineClass, now = Date.now()): boolean => {
-  if ((!cls.recordingUrl && !cls.muxPlaybackId) || cls.recordingHiddenAt || !cls.recordingPostedAt)
-    return false;
+  if ((!cls.recordingUrl && !cls.muxPlaybackId) || cls.recordingHiddenAt) return false;
+  if (cls.evergreen) return true;
+  if (!cls.recordingPostedAt) return false;
   const visibleUntil =
     new Date(cls.recordingPostedAt).getTime() +
     RECORDING_RETENTION_DAYS * 24 * 60 * 60 * 1000;

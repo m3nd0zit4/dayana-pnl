@@ -390,11 +390,12 @@ export const clearRecording = async (classId: string) =>
 export const handleMuxAssetCreated = async (
   uploadId: string,
   assetId: string
-) => {
-  await prisma.liveClassSession.updateMany({
+): Promise<number> => {
+  const { count } = await prisma.liveClassSession.updateMany({
     where: { muxUploadId: uploadId },
     data: { muxAssetId: assetId, recordingStatus: RecordingStatus.PROCESSING },
   });
+  return count;
 };
 
 /** `video.asset.ready` — restarts the 30-day visibility window, same as a new Drive link. */
@@ -402,8 +403,8 @@ export const handleMuxAssetReady = async (
   assetId: string,
   playbackId: string,
   durationSec: number | null
-) => {
-  await prisma.liveClassSession.updateMany({
+): Promise<number> => {
+  const { count } = await prisma.liveClassSession.updateMany({
     where: { muxAssetId: assetId },
     data: {
       muxPlaybackId: playbackId,
@@ -413,18 +414,20 @@ export const handleMuxAssetReady = async (
       recordingHiddenAt: null,
     },
   });
+  return count;
 };
 
 /** `video.asset.errored` — surfaces the failure on the class row for staff. */
 export const handleMuxAssetErrored = async (
   assetId: string,
   message: string | null
-) => {
-  await prisma.liveClassSession.updateMany({
+): Promise<number> => {
+  const { count } = await prisma.liveClassSession.updateMany({
     where: { muxAssetId: assetId },
     data: {
       recordingStatus: RecordingStatus.ERRORED,
       recordingErrorMessage: message,
     },
   });
+  return count;
 };

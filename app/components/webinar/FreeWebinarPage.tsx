@@ -1,6 +1,7 @@
 "use client";
 
 import { Laptop, Gift, ChevronDown } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import LeadCaptureForm from "@/app/components/leads/LeadCaptureForm";
 import WebinarLocalSchedule from "@/app/components/webinar/WebinarLocalSchedule";
@@ -12,6 +13,16 @@ type Props = {
   webinar: FreeWebinarPublic;
   userCountry?: string | null;
 };
+
+// El bundle de mux-player es pesado y el vídeo va por debajo del pliegue.
+// Esta es la landing de conversión: no vale la pena pagarlo en el LCP.
+const WebinarMuxVideo = dynamic(
+  () => import("@/app/components/webinar/WebinarMuxVideo"),
+  {
+    ssr: false,
+    loading: () => <div className="aspect-video w-full bg-black" />,
+  }
+);
 
 const scrollToRegistro = () => {
   document.getElementById("registro")?.scrollIntoView({
@@ -111,21 +122,12 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
               {BRAND.shortName} · sin costo
             </p>
 
-            {webinar.videoUrl ? (
+            {webinar.videoStatus === "READY" && webinar.muxPlaybackId ? (
               <div className="mt-8 overflow-hidden rounded-2xl border border-black/8 bg-black shadow-[0_20px_50px_-28px_rgba(0,0,0,0.45)]">
-                <video
-                  src={`/api/webinar/video?v=${encodeURIComponent(
-                    String(webinar.updatedAt instanceof Date
-                      ? webinar.updatedAt.getTime()
-                      : webinar.updatedAt)
-                  )}`}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  className="aspect-video w-full"
-                >
-                  Tu navegador no reproduce este video.
-                </video>
+                <WebinarMuxVideo
+                  playbackId={webinar.muxPlaybackId}
+                  title={webinar.headline}
+                />
               </div>
             ) : null}
           </div>

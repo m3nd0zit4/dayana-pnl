@@ -2,7 +2,9 @@ import { defineTool } from "eve/tools";
 import { always } from "eve/tools/approval";
 import { z } from "zod";
 import {
+  clearWebinarVideo,
   updateFreeWebinar,
+  FreeWebinarMeetUrlError,
   FreeWebinarPublishError,
   PUBLISH_BLOCKER_LABELS,
 } from "@/lib/crm/free-webinar";
@@ -52,6 +54,14 @@ export default defineTool({
       .boolean()
       .optional()
       .describe("If true, removes the promo video from the landing"),
+    meetUrl: z
+      .string()
+      .url()
+      .nullable()
+      .optional()
+      .describe(
+        "Google Meet link. WARNING: saving a new or different link emails it to every registered attendee who does not have it yet. Pass null to remove it."
+      ),
     ctaLabel: z.string().min(1).max(80).optional(),
     formTitle: z.string().min(1).max(120).optional(),
     metaTitle: z.string().max(120).nullable().optional(),
@@ -80,19 +90,25 @@ export default defineTool({
     }
 
     try {
-      const webinar = await updateFreeWebinar({
-        ...rest,
-        isActive: clearSchedule ? false : isActive,
-        startsAtLocal: clearSchedule
-          ? null
-          : startsAtDate
-            ? {
-                date: startsAtDate,
-                time: startsAtTime === undefined ? null : startsAtTime,
-              }
-            : undefined,
-        videoUrl: clearVideo ? null : undefined,
-      });
+      if (clearVideo) await clearWebinarVideo();
+
+      const { webinar, meetUrlChanged, linkEmailsReset } =
+        await updateFreeWebinar({
+          ...rest,
+          isActive: clearSchedule ? false : isActive,
+          startsAtLocal: clearSchedule
+            ? null
+            : startsAtDate
+              ? {
+                  date: startsAtDate,
+                  time: startsAtTime === undefined ? null : startsAtTime,
+                }
+              : undefined,
+        });
+
+      // El fan-out lo recoge el cron `webinar-mailer`; aquí solo se informa.
+      void meetUrlChanged;
+      void linkEmailsReset;
 
       await auditAgentWrite(ctx, {
         action: "UPDATE",
@@ -117,6 +133,13 @@ export default defineTool({
         },
       };
     } catch (e) {
+      if (e instanceof FreeWebinarMeetUrlError) {
+        return {
+          ok: false as const,
+          error: "invalid_meet_url",
+          message: "El enlace de la reunión debe ser una URL https válida.",
+        };
+      }
       if (e instanceof FreeWebinarPublishError) {
         return {
           ok: false as const,

@@ -28,6 +28,10 @@ jobs:
 
       - run: bun run typecheck
 
+      # Trinquete de paleta: falla solo si aparecen colores nuevos escritos a
+      # mano. El contrato de Playwright no puede cazarlos — renderizan bien.
+      - run: bun run check:tokens
+
   # Corre en paralelo a `check` a propósito: si lint/typecheck fallan, el harness
   # e2e sigue dando señal. Antes `needs: check` lo bloqueaba por completo.
   e2e:

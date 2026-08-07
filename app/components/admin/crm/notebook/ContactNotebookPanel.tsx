@@ -225,10 +225,10 @@ const ContactNotebookPanel = ({
     return (
       <section className="crm-notebook-panel">
         <div className="crm-notebook-empty">
-          <p className="text-sm font-medium text-[var(--crm-foreground)]">
+          <p className="text-sm font-medium text-foreground">
             Cuaderno clínico no configurado
           </p>
-          <p className="mt-1.5 text-sm text-[var(--crm-muted)]">
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {blobWarnMessage}
           </p>
         </div>
@@ -240,7 +240,7 @@ const ContactNotebookPanel = ({
     return (
       <section className="crm-notebook-panel">
         <div className="crm-notebook-empty">
-          <p className="text-sm font-medium text-[var(--crm-foreground)]">
+          <p className="text-sm font-medium text-foreground">
             Sin permiso para crear el cuaderno
           </p>
         </div>

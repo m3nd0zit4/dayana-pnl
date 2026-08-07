@@ -119,9 +119,10 @@ export const SEED_PLANS: Plan[] = [
     amountUsd: 35,
     unitPrice: "por mes",
     features: [
+      "Acceso a todos los cursos de la biblioteca mientras la mensualidad esté activa",
       "Clases en vivo por Google Meet",
-      "Grabaciones disponibles 1 mes en el portal",
-      "Módulos del curso en el portal de miembros",
+      "Grabaciones de las clases en vivo disponibles 1 mes en el portal",
+      "Material descargable, ejercicios y evaluaciones por módulo",
       "Espacio real para compartir",
     ],
     whatsappMessage:

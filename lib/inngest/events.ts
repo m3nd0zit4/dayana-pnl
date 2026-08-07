@@ -110,6 +110,31 @@ export const emitSocialPostPublish = async (
   }
 };
 
+/**
+ * Dayana guardó (o cambió) el enlace de la reunión del webinar.
+ *
+ * Devuelve booleano: si no se encoló, la ruta lo envía en línea con `after()`.
+ * El cron `webinar-mailer` es la red de seguridad — la cola pendiente es una
+ * condición de la base de datos, no un mensaje que se pueda perder — pero
+ * esperar hasta diez minutos para un enlace recién puesto es demasiado.
+ */
+export const emitWebinarMeetLinkChanged = async (
+  webinarId: string
+): Promise<boolean> => {
+  if (!shouldEmitInngest()) return false;
+  try {
+    const { inngest } = await import("./client");
+    await inngest.send({
+      name: "webinar/meet-link.changed",
+      data: { webinarId },
+    });
+    return true;
+  } catch (e) {
+    console.warn("[inngest] webinar/meet-link.changed emit failed", e);
+    return false;
+  }
+};
+
 export const emitCampaignRun = async (campaignId: string) => {
   if (!shouldEmitInngest()) return;
   try {

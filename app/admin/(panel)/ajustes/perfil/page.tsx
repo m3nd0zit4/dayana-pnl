@@ -7,8 +7,14 @@ import { Card, CardContent } from "@/app/components/ui/card";
 export const dynamic = "force-dynamic";
 
 /**
- * Envoltorio delgado a propósito: esta página está espejada por la ruta
- * interceptora `@modal/(.)ajustes/perfil`, que solo reexporta este default.
+ * Envoltorio delgado a propósito: toda la UI y el estado viven en
+ * `StaffProfileForm`.
+ *
+ * El comentario anterior decía que esta página estaba espejada por una ruta
+ * interceptora `@modal/(.)ajustes/perfil`. No existía: bajo `app/admin` no hay
+ * ningún interceptor, y el slot `@modal` que había era inerte (el layout ni
+ * siquiera lo recibía como prop). Quien tiene interceptores de verdad es el
+ * portal de miembros, en `app/miembros/(portal)/@modal/(.)cuenta/*`.
  */
 const Page = async () => {
   const staff = await getStaffSession();

@@ -19,8 +19,10 @@ import {
 } from "@/app/components/ui/select";
 import { NOTIFICATION_GROUPS } from "@/lib/notifications/platform/catalog";
 import type { FeedItem } from "@/lib/notifications/platform/types";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
+import { CrmLoadMore } from "./ui";
 import { useCrm } from "./CrmProvider";
 
 type Props = { preview: boolean };
@@ -118,16 +120,12 @@ const NotificationsPageClient = ({ preview }: Props) => {
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">
-              Notificaciones
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Historial completo de avisos de la plataforma.
-            </p>
-          </div>
+      <CrmPageHeader
+        title="Notificaciones"
+        description="Historial completo de avisos de la plataforma."
+        // «Marcar todo como leído» no crea nada: va en el hueco de apoyo, no
+        // en el de la acción primaria.
+        secondaryActions={
           <Button
             variant="outline"
             size="sm"
@@ -136,11 +134,13 @@ const NotificationsPageClient = ({ preview }: Props) => {
               void report(feed.markAllRead(), "No se pudo marcar todo como leído")
             }
           >
-            <CheckCheck />
+            <CheckCheck aria-hidden />
             Marcar todo como leído
           </Button>
-        </div>
+        }
+      />
 
+      <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-2">
           <CrmSegmentedControl
             segments={READ_SEGMENTS}
@@ -260,18 +260,11 @@ const NotificationsPageClient = ({ preview }: Props) => {
           </CardContent>
         </Card>
 
-        {!preview && feed.hasMore && (
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={feed.loadingMore}
-              onClick={feed.loadMore}
-            >
-              {feed.loadingMore ? "Cargando…" : "Cargar más"}
-            </Button>
-          </div>
-        )}
+        <CrmLoadMore
+          hasMore={!preview && feed.hasMore}
+          loading={feed.loadingMore}
+          onClick={feed.loadMore}
+        />
       </div>
     </CrmPageShell>
   );

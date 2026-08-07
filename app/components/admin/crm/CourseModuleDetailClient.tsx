@@ -23,9 +23,11 @@ import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
+import { CrmFormActions } from "./ui";
 import ClassEditorModal, { type ClassEditorRow } from "./ClassEditorModal";
 import ClassCommentsModal from "./ClassCommentsModal";
 
@@ -184,6 +186,8 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
     confirm({
       title: "Eliminar clase",
       message: `¿Eliminar «${row.title}»? Los miembros dejarán de ver su grabación.`,
+      confirmLabel: "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch(`/api/admin/lms/classes/${row.id}`, { method: "DELETE" });
         if (!res.ok) {
@@ -200,6 +204,8 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
     confirm({
       title: "Quitar del módulo",
       message: `«${row.title}» pasará a no asignada — dejará de verse en este módulo hasta que la asignes de nuevo.`,
+      confirmLabel: "Quitar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch(`/api/admin/lms/classes/${row.id}/assign`, {
           method: "POST",
@@ -221,6 +227,8 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
     confirm({
       title: "Notificar grabación",
       message: `Se avisará por correo y WhatsApp a los miembros al día que la grabación de «${row.title}» está disponible.`,
+      // No borra nada, pero tampoco se deshace: el aviso ya salió.
+      confirmLabel: "Notificar",
       onConfirm: async () => {
         setNotifyingId(row.id);
         const res = await fetch(`/api/admin/lms/classes/${row.id}/notify`, { method: "POST" });
@@ -261,15 +269,21 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
   };
 
   return (
-    <CrmPageShell>
-      <div className="space-y-6">
-        <Link
-          href="/admin/curso/modulos"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden /> Módulos
-        </Link>
+    <CrmPageShell width="narrow">
+      {/*
+        Esta página no tenía `<h1>`: el nombre del módulo solo existía dentro
+        del `<Input>` de abajo, así que al entrar desde la lista no había forma
+        de saber dónde estabas sin leer un campo de formulario. El fallback
+        cubre el módulo recién creado y el modo vista previa, donde el título
+        llega vacío.
+      */}
+      <CrmPageHeader
+        title={mod.title.trim() || "Módulo sin título"}
+        backHref="/admin/curso/modulos"
+        backLabel="Módulos"
+      />
 
+      <div className="space-y-6">
         <Card>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
@@ -317,11 +331,11 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
             )}
 
             {canWrite && !preview && (
-              <div className="flex justify-end">
+              <CrmFormActions size="sm">
                 <Button disabled={savingModule} onClick={() => void saveModule()}>
                   {savingModule ? "Guardando…" : "Guardar módulo"}
                 </Button>
-              </div>
+              </CrmFormActions>
             )}
           </CardContent>
         </Card>
@@ -377,11 +391,11 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                             row.recordingHiddenAt ? (
                               <span className="text-muted-foreground">Grabación oculta (venció el mes)</span>
                             ) : row.recordingPostedAt ? (
-                              <span className="text-emerald-700">
+                              <span className="text-success">
                                 Grabación visible hasta el {recordingExpiry(row.recordingPostedAt)}
                               </span>
                             ) : (
-                              <span className="text-emerald-700">Grabación publicada</span>
+                              <span className="text-success">Grabación publicada</span>
                             )
                           ) : (
                             <span className="text-muted-foreground">Sin grabación</span>
@@ -390,21 +404,21 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
                       ) : row.contentType === "TEXT" ? (
                         <>
                           <FileText className="size-3.5 text-muted-foreground" aria-hidden />
-                          <span className="text-emerald-700">
+                          <span className="text-success">
                             {row.bodyMd?.trim() ? "Lectura lista" : "Lectura vacía"}
                           </span>
                         </>
                       ) : row.contentType === "PDF" ? (
                         <>
                           <FileText className="size-3.5 text-muted-foreground" aria-hidden />
-                          <span className={row.materialFileName ? "text-emerald-700" : "text-muted-foreground"}>
+                          <span className={row.materialFileName ? "text-success" : "text-muted-foreground"}>
                             {row.materialFileName ?? "Sin PDF"}
                           </span>
                         </>
                       ) : (
                         <>
                           <ListChecks className="size-3.5 text-muted-foreground" aria-hidden />
-                          <span className="text-emerald-700">
+                          <span className="text-success">
                             {(() => {
                               const n = Array.isArray((row.quizJson as { questions?: unknown[] } | null)?.questions)
                                 ? (row.quizJson as { questions: unknown[] }).questions.length

@@ -8,6 +8,7 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import CrmModal from "./CrmModal";
+import CrmFormActions from "./ui/CrmFormActions";
 import ScheduleSlotEditor from "./ScheduleSlotEditor";
 import SearchableSelect from "./SearchableSelect";
 import StringListEditor from "./StringListEditor";
@@ -425,14 +426,14 @@ const WorkshopFormModal = ({
             {error}
           </p>
         )}
-        <div className="flex justify-end gap-2 pt-2">
+        <CrmFormActions size="sm">
           <Button type="button" variant="outline" onClick={onClose}>
             Cancelar
           </Button>
           <Button type="submit" disabled={loading}>
             {loading ? "Guardando…" : "Guardar"}
           </Button>
-        </div>
+        </CrmFormActions>
       </form>
     </CrmModal>
   );

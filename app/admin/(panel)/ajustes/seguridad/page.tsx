@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/app/components/ui/card";
 export const dynamic = "force-dynamic";
 
 /**
- * Envoltorio delgado a propósito: esta página está espejada por la ruta
- * interceptora `@modal/(.)ajustes/seguridad`, que solo reexporta este default.
+ * Envoltorio delgado a propósito: la UI vive en `ActiveSessionsTable`.
+ *
+ * No hay ninguna ruta interceptora que espeje esta página, pese a lo que decía
+ * el comentario anterior — ver la nota en `ajustes/perfil/page.tsx`.
  */
 const Page = async () => {
   const staff = await getStaffSession();

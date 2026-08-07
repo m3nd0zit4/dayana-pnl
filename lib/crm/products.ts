@@ -15,9 +15,11 @@ export const getProduct = async (productId: string) =>
     include: priceInclude,
   });
 
+/** Catálogo vendible. Los cursos de la biblioteca quedan fuera: se acceden con
+ *  la mensualidad, no se compran sueltos. */
 export const getActiveProducts = async () =>
   prisma.product.findMany({
-    where: { isActive: true },
+    where: { isActive: true, isCourseContent: false },
     orderBy: { sortOrder: "asc" },
     include: priceInclude,
   });

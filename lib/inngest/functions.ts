@@ -26,6 +26,10 @@ import {
 import { processNormalizedEvent } from "../meta/ingest";
 import type { NormalizedEvent } from "../meta/inbound";
 import { findDuePosts } from "../crm/social-posts";
+import {
+  sendPendingWebinarLinkEmails,
+  sendPendingWebinarReminders,
+} from "../crm/webinar-mailer";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
 import { formatInstantForContact } from "../datetime/visitor-schedule";
@@ -370,7 +374,8 @@ export const membershipDueReminderFn = inngest.createFunction(
   }
 );
 
-/** Hides class recordings 30 days after they were posted (URL kept for staff). */
+/** Hides class recordings 30 days after they were posted (URL kept for staff).
+ *  Evergreen library lessons are exempt — they are the course, not a replay. */
 export const recordingAutoHideFn = inngest.createFunction(
   { id: "recording-auto-hide" },
   { cron: "30 5 * * *" },
@@ -382,6 +387,7 @@ export const recordingAutoHideFn = inngest.createFunction(
           OR: [{ recordingUrl: { not: null } }, { muxPlaybackId: { not: null } }],
           recordingHiddenAt: null,
           recordingPostedAt: { lt: cutoff },
+          evergreen: false,
         },
         data: { recordingHiddenAt: new Date() },
       });
@@ -505,6 +511,47 @@ export const socialPostPublishFn = inngest.createFunction(
   }
 );
 
+/**
+ * Embudo del webinar gratuito: enlace de la reunión y los dos recordatorios.
+ *
+ * Los minutos `:03 :13 :23 :33 :43 :53` esquivan al programador de redes
+ * (`*​/5`) para no pelear por la misma conexión de Neon. Cada 10 minutos es
+ * suficiente porque el recordatorio de 1 h se dispara en cuanto la ventana se
+ * abre: como mucho llega diez minutos tarde, entre T-60 y T-50.
+ *
+ * Este cron es también la red de seguridad del enlace: «a quién le falta» es
+ * una condición de la base de datos, así que un `inngest.send` perdido no deja
+ * a nadie sin correo — solo lo retrasa hasta el siguiente barrido.
+ */
+export const webinarMailerFn = inngest.createFunction(
+  { id: "webinar-mailer", concurrency: { limit: 1 } },
+  { cron: "3-53/10 * * * *" },
+  async ({ step }) => {
+    const link = await step.run("webinar-link-emails", () =>
+      sendPendingWebinarLinkEmails()
+    );
+    const reminder24h = await step.run("webinar-reminder-24h", () =>
+      sendPendingWebinarReminders("24h")
+    );
+    const reminder1h = await step.run("webinar-reminder-1h", () =>
+      sendPendingWebinarReminders("1h")
+    );
+    return { link, reminder24h, reminder1h };
+  }
+);
+
+/**
+ * Dayana acaba de guardar el enlace: se envía ya, sin esperar al cron.
+ * `concurrency: 1` compartida con nada más, pero el reclamo por fila es lo que
+ * de verdad impide que este envío y un tick del cron dupliquen un correo.
+ */
+export const webinarMeetLinkBroadcastFn = inngest.createFunction(
+  { id: "webinar-meet-link-broadcast", concurrency: { limit: 1 } },
+  { event: "webinar/meet-link.changed" },
+  async ({ step }) =>
+    step.run("send-link-emails", () => sendPendingWebinarLinkEmails())
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
@@ -518,4 +565,6 @@ export const inngestFunctions = [
   metaWebhookFn,
   socialPostSchedulerFn,
   socialPostPublishFn,
+  webinarMailerFn,
+  webinarMeetLinkBroadcastFn,
 ];

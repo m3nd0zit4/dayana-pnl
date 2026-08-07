@@ -45,6 +45,7 @@ export type ClassEditorRow = {
   materialFileName: string | null;
   materialSizeBytes: number | null;
   quizJson: unknown;
+  evergreen: boolean;
 };
 
 const CONTENT_TYPE_LABEL: Record<LessonContentType, string> = {
@@ -95,6 +96,7 @@ type EditorState = {
   contentType: LessonContentType;
   bodyMd: string;
   quiz: QuizJson;
+  evergreen: boolean;
 };
 
 const emptyEditor: EditorState = {
@@ -107,6 +109,7 @@ const emptyEditor: EditorState = {
   contentType: "VIDEO",
   bodyMd: "",
   quiz: { questions: [] },
+  evergreen: false,
 };
 
 const editorFromRow = (
@@ -122,6 +125,7 @@ const editorFromRow = (
   contentType: row.contentType,
   bodyMd: row.bodyMd ?? "",
   quiz: isQuizJson(row.quizJson) ? row.quizJson : { questions: [] },
+  evergreen: row.evergreen,
 });
 
 const toLocalInput = (iso: string | null, timeZone: string) => {
@@ -391,6 +395,7 @@ const ClassEditorModal = ({
       contentType: editor.contentType,
       bodyMd: editor.contentType === "TEXT" ? editor.bodyMd.trim() || null : null,
       quizJson: editor.contentType === "QUIZ" ? editor.quiz : null,
+      evergreen: editor.evergreen,
     };
     if (editor.scheduledAtLocal) {
       try {
@@ -552,6 +557,24 @@ const ClassEditorModal = ({
                   )}
                 </div>
               )}
+
+              <label className="flex items-start gap-2 pt-1 text-sm">
+                <input
+                  type="checkbox"
+                  checked={editor.evergreen}
+                  onChange={(e) =>
+                    setEditor((s) => ({ ...s, evergreen: e.target.checked }))
+                  }
+                  className="mt-0.5 size-4 accent-primary"
+                />
+                <span>
+                  Contenido permanente
+                  <span className="block text-xs text-muted-foreground">
+                    No caduca. Sin marcar, la grabación desaparece del portal 30
+                    días después de publicarse (réplica de clase en vivo).
+                  </span>
+                </span>
+              </label>
 
               {hasLegacyDrive && (
                 <div className="space-y-1.5 pt-1">

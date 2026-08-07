@@ -3,10 +3,18 @@
 import Link from "next/link";
 import { PaymentStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/app/components/ui/card";
+import { Receipt } from "lucide-react";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { formatMoneyMinor } from "@/lib/crm/money";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmFilterBar,
+  CrmLoadingState,
+} from "./ui";
 
 const STATUS_LABEL: Record<PaymentStatus, string> = {
   PENDING: "Pendiente",
@@ -71,15 +79,13 @@ const PaymentsPageClient = ({ preview }: Props) => {
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Pagos</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            PayPal, Mercado Pago y registros manuales vinculados a cada servicio.
-          </p>
-        </div>
+      <CrmPageHeader
+        title="Pagos"
+        description="PayPal, Mercado Pago y registros manuales vinculados a cada servicio."
+      />
 
-        <div className="w-48">
+      <CrmFilterBar count={`${rows.length} ${rows.length === 1 ? "pago" : "pagos"}`}>
+        <div className="w-full sm:w-48">
           <SearchableSelect
             id="pay-status"
             label="Estado"
@@ -95,61 +101,60 @@ const PaymentsPageClient = ({ preview }: Props) => {
             searchMinOptions={99}
           />
         </div>
+      </CrmFilterBar>
 
-        <Card className="overflow-hidden py-0">
-          <CardContent className="p-0">
-            {loading ? (
-              <p className="p-6 text-sm text-muted-foreground">Cargando…</p>
-            ) : (
-              <div className="divide-y divide-border">
-                {rows.length === 0 && (
-                  <div className="p-8 text-center text-sm text-muted-foreground">
-                    Sin pagos registrados.
-                  </div>
-                )}
-                {rows.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex flex-wrap justify-between gap-3 p-4 transition-colors hover:bg-muted/50"
+      <CrmDataList>
+        {loading ? (
+          <CrmLoadingState rows={4} />
+        ) : rows.length === 0 ? (
+          <CrmEmptyState
+            icon={Receipt}
+            title="Sin pagos registrados"
+            description="Aquí aparecen los cobros de PayPal y Mercado Pago, y los que registres a mano."
+          />
+        ) : (
+          rows.map((p) => (
+            <CrmDataListRow
+              key={p.id}
+              className="items-start transition-colors hover:bg-muted/50"
+              actions={
+                <span className="text-xs text-muted-foreground">
+                  {p.paidAt
+                    ? new Date(p.paidAt).toLocaleString("es-CO")
+                    : new Date(p.createdAt).toLocaleString("es-CO")}
+                </span>
+              }
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">
+                  {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
+                </div>
+                <div className="mt-0.5 text-xs text-muted-foreground">
+                  {p.provider} · {STATUS_LABEL[p.status]}
+                  {p.payerCountryIso ? (
+                    <span className="ml-1.5 opacity-70">· {p.payerCountryIso}</span>
+                  ) : null}
+                </div>
+                <Link
+                  href={preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`}
+                  className="mt-1 block text-xs text-primary hover:underline"
+                >
+                  {p.enrollment.contact.firstName}{" "}
+                  {p.enrollment.contact.lastName ?? ""} — {p.enrollment.product.title}
+                </Link>
+                {!preview ? (
+                  <Link
+                    href={`/admin/enrollments/${p.enrollment.id}`}
+                    className="mt-1 block text-xs text-muted-foreground hover:underline"
                   >
-                    <div>
-                      <div className="text-sm font-semibold">
-                        {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
-                      </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {p.provider} · {STATUS_LABEL[p.status]}
-                        {p.payerCountryIso && (
-                          <span className="ml-1.5 opacity-70">· {p.payerCountryIso}</span>
-                        )}
-                      </div>
-                      <Link
-                        href={preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`}
-                        className="mt-1 block text-xs text-primary hover:underline"
-                      >
-                        {p.enrollment.contact.firstName}{" "}
-                        {p.enrollment.contact.lastName ?? ""} — {p.enrollment.product.title}
-                      </Link>
-                      {!preview && (
-                        <Link
-                          href={`/admin/enrollments/${p.enrollment.id}`}
-                          className="mt-1 block text-xs text-muted-foreground hover:underline"
-                        >
-                          Ver servicio →
-                        </Link>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.paidAt
-                        ? new Date(p.paidAt).toLocaleString("es-CO")
-                        : new Date(p.createdAt).toLocaleString("es-CO")}
-                    </div>
-                  </div>
-                ))}
+                    Ver servicio →
+                  </Link>
+                ) : null}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CrmDataListRow>
+          ))
+        )}
+      </CrmDataList>
     </CrmPageShell>
   );
 };

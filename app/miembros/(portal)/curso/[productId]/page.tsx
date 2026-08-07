@@ -72,6 +72,7 @@ const Page = async ({ params, searchParams }: PageProps) => {
           recordingHiddenAt: cls.recordingHiddenAt
             ? cls.recordingHiddenAt.toISOString()
             : null,
+          evergreen: cls.evergreen,
           contentType: cls.contentType,
           bodyMd: cls.bodyMd,
           materialFileName: cls.materialFileName,

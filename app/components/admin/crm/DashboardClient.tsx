@@ -292,14 +292,16 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
         </div>
 
         {stats.unlinkedPaidEnrollments > 0 && (
-          <Link
-            href="/admin/payments"
-            className="block rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-sm text-amber-800 transition-colors hover:bg-amber-500/15"
-          >
-            {stats.unlinkedPaidEnrollments} pago
-            {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
-            (legacy) — revisar en Pagos
-          </Link>
+          <Alert variant="warning">
+            <TriangleAlert aria-hidden />
+            <AlertDescription>
+              <Link href="/admin/payments" className="hover:underline">
+                {stats.unlinkedPaidEnrollments} pago
+                {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
+                (legacy) — revisar en Pagos
+              </Link>
+            </AlertDescription>
+          </Alert>
         )}
 
         <div className="mt-8 grid justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3">
