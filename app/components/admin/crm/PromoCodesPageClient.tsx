@@ -1,26 +1,29 @@
 "use client";
 
 import { PromoDiscountType } from "@prisma/client";
-import { Plus } from "lucide-react";
+import { TicketPercent } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/app/components/ui/table";
 import CrmModal from "./CrmModal";
+import CrmNewButton from "./CrmNewButton";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmFormActions,
+  CrmLoadingState,
+  CrmRowActions,
+  CrmRowDelete,
+  CrmRowEdit,
+} from "./ui";
 
 type PromoCode = {
   id: string;
@@ -185,6 +188,9 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
         p.timesRedeemed > 0
           ? "Ya tiene canjes registrados — se desactivará en vez de borrarse, para no perder el historial."
           : "¿Eliminar este código? No se puede deshacer.",
+      // El verbo cambia con el caso: con canjes registrados no se borra nada.
+      confirmLabel: p.timesRedeemed > 0 ? "Desactivar" : "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch(`/api/admin/promo-codes/${p.id}`, { method: "DELETE" });
         if (res.ok) {
@@ -197,31 +203,24 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Códigos promocionales</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Aplican antes del pago, en el checkout público. Funcionan tanto en
-              USD (PayPal) como en COP (Mercado Pago).
-            </p>
-          </div>
-          {canManageTeam && !preview && (
-            <Button
-              size="sm"
+      <CrmPageHeader
+        title="Códigos promocionales"
+        description="Aplican antes del pago, en el checkout público. Funcionan tanto en USD (PayPal) como en COP (Mercado Pago)."
+        action={
+          canManageTeam && !preview ? (
+            <CrmNewButton
+              label="Nuevo código"
               onClick={() => {
                 setCreating(true);
                 setEditing(null);
                 setForm(emptyForm());
               }}
-            >
-              <Plus />
-              <span className="hidden sm:inline">Nuevo código</span>
-            </Button>
-          )}
-        </div>
+            />
+          ) : undefined
+        }
+      />
 
-        <CrmModal
+      <CrmModal
           title={creating ? "Nuevo código promocional" : `Editar: ${editing?.code ?? ""}`}
           open={!!showForm && canManageTeam}
           onClose={() => {
@@ -344,8 +343,7 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
               </label>
             )}
 
-            <div className="flex gap-2 pt-1">
-              <Button onClick={() => void save()}>Guardar</Button>
+            <CrmFormActions size="sm">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -355,112 +353,60 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
               >
                 Cancelar
               </Button>
-            </div>
+              <Button onClick={() => void save()}>Guardar</Button>
+            </CrmFormActions>
           </div>
         </CrmModal>
 
-        <Card className="overflow-hidden py-0">
-          <CardContent className="p-0">
-            {loading ? (
-              <p className="p-6 text-sm text-muted-foreground">Cargando…</p>
-            ) : promoCodes.length === 0 ? (
-              <p className="p-6 text-sm text-muted-foreground">Sin códigos promocionales</p>
-            ) : (
-              <>
-                <div className="hidden lg:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Código</TableHead>
-                        <TableHead>Descuento</TableHead>
-                        <TableHead>Canjes</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {promoCodes.map((p) => (
-                        <TableRow key={p.id}>
-                          <TableCell className="font-medium">
-                            {p.code}
-                            {p.description && (
-                              <div className="text-xs font-normal text-muted-foreground">
-                                {p.description}
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {discountSummary(p)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {p.timesRedeemed}
-                            {p.maxRedemptions != null ? ` / ${p.maxRedemptions}` : ""}
-                          </TableCell>
-                          <TableCell>
-                            <PromoStatusBadge p={p} />
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {canManageTeam && !preview && (
-                              <div className="flex justify-end gap-2">
-                                <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                                  Editar
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-destructive"
-                                  onClick={() => remove(p)}
-                                >
-                                  Eliminar
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                <div className="divide-y divide-border lg:hidden">
-                  {promoCodes.map((p) => (
-                    <div key={p.id} className="flex items-start justify-between gap-3 p-4">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">{p.code}</div>
-                        {p.description && (
-                          <div className="text-xs text-muted-foreground">{p.description}</div>
-                        )}
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {discountSummary(p)} · {p.timesRedeemed}
-                          {p.maxRedemptions != null ? ` / ${p.maxRedemptions}` : ""} canjes
-                        </div>
-                        <div className="mt-1.5">
-                          <PromoStatusBadge p={p} />
-                        </div>
-                      </div>
-                      {canManageTeam && !preview && (
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(p)}>
-                            Editar
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive"
-                            onClick={() => remove(p)}
-                          >
-                            Eliminar
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/*
+        Aquí convivían una `<Table>` para `lg` y una lista de tarjetas para
+        móvil con los mismos datos: dos copias del mismo contenido que había
+        que mantener sincronizadas a mano. Queda una sola.
+      */}
+      <CrmDataList>
+        {loading ? (
+          <CrmLoadingState rows={4} />
+        ) : promoCodes.length === 0 ? (
+          <CrmEmptyState
+            icon={TicketPercent}
+            title="Sin códigos promocionales"
+            description="Un código descuenta en el checkout antes de cobrar, en cualquiera de las dos monedas."
+          />
+        ) : (
+          promoCodes.map((p) => (
+            <CrmDataListRow
+              key={p.id}
+              actions={
+                canManageTeam && !preview ? (
+                  <CrmRowActions>
+                    <CrmRowEdit onClick={() => openEdit(p)} />
+                    <CrmRowDelete onClick={() => remove(p)} />
+                  </CrmRowActions>
+                ) : undefined
+              }
+            >
+              <div className="min-w-0 flex-1 basis-full sm:basis-auto">
+                <div className="font-mono text-sm font-medium">{p.code}</div>
+                {p.description ? (
+                  <div className="text-xs text-muted-foreground">
+                    {p.description}
+                  </div>
+                ) : null}
+              </div>
+              <div className="text-sm text-muted-foreground sm:w-40">
+                {discountSummary(p)}
+              </div>
+              <div className="text-sm text-muted-foreground sm:w-24">
+                {p.timesRedeemed}
+                {p.maxRedemptions != null ? ` / ${p.maxRedemptions}` : ""} canjes
+              </div>
+              <div className="sm:w-28">
+                <PromoStatusBadge p={p} />
+              </div>
+            </CrmDataListRow>
+          ))
+        )}
+      </CrmDataList>
     </CrmPageShell>
   );
 };

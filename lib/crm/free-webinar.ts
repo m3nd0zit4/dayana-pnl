@@ -1,5 +1,8 @@
-import type { FreeWebinar, Prisma } from "@prisma/client";
+import { RecordingStatus, type FreeWebinar, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getMuxClient } from "@/lib/mux/client";
+import { getSiteUrl } from "@/lib/site-url";
+import { resetLinkEmails, resetReminders } from "@/lib/crm/webinar-registrations";
 import {
   DEFAULT_OPERATIONAL_TZ,
   getDateKeyInTz,
@@ -35,7 +38,11 @@ export type FreeWebinarPublic = {
   startsAtTimeHm: string | null;
   startsAtHasTime: boolean;
   operationalTimezone: string;
-  videoUrl: string | null;
+  meetUrl: string | null;
+  muxPlaybackId: string | null;
+  videoStatus: RecordingStatus;
+  videoDurationSec: number | null;
+  videoErrorMessage: string | null;
   learnSectionTitle: string | null;
   learnItems: string[];
   faq: FreeWebinarFaqItem[];
@@ -55,7 +62,8 @@ export type FreeWebinarUpdateInput = {
   /** Calendar date + optional local time in OPERATIONAL_TZ. Empty/null time = date only. */
   startsAtLocal?: { date: string; time?: string | null } | null;
   startsAtHasTime?: boolean;
-  videoUrl?: string | null;
+  /** Empty string is accepted and normalized to `null` (= "sin enlace"). */
+  meetUrl?: string | null;
   learnSectionTitle?: string | null;
   learnItems?: string[];
   faq?: FreeWebinarFaqItem[];
@@ -113,7 +121,11 @@ export const toFreeWebinarPublic = (
         : null,
     startsAtHasTime,
     operationalTimezone,
-    videoUrl: row.videoUrl,
+    meetUrl: row.meetUrl,
+    muxPlaybackId: row.muxPlaybackId,
+    videoStatus: row.videoStatus,
+    videoDurationSec: row.videoDurationSec,
+    videoErrorMessage: row.videoErrorMessage,
     learnSectionTitle: row.learnSectionTitle,
     learnItems: parseLearnItems(row.learnItems),
     faq: parseFaq(row.faq),
@@ -124,6 +136,58 @@ export const toFreeWebinarPublic = (
     updatedAt: row.updatedAt,
   };
 };
+
+/**
+ * Etiqueta legible del horario: «9 de agosto de 2026 · 19:00 (America/Bogota)».
+ * La usan el correo de confirmación, el del enlace y los dos recordatorios —
+ * vive aquí para que no se dupliquen cuatro versiones ligeramente distintas.
+ */
+export const formatWebinarScheduleLabel = (
+  webinar: Pick<
+    FreeWebinarPublic,
+    "startsAtDateKey" | "startsAtHasTime" | "startsAtTimeHm" | "operationalTimezone"
+  >
+): string | null => {
+  if (!webinar.startsAtDateKey) return null;
+  const [y, m, d] = webinar.startsAtDateKey.split("-").map(Number);
+  if (!y || !m || !d) return webinar.startsAtDateKey;
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  const datePart = date.toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  if (webinar.startsAtHasTime && webinar.startsAtTimeHm) {
+    return `${datePart} · ${webinar.startsAtTimeHm} (${webinar.operationalTimezone})`;
+  }
+  return `${datePart} (fecha confirmada; hora por confirmar)`;
+};
+
+/**
+ * Normaliza antes de comparar: guardar el mismo enlace con un espacio de más
+ * no debe contar como cambio, porque un cambio reenvía el correo a todo el
+ * mundo. Solo https — el enlace va dentro de un correo transaccional.
+ */
+export const normalizeMeetUrl = (raw: string | null | undefined): string | null => {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new FreeWebinarMeetUrlError();
+  }
+  if (parsed.protocol !== "https:") throw new FreeWebinarMeetUrlError();
+  return parsed.toString();
+};
+
+export class FreeWebinarMeetUrlError extends Error {
+  constructor() {
+    super("invalid_meet_url");
+    this.name = "FreeWebinarMeetUrlError";
+  }
+}
 
 export const getPublishBlockers = (
   w: Pick<
@@ -153,7 +217,7 @@ export const DEFAULT_FREE_WEBINAR = {
     "Webinar gratuito en vivo con Dayana Beltrán — un primer paso claro para soltar patrones que te frenan.",
   body: null as string | null,
   startsAt: null as Date | null,
-  videoUrl: null as string | null,
+  meetUrl: null as string | null,
   learnSectionTitle: "Lo que vas a llevarte",
   learnItems: [
     "Qué es la PNL aplicada a tu día a día",
@@ -281,10 +345,20 @@ export class FreeWebinarPublishError extends Error {
   }
 }
 
+export type FreeWebinarUpdateResult = {
+  webinar: FreeWebinarPublic;
+  /** El enlace quedó distinto al guardado → hay que reenviarlo a todas. */
+  meetUrlChanged: boolean;
+  /** Se reprogramó → los recordatorios ya enviados dejan de valer. */
+  startsAtChanged: boolean;
+  /** Registros que vuelven a la cola del enlace por el cambio. */
+  linkEmailsReset: number;
+};
+
 export const updateFreeWebinar = async (
   input: FreeWebinarUpdateInput,
   slug: string = FREE_WEBINAR_SLUG
-): Promise<FreeWebinarPublic> => {
+): Promise<FreeWebinarUpdateResult> => {
   await ensureFreeWebinar(slug);
 
   const data: Prisma.FreeWebinarUpdateInput = {};
@@ -296,7 +370,6 @@ export const updateFreeWebinar = async (
     data.startsAt = schedule.startsAt;
     data.startsAtHasTime = schedule.startsAtHasTime;
   }
-  if (input.videoUrl !== undefined) data.videoUrl = input.videoUrl;
   if (input.learnSectionTitle !== undefined) {
     data.learnSectionTitle = input.learnSectionTitle;
   }
@@ -311,11 +384,14 @@ export const updateFreeWebinar = async (
   if (input.isActive !== undefined) data.isActive = input.isActive;
 
   const tz = await getOperationalTimezone();
+  const current = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
+
+  const startsAtChanged =
+    schedule !== undefined &&
+    (schedule.startsAt?.getTime() ?? null) !==
+      (current.startsAt?.getTime() ?? null);
 
   if (input.isActive === true) {
-    const current = await prisma.freeWebinar.findUniqueOrThrow({
-      where: { slug },
-    });
     const nextStartsAt =
       schedule !== undefined ? schedule.startsAt : current.startsAt;
     const nextHasTime =
@@ -358,13 +434,53 @@ export const updateFreeWebinar = async (
     where: { slug },
     data,
   });
-  return toFreeWebinarPublic(row, tz);
+
+  // El enlace se escribe aparte, con compare-and-swap: es la base de datos la
+  // que responde «¿cambió de verdad?». Guardar dos veces el mismo enlace no
+  // puede disparar un envío masivo, y dos guardados simultáneos solo cuentan
+  // como uno. Se escribe ANTES de limpiar los sellos: al revés, un fan-out
+  // concurrente enviaría el enlace viejo y lo daría por entregado.
+  let meetUrlChanged = false;
+  let linkEmailsReset = 0;
+  if (input.meetUrl !== undefined) {
+    const next = normalizeMeetUrl(input.meetUrl);
+    const where: Prisma.FreeWebinarWhereInput =
+      next === null
+        ? { slug, meetUrl: { not: null } }
+        : { slug, OR: [{ meetUrl: null }, { meetUrl: { not: next } }] };
+    const { count } = await prisma.freeWebinar.updateMany({
+      where,
+      data: { meetUrl: next },
+    });
+    meetUrlChanged = count > 0;
+    if (meetUrlChanged && next !== null) {
+      linkEmailsReset = await resetLinkEmails(row.id);
+    }
+  }
+
+  // Reprogramar sin esto dejaría los recordatorios sellados de la fecha
+  // anterior: nadie recibiría aviso de la nueva.
+  if (startsAtChanged) {
+    await resetReminders(row.id);
+  }
+
+  const finalRow =
+    input.meetUrl !== undefined
+      ? await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } })
+      : row;
+
+  return {
+    webinar: toFreeWebinarPublic(finalRow, tz),
+    meetUrlChanged,
+    startsAtChanged,
+    linkEmailsReset,
+  };
 };
 
 export const clearFreeWebinarSchedule = async (
   slug: string = FREE_WEBINAR_SLUG
 ): Promise<FreeWebinarPublic> =>
-  updateFreeWebinar({ isActive: false, startsAt: null }, slug);
+  (await updateFreeWebinar({ isActive: false, startsAt: null }, slug)).webinar;
 
 export const resetFreeWebinar = async (
   slug: string = FREE_WEBINAR_SLUG
@@ -379,7 +495,9 @@ export const resetFreeWebinar = async (
       body: DEFAULT_FREE_WEBINAR.body,
       startsAt: null,
       startsAtHasTime: false,
+      meetUrl: null,
       videoUrl: null,
+      ...CLEARED_VIDEO_FIELDS,
       learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
       learnItems: DEFAULT_FREE_WEBINAR.learnItems,
       faq: DEFAULT_FREE_WEBINAR.faq,
@@ -389,6 +507,164 @@ export const resetFreeWebinar = async (
       metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
     },
   });
+  await resetLinkEmails(row.id);
+  await resetReminders(row.id);
   const tz = await getOperationalTimezone();
   return toFreeWebinarPublic(row, tz);
+};
+
+/* -------------------------------------------------------------------------
+ * Vídeo promocional (Mux)
+ *
+ * Mismo pipeline que las grabaciones del curso (`lib/lms/course-admin.ts`)
+ * salvo un detalle deliberado: la política de reproducción es `public`, no
+ * `signed`. Es una landing de marketing — sin JWT, sin ruta de token, y el
+ * reproductor puede pedir el HLS directamente al CDN de Mux. No reutilizar
+ * este helper para contenido de miembros.
+ * ---------------------------------------------------------------------- */
+
+const CLEARED_VIDEO_FIELDS = {
+  muxUploadId: null,
+  muxAssetId: null,
+  muxPlaybackId: null,
+  videoStatus: RecordingStatus.NONE,
+  videoDurationSec: null,
+  videoErrorMessage: null,
+} satisfies Prisma.FreeWebinarUpdateInput;
+
+/** Abre una subida directa en Mux y deja la fila en `UPLOADING`. */
+export const createWebinarVideoUpload = async (
+  slug: string = FREE_WEBINAR_SLUG
+): Promise<{ uploadUrl: string; uploadId: string }> => {
+  await ensureFreeWebinar(slug);
+  const mux = getMuxClient();
+  const created = await mux.video.uploads.create({
+    cors_origin: getSiteUrl(),
+    new_asset_settings: {
+      playback_policy: ["public"],
+      mp4_support: "none",
+      // Solo para identificarlo en el panel de Mux. El webhook NO se ramifica
+      // por aquí: los ids de Mux son únicos y basta con el count del update.
+      passthrough: "free-webinar",
+    },
+  });
+
+  // El SDK tipa `url` como opcional; sin ella no hay nada que subir y es mejor
+  // fallar aquí que dejar la fila en UPLOADING para siempre.
+  if (!created.url) throw new Error("mux_upload_without_url");
+
+  await prisma.freeWebinar.update({
+    where: { slug },
+    data: {
+      ...CLEARED_VIDEO_FIELDS,
+      muxUploadId: created.id,
+      videoStatus: RecordingStatus.UPLOADING,
+    },
+  });
+
+  return { uploadUrl: created.url, uploadId: created.id };
+};
+
+export const clearWebinarVideo = async (
+  slug: string = FREE_WEBINAR_SLUG
+): Promise<FreeWebinarPublic> => {
+  await ensureFreeWebinar(slug);
+  const row = await prisma.freeWebinar.update({
+    where: { slug },
+    data: { ...CLEARED_VIDEO_FIELDS, videoUrl: null },
+  });
+  const tz = await getOperationalTimezone();
+  return toFreeWebinarPublic(row, tz);
+};
+
+/** `video.upload.asset_created` — existe el asset, aún no está codificado. */
+export const handleWebinarMuxAssetCreated = async (
+  uploadId: string,
+  assetId: string
+): Promise<number> => {
+  const { count } = await prisma.freeWebinar.updateMany({
+    where: { muxUploadId: uploadId },
+    data: { muxAssetId: assetId, videoStatus: RecordingStatus.PROCESSING },
+  });
+  return count;
+};
+
+/** `video.asset.ready` — a partir de aquí la landing lo reproduce. */
+export const handleWebinarMuxAssetReady = async (
+  assetId: string,
+  playbackId: string,
+  durationSec: number | null
+): Promise<number> => {
+  const { count } = await prisma.freeWebinar.updateMany({
+    where: { muxAssetId: assetId },
+    data: {
+      muxPlaybackId: playbackId,
+      videoStatus: RecordingStatus.READY,
+      videoDurationSec: durationSec,
+      videoErrorMessage: null,
+    },
+  });
+  return count;
+};
+
+export const handleWebinarMuxAssetErrored = async (
+  assetId: string,
+  message: string | null
+): Promise<number> => {
+  const { count } = await prisma.freeWebinar.updateMany({
+    where: { muxAssetId: assetId },
+    data: {
+      videoStatus: RecordingStatus.ERRORED,
+      videoErrorMessage: message,
+    },
+  });
+  return count;
+};
+
+/**
+ * Reconciliación contra la API de Mux para cuando el webhook no llega — en
+ * local nunca llega (Mux no alcanza `localhost`), y en producción un webhook
+ * perdido dejaría el vídeo colgado en «procesando» para siempre.
+ */
+export const reconcileWebinarVideo = async (
+  slug: string = FREE_WEBINAR_SLUG
+): Promise<FreeWebinarPublic> => {
+  const tz = await getOperationalTimezone();
+  const row = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
+
+  const pending =
+    row.videoStatus === RecordingStatus.UPLOADING ||
+    row.videoStatus === RecordingStatus.PROCESSING;
+  if (!pending) return toFreeWebinarPublic(row, tz);
+
+  const mux = getMuxClient();
+  let assetId = row.muxAssetId;
+
+  if (!assetId && row.muxUploadId) {
+    const upload = await mux.video.uploads.retrieve(row.muxUploadId);
+    assetId = upload.asset_id ?? null;
+    if (!assetId) return toFreeWebinarPublic(row, tz);
+    await handleWebinarMuxAssetCreated(row.muxUploadId, assetId);
+  }
+  if (!assetId) return toFreeWebinarPublic(row, tz);
+
+  const asset = await mux.video.assets.retrieve(assetId);
+  if (asset.status === "ready") {
+    const playbackId = asset.playback_ids?.[0]?.id;
+    if (playbackId) {
+      await handleWebinarMuxAssetReady(
+        assetId,
+        playbackId,
+        typeof asset.duration === "number" ? Math.round(asset.duration) : null
+      );
+    }
+  } else if (asset.status === "errored") {
+    await handleWebinarMuxAssetErrored(
+      assetId,
+      asset.errors?.messages?.join("; ") ?? null
+    );
+  }
+
+  const fresh = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
+  return toFreeWebinarPublic(fresh, tz);
 };

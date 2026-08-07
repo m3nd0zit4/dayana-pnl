@@ -64,7 +64,8 @@ export const gotoCrm = async (
   await page
     .locator("[data-crm-page]")
     .first()
-    .waitFor({ state: "attached", timeout: 15_000 })
+    // Generoso a propósito: incluye la compilación en frío de la ruta.
+    .waitFor({ state: "attached", timeout: 60_000 })
     .catch(() => {
       // Todavía no todas las páginas llevan el marcador — durante la
       // migración eso es esperado. El test que lo exige es el del contrato,

@@ -56,7 +56,7 @@ const ContactNotesPanel = ({
   return (
     <div id="cuaderno-clinico" className="space-y-2 scroll-mt-6">
       <div className="crm-notebook-section-header">
-        <h2 className="text-xs font-medium text-[var(--crm-muted)]">
+        <h2 className="text-xs font-medium text-muted-foreground">
           Cuaderno{contactName ? ` · ${contactName}` : ""}
         </h2>
       </div>

@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
+import { countWebinarRegistrations } from "@/lib/crm/webinar-registrations";
 import { siteUrl } from "@/lib/notifications/config";
 import { requireStaff } from "@/agent/lib/guard";
 
@@ -11,8 +12,10 @@ export default defineTool({
   async execute(_input, ctx) {
     requireStaff(ctx);
     const webinar = await ensureFreeWebinar();
+    const registrations = await countWebinarRegistrations(webinar.id);
     return {
       webinar: {
+        registrations,
         id: webinar.id,
         isActive: webinar.isActive,
         headline: webinar.headline,
@@ -23,7 +26,9 @@ export default defineTool({
         startsAtTime: webinar.startsAtTimeHm,
         startsAtHasTime: webinar.startsAtHasTime,
         operationalTimezone: webinar.operationalTimezone,
-        videoUrl: webinar.videoUrl,
+        meetUrl: webinar.meetUrl,
+        videoStatus: webinar.videoStatus,
+        hasVideo: webinar.videoStatus === "READY",
         learnSectionTitle: webinar.learnSectionTitle,
         learnItems: webinar.learnItems,
         faq: webinar.faq,

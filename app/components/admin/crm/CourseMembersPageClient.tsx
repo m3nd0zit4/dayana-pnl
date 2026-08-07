@@ -2,7 +2,15 @@
 
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
-import { Copy, CreditCard, KeyRound, Mail, CalendarClock, UserPlus } from "lucide-react";
+import {
+  Copy,
+  CreditCard,
+  GraduationCap,
+  KeyRound,
+  Mail,
+  CalendarClock,
+  UserPlus,
+} from "lucide-react";
 import { useCallback, useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
 import { Badge } from "@/app/components/ui/badge";
@@ -11,10 +19,13 @@ import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import ContactPickerField from "./ContactPickerField";
+import CrmNewButton from "./CrmNewButton";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
 import RegisterPaymentModal from "./RegisterPaymentModal";
 import { useCrm } from "./CrmProvider";
+import { CrmEmptyState, CrmPublicLink } from "./ui";
 
 type Props = {
   preview: boolean;
@@ -27,20 +38,20 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 const membershipChip = (row: CourseMemberRow) => {
   if (row.status === "CANCELLED" || row.status === "REFUNDED") {
-    return { label: row.status === "CANCELLED" ? "Cancelado" : "Reembolsado", cls: "bg-neutral-200 text-neutral-600" };
+    return { label: row.status === "CANCELLED" ? "Cancelado" : "Reembolsado", cls: "border-border bg-muted text-muted-foreground" };
   }
   if (!row.paidUntil) {
-    return { label: "Sin vigencia", cls: "bg-neutral-200 text-neutral-600" };
+    return { label: "Sin vigencia", cls: "border-border bg-muted text-muted-foreground" };
   }
   const paidUntil = new Date(row.paidUntil).getTime();
   const now = Date.now();
   if (paidUntil <= now) {
-    return { label: "Vencido", cls: "bg-red-100 text-red-700" };
+    return { label: "Vencido", cls: "border-destructive/40 bg-destructive/10 text-destructive" };
   }
   if (paidUntil - now <= 7 * DAY_MS) {
-    return { label: "Vence pronto", cls: "bg-amber-100 text-amber-700" };
+    return { label: "Vence pronto", cls: "border-warning/40 bg-warning/10 text-warning" };
   }
-  return { label: "Al día", cls: "bg-emerald-100 text-emerald-700" };
+  return { label: "Al día", cls: "border-success/40 bg-success/10 text-success" };
 };
 
 const formatDate = (iso: string | null) =>
@@ -187,37 +198,36 @@ const CourseMembersPageClient = ({
 
   return (
     <CrmPageShell>
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Curso · Miembros</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Membresías mensuales de «{courseTitle}». Cada pago aprobado suma
-              un mes de acceso al portal.
-            </p>
-          </div>
-          {!preview && canWrite && courseProductId && (
-            <Button
-              size="sm"
+      <CrmPageHeader
+        title="Curso · Miembros"
+        description={`Membresías mensuales de «${courseTitle}». Cada pago aprobado suma un mes de acceso al portal.`}
+        secondaryActions={
+          <CrmPublicLink href="/servicios#curso" label="Ver curso en la web" />
+        }
+        action={
+          !preview && canWrite && courseProductId ? (
+            <CrmNewButton
+              label="Nuevo miembro"
+              icon={UserPlus}
               onClick={() => {
                 setNewMemberError(null);
                 setNewMemberContactId("");
                 setNewMemberOpen(true);
               }}
-            >
-              <UserPlus />
-              Nuevo miembro
-            </Button>
-          )}
-        </div>
+            />
+          ) : undefined
+        }
+      />
 
+      <div className="space-y-6">
         <Card className="overflow-hidden py-0">
           <CardContent className="divide-y divide-border p-0">
             {rows.length === 0 && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                Sin miembros todavía. Se crean al pagar el curso o al vincular
-                el producto desde un contacto.
-              </div>
+              <CrmEmptyState
+                icon={GraduationCap}
+                title="Sin miembros todavía"
+                description="Se crean al pagar el curso o al vincular el producto desde un contacto."
+              />
             )}
             {rows.map((row) => {
               const chip = membershipChip(row);

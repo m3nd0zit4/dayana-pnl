@@ -11,6 +11,11 @@ const alertVariants = cva(
         default: "bg-card text-card-foreground",
         destructive:
           "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+        // Para avisos que no son fallos: una integración a medio configurar, un
+        // límite de la API externa. Antes cada sitio se pintaba su propio div
+        // ámbar con `border-amber-500/40 bg-amber-500/10`, fuera de la paleta.
+        warning:
+          "border-warning/40 bg-warning/10 text-warning *:data-[slot=alert-description]:text-warning/90 *:[svg]:text-current",
       },
     },
     defaultVariants: {

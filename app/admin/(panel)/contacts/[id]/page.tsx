@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import ContactDetailClient from "@/app/components/admin/ContactDetailClient";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
+import CrmLoadingState from "@/app/components/admin/crm/ui/CrmLoadingState";
 import { getContactById } from "@/lib/crm/contacts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import { isCrmUiPreview } from "@/lib/auth/preview";
@@ -31,15 +31,11 @@ const ContactDetailPage = async ({ params }: Props) => {
     redirect("/admin/contacts");
   }
 
+  // El enlace «volver» ya no vive aquí: lo pinta CrmPageHeader dentro del
+  // cliente, que es quien tiene el nombre del contacto para el título.
   return (
     <CrmPageShell>
-      <Link
-        href="/admin/contacts"
-        className="mb-3 inline-flex items-center gap-0.5 text-sm font-medium text-primary hover:opacity-75"
-      >
-        ← Contactos
-      </Link>
-      <Suspense fallback={<p className="text-sm text-muted-foreground">Cargando…</p>}>
+      <Suspense fallback={<CrmLoadingState rows={3} variant="card" />}>
         <ContactDetailClient
           contact={{
             ...contact,

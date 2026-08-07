@@ -10,6 +10,7 @@ import RegisterPaymentModal, {
   type RegisteredPayment,
 } from "@/app/components/admin/crm/RegisterPaymentModal";
 import ScheduleSessionModal from "@/app/components/admin/crm/ScheduleSessionModal";
+import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
@@ -312,18 +313,22 @@ const EnrollmentDetailClient = ({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-xl font-semibold tracking-tight">
-          {enrollment.product.title}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          <Link
-            href={`/admin/contacts/${enrollment.contact.id}`}
-            className="text-primary hover:underline"
-          >
-            {enrollment.contact.firstName}
-          </Link>{" "}
-          · {displayContactPhone(enrollment.contact.phoneE164) ?? "Sin teléfono"}
-        </p>
+        <CrmPageHeader
+          title={enrollment.product.title}
+          backHref={`/admin/contacts/${enrollment.contact.id}`}
+          backLabel={enrollment.contact.firstName}
+          description={
+            <>
+              <Link
+                href={`/admin/contacts/${enrollment.contact.id}`}
+                className="text-primary hover:underline"
+              >
+                {enrollment.contact.firstName}
+              </Link>{" "}
+              · {displayContactPhone(enrollment.contact.phoneE164) ?? "Sin teléfono"}
+            </>
+          }
+        />
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <span className="text-xs text-muted-foreground">Estado</span>
           <SearchableSelect

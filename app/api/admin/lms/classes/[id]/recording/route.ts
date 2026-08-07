@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { isMuxConfigured, muxNotConfiguredResponse } from "@/lib/mux/client";
+import { isMuxConfigured } from "@/lib/mux/client";
+import { muxNotConfiguredResponse } from "@/lib/mux/http";
 import { clearRecording, createRecordingUpload } from "@/lib/lms/course-admin";
 
 export const dynamic = "force-dynamic";

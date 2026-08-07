@@ -54,6 +54,7 @@ const CourseModuleDetailPage = async ({ params }: Props) => {
         materialFileName: c.materialFileName,
         materialSizeBytes: c.materialSizeBytes,
         quizJson: c.quizJson,
+        evergreen: c.evergreen,
         commentCount: c._count.comments,
       }))}
     />

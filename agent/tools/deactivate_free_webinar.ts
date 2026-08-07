@@ -24,7 +24,7 @@ export default defineTool({
 
     const result =
       mode === "deactivate"
-        ? await updateFreeWebinar({ isActive: false })
+        ? (await updateFreeWebinar({ isActive: false })).webinar
         : mode === "clear_schedule"
           ? await clearFreeWebinarSchedule()
           : await resetFreeWebinar();

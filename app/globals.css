@@ -749,6 +749,8 @@ body {
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -797,6 +799,10 @@ body {
   --accent-foreground: #141210;
   --destructive: #b33a3a;
   --destructive-foreground: #fffcf8;
+  /* Tomados de --crm-success / --crm-warning, que vivían solo en crm.css y
+     por tanto no tenían variante oscura. Aquí sí la tienen. */
+  --success: #3d7a52;
+  --warning: #b8860b;
   --border: rgba(20, 18, 16, 0.08);
   --input: rgba(20, 18, 16, 0.12);
   --ring: rgba(212, 184, 150, 0.35);
@@ -836,6 +842,8 @@ body {
   --accent-foreground: #f3ece1;
   --destructive: #e05a5a;
   --destructive-foreground: #1a1512;
+  --success: #4f9868;
+  --warning: #d4a017;
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.14);
   --ring: rgba(212, 184, 150, 0.4);

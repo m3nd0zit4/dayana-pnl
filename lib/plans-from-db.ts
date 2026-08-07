@@ -84,7 +84,7 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
       },
     },
   });
-  if (!product || !product.isActive) {
+  if (!product || !product.isActive || product.isCourseContent) {
     return null;
   }
   // Sin derivación automática: el plan lleva exactamente los precios del
@@ -95,7 +95,9 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
 export const isActivePlanId = async (planId: string): Promise<boolean> => {
   const product = await prisma.product.findUnique({
     where: { id: planId },
-    select: { isActive: true },
+    select: { isActive: true, isCourseContent: true },
   });
-  return product?.isActive ?? false;
+  // Un curso de la biblioteca no es comprable: el checkout lo rechaza aquí,
+  // que es el único punto por el que pasan PayPal, Mercado Pago y la cotización.
+  return Boolean(product?.isActive && !product.isCourseContent);
 };

@@ -36,6 +36,20 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
+
+  /**
+   * 90 s por test, no los 30 s por defecto.
+   *
+   * Turbopack compila cada ruta la primera vez que alguien la pide — unos 13 s
+   * para `/admin` en frío. Con quince rutas del contrato pidiéndose a la vez,
+   * varias esperan detrás de la cola de compilación y superan los 30 s sin que
+   * haya nada roto. El síntoma engaña: el test falla en el primer `locator`,
+   * como si el marcador no existiera.
+   *
+   * No es tiempo perdido: solo se agota cuando de verdad hay que esperar.
+   */
+  timeout: 90_000,
+  expect: { timeout: 15_000 },
   reporter: process.env.CI
     ? [["list"], ["html", { open: "never" }]]
     : [["list"]],

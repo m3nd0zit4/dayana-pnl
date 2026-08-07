@@ -6,10 +6,11 @@ import StaffNotificationPreferencesForm from "@/app/components/shared/settings/S
 export const dynamic = "force-dynamic";
 
 /**
- * Envoltorio delgado a propósito: esta página está espejada por la ruta
- * interceptora `@modal/(.)ajustes/mis-notificaciones`, que solo reexporta este
- * default. Toda la UI y el estado viven en `StaffNotificationPreferencesForm`,
- * así que el modal y la página completa renderizan lo mismo sin duplicar nada.
+ * Envoltorio delgado a propósito: toda la UI y el estado viven en
+ * `StaffNotificationPreferencesForm`.
+ *
+ * No hay ninguna ruta interceptora que espeje esta página, pese a lo que decía
+ * el comentario anterior — ver la nota en `ajustes/perfil/page.tsx`.
  */
 const Page = async () => {
   const staff = await getStaffSession();

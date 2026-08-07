@@ -32,6 +32,17 @@ bun run env:pull               # pull preview env from Vercel
 | `prisma/schema.prisma` | Single source of truth for the DB schema |
 | `auth.ts` | NextAuth v5 (beta) — credentials-only, JWT strategy, DB session rows in `StaffSession` |
 
+### Design system
+
+Two documents, and they are not interchangeable:
+
+- **`DESIGN.md`** — the visual language: type scale, the colour tokens, spacing, radii, what not to do. Applies everywhere.
+- **`docs/crm-ui-contract.md`** — the ten layout rules for `/admin`: where the primary action goes, how lists and empty states are built, what a public-page link looks like, modal footer order. **Read it before touching anything under `app/components/admin/crm/`.**
+
+The contract is not advisory. `e2e/crm-contract.spec.ts` asserts it on the 15 CRM routes that render under `CRM_UI_PREVIEW`, and `bun run check:tokens` catches hardcoded colours that render fine and so slip past typecheck, lint and the browser alike. The primitives that implement the rules live in `app/components/admin/crm/ui/` — use them rather than re-deriving the markup, which is exactly how the panel ended up with five different "see the public page" buttons.
+
+Dark mode is live on `/admin` and `/miembros`. Anything pinned to a light value will look broken when someone toggles it.
+
 ### Database
 
 Neon (serverless PostgreSQL) via `@prisma/adapter-neon`. Singleton in `lib/db.ts` auto-reconnects on connection-closed errors (3 retries). `DATABASE_URL` = pooled connection; `DIRECT_URL` = direct for migrations.
@@ -61,6 +72,8 @@ Pricing: amounts stored as **minor units** (centavos/cents). USD→COP rate reso
 - `meta-webhook-received` — inbound Meta messages, serialized per thread
 - `social-post-scheduler` — cron every 5 min, claims due posts
 - `social-post-publish` — publishes one post (`retries: 0` on purpose — a blind retry could upload the same video twice)
+- `webinar-mailer` — cron `3-53/10` (offset to dodge the `*/5` social scheduler), sweeps the free-webinar Meet-link and 24 h / 1 h reminder queues
+- `webinar-meet-link-broadcast` — triggered by `webinar/meet-link.changed` so a freshly saved link goes out immediately instead of waiting up to 10 min for the cron
 
 ### Notifications
 
@@ -103,6 +116,17 @@ Two surfaces, one shared account store.
 - There is **no auto-refresh**: Meta long-lived tokens cannot be extended without a human, so the screen shows a countdown and a Reconnect button. A code-190 failure marks the connection down and rewrites the thread error to say who can fix it, since an OPERATOR cannot open that screen.
 - **Disconnect deactivates, never deletes** — `SocialPost.account` cascades, so deleting an account would take its publishing history with it.
 - `getSocialConnections()` (`lib/crm/social-accounts.ts`) is the DB-backed twin of `getIntegrationHealth()`. It lives separately because the latter is deliberately pure-env and zero-I/O so `ajustes/integraciones` can call it synchronously — don't put DB reads in it.
+
+### Free webinar funnel (`/webinar-gratuito` + `/admin/webinar`)
+
+One `FreeWebinar` row (slug `gratuito`) holds the landing copy, the schedule, the Meet link and the promo video. Registrations arrive through the shared `/api/leads` endpoint, which tags the contact `webinar-gratuito` **and** writes a `WebinarRegistration` row.
+
+- **`WebinarRegistration` exists for the send state, not the list.** `linkEmailSentAt` / `reminder24hSentAt` / `reminder1hSentAt` make "who still needs this" a query instead of a time window, so a late, retried, or double-deployed cron can't double-send. Claim the column (`updateMany` where it `IS NULL`) *before* sending and release it if the send didn't land.
+- **`updateFreeWebinar` writes `meetUrl` with a compare-and-swap** and returns `meetUrlChanged`. The database answers "did it really change", so re-saving the same link — or the same link with a trailing space, hence `normalizeMeetUrl` — can never trigger a mass email. A real change clears `linkEmailSentAt` on every row: **that reset is the re-send.** Write first, reset second, or a concurrent fan-out sends the old link and stamps it.
+- **A changed `startsAt` clears both reminder columns.** Without it, rescheduling silently leaves everyone with reminders already marked sent.
+- Fan-out goes through `dispatchAndRecord` (honors `Contact.notifyEmail`, writes `NotificationDelivery`) with **no `campaignId`** — see the notifications section on why `List-Unsubscribe` must not touch 1:1 mail. Contacts without an email or with `notifyEmail` off are excluded by the `where`, never by stamping — stamping would permanently strand someone who adds an email later.
+- When a link already exists at registration time, the confirmation email carries it and `linkEmailSentAt` is stamped on create, so the fan-out doesn't send a duplicate minutes later.
+- **The promo video is Mux with a `public` playback policy** — unlike course recordings, which are `signed`. No token route, no JWT; `<MuxPlayer playbackId>` talks straight to Mux's CDN. It shares the LMS webhook (`/api/webhooks/mux`), which tries the class handler first and falls through to the webinar on `count === 0` (Mux ids are globally unique, so no need to read `passthrough`). `GET /api/admin/webinar/video` reconciles against the Mux API — the only way this is testable locally, since Mux can't reach `localhost`, and a self-heal for a dropped webhook in prod.
 
 ### Geo-based pricing
 

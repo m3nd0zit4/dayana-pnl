@@ -1,6 +1,12 @@
 "use client";
 
-import { ChevronDown, Copy, Plus, Sparkles, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  Copy,
+  MessageSquareText,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
 import { Button } from "@/app/components/ui/button";
@@ -8,8 +14,11 @@ import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
+import CrmNewButton from "./CrmNewButton";
+import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import { useCrm } from "./CrmProvider";
+import { CrmEmptyState, CrmFormActions, CrmLoadingState } from "./ui";
 
 type Template = {
   id: string;
@@ -225,6 +234,8 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
     confirm({
       title: "Eliminar mensaje",
       message: `¿Borrar «${template.title}»? No se puede deshacer.`,
+      confirmLabel: "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch("/api/admin/messages/templates", {
           method: "DELETE",
@@ -249,22 +260,17 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
 
   return (
     <CrmPageShell>
+      <CrmPageHeader
+        title="Mensajes rápidos"
+        description="Tus textos personalizados para copiar y pegar en WhatsApp. En la ficha del contacto el nombre se sustituye solo al copiar."
+        action={
+          canManageTeam && !preview ? (
+            <CrmNewButton label="Nuevo mensaje" onClick={startNew} />
+          ) : undefined
+        }
+      />
+
       <div className="space-y-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Mensajes rápidos</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Tus textos personalizados para copiar y pegar en WhatsApp. En la ficha
-              del contacto el nombre se sustituye solo al copiar.
-            </p>
-          </div>
-          {canManageTeam && !preview && (
-            <Button size="sm" onClick={startNew}>
-              <Plus />
-              <span className="hidden sm:inline">Nuevo mensaje</span>
-            </Button>
-          )}
-        </div>
 
         {editing && canManageTeam && (
           <Card>
@@ -308,29 +314,32 @@ const MessagesPageClient = ({ preview, initialTemplates }: Props) => {
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <Button onClick={() => void save()}>Guardar</Button>
+              <CrmFormActions size="sm">
                 <Button variant="outline" onClick={() => setEditing(null)}>
                   Cancelar
                 </Button>
-              </div>
+                <Button onClick={() => void save()}>Guardar</Button>
+              </CrmFormActions>
             </CardContent>
           </Card>
         )}
 
         <div className="space-y-3">
-          {loading && <p className="text-sm text-muted-foreground">Cargando…</p>}
+          {loading && <CrmLoadingState rows={3} variant="card" />}
           {!loading && templates.length === 0 && !editing && (
-            <Card className="p-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                Aún no tienes mensajes propios.
-              </p>
-              {canManageTeam && !preview && (
-                <Button className="mt-4" onClick={startNew}>
-                  <Plus />
-                  Crear el primero
-                </Button>
-              )}
+            <Card>
+              <CrmEmptyState
+                icon={MessageSquareText}
+                title="Aún no tienes mensajes propios"
+                description="Guarda aquí los textos que repites, y cópialos desde la ficha de cada contacto."
+                action={
+                  canManageTeam && !preview ? (
+                    <Button variant="outline" size="sm" onClick={startNew}>
+                      Crear el primero
+                    </Button>
+                  ) : undefined
+                }
+              />
             </Card>
           )}
           {templates.map((t) => (

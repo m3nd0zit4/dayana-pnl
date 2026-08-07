@@ -1,33 +1,49 @@
 /* CRM Dayana — identidad landing (linen, blush, ink) + layout SaaS */
 
+/*
+ * Estas variables duplicaban, valor a valor, los tokens de `globals.css`. El
+ * problema no era la duplicación sino que **no tenían bloque `.dark`**: como
+ * `.crm-app` pinta su fondo y su color desde aquí, el panel entero ignoraba el
+ * interruptor de tema que sí existe y sí funciona en el resto de la aplicación.
+ *
+ * Ahora son alias. No se borran porque hay cerca de 140 reglas más abajo —
+ * sobre todo la familia del cuaderno de notas— que las usan; reescribirlas
+ * todas sería un cambio enorme para el mismo resultado. Aliasándolas, cada una
+ * de esas reglas pasa a seguir el tema sin tocarla.
+ *
+ * Lo que sigue siendo literal es lo que no es color de tema: constantes de
+ * layout, y la barra superior, que es oscura en ambos temas a propósito.
+ */
 .crm-app {
-  --crm-ink: #0a0a0a;
-  --crm-linen: #ece3d4;
-  --crm-blush: #edc3b1;
+  --crm-background: var(--background);
+  --crm-foreground: var(--foreground);
+  --crm-card: var(--card);
+  --crm-muted: var(--muted-foreground);
+  --crm-border: var(--border);
+  --crm-separator: var(--border);
+  --crm-accent: var(--primary);
+  --crm-accent-soft: var(--ring);
+  --crm-linen: var(--secondary);
+  --crm-danger: var(--destructive);
+  --crm-radius-sm: var(--radius-sm);
+  --crm-radius-md: var(--radius-md);
+  --crm-radius-lg: var(--radius-lg);
+  --crm-radius-xl: var(--radius-xl);
+
+  /* Marca, no tema: el arena se usa como acento decorativo y se mantiene
+     igual en claro y oscuro. */
   --crm-sand: #d4b896;
-  --crm-paper: #ffffff;
-  --crm-background: #f6f2eb;
-  --crm-background-alt: #efe8dc;
-  --crm-foreground: #141210;
-  --crm-muted: #6f655c;
-  --crm-border: rgba(20, 18, 16, 0.08);
-  --crm-card: #fffcf8;
-  --crm-accent: #5c4a3a;
-  --crm-accent-hover: #3d3228;
-  --crm-accent-soft: rgba(212, 184, 150, 0.35);
-  --crm-blush-soft: rgba(237, 195, 177, 0.45);
-  --crm-success: #3d7a52;
-  --crm-warning: #b8860b;
-  --crm-danger: #b33a3a;
-  --crm-radius-sm: 8px;
-  --crm-radius-md: 10px;
-  --crm-radius-lg: 12px;
-  --crm-radius-xl: 14px;
-  --crm-separator: rgba(20, 18, 16, 0.08);
+
+  /* Relleno translúcido: funciona sobre cualquier fondo, así que no necesita
+     variante. */
   --crm-fill-secondary: rgba(118, 118, 128, 0.12);
+
+  /* Sombras: en oscuro casi no se ven, que es el comportamiento correcto. */
   --crm-shadow-sm: 0 1px 2px rgba(20, 18, 16, 0.04);
   --crm-shadow-md: 0 4px 24px rgba(20, 18, 16, 0.08);
   --crm-shadow-segment: 0 1px 3px rgba(20, 18, 16, 0.1);
+
+  /* Constantes de layout. */
   --crm-dropdown-z: 110;
   --crm-touch: 44px;
   --crm-bottom-nav-h: 3.25rem;

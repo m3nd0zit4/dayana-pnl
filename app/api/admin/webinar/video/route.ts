@@ -1,107 +1,80 @@
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { ensureFreeWebinar, updateFreeWebinar } from "@/lib/crm/free-webinar";
-import { blobNotConfiguredResponse, isBlobConfigured } from "@/lib/storage/blob";
+import {
+  clearWebinarVideo,
+  createWebinarVideoUpload,
+  ensureFreeWebinar,
+  reconcileWebinarVideo,
+} from "@/lib/crm/free-webinar";
+import { isMuxConfigured } from "@/lib/mux/client";
+import { muxNotConfiguredResponse } from "@/lib/mux/http";
 
-export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Promo videos can be large; server FormData uploads die at Vercel's ~4.5 MB body limit. */
-const MAX_BYTES = 200 * 1024 * 1024;
-
-const ALLOWED_CONTENT_TYPES = [
-  "video/mp4",
-  "video/quicktime",
-  "video/webm",
-] as const;
-
 /**
- * Client-upload token exchange for the free-webinar promo video.
+ * Vídeo promocional del webinar, sobre Mux.
  *
- * Browser → Blob directly (via `@vercel/blob/client` `upload`), so size is not
- * capped by the serverless request body. The store is private-only — client
- * must use `access: "private"`. Public landing plays via `/api/webinar/video`.
- *
- * The admin UI then PATCHes `/api/admin/webinar` with the returned URL (and
- * `onUploadCompleted` does the same when Vercel can reach this host).
+ * `POST` abre una subida directa (el navegador sube con UpChunk, sin pasar por
+ * el servidor) y `GET` reconcilia el estado contra la API de Mux: el webhook
+ * `video.asset.ready` no llega nunca en local — Mux no alcanza `localhost` —
+ * y en producción uno perdido dejaría el vídeo colgado en «procesando».
  */
-export const POST = async (req: Request) => {
+
+export async function POST() {
   const staff = await requireWriteStaff();
   if (staff instanceof NextResponse) return staff;
+  if (!isMuxConfigured()) return muxNotConfiguredResponse();
 
-  if (!isBlobConfigured()) return blobNotConfiguredResponse();
-
-  const body = (await req.json().catch(() => null)) as HandleUploadBody | null;
-  if (!body) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
-  }
-
-  try {
-    const jsonResponse = await handleUpload({
-      body,
-      request: req,
-      onBeforeGenerateToken: async (pathname) => {
-        if (!pathname.startsWith("webinar/")) {
-          throw new Error("invalid_pathname");
-        }
-        return {
-          allowedContentTypes: [...ALLOWED_CONTENT_TYPES],
-          maximumSizeInBytes: MAX_BYTES,
-          addRandomSuffix: false,
-          tokenPayload: JSON.stringify({ staffUserId: staff.id }),
-        };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // Fires on Vercel when Blob can callback. Locally this often never
-        // runs — the client always PATCHes videoUrl as the source of truth.
-        const webinar = await updateFreeWebinar({ videoUrl: blob.url });
-        let staffUserId: string | undefined;
-        try {
-          staffUserId = (
-            JSON.parse(tokenPayload ?? "{}") as { staffUserId?: string }
-          ).staffUserId;
-        } catch {
-          staffUserId = undefined;
-        }
-        if (staffUserId) {
-          fireAuditLog({
-            staffUserId,
-            action: "UPDATE",
-            entityType: "FreeWebinar",
-            entityId: webinar.id,
-            changes: { videoUrl: blob.url, via: "blob_callback" },
-          });
-        }
-      },
-    });
-
-    return NextResponse.json(jsonResponse);
-  } catch (e) {
+  const upload = await createWebinarVideoUpload().catch((e) => {
     console.error("[webinar video upload]", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "upload_failed" },
-      { status: 400 }
-    );
+    return null;
+  });
+  if (!upload) {
+    return NextResponse.json({ error: "upload_failed" }, { status: 502 });
   }
-};
 
-/** Remove video from the landing (does not delete the blob object). */
-export const DELETE = async () => {
+  const webinar = await ensureFreeWebinar();
+  fireAuditLog({
+    staffUserId: staff.id,
+    action: "CREATE",
+    entityType: "FreeWebinar",
+    entityId: webinar.id,
+    changes: { video: "mux_upload_started", uploadId: upload.uploadId },
+  });
+
+  return NextResponse.json(upload);
+}
+
+export async function GET() {
+  const staff = await resolveAdminStaff();
+  if (staff instanceof NextResponse) return staff;
+  if (!isMuxConfigured()) return muxNotConfiguredResponse();
+
+  const webinar = await reconcileWebinarVideo().catch((e) => {
+    console.error("[webinar video reconcile]", e);
+    return null;
+  });
+  if (!webinar) {
+    return NextResponse.json({ error: "reconcile_failed" }, { status: 502 });
+  }
+
+  return NextResponse.json({ webinar });
+}
+
+export async function DELETE() {
   const staff = await requireWriteStaff();
   if (staff instanceof NextResponse) return staff;
 
-  await ensureFreeWebinar();
-  const webinar = await updateFreeWebinar({ videoUrl: null });
+  const webinar = await clearWebinarVideo();
 
   fireAuditLog({
     staffUserId: staff.id,
-    action: "UPDATE",
+    action: "DELETE",
     entityType: "FreeWebinar",
     entityId: webinar.id,
-    changes: { videoUrl: null },
+    changes: { video: "cleared" },
   });
 
   return NextResponse.json({ webinar });
-};
+}

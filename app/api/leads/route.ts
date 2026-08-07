@@ -17,7 +17,11 @@ import {
   WEBINAR_GRATUITO_TAG_SLUG,
   WEBINAR_INTEREST_LABEL,
 } from "@/lib/crm/tags";
-import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
+import {
+  ensureFreeWebinar,
+  formatWebinarScheduleLabel,
+} from "@/lib/crm/free-webinar";
+import { recordWebinarRegistration } from "@/lib/crm/webinar-registrations";
 import {
   notifyNewLead,
   notifyWebinarRegistration,
@@ -60,28 +64,6 @@ const sourceMap: Record<string, ContactSource> = {
   web_lead_form: ContactSource.WEB_LEAD_FORM,
   whatsapp: ContactSource.WHATSAPP_DIRECT,
   referral: ContactSource.REFERRAL,
-};
-
-const webinarScheduleLabel = async (): Promise<string | null> => {
-  try {
-    const webinar = await ensureFreeWebinar();
-    if (!webinar.startsAtDateKey) return null;
-    const [y, m, d] = webinar.startsAtDateKey.split("-").map(Number);
-    if (!y || !m || !d) return webinar.startsAtDateKey;
-    const date = new Date(Date.UTC(y, m - 1, d, 12));
-    const datePart = date.toLocaleDateString("es-CO", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    });
-    if (webinar.startsAtHasTime && webinar.startsAtTimeHm) {
-      return `${datePart} · ${webinar.startsAtTimeHm} (${webinar.operationalTimezone})`;
-    }
-    return `${datePart} (fecha confirmada; hora por confirmar)`;
-  } catch {
-    return null;
-  }
 };
 
 const appendWebinarNote = async (
@@ -215,16 +197,33 @@ export async function POST(req: NextRequest) {
     });
 
     let alreadyRegistered = false;
+    let webinarMeetUrl: string | null = null;
+    let webinarScheduleLabel: string | null = null;
     if (wantsWebinarTag) {
       try {
+        // `alreadyRegistered` sigue derivándose de la etiqueta, no de la tabla
+        // de registros: los contactos anteriores a esa tabla tienen etiqueta y
+        // el mensaje "ya estabas registrada" debe seguir siendo correcto.
         alreadyRegistered = await contactHasTag(
           contact.id,
           WEBINAR_GRATUITO_TAG_SLUG
         );
         await ensureWebinarGratuitoTag(contact.id);
         await appendWebinarNote(contact.id, alreadyRegistered);
+
+        const webinar = await ensureFreeWebinar();
+        webinarMeetUrl = webinar.meetUrl;
+        webinarScheduleLabel = formatWebinarScheduleLabel(webinar);
+        // Si la confirmación ya lleva el enlace dentro, se sella el envío aquí
+        // mismo: de lo contrario el fan-out mandaría un segundo correo con
+        // exactamente lo mismo unos minutos después.
+        await recordWebinarRegistration(webinar.id, contact.id, {
+          linkAlreadySent: Boolean(
+            webinarMeetUrl && body.email && body.email.includes("@")
+          ),
+        });
       } catch (e) {
-        console.error("[leads] webinar tag failed", e);
+        console.error("[leads] webinar registration failed", e);
       }
     }
 
@@ -262,7 +261,8 @@ export async function POST(req: NextRequest) {
             message: body.message,
             source: sourceKey,
             alreadyRegistered,
-            scheduleLabel: await webinarScheduleLabel(),
+            scheduleLabel: webinarScheduleLabel,
+            meetUrl: webinarMeetUrl,
           });
         } else {
           await notifyNewLead({

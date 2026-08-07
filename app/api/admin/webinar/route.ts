@@ -1,15 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   ensureFreeWebinar,
   updateFreeWebinar,
+  FreeWebinarMeetUrlError,
   FreeWebinarPublishError,
   PUBLISH_BLOCKER_LABELS,
   type FreeWebinarFaqItem,
 } from "@/lib/crm/free-webinar";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
+import { emitWebinarMeetLinkChanged } from "@/lib/inngest/events";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +36,8 @@ const patchSchema = z.object({
   body: z.string().max(2000).nullable().optional(),
   startsAtLocal: startsAtLocalSchema.nullable().optional(),
   startsAtIso: z.string().datetime().nullable().optional(),
-  videoUrl: z.string().url().nullable().optional(),
+  // Cadena vacía = "quitar el enlace"; el lib la normaliza a null.
+  meetUrl: z.union([z.string().url(), z.literal("")]).nullable().optional(),
   learnSectionTitle: z.string().max(120).nullable().optional(),
   learnItems: z.array(z.string().min(1).max(400)).max(12).optional(),
   faq: z.array(faqItemSchema).max(12).optional(),
@@ -69,18 +72,34 @@ export async function PATCH(req: NextRequest) {
   const { startsAtIso, startsAtLocal, ...rest } = parsed.data;
 
   try {
-    const webinar = await updateFreeWebinar({
-      ...rest,
-      faq,
-      startsAt:
-        startsAtIso === undefined
-          ? undefined
-          : startsAtIso === null
-            ? null
-            : new Date(startsAtIso),
-      startsAtLocal:
-        startsAtLocal === undefined ? undefined : startsAtLocal,
-    });
+    const { webinar, meetUrlChanged, startsAtChanged, linkEmailsReset } =
+      await updateFreeWebinar({
+        ...rest,
+        faq,
+        startsAt:
+          startsAtIso === undefined
+            ? undefined
+            : startsAtIso === null
+              ? null
+              : new Date(startsAtIso),
+        startsAtLocal:
+          startsAtLocal === undefined ? undefined : startsAtLocal,
+      });
+
+    // Enlace nuevo o cambiado: se envía ya. Si Inngest no está configurado
+    // (local, o la variable sin poner) se hace en línea con `after()` — un
+    // enlace guardado no puede quedarse esperando a que alguien configure algo.
+    if (meetUrlChanged && webinar.meetUrl) {
+      const queued = await emitWebinarMeetLinkChanged(webinar.id);
+      if (!queued) {
+        after(async () => {
+          const { sendPendingWebinarLinkEmails } = await import(
+            "@/lib/crm/webinar-mailer"
+          );
+          await sendPendingWebinarLinkEmails();
+        });
+      }
+    }
 
     fireAuditLog({
       staffUserId: staff.id,
@@ -91,14 +110,28 @@ export async function PATCH(req: NextRequest) {
         isActive: webinar.isActive,
         fields: Object.keys(parsed.data),
         startsAtIso: webinar.startsAtIso,
+        meetUrlChanged,
+        startsAtChanged,
       },
     });
 
     return NextResponse.json({
       webinar,
+      meetUrlChanged,
+      startsAtChanged,
+      linkEmailsReset,
       operationalTimezone: await getOperationalTimezone(),
     });
   } catch (e) {
+    if (e instanceof FreeWebinarMeetUrlError) {
+      return NextResponse.json(
+        {
+          error: "invalid_meet_url",
+          message: "El enlace de la reunión debe ser una URL https válida.",
+        },
+        { status: 400 }
+      );
+    }
     if (e instanceof FreeWebinarPublishError) {
       return NextResponse.json(
         {

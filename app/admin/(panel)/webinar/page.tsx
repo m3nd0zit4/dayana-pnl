@@ -1,5 +1,7 @@
 import FreeWebinarAdminClient from "@/app/components/admin/crm/FreeWebinarAdminClient";
+import type { WebinarRegistrantRow } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
 import { ensureFreeWebinar, DEFAULT_FREE_WEBINAR } from "@/lib/crm/free-webinar";
+import { listWebinarRegistrations } from "@/lib/crm/webinar-registrations";
 import {
   getOperationalTimezone,
 } from "@/lib/crm/operational-timezone";
@@ -15,6 +17,7 @@ const WebinarAdminPage = async () => {
     return (
       <FreeWebinarAdminClient
         operationalTimezone={operationalTimezone}
+        registrations={[]}
         initial={{
           id: "preview",
           slug: "gratuito",
@@ -28,7 +31,11 @@ const WebinarAdminPage = async () => {
           startsAtTimeHm: null,
           startsAtHasTime: false,
           operationalTimezone,
-          videoUrl: null,
+          meetUrl: null,
+          muxPlaybackId: null,
+          videoStatus: "NONE",
+          videoDurationSec: null,
+          videoErrorMessage: null,
           learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
           learnItems: DEFAULT_FREE_WEBINAR.learnItems,
           faq: DEFAULT_FREE_WEBINAR.faq,
@@ -43,10 +50,28 @@ const WebinarAdminPage = async () => {
   }
 
   const webinar = await ensureFreeWebinar();
+  const rows = await listWebinarRegistrations(webinar.id).catch(() => []);
+
+  // Se aplana aquí: el panel es un componente cliente y las fechas tienen que
+  // cruzar la frontera como cadenas.
+  const registrations: WebinarRegistrantRow[] = rows.map((r) => ({
+    id: r.id,
+    contactId: r.contact.id,
+    name: [r.contact.firstName, r.contact.lastName].filter(Boolean).join(" "),
+    email: r.contact.email,
+    phoneE164: r.contact.phoneE164,
+    notifyEmail: r.contact.notifyEmail,
+    createdAtIso: r.createdAt.toISOString(),
+    linkEmailSentAt: r.linkEmailSentAt?.toISOString() ?? null,
+    reminder24hSentAt: r.reminder24hSentAt?.toISOString() ?? null,
+    reminder1hSentAt: r.reminder1hSentAt?.toISOString() ?? null,
+  }));
+
   return (
     <FreeWebinarAdminClient
       initial={webinar}
       operationalTimezone={webinar.operationalTimezone ?? operationalTimezone}
+      registrations={registrations}
     />
   );
 };

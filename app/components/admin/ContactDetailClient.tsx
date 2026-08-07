@@ -10,6 +10,7 @@ import DeleteContactDialog from "@/app/components/admin/crm/DeleteContactDialog"
 import QuickMessagesPanel from "@/app/components/admin/crm/QuickMessagesPanel";
 import WhatsAppContactBlock from "@/app/components/admin/crm/WhatsAppContactBlock";
 import ContactNotesPanel from "@/app/components/admin/crm/ContactNotesPanel";
+import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmSegmentedControl from "@/app/components/admin/crm/CrmSegmentedControl";
 import RegisterPaymentModal from "@/app/components/admin/crm/RegisterPaymentModal";
 import AddEnrollmentModal from "@/app/components/admin/crm/AddEnrollmentModal";
@@ -253,21 +254,25 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
     <div className={isFocusNotebook ? "crm-focus-workspace" : "space-y-4"}>
       {!isFocusNotebook && (
         <div className="space-y-3">
-          <h1 className="text-xl font-semibold tracking-tight">
-            {contact.firstName} {contact.lastName ?? ""}
-          </h1>
-          {contact.tags && contact.tags.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {contact.tags.map(({ tag }) => (
-                <span
-                  key={tag.id}
-                  className="inline-flex rounded-full border border-terracotta/25 bg-terracotta/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-terracotta"
-                >
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          ) : null}
+          <CrmPageHeader
+            title={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
+            backHref="/admin/contacts"
+            backLabel="Contactos"
+            trailing={
+              contact.tags && contact.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {contact.tags.map(({ tag }) => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex rounded-full border border-terracotta/25 bg-terracotta/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-terracotta"
+                    >
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+              ) : undefined
+            }
+          />
           <WhatsAppContactBlock phoneE164={contact.phoneE164} compact />
           <CrmSegmentedControl
             value={tab}
