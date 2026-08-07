@@ -15,14 +15,11 @@ import { previewRoutes, type CrmRoute } from "./routes";
  */
 const PENDING_CONTRACT = new Set<string>([
   "/admin",
-  "/admin/contacts",
   "/admin/curso",
   "/admin/curso/modulos",
   "/admin/curso/modulos/preview-module",
   "/admin/curso/comentarios",
-  "/admin/therapies",
   "/admin/payments",
-  "/admin/workshops",
   "/admin/webinar",
   "/admin/products",
   "/admin/promo-codes",

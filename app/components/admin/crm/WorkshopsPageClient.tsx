@@ -1,17 +1,27 @@
 "use client";
 
 import { WorkshopEditionStatus } from "@prisma/client";
-import { Check, Copy, ExternalLink, Megaphone, Pencil, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { CalendarRange, Megaphone } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import BroadcastNotifyModal from "./BroadcastNotifyModal";
 import { useCrm } from "./CrmProvider";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmErrorState,
+  CrmLoadingState,
+  CrmPublicLink,
+  CrmRowAction,
+  CrmRowActions,
+  CrmRowDelete,
+  CrmRowEdit,
+} from "./ui";
 import WorkshopFormModal, {
   mapApiEditionToRow,
   type WorkshopRow,
@@ -44,21 +54,6 @@ const WorkshopsPageClient = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<WorkshopRow | null>(null);
   const [notifyEdition, setNotifyEdition] = useState<WorkshopRow | null>(null);
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-
-  const workshopPublicUrl = (slug: string) =>
-    `${window.location.origin}/taller-virtual/${slug}`;
-
-  const copyWorkshopUrl = async (slug: string) => {
-    try {
-      await navigator.clipboard.writeText(workshopPublicUrl(slug));
-      setCopiedSlug(slug);
-      toast("URL del taller copiada");
-      window.setTimeout(() => setCopiedSlug(null), 2000);
-    } catch {
-      toast("No se pudo copiar la URL", "error");
-    }
-  };
 
   const load = useCallback(() => {
     if (preview) {
@@ -116,6 +111,8 @@ const WorkshopsPageClient = ({
       title: "Eliminar edición",
       message:
         "¿Eliminar esta edición de taller? Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      destructive: true,
       onConfirm: async () => {
         const res = await fetch(`/api/admin/workshops/${encodeURIComponent(slug)}`, {
           method: "DELETE",
@@ -136,139 +133,110 @@ const WorkshopsPageClient = ({
     });
   };
 
+  /**
+   * Una edición en borrador o cerrada no tiene página pública que enseñar,
+   * salvo para OWNER, que sí puede previsualizarla (`taller-virtual/[slug]`
+   * le concede la vista pagada). En vez de esconder el botón según el caso
+   * —que es lo que había antes— se muestra siempre y se explica por qué está
+   * apagado: así la fila no cambia de forma según el estado.
+   */
+  const previewBlockedReason = (e: WorkshopRow) =>
+    e.status === WorkshopEditionStatus.OPEN || canPreview
+      ? undefined
+      : `Esta edición está en ${STATUS_LABEL[e.status].toLowerCase()}: aún no tiene página pública.`;
+
   const EditionActions = ({ e }: { e: WorkshopRow }) => {
     if (preview) return null;
-    const urlCopied = copiedSlug === e.slug;
     return (
-      <>
-        {e.status === WorkshopEditionStatus.OPEN && (
-          <Button variant="outline" size="sm" onClick={() => void copyWorkshopUrl(e.slug)}>
-            {urlCopied ? (
-              <>
-                <Check aria-hidden="true" />
-                Copiada
-              </>
-            ) : (
-              <>
-                <Copy aria-hidden="true" />
-                Copiar link
-              </>
-            )}
-          </Button>
-        )}
-        {(e.status === WorkshopEditionStatus.OPEN || canPreview) && (
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Ver en web"
-            title={canPreview ? "Ver en web (tú siempre ves la versión pagada)" : "Ver en web"}
-            nativeButton={false}
-            render={
-              <Link href={`/taller-virtual/${e.slug}`} target="_blank" rel="noopener noreferrer" />
-            }
-          >
-            <ExternalLink />
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notificar contactos"
-          title="Notificar contactos"
+      <CrmRowActions>
+        <CrmPublicLink
+          href={`/taller-virtual/${e.slug}`}
+          label={
+            canPreview
+              ? "Ver en web (tú siempre ves la versión pagada)"
+              : "Ver en web"
+          }
+          density="row"
+          copy
+          disabledReason={previewBlockedReason(e)}
+        />
+        <CrmRowAction
+          icon={Megaphone}
+          label="Notificar contactos"
           onClick={() => setNotifyEdition(e)}
-        >
-          <Megaphone />
-        </Button>
-        <Button variant="ghost" size="icon" aria-label="Editar" onClick={() => openEdit(e)}>
-          <Pencil />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-destructive"
-          aria-label="Eliminar"
-          onClick={() => remove(e.slug)}
-        >
-          <Trash2 />
-        </Button>
-      </>
+        />
+        <CrmRowEdit onClick={() => openEdit(e)} />
+        <CrmRowDelete onClick={() => remove(e.slug)} />
+      </CrmRowActions>
     );
   };
 
-  const EditionMeta = ({ e }: { e: WorkshopRow }) =>
-    e.dateLabel ? (
-      <p className="mt-2 text-xs text-muted-foreground">
-        {e.dateLabel}
-        {e.scheduleLabel ? ` · ${e.scheduleLabel}` : ""}
-      </p>
-    ) : null;
-
   return (
     <CrmPageShell>
-      <div className="space-y-5">
-        <CrmPageHeader
-          title="Talleres"
-          action={
-            !preview ? (
-              <CrmNewButton label="Nueva edición" onClick={openCreate} />
-            ) : undefined
-          }
-        />
+      <CrmPageHeader
+        title="Talleres"
+        description="Cada edición es una convocatoria con sus propias fechas y su propia página pública."
+        secondaryActions={
+          <CrmPublicLink href="/taller-virtual" label="Ver listado público" />
+        }
+        action={
+          !preview ? (
+            <CrmNewButton label="Nueva edición" onClick={openCreate} />
+          ) : undefined
+        }
+      />
 
-        {loadError && (
-          <p className="text-sm text-destructive" role="alert">
-            {loadError}
-          </p>
-        )}
+      {loadError ? (
+        <CrmErrorState message={loadError} onRetry={load} />
+      ) : null}
 
-        <section>
-          <Card className="overflow-hidden py-0">
-            <CardContent className="divide-y divide-border p-0">
-              {loading ? (
-                <div className="p-8 text-center">
-                  <p className="text-sm font-semibold">Cargando ediciones…</p>
-                </div>
-              ) : sortedEditions.length === 0 ? (
-                <div className="p-8 text-center">
-                  <p className="text-sm font-semibold">Sin ediciones</p>
-                  {!preview && (
-                    <Button variant="outline" size="sm" className="mt-3" onClick={openCreate}>
-                      Crear edición
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                sortedEditions.map((e) => (
-                  <div key={e.id} className="flex flex-wrap items-center gap-3 p-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">{e.title}</span>
-                        {e.status === WorkshopEditionStatus.OPEN && (
-                          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-100 dark:text-emerald-800">
-                            Activo en web
-                          </Badge>
-                        )}
-                      </div>
-                      {e.editionLabel && (
-                        <div className="mt-0.5 text-xs text-muted-foreground">
-                          {e.editionLabel}
-                        </div>
-                      )}
-                      <EditionMeta e={e} />
-                    </div>
-                    <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
-                      {STATUS_LABEL[e.status]}
+      <CrmDataList>
+        {loading ? (
+          <CrmLoadingState rows={3} />
+        ) : sortedEditions.length === 0 ? (
+          <CrmEmptyState
+            icon={CalendarRange}
+            title="Sin ediciones"
+            description="Crea una edición para abrir una convocatoria de taller y publicar su página."
+            action={
+              !preview ? (
+                <Button variant="outline" size="sm" onClick={openCreate}>
+                  Crear edición
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          sortedEditions.map((e) => (
+            <CrmDataListRow key={e.id} actions={<EditionActions e={e} />}>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{e.title}</span>
+                  {e.status === WorkshopEditionStatus.OPEN ? (
+                    <Badge className="border-success/40 bg-success/10 text-success">
+                      Activo en web
                     </Badge>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <EditionActions e={e} />
-                    </div>
+                  ) : null}
+                </div>
+                {e.editionLabel ? (
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {e.editionLabel}
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      </div>
+                ) : null}
+                {e.dateLabel ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {e.dateLabel}
+                    {e.scheduleLabel ? ` · ${e.scheduleLabel}` : ""}
+                  </p>
+                ) : null}
+              </div>
+              <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
+                {STATUS_LABEL[e.status]}
+              </Badge>
+            </CrmDataListRow>
+          ))
+        )}
+      </CrmDataList>
 
       <WorkshopFormModal
         open={modalOpen}

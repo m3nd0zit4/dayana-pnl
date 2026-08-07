@@ -2,18 +2,22 @@
 
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
-import { Calendar, ChevronRight, RefreshCw, TriangleAlert } from "lucide-react";
+import { Calendar, ChevronRight, HeartHandshake, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import type { TherapyListRow } from "@/lib/crm/therapies-list";
 import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
-import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
 import { useCrm } from "./CrmProvider";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmErrorState,
+} from "./ui";
 
 type Tab = "active" | "lead";
 
@@ -72,123 +76,145 @@ const TherapiesPageClient = ({
 
   return (
     <CrmPageShell>
-      <div className="space-y-4">
-        <CrmPageHeader
-          title="Terapias"
-          action={
-            !preview ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={refreshing}
-                aria-label="Actualizar"
-                onClick={() => void refresh()}
-              >
-                <RefreshCw className={refreshing ? "animate-spin" : ""} strokeWidth={1.75} />
-              </Button>
-            ) : undefined
-          }
-          trailing={
-            <CrmSegmentedControl
-              value={tab}
-              onChange={setTab}
-              segments={[
-                { id: "active", label: "Activas", count: activeRows.length },
-                { id: "lead", label: "Por activar", count: leadRows.length },
-              ]}
-            />
-          }
-        />
+      <CrmPageHeader
+        title="Terapias"
+        description="Procesos individuales en curso y los que están esperando activación."
+        // Refrescar es apoyo, no la acción principal de la página. Antes ocupaba
+        // el hueco que en el resto del CRM es para crear, así que en esta
+        // sección el botón de arriba a la derecha significaba otra cosa.
+        secondaryActions={
+          !preview ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              disabled={refreshing}
+              aria-label="Actualizar"
+              title="Actualizar"
+              onClick={() => void refresh()}
+            >
+              <RefreshCw
+                className={refreshing ? "animate-spin" : ""}
+                strokeWidth={1.75}
+                aria-hidden
+              />
+            </Button>
+          ) : undefined
+        }
+        trailing={
+          <CrmSegmentedControl
+            value={tab}
+            onChange={setTab}
+            segments={[
+              { id: "active", label: "Activas", count: activeRows.length },
+              { id: "lead", label: "Por activar", count: leadRows.length },
+            ]}
+          />
+        }
+      />
 
-        {error && (
-          <Alert className="flex flex-wrap items-center justify-between gap-3">
-            <TriangleAlert />
-            <AlertDescription className="flex flex-1 flex-wrap items-center justify-between gap-3">
-              <span>{error}</span>
-              <Button variant="outline" size="sm" onClick={() => void refresh()}>
-                Reintentar
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
+      {error ? <CrmErrorState message={error} onRetry={() => void refresh()} /> : null}
 
-        <Card className="overflow-hidden py-0">
-          <CardContent className="divide-y divide-border p-0">
-            {rows.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-sm font-semibold">
-                  {tab === "active" ? "Sin terapias activas" : "Sin terapias por activar"}
-                </p>
-                {tab === "active" && (
-                  <Button variant="ghost" size="sm" className="mt-2" nativeButton={false} render={<Link href="/admin/contacts" />}>
-                    Ir a contactos
-                  </Button>
-                )}
-              </div>
-            ) : (
-              rows.map((row) => (
-                <div key={row.enrollmentId} className="flex items-center gap-3 p-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold">{row.contactName}</p>
-                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-                      {displayContactPhone(row.phoneE164) ?? "Sin teléfono"} · {row.timezone}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {row.productTitle} · {enrollmentStatusLabel(row.status)}
-                    </p>
-                    {row.sessionsTotal != null && row.sessionsTotal > 0 && (
-                      <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{
-                            width: `${sessionProgress(row.sessionsUsed, row.sessionsTotal)}%`,
-                          }}
-                        />
-                      </div>
-                    )}
-                    {tab === "active" && row.nextSessionAt && (
-                      <p className="mt-2 inline-flex items-center gap-1 text-xs">
-                        <Calendar className="size-3.5 text-muted-foreground" aria-hidden />
-                        Próxima: {formatSessionDateTimeEs(row.nextSessionAt, row.timezone)}
-                        {row.nextSessionNumber != null ? (
-                          <span className="text-muted-foreground">
-                            · sesión {row.nextSessionNumber}
-                          </span>
-                        ) : null}
-                      </p>
-                    )}
-                    {tab === "lead" && (
-                      <p className="mt-2 text-xs text-amber-700">Activa desde Gestionar</p>
-                    )}
-                  </div>
-                  {!preview && (
+      <CrmDataList>
+        {rows.length === 0 ? (
+          <CrmEmptyState
+            icon={HeartHandshake}
+            title={
+              tab === "active" ? "Sin terapias activas" : "Sin terapias por activar"
+            }
+            description={
+              tab === "active"
+                ? "Cuando alguien contrate un paquete de sesiones aparecerá aquí."
+                : "Los paquetes pagados que aún no han empezado se listan en esta pestaña."
+            }
+            action={
+              tab === "active" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href="/admin/contacts" />}
+                >
+                  Ir a contactos
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          rows.map((row) => (
+            <CrmDataListRow
+              key={row.enrollmentId}
+              actions={
+                <div className="flex items-center gap-2">
+                  {!preview ? (
                     <Button
                       variant="outline"
                       size="sm"
-                      className="shrink-0"
                       nativeButton={false}
                       render={<Link href={`/admin/enrollments/${row.enrollmentId}`} />}
                     >
                       {tab === "lead" ? "Activar" : "Gestionar"}
                     </Button>
-                  )}
+                  ) : null}
                   {!preview ? (
                     <Link
                       href={`/admin/contacts/${row.contactId}`}
-                      className="shrink-0"
                       aria-label="Ver ficha del contacto"
                     >
-                      <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                      <ChevronRight
+                        className="size-4 text-muted-foreground"
+                        aria-hidden
+                      />
                     </Link>
                   ) : (
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <ChevronRight
+                      className="size-4 text-muted-foreground"
+                      aria-hidden
+                    />
                   )}
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              }
+            >
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{row.contactName}</p>
+                <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                  {displayContactPhone(row.phoneE164) ?? "Sin teléfono"} ·{" "}
+                  {row.timezone}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {row.productTitle} · {enrollmentStatusLabel(row.status)}
+                </p>
+                {row.sessionsTotal != null && row.sessionsTotal > 0 ? (
+                  <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary"
+                      style={{
+                        width: `${sessionProgress(row.sessionsUsed, row.sessionsTotal)}%`,
+                      }}
+                    />
+                  </div>
+                ) : null}
+                {tab === "active" && row.nextSessionAt ? (
+                  <p className="mt-2 inline-flex items-center gap-1 text-xs">
+                    <Calendar
+                      className="size-3.5 text-muted-foreground"
+                      aria-hidden
+                    />
+                    Próxima: {formatSessionDateTimeEs(row.nextSessionAt, row.timezone)}
+                    {row.nextSessionNumber != null ? (
+                      <span className="text-muted-foreground">
+                        · sesión {row.nextSessionNumber}
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {tab === "lead" ? (
+                  <p className="mt-2 text-xs text-warning">Activa desde Gestionar</p>
+                ) : null}
+              </div>
+            </CrmDataListRow>
+          ))
+        )}
+      </CrmDataList>
     </CrmPageShell>
   );
 };
