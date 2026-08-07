@@ -46,13 +46,13 @@ const SentMark = ({ at, label }: { at: string | null; label: string }) =>
   at ? (
     <span
       title={`${label}: ${new Date(at).toLocaleString("es-CO")}`}
-      className="inline-flex items-center gap-1 text-emerald-700"
+      className="inline-flex items-center gap-1 text-success"
     >
       <Check className="size-3.5" />
       <span className="sr-only">{label} enviado</span>
     </span>
   ) : (
-    <span title={`${label}: sin enviar`} className="text-black/25">
+    <span title={`${label}: sin enviar`} className="text-muted-foreground/60">
       <Minus className="size-3.5" />
       <span className="sr-only">{label} sin enviar</span>
     </span>
@@ -68,12 +68,12 @@ const WebinarRegistrantsPanel = ({ registrations, stats }: Props) => {
   const showingAll = stats.total <= registrations.length;
 
   return (
-    <Card className="border-black/8 bg-white/80">
+    <Card className="border-border bg-card">
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="text-base uppercase tracking-wide">
           Registradas
         </CardTitle>
-        <span className="rounded-full bg-black/[0.06] px-2.5 py-0.5 text-xs font-medium text-black/60">
+        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
           {stats.total.toLocaleString("es-CO")}
         </span>
       </CardHeader>
@@ -90,12 +90,12 @@ const WebinarRegistrantsPanel = ({ registrations, stats }: Props) => {
             ).map(([label, value]) => (
               <div
                 key={label}
-                className="rounded-xl border border-black/8 bg-black/[0.02] px-3 py-2"
+                className="rounded-xl border border-border bg-muted/40 px-3 py-2"
               >
-                <dt className="text-[10px] uppercase tracking-wider text-black/45">
+                <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">
                   {label}
                 </dt>
-                <dd className="mt-0.5 text-base font-semibold text-black/80">
+                <dd className="mt-0.5 text-base font-semibold text-foreground">
                   {value.toLocaleString("es-CO")}
                 </dd>
               </div>
@@ -111,7 +111,7 @@ const WebinarRegistrantsPanel = ({ registrations, stats }: Props) => {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
-                  <tr className="border-b border-black/8 text-left text-[11px] uppercase tracking-wider text-black/40">
+                  <tr className="border-b border-border text-left text-[11px] uppercase tracking-wider text-muted-foreground">
                     <th className="pb-2 font-medium">Persona</th>
                     <th className="pb-2 font-medium">Registro</th>
                     <th className="pb-2 text-center font-medium">Enlace</th>
@@ -123,31 +123,31 @@ const WebinarRegistrantsPanel = ({ registrations, stats }: Props) => {
                   {registrations.map((r) => (
                     <tr
                       key={r.id}
-                      className="border-b border-black/5 last:border-0"
+                      className="border-b border-border last:border-0"
                     >
                       <td className="py-2.5 pr-3">
                         <Link
                           href={`/admin/contacts/${r.contactId}`}
-                          className="font-medium text-black/80 hover:text-terracotta"
+                          className="font-medium text-foreground hover:text-terracotta"
                         >
                           {r.name}
                         </Link>
-                        <div className="mt-0.5 text-xs text-black/45">
+                        <div className="mt-0.5 text-xs text-muted-foreground">
                           {r.email ? (
                             r.notifyEmail ? (
                               r.email
                             ) : (
-                              <span className="text-amber-700">
+                              <span className="text-warning">
                                 {r.email} · baja de correo
                               </span>
                             )
                           ) : (
-                            <span className="text-amber-700">sin correo</span>
+                            <span className="text-warning">sin correo</span>
                           )}
                           {r.phoneE164 ? ` · ${r.phoneE164}` : ""}
                         </div>
                       </td>
-                      <td className="py-2.5 pr-3 text-xs text-black/55">
+                      <td className="py-2.5 pr-3 text-xs text-muted-foreground">
                         {shortDate(r.createdAtIso)}
                       </td>
                       <td className="py-2.5 text-center">
@@ -171,14 +171,14 @@ const WebinarRegistrantsPanel = ({ registrations, stats }: Props) => {
               </table>
             </div>
             {!showingAll ? (
-              <p className="text-xs text-black/50">
+              <p className="text-xs text-muted-foreground">
                 Mostrando las {registrations.length} más recientes de{" "}
                 {stats.total.toLocaleString("es-CO")}. Busca a alguien concreto
                 desde Contactos.
               </p>
             ) : null}
             {stats.unreachable > 0 ? (
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-warning">
                 {stats.unreachable.toLocaleString("es-CO")} sin correo o dadas de
                 baja: no reciben ni el enlace ni los recordatorios. Escríbeles
                 por WhatsApp desde su ficha.
