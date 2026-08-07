@@ -27,8 +27,8 @@ import { processNormalizedEvent } from "../meta/ingest";
 import type { NormalizedEvent } from "../meta/inbound";
 import { findDuePosts } from "../crm/social-posts";
 import {
-  sendPendingWebinarLinkEmails,
-  sendPendingWebinarReminders,
+  drainWebinarMail,
+  type WebinarMailPass,
 } from "../crm/webinar-mailer";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
@@ -527,16 +527,51 @@ export const webinarMailerFn = inngest.createFunction(
   { id: "webinar-mailer", concurrency: { limit: 1 } },
   { cron: "3-53/10 * * * *" },
   async ({ step }) => {
-    const link = await step.run("webinar-link-emails", () =>
-      sendPendingWebinarLinkEmails()
-    );
-    const reminder24h = await step.run("webinar-reminder-24h", () =>
-      sendPendingWebinarReminders("24h")
-    );
-    const reminder1h = await step.run("webinar-reminder-1h", () =>
-      sendPendingWebinarReminders("1h")
-    );
-    return { link, reminder24h, reminder1h };
+    // Cada pasada vacía la cola en lotes de 500 con 10 envíos en vuelo, y se
+    // corta sola antes del tope de 300 s de una función de Vercel. El
+    // recordatorio de 1 h va primero: su ventana es la única irrecuperable.
+    const passes: WebinarMailPass[] = ["1h", "24h", "link"];
+    const out: Record<string, unknown> = {};
+
+    for (const pass of passes) {
+      const r = await step.run(`webinar-${pass}`, () => drainWebinarMail(pass));
+      out[pass] = r;
+      // Se agotó el presupuesto con cola pendiente: se encadena otra
+      // invocación en vez de alargar esta hasta que Vercel la mate.
+      if (r.pending) {
+        await step.sendEvent(`continue-${pass}`, {
+          name: "webinar/mail.continue",
+          data: { pass },
+        });
+      }
+    }
+
+    return out;
+  }
+);
+
+/**
+ * Continuación de una pasada que no cupo en su presupuesto. Se reencola a sí
+ * misma mientras quede cola. `concurrency` con clave por pasada y límite 1
+ * impide que dos continuaciones de la misma cola corran a la vez — aunque los
+ * sellos por fila ya evitarían el duplicado, así no se malgastan invocaciones.
+ */
+export const webinarMailContinueFn = inngest.createFunction(
+  {
+    id: "webinar-mail-continue",
+    concurrency: { key: "event.data.pass", limit: 1 },
+  },
+  { event: "webinar/mail.continue" },
+  async ({ event, step }) => {
+    const pass = event.data.pass as WebinarMailPass;
+    const r = await step.run(`drain-${pass}`, () => drainWebinarMail(pass));
+    if (r.pending) {
+      await step.sendEvent(`continue-${pass}`, {
+        name: "webinar/mail.continue",
+        data: { pass },
+      });
+    }
+    return r;
   }
 );
 
@@ -549,7 +584,7 @@ export const webinarMeetLinkBroadcastFn = inngest.createFunction(
   { id: "webinar-meet-link-broadcast", concurrency: { limit: 1 } },
   { event: "webinar/meet-link.changed" },
   async ({ step }) =>
-    step.run("send-link-emails", () => sendPendingWebinarLinkEmails())
+    step.run("send-link-emails", () => drainWebinarMail("link"))
 );
 
 export const inngestFunctions = [
@@ -566,5 +601,6 @@ export const inngestFunctions = [
   socialPostSchedulerFn,
   socialPostPublishFn,
   webinarMailerFn,
+  webinarMailContinueFn,
   webinarMeetLinkBroadcastFn,
 ];
