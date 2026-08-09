@@ -413,11 +413,20 @@ model FreeWebinar {
   formTitle         String    @default("Reserva tu lugar") @map("form_title")
   metaTitle         String?   @map("meta_title")
   metaDescription   String?   @map("meta_description") @db.Text
+  /// Sellada por el cron cuando la fecha ya pasó más el margen. Corta registros
+  /// y recordatorios sin tocar nada destructivo. Null = edición todavía en pie.
+  /// No toca `isActive`: ese interruptor es de Dayana y el cron no se lo pisa.
+  endedAt           DateTime? @map("ended_at")
+  /// La verdad sobre «cuál está viva» es el SLUG: la viva es siempre
+  /// `gratuito`, y al archivar se renombra a `gratuito-<id>`. Esta columna es
+  /// solo la fecha que se muestra en el historial — nunca un predicado.
+  archivedAt        DateTime? @map("archived_at")
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")
 
   registrations WebinarRegistration[]
 
+  @@index([archivedAt])
   @@map("free_webinars")
 }
 
@@ -434,6 +443,11 @@ model WebinarRegistration {
   linkEmailSentAt   DateTime? @map("link_email_sent_at")
   reminder24hSentAt DateTime? @map("reminder_24h_sent_at")
   reminder1hSentAt  DateTime? @map("reminder_1h_sent_at")
+  /// Último motivo de fallo, desnormalizado desde NotificationDelivery para
+  /// poder filtrar «solo las fallidas» sin un join a 10k filas. El histórico
+  /// completo de intentos (providerId, cuerpo, error) vive allí, no aquí.
+  lastSendError     String?   @map("last_send_error") @db.Text
+  lastSendErrorAt   DateTime? @map("last_send_error_at")
 
   webinar FreeWebinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)

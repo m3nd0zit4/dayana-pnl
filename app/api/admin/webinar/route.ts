@@ -6,6 +6,7 @@ import {
   ensureFreeWebinar,
   updateFreeWebinar,
   FreeWebinarMeetUrlError,
+  setFreeWebinarEnded,
   FreeWebinarPublishError,
   PUBLISH_BLOCKER_LABELS,
   type FreeWebinarFaqItem,
@@ -38,6 +39,8 @@ const patchSchema = z.object({
   startsAtIso: z.string().datetime().nullable().optional(),
   // Cadena vacía = "quitar el enlace"; el lib la normaliza a null.
   meetUrl: z.union([z.string().url(), z.literal("")]).nullable().optional(),
+  /** Cerrar o reabrir a mano lo que el cron sella solo. */
+  ended: z.boolean().optional(),
   learnSectionTitle: z.string().max(120).nullable().optional(),
   learnItems: z.array(z.string().min(1).max(400)).max(12).optional(),
   faq: z.array(faqItemSchema).max(12).optional(),
@@ -69,7 +72,22 @@ export async function PATCH(req: NextRequest) {
   }
 
   const faq = parsed.data.faq as FreeWebinarFaqItem[] | undefined;
-  const { startsAtIso, startsAtLocal, ...rest } = parsed.data;
+  const { startsAtIso, startsAtLocal, ended, ...rest } = parsed.data;
+
+  if (ended !== undefined) {
+    const webinar = await setFreeWebinarEnded(ended);
+    fireAuditLog({
+      staffUserId: staff.id,
+      action: "UPDATE",
+      entityType: "FreeWebinar",
+      entityId: webinar.id,
+      changes: { ended },
+    });
+    return NextResponse.json({
+      webinar,
+      operationalTimezone: await getOperationalTimezone(),
+    });
+  }
 
   try {
     const { webinar, meetUrlChanged, startsAtChanged, linkEmailsReset } =

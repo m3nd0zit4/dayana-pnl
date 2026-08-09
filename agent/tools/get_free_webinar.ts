@@ -7,7 +7,7 @@ import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Get the free webinar landing config (headline, schedule in CRM operational timezone, active flag, learn items, FAQ). There is a single landing at /webinar-gratuito — not multiple editions.",
+    "Get the CURRENT free webinar edition (headline, schedule in CRM operational timezone, active flag, meet link, learn items, FAQ, registration count). The live edition is always the one at /webinar-gratuito; past editions are archived into a CRM-only history that this tool does not read. `endedAt` set means it already happened: registrations and reminders are closed until someone archives it and sets a new date.",
   inputSchema: z.object({}),
   async execute(_input, ctx) {
     requireStaff(ctx);
@@ -27,6 +27,8 @@ export default defineTool({
         startsAtHasTime: webinar.startsAtHasTime,
         operationalTimezone: webinar.operationalTimezone,
         meetUrl: webinar.meetUrl,
+        endedAt: webinar.endedAt,
+        archivedAt: webinar.archivedAt,
         videoStatus: webinar.videoStatus,
         hasVideo: webinar.videoStatus === "READY",
         learnSectionTitle: webinar.learnSectionTitle,

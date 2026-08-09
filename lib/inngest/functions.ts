@@ -30,6 +30,7 @@ import {
   drainWebinarMail,
   type WebinarMailPass,
 } from "../crm/webinar-mailer";
+import { closeFreeWebinarIfDue, getFreeWebinar } from "../crm/free-webinar";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
 import { formatInstantForContact } from "../datetime/visitor-schedule";
@@ -527,23 +528,58 @@ export const webinarMailerFn = inngest.createFunction(
   { id: "webinar-mailer", concurrency: { limit: 1 } },
   { cron: "3-53/10 * * * *" },
   async ({ step }) => {
-    // Cada pasada vacía la cola en lotes de 500 con 10 envíos en vuelo, y se
-    // corta sola antes del tope de 300 s de una función de Vercel. El
-    // recordatorio de 1 h va primero: su ventana es la única irrecuperable.
-    const passes: WebinarMailPass[] = ["1h", "24h", "link"];
+    // La guarda va aquí y no dentro del mailer: así los reenvíos manuales
+    // siguen funcionando sobre una edición ya cerrada pero sin archivar.
+    // `getFreeWebinar` y no `ensureFreeWebinar` — un cron no crea filas.
+    const live = await step.run("load-live", () => getFreeWebinar());
+    if (!live) return { skipped: "no_webinar" };
+
     const out: Record<string, unknown> = {};
 
-    for (const pass of passes) {
-      const r = await step.run(`webinar-${pass}`, () => drainWebinarMail(pass));
-      out[pass] = r;
-      // Se agotó el presupuesto con cola pendiente: se encadena otra
-      // invocación en vez de alargar esta hasta que Vercel la mate.
-      if (r.pending) {
-        await step.sendEvent(`continue-${pass}`, {
-          name: "webinar/mail.continue",
-          data: { pass },
-        });
+    if (live.endedAt) {
+      out.mail = { skipped: "ended" };
+    } else {
+      // Cada pasada vacía la cola en lotes de 500 con 10 envíos en vuelo, y se
+      // corta sola antes del tope de 300 s de una función de Vercel. El
+      // recordatorio de 1 h va primero: su ventana es la única irrecuperable.
+      const passes: WebinarMailPass[] = ["1h", "24h", "link"];
+      for (const pass of passes) {
+        const r = await step.run(`webinar-${pass}`, () =>
+          drainWebinarMail(pass)
+        );
+        out[pass] = r;
+        // Se agotó el presupuesto con cola pendiente: se encadena otra
+        // invocación en vez de alargar esta hasta que Vercel la mate.
+        if (r.pending) {
+          await step.sendEvent(`continue-${pass}`, {
+            name: "webinar/mail.continue",
+            data: { pass },
+          });
+        }
       }
+    }
+
+    // El cierre va al final para que este mismo tick alcance a enviar el
+    // recordatorio de 1 h antes de dar el webinar por terminado.
+    const closed = await step.run("close-if-due", () => closeFreeWebinarIfDue());
+    out.close = closed;
+
+    if (closed.closed) {
+      // Sin este aviso nadie se entera de que ya se puede archivar.
+      // `SYSTEM_ALERT` ya existe: un tipo nuevo costaría migración del enum
+      // más una entrada en el catálogo exhaustivo, para un solo mensaje.
+      await step.run("notify-ended", async () => {
+        await emitPlatformNotification({
+          eventType: "SYSTEM_ALERT",
+          title: "El webinar gratuito ya terminó",
+          body: "Se cerraron los registros y los recordatorios. Puedes archivarlo para dejar lista la próxima edición.",
+          href: "/admin/webinar",
+          entityType: "FreeWebinar",
+          entityId: closed.webinar.id,
+          staff: "ALL",
+        });
+        return { notified: true };
+      });
     }
 
     return out;
@@ -564,6 +600,11 @@ export const webinarMailContinueFn = inngest.createFunction(
   { event: "webinar/mail.continue" },
   async ({ event, step }) => {
     const pass = event.data.pass as WebinarMailPass;
+    // Misma guarda que el cron: si la edición se cerró mientras la cola se
+    // vaciaba, la continuación no debe seguir enviando.
+    const live = await step.run("load-live", () => getFreeWebinar());
+    if (!live || live.endedAt) return { skipped: "ended" };
+
     const r = await step.run(`drain-${pass}`, () => drainWebinarMail(pass));
     if (r.pending) {
       await step.sendEvent(`continue-${pass}`, {

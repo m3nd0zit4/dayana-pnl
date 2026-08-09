@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Sparkles, Star, Users, LogIn, ArrowUpRight, Video } from "lucide-react";
+import { Star, Users, ArrowUpRight, Video } from "lucide-react";
 import {
   BRAND,
   SOCIAL_LINKS,
@@ -68,33 +68,6 @@ type LinkRow = {
   internal?: boolean;
   tone?: BrandTone;
 };
-
-const INTERNAL_LINKS: LinkRow[] = [
-  {
-    key: "servicios",
-    label: "Servicios y precios",
-    sublabel: "Terapias 1:1 y curso en vivo",
-    href: "/servicios",
-    icon: <Sparkles className="h-5 w-5" />,
-    internal: true,
-  },
-  {
-    key: "talleres",
-    label: "Talleres en vivo",
-    sublabel: "Próximas ediciones y cupos",
-    href: "/taller-virtual",
-    icon: <Users className="h-5 w-5" />,
-    internal: true,
-  },
-  {
-    key: "miembros",
-    label: "Portal de miembros",
-    sublabel: "Entra a tus clases y grabaciones",
-    href: "/miembros",
-    icon: <LogIn className="h-5 w-5" />,
-    internal: true,
-  },
-];
 
 const TESTIMONIALS_LINK: LinkRow = {
   key: "testimonios",
@@ -441,15 +414,6 @@ const LinktreePage = ({
           <div className="flex flex-col gap-3">
             {SOCIAL_LINKS_LIST.map((row, i) => (
               <Row key={row.key} row={row} delay={260 + i * 60} />
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-8 w-full">
-          <SectionLabel>Explora</SectionLabel>
-          <div className="flex flex-col gap-3">
-            {INTERNAL_LINKS.map((row, i) => (
-              <Row key={row.key} row={row} delay={440 + i * 60} />
             ))}
           </div>
         </div>
