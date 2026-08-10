@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import * as UpChunk from "@mux/upchunk";
 import { Trash2, Upload, Video } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
@@ -26,6 +27,9 @@ import {
 } from "@/app/components/admin/crm/ui";
 import StringListEditor from "@/app/components/admin/crm/StringListEditor";
 import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";
+import WebinarEditionsPanel, {
+  type ArchivedEditionRow,
+} from "@/app/components/admin/crm/WebinarEditionsPanel";
 import WebinarRegistrantsPanel, {
   type WebinarRegistrantRow,
   type WebinarRegistrationStats,
@@ -36,6 +40,9 @@ type Props = {
   operationalTimezone?: string;
   registrations?: WebinarRegistrantRow[];
   registrationStats?: WebinarRegistrationStats;
+  archivedEditions?: ArchivedEditionRow[];
+  /** OWNER: unico rol que puede reenviar a todas y borrar historial. */
+  canBroadcast?: boolean;
 };
 
 const WebinarMuxVideo = dynamic(
@@ -56,9 +63,14 @@ const FreeWebinarAdminClient = ({
     reminder24h: 0,
     reminder1h: 0,
     unreachable: 0,
+    pendingLink: 0,
+    failed: 0,
   },
+  archivedEditions = [],
+  canBroadcast = false,
 }: Props) => {
-  const { toast } = useCrm();
+  const router = useRouter();
+  const { toast, confirm } = useCrm();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [isActive, setIsActive] = useState(initial.isActive);
@@ -68,6 +80,9 @@ const FreeWebinarAdminClient = ({
   const [dateKey, setDateKey] = useState(initial.startsAtDateKey ?? "");
   const [timeHm, setTimeHm] = useState(initial.startsAtTimeHm ?? "");
   const [meetUrl, setMeetUrl] = useState(initial.meetUrl ?? "");
+  const [capacity, setCapacity] = useState(
+    initial.capacity != null ? String(initial.capacity) : ""
+  );
   const [videoStatus, setVideoStatus] = useState(initial.videoStatus);
   const [muxPlaybackId, setMuxPlaybackId] = useState(initial.muxPlaybackId);
   const [videoErrorMessage, setVideoErrorMessage] = useState(
@@ -94,14 +109,16 @@ const FreeWebinarAdminClient = ({
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<PublishBlocker[]>([]);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
+  const [endedAt, setEndedAt] = useState<Date | string | null>(initial.endedAt);
+  const [busyLifecycle, setBusyLifecycle] = useState(false);
 
   const hasSchedule = Boolean(dateKey);
   const videoProcessing =
     videoStatus === "UPLOADING" || videoStatus === "PROCESSING";
   const videoReady = videoStatus === "READY" && Boolean(muxPlaybackId);
-  const pendingLinkCount = registrations.filter(
-    (r) => !r.linkEmailSentAt && r.email && r.notifyEmail
-  ).length;
+  // De los contadores agregados, no de las filas cargadas: el panel solo trae
+  // las 50 mas recientes y filtrarlas subestimaba el numero a partir de ahi.
+  const pendingLinkCount = registrationStats.pendingLink;
 
   const savePayload = (overrides: Record<string, unknown> = {}) => ({
     isActive,
@@ -112,6 +129,7 @@ const FreeWebinarAdminClient = ({
       ? { date: dateKey, time: timeHm.trim() || null }
       : null,
     meetUrl: meetUrl.trim() || null,
+    capacity: capacity.trim() ? Number(capacity.trim()) : null,
     learnSectionTitle: learnSectionTitle.trim() || null,
     learnItems: learnItems.map((l) => l.trim()).filter(Boolean),
     faq: faq
@@ -132,6 +150,8 @@ const FreeWebinarAdminClient = ({
     setDateKey(webinar.startsAtDateKey ?? "");
     setTimeHm(webinar.startsAtTimeHm ?? "");
     setMeetUrl(webinar.meetUrl ?? "");
+    setCapacity(webinar.capacity != null ? String(webinar.capacity) : "");
+    setEndedAt(webinar.endedAt);
     setVideoStatus(webinar.videoStatus);
     setMuxPlaybackId(webinar.muxPlaybackId);
     setVideoErrorMessage(webinar.videoErrorMessage);
@@ -180,6 +200,59 @@ const FreeWebinarAdminClient = ({
     return pendingLinkCount > 0
       ? `Enlace guardado. Se está enviando por correo a ${pendingLinkCount} registrada${pendingLinkCount === 1 ? "" : "s"}.`
       : "Enlace guardado. Se enviará a quien se registre a partir de ahora.";
+  };
+
+
+  /** Cerrar o reabrir a mano lo que el cron sella solo. */
+  const setEnded = async (ended: boolean) => {
+    setBusyLifecycle(true);
+    try {
+      const data = await patch({ ended });
+      applyWebinar(data.webinar!);
+      toast(
+        ended
+          ? "Webinar cerrado"
+          : "Reabierto. Si la fecha ya pasó, el sistema volverá a cerrarlo — pon la fecha de la próxima edición."
+      );
+    } catch {
+      toast("No se pudo cambiar el estado");
+    } finally {
+      setBusyLifecycle(false);
+    }
+  };
+
+  /**
+   * Archivar es la unica accion manual del ciclo: el cron solo marca que
+   * termino. Mueve la edicion al historial con su lista intacta y deja una
+   * nueva con los mismos textos y video, pero sin fecha ni enlace.
+   */
+  const confirmArchive = () => {
+    confirm({
+      title: "Archivar esta edición",
+      message: `Se guardará en el historial con sus ${registrationStats.total.toLocaleString("es-CO")} registradas y se preparará una edición nueva con los mismos textos y vídeo. La fecha y el enlace de reunión quedan vacíos.`,
+      confirmLabel: "Archivar",
+      onConfirm: async () => {
+        setBusyLifecycle(true);
+        try {
+          const res = await fetch("/api/admin/webinar/editions", {
+            method: "POST",
+          });
+          const data = (await res.json().catch(() => ({}))) as {
+            live?: FreeWebinarPublic;
+            message?: string;
+          };
+          if (!res.ok) {
+            toast(data.message ?? "No se pudo archivar");
+            return;
+          }
+          if (data.live) applyWebinar(data.live);
+          toast("Edición archivada");
+          router.refresh();
+        } finally {
+          setBusyLifecycle(false);
+        }
+      },
+    });
   };
 
   const onToggle = async (next: boolean) => {
@@ -369,6 +442,47 @@ const FreeWebinarAdminClient = ({
         }
       />
 
+      {endedAt ? (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">
+                Este webinar ya terminó
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Se cerró el{" "}
+                {new Date(endedAt).toLocaleString("es-CO", {
+                  dateStyle: "long",
+                  timeStyle: "short",
+                })}
+                . La página pública ya no acepta registros y los recordatorios
+                dejaron de enviarse. Archívalo para guardar la lista de
+                registradas y dejar lista la siguiente edición.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={busyLifecycle}
+                onClick={() => void setEnded(false)}
+              >
+                Reabrir
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={busyLifecycle}
+                onClick={confirmArchive}
+              >
+                Archivar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
         <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
           <div>
@@ -376,9 +490,11 @@ const FreeWebinarAdminClient = ({
               Página pública activa
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {isActive
-                ? "Visible en /webinar-gratuito y en Enlaces."
-                : "Oculta (404). El botón en Enlaces también desaparece."}
+              {endedAt
+                ? "Terminado: oculta aunque el interruptor siga encendido."
+                : isActive
+                  ? "Visible en /webinar-gratuito y en Enlaces."
+                  : "Oculta (404). El botón en Enlaces también desaparece."}
             </p>
           </div>
           <Switch
@@ -446,6 +562,21 @@ const FreeWebinarAdminClient = ({
               <p className="text-[11px] text-muted-foreground">
                 Zona CRM: {operationalTimezone}. Déjala vacía si aún no está
                 definida.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="capacity">Cupo previsto</Label>
+              <Input
+                id="capacity"
+                type="number"
+                min={1}
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="100"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Solo informativo. Aunque se llene, la gente se sigue pudiendo
+                registrar y todas reciben el enlace — no cierra el formulario.
               </p>
             </div>
             <div className="space-y-1.5">
@@ -684,6 +815,13 @@ const FreeWebinarAdminClient = ({
         <WebinarRegistrantsPanel
           registrations={registrations}
           stats={registrationStats}
+          canBroadcast={canBroadcast}
+          capacity={capacity.trim() ? Number(capacity.trim()) : null}
+        />
+
+        <WebinarEditionsPanel
+          editions={archivedEditions}
+          canDelete={canBroadcast}
         />
       </div>
     </CrmPageShell>

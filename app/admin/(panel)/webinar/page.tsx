@@ -1,6 +1,13 @@
 import FreeWebinarAdminClient from "@/app/components/admin/crm/FreeWebinarAdminClient";
 import type { WebinarRegistrantRow } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
-import { ensureFreeWebinar, DEFAULT_FREE_WEBINAR } from "@/lib/crm/free-webinar";
+import type { ArchivedEditionRow } from "@/app/components/admin/crm/WebinarEditionsPanel";
+import {
+  ensureFreeWebinar,
+  DEFAULT_FREE_WEBINAR,
+  listArchivedWebinars,
+} from "@/lib/crm/free-webinar";
+import { getStaffSession } from "@/lib/auth/staff-session";
+import { canBroadcastNotifications } from "@/lib/crm/staff-permissions";
 import {
   listWebinarRegistrations,
   webinarRegistrationStats,
@@ -30,7 +37,10 @@ const WebinarAdminPage = async () => {
           reminder24h: 0,
           reminder1h: 0,
           unreachable: 0,
+          pendingLink: 0,
+          failed: 0,
         }}
+        archivedEditions={[]}
         initial={{
           id: "preview",
           slug: "gratuito",
@@ -44,6 +54,9 @@ const WebinarAdminPage = async () => {
           startsAtTimeHm: null,
           startsAtHasTime: false,
           operationalTimezone,
+          capacity: 100,
+          endedAt: null,
+          archivedAt: null,
           meetUrl: null,
           muxPlaybackId: null,
           videoStatus: "NONE",
@@ -73,8 +86,27 @@ const WebinarAdminPage = async () => {
       reminder24h: 0,
       reminder1h: 0,
       unreachable: 0,
+      pendingLink: 0,
+      failed: 0,
     })),
   ]);
+
+  const [archived, staff] = await Promise.all([
+    listArchivedWebinars().catch(() => []),
+    getStaffSession().catch(() => null),
+  ]);
+  // Reenviar a todas y borrar historial son acciones de OWNER; la UI oculta
+  // los botones y la ruta lo vuelve a comprobar.
+  const canBroadcast = staff ? canBroadcastNotifications(staff.role) : false;
+
+  const archivedEditions: ArchivedEditionRow[] = archived.map((e) => ({
+    id: e.id,
+    headline: e.headline,
+    startsAtIso: e.startsAt?.toISOString() ?? null,
+    startsAtHasTime: e.startsAtHasTime,
+    archivedAtIso: e.archivedAt?.toISOString() ?? null,
+    registrations: e.registrations,
+  }));
 
   // Se aplana aquí: el panel es un componente cliente y las fechas tienen que
   // cruzar la frontera como cadenas.
@@ -89,6 +121,8 @@ const WebinarAdminPage = async () => {
     linkEmailSentAt: r.linkEmailSentAt?.toISOString() ?? null,
     reminder24hSentAt: r.reminder24hSentAt?.toISOString() ?? null,
     reminder1hSentAt: r.reminder1hSentAt?.toISOString() ?? null,
+    lastSendError: r.lastSendError,
+    lastSendErrorAt: r.lastSendErrorAt?.toISOString() ?? null,
   }));
 
   return (
@@ -97,6 +131,8 @@ const WebinarAdminPage = async () => {
       operationalTimezone={webinar.operationalTimezone ?? operationalTimezone}
       registrations={registrations}
       registrationStats={stats}
+      archivedEditions={archivedEditions}
+      canBroadcast={canBroadcast}
     />
   );
 };

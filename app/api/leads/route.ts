@@ -199,6 +199,11 @@ export async function POST(req: NextRequest) {
     let alreadyRegistered = false;
     let webinarMeetUrl: string | null = null;
     let webinarScheduleLabel: string | null = null;
+    // Un formulario cacheado puede llegar después del webinar. Sin esta guarda
+    // se crea una inscripción contra una edición terminada y se manda un
+    // enlace de Meet muerto. El contacto se guarda igual — sigue siendo un
+    // lead válido — pero no entra en la lista de esta edición.
+    let webinarOpen = false;
     if (wantsWebinarTag) {
       try {
         // `alreadyRegistered` sigue derivándose de la etiqueta, no de la tabla
@@ -212,16 +217,20 @@ export async function POST(req: NextRequest) {
         await appendWebinarNote(contact.id, alreadyRegistered);
 
         const webinar = await ensureFreeWebinar();
-        webinarMeetUrl = webinar.meetUrl;
-        webinarScheduleLabel = formatWebinarScheduleLabel(webinar);
-        // Si la confirmación ya lleva el enlace dentro, se sella el envío aquí
-        // mismo: de lo contrario el fan-out mandaría un segundo correo con
-        // exactamente lo mismo unos minutos después.
-        await recordWebinarRegistration(webinar.id, contact.id, {
-          linkAlreadySent: Boolean(
-            webinarMeetUrl && body.email && body.email.includes("@")
-          ),
-        });
+        webinarOpen = webinar.isActive && !webinar.endedAt;
+
+        if (webinarOpen) {
+          webinarMeetUrl = webinar.meetUrl;
+          webinarScheduleLabel = formatWebinarScheduleLabel(webinar);
+          // Si la confirmación ya lleva el enlace dentro, se sella el envío
+          // aquí mismo: si no, el fan-out mandaría un segundo correo con
+          // exactamente lo mismo unos minutos después.
+          await recordWebinarRegistration(webinar.id, contact.id, {
+            linkAlreadySent: Boolean(
+              webinarMeetUrl && body.email && body.email.includes("@")
+            ),
+          });
+        }
       } catch (e) {
         console.error("[leads] webinar registration failed", e);
       }
@@ -250,7 +259,7 @@ export async function POST(req: NextRequest) {
     // Transactional emails (best-effort; never blocks the lead).
     if (body.notify) {
       try {
-        if (wantsWebinarTag) {
+        if (wantsWebinarTag && webinarOpen) {
           await notifyWebinarRegistration({
             firstName,
             lastName: body.lastName,
