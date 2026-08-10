@@ -99,7 +99,10 @@ for (const root of ROOTS) {
  * arreglas casos, baja también la constante en el mismo commit; si sube,
  * significa que has introducido deriva nueva.
  */
-const BASELINE = 94;
+// Ojo al bajarlo: este número tiene que medirse sobre el árbol COMMITEADO.
+// Bajarlo con cambios sin commitear en el working tree cuenta archivos que CI
+// no ve, y el resultado es un fallo en main que en local no se reproduce.
+const BASELINE = 95;
 
 if (findings.length > BASELINE) {
   console.error(
