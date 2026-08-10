@@ -50,6 +50,8 @@ const LIST_SELECT = {
   linkEmailSentAt: true,
   reminder24hSentAt: true,
   reminder1hSentAt: true,
+  lastSendError: true,
+  lastSendErrorAt: true,
   contact: {
     select: {
       id: true,
@@ -97,12 +99,13 @@ export const recordWebinarRegistration = async (
  */
 export const listWebinarRegistrations = async (
   webinarId: string,
-  opts: { take?: number; skip?: number; q?: string } = {}
+  opts: { take?: number; skip?: number; q?: string; failedOnly?: boolean } = {}
 ): Promise<WebinarRegistrationRow[]> => {
   const q = opts.q?.trim();
   return prisma.webinarRegistration.findMany({
     where: {
       webinarId,
+      ...(opts.failedOnly ? { lastSendError: { not: null } } : {}),
       ...(q
         ? {
             contact: {
@@ -132,8 +135,10 @@ export const webinarRegistrationStats = async (
   reminder24h: number;
   reminder1h: number;
   unreachable: number;
+  pendingLink: number;
+  failed: number;
 }> => {
-  const [total, linkSent, reminder24h, reminder1h, unreachable] =
+  const [total, linkSent, reminder24h, reminder1h, unreachable, pendingLink, failed] =
     await prisma.$transaction([
       prisma.webinarRegistration.count({ where: { webinarId } }),
       prisma.webinarRegistration.count({
@@ -151,8 +156,22 @@ export const webinarRegistrationStats = async (
           OR: [{ contact: { email: null } }, { contact: { notifyEmail: false } }],
         },
       }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, linkEmailSentAt: null, contact: EMAILABLE_CONTACT },
+      }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, lastSendError: { not: null } },
+      }),
     ]);
-  return { total, linkSent, reminder24h, reminder1h, unreachable };
+  return {
+    total,
+    linkSent,
+    reminder24h,
+    reminder1h,
+    unreachable,
+    pendingLink,
+    failed,
+  };
 };
 
 export const countPendingLinkRecipients = async (
@@ -194,6 +213,18 @@ export const resetReminders = async (webinarId: string): Promise<number> => {
       ],
     },
     data: { reminder24hSentAt: null, reminder1hSentAt: null },
+  });
+  return count;
+};
+
+/** Devuelve a la cola un solo recordatorio (el reenvio masivo por pasada). */
+export const resetOneReminder = async (
+  webinarId: string,
+  kind: ReminderKind
+): Promise<number> => {
+  const { count } = await prisma.webinarRegistration.updateMany({
+    where: { webinarId, [reminderFlag(kind)]: { not: null } },
+    data: { [reminderFlag(kind)]: null },
   });
   return count;
 };
@@ -240,13 +271,45 @@ export const claimRegistrationFlag = async (
   return count === 1;
 };
 
-/** El envío falló: se devuelve a la cola para el siguiente barrido. */
+/**
+ * El envío falló: se devuelve a la cola para el siguiente barrido y se guarda
+ * el motivo EN LA MISMA sentencia. Separarlo en dos abriría una carrera: un
+ * cron concurrente puede reclamar la fila, enviarla bien y limpiar el error
+ * justo antes de que la primera escriba encima un error ya obsoleto.
+ */
 export const releaseRegistrationFlag = async (
   registrationId: string,
-  flag: RegistrationFlag
+  flag: RegistrationFlag,
+  errorMessage?: string | null
 ): Promise<void> => {
   await prisma.webinarRegistration.updateMany({
     where: { id: registrationId },
-    data: { [flag]: null },
+    data: {
+      [flag]: null,
+      lastSendError: errorMessage ?? null,
+      lastSendErrorAt: errorMessage ? new Date() : null,
+    },
   });
 };
+
+/**
+ * Limpia el último error tras un envío correcto. El `not: null` evita 10k
+ * escrituras inútiles en cada barrido que sale bien.
+ */
+export const clearRegistrationSendError = async (
+  registrationId: string
+): Promise<void> => {
+  await prisma.webinarRegistration.updateMany({
+    where: { id: registrationId, lastSendError: { not: null } },
+    data: { lastSendError: null, lastSendErrorAt: null },
+  });
+};
+
+/** Una fila concreta con su contacto — lo que necesita el reenvío individual. */
+export const findRegistrationForResend = async (
+  registrationId: string
+): Promise<(WebinarMailRecipient & { webinarId: string }) | null> =>
+  prisma.webinarRegistration.findUnique({
+    where: { id: registrationId },
+    select: { ...RECIPIENT_SELECT, webinarId: true },
+  });

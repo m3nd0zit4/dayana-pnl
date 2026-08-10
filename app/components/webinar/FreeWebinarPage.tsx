@@ -1,6 +1,6 @@
 "use client";
 
-import { Laptop, Gift, ChevronDown } from "lucide-react";
+import { Laptop, Gift, Users, ChevronDown } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import LeadCaptureForm from "@/app/components/leads/LeadCaptureForm";
@@ -107,7 +107,24 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
                 <Gift className="h-4 w-4 text-terracotta" />
                 Gratis
               </span>
+              {webinar.capacity ? (
+                <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-3.5 py-2 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md">
+                  <Users className="h-4 w-4 text-terracotta" />
+                  Cupo para {webinar.capacity}
+                </span>
+              ) : null}
             </div>
+
+            {/* El cupo es una expectativa, no un tope: el formulario nunca se
+                cierra y todo el mundo recibe el enlace. Decirlo evita que
+                alguien se vaya pensando que ya no queda sitio. */}
+            {webinar.capacity ? (
+              <p className="mt-3 font-[font1] text-xs text-black/45">
+                La sala está pensada para {webinar.capacity} personas. Si se
+                llena puedes registrarte igual: te enviamos el enlace de acceso
+                a todas las que se inscriban.
+              </p>
+            ) : null}
 
             {/* Solo móvil: en desktop el formulario ya está a la derecha y
                 este CTA duplica el submit del registro. */}

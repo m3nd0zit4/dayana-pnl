@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const webinar = await ensureFreeWebinar();
-  if (!webinar.isActive || !webinar.startsAt) {
+  if (!webinar.isActive || !webinar.startsAt || webinar.endedAt) {
     return { title: `Webinar | ${BRAND.name}`, robots: { index: false } };
   }
   const title = webinar.metaTitle ?? `Webinar gratuito | ${BRAND.name}`;
@@ -32,7 +32,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const Page = async () => {
   const webinar = await ensureFreeWebinar();
-  if (!webinar.isActive || !webinar.startsAt) notFound();
+  // `endedAt` cierra la landing igual que `isActive: false`: es una pagina
+  // de registro, y dejarla viva con el CTA muerto no capta a nadie.
+  if (!webinar.isActive || !webinar.startsAt || webinar.endedAt) notFound();
 
   const userCountry = await getServerUserCountry();
 

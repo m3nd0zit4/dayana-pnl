@@ -28,7 +28,7 @@ const Page = async () => {
 
   try {
     const webinar = await getFreeWebinar();
-    if (webinar?.isActive && webinar.startsAt) {
+    if (webinar?.isActive && webinar.startsAt && !webinar.endedAt) {
       webinarActive = true;
       webinarCtaTitle = "Webinar gratuito";
       webinarStartsAtIso = webinar.startsAtIso;
