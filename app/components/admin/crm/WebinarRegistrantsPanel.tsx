@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Minus, RotateCw } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -51,6 +51,8 @@ type Props = {
   stats: WebinarRegistrationStats;
   /** OWNER puede reenviar a todas; el resto solo individual y pendientes. */
   canBroadcast?: boolean;
+  /** Cupo previsto. Solo para avisar al superarlo — no frena nada. */
+  capacity?: number | null;
 };
 
 const PAGE = 50;
@@ -92,6 +94,7 @@ const WebinarRegistrantsPanel = ({
   registrations: initial,
   stats: initialStats,
   canBroadcast = false,
+  capacity = null,
 }: Props) => {
   const { toast, confirm } = useCrm();
   const [rows, setRows] = useState(initial);
@@ -101,6 +104,9 @@ const WebinarRegistrantsPanel = ({
   const [hasMore, setHasMore] = useState(initial.length >= PAGE);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // El servidor ya pinto la primera pagina: sin esto el efecto de busqueda
+  // dispara otra consulta identica en cuanto monta, en cada visita.
+  const firstRender = useRef(true);
 
   const fetchPage = useCallback(
     async (skip: number, search: string, onlyFailed: boolean) => {
@@ -124,6 +130,10 @@ const WebinarRegistrantsPanel = ({
   // Búsqueda con retardo: filtrar al escribir es la regla del contrato, pero
   // sin esperar un poco serían diez consultas por palabra.
   useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
     const id = setTimeout(async () => {
       setLoading(true);
       try {
@@ -254,6 +264,15 @@ const WebinarRegistrantsPanel = ({
               </div>
             ))}
           </dl>
+        ) : null}
+
+        {capacity && stats.total > capacity ? (
+          <p className="rounded-xl border border-warning/30 bg-warning/5 px-3 py-2 text-xs text-warning">
+            Se superó el cupo previsto de {capacity.toLocaleString("es-CO")}:
+            hay {stats.total.toLocaleString("es-CO")} registradas. No se ha
+            cerrado nada — todas siguen recibiendo el enlace. Revisa que la sala
+            aguante ese número.
+          </p>
         ) : null}
 
         {stats.failed > 0 ? (

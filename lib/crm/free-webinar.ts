@@ -39,6 +39,8 @@ export type FreeWebinarPublic = {
   startsAtTimeHm: string | null;
   startsAtHasTime: boolean;
   operationalTimezone: string;
+  /** Cupo previsto. Informativo: no cierra el formulario ni frena el enlace. */
+  capacity: number | null;
   endedAt: Date | null;
   archivedAt: Date | null;
   meetUrl: string | null;
@@ -67,6 +69,7 @@ export type FreeWebinarUpdateInput = {
   startsAtHasTime?: boolean;
   /** Empty string is accepted and normalized to `null` (= "sin enlace"). */
   meetUrl?: string | null;
+  capacity?: number | null;
   learnSectionTitle?: string | null;
   learnItems?: string[];
   faq?: FreeWebinarFaqItem[];
@@ -124,6 +127,7 @@ export const toFreeWebinarPublic = (
         : null,
     startsAtHasTime,
     operationalTimezone,
+    capacity: row.capacity,
     endedAt: row.endedAt,
     archivedAt: row.archivedAt,
     meetUrl: row.meetUrl,
@@ -464,6 +468,7 @@ export const updateFreeWebinar = async (
   // concurrente enviaría el enlace viejo y lo daría por entregado.
   let meetUrlChanged = false;
   let linkEmailsReset = 0;
+  if (input.capacity !== undefined) data.capacity = input.capacity;
   if (input.meetUrl !== undefined) {
     const next = normalizeMeetUrl(input.meetUrl);
     const where: Prisma.FreeWebinarWhereInput =
@@ -856,6 +861,8 @@ export const archiveFreeWebinar = async (
         formTitle: current.formTitle,
         metaTitle: current.metaTitle,
         metaDescription: current.metaDescription,
+        // El cupo es una expectativa de la sala, no un hecho de la edicion.
+        capacity: current.capacity,
         // El video promocional tambien se hereda: es material de marca, no de
         // una edicion, y volver a subirlo cada vez no aporta nada.
         videoUrl: current.videoUrl,

@@ -80,6 +80,9 @@ const FreeWebinarAdminClient = ({
   const [dateKey, setDateKey] = useState(initial.startsAtDateKey ?? "");
   const [timeHm, setTimeHm] = useState(initial.startsAtTimeHm ?? "");
   const [meetUrl, setMeetUrl] = useState(initial.meetUrl ?? "");
+  const [capacity, setCapacity] = useState(
+    initial.capacity != null ? String(initial.capacity) : ""
+  );
   const [videoStatus, setVideoStatus] = useState(initial.videoStatus);
   const [muxPlaybackId, setMuxPlaybackId] = useState(initial.muxPlaybackId);
   const [videoErrorMessage, setVideoErrorMessage] = useState(
@@ -126,6 +129,7 @@ const FreeWebinarAdminClient = ({
       ? { date: dateKey, time: timeHm.trim() || null }
       : null,
     meetUrl: meetUrl.trim() || null,
+    capacity: capacity.trim() ? Number(capacity.trim()) : null,
     learnSectionTitle: learnSectionTitle.trim() || null,
     learnItems: learnItems.map((l) => l.trim()).filter(Boolean),
     faq: faq
@@ -146,6 +150,7 @@ const FreeWebinarAdminClient = ({
     setDateKey(webinar.startsAtDateKey ?? "");
     setTimeHm(webinar.startsAtTimeHm ?? "");
     setMeetUrl(webinar.meetUrl ?? "");
+    setCapacity(webinar.capacity != null ? String(webinar.capacity) : "");
     setEndedAt(webinar.endedAt);
     setVideoStatus(webinar.videoStatus);
     setMuxPlaybackId(webinar.muxPlaybackId);
@@ -204,7 +209,11 @@ const FreeWebinarAdminClient = ({
     try {
       const data = await patch({ ended });
       applyWebinar(data.webinar!);
-      toast(ended ? "Webinar cerrado" : "Webinar reabierto");
+      toast(
+        ended
+          ? "Webinar cerrado"
+          : "Reabierto. Si la fecha ya pasó, el sistema volverá a cerrarlo — pon la fecha de la próxima edición."
+      );
     } catch {
       toast("No se pudo cambiar el estado");
     } finally {
@@ -556,6 +565,21 @@ const FreeWebinarAdminClient = ({
               </p>
             </div>
             <div className="space-y-1.5">
+              <Label htmlFor="capacity">Cupo previsto</Label>
+              <Input
+                id="capacity"
+                type="number"
+                min={1}
+                value={capacity}
+                onChange={(e) => setCapacity(e.target.value)}
+                placeholder="100"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Solo informativo. Aunque se llene, la gente se sigue pudiendo
+                registrar y todas reciben el enlace — no cierra el formulario.
+              </p>
+            </div>
+            <div className="space-y-1.5">
               <Label htmlFor="ctaLabel">Texto del botón *</Label>
               <Input
                 id="ctaLabel"
@@ -792,6 +816,7 @@ const FreeWebinarAdminClient = ({
           registrations={registrations}
           stats={registrationStats}
           canBroadcast={canBroadcast}
+          capacity={capacity.trim() ? Number(capacity.trim()) : null}
         />
 
         <WebinarEditionsPanel

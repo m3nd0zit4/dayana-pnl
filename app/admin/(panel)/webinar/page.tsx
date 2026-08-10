@@ -54,6 +54,7 @@ const WebinarAdminPage = async () => {
           startsAtTimeHm: null,
           startsAtHasTime: false,
           operationalTimezone,
+          capacity: 100,
           endedAt: null,
           archivedAt: null,
           meetUrl: null,

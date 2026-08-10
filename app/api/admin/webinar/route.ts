@@ -41,6 +41,8 @@ const patchSchema = z.object({
   meetUrl: z.union([z.string().url(), z.literal("")]).nullable().optional(),
   /** Cerrar o reabrir a mano lo que el cron sella solo. */
   ended: z.boolean().optional(),
+  /** Cupo previsto; informativo, no cierra el registro. */
+  capacity: z.number().int().min(1).max(100000).nullable().optional(),
   learnSectionTitle: z.string().max(120).nullable().optional(),
   learnItems: z.array(z.string().min(1).max(400)).max(12).optional(),
   faq: z.array(faqItemSchema).max(12).optional(),
