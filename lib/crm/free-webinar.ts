@@ -41,6 +41,10 @@ export type FreeWebinarPublic = {
   operationalTimezone: string;
   /** Cupo previsto. Informativo: no cierra el formulario ni frena el enlace. */
   capacity: number | null;
+  materialUrl: string | null;
+  materialFileName: string | null;
+  materialMimeType: string | null;
+  materialSizeBytes: number | null;
   endedAt: Date | null;
   archivedAt: Date | null;
   meetUrl: string | null;
@@ -128,6 +132,10 @@ export const toFreeWebinarPublic = (
     startsAtHasTime,
     operationalTimezone,
     capacity: row.capacity,
+    materialUrl: row.materialUrl,
+    materialFileName: row.materialFileName,
+    materialMimeType: row.materialMimeType,
+    materialSizeBytes: row.materialSizeBytes,
     endedAt: row.endedAt,
     archivedAt: row.archivedAt,
     meetUrl: row.meetUrl,
@@ -863,6 +871,11 @@ export const archiveFreeWebinar = async (
         metaDescription: current.metaDescription,
         // El cupo es una expectativa de la sala, no un hecho de la edicion.
         capacity: current.capacity,
+        // El material es del tema, no de la fecha: se hereda igual que el video.
+        materialUrl: current.materialUrl,
+        materialFileName: current.materialFileName,
+        materialMimeType: current.materialMimeType,
+        materialSizeBytes: current.materialSizeBytes,
         // El video promocional tambien se hereda: es material de marca, no de
         // una edicion, y volver a subirlo cada vez no aporta nada.
         videoUrl: current.videoUrl,
@@ -935,4 +948,76 @@ export const deleteArchivedWebinar = async (id: string): Promise<number> => {
     where: { id, slug: { not: FREE_WEBINAR_SLUG } },
   });
   return count;
+};
+
+/* -------------------------------------------------------------------------
+ * Material descargable (opcional)
+ *
+ * Un solo adjunto por edicion, guardado en columnas de la propia fila en vez
+ * de una tabla hija: con un unico archivo, una relacion uno-a-muchos y su
+ * `sortOrder` no aportarian nada. Mismo patron que el material de las clases.
+ *
+ * Es opcional a proposito y NO entra en `getPublishBlockers`: el webinar se
+ * publica con o sin el.
+ * ---------------------------------------------------------------------- */
+
+export type WebinarMaterialInput = {
+  url: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+};
+
+/**
+ * Guarda el material y devuelve la URL del anterior, si habia.
+ *
+ * Devolverla es lo que permite a la ruta borrar el blob viejo: sin eso, cada
+ * reemplazo dejaria un huerfano pagando almacenamiento para siempre — que es
+ * justo lo que hace hoy `clearClassMaterial` en el curso.
+ */
+export const setWebinarMaterial = async (
+  input: WebinarMaterialInput,
+  slug: string = FREE_WEBINAR_SLUG
+): Promise<{ webinar: FreeWebinarPublic; previousUrl: string | null }> => {
+  const tz = await getOperationalTimezone();
+  const current = await prisma.freeWebinar.findUniqueOrThrow({
+    where: { slug },
+    select: { materialUrl: true },
+  });
+  const row = await prisma.freeWebinar.update({
+    where: { slug },
+    data: {
+      materialUrl: input.url,
+      materialFileName: input.fileName,
+      materialMimeType: input.mimeType,
+      materialSizeBytes: input.sizeBytes,
+    },
+  });
+  return {
+    webinar: toFreeWebinarPublic(row, tz),
+    previousUrl: current.materialUrl,
+  };
+};
+
+export const clearWebinarMaterial = async (
+  slug: string = FREE_WEBINAR_SLUG
+): Promise<{ webinar: FreeWebinarPublic; previousUrl: string | null }> => {
+  const tz = await getOperationalTimezone();
+  const current = await prisma.freeWebinar.findUniqueOrThrow({
+    where: { slug },
+    select: { materialUrl: true },
+  });
+  const row = await prisma.freeWebinar.update({
+    where: { slug },
+    data: {
+      materialUrl: null,
+      materialFileName: null,
+      materialMimeType: null,
+      materialSizeBytes: null,
+    },
+  });
+  return {
+    webinar: toFreeWebinarPublic(row, tz),
+    previousUrl: current.materialUrl,
+  };
 };

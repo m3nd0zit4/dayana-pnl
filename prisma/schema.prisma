@@ -419,6 +419,13 @@ model FreeWebinar {
   /// para fijar la expectativa en la landing y para que el CRM avise cuando se
   /// supera, no para cerrar el formulario.
   capacity          Int?      @default(100)
+  /// Material descargable opcional (una guía, un PDF de apoyo). Vive en el
+  /// blob privado y se sirve por `/api/webinar/material`; nunca se expone la
+  /// URL del blob. Opcional a propósito: no bloquea la publicación.
+  materialUrl       String?   @map("material_url") @db.Text
+  materialFileName  String?   @map("material_file_name")
+  materialMimeType  String?   @map("material_mime_type")
+  materialSizeBytes Int?      @map("material_size_bytes")
   /// Sellada por el cron cuando la fecha ya pasó más el margen. Corta registros
   /// y recordatorios sin tocar nada destructivo. Null = edición todavía en pie.
   /// No toca `isActive`: ese interruptor es de Dayana y el cron no se lo pisa.

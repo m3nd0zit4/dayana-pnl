@@ -1,6 +1,6 @@
 "use client";
 
-import { Laptop, Gift, Users, ChevronDown } from "lucide-react";
+import { Laptop, Gift, Users, Download, ChevronDown } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import LeadCaptureForm from "@/app/components/leads/LeadCaptureForm";
@@ -138,6 +138,16 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
             <p className="mt-3 font-[font1] text-xs text-black/40 lg:hidden">
               {BRAND.shortName} · sin costo
             </p>
+
+            {webinar.materialFileName ? (
+              <a
+                href="/api/webinar/material"
+                className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white/55 px-4 py-2.5 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md transition-colors hover:border-terracotta/40 hover:text-terracotta"
+              >
+                <Download className="h-4 w-4 text-terracotta" />
+                Descargar material
+              </a>
+            ) : null}
 
             {webinar.videoStatus === "READY" && webinar.muxPlaybackId ? (
               <div className="mt-8 overflow-hidden rounded-2xl border border-black/8 bg-black shadow-[0_20px_50px_-28px_rgba(0,0,0,0.45)]">
