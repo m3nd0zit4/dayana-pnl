@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import * as UpChunk from "@mux/upchunk";
-import { Trash2, Upload, Video } from "lucide-react";
+import { FileText, Trash2, Upload, Video } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
@@ -111,6 +111,12 @@ const FreeWebinarAdminClient = ({
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const [endedAt, setEndedAt] = useState<Date | string | null>(initial.endedAt);
   const [busyLifecycle, setBusyLifecycle] = useState(false);
+  const [material, setMaterial] = useState({
+    fileName: initial.materialFileName,
+    sizeBytes: initial.materialSizeBytes,
+  });
+  const [uploadingMaterial, setUploadingMaterial] = useState(false);
+  const materialRef = useRef<HTMLInputElement>(null);
 
   const hasSchedule = Boolean(dateKey);
   const videoProcessing =
@@ -150,6 +156,10 @@ const FreeWebinarAdminClient = ({
     setDateKey(webinar.startsAtDateKey ?? "");
     setTimeHm(webinar.startsAtTimeHm ?? "");
     setMeetUrl(webinar.meetUrl ?? "");
+    setMaterial({
+      fileName: webinar.materialFileName,
+      sizeBytes: webinar.materialSizeBytes,
+    });
     setCapacity(webinar.capacity != null ? String(webinar.capacity) : "");
     setEndedAt(webinar.endedAt);
     setVideoStatus(webinar.videoStatus);
@@ -253,6 +263,59 @@ const FreeWebinarAdminClient = ({
         }
       },
     });
+  };
+
+
+  /** Material: un solo archivo, sube por FormData y reemplaza al anterior. */
+  const uploadMaterial = async (file: File) => {
+    setUploadingMaterial(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/webinar/material", {
+        method: "POST",
+        body: form,
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        webinar?: FreeWebinarPublic;
+        error?: string;
+      };
+      if (!res.ok) {
+        toast(
+          {
+            file_too_large: "El archivo pasa de 25 MB.",
+            invalid_mime: "Solo PDF, Word o imagen.",
+            blob_not_configured: "Almacenamiento de archivos no configurado.",
+          }[data.error ?? ""] ?? "No se pudo subir el material"
+        );
+        return;
+      }
+      if (data.webinar) applyWebinar(data.webinar);
+      toast("Material subido");
+    } finally {
+      setUploadingMaterial(false);
+      if (materialRef.current) materialRef.current.value = "";
+    }
+  };
+
+  const removeMaterial = async () => {
+    setUploadingMaterial(true);
+    try {
+      const res = await fetch("/api/admin/webinar/material", {
+        method: "DELETE",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        webinar?: FreeWebinarPublic;
+      };
+      if (!res.ok) {
+        toast("No se pudo quitar el material");
+        return;
+      }
+      if (data.webinar) applyWebinar(data.webinar);
+      toast("Material quitado");
+    } finally {
+      setUploadingMaterial(false);
+    }
   };
 
   const onToggle = async (next: boolean) => {
@@ -419,10 +482,9 @@ const FreeWebinarAdminClient = ({
         title="Webinar gratuito"
         description={
           <>
-            Fecha en zona del CRM (
+            Fechas en{" "}
             <span className="font-mono text-foreground">{operationalTimezone}</span>
-            ). La hora es opcional hasta que la confirmes. En la web cada
-            visitante ve su zona local. El video es opcional.
+            ; cada visitante ve su hora local.
           </>
         }
         // Talleres ya podía copiar el enlace de cada edición; esta página, que
@@ -506,6 +568,42 @@ const FreeWebinarAdminClient = ({
       </Card>
 
       <div className="flex flex-col gap-6">
+        <WebinarRegistrantsPanel
+          registrations={registrations}
+          stats={registrationStats}
+          canBroadcast={canBroadcast}
+          capacity={capacity.trim() ? Number(capacity.trim()) : null}
+        />
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base uppercase tracking-wide">
+              Enlace de la reunión
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="meetUrl">Enlace de Google Meet</Label>
+              <Input
+                id="meetUrl"
+                type="url"
+                value={meetUrl}
+                onChange={(e) => setMeetUrl(e.target.value)}
+                placeholder="https://meet.google.com/abc-defg-hij"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Al guardar se envía a quien aún no lo tenga. Si lo cambias, se
+                reenvía a todas.
+              </p>
+            </div>
+            {meetUrl.trim() && pendingLinkCount > 0 ? (
+              <p className="rounded-lg bg-terracotta/8 px-3 py-2 text-xs text-terracotta">
+                {pendingLinkCount.toLocaleString("es-CO")} sin el enlace todavía.
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
@@ -560,8 +658,7 @@ const FreeWebinarAdminClient = ({
                 onChange={(e) => setTimeHm(e.target.value)}
               />
               <p className="text-[11px] text-muted-foreground">
-                Zona CRM: {operationalTimezone}. Déjala vacía si aún no está
-                definida.
+                Zona CRM: {operationalTimezone}.
               </p>
             </div>
             <div className="space-y-1.5">
@@ -575,8 +672,7 @@ const FreeWebinarAdminClient = ({
                 placeholder="100"
               />
               <p className="text-[11px] text-muted-foreground">
-                Solo informativo. Aunque se llene, la gente se sigue pudiendo
-                registrar y todas reciben el enlace — no cierra el formulario.
+                Informativo: no cierra el registro.
               </p>
             </div>
             <div className="space-y-1.5">
@@ -601,14 +697,78 @@ const FreeWebinarAdminClient = ({
         <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
+              Material descargable (opcional)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Una guía o PDF de apoyo. Aparece en la landing como botón de
+              descarga. No hace falta para publicar.
+            </p>
+            {material.fileName ? (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/40 px-3 py-2.5">
+                <FileText className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                  {material.fileName}
+                </span>
+                {material.sizeBytes ? (
+                  <span className="text-xs text-muted-foreground">
+                    {(material.sizeBytes / 1024 / 1024).toFixed(1)} MB
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingMaterial}
+                onClick={() => materialRef.current?.click()}
+              >
+                <Upload className="size-3.5" />
+                {uploadingMaterial
+                  ? "Subiendo…"
+                  : material.fileName
+                    ? "Reemplazar"
+                    : "Subir material (PDF, Word o imagen)"}
+              </Button>
+              {material.fileName ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive"
+                  disabled={uploadingMaterial}
+                  onClick={() => void removeMaterial()}
+                >
+                  <Trash2 className="size-3.5" />
+                  Quitar
+                </Button>
+              ) : null}
+            </div>
+            <input
+              ref={materialRef}
+              type="file"
+              accept="application/pdf,image/jpeg,image/png,.doc,.docx"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadMaterial(file);
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base uppercase tracking-wide">
               Video (opcional)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Si subes un video, aparece en la landing. Si no hay video, esa
-              sección no se muestra. Se procesa en Mux — puede tardar un par de
-              minutos antes de estar disponible.
+              Aparece en la landing. Se procesa en Mux: tarda un par de minutos.
             </p>
 
             {videoReady && muxPlaybackId ? (
@@ -681,38 +841,6 @@ const FreeWebinarAdminClient = ({
                   style={{ width: `${uploadPct}%` }}
                 />
               </div>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base uppercase tracking-wide">
-              Enlace de la reunión
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="meetUrl">Enlace de Google Meet</Label>
-              <Input
-                id="meetUrl"
-                type="url"
-                value={meetUrl}
-                onChange={(e) => setMeetUrl(e.target.value)}
-                placeholder="https://meet.google.com/abc-defg-hij"
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Al guardar, el enlace se envía por correo a todas las
-                registradas que aún no lo tienen. Si lo cambias, se reenvía a
-                todas. Déjalo vacío hasta tenerlo — quien se registre recibirá
-                su confirmación igual, y el enlace le llegará después.
-              </p>
-            </div>
-            {meetUrl.trim() && pendingLinkCount > 0 ? (
-              <p className="rounded-lg bg-terracotta/8 px-3 py-2 text-xs text-terracotta">
-                {pendingLinkCount} registrada
-                {pendingLinkCount === 1 ? "" : "s"} sin el enlace todavía.
-              </p>
             ) : null}
           </CardContent>
         </Card>
@@ -811,13 +939,6 @@ const FreeWebinarAdminClient = ({
             {saving ? "Guardando…" : "Guardar cambios"}
           </Button>
         </CrmFormActions>
-
-        <WebinarRegistrantsPanel
-          registrations={registrations}
-          stats={registrationStats}
-          canBroadcast={canBroadcast}
-          capacity={capacity.trim() ? Number(capacity.trim()) : null}
-        />
 
         <WebinarEditionsPanel
           editions={archivedEditions}
