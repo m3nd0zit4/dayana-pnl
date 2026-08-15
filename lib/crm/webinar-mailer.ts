@@ -63,10 +63,29 @@ export const WEBINAR_MAIL_BATCH = 500;
 /**
  * Envíos simultáneos dentro del lote. Secuencial son ~300 ms por correo: 10k
  * tardarían casi una hora y el recordatorio de «falta 1 hora» llegaría tarde o
- * no llegaría. Con 10 en paralelo baja a minutos, y es un techo prudente para
- * no chocar con el límite de tasa de Resend.
+ * no llegaría.
  */
-const CONCURRENCY = 10;
+const CONCURRENCY = 6;
+
+/**
+ * Resend corta a 10 peticiones por segundo. Con 10 envíos en vuelo y latencias
+ * por debajo del segundo se pasa: en el primer envío real a 120 personas
+ * devolvió ocho 429 seguidos. No basta con bajar la concurrencia — lo que hay
+ * que limitar es el ritmo, así que cada envío espera su turno en una ranura de
+ * 125 ms (8/s, con margen bajo el tope).
+ */
+const MIN_SEND_INTERVAL_MS = 125;
+
+let nextSlot = 0;
+
+/** Reserva la siguiente ranura y espera hasta que llegue. */
+const takeSendSlot = async (): Promise<void> => {
+  const now = Date.now();
+  const slot = Math.max(now, nextSlot);
+  nextSlot = slot + MIN_SEND_INTERVAL_MS;
+  const wait = slot - now;
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+};
 
 /**
  * Recorre la lista con un número fijo de envíos en vuelo.
@@ -95,6 +114,7 @@ const runPool = async <T>(
       }
       const item = items[cursor];
       cursor += 1;
+      await takeSendSlot();
       const { outcome } = await worker(item);
       if (outcome === "failed") failed += 1;
       else sent += 1;
@@ -178,6 +198,8 @@ export const buildWebinarMailPayload = (
   const vars = {
     firstName: firstName(recipient),
     meetUrl: webinar.meetUrl,
+    // El material viaja con el enlace: quien recibe uno recibe el otro.
+    materialFileName: webinar.materialFileName,
     scheduleLabel: formatWebinarScheduleLabel(webinar),
   };
   if (pass === "link") {
@@ -224,29 +246,17 @@ export const sendPendingWebinarLinkEmails = async (
     );
     if (recipients.length === 0) return noop("no_pending_recipients");
 
-    const scheduleLabel = formatWebinarScheduleLabel(webinar);
+    // Payload por el constructor compartido: si se construyera aqui aparte,
+    // el barrido masivo y el reenvio individual podrian divergir — que es
+    // justo como el material se habria quedado fuera de estos correos.
     const { sent, failed, stoppedEarly } = await runPool(
       recipients,
       (recipient) =>
-      deliver(recipient, "linkEmailSentAt", {
-        templateKey: "webinar_meet_link",
-        subject: webinarMeetLinkSubject(),
-        html: webinarMeetLinkHtml({
-          firstName: firstName(recipient),
-          meetUrl: webinar.meetUrl,
-          scheduleLabel,
-        }),
-        text: webinarMeetLinkText({
-          firstName: firstName(recipient),
-          meetUrl: webinar.meetUrl,
-          scheduleLabel,
-        }),
-        body: webinarMeetLinkText({
-          firstName: firstName(recipient),
-          meetUrl: webinar.meetUrl,
-          scheduleLabel,
-        }),
-      }),
+        deliver(
+          recipient,
+          "linkEmailSentAt",
+          buildWebinarMailPayload(webinar, recipient, "link")
+        ),
       deadline
     );
 
@@ -297,24 +307,14 @@ export const sendPendingWebinarReminders = async (
   );
   if (recipients.length === 0) return noop("no_pending_recipients");
 
-  const scheduleLabel = formatWebinarScheduleLabel(webinar);
   const flag = reminderFlag(kind);
 
-  const { sent, failed, stoppedEarly } = await runPool(recipients, (recipient) => {
-    const vars = {
-      kind,
-      firstName: firstName(recipient),
-      meetUrl: webinar.meetUrl,
-      scheduleLabel,
-    };
-    return deliver(recipient, flag, {
-      templateKey: `webinar_reminder_${kind}`,
-      subject: webinarReminderSubject(vars),
-      html: webinarReminderHtml(vars),
-      text: webinarReminderText(vars),
-      body: webinarReminderText(vars),
-    });
-  }, deadline);
+  const { sent, failed, stoppedEarly } = await runPool(
+    recipients,
+    (recipient) =>
+      deliver(recipient, flag, buildWebinarMailPayload(webinar, recipient, kind)),
+    deadline
+  );
 
   return { sent, failed, skipped: false, stoppedEarly };
 };

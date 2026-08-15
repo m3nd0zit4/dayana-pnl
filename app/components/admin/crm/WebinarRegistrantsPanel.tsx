@@ -188,6 +188,7 @@ const WebinarRegistrantsPanel = ({
         outcome?: string;
         reason?: string;
         sent?: number;
+        skipped?: boolean;
         errorMessage?: string | null;
       };
       if (!res.ok) {
@@ -207,12 +208,24 @@ const WebinarRegistrantsPanel = ({
         );
         return;
       }
+      // Un barrido puede no enviar nada por un motivo perfectamente normal:
+      // decirlo evita que parezca que el boton no hace nada.
+      const skipReason: Record<string, string> = {
+        outside_window:
+          "Todavia no toca ese recordatorio: se envia dentro de su ventana.",
+        no_pending_recipients: "Ya lo tienen todas.",
+        no_meet_url: "Falta el enlace de la reunion.",
+        inactive: "El webinar no esta activo.",
+        notifications_disabled: "Las notificaciones estan apagadas.",
+      };
       toast(
         scope === "one"
           ? data.outcome === "claimed_elsewhere"
             ? "Ya se estaba enviando en este momento"
             : "Reenviado"
-          : `Reenviado a ${data.sent ?? 0} personas`
+          : data.skipped
+            ? (skipReason[data.reason ?? ""] ?? "No habia nada que enviar")
+            : `Enviado a ${data.sent ?? 0} personas`
       );
       await refresh();
     } finally {
@@ -304,27 +317,53 @@ const WebinarRegistrantsPanel = ({
               </Button>
             </CrmFilterBar>
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={stats.pendingLink === 0}
-                onClick={() => void resend("pending", "link")}
-              >
-                <RotateCw className="size-3.5" />
-                Enviar pendientes ({stats.pendingLink.toLocaleString("es-CO")})
-              </Button>
-              {canBroadcast ? (
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  onClick={() => confirmResendAll("link")}
+                  disabled={stats.pendingLink === 0}
+                  onClick={() => void resend("pending", "link")}
                 >
-                  Reenviar enlace a todas
+                  <RotateCw className="size-3.5" />
+                  Enviar enlace pendiente (
+                  {stats.pendingLink.toLocaleString("es-CO")})
                 </Button>
-              ) : null}
+                {canBroadcast ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => confirmResendAll("link")}
+                  >
+                    Reenviar enlace a todas
+                  </Button>
+                ) : null}
+              </div>
+              {/* Los recordatorios los manda el cron solo, pero si por lo que
+                  sea no ha salido, esto lo dispara a mano sin esperar. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  Recordatorios:
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void resend("pending", "24h")}
+                >
+                  Enviar el de 24 h ahora
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void resend("pending", "1h")}
+                >
+                  Enviar el de 1 h ahora
+                </Button>
+              </div>
             </div>
           </>
         ) : null}

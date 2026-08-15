@@ -18,6 +18,8 @@ import {
 export type WebinarMailInput = {
   firstName: string;
   meetUrl?: string | null;
+  /** Nombre del material adjunto, si la edicion tiene uno. */
+  materialFileName?: string | null;
   /** «9 de agosto de 2026 · 19:00 (America/Bogota)» */
   scheduleLabel?: string | null;
   timezone?: string | null;
@@ -34,6 +36,16 @@ const scheduleRows = (i: WebinarMailInput): SummaryRow[] => {
   rows.push({ label: "Dónde", value: "Google Meet (en línea)" });
   return rows;
 };
+
+/**
+ * Enlace al material. Apunta a la ruta del sitio, no al blob: el blob es
+ * privado y la ruta es la que comprueba que el webinar sigue vivo.
+ */
+const materialHtml = (fileName: string): string =>
+  `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#33302b;text-align:center;">Material de apoyo: <a href="${escapeHtml(`${siteUrl()}/api/webinar/material`)}" style="color:#c0654a;font-weight:600;">descargar ${escapeHtml(fileName)}</a></p>`;
+
+const materialText = (fileName: string): string =>
+  `Material de apoyo (${fileName}): ${siteUrl()}/api/webinar/material`;
 
 /** El enlace también en texto: algunos clientes ocultan los botones. */
 const linkFallbackHtml = (meetUrl: string): string =>
@@ -59,7 +71,10 @@ export const webinarMeetLinkHtml = (i: WebinarMailInput): string => {
     preheader: "Este es tu enlace para entrar al webinar gratuito.",
     eyebrow: "Webinar gratuito",
     title: "Tu enlace de acceso",
-    bodyHtml: body + (meetUrl ? linkFallbackHtml(meetUrl) : ""),
+    bodyHtml:
+      body +
+      (meetUrl ? linkFallbackHtml(meetUrl) : "") +
+      (i.materialFileName ? materialHtml(i.materialFileName) : ""),
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
       ? { label: "Entrar al webinar", href: meetUrl }
@@ -75,6 +90,7 @@ export const webinarMeetLinkText = (i: WebinarMailInput): string =>
     `Ya tienes el enlace para entrar al webinar gratuito. Guárdalo: es el mismo del día del encuentro.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
+    i.materialFileName ? materialText(i.materialFileName) : "",
     ``,
     `Te recomiendo entrar unos minutos antes.`,
     ``,
@@ -123,7 +139,10 @@ export const webinarReminderHtml = (i: WebinarReminderInput): string => {
       : "El webinar gratuito empieza en una hora.",
     eyebrow: "Webinar gratuito",
     title: is24h ? "Mañana nos vemos" : "Empezamos en una hora",
-    bodyHtml: body + (meetUrl ? linkFallbackHtml(meetUrl) : ""),
+    bodyHtml:
+      body +
+      (meetUrl ? linkFallbackHtml(meetUrl) : "") +
+      (i.materialFileName ? materialHtml(i.materialFileName) : ""),
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
       ? { label: "Entrar al webinar", href: meetUrl }
@@ -141,6 +160,7 @@ export const webinarReminderText = (i: WebinarReminderInput): string =>
       : `El webinar gratuito empieza en una hora.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
+    i.materialFileName ? materialText(i.materialFileName) : "",
     ``,
     `Dayana Beltrán PNL`,
     `${siteUrl()}/webinar-gratuito`,
