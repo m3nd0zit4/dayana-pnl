@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
     const validation = await validatePromoCode(
       body.promoCode,
       "USD",
-      Math.round(plan.amountUsd * 100)
+      Math.round(plan.amountUsd * 100),
+      plan.id
     );
     if (!validation.ok) {
       return NextResponse.json(
