@@ -106,7 +106,8 @@ export async function POST(req: Request) {
     const validation = await validatePromoCode(
       body.promoCode,
       "COP",
-      plan.amountCop ?? 0
+      plan.amountCop ?? 0,
+      plan.id
     );
     if (!validation.ok) {
       return NextResponse.json(

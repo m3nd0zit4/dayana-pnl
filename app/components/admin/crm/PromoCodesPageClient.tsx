@@ -13,6 +13,8 @@ import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
+import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
+import { useActiveProducts } from "@/app/components/admin/crm/hooks/useReferenceData";
 import { useCrm } from "./CrmProvider";
 import {
   CrmDataList,
@@ -37,6 +39,8 @@ type PromoCode = {
   maxRedemptions: number | null;
   timesRedeemed: number;
   expiresAt: string | null;
+  /** Vacío = vale para todos los productos. */
+  products: { id: string; title: string }[];
 };
 
 const DISCOUNT_TYPE_LABEL: Record<PromoDiscountType, string> = {
@@ -54,6 +58,7 @@ const emptyForm = () => ({
   maxRedemptions: "",
   expiresAt: "",
   isActive: true,
+  productIds: [] as string[],
 });
 
 type Props = {
@@ -127,10 +132,14 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
       maxRedemptions: p.maxRedemptions?.toString() ?? "",
       expiresAt: p.expiresAt ? p.expiresAt.slice(0, 10) : "",
       isActive: p.isActive,
+      productIds: p.products.map((x) => x.id),
     });
   };
 
   const showForm = creating || editing;
+  // Solo se cargan los productos cuando el modal está abierto: el hook cachea
+  // 60 s, así que abrir y cerrar varias veces no repite la consulta.
+  const { products, productsLoading } = useActiveProducts(Boolean(showForm));
 
   const save = async () => {
     if (!canManageTeam) return;
@@ -152,6 +161,7 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
       maxRedemptions: form.maxRedemptions ? Number(form.maxRedemptions) : null,
       expiresAt: form.expiresAt || null,
       isActive: form.isActive,
+      productIds: form.productIds,
     };
 
     const res = await fetch(
@@ -331,6 +341,65 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
               </div>
             </div>
 
+            {/* Limitar a productos. Sin nada marcado el código vale para todo,
+                que es como se comportaba antes de que esto existiera — por eso
+                el estado por defecto no restringe nada. */}
+            <div className="border-t border-border pt-4">
+              <p className="mb-1 text-[10px] tracking-widest text-muted-foreground uppercase">
+                Productos
+              </p>
+              <p className="mb-3 text-xs text-muted-foreground">
+                {form.productIds.length === 0
+                  ? "Sin marcar nada, el código sirve para cualquier producto."
+                  : `Solo se podrá usar en ${form.productIds.length} producto${form.productIds.length === 1 ? "" : "s"}.`}
+              </p>
+              {productsLoading ? (
+                <p className="text-xs text-muted-foreground">Cargando productos…</p>
+              ) : (
+                <div className="space-y-3">
+                  {groupProductsByKind(products).map((group) => (
+                    <div key={group.label} className="space-y-1.5">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {group.label}
+                      </p>
+                      <div className="grid gap-1.5 sm:grid-cols-2">
+                        {group.items.map((product) => (
+                          <label
+                            key={product.id}
+                            className="flex cursor-pointer items-center gap-2.5 select-none"
+                          >
+                            <Checkbox
+                              checked={form.productIds.includes(product.id)}
+                              onCheckedChange={(checked) =>
+                                setForm((f) => ({
+                                  ...f,
+                                  productIds:
+                                    checked === true
+                                      ? [...f.productIds, product.id]
+                                      : f.productIds.filter((x) => x !== product.id),
+                                }))
+                              }
+                            />
+                            <span className="text-sm">{product.title}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {form.productIds.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setForm((f) => ({ ...f, productIds: [] }))}
+                    >
+                      Quitar restricción
+                    </Button>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
             {!creating && (
               <label className="flex w-fit cursor-pointer items-center gap-2.5 select-none">
                 <Checkbox
@@ -390,6 +459,16 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
                 {p.description ? (
                   <div className="text-xs text-muted-foreground">
                     {p.description}
+                  </div>
+                ) : null}
+                {p.products.length > 0 ? (
+                  <div
+                    className="text-xs text-muted-foreground"
+                    title={p.products.map((x) => x.title).join(", ")}
+                  >
+                    Solo {p.products.length === 1
+                      ? p.products[0].title
+                      : `${p.products.length} productos`}
                   </div>
                 ) : null}
               </div>

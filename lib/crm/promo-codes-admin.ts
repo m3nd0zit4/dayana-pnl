@@ -4,6 +4,11 @@ import { prisma } from "../db";
 export const listAllPromoCodes = async () =>
   prisma.promoCode.findMany({
     orderBy: { createdAt: "desc" },
+    include: {
+      products: {
+        select: { product: { select: { id: true, title: true } } },
+      },
+    },
   });
 
 export type CreatePromoCodeInput = {
@@ -15,6 +20,11 @@ export type CreatePromoCodeInput = {
   amountOffCopMinor?: number | null;
   maxRedemptions?: number | null;
   expiresAt?: Date | null;
+  /**
+   * Productos a los que se limita. Lista vacía (o ausente) = vale para todos.
+   * Ese valor por defecto es lo que deja intactos los códigos ya emitidos.
+   */
+  productIds?: string[] | null;
 };
 
 const normalizeCode = (raw: string): string => raw.trim().toUpperCase();
@@ -47,6 +57,9 @@ export const createPromoCode = async (input: CreatePromoCodeInput) => {
         input.discountType === "FIXED_AMOUNT" ? input.amountOffCopMinor ?? null : null,
       maxRedemptions: input.maxRedemptions ?? null,
       expiresAt: input.expiresAt ?? null,
+      products: input.productIds?.length
+        ? { create: input.productIds.map((productId) => ({ productId })) }
+        : undefined,
     },
   });
 };
@@ -99,6 +112,24 @@ export const updatePromoCode = async (id: string, input: UpdatePromoCodeInput) =
       isActive: input.isActive,
       maxRedemptions: input.maxRedemptions,
       expiresAt: input.expiresAt,
+      // `undefined` = no se tocó la selección; una lista (incluso vacía) la
+      // reemplaza entera. Borrar y volver a crear es lo correcto aquí: la
+      // tabla no tiene más columnas que las dos claves, así que no hay nada
+      // que conservar de las filas viejas.
+      products:
+        input.productIds === undefined
+          ? undefined
+          : {
+              deleteMany: {},
+              ...(input.productIds && input.productIds.length
+                ? {
+                    create: input.productIds.map((productId) => ({ productId })),
+                  }
+                : {}),
+            },
+    },
+    include: {
+      products: { select: { product: { select: { id: true, title: true } } } },
     },
   });
 };

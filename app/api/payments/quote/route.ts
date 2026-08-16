@@ -52,7 +52,8 @@ export async function POST(req: Request) {
       const validation = await validatePromoCode(
         rawPromoCode,
         "USD",
-        Math.round(plan.amountUsd * 100)
+        Math.round(plan.amountUsd * 100),
+        plan.id
       );
       if (validation.ok) {
         discountMinor = validation.discountMinor;
@@ -86,7 +87,8 @@ export async function POST(req: Request) {
       const validation = await validatePromoCode(
         rawPromoCode,
         "COP",
-        plan.amountCop ?? 0
+        plan.amountCop ?? 0,
+        plan.id
       );
       if (validation.ok) {
         discountMinor = validation.discountMinor;

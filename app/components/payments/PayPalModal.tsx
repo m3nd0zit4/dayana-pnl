@@ -580,7 +580,7 @@ const PayPalModal = ({ planId, sessionFirst = false, onClose }: PayPalModalProps
                 ) : null}
                 {breakdown.promoCodeError ? (
                   <div className="text-[11px] text-amber-300/80 pt-1">
-                    Código promocional no válido — se cobra el precio normal.
+                    Este código no aplica a esta compra — se cobra el precio normal.
                   </div>
                 ) : null}
                 <div className="border-t border-linen/12 my-2" />

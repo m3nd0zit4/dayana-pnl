@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
       maxRedemptions:
         body.maxRedemptions != null ? Number(body.maxRedemptions) : null,
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+      // Lista vacía o ausente = el código vale para todos los productos.
+      productIds: Array.isArray(body.productIds)
+        ? body.productIds.filter((x: unknown): x is string => typeof x === "string")
+        : null,
     });
 
     fireAuditLog({

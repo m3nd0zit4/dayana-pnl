@@ -320,6 +320,7 @@ model Product {
   workshopEditions  WorkshopEdition[]
   courseModules     CourseModule[]
   liveClassSessions LiveClassSession[]
+  promoCodes        PromoCodeProduct[]
 
   @@index([kind])
   @@map("products")
@@ -601,8 +602,26 @@ model PromoCode {
   updatedAt         DateTime          @updatedAt @map("updated_at")
 
   redemptions PromoCodeRedemption[]
+  products    PromoCodeProduct[]
 
   @@map("promo_codes")
+}
+
+/// Productos a los que se limita un código.
+///
+/// La regla que sostiene todo esto: **sin filas, el código vale para todo**.
+/// Así los códigos que ya estaban en circulación siguen funcionando igual, y
+/// solo queda restringido aquel en el que alguien elige productos a propósito.
+model PromoCodeProduct {
+  promoCodeId String @map("promo_code_id")
+  productId   String @map("product_id")
+
+  promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([promoCodeId, productId])
+  @@index([productId])
+  @@map("promo_code_products")
 }
 
 model PromoCodeRedemption {
