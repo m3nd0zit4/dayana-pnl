@@ -39,6 +39,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       maxRedemptions:
         body.maxRedemptions != null ? Number(body.maxRedemptions) : body.maxRedemptions,
       expiresAt: body.expiresAt !== undefined ? (body.expiresAt ? new Date(body.expiresAt) : null) : undefined,
+      // `undefined` deja la selección como está; un array la reemplaza entera.
+      productIds: Array.isArray(body.productIds)
+        ? body.productIds.filter((x: unknown): x is string => typeof x === "string")
+        : undefined,
     });
 
     fireAuditLog({

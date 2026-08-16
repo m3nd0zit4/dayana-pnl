@@ -31,6 +31,10 @@ const PromoCodesPage = async () => {
         maxRedemptions: p.maxRedemptions,
         timesRedeemed: p.timesRedeemed,
         expiresAt: p.expiresAt ? p.expiresAt.toISOString() : null,
+        products: p.products.map((link) => ({
+          id: link.product.id,
+          title: link.product.title,
+        })),
       }))}
     />
   );

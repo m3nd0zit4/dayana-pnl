@@ -8,7 +8,8 @@ export type PromoValidationError =
   | "inactive"
   | "expired"
   | "max_redemptions"
-  | "currency_unavailable";
+  | "currency_unavailable"
+  | "product_not_eligible";
 
 export type PromoValidation =
   | { ok: true; promoCode: PromoCode; discountMinor: number }
@@ -19,16 +20,27 @@ export type PromoValidation =
  * given currency's minor units — USD cents, COP whole pesos (COP has no
  * cents; see CLAUDE.md). PERCENT codes are computed against it; FIXED_AMOUNT
  * codes only apply if the code has an amount configured for that currency.
+ *
+ * `productId` es el producto que se está comprando (`Plan.id === Product.id`).
+ * Si el código tiene productos asociados y este no está entre ellos, no
+ * aplica. **Sin productos asociados el código vale para todo** — esa es la
+ * regla que mantiene funcionando a los códigos que ya estaban emitidos.
+ * Omitirlo salta la comprobación, para los llamantes que aún no tienen
+ * producto en mano.
  */
 export const validatePromoCode = async (
   rawCode: string,
   currency: "USD" | "COP",
-  baseAmountMinor: number
+  baseAmountMinor: number,
+  productId?: string | null
 ): Promise<PromoValidation> => {
   const code = normalizeCode(rawCode);
   if (!code) return { ok: false, error: "not_found" };
 
-  const promoCode = await prisma.promoCode.findUnique({ where: { code } });
+  const promoCode = await prisma.promoCode.findUnique({
+    where: { code },
+    include: { products: { select: { productId: true } } },
+  });
   if (!promoCode) return { ok: false, error: "not_found" };
   if (!promoCode.isActive) return { ok: false, error: "inactive" };
   if (promoCode.expiresAt && promoCode.expiresAt.getTime() < Date.now()) {
@@ -39,6 +51,13 @@ export const validatePromoCode = async (
     promoCode.timesRedeemed >= promoCode.maxRedemptions
   ) {
     return { ok: false, error: "max_redemptions" };
+  }
+  // Lista vacía = sin restricción. Comprobarlo antes de calcular el descuento
+  // evita devolver un importe que luego no se puede aplicar.
+  if (promoCode.products.length > 0) {
+    if (!productId) return { ok: false, error: "product_not_eligible" };
+    const eligible = promoCode.products.some((p) => p.productId === productId);
+    if (!eligible) return { ok: false, error: "product_not_eligible" };
   }
 
   let discountMinor: number;

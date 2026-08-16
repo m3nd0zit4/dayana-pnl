@@ -361,7 +361,7 @@ const MercadoPagoCheckoutModal = ({
                 ) : null}
                 {breakdown.promoCodeError ? (
                   <div className="text-[11px] text-amber-300/80 pt-1">
-                    Código promocional no válido — se cobra el precio normal.
+                    Este código no aplica a esta compra — se cobra el precio normal.
                   </div>
                 ) : null}
                 {/* USD reference (small, muted) */}
