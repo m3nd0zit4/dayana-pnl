@@ -211,7 +211,13 @@ export const buildWebinarMailPayload = (
       body: webinarMeetLinkText(vars),
     };
   }
-  const reminderVars = { ...vars, kind: pass };
+  const reminderVars = {
+    ...vars,
+    kind: pass,
+    // Si la hora ya pasó, el correo lo dice: «empezamos en una hora» con la
+    // sesión en marcha hace que la gente crea que le sobra tiempo.
+    hasStarted: Boolean(webinar.startsAt && webinar.startsAt.getTime() <= Date.now()),
+  };
   return {
     templateKey: `webinar_reminder_${pass}`,
     subject: webinarReminderSubject(reminderVars),
@@ -292,13 +298,22 @@ const reminderWindowOpen = (
 export const sendPendingWebinarReminders = async (
   kind: ReminderKind,
   now: Date = new Date(),
-  deadline?: number
+  deadline?: number,
+  /**
+   * Salta la ventana. Solo para envíos disparados a mano: si alguien pulsa
+   * «enviar el de 1 h ahora» con el webinar ya empezado, la intención es
+   * evidente y negarse no ayuda a nadie — de hecho es justo cuando más falta
+   * hace, porque la gente todavía no ha entrado. El cron nunca lo usa.
+   */
+  ignoreWindow = false
 ): Promise<WebinarMailResult> => {
   if (await notificationsOff()) return noop("notifications_disabled");
 
   const webinar = await ensureFreeWebinar();
   if (!webinar.isActive) return noop("inactive");
-  if (!reminderWindowOpen(webinar, kind, now)) return noop("outside_window");
+  if (!ignoreWindow && !reminderWindowOpen(webinar, kind, now)) {
+    return noop("outside_window");
+  }
 
   const recipients = await findPendingReminderRecipients(
     webinar.id,
@@ -340,7 +355,8 @@ export type WebinarDrainResult = WebinarMailResult & {
  */
 export const drainWebinarMail = async (
   pass: WebinarMailPass,
-  budgetMs = TIME_BUDGET_MS
+  budgetMs = TIME_BUDGET_MS,
+  ignoreWindow = false
 ): Promise<WebinarDrainResult> => {
   const deadline = Date.now() + budgetMs;
   let sent = 0;
@@ -351,7 +367,12 @@ export const drainWebinarMail = async (
     const r =
       pass === "link"
         ? await sendPendingWebinarLinkEmails(deadline)
-        : await sendPendingWebinarReminders(pass, new Date(), deadline);
+        : await sendPendingWebinarReminders(
+            pass,
+            new Date(),
+            deadline,
+            ignoreWindow
+          );
 
     if (r.skipped) {
       firstSkip ??= r;
@@ -444,6 +465,7 @@ export const resendWebinarMailToAll = async (
       ? await resetLinkEmails(webinar.id)
       : await resetOneReminder(webinar.id, pass);
 
-  const result = await drainWebinarMail(pass);
+  // Manual: sin ventana. Ver `ignoreWindow`.
+  const result = await drainWebinarMail(pass, undefined, true);
   return { ...result, requeued };
 };

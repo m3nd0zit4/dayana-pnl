@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (scope === "pending") {
-    const result = await drainWebinarMail(pass);
+    // Disparado a mano: se ignora la ventana del recordatorio. El cron sigue
+    // respetándola; aquí la intención del operador manda.
+    const result = await drainWebinarMail(pass, undefined, true);
     fireAuditLog({
       staffUserId: staff.id,
       action: "UPDATE",

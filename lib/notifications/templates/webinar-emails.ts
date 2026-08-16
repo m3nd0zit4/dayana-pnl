@@ -104,12 +104,24 @@ export const webinarMeetLinkText = (i: WebinarMailInput): string =>
 
 export type ReminderKind = "24h" | "1h";
 
-export type WebinarReminderInput = WebinarMailInput & { kind: ReminderKind };
+export type WebinarReminderInput = WebinarMailInput & {
+  kind: ReminderKind;
+  /**
+   * El webinar ya arrancó. El aviso de «1 h» se manda a veces con la sesión
+   * empezada —porque el cron no salió a tiempo o porque hay gente que aún no
+   * ha entrado— y decir «empezamos en una hora» cuando ya está en marcha hace
+   * que quien lo lee piense que tiene tiempo de sobra. Con esto el correo dice
+   * la verdad y empuja a entrar ya.
+   */
+  hasStarted?: boolean;
+};
 
-export const webinarReminderSubject = (i: WebinarReminderInput): string =>
-  i.kind === "24h"
-    ? "Mañana es el webinar gratuito · Dayana Beltrán"
+export const webinarReminderSubject = (i: WebinarReminderInput): string => {
+  if (i.kind === "24h") return "Mañana es el webinar gratuito · Dayana Beltrán";
+  return i.hasStarted
+    ? "Ya empezamos — entra ahora al webinar"
     : "Empezamos en una hora · webinar gratuito";
+};
 
 export const webinarReminderHtml = (i: WebinarReminderInput): string => {
   const meetUrl = i.meetUrl ?? "";
@@ -126,26 +138,41 @@ export const webinarReminderHtml = (i: WebinarReminderInput): string => {
             ? `Aquí abajo tienes el enlace de acceso — el mismo que ya te envié.`
             : `Te enviaré el enlace de acceso antes de empezar.`,
         ]
-      : [
-          `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
-          `Empezamos en <strong style="font-weight:600;">una hora</strong>. Este es el momento de buscar un lugar tranquilo y dejar el teléfono a un lado.`,
-          meetUrl ? `Entra con el botón de aquí abajo.` : "",
-        ]
+      : i.hasStarted
+        ? [
+            `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
+            `<strong style="font-weight:700;">Ya estamos en vivo.</strong> Entra ahora con el botón de aquí abajo — todavía estás a tiempo.`,
+            `Si no puedes quedarte todo el rato, entra igual: lo importante es que no te lo pierdas entero.`,
+          ]
+        : [
+            `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
+            `Empezamos en <strong style="font-weight:600;">una hora</strong>. Este es el momento de buscar un lugar tranquilo y dejar el teléfono a un lado.`,
+            meetUrl ? `Entra con el botón de aquí abajo.` : "",
+          ]
   );
 
   return wrapEmailHtml({
     preheader: is24h
       ? "Mañana nos vemos en el webinar gratuito."
-      : "El webinar gratuito empieza en una hora.",
+      : i.hasStarted
+        ? "El webinar ya empezó — entra ahora."
+        : "El webinar gratuito empieza en una hora.",
     eyebrow: "Webinar gratuito",
-    title: is24h ? "Mañana nos vemos" : "Empezamos en una hora",
+    title: is24h
+      ? "Mañana nos vemos"
+      : i.hasStarted
+        ? "Ya estamos en vivo"
+        : "Empezamos en una hora",
     bodyHtml:
       body +
       (meetUrl ? linkFallbackHtml(meetUrl) : "") +
       (i.materialFileName ? materialHtml(i.materialFileName) : ""),
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
-      ? { label: "Entrar al webinar", href: meetUrl }
+      ? {
+          label: i.hasStarted ? "Entrar ahora" : "Entrar al webinar",
+          href: meetUrl,
+        }
       : { label: "Ver la página del webinar", href: `${siteUrl()}/webinar-gratuito` },
     footnote: FOOTNOTE,
   });
@@ -157,7 +184,9 @@ export const webinarReminderText = (i: WebinarReminderInput): string =>
     ``,
     i.kind === "24h"
       ? `Mañana nos vemos en el webinar gratuito.`
-      : `El webinar gratuito empieza en una hora.`,
+      : i.hasStarted
+        ? `Ya estamos en vivo. Entra ahora — todavía estás a tiempo.`
+        : `El webinar gratuito empieza en una hora.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
     i.materialFileName ? materialText(i.materialFileName) : "",
