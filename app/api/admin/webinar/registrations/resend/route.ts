@@ -44,7 +44,11 @@ export async function POST(req: NextRequest) {
 
   const limits = {
     one: { max: 30, windowMs: 60_000 },
-    pending: { max: 5, windowMs: 60 * 60_000 },
+    // Un barrido de pendientes es idempotente: solo escribe a quien todavia
+    // no lo tiene. Con 5/hora, durante un evento en vivo —con gente
+    // registrandose sobre la marcha— el boton se bloquea justo cuando mas se
+    // usa, y el mensaje parece que la aplicacion esta rota.
+    pending: { max: 20, windowMs: 60 * 60_000 },
     all: { max: 2, windowMs: 24 * 60 * 60_000 },
   } as const;
   const limit = limits[scope];
