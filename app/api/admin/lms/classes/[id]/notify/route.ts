@@ -13,6 +13,13 @@ export const dynamic = "force-dynamic";
 
 const CHANNELS = ["EMAIL", "WHATSAPP_API"] as const;
 
+/**
+ * Mismo tope que `PLATFORM_BROADCAST_MAX`: pasado ese punto esto no es una
+ * notificación de clase sino una campaña, y debe ir por Inngest, no por una
+ * petición HTTP que envía en serie.
+ */
+const NOTIFY_MAX_TARGETS = 2000;
+
 type RouteParams = { params: Promise<{ id: string }> };
 
 /** Notifies members who are current on payments that a recording is up. */
@@ -31,14 +38,32 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "no_visible_recording" }, { status: 400 });
   }
 
+  const audienceWhere = {
+    productId: liveClass.productId,
+    status: EnrollmentStatus.ACTIVE,
+    product: { kind: ProductKind.COURSE },
+    paidUntil: { gt: new Date() },
+  };
+
+  // Contar antes de leer. broadcastPlatformNotification rechaza por encima de
+  // su tope, pero lo hacía después de materializar la audiencia: se pagaba la
+  // memoria y solo entonces se fallaba. Aquí se falla barato.
+  const targetCount = await prisma.enrollment.count({ where: audienceWhere });
+  if (targetCount > NOTIFY_MAX_TARGETS) {
+    return NextResponse.json(
+      { error: "audience_too_large", targets: targetCount },
+      { status: 422 }
+    );
+  }
+
   const enrollments = await prisma.enrollment.findMany({
-    where: {
-      productId: liveClass.productId,
-      status: EnrollmentStatus.ACTIVE,
-      product: { kind: ProductKind.COURSE },
-      paidUntil: { gt: new Date() },
+    where: audienceWhere,
+    // `include: { contact: true }` traía cada contacto entero —incluida
+    // `notes`, @db.Text— para usar solo el nombre.
+    select: {
+      contactId: true,
+      contact: { select: { firstName: true } },
     },
-    include: { contact: true },
   });
 
   const template = await prisma.messageTemplate.findUnique({
