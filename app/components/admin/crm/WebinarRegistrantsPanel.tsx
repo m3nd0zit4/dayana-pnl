@@ -188,13 +188,14 @@ const WebinarRegistrantsPanel = ({
         outcome?: string;
         reason?: string;
         sent?: number;
+        failed?: number;
         skipped?: boolean;
         errorMessage?: string | null;
       };
       if (!res.ok) {
         toast(
           res.status === 429
-            ? "Has reenviado demasiadas veces. Espera un poco."
+            ? "Demasiados envios seguidos. Espera unos minutos."
             : res.status === 403
               ? "Solo la dueña de la cuenta puede reenviar a todas."
               : data.errorMessage ||
@@ -225,7 +226,13 @@ const WebinarRegistrantsPanel = ({
             : "Reenviado"
           : data.skipped
             ? (skipReason[data.reason ?? ""] ?? "No habia nada que enviar")
-            : `Enviado a ${data.sent ?? 0} personas`
+            : // Los fallos tienen que verse: si solo se anuncia el exito, un
+              // corte del proveedor (cuota diaria agotada, por ejemplo) pasa
+              // por envio correcto y nadie se entera de quien se quedo fuera.
+              data.failed
+              ? `Enviado a ${data.sent ?? 0}. ${data.failed} fallaron — filtra por «Solo fallidas» para verlas.`
+              : `Enviado a ${data.sent ?? 0} personas`,
+        data.failed ? "error" : undefined
       );
       await refresh();
     } finally {
