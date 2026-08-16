@@ -11,6 +11,7 @@ import { dispatchAndRecord } from "../notifications/dispatch";
 import { resolveNotificationsEnabled } from "../notifications/platform/resolve";
 import {
   BROADCAST_BATCH_SIZE,
+  BROADCAST_MAX_BATCHES,
   finalizeCampaignRun,
   loadCampaignRunContext,
   processCampaignBatch,
@@ -212,24 +213,33 @@ export const campaignBroadcastFn = inngest.createFunction(
     const contactCount = await step.run("start-campaign", async () => {
       const loaded = await loadCampaignRunContext(campaignId);
       if (!loaded) throw new Error("Campaña no encontrada");
-      await startCampaignRun(campaignId);
-      return loaded.contacts.length;
+      const started = await startCampaignRun(campaignId);
+      return started.contactCount;
     });
 
-    for (let i = 0; i < contactCount; i += BROADCAST_BATCH_SIZE) {
-      await step.run(`batch-${i}`, async () => {
-        const ctx = await loadCampaignRunContext(campaignId);
-        if (!ctx) throw new Error("Campaña no encontrada");
-        return processCampaignBatch(ctx, i, BROADCAST_BATCH_SIZE);
-      });
-    }
+    // Bucle por cursor, no por offset. Antes cada paso recargaba el contexto,
+    // que leía la tabla de contactos ENTERA, y descartaba todo salvo su
+    // rebanada: a 100k eran 4.000 pasos × 100k filas. Ahora cada paso lee solo
+    // su lote, así que el coste total es una pasada por la audiencia.
+    let cursor: string | null = null;
+    let batches = 0;
+    do {
+      const batch: { nextCursor: string | null } = await step.run(
+        `batch-${batches}`,
+        async () => {
+          const ctx = await loadCampaignRunContext(campaignId);
+          if (!ctx) throw new Error("Campaña no encontrada");
+          return processCampaignBatch(ctx, cursor, BROADCAST_BATCH_SIZE);
+        }
+      );
+      cursor = batch.nextCursor;
+      batches += 1;
+      if (batches > BROADCAST_MAX_BATCHES) throw new Error("demasiados lotes");
+    } while (cursor);
 
     await step.run("finalize", () => finalizeCampaignRun(campaignId));
 
-    return {
-      contacts: contactCount,
-      batches: Math.ceil(contactCount / BROADCAST_BATCH_SIZE),
-    };
+    return { contacts: contactCount, batches };
   }
 );
 

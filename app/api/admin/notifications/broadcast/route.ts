@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { campaign, contacts } = await createBroadcastCampaign({
+    const { campaign, contactCount } = await createBroadcastCampaign({
       name,
       templateKey,
       channels,
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
       if (inngestConfigured) {
         await emitCampaignRun(campaign.id);
-      } else if (contacts.length > BROADCAST_SYNC_MAX_CONTACTS) {
+      } else if (contactCount > BROADCAST_SYNC_MAX_CONTACTS) {
         return NextResponse.json(
           {
             error: "inngest_required",
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
 
       if (process.env.NODE_ENV === "development") {
         console.log(
-          `[api] POST /api/admin/notifications/broadcast ${Date.now() - started}ms (${contacts.length} contacts, inngest=${inngestConfigured})`
+          `[api] POST /api/admin/notifications/broadcast ${Date.now() - started}ms (${contactCount} contacts, inngest=${inngestConfigured})`
         );
       }
     }
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       campaign: updated,
-      contactCount: contacts.length,
+      contactCount,
       queued: runNow && isInngestConfigured(),
     });
   } catch (e) {

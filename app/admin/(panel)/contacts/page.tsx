@@ -1,5 +1,5 @@
 import ContactsPageClient from "@/app/components/admin/crm/ContactsPageClient";
-import { searchContacts } from "@/lib/crm/contacts";
+import { countContacts, searchContacts } from "@/lib/crm/contacts";
 import { PREVIEW_CONTACTS } from "@/lib/crm/preview-data";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import type { ContactSource } from "@prisma/client";
@@ -12,6 +12,7 @@ type Props = {
     country?: string;
     source?: string;
     activeTherapy?: string;
+    notes?: string;
   }>;
 };
 
@@ -23,6 +24,7 @@ const ContactsPage = async ({ searchParams }: Props) => {
     country: sp.country ?? "",
     source: sp.source ?? "",
     activeTherapy: sp.activeTherapy === "1",
+    searchNotes: sp.notes === "1",
   };
 
   if (preview) {
@@ -31,6 +33,8 @@ const ContactsPage = async ({ searchParams }: Props) => {
         preview
         initialQ={q}
         filters={filters}
+        initialCursor={null}
+        total={PREVIEW_CONTACTS.length}
         rows={PREVIEW_CONTACTS.map((c) => ({
           id: c.id,
           firstName: c.firstName,
@@ -49,17 +53,29 @@ const ContactsPage = async ({ searchParams }: Props) => {
     );
   }
 
-  let rows: Awaited<ReturnType<typeof searchContacts>> = [];
+  const search = {
+    q,
+    countryIso: sp.country,
+    source: (sp.source as ContactSource) || undefined,
+    activeTherapy: sp.activeTherapy === "1",
+    searchNotes: filters.searchNotes,
+  };
+
+  let page: Awaited<ReturnType<typeof searchContacts>> = {
+    items: [],
+    nextCursor: null,
+  };
+  let total = 0;
   try {
-    rows = await searchContacts({
-      q,
-      limit: 80,
-      countryIso: sp.country,
-      source: (sp.source as ContactSource) || undefined,
-      activeTherapy: sp.activeTherapy === "1",
-    });
+    // El recuento comparte `buildContactWhere` con la lista, así que la
+    // cabecera no puede desviarse de lo que se muestra.
+    [page, total] = await Promise.all([
+      searchContacts(search),
+      countContacts(search),
+    ]);
   } catch {
-    rows = [];
+    page = { items: [], nextCursor: null };
+    total = 0;
   }
 
   return (
@@ -67,20 +83,9 @@ const ContactsPage = async ({ searchParams }: Props) => {
       preview={false}
       initialQ={q}
       filters={filters}
-      rows={rows.map((c) => ({
-        id: c.id,
-        firstName: c.firstName,
-        lastName: c.lastName,
-        phoneE164: c.phoneE164,
-        countryIso: c.countryIso,
-        source: c.source,
-        createdAt: c.createdAt.toISOString(),
-        hasPayment: c.enrollments.some((en) => en.payments.length > 0),
-        enrollments: c.enrollments.map((en) => ({
-          status: en.status,
-          product: { title: en.product.title },
-        })),
-      }))}
+      rows={page.items}
+      initialCursor={page.nextCursor}
+      total={total}
     />
   );
 };

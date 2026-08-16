@@ -16,6 +16,16 @@ import {
   normalizePhoneWithCountry,
   type NormalizedPhone,
 } from "../phone";
+import { MAX_SEARCH_TOKENS, foldForSearch } from "./search-normalize";
+import {
+  PAGE_SIZE,
+  clampTake,
+  decodeCursor,
+  encodeCursor,
+  keysetWhere,
+  splitPage,
+  type Page,
+} from "./pagination";
 
 export type UpsertContactInput = {
   /** When set, update this contact instead of resolving by phone/email. */
@@ -165,8 +175,12 @@ export const upsertContactByPhone = async (
   }
 
   if (emailTrim) {
-    const byEmail = await prisma.contact.findFirst({
-      where: { email: { equals: emailTrim, mode: "insensitive" } },
+    // findUnique, no findFirst + mode:"insensitive": `ILIKE` no puede usar el
+    // índice UNIQUE de email, y esto está en el camino caliente del checkout.
+    // normalizeEmail ya minusculiza en cada escritura, así que la
+    // insensibilidad era redundante.
+    const byEmail = await prisma.contact.findUnique({
+      where: { email: emailTrim },
     });
     if (byEmail) {
       const update = buildContactUpdate(
@@ -338,8 +352,11 @@ const isRealContactPhone = (phoneE164: string): boolean =>
 export const lookupContactPrefillByEmail = async (
   email: string
 ): Promise<ContactPrefill | null> => {
-  const contact = await prisma.contact.findFirst({
-    where: { email: { equals: email.trim().toLowerCase(), mode: "insensitive" } },
+  const normalized = normalizeEmail(email);
+  if (!normalized) return null;
+  // findUnique contra el índice UNIQUE — ver la nota en upsertContactByPhone.
+  const contact = await prisma.contact.findUnique({
+    where: { email: normalized },
   });
   if (!contact) return null;
   if (!isRealContactPhone(contact.phoneE164)) return null;
@@ -391,6 +408,12 @@ export type ContactSearchFilters = {
   countryIso?: string;
   source?: ContactSource;
   activeTherapy?: boolean;
+  /**
+   * Incluir `notes` en la búsqueda. Apagado por defecto: es la columna más
+   * grande (@db.Text, sin cota) y buscarla obliga a leerla entera por fila.
+   * El camino lento existe, pero se pide.
+   */
+  searchNotes?: boolean;
   limit?: number;
   cursor?: string;
 };
@@ -411,29 +434,32 @@ const buildContactWhere = (filters: ContactSearchFilters): Prisma.ContactWhereIn
   ];
 
   if (q) {
+    // Todos los dígitos de la consulta entera, para que «+57 300 123 4567»
+    // encuentre «+573001234567»: la versión sin separadores del teléfono está
+    // embebida en searchText.
     const digits = q.replace(/\D/g, "");
-    const tokens = q.split(/\s+/).filter((t) => t.length > 0);
+    const tokens = q.split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_TOKENS);
     const tokenClauses = tokens.length > 0 ? tokens : [q];
 
-    for (const token of tokenClauses) {
-      const tokenDigits = token.replace(/\D/g, "");
+    tokenClauses.forEach((token, i) => {
+      // Un solo `LIKE` sobre la columna plegada, servido por el GIN de
+      // trigramas, en lugar de seis `ILIKE` sobre columnas sin índice posible.
+      // Sin `mode: "insensitive"`: la columna ya viene en minúsculas, así que
+      // Prisma emite `LIKE` plano — más barato, y también acelerado por
+      // gin_trgm_ops.
       and.push({
         OR: [
-          { firstName: { contains: token, mode: "insensitive" } },
-          { lastName: { contains: token, mode: "insensitive" } },
-          { displayName: { contains: token, mode: "insensitive" } },
-          { email: { contains: token, mode: "insensitive" } },
-          { notes: { contains: token, mode: "insensitive" } },
-          { sourceDetail: { contains: token, mode: "insensitive" } },
-          ...(tokenDigits.length >= 4
-            ? [{ phoneE164: { contains: tokenDigits } }]
+          { searchText: { contains: foldForSearch(token) } },
+          ...(i === 0 && digits.length >= 4
+            ? [{ searchText: { contains: digits } }]
             : []),
-          ...(digits.length >= 4 && token === tokens[0]
-            ? [{ phoneE164: { contains: digits } }]
+          // Camino lento y explícito: `notes` no está en searchText.
+          ...(filters.searchNotes
+            ? [{ notes: { contains: token, mode: "insensitive" as const } }]
             : []),
         ],
       });
-    }
+    });
   }
 
   if (filters.countryIso) {
@@ -469,9 +495,15 @@ const listInclude = {
         ],
       },
     },
-    take: 5,
-    include: {
-      product: true,
+    // ContactsPageClient pinta `enrollments.slice(0, 2)`, así que traer 5 era
+    // pedir dos veces y media lo que se muestra, por contacto y por página.
+    take: 2,
+    select: {
+      status: true,
+      // `product: true` traía todas las columnas del producto —incluidas
+      // `description` y `whatsappMessage`, ambas @db.Text— para usar solo el
+      // título.
+      product: { select: { title: true } },
       // Basta un pago aprobado para saber que el contacto llegó comprando
       // (checkout), no pidiendo que lo contacten.
       payments: {
@@ -482,6 +514,42 @@ const listInclude = {
     },
   },
 } satisfies Prisma.ContactInclude;
+
+export type ContactListRow = {
+  id: string;
+  firstName: string;
+  lastName: string | null;
+  phoneE164: string;
+  countryIso: string | null;
+  source: string;
+  /** ISO — el cliente lo formatea. */
+  createdAt: string;
+  /** Tiene al menos un pago aprobado: llegó comprando, no pidiendo contacto. */
+  hasPayment: boolean;
+  enrollments: { status: string; product: { title: string } }[];
+};
+
+type ContactWithList = Prisma.ContactGetPayload<{ include: typeof listInclude }>;
+
+/**
+ * Mapa fila-de-BD → fila-de-UI. Vive aquí y no en la página porque la ruta de
+ * API y el render del servidor tienen que emitir exactamente la misma forma:
+ * mientras estuvieron duplicados, «cargar más» no se podía conectar.
+ */
+export const toContactListRow = (c: ContactWithList): ContactListRow => ({
+  id: c.id,
+  firstName: c.firstName,
+  lastName: c.lastName,
+  phoneE164: c.phoneE164,
+  countryIso: c.countryIso,
+  source: c.source,
+  createdAt: c.createdAt.toISOString(),
+  hasPayment: c.enrollments.some((en) => en.payments.length > 0),
+  enrollments: c.enrollments.map((en) => ({
+    status: en.status,
+    product: { title: en.product.title },
+  })),
+});
 
 export const searchContactsLight = async (
   filters: Pick<ContactSearchFilters, "q" | "limit"> = {}
@@ -504,35 +572,39 @@ export const searchContactsLight = async (
   });
 };
 
-export const listContactsLight = async (limit = 200) =>
-  prisma.contact.findMany({
-    where: { NOT: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } },
-    orderBy: { firstName: "asc" },
-    take: limit,
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-    },
-  });
+/**
+ * Cuántos contactos casan con estos filtros.
+ *
+ * Comparte `buildContactWhere` con la lista a propósito: el recuento de la
+ * cabecera y las filas mostradas **no pueden** divergir. Antes la cabecera
+ * pintaba `rows.length` —el tamaño de página— y por eso decía siempre «80».
+ */
+export const countContacts = async (filters: ContactSearchFilters = {}) =>
+  prisma.contact.count({ where: buildContactWhere(filters) });
 
-export const searchContacts = async (filters: ContactSearchFilters = {}) => {
-  const limit = filters.limit ?? 80;
+/**
+ * Una página keyset de contactos, ordenada por `(createdAt desc, id desc)`.
+ *
+ * El cursor anterior filtraba por `id < cursor` contra ese mismo orden, que no
+ * es un keyset válido con ids cuid: saltaba y repetía filas. No se notaba
+ * porque nadie lo usaba.
+ */
+export const searchContacts = async (
+  filters: ContactSearchFilters = {}
+): Promise<Page<ContactListRow>> => {
+  const take = clampTake(filters.limit, PAGE_SIZE);
   const where = buildContactWhere(filters);
+  const cursor = decodeCursor(filters.cursor);
 
-  if (filters.cursor) {
-    return prisma.contact.findMany({
-      where: { AND: [where, { id: { lt: filters.cursor } }] },
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit,
-      include: listInclude,
-    });
-  }
-
-  return prisma.contact.findMany({
-    where,
+  const rows = await prisma.contact.findMany({
+    where: cursor ? { AND: [where, keysetWhere("createdAt", cursor)] } : where,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit,
+    take: take + 1,
     include: listInclude,
   });
+
+  const page = splitPage(rows, take, (row) =>
+    encodeCursor(row.createdAt, row.id)
+  );
+  return { items: page.items.map(toContactListRow), nextCursor: page.nextCursor };
 };
