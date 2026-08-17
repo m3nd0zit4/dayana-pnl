@@ -188,14 +188,18 @@ export const broadcastPlatformNotification = async (
     );
   }
 
+  // take + 1 en vez de traerlos todos y contar después: el tope existe para no
+  // materializar audiencias absurdas, y comprobarlo sobre un findMany sin cota
+  // pagaba la memoria justo antes de quejarse de ella.
   const targets = await prisma.contact.findMany({
     where: { id: { in: input.contactIds }, notifyInApp: true },
     select: { id: true },
+    take: PLATFORM_BROADCAST_MAX + 1,
   });
   if (targets.length === 0) return null;
   if (targets.length > PLATFORM_BROADCAST_MAX) {
     throw new Error(
-      `Difusión de ${targets.length} destinatarios supera el tope de ${PLATFORM_BROADCAST_MAX}.`
+      `Difusión de más de ${PLATFORM_BROADCAST_MAX} destinatarios supera el tope.`
     );
   }
 
