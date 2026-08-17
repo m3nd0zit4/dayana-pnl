@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronRight, MessageCircle, Users } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ContactSearch from "@/app/components/admin/ContactSearch";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -25,6 +25,7 @@ import {
   CrmDataListRow,
   CrmEmptyState,
   CrmFilterBar,
+  CrmLoadMore,
   CrmRowActions,
 } from "./ui";
 
@@ -49,22 +50,78 @@ type Filters = {
   country: string;
   source: string;
   activeTherapy: boolean;
+  searchNotes: boolean;
 };
 
 type Props = {
+  /** Primera página, pintada por el servidor. */
   rows: ContactRow[];
+  /** Cursor keyset de la siguiente página; `null` si no hay más. */
+  initialCursor: string | null;
+  /** Contactos que casan con los filtros — NO el tamaño de página. */
+  total: number;
   initialQ: string;
   filters: Filters;
   preview: boolean;
 };
 
-const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
+const numberFormat = new Intl.NumberFormat("es-CO");
+
+const ContactsPageClient = ({
+  rows,
+  initialCursor,
+  total,
+  initialQ,
+  filters,
+  preview,
+}: Props) => {
   const router = useRouter();
   const { toast } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
   const [country, setCountry] = useState(filters.country);
   const [source, setSource] = useState(filters.source);
   const [activeTherapy, setActiveTherapy] = useState(filters.activeTherapy);
+  const [searchNotes, setSearchNotes] = useState(filters.searchNotes);
+
+  // Las páginas que va añadiendo «Cargar más». Filtrar y buscar navegan con
+  // router.push, que vuelve a renderizar este mismo componente con una primera
+  // página nueva en vez de desmontarlo — de ahí el efecto que reinicia el
+  // acumulado. Sin él, los resultados del filtro anterior se quedarían pegados
+  // debajo de los nuevos.
+  const [items, setItems] = useState(rows);
+  const [cursor, setCursor] = useState(initialCursor);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setItems(rows);
+    setCursor(initialCursor);
+  }, [rows, initialCursor]);
+
+  const loadMore = async () => {
+    if (!cursor) return;
+    setLoading(true);
+    try {
+      const p = new URLSearchParams({ cursor });
+      if (initialQ.trim()) p.set("q", initialQ.trim());
+      if (country) p.set("country", country);
+      if (source) p.set("source", source);
+      if (activeTherapy) p.set("activeTherapy", "1");
+      if (searchNotes) p.set("notes", "1");
+
+      const res = await fetch(`/api/admin/contacts?${p}`);
+      if (!res.ok) throw new Error("load_failed");
+      const data = (await res.json()) as {
+        contacts: ContactRow[];
+        nextCursor: string | null;
+      };
+      setItems((prev) => [...prev, ...data.contacts]);
+      setCursor(data.nextCursor);
+    } catch {
+      toast("No se pudieron cargar más contactos");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /**
    * Se filtra al cambiar, no al enviar (regla R10).
@@ -77,12 +134,13 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
    * necesita el retardo.
    */
   const pushFilters = (next: Partial<Filters>) => {
-    const merged = { country, source, activeTherapy, ...next };
+    const merged = { country, source, activeTherapy, searchNotes, ...next };
     const p = new URLSearchParams();
     if (initialQ.trim()) p.set("q", initialQ.trim());
     if (merged.country) p.set("country", merged.country);
     if (merged.source) p.set("source", merged.source);
     if (merged.activeTherapy) p.set("activeTherapy", "1");
+    if (merged.searchNotes) p.set("notes", "1");
     router.push(`/admin/contacts?${p}`);
   };
 
@@ -100,8 +158,15 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
 
       <ContactSearch initialQ={initialQ} />
 
+      {/* El recuento es el TOTAL que casa con los filtros, no las filas
+          cargadas. Antes era `rows.length`, es decir el tamaño de página, y
+          por eso decía siempre «80 contactos». */}
       <CrmFilterBar
-        count={`${rows.length} ${rows.length === 1 ? "contacto" : "contactos"}`}
+        count={
+          items.length < total
+            ? `${numberFormat.format(items.length)} de ${numberFormat.format(total)} contactos`
+            : `${numberFormat.format(total)} ${total === 1 ? "contacto" : "contactos"}`
+        }
       >
         <div className="w-full sm:w-52">
           <CountrySelect
@@ -142,17 +207,30 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
           />
           Terapia activa
         </label>
+        {/* Buscar en notas es el camino lento: `notes` es @db.Text sin cota, y
+            leerla por fila es lo que no escala. Existe, pero se pide. */}
+        <label className="flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox
+            checked={searchNotes}
+            onCheckedChange={(checked) => {
+              const next = checked === true;
+              setSearchNotes(next);
+              pushFilters({ searchNotes: next });
+            }}
+          />
+          Buscar en notas
+        </label>
       </CrmFilterBar>
 
       <CrmDataList>
-        {rows.length === 0 ? (
+        {items.length === 0 ? (
           <CrmEmptyState
             icon={Users}
             title="Sin resultados"
             description="Crea un contacto o ajusta la búsqueda y los filtros."
           />
         ) : (
-          rows.map((c) => {
+          items.map((c) => {
             const whatsAppUrl = buildContactWhatsAppUrl(c.phoneE164);
             return (
               <CrmDataListRow
@@ -235,6 +313,12 @@ const ContactsPageClient = ({ rows, initialQ, filters, preview }: Props) => {
           })
         )}
       </CrmDataList>
+
+      <CrmLoadMore
+        hasMore={cursor !== null}
+        loading={loading}
+        onClick={loadMore}
+      />
 
       <ContactFormModal
         open={modalOpen}

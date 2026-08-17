@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { ContactSource } from "@prisma/client";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { searchContacts, upsertContactByPhone } from "@/lib/crm/contacts";
+import {
+  countContacts,
+  searchContacts,
+  upsertContactByPhone,
+} from "@/lib/crm/contacts";
+import { clampTake } from "@/lib/crm/pagination";
 import { createContactSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
@@ -13,25 +18,32 @@ export async function GET(req: NextRequest) {
   if (staff instanceof NextResponse) return staff;
 
   const sp = req.nextUrl.searchParams;
-  const contacts = await searchContacts({
+  const filters = {
     q: sp.get("q") ?? "",
     countryIso: sp.get("country") ?? undefined,
     source: (sp.get("source") as ContactSource) || undefined,
     activeTherapy: sp.get("activeTherapy") === "1",
-    limit: 80,
+    searchNotes: sp.get("notes") === "1",
+  };
+
+  const { items, nextCursor } = await searchContacts({
+    ...filters,
+    limit: clampTake(sp.get("limit")),
     cursor: sp.get("cursor") ?? undefined,
   });
 
+  // El total solo hace falta en la primera página: el cliente lo guarda y las
+  // siguientes solo añaden filas. Contar en cada «cargar más» sería un scan
+  // completo por pulsación.
+  const total = sp.get("cursor") ? null : await countContacts(filters);
+
   if (process.env.NODE_ENV === "development") {
     console.log(
-      `[api] GET /api/admin/contacts ${Date.now() - started}ms (${contacts.length} rows)`
+      `[api] GET /api/admin/contacts ${Date.now() - started}ms (${items.length} rows)`
     );
   }
 
-  const nextCursor =
-    contacts.length === 80 ? contacts[contacts.length - 1]?.id : null;
-
-  return NextResponse.json({ contacts, nextCursor });
+  return NextResponse.json({ contacts: items, nextCursor, total });
 }
 
 export async function POST(req: NextRequest) {

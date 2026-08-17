@@ -37,14 +37,14 @@ export default defineTool({
       );
     }
 
-    const { campaign, contacts } = await createBroadcastCampaign({
+    const { campaign, contactCount } = await createBroadcastCampaign({
       name,
       templateKey,
       channels: ["EMAIL"] as const,
       audience,
     });
 
-    if (contacts.length === 0) {
+    if (contactCount === 0) {
       throw new Error("Esa audiencia no tiene contactos con correo registrado.");
     }
 
@@ -54,7 +54,7 @@ export default defineTool({
     if (inngestConfigured) {
       await emitCampaignRun(campaign.id);
       queued = true;
-    } else if (contacts.length > BROADCAST_SYNC_MAX_CONTACTS) {
+    } else if (contactCount > BROADCAST_SYNC_MAX_CONTACTS) {
       throw new Error(
         `Más de ${BROADCAST_SYNC_MAX_CONTACTS} contactos requiere Inngest configurado ` +
           "(INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY). La campaña quedó creada pero sin lanzar."
@@ -67,13 +67,13 @@ export default defineTool({
       action: "SEND_BULK_EMAIL",
       entityType: "NotificationCampaign",
       entityId: campaign.id,
-      changes: { audience, templateKey, contactCount: contacts.length },
+      changes: { audience, templateKey, contactCount },
     });
 
     await emitPlatformNotification({
       eventType: "AGENT_ACTION_EXECUTED",
       title: "El asistente lanzó una campaña de correo masivo",
-      body: `"${name}" — ${contacts.length} contactos (${audience})`,
+      body: `"${name}" — ${contactCount} contactos (${audience})`,
       href: "/admin/messages",
       entityType: "NotificationCampaign",
       entityId: campaign.id,
@@ -82,7 +82,7 @@ export default defineTool({
 
     return {
       campaignId: campaign.id,
-      contactCount: contacts.length,
+      contactCount,
       queued,
       dryRun: isDryRun(),
     };

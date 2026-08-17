@@ -12,6 +12,7 @@ import {
   saveContactRecent,
   type ContactRecentHit,
 } from "@/lib/crm/contact-search-recents";
+import { MIN_SEARCH_TOKEN } from "@/lib/crm/search-normalize";
 import { cn } from "@/lib/utils";
 
 export type SearchContactHit = ContactRecentHit & {
@@ -76,7 +77,9 @@ const SmartContactSearch = ({
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (q.trim().length >= 1) {
+      // 2 y no 1: un trigrama necesita 3 caracteres para usar el índice GIN,
+      // así que consultar con una sola letra garantiza un scan por pulsación.
+      if (q.trim().length >= MIN_SEARCH_TOKEN) {
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;

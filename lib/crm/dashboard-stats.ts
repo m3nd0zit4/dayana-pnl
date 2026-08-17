@@ -8,6 +8,9 @@ import {
   OPERATIONAL_TZ,
 } from "@/lib/crm/operational-timezone";
 
+/** Fila del agregado de pagos por día y moneda. `minor` llega como bigint. */
+type PaymentDayRow = { day: string; currency: string; minor: bigint };
+
 const STATUS_LABELS: Record<EnrollmentStatus, string> = {
   LEAD: "Leads",
   PENDING_PAYMENT: "Pago pendiente",
@@ -55,13 +58,22 @@ export const getDashboardStats = async () => {
       },
     }),
     prisma.contact.count(),
-    prisma.payment.findMany({
-      where: {
-        status: PaymentStatus.APPROVED,
-        paidAt: { gte: since },
-      },
-      select: { paidAt: true, amountMinor: true, currency: true },
-    }),
+    // Agregado en SQL, no 14 días de filas traídas para sumarlas en JS. El
+    // volumen de pagos sigue al de contactos, así que esto crecía sin tope en
+    // cada carga del panel.
+    //
+    // Se agrupa también por moneda —aunque hoy las dos ramas del cálculo de
+    // abajo son idénticas— para que arreglar eso sea un cambio de una línea y
+    // no otra migración de consulta.
+    prisma.$queryRaw<PaymentDayRow[]>`
+      SELECT
+        to_char(("paid_at" AT TIME ZONE ${OPERATIONAL_TZ})::date, 'YYYY-MM-DD') AS day,
+        "currency" AS currency,
+        SUM("amount_minor")::bigint AS minor
+      FROM "payments"
+      WHERE "status" = 'APPROVED' AND "paid_at" >= ${since}
+      GROUP BY 1, 2
+    `,
     prisma.enrollment.groupBy({
       by: ["status"],
       _count: { _all: true },
@@ -106,12 +118,16 @@ export const getDashboardStats = async () => {
     dayMap.set(key, 0);
   }
 
-  for (const p of paymentsRecent) {
-    if (!p.paidAt) continue;
-    const key = getDateKeyInTz(p.paidAt, OPERATIONAL_TZ);
-    const usd =
-      p.currency === "USD" ? p.amountMinor / 100 : p.amountMinor / 100;
-    dayMap.set(key, (dayMap.get(key) ?? 0) + usd);
+  for (const row of paymentsRecent) {
+    if (!dayMap.has(row.day)) continue;
+    // OJO — bug preexistente, conservado tal cual: las dos ramas son la misma
+    // expresión, así que los pesos colombianos se suman como si fueran
+    // dólares. Arreglarlo cambia una cifra de negocio, no el rendimiento, así
+    // que no se hace de paso: hace falta decidir qué tasa se aplica (ver
+    // lib/pricing/usd-to-cop.ts).
+    const minor = Number(row.minor);
+    const usd = row.currency === "USD" ? minor / 100 : minor / 100;
+    dayMap.set(row.day, (dayMap.get(row.day) ?? 0) + usd);
   }
 
   const paymentsByDay = [...dayMap.entries()]

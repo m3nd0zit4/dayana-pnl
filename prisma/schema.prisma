@@ -1,11 +1,15 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  // pg_trgm sostiene el índice GIN de Contact.searchText — sin él la búsqueda
+  // de contactos es un seq scan por pulsación de tecla.
+  extensions = [pg_trgm]
 }
 
 enum ContactSource {
@@ -288,9 +292,31 @@ model Contact {
   channelIdentities      ContactChannelIdentity[]
   webinarRegistrations   WebinarRegistration[]
 
-  @@index([createdAt])
+  /// Columna de búsqueda plegada: nombre, apellido, display, email y teléfono
+  /// (con y sin separadores) en minúsculas y sin tildes.
+  ///
+  /// La mantiene un trigger BEFORE INSERT/UPDATE — **nunca la escribas desde
+  /// Prisma**: lo que pongas se sobrescribe. Es un trigger y no una columna
+  /// `GENERATED ALWAYS` porque Prisma no puede declarar esa segunda forma, y
+  /// su differ emitiría un `DROP DEFAULT` contra ella en cada `migrate dev`.
+  /// La expresión vive en
+  /// `prisma/migrations/20260816120000_contact_search/migration.sql` y su
+  /// gemela en JS es `foldForSearch()` en `lib/crm/search-normalize.ts`:
+  /// si cambias una, cambia la otra o la búsqueda devolverá cero en silencio.
+  ///
+  /// Existe porque buscar con seis `ILIKE '%x%'` sobre columnas sueltas no
+  /// puede usar ningún índice: el comodín a la izquierda lo impide. Una sola
+  /// columna con un GIN de trigramas colapsa los seis predicados en uno.
+  ///
+  /// `notes` queda fuera a propósito — es @db.Text sin cota y se reescribe a
+  /// menudo, así que mantener sus trigramas sería el coste dominante. La
+  /// búsqueda en notas es un camino aparte y opt-in (ContactSearchFilters).
+  searchText String? @map("search_text")
+
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([countryIso])
   @@index([consentMarketingAt])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
   @@map("contacts")
 }
 
@@ -467,6 +493,9 @@ model WebinarRegistration {
   contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@unique([webinarId, contactId])
+  // El panel de registradas hace WHERE webinar_id = ? ORDER BY created_at DESC
+  // y hasta ahora no tenía ningún índice que lo sostuviera.
+  @@index([webinarId, createdAt(sort: Desc)])
   @@map("webinar_registrations")
 }
 
@@ -521,6 +550,9 @@ model Enrollment {
   @@index([contactId, status])
   @@index([contactId, productId])
   @@index([status])
+  // therapies-list.ts filtra por status y ordena por updatedAt; el índice
+  // suelto de updatedAt no puede filtrar primero.
+  @@index([status, updatedAt(sort: Desc)])
   @@index([updatedAt])
   @@index([paidUntil])
   @@map("enrollments")
@@ -1122,6 +1154,18 @@ model NotificationCampaign {
   completedAt       DateTime?                  @map("completed_at")
   createdAt         DateTime                   @default(now()) @map("created_at")
 
+  /// Punto de reanudación keyset: hasta dónde llegó el envío por la audiencia,
+  /// ordenada por `(createdAt, id)` ascendente. `null` = no empezada.
+  ///
+  /// Inngest memoriza el valor de retorno de cada `step.run`, así que el cursor
+  /// se podría encadenar solo por ahí. Se persiste igualmente porque eso
+  /// sobrevive a un cambio de versión de la función o a una cancelación
+  /// manual, hace respondible «¿hasta dónde llegó?» desde el panel, y —lo que
+  /// importa— se escribe en el **mismo** update que incrementa los contadores,
+  /// así que posición y contadores no pueden discrepar.
+  cursorAt        DateTime? @map("cursor_at")
+  cursorContactId String?   @map("cursor_contact_id")
+
   workshopEdition WorkshopEdition?       @relation(fields: [workshopEditionId], references: [id], onDelete: SetNull)
   deliveries      NotificationDelivery[]
 
@@ -1157,6 +1201,9 @@ model NotificationDelivery {
   @@index([contactId, createdAt])
   @@index([staffUserId, createdAt])
   @@index([status, createdAt])
+  // El registro de envíos filtra por canal; es la tabla de mayor cardinalidad
+  // del esquema (una campaña de 100k por 2 canales escribe 200k filas).
+  @@index([channel, createdAt])
   @@map("notification_deliveries")
 }
 
@@ -1415,5 +1462,8 @@ model LessonComment {
   contact Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@index([classId, createdAt])
+  // No había ningún índice por contactId: la cascada al borrar un contacto
+  // escaneaba la tabla de comentarios entera.
+  @@index([contactId])
   @@map("lesson_comments")
 }
