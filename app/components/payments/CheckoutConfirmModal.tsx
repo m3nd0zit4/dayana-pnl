@@ -129,7 +129,21 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
    * puntual hasta que su `preapproval` esté verificado para esta cuenta.
    */
   const isMembership = plan.kind === "course";
+  /**
+   * En PayPal la mensualidad ES la suscripción. En Mercado Pago conviven las
+   * dos: su cobro recurrente sólo admite tarjeta, y quitar el pago suelto
+   * dejaría fuera a quien paga por PSE, Nequi o efectivo — que en Colombia es
+   * mucha gente.
+   */
   const subscribes = isMembership && provider === "paypal";
+  const offersBoth = isMembership && provider === "mercadopago";
+
+  /** Alta recurrente en Mercado Pago, donde convive con el pago suelto. */
+  const goSubscribe = async () => {
+    setUi({ kind: "redirecting" });
+    const failure = await startCheckout(provider, plan.id, { subscribe: true });
+    if (failure) setUi({ kind: "error", message: failure });
+  };
 
   const go = async (funding?: PayPalFunding) => {
     /**
@@ -358,6 +372,34 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
 
               <p className="pt-0.5 text-center font-[font1] text-[10px] text-black/45">
                 No necesitas cuenta de PayPal para pagar con tarjeta.
+              </p>
+            </div>
+          ) : offersBoth ? (
+            <div className="space-y-2.5">
+              <button
+                type="button"
+                disabled={ui.kind === "redirecting"}
+                onClick={() => void goSubscribe()}
+                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[#141118] px-4 py-3.5 font-[font2] text-[12px] uppercase tracking-[0.28em] text-linen shadow-[0_8px_20px_rgba(20,17,24,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_14px_28px_rgba(20,17,24,0.26)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141118] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                <CardGlyph />
+                {ui.kind === "redirecting"
+                  ? "Abriendo el pago seguro…"
+                  : "Suscribirme con tarjeta"}
+              </button>
+
+              <button
+                type="button"
+                disabled={ui.kind === "redirecting"}
+                onClick={() => void go()}
+                className="w-full cursor-pointer rounded-full border border-black/20 px-4 py-3 font-[font2] text-[12px] uppercase tracking-[0.28em] text-black/75 transition-all duration-200 hover:-translate-y-0.5 hover:border-black/40 hover:bg-black/[0.03] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141118] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                Pagar un mes
+              </button>
+
+              <p className="pt-0.5 text-center font-[font1] text-[10px] leading-relaxed text-black/45">
+                La suscripción se cobra sola cada mes y sólo admite tarjeta.
+                Pagando un mes puedes usar PSE, Nequi o efectivo.
               </p>
             </div>
           ) : (

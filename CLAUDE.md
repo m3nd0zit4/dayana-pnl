@@ -84,6 +84,63 @@ A **third** rail alongside PayPal and Mercado Pago, not a replacement. Everythin
 - A failed handler **deletes** its `WebhookEvent` row (`releaseWebhookEvent`) before returning 500 — otherwise Stripe's retry short-circuits as a duplicate and the payment is never recorded. Safe because fulfilment is idempotent per provider payment id.
 - Managed Payments is incompatible with Connect, Elements/advanced integrations, custom domains, and subscriptions created outside Checkout. Business location must be a supported country — **Colombia is not one**.
 
+#### Suscripciones (la mensualidad)
+
+`course-live` se cobra sola. Los dos rieles convergen en `fulfillCheckoutPayment`
+igual que los pagos sueltos: para el CRM un cobro recurrente **es un pago
+aprobado más**, `Enrollment.paidUntil` decide el acceso y
+`applyMembershipExtension` suma un mes exactamente una vez por pago.
+
+- **PayPal**: Billing Plan (`scripts/paypal/setup-subscription.ts`), alta con
+  `@paypal/paypal-server-sdk`. El cobro llega como **`PAYMENT.SALE.COMPLETED`**,
+  que es API v1 y NO tiene la forma de `PAYMENT.CAPTURE.*`. Se resuelve por
+  `billing_agreement_id` guardado en `Enrollment.paypalSubscriptionId` — el
+  `custom_id` **no** se propaga garantizado a cada venta.
+- **Mercado Pago**: `preapproval_plan`. El alta va por el **`init_point` del
+  plan**, no por `POST /preapproval`: ese exige `card_token_id`, o sea recoger la
+  tarjeta nosotros. La referencia viaja como `external_reference` en la query y
+  hay respaldo por email del pagador, porque MP no garantiza propagarla.
+  **Sólo cobra con TARJETA** — ni PSE, ni Nequi, ni efectivo —, así que en
+  Colombia la suscripción **convive** con el pago suelto en vez de sustituirlo.
+- **El gross-up va horneado en el precio del plan** en ambos, como en Stripe: los
+  planes cobran importe fijo. Cambiar `PAYPAL_FEE_*` o `MERCADOPAGO_FEE_*` obliga
+  a re-ejecutar el script, y ninguno de los dos deja borrar planes.
+- `providerPaymentId` namespaceado: `sale:<id>` (PayPal) y
+  `preapproval:<id>` (MP), para no chocar con los capturas y pagos sueltos en
+  `@@unique([provider, providerPaymentId])`.
+- **Cancelar detiene la renovación, NO el acceso ya pagado.** `paidUntil` está
+  cobrado y `getMembershipLockState` cierra sola al vencer. Cortar antes sería
+  quedarse con dinero de un servicio no prestado.
+- El promo **no aplica** a una suscripción: descontar exigiría un plan por
+  código. Se rechaza con mensaje en vez de cobrar el total en silencio.
+
+#### Los webhooks van al host CANÓNICO, nunca al ápice
+
+`dayanabeltran.com` devuelve **308** hacia `www.dayanabeltran.com`. PayPal **no
+sigue redirecciones**: cuenta el 308 como entrega fallida y el POST nunca llega
+a la función. Estuvo así durante días y los pagos sólo se registraban porque
+`/api/paypal/return` y `/pago/exito` concilian por su cuenta.
+
+Por eso `NEXT_PUBLIC_SITE_URL` es `https://www.dayanabeltran.com`: de ahí sale el
+`notification_url` de cada preferencia de Mercado Pago. Comprobación rápida: un
+`POST` al webhook configurado tiene que dar **401**, jamás 308.
+
+`bun run scripts/paypal/webhooks.ts` compara los webhooks de la cuenta contra el
+`PAYPAL_WEBHOOK_ID` del entorno y canta si no cuadran; `--sync <url>` los deja
+al día. Un id que no existe en la cuenta hace que PayPal responda FAILURE a todo.
+
+#### Un pago cobrado no se puede rechazar
+
+`createEnrollment` acepta `paidPurchase`, que salta las reglas de higiene del
+panel (una terapia activa por contacto, sin duplicados pendientes). Lo usan
+todas las vías que corren **después** de un cobro real. Sin eso, una clienta con
+terapia activa que compraba otro paquete recibía un 500 tras capturarse el
+dinero: 599.68 USD cobrados y nada en el CRM.
+
+Por lo mismo, `reconcilePendingCheckoutContact` **reconstruye el contacto** si el
+de la referencia ya no existe: la referencia es un puntero a una fila que la
+limpieza nocturna puede haber borrado, y el webhook puede llegar días después.
+
 ### Async / background jobs (Inngest)
 
 `lib/inngest/functions.ts` defines all functions:

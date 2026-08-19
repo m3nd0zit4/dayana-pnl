@@ -8,6 +8,10 @@ import {
 } from "@/lib/crm/payments";
 import { syncMercadoPagoPayment } from "@/lib/crm/mercadopago-payments";
 import {
+  syncAuthorizedPayment,
+  syncPreapproval,
+} from "@/lib/crm/mercadopago-subscriptions";
+import {
   emitPlatformNotification,
   fireNotification,
 } from "@/lib/notifications/platform/emit";
@@ -75,6 +79,25 @@ export async function POST(req: NextRequest) {
         payload
       );
       if (!isNew) return;
+
+      /**
+       * Suscripciones. MP usa `type` para distinguir:
+       *
+       * - `subscription_preapproval` — alta y cambios de estado.
+       * - `subscription_authorized_payment` — cada cobro, el primero incluido.
+       *
+       * No pasan por `syncMercadoPagoPayment`: ese lee `/v1/payments/<id>`, y
+       * estos ids son de otros recursos. Mandarlos ahí devolvía 404 y el cobro
+       * se perdía en silencio.
+       */
+      if (payload.type === "subscription_preapproval") {
+        await syncPreapproval(String(paymentId));
+        return;
+      }
+      if (payload.type === "subscription_authorized_payment") {
+        await syncAuthorizedPayment(String(paymentId));
+        return;
+      }
 
       await syncMercadoPagoPayment(String(paymentId));
     } catch (e) {

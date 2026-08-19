@@ -36,16 +36,20 @@ export const startCheckout = async (
     promoCode?: string;
     funding?: PayPalFunding;
     /**
-     * Alta de mensualidad recurrente en lugar de cobro suelto. Sólo PayPal por
-     * ahora: Mercado Pago tiene `preapproval` pero está sin verificar para esta
-     * cuenta, así que el riel colombiano sigue cobrando mes a mes.
+     * Alta de mensualidad recurrente en lugar de cobro suelto.
+     *
+     * En Mercado Pago **sólo funciona con tarjeta**: su cobro recurrente no
+     * puede debitar PSE, Nequi ni efectivo. Por eso en Colombia la suscripción
+     * no reemplaza al pago suelto — se ofrecen las dos y la clienta elige.
      */
     subscribe?: boolean;
   } = {}
 ): Promise<string | null> => {
-  const subscribing = provider === "paypal" && options.subscribe === true;
+  const subscribing = options.subscribe === true;
   const endpoint = subscribing
-    ? "/api/paypal/create-subscription"
+    ? provider === "paypal"
+      ? "/api/paypal/create-subscription"
+      : "/api/mercadopago/create-subscription"
     : provider === "paypal"
       ? "/api/paypal/create-order"
       : "/api/mercadopago/create-preference";

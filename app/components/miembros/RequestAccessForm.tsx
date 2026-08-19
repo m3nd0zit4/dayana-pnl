@@ -36,15 +36,15 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
   if (sent) {
     return (
       <div className="space-y-4">
-        <p className="font-[font1] text-sm leading-relaxed text-white/80">
+        <p className="font-[font1] text-sm leading-relaxed text-black/75">
           Si tu correo está registrado con nosotros, te enviamos un enlace para
           continuar. Revisa tu bandeja de entrada (y la carpeta de spam).
         </p>
-        <p className="font-[font1] text-[13px] text-white/50">
+        <p className="font-[font1] text-[13px] text-black/50">
           ¿No te llega?{" "}
           <Link
             href="/"
-            className="text-linen underline-offset-4 hover:underline"
+            className="text-[#141118] underline-offset-4 hover:underline"
           >
             Escríbenos por WhatsApp
           </Link>
@@ -56,7 +56,7 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
   return (
     <form onSubmit={submit} className="space-y-4">
       <label className="block">
-        <span className="mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50">
+        <span className="mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-black/55">
           Correo electrónico
         </span>
         <input
@@ -66,7 +66,7 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="tu@email.com"
-          className="w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none"
+          className="w-full rounded-xl border border-black/15 bg-black/[0.03] px-4 py-3.5 font-[font1] text-sm text-[#141118] placeholder-black/35 transition-colors focus:border-terracotta focus:outline-none"
         />
       </label>
 
@@ -84,11 +84,11 @@ const RequestAccessForm = ({ buttonLabel }: { buttonLabel: string }) => {
         {loading ? "Enviando…" : buttonLabel}
       </button>
 
-      <p className="text-center font-[font1] text-[13px] text-white/50">
+      <p className="text-center font-[font1] text-[13px] text-black/50">
         ¿Ya tienes cuenta?{" "}
         <Link
           href="/acceso"
-          className="text-linen underline-offset-4 hover:underline"
+          className="text-[#141118] underline-offset-4 hover:underline"
         >
           Inicia sesión
         </Link>

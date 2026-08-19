@@ -4,10 +4,10 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 
 const inputClass =
-  "w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none";
+  "w-full rounded-xl border border-black/15 bg-black/[0.03] px-4 py-3.5 font-[font1] text-sm text-[#141118] placeholder-black/35 transition-colors focus:border-terracotta focus:outline-none";
 
 const labelClass =
-  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50";
+  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-black/55";
 
 type SetPasswordFormProps = {
   token: string;
@@ -81,7 +81,7 @@ const SetPasswordForm = ({ token, email, callbackUrl }: SetPasswordFormProps) =>
   return (
     <form onSubmit={submit} className="space-y-5">
       {email ? (
-        <p className="font-[font1] text-sm text-white/60">
+        <p className="font-[font1] text-sm text-black/55">
           Cuenta para <span className="text-white">{email}</span>
         </p>
       ) : null}

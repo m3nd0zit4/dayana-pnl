@@ -55,7 +55,8 @@ const Page = async () => {
    * manual, que es la red para no perder el acceso mientras se arregla.
    */
   const subscription =
-    membership.enrollment?.paypalSubscriptionId &&
+    (membership.enrollment?.paypalSubscriptionId ||
+      membership.enrollment?.mercadoPagoPreapprovalId) &&
     membership.enrollment.subscriptionStatus === "ACTIVE";
 
   return (

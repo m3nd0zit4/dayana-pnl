@@ -34,14 +34,14 @@ const Page = async () => {
       <div className="space-y-3">
         <a
           href="/admin"
-          className="flex items-center gap-3 rounded-xl border border-linen/15 bg-linen/[0.04] px-4 py-3.5 font-[font1] text-sm text-white transition-colors hover:border-linen/30 hover:bg-linen/[0.08]"
+          className="flex cursor-pointer items-center gap-3 rounded-xl border border-black/12 bg-white px-4 py-3.5 font-[font1] text-sm text-[#141118] transition-colors hover:border-black/25 hover:bg-black/[0.03]"
         >
           <LayoutDashboard className="size-4 text-linen/70" />
           Entrar al CRM
         </a>
         <a
           href="/miembros"
-          className="flex items-center gap-3 rounded-xl border border-linen/15 bg-linen/[0.04] px-4 py-3.5 font-[font1] text-sm text-white transition-colors hover:border-linen/30 hover:bg-linen/[0.08]"
+          className="flex cursor-pointer items-center gap-3 rounded-xl border border-black/12 bg-white px-4 py-3.5 font-[font1] text-sm text-[#141118] transition-colors hover:border-black/25 hover:bg-black/[0.03]"
         >
           <BookOpen className="size-4 text-linen/70" />
           Entrar al portal del curso

@@ -11,10 +11,10 @@ import {
 import CheckoutCountrySelect from "@/app/components/payments/CheckoutCountrySelect";
 
 const inputClass =
-  "w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none";
+  "w-full rounded-xl border border-black/15 bg-black/[0.03] px-4 py-3.5 font-[font1] text-sm text-[#141118] placeholder-black/35 transition-colors focus:border-terracotta focus:outline-none";
 
 const labelClass =
-  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50";
+  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-black/55";
 
 type CompleteProfileFormProps = {
   firstName: string;
@@ -124,7 +124,7 @@ const CompleteProfileForm = ({
           className={inputClass}
         />
         {phoneError && (
-          <p className="mt-1.5 font-[font1] text-xs text-red-300/90">
+          <p className="mt-1.5 font-[font1] text-xs text-red-600/90">
             {phoneError}
           </p>
         )}

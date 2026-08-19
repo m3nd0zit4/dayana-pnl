@@ -6,10 +6,10 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 const inputClass =
-  "w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none";
+  "w-full rounded-xl border border-black/15 bg-black/[0.03] px-4 py-3.5 font-[font1] text-sm text-[#141118] placeholder-black/35 transition-colors focus:border-terracotta focus:outline-none";
 
 const labelClass =
-  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-white/50";
+  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-black/55";
 
 type MemberSignInFormProps = {
   googleEnabled: boolean;
@@ -91,7 +91,7 @@ const MemberSignInForm = ({
           <button
             type="button"
             onClick={() => signIn("google", { redirectTo: callbackUrl })}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-linen/20 bg-black/20 py-3.5 font-[font1] text-sm text-white/90 transition-colors hover:border-linen/40 hover:bg-linen/[0.06]"
+            className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-xl border border-black/15 bg-white py-3.5 font-[font1] text-sm text-[#141118] transition-colors hover:border-black/30 hover:bg-black/[0.03]"
           >
             <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden>
               <path
@@ -116,7 +116,7 @@ const MemberSignInForm = ({
 
           <div className="flex items-center gap-3" aria-hidden>
             <span className="h-px flex-1 bg-linen/15" />
-            <span className="font-[font1] text-[11px] text-white/35">o</span>
+            <span className="font-[font1] text-[11px] text-black/40">o</span>
             <span className="h-px flex-1 bg-linen/15" />
           </div>
         </>
@@ -149,7 +149,7 @@ const MemberSignInForm = ({
           <div className="mt-2 text-right">
             <Link
               href="/miembros/recuperar"
-              className="font-[font1] text-[12px] text-white/40 transition-colors hover:text-terracotta"
+              className="font-[font1] text-[12px] text-black/45 transition-colors hover:text-terracotta"
             >
               Olvidé mi contraseña
             </Link>
@@ -171,13 +171,13 @@ const MemberSignInForm = ({
         </button>
       </form>
 
-      <p className="pt-1 text-center font-[font1] text-[13px] text-white/45">
+      <p className="pt-1 text-center font-[font1] text-[13px] text-black/50">
         ¿Primera vez aquí?{" "}
         {onSwitchToSignup ? (
           <button
             type="button"
             onClick={onSwitchToSignup}
-            className="text-linen underline-offset-4 hover:underline"
+            className="text-[#141118] underline-offset-4 hover:underline"
           >
             Crea tu cuenta
           </button>
@@ -188,7 +188,7 @@ const MemberSignInForm = ({
                 ? `/miembros/crear-cuenta?callbackUrl=${encodeURIComponent(callbackUrl)}`
                 : "/miembros/crear-cuenta"
             }
-            className="text-linen underline-offset-4 hover:underline"
+            className="text-[#141118] underline-offset-4 hover:underline"
           >
             Crea tu cuenta
           </Link>

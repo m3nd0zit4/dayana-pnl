@@ -39,9 +39,16 @@ const call = async <T>(
   return json as T;
 };
 
-export type PreapprovalPlan = { id: string; init_point?: string };
+export type PreapprovalPlan = {
+  id: string;
+  init_point?: string;
+  status?: string;
+};
 
-/** Crea el plan mensual. El importe ya lleva el gross-up de comisión. */
+/**
+ * Crea el plan mensual. El importe ya lleva el gross-up de comisión, porque el
+ * plan cobra una cifra fija.
+ */
 export const createPreapprovalPlan = async (input: {
   reason: string;
   amountCop: number;
@@ -55,8 +62,8 @@ export const createPreapprovalPlan = async (input: {
       auto_recurring: {
         frequency: 1,
         frequency_type: "months",
-        // COP no tiene centavos: `transaction_amount` va en pesos enteros, la
-        // misma convención que el resto del CRM (ver CLAUDE.md).
+        // COP no tiene centavos: va en pesos enteros, la misma convención que
+        // el resto del CRM (ver CLAUDE.md).
         transaction_amount: Math.round(input.amountCop),
         currency_id: "COP",
       },
@@ -67,6 +74,33 @@ export const createPreapprovalPlan = async (input: {
     },
   });
 
+export const getPreapprovalPlan = async (
+  id: string
+): Promise<PreapprovalPlan> => call<PreapprovalPlan>(`/preapproval_plan/${id}`);
+
+/**
+ * A dónde se manda a la compradora para que autorice el débito.
+ *
+ * Se usa el `init_point` del PLAN, no un `POST /preapproval`. Crear la
+ * suscripción desde el servidor exige `card_token_id` —comprobado: MP responde
+ * `400 card_token_id is required`—, o sea recoger la tarjeta nosotros. Con el
+ * checkout del plan la recoge MP, que además es lo deseable: menos datos
+ * sensibles pasando por aquí.
+ *
+ * La referencia del checkout viaja como `external_reference` en la query. Si MP
+ * no la propagara, `syncPreapproval` cae al email del pagador para encontrar el
+ * contacto — el alta no puede depender de un parámetro que no controlamos.
+ */
+export const planCheckoutUrl = (
+  planInitPoint: string,
+  checkoutReference: string
+): string => {
+  const sep = planInitPoint.includes("?") ? "&" : "?";
+  return `${planInitPoint}${sep}external_reference=${encodeURIComponent(
+    checkoutReference
+  )}`;
+};
+
 export type Preapproval = {
   id: string;
   init_point?: string;
@@ -75,26 +109,6 @@ export type Preapproval = {
   payer_email?: string;
   preapproval_plan_id?: string;
 };
-
-/**
- * Alta de la suscripción sobre un plan. Devuelve el `init_point` al que se
- * manda a la compradora para que autorice el débito.
- */
-export const createPreapproval = async (input: {
-  planId: string;
-  checkoutReference: string;
-  backUrl: string;
-  payerEmail?: string;
-}): Promise<Preapproval> =>
-  call<Preapproval>("/preapproval", {
-    method: "POST",
-    body: {
-      preapproval_plan_id: input.planId,
-      external_reference: input.checkoutReference,
-      back_url: input.backUrl,
-      ...(input.payerEmail ? { payer_email: input.payerEmail } : {}),
-    },
-  });
 
 export const getPreapproval = async (id: string): Promise<Preapproval> =>
   call<Preapproval>(`/preapproval/${id}`);

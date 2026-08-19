@@ -87,7 +87,36 @@ export const syncPreapproval = async (
   const checkout = sub.external_reference
     ? parseCheckoutReference(sub.external_reference)
     : null;
-  if (!checkout) return { outcome: "skipped", reason: "no_reference" };
+
+  /**
+   * Sin referencia, se busca por el email del pagador.
+   *
+   * La referencia viaja como parámetro del checkout del plan y MP no garantiza
+   * propagarla. El alta no puede depender de algo que no controlamos, así que
+   * hay una segunda vía: quien pagó dejó su correo en MP.
+   */
+  if (!checkout) {
+    if (!sub.payer_email) return { outcome: "skipped", reason: "no_reference" };
+    const porEmail = await prisma.enrollment.findFirst({
+      where: {
+        contact: { email: sub.payer_email.trim().toLowerCase() },
+        product: { kind: "COURSE", isCourseContent: false },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true },
+    });
+    if (!porEmail) return { outcome: "skipped", reason: "no_reference" };
+
+    await prisma.enrollment.update({
+      where: { id: porEmail.id },
+      data: {
+        mercadoPagoPreapprovalId: preapprovalId,
+        subscriptionStatus: status,
+        subscriptionProvider: PaymentProvider.MERCADO_PAGO,
+      },
+    });
+    return { outcome: "recorded", enrollmentId: porEmail.id };
+  }
 
   const contactId = await reconcilePendingCheckoutContact(checkout.contactId, {
     email: sub.payer_email,

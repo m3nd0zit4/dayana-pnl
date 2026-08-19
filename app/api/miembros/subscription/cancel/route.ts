@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { SubscriptionStatus } from "@prisma/client";
+import { PaymentProvider, SubscriptionStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getMemberSession } from "@/lib/auth/member-session";
 import { cancelPayPalSubscription } from "@/lib/paypal/subscriptions";
+import { cancelPreapproval } from "@/lib/mercadopago/subscriptions";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 
 export const runtime = "nodejs";
@@ -25,25 +26,44 @@ export async function POST() {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Sirve para los dos rieles: la suscripción puede ser de PayPal o de Mercado
+  // Pago, y el portal no tiene por qué saber cuál antes de preguntar.
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       contactId: session.contact.id,
-      paypalSubscriptionId: { not: null },
       subscriptionStatus: SubscriptionStatus.ACTIVE,
+      OR: [
+        { paypalSubscriptionId: { not: null } },
+        { mercadoPagoPreapprovalId: { not: null } },
+      ],
     },
     orderBy: { createdAt: "desc" },
-    select: { id: true, paypalSubscriptionId: true, paidUntil: true },
+    select: {
+      id: true,
+      paypalSubscriptionId: true,
+      mercadoPagoPreapprovalId: true,
+      paidUntil: true,
+    },
   });
 
-  if (!enrollment?.paypalSubscriptionId) {
+  if (!enrollment) {
     return NextResponse.json({ error: "no_active_subscription" }, { status: 404 });
   }
 
   try {
-    await cancelPayPalSubscription(
-      enrollment.paypalSubscriptionId,
-      "Cancelada por la miembro desde el portal"
-    );
+    if (enrollment.paypalSubscriptionId) {
+      await cancelPayPalSubscription(
+        enrollment.paypalSubscriptionId,
+        "Cancelada por la miembro desde el portal"
+      );
+    } else if (enrollment.mercadoPagoPreapprovalId) {
+      await cancelPreapproval(enrollment.mercadoPagoPreapprovalId);
+    } else {
+      return NextResponse.json(
+        { error: "no_active_subscription" },
+        { status: 404 }
+      );
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error("[subscription cancel]", message);

@@ -9,13 +9,13 @@ type MemberAuthShellProps = {
 
 /** Marco minimalista para las páginas de acceso: marca, título, tarjeta de formulario. */
 const MemberAuthShell = ({ title, description, children }: MemberAuthShellProps) => (
-  <main className="relative flex min-h-screen flex-col bg-black text-white">
+  <main className="relative flex min-h-screen flex-col bg-linen text-[#141118]">
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 opacity-70"
       style={{
         background:
-          "radial-gradient(55% 40% at 50% 0%, rgba(192,101,74,0.14), transparent 65%)",
+          "radial-gradient(55% 40% at 50% 0%, rgba(237,195,177,0.35), transparent 65%)",
       }}
     />
 
@@ -25,10 +25,10 @@ const MemberAuthShell = ({ title, description, children }: MemberAuthShellProps)
           href="/"
           className="mx-auto block w-fit text-center font-[font2] uppercase leading-none transition-opacity hover:opacity-80"
         >
-          <span className="block text-sm tracking-[0.16em] text-linen">
+          <span className="block text-sm tracking-[0.16em] text-[#141118]">
             Dayana Beltrán
           </span>
-          <span className="mt-1.5 block text-[9px] tracking-[0.5em] text-white/40">
+          <span className="mt-1.5 block text-[9px] tracking-[0.5em] text-black/40">
             PNL
           </span>
         </Link>
@@ -37,18 +37,18 @@ const MemberAuthShell = ({ title, description, children }: MemberAuthShellProps)
           {title}
         </h1>
         {description ? (
-          <p className="mx-auto mt-2 max-w-[300px] text-center font-[font1] text-[13px] leading-relaxed text-white/55">
+          <p className="mx-auto mt-2 max-w-[300px] text-center font-[font1] text-[13px] leading-relaxed text-black/55">
             {description}
           </p>
         ) : null}
 
-        <div className="mt-8 rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 sm:p-7">
+        <div className="mt-8 rounded-2xl border border-black/10 bg-white p-6 shadow-[0_10px_30px_rgba(20,17,24,0.06)] sm:p-7">
           {children}
         </div>
 
         <Link
           href="/"
-          className="mx-auto mt-8 block w-fit font-[font1] text-[12px] text-white/35 transition-colors hover:text-white/70"
+          className="mx-auto mt-8 block w-fit font-[font1] text-[12px] text-black/45 transition-colors hover:text-black/75"
         >
           ← Volver al inicio
         </Link>
