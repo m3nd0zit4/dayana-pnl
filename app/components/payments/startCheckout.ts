@@ -1,0 +1,82 @@
+/**
+ * Arranca el pago sin formulario previo.
+ *
+ * Los dos proveedores obligan a dar email (PayPal siempre; Mercado Pago al
+ * pagar) y lo devuelven en la captura o el webhook, así que pedir los datos
+ * antes sólo restaba conversión. El contacto se crea temporal y se completa
+ * con lo que reporte el pagador; el WhatsApp se pide después en /pago/exito.
+ *
+ * Devuelve un mensaje de error si no se pudo abrir. Si sale bien no devuelve:
+ * la navegación se lleva la página.
+ */
+export type CheckoutProvider = "paypal" | "mercadopago";
+
+const GENERIC_ERROR = "No se pudo abrir el pago. Intenta de nuevo.";
+
+/**
+ * Cómo quiere pagar quien compra por PayPal.
+ *
+ * - `card`: formulario de tarjeta, SIN cuenta de PayPal. Es el caso que se
+ *   estaba perdiendo: por defecto PayPal aterriza en su pantalla de acceso y
+ *   quien no tiene cuenta se da la vuelta.
+ * - `wallet`: acceder con la cuenta de PayPal (saldo, o la tarjeta guardada).
+ *
+ * Se resuelve con el parámetro `fundingSource` de la URL de aprobación, que es
+ * lo que de verdad decide la pantalla. Ni `landing_page` en la orden ni el
+ * ajuste "Pago como usuario no registrado" de la cuenta lo consiguen: el
+ * primero lo ignora si reconoce a la compradora y el segundo pertenece al
+ * sistema de botones antiguo, no a Orders v2 — comprobado contra la pasarela.
+ */
+export type PayPalFunding = "card" | "wallet";
+
+export const startCheckout = async (
+  provider: CheckoutProvider,
+  planId: string,
+  options: { promoCode?: string; funding?: PayPalFunding } = {}
+): Promise<string | null> => {
+  const endpoint =
+    provider === "paypal"
+      ? "/api/paypal/create-order"
+      : "/api/mercadopago/create-preference";
+
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        planId,
+        ...(options.promoCode ? { promoCode: options.promoCode } : {}),
+        ...(provider === "mercadopago" ? { mode: "full" } : {}),
+      }),
+    });
+    const data = (await res.json()) as {
+      approveUrl?: string;
+      init_point?: string;
+      error?: string;
+    };
+
+    if (!res.ok) {
+      if (data.error === "no_cop_price") {
+        return "Este plan no está disponible para pago en Colombia.";
+      }
+      if (data.error === "invalid_promo_code") {
+        return "Ese código promocional no es válido para este plan.";
+      }
+      return GENERIC_ERROR;
+    }
+
+    // PayPal por redirección (`approve`/`payer-action`) y MP por `init_point`.
+    const base = data.approveUrl ?? data.init_point;
+    if (!base) return GENERIC_ERROR;
+
+    const target =
+      provider === "paypal" && options.funding === "card"
+        ? `${base}${base.includes("?") ? "&" : "?"}fundingSource=card`
+        : base;
+
+    window.location.assign(target);
+    return null;
+  } catch {
+    return "Error de red. Intenta de nuevo.";
+  }
+};

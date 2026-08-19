@@ -19,7 +19,27 @@ export type MercadoPagoApiPayment = {
     email?: string;
     first_name?: string;
     last_name?: string;
+    /**
+     * Mercado Pago sí entrega el teléfono del pagador — antes se descartaba.
+     * Viene partido en prefijo y número, y cualquiera de los dos puede faltar.
+     */
+    phone?: { area_code?: string; number?: string };
+    identification?: { type?: string; number?: string };
+    address?: { country?: string };
   };
+};
+
+/**
+ * Une prefijo y número tal como los manda Mercado Pago, sin normalizar: de eso
+ * se encarga `lib/phone.ts` en el punto de escritura.
+ */
+const mercadoPagoPayerPhone = (
+  payer: MercadoPagoApiPayment["payer"]
+): string | undefined => {
+  const area = payer?.phone?.area_code?.trim() ?? "";
+  const number = payer?.phone?.number?.trim() ?? "";
+  const joined = `${area}${number}`.trim();
+  return joined || undefined;
 };
 
 const getAccessToken = () => process.env.MERCADOPAGO_ACCESS_TOKEN?.trim();
@@ -125,6 +145,8 @@ export const syncMercadoPagoPayment = async (
           email: payment.payer?.email,
           firstName: payment.payer?.first_name,
           lastName: payment.payer?.last_name,
+          phone: mercadoPagoPayerPhone(payment.payer),
+          countryIso: payment.payer?.address?.country ?? "CO",
         }
       );
 
@@ -173,6 +195,8 @@ export const syncMercadoPagoPayment = async (
           email: payment.payer?.email,
           firstName: payment.payer?.first_name,
           lastName: payment.payer?.last_name,
+          phone: mercadoPagoPayerPhone(payment.payer),
+          countryIso: payment.payer?.address?.country ?? "CO",
         }
       );
 
@@ -205,6 +229,9 @@ export const syncMercadoPagoPayment = async (
       email: payment.payer?.email,
       firstName: payment.payer?.first_name,
       lastName: payment.payer?.last_name,
+      phone: mercadoPagoPayerPhone(payment.payer),
+      // Checkout Pro de Colombia: si MP no reporta país, es COP y es Colombia.
+      countryIso: payment.payer?.address?.country ?? "CO",
     });
 
     const enrollmentId = await fulfillCheckoutPayment({

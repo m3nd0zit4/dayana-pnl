@@ -78,8 +78,8 @@ const PostPaymentLeadForm = ({
 
   if (status === "done") {
     return (
-      <div className="rounded-2xl border border-linen/20 bg-linen/[0.06] p-6 mb-10">
-        <p className="font-[font1] text-white/90 text-base leading-relaxed">
+      <div className="rounded-2xl border border-black/10 bg-white p-6 mb-10 shadow-[0_10px_30px_rgba(20,17,24,0.06)]">
+        <p className="font-[font1] text-black/80 text-base leading-relaxed">
           {mode === "email-only"
             ? "Correo guardado. Ya puedes agendar por WhatsApp con el botón de abajo."
             : "Datos guardados. Ya puedes agendar por WhatsApp con el botón de abajo."}
@@ -92,27 +92,27 @@ const PostPaymentLeadForm = ({
     return (
       <form
         onSubmit={submit}
-        className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 mb-10 space-y-4"
+        className="rounded-2xl border border-black/10 bg-white p-6 mb-10 space-y-4"
       >
         <div>
           <h2 className="font-[font2] uppercase text-sm tracking-[0.25em] text-linen/80 mb-1">
             Correo de contacto (opcional)
           </h2>
-          <p className="font-[font1] text-white/60 text-sm">
+          <p className="font-[font1] text-black/55 text-sm">
             Tu pago ya quedó vinculado. Si quieres recibir confirmaciones por
             correo, déjanos tu email.
           </p>
         </div>
 
         <label className="block">
-          <span className="font-[font1] text-xs text-white/50 mb-1 block">
+          <span className="font-[font1] text-xs text-black/50 mb-1 block">
             Correo
           </span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
+            className="w-full rounded-lg border border-black/15 bg-black/[0.03] px-3 py-2.5 text-[#141118] font-[font1] text-sm placeholder:text-black/35"
           />
         </label>
 
@@ -123,7 +123,7 @@ const PostPaymentLeadForm = ({
             onChange={(e) => setConsent(e.target.checked)}
             className="mt-1"
           />
-          <span className="font-[font1] text-xs text-white/60 leading-relaxed">
+          <span className="font-[font1] text-xs text-black/55 leading-relaxed">
             Acepto el tratamiento de mis datos según el{" "}
             <a href="/aviso-privacidad" className="text-linen underline">
               aviso de privacidad
@@ -139,7 +139,7 @@ const PostPaymentLeadForm = ({
         <button
           type="submit"
           disabled={status === "loading"}
-          className="w-full rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-white transition-colors disabled:opacity-50"
+          className="w-full rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors disabled:opacity-50"
         >
           {status === "loading" ? "Guardando…" : "Guardar correo"}
         </button>
@@ -150,13 +150,13 @@ const PostPaymentLeadForm = ({
   return (
     <form
       onSubmit={submit}
-      className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 mb-10 space-y-4"
+      className="rounded-2xl border border-black/10 bg-white p-6 mb-10 space-y-4"
     >
       <div>
         <h2 className="font-[font2] uppercase text-sm tracking-[0.25em] text-linen/80 mb-1">
           Vincular tu pago
         </h2>
-        <p className="font-[font1] text-white/60 text-sm">
+        <p className="font-[font1] text-black/55 text-sm">
           Este pago aún no tiene contacto identificado. Indica tu teléfono para
           vincularlo en el CRM.
         </p>
@@ -164,24 +164,24 @@ const PostPaymentLeadForm = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <label className="block">
-          <span className="font-[font1] text-xs text-white/50 mb-1 block">
+          <span className="font-[font1] text-xs text-black/50 mb-1 block">
             Nombre *
           </span>
           <input
             required
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
+            className="w-full rounded-lg border border-black/15 bg-black/[0.03] px-3 py-2.5 text-[#141118] font-[font1] text-sm placeholder:text-black/35"
           />
         </label>
         <label className="block">
-          <span className="font-[font1] text-xs text-white/50 mb-1 block">
+          <span className="font-[font1] text-xs text-black/50 mb-1 block">
             Apellido
           </span>
           <input
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
+            className="w-full rounded-lg border border-black/15 bg-black/[0.03] px-3 py-2.5 text-[#141118] font-[font1] text-sm placeholder:text-black/35"
           />
         </label>
       </div>
@@ -193,7 +193,7 @@ const PostPaymentLeadForm = ({
       />
 
       <label className="block">
-        <span className="font-[font1] text-xs text-white/50 mb-1 block">
+        <span className="font-[font1] text-xs text-black/50 mb-1 block">
           WhatsApp / teléfono *
         </span>
         <input
@@ -202,19 +202,19 @@ const PostPaymentLeadForm = ({
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="300 123 4567"
-          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
+          className="w-full rounded-lg border border-black/15 bg-black/[0.03] px-3 py-2.5 text-[#141118] font-[font1] text-sm placeholder:text-black/35"
         />
       </label>
 
       <label className="block">
-        <span className="font-[font1] text-xs text-white/50 mb-1 block">
+        <span className="font-[font1] text-xs text-black/50 mb-1 block">
           Correo (opcional)
         </span>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-lg bg-black/40 border border-linen/20 px-3 py-2.5 text-white font-[font1] text-sm"
+          className="w-full rounded-lg border border-black/15 bg-black/[0.03] px-3 py-2.5 text-[#141118] font-[font1] text-sm placeholder:text-black/35"
         />
       </label>
 
@@ -225,7 +225,7 @@ const PostPaymentLeadForm = ({
           onChange={(e) => setConsent(e.target.checked)}
           className="mt-1"
         />
-        <span className="font-[font1] text-xs text-white/60 leading-relaxed">
+        <span className="font-[font1] text-xs text-black/55 leading-relaxed">
           Acepto el tratamiento de mis datos según el{" "}
           <a href="/aviso-privacidad" className="text-linen underline">
             aviso de privacidad
@@ -241,7 +241,7 @@ const PostPaymentLeadForm = ({
       <button
         type="submit"
         disabled={status === "loading"}
-        className="w-full rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-white transition-colors disabled:opacity-50"
+        className="w-full rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors disabled:opacity-50"
       >
         {status === "loading" ? "Guardando…" : "Vincular mi pago"}
       </button>

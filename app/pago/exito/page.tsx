@@ -18,6 +18,7 @@ import {
 } from "../../../lib/crm/checkout-reference";
 import { findEnrollmentForCheckout } from "../../../lib/crm/checkout-fulfillment";
 import { syncMercadoPagoPayment } from "../../../lib/crm/mercadopago-payments";
+import { syncStripeCheckoutSession } from "../../../lib/crm/stripe-payments";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 import PurchaseConversionTracking from "../../components/pago/PurchaseConversionTracking";
@@ -40,8 +41,13 @@ type SearchParams = {
   payment_id?: string;
   merchant_order_id?: string;
   preference_id?: string;
-  /** Legacy Stripe redirect */
-  payment_intent?: string;
+  /** Stripe Checkout return (`success_url` carries {CHECKOUT_SESSION_ID}). */
+  session_id?: string;
+  /** Lemon Squeezy return — `ls=1` + la referencia del checkout. */
+  ls?: string;
+  ref?: string;
+  /** Retorno de PayPal por redirección (/api/paypal/return). */
+  paypal?: string;
   plan?: string;
 };
 
@@ -49,7 +55,6 @@ type Resolved = {
   status: "succeeded" | "processing" | "pending" | "failed" | "unknown";
   planId?: PlanId;
   refLabel?: string;
-  legacyStripe?: boolean;
 };
 
 const resolveReturn = (params: SearchParams): Resolved => {
@@ -112,12 +117,38 @@ const resolveReturn = (params: SearchParams): Resolved => {
     };
   }
 
-  if (params.payment_intent) {
+  // Lemon Squeezy vuelve sin id de orden: sólo con la referencia del checkout.
+  // El estado real lo resuelve el lookup de matrícula más abajo.
+  if (params.ls === "1" && params.ref) {
+    const checkout = parseCheckoutReference(params.ref);
     return {
-      status: "unknown",
-      legacyStripe: true,
+      status: "processing",
       planId:
-        params.plan && isPlanId(params.plan) ? params.plan : undefined,
+        checkout && isPlanId(checkout.planId) ? checkout.planId : undefined,
+    };
+  }
+
+  // PayPal por redirección: `/api/paypal/return` ya capturó el pago y manda
+  // aquí con el enrollmentId. Sin esta rama caía en "unknown" y la página
+  // decía "no pudimos recuperar el detalle" sobre un cobro que SÍ se hizo.
+  if (params.enrollmentId && !isCheckoutReference(params.enrollmentId)) {
+    return { status: "succeeded", refLabel: params.enrollmentId };
+  }
+
+  // Captura no concluyente en el retorno de PayPal: el webhook firmado es la
+  // fuente de verdad y puede llegar en segundos, así que "en proceso", nunca
+  // "falló".
+  if (params.paypal === "1") {
+    return { status: "processing" };
+  }
+
+  // Stripe: the real status comes from reconciling the session server-side
+  // (see below); this only seeds the plan and the reference label.
+  if (params.session_id) {
+    return {
+      status: "processing",
+      refLabel: params.session_id,
+      planId: params.plan && isPlanId(params.plan) ? params.plan : undefined,
     };
   }
 
@@ -130,7 +161,47 @@ type PageProps = {
 
 const Page = async ({ searchParams }: PageProps) => {
   const params = await searchParams;
-  const result = resolveReturn(params);
+  let result = resolveReturn(params);
+
+  // Stripe Checkout returns here with `session_id`. Same reasoning as the
+  // Mercado Pago reconciliation further down: registration must not depend
+  // solely on the webhook arriving. `syncStripeCheckoutSession` is idempotent
+  // per PaymentIntent, so a webhook that already fired (or fires later) is a
+  // no-op, and it is the API — not the query string — that decides the status.
+  let stripeEnrollmentId: string | undefined;
+  if (params.session_id) {
+    const sync = await syncStripeCheckoutSession(params.session_id).catch(
+      (e) => {
+        console.error("[pago/exito] stripe reconciliation failed", e);
+        return null;
+      }
+    );
+    if (sync?.outcome === "recorded") {
+      stripeEnrollmentId = sync.enrollmentId;
+      result = { ...result, status: "succeeded" };
+    }
+    // Anything else stays "processing": a delayed payment method, or a
+    // subscription whose first `invoice.paid` has not landed yet.
+  }
+
+  // Lemon Squeezy: el webhook firmado es la única fuente de verdad, así que
+  // aquí sólo se comprueba si YA llegó. `ref` no es frontera de confianza —
+  // sólo lee una matrícula que el webhook verificado creó, nunca la concede.
+  let lemonSqueezyEnrollmentId: string | undefined;
+  if (params.ls === "1" && params.ref) {
+    const checkout = parseCheckoutReference(params.ref);
+    if (checkout) {
+      lemonSqueezyEnrollmentId =
+        (await findEnrollmentForCheckout(
+          checkout.contactId,
+          checkout.planId
+        ).catch(() => null)) ?? undefined;
+      if (lemonSqueezyEnrollmentId) {
+        result = { ...result, status: "succeeded" };
+      }
+      // Si aún no está, queda "processing": el webhook viene en camino.
+    }
+  }
 
   const plan =
     result.planId != null ? await getPlanFromDb(result.planId) : null;
@@ -169,9 +240,7 @@ const Page = async ({ searchParams }: PageProps) => {
       ? "Pago en proceso"
       : isFailed
         ? "Pago no completado"
-        : result.legacyStripe
-          ? "Referencia antigua"
-          : "Estado del pago";
+        : "Estado del pago";
 
   const eyebrow = isSuccess
     ? "Gracias por tu confianza"
@@ -179,9 +248,7 @@ const Page = async ({ searchParams }: PageProps) => {
       ? "Un momento"
       : isFailed
         ? "Algo ocurrió"
-        : result.legacyStripe
-          ? "Stripe ya no está activo"
-          : "Referencia";
+        : "Referencia";
 
   // Mercado Pago returns here with `payment_id` on approved checkouts.
   // Registration must not depend solely on the webhook arriving (a
@@ -197,10 +264,11 @@ const Page = async ({ searchParams }: PageProps) => {
   }
 
   let enrollmentId =
-    params.enrollmentId &&
-    !isCheckoutReference(params.enrollmentId)
+    stripeEnrollmentId ??
+    lemonSqueezyEnrollmentId ??
+    (params.enrollmentId && !isCheckoutReference(params.enrollmentId)
       ? params.enrollmentId
-      : undefined;
+      : undefined);
 
   const extRef = params.external_reference;
   if (!enrollmentId && extRef && !isPlanId(extRef)) {
@@ -275,7 +343,7 @@ const Page = async ({ searchParams }: PageProps) => {
           : undefined;
 
   return (
-    <main data-nav-color="white" className="relative min-h-screen bg-black text-white overflow-hidden">
+    <main data-nav-color="dark" className="relative min-h-screen bg-linen text-[#141118] overflow-hidden">
       {failedEnrollmentId ? (
         <CheckoutAbandonCleanup enrollmentId={failedEnrollmentId} />
       ) : null}
@@ -293,33 +361,25 @@ const Page = async ({ searchParams }: PageProps) => {
         className="absolute inset-0 pointer-events-none opacity-80"
         style={{
           background: [
-            "radial-gradient(60% 40% at 15% 10%, rgba(236,227,212,0.12), transparent 60%)",
-            "radial-gradient(50% 45% at 85% 90%, rgba(237,195,177,0.16), transparent 65%)",
+            "radial-gradient(60% 40% at 15% 10%, rgba(237,195,177,0.30), transparent 60%)",
+            "radial-gradient(50% 45% at 85% 90%, rgba(20,17,24,0.06), transparent 65%)",
           ].join(","),
         }}
       />
 
       <section className="relative px-4 lg:px-8 pt-36 lg:pt-44 pb-24 max-w-2xl mx-auto">
-        <div className="font-[font2] uppercase text-xs tracking-[0.4em] text-linen/80 mb-5">
+        <div className="font-[font2] uppercase text-xs tracking-[0.4em] text-black/55 mb-5">
           {eyebrow}
         </div>
         <h1 className="font-[font2] uppercase text-4xl lg:text-6xl leading-[0.95] mb-8">
           {heading}
         </h1>
 
-        {result.legacyStripe && (
-          <p className="font-[font1] text-white/75 text-base lg:text-lg leading-relaxed mb-10">
-            Los pagos con tarjeta ahora pasan por Mercado Pago o PayPal. Si ya
-            pagaste con Stripe y no ves la confirmación, escríbenos por
-            WhatsApp con el comprobante.
-          </p>
-        )}
-
         {isSuccess && (
-          <div className="rounded-2xl border border-linen/15 bg-linen/[0.04] p-6 mb-10">
+          <div className="rounded-2xl border border-black/10 bg-white p-6 mb-10 shadow-[0_10px_30px_rgba(20,17,24,0.06)]">
             <div className="flex items-center gap-4">
               <div className="relative w-12 h-12 shrink-0">
-                <div className="absolute inset-0 rounded-full bg-linen/10" />
+                <div className="absolute inset-0 rounded-full bg-[#141118]/[0.07]" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <svg
                     viewBox="0 0 24 24"
@@ -337,7 +397,7 @@ const Page = async ({ searchParams }: PageProps) => {
               </div>
               <div className="min-w-0">
                 {planTitle && (
-                  <div className="font-[font2] uppercase text-xs tracking-[0.3em] text-linen/70">
+                  <div className="font-[font2] uppercase text-xs tracking-[0.3em] text-black/55">
                     {planTitle}
                     {planSessions ? ` · ${planSessions}` : ""}
                   </div>
@@ -345,7 +405,7 @@ const Page = async ({ searchParams }: PageProps) => {
                 {amountLabel && (
                   <div className="font-[font1] text-3xl mt-1 leading-none">
                     {amountLabel}{" "}
-                    <span className="font-[font2] uppercase text-xs tracking-[0.3em] text-white/55">
+                    <span className="font-[font2] uppercase text-xs tracking-[0.3em] text-black/50">
                       {paymentCurrency ?? "USD"}
                     </span>
                   </div>
@@ -353,7 +413,7 @@ const Page = async ({ searchParams }: PageProps) => {
               </div>
             </div>
             {result.refLabel && (
-              <div className="font-[font1] text-[11px] text-white/40 mt-4 break-all">
+              <div className="font-[font1] text-[11px] text-black/45 mt-4 break-all">
                 Ref: {result.refLabel}
               </div>
             )}
@@ -361,7 +421,7 @@ const Page = async ({ searchParams }: PageProps) => {
         )}
 
         {isProcessing && (
-          <p className="font-[font1] text-white/75 text-base lg:text-lg leading-relaxed mb-10">
+          <p className="font-[font1] text-black/70 text-base lg:text-lg leading-relaxed mb-10">
             Tu medio de pago puede tardar unos minutos en confirmarse. Te
             escribiremos por WhatsApp apenas quede listo. No necesitas volver a
             pagar.
@@ -369,35 +429,35 @@ const Page = async ({ searchParams }: PageProps) => {
         )}
 
         {isFailed && (
-          <p className="font-[font1] text-white/75 text-base lg:text-lg leading-relaxed mb-10">
+          <p className="font-[font1] text-black/70 text-base lg:text-lg leading-relaxed mb-10">
             El pago no se completó. Puedes intentarlo de nuevo desde la sección
             de servicios o escribirnos por WhatsApp para ayudarte.
           </p>
         )}
 
-        {!result.legacyStripe && result.status === "unknown" && (
-          <p className="font-[font1] text-white/75 text-base lg:text-lg leading-relaxed mb-10">
+        {result.status === "unknown" && (
+          <p className="font-[font1] text-black/70 text-base lg:text-lg leading-relaxed mb-10">
             No pudimos recuperar el detalle de tu pago. Si completaste la
             operación, escríbenos por WhatsApp y lo verificamos contigo.
           </p>
         )}
 
         {isSuccess && postPaymentMode === "none" && (
-          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
+          <p className="font-[font1] text-black/75 text-base lg:text-lg leading-relaxed mb-6">
             Tu pago quedó vinculado a tu contacto. Agenda tu primera sesión por
             WhatsApp cuando quieras.
           </p>
         )}
 
         {isSuccess && postPaymentMode === "legacy" && (
-          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
+          <p className="font-[font1] text-black/75 text-base lg:text-lg leading-relaxed mb-6">
             Para vincular este pago en nuestro sistema, confirma tu teléfono a
             continuación.
           </p>
         )}
 
         {isSuccess && postPaymentMode === "email-only" && (
-          <p className="font-[font1] text-white/80 text-base lg:text-lg leading-relaxed mb-6">
+          <p className="font-[font1] text-black/75 text-base lg:text-lg leading-relaxed mb-6">
             Tu pago quedó vinculado. Si quieres, puedes dejar tu correo para
             recibir confirmaciones.
           </p>
@@ -412,34 +472,34 @@ const Page = async ({ searchParams }: PageProps) => {
         )}
 
         {isSuccess && coursePortal && (
-          <div className="rounded-2xl border border-blush/25 bg-blush/[0.06] p-6 mb-10">
-            <div className="font-[font2] uppercase text-xs tracking-[0.3em] text-blush mb-3">
+          <div className="rounded-2xl border border-blush/45 bg-blush/[0.14] p-6 mb-10">
+            <div className="font-[font2] uppercase text-xs tracking-[0.3em] text-[#a2543a] mb-3">
               Portal de miembros
             </div>
             {coursePortal === "invite" ? (
               <>
-                <p className="font-[font1] text-white/80 text-sm lg:text-base leading-relaxed mb-5">
+                <p className="font-[font1] text-black/75 text-sm lg:text-base leading-relaxed mb-5">
                   {portalKind === "WORKSHOP"
                     ? "Te enviamos un correo para crear tu cuenta del portal de miembros: con ella podrás volver a entrar a la página completa de tu taller cuando quieras."
                     : "Te enviamos un correo para crear tu cuenta del portal de miembros: ahí encontrarás el enlace de las clases en vivo, las grabaciones y los módulos del curso."}
                 </p>
                 <Link
                   href="/miembros/crear-cuenta"
-                  className="inline-block rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] px-8 py-3.5 hover:bg-white transition-colors"
+                  className="inline-block rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] px-8 py-3.5 hover:bg-black transition-colors"
                 >
                   Crear mi cuenta
                 </Link>
               </>
             ) : (
               <>
-                <p className="font-[font1] text-white/80 text-sm lg:text-base leading-relaxed mb-5">
+                <p className="font-[font1] text-black/75 text-sm lg:text-base leading-relaxed mb-5">
                   {portalKind === "WORKSHOP"
                     ? "Ya tienes cuenta del portal. Entra para ver la página completa de tu taller."
                     : "Tu mensualidad quedó al día. Entra al portal para ver las próximas clases, grabaciones y módulos."}
                 </p>
                 <Link
                   href="/miembros"
-                  className="inline-block rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] px-8 py-3.5 hover:bg-white transition-colors"
+                  className="inline-block rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] px-8 py-3.5 hover:bg-black transition-colors"
                 >
                   Entrar al portal
                 </Link>
@@ -453,19 +513,19 @@ const Page = async ({ searchParams }: PageProps) => {
             href={buildWhatsAppUrl(whatsappMessage)}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:flex-1 rounded-full bg-linen text-black font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-white transition-colors text-center"
+            className="w-full sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
           >
             {isSuccess ? "Agendar por WhatsApp" : "Escribir por WhatsApp"}
           </a>
           <Link
             href="/"
-            className="w-full sm:flex-1 rounded-full border border-linen/30 text-white/80 font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-linen/5 hover:text-white transition-colors text-center"
+            className="w-full sm:flex-1 rounded-full border border-black/20 text-black/70 font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black/[0.04] hover:text-black transition-colors text-center"
           >
             Volver al inicio
           </Link>
         </div>
 
-        <div className="mt-8 font-[font1] text-[11px] text-white/40 tracking-wide">
+        <div className="mt-8 font-[font1] text-[11px] text-black/45 tracking-wide">
           o escríbenos al {WHATSAPP_NUMBER}
         </div>
       </section>

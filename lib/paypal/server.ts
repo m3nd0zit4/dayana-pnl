@@ -47,11 +47,14 @@ type CreateOrderInput = {
   itemTotalValue?: string;
   /** Comisión que paga el cliente en formato "0.00". */
   handlingValue?: string;
+  /** Flujo por redirección: a dónde vuelve PayPal tras aprobar / cancelar. */
+  returnUrl?: string;
+  cancelUrl?: string;
 };
 
 export const createPayPalOrderRequest = async (
   input: CreateOrderInput
-): Promise<{ id: string }> => {
+): Promise<{ id: string; approveUrl?: string }> => {
   const hasBreakdown =
     typeof input.itemTotalValue === "string" &&
     typeof input.handlingValue === "string";
@@ -105,21 +108,69 @@ export const createPayPalOrderRequest = async (
     body: JSON.stringify({
       intent: "CAPTURE",
       purchase_units: [purchaseUnit],
-      application_context: {
-        shipping_preference: "NO_SHIPPING",
-        user_action: "PAY_NOW",
+      /**
+       * `experience_context` dentro de `payment_source.paypal`, NO
+       * `application_context`.
+       *
+       * `application_context` está deprecado en Orders v2 y PayPal ya no lo
+       * devuelve al consultar la orden; comprobado contra la API: una orden
+       * creada con `experience_context` sí respeta `brand_name` y
+       * `cancel_url` (aparece "Cancelar y volver a Dayana Beltran PNL" en su
+       * pantalla), y con el campo viejo no.
+       */
+      payment_source: {
+        paypal: {
+          experience_context: {
+            shipping_preference: "NO_SHIPPING",
+            user_action: "PAY_NOW",
+            brand_name: "Dayana Beltran PNL",
+            /**
+             * Aterriza en el formulario de TARJETA, no en el login.
+             *
+             * Por defecto PayPal manda al acceso, y quien no tiene cuenta se
+             * da la vuelta: es la queja que llegaba de las clientas.
+             *
+             * No basta por sí solo — hace falta además "Pago como usuario no
+             * registrado" ACTIVADO en la cuenta de negocio (Configuración →
+             * Preferencias del sitio web). Con eso apagado PayPal ignora esto
+             * y enseña el login igual.
+             */
+            landing_page: "GUEST_CHECKOUT",
+            // Sin `locale` fijo: este rail atiende a TODO EL MUNDO MENOS
+            // Colombia (las colombianas van por Mercado Pago), así que forzar
+            // `es-CO` le daba castellano de Colombia a compradoras de México,
+            // España o EE.UU. y condicionaba los medios que PayPal ofrece a
+            // ese mercado. Sin el campo, lo resuelve desde la compradora.
+            ...(input.returnUrl ? { return_url: input.returnUrl } : {}),
+            ...(input.cancelUrl ? { cancel_url: input.cancelUrl } : {}),
+          },
+        },
       },
     }),
   });
 
-  const json = (await res.json()) as { id?: string; message?: string };
+  const json = (await res.json()) as {
+    id?: string;
+    message?: string;
+    links?: Array<{ rel?: string; href?: string }>;
+  };
   if (!res.ok || !json.id) {
     const msg =
       json.message ??
       (typeof json === "object" ? JSON.stringify(json).slice(0, 300) : "unknown");
     throw new Error(`PayPal create order failed (${res.status}): ${msg}`);
   }
-  return { id: json.id };
+  /**
+   * URL a la que se manda a la compradora en el flujo por redirección.
+   *
+   * Con `application_context` PayPal la llamaba `approve`; con
+   * `experience_context` la llama `payer-action`. Se aceptan las dos: leer
+   * sólo la primera dejaba el botón sin destino y el checkout muerto.
+   */
+  const approveUrl = json.links?.find(
+    (l) => l.rel === "payer-action" || l.rel === "approve"
+  )?.href;
+  return { id: json.id, approveUrl };
 };
 
 export const capturePayPalOrderRequest = async (

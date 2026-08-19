@@ -42,8 +42,10 @@ test.describe("Checkout · creación", () => {
       expect(r.approveUrl, "falta approveUrl (flujo por redirección)").toContain(
         "paypal.com"
       );
+      // La referencia va firmada (HMAC recortado al final): el contacto y el
+      // plan siguen en claro, con la firma como último segmento.
       expect(r.checkoutReference).toMatch(
-        new RegExp(`^chk:[a-z0-9]+:${planId}$`)
+        new RegExp(`^chk:[a-z0-9]+:${planId}:[A-Za-z0-9_-]{16}$`)
       );
 
       // Sin formulario previo debe quedar un contacto temporal.

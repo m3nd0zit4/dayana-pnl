@@ -4,6 +4,8 @@ import {
   fireNotification,
 } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
+import { normalizePhone } from "../phone";
+import type { CountryCode } from "libphonenumber-js";
 
 /** Temporary checkout contacts — never shown in CRM lists. */
 export const PLACEHOLDER_PHONE_PREFIX = "+pending";
@@ -48,7 +50,15 @@ export const createPendingCheckoutContact = async (
  */
 export const reconcilePendingCheckoutContact = async (
   pendingContactId: string,
-  data: { email?: string; firstName?: string; lastName?: string }
+  data: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    /** Teléfono crudo del proveedor; se normaliza aquí. */
+    phone?: string;
+    /** ISO-3166-1 alpha-2 del pagador; sirve de país por defecto al teléfono. */
+    countryIso?: string;
+  }
 ): Promise<string> => {
   const pending = await prisma.contact.findUnique({
     where: { id: pendingContactId },
@@ -58,19 +68,41 @@ export const reconcilePendingCheckoutContact = async (
   if (!isPlaceholderContactPhone(pending.phoneE164)) return pending.id;
 
   const email = data.email?.trim().toLowerCase() || undefined;
+  const countryIso = data.countryIso?.trim().toUpperCase().slice(0, 2) || undefined;
 
-  if (email) {
-    const existing = await prisma.contact.findUnique({
-      where: { email },
-      select: { id: true },
+  /**
+   * El teléfono llega crudo y en formatos distintos según el proveedor, así
+   * que se normaliza a E.164 antes de tocar la base. Si no se puede validar
+   * se descarta en silencio: el placeholder `+pending:` es preferible a un
+   * número roto, y `/pago/exito` lo sigue pidiendo.
+   */
+  const normalized = data.phone
+    ? normalizePhone(data.phone, (countryIso as CountryCode) ?? "CO")
+    : null;
+
+  /**
+   * Colisiones. `Contact.email` y `Contact.phoneE164` son AMBOS `@unique`.
+   * Si el pagador ya tiene ficha real por cualquiera de los dos, gana esa y el
+   * temporal se borra; escribir sin comprobarlo reventaría la compra entera
+   * con un fallo de unicidad justo después de cobrar.
+   */
+  const existing = await prisma.contact.findFirst({
+    where: {
+      id: { not: pending.id },
+      OR: [
+        ...(email ? [{ email }] : []),
+        ...(normalized ? [{ phoneE164: normalized.phoneE164 }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+
+  if ((email || normalized) && existing) {
+    await prisma.contact.delete({ where: { id: pending.id } }).catch(() => {
+      // Sin matrícula todavía no debería fallar; si falla, el temporal se
+      // queda huérfano y lo barre la limpieza nocturna.
     });
-    if (existing && existing.id !== pending.id) {
-      await prisma.contact.delete({ where: { id: pending.id } }).catch(() => {
-        // Sin matrícula todavía no debería fallar; si falla, el temporal se
-        // queda huérfano y lo barre la limpieza nocturna.
-      });
-      return existing.id;
-    }
+    return existing.id;
   }
 
   await prisma.contact.update({
@@ -79,10 +111,34 @@ export const reconcilePendingCheckoutContact = async (
       ...(email ? { email } : {}),
       ...(data.firstName?.trim() ? { firstName: data.firstName.trim() } : {}),
       ...(data.lastName?.trim() ? { lastName: data.lastName.trim() } : {}),
+      ...(normalized
+        ? {
+            phoneE164: normalized.phoneE164,
+            phoneCountryIso: normalized.phoneCountryIso,
+          }
+        : {}),
+      ...(countryIso ? { countryIso } : {}),
     },
   });
   return pending.id;
 };
+
+/**
+ * ¿Sigue este contacto sin teléfono utilizable?
+ *
+ * Es la señal de "falta el dato de contacto principal": el número es por donde
+ * Dayana coordina las sesiones, y ningún proveedor lo garantiza.
+ */
+export const hasPlaceholderPhone = async (
+  contactId: string
+): Promise<boolean> => {
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { phoneE164: true },
+  });
+  return contact ? isPlaceholderContactPhone(contact.phoneE164) : false;
+};
+
 
 /**
  * Removes abandoned checkout: placeholder contact + PENDING_PAYMENT enrollment.

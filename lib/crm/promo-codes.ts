@@ -16,6 +16,39 @@ export type PromoValidation =
   | { ok: false; error: PromoValidationError };
 
 /**
+ * ¿Hay algún código que esta persona pudiera llegar a usar en este plan?
+ *
+ * Sirve para no enseñar el campo "código promocional" cuando no hay ninguno
+ * vivo: un campo vacío que nunca acepta nada sólo siembra la duda de que se
+ * está pagando de más, y manda a la clienta a buscar por ahí un cupón que no
+ * existe en vez de terminar la compra.
+ *
+ * Deliberadamente NO comprueba el importe: aquí sólo interesa la existencia,
+ * y validar el descuento contra el total es trabajo de `validatePromoCode`
+ * cuando la clienta escriba el código.
+ */
+export const hasUsablePromoCode = async (
+  productId?: string | null
+): Promise<boolean> => {
+  const count = await prisma.promoCode.count({
+    where: {
+      isActive: true,
+      AND: [
+        { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+        {
+          OR: [
+            // Sin productos asociados = vale para todo el catálogo.
+            { products: { none: {} } },
+            ...(productId ? [{ products: { some: { productId } } }] : []),
+          ],
+        },
+      ],
+    },
+  });
+  return count > 0;
+};
+
+/**
  * `baseAmountMinor` is the NET price (before processor fee gross-up), in the
  * given currency's minor units — USD cents, COP whole pesos (COP has no
  * cents; see CLAUDE.md). PERCENT codes are computed against it; FIXED_AMOUNT

@@ -30,6 +30,16 @@ const cspReportOnly = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@prisma/client", "prisma", "ws"],
+  /**
+   * Sólo para probar la pasarela por un túnel público (ngrok): sin esto Next
+   * bloquea `/_next/*` desde ese host y los componentes de cliente nunca
+   * hidratan — el checkout aparece sin botones, como si la página estuviera
+   * rota. La URL cambia en cada arranque del túnel, así que vive en
+   * `DEV_ALLOWED_ORIGIN` y no en este archivo, que sí se commitea.
+   */
+  allowedDevOrigins: process.env.DEV_ALLOWED_ORIGIN
+    ? [process.env.DEV_ALLOWED_ORIGIN]
+    : [],
   experimental: {
     // Turbopack's persistent dev cache (.next/dev, on by default since 16.1)
     // can go stale after an unclean dev-server restart: route handlers under

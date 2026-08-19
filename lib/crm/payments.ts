@@ -6,7 +6,10 @@ import {
 } from "@prisma/client";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
-import { abandonCheckoutEnrollment } from "./checkout-placeholder";
+import {
+  abandonCheckoutEnrollment,
+  hasPlaceholderPhone,
+} from "./checkout-placeholder";
 import { parseCheckoutReference } from "./checkout-reference";
 import { markEnrollmentPaid } from "./enrollments";
 import { formatMoneyMinor } from "./money";
@@ -110,6 +113,32 @@ export const recordPayment = async (
         href: `/admin/enrollments/${input.enrollmentId}`,
         entityType: "Payment",
         entityId: payment.id,
+        staff: "ALL",
+      });
+    }
+
+    /**
+     * El teléfono es por donde Dayana coordina las sesiones, y ningún
+     * proveedor lo garantiza: PayPal sólo lo manda si la preferencia de la
+     * cuenta está activa, Mercado Pago a veces no lo trae, y el formulario de
+     * `/pago/exito` es voluntario — quien cierra la pestaña no lo deja.
+     *
+     * Se avisa en lugar de poner un formulario antes de pagar: eso es justo lo
+     * que se quitó para subir conversión, y en Mercado Pago recorta señales al
+     * antifraude. Aquí sólo se marca "hay que pedírselo".
+     */
+    if (await hasPlaceholderPhone(enrollment.contactId)) {
+      fireNotification({
+        eventType: "PAYMENT_CONTACT_INCOMPLETE",
+        title: `Falta el teléfono de ${who}`,
+        body: `Pagó ${enrollment.product.title} (${amountLabel}) y no dejó número. Escríbele para coordinar.`,
+        href: `/admin/contacts/${enrollment.contactId}`,
+        entityType: "Contact",
+        entityId: enrollment.contactId,
+        metadata: {
+          enrollmentId: input.enrollmentId,
+          provider: input.provider,
+        },
         staff: "ALL",
       });
     }

@@ -95,6 +95,17 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: OWNER_OPERATOR,
   },
+  PAYMENT_CONTACT_INCOMPLETE: {
+    label: "Pago sin teléfono de contacto",
+    description:
+      "Se cobró, pero no hay teléfono: ningún proveedor lo entregó y la clienta no completó el formulario posterior.",
+    group: "Pagos y ventas",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: OWNER_OPERATOR,
+  },
   PAYMENT_REFUNDED: {
     label: "Pago reembolsado",
     description: "Se devolvió el dinero de un pago aprobado.",

@@ -2,8 +2,15 @@ import { NextResponse } from "next/server";
 import { mercadoPagoItemAmount } from "../../../../lib/mercadopago/amount";
 import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
-import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
-import { validatePromoCode } from "@/lib/crm/promo-codes";
+import {
+  grossUpUsd,
+  lemonSqueezyFee,
+  paypalFee,
+} from "../../../../lib/pricing/fees";
+import {
+  hasUsablePromoCode,
+  validatePromoCode,
+} from "@/lib/crm/promo-codes";
 import {
   clientIp,
   rateLimitDistributed,
@@ -14,7 +21,7 @@ export const dynamic = "force-dynamic";
 
 type Body = {
   planId?: unknown;
-  provider?: "paypal" | "mercadopago";
+  provider?: "paypal" | "mercadopago" | "lemonsqueezy";
   promoCode?: unknown;
 };
 
@@ -40,11 +47,23 @@ export async function POST(req: Request) {
   if (!plan) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
-  const provider = body.provider === "mercadopago" ? "mercadopago" : "paypal";
+  // Si no hay ningún código vivo para este plan, el modal ni siquiera pinta el
+  // campo: un hueco que nunca acepta nada hace dudar de que el precio sea el
+  // correcto y manda a buscar cupones fuera en vez de terminar la compra.
+  const promoAvailable = await hasUsablePromoCode(body.planId);
+
+  // Lemon Squeezy y PayPal comparten la rama USD: mismo cálculo, distinta
+  // comisión. Sólo Mercado Pago cobra en COP y necesita rama propia.
+  const provider =
+    body.provider === "mercadopago"
+      ? "mercadopago"
+      : body.provider === "lemonsqueezy"
+        ? "lemonsqueezy"
+        : "paypal";
   const rawPromoCode =
     typeof body.promoCode === "string" ? body.promoCode.trim() : "";
 
-  if (provider === "paypal") {
+  if (provider === "paypal" || provider === "lemonsqueezy") {
     let discountMinor = 0;
     let promoCode: string | undefined;
     let promoCodeError: string | undefined;
@@ -63,9 +82,12 @@ export async function POST(req: Request) {
       }
     }
     const discountedNet = Math.max(0, plan.amountUsd - discountMinor / 100);
-    const b = grossUpUsd(discountedNet, paypalFee());
+    const b = grossUpUsd(
+      discountedNet,
+      provider === "lemonsqueezy" ? lemonSqueezyFee() : paypalFee()
+    );
     return NextResponse.json({
-      provider: "paypal",
+      provider,
       currency: "USD",
       // Subtotal is always the plan's original price — the discount and fee
       // are separate line items, not baked into it. Only "total" reflects
@@ -76,6 +98,8 @@ export async function POST(req: Request) {
       discountMinor,
       promoCode,
       promoCodeError,
+      // El modal esconde el campo de promo si no hay ninguno vivo.
+      promoAvailable,
     });
   }
 
@@ -122,6 +146,8 @@ export async function POST(req: Request) {
       discountMinor,
       promoCode,
       promoCodeError,
+      // El modal esconde el campo de promo si no hay ninguno vivo.
+      promoAvailable,
       ...(referenceUsd
         ? {
             referenceCurrency: "USD" as const,

@@ -42,6 +42,8 @@ enum PaymentProvider {
   PAYPAL
   MERCADO_PAGO
   MANUAL
+  STRIPE
+  LEMON_SQUEEZY
 }
 
 enum PaymentStatus {
@@ -195,6 +197,9 @@ enum LessonContentType {
   TEXT
   PDF
   QUIZ
+  /// Ejercicio con campos que el alumno responde dentro del portal; las
+  /// respuestas se guardan en `ExerciseResponse`.
+  EXERCISE
 }
 
 /// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
@@ -207,6 +212,7 @@ enum NotificationEventType {
   PAYMENT_REFUNDED
   MANUAL_PAYMENT_RECORDED
   PAYMENT_WEBHOOK_FAILED
+  PAYMENT_CONTACT_INCOMPLETE
   // Embudo e inscripciones
   LEAD_CREATED
   WEB_LEAD_SUBMITTED
@@ -288,6 +294,7 @@ model Contact {
   classProgress          CourseClassProgress[]
   lessonComments         LessonComment[]
   quizAttempts           QuizAttempt[]
+  exerciseResponses      ExerciseResponse[]
   conversations          Conversation[]
   channelIdentities      ContactChannelIdentity[]
   webinarRegistrations   WebinarRegistration[]
@@ -338,6 +345,37 @@ model Product {
   highlight       Boolean     @default(false)
   whatsappMessage String?     @map("whatsapp_message") @db.Text
   therapyHeadline String?     @map("therapy_headline")
+
+  /// Espejo del Product de Stripe, escrito por scripts/stripe/setup-products.ts.
+  stripeProductId String?     @unique @map("stripe_product_id")
+  /// Product tax code de Stripe (txcd_*). Ver lib/payments/stripe/eligibility.ts.
+  stripeTaxCode   String?     @map("stripe_tax_code")
+  /// Price de Stripe para mode=payment. Lleva el gross-up de comisión ya
+  /// aplicado (lib/pricing/fees.ts): Checkout cobra objetos Price, no importes
+  /// calculados por petición como PayPal. Vive aquí y NO en ProductPrice
+  /// porque esa tabla es el histórico de precios públicos y su fila más
+  /// reciente es la que se muestra en la web: escribir ahí el importe con
+  /// comisión inflaría el precio de cara al cliente en cada corrida.
+  stripePriceId   String?     @unique @map("stripe_price_id")
+  /// Price recurrente de Stripe para mode=subscription (solo la mensualidad).
+  stripeRecurringPriceId String? @unique @map("stripe_recurring_price_id")
+
+  /// Espejo del Product de Lemon Squeezy (scripts/lemonsqueezy/setup-products.ts).
+  lemonSqueezyProductId String? @map("lemon_squeezy_product_id")
+  /// Variant de Lemon Squeezy que se cobra. El checkout se crea contra la
+  /// variante, no contra el producto.
+  lemonSqueezyVariantId String? @unique @map("lemon_squeezy_variant_id")
+  /// `true` cuando la variante es de suscripción. Decide qué webhook registra
+  /// el pago: `order_created` para pago único, `subscription_payment_success`
+  /// para la mensualidad. Una compra de suscripción dispara AMBOS, así que sin
+  /// esta bandera se grabarían dos pagos y se regalaría un mes de más.
+  lemonSqueezySubscription Boolean @default(false) @map("lemon_squeezy_subscription")
+  /// Managed Payments (Stripe/Link como merchant of record) para este producto.
+  /// Solo productos 100% digitales sin intervención humana son elegibles, así
+  /// que esto NO se deriva de `kind` en tiempo de checkout: se sella aquí al
+  /// crear el producto en Stripe y se puede apagar sin tocar código.
+  stripeManagedPayments Boolean @default(false) @map("stripe_managed_payments")
+
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
@@ -1190,6 +1228,13 @@ model NotificationDelivery {
   providerId             String?                    @map("provider_id")
   errorMessage           String?                    @map("error_message") @db.Text
   sentAt                 DateTime?                  @map("sent_at")
+  /// Confirmación del operador, no nuestra: la escribe el StatusCallback de
+  /// Twilio. Es una columna y no un estado nuevo a propósito — un valor
+  /// DELIVERED en el enum dejaría de contar como SENT en cada contador que ya
+  /// existe (campaigns.ts, inngest/functions.ts, webinar-mailer.ts) y las
+  /// estadísticas de campaña empezarían a reportar de menos en silencio.
+  /// null = el proveedor no lo reporta, o todavía no llegó.
+  deliveredAt            DateTime?                  @map("delivered_at")
   createdAt              DateTime                   @default(now()) @map("created_at")
 
   campaign             NotificationCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -1204,6 +1249,10 @@ model NotificationDelivery {
   // El registro de envíos filtra por canal; es la tabla de mayor cardinalidad
   // del esquema (una campaña de 100k por 2 canales escribe 200k filas).
   @@index([channel, createdAt])
+  // El webhook de estado de Twilio busca por provider_id una o dos veces por
+  // mensaje enviado, sobre esta misma tabla. Sin índice es un seq scan por
+  // callback.
+  @@index([providerId])
   @@map("notification_deliveries")
 }
 
@@ -1392,6 +1441,8 @@ model LiveClassSession {
   materialFileName      String?           @map("material_file_name")
   materialSizeBytes     Int?              @map("material_size_bytes")
   quizJson              Json?             @map("quiz_json")
+  /// Campos del ejercicio interactivo — ver lib/lms/exercise.ts.
+  exerciseJson          Json?             @map("exercise_json")
   /// Contenido permanente de la biblioteca: no caduca a los 30 días como la
   /// réplica de una clase en vivo (ver RECORDING_RETENTION_DAYS).
   evergreen             Boolean           @default(false)
@@ -1404,6 +1455,7 @@ model LiveClassSession {
   progress CourseClassProgress[]
   comments LessonComment[]
   quizAttempts QuizAttempt[]
+  exerciseResponses ExerciseResponse[]
 
   @@unique([productId, slug])
   @@index([productId, scheduledAt])
@@ -1423,6 +1475,28 @@ model CourseClassProgress {
   @@unique([contactId, classId])
   @@index([classId])
   @@map("course_class_progress")
+}
+
+/// Lo que un alumno ha escrito en un ejercicio.
+///
+/// Una fila por persona y ejercicio, sobrescrita en cada autoguardado: el
+/// cuaderno del curso, no un historial de versiones. `answers` es un mapa
+/// `campoId → texto`, así que añadir o quitar un campo del ejercicio no invalida
+/// lo ya escrito.
+model ExerciseResponse {
+  id          String   @id @default(cuid())
+  classId     String   @map("class_id")
+  contactId   String   @map("contact_id")
+  answers     Json
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  class   LiveClassSession @relation(fields: [classId], references: [id], onDelete: Cascade)
+  contact Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, classId])
+  @@index([classId])
+  @@map("exercise_responses")
 }
 
 /// Un intento de cuestionario.

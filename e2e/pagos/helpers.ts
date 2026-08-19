@@ -28,6 +28,23 @@ export const nextProviderId = (prefix: string) =>
  * prueba es una visitante distinta, así que darle su propia IP es además lo
  * fiel a la realidad — y no toca el código de producción.
  */
+/**
+ * Móvil colombiano irrepetible por corrida.
+ *
+ * `Contact.phoneE164` es `@unique` y la base de desarrollo lleva datos reales:
+ * fijar un número literal hace que la prueba reviente en cuanto alguien ya lo
+ * tenga, que es un fallo del test y no del producto.
+ */
+let phoneSeq = 0;
+export const nextPhone = () => {
+  phoneSeq += 1;
+  // Móvil colombiano válido: +57 seguido de 3XXXXXXXXX (10 dígitos que
+  // empiezan por 3). Con menos dígitos `normalizePhone` lo descarta y la
+  // prueba mide otra cosa distinta de la que cree medir.
+  const suffix = `${runId}${phoneSeq}`.slice(-9).padStart(9, "0");
+  return `+573${suffix}`;
+};
+
 let ipSeq = 0;
 export const nextIp = () => {
   ipSeq += 1;
