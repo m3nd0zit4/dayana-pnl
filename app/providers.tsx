@@ -41,6 +41,12 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // Linktree-style link hub: meant to be a fast, chrome-free landing target
   // from social bios — skips the marketing site's Stairs transition/navbar.
   const isEnlaces = pathname.startsWith("/enlaces");
+  // El cuestionario, y sólo el cuestionario: un embudo de pasos compite
+  // consigo mismo si deja a la vista un menú, un enlace a "Terapias" y un
+  // WhatsApp flotante — cada uno es una salida. La página de resultado
+  // (/terapias/resultado/<token>) sí lleva el chrome completo, porque necesita
+  // el modal de pago para su botón de compra.
+  const isCuestionario = pathname === "/terapias/empezar";
 
   // Dark mode is scoped to the CRM + member portal. It used to be scoped by
   // mounting ThemeProvider only on those routes — but next-themes renders an
@@ -67,7 +73,7 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
           {children}
           <Toaster />
         </TooltipProvider>
-      ) : isEnlaces ? (
+      ) : isEnlaces || isCuestionario ? (
         <>
           {children}
           <Toaster />

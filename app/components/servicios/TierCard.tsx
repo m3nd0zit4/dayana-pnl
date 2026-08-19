@@ -19,6 +19,12 @@ type Props = {
 /**
  * Carta de paquete de terapia para /servicios. El protagonista es el número
  * de sesiones — la escalera 1→3→6→12→24 cuenta el recorrido.
+ *
+ * El precio por sesión ya no está aquí, sólo en la tabla comparativa. Puesto
+ * en la carta era el número más fácil de comparar entre columnas, y eso
+ * convertía la decisión en "cuál sale más barato la hora" — que es la pregunta
+ * de un commodity, no la de un proceso. Quien quiera hacer esa cuenta la sigue
+ * teniendo, un poco más abajo y sin presidir la tarjeta.
  */
 const TierCard = ({ plan, userCountry }: Props) => {
   const isDark = Boolean(plan.highlight);
@@ -34,12 +40,6 @@ const TierCard = ({ plan, userCountry }: Props) => {
     plan.listAmountUsd != null && savingsUsd != null && savingsUsd > 0;
 
   const count = plan.sessionsCount ?? null;
-  const perSessionUsd =
-    count != null && count > 1 ? plan.amountUsd / count : null;
-  const perSessionCop =
-    count != null && count > 1 && plan.amountCop != null
-      ? plan.amountCop / count
-      : null;
 
   useEffect(() => {
     const el = listPriceRef.current;
@@ -162,15 +162,6 @@ const TierCard = ({ plan, userCountry }: Props) => {
               >
                 ≈ {formatUsd(plan.amountUsd)} USD
               </div>
-              {perSessionCop != null && (
-                <div
-                  className={`font-mono text-[11px] pt-1 ${
-                    isDark ? "text-white/60" : "text-black/55"
-                  }`}
-                >
-                  ≈ {formatCop(perSessionCop)} por sesión
-                </div>
-              )}
               {showPromo && savingsCop != null ? (
                 <p
                   className={`font-[font1] text-[15px] font-medium tracking-wide pt-2 ${savingsClass}`}
@@ -207,15 +198,6 @@ const TierCard = ({ plan, userCountry }: Props) => {
                 </span>
                 <span className="font-[font1] text-sm">USD</span>
               </div>
-              {perSessionUsd != null && (
-                <div
-                  className={`font-mono text-[11px] pt-1 ${
-                    isDark ? "text-white/60" : "text-black/55"
-                  }`}
-                >
-                  ≈ {formatUsd(perSessionUsd)} por sesión
-                </div>
-              )}
               <p
                 className={`font-[font1] text-[15px] font-medium tracking-wide pt-2 ${savingsClass}`}
               >
@@ -230,15 +212,6 @@ const TierCard = ({ plan, userCountry }: Props) => {
                 </span>
                 <span className="font-[font1] text-xs opacity-60">USD</span>
               </div>
-              {perSessionUsd != null && (
-                <div
-                  className={`font-mono text-[11px] pt-1.5 ${
-                    isDark ? "text-white/60" : "text-black/55"
-                  }`}
-                >
-                  ≈ {formatUsd(perSessionUsd)} por sesión
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -258,7 +231,20 @@ const TierCard = ({ plan, userCountry }: Props) => {
         </ul>
       </div>
 
-      <PlanCheckoutButtons plan={plan} isDark={isDark} userCountry={userCountry} />
+      <div>
+        <PlanCheckoutButtons plan={plan} isDark={isDark} userCountry={userCountry} />
+        {/* La objeción de "¿y si pago y no me sirve?" se resuelve donde
+            aparece —al lado del botón— y no seis secciones más abajo, dentro
+            de un acordeón que casi nadie abre. */}
+        <p
+          className={`mt-3 text-center font-[font1] text-[11px] leading-snug ${
+            isDark ? "text-white/50" : "text-black/45"
+          }`}
+        >
+          Coordinamos tu agenda por WhatsApp apenas pagas. Cada sesión admite
+          reprogramación avisando con tiempo.
+        </p>
+      </div>
     </div>
   );
 };

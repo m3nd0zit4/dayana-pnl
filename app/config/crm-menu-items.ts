@@ -9,6 +9,7 @@ import {
   HeartPulse,
   Home,
   ClipboardList,
+  Compass,
   Bell,
   MessageCircle,
   MessageSquare,
@@ -58,6 +59,7 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Clientes",
     items: [
       { icon: Users, label: "Contactos", href: "/admin/contacts" },
+      { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
       {
         icon: GraduationCap,
         label: "Curso",

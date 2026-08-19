@@ -23,8 +23,18 @@ type MenuItem =
 
 const menuItemsBase: MenuItem[] = [
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
+  // El diagnóstico va segundo, delante de Servicios: es la entrada del
+  // embudo. Quien llega al menú buscando precios sigue teniendo Servicios
+  // justo debajo.
+  {
+    label: "Diagnóstico",
+    path: "/diagnostico",
+    marquee: "2 minutos · gratis",
+    announcement: "Gratis",
+  },
   { label: "Servicios", path: "/servicios", marquee: "Terapias y cursos en vivo" },
-  { label: "Testimonios", hash: "#testimonios", marquee: "Historias reales" },
+  { label: "Historias", path: "/historias", marquee: "Historias reales" },
+  { label: "Dayana", path: "/dayana", marquee: "Quién te acompaña" },
   { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },
   { label: "Redes", hash: "#redes", marquee: "Sigue a Dayana" },
 ];
@@ -36,10 +46,13 @@ const tallerVirtualItem: MenuItem = {
   announcement: "Próximamente",
 };
 
+// El taller se inserta después de "Historias" para que el bloque de arriba
+// quede: a dónde ir primero (Diagnóstico), qué cuesta (Servicios), y por qué
+// creerlo (Historias).
 const menuItems: MenuItem[] = [
-  ...menuItemsBase.slice(0, 3),
+  ...menuItemsBase.slice(0, 4),
   tallerVirtualItem,
-  ...menuItemsBase.slice(3),
+  ...menuItemsBase.slice(4),
 ];
 
 /** Tamaños originales del menú (antes del primer ajuste por clamp). */

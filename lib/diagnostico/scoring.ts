@@ -1,0 +1,156 @@
+import {
+  DIAGNOSTIC_QUESTIONS,
+  type DiagnosticAnswers,
+  type DiagnosticQuestion,
+} from "./questions";
+
+/**
+ * Scoring del cuestionario. Función pura y sin I/O a propósito: se ejecuta en
+ * el servidor al completar, pero también en el cliente para previsualizar, y
+ * en los tests sin base de datos.
+ *
+ * Nota sobre lo que *no* hace: no puntúa respuestas correctas. Aquí no hay
+ * correctas. Segmenta. El motor de quiz del LMS (`lib/lms/quiz.ts`) sí es de
+ * nota y aprobado, y por eso no se reutiliza: son dos problemas distintos que
+ * comparten la palabra "cuestionario".
+ */
+
+export type DiagnosticProfileId =
+  | "EXPLORADOR"
+  | "EN_PROCESO"
+  | "RAIZ_PROFUNDA";
+
+export type DiagnosticModality = "individual" | "grupo" | "autonomo";
+
+export type DiagnosticScore = {
+  profile: DiagnosticProfileId;
+  /** 1–10. Lo que la persona declaró, corregido por cuándo quiere empezar. */
+  urgencyScore: number;
+  /** Suma cruda de pesos de profundidad. Sólo para depurar y para el CRM. */
+  depthScore: number;
+  modality: DiagnosticModality;
+  /** Slug del producto que se le muestra. Puede no existir o estar inactivo. */
+  recommendedProductId: string;
+  /** El siguiente escalón, para el bloque de "si quieres ir más a fondo". */
+  upgradeProductId: string | null;
+};
+
+/** Umbrales del scoring, juntos y con nombre para que se puedan discutir. */
+const THRESHOLDS = {
+  /** Por debajo de esto la persona no compra hoy: se le nutre, no se le vende. */
+  explorerUrgency: 6,
+  /** Patrón de raíz: años de historia y varias manifestaciones a la vez. */
+  deepDepth: 7,
+  deepUrgency: 8,
+} as const;
+
+const clamp = (n: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, n));
+
+const asArray = (value: string | string[] | undefined): string[] =>
+  value == null ? [] : Array.isArray(value) ? value : [value];
+
+function optionsFor(question: DiagnosticQuestion, answers: DiagnosticAnswers) {
+  const picked = new Set(asArray(answers[question.id]));
+  return (question.options ?? []).filter((o) => picked.has(o.id));
+}
+
+export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
+  let depthScore = 0;
+  let urgencyBonus = 0;
+  let modality: DiagnosticModality = "individual";
+
+  for (const question of DIAGNOSTIC_QUESTIONS) {
+    for (const option of optionsFor(question, answers)) {
+      const w = option.weights;
+      if (!w) continue;
+      if (w.profundidad) depthScore += w.profundidad;
+      if (w.urgencia) urgencyBonus += w.urgencia;
+      if (w.modalidad) modality = w.modalidad;
+    }
+  }
+
+  const declared = Number(answers.urgencia ?? 5);
+  const urgencyScore = clamp(
+    Number.isFinite(declared) ? declared + urgencyBonus : 5,
+    1,
+    10,
+  );
+
+  // "Solo estoy explorando" manda por encima de todo lo demás: alguien puede
+  // declarar un 9 de urgencia y aun así decir que no piensa empezar. Creerle a
+  // la acción declarada antes que al sentimiento declarado es lo que evita
+  // ponerle un paquete de doce sesiones delante a quien vino a mirar.
+  const justBrowsing = answers.cuando === "explorando";
+
+  const profile: DiagnosticProfileId = justBrowsing
+    ? "EXPLORADOR"
+    : urgencyScore < THRESHOLDS.explorerUrgency
+      ? "EXPLORADOR"
+      : depthScore >= THRESHOLDS.deepDepth &&
+          urgencyScore >= THRESHOLDS.deepUrgency
+        ? "RAIZ_PROFUNDA"
+        : "EN_PROCESO";
+
+  const { recommendedProductId, upgradeProductId } = recommendProduct(
+    profile,
+    modality,
+  );
+
+  return {
+    profile,
+    urgencyScore,
+    depthScore,
+    modality,
+    recommendedProductId,
+    upgradeProductId,
+  };
+}
+
+/**
+ * La modalidad elige la **familia** de producto y el perfil elige la
+ * profundidad dentro de ella. Separarlos evita el error de recomendarle doce
+ * sesiones 1:1 a quien acaba de decir que prefiere trabajar en grupo.
+ */
+function recommendProduct(
+  profile: DiagnosticProfileId,
+  modality: DiagnosticModality,
+): { recommendedProductId: string; upgradeProductId: string | null } {
+  if (modality !== "individual") {
+    // Grupo y "a mi ritmo" convergen en la membresía: son clases en vivo con
+    // grabaciones en el portal, así que cubren las dos preferencias.
+    return {
+      recommendedProductId: "course-live",
+      upgradeProductId: profile === "EXPLORADOR" ? null : "therapy-6",
+    };
+  }
+
+  switch (profile) {
+    case "EXPLORADOR":
+      return { recommendedProductId: "therapy-1", upgradeProductId: "therapy-3" };
+    case "EN_PROCESO":
+      return { recommendedProductId: "therapy-6", upgradeProductId: "therapy-12" };
+    case "RAIZ_PROFUNDA":
+      return {
+        recommendedProductId: "therapy-12",
+        upgradeProductId: "therapy-24",
+      };
+  }
+}
+
+/**
+ * Orden de degradación cuando el producto recomendado no se puede vender en la
+ * región del visitante — desactivado, o sin precio en su moneda.
+ *
+ * `workshop-virtual`, por ejemplo, no tiene precio en COP, así que su botón no
+ * renderiza para Colombia. Una página de resultado sin botón de pago es un
+ * embudo roto, y prefiero recomendar de menos que no recomendar nada.
+ */
+export const PRODUCT_FALLBACK_CHAIN: Record<string, string[]> = {
+  "therapy-24": ["therapy-12", "therapy-6", "therapy-3", "therapy-1"],
+  "therapy-12": ["therapy-6", "therapy-3", "therapy-1"],
+  "therapy-6": ["therapy-3", "therapy-1"],
+  "therapy-3": ["therapy-1"],
+  "therapy-1": [],
+  "course-live": ["therapy-1"],
+};

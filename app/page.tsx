@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Hero from "./components/home/Hero";
+import DiagnosticInvite from "./components/home/DiagnosticInvite";
+import MethodSection from "./components/home/MethodSection";
 import ServicesTeaser from "./components/home/ServicesTeaser";
 import TestimonialsSection from "./components/home/TestimonialsSection";
 import ContactSection from "./components/home/ContactSection";
@@ -32,6 +34,14 @@ const Home = async () => {
     <>
       <main>
         <Hero />
+        {/* El orden es la decisión de esta página. Antes, lo primero que se
+            podía hacer aquí era rellenar un formulario de contacto: la única
+            conversión disponible costaba una conversación de Dayana. Ahora
+            primero se reconoce el patrón, luego se explica el método y quién
+            es ella, y sólo después aparece el formulario — que pasa a ser la
+            salida secundaria, no el héroe. */}
+        <DiagnosticInvite />
+        <MethodSection />
         <ContactSection userCountry={userCountry} />
         <TestimonialsSection />
         <ServicesTeaser

@@ -22,6 +22,7 @@ import {
   formatWebinarScheduleLabel,
 } from "@/lib/crm/free-webinar";
 import { recordWebinarRegistration } from "@/lib/crm/webinar-registrations";
+import { completeDiagnostic } from "@/lib/crm/diagnostics";
 import {
   notifyNewLead,
   notifyWebinarRegistration,
@@ -54,6 +55,19 @@ type Body = {
   notify?: boolean;
   /** Optional CRM tag slug (e.g. webinar-gratuito). */
   tag?: string;
+  /**
+   * Consentimiento de medición publicitaria. Separado de `consentData` a
+   * propósito: aceptar que te contacten no es aceptar que tus datos se envíen
+   * a Meta. Sin esta bandera, CAPI no manda nada de este contacto.
+   */
+  consentAdTracking?: boolean;
+  /**
+   * Cierra el cuestionario de `/diagnostico` con este contacto. Se hace aquí y
+   * no en una ruta propia para no duplicar el alta de contacto, la inscripción
+   * LEAD, la invitación al portal y la notificación al panel — todo eso ya
+   * está probado en este camino.
+   */
+  diagnosticToken?: string;
 };
 
 const sourceMap: Record<string, ContactSource> = {
@@ -194,7 +208,23 @@ export async function POST(req: NextRequest) {
         ? WEBINAR_INTEREST_LABEL
         : sourceDetailValue,
       consentData: true,
+      consentAdTracking: body.consentAdTracking === true,
     });
+
+    // El diagnóstico se cierra antes que nada más: es lo que decide el perfil
+    // y la etiqueta con la que el resto del embudo va a tratar a esta persona.
+    let diagnosticProfile: string | null = null;
+    if (typeof body.diagnosticToken === "string" && body.diagnosticToken) {
+      try {
+        const diagnostic = await completeDiagnostic(
+          body.diagnosticToken,
+          contact.id
+        );
+        diagnosticProfile = diagnostic?.profile ?? null;
+      } catch (e) {
+        console.error("[leads] diagnostic completion failed", e);
+      }
+    }
 
     let alreadyRegistered = false;
     let webinarMeetUrl: string | null = null;
@@ -326,6 +356,7 @@ export async function POST(req: NextRequest) {
         enrollmentId: enrollmentId ?? null,
         webinar: wantsWebinarTag,
         alreadyRegistered,
+        diagnosticProfile,
       },
       staff: "ALL",
     });
@@ -337,6 +368,7 @@ export async function POST(req: NextRequest) {
       created,
       alreadyRegistered,
       webinar: wantsWebinarTag,
+      diagnosticProfile,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown";

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, Users, ArrowUpRight, Video } from "lucide-react";
+import { Compass, LayoutList, Star, Users, ArrowUpRight, Video } from "lucide-react";
 import {
   BRAND,
   SOCIAL_LINKS,
@@ -69,14 +69,24 @@ type LinkRow = {
   tone?: BrandTone;
 };
 
-const TESTIMONIALS_LINK: LinkRow = {
-  key: "testimonios",
-  label: "Testimonios",
-  sublabel: "Lo que dicen quienes ya vivieron el proceso",
-  href: "/",
-  icon: <Star className="h-5 w-5" />,
-  internal: true,
-};
+const SECONDARY_LINKS: LinkRow[] = [
+  {
+    key: "testimonios",
+    label: "Historias reales",
+    sublabel: "Lo que dicen quienes ya vivieron el proceso",
+    href: "/historias",
+    icon: <Star className="h-5 w-5" />,
+    internal: true,
+  },
+  {
+    key: "servicios",
+    label: "Servicios y precios",
+    sublabel: "Terapias 1:1 y curso en vivo",
+    href: "/servicios",
+    icon: <LayoutList className="h-5 w-5" />,
+    internal: true,
+  },
+];
 
 const SOCIAL_LINKS_LIST: LinkRow[] = [
   {
@@ -196,7 +206,7 @@ const Row = ({ row, delay }: { row: LinkRow; delay: number }) => {
   );
 };
 
-type CtaVariant = "whatsapp" | "community" | "webinar";
+type CtaVariant = "diagnostico" | "whatsapp" | "community" | "webinar";
 
 const Cta = ({
   href,
@@ -218,11 +228,13 @@ const Cta = ({
   internal?: boolean;
 }) => {
   const variantClass =
-    variant === "whatsapp"
+    variant === "diagnostico"
+      ? "border border-white/25 bg-gradient-to-br from-terracotta/95 to-[#a8543c] shadow-[0_12px_32px_-12px_rgba(192,101,74,0.65),inset_0_1px_0_rgba(255,255,255,0.32)] hover:shadow-[0_16px_40px_-10px_rgba(192,101,74,0.8)]"
+      : variant === "whatsapp"
       ? "border border-[#3fdc7a]/35 bg-gradient-to-br from-[#2fdb70]/95 to-[#0f9d58] shadow-[0_12px_32px_-12px_rgba(37,211,102,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_16px_40px_-10px_rgba(37,211,102,0.75)]"
       : variant === "community"
         ? "border border-[#3fdc7a]/30 bg-[#25D366]/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-[#3fdc7a]/55 hover:bg-[#25D366]/[0.22]"
-        : "border border-white/25 bg-gradient-to-br from-terracotta/90 to-[#a8543c] shadow-[0_12px_32px_-12px_rgba(192,101,74,0.55),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_16px_40px_-10px_rgba(192,101,74,0.65)]";
+        : "border border-terracotta/45 bg-terracotta/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-terracotta/70 hover:bg-terracotta/[0.24]";
 
   const className = `lt-fade lt-press group relative flex w-full items-center gap-3.5 overflow-hidden rounded-[1.35rem] px-4 py-3.5 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] ${variantClass}`;
   const style = { animationDelay: `${delay}ms` };
@@ -362,23 +374,22 @@ const LinktreePage = ({
           {BRAND.name}
         </h1>
 
+        {/* El orden es la decisión de producto de esta página: en un enlace de
+            biografía el primer botón se lleva la mayoría de los clics. Antes
+            era WhatsApp, que es el camino que consume el tiempo de Dayana por
+            cada persona. Ahora es el diagnóstico, que cualifica solo y deja el
+            correo. WhatsApp baja al final: sigue estando, deja de ser lo
+            primero. */}
         <div className="mt-7 flex w-full flex-col gap-3">
           <Cta
-            href={whatsappHref}
-            icon={<WhatsAppIcon />}
-            title="Escríbeme por WhatsApp"
-            subtitle={WHATSAPP_NUMBER}
-            variant="whatsapp"
-            delay={140}
-          />
-          <Cta
-            href={WHATSAPP_COMMUNITY_URL}
-            icon={<Users className="h-5 w-5" />}
-            title="Comunidad de WhatsApp"
-            subtitle="Únete y acompaña el proceso con otras personas"
+            href="/diagnostico?ref=enlaces"
+            icon={<Compass className="h-5 w-5" />}
+            title="Haz tu diagnóstico"
+            subtitle="2 minutos · sabrás qué te está frenando"
             badge="Gratis"
-            variant="community"
-            delay={180}
+            variant="diagnostico"
+            delay={140}
+            internal
           />
           {webinarActive && (
             <Cta
@@ -399,21 +410,43 @@ const LinktreePage = ({
               }
               badge="Gratis"
               variant="webinar"
-              delay={200}
+              delay={180}
               internal
             />
           )}
         </div>
 
-        <div className="mt-9 w-full">
-          <Row row={TESTIMONIALS_LINK} delay={200} />
+        <div className="mt-9 flex w-full flex-col gap-3">
+          {SECONDARY_LINKS.map((row, i) => (
+            <Row key={row.key} row={row} delay={200 + i * 40} />
+          ))}
+        </div>
+
+        <div className="mt-8 flex w-full flex-col gap-3">
+          <Cta
+            href={WHATSAPP_COMMUNITY_URL}
+            icon={<Users className="h-5 w-5" />}
+            title="Comunidad de WhatsApp"
+            subtitle="Únete y acompaña el proceso con otras personas"
+            badge="Gratis"
+            variant="community"
+            delay={280}
+          />
+          <Cta
+            href={whatsappHref}
+            icon={<WhatsAppIcon />}
+            title="Escríbeme por WhatsApp"
+            subtitle={WHATSAPP_NUMBER}
+            variant="whatsapp"
+            delay={320}
+          />
         </div>
 
         <div className="mt-8 w-full">
           <SectionLabel>Sígueme</SectionLabel>
           <div className="flex flex-col gap-3">
             {SOCIAL_LINKS_LIST.map((row, i) => (
-              <Row key={row.key} row={row} delay={260 + i * 60} />
+              <Row key={row.key} row={row} delay={360 + i * 60} />
             ))}
           </div>
         </div>

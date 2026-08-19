@@ -11,6 +11,12 @@ const STATIC_ROUTES: {
 }[] = [
   { path: "", changeFrequency: "weekly", priority: 1 },
   { path: "/servicios", changeFrequency: "monthly", priority: 0.9 },
+  // El diagnóstico es la entrada principal del embudo; su página de resultado
+  // (/diagnostico/<token>) queda fuera a propósito: lleva datos personales y
+  // se sirve con noindex.
+  { path: "/diagnostico", changeFrequency: "monthly", priority: 0.9 },
+  { path: "/dayana", changeFrequency: "monthly", priority: 0.7 },
+  { path: "/historias", changeFrequency: "monthly", priority: 0.7 },
   { path: "/taller-virtual", changeFrequency: "weekly", priority: 0.8 },
   { path: "/enlaces", changeFrequency: "monthly", priority: 0.3 },
   { path: "/aviso-privacidad", changeFrequency: "yearly", priority: 0.1 },

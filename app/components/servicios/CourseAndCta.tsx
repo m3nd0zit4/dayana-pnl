@@ -169,19 +169,29 @@ const CourseAndCta = ({
             ¿Aún con dudas?
           </p>
           <h2 className="font-[font2] text-5xl lg:text-[7vw] uppercase leading-[0.9] cc-reveal">
-            Hablemos antes
+            Que no lo
             <br />
-            de decidir
+            decida el precio
           </h2>
           <p className="font-[font1] text-base lg:text-xl text-linen/80 mt-6 max-w-xl mx-auto cc-reveal">
-            Escríbenos por WhatsApp y definimos juntas el paquete que mejor se
-            ajusta a tu momento.
+            Ocho preguntas y sabrás qué patrón te está frenando y qué proceso te
+            corresponde. Dos minutos, sin costo y sin hablar con nadie.
           </p>
-          <div className="mt-10 flex justify-center cc-reveal">
+          {/* El CTA final ya no manda a WhatsApp. Era el último eslabón del
+              circuito viejo —catálogo → duda → conversación manual— y era
+              justamente el que había que romper. WhatsApp se queda debajo,
+              como segunda opción para quien de verdad prefiere hablar. */}
+          <div className="mt-10 flex flex-col items-center gap-6 cc-reveal">
+            <Link
+              href="/diagnostico?ref=servicios"
+              className="inline-flex items-center gap-3 rounded-full bg-linen px-9 py-4 font-[font2] text-sm uppercase tracking-[0.15em] text-ink transition-transform duration-300 hover:-translate-y-0.5"
+            >
+              Hacer mi diagnóstico gratis
+              <span aria-hidden>→</span>
+            </Link>
             <WhatsAppButton
               message="Hola Dayana, estoy viendo los paquetes de terapia y me gustaría orientación para elegir."
-              label="Escribir por WhatsApp"
-              size="lg"
+              label="Prefiero hablar por WhatsApp"
             />
           </div>
         </div>

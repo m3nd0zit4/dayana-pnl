@@ -5,46 +5,13 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import { useRef, useState } from "react";
+import { TESTIMONIOS, type Testimonial } from "@/lib/content/testimonios";
 
 gsap.registerPlugin(ScrollTrigger, SplitText);
 
-type Testimonial = {
-  id: number;
-  name: string;
-  excerpt: string;
-  youtubeId: string;
-};
-
-const testimonials: Testimonial[] = [
-  {
-    id: 1,
-    name: "Teresa",
-    excerpt:
-      "Estaba pasando por un momento muy difícil y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante.",
-    youtubeId: "LnumJ4E208Y",
-  },
-  {
-    id: 2,
-    name: "Luz",
-    excerpt:
-      "Llegué en un momento de crisis emocional, pero gracias al proceso con Dayana hoy tengo una visión clara, enfoque y, sobre todo, una armonía que me permite tomar mejores decisiones para mi vida.",
-    youtubeId: "uUqnsYrpXck",
-  },
-  {
-    id: 3,
-    name: "Glenda",
-    excerpt:
-      "He logrado identificar y reprogramar esas ideas limitantes y traumas del pasado que no me dejaban avanzar. Pasé de estar en modo supervivencia a vivir con libertad, consciencia y valentía.",
-    youtubeId: "ccWpOuvL90I",
-  },
-  {
-    id: 4,
-    name: "Nury",
-    excerpt:
-      "A través de estas terapias aprendí a priorizarme y a encontrar una seguridad que no tenía. Me siento mucho más tranquila; ha sido un cambio profundo y favorable para mi bienestar personal.",
-    youtubeId: "KHlVFKENIFw",
-  },
-];
+// Los testimonios viven en lib/content/testimonios.ts: los comparten esta
+// sección, /historias y la página de resultado del diagnóstico.
+const testimonials = TESTIMONIOS;
 
 // One tile per person (no repeats), in a tight 2×2 cluster that sits right
 // above the panel. z = depth/parallax speed.

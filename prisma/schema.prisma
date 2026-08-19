@@ -312,6 +312,7 @@ model Contact {
   conversations          Conversation[]
   channelIdentities      ContactChannelIdentity[]
   webinarRegistrations   WebinarRegistration[]
+  diagnostics            Diagnostic[]
 
   /// Columna de búsqueda plegada: nombre, apellido, display, email y teléfono
   /// (con y sin separadores) en minúsculas y sin tildes.
@@ -431,6 +432,7 @@ model Product {
   courseModules     CourseModule[]
   liveClassSessions LiveClassSession[]
   promoCodes        PromoCodeProduct[]
+  diagnostics       Diagnostic[]
 
   @@index([kind])
   @@map("products")
@@ -1632,4 +1634,69 @@ model LessonComment {
   // escaneaba la tabla de comentarios entera.
   @@index([contactId])
   @@map("lesson_comments")
+}
+
+/// Perfil resuelto por el cuestionario público de `/diagnostico`.
+///
+/// Son tres y no cinco a propósito: el perfil elige **qué se le recomienda**,
+/// no qué paquete existe. Cinco perfiles reproducirían dentro del resultado la
+/// misma parálisis de elección que el catálogo de `/servicios` provoca fuera.
+enum DiagnosticProfile {
+  EXPLORADOR
+  EN_PROCESO
+  RAIZ_PROFUNDA
+}
+
+/// Una sesión del cuestionario público. Es la llamada de ventas codificada:
+/// la persona nombra su dolor, se le devuelve un perfil y **una** oferta.
+///
+/// La fila nace **anónima** en el primer paso y se parchea paso a paso. Eso
+/// da dos cosas que un único POST al final no daría: se puede retomar el
+/// cuestionario, y el abandono es medible por pregunta en vez de ser un
+/// agujero negro. `contactId` sólo se adjunta en el paso final, cuando la
+/// persona entrega sus datos.
+model Diagnostic {
+  id String @id @default(cuid())
+
+  /// Segmento público de la URL del resultado. **No es una frontera de
+  /// confianza** — igual que `?ref=` en `/pago/exito`, sólo lee una fila que
+  /// ya existe. Pero la fila lleva datos personales, así que el token se
+  /// genera con 32 bytes de aleatoriedad real, no con un cuid secuenciable.
+  token String @unique
+
+  contactId String? @map("contact_id")
+
+  /// `{ [questionId]: string | string[] }`. Json y no columnas porque el
+  /// cuestionario es copy editable: añadir una pregunta no debe ser una
+  /// migración. La forma la valida `lib/diagnostico/questions.ts`.
+  answers Json @default("{}")
+
+  profile      DiagnosticProfile?
+  urgencyScore Int?               @map("urgency_score")
+
+  /// Producto recomendado en el momento de completar. Se guarda para poder
+  /// medir qué se recomendó frente a qué se compró; la página de resultado lo
+  /// vuelve a resolver en cada carga, porque el producto puede haberse
+  /// desactivado o quedarse sin precio en la moneda de la región.
+  recommendedProductId String? @map("recommended_product_id")
+
+  /// De dónde llegó: enlaces | home | servicios | webinar | ad.
+  source String?
+
+  completedAt       DateTime? @map("completed_at")
+  viewedResultAt    DateTime? @map("viewed_result_at")
+  checkoutStartedAt DateTime? @map("checkout_started_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  /// `SetNull` en ambos lados: borrar un contacto o retirar un producto no
+  /// puede llevarse por delante la analítica del embudo.
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  product Product? @relation(fields: [recommendedProductId], references: [id], onDelete: SetNull)
+
+  @@index([contactId])
+  /// El panel lista por "completados, lo más reciente primero" y descarta los
+  /// abandonados; sin el orden en el índice eso es un sort en memoria.
+  @@index([completedAt(sort: Desc)])
+  @@map("diagnostics")
 }

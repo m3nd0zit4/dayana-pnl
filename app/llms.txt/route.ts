@@ -29,6 +29,12 @@ export async function GET() {
       ? [`- Curso en vivo — ${formatUsd(coursePlan.amountUsd)}${coursePlan.amountCop != null ? ` / ${formatCop(coursePlan.amountCop)}` : ""}: ${siteUrl}/servicios`]
       : []),
     "",
+    "## Por dónde empezar",
+    "",
+    `- Diagnóstico gratuito (8 preguntas, 2 minutos) — recomienda el proceso que corresponde: ${siteUrl}/diagnostico`,
+    `- Quién es Dayana y cómo trabaja: ${siteUrl}/dayana`,
+    `- Historias reales en vídeo: ${siteUrl}/historias`,
+    "",
     "## Contacto",
     "",
     `- WhatsApp: ${WHATSAPP_NUMBER}`,
