@@ -3,11 +3,13 @@ import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import {
   recordPayment,
   registerWebhookEvent,
+  releaseWebhookEvent,
   resolveEnrollmentFromReference,
 } from "@/lib/crm/payments";
 import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
 import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
+import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
 import { prisma } from "@/lib/db";
@@ -50,10 +52,13 @@ export async function POST(req: NextRequest) {
   const payload = body as {
     id?: string;
     event_type?: string;
+    resource_type?: string;
     resource?: {
       id?: string;
       status?: string;
       custom_id?: string;
+      amount?: { currency_code?: string; value?: string };
+      links?: Array<{ rel?: string; href?: string }>;
       purchase_units?: Array<{
         reference_id?: string;
         payments?: {
@@ -81,18 +86,60 @@ export async function POST(req: NextRequest) {
   const reference =
     resource?.custom_id ??
     resource?.purchase_units?.[0]?.reference_id;
-  const capture = resource?.purchase_units?.[0]?.payments?.captures?.[0];
+  const eventType = payload.event_type ?? "";
+
+  /**
+   * PayPal manda DOS shapes distintos y sólo se leía uno.
+   *
+   * - `CHECKOUT.ORDER.*`: el recurso es la orden y el capture cuelga de
+   *   `purchase_units[0].payments.captures[0]`.
+   * - `PAYMENT.CAPTURE.*`: el recurso ES el capture — `id`, `status` y
+   *   `amount` en la raíz, sin `purchase_units`.
+   *
+   * La cuenta está suscrita a los `PAYMENT.CAPTURE.*`, así que leer sólo el
+   * primer shape hacía que cada cobro saliera por `skipped`. El webhook existe
+   * para cuando la clienta no vuelve a la web; sin esto, no cubría nada.
+   */
+  const nestedCapture = resource?.purchase_units?.[0]?.payments?.captures?.[0];
+  const resourceIsCapture =
+    payload.resource_type === "capture" || eventType.startsWith("PAYMENT.CAPTURE.");
+
+  /**
+   * En un reembolso el recurso es el REFUND, no el capture: su `id` es otro.
+   * El capture original viene en `links[rel="up"]`, y es el que hay que marcar
+   * REFUNDED para que cuadre con la fila que ya existe en el CRM.
+   */
+  const captureIdFromLinks = resource?.links
+    ?.find((l) => l.rel === "up" && (l.href ?? "").includes("/captures/"))
+    ?.href?.split("/captures/")[1]
+    ?.split(/[/?]/)[0];
+
+  const isRefund = eventType.endsWith(".REFUNDED");
+
+  const capture =
+    nestedCapture ??
+    (resourceIsCapture && (isRefund ? captureIdFromLinks : resource?.id)
+      ? {
+          id: isRefund ? captureIdFromLinks! : resource!.id!,
+          status: resource?.status,
+          amount: resource?.amount,
+        }
+      : undefined);
 
   if (!reference || !capture?.id) {
     return NextResponse.json({ ok: true, skipped: true });
   }
 
+  const refunded = isRefund || capture.status === "REFUNDED";
   const approved =
-    capture.status === "COMPLETED" ||
-    resource?.status === "COMPLETED";
+    !refunded &&
+    (capture.status === "COMPLETED" || resource?.status === "COMPLETED");
   const failed =
     capture.status === "DECLINED" ||
     capture.status === "FAILED" ||
+    capture.status === "DENIED" ||
+    eventType.endsWith(".DENIED") ||
+    eventType.endsWith(".DECLINED") ||
     resource?.status === "VOIDED";
 
   const amountValue = Number(capture.amount?.value ?? 0);
@@ -102,12 +149,85 @@ export async function POST(req: NextRequest) {
 
   try {
     if (checkout) {
+      /**
+       * Reembolso de un cobro ya registrado. Se busca por `providerPaymentId`
+       * (el capture original, sacado de `links[rel="up"]`) y se marca REFUNDED
+       * sobre la MISMA fila, sin crear una nueva ni tocar la matrícula —
+       * `recordPayment` decide qué hacer con ella.
+       */
+      if (refunded) {
+        const existing = await prisma.payment.findUnique({
+          where: {
+            provider_providerPaymentId: {
+              provider: PaymentProvider.PAYPAL,
+              providerPaymentId: capture.id,
+            },
+          },
+          select: { enrollmentId: true, currency: true, amountMinor: true },
+        });
+        if (!existing) {
+          return NextResponse.json({ ok: true, refund_payment_not_found: true });
+        }
+        await recordPayment({
+          enrollmentId: existing.enrollmentId,
+          provider: PaymentProvider.PAYPAL,
+          providerPaymentId: capture.id,
+          status: PaymentStatus.REFUNDED,
+          currency: existing.currency,
+          amountMinor: existing.amountMinor,
+          rawPayload: payload,
+        });
+        return NextResponse.json({ ok: true, refunded: true });
+      }
+
+      /**
+       * Cobro rechazado (`PAYMENT.CAPTURE.DENIED`/`DECLINED`). Antes salía por
+       * `skipped_unpaid` sin dejar rastro; ahora se registra FAILED, que es lo
+       * que libera la matrícula placeholder en `recordPayment`.
+       */
+      if (failed) {
+        const enrollmentIdForFail = await prisma.enrollment
+          .findFirst({
+            where: {
+              contactId: checkout.contactId,
+              productId: checkout.planId,
+              status: "PENDING_PAYMENT",
+            },
+            orderBy: { createdAt: "desc" },
+            select: { id: true },
+          })
+          .then((e) => e?.id);
+        if (enrollmentIdForFail) {
+          await recordPayment({
+            enrollmentId: enrollmentIdForFail,
+            provider: PaymentProvider.PAYPAL,
+            providerPaymentId: capture.id,
+            providerOrderId: resource?.id,
+            status: PaymentStatus.FAILED,
+            currency: capture.amount?.currency_code ?? "USD",
+            amountMinor,
+            rawPayload: payload,
+            payerEmail: payer.email,
+          });
+        }
+        return NextResponse.json({ ok: true, failed: true });
+      }
+
       if (!approved) {
         return NextResponse.json({ ok: true, skipped_unpaid: true });
       }
 
+      // Mismo tratamiento que en `capture-order`: el contacto puede ser el
+      // temporal del checkout sin formulario. Se completa ANTES de matricular
+      // para no crear una segunda ficha cuando ya existe una con ese email
+      // (`Contact.email` es @unique).
+      const paidContactId = await reconcilePendingCheckoutContact(
+        checkout.contactId,
+        payer
+      );
+
       const enrollmentId = await fulfillCheckoutPayment({
-        contactId: checkout.contactId,
+        contactId: paidContactId,
         productId: checkout.planId,
         provider: PaymentProvider.PAYPAL,
         providerPaymentId: capture.id,
@@ -120,7 +240,7 @@ export async function POST(req: NextRequest) {
         payerEmail: payer.email,
       });
 
-      await enrichContactFromPayer(checkout.contactId, payer);
+      await enrichContactFromPayer(paidContactId, payer);
 
       return NextResponse.json({ ok: true, enrollmentId });
     }
@@ -161,6 +281,18 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("[webhook paypal]", e);
     const message = e instanceof Error ? e.message : String(e);
+
+    /**
+     * Suelta la reclamación de idempotencia ANTES de devolver 500.
+     *
+     * `registerWebhookEvent` marca el evento nada más entrar. Si el handler
+     * falla y la marca se queda puesta, el reintento de PayPal entra, se ve a
+     * sí mismo como duplicado y sale sin hacer nada: un fallo transitorio de
+     * base de datos convierte un cobro real en un pago que no se registra
+     * jamás, y en el panel de PayPal queda como entrega fallida para siempre.
+     * Es seguro porque el alta es idempotente por id de cobro.
+     */
+    await releaseWebhookEvent(PaymentProvider.PAYPAL, eventId);
     fireAuditLog({
       action: "WEBHOOK_FAILED",
       entityType: "WebhookEvent",

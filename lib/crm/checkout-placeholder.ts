@@ -12,6 +12,79 @@ export const isPlaceholderContactPhone = (phone: string): boolean =>
   phone.startsWith(PLACEHOLDER_PHONE_PREFIX);
 
 /**
+ * Contacto temporal para el checkout sin formulario previo (Lemon Squeezy).
+ *
+ * LS es merchant of record y recoge email, nombre y dirección de facturación
+ * por obligación fiscal, así que pedirlos otra vez antes de pagar sólo resta
+ * conversión. Se crea un contacto con teléfono `+pending:<uuid>` para que la
+ * referencia del checkout (`chk:<contactId>:<planId>`) siga funcionando igual
+ * que con PayPal y Mercado Pago, y el webhook lo completa con los datos reales.
+ *
+ * Los contactos con este prefijo quedan fuera de listas del CRM, estadísticas
+ * y del hash de Meta CAPI, y `abandonCheckoutEnrollment` los barre si nunca
+ * llegan a pagar.
+ */
+export const createPendingCheckoutContact = async (
+  planId: string
+): Promise<string> => {
+  const contact = await prisma.contact.create({
+    data: {
+      phoneE164: `${PLACEHOLDER_PHONE_PREFIX}:${crypto.randomUUID()}`,
+      firstName: "Pendiente",
+      sourceDetail: `checkout:${planId}`,
+    },
+    select: { id: true },
+  });
+  return contact.id;
+};
+
+/**
+ * Completa un contacto temporal con lo que el proveedor de pago reportó.
+ *
+ * Si ya existe un contacto REAL con ese email, gana ese y el temporal se
+ * borra: de lo contrario `Contact.email` es `@unique` y el update reventaría,
+ * o peor, quedarían dos fichas para la misma persona. Devuelve el id que debe
+ * usarse para matricular.
+ */
+export const reconcilePendingCheckoutContact = async (
+  pendingContactId: string,
+  data: { email?: string; firstName?: string; lastName?: string }
+): Promise<string> => {
+  const pending = await prisma.contact.findUnique({
+    where: { id: pendingContactId },
+    select: { id: true, phoneE164: true },
+  });
+  if (!pending) return pendingContactId;
+  if (!isPlaceholderContactPhone(pending.phoneE164)) return pending.id;
+
+  const email = data.email?.trim().toLowerCase() || undefined;
+
+  if (email) {
+    const existing = await prisma.contact.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (existing && existing.id !== pending.id) {
+      await prisma.contact.delete({ where: { id: pending.id } }).catch(() => {
+        // Sin matrícula todavía no debería fallar; si falla, el temporal se
+        // queda huérfano y lo barre la limpieza nocturna.
+      });
+      return existing.id;
+    }
+  }
+
+  await prisma.contact.update({
+    where: { id: pending.id },
+    data: {
+      ...(email ? { email } : {}),
+      ...(data.firstName?.trim() ? { firstName: data.firstName.trim() } : {}),
+      ...(data.lastName?.trim() ? { lastName: data.lastName.trim() } : {}),
+    },
+  });
+  return pending.id;
+};
+
+/**
  * Removes abandoned checkout: placeholder contact + PENDING_PAYMENT enrollment.
  * Safe no-op when payment already approved or contact is real.
  */
@@ -24,8 +97,16 @@ export const abandonCheckoutEnrollment = async (
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: enrollmentId },
     include: {
-      contact: { select: { id: true, phoneE164: true } },
-      payments: { where: { status: PaymentStatus.APPROVED }, take: 1 },
+      contact: { select: { id: true, phoneE164: true, email: true } },
+      /**
+       * Cualquier pago que NO esté rechazado bloquea el borrado, no sólo el
+       * aprobado. Un PSE queda PENDING minutos y uno en efectivo días: con el
+       * filtro anterior la barrida de 24 h borraba la matrícula, y con ella
+       * —en cascada— la fila PENDING y hasta el contacto. Cuando Mercado Pago
+       * mandaba después el `approved`, la referencia apuntaba a un contacto
+       * inexistente: dinero cobrado y ni rastro en el CRM.
+       */
+      payments: { where: { status: { not: PaymentStatus.FAILED } }, take: 1 },
     },
   });
 
@@ -38,7 +119,22 @@ export const abandonCheckoutEnrollment = async (
   }
 
   if (enrollment.payments.length > 0) {
-    return { abandoned: false, reason: "payment_approved" };
+    return { abandoned: false, reason: "payment_in_flight" };
+  }
+
+  /**
+   * Intento de pago rechazado de alguien identificable.
+   *
+   * El teléfono sigue siendo `+pending:` —lo pide `/pago/exito`, y a ese paso
+   * no llegó— pero el proveedor sí reportó su email, así que no es un checkout
+   * abandonado sino una clienta que INTENTÓ pagar y no pudo. Borrarlo era
+   * tirar exactamente el caso que hay que revisar y devolver la llamada.
+   */
+  const rejected = await prisma.payment.count({
+    where: { enrollmentId, status: PaymentStatus.FAILED },
+  });
+  if (rejected > 0 && enrollment.contact.email) {
+    return { abandoned: false, reason: "failed_attempt_with_contact" };
   }
 
   if (
@@ -83,7 +179,9 @@ export const abandonStalePlaceholderCheckouts = async (): Promise<number> => {
       status: EnrollmentStatus.PENDING_PAYMENT,
       createdAt: { lt: cutoff },
       contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } },
-      payments: { none: { status: PaymentStatus.APPROVED } },
+      // Mismo criterio que `abandonCheckoutEnrollment`: un pago pendiente es
+      // un pago en curso, no un checkout abandonado.
+      payments: { none: { status: { not: PaymentStatus.FAILED } } },
     },
     select: { id: true },
     take: 100,

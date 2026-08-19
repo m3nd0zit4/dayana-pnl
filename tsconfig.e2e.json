@@ -1,0 +1,15 @@
+{
+  // Sólo para el harness de pagos de Playwright.
+  //
+  // Las pruebas de estados de Mercado Pago importan `lib/crm/*` directamente, y
+  // esa cadena usa el alias `@/`. El transformador de Playwright necesita
+  // `baseUrl` para resolverlo; el tsconfig del proyecto no lo lleva y Next no
+  // lo necesita, así que se añade aquí en lugar de tocarlo.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  }
+}

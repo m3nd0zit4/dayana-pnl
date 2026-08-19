@@ -1,4 +1,4 @@
-import { EnrollmentStatus, ProductKind } from "@prisma/client";
+import { EnrollmentStatus, PaymentStatus, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { createEnrollment } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
@@ -52,9 +52,27 @@ export const fulfillCheckoutPayment = async (
         providerPaymentId: input.providerPaymentId,
       },
     },
-    select: { enrollmentId: true },
+    select: { enrollmentId: true, status: true },
   });
-  if (existing) return existing.enrollmentId;
+
+  /**
+   * Ya existe fila para este cobro. Si estaba PENDING —el PSE o el efectivo
+   * que Mercado Pago avisa dos veces— NO se puede salir por aquí: hay que
+   * dejar que `recordPayment` la suba a APPROVED y active la matrícula. Salir
+   * antes dejaba el pago congelado en pendiente con el dinero ya cobrado.
+   *
+   * Con la fila ya en estado final, sí es un reenvío y se devuelve tal cual.
+   */
+  if (existing && existing.status !== PaymentStatus.PENDING) {
+    return existing.enrollmentId;
+  }
+  if (existing) {
+    const { contactId: _pc, productId: _pp, promoCodeRedemption: promo, ...rest } =
+      input;
+    await recordPayment({ ...rest, enrollmentId: existing.enrollmentId });
+    await redeemIfPresent(existing.enrollmentId, input.currency, promo);
+    return existing.enrollmentId;
+  }
 
   const { contactId: _c, productId: _p, promoCodeRedemption, ...paymentInput } = input;
 

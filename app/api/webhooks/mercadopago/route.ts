@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { PaymentProvider } from "@prisma/client";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { registerWebhookEvent } from "@/lib/crm/payments";
+import {
+  registerWebhookEvent,
+  releaseWebhookEvent,
+} from "@/lib/crm/payments";
 import { syncMercadoPagoPayment } from "@/lib/crm/mercadopago-payments";
 import {
   emitPlatformNotification,
@@ -77,6 +80,11 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.error("[webhook mercadopago]", e);
       const message = e instanceof Error ? e.message : String(e);
+
+      // La respuesta 200 ya salió, así que MP no reintenta ESTE aviso; pero sí
+      // manda más por el mismo pago. Soltar la marca deja que el siguiente
+      // haga el trabajo en lugar de descartarse como duplicado.
+      await releaseWebhookEvent(PaymentProvider.MERCADO_PAGO, eventId);
       fireAuditLog({
         action: "WEBHOOK_FAILED",
         entityType: "WebhookEvent",

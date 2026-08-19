@@ -15,6 +15,8 @@ const PROVIDER_LABEL: Record<PaymentProvider, string> = {
   PAYPAL: "PayPal",
   MERCADO_PAGO: "Mercado Pago",
   MANUAL: "Registro manual",
+  STRIPE: "Stripe",
+  LEMON_SQUEEZY: "Lemon Squeezy",
 };
 
 const contactName = (contact: {
@@ -193,6 +195,22 @@ export const registerWebhookEvent = async (
   } catch {
     return false;
   }
+};
+
+/**
+ * Releases the idempotency claim taken by `registerWebhookEvent` so the
+ * provider's retry actually re-runs the handler. Only call this when the
+ * handler failed: fulfilment is idempotent per provider payment id, so a
+ * re-run is safe, whereas keeping the claim would turn a transient DB blip
+ * into a payment that is never recorded.
+ */
+export const releaseWebhookEvent = async (
+  provider: PaymentProvider,
+  eventId: string
+): Promise<void> => {
+  await prisma.webhookEvent
+    .deleteMany({ where: { provider, eventId } })
+    .catch(() => undefined);
 };
 
 export const resolveEnrollmentFromReference = async (
