@@ -43,6 +43,8 @@ export const extractPayPalPayer = (payload: unknown): PayPalPayerInfo => {
      * dirección de facturación viajan en `payment_source.card`.
      */
     payment_source?: {
+      /** Camino moderno: sustituye al `payer` deprecado. */
+      paypal?: PayerShape;
       card?: {
         name?: string;
         billing_address?: { country_code?: string };
@@ -54,7 +56,18 @@ export const extractPayPalPayer = (payload: unknown): PayPalPayerInfo => {
     }>;
   };
 
-  const payer = p.payer ?? p.purchase_units?.[0]?.payments?.captures?.[0]?.payer;
+  /**
+   * `payer` está DEPRECADO por PayPal: sus datos viven ahora en
+   * `payment_source.paypal`. Hoy llegan los dos en la respuesta, pero leer
+   * sólo el viejo dejaría de funcionar el día que lo retiren, y el fallo sería
+   * silencioso — pagos correctos con la ficha en blanco. Se prefiere el nuevo
+   * y se cae al antiguo.
+   */
+  const wallet = p.payment_source?.paypal;
+  const payer =
+    wallet ??
+    p.payer ??
+    p.purchase_units?.[0]?.payments?.captures?.[0]?.payer;
 
   if (!payer) {
     // Camino de tarjeta sin cuenta: se rescata lo poco que sí viene.

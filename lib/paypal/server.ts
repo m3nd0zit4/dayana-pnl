@@ -136,6 +136,16 @@ export const createPayPalOrderRequest = async (
              * y enseña el login igual.
              */
             landing_page: "GUEST_CHECKOUT",
+            /**
+             * Pide a PayPal los datos de contacto de la compradora.
+             *
+             * Sin esto no devuelve el teléfono: se comprobó con un pago real
+             * de tarjeta —la compradora lo escribió en el formulario de PayPal
+             * y el payload volvió sin ningún campo `phone`—. El teléfono es
+             * por donde Dayana coordina las sesiones, así que es el dato que
+             * más falta hace y el único que ningún proveedor garantiza.
+             */
+            contact_preference: "UPDATE_CONTACT_INFO",
             // Sin `locale` fijo: este rail atiende a TODO EL MUNDO MENOS
             // Colombia (las colombianas van por Mercado Pago), así que forzar
             // `es-CO` le daba castellano de Colombia a compradoras de México,
