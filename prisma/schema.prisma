@@ -393,6 +393,13 @@ model Product {
   /// reciente se muestra en la web: escribir ahí el importe con comisión
   /// inflaría el precio de cara a la clienta.
   paypalPlanId    String? @unique @map("paypal_plan_id")
+
+  /// Plan de suscripción (preapproval_plan) de Mercado Pago, en COP. Mismo
+  /// criterio que `paypalPlanId`: el importe lleva el gross-up ya aplicado
+  /// porque el plan cobra una cifra fija. OJO — el cobro recurrente de MP sólo
+  /// funciona con TARJETA: ni PSE, ni Nequi, ni efectivo. Por eso en Colombia
+  /// conviven la suscripción y el pago suelto.
+  mercadoPagoPreapprovalPlanId String? @unique @map("mercadopago_preapproval_plan_id")
   /// Managed Payments (Stripe/Link como merchant of record) para este producto.
   /// Solo productos 100% digitales sin intervención humana son elegibles, así
   /// que esto NO se deriva de `kind` en tiempo de checkout: se sella aquí al
@@ -599,6 +606,11 @@ model Enrollment {
   /// acceso lo decide `paidUntil`, no esto — cancelar detiene la renovación,
   /// no el mes ya pagado.
   subscriptionStatus   SubscriptionStatus? @map("subscription_status")
+  /// Suscripción de Mercado Pago (preapproval) que renueva esta matrícula.
+  mercadoPagoPreapprovalId String?         @unique @map("mercadopago_preapproval_id")
+  /// Quién cobra la renovación. Lo necesita el portal para saber a qué API
+  /// pedir la cancelación.
+  subscriptionProvider PaymentProvider?    @map("subscription_provider")
   leadAt             DateTime?        @map("lead_at")
   paidAt             DateTime?        @map("paid_at")
   completedAt        DateTime?        @map("completed_at")

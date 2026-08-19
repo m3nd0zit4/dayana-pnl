@@ -147,8 +147,12 @@ test.describe("PayPal · webhook", () => {
    * `registerWebhookEvent` marca el evento al entrar. Si el handler falla, la
    * marca se quedaba puesta y el reintento salía por "duplicado" sin hacer
    * nada: el cobro no se registraba nunca y PayPal seguía reintentando contra
-   * un no-op. Aquí se provoca el fallo con una referencia que apunta a un
-   * contacto inexistente, y luego se reintenta el MISMO evento ya válido.
+   * un no-op.
+   *
+   * El fallo se provoca con un PRODUCTO inexistente. Antes se usaba un contacto
+   * inexistente, pero eso ya no falla a propósito: una ficha borrada se
+   * reconstruye desde los datos del pagador, porque un cobro hecho hay que
+   * registrarlo igual.
    */
   test("tras un fallo, el reintento del mismo evento sí registra el pago", async ({
     baseURL,
@@ -159,7 +163,7 @@ test.describe("PayPal · webhook", () => {
 
     const roto = await postPayPalWebhook(baseURL!, {
       eventType: "PAYMENT.CAPTURE.COMPLETED",
-      reference: "chk:contacto-que-no-existe:therapy-1",
+      reference: "chk:contacto-que-no-existe:producto-que-no-existe",
       captureId,
       shape: "capture",
       eventId,
@@ -325,6 +329,48 @@ test.describe("Recompra · el CRM no puede rechazar dinero ya cobrado", () => {
       await paymentsFor(cap2),
       "la segunda compra se perdió: dinero cobrado y nada en el CRM"
     ).toHaveLength(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe("Contacto · la referencia puede apuntar a una ficha borrada", () => {
+  test("si el contacto de la referencia ya no existe, el pago se registra igual", async ({
+    baseURL,
+  }) => {
+    /**
+     * El temporal puede desaparecer entre el checkout y el webhook: lo barre la
+     * limpieza nocturna, o se borra al resolver una colisión de email. El
+     * webhook llega después — a veces días después con un pago en efectivo.
+     *
+     * Antes reventaba con una violación de clave foránea y el pago se perdía.
+     * Pasó en producción con un cobro real de 599.68 USD.
+     */
+    const chk = await createCheckout(baseURL!, "paypal", "therapy-1");
+    const captureId = nextProviderId("CAP");
+    const email = testEmail("contacto.fantasma");
+
+    // Se borra el contacto: la referencia queda apuntando a la nada.
+    await db.contact.delete({ where: { id: chk.contactId! } });
+
+    const r = await postPayPalWebhook(baseURL!, {
+      eventType: "PAYMENT.CAPTURE.COMPLETED",
+      reference: chk.checkoutReference!,
+      captureId,
+      shape: "capture",
+      payerEmail: email,
+      payerFirst: "Fantasma",
+    });
+
+    expect(r.status, "el webhook falló sobre un cobro real").toBe(200);
+    const pagos = await db.payment.findMany({
+      where: { providerPaymentId: captureId },
+      include: { enrollment: { include: { contact: true } } },
+    });
+    expect(
+      pagos,
+      "el pago se perdió porque su contacto había desaparecido"
+    ).toHaveLength(1);
+    expect(pagos[0].enrollment.contact.email).toBe(email);
   });
 });
 

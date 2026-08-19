@@ -48,6 +48,45 @@ export const createPendingCheckoutContact = async (
  * o peor, quedarían dos fichas para la misma persona. Devuelve el id que debe
  * usarse para matricular.
  */
+/**
+ * Reconstruye un contacto cuando el de la referencia ya no está.
+ *
+ * Prefiere la ficha existente con ese email; si no hay ninguna, crea una nueva
+ * con teléfono temporal — el mismo que `/pago/exito` pide después y que
+ * `PAYMENT_CONTACT_INCOMPLETE` marca para perseguir.
+ */
+const resurrectContactFromPayer = async (data: {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  countryIso?: string;
+}): Promise<string> => {
+  const email = data.email?.trim().toLowerCase() || undefined;
+
+  if (email) {
+    const existing = await prisma.contact.findUnique({
+      where: { email },
+      select: { id: true },
+    });
+    if (existing) return existing.id;
+  }
+
+  const contact = await prisma.contact.create({
+    data: {
+      phoneE164: `${PLACEHOLDER_PHONE_PREFIX}:${crypto.randomUUID()}`,
+      firstName: data.firstName?.trim() || "Pendiente",
+      ...(data.lastName?.trim() ? { lastName: data.lastName.trim() } : {}),
+      ...(email ? { email } : {}),
+      ...(data.countryIso
+        ? { countryIso: data.countryIso.trim().toUpperCase().slice(0, 2) }
+        : {}),
+      sourceDetail: "pago recuperado sin contacto",
+    },
+    select: { id: true },
+  });
+  return contact.id;
+};
+
 export const reconcilePendingCheckoutContact = async (
   pendingContactId: string,
   data: {
@@ -64,7 +103,24 @@ export const reconcilePendingCheckoutContact = async (
     where: { id: pendingContactId },
     select: { id: true, phoneE164: true },
   });
-  if (!pending) return pendingContactId;
+
+  /**
+   * El contacto de la referencia ya no existe.
+   *
+   * Pasa de verdad: el temporal lo puede haber barrido la limpieza nocturna, o
+   * haberse borrado al resolver una colisión de email en un intento anterior.
+   * La referencia es un puntero a una fila que puede desaparecer, y el webhook
+   * llega después — a veces días después, si el pago fue en efectivo.
+   *
+   * Antes se devolvía el id muerto y `createEnrollment` reventaba con una
+   * violación de clave foránea: pago cobrado, nada en el CRM. Costó un cobro
+   * real de 599.68 USD. Un pago capturado hay que registrarlo sí o sí, así que
+   * se reconstruye el contacto con lo que reporta el pagador.
+   */
+  if (!pending) {
+    return resurrectContactFromPayer(data);
+  }
+
   if (!isPlaceholderContactPhone(pending.phoneE164)) return pending.id;
 
   const email = data.email?.trim().toLowerCase() || undefined;
