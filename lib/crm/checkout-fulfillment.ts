@@ -101,6 +101,10 @@ export const fulfillCheckoutPayment = async (
     contactId: input.contactId,
     productId: input.productId,
     status: EnrollmentStatus.ACTIVE,
+    // El dinero ya está capturado: registrar es obligatorio, no opcional. Las
+    // reglas de "una terapia activa por contacto" y "sin duplicados
+    // pendientes" son higiene del panel y no pueden rechazar un cobro hecho.
+    paidPurchase: true,
   });
 
   try {

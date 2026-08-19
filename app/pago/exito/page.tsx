@@ -48,6 +48,8 @@ type SearchParams = {
   ref?: string;
   /** Retorno de PayPal por redirección (/api/paypal/return). */
   paypal?: string;
+  /** Alta de suscripción de PayPal — `suscripcion=1` + la referencia. */
+  suscripcion?: string;
   plan?: string;
 };
 
@@ -114,6 +116,22 @@ const resolveReturn = (params: SearchParams): Resolved => {
       status: "unknown",
       planId,
       refLabel: ref ? String(ref) : undefined,
+    };
+  }
+
+  /**
+   * Alta de suscripción de PayPal. Vuelve sólo con la referencia, igual que
+   * Lemon Squeezy: el cobro lo confirma `PAYMENT.SALE.COMPLETED` por webhook,
+   * que puede llegar en segundos. Sin esta rama caía en "unknown" y la pantalla
+   * decía "no pudimos recuperar el detalle" sobre una suscripción que SÍ quedó
+   * activa y cobrada — que es exactamente lo que pasó en la primera prueba.
+   */
+  if (params.suscripcion === "1" && params.ref) {
+    const checkout = parseCheckoutReference(params.ref);
+    return {
+      status: "processing",
+      planId:
+        checkout && isPlanId(checkout.planId) ? checkout.planId : undefined,
     };
   }
 
@@ -187,16 +205,22 @@ const Page = async ({ searchParams }: PageProps) => {
   // Lemon Squeezy: el webhook firmado es la única fuente de verdad, así que
   // aquí sólo se comprueba si YA llegó. `ref` no es frontera de confianza —
   // sólo lee una matrícula que el webhook verificado creó, nunca la concede.
-  let lemonSqueezyEnrollmentId: string | undefined;
-  if (params.ls === "1" && params.ref) {
+  /**
+   * Conciliación por referencia: vale igual para Lemon Squeezy y para el alta
+   * de suscripción de PayPal. Si la matrícula ya existe, el webhook llegó y la
+   * compra está cerrada; si no, se queda en "en proceso" — nunca en "falló",
+   * porque no saber todavía no es lo mismo que haber fallado.
+   */
+  let referenceEnrollmentId: string | undefined;
+  if ((params.ls === "1" || params.suscripcion === "1") && params.ref) {
     const checkout = parseCheckoutReference(params.ref);
     if (checkout) {
-      lemonSqueezyEnrollmentId =
+      referenceEnrollmentId =
         (await findEnrollmentForCheckout(
           checkout.contactId,
           checkout.planId
         ).catch(() => null)) ?? undefined;
-      if (lemonSqueezyEnrollmentId) {
+      if (referenceEnrollmentId) {
         result = { ...result, status: "succeeded" };
       }
       // Si aún no está, queda "processing": el webhook viene en camino.
@@ -265,7 +289,7 @@ const Page = async ({ searchParams }: PageProps) => {
 
   let enrollmentId =
     stripeEnrollmentId ??
-    lemonSqueezyEnrollmentId ??
+    referenceEnrollmentId ??
     (params.enrollmentId && !isCheckoutReference(params.enrollmentId)
       ? params.enrollmentId
       : undefined);

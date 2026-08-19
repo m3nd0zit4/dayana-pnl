@@ -205,6 +205,14 @@ enum LessonContentType {
 /// Catálogo de eventos de la plataforma. La etiqueta, la descripción y los
 /// valores por defecto viven en lib/notifications/platform/catalog.ts — este
 /// enum solo garantiza integridad referencial.
+/// Estado de una suscripción recurrente, tal como lo reporta el proveedor.
+enum SubscriptionStatus {
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+  EXPIRED
+}
+
 enum NotificationEventType {
   // Pagos y ventas
   PAYMENT_APPROVED
@@ -213,6 +221,9 @@ enum NotificationEventType {
   MANUAL_PAYMENT_RECORDED
   PAYMENT_WEBHOOK_FAILED
   PAYMENT_CONTACT_INCOMPLETE
+  SUBSCRIPTION_STARTED
+  SUBSCRIPTION_PAYMENT_FAILED
+  SUBSCRIPTION_CANCELLED
   // Embudo e inscripciones
   LEAD_CREATED
   WEB_LEAD_SUBMITTED
@@ -370,6 +381,18 @@ model Product {
   /// para la mensualidad. Una compra de suscripción dispara AMBOS, así que sin
   /// esta bandera se grabarían dos pagos y se regalaría un mes de más.
   lemonSqueezySubscription Boolean @default(false) @map("lemon_squeezy_subscription")
+
+  /// Espejo del Product de PayPal, escrito por scripts/paypal/setup-subscription.ts.
+  paypalProductId String? @unique @map("paypal_product_id")
+  /// Billing Plan mensual de PayPal. Lleva el gross-up de comisión YA aplicado
+  /// (lib/pricing/fees.ts): los planes cobran un importe fijo, no uno calculado
+  /// por petición como hacen create-order y Mercado Pago. Cambiar
+  /// PAYPAL_FEE_PERCENT obliga a re-ejecutar el script y crear un plan nuevo,
+  /// porque PayPal no deja borrar planes, sólo desactivarlos. Vive aquí y NO en
+  /// ProductPrice, que es el histórico de precios PÚBLICOS y cuya fila más
+  /// reciente se muestra en la web: escribir ahí el importe con comisión
+  /// inflaría el precio de cara a la clienta.
+  paypalPlanId    String? @unique @map("paypal_plan_id")
   /// Managed Payments (Stripe/Link como merchant of record) para este producto.
   /// Solo productos 100% digitales sin intervención humana son elegibles, así
   /// que esto NO se deriva de `kind` en tiempo de checkout: se sella aquí al
@@ -568,6 +591,14 @@ model Enrollment {
   amountMinor        Int?             @map("amount_minor")
   externalRef        String?          @map("external_ref")
   paidUntil          DateTime?        @map("paid_until")
+  /// Suscripción de PayPal que renueva esta matrícula. Es la clave por la que
+  /// se resuelve cada cobro recurrente: `PAYMENT.SALE.COMPLETED` trae
+  /// `billing_agreement_id` y NO garantiza propagar el `custom_id`.
+  paypalSubscriptionId String?             @unique @map("paypal_subscription_id")
+  /// Último estado reportado por PayPal. Es informativo para el portal: el
+  /// acceso lo decide `paidUntil`, no esto — cancelar detiene la renovación,
+  /// no el mes ya pagado.
+  subscriptionStatus   SubscriptionStatus? @map("subscription_status")
   leadAt             DateTime?        @map("lead_at")
   paidAt             DateTime?        @map("paid_at")
   completedAt        DateTime?        @map("completed_at")

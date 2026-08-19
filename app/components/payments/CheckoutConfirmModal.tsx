@@ -123,11 +123,58 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
       : `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
   };
 
+  /**
+   * La mensualidad se cobra sola: en PayPal se da de alta como suscripción
+   * recurrente en vez de como cobro suelto. Mercado Pago sigue con el cobro
+   * puntual hasta que su `preapproval` esté verificado para esta cuenta.
+   */
+  const isMembership = plan.kind === "course";
+  const subscribes = isMembership && provider === "paypal";
+
   const go = async (funding?: PayPalFunding) => {
+    /**
+     * Código escrito pero sin pulsar "Aplicar".
+     *
+     * Antes se mandaba `promo` —lo YA aplicado— así que quien tecleaba el cupón
+     * y le daba directo a pagar acababa pagando el precio entero con el código
+     * a la vista en el campo. Silencioso y caro. Ahora se cotiza primero con lo
+     * escrito: si vale, se aplica y se cobra con descuento; si no, se avisa y
+     * no se sale de la pantalla.
+     */
+    const draft = promoDraft.trim();
+    let code = promo;
+
+    if (draft && draft !== promo) {
+      setUi({ kind: "redirecting" });
+      try {
+        const res = await fetch("/api/payments/quote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ planId, provider, promoCode: draft }),
+        });
+        const data = (await res.json()) as Quote;
+        if (res.ok && !data.promoCodeError) {
+          setQuote(data);
+          setPromo(draft);
+          code = draft;
+        } else {
+          // Inválido: se muestra el error junto al campo, sin tapar el modal,
+          // para que pueda corregirlo o seguir sin él.
+          setQuote((q) => (q ? { ...q, promoCodeError: "invalid" } : q));
+          setUi({ kind: "ready" });
+          return;
+        }
+      } catch {
+        setUi({ kind: "error", message: "Error de red. Intenta de nuevo." });
+        return;
+      }
+    }
+
     setUi({ kind: "redirecting" });
     const failure = await startCheckout(provider, plan.id, {
-      promoCode: promo,
+      promoCode: code,
       funding,
+      subscribe: subscribes,
     });
     if (failure) setUi({ kind: "error", message: failure });
   };
@@ -194,7 +241,7 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
             nunca acepta nada hace dudar de que el precio sea el correcto y
             manda a buscar cupones fuera en vez de terminar la compra.
           */}
-          {quote?.promoAvailable !== false && (
+          {quote?.promoAvailable !== false && !subscribes && (
           <div className="mb-3">
             <label
               htmlFor="chk-promo"
@@ -244,7 +291,42 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
             perdía la venta. Mercado Pago no se parte: su checkout ya ofrece
             todos los medios en una sola pantalla.
           */}
-          {provider === "paypal" ? (
+          {subscribes ? (
+            <div className="space-y-2.5">
+              {/*
+                También en la mensualidad la tarjeta va primero: PayPal ofrece
+                "añadir tarjeta" dentro de su flujo, así que quien no tiene
+                cuenta puede domiciliar igual.
+              */}
+              <button
+                type="button"
+                disabled={ui.kind === "redirecting"}
+                onClick={() => void go("card")}
+                className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-full bg-[#141118] px-4 py-3.5 font-[font2] text-[12px] uppercase tracking-[0.28em] text-linen shadow-[0_8px_20px_rgba(20,17,24,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_14px_28px_rgba(20,17,24,0.26)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141118] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                <CardGlyph />
+                {ui.kind === "redirecting"
+                  ? "Abriendo el pago seguro…"
+                  : "Suscribirme con tarjeta"}
+              </button>
+
+              <button
+                type="button"
+                disabled={ui.kind === "redirecting"}
+                onClick={() => void go("wallet")}
+                aria-label="Suscribirme con mi cuenta de PayPal"
+                className="flex w-full cursor-pointer items-center justify-center rounded-full border border-[#b8daf3] bg-gradient-to-b from-white via-[#f8fbff] to-[#e9f4fc] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#009cde] hover:shadow-[0_12px_26px_rgba(0,48,135,0.16)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#009cde] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+              >
+                <PayPalWordmark tone="onLight" className="text-[19px]" />
+              </button>
+
+              <p className="pt-0.5 text-center font-[font1] text-[10px] leading-relaxed text-black/45">
+                Se cobra cada mes automáticamente. Puedes cancelar cuando
+                quieras desde tu cuenta y conservas el acceso hasta el final del
+                mes ya pagado.
+              </p>
+            </div>
+          ) : provider === "paypal" ? (
             <div className="space-y-2.5">
               {/*
                 Tarjeta primero, con los sellos de marca a la vista: la mayoría

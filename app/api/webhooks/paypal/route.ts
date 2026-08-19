@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PaymentProvider, PaymentStatus } from "@prisma/client";
+import {
+  PaymentProvider,
+  PaymentStatus,
+  SubscriptionStatus,
+} from "@prisma/client";
 import {
   recordPayment,
   registerWebhookEvent,
@@ -12,6 +16,12 @@ import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
+import {
+  syncSubscriptionActivated,
+  syncSubscriptionPayment,
+  syncSubscriptionPaymentFailed,
+  syncSubscriptionStatus,
+} from "@/lib/crm/paypal-subscriptions";
 import { prisma } from "@/lib/db";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { verifyPayPalWebhook } from "@/lib/webhooks/verify";
@@ -87,6 +97,49 @@ export async function POST(req: NextRequest) {
     resource?.custom_id ??
     resource?.purchase_units?.[0]?.reference_id;
   const eventType = payload.event_type ?? "";
+
+  /**
+   * Suscripciones. Se despachan ANTES que la lógica de órdenes porque son otra
+   * API: `BILLING.*` y `PAYMENT.SALE.*` vienen de la v1 y no traen ni
+   * `purchase_units` ni la forma de capture, así que caerían por `skipped` si
+   * siguieran de largo.
+   */
+  if (
+    eventType.startsWith("BILLING.SUBSCRIPTION.") ||
+    eventType.startsWith("PAYMENT.SALE.")
+  ) {
+    try {
+      const res = (resource ?? {}) as unknown as Record<string, unknown>;
+      switch (eventType) {
+        case "BILLING.SUBSCRIPTION.ACTIVATED":
+          return NextResponse.json(await syncSubscriptionActivated(res));
+        case "PAYMENT.SALE.COMPLETED":
+          return NextResponse.json(await syncSubscriptionPayment(res));
+        case "BILLING.SUBSCRIPTION.PAYMENT.FAILED":
+          return NextResponse.json(await syncSubscriptionPaymentFailed(res));
+        case "BILLING.SUBSCRIPTION.CANCELLED":
+          return NextResponse.json(
+            await syncSubscriptionStatus(res, SubscriptionStatus.CANCELLED)
+          );
+        case "BILLING.SUBSCRIPTION.SUSPENDED":
+          return NextResponse.json(
+            await syncSubscriptionStatus(res, SubscriptionStatus.SUSPENDED)
+          );
+        case "BILLING.SUBSCRIPTION.EXPIRED":
+          return NextResponse.json(
+            await syncSubscriptionStatus(res, SubscriptionStatus.EXPIRED)
+          );
+        default:
+          // CREATED y UPDATED no necesitan acción hoy.
+          return NextResponse.json({ ok: true, ignored: eventType });
+      }
+    } catch (e) {
+      console.error("[webhook paypal][subscription]", eventType, e);
+      // Soltar la reclamación para que el reintento de PayPal sí trabaje.
+      await releaseWebhookEvent(PaymentProvider.PAYPAL, eventId);
+      return NextResponse.json({ error: "processing_failed" }, { status: 500 });
+    }
+  }
 
   /**
    * PayPal manda DOS shapes distintos y sólo se leía uno.

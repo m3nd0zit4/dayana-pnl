@@ -32,10 +32,21 @@ export type PayPalFunding = "card" | "wallet";
 export const startCheckout = async (
   provider: CheckoutProvider,
   planId: string,
-  options: { promoCode?: string; funding?: PayPalFunding } = {}
+  options: {
+    promoCode?: string;
+    funding?: PayPalFunding;
+    /**
+     * Alta de mensualidad recurrente en lugar de cobro suelto. Sólo PayPal por
+     * ahora: Mercado Pago tiene `preapproval` pero está sin verificar para esta
+     * cuenta, así que el riel colombiano sigue cobrando mes a mes.
+     */
+    subscribe?: boolean;
+  } = {}
 ): Promise<string | null> => {
-  const endpoint =
-    provider === "paypal"
+  const subscribing = provider === "paypal" && options.subscribe === true;
+  const endpoint = subscribing
+    ? "/api/paypal/create-subscription"
+    : provider === "paypal"
       ? "/api/paypal/create-order"
       : "/api/mercadopago/create-preference";
 
@@ -62,6 +73,14 @@ export const startCheckout = async (
       if (data.error === "invalid_promo_code") {
         return "Ese código promocional no es válido para este plan.";
       }
+      if (data.error === "promo_not_supported") {
+        // Un plan de PayPal cobra precio fijo: descontar exigiría un plan por
+        // código. Mejor decirlo que cobrar el total en silencio.
+        return "Los códigos promocionales no aplican a la suscripción mensual.";
+      }
+      if (data.error === "no_subscription_plan") {
+        return "La suscripción no está disponible todavía. Escríbenos por WhatsApp.";
+      }
       return GENERIC_ERROR;
     }
 
@@ -69,6 +88,14 @@ export const startCheckout = async (
     const base = data.approveUrl ?? data.init_point;
     if (!base) return GENERIC_ERROR;
 
+    /**
+     * `fundingSource=card` pide la pantalla de tarjeta en vez del acceso.
+     *
+     * En el pago suelto está comprobado que funciona. En la suscripción PayPal
+     * redirige de `billing/subscriptions` a su propio checkout y puede perder
+     * el parámetro por el camino; se manda igual porque no estorba, y su flujo
+     * ofrece "añadir tarjeta" de todos modos.
+     */
     const target =
       provider === "paypal" && options.funding === "card"
         ? `${base}${base.includes("?") ? "&" : "?"}fundingSource=card`

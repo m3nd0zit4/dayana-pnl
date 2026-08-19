@@ -160,6 +160,9 @@ export const syncMercadoPagoPayment = async (
             contactId,
             productId: checkout.planId,
             status: EnrollmentStatus.PENDING_PAYMENT,
+            // Viene de un aviso real de Mercado Pago: no puede tumbarlo una
+            // regla de higiene del panel.
+            paidPurchase: true,
           })
         ).id;
 
@@ -207,6 +210,9 @@ export const syncMercadoPagoPayment = async (
             contactId,
             productId: checkout.planId,
             status: EnrollmentStatus.PENDING_PAYMENT,
+            // Viene de un aviso real de Mercado Pago: no puede tumbarlo una
+            // regla de higiene del panel.
+            paidPurchase: true,
           })
         ).id;
 

@@ -106,6 +106,38 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: OWNER_OPERATOR,
   },
+  SUBSCRIPTION_STARTED: {
+    label: "Suscripción activada",
+    description: "Alguien activó la mensualidad recurrente y se cobrará sola cada mes.",
+    group: "Pagos y ventas",
+    defaultSeverity: "SUCCESS",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: OWNER_OPERATOR,
+  },
+  SUBSCRIPTION_PAYMENT_FAILED: {
+    label: "Cobro de suscripción fallido",
+    description:
+      "PayPal no pudo cobrar la mensualidad. Reintentará por su cuenta; avisar a tiempo es lo que permite rescatarla.",
+    group: "Pagos y ventas",
+    defaultSeverity: "WARNING",
+    audience: "BOTH",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: OWNER_OPERATOR,
+  },
+  SUBSCRIPTION_CANCELLED: {
+    label: "Suscripción cancelada",
+    description:
+      "Se detuvo la renovación. El acceso sigue hasta la fecha ya pagada.",
+    group: "Pagos y ventas",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: OWNER_OPERATOR,
+  },
   PAYMENT_REFUNDED: {
     label: "Pago reembolsado",
     description: "Se devolvió el dinero de un pago aprobado.",

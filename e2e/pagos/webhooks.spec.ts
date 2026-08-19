@@ -282,6 +282,53 @@ test.describe("Membresía · el mes se suma una sola vez", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+test.describe("Recompra · el CRM no puede rechazar dinero ya cobrado", () => {
+  test("quien ya tiene una terapia activa puede comprar otra", async ({
+    baseURL,
+  }) => {
+    /**
+     * Pasó en producción y costó 599.68 USD: una clienta con terapia activa
+     * compró otro paquete, PayPal capturó, y `createEnrollment` lo rechazó por
+     * "ya tiene una terapia activa". La captura devolvió 500 y en el CRM no
+     * quedó ni el pago ni la matrícula, con el dinero cobrado.
+     */
+    const email = testEmail("recompra");
+
+    const primera = await createCheckout(baseURL!, "paypal", "therapy-1");
+    const cap1 = nextProviderId("CAP");
+    await postPayPalWebhook(baseURL!, {
+      eventType: "CHECKOUT.ORDER.COMPLETED",
+      reference: primera.checkoutReference!,
+      captureId: cap1,
+      shape: "order",
+      payerEmail: email,
+      payerFirst: "Recompra",
+    });
+
+    const activa = await enrollmentOf(primera.contactId!, "therapy-1");
+    expect(activa?.status, "la primera compra no quedó activa").toBe("ACTIVE");
+
+    // Segunda compra, MISMA persona (mismo email), otro paquete.
+    const segunda = await createCheckout(baseURL!, "paypal", "therapy-12");
+    const cap2 = nextProviderId("CAP");
+    const r = await postPayPalWebhook(baseURL!, {
+      eventType: "PAYMENT.CAPTURE.COMPLETED",
+      reference: segunda.checkoutReference!,
+      captureId: cap2,
+      shape: "capture",
+      payerEmail: email,
+      payerFirst: "Recompra",
+    });
+
+    expect(r.status, "el webhook devolvió error sobre un cobro real").toBe(200);
+    expect(
+      await paymentsFor(cap2),
+      "la segunda compra se perdió: dinero cobrado y nada en el CRM"
+    ).toHaveLength(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 test.describe("Contacto · colisión de email", () => {
   test("si ya existe una ficha real con ese email, se matricula en ESA", async ({
     baseURL,

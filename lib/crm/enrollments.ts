@@ -44,6 +44,20 @@ export const createEnrollment = async (input: {
   label?: string;
   parentEnrollmentId?: string;
   isPrimary?: boolean;
+  /**
+   * La compra YA está cobrada: se salta las reglas de higiene del CRM.
+   *
+   * Existe porque costó dinero. Una clienta con terapia activa compró otro
+   * paquete, PayPal capturó los 599.68 USD y `createEnrollment` lo rechazó por
+   * "ya tiene una terapia activa": 500 en la captura, ni pago ni matrícula en
+   * el CRM, y el dinero cobrado igualmente.
+   *
+   * Esas reglas son para que el panel no se llene de duplicados al crear
+   * matrículas a mano. Aplicarlas después de cobrar es al revés: un pago
+   * capturado es un hecho, no una solicitud que se pueda denegar. Si hay que
+   * consolidar dos paquetes, eso lo decide Dayana con el dinero ya registrado.
+   */
+  paidPurchase?: boolean;
 }): Promise<Prisma.EnrollmentGetPayload<{ include: { product: true } }>> => {
   const product = await getProduct(input.productId);
   if (!product) {
@@ -52,7 +66,8 @@ export const createEnrollment = async (input: {
 
   if (
     product.kind === ProductKind.THERAPY &&
-    input.status === EnrollmentStatus.ACTIVE
+    input.status === EnrollmentStatus.ACTIVE &&
+    !input.paidPurchase
   ) {
     const active = await countActiveTherapyEnrollments(input.contactId);
     if (active > 0) {
@@ -76,7 +91,7 @@ export const createEnrollment = async (input: {
   // servicio existente, no apilar duplicados. Re-comprar sí es válido
   // cuando el anterior ya está ACTIVE/COMPLETED/CANCELLED, y las
   // renovaciones (parentEnrollmentId) no pasan por aquí.
-  if (!input.parentEnrollmentId) {
+  if (!input.parentEnrollmentId && !input.paidPurchase) {
     const pending = await prisma.enrollment.findFirst({
       where: {
         contactId: input.contactId,

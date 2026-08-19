@@ -38,6 +38,7 @@
     "@mux/upchunk": "^3.5.0",
     "@neondatabase/serverless": "^1.1.0",
     "@paypal/paypal-js": "^9.6.0",
+    "@paypal/paypal-server-sdk": "^2.4.0",
     "@prisma/adapter-neon": "6.19.2",
     "@prisma/client": "^6.19.2",
     "@upstash/ratelimit": "^2.0.8",

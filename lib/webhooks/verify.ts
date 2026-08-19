@@ -255,6 +255,43 @@ export const verifyTwilioWebhook = (req: Request, rawBody: string): boolean => {
 };
 
 /** PayPal webhook via REST verify API. */
+/**
+ * ¿Existe este `webhook_id` en la cuenta del entorno actual?
+ *
+ * Se consulta una sola vez por proceso: es una llamada de red y sólo importa
+ * cuando ya falló la verificación.
+ */
+let webhookIdChecked = false;
+const warnIfWebhookIdUnknown = async (webhookId: string): Promise<void> => {
+  if (webhookIdChecked) return;
+  webhookIdChecked = true;
+
+  const mode = process.env.PAYPAL_MODE?.toLowerCase();
+  const base =
+    mode === "live"
+      ? "https://api-m.paypal.com"
+      : "https://api-m.sandbox.paypal.com";
+
+  const accessToken = await getPayPalAccessToken();
+  const res = await fetch(`${base}/v1/notifications/webhooks`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return;
+
+  const json = (await res.json()) as {
+    webhooks?: Array<{ id?: string; url?: string }>;
+  };
+  const registered = json.webhooks ?? [];
+  if (registered.some((w) => w.id === webhookId)) return;
+
+  console.error(
+    `[webhook paypal] PAYPAL_WEBHOOK_ID="${webhookId}" NO existe en la cuenta ` +
+      `${mode === "live" ? "live" : "sandbox"}. Toda verificación de firma va a ` +
+      `fallar y ningún pago se registrará. Webhooks registrados: ` +
+      (registered.map((w) => `${w.id} -> ${w.url}`).join(" | ") || "(ninguno)")
+  );
+};
+
 export const verifyPayPalWebhook = async (
   req: Request,
   rawBody: string
@@ -326,7 +363,21 @@ export const verifyPayPalWebhook = async (
     }
 
     const json = (await res.json()) as { verification_status?: string };
-    return json.verification_status === "SUCCESS";
+    if (json.verification_status === "SUCCESS") return true;
+
+    /**
+     * FAILURE con cabeceras completas casi siempre significa que
+     * `PAYPAL_WEBHOOK_ID` no corresponde al webhook que envió el aviso —
+     * normalmente el id de otro entorno, o uno que ya no existe en la cuenta.
+     *
+     * Pasó en producción y costó caro: un id inexistente hace que PayPal
+     * responda FAILURE a TODO, la ruta devuelve 401 y ningún pago se registra,
+     * mientras el panel de PayPal muestra entregas fallidas sin explicar por
+     * qué. Como el fallo es indistinguible de una firma falsa, se comprueba una
+     * vez si el id existe siquiera en esta cuenta y se dice en el log.
+     */
+    await warnIfWebhookIdUnknown(webhookId).catch(() => undefined);
+    return false;
   } catch (e) {
     console.error("[webhook paypal] verify error", e);
     return false;

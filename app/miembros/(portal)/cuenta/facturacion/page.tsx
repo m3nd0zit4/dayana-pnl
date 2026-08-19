@@ -7,6 +7,7 @@ import { getMembershipPayments } from "@/lib/lms/membership";
 import { getMemberWorkshops } from "@/lib/crm/member-workshops";
 import MembershipStatusCard from "@/app/components/miembros/MembershipStatusCard";
 import RenewMembership from "@/app/components/miembros/RenewMembership";
+import CancelSubscription from "@/app/components/miembros/CancelSubscription";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 import { Card, CardContent } from "@/app/components/ui/card";
 
@@ -47,6 +48,15 @@ const Page = async () => {
   // signed up for. Fresh accounts with no purchases still see it, since
   // activating the course is their most likely next step.
   const workshopOnly = workshops.length > 0 && membership.enrollment == null;
+
+  /**
+   * Suscripción viva: cobra sola, así que NO se ofrece "pagar mi mes" — sería
+   * cobrar dos veces el mismo periodo. Cancelada o suspendida vuelve el pago
+   * manual, que es la red para no perder el acceso mientras se arregla.
+   */
+  const subscription =
+    membership.enrollment?.paypalSubscriptionId &&
+    membership.enrollment.subscriptionStatus === "ACTIVE";
 
   return (
     <div className="space-y-6">
@@ -116,7 +126,11 @@ const Page = async () => {
       <Card>
         <CardContent>
           <h2 className="text-[11px] text-muted-foreground uppercase tracking-wide">
-            {membership.enrollment ? "Pagar mi mes" : "Activar membresía"}
+            {subscription
+              ? "Tu suscripción"
+              : membership.enrollment
+                ? "Pagar mi mes"
+                : "Activar membresía"}
           </h2>
           {coursePlan ? (
             <div className="mt-3 max-w-md">
@@ -138,6 +152,30 @@ const Page = async () => {
                   : ""}{" "}
                 / mes
               </div>
+              {/*
+                Con suscripción viva no se ofrece pagar otro mes: se cobraría
+                dos veces por el mismo periodo. Se muestra el estado y la
+                salida.
+              */}
+              {subscription ? (
+                <>
+                  <p className="mt-3 text-sm leading-relaxed">
+                    Se cobra automáticamente cada mes
+                    {membership.paidUntil ? (
+                      <>
+                        {" "}
+                        · próxima renovación alrededor del{" "}
+                        {new Intl.DateTimeFormat("es-CO", {
+                          timeZone: "America/Bogota",
+                          dateStyle: "long",
+                        }).format(membership.paidUntil)}
+                      </>
+                    ) : null}
+                    .
+                  </p>
+                  <CancelSubscription paidUntil={membership.paidUntil} />
+                </>
+              ) : (
               <RenewMembership
                 plan={coursePlan}
                 userCountry={userCountry}
@@ -149,6 +187,7 @@ const Page = async () => {
                   lastName: contact.lastName,
                 }}
               />
+              )}
             </div>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
