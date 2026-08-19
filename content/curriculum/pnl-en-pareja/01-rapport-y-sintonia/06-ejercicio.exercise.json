@@ -1,0 +1,154 @@
+{
+  "title": "Ejercicio · Tu sintonía",
+  "description": "Observar los cuatro canales, practicar acompasar y contar los intentos de conexión.",
+  "introMd": "La primera parte es solo mirar. No cambies nada durante los primeros días: el dato limpio vale más.",
+  "sections": [
+    {
+      "title": "1 · Los cuatro canales",
+      "fields": [
+        {
+          "id": "c-cuerpo",
+          "label": "Cuerpo — cómo está normalmente cada uno",
+          "type": "short"
+        },
+        {
+          "id": "c-ritmo",
+          "label": "Ritmo — quién habla más rápido",
+          "type": "short"
+        },
+        {
+          "id": "c-palabras",
+          "label": "Tres palabras que repite para lo importante",
+          "type": "short"
+        },
+        {
+          "id": "c-estado",
+          "label": "Estado — intensidad habitual de cada uno",
+          "type": "short"
+        },
+        {
+          "id": "c-lejos",
+          "label": "¿En qué canal estáis más lejos?",
+          "type": "choice",
+          "options": [
+            "Cuerpo",
+            "Ritmo",
+            "Palabras",
+            "Estado"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Lo que rompe",
+      "bodyMd": "Con honestidad. Es la parte más útil del ejercicio.",
+      "fields": [
+        {
+          "id": "r-cual",
+          "label": "¿Cuál de los seis rompedores es el tuyo?",
+          "type": "choice",
+          "options": [
+            "Mirar el móvil",
+            "«Ya, pero…»",
+            "Terminar sus frases",
+            "Contar mi caso parecido",
+            "Corregir datos menores",
+            "Solucionar antes de tiempo"
+          ]
+        },
+        {
+          "id": "r-cuando",
+          "label": "¿Cuándo lo haces más? ¿Cansada, con prisa, cuando el tema te toca?"
+        },
+        {
+          "id": "r-suyo",
+          "label": "¿Cuál es el suyo?",
+          "type": "short",
+          "help": "Anótalo para ti. No es una lista para leerle."
+        }
+      ]
+    },
+    {
+      "title": "3 · Acompasar y liderar",
+      "fields": [
+        {
+          "id": "a-situacion",
+          "label": "¿En qué situación lo probaste?",
+          "type": "short"
+        },
+        {
+          "id": "a-acompase",
+          "label": "¿Acompasaste antes de intentar bajar el ritmo?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Intenté liderar de entrada"
+          ]
+        },
+        {
+          "id": "a-turnos",
+          "label": "¿Cuántos turnos tardó en bajar?",
+          "type": "short"
+        },
+        {
+          "id": "a-que-paso",
+          "label": "¿Qué pasó?"
+        }
+      ]
+    },
+    {
+      "title": "4 · La pregunta",
+      "fields": [
+        {
+          "id": "p-hice",
+          "label": "«¿Quieres que te ayude a resolverlo o que te escuche?» ¿La hiciste?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No todavía"
+          ]
+        },
+        {
+          "id": "p-respuesta",
+          "label": "¿Qué contestó?",
+          "type": "short"
+        },
+        {
+          "id": "p-respete",
+          "label": "¿Respetaste la respuesta?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Empecé a resolver igual"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "5 · Intentos de conexión",
+      "bodyMd": "Una semana contando. Sin decirle que lo estás haciendo.",
+      "fields": [
+        {
+          "id": "i-suyos",
+          "label": "¿Cuántos intentos suyos notaste?",
+          "type": "short"
+        },
+        {
+          "id": "i-respondi",
+          "label": "¿Cuántos respondiste?",
+          "type": "short"
+        },
+        {
+          "id": "i-mios",
+          "label": "¿Cuántos tuyos respondió?",
+          "type": "short"
+        },
+        {
+          "id": "i-sorpresa",
+          "label": "¿Qué te sorprendió de esta cuenta?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si la cuenta de intentos salió baja por los dos lados, ahí hay más trabajo que en cualquier conversación pendiente."
+}

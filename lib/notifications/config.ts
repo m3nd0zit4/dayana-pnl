@@ -43,6 +43,42 @@ export const emailProviderId = (): "resend" | "smtp" | null => {
   return null;
 };
 
+export type SmsSenderKind = "transactional" | "marketing";
+
+export const smsMarketingFrom = (): string | null =>
+  process.env.TWILIO_MARKETING_FROM_NUMBER?.trim() || null;
+
+/**
+ * Marketing y transaccional salen de números distintos cuando hay un segundo
+ * número configurado.
+ *
+ * La caída es deliberadamente asimétrica: marketing cae al número base si no
+ * hay número dedicado, pero transaccional NUNCA sale por el de marketing. En
+ * EE. UU. cada número pertenece a una campaña 10DLC con un caso de uso
+ * declarado, y mandar una confirmación de pago desde un número registrado como
+ * Marketing es justo la infracción que suspende la campaña.
+ */
+export const smsFromNumber = (kind: SmsSenderKind): string | null => {
+  const base = process.env.TWILIO_FROM_NUMBER?.trim() || null;
+  if (kind === "marketing") return smsMarketingFrom() ?? base;
+  return base;
+};
+
+/**
+ * URL del StatusCallback de Twilio, o null si no hay dónde recibirlo.
+ *
+ * En local/preview `siteUrl()` no es alcanzable desde Twilio: mandar el
+ * parámetro igual solo consigue un error de entrega en el log de Twilio por
+ * cada mensaje.
+ */
+export const smsStatusCallbackUrl = (): string | null => {
+  const base = process.env.TWILIO_WEBHOOK_BASE_URL?.trim() || siteUrl();
+  if (!base.startsWith("https://") || /localhost|127\.0\.0\.1/i.test(base)) {
+    return null;
+  }
+  return `${base.replace(/\/$/, "")}/api/webhooks/twilio/status`;
+};
+
 export const smsProviderReady = (): boolean =>
   Boolean(
     process.env.TWILIO_ACCOUNT_SID?.trim() &&

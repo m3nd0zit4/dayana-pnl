@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import type { Webhooks } from "@mux/mux-node/resources/webhooks/webhooks";
+import type StripeNamespace from "stripe";
 type UnwrapWebhookEvent = Webhooks.UnwrapWebhookEvent;
+type StripeEvent = StripeNamespace.Event;
 import { getPayPalAccessToken } from "@/lib/paypal/server";
 import { getMuxClient } from "@/lib/mux/client";
 
@@ -188,6 +190,70 @@ export const verifyResendWebhook = (req: Request, rawBody: string): boolean => {
   }
 };
 
+/**
+ * Twilio `X-Twilio-Signature`: HMAC-SHA1, en base64, del token de autenticación
+ * sobre la URL exacta que Twilio pidió más cada par nombre+valor del cuerpo,
+ * concatenados en orden alfabético por nombre.
+ *
+ * Dos trampas:
+ *
+ * 1. La URL firmada es la que está configurada en la consola de Twilio, no la
+ *    que llega al proceso. Detrás del proxy de Vercel el host de `req.url` puede
+ *    ser el del deployment interno, así que se reconstruye desde `siteUrl()` (o
+ *    TWILIO_WEBHOOK_BASE_URL) y solo se toman `pathname` y `search` de la
+ *    petición. La barra final cuenta.
+ * 2. Esto solo vale mientras el webhook esté configurado como
+ *    `application/x-www-form-urlencoded` (el modo por defecto). En modo JSON
+ *    Twilio firma `url + "?bodySHA256=..."` y este verificador rechazaría todo.
+ *
+ * A diferencia del resto del archivo, el bypass de desarrollo exige además que
+ * no estemos en Vercel: la ruta no pasa por `proxy.ts` y lo que hay al otro lado
+ * es el estado de baja de los contactos.
+ */
+export const verifyTwilioWebhook = (req: Request, rawBody: string): boolean => {
+  const token = process.env.TWILIO_AUTH_TOKEN?.trim();
+  if (!token) {
+    if (!isLocalDevelopment() || process.env.VERCEL) {
+      console.error("[webhook twilio] TWILIO_AUTH_TOKEN missing");
+      return false;
+    }
+    return true;
+  }
+
+  const signature = req.headers.get("x-twilio-signature");
+  if (!signature) {
+    console.warn("[webhook twilio] missing x-twilio-signature");
+    return false;
+  }
+
+  const base = (
+    process.env.TWILIO_WEBHOOK_BASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
+  const requested = new URL(req.url);
+  const url = `${base}${requested.pathname}${requested.search}`;
+
+  const params = new URLSearchParams(rawBody);
+  const data = [...params.keys()]
+    .sort()
+    .reduce((acc, key) => `${acc}${key}${params.get(key) ?? ""}`, url);
+
+  const expected = crypto
+    .createHmac("sha1", token)
+    .update(data, "utf8")
+    .digest("base64");
+
+  try {
+    const expectedBuf = Buffer.from(expected, "base64");
+    const signatureBuf = Buffer.from(signature, "base64");
+    if (expectedBuf.length !== signatureBuf.length) return false;
+    return crypto.timingSafeEqual(signatureBuf, expectedBuf);
+  } catch {
+    return false;
+  }
+};
+
 /** PayPal webhook via REST verify API. */
 export const verifyPayPalWebhook = async (
   req: Request,
@@ -290,6 +356,90 @@ export const verifyAndParseMuxWebhook = async (
     return await mux.webhooks.unwrap(rawBody, req.headers, secret);
   } catch (e) {
     console.warn("[webhook mux] signature verification failed", e);
+    return null;
+  }
+};
+
+/**
+ * Lemon Squeezy `X-Signature`: HMAC-SHA256 **hex** sobre el cuerpo crudo.
+ *
+ * Sin timestamp ni versión — más simple que Mercado Pago, y por eso mismo sin
+ * protección de replay propia; la idempotencia la pone `registerWebhookEvent`
+ * con el id sintético del evento. Misma disciplina de raw body que el resto
+ * del archivo: la ruta lee `req.text()` una sola vez y esto verifica sobre
+ * esos bytes exactos.
+ */
+export const verifyLemonSqueezyWebhook = (
+  req: Request,
+  rawBody: string
+): boolean => {
+  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    if (!isLocalDevelopment()) {
+      console.error("[webhook ls] LEMONSQUEEZY_WEBHOOK_SECRET missing");
+      return false;
+    }
+    return true;
+  }
+
+  const signature = req.headers.get("x-signature");
+  if (!signature) {
+    console.warn("[webhook ls] missing x-signature header");
+    return false;
+  }
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(rawBody)
+    .digest("hex");
+
+  try {
+    const expectedBuf = Buffer.from(expected, "hex");
+    const givenBuf = Buffer.from(signature.trim(), "hex");
+    if (expectedBuf.length !== givenBuf.length) return false;
+    return crypto.timingSafeEqual(givenBuf, expectedBuf);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Stripe `Stripe-Signature` (timestamped HMAC-SHA256 over `t.rawBody`).
+ * Delegated to the SDK like Mux: the scheme is versioned and includes replay
+ * protection Stripe tunes on its side.
+ *
+ * Same raw-body discipline as the rest of this file — the route reads
+ * `req.text()` exactly once and this verifies over those bytes. Re-serializing
+ * the parsed JSON changes them and the signature stops matching.
+ */
+export const verifyAndParseStripeWebhook = async (
+  req: Request,
+  rawBody: string
+): Promise<StripeEvent | null> => {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    if (!isLocalDevelopment()) {
+      console.error("[webhook stripe] STRIPE_WEBHOOK_SECRET missing");
+      return null;
+    }
+    try {
+      return JSON.parse(rawBody) as StripeEvent;
+    } catch {
+      return null;
+    }
+  }
+
+  const signature = req.headers.get("stripe-signature");
+  if (!signature) {
+    console.warn("[webhook stripe] missing stripe-signature header");
+    return null;
+  }
+
+  try {
+    const { getStripe } = await import("@/lib/payments/stripe/client");
+    return getStripe().webhooks.constructEvent(rawBody, signature, secret);
+  } catch (e) {
+    console.warn("[webhook stripe] signature verification failed", e);
     return null;
   }
 };

@@ -1,7 +1,7 @@
 import CourseCommentsPageClient from "@/app/components/admin/crm/CourseCommentsPageClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
-import { getCourseProduct } from "@/lib/lms/membership";
+import { listCoursesAdmin } from "@/lib/lms/course-admin";
 import { listRecentCommentsForProduct } from "@/lib/lms/class-comments";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +15,12 @@ const CursoComentariosPage = async () => {
   const staff = await getStaffSession();
   if (!staff) return null;
 
-  const course = await getCourseProduct();
-  const comments = course ? await listRecentCommentsForProduct(course.id) : [];
+  // Comentarios de toda la biblioteca en una sola bandeja.
+  const courses = await listCoursesAdmin();
+  const comments =
+    courses.length > 0
+      ? await listRecentCommentsForProduct(courses.map((c) => c.id))
+      : [];
 
   return (
     <CourseCommentsPageClient

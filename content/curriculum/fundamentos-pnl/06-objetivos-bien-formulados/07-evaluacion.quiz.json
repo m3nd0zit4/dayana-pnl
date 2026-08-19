@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "questions": [
+    {
+      "id": "f6q1",
+      "prompt": "¿Por qué «no quiero ponerme nervioso al hablar en público» está mal formulado?",
+      "options": [
+        {
+          "id": "f6q1a",
+          "text": "Porque la única instrucción clara que da es justamente ponerse nervioso: para no pensar en algo hay que pensarlo primero",
+          "correct": true
+        },
+        { "id": "f6q1b", "text": "Porque es demasiado ambicioso", "correct": false },
+        { "id": "f6q1c", "text": "Porque no menciona un plazo", "correct": false },
+        { "id": "f6q1d", "text": "Porque hablar en público no es un objetivo válido", "correct": false }
+      ]
+    },
+    {
+      "id": "f6q2",
+      "prompt": "«Quiero que mi pareja me valore más» falla en la condición de…",
+      "options": [
+        { "id": "f6q2a", "text": "Que dependa de uno mismo", "correct": true },
+        { "id": "f6q2b", "text": "Estar en positivo", "correct": false },
+        { "id": "f6q2c", "text": "El tamaño adecuado", "correct": false },
+        { "id": "f6q2d", "text": "No falla en ninguna", "correct": false }
+      ]
+    },
+    {
+      "id": "f6q3",
+      "prompt": "¿Qué significa que un objetivo sea comprobable con los sentidos?",
+      "options": [
+        {
+          "id": "f6q3a",
+          "text": "Que puedes decir qué vas a ver, oír o sentir que hoy no ves, oyes ni sientes",
+          "correct": true
+        },
+        { "id": "f6q3b", "text": "Que se puede medir en dinero", "correct": false },
+        { "id": "f6q3c", "text": "Que otra persona lo puede certificar", "correct": false },
+        { "id": "f6q3d", "text": "Que tiene fecha límite", "correct": false }
+      ]
+    },
+    {
+      "id": "f6q4",
+      "prompt": "¿Qué es la ecología de un objetivo?",
+      "options": [
+        {
+          "id": "f6q4a",
+          "text": "Mirar de frente qué se pierde al conseguirlo y a quién afecta, para poder conservarlo",
+          "correct": true
+        },
+        { "id": "f6q4b", "text": "Que el objetivo respete el medio ambiente", "correct": false },
+        { "id": "f6q4c", "text": "Dividir el objetivo en pasos", "correct": false },
+        { "id": "f6q4d", "text": "Comprobar que sea realista", "correct": false }
+      ]
+    },
+    {
+      "id": "f6q5",
+      "prompt": "Alguien empieza el mismo objetivo cada año y lo abandona siempre en el mismo punto. ¿Qué conviene revisar primero?",
+      "options": [
+        {
+          "id": "f6q5a",
+          "text": "La ecología: qué le está dando la situación actual y qué perdería al cambiarla",
+          "correct": true
+        },
+        { "id": "f6q5b", "text": "Su fuerza de voluntad", "correct": false },
+        { "id": "f6q5c", "text": "Si el objetivo es lo bastante ambicioso", "correct": false },
+        { "id": "f6q5d", "text": "Si tiene suficiente información sobre el tema", "correct": false }
+      ]
+    },
+    {
+      "id": "f6q6",
+      "prompt": "¿Cuál de las cuatro preguntas de ecología es la que desatasca?",
+      "options": [
+        {
+          "id": "f6q6a",
+          "text": "¿Cómo consigo el objetivo conservando eso que no quiero perder?",
+          "correct": true
+        },
+        { "id": "f6q6b", "text": "¿Qué pierdo si lo consigo?", "correct": false },
+        { "id": "f6q6c", "text": "¿A quién más le afecta?", "correct": false },
+        { "id": "f6q6d", "text": "¿Qué me está dando la situación actual?", "correct": false }
+      ]
+    },
+    {
+      "id": "f6q7",
+      "prompt": "Sobre visualizar el objetivo, la investigación de Oettingen matiza que…",
+      "options": [
+        {
+          "id": "f6q7a",
+          "text": "Fantasear con el resultado y quedarse ahí reduce la probabilidad de lograrlo; lo que funciona es visualizar el proceso y el obstáculo",
+          "correct": true
+        },
+        { "id": "f6q7b", "text": "Visualizar nunca sirve para nada", "correct": false },
+        { "id": "f6q7c", "text": "Cuanto más se fantasee con el éxito, mejor", "correct": false },
+        { "id": "f6q7d", "text": "Solo funciona la visualización en estado hipnótico", "correct": false }
+      ]
+    }
+  ]
+}

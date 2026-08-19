@@ -1,0 +1,107 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "questions": [
+    {
+      "id": "m2q1",
+      "prompt": "Una persona acaba de perder su empleo y solo puede pensar en cómo pagar la comida y el arriendo de este mes. ¿Desde qué nivel está operando?",
+      "options": [
+        { "id": "m2q1a", "text": "Nivel 1 · Supervivencia", "correct": true },
+        { "id": "m2q1b", "text": "Nivel 2 · Tribu", "correct": false },
+        { "id": "m2q1c", "text": "Nivel 3 · Poder", "correct": false },
+        { "id": "m2q1d", "text": "Nivel 4 · Orden", "correct": false }
+      ]
+    },
+    {
+      "id": "m2q2",
+      "prompt": "«Así nos enseñaron» y «¿qué van a decir?» son el lenguaje interno típico de…",
+      "options": [
+        { "id": "m2q2a", "text": "El nivel 2, tribalista", "correct": true },
+        { "id": "m2q2b", "text": "El nivel 1, instintivo", "correct": false },
+        { "id": "m2q2c", "text": "El nivel 3, egocéntrico", "correct": false },
+        { "id": "m2q2d", "text": "El nivel 4, moralista", "correct": false }
+      ]
+    },
+    {
+      "id": "m2q3",
+      "prompt": "¿Cuál es la fortaleza principal del nivel 3?",
+      "options": [
+        {
+          "id": "m2q3a",
+          "text": "Valentía, iniciativa y capacidad de actuar cuando los demás siguen deliberando",
+          "correct": true
+        },
+        { "id": "m2q3b", "text": "La capacidad de seguir procedimientos al detalle", "correct": false },
+        { "id": "m2q3c", "text": "La lealtad incondicional al grupo", "correct": false },
+        { "id": "m2q3d", "text": "La reacción rápida ante el peligro físico", "correct": false }
+      ]
+    },
+    {
+      "id": "m2q4",
+      "prompt": "Históricamente, ¿por qué apareció el nivel 4 (orden, leyes, instituciones)?",
+      "options": [
+        {
+          "id": "m2q4a",
+          "text": "Porque la afirmación individual sin límites del nivel 3 hacía imposible construir algo que durara",
+          "correct": true
+        },
+        {
+          "id": "m2q4b",
+          "text": "Porque las personas dejaron de necesitar comunidad",
+          "correct": false
+        },
+        {
+          "id": "m2q4c",
+          "text": "Porque desapareció la necesidad de sobrevivir",
+          "correct": false
+        },
+        {
+          "id": "m2q4d",
+          "text": "Porque el nivel 5 exigía más eficiencia",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "m2q5",
+      "prompt": "Una persona que después de años de someterse pone por fin un límite fuerte, y lo hace de mala manera, ¿qué está mostrando?",
+      "options": [
+        {
+          "id": "m2q5a",
+          "text": "Un nivel 3 recién estrenado: un músculo que nunca se había usado y todavía no tiene finura",
+          "correct": true
+        },
+        { "id": "m2q5b", "text": "Un retroceso al nivel 1", "correct": false },
+        { "id": "m2q5c", "text": "Que perdió la capacidad de pertenecer para siempre", "correct": false },
+        { "id": "m2q5d", "text": "Que llegó al nivel 8", "correct": false }
+      ]
+    },
+    {
+      "id": "m2q6",
+      "prompt": "Un equipo de trabajo solo con energía de nivel 3 y nada de nivel 4 tiende a…",
+      "options": [
+        {
+          "id": "m2q6a",
+          "text": "Arrancar con mucha fuerza y no sostener el proyecto en el tiempo",
+          "correct": true
+        },
+        { "id": "m2q6b", "text": "Cumplir procedimientos pero no avanzar nunca", "correct": false },
+        { "id": "m2q6c", "text": "Funcionar perfectamente sin ninguna dificultad", "correct": false },
+        { "id": "m2q6d", "text": "Volverse automáticamente un equipo de nivel 6", "correct": false }
+      ]
+    },
+    {
+      "id": "m2q7",
+      "prompt": "¿Cuál es la actitud correcta al reconocer un nivel en uno mismo?",
+      "options": [
+        {
+          "id": "m2q7a",
+          "text": "Observarlo sin juzgarlo y preguntarse si responde bien a la situación actual",
+          "correct": true
+        },
+        { "id": "m2q7b", "text": "Corregirlo de inmediato para pasar al siguiente", "correct": false },
+        { "id": "m2q7c", "text": "Ocultarlo para no parecer poco evolucionado", "correct": false },
+        { "id": "m2q7d", "text": "Asumir que ese nivel define la personalidad completa", "correct": false }
+      ]
+    }
+  ]
+}

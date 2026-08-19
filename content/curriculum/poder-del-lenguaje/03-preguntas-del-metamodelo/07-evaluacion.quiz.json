@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "l3q1",
+      "prompt": "¿Para qué se hace una pregunta del metamodelo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Para que quien habla se oiga completar la información que se dejó fuera",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para que quien pregunta obtenga datos que le faltan",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Para demostrar que la frase del otro es falsa",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Para cambiar de tema sin que se note",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q2",
+      "prompt": "«Hay un problema de comunicación en el equipo.» ¿Qué pregunta lo desarma?",
+      "options": [
+        {
+          "id": "a",
+          "text": "¿Quién no está comunicando qué a quién?",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "¿Desde cuándo pasa eso?",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "¿Y qué piensas hacer?",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "¿Estás seguro de que es así?",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q3",
+      "prompt": "«Tengo que quedarme hasta las nueve.» ¿Qué pregunta corresponde?",
+      "options": [
+        {
+          "id": "a",
+          "text": "¿Qué pasaría si no te quedaras?",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "¿Quién, en concreto?",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "¿Cómo lo sabes?",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "¿Mejor que qué?",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q4",
+      "prompt": "¿Cuáles son las tres preguntas con las que conviene empezar?",
+      "options": [
+        {
+          "id": "a",
+          "text": "¿Cómo, exactamente? · ¿Quién, en concreto? · ¿Qué pasaría si…?",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "¿Por qué? · ¿Para qué? · ¿Cuándo?",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "¿Estás seguro? · ¿Siempre? · ¿De verdad?",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "¿Qué sientes? · ¿Qué piensas? · ¿Qué quieres?",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q5",
+      "prompt": "¿Cuál es la diferencia entre «¿y cómo sabes tú eso?» y «¿cómo lo notaste?»",
+      "options": [
+        {
+          "id": "a",
+          "text": "La segunda suena a curiosidad y devuelve al hecho; la primera suena a acusación y provoca defensa",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Ninguna: son la misma pregunta",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La primera es del metamodelo y la segunda no",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La segunda es más larga, y eso la hace peor",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q6",
+      "prompt": "¿En qué situación NO se usa el metamodelo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "En duelo reciente o crisis aguda, donde hace falta compañía y no precisión",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "En reuniones de trabajo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Cuando alguien generaliza mucho",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Con personas que no conocen la PNL",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q7",
+      "prompt": "¿De dónde salió el metamodelo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "De modelar a Virginia Satir y Fritz Perls, tomando prestado el vocabulario de Chomsky",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "De un experimento de laboratorio de Bandler",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "De la hipnosis ericksoniana",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "De la Comunicación No Violenta de Rosenberg",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l3q8",
+      "prompt": "¿Cuántas preguntas del metamodelo conviene hacer por turno de palabra?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Una. Dos seguidas ya es un interrogatorio",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Tres, para triangular la respuesta",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Todas las que hagan falta hasta que la persona reformule",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Ninguna: se hacen solo por escrito",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { sendEmail } from "../channels/email";
 import { sendSms } from "../channels/sms";
 import { siteUrl, smsProviderReady } from "../config";
+import { isDialableE164 } from "../e164";
 import {
   escapeHtml,
   wrapEmailHtml,
@@ -13,16 +14,9 @@ import { resolveNotificationsEnabled } from "./resolve";
 /** Tope de caracteres del SMS: dos segmentos GSM-7. Más allá se cobra de más. */
 const SMS_MAX_CHARS = 300;
 
-/**
- * Un E.164 real es "+" seguido solo de dígitos.
- *
- * Los contactos creados por checkout, Google o registro por correo llevan un
- * teléfono marcador de posición ("+pending", "+google:uuid", "+signup:uuid").
- * La regla "solo dígitos" los descarta a todos y también a cualquier prefijo
- * marcador que se invente en el futuro, sin tener que mantener una lista.
- */
-export const isDialableE164 = (phone: string | null | undefined): boolean =>
-  typeof phone === "string" && /^\+[1-9]\d{6,14}$/.test(phone);
+// El predicado vive en ../e164 (sin dependencias, para que env.server.ts pueda
+// importarlo al arrancar). Se reexporta aquí porque ya había importadores.
+export { isDialableE164 };
 
 /**
  * Un SMS no es un correo recortado: sin asunto, sin HTML y sin enlace largo.

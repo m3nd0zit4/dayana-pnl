@@ -1,0 +1,102 @@
+{
+  "title": "Ejercicio · Dónde vive cada nivel en tu vida",
+  "description": "Ubicar los niveles 1 a 4 en tus áreas y en tu lenguaje interno.",
+  "introMd": "Sin editar, sin buscar la respuesta bonita. Estos niveles no son defectos: son recursos.",
+  "sections": [
+    {
+      "title": "1 · Por áreas",
+      "bodyMd": "¿Qué nivel reconoces más en cada área?",
+      "fields": [
+        {
+          "id": "nivel-familia",
+          "label": "En mi familia",
+          "type": "choice",
+          "options": [
+            "Nivel 1 · Supervivencia",
+            "Nivel 2 · Tribu",
+            "Nivel 3 · Poder",
+            "Nivel 4 · Orden"
+          ]
+        },
+        {
+          "id": "nivel-trabajo",
+          "label": "En mi trabajo",
+          "type": "choice",
+          "options": [
+            "Nivel 1 · Supervivencia",
+            "Nivel 2 · Tribu",
+            "Nivel 3 · Poder",
+            "Nivel 4 · Orden"
+          ]
+        },
+        {
+          "id": "nivel-pareja",
+          "label": "En mi relación de pareja",
+          "type": "choice",
+          "options": [
+            "Nivel 1 · Supervivencia",
+            "Nivel 2 · Tribu",
+            "Nivel 3 · Poder",
+            "Nivel 4 · Orden"
+          ]
+        },
+        {
+          "id": "nivel-dinero",
+          "label": "En mis decisiones de dinero",
+          "type": "choice",
+          "options": [
+            "Nivel 1 · Supervivencia",
+            "Nivel 2 · Tribu",
+            "Nivel 3 · Poder",
+            "Nivel 4 · Orden"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Por momentos",
+      "fields": [
+        {
+          "id": "momento-supervivencia",
+          "label": "¿En qué momentos de mi vida he operado desde la supervivencia?"
+        },
+        {
+          "id": "momento-rebeldia",
+          "label": "¿En qué momentos he actuado desde la rebeldía o la independencia?"
+        },
+        {
+          "id": "momento-orden",
+          "label": "¿En qué áreas valoro más el orden y la disciplina?",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu lenguaje interno",
+      "bodyMd": "De las frases del módulo, copia las que reconozcas como tuyas y anota **cuándo la dijiste por última vez**.",
+      "fields": [
+        {
+          "id": "frase-propia-1",
+          "label": "Frase 1 · y la última vez que la dije",
+          "placeholder": "«Si no lo hago yo, no lo hace nadie» — el sábado, organizando el cumpleaños de mi mamá"
+        },
+        {
+          "id": "frase-propia-2",
+          "label": "Frase 2 · y la última vez que la dije",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "4 · La pregunta incómoda",
+      "fields": [
+        {
+          "id": "pregunta-incomoda",
+          "label": "El nivel que más apareció: ¿me está sirviendo hoy, o me quedé aquí porque es lo que aprendí a hacer?",
+          "help": "Quédate un minuto en silencio antes de escribir."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Todos tenemos algo de cada nivel. Ninguno sobra.\n\n> La expansión de la conciencia no empieza cuando decides cambiar. Empieza cuando puedes ver, sin pelearte contigo, desde dónde estabas actuando."
+}

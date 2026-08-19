@@ -1,0 +1,85 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "questions": [
+    {
+      "id": "c1q1",
+      "prompt": "¿Cuál es el orden del circuito de la programación mental?",
+      "options": [
+        {
+          "id": "c1q1a",
+          "text": "Experiencia → interpretación → emoción → creencia → conducta → resultado",
+          "correct": true
+        },
+        { "id": "c1q1b", "text": "Creencia → experiencia → emoción → resultado", "correct": false },
+        { "id": "c1q1c", "text": "Emoción → conducta → experiencia → creencia", "correct": false },
+        { "id": "c1q1d", "text": "Resultado → creencia → interpretación → experiencia", "correct": false }
+      ]
+    },
+    {
+      "id": "c1q2",
+      "prompt": "¿Por qué el circuito se sostiene solo sin necesidad de evidencia externa?",
+      "options": [
+        {
+          "id": "c1q2a",
+          "text": "Porque el resultado realimenta la creencia y la confirma",
+          "correct": true
+        },
+        { "id": "c1q2b", "text": "Porque las creencias son genéticas", "correct": false },
+        { "id": "c1q2c", "text": "Porque nadie las cuestiona nunca", "correct": false },
+        { "id": "c1q2d", "text": "Porque el entorno las repite constantemente", "correct": false }
+      ]
+    },
+    {
+      "id": "c1q3",
+      "prompt": "¿En qué punto del circuito se puede intervenir de forma que el cambio se sostenga?",
+      "options": [
+        { "id": "c1q3a", "text": "En la interpretación", "correct": true },
+        { "id": "c1q3b", "text": "En la experiencia, reescribiendo lo que pasó", "correct": false },
+        { "id": "c1q3c", "text": "En el resultado, con fuerza de voluntad", "correct": false },
+        { "id": "c1q3d", "text": "En ninguno: el circuito es fijo", "correct": false }
+      ]
+    },
+    {
+      "id": "c1q4",
+      "prompt": "¿Qué dos ingredientes fijan una creencia?",
+      "options": [
+        {
+          "id": "c1q4a",
+          "text": "Emoción intensa y repetición — con el atajo añadido de la autoridad",
+          "correct": true
+        },
+        { "id": "c1q4b", "text": "Lógica y evidencia", "correct": false },
+        { "id": "c1q4c", "text": "Edad y genética", "correct": false },
+        { "id": "c1q4d", "text": "Cultura y educación formal", "correct": false }
+      ]
+    },
+    {
+      "id": "c1q5",
+      "prompt": "Si una creencia se instaló con emoción, ¿por qué no se quita con argumentos?",
+      "options": [
+        {
+          "id": "c1q5a",
+          "text": "Porque se desinstala con lo mismo con lo que se puso: experiencia nueva, con carga emocional, repetida",
+          "correct": true
+        },
+        { "id": "c1q5b", "text": "Porque los argumentos siempre son falsos", "correct": false },
+        { "id": "c1q5c", "text": "Porque la persona no quiere cambiar", "correct": false },
+        { "id": "c1q5d", "text": "Porque hace falta medicación", "correct": false }
+      ]
+    },
+    {
+      "id": "c1q6",
+      "prompt": "«¿Qué edad tenía quien sacó esa conclusión?» sirve para…",
+      "options": [
+        {
+          "id": "c1q6a",
+          "text": "Dejar de tratar la conclusión de un niño sin otras explicaciones disponibles como si fuera un dato sobre uno mismo",
+          "correct": true
+        },
+        { "id": "c1q6b", "text": "Culpar a los padres de lo que pasó", "correct": false },
+        { "id": "c1q6c", "text": "Determinar si el recuerdo es real", "correct": false },
+        { "id": "c1q6d", "text": "Calcular cuánto tardará el cambio", "correct": false }
+      ]
+    }
+  ]
+}

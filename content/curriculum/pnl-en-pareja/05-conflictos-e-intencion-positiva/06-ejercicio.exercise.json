@@ -1,0 +1,170 @@
+{
+  "title": "Ejercicio · La discusión que se repite",
+  "description": "Identificar tus jinetes, subir la cadena de las dos conductas y acordar la pausa.",
+  "introMd": "La parte más útil es la que más incomoda: la cadena de **tu** conducta, no la suya.",
+  "sections": [
+    {
+      "title": "1 · Tus jinetes",
+      "fields": [
+        {
+          "id": "j-mio",
+          "label": "¿Cuál es el tuyo?",
+          "type": "choice",
+          "options": [
+            "Crítica",
+            "Desprecio",
+            "Defensiva",
+            "Evasión"
+          ]
+        },
+        {
+          "id": "j-cuando",
+          "label": "¿Cuándo aparece? ¿Cansada, con prisa, con ciertos temas?",
+          "type": "short"
+        },
+        {
+          "id": "j-desprecio",
+          "label": "¿Hay desprecio en alguno de los dos lados?",
+          "type": "choice",
+          "options": [
+            "No",
+            "A veces",
+            "Sí"
+          ]
+        },
+        {
+          "id": "j-antidoto",
+          "label": "¿Qué antídoto vas a practicar esta semana?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Su conducta",
+      "fields": [
+        {
+          "id": "s-conducta",
+          "label": "La conducta suya que más te molesta",
+          "type": "short",
+          "help": "Lo que grabaría una cámara. No «es un desconsiderado»."
+        },
+        {
+          "id": "s-1",
+          "label": "¿Qué consigue con eso?",
+          "type": "short"
+        },
+        {
+          "id": "s-2",
+          "label": "¿Y eso qué le da?",
+          "type": "short"
+        },
+        {
+          "id": "s-3",
+          "label": "¿Y eso?",
+          "type": "short"
+        },
+        {
+          "id": "s-intencion",
+          "label": "La palabra grande",
+          "type": "short"
+        },
+        {
+          "id": "s-pregunta",
+          "label": "¿Se lo preguntaste? ¿Qué dijo?",
+          "help": "Preguntar, nunca explicarle cuál es su intención."
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu conducta",
+      "bodyMd": "La parte incómoda. Qué conducta tuya le molesta más a él o a ella.",
+      "fields": [
+        {
+          "id": "m-conducta",
+          "label": "Mi conducta más molesta para el otro",
+          "type": "short"
+        },
+        {
+          "id": "m-consigo",
+          "label": "¿Qué consigo?",
+          "type": "short"
+        },
+        {
+          "id": "m-eso",
+          "label": "¿Y eso?",
+          "type": "short"
+        },
+        {
+          "id": "m-intencion",
+          "label": "Mi intención de debajo",
+          "type": "short"
+        },
+        {
+          "id": "m-otro-camino",
+          "label": "¿De qué otra forma podría conseguir lo mismo?"
+        }
+      ]
+    },
+    {
+      "title": "4 · La pregunta de debajo",
+      "fields": [
+        {
+          "id": "p-cual",
+          "label": "¿Cuál es?",
+          "type": "choice",
+          "options": [
+            "¿Estás ahí?",
+            "¿Te importo?",
+            "¿Me eliges?"
+          ]
+        },
+        {
+          "id": "p-suena",
+          "label": "¿Cómo suena por fuera?",
+          "type": "short"
+        },
+        {
+          "id": "p-responder",
+          "label": "¿Cómo la responderías con presencia, no con soluciones?"
+        }
+      ]
+    },
+    {
+      "title": "5 · Pausa y reparación",
+      "fields": [
+        {
+          "id": "pa-frase",
+          "label": "La frase acordada para pedir la pausa",
+          "type": "short"
+        },
+        {
+          "id": "pa-retoma",
+          "label": "¿Quién retoma y cómo?",
+          "type": "short",
+          "help": "Sin esto, la pausa es abandono."
+        },
+        {
+          "id": "rep-suyos",
+          "label": "Dos intentos de reparación que hace tu pareja",
+          "type": "short"
+        },
+        {
+          "id": "rep-acepto",
+          "label": "¿Los aceptas cuando estás enfadada?",
+          "type": "choice",
+          "options": [
+            "Casi siempre",
+            "A veces",
+            "Casi nunca"
+          ]
+        },
+        {
+          "id": "rep-mios",
+          "label": "Los tuyos, y si se aceptan",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si respondiste «casi nunca» a aceptar reparaciones, ese es el trabajo de este mes. Vale más que cualquier técnica de este curso."
+}

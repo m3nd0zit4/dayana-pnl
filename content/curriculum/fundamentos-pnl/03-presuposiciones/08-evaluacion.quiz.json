@@ -1,0 +1,103 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "questions": [
+    {
+      "id": "f3q1",
+      "prompt": "¿Qué es una presuposición en PNL?",
+      "options": [
+        {
+          "id": "f3q1a",
+          "text": "Un principio de trabajo útil que amplía las posibilidades de acción, no una verdad absoluta demostrada",
+          "correct": true
+        },
+        { "id": "f3q1b", "text": "Una ley científica sobre el funcionamiento del cerebro", "correct": false },
+        { "id": "f3q1c", "text": "Un diagnóstico psicológico", "correct": false },
+        { "id": "f3q1d", "text": "Una técnica de inducción hipnótica", "correct": false }
+      ]
+    },
+    {
+      "id": "f3q2",
+      "prompt": "«Toda conducta tiene una intención positiva» significa que…",
+      "options": [
+        {
+          "id": "f3q2a",
+          "text": "Incluso una conducta con malos resultados busca satisfacer alguna necesidad; se conserva la intención y se cambia la estrategia",
+          "correct": true
+        },
+        { "id": "f3q2b", "text": "Todas las conductas son aceptables", "correct": false },
+        { "id": "f3q2c", "text": "Las personas siempre saben lo que buscan", "correct": false },
+        { "id": "f3q2d", "text": "No existen conductas dañinas", "correct": false }
+      ]
+    },
+    {
+      "id": "f3q3",
+      "prompt": "¿Cuál de estas afirmaciones sobre la intención positiva es INCORRECTA?",
+      "options": [
+        {
+          "id": "f3q3a",
+          "text": "Obliga a seguir tolerando la conducta una vez que se comprende",
+          "correct": true
+        },
+        { "id": "f3q3b", "text": "La intención casi nunca es consciente", "correct": false },
+        { "id": "f3q3c", "text": "No justifica ni exime de consecuencias", "correct": false },
+        { "id": "f3q3d", "text": "Abre la puerta al cambio porque el otro deja de defenderse", "correct": false }
+      ]
+    },
+    {
+      "id": "f3q4",
+      "prompt": "En el reencuadre, ¿por qué se piden al menos TRES opciones nuevas?",
+      "options": [
+        {
+          "id": "f3q4a",
+          "text": "Porque con una sola no hay elección sino reemplazo, y el reemplazo se abandona ante la primera dificultad",
+          "correct": true
+        },
+        { "id": "f3q4b", "text": "Porque tres es el número mínimo que recuerda el inconsciente", "correct": false },
+        { "id": "f3q4c", "text": "Para que el ejercicio dure más", "correct": false },
+        { "id": "f3q4d", "text": "Porque cada opción cubre una necesidad distinta", "correct": false }
+      ]
+    },
+    {
+      "id": "f3q5",
+      "prompt": "«Todos tenemos los recursos que necesitamos» implica que…",
+      "options": [
+        {
+          "id": "f3q5a",
+          "text": "El trabajo no es instalar lo que falta, sino llevar el recurso que ya existe al contexto donde hace falta",
+          "correct": true
+        },
+        { "id": "f3q5b", "text": "Nadie necesita ayuda externa nunca", "correct": false },
+        { "id": "f3q5c", "text": "Los recursos son innatos e inmodificables", "correct": false },
+        { "id": "f3q5d", "text": "Quien no logra algo es porque no se esfuerza", "correct": false }
+      ]
+    },
+    {
+      "id": "f3q6",
+      "prompt": "«El significado de la comunicación es la respuesta que obtienes» resulta incómoda porque…",
+      "options": [
+        {
+          "id": "f3q6a",
+          "text": "Devuelve la responsabilidad a quien habla: si el mensaje no llegó, toca ajustar cómo se dice",
+          "correct": true
+        },
+        { "id": "f3q6b", "text": "Culpa siempre a quien escucha", "correct": false },
+        { "id": "f3q6c", "text": "Niega que exista la mala intención", "correct": false },
+        { "id": "f3q6d", "text": "Impide poner límites", "correct": false }
+      ]
+    },
+    {
+      "id": "f3q7",
+      "prompt": "En el paso 5, elegir la opción «más ecológica» significa elegir…",
+      "options": [
+        {
+          "id": "f3q7a",
+          "text": "La que te sirve sin costarle a otras áreas de tu vida ni a las personas que te importan",
+          "correct": true
+        },
+        { "id": "f3q7b", "text": "La más rápida de implementar", "correct": false },
+        { "id": "f3q7c", "text": "La relacionada con el medio ambiente", "correct": false },
+        { "id": "f3q7d", "text": "La que menos esfuerzo exige", "correct": false }
+      ]
+    }
+  ]
+}

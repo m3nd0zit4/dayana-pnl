@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "questions": [
+    {
+      "id": "f5q1",
+      "prompt": "¿De qué tres componentes está hecho un estado?",
+      "options": [
+        {
+          "id": "f5q1a",
+          "text": "Fisiología, foco de atención y lenguaje interno — y los tres se sostienen entre sí",
+          "correct": true
+        },
+        { "id": "f5q1b", "text": "Pensamiento, emoción y carácter", "correct": false },
+        { "id": "f5q1c", "text": "Consciente, subconsciente e inconsciente", "correct": false },
+        { "id": "f5q1d", "text": "Pasado, presente y futuro", "correct": false }
+      ]
+    },
+    {
+      "id": "f5q2",
+      "prompt": "¿Por qué se entra por el cuerpo y no por el pensamiento?",
+      "options": [
+        {
+          "id": "f5q2a",
+          "text": "Porque es el único de los tres que se puede cambiar a voluntad y de inmediato",
+          "correct": true
+        },
+        { "id": "f5q2b", "text": "Porque el pensamiento no influye en el estado", "correct": false },
+        { "id": "f5q2c", "text": "Porque las emociones están solo en el cuerpo", "correct": false },
+        { "id": "f5q2d", "text": "Porque pensar empeora siempre las cosas", "correct": false }
+      ]
+    },
+    {
+      "id": "f5q3",
+      "prompt": "En la respiración, ¿qué es lo que baja la activación?",
+      "options": [
+        { "id": "f5q3a", "text": "Que la exhalación sea más larga que la inhalación", "correct": true },
+        { "id": "f5q3b", "text": "Inhalar lo más profundo posible", "correct": false },
+        { "id": "f5q3c", "text": "Contener el aire mucho tiempo", "correct": false },
+        { "id": "f5q3d", "text": "Respirar lo más rápido posible", "correct": false }
+      ]
+    },
+    {
+      "id": "f5q4",
+      "prompt": "¿Cuál de estas frases es una OBSERVACIÓN y no una interpretación?",
+      "options": [
+        {
+          "id": "f5q4a",
+          "text": "«Se quedó callado tres segundos y cambió de tema»",
+          "correct": true
+        },
+        { "id": "f5q4b", "text": "«Le dio igual»", "correct": false },
+        { "id": "f5q4c", "text": "«Está enfadada conmigo»", "correct": false },
+        { "id": "f5q4d", "text": "«No le interesó la propuesta»", "correct": false }
+      ]
+    },
+    {
+      "id": "f5q5",
+      "prompt": "¿Por qué hay que establecer la línea base antes de calibrar?",
+      "options": [
+        {
+          "id": "f5q5a",
+          "text": "Porque sin ella un gesto no significa nada: lo que informa es el cambio respecto a cómo está esa persona en calma",
+          "correct": true
+        },
+        { "id": "f5q5b", "text": "Porque los gestos son universales y hay que memorizarlos", "correct": false },
+        { "id": "f5q5c", "text": "Por cortesía antes de observar a alguien", "correct": false },
+        { "id": "f5q5d", "text": "No hace falta: cada gesto tiene un significado fijo", "correct": false }
+      ]
+    },
+    {
+      "id": "f5q6",
+      "prompt": "Después de calibrar un cambio, ¿qué corresponde hacer?",
+      "options": [
+        {
+          "id": "f5q6a",
+          "text": "Comprobarlo preguntando: la calibración da hipótesis, no certezas",
+          "correct": true
+        },
+        { "id": "f5q6b", "text": "Decirle a la persona lo que está sintiendo", "correct": false },
+        { "id": "f5q6c", "text": "Anotarlo y no mencionarlo nunca", "correct": false },
+        { "id": "f5q6d", "text": "Deducir si está mintiendo", "correct": false }
+      ]
+    },
+    {
+      "id": "f5q7",
+      "prompt": "Sobre «el 93 % de la comunicación es no verbal»…",
+      "options": [
+        {
+          "id": "f5q7a",
+          "text": "Es una mala lectura de un estudio de 1967 muy limitado, que su propio autor lleva décadas corrigiendo",
+          "correct": true
+        },
+        { "id": "f5q7b", "text": "Es un dato bien establecido", "correct": false },
+        { "id": "f5q7c", "text": "Se refiere solo a la comunicación escrita", "correct": false },
+        { "id": "f5q7d", "text": "Lo demostró Ekman con las microexpresiones", "correct": false }
+      ]
+    }
+  ]
+}

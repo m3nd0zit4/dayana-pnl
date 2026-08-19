@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "questions": [
+    {
+      "id": "l1q1",
+      "prompt": "¿Qué es el «affect labeling» y qué muestra la investigación?",
+      "options": [
+        {
+          "id": "l1q1a",
+          "text": "Poner nombre a una emoción reduce su intensidad; se ve incluso en la activación de la amígdala",
+          "correct": true
+        },
+        { "id": "l1q1b", "text": "Etiquetar emociones las intensifica", "correct": false },
+        { "id": "l1q1c", "text": "Es una técnica sin respaldo experimental", "correct": false },
+        { "id": "l1q1d", "text": "Consiste en repetir afirmaciones positivas", "correct": false }
+      ]
+    },
+    {
+      "id": "l1q2",
+      "prompt": "«90% de supervivencia» y «10% de mortalidad» producen decisiones distintas. ¿Cómo se llama eso?",
+      "options": [
+        { "id": "l1q2a", "text": "Efecto de encuadre (framing)", "correct": true },
+        { "id": "l1q2b", "text": "Sesgo de confirmación", "correct": false },
+        { "id": "l1q2c", "text": "Disonancia cognitiva", "correct": false },
+        { "id": "l1q2d", "text": "Efecto placebo", "correct": false }
+      ]
+    },
+    {
+      "id": "l1q3",
+      "prompt": "¿Qué hace el «pero» en una frase?",
+      "options": [
+        { "id": "l1q3a", "text": "Borra lo que va antes: solo queda lo que va después", "correct": true },
+        { "id": "l1q3b", "text": "Equilibra las dos partes por igual", "correct": false },
+        { "id": "l1q3c", "text": "Refuerza la primera parte", "correct": false },
+        { "id": "l1q3d", "text": "No tiene ningún efecto en cómo se recuerda la frase", "correct": false }
+      ]
+    },
+    {
+      "id": "l1q4",
+      "prompt": "¿Qué información aparece al decir «elijo» en vez de «tengo que»?",
+      "options": [
+        {
+          "id": "l1q4a",
+          "text": "Si algo se rebela al decirlo, quizá no quieres hacerlo — y eso también se puede mirar",
+          "correct": true
+        },
+        { "id": "l1q4b", "text": "Que la obligación desaparece", "correct": false },
+        { "id": "l1q4c", "text": "Que uno se vuelve más responsable automáticamente", "correct": false },
+        { "id": "l1q4d", "text": "Ninguna: es solo una fórmula verbal", "correct": false }
+      ]
+    },
+    {
+      "id": "l1q5",
+      "prompt": "Sobre la relación entre idioma y pensamiento, lo honesto es decir que…",
+      "options": [
+        {
+          "id": "l1q5a",
+          "text": "El lenguaje influye en lo que se atiende y se recuerda, pero no determina el pensamiento",
+          "correct": true
+        },
+        { "id": "l1q5b", "text": "El idioma determina completamente lo que se puede pensar", "correct": false },
+        { "id": "l1q5c", "text": "El lenguaje no tiene ninguna influencia", "correct": false },
+        { "id": "l1q5d", "text": "Las palabras modifican la estructura del ADN", "correct": false }
+      ]
+    },
+    {
+      "id": "l1q6",
+      "prompt": "¿Qué es la granularidad emocional?",
+      "options": [
+        {
+          "id": "l1q6a",
+          "text": "Distinguir con precisión entre emociones parecidas — y quien lo hace, regula mejor",
+          "correct": true
+        },
+        { "id": "l1q6b", "text": "Sentir emociones más intensas", "correct": false },
+        { "id": "l1q6c", "text": "Reprimir lo que se siente", "correct": false },
+        { "id": "l1q6d", "text": "Hablar de emociones en público", "correct": false }
+      ]
+    },
+    {
+      "id": "l1q7",
+      "prompt": "«Nombrar lo que duele no es taparlo». ¿Qué distingue una cosa de la otra?",
+      "options": [
+        {
+          "id": "l1q7a",
+          "text": "Decir «estoy triste» en vez de «estoy fatal» es precisión; decir «todo pasa por algo» a quien acaba de perder algo es negación",
+          "correct": true
+        },
+        { "id": "l1q7b", "text": "No hay diferencia: ambas son positividad", "correct": false },
+        { "id": "l1q7c", "text": "Cualquier reformulación es tapar", "correct": false },
+        { "id": "l1q7d", "text": "Depende de quién lo diga", "correct": false }
+      ]
+    }
+  ]
+}

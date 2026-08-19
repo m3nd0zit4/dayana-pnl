@@ -1,0 +1,78 @@
+{
+  "title": "Ejercicio · Rastrea y baja",
+  "description": "Las cinco huellas aplicadas a tu vida, y la escalera hasta la frase exacta.",
+  "introMd": "Primero rastreas. Después bajas.\n\nSi al bajar aparece algo que te desborda, para y busca acompañamiento. Este ejercicio no sustituye eso.",
+  "sections": [
+    {
+      "title": "1 · Rastreo por huellas",
+      "fields": [
+        {
+          "id": "huella-lenguaje",
+          "label": "Lenguaje · Tres frases hechas que te escuchas decir",
+          "placeholder": "«Es que yo soy muy…», «siempre me pasa…», «yo no puedo…»"
+        },
+        {
+          "id": "huella-techo",
+          "label": "Techo · ¿Dónde haces todo bien y aun así no pasa nada?"
+        },
+        {
+          "id": "huella-reaccion",
+          "label": "Reacción desmedida · La última vez que algo pequeño te arruinó el día"
+        },
+        {
+          "id": "huella-envidia",
+          "label": "Envidia · ¿Quién te molesta sin haberte hecho nada, y qué se permite?",
+          "required": false
+        },
+        {
+          "id": "huella-evitacion",
+          "label": "Evitación · ¿Qué llevas posponiendo sin razón práctica clara?"
+        }
+      ]
+    },
+    {
+      "title": "2 · Elige una",
+      "fields": [
+        {
+          "id": "elegida",
+          "label": "¿Con cuál de las cinco vas a trabajar?",
+          "type": "choice",
+          "options": [
+            "Lenguaje",
+            "El techo que se repite",
+            "La reacción desmedida",
+            "La envidia",
+            "Lo que evito"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · La escalera",
+      "bodyMd": "Baja preguntando **«¿y eso qué significa?»** en cada escalón. No te saltes ninguno.",
+      "fields": [
+        { "id": "escalon-0", "label": "Lo que noto (la molestia, tal cual)", "type": "short" },
+        { "id": "escalon-1", "label": "¿Y eso qué significa?", "type": "short" },
+        { "id": "escalon-2", "label": "¿Y eso qué significa?", "type": "short" },
+        { "id": "escalon-3", "label": "¿Y eso qué significa?", "type": "short" },
+        {
+          "id": "la-frase",
+          "label": "LA FRASE",
+          "help": "Escríbela tal como suena por dentro, sin suavizarla.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "4 · La comprobación",
+      "fields": [
+        {
+          "id": "comprobacion",
+          "label": "Dila en voz alta. ¿Qué pasó en tu cuerpo?",
+          "help": "Esa es la señal más fiable de que llegaste a la frase correcta."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Guarda esa frase. Es con la que vas a trabajar en los módulos siguientes — el reencuadre y la instalación.\n\n> Lo que no se nombra no se puede cambiar. La mitad del trabajo era encontrar la frase, y ya está hecha."
+}

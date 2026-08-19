@@ -1,0 +1,81 @@
+{
+  "title": "Evaluación final del curso",
+  "questions": [
+    {
+      "id": "f7q1",
+      "prompt": "Antes de entrar a una conversación difícil, ¿qué pieza se usa primero?",
+      "options": [
+        {
+          "id": "f7q1a",
+          "text": "El cambio de estado: no se entra desde la irritación, porque desde ahí la conversación ya tiene final antes de empezar",
+          "correct": true
+        },
+        { "id": "f7q1b", "text": "El metamodelo, para desmontar lo que diga el otro", "correct": false },
+        { "id": "f7q1c", "text": "El objetivo bien formulado", "correct": false },
+        { "id": "f7q1d", "text": "El sistema representacional propio", "correct": false }
+      ]
+    },
+    {
+      "id": "f7q2",
+      "prompt": "Cuando aparece resistencia en el otro, ¿qué presuposición conviene aplicar?",
+      "options": [
+        {
+          "id": "f7q2a",
+          "text": "Que esa conducta está consiguiendo algo — y preguntar qué, en vez de concluir",
+          "correct": true
+        },
+        { "id": "f7q2b", "text": "Que la persona no quiere colaborar", "correct": false },
+        { "id": "f7q2c", "text": "Que hay que insistir con más firmeza", "correct": false },
+        { "id": "f7q2d", "text": "Que conviene cambiar de tema", "correct": false }
+      ]
+    },
+    {
+      "id": "f7q3",
+      "prompt": "¿Qué se hace «después» de la conversación, según el cierre del curso?",
+      "options": [
+        {
+          "id": "f7q3a",
+          "text": "Modelar: preguntarse qué hizo funcionar esta conversación y no la anterior",
+          "correct": true
+        },
+        { "id": "f7q3b", "text": "Anotar los errores del otro", "correct": false },
+        { "id": "f7q3c", "text": "Nada: la conversación termina ahí", "correct": false },
+        { "id": "f7q3d", "text": "Repetir el objetivo hasta memorizarlo", "correct": false }
+      ]
+    },
+    {
+      "id": "f7q4",
+      "prompt": "La práctica diaria propuesta dura…",
+      "options": [
+        { "id": "f7q4a", "text": "Diez minutos: tres por la mañana y cinco por la noche, más dos observaciones sin tiempo extra", "correct": true },
+        { "id": "f7q4b", "text": "Una hora diaria de meditación", "correct": false },
+        { "id": "f7q4c", "text": "Un taller de fin de semana al mes", "correct": false },
+        { "id": "f7q4d", "text": "El tiempo que cada quien tenga, sin estructura", "correct": false }
+      ]
+    },
+    {
+      "id": "f7q5",
+      "prompt": "Antes de pagar una formación de PNL, ¿qué señal es la más reveladora?",
+      "options": [
+        {
+          "id": "f7q5a",
+          "text": "Si se hablan también los límites de la PNL o solo sus milagros",
+          "correct": true
+        },
+        { "id": "f7q5b", "text": "El precio", "correct": false },
+        { "id": "f7q5c", "text": "El número de seguidores del formador", "correct": false },
+        { "id": "f7q5d", "text": "La duración total en horas, sin importar el formato", "correct": false }
+      ]
+    },
+    {
+      "id": "f7q6",
+      "prompt": "¿Cuál es la regla del registro de tres semanas?",
+      "options": [
+        { "id": "f7q6a", "text": "Nunca dos días seguidos sin hacerlo", "correct": true },
+        { "id": "f7q6b", "text": "Empezar de cero cada vez que se falla un día", "correct": false },
+        { "id": "f7q6c", "text": "Hacerlo solo los días laborables", "correct": false },
+        { "id": "f7q6d", "text": "Completar las tres semanas seguidas o no cuenta", "correct": false }
+      ]
+    }
+  ]
+}

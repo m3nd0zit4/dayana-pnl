@@ -1,0 +1,103 @@
+{
+  "title": "Ejercicio · Siete días, siete preguntas",
+  "description": "El cambio del «por qué», la práctica de la semana y la acción con la que se cierra.",
+  "introMd": "Escribe la **segunda** respuesta, no la primera. La primera ya te la sabes.",
+  "sections": [
+    {
+      "title": "1 · Cambia el «por qué»",
+      "bodyMd": "Tres «por qué» tuyos, reescritos.",
+      "fields": [
+        {
+          "id": "pq-1",
+          "label": "Un «¿por qué…?» que te haces",
+          "type": "short"
+        },
+        {
+          "id": "pq-1-nueva",
+          "label": "Reescrito con qué / cómo / para qué",
+          "type": "short"
+        },
+        {
+          "id": "pq-2",
+          "label": "Otro «¿por qué…?»",
+          "type": "short"
+        },
+        {
+          "id": "pq-2-nueva",
+          "label": "Reescrito",
+          "type": "short"
+        },
+        {
+          "id": "pq-dif",
+          "label": "Léelos en voz alta. ¿Qué contesta la cabeza en cada versión?"
+        }
+      ]
+    },
+    {
+      "title": "2 · La semana",
+      "bodyMd": "Una al día. No las contestes todas hoy: no sirve de nada.",
+      "fields": [
+        {
+          "id": "d1",
+          "label": "Día 1 · ¿Qué pesa más ahora mismo?"
+        },
+        {
+          "id": "d2",
+          "label": "Día 2 · ¿Qué estoy evitando mirar?"
+        },
+        {
+          "id": "d3",
+          "label": "Día 3 · ¿Qué necesito y no estoy pidiendo?"
+        },
+        {
+          "id": "d4",
+          "label": "Día 4 · ¿Qué hago yo para que esto siga pasando?"
+        },
+        {
+          "id": "d5",
+          "label": "Día 5 · ¿Qué gano manteniéndolo como está?",
+          "help": "Incómoda a propósito. Casi todo lo que se repite tiene una ganancia escondida."
+        },
+        {
+          "id": "d6",
+          "label": "Día 6 · ¿Qué elegiría si no tuviera que explicárselo a nadie?"
+        },
+        {
+          "id": "d7",
+          "label": "Día 7 · ¿Qué me diría dentro de cinco años sobre esto?"
+        }
+      ]
+    },
+    {
+      "title": "3 · El cierre",
+      "fields": [
+        {
+          "id": "repetido",
+          "label": "¿Qué apareció más de una vez?",
+          "type": "short"
+        },
+        {
+          "id": "sorpresa",
+          "label": "¿Qué respuesta te sorprendió?",
+          "type": "short"
+        },
+        {
+          "id": "accion",
+          "label": "La acción de esta semana",
+          "help": "Concreta y con día. Sin esto, la semana fue entretenimiento.",
+          "type": "short"
+        },
+        {
+          "id": "rumia",
+          "label": "¿Terminaste con algo que hacer, o dando vueltas a lo mismo?",
+          "type": "choice",
+          "options": [
+            "Con algo que hacer",
+            "Dando vueltas"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si marcaste «dando vueltas», no es un fracaso: es la señal de que ahora toca moverse, no seguir preguntando."
+}

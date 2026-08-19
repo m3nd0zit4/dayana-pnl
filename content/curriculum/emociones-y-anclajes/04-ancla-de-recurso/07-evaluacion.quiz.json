@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e4q1",
+      "prompt": "¿Por qué un ancla no puede instalar un estado que nunca has tenido?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque el ancla rescata un estado archivado; no fabrica uno nuevo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque haría falta más repeticiones",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque el gesto sería distinto",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Sí puede: basta con imaginarlo con detalle",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q2",
+      "prompt": "«No tengo ningún recuerdo de sentirme segura.» ¿Por qué suele ser falso?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque la memoria es dependiente del estado: buscas desde la inseguridad y el recuerdo está archivado con el otro estado",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque todo el mundo recuerda su infancia entera",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque los recuerdos negativos se borran con el tiempo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No es falso: hay personas que nunca han tenido ese estado",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q3",
+      "prompt": "¿Cuál es la primera salida cuando no aparece la escena?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Bajar el listón: no el día más seguro de tu vida, sino treinta segundos",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Imaginar una escena futura",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Usar la escena de otra persona",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Cambiar de recurso",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q4",
+      "prompt": "¿Qué son las submodalidades?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Las propiedades de un recuerdo —tamaño, brillo, distancia, volumen— que se pueden mover para intensificarlo o apagarlo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Los tres canales: visual, auditivo, kinestésico",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Los subniveles de conciencia",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Las cuatro condiciones del anclaje",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q5",
+      "prompt": "¿Cuántos recursos como máximo se apilan en un gesto?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Tres. Con más, el ancla se vuelve difusa",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Uno: apilar no funciona",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Cinco a siete",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Los que hagan falta",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q6",
+      "prompt": "Según Bandura, ¿cuál es la fuente más potente de autoeficacia?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La experiencia de dominio propia — y por eso la escena de referencia debe ser tuya y no prestada",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La persuasión verbal de otros",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La experiencia vicaria",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El estado fisiológico",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q7",
+      "prompt": "«Cuando me ponga nerviosa» — ¿por qué no vale como plan de despliegue?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque es un estado, no una situación concreta; el plan necesita un cuándo y un dónde identificables",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque los nervios no se pueden anclar",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque hay que usarlo solo en calma",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Sí vale: es un buen plan",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e4q8",
+      "prompt": "¿Qué refuerza más un ancla?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Usarla también cuando el estado ya está presente, no solo en emergencias",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Usarla exclusivamente en momentos de crisis",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Cambiar de gesto cada semana",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No usarla, para que no se gaste",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

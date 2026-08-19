@@ -5,6 +5,7 @@ import {
   getPayPalAccessToken,
 } from "../../../../lib/paypal/server";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
+import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { extractPayPalPayer } from "@/lib/crm/paypal-payer";
 import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
 import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
@@ -129,8 +130,18 @@ export async function POST(req: NextRequest) {
         const expectedGross = grossUpUsd(discountedNetUsd, paypalFee()).gross;
         assertPayPalCaptureAmount(amountMinor, currency, expectedGross);
 
+        // El contacto puede ser el temporal creado al abrir el checkout. Se
+        // completa ANTES de matricular: si ya existe una ficha real con ese
+        // email hay que matricular en ESA, no crear una segunda (y `email` es
+        // @unique, así que actualizar a ciegas reventaría).
+        const payer = extractPayPalPayer(result);
+        const paidContactId = await reconcilePendingCheckoutContact(
+          checkout.contactId,
+          payer
+        );
+
         enrollmentId = await fulfillCheckoutPayment({
-          contactId: checkout.contactId,
+          contactId: paidContactId,
           productId: checkout.planId,
           provider: PaymentProvider.PAYPAL,
           providerPaymentId: captureId,
@@ -150,10 +161,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (status === "COMPLETED") {
-          await enrichContactFromPayer(
-            checkout.contactId,
-            extractPayPalPayer(result)
-          );
+          await enrichContactFromPayer(paidContactId, payer);
         }
       } else {
         enrollmentId = await resolveEnrollmentFromReference(enrollmentRef);

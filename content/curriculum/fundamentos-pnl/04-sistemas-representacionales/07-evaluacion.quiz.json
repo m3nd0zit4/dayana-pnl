@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "questions": [
+    {
+      "id": "f4q1",
+      "prompt": "¿Qué es un sistema representacional?",
+      "options": [
+        {
+          "id": "f4q1a",
+          "text": "El canal sensorial con el que se trae una experiencia a la mente: imagen, sonido o sensación",
+          "correct": true
+        },
+        { "id": "f4q1b", "text": "Un tipo de personalidad fijo", "correct": false },
+        { "id": "f4q1c", "text": "El hemisferio cerebral dominante", "correct": false },
+        { "id": "f4q1d", "text": "La forma de hablar en público", "correct": false }
+      ]
+    },
+    {
+      "id": "f4q2",
+      "prompt": "«No me cuadra, me da mala espina» corresponde al canal…",
+      "options": [
+        { "id": "f4q2a", "text": "Kinestésico", "correct": true },
+        { "id": "f4q2b", "text": "Visual", "correct": false },
+        { "id": "f4q2c", "text": "Auditivo", "correct": false },
+        { "id": "f4q2d", "text": "Ninguno: no es lenguaje sensorial", "correct": false }
+      ]
+    },
+    {
+      "id": "f4q3",
+      "prompt": "Alguien te dice «no veo claro el plan». ¿Qué respuesta acompasa mejor?",
+      "options": [
+        { "id": "f4q3a", "text": "«Te lo muestro en un esquema»", "correct": true },
+        { "id": "f4q3b", "text": "«Escúchame otra vez y te lo cuento»", "correct": false },
+        { "id": "f4q3c", "text": "«Pruébalo y ya sentirás»", "correct": false },
+        { "id": "f4q3d", "text": "«Está clarísimo, no sé qué no entiendes»", "correct": false }
+      ]
+    },
+    {
+      "id": "f4q4",
+      "prompt": "Sobre la afirmación de que los movimientos oculares revelan el canal o la mentira…",
+      "options": [
+        {
+          "id": "f4q4a",
+          "text": "Se puso a prueba experimentalmente y no se sostiene",
+          "correct": true
+        },
+        { "id": "f4q4b", "text": "Está confirmada por la neurociencia", "correct": false },
+        { "id": "f4q4c", "text": "Funciona solo con personas visuales", "correct": false },
+        { "id": "f4q4d", "text": "Es la parte mejor documentada de la PNL", "correct": false }
+      ]
+    },
+    {
+      "id": "f4q5",
+      "prompt": "Entonces, ¿por qué sí funciona devolverle a alguien su vocabulario sensorial?",
+      "options": [
+        {
+          "id": "f4q5a",
+          "text": "Porque la convergencia lingüística mejora el vínculo y la persona se siente entendida",
+          "correct": true
+        },
+        { "id": "f4q5b", "text": "Porque activa el hemisferio correspondiente", "correct": false },
+        { "id": "f4q5c", "text": "Porque cada persona tiene un canal cerebral fijo", "correct": false },
+        { "id": "f4q5d", "text": "No funciona: es solo folclore", "correct": false }
+      ]
+    },
+    {
+      "id": "f4q6",
+      "prompt": "Una pareja discute: uno reclama que nunca le dicen «te quiero», el otro señala todo lo que hace por él. ¿Qué está pasando?",
+      "options": [
+        {
+          "id": "f4q6a",
+          "text": "Los dos están dando amor, pero ninguno lo recibe en su idioma",
+          "correct": true
+        },
+        { "id": "f4q6b", "text": "Uno de los dos no quiere al otro", "correct": false },
+        { "id": "f4q6c", "text": "Es incompatibilidad de canales, no tiene arreglo", "correct": false },
+        { "id": "f4q6d", "text": "El kinestésico siempre tiene razón", "correct": false }
+      ]
+    },
+    {
+      "id": "f4q7",
+      "prompt": "¿Cuál es la forma más segura de explicar algo importante?",
+      "options": [
+        {
+          "id": "f4q7a",
+          "text": "Decirlo en los tres canales: algo que se vea, algo que se cuente y algo que se pruebe",
+          "correct": true
+        },
+        { "id": "f4q7b", "text": "Averiguar el canal fijo del otro y usar solo ese", "correct": false },
+        { "id": "f4q7c", "text": "Repetirlo hasta que entre", "correct": false },
+        { "id": "f4q7d", "text": "Usar siempre el canal visual, que es el más común", "correct": false }
+      ]
+    }
+  ]
+}

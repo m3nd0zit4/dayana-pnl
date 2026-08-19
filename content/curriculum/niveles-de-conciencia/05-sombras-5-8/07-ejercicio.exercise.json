@@ -1,0 +1,63 @@
+{
+  "title": "Ejercicio · Tus sombras de los niveles 5 a 8",
+  "description": "Las sombras que la sociedad aplaude, puestas por escrito.",
+  "introMd": "Estas cuatro son formas distintas de **no estar presente**: el 5 vive en la meta siguiente, el 6 en las necesidades del otro, el 7 en el análisis y el 8 en lo trascendente.",
+  "sections": [
+    {
+      "title": "Nivel 5 · Logro",
+      "fields": [
+        { "id": "n5-proceso", "label": "¿Estoy disfrutando el proceso o solo buscando resultados?" },
+        {
+          "id": "n5-sin-producir",
+          "label": "¿Quién soy yo cuando no estoy produciendo?",
+          "help": "Si la pregunta da vértigo, ahí está la sombra."
+        }
+      ]
+    },
+    {
+      "title": "Nivel 6 · Servicio",
+      "fields": [
+        {
+          "id": "n6-no",
+          "label": "¿Me cuesta decir que no?",
+          "type": "choice",
+          "options": ["Mucho", "A veces", "Poco"]
+        },
+        { "id": "n6-conversacion", "label": "¿Hay alguna conversación que llevo meses evitando? ¿Cuál?" }
+      ]
+    },
+    {
+      "title": "Nivel 7 · Sistemas",
+      "fields": [
+        {
+          "id": "n7-decision",
+          "label": "¿Qué decisión tengo pendiente esperando «tener más información»?"
+        }
+      ]
+    },
+    {
+      "title": "Nivel 8 · Unidad",
+      "fields": [
+        {
+          "id": "n8-tapando",
+          "label": "¿Hay algo concreto y pendiente que estoy tapando con lenguaje bonito?",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "El cierre",
+      "bodyMd": "Que sea pequeña. Que sea concreta. Que tenga día y hora.\n\nEstas sombras no se resuelven con más comprensión —estos niveles ya comprenden mucho—. Se resuelven con actos.",
+      "fields": [
+        { "id": "sombra-superior", "label": "La sombra que más se repite en mí es…", "type": "short" },
+        { "id": "precio", "label": "El precio que estoy pagando por ella es…" },
+        {
+          "id": "accion-semana",
+          "label": "Una acción pequeña y concreta que haré esta semana",
+          "type": "short",
+          "placeholder": "El martes le digo a mi hermana que no puedo recoger a los niños"
+        }
+      ]
+    }
+  ]
+}

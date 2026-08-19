@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "questions": [
+    {
+      "id": "c3q1",
+      "prompt": "Un patrón se repite con personas distintas, en sitios distintos. ¿Qué indica?",
+      "options": [
+        {
+          "id": "c3q1a",
+          "text": "Un techo: el denominador común es propio, y eso es una pista, no un reproche",
+          "correct": true
+        },
+        { "id": "c3q1b", "text": "Mala suerte sostenida", "correct": false },
+        { "id": "c3q1c", "text": "Que hay que cambiar de entorno", "correct": false },
+        { "id": "c3q1d", "text": "Falta de esfuerzo", "correct": false }
+      ]
+    },
+    {
+      "id": "c3q2",
+      "prompt": "Algo pequeño dispara una reacción enorme. ¿Qué está pasando?",
+      "options": [
+        {
+          "id": "c3q2a",
+          "text": "No se reacciona a lo que pasó sino a lo que significó — y ese significado es la creencia",
+          "correct": true
+        },
+        { "id": "c3q2b", "text": "La persona es exagerada por naturaleza", "correct": false },
+        { "id": "c3q2c", "text": "Hay un desequilibrio químico", "correct": false },
+        { "id": "c3q2d", "text": "El otro lo hizo a propósito", "correct": false }
+      ]
+    },
+    {
+      "id": "c3q3",
+      "prompt": "¿Qué información da la envidia?",
+      "options": [
+        {
+          "id": "c3q3a",
+          "text": "Señala lo que quieres y no te permites: ¿qué se está permitiendo esa persona que yo no?",
+          "correct": true
+        },
+        { "id": "c3q3b", "text": "Que la otra persona hizo algo mal", "correct": false },
+        { "id": "c3q3c", "text": "Que hay que evitar a esa persona", "correct": false },
+        { "id": "c3q3d", "text": "Ninguna: es solo un defecto de carácter", "correct": false }
+      ]
+    },
+    {
+      "id": "c3q4",
+      "prompt": "¿Por qué «tengo baja autoestima» no sirve para trabajar?",
+      "options": [
+        {
+          "id": "c3q4a",
+          "text": "Porque es una etiqueta, no una creencia: hay que bajar a la frase exacta",
+          "correct": true
+        },
+        { "id": "c3q4b", "text": "Porque la autoestima no existe", "correct": false },
+        { "id": "c3q4c", "text": "Porque es un diagnóstico médico", "correct": false },
+        { "id": "c3q4d", "text": "Porque es demasiado específico", "correct": false }
+      ]
+    },
+    {
+      "id": "c3q5",
+      "prompt": "¿Qué pregunta se usa para bajar de la molestia a la frase?",
+      "options": [
+        { "id": "c3q5a", "text": "«¿Y eso qué significa?», repetida hasta que no haya respuesta", "correct": true },
+        { "id": "c3q5b", "text": "«¿Por qué me pasa esto a mí?»", "correct": false },
+        { "id": "c3q5c", "text": "«¿De quién es la culpa?»", "correct": false },
+        { "id": "c3q5d", "text": "«¿Desde cuándo me ocurre?»", "correct": false }
+      ]
+    },
+    {
+      "id": "c3q6",
+      "prompt": "¿Cuál es la señal más fiable de haber llegado a la frase correcta?",
+      "options": [
+        { "id": "c3q6a", "text": "Que el cuerpo reaccione al decirla en voz alta", "correct": true },
+        { "id": "c3q6b", "text": "Que suene bien redactada", "correct": false },
+        { "id": "c3q6c", "text": "Que otra persona esté de acuerdo", "correct": false },
+        { "id": "c3q6d", "text": "Que aparezca en el primer escalón", "correct": false }
+      ]
+    },
+    {
+      "id": "c3q7",
+      "prompt": "¿Cuál es la regla de uso al detectar creencias?",
+      "options": [
+        {
+          "id": "c3q7a",
+          "text": "Encontrar una, trabajarla, y después buscar la siguiente",
+          "correct": true
+        },
+        { "id": "c3q7b", "text": "Hacer la lista más larga posible antes de empezar", "correct": false },
+        { "id": "c3q7c", "text": "Trabajar todas a la vez para ir más rápido", "correct": false },
+        { "id": "c3q7d", "text": "Empezar siempre por la más dolorosa", "correct": false }
+      ]
+    }
+  ]
+}

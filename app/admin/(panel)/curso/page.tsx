@@ -1,7 +1,7 @@
 import CourseMembersPageClient from "@/app/components/admin/crm/CourseMembersPageClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
-import { getCourseProduct } from "@/lib/lms/membership";
+import { getMembershipProduct } from "@/lib/lms/membership";
 import { listCourseMembersAdmin } from "@/lib/lms/course-admin";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +22,16 @@ const CursoPage = async () => {
   const staff = await getStaffSession();
   if (!staff) return null;
 
-  const course = await getCourseProduct();
-  const members = course ? await listCourseMembersAdmin(course.id) : [];
+  // La membresía es lo que se paga; los cursos de la biblioteca no tienen
+  // inscripciones propias.
+  const membership = await getMembershipProduct();
+  const members = membership ? await listCourseMembersAdmin(membership.id) : [];
 
   return (
     <CourseMembersPageClient
       preview={false}
-      courseTitle={course?.title ?? "Curso"}
-      courseProductId={course?.id ?? null}
+      courseTitle={membership?.title ?? "Membresía"}
+      courseProductId={membership?.id ?? null}
       initialMembers={members}
     />
   );

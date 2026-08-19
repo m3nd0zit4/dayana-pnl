@@ -1,0 +1,84 @@
+{
+  "title": "Ejercicio · Las cuatro palabras",
+  "description": "Cazar tus «pero», «tengo que» y «siempre», y afinar el vocabulario emocional.",
+  "introMd": "Todo el ejercicio es de escucha. No hay nada que analizar: hay que oírse.",
+  "sections": [
+    {
+      "title": "1 · El «pero»",
+      "bodyMd": "Tres frases tuyas con «pero». Escríbelas y después con «y».",
+      "fields": [
+        { "id": "pero-1", "label": "Frase 1 con «pero»", "type": "short" },
+        { "id": "pero-1-y", "label": "La misma con «y»", "type": "short" },
+        { "id": "pero-2", "label": "Frase 2 con «pero»", "type": "short" },
+        { "id": "pero-2-y", "label": "La misma con «y»", "type": "short" },
+        {
+          "id": "pero-que-cambia",
+          "label": "Léelas en voz alta. ¿Qué cambia?"
+        }
+      ]
+    },
+    {
+      "title": "2 · El «tengo que»",
+      "fields": [
+        {
+          "id": "tengo-que",
+          "label": "Un «tengo que» tuyo de esta semana",
+          "type": "short"
+        },
+        {
+          "id": "elijo",
+          "label": "Dicho como «elijo». ¿Qué se rebeló, si algo se rebeló?",
+          "help": "Si algo protesta, ahí hay información: quizá no quieres hacerlo."
+        }
+      ]
+    },
+    {
+      "title": "3 · El «siempre»",
+      "fields": [
+        {
+          "id": "siempre",
+          "label": "Un «siempre» o «nunca» tuyo",
+          "type": "short"
+        },
+        {
+          "id": "especifico",
+          "label": "Dicho en específico: ¿qué pasó exactamente, esta vez?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "4 · El vocabulario fino",
+      "bodyMd": "Prohibido «estoy mal» y «estoy bien». La palabra exacta.",
+      "fields": [
+        {
+          "id": "emocion-1",
+          "label": "Algo que te pasó esta semana, y la palabra exacta para lo que sentiste",
+          "placeholder": "No me contestaron el correo → no era «estoy mal», era «me sentí ignorada»"
+        },
+        {
+          "id": "emocion-2",
+          "label": "Otro más",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "5 · Tu cambio de la semana",
+      "fields": [
+        {
+          "id": "cambio",
+          "label": "¿Cuál de las cuatro palabras vas a vigilar estos tres días?",
+          "type": "choice",
+          "options": [
+            "El «pero» — cambiarlo por «y»",
+            "El «tengo que» — cambiarlo por «elijo»",
+            "El «siempre / nunca» — bajarlo a lo específico",
+            "El «es que yo soy…» — pasarlo a lo que hago"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "> Tu diálogo interno está haciendo algo contigo, quieras o no. Ya que está ahí, que trabaje a favor.\n\nUna sola palabra, tres días. Con eso empieza."
+}

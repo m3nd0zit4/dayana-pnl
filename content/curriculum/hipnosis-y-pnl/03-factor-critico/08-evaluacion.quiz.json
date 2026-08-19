@@ -1,0 +1,113 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "questions": [
+    {
+      "id": "h3q1",
+      "prompt": "¿Cuál es la función central del factor crítico?",
+      "options": [
+        {
+          "id": "h3q1a",
+          "text": "Analizar, comparar y aceptar o rechazar información, protegiendo las creencias existentes",
+          "correct": true
+        },
+        { "id": "h3q1b", "text": "Almacenar los recuerdos de la infancia", "correct": false },
+        { "id": "h3q1c", "text": "Regular la respiración y el ritmo cardíaco", "correct": false },
+        { "id": "h3q1d", "text": "Producir los sueños", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q2",
+      "prompt": "Una persona que cree hace años que «no es capaz» repite «soy exitosa y capaz» y no siente ningún cambio. ¿Por qué?",
+      "options": [
+        {
+          "id": "h3q2a",
+          "text": "Porque el factor crítico rechaza la información que no coincide con las creencias actuales",
+          "correct": true
+        },
+        { "id": "h3q2b", "text": "Porque la repitió pocas veces", "correct": false },
+        { "id": "h3q2c", "text": "Porque las afirmaciones nunca funcionan para nadie", "correct": false },
+        { "id": "h3q2d", "text": "Porque no la dijo en voz alta", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q3",
+      "prompt": "¿Qué corresponde a la mente inconsciente?",
+      "options": [
+        {
+          "id": "h3q3a",
+          "text": "Recuerdos, emociones, hábitos, comportamientos automáticos, creencias y programas",
+          "correct": true
+        },
+        { "id": "h3q3b", "text": "El razonamiento lógico y la voluntad", "correct": false },
+        { "id": "h3q3c", "text": "La toma de decisiones deliberadas", "correct": false },
+        { "id": "h3q3d", "text": "Únicamente los sueños", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q4",
+      "prompt": "¿Por qué las metáforas y las historias pasan el filtro del factor crítico?",
+      "options": [
+        {
+          "id": "h3q4a",
+          "text": "Porque no afirman nada sobre la persona: el filtro las deja pasar como «solo un cuento», pero el inconsciente extrae la estructura",
+          "correct": true
+        },
+        { "id": "h3q4b", "text": "Porque se cuentan siempre en estado Delta", "correct": false },
+        { "id": "h3q4c", "text": "Porque desactivan la mente consciente por completo", "correct": false },
+        { "id": "h3q4d", "text": "Porque son más largas que una afirmación", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q5",
+      "prompt": "¿Cuál de estas NO es una de las vías de acceso al inconsciente vistas en el módulo?",
+      "options": [
+        { "id": "h3q5a", "text": "La discusión lógica y la argumentación", "correct": true },
+        { "id": "h3q5b", "text": "La relajación progresiva", "correct": false },
+        { "id": "h3q5c", "text": "Los anclajes", "correct": false },
+        { "id": "h3q5d", "text": "La repetición emocional", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q6",
+      "prompt": "¿Por qué falla intentar cambiar un hábito solo con fuerza de voluntad?",
+      "options": [
+        {
+          "id": "h3q6a",
+          "text": "Porque enfrenta la parte consciente contra los programas inconscientes, que son la mayor parte del sistema",
+          "correct": true
+        },
+        { "id": "h3q6b", "text": "Porque la voluntad no existe", "correct": false },
+        { "id": "h3q6c", "text": "Porque los hábitos son genéticos", "correct": false },
+        { "id": "h3q6d", "text": "Porque hace falta más información", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q7",
+      "prompt": "Durante una inducción, ¿puede instalarse una sugerencia que contradiga los valores profundos de la persona?",
+      "options": [
+        {
+          "id": "h3q7a",
+          "text": "No: el factor crítico se relaja pero no desaparece, y la persona descarta la sugerencia o sale del trance",
+          "correct": true
+        },
+        { "id": "h3q7b", "text": "Sí, si la inducción es lo bastante profunda", "correct": false },
+        { "id": "h3q7c", "text": "Sí, siempre que la persona esté en Delta", "correct": false },
+        { "id": "h3q7d", "text": "Sí, esa es la base de la hipnosis de espectáculo", "correct": false }
+      ]
+    },
+    {
+      "id": "h3q8",
+      "prompt": "Si al hacer la visualización no aparecen imágenes nítidas, ¿qué significa?",
+      "options": [
+        {
+          "id": "h3q8a",
+          "text": "Nada preocupante: hay personas que sienten o se hablan por dentro en lugar de ver, y el resultado es el mismo",
+          "correct": true
+        },
+        { "id": "h3q8b", "text": "Que la persona no es hipnotizable", "correct": false },
+        { "id": "h3q8c", "text": "Que hay que repetir el ejercicio hasta ver imágenes", "correct": false },
+        { "id": "h3q8d", "text": "Que el factor crítico está dañado", "correct": false }
+      ]
+    }
+  ]
+}

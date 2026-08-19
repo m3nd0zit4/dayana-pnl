@@ -1,0 +1,64 @@
+{
+  "title": "Ejercicio · Observar sin interpretar",
+  "description": "Entrenar la calibración con una persona real y probar el cambio de estado.",
+  "introMd": "Dos partes: una sobre ti y una sobre otra persona. La segunda es la que más cuesta, porque hay que resistirse a concluir.",
+  "sections": [
+    {
+      "title": "1 · Tu propio estado, ahora",
+      "bodyMd": "Antes de leer nada más, obsérvate treinta segundos.",
+      "fields": [
+        { "id": "mi-respiracion", "label": "¿Dónde y cómo estás respirando?", "type": "short", "placeholder": "Corta, en el pecho" },
+        { "id": "mi-postura", "label": "¿Cómo está tu postura?", "type": "short" },
+        { "id": "mi-tension", "label": "¿Dónde tienes tensión?", "type": "short", "placeholder": "Mandíbula y hombros" },
+        { "id": "mi-frase", "label": "¿Qué te estás diciendo por dentro?", "type": "short", "required": false }
+      ]
+    },
+    {
+      "title": "2 · El cambio de 60 segundos",
+      "bodyMd": "Haz ahora el protocolo: pies en el suelo · tres exhalaciones largas · suelta la mandíbula · abre la mirada · una frase corta.",
+      "fields": [
+        {
+          "id": "que-cambio",
+          "label": "¿Qué notaste que cambió?",
+          "help": "Aunque sea poco. Sobre todo si fue poco: eso también es información."
+        },
+        {
+          "id": "cual-palanca",
+          "label": "¿Cuál de las cuatro palancas te movió más?",
+          "type": "choice",
+          "options": ["La respiración", "La postura", "El ritmo", "La mirada"]
+        }
+      ]
+    },
+    {
+      "title": "3 · La línea base de otra persona",
+      "bodyMd": "Elige a alguien con quien hables a menudo. Obsérvala cuando está **tranquila**, sin buscar nada.",
+      "fields": [
+        { "id": "quien", "label": "¿Quién es?", "type": "short" },
+        { "id": "base-respiracion", "label": "Su respiración en calma", "type": "short" },
+        { "id": "base-voz", "label": "Su voz en calma: ritmo, tono, dónde hace pausas", "type": "short" },
+        { "id": "base-cara", "label": "Su cara en calma: mandíbula, mirada", "type": "short" }
+      ]
+    },
+    {
+      "title": "4 · Un cambio observado",
+      "bodyMd": "Ahora, en una conversación, busca **un momento** en que algo se movió. Descríbelo **sin concluir nada**.",
+      "fields": [
+        { "id": "que-paso", "label": "¿Qué dije o qué pasó justo antes?", "type": "short" },
+        {
+          "id": "que-se-movio",
+          "label": "¿Qué cambió exactamente? (solo lo observable)",
+          "help": "«Se calló dos segundos y dejó de mirarme», no «se molestó»."
+        },
+        { "id": "hipotesis", "label": "Mi hipótesis sobre lo que pasó", "type": "short" },
+        {
+          "id": "comprobacion",
+          "label": "¿Lo comprobé? ¿Qué respondió?",
+          "help": "«Te noté distinta cuando salió ese tema, ¿me equivoco?»",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si en el punto 4 escribiste una conclusión en vez de una observación, vuelve y reescríbela. Ese es todo el ejercicio.\n\n> Calibrar no es saber lo que el otro piensa. Es notar cuándo algo cambió — y tener la humildad de preguntar qué fue."
+}

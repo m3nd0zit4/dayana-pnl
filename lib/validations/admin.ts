@@ -167,10 +167,13 @@ export const courseModuleSchema = z.object({
   title: z.string().min(1).max(200),
   bodyMd: z.string().max(100_000).optional().nullable(),
   isPublished: z.boolean().optional(),
+  /** Curso al que pertenece el módulo; ausente = el primero de la biblioteca. */
+  productId: z.string().min(1).optional().nullable(),
 });
 
 export const reorderCourseModulesSchema = z.object({
   orderedIds: z.array(z.string().min(1)).min(1),
+  productId: z.string().min(1).optional().nullable(),
 });
 
 const quizOptionSchema = z.object({
@@ -201,6 +204,7 @@ export const liveClassSchema = z.object({
   contentType: z.enum(["VIDEO", "TEXT", "PDF", "QUIZ"]).optional(),
   bodyMd: z.string().max(20000).optional().nullable(),
   quizJson: quizJsonSchema.optional().nullable(),
+  evergreen: z.boolean().optional(),
 });
 
 export const reorderCourseClassesSchema = z.object({

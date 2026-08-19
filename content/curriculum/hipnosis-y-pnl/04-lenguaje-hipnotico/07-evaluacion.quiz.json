@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "questions": [
+    {
+      "id": "h4q1",
+      "prompt": "¿En qué consiste «acompasar y liderar»?",
+      "options": [
+        {
+          "id": "h4q1a",
+          "text": "Describir primero lo que ya es verificablemente cierto y montar después la sugerencia sobre ese asentimiento",
+          "correct": true
+        },
+        { "id": "h4q1b", "text": "Repetir la orden hasta que la persona obedezca", "correct": false },
+        { "id": "h4q1c", "text": "Hablar más rápido que la persona para llevar el ritmo", "correct": false },
+        { "id": "h4q1d", "text": "Contradecir a la persona para provocar una reacción", "correct": false }
+      ]
+    },
+    {
+      "id": "h4q2",
+      "prompt": "«¿Prefieres relajarte con los ojos abiertos o cerrados?» es un ejemplo de…",
+      "options": [
+        {
+          "id": "h4q2a",
+          "text": "Presuposición y doble vínculo: se da por hecho la relajación y solo se elige el cómo",
+          "correct": true
+        },
+        { "id": "h4q2b", "text": "Una orden directa", "correct": false },
+        { "id": "h4q2c", "text": "Una metáfora terapéutica", "correct": false },
+        { "id": "h4q2d", "text": "Una nominalización", "correct": false }
+      ]
+    },
+    {
+      "id": "h4q3",
+      "prompt": "¿Por qué la vaguedad deliberada funciona mejor que ser específico?",
+      "options": [
+        {
+          "id": "h4q3a",
+          "text": "Porque la persona rellena el hueco con su propio contenido, que siempre es más significativo que el que aportaría el guía",
+          "correct": true
+        },
+        { "id": "h4q3b", "text": "Porque confunde a la mente consciente hasta anularla", "correct": false },
+        { "id": "h4q3c", "text": "Porque es más rápido de decir", "correct": false },
+        { "id": "h4q3d", "text": "Porque impide que la persona recuerde la sesión", "correct": false }
+      ]
+    },
+    {
+      "id": "h4q4",
+      "prompt": "¿Qué hizo diferente Erickson respecto a la hipnosis de su época?",
+      "options": [
+        {
+          "id": "h4q4a",
+          "text": "Cambió el estilo autoritario por uno permisivo e indirecto, y aceptó la resistencia en lugar de pelear con ella",
+          "correct": true
+        },
+        { "id": "h4q4b", "text": "Introdujo el uso del péndulo", "correct": false },
+        { "id": "h4q4c", "text": "Demostró que la hipnosis es sueño profundo", "correct": false },
+        { "id": "h4q4d", "text": "Prohibió el uso de metáforas", "correct": false }
+      ]
+    },
+    {
+      "id": "h4q5",
+      "prompt": "«Y esa comprensión puede ir asentándose» — ¿qué patrón es «comprensión» aquí?",
+      "options": [
+        { "id": "h4q5a", "text": "Una nominalización: un verbo convertido en sustantivo, sin contenido definido", "correct": true },
+        { "id": "h4q5b", "text": "Un doble vínculo", "correct": false },
+        { "id": "h4q5c", "text": "Un acompasamiento", "correct": false },
+        { "id": "h4q5d", "text": "Una metáfora", "correct": false }
+      ]
+    },
+    {
+      "id": "h4q6",
+      "prompt": "¿Por qué una metáfora pasa donde una sugerencia directa se estrella?",
+      "options": [
+        {
+          "id": "h4q6a",
+          "text": "Porque el factor crítico no se defiende de un relato ajeno, mientras el inconsciente reconoce la estructura",
+          "correct": true
+        },
+        { "id": "h4q6b", "text": "Porque las metáforas se dicen siempre en voz muy baja", "correct": false },
+        { "id": "h4q6c", "text": "Porque las historias duran más", "correct": false },
+        { "id": "h4q6d", "text": "Porque anulan la memoria de la sesión", "correct": false }
+      ]
+    },
+    {
+      "id": "h4q7",
+      "prompt": "¿Cuál es la línea ética en el uso de estos patrones?",
+      "options": [
+        {
+          "id": "h4q7a",
+          "text": "Que la persona sepa lo que está ocurriendo y lo haya pedido: sin consentimiento no es terapia",
+          "correct": true
+        },
+        { "id": "h4q7b", "text": "Que la intención de quien los usa sea buena, aunque el otro no lo sepa", "correct": false },
+        { "id": "h4q7c", "text": "Que se usen solo en persona y nunca por teléfono", "correct": false },
+        { "id": "h4q7d", "text": "No hay línea: son solo palabras", "correct": false }
+      ]
+    }
+  ]
+}

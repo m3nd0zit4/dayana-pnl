@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "l5q1",
+      "prompt": "¿Qué diferencia el reencuadre de contenido del de contexto?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El de contenido cambia qué significa el hecho; el de contexto cambia dónde esa misma conducta sirve",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El de contenido se usa con otros y el de contexto con uno mismo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El de contexto solo funciona en terapia",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hay diferencia real entre ambos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q2",
+      "prompt": "«¿Qué otra cosa podría significar esto, que también encaje con los hechos?» ¿Por qué importa la última parte?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque un marco que no encaja con los hechos no es un reencuadre: es una mentira que se cae sola",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque alarga la pregunta y da tiempo a pensar",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque los hechos siempre tienen un solo significado",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No importa: es un añadido retórico",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q3",
+      "prompt": "«Al menos tienes trabajo.» ¿Qué es eso?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Un reencuadre falso: una forma educada de pedirle a alguien que se calle",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Un reencuadre de contexto bien hecho",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Un reencuadre de contenido bien hecho",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Una pregunta del metamodelo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q4",
+      "prompt": "En la investigación de James Gross, ¿qué se compara con la reevaluación cognitiva?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La supresión, que reduce la expresión pero no la emoción y deja peor huella fisiológica",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La hipnosis",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El pensamiento positivo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La meditación",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q5",
+      "prompt": "En los cuatro pasos para reencuadrarse, ¿por qué se piden tres marcos alternativos y no uno?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque el primero siempre es malo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para poder elegir el más bonito",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque así se tarda más y se piensa mejor",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Para compararlos con los de otra persona",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q6",
+      "prompt": "Al elegir el marco final, ¿cuál se escoge?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El que resulte creíble hoy, aunque sea el menos bonito",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El más ambicioso, para tener a dónde crecer",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El que apruebe la persona con la que se trabaja",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El que más se aleje del marco viejo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q7",
+      "prompt": "¿Qué encontró Alia Crum sobre el encuadre del estrés?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Encuadrarlo como preparación del cuerpo, en vez de como daño, cambia la respuesta cardiovascular medida",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que el estrés no se puede modificar con el pensamiento",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que hablar del estrés lo aumenta siempre",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que solo funciona en deportistas",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l5q8",
+      "prompt": "¿Qué NO se reencuadra?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Un abuso, una pérdida reciente o una injusticia: buscar el lado bueno ahí es un daño añadido",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Los rasgos de carácter",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Los hechos laborales",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Nada: todo se puede reencuadrar",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

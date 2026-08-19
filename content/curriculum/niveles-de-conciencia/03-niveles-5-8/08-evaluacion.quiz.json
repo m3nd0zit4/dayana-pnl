@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "questions": [
+    {
+      "id": "m3q1",
+      "prompt": "¿Cuál es la diferencia central entre el nivel 4 y el nivel 5?",
+      "options": [
+        {
+          "id": "m3q1a",
+          "text": "Para el 4 la regla es el fin; para el 5 la regla es un medio que se puede mejorar si hay algo más eficiente",
+          "correct": true
+        },
+        { "id": "m3q1b", "text": "El 4 busca dinero y el 5 busca orden", "correct": false },
+        { "id": "m3q1c", "text": "El 4 es colectivo y el 5 también", "correct": false },
+        { "id": "m3q1d", "text": "No hay diferencia real entre ambos", "correct": false }
+      ]
+    },
+    {
+      "id": "m3q2",
+      "prompt": "Históricamente, ¿qué suele disparar el paso del nivel 5 al nivel 6?",
+      "options": [
+        {
+          "id": "m3q2a",
+          "text": "Conseguir los logros materiales buscados y descubrir que el vacío sigue ahí",
+          "correct": true
+        },
+        { "id": "m3q2b", "text": "Perder todo el dinero", "correct": false },
+        { "id": "m3q2c", "text": "Cumplir 40 años", "correct": false },
+        { "id": "m3q2d", "text": "Estudiar una maestría", "correct": false }
+      ]
+    },
+    {
+      "id": "m3q3",
+      "prompt": "«Todo está conectado», «¿cuál es la raíz del problema?», «existen diferentes perspectivas» corresponde a…",
+      "options": [
+        { "id": "m3q3a", "text": "Nivel 7 · Existencial / Sistémico", "correct": true },
+        { "id": "m3q3b", "text": "Nivel 5 · Multiplista", "correct": false },
+        { "id": "m3q3c", "text": "Nivel 6 · Sociocéntrico", "correct": false },
+        { "id": "m3q3d", "text": "Nivel 2 · Tribalista", "correct": false }
+      ]
+    },
+    {
+      "id": "m3q4",
+      "prompt": "Un líder que consigue resultados exigentes sin quemar a su equipo está integrando principalmente…",
+      "options": [
+        { "id": "m3q4a", "text": "Nivel 5 y nivel 6", "correct": true },
+        { "id": "m3q4b", "text": "Nivel 1 y nivel 2", "correct": false },
+        { "id": "m3q4c", "text": "Nivel 3 y nivel 4", "correct": false },
+        { "id": "m3q4d", "text": "Solo nivel 8", "correct": false }
+      ]
+    },
+    {
+      "id": "m3q5",
+      "prompt": "Alguien habla constantemente de propósito, unidad y conciencia global, pero no sostiene sus compromisos concretos ni sus cuentas. ¿Qué está pasando?",
+      "options": [
+        {
+          "id": "m3q5a",
+          "text": "Está usando el vocabulario del nivel 8 sin haber aterrizado lo que le corresponde: es la sombra del nivel, no el nivel",
+          "correct": true
+        },
+        { "id": "m3q5b", "text": "Alcanzó el nivel 8 completo", "correct": false },
+        { "id": "m3q5c", "text": "Está en nivel 7 puro", "correct": false },
+        { "id": "m3q5d", "text": "Ya no necesita ocuparse de lo práctico", "correct": false }
+      ]
+    },
+    {
+      "id": "m3q6",
+      "prompt": "¿Qué caracteriza la mirada del nivel 7 ante un conflicto?",
+      "options": [
+        {
+          "id": "m3q6a",
+          "text": "Deja de buscar culpables y observa qué dinámica del sistema está produciendo ese resultado",
+          "correct": true
+        },
+        { "id": "m3q6b", "text": "Impone la solución más rápida", "correct": false },
+        { "id": "m3q6c", "text": "Evita el conflicto para no romper la armonía", "correct": false },
+        { "id": "m3q6d", "text": "Aplica el reglamento al pie de la letra", "correct": false }
+      ]
+    },
+    {
+      "id": "m3q7",
+      "prompt": "¿Es posible construir un nivel 8 sano sin haber resuelto el nivel 1?",
+      "options": [
+        {
+          "id": "m3q7a",
+          "text": "No: la espiritualidad construida sobre una supervivencia sin resolver funciona como escape, no como expansión",
+          "correct": true
+        },
+        { "id": "m3q7b", "text": "Sí, los niveles son independientes entre sí", "correct": false },
+        { "id": "m3q7c", "text": "Sí, basta con meditar lo suficiente", "correct": false },
+        { "id": "m3q7d", "text": "Sí, el nivel 1 desaparece al llegar al 5", "correct": false }
+      ]
+    }
+  ]
+}

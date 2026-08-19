@@ -1,0 +1,184 @@
+{
+  "title": "Ejercicio · Vuestros acuerdos y el proyecto",
+  "description": "Convertir promesas en acuerdos, poner un límite propio y responder las cinco preguntas del proyecto.",
+  "introMd": "Dos o tres acuerdos, no diez. Una pareja que acuerda diez cosas a la vez no cumple ninguna.",
+  "sections": [
+    {
+      "title": "1 · De promesa a acuerdo",
+      "fields": [
+        {
+          "id": "promesa",
+          "label": "Una promesa que os hacéis y no se cumple",
+          "type": "short"
+        },
+        {
+          "id": "ac-conducta",
+          "label": "Conducta observable",
+          "type": "short"
+        },
+        {
+          "id": "ac-cuando",
+          "label": "Cuándo o con qué frecuencia",
+          "type": "short"
+        },
+        {
+          "id": "ac-domingo",
+          "label": "Cómo se comprueba el domingo",
+          "type": "short"
+        },
+        {
+          "id": "ac-fallo",
+          "label": "Qué pasa si no se cumple",
+          "type": "short",
+          "help": "Acordado en frío. No es castigo: es no tener que discutir si fue grave."
+        },
+        {
+          "id": "ac-prueba",
+          "label": "¿Podéis los dos decir sin discutir si se cumplió?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No — lo reescribo"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Tu límite",
+      "fields": [
+        {
+          "id": "lim-exigencia",
+          "label": "Una exigencia que sueles hacer",
+          "type": "short"
+        },
+        {
+          "id": "lim-limite",
+          "label": "Dicho como límite tuyo",
+          "type": "short",
+          "help": "«Si se grita, salgo de la habitación y volvemos en veinte minutos»."
+        },
+        {
+          "id": "lim-frio",
+          "label": "¿Lo has anunciado en frío?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Todavía no",
+            "Solo lo he dicho discutiendo"
+          ]
+        },
+        {
+          "id": "lim-sostener",
+          "label": "¿Estás dispuesta a sostenerlo aunque proteste?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No estoy segura"
+          ]
+        },
+        {
+          "id": "lim-ultimatum",
+          "label": "¿Es un límite o un ultimátum que no vas a cumplir?",
+          "type": "choice",
+          "options": [
+            "Límite",
+            "Ultimátum — lo reformulo"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · El proyecto",
+      "bodyMd": "Contesta tú primero. Compara después, si se puede.",
+      "fields": [
+        {
+          "id": "pr-cinco",
+          "label": "¿Qué quieres que sea esto dentro de cinco años?"
+        },
+        {
+          "id": "pr-no",
+          "label": "¿Qué no quieres que pase?",
+          "type": "short"
+        },
+        {
+          "id": "pr-equipo",
+          "label": "¿En qué sois equipo de verdad, y en qué no?"
+        },
+        {
+          "id": "pr-dejamos",
+          "label": "¿Qué dejasteis de hacer que os hacía bien?",
+          "type": "short"
+        },
+        {
+          "id": "pr-propia",
+          "label": "¿Qué necesitas para tu vida propia, aparte de la relación?",
+          "help": "La más importante y la que menos se hace."
+        },
+        {
+          "id": "pr-coincide",
+          "label": "Al comparar, ¿coincidían vuestras respuestas?",
+          "type": "choice",
+          "options": [
+            "Bastante",
+            "En algunas cosas no",
+            "No lo hemos comparado todavía"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "4 · La revisión",
+      "fields": [
+        {
+          "id": "rev-dia",
+          "label": "Día, hora y sitio de vuestra revisión",
+          "type": "short"
+        },
+        {
+          "id": "rev-1",
+          "label": "Semana 1 — ¿se hizo? ¿qué salió?"
+        },
+        {
+          "id": "rev-2",
+          "label": "Semana 2"
+        },
+        {
+          "id": "rev-3",
+          "label": "Semana 3 y 4"
+        },
+        {
+          "id": "rev-temperatura",
+          "label": "¿Subió la temperatura alguna vez? ¿Parasteis?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "5 · El cierre",
+      "fields": [
+        {
+          "id": "cierre-pieza",
+          "label": "De las siete piezas del curso, ¿cuál te llevas?",
+          "type": "short"
+        },
+        {
+          "id": "cierre-accion",
+          "label": "Lo primero que vas a hacer, esta semana",
+          "type": "short"
+        },
+        {
+          "id": "cierre-limite",
+          "label": "¿Hay algo aquí que este curso no alcance?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Desprecio sostenido — terapia de pareja",
+            "Infidelidad reciente — terapia de pareja",
+            "Violencia — servicio especializado"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "Una revisión de cinco minutos donde todo está bien es exactamente lo que hace que exista cuando algo vaya mal."
+}

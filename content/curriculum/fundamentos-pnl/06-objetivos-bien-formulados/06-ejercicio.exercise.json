@@ -1,0 +1,89 @@
+{
+  "title": "Ejercicio · Reformula tu objetivo",
+  "description": "Un objetivo que llevas tiempo sin cumplir, pasado por las cinco condiciones y por la ecología.",
+  "introMd": "Elige **un objetivo que llevas tiempo sin cumplir**. De esos que aparecen cada enero.",
+  "sections": [
+    {
+      "title": "1 · Como lo dices ahora",
+      "fields": [
+        {
+          "id": "objetivo-original",
+          "label": "Escríbelo tal cual lo piensas",
+          "type": "short",
+          "placeholder": "Quiero dejar de procrastinar"
+        }
+      ]
+    },
+    {
+      "title": "2 · Las cinco condiciones",
+      "bodyMd": "Una por una. Si alguna te cuesta, ahí está el motivo de que no avance.",
+      "fields": [
+        {
+          "id": "positivo",
+          "label": "1 · En positivo — y en lugar de eso, ¿qué quieres?",
+          "type": "short"
+        },
+        {
+          "id": "depende-de-mi",
+          "label": "2 · ¿Qué parte depende solo de ti?",
+          "help": "Si depende de que otro cambie, quédate con tu parte."
+        },
+        {
+          "id": "contexto",
+          "label": "3 · ¿Dónde, cuándo y con quién?",
+          "type": "short"
+        },
+        {
+          "id": "evidencia",
+          "label": "4 · ¿Qué vas a ver, oír o sentir que hoy no ves, oyes ni sientes?",
+          "help": "Sin esto no sabrás si lo lograste."
+        },
+        {
+          "id": "primer-paso",
+          "label": "5 · El primer paso, con día",
+          "type": "short",
+          "placeholder": "El martes a las 8, veinte minutos con el teléfono en otra habitación"
+        }
+      ]
+    },
+    {
+      "title": "3 · La ecología",
+      "bodyMd": "La parte incómoda, y la que explica los años que llevas con esto.",
+      "fields": [
+        { "id": "que-pierdo", "label": "¿Qué pierdo si lo consigo?" },
+        { "id": "a-quien-afecta", "label": "¿A quién más le afecta, y cómo?", "required": false },
+        {
+          "id": "que-me-da",
+          "label": "¿Qué me está dando la situación actual?",
+          "help": "Siempre da algo: tranquilidad, evitar un conflicto, una excusa, la compañía de alguien. Siempre."
+        },
+        {
+          "id": "como-conservo",
+          "label": "¿Cómo consigo el objetivo conservando eso?",
+          "help": "Esta es la pregunta que desatasca. Casi nunca hay que elegir entre las dos cosas."
+        }
+      ]
+    },
+    {
+      "title": "4 · El objetivo completo",
+      "fields": [
+        {
+          "id": "objetivo-final",
+          "label": "Escríbelo entero, con la plantilla",
+          "help": "Quiero… en… y lo sabré porque… El primer paso es… Podría perder… así que además voy a…"
+        }
+      ]
+    },
+    {
+      "title": "5 · La comparación",
+      "fields": [
+        {
+          "id": "diferencia",
+          "label": "Compara esta versión con la del punto 1. ¿Qué cambió?",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si en el punto 3 apareció algo que no habías mirado nunca, ese es el resultado del ejercicio — más que el objetivo reformulado.\n\n> Un objetivo mal formulado no falla por falta de disciplina. Falla porque nunca le diste a tu mente algo que pudiera ejecutar."
+}

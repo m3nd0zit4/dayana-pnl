@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p3q1",
+      "prompt": "¿Qué es un valor real, frente a uno declarado?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Lo que decide cuando algo cuesta: se ve en la agenda y en el extracto, no en la lista",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El que uno menciona primero al preguntarle",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El que comparte con su familia de origen",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El que marca en un test",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q2",
+      "prompt": "¿Por qué no basta con saber qué valoras?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque lo que decide es el orden: cuál va primero cuando dos valores chocan",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque los valores cambian cada año",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque hay que compartirlos con la pareja",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Sí basta: la lista es suficiente",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q3",
+      "prompt": "«Uno quiere ahorrar, el otro quiere el viaje.» ¿Qué choque es?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Seguridad contra experiencia: uno protege el futuro y el otro el presente",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Lealtad contra autonomía",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Orden contra espontaneidad",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No es un choque de valores, es de educación financiera",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q4",
+      "prompt": "¿Qué se negocia en un choque de valores?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El cómo se expresa el valor, no el valor",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Cuál de los dos valores es el correcto",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Quién cede esta vez y quién la próxima",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Nada: los valores no se tocan",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q5",
+      "prompt": "¿Qué distingue un acuerdo de una promesa?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El acuerdo es concreto y se puede comprobar el domingo; la promesa es «esforzarme más»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El acuerdo se firma por escrito",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La promesa dura más tiempo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hay diferencia práctica",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q6",
+      "prompt": "¿Qué son los «problemas perpetuos» de Gottman?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Los conflictos que no se resuelven nunca — unos dos tercios; las parejas estables aprenden a hablarlos sin desprecio",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Los conflictos que aparecen cada semana",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Los que llevan a la ruptura inevitablemente",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Los que solo se resuelven en terapia",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q7",
+      "prompt": "¿Cuál de las cuatro preguntas de identificación da más información y menos se hace?",
+      "options": [
+        {
+          "id": "a",
+          "text": "«¿En qué has cedido y te dejó mal cuerpo semanas después?»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "«¿Qué es lo más importante de una relación?»",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "«¿Qué no soportarías nunca?»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "«¿Por qué habéis discutido este año?»",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p3q8",
+      "prompt": "¿Qué encuentran normalmente las parejas al comparar jerarquías?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que tienen los mismos valores en distinto orden — y eso basta para años de discusiones",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que tienen valores completamente opuestos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que tienen exactamente el mismo orden",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que uno de los dos no tiene valores definidos",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

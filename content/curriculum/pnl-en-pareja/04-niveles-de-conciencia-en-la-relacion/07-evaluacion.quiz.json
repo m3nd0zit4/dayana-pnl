@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p4q1",
+      "prompt": "¿Qué significa que dos personas estén en niveles distintos?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que organizan y resuelven la vida desde lugares distintos — no que una valga más",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que una está más evolucionada que la otra",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que la relación no puede funcionar",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que uno de los dos tiene un problema de comunicación",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q2",
+      "prompt": "«Es tu familia, hay que ir» contra «yo no le debo nada a nadie». ¿Qué choque es?",
+      "options": [
+        {
+          "id": "a",
+          "text": "2 contra 3: lealtad al grupo frente a decidir por sí mismo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "4 contra 5",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "5 contra 6",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "6 contra 7",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q3",
+      "prompt": "¿Cuál es el choque más común en parejas de mediana edad?",
+      "options": [
+        {
+          "id": "a",
+          "text": "5 contra 6: logro contra vínculo — «todo esto lo hago por nosotros» frente a «nunca estás»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "1 contra 2",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "3 contra 4",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "7 contra 8",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q4",
+      "prompt": "¿Qué significa «hablarle en su nivel»?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Traducir lo mismo que quieres decir a la moneda que el otro reconoce",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Simplificar el mensaje porque no lo va a entender",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Pedirle menos de lo que necesitas",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Fingir que estás en su nivel",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q5",
+      "prompt": "¿Qué mueve a alguien de nivel?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que la vida deje de funcionar desde donde está: una pérdida, un límite, un agotamiento",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que le expliquen bien el modelo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que su pareja le diga en qué nivel está",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Leer sobre Espiral Dinámica",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q6",
+      "prompt": "¿Qué es lo peor que se puede hacer con este modelo en pareja?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Usarlo como arma: «es que tú estás en el 3» es una forma nueva de decir «eres inferior»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Aplicarlo a áreas distintas de la vida",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Compartirlo con la pareja",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Usarlo para entender qué protege el otro",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q7",
+      "prompt": "¿Qué tipo de modelo es la Espiral Dinámica, según el material?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Un marco interpretativo útil, no un modelo validado experimentalmente como los cinco grandes o el trabajo de Gottman",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Un modelo con validación experimental amplia",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Una teoría de la personalidad medible",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Un test psicométrico estandarizado",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p4q8",
+      "prompt": "¿Puede una persona estar en niveles distintos según el área?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Sí: en el trabajo puede funcionar desde el 5 y en casa desde el 2",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "No: el nivel es único y estable",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Solo en situaciones de crisis",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo si ha hecho terapia",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

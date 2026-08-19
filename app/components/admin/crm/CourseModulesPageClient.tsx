@@ -12,13 +12,20 @@ import { Card, CardContent } from "@/app/components/ui/card";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
-import { CrmEmptyState, CrmFormActions } from "./ui";
+import { CrmEmptyState, CrmFilterBar, CrmFormActions } from "./ui";
 
 export type CourseModuleRow = {
   id: string;
@@ -30,9 +37,21 @@ export type CourseModuleRow = {
   commentCount: number;
 };
 
+export type CourseOption = {
+  id: string;
+  title: string;
+  isActive: boolean;
+  /** Curso de la biblioteca; `false` es el producto de la mensualidad. */
+  isCourseContent: boolean;
+  moduleCount: number;
+  classCount: number;
+};
+
 type Props = {
   preview: boolean;
   initialModules: CourseModuleRow[];
+  courses: CourseOption[];
+  activeCourseId: string | null;
 };
 
 /** Create-only — editing an existing module (title/content/published) lives
@@ -45,7 +64,12 @@ type EditorState = {
   showPreview: boolean;
 };
 
-const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
+const CourseModulesPageClient = ({
+  preview,
+  initialModules,
+  courses,
+  activeCourseId,
+}: Props) => {
   const { canWrite, toast, confirm } = useCrm();
   const router = useRouter();
   const [rows, setRows] = useState<CourseModuleRow[]>(initialModules);
@@ -53,13 +77,24 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
 
+  const activeCourse = courses.find((c) => c.id === activeCourseId) ?? null;
+  // Cada módulo y cada clase cuelgan del curso abierto, así que el id viaja en
+  // todas las llamadas: sin él la API cae al primer curso de la biblioteca.
+  const courseQuery = activeCourseId
+    ? `?productId=${encodeURIComponent(activeCourseId)}`
+    : "";
+  const moduleHref = (moduleId: string) =>
+    activeCourseId
+      ? `/admin/curso/modulos/${moduleId}?curso=${encodeURIComponent(activeCourseId)}`
+      : `/admin/curso/modulos/${moduleId}`;
+
   const reload = useCallback(async () => {
     if (preview) return;
-    const res = await fetch("/api/admin/lms/modules");
+    const res = await fetch(`/api/admin/lms/modules${courseQuery}`);
     if (!res.ok) return;
     const data = (await res.json()) as { modules?: CourseModuleRow[] };
     if (data.modules) setRows(data.modules);
-  }, [preview]);
+  }, [preview, courseQuery]);
 
   const openEditor = () => {
     setEditor({ title: "", bodyMd: "", isPublished: false, showPreview: false });
@@ -80,6 +115,7 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
         title: editor.title.trim(),
         bodyMd: editor.bodyMd || null,
         isPublished: editor.isPublished,
+        productId: activeCourseId,
       }),
     });
     setSaving(false);
@@ -92,7 +128,7 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
     toast("Módulo creado");
     setEditor(null);
     if (data.module?.id) {
-      router.push(`/admin/curso/modulos/${data.module.id}`);
+      router.push(moduleHref(data.module.id));
     } else {
       void reload();
     }
@@ -142,7 +178,10 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
     const res = await fetch("/api/admin/lms/modules/reorder", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ orderedIds: next.map((m) => m.id) }),
+      body: JSON.stringify({
+        orderedIds: next.map((m) => m.id),
+        productId: activeCourseId,
+      }),
     });
     setReordering(false);
     if (!res.ok) {
@@ -154,7 +193,7 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
   return (
     <CrmPageShell>
       <CrmPageHeader
-        title="Curso · Módulos"
+        title={activeCourse ? `${activeCourse.title} · Módulos` : "Curso · Módulos"}
         description="El material que Dayana enviaba por WhatsApp, ahora en el portal. Acepta Markdown (negritas, listas, títulos). Solo los publicados son visibles para los miembros."
         action={
           !preview && canWrite ? (
@@ -164,6 +203,39 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
       />
 
       <div className="space-y-6">
+        {courses.length > 1 && (
+          <CrmFilterBar
+            count={`${rows.length} ${rows.length === 1 ? "módulo" : "módulos"}`}
+          >
+            <div className="space-y-1.5">
+              <Label className="mb-0 text-xs">Curso</Label>
+              <Select
+                value={activeCourseId ?? ""}
+                onValueChange={(value) => {
+                  const next = typeof value === "string" ? value : "";
+                  if (!next || next === activeCourseId) return;
+                  router.push(`/admin/curso/modulos?curso=${encodeURIComponent(next)}`);
+                }}
+              >
+                <SelectTrigger aria-label="Curso" className="w-full sm:w-72">
+                  <SelectValue>
+                    {(value) =>
+                      courses.find((c) => c.id === value)?.title ?? "Elige un curso"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.title}
+                      {!course.isActive ? " · inactivo" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CrmFilterBar>
+        )}
         <Card className="overflow-hidden py-0">
           <CardContent className="divide-y divide-border p-0">
             {rows.length === 0 && (
@@ -236,7 +308,7 @@ const CourseModulesPageClient = ({ preview, initialModules }: Props) => {
                         variant="outline"
                         size="sm"
                         nativeButton={false}
-                        render={<Link href={`/admin/curso/modulos/${row.id}`} />}
+                        render={<Link href={moduleHref(row.id)} />}
                       >
                         Gestionar clases
                       </Button>

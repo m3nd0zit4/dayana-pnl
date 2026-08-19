@@ -1,0 +1,99 @@
+{
+  "title": "Ejercicio · Lo que heredaste sin elegirlo",
+  "description": "Rastrear las creencias de dinero, amor y valor hasta su origen, y elegir una acción.",
+  "introMd": "Este ejercicio no busca culpables. Busca que **elijas por primera vez** algo que hasta ahora venía puesto de fábrica.",
+  "sections": [
+    {
+      "title": "1 · Dinero",
+      "fields": [
+        {
+          "id": "dinero-casa",
+          "label": "¿Qué se decía del dinero en tu casa?",
+          "placeholder": "«No crece en los árboles», «no se habla de eso», «los ricos son…»"
+        },
+        {
+          "id": "dinero-quien",
+          "label": "¿Quién lo manejaba y cómo se vivía?",
+          "required": false
+        },
+        {
+          "id": "dinero-hoy",
+          "label": "¿Qué de eso repites hoy, aunque no lo hayas elegido?"
+        }
+      ]
+    },
+    {
+      "title": "2 · Amor",
+      "fields": [
+        {
+          "id": "amor-modelo",
+          "label": "¿Cómo se querían las personas que te criaron?",
+          "help": "Lo que viste, no lo que te dijeron."
+        },
+        {
+          "id": "amor-condicion",
+          "label": "¿Qué había que hacer en tu casa para recibir afecto?"
+        },
+        {
+          "id": "amor-repito",
+          "label": "¿Qué de ese modelo repites, y qué parte sí quieres conservar?",
+          "help": "No todo lo heredado estorba."
+        }
+      ]
+    },
+    {
+      "title": "3 · Valor personal",
+      "bodyMd": "La ecuación que se instala: **valgo = lo que hago**.",
+      "fields": [
+        {
+          "id": "valor-condicion",
+          "label": "De pequeña, ¿por qué te reconocían? ¿Notas, portarte bien, no molestar, ser responsable, hacer reír?",
+          "type": "short"
+        },
+        {
+          "id": "valor-senales",
+          "label": "¿Cuál de las tres señales reconoces en ti?",
+          "type": "choice",
+          "options": [
+            "No sé recibir: los elogios y regalos me incomodan",
+            "No pido: pedir se siente como confesar una carencia",
+            "Me comparo siempre hacia arriba",
+            "Las tres"
+          ]
+        },
+        {
+          "id": "valor-descanso",
+          "label": "¿Qué sientes cuando descansas sin haber «producido» nada?"
+        }
+      ]
+    },
+    {
+      "title": "4 · La raíz",
+      "fields": [
+        {
+          "id": "cuanto-merezco",
+          "label": "¿Cuánto crees que mereces? Contéstalo sin corregirte.",
+          "help": "Esta es la pregunta que atraviesa los tres territorios."
+        }
+      ]
+    },
+    {
+      "title": "5 · Una acción",
+      "bodyMd": "Del territorio que más te pese. Concreta, con día.",
+      "fields": [
+        {
+          "id": "accion",
+          "label": "Mi acción de esta semana",
+          "type": "short",
+          "placeholder": "El jueves le paso el presupuesto a Marta con la tarifa nueva, sin justificarla"
+        },
+        {
+          "id": "que-temo",
+          "label": "¿Qué temo que pase si la hago?",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "> Cobrar bien no es lo contrario de servir. Es la condición para poder seguir sirviendo el año que viene.\n\nY lo mismo vale para el amor y para el descanso: cuidarte no es quitarle nada a nadie."
+}

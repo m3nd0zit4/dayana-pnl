@@ -1,0 +1,89 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "questions": [
+    {
+      "id": "f1q1",
+      "prompt": "¿Cuál fue el método original de la PNL?",
+      "options": [
+        {
+          "id": "f1q1a",
+          "text": "Modelar: observar qué hace exactamente alguien que consigue buenos resultados y volverlo enseñable",
+          "correct": true
+        },
+        { "id": "f1q1b", "text": "Diseñar una teoría de la personalidad y derivar técnicas de ella", "correct": false },
+        { "id": "f1q1c", "text": "Aplicar los hallazgos de la neurociencia de los años setenta", "correct": false },
+        { "id": "f1q1d", "text": "Adaptar el psicoanálisis a formato breve", "correct": false }
+      ]
+    },
+    {
+      "id": "f1q2",
+      "prompt": "¿A quiénes modelaron Bandler y Grinder al principio?",
+      "options": [
+        {
+          "id": "f1q2a",
+          "text": "Fritz Perls (Gestalt), Virginia Satir (terapia familiar) y Milton Erickson (hipnosis)",
+          "correct": true
+        },
+        { "id": "f1q2b", "text": "Freud, Jung y Adler", "correct": false },
+        { "id": "f1q2c", "text": "Skinner, Watson y Pavlov", "correct": false },
+        { "id": "f1q2d", "text": "Maslow, Rogers y Frankl", "correct": false }
+      ]
+    },
+    {
+      "id": "f1q3",
+      "prompt": "¿Qué señala la palabra «neuro» en Programación Neurolingüística?",
+      "options": [
+        {
+          "id": "f1q3a",
+          "text": "Que los patrones se sostienen en el cuerpo y el sistema nervioso, no solo en las ideas",
+          "correct": true
+        },
+        { "id": "f1q3b", "text": "Que la PNL es una rama de la neurología", "correct": false },
+        { "id": "f1q3c", "text": "Que se trabaja con neuronas concretas", "correct": false },
+        { "id": "f1q3d", "text": "Que requiere estudios de neuroimagen", "correct": false }
+      ]
+    },
+    {
+      "id": "f1q4",
+      "prompt": "¿Cuál de estas afirmaciones sobre el alcance de la PNL es correcta?",
+      "options": [
+        {
+          "id": "f1q4a",
+          "text": "Puede acompañar un proceso, pero no sustituye tratamiento psicológico ni médico",
+          "correct": true
+        },
+        { "id": "f1q4b", "text": "Reemplaza la terapia en cuadros clínicos", "correct": false },
+        { "id": "f1q4c", "text": "Permite saber si alguien miente observando sus ojos", "correct": false },
+        { "id": "f1q4d", "text": "Resuelve patrones de años en un fin de semana", "correct": false }
+      ]
+    },
+    {
+      "id": "f1q5",
+      "prompt": "Sobre el respaldo experimental de la PNL, lo honesto es decir que…",
+      "options": [
+        {
+          "id": "f1q5a",
+          "text": "Algunas herramientas coinciden con líneas bien validadas (visualización, reencuadre, trabajo con valores) y otras afirmaciones históricas no resistieron la prueba",
+          "correct": true
+        },
+        { "id": "f1q5b", "text": "Está toda demostrada científicamente", "correct": false },
+        { "id": "f1q5c", "text": "No hay nada en ella con ningún respaldo", "correct": false },
+        { "id": "f1q5d", "text": "La evidencia no es relevante para este campo", "correct": false }
+      ]
+    },
+    {
+      "id": "f1q6",
+      "prompt": "En un modelado, ¿cómo debe describirse lo que hace la persona observada?",
+      "options": [
+        {
+          "id": "f1q6a",
+          "text": "En conducta observable: qué hace con el cuerpo, qué palabras usa, en qué orden",
+          "correct": true
+        },
+        { "id": "f1q6b", "text": "En rasgos de personalidad, como «tiene confianza»", "correct": false },
+        { "id": "f1q6c", "text": "Con un diagnóstico psicológico", "correct": false },
+        { "id": "f1q6d", "text": "Solo con lo que la persona dice que hace", "correct": false }
+      ]
+    }
+  ]
+}

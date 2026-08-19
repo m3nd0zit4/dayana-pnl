@@ -1,0 +1,91 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "questions": [
+    {
+      "id": "c4q1",
+      "prompt": "¿Qué encontró la investigación sobre repetir afirmaciones positivas?",
+      "options": [
+        {
+          "id": "c4q1a",
+          "text": "Que en personas con baja autoestima empeoran el ánimo, porque cada repetición recuerda la distancia entre lo que se dice y lo que se siente",
+          "correct": true
+        },
+        { "id": "c4q1b", "text": "Que funcionan siempre si se repiten lo suficiente", "correct": false },
+        { "id": "c4q1c", "text": "Que solo funcionan dichas en voz alta", "correct": false },
+        { "id": "c4q1d", "text": "Que no tienen ningún efecto en nadie", "correct": false }
+      ]
+    },
+    {
+      "id": "c4q2",
+      "prompt": "¿Cuáles son las tres condiciones de una frase que sí entra?",
+      "options": [
+        {
+          "id": "c4q2a",
+          "text": "Creíble hoy, en proceso y sobre lo que haces (no sobre lo que eres)",
+          "correct": true
+        },
+        { "id": "c4q2b", "text": "Corta, positiva y en presente", "correct": false },
+        { "id": "c4q2c", "text": "Ambiciosa, repetida y en primera persona", "correct": false },
+        { "id": "c4q2d", "text": "Escrita, firmada y compartida con alguien", "correct": false }
+      ]
+    },
+    {
+      "id": "c4q3",
+      "prompt": "¿Cuál de estas frases tiene más probabilidad de atravesar el filtro?",
+      "options": [
+        { "id": "c4q3a", "text": "«Puedo hacerlo aunque tenga miedo»", "correct": true },
+        { "id": "c4q3b", "text": "«No tengo miedo»", "correct": false },
+        { "id": "c4q3c", "text": "«Soy valiente»", "correct": false },
+        { "id": "c4q3d", "text": "«El miedo no existe»", "correct": false }
+      ]
+    },
+    {
+      "id": "c4q4",
+      "prompt": "¿Qué hace el «pero» en «lo hice bien, pero me puse nerviosa»?",
+      "options": [
+        { "id": "c4q4a", "text": "Borra la primera mitad: solo queda lo que va después", "correct": true },
+        { "id": "c4q4b", "text": "Equilibra las dos partes", "correct": false },
+        { "id": "c4q4c", "text": "Refuerza lo positivo", "correct": false },
+        { "id": "c4q4d", "text": "No tiene ningún efecto", "correct": false }
+      ]
+    },
+    {
+      "id": "c4q5",
+      "prompt": "Al cambiar «tengo que» por «elijo», ¿qué información aparece?",
+      "options": [
+        {
+          "id": "c4q5a",
+          "text": "Si algo se rebela al decir «elijo», ahí hay algo que mirar: quizá no quieres hacerlo",
+          "correct": true
+        },
+        { "id": "c4q5b", "text": "Que la obligación desaparece automáticamente", "correct": false },
+        { "id": "c4q5c", "text": "Que ya no hace falta hacerlo", "correct": false },
+        { "id": "c4q5d", "text": "Ninguna: es solo una fórmula", "correct": false }
+      ]
+    },
+    {
+      "id": "c4q6",
+      "prompt": "Según la regla del escalón, ¿cuál es el punto correcto de una frase?",
+      "options": [
+        {
+          "id": "c4q6a",
+          "text": "Donde hay un poco de tensión pero no rechazo",
+          "correct": true
+        },
+        { "id": "c4q6b", "text": "Donde no produce ninguna reacción", "correct": false },
+        { "id": "c4q6c", "text": "Lo más ambiciosa posible", "correct": false },
+        { "id": "c4q6d", "text": "Donde la mente responde «mentira», para forzar el cambio", "correct": false }
+      ]
+    },
+    {
+      "id": "c4q7",
+      "prompt": "Según la investigación de Ethan Kross, hablarse en segunda persona («tú puedes con esto»)…",
+      "options": [
+        { "id": "c4q7a", "text": "Reduce la reactividad más que hablarse en primera persona", "correct": true },
+        { "id": "c4q7b", "text": "Es señal de disociación patológica", "correct": false },
+        { "id": "c4q7c", "text": "Funciona solo en niños", "correct": false },
+        { "id": "c4q7d", "text": "No tiene diferencia medible", "correct": false }
+      ]
+    }
+  ]
+}

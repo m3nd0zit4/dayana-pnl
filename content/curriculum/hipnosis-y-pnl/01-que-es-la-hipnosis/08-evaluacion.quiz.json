@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "questions": [
+    {
+      "id": "h1q1",
+      "prompt": "Desde la PNL, ¿qué es la hipnosis?",
+      "options": [
+        {
+          "id": "h1q1a",
+          "text": "Un estado natural de atención enfocada hacia una experiencia interna, y un proceso de comunicación que da acceso a recursos internos",
+          "correct": true
+        },
+        { "id": "h1q1b", "text": "Una forma de sueño profundo inducido", "correct": false },
+        { "id": "h1q1c", "text": "Una técnica para controlar la voluntad de otra persona", "correct": false },
+        { "id": "h1q1d", "text": "Un estado que solo alcanzan personas muy sugestionables", "correct": false }
+      ]
+    },
+    {
+      "id": "h1q2",
+      "prompt": "¿Cuál de estas situaciones NO es un ejemplo de trance natural?",
+      "options": [
+        { "id": "h1q2a", "text": "Dormir profundamente sin soñar", "correct": true },
+        { "id": "h1q2b", "text": "Conducir y llegar sin recordar el trayecto", "correct": false },
+        { "id": "h1q2c", "text": "Leer un libro imaginando la historia", "correct": false },
+        { "id": "h1q2d", "text": "Escuchar una canción que te lleva a un recuerdo", "correct": false }
+      ]
+    },
+    {
+      "id": "h1q3",
+      "prompt": "Durante la hipnosis, la persona…",
+      "options": [
+        {
+          "id": "h1q3a",
+          "text": "Permanece consciente, con la atención más enfocada, y conserva su capacidad de decisión",
+          "correct": true
+        },
+        { "id": "h1q3b", "text": "Pierde el control de sus actos", "correct": false },
+        { "id": "h1q3c", "text": "Queda dormida y no recuerda nada", "correct": false },
+        { "id": "h1q3d", "text": "Obedece cualquier orden que reciba", "correct": false }
+      ]
+    },
+    {
+      "id": "h1q4",
+      "prompt": "¿Qué relación tiene Milton Erickson con la PNL?",
+      "options": [
+        {
+          "id": "h1q4a",
+          "text": "La PNL modeló sus patrones de comunicación hipnótica y los incorporó a su metodología",
+          "correct": true
+        },
+        { "id": "h1q4b", "text": "Fue uno de los fundadores de la PNL", "correct": false },
+        { "id": "h1q4c", "text": "Rechazó públicamente el modelo de la PNL", "correct": false },
+        { "id": "h1q4d", "text": "No tiene ninguna relación con la PNL", "correct": false }
+      ]
+    },
+    {
+      "id": "h1q5",
+      "prompt": "En el circuito de la programación mental, ¿cuál es el punto donde se puede intervenir?",
+      "options": [
+        {
+          "id": "h1q5a",
+          "text": "La interpretación: la experiencia ya ocurrió, pero el significado que se le dio sí puede cambiar",
+          "correct": true
+        },
+        { "id": "h1q5b", "text": "La experiencia, borrándola de la memoria", "correct": false },
+        { "id": "h1q5c", "text": "El resultado, forzándolo directamente", "correct": false },
+        { "id": "h1q5d", "text": "Ninguno: el circuito es fijo", "correct": false }
+      ]
+    },
+    {
+      "id": "h1q6",
+      "prompt": "¿Por qué repetir «soy exitoso y capaz» cuando no se lo cree suele fallar?",
+      "options": [
+        {
+          "id": "h1q6a",
+          "text": "Porque el factor crítico rechaza la afirmación que contradice las creencias actuales; conviene usar lenguaje que abra posibilidad («estoy aprendiendo a…»)",
+          "correct": true
+        },
+        { "id": "h1q6b", "text": "Porque las afirmaciones deben decirse en pasado", "correct": false },
+        { "id": "h1q6c", "text": "Porque solo funcionan si las dice otra persona", "correct": false },
+        { "id": "h1q6d", "text": "Porque el lenguaje no influye en la experiencia interna", "correct": false }
+      ]
+    },
+    {
+      "id": "h1q7",
+      "prompt": "«Toda hipnosis es, en el fondo, autohipnosis» significa que…",
+      "options": [
+        {
+          "id": "h1q7a",
+          "text": "El guía acompaña, pero es la persona quien acepta la sugerencia, construye la imagen y produce el estado",
+          "correct": true
+        },
+        { "id": "h1q7b", "text": "No hace falta ningún acompañamiento nunca", "correct": false },
+        { "id": "h1q7c", "text": "La hipnosis con otra persona no produce ningún efecto", "correct": false },
+        { "id": "h1q7d", "text": "El hipnotizador introduce ideas directamente en la mente", "correct": false }
+      ]
+    }
+  ]
+}

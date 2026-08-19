@@ -284,7 +284,10 @@ export const finalizeCampaignRun = async (campaignId: string) => {
     eventType: "CAMPAIGN_COMPLETED",
     title: `Campaña "${campaign.name}" finalizada`,
     body: `${campaign.sentCount} enviados · ${campaign.failedCount} fallidos · ${campaign.skippedCount} omitidos`,
-    href: "/admin/messages",
+    // /admin/messages son los mensajes rápidos para copiar y pegar. El
+    // resultado real del envío está en el registro, y este aviso es OWNER_ONLY,
+    // que es justo quien puede abrirlo.
+    href: "/admin/ajustes/registro",
     entityType: "NotificationCampaign",
     entityId: campaignId,
     metadata: {

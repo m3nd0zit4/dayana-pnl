@@ -1,0 +1,113 @@
+{
+  "title": "Evaluación final del curso",
+  "questions": [
+    {
+      "id": "h7q1",
+      "prompt": "¿Por qué una sola sesión potente no suele producir un cambio duradero?",
+      "options": [
+        {
+          "id": "h7q1a",
+          "text": "Porque un programa instalado durante años necesita experiencia potente MÁS repetición sostenida: la primera abre la puerta, la segunda construye el camino",
+          "correct": true
+        },
+        { "id": "h7q1b", "text": "Porque la hipnosis pierde efecto a las 24 horas", "correct": false },
+        { "id": "h7q1c", "text": "Porque hace falta cambiar de guía cada semana", "correct": false },
+        { "id": "h7q1d", "text": "Porque el inconsciente olvida todo lo que no se escribe", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q2",
+      "prompt": "Sobre la cifra de «21 días»…",
+      "options": [
+        {
+          "id": "h7q2a",
+          "text": "Es un compromiso útil, no una ley: la investigación sitúa la automatización entre 18 y 254 días, con media de 66",
+          "correct": true
+        },
+        { "id": "h7q2b", "text": "Está demostrado que todo hábito se forma exactamente en 21 días", "correct": false },
+        { "id": "h7q2c", "text": "Es un requisito clínico de la hipnoterapia", "correct": false },
+        { "id": "h7q2d", "text": "Proviene de un ensayo clínico controlado sobre hábitos", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q3",
+      "prompt": "¿Cuál es la regla ante un día perdido en el protocolo?",
+      "options": [
+        {
+          "id": "h7q3a",
+          "text": "Nunca dos días seguidos, y se retoma donde se quedó sin reiniciar la cuenta",
+          "correct": true
+        },
+        { "id": "h7q3b", "text": "Volver a empezar desde el día 1", "correct": false },
+        { "id": "h7q3c", "text": "Hacer el doble al día siguiente", "correct": false },
+        { "id": "h7q3d", "text": "Abandonar el ciclo y esperar al mes siguiente", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q4",
+      "prompt": "¿Cuál es el mejor momento del día para la autoinducción y por qué?",
+      "options": [
+        {
+          "id": "h7q4a",
+          "text": "Al acostarse, porque el cerebro ya va camino a Theta y el estado llega solo",
+          "correct": true
+        },
+        { "id": "h7q4b", "text": "A media mañana, en pleno Beta", "correct": false },
+        { "id": "h7q4c", "text": "Justo después de hacer ejercicio intenso", "correct": false },
+        { "id": "h7q4d", "text": "Da exactamente igual el momento", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q5",
+      "prompt": "¿Cuántos valores conviene trabajar en un ciclo de 21 días?",
+      "options": [
+        { "id": "h7q5a", "text": "Uno solo", "correct": true },
+        { "id": "h7q5b", "text": "Los cinco de la jerarquía a la vez", "correct": false },
+        { "id": "h7q5c", "text": "Uno por área, tres en total", "correct": false },
+        { "id": "h7q5d", "text": "Uno distinto cada día", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q6",
+      "prompt": "¿Qué es el «apilamiento de hábitos» aplicado al protocolo?",
+      "options": [
+        {
+          "id": "h7q6a",
+          "text": "Enganchar la práctica a una acción que ya se hace sin falta, para no depender de acordarse",
+          "correct": true
+        },
+        { "id": "h7q6b", "text": "Hacer varias prácticas seguidas el mismo día", "correct": false },
+        { "id": "h7q6c", "text": "Acumular los días perdidos para reponerlos el fin de semana", "correct": false },
+        { "id": "h7q6d", "text": "Trabajar todos los valores en una sola sesión", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q7",
+      "prompt": "¿Cómo se nota habitualmente el cambio en este trabajo?",
+      "options": [
+        {
+          "id": "h7q7a",
+          "text": "Hacia atrás: un día se mira el mes anterior y se ve que ya no se reacciona igual",
+          "correct": true
+        },
+        { "id": "h7q7b", "text": "De un día para otro, despertando como otra persona", "correct": false },
+        { "id": "h7q7c", "text": "Solo si aparece durante el trance", "correct": false },
+        { "id": "h7q7d", "text": "Únicamente si lo confirma un profesional", "correct": false }
+      ]
+    },
+    {
+      "id": "h7q8",
+      "prompt": "Sobre el alcance de la hipnosis, ¿qué afirmación es correcta?",
+      "options": [
+        {
+          "id": "h7q8a",
+          "text": "Tiene buena evidencia como coadyuvante (dolor, ansiedad ante procedimientos, hábitos) pero no sustituye tratamiento médico ni psicológico",
+          "correct": true
+        },
+        { "id": "h7q8b", "text": "Reemplaza cualquier tratamiento psicológico", "correct": false },
+        { "id": "h7q8c", "text": "No tiene ninguna evidencia científica de respaldo", "correct": false },
+        { "id": "h7q8d", "text": "Cura cualquier enfermedad si se repite lo suficiente", "correct": false }
+      ]
+    }
+  ]
+}

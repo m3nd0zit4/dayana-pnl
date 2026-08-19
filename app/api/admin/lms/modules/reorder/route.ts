@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const course = await requireCourseProduct().catch(() => null);
+  const course = await requireCourseProduct(parsed.data.productId).catch(
+    () => null
+  );
   if (!course) {
     return NextResponse.json({ error: "no_course_product" }, { status: 404 });
   }

@@ -1,0 +1,53 @@
+{
+  "title": "Ejercicio · Tus sombras de los niveles 1 a 4",
+  "description": "Reconocer, sin juicio, qué sombra está activa hoy.",
+  "introMd": "Una sola regla: **nada de justificarte**. Solo describir.",
+  "sections": [
+    {
+      "title": "Nivel 1 · Supervivencia",
+      "fields": [
+        { "id": "n1-seguridad", "label": "¿En qué áreas de mi vida estoy buscando seguridad o protección?" },
+        {
+          "id": "n1-miedo-viejo",
+          "label": "¿Hay algún miedo que corresponda a una situación que ya pasó?",
+          "help": "El cuerpo aprende a vivir alerta y no recibe la noticia de que ya terminó."
+        }
+      ]
+    },
+    {
+      "title": "Nivel 2 · Tribu",
+      "fields": [
+        { "id": "n2-aprobacion", "label": "¿De quién busco aprobación?" },
+        { "id": "n2-dejado", "label": "¿Qué he dejado de hacer para no incomodar a alguien?" }
+      ]
+    },
+    {
+      "title": "Nivel 3 · Poder",
+      "fields": [
+        { "id": "n3-demostrar", "label": "¿Dónde necesito demostrar constantemente mi valor?" },
+        { "id": "n3-ayuda", "label": "¿A quién me cuesta pedirle ayuda, y por qué?" }
+      ]
+    },
+    {
+      "title": "Nivel 4 · Orden",
+      "fields": [
+        { "id": "n4-rigido", "label": "¿En qué áreas soy muy rígido?" },
+        {
+          "id": "n4-plan",
+          "label": "Cuando algo se sale del plan, ¿siento incomodidad o rabia?",
+          "type": "choice",
+          "options": ["Incomodidad", "Rabia", "Depende de la situación"]
+        }
+      ]
+    },
+    {
+      "title": "El cierre",
+      "bodyMd": "La segunda frase es la importante. **Ninguna sombra existe para hacerte daño**: todas empezaron protegiendo algo.",
+      "fields": [
+        { "id": "sombra-actual", "label": "La sombra que más aparece en mi vida hoy es…", "type": "short" },
+        { "id": "sombra-protege", "label": "Lo que esa sombra está intentando protegerme es…" }
+      ]
+    }
+  ],
+  "closingMd": "> La expansión de la conciencia comienza cuando dejamos de juzgarnos y empezamos a observarnos."
+}

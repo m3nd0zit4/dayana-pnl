@@ -1,0 +1,85 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "questions": [
+    {
+      "id": "c5q1",
+      "prompt": "¿Qué tienen en común las creencias sobre dinero, amor y valor personal?",
+      "options": [
+        {
+          "id": "c5q1a",
+          "text": "Se apoyan en la misma raíz: cuánto crees que mereces",
+          "correct": true
+        },
+        { "id": "c5q1b", "text": "Todas vienen de la escuela", "correct": false },
+        { "id": "c5q1c", "text": "Son independientes entre sí", "correct": false },
+        { "id": "c5q1d", "text": "Se resuelven con información financiera", "correct": false }
+      ]
+    },
+    {
+      "id": "c5q2",
+      "prompt": "«Si cobro bien por ayudar, ya no es tan puro.» ¿Qué produce esa creencia con el tiempo?",
+      "options": [
+        {
+          "id": "c5q2a",
+          "text": "Trabajo excelente, ingresos que no lo reflejan y resentimiento dirigido a quien no tiene culpa",
+          "correct": true
+        },
+        { "id": "c5q2b", "text": "Más clientes agradecidos a largo plazo", "correct": false },
+        { "id": "c5q2c", "text": "Mayor pureza en el servicio", "correct": false },
+        { "id": "c5q2d", "text": "Ningún efecto medible", "correct": false }
+      ]
+    },
+    {
+      "id": "c5q3",
+      "prompt": "¿Cómo se aprende qué es el amor, según el módulo?",
+      "options": [
+        {
+          "id": "c5q3a",
+          "text": "Con el ejemplo que había delante en casa, que se instaló como norma sin que nadie preguntara si servía",
+          "correct": true
+        },
+        { "id": "c5q3b", "text": "Con las definiciones que dan los padres", "correct": false },
+        { "id": "c5q3c", "text": "En la adolescencia, con las primeras relaciones", "correct": false },
+        { "id": "c5q3d", "text": "Es instintivo y no se aprende", "correct": false }
+      ]
+    },
+    {
+      "id": "c5q4",
+      "prompt": "La ecuación «valgo = lo que hago» tiene dos consecuencias. ¿Cuáles?",
+      "options": [
+        {
+          "id": "c5q4a",
+          "text": "Los logros nunca alcanzan, y descansar da culpa",
+          "correct": true
+        },
+        { "id": "c5q4b", "text": "Más productividad y mejor salud", "correct": false },
+        { "id": "c5q4c", "text": "Mayor autoestima estable", "correct": false },
+        { "id": "c5q4d", "text": "Menos comparación con otros", "correct": false }
+      ]
+    },
+    {
+      "id": "c5q5",
+      "prompt": "¿Cuál NO es una de las tres señales de que el valor está condicionado a los logros?",
+      "options": [
+        { "id": "c5q5a", "text": "Delegar tareas con facilidad", "correct": true },
+        { "id": "c5q5b", "text": "No saber recibir elogios ni regalos", "correct": false },
+        { "id": "c5q5c", "text": "No pedir, porque pedir se siente como confesar una carencia", "correct": false },
+        { "id": "c5q5d", "text": "Compararse siempre hacia arriba", "correct": false }
+      ]
+    },
+    {
+      "id": "c5q6",
+      "prompt": "¿Por qué trabajar solo la superficie (tarifas, límites, autoestima) no basta?",
+      "options": [
+        {
+          "id": "c5q6a",
+          "text": "Porque si no se toca la raíz —cuánto creo que merezco— el patrón vuelve",
+          "correct": true
+        },
+        { "id": "c5q6b", "text": "Porque las tarifas no se pueden cambiar", "correct": false },
+        { "id": "c5q6c", "text": "Porque hace falta terapia obligatoriamente", "correct": false },
+        { "id": "c5q6d", "text": "No es cierto: la superficie basta", "correct": false }
+      ]
+    }
+  ]
+}

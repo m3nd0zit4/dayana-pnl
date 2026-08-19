@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e2q1",
+      "prompt": "¿Por qué funciona alargar la exhalación?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El corazón frena al exhalar; alargar la exhalación desplaza el equilibrio hacia la rama parasimpática",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque entra más oxígeno al cerebro",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque distrae la atención del problema",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Por efecto placebo, únicamente",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q2",
+      "prompt": "¿Cuál es el patrón por defecto de este curso?",
+      "options": [
+        {
+          "id": "a",
+          "text": "4-4-6, ocho ciclos",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "4-7-8, ocho ciclos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Inhalar y exhalar lo mismo, veinte veces",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Respiración rápida y profunda",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q3",
+      "prompt": "¿Para qué sirve el suspiro fisiológico?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Para el pico: el momento exacto en que se dispara algo y no hay treinta segundos",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para dormirse por la noche",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Para la práctica larga diaria",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Para subir la activación antes de hablar en público",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q4",
+      "prompt": "¿Qué hace la palanca de la mirada?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Soltar la fijación visual y abrir la periferia afloja el estado de alerta, y se puede hacer sin que nadie lo note",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Cerrar los ojos para no ver el estímulo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Fijar la vista en un punto para concentrarse",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Mirar a los ojos del otro sin parpadear",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q5",
+      "prompt": "¿Qué pasó con el «power posing» de Amy Cuddy?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El efecto hormonal no replicó; lo que se sostiene es el efecto sobre la sensación subjetiva",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Se confirmó por completo en réplicas posteriores",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Nunca se estudió experimentalmente",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Se demostró que la postura no influye en nada",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q6",
+      "prompt": "¿Cuál de estas NO funciona?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Respirar hondo y rápido: hiperventilar sube la activación",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Exhalar más largo que inhalar",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Soltar la mandíbula",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Bajar la velocidad al hablar",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q7",
+      "prompt": "¿Por qué hay que practicar en calma y no solo en crisis?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque una técnica que solo se usa en crisis no está disponible en crisis",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque en crisis está contraindicada",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque en calma el efecto es mayor",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque así se memorizan los números",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e2q8",
+      "prompt": "En crisis de pánico, ¿qué advertencia hace el módulo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "A algunas personas la respiración lenta las pone peor, porque atender al aire es justo lo que dispara el miedo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que hay que respirar el doble de rápido",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que la respiración siempre resuelve el pánico",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que no debe hacerse ninguna técnica nunca",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

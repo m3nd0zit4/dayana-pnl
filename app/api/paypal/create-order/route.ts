@@ -12,7 +12,9 @@ import {
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
+import { siteBaseUrl } from "@/lib/mercadopago/amount";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
+import { createPendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
@@ -101,13 +103,24 @@ export async function POST(req: NextRequest) {
   const itemTotalValue = breakdown.net.toFixed(2);
   const handlingValue = breakdown.fee.toFixed(2);
 
+  // Sin formulario previo: PayPal obliga a dar email y nombre para pagar, así
+  // que basta un contacto temporal aquí y la captura lo completa con lo que
+  // reporte el pagador. Si vinieron datos (o hay sesión), se respeta esa vía.
+  const contact = parseContactBody(body);
+  const hasContactData = Boolean(
+    contact.contactId || contact.phone || contact.email
+  );
+
   let contactId: string;
   try {
-    contactId = await resolveCheckoutContactIdForRequest({
-      planId,
-      contact: parseContactBody(body),
-      fromSession: body.fromSession === true,
-    });
+    contactId =
+      hasContactData || body.fromSession === true
+        ? await resolveCheckoutContactIdForRequest({
+            planId,
+            contact,
+            fromSession: body.fromSession === true,
+          })
+        : await createPendingCheckoutContact(planId);
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[paypal] contact register failed", e);
@@ -130,8 +143,9 @@ export async function POST(req: NextRequest) {
   );
 
   try {
+    const base = siteBaseUrl();
     const accessToken = await getPayPalAccessToken();
-    const { id } = await createPayPalOrderRequest({
+    const { id, approveUrl } = await createPayPalOrderRequest({
       accessToken,
       planId: plan.id,
       checkoutReference,
@@ -141,10 +155,13 @@ export async function POST(req: NextRequest) {
       currencyCode: PAYPAL_CURRENCY,
       itemTotalValue,
       handlingValue,
+      returnUrl: `${base}/api/paypal/return`,
+      cancelUrl: `${base}/pago/cancelado`,
     });
 
     return NextResponse.json({
       orderID: id,
+      approveUrl,
       contactId,
       checkoutReference,
       amountValue,

@@ -1,0 +1,86 @@
+{
+  "title": "Ejercicio · Tu inventario de creencias",
+  "description": "Diez frases sobre ti, clasificadas por tipo y traducidas.",
+  "introMd": "Escribe rápido y sin editar. Lo que sale sin pensar es lo que está instalado; lo que sale pensado es lo que te gustaría creer.",
+  "sections": [
+    {
+      "title": "1 · Diez frases",
+      "bodyMd": "Empieza cada una por **«yo soy…»** o **«yo no soy…»**. No las juzgues, no las suavices.",
+      "fields": [
+        { "id": "soy-1", "label": "1", "type": "short" },
+        { "id": "soy-2", "label": "2", "type": "short" },
+        { "id": "soy-3", "label": "3", "type": "short" },
+        { "id": "soy-4", "label": "4", "type": "short" },
+        { "id": "soy-5", "label": "5", "type": "short" },
+        { "id": "soy-6", "label": "6", "type": "short", "required": false },
+        { "id": "soy-7", "label": "7", "type": "short", "required": false },
+        { "id": "soy-8", "label": "8", "type": "short", "required": false }
+      ]
+    },
+    {
+      "title": "2 · La que más pesa",
+      "fields": [
+        {
+          "id": "cual-pesa",
+          "label": "De todas, ¿cuál te limita más hoy?",
+          "type": "short"
+        },
+        {
+          "id": "tipo",
+          "label": "¿De qué tipo es?",
+          "type": "choice",
+          "options": [
+            "Sobre el mundo — «la gente / la vida / el dinero es…»",
+            "Sobre mi capacidad — «no sé / no puedo…»",
+            "Sobre mi identidad — «soy / no soy…»"
+          ]
+        },
+        {
+          "id": "via",
+          "label": "¿Por qué vía crees que entró?",
+          "type": "choice",
+          "options": [
+            "Una experiencia intensa que recuerdo",
+            "Repetición: me lo dijeron muchas veces",
+            "Autoridad: lo dijo alguien con peso para mí",
+            "No lo sé"
+          ]
+        },
+        {
+          "id": "quien",
+          "label": "Si fue por autoridad o repetición: ¿quién?",
+          "type": "short",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "3 · La traducción",
+      "bodyMd": "Si es de identidad, bájala a capacidad. La palabra que hace el trabajo es **«todavía»**.",
+      "fields": [
+        {
+          "id": "traduccion",
+          "label": "La misma creencia, en versión capacidad",
+          "type": "short",
+          "placeholder": "«Soy un desastre» → «todavía no tengo un sistema para organizarme»"
+        },
+        {
+          "id": "que-cambia",
+          "label": "¿Qué se puede hacer con la versión nueva que no se podía con la vieja?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Las que sí elegiste",
+      "fields": [
+        {
+          "id": "elegidas",
+          "label": "De tus diez frases, ¿cuáles sí elegiste tú conscientemente?",
+          "help": "También conviene saber cuáles te sostienen, no solo cuáles te frenan.",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "> No crees lo que crees porque sea verdad. Lo crees porque en algún momento algo te lo enseñó y nunca volviste a revisarlo.\n\nAcabas de revisarlo. Eso ya es distinto."
+}

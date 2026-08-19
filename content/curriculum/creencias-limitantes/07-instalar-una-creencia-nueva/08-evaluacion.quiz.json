@@ -1,0 +1,103 @@
+{
+  "title": "Evaluación final del curso",
+  "questions": [
+    {
+      "id": "c7q1",
+      "prompt": "¿Por qué no basta con repetir la frase nueva?",
+      "options": [
+        {
+          "id": "c7q1a",
+          "text": "Porque una frase sola no tiene carga emocional: hace falta una escena de referencia que se la dé",
+          "correct": true
+        },
+        { "id": "c7q1b", "text": "Porque hay que decirla en voz alta", "correct": false },
+        { "id": "c7q1c", "text": "Porque hacen falta al menos mil repeticiones", "correct": false },
+        { "id": "c7q1d", "text": "Sí basta, si se repite con convicción", "correct": false }
+      ]
+    },
+    {
+      "id": "c7q2",
+      "prompt": "¿Qué es la escena de referencia?",
+      "options": [
+        {
+          "id": "c7q2a",
+          "text": "Un momento real de tu vida en que esa frase nueva fue verdad, aunque fuera pequeño",
+          "correct": true
+        },
+        { "id": "c7q2b", "text": "Una fantasía del futuro deseado", "correct": false },
+        { "id": "c7q2c", "text": "El recuerdo donde se instaló la creencia vieja", "correct": false },
+        { "id": "c7q2d", "text": "Una escena de una película que te inspire", "correct": false }
+      ]
+    },
+    {
+      "id": "c7q3",
+      "prompt": "En la amplificación, ¿cuál es el orden correcto?",
+      "options": [
+        {
+          "id": "c7q3a",
+          "text": "Primero el estado en su punto máximo, y ahí se dice la frase",
+          "correct": true
+        },
+        { "id": "c7q3b", "text": "Primero la frase, para que genere el estado", "correct": false },
+        { "id": "c7q3c", "text": "Da igual el orden", "correct": false },
+        { "id": "c7q3d", "text": "Solo la frase; la escena es opcional", "correct": false }
+      ]
+    },
+    {
+      "id": "c7q4",
+      "prompt": "¿Cómo debe ser el gesto de anclaje?",
+      "options": [
+        {
+          "id": "c7q4a",
+          "text": "Pequeño y poco habitual, que no se haga por casualidad durante el día",
+          "correct": true
+        },
+        { "id": "c7q4b", "text": "Amplio y visible, para recordarlo mejor", "correct": false },
+        { "id": "c7q4c", "text": "Un gesto que ya hagas mucho, para que sea fácil", "correct": false },
+        { "id": "c7q4d", "text": "Siempre el mismo para todas las creencias", "correct": false }
+      ]
+    },
+    {
+      "id": "c7q5",
+      "prompt": "¿Dónde está el punto de abandono del protocolo?",
+      "options": [
+        {
+          "id": "c7q5a",
+          "text": "Entre el día 2 y el 4: la sensación de ridículo es máxima y todavía no hay resultado que la compense",
+          "correct": true
+        },
+        { "id": "c7q5b", "text": "En el día 21, al terminar", "correct": false },
+        { "id": "c7q5c", "text": "En la segunda semana", "correct": false },
+        { "id": "c7q5d", "text": "No hay un punto típico de abandono", "correct": false }
+      ]
+    },
+    {
+      "id": "c7q6",
+      "prompt": "¿Qué pasa con la creencia vieja después de instalar la nueva?",
+      "options": [
+        {
+          "id": "c7q6a",
+          "text": "No se borra: se superpone. Va a seguir apareciendo bajo estrés, pero deja de ser la única voz",
+          "correct": true
+        },
+        { "id": "c7q6b", "text": "Desaparece por completo a los 21 días", "correct": false },
+        { "id": "c7q6c", "text": "Se transforma automáticamente en la nueva", "correct": false },
+        { "id": "c7q6d", "text": "Se refuerza al intentar cambiarla", "correct": false }
+      ]
+    },
+    {
+      "id": "c7q7",
+      "prompt": "¿Qué traslada el trabajo del cuaderno a la vida real?",
+      "options": [
+        {
+          "id": "c7q7a",
+          "text": "Usar el gesto en la situación concreta donde la creencia vieja solía activarse",
+          "correct": true
+        },
+        { "id": "c7q7b", "text": "Contárselo a mucha gente", "correct": false },
+        { "id": "c7q7c", "text": "Escribir la frase muchas veces", "correct": false },
+        { "id": "c7q7d", "text": "Repetir el ejercicio solo por la noche", "correct": false }
+      ]
+    }
+  ]
+}

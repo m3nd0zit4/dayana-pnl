@@ -20,6 +20,7 @@ type Delivery = {
   errorMessage: string | null;
   templateKey: string | null;
   sentAt: string | null;
+  deliveredAt: string | null;
   createdAt: string;
   contact: { id: string; firstName: string; lastName: string | null } | null;
   staffUser: { id: string; displayName: string } | null;
@@ -314,6 +315,10 @@ const NotificationDeliveryLogClient = () => {
                     <Badge variant={STATUS_VARIANT[d.status] ?? "secondary"}>
                       {STATUS_LABEL[d.status] ?? d.status}
                     </Badge>
+                    {/* Confirmación del operador, no nuestra: solo la trae el
+                        StatusCallback de Twilio. Es un distintivo aparte y no
+                        un estado para no redefinir qué cuenta como enviado. */}
+                    {d.deliveredAt && <Badge variant="outline">Entregado</Badge>}
                     <span className="text-xs text-muted-foreground">
                       {CHANNEL_LABEL[d.channel] ?? d.channel}
                     </span>

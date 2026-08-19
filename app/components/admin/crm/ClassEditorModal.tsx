@@ -53,6 +53,7 @@ const CONTENT_TYPE_LABEL: Record<LessonContentType, string> = {
   TEXT: "Texto / lectura",
   PDF: "Material PDF",
   QUIZ: "Cuestionario / encuesta",
+  EXERCISE: "Ejercicio interactivo",
 };
 
 const emptyQuestion = (): QuizJson["questions"][number] => ({

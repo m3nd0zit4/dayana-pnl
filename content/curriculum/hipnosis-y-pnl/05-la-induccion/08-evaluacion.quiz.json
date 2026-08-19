@@ -1,0 +1,129 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "questions": [
+    {
+      "id": "h5q1",
+      "prompt": "¿Cuál es el orden correcto de las fases de la inducción?",
+      "options": [
+        {
+          "id": "h5q1a",
+          "text": "Respiración → relajación de ojos → relajación progresiva → profundización → conteo regresivo → trabajo y salida",
+          "correct": true
+        },
+        {
+          "id": "h5q1b",
+          "text": "Conteo regresivo → respiración → relajación de ojos → salida",
+          "correct": false
+        },
+        {
+          "id": "h5q1c",
+          "text": "Relajación progresiva → salida → profundización → trabajo",
+          "correct": false
+        },
+        {
+          "id": "h5q1d",
+          "text": "El orden es indiferente",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "h5q2",
+      "prompt": "En el conteo regresivo desde 100, ¿cuál es el objetivo real?",
+      "options": [
+        {
+          "id": "h5q2a",
+          "text": "Que la persona pierda la cuenta: ese es el momento en que el factor crítico suelta el control",
+          "correct": true
+        },
+        { "id": "h5q2b", "text": "Que llegue exactamente a cero", "correct": false },
+        { "id": "h5q2c", "text": "Medir la capacidad de concentración", "correct": false },
+        { "id": "h5q2d", "text": "Que cuente lo más rápido posible", "correct": false }
+      ]
+    },
+    {
+      "id": "h5q3",
+      "prompt": "¿Por qué funciona la profundización por apertura y cierre de ojos?",
+      "options": [
+        {
+          "id": "h5q3a",
+          "text": "Porque el contraste hace que la persona compruebe por sí misma que va más profundo, sin necesidad de convencerla",
+          "correct": true
+        },
+        { "id": "h5q3b", "text": "Porque cansa la vista", "correct": false },
+        { "id": "h5q3c", "text": "Porque interrumpe el trance y hay que reiniciarlo", "correct": false },
+        { "id": "h5q3d", "text": "Porque activa el estado Delta", "correct": false }
+      ]
+    },
+    {
+      "id": "h5q4",
+      "prompt": "¿Cuáles son los tres errores más comunes de quien empieza?",
+      "options": [
+        {
+          "id": "h5q4a",
+          "text": "Ir demasiado rápido, usar órdenes en lugar de sugerencias y saltarse la salida",
+          "correct": true
+        },
+        { "id": "h5q4b", "text": "Hablar muy bajo, usar metáforas y contar hacia arriba", "correct": false },
+        { "id": "h5q4c", "text": "Poner música, cerrar la puerta y hacer silencios", "correct": false },
+        { "id": "h5q4d", "text": "Trabajar recursos en lugar de traumas", "correct": false }
+      ]
+    },
+    {
+      "id": "h5q5",
+      "prompt": "¿En cuál de estas situaciones NO debe practicarse una inducción?",
+      "options": [
+        {
+          "id": "h5q5a",
+          "text": "Conduciendo, con alcohol, o en un cuadro psiquiátrico agudo sin acompañamiento profesional",
+          "correct": true
+        },
+        { "id": "h5q5b", "text": "Recostado en casa por la noche", "correct": false },
+        { "id": "h5q5c", "text": "Sentado con la espalda apoyada", "correct": false },
+        { "id": "h5q5d", "text": "Con el celular en silencio", "correct": false }
+      ]
+    },
+    {
+      "id": "h5q6",
+      "prompt": "¿Cuál de estas es una señal observable de que el estado se está produciendo?",
+      "options": [
+        {
+          "id": "h5q6a",
+          "text": "La respiración se hace más lenta y abdominal, y los músculos de la cara se aflojan",
+          "correct": true
+        },
+        { "id": "h5q6b", "text": "La persona empieza a hablar rápido", "correct": false },
+        { "id": "h5q6c", "text": "Aumenta la tensión de los hombros", "correct": false },
+        { "id": "h5q6d", "text": "La persona abre los ojos espontáneamente", "correct": false }
+      ]
+    },
+    {
+      "id": "h5q7",
+      "prompt": "Si al practicar la persona se queda dormida, ¿qué significa?",
+      "options": [
+        {
+          "id": "h5q7a",
+          "text": "Que su cuerpo necesitaba descanso y lo tomó; conviene repetir otro día sin estar agotado",
+          "correct": true
+        },
+        { "id": "h5q7b", "text": "Que la inducción falló y no debe repetirse", "correct": false },
+        { "id": "h5q7c", "text": "Que la persona no es hipnotizable", "correct": false },
+        { "id": "h5q7d", "text": "Que hay que despertarla de golpe", "correct": false }
+      ]
+    },
+    {
+      "id": "h5q8",
+      "prompt": "Al guiar a otra persona, ¿qué es obligatorio hacer siempre?",
+      "options": [
+        {
+          "id": "h5q8a",
+          "text": "Explicar antes qué se va a hacer, acordar una señal de parada y realizar la salida completa",
+          "correct": true
+        },
+        { "id": "h5q8b", "text": "Trabajar el recuerdo más doloroso que tenga", "correct": false },
+        { "id": "h5q8c", "text": "Grabar la sesión sin avisarle", "correct": false },
+        { "id": "h5q8d", "text": "Dejar que salga sola cuando quiera", "correct": false }
+      ]
+    }
+  ]
+}

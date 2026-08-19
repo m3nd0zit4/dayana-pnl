@@ -5,8 +5,7 @@ import { usePathname } from "next/navigation";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import NavContext from "./context/NavContext";
-import { PayPalModalProvider } from "./context/PayPalModalContext";
-import { MercadoPagoCheckoutModalProvider } from "./context/MercadoPagoCheckoutModalContext";
+import { CheckoutModalProvider } from "./context/CheckoutModalContext";
 import Stairs from "./components/common/Stairs";
 import Navbar from "./components/Navigation/Navbar";
 import FullScreenNav from "./components/Navigation/FullScreenNav";
@@ -17,19 +16,17 @@ import { Toaster } from "./components/ui/sonner";
 
 const MarketingChrome = ({ children }: { children: ReactNode }) => (
   <NavContext>
-    <PayPalModalProvider>
-      <MercadoPagoCheckoutModalProvider>
-        <SmoothScroll />
-        <ScrollTriggerRefresher />
-        <Stairs>
-          <div className="overflow-x-hidden">
-            <Navbar />
-            <FullScreenNav />
-            {children}
-          </div>
-        </Stairs>
-      </MercadoPagoCheckoutModalProvider>
-    </PayPalModalProvider>
+    <CheckoutModalProvider>
+      <SmoothScroll />
+      <ScrollTriggerRefresher />
+      <Stairs>
+        <div className="overflow-x-hidden">
+          <Navbar />
+          <FullScreenNav />
+          {children}
+        </div>
+      </Stairs>
+    </CheckoutModalProvider>
   </NavContext>
 );
 
@@ -45,43 +42,46 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // from social bios — skips the marketing site's Stairs transition/navbar.
   const isEnlaces = pathname.startsWith("/enlaces");
 
-  // Dark mode is scoped to the CRM + member portal only — the public
-  // marketing site (MarketingChrome below) never mounts ThemeProvider, so
-  // its `dark:` utility classes stay permanently inert there.
-  if (isAdmin) {
-    return (
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+  // Dark mode is scoped to the CRM + member portal. It used to be scoped by
+  // mounting ThemeProvider only on those routes — but next-themes renders an
+  // inline <script> to set the class before paint, and a client-side
+  // navigation from the marketing site into /miembros mounted that provider
+  // (and its script) in the browser, where React 19 warns "Encountered a
+  // script tag while rendering React component" and never executes it.
+  //
+  // So the provider is always mounted (its script ships in the SSR HTML, once)
+  // and the scoping happens with `forcedTheme`: outside the panel and the
+  // portal the theme is pinned to light, which is exactly what "no dark mode
+  // here" means.
+  const themed = isAdmin || isPortal;
+
+  return (
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="light"
+      enableSystem
+      forcedTheme={themed ? undefined : "light"}
+    >
+      {isAdmin ? (
         <TooltipProvider>
           {children}
           <Toaster />
         </TooltipProvider>
-      </ThemeProvider>
-    );
-  }
-
-  if (isEnlaces) {
-    return (
-      <>
-        {children}
-        <Toaster />
-      </>
-    );
-  }
-
-  if (isPortal) {
-    return (
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <PayPalModalProvider>
-          <MercadoPagoCheckoutModalProvider>
-            {children}
-            <Toaster />
-          </MercadoPagoCheckoutModalProvider>
-        </PayPalModalProvider>
-      </ThemeProvider>
-    );
-  }
-
-  return <MarketingChrome>{children}</MarketingChrome>;
+      ) : isEnlaces ? (
+        <>
+          {children}
+          <Toaster />
+        </>
+      ) : isPortal ? (
+        <CheckoutModalProvider>
+          {children}
+          <Toaster />
+        </CheckoutModalProvider>
+      ) : (
+        <MarketingChrome>{children}</MarketingChrome>
+      )}
+    </ThemeProvider>
+  );
 };
 
 // Client-side session read for UI that needs to react to auth state (e.g.

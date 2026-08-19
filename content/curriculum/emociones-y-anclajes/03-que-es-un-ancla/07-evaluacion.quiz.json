@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 3",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e3q1",
+      "prompt": "¿Qué es un ancla?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Un estímulo que dispara un estado, por asociación",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Una afirmación repetida cada mañana",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Un objeto que se lleva encima para dar suerte",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Una técnica de respiración",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q2",
+      "prompt": "¿Cuál es la condición que más se incumple?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La intensidad: se ancla un estado tibio, solo recordado",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La repetición",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El estímulo único",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El momento exacto",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q3",
+      "prompt": "¿En qué momento se ancla?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Justo antes del pico del estado, no cuando ya está bajando",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Al final, cuando el estado se ha calmado",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Antes de empezar a recordar",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Da igual: el momento no influye",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q4",
+      "prompt": "¿Por qué apretar el puño es mal gesto de anclaje?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque se hace treinta veces al día por otros motivos, y cada una desgasta el ancla",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque genera tensión muscular",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque se ve mucho en público",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque es un gesto agresivo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q5",
+      "prompt": "¿Para qué sirve romper el estado entre repeticiones?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Para que cada repetición ancle el estado completo y no los restos de la anterior",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para descansar la mano",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Para comprobar si el ancla ya funciona",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No sirve para nada: es opcional",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q6",
+      "prompt": "¿Qué relación tiene el anclaje con las «intenciones de implementación» de Gollwitzer?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Son funcionalmente cercanas: un disparador enlazado a una respuesta ensayada, y las de Gollwitzer sí tienen evidencia sólida",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Ninguna: son ideas opuestas",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Gollwitzer demostró que el anclaje no funciona",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Son exactamente el mismo procedimiento",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q7",
+      "prompt": "¿Qué NO hace un ancla?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Borrar la emoción que había: da acceso a otro estado, no elimina el anterior",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Dar acceso a un estado ensayado",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Funcionar de forma discreta si es un gesto",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Reforzarse con el uso",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e3q8",
+      "prompt": "Los disparadores traumáticos son anclas instaladas por la vía rápida. ¿Cómo se trabajan?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No se trabajan solos ni con un ancla de recurso: son terreno clínico",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Igual que cualquier otra ancla, con las cuatro condiciones",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Repitiendo el disparador hasta acostumbrarse",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Con un colapso de anclas casero",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

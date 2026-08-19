@@ -1,0 +1,173 @@
+{
+  "title": "Ejercicio · Cuatro semanas de rutina",
+  "description": "Definir los enganches, hacer las cuatro semanas y revisar qué sobrevivió.",
+  "introMd": "Semana 1 solo la mañana. Empezar por todo es la forma más segura de no llegar a la semana 3.",
+  "sections": [
+    {
+      "title": "1 · Los enganches",
+      "bodyMd": "Un enganche es algo que ya haces todos los días. «Por la mañana» no es un enganche.",
+      "fields": [
+        {
+          "id": "eng-manana",
+          "label": "La rutina de la mañana va después de…",
+          "type": "short",
+          "help": "Lavarme los dientes, el primer vaso de agua, sentarme en el escritorio."
+        },
+        {
+          "id": "eng-dia-1",
+          "label": "Parada de media mañana, enganchada a…",
+          "type": "short"
+        },
+        {
+          "id": "eng-dia-2",
+          "label": "Parada de antes de comer, enganchada a…",
+          "type": "short"
+        },
+        {
+          "id": "eng-dia-3",
+          "label": "Parada de media tarde, enganchada a…",
+          "type": "short"
+        },
+        {
+          "id": "eng-noche",
+          "label": "La rutina de la noche va después de…",
+          "type": "short"
+        },
+        {
+          "id": "eng-registro",
+          "label": "¿Dónde vas a pegar el registro?",
+          "type": "short",
+          "help": "Tiene que verse. El espejo del baño funciona."
+        }
+      ]
+    },
+    {
+      "title": "2 · Semana 1 — solo la mañana",
+      "fields": [
+        {
+          "id": "s1-dias",
+          "label": "¿Cuántos días de 7 la hiciste?",
+          "type": "short"
+        },
+        {
+          "id": "s1-artificial",
+          "label": "¿Se sintió artificial?",
+          "type": "choice",
+          "options": [
+            "Sí, mucho",
+            "Un poco",
+            "No"
+          ]
+        },
+        {
+          "id": "s1-pregunta",
+          "label": "La pregunta de la mañana, ¿te sirvió de algo algún día?"
+        },
+        {
+          "id": "s1-ajuste",
+          "label": "¿Hay que hacerla más pequeña?",
+          "type": "choice",
+          "options": [
+            "No, así está bien",
+            "Sí — la recorto"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · Semanas 2 y 3",
+      "fields": [
+        {
+          "id": "s2-dias",
+          "label": "Semana 2 — días con mañana y noche",
+          "type": "short"
+        },
+        {
+          "id": "s3-dias",
+          "label": "Semana 3 — días con los tres momentos",
+          "type": "short"
+        },
+        {
+          "id": "s3-dos-seguidos",
+          "label": "¿Fallaste dos días seguidos alguna vez?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí — y retomé",
+            "Sí — y se cayó la rutina"
+          ]
+        },
+        {
+          "id": "s3-antes",
+          "label": "¿Empezaste a notar el estado antes de que se instalara?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Semana 4 y revisión",
+      "fields": [
+        {
+          "id": "s4-dias",
+          "label": "¿Cuántos días de los 28 hiciste al menos un momento?",
+          "type": "short"
+        },
+        {
+          "id": "s4-sobrevivio",
+          "label": "¿Cuál de los tres momentos sobrevivió mejor?",
+          "type": "choice",
+          "options": [
+            "Mañana",
+            "Día",
+            "Noche"
+          ]
+        },
+        {
+          "id": "s4-abandone",
+          "label": "¿Cuál abandonaste, y por qué?"
+        },
+        {
+          "id": "s4-solo",
+          "label": "¿Alguna vez el gesto salió solo, sin decidirlo?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No todavía"
+          ]
+        },
+        {
+          "id": "s4-recorto",
+          "label": "¿Qué recortas para que esto siga existiendo dentro de tres meses?",
+          "help": "Una rutina que dura es una rutina que se ha recortado a tiempo.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "5 · El cierre",
+      "fields": [
+        {
+          "id": "cierre-pieza",
+          "label": "De las siete piezas del curso, ¿cuál te llevas de verdad?",
+          "type": "short"
+        },
+        {
+          "id": "cierre-siguiente",
+          "label": "¿Qué curso sigue?",
+          "type": "choice",
+          "options": [
+            "Creencias limitantes",
+            "El poder del lenguaje",
+            "Hipnosis y PNL",
+            "Los 8 Niveles de Conciencia",
+            "Ninguno por ahora"
+          ]
+        },
+        {
+          "id": "cierre-por-que",
+          "label": "¿Por qué ese?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "El resultado del curso no es controlar lo que sientes. Es la distancia entre notarlo a los diez segundos y notarlo a los diez minutos."
+}

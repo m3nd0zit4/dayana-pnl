@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e1q1",
+      "prompt": "¿Cuáles son las tres piezas de un estado?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Fisiología, foco y lenguaje interno",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Pensamiento, emoción y conducta",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Visual, auditivo y kinestésico",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Disparador, respuesta y consecuencia",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q2",
+      "prompt": "¿Por qué se entra siempre por el cuerpo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque es la única de las tres que responde en segundos y a voluntad",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque las otras dos no influyen en el estado",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque el pensamiento es irrelevante",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque así lo pide la tradición de la PNL",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q3",
+      "prompt": "Según la distinción de Damasio, ¿qué diferencia hay entre emoción y sentimiento?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La emoción es la respuesta corporal; el sentimiento es darse cuenta de ella y nombrarla",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La emoción es negativa y el sentimiento positivo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El sentimiento dura menos que la emoción",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Son sinónimos exactos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q4",
+      "prompt": "Un enfado que dura toda la tarde, ¿qué es?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Un estado: la emoción duró segundos y lo demás es lo que se está haciendo con el cuerpo, el foco y el lenguaje",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Una emoción especialmente larga",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Un sentimiento crónico",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Un trastorno del ánimo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q5",
+      "prompt": "¿Cuál es el tipo de disparador que más se ignora?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El corporal: sueño, hambre, cafeína, encierro",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El externo: tonos y mensajes",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El interno: recuerdos e imágenes",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Ninguno: todos se atienden por igual",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q6",
+      "prompt": "¿Por qué un mal día «se hace bola» sin que pase nada nuevo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque un estado instalado cambia lo que percibes, y entonces encuentras disparadores por todas partes",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque las emociones se acumulan a lo largo del día",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque el cuerpo se cansa",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque efectivamente pasan más cosas malas",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q7",
+      "prompt": "¿Cuál es la palanca corporal mejor documentada?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La exhalación larga, con efecto medible sobre la variabilidad cardíaca",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Las posturas de poder de Amy Cuddy",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Sonreír con un lápiz en la boca",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Apretar los puños treinta segundos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e1q8",
+      "prompt": "¿Qué NO sostiene este curso?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que haya que estar siempre bien: tristeza, enfado y miedo tienen función",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que el estado se puede cambiar desde el cuerpo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que un estado se sostiene en tres piezas",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que hay disparadores corporales",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

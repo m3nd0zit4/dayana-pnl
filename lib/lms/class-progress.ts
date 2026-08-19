@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/db";
 import { getCourseOutline } from "./course-content";
 
+/** Con `productId`, solo el progreso de ese curso — el reproductor no tiene por
+ *  qué recibir (ni contar) lo completado en el resto de la biblioteca. */
 export const getCompletedClassIds = async (
-  contactId: string
+  contactId: string,
+  productId?: string
 ): Promise<Set<string>> => {
   const rows = await prisma.courseClassProgress.findMany({
-    where: { contactId },
+    where: { contactId, ...(productId ? { class: { productId } } : {}) },
     select: { classId: true },
   });
   return new Set(rows.map((r) => r.classId));

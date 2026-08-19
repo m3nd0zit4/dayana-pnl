@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p1q1",
+      "prompt": "¿Qué es el rapport?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La sensación de que el otro te reconoce como alguien seguro y está en el mismo sitio que tú",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Imitar los gestos de la otra persona",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Estar de acuerdo con lo que dice",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Hablar en tono suave",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q2",
+      "prompt": "¿Cuál es el canal más potente y más ignorado?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El ritmo: la velocidad al hablar y al moverse",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El cuerpo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Las palabras",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La mirada",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q3",
+      "prompt": "¿Cuál es el paso que se salta en acompasar-liderar?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Comprobar: hacer un cambio pequeño y ver si el otro viene detrás antes de seguir",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Acompasar",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Liderar",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Ninguno: son solo dos pasos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q4",
+      "prompt": "Tu pareja llega alterada y habla rápido. ¿Qué funciona?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Responder con energía parecida, un punto por debajo, y bajar el ritmo turno a turno",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Decirle que se tranquilice y hable despacio",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Hablar muy suave desde el primer momento",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Esperar en silencio a que termine",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q5",
+      "prompt": "Si dice «me siento sola», ¿por qué no conviene responder «entiendo que te sientas desatendida»?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque has cambiado su palabra por la tuya, y eso se percibe como corrección",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque «desatendida» es una palabra demasiado larga",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque no hay que repetir lo que dice el otro",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hay problema: significan lo mismo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q6",
+      "prompt": "¿Qué son los «intentos de conexión» de Gottman?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Los pequeños gestos de «mírame» del día a día; lo que predice es cuántos se responden",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Las conversaciones profundas de fin de semana",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Los intentos de reconciliación tras una discusión",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Las muestras de afecto físico",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q7",
+      "prompt": "«Solucionar antes de tiempo» rompe el rapport. ¿Qué pregunta lo arregla?",
+      "options": [
+        {
+          "id": "a",
+          "text": "«¿Quieres que te ayude a resolverlo o quieres que te escuche?»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "«¿Y tú qué piensas hacer?»",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "«¿Seguro que es tan grave?»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "«¿Quieres que hablemos de esto en otro momento?»",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p1q8",
+      "prompt": "Sobre el «efecto camaleón» de Chartrand y Bargh, ¿cuál es su límite?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Funciona cuando no se nota; imitar de forma visible rompe el rapport en lugar de crearlo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Solo funciona entre desconocidos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "No se ha podido replicar nunca",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo funciona por escrito",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

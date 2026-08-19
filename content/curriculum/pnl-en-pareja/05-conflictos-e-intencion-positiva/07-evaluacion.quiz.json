@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p5q1",
+      "prompt": "¿Cuál de los cuatro jinetes es el peor predictor de ruptura?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El desprecio",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La crítica",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La actitud defensiva",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La evasión",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q2",
+      "prompt": "¿Por qué el antídoto de la evasión es una pausa y no insistir?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque cerrarse suele ser desbordamiento fisiológico: el pulso se dispara y escuchar deja de ser posible",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque hay que respetar que no quiera hablar nunca",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque insistir es de mala educación",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque la discusión ya está perdida",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q3",
+      "prompt": "¿Qué dos condiciones hacen que la pausa no sea abandono?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que se anuncie y que se vuelva",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que dure menos de cinco minutos y se haga en otra habitación",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que la pida siempre la misma persona",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que se avise por escrito",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q4",
+      "prompt": "Con la intención positiva del otro, ¿qué NO se hace?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Explicarle cuál es su intención: se le pregunta, porque decírselo hace que lo niegue",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Subir la cadena mentalmente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Preguntar «¿qué necesitas que no estás consiguiendo?»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Dejar la pregunta hecha si no lo sabe",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q5",
+      "prompt": "Según Sue Johnson, ¿qué es una discusión que se repite?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Una protesta por la desconexión: se pelea porque el vínculo se siente inseguro, y el tema es solo el terreno",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Un problema de organización doméstica",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Una señal de incompatibilidad",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Falta de habilidades de negociación",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q6",
+      "prompt": "¿Qué distingue a las parejas que duran, según Gottman?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No discuten menos: reparan más, y aceptan la reparación del otro",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Discuten mucho menos que las demás",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Resuelven todos sus conflictos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Evitan los temas difíciles",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q7",
+      "prompt": "Sobre los intentos de reparación, ¿qué es lo decisivo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que se acepten. Un chiste malo recibido con media sonrisa vale más que uno perfecto rechazado",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que estén bien formulados",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que los haga siempre la misma persona",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que se hagan al final de la discusión",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p5q8",
+      "prompt": "¿Qué dice el material sobre la precisión predictiva del «94%» de Gottman?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que viene de modelos ajustados sobre las mismas muestras y ha sido criticada; los fenómenos se sostienen, el número exacto no tanto",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que está plenamente confirmada",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que invalida todo su trabajo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que se refiere solo a parejas jóvenes",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

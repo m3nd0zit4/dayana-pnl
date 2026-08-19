@@ -1,0 +1,59 @@
+{
+  "title": "Ejercicio · Tu primer modelado",
+  "description": "Observar a alguien que hace bien algo que a ti te cuesta, y volverlo enseñable.",
+  "introMd": "El método de la PNL antes que sus técnicas: **mirar qué hace quien lo hace bien**.\n\nElige a una persona real de tu entorno que haga con soltura algo que a ti te cuesta. No hace falta que sea nada extraordinario: poner límites sin sentirse culpable, hablar en público, mantener la calma cuando algo sale mal, cobrar sin incomodidad.",
+  "sections": [
+    {
+      "title": "1 · A quién eliges",
+      "fields": [
+        {
+          "id": "persona",
+          "label": "¿Quién es y qué hace bien que a ti te cuesta?",
+          "type": "short",
+          "placeholder": "Mi tía Marta: dice que no sin dar diez explicaciones"
+        }
+      ]
+    },
+    {
+      "title": "2 · Lo que observas",
+      "bodyMd": "Descríbelo en **conducta observable**, no en interpretación. No «tiene confianza», sino «mira a los ojos y hace una pausa antes de responder».",
+      "fields": [
+        { "id": "cuerpo", "label": "¿Qué hace con el cuerpo? Postura, ritmo, mirada, respiración" },
+        { "id": "palabras", "label": "¿Qué palabras usa? ¿Cómo empieza y cómo cierra?" },
+        { "id": "orden", "label": "¿En qué orden lo hace? ¿Qué va primero?" },
+        {
+          "id": "resistencia",
+          "label": "¿Qué hace cuando el otro se resiste o insiste?",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "3 · Lo que se dice por dentro",
+      "bodyMd": "Aquí ya no observas: preguntas. Si puedes, pregúntaselo de verdad.",
+      "fields": [
+        {
+          "id": "creencia",
+          "label": "¿Qué crees que se dice a sí misma esa persona en ese momento?",
+          "help": "Si puedes preguntárselo, hazlo. La respuesta suele sorprender."
+        }
+      ]
+    },
+    {
+      "title": "4 · Lo que te llevas",
+      "fields": [
+        {
+          "id": "diferencia",
+          "label": "¿Cuál es la diferencia más pequeña entre lo que hace esa persona y lo que haces tú?",
+          "help": "La más pequeña, no la más grande. Ahí está la palanca."
+        },
+        {
+          "id": "prueba",
+          "label": "¿Qué vas a probar esta semana, y en qué situación concreta?",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Eso que acabas de hacer es **modelar**. Sin técnica, sin vocabulario: mirar qué hace quien lo hace bien y quedarte con la diferencia que sí puedes reproducir.\n\nTodo lo demás que aprendas en este catálogo salió de hacer exactamente esto, con más rigor y durante años."
+}

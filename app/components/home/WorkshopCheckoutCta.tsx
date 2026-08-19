@@ -6,8 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getSession, useSession } from "next-auth/react";
 import type { Plan } from "../../../lib/plans";
 import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
-import { usePayPalModal } from "../../context/PayPalModalContext";
-import { useMercadoPagoCheckoutModal } from "../../context/MercadoPagoCheckoutModalContext";
+import { useCheckoutModal } from "../../context/CheckoutModalContext";
 import MemberSignInForm from "../miembros/MemberSignInForm";
 import OnboardingWizard from "../miembros/OnboardingWizard";
 
@@ -39,8 +38,7 @@ const WorkshopCheckoutCta = ({
   autopayReturnPath,
 }: WorkshopCheckoutCtaProps) => {
   const { status } = useSession();
-  const { openPayPal } = usePayPalModal();
-  const { openMercadoPago } = useMercadoPagoCheckoutModal();
+  const { openCheckout: openCheckoutModal } = useCheckoutModal();
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -58,11 +56,7 @@ const WorkshopCheckoutCta = ({
   const callbackUrl = `${autopayReturnPath}?autopay=${encodeURIComponent(plan.id)}`;
 
   const openCheckout = (provider: Provider) => {
-    if (provider === "mercadopago") {
-      openMercadoPago(plan.id, { sessionFirst: true });
-    } else {
-      openPayPal(plan.id, { sessionFirst: true });
-    }
+    openCheckoutModal(plan.id, provider);
   };
 
   const handlePay = (provider: Provider) => {
@@ -188,7 +182,7 @@ const WorkshopCheckoutCta = ({
               )}
             </div>
           </div>,
-          document.body
+          document.body,
         )
       : null;
 

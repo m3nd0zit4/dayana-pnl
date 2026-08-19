@@ -3,6 +3,7 @@ import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createLiveClass,
+  getCourseModuleProductId,
   listClassesForModule,
   listLiveClassesAdmin,
   listUnassignedClasses,
@@ -26,7 +27,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ classes });
   }
 
-  const course = await requireCourseProduct().catch(() => null);
+  const course = await requireCourseProduct(
+    req.nextUrl.searchParams.get("productId")
+  ).catch(() => null);
   if (!course) {
     return NextResponse.json({ error: "no_course_product" }, { status: 404 });
   }
@@ -49,7 +52,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const course = await requireCourseProduct().catch(() => null);
+  // El curso sale del módulo destino: así una clase nunca puede nacer colgada
+  // de un producto distinto al del módulo que la contiene.
+  const parentModule = parsed.data.moduleId
+    ? await getCourseModuleProductId(parsed.data.moduleId)
+    : null;
+  const course = await requireCourseProduct(parentModule).catch(() => null);
   if (!course) {
     return NextResponse.json({ error: "no_course_product" }, { status: 404 });
   }
@@ -67,6 +75,7 @@ export async function POST(req: NextRequest) {
     contentType: parsed.data.contentType,
     bodyMd: parsed.data.bodyMd,
     quizJson: parsed.data.quizJson,
+    evergreen: parsed.data.evergreen,
   });
 
   fireAuditLog({

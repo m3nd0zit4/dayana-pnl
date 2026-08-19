@@ -1,0 +1,140 @@
+{
+  "title": "Ejercicio · Tu reencuadre",
+  "description": "Un hecho, tres marcos alternativos, la prueba de las cuatro señales y una semana de uso.",
+  "introMd": "Elige algo real y de tamaño medio. Ni una tontería ni la herida más grande que tengas.",
+  "sections": [
+    {
+      "title": "1 · Contenido",
+      "fields": [
+        {
+          "id": "hecho",
+          "label": "El hecho, pelado",
+          "help": "Solo lo que grabaría una cámara. Sin adjetivos, sin interpretación."
+        },
+        {
+          "id": "marco-viejo",
+          "label": "La frase que te dices sobre eso",
+          "type": "short"
+        },
+        {
+          "id": "alt-1",
+          "label": "Marco alternativo 1",
+          "type": "short",
+          "help": "Este va a ser malo. Escríbelo igual."
+        },
+        {
+          "id": "alt-2",
+          "label": "Marco alternativo 2",
+          "type": "short"
+        },
+        {
+          "id": "alt-3",
+          "label": "Marco alternativo 3",
+          "type": "short"
+        },
+        {
+          "id": "elegido",
+          "label": "El que te crees hoy, aunque sea el menos bonito",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Contexto",
+      "bodyMd": "Ahora un rasgo tuyo, no un hecho.",
+      "fields": [
+        {
+          "id": "rasgo",
+          "label": "Un rasgo tuyo que te molesta",
+          "type": "short"
+        },
+        {
+          "id": "rasgo-estorba",
+          "label": "¿Dónde estorba?",
+          "type": "short"
+        },
+        {
+          "id": "rasgo-sirve",
+          "label": "¿Dónde es justo lo que hace falta?",
+          "type": "short"
+        },
+        {
+          "id": "rasgo-caso",
+          "label": "Un caso real donde te sirvió",
+          "help": "Si no encuentras ninguno, el reencuadre no es tuyo todavía."
+        }
+      ]
+    },
+    {
+      "title": "3 · La prueba",
+      "bodyMd": "Revisa tu reencuadre contra las cuatro señales.",
+      "fields": [
+        {
+          "id": "señal-alm",
+          "label": "¿Empieza por «al menos»?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí"
+          ]
+        },
+        {
+          "id": "señal-emo",
+          "label": "¿Exige que dejes de estar triste o enfadada?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí"
+          ]
+        },
+        {
+          "id": "señal-pronto",
+          "label": "¿El golpe todavía está fresco?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí"
+          ]
+        },
+        {
+          "id": "señal-hechos",
+          "label": "¿Necesita ignorar algún hecho real?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí"
+          ]
+        },
+        {
+          "id": "señal-accion",
+          "label": "Si marcaste algún «Sí», ¿qué vas a ajustar?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Una semana después",
+      "fields": [
+        {
+          "id": "sem-cual",
+          "label": "¿Cuál apareció más esta semana, el marco viejo o el nuevo?",
+          "type": "choice",
+          "options": [
+            "El nuevo",
+            "El viejo",
+            "A medias"
+          ]
+        },
+        {
+          "id": "sem-distinto",
+          "label": "¿Qué hiciste distinto?"
+        },
+        {
+          "id": "sem-crees",
+          "label": "¿Todavía te lo crees?",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Un reencuadre que sigue en pie a la semana ya no es una frase: es un marco."
+}

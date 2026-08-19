@@ -1,0 +1,192 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "l2q1",
+      "prompt": "«Es mejor así.» ¿Qué filtro es y de qué tipo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Omisión: comparativo sin referencia — falta el segundo término",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Distorsión: lectura de mente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Generalización: cuantificador universal",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hay ningún filtro: es una opinión",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l2q2",
+      "prompt": "«Me hace sentir culpable.» ¿Qué está ocurriendo en esa frase?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Distorsión de causa-efecto: se atribuye a otro la autoría de la propia emoción",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Omisión simple",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Generalización",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Nominalización",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l2q3",
+      "prompt": "¿Qué es una nominalización?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Un proceso convertido en cosa: «la comunicación», «el estrés», «la relación»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Poner nombre propio a una emoción",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Una comparación sin referencia",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Una orden disfrazada de pregunta",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l2q4",
+      "prompt": "¿Por qué la nominalización es especialmente útil de detectar?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Al devolverla a verbo, el problema deja de ser una cosa y pasa a ser algo que alguien hace — y entonces se puede cambiar",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque siempre indica que la persona miente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque es el único filtro que aparece por escrito",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque desaparece sola al nombrarla",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l2q5",
+      "prompt": "«Nadie me apoya.» Al pedir el nombre exacto, ¿qué suele pasar?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Aparecen una o dos personas concretas, y la frase se desinfla",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La persona confirma que es literalmente todo el mundo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Se refuerza la creencia",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Es una pregunta que no debe hacerse",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l2q6",
+      "prompt": "Filtrar la experiencia al hablar, ¿es un defecto?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No: sin filtrar no se podría hablar. El problema es olvidar que se filtró y tratar el resumen como el original",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Sí: hablar bien consiste en no filtrar nada",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Solo lo es en personas con poco vocabulario",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo ocurre bajo estrés",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l2q7",
+      "prompt": "«No me llamó, así que no le importo.» ¿Qué filtro es?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Distorsión: equivalencia compleja — dos cosas distintas unidas como si fueran la misma",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Omisión: falta de índice referencial",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Generalización: operador modal",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Distorsión: nominalización",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

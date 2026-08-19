@@ -12,6 +12,7 @@ import {
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
+import { createPendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
@@ -75,13 +76,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
   }
 
+  // Sin formulario previo: Mercado Pago pide email al pagar y lo devuelve en
+  // el webhook, así que basta un contacto temporal y `syncMercadoPagoPayment`
+  // lo completa. Si vinieron datos (o hay sesión), se respeta esa vía.
+  const contact = parseContactBody(body);
+  const hasContactData = Boolean(
+    contact.contactId || contact.phone || contact.email
+  );
+
   let contactId: string;
   try {
-    contactId = await resolveCheckoutContactIdForRequest({
-      planId,
-      contact: parseContactBody(body),
-      fromSession: body.fromSession === true,
-    });
+    contactId =
+      hasContactData || body.fromSession === true
+        ? await resolveCheckoutContactIdForRequest({
+            planId,
+            contact,
+            fromSession: body.fromSession === true,
+          })
+        : await createPendingCheckoutContact(planId);
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[mercadopago] contact register failed", e);

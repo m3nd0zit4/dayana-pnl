@@ -5,6 +5,7 @@ import {
   emailProviderId,
   isDryRun,
   isNotificationsEnabled,
+  smsMarketingFrom,
   smsProviderReady,
   whatsAppApiReady,
 } from "./config";
@@ -164,7 +165,15 @@ export const getIntegrationHealth = (
       label: "SMS",
       status: outboundStatus(smsProviderReady(), dryRun, notificationsEnabled),
       detail: smsProviderReady()
-        ? outboundDetail("Twilio configurado.", dryRun, notificationsEnabled)
+        ? outboundDetail(
+            // El segundo remitente solo se reporta, no cambia el estado: falta
+            // de número de marketing es una configuración sana, no un problema.
+            smsMarketingFrom()
+              ? "Twilio configurado. Marketing sale por un número dedicado."
+              : "Twilio configurado. Marketing y transaccional salen del mismo número (TWILIO_MARKETING_FROM_NUMBER sin definir).",
+            dryRun,
+            notificationsEnabled
+          )
         : "Sin configurar: faltan TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN o TWILIO_FROM_NUMBER.",
       canTest: false,
       requiredEnv: SMS_REQUIRED_ENV,

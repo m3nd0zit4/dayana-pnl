@@ -1,0 +1,48 @@
+{
+  "title": "Ejercicio final · Tu plan de 30 días",
+  "description": "Un conflicto puesto en el mapa y una acción por área.",
+  "introMd": "El mapa no sirve guardado. Aquí lo bajamos a la semana que viene.",
+  "sections": [
+    {
+      "title": "1 · Un conflicto en el mapa",
+      "bodyMd": "Piensa en un conflicto **real**, con nombre y apellido.",
+      "fields": [
+        { "id": "conflicto-hechos", "label": "¿Qué pasó exactamente?", "help": "Solo hechos. Sin interpretación." },
+        { "id": "conflicto-mi-nivel", "label": "¿Desde qué nivel estaba yo?", "type": "short" },
+        { "id": "conflicto-su-nivel", "label": "¿Desde qué nivel estaba la otra persona?", "type": "short" },
+        { "id": "conflicto-valores", "label": "¿Qué valor legítimo estaba defendiendo cada uno?" },
+        {
+          "id": "conflicto-frase",
+          "label": "¿Qué frase podría decirle que reconozca su valor sin renunciar al mío?",
+          "help": "Escríbela completa, como se la dirías. Léela en voz alta."
+        }
+      ]
+    },
+    {
+      "title": "2 · Una acción por área",
+      "bodyMd": "Reglas: menos de 20 minutos, con día fijo, y que **no dependa de que otro cambie**.",
+      "fields": [
+        { "id": "accion-trabajo", "label": "Trabajo", "type": "short" },
+        { "id": "accion-dinero", "label": "Dinero", "type": "short" },
+        { "id": "accion-pareja", "label": "Pareja / relaciones", "type": "short" },
+        { "id": "accion-familia", "label": "Familia", "type": "short", "required": false },
+        { "id": "accion-cuidado", "label": "Mi cuidado personal", "type": "short" }
+      ]
+    },
+    {
+      "title": "3 · El compromiso",
+      "fields": [
+        { "id": "compromiso-recurso", "label": "Durante los próximos 30 días voy a practicar el recurso de…", "type": "short" },
+        { "id": "compromiso-accion", "label": "…haciendo…", "type": "short" },
+        { "id": "compromiso-dia", "label": "…cada…", "type": "short", "placeholder": "martes a las 8 p.m." },
+        {
+          "id": "compromiso-senal",
+          "label": "Voy a saber que funciona cuando…",
+          "help": "Sin una señal concreta, a los 30 días no vas a saber si cambió algo.",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Cada domingo, tres líneas en tu cuaderno: desde qué nivel operaste, dónde apareció tu sombra y dónde alcanzaste a elegir distinto.\n\n> **¿Desde qué nivel de conciencia estoy tomando esta decisión?**\n\nEsa pregunta, sostenida en el tiempo, hace más que cualquier técnica.\n\nGracias por el recorrido, líderes. 🤝✨"
+}

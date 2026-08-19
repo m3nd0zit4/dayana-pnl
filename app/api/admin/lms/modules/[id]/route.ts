@@ -23,9 +23,10 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const courseModule = await updateCourseModule(id, parsed.data).catch(
-    () => null
-  );
+  // `productId` viaja en el schema para la creación; mover un módulo de curso
+  // no se hace por aquí (arrastraría clases y progreso a otro producto).
+  const { productId: _productId, ...data } = parsed.data;
+  const courseModule = await updateCourseModule(id, data).catch(() => null);
   if (!courseModule) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

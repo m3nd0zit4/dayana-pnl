@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "questions": [
+    {
+      "id": "m4q1",
+      "prompt": "¿Qué es una sombra en este modelo?",
+      "options": [
+        {
+          "id": "m4q1a",
+          "text": "Una fortaleza usada de más, o usada en un contexto que pedía otra cosa",
+          "correct": true
+        },
+        { "id": "m4q1b", "text": "Un defecto de carácter con el que se nace", "correct": false },
+        { "id": "m4q1c", "text": "Un trastorno psicológico", "correct": false },
+        { "id": "m4q1d", "text": "La ausencia total de valores", "correct": false }
+      ]
+    },
+    {
+      "id": "m4q2",
+      "prompt": "Miedo constante, vivir desde la escasez y sentir que siempre falta algo son sombras del…",
+      "options": [
+        { "id": "m4q2a", "text": "Nivel 1 · Supervivencia", "correct": true },
+        { "id": "m4q2b", "text": "Nivel 2 · Tribu", "correct": false },
+        { "id": "m4q2c", "text": "Nivel 3 · Poder", "correct": false },
+        { "id": "m4q2d", "text": "Nivel 4 · Orden", "correct": false }
+      ]
+    },
+    {
+      "id": "m4q3",
+      "prompt": "¿Por qué la sombra del nivel 2 es tan difícil de reconocer?",
+      "options": [
+        {
+          "id": "m4q3a",
+          "text": "Porque no se siente como miedo al rechazo, sino como amor y cuidado hacia los demás",
+          "correct": true
+        },
+        { "id": "m4q3b", "text": "Porque solo aparece en la infancia", "correct": false },
+        { "id": "m4q3c", "text": "Porque es exclusiva de ciertas culturas", "correct": false },
+        { "id": "m4q3d", "text": "Porque nunca produce consecuencias visibles", "correct": false }
+      ]
+    },
+    {
+      "id": "m4q4",
+      "prompt": "Una persona que no soporta que le digan qué hacer y necesita demostrar siempre que puede sola, ¿qué suele estar protegiendo?",
+      "options": [
+        {
+          "id": "m4q4a",
+          "text": "Una herida del nivel 2: años haciendo lo que le decían y callando lo que pensaba",
+          "correct": true
+        },
+        { "id": "m4q4b", "text": "Un exceso de nivel 7", "correct": false },
+        { "id": "m4q4c", "text": "Falta total de valores", "correct": false },
+        { "id": "m4q4d", "text": "Una fortaleza del nivel 4 mal aplicada", "correct": false }
+      ]
+    },
+    {
+      "id": "m4q5",
+      "prompt": "¿Cuál es un buen termómetro de que en el nivel 4 ya no habla el principio sino el control?",
+      "options": [
+        {
+          "id": "m4q5a",
+          "text": "Que cuando algo se sale del plan aparece rabia, no solo incomodidad",
+          "correct": true
+        },
+        { "id": "m4q5b", "text": "Que la persona cumple sus compromisos", "correct": false },
+        { "id": "m4q5c", "text": "Que la persona organiza su agenda", "correct": false },
+        { "id": "m4q5d", "text": "Que la persona tiene principios claros", "correct": false }
+      ]
+    },
+    {
+      "id": "m4q6",
+      "prompt": "¿Por qué la sombra del nivel 1 suele sobrevivir a la circunstancia que la creó?",
+      "options": [
+        {
+          "id": "m4q6a",
+          "text": "Porque el cuerpo aprendió a vivir en alerta y no registra que la situación ya pasó",
+          "correct": true
+        },
+        { "id": "m4q6b", "text": "Porque la persona quiere seguir sufriendo", "correct": false },
+        { "id": "m4q6c", "text": "Porque los niveles nunca cambian", "correct": false },
+        { "id": "m4q6d", "text": "Porque la escasez siempre es real", "correct": false }
+      ]
+    },
+    {
+      "id": "m4q7",
+      "prompt": "¿Cuál es el propósito de identificar las sombras?",
+      "options": [
+        {
+          "id": "m4q7a",
+          "text": "Reconocer qué está presente en nosotros y qué intenta proteger, sin juzgarlo",
+          "correct": true
+        },
+        { "id": "m4q7b", "text": "Eliminarlas de raíz lo antes posible", "correct": false },
+        { "id": "m4q7c", "text": "Clasificar a las personas del entorno", "correct": false },
+        { "id": "m4q7d", "text": "Justificar los comportamientos que nos hacen daño", "correct": false }
+      ]
+    }
+  ]
+}

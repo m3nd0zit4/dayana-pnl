@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "questions": [
+    {
+      "id": "m5q1",
+      "prompt": "¿Por qué las sombras de los niveles 5 a 8 son más difíciles de reconocer?",
+      "options": [
+        {
+          "id": "m5q1a",
+          "text": "Porque socialmente se premian: se ven como trabajo duro, bondad, inteligencia o espiritualidad",
+          "correct": true
+        },
+        { "id": "m5q1b", "text": "Porque son menos frecuentes", "correct": false },
+        { "id": "m5q1c", "text": "Porque solo aparecen después de los 50 años", "correct": false },
+        { "id": "m5q1d", "text": "Porque no producen consecuencias", "correct": false }
+      ]
+    },
+    {
+      "id": "m5q2",
+      "prompt": "«Cuando logre esto, ahí sí voy a estar tranquilo» es el lenguaje interno de la sombra del…",
+      "options": [
+        { "id": "m5q2a", "text": "Nivel 5 · Multiplista", "correct": true },
+        { "id": "m5q2b", "text": "Nivel 6 · Sociocéntrico", "correct": false },
+        { "id": "m5q2c", "text": "Nivel 7 · Sistémico", "correct": false },
+        { "id": "m5q2d", "text": "Nivel 8 · Holístico", "correct": false }
+      ]
+    },
+    {
+      "id": "m5q3",
+      "prompt": "Según el módulo, evitar un conflicto necesario en el nivel 6 suele ser…",
+      "options": [
+        {
+          "id": "m5q3a",
+          "text": "Autoprotección disfrazada de cuidado: no soportar que alguien se moleste con uno",
+          "correct": true
+        },
+        { "id": "m5q3b", "text": "La forma más alta de empatía", "correct": false },
+        { "id": "m5q3c", "text": "Una señal de nivel 7", "correct": false },
+        { "id": "m5q3d", "text": "Una fortaleza del nivel 4", "correct": false }
+      ]
+    },
+    {
+      "id": "m5q4",
+      "prompt": "¿Cuál es el aprendizaje que rompe la sombra del nivel 7?",
+      "options": [
+        {
+          "id": "m5q4a",
+          "text": "Que la acción también genera sabiduría: hay cosas que no se pueden entender antes de hacerlas",
+          "correct": true
+        },
+        { "id": "m5q4b", "text": "Que hay que dejar de estudiar por completo", "correct": false },
+        { "id": "m5q4c", "text": "Que la intuición nunca sirve", "correct": false },
+        { "id": "m5q4d", "text": "Que conviene decidir sin pensar", "correct": false }
+      ]
+    },
+    {
+      "id": "m5q5",
+      "prompt": "¿Qué es el «bypass espiritual»?",
+      "options": [
+        {
+          "id": "m5q5a",
+          "text": "Usar el lenguaje de la conciencia y la trascendencia para saltarse el trabajo humano pendiente",
+          "correct": true
+        },
+        { "id": "m5q5b", "text": "Una técnica de meditación avanzada", "correct": false },
+        { "id": "m5q5c", "text": "El paso natural del nivel 7 al 8", "correct": false },
+        { "id": "m5q5d", "text": "Una forma de terapia sistémica", "correct": false }
+      ]
+    },
+    {
+      "id": "m5q6",
+      "prompt": "¿Qué tienen en común las cuatro sombras de los niveles superiores?",
+      "options": [
+        {
+          "id": "m5q6a",
+          "text": "Son formas distintas de no estar presente: en la meta, en el otro, en el análisis o en lo trascendente",
+          "correct": true
+        },
+        { "id": "m5q6b", "text": "Todas vienen de la infancia", "correct": false },
+        { "id": "m5q6c", "text": "Todas se resuelven con más información", "correct": false },
+        { "id": "m5q6d", "text": "Todas desaparecen solas con el tiempo", "correct": false }
+      ]
+    },
+    {
+      "id": "m5q7",
+      "prompt": "¿Cómo se reconoce un nivel 8 auténtico?",
+      "options": [
+        {
+          "id": "m5q7a",
+          "text": "Porque aterriza: se le nota en la agenda, en el dinero y en cómo trata a quien no puede darle nada",
+          "correct": true
+        },
+        { "id": "m5q7b", "text": "Por la cantidad de conceptos espirituales que maneja", "correct": false },
+        { "id": "m5q7c", "text": "Porque ya no se ocupa de asuntos materiales", "correct": false },
+        { "id": "m5q7d", "text": "Porque nunca siente emociones difíciles", "correct": false }
+      ]
+    }
+  ]
+}

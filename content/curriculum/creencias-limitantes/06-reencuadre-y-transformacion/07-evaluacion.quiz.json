@@ -1,0 +1,91 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "questions": [
+    {
+      "id": "c6q1",
+      "prompt": "¿Por qué no funciona discutir con una creencia?",
+      "options": [
+        {
+          "id": "c6q1a",
+          "text": "Porque no se sostiene en argumentos sino en una experiencia con carga emocional y años de bucle confirmándola",
+          "correct": true
+        },
+        { "id": "c6q1b", "text": "Porque las creencias son irracionales por definición", "correct": false },
+        { "id": "c6q1c", "text": "Porque discutir siempre está mal", "correct": false },
+        { "id": "c6q1d", "text": "Sí funciona, si los argumentos son buenos", "correct": false }
+      ]
+    },
+    {
+      "id": "c6q2",
+      "prompt": "«Me despidieron» → «ese puesto no era para mí y tardé tres años en verlo». ¿Qué herramienta es?",
+      "options": [
+        { "id": "c6q2a", "text": "Reencuadre de contenido: cambia qué significa el hecho", "correct": true },
+        { "id": "c6q2b", "text": "Reencuadre de contexto", "correct": false },
+        { "id": "c6q2c", "text": "Cuestionamiento de la evidencia", "correct": false },
+        { "id": "c6q2d", "text": "Trabajo con la experiencia original", "correct": false }
+      ]
+    },
+    {
+      "id": "c6q3",
+      "prompt": "«Soy demasiado detallista» → «revisando un contrato eso es exactamente lo que hace falta». ¿Qué herramienta es?",
+      "options": [
+        { "id": "c6q3a", "text": "Reencuadre de contexto: quita el juicio de identidad", "correct": true },
+        { "id": "c6q3b", "text": "Reencuadre de contenido", "correct": false },
+        { "id": "c6q3c", "text": "Contraejemplo", "correct": false },
+        { "id": "c6q3d", "text": "Reconsolidación", "correct": false }
+      ]
+    },
+    {
+      "id": "c6q4",
+      "prompt": "¿Cuáles son los tres huecos que se buscan al cuestionar la evidencia?",
+      "options": [
+        { "id": "c6q4a", "text": "El contraejemplo, la fuente y la utilidad", "correct": true },
+        { "id": "c6q4b", "text": "El pasado, el presente y el futuro", "correct": false },
+        { "id": "c6q4c", "text": "La causa, el efecto y la solución", "correct": false },
+        { "id": "c6q4d", "text": "La emoción, la conducta y el resultado", "correct": false }
+      ]
+    },
+    {
+      "id": "c6q5",
+      "prompt": "En el trabajo con la experiencia original, ¿cuál es la pregunta que más suele mover?",
+      "options": [
+        {
+          "id": "c6q5a",
+          "text": "«Si hoy vieras a otra persona en esa misma situación, ¿qué le dirías?»",
+          "correct": true
+        },
+        { "id": "c6q5b", "text": "«¿De quién fue la culpa?»", "correct": false },
+        { "id": "c6q5c", "text": "«¿Por qué te pasó a ti?»", "correct": false },
+        { "id": "c6q5d", "text": "«¿Cuándo lo vas a superar?»", "correct": false }
+      ]
+    },
+    {
+      "id": "c6q6",
+      "prompt": "¿Por qué funciona volver a la experiencia original?",
+      "options": [
+        {
+          "id": "c6q6a",
+          "text": "Porque el recuerdo se reconstruye al recuperarse y, mientras está abierto, admite información nueva antes de volver a guardarse",
+          "correct": true
+        },
+        { "id": "c6q6b", "text": "Porque el recuerdo se borra", "correct": false },
+        { "id": "c6q6c", "text": "Porque revivir el dolor lo agota", "correct": false },
+        { "id": "c6q6d", "text": "Porque la memoria es una grabación exacta que se puede editar", "correct": false }
+      ]
+    },
+    {
+      "id": "c6q7",
+      "prompt": "Decirle «todo pasa por algo» a alguien que acaba de perder algo importante es…",
+      "options": [
+        {
+          "id": "c6q7a",
+          "text": "Reencuadre barato: no sostiene el dolor del otro. Un reencuadre honesto incluye lo que dolió",
+          "correct": true
+        },
+        { "id": "c6q7b", "text": "La aplicación correcta del reencuadre de contenido", "correct": false },
+        { "id": "c6q7c", "text": "Reencuadre de contexto bien hecho", "correct": false },
+        { "id": "c6q7d", "text": "La única forma de consolar a alguien", "correct": false }
+      ]
+    }
+  ]
+}

@@ -10,10 +10,15 @@ import RenewMembership from "@/app/components/miembros/RenewMembership";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 import { Card, CardContent } from "@/app/components/ui/card";
 
+// Ojo: el índice es `string`, no `PaymentProvider`, así que añadir un miembro
+// al enum NO rompe el typecheck aquí — sólo deja el pago sin etiqueta en la
+// factura del miembro. Mantener en sync con PROVIDER_LABEL de lib/crm/payments.ts.
 const PROVIDER_LABELS: Record<string, string> = {
   PAYPAL: "PayPal",
   MERCADO_PAGO: "Mercado Pago",
   MANUAL: "Registro manual",
+  STRIPE: "Stripe",
+  LEMON_SQUEEZY: "Lemon Squeezy",
 };
 
 const formatAmount = (currency: string, amountMinor: number) =>

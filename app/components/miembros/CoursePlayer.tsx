@@ -2,12 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { CSSProperties } from "react";
-import { useMemo, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { signOut } from "next-auth/react";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { ChevronLeft, ChevronRight, Download, LogOut, User } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  LogOut,
+  User,
+} from "lucide-react";
 import type { LessonContentType } from "@prisma/client";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
@@ -27,7 +33,9 @@ import ClassCompleteToggle from "./ClassCompleteToggle";
 import ModuleCompleteToggle from "./ModuleCompleteToggle";
 import LessonComments from "./LessonComments";
 import QuizPlayer, { type SanitizedQuiz } from "./QuizPlayer";
+import ExercisePlayer, { type ExerciseData } from "./ExercisePlayer";
 import CourseOutlineSidebar, { readingId } from "./CourseOutlineSidebar";
+import LessonProse, { readingMinutes } from "./LessonProse";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 
 export type OutlineClass = {
@@ -47,6 +55,7 @@ export type OutlineClass = {
   materialFileName: string | null;
   materialSizeBytes: number | null;
   quiz: SanitizedQuiz | null;
+  exercise: ExerciseData | null;
 };
 
 export type OutlineModule = {
@@ -92,6 +101,76 @@ type FlatItem = {
   moduleIndex: number;
 };
 
+/**
+ * Cierre de la lección. El botón de la cabecera queda arriba del todo y, en una
+ * lectura larga, para cuando terminas ya no está en pantalla — que es
+ * justamente el momento en que querrías pulsarlo.
+ */
+const LessonFooterComplete = ({
+  classId,
+  completed,
+  onChange,
+}: {
+  classId: string;
+  completed: boolean;
+  onChange: (completed: boolean) => void;
+}) => (
+  <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
+    <ClassCompleteToggle
+      classId={classId}
+      completed={completed}
+      onChange={onChange}
+      size="default"
+    />
+    <p className="text-xs text-muted-foreground">
+      {completed
+        ? "Ya la tienes marcada."
+        : "También se marca sola cuando pasas aquí el tiempo suficiente."}
+    </p>
+  </div>
+);
+
+/**
+ * Cabecera común de toda lección. Antes cada tipo de contenido repetía su
+ * propio bloque de título dentro de la tarjeta, con el resultado de que el
+ * texto empezaba pegado al borde y sin jerarquía. Sacarla de la tarjeta le da
+ * al título el peso que le corresponde y deja el cuerpo limpio.
+ */
+const LessonHeader = ({
+  moduleIndex,
+  kind,
+  title,
+  description,
+  meta,
+  action,
+}: {
+  moduleIndex?: number;
+  kind: string;
+  title: string;
+  description?: string | null;
+  meta?: string;
+  action?: ReactNode;
+}) => (
+  <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+    <div className="min-w-0">
+      <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
+        {moduleIndex != null ? `Módulo ${moduleIndex + 1} · ` : ""}
+        {kind}
+        {meta ? ` · ${meta}` : ""}
+      </p>
+      <h2 className="mt-2 text-2xl font-semibold tracking-tight text-balance">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-2 max-w-[60ch] text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      )}
+    </div>
+    {action}
+  </header>
+);
+
 const CoursePlayer = ({
   productId,
   courseTitle,
@@ -114,9 +193,16 @@ const CoursePlayer = ({
   const [selectedId, setSelectedId] = useState(initialSelected);
 
   const allClasses = useMemo(() => modules.flatMap((m) => m.classes), [modules]);
+  // `completedClassIds` llega con TODO lo que el contacto ha completado en la
+  // biblioteca, no solo en este curso: contarlo entero hacía que terminar una
+  // lección en un curso subiera el progreso de los demás.
+  const completedHere = useMemo(
+    () => allClasses.filter((c) => completedClassIds.has(c.id)).length,
+    [allClasses, completedClassIds]
+  );
   const livePercent =
     allClasses.length > 0
-      ? Math.round((completedClassIds.size / allClasses.length) * 100)
+      ? Math.round((completedHere / allClasses.length) * 100)
       : percent;
   const selectedClass = allClasses.find((c) => c.id === selectedId) ?? null;
   const selectedReadingModule = selectedClass
@@ -145,38 +231,130 @@ const CoursePlayer = ({
   const currentBreadcrumb =
     selectedIndex >= 0 ? flatItems[selectedIndex] : null;
 
+  /** Marca (o desmarca) una lección en el estado local. */
+  const setClassCompleted = useCallback(
+    (classId: string, completed: boolean) =>
+      setCompletedClassIds((prev) => {
+        if (prev.has(classId) === completed) return prev;
+        const next = new Set(prev);
+        if (completed) next.add(classId);
+        else next.delete(classId);
+        return next;
+      }),
+    []
+  );
+
+  /** Igual, para la introducción del módulo — vive en otra tabla. */
+  const setModuleCompleted = useCallback(
+    (moduleId: string, completed: boolean) =>
+      setCompletedModuleIds((prev) => {
+        if (prev.has(moduleId) === completed) return prev;
+        const next = new Set(prev);
+        if (completed) next.add(moduleId);
+        else next.delete(moduleId);
+        return next;
+      }),
+    []
+  );
+
   const selectItem = (id: string) => {
     setSelectedId(id);
     router.replace(`/miembros/curso/${productId}?c=${id}`, { scroll: false });
+    // Volver arriba al cambiar de lección: quedarse a media página de la
+    // anterior es de las cosas que más desorientan en un curso largo.
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  /**
+   * Auto-completado por permanencia.
+   *
+   * Nadie va a pulsar «marcar como completada» en cuarenta y siete lecciones.
+   * Si alguien se queda el tiempo que la lección tarda en leerse o verse, se da
+   * por hecha; si pasa de largo antes de ese umbral, no. El temporizador se
+   * cancela al cambiar de lección, así que hojear el temario no marca nada.
+   *
+   * Los cuestionarios y los ejercicios quedan fuera: tienen su propia señal
+   * —aprobar, responder— y esa manda.
+   */
+  useEffect(() => {
+    if (!isCurrent || !selectedClass) return;
+    if (completedClassIds.has(selectedClass.id)) return;
+    if (selectedClass.contentType === "QUIZ" || selectedClass.contentType === "EXERCISE") {
+      return;
+    }
+
+    const dwellSec =
+      selectedClass.contentType === "TEXT"
+        ? Math.max(25, readingMinutes(selectedClass.bodyMd) * 60 * 0.5)
+        : selectedClass.contentType === "PDF"
+          ? 20
+          : selectedClass.recordingDurationSec
+            ? Math.max(30, selectedClass.recordingDurationSec * 0.6)
+            : 45;
+
+    const timer = setTimeout(() => {
+      setClassCompleted(selectedClass.id, true);
+      void fetch(`/api/miembros/classes/${selectedClass.id}/progress`, {
+        method: "POST",
+      });
+    }, dwellSec * 1000);
+
+    return () => clearTimeout(timer);
+    // `completedClassIds` a propósito fuera: solo interesa su valor al entrar en
+    // la lección, y meterlo reiniciaría el reloj en cada cambio de progreso.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClass?.id, isCurrent, setClassCompleted]);
+
+  /**
+   * Lo mismo para la introducción del módulo.
+   *
+   * Va en su propio efecto porque la introducción **no es una clase**: no está
+   * en `modules[].classes` y su progreso vive en `CourseModuleProgress`. Al no
+   * tenerlo, era la única entrada del temario que no se completaba nunca sola.
+   */
+  useEffect(() => {
+    if (!isCurrent || !selectedReadingModule) return;
+    if (completedModuleIds.has(selectedReadingModule.id)) return;
+
+    const dwellSec = Math.max(20, readingMinutes(selectedReadingModule.bodyMd) * 60 * 0.5);
+    const moduleId = selectedReadingModule.id;
+
+    const timer = setTimeout(() => {
+      setModuleCompleted(moduleId, true);
+      void fetch(`/api/miembros/modules/${moduleId}/progress`, { method: "POST" });
+    }, dwellSec * 1000);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedReadingModule?.id, isCurrent, setModuleCompleted]);
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "17rem" } as CSSProperties}>
       <Sidebar collapsible="offcanvas" className="border-r border-sidebar-border">
-        <SidebarHeader className="px-3 py-5">
+        {/* El progreso vive en la cabecera, no dentro del área que hace scroll:
+            ahí era un hijo flexible junto al acordeón del temario y se
+            aplastaba hasta cortar su propio texto. */}
+        <SidebarHeader className="gap-0 border-b border-sidebar-border px-4 py-4">
           <p className="text-sm leading-none tracking-[0.14em] uppercase">Dayana Beltrán</p>
           <p className="mt-1 text-[9px] tracking-[0.45em] text-muted-foreground uppercase">
             Portal del curso
           </p>
-          <p className="mt-3 truncate text-xs font-semibold text-sidebar-foreground">
+          <p className="mt-4 text-sm leading-snug font-semibold text-balance text-sidebar-foreground">
             {courseTitle}
           </p>
+          {isCurrent && allClasses.length > 0 && (
+            <div className="mt-4">
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {completedHere} de {allClasses.length} clases
+                </span>
+                <span className="font-medium text-sidebar-foreground">{livePercent}%</span>
+              </div>
+              <Progress value={livePercent} className="h-1.5" />
+            </div>
+          )}
         </SidebarHeader>
         <SidebarContent className="px-2 py-2">
-          {isCurrent && allClasses.length > 0 && (
-            <Card size="sm" className="mx-1 mb-3">
-              <CardContent className="space-y-2 px-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-sidebar-foreground">Tu progreso</span>
-                  <span className="text-muted-foreground">{livePercent}%</span>
-                </div>
-                <Progress value={livePercent} className="h-1.5" />
-                <p className="text-xs text-muted-foreground">
-                  {completedClassIds.size} de {allClasses.length} clases completadas
-                </p>
-              </CardContent>
-            </Card>
-          )}
           <CourseOutlineSidebar
             modules={modules}
             completedClassIds={completedClassIds}
@@ -203,8 +381,10 @@ const CoursePlayer = ({
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {/* Solo donde la barra lateral no está: en escritorio el progreso
+                ya vive en su cabecera y aquí solo apretaba la fila. */}
             {isCurrent && (
-              <div className="hidden w-40 shrink-0 sm:block">
+              <div className="w-32 shrink-0 lg:hidden">
                 <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
                   <span>Progreso</span>
                   <span className="font-medium text-foreground">{livePercent}%</span>
@@ -264,35 +444,39 @@ const CoursePlayer = ({
               </CardContent>
             </Card>
           ) : selectedReadingModule ? (
-            <div className="space-y-4">
-              <div>
-                <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                  Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Lectura
-                </p>
-                <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                  {selectedReadingModule.title}
-                </h2>
-              </div>
-              <Card>
-                <CardContent className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
-                  <Markdown remarkPlugins={[remarkGfm]}>
-                    {selectedReadingModule.bodyMd || ""}
-                  </Markdown>
-                </CardContent>
-              </Card>
-              <ModuleCompleteToggle
-                moduleId={selectedReadingModule.id}
-                initialCompleted={completedModuleIds.has(selectedReadingModule.id)}
-                onChange={(completed) =>
-                  setCompletedModuleIds((prev) => {
-                    const next = new Set(prev);
-                    if (completed) next.add(selectedReadingModule.id);
-                    else next.delete(selectedReadingModule.id);
-                    return next;
-                  })
+            <article className="mx-auto max-w-3xl space-y-6">
+              <LessonHeader
+                moduleIndex={currentBreadcrumb?.moduleIndex}
+                kind="Introducción del módulo"
+                title={selectedReadingModule.title}
+                meta={`${readingMinutes(selectedReadingModule.bodyMd)} min de lectura`}
+                action={
+                  <ModuleCompleteToggle
+                    moduleId={selectedReadingModule.id}
+                    completed={completedModuleIds.has(selectedReadingModule.id)}
+                    onChange={(completed) =>
+                      setModuleCompleted(selectedReadingModule.id, completed)
+                    }
+                  />
                 }
               />
-            </div>
+              <LessonProse>{selectedReadingModule.bodyMd || ""}</LessonProse>
+              <div className="flex flex-wrap items-center gap-3 border-t border-border pt-6">
+                <ModuleCompleteToggle
+                  moduleId={selectedReadingModule.id}
+                  completed={completedModuleIds.has(selectedReadingModule.id)}
+                  onChange={(completed) =>
+                    setModuleCompleted(selectedReadingModule.id, completed)
+                  }
+                  size="default"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {completedModuleIds.has(selectedReadingModule.id)
+                    ? "Ya la tienes marcada."
+                    : "También se marca sola cuando pasas aquí el tiempo suficiente."}
+                </p>
+              </div>
+            </article>
           ) : !selectedClass ? (
             <Card>
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
@@ -300,112 +484,142 @@ const CoursePlayer = ({
               </CardContent>
             </Card>
           ) : selectedClass.contentType !== "VIDEO" ? (
-            <div className="space-y-4">
-              <Card>
-                <CardContent className="space-y-6">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                        Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} ·{" "}
-                        {selectedClass.contentType === "TEXT"
-                          ? "Lectura"
-                          : selectedClass.contentType === "PDF"
-                            ? "Material"
-                            : "Cuestionario"}
+            <article className="mx-auto max-w-3xl space-y-6">
+              <LessonHeader
+                moduleIndex={currentBreadcrumb?.moduleIndex}
+                kind={
+                  selectedClass.contentType === "TEXT"
+                    ? "Lectura"
+                    : selectedClass.contentType === "PDF"
+                      ? "Material descargable"
+                      : selectedClass.contentType === "EXERCISE"
+                        ? "Ejercicio"
+                        : "Cuestionario"
+                }
+                title={selectedClass.title}
+                description={selectedClass.description}
+                meta={
+                  selectedClass.contentType === "TEXT"
+                    ? `${readingMinutes(selectedClass.bodyMd)} min de lectura`
+                    : selectedClass.contentType === "QUIZ"
+                      ? `${selectedClass.quiz?.questions.length ?? 0} preguntas`
+                      : selectedClass.contentType === "EXERCISE"
+                        ? "Se guarda solo"
+                        : selectedClass.materialSizeBytes != null
+                          ? `PDF · ${(selectedClass.materialSizeBytes / (1024 * 1024)).toFixed(1)} MB`
+                          : "PDF"
+                }
+                action={
+                  // El cuestionario se aprueba y el ejercicio se responde: en
+                  // esos dos, marcar a mano sobraría.
+                  selectedClass.contentType !== "QUIZ" &&
+                  selectedClass.contentType !== "EXERCISE" ? (
+                    <ClassCompleteToggle
+                      classId={selectedClass.id}
+                      completed={completedClassIds.has(selectedClass.id)}
+                      onChange={(completed) =>
+                        setClassCompleted(selectedClass.id, completed)
+                      }
+                    />
+                  ) : completedClassIds.has(selectedClass.id) ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-medium text-success">
+                      <Check className="size-3.5" aria-hidden />
+                      Completada
+                    </span>
+                  ) : undefined
+                }
+              />
+
+              {selectedClass.contentType === "TEXT" && (
+                <LessonProse>{selectedClass.bodyMd || "*Sin contenido*"}</LessonProse>
+              )}
+
+              {selectedClass.contentType === "PDF" && (
+                <Card>
+                  <CardContent className="flex flex-wrap items-center gap-4">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <FileText className="size-5" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {selectedClass.materialFileName ?? "Material del módulo"}
                       </p>
-                      <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                        {selectedClass.title}
-                      </h2>
-                      {selectedClass.description && (
-                        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                          {selectedClass.description}
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        {selectedClass.materialFileName
+                          ? selectedClass.materialSizeBytes != null
+                            ? `PDF · ${(selectedClass.materialSizeBytes / (1024 * 1024)).toFixed(1)} MB`
+                            : "PDF"
+                          : "Todavía no está disponible para descargar."}
+                      </p>
                     </div>
-                    {selectedClass.contentType !== "QUIZ" && (
-                      <ClassCompleteToggle
-                        key={selectedClass.id}
-                        classId={selectedClass.id}
-                        initialCompleted={completedClassIds.has(selectedClass.id)}
-                        onChange={(completed) =>
-                          setCompletedClassIds((prev) => {
-                            const next = new Set(prev);
-                            if (completed) next.add(selectedClass.id);
-                            else next.delete(selectedClass.id);
-                            return next;
-                          })
-                        }
-                      />
-                    )}
-                  </div>
-
-                  {selectedClass.contentType === "TEXT" && (
-                    <div className="text-sm leading-relaxed [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_li]:ml-4 [&_ol]:list-decimal [&_p]:mb-3 [&_ul]:list-disc">
-                      <Markdown remarkPlugins={[remarkGfm]}>
-                        {selectedClass.bodyMd || "*Sin contenido*"}
-                      </Markdown>
-                    </div>
-                  )}
-
-                  {selectedClass.contentType === "PDF" &&
-                    (selectedClass.materialFileName ? (
+                    {selectedClass.materialFileName && (
                       <Button
-                        variant="outline"
                         nativeButton={false}
                         render={<a href={`/api/miembros/classes/${selectedClass.id}/material`} />}
                       >
                         <Download />
-                        Descargar {selectedClass.materialFileName}
+                        Descargar
                       </Button>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        El material aún no está disponible.
-                      </p>
-                    ))}
-
-                  {selectedClass.contentType === "QUIZ" &&
-                    (selectedClass.quiz && selectedClass.quiz.questions.length > 0 ? (
-                      <QuizPlayer
-                        key={selectedClass.id}
-                        classId={selectedClass.id}
-                        quiz={selectedClass.quiz}
-                        alreadyCompleted={completedClassIds.has(selectedClass.id)}
-                        onSubmitted={() =>
-                          setCompletedClassIds((prev) => new Set(prev).add(selectedClass.id))
-                        }
-                      />
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Este cuestionario aún no tiene preguntas.
-                      </p>
-                    ))}
-
-                  <div className="border-t border-border pt-6">
-                    <LessonComments
-                      key={selectedClass.id}
-                      classId={selectedClass.id}
-                      viewerContactId={viewerContactId}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {!isRecordingVisible(selectedClass) && (
-                <div>
-                  <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                    Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Clase
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold tracking-tight">{selectedClass.title}</h2>
-                  {selectedClass.description && (
-                    <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                      {selectedClass.description}
-                    </p>
-                  )}
-                </div>
+                    )}
+                  </CardContent>
+                </Card>
               )}
 
+              {selectedClass.contentType === "QUIZ" &&
+                (selectedClass.quiz && selectedClass.quiz.questions.length > 0 ? (
+                  <QuizPlayer
+                    key={selectedClass.id}
+                    classId={selectedClass.id}
+                    quiz={selectedClass.quiz}
+                    alreadyCompleted={completedClassIds.has(selectedClass.id)}
+                    onSubmitted={() => setClassCompleted(selectedClass.id, true)}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Este cuestionario aún no tiene preguntas.
+                  </p>
+                ))}
+
+              {selectedClass.contentType === "EXERCISE" &&
+                (selectedClass.exercise ? (
+                  <ExercisePlayer
+                    key={selectedClass.id}
+                    classId={selectedClass.id}
+                    exercise={selectedClass.exercise}
+                    onCompletedChange={(completed) =>
+                      setClassCompleted(selectedClass.id, completed)
+                    }
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Este ejercicio todavía no tiene preguntas.
+                  </p>
+                ))}
+
+              {selectedClass.contentType !== "QUIZ" &&
+                selectedClass.contentType !== "EXERCISE" && (
+                  <LessonFooterComplete
+                    classId={selectedClass.id}
+                    completed={completedClassIds.has(selectedClass.id)}
+                    onChange={(completed) =>
+                      setClassCompleted(selectedClass.id, completed)
+                    }
+                  />
+                )}
+
+              <div className="border-t border-border pt-6">
+                <LessonComments
+                  key={selectedClass.id}
+                  classId={selectedClass.id}
+                  viewerContactId={viewerContactId}
+                />
+              </div>
+            </article>
+          ) : (
+            // El video se pinta arriba y la cabecera debajo: el reproductor es
+            // lo que la persona vino a ver. Antes esta rama repetía el bloque de
+            // título dos veces, uno por cada estado de la grabación.
+            <article className="mx-auto max-w-3xl space-y-6">
               {isRecordingVisible(selectedClass) ? (
                 <Card className="overflow-hidden py-0">
                   {selectedClass.muxPlaybackId ? (
@@ -420,43 +634,6 @@ const CoursePlayer = ({
                       title={selectedClass.title}
                     />
                   )}
-                  <CardContent className="space-y-6 pt-6">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-                          Módulo {currentBreadcrumb ? currentBreadcrumb.moduleIndex + 1 : ""} · Clase
-                        </p>
-                        <h2 className="mt-1 text-xl font-semibold tracking-tight">
-                          {selectedClass.title}
-                        </h2>
-                        {selectedClass.description && (
-                          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                            {selectedClass.description}
-                          </p>
-                        )}
-                      </div>
-                      <ClassCompleteToggle
-                        key={selectedClass.id}
-                        classId={selectedClass.id}
-                        initialCompleted={completedClassIds.has(selectedClass.id)}
-                        onChange={(completed) =>
-                          setCompletedClassIds((prev) => {
-                            const next = new Set(prev);
-                            if (completed) next.add(selectedClass.id);
-                            else next.delete(selectedClass.id);
-                            return next;
-                          })
-                        }
-                      />
-                    </div>
-                    <div className="border-t border-border pt-6">
-                      <LessonComments
-                        key={selectedClass.id}
-                        classId={selectedClass.id}
-                        viewerContactId={viewerContactId}
-                      />
-                    </div>
-                  </CardContent>
                 </Card>
               ) : selectedClass.recordingUrl || selectedClass.muxPlaybackId ? (
                 <Card>
@@ -493,25 +670,50 @@ const CoursePlayer = ({
               ) : (
                 <Card>
                   <CardContent className="py-6 text-sm text-muted-foreground">
-                    Esta clase aún no tiene fecha. Te avisaremos por correo y WhatsApp.
+                    Esta clase todavía no tiene video. Te avisamos en cuanto esté.
                   </CardContent>
                 </Card>
               )}
 
-              {!isRecordingVisible(selectedClass) && (
-                <div className="border-t border-border pt-6">
-                  <LessonComments
-                    key={selectedClass.id}
+              <LessonHeader
+                moduleIndex={currentBreadcrumb?.moduleIndex}
+                kind="Clase en video"
+                title={selectedClass.title}
+                description={selectedClass.description}
+                meta={
+                  selectedClass.recordingDurationSec
+                    ? `${Math.max(1, Math.round(selectedClass.recordingDurationSec / 60))} min`
+                    : undefined
+                }
+                action={
+                  <ClassCompleteToggle
                     classId={selectedClass.id}
-                    viewerContactId={viewerContactId}
+                    completed={completedClassIds.has(selectedClass.id)}
+                    onChange={(completed) =>
+                      setClassCompleted(selectedClass.id, completed)
+                    }
                   />
-                </div>
-              )}
-            </div>
+                }
+              />
+
+              <LessonFooterComplete
+                classId={selectedClass.id}
+                completed={completedClassIds.has(selectedClass.id)}
+                onChange={(completed) => setClassCompleted(selectedClass.id, completed)}
+              />
+
+              <div>
+                <LessonComments
+                  key={selectedClass.id}
+                  classId={selectedClass.id}
+                  viewerContactId={viewerContactId}
+                />
+              </div>
+            </article>
           )}
 
           {isCurrent && (prevItem || nextItem) && (
-            <div className="mt-8 flex items-center justify-between gap-3 border-t border-border pt-4">
+            <div className="mx-auto mt-10 flex max-w-3xl items-center justify-between gap-3 border-t border-border pt-4">
               {prevItem ? (
                 <Button variant="outline" onClick={() => selectItem(prevItem.id)}>
                   <ChevronLeft />

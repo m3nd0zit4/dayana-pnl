@@ -14,6 +14,9 @@ export const PRICING_REGIONS: PricingRegion[] = [
     countries: ["CO"],
   },
   {
+    // Colombia va por Mercado Pago (COP, PSE, Nequi); el resto por PayPal, que
+    // sí admite servicios entregados por personas. Los merchant of record
+    // (Lemon Squeezy, Paddle, FastSpring) rechazan este catálogo por eso mismo.
     name: "Internacional",
     currency: "USD",
     provider: "PAYPAL",
@@ -27,7 +30,7 @@ export function getPricingRegion(countryIso: string | null): PricingRegion {
       (r) =>
         r.countries.length > 0 &&
         countryIso != null &&
-        r.countries.includes(countryIso)
+        r.countries.includes(countryIso),
     ) ?? PRICING_REGIONS.find((r) => r.countries.length === 0)!
   );
 }

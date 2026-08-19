@@ -1,0 +1,5 @@
+{
+  "title": "La inducción paso a paso",
+  "isPublished": true,
+  "bodyMd": "El módulo práctico. Hasta aquí entendimos qué es la hipnosis, en qué estado ocurre, qué la frena y con qué lenguaje se conduce. Ahora la armamos completa.\n\n```mermaid\nflowchart TD\n  F1[\"1 · Preparación y respiración profunda\"]\n  F2[\"2 · Relajación de los ojos\"]\n  F3[\"3 · Relajación progresiva del cuerpo\"]\n  F4[\"4 · Profundización<br/><i>apertura y cierre de ojos</i>\"]\n  F5[\"5 · Conteo regresivo desde 100\"]\n  F6[\"6 · Trabajo y salida gradual\"]:::acento\n  F1 --> F2 --> F3 --> F4 --> F5 --> F6\n```\n\n### Condiciones antes de practicar\n\n**Nunca** conduciendo, con alcohol, ni en un cuadro psiquiátrico agudo sin acompañamiento profesional.\n\n**Si guías a otra persona:** explícale antes qué vas a hacer, acuerden una señal de parada, haz siempre la salida completa y trabaja solo recursos —calma, confianza, valores—, nunca contenidos traumáticos sin formación clínica.\n\n**Es normal** que se mueva un párpado, que el cuerpo se sienta muy pesado o muy liviano, que se pierda la noción del tiempo, o incluso quedarse dormido."
+}

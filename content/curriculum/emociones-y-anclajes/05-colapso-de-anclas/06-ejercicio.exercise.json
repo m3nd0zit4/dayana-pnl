@@ -1,0 +1,176 @@
+{
+  "title": "Ejercicio · Tu colapso y tu círculo",
+  "description": "La comprobación previa, el colapso paso a paso y el círculo trasladado a una situación real.",
+  "introMd": "Empieza por la comprobación. Si marcas cualquiera de las cuatro, hoy no toca — y eso también es hacer el ejercicio bien.",
+  "sections": [
+    {
+      "title": "1 · La comprobación previa",
+      "fields": [
+        {
+          "id": "chk-trauma",
+          "label": "¿El tema es un recuerdo traumático?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí — no sigo"
+          ]
+        },
+        {
+          "id": "chk-crisis",
+          "label": "¿Es una crisis de esta semana?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí — no sigo"
+          ]
+        },
+        {
+          "id": "chk-recurso",
+          "label": "¿Tu ancla de recurso dispara claro en frío?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No — la refuerzo antes"
+          ]
+        },
+        {
+          "id": "chk-solo",
+          "label": "¿Estás sola y el tema es grande?",
+          "type": "choice",
+          "options": [
+            "No / hay alguien cerca",
+            "Sí — lo aplazo"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Elegir",
+      "fields": [
+        {
+          "id": "problema",
+          "label": "El problema",
+          "type": "short",
+          "help": "Concreto. «Cuando me hablan en ese tono», no «mi infancia»."
+        },
+        {
+          "id": "problema-int",
+          "label": "Intensidad 0-10",
+          "type": "short",
+          "help": "Si es 9, elige otro. Buscamos un 5 o 6."
+        },
+        {
+          "id": "recursos",
+          "label": "Los recursos que vas a apilar contra él",
+          "type": "short"
+        },
+        {
+          "id": "balance",
+          "label": "¿El recurso pesa más que el problema?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No — refuerzo antes de seguir"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · El colapso",
+      "fields": [
+        {
+          "id": "paso3",
+          "label": "Paso 3 — ¿el recurso disparó claro en frío?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No — paré aquí"
+          ]
+        },
+        {
+          "id": "paso5",
+          "label": "Paso 5 — ¿qué notaste al disparar las dos a la vez?",
+          "help": "Confusión, respiración irregular, cambio en la cara. Describe lo que pasó de verdad."
+        },
+        {
+          "id": "paso6",
+          "label": "¿Soltaste primero el problema?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No / no me acordé"
+          ]
+        },
+        {
+          "id": "paso7",
+          "label": "Paso 7 — ¿cómo se siente ahora la situación original?",
+          "type": "choice",
+          "options": [
+            "Distinta, más lejos",
+            "Igual",
+            "Peor"
+          ]
+        },
+        {
+          "id": "paso7-detalle",
+          "label": "Descríbelo"
+        }
+      ]
+    },
+    {
+      "title": "4 · El círculo",
+      "fields": [
+        {
+          "id": "circ-recuerdo",
+          "label": "El recuerdo de tu mejor estado",
+          "type": "short"
+        },
+        {
+          "id": "circ-reps",
+          "label": "¿Cuántas repeticiones hiciste?",
+          "type": "short"
+        },
+        {
+          "id": "circ-prueba",
+          "label": "Al entrar sin preparación, ¿apareció el estado? (0-10)",
+          "type": "short"
+        },
+        {
+          "id": "circ-donde",
+          "label": "¿Dónde vas a poner el círculo?",
+          "type": "short",
+          "help": "La puerta de la oficina, la sala, el escenario. Concreto."
+        },
+        {
+          "id": "circ-cuando",
+          "label": "¿Qué día lo vas a usar de verdad?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "5 · Si algo se desbordó",
+      "bodyMd": "Solo si hizo falta. No pasa nada por rellenarlo.",
+      "fields": [
+        {
+          "id": "desb",
+          "label": "¿Tuviste que parar?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí"
+          ]
+        },
+        {
+          "id": "desb-que",
+          "label": "Si paraste, ¿qué apareció y qué hiciste?"
+        },
+        {
+          "id": "desb-siguiente",
+          "label": "¿Qué tema deberías trabajar acompañada en lugar de sola?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Parar a tiempo no es fallar el ejercicio: es la parte del ejercicio que más cuesta aprender."
+}

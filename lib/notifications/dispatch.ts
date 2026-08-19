@@ -179,7 +179,15 @@ export const dispatchToChannel = async (
       providerId = result.providerId;
       messageId = result.messageId;
     } else if (payload.channel === "SMS") {
-      const result = await sendSms({ toE164: recipient, body: smsBody });
+      const result = await sendSms({
+        toE164: recipient,
+        body: smsBody,
+        // Mismo predicado que el List-Unsubscribe de arriba, a propósito: una
+        // campaña real sale por el número de marketing, un 1:1 por el
+        // transaccional. Los dos números se registran en campañas 10DLC
+        // distintas y mezclarlos es lo que suspende una de las dos.
+        kind: payload.campaignId ? "marketing" : "transactional",
+      });
       providerId = result.providerId;
       messageId = result.messageId;
     } else if (payload.channel === "WHATSAPP_API") {
@@ -258,7 +266,11 @@ export const recordDelivery = async (input: {
       body: [input.result.recipient, input.result.errorMessage]
         .filter(Boolean)
         .join(" · "),
-      href: "/admin/messages",
+      // Apuntaba a /admin/messages, que son los mensajes rápidos para copiar y
+      // pegar, no el registro de envíos. El registro (/admin/ajustes/registro)
+      // es solo para OWNER y este aviso también le llega al DEVELOPER, así que
+      // se apunta a la ficha del contacto — igual que el webhook de Resend.
+      href: `/admin/contacts/${input.contactId}`,
       entityType: "NotificationDelivery",
       entityId: delivery.id,
       metadata: { channel: input.channel, contactId: input.contactId },

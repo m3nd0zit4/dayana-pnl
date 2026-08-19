@@ -1,0 +1,64 @@
+{
+  "title": "Ejercicio · Autoobservación por contextos",
+  "description": "Reconocer los niveles 5 a 8 en el trabajo, las relaciones y tu crecimiento.",
+  "introMd": "No se trata de estar permanentemente en un nivel superior. Se trata de reconocer **desde dónde** estás pensando y actuando en cada contexto.",
+  "sections": [
+    {
+      "title": "En mi trabajo",
+      "fields": [
+        {
+          "id": "trabajo-estabilidad",
+          "label": "¿Busco solo estabilidad, o también crecimiento y resultados?"
+        },
+        {
+          "id": "trabajo-culpable",
+          "label": "Cuando algo falla, ¿busco al culpable o busco qué parte del sistema lo produjo?"
+        }
+      ]
+    },
+    {
+      "title": "En mis relaciones",
+      "fields": [
+        {
+          "id": "relaciones-interes",
+          "label": "¿Busco solo mis intereses, o también el bienestar de los demás?"
+        },
+        {
+          "id": "relaciones-razon",
+          "label": "¿Puedo sostener una diferencia sin necesitar tener la razón?"
+        }
+      ]
+    },
+    {
+      "title": "En mi crecimiento personal",
+      "fields": [
+        {
+          "id": "crecimiento-agenda",
+          "label": "¿Lo que digo que es importante para mí aparece en mi agenda y en mi dinero?",
+          "help": "Duele, pero no miente."
+        }
+      ]
+    },
+    {
+      "title": "Cierre",
+      "fields": [
+        {
+          "id": "cierre-trabajo",
+          "label": "En el trabajo opero sobre todo desde el nivel… porque…",
+          "type": "short"
+        },
+        {
+          "id": "cierre-relaciones",
+          "label": "En mis relaciones cercanas, desde el nivel… porque…",
+          "type": "short"
+        },
+        {
+          "id": "cierre-falta",
+          "label": "El nivel que menos uso, y que quizá me haría falta, es el… porque…",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "> ¿Estoy usando el nivel que la situación me pide, o el nivel con el que me siento cómodo?\n\nMucha gente lleva años resolviendo problemas de nivel 6 con herramientas de nivel 4, o problemas de nivel 1 con discursos de nivel 8. Ahí es donde se atasca la vida."
+}

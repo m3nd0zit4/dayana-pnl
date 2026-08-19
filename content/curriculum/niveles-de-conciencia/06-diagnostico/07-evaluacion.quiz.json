@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "questions": [
+    {
+      "id": "m6q1",
+      "prompt": "En el paso 2 del diagnóstico, ¿cómo se identifica el valor predominante sin engañarse?",
+      "options": [
+        {
+          "id": "m6q1a",
+          "text": "Eligiendo el valor que aparece al decidir rápido y sin público, no el que uno admira",
+          "correct": true
+        },
+        { "id": "m6q1b", "text": "Eligiendo el valor más elevado de la lista", "correct": false },
+        { "id": "m6q1c", "text": "Preguntándole a la familia qué valor debería tener", "correct": false },
+        { "id": "m6q1d", "text": "Eligiendo el valor del nivel al que se quiere llegar", "correct": false }
+      ]
+    },
+    {
+      "id": "m6q2",
+      "prompt": "«Soy más fuerte de lo que creo» es el aprendizaje asociado al…",
+      "options": [
+        { "id": "m6q2a", "text": "Nivel 1 · Supervivencia", "correct": true },
+        { "id": "m6q2b", "text": "Nivel 3 · Egocéntrico", "correct": false },
+        { "id": "m6q2c", "text": "Nivel 5 · Multiplista", "correct": false },
+        { "id": "m6q2d", "text": "Nivel 7 · Sistémico", "correct": false }
+      ]
+    },
+    {
+      "id": "m6q3",
+      "prompt": "El recurso de evolución del nivel 6 (humanístico) es…",
+      "options": [
+        {
+          "id": "m6q3a",
+          "text": "Aprender a ayudar sin sacrificarse: límites sanos y equilibrio entre dar y recibir",
+          "correct": true
+        },
+        { "id": "m6q3b", "text": "Aprender a liderar sin imponer", "correct": false },
+        { "id": "m6q3c", "text": "Transformar el conocimiento en acción", "correct": false },
+        { "id": "m6q3d", "text": "Desarrollar seguridad interior y confianza", "correct": false }
+      ]
+    },
+    {
+      "id": "m6q4",
+      "prompt": "Alguien obtiene fortaleza de nivel 7 y sombra de nivel 1. ¿Qué significa?",
+      "options": [
+        {
+          "id": "m6q4a",
+          "text": "Es una combinación normal: puede haber mucho desarrollo profesional y una base personal sin resolver",
+          "correct": true
+        },
+        { "id": "m6q4b", "text": "Que hizo mal el diagnóstico", "correct": false },
+        { "id": "m6q4c", "text": "Que no se puede evolucionar desde ahí", "correct": false },
+        { "id": "m6q4d", "text": "Que en realidad está en nivel 4", "correct": false }
+      ]
+    },
+    {
+      "id": "m6q5",
+      "prompt": "¿Cómo debe formularse una acción concreta al cierre del diagnóstico?",
+      "options": [
+        {
+          "id": "m6q5a",
+          "text": "Pequeña, concreta y con día y hora, no como un propósito general",
+          "correct": true
+        },
+        { "id": "m6q5b", "text": "Lo más ambiciosa posible para que valga la pena", "correct": false },
+        { "id": "m6q5c", "text": "Como una intención amplia para no presionarse", "correct": false },
+        { "id": "m6q5d", "text": "Depende del nivel: en los superiores no hace falta acción", "correct": false }
+      ]
+    },
+    {
+      "id": "m6q6",
+      "prompt": "¿Cuál es la forma correcta de nombrar el resultado del diagnóstico?",
+      "options": [
+        {
+          "id": "m6q6a",
+          "text": "«Hoy, en esta área de mi vida, estoy operando desde el nivel X»",
+          "correct": true
+        },
+        { "id": "m6q6b", "text": "«Yo soy nivel X»", "correct": false },
+        { "id": "m6q6c", "text": "«Mi personalidad es de tipo X»", "correct": false },
+        { "id": "m6q6d", "text": "«Nací en el nivel X y ahí me quedo»", "correct": false }
+      ]
+    },
+    {
+      "id": "m6q7",
+      "prompt": "Según el módulo, ¿qué revela la diferencia entre lo que tú crees de ti y lo que te dicen tres personas cercanas?",
+      "options": [
+        { "id": "m6q7a", "text": "Tu punto ciego", "correct": true },
+        { "id": "m6q7b", "text": "Que esas personas no te conocen", "correct": false },
+        { "id": "m6q7c", "text": "Que el modelo no aplica en tu caso", "correct": false },
+        { "id": "m6q7d", "text": "Tu nivel definitivo", "correct": false }
+      ]
+    }
+  ]
+}

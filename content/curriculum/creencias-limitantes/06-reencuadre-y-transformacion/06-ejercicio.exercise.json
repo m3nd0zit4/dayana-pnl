@@ -1,0 +1,91 @@
+{
+  "title": "Ejercicio · Reencuadra tu creencia",
+  "description": "Las cuatro herramientas aplicadas, en orden, a la frase que encontraste en el módulo 3.",
+  "introMd": "Trae la frase exacta que encontraste en el módulo 3. Las cuatro herramientas van en orden y no conviene saltarse ninguna.\n\nSi al llegar a la cuarta aparece algo que te desborda, para y busca acompañamiento.",
+  "sections": [
+    {
+      "title": "0 · La creencia",
+      "fields": [
+        {
+          "id": "creencia",
+          "label": "La frase, tal como la encontraste",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "1 · Cuestionar la evidencia",
+      "fields": [
+        {
+          "id": "contraejemplo",
+          "label": "Contraejemplo · ¿Alguna vez, aunque fuera una, no fue así?",
+          "help": "Con una excepción, la ley deja de ser ley."
+        },
+        {
+          "id": "fuente",
+          "label": "Fuente · ¿Quién lo dijo primero? ¿Le darías esa autoridad hoy?"
+        },
+        {
+          "id": "utilidad",
+          "label": "Utilidad · ¿Qué te ha costado creer esto?",
+          "help": "No si es verdad. Qué te ha costado. Haz la lista entera."
+        }
+      ]
+    },
+    {
+      "title": "2 · Reencuadre de contenido",
+      "fields": [
+        {
+          "id": "hecho",
+          "label": "El hecho, en datos, sin interpretación",
+          "type": "short"
+        },
+        { "id": "otro-significado-1", "label": "Otro significado posible", "type": "short" },
+        { "id": "otro-significado-2", "label": "Y otro más", "type": "short" }
+      ]
+    },
+    {
+      "title": "3 · Reencuadre de contexto",
+      "fields": [
+        {
+          "id": "demasiado",
+          "label": "Completa: «soy demasiado…»",
+          "type": "short"
+        },
+        {
+          "id": "donde-sirve",
+          "label": "¿En qué situación eso es exactamente lo que hace falta?"
+        }
+      ]
+    },
+    {
+      "title": "4 · La experiencia original",
+      "bodyMd": "Vuelve al momento en que se instaló. Sin prisa.",
+      "fields": [
+        { "id": "edad", "label": "¿Qué edad tenía quien sacó esa conclusión?", "type": "short" },
+        { "id": "no-sabia", "label": "¿Qué no sabía entonces que sí sabes ahora?" },
+        {
+          "id": "que-le-dirias",
+          "label": "Si hoy vieras a otra persona en esa misma situación, ¿qué le dirías?",
+          "help": "Escríbelo como se lo dirías de verdad. Después léelo en voz alta."
+        }
+      ]
+    },
+    {
+      "title": "5 · Después",
+      "fields": [
+        {
+          "id": "despues",
+          "label": "Vuelve a leer la creencia del principio. ¿Suena igual?"
+        },
+        {
+          "id": "creencia-nueva",
+          "label": "Si tuvieras que escribirla de nuevo hoy, ¿cómo quedaría?",
+          "type": "short",
+          "help": "Creíble hoy. En proceso. Sobre lo que haces."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Guarda esa última frase: es la que vas a instalar en el módulo 7.\n\nReencuadrar abre la puerta, pero no la mantiene abierta. El marco viejo tiene años de práctica; el nuevo tiene un día. Por eso falta la repetición."
+}

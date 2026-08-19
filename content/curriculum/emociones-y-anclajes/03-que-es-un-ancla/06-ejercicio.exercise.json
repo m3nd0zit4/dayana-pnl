@@ -1,0 +1,163 @@
+{
+  "title": "Ejercicio · Tu primera ancla",
+  "description": "Elegir estado y gesto, hacer el protocolo, probar en frío y detectar tus anclas actuales.",
+  "introMd": "Reserva diez minutos sin interrupciones. Este ejercicio no se puede hacer leyendo: hay que hacerlo.",
+  "sections": [
+    {
+      "title": "1 · Las decisiones",
+      "fields": [
+        {
+          "id": "estado",
+          "label": "El estado que vas a anclar",
+          "type": "short",
+          "help": "Uno solo. Calma, confianza o seguridad."
+        },
+        {
+          "id": "gesto",
+          "label": "El gesto",
+          "type": "short",
+          "help": "Específico. Nudillo del índice, dos dedos juntos, un punto de la muñeca."
+        },
+        {
+          "id": "gesto-prueba",
+          "label": "¿Lo has hecho hoy sin querer?",
+          "type": "choice",
+          "options": [
+            "No — sirve",
+            "Sí — hay que cambiarlo"
+          ]
+        },
+        {
+          "id": "palabra",
+          "label": "La palabra, si vas a usar dos canales",
+          "type": "short"
+        },
+        {
+          "id": "recuerdo",
+          "label": "El recuerdo que te lleva a ese estado",
+          "help": "Real y concreto. Aunque sea pequeño: cuenta más lo intenso que lo importante."
+        }
+      ]
+    },
+    {
+      "title": "2 · Entrar al estado",
+      "bodyMd": "Antes de anclar, revive el recuerdo por los tres canales. Escribe lo que aparezca — eso ya lo intensifica.",
+      "fields": [
+        {
+          "id": "veo",
+          "label": "¿Qué veías?",
+          "type": "short"
+        },
+        {
+          "id": "oigo",
+          "label": "¿Qué oías?",
+          "type": "short"
+        },
+        {
+          "id": "siento",
+          "label": "¿Qué sentías, y en qué parte del cuerpo?",
+          "type": "short"
+        },
+        {
+          "id": "intensidad",
+          "label": "Del 0 al 10, ¿cuánto subió?",
+          "type": "short",
+          "help": "Por debajo de 6 no ancles todavía: busca otro recuerdo."
+        }
+      ]
+    },
+    {
+      "title": "3 · El protocolo",
+      "fields": [
+        {
+          "id": "repeticiones",
+          "label": "¿Cuántas repeticiones hiciste?",
+          "type": "short"
+        },
+        {
+          "id": "rotura",
+          "label": "¿Rompiste el estado entre repeticiones?",
+          "type": "choice",
+          "options": [
+            "Sí, todas las veces",
+            "Algunas",
+            "No lo hice"
+          ]
+        },
+        {
+          "id": "pico",
+          "label": "¿Anclaste antes del pico o cuando ya bajaba?",
+          "type": "choice",
+          "options": [
+            "Antes del pico",
+            "En el pico",
+            "Ya bajaba"
+          ]
+        },
+        {
+          "id": "dificultad",
+          "label": "¿Qué te costó más?"
+        }
+      ]
+    },
+    {
+      "title": "4 · La prueba en frío",
+      "bodyMd": "Al menos una hora después. Después al día siguiente y a los tres días.",
+      "fields": [
+        {
+          "id": "frio-1",
+          "label": "Una hora después: ¿apareció algo? (0-10 y qué)",
+          "type": "short"
+        },
+        {
+          "id": "frio-2",
+          "label": "Al día siguiente",
+          "type": "short"
+        },
+        {
+          "id": "frio-3",
+          "label": "A los tres días",
+          "type": "short"
+        },
+        {
+          "id": "frio-fallo",
+          "label": "Si no apareció nada, ¿cuál de las cuatro condiciones falló?",
+          "type": "choice",
+          "options": [
+            "Intensidad",
+            "Momento",
+            "Estímulo único",
+            "Repetición",
+            "No sabría decir"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "5 · Las anclas que ya tienes",
+      "fields": [
+        {
+          "id": "ancla-buena",
+          "label": "Un ancla tuya que te sirve",
+          "type": "short"
+        },
+        {
+          "id": "ancla-mala-1",
+          "label": "Un ancla tuya que juega en tu contra",
+          "type": "short"
+        },
+        {
+          "id": "ancla-mala-2",
+          "label": "Otra",
+          "type": "short"
+        },
+        {
+          "id": "ancla-quitar",
+          "label": "¿Cuál puedes quitar de en medio esta semana?",
+          "help": "Cambiar de sitio la mesa vale a veces más que instalar un ancla nueva."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Un 3 o 4 en la primera prueba en frío ya es señal. No buscamos un interruptor: buscamos que algo se mueva."
+}

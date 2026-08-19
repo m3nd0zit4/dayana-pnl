@@ -1,0 +1,177 @@
+{
+  "title": "Ejercicio · Tu ancla apilada",
+  "description": "Elegir el recurso, encontrar las tres escenas, apilarlas y planificar dónde se usa.",
+  "introMd": "Este ejercicio ocupa dos sesiones: una para instalar y otra, al día siguiente, para probar.",
+  "sections": [
+    {
+      "title": "1 · Cuál necesitas",
+      "fields": [
+        {
+          "id": "cual",
+          "label": "¿Cuál de los tres necesitas más?",
+          "type": "choice",
+          "options": [
+            "Calma",
+            "Confianza",
+            "Seguridad"
+          ]
+        },
+        {
+          "id": "por-que",
+          "label": "¿En qué situación concreta lo echas de menos?",
+          "type": "short"
+        },
+        {
+          "id": "cuesta",
+          "label": "¿Cuál te cuesta más encontrar en tu historia?",
+          "type": "short",
+          "help": "Ese suele ser el que más falta hace. No lo evites por eso."
+        }
+      ]
+    },
+    {
+      "title": "2 · Las tres escenas",
+      "bodyMd": "Treinta segundos bastan. Pequeña e intensa vale más que grande y borrosa.",
+      "fields": [
+        {
+          "id": "esc-calma",
+          "label": "Calma — la escena",
+          "type": "short"
+        },
+        {
+          "id": "esc-calma-int",
+          "label": "Intensidad 0-10",
+          "type": "short"
+        },
+        {
+          "id": "esc-conf",
+          "label": "Confianza — la escena",
+          "type": "short"
+        },
+        {
+          "id": "esc-conf-int",
+          "label": "Intensidad 0-10",
+          "type": "short"
+        },
+        {
+          "id": "esc-seg",
+          "label": "Seguridad — la escena",
+          "type": "short"
+        },
+        {
+          "id": "esc-seg-int",
+          "label": "Intensidad 0-10",
+          "type": "short"
+        },
+        {
+          "id": "esc-salida",
+          "label": "Si alguna no aparecía, ¿qué salida usaste?",
+          "type": "choice",
+          "options": [
+            "Bajar el listón",
+            "Cambiar de área",
+            "Prestada",
+            "No hizo falta"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · Revivir y ajustar",
+      "bodyMd": "Toma la escena que más te cueste y trabájala por canales. Después ajústala.",
+      "fields": [
+        {
+          "id": "rev-veo",
+          "label": "¿Qué veías?",
+          "type": "short"
+        },
+        {
+          "id": "rev-oigo",
+          "label": "¿Qué oías?",
+          "type": "short"
+        },
+        {
+          "id": "rev-siento",
+          "label": "¿Qué sentías y dónde?",
+          "type": "short"
+        },
+        {
+          "id": "rev-ajuste",
+          "label": "Hazla más grande, más brillante y más cerca. ¿Qué cambió?",
+          "help": "Si no cambia nada, prueba al revés: pequeña, gris y lejana. El contraste se nota más."
+        }
+      ]
+    },
+    {
+      "title": "4 · El apilado",
+      "fields": [
+        {
+          "id": "apil-gesto",
+          "label": "El gesto único",
+          "type": "short"
+        },
+        {
+          "id": "apil-hecho",
+          "label": "¿Cuántos recursos apilaste?",
+          "type": "choice",
+          "options": [
+            "Uno",
+            "Dos",
+            "Tres"
+          ]
+        },
+        {
+          "id": "apil-roturas",
+          "label": "¿Rompiste el estado del todo entre uno y otro?",
+          "type": "choice",
+          "options": [
+            "Sí, me levanté y caminé",
+            "A medias",
+            "No"
+          ]
+        },
+        {
+          "id": "apil-frio",
+          "label": "Al día siguiente, en frío: ¿qué apareció? (0-10 y qué)"
+        }
+      ]
+    },
+    {
+      "title": "5 · El plan de despliegue",
+      "bodyMd": "Concretas. Con día y hora si puede ser.",
+      "fields": [
+        {
+          "id": "des-1",
+          "label": "Situación 1",
+          "type": "short"
+        },
+        {
+          "id": "des-2",
+          "label": "Situación 2",
+          "type": "short"
+        },
+        {
+          "id": "des-3",
+          "label": "Situación 3",
+          "type": "short"
+        },
+        {
+          "id": "des-refuerzo",
+          "label": "¿Cuándo la vas a usar estando ya bien?",
+          "help": "Esas son las repeticiones que la fortalecen. Solo usarla en emergencias la desgasta.",
+          "type": "short"
+        },
+        {
+          "id": "des-fondo",
+          "label": "¿Sospechas que debajo hay una creencia, y no solo un estado?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Puede que sí — el curso de Creencias limitantes"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si en la prueba en frío aparecen los tres estados mezclados pero reconocibles, el apilado funcionó."
+}

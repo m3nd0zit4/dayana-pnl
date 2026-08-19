@@ -1,0 +1,84 @@
+{
+  "title": "Ejercicio final · Tu mapa personal",
+  "description": "Los cinco pasos del diagnóstico y la comparación con lo que escribiste en el módulo 1.",
+  "introMd": "Esta es la hoja que te llevas del curso. Ten a la vista la guía de trabajo del módulo mientras la completas.",
+  "sections": [
+    {
+      "title": "Los cinco pasos",
+      "fields": [
+        {
+          "id": "paso-1",
+          "label": "1 · Lo que más busco en esta etapa de mi vida",
+          "type": "choice",
+          "options": [
+            "Seguridad y estabilidad · nivel 1",
+            "Familia y pertenencia · nivel 2",
+            "Libertad e independencia · nivel 3",
+            "Orden y disciplina · nivel 4",
+            "Logro y resultados · nivel 5",
+            "Amor y conexión · nivel 6",
+            "Comprensión y sabiduría · nivel 7",
+            "Propósito y contribución · nivel 8"
+          ]
+        },
+        {
+          "id": "paso-2",
+          "label": "2 · El valor que guía la mayoría de mis decisiones",
+          "help": "No el que admiras: el que aparece cuando decides rápido y nadie te ve.",
+          "type": "short"
+        },
+        {
+          "id": "paso-3",
+          "label": "3 · La capacidad que más reconocen las personas en mí",
+          "type": "short"
+        },
+        {
+          "id": "paso-4",
+          "label": "4 · El comportamiento que se repite y me está limitando",
+          "help": "La palabra clave es «se repite»: no el error de una vez, el patrón.",
+          "type": "short"
+        },
+        {
+          "id": "paso-5",
+          "label": "5 · El recurso que necesito desarrollar",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "El cierre",
+      "fields": [
+        { "id": "aprendizaje", "label": "El aprendizaje que me deja este nivel es…", "type": "short" },
+        {
+          "id": "accion-semana",
+          "label": "La acción concreta que voy a realizar esta semana es…",
+          "help": "La única que importa de verdad. Con día, hora y pequeña.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "Vuelve al módulo 1",
+      "bodyMd": "Abre el ejercicio del primer módulo — lo que escribiste cuando todavía no conocías el mapa.",
+      "fields": [
+        {
+          "id": "que-veo-ahora",
+          "label": "¿Qué veo ahora que no podía ver hace unas semanas?"
+        }
+      ]
+    },
+    {
+      "title": "Mi mapa por áreas",
+      "bodyMd": "Nivel desde el que operas y recurso que te toca, área por área.",
+      "fields": [
+        { "id": "mapa-trabajo", "label": "Trabajo", "type": "short" },
+        { "id": "mapa-dinero", "label": "Dinero", "type": "short" },
+        { "id": "mapa-pareja", "label": "Pareja", "type": "short" },
+        { "id": "mapa-familia", "label": "Familia", "type": "short" },
+        { "id": "mapa-salud", "label": "Salud", "type": "short", "required": false },
+        { "id": "mapa-crecimiento", "label": "Crecimiento personal", "type": "short" }
+      ]
+    }
+  ],
+  "closingMd": "> La verdadera expansión de conciencia no ocurre cuando rechazamos una parte de nosotros. Ocurre cuando reconocemos quiénes somos hoy, aprovechamos nuestras fortalezas, aprendemos de nuestras sombras y elegimos conscientemente quién queremos llegar a ser."
+}

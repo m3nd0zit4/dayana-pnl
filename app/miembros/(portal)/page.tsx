@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BRAND } from "@/lib/contact";
+import { prisma } from "@/lib/db";
 import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getCourseProduct, getEnrolledCourses } from "@/lib/lms/membership";
 import { getCourseProgress } from "@/lib/lms/class-progress";
@@ -36,10 +37,17 @@ const Page = async () => {
 
   const courses: CourseCardData[] = await Promise.all(
     enrolled.map(async ({ product, membership }) => {
-      const progress = await getCourseProgress(product.id, member.contact.id);
+      const [progress, moduleCount] = await Promise.all([
+        getCourseProgress(product.id, member.contact.id),
+        prisma.courseModule.count({
+          where: { productId: product.id, isPublished: true },
+        }),
+      ]);
       return {
         productId: product.id,
         title: product.title,
+        description: product.description,
+        moduleCount,
         imageUrl: product.imageUrl,
         percent: progress.percent,
         completedClasses: progress.completedClasses,

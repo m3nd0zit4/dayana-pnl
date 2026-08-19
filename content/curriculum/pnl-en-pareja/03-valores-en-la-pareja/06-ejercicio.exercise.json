@@ -1,0 +1,168 @@
+{
+  "title": "Ejercicio · Vuestra jerarquía",
+  "description": "Las cuatro preguntas, el orden real, la discusión traducida y un acuerdo verificable.",
+  "introMd": "Si se puede, contestad cada uno por separado y comparad después. Si no, hazlo desde tu lado y anota lo que **supones** del otro — y compruébalo cuando puedas.",
+  "sections": [
+    {
+      "title": "1 · Las cuatro preguntas",
+      "fields": [
+        {
+          "id": "q1",
+          "label": "¿Qué es lo más importante de una relación para ti?",
+          "help": "Después de la primera respuesta, pregúntate «¿y qué más?» tres veces."
+        },
+        {
+          "id": "q2",
+          "label": "¿Qué no soportarías nunca?",
+          "type": "short"
+        },
+        {
+          "id": "q3",
+          "label": "¿Por qué habéis discutido de verdad este año?",
+          "type": "short",
+          "help": "No el tema. El fondo."
+        },
+        {
+          "id": "q4",
+          "label": "¿En qué has cedido y te dejó mal cuerpo semanas después?",
+          "help": "La que más información da. Tómate tiempo."
+        }
+      ]
+    },
+    {
+      "title": "2 · Tu jerarquía",
+      "bodyMd": "Ordena comparando de a dos, obligándote a elegir. La incomodidad marca el orden real.",
+      "fields": [
+        {
+          "id": "j1",
+          "label": "1 —",
+          "type": "short"
+        },
+        {
+          "id": "j2",
+          "label": "2 —",
+          "type": "short"
+        },
+        {
+          "id": "j3",
+          "label": "3 —",
+          "type": "short"
+        },
+        {
+          "id": "j4",
+          "label": "4 —",
+          "type": "short"
+        },
+        {
+          "id": "j5",
+          "label": "5 —",
+          "type": "short"
+        },
+        {
+          "id": "j-suya",
+          "label": "Tu suposición sobre el orden suyo",
+          "type": "short"
+        },
+        {
+          "id": "j-mismos",
+          "label": "¿Son valores opuestos o los mismos en distinto orden?",
+          "type": "choice",
+          "options": [
+            "Los mismos en distinto orden",
+            "Realmente opuestos",
+            "No lo tengo claro"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · Vuestros choques",
+      "fields": [
+        {
+          "id": "ch-cual",
+          "label": "¿Cuál os pasa más?",
+          "type": "choice",
+          "options": [
+            "Seguridad / experiencia",
+            "Lealtad / autonomía",
+            "Orden / espontaneidad",
+            "Reconocimiento / discreción",
+            "Otro"
+          ]
+        },
+        {
+          "id": "ch-donde",
+          "label": "¿Dónde aparece exactamente?",
+          "type": "short"
+        },
+        {
+          "id": "ch-protege",
+          "label": "¿Qué protege cada uno?",
+          "help": "Los dos están protegiendo algo legítimo. Escríbelo para los dos."
+        }
+      ]
+    },
+    {
+      "title": "4 · Traducir la discusión",
+      "fields": [
+        {
+          "id": "t-tema",
+          "label": "El tema aparente de vuestra discusión repetida",
+          "type": "short"
+        },
+        {
+          "id": "t-mio",
+          "label": "Mi valor debajo",
+          "type": "short"
+        },
+        {
+          "id": "t-suyo",
+          "label": "Su valor debajo",
+          "type": "short"
+        },
+        {
+          "id": "t-equivocado",
+          "label": "¿Puedes decir en voz alta que el suyo no está equivocado?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Me cuesta",
+            "No todavía"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "5 · El acuerdo",
+      "fields": [
+        {
+          "id": "ac-cual",
+          "label": "El acuerdo concreto",
+          "type": "short",
+          "help": "«Dos domingos al mes», no «me esforzaré más con tu familia»."
+        },
+        {
+          "id": "ac-domingo",
+          "label": "¿Cómo se comprueba el domingo?",
+          "type": "short"
+        },
+        {
+          "id": "ac-fallo",
+          "label": "¿Qué pasa si uno no lo cumple?",
+          "type": "short"
+        },
+        {
+          "id": "ac-perpetuo",
+          "label": "¿Hay algo aquí que no se vaya a resolver nunca?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí — y puedo vivir con eso si lo hablamos bien",
+            "Sí — y no sé si puedo"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si el acuerdo no se puede comprobar el domingo, no es un acuerdo. Reescríbelo hasta que se pueda."
+}

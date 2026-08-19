@@ -52,6 +52,10 @@ type UnassignedClass = { id: string; title: string; scheduledAt: string | null }
 type Props = {
   preview: boolean;
   module: ModuleDetail;
+  /** Vuelve a la lista de módulos del curso al que pertenece este módulo. */
+  backHref: string;
+  /** Curso dueño del módulo — acota la bandeja de clases sin asignar. */
+  productId: string;
   initialClasses: ModuleClassRow[];
 };
 
@@ -65,7 +69,13 @@ const recordingExpiry = (postedAt: string) => {
   return until.toLocaleDateString("es-CO", { dateStyle: "medium" });
 };
 
-const CourseModuleDetailClient = ({ preview, module: initialModule, initialClasses }: Props) => {
+const CourseModuleDetailClient = ({
+  preview,
+  module: initialModule,
+  backHref,
+  productId,
+  initialClasses,
+}: Props) => {
   const { canWrite, toast, confirm } = useCrm();
   const [mod, setMod] = useState(initialModule);
   const [savingModule, setSavingModule] = useState(false);
@@ -96,11 +106,15 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
 
   const loadUnassigned = useCallback(async () => {
     if (preview) return;
-    const res = await fetch("/api/admin/lms/classes?unassigned=1");
+    // Solo las clases sueltas de ESTE curso: la bandeja de huérfanas de otro
+    // curso no tiene por qué aparecer aquí.
+    const res = await fetch(
+      `/api/admin/lms/classes?unassigned=1&productId=${encodeURIComponent(productId)}`
+    );
     if (!res.ok) return;
     const data = (await res.json()) as { classes?: UnassignedClass[] };
     setUnassigned(data.classes ?? []);
-  }, [preview]);
+  }, [preview, productId]);
 
   useEffect(() => {
     void loadUnassigned();
@@ -279,7 +293,7 @@ const CourseModuleDetailClient = ({ preview, module: initialModule, initialClass
       */}
       <CrmPageHeader
         title={mod.title.trim() || "Módulo sin título"}
-        backHref="/admin/curso/modulos"
+        backHref={backHref}
         backLabel="Módulos"
       />
 

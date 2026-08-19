@@ -1,0 +1,136 @@
+{
+  "title": "Ejercicio · Vuestro choque de nivel",
+  "description": "Situar a cada uno por áreas, identificar el choque y traducir una petición.",
+  "introMd": "Esto se hace para entender, nunca para etiquetar. Si al terminar te dan ganas de decirle a tu pareja en qué nivel está, vuelve a leer el final del módulo.",
+  "sections": [
+    {
+      "title": "1 · Desde dónde funciona cada uno",
+      "bodyMd": "Por áreas. Casi nadie está en el mismo sitio en todo.",
+      "fields": [
+        {
+          "id": "a-dinero",
+          "label": "Dinero — yo / mi pareja",
+          "type": "short"
+        },
+        {
+          "id": "a-familia",
+          "label": "Familia — yo / mi pareja",
+          "type": "short"
+        },
+        {
+          "id": "a-trabajo",
+          "label": "Trabajo — yo / mi pareja",
+          "type": "short"
+        },
+        {
+          "id": "a-relacion",
+          "label": "La relación — yo / mi pareja",
+          "type": "short"
+        },
+        {
+          "id": "a-sorpresa",
+          "label": "¿Te sorprendió alguna diferencia entre áreas?"
+        }
+      ]
+    },
+    {
+      "title": "2 · El choque",
+      "fields": [
+        {
+          "id": "ch-cual",
+          "label": "¿Cuál os pasa?",
+          "type": "choice",
+          "options": [
+            "2 vs 3 — familia / autonomía",
+            "4 vs 5 — forma / resultado",
+            "5 vs 6 — logro / vínculo",
+            "Otro"
+          ]
+        },
+        {
+          "id": "ch-donde",
+          "label": "¿Dónde aparece exactamente?",
+          "type": "short"
+        },
+        {
+          "id": "ch-protege",
+          "label": "¿Qué está protegiendo cada uno desde su nivel?"
+        }
+      ]
+    },
+    {
+      "title": "3 · Lo que digo y lo que oye",
+      "bodyMd": "El ejercicio entero está aquí.",
+      "fields": [
+        {
+          "id": "digo",
+          "label": "Lo que yo digo, textual",
+          "type": "short"
+        },
+        {
+          "id": "oye",
+          "label": "Lo que probablemente oye",
+          "type": "short"
+        },
+        {
+          "id": "dice",
+          "label": "Lo que dice, textual",
+          "type": "short"
+        },
+        {
+          "id": "oigo",
+          "label": "Lo que oigo yo",
+          "type": "short"
+        },
+        {
+          "id": "distancia",
+          "label": "¿Cuánta distancia hay entre lo que se dice y lo que se oye?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Traducir",
+      "fields": [
+        {
+          "id": "tr-quiero",
+          "label": "Algo que quieres pedirle",
+          "type": "short"
+        },
+        {
+          "id": "tr-moneda",
+          "label": "Dicho en su moneda",
+          "type": "short",
+          "help": "Misma petición, otra palabra. No una petición más pequeña."
+        },
+        {
+          "id": "tr-resultado",
+          "label": "Después de decirlo así: ¿qué pasó?"
+        }
+      ]
+    },
+    {
+      "title": "5 · La comprobación",
+      "fields": [
+        {
+          "id": "arma",
+          "label": "¿Has tenido ganas de decirle en qué nivel está?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Sí — y no lo dije",
+            "Sí — y lo dije"
+          ]
+        },
+        {
+          "id": "arma-que",
+          "label": "Si lo dijiste, ¿cómo se recibió?"
+        },
+        {
+          "id": "aprendo",
+          "label": "¿Qué dejas de leer como ataque personal después de este módulo?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "El modelo es para entender, nunca para clasificar a la persona que tienes al lado."
+}

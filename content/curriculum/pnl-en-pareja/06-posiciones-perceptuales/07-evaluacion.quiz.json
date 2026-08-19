@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p6q1",
+      "prompt": "¿Cuál es el exceso de la segunda posición?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Anularse: entender siempre al otro y no saber nunca qué necesita uno",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Frialdad y análisis",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Egocentrismo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No tiene exceso: siempre es buena",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q2",
+      "prompt": "¿Por qué hay que hablar en primera persona en la segunda posición?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque «ella probablemente sentía…» es análisis, y «yo siento…» es ocupar de verdad el lugar",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque suena más natural",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque así se recuerda mejor",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Es indiferente",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q3",
+      "prompt": "¿Para qué se rompe el estado entre posiciones?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Para no llevarse el estado de una posición a la siguiente, que anula el ejercicio",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para descansar",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Para comprobar si funcionó",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hace falta romper",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q4",
+      "prompt": "¿Cuál es la señal de que el recorrido salió bien?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que algo te sorprendió",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que confirmaste lo que ya pensabas",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que duró más de veinte minutos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que sentiste pena por el otro",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q5",
+      "prompt": "¿Qué es el «efecto Salomón» de Grossmann?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Razonamos mejor sobre los problemas de otros que sobre los propios; distanciarse mejora el juicio de forma medible",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que la sabiduría llega con la edad",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que dividir un conflicto en dos lo resuelve",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que la empatía siempre mejora las decisiones",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q6",
+      "prompt": "¿En qué caso está contraindicado ponerse en el lugar del otro?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Con maltrato: entender al que hace daño es un mecanismo clásico de permanencia",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Cuando la discusión fue hace mucho tiempo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Cuando el otro no conoce la técnica",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "En conflictos laborales",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q7",
+      "prompt": "¿De dónde viene esta técnica?",
+      "options": [
+        {
+          "id": "a",
+          "text": "De la silla vacía de Perls y la inversión de roles del psicodrama de Moreno",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "De la terapia cognitivo-conductual",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Del psicoanálisis",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "De la investigación de Gottman",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p6q8",
+      "prompt": "¿Cuál es la pregunta con la que se cierra el recorrido?",
+      "options": [
+        {
+          "id": "a",
+          "text": "«¿Qué voy a hacer distinto la próxima vez?»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "«¿Quién tenía razón?»",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "«¿Cómo se sentía el otro?»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "«¿Qué debería haber dicho?»",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { BRAND } from "@/lib/contact";
 import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { getEnrolledCourses } from "@/lib/lms/membership";
 import { getCourseOutline, sanitizeQuizForMember } from "@/lib/lms/course-content";
+import { readExercise } from "@/lib/lms/exercise";
 import { getCompletedClassIds, getCourseProgress } from "@/lib/lms/class-progress";
 import { getCompletedModuleIds } from "@/lib/lms/module-progress";
 import CoursePlayer from "@/app/components/miembros/CoursePlayer";
@@ -41,8 +42,8 @@ const Page = async ({ params, searchParams }: PageProps) => {
 
   const [modules, completedClassIds, completedModuleIds, progress] = await Promise.all([
     getCourseOutline(productId),
-    getCompletedClassIds(member.contact.id),
-    getCompletedModuleIds(member.contact.id),
+    getCompletedClassIds(member.contact.id, productId),
+    getCompletedModuleIds(member.contact.id, productId),
     getCourseProgress(productId, member.contact.id),
   ]);
 
@@ -78,6 +79,7 @@ const Page = async ({ params, searchParams }: PageProps) => {
           materialFileName: cls.materialFileName,
           materialSizeBytes: cls.materialSizeBytes,
           quiz: cls.contentType === "QUIZ" ? sanitizeQuizForMember(cls.quizJson) : null,
+          exercise: cls.contentType === "EXERCISE" ? readExercise(cls.exerciseJson) : null,
         })),
       }))}
       completedClassIds={[...completedClassIds]}

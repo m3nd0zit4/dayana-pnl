@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
         errorMessage: true,
         templateKey: true,
         sentAt: true,
+        deliveredAt: true,
         createdAt: true,
         // Un envío apunta a un contacto **o** a un staff — ahora ambos son
         // posibles, así que la fila necesita saber a dónde enlazar.

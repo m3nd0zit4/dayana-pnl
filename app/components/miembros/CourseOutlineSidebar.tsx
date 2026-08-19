@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, Check, Lock, Play } from "lucide-react";
 import {
   Accordion,
@@ -15,6 +16,14 @@ import type { OutlineClass, OutlineModule } from "./CoursePlayer";
 /** Sentinel id for a module's own overview/reading content, distinct from a class id. */
 export const readingId = (moduleId: string) => `reading:${moduleId}`;
 
+/**
+ * Quita el «Módulo 3 · » del título: el número ya lo pinta la fila de arriba,
+ * y repetirlo en una columna de 17rem se comía el título real hasta dejarlo en
+ * puntos suspensivos.
+ */
+const stripModulePrefix = (title: string) =>
+  title.replace(/^m[óo]dulo\s*\d+\s*[·\-–—.:]\s*/i, "");
+
 type Props = {
   modules: OutlineModule[];
   completedClassIds: Set<string>;
@@ -27,6 +36,10 @@ type Props = {
 const classSubtitle = (cls: OutlineClass): ReactNode => {
   if (cls.contentType === "TEXT") return "Lectura";
   if (cls.contentType === "PDF") return "PDF";
+  if (cls.contentType === "EXERCISE") {
+    const n = cls.exercise?.sections.reduce((sum, s) => sum + s.fields.length, 0) ?? 0;
+    return n === 1 ? "Ejercicio · 1 pregunta" : `Ejercicio · ${n} preguntas`;
+  }
   if (cls.contentType === "QUIZ") {
     const n = cls.quiz?.questions.length ?? 0;
     return n === 1 ? "Cuestionario · 1 pregunta" : `Cuestionario · ${n} preguntas`;
@@ -46,7 +59,9 @@ const classSubtitle = (cls: OutlineClass): ReactNode => {
       </>
     );
   }
-  return "Por programar";
+  // Una lección de la biblioteca sin grabación está pendiente de subir, no
+  // «por programar» — eso último solo tiene sentido en una clase en vivo.
+  return cls.evergreen ? "Video · próximamente" : "Por programar";
 };
 
 const StatusDot = ({
@@ -101,8 +116,10 @@ const OutlineRow = ({
     >
       {icon}
       <span className="min-w-0 flex-1">
-        <span className="block truncate leading-snug font-medium">{title}</span>
-        <span className="block text-xs text-muted-foreground">{subtitle}</span>
+        {/* Dos líneas antes de recortar: en 17rem, `truncate` dejaba casi todos
+            los títulos en puntos suspensivos. */}
+        <span className="block leading-snug font-medium text-pretty">{title}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{subtitle}</span>
       </span>
     </button>
   </li>
@@ -120,6 +137,20 @@ const CourseOutlineSidebar = ({
     (m) => m.classes.some((c) => c.id === selectedId) || readingId(m.id) === selectedId
   )?.id;
 
+  // Acordeón controlado. Con `defaultValue` calculado a partir de la selección,
+  // Base UI avisa de que el valor por defecto cambia después de inicializarse —
+  // y al saltar a una lección de otro módulo, ese módulo no se abría.
+  const [openModules, setOpenModules] = useState<string[]>(() =>
+    selectedModuleId ? [selectedModuleId] : modules[0] ? [modules[0].id] : []
+  );
+
+  useEffect(() => {
+    if (!selectedModuleId) return;
+    setOpenModules((prev) =>
+      prev.includes(selectedModuleId) ? prev : [...prev, selectedModuleId]
+    );
+  }, [selectedModuleId]);
+
   if (modules.length === 0) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
@@ -132,7 +163,8 @@ const CourseOutlineSidebar = ({
   return (
     <Accordion
       multiple
-      defaultValue={selectedModuleId ? [selectedModuleId] : modules[0] ? [modules[0].id] : []}
+      value={openModules}
+      onValueChange={(value) => setOpenModules(value as string[])}
       className="divide-y divide-sidebar-border"
     >
       {modules.map((mod, index) => {
@@ -147,9 +179,13 @@ const CourseOutlineSidebar = ({
                 <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
                   Módulo {index + 1}
                 </p>
-                <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
-                  {moduleDone && <Check className="size-3.5 shrink-0 text-primary" aria-hidden />}
-                  <span className="block min-w-0 truncate font-semibold">{mod.title}</span>
+                <div className="mt-0.5 flex min-w-0 items-start gap-1.5">
+                  {moduleDone && (
+                    <Check className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden />
+                  )}
+                  <span className="block min-w-0 leading-snug font-semibold text-balance">
+                    {stripModulePrefix(mod.title)}
+                  </span>
                 </div>
                 {total > 0 && (
                   <div className="mt-0.5 text-xs text-muted-foreground">

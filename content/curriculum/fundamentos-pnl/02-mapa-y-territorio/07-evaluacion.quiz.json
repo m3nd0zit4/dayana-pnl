@@ -1,0 +1,91 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "questions": [
+    {
+      "id": "f2q1",
+      "prompt": "«El mapa no es el territorio» significa que…",
+      "options": [
+        {
+          "id": "f2q1a",
+          "text": "No percibimos la realidad sino nuestra representación de ella, construida con filtros",
+          "correct": true
+        },
+        { "id": "f2q1b", "text": "La realidad no existe", "correct": false },
+        { "id": "f2q1c", "text": "Todas las opiniones son igual de válidas", "correct": false },
+        { "id": "f2q1d", "text": "Conviene desconfiar de los sentidos y no actuar", "correct": false }
+      ]
+    },
+    {
+      "id": "f2q2",
+      "prompt": "«No me valoran» — ¿qué filtro predomina?",
+      "options": [
+        { "id": "f2q2a", "text": "Omisión: falta quién, en qué y comparado con qué", "correct": true },
+        { "id": "f2q2b", "text": "Generalización", "correct": false },
+        { "id": "f2q2c", "text": "Distorsión por causa-efecto", "correct": false },
+        { "id": "f2q2d", "text": "Ninguno: es una descripción completa", "correct": false }
+      ]
+    },
+    {
+      "id": "f2q3",
+      "prompt": "«Seguro piensa que no doy la talla» es un ejemplo de…",
+      "options": [
+        { "id": "f2q3a", "text": "Distorsión por lectura de mente", "correct": true },
+        { "id": "f2q3b", "text": "Omisión simple", "correct": false },
+        { "id": "f2q3c", "text": "Generalización", "correct": false },
+        { "id": "f2q3d", "text": "Nominalización", "correct": false }
+      ]
+    },
+    {
+      "id": "f2q4",
+      "prompt": "¿Qué pregunta desmonta una generalización?",
+      "options": [
+        { "id": "f2q4a", "text": "¿Siempre? ¿Ha habido alguna vez que no?", "correct": true },
+        { "id": "f2q4b", "text": "¿Y eso cómo te hace sentir?", "correct": false },
+        { "id": "f2q4c", "text": "¿Quién te lo dijo?", "correct": false },
+        { "id": "f2q4d", "text": "¿Desde cuándo te pasa?", "correct": false }
+      ]
+    },
+    {
+      "id": "f2q5",
+      "prompt": "¿Por qué es útil devolver una nominalización a verbo?",
+      "options": [
+        {
+          "id": "f2q5a",
+          "text": "Porque convierte una cosa abstracta en algo que alguien hace, y por tanto en algo que se puede cambiar",
+          "correct": true
+        },
+        { "id": "f2q5b", "text": "Porque suena más profesional", "correct": false },
+        { "id": "f2q5c", "text": "Porque elimina la emoción del problema", "correct": false },
+        { "id": "f2q5d", "text": "Porque acorta la frase", "correct": false }
+      ]
+    },
+    {
+      "id": "f2q6",
+      "prompt": "Alguien reacciona de una forma que te parece exagerada. ¿Qué implica este módulo?",
+      "options": [
+        {
+          "id": "f2q6a",
+          "text": "Que no está viendo lo mismo que tú: conviene preguntar por su mapa antes de defender el tuyo",
+          "correct": true
+        },
+        { "id": "f2q6b", "text": "Que hay que explicarle cómo son las cosas realmente", "correct": false },
+        { "id": "f2q6c", "text": "Que está mintiendo", "correct": false },
+        { "id": "f2q6d", "text": "Que su percepción es menos válida que la tuya", "correct": false }
+      ]
+    },
+    {
+      "id": "f2q7",
+      "prompt": "¿Por qué filtramos la experiencia?",
+      "options": [
+        {
+          "id": "f2q7a",
+          "text": "Porque los sentidos reciben más información de la que la conciencia puede procesar; el problema no es filtrar sino no darse cuenta de que se filtró",
+          "correct": true
+        },
+        { "id": "f2q7b", "text": "Por falta de atención", "correct": false },
+        { "id": "f2q7c", "text": "Porque el cerebro está mal diseñado", "correct": false },
+        { "id": "f2q7d", "text": "Solo filtran las personas con creencias limitantes", "correct": false }
+      ]
+    }
+  ]
+}

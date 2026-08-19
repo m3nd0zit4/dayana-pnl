@@ -1,0 +1,113 @@
+{
+  "title": "Evaluación final del curso",
+  "questions": [
+    {
+      "id": "m7q1",
+      "prompt": "Una pareja discute constantemente: uno necesita que la relación sea el centro y el otro necesita aire y autonomía. ¿Qué choque de niveles describe mejor esta dinámica?",
+      "options": [
+        { "id": "m7q1a", "text": "Nivel 2 con nivel 3", "correct": true },
+        { "id": "m7q1b", "text": "Nivel 5 con nivel 7", "correct": false },
+        { "id": "m7q1c", "text": "Nivel 1 con nivel 8", "correct": false },
+        { "id": "m7q1d", "text": "Nivel 4 con nivel 4", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q2",
+      "prompt": "¿Cuál es la pregunta que desarma un conflicto de pareja según el módulo?",
+      "options": [
+        {
+          "id": "m7q2a",
+          "text": "¿Qué está protegiendo la persona que amo cuando actúa así?",
+          "correct": true
+        },
+        { "id": "m7q2b", "text": "¿Quién tiene la razón aquí?", "correct": false },
+        { "id": "m7q2c", "text": "¿Por qué me hace esto a mí?", "correct": false },
+        { "id": "m7q2d", "text": "¿En qué nivel debería estar mi pareja?", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q3",
+      "prompt": "En un equipo de trabajo, ¿cuál es el papel del líder respecto a los niveles?",
+      "options": [
+        {
+          "id": "m7q3a",
+          "text": "Ubicar a cada persona donde su nivel es una fortaleza, no intentar subir a todos de nivel",
+          "correct": true
+        },
+        { "id": "m7q3b", "text": "Llevar a todo el equipo al nivel 8", "correct": false },
+        { "id": "m7q3c", "text": "Contratar solo personas del mismo nivel", "correct": false },
+        { "id": "m7q3d", "text": "Exigir a cada uno el comportamiento del nivel siguiente", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q4",
+      "prompt": "Un terapeuta con excelente trabajo pero ingresos que no lo reflejan, a quien le incomoda cobrar, está viviendo…",
+      "options": [
+        {
+          "id": "m7q4a",
+          "text": "La trampa del nivel 6 con el dinero: sentir que cobrar es incompatible con ayudar",
+          "correct": true
+        },
+        { "id": "m7q4b", "text": "La sombra del nivel 3", "correct": false },
+        { "id": "m7q4c", "text": "Una fortaleza del nivel 5", "correct": false },
+        { "id": "m7q4d", "text": "El recurso de evolución del nivel 4", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q5",
+      "prompt": "Según el módulo, ¿en qué orden necesitan los niños los niveles?",
+      "options": [
+        {
+          "id": "m7q5a",
+          "text": "Primero seguridad, después pertenencia, después afirmación, después estructura",
+          "correct": true
+        },
+        { "id": "m7q5b", "text": "Primero logro, después seguridad", "correct": false },
+        { "id": "m7q5c", "text": "Primero estructura, después seguridad", "correct": false },
+        { "id": "m7q5d", "text": "El orden no importa, todos a la vez", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q6",
+      "prompt": "¿Qué caracteriza a una buena acción del plan de 30 días?",
+      "options": [
+        {
+          "id": "m7q6a",
+          "text": "Que sea pequeña, tenga día fijo y no dependa de que otra persona cambie",
+          "correct": true
+        },
+        { "id": "m7q6b", "text": "Que sea ambiciosa y transforme varias áreas a la vez", "correct": false },
+        { "id": "m7q6c", "text": "Que dependa de una conversación con la otra persona", "correct": false },
+        { "id": "m7q6d", "text": "Que se defina como una intención general", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q7",
+      "prompt": "¿Cuál es la pregunta que resume todo el curso?",
+      "options": [
+        {
+          "id": "m7q7a",
+          "text": "¿Desde qué nivel de conciencia estoy tomando esta decisión?",
+          "correct": true
+        },
+        { "id": "m7q7b", "text": "¿Qué nivel de conciencia tiene la gente que me rodea?", "correct": false },
+        { "id": "m7q7c", "text": "¿Cuánto me falta para llegar al nivel 8?", "correct": false },
+        { "id": "m7q7d", "text": "¿Cuál es mi tipo de personalidad definitivo?", "correct": false }
+      ]
+    },
+    {
+      "id": "m7q8",
+      "prompt": "Un padre repite con sus hijos exactamente las frases que le decían a él. ¿Qué explica mejor esto según el módulo?",
+      "options": [
+        {
+          "id": "m7q8a",
+          "text": "Que educamos desde el nivel que resolvió nuestra propia vida, no desde el que necesita la vida del hijo",
+          "correct": true
+        },
+        { "id": "m7q8b", "text": "Que la crianza es genética", "correct": false },
+        { "id": "m7q8c", "text": "Que ese padre está en nivel 8", "correct": false },
+        { "id": "m7q8d", "text": "Que las frases no tienen ningún efecto", "correct": false }
+      ]
+    }
+  ]
+}

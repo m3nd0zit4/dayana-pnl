@@ -1,0 +1,122 @@
+{
+  "title": "Ejercicio · Tu mapa de estados",
+  "description": "Una semana de registro, tus disparadores y los tres recuerdos que vas a necesitar más adelante.",
+  "introMd": "Este ejercicio se rellena a lo largo de la semana, no de una sentada. Vuelve cada día.",
+  "sections": [
+    {
+      "title": "1 · Lo básico",
+      "bodyMd": "Contéstalo hoy, con sinceridad.",
+      "fields": [
+        {
+          "id": "sueno",
+          "label": "Horas de sueño de media esta semana",
+          "type": "short"
+        },
+        {
+          "id": "comida",
+          "label": "¿Comes a horas o cuando puedes?",
+          "type": "short"
+        },
+        {
+          "id": "movimiento",
+          "label": "¿Cuántos días te has movido esta semana?",
+          "type": "short"
+        },
+        {
+          "id": "basico-veredicto",
+          "label": "¿Cuántas de las cinco están mal?",
+          "type": "choice",
+          "options": [
+            "Ninguna o una",
+            "Dos",
+            "Tres o más"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Tres momentos",
+      "bodyMd": "Elige tres momentos de esta semana en los que notaste un cambio de estado. Describe lo que se ve, no lo que crees.",
+      "fields": [
+        {
+          "id": "m1",
+          "label": "Momento 1 · qué hacía el cuerpo, a qué atendías, qué te decías"
+        },
+        {
+          "id": "m1-nombre",
+          "label": "Si tuvieras que ponerle nombre a ese estado",
+          "type": "short"
+        },
+        {
+          "id": "m2",
+          "label": "Momento 2 · lo mismo"
+        },
+        {
+          "id": "m2-nombre",
+          "label": "Nombre",
+          "type": "short"
+        },
+        {
+          "id": "m3",
+          "label": "Momento 3 · lo mismo"
+        },
+        {
+          "id": "m3-nombre",
+          "label": "Nombre",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "3 · Tus disparadores",
+      "fields": [
+        {
+          "id": "disp-ext",
+          "label": "Externos: tonos, lugares, personas, mensajes",
+          "type": "short"
+        },
+        {
+          "id": "disp-int",
+          "label": "Internos: recuerdos, imágenes, frases",
+          "type": "short"
+        },
+        {
+          "id": "disp-corp",
+          "label": "Corporales: sueño, hambre, encierro, café",
+          "type": "short"
+        },
+        {
+          "id": "disp-sorpresa",
+          "label": "¿Cuál te sorprendió?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Los tres recuerdos",
+      "bodyMd": "En el módulo 4 vas a necesitar un recuerdo real de cada estado. Búscalos ahora, aunque sean pequeños.",
+      "fields": [
+        {
+          "id": "rec-calma",
+          "label": "Un momento real en el que estuviste en calma",
+          "type": "short"
+        },
+        {
+          "id": "rec-confianza",
+          "label": "Un momento real en el que te sentiste capaz",
+          "type": "short"
+        },
+        {
+          "id": "rec-seguridad",
+          "label": "Un momento real en el que sostuviste algo con seguridad",
+          "type": "short"
+        },
+        {
+          "id": "rec-cuesta",
+          "label": "¿Cuál te costó más encontrar?",
+          "help": "El que más cuesta suele ser el que más falta hace."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Guarda esos tres recuerdos. Son la materia prima de todo lo que viene después."
+}

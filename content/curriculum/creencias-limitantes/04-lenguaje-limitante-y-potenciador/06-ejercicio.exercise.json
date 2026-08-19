@@ -1,0 +1,71 @@
+{
+  "title": "Ejercicio · Reescribe tu diálogo interno",
+  "description": "Cinco frases tuyas, reescritas hasta que sí entren.",
+  "introMd": "El objetivo no es que las frases queden bonitas. Es que **te las creas** — si no, el filtro las rechaza y no sirven de nada.",
+  "sections": [
+    {
+      "title": "1 · Lo que te dices",
+      "bodyMd": "Cinco frases que te repites y que te limitan. Tal como suenan, sin suavizar.",
+      "fields": [
+        { "id": "limitante-1", "label": "1", "type": "short" },
+        { "id": "limitante-2", "label": "2", "type": "short" },
+        { "id": "limitante-3", "label": "3", "type": "short" },
+        { "id": "limitante-4", "label": "4", "type": "short", "required": false },
+        { "id": "limitante-5", "label": "5", "type": "short", "required": false }
+      ]
+    },
+    {
+      "title": "2 · La reescritura",
+      "bodyMd": "Las tres que más pesan, reescritas. Recuerda: **creíble hoy**, **en proceso**, **sobre lo que haces**.",
+      "fields": [
+        { "id": "reescrita-1", "label": "Reescritura 1", "type": "short" },
+        { "id": "reescrita-2", "label": "Reescritura 2", "type": "short" },
+        { "id": "reescrita-3", "label": "Reescritura 3", "type": "short" }
+      ]
+    },
+    {
+      "title": "3 · La prueba del escalón",
+      "bodyMd": "Di cada reescritura en voz alta y escucha la respuesta interna.",
+      "fields": [
+        {
+          "id": "prueba",
+          "label": "¿Alguna sonó a mentira? ¿Cómo la bajaste?",
+          "help": "Si tu mente respondió «sí, claro», bájala un escalón hasta que solo quede un poco de tensión."
+        }
+      ]
+    },
+    {
+      "title": "4 · Las cuatro palabras",
+      "fields": [
+        {
+          "id": "tengo-que",
+          "label": "Un «tengo que» tuyo, dicho como «elijo». ¿Qué cambió?",
+          "placeholder": "«Tengo que ir a esa reunión» → «elijo ir a esa reunión»"
+        },
+        {
+          "id": "pero",
+          "label": "Una frase tuya con «pero», dicha con «y»",
+          "placeholder": "«Lo hice bien pero me puse nerviosa» → «lo hice bien y me puse nerviosa»"
+        },
+        {
+          "id": "siempre-nunca",
+          "label": "Un «siempre» o «nunca» tuyo, dicho en específico",
+          "type": "short",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "5 · Tu frase de la semana",
+      "fields": [
+        {
+          "id": "frase-semana",
+          "label": "Una sola frase, la que vas a repetir esta semana",
+          "help": "Al despertar y antes de dormir — los dos momentos de mayor receptividad.",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "> No se trata de decirte cosas bonitas. Se trata de decirte cosas que tu mente pueda aceptar y con las que se pueda hacer algo.\n\nUna sola frase, dos veces al día, durante una semana. Eso es todo."
+}

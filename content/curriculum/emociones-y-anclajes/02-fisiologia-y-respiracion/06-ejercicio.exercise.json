@@ -1,0 +1,140 @@
+{
+  "title": "Ejercicio · Siete días de palancas",
+  "description": "Medir tu línea base, practicar en frío y usarlo una vez en caliente.",
+  "introMd": "La única parte que no se puede saltar es practicar **en calma**. Una técnica que solo se usa en crisis no está disponible en crisis.",
+  "sections": [
+    {
+      "title": "1 · Tu línea base, día 1",
+      "bodyMd": "Del 0 al 10, antes y después de ocho ciclos de 4-4-6. Hazlo ahora, no de memoria.",
+      "fields": [
+        {
+          "id": "d1-tension-antes",
+          "label": "Tensión en el cuerpo — antes",
+          "type": "short"
+        },
+        {
+          "id": "d1-tension-despues",
+          "label": "Tensión — después",
+          "type": "short"
+        },
+        {
+          "id": "d1-cabeza-antes",
+          "label": "Velocidad de la cabeza — antes",
+          "type": "short"
+        },
+        {
+          "id": "d1-cabeza-despues",
+          "label": "Velocidad — después",
+          "type": "short"
+        },
+        {
+          "id": "d1-noto",
+          "label": "¿Qué notaste exactamente?",
+          "help": "Sin adornar. Si no notaste nada, escríbelo: también es un dato."
+        }
+      ]
+    },
+    {
+      "title": "2 · Tu frase",
+      "fields": [
+        {
+          "id": "frase",
+          "label": "Tu frase del paso 5",
+          "type": "short",
+          "help": "Corta, en primera persona, creíble hoy. Nada de «todo saldrá perfecto»."
+        },
+        {
+          "id": "frase-prueba",
+          "label": "Dila en voz alta. ¿Te la crees?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "A medias",
+            "No — hay que hacerla más pequeña"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · La semana",
+      "bodyMd": "Dos veces al día en calma. Marca lo que hiciste de verdad, no lo que pensabas hacer.",
+      "fields": [
+        {
+          "id": "sem-cuantos",
+          "label": "¿Cuántos días de los siete practicaste las dos veces?",
+          "type": "short"
+        },
+        {
+          "id": "sem-cual",
+          "label": "¿Qué patrón usaste más y para qué?",
+          "type": "short"
+        },
+        {
+          "id": "sem-mirada",
+          "label": "La palanca de la mirada, ¿la probaste? ¿Qué pasó?"
+        },
+        {
+          "id": "sem-mandibula",
+          "label": "¿Tenías la mandíbula tensa sin saberlo?",
+          "type": "choice",
+          "options": [
+            "Sí, mucho más de lo que creía",
+            "Un poco",
+            "No"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "4 · Una vez en caliente",
+      "bodyMd": "Una situación real de esta semana donde lo usaste antes o durante.",
+      "fields": [
+        {
+          "id": "cal-situacion",
+          "label": "¿Qué situación era?",
+          "type": "short"
+        },
+        {
+          "id": "cal-que-hiciste",
+          "label": "¿Qué palanca usaste?",
+          "type": "short"
+        },
+        {
+          "id": "cal-funciono",
+          "label": "¿Qué pasó?",
+          "help": "Que bajara poco también cuenta. Buscamos que se mueva, no que desaparezca."
+        },
+        {
+          "id": "cal-sin",
+          "label": "¿Qué habría pasado sin hacer nada?"
+        }
+      ]
+    },
+    {
+      "title": "5 · Día 7",
+      "fields": [
+        {
+          "id": "d7-tension",
+          "label": "Tensión antes / después, hoy",
+          "type": "short"
+        },
+        {
+          "id": "d7-diferencia",
+          "label": "¿Se mueve más rápido que el día 1?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Igual",
+            "No sabría decir"
+          ]
+        },
+        {
+          "id": "d7-sigo",
+          "label": "¿Cuál de las cuatro palancas te vas a quedar para siempre?",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Lo que buscas no es un número mejor. Es notar que el número se mueve cuando tú lo mueves."
+}

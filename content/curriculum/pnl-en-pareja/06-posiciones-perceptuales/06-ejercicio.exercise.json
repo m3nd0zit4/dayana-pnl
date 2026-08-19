@@ -1,0 +1,147 @@
+{
+  "title": "Ejercicio · El recorrido de las tres posiciones",
+  "description": "Hacer el recorrido completo sobre una situación real y salir con una acción concreta.",
+  "introMd": "Se hace de pie y moviéndose. Rellenar esto sentada sin hacer el recorrido no produce el efecto — y se nota en las respuestas.",
+  "sections": [
+    {
+      "title": "1 · Preparación",
+      "fields": [
+        {
+          "id": "situacion",
+          "label": "La situación",
+          "type": "short",
+          "help": "Concreta y de intensidad media. No la peor discusión de vuestra historia."
+        },
+        {
+          "id": "espacio",
+          "label": "¿Marcaste tres puntos en el suelo?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No — lo hago antes de seguir"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Primera posición",
+      "fields": [
+        {
+          "id": "p1-veo",
+          "label": "¿Qué ves desde aquí?",
+          "type": "short"
+        },
+        {
+          "id": "p1-siento",
+          "label": "¿Qué sientes, y dónde en el cuerpo?",
+          "type": "short"
+        },
+        {
+          "id": "p1-necesitaba",
+          "label": "¿Qué necesitabas en ese momento?",
+          "help": "Si no lo sabes, quédate aquí más tiempo antes de pasar a la segunda."
+        }
+      ]
+    },
+    {
+      "title": "3 · Segunda posición",
+      "bodyMd": "Adopta su postura. Habla en primera persona: «yo, [nombre], estoy…».",
+      "fields": [
+        {
+          "id": "p2-primera",
+          "label": "¿Hablaste en primera persona?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Me salió en tercera («ella sentía…»)"
+          ]
+        },
+        {
+          "id": "p2-veo",
+          "label": "¿Qué ves desde su sitio, mirándote a ti?",
+          "type": "short"
+        },
+        {
+          "id": "p2-siento",
+          "label": "¿Qué sientes?",
+          "type": "short"
+        },
+        {
+          "id": "p2-necesito",
+          "label": "¿Qué necesito?",
+          "type": "short"
+        },
+        {
+          "id": "p2-consigo",
+          "label": "¿Qué intento conseguir con lo que hago?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "4 · Tercera posición",
+      "fields": [
+        {
+          "id": "p3-veo",
+          "label": "¿Qué ves pasar entre esas dos personas?"
+        },
+        {
+          "id": "p3-primera",
+          "label": "¿Qué le dirías a la primera?",
+          "type": "short"
+        },
+        {
+          "id": "p3-segunda",
+          "label": "¿Qué le dirías a la segunda?",
+          "type": "short"
+        },
+        {
+          "id": "p3-ninguna",
+          "label": "¿Qué es lo que ninguna de las dos está viendo?",
+          "help": "La pregunta que da el hallazgo. Tómate tiempo."
+        }
+      ]
+    },
+    {
+      "title": "5 · Volver y comprobar",
+      "fields": [
+        {
+          "id": "v-sorpresa",
+          "label": "¿Te sorprendió algo?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "No"
+          ],
+          "help": "Si no, no cambiaste de posición: cambiaste de silla."
+        },
+        {
+          "id": "v-tercera",
+          "label": "¿La tercera te dijo algo distinto de lo que ya pensabas?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Confirmó lo que ya pensaba"
+          ]
+        },
+        {
+          "id": "v-error",
+          "label": "¿Caíste en alguno de los dos errores?",
+          "type": "choice",
+          "options": [
+            "No",
+            "Me quedé compadeciendo y sin saber qué necesito yo",
+            "Usé la tercera para tener razón"
+          ]
+        },
+        {
+          "id": "v-accion",
+          "label": "¿Qué vas a hacer distinto la próxima vez?",
+          "type": "short",
+          "help": "Sin esto, el ejercicio fue interesante y nada más."
+        }
+      ]
+    }
+  ],
+  "closingMd": "El control de calidad es la sorpresa. Si no apareció ninguna, repite el recorrido otro día con más tiempo en la segunda."
+}

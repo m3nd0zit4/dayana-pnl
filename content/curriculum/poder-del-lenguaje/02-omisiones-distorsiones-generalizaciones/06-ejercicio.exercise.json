@@ -1,0 +1,95 @@
+{
+  "title": "Ejercicio · Caza de filtros",
+  "description": "Rastrear los tres filtros en frases ajenas, en frases propias y en una queja tuya completa.",
+  "introMd": "Nada que analizar todavía. Solo escuchar y anotar textual — la frase exacta, no el resumen.",
+  "sections": [
+    {
+      "title": "1 · En lo que oyes",
+      "bodyMd": "Durante un día, tres frases de otras personas. Textuales.",
+      "fields": [
+        {
+          "id": "ajena-1",
+          "label": "Frase 1",
+          "type": "short"
+        },
+        {
+          "id": "ajena-1-filtro",
+          "label": "¿Qué filtro hay y de qué tipo?",
+          "type": "short"
+        },
+        {
+          "id": "ajena-2",
+          "label": "Frase 2",
+          "type": "short"
+        },
+        {
+          "id": "ajena-2-filtro",
+          "label": "¿Qué filtro hay y de qué tipo?",
+          "type": "short"
+        },
+        {
+          "id": "ajena-3",
+          "label": "Frase 3",
+          "type": "short"
+        },
+        {
+          "id": "ajena-3-filtro",
+          "label": "¿Qué filtro hay y de qué tipo?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · En lo que dices",
+      "bodyMd": "Ahora tú. Cuesta más, porque la propia suena a hecho.",
+      "fields": [
+        {
+          "id": "propia-omision",
+          "label": "Una omisión tuya",
+          "help": "«Estoy preocupada», «es mejor así», «nadie me apoya».",
+          "type": "short"
+        },
+        {
+          "id": "propia-distorsion",
+          "label": "Una distorsión tuya",
+          "help": "Lectura de mente, causa-efecto, equivalencia compleja o nominalización.",
+          "type": "short"
+        },
+        {
+          "id": "propia-generalizacion",
+          "label": "Una generalización tuya",
+          "help": "Un «siempre», un «nunca», un «todos», o un «no puedo».",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu queja completa",
+      "bodyMd": "Elige una queja que repitas y escríbela entera, tal como te la dices.",
+      "fields": [
+        {
+          "id": "queja",
+          "label": "La queja, textual"
+        },
+        {
+          "id": "queja-falta",
+          "label": "¿Qué información falta ahí?"
+        },
+        {
+          "id": "queja-supuesto",
+          "label": "¿Qué estás dando por hecho sin haberlo comprobado?"
+        },
+        {
+          "id": "queja-ley",
+          "label": "¿Qué caso concreto convertiste en ley?"
+        },
+        {
+          "id": "queja-nueva",
+          "label": "La misma queja, con la información recuperada",
+          "help": "No más amable: más exacta. Fíjate si sigue doliendo igual."
+        }
+      ]
+    }
+  ],
+  "closingMd": "La versión exacta casi nunca es la más dramática. Ese es el efecto: no consuela, precisa."
+}

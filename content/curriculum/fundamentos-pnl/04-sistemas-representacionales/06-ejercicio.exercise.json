@@ -1,0 +1,77 @@
+{
+  "title": "Ejercicio · Escucha el idioma del otro",
+  "description": "Detectar canales en personas reales y traducir un mensaje a su idioma.",
+  "introMd": "Nada de teoría aquí. Solo escuchar y traducir.",
+  "sections": [
+    {
+      "title": "1 · Tu propio canal",
+      "bodyMd": "Cierra los ojos y recuerda tu última comida con gente. ¿Qué apareció primero?",
+      "fields": [
+        {
+          "id": "mi-canal",
+          "label": "Lo primero que apareció fue…",
+          "type": "choice",
+          "options": [
+            "Una imagen: la mesa, las caras, el sitio",
+            "Sonidos: las voces, la música, las risas",
+            "Una sensación: el sabor, el calor, cómo me sentía"
+          ]
+        },
+        {
+          "id": "mi-canal-detalle",
+          "label": "Descríbelo un poco: ¿qué fue exactamente?",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "2 · Tres personas de tu semana",
+      "bodyMd": "Anota **los verbos que usan**, no lo que crees que son.",
+      "fields": [
+        {
+          "id": "persona-1",
+          "label": "Persona 1 · quién es y qué verbos le escuchaste",
+          "placeholder": "Mi jefe: «no lo veo claro», «a simple vista», «enfócate en esto»"
+        },
+        {
+          "id": "persona-2",
+          "label": "Persona 2 · quién es y qué verbos le escuchaste"
+        },
+        {
+          "id": "persona-3",
+          "label": "Persona 3 · quién es y qué verbos le escuchaste",
+          "required": false
+        }
+      ]
+    },
+    {
+      "title": "3 · La traducción",
+      "bodyMd": "Piensa en algo que necesitas explicarle a alguien y que hasta ahora no ha terminado de entrar.",
+      "fields": [
+        { "id": "a-quien", "label": "¿A quién y qué le quieres explicar?", "type": "short" },
+        {
+          "id": "como-lo-digo",
+          "label": "¿Cómo se lo has dicho hasta ahora?",
+          "help": "Fíjate: probablemente se lo estás diciendo en TU canal."
+        },
+        {
+          "id": "traducido",
+          "label": "Ahora escríbelo en el idioma de esa persona",
+          "help": "Usa sus verbos, no los tuyos."
+        }
+      ]
+    },
+    {
+      "title": "4 · En los tres a la vez",
+      "fields": [
+        {
+          "id": "tres-canales",
+          "label": "Escribe ese mismo mensaje cubriendo los tres canales",
+          "placeholder": "Mira este esquema… te lo cuento en dos frases… y pruébalo una vez para ver cómo se siente",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si esta semana solo te llevas una cosa de este módulo, que sea esta:\n\n> Deja de explicar como te gustaría que te explicaran a ti. Explica como el otro procesa.\n\nY cuando algo importe de verdad, dilo en los tres."
+}

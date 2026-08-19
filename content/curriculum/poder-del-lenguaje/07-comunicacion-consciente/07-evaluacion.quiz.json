@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 7",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "l7q1",
+      "prompt": "¿Cuáles son las cuatro partes de la estructura?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Observación · efecto · necesidad · petición",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Saludo · problema · culpa · solución",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Hecho · opinión · consejo · cierre",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Elogio · crítica · elogio · despedida",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q2",
+      "prompt": "¿Cómo se comprueba que la parte 1 es una observación y no una evaluación?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Si la otra persona puede discutírtela, todavía es una evaluación",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Si ocupa menos de diez palabras",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Si no contiene ningún verbo en pasado",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Si la dices en tono suave",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q3",
+      "prompt": "¿Qué convierte una petición en una exigencia con buenos modales?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que un «no» te vaya a enfadar",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que sea demasiado concreta",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que se formule en positivo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que se haga por escrito",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q4",
+      "prompt": "¿Cuál de estas estropea un «no»?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La excusa larga: cuantos más motivos, más se invita a discutirlos",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Reconocer antes lo que el otro necesita",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Ofrecer una alternativa cuando la hay",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Decirlo corto y claro",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q5",
+      "prompt": "En una reclamación, ¿qué significa «sin archivo histórico»?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No traer temas viejos: un solo asunto, el de ahora",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "No apuntar nada por escrito",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "No mencionar fechas ni horas",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hablar de lo que uno siente",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q6",
+      "prompt": "Al sostener un desacuerdo, ¿qué se busca?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que la relación aguante la diferencia, no necesariamente un acuerdo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Convencer al otro con mejores argumentos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Encontrar un punto medio siempre",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Aplazar hasta que a uno se le pase",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q7",
+      "prompt": "¿Cuál de los cuatro jinetes de Gottman es el que peor pronóstico tiene?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El desprecio",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La crítica",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La actitud defensiva",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La evasión",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l7q8",
+      "prompt": "Si el otro se levanta y se va en mitad de la conversación, ¿qué funciona?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Dejarlo ir y retomar en frío: perseguir no funciona nunca",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Seguirlo para terminar la conversación",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Mandarle por escrito todo lo que faltaba",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No volver a sacar el tema",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import {
   EnrollmentStatus,
   LessonContentType,
   PaymentStatus,
+  ProductKind,
   RecordingStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -17,15 +18,63 @@ export type QuizQuestion = {
   prompt: string;
   options: Array<{ id: string; text: string; correct: boolean }>;
 };
-export type QuizJson = { questions: QuizQuestion[] };
+export type QuizJson = {
+  questions: QuizQuestion[];
+  /** Reglas del intento (tiempo, intentos, nota mínima). Ver lib/lms/quiz.ts;
+   *  si falta, se aplican los valores por defecto. */
+  config?: {
+    timeLimitMin?: number;
+    maxAttempts?: number;
+    passPercent?: number;
+  };
+};
 
-/** Resolves the single active course; LMS admin routes operate on it implicitly. */
-export const requireCourseProduct = async () => {
-  const product = await getCourseProduct();
+/**
+ * El curso sobre el que opera una ruta del admin.
+ *
+ * Con `productId` resuelve ese curso concreto (la biblioteca tiene varios);
+ * sin él cae al primero, que es como se comportaba el panel cuando solo existía
+ * un curso — así los enlaces y llamadas antiguos siguen funcionando.
+ */
+export const resolveCourseProduct = async (productId?: string | null) => {
+  if (productId) {
+    return prisma.product.findFirst({
+      where: { id: productId, kind: ProductKind.COURSE },
+    });
+  }
+  return getCourseProduct();
+};
+
+/** Igual que `resolveCourseProduct`, pero lanza en vez de devolver null. */
+export const requireCourseProduct = async (productId?: string | null) => {
+  const product = await resolveCourseProduct(productId);
   if (!product) {
     throw new Error("NO_COURSE_PRODUCT");
   }
   return product;
+};
+
+/** Los cursos que el panel puede editar, con su recuento de módulos. */
+export const listCoursesAdmin = async () => {
+  const products = await prisma.product.findMany({
+    where: { kind: ProductKind.COURSE },
+    orderBy: [{ isCourseContent: "desc" }, { sortOrder: "asc" }],
+    include: { _count: { select: { courseModules: true } } },
+  });
+
+  const classCounts = await prisma.liveClassSession.groupBy({
+    by: ["productId"],
+    _count: { _all: true },
+  });
+  const classesByProduct = new Map(
+    classCounts.map((row) => [row.productId, row._count._all])
+  );
+
+  return products.map(({ _count, ...product }) => ({
+    ...product,
+    moduleCount: _count.courseModules,
+    classCount: classesByProduct.get(product.id) ?? 0,
+  }));
 };
 
 export type CourseMemberRow = {
@@ -125,6 +174,17 @@ export const listCourseModulesAdmin = async (productId: string) => {
   }));
 };
 
+/** Producto dueño de un módulo — resuelve el curso de una clase nueva. */
+export const getCourseModuleProductId = async (
+  moduleId: string
+): Promise<string | null> => {
+  const found = await prisma.courseModule.findUnique({
+    where: { id: moduleId },
+    select: { productId: true },
+  });
+  return found?.productId ?? null;
+};
+
 export const getCourseModuleAdmin = async (id: string) =>
   prisma.courseModule.findUnique({
     where: { id },
@@ -215,6 +275,8 @@ export const createLiveClass = async (input: {
   contentType?: LessonContentType;
   bodyMd?: string | null;
   quizJson?: QuizJson | null;
+  evergreen?: boolean;
+  slug?: string | null;
 }) => {
   let sortOrder = 0;
   if (input.moduleId) {
@@ -239,6 +301,8 @@ export const createLiveClass = async (input: {
       contentType: input.contentType ?? LessonContentType.VIDEO,
       bodyMd: input.bodyMd ?? null,
       quizJson: input.quizJson ?? undefined,
+      evergreen: input.evergreen ?? false,
+      slug: input.slug ?? null,
       sortOrder,
     },
   });
@@ -255,6 +319,7 @@ export const updateLiveClass = async (
     contentType?: LessonContentType;
     bodyMd?: string | null;
     quizJson?: QuizJson | null;
+    evergreen?: boolean;
   }
 ) => {
   const current = await prisma.liveClassSession.findUnique({ where: { id } });

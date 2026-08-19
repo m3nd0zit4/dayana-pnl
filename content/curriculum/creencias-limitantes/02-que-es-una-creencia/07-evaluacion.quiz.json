@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "questions": [
+    {
+      "id": "c2q1",
+      "prompt": "¿Cuál es la diferencia entre una opinión y una creencia?",
+      "options": [
+        {
+          "id": "c2q1a",
+          "text": "La opinión se defiende; la creencia se da por hecha y ni se menciona, porque para la persona es la realidad",
+          "correct": true
+        },
+        { "id": "c2q1b", "text": "La creencia es siempre falsa y la opinión no", "correct": false },
+        { "id": "c2q1c", "text": "La opinión viene de la infancia", "correct": false },
+        { "id": "c2q1d", "text": "No hay diferencia real", "correct": false }
+      ]
+    },
+    {
+      "id": "c2q2",
+      "prompt": "«No soy suficiente» es una creencia de…",
+      "options": [
+        { "id": "c2q2a", "text": "Identidad — la más difícil de mover", "correct": true },
+        { "id": "c2q2b", "text": "Capacidad", "correct": false },
+        { "id": "c2q2c", "text": "Sobre el mundo", "correct": false },
+        { "id": "c2q2d", "text": "No es una creencia, es una emoción", "correct": false }
+      ]
+    },
+    {
+      "id": "c2q3",
+      "prompt": "¿Por qué los logros no desmontan una creencia de identidad?",
+      "options": [
+        {
+          "id": "c2q3a",
+          "text": "Porque la persona los reinterpreta: «tuve suerte» o «todavía no se han dado cuenta»",
+          "correct": true
+        },
+        { "id": "c2q3b", "text": "Porque los logros no importan a nadie", "correct": false },
+        { "id": "c2q3c", "text": "Porque las creencias de identidad no existen", "correct": false },
+        { "id": "c2q3d", "text": "Porque hace falta repetirlos mil veces", "correct": false }
+      ]
+    },
+    {
+      "id": "c2q4",
+      "prompt": "«Soy un desastre» traducido a capacidad sería…",
+      "options": [
+        {
+          "id": "c2q4a",
+          "text": "«Todavía no tengo un sistema para organizarme»",
+          "correct": true
+        },
+        { "id": "c2q4b", "text": "«Soy un desastre pero lo acepto»", "correct": false },
+        { "id": "c2q4c", "text": "«En realidad soy muy organizado»", "correct": false },
+        { "id": "c2q4d", "text": "«La gente desordenada también vale»", "correct": false }
+      ]
+    },
+    {
+      "id": "c2q5",
+      "prompt": "¿Cuáles son las tres vías de instalación de una creencia?",
+      "options": [
+        {
+          "id": "c2q5a",
+          "text": "Experiencia intensa única, repetición y autoridad",
+          "correct": true
+        },
+        { "id": "c2q5b", "text": "Genética, cultura y educación", "correct": false },
+        { "id": "c2q5c", "text": "Lectura, estudio y reflexión", "correct": false },
+        { "id": "c2q5d", "text": "Miedo, deseo y costumbre", "correct": false }
+      ]
+    },
+    {
+      "id": "c2q6",
+      "prompt": "¿Por qué las creencias de la infancia pesan tanto?",
+      "options": [
+        {
+          "id": "c2q6a",
+          "text": "No había filtro crítico, no había explicaciones alternativas y han tenido décadas para confirmarse",
+          "correct": true
+        },
+        { "id": "c2q6b", "text": "Porque son las verdaderas", "correct": false },
+        { "id": "c2q6c", "text": "Porque el cerebro infantil es más grande", "correct": false },
+        { "id": "c2q6d", "text": "Porque los padres siempre tienen razón", "correct": false }
+      ]
+    },
+    {
+      "id": "c2q7",
+      "prompt": "«Que una creencia sea antigua no la hace verdadera, la hace…»",
+      "options": [
+        { "id": "c2q7a", "text": "Practicada", "correct": true },
+        { "id": "c2q7b", "text": "Irreversible", "correct": false },
+        { "id": "c2q7c", "text": "Genética", "correct": false },
+        { "id": "c2q7d", "text": "Más fácil de cambiar", "correct": false }
+      ]
+    }
+  ]
+}

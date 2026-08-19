@@ -1,0 +1,167 @@
+{
+  "title": "Ejercicio · El mapa del otro",
+  "description": "Detectar canales, encontrar el gesto que no llega y hacer las dos versiones de una escena.",
+  "introMd": "Buena parte de este ejercicio se hace con la otra persona. Si ahora no es posible, hazlo solo desde tu lado: también sirve.",
+  "sections": [
+    {
+      "title": "1 · Los canales",
+      "fields": [
+        {
+          "id": "verbos",
+          "label": "Verbos que usa cuando algo le importa",
+          "type": "short",
+          "help": "Ver, oír, sentir. Anota las frases exactas."
+        },
+        {
+          "id": "queja",
+          "label": "De qué se queja normalmente",
+          "type": "short"
+        },
+        {
+          "id": "demuestra",
+          "label": "Qué hace cuando quiere demostrar algo",
+          "type": "short",
+          "help": "La observación más fiable de las tres."
+        },
+        {
+          "id": "canal-suyo",
+          "label": "Su canal parece…",
+          "type": "choice",
+          "options": [
+            "Visual",
+            "Auditivo",
+            "Kinestésico",
+            "Mezcla clara de dos"
+          ]
+        },
+        {
+          "id": "canal-mio",
+          "label": "Y el tuyo",
+          "type": "choice",
+          "options": [
+            "Visual",
+            "Auditivo",
+            "Kinestésico",
+            "Mezcla clara de dos"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · El gesto que no llega",
+      "fields": [
+        {
+          "id": "yo-hago",
+          "label": "Lo que tú haces para demostrar amor",
+          "type": "short"
+        },
+        {
+          "id": "yo-recibe",
+          "label": "¿Lo recibe?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Creo que no",
+            "Nunca lo he preguntado"
+          ]
+        },
+        {
+          "id": "el-hace",
+          "label": "Lo que hace por ti",
+          "type": "short"
+        },
+        {
+          "id": "el-recibo",
+          "label": "¿Lo recibes?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Ahora que lo pienso, no lo estaba viendo"
+          ]
+        },
+        {
+          "id": "pregunta",
+          "label": "Su respuesta a «¿qué es lo que más te hace sentir querido/a de lo que hago?»"
+        },
+        {
+          "id": "mi-respuesta",
+          "label": "¿Qué contestarías tú a esa misma pregunta?"
+        }
+      ]
+    },
+    {
+      "title": "3 · Las dos versiones",
+      "bodyMd": "Una escena reciente y pequeña. Por turnos, sin interrumpir.",
+      "fields": [
+        {
+          "id": "escena",
+          "label": "¿Qué escena elegisteis?",
+          "type": "short"
+        },
+        {
+          "id": "v-mia",
+          "label": "Tu versión: qué pasó y qué sentiste"
+        },
+        {
+          "id": "v-suya",
+          "label": "Su versión, tal como la contó"
+        },
+        {
+          "id": "no-sabia",
+          "label": "¿Qué de lo que dijo no sabías?",
+          "help": "La pregunta que hace todo el trabajo."
+        },
+        {
+          "id": "coherente",
+          "label": "¿Su versión es coherente desde dentro, aunque no coincida con la tuya?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Me cuesta verlo así"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "4 · La pregunta de la semana",
+      "fields": [
+        {
+          "id": "preg-cual",
+          "label": "¿Cuál vas a usar?",
+          "type": "choice",
+          "options": [
+            "¿Cómo lo viviste tú?",
+            "¿Qué fue lo que más te dolió?",
+            "¿Qué entendiste tú de lo que dije?",
+            "Cuéntame desde tu lado"
+          ]
+        },
+        {
+          "id": "preg-resultado",
+          "label": "Después: ¿qué pasó al hacerla?"
+        }
+      ]
+    },
+    {
+      "title": "5 · La señal de alarma",
+      "fields": [
+        {
+          "id": "desprecio",
+          "label": "¿Hay ironía habitual, ojos en blanco o hablar del otro como de alguien tonto?",
+          "type": "choice",
+          "options": [
+            "No",
+            "A veces",
+            "Sí, bastante"
+          ]
+        },
+        {
+          "id": "desprecio-paso",
+          "label": "Si contestaste «sí», ¿qué paso vas a dar?",
+          "help": "El desprecio no se arregla con técnicas de comunicación. Es terapia de pareja."
+        }
+      ]
+    }
+  ],
+  "closingMd": "«No me quiere como yo lo quiero» casi siempre es falso. «No me quiere en mi idioma» casi siempre es cierto — y eso sí se traduce."
+}

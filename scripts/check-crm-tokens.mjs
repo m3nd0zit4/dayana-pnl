@@ -102,7 +102,7 @@ for (const root of ROOTS) {
 // Ojo al bajarlo: este número tiene que medirse sobre el árbol COMMITEADO.
 // Bajarlo con cambios sin commitear en el working tree cuenta archivos que CI
 // no ve, y el resultado es un fallo en main que en local no se reproduce.
-const BASELINE = 95;
+const BASELINE = 90;
 
 if (findings.length > BASELINE) {
   console.error(

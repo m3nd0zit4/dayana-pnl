@@ -4,36 +4,49 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 
+/**
+ * Botón de completar, **controlado**.
+ *
+ * Antes guardaba su propio estado a partir de la prop inicial, así que cuando
+ * la lección se marcaba desde fuera —el auto-completado por tiempo, el quiz
+ * aprobado, el ejercicio terminado— el botón seguía diciendo «Marcar como
+ * completada». Ahora el estado vive en el reproductor y este componente solo lo
+ * pinta.
+ */
 const ClassCompleteToggle = ({
   classId,
-  initialCompleted,
+  completed,
   onChange,
+  size = "sm",
+  className,
 }: {
   classId: string;
-  initialCompleted: boolean;
-  onChange?: (completed: boolean) => void;
+  completed: boolean;
+  onChange: (completed: boolean) => void;
+  size?: "sm" | "default" | "lg";
+  className?: string;
 }) => {
-  const [completed, setCompleted] = useState(initialCompleted);
   const [loading, setLoading] = useState(false);
 
   const toggle = async () => {
     setLoading(true);
     const next = !completed;
+    // Optimista: marcar una lección tiene que sentirse instantáneo. Si la
+    // petición falla se revierte.
+    onChange(next);
     const res = await fetch(`/api/miembros/classes/${classId}/progress`, {
       method: next ? "POST" : "DELETE",
     });
     setLoading(false);
-    if (res.ok) {
-      setCompleted(next);
-      onChange?.(next);
-    }
+    if (!res.ok) onChange(!next);
   };
 
   return (
     <Button
       variant={completed ? "default" : "outline"}
-      size="sm"
+      size={size}
       disabled={loading}
+      className={className}
       onClick={() => void toggle()}
     >
       <Check />

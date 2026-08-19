@@ -1,0 +1,93 @@
+{
+  "title": "Ejercicio · Preguntar sin interrogar",
+  "description": "Convertir frases en preguntas, aplicarlas a lo tuyo y preparar una conversación real.",
+  "introMd": "La primera parte es de mesa. La tercera hay que llevarla a una conversación de verdad, esta semana.",
+  "sections": [
+    {
+      "title": "1 · De la frase a la pregunta",
+      "bodyMd": "Escribe la pregunta que abrirías en cada caso. Sin explicar, sin aconsejar: solo la pregunta.",
+      "fields": [
+        {
+          "id": "p1",
+          "label": "«Es que a mí nunca me sale bien nada de esto.»",
+          "type": "short"
+        },
+        {
+          "id": "p2",
+          "label": "«Se nota que no le caigo bien.»",
+          "type": "short"
+        },
+        {
+          "id": "p3",
+          "label": "«Tengo que aguantar hasta fin de año.»",
+          "type": "short"
+        },
+        {
+          "id": "p4",
+          "label": "«En esta casa hay un problema de respeto.»",
+          "type": "short"
+        },
+        {
+          "id": "p5",
+          "label": "«Mi jefe me trata mal.»",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Tus propias frases",
+      "bodyMd": "Ahora sobre ti. Escribe la frase tal cual te la dices, y después contéstate la pregunta por escrito.",
+      "fields": [
+        {
+          "id": "mia-frase",
+          "label": "Una frase tuya que se repite",
+          "type": "short"
+        },
+        {
+          "id": "mia-pregunta",
+          "label": "La pregunta que le corresponde",
+          "type": "short"
+        },
+        {
+          "id": "mia-respuesta",
+          "label": "Tu respuesta, escrita entera"
+        },
+        {
+          "id": "mia-cambio",
+          "label": "¿Cambió algo al escribirla?",
+          "help": "A veces no cambia nada. También es un dato."
+        }
+      ]
+    },
+    {
+      "title": "3 · La conversación de esta semana",
+      "fields": [
+        {
+          "id": "conv-quien",
+          "label": "¿Con quién?",
+          "type": "short"
+        },
+        {
+          "id": "conv-pregunta",
+          "label": "La pregunta que llevas preparada",
+          "type": "short",
+          "help": "Una. No tres."
+        },
+        {
+          "id": "conv-suavizador",
+          "label": "Con qué suavizador la vas a abrir",
+          "type": "short"
+        },
+        {
+          "id": "conv-resultado",
+          "label": "Después: qué pasó"
+        },
+        {
+          "id": "conv-tono",
+          "label": "¿Sonó a curiosidad o a interrogatorio? ¿Cómo lo supiste?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si la otra persona siguió hablando, la pregunta estuvo bien. Si se justificó, revisa el tono antes que la pregunta."
+}

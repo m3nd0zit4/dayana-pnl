@@ -59,6 +59,31 @@ NextAuth credentials provider at `/admin/sign-in`. Staff roles: `OWNER > OPERATO
 
 Pricing: amounts stored as **minor units** (centavos/cents). USD→COP rate resolves: `SiteSetting` DB row → `USD_TO_COP_RATE` env var → 3500 fallback (`lib/pricing/usd-to-cop.ts`).
 
+#### Lemon Squeezy — the international rail
+
+**Colombia → Mercado Pago (COP). Everywhere else → Lemon Squeezy (USD).** That split is the whole design and it is not arbitrary: LS is merchant of record and accepts Colombian merchants with no US entity — which is why it exists here at all — but its checkout has **no PSE, no Nequi, no cash**, so pointing Colombian buyers at it would trade the local rail for an international card. `lib/pricing/regions.ts` holds the split. PayPal is retired from the UI; its routes and webhook stay deployed so in-flight orders still settle.
+
+- **Two flags, deliberately separate.** `LEMONSQUEEZY_CHECKOUT_ENABLED` opens the endpoint, `NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED` paints the button. Server-on/public-off is the production verification state — live, reachable by you, invisible to customers. With the public flag off the UI falls back to PayPal, so a deploy is inert until flipped.
+- **`providerPaymentId` is namespaced: `order:<id>` / `subinv:<id>`.** LS order ids and subscription-invoice ids are bare integers from different sequences; unprefixed they collide in `@@unique([provider, providerPaymentId])` and a renewal silently no-ops against an unrelated order.
+- **A subscription purchase fires `order_created` AND `subscription_payment_success`.** `syncLemonSqueezyOrder` bails out when `Product.lemonSqueezySubscription` is true — `subscription_payment_success` is the single recording path for the membership, first invoice included (`billing_reason: initial | renewal | updated`). Record both and you write two `Payment` rows for one charge and grant two months.
+- **`custom_price` is one-off only.** It carries the fee gross-up per request, so `LEMONSQUEEZY_FEE_*` changes take effect immediately — the opposite of Stripe, where the gross-up is baked into a `Price` object. The recurring variant uses its real LS price because `custom_price` on subscription variants is undocumented.
+- **LS is merchant of record**: it sends its own receipts and invoices. Don't add a payment-confirmation email for these — you'd be the second sender. Amounts are recorded from `total_usd` in USD; LS bills in the customer's currency and reports the USD equivalent.
+- **The webhook drops `test_mode` payloads when `VERCEL_ENV=production`.** LS test and live API keys are not distinguishable by prefix, so there is no `sk_test_`-style env guard — this is the substitute, and it is what stops a test event granting real access.
+- `/pago/exito?ls=1&ref=…` resolves the enrollment through `findEnrollmentForCheckout`. `ref` is **not** a trust boundary: it only reads an enrollment a signature-verified webhook already created. Not-found means "processing", not "failed".
+
+#### Stripe / Managed Payments
+
+A **third** rail alongside PayPal and Mercado Pago, not a replacement. Everything is behind `STRIPE_CHECKOUT_ENABLED` (server) + `NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED` (button); unset, the panel and the checkout behave exactly as before. `POST /api/checkout/stripe` → hosted Checkout → `POST /api/webhooks/stripe`.
+
+- **Managed Payments is per product, not per integration.** `Product.stripeManagedPayments` decides `managed_payments: { enabled }` on the session. Stripe only covers **fully digital, fully automated** goods — it explicitly excludes human-delivered services ("live 1-1 coaching") and live events, so the therapy plans and `workshop-virtual` run as ordinary Stripe Checkout with Dayana as merchant of record. `course-live` ships ON as `txcd_20060158`; it also carries live Meet classes, so if Stripe rules it ineligible, flip the column — no deploy. `lib/payments/stripe/eligibility.ts` holds the tax-code list and the reasoning.
+- **When it's on, Link is the merchant of record.** Receipts, invoices and refund notices come from Link, not our Resend templates, and the statement reads `LINK.COM* …`. Don't add a payment-confirmation email for these; you'd be the second sender.
+- **The fee gross-up is baked into the Stripe `Price`**, unlike PayPal/MP which gross up per request — Checkout charges Price objects. Changing `STRIPE_FEE_PERCENT`/`STRIPE_FEE_FIXED` means re-running `bunx tsx scripts/stripe/setup-products.ts`. Managed Payments then adds tax **on top** (`tax_behavior: exclusive`).
+- **The Stripe ids live on `Product`, never on `ProductPrice`.** `ProductPrice` is the public price history and its newest USD row is what the site renders — writing the grossed-up amount there would inflate the displayed price on every run.
+- **`mode: subscription` is fulfilled by `invoice.paid`, not by `checkout.session.completed`.** Recording both would write two `Payment` rows for one charge and grant two membership months. The checkout reference rides on `subscription_data.metadata` and survives renewals via `invoice.parent.subscription_details.metadata`.
+- Everything converges on `fulfillCheckoutPayment`, so the COURSE-renewal, membership-extension, promo-redemption and Meta CAPI dedupe logic is shared with the other two providers. `/pago/exito` reconciles `?session_id=` the same way it does Mercado Pago's `payment_id`, so a missing webhook can't lose a payment.
+- A failed handler **deletes** its `WebhookEvent` row (`releaseWebhookEvent`) before returning 500 — otherwise Stripe's retry short-circuits as a duplicate and the payment is never recorded. Safe because fulfilment is idempotent per provider payment id.
+- Managed Payments is incompatible with Connect, Elements/advanced integrations, custom domains, and subscriptions created outside Checkout. Business location must be a supported country — **Colombia is not one**.
+
 ### Async / background jobs (Inngest)
 
 `lib/inngest/functions.ts` defines all functions:
@@ -82,6 +107,12 @@ Two separate systems. Don't confuse them.
 **Outbound messaging** — `lib/notifications/` dispatches via email (Resend), SMS, WhatsApp API. Gated by `NOTIFICATIONS_ENABLED=true` and `NOTIFICATIONS_DRY_RUN`. `dispatchAndRecord` writes a `NotificationDelivery` row regardless of outcome. Note `NOTIFICATIONS_DRY_RUN` **defaults to ON outside production** — check `/admin/ajustes/integraciones`, which surfaces it as a `degraded` state, before concluding a send failed.
 
 Every outbound email — transactional, campaign, and the agent's own send tools — converges on `dispatchToChannel` (`lib/notifications/dispatch.ts`). Only sends with a `campaignId` (real bulk campaigns, from `/admin/messages` or `agent/tools/send_bulk_email.ts`) get a `List-Unsubscribe`/`List-Unsubscribe-Post` header and a visible unsubscribe footer link (`lib/notifications/unsubscribe-token.ts` signs the token, `app/api/unsubscribe/route.ts` handles it) — **don't** add these to a 1:1 send. `List-Unsubscribe` is exactly the signal Gmail's classifier uses to route a message into Promotions instead of Primary, so putting it on every email (payment confirmations, the agent's 1:1 replies) misfiles them; confirmed empirically (`category:promotions` search) before this was scoped down to `campaignId`-only. `app/api/webhooks/resend/route.ts` listens for `email.bounced`/`email.complained` and flips `Contact.notifyEmail` off automatically — don't re-enable it for a contact without checking why it went off. The agent's own bulk-send tool (`agent/tools/send_bulk_email.ts`, OWNER-only) reuses the same `lib/notifications/campaigns.ts` batch pipeline as `/admin/messages` — there is still no bulk SMS/WhatsApp tool.
+
+**SMS (Twilio)** — two webhooks, both verified with `verifyTwilioWebhook` (HMAC-SHA1 over *the configured URL* + sorted form params; the URL comes from `TWILIO_WEBHOOK_BASE_URL`/`NEXT_PUBLIC_SITE_URL`, **never** `req.url`, whose host is the internal deployment behind Vercel's proxy).
+
+- `/api/webhooks/twilio` — inbound STOP/BAJA/START/AYUDA. It flips `Contact.notifySms` and always applies the write, even in dry-run: an opt-out is inbound bookkeeping, not a send. The **reply** is what's suppressed (and rate-limited to 3/h per number — every TwiML reply is a billed segment). When Twilio sets `OptOutType` it already handled the keyword and replied itself, so we stay silent and only sync the DB; for `+57` Twilio does not process keywords at all, which is the whole reason this route exists. Auto-reply copy is deliberately accent-free — one accented char drops GSM-7 from 160 chars/segment to UCS-2's 70.
+- `/api/webhooks/twilio/status` — `StatusCallback`, attached per message. `delivered` stamps `NotificationDelivery.deliveredAt`; `failed`/`undelivered` flip the row to `FAILED` (**unlike** the Resend webhook, which leaves `SENT` intact — a bounce is a fact about the address after a real handoff, while Twilio's failure means this message never arrived). Permanent codes only (`21610/21211/21614/30005/30006`) auto-suppress `notifySms`; `30003` is transient and `30007` is carrier filtering, i.e. a 10DLC/content problem, so suppressing the contact there would blame the wrong party. Everything uses `updateMany` with `deliveredAt: null` / `status: { not: FAILED }` guards, so retries and out-of-order callbacks are idempotent and a pruned row is a no-op.
+- **Two senders.** `smsFromNumber(kind)` picks `TWILIO_MARKETING_FROM_NUMBER` for anything carrying a `campaignId` — the same predicate that decides `List-Unsubscribe` — and the base number otherwise. Marketing falls back to the base number; transactional **never** falls back to marketing, because each US number belongs to one 10DLC campaign with a declared use case and a payment receipt sent from a Marketing-registered number is what gets that campaign suspended. `smsProviderReady()` stays at three vars on purpose: adding the optional fourth would switch the whole channel off, and adding it to `SMS_REQUIRED_ENV` would make the agent's SMS tool refuse to send.
 
 **In-app feed** — `lib/notifications/platform/` powers the bell in the CRM top bar and the member portal.
 
@@ -157,11 +188,18 @@ COP prices are stored as **full pesos** (no centavos), so `amountMinor` for COP 
 | `AUTH_SECRET` | NextAuth secret (≥32 chars in prod) |
 | `PAYPAL_MODE` | `sandbox` or `live` |
 | `MERCADOPAGO_ACCESS_TOKEN` | Must be production token (not `TEST-`) in prod |
+| `LEMONSQUEEZY_API_KEY` / `LEMONSQUEEZY_STORE_ID` / `LEMONSQUEEZY_WEBHOOK_SECRET` | Lemon Squeezy. All three required when `LEMONSQUEEZY_CHECKOUT_ENABLED=true` |
+| `LEMONSQUEEZY_CHECKOUT_ENABLED` / `NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED` | Endpoint accepts / button renders. Server-on + public-off is the prod verification state |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Stripe. Required only when `STRIPE_CHECKOUT_ENABLED=true`; `sk_test_` is rejected in prod |
+| `STRIPE_CHECKOUT_ENABLED` / `NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED` | Server accepts / button renders. Public one requires the server one |
 | `NOTIFICATIONS_ENABLED` | `true` to actually send |
 | `NOTIFICATIONS_DRY_RUN` | `true` to skip external calls — **defaults ON outside production** |
 | `NOTIFICATIONS_STREAM_ENABLED` | `true` for SSE on the bell; unset falls back to 60s polling |
 | `RESEND_WEBHOOK_SECRET` | Signs `/api/webhooks/resend` (bounce/complaint → auto-suppress `Contact.notifyEmail`) |
 | `NOTIFICATIONS_PRUNE_DELIVERIES` | `true` to let the retention cron prune `NotificationDelivery` |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | SMS. All three or none — the auth token also signs both Twilio webhooks |
+| `TWILIO_MARKETING_FROM_NUMBER` | Optional second sender; campaigns (anything with a `campaignId`) go out from it, transactional never does |
+| `TWILIO_WEBHOOK_BASE_URL` | Only if the public domain isn't `NEXT_PUBLIC_SITE_URL` — the signature covers the URL as configured in Twilio's console |
 | `UPSTASH_REDIS_REST_URL/TOKEN` | Distributed rate limiting |
 | `CRM_UI_PREVIEW` | `true` only in preview — disables auth for UI preview |
 | `META_INBOX_ENABLED` | `true` to show `/admin/inbox` and accept its API routes |

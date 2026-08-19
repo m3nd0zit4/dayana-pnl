@@ -17,6 +17,8 @@ const CourseModuleDetailPage = async ({ params }: Props) => {
       <CourseModuleDetailClient
         preview
         module={{ id, title: "", bodyMd: null, isPublished: false }}
+        backHref="/admin/curso/modulos"
+        productId="preview-course"
         initialClasses={[]}
       />
     );
@@ -37,6 +39,8 @@ const CourseModuleDetailPage = async ({ params }: Props) => {
         bodyMd: courseModule.bodyMd,
         isPublished: courseModule.isPublished,
       }}
+      backHref={`/admin/curso/modulos?curso=${courseModule.productId}`}
+      productId={courseModule.productId}
       initialClasses={courseModule.classes.map((c) => ({
         id: c.id,
         title: c.title,

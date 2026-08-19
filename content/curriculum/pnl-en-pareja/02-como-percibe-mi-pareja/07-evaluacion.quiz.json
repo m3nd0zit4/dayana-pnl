@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p2q1",
+      "prompt": "¿Por qué discutir sobre «qué pasó de verdad» es inútil?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque cada uno construye su versión con lo que captó y filtró; y el recuerdo además se reconstruye cada vez",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque uno de los dos siempre miente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque los hechos no importan nunca",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque las discusiones deben evitarse",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q2",
+      "prompt": "¿Cuál es el malentendido más común entre canales?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Cada uno envía amor por su canal y espera recibirlo por el suyo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que uno de los dos no tiene canal preferente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que los canales cambian cada semana",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que el canal visual es incompatible con el kinestésico",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q3",
+      "prompt": "¿Cuál es la observación más fiable para detectar el canal de alguien?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Qué hace cuando quiere demostrar algo",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Un test de sistemas representacionales",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Hacia dónde mueve los ojos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Su profesión",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q4",
+      "prompt": "¿Qué dice el módulo sobre los cinco lenguajes del amor de Chapman?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Son una conversación excelente y una tipología sin apoyo empírico: úsalo como pregunta, no como diagnóstico",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Están plenamente validados por la investigación",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "No sirven para nada",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Sustituyen a los canales representacionales",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q5",
+      "prompt": "¿Qué pregunta resuelve muchas discusiones domésticas porque no van sobre lo que pasó sino sobre lo que se entendió?",
+      "options": [
+        {
+          "id": "a",
+          "text": "«¿Qué entendiste tú de lo que dije?»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "«¿Por qué te pusiste así?»",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "«¿No crees que exageras?»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "«¿Podemos hablarlo mañana?»",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q6",
+      "prompt": "En el ejercicio de las dos versiones, ¿cuál es el objetivo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Descubrir que había dos versiones y que las dos son coherentes desde dentro, no acordar una",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Llegar a la versión correcta de los hechos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que uno reconozca su error",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Decidir quién empezó la discusión",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q7",
+      "prompt": "¿Qué dice el módulo, honestamente, sobre emparejar el canal representacional?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No ha resistido bien las pruebas experimentales; lo que sí funciona es escuchar y usar las palabras exactas del otro",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Está sólidamente demostrado",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Es la única técnica válida de la PNL",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo funciona en terapia",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p2q8",
+      "prompt": "¿Cuándo este módulo no basta?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Cuando hay desprecio: ironía, ojos en blanco, hablar del otro como de alguien tonto",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Cuando los canales son distintos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Cuando la pareja lleva más de diez años junta",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Cuando solo uno de los dos hace el curso",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

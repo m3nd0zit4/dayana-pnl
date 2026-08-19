@@ -1,0 +1,126 @@
+{
+  "title": "Ejercicio · La conducta que no consigues quitarte",
+  "description": "Subir la cadena hasta la intención, reconocerla y buscar tres caminos alternativos.",
+  "introMd": "Elige una conducta tuya que hayas intentado cambiar más de una vez sin conseguirlo. Esa es la buena.",
+  "sections": [
+    {
+      "title": "1 · La conducta",
+      "fields": [
+        {
+          "id": "conducta",
+          "label": "¿Qué haces exactamente?",
+          "type": "short",
+          "help": "Lo que grabaría una cámara. No «soy un desastre», sino «gasto de golpe cuando cobro»."
+        },
+        {
+          "id": "cuando",
+          "label": "¿Cuándo aparece? ¿Qué la dispara?",
+          "type": "short"
+        },
+        {
+          "id": "intentos",
+          "label": "¿Qué has intentado ya para quitártela?"
+        }
+      ]
+    },
+    {
+      "title": "2 · La cadena",
+      "bodyMd": "Sube preguntando lo mismo. Si sale «nada, es que soy así», insiste una vez más: no es cierto.",
+      "fields": [
+        {
+          "id": "n1",
+          "label": "¿Qué consigo con eso?",
+          "type": "short"
+        },
+        {
+          "id": "n2",
+          "label": "¿Y eso qué me da?",
+          "type": "short"
+        },
+        {
+          "id": "n3",
+          "label": "¿Y eso?",
+          "type": "short"
+        },
+        {
+          "id": "n4",
+          "label": "¿Y eso?",
+          "type": "short"
+        },
+        {
+          "id": "intencion",
+          "label": "La palabra grande que apareció",
+          "type": "short",
+          "help": "Seguridad, libertad, pertenencia, valor, calma, control, descanso, que no vuelva a doler."
+        }
+      ]
+    },
+    {
+      "title": "3 · El reconocimiento",
+      "bodyMd": "Escríbelo y después dilo en voz alta. Si suena raro, es que llevaba tiempo sin decirse.",
+      "fields": [
+        {
+          "id": "reconocimiento",
+          "label": "«Tiene sentido que yo quiera… Es legítimo.»",
+          "type": "short"
+        },
+        {
+          "id": "reaccion",
+          "label": "¿Qué pasó al decirlo en voz alta?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Los otros caminos",
+      "bodyMd": "Tres. Concretos. Con día si se puede.",
+      "fields": [
+        {
+          "id": "camino-1",
+          "label": "Camino 1",
+          "type": "short"
+        },
+        {
+          "id": "camino-2",
+          "label": "Camino 2",
+          "type": "short"
+        },
+        {
+          "id": "camino-3",
+          "label": "Camino 3",
+          "type": "short"
+        },
+        {
+          "id": "camino-esta-semana",
+          "label": "¿Cuál pruebas esta semana, y qué día?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "5 · Con otra persona",
+      "fields": [
+        {
+          "id": "otro-conducta",
+          "label": "Una conducta ajena que te molesta",
+          "type": "short"
+        },
+        {
+          "id": "otro-suelo",
+          "label": "Lo que sueles decir",
+          "type": "short"
+        },
+        {
+          "id": "otro-pregunta",
+          "label": "Lo que vas a preguntar en su lugar",
+          "type": "short",
+          "help": "Una pregunta. Sin añadir el reproche después."
+        },
+        {
+          "id": "otro-resultado",
+          "label": "Después: qué pasó"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si la conducta vuelve, no falló el trabajo: falló el camino alternativo. Vuelve al paso 4 y busca otro."
+}

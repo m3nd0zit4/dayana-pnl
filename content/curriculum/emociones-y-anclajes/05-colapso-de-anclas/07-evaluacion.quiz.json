@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 5",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e5q1",
+      "prompt": "¿Qué ocurre en un colapso de anclas?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Se disparan a la vez el estado problema y el de recurso; el sistema no puede sostener los dos y sale un tercer estado",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Se borra el recuerdo del problema",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Se sustituye una emoción por otra de forma permanente",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Se desinstalan todas las anclas anteriores",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q2",
+      "prompt": "¿Qué pasa si el problema pesa 8 y el recurso 5?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No se colapsa nada: la sesión termina reforzando el problema",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Se colapsa igual, solo que más despacio",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El recurso sube automáticamente al nivel del problema",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Se anulan los dos y queda neutro",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q3",
+      "prompt": "¿Cuál es el paso que casi todos se saltan?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El paso 3: probar el recurso en frío antes de anclar el problema",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El paso 1: elegir el problema",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El paso 5: disparar las dos a la vez",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El paso 7: probar el resultado",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q4",
+      "prompt": "¿En qué orden se sueltan las anclas y por qué?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Primero la del problema; el recurso se sostiene cinco segundos más, porque lo último activo es lo que se lleva",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Primero el recurso, para comprobar que el problema bajó",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Las dos a la vez, exactamente",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El orden es indiferente",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q5",
+      "prompt": "¿Cuál es el pariente clínico del colapso de anclas, y sí tiene evidencia?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La desensibilización sistemática de Wolpe",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El psicoanálisis",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La terapia gestalt",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La hipnosis ericksoniana",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q6",
+      "prompt": "¿Por qué el módulo dice que el disparador «pierde fuerza» en vez de «desaparece»?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque la respuesta condicionada no se borra: se inhibe, y puede reaparecer",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Por prudencia comercial",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque hacen falta más repeticiones para borrarlo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque solo desaparece si se hace con un profesional",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q7",
+      "prompt": "¿Para qué funciona mejor el círculo de excelencia?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Para actuaciones concretas: hablar en público, una entrevista, una competición",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para estados difusos y de fondo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Para usarlo discretamente en mitad de una reunión",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Para trabajar recuerdos traumáticos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e5q8",
+      "prompt": "Si en mitad de la sesión aparece llanto que no cede o sensación de irrealidad, ¿qué se hace?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Soltar las anclas, abrir los ojos, nombrar cinco cosas de la habitación y dejarlo para otro día",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Sostener las anclas más tiempo hasta que pase",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Repetir el colapso desde el principio",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Cambiar a un recuerdo más intenso",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

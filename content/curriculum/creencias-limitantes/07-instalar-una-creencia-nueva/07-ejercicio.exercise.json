@@ -1,0 +1,87 @@
+{
+  "title": "Ejercicio final · Tu instalación de 21 días",
+  "description": "Dejar montada la frase, la escena, el ancla y el calendario.",
+  "introMd": "Último ejercicio del curso. Lo que escribas aquí es tu protocolo para las próximas tres semanas.",
+  "sections": [
+    {
+      "title": "1 · La frase",
+      "bodyMd": "Creíble hoy · en proceso · sobre lo que haces · **corta** (que quepa en una respiración).",
+      "fields": [
+        {
+          "id": "frase",
+          "label": "Tu frase nueva",
+          "type": "short",
+          "placeholder": "Puedo decir que no"
+        },
+        {
+          "id": "prueba-frase",
+          "label": "Dila en voz alta. ¿Qué responde tu mente?",
+          "help": "Si responde «mentira», bájala un escalón. El punto correcto tiene un poco de tensión, sin rechazo.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · La escena de referencia",
+      "bodyMd": "Un momento **real** en que esa frase fue verdad. Aunque fuera pequeño, aunque durara diez minutos.",
+      "fields": [
+        { "id": "escena", "label": "¿Cuándo fue? Descríbelo" },
+        { "id": "escena-veo", "label": "¿Qué ves en esa escena?", "type": "short" },
+        { "id": "escena-oigo", "label": "¿Qué oyes?", "type": "short" },
+        {
+          "id": "escena-siento",
+          "label": "¿Qué sientes, y dónde en el cuerpo?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "3 · El ancla",
+      "fields": [
+        {
+          "id": "gesto",
+          "label": "¿Qué gesto vas a usar?",
+          "help": "Pequeño y poco habitual: que no lo hagas por casualidad durante el día.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "4 · El calendario",
+      "fields": [
+        {
+          "id": "hora-manana",
+          "label": "¿A qué hora al despertar, y después de qué acción que ya haces?",
+          "type": "short"
+        },
+        {
+          "id": "hora-noche",
+          "label": "¿A qué hora antes de dormir?",
+          "type": "short"
+        },
+        {
+          "id": "situacion-real",
+          "label": "¿En qué situación real de tu día usarás el gesto?",
+          "help": "Ahí donde la creencia vieja solía activarse. Esto es lo que traslada el trabajo a la vida.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "5 · El compromiso",
+      "fields": [
+        {
+          "id": "compromiso",
+          "label": "Escríbelo completo",
+          "help": "Durante 21 días voy a… a las… después de… Si fallo un día, retomo al siguiente. Nunca dos seguidos."
+        },
+        {
+          "id": "senal",
+          "label": "Voy a saber que está funcionando cuando…",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Recuerda dos cosas para los próximos días:\n\n**El día 2 va a parecer ridículo.** Le pasa a todo el mundo, y ese es el punto donde casi todos abandonan. Sabiéndolo, se atraviesa.\n\n**La creencia vieja no se borra: se superpone.** Va a seguir apareciendo bajo estrés. Lo que cambia es que ya no es la única voz.\n\nGracias por el recorrido, líderes. 🤝✨"
+}

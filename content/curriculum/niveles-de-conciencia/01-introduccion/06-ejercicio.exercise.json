@@ -1,0 +1,42 @@
+{
+  "title": "Ejercicio · Tu punto de partida",
+  "description": "Una foto de dónde estás hoy, antes de conocer el modelo en detalle.",
+  "introMd": "Este ejercicio se hace **ahora**, antes de estudiar los niveles uno por uno. Es a propósito: quiero tu respuesta espontánea, no la respuesta «correcta» de quien ya se sabe el modelo.\n\nNo busques coherencia. Lo normal —lo humano— es que no la haya.",
+  "sections": [
+    {
+      "title": "1 · Lo que más buscas",
+      "fields": [
+        {
+          "id": "buscando",
+          "label": "En esta etapa de mi vida, lo que más estoy buscando es…",
+          "help": "Una sola línea. No la edites.",
+          "type": "short",
+          "placeholder": "Escribe lo primero que te venga"
+        }
+      ]
+    },
+    {
+      "title": "2 · Área por área",
+      "bodyMd": "Una frase por área. Qué buscas **ahí**, hoy.",
+      "fields": [
+        { "id": "area-trabajo", "label": "Trabajo / profesión", "type": "short" },
+        { "id": "area-dinero", "label": "Dinero", "type": "short" },
+        { "id": "area-pareja", "label": "Pareja", "type": "short" },
+        { "id": "area-familia", "label": "Familia", "type": "short" },
+        { "id": "area-salud", "label": "Salud y cuerpo", "type": "short" },
+        { "id": "area-crecimiento", "label": "Crecimiento personal", "type": "short" },
+        { "id": "area-proposito", "label": "Propósito / espiritualidad", "type": "short", "required": false }
+      ]
+    },
+    {
+      "title": "3 · Tu diálogo interno",
+      "bodyMd": "Las tres frases que más te repites por dentro. Las que llevan años sonando, tal como suenan.",
+      "fields": [
+        { "id": "frase-1", "label": "Frase 1", "type": "short" },
+        { "id": "frase-2", "label": "Frase 2", "type": "short" },
+        { "id": "frase-3", "label": "Frase 3", "type": "short", "required": false }
+      ]
+    }
+  ],
+  "closingMd": "Esto queda guardado. En el **módulo 6** volvemos aquí: ahí ya vas a poder reconocer, con nombre y apellido, desde dónde estabas mirando tu vida cuando empezaste.\n\n> ¿Y si lo que llamo «mi forma de ser» fuera simplemente el nivel desde el que me acostumbré a mirar?"
+}

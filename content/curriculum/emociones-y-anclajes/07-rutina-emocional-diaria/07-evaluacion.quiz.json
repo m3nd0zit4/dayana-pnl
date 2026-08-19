@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 7",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e7q1",
+      "prompt": "¿Por qué la rutina es de diez minutos y no de treinta?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque una de treinta se cumple unos días y se abandona; una pequeña sobrevive a las semanas malas",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque diez minutos es el máximo que tolera el cerebro",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque las técnicas pierden efecto pasados diez minutos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Por razones de calendario, sin más",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q2",
+      "prompt": "¿Qué es un enganche («habit stacking») válido?",
+      "options": [
+        {
+          "id": "a",
+          "text": "«Después de lavarme los dientes», porque es un disparador que ya existe",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "«Por la mañana»",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "«Cuando tenga un rato»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "«Cuando me acuerde»",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q3",
+      "prompt": "¿Cuál de las tres paradas del día es la más importante y la que menos se hace?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La de media tarde: usar el ancla estando bien es lo que la mantiene fuerte",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La de media mañana",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La de antes de comer",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Las tres pesan igual",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q4",
+      "prompt": "¿Qué dice realmente el estudio de Lally sobre cuánto tarda un hábito en automatizarse?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Una media de 66 días, con un rango de 18 a 254 — no 21",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Exactamente 21 días",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Un año como mínimo",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que los hábitos nunca se automatizan del todo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q5",
+      "prompt": "¿Cuál es la regla sobre fallar días?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Fallar uno no es nada; nunca dos seguidos, y al fallar uno se retoma donde se quedó sin reiniciar la cuenta",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "No se puede fallar ningún día",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Al fallar, se empieza la cuenta desde cero",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Da igual cuántos días seguidos se falle",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q6",
+      "prompt": "¿Qué se añade en la semana 1?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Solo la rutina de la mañana",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Las tres, completas desde el primer día",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Mañana y noche",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo las paradas del día",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q7",
+      "prompt": "¿Cuál es el verdadero resultado del curso, según el cierre?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Darse cuenta antes: la distancia entre notar la activación a los diez segundos y notarla a los diez minutos",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "No volver a sentir emociones desagradables",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Controlar las emociones a voluntad",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Tener un ancla para cada situación posible",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e7q8",
+      "prompt": "¿Por qué se recomienda un registro visible?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque anotar una conducta la modifica: el automonitoreo es de las intervenciones más baratas y documentadas del cambio conductual",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para poder enseñárselo a alguien",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque obliga a escribir a mano",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Es opcional y decorativo",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

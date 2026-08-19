@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 7",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "p7q1",
+      "prompt": "¿Cuáles son los cuatro requisitos de un acuerdo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Conducta observable, cuándo, comprobable el domingo, y qué pasa si no se cumple",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Buena intención, sinceridad, esfuerzo y paciencia",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que sea por escrito, firmado, con fecha y testigos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que lo propongan los dos a la vez",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q2",
+      "prompt": "¿Cuál es la diferencia práctica entre una exigencia y un límite?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La exigencia depende del otro; el límite depende de ti — por eso el límite se puede sostener",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El límite es más agresivo",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La exigencia se dice en voz alta y el límite no",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No hay diferencia real",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q3",
+      "prompt": "¿Qué pasa cuando alguien pone un límite nuevo en una relación antigua?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Lo habitual es que el otro proteste; no significa que el límite esté mal, significa que había una costumbre",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El otro suele agradecerlo enseguida",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Significa que el límite estaba mal formulado",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La relación se rompe en la mayoría de los casos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q4",
+      "prompt": "¿Cuál es la quinta pregunta del proyecto común y por qué importa?",
+      "options": [
+        {
+          "id": "a",
+          "text": "«¿Qué necesita cada uno para su vida propia?» — dos vidas disueltas la una en la otra suelen terminar en resentimiento",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "«¿Cuándo tendremos hijos?»",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "«¿Quién decide en qué?»",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "«¿Cuánto vamos a ahorrar?»",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q5",
+      "prompt": "En la revisión de veinte minutos, ¿por qué se empieza siempre por lo que funcionó?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque una pareja que solo habla de la relación cuando hay problema asocia hablar con problema, y deja de querer hablar",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Por cortesía",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque así dura menos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Para que no se note que hay quejas",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q6",
+      "prompt": "¿Qué se hace si un acuerdo no funciona?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Se rediseña sin drama: significa que estaba mal diseñado, no que alguien falló",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Se aplica la consecuencia y no se toca",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Se abandona la idea de los acuerdos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Se repite hasta que salga",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q7",
+      "prompt": "¿Cuándo NO es indicada la terapia de pareja?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Mientras hay violencia activa: el recurso es un servicio especializado",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Cuando hay desprecio sostenido",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Tras una infidelidad",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Cuando solo uno de los dos quiere ir",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "p7q8",
+      "prompt": "¿Qué dice el cierre sobre hacer el curso en solitario?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Funciona igualmente, aunque más despacio; lo que no funciona es hacerlo para cambiar al otro",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "No sirve de nada si no lo hacen los dos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Funciona mejor en solitario",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo sirve si el otro no se entera",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

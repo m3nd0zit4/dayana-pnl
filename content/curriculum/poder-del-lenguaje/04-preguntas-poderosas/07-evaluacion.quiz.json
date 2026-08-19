@@ -1,0 +1,192 @@
+{
+  "title": "Evaluación · Módulo 4",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "l4q1",
+      "prompt": "¿Cuál de estas NO es una condición de una pregunta poderosa?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que sugiera la respuesta deseada para orientar a la persona",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que sea abierta",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que apunte al recurso y no a la culpa",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que se pueda responder hoy",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l4q2",
+      "prompt": "Aplicado a uno mismo, ¿cuál es el problema del «¿por qué?»",
+      "options": [
+        {
+          "id": "a",
+          "text": "Suele buscar culpa en lugar de causa, y la mente entrega una lista de motivos por los que uno es un desastre",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que no se entiende bien en español",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que solo funciona con otras personas delante",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Ninguno: es la mejor pregunta posible",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l4q3",
+      "prompt": "¿Qué encontró Tasha Eurich sobre autoconocimiento?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Quien se pregunta «qué» se conoce mejor que quien se pregunta «por qué»",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El autoconocimiento no se puede medir",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Preguntarse cualquier cosa es igual de útil",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La introspección empeora las decisiones",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l4q4",
+      "prompt": "¿Por qué el módulo insiste en escribir las respuestas y no solo pensarlas?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque pensando se salta y escribiendo no; además la escritura expresiva tiene efectos documentados",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para poder enseñárselas a alguien después",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque escribir mejora la ortografía",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque así se recuerdan de memoria",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l4q5",
+      "prompt": "«¿Qué gano manteniéndolo como está?» ¿Para qué sirve esta pregunta?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Para encontrar la ganancia escondida que sostiene lo que se repite",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Para calcular el beneficio económico de una decisión",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Para justificar la situación actual",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Para culpar a quien corresponde",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l4q6",
+      "prompt": "¿Cómo se distingue la introspección de la rumiación?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La introspección termina en una acción concreta; la rumiación termina en la misma frase, más cansada",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La rumiación dura más de una hora",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La introspección se hace en voz alta",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "No se distinguen: son lo mismo",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l4q7",
+      "prompt": "¿Cuántas preguntas conviene trabajar por sesión de escritura?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Una. Cinco seguidas producen cinco respuestas superficiales",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Todas las del repertorio",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Tres, una por bloque",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Depende del tiempo disponible",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

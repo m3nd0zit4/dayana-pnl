@@ -10,11 +10,13 @@ import { courseModuleSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const staff = await resolveAdminStaff();
   if (staff instanceof NextResponse) return staff;
 
-  const course = await requireCourseProduct().catch(() => null);
+  const course = await requireCourseProduct(
+    req.nextUrl.searchParams.get("productId")
+  ).catch(() => null);
   if (!course) {
     return NextResponse.json({ error: "no_course_product" }, { status: 404 });
   }
@@ -32,14 +34,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
 
-  const course = await requireCourseProduct().catch(() => null);
+  const { productId, ...moduleInput } = parsed.data;
+  const course = await requireCourseProduct(productId).catch(() => null);
   if (!course) {
     return NextResponse.json({ error: "no_course_product" }, { status: 404 });
   }
 
   const courseModule = await createCourseModule({
     productId: course.id,
-    ...parsed.data,
+    ...moduleInput,
   });
 
   fireAuditLog({

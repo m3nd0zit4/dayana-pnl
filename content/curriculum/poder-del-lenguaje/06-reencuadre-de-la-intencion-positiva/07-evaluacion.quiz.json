@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "l6q1",
+      "prompt": "«Toda conducta tiene una intención positiva.» ¿Qué significa «positiva» aquí?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que apunta a conseguir o proteger algo para quien la hace, no que sea buena ni acertada",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que la conducta beneficia a los demás",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que la persona la hace de buena fe",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que el resultado acaba siendo bueno",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q2",
+      "prompt": "¿Cuál de estas SÍ se sigue de la presuposición?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que mientras la necesidad de debajo no se atienda, la conducta vuelve",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que la conducta es aceptable",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que hay que perdonar a quien la hace",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que la persona sabe cuál es su intención",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q3",
+      "prompt": "En el paso 2, ¿por qué se pregunta «para qué» y no «por qué»?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque «por qué» busca justificación y «para qué» busca la función que cumple la conducta",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque «por qué» es gramaticalmente incorrecto",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque «para qué» es más amable",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Es indiferente: se puede usar cualquiera",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q4",
+      "prompt": "¿Cómo se sabe que se llegó a la intención real al subir la cadena?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Aparece una palabra grande: seguridad, libertad, pertenencia, valor, calma, control",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "La persona se emociona",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Se han hecho exactamente tres preguntas",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La conducta desaparece en el momento",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q5",
+      "prompt": "¿Por qué el paso 4 (reconocer la intención en voz alta) no es de relleno?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque mientras la intención esté juzgada, la conducta se defiende; reconocida, deja de ser lo único que la sostiene",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque ayuda a memorizar los pasos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque sirve para grabarlo y escucharlo después",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque la intención desaparece al nombrarla",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q6",
+      "prompt": "¿Qué relación tiene esto con el bucle de hábitos de Duhigg?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La «recompensa» de Duhigg y la «intención positiva» nombran lo mismo; su regla de cambiar la rutina conservando la recompensa es el paso 5",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Ninguna: son modelos incompatibles",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Duhigg demostró que la intención positiva no existe",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "El bucle de hábitos sustituye a los cinco pasos",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q7",
+      "prompt": "¿En qué caso NO se usa esta herramienta?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Buscar la intención positiva del agresor delante de quien fue agredido: eso revictimiza",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "En conductas laborales",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Con adolescentes",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Cuando la persona no conoce la PNL",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "l6q8",
+      "prompt": "En el paso 5, ¿cuántos caminos alternativos se buscan y cómo tienen que ser?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Tres, y concretos",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Uno, el mejor posible",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Los que hagan falta, aunque sean generales",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Ninguno: basta con entender la intención",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

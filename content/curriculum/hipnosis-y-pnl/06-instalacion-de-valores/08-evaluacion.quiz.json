@@ -1,0 +1,99 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "questions": [
+    {
+      "id": "h6q1",
+      "prompt": "¿Qué diferencia un valor «instalado» de un valor que solo está en una lista?",
+      "options": [
+        {
+          "id": "h6q1a",
+          "text": "La carga emocional asociada: el instalado aparece solo en el momento de decidir",
+          "correct": true
+        },
+        { "id": "h6q1b", "text": "Que esté escrito en un papel", "correct": false },
+        { "id": "h6q1c", "text": "Que sea un valor socialmente aceptado", "correct": false },
+        { "id": "h6q1d", "text": "Que se repita en voz alta cada mañana", "correct": false }
+      ]
+    },
+    {
+      "id": "h6q2",
+      "prompt": "«¿Qué me indigna cuando lo veo, aunque no me afecte directamente?» sirve para descubrir valores porque…",
+      "options": [
+        { "id": "h6q2a", "text": "Detrás de cada indignación hay un valor pisado", "correct": true },
+        { "id": "h6q2b", "text": "La rabia siempre indica un trauma", "correct": false },
+        { "id": "h6q2c", "text": "Los valores se heredan de la cultura", "correct": false },
+        { "id": "h6q2d", "text": "Es la única forma de medir la empatía", "correct": false }
+      ]
+    },
+    {
+      "id": "h6q3",
+      "prompt": "¿Por qué la jerarquía importa más que la lista?",
+      "options": [
+        {
+          "id": "h6q3a",
+          "text": "Porque el conflicto no aparece por tener valores, sino cuando dos valores propios chocan y no se sabe cuál va primero",
+          "correct": true
+        },
+        { "id": "h6q3b", "text": "Porque solo se puede tener un valor a la vez", "correct": false },
+        { "id": "h6q3c", "text": "Porque los valores del final no cuentan", "correct": false },
+        { "id": "h6q3d", "text": "Porque la lista se olvida y el orden no", "correct": false }
+      ]
+    },
+    {
+      "id": "h6q4",
+      "prompt": "En la instalación, ¿por qué se pide traer una escena real en lugar de pensar en el valor de forma abstracta?",
+      "options": [
+        {
+          "id": "h6q4a",
+          "text": "Porque el recuerdo trae emoción, y la emoción es lo que instala; el concepto solo no la tiene",
+          "correct": true
+        },
+        { "id": "h6q4b", "text": "Porque los conceptos abstractos no se pueden recordar", "correct": false },
+        { "id": "h6q4c", "text": "Porque así dura más la sesión", "correct": false },
+        { "id": "h6q4d", "text": "Porque el inconsciente no entiende palabras", "correct": false }
+      ]
+    },
+    {
+      "id": "h6q5",
+      "prompt": "¿Cuál es una buena prueba de si tu jerarquía declarada es la real?",
+      "options": [
+        {
+          "id": "h6q5a",
+          "text": "Revisar en qué se fue el tiempo y el dinero de las últimas semanas",
+          "correct": true
+        },
+        { "id": "h6q5b", "text": "Preguntarle a la familia qué valores debería tener uno", "correct": false },
+        { "id": "h6q5c", "text": "Hacer un test de personalidad", "correct": false },
+        { "id": "h6q5d", "text": "Elegir los valores que suenen mejor", "correct": false }
+      ]
+    },
+    {
+      "id": "h6q6",
+      "prompt": "En la práctica en pareja, ¿qué debe hacer quien guía?",
+      "options": [
+        {
+          "id": "h6q6a",
+          "text": "Acordar los valores antes, ir lento, no interpretar lo que el otro diga y hacer la salida completa",
+          "correct": true
+        },
+        { "id": "h6q6b", "text": "Elegir por el otro qué valores trabajar", "correct": false },
+        { "id": "h6q6c", "text": "Interpretar y comentar cada imagen que aparezca", "correct": false },
+        { "id": "h6q6d", "text": "Terminar sin salida si el otro parece despierto", "correct": false }
+      ]
+    },
+    {
+      "id": "h6q7",
+      "prompt": "¿Para qué se graba la sesión de cada participante?",
+      "options": [
+        {
+          "id": "h6q7a",
+          "text": "Para que pueda repetir su propio proceso durante 21 días a 3 meses y consolidar la integración",
+          "correct": true
+        },
+        { "id": "h6q7b", "text": "Para compartirla en redes sociales", "correct": false },
+        { "id": "h6q7c", "text": "Para que el guía la analice después", "correct": false },
+        { "id": "h6q7d", "text": "Como requisito legal de la práctica", "correct": false }
+      ]
+    }
+  ]
+}

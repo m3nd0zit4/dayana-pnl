@@ -13,7 +13,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 export type CourseCardData = {
   productId: string;
   title: string;
+  /** Resumen corto del curso — sin él la tarjeta era solo un título y una barra. */
+  description: string | null;
   imageUrl: string | null;
+  moduleCount: number;
   percent: number;
   completedClasses: number;
   totalClasses: number;
@@ -72,7 +75,20 @@ const CourseCard = ({ course }: { course: CourseCardData }) => {
             <p className="text-[11px] tracking-wide text-muted-foreground uppercase">
               {BRAND.name}
             </p>
-            <h2 className="mt-0.5 text-lg leading-snug font-semibold">{course.title}</h2>
+            <h2 className="mt-0.5 text-lg leading-snug font-semibold text-balance">
+              {course.title}
+            </h2>
+            {course.description && (
+              <p className="mt-2 max-w-prose text-sm leading-relaxed text-muted-foreground">
+                {course.description}
+              </p>
+            )}
+            {course.moduleCount > 0 && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {course.moduleCount} {course.moduleCount === 1 ? "módulo" : "módulos"}
+                {course.totalClasses > 0 && ` · ${course.totalClasses} lecciones`}
+              </p>
+            )}
           </div>
 
           {course.totalClasses > 0 ? (
@@ -90,7 +106,7 @@ const CourseCard = ({ course }: { course: CourseCardData }) => {
           )}
 
           {!course.isCurrent && (
-            <Badge className="w-fit bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
+            <Badge className="w-fit border-warning/40 bg-warning/10 text-warning">
               {course.neverPaid ? "Sin activar" : "Membresía vencida"}
             </Badge>
           )}

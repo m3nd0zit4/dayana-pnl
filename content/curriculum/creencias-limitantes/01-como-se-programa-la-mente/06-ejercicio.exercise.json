@@ -1,0 +1,73 @@
+{
+  "title": "Ejercicio · Tu circuito completo",
+  "description": "Rastrear una creencia limitante desde la experiencia que la instaló hasta el resultado que la confirma.",
+  "introMd": "Elige **una creencia que reconozcas como limitante**. No la más grande: una que puedas mirar hoy sin que te desborde.\n\nSi en algún momento esto se pone demasiado intenso, para. Este trabajo acompaña un proceso terapéutico; no lo sustituye.",
+  "sections": [
+    {
+      "title": "1 · La creencia",
+      "fields": [
+        {
+          "id": "creencia",
+          "label": "Escríbela como suena por dentro",
+          "type": "short",
+          "placeholder": "Cuando hablo en público hago el ridículo"
+        }
+      ]
+    },
+    {
+      "title": "2 · El circuito",
+      "bodyMd": "Los seis pasos. Si alguno no aparece, déjalo y sigue: a veces vuelve después.",
+      "fields": [
+        {
+          "id": "experiencia",
+          "label": "Experiencia · ¿Cuándo recuerdas haber sentido esto por primera vez?",
+          "help": "No hace falta que sea EL momento. Basta con uno temprano."
+        },
+        {
+          "id": "interpretacion",
+          "label": "Interpretación · ¿Qué me dije de mí en ese momento?"
+        },
+        { "id": "emocion", "label": "Emoción · ¿Qué sentí?", "type": "short" },
+        { "id": "conducta", "label": "Conducta · ¿Qué hago hoy por causa de eso?" },
+        {
+          "id": "resultado",
+          "label": "Resultado · ¿Qué obtengo, y cómo confirma la creencia?"
+        }
+      ]
+    },
+    {
+      "title": "3 · La pregunta que lo cambia todo",
+      "fields": [
+        {
+          "id": "que-edad",
+          "label": "¿Qué edad tenía quien sacó esa conclusión?",
+          "type": "short"
+        },
+        {
+          "id": "que-sabia",
+          "label": "¿Qué NO sabía esa persona entonces, que sí sabes tú ahora?"
+        }
+      ]
+    },
+    {
+      "title": "4 · Otras interpretaciones",
+      "bodyMd": "Vuelve a la experiencia. **Tres interpretaciones distintas** que un adulto podría haber hecho de lo mismo. No tienes que creértelas: solo comprobar que existían.",
+      "fields": [
+        { "id": "otra-1", "label": "Interpretación alternativa 1", "type": "short" },
+        { "id": "otra-2", "label": "Interpretación alternativa 2", "type": "short" },
+        { "id": "otra-3", "label": "Interpretación alternativa 3", "type": "short", "required": false }
+      ]
+    },
+    {
+      "title": "5 · Lo que notas",
+      "fields": [
+        {
+          "id": "que-noto",
+          "label": "Después de escribirlo todo, ¿la creencia sigue sonando igual de sólida?",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "Cuando el circuito está escrito completo, deja de ser «yo soy así». Se ve como lo que es: **una secuencia que empezó en algún lugar**.\n\nY todo lo que empezó puede modificarse."
+}

@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
-import { getCourseProduct } from "@/lib/lms/membership";
 
 export const dynamic = "force-dynamic";
 
 /** Folded into the course player — every class (live or recorded) now lives
- *  in its week's sidebar entry there instead of a separate flat schedule. */
+ *  in its week's sidebar entry there instead of a separate flat schedule.
+ *  With several courses the entry point is the dashboard, not one course. */
 const Page = async () => {
-  const course = await getCourseProduct();
-  redirect(course ? `/miembros/curso/${course.id}` : "/miembros");
+  redirect("/miembros");
 };
 
 export default Page;

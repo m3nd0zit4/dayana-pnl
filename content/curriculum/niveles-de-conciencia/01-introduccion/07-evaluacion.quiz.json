@@ -1,0 +1,161 @@
+{
+  "title": "Evaluación · Módulo 1",
+  "questions": [
+    {
+      "id": "m1q1",
+      "prompt": "Según el modelo de Clare Graves, ¿qué es un nivel de conciencia?",
+      "options": [
+        {
+          "id": "m1q1a",
+          "text": "Una forma completa de ver el mundo, con sus valores, su foco, sus fortalezas y sus sombras",
+          "correct": true
+        },
+        {
+          "id": "m1q1b",
+          "text": "Un tipo de personalidad fijo con el que se nace",
+          "correct": false
+        },
+        {
+          "id": "m1q1c",
+          "text": "Una medida de cuánto ha evolucionado espiritualmente una persona",
+          "correct": false
+        },
+        {
+          "id": "m1q1d",
+          "text": "El coeficiente intelectual aplicado a la vida emocional",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "m1q2",
+      "prompt": "¿Por qué se dice que ningún nivel es mejor que otro?",
+      "options": [
+        {
+          "id": "m1q2a",
+          "text": "Porque cada nivel apareció para resolver un problema real de la vida y sigue siendo útil en su contexto",
+          "correct": true
+        },
+        {
+          "id": "m1q2b",
+          "text": "Porque todos los niveles producen exactamente los mismos resultados",
+          "correct": false
+        },
+        {
+          "id": "m1q2c",
+          "text": "Porque en realidad los niveles no se pueden distinguir entre sí",
+          "correct": false
+        },
+        {
+          "id": "m1q2d",
+          "text": "Porque es de mala educación comparar personas",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "m1q3",
+      "prompt": "Una persona es muy estratégica en su empresa pero toma sus decisiones familiares por miedo a la opinión de los demás. ¿Qué muestra esto?",
+      "options": [
+        {
+          "id": "m1q3a",
+          "text": "Que los niveles conviven: se puede operar desde niveles distintos en áreas distintas de la vida",
+          "correct": true
+        },
+        {
+          "id": "m1q3b",
+          "text": "Que la persona está fingiendo en el trabajo",
+          "correct": false
+        },
+        {
+          "id": "m1q3c",
+          "text": "Que retrocedió de nivel y perdió lo aprendido",
+          "correct": false
+        },
+        {
+          "id": "m1q3d",
+          "text": "Que el modelo de Graves no aplica a esa persona",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "m1q4",
+      "prompt": "¿Qué significa que la evolución de la conciencia sea integradora?",
+      "options": [
+        {
+          "id": "m1q4a",
+          "text": "Que los niveles anteriores no se abandonan, sino que quedan disponibles para usarlos según el contexto",
+          "correct": true
+        },
+        {
+          "id": "m1q4b",
+          "text": "Que hay que eliminar los niveles bajos para poder avanzar",
+          "correct": false
+        },
+        {
+          "id": "m1q4c",
+          "text": "Que todas las personas terminan llegando al nivel 8",
+          "correct": false
+        },
+        {
+          "id": "m1q4d",
+          "text": "Que el nivel se hereda de la familia y no cambia",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "m1q5",
+      "prompt": "¿Qué suele disparar el paso de un nivel a otro?",
+      "options": [
+        {
+          "id": "m1q5a",
+          "text": "Que la forma actual de resolver deje de funcionar frente a una situación de vida nueva, con suficiente estabilidad para sostener el cambio",
+          "correct": true
+        },
+        {
+          "id": "m1q5b",
+          "text": "Cumplir cierta edad",
+          "correct": false
+        },
+        {
+          "id": "m1q5c",
+          "text": "Que alguien te explique bien el modelo",
+          "correct": false
+        },
+        {
+          "id": "m1q5d",
+          "text": "Vivir una crisis lo más profunda posible, sin ningún soporte",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "m1q6",
+      "prompt": "¿Cuál es el uso correcto de este modelo?",
+      "options": [
+        {
+          "id": "m1q6a",
+          "text": "Observarse a uno mismo sin juzgarse, para reconocer desde dónde se está decidiendo",
+          "correct": true
+        },
+        {
+          "id": "m1q6b",
+          "text": "Clasificar a las personas del entorno para saber quién está por encima",
+          "correct": false
+        },
+        {
+          "id": "m1q6c",
+          "text": "Diagnosticar trastornos psicológicos",
+          "correct": false
+        },
+        {
+          "id": "m1q6d",
+          "text": "Predecir el futuro de una relación",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

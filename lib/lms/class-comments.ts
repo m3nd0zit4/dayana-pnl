@@ -109,12 +109,19 @@ export type RecentCommentRow = LessonCommentRow & {
 };
 
 /** Cross-class feed for the CRM "Comentarios" monitoring page — newest first. */
+/** Un id o varios: la bandeja del admin junta los comentarios de toda la
+ *  biblioteca, mientras que una vista de un solo curso pasa su id. */
 export const listRecentCommentsForProduct = async (
-  productId: string,
+  productId: string | string[],
   limit = 100
 ): Promise<RecentCommentRow[]> => {
   const rows = await prisma.lessonComment.findMany({
-    where: { hiddenAt: null, class: { productId } },
+    where: {
+      hiddenAt: null,
+      class: {
+        productId: Array.isArray(productId) ? { in: productId } : productId,
+      },
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

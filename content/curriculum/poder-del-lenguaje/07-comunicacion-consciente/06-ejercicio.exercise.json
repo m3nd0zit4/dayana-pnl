@@ -1,0 +1,132 @@
+{
+  "title": "Ejercicio · Tu conversación pendiente",
+  "description": "Preparar las cuatro partes, tenerla de verdad y revisarla después.",
+  "introMd": "Elige una conversación que lleves aplazando. De tamaño medio: ni una tontería ni la más grande que tengas.",
+  "sections": [
+    {
+      "title": "1 · Observación o evaluación",
+      "bodyMd": "Reescribe cada evaluación como algo que grabaría una cámara.",
+      "fields": [
+        {
+          "id": "oe-1",
+          "label": "«Nunca me avisas» →",
+          "type": "short"
+        },
+        {
+          "id": "oe-2",
+          "label": "«Eres un desordenado» →",
+          "type": "short"
+        },
+        {
+          "id": "oe-3",
+          "label": "«No te importa» →",
+          "type": "short"
+        },
+        {
+          "id": "oe-mia",
+          "label": "Una evaluación tuya, de las que dices de verdad →",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Tus cuatro partes",
+      "fields": [
+        {
+          "id": "p-quien",
+          "label": "¿Con quién es esta conversación?",
+          "type": "short"
+        },
+        {
+          "id": "p-obs",
+          "label": "Observación",
+          "help": "Si la otra persona puede discutírtela, todavía es una evaluación.",
+          "type": "short"
+        },
+        {
+          "id": "p-efecto",
+          "label": "Efecto en ti, sin culpar",
+          "type": "short"
+        },
+        {
+          "id": "p-necesidad",
+          "label": "Necesidad",
+          "type": "short"
+        },
+        {
+          "id": "p-peticion",
+          "label": "Petición: concreta, en positivo, con derecho a no",
+          "type": "short"
+        },
+        {
+          "id": "p-no",
+          "label": "Si te dice que no, ¿qué harías?",
+          "help": "Si un «no» te enfada, era una exigencia, no una petición."
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu «no» de esta semana",
+      "fields": [
+        {
+          "id": "no-que",
+          "label": "¿A qué vas a decir que no?",
+          "type": "short"
+        },
+        {
+          "id": "no-frase",
+          "label": "Reconocer + no + alternativa",
+          "type": "short"
+        },
+        {
+          "id": "no-reviso",
+          "label": "¿Lleva excusa larga, «déjame ver» o disculpa múltiple?",
+          "type": "choice",
+          "options": [
+            "Ninguna de las tres",
+            "Sí, hay que quitarlo"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "4 · Después",
+      "bodyMd": "Rellénalo el mismo día, no una semana después.",
+      "fields": [
+        {
+          "id": "post-paso",
+          "label": "¿La tuviste?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "La aplacé",
+            "Todavía no toca"
+          ]
+        },
+        {
+          "id": "post-obs",
+          "label": "Tu parte 1, ¿fue observación o evaluación?",
+          "type": "choice",
+          "options": [
+            "Observación",
+            "Se me coló una evaluación"
+          ]
+        },
+        {
+          "id": "post-defensa",
+          "label": "¿Se defendió? ¿En qué momento exacto?"
+        },
+        {
+          "id": "post-pedi",
+          "label": "¿Pediste algo concreto o solo descargaste?",
+          "type": "short"
+        },
+        {
+          "id": "post-proxima",
+          "label": "¿Qué harías distinto la próxima vez?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si se torció, busca el segundo exacto. Casi siempre es la frase donde apareció un «siempre» o un «nunca»."
+}

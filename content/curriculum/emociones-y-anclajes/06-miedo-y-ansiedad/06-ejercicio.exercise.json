@@ -1,0 +1,175 @@
+{
+  "title": "Ejercicio · Tu escalera de exposición",
+  "description": "Identificar qué tienes, revisar lo básico, montar tu kit y subir un escalón esta semana.",
+  "introMd": "Empieza por lo básico. Si la cafeína está alta, ese es el primer ejercicio y no hay técnica que lo sustituya.",
+  "sections": [
+    {
+      "title": "1 · Qué es lo tuyo",
+      "fields": [
+        {
+          "id": "tipo",
+          "label": "¿Miedo, ansiedad o pánico?",
+          "type": "choice",
+          "options": [
+            "Miedo — tiene objeto concreto",
+            "Ansiedad — difusa, sobre el futuro",
+            "Pánico — descargas agudas de minutos",
+            "Una mezcla"
+          ]
+        },
+        {
+          "id": "objeto",
+          "label": "Si tiene objeto, ¿cuál?",
+          "type": "short"
+        },
+        {
+          "id": "cuando",
+          "label": "¿Desde cuándo?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Lo básico",
+      "fields": [
+        {
+          "id": "cafe",
+          "label": "Cafés al día",
+          "type": "short",
+          "help": "La cafeína reproduce con precisión los síntomas físicos de la ansiedad."
+        },
+        {
+          "id": "sueno",
+          "label": "Horas de sueño de media",
+          "type": "short"
+        },
+        {
+          "id": "alcohol",
+          "label": "Alcohol esta semana",
+          "type": "short"
+        },
+        {
+          "id": "basico-primero",
+          "label": "¿Hay algo aquí que arreglar antes de cualquier técnica?",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu kit",
+      "fields": [
+        {
+          "id": "kit-orden",
+          "label": "Tus tres herramientas, por orden",
+          "type": "short"
+        },
+        {
+          "id": "kit-resp",
+          "label": "La respiración, ¿te ayuda o te empeora?",
+          "type": "choice",
+          "options": [
+            "Ayuda",
+            "Me empeora — uso 5-4-3-2-1 primero",
+            "No lo he probado en caliente"
+          ]
+        },
+        {
+          "id": "kit-frase",
+          "label": "Tu frase de nombrar",
+          "type": "short",
+          "help": "«Estoy notando ansiedad» funciona mejor que «estoy fatal»."
+        }
+      ]
+    },
+    {
+      "title": "4 · El bucle de evitación",
+      "fields": [
+        {
+          "id": "evito",
+          "label": "¿Qué evitas?",
+          "type": "short"
+        },
+        {
+          "id": "alivio",
+          "label": "¿Qué alivio te da evitarlo?"
+        },
+        {
+          "id": "ensena",
+          "label": "¿Qué te está enseñando esa evitación?"
+        }
+      ]
+    },
+    {
+      "title": "5 · La escalera",
+      "bodyMd": "Cinco escalones, de menos a más. Empieza por uno de 3 o 4, nunca de 8.",
+      "fields": [
+        {
+          "id": "esc-1",
+          "label": "Escalón 1 (ansiedad prevista)",
+          "type": "short"
+        },
+        {
+          "id": "esc-2",
+          "label": "Escalón 2",
+          "type": "short"
+        },
+        {
+          "id": "esc-3",
+          "label": "Escalón 3",
+          "type": "short"
+        },
+        {
+          "id": "esc-4",
+          "label": "Escalón 4",
+          "type": "short"
+        },
+        {
+          "id": "esc-5",
+          "label": "Escalón 5",
+          "type": "short"
+        },
+        {
+          "id": "esc-semana",
+          "label": "¿Cuál haces esta semana, y qué día?",
+          "type": "short"
+        },
+        {
+          "id": "esc-hecho",
+          "label": "Después: ¿esperaste a que bajara antes de salir?",
+          "type": "choice",
+          "options": [
+            "Sí",
+            "Salí en el pico",
+            "Todavía no lo he hecho"
+          ]
+        },
+        {
+          "id": "esc-real",
+          "label": "¿Qué ansiedad real hubo, comparada con la prevista?"
+        }
+      ]
+    },
+    {
+      "title": "6 · Los criterios",
+      "bodyMd": "Contéstalo con honestidad. Con uno solo ya vale la pena consultar.",
+      "fields": [
+        {
+          "id": "crit",
+          "label": "¿Cuántos de los ocho criterios marcas?",
+          "type": "short"
+        },
+        {
+          "id": "crit-cuales",
+          "label": "¿Cuáles?"
+        },
+        {
+          "id": "crit-paso",
+          "label": "Si marcaste alguno, ¿cuál es tu siguiente paso y cuándo?",
+          "type": "short",
+          "help": "Si hay pensamientos de hacerte daño, el siguiente paso es hoy."
+        }
+      ]
+    }
+  ],
+  "closingMd": "La ansiedad prevista casi siempre es mayor que la real. Ese hueco, anotado varias veces, es lo que empieza a cambiar el fondo."
+}

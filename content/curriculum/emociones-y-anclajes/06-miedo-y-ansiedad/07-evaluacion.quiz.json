@@ -1,0 +1,218 @@
+{
+  "title": "Evaluación · Módulo 6",
+  "config": {
+    "timeLimitMin": 10,
+    "maxAttempts": 3,
+    "passPercent": 70
+  },
+  "questions": [
+    {
+      "id": "e6q1",
+      "prompt": "¿Cuál es la diferencia entre miedo y ansiedad?",
+      "options": [
+        {
+          "id": "a",
+          "text": "El miedo responde a una amenaza presente y tiene objeto; la ansiedad anticipa una futura y su objeto es difuso o inexistente",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El miedo es más intenso que la ansiedad",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "La ansiedad es patológica y el miedo no",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Son sinónimos con distinto registro",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q2",
+      "prompt": "En un ataque de pánico, ¿qué funciona?",
+      "options": [
+        {
+          "id": "a",
+          "text": "No luchar: el pico dura unos minutos y baja solo; pelear con él lo alarga",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Respirar lo más hondo y rápido posible",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Analizar la causa en el momento",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Salir de la situación inmediatamente, siempre",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q3",
+      "prompt": "¿Cuál es la herramienta con más evidencia de todo el módulo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "La exposición gradual",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "El ancla de recurso",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "El 5-4-3-2-1",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "La respiración 4-4-6",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q4",
+      "prompt": "En exposición, ¿por qué no se sale de la situación mientras la ansiedad está en el pico?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque salir en el pico enseña justo lo contrario: que había que huir",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque es peligroso físicamente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque hay que completar treinta minutos exactos",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Es indiferente cuándo se salga",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q5",
+      "prompt": "¿Qué aportó Michelle Craske sobre cómo funciona la exposición?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Que no funciona porque la ansiedad baje en la sesión, sino porque se aprende que lo temido no ocurre",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Que la exposición debe evitarse en fobias",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Que basta con imaginar la situación",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Que la ansiedad debe llegar a 10 para que sirva",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q6",
+      "prompt": "¿Por qué el 5-4-3-2-1 ayuda en el momento agudo?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Porque saca la atención de lo interno —vigilar el pecho, contar latidos— hacia fuera, que es donde la ansiedad no se alimenta",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Porque relaja los músculos",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Porque obliga a respirar más despacio",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Porque distrae con números",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q7",
+      "prompt": "¿Cuál de estas NO ayuda, aunque lo parezca?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Comprobar síntomas en internet: es un ritual de ansiedad",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Nombrar lo que se siente",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Bajar la cafeína",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Sacar la atención hacia fuera",
+          "correct": false
+        }
+      ]
+    },
+    {
+      "id": "e6q8",
+      "prompt": "¿Cuál de estos es criterio para buscar ayuda profesional?",
+      "options": [
+        {
+          "id": "a",
+          "text": "Cualquiera de los ocho: más de seis meses, ataques repetidos, evitación creciente, uso de alcohol para calmarlo, pensamientos de hacerse daño…",
+          "correct": true
+        },
+        {
+          "id": "b",
+          "text": "Solo si han pasado más de dos años",
+          "correct": false
+        },
+        {
+          "id": "c",
+          "text": "Solo si las técnicas del curso ya se probaron todas",
+          "correct": false
+        },
+        {
+          "id": "d",
+          "text": "Solo si lo recomienda un familiar",
+          "correct": false
+        }
+      ]
+    }
+  ]
+}

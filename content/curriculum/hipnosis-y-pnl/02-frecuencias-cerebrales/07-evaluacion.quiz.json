@@ -1,0 +1,95 @@
+{
+  "title": "Evaluación · Módulo 2",
+  "questions": [
+    {
+      "id": "h2q1",
+      "prompt": "¿Cuál es el rango del estado Beta y qué lo caracteriza?",
+      "options": [
+        {
+          "id": "h2q1a",
+          "text": "14 a 30 Hz · alerta, pensamiento lógico, análisis y resolución de problemas",
+          "correct": true
+        },
+        { "id": "h2q1b", "text": "8 a 13 Hz · relajación consciente", "correct": false },
+        { "id": "h2q1c", "text": "4 a 7 Hz · hipnosis y visualización", "correct": false },
+        { "id": "h2q1d", "text": "0.5 a 3 Hz · sueño profundo", "correct": false }
+      ]
+    },
+    {
+      "id": "h2q2",
+      "prompt": "¿En qué estado ocurre la mayor parte del trabajo hipnótico y por qué?",
+      "options": [
+        {
+          "id": "h2q2a",
+          "text": "En Theta, porque el factor crítico disminuye su actividad y la persona se vuelve más receptiva a nuevas asociaciones",
+          "correct": true
+        },
+        { "id": "h2q2b", "text": "En Delta, porque el cuerpo está totalmente dormido", "correct": false },
+        { "id": "h2q2c", "text": "En Beta, porque hay más concentración lógica", "correct": false },
+        { "id": "h2q2d", "text": "En ninguno: la hipnosis no depende del estado", "correct": false }
+      ]
+    },
+    {
+      "id": "h2q3",
+      "prompt": "¿Cuál es la secuencia habitual de una inducción hipnótica?",
+      "options": [
+        { "id": "h2q3a", "text": "Beta → Alfa → Theta", "correct": true },
+        { "id": "h2q3b", "text": "Delta → Theta → Alfa", "correct": false },
+        { "id": "h2q3c", "text": "Alfa → Beta → Delta", "correct": false },
+        { "id": "h2q3d", "text": "Theta → Beta → Alfa", "correct": false }
+      ]
+    },
+    {
+      "id": "h2q4",
+      "prompt": "¿Cómo es la respiración típica del estado Beta?",
+      "options": [
+        { "id": "h2q4a", "text": "Más rápida y superficial, sobre todo bajo estrés", "correct": true },
+        { "id": "h2q4b", "text": "Muy lenta y automática", "correct": false },
+        { "id": "h2q4c", "text": "Profunda, lenta y rítmica", "correct": false },
+        { "id": "h2q4d", "text": "Contenida durante largos periodos", "correct": false }
+      ]
+    },
+    {
+      "id": "h2q5",
+      "prompt": "En la práctica de respiración del módulo, ¿por qué la exhalación es más larga que la inhalación?",
+      "options": [
+        {
+          "id": "h2q5a",
+          "text": "Porque la exhalación prolongada es la que activa la respuesta de calma del organismo",
+          "correct": true
+        },
+        { "id": "h2q5b", "text": "Porque así entra más oxígeno al cerebro", "correct": false },
+        { "id": "h2q5c", "text": "Porque impide pensar", "correct": false },
+        { "id": "h2q5d", "text": "Por costumbre, no tiene efecto fisiológico", "correct": false }
+      ]
+    },
+    {
+      "id": "h2q6",
+      "prompt": "¿Qué son los momentos justo antes de dormir y justo al despertar?",
+      "options": [
+        {
+          "id": "h2q6a",
+          "text": "Ventanas de Theta natural, donde la mente está especialmente receptiva",
+          "correct": true
+        },
+        { "id": "h2q6b", "text": "Momentos de Beta alto", "correct": false },
+        { "id": "h2q6c", "text": "Estados Delta puros", "correct": false },
+        { "id": "h2q6d", "text": "Estados sin ninguna particularidad", "correct": false }
+      ]
+    },
+    {
+      "id": "h2q7",
+      "prompt": "Sobre las afirmaciones de que una frecuencia musical concreta (528 Hz, 432 Hz) cura o reprograma el ADN…",
+      "options": [
+        {
+          "id": "h2q7a",
+          "text": "Confunden afinación musical con ondas cerebrales: son cosas distintas y no tienen ese respaldo",
+          "correct": true
+        },
+        { "id": "h2q7b", "text": "Están demostradas por la neurociencia", "correct": false },
+        { "id": "h2q7c", "text": "Corresponden exactamente al estado Theta", "correct": false },
+        { "id": "h2q7d", "text": "Son la base de la hipnosis ericksoniana", "correct": false }
+      ]
+    }
+  ]
+}

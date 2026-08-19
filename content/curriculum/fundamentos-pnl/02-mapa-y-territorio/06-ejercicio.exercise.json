@@ -1,0 +1,79 @@
+{
+  "title": "Ejercicio · Desmonta tu frase",
+  "description": "Tomar una frase que te repites y separarla en sus tres filtros.",
+  "introMd": "Elige **una frase que te dices a menudo** y que te deja sin salida. De esas que suenan a verdad y llevan años sonando.",
+  "sections": [
+    {
+      "title": "1 · La frase",
+      "fields": [
+        {
+          "id": "frase",
+          "label": "Escríbela tal cual la piensas",
+          "type": "short",
+          "placeholder": "Nunca me toman en serio en el trabajo"
+        }
+      ]
+    },
+    {
+      "title": "2 · Los tres filtros",
+      "bodyMd": "Ahora sepárala. No la corrijas todavía: solo señala qué hay dentro.",
+      "fields": [
+        {
+          "id": "omision",
+          "label": "Omisión · ¿Qué información falta?",
+          "help": "¿Quién exactamente? ¿En qué situaciones? ¿Comparado con qué?"
+        },
+        {
+          "id": "distorsion",
+          "label": "Distorsión · ¿Qué estoy interpretando como si fuera un hecho?",
+          "help": "¿Qué viste u oíste realmente, y qué pusiste tú?"
+        },
+        {
+          "id": "generalizacion",
+          "label": "Generalización · ¿Qué palabra la convierte en ley?",
+          "help": "Siempre, nunca, todos, nadie, cada vez."
+        }
+      ]
+    },
+    {
+      "title": "3 · La excepción",
+      "bodyMd": "Con una sola excepción, la ley deja de ser ley.",
+      "fields": [
+        {
+          "id": "excepcion",
+          "label": "¿Ha habido alguna vez en que no fue así? Descríbela",
+          "help": "Aunque sea una. Aunque haya sido hace años."
+        }
+      ]
+    },
+    {
+      "title": "4 · La frase reescrita",
+      "fields": [
+        {
+          "id": "reescrita",
+          "label": "Reescríbela con lo que sí sabes",
+          "help": "Sin generalizaciones, sin lectura de mente, con la información que falta.",
+          "placeholder": "En las reuniones de los lunes, cuando propongo algo sin datos, Andrés suele responder con otra idea"
+        },
+        {
+          "id": "que-cambia",
+          "label": "¿Qué se puede hacer con la frase nueva que no se podía con la vieja?"
+        }
+      ]
+    },
+    {
+      "title": "5 · Una nominalización",
+      "bodyMd": "Busca en tu vida un problema que hayas convertido en cosa: *la comunicación*, *el estrés*, *la relación*, *la motivación*.",
+      "fields": [
+        { "id": "nominalizacion", "label": "El problema, tal como lo nombras", "type": "short" },
+        {
+          "id": "nominalizacion-verbo",
+          "label": "El mismo problema, devuelto a verbo",
+          "type": "short",
+          "placeholder": "«Nuestra comunicación está mal» → «no nos estamos contando lo que nos molesta»"
+        }
+      ]
+    }
+  ],
+  "closingMd": "> No respondemos a la realidad. Respondemos a nuestro mapa de la realidad.\n\nAcabas de corregir una parte de tu mapa. No es poca cosa: la frase vieja no tenía salida y la nueva sí."
+}
