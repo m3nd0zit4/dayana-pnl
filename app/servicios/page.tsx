@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isGoogleAuthEnabled } from "@/auth";
 import ComparisonSection from "../components/servicios/ComparisonSection";
 import CourseAndCta from "../components/servicios/CourseAndCta";
 import FaqSection from "../components/servicios/FaqSection";
@@ -53,6 +54,7 @@ const ServiciosPage = async () => {
           coursePlan={coursePlan}
           isColombia={isColombia}
           userCountry={userCountry}
+          googleEnabled={isGoogleAuthEnabled()}
         />
       </main>
       <Footer />

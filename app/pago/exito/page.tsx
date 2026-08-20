@@ -258,7 +258,12 @@ const Page = async ({ searchParams }: PageProps) => {
         ? params.external_reference
         : undefined;
 
-  const heading = isSuccess
+  /**
+   * `let` y no `const`: para el curso y los talleres el titular se reescribe
+   * más abajo, cuando ya se sabe qué se compró. Ahí la compra no es sólo un
+   * cobro confirmado — es entrar a algo, y merece decirlo.
+   */
+  let heading = isSuccess
     ? "Pago confirmado"
     : isProcessing
       ? "Pago en proceso"
@@ -266,7 +271,7 @@ const Page = async ({ searchParams }: PageProps) => {
         ? "Pago no completado"
         : "Estado del pago";
 
-  const eyebrow = isSuccess
+  let eyebrow = isSuccess
     ? "Gracias por tu confianza"
     : isProcessing
       ? "Un momento"
@@ -345,6 +350,18 @@ const Page = async ({ searchParams }: PageProps) => {
     } catch {
       postPaymentMode = "none";
     }
+  }
+
+  /**
+   * Curso y talleres no son sólo un cobro: dan entrada a algo. El titular lo
+   * dice y el botón de entrar pasa a ser la acción principal, en lugar de
+   * quedar escondido bajo un "Agendar por WhatsApp" que aquí no aplica.
+   */
+  const abrePortal = isSuccess && coursePortal != null;
+  if (abrePortal) {
+    eyebrow = "¡Felicidades!";
+    heading =
+      portalKind === "WORKSHOP" ? "Tu lugar está reservado" : "Ya eres miembra";
   }
 
   const whatsappMessage = isSuccess
@@ -532,21 +549,50 @@ const Page = async ({ searchParams }: PageProps) => {
           </div>
         )}
 
+        {/*
+          Con portal, entrar es lo que la clienta quiere hacer ahora, así que
+          es la acción principal y WhatsApp baja a secundaria. En terapias es al
+          revés: lo siguiente es agendar.
+        */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <a
-            href={buildWhatsAppUrl(whatsappMessage)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
-          >
-            {isSuccess ? "Agendar por WhatsApp" : "Escribir por WhatsApp"}
-          </a>
-          <Link
-            href="/"
-            className="w-full sm:flex-1 rounded-full border border-black/20 text-black/70 font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black/[0.04] hover:text-black transition-colors text-center"
-          >
-            Volver al inicio
-          </Link>
+          {abrePortal ? (
+            <Link
+              href={coursePortal === "invite" ? "/miembros/crear-cuenta" : "/miembros"}
+              className="w-full cursor-pointer sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
+            >
+              {coursePortal === "invite"
+                ? "Crear mi cuenta"
+                : portalKind === "WORKSHOP"
+                  ? "Ver mi taller"
+                  : "Entrar a mis clases"}
+            </Link>
+          ) : (
+            <a
+              href={buildWhatsAppUrl(whatsappMessage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full cursor-pointer sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
+            >
+              {isSuccess ? "Agendar por WhatsApp" : "Escribir por WhatsApp"}
+            </a>
+          )}
+          {abrePortal ? (
+            <a
+              href={buildWhatsAppUrl(whatsappMessage)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full cursor-pointer sm:flex-1 rounded-full border border-black/20 text-black/70 font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black/[0.04] hover:text-black transition-colors text-center"
+            >
+              Escribir por WhatsApp
+            </a>
+          ) : (
+            <Link
+              href="/"
+              className="w-full cursor-pointer sm:flex-1 rounded-full border border-black/20 text-black/70 font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black/[0.04] hover:text-black transition-colors text-center"
+            >
+              Volver al inicio
+            </Link>
+          )}
         </div>
 
         <div className="mt-8 font-[font1] text-[11px] text-black/45 tracking-wide">

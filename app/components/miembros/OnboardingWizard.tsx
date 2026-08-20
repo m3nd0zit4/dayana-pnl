@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { CountryCode } from "libphonenumber-js";
 import {
   getLocalPhonePlaceholder,
@@ -9,6 +9,11 @@ import {
   validateLocalPhone,
 } from "@/lib/phone";
 import CheckoutCountrySelect from "../payments/CheckoutCountrySelect";
+import {
+  clearDraft,
+  loadDraft,
+  mergeDraft,
+} from "../payments/onboardingDraft";
 
 const inputClass =
   "w-full rounded-xl border border-linen/20 bg-black/30 px-4 py-3.5 font-[font1] text-sm text-white placeholder-white/30 transition-colors focus:border-terracotta focus:outline-none";
@@ -31,6 +36,12 @@ type OnboardingWizardProps = {
    *  (also used when the email is a Google-only account: Google sign-IN
    *  still works, just not from this creation wizard — see auth.ts). */
   onSwitchToLogin?: (email: string) => void;
+  /**
+   * Id del plan que se está comprando. Con él se guarda el borrador para que
+   * refrescar, cambiar de pestaña o volver atrás no borre lo tecleado ni el
+   * paso. Sin él, el asistente funciona igual pero sin memoria.
+   */
+  draftPlanId?: string;
 };
 
 /**
@@ -43,6 +54,7 @@ const OnboardingWizard = ({
   callbackUrl,
   onComplete,
   onSwitchToLogin,
+  draftPlanId,
 }: OnboardingWizardProps) => {
   const [step, setStep] = useState<StepIndex>(0);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -56,6 +68,56 @@ const OnboardingWizard = ({
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [restored, setRestored] = useState(false);
+
+  /**
+   * Se rescata en un efecto y no durante el render: `sessionStorage` no existe
+   * en el servidor y leerlo al pintar rompería la hidratación.
+   */
+  useEffect(() => {
+    if (!draftPlanId) {
+      setRestored(true);
+      return;
+    }
+    const draft = loadDraft(draftPlanId);
+    if (draft) {
+      if (draft.email) setEmail(draft.email);
+      if (draft.firstName) setFirstName(draft.firstName);
+      if (draft.lastName) setLastName(draft.lastName);
+      if (draft.phone) setPhone(draft.phone);
+      if (draft.phoneCountry) setPhoneCountry(draft.phoneCountry);
+      if (draft.consent) setConsent(draft.consent);
+      // La contraseña nunca se guarda, así que ese paso se vuelve a pedir.
+      if (typeof draft.step === "number" && draft.step >= 0 && draft.step <= 2) {
+        setStep(draft.step as StepIndex);
+      }
+    }
+    setRestored(true);
+  }, [draftPlanId]);
+
+  /** Se guarda en cada cambio, ya restaurado, para no pisar el borrador. */
+  useEffect(() => {
+    if (!draftPlanId || !restored) return;
+    mergeDraft(draftPlanId, {
+      step,
+      email,
+      firstName,
+      lastName,
+      phone,
+      phoneCountry,
+      consent,
+    });
+  }, [
+    draftPlanId,
+    restored,
+    step,
+    email,
+    firstName,
+    lastName,
+    phone,
+    phoneCountry,
+    consent,
+  ]);
 
   const destination = callbackUrl ?? "/miembros";
 
@@ -195,6 +257,10 @@ const OnboardingWizard = ({
         redirect: false,
       });
       setLoading(false);
+
+      // La cuenta ya existe: el borrador dejó de tener sentido y se tira, para
+      // no dejar nombre y teléfono en el navegador más tiempo del necesario.
+      if (draftPlanId) clearDraft(draftPlanId);
 
       if (result?.error) {
         // Cuenta creada pero el login automático falló: mándala al acceso.

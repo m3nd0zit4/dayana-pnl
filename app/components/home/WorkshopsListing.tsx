@@ -12,7 +12,7 @@ import {
 } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
 import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
-import WorkshopCheckoutCta from "./WorkshopCheckoutCta";
+import PortalCheckoutCta from "../payments/PortalCheckoutCta";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -148,7 +148,7 @@ const WorkshopCardItem = ({
             </Link>
           ) : visiblePlan ? (
             <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
-              <WorkshopCheckoutCta
+              <PortalCheckoutCta
                 plan={visiblePlan}
                 userCountry={userCountry}
                 isDark={false}

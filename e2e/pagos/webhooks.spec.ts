@@ -7,6 +7,7 @@ import {
   enrollmentOf,
   contactById,
   nextProviderId,
+  nextPhone,
   testEmail,
   cleanupTestData,
   db,
@@ -329,6 +330,59 @@ test.describe("Recompra · el CRM no puede rechazar dinero ya cobrado", () => {
       await paymentsFor(cap2),
       "la segunda compra se perdió: dinero cobrado y nada en el CRM"
     ).toHaveLength(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe("Contacto · fusión con una ficha existente", () => {
+  test("al fusionar por email, la matrícula y el pago sobreviven", async ({
+    baseURL,
+  }) => {
+    /**
+     * `Enrollment.contact` cascadea. Al resolver la colisión de email se
+     * borraba el contacto temporal y se llevaba por delante su matrícula y los
+     * pagos ya escritos contra ella — de ahí el
+     * `P2025 No record was found for an update` cuando otro aviso del mismo
+     * pago llegaba justo después.
+     *
+     * Exigir cuenta antes de pagar volvió esto lo normal: la compradora ya
+     * tiene ficha con ese correo, así que la fusión ocurre en cada compra.
+     */
+    const email = testEmail("fusion");
+    const existente = await db.contact.create({
+      data: {
+        phoneE164: nextPhone(),
+        firstName: "Ficha",
+        lastName: "Existente",
+        email,
+      },
+    });
+
+    const chk = await createCheckout(baseURL!, "paypal", "course-live");
+    const captureId = nextProviderId("CAP");
+
+    await postPayPalWebhook(baseURL!, {
+      eventType: "PAYMENT.CAPTURE.COMPLETED",
+      reference: chk.checkoutReference!,
+      captureId,
+      shape: "capture",
+      amount: "37.32",
+      payerEmail: email,
+    });
+
+    const pagos = await db.payment.findMany({
+      where: { providerPaymentId: captureId },
+      include: { enrollment: true },
+    });
+    expect(pagos, "el pago desapareció al fusionar las fichas").toHaveLength(1);
+    expect(
+      pagos[0].enrollment.contactId,
+      "la matrícula no se movió a la ficha que sobrevive"
+    ).toBe(existente.id);
+    expect(pagos[0].enrollment.paidUntil, "no abrió el mes").toBeTruthy();
+
+    // El temporal desaparece, pero sin llevarse nada por delante.
+    expect(await contactById(chk.contactId!)).toBeNull();
   });
 });
 

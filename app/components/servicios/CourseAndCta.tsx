@@ -3,11 +3,11 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useRef } from "react";
+import { Suspense, useRef } from "react";
 import Link from "next/link";
 import { formatCop, formatUsd, type Plan } from "../../../lib/plans";
 import WhatsAppButton from "../ui/WhatsAppButton";
-import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
+import PortalCheckoutCta from "../payments/PortalCheckoutCta";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,9 +15,16 @@ type Props = {
   coursePlan: Plan | null;
   isColombia: boolean;
   userCountry?: string | null;
+  /** Habilita el botón de Google en el registro previo al pago. */
+  googleEnabled?: boolean;
 };
 
-const CourseAndCta = ({ coursePlan, isColombia, userCountry }: Props) => {
+const CourseAndCta = ({
+  coursePlan,
+  isColombia,
+  userCountry,
+  googleEnabled = false,
+}: Props) => {
   const rootRef = useRef<HTMLElement>(null);
 
   useGSAP(
@@ -134,12 +141,21 @@ const CourseAndCta = ({ coursePlan, isColombia, userCountry }: Props) => {
                 </ul>
               </div>
               <div className="w-full">
-                {/* Un solo botón según región — mismo gating que las terapias */}
-                <PlanCheckoutButtons
-                  plan={coursePlan}
-                  isDark
-                  userCountry={userCountry}
-                />
+                {/*
+                  La mensualidad abre el portal —clases, grabaciones, módulos—,
+                  así que la cuenta tiene que existir ANTES de pagar. Sin ella
+                  se paga y no se entra a ninguna parte: queda la matrícula sin
+                  nadie a quien asociarla. Mismo camino que los talleres.
+                */}
+                <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
+                  <PortalCheckoutCta
+                    plan={coursePlan}
+                    isDark
+                    userCountry={userCountry}
+                    googleEnabled={googleEnabled}
+                    autopayReturnPath="/servicios"
+                  />
+                </Suspense>
               </div>
             </div>
           )}

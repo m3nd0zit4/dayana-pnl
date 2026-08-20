@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { WorkshopDetail } from "../../../lib/workshops";
 import type { Plan } from "../../../lib/plans";
-import WorkshopCheckoutCta from "./WorkshopCheckoutCta";
+import PortalCheckoutCta from "../payments/PortalCheckoutCta";
 
 type WorkshopTeaserProps = {
   workshop: WorkshopDetail;
@@ -63,7 +63,7 @@ const WorkshopTeaser = ({
           </div>
           {plan ? (
             <Suspense fallback={<div className="h-[100px]" aria-hidden />}>
-              <WorkshopCheckoutCta
+              <PortalCheckoutCta
                 plan={plan}
                 userCountry={userCountry}
                 isDark

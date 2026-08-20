@@ -154,9 +154,31 @@ export const reconcilePendingCheckoutContact = async (
   });
 
   if ((email || normalized) && existing) {
+    /**
+     * Se MUEVEN las matrículas antes de borrar el temporal.
+     *
+     * `Enrollment.contact` cascadea: borrar el contacto se lleva por delante
+     * sus matrículas y, con ellas, los pagos ya registrados. Eso rompía de dos
+     * formas cuando llegan dos avisos casi a la vez —el alta de la suscripción
+     * y su primer cobro—: uno borraba lo que el otro estaba usando y saltaba
+     * `P2025 No record was found for an update`, y si el pago ya estaba
+     * escrito, desaparecía con el resto.
+     *
+     * La carrera se volvió lo NORMAL al exigir cuenta antes de pagar: ahora la
+     * compradora casi siempre tiene ya ficha con ese correo, así que esta rama
+     * se ejecuta en cada compra del curso y del taller.
+     *
+     * Mover en vez de destruir conserva el pago y deja el borrado sin efectos
+     * colaterales.
+     */
+    await prisma.enrollment.updateMany({
+      where: { contactId: pending.id },
+      data: { contactId: existing.id },
+    });
+
     await prisma.contact.delete({ where: { id: pending.id } }).catch(() => {
-      // Sin matrícula todavía no debería fallar; si falla, el temporal se
-      // queda huérfano y lo barre la limpieza nocturna.
+      // Si aun así falla, el temporal queda huérfano y lo barre la limpieza
+      // nocturna. Lo que importa —matrículas y pagos— ya está a salvo.
     });
     return existing.id;
   }
@@ -321,4 +343,76 @@ export const abandonStalePlaceholderCheckouts = async (): Promise<number> => {
   }
 
   return abandoned;
+};
+
+/**
+ * Asigna a mano la ficha real de una matrícula que quedó con un contacto
+ * temporal — el «pago sin identificar» del panel.
+ *
+ * Cuando el proveedor no manda email ni teléfono (pasa con Mercado Pago en
+ * efectivo, y con quien paga desde la cuenta de otra persona), la conciliación
+ * automática no tiene por dónde agarrar y el pago se queda colgando de un
+ * `+pending:`. Hasta ahora eso sólo se podía arreglar por SQL.
+ *
+ * Se MUEVE la matrícula, nunca se copia: los pagos cuelgan de ella, así que
+ * moverla se lleva el dinero al contacto correcto de una pieza. El temporal se
+ * borra sólo si se queda sin nada, y sólo si era temporal — reasignar un pago
+ * mal atribuido entre dos fichas reales es legítimo y no debe borrar ninguna.
+ */
+export const assignEnrollmentContact = async (
+  enrollmentId: string,
+  contactId: string
+): Promise<{ contactId: string; placeholderRemoved: boolean }> => {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    select: {
+      id: true,
+      contactId: true,
+      contact: { select: { phoneE164: true } },
+    },
+  });
+  if (!enrollment) {
+    throw Object.assign(new Error("Enrollment not found"), {
+      code: "ENROLLMENT_NOT_FOUND",
+    });
+  }
+
+  const target = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { id: true },
+  });
+  if (!target) {
+    throw Object.assign(new Error("Contact not found"), {
+      code: "CONTACT_NOT_FOUND",
+    });
+  }
+
+  if (enrollment.contactId === contactId) {
+    return { contactId, placeholderRemoved: false };
+  }
+
+  const previousId = enrollment.contactId;
+  const previousWasPlaceholder = isPlaceholderContactPhone(
+    enrollment.contact.phoneE164
+  );
+
+  await prisma.enrollment.update({
+    where: { id: enrollmentId },
+    data: { contactId },
+  });
+
+  let placeholderRemoved = false;
+  if (previousWasPlaceholder) {
+    const remaining = await prisma.enrollment.count({
+      where: { contactId: previousId },
+    });
+    if (remaining === 0) {
+      placeholderRemoved = await prisma.contact
+        .delete({ where: { id: previousId } })
+        .then(() => true)
+        .catch(() => false);
+    }
+  }
+
+  return { contactId, placeholderRemoved };
 };

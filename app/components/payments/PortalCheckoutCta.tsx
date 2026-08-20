@@ -5,14 +5,15 @@ import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getSession, useSession } from "next-auth/react";
 import type { Plan } from "../../../lib/plans";
-import PlanCheckoutButtons from "../payments/PlanCheckoutButtons";
+import PlanCheckoutButtons from "./PlanCheckoutButtons";
 import { useCheckoutModal } from "../../context/CheckoutModalContext";
 import MemberSignInForm from "../miembros/MemberSignInForm";
+import { clearDraft, loadDraft, mergeDraft } from "./onboardingDraft";
 import OnboardingWizard from "../miembros/OnboardingWizard";
 
 type Provider = "paypal" | "mercadopago";
 
-type WorkshopCheckoutCtaProps = {
+type PortalCheckoutCtaProps = {
   plan: Plan;
   userCountry?: string | null;
   isDark: boolean;
@@ -23,20 +24,26 @@ type WorkshopCheckoutCtaProps = {
 };
 
 /**
- * The single path to pay for a workshop: renders the country's payment
- * button; with a session it opens the checkout straight away (sessionFirst —
- * the contact step is skipped when we already know the person), without one
- * it overlays login/onboarding right here and continues into the payment
- * once the session exists. No navigation at any point except Google OAuth,
- * which returns via ?autopay.
+ * Checkout para lo que da acceso al portal: talleres y la mensualidad.
+ *
+ * Esos productos entregan clases, grabaciones y módulos dentro de la
+ * plataforma, así que **la cuenta tiene que existir ANTES de pagar**. Sin ella
+ * la clienta paga y aterriza en ningún sitio: hay matrícula pero nadie con
+ * quien asociarla para entrar. Las terapias no pasan por aquí — se coordinan
+ * por WhatsApp y no abren nada en el portal.
+ *
+ * Con sesión abre el checkout directo (el paso de contacto sobra: ya sabemos
+ * quién es). Sin ella superpone acceso/registro aquí mismo y continúa al pago
+ * en cuanto la sesión existe. No hay navegación en ningún momento salvo el
+ * salto a Google OAuth, que vuelve con `?autopay=<planId>` y reanuda solo.
  */
-const WorkshopCheckoutCta = ({
+const PortalCheckoutCta = ({
   plan,
   userCountry,
   isDark,
   googleEnabled,
   autopayReturnPath,
-}: WorkshopCheckoutCtaProps) => {
+}: PortalCheckoutCtaProps) => {
   const { status } = useSession();
   const { openCheckout: openCheckoutModal } = useCheckoutModal();
   const searchParams = useSearchParams();
@@ -50,6 +57,44 @@ const WorkshopCheckoutCta = ({
   }>(null);
   const pendingProviderRef = useRef<Provider | null>(null);
   const autopayTriggeredRef = useRef(false);
+
+  /**
+   * Reabre el overlay donde estaba tras refrescar o volver a la pestaña.
+   *
+   * Sin esto la clienta vuelve y encuentra la página como si no hubiera
+   * empezado nada: el asistente conservaba los datos, pero había que dar otra
+   * vez a Pagar para verlos. Se lee en un efecto porque `sessionStorage` no
+   * existe en el servidor.
+   */
+  useEffect(() => {
+    const draft = loadDraft(plan.id);
+    if (!draft?.provider) return;
+    setAuthOverlay({
+      provider: draft.provider,
+      mode: draft.mode ?? "wizard",
+      email: draft.email,
+    });
+    // Sólo al montar: reabrir en cada cambio pelearía con cerrar la ✕.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** Se recuerda qué overlay estaba abierto, para poder reabrirlo. */
+  useEffect(() => {
+    if (!authOverlay) return;
+    mergeDraft(plan.id, {
+      provider: authOverlay.provider,
+      mode: authOverlay.mode,
+    });
+  }, [authOverlay, plan.id]);
+
+  /**
+   * Cerrar con la ✕ es una decisión, no un accidente: se descarta el borrador
+   * entero. Lo que NO lo descarta es refrescar o irse — para eso existe.
+   */
+  const dismissOverlay = () => {
+    clearDraft(plan.id);
+    setAuthOverlay(null);
+  };
 
   const providerForCountry: Provider =
     userCountry === "CO" ? "mercadopago" : "paypal";
@@ -86,6 +131,9 @@ const WorkshopCheckoutCta = ({
   };
 
   const continueAfterAuth = (provider: Provider) => {
+    // Ya hay sesión: el borrador cumplió su función. Sin esto el overlay
+    // volvería a abrirse solo al recargar, encima del checkout.
+    clearDraft(plan.id);
     setAuthOverlay(null);
     // Refresh the client session cache, then continue into the checkout —
     // the server resolves the contact from the fresh cookie either way.
@@ -121,9 +169,11 @@ const WorkshopCheckoutCta = ({
             role="dialog"
             aria-modal="true"
             aria-label="Crea tu cuenta o inicia sesión para pagar"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setAuthOverlay(null);
-            }}
+            /*
+              Sin cierre al clicar fuera: aquí se está rellenando un formulario
+              de varios pasos, y un clic despistado en el fondo borraba el
+              avance sin avisar. Se sale por la ✕, que es deliberado.
+            */
           >
             <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-2xl border border-linen/15 bg-black p-6 sm:p-7">
               <div className="mb-5 flex items-start justify-between gap-4">
@@ -140,7 +190,7 @@ const WorkshopCheckoutCta = ({
                 <button
                   type="button"
                   aria-label="Cerrar"
-                  onClick={() => setAuthOverlay(null)}
+                  onClick={dismissOverlay}
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-linen/25 text-white/70 transition-colors hover:border-linen/50 hover:text-white"
                 >
                   ✕
@@ -150,6 +200,7 @@ const WorkshopCheckoutCta = ({
               {authOverlay.mode === "wizard" ? (
                 <>
                   <OnboardingWizard
+                    draftPlanId={plan.id}
                     callbackUrl={callbackUrl}
                     onComplete={() => continueAfterAuth(authOverlay.provider)}
                     onSwitchToLogin={(email) =>
@@ -200,4 +251,4 @@ const WorkshopCheckoutCta = ({
   );
 };
 
-export default WorkshopCheckoutCta;
+export default PortalCheckoutCta;
