@@ -1,6 +1,7 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
+import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import {
   getDateKeyInTz,
   getStartOfDayInTz,
@@ -37,6 +38,7 @@ export const getDashboardStats = async () => {
     recentContacts,
     activeTherapyRows,
     unlinkedPaidEnrollments,
+    usdToCopRate,
   ] = await Promise.all([
     prisma.enrollment.count({
       where: {
@@ -109,6 +111,7 @@ export const getDashboardStats = async () => {
         payments: { some: { status: PaymentStatus.APPROVED } },
       },
     }),
+    resolveUsdToCopRate(),
   ]);
 
   const dayMap = new Map<string, number>();
@@ -120,13 +123,18 @@ export const getDashboardStats = async () => {
 
   for (const row of paymentsRecent) {
     if (!dayMap.has(row.day)) continue;
-    // OJO — bug preexistente, conservado tal cual: las dos ramas son la misma
-    // expresión, así que los pesos colombianos se suman como si fueran
-    // dólares. Arreglarlo cambia una cifra de negocio, no el rendimiento, así
-    // que no se hace de paso: hace falta decidir qué tasa se aplica (ver
-    // lib/pricing/usd-to-cop.ts).
+    /**
+     * Las dos monedas NO comparten escala, y durante meses se sumaron como si
+     * la compartieran: 128.609 COP entraban en la gráfica como 1.286 USD, así
+     * que cualquier día con un cobro por Mercado Pago aplastaba al resto y la
+     * curva de ingresos no medía nada.
+     *
+     * USD va en centavos (÷100). COP se guarda en pesos completos, sin
+     * centavos —ver CLAUDE.md—, así que se convierte con la tasa vigente
+     * (CRM → env → 3500) y no se divide por 100.
+     */
     const minor = Number(row.minor);
-    const usd = row.currency === "USD" ? minor / 100 : minor / 100;
+    const usd = row.currency === "COP" ? minor / usdToCopRate : minor / 100;
     dayMap.set(row.day, (dayMap.get(row.day) ?? 0) + usd);
   }
 

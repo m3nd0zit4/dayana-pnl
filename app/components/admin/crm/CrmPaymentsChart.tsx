@@ -28,7 +28,9 @@ const CrmPaymentsChart = ({ data }: { data: Point[] }) => (
   <Card className="flex h-full min-h-[280px] flex-col">
     <CardHeader>
       <CardTitle>Ingresos (USD)</CardTitle>
-      <CardDescription>Últimos 14 días · pagos aprobados</CardDescription>
+      <CardDescription>
+        Últimos 14 días · pagos aprobados · COP convertido a la tasa vigente
+      </CardDescription>
     </CardHeader>
     <CardContent className="min-h-[220px] flex-1">
       <ChartContainer config={chartConfig} className="h-full w-full">

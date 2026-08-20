@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { PaymentStatus } from "@prisma/client";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Receipt } from "lucide-react";
+import { Receipt, UserPlus } from "lucide-react";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import IdentifyPaymentModal from "./IdentifyPaymentModal";
 import SearchableSelect from "./SearchableSelect";
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
 import { formatMoneyMinor } from "@/lib/crm/money";
 import {
   CrmDataList,
@@ -32,6 +36,8 @@ type Payment = {
   payerCountryIso: string | null;
   paidAt: string | null;
   createdAt: string;
+  /** El pagador no traía email ni teléfono: la ficha es temporal. */
+  unidentified?: boolean;
   enrollment: {
     id: string;
     contact: { id: string; firstName: string; lastName: string | null };
@@ -60,8 +66,15 @@ const PREVIEW: Payment[] = [
 ];
 
 const PaymentsPageClient = ({ preview }: Props) => {
+  const searchParams = useSearchParams();
   const [rows, setRows] = useState<Payment[]>([]);
   const [status, setStatus] = useState("all");
+  // El aviso del panel enlaza aquí con `?sin-identificar=1`, así que la lista
+  // abre ya filtrada en vez de dejar a Dayana buscándolos a ojo.
+  const [onlyUnidentified, setOnlyUnidentified] = useState(
+    searchParams.get("sin-identificar") === "1"
+  );
+  const [identifying, setIdentifying] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,12 +83,18 @@ const PaymentsPageClient = ({ preview }: Props) => {
       setLoading(false);
       return;
     }
-    const params = status !== "all" ? `?status=${status}` : "";
-    fetch(`/api/admin/payments${params}`)
+    const params = new URLSearchParams();
+    if (status !== "all") params.set("status", status);
+    if (onlyUnidentified) params.set("unidentified", "1");
+    const query = params.toString();
+    setLoading(true);
+    fetch(`/api/admin/payments${query ? `?${query}` : ""}`)
       .then((r) => r.json())
       .then((d) => setRows(d.payments ?? []))
       .finally(() => setLoading(false));
-  }, [preview, status]);
+  }, [preview, status, onlyUnidentified]);
+
+  const unidentifiedCount = rows.filter((p) => p.unidentified).length;
 
   return (
     <CrmPageShell>
@@ -101,6 +120,18 @@ const PaymentsPageClient = ({ preview }: Props) => {
             searchMinOptions={99}
           />
         </div>
+        <Button
+          type="button"
+          variant={onlyUnidentified ? "default" : "outline"}
+          size="sm"
+          onClick={() => setOnlyUnidentified((v) => !v)}
+        >
+          <UserPlus aria-hidden />
+          Sin identificar
+          {onlyUnidentified || unidentifiedCount === 0
+            ? ""
+            : ` (${unidentifiedCount})`}
+        </Button>
       </CrmFilterBar>
 
       <CrmDataList>
@@ -129,19 +160,53 @@ const PaymentsPageClient = ({ preview }: Props) => {
                 <div className="text-sm font-semibold">
                   {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
                 </div>
-                <div className="mt-0.5 text-xs text-muted-foreground">
-                  {p.provider} · {STATUS_LABEL[p.status]}
-                  {p.payerCountryIso ? (
-                    <span className="ml-1.5 opacity-70">· {p.payerCountryIso}</span>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>
+                    {p.provider} · {STATUS_LABEL[p.status]}
+                    {p.payerCountryIso ? (
+                      <span className="ml-1.5 opacity-70">
+                        · {p.payerCountryIso}
+                      </span>
+                    ) : null}
+                  </span>
+                  {p.unidentified ? (
+                    <Badge variant="secondary">Sin identificar</Badge>
                   ) : null}
                 </div>
-                <Link
-                  href={preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`}
-                  className="mt-1 block text-xs text-primary hover:underline"
-                >
-                  {p.enrollment.contact.firstName}{" "}
-                  {p.enrollment.contact.lastName ?? ""} — {p.enrollment.product.title}
-                </Link>
+                {p.unidentified ? (
+                  /*
+                    Sin ficha real no hay a dónde enlazar: el nombre que se
+                    mostraría es el del temporal («Cliente», «—») y llevaba a
+                    una ficha que se borra sola esa noche. Se ofrece la acción
+                    que sí sirve: ponerle dueño.
+                  */
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {p.enrollment.product.title}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => (preview ? undefined : setIdentifying(p))}
+                    >
+                      <UserPlus aria-hidden />
+                      Asignar contacto
+                    </Button>
+                  </div>
+                ) : (
+                  <Link
+                    href={
+                      preview ? "#" : `/admin/contacts/${p.enrollment.contact.id}`
+                    }
+                    className="mt-1 block text-xs text-primary hover:underline"
+                  >
+                    {p.enrollment.contact.firstName}{" "}
+                    {p.enrollment.contact.lastName ?? ""} —{" "}
+                    {p.enrollment.product.title}
+                  </Link>
+                )}
                 {!preview ? (
                   <Link
                     href={`/admin/enrollments/${p.enrollment.id}`}
@@ -155,6 +220,35 @@ const PaymentsPageClient = ({ preview }: Props) => {
           ))
         )}
       </CrmDataList>
+
+      {identifying ? (
+        <IdentifyPaymentModal
+          open
+          onClose={() => setIdentifying(null)}
+          paymentId={identifying.id}
+          summary={`${formatMoneyMinor(identifying.amountMinor, identifying.currency)} ${identifying.currency} · ${identifying.provider} · ${identifying.enrollment.product.title}`}
+          onSuccess={(contact) =>
+            setRows((prev) =>
+              prev.map((row) =>
+                row.id === identifying.id
+                  ? {
+                      ...row,
+                      unidentified: false,
+                      enrollment: {
+                        ...row.enrollment,
+                        contact: {
+                          id: contact.id,
+                          firstName: contact.firstName,
+                          lastName: contact.lastName ?? null,
+                        },
+                      },
+                    }
+                  : row
+              )
+            )
+          }
+        />
+      ) : null}
     </CrmPageShell>
   );
 };

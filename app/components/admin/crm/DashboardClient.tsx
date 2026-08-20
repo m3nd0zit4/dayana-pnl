@@ -295,10 +295,13 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           <Alert variant="warning">
             <TriangleAlert aria-hidden />
             <AlertDescription>
-              <Link href="/admin/payments" className="hover:underline">
+              <Link
+                href="/admin/payments?sin-identificar=1"
+                className="hover:underline"
+              >
                 {stats.unlinkedPaidEnrollments} pago
                 {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
-                (legacy) — revisar en Pagos
+                — asignarles contacto en Pagos
               </Link>
             </AlertDescription>
           </Alert>
