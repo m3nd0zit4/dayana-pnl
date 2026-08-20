@@ -135,6 +135,25 @@ export const emitWebinarMeetLinkChanged = async (
   }
 };
 
+/**
+ * El precio de la mensualidad cambió y los proveedores ya lo aceptaron.
+ *
+ * Sirve para lo único que no queda hecho de forma síncrona: recorrer las
+ * suscripciones vivas de Mercado Pago. En PayPal no hace falta —cambiar el plan
+ * las alcanza a todas— y en MP puede haber muchas, así que va en segundo plano.
+ */
+export const emitPriceChanged = async (productId: string): Promise<boolean> => {
+  if (!shouldEmitInngest()) return false;
+  try {
+    const { inngest } = await import("./client");
+    await inngest.send({ name: "price/changed", data: { productId } });
+    return true;
+  } catch (e) {
+    console.warn("[inngest] price/changed emit failed", e);
+    return false;
+  }
+};
+
 export const emitCampaignRun = async (campaignId: string) => {
   if (!shouldEmitInngest()) return;
   try {

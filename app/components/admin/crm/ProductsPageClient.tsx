@@ -45,6 +45,11 @@ type Product = {
   isActive: boolean;
   sortOrder: number;
   prices: ProductPrice[];
+  paypalPlanId?: string | null;
+  mercadoPagoPreapprovalPlanId?: string | null;
+  priceSyncStatus?: "SYNCED" | "DRIFTED";
+  priceSyncNote?: string | null;
+  priceSyncCheckedAt?: string | null;
 };
 
 const KIND_LABEL: Record<ProductKind, string> = {
@@ -53,12 +58,106 @@ const KIND_LABEL: Record<ProductKind, string> = {
   WORKSHOP: "Taller",
 };
 
+const hasSubscriptionPlan = (p: Product) =>
+  Boolean(p.paypalPlanId || p.mercadoPagoPreapprovalPlanId);
+
+/**
+ * El precio de un producto con plan recurrente sólo se guarda si PayPal y
+ * Mercado Pago aceptaron cobrarlo. Cuando uno dice que no, no se guarda nada —
+ * y hay que decir exactamente qué pasó, porque «Error al guardar» dejaría a
+ * Dayana sin saber si el precio cambió o no.
+ */
+const saveErrorMessage = (d: { error?: string; message?: string }): string => {
+  switch (d.error) {
+    case "WORKSHOP_REQUIRES_COP":
+      return "Los talleres requieren un precio COP (Mercado Pago) además del USD.";
+    case "PAYPAL_FAILED":
+    case "MERCADOPAGO_FAILED":
+    case "PAYPAL_REVERT_FAILED":
+    case "PRODUCT_DRIFTED":
+      return d.message ?? "No se pudo cambiar el precio en los proveedores.";
+    case "USE_CHANGE_SUBSCRIPTION_PRICE":
+      return "Este precio se cobra por un plan de suscripción y hay que cambiarlo por el camino sincronizado.";
+    default:
+      return d.message ?? d.error ?? "Error al guardar";
+  }
+};
+
 // Solo para mostrar un equivalente aproximado junto al precio USD en esta
 // tabla — no es la tasa real de cobro (esa vive en lib/pricing/usd-to-cop.ts
 // y se resuelve en checkout).
 const DISPLAY_USD_TO_COP_RATE = 3000;
 const formatCopApprox = (usdAmount: number) =>
   Math.round(usdAmount * DISPLAY_USD_TO_COP_RATE).toLocaleString("es-CO");
+
+/**
+ * Estado del precio frente a los planes del proveedor.
+ *
+ * Se muestra en la fila y no como un toast: un toast se va, y esto es una
+ * condición que sigue siendo verdad mañana. Mientras esté descuadrado, además,
+ * no se aceptan más cambios de precio.
+ */
+const PriceSyncNotice = ({
+  product,
+  canVerify,
+  onVerified,
+}: {
+  product: Product;
+  canVerify: boolean;
+  onVerified: () => void;
+}) => {
+  const { toast } = useCrm();
+  const [checking, setChecking] = useState(false);
+  const drifted = product.priceSyncStatus === "DRIFTED";
+
+  const verify = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch("/api/admin/products/verify-price-sync", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: product.id }),
+      });
+      const d = (await res.json()) as { inSync?: boolean; details?: string };
+      toast(d.details ?? "Verificado", d.inSync ? "success" : "error");
+      onVerified();
+    } catch {
+      toast("No se pudo verificar con los proveedores.", "error");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+      {drifted ? (
+        <span className="text-xs text-destructive">
+          {product.priceSyncNote ??
+            "El precio no coincide con lo que cobran los planes."}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">
+          Precio sincronizado con los planes de cobro
+          {product.priceSyncCheckedAt
+            ? ` · ${new Date(product.priceSyncCheckedAt).toLocaleDateString("es-CO")}`
+            : ""}
+        </span>
+      )}
+      {canVerify ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-6 px-2 text-xs"
+          onClick={() => void verify()}
+          disabled={checking}
+        >
+          {checking ? "Verificando…" : "Verificar ahora"}
+        </Button>
+      ) : null}
+    </div>
+  );
+};
 
 /** Shared between the desktop table cell and the mobile card row. */
 const ProductPriceDisplay = ({
@@ -236,12 +335,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       invalidateCached("products");
       load();
     } else {
-      const d = (await res.json()) as { error?: string };
-      const message =
-        d.error === "WORKSHOP_REQUIRES_COP"
-          ? "Los talleres requieren un precio COP (Mercado Pago) además del USD."
-          : (d.error ?? "Error al guardar");
-      toast(message, "error");
+      const d = (await res.json()) as { error?: string; message?: string };
+      toast(saveErrorMessage(d), "error");
+      // Un fallo de sincronización cambia el estado del producto: hay que
+      // recargar para que el aviso persistente aparezca sin refrescar a mano.
+      load();
     }
   };
 
@@ -508,6 +606,13 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                   <div className="text-xs text-muted-foreground">
                     {KIND_LABEL[p.kind]}
                   </div>
+                  {hasSubscriptionPlan(p) ? (
+                    <PriceSyncNotice
+                      product={p}
+                      canVerify={canManageTeam && !preview}
+                      onVerified={load}
+                    />
+                  ) : null}
                 </div>
                 <div className="text-sm sm:w-40">
                   <ProductPriceDisplay view={view} displayPrice={displayPrice} />

@@ -10,6 +10,12 @@ import {
   updateProduct,
 } from "@/lib/crm/products-admin";
 import { canManageTeam } from "@/lib/crm/staff";
+import { prisma } from "@/lib/db";
+import {
+  changeSubscriptionPrice,
+  hasSubscriptionPlan,
+} from "@/lib/pricing/price-sync";
+import { emitPriceChanged } from "@/lib/inngest/events";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +87,61 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
 
+  const amountUsd = body.amountUsd != null ? Number(body.amountUsd) : undefined;
+  const amountCop =
+    body.amountCop !== undefined
+      ? body.amountCop != null
+        ? Number(body.amountCop)
+        : null
+      : undefined;
+
+  /**
+   * El precio de un producto con plan recurrente va por su propio camino: los
+   * proveedores confirman primero y sólo entonces se persiste. Si no cuadra, se
+   * corta aquí y no se toca NADA del producto — guardar el título mientras el
+   * precio queda a medias sería peor que no guardar.
+   */
+  const existing = await prisma.product.findUnique({
+    where: { id: String(body.id) },
+    select: { paypalPlanId: true, mercadoPagoPreapprovalPlanId: true },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  const priceGoesThroughSync =
+    hasSubscriptionPlan(existing) &&
+    (amountUsd !== undefined || amountCop !== undefined);
+
+  if (priceGoesThroughSync) {
+    const result = await changeSubscriptionPrice(
+      String(body.id),
+      { amountUsd, amountCop },
+      { staffUserId: staff.id }
+    );
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.code, message: result.message },
+        { status: result.code === "PRODUCT_NOT_FOUND" ? 404 : 409 }
+      );
+    }
+    if (result.changed) {
+      fireAuditLog({
+        staffUserId: staff.id,
+        action: "UPDATE",
+        entityType: "Product",
+        entityId: String(body.id),
+        changes: {
+          reason: "subscription_price_change",
+          amountUsd,
+          amountCop,
+          grossUsd: result.newGrossUsd,
+        },
+      });
+      await emitPriceChanged(String(body.id));
+    }
+  }
+
   try {
     const product = await updateProduct(body.id, {
       title: body.title,
@@ -90,25 +151,22 @@ export async function PATCH(req: NextRequest) {
       description: body.description,
       isActive: body.isActive,
       kind: body.kind as ProductKind | undefined,
-      amountUsd: body.amountUsd != null ? Number(body.amountUsd) : undefined,
+      // Ya lo aplicó `changeSubscriptionPrice`; volver a mandarlo haría saltar
+      // la guarda de `updateProduct`.
+      amountUsd: priceGoesThroughSync ? undefined : amountUsd,
       listAmountUsd:
-        body.listAmountUsd !== undefined
-          ? body.listAmountUsd != null
+        priceGoesThroughSync || body.listAmountUsd === undefined
+          ? undefined
+          : body.listAmountUsd != null
             ? Number(body.listAmountUsd)
-            : null
-          : undefined,
-      amountCop:
-        body.amountCop !== undefined
-          ? body.amountCop != null
-            ? Number(body.amountCop)
-            : null
-          : undefined,
+            : null,
+      amountCop: priceGoesThroughSync ? undefined : amountCop,
       listAmountCop:
-        body.listAmountCop !== undefined
-          ? body.listAmountCop != null
+        priceGoesThroughSync || body.listAmountCop === undefined
+          ? undefined
+          : body.listAmountCop != null
             ? Number(body.listAmountCop)
-            : null
-          : undefined,
+            : null,
       sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,
     });
 

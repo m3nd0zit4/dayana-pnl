@@ -4,6 +4,7 @@ import { fulfillCheckoutPayment } from "./checkout-fulfillment";
 import { parseCheckoutReference } from "./checkout-reference";
 import { reconcilePendingCheckoutContact } from "./checkout-placeholder";
 import { recordPayment } from "./payments";
+import { warnOnUnexpectedSubscriptionCharge } from "./subscription-payment-validation";
 import { extractPayPalPayer } from "./paypal-payer";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 
@@ -136,7 +137,7 @@ export const syncSubscriptionPayment = async (
   // Camino normal: la matrícula ya lleva el id de la suscripción.
   const linked = await prisma.enrollment.findUnique({
     where: { paypalSubscriptionId: subscriptionId },
-    select: { id: true },
+    select: { id: true, productId: true },
   });
 
   if (linked) {
@@ -149,6 +150,16 @@ export const syncSubscriptionPayment = async (
       amountMinor,
       rawPayload: resource,
       paidAt: new Date(),
+    });
+    // Vigilancia, no barrera: el dinero ya está cobrado. Ver
+    // lib/crm/subscription-payment-validation.ts.
+    await warnOnUnexpectedSubscriptionCharge({
+      productId: linked.productId,
+      provider: PaymentProvider.PAYPAL,
+      amountMinor,
+      currency,
+      paidAt: new Date(),
+      enrollmentId: linked.id,
     });
     return { outcome: "recorded", enrollmentId: linked.id };
   }
@@ -195,6 +206,15 @@ export const syncSubscriptionPayment = async (
       paypalSubscriptionId: subscriptionId,
       subscriptionStatus: SubscriptionStatus.ACTIVE,
     },
+  });
+
+  await warnOnUnexpectedSubscriptionCharge({
+    productId: checkout.planId,
+    provider: PaymentProvider.PAYPAL,
+    amountMinor,
+    currency,
+    paidAt: new Date(),
+    enrollmentId,
   });
 
   return { outcome: "recorded", enrollmentId };

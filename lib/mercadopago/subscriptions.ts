@@ -43,6 +43,12 @@ export type PreapprovalPlan = {
   id: string;
   init_point?: string;
   status?: string;
+  auto_recurring?: {
+    transaction_amount?: number;
+    currency_id?: string;
+    frequency?: number;
+    frequency_type?: string;
+  };
 };
 
 /**
@@ -77,6 +83,51 @@ export const createPreapprovalPlan = async (input: {
 export const getPreapprovalPlan = async (
   id: string
 ): Promise<PreapprovalPlan> => call<PreapprovalPlan>(`/preapproval_plan/${id}`);
+
+/**
+ * Cambia el importe del plan. Afecta a quien se suscriba a partir de ahora.
+ *
+ * Que alcance también a las suscripciones ya vivas **no está documentado** por
+ * Mercado Pago, así que no se da por hecho: `updatePreapprovalAmount` las
+ * recorre una a una. Al contrario que PayPal, donde el cambio del plan sí las
+ * cubre por diseño.
+ */
+export const updatePreapprovalPlan = async (
+  id: string,
+  amountCop: number
+): Promise<PreapprovalPlan> =>
+  call<PreapprovalPlan>(`/preapproval_plan/${id}`, {
+    method: "PUT",
+    body: {
+      auto_recurring: {
+        transaction_amount: Math.round(amountCop),
+        currency_id: "COP",
+      },
+    },
+  });
+
+/**
+ * Cambia el importe de UNA suscripción viva.
+ *
+ * MP puede rechazarlo —es plausible que exija nueva autorización de la titular
+ * cuando el importe sube—, y en ese caso esa persona sigue pagando el precio
+ * anterior. No se puede forzar desde aquí, así que el fallo se propaga para que
+ * el llamante lo haga visible en vez de tragárselo.
+ */
+export const updatePreapprovalAmount = async (
+  id: string,
+  amountCop: number
+): Promise<void> => {
+  await call(`/preapproval/${id}`, {
+    method: "PUT",
+    body: {
+      auto_recurring: {
+        transaction_amount: Math.round(amountCop),
+        currency_id: "COP",
+      },
+    },
+  });
+};
 
 /**
  * A dónde se manda a la compradora para que autorice el débito.

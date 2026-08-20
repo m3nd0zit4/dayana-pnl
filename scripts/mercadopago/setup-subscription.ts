@@ -5,12 +5,20 @@
  *
  * Con `bun run`, no `bunx tsx`: bun carga `.env` solo.
  *
+ * ## Es idempotente: si ya hay plan, se ACTUALIZA
+ *
+ * Antes cada corrida creaba otro plan y las suscripciones vivas seguían
+ * cobrando por el viejo. Ahora se hace `PUT /preapproval_plan/{id}`. Ojo: eso
+ * cubre a quien se suscriba de aquí en adelante; que alcance a las
+ * suscripciones YA vivas no lo documenta MP, así que de eso se encarga la
+ * función `subscription-price-propagate-mp`, que las recorre una a una.
+ *
  * ## El precio lleva la comisión horneada
  *
  * Un `preapproval_plan` cobra un importe FIJO, igual que un Billing Plan de
  * PayPal, así que el gross-up va dentro. **Cambiar `MERCADOPAGO_FEE_PERCENT`
- * obliga a re-ejecutar esto**, y MP tampoco deja borrar planes: se crea uno
- * nuevo y las suscripciones vivas siguen en el viejo.
+ * obliga a re-ejecutar esto** — y si se olvida, el cron
+ * `subscription-price-drift-check` lo canta.
  *
  * El id va en `Product`, nunca en `ProductPrice`: esa tabla es el precio
  * público y su fila más reciente es la que se pinta en la web.
@@ -21,9 +29,13 @@
  * medio que pueda debitar sin la clienta delante. Por eso la suscripción NO
  * reemplaza al pago suelto en Colombia: conviven.
  */
-import { PrismaClient } from "@prisma/client";
+import { PaymentProvider, PrismaClient } from "@prisma/client";
 import { grossUpInt, mercadoPagoFee } from "../../lib/pricing/fees";
-import { createPreapprovalPlan } from "../../lib/mercadopago/subscriptions";
+import {
+  createPreapprovalPlan,
+  getPreapprovalPlan,
+  updatePreapprovalPlan,
+} from "../../lib/mercadopago/subscriptions";
 
 const db = new PrismaClient();
 
@@ -54,30 +66,55 @@ async function main() {
   console.log(`Comisión : ${fee.toLocaleString("es-CO")} COP`);
   console.log(`Se cobra : ${gross.toLocaleString("es-CO")} COP/mes\n`);
 
-  if (product.mercadoPagoPreapprovalPlanId) {
-    console.log(
-      `Ya existe un plan: ${product.mercadoPagoPreapprovalPlanId}\n` +
-        `MP no deja borrarlos. Si el precio cambió, esto creará OTRO y las\n` +
-        `suscripciones vivas seguirán cobrando por el viejo.`
-    );
+  let planId = product.mercadoPagoPreapprovalPlanId;
+
+  if (planId) {
+    const live = (await getPreapprovalPlan(planId)).auto_recurring
+      ?.transaction_amount;
+    if (live != null && Math.round(live) === gross) {
+      console.log(`El plan ${planId} ya cobra ${gross.toLocaleString("es-CO")} COP. Nada que hacer.`);
+    } else {
+      await updatePreapprovalPlan(planId, gross);
+      console.log(
+        `Plan ${planId} actualizado: ${live != null ? Math.round(live).toLocaleString("es-CO") : "?"} → ${gross.toLocaleString("es-CO")} COP`
+      );
+      console.log(
+        "Cubre a las nuevas altas. Para las suscripciones vivas, el cambio de\n" +
+          "precio desde el CRM dispara la propagación una a una."
+      );
+    }
+  } else {
+    const base = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+    if (!base) throw new Error("Falta NEXT_PUBLIC_SITE_URL");
+
+    const plan = await createPreapprovalPlan({
+      reason: `${product.title} — mensualidad`,
+      amountCop: gross,
+      backUrl: `${base}/pago/exito?suscripcion=1`,
+    });
+    planId = plan.id;
+    console.log(`Plan creado: ${planId}`);
   }
-
-  const base = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!base) throw new Error("Falta NEXT_PUBLIC_SITE_URL");
-
-  const plan = await createPreapprovalPlan({
-    reason: `${product.title} — mensualidad`,
-    amountCop: gross,
-    backUrl: `${base}/pago/exito?suscripcion=1`,
-  });
 
   await db.product.update({
     where: { id: product.id },
-    data: { mercadoPagoPreapprovalPlanId: plan.id },
+    data: { mercadoPagoPreapprovalPlanId: planId },
   });
 
-  console.log(`Plan creado y guardado: ${plan.id}`);
-  console.log("\nRecuerda: cambiar las comisiones obliga a re-ejecutar esto.");
+  // El testigo de que MP aceptó este importe: contra esto se comparan los
+  // cobros que van llegando.
+  await db.productPriceSync.create({
+    data: {
+      productId: product.id,
+      provider: PaymentProvider.MERCADO_PAGO,
+      currency: "COP",
+      grossMinor: gross,
+      netMinor: net,
+      externalPlanId: planId,
+    },
+  });
+
+  console.log(`\nGuardado en ${product.id}.`);
 }
 
 main()

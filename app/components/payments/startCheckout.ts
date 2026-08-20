@@ -78,9 +78,10 @@ export const startCheckout = async (
         return "Ese código promocional no es válido para este plan.";
       }
       if (data.error === "promo_not_supported") {
-        // Un plan de PayPal cobra precio fijo: descontar exigiría un plan por
-        // código. Mejor decirlo que cobrar el total en silencio.
-        return "Los códigos promocionales no aplican a la suscripción mensual.";
+        // El curso se cobra por un plan de precio fijo en los dos rieles, y
+        // Mercado Pago no sabe cobrar un primer mes más barato. Mejor decirlo
+        // que cobrar el total en silencio. Ver lib/crm/promo-codes.ts.
+        return "Los códigos promocionales no aplican al curso.";
       }
       if (data.error === "no_subscription_plan") {
         return "La suscripción no está disponible todavía. Escríbenos por WhatsApp.";

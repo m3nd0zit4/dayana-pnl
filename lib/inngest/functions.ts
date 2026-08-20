@@ -638,6 +638,130 @@ export const webinarMeetLinkBroadcastFn = inngest.createFunction(
     step.run("send-link-emails", () => drainWebinarMail("link"))
 );
 
+/**
+ * Red de seguridad del precio de la mensualidad.
+ *
+ * `changeSubscriptionPrice` ya impide que el CRM y los planes se separen, pero
+ * hay una vía que no pasa por ahí: cambiar `PAYPAL_FEE_PERCENT` o
+ * `MERCADOPAGO_FEE_PERCENT` mueve el bruto sin que nadie toque el precio. Esto
+ * lo pilla, porque compara contra el importe **vivo** leído de cada proveedor.
+ *
+ * Sólo mira y canta: no escribe precios jamás.
+ */
+export const subscriptionPriceDriftCheckFn = inngest.createFunction(
+  { id: "subscription-price-drift-check" },
+  { cron: "0 7 * * *" },
+  async ({ step }) => {
+    const products = await step.run("list-subscription-products", async () => {
+      const { prisma } = await import("@/lib/db");
+      return prisma.product.findMany({
+        where: {
+          OR: [
+            { paypalPlanId: { not: null } },
+            { mercadoPagoPreapprovalPlanId: { not: null } },
+          ],
+        },
+        select: { id: true },
+      });
+    });
+
+    const results: { productId: string; inSync: boolean }[] = [];
+    for (const product of products) {
+      const res = await step.run(`verify-${product.id}`, async () => {
+        const { verifyProductPriceSync } = await import(
+          "@/lib/pricing/price-sync"
+        );
+        return verifyProductPriceSync(product.id);
+      });
+      results.push({ productId: product.id, inSync: res.inSync });
+    }
+    return { checked: results.length, drifted: results.filter((r) => !r.inSync).length };
+  }
+);
+
+/**
+ * Lleva el precio nuevo a las suscripciones vivas de Mercado Pago.
+ *
+ * En PayPal no hace falta: cambiar el plan las alcanza a todas. MP no garantiza
+ * eso, así que se recorren una a una. Cada una en su propio `step.run` para que
+ * un rechazo no arrastre a las demás — y un rechazo es posible: MP puede exigir
+ * nueva autorización de la titular si el importe sube. Esa persona seguiría
+ * pagando el precio anterior, así que el fallo se hace visible en vez de
+ * tragárselo.
+ */
+export const subscriptionPricePropagateMpFn = inngest.createFunction(
+  { id: "subscription-price-propagate-mp", concurrency: { limit: 1 } },
+  { event: "price/changed" },
+  async ({ event, step }) => {
+    const productId = String(event.data.productId);
+
+    const target = await step.run("resolve-target-amount", async () => {
+      const { prisma } = await import("@/lib/db");
+      const { grossUpInt, mercadoPagoFee } = await import("@/lib/pricing/fees");
+      const product = await prisma.product.findUnique({
+        where: { id: productId },
+        include: { prices: { where: { currency: "COP" }, orderBy: { validFrom: "desc" }, take: 1 } },
+      });
+      const net = product?.prices[0]?.amountMinor;
+      if (!product?.mercadoPagoPreapprovalPlanId || !net) return null;
+      return { grossCop: grossUpInt(net, mercadoPagoFee()).gross };
+    });
+    if (!target) return { skipped: "no_mercadopago_plan" };
+
+    const subs = await step.run("list-live-subscriptions", async () => {
+      const { prisma } = await import("@/lib/db");
+      return prisma.enrollment.findMany({
+        where: {
+          productId,
+          subscriptionStatus: "ACTIVE",
+          mercadoPagoPreapprovalId: { not: null },
+        },
+        select: {
+          id: true,
+          mercadoPagoPreapprovalId: true,
+          contact: { select: { firstName: true, lastName: true } },
+        },
+      });
+    });
+
+    let updated = 0;
+    let failed = 0;
+    for (const sub of subs) {
+      const ok = await step.run(`update-${sub.id}`, async () => {
+        const { updatePreapprovalAmount } = await import(
+          "@/lib/mercadopago/subscriptions"
+        );
+        try {
+          await updatePreapprovalAmount(
+            sub.mercadoPagoPreapprovalId!,
+            target.grossCop
+          );
+          return true;
+        } catch (e) {
+          const name = `${sub.contact.firstName} ${sub.contact.lastName ?? ""}`.trim();
+          await emitPlatformNotification({
+            eventType: "SUBSCRIPTION_PRICE_PROPAGATION_FAILED",
+            title: `${name} sigue con el precio anterior`,
+            body:
+              `Mercado Pago rechazó actualizar su suscripción a ` +
+              `${target.grossCop.toLocaleString("es-CO")} COP. ` +
+              `${e instanceof Error ? e.message : String(e)}`,
+            href: `/admin/enrollments/${sub.id}`,
+            entityType: "Enrollment",
+            entityId: sub.id,
+            staff: "ALL",
+          }).catch(() => undefined);
+          return false;
+        }
+      });
+      if (ok) updated += 1;
+      else failed += 1;
+    }
+
+    return { updated, failed };
+  }
+);
+
 export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
@@ -654,4 +778,6 @@ export const inngestFunctions = [
   webinarMailerFn,
   webinarMailContinueFn,
   webinarMeetLinkBroadcastFn,
+  subscriptionPriceDriftCheckFn,
+  subscriptionPricePropagateMpFn,
 ];

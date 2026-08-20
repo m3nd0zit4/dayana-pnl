@@ -105,6 +105,36 @@ aprobado más**, `Enrollment.paidUntil` decide el acceso y
 - **El gross-up va horneado en el precio del plan** en ambos, como en Stripe: los
   planes cobran importe fijo. Cambiar `PAYPAL_FEE_*` o `MERCADOPAGO_FEE_*` obliga
   a re-ejecutar el script, y ninguno de los dos deja borrar planes.
+- **El precio de la mensualidad NO se escribe en `ProductPrice` a secas.** Pasa
+  por `changeSubscriptionPrice` (`lib/pricing/price-sync.ts`), que primero llama
+  a PayPal (`update-pricing-schemes`) y a MP (`PUT /preapproval_plan`) y **sólo
+  persiste si ambos aceptaron**. Por eso es imposible que la web anuncie un
+  precio que los planes no cobren: ese precio no llega a existir en la base.
+  `updateProduct` lanza `USE_CHANGE_SUBSCRIPTION_PRICE` si alguien lo intenta por
+  la puerta de atrás. Si MP falla se revierte PayPal; si la reversión también
+  falla, el producto queda `DRIFTED`, visible en `/admin/products`, y **aun así
+  el precio no se guarda** — mejor anunciar de menos que prometer lo que nadie
+  cobra.
+- **Cambiar el precio del plan de PayPal alcanza a las suscripciones vivas**
+  (spec oficial), salvo los cobros de los 10 días siguientes — de ahí
+  `PAYPAL_PRICE_GRACE_DAYS` y que `ProductPriceSync` guarde histórico: un cobro
+  con el importe anterior dentro de esa ventana es correcto. MP no documenta
+  nada equivalente, así que `subscription-price-propagate-mp` recorre las
+  suscripciones vivas una a una; si MP rechaza una —puede exigir nueva
+  autorización si el importe sube— esa persona sigue pagando lo viejo y salta
+  `SUBSCRIPTION_PRICE_PROPAGATION_FAILED`.
+- Los `setup-subscription.ts` **ya son idempotentes**: si hay plan, lo actualizan.
+  Antes creaban otro y las suscripciones vivas se quedaban en el viejo, que es
+  precisamente cómo se producía el desfase.
+- El cron `subscription-price-drift-check` (07:00) compara contra el precio
+  **vivo leído de la API**, no contra nuestra tabla, así que también pilla un
+  cambio de comisión que nadie propagó.
+- **El curso no admite códigos promocionales**, en ningún riel ni en el pago
+  suelto (`PROMO_EXCLUDED_PRODUCT_IDS` en `lib/crm/promo-codes.ts`). Descontar
+  sobre un plan de precio fijo exigiría un plan por código, y **MP no sabe cobrar
+  un primer mes más barato** — sólo mes gratis. La exclusión va en código y no en
+  `PromoCodeProduct` porque un código sin productos asociados vale para todo el
+  catálogo: cualquier cupón nuevo volvería a alcanzar al curso solo.
 - `providerPaymentId` namespaceado: `sale:<id>` (PayPal) y
   `preapproval:<id>` (MP), para no chocar con los capturas y pagos sueltos en
   `@@unique([provider, providerPaymentId])`.
@@ -128,6 +158,25 @@ Por eso `NEXT_PUBLIC_SITE_URL` es `https://www.dayanabeltran.com`: de ahí sale 
 `bun run scripts/paypal/webhooks.ts` compara los webhooks de la cuenta contra el
 `PAYPAL_WEBHOOK_ID` del entorno y canta si no cuadran; `--sync <url>` los deja
 al día. Un id que no existe en la cuenta hace que PayPal responda FAILURE a todo.
+**`--sync` no borra el anterior**: tras reapuntar de ápice a `www` quedaron dos
+webhooks vivos y el del ápice siguió acumulando entregas fallidas hasta que se
+borró a mano. Si el inventario lista uno que no es el `PAYPAL_WEBHOOK_ID`, sobra.
+
+**El webhook del panel de Mercado Pago es config aparte y NO la cubre
+`notification_url`.** Cada preferencia lleva la suya, así que los pagos sueltos
+van cubiertos aunque el panel esté mal — por eso el fallo pasó desapercibido:
+el panel apuntaba al ápice y marcaba *0% de notificaciones entregadas*. Pero
+`preapproval` **no** admite `notification_url` por petición, así que
+`subscription_preapproval` y `subscription_authorized_payment` llegan sólo por
+ahí. Se configura en *Tus integraciones → la app → Webhooks*, en **Modo
+productivo** (el de prueba es una URL distinta, la del túnel), y hay que marcar
+el evento **«Planes y suscripciones»** además de «Pagos (legacy)»: sin él la
+mensualidad se cobra y el CRM no se entera.
+
+No uses «Simular notificación» contra producción para comprobarlo: el id de
+ejemplo no existe en `/v1/payments`, el handler cae al catch y dispara una
+alerta de *falló el webhook* a todo el staff. El `POST` que devuelve 401 ya
+prueba que la URL alcanza la función.
 
 #### Un pago cobrado no se puede rechazar
 

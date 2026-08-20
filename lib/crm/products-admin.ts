@@ -116,6 +116,28 @@ export const updateProduct = async (
   });
   if (!existing) throw new Error("NOT_FOUND");
 
+  /**
+   * Un producto con plan recurrente no puede cambiar de precio por aquí.
+   *
+   * Escribir `ProductPrice` a secas dejaría a la web anunciando un importe que
+   * los planes de PayPal y Mercado Pago no cobran, porque ellos llevan la cifra
+   * horneada dentro. Ese camino pasa por `changeSubscriptionPrice`
+   * (`lib/pricing/price-sync.ts`), que sólo persiste después de que los dos
+   * proveedores hayan aceptado. La guarda está aquí y no en la ruta para que
+   * tampoco se cuele desde un script o desde una ruta nueva.
+   */
+  const touchesPrice =
+    input.amountUsd !== undefined ||
+    input.amountCop !== undefined ||
+    input.listAmountUsd !== undefined ||
+    input.listAmountCop !== undefined;
+  if (
+    touchesPrice &&
+    (existing.paypalPlanId || existing.mercadoPagoPreapprovalPlanId)
+  ) {
+    throw new Error("USE_CHANGE_SUBSCRIPTION_PRICE");
+  }
+
   const nextKind = input.kind ?? existing.kind;
   const nextSessions =
     input.sessionsCount !== undefined ? input.sessionsCount : existing.sessionsCount;

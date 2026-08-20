@@ -138,6 +138,43 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: OWNER_OPERATOR,
   },
+  PRICE_SYNC_DRIFT: {
+    label: "El precio no cuadra con los proveedores",
+    description:
+      "Lo que cobra el plan de PayPal o Mercado Pago no coincide con el precio del CRM.",
+    group: "Pagos y ventas",
+    defaultSeverity: "ERROR",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: true,
+    roles: OWNER_DEV,
+    // Una vez al día basta: el cron lo revisa a diario y el problema no se
+    // arregla solo, así que repetirlo cada hora sería ruido.
+    coalesceWindowSec: 86400,
+  },
+  SUBSCRIPTION_AMOUNT_MISMATCH: {
+    label: "Cobro por un importe inesperado",
+    description:
+      "Una suscripción cobró una cifra distinta de la que debería según el CRM.",
+    group: "Pagos y ventas",
+    defaultSeverity: "ERROR",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: true,
+    roles: OWNER_DEV,
+    coalesceWindowSec: 3600,
+  },
+  SUBSCRIPTION_PRICE_PROPAGATION_FAILED: {
+    label: "No se pudo cambiar el precio a una suscriptora",
+    description:
+      "Mercado Pago rechazó actualizar el importe de una suscripción viva; sigue pagando el precio anterior.",
+    group: "Pagos y ventas",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: true,
+    roles: OWNER_OPERATOR,
+  },
   PAYMENT_REFUNDED: {
     label: "Pago reembolsado",
     description: "Se devolvió el dinero de un pago aprobado.",

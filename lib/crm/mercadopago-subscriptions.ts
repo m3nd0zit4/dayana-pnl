@@ -4,6 +4,7 @@ import { fulfillCheckoutPayment } from "./checkout-fulfillment";
 import { parseCheckoutReference } from "./checkout-reference";
 import { reconcilePendingCheckoutContact } from "./checkout-placeholder";
 import { recordPayment } from "./payments";
+import { warnOnUnexpectedSubscriptionCharge } from "./subscription-payment-validation";
 import {
   getAuthorizedPayment,
   getPreapproval,
@@ -197,7 +198,7 @@ export const syncAuthorizedPayment = async (
 
   const linked = await prisma.enrollment.findUnique({
     where: { mercadoPagoPreapprovalId: preapprovalId },
-    select: { id: true },
+    select: { id: true, productId: true },
   });
 
   if (linked) {
@@ -210,6 +211,17 @@ export const syncAuthorizedPayment = async (
       amountMinor,
       rawPayload: authorized,
       paidAt: new Date(),
+    });
+    // Vigilancia, no barrera: el cobro ya ocurrió. En MP esto además es la
+    // forma de enterarse de que una suscripción se quedó en el precio viejo
+    // porque rechazó la actualización.
+    await warnOnUnexpectedSubscriptionCharge({
+      productId: linked.productId,
+      provider: PaymentProvider.MERCADO_PAGO,
+      amountMinor,
+      currency,
+      paidAt: new Date(),
+      enrollmentId: linked.id,
     });
     return { outcome: "recorded", enrollmentId: linked.id };
   }
@@ -254,6 +266,15 @@ export const syncAuthorizedPayment = async (
       subscriptionStatus: SubscriptionStatus.ACTIVE,
       subscriptionProvider: PaymentProvider.MERCADO_PAGO,
     },
+  });
+
+  await warnOnUnexpectedSubscriptionCharge({
+    productId: checkout.planId,
+    provider: PaymentProvider.MERCADO_PAGO,
+    amountMinor,
+    currency,
+    paidAt: new Date(),
+    enrollmentId,
   });
 
   return { outcome: "recorded", enrollmentId };

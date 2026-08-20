@@ -224,6 +224,9 @@ enum NotificationEventType {
   SUBSCRIPTION_STARTED
   SUBSCRIPTION_PAYMENT_FAILED
   SUBSCRIPTION_CANCELLED
+  PRICE_SYNC_DRIFT
+  SUBSCRIPTION_AMOUNT_MISMATCH
+  SUBSCRIPTION_PRICE_PROPAGATION_FAILED
   // Embudo e inscripciones
   LEAD_CREATED
   WEB_LEAD_SUBMITTED
@@ -400,6 +403,18 @@ model Product {
   /// funciona con TARJETA: ni PSE, ni Nequi, ni efectivo. Por eso en Colombia
   /// conviven la suscripción y el pago suelto.
   mercadoPagoPreapprovalPlanId String? @unique @map("mercadopago_preapproval_plan_id")
+
+  /// ¿Cuadra el precio del CRM con lo que cobran los planes del proveedor?
+  ///
+  /// `DRIFTED` sólo se alcanza cuando algo salió mal de verdad: una
+  /// actualización a medias que no se pudo revertir, o el cron encontrando una
+  /// diferencia. Mientras esté así, `changeSubscriptionPrice` rehúsa nuevos
+  /// cambios — apilar un desfase sobre otro deja imposible saber qué se cobra.
+  priceSyncStatus    SubscriptionPriceSyncStatus @default(SYNCED) @map("price_sync_status")
+  /// Qué cobra cada lado, en texto, para que el panel lo pueda enseñar sin
+  /// tener que volver a llamar a los proveedores.
+  priceSyncNote      String?   @map("price_sync_note") @db.Text
+  priceSyncCheckedAt DateTime? @map("price_sync_checked_at")
   /// Managed Payments (Stripe/Link como merchant of record) para este producto.
   /// Solo productos 100% digitales sin intervención humana son elegibles, así
   /// que esto NO se deriva de `kind` en tiempo de checkout: se sella aquí al
@@ -410,6 +425,7 @@ model Product {
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
   prices            ProductPrice[]
+  priceSyncs        ProductPriceSync[]
   enrollments       Enrollment[]
   workshopEditions  WorkshopEdition[]
   courseModules     CourseModule[]
@@ -433,6 +449,39 @@ model ProductPrice {
 
   @@index([productId, currency])
   @@map("product_prices")
+}
+
+enum SubscriptionPriceSyncStatus {
+  SYNCED
+  DRIFTED
+}
+
+/// Lo que un proveedor confirmó que va a cobrar por la mensualidad.
+///
+/// Es el testigo del invariante: una fila aquí significa que PayPal o Mercado
+/// Pago ACEPTARON el importe. `ProductPrice` sólo se escribe cuando existen
+/// estas filas, así que la web no puede anunciar un precio que los planes no
+/// estén cobrando ya.
+///
+/// Guarda el bruto (con gross-up, que es lo que cobra el plan) junto al neto
+/// del que salió, porque son cifras distintas y comparar la equivocada es
+/// justo el error que esta tabla existe para evitar. El histórico importa: un
+/// cobro puede llegar con el precio ANTERIOR y seguir siendo correcto, porque
+/// PayPal no aplica un cambio a los pagos de los 10 días siguientes.
+model ProductPriceSync {
+  id             String          @id @default(cuid())
+  productId      String          @map("product_id")
+  provider       PaymentProvider
+  currency       String          @db.Char(3)
+  grossMinor     Int             @map("gross_minor")
+  netMinor       Int             @map("net_minor")
+  externalPlanId String          @map("external_plan_id")
+  appliedAt      DateTime        @default(now()) @map("applied_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, provider, appliedAt(sort: Desc)])
+  @@map("product_price_syncs")
 }
 
 model WorkshopEdition {
