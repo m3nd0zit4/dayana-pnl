@@ -129,6 +129,38 @@ export const SEED_PLANS: Plan[] = [
       "Hola Dayana, quiero información e inscripción al curso en vivo por Google Meet.",
   },
   {
+    // La anualidad es un **pago único que concede doce meses**, no un segundo
+    // plan recurrente. Crear otro Billing Plan en PayPal y otro
+    // preapproval_plan en Mercado Pago obligaría a duplicar toda la maquinaria
+    // de sincronización de precios —que está escrita para un plan por
+    // proveedor y por producto— y ninguno de los dos deja borrar planes si
+    // sale mal. Un pago suelto no toca nada de eso: entra por el mismo camino
+    // que cualquier otro cobro y `membershipMonths` decide que suma doce.
+    //
+    // `sortOrder` la deja **después** de la mensualidad: `getMembershipProduct`
+    // ordena por ese campo y tiene que seguir devolviendo la recurrente.
+    id: "course-annual",
+    kind: "course",
+    title: "Biblioteca · un año",
+    sessions: "Pago único",
+    membershipMonths: 12,
+    // Diez meses al precio de doce: dos meses de regalo por comprometerse un
+    // año. El descuento va en el precio y no en un código promocional porque
+    // el curso no admite promos en ningún riel.
+    amountUsd: 350,
+    listAmountUsd: 420,
+    unitPrice: "al año",
+    features: [
+      "Doce meses de acceso a toda la biblioteca, pagados de una vez",
+      "Dos meses menos que pagando mes a mes",
+      "Clases en vivo por Google Meet y sus grabaciones",
+      "Material descargable, ejercicios y evaluaciones por módulo",
+      "No se renueva solo: al terminar decides si sigues",
+    ],
+    whatsappMessage:
+      "Hola Dayana, quiero la biblioteca por un año y me gustaría confirmar el pago.",
+  },
+  {
     id: "workshop-virtual",
     kind: "course",
     title: "Taller virtual",
@@ -155,4 +187,5 @@ export const COP_PRICES: Record<string, { amount: number; listAmount?: number }>
   "therapy-12": { amount: 1_960_000, listAmount: 3_360_000 },
   "therapy-24": { amount: 3_920_000, listAmount: 6_720_000 },
   "course-live":{ amount: 122_500 },
+  "course-annual": { amount: 1_225_000, listAmount: 1_470_000 },
 };

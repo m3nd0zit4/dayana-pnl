@@ -313,6 +313,7 @@ model Contact {
   channelIdentities      ContactChannelIdentity[]
   webinarRegistrations   WebinarRegistration[]
   diagnostics            Diagnostic[]
+  paymentLinks           PaymentLink[]
 
   /// Columna de búsqueda plegada: nombre, apellido, display, email y teléfono
   /// (con y sin separadores) en minúsculas y sin tildes.
@@ -396,6 +397,13 @@ model Product {
   /// ProductPrice, que es el histórico de precios PÚBLICOS y cuya fila más
   /// reciente se muestra en la web: escribir ahí el importe con comisión
   /// inflaría el precio de cara a la clienta.
+  /// Cuántos meses de acceso concede un pago aprobado de este producto.
+  /// Sólo lo leen los productos COURSE que no son contenido: 1 la mensualidad,
+  /// 12 la anualidad. Vive en el producto y no en una constante porque es lo
+  /// que distingue los dos planes de membresía, y `applyMembershipExtension`
+  /// tiene que poder decidirlo sin conocer ids concretos.
+  membershipMonths Int? @map("membership_months")
+
   paypalPlanId    String? @unique @map("paypal_plan_id")
 
   /// Plan de suscripción (preapproval_plan) de Mercado Pago, en COP. Mismo
@@ -433,6 +441,7 @@ model Product {
   liveClassSessions LiveClassSession[]
   promoCodes        PromoCodeProduct[]
   diagnostics       Diagnostic[]
+  paymentLinks      PaymentLink[]
 
   @@index([kind])
   @@map("products")
@@ -902,6 +911,7 @@ model StaffUser {
   socialAccounts           SocialAccount[]
   socialPosts              SocialPost[]
   googleAccounts           GoogleAccount[]
+  paymentLinks             PaymentLink[]
 
   @@map("staff_users")
 }
@@ -1705,4 +1715,57 @@ model Diagnostic {
   /// abandonados; sin el orden en el índice eso es un sort en memoria.
   @@index([completedAt(sort: Desc)])
   @@map("diagnostics")
+}
+
+/// Un enlace de pago que el equipo genera y envía por WhatsApp.
+///
+/// Existe porque el camino real de venta hoy termina en una conversación: se
+/// habla con la persona, se acuerda un paquete concreto y hay que cobrarlo.
+/// Hasta ahora eso significaba mandarla al catálogo entero a que encontrara
+/// sola lo que ya habían acordado — cinco precios y una tabla comparativa
+/// delante de alguien que ya había decidido. Cada opción de más es una
+/// oportunidad de reconsiderar.
+///
+/// El enlace abre una página con **un solo producto**, su precio, y un botón.
+/// Nada más: ni menú, ni comparativa, ni las otras opciones.
+model PaymentLink {
+  id String @id @default(cuid())
+
+  /// Segmento público de la URL. 32 bytes de aleatoriedad real, igual que
+  /// `Diagnostic.token`, porque la página muestra el nombre de la persona.
+  /// **No decide qué se cobra**: el precio sale del producto en cada carga,
+  /// nunca del enlace, así que manipularlo no puede cambiar un importe.
+  token String @unique
+
+  contactId String @map("contact_id")
+  productId String @map("product_id")
+
+  /// Nota corta que se pinta bajo el precio: "lo que hablamos el martes".
+  /// La escribe quien genera el enlace y es lo que lo hace personal.
+  note String? @db.Text
+
+  /// Quién lo generó, para la auditoría.
+  createdByStaffId String? @map("created_by_staff_id")
+
+  /// Vencimiento opcional. Un enlace acordado en una llamada no debería seguir
+  /// vivo meses después, cuando el precio ya cambió.
+  expiresAt DateTime? @map("expires_at")
+
+  /// Se sella al abrirlo y al empezar el pago. Sirve para saber si la persona
+  /// llegó a verlo antes de insistirle.
+  openedAt          DateTime? @map("opened_at")
+  checkoutStartedAt DateTime? @map("checkout_started_at")
+
+  /// Se desactiva a mano desde el panel. Un enlace revocado responde 404.
+  revokedAt DateTime? @map("revoked_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  contact        Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdByStaff StaffUser?  @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([contactId, createdAt(sort: Desc)])
+  @@map("payment_links")
 }

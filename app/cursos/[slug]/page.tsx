@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import Footer from "@/app/components/home/Footer";
 import FloatingWhatsApp from "@/app/components/ui/FloatingWhatsApp";
 import JsonLd from "@/app/components/seo/JsonLd";
-import PortalCheckoutCta from "@/app/components/payments/PortalCheckoutCta";
+import MembershipPicker from "@/app/components/cursos/MembershipPicker";
 import { getCourseDetail, listCourseSlugs } from "@/lib/courses/catalog";
 import { BRAND } from "@/lib/contact";
-import { formatCop, formatUsd } from "@/lib/plans";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getSiteUrl } from "@/lib/site-url";
 import { isGoogleAuthEnabled } from "@/auth";
@@ -53,15 +51,16 @@ const CursoDetallePage = async ({
   // cursos a medio grabar y una página a medias vende peor que ninguna.
   if (!detail) notFound();
 
-  const { course, modules, membership, userCountry, isColombia, siblingCount } =
-    detail;
+  const {
+    course,
+    modules,
+    membership,
+    annual,
+    userCountry,
+    isColombia,
+    siblingCount,
+  } = detail;
   const siteUrl = getSiteUrl();
-
-  const price = membership
-    ? isColombia && membership.amountCop != null
-      ? formatCop(membership.amountCop)
-      : formatUsd(membership.amountUsd)
-    : null;
 
   return (
     <>
@@ -174,19 +173,8 @@ const CursoDetallePage = async ({
                 <h3 className="font-[font2] text-xl uppercase leading-tight">
                   {membership.title}
                 </h3>
-                {price && (
-                  <p className="mt-5 flex flex-wrap items-baseline gap-2.5">
-                    <span className="font-[font2] text-4xl leading-none">
-                      {price}
-                    </span>
-                    <span className="font-[font1] text-base text-black/50">
-                      {membership.unitPrice ?? "por mes"}
-                    </span>
-                  </p>
-                )}
-
                 {membership.features.length > 0 && (
-                  <ul className="mt-7 flex flex-col gap-2.5 border-t border-black/10 pt-6">
+                  <ul className="mt-6 flex flex-col gap-2.5 border-t border-black/10 pt-6">
                     {membership.features.map((feature) => (
                       <li
                         key={feature}
@@ -201,16 +189,16 @@ const CursoDetallePage = async ({
                   </ul>
                 )}
 
-                {/* Cuenta antes que pago: la mensualidad entrega el portal. */}
-                <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
-                  <PortalCheckoutCta
-                    plan={membership}
-                    isDark={false}
+                <div className="mt-8">
+                  <MembershipPicker
+                    monthly={membership}
+                    annual={annual}
+                    isColombia={isColombia}
                     userCountry={userCountry}
                     googleEnabled={isGoogleAuthEnabled()}
-                    autopayReturnPath={`/cursos/${slug}`}
+                    returnPath={`/cursos/${slug}`}
                   />
-                </Suspense>
+                </div>
 
                 <p className="mt-6 border-t border-black/10 pt-5 font-[font1] text-sm leading-relaxed text-black/55">
                   Se renueva cada mes y la cancelas cuando quieras. Al cancelar

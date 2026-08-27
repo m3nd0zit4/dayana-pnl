@@ -84,8 +84,6 @@ const ResultadoPage = async ({
     "manifestacion",
     diagnostic.answers.manifestacion,
   );
-  const goal =
-    typeof diagnostic.answers.meta === "string" ? diagnostic.answers.meta : null;
   const timeLabel = answerLabels("tiempo", diagnostic.answers.tiempo)[0] ?? null;
 
   // Se contesta la objeción que eligió, no las cinco. Enumerarlas todas obliga
@@ -103,10 +101,6 @@ const ResultadoPage = async ({
   const needsAuthority =
     whyDayana.length === 0 || whyDayana.includes("aun-no-lo-se");
 
-  const change =
-    typeof diagnostic.answers.cambio === "string"
-      ? diagnostic.answers.cambio
-      : null;
 
   const whatsappUrl = buildWhatsAppUrl(
     `${copy.whatsappIntro}${
@@ -264,18 +258,6 @@ const ResultadoPage = async ({
           className="scroll-mt-20 border-t border-black/10"
         >
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-            {(change ?? goal) && (
-              <blockquote className="mb-10 border-l-2 border-terracotta pl-5">
-                <p className="font-[font2] text-[10px] uppercase tracking-[0.24em] text-black/40">
-                  {change
-                    ? "Dijiste que lo primero que cambiaría sería esto"
-                    : "Dijiste que en tres meses querrías sentirte así"}
-                </p>
-                <p className="mt-2 font-[font1] text-xl leading-snug text-black/80">
-                  “{change ?? goal}”
-                </p>
-              </blockquote>
-            )}
 
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
               Tu camino recomendado

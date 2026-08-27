@@ -47,6 +47,7 @@ export const productToPlan = (
     amountCop,
     listAmountCop,
     unitPrice: product.unitPriceLabel ?? undefined,
+    membershipMonths: product.membershipMonths ?? undefined,
     tag: product.tag ?? undefined,
     highlight: product.highlight || undefined,
     therapyPresentation:

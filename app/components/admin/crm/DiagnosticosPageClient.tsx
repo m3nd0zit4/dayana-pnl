@@ -36,8 +36,6 @@ export type DiagnosticoRow = {
   objection: string | null;
   /** Por qué Dayana, ya traducido. */
   whyDayana: string[];
-  /** Lo primero que cambiaría, en sus palabras. */
-  change: string | null;
 };
 
 const PROFILE_LABEL: Record<NonNullable<DiagnosticoRow["profile"]>, string> = {
@@ -88,7 +86,6 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         d.contact?.email,
         d.contact?.phoneE164,
         d.objection,
-        d.change,
         ...d.whyDayana,
       ]
         .filter(Boolean)

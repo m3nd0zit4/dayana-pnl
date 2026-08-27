@@ -39,6 +39,7 @@ async function seedProducts() {
     const sessionsCount =
       plan.kind === "therapy" ? plan.sessionsCount ?? null : null;
     const content = {
+      membershipMonths: plan.membershipMonths ?? null,
       unitPriceLabel: plan.unitPrice ?? null,
       tag: plan.tag ?? null,
       highlight: plan.highlight ?? false,

@@ -41,7 +41,16 @@ const db = new PrismaClient();
 
 async function main() {
   const product = await db.product.findFirst({
-    where: { kind: "COURSE", isActive: true, isCourseContent: false },
+    // Sólo la mensualidad. `findFirst` no llevaba orden ni excluía la
+    // anualidad, así que con las dos vivas podía devolver la anual y repuntar
+    // el plan recurrente a su importe: cobrarle un año a quien pagó por meses.
+    where: {
+      kind: "COURSE",
+      isActive: true,
+      isCourseContent: false,
+      OR: [{ membershipMonths: null }, { membershipMonths: { lte: 1 } }],
+    },
+    orderBy: { sortOrder: "asc" },
     include: {
       prices: {
         where: { currency: "COP" },

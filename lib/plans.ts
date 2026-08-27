@@ -35,6 +35,12 @@ export type Plan = {
   listAmountUsd?: number;
   /** Solo curso u otros productos no terapia (p. ej. "por mes"). */
   unitPrice?: string;
+  /**
+   * Meses de acceso que concede un pago. Sólo lo llevan los dos productos de
+   * membresía: 1 la mensualidad, 12 la anualidad. Es lo que permite pintarlas
+   * juntas sin que ninguna de las dos sepa de la otra.
+   */
+  membershipMonths?: number;
   tag?: string;
   highlight?: boolean;
   /** Terapia: titular; curso: sin usar. Detalle en `features`. */

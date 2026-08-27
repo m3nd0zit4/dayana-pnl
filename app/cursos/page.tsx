@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 
 import Footer from "../components/home/Footer";
 import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import JsonLd from "../components/seo/JsonLd";
-import PortalCheckoutCta from "../components/payments/PortalCheckoutCta";
+import CourseCard from "../components/cursos/CourseCard";
+import MembershipPicker from "../components/cursos/MembershipPicker";
 import { getCourseCatalog } from "@/lib/courses/catalog";
 import { BRAND } from "@/lib/contact";
-import { formatCop, formatUsd } from "@/lib/plans";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getSiteUrl } from "@/lib/site-url";
 import { isGoogleAuthEnabled } from "@/auth";
@@ -27,15 +26,9 @@ export const metadata: Metadata = {
 };
 
 const CursosPage = async () => {
-  const { courses, membership, userCountry, isColombia } =
+  const { courses, membership, annual, userCountry, isColombia } =
     await getCourseCatalog();
   const siteUrl = getSiteUrl();
-
-  const price = membership
-    ? isColombia && membership.amountCop != null
-      ? formatCop(membership.amountCop)
-      : formatUsd(membership.amountUsd)
-    : null;
 
   return (
     <>
@@ -80,14 +73,6 @@ const CursosPage = async () => {
             lo tienes.
           </p>
 
-          {price && (
-            <p className="mt-9 flex flex-wrap items-baseline gap-3">
-              <span className="font-[font2] text-5xl leading-none">{price}</span>
-              <span className="font-[font1] text-base text-black/50">
-                {membership?.unitPrice ?? "por mes"} · cancelas cuando quieras
-              </span>
-            </p>
-          )}
         </section>
 
         <section className="mx-auto w-full max-w-5xl px-5 pb-20 sm:px-8">
@@ -97,29 +82,10 @@ const CursosPage = async () => {
               cuanto abra.
             </p>
           ) : (
-            <ul className="grid gap-5 sm:grid-cols-2">
+            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((course) => (
                 <li key={course.slug}>
-                  <Link
-                    href={`/cursos/${course.slug}`}
-                    className="group flex h-full flex-col rounded-3xl border border-black/10 bg-white/55 p-6 transition-colors hover:border-terracotta/60 sm:p-7"
-                  >
-                    <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-terracotta">
-                      {course.sessionsLabel}
-                    </p>
-                    <h2 className="mt-4 font-[font2] text-2xl uppercase leading-tight">
-                      {course.title}
-                    </h2>
-                    {course.description && (
-                      <p className="mt-3 flex-1 font-[font1] text-base leading-relaxed text-black/65">
-                        {course.description}
-                      </p>
-                    )}
-                    <span className="mt-6 inline-flex items-center gap-2 font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 transition-colors group-hover:text-black">
-                      Ver el temario
-                      <span aria-hidden>→</span>
-                    </span>
-                  </Link>
+                  <CourseCard course={course} />
                 </li>
               ))}
             </ul>
@@ -150,25 +116,16 @@ const CursosPage = async () => {
                   </ul>
                 )}
 
-                {/* La mensualidad abre el portal, así que la cuenta tiene que
-                    existir ANTES de pagar: si no, se paga y no se entra a
-                    ninguna parte. Ese es el trabajo de PortalCheckoutCta. */}
-                <div className="mt-10 max-w-sm">
-                  <Suspense fallback={<div className="h-[60px]" aria-hidden />}>
-                    <PortalCheckoutCta
-                      plan={membership}
-                      isDark={false}
-                      userCountry={userCountry}
-                      googleEnabled={isGoogleAuthEnabled()}
-                      autopayReturnPath="/cursos"
-                    />
-                  </Suspense>
+                <div className="mt-10">
+                  <MembershipPicker
+                    monthly={membership}
+                    annual={annual}
+                    isColombia={isColombia}
+                    userCountry={userCountry}
+                    googleEnabled={isGoogleAuthEnabled()}
+                    returnPath="/cursos"
+                  />
                 </div>
-
-                <p className="mt-6 font-[font1] text-sm leading-relaxed text-black/55">
-                  Se renueva cada mes y la cancelas cuando quieras. Al cancelar
-                  conservas el acceso hasta el final del mes que ya pagaste.
-                </p>
               </>
             ) : (
               <p className="mt-6 font-[font1] text-lg leading-relaxed text-black/70">

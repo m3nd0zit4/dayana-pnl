@@ -218,26 +218,23 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
               <div className="font-[font1] text-2xl mt-2 text-[#141118]">
                 {money(quote.total)}
               </div>
-              <div className="font-[font1] text-sm text-black/55 mt-1 space-y-0.5">
-                <div className="flex justify-between gap-6">
-                  <span>Subtotal</span>
-                  <span>{money(quote.subtotal)}</span>
-                </div>
+              {/*
+                Antes esto era una tabla de tres filas —subtotal, descuento,
+                comisión— encima del botón. El total es lo único que se cobra y
+                lo único que se decide; el desglose va en una línea, disponible
+                para quien lo busque y fuera del camino de quien no.
+              */}
+              <div className="mt-1 font-[font1] text-xs text-black/45">
+                {money(quote.subtotal)} + {money(quote.fee)} de comisión
                 {quote.discountMinor ? (
-                  <div className="flex justify-between gap-6 text-emerald-700">
-                    <span>Descuento {quote.promoCode}</span>
-                    <span>
-                      -
-                      {isCop
-                        ? `${quote.discountMinor.toLocaleString("es-CO")} COP`
-                        : `${(quote.discountMinor / 100).toFixed(2)} USD`}
-                    </span>
-                  </div>
+                  <span className="text-emerald-700">
+                    {" · "}
+                    {quote.promoCode} −
+                    {isCop
+                      ? `${quote.discountMinor.toLocaleString("es-CO")} COP`
+                      : `${(quote.discountMinor / 100).toFixed(2)} USD`}
+                  </span>
                 ) : null}
-                <div className="flex justify-between gap-6">
-                  <span>Comisión de procesamiento</span>
-                  <span>{money(quote.fee)}</span>
-                </div>
               </div>
             </>
           ) : (
@@ -341,7 +338,7 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
               </button>
 
               <p className="pt-0.5 text-center font-[font1] text-[10px] text-black/45">
-                No necesitas cuenta de PayPal para pagar con tarjeta.
+                Sin cuenta de PayPal.
               </p>
             </div>
           ) : offersBoth ? (
@@ -397,8 +394,8 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
 
               <p className="pt-0.5 text-center font-[font1] text-[10px] leading-relaxed text-black/45">
                 {provider === "paypal"
-                  ? "La suscripción se cobra sola cada mes, y PayPal exige cuenta para eso. Pagando un mes no necesitas cuenta: sólo tu tarjeta."
-                  : "La suscripción se cobra sola cada mes y sólo admite tarjeta. Pagando un mes puedes usar PSE, Nequi o efectivo."}
+                  ? "Suscribirte requiere cuenta de PayPal. Un mes suelto, sólo tarjeta."
+                  : "La suscripción sólo admite tarjeta. Un mes suelto acepta PSE, Nequi y efectivo."}
               </p>
             </div>
           ) : (

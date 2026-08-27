@@ -47,6 +47,11 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // (/terapias/resultado/<token>) sí lleva el chrome completo, porque necesita
   // el modal de pago para su botón de compra.
   const isCuestionario = pathname === "/terapias/empezar";
+  // La página de un pago acordado: nombre, precio, botón. Un enlace a
+  // "Terapias" en la cabecera devolvería al catálogo justo a quien ya salió de
+  // él y ya decidió. Necesita el modal de pago, así que no puede ir por la
+  // rama sin proveedores de /enlaces.
+  const isPagar = pathname.startsWith("/pagar/");
 
   // Dark mode is scoped to the CRM + member portal. It used to be scoped by
   // mounting ThemeProvider only on those routes — but next-themes renders an
@@ -78,7 +83,7 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
           {children}
           <Toaster />
         </>
-      ) : isPortal ? (
+      ) : isPortal || isPagar ? (
         <CheckoutModalProvider>
           {children}
           <Toaster />

@@ -1,0 +1,12 @@
+-- La biblioteca pasa a venderse en dos periodos: mensual y anual.
+--
+-- El anual NO es un plan recurrente: es un pago único que concede doce meses.
+-- Eso evita crear un segundo Billing Plan en PayPal y un segundo
+-- preapproval_plan en Mercado Pago —ninguno de los dos se puede borrar— y deja
+-- la suscripción mensual existente exactamente como está.
+--
+-- Cuántos meses concede un pago deja de ser una constante del código
+-- (`MEMBERSHIP_MONTHS_PER_PAYMENT`) y pasa a ser un dato del producto, que es
+-- lo único que distingue los dos planes. NULL = el valor por defecto de 1, así
+-- que las filas existentes no cambian de comportamiento.
+ALTER TABLE "products" ADD COLUMN "membership_months" INTEGER;

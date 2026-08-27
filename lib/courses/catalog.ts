@@ -3,6 +3,8 @@ import { ProductKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { listCourseProducts } from "@/lib/lms/membership";
 import { getVisiblePublicPlans } from "@/lib/pricing/public-plans";
+import { getPublicPlans } from "@/lib/plans-from-db";
+import { isPlanVisibleForRegion } from "@/lib/pricing/plan-visibility";
 import type { Plan } from "@/lib/plans";
 
 /**
@@ -37,8 +39,26 @@ export type CourseCatalog = {
   courses: CatalogCourse[];
   /** La mensualidad. `null` si no tiene precio en la moneda del visitante. */
   membership: Plan | null;
+  /** La anualidad, si está activa y tiene precio aquí. */
+  annual: Plan | null;
   userCountry: string | null;
   isColombia: boolean;
+};
+
+/**
+ * Los dos periodos de la membresía, separados del resto del catálogo.
+ *
+ * `getVisiblePublicPlans()` devuelve `coursePlan` en singular porque durante
+ * mucho tiempo sólo hubo uno. En vez de cambiar esa forma —la usan la home, el
+ * portal, `llms.txt` y la API pública— la anualidad se resuelve aquí, que es
+ * el único sitio que necesita las dos.
+ */
+const splitMembership = (plans: { allPlans: Plan[] }, coursePlan: Plan | null) => {
+  const annual =
+    plans.allPlans.find(
+      (p) => p.kind === "course" && (p.membershipMonths ?? 1) > 1,
+    ) ?? null;
+  return { membership: coursePlan, annual };
 };
 
 /**
@@ -59,9 +79,10 @@ const countPublished = async (productId: string) => {
 };
 
 export const getCourseCatalog = async (): Promise<CourseCatalog> => {
-  const [products, plans] = await Promise.all([
+  const [products, plans, all] = await Promise.all([
     listCourseProducts().catch(() => []),
     getVisiblePublicPlans(),
+    getPublicPlans().catch(() => ({ allPlans: [] as Plan[] })),
   ]);
 
   // `listCourseProducts()` ya filtra por `isActive`, pero cae a la mensualidad
@@ -85,9 +106,12 @@ export const getCourseCatalog = async (): Promise<CourseCatalog> => {
     }),
   );
 
+  const { membership, annual } = splitMembership(all, plans.coursePlan);
+
   return {
     courses,
-    membership: plans.coursePlan,
+    membership,
+    annual: annual && isPlanVisibleForRegion(annual, plans.isColombia) ? annual : null,
     userCountry: plans.userCountry,
     isColombia: plans.isColombia,
   };
@@ -104,6 +128,7 @@ export type CourseDetail = {
   course: CatalogCourse;
   modules: CourseModuleOutline[];
   membership: Plan | null;
+  annual: Plan | null;
   userCountry: string | null;
   isColombia: boolean;
   /** Cuántos cursos más entran con la misma mensualidad. */
@@ -123,7 +148,7 @@ export const getCourseDetail = async (
   });
   if (!product) return null;
 
-  const [modules, counts, plans, siblings] = await Promise.all([
+  const [modules, counts, plans, all, siblings] = await Promise.all([
     prisma.courseModule.findMany({
       where: { productId: product.id, isPublished: true },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -136,6 +161,7 @@ export const getCourseDetail = async (
     }),
     countPublished(product.id),
     getVisiblePublicPlans(),
+    getPublicPlans().catch(() => ({ allPlans: [] as Plan[] })),
     prisma.product.count({
       where: {
         kind: ProductKind.COURSE,
@@ -162,6 +188,12 @@ export const getCourseDetail = async (
       lessonCount: m._count.classes,
     })),
     membership: plans.coursePlan,
+    annual: (() => {
+      const { annual } = splitMembership(all, plans.coursePlan);
+      return annual && isPlanVisibleForRegion(annual, plans.isColombia)
+        ? annual
+        : null;
+    })(),
     userCountry: plans.userCountry,
     isColombia: plans.isColombia,
     siblingCount: siblings,

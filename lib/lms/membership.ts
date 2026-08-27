@@ -4,14 +4,35 @@ import {
   PaymentStatus,
   ProductKind,
   type Enrollment,
+  type Prisma,
   type Product,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { OPERATIONAL_TZ } from "@/lib/crm/operational-timezone";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 
-/** How much access a single monthly payment buys. */
+/** Meses que concede un pago cuando el producto no dice otra cosa. */
 export const MEMBERSHIP_MONTHS_PER_PAYMENT = 1;
+
+/**
+ * El producto que se cobra de forma **recurrente**: la mensualidad.
+ *
+ * Existe como constante exportada porque la comparten esta librería y los dos
+ * scripts que crean los planes en PayPal y Mercado Pago, y ahí la precisión es
+ * crítica: esos scripts hacían `findFirst` sin orden sobre "cualquier COURSE
+ * vendible". Con la anualidad conviviendo, esa consulta podía devolver el
+ * producto anual y repuntar el Billing Plan de PayPal a su importe — es decir,
+ * cobrarle el precio de un año a quien se suscribió por meses.
+ *
+ * La anualidad es un pago único que concede doce meses (`membershipMonths`),
+ * nunca un plan recurrente, así que queda fuera por definición.
+ */
+export const MONTHLY_MEMBERSHIP_WHERE: Prisma.ProductWhereInput = {
+  kind: ProductKind.COURSE,
+  isActive: true,
+  isCourseContent: false,
+  OR: [{ membershipMonths: null }, { membershipMonths: { lte: 1 } }],
+};
 
 /** Days before expiry when the portal starts nudging the member to renew. */
 export const MEMBERSHIP_WARNING_DAYS = 7;
@@ -23,6 +44,19 @@ export const MEMBERSHIP_WARNING_DAYS = 7;
  */
 export const getMembershipProduct = async (): Promise<Product | null> =>
   prisma.product.findFirst({
+    where: MONTHLY_MEMBERSHIP_WHERE,
+    orderBy: { sortOrder: "asc" },
+  });
+
+/**
+ * Los productos que abren la biblioteca: la mensualidad y la anualidad.
+ *
+ * Los dos son `COURSE` no-contenido, así que ambos cuentan como membresía para
+ * `getMembershipForContact` y `getEnrolledCourses` sin cambiar nada: lo que
+ * decide el acceso es `paidUntil`, no cuál de los dos se pagó.
+ */
+export const listMembershipProducts = async (): Promise<Product[]> =>
+  prisma.product.findMany({
     where: {
       kind: ProductKind.COURSE,
       isActive: true,
@@ -94,7 +128,13 @@ export const applyMembershipExtension = async (
     const now = new Date();
     const current = payment.enrollment.paidUntil;
     const base = current && current > now ? current : now;
-    const paidUntil = addMonths(base, MEMBERSHIP_MONTHS_PER_PAYMENT);
+    // Cuántos meses concede este pago lo dice el producto, no una constante:
+    // es lo único que distingue la mensualidad de la anualidad, y ambas llegan
+    // aquí por el mismo camino (`recordPayment` → pago aprobado de un COURSE).
+    const months =
+      payment.enrollment.product.membershipMonths ??
+      MEMBERSHIP_MONTHS_PER_PAYMENT;
+    const paidUntil = addMonths(base, months);
 
     await tx.enrollment.update({
       where: { id: payment.enrollmentId },

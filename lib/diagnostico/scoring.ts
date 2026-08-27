@@ -88,12 +88,12 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
   // casillas marcó.
   const commitmentScore = clamp(Math.round(commitmentRaw + 3), 0, 10);
 
-  const declared = Number(answers.urgencia ?? 5);
-  const urgencyScore = clamp(
-    Number.isFinite(declared) ? declared + urgencyBonus : 5,
-    1,
-    10,
-  );
+  // La urgencia ya no se pregunta con una escala del 1 al 10: se deriva de
+  // cuánto lleva con esto y de cuándo quiere empezar. Pedirle a alguien que
+  // calibre su propio dolor en una escala numérica es la parte más lenta de
+  // contestar y la menos fiable de leer — cada persona usa la escala distinto,
+  // mientras que "esta semana" significa lo mismo para todas.
+  const urgencyScore = clamp(3 + urgencyBonus, 1, 10);
 
   // "Solo estoy explorando" manda por encima de todo lo demás: alguien puede
   // declarar un 9 de urgencia y aun así decir que no piensa empezar. Creerle a

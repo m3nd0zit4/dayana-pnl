@@ -1,25 +1,29 @@
 /**
- * El cuestionario público de `/diagnostico`, como datos.
+ * El cuestionario público de `/terapias/empezar`, como datos.
  *
  * Vive aquí y no dentro del componente por una razón operativa: el copy de un
  * embudo se reescribe muchas más veces que su interfaz. Con las preguntas como
  * datos, cambiar una palabra —o el orden, o los pesos— no toca React, no
  * arriesga una regresión de render y lo puede revisar alguien que no programa.
  *
- * El orden importa y no es estético: va de lo emocional a lo concreto. Las
- * preguntas 1–5 hacen que la persona nombre su dolor y su yo futuro **con sus
- * propias palabras**; la 6–8 miden urgencia e intención; los datos de contacto
- * van al final, cuando ya hay inversión emocional. Pedirlos primero es lo que
- * convierte un cuestionario en un formulario.
+ * **Ocho preguntas, y ninguna se escribe.** Hubo una versión de doce con dos
+ * campos de texto libre y una escala del 1 al 10. Cada campo de texto es un
+ * teclado que se abre en el móvil y una pantalla que se tapa a sí misma, y la
+ * escala pedía calibrar un número cuando la pregunta "¿cuándo quieres empezar?"
+ * mide lo mismo con tres toques. Se fueron los dos textos, la escala y la
+ * pregunta de qué habías intentado —que `freno` ya responde—. Todo se contesta
+ * tocando hasta el paso de contacto, que es el único que pide escribir y llega
+ * cuando ya hay motivo para hacerlo.
+ *
+ * El orden sí es deliberado: primero el problema, luego la decisión. Los datos
+ * de contacto van al final, cuando ya hay inversión emocional; pedirlos
+ * primero es lo que convierte un cuestionario en un formulario.
  */
 
 export type DiagnosticQuestionId =
   | "dolor"
   | "tiempo"
   | "manifestacion"
-  | "intentos"
-  | "meta"
-  | "urgencia"
   | "modalidad"
   | "cuando"
   // Tramo 2 — intención y compromiso. Las ocho de arriba miden el dolor; sin
@@ -27,7 +31,6 @@ export type DiagnosticQuestionId =
   // puede pagarlo, por qué eligió a Dayana, ni qué la ha frenado hasta hoy —
   // que es exactamente lo que la llamada de ventas averigua antes de decir un
   // precio.
-  | "cambio"
   | "freno"
   | "porqueDayana"
   | "inversion";
@@ -123,13 +126,13 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     type: "single",
     required: true,
     options: [
-      { id: "semanas", label: "Unas semanas", weights: { profundidad: 0 } },
-      { id: "meses", label: "Varios meses", weights: { profundidad: 1 } },
-      { id: "anios", label: "Años", weights: { profundidad: 3 } },
+      { id: "semanas", label: "Unas semanas", weights: { profundidad: 0, urgencia: 1 } },
+      { id: "meses", label: "Varios meses", weights: { profundidad: 2, urgencia: 2 } },
+      { id: "anios", label: "Años", weights: { profundidad: 4, urgencia: 3 } },
       {
         id: "siempre",
         label: "Desde que tengo memoria",
-        weights: { profundidad: 4 },
+        weights: { profundidad: 5, urgencia: 3 },
       },
     ],
   },
@@ -141,74 +144,28 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     required: true,
     options: [
       { id: "sueno", label: "No duermo bien", weights: { profundidad: 1 } },
-      { id: "evito", label: "Evito a la gente", weights: { profundidad: 1 } },
       {
         id: "bloqueo",
         label: "Me bloqueo cuando tengo que decidir",
-        weights: { profundidad: 1 },
-      },
-      {
-        id: "exploto",
-        label: "Exploto por cosas pequeñas",
-        weights: { profundidad: 1 },
+        weights: { profundidad: 2 },
       },
       {
         id: "repito",
         label: "Repito siempre la misma historia",
-        weights: { profundidad: 2 },
+        weights: { profundidad: 3 },
       },
       {
         id: "cuerpo",
         label: "Se me manifiesta en el cuerpo",
         hint: "Dolores, tensión, cansancio sin causa",
-        weights: { profundidad: 2 },
+        weights: { profundidad: 3 },
       },
       {
         id: "aparento",
         label: "Por fuera estoy bien, por dentro no",
-        weights: { profundidad: 2 },
+        weights: { profundidad: 3 },
       },
     ],
-  },
-  {
-    id: "intentos",
-    prompt: "¿Ya intentaste algo para resolverlo?",
-    type: "single",
-    required: true,
-    options: [
-      { id: "nada", label: "Todavía no", weights: { profundidad: 0 } },
-      {
-        id: "contenido",
-        label: "Libros, videos, contenido",
-        weights: { profundidad: 1 },
-      },
-      {
-        id: "terapia",
-        label: "Terapia tradicional",
-        hint: "Psicología, psiquiatría",
-        weights: { profundidad: 2 },
-      },
-      {
-        id: "coach",
-        label: "Otro coach o terapeuta",
-        weights: { profundidad: 2 },
-      },
-    ],
-  },
-  {
-    id: "meta",
-    prompt: "¿Qué querrías estar sintiendo dentro de tres meses?",
-    help: "Escríbelo como te salga. Vas a volver a leer esto al final.",
-    type: "text",
-    placeholder: "Tranquila. Sin ese nudo en el pecho cada mañana…",
-    required: false,
-  },
-  {
-    id: "urgencia",
-    prompt: "Del 1 al 10, ¿qué tan urgente es para ti resolverlo?",
-    type: "scale",
-    scaleLabels: { low: "Puedo esperar", high: "Ya no aguanto más" },
-    required: true,
   },
   {
     id: "modalidad",
@@ -241,12 +198,12 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     type: "single",
     required: true,
     options: [
-      { id: "semana", label: "Esta semana", weights: { urgencia: 3, compromiso: 2 } },
-      { id: "mes", label: "Este mes", weights: { urgencia: 1, compromiso: 1 } },
+      { id: "semana", label: "Esta semana", weights: { urgencia: 4, compromiso: 2 } },
+      { id: "mes", label: "Este mes", weights: { urgencia: 2, compromiso: 1 } },
       {
         id: "explorando",
         label: "Solo estoy explorando",
-        weights: { urgencia: -3, compromiso: -2 },
+        weights: { urgencia: -2, compromiso: -2 },
       },
     ],
   },
@@ -254,18 +211,10 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   // ── Tramo 2 · intención y compromiso ────────────────────────────────────
   //
   // Aquí cambia el registro: hasta ahora se hablaba del problema, ahora de la
-  // decisión. Va después de la urgencia y antes de pedir los datos, porque
-  // preguntar "¿puedes invertir?" en frío ahuyenta, y preguntarlo tras ocho
-  // respuestas sobre lo que duele es la continuación natural de la conversación.
+  // decisión. Va al final y no al principio porque preguntar "¿puedes
+  // invertir?" en frío ahuyenta, y preguntarlo tras cinco respuestas sobre lo
+  // que duele es la continuación natural de la conversación.
 
-  {
-    id: "cambio",
-    prompt: "Si esto se resolviera, ¿qué sería lo primero que cambiaría?",
-    help: "Algo concreto, del día a día. No hace falta que sea grande.",
-    type: "text",
-    placeholder: "Dormiría de un tirón. Dejaría de revisar el móvil a las 3 a.m.",
-    required: false,
-  },
   {
     id: "freno",
     prompt: "¿Qué te ha frenado hasta ahora?",

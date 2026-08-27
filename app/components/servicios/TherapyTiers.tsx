@@ -4,7 +4,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { Plan } from "../../../lib/plans";
 import TierCard from "./TierCard";
 
@@ -16,32 +16,18 @@ type Props = {
 };
 
 /**
- * Los tres escalones que se muestran de entrada.
+ * La escalera entera, siempre visible.
  *
- * Enseñar los cinco a la vez es una de las razones por las que esta página no
- * cierra: con cinco columnas y una tabla de nueve filas, la única variable
- * realmente comparable acaba siendo el precio por sesión, y la decisión se
- * aplaza. Tres opciones —una para probar, una recomendada, una a fondo— son un
- * rango; cinco son un catálogo. Los otros dos siguen a un clic para quien de
- * verdad los busca.
+ * Hubo una versión que enseñaba tres y escondía dos tras un "ver todas".
+ * Esconder opciones a quien ya decidió comparar añade un clic sin quitar la
+ * decisión, y el rango completo —de una sesión suelta a un proceso de seis
+ * meses— es en sí mismo el argumento: enseña que hay un escalón para cada
+ * momento. Para quien no sabe cuál le toca está el cuestionario, que
+ * recomienda **uno**; ésta es la página de quien quiere verlo todo.
  */
-const FEATURED_SESSION_COUNTS = [1, 6, 12];
-
 const TherapyTiers = ({ therapyPlans, userCountry }: Props) => {
   const rootRef = useRef<HTMLElement>(null);
-  const [showAll, setShowAll] = useState(false);
-
-  const featured = therapyPlans.filter(
-    (p) =>
-      p.sessionsCount != null &&
-      FEATURED_SESSION_COUNTS.includes(p.sessionsCount),
-  );
-  // Si el catálogo cambia de forma en el CRM y la selección se queda corta, se
-  // muestran todos: un muro de opciones es mejor que una página con una sola
-  // tarjeta.
-  const hasFeaturedSubset =
-    featured.length >= 2 && featured.length < therapyPlans.length;
-  const visiblePlans = showAll || !hasFeaturedSubset ? therapyPlans : featured;
+  const visiblePlans = therapyPlans;
 
   useGSAP(
     () => {
@@ -70,8 +56,6 @@ const TherapyTiers = ({ therapyPlans, userCountry }: Props) => {
         });
       });
     },
-    // Al revelar los cinco entran cartas nuevas al DOM; sin volver a correr
-    // esto se quedarían sin su animación de entrada.
     { scope: rootRef, dependencies: [visiblePlans.length] },
   );
 
@@ -127,17 +111,6 @@ const TherapyTiers = ({ therapyPlans, userCountry }: Props) => {
           ))}
         </div>
 
-        {hasFeaturedSubset && !showAll && (
-          <div className="mt-10 text-center">
-            <button
-              type="button"
-              onClick={() => setShowAll(true)}
-              className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
-            >
-              Ver las {therapyPlans.length} opciones
-            </button>
-          </div>
-        )}
       </div>
     </section>
   );

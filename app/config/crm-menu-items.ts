@@ -10,6 +10,7 @@ import {
   Home,
   ClipboardList,
   Compass,
+  Link2,
   Bell,
   MessageCircle,
   MessageSquare,
@@ -72,6 +73,7 @@ export const crmMenuSections: CrmMenuSection[] = [
       },
       { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
       { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
+      { icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
     ],
   },
   {

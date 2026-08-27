@@ -54,7 +54,6 @@ const DiagnosticosPage = async () => {
           ? (OBJECTION_LABEL[d.answers.freno] ?? d.answers.freno)
           : null,
       whyDayana: whyDayana.map((v) => WHY_DAYANA_LABEL[v] ?? v),
-      change: typeof d.answers.cambio === "string" ? d.answers.cambio : null,
     };
   });
 
