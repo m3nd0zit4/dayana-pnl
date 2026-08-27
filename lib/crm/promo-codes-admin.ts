@@ -17,9 +17,12 @@ const productInclude = {
   products: { select: { product: { select: { id: true, title: true } } } },
 } as const;
 
-type PromoCodeRow = { products: { product: { id: string; title: string } }[] };
+type LinkedProduct = { id: string; title: string };
+type PromoCodeRow = { products: { product: LinkedProduct }[] };
 
-const flattenProducts = <T extends PromoCodeRow>(row: T) => ({
+const flattenProducts = <T extends PromoCodeRow>(
+  row: T
+): Omit<T, "products"> & { products: LinkedProduct[] } => ({
   ...row,
   products: row.products.map((p) => p.product),
 });

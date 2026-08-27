@@ -15,6 +15,7 @@ import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
 import { useActiveProducts } from "@/app/components/admin/crm/hooks/useReferenceData";
+import { isPromoExcludedProduct } from "@/lib/pricing/promo-exclusions";
 import { useCrm } from "./CrmProvider";
 import {
   CrmDataList,
@@ -140,6 +141,9 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
   // Solo se cargan los productos cuando el modal está abierto: el hook cachea
   // 60 s, así que abrir y cerrar varias veces no repite la consulta.
   const { products, productsLoading } = useActiveProducts(Boolean(showForm));
+  // El curso no admite códigos en ningún riel, así que ofrecerlo aquí sería
+  // dejar crear un cupón que nunca va a descontar nada.
+  const eligibleProducts = products.filter((p) => !isPromoExcludedProduct(p.id));
 
   const save = async () => {
     if (!canManageTeam) return;
@@ -359,7 +363,7 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
                 <p className="text-xs text-muted-foreground">Cargando productos…</p>
               ) : (
                 <div className="space-y-3">
-                  {groupProductsByKind(products).map((group) => (
+                  {groupProductsByKind(eligibleProducts).map((group) => (
                     <div key={group.label} className="space-y-1.5">
                       <p className="text-xs font-medium text-muted-foreground">
                         {group.label}

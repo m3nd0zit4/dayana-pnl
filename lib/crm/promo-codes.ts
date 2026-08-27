@@ -1,28 +1,15 @@
 import type { PromoCode } from "@prisma/client";
 import { prisma } from "../db";
+import { isPromoExcludedProduct } from "../pricing/promo-exclusions";
 
 const normalizeCode = (raw: string): string => raw.trim().toUpperCase();
 
-/**
- * Productos donde un código promocional no aplica nunca.
- *
- * La mensualidad se cobra por un plan de PayPal o de Mercado Pago, y un plan
- * cobra una cifra fija. Descontar exigiría un plan por código: PayPal lo
- * permitiría con un ciclo de prueba, pero **Mercado Pago no sabe cobrar un
- * primer mes más barato** —sólo mes gratis—, así que en Colombia haría falta
- * crear un plan por cupón en una plataforma donde los planes no se borran
- * jamás. Se descartó por eso.
- *
- * Vive en código y no como filas de `PromoCodeProduct` porque la regla del
- * modelo es que **un código sin productos asociados vale para todo el
- * catálogo**: cualquier cupón nuevo volvería a alcanzar al curso sin que nadie
- * se diera cuenta. Aquí no hay forma de olvidarlo.
- */
-export const PROMO_EXCLUDED_PRODUCT_IDS = ["course-live"] as const;
-
-export const isPromoExcludedProduct = (productId?: string | null): boolean =>
-  productId != null &&
-  (PROMO_EXCLUDED_PRODUCT_IDS as readonly string[]).includes(productId);
+// La lista vive en `lib/pricing/promo-exclusions.ts`, sin dependencias, porque
+// el panel también la necesita y este módulo arrastra Prisma.
+export {
+  PROMO_EXCLUDED_PRODUCT_IDS,
+  isPromoExcludedProduct,
+} from "../pricing/promo-exclusions";
 
 export type PromoValidationError =
   | "not_found"
