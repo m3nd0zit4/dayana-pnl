@@ -39,10 +39,16 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       maxRedemptions:
         body.maxRedemptions != null ? Number(body.maxRedemptions) : body.maxRedemptions,
       expiresAt: body.expiresAt !== undefined ? (body.expiresAt ? new Date(body.expiresAt) : null) : undefined,
-      // `undefined` deja la selección como está; un array la reemplaza entera.
-      productIds: Array.isArray(body.productIds)
-        ? body.productIds.filter((x: unknown): x is string => typeof x === "string")
-        : undefined,
+      /**
+       * `undefined` deja la selección como está; un array la reemplaza entera.
+       *
+       * NO se filtran los elementos inválidos: hacerlo convertía una lista mal
+       * formada en `[]`, y `[]` significa «vale para todos los productos». Así
+       * es como un código restringido a 6 sesiones acababa abierto a todo el
+       * catálogo sin que nadie lo pidiera. Ahora la lista viaja tal cual y
+       * `updatePromoCode` la rechaza si trae basura.
+       */
+      productIds: Array.isArray(body.productIds) ? body.productIds : undefined,
     });
 
     fireAuditLog({
@@ -61,6 +67,9 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     }
     if (msg === "INVALID_PERCENT") {
       return NextResponse.json({ error: "invalid_percent" }, { status: 400 });
+    }
+    if (msg === "INVALID_PRODUCT_IDS") {
+      return NextResponse.json({ error: "invalid_product_ids" }, { status: 400 });
     }
     return NextResponse.json({ error: msg }, { status: 400 });
   }

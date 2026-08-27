@@ -185,6 +185,8 @@ const PromoCodesPageClient = ({ preview, initialPromoCodes }: Props) => {
         invalid_percent: "El porcentaje debe estar entre 1 y 100.",
         invalid_fixed_amount: "Ingresa al menos un monto (USD o COP).",
         duplicate_code: "Ya existe un código igual.",
+        invalid_product_ids:
+          "No se pudo leer la lista de productos. Vuelve a abrir el código y márcalos otra vez — no se guardó nada.",
         forbidden: "Solo el owner puede gestionar códigos promocionales.",
       };
       toast(messages[d.error ?? ""] ?? "Error al guardar", "error");

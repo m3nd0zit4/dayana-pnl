@@ -31,10 +31,12 @@ const PromoCodesPage = async () => {
         maxRedemptions: p.maxRedemptions,
         timesRedeemed: p.timesRedeemed,
         expiresAt: p.expiresAt ? p.expiresAt.toISOString() : null,
-        products: p.products.map((link) => ({
-          id: link.product.id,
-          title: link.product.title,
-        })),
+        // Ya viene aplanado desde `listAllPromoCodes`. Antes se aplanaba aquí
+        // y NO en la respuesta de la API, así que la primera carga se veía bien
+        // y cualquier recarga posterior —tras editar o borrar otro código—
+        // dejaba a TODA la lista sin productos: de ahí que tocar un código
+        // pareciera restablecer los demás.
+        products: p.products,
       }))}
     />
   );

@@ -1,15 +1,36 @@
 import { PromoDiscountType } from "@prisma/client";
 import { prisma } from "../db";
 
-export const listAllPromoCodes = async () =>
-  prisma.promoCode.findMany({
+/**
+ * `PromoCodeProduct` es una tabla puente, así que Prisma devuelve
+ * `[{ product: {...} }]`. Quien consume esto quiere la lista de productos, no
+ * la de filas puente.
+ *
+ * Se aplana AQUÍ y no en cada llamante porque la forma anidada ya costó cara:
+ * el panel leía `x.id` sobre la fila puente —donde vale `undefined`— y al
+ * guardar mandaba una lista de `undefined` que el servidor interpretaba como
+ * «sin restricción», borrando en silencio los productos del código. Un código
+ * de 6 sesiones pasaba a servir para todo el catálogo con sólo abrirlo y
+ * guardar.
+ */
+const productInclude = {
+  products: { select: { product: { select: { id: true, title: true } } } },
+} as const;
+
+type PromoCodeRow = { products: { product: { id: string; title: string } }[] };
+
+const flattenProducts = <T extends PromoCodeRow>(row: T) => ({
+  ...row,
+  products: row.products.map((p) => p.product),
+});
+
+export const listAllPromoCodes = async () => {
+  const rows = await prisma.promoCode.findMany({
     orderBy: { createdAt: "desc" },
-    include: {
-      products: {
-        select: { product: { select: { id: true, title: true } } },
-      },
-    },
+    include: productInclude,
   });
+  return rows.map(flattenProducts);
+};
 
 export type CreatePromoCodeInput = {
   code: string;
@@ -44,6 +65,12 @@ export const createPromoCode = async (input: CreatePromoCodeInput) => {
   ) {
     throw new Error("INVALID_FIXED_AMOUNT");
   }
+  if (
+    input.productIds != null &&
+    input.productIds.some((x) => typeof x !== "string" || x.trim() === "")
+  ) {
+    throw new Error("INVALID_PRODUCT_IDS");
+  }
 
   return prisma.promoCode.create({
     data: {
@@ -72,6 +99,21 @@ export const updatePromoCode = async (id: string, input: UpdatePromoCodeInput) =
   const existing = await prisma.promoCode.findUnique({ where: { id } });
   if (!existing) throw new Error("NOT_FOUND");
 
+  /**
+   * Quitar la restricción de productos abre el código a TODO el catálogo, así
+   * que tiene que ser una decisión explícita y no el residuo de una lista que
+   * llegó mal. Si el llamante manda algo que no son ids utilizables, se
+   * rechaza en vez de interpretarlo como «para todos».
+   */
+  if (input.productIds != null) {
+    const clean = input.productIds.filter(
+      (x) => typeof x === "string" && x.trim() !== ""
+    );
+    if (clean.length !== input.productIds.length) {
+      throw new Error("INVALID_PRODUCT_IDS");
+    }
+  }
+
   const discountType = input.discountType ?? existing.discountType;
   if (discountType === "PERCENT") {
     const percentOff = input.percentOff !== undefined ? input.percentOff : existing.percentOff;
@@ -80,7 +122,7 @@ export const updatePromoCode = async (id: string, input: UpdatePromoCodeInput) =
     }
   }
 
-  return prisma.promoCode.update({
+  const updated = await prisma.promoCode.update({
     where: { id },
     data: {
       code: input.code ? normalizeCode(input.code) : undefined,
@@ -128,10 +170,9 @@ export const updatePromoCode = async (id: string, input: UpdatePromoCodeInput) =
                 : {}),
             },
     },
-    include: {
-      products: { select: { product: { select: { id: true, title: true } } } },
-    },
+    include: productInclude,
   });
+  return flattenProducts(updated);
 };
 
 export const deletePromoCode = async (id: string) => {
