@@ -21,7 +21,16 @@ export type DiagnosticQuestionId =
   | "meta"
   | "urgencia"
   | "modalidad"
-  | "cuando";
+  | "cuando"
+  // Tramo 2 — intención y compromiso. Las ocho de arriba miden el dolor; sin
+  // estas cuatro el cuestionario recomienda un paquete sin saber si la persona
+  // puede pagarlo, por qué eligió a Dayana, ni qué la ha frenado hasta hoy —
+  // que es exactamente lo que la llamada de ventas averigua antes de decir un
+  // precio.
+  | "cambio"
+  | "freno"
+  | "porqueDayana"
+  | "inversion";
 
 /**
  * Pesos que una opción aporta al scoring. Todos opcionales: una opción puede
@@ -34,6 +43,13 @@ export type DiagnosticWeights = {
   urgencia?: number;
   /** Preferencia de formato: 1:1, grupo o a su ritmo. */
   modalidad?: "individual" | "grupo" | "autonomo";
+  /**
+   * Disposición real a empezar. **Sólo acota hacia abajo**: un compromiso alto
+   * nunca sube la recomendación, pero uno bajo la baja. Ver `scoring.ts`.
+   */
+  compromiso?: number;
+  /** `true` en la opción que declara no poder invertir ahora mismo. */
+  bloqueaInversion?: boolean;
 };
 
 export type DiagnosticOption = {
@@ -225,12 +241,116 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     type: "single",
     required: true,
     options: [
-      { id: "semana", label: "Esta semana", weights: { urgencia: 3 } },
-      { id: "mes", label: "Este mes", weights: { urgencia: 1 } },
+      { id: "semana", label: "Esta semana", weights: { urgencia: 3, compromiso: 2 } },
+      { id: "mes", label: "Este mes", weights: { urgencia: 1, compromiso: 1 } },
       {
         id: "explorando",
         label: "Solo estoy explorando",
-        weights: { urgencia: -3 },
+        weights: { urgencia: -3, compromiso: -2 },
+      },
+    ],
+  },
+
+  // ── Tramo 2 · intención y compromiso ────────────────────────────────────
+  //
+  // Aquí cambia el registro: hasta ahora se hablaba del problema, ahora de la
+  // decisión. Va después de la urgencia y antes de pedir los datos, porque
+  // preguntar "¿puedes invertir?" en frío ahuyenta, y preguntarlo tras ocho
+  // respuestas sobre lo que duele es la continuación natural de la conversación.
+
+  {
+    id: "cambio",
+    prompt: "Si esto se resolviera, ¿qué sería lo primero que cambiaría?",
+    help: "Algo concreto, del día a día. No hace falta que sea grande.",
+    type: "text",
+    placeholder: "Dormiría de un tirón. Dejaría de revisar el móvil a las 3 a.m.",
+    required: false,
+  },
+  {
+    id: "freno",
+    prompt: "¿Qué te ha frenado hasta ahora?",
+    help: "Con honestidad. Nadie más va a leer esto.",
+    type: "single",
+    required: true,
+    options: [
+      {
+        id: "dinero",
+        label: "El dinero",
+        hint: "No me parecía el momento de invertir en esto",
+      },
+      { id: "tiempo", label: "El tiempo", hint: "Nunca encuentro el hueco" },
+      {
+        id: "miedo",
+        label: "Miedo a que no funcione",
+        hint: "Ya probé cosas que no sirvieron",
+        weights: { compromiso: 1 },
+      },
+      {
+        id: "desconocimiento",
+        label: "No sabía por dónde empezar",
+        weights: { compromiso: 1 },
+      },
+      {
+        id: "nada",
+        label: "Nada. Simplemente no lo había hecho",
+        weights: { compromiso: 2 },
+      },
+    ],
+  },
+  {
+    id: "porqueDayana",
+    prompt: "¿Por qué Dayana y no cualquier otro?",
+    help: "Marca todo lo que aplique.",
+    type: "multi",
+    required: true,
+    options: [
+      {
+        id: "la-sigo",
+        label: "La sigo desde hace tiempo",
+        weights: { compromiso: 2 },
+      },
+      {
+        id: "me-identifique",
+        label: "Me identifiqué con algo que dijo",
+        weights: { compromiso: 2 },
+      },
+      {
+        id: "recomendacion",
+        label: "Me la recomendaron",
+        weights: { compromiso: 2 },
+      },
+      {
+        id: "busco-pnl",
+        label: "Busco PNL concretamente",
+        hint: "Llegué por el método, no por la persona",
+        weights: { compromiso: 1 },
+      },
+      {
+        id: "aun-no-lo-se",
+        label: "Todavía no lo sé",
+        hint: "Acabo de llegar",
+        weights: { compromiso: -1 },
+      },
+    ],
+  },
+  {
+    id: "inversion",
+    prompt: "¿Estás en posición de invertir en ti ahora mismo?",
+    help: "Tu respuesta decide qué te recomendamos. Contestar que no está bien.",
+    type: "single",
+    required: true,
+    options: [
+      { id: "si", label: "Sí", weights: { compromiso: 3 } },
+      {
+        id: "si-encaja",
+        label: "Sí, si veo que encaja conmigo",
+        weights: { compromiso: 1 },
+      },
+      {
+        id: "todavia-no",
+        label: "Todavía no",
+        hint: "Quiero saber qué necesito, pero aún no puedo",
+        weights: { compromiso: -3, bloqueaInversion: true },
       },
     ],
   },

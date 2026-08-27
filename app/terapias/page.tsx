@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { isGoogleAuthEnabled } from "@/auth";
 import ComparisonSection from "../components/servicios/ComparisonSection";
-import CourseAndCta from "../components/servicios/CourseAndCta";
+import TerapiasCta from "../components/servicios/TerapiasCta";
 import FaqSection from "../components/servicios/FaqSection";
 import ServiciosHero from "../components/servicios/ServiciosHero";
 import TherapyTiers from "../components/servicios/TherapyTiers";
@@ -17,22 +16,31 @@ import {
   buildBreadcrumbSchema,
 } from "@/lib/seo/schema";
 
-const title = "Servicios y Precios | Dayana Beltrán PNL";
+const title = "Terapias 1:1 de PNL | Dayana Beltrán PNL";
 const description =
-  "Terapias 1:1 de reprogramación neurolingüística por Google Meet. Paquetes de 1 a 24 sesiones, precios en COP y USD, pago con MercadoPago o PayPal.";
+  "Sesiones privadas 1:1 de reprogramación neurolingüística por Google Meet. Paquetes de 1 a 24 sesiones, precios en COP y USD, pago con Mercado Pago o PayPal.";
 
 export const metadata: Metadata = {
   title,
   description,
-  alternates: { canonical: "/servicios" },
-  openGraph: { title, description, url: "/servicios", type: "website" },
+  alternates: { canonical: "/terapias" },
+  openGraph: { title, description, url: "/terapias", type: "website" },
 };
 
-const ServiciosPage = async () => {
-  const { therapyPlans, coursePlan, userCountry, isColombia } =
+/**
+ * Esta página vende **una** cosa: acompañamiento 1:1.
+ *
+ * Antes vivía en `/servicios` y vendía también la mensualidad del curso, con
+ * dos lógicas de compra opuestas —un paquete que se paga una vez y una
+ * suscripción que se renueva— compitiendo en la misma pantalla. La biblioteca
+ * se mudó a `/cursos`; `/servicios` redirige aquí de forma permanente
+ * (`next.config.ts`), porque está indexado y repartido por WhatsApp.
+ */
+const TerapiasPage = async () => {
+  const { therapyPlans, userCountry, isColombia } =
     await getVisiblePublicPlans();
-  // Region-independent catalog (both currencies) for canonical structured data —
-  // getVisiblePublicPlans() above is filtered per visitor and unsuitable for JSON-LD.
+  // Catálogo sin filtrar por región (ambas monedas) para el structured data —
+  // getVisiblePublicPlans() está filtrado por visitante y no sirve para JSON-LD.
   const { therapyPlans: allTherapyPlans } = await getPublicPlans();
 
   return (
@@ -42,7 +50,7 @@ const ServiciosPage = async () => {
       <JsonLd
         data={buildBreadcrumbSchema([
           { name: "Inicio", url: "/" },
-          { name: "Servicios", url: "/servicios" },
+          { name: "Terapias", url: "/terapias" },
         ])}
       />
       <main>
@@ -50,12 +58,7 @@ const ServiciosPage = async () => {
         <TherapyTiers therapyPlans={therapyPlans} userCountry={userCountry} />
         <ComparisonSection therapyPlans={therapyPlans} isColombia={isColombia} />
         <FaqSection />
-        <CourseAndCta
-          coursePlan={coursePlan}
-          isColombia={isColombia}
-          userCountry={userCountry}
-          googleEnabled={isGoogleAuthEnabled()}
-        />
+        <TerapiasCta />
       </main>
       <Footer />
       <FloatingWhatsApp />
@@ -63,4 +66,4 @@ const ServiciosPage = async () => {
   );
 };
 
-export default ServiciosPage;
+export default TerapiasPage;

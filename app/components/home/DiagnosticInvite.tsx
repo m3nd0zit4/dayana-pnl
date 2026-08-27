@@ -56,7 +56,7 @@ const DiagnosticInvite = () => (
               es el tuyo.
             </p>
             <Link
-              href="/diagnostico?ref=home"
+              href="/terapias/empezar?ref=home"
               className="mt-10 inline-flex items-center gap-3 rounded-full bg-black px-8 py-4 font-[font2] text-sm uppercase tracking-[0.15em] text-linen transition-all duration-300 hover:-translate-y-0.5 hover:bg-terracotta hover:text-white"
             >
               Haz tu diagnóstico gratis

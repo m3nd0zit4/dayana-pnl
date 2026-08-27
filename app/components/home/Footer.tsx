@@ -127,8 +127,8 @@ const socials: SocialItem[] = [
 ];
 
 const quickLinks = [
-  { label: "Diagnóstico", href: "/diagnostico" },
-  { label: "Servicios", href: "/servicios" },
+  { label: "Terapias", href: "/terapias" },
+  { label: "Cursos", href: "/cursos" },
   { label: "Historias", href: "/historias" },
   { label: "Dayana", href: "/dayana" },
   { label: "Miembros", href: "/miembros" },

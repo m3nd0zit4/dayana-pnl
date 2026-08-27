@@ -87,7 +87,7 @@ const TherapyTiers = ({ therapyPlans, userCountry }: Props) => {
             mayoría. Antes su única opción era escribir por WhatsApp, es decir,
             consumir una hora de Dayana antes de saber si iba a comprar. */}
         <Link
-          href="/diagnostico?ref=servicios"
+          href="/terapias/empezar?ref=terapias"
           className="sv-reveal mb-12 flex flex-col gap-4 rounded-2xl border border-terracotta/35 bg-terracotta/[0.07] px-5 py-5 transition-colors hover:border-terracotta/70 sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:px-8"
         >
           <span className="block">

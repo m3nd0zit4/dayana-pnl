@@ -259,7 +259,7 @@ const WorkshopsListing = ({
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/servicios"
+              href="/terapias"
               className="inline-flex items-center justify-center rounded-full bg-linen px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-black transition-colors hover:bg-white sm:flex-1"
             >
               Ver servicios

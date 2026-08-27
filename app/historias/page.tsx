@@ -112,7 +112,7 @@ const HistoriasPage = () => (
             proceso necesitas para moverlo. Son dos minutos y no cuesta nada.
           </p>
           <Link
-            href="/diagnostico?ref=historias"
+            href="/terapias/empezar?ref=historias"
             className="mt-9 inline-block rounded-full bg-ink px-9 py-4 font-[font2] text-xs uppercase tracking-[0.18em] text-paper"
           >
             Hacer mi diagnóstico

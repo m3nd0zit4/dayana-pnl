@@ -1674,6 +1674,12 @@ model Diagnostic {
   profile      DiagnosticProfile?
   urgencyScore Int?               @map("urgency_score")
 
+  /// 0–10. Cuán cerca está de decidirse: qué la ha frenado, por qué eligió a
+  /// Dayana y si puede invertir hoy. Es lo que ordena la bandeja del panel —
+  /// la respuesta a "¿a quién llamo primero?" — y por eso es columna y no un
+  /// cálculo sobre `answers`: se ordena en SQL, no en memoria.
+  commitmentScore Int? @map("commitment_score")
+
   /// Producto recomendado en el momento de completar. Se guarda para poder
   /// medir qué se recomendó frente a qué se compró; la página de resultado lo
   /// vuelve a resolver en cada carga, porque el producto puede haberse

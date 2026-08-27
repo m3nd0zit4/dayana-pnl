@@ -48,7 +48,7 @@ const CourseCard = ({ course }: { course: CourseCardData }) => {
 
   const href =
     !course.isCurrent
-      ? "/servicios#curso"
+      ? "/cursos"
       : course.nextIncompleteClassId
         ? `/miembros/curso/${course.productId}?c=${course.nextIncompleteClassId}`
         : `/miembros/curso/${course.productId}`;

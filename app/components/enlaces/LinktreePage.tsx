@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { Compass, LayoutList, Star, Users, ArrowUpRight, Video } from "lucide-react";
+import {
+  Compass,
+  GraduationCap,
+  LayoutList,
+  Star,
+  Users,
+  ArrowUpRight,
+  Video,
+} from "lucide-react";
 import {
   BRAND,
   SOCIAL_LINKS,
@@ -79,11 +87,19 @@ const SECONDARY_LINKS: LinkRow[] = [
     internal: true,
   },
   {
-    key: "servicios",
-    label: "Servicios y precios",
-    sublabel: "Terapias 1:1 y curso en vivo",
-    href: "/servicios",
+    key: "terapias",
+    label: "Terapias 1:1",
+    sublabel: "Sesiones privadas con Dayana · precios",
+    href: "/terapias",
     icon: <LayoutList className="h-5 w-5" />,
+    internal: true,
+  },
+  {
+    key: "cursos",
+    label: "Cursos",
+    sublabel: "Una mensualidad, toda la biblioteca",
+    href: "/cursos",
+    icon: <GraduationCap className="h-5 w-5" />,
     internal: true,
   },
 ];
@@ -382,10 +398,10 @@ const LinktreePage = ({
             primero. */}
         <div className="mt-7 flex w-full flex-col gap-3">
           <Cta
-            href="/diagnostico?ref=enlaces"
+            href="/terapias/empezar?ref=enlaces"
             icon={<Compass className="h-5 w-5" />}
-            title="Haz tu diagnóstico"
-            subtitle="2 minutos · sabrás qué te está frenando"
+            title="Empezar mi proceso"
+            subtitle="3 minutos · sabrás qué te está frenando"
             badge="Gratis"
             variant="diagnostico"
             delay={140}

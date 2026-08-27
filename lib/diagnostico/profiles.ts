@@ -143,3 +143,63 @@ export const METHOD_STEPS = [
     body: "Se instala la respuesta nueva y se prueba en las situaciones que antes te disparaban, para que sostenga sola cuando salgas de la sesión.",
   },
 ] as const;
+
+/**
+ * La respuesta a lo que la persona dijo que la ha frenado.
+ *
+ * Una página de ventas normal enumera las cinco objeciones y contesta a todas,
+ * lo que obliga a leer cuatro párrafos que no van con uno y, de paso, planta
+ * objeciones que no se tenían. Aquí se contesta **sólo la suya**, porque la
+ * pregunta 10 ya la hizo elegir.
+ */
+export const OBJECTION_COPY: Record<string, { title: string; body: string }> = {
+  dinero: {
+    title: "Dijiste que el dinero.",
+    body: "Entonces no empieces por el paquete grande. Una sesión suelta cuesta lo que una salida a cenar y te deja saber, con tu caso encima de la mesa y no en teoría, si esto te sirve. Si después decides continuar, ya sabrás exactamente qué estás comprando.",
+  },
+  tiempo: {
+    title: "Dijiste que el tiempo.",
+    body: "Es una hora, desde tu casa, sin desplazamiento. La agenda se arma contigo y cada sesión admite reprogramación avisando con tiempo. El tiempo que llevas gastando en sostener el patrón —dándole vueltas, reparándolo, recuperándote— ya es mayor que esto.",
+  },
+  miedo: {
+    title: "Dijiste que tienes miedo de que no funcione.",
+    body: "Es la objeción más sensata de todas, y viene de haber probado cosas que no sirvieron. Por eso no te pido que creas nada: la primera sesión es la prueba. Se trabaja un evento concreto tuyo y sales sabiendo si algo se movió, sin tener que esperar tres meses para averiguarlo.",
+  },
+  desconocimiento: {
+    title: "Dijiste que no sabías por dónde empezar.",
+    body: "Ya no es el caso: acabas de responder doce preguntas y abajo tienes el punto exacto por donde se empieza en tu caso. Eso era lo único que faltaba.",
+  },
+  nada: {
+    title: "Dijiste que nada te ha frenado, que simplemente no lo habías hecho.",
+    body: "Entonces esto es sencillo. No hay una objeción que resolver ni una duda que despejar: hay una decisión que llevas tiempo aplazando sin motivo, y tomarla te va a costar dos minutos menos de los que llevas leyendo.",
+  },
+};
+
+/**
+ * Sólo se muestra a quien contestó "todavía no lo sé" en por qué Dayana.
+ *
+ * A quien la sigue hace tiempo o llegó por recomendación no hay que
+ * convencerla de quién es: ya lo decidió, y repetírselo suena a relleno.
+ */
+export const AUTHORITY_COPY = {
+  title: "Acabas de llegar, así que esto te falta",
+  body: "Dayana es Maestra en Programación Neurolingüística y trabaja con la parte del cerebro donde el patrón se instaló, no con consejos ni con motivación. No hay promesa de resultado garantizado ni recetas de siete días: hay un método concreto, una hora contigo, y la parte que sólo puedes poner tú.",
+};
+
+/** Etiqueta corta de cada valor de `porqueDayana`, para el CRM. */
+export const WHY_DAYANA_LABEL: Record<string, string> = {
+  "la-sigo": "La sigue hace tiempo",
+  "me-identifique": "Se identificó con algo que dijo",
+  recomendacion: "Se la recomendaron",
+  "busco-pnl": "Busca PNL concretamente",
+  "aun-no-lo-se": "Aún no lo sabe",
+};
+
+/** Etiqueta corta de cada valor de `freno`, para el CRM. */
+export const OBJECTION_LABEL: Record<string, string> = {
+  dinero: "El dinero",
+  tiempo: "El tiempo",
+  miedo: "Miedo a que no funcione",
+  desconocimiento: "No sabía por dónde empezar",
+  nada: "Nada en concreto",
+};

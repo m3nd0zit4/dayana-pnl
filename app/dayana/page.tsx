@@ -170,7 +170,7 @@ const DayanaPage = () => (
             que te corresponde.
           </p>
           <Link
-            href="/diagnostico?ref=dayana"
+            href="/terapias/empezar?ref=dayana"
             className="mt-9 inline-block rounded-full bg-ink px-9 py-4 font-[font2] text-xs uppercase tracking-[0.18em] text-paper"
           >
             Hacer mi diagnóstico

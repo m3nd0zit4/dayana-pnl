@@ -62,7 +62,7 @@ type Body = {
    */
   consentAdTracking?: boolean;
   /**
-   * Cierra el cuestionario de `/diagnostico` con este contacto. Se hace aquí y
+   * Cierra el cuestionario de `/terapias/empezar` con este contacto. Se hace aquí y
    * no en una ruta propia para no duplicar el alta de contacto, la inscripción
    * LEAD, la invitación al portal y la notificación al panel — todo eso ya
    * está probado en este camino.

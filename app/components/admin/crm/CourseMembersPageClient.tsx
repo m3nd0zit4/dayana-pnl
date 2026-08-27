@@ -202,7 +202,7 @@ const CourseMembersPageClient = ({
         title="Curso · Miembros"
         description={`Membresías mensuales de «${courseTitle}». Cada pago aprobado suma un mes de acceso al portal.`}
         secondaryActions={
-          <CrmPublicLink href="/servicios#curso" label="Ver curso en la web" />
+          <CrmPublicLink href="/cursos" label="Ver cursos en la web" />
         }
         action={
           !preview && canWrite && courseProductId ? (

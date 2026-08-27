@@ -55,7 +55,7 @@ const Page = async ({ searchParams }: PageProps) => {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
-            href="/servicios"
+            href="/terapias"
             className="w-full sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
           >
             Reintentar el pago

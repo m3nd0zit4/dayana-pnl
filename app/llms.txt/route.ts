@@ -23,15 +23,15 @@ export async function GET() {
     "",
     "## Servicios",
     "",
-    `- Terapias 1:1 por Google Meet, paquetes de 1 a 24 sesiones${fromUsd != null ? ` — desde ${formatUsd(fromUsd)}${fromCop != null ? ` / ${formatCop(fromCop)}` : ""}` : ""}: ${siteUrl}/servicios`,
+    `- Terapias 1:1 por Google Meet, paquetes de 1 a 24 sesiones${fromUsd != null ? ` — desde ${formatUsd(fromUsd)}${fromCop != null ? ` / ${formatCop(fromCop)}` : ""}` : ""}: ${siteUrl}/terapias`,
     `- Talleres virtuales en vivo: ${siteUrl}/taller-virtual`,
     ...(coursePlan
-      ? [`- Curso en vivo — ${formatUsd(coursePlan.amountUsd)}${coursePlan.amountCop != null ? ` / ${formatCop(coursePlan.amountCop)}` : ""}: ${siteUrl}/servicios`]
+      ? [`- Biblioteca de cursos de PNL, una mensualidad abre todos — ${formatUsd(coursePlan.amountUsd)}${coursePlan.amountCop != null ? ` / ${formatCop(coursePlan.amountCop)}` : ""} al mes: ${siteUrl}/cursos`]
       : []),
     "",
     "## Por dónde empezar",
     "",
-    `- Diagnóstico gratuito (8 preguntas, 2 minutos) — recomienda el proceso que corresponde: ${siteUrl}/diagnostico`,
+    `- Cuestionario gratuito (12 preguntas, 3 minutos) — recomienda el proceso que corresponde: ${siteUrl}/terapias/empezar`,
     `- Quién es Dayana y cómo trabaja: ${siteUrl}/dayana`,
     `- Historias reales en vídeo: ${siteUrl}/historias`,
     "",

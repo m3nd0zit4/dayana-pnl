@@ -37,7 +37,7 @@ type FieldErrors = {
 const CONTACT_STEP = DIAGNOSTIC_QUESTIONS.length;
 const TOTAL_STEPS = DIAGNOSTIC_QUESTIONS.length + 1;
 
-const DiagnosticoWizard = ({ userCountry, source = "home" }: Props) => {
+const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
@@ -200,12 +200,12 @@ const DiagnosticoWizard = ({ userCountry, source = "home" }: Props) => {
       trackMetaEvent("Lead", { content_name: "diagnostico" });
 
       if (token) {
-        router.push(`/diagnostico/${token}`);
+        router.push(`/terapias/resultado/${token}`);
         return;
       }
       // Sin token no hay página de resultado que mostrar, pero el contacto sí
       // quedó guardado: se le lleva al catálogo en vez de dejarle en blanco.
-      router.push("/servicios");
+      router.push("/terapias");
     } catch {
       setServerError("Sin conexión. Revisa tu internet e inténtalo de nuevo.");
       setSubmitting(false);

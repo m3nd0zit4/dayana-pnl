@@ -1,8 +1,7 @@
 "use client";
 
 import PlanCheckoutButtons from "@/app/components/payments/PlanCheckoutButtons";
-import { usePayPalModal } from "@/app/context/PayPalModalContext";
-import { useMercadoPagoCheckoutModal } from "@/app/context/MercadoPagoCheckoutModalContext";
+import { useCheckoutModal } from "@/app/context/CheckoutModalContext";
 import type { Plan } from "@/lib/plans";
 
 type Props = {
@@ -24,16 +23,13 @@ type Props = {
  * abriéndose igual. Perder una métrica es barato; perder una venta no.
  */
 const DiagnosticCheckout = ({ plan, userCountry, token }: Props) => {
-  const { openPayPal } = usePayPalModal();
-  const { openMercadoPago } = useMercadoPagoCheckoutModal();
+  const { openCheckout } = useCheckoutModal();
 
   const handlePay = (provider: "paypal" | "mercadopago") => {
     void fetch(`/api/diagnostico/${token}/checkout`, { method: "POST" }).catch(
       () => {},
     );
-
-    if (provider === "mercadopago") openMercadoPago(plan.id, { sessionFirst: true });
-    else openPayPal(plan.id, { sessionFirst: true });
+    openCheckout(plan.id, provider);
   };
 
   return (

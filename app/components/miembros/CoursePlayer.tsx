@@ -437,7 +437,7 @@ const CoursePlayer = ({
                 <Button
                   className="mt-6"
                   nativeButton={false}
-                  render={<Link href="/servicios#curso" />}
+                  render={<Link href="/cursos" />}
                 >
                   {neverPaid ? "Activar acceso" : "Renovar ahora"}
                 </Button>

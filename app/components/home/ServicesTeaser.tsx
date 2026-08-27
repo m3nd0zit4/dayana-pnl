@@ -95,12 +95,22 @@ const ServicesTeaser = ({
                 Curso en vivo {courseLabel} / mes
               </p>
             )}
-            <div className="mt-10">
+            {/* Dos destinos, porque son dos productos: un paquete que se
+                paga una vez y una mensualidad que se renueva. Mandarlos a la
+                misma página es lo que hacía /servicios. */}
+            <div className="mt-10 flex flex-wrap gap-3">
               <Link
-                href="/servicios"
+                href="/terapias"
                 className="inline-flex items-center gap-3 rounded-full bg-black text-linen font-[font2] uppercase text-sm tracking-[0.15em] px-8 py-4 transition-transform duration-300 hover:-translate-y-0.5 hover:bg-terracotta hover:text-white"
               >
-                Ver planes y precios
+                Terapias 1:1
+                <span aria-hidden>→</span>
+              </Link>
+              <Link
+                href="/cursos"
+                className="inline-flex items-center gap-3 rounded-full border border-black font-[font2] uppercase text-sm tracking-[0.15em] px-8 py-4 transition-colors duration-300 hover:bg-black hover:text-linen"
+              >
+                Cursos
                 <span aria-hidden>→</span>
               </Link>
             </div>

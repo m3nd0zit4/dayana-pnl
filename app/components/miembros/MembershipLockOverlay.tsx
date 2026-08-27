@@ -99,7 +99,7 @@ export const MembershipBlockScreen = ({
             : "Tu mensualidad lleva más de dos días vencida. Renueva para recuperar el acceso al material del curso."}
         </p>
         <Link
-          href="/servicios#curso"
+          href="/cursos"
           className="mt-8 inline-flex items-center gap-3 rounded-full bg-primary px-8 py-4 font-[font2] text-sm tracking-[0.15em] text-primary-foreground uppercase transition-transform duration-300 hover:-translate-y-0.5"
         >
           Pagar ahora

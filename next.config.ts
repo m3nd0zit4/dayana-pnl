@@ -53,6 +53,13 @@ const nextConfig: NextConfig = {
     return [
       // El listado de servicios se retiró; el CRM gestiona por tipo.
       { source: "/admin/services", destination: "/admin/curso", permanent: false },
+      // `/servicios` vendía terapias y cursos a la vez; ahora son dos páginas.
+      // 308 permanente y para siempre: la URL está indexada, en el sitemap, en
+      // llms.txt y repartida por WhatsApp en conversaciones ya cerradas.
+      { source: "/servicios", destination: "/terapias", permanent: true },
+      // El cuestionario dejó de ser una página suelta y pasó a ser la puerta
+      // de /terapias. Los enlaces cortos de redes ya circulan.
+      { source: "/diagnostico", destination: "/terapias/empezar", permanent: true },
     ];
   },
   async headers() {

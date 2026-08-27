@@ -23,16 +23,12 @@ type MenuItem =
 
 const menuItemsBase: MenuItem[] = [
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
-  // El diagnóstico va segundo, delante de Servicios: es la entrada del
-  // embudo. Quien llega al menú buscando precios sigue teniendo Servicios
-  // justo debajo.
-  {
-    label: "Diagnóstico",
-    path: "/diagnostico",
-    marquee: "2 minutos · gratis",
-    announcement: "Gratis",
-  },
-  { label: "Servicios", path: "/servicios", marquee: "Terapias y cursos en vivo" },
+  // Terapias y Cursos son dos productos con dos lógicas de compra distintas
+  // —un paquete que se paga una vez y una mensualidad que se renueva—, así
+  // que son dos entradas. El cuestionario no está aquí a propósito: es la
+  // puerta de /terapias, no un destino que compita con ella.
+  { label: "Terapias", path: "/terapias", marquee: "Sesiones 1:1 en vivo" },
+  { label: "Cursos", path: "/cursos", marquee: "Una mensualidad, toda la biblioteca" },
   { label: "Historias", path: "/historias", marquee: "Historias reales" },
   { label: "Dayana", path: "/dayana", marquee: "Quién te acompaña" },
   { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },

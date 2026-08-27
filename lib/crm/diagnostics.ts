@@ -40,6 +40,7 @@ export type DiagnosticRow = {
   answers: DiagnosticAnswers;
   profile: DiagnosticProfile | null;
   urgencyScore: number | null;
+  commitmentScore: number | null;
   recommendedProductId: string | null;
   source: string | null;
   completedAt: Date | null;
@@ -53,6 +54,7 @@ const toRow = (row: {
   answers: Prisma.JsonValue;
   profile: DiagnosticProfile | null;
   urgencyScore: number | null;
+  commitmentScore: number | null;
   recommendedProductId: string | null;
   source: string | null;
   completedAt: Date | null;
@@ -69,6 +71,7 @@ const SELECT = {
   answers: true,
   profile: true,
   urgencyScore: true,
+  commitmentScore: true,
   recommendedProductId: true,
   source: true,
   completedAt: true,
@@ -79,10 +82,16 @@ const SELECT = {
 const SOURCES = new Set([
   "enlaces",
   "home",
-  "servicios",
+  "terapias",
+  "cursos",
+  "dayana",
+  "historias",
   "webinar",
   "taller",
   "ad",
+  // `servicios` se queda por las filas antiguas: la ruta redirige a /terapias
+  // pero los diagnósticos que ya se guardaron con esa fuente siguen ahí.
+  "servicios",
 ]);
 
 export async function createDiagnostic(
@@ -178,6 +187,7 @@ export async function completeDiagnostic(
       contactId,
       profile: score.profile,
       urgencyScore: score.urgencyScore,
+      commitmentScore: score.commitmentScore,
       recommendedProductId: score.recommendedProductId,
       completedAt: new Date(),
     },
@@ -283,7 +293,13 @@ export async function listCompletedDiagnostics(
 ): Promise<DiagnosticListRow[]> {
   const rows = await prisma.diagnostic.findMany({
     where: { completedAt: { not: null } },
-    orderBy: { completedAt: "desc" },
+    // Compromiso primero: la bandeja responde a "¿a quién llamo hoy?", no a
+    // "¿quién entró último?". Los nulos (diagnósticos anteriores al tramo de
+    // intención) caen al final, que es donde corresponde a algo sin medir.
+    orderBy: [
+      { commitmentScore: { sort: "desc", nulls: "last" } },
+      { completedAt: "desc" },
+    ],
     take: limit,
     select: {
       ...SELECT,

@@ -28,6 +28,14 @@ export type DiagnosticScore = {
   urgencyScore: number;
   /** Suma cruda de pesos de profundidad. Sólo para depurar y para el CRM. */
   depthScore: number;
+  /**
+   * 0–10. Cuán cerca está de decidirse: qué la ha frenado, por qué eligió a
+   * Dayana y si puede invertir. Ordena la bandeja del CRM — es la respuesta a
+   * "¿a quién llamo primero?" — y acota la recomendación hacia abajo.
+   */
+  commitmentScore: number;
+  /** La persona declaró que hoy no puede invertir. Topa la recomendación. */
+  investmentBlocked: boolean;
   modality: DiagnosticModality;
   /** Slug del producto que se le muestra. Puede no existir o estar inactivo. */
   recommendedProductId: string;
@@ -58,6 +66,8 @@ function optionsFor(question: DiagnosticQuestion, answers: DiagnosticAnswers) {
 export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
   let depthScore = 0;
   let urgencyBonus = 0;
+  let commitmentRaw = 0;
+  let investmentBlocked = false;
   let modality: DiagnosticModality = "individual";
 
   for (const question of DIAGNOSTIC_QUESTIONS) {
@@ -66,9 +76,17 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
       if (!w) continue;
       if (w.profundidad) depthScore += w.profundidad;
       if (w.urgencia) urgencyBonus += w.urgencia;
+      if (w.compromiso) commitmentRaw += w.compromiso;
+      if (w.bloqueaInversion) investmentBlocked = true;
       if (w.modalidad) modality = w.modalidad;
     }
   }
+
+  // `porqueDayana` es de selección múltiple, así que sus pesos se suman y una
+  // persona que marca cuatro razones podría dispararse. Se comprime a 0–10
+  // sobre un máximo realista en vez de dejar que la escala dependa de cuántas
+  // casillas marcó.
+  const commitmentScore = clamp(Math.round(commitmentRaw + 3), 0, 10);
 
   const declared = Number(answers.urgencia ?? 5);
   const urgencyScore = clamp(
@@ -92,19 +110,45 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
         ? "RAIZ_PROFUNDA"
         : "EN_PROCESO";
 
-  const { recommendedProductId, upgradeProductId } = recommendProduct(
-    profile,
-    modality,
+  const { recommendedProductId, upgradeProductId } = capToInvestment(
+    recommendProduct(profile, modality),
+    investmentBlocked,
   );
 
   return {
     profile,
     urgencyScore,
     depthScore,
+    commitmentScore,
+    investmentBlocked,
     modality,
     recommendedProductId,
     upgradeProductId,
   };
+}
+
+/**
+ * Techo por capacidad de inversión declarada.
+ *
+ * Quien acaba de escribir "todavía no puedo invertir" y recibe un paquete de
+ * $3.600.000 no compra: cierra la pestaña, y con ella se va la confianza que
+ * las ocho preguntas anteriores acababan de construir. Se le recomienda el
+ * primer escalón, que es lo único que puede decir que sí.
+ *
+ * El tope **sólo baja**. Un compromiso alto no sube nada: la recomendación la
+ * decide el problema, no las ganas.
+ */
+function capToInvestment(
+  recommendation: { recommendedProductId: string; upgradeProductId: string | null },
+  investmentBlocked: boolean,
+) {
+  if (!investmentBlocked) return recommendation;
+  // El curso se queda: es la opción barata y recurrente, y para quien no puede
+  // pagar un paquete de terapia suele ser exactamente la puerta correcta.
+  if (recommendation.recommendedProductId === "course-live") {
+    return { recommendedProductId: "course-live", upgradeProductId: null };
+  }
+  return { recommendedProductId: "therapy-1", upgradeProductId: null };
 }
 
 /**

@@ -11,8 +11,10 @@ import {
   resolveRecommendation,
 } from "@/lib/crm/diagnostics";
 import {
+  AUTHORITY_COPY,
   DIAGNOSTIC_PROFILES,
   METHOD_STEPS,
+  OBJECTION_COPY,
   PAIN_COPY,
 } from "@/lib/diagnostico/profiles";
 import { answerLabels } from "@/lib/diagnostico/questions";
@@ -85,6 +87,26 @@ const ResultadoPage = async ({
   const goal =
     typeof diagnostic.answers.meta === "string" ? diagnostic.answers.meta : null;
   const timeLabel = answerLabels("tiempo", diagnostic.answers.tiempo)[0] ?? null;
+
+  // Se contesta la objeción que eligió, no las cinco. Enumerarlas todas obliga
+  // a leer cuatro párrafos ajenos y, peor, planta dudas que no tenía.
+  const objection =
+    typeof diagnostic.answers.freno === "string"
+      ? OBJECTION_COPY[diagnostic.answers.freno]
+      : undefined;
+
+  // "Por qué ella" sólo lo ve quien dijo que aún no lo sabe. A quien la sigue
+  // hace tiempo o llegó por recomendación, repetírselo suena a relleno.
+  const whyDayana = Array.isArray(diagnostic.answers.porqueDayana)
+    ? diagnostic.answers.porqueDayana
+    : [];
+  const needsAuthority =
+    whyDayana.length === 0 || whyDayana.includes("aun-no-lo-se");
+
+  const change =
+    typeof diagnostic.answers.cambio === "string"
+      ? diagnostic.answers.cambio
+      : null;
 
   const whatsappUrl = buildWhatsAppUrl(
     `${copy.whatsappIntro}${
@@ -202,19 +224,55 @@ const ResultadoPage = async ({
           </div>
         </section>
 
+        {/* 4b · Por qué ella — sólo si hace falta */}
+        {needsAuthority && (
+          <section className="border-t border-black/10">
+            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+                {AUTHORITY_COPY.title}
+              </h2>
+              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+                {AUTHORITY_COPY.body}
+              </p>
+              <Link
+                href="/dayana"
+                className="mt-8 inline-block font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
+              >
+                Conocer a Dayana
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {/* 4c · La objeción que ella misma nombró */}
+        {objection && (
+          <section className="border-t border-black/10 bg-linen/40">
+            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+                {objection.title}
+              </h2>
+              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+                {objection.body}
+              </p>
+            </div>
+          </section>
+        )}
+
         {/* 5 · La oferta: una sola */}
         <section
           id="oferta"
           className="scroll-mt-20 border-t border-black/10"
         >
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-            {goal && (
+            {(change ?? goal) && (
               <blockquote className="mb-10 border-l-2 border-terracotta pl-5">
                 <p className="font-[font2] text-[10px] uppercase tracking-[0.24em] text-black/40">
-                  Dijiste que en tres meses querrías sentirte así
+                  {change
+                    ? "Dijiste que lo primero que cambiaría sería esto"
+                    : "Dijiste que en tres meses querrías sentirte así"}
                 </p>
                 <p className="mt-2 font-[font1] text-xl leading-snug text-black/80">
-                  “{goal}”
+                  “{change ?? goal}”
                 </p>
               </blockquote>
             )}
@@ -288,7 +346,7 @@ const ResultadoPage = async ({
               <p className="mt-7 font-[font1] text-base leading-relaxed text-black/60">
                 Si quieres ir más a fondo, el siguiente escalón es{" "}
                 <Link
-                  href="/servicios"
+                  href="/terapias"
                   className="underline underline-offset-4 hover:text-black"
                 >
                   {recommendation.upgrade.title}
@@ -329,7 +387,7 @@ const ResultadoPage = async ({
                 Prefiero hablarlo antes de decidir
               </a>
               <Link
-                href="/servicios"
+                href="/terapias"
                 className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/40 underline underline-offset-4 transition-colors hover:text-black"
               >
                 Ver todas las opciones

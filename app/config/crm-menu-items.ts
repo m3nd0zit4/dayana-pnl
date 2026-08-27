@@ -62,7 +62,7 @@ export const crmMenuSections: CrmMenuSection[] = [
       { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
       {
         icon: GraduationCap,
-        label: "Curso",
+        label: "Cursos",
         href: "/admin/curso",
         items: [
           { icon: UsersRound, label: "Miembros", href: "/admin/curso" },
