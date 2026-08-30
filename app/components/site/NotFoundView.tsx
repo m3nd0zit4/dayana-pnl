@@ -52,7 +52,7 @@ const NotFoundView = () => {
             Ir al inicio
           </Link>
           <Link
-            href="/terapias"
+            href="/terapias/empezar"
             className="w-full sm:flex-1 rounded-full border border-linen/30 text-white/80 font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-linen/5 hover:text-white transition-colors text-center"
           >
             Ver servicios

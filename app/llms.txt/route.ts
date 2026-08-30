@@ -23,7 +23,7 @@ export async function GET() {
     "",
     "## Servicios",
     "",
-    `- Terapias 1:1 por Google Meet, paquetes de 1 a 24 sesiones${fromUsd != null ? ` — desde ${formatUsd(fromUsd)}${fromCop != null ? ` / ${formatCop(fromCop)}` : ""}` : ""}: ${siteUrl}/terapias`,
+    `- Terapias 1:1 por Google Meet, paquetes de 1 a 24 sesiones${fromUsd != null ? ` — desde ${formatUsd(fromUsd)}${fromCop != null ? ` / ${formatCop(fromCop)}` : ""}` : ""}. Se accede por el cuestionario, que recomienda uno solo: ${siteUrl}/terapias/empezar`,
     `- Talleres virtuales en vivo: ${siteUrl}/taller-virtual`,
     ...(coursePlan
       ? [`- Biblioteca de cursos de PNL, una mensualidad abre todos — ${formatUsd(coursePlan.amountUsd)}${coursePlan.amountCop != null ? ` / ${formatCop(coursePlan.amountCop)}` : ""} al mes: ${siteUrl}/cursos`]
@@ -31,8 +31,7 @@ export async function GET() {
     "",
     "## Por dónde empezar",
     "",
-    `- Cuestionario gratuito (12 preguntas, 3 minutos) — recomienda el proceso que corresponde: ${siteUrl}/terapias/empezar`,
-    `- Quién es Dayana y cómo trabaja: ${siteUrl}/dayana`,
+    `- Cuestionario gratuito (8 preguntas, 2 minutos) — recomienda el proceso que corresponde y permite pagarlo: ${siteUrl}/terapias/empezar`,
     `- Historias reales en vídeo: ${siteUrl}/historias`,
     "",
     "## Contacto",

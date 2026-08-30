@@ -53,13 +53,20 @@ const nextConfig: NextConfig = {
     return [
       // El listado de servicios se retiró; el CRM gestiona por tipo.
       { source: "/admin/services", destination: "/admin/curso", permanent: false },
-      // `/servicios` vendía terapias y cursos a la vez; ahora son dos páginas.
-      // 308 permanente y para siempre: la URL está indexada, en el sitemap, en
-      // llms.txt y repartida por WhatsApp en conversaciones ya cerradas.
-      { source: "/servicios", destination: "/terapias", permanent: true },
-      // El cuestionario dejó de ser una página suelta y pasó a ser la puerta
-      // de /terapias. Los enlaces cortos de redes ya circulan.
+      // El catálogo público de terapias se retiró: los paquetes ya no se
+      // navegan por precio. Se entra por el cuestionario, que recomienda uno
+      // solo, y lo que se acuerda por llamada se cobra con un enlace generado
+      // desde /admin/enlaces-pago.
+      //
+      // Las tres URLs viejas apuntan al mismo sitio y en un solo salto — están
+      // indexadas, en el sitemap, en llms.txt y repartidas por WhatsApp en
+      // conversaciones ya cerradas.
+      { source: "/servicios", destination: "/terapias/empezar", permanent: true },
       { source: "/diagnostico", destination: "/terapias/empezar", permanent: true },
+      { source: "/terapias", destination: "/terapias/empezar", permanent: true },
+      // La página de "quién es Dayana" se retiró; su argumento vive ahora en la
+      // home y en el resultado del cuestionario.
+      { source: "/dayana", destination: "/", permanent: true },
     ];
   },
   async headers() {

@@ -1,10 +1,19 @@
 import { FAQS } from "@/lib/content/servicios-faq";
 
+/**
+ * Las preguntas frecuentes de la terapia.
+ *
+ * Vivían en el catálogo `/terapias`, que se retiró. Su sitio es ahora la página
+ * de resultado del cuestionario: es donde aparece el precio, y por tanto donde
+ * alguien se pregunta cómo son las sesiones, qué pasa después de pagar y si
+ * esto sustituye a un tratamiento psicológico. Un FAQ lejos del precio es
+ * documentación; junto al precio es manejo de objeciones.
+ */
 const FaqSection = () => {
   return (
-    <section data-nav-color="black" className="bg-[#faf7f2] text-black border-t border-black/10">
-      <div className="px-3 lg:px-8 py-16 lg:py-24 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:gap-12">
-        <h2 className="font-[font2] text-4xl lg:text-[4.5vw] uppercase leading-[0.9] mb-10 lg:mb-0">
+    <section data-nav-color="black" className="reveal border-t border-black/10 bg-[#faf7f2] text-black">
+      <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20 lg:grid lg:grid-cols-1 lg:gap-0">
+        <h2 className="mb-8 font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
           Preguntas frecuentes
         </h2>
         <div className="divide-y divide-black/10 border-y border-black/10">

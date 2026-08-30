@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/home/Footer";
 import RevealScope from "@/app/components/common/RevealScope";
+import FaqSection from "@/app/components/servicios/FaqSection";
 import DiagnosticCheckout from "@/app/components/diagnostico/DiagnosticCheckout";
 import DiagnosticResultTracking from "@/app/components/diagnostico/DiagnosticResultTracking";
 import {
@@ -230,12 +231,6 @@ const ResultadoPage = async ({
               <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
                 {AUTHORITY_COPY.body}
               </p>
-              <Link
-                href="/dayana"
-                className="mt-8 inline-block font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
-              >
-                Conocer a Dayana
-              </Link>
             </div>
           </section>
         )}
@@ -329,13 +324,7 @@ const ResultadoPage = async ({
             {recommendation?.upgrade && (
               <p className="mt-7 font-[font1] text-base leading-relaxed text-black/60">
                 Si quieres ir más a fondo, el siguiente escalón es{" "}
-                <Link
-                  href="/terapias"
-                  className="underline underline-offset-4 hover:text-black"
-                >
-                  {recommendation.upgrade.title}
-                </Link>
-                .
+                {recommendation.upgrade.title}. Escríbeme y te paso el enlace.
               </p>
             )}
 
@@ -370,15 +359,10 @@ const ResultadoPage = async ({
               >
                 Prefiero hablarlo antes de decidir
               </a>
-              <Link
-                href="/terapias"
-                className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/40 underline underline-offset-4 transition-colors hover:text-black"
-              >
-                Ver todas las opciones
-              </Link>
             </div>
           </div>
         </section>
+          <FaqSection />
         </main>
       </RevealScope>
       <Footer />

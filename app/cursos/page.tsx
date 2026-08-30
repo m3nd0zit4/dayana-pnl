@@ -152,7 +152,7 @@ Toda la biblioteca.`}
               trabajar tu caso concreto con Dayana, eso son las sesiones 1:1.
             </p>
             <Link
-              href="/terapias"
+              href="/terapias/empezar"
               className="mt-9 inline-block rounded-full border border-ink px-9 py-4 font-[font2] text-xs uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
             >
               Ver terapias 1:1

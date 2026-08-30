@@ -239,7 +239,7 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
       }
       // Sin token no hay página de resultado que mostrar, pero el contacto sí
       // quedó guardado: se le lleva al catálogo en vez de dejarle en blanco.
-      router.push("/terapias");
+      router.push("/terapias/empezar");
     } catch {
       setServerError("Sin conexión. Revisa tu internet e inténtalo de nuevo.");
       setSubmitting(false);

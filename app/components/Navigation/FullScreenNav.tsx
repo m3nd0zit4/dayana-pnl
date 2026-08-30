@@ -21,35 +21,31 @@ type MenuItem =
       announcement?: string;
     };
 
+/**
+ * Cuatro entradas, y ninguna es un catálogo.
+ *
+ * Llegó a tener ocho —Inicio, Diagnóstico, Terapias, Cursos, Historias,
+ * Dayana, Taller, Contacto, Redes— y un menú de ese tamaño deja de orientar:
+ * se convierte en una lista que hay que leer entera para decidir. Lo que se
+ * vende son dos cosas, así que hay dos destinos de venta y dos de servicio.
+ *
+ * «Terapias» apunta al **cuestionario**, no a una lista de precios: los
+ * paquetes ya no se navegan, se recomienda uno. Historias, el taller y las
+ * redes siguen accesibles desde el pie y desde los CTA de la home, que es
+ * donde tienen sentido.
+ */
 const menuItemsBase: MenuItem[] = [
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
-  // Terapias y Cursos son dos productos con dos lógicas de compra distintas
-  // —un paquete que se paga una vez y una mensualidad que se renueva—, así
-  // que son dos entradas. El cuestionario no está aquí a propósito: es la
-  // puerta de /terapias, no un destino que compita con ella.
-  { label: "Terapias", path: "/terapias", marquee: "Sesiones 1:1 en vivo" },
+  {
+    label: "Terapias",
+    path: "/terapias/empezar",
+    marquee: "Empieza por saber qué necesitas",
+  },
   { label: "Cursos", path: "/cursos", marquee: "Una mensualidad, toda la biblioteca" },
-  { label: "Historias", path: "/historias", marquee: "Historias reales" },
-  { label: "Dayana", path: "/dayana", marquee: "Quién te acompaña" },
   { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },
-  { label: "Redes", hash: "#redes", marquee: "Sigue a Dayana" },
 ];
 
-const tallerVirtualItem: MenuItem = {
-  label: "Taller virtual",
-  path: "/taller-virtual",
-  marquee: "Próximo taller virtual",
-  announcement: "Próximamente",
-};
-
-// El taller se inserta después de "Historias" para que el bloque de arriba
-// quede: a dónde ir primero (Diagnóstico), qué cuesta (Servicios), y por qué
-// creerlo (Historias).
-const menuItems: MenuItem[] = [
-  ...menuItemsBase.slice(0, 4),
-  tallerVirtualItem,
-  ...menuItemsBase.slice(4),
-];
+const menuItems: MenuItem[] = menuItemsBase;
 
 /** Tamaños originales del menú (antes del primer ajuste por clamp). */
 const linkTitleClass =

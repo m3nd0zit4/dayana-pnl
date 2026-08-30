@@ -11,13 +11,11 @@ const STATIC_ROUTES: {
   priority: number;
 }[] = [
   { path: "", changeFrequency: "weekly", priority: 1 },
-  { path: "/terapias", changeFrequency: "monthly", priority: 0.9 },
   { path: "/cursos", changeFrequency: "weekly", priority: 0.9 },
-  // El cuestionario es la entrada del embudo de terapias; su página de
-  // resultado (/terapias/resultado/<token>) queda fuera a propósito: lleva
-  // datos personales y se sirve con noindex.
-  { path: "/terapias/empezar", changeFrequency: "monthly", priority: 0.8 },
-  { path: "/dayana", changeFrequency: "monthly", priority: 0.7 },
+  // El cuestionario **es** la página de terapias: el catálogo de precios se
+  // retiró. Su página de resultado (/terapias/resultado/<token>) queda fuera a
+  // propósito — lleva datos personales y se sirve con noindex.
+  { path: "/terapias/empezar", changeFrequency: "monthly", priority: 0.9 },
   { path: "/historias", changeFrequency: "monthly", priority: 0.7 },
   { path: "/taller-virtual", changeFrequency: "weekly", priority: 0.8 },
   { path: "/enlaces", changeFrequency: "monthly", priority: 0.3 },

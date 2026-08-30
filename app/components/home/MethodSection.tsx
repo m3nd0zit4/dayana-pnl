@@ -6,8 +6,11 @@ import { METHOD_STEPS } from "@/lib/diagnostico/profiles";
  * El método y el "por qué ella".
  *
  * Este argumento sólo existía dentro de la llamada de ventas. Mientras siguiera
- * sin estar en la página, la llamada era obligatoria. Aquí va la versión corta
- * y en `/dayana` la larga.
+ * sin estar en la página, la llamada era obligatoria. Tuvo también una página
+ * propia (`/dayana`) que se retiró: con el menú reducido a cuatro entradas,
+ * una página entera de autoridad a la que nadie enlazaba era una ruta más que
+ * mantener, no un argumento más que leer. Vive aquí y en el resultado del
+ * cuestionario, que son los dos sitios donde alguien se lo está preguntando.
  */
 const MethodSection = () => (
   <section
@@ -48,17 +51,17 @@ const MethodSection = () => (
 
         <div className="mt-14 flex flex-wrap items-center gap-x-8 gap-y-4">
           <Link
-            href="/dayana"
+            href="/historias"
             className="inline-flex items-center gap-3 rounded-full border border-black px-8 py-4 font-[font2] text-sm uppercase tracking-[0.15em] transition-colors duration-300 hover:bg-black hover:text-linen"
           >
-            Quién es Dayana
+            Ver historias reales
             <span aria-hidden>→</span>
           </Link>
           <Link
-            href="/historias"
+            href="/terapias/empezar"
             className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
           >
-            Ver historias reales
+            Saber qué necesito
           </Link>
         </div>
       </div>

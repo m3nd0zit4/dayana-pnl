@@ -90,7 +90,7 @@ const SECONDARY_LINKS: LinkRow[] = [
     key: "terapias",
     label: "Terapias 1:1",
     sublabel: "Sesiones privadas con Dayana · precios",
-    href: "/terapias",
+    href: "/terapias/empezar",
     icon: <LayoutList className="h-5 w-5" />,
     internal: true,
   },

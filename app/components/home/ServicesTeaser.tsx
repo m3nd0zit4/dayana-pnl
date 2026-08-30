@@ -100,7 +100,7 @@ const ServicesTeaser = ({
                 misma página es lo que hacía /servicios. */}
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
-                href="/terapias"
+                href="/terapias/empezar"
                 className="inline-flex items-center gap-3 rounded-full bg-black text-linen font-[font2] uppercase text-sm tracking-[0.15em] px-8 py-4 transition-transform duration-300 hover:-translate-y-0.5 hover:bg-terracotta hover:text-white"
               >
                 Terapias 1:1
