@@ -123,7 +123,13 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
       : `${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
   };
 
-  const isMembership = plan.kind === "course";
+  /**
+   * NO se deriva de `plan.kind`: un taller también llega como `"course"`, y con
+   * ese criterio el checkout del taller —una compra única— mostraba
+   * «Suscribirme con PayPal» y «Pagar un mes con tarjeta». `recurring` es un
+   * hecho del producto.
+   */
+  const isMembership = plan.recurring === true;
 
   /**
    * La mensualidad ofrece SIEMPRE dos vías, en los dos rieles, y por el mismo
@@ -140,8 +146,13 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
    * En los dos casos el pago suelto es la salida para quien no encaja en el
    * recurrente. Se muestran juntos y la clienta elige, sabiendo qué gana y qué
    * pierde con cada uno.
+   *
+   * Condicionado a que el plan EXISTA en el proveedor: sin él, «Suscribirme»
+   * lleva a `no_subscription_plan` y la clienta se lleva un error donde
+   * esperaba pagar. Mientras no estén creados, sólo se ofrece el pago suelto,
+   * que sí funciona.
    */
-  const offersBoth = isMembership;
+  const offersBoth = isMembership && plan.subscriptionAvailable === true;
 
   /** Alta recurrente. Convive con el pago suelto en los dos rieles. */
   const goSubscribe = async () => {
@@ -310,7 +321,7 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
             perdía la venta. Mercado Pago no se parte: su checkout ya ofrece
             todos los medios en una sola pantalla.
           */}
-          {provider === "paypal" && !isMembership ? (
+          {provider === "paypal" && !offersBoth ? (
             <div className="space-y-2.5">
               {/*
                 Tarjeta primero, con los sellos de marca a la vista: la mayoría
@@ -327,7 +338,9 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
                 <CardGlyph />
                 {ui.kind === "redirecting"
                   ? "Abriendo el pago seguro…"
-                  : "Pagar con tarjeta"}
+                  : isMembership
+                    ? "Pagar un mes con tarjeta"
+                    : "Pagar con tarjeta"}
               </button>
 
               <button
@@ -408,7 +421,11 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
               onClick={() => void go()}
               className="w-full cursor-pointer rounded-full bg-[#141118] px-4 py-3.5 font-[font2] text-[12px] uppercase tracking-[0.28em] text-linen shadow-[0_8px_20px_rgba(20,17,24,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-black hover:shadow-[0_14px_28px_rgba(20,17,24,0.26)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#141118] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
             >
-              {ui.kind === "redirecting" ? "Abriendo el pago seguro…" : "Pagar"}
+              {ui.kind === "redirecting"
+                ? "Abriendo el pago seguro…"
+                : isMembership
+                  ? "Pagar un mes"
+                  : "Pagar"}
             </button>
           )}
         </>

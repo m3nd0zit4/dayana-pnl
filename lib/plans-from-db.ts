@@ -36,9 +36,22 @@ export const productToPlan = (
 
   const kind = kindToPlanKind(product.kind);
 
+  /**
+   * La mensualidad, y sólo ella. `kind` no vale para esto: un taller también
+   * llega aquí como `"course"` y se paga una vez.
+   */
+  const recurring =
+    product.kind === ProductKind.COURSE && !product.isCourseContent;
+
   return {
     id: product.id,
     kind,
+    recurring,
+    // Que el producto sea recurrente no basta: hace falta que el plan exista
+    // en el proveedor, o el botón lleva a un error.
+    subscriptionAvailable:
+      recurring &&
+      Boolean(product.paypalPlanId || product.mercadoPagoPreapprovalPlanId),
     title: product.title,
     sessions: product.sessionsLabel,
     sessionsCount: product.sessionsCount ?? undefined,
