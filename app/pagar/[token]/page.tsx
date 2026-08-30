@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import PaymentLinkCheckout from "@/app/components/pagar/PaymentLinkCheckout";
+import RevealScope from "@/app/components/common/RevealScope";
 import {
   markPaymentLinkOpened,
   resolvePaymentLink,
@@ -51,7 +52,10 @@ const PagarPage = async ({
 
   return (
     <main className="flex min-h-[100svh] items-center justify-center bg-hero-paper px-5 py-12 text-ink">
-      <div className="w-full max-w-md">
+      {/* Una entrada y nada más. Quien abre un enlace de pago ya decidió:
+          animar esta pantalla sólo retrasa el botón. */}
+      <RevealScope className="w-full max-w-md" selector=".reveal" y={24} step={0}>
+        <div className="reveal">
         <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
           {BRAND.name}
         </p>
@@ -108,7 +112,8 @@ const PagarPage = async ({
           Pago seguro. Al terminar recibes la confirmación por correo y
           coordinamos tu agenda.
         </p>
-      </div>
+        </div>
+      </RevealScope>
     </main>
   );
 };

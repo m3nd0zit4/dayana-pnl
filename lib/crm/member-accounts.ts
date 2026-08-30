@@ -256,6 +256,20 @@ export const upsertMemberAccountForGoogle = async (input: {
     });
   }
 
+  // El upsert busca por `contactId` pero escribe `googleSub`, que es único
+  // global. Si esa identidad de Google ya cuelga de OTRA cuenta —porque el
+  // correo del contacto se editó en el CRM, o porque la persona tenía dos
+  // contactos— Prisma lanza P2002 y, con el `catch` mudo que había arriba en
+  // `auth.ts`, esa cuenta quedaba inutilizable para siempre sin que nadie
+  // supiera por qué. Se detecta antes y se dice qué pasa.
+  const claimedElsewhere = await prisma.memberAccount.findUnique({
+    where: { googleSub: input.googleSub },
+    select: { contactId: true },
+  });
+  if (claimedElsewhere && claimedElsewhere.contactId !== contact.id) {
+    throw new Error("GOOGLE_SUB_ALREADY_LINKED");
+  }
+
   return prisma.memberAccount.upsert({
     where: { contactId: contact.id },
     create: {

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import Footer from "../components/home/Footer";
+import RevealScope from "../components/common/RevealScope";
+import SplitReveal from "../components/ui/SplitReveal";
 import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import JsonLd from "../components/seo/JsonLd";
 import {
@@ -37,14 +39,17 @@ const HistoriasPage = () => (
         { name: "Historias", url: "/historias" },
       ])}
     />
-    <main className="bg-hero-paper text-ink">
+    <RevealScope className="bg-hero-paper text-ink" selector=".reveal" step={0.07}>
+      <main>
       <section className="mx-auto w-full max-w-5xl px-5 pb-14 pt-28 sm:px-8 sm:pt-36">
         <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
           Historias reales
         </p>
-        <h1 className="mt-5 max-w-3xl font-[font2] text-4xl uppercase leading-[0.92] sm:text-6xl">
-          No te lo cuento yo. Te lo cuentan ellas.
-        </h1>
+        <SplitReveal
+          text={`No te lo cuento yo.
+Te lo cuentan ellas.`}
+          className="mt-5 max-w-3xl font-[font2] text-4xl uppercase leading-[0.92] sm:text-6xl"
+        />
         <p className="mt-6 max-w-xl font-[font1] text-lg leading-snug text-black/65">
           Cada una llegó por algo distinto y ninguna sabía, al empezar, que se
           podía salir de ahí. Míralas hablar.
@@ -56,7 +61,7 @@ const HistoriasPage = () => (
           {TESTIMONIOS.map((t) => (
             <li
               key={t.id}
-              className="flex flex-col overflow-hidden rounded-3xl border border-black/10 bg-white/55"
+              className="reveal flex flex-col overflow-hidden rounded-3xl border border-black/10 bg-white/55"
             >
               <a
                 href={youtubeWatchUrl(t.youtubeId)}
@@ -102,7 +107,7 @@ const HistoriasPage = () => (
         </ul>
       </section>
 
-      <section className="border-t border-black/10 bg-linen/40">
+      <section className="reveal border-t border-black/10 bg-linen/40">
         <div className="mx-auto w-full max-w-3xl px-5 py-16 text-center sm:px-8 sm:py-20">
           <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
             ¿Y tú por qué llegarías?
@@ -119,7 +124,8 @@ const HistoriasPage = () => (
           </Link>
         </div>
       </section>
-    </main>
+      </main>
+    </RevealScope>
     <Footer />
     <FloatingWhatsApp />
   </>

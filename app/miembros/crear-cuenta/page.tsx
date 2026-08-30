@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/contact";
 import { peekMemberAuthToken } from "@/lib/auth/member-tokens";
 import MemberAuthShell from "@/app/components/miembros/MemberAuthShell";
+import { isGoogleAuthEnabled } from "@/auth";
 import OnboardingWizard from "@/app/components/miembros/OnboardingWizard";
 import RequestAccessForm from "@/app/components/miembros/RequestAccessForm";
 import SetPasswordForm from "@/app/components/miembros/SetPasswordForm";
@@ -55,10 +56,11 @@ const Page = async ({ searchParams }: PageProps) => {
   return (
     <MemberAuthShell
       title="Crea tu cuenta"
-      description="Cuatro pasos y entras directo — sin esperar correos."
+      description="Un formulario y entras directo — sin esperar correos."
     >
       <OnboardingWizard
         callbackUrl={safeCallbackUrl(callbackUrl) ?? undefined}
+        googleEnabled={isGoogleAuthEnabled()}
       />
     </MemberAuthShell>
   );

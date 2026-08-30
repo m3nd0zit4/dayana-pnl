@@ -22,6 +22,10 @@
  */
 
 export type OnboardingDraft = {
+  /**
+   * @deprecated El alta dejó de ser multipaso. Se mantiene en el tipo para que
+   * un borrador guardado por la versión anterior no rompa `loadDraft`.
+   */
   step?: number;
   email?: string;
   firstName?: string;

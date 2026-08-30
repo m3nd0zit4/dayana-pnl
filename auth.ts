@@ -40,6 +40,13 @@ export const isGoogleAuthEnabled = () =>
   Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // `trustHost` deja que Auth.js construya el `redirect_uri` de OAuth desde la
+  // cabecera `Host` de la petición. Es lo que se quiere en Vercel, donde el
+  // host cambia por despliegue — pero en local significa que el puerto del
+  // servidor acaba dentro del `redirect_uri` que se le manda a Google, y
+  // Google exige coincidencia exacta contra su lista blanca. Por eso `dev`
+  // fija el puerto en package.json y `AUTH_URL` está documentado en
+  // .env.example: Auth.js NO lee `NEXT_PUBLIC_SITE_URL`.
   trustHost: true,
   secret:
     process.env.AUTH_SECRET ??
@@ -161,9 +168,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: profile?.name ?? user?.name ?? null,
           googleSub: account.providerAccountId,
         });
-      } catch {
+      } catch (e) {
         // Staff emails may never log in via Google, and any linking failure
         // must deny the sign-in rather than mint a session without a member.
+        //
+        // Este `catch` estuvo mudo y fue la razón de que "Google falla" no
+        // tuviera ninguna señal que seguir: convertía en el mismo
+        // `AccessDenied` indistinguible tres cosas muy distintas — el bloqueo
+        // deliberado de un correo de staff, una colisión de identidad, y
+        // cualquier error de base de datos. Denegar sigue siendo lo correcto;
+        // hacerlo en silencio, no.
+        const reason = e instanceof Error ? e.message : "unknown";
+        console.error(
+          `[auth] Google sign-in denied for ${email}: ${reason}`,
+          reason === "unknown" ? e : undefined
+        );
         return false;
       }
       return true;
@@ -188,7 +207,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const memberAccount = await getMemberAccountByGoogleSub(
             account.providerAccountId
           );
-          if (!memberAccount) return {};
+          // Devolver `{}` acuñaba un token vacío: la sesión salía `undefined`
+          // y el navegador rebotaba a /acceso **sin ningún `?error=`**, así
+          // que desde fuera el botón "no hacía nada". Lanzar es lo correcto —
+          // Auth.js lo traduce a un error visible— y además esto no debería
+          // poder ocurrir: el callback `signIn` ya creó la cuenta.
+          if (!memberAccount) {
+            console.error(
+              `[auth] Google sub ${account.providerAccountId} passed signIn but has no MemberAccount`
+            );
+            throw new Error("MEMBER_ACCOUNT_MISSING");
+          }
           const dbSession = await createMemberSession({
             memberAccountId: memberAccount.id,
           });

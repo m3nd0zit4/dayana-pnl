@@ -42,7 +42,7 @@ const CourseCard = ({ course }: { course: CatalogCourse }) => {
                 la portada sin necesitar una fotografía que no existe. */}
             <span
               aria-hidden
-              className="pointer-events-none absolute -bottom-[0.22em] -left-[0.06em] font-[font2] text-[5.5rem] uppercase leading-none text-white/[0.09] transition-transform duration-500 group-hover:scale-105 sm:text-[7rem]"
+              className="cg-keyword pointer-events-none absolute -bottom-[0.22em] -left-[0.06em] font-[font2] text-[5.5rem] uppercase leading-none text-white/[0.09] will-change-transform sm:text-[7rem]"
             >
               {cover.keyword}
             </span>

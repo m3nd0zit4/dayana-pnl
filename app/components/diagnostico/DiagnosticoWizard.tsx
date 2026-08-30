@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { type CountryCode } from "libphonenumber-js";
 
 import CheckoutCountrySelect from "@/app/components/payments/CheckoutCountrySelect";
@@ -41,6 +43,9 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
   const router = useRouter();
 
   const [step, setStep] = useState(0);
+  /** 1 hacia delante, -1 hacia atrás: decide de qué lado entra la pregunta. */
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [answers, setAnswers] = useState<DiagnosticAnswers>({});
   const [token, setToken] = useState<string | null>(null);
 
@@ -112,6 +117,31 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
     persist(partial);
   };
 
+  /**
+   * Cada pregunta entra desde el lado hacia el que se avanza.
+   *
+   * Sin esto las ocho preguntas se sustituyen sin más y el cuestionario se
+   * siente como ocho páginas sueltas en vez de un recorrido: no hay señal de
+   * que se esté avanzando, sólo de que la pantalla cambió. La dirección es lo
+   * que convierte «otra pregunta» en «vas por la quinta».
+   */
+  useGSAP(
+    () => {
+      const el = stageRef.current;
+      if (!el) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(el, { clearProps: "all" });
+        return;
+      }
+      gsap.fromTo(
+        el,
+        { autoAlpha: 0, x: 34 * direction },
+        { autoAlpha: 1, x: 0, duration: 0.42, ease: "power3.out" },
+      );
+    },
+    { dependencies: [step] },
+  );
+
   const goNext = () => {
     if (question) {
       pushDataLayerEvent("diagnostic_step", {
@@ -119,10 +149,14 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
         question_id: question.id,
       });
     }
+    setDirection(1);
     setStep((s) => Math.min(s + 1, CONTACT_STEP));
   };
 
-  const goBack = () => setStep((s) => Math.max(s - 1, 0));
+  const goBack = () => {
+    setDirection(-1);
+    setStep((s) => Math.max(s - 1, 0));
+  };
 
   const canAdvance =
     !question || !question.required || isAnswered(question, answers);
@@ -228,7 +262,10 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col justify-center py-10 sm:py-14">
+      <div
+        ref={stageRef}
+        className="flex flex-1 flex-col justify-center py-10 sm:py-14"
+      >
         {question && !isContactStep ? (
           <QuestionStep
             key={question.id}

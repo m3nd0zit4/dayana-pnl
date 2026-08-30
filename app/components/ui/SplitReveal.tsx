@@ -26,6 +26,16 @@ const SplitReveal = ({
     () => {
       if (!ref.current) return;
       const chars = ref.current.querySelectorAll<HTMLElement>(".sr-char");
+
+      // Faltaba la guarda que el resto del sitio sí tiene, y aquí importa más
+      // que en ninguna otra parte: esto anima **titulares**. Sin ella, quien
+      // pide menos movimiento recibía cada carácter del título barriendo hacia
+      // arriba.
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(chars, { clearProps: "all" });
+        return;
+      }
+
       gsap.from(chars, {
         yPercent: 110,
         opacity: 0,

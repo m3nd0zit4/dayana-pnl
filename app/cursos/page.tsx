@@ -4,7 +4,9 @@ import Link from "next/link";
 import Footer from "../components/home/Footer";
 import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import JsonLd from "../components/seo/JsonLd";
-import CourseCard from "../components/cursos/CourseCard";
+import CourseGrid from "../components/cursos/CourseGrid";
+import RevealScope from "../components/common/RevealScope";
+import SplitReveal from "../components/ui/SplitReveal";
 import MembershipPicker from "../components/cursos/MembershipPicker";
 import { getCourseCatalog } from "@/lib/courses/catalog";
 import { BRAND } from "@/lib/contact";
@@ -54,7 +56,8 @@ const CursosPage = async () => {
         />
       )}
 
-      <main className="bg-hero-paper text-ink">
+      <RevealScope className="bg-hero-paper text-ink" selector=".reveal">
+        <main>
         {/* El precio va aquí y en ningún otro sitio de la página. Repetirlo por
             tarjeta sugeriría que los cursos se compran sueltos, que es
             justamente lo contrario del modelo. */}
@@ -62,11 +65,11 @@ const CursosPage = async () => {
           <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
             Biblioteca de cursos
           </p>
-          <h1 className="mt-5 max-w-3xl font-[font2] text-4xl uppercase leading-[0.92] sm:text-6xl">
-            Una mensualidad.
-            <br />
-            Toda la biblioteca.
-          </h1>
+          <SplitReveal
+            text={`Una mensualidad.
+Toda la biblioteca.`}
+            className="mt-5 max-w-3xl font-[font2] text-4xl uppercase leading-[0.92] sm:text-6xl"
+          />
           <p className="mt-6 max-w-xl font-[font1] text-lg leading-snug text-black/65">
             No eliges un curso: entras a todos. Mientras la mensualidad esté
             activa tienes acceso completo, y cuando se publica uno nuevo también
@@ -82,17 +85,11 @@ const CursosPage = async () => {
               cuanto abra.
             </p>
           ) : (
-            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {courses.map((course) => (
-                <li key={course.slug}>
-                  <CourseCard course={course} />
-                </li>
-              ))}
-            </ul>
+            <CourseGrid courses={courses} />
           )}
         </section>
 
-        <section className="border-t border-black/10 bg-linen/40">
+        <section className="reveal border-t border-black/10 bg-linen/40">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
               Qué incluye la mensualidad
@@ -145,7 +142,7 @@ const CursosPage = async () => {
           </div>
         </section>
 
-        <section className="border-t border-black/10">
+        <section className="reveal border-t border-black/10">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 text-center sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
               ¿Buscabas acompañamiento personal?
@@ -162,7 +159,8 @@ const CursosPage = async () => {
             </Link>
           </div>
         </section>
-      </main>
+        </main>
+      </RevealScope>
       <Footer />
       <FloatingWhatsApp />
     </>

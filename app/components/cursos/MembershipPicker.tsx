@@ -1,8 +1,11 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { Suspense, useRef, useState } from "react";
 
 import PortalCheckoutCta from "@/app/components/payments/PortalCheckoutCta";
+import { prefersReducedMotion } from "@/app/hooks/useReveal";
 import { formatCop, formatUsd, type Plan } from "@/lib/plans";
 
 type Props = {
@@ -52,6 +55,54 @@ const MembershipPicker = ({
   const [period, setPeriod] = useState<"monthly" | "annual">(
     annual ? "annual" : "monthly",
   );
+  const priceRef = useRef<HTMLSpanElement>(null);
+
+  /**
+   * El precio cuenta hasta su valor al cambiar de periodo, en vez de saltar.
+   *
+   * Es el único número que decide esta página, y saltar de $35 a $350 sin
+   * transición se lee como si la página se hubiera roto: el ojo no sabe si es
+   * otro producto. Contando, el salto **es** la información — se ve que uno es
+   * diez veces el otro.
+   *
+   * Se anima un objeto y no el nodo: interpolar `textContent` directamente
+   * daría decimales a medias en cada frame.
+   */
+  useGSAP(
+    () => {
+      const el = priceRef.current;
+      if (!el) return;
+
+      const target =
+        period === "annual" ? (annual ?? monthly) : (monthly ?? annual);
+      if (!target) return;
+
+      const to =
+        isColombia && target.amountCop != null
+          ? target.amountCop
+          : target.amountUsd;
+      const format = (n: number) =>
+        isColombia && target.amountCop != null
+          ? formatCop(Math.round(n))
+          : formatUsd(Math.round(n));
+
+      if (prefersReducedMotion()) {
+        el.textContent = format(to);
+        return;
+      }
+
+      const counter = { value: 0 };
+      gsap.to(counter, {
+        value: to,
+        duration: 0.7,
+        ease: "power2.out",
+        onUpdate: () => {
+          el.textContent = format(counter.value);
+        },
+      });
+    },
+    { dependencies: [period, isColombia] },
+  );
 
   const selected = period === "annual" ? annual : monthly;
   if (!selected) return null;
@@ -96,7 +147,10 @@ const MembershipPicker = ({
       )}
 
       <p className="mt-6 flex flex-wrap items-baseline gap-3">
-        <span className="font-[font2] text-5xl leading-none">
+        <span
+          ref={priceRef}
+          className="font-[font2] text-5xl leading-none tabular-nums"
+        >
           {priceOf(selected, isColombia)}
         </span>
         <span className="font-[font1] text-base text-black/50">

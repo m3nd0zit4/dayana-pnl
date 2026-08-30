@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import Footer from "../components/home/Footer";
+import RevealScope from "../components/common/RevealScope";
 import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import JsonLd from "../components/seo/JsonLd";
 import { METHOD_STEPS } from "@/lib/diagnostico/profiles";
@@ -35,7 +36,8 @@ const DayanaPage = () => (
         { name: "Dayana", url: "/dayana" },
       ])}
     />
-    <main className="bg-hero-paper text-ink">
+    <RevealScope className="bg-hero-paper text-ink" selector=".reveal">
+      <main>
       <section className="mx-auto grid w-full max-w-5xl gap-10 px-5 pb-16 pt-28 sm:px-8 sm:pt-36 lg:grid-cols-[1fr_0.8fr] lg:items-center">
         <div>
           <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
@@ -73,7 +75,7 @@ const DayanaPage = () => (
         </picture>
       </section>
 
-      <section className="border-t border-black/10">
+      <section className="reveal border-t border-black/10">
         <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
           <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
             Por qué PNL y no otra cosa
@@ -101,7 +103,7 @@ const DayanaPage = () => (
         </div>
       </section>
 
-      <section className="border-t border-black/10 bg-linen/40">
+      <section className="reveal border-t border-black/10 bg-linen/40">
         <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
           <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
             Cómo es una sesión
@@ -130,7 +132,7 @@ const DayanaPage = () => (
         </div>
       </section>
 
-      <section className="border-t border-black/10">
+      <section className="reveal border-t border-black/10">
         <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
           <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
             Qué no es
@@ -160,7 +162,7 @@ const DayanaPage = () => (
         </div>
       </section>
 
-      <section className="border-t border-black/10 bg-linen/40">
+      <section className="reveal border-t border-black/10 bg-linen/40">
         <div className="mx-auto w-full max-w-3xl px-5 py-16 text-center sm:px-8 sm:py-20">
           <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
             ¿Empezamos por saber qué te está frenando?
@@ -185,7 +187,8 @@ const DayanaPage = () => (
           </p>
         </div>
       </section>
-    </main>
+      </main>
+    </RevealScope>
     <Footer />
     <FloatingWhatsApp />
   </>

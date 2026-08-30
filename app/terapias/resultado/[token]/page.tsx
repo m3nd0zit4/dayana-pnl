@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/home/Footer";
+import RevealScope from "@/app/components/common/RevealScope";
 import DiagnosticCheckout from "@/app/components/diagnostico/DiagnosticCheckout";
 import DiagnosticResultTracking from "@/app/components/diagnostico/DiagnosticResultTracking";
 import {
@@ -117,7 +118,8 @@ const ResultadoPage = async ({
   return (
     <>
       <DiagnosticResultTracking profile={profile} />
-      <main className="bg-hero-paper text-ink">
+      <RevealScope className="bg-hero-paper text-ink" selector=".reveal">
+        <main>
         {/* 1 · El espejo */}
         <section className="mx-auto w-full max-w-3xl px-5 pb-16 pt-24 sm:px-8 sm:pt-32">
           <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
@@ -162,7 +164,7 @@ const ResultadoPage = async ({
 
         {/* 2 · Lo que está pasando, según su dolor */}
         {pain && (
-          <section className="border-t border-black/10 bg-linen/40">
+          <section className="reveal border-t border-black/10 bg-linen/40">
             <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
               <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
                 {pain.title}
@@ -175,7 +177,7 @@ const ResultadoPage = async ({
         )}
 
         {/* 3 · Por qué no funcionó lo que ya intentó */}
-        <section className="border-t border-black/10">
+        <section className="reveal border-t border-black/10">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
               Por qué no ha funcionado hasta ahora
@@ -187,7 +189,7 @@ const ResultadoPage = async ({
         </section>
 
         {/* 4 · El método */}
-        <section className="border-t border-black/10 bg-linen/40">
+        <section className="reveal border-t border-black/10 bg-linen/40">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
               Cómo se trabaja
@@ -220,7 +222,7 @@ const ResultadoPage = async ({
 
         {/* 4b · Por qué ella — sólo si hace falta */}
         {needsAuthority && (
-          <section className="border-t border-black/10">
+          <section className="reveal border-t border-black/10">
             <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
               <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
                 {AUTHORITY_COPY.title}
@@ -240,7 +242,7 @@ const ResultadoPage = async ({
 
         {/* 4c · La objeción que ella misma nombró */}
         {objection && (
-          <section className="border-t border-black/10 bg-linen/40">
+          <section className="reveal border-t border-black/10 bg-linen/40">
             <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
               <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
                 {objection.title}
@@ -255,7 +257,7 @@ const ResultadoPage = async ({
         {/* 5 · La oferta: una sola */}
         <section
           id="oferta"
-          className="scroll-mt-20 border-t border-black/10"
+          className="reveal scroll-mt-20 border-t border-black/10"
         >
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
 
@@ -377,7 +379,8 @@ const ResultadoPage = async ({
             </div>
           </div>
         </section>
-      </main>
+        </main>
+      </RevealScope>
       <Footer />
     </>
   );

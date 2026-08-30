@@ -31,6 +31,16 @@ const TherapyTiers = ({ therapyPlans, userCountry }: Props) => {
 
   useGSAP(
     () => {
+      // Guarda que faltaba: las tarjetas entran desde ±58px con rotación, y
+      // sin esto quien pide menos movimiento veía las cinco girar al entrar.
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        gsap.set(
+          gsap.utils.toArray<HTMLElement>(".sv-reveal, .sv-card"),
+          { clearProps: "all" },
+        );
+        return;
+      }
+
       gsap.utils.toArray<HTMLElement>(".sv-reveal").forEach((el) => {
         gsap.from(el, {
           y: 56,

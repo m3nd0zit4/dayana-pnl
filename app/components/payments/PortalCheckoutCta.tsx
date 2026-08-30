@@ -202,6 +202,7 @@ const PortalCheckoutCta = ({
                   <OnboardingWizard
                     draftPlanId={plan.id}
                     callbackUrl={callbackUrl}
+                    googleEnabled={googleEnabled}
                     onComplete={() => continueAfterAuth(authOverlay.provider)}
                     onSwitchToLogin={(email) =>
                       setAuthOverlay({ ...authOverlay, mode: "login", email })

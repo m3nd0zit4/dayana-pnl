@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Footer from "@/app/components/home/Footer";
+import RevealScope from "@/app/components/common/RevealScope";
 import FloatingWhatsApp from "@/app/components/ui/FloatingWhatsApp";
 import JsonLd from "@/app/components/seo/JsonLd";
 import MembershipPicker from "@/app/components/cursos/MembershipPicker";
@@ -87,7 +88,8 @@ const CursoDetallePage = async ({
         }}
       />
 
-      <main className="bg-hero-paper text-ink">
+      <RevealScope className="bg-hero-paper text-ink" selector=".reveal">
+        <main>
         <section className="mx-auto w-full max-w-3xl px-5 pb-14 pt-28 sm:px-8 sm:pt-36">
           <Link
             href="/cursos"
@@ -110,7 +112,7 @@ const CursoDetallePage = async ({
         </section>
 
         {modules.length > 0 && (
-          <section className="border-t border-black/10 bg-linen/40">
+          <section className="reveal border-t border-black/10 bg-linen/40">
             <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
               <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
                 El temario
@@ -120,7 +122,7 @@ const CursoDetallePage = async ({
                   además regala el contenido de un curso que aún no compró. */}
               <ol className="mt-10 flex flex-col gap-9">
                 {modules.map((module, i) => (
-                  <li key={module.id} className="flex gap-5">
+                  <li key={module.id} className="reveal flex gap-5">
                     <span className="shrink-0 font-[font2] text-sm text-terracotta">
                       {String(i + 1).padStart(2, "0")}
                     </span>
@@ -147,7 +149,7 @@ const CursoDetallePage = async ({
           </section>
         )}
 
-        <section className="border-t border-black/10">
+        <section className="reveal border-t border-black/10">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
               Este curso no se compra suelto
@@ -230,7 +232,8 @@ const CursoDetallePage = async ({
             </div>
           </div>
         </section>
-      </main>
+        </main>
+      </RevealScope>
       <Footer />
       <FloatingWhatsApp />
     </>

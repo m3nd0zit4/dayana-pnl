@@ -32,7 +32,27 @@ bun run db:seed
 1. `.env` con `DATABASE_URL` / `DIRECT_URL` → `/neondb_dev`
 2. `NEXT_PUBLIC_SITE_URL=http://localhost:3000`
 3. `bun run env:pull` para refrescar desde Vercel Preview
-4. `bun dev` (reinicia tras cambiar `.env`)
+4. `bun dev` (reinicia tras cambiar `.env`) — arranca en el **3000 fijo**, no
+   por comodidad: el puerto forma parte del `redirect_uri` de Google (ver abajo)
+
+### Google OAuth en local
+
+`bun run env:pull` trae el cliente de Google **de Vercel Preview**, cuya lista
+blanca en Google Cloud Console sólo tiene el dominio desplegado. Para que
+«Continuar con Google» funcione desde `localhost` hay que añadir a mano, en
+**Google Cloud Console → cliente OAuth → URIs de redirección autorizadas**:
+
+```
+http://localhost:3000/api/auth/callback/google
+```
+
+Google exige coincidencia exacta y no admite comodines. Si el servidor arranca
+en otro puerto, el `redirect_uri` cambia y Google responde
+`Error 400: redirect_uri_mismatch` — un fallo que **no deja rastro en la app**,
+porque la persona ni siquiera vuelve de Google. Por eso `dev` fija `-p 3000`.
+
+Por lo mismo, Google **no funciona en las previews de Vercel**: cada despliegue
+tiene su propio host. Haría falta `AUTH_REDIRECT_PROXY_URL`.
 
 **¿Qué DB uso?** Mira el path en `DATABASE_URL`: `neondb_dev` = dev, `neondb` = prod.
 
