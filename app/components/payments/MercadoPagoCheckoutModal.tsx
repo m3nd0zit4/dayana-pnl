@@ -325,7 +325,11 @@ const MercadoPagoCheckoutModal = ({
       <div className="relative">
           <div className="rounded-xl border border-linen/12 bg-linen/[0.04] p-4 mb-5">
             <div className="font-[font2] uppercase text-[10px] tracking-[0.35em] text-linen/70">
-              {plan.kind === "course" ? "Curso en vivo" : "Terapia PNL"}
+              {plan.recurring
+                ? "Curso en vivo"
+                : plan.kind === "therapy"
+                  ? "Terapia PNL"
+                  : "Taller"}
             </div>
             <div className="font-[font2] uppercase text-xl mt-1">{plan.title}</div>
             <div className="font-[font1] text-sm text-white/70">{plan.sessions}</div>

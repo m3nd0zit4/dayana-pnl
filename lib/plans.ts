@@ -8,6 +8,12 @@
 /** Slug del producto en la DB (p. ej. "therapy-6", "course-live"). */
 export type PlanId = string;
 
+/**
+ * OJO: sólo distingue terapia de «lo demás». Un taller cae en `"course"`, así
+ * que **`kind` no sirve para saber si algo se cobra cada mes** — usar
+ * `recurring`. Confundirlos puso los botones de suscripción en el taller, que
+ * es una compra única.
+ */
 export type PlanKind = "therapy" | "course";
 
 /** Titular bajo el precio; el detalle va en `features` (fichitas). */
@@ -43,6 +49,23 @@ export type Plan = {
   membershipMonths?: number;
   tag?: string;
   highlight?: boolean;
+  /**
+   * ¿Se cobra mes a mes? Sólo la mensualidad. Decide los textos del checkout
+   * («Pagar un mes» en vez de «Pagar»).
+   *
+   * Es un hecho del producto, no una consecuencia de `kind`: un taller también
+   * es `kind: "course"` y se paga una vez.
+   */
+  recurring?: boolean;
+  /**
+   * ¿Hay de verdad un plan recurrente creado en el proveedor?
+   *
+   * Sin esto el botón «Suscribirme» se pintaba siempre que el producto fuera
+   * `kind: "course"` —incluido el taller—, y en el curso seguía apareciendo aun
+   * cuando los planes no existen todavía: la clienta pulsaba y se llevaba un
+   * error. Un botón que no puede funcionar no se enseña.
+   */
+  subscriptionAvailable?: boolean;
   /** Terapia: titular; curso: sin usar. Detalle en `features`. */
   therapyPresentation?: TherapyPlanPresentation;
   features: string[];
