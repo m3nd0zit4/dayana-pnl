@@ -31,6 +31,15 @@ type Props = {
   disabled?: boolean;
   /** Light theme for use on a light/cream surface (default is the dark checkout theme). */
   light?: boolean;
+  /**
+   * Paleta de tokens, para superficies que **siguen el tema** (el portal y las
+   * páginas de acceso). `light` y la variante oscura son dos paletas fijas: la
+   * primera asume fondo crema y la segunda fondo tinta, así que en un portal
+   * que puede estar en claro u oscuro una de las dos siempre queda ilegible —
+   * era el caso de "País del número" en el alta de cuenta con el sistema en
+   * oscuro.
+   */
+  themed?: boolean;
 };
 
 const CheckoutCountrySelect = ({
@@ -40,11 +49,27 @@ const CheckoutCountrySelect = ({
   onChange,
   disabled = false,
   light = false,
+  themed = false,
 }: Props) => {
   const autoId = useId();
   const id = idProp ?? autoId;
 
-  const C = light
+  const C = themed
+    ? {
+        label: "text-foreground/65",
+        trigger: "border-input bg-muted/60 text-foreground",
+        triggerOpen: "border-foreground/35 ring-1 ring-foreground/10",
+        panel: "border-border bg-popover shadow-[0_16px_48px_rgba(0,0,0,0.18)]",
+        searchBorder: "border-border",
+        icon: "text-foreground/40",
+        searchInput: "text-foreground placeholder:text-muted-foreground",
+        empty: "text-muted-foreground",
+        divider: "border-border",
+        item: "text-foreground/80 hover:bg-foreground/[0.05]",
+        itemSel: "bg-terracotta/15 text-terracotta",
+        hint: "text-muted-foreground",
+      }
+    : light
     ? {
         label: "text-black/55",
         trigger: "border-black/15 bg-black/[0.03] text-black",

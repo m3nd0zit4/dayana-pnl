@@ -16,11 +16,22 @@ import {
   mergeDraft,
 } from "../payments/onboardingDraft";
 
+/*
+ * Los campos van sobre la tarjeta **blanca** de `MemberAuthShell`, no sobre el
+ * fondo de la app. Con `bg-card` (que es blanco) desaparecían: blanco sobre
+ * blanco con un borde de 8% de opacidad no se lee como un campo, y el
+ * formulario entero parecía vacío. `bg-muted` es el beige claro de la paleta y
+ * `border-input` es el borde pensado para formularios — más marcado que
+ * `border-border`, que es para separadores.
+ */
 const inputClass =
-  "w-full rounded-xl border border-border bg-card px-4 py-3.5 font-[font1] text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-terracotta focus:outline-none";
+  "w-full rounded-xl border border-input bg-muted/60 px-4 py-3.5 font-[font1] text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-terracotta focus:bg-background focus:outline-none";
 
+/* `text-muted-foreground` a 10px, en mayúsculas y con 0.22em de tracking se
+ * lee gris apagado. Las etiquetas son la estructura del formulario, así que
+ * van con el color del texto rebajado, no con el color de lo secundario. */
 const labelClass =
-  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-muted-foreground";
+  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-foreground/65";
 
 const PASSWORD_MIN_LENGTH = 12;
 
@@ -302,11 +313,11 @@ const OnboardingWizard = ({
             label="Continuar con Google"
           />
           <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-border" />
-            <span className="font-[font2] text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            <span className="h-px flex-1 bg-input" />
+            <span className="font-[font2] text-[10px] uppercase tracking-[0.22em] text-foreground/45">
               o con tu correo
             </span>
-            <span className="h-px flex-1 bg-border" />
+            <span className="h-px flex-1 bg-input" />
           </div>
         </>
       )}
@@ -355,7 +366,7 @@ const OnboardingWizard = ({
           </div>
           <div>
             <label className={labelClass} htmlFor="ob-last">
-              Apellido <span className="text-muted-foreground">(opcional)</span>
+              Apellido <span className="text-foreground/40">(opcional)</span>
             </label>
             <input
               id="ob-last"
@@ -370,7 +381,7 @@ const OnboardingWizard = ({
 
         <div>
           <CheckoutCountrySelect
-            light
+            themed
             label="País del número"
             value={phoneCountry}
             onChange={(iso) => {
@@ -404,7 +415,7 @@ const OnboardingWizard = ({
             className={inputClass}
           />
           {fieldError("phone")}
-          <p className="mt-1.5 font-[font1] text-xs text-muted-foreground">
+          <p className="mt-1.5 font-[font1] text-xs text-foreground/55">
             Vincula tus pagos y te llega la confirmación de cada compra.
           </p>
         </div>
@@ -424,7 +435,7 @@ const OnboardingWizard = ({
                 setPassword(e.target.value);
                 clearError("password");
               }}
-              placeholder={`Mínimo ${PASSWORD_MIN_LENGTH} caracteres`}
+              placeholder={`${PASSWORD_MIN_LENGTH}+ caracteres`}
               aria-invalid={Boolean(errors.password)}
               className={inputClass}
             />
@@ -461,7 +472,7 @@ const OnboardingWizard = ({
             }}
             className="mt-1 h-4 w-4 shrink-0 accent-terracotta"
           />
-          <span className="font-[font1] text-sm leading-snug text-muted-foreground">
+          <span className="font-[font1] text-sm leading-snug text-foreground/70">
             Acepto el tratamiento de mis datos según el{" "}
             <a href="/aviso-privacidad" className="underline">
               aviso de privacidad
