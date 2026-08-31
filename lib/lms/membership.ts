@@ -91,13 +91,25 @@ export const getCourseProduct = async (): Promise<Product | null> =>
 export type MembershipExtensionResult = {
   extended: boolean;
   paidUntil?: Date;
+  /** El pago abrió un curso suelto: acceso sin caducidad, no hay `paidUntil`. */
+  lifetime?: boolean;
 };
 
 /**
- * Extends the enrollment's paidUntil by one month for an APPROVED course
- * payment. Exactly-once per payment: the membershipAppliedAt claim inside the
- * transaction makes replays (MP webhook + PayPal capture both call
- * recordPayment) no-ops.
+ * Abre el acceso que compró un pago APROBADO de un producto COURSE.
+ *
+ * Hay dos formas de comprar curso y este es el punto donde se separan:
+ *
+ * - **Mensualidad** (`isCourseContent: false`) — suma un mes a `paidUntil`.
+ *   Es all-access: abre toda la biblioteca mientras esté vigente.
+ * - **Curso suelto** (`isCourseContent: true`) — marca `lifetimeAccess` y deja
+ *   `paidUntil` intacto. Sumarle un mes, que es lo que hacía esta función
+ *   antes de existir la venta suelta, convertía una compra a perpetuidad en
+ *   30 días de acceso: se cobra una vez y se cierra la puerta al mes.
+ *
+ * Exactly-once por pago en las dos ramas: el claim de `membershipAppliedAt`
+ * dentro de la transacción hace que los reintentos (el webhook de MP y la
+ * captura de PayPal llaman los dos a `recordPayment`) sean no-ops.
  */
 export const applyMembershipExtension = async (
   paymentId: string
@@ -125,6 +137,22 @@ export const applyMembershipExtension = async (
       return { extended: false as const };
     }
 
+    const shared = {
+      extended: true as const,
+      enrollmentId: payment.enrollmentId,
+      contactId: payment.enrollment.contactId,
+      productTitle: payment.enrollment.product.title,
+    };
+
+    // Curso suelto: se compra entero, no por meses.
+    if (payment.enrollment.product.isCourseContent) {
+      await tx.enrollment.update({
+        where: { id: payment.enrollmentId },
+        data: { lifetimeAccess: true },
+      });
+      return { ...shared, lifetime: true as const, paidUntil: undefined };
+    }
+
     const now = new Date();
     const current = payment.enrollment.paidUntil;
     const base = current && current > now ? current : now;
@@ -141,39 +169,82 @@ export const applyMembershipExtension = async (
       data: { paidUntil },
     });
 
-    return {
-      extended: true as const,
-      paidUntil,
-      enrollmentId: payment.enrollmentId,
-      contactId: payment.enrollment.contactId,
-      productTitle: payment.enrollment.product.title,
-    };
+    return { ...shared, lifetime: false as const, paidUntil };
   });
 
   if (!outcome.extended) return { extended: false };
 
-  fireNotification({
-    eventType: "MEMBERSHIP_EXTENDED",
-    title: `Tu acceso a ${outcome.productTitle} sigue activo`,
-    body: `Con este pago quedas al día hasta el ${new Intl.DateTimeFormat(
-      "es-CO",
-      { timeZone: OPERATIONAL_TZ, dateStyle: "long" }
-    ).format(outcome.paidUntil)}.`,
-    href: "/miembros/cuenta/facturacion",
-    entityType: "Enrollment",
-    entityId: outcome.enrollmentId,
-    contactIds: [outcome.contactId],
-  });
+  fireNotification(
+    outcome.lifetime
+      ? {
+          eventType: "COURSE_ACCESS_GRANTED",
+          title: `Ya tienes ${outcome.productTitle}`,
+          body: "Tu acceso a este curso no caduca: entra cuando quieras.",
+          href: "/cursos",
+          entityType: "Enrollment",
+          entityId: outcome.enrollmentId,
+          contactIds: [outcome.contactId],
+        }
+      : {
+          eventType: "MEMBERSHIP_EXTENDED",
+          title: `Tu acceso a ${outcome.productTitle} sigue activo`,
+          body: `Con este pago quedas al día hasta el ${new Intl.DateTimeFormat(
+            "es-CO",
+            { timeZone: OPERATIONAL_TZ, dateStyle: "long" }
+          ).format(outcome.paidUntil)}.`,
+          href: "/miembros/cuenta/facturacion",
+          entityType: "Enrollment",
+          entityId: outcome.enrollmentId,
+          contactIds: [outcome.contactId],
+        }
+  );
 
-  return { extended: true, paidUntil: outcome.paidUntil };
+  return {
+    extended: true,
+    paidUntil: outcome.paidUntil,
+    lifetime: outcome.lifetime,
+  };
 };
 
 export type MembershipInfo = {
   enrollment: (Enrollment & { product: Product }) | null;
   paidUntil: Date | null;
+  /** Compra suelta: el acceso no caduca y `paidUntil` no significa nada. */
+  lifetime: boolean;
   isCurrent: boolean;
   daysLeft: number | null;
 };
+
+/**
+ * La única forma de derivar acceso a partir de una matrícula.
+ *
+ * Existía duplicada en `getMembershipForContact` y en `getEnrolledCourses`, y
+ * con dos maneras de tener acceso —mes pagado y compra a perpetuidad— dos
+ * copias es cómo una de ellas se queda atrás y deja fuera a quien ya pagó.
+ */
+const membershipInfoOf = (
+  enrollment: (Enrollment & { product: Product }) | null
+): MembershipInfo => {
+  const paidUntil = enrollment?.paidUntil ?? null;
+  const lifetime = enrollment?.lifetimeAccess ?? false;
+  const now = Date.now();
+  return {
+    enrollment,
+    paidUntil,
+    lifetime,
+    isCurrent: lifetime || (paidUntil != null && paidUntil.getTime() > now),
+    // Un acceso que no caduca no tiene días restantes que contar; devolver un
+    // número aquí haría que el portal avisara de una renovación inexistente.
+    daysLeft:
+      paidUntil && !lifetime
+        ? Math.ceil((paidUntil.getTime() - now) / (24 * 60 * 60 * 1000))
+        : null,
+  };
+};
+
+/** ¿Esta persona nunca llegó a pagar este curso? Ni mes, ni compra suelta. */
+export const isNeverPaid = (membership: MembershipInfo): boolean =>
+  membership.paidUntil == null && !membership.lifetime;
 
 /** Days of soft-warning access after paidUntil lapses, before a hard block. */
 export const MEMBERSHIP_GRACE_DAYS = 2;
@@ -211,6 +282,7 @@ export const getMembershipLockState = (
 const OWNER_MEMBERSHIP: MembershipInfo = {
   enrollment: null,
   paidUntil: null,
+  lifetime: false,
   isCurrent: true,
   daysLeft: null,
 };
@@ -253,14 +325,7 @@ export const getMembershipForContact = async (
       include: { product: true },
     }));
 
-  const paidUntil = enrollment?.paidUntil ?? null;
-  const now = Date.now();
-  const isCurrent = paidUntil != null && paidUntil.getTime() > now;
-  const daysLeft = paidUntil
-    ? Math.ceil((paidUntil.getTime() - now) / (24 * 60 * 60 * 1000))
-    : null;
-
-  return { enrollment: enrollment ?? null, paidUntil, isCurrent, daysLeft };
+  return membershipInfoOf(enrollment ?? null);
 };
 
 /** Admin adjustment — set (or clear) the membership expiry directly. */
@@ -278,20 +343,7 @@ export type EnrolledCourse = {
   membership: MembershipInfo;
 };
 
-const membershipInfoFrom = (
-  enrollment: Enrollment & { product: Product }
-): MembershipInfo => {
-  const paidUntil = enrollment.paidUntil;
-  const now = Date.now();
-  return {
-    enrollment,
-    paidUntil,
-    isCurrent: paidUntil != null && paidUntil.getTime() > now,
-    daysLeft: paidUntil
-      ? Math.ceil((paidUntil.getTime() - now) / (24 * 60 * 60 * 1000))
-      : null,
-  };
-};
+const membershipInfoFrom = membershipInfoOf;
 
 /**
  * Los cursos a los que el contacto tiene acceso — la fuente del dashboard y el

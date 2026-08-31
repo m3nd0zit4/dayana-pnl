@@ -66,6 +66,15 @@ export type Plan = {
    * error. Un botón que no puede funcionar no se enseña.
    */
   subscriptionAvailable?: boolean;
+  /**
+   * Curso de la biblioteca publicado para venta suelta (`sellsStandalone`).
+   *
+   * Se compra una vez y el acceso no caduca, así que no es `recurring` y no
+   * debe pintar «Suscribirme» ni textos de mes. Distinto del producto de la
+   * mensualidad, que también es `kind: "course"` pero abre la biblioteca
+   * entera mientras esté al día.
+   */
+  libraryCourse?: boolean;
   /** Terapia: titular; curso: sin usar. Detalle en `features`. */
   therapyPresentation?: TherapyPlanPresentation;
   features: string[];

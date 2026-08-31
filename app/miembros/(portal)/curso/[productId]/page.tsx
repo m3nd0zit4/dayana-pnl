@@ -4,7 +4,7 @@ import { ProductKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { BRAND } from "@/lib/contact";
 import { getPortalViewer } from "@/lib/auth/portal-viewer";
-import { getEnrolledCourses } from "@/lib/lms/membership";
+import { getEnrolledCourses, isNeverPaid } from "@/lib/lms/membership";
 import { getCourseOutline, sanitizeQuizForMember } from "@/lib/lms/course-content";
 import { readExercise } from "@/lib/lms/exercise";
 import { getCompletedClassIds, getCourseProgress } from "@/lib/lms/class-progress";
@@ -38,7 +38,9 @@ const Page = async ({ params, searchParams }: PageProps) => {
   });
   const enrolled = enrolledCourses.find((c) => c.product.id === productId);
   const isCurrent = enrolled?.membership.isCurrent ?? false;
-  const neverPaid = !enrolled || enrolled.membership.paidUntil == null;
+  // `paidUntil == null` ya no basta: una compra suelta deja esa fecha vacía y
+  // aun así está pagada a perpetuidad.
+  const neverPaid = !enrolled || isNeverPaid(enrolled.membership);
 
   const [modules, completedClassIds, completedModuleIds, progress] = await Promise.all([
     getCourseOutline(productId),

@@ -245,6 +245,7 @@ enum NotificationEventType {
   MEMBERSHIP_DUE_SOON
   MEMBERSHIP_OVERDUE
   MEMBERSHIP_EXTENDED
+  COURSE_ACCESS_GRANTED
   LESSON_COMMENT_POSTED
   CLASS_RECORDING_PUBLISHED
   // Sistema, seguridad y comunicación
@@ -350,6 +351,17 @@ model Product {
   /// Curso de la biblioteca (contenedor de módulos), no un ítem de checkout.
   /// El acceso lo abre la membresía mensual — ver lib/lms/membership.ts.
   isCourseContent Boolean     @default(false) @map("is_course_content")
+  /// El curso de la biblioteca se vende TAMBIÉN suelto, no sólo vía
+  /// mensualidad. Sin esto un curso sigue siendo invisible para el catálogo
+  /// público (`getActiveProducts`) y para el checkout (`getPlanFromDb`).
+  ///
+  /// Explícito y no derivado de «tiene precio»: una fila ProductPrice puede
+  /// existir para el CRM —o para preparar un lanzamiento— sin querer que el
+  /// botón de comprar aparezca todavía en la web.
+  ///
+  /// Sólo tiene sentido con `isCourseContent`. La mensualidad ya se vende por
+  /// su propia vía y poner esto a true en ella no cambia nada.
+  sellsStandalone Boolean     @default(false) @map("sells_standalone")
   imageUrl        String?     @map("image_url")
   sessionsLabel   String      @map("sessions_label")
   sessionsCount   Int?        @map("sessions_count")
@@ -658,6 +670,16 @@ model Enrollment {
   amountMinor        Int?             @map("amount_minor")
   externalRef        String?          @map("external_ref")
   paidUntil          DateTime?        @map("paid_until")
+  /// Compra suelta de un curso de la biblioteca: el acceso no caduca.
+  ///
+  /// Es un booleano y no un `paidUntil` lejano porque «no caduca» y «caduca en
+  /// el año 3000» no son lo mismo para el resto del código: los avisos de
+  /// renovación, el cron de morosidad y `MEMBERSHIP_WARNING_DAYS` leen
+  /// `paidUntil` y todos tendrían que aprender a ignorar una fecha centinela.
+  ///
+  /// OJO — con esto en true, `paidUntil == null` NO significa «nunca pagó».
+  /// Ver `membershipInfoFrom` en lib/lms/membership.ts.
+  lifetimeAccess     Boolean          @default(false) @map("lifetime_access")
   /// Suscripción de PayPal que renueva esta matrícula. Es la clave por la que
   /// se resuelve cada cobro recurrente: `PAYMENT.SALE.COMPLETED` trae
   /// `billing_agreement_id` y NO garantiza propagar el `custom_id`.

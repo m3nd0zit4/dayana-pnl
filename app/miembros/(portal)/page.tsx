@@ -3,7 +3,11 @@ import { redirect } from "next/navigation";
 import { BRAND } from "@/lib/contact";
 import { prisma } from "@/lib/db";
 import { getPortalViewer } from "@/lib/auth/portal-viewer";
-import { getCourseProduct, getEnrolledCourses } from "@/lib/lms/membership";
+import {
+  getCourseProduct,
+  getEnrolledCourses,
+  isNeverPaid,
+} from "@/lib/lms/membership";
 import { getCourseProgress } from "@/lib/lms/class-progress";
 import LearningDashboard, {
   type CourseCardData,
@@ -29,7 +33,13 @@ const Page = async () => {
       enrolled = [
         {
           product: fallback,
-          membership: { enrollment: null, paidUntil: null, isCurrent: false, daysLeft: null },
+          membership: {
+            enrollment: null,
+            paidUntil: null,
+            lifetime: false,
+            isCurrent: false,
+            daysLeft: null,
+          },
         },
       ];
     }
@@ -54,7 +64,7 @@ const Page = async () => {
         totalClasses: progress.totalClasses,
         nextIncompleteClassId: progress.nextIncompleteClassId,
         isCurrent: membership.isCurrent,
-        neverPaid: membership.paidUntil == null,
+        neverPaid: isNeverPaid(membership),
       };
     })
   );

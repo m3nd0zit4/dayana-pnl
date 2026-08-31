@@ -15,11 +15,21 @@ export const getProduct = async (productId: string) =>
     include: priceInclude,
   });
 
-/** Catálogo vendible. Los cursos de la biblioteca quedan fuera: se acceden con
- *  la mensualidad, no se compran sueltos. */
+/**
+ * Catálogo vendible.
+ *
+ * Un curso de la biblioteca entra sólo si tiene `sellsStandalone`. Por defecto
+ * no lo tiene: se accede con la mensualidad y no se compra suelto, que es como
+ * funcionó esto desde el principio. La bandera es lo que decide, nunca el
+ * hecho de tener una fila de precio — un precio puede existir en el CRM
+ * mientras se prepara un lanzamiento sin que el botón salga a la web.
+ */
 export const getActiveProducts = async () =>
   prisma.product.findMany({
-    where: { isActive: true, isCourseContent: false },
+    where: {
+      isActive: true,
+      OR: [{ isCourseContent: false }, { sellsStandalone: true }],
+    },
     orderBy: { sortOrder: "asc" },
     include: priceInclude,
   });

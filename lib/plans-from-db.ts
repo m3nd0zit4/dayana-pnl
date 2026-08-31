@@ -47,6 +47,7 @@ export const productToPlan = (
     id: product.id,
     kind,
     recurring,
+    libraryCourse: product.isCourseContent || undefined,
     // Que el producto sea recurrente no basta: hace falta que el plan exista
     // en el proveedor, o el botón lleva a un error.
     subscriptionAvailable:
@@ -82,12 +83,39 @@ export const getPublicPlans = async () => {
   // amountCop stays undefined if not stored — caller filters cards without a price
   const plans = products.map(productToPlan);
   const therapyPlans = plans.filter((p) => p.kind === "therapy");
+  // Los cursos de la biblioteca que se venden sueltos. Van aparte porque
+  // `coursePlan` significa «la mensualidad» en todos los llamantes actuales.
+  const courseLibrary = plans.filter((p) => p.libraryCourse);
   const coursePlan =
     plans.find((p) => p.id === "course-live") ??
-    plans.find((p) => p.kind === "course" && p.id !== "workshop-virtual") ??
+    // El respaldo excluye los cursos de biblioteca: desde que existe la venta
+    // suelta entran en `plans`, y sin este filtro un curso cualquiera podía
+    // acabar presentándose como la mensualidad en /servicios y en el taller.
+    plans.find(
+      (p) => p.kind === "course" && !p.libraryCourse && p.id !== "workshop-virtual"
+    ) ??
     null;
-  return { therapyPlans, coursePlan, allPlans: plans, usdToCopRate };
+  return { therapyPlans, coursePlan, courseLibrary, allPlans: plans, usdToCopRate };
 };
+
+/**
+ * ¿Se puede cobrar este producto?
+ *
+ * El único criterio, y compartido a propósito: `getPlanFromDb` e
+ * `isActivePlanId` son la puerta por la que pasan PayPal, Mercado Pago,
+ * Stripe, Lemon Squeezy y la cotización. Con dos copias del predicado, una se
+ * queda atrás y aparece un producto cobrable por una vía e inexistente por
+ * otra.
+ *
+ * Un curso de la biblioteca no es comprable salvo que se haya publicado
+ * expresamente para venta suelta.
+ */
+const isSellable = (product: {
+  isActive: boolean;
+  isCourseContent: boolean;
+  sellsStandalone: boolean;
+}): boolean =>
+  product.isActive && (!product.isCourseContent || product.sellsStandalone);
 
 export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
   const product = await prisma.product.findUnique({
@@ -98,7 +126,7 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
       },
     },
   });
-  if (!product || !product.isActive || product.isCourseContent) {
+  if (!product || !isSellable(product)) {
     return null;
   }
   // Sin derivación automática: el plan lleva exactamente los precios del
@@ -109,9 +137,7 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
 export const isActivePlanId = async (planId: string): Promise<boolean> => {
   const product = await prisma.product.findUnique({
     where: { id: planId },
-    select: { isActive: true, isCourseContent: true },
+    select: { isActive: true, isCourseContent: true, sellsStandalone: true },
   });
-  // Un curso de la biblioteca no es comprable: el checkout lo rechaza aquí,
-  // que es el único punto por el que pasan PayPal, Mercado Pago y la cotización.
-  return Boolean(product?.isActive && !product.isCourseContent);
+  return Boolean(product && isSellable(product));
 };

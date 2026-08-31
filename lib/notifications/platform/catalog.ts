@@ -365,6 +365,17 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: NO_STAFF,
   },
+  COURSE_ACCESS_GRANTED: {
+    label: "Curso desbloqueado",
+    description:
+      "Una compra suelta abrió un curso de la biblioteca. El acceso no caduca, así que no hay fecha de vencimiento que avisar después.",
+    group: "Curso y membresía",
+    defaultSeverity: "SUCCESS",
+    audience: "MEMBER",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: NO_STAFF,
+  },
   LESSON_COMMENT_POSTED: {
     label: "Nuevo comentario en clase",
     description: "Un miembro dejó un comentario en una clase del curso.",
