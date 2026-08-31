@@ -13,8 +13,8 @@ import {
   validateLocalPhone,
 } from "@/lib/phone";
 import {
-  DIAGNOSTIC_QUESTIONS,
   isAnswered,
+  visibleQuestions,
   type DiagnosticAnswers,
   type DiagnosticQuestion,
 } from "@/lib/diagnostico/questions";
@@ -35,9 +35,6 @@ type FieldErrors = {
   phone?: string;
   consent?: string;
 };
-
-const CONTACT_STEP = DIAGNOSTIC_QUESTIONS.length;
-const TOTAL_STEPS = DIAGNOSTIC_QUESTIONS.length + 1;
 
 const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
   const router = useRouter();
@@ -107,8 +104,19 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
     [token],
   );
 
-  const question: DiagnosticQuestion | undefined = DIAGNOSTIC_QUESTIONS[step];
-  const isContactStep = step === CONTACT_STEP;
+  /**
+   * Las preguntas que aplican a lo respondido hasta ahora.
+   *
+   * El asistente recorre **esta** lista y no el array completo. Con índices
+   * absolutos, saltarse una pregunta descuadraba el contador y "Atrás"
+   * devolvía justo a la que se acababa de saltar.
+   */
+  const questions = visibleQuestions(answers);
+  const contactStep = questions.length;
+  const totalSteps = questions.length + 1;
+
+  const question: DiagnosticQuestion | undefined = questions[step];
+  const isContactStep = step >= contactStep;
 
   const setAnswer = (value: string | string[]) => {
     if (!question) return;
@@ -150,7 +158,7 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
       });
     }
     setDirection(1);
-    setStep((s) => Math.min(s + 1, CONTACT_STEP));
+    setStep((s) => Math.min(s + 1, contactStep));
   };
 
   const goBack = () => {
@@ -262,7 +270,10 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
     }
   };
 
-  const progress = Math.round(((step + 1) / TOTAL_STEPS) * 100);
+  // Se recalcula sobre la lista viva: al elegir "solo estoy explorando" el
+  // cuestionario pasa de nueve pasos a seis, y la barra tiene que reflejarlo
+  // en vez de quedarse prometiendo tres pantallas que ya no existen.
+  const progress = Math.round(((step + 1) / totalSteps) * 100);
 
   return (
     <div className="mx-auto flex min-h-[100svh] w-full max-w-2xl flex-col px-5 py-8 sm:px-8 sm:py-12">
@@ -274,7 +285,7 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
           />
         </div>
         <span className="font-[font2] text-[10px] uppercase tracking-[0.24em] text-black/40">
-          {step + 1}/{TOTAL_STEPS}
+          {Math.min(step + 1, totalSteps)}/{totalSteps}
         </span>
       </div>
 

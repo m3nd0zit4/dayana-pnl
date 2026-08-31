@@ -6,7 +6,7 @@
  * datos, cambiar una palabra —o el orden, o los pesos— no toca React, no
  * arriesga una regresión de render y lo puede revisar alguien que no programa.
  *
- * **Ocho preguntas, y ninguna se escribe.** Hubo una versión de doce con dos
+ * **Ocho como mucho, y ninguna se escribe.** Hubo una versión de doce con dos
  * campos de texto libre y una escala del 1 al 10. Cada campo de texto es un
  * teclado que se abre en el móvil y una pantalla que se tapa a sí misma, y la
  * escala pedía calibrar un número cuando la pregunta "¿cuándo quieres empezar?"
@@ -26,11 +26,13 @@ export type DiagnosticQuestionId =
   | "manifestacion"
   | "modalidad"
   | "cuando"
-  // Tramo 2 — intención y compromiso. Las ocho de arriba miden el dolor; sin
-  // estas cuatro el cuestionario recomienda un paquete sin saber si la persona
-  // puede pagarlo, por qué eligió a Dayana, ni qué la ha frenado hasta hoy —
-  // que es exactamente lo que la llamada de ventas averigua antes de decir un
-  // precio.
+  // Tramo 2 — intención y compromiso. Las cinco de arriba miden el dolor; sin
+  // estas tres el cuestionario recomienda un paquete sin saber si la persona
+  // puede pagarlo, cómo llegó, ni qué la ha frenado hasta hoy — que es
+  // exactamente lo que la llamada de ventas averigua antes de decir un precio.
+  //
+  // Se saltan enteras para quien responde que sólo está mirando: preguntarle
+  // a esa persona si puede invertir es justo la pregunta que sobra.
   | "freno"
   | "porqueDayana"
   | "inversion";
@@ -63,6 +65,17 @@ export type DiagnosticOption = {
   weights?: DiagnosticWeights;
 };
 
+/**
+ * Condición para que una pregunta se muestre. Declarativa a propósito: si
+ * fuera una función, el cuestionario dejaría de ser un archivo de datos que
+ * puede revisar alguien que no programa.
+ */
+export type DiagnosticCondition = {
+  question: DiagnosticQuestionId;
+  /** Se muestra salvo que la respuesta a `question` esté en esta lista. */
+  notEquals: string[];
+};
+
 export type DiagnosticQuestion = {
   id: DiagnosticQuestionId;
   /** Lo que se lee en grande. Segunda persona, siempre. */
@@ -75,8 +88,10 @@ export type DiagnosticQuestion = {
   placeholder?: string;
   /** Sólo `scale`: extremos de la escala 1–10. */
   scaleLabels?: { low: string; high: string };
-  /** Un paso sin respuesta no deja avanzar. `meta` es la única opcional. */
+  /** Un paso sin respuesta no deja avanzar. */
   required: boolean;
+  /** Si no se cumple, la pregunta ni se muestra ni se puntúa. */
+  showIf?: DiagnosticCondition;
 };
 
 export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
@@ -218,9 +233,10 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   {
     id: "freno",
     prompt: "¿Qué te ha frenado hasta ahora?",
-    help: "Con honestidad. Nadie más va a leer esto.",
+    help: "Dayana lo lee antes de responderte, para no darte una respuesta genérica.",
     type: "single",
     required: true,
+    showIf: { question: "cuando", notEquals: ["explorando"] },
     options: [
       {
         id: "dinero",
@@ -248,10 +264,11 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   },
   {
     id: "porqueDayana",
-    prompt: "¿Por qué Dayana y no cualquier otro?",
+    prompt: "¿Cómo llegaste hasta aquí?",
     help: "Marca todo lo que aplique.",
     type: "multi",
     required: true,
+    showIf: { question: "cuando", notEquals: ["explorando"] },
     options: [
       {
         id: "la-sigo",
@@ -284,10 +301,11 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   },
   {
     id: "inversion",
-    prompt: "¿Estás en posición de invertir en ti ahora mismo?",
-    help: "Tu respuesta decide qué te recomendamos. Contestar que no está bien.",
+    prompt: "¿Podrías empezar ahora, o prefieres más adelante?",
+    help: "Decide qué te recomendamos. Decir que todavía no es una respuesta válida.",
     type: "single",
     required: true,
+    showIf: { question: "cuando", notEquals: ["explorando"] },
     options: [
       { id: "si", label: "Sí", weights: { compromiso: 3 } },
       {
@@ -305,8 +323,31 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   },
 ];
 
-/** El paso de datos de contacto no está en el array: no es una pregunta con peso. */
-export const DIAGNOSTIC_TOTAL_STEPS = DIAGNOSTIC_QUESTIONS.length + 1;
+/**
+ * Las preguntas que aplican a estas respuestas, en orden.
+ *
+ * Es la lista sobre la que camina el asistente. Antes recorría el array
+ * completo por índice, así que saltar una pregunta habría descuadrado el
+ * contador y "Atrás" habría devuelto justo a la que se acababa de saltar.
+ */
+export function visibleQuestions(
+  answers: DiagnosticAnswers,
+): DiagnosticQuestion[] {
+  return DIAGNOSTIC_QUESTIONS.filter((q) => isQuestionVisible(q, answers));
+}
+
+export function isQuestionVisible(
+  question: DiagnosticQuestion,
+  answers: DiagnosticAnswers,
+): boolean {
+  const cond = question.showIf;
+  if (!cond) return true;
+  const value = answers[cond.question];
+  // Sin respuesta todavía a la pregunta que condiciona, se asume visible: es
+  // el estado normal antes de llegar a ella.
+  if (typeof value !== "string") return true;
+  return !cond.notEquals.includes(value);
+}
 
 export type DiagnosticAnswers = Partial<
   Record<DiagnosticQuestionId, string | string[]>

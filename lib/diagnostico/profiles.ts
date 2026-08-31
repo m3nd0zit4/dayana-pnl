@@ -150,7 +150,7 @@ export const METHOD_STEPS = [
  * Una página de ventas normal enumera las cinco objeciones y contesta a todas,
  * lo que obliga a leer cuatro párrafos que no van con uno y, de paso, planta
  * objeciones que no se tenían. Aquí se contesta **sólo la suya**, porque la
- * pregunta 10 ya la hizo elegir.
+ * pregunta de qué te ha frenado ya la hizo elegir.
  */
 export const OBJECTION_COPY: Record<string, { title: string; body: string }> = {
   dinero: {
@@ -167,7 +167,7 @@ export const OBJECTION_COPY: Record<string, { title: string; body: string }> = {
   },
   desconocimiento: {
     title: "Dijiste que no sabías por dónde empezar.",
-    body: "Ya no es el caso: acabas de responder doce preguntas y abajo tienes el punto exacto por donde se empieza en tu caso. Eso era lo único que faltaba.",
+    body: "Ya no es el caso: acabas de responder el cuestionario y arriba tienes el punto exacto por donde se empieza en tu caso. Eso era lo único que faltaba.",
   },
   nada: {
     title: "Dijiste que nada te ha frenado, que simplemente no lo habías hecho.",

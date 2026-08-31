@@ -19,7 +19,11 @@ import {
   OBJECTION_COPY,
   PAIN_COPY,
 } from "@/lib/diagnostico/profiles";
-import { answerLabels } from "@/lib/diagnostico/questions";
+import {
+  answerLabels,
+  DIAGNOSTIC_QUESTIONS,
+  isQuestionVisible,
+} from "@/lib/diagnostico/questions";
 import { scoreDiagnostic, type DiagnosticProfileId } from "@/lib/diagnostico/scoring";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { isFreeWebinarActive } from "@/lib/crm/free-webinar";
@@ -100,8 +104,17 @@ const ResultadoPage = async ({
   const whyDayana = Array.isArray(diagnostic.answers.porqueDayana)
     ? diagnostic.answers.porqueDayana
     : [];
+  // Sólo si la pregunta **se hizo** y contestó que aún no lo sabe. Antes
+  // bastaba con que viniera vacía, así que a quien se le salta la pregunta se
+  // le habría soltado un "Acabas de llegar" que puede ser falso: quizá lleva
+  // un año siguiéndola.
+  const askedWhyDayana = isQuestionVisible(
+    DIAGNOSTIC_QUESTIONS.find((q) => q.id === "porqueDayana")!,
+    diagnostic.answers,
+  );
   const needsAuthority =
-    whyDayana.length === 0 || whyDayana.includes("aun-no-lo-se");
+    askedWhyDayana &&
+    (whyDayana.length === 0 || whyDayana.includes("aun-no-lo-se"));
 
 
   const whatsappUrl = buildWhatsAppUrl(
@@ -167,7 +180,7 @@ const ResultadoPage = async ({
           2 · La oferta, inmediatamente.
 
           Estuvo la séptima: espejo, dolor, por qué falló, método, autoridad y
-          objeción antes del precio. Quien termina ocho preguntas quiere ver
+          objeción antes del precio. Quien termina el cuestionario quiere ver
           qué le toca, no leer seis bloques primero — y de hecho no lo veía,
           porque además la sección llevaba `.reveal` y `gsap.from` la deja a
           `opacity: 0` hasta que dispara su ScrollTrigger. El argumento sigue

@@ -1,5 +1,6 @@
 import {
-  DIAGNOSTIC_QUESTIONS,
+  isQuestionVisible,
+  visibleQuestions,
   type DiagnosticAnswers,
   type DiagnosticQuestion,
 } from "./questions";
@@ -70,7 +71,10 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
   let investmentBlocked = false;
   let modality: DiagnosticModality = "individual";
 
-  for (const question of DIAGNOSTIC_QUESTIONS) {
+  // Sólo las preguntas que se le llegaron a hacer. Puntuar una pregunta
+  // oculta con los pesos de una respuesta vieja —si volvió atrás y cambió
+  // "cuándo quieres empezar"— le atribuiría algo que ya no dijo.
+  for (const question of visibleQuestions(answers)) {
     for (const option of optionsFor(question, answers)) {
       const w = option.weights;
       if (!w) continue;
@@ -101,6 +105,12 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
   // ponerle un paquete de doce sesiones delante a quien vino a mirar.
   const justBrowsing = answers.cuando === "explorando";
 
+  // Quien sólo está mirando no ve el tramo de intención, así que su
+  // `commitmentScore` sale del suelo (3) sin haber contestado nada. Se deja
+  // explícito en 0 para que la bandeja del CRM no lo mezcle con quien sí
+  // contestó y puntuó bajo: son dos cosas distintas.
+  const commitment = justBrowsing ? 0 : commitmentScore;
+
   const profile: DiagnosticProfileId = justBrowsing
     ? "EXPLORADOR"
     : urgencyScore < THRESHOLDS.explorerUrgency
@@ -119,7 +129,7 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
     profile,
     urgencyScore,
     depthScore,
-    commitmentScore,
+    commitmentScore: commitment,
     investmentBlocked,
     modality,
     recommendedProductId,
@@ -132,7 +142,7 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
  *
  * Quien acaba de escribir "todavía no puedo invertir" y recibe un paquete de
  * $3.600.000 no compra: cierra la pestaña, y con ella se va la confianza que
- * las ocho preguntas anteriores acababan de construir. Se le recomienda el
+ * las preguntas anteriores acababan de construir. Se le recomienda el
  * primer escalón, que es lo único que puede decir que sí.
  *
  * El tope **sólo baja**. Un compromiso alto no sube nada: la recomendación la
