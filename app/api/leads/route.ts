@@ -68,6 +68,13 @@ type Body = {
    * está probado en este camino.
    */
   diagnosticToken?: string;
+  /**
+   * Las respuestas tal y como las tiene el cliente. Viajan **siempre**, no sólo
+   * cuando falta el token: el token puede existir y la fila haber quedado vacía
+   * porque el autoguardado no pudo escribir. Con esto no hay ningún camino en
+   * el que alguien conteste el cuestionario entero y se quede sin resultado.
+   */
+  diagnosticAnswers?: unknown;
 };
 
 const sourceMap: Record<string, ContactSource> = {
@@ -214,13 +221,22 @@ export async function POST(req: NextRequest) {
     // El diagnóstico se cierra antes que nada más: es lo que decide el perfil
     // y la etiqueta con la que el resto del embudo va a tratar a esta persona.
     let diagnosticProfile: string | null = null;
-    if (typeof body.diagnosticToken === "string" && body.diagnosticToken) {
+    let diagnosticToken: string | null = null;
+    const hasDiagnostic =
+      (typeof body.diagnosticToken === "string" && body.diagnosticToken) ||
+      body.diagnosticAnswers != null;
+    if (hasDiagnostic) {
       try {
         const diagnostic = await completeDiagnostic(
-          body.diagnosticToken,
-          contact.id
+          typeof body.diagnosticToken === "string" ? body.diagnosticToken : null,
+          contact.id,
+          body.diagnosticAnswers
         );
         diagnosticProfile = diagnostic?.profile ?? null;
+        // Se devuelve el token —el que vino o el que se acaba de crear— porque
+        // es la URL del resultado. Sin esto el cliente no sabría a dónde ir
+        // cuando la fila la creó el servidor.
+        diagnosticToken = diagnostic?.token ?? null;
       } catch (e) {
         console.error("[leads] diagnostic completion failed", e);
       }
@@ -369,6 +385,7 @@ export async function POST(req: NextRequest) {
       alreadyRegistered,
       webinar: wantsWebinarTag,
       diagnosticProfile,
+      diagnosticToken,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown";

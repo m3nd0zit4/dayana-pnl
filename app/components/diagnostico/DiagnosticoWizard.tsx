@@ -205,6 +205,10 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
           consentData: true,
           consentAdTracking: true,
           diagnosticToken: token ?? undefined,
+          // Las respuestas viajan siempre, no sólo cuando falta el token: el
+          // autoguardado es best-effort y la fila puede haber quedado vacía.
+          // El servidor decide cuál de las dos fuentes usa.
+          diagnosticAnswers: answers,
         }),
       });
 
@@ -212,6 +216,7 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
         error?: string;
         message?: string;
         diagnosticProfile?: string | null;
+        diagnosticToken?: string | null;
       };
 
       if (!res.ok) {
@@ -233,13 +238,24 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
       });
       trackMetaEvent("Lead", { content_name: "diagnostico" });
 
-      if (token) {
-        router.push(`/terapias/resultado/${token}`);
+      // El del servidor manda: si la fila la creó él, es el único token que
+      // apunta a algo. El local sólo se usa como respaldo.
+      const resultToken = data.diagnosticToken ?? token;
+      if (resultToken) {
+        router.push(`/terapias/resultado/${resultToken}`);
         return;
       }
-      // Sin token no hay página de resultado que mostrar, pero el contacto sí
-      // quedó guardado: se le lleva al catálogo en vez de dejarle en blanco.
-      router.push("/terapias/empezar");
+
+      // Aquí ya no debería llegarse nunca: el servidor crea la fila aunque no
+      // haya token. Si aun así ocurre, se dice — antes se hacía `router.push`
+      // a esta misma página, que es una navegación suave sin remontaje: el
+      // formulario se quedaba en pantalla con el botón deshabilitado en
+      // "Preparando tu resultado…" para siempre, porque `setSubmitting(false)`
+      // no se llamaba en el camino de éxito. Contestabas todo y no pasaba nada.
+      setSubmitting(false);
+      setServerError(
+        "Guardamos tus datos pero no pudimos preparar tu resultado. Escríbenos por WhatsApp y te lo pasamos.",
+      );
     } catch {
       setServerError("Sin conexión. Revisa tu internet e inténtalo de nuevo.");
       setSubmitting(false);

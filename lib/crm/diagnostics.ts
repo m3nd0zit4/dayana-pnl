@@ -159,14 +159,48 @@ export async function patchDiagnosticAnswers(
  * ya tiene la página de resultado abierta.
  */
 export async function completeDiagnostic(
-  token: string,
+  token: string | null | undefined,
   contactId: string,
+  /**
+   * Respuestas que trae el cliente. Se usan cuando no hay token — o cuando la
+   * fila existe pero llegó vacía porque el autoguardado no pudo escribir.
+   */
+  fallbackAnswers?: unknown,
 ): Promise<DiagnosticRow | null> {
-  const existing = await prisma.diagnostic.findUnique({
-    where: { token },
-    select: { id: true, answers: true, completedAt: true, profile: true },
-  });
-  if (!existing) return null;
+  const existing = token
+    ? await prisma.diagnostic.findUnique({
+        where: { token },
+        select: { id: true, answers: true, completedAt: true, profile: true },
+      })
+    : null;
+
+  // Sin fila que cerrar, se crea una aquí mismo.
+  //
+  // El token se pide al abrir el cuestionario y sirve para autoguardar y para
+  // poder retomar; **no** hace falta para puntuar. Cuando esa petición falla
+  // —el límite de peticiones es fácil de tocar probando, y el fallo es mudo—
+  // la persona contestaba las ocho preguntas y se quedaba sin resultado. El
+  // cliente lleva las respuestas en memoria de todos modos, así que aquí no
+  // falta nada: se crea la fila con ellas y se cierra en el mismo paso.
+  if (!existing) {
+    const answers = sanitizeAnswers(fallbackAnswers);
+    const score = scoreDiagnostic(answers);
+    const row = await prisma.diagnostic.create({
+      data: {
+        token: newToken(),
+        contactId,
+        answers: answers as Prisma.InputJsonValue,
+        profile: score.profile,
+        urgencyScore: score.urgencyScore,
+        commitmentScore: score.commitmentScore,
+        recommendedProductId: await sellableProductId(score.recommendedProductId),
+        completedAt: new Date(),
+      },
+      select: SELECT,
+    });
+    await tagContactWithProfile(contactId, score.profile);
+    return toRow(row);
+  }
 
   if (existing.completedAt) {
     const row = await prisma.diagnostic.update({
@@ -178,17 +212,22 @@ export async function completeDiagnostic(
     return toRow(row);
   }
 
-  const answers = sanitizeAnswers(existing.answers);
+  // El autoguardado es best-effort, así que la fila puede haber quedado vacía
+  // aunque el token exista. Lo que traiga el cliente manda en ese caso.
+  const stored = sanitizeAnswers(existing.answers);
+  const answers =
+    Object.keys(stored).length > 0 ? stored : sanitizeAnswers(fallbackAnswers);
   const score = scoreDiagnostic(answers);
 
   const row = await prisma.diagnostic.update({
     where: { id: existing.id },
     data: {
       contactId,
+      answers: answers as Prisma.InputJsonValue,
       profile: score.profile,
       urgencyScore: score.urgencyScore,
       commitmentScore: score.commitmentScore,
-      recommendedProductId: score.recommendedProductId,
+      recommendedProductId: await sellableProductId(score.recommendedProductId),
       completedAt: new Date(),
     },
     select: SELECT,
@@ -196,6 +235,26 @@ export async function completeDiagnostic(
 
   await tagContactWithProfile(contactId, score.profile);
   return toRow(row);
+}
+
+/**
+ * Devuelve el slug sólo si ese producto existe de verdad.
+ *
+ * `recommendedProductId` es una **clave foránea real**. El scoring produce
+ * slugs escritos a mano (`therapy-6`, `course-live`…), así que si alguien
+ * renombra o borra un producto la escritura lanza P2003 — y el `catch` de
+ * `/api/leads` se la traga, la ruta devuelve 200, y la página de resultado
+ * responde 404 porque `completedAt` nunca llegó a escribirse. Perder la
+ * recomendación es molesto; perder el diagnóstico entero, no.
+ */
+async function sellableProductId(id: string): Promise<string | null> {
+  const found = await prisma.product
+    .findUnique({ where: { id }, select: { id: true } })
+    .catch(() => null);
+  if (!found) {
+    console.error(`[diagnostico] producto recomendado inexistente: ${id}`);
+  }
+  return found?.id ?? null;
 }
 
 async function tagContactWithProfile(

@@ -19,7 +19,11 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
-  const rl = await rateLimitDistributed(`diagnostico:new:${ip}`, 10, 60_000);
+  // 30 y no 10: abrir el cuestionario es lo primero que hace todo el mundo, y
+  // cada recarga cuenta. Con 10 se agotaba probando, y agotarlo dejaba a la
+  // persona sin token — que era el principio del fallo. El coste de una fila
+  // vacía de más es despreciable comparado con perder un diagnóstico completo.
+  const rl = await rateLimitDistributed(`diagnostico:new:${ip}`, 30, 60_000);
   if (!rl.ok) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }

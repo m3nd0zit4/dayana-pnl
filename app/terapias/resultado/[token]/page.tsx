@@ -163,96 +163,19 @@ const ResultadoPage = async ({
           </div>
         </section>
 
-        {/* 2 · Lo que está pasando, según su dolor */}
-        {pain && (
-          <section className="reveal border-t border-black/10 bg-linen/40">
-            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-                {pain.title}
-              </h2>
-              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
-                {pain.body}
-              </p>
-            </div>
-          </section>
-        )}
+        {/*
+          2 · La oferta, inmediatamente.
 
-        {/* 3 · Por qué no funcionó lo que ya intentó */}
-        <section className="reveal border-t border-black/10">
-          <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-            <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-              Por qué no ha funcionado hasta ahora
-            </h2>
-            <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
-              {copy.whyItFailed}
-            </p>
-          </div>
-        </section>
-
-        {/* 4 · El método */}
-        <section className="reveal border-t border-black/10 bg-linen/40">
-          <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-            <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-              Cómo se trabaja
-            </h2>
-            <ol className="mt-9 flex flex-col gap-8">
-              {METHOD_STEPS.map((methodStep, i) => (
-                <li key={methodStep.title} className="flex gap-5">
-                  <span className="font-[font2] text-sm text-terracotta">
-                    0{i + 1}
-                  </span>
-                  <div>
-                    <h3 className="font-[font2] text-lg uppercase leading-tight">
-                      {methodStep.title}
-                    </h3>
-                    <p className="mt-2 font-[font1] text-base leading-relaxed text-black/70">
-                      {methodStep.body}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <Link
-              href="/historias"
-              className="mt-10 inline-block font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
-            >
-              Ver historias de personas como tú
-            </Link>
-          </div>
-        </section>
-
-        {/* 4b · Por qué ella — sólo si hace falta */}
-        {needsAuthority && (
-          <section className="reveal border-t border-black/10">
-            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-                {AUTHORITY_COPY.title}
-              </h2>
-              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
-                {AUTHORITY_COPY.body}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* 4c · La objeción que ella misma nombró */}
-        {objection && (
-          <section className="reveal border-t border-black/10 bg-linen/40">
-            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
-              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-                {objection.title}
-              </h2>
-              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
-                {objection.body}
-              </p>
-            </div>
-          </section>
-        )}
-
-        {/* 5 · La oferta: una sola */}
+          Estuvo la séptima: espejo, dolor, por qué falló, método, autoridad y
+          objeción antes del precio. Quien termina ocho preguntas quiere ver
+          qué le toca, no leer seis bloques primero — y de hecho no lo veía,
+          porque además la sección llevaba `.reveal` y `gsap.from` la deja a
+          `opacity: 0` hasta que dispara su ScrollTrigger. El argumento sigue
+          entero, debajo, para quien lo necesite antes de decidir.
+        */}
         <section
           id="oferta"
-          className="reveal scroll-mt-20 border-t border-black/10"
+          className="scroll-mt-20 border-t border-black/10"
         >
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
 
@@ -310,14 +233,24 @@ const ResultadoPage = async ({
                 </p>
               </div>
             ) : (
-              // Sin producto vendible en su región no hay botón que pintar. En
-              // vez de una tarjeta vacía se le manda a hablar, que es lo que
-              // haría de todos modos.
+              // Sin producto vendible en su región no hay botón que pintar —
+              // pasa si el catálogo se queda sin precio en su moneda. Un
+              // párrafo suelto dejaba la página sin ninguna acción justo donde
+              // más falta hace: aquí va el botón de WhatsApp con el perfil ya
+              // cargado en el mensaje, que es lo que haría de todos modos.
               <div className="mt-9 rounded-3xl border border-black/12 bg-white/70 p-6 sm:p-8">
                 <p className="font-[font1] text-lg leading-relaxed text-black/75">
-                  Para tu país coordinamos el pago directamente. Escríbeme y lo
-                  resolvemos en un minuto.
+                  Tu proceso ya está definido. Para tu país coordinamos el pago
+                  directamente: escríbeme y lo resolvemos en un minuto.
                 </p>
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 inline-block rounded-full bg-ink px-8 py-4 font-[font2] text-xs uppercase tracking-[0.18em] text-paper"
+                >
+                  {copy.ctaLabel}
+                </a>
               </div>
             )}
 
@@ -362,6 +295,92 @@ const ResultadoPage = async ({
             </div>
           </div>
         </section>
+        {/* 3 · Lo que está pasando, según su dolor */}
+        {pain && (
+          <section className="reveal border-t border-black/10 bg-linen/40">
+            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+                {pain.title}
+              </h2>
+              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+                {pain.body}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* 4 · Por qué no funcionó lo que ya intentó */}
+        <section className="reveal border-t border-black/10">
+          <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+            <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+              Por qué no ha funcionado hasta ahora
+            </h2>
+            <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+              {copy.whyItFailed}
+            </p>
+          </div>
+        </section>
+
+        {/* 5 · El método */}
+        <section className="reveal border-t border-black/10 bg-linen/40">
+          <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+            <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+              Cómo se trabaja
+            </h2>
+            <ol className="mt-9 flex flex-col gap-8">
+              {METHOD_STEPS.map((methodStep, i) => (
+                <li key={methodStep.title} className="flex gap-5">
+                  <span className="font-[font2] text-sm text-terracotta">
+                    0{i + 1}
+                  </span>
+                  <div>
+                    <h3 className="font-[font2] text-lg uppercase leading-tight">
+                      {methodStep.title}
+                    </h3>
+                    <p className="mt-2 font-[font1] text-base leading-relaxed text-black/70">
+                      {methodStep.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <Link
+              href="/historias"
+              className="mt-10 inline-block font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
+            >
+              Ver historias de personas como tú
+            </Link>
+          </div>
+        </section>
+
+        {/* 6 · Por qué ella — sólo si hace falta */}
+        {needsAuthority && (
+          <section className="reveal border-t border-black/10">
+            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+                {AUTHORITY_COPY.title}
+              </h2>
+              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+                {AUTHORITY_COPY.body}
+              </p>
+            </div>
+          </section>
+        )}
+
+        {/* 7 · La objeción que ella misma nombró */}
+        {objection && (
+          <section className="reveal border-t border-black/10 bg-linen/40">
+            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+                {objection.title}
+              </h2>
+              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+                {objection.body}
+              </p>
+            </div>
+          </section>
+        )}
+
           <FaqSection />
         </main>
       </RevealScope>

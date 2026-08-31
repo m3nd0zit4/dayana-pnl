@@ -195,6 +195,13 @@ export const PRODUCT_FALLBACK_CHAIN: Record<string, string[]> = {
   "therapy-12": ["therapy-6", "therapy-3", "therapy-1"],
   "therapy-6": ["therapy-3", "therapy-1"],
   "therapy-3": ["therapy-1"],
-  "therapy-1": [],
+  // `therapy-1` es el destino más frecuente de todos: es lo que recibe cada
+  // perfil EXPLORADOR, todo el que declara que hoy no puede invertir, y
+  // cualquier diagnóstico que llegue con las respuestas vacías. Tenía la
+  // cadena vacía, así que bastaba con desactivarlo o dejarlo sin precio en la
+  // moneda del visitante para que una fracción enorme de la gente viera una
+  // tarjeta sin precio ni botón. Sube hacia el siguiente escalón: mejor
+  // ofrecer de más que no ofrecer nada.
+  "therapy-1": ["therapy-3", "course-live"],
   "course-live": ["therapy-1"],
 };

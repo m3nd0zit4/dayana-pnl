@@ -68,7 +68,7 @@ export const useReveal = (
         return;
       }
 
-      targets.forEach((el, i) => {
+      const tweens = targets.map((el, i) =>
         gsap.from(el, {
           y,
           opacity: 0,
@@ -76,8 +76,28 @@ export const useReveal = (
           ease,
           delay: (i % 4) * step,
           scrollTrigger: { trigger: el, start },
-        });
-      });
+        }),
+      );
+
+      // Red de seguridad, la misma idea que el `failSafeTimer` de `Stairs`.
+      //
+      // `gsap.from` tiene `immediateRender`, así que pone cada elemento a
+      // `opacity: 0` en cuanto corre el hook y sólo lo devuelve cuando dispara
+      // su ScrollTrigger. Si un trigger no dispara —mide mal por las fuentes,
+      // por el scroll suave, por un `pin` de otra sección— ese contenido se
+      // queda invisible **para siempre**, y desde fuera parece que la página
+      // está incompleta. Pasados unos segundos, lo que siga a cero se muestra.
+      const failSafe = window.setTimeout(() => {
+        for (const tween of tweens) {
+          if (tween.progress() === 0) {
+            tween.scrollTrigger?.kill();
+            tween.progress(1).kill();
+          }
+        }
+        gsap.set(targets, { clearProps: "opacity,transform" });
+      }, 4000);
+
+      return () => window.clearTimeout(failSafe);
     },
     { scope, dependencies },
   );
