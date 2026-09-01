@@ -7,7 +7,10 @@ import RevealScope from "@/app/components/common/RevealScope";
 import FloatingWhatsApp from "@/app/components/ui/FloatingWhatsApp";
 import JsonLd from "@/app/components/seo/JsonLd";
 import MembershipPicker from "@/app/components/cursos/MembershipPicker";
+import PortalCheckoutCta from "@/app/components/payments/PortalCheckoutCta";
 import { getCourseDetail, listCourseSlugs } from "@/lib/courses/catalog";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
+import { formatCop, formatUsd } from "@/lib/plans";
 import { BRAND } from "@/lib/contact";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getSiteUrl } from "@/lib/site-url";
@@ -47,7 +50,8 @@ const CursoDetallePage = async ({
   params: Promise<{ slug: string }>;
 }) => {
   const { slug } = await params;
-  const detail = await getCourseDetail(slug);
+  const viewer = await getPortalViewer().catch(() => null);
+  const detail = await getCourseDetail(slug, viewer);
   // Un curso inactivo o inexistente responde igual: 404. La biblioteca tiene
   // cursos a medio grabar y una página a medias vende peor que ninguna.
   if (!detail) notFound();
@@ -149,13 +153,56 @@ const CursoDetallePage = async ({
           </section>
         )}
 
+        {/* Ya lo tiene: nada que vender. Enseñar el precio de algo que esta
+            persona ya pagó es la peor pantalla posible, así que la sección de
+            compra se sustituye entera por la puerta de entrada. */}
+        {course.access?.hasAccess ? (
+          <section className="reveal border-t border-black/10">
+            <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
+              <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
+                Ya tienes este curso
+              </h2>
+              {/* Sin total, igual que en la tarjeta: `sessionsLabel` está
+                  escrito a mano en curso.json y se desfasa del recuento real,
+                  así que la cabecera decía «45 lecciones» y esto «de 57». */}
+              <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
+                {course.access.completedLessons > 0
+                  ? `Llevas ${course.access.completedLessons} ${
+                      course.access.completedLessons === 1
+                        ? "lección completada"
+                        : "lecciones completadas"
+                    }.`
+                  : "Todavía no has empezado. Es un buen momento."}
+              </p>
+              <Link
+                href={
+                  course.access.nextClassId
+                    ? `/miembros/curso/${slug}?c=${course.access.nextClassId}`
+                    : `/miembros/curso/${slug}`
+                }
+                className="mt-9 inline-block rounded-full border border-ink px-9 py-4 font-[font2] text-xs uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
+              >
+                {course.access.completedLessons > 0 ? "Continuar" : "Empezar el curso"}
+              </Link>
+            </div>
+          </section>
+        ) : (
         <section className="reveal border-t border-black/10">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-              Este curso no se compra suelto
+              {course.plan ? "Cómo entrar" : "Este curso no se compra suelto"}
             </h2>
             <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
-              {siblingCount > 0 ? (
+              {course.plan ? (
+                <>
+                  Puedes comprarlo solo —es tuyo para siempre— o entrar con la
+                  membresía
+                  {siblingCount > 0
+                    ? ` y llevarte también los otros ${siblingCount} cursos`
+                    : " y tener la biblioteca completa"}
+                  .
+                </>
+              ) : siblingCount > 0 ? (
                 <>
                   Entra con la mensualidad, junto a los otros {siblingCount}{" "}
                   cursos de la biblioteca. Pagas una vez al mes y los tienes
@@ -170,10 +217,42 @@ const CursoDetallePage = async ({
               )}
             </p>
 
+            {course.plan && (
+              <div className="mt-9 rounded-3xl border border-ink/25 bg-white/70 p-6 sm:p-8">
+                <h3 className="font-[font2] text-xl uppercase leading-tight">
+                  Sólo este curso
+                </h3>
+                <p className="mt-4 flex items-baseline gap-3">
+                  <span className="font-[font2] text-4xl leading-none">
+                    {isColombia && course.plan.amountCop != null
+                      ? formatCop(course.plan.amountCop)
+                      : formatUsd(course.plan.amountUsd)}
+                  </span>
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-black/45">
+                    pago único
+                  </span>
+                </p>
+                <p className="mt-4 font-[font1] text-base leading-relaxed text-black/65">
+                  Sin renovación y sin fecha de caducidad: lo compras una vez y
+                  queda en tu cuenta.
+                </p>
+                {/* El mismo checkout que la membresía: crea la cuenta antes de
+                    cobrar, porque el curso se entrega dentro del portal y sin
+                    cuenta no hay a quién dárselo. */}
+                <PortalCheckoutCta
+                  plan={course.plan}
+                  userCountry={userCountry}
+                  isDark={false}
+                  googleEnabled={isGoogleAuthEnabled()}
+                  autopayReturnPath={`/cursos/${slug}`}
+                />
+              </div>
+            )}
+
             {membership ? (
               <div className="mt-9 rounded-3xl border border-black/12 bg-white/70 p-6 sm:p-8">
                 <h3 className="font-[font2] text-xl uppercase leading-tight">
-                  {membership.title}
+                  {course.plan ? `O todo: ${membership.title}` : membership.title}
                 </h3>
                 {membership.features.length > 0 && (
                   <ul className="mt-6 flex flex-col gap-2.5 border-t border-black/10 pt-6">
@@ -232,6 +311,7 @@ const CursoDetallePage = async ({
             </div>
           </div>
         </section>
+        )}
         </main>
       </RevealScope>
       <Footer />

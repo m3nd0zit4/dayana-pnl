@@ -24,7 +24,13 @@ gsap.registerPlugin(ScrollTrigger);
  *    usa `TestimonialsSection`. Es lo que da profundidad sin necesitar
  *    fotografías, que es exactamente lo que no tenemos.
  */
-const CourseGrid = ({ courses }: { courses: CatalogCourse[] }) => {
+const CourseGrid = ({
+  courses,
+  isColombia,
+}: {
+  courses: CatalogCourse[];
+  isColombia: boolean;
+}) => {
   const rootRef = useRef<HTMLUListElement>(null);
 
   useGSAP(
@@ -73,7 +79,7 @@ const CourseGrid = ({ courses }: { courses: CatalogCourse[] }) => {
     >
       {courses.map((course) => (
         <li key={course.slug} className="cg-card">
-          <CourseCard course={course} />
+          <CourseCard course={course} isColombia={isColombia} />
         </li>
       ))}
     </ul>

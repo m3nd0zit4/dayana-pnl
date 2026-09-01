@@ -6,9 +6,12 @@ import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import JsonLd from "../components/seo/JsonLd";
 import CourseGrid from "../components/cursos/CourseGrid";
 import RevealScope from "../components/common/RevealScope";
-import SplitReveal from "../components/ui/SplitReveal";
+import AccountStrip from "../components/cursos/AccountStrip";
+import CoursesHero from "../components/cursos/CoursesHero";
 import MembershipPicker from "../components/cursos/MembershipPicker";
 import { getCourseCatalog } from "@/lib/courses/catalog";
+import { getCoursesHero } from "@/lib/courses/hero";
+import { getPortalViewer } from "@/lib/auth/portal-viewer";
 import { BRAND } from "@/lib/contact";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getSiteUrl } from "@/lib/site-url";
@@ -17,8 +20,12 @@ import { isGoogleAuthEnabled } from "@/auth";
 export const dynamic = "force-dynamic";
 
 const title = `Cursos de PNL en vivo | ${BRAND.name}`;
+// Neutral respecto a cómo se paga. La versión anterior abría con «una
+// mensualidad abre toda la biblioteca», que dejó de ser toda la verdad en
+// cuanto un curso pudo comprarse suelto — y esto es lo que se lee en Google,
+// donde no hay forma de matizarlo después.
 const description =
-  "Una mensualidad abre toda la biblioteca: fundamentos, creencias limitantes, hipnosis, niveles de conciencia, lenguaje, emociones y pareja. Clases en vivo por Google Meet con Dayana Beltrán.";
+  "Fundamentos, creencias limitantes, hipnosis, niveles de conciencia, lenguaje, emociones y pareja. Cursos de PNL con Dayana Beltrán: compra uno suelto o entra a la biblioteca completa con la membresía.";
 
 export const metadata: Metadata = {
   title,
@@ -28,9 +35,14 @@ export const metadata: Metadata = {
 };
 
 const CursosPage = async () => {
-  const { courses, membership, annual, userCountry, isColombia } =
-    await getCourseCatalog();
+  // La sesión se resuelve primero porque el catálogo se anota con ella. No es
+  // un gate: sin nadie dentro `getCourseCatalog(null)` devuelve exactamente la
+  // misma página pública que antes.
+  const viewer = await getPortalViewer().catch(() => null);
+  const [{ courses, membership, annual, viewer: me, hasStandaloneSales, userCountry, isColombia }, hero] =
+    await Promise.all([getCourseCatalog(viewer), getCoursesHero()]);
   const siteUrl = getSiteUrl();
+  const lessonCount = courses.reduce((n, c) => n + c.lessonCount, 0);
 
   return (
     <>
@@ -58,42 +70,46 @@ const CursosPage = async () => {
 
       <RevealScope className="bg-hero-paper text-ink" selector=".reveal">
         <main>
-        {/* El precio va aquí y en ningún otro sitio de la página. Repetirlo por
-            tarjeta sugeriría que los cursos se compran sueltos, que es
-            justamente lo contrario del modelo. */}
-        <section className="mx-auto w-full max-w-5xl px-5 pb-16 pt-28 sm:px-8 sm:pt-36">
-          <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
-            Biblioteca de cursos
-          </p>
-          <SplitReveal
-            text={`Una mensualidad.
-Toda la biblioteca.`}
-            className="mt-5 max-w-3xl font-[font2] text-4xl uppercase leading-[0.92] sm:text-6xl"
-          />
-          <p className="mt-6 max-w-xl font-[font1] text-lg leading-snug text-black/65">
-            No eliges un curso: entras a todos. Mientras la mensualidad esté
-            activa tienes acceso completo, y cuando se publica uno nuevo también
-            lo tienes.
-          </p>
+        <CoursesHero
+          hero={hero}
+          courseCount={courses.length}
+          lessonCount={lessonCount}
+          hasStandaloneSales={hasStandaloneSales}
+        />
 
-        </section>
+        {/* Debajo del hero y encima del catálogo: es lo primero que quiere ver
+            quien ya pagó, y lo que menos estorba a quien todavía no. */}
+        <AccountStrip viewer={me} />
 
-        <section className="mx-auto w-full max-w-5xl px-5 pb-20 sm:px-8">
+        <section className="mx-auto w-full max-w-5xl px-5 pb-20 pt-16 sm:px-8">
           {courses.length === 0 ? (
             <p className="rounded-3xl border border-black/10 bg-white/50 p-8 font-[font1] text-lg text-black/60">
               Estamos publicando la biblioteca. Escríbenos y te avisamos en
               cuanto abra.
             </p>
           ) : (
-            <CourseGrid courses={courses} />
+            <CourseGrid courses={courses} isColombia={isColombia} />
           )}
         </section>
 
         <section className="reveal border-t border-black/10 bg-linen/40">
           <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-              Qué incluye la mensualidad
+              {hasStandaloneSales
+                ? "O entra a todos con la membresía"
+                : "Qué incluye la mensualidad"}
             </h2>
+            {hasStandaloneSales && (
+              // Con venta suelta el bloque deja de ser «esto es lo que hay» y
+              // pasa a ser una comparación: arriba está el precio de un curso,
+              // aquí el de todos. Sin esta frase las dos cifras se leen como
+              // dos ofertas sueltas y no como una decisión.
+              <p className="mt-4 font-[font1] text-lg leading-snug text-black/65">
+                Un curso suelto es tuyo para siempre. La membresía abre los{" "}
+                {courses.length} mientras esté al día, y también los que se
+                publiquen después.
+              </p>
+            )}
 
             {membership ? (
               <>
@@ -131,14 +147,6 @@ Toda la biblioteca.`}
               </p>
             )}
 
-            <p className="mt-8 border-t border-black/10 pt-6">
-              <Link
-                href="/acceso"
-                className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
-              >
-                Ya soy miembro · entrar al portal
-              </Link>
-            </p>
           </div>
         </section>
 

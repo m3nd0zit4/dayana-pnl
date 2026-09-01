@@ -10,7 +10,7 @@ type PromoCardProps = {
   href: string;
 } & ({ icon: LucideIcon; image?: never } | { icon?: never; image: string });
 
-/** Column variant of `LearningDashboard.tsx`'s `CourseCard`/`CourseCover` idiom. An `image` (gif) already bakes in its own title/description art, so it IS the whole card — no separate text block. Without one, falls back to the gradient+icon block plus title/description/"Ver" pill. */
+/** Column variant of the course-card idiom in `app/components/cursos/CourseCard.tsx`. An `image` (gif) already bakes in its own title/description art, so it IS the whole card — no separate text block. Without one, falls back to the gradient+icon block plus title/description/"Ver" pill. */
 const PromoCard = ({ title, description, href, icon: Icon, image }: PromoCardProps) =>
   image ? (
     <Link

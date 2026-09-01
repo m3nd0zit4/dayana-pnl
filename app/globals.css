@@ -423,17 +423,27 @@
   background: rgba(192, 101, 74, 0.16);
 }
 
-/* Scroll-reveal helper (for body sections) */
-.reveal {
-  opacity: 0;
-  transform: translateY(28px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.reveal.in {
-  opacity: 1;
-  transform: none;
-}
+/*
+ * Aquí vivía un `.reveal { opacity: 0 }` con su `.reveal.in { opacity: 1 }`,
+ * de un sistema de IntersectionObserver que ya no existe: **nadie añadía la
+ * clase `.in`**.
+ *
+ * `.reveal` es hoy el selector de `useReveal` (app/hooks/useReveal.ts), que
+ * anima con GSAP y termina con `clearProps`. Al limpiar el estilo en línea, el
+ * elemento volvía a esta regla —opacidad 0— y se quedaba invisible para
+ * siempre. Peor todavía: `gsap.from` capturaba esa misma opacidad 0 como
+ * destino, así que la animación iba de 0 a 0 y ni el temporizador de rescate
+ * del hook podía salvarla.
+ *
+ * Se llevaba por delante secciones enteras de las cinco páginas que usan
+ * `RevealScope`: /cursos, /cursos/[slug], /historias, /pagar/[token] y
+ * /terapias/resultado/[token] — entre ellas el bloque de compra del catálogo y
+ * el de la página de enlaces de pago.
+ *
+ * Las demás clases de reveal del sitio (`.cc-reveal`, `.wk-reveal`…) nunca
+ * tuvieron CSS: el estado inicial lo pone GSAP y sólo GSAP. `.reveal` hace ya
+ * lo mismo.
+ */
 
 /* ── Responsive ── */
 @media (max-width: 767px) {

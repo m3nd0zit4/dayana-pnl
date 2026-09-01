@@ -15,8 +15,9 @@ import {
 
 const ACCOUNT_HREF = "/miembros/cuenta";
 
+/** Salir de la plataforma es volver al catálogo, que ya no vive en `/miembros`. */
 const Brand = () => (
-  <Link href="/miembros" className="block leading-none uppercase">
+  <Link href="/cursos" className="block leading-none uppercase">
     <span className="block text-sm tracking-[0.14em]">Dayana Beltrán</span>
     <span className="mt-1 block text-[9px] tracking-[0.45em] text-muted-foreground">
       Portal del curso
@@ -41,13 +42,14 @@ const PortalSidebar = ({
 }) => {
   const pathname = usePathname();
   const bypassBanner = pathname.startsWith(ACCOUNT_HREF);
-  // The dashboard (course cards, each showing its own lock/CTA) and the
-  // course player (its own inline "unlock full access" paywall in the main
-  // pane) render their own locked states — the whole-shell block only
-  // applies to the rest of the portal. The warning banner (grace period,
-  // not yet blocked) still applies everywhere else it always has.
-  const bypassBlock =
-    bypassBanner || pathname === "/miembros" || pathname.startsWith("/miembros/curso/");
+  // El reproductor pinta su propio muro («desbloquea el acceso completo») en
+  // el panel principal, así que el bloqueo de toda la carcasa sobra ahí y sólo
+  // aplica al resto del portal. El aviso de gracia —todavía no bloqueado—
+  // sigue saliendo donde siempre.
+  //
+  // El panel de cursos estaba también en esta lista; ya no existe, así que su
+  // condición se fue con él.
+  const bypassBlock = bypassBanner || pathname.startsWith("/miembros/curso/");
   const blocked = !bypassBlock && lockState.kind === "blocked";
   const warning = !bypassBanner && lockState.kind === "warning";
   // The course player is a two-pane layout (sidebar + content) that needs

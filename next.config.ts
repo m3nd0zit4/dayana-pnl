@@ -67,6 +67,22 @@ const nextConfig: NextConfig = {
       // La página de "quién es Dayana" se retiró; su argumento vive ahora en la
       // home y en el resultado del cuestionario.
       { source: "/dayana", destination: "/", permanent: true },
+      /**
+       * El panel del portal se retiró: `/cursos` es ahora la única puerta.
+       *
+       * Enseñaba las mismas tarjetas que el catálogo público pero sólo a quien
+       * ya había entrado, así que había dos sitios donde mirar «mis cursos» y
+       * ninguno era el que la gente encontraba primero. Las tarjetas de
+       * `/cursos` ya traen progreso y «Continuar» cuando hay sesión.
+       *
+       * SÓLO la raíz: `/miembros/curso/*` y `/miembros/cuenta/*` son la
+       * plataforma y no se mueven — hay correos ya enviados que apuntan ahí.
+       *
+       * Temporal a propósito. Un 308 se queda cacheado en el navegador para
+       * siempre, y esto es una decisión de producto, no una URL muerta: si el
+       * panel volviera, nadie debería tener que limpiar su caché.
+       */
+      { source: "/miembros", destination: "/cursos", permanent: false },
     ];
   },
   async headers() {
