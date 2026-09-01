@@ -1,8 +1,8 @@
 "use client";
 
 import { ProductKind } from "@prisma/client";
-import { Package } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Package } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -14,6 +14,8 @@ import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
+import ProductCardPreview from "./ProductCardPreview";
+import StringListEditor from "./StringListEditor";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 import { invalidateCached } from "./hooks/useReferenceData";
@@ -42,6 +44,11 @@ type Product = {
   sessionsLabel: string;
   sessionsCount: number | null;
   description: string | null;
+  tag?: string | null;
+  highlight?: boolean;
+  unitPriceLabel?: string | null;
+  therapyHeadline?: string | null;
+  whatsappMessage?: string | null;
   isActive: boolean;
   sortOrder: number;
   prices: ProductPrice[];
@@ -232,9 +239,27 @@ const emptyForm = () => ({
   listAmountUsd: "",
   description: "",
   isActive: true,
+  // Presentación: lo que la tarjeta pública enseña además del precio. Vivían
+  // sólo en el seed, así que poner un "Más elegido" exigía tocar código.
+  tag: "",
+  highlight: false,
+  unitPriceLabel: "",
+  therapyHeadline: "",
+  whatsappMessage: "",
 });
 
 const emptyCopForm = () => ({ amountCop: "", listAmountCop: "" });
+
+/**
+ * `Product.description` guarda las viñetas como un texto con saltos de línea
+ * —así lo parte `productToPlan`— pero se editan una a una. Estas dos funciones
+ * son la traducción entre las dos formas, y están juntas para que nadie cambie
+ * el separador en un sentido y no en el otro.
+ */
+const descriptionToItems = (description: string): string[] =>
+  description.split("\n").filter((line) => line.trim() !== "");
+
+const itemsToDescription = (items: string[]): string => items.join("\n");
 
 type View = "usd" | "cop";
 
@@ -252,6 +277,64 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const [form, setForm] = useState(emptyForm);
   const [copForm, setCopForm] = useState(emptyCopForm);
   const [view, setView] = useState<View>("usd");
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
+
+  const uploadCover = async (file: File) => {
+    setUploadingCover(true);
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const res = await fetch("/api/admin/products/cover", { method: "POST", body });
+      const data = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.url) {
+        toast(
+          data.error === "file_too_large"
+            ? "La imagen pesa más de 6 MB."
+            : data.error === "invalid_mime"
+              ? "Formato no admitido: usa JPG, PNG, WEBP o AVIF."
+              : "No se pudo subir la portada.",
+          "error",
+        );
+        return;
+      }
+      setForm((f) => ({ ...f, imageUrl: data.url! }));
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  /**
+   * Reordena mandando la lista entera, no "sube este uno": dos pestañas
+   * abiertas sobre el mismo catálogo no pueden dejar el orden a medias.
+   * El estado local se mueve antes de la respuesta y se revierte si falla,
+   * porque la flecha tiene que responder al instante.
+   */
+  const move = async (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= products.length || reordering) return;
+    const previous = products;
+    const next = [...products];
+    [next[index], next[target]] = [next[target], next[index]];
+    setProducts(next);
+    setReordering(true);
+    const res = await fetch("/api/admin/products/reorder", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ orderedIds: next.map((p) => p.id) }),
+    }).catch(() => null);
+    setReordering(false);
+    if (!res?.ok) {
+      setProducts(previous);
+      toast("No se pudo reordenar el catálogo", "error");
+    } else {
+      invalidateCached("products");
+    }
+  };
 
   const load = useCallback(() => {
     if (preview) {
@@ -284,6 +367,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       kind: p.kind,
       title: p.title,
       imageUrl: p.imageUrl ?? "",
+      tag: p.tag ?? "",
+      highlight: p.highlight ?? false,
+      unitPriceLabel: p.unitPriceLabel ?? "",
+      therapyHeadline: p.therapyHeadline ?? "",
+      whatsappMessage: p.whatsappMessage ?? "",
       sessionsLabel: p.sessionsLabel,
       sessionsCount: p.sessionsCount?.toString() ?? "",
       amountUsd: usd ? String(usd.amountMinor / 100) : "",
@@ -315,6 +403,11 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       sessionsLabel: form.sessionsLabel || form.title,
       sessionsCount: form.sessionsCount ? Number(form.sessionsCount) : null,
       description: form.description,
+      tag: form.tag.trim() || null,
+      highlight: form.highlight,
+      unitPriceLabel: form.unitPriceLabel.trim() || null,
+      therapyHeadline: form.therapyHeadline.trim() || null,
+      whatsappMessage: form.whatsappMessage.trim() || null,
       isActive: form.isActive,
       ...(form.amountUsd !== "" ? { amountUsd: Number(form.amountUsd) } : {}),
       listAmountUsd: form.listAmountUsd ? Number(form.listAmountUsd) : null,
@@ -408,6 +501,13 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           }}
           large
         >
+          {/*
+            Formulario a la izquierda, tarjeta pública a la derecha. La vista
+            previa se queda pegada al hacer scroll porque el formulario es más
+            alto que ella: si se fuera hacia arriba al escribir las viñetas,
+            justo dejaría de verse en el momento en que cambia.
+          */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
                 <SearchableSelect
@@ -430,28 +530,46 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                   />
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Imagen de portada (URL)</Label>
+                  <Label>Portada</Label>
                   <div className="flex items-start gap-3">
-                    <Input
-                      value={form.imageUrl}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, imageUrl: e.target.value }))
-                      }
-                      placeholder="https://…/portada-curso.jpg"
-                    />
+                    <div className="flex-1 space-y-2">
+                      <input
+                        ref={coverInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/avif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (file) void uploadCover(file);
+                        }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingCover}
+                        onClick={() => coverInputRef.current?.click()}
+                      >
+                        {uploadingCover ? "Subiendo…" : "Subir imagen"}
+                      </Button>
+                      <Input
+                        value={form.imageUrl}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, imageUrl: e.target.value }))
+                        }
+                        placeholder="…o pega una URL"
+                      />
+                    </div>
                     {form.imageUrl.trim() && (
                       // eslint-disable-next-line @next/next/no-img-element -- arbitrary external URL, no next/image domain config for it
                       <img
                         src={form.imageUrl.trim()}
                         alt=""
-                        className="h-12 w-20 shrink-0 rounded-md object-cover ring-1 ring-border"
+                        className="h-16 w-24 shrink-0 rounded-md object-cover ring-1 ring-border"
                         onError={(e) => (e.currentTarget.style.visibility = "hidden")}
                       />
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Aparece como portada en el panel de miembros (curso) y en la web pública.
-                  </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Etiqueta sesiones</Label>
@@ -530,15 +648,79 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Fichas / descripción (una por línea)</Label>
-                <Textarea
-                  className="min-h-[100px]"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value }))
-                  }
-                />
+              {/*
+                Las viñetas se guardan como un texto con saltos de línea —así
+                las lee `productToPlan`— pero se editan una a una: en un
+                `<textarea>` no se ve cuál es cada ficha de la tarjeta ni se
+                pueden reordenar sin cortar y pegar.
+              */}
+              <StringListEditor
+                label="Fichas de la tarjeta"
+                items={descriptionToItems(form.description)}
+                onChange={(items) =>
+                  setForm((f) => ({ ...f, description: itemsToDescription(items) }))
+                }
+                placeholder="Ej. 4 sesiones de 60 minutos"
+                addLabel="Agregar ficha"
+              />
+
+              <div className="border-t border-border pt-4">
+                <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
+                  Presentación
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label>Etiqueta corta</Label>
+                    <Input
+                      value={form.tag}
+                      onChange={(e) => setForm((f) => ({ ...f, tag: e.target.value }))}
+                      placeholder="Ej. Más elegido"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Precio por unidad</Label>
+                    <Input
+                      value={form.unitPriceLabel}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, unitPriceLabel: e.target.value }))
+                      }
+                      placeholder="Ej. / sesión"
+                    />
+                  </div>
+                </div>
+
+                <label className="mt-3 flex w-fit cursor-pointer items-center gap-2.5 select-none">
+                  <Checkbox
+                    checked={form.highlight}
+                    onCheckedChange={(checked) =>
+                      setForm((f) => ({ ...f, highlight: checked === true }))
+                    }
+                  />
+                  <span className="text-sm">Destacar esta tarjeta</span>
+                </label>
+
+                <div className="mt-3 space-y-1.5">
+                  <Label>Titular en el diagnóstico (opcional)</Label>
+                  <Input
+                    value={form.therapyHeadline}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, therapyHeadline: e.target.value }))
+                    }
+                    placeholder="Frase con la que se presenta al recomendarlo"
+                  />
+                </div>
+
+                <div className="mt-3 space-y-1.5">
+                  <Label>Mensaje de WhatsApp (opcional)</Label>
+                  <Textarea
+                    className="min-h-[70px]"
+                    value={form.whatsappMessage}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, whatsappMessage: e.target.value }))
+                    }
+                    placeholder="Texto con el que se abre el chat desde este paquete"
+                  />
+                </div>
               </div>
 
               {!creating && (
@@ -553,19 +735,41 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                 </label>
               )}
 
-              <CrmFormActions size="sm">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setEditing(null);
-                    setCreating(false);
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button onClick={() => void save()}>Guardar</Button>
-              </CrmFormActions>
           </div>
+
+          <div className="lg:sticky lg:top-0 lg:self-start">
+            <ProductCardPreview
+              input={{
+                kind: form.kind,
+                title: form.title,
+                sessionsLabel: form.sessionsLabel,
+                sessionsCount: form.sessionsCount,
+                description: form.description,
+                imageUrl: form.imageUrl,
+                tag: form.tag,
+                highlight: form.highlight,
+                unitPriceLabel: form.unitPriceLabel,
+                amountUsd: form.amountUsd,
+                listAmountUsd: form.listAmountUsd,
+                amountCop: copForm.amountCop,
+                listAmountCop: copForm.listAmountCop,
+              }}
+            />
+          </div>
+          </div>
+
+          <CrmFormActions size="sm">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditing(null);
+                setCreating(false);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={() => void save()}>Guardar</Button>
+          </CrmFormActions>
         </CrmModal>
 
       {/*
@@ -585,7 +789,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
             description="Los paquetes son lo que se vende en la web: terapias, cursos y talleres."
           />
         ) : (
-          products.map((p) => {
+          products.map((p, index) => {
             const usd = usdPrice(p);
             const cop = copPrice(p);
             const displayPrice = view === "usd" ? usd : cop;
@@ -595,6 +799,29 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                 actions={
                   canManageTeam && !preview ? (
                     <CrmRowActions>
+                      {/*
+                        El orden de esta lista es el orden en que la web
+                        muestra el catálogo. Se editaba sólo por `sortOrder`
+                        desde un script.
+                      */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Subir ${p.title}`}
+                        disabled={index === 0 || reordering}
+                        onClick={() => void move(index, -1)}
+                      >
+                        <ChevronUp className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Bajar ${p.title}`}
+                        disabled={index === products.length - 1 || reordering}
+                        onClick={() => void move(index, 1)}
+                      >
+                        <ChevronDown className="size-4" />
+                      </Button>
                       <CrmRowEdit onClick={() => openEdit(p)} />
                       <CrmRowDelete onClick={() => remove(p.id)} />
                     </CrmRowActions>

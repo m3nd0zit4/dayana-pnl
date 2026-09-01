@@ -27,8 +27,20 @@ const ProductsPage = async () => {
         sessionsLabel: p.sessionsLabel,
         sessionsCount: p.sessionsCount,
         description: p.description,
+        tag: p.tag,
+        highlight: p.highlight,
+        unitPriceLabel: p.unitPriceLabel,
+        therapyHeadline: p.therapyHeadline,
+        whatsappMessage: p.whatsappMessage,
         isActive: p.isActive,
         sortOrder: p.sortOrder,
+        // Sin esto la primera pintura no sabía si el producto lleva plan
+        // recurrente, y el aviso de sincronización de precio sólo aparecía
+        // tras el primer refetch del cliente.
+        paypalPlanId: p.paypalPlanId,
+        mercadoPagoPreapprovalPlanId: p.mercadoPagoPreapprovalPlanId,
+        priceSyncStatus: p.priceSyncStatus,
+        priceSyncNote: p.priceSyncNote,
         prices: p.prices.map((price) => ({
           currency: price.currency,
           amountMinor: price.amountMinor,
