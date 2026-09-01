@@ -102,10 +102,9 @@ export const getPublicPlans = async () => {
  * ¿Se puede cobrar este producto?
  *
  * El único criterio, y compartido a propósito: `getPlanFromDb` e
- * `isActivePlanId` son la puerta por la que pasan PayPal, Mercado Pago,
- * Stripe, Lemon Squeezy y la cotización. Con dos copias del predicado, una se
- * queda atrás y aparece un producto cobrable por una vía e inexistente por
- * otra.
+ * `isActivePlanId` son la puerta por la que pasan PayPal, Mercado Pago y la
+ * cotización. Con dos copias del predicado, una se queda atrás y aparece un
+ * producto cobrable por una vía e inexistente por otra.
  *
  * Un curso de la biblioteca no es comprable salvo que se haya publicado
  * expresamente para venta suelta.

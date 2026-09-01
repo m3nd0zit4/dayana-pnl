@@ -18,8 +18,6 @@ const PROVIDER_LABEL: Record<PaymentProvider, string> = {
   PAYPAL: "PayPal",
   MERCADO_PAGO: "Mercado Pago",
   MANUAL: "Registro manual",
-  STRIPE: "Stripe",
-  LEMON_SQUEEZY: "Lemon Squeezy",
 };
 
 const contactName = (contact: {

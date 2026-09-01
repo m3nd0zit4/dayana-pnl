@@ -1,8 +1,6 @@
 import crypto from "crypto";
 import type { Webhooks } from "@mux/mux-node/resources/webhooks/webhooks";
-import type StripeNamespace from "stripe";
 type UnwrapWebhookEvent = Webhooks.UnwrapWebhookEvent;
-type StripeEvent = StripeNamespace.Event;
 import { getPayPalAccessToken } from "@/lib/paypal/server";
 import { getMuxClient } from "@/lib/mux/client";
 
@@ -407,90 +405,6 @@ export const verifyAndParseMuxWebhook = async (
     return await mux.webhooks.unwrap(rawBody, req.headers, secret);
   } catch (e) {
     console.warn("[webhook mux] signature verification failed", e);
-    return null;
-  }
-};
-
-/**
- * Lemon Squeezy `X-Signature`: HMAC-SHA256 **hex** sobre el cuerpo crudo.
- *
- * Sin timestamp ni versión — más simple que Mercado Pago, y por eso mismo sin
- * protección de replay propia; la idempotencia la pone `registerWebhookEvent`
- * con el id sintético del evento. Misma disciplina de raw body que el resto
- * del archivo: la ruta lee `req.text()` una sola vez y esto verifica sobre
- * esos bytes exactos.
- */
-export const verifyLemonSqueezyWebhook = (
-  req: Request,
-  rawBody: string
-): boolean => {
-  const secret = process.env.LEMONSQUEEZY_WEBHOOK_SECRET?.trim();
-  if (!secret) {
-    if (!isLocalDevelopment()) {
-      console.error("[webhook ls] LEMONSQUEEZY_WEBHOOK_SECRET missing");
-      return false;
-    }
-    return true;
-  }
-
-  const signature = req.headers.get("x-signature");
-  if (!signature) {
-    console.warn("[webhook ls] missing x-signature header");
-    return false;
-  }
-
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("hex");
-
-  try {
-    const expectedBuf = Buffer.from(expected, "hex");
-    const givenBuf = Buffer.from(signature.trim(), "hex");
-    if (expectedBuf.length !== givenBuf.length) return false;
-    return crypto.timingSafeEqual(givenBuf, expectedBuf);
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Stripe `Stripe-Signature` (timestamped HMAC-SHA256 over `t.rawBody`).
- * Delegated to the SDK like Mux: the scheme is versioned and includes replay
- * protection Stripe tunes on its side.
- *
- * Same raw-body discipline as the rest of this file — the route reads
- * `req.text()` exactly once and this verifies over those bytes. Re-serializing
- * the parsed JSON changes them and the signature stops matching.
- */
-export const verifyAndParseStripeWebhook = async (
-  req: Request,
-  rawBody: string
-): Promise<StripeEvent | null> => {
-  const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
-  if (!secret) {
-    if (!isLocalDevelopment()) {
-      console.error("[webhook stripe] STRIPE_WEBHOOK_SECRET missing");
-      return null;
-    }
-    try {
-      return JSON.parse(rawBody) as StripeEvent;
-    } catch {
-      return null;
-    }
-  }
-
-  const signature = req.headers.get("stripe-signature");
-  if (!signature) {
-    console.warn("[webhook stripe] missing stripe-signature header");
-    return null;
-  }
-
-  try {
-    const { getStripe } = await import("@/lib/payments/stripe/client");
-    return getStripe().webhooks.constructEvent(rawBody, signature, secret);
-  } catch (e) {
-    console.warn("[webhook stripe] signature verification failed", e);
     return null;
   }
 };

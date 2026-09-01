@@ -42,8 +42,6 @@ enum PaymentProvider {
   PAYPAL
   MERCADO_PAGO
   MANUAL
-  STRIPE
-  LEMON_SQUEEZY
 }
 
 enum PaymentStatus {
@@ -374,31 +372,6 @@ model Product {
   whatsappMessage String?     @map("whatsapp_message") @db.Text
   therapyHeadline String?     @map("therapy_headline")
 
-  /// Espejo del Product de Stripe, escrito por scripts/stripe/setup-products.ts.
-  stripeProductId String?     @unique @map("stripe_product_id")
-  /// Product tax code de Stripe (txcd_*). Ver lib/payments/stripe/eligibility.ts.
-  stripeTaxCode   String?     @map("stripe_tax_code")
-  /// Price de Stripe para mode=payment. Lleva el gross-up de comisión ya
-  /// aplicado (lib/pricing/fees.ts): Checkout cobra objetos Price, no importes
-  /// calculados por petición como PayPal. Vive aquí y NO en ProductPrice
-  /// porque esa tabla es el histórico de precios públicos y su fila más
-  /// reciente es la que se muestra en la web: escribir ahí el importe con
-  /// comisión inflaría el precio de cara al cliente en cada corrida.
-  stripePriceId   String?     @unique @map("stripe_price_id")
-  /// Price recurrente de Stripe para mode=subscription (solo la mensualidad).
-  stripeRecurringPriceId String? @unique @map("stripe_recurring_price_id")
-
-  /// Espejo del Product de Lemon Squeezy (scripts/lemonsqueezy/setup-products.ts).
-  lemonSqueezyProductId String? @map("lemon_squeezy_product_id")
-  /// Variant de Lemon Squeezy que se cobra. El checkout se crea contra la
-  /// variante, no contra el producto.
-  lemonSqueezyVariantId String? @unique @map("lemon_squeezy_variant_id")
-  /// `true` cuando la variante es de suscripción. Decide qué webhook registra
-  /// el pago: `order_created` para pago único, `subscription_payment_success`
-  /// para la mensualidad. Una compra de suscripción dispara AMBOS, así que sin
-  /// esta bandera se grabarían dos pagos y se regalaría un mes de más.
-  lemonSqueezySubscription Boolean @default(false) @map("lemon_squeezy_subscription")
-
   /// Espejo del Product de PayPal, escrito por scripts/paypal/setup-subscription.ts.
   paypalProductId String? @unique @map("paypal_product_id")
   /// Billing Plan mensual de PayPal. Lleva el gross-up de comisión YA aplicado
@@ -436,11 +409,6 @@ model Product {
   /// tener que volver a llamar a los proveedores.
   priceSyncNote      String?   @map("price_sync_note") @db.Text
   priceSyncCheckedAt DateTime? @map("price_sync_checked_at")
-  /// Managed Payments (Stripe/Link como merchant of record) para este producto.
-  /// Solo productos 100% digitales sin intervención humana son elegibles, así
-  /// que esto NO se deriva de `kind` en tiempo de checkout: se sella aquí al
-  /// crear el producto en Stripe y se puede apagar sin tocar código.
-  stripeManagedPayments Boolean @default(false) @map("stripe_managed_payments")
 
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")

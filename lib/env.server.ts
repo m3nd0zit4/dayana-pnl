@@ -52,20 +52,6 @@ const productionSchema = z
     ),
     NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY: nonEmpty,
     MERCADOPAGO_WEBHOOK_SECRET: nonEmpty,
-    // Stripe es opcional a propósito: la pasarela se enciende con
-    // STRIPE_CHECKOUT_ENABLED y un despliegue sin Stripe es legítimo. Lo que se
-    // rechaza es la configuración a medias — ver los refine() de abajo.
-    // Lemon Squeezy: mismo criterio que Stripe — opcional, pero la
-    // configuración a medias se rechaza.
-    LEMONSQUEEZY_API_KEY: z.string().trim().optional(),
-    LEMONSQUEEZY_STORE_ID: z.string().trim().optional(),
-    LEMONSQUEEZY_WEBHOOK_SECRET: z.string().trim().optional(),
-    LEMONSQUEEZY_CHECKOUT_ENABLED: z.string().trim().optional(),
-    NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED: z.string().trim().optional(),
-    STRIPE_SECRET_KEY: z.string().trim().optional(),
-    STRIPE_WEBHOOK_SECRET: z.string().trim().optional(),
-    STRIPE_CHECKOUT_ENABLED: z.string().trim().optional(),
-    NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED: z.string().trim().optional(),
     INNGEST_EVENT_KEY: nonEmpty,
     INNGEST_SIGNING_KEY: nonEmpty,
     UPSTASH_REDIS_REST_URL: nonEmpty,
@@ -154,47 +140,6 @@ const productionSchema = z
       Boolean(env.WHATSAPP_API_TOKEN?.trim()) ===
       Boolean(env.WHATSAPP_PHONE_NUMBER_ID?.trim()),
     "WhatsApp: set both WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID, or neither"
-  )
-  // Con la pasarela encendida y sin clave, cada intento de pago devuelve 503 y
-  // el cliente ve un botón muerto.
-  .refine(
-    (env) =>
-      env.STRIPE_CHECKOUT_ENABLED !== "true" ||
-      ((env.STRIPE_SECRET_KEY?.trim().length ?? 0) > 0 &&
-        (env.STRIPE_WEBHOOK_SECRET?.trim().length ?? 0) > 0),
-    "STRIPE_CHECKOUT_ENABLED=true requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET"
-  )
-  // Misma lógica que el token TEST- de Mercado Pago: una clave de prueba en
-  // producción cobra en un sandbox y nadie recibe el dinero.
-  .refine(
-    (env) => !env.STRIPE_SECRET_KEY?.trim().startsWith("sk_test_"),
-    "Use a live Stripe secret key in production (not sk_test_)"
-  )
-  // El botón se pinta con la pública y el endpoint responde con la privada: si
-  // sólo se enciende la del cliente, cada clic termina en 503.
-  .refine(
-    (env) =>
-      env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED !== "true" ||
-      env.STRIPE_CHECKOUT_ENABLED === "true",
-    "NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED=true requires STRIPE_CHECKOUT_ENABLED=true"
-  )
-  // Sin las tres, el checkout devuelve 503 o el webhook rechaza todo por falta
-  // de secreto — y un pago cobrado que no se registra es lo peor que puede pasar.
-  .refine(
-    (env) =>
-      env.LEMONSQUEEZY_CHECKOUT_ENABLED !== "true" ||
-      ((env.LEMONSQUEEZY_API_KEY?.trim().length ?? 0) > 0 &&
-        (env.LEMONSQUEEZY_STORE_ID?.trim().length ?? 0) > 0 &&
-        (env.LEMONSQUEEZY_WEBHOOK_SECRET?.trim().length ?? 0) > 0),
-    "LEMONSQUEEZY_CHECKOUT_ENABLED=true requires LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID and LEMONSQUEEZY_WEBHOOK_SECRET"
-  )
-  // El botón lo pinta la pública y responde el endpoint con la privada: sólo
-  // la del cliente encendida deja cada clic en 503.
-  .refine(
-    (env) =>
-      env.NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED !== "true" ||
-      env.LEMONSQUEEZY_CHECKOUT_ENABLED === "true",
-    "NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED=true requires LEMONSQUEEZY_CHECKOUT_ENABLED=true"
   );
 
 let validated = false;
