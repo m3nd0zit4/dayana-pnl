@@ -4,7 +4,6 @@ import { isPlanId } from "../../../../lib/plans";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import {
   grossUpUsd,
-  lemonSqueezyFee,
   paypalFee,
 } from "../../../../lib/pricing/fees";
 import {
@@ -21,7 +20,7 @@ export const dynamic = "force-dynamic";
 
 type Body = {
   planId?: unknown;
-  provider?: "paypal" | "mercadopago" | "lemonsqueezy";
+  provider?: "paypal" | "mercadopago";
   promoCode?: unknown;
 };
 
@@ -57,13 +56,12 @@ export async function POST(req: Request) {
   const provider =
     body.provider === "mercadopago"
       ? "mercadopago"
-      : body.provider === "lemonsqueezy"
-        ? "lemonsqueezy"
+
         : "paypal";
   const rawPromoCode =
     typeof body.promoCode === "string" ? body.promoCode.trim() : "";
 
-  if (provider === "paypal" || provider === "lemonsqueezy") {
+  if (provider === "paypal") {
     let discountMinor = 0;
     let promoCode: string | undefined;
     let promoCodeError: string | undefined;
@@ -84,7 +82,7 @@ export async function POST(req: Request) {
     const discountedNet = Math.max(0, plan.amountUsd - discountMinor / 100);
     const b = grossUpUsd(
       discountedNet,
-      provider === "lemonsqueezy" ? lemonSqueezyFee() : paypalFee()
+      paypalFee()
     );
     return NextResponse.json({
       provider,

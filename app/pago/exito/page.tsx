@@ -18,7 +18,6 @@ import {
 } from "../../../lib/crm/checkout-reference";
 import { findEnrollmentForCheckout } from "../../../lib/crm/checkout-fulfillment";
 import { syncMercadoPagoPayment } from "../../../lib/crm/mercadopago-payments";
-import { syncStripeCheckoutSession } from "../../../lib/crm/stripe-payments";
 import PostPaymentLeadForm from "../../components/pago/PostPaymentLeadForm";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
 import PurchaseConversionTracking from "../../components/pago/PurchaseConversionTracking";
@@ -41,10 +40,6 @@ type SearchParams = {
   payment_id?: string;
   merchant_order_id?: string;
   preference_id?: string;
-  /** Stripe Checkout return (`success_url` carries {CHECKOUT_SESSION_ID}). */
-  session_id?: string;
-  /** Lemon Squeezy return — `ls=1` + la referencia del checkout. */
-  ls?: string;
   ref?: string;
   /** Retorno de PayPal por redirección (/api/paypal/return). */
   paypal?: string;
@@ -135,17 +130,6 @@ const resolveReturn = (params: SearchParams): Resolved => {
     };
   }
 
-  // Lemon Squeezy vuelve sin id de orden: sólo con la referencia del checkout.
-  // El estado real lo resuelve el lookup de matrícula más abajo.
-  if (params.ls === "1" && params.ref) {
-    const checkout = parseCheckoutReference(params.ref);
-    return {
-      status: "processing",
-      planId:
-        checkout && isPlanId(checkout.planId) ? checkout.planId : undefined,
-    };
-  }
-
   // PayPal por redirección: `/api/paypal/return` ya capturó el pago y manda
   // aquí con el enrollmentId. Sin esta rama caía en "unknown" y la página
   // decía "no pudimos recuperar el detalle" sobre un cobro que SÍ se hizo.
@@ -160,16 +144,6 @@ const resolveReturn = (params: SearchParams): Resolved => {
     return { status: "processing" };
   }
 
-  // Stripe: the real status comes from reconciling the session server-side
-  // (see below); this only seeds the plan and the reference label.
-  if (params.session_id) {
-    return {
-      status: "processing",
-      refLabel: params.session_id,
-      planId: params.plan && isPlanId(params.plan) ? params.plan : undefined,
-    };
-  }
-
   return { status: "unknown" };
 };
 
@@ -181,27 +155,6 @@ const Page = async ({ searchParams }: PageProps) => {
   const params = await searchParams;
   let result = resolveReturn(params);
 
-  // Stripe Checkout returns here with `session_id`. Same reasoning as the
-  // Mercado Pago reconciliation further down: registration must not depend
-  // solely on the webhook arriving. `syncStripeCheckoutSession` is idempotent
-  // per PaymentIntent, so a webhook that already fired (or fires later) is a
-  // no-op, and it is the API — not the query string — that decides the status.
-  let stripeEnrollmentId: string | undefined;
-  if (params.session_id) {
-    const sync = await syncStripeCheckoutSession(params.session_id).catch(
-      (e) => {
-        console.error("[pago/exito] stripe reconciliation failed", e);
-        return null;
-      }
-    );
-    if (sync?.outcome === "recorded") {
-      stripeEnrollmentId = sync.enrollmentId;
-      result = { ...result, status: "succeeded" };
-    }
-    // Anything else stays "processing": a delayed payment method, or a
-    // subscription whose first `invoice.paid` has not landed yet.
-  }
-
   // Lemon Squeezy: el webhook firmado es la única fuente de verdad, así que
   // aquí sólo se comprueba si YA llegó. `ref` no es frontera de confianza —
   // sólo lee una matrícula que el webhook verificado creó, nunca la concede.
@@ -212,7 +165,7 @@ const Page = async ({ searchParams }: PageProps) => {
    * porque no saber todavía no es lo mismo que haber fallado.
    */
   let referenceEnrollmentId: string | undefined;
-  if ((params.ls === "1" || params.suscripcion === "1") && params.ref) {
+  if (params.suscripcion === "1" && params.ref) {
     const checkout = parseCheckoutReference(params.ref);
     if (checkout) {
       referenceEnrollmentId =
@@ -293,7 +246,6 @@ const Page = async ({ searchParams }: PageProps) => {
   }
 
   let enrollmentId =
-    stripeEnrollmentId ??
     referenceEnrollmentId ??
     (params.enrollmentId && !isCheckoutReference(params.enrollmentId)
       ? params.enrollmentId

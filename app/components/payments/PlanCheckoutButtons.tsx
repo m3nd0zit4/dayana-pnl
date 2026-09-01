@@ -5,7 +5,6 @@ import { buildWhatsAppUrl } from "../../../lib/contact";
 import { type Plan } from "../../../lib/plans";
 import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
 import { useCheckoutModal } from "../../context/CheckoutModalContext";
-import StripeCheckoutButton from "./StripeCheckoutButton";
 
 type Props = {
   plan: Plan;
@@ -45,8 +44,6 @@ const PlanCheckoutButtons = ({
   const isColombia = userCountry === "CO";
   const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
   const payBusy = false;
-  const stripeEnabled =
-    process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED === "true";
 
   // Defense-in-depth: callers should already filter out plans without a
   // real price for the visitor's region, but never render a pay button
@@ -91,9 +88,6 @@ const PlanCheckoutButtons = ({
       >
         Pagar
       </button>
-      {stripeEnabled && (
-        <StripeCheckoutButton planId={plan.id} isDark={isDark} />
-      )}
       {showWhatsApp && (
         <a
           href={buildWhatsAppUrl(plan.whatsappMessage)}

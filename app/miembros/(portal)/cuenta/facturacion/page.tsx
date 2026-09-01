@@ -18,8 +18,6 @@ const PROVIDER_LABELS: Record<string, string> = {
   PAYPAL: "PayPal",
   MERCADO_PAGO: "Mercado Pago",
   MANUAL: "Registro manual",
-  STRIPE: "Stripe",
-  LEMON_SQUEEZY: "Lemon Squeezy",
 };
 
 const formatAmount = (currency: string, amountMinor: number) =>

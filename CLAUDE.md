@@ -59,30 +59,21 @@ NextAuth credentials provider at `/admin/sign-in`. Staff roles: `OWNER > OPERATO
 
 Pricing: amounts stored as **minor units** (centavos/cents). USD→COP rate resolves: `SiteSetting` DB row → `USD_TO_COP_RATE` env var → 3500 fallback (`lib/pricing/usd-to-cop.ts`).
 
-#### Lemon Squeezy — the international rail
+#### Los rieles: PayPal y Mercado Pago, nada más
 
-**Colombia → Mercado Pago (COP). Everywhere else → Lemon Squeezy (USD).** That split is the whole design and it is not arbitrary: LS is merchant of record and accepts Colombian merchants with no US entity — which is why it exists here at all — but its checkout has **no PSE, no Nequi, no cash**, so pointing Colombian buyers at it would trade the local rail for an international card. `lib/pricing/regions.ts` holds the split. PayPal is retired from the UI; its routes and webhook stay deployed so in-flight orders still settle.
+**Colombia → Mercado Pago (COP). Todo lo demás → PayPal (USD).** `lib/pricing/regions.ts` tiene el reparto. En Colombia Mercado Pago es el único que da PSE, Nequi y efectivo, así que mandar allí a una compradora colombiana sería cambiar el riel local por una tarjeta internacional.
 
-- **Two flags, deliberately separate.** `LEMONSQUEEZY_CHECKOUT_ENABLED` opens the endpoint, `NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED` paints the button. Server-on/public-off is the production verification state — live, reachable by you, invisible to customers. With the public flag off the UI falls back to PayPal, so a deploy is inert until flipped.
-- **`providerPaymentId` is namespaced: `order:<id>` / `subinv:<id>`.** LS order ids and subscription-invoice ids are bare integers from different sequences; unprefixed they collide in `@@unique([provider, providerPaymentId])` and a renewal silently no-ops against an unrelated order.
-- **A subscription purchase fires `order_created` AND `subscription_payment_success`.** `syncLemonSqueezyOrder` bails out when `Product.lemonSqueezySubscription` is true — `subscription_payment_success` is the single recording path for the membership, first invoice included (`billing_reason: initial | renewal | updated`). Record both and you write two `Payment` rows for one charge and grant two months.
-- **`custom_price` is one-off only.** It carries the fee gross-up per request, so `LEMONSQUEEZY_FEE_*` changes take effect immediately — the opposite of Stripe, where the gross-up is baked into a `Price` object. The recurring variant uses its real LS price because `custom_price` on subscription variants is undocumented.
-- **LS is merchant of record**: it sends its own receipts and invoices. Don't add a payment-confirmation email for these — you'd be the second sender. Amounts are recorded from `total_usd` in USD; LS bills in the customer's currency and reports the USD equivalent.
-- **The webhook drops `test_mode` payloads when `VERCEL_ENV=production`.** LS test and live API keys are not distinguishable by prefix, so there is no `sk_test_`-style env guard — this is the substitute, and it is what stops a test event granting real access.
-- `/pago/exito?ls=1&ref=…` resolves the enrollment through `findEnrollmentForCheckout`. `ref` is **not** a trust boundary: it only reads an enrollment a signature-verified webhook already created. Not-found means "processing", not "failed".
+Hubo dos rieles más —**Stripe** y **Lemon Squeezy**— y se borraron enteros: ninguno llegó a cobrar un solo pago y ninguna de sus variables estaba definida en producción. Si vuelven, están en el historial de git, en un commit aislado. **No los reintroduzcas sin decidir antes qué problema resuelven**: eran cuatro rieles para dos que funcionan, y cada uno era otro sitio donde un error podía perderse.
 
-#### Stripe / Managed Payments
+#### Cuando un pago falla, se dice por qué
 
-A **third** rail alongside PayPal and Mercado Pago, not a replacement. Everything is behind `STRIPE_CHECKOUT_ENABLED` (server) + `NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED` (button); unset, the panel and the checkout behave exactly as before. `POST /api/checkout/stripe` → hosted Checkout → `POST /api/webhooks/stripe`.
+`lib/payments/errors/` traduce los códigos de cada proveedor a dos mensajes: uno para la clienta —qué pasó y qué hacer— y otro para el equipo, con el `debug_id` de PayPal, que es lo único con lo que su soporte puede buscar la operación.
 
-- **Managed Payments is per product, not per integration.** `Product.stripeManagedPayments` decides `managed_payments: { enabled }` on the session. Stripe only covers **fully digital, fully automated** goods — it explicitly excludes human-delivered services ("live 1-1 coaching") and live events, so the therapy plans and `workshop-virtual` run as ordinary Stripe Checkout with Dayana as merchant of record. `course-live` ships ON as `txcd_20060158`; it also carries live Meet classes, so if Stripe rules it ineligible, flip the column — no deploy. `lib/payments/stripe/eligibility.ts` holds the tax-code list and the reasoning.
-- **When it's on, Link is the merchant of record.** Receipts, invoices and refund notices come from Link, not our Resend templates, and the statement reads `LINK.COM* …`. Don't add a payment-confirmation email for these; you'd be the second sender.
-- **The fee gross-up is baked into the Stripe `Price`**, unlike PayPal/MP which gross up per request — Checkout charges Price objects. Changing `STRIPE_FEE_PERCENT`/`STRIPE_FEE_FIXED` means re-running `bunx tsx scripts/stripe/setup-products.ts`. Managed Payments then adds tax **on top** (`tax_behavior: exclusive`).
-- **The Stripe ids live on `Product`, never on `ProductPrice`.** `ProductPrice` is the public price history and its newest USD row is what the site renders — writing the grossed-up amount there would inflate the displayed price on every run.
-- **`mode: subscription` is fulfilled by `invoice.paid`, not by `checkout.session.completed`.** Recording both would write two `Payment` rows for one charge and grant two membership months. The checkout reference rides on `subscription_data.metadata` and survives renewals via `invoice.parent.subscription_details.metadata`.
-- Everything converges on `fulfillCheckoutPayment`, so the COURSE-renewal, membership-extension, promo-redemption and Meta CAPI dedupe logic is shared with the other two providers. `/pago/exito` reconciles `?session_id=` the same way it does Mercado Pago's `payment_id`, so a missing webhook can't lose a payment.
-- A failed handler **deletes** its `WebhookEvent` row (`releaseWebhookEvent`) before returning 500 — otherwise Stripe's retry short-circuits as a duplicate and the payment is never recorded. Safe because fulfilment is idempotent per provider payment id.
-- Managed Payments is incompatible with Connect, Elements/advanced integrations, custom domains, and subscriptions created outside Checkout. Business location must be a supported country — **Colombia is not one**.
+- **`outcome` separa tres cosas que se estaban tratando igual**: `rejected` es definitivo, `pending` se resuelve solo (un PSE camino del banco), y `succeeded` existe porque algunos «errores» no lo son — `ORDER_ALREADY_CAPTURED` significa que el dinero ya está cobrado, y decirle a esa compradora que falló sería el peor mensaje posible.
+- **Un código desconocido nunca se declara rechazo.** Cae en `unknown` y se trata como pendiente: decirle a alguien que su pago falló cuando no lo sabemos es peor que decir que seguimos comprobando.
+- **`status_detail` de Mercado Pago** distingue «sin saldo» de «CVV mal» de «el banco pide autorización». No se leía en ningún sitio —ni estaba en el tipo—, así que todos los rechazos daban el mismo mensaje vacío.
+- **Un rechazo deja fila** en `Payment` con `failureCode` (el crudo del proveedor, que es lo que sirve para reclamar meses después) y `failureMessage`. Antes PayPal no escribía nada: el intento era invisible y no había forma de saber que esa clienta lo intentó.
+- **`/api/paypal/return` manda los rechazos a `/pago/fallido`, no a `/pago/exito`.** Ahí es donde una clienta con la tarjeta rechazada por su banco leyó «se está procesando tu pago» y se quedó esperando; el motivo sólo se supo llamando a PayPal. «En proceso» se reserva para lo que de verdad puede resolverse solo.
 
 #### Suscripciones (la mensualidad)
 
@@ -102,7 +93,7 @@ aprobado más**, `Enrollment.paidUntil` decide el acceso y
   hay respaldo por email del pagador, porque MP no garantiza propagarla.
   **Sólo cobra con TARJETA** — ni PSE, ni Nequi, ni efectivo —, así que en
   Colombia la suscripción **convive** con el pago suelto en vez de sustituirlo.
-- **El gross-up va horneado en el precio del plan** en ambos, como en Stripe: los
+- **El gross-up va horneado en el precio del plan** en ambos: los
   planes cobran importe fijo. Cambiar `PAYPAL_FEE_*` o `MERCADOPAGO_FEE_*` obliga
   a re-ejecutar el script, y ninguno de los dos deja borrar planes.
 - **El precio de la mensualidad NO se escribe en `ProductPrice` a secas.** Pasa
@@ -294,10 +285,6 @@ COP prices are stored as **full pesos** (no centavos), so `amountMinor` for COP 
 | `AUTH_SECRET` | NextAuth secret (≥32 chars in prod) |
 | `PAYPAL_MODE` | `sandbox` or `live` |
 | `MERCADOPAGO_ACCESS_TOKEN` | Must be production token (not `TEST-`) in prod |
-| `LEMONSQUEEZY_API_KEY` / `LEMONSQUEEZY_STORE_ID` / `LEMONSQUEEZY_WEBHOOK_SECRET` | Lemon Squeezy. All three required when `LEMONSQUEEZY_CHECKOUT_ENABLED=true` |
-| `LEMONSQUEEZY_CHECKOUT_ENABLED` / `NEXT_PUBLIC_LEMONSQUEEZY_CHECKOUT_ENABLED` | Endpoint accepts / button renders. Server-on + public-off is the prod verification state |
-| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Stripe. Required only when `STRIPE_CHECKOUT_ENABLED=true`; `sk_test_` is rejected in prod |
-| `STRIPE_CHECKOUT_ENABLED` / `NEXT_PUBLIC_STRIPE_CHECKOUT_ENABLED` | Server accepts / button renders. Public one requires the server one |
 | `NOTIFICATIONS_ENABLED` | `true` to actually send |
 | `NOTIFICATIONS_DRY_RUN` | `true` to skip external calls — **defaults ON outside production** |
 | `NOTIFICATIONS_STREAM_ENABLED` | `true` for SSE on the bell; unset falls back to 60s polling |
