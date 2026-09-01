@@ -39,6 +39,14 @@ export type RecordPaymentInput = {
   netMinor?: number;
   payerEmail?: string;
   payerCountryIso?: string;
+  /**
+   * Por qué falló, cuando falló. `failureCode` es el crudo del proveedor
+   * (`INSTRUMENT_DECLINED`, `cc_rejected_insufficient_amount`) y
+   * `failureMessage` el motivo ya traducido para el equipo. Sin esto un rechazo
+   * no dejaba rastro: había que llamar al proveedor para saber qué pasó.
+   */
+  failureCode?: string;
+  failureMessage?: string;
   rawPayload?: unknown;
   paidAt?: Date;
 };
@@ -65,6 +73,8 @@ export const recordPayment = async (
       netMinor: input.netMinor ?? null,
       payerEmail: input.payerEmail ?? null,
       payerCountryIso: input.payerCountryIso?.slice(0, 2).toUpperCase() ?? null,
+      failureCode: input.failureCode ?? null,
+      failureMessage: input.failureMessage ?? null,
       rawPayload: input.rawPayload
         ? (input.rawPayload as Prisma.InputJsonValue)
         : undefined,
@@ -76,6 +86,13 @@ export const recordPayment = async (
         input.status === PaymentStatus.APPROVED
           ? input.paidAt ?? new Date()
           : undefined,
+      // Un pago que acaba aprobado deja de tener motivo de fallo. Un PSE
+      // rechazado que se reintenta y entra no puede quedarse con el motivo
+      // viejo colgando: diría que falló algo que sí se cobró.
+      failureCode:
+        input.status === PaymentStatus.APPROVED ? null : input.failureCode,
+      failureMessage:
+        input.status === PaymentStatus.APPROVED ? null : input.failureMessage,
       rawPayload: input.rawPayload
         ? (input.rawPayload as Prisma.InputJsonValue)
         : undefined,
@@ -167,9 +184,21 @@ export const recordPayment = async (
       title: who
         ? `Pago rechazado: ${who} — ${amountLabel}`
         : `Pago rechazado — ${amountLabel}`,
-      body: `${PROVIDER_LABEL[input.provider]}${
-        enrollment?.label ? ` · ${enrollment.label}` : ""
-      }`,
+      /**
+       * El motivo va delante de todo. Antes el aviso sólo decía «Pago
+       * rechazado — 599.68 USD» por PayPal, así que enterarse no servía de
+       * nada: había que llamar al proveedor para saber si fue el banco, el CVV
+       * o falta de saldo. Con el motivo, Dayana puede escribirle a esa clienta
+       * sabiendo qué decirle.
+       */
+      body: [
+        input.failureMessage,
+        `${PROVIDER_LABEL[input.provider]}${
+          enrollment?.label ? ` · ${enrollment.label}` : ""
+        }`,
+      ]
+        .filter(Boolean)
+        .join(" — "),
       href: `/admin/enrollments/${input.enrollmentId}`,
       entityType: "Payment",
       entityId: payment.id,
