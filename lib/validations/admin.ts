@@ -235,3 +235,61 @@ export const updateStaffProfileSchema = z.object({
 export const updateStaffNotificationPrefsSchema = z.object({
   notifyEmail: z.boolean(),
 });
+
+/**
+ * Productos.
+ *
+ * Era la única entidad del CRM sin esquema: la ruta comprobaba a mano que
+ * hubiera `title`, `kind` y algún precio, y coaccionaba con `Number()` sin
+ * validar nada más. Con ocho campos nuevos editables eso deja de ser viable —
+ * un `highlight` que llega como cadena, o un `tag` de mil caracteres, saldrían
+ * publicados tal cual en la tarjeta.
+ */
+const productPresentationSchema = {
+  imageUrl: z.string().trim().max(2048).nullable().optional(),
+  description: z.string().max(4000).optional(),
+  tag: z.string().trim().max(40).nullable().optional(),
+  highlight: z.boolean().optional(),
+  unitPriceLabel: z.string().trim().max(40).nullable().optional(),
+  therapyHeadline: z.string().trim().max(120).nullable().optional(),
+  whatsappMessage: z.string().trim().max(600).nullable().optional(),
+};
+
+const productPriceSchema = {
+  amountUsd: z.number().min(0).optional(),
+  listAmountUsd: z.number().min(0).nullable().optional(),
+  amountCop: z.number().min(0).nullable().optional(),
+  listAmountCop: z.number().min(0).nullable().optional(),
+};
+
+export const createProductSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9][a-z0-9-]*$/, "slug inválido")
+    .max(80)
+    .optional(),
+  kind: z.enum(["THERAPY", "COURSE", "WORKSHOP"]),
+  title: z.string().trim().min(1).max(120),
+  sessionsLabel: z.string().trim().max(120).optional(),
+  sessionsCount: z.number().int().min(0).nullable().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  ...productPresentationSchema,
+  ...productPriceSchema,
+});
+
+export const updateProductSchema = z.object({
+  id: z.string().trim().min(1),
+  kind: z.enum(["THERAPY", "COURSE", "WORKSHOP"]).optional(),
+  title: z.string().trim().min(1).max(120).optional(),
+  sessionsLabel: z.string().trim().max(120).optional(),
+  sessionsCount: z.number().int().min(0).nullable().optional(),
+  isActive: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  ...productPresentationSchema,
+  ...productPriceSchema,
+});
+
+export const reorderProductsSchema = z.object({
+  orderedIds: z.array(z.string().trim().min(1)).min(1).max(200),
+});

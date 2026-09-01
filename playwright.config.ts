@@ -104,6 +104,21 @@ export default defineConfig({
       CRM_UI_PREVIEW: "true",
       // Ver la nota de cabecera. No quitar.
       DATABASE_URL: "",
+      /**
+       * Sin esto la suite prueba una página que NUNCA hidrata.
+       *
+       * `BASE_URL` es `127.0.0.1`, y el dev server de Next sólo sirve
+       * `/_next/*` a los orígenes que reconoce. Desde `127.0.0.1` los bloquea
+       * —lo dice en su propio log— así que el HTML llega, el CSS llega, y el
+       * JavaScript de cliente no: ni un `onClick` responde. El síntoma es
+       * traicionero porque no hay error de consola y todo *parece* correcto en
+       * una captura; sólo al pulsar algo se nota que nada ocurre.
+       *
+       * Comprobado: un `[data-slot=tabs-trigger]` en `/admin/products` no
+       * tenía ninguna clave `__react*`, es decir React nunca se enganchó al
+       * DOM servido.
+       */
+      DEV_ALLOWED_ORIGIN: "127.0.0.1",
     },
   },
 });

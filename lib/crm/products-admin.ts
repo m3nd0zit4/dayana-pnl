@@ -22,6 +22,17 @@ export const createProduct = async (input: {
   sessionsLabel: string;
   sessionsCount?: number | null;
   description?: string;
+  /**
+   * Campos de presentación: lo que la tarjeta pública enseña además del
+   * precio. Vivían sólo en el seed y en `scripts/backfill-product-content.ts`,
+   * así que Dayana no podía poner un "Más elegido" ni cambiar el mensaje de
+   * WhatsApp sin que alguien tocara código.
+   */
+  tag?: string | null;
+  highlight?: boolean;
+  unitPriceLabel?: string | null;
+  therapyHeadline?: string | null;
+  whatsappMessage?: string | null;
   amountUsd: number;
   listAmountUsd?: number | null;
   amountCop?: number | null;
@@ -83,6 +94,11 @@ export const createProduct = async (input: {
       sessionsLabel: input.sessionsLabel.trim(),
       sessionsCount: input.sessionsCount ?? null,
       description: input.description?.trim() || null,
+      tag: input.tag?.trim() || null,
+      highlight: input.highlight ?? false,
+      unitPriceLabel: input.unitPriceLabel?.trim() || null,
+      therapyHeadline: input.therapyHeadline?.trim() || null,
+      whatsappMessage: input.whatsappMessage?.trim() || null,
       isActive: true,
       sortOrder,
       prices: { create: priceRows },
@@ -91,6 +107,19 @@ export const createProduct = async (input: {
   });
 
   return product;
+};
+
+/**
+ * Reordena el catálogo. Mismo contrato que `reorderCourseModules`: llega la
+ * lista completa de ids en su orden nuevo y se reescribe `sortOrder` de una
+ * vez, en transacción, para que no quede a medias.
+ */
+export const reorderProducts = async (orderedIds: string[]) => {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.product.update({ where: { id }, data: { sortOrder: index } })
+    )
+  );
 };
 
 export const updateProduct = async (
@@ -103,6 +132,17 @@ export const updateProduct = async (
     description?: string;
     isActive?: boolean;
     kind?: ProductKind;
+    /**
+       * Campos de presentación: lo que la tarjeta pública enseña además del
+       * precio. Vivían sólo en el seed y en `scripts/backfill-product-content.ts`,
+       * así que Dayana no podía poner un "Más elegido" ni cambiar el mensaje de
+       * WhatsApp sin que alguien tocara código.
+         */
+    tag?: string | null;
+    highlight?: boolean;
+    unitPriceLabel?: string | null;
+    therapyHeadline?: string | null;
+    whatsappMessage?: string | null;
     amountUsd?: number;
     listAmountUsd?: number | null;
     amountCop?: number | null;
@@ -162,6 +202,23 @@ export const updateProduct = async (
       sessionsLabel: input.sessionsLabel?.trim(),
       sessionsCount: input.sessionsCount,
       description: input.description?.trim(),
+      // `undefined` deja el valor como está; `null` lo borra. Por eso se
+      // comprueba `!== undefined` en vez de usar `||`: un campo vaciado a
+      // propósito tiene que poder vaciarse.
+      tag: input.tag !== undefined ? input.tag?.trim() || null : undefined,
+      highlight: input.highlight,
+      unitPriceLabel:
+        input.unitPriceLabel !== undefined
+          ? input.unitPriceLabel?.trim() || null
+          : undefined,
+      therapyHeadline:
+        input.therapyHeadline !== undefined
+          ? input.therapyHeadline?.trim() || null
+          : undefined,
+      whatsappMessage:
+        input.whatsappMessage !== undefined
+          ? input.whatsappMessage?.trim() || null
+          : undefined,
       isActive: input.isActive,
       kind: input.kind,
       sortOrder: input.sortOrder,

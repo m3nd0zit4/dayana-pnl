@@ -10,6 +10,10 @@ import {
   updateProduct,
 } from "@/lib/crm/products-admin";
 import { canManageTeam } from "@/lib/crm/staff";
+import {
+  createProductSchema,
+  updateProductSchema,
+} from "@/lib/validations/admin";
 import { prisma } from "@/lib/db";
 import {
   changeSubscriptionPrice,
@@ -35,26 +39,36 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  if (!body?.title || !body?.kind || (body?.amountUsd == null && body?.amountCop == null)) {
+  const parsed = createProductSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+  const input = parsed.data;
+  if (input.amountUsd == null && input.amountCop == null) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
-  // Default amountUsd to 0 when creating from COP tab (can be set later via USD tab)
-  if (body.amountUsd == null) body.amountUsd = 0;
 
   try {
     const product = await createProduct({
-      id: body.id,
-      kind: body.kind as ProductKind,
-      title: body.title,
-      imageUrl: body.imageUrl ?? null,
-      sessionsLabel: body.sessionsLabel ?? body.title,
-      sessionsCount: body.sessionsCount ?? null,
-      description: body.description,
-      amountUsd: Number(body.amountUsd),
-      listAmountUsd:
-        body.listAmountUsd != null ? Number(body.listAmountUsd) : null,
-      amountCop: body.amountCop != null ? Number(body.amountCop) : null,
-      listAmountCop: body.listAmountCop != null ? Number(body.listAmountCop) : null,
+      id: input.id,
+      kind: input.kind as ProductKind,
+      title: input.title,
+      imageUrl: input.imageUrl ?? null,
+      sessionsLabel: input.sessionsLabel ?? input.title,
+      sessionsCount: input.sessionsCount ?? null,
+      description: input.description,
+      tag: input.tag,
+      highlight: input.highlight,
+      unitPriceLabel: input.unitPriceLabel,
+      therapyHeadline: input.therapyHeadline,
+      whatsappMessage: input.whatsappMessage,
+      // Se crea desde la pestaña COP sin precio en dólares: queda a 0 y se
+      // pone después. `isPlanVisibleForRegion` ya oculta lo que no tiene
+      // precio en la moneda del visitante, así que no se publica roto.
+      amountUsd: input.amountUsd ?? 0,
+      listAmountUsd: input.listAmountUsd ?? null,
+      amountCop: input.amountCop ?? null,
+      listAmountCop: input.listAmountCop ?? null,
     });
 
     fireAuditLog({
@@ -82,18 +96,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body?.id) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  const parsedPatch = updateProductSchema.safeParse(
+    await req.json().catch(() => null)
+  );
+  if (!parsedPatch.success) {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
   }
+  const body = parsedPatch.data;
 
-  const amountUsd = body.amountUsd != null ? Number(body.amountUsd) : undefined;
-  const amountCop =
-    body.amountCop !== undefined
-      ? body.amountCop != null
-        ? Number(body.amountCop)
-        : null
-      : undefined;
+  const amountUsd = body.amountUsd;
+  const amountCop = body.amountCop;
 
   /**
    * El precio de un producto con plan recurrente va por su propio camino: los
@@ -149,25 +161,20 @@ export async function PATCH(req: NextRequest) {
       sessionsLabel: body.sessionsLabel,
       sessionsCount: body.sessionsCount,
       description: body.description,
+      tag: body.tag,
+      highlight: body.highlight,
+      unitPriceLabel: body.unitPriceLabel,
+      therapyHeadline: body.therapyHeadline,
+      whatsappMessage: body.whatsappMessage,
       isActive: body.isActive,
       kind: body.kind as ProductKind | undefined,
       // Ya lo aplicó `changeSubscriptionPrice`; volver a mandarlo haría saltar
       // la guarda de `updateProduct`.
       amountUsd: priceGoesThroughSync ? undefined : amountUsd,
-      listAmountUsd:
-        priceGoesThroughSync || body.listAmountUsd === undefined
-          ? undefined
-          : body.listAmountUsd != null
-            ? Number(body.listAmountUsd)
-            : null,
+      listAmountUsd: priceGoesThroughSync ? undefined : body.listAmountUsd,
       amountCop: priceGoesThroughSync ? undefined : amountCop,
-      listAmountCop:
-        priceGoesThroughSync || body.listAmountCop === undefined
-          ? undefined
-          : body.listAmountCop != null
-            ? Number(body.listAmountCop)
-            : null,
-      sortOrder: body.sortOrder != null ? Number(body.sortOrder) : undefined,
+      listAmountCop: priceGoesThroughSync ? undefined : body.listAmountCop,
+      sortOrder: body.sortOrder,
     });
 
     fireAuditLog({

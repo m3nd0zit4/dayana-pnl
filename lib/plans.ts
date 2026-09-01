@@ -33,6 +33,13 @@ export type Plan = {
    * Si no se define o es igual a `amountUsd`, la carta muestra un solo precio.
    */
   listAmountUsd?: number;
+  /**
+   * Portada del producto. Existía en `Product` desde siempre pero no en
+   * `Plan`, así que sólo llegaba al público por la ruta del catálogo de
+   * cursos: subir una imagen desde el CRM no cambiaba nada en la tarjeta de
+   * una terapia.
+   */
+  imageUrl?: string;
   /** Solo curso u otros productos no terapia (p. ej. "por mes"). */
   unitPrice?: string;
   /**

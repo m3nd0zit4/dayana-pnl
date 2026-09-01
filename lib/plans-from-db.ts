@@ -46,6 +46,7 @@ export const productToPlan = (
     listAmountUsd,
     amountCop,
     listAmountCop,
+    imageUrl: product.imageUrl ?? undefined,
     unitPrice: product.unitPriceLabel ?? undefined,
     membershipMonths: product.membershipMonths ?? undefined,
     tag: product.tag ?? undefined,

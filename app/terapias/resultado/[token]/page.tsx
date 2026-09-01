@@ -6,6 +6,7 @@ import Footer from "@/app/components/home/Footer";
 import RevealScope from "@/app/components/common/RevealScope";
 import FaqSection from "@/app/components/servicios/FaqSection";
 import DiagnosticCheckout from "@/app/components/diagnostico/DiagnosticCheckout";
+import PublicProductCard from "@/app/components/productos/PublicProductCard";
 import DiagnosticResultTracking from "@/app/components/diagnostico/DiagnosticResultTracking";
 import {
   getDiagnosticByToken,
@@ -28,7 +29,6 @@ import { scoreDiagnostic, type DiagnosticProfileId } from "@/lib/diagnostico/sco
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { isFreeWebinarActive } from "@/lib/crm/free-webinar";
 import { buildWhatsAppUrl } from "@/lib/contact";
-import { formatCop, formatUsd } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -123,12 +123,6 @@ const ResultadoPage = async ({
     } Me gustaría orientación antes de decidir.`,
   );
 
-  const price = recommendation
-    ? isColombia && recommendation.plan.amountCop != null
-      ? formatCop(recommendation.plan.amountCop)
-      : formatUsd(recommendation.plan.amountUsd)
-    : null;
-
   return (
     <>
       <DiagnosticResultTracking profile={profile} />
@@ -200,50 +194,19 @@ const ResultadoPage = async ({
             </p>
 
             {recommendation ? (
-              <div className="mt-9 rounded-3xl border border-black/12 bg-white/70 p-6 sm:p-8">
-                <h3 className="font-[font2] text-2xl uppercase leading-tight">
-                  {recommendation.plan.title}
-                </h3>
-                <p className="mt-1.5 font-[font1] text-sm text-black/50">
-                  {recommendation.plan.sessions}
-                </p>
-
-                {price && (
-                  <p className="mt-6 font-[font2] text-4xl leading-none">
-                    {price}
-                    {recommendation.plan.unitPrice && (
-                      <span className="ml-2 font-[font1] text-base text-black/50">
-                        {recommendation.plan.unitPrice}
-                      </span>
-                    )}
-                  </p>
-                )}
-
-                {recommendation.plan.features.length > 0 && (
-                  <ul className="mt-7 flex flex-col gap-2.5 border-t border-black/10 pt-6">
-                    {recommendation.plan.features.map((feature) => (
-                      <li
-                        key={feature}
-                        className="flex gap-3 font-[font1] text-base leading-snug text-black/70"
-                      >
-                        <span aria-hidden className="text-terracotta">
-                          ·
-                        </span>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <DiagnosticCheckout
+              <div className="mt-9">
+                <PublicProductCard
                   plan={recommendation.plan}
-                  userCountry={userCountry}
-                  token={token}
+                  isColombia={isColombia}
+                  action={
+                    <DiagnosticCheckout
+                      plan={recommendation.plan}
+                      userCountry={userCountry}
+                      token={token}
+                    />
+                  }
+                  footnote={copy.riskReversal}
                 />
-
-                <p className="mt-6 border-t border-black/10 pt-5 font-[font1] text-sm leading-relaxed text-black/55">
-                  {copy.riskReversal}
-                </p>
               </div>
             ) : (
               // Sin producto vendible en su región no hay botón que pintar —

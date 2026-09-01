@@ -34,4 +34,42 @@ test.describe("CRM · smoke", () => {
       ).toEqual([]);
     });
   }
+
+  /**
+   * La página hidrata de verdad.
+   *
+   * No es una comprobación teórica: durante un tiempo NO hidrataba y toda la
+   * suite pasaba igual. `baseURL` es `127.0.0.1` y el dev server de Next sólo
+   * sirve `/_next/*` a los orígenes que reconoce, así que el HTML y el CSS
+   * llegaban y el JavaScript de cliente no. Sin un solo error de consola: el
+   * panel se veía perfecto y ningún `onClick` respondía. Lo tapa
+   * `DEV_ALLOWED_ORIGIN` en `playwright.config.ts`, y esto es lo que avisa si
+   * alguien lo quita.
+   *
+   * Se mira la fibra de React en el DOM en vez de pulsar algo, porque en modo
+   * vista previa casi nada es interactivo —`canManageTeam` es false— y un test
+   * de clic se saltaría solo, que es exactamente cómo pasó desapercibido.
+   */
+  test("el panel hidrata (React se engancha al DOM servido)", async ({
+    page,
+  }) => {
+    await gotoCrm(page, "/admin/products");
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const el = document.querySelector("[data-crm-page]");
+            return el
+              ? Object.keys(el).some((k) => k.startsWith("__react"))
+              : false;
+          }),
+        {
+          message:
+            "React nunca se enganchó: mira DEV_ALLOWED_ORIGIN en playwright.config.ts",
+          timeout: 30_000,
+        },
+      )
+      .toBe(true);
+  });
 });
