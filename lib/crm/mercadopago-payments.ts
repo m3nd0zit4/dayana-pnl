@@ -8,10 +8,20 @@ import { createEnrollment } from "./enrollments";
 import { parseCheckoutReference } from "./checkout-reference";
 import { recordPayment, resolveEnrollmentFromReference } from "./payments";
 import { reconcilePendingCheckoutContact } from "./checkout-placeholder";
+import { mapMercadoPagoStatus } from "../payments/errors";
 
 export type MercadoPagoApiPayment = {
   id?: number;
   status?: string;
+  /**
+   * El motivo exacto: `cc_rejected_insufficient_amount`,
+   * `cc_rejected_bad_filled_security_code`, `pending_waiting_payment`…
+   *
+   * No estaba ni declarado, así que todos los rechazos se veían iguales y
+   * «no tienes saldo» y «el CVV está mal» acababan en el mismo mensaje vacío.
+   * Se traduce en `lib/payments/errors/mercadopago.ts`.
+   */
+  status_detail?: string;
   external_reference?: string;
   transaction_amount?: number;
   currency_id?: string;
@@ -112,6 +122,11 @@ export const syncMercadoPagoPayment = async (
   }
 
   const mpStatus = payment.status ?? "";
+  /**
+   * El motivo traducido, listo para guardar y para avisar. Se resuelve una vez
+   * aquí y se reutiliza en las dos ramas que registran el pago.
+   */
+  const reason = mapMercadoPagoStatus(payment.status_detail, payment.status);
   const approved = mpStatus === "approved";
   const failed =
     mpStatus === "rejected" ||
@@ -224,6 +239,9 @@ export const syncMercadoPagoPayment = async (
         currency,
         amountMinor,
         payerEmail: payment.payer?.email,
+        // El motivo, no sólo el hecho de que falló.
+        failureCode: reason.rawCode ?? reason.code,
+        failureMessage: reason.staffMessage,
         rawPayload: payment,
       });
       return { outcome: "recorded", enrollmentId };
@@ -277,6 +295,11 @@ export const syncMercadoPagoPayment = async (
     currency,
     amountMinor,
     payerEmail: payment.payer?.email,
+    // Un pendiente también lleva motivo: distingue «esperando que pagues en el
+    // banco» de «esperando confirmación de la transferencia», que para quien
+    // atiende a la clienta no es lo mismo.
+    failureCode: approved ? undefined : reason.rawCode ?? reason.code,
+    failureMessage: approved ? undefined : reason.staffMessage,
     rawPayload: payment,
     paidAt: approved ? new Date() : undefined,
   });

@@ -3,6 +3,7 @@ import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import {
   capturePayPalOrderRequest,
   getPayPalAccessToken,
+  getPayPalOrderRequest,
 } from "../../../../lib/paypal/server";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
@@ -16,6 +17,7 @@ import {
   EnrollmentPaymentError,
 } from "@/lib/crm/enrollment-payment";
 import { recordPayment, resolveEnrollmentFromReference } from "@/lib/crm/payments";
+import { PayPalApiError, type PaymentFailure } from "@/lib/payments/errors";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import { prisma } from "@/lib/db";
@@ -243,12 +245,50 @@ export async function POST(req: NextRequest) {
       status,
     });
   } catch (error) {
+    /**
+     * Aquí acababa el caso real: cualquier fallo —incluido un 422 con el banco
+     * de la clienta rechazando la tarjeta— salía con el mismo mensaje genérico,
+     * y quien llamaba no podía saber si el pago estaba rechazado o sólo
+     * tardando. `PayPalApiError` trae la clasificación; se propaga para que la
+     * pantalla de resultado diga la verdad.
+     */
+    if (error instanceof PayPalApiError) {
+      const { failure } = error;
+      console.error(
+        "[paypal] capture-order rechazado",
+        failure.code,
+        failure.debugId ?? "sin debug_id"
+      );
+
+      // Que el rechazo quede en el CRM. Sin esto no había forma de saber que
+      // esa clienta lo intentó, ni de llamarla: el intento no existía.
+      if (failure.outcome === "rejected") {
+        await recordPayPalFailure(orderID, failure).catch((e) =>
+          console.error("[paypal] no se pudo registrar el rechazo", e)
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: "paypal_error",
+          outcome: failure.outcome,
+          code: failure.code,
+          debugId: failure.debugId,
+          message: failure.buyerMessage,
+        },
+        // Un rechazo del banco no es un fallo del servidor: 402 lo dice mejor
+        // que un 500, y deja el 500 para lo que sí es culpa nuestra.
+        { status: failure.outcome === "rejected" ? 402 : 500 }
+      );
+    }
+
     const message =
       error instanceof Error ? error.message : "Error desconocido";
     console.error("[paypal] capture-order failed", message);
     return NextResponse.json(
       {
         error: "paypal_error",
+        outcome: "unknown",
         message:
           "No pudimos confirmar el pago en PayPal. Si ves un cargo, contáctanos por WhatsApp con el correo de PayPal.",
       },
@@ -256,3 +296,59 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+/**
+ * Deja constancia de un pago que PayPal rechazó.
+ *
+ * La referencia del checkout viaja dentro de la orden, no en la respuesta de
+ * error, así que hay que ir a buscarla. Es una llamada extra que sólo ocurre
+ * en el camino de fallo — a cambio, el intento deja de ser invisible: aparece
+ * en Pagos con el motivo y dispara el aviso al equipo.
+ *
+ * Todo lo que puede salir mal aquí se traga a propósito. Este es el manejador
+ * de un error; si falla, la clienta debe seguir recibiendo su mensaje.
+ */
+const recordPayPalFailure = async (
+  orderID: string,
+  failure: PaymentFailure
+): Promise<void> => {
+  const token = await getPayPalAccessToken();
+  const order = await getPayPalOrderRequest(token, orderID);
+  if (!order) return;
+
+  const unit = (
+    order as {
+      purchase_units?: {
+        custom_id?: string;
+        amount?: { value?: string; currency_code?: string };
+      }[];
+    }
+  ).purchase_units?.[0];
+
+  const reference = unit?.custom_id;
+  if (!reference) return;
+
+  const enrollmentId = await resolveEnrollmentFromReference(reference);
+  if (!enrollmentId) return;
+
+  const currency = (unit?.amount?.currency_code ?? "USD").toUpperCase();
+  const value = Number(unit?.amount?.value ?? "0");
+  const amountMinor =
+    currency === "COP" ? Math.round(value) : Math.round(value * 100);
+
+  await recordPayment({
+    enrollmentId,
+    provider: PaymentProvider.PAYPAL,
+    // La orden identifica el intento. El id de captura no existe: nunca hubo
+    // captura, y sin este prefijo un reintento sobre la misma orden chocaría
+    // con el pago bueno en @@unique([provider, providerPaymentId]).
+    providerPaymentId: `failed:${orderID}`,
+    providerOrderId: orderID,
+    status: PaymentStatus.FAILED,
+    currency,
+    amountMinor,
+    failureCode: failure.rawCode ?? failure.code,
+    failureMessage: failure.staffMessage,
+    rawPayload: order,
+  });
+};

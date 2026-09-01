@@ -701,6 +701,15 @@ model Payment {
   netMinor            Int?            @map("net_minor")
   payerEmail          String?         @map("payer_email")
   payerCountryIso     String?         @map("payer_country_iso") @db.Char(2)
+  /// Por qué falló, en el código del proveedor: `INSTRUMENT_DECLINED` de
+  /// PayPal, `cc_rejected_insufficient_amount` de Mercado Pago. Se guarda el
+  /// crudo y no el traducido porque el texto puede cambiar y este dato tiene
+  /// que seguir sirviendo para reclamar al proveedor meses después.
+  failureCode         String?         @map("failure_code")
+  /// El motivo ya traducido, tal como se le explica al equipo — incluye el
+  /// `debug_id` de PayPal cuando lo hay, que es lo único con lo que su soporte
+  /// puede localizar la operación.
+  failureMessage      String?         @map("failure_message") @db.Text
   rawPayload          Json?           @map("raw_payload")
   paidAt              DateTime?       @map("paid_at")
   membershipAppliedAt DateTime?       @map("membership_applied_at")

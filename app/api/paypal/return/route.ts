@@ -13,8 +13,12 @@ export const dynamic = "force-dynamic";
  * idempotencia y fulfilment — y se redirige a `/pago/exito`.
  *
  * Es GET porque quien llega es el navegador del comprador, no PayPal: la
- * confirmación autoritativa sigue siendo el webhook firmado. Si la captura
- * falla aquí, el webhook la recoge igual; por eso nunca se muestra "falló".
+ * confirmación autoritativa sigue siendo el webhook firmado. Una captura
+ * indeterminada la recoge el webhook, así que ahí se muestra "en proceso".
+ *
+ * Un RECHAZO es otra cosa y sí se muestra: si el banco dijo que no, ningún
+ * webhook va a cambiarlo, y callarlo dejaba a la clienta creyendo que había
+ * pagado.
  */
 export async function GET(req: Request) {
   const base = siteBaseUrl();
@@ -34,6 +38,8 @@ export async function GET(req: Request) {
     const data = (await res.json()) as {
       enrollmentId?: string;
       error?: string;
+      outcome?: string;
+      code?: string;
     };
 
     if (res.ok && data.enrollmentId) {
@@ -43,12 +49,29 @@ export async function GET(req: Request) {
       );
     }
 
-    // Capturado a medias o rechazado: el webhook es la fuente de verdad, así
-    // que se manda a la página de éxito en estado "procesando" en vez de
-    // declarar un fallo que quizá no lo sea.
+    /**
+     * Un rechazo definitivo NO va a la pantalla de éxito.
+     *
+     * Aquí es donde una clienta con la tarjeta rechazada por su banco acababa
+     * leyendo «se está procesando tu pago», y sólo se supo el motivo llamando a
+     * PayPal. «En proceso» se reserva ahora para lo que de verdad puede
+     * resolverse solo — una captura no concluyente que el webhook recogerá.
+     */
+    if (data.outcome === "rejected") {
+      const query = data.code
+        ? `?code=${encodeURIComponent(data.code)}&provider=paypal`
+        : "?provider=paypal";
+      console.error("[paypal return] pago rechazado", data.code);
+      return NextResponse.redirect(`${base}/pago/fallido${query}`, {
+        status: 303,
+      });
+    }
+
     console.error("[paypal return] capture no concluyente", res.status, data.error);
     return NextResponse.redirect(`${base}/pago/exito?paypal=1`, { status: 303 });
   } catch (e) {
+    // Fallo de red al hablar con nuestra propia ruta: eso sí es indeterminado,
+    // y el webhook sigue siendo la red de seguridad.
     console.error("[paypal return] error", e);
     return NextResponse.redirect(`${base}/pago/exito?paypal=1`, { status: 303 });
   }

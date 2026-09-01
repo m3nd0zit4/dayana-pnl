@@ -1,6 +1,7 @@
 /**
  * PayPal REST v2 (server). Amount and plan always come from `getPlan` — never from the client.
  */
+import { PayPalApiError } from "../payments/errors/paypal";
 
 const apiBase = (): string => {
   const mode = process.env.PAYPAL_MODE?.toLowerCase();
@@ -165,10 +166,10 @@ export const createPayPalOrderRequest = async (
     links?: Array<{ rel?: string; href?: string }>;
   };
   if (!res.ok || !json.id) {
-    const msg =
-      json.message ??
-      (typeof json === "object" ? JSON.stringify(json).slice(0, 300) : "unknown");
-    throw new Error(`PayPal create order failed (${res.status}): ${msg}`);
+    // Se conserva la respuesta entera: el motivo vive en `details[].issue` y el
+    // `debug_id` es lo que PayPal pide para dar soporte. Aplastarlo en un
+    // string era perder las dos cosas.
+    throw new PayPalApiError("create order", res.status, json);
   }
   /**
    * URL a la que se manda a la compradora en el flujo por redirección.
@@ -181,6 +182,30 @@ export const createPayPalOrderRequest = async (
     (l) => l.rel === "payer-action" || l.rel === "approve"
   )?.href;
   return { id: json.id, approveUrl };
+};
+
+/**
+ * Lee una orden sin capturarla.
+ *
+ * Se usa sólo cuando la captura falla: la referencia del checkout viaja dentro
+ * de la orden (`purchase_units[0].custom_id`), así que sin esto un rechazo no
+ * se puede atribuir a nadie y el fallo se pierde. Devuelve `null` en vez de
+ * lanzar — se llama desde un `catch`, y un fallo aquí no puede tapar el error
+ * original.
+ */
+export const getPayPalOrderRequest = async (
+  accessToken: string,
+  orderId: string
+): Promise<unknown | null> => {
+  try {
+    const res = await fetch(`${apiBase()}/v2/checkout/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 };
 
 export const capturePayPalOrderRequest = async (
@@ -197,11 +222,14 @@ export const capturePayPalOrderRequest = async (
   });
   const json = await res.json();
   if (!res.ok) {
-    const msg =
-      typeof json === "object" && json !== null && "message" in json
-        ? String((json as { message: string }).message)
-        : JSON.stringify(json).slice(0, 300);
-    throw new Error(`PayPal capture failed (${res.status}): ${msg}`);
+    /**
+     * Aquí es donde se perdía el caso real: un 422 con
+     * `INSTRUMENT_DECLINED` —el banco de la clienta rechazó la tarjeta—
+     * quedaba reducido a un mensaje de texto, y quien lo capturaba arriba ya
+     * no podía distinguirlo de una caída de PayPal. `PayPalApiError` lleva la
+     * clasificación, el `issue` y el `debug_id`.
+     */
+    throw new PayPalApiError("capture", res.status, json);
   }
   return json;
 };
