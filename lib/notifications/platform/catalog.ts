@@ -281,6 +281,32 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: OWNER_OPERATOR,
   },
+  DIAGNOSTIC_COMPLETED: {
+    label: "Diagnóstico completado",
+    description: "Alguien terminó el cuestionario de terapias y dejó sus datos.",
+    group: "Embudo e inscripciones",
+    defaultSeverity: "INFO",
+    audience: "STAFF",
+    defaultInApp: true,
+    // Sin correo: llegan en tandas cuando un vídeo funciona, y un correo por
+    // cada uno convierte la bandeja de Dayana en ruido. La campana los agrupa
+    // y `/admin/diagnosticos` ya los ordena por compromiso.
+    defaultEmail: false,
+    roles: OWNER_OPERATOR,
+    coalesceWindowSec: 900,
+  },
+  DIAGNOSTIC_UNCONVERTED: {
+    label: "Diagnóstico sin compra",
+    description:
+      "Pasaron 24 horas desde un diagnóstico completado y esa persona no ha comprado.",
+    group: "Embudo e inscripciones",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: OWNER_OPERATOR,
+    coalesceWindowSec: 3600,
+  },
 
   // ── Terapias ────────────────────────────────────────────────────────────
   THERAPY_SESSION_SCHEDULED: {

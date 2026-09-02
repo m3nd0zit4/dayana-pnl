@@ -196,6 +196,8 @@ limpieza nocturna puede haber borrado, y el webhook puede llegar días después.
 - `payment-approved` — fires payment confirmation notifications
 - `therapy-session-reminder` — cron 14:00 UTC daily
 - `lead-stale-followup` — triggered by `enrollment/lead.stale`
+- `diagnostic-completed` — triggered by `diagnostic/completed`: manda el `Lead` a Meta CAPI y avisa al panel. El `event_id` (`lead.<diagnosticId>`) lo calcula el servidor y viaja al navegador en la respuesta de `/api/leads`, porque el Pixel no puede derivarlo — sin esa cadena Meta cuenta dos leads por persona
+- `diagnostic-unconverted` — cron 15:00 UTC daily. **No** es "dejó el cuestionario a medias": quien lo deja a medias aún no ha dado sus datos (el paso de contacto es el último), así que no hay a quién seguir. Recorre los que sí lo completaron y no compraron en 24 h, con tope de una semana hacia atrás para que el primer día no avise de todo el histórico. Avisa al equipo, nunca a la persona
 - `notification-campaign-run` — batched broadcast
 - `stale-checkout-cleanup` — cron 05:00 UTC daily
 - `platform-notification-email` — email fan-out for a platform notification

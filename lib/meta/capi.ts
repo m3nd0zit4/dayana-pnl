@@ -161,3 +161,19 @@ export const sendCapiEvent = async (event: CapiEvent): Promise<CapiResult> => {
  */
 export const purchaseEventId = (paymentId: string): string =>
   `purchase.${paymentId}`;
+
+/**
+ * `event_id` del Lead — derivado del id del diagnóstico.
+ *
+ * Se usa el **id** y no el token: el token va en la URL del resultado y se
+ * comparte por WhatsApp. No es un secreto, pero no hay motivo para que lo sea
+ * menos.
+ *
+ * A diferencia del Purchase, el navegador no puede calcularlo solo: la fila la
+ * crea el servidor durante el envío. Por eso `/api/leads` lo devuelve en la
+ * respuesta y el asistente se lo pasa al Pixel. Si esa cadena se rompe, el Lead
+ * se cuenta dos veces y el coste por lead de cada campaña aparece a la mitad de
+ * lo real — peor que no medirlo, porque parece una buena noticia.
+ */
+export const leadEventId = (diagnosticId: string): string =>
+  `lead.${diagnosticId}`;

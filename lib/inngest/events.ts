@@ -22,6 +22,27 @@ export const emitPaymentApproved = async (enrollmentId: string) => {
   }
 };
 
+/**
+ * Alguien terminó el cuestionario de terapias.
+ *
+ * No devuelve nada y se traga el error a propósito: lo que cuelga de aquí —el
+ * `Lead` de la Conversions API y el aviso al equipo— es medición y
+ * seguimiento. El diagnóstico ya está guardado y la persona ya va camino de su
+ * resultado; que Inngest esté caído no puede tumbar el envío del formulario.
+ */
+export const emitDiagnosticCompleted = async (diagnosticId: string) => {
+  if (!shouldEmitInngest()) return;
+  try {
+    const { inngest } = await import("./client");
+    await inngest.send({
+      name: "diagnostic/completed",
+      data: { diagnosticId },
+    });
+  } catch (e) {
+    console.warn("[inngest] diagnostic/completed emit failed", e);
+  }
+};
+
 export const emitLeadStale = async (enrollmentId: string) => {
   if (!shouldEmitInngest()) return;
   try {

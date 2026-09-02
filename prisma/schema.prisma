@@ -235,6 +235,8 @@ enum NotificationEventType {
   ENROLLMENT_STATUS_CHANGED
   CHECKOUT_ABANDONED
   LEAD_STALE
+  DIAGNOSTIC_COMPLETED
+  DIAGNOSTIC_UNCONVERTED
   // Terapias
   THERAPY_SESSION_SCHEDULED
   THERAPY_SESSION_RESCHEDULED
@@ -1702,8 +1704,21 @@ model Diagnostic {
   completedAt       DateTime? @map("completed_at")
   viewedResultAt    DateTime? @map("viewed_result_at")
   checkoutStartedAt DateTime? @map("checkout_started_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  /// Cuándo se mandó el `Lead` a la Conversions API. Mismo papel que
+  /// `Payment.capiSentAt`: el evento `diagnostic/completed` se reintenta
+  /// —Inngest reintenta y `/api/leads` es reenviable— y un Lead contado dos
+  /// veces infla el coste por lead de todas las campañas.
+  capiSentAt DateTime? @map("capi_sent_at")
+
+  /// Cuándo se avisó al equipo de que este diagnóstico se quedó sin compra.
+  /// Se reclama ANTES de avisar (`updateMany` con `IS NULL`), así que un cron
+  /// repetido o dos despliegues a la vez no avisan dos veces de la misma
+  /// persona.
+  followUpNotifiedAt DateTime? @map("follow_up_notified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   /// `SetNull` en ambos lados: borrar un contacto o retirar un producto no
   /// puede llevarse por delante la analítica del embudo.
