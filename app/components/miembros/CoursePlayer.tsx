@@ -3,16 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { signOut } from "next-auth/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Check,
   ChevronLeft,
   ChevronRight,
   Download,
   FileText,
-  LogOut,
-  User,
 } from "lucide-react";
 import type { LessonContentType } from "@prisma/client";
 import { Button } from "@/app/components/ui/button";
@@ -27,6 +24,7 @@ import {
   SidebarTrigger,
 } from "@/app/components/ui/sidebar";
 import MemberNotificationBell from "./MemberNotificationBell";
+import PortalUserMenu from "./PortalUserMenu";
 import DriveRecordingEmbed from "./DriveRecordingEmbed";
 import MuxRecordingEmbed from "./MuxRecordingEmbed";
 import ClassCompleteToggle from "./ClassCompleteToggle";
@@ -76,6 +74,11 @@ type Props = {
   isCurrent: boolean;
   neverPaid: boolean;
   viewerContactId: string;
+  /** Identidad de quien mira, para el avatar de la cabecera. */
+  viewerName: string;
+  viewerAvatarUrl: string | null;
+  /** Sesión de staff puenteada al portal — ve una salida al CRM, no a la cuenta. */
+  viewerIsOwner: boolean;
 };
 
 const RECORDING_RETENTION_DAYS = 30;
@@ -182,6 +185,9 @@ const CoursePlayer = ({
   isCurrent,
   neverPaid,
   viewerContactId,
+  viewerName,
+  viewerAvatarUrl,
+  viewerIsOwner,
 }: Props) => {
   const router = useRouter();
   const [completedClassIds, setCompletedClassIds] = useState(
@@ -393,27 +399,19 @@ const CoursePlayer = ({
               </div>
             )}
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {/* Esta cabecera es la del reproductor, hermana de la del shell:
-                  PortalSidebar hace early-return aquí y no pinta la suya, así
-                  que la campana tiene que repetirse en este lado. */}
+              {/* Ésta es ya la única cabecera del reproductor: `PortalSidebar`
+                  hace early-return aquí y no pinta la suya, así que la campana
+                  vive en este lado. */}
               <MemberNotificationBell className="-my-1" />
-              <Link
-                href="/miembros/cuenta"
-                aria-label="Mi cuenta"
-                className="inline-flex items-center gap-1 hover:text-foreground"
-              >
-                <User className="size-3.5" aria-hidden />
-                <span className="hidden sm:inline">Mi cuenta</span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => signOut({ callbackUrl: "/acceso" })}
-                aria-label="Salir"
-                className="inline-flex items-center gap-1 hover:text-foreground"
-              >
-                <LogOut className="size-3.5" aria-hidden />
-                <span className="hidden sm:inline">Salir</span>
-              </button>
+              {/* Eran dos enlaces de texto sueltos —«Mi cuenta» y «Salir»—, y
+                  éste era el único sitio del producto donde la identidad no se
+                  representaba con el avatar. Ahora es el mismo control que
+                  arriba a la derecha en el resto del sitio. */}
+              <PortalUserMenu
+                displayName={viewerName}
+                avatarUrl={viewerAvatarUrl}
+                isOwner={viewerIsOwner}
+              />
             </div>
           </div>
         </header>

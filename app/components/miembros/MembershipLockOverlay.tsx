@@ -36,7 +36,7 @@ export const MembershipWarningBanner = ({
           size="sm"
           className="mt-2.5"
           nativeButton={false}
-          render={<Link href="/miembros/cuenta" />}
+          render={<Link href="/cuenta" />}
         >
           Renovar ahora
         </Button>

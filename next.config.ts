@@ -83,6 +83,29 @@ const nextConfig: NextConfig = {
        * panel volviera, nadie debería tener que limpiar su caché.
        */
       { source: "/miembros", destination: "/cursos", permanent: false },
+      /**
+       * La cuenta salió del portal.
+       *
+       * Estaba en `/miembros/cuenta/*`, dentro de la barra lateral del portal,
+       * y por eso se veía con dos avatares y dos menús de identidad a la vez.
+       * Ahora es una página del sitio con la cabecera normal.
+       *
+       * `/general` desaparece: el perfil es la raíz de `/cuenta`, porque el
+       * índice anterior sólo listaba las cuatro pestañas que ya están a la
+       * vista. Va primero porque el orden de esta lista decide, y la regla
+       * comodín de debajo lo capturaría antes.
+       */
+      { source: "/miembros/cuenta", destination: "/cuenta", permanent: false },
+      { source: "/miembros/cuenta/general", destination: "/cuenta", permanent: false },
+      {
+        source: "/miembros/cuenta/:seccion*",
+        destination: "/cuenta/:seccion*",
+        permanent: false,
+      },
+      // Dos listados que el reproductor absorbió hace tiempo y que sólo
+      // servían para rebotar a un panel que ya no existe.
+      { source: "/miembros/clases", destination: "/cursos", permanent: false },
+      { source: "/miembros/modulos", destination: "/cursos", permanent: false },
     ];
   },
   async headers() {

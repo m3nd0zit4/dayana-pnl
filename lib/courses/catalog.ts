@@ -62,34 +62,12 @@ export type CatalogCourse = {
   access: CourseAccess | null;
 };
 
-/**
- * Lo justo del visitante para pintar la tira de cuenta.
- *
- * Deliberadamente estrecho y ya serializado: `MembershipInfo` arrastra el
- * `Enrollment` entero con su `Product`, y eso cruzaría el límite
- * servidor → cliente en cada carga sin que nadie lo mire.
- */
-export type CatalogViewer = {
-  firstName: string | null;
-  isOwner: boolean;
-  /** Estado de la membresía, no de un curso concreto. */
-  membership: {
-    isCurrent: boolean;
-    lifetime: boolean;
-    /** ISO, o `null` si nunca hubo un mes pagado. */
-    paidUntil: string | null;
-    daysLeft: number | null;
-  };
-};
-
 export type CourseCatalog = {
   courses: CatalogCourse[];
   /** La mensualidad. `null` si no tiene precio en la moneda del visitante. */
   membership: Plan | null;
   /** La anualidad, si está activa y tiene precio aquí. */
   annual: Plan | null;
-  /** `null` cuando nadie ha iniciado sesión. */
-  viewer: CatalogViewer | null;
   /** ¿Hay al menos un curso a la venta suelta? Decide el discurso de la página. */
   hasStandaloneSales: boolean;
   userCountry: string | null;
@@ -261,27 +239,15 @@ export const getCourseCatalog = async (
 
   const { membership, annual } = splitMembership(all, plans.coursePlan);
 
-  // El estado que pinta la tira de cuenta es el de la MEMBRESÍA, no el de un
-  // curso: es lo que caduca y lo que se renueva. Una compra suelta no vence,
-  // así que no puede ser lo que dispare un aviso de renovación.
-  const membershipInfo = enrolled.find((e) => !e.product.isCourseContent)?.membership;
-
+  // Aquí se devolvía además un resumen del visitante para una tira de estado
+  // bajo el hero. Se quitó: el avatar de la cabecera ya dice quién eres en
+  // todas las páginas, y dos sitios contando lo mismo acaban contándolo
+  // distinto. Lo que sigue viviendo por visitante es el `access` de cada
+  // tarjeta, que es información del curso y no de la identidad.
   return {
     courses,
     membership,
     annual: annual && isPlanVisibleForRegion(annual, plans.isColombia) ? annual : null,
-    viewer: viewer
-      ? {
-          firstName: viewer.contact.firstName,
-          isOwner: viewer.isOwner,
-          membership: {
-            isCurrent: membershipInfo?.isCurrent ?? viewer.isOwner,
-            lifetime: membershipInfo?.lifetime ?? false,
-            paidUntil: membershipInfo?.paidUntil?.toISOString() ?? null,
-            daysLeft: membershipInfo?.daysLeft ?? null,
-          },
-        }
-      : null,
     hasStandaloneSales: courses.some((c) => c.plan != null),
     userCountry: plans.userCountry,
     isColombia: plans.isColombia,

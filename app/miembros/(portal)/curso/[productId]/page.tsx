@@ -91,6 +91,9 @@ const Page = async ({ params, searchParams }: PageProps) => {
       isCurrent={isCurrent}
       neverPaid={neverPaid}
       viewerContactId={member.contact.id}
+      viewerName={member.contact.displayName ?? member.contact.firstName}
+      viewerAvatarUrl={member.contact.avatarUrl}
+      viewerIsOwner={member.isOwner}
     />
   );
 };

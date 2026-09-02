@@ -78,7 +78,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     const vars = {
       first_name: enrollment.contact.firstName,
       class_title: liveClass.title,
-      portal_url: `${siteUrl()}/miembros/clases`,
+      portal_url: `${siteUrl()}/cursos`,
     };
     const rendered = renderQuickMessage(body, vars);
     for (const channel of CHANNELS) {
@@ -99,7 +99,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     eventType: "CLASS_RECORDING_PUBLISHED",
     title: `Ya está la grabación de ${liveClass.title}`,
     body: "Estará disponible un mes en el portal del curso.",
-    href: "/miembros/clases",
+    href: "/cursos",
     entityType: "LiveClassSession",
     entityId: id,
     contactIds: enrollments.map((enrollment) => enrollment.contactId),

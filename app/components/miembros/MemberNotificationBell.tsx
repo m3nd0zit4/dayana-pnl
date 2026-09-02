@@ -80,7 +80,7 @@ const MemberNotificationBell = ({ className }: Props) => {
       // El portal no tiene página de historial (ni la va a tener: el propio
       // popover pagina hacia atrás con "Cargar más"). El pie lleva a lo único
       // que un miembro querría hacer desde aquí: apagar o encender los avisos.
-      historyHref="/miembros/cuenta/notificaciones"
+      historyHref="/cuenta/notificaciones"
       historyLabel="Ajustes de notificaciones"
       triggerClassName={cn(triggerClass, className)}
       onNewItems={handleNewItems}

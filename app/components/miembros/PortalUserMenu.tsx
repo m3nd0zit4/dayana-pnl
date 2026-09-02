@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
+import AppearanceThemeToggle from "@/app/components/shared/settings/AppearanceThemeToggle";
 
 const initials = (name: string) =>
   name
@@ -51,8 +52,29 @@ const PortalUserMenu = ({ displayName, avatarUrl, isOwner = false }: PortalUserM
         </DropdownMenuLabel>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
+      {/*
+        El modo oscuro sólo existe aquí dentro y en el CRM: la cuenta y el
+        resto del sitio van fijados a claro (`forcedTheme`, app/providers.tsx).
+        El conmutador estaba en el formulario de perfil, que tras la mudanza de
+        la cuenta es justo la pantalla donde no se podía ver su efecto.
+
+        La propagación se detiene porque cambiar el tema no es navegar: cerrar
+        el menú al primer toque impide comparar claro y oscuro sin reabrirlo.
+      */}
+      <div
+        className="px-2 py-1.5"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="presentation"
+      >
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+          Apariencia
+        </p>
+        <AppearanceThemeToggle />
+      </div>
+      <DropdownMenuSeparator />
       {!isOwner && (
-        <DropdownMenuItem render={<Link href="/miembros/cuenta/general" />}>
+        <DropdownMenuItem render={<Link href="/cuenta" />}>
           <Settings />
           Mi cuenta
         </DropdownMenuItem>

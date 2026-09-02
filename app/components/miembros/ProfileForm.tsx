@@ -7,7 +7,6 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
-import AppearanceThemeToggle from "@/app/components/shared/settings/AppearanceThemeToggle";
 import { LOCALE_OPTIONS, WORK_DESCRIPTION_OPTIONS } from "@/lib/profile-options";
 
 type ProfileFormProps = {
@@ -137,10 +136,13 @@ const ProfileForm = ({
         searchMinOptions={99}
       />
 
-      <div className="space-y-1.5">
-        <Label>Apariencia</Label>
-        <AppearanceThemeToggle />
-      </div>
+      {/*
+        Aquí había un selector de apariencia. Se fue al menú del reproductor
+        (`PortalUserMenu`): la cuenta se sirve ahora con la cabecera del sitio,
+        que está fijada a claro (`forcedTheme`, en app/providers.tsx), así que
+        el conmutador estaba justo en la única pantalla donde no se veía su
+        efecto. El modo oscuro sigue donde importa, dentro de las clases.
+      */}
 
       {error && (
         <p className="text-sm text-destructive" role="alert">

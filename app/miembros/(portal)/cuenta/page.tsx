@@ -1,5 +1,0 @@
-import { redirect } from "next/navigation";
-
-const Page = () => redirect("/miembros/cuenta/general");
-
-export default Page;

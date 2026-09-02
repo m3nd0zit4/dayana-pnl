@@ -28,13 +28,24 @@ const initials = (name: string) =>
     .join("") || "?";
 
 /**
- * Account area at the far right of the public header.
- * Logged out: explicit "Ingresar" / "Crear cuenta" buttons.
- * Logged in: the same avatar + dropdown pattern as CrmUserMenu /
- * PortalUserMenu, so the profile control reads as one identity across the
- * public site, the member portal, and the CRM.
- * Session is read client-side (useSession) so public pages keep static
- * rendering; see Providers for the rationale.
+ * El control de identidad del sitio: arriba a la derecha, en todas las
+ * páginas, y **el único**. Por eso `/cursos` ya no repite el estado de la
+ * cuenta en una tira propia y `/cuenta` no arrastra la barra lateral del
+ * portal: con dos sitios donde mirar quién eres, tarde o temprano dicen cosas
+ * distintas.
+ *
+ * Sin sesión son dos botones explícitos —«Ingresar» y «Crear cuenta»—: un
+ * avatar vacío no invita a nada.
+ *
+ * **El staff no tiene cuenta de miembro.** Está prohibido a propósito
+ * (`lib/crm/member-accounts.ts`), así que su perfil vive en
+ * `/admin/ajustes/perfil`. Mientras este menú apuntó a la cuenta de miembro
+ * para todo el mundo, Dayana caía en un bucle: la ruta exigía un
+ * `MemberAccount`, rebotaba a `/acceso`, y `/acceso` la mandaba a elegir entre
+ * CRM y portal perdiendo por el camino a dónde quería ir.
+ *
+ * La sesión se lee en cliente (`useSession`) para no volver dinámicas las
+ * páginas públicas; ver Providers.
  */
 const AccountMenu = ({ navColor }: { navColor: string }) => {
   const { data: session, status } = useSession();
@@ -80,32 +91,49 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
 
   return (
     <DropdownMenu>
+      {/*
+        Con foto, la foto llena el círculo y el borde es sólo un aro fino que
+        la separa de la sección de debajo. Sin foto, las iniciales van sobre
+        terracota sólida en vez de sobre un aro hueco: un círculo vacío con dos
+        letras finas dentro no se lee como «tú», se lee como un icono más de la
+        barra. Es también lo único de la cabecera que cambia de persona a
+        persona, así que merece el único color de la fila.
+      */}
       <DropdownMenuTrigger
-        aria-label="Mi cuenta"
-        className={`ml-3 inline-flex items-center justify-center rounded-full border outline-none lg:ml-4 lg:h-10 h-8 lg:w-10 w-8 transition-colors ${hoverBg} cursor-pointer`}
-        style={{ borderColor: navColor, color: navColor }}
+        aria-label={displayName ? `Cuenta de ${displayName}` : "Mi cuenta"}
+        className="ml-3 inline-flex size-8 cursor-pointer items-center justify-center rounded-full outline-none ring-1 transition-[box-shadow,transform] hover:scale-105 focus-visible:ring-2 lg:ml-4 lg:size-10"
+        style={{
+          // El aro toma el color de la sección para no desaparecer sobre un
+          // fondo oscuro ni recortarse sobre uno claro.
+          ["--tw-ring-color" as string]: navColor,
+        }}
       >
-        <Avatar className="size-8 after:hidden lg:size-10">
+        <Avatar className="size-full after:hidden">
           {avatarUrl && (
             <AvatarImage src={avatarUrl} alt={displayName ?? ""} />
           )}
-          <AvatarFallback className="bg-transparent text-[inherit]">
+          <AvatarFallback className="bg-terracotta text-[11px] font-semibold tracking-[0.06em] text-white lg:text-[13px]">
             {displayName ? initials(displayName) : null}
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-52">
-        {firstName ? (
+      <DropdownMenuContent align="end" className="w-60">
+        {displayName ? (
           <>
             <DropdownMenuGroup>
+              {/* Nombre completo y correo, no «Hola, Dayana». El saludo ocupa
+                  la misma línea y no dice con CUÁL de sus cuentas está dentro,
+                  que es justo lo que se viene a comprobar al abrir esto. */}
               <DropdownMenuLabel className="font-normal">
-                <p className="truncate text-sm text-muted-foreground">
-                  Hola,{" "}
-                  <span className="font-semibold text-foreground">
-                    {firstName}
-                  </span>
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {displayName}
                 </p>
+                {session?.user?.email ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {session.user.email}
+                  </p>
+                ) : null}
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -119,23 +147,29 @@ const AccountMenu = ({ navColor }: { navColor: string }) => {
                 <LayoutDashboard />
                 CRM
               </DropdownMenuItem>
-              {/* OWNER only — lib/auth/portal-viewer.ts bridges her staff
-                  session into the course portal. Other staff roles stay
-                  CRM-only; /miembros still rejects them. */}
+              {/* Sólo OWNER — lib/auth/portal-viewer.ts es lo que puentea su
+                  sesión de staff hacia el curso. El resto del equipo se queda
+                  en el CRM y la plataforma los rechaza igual. */}
               {isOwnerStaff ? (
-                <DropdownMenuItem render={<Link href="/miembros" />}>
+                <DropdownMenuItem render={<Link href="/cursos" />}>
                   <BookOpen />
-                  Portal del curso
+                  Mis cursos
                 </DropdownMenuItem>
               ) : null}
+              {/* Su perfil está aquí y no en /cuenta: el staff no tiene
+                  `MemberAccount`, y esa ruta la devolvería a /acceso. */}
+              <DropdownMenuItem render={<Link href="/admin/ajustes/perfil" />}>
+                <Settings />
+                Mi perfil
+              </DropdownMenuItem>
             </>
           ) : (
             <>
-              <DropdownMenuItem render={<Link href="/miembros" />}>
+              <DropdownMenuItem render={<Link href="/cursos" />}>
                 <BookOpen />
-                Portal del curso
+                Mis cursos
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href="/miembros/cuenta" />}>
+              <DropdownMenuItem render={<Link href="/cuenta" />}>
                 <Settings />
                 Mi cuenta
               </DropdownMenuItem>

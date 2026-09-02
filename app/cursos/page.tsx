@@ -6,7 +6,6 @@ import FloatingWhatsApp from "../components/ui/FloatingWhatsApp";
 import JsonLd from "../components/seo/JsonLd";
 import CourseGrid from "../components/cursos/CourseGrid";
 import RevealScope from "../components/common/RevealScope";
-import AccountStrip from "../components/cursos/AccountStrip";
 import CoursesHero from "../components/cursos/CoursesHero";
 import MembershipPicker from "../components/cursos/MembershipPicker";
 import { getCourseCatalog } from "@/lib/courses/catalog";
@@ -39,7 +38,7 @@ const CursosPage = async () => {
   // un gate: sin nadie dentro `getCourseCatalog(null)` devuelve exactamente la
   // misma página pública que antes.
   const viewer = await getPortalViewer().catch(() => null);
-  const [{ courses, membership, annual, viewer: me, hasStandaloneSales, userCountry, isColombia }, hero] =
+  const [{ courses, membership, annual, hasStandaloneSales, userCountry, isColombia }, hero] =
     await Promise.all([getCourseCatalog(viewer), getCoursesHero()]);
   const siteUrl = getSiteUrl();
   const lessonCount = courses.reduce((n, c) => n + c.lessonCount, 0);
@@ -76,10 +75,6 @@ const CursosPage = async () => {
           lessonCount={lessonCount}
           hasStandaloneSales={hasStandaloneSales}
         />
-
-        {/* Debajo del hero y encima del catálogo: es lo primero que quiere ver
-            quien ya pagó, y lo que menos estorba a quien todavía no. */}
-        <AccountStrip viewer={me} />
 
         <section className="mx-auto w-full max-w-5xl px-5 pb-20 pt-16 sm:px-8">
           {courses.length === 0 ? (

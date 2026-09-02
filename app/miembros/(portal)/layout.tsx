@@ -10,13 +10,15 @@ import "../portal.css";
 
 export const dynamic = "force-dynamic";
 
-const PortalLayout = async ({
-  children,
-  modal,
-}: {
-  children: ReactNode;
-  modal: ReactNode;
-}) => {
+/**
+ * La carcasa de la plataforma: lo único que queda aquí es el reproductor.
+ *
+ * Tenía además una ranura `@modal` que interceptaba las rutas de la cuenta
+ * para abrirlas en diálogo sin salir del portal. La cuenta se mudó a `/cuenta`
+ * —fuera del portal, con la cabecera del sitio— y con ella se fue la única
+ * ranura que existía.
+ */
+const PortalLayout = async ({ children }: { children: ReactNode }) => {
   const member = await getPortalViewer();
   if (!member) {
     redirect("/acceso");
@@ -33,16 +35,9 @@ const PortalLayout = async ({
 
   return (
     <div className="portal-app">
-      <PortalSidebar
-        firstName={member.contact.firstName}
-        avatarUrl={member.contact.avatarUrl}
-        lockState={lockState}
-        streamEnabled={streamEnabled}
-        isOwner={member.isOwner}
-      >
+      <PortalSidebar lockState={lockState} streamEnabled={streamEnabled}>
         {children}
       </PortalSidebar>
-      {modal}
     </div>
   );
 };
