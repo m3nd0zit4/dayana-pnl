@@ -225,6 +225,7 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
         message?: string;
         diagnosticProfile?: string | null;
         diagnosticToken?: string | null;
+        diagnosticLeadEventId?: string | null;
       };
 
       if (!res.ok) {
@@ -244,7 +245,14 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
       pushDataLayerEvent("diagnostic_complete", {
         profile: data.diagnosticProfile ?? null,
       });
-      trackMetaEvent("Lead", { content_name: "diagnostico" });
+      // El `event_id` viene del servidor: es la mitad navegador de un evento
+      // que la Conversions API manda también. Sin él Meta cuenta dos leads por
+      // persona y el coste por lead de cada campaña aparece a la mitad.
+      trackMetaEvent(
+        "Lead",
+        { content_name: "diagnostico" },
+        data.diagnosticLeadEventId ?? undefined,
+      );
 
       // El del servidor manda: si la fila la creó él, es el único token que
       // apunta a algo. El local sólo se usa como respaldo.

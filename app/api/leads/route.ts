@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { ContactSource } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isPlanId } from "@/lib/plans";
@@ -23,6 +23,8 @@ import {
 } from "@/lib/crm/free-webinar";
 import { recordWebinarRegistration } from "@/lib/crm/webinar-registrations";
 import { completeDiagnostic } from "@/lib/crm/diagnostics";
+import { leadEventId } from "@/lib/meta/capi";
+import { emitDiagnosticCompleted } from "@/lib/inngest/events";
 import {
   notifyNewLead,
   notifyWebinarRegistration,
@@ -222,6 +224,7 @@ export async function POST(req: NextRequest) {
     // y la etiqueta con la que el resto del embudo va a tratar a esta persona.
     let diagnosticProfile: string | null = null;
     let diagnosticToken: string | null = null;
+    let diagnosticLeadEventId: string | null = null;
     const hasDiagnostic =
       (typeof body.diagnosticToken === "string" && body.diagnosticToken) ||
       body.diagnosticAnswers != null;
@@ -237,6 +240,18 @@ export async function POST(req: NextRequest) {
         // es la URL del resultado. Sin esto el cliente no sabría a dónde ir
         // cuando la fila la creó el servidor.
         diagnosticToken = diagnostic?.token ?? null;
+        if (diagnostic) {
+          // El `event_id` con el que el navegador manda su mitad del `Lead`.
+          // Lo calcula el servidor porque el id de la fila es suyo, y sin él
+          // Meta contaría el Pixel y la Conversions API como dos leads.
+          diagnosticLeadEventId = leadEventId(diagnostic.id);
+          // Medición y seguimiento, fuera de esta petición: la persona ya va
+          // camino de su resultado. `after()` y no una promesa suelta — en
+          // Vercel la invocación puede congelarse al devolver la respuesta y
+          // el envío se perdería en silencio.
+          const id = diagnostic.id;
+          after(() => emitDiagnosticCompleted(id));
+        }
       } catch (e) {
         console.error("[leads] diagnostic completion failed", e);
       }
@@ -386,6 +401,7 @@ export async function POST(req: NextRequest) {
       webinar: wantsWebinarTag,
       diagnosticProfile,
       diagnosticToken,
+      diagnosticLeadEventId,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown";

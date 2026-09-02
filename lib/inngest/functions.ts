@@ -40,6 +40,8 @@ import { inviteContactToPortal } from "../crm/member-accounts";
 import { applyMembershipExtension } from "../lms/membership";
 import { RECORDING_RETENTION_DAYS } from "../lms/course-content";
 import { sendPurchaseToMetaCapi } from "../meta/capi-purchase";
+import { sendLeadToMetaCapi } from "../meta/capi-lead";
+import { PROFILE_TAG_LABEL } from "../diagnostico/profiles";
 
 export const paymentApprovedFn = inngest.createFunction(
   { id: "payment-approved" },
@@ -203,6 +205,184 @@ export const leadStaleFn = inngest.createFunction(
     });
   }
 );
+
+/**
+ * Alguien terminó el cuestionario de terapias.
+ *
+ * Dos cosas cuelgan de aquí y ninguna puede vivir en la petición de
+ * `/api/leads`: el `Lead` de la Conversions API —una llamada de red a Meta que
+ * puede tardar o fallar— y el aviso al equipo. Lo que la persona ve, su página
+ * de resultado, no espera por nada de esto.
+ */
+export const diagnosticCompletedFn = inngest.createFunction(
+  { id: "diagnostic-completed" },
+  { event: "diagnostic/completed" },
+  async ({ event, step }) => {
+    const diagnosticId = event.data.diagnosticId as string;
+
+    // Meta CAPI: la mitad servidor del Lead. El Pixel manda la del navegador
+    // con el mismo `event_id` y Meta lo cuenta una sola vez.
+    const capi = await step.run("meta-capi-lead", () =>
+      sendLeadToMetaCapi(diagnosticId)
+    );
+
+    const notified = await step.run("notify-staff", async () => {
+      const diagnostic = await prisma.diagnostic.findUnique({
+        where: { id: diagnosticId },
+        select: {
+          id: true,
+          token: true,
+          profile: true,
+          commitmentScore: true,
+          contact: { select: { id: true, firstName: true, lastName: true } },
+          product: { select: { title: true } },
+        },
+      });
+      if (!diagnostic?.contact) return { skipped: true };
+
+      const name = [diagnostic.contact.firstName, diagnostic.contact.lastName]
+        .filter(Boolean)
+        .join(" ");
+      const profileLabel = diagnostic.profile
+        ? PROFILE_TAG_LABEL[diagnostic.profile]
+        : "Sin perfil";
+
+      await emitPlatformNotification({
+        eventType: "DIAGNOSTIC_COMPLETED",
+        title: `${name} completó el diagnóstico`,
+        // El compromiso es lo que decide a quién se llama primero, así que va
+        // en el cuerpo del aviso y no sólo en la tabla.
+        body: [
+          profileLabel,
+          diagnostic.commitmentScore != null
+            ? `compromiso ${diagnostic.commitmentScore}/10`
+            : null,
+          diagnostic.product ? `se le recomendó ${diagnostic.product.title}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        href: "/admin/diagnosticos",
+        entityType: "Diagnostic",
+        entityId: diagnostic.id,
+        metadata: { contactId: diagnostic.contact.id, token: diagnostic.token },
+        staff: "ALL",
+      });
+
+      return { notified: true };
+    });
+
+    return { capi, notified };
+  }
+);
+
+/**
+ * Un diagnóstico que no acabó en compra.
+ *
+ * "Abandonado" aquí NO es "dejó el cuestionario a medias": quien lo deja a
+ * medias no ha dado sus datos todavía —el paso de contacto es el último— así
+ * que no hay nadie a quien seguir. Lo que sí se puede trabajar es lo
+ * contrario: contestó, dejó su teléfono, vio su resultado y no compró.
+ *
+ * El aviso va al equipo, no a la persona. Escribirle automáticamente sería
+ * mandar copy que Dayana no ha aprobado a alguien que acaba de contar algo
+ * personal; el sitio donde eso se decide es la bandeja del panel.
+ */
+export const diagnosticUnconvertedFn = inngest.createFunction(
+  { id: "diagnostic-unconverted" },
+  { cron: "0 15 * * *" },
+  async ({ step }) => {
+    const now = Date.now();
+
+    const pending = await step.run("find-unconverted", async () => {
+      return prisma.diagnostic.findMany({
+        where: {
+          followUpNotifiedAt: null,
+          completedAt: {
+            lt: new Date(now - DIAGNOSTIC_FOLLOWUP_AFTER_MS),
+            // Límite inferior deliberado: sin él, el primer día que esto corra
+            // avisaría de golpe de cada diagnóstico que existe. Lo accionable
+            // es lo reciente; lo de hace un mes es historia.
+            gt: new Date(now - DIAGNOSTIC_FOLLOWUP_WINDOW_MS),
+          },
+          contactId: { not: null },
+          // Sin compra: ni activa ni completada, en ningún producto.
+          contact: {
+            enrollments: {
+              none: {
+                status: {
+                  in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED],
+                },
+              },
+            },
+          },
+        },
+        orderBy: { commitmentScore: { sort: "desc", nulls: "last" } },
+        take: DIAGNOSTIC_FOLLOWUP_MAX_PER_RUN,
+        select: {
+          id: true,
+          profile: true,
+          commitmentScore: true,
+          viewedResultAt: true,
+          contact: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+    });
+
+    let notified = 0;
+    for (const diagnostic of pending) {
+      const done = await step.run(`notify-${diagnostic.id}`, async () => {
+        // Se reclama la columna ANTES de avisar. Si el aviso falla y el step
+        // se reintenta, se prefiere perder un aviso a mandarlo dos veces: el
+        // diagnóstico sigue en `/admin/diagnosticos`, que es la lista de
+        // verdad.
+        const claimed = await prisma.diagnostic.updateMany({
+          where: { id: diagnostic.id, followUpNotifiedAt: null },
+          data: { followUpNotifiedAt: new Date() },
+        });
+        if (claimed.count === 0) return false;
+
+        const name = [diagnostic.contact?.firstName, diagnostic.contact?.lastName]
+          .filter(Boolean)
+          .join(" ");
+
+        await emitPlatformNotification({
+          eventType: "DIAGNOSTIC_UNCONVERTED",
+          title: `${name} hizo el diagnóstico y no ha comprado`,
+          body: [
+            diagnostic.profile ? PROFILE_TAG_LABEL[diagnostic.profile] : null,
+            diagnostic.commitmentScore != null
+              ? `compromiso ${diagnostic.commitmentScore}/10`
+              : null,
+            // Que abriera o no su resultado cambia el mensaje con el que se le
+            // escribe: no es lo mismo no haberlo visto que verlo y no comprar.
+            diagnostic.viewedResultAt
+              ? "vio su resultado"
+              : "no llegó a abrir su resultado",
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          href: "/admin/diagnosticos",
+          entityType: "Diagnostic",
+          entityId: diagnostic.id,
+          metadata: { contactId: diagnostic.contact?.id ?? null },
+          staff: "ALL",
+        });
+
+        return true;
+      });
+      if (done) notified += 1;
+    }
+
+    return { candidates: pending.length, notified };
+  }
+);
+
+/** 24 h: un día entero para decidir, sin que se enfríe del todo. */
+const DIAGNOSTIC_FOLLOWUP_AFTER_MS = 24 * 60 * 60 * 1000;
+/** Más allá de una semana ya no es seguimiento, es una lista de contactos. */
+const DIAGNOSTIC_FOLLOWUP_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** Tope por pasada: la campana no es sitio para cien avisos de golpe. */
+const DIAGNOSTIC_FOLLOWUP_MAX_PER_RUN = 25;
 
 export const campaignBroadcastFn = inngest.createFunction(
   { id: "notification-campaign-run" },
@@ -766,6 +946,8 @@ export const inngestFunctions = [
   paymentApprovedFn,
   sessionReminderFn,
   leadStaleFn,
+  diagnosticCompletedFn,
+  diagnosticUnconvertedFn,
   campaignBroadcastFn,
   staleCheckoutCleanupFn,
   membershipDueReminderFn,
