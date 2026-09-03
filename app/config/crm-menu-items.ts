@@ -43,6 +43,14 @@ export type CrmMenuItem = {
    * mismo problema que `ownerOnly` evita con los 403.
    */
   flag?: "metaInbox" | "socialPublishing";
+  /**
+   * Marcar como activo sólo con la ruta exacta, no con sus descendientes.
+   *
+   * Hace falta cuando una entrada es prefijo de otra: «Miembros» es
+   * `/admin/curso` y los módulos cuelgan de `/admin/curso/…`, así que sin esto
+   * las dos se encienden a la vez.
+   */
+  exact?: boolean;
   /** One level of nesting only (sidebar sub-items). */
   items?: Omit<CrmMenuItem, "items">[];
 };
@@ -55,32 +63,63 @@ export type CrmMenuSection = {
 /** Standalone item rendered above every section, no group label — the logo lives in the top bar now, not the sidebar, so this is the only "go home" link. */
 export const crmHomeItem: CrmMenuItem = { icon: Home, label: "Inicio", href: "/admin" };
 
+/**
+ * Los grupos siguen lo que se hace cada día, no cómo está organizada la base
+ * de datos.
+ *
+ * Antes había una sección «Clientes» con seis entradas de las que sólo una eran
+ * clientes: dentro convivían el diagnóstico, los cursos, las terapias, los
+ * pagos y los enlaces de pago. Cada cosa nueva se había colgado donde cabía, y
+ * el resultado mezclaba personas, dinero y entrega en el mismo cajón.
+ *
+ * Ahora: **Ventas** es el recorrido del dinero de principio a fin —de dónde
+ * sale un interesado hasta que paga—, **Personas** es quién es quién, y
+ * **Sesiones y clases** es todo lo que hay que impartir. El catálogo queda para
+ * lo que se configura una vez y casi no se toca.
+ */
 export const crmMenuSections: CrmMenuSection[] = [
   {
-    title: "Clientes",
+    // El diagnóstico es la puerta de entrada y el enlace de pago el empujón
+    // final: van con Pagos porque son el mismo recorrido, y estaban repartidos.
+    title: "Ventas",
+    items: [
+      { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
+      { icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
+      { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
+    ],
+  },
+  {
+    title: "Personas",
     items: [
       { icon: Users, label: "Contactos", href: "/admin/contacts" },
-      { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
+      // Sale del submenú de Cursos: es la lista de quién tiene acceso, que es
+      // una pregunta sobre personas y no sobre el contenido del curso.
+      { icon: UsersRound, label: "Miembros", href: "/admin/curso", exact: true },
+    ],
+  },
+  {
+    title: "Sesiones y clases",
+    items: [
+      { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
       {
         icon: GraduationCap,
         label: "Cursos",
-        href: "/admin/curso",
+        href: "/admin/curso/modulos",
         items: [
-          { icon: UsersRound, label: "Miembros", href: "/admin/curso" },
           { icon: BookOpen, label: "Módulos", href: "/admin/curso/modulos" },
           { icon: MessageCircle, label: "Comentarios", href: "/admin/curso/comentarios" },
         ],
       },
-      { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
-      { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
-      { icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
+      // Talleres y webinar estaban en «Catálogo», junto a los precios. Se
+      // imparten, así que su sitio es este.
+      { icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
+      { icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
     ],
   },
   {
+    // Lo que se configura una vez y casi no se vuelve a tocar.
     title: "Catálogo",
     items: [
-      { icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
-      { icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
       { icon: Package, label: "Paquetes", href: "/admin/products" },
       { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
     ],

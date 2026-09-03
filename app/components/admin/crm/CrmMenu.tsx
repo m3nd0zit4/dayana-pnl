@@ -27,9 +27,16 @@ type Props = {
   onNavigate?: () => void;
 };
 
-const isActive = (pathname: string, href: string) => {
+/**
+ * `exact` existe para las entradas cuya ruta es prefijo de otra del menú.
+ *
+ * «Miembros» es `/admin/curso` y los módulos cuelgan de `/admin/curso/...`, así
+ * que sin esto las dos se marcarían a la vez y la barra diría que estás en dos
+ * sitios. Es el mismo caso que `/admin`, que ya se trataba aparte a mano.
+ */
+const isActive = (pathname: string, href: string, exact?: boolean) => {
   if (href === "/") return false;
-  if (href === "/admin") return pathname === "/admin";
+  if (href === "/admin" || exact) return pathname === href;
   return pathname === href || pathname.startsWith(`${href}/`);
 };
 
@@ -45,7 +52,7 @@ const CrmMenuParentItem = ({
   const Icon = item.icon;
   const external = item.external === true;
   const children = item.items ?? [];
-  const childActive = children.some((c) => isActive(pathname, c.href));
+  const childActive = children.some((c) => isActive(pathname, c.href, c.exact));
 
   // Auto-expand when landing on a child route; otherwise follow whatever
   // the user last toggled.
@@ -57,7 +64,7 @@ const CrmMenuParentItem = ({
   }
 
   if (children.length === 0) {
-    const active = isActive(pathname, item.href);
+    const active = isActive(pathname, item.href, item.exact);
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -100,7 +107,7 @@ const CrmMenuParentItem = ({
               return (
                 <SidebarMenuSubItem key={child.href}>
                   <SidebarMenuSubButton
-                    isActive={isActive(pathname, child.href)}
+                    isActive={isActive(pathname, child.href, child.exact)}
                     render={
                       <Link href={child.href} prefetch={false} onClick={onNavigate} />
                     }

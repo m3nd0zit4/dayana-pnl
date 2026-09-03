@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
-import Footer from "@/app/components/home/Footer";
 import CuentaShell from "@/app/components/cuenta/CuentaShell";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { requirePortalContext } from "@/lib/lms/portal";
@@ -43,13 +42,19 @@ const CuentaLayout = async ({ children }: { children: ReactNode }) => {
 
   const { contact } = await requirePortalContext();
 
+  /**
+   * Sin pie de página, a propósito.
+   *
+   * Aquí se gestiona la contraseña, los avisos y los pagos: es una zona
+   * privada de trabajo, no una página de venta. El pie del sitio trae redes,
+   * navegación de marketing y enlaces legales — todo salidas hacia fuera justo
+   * donde la persona vino a hacer una gestión concreta. La cabecera se queda,
+   * que es por donde se vuelve.
+   */
   return (
-    <>
-      <div className="bg-hero-paper text-ink">
-        <CuentaShell firstName={contact.firstName}>{children}</CuentaShell>
-      </div>
-      <Footer />
-    </>
+    <div className="bg-hero-paper text-ink">
+      <CuentaShell firstName={contact.firstName}>{children}</CuentaShell>
+    </div>
   );
 };
 

@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CreditCard, HeartPulse, Menu, Users } from "lucide-react";
+import { Compass, CreditCard, Menu, Users } from "lucide-react";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 /**
- * Deliberately curated 3-shortcut subset — not derived from crmMenuSections.
- * "Más" opens the full nav via the shadcn Sidebar's own mobile sheet.
+ * Tres accesos elegidos a mano, no derivados de `crmMenuSections`: en el móvil
+ * no caben más y la lista completa está a un toque en «Más», que abre la barra
+ * lateral entera.
+ *
+ * Son las tres puntas del recorrido de una venta —de dónde sale un interesado,
+ * quién es, y si pagó—, que es lo que se consulta desde el teléfono.
  */
 const tabs = [
+  { href: "/admin/diagnosticos", label: "Diagnósticos", icon: Compass },
   { href: "/admin/contacts", label: "Contactos", icon: Users },
-  { href: "/admin/therapies", label: "Terapias", icon: HeartPulse },
   { href: "/admin/payments", label: "Pagos", icon: CreditCard },
 ] as const;
 

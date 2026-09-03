@@ -57,12 +57,12 @@ const MethodSection = () => (
             Ver historias reales
             <span aria-hidden>→</span>
           </Link>
-          <Link
-            href="/terapias/empezar"
-            className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/50 underline underline-offset-4 transition-colors hover:text-black"
-          >
-            Saber qué necesito
-          </Link>
+          {/* Aquí hubo un «Saber qué necesito» que llevaba al cuestionario.
+              Se quitó con el resto de invitaciones a diagnosticarse desde la
+              portada: quien llega aquí todavía está decidiendo si le interesa,
+              y pedirle que se autoevalúe antes de eso adelanta un paso que aún
+              no ha querido dar. La puerta a terapias está en el menú y en el
+              bloque de servicios, que es donde ya se está mirando el precio. */}
         </div>
       </div>
     </div>

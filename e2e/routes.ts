@@ -69,6 +69,11 @@ export const CRM_ROUTES: CrmRoute[] = [
   },
   { path: "/admin/therapies", name: "Terapias", tier: "preview" },
   { path: "/admin/payments", name: "Pagos", tier: "preview" },
+  // Las dos pantallas más nuevas del panel, y las últimas en entrar aquí: se
+  // construyeron después de este manifiesto, así que nadie comprobaba que
+  // cumplieran el contrato de cabecera.
+  { path: "/admin/diagnosticos", name: "Diagnósticos", tier: "preview" },
+  { path: "/admin/enlaces-pago", name: "Enlaces de pago", tier: "preview" },
   {
     path: "/admin/workshops",
     name: "Talleres",

@@ -22,17 +22,20 @@ type MenuItem =
     };
 
 /**
- * Cuatro entradas, y ninguna es un catálogo.
+ * Cinco entradas, y ninguna es un catálogo.
  *
  * Llegó a tener ocho —Inicio, Diagnóstico, Terapias, Cursos, Historias,
  * Dayana, Taller, Contacto, Redes— y un menú de ese tamaño deja de orientar:
- * se convierte en una lista que hay que leer entera para decidir. Lo que se
- * vende son dos cosas, así que hay dos destinos de venta y dos de servicio.
+ * se convierte en una lista que hay que leer entera para decidir. Por eso se
+ * recortó, y por eso sólo vuelve lo que se vende.
+ *
+ * «Taller» volvió por eso mismo: es un producto que se cobra hoy y su única
+ * puerta era el pie de página, donde casi nadie mira. Historias y el webinar
+ * siguen fuera — se llega a ellos desde el pie y desde los CTA de la home, que
+ * es donde tienen sentido.
  *
  * «Terapias» apunta al **cuestionario**, no a una lista de precios: los
- * paquetes ya no se navegan, se recomienda uno. Historias, el taller y las
- * redes siguen accesibles desde el pie y desde los CTA de la home, que es
- * donde tienen sentido.
+ * paquetes ya no se navegan, se recomienda uno.
  */
 const menuItemsBase: MenuItem[] = [
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
@@ -42,6 +45,11 @@ const menuItemsBase: MenuItem[] = [
     marquee: "Empieza por saber qué necesitas",
   },
   { label: "Cursos", path: "/cursos", marquee: "Una mensualidad, toda la biblioteca" },
+  {
+    label: "Taller",
+    path: "/taller-virtual",
+    marquee: "Un día entero, en vivo",
+  },
   { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },
 ];
 
