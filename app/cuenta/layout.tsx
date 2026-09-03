@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import Footer from "@/app/components/home/Footer";
 import CuentaShell from "@/app/components/cuenta/CuentaShell";
+import { getStaffSession } from "@/lib/auth/staff-session";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { BRAND } from "@/lib/contact";
 
@@ -29,6 +31,16 @@ export const metadata: Metadata = {
  * `/admin/ajustes/perfil` y no aquí.
  */
 const CuentaLayout = async ({ children }: { children: ReactNode }) => {
+  /**
+   * El staff no tiene `MemberAccount`, así que aquí no hay nada que
+   * enseñarle: su perfil vive en el CRM. Se le manda allí directamente en vez
+   * de dejar que `requirePortalContext` lo eche a `/acceso`, que al ver una
+   * sesión de staff abierta lo lleva a «elige CRM o portal» — una pregunta que
+   * no responde a lo que venía a hacer.
+   */
+  const staff = await getStaffSession().catch(() => null);
+  if (staff) redirect("/admin/ajustes/perfil");
+
   const { contact } = await requirePortalContext();
 
   return (

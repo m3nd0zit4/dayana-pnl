@@ -377,11 +377,15 @@ const CoursePlayer = ({
           <div className="flex min-w-0 items-center gap-2">
             <SidebarTrigger className="lg:hidden" />
             <div className="min-w-0">
+              {/* Apunta al catálogo directamente. Decía «Mi aprendizaje» y
+                  llevaba a `/miembros`, que era el panel borrado: el nombre ya
+                  no existe en ninguna pantalla y la ruta sólo servía para
+                  rebotar a `/cursos` de todas formas. */}
               <Link
-                href="/miembros"
+                href="/cursos"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                ← Mi aprendizaje
+                ← Todos los cursos
               </Link>
               <h1 className="truncate text-sm font-semibold tracking-tight">{courseTitle}</h1>
             </div>

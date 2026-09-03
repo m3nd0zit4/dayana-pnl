@@ -26,6 +26,15 @@ const MarketingChrome = ({ children }: { children: ReactNode }) => (
           {children}
         </div>
       </Stairs>
+      {/*
+        Era el único grupo de rutas sin `<Toaster />`, y no se notaba mientras
+        aquí sólo hubiera páginas de marketing. Ahora `/cuenta` se sirve por
+        esta rama —salió del portal, que sí montaba el suyo— y es una pantalla
+        de formularios: contraseña, sesiones, avisos. Un `toast.error` sin
+        Toaster montado no falla, desaparece en silencio, que es la peor forma
+        de perder el aviso de que algo no se guardó.
+      */}
+      <Toaster />
     </CheckoutModalProvider>
   </NavContext>
 );
