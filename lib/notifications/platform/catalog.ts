@@ -308,47 +308,6 @@ export const NOTIFICATION_CATALOG: Record<
     coalesceWindowSec: 3600,
   },
 
-  // ── Terapias ────────────────────────────────────────────────────────────
-  THERAPY_SESSION_SCHEDULED: {
-    label: "Sesión agendada",
-    description: "Se asignó fecha y hora a una sesión de terapia.",
-    group: "Terapias",
-    defaultSeverity: "SUCCESS",
-    audience: "BOTH",
-    defaultInApp: true,
-    defaultEmail: false,
-    roles: OWNER_OPERATOR,
-  },
-  THERAPY_SESSION_RESCHEDULED: {
-    label: "Sesión reprogramada",
-    description: "Cambió la fecha, hora o enlace de una sesión ya agendada.",
-    group: "Terapias",
-    defaultSeverity: "INFO",
-    audience: "BOTH",
-    defaultInApp: true,
-    defaultEmail: false,
-    roles: OWNER_OPERATOR,
-  },
-  THERAPY_SESSION_COMPLETED: {
-    label: "Sesión completada",
-    description: "Se marcó una sesión como realizada.",
-    group: "Terapias",
-    defaultSeverity: "SUCCESS",
-    audience: "STAFF",
-    defaultInApp: true,
-    defaultEmail: false,
-    roles: OWNER_OPERATOR,
-  },
-  THERAPY_SESSION_NO_SHOW: {
-    label: "Inasistencia a sesión",
-    description: "El cliente no se presentó a una sesión agendada.",
-    group: "Terapias",
-    defaultSeverity: "WARNING",
-    audience: "STAFF",
-    defaultInApp: true,
-    defaultEmail: false,
-    roles: OWNER_OPERATOR,
-  },
 
   // ── Curso y membresía ───────────────────────────────────────────────────
   MEMBER_SIGNED_UP: {

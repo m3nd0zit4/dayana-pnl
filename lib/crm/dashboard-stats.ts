@@ -101,7 +101,6 @@ export const getDashboardStats = async () => {
       include: {
         contact: { select: { firstName: true, lastName: true } },
         product: { select: { title: true } },
-        therapyPackage: { select: { usedSessions: true, totalSessions: true } },
       },
     }),
     prisma.enrollment.count({
@@ -174,10 +173,11 @@ export const getDashboardStats = async () => {
       id: e.id,
       contactName: `${e.contact.firstName} ${e.contact.lastName ?? ""}`.trim(),
       productTitle: e.product.title,
+      // Cuántas sesiones compró y cuántas se han dado. Sale de la propia
+      // matrícula: el paquete de terapia que llevaba esta cuenta se retiró
+      // porque nadie lo agendaba, pero lo que se vendió sigue siendo un dato.
       sessions:
-        e.therapyPackage != null
-          ? `${e.therapyPackage.usedSessions}/${e.therapyPackage.totalSessions}`
-          : null,
+        e.sessionsTotal != null ? `${e.sessionsUsed}/${e.sessionsTotal}` : null,
     })),
   };
 };

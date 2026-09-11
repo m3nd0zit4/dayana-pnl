@@ -5,6 +5,8 @@
  * prisma/seed-data.ts.
  */
 
+import type { ProductAccentId } from "@/lib/products/accents";
+
 /** Slug del producto en la DB (p. ej. "therapy-6", "course-live"). */
 export type PlanId = string;
 
@@ -56,6 +58,11 @@ export type Plan = {
   membershipMonths?: number;
   tag?: string;
   highlight?: boolean;
+  /**
+   * Acento de color del título y del precio. Un id del conjunto cerrado de
+   * `lib/products/accents.ts`, no un color: ver allí el porqué.
+   */
+  accent?: ProductAccentId;
   /**
    * ¿Se cobra mes a mes? Sólo la mensualidad. Decide los textos del checkout
    * («Pagar un mes» en vez de «Pagar»).

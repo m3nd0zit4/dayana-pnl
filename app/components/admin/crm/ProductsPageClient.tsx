@@ -1,7 +1,7 @@
 "use client";
 
 import { ProductKind } from "@prisma/client";
-import { ChevronDown, ChevronUp, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Package } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -10,21 +10,38 @@ import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import CrmModal from "./CrmModal";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/app/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
-import ProductCardPreview from "./ProductCardPreview";
+import ProductCardPreview, { previewToPlan } from "./ProductCardPreview";
+import PublicProductCard from "@/app/components/productos/PublicProductCard";
+import { formatCop, formatUsd, type Plan } from "@/lib/plans";
+import {
+  DEFAULT_PRODUCT_ACCENT,
+  PRODUCT_ACCENTS,
+  resolveProductAccent,
+  type ProductAccentId,
+} from "@/lib/products/accents";
 import StringListEditor from "./StringListEditor";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 import { invalidateCached } from "./hooks/useReferenceData";
 import {
-  CrmDataList,
-  CrmDataListRow,
   CrmEmptyState,
+  CrmField,
+  CrmFieldset,
   CrmFormActions,
   CrmLoadingState,
+  CrmRowAction,
   CrmRowActions,
   CrmRowDelete,
   CrmRowEdit,
@@ -49,6 +66,7 @@ type Product = {
   unitPriceLabel?: string | null;
   therapyHeadline?: string | null;
   whatsappMessage?: string | null;
+  accent?: ProductAccentId | null;
   isActive: boolean;
   sortOrder: number;
   prices: ProductPrice[];
@@ -89,13 +107,6 @@ const saveErrorMessage = (d: { error?: string; message?: string }): string => {
       return d.message ?? d.error ?? "Error al guardar";
   }
 };
-
-// Solo para mostrar un equivalente aproximado junto al precio USD en esta
-// tabla — no es la tasa real de cobro (esa vive en lib/pricing/usd-to-cop.ts
-// y se resuelve en checkout).
-const DISPLAY_USD_TO_COP_RATE = 3000;
-const formatCopApprox = (usdAmount: number) =>
-  Math.round(usdAmount * DISPLAY_USD_TO_COP_RATE).toLocaleString("es-CO");
 
 /**
  * Estado del precio frente a los planes del proveedor.
@@ -166,40 +177,6 @@ const PriceSyncNotice = ({
   );
 };
 
-/** Shared between the desktop table cell and the mobile card row. */
-const ProductPriceDisplay = ({
-  view,
-  displayPrice,
-}: {
-  view: View;
-  displayPrice: ProductPrice | null;
-}) =>
-  displayPrice ? (
-    <>
-      {view === "usd"
-        ? (displayPrice.amountMinor / 100).toLocaleString("en-US", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 2,
-          })
-        : displayPrice.amountMinor.toLocaleString("es-CO")}{" "}
-      {view === "usd" ? "USD" : "COP"}
-      {displayPrice.listAmountMinor ? (
-        <span className="ml-1 text-[10px] text-muted-foreground line-through">
-          {view === "usd"
-            ? (displayPrice.listAmountMinor / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })
-            : displayPrice.listAmountMinor.toLocaleString("es-CO")}
-        </span>
-      ) : null}
-      {view === "usd" && (
-        <div className="mt-0.5 text-xs text-muted-foreground">
-          ≈ ${formatCopApprox(displayPrice.amountMinor / 100)} COP
-        </div>
-      )}
-    </>
-  ) : (
-    <span className="text-muted-foreground">—</span>
-  );
-
 const ProductStatusBadge = ({
   view,
   isActive,
@@ -246,6 +223,7 @@ const emptyForm = () => ({
   unitPriceLabel: "",
   therapyHeadline: "",
   whatsappMessage: "",
+  accent: DEFAULT_PRODUCT_ACCENT as ProductAccentId,
 });
 
 const emptyCopForm = () => ({ amountCop: "", listAmountCop: "" });
@@ -263,12 +241,79 @@ const itemsToDescription = (items: string[]): string => items.join("\n");
 
 type View = "usd" | "cop";
 
+/**
+ * Cuántas tarjetas caben de un vistazo.
+ *
+ * Con dieciséis paquetes, la tarjeta publicada entera son seis filas: para
+ * saber el precio del último hay que hacer scroll hasta abajo. «Compacta»
+ * enseña lo que se consulta a diario —nombre, precio y si está visible— y
+ * caben todas en pantalla. «Publicada» sigue siendo la tarjeta de verdad.
+ *
+ * La verdad publicada nunca queda a más de un clic: el panel de edición
+ * pinta siempre el `PublicProductCard` real.
+ */
+type Density = "compact" | "full";
+
 type Props = {
   preview: boolean;
   initialProducts?: Product[];
+  /**
+   * De dónde cuelga el enlace fijo de cada paquete. Llega del servidor
+   * (`getSiteUrl`) y no de `window.location`, igual que en Enlaces de pago: en
+   * producción el panel y la web comparten origen, pero detrás de un túnel de
+   * desarrollo no, y copiar un enlace con el host equivocado se descubre
+   * cuando ya está mandado.
+   */
+  siteUrl?: string;
 };
 
-const ProductsPageClient = ({ preview, initialProducts }: Props) => {
+/**
+ * Del producto guardado al `Plan` que consume la tarjeta.
+ *
+ * Pasa por `previewToPlan` a proposito, el mismo que usa la vista previa del
+ * editor: asi la tarjeta de la rejilla y la que se ve mientras escribes salen
+ * del mismo mapeo y no pueden divergir. Si se dibujaran por caminos distintos,
+ * una de las dos mentiria justo al publicar.
+ */
+/**
+ * El precio tal cual sale en la tarjeta, para la vista compacta.
+ *
+ * Pasa por `formatCop`/`formatUsd`, los mismos que usa `PublicProductCard`:
+ * la cifra que se lee aquí es la que va a leer la clienta, no una versión
+ * aproximada. Sin precio en esta moneda se dice, porque significa que la
+ * tarjeta no se publica en esa región.
+ */
+const compactPrice = (plan: Plan, view: View): string => {
+  if (view === "cop") {
+    return plan.amountCop != null && plan.amountCop > 0
+      ? formatCop(plan.amountCop)
+      : "Sin precio COP";
+  }
+  return plan.amountUsd > 0 ? formatUsd(plan.amountUsd) : "Sin precio USD";
+};
+
+const productToPreviewPlan = (p: Product): Plan => {
+  const usd = p.prices.find((pr) => pr.currency === "USD") ?? null;
+  const cop = p.prices.find((pr) => pr.currency === "COP") ?? null;
+  return previewToPlan({
+    kind: p.kind,
+    title: p.title,
+    sessionsLabel: p.sessionsLabel,
+    sessionsCount: p.sessionsCount?.toString() ?? "",
+    description: p.description ?? "",
+    imageUrl: p.imageUrl ?? "",
+    tag: p.tag ?? "",
+    highlight: p.highlight ?? false,
+    unitPriceLabel: p.unitPriceLabel ?? "",
+    amountUsd: usd ? String(usd.amountMinor / 100) : "",
+    listAmountUsd: usd?.listAmountMinor ? String(usd.listAmountMinor / 100) : "",
+    amountCop: cop ? String(cop.amountMinor) : "",
+    listAmountCop: cop?.listAmountMinor ? String(cop.listAmountMinor) : "",
+    accent: resolveProductAccent(p.accent).id,
+  });
+};
+
+const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
   const [loading, setLoading] = useState(initialProducts === undefined);
@@ -277,6 +322,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
   const [form, setForm] = useState(emptyForm);
   const [copForm, setCopForm] = useState(emptyCopForm);
   const [view, setView] = useState<View>("usd");
+  const [density, setDensity] = useState<Density>("compact");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [reordering, setReordering] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -372,6 +418,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       unitPriceLabel: p.unitPriceLabel ?? "",
       therapyHeadline: p.therapyHeadline ?? "",
       whatsappMessage: p.whatsappMessage ?? "",
+      accent: resolveProductAccent(p.accent).id,
       sessionsLabel: p.sessionsLabel,
       sessionsCount: p.sessionsCount?.toString() ?? "",
       amountUsd: usd ? String(usd.amountMinor / 100) : "",
@@ -385,6 +432,16 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
     });
   };
 
+  /** ¿Se tocó algún importe respecto a lo guardado? */
+  const priceChanged = (): boolean => {
+    if (!editing) return false;
+    const usd = editing.prices.find((pr) => pr.currency === "USD") ?? null;
+    const cop = editing.prices.find((pr) => pr.currency === "COP") ?? null;
+    const asUsd = usd ? String(usd.amountMinor / 100) : "";
+    const asCop = cop ? String(cop.amountMinor) : "";
+    return form.amountUsd !== asUsd || copForm.amountCop !== asCop;
+  };
+
   const save = async () => {
     if (!canManageTeam) return;
 
@@ -392,6 +449,32 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       toast("Los talleres requieren un precio COP (Mercado Pago) además del USD.", "error");
       return;
     }
+
+    /**
+     * Cambiar el precio de un producto con plan de suscripción vivo no es
+     * guardar un número: llama a PayPal y a Mercado Pago, sólo persiste si los
+     * dos aceptan, y puede dejar el producto DESINCRONIZADO.
+     *
+     * Antes la caja de precio no se distinguía en nada de las demás y Dayana
+     * sólo se enteraba de todo esto cuando fallaba. Ahora se dice antes, con
+     * el importe delante.
+     */
+    if (editing && hasSubscriptionPlan(editing) && priceChanged()) {
+      confirm({
+        title: "Este precio se cobra por suscripción",
+        message:
+          "Se va a cambiar en PayPal y en Mercado Pago antes de guardarlo, y alcanza a quien ya está suscrita. Si uno de los dos rechaza el cambio, no se guarda nada.",
+        confirmLabel: "Cambiar el precio",
+        onConfirm: () => persist(),
+      });
+      return;
+    }
+
+    await persist();
+  };
+
+  /** El guardado de verdad. Separado para que la confirmación lo envuelva. */
+  const persist = async () => {
 
     // Ambas monedas viajan en un solo guardado; amountUsd vacío se omite
     // (PATCH no lo toca) y amountCop vacío viaja null (borra el precio COP).
@@ -408,6 +491,7 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
       unitPriceLabel: form.unitPriceLabel.trim() || null,
       therapyHeadline: form.therapyHeadline.trim() || null,
       whatsappMessage: form.whatsappMessage.trim() || null,
+      accent: form.accent,
       isActive: form.isActive,
       ...(form.amountUsd !== "" ? { amountUsd: Number(form.amountUsd) } : {}),
       listAmountUsd: form.listAmountUsd ? Number(form.listAmountUsd) : null,
@@ -436,11 +520,45 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
     }
   };
 
+  /**
+   * El enlace fijo del paquete: `/pagar/p/<id>`.
+   *
+   * No hay nada que crear ni que guardar — es una ruta, no una fila. Por eso
+   * se puede copiar de una tarjeta que ni siquiera se ha abierto, y por eso no
+   * caduca: se manda hoy y sigue sirviendo dentro de un año.
+   *
+   * Distinto del enlace de Enlaces de pago, que va a UNA persona y cuelga el
+   * cobro de su ficha. Este no lleva contacto a propósito: es lo que permite
+   * mandárselo a cincuenta personas sin que los cincuenta cobros acaben en la
+   * misma ficha.
+   */
+  const copyProductLink = async (p: Product) => {
+    const url = `${siteUrl}/pagar/p/${p.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast(
+        p.isActive
+          ? "Enlace del paquete copiado"
+          : "Copiado, pero el paquete está inactivo: quien lo abra verá un error.",
+        p.isActive ? "success" : "error"
+      );
+    } catch {
+      toast("No se pudo copiar", "error");
+    }
+  };
+
   const remove = (id: string) => {
     confirm({
       title: "Eliminar paquete",
+      /*
+        El aviso dice ahora las dos cosas que de verdad deciden qué va a pasar.
+        El anterior —«si tiene servicios vinculados se desactivará»— dejaba
+        creer que sólo cuentan las matrículas, y no es así: un plan de
+        suscripción o el contenido de un curso también impiden el borrado.
+      */
       message:
-        "Si tiene servicios vinculados se desactivará; si no, se borra. La web pública dejará de mostrarlo.",
+        "Se desactiva si tiene matrículas, un plan de suscripción o contenido de curso. " +
+        "Sólo se borra del todo si no tiene nada de eso. En cualquier caso deja de verse en la web.",
       confirmLabel: "Eliminar",
       destructive: true,
       onConfirm: async () => {
@@ -449,16 +567,349 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ id }),
         });
+        const data = await res.json().catch(() => null);
         if (res.ok) {
-          toast("Paquete eliminado o desactivado");
+          // El servidor dice qué hizo y por qué. Repetirlo aquí es lo que
+          // convierte «no pasó lo que esperaba» en una explicación.
+          toast(
+            data?.outcome === "deleted"
+              ? "Paquete eliminado"
+              : (data?.reason ?? "Paquete desactivado")
+          );
           invalidateCached("products");
           load();
-        } else toast("No se pudo eliminar", "error");
+        } else {
+          toast(data?.message ?? "No se pudo eliminar", "error");
+        }
       },
     });
   };
 
-  const showForm = creating || editing;
+  /**
+   * Lo que hay escrito AHORA, como `Plan`. Mientras se edita, la tarjeta de la
+   * rejilla se pinta con esto en vez de con lo guardado: la rejilla es la vista
+   * previa, y por eso el editor ya no lleva la suya.
+   */
+  const draftPlan = (): Plan =>
+    previewToPlan({
+      kind: form.kind,
+      title: form.title,
+      sessionsLabel: form.sessionsLabel,
+      sessionsCount: form.sessionsCount,
+      description: form.description,
+      imageUrl: form.imageUrl,
+      tag: form.tag,
+      highlight: form.highlight,
+      unitPriceLabel: form.unitPriceLabel,
+      amountUsd: form.amountUsd,
+      listAmountUsd: form.listAmountUsd,
+      amountCop: copForm.amountCop,
+      listAmountCop: copForm.listAmountCop,
+      accent: form.accent,
+    });
+
+  const editorBody = (
+    <>
+            {/* Una sola columna. La vista previa vivía aquí en 20rem, y al
+                editar duplicaba la tarjeta que ya está en la rejilla a la
+                izquierda — que ahora se actualiza mientras escribes. Sólo se
+                pinta al CREAR, donde todavía no hay tarjeta que mirar. */}
+            <div className="space-y-4">
+            <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <SearchableSelect
+                    label="Tipo"
+                    value={form.kind}
+                    options={Object.entries(KIND_LABEL).map(([value, label]) => ({
+                      value,
+                      label,
+                    }))}
+                    onChange={(kind) =>
+                      setForm((f) => ({ ...f, kind: kind as ProductKind }))
+                    }
+                    searchMinOptions={99}
+                  />
+                  <CrmField label="Título">
+                    <Input
+                      value={form.title}
+                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    />
+                  </CrmField>
+                  <CrmField label="Portada" className="sm:col-span-2">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 space-y-2">
+                        <input
+                          ref={coverInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,image/avif"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = "";
+                            if (file) void uploadCover(file);
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingCover}
+                          onClick={() => coverInputRef.current?.click()}
+                        >
+                          {uploadingCover ? "Subiendo…" : "Subir imagen"}
+                        </Button>
+                        <Input
+                          value={form.imageUrl}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, imageUrl: e.target.value }))
+                          }
+                          placeholder="…o pega una URL"
+                        />
+                      </div>
+                      {form.imageUrl.trim() && (
+                        // eslint-disable-next-line @next/next/no-img-element -- arbitrary external URL, no next/image domain config for it
+                        <img
+                          src={form.imageUrl.trim()}
+                          alt=""
+                          className="h-16 w-24 shrink-0 rounded-md object-cover ring-1 ring-border"
+                          onError={(e) => (e.currentTarget.style.visibility = "hidden")}
+                        />
+                      )}
+                    </div>
+                  </CrmField>
+                  <CrmField label="Etiqueta sesiones">
+                    <Input
+                      value={form.sessionsLabel}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sessionsLabel: e.target.value }))
+                      }
+                    />
+                  </CrmField>
+                  <CrmField label="Nº sesiones (terapia)">
+                    <Input
+                      type="number"
+                      value={form.sessionsCount}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, sessionsCount: e.target.value }))
+                      }
+                    />
+                  </CrmField>
+                </div>
+
+                <CrmFieldset legend={"Precio Internacional — USD (PayPal)"}>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <CrmField label="Precio USD">
+                      <Input
+                        type="number"
+                        value={form.amountUsd}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, amountUsd: e.target.value }))
+                        }
+                      />
+                    </CrmField>
+                    <CrmField label="Precio lista USD (opcional)">
+                      <Input
+                        type="number"
+                        value={form.listAmountUsd}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
+                        }
+                      />
+                    </CrmField>
+                  </div>
+                </CrmFieldset>
+                <CrmFieldset legend={<>Precio Colombia — COP (Mercado Pago)
+                    {form.kind === "WORKSHOP" ? " (requerido para talleres)" : ""}</>}>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <CrmField
+                      label={`Precio COP${form.kind === "WORKSHOP" ? " *" : ""}`}
+                    >
+                      <Input
+                        type="number"
+                        value={copForm.amountCop}
+                        onChange={(e) =>
+                          setCopForm((f) => ({ ...f, amountCop: e.target.value }))
+                        }
+                      />
+                    </CrmField>
+                    <CrmField label="Precio lista COP (opcional)">
+                      <Input
+                        type="number"
+                        value={copForm.listAmountCop}
+                        onChange={(e) =>
+                          setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
+                        }
+                      />
+                    </CrmField>
+                  </div>
+                </CrmFieldset>
+
+                {/*
+                  Las viñetas se guardan como un texto con saltos de línea —así
+                  las lee `productToPlan`— pero se editan una a una: en un
+                  `<textarea>` no se ve cuál es cada ficha de la tarjeta ni se
+                  pueden reordenar sin cortar y pegar.
+                */}
+                <StringListEditor
+                  label="Fichas de la tarjeta"
+                  items={descriptionToItems(form.description)}
+                  onChange={(items) =>
+                    setForm((f) => ({ ...f, description: itemsToDescription(items) }))
+                  }
+                  placeholder="Ej. 4 sesiones de 60 minutos"
+                  addLabel="Agregar ficha"
+                />
+
+                <CrmFieldset legend={"Presentación"}>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <CrmField label="Etiqueta corta">
+                      <Input
+                        value={form.tag}
+                        onChange={(e) => setForm((f) => ({ ...f, tag: e.target.value }))}
+                        placeholder="Ej. Más elegido"
+                      />
+                    </CrmField>
+                    <CrmField label="Precio por unidad">
+                      <Input
+                        value={form.unitPriceLabel}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, unitPriceLabel: e.target.value }))
+                        }
+                        placeholder="Ej. / sesión"
+                      />
+                    </CrmField>
+                  </div>
+
+                  {/*
+                    Color del título y del precio.
+
+                    Es una lista cerrada y no un selector de color: la web
+                    tiene siete colores, y un color libre deja publicar algo
+                    ilegible sobre el papel crema sin que nada lo impida hasta
+                    que ya está publicado. El motivo largo está en
+                    `lib/products/accents.ts`, que es de donde salen tanto
+                    estas muestras como lo que pinta la tarjeta — una sola
+                    lista, no dos que se puedan separar.
+
+                    Botones y no un `select` porque lo que se elige es un
+                    color: leer «Terracota degradado» no dice cómo queda, y la
+                    tarjeta de al lado lo enseña en cuanto se pulsa.
+                  */}
+                  <div className="mt-3 space-y-1.5">
+                    <Label>Color del título y el precio</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {PRODUCT_ACCENTS.map((accent) => {
+                        const selected = form.accent === accent.id;
+                        return (
+                          <button
+                            key={accent.id}
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => ({ ...f, accent: accent.id }))
+                            }
+                            aria-pressed={selected}
+                            title={accent.hint}
+                            className={`flex items-center gap-2 rounded-full border py-1 pr-3 pl-1 text-xs transition-colors ${
+                              selected
+                                ? "border-primary bg-accent text-accent-foreground"
+                                : "border-border text-muted-foreground hover:bg-accent/50"
+                            }`}
+                          >
+                            <span
+                              aria-hidden
+                              className={`size-5 rounded-full border border-border ${accent.swatch}`}
+                            />
+                            {accent.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <label className="mt-3 flex w-fit cursor-pointer items-center gap-2.5 select-none">
+                    <Checkbox
+                      checked={form.highlight}
+                      onCheckedChange={(checked) =>
+                        setForm((f) => ({ ...f, highlight: checked === true }))
+                      }
+                    />
+                    <span className="text-sm">Destacar esta tarjeta</span>
+                  </label>
+
+                  <div className="mt-3 space-y-1.5">
+                    <Label>Titular en el diagnóstico (opcional)</Label>
+                    <Input
+                      value={form.therapyHeadline}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, therapyHeadline: e.target.value }))
+                      }
+                      placeholder="Frase con la que se presenta al recomendarlo"
+                    />
+                  </div>
+
+                  <div className="mt-3 space-y-1.5">
+                    <Label>Mensaje de WhatsApp (opcional)</Label>
+                    <Textarea
+                      className="min-h-[70px]"
+                      value={form.whatsappMessage}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, whatsappMessage: e.target.value }))
+                      }
+                      placeholder="Texto con el que se abre el chat desde este paquete"
+                    />
+                  </div>
+                </CrmFieldset>
+
+                {!creating && (
+                  <label className="flex w-fit cursor-pointer items-center gap-2.5 select-none">
+                    <Checkbox
+                      checked={form.isActive}
+                      onCheckedChange={(checked) =>
+                        setForm((f) => ({ ...f, isActive: checked === true }))
+                      }
+                    />
+                    <span className="text-sm">Paquete activo (visible en la web)</span>
+                  </label>
+                )}
+
+            </div>
+
+            {creating ? (
+              <ProductCardPreview
+                input={{
+                  kind: form.kind,
+                  title: form.title,
+                  sessionsLabel: form.sessionsLabel,
+                  sessionsCount: form.sessionsCount,
+                  description: form.description,
+                  imageUrl: form.imageUrl,
+                  tag: form.tag,
+                  highlight: form.highlight,
+                  unitPriceLabel: form.unitPriceLabel,
+                  amountUsd: form.amountUsd,
+                  listAmountUsd: form.listAmountUsd,
+                  amountCop: copForm.amountCop,
+                  listAmountCop: copForm.listAmountCop,
+                  accent: form.accent,
+                }}
+              />
+            ) : null}
+            </div>
+
+            <CrmFormActions size="sm">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditing(null);
+                  setCreating(false);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={() => void save()}>Guardar</Button>
+            </CrmFormActions>
+    </>
+  );
+
 
   return (
     <CrmPageShell>
@@ -479,330 +930,201 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
           ) : undefined
         }
         trailing={
-          <CrmSegmentedControl
-            value={view}
-            onChange={setView}
-            aria-label="Moneda"
-            segments={[
-              { id: "usd" as View, label: "Internacional (USD)" },
-              { id: "cop" as View, label: "Colombia (COP)" },
-            ]}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <CrmSegmentedControl
+              value={view}
+              onChange={setView}
+              aria-label="Moneda"
+              segments={[
+                { id: "usd" as View, label: "Internacional (USD)" },
+                { id: "cop" as View, label: "Colombia (COP)" },
+              ]}
+            />
+            <CrmSegmentedControl
+              value={density}
+              onChange={setDensity}
+              aria-label="Densidad"
+              segments={[
+                { id: "compact" as Density, label: "Compacta" },
+                { id: "full" as Density, label: "Publicada" },
+              ]}
+            />
+          </div>
         }
       />
 
-      {/* Edit / Create form */}
+      {/* Crear va en modal: no hay tarjeta que editar todavía. Editar pasa
+          a hacerse sobre la propia tarjeta, mas abajo. */}
       <CrmModal
-          title={creating ? "Nuevo paquete" : `Editar: ${editing?.title ?? ""}`}
-          open={!!showForm && canManageTeam}
-          onClose={() => {
-            setEditing(null);
-            setCreating(false);
-          }}
-          large
-        >
-          {/*
-            Formulario a la izquierda, tarjeta pública a la derecha. La vista
-            previa se queda pegada al hacer scroll porque el formulario es más
-            alto que ella: si se fuera hacia arriba al escribir las viñetas,
-            justo dejaría de verse en el momento en que cambia.
-          */}
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <SearchableSelect
-                  label="Tipo"
-                  value={form.kind}
-                  options={Object.entries(KIND_LABEL).map(([value, label]) => ({
-                    value,
-                    label,
-                  }))}
-                  onChange={(kind) =>
-                    setForm((f) => ({ ...f, kind: kind as ProductKind }))
-                  }
-                  searchMinOptions={99}
-                />
-                <div className="space-y-1.5">
-                  <Label>Título</Label>
-                  <Input
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Portada</Label>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 space-y-2">
-                      <input
-                        ref={coverInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/avif"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          e.target.value = "";
-                          if (file) void uploadCover(file);
-                        }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={uploadingCover}
-                        onClick={() => coverInputRef.current?.click()}
-                      >
-                        {uploadingCover ? "Subiendo…" : "Subir imagen"}
-                      </Button>
-                      <Input
-                        value={form.imageUrl}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, imageUrl: e.target.value }))
-                        }
-                        placeholder="…o pega una URL"
-                      />
-                    </div>
-                    {form.imageUrl.trim() && (
-                      // eslint-disable-next-line @next/next/no-img-element -- arbitrary external URL, no next/image domain config for it
-                      <img
-                        src={form.imageUrl.trim()}
-                        alt=""
-                        className="h-16 w-24 shrink-0 rounded-md object-cover ring-1 ring-border"
-                        onError={(e) => (e.currentTarget.style.visibility = "hidden")}
-                      />
-                    )}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Etiqueta sesiones</Label>
-                  <Input
-                    value={form.sessionsLabel}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, sessionsLabel: e.target.value }))
-                    }
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Nº sesiones (terapia)</Label>
-                  <Input
-                    type="number"
-                    value={form.sessionsCount}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, sessionsCount: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-border pt-4">
-                <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
-                  Precio Internacional — USD (PayPal)
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label>Precio USD</Label>
-                    <Input
-                      type="number"
-                      value={form.amountUsd}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, amountUsd: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Precio lista USD (opcional)</Label>
-                    <Input
-                      type="number"
-                      value={form.listAmountUsd}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="border-t border-border pt-4">
-                <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
-                  Precio Colombia — COP (Mercado Pago)
-                  {form.kind === "WORKSHOP" ? " (requerido para talleres)" : ""}
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label>Precio COP{form.kind === "WORKSHOP" ? " *" : ""}</Label>
-                    <Input
-                      type="number"
-                      value={copForm.amountCop}
-                      onChange={(e) =>
-                        setCopForm((f) => ({ ...f, amountCop: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Precio lista COP (opcional)</Label>
-                    <Input
-                      type="number"
-                      value={copForm.listAmountCop}
-                      onChange={(e) =>
-                        setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/*
-                Las viñetas se guardan como un texto con saltos de línea —así
-                las lee `productToPlan`— pero se editan una a una: en un
-                `<textarea>` no se ve cuál es cada ficha de la tarjeta ni se
-                pueden reordenar sin cortar y pegar.
-              */}
-              <StringListEditor
-                label="Fichas de la tarjeta"
-                items={descriptionToItems(form.description)}
-                onChange={(items) =>
-                  setForm((f) => ({ ...f, description: itemsToDescription(items) }))
-                }
-                placeholder="Ej. 4 sesiones de 60 minutos"
-                addLabel="Agregar ficha"
-              />
-
-              <div className="border-t border-border pt-4">
-                <p className="mb-3 text-[10px] tracking-widest text-muted-foreground uppercase">
-                  Presentación
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label>Etiqueta corta</Label>
-                    <Input
-                      value={form.tag}
-                      onChange={(e) => setForm((f) => ({ ...f, tag: e.target.value }))}
-                      placeholder="Ej. Más elegido"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label>Precio por unidad</Label>
-                    <Input
-                      value={form.unitPriceLabel}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, unitPriceLabel: e.target.value }))
-                      }
-                      placeholder="Ej. / sesión"
-                    />
-                  </div>
-                </div>
-
-                <label className="mt-3 flex w-fit cursor-pointer items-center gap-2.5 select-none">
-                  <Checkbox
-                    checked={form.highlight}
-                    onCheckedChange={(checked) =>
-                      setForm((f) => ({ ...f, highlight: checked === true }))
-                    }
-                  />
-                  <span className="text-sm">Destacar esta tarjeta</span>
-                </label>
-
-                <div className="mt-3 space-y-1.5">
-                  <Label>Titular en el diagnóstico (opcional)</Label>
-                  <Input
-                    value={form.therapyHeadline}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, therapyHeadline: e.target.value }))
-                    }
-                    placeholder="Frase con la que se presenta al recomendarlo"
-                  />
-                </div>
-
-                <div className="mt-3 space-y-1.5">
-                  <Label>Mensaje de WhatsApp (opcional)</Label>
-                  <Textarea
-                    className="min-h-[70px]"
-                    value={form.whatsappMessage}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, whatsappMessage: e.target.value }))
-                    }
-                    placeholder="Texto con el que se abre el chat desde este paquete"
-                  />
-                </div>
-              </div>
-
-              {!creating && (
-                <label className="flex w-fit cursor-pointer items-center gap-2.5 select-none">
-                  <Checkbox
-                    checked={form.isActive}
-                    onCheckedChange={(checked) =>
-                      setForm((f) => ({ ...f, isActive: checked === true }))
-                    }
-                  />
-                  <span className="text-sm">Paquete activo (visible en la web)</span>
-                </label>
-              )}
-
-          </div>
-
-          <div className="lg:sticky lg:top-0 lg:self-start">
-            <ProductCardPreview
-              input={{
-                kind: form.kind,
-                title: form.title,
-                sessionsLabel: form.sessionsLabel,
-                sessionsCount: form.sessionsCount,
-                description: form.description,
-                imageUrl: form.imageUrl,
-                tag: form.tag,
-                highlight: form.highlight,
-                unitPriceLabel: form.unitPriceLabel,
-                amountUsd: form.amountUsd,
-                listAmountUsd: form.listAmountUsd,
-                amountCop: copForm.amountCop,
-                listAmountCop: copForm.listAmountCop,
-              }}
-            />
-          </div>
-          </div>
-
-          <CrmFormActions size="sm">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setEditing(null);
-                setCreating(false);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={() => void save()}>Guardar</Button>
-          </CrmFormActions>
-        </CrmModal>
+        title="Nuevo paquete"
+        open={creating && canManageTeam}
+        onClose={() => setCreating(false)}
+        large
+      >
+        {editorBody}
+      </CrmModal>
 
       {/*
-        Antes esta lista se enviaba dos veces: una `<Table>` para `lg` y una
-        lista de tarjetas duplicada para móvil, con el mismo contenido escrito
-        dos veces y mantenido a mano. Ahora es una sola fila que se reordena
-        sola: las columnas quedan alineadas en pantalla ancha porque cada celda
-        tiene su anchura, y se apilan en móvil sin media query aparte.
+        Editar va en un panel lateral, no expandiendo la celda.
+        La celda expandida metía ~1.200px de formulario dentro de la rejilla y
+        empujaba todas las tarjetas de abajo fuera de la pantalla. El panel se
+        porta a `document.body`, así que **no mueve nada**: la tarjeta se queda
+        a la vista y se actualiza mientras escribes.
       */}
-      <CrmDataList>
-        {loading ? (
-          <CrmLoadingState rows={4} />
-        ) : products.length === 0 ? (
-          <CrmEmptyState
-            icon={Package}
-            title="Sin paquetes"
-            description="Los paquetes son lo que se vende en la web: terapias, cursos y talleres."
-          />
-        ) : (
-          products.map((p, index) => {
+      <Sheet
+        open={editing !== null && canManageTeam}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      >
+        <SheetContent
+          /* `data-[side=right]:` y no `sm:` a secas: la clase base del Sheet
+             trae `data-[side=right]:sm:max-w-sm`, y como son variantes
+             distintas tailwind-merge no las considera en conflicto — la del
+             atributo gana y el panel se quedaba en 384px, con la columna de
+             campos fuera de la pantalla. */
+          className="w-full gap-0 overflow-y-auto data-[side=right]:sm:max-w-3xl"
+          aria-describedby={undefined}
+        >
+          <SheetHeader>
+            <SheetTitle>{editing?.title ?? "Editar paquete"}</SheetTitle>
+            <SheetDescription>
+              Así se va viendo publicada mientras escribes.
+            </SheetDescription>
+          </SheetHeader>
+
+          {/*
+            La tarjeta viaja DENTRO del panel, no en la rejilla.
+            Se intentó primero que la vista previa fuese la tarjeta de la
+            rejilla —era la misma— pero en una rejilla de tres columnas la que
+            estás editando puede quedar en el otro extremo de la pantalla, o
+            directamente debajo del panel. Mirar cómo cambia obligaba a mirar a
+            otro sitio, y a veces a ninguno.
+
+            Pegada arriba (`sticky`) porque el formulario es más alto que ella:
+            al bajar a las viñetas dejaría de verse justo cuando más cambia.
+          */}
+          <div className="grid gap-6 px-4 pb-6 lg:grid-cols-[19rem_minmax(0,1fr)]">
+            {editing ? (
+              <div className="lg:sticky lg:top-2 lg:self-start">
+                <div className="rounded-xl bg-hero-paper p-4">
+                  <PublicProductCard
+                    plan={draftPlan()}
+                    isColombia={view === "cop"}
+                    size="sm"
+                  />
+                </div>
+                {/*
+                  El selector de moneda, aquí y no sólo en la cabecera.
+                  La tarjeta enseña COP **o** USD según la región, pero el
+                  formulario edita las dos: sin este control había que cerrar
+                  el panel para ver el otro precio publicado, porque el propio
+                  panel tapa el de arriba.
+                */}
+                <div className="mt-3 flex justify-center">
+                  <CrmSegmentedControl
+                    value={view}
+                    onChange={setView}
+                    aria-label="Moneda de la vista previa"
+                    segments={[
+                      { id: "usd" as View, label: "USD" },
+                      { id: "cop" as View, label: "COP" },
+                    ]}
+                  />
+                </div>
+              </div>
+            ) : null}
+            <div>{editing ? editorBody : null}</div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/*
+        Rejilla de tarjetas, no lista.
+        Lo que se edita aqui ES lo que la clienta ve, asi que la fila deja de
+        ser una fila: se pinta el `PublicProductCard` de verdad —el mismo
+        componente que sirve /pagar y el resultado del diagnostico— y editar
+        abre un panel lateral que no mueve nada de aqui.
+        El contrato de UI admite esta forma en su R8; la excepcion esta
+        razonada ahi y no colada.
+
+        Lo que la tarjeta NO puede ensenar va fuera de ella, en la cinta
+        superior: el estado de visibilidad y el aviso de sincronizacion de
+        precio son verdad del CRM, no de la web, y perderlos seria perder el
+        unico sitio donde se lee que un precio quedo sin propagar.
+      */}
+      {loading ? (
+        <CrmLoadingState rows={4} />
+      ) : products.length === 0 ? (
+        <CrmEmptyState
+          icon={Package}
+          title="Sin paquetes"
+          description="Los paquetes son lo que se vende en la web: terapias, cursos y talleres."
+        />
+      ) : (
+        <div
+          data-crm-card-grid=""
+          className={cn(
+            "grid gap-4",
+            density === "compact"
+              // Hasta seis columnas: con dieciséis paquetes son tres filas y
+              // caben todas sin scroll en una pantalla ancha. La fila que
+              // lleva el aviso de sincronización de precio es más alta y
+              // arrastra a las demás, así que el margen se gana en ancho.
+              ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+              : "sm:grid-cols-2 xl:grid-cols-3"
+          )}
+        >
+          {products.map((p, index) => {
             const usd = usdPrice(p);
             const cop = copPrice(p);
             const displayPrice = view === "usd" ? usd : cop;
+            const isEditing = editing?.id === p.id;
+
             return (
-              <CrmDataListRow
+              <div
                 key={p.id}
-                actions={
-                  canManageTeam && !preview ? (
+                className={cn(
+                  "flex flex-col rounded-xl border bg-card",
+                  density === "compact" ? "gap-1 p-3" : "gap-3 p-4",
+                  // La que se está editando se marca, pero NO se expande: el
+                  // editor vive en un panel que no mueve la rejilla.
+                  isEditing ? "border-ring ring-3 ring-ring/20" : "border-border"
+                )}
+              >
+                {/*
+                  En compacta las acciones van SOLAS en su fila.
+                  Compartiendo línea con el estado, una etiqueta larga como
+                  «Sin precio · No visible» empujaba los iconos encima del
+                  texto y no se leía ni una cosa ni la otra.
+                */}
+                <div
+                  className={cn(
+                    "flex gap-2",
+                    density === "compact"
+                      ? "items-center justify-end"
+                      : "items-start justify-between"
+                  )}
+                >
+                  {density === "full" ? (
+                    <div className="min-w-0">
+                      <ProductStatusBadge
+                        view={view}
+                        isActive={p.isActive}
+                        displayPrice={displayPrice}
+                        usd={usd}
+                        cop={cop}
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {KIND_LABEL[p.kind]}
+                      </p>
+                    </div>
+                  ) : null}
+                  {canManageTeam && !preview ? (
                     <CrmRowActions>
                       {/*
-                        El orden de esta lista es el orden en que la web
-                        muestra el catálogo. Se editaba sólo por `sortOrder`
-                        desde un script.
+                        El orden de la rejilla es el orden del catalogo en la
+                        web. Se editaba solo por `sortOrder` desde un script.
                       */}
                       <Button
                         variant="ghost"
@@ -822,42 +1144,75 @@ const ProductsPageClient = ({ preview, initialProducts }: Props) => {
                       >
                         <ChevronDown className="size-4" />
                       </Button>
+                      {/*
+                        El enlace fijo del paquete. Antes de editar, según el
+                        orden de la R6 (previsualizar → propias → editar →
+                        borrar): copiar es lo que se hace a diario, editar no.
+                      */}
+                      <CrmRowAction
+                        icon={Copy}
+                        label={`Copiar el enlace de ${p.title}`}
+                        onClick={() => void copyProductLink(p)}
+                      />
                       <CrmRowEdit onClick={() => openEdit(p)} />
                       <CrmRowDelete onClick={() => remove(p.id)} />
                     </CrmRowActions>
-                  ) : undefined
-                }
-              >
-                <div className="min-w-0 flex-1 basis-full sm:basis-auto">
-                  <div className="text-sm font-medium">{p.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {KIND_LABEL[p.kind]}
-                  </div>
-                  {hasSubscriptionPlan(p) ? (
-                    <PriceSyncNotice
-                      product={p}
-                      canVerify={canManageTeam && !preview}
-                      onVerified={load}
+                  ) : undefined}
+                </div>
+
+                {/* La tarjeta publica, sobre el fondo de la web: una tarjeta
+                    de papel crema se lee distinta sobre el gris del panel, y
+                    la pregunta que responde esta pantalla es como se ve
+                    publicada. */}
+                {density === "full" ? (
+                  <div className="rounded-lg bg-hero-paper p-3">
+                    {/* Mientras se edita, esta tarjeta ES la vista previa: se
+                        pinta con lo que hay escrito, no con lo guardado. */}
+                    <PublicProductCard
+                      plan={isEditing ? draftPlan() : productToPreviewPlan(p)}
+                      isColombia={view === "cop"}
+                      size="sm"
                     />
-                  ) : null}
-                </div>
-                <div className="text-sm sm:w-40">
-                  <ProductPriceDisplay view={view} displayPrice={displayPrice} />
-                </div>
-                <div className="sm:w-36">
-                  <ProductStatusBadge
-                    view={view}
-                    isActive={p.isActive}
-                    displayPrice={displayPrice}
-                    usd={usd}
-                    cop={cop}
+                  </div>
+                ) : (
+                  /* Compacta: lo que se consulta a diario. Nombre, la línea de
+                     sesiones y el precio de la moneda que se está mirando. Sin
+                     viñetas ni portada — eso es la tarjeta publicada, y está a
+                     un clic en el panel. */
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {(isEditing ? draftPlan() : productToPreviewPlan(p)).title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {(isEditing ? draftPlan() : productToPreviewPlan(p)).sessions}
+                    </p>
+                    <p className="mt-1.5 font-medium tabular-nums">
+                      {compactPrice(isEditing ? draftPlan() : productToPreviewPlan(p), view)}
+                    </p>
+                    <div className="mt-1.5">
+                      <ProductStatusBadge
+                        view={view}
+                        isActive={p.isActive}
+                        displayPrice={displayPrice}
+                        usd={usd}
+                        cop={cop}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {hasSubscriptionPlan(p) ? (
+                  <PriceSyncNotice
+                    product={p}
+                    canVerify={canManageTeam && !preview}
+                    onVerified={load}
                   />
-                </div>
-              </CrmDataListRow>
+                ) : null}
+              </div>
             );
-          })
-        )}
-      </CrmDataList>
+          })}
+        </div>
+      )}
     </CrmPageShell>
   );
 };

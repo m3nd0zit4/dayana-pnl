@@ -156,47 +156,6 @@ const loadSource = async (input: {
     };
   }
 
-  if (input.source === "therapy_session") {
-    if (!input.therapySessionId) {
-      return { error: "Para una sesión de terapia indica therapySessionId." };
-    }
-    const session = await prisma.therapySession.findUnique({
-      where: { id: input.therapySessionId },
-      include: {
-        therapyPackage: {
-          include: {
-            enrollment: {
-              include: {
-                contact: {
-                  select: {
-                    displayName: true,
-                    firstName: true,
-                    timezone: true,
-                    countryIso: true,
-                  },
-                },
-                product: { select: { title: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-    if (!session) return { error: "Sesión de terapia no encontrada." };
-    if (!session.scheduledAt) {
-      return { error: "Esa sesión aún no tiene fecha/hora agendada." };
-    }
-    const contact = session.therapyPackage.enrollment.contact;
-    const name = contact.displayName ?? contact.firstName;
-    return {
-      kind: "therapy_session",
-      label: `Sesión ${session.sessionNumber} · ${name}`,
-      startsAtIso: session.scheduledAt.toISOString(),
-      hasTime: true,
-      sourceTimezone: contact.timezone || crmTz,
-    };
-  }
-
   // instant
   if (!input.startsAtIso) {
     return { error: "Para source=instant indica startsAtIso (UTC ISO-8601)." };

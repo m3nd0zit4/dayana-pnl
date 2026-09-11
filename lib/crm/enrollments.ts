@@ -219,7 +219,6 @@ export const getEnrollmentById = async (id: string) =>
       product: true,
       workshopEdition: true,
       payments: { orderBy: { createdAt: "desc" } },
-      therapyPackage: { include: { sessions: { orderBy: { sessionNumber: "asc" } } } },
     },
   });
 
@@ -336,7 +335,7 @@ export const updateEnrollmentStatus = async (
         ? { completedAt: new Date() }
         : {}),
     },
-    include: { product: true, contact: true, therapyPackage: true },
+    include: { product: true, contact: true },
   });
 
   fireNotification({
@@ -357,8 +356,8 @@ export const updateEnrollmentStatus = async (
 
 /**
  * Hard-deletes an enrollment with no approved payment (a "service" that was
- * only a lead/pending draft). Payments/TherapyPackage/TherapySessions cascade
- * at the DB level — an enrollment that has ever been paid must be cancelled
+ * only a lead/pending draft). Payments and any operational therapy data
+ * cascade at the DB level — an enrollment that has ever been paid must be cancelled
  * instead, never deleted, so the payment ledger is never silently dropped.
  */
 export const deleteEnrollment = async (enrollmentId: string) => {

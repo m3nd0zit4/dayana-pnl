@@ -29,6 +29,16 @@ enum ProductKind {
   WORKSHOP
 }
 
+/// El acento de color de la tarjeta pública. Conjunto CERRADO a propósito:
+/// ver lib/products/accents.ts para por qué no es un color libre.
+enum ProductAccent {
+  NEUTRAL
+  TERRACOTTA
+  TERRACOTTA_GRADIENT
+  SAND_GRADIENT
+  INK_GRADIENT
+}
+
 enum EnrollmentStatus {
   LEAD
   PENDING_PAYMENT
@@ -49,26 +59,6 @@ enum PaymentStatus {
   APPROVED
   FAILED
   REFUNDED
-}
-
-enum TherapySessionStatus {
-  PENDING_SCHEDULE
-  SCHEDULED
-  COMPLETED
-  NO_SHOW
-  CANCELLED
-  RESCHEDULED
-}
-
-enum NotebookPageKind {
-  CANVAS
-  UPLOAD
-}
-
-enum NotebookPageBackground {
-  BLANK
-  RULED
-  GRID
 }
 
 enum WorkshopEditionStatus {
@@ -235,11 +225,6 @@ enum NotificationEventType {
   LEAD_STALE
   DIAGNOSTIC_COMPLETED
   DIAGNOSTIC_UNCONVERTED
-  // Terapias
-  THERAPY_SESSION_SCHEDULED
-  THERAPY_SESSION_RESCHEDULED
-  THERAPY_SESSION_COMPLETED
-  THERAPY_SESSION_NO_SHOW
   // Curso y membresía
   MEMBER_SIGNED_UP
   MEMBERSHIP_DUE_SOON
@@ -302,7 +287,6 @@ model Contact {
   messageLogs            MessageLog[]
   notificationDeliveries NotificationDelivery[]
   notificationRecipients NotificationRecipient[]
-  notebookPages          ContactNotebookPage[]
   memberAccount          MemberAccount?
   memberAuthTokens       MemberAuthToken[]
   moduleProgress         CourseModuleProgress[]
@@ -373,6 +357,9 @@ model Product {
   highlight       Boolean     @default(false)
   whatsappMessage String?     @map("whatsapp_message") @db.Text
   therapyHeadline String?     @map("therapy_headline")
+  /// Color del título y del precio en la tarjeta. Sólo eso: el cuerpo sigue
+  /// en tinta porque texto corrido en degradado se lee peor.
+  accent          ProductAccent @default(NEUTRAL)
 
   /// Espejo del Product de PayPal, escrito por scripts/paypal/setup-subscription.ts.
   paypalProductId String? @unique @map("paypal_product_id")
@@ -675,10 +662,9 @@ model Enrollment {
   parentEnrollment         Enrollment?               @relation("EnrollmentRenewals", fields: [parentEnrollmentId], references: [id])
   childEnrollments         Enrollment[]              @relation("EnrollmentRenewals")
   payments                 Payment[]
-  therapyPackage           TherapyPackage?
-  notebookPages            ContactNotebookPage[]
   paymentVerificationCodes PaymentVerificationCode[]
   promoCodeRedemption      PromoCodeRedemption?
+  paymentLinks             PaymentLink[]
 
   @@index([contactId, status])
   @@index([contactId, productId])
@@ -689,9 +675,6 @@ model Enrollment {
   @@index([updatedAt])
   @@index([paidUntil])
   @@map("enrollments")
-
-  /// Enlaces de pago que terminaron en esta matrícula.
-  paymentLinks PaymentLink[]
 }
 
 model Payment {
@@ -826,78 +809,6 @@ model PromoCodeRedemption {
   @@map("promo_code_redemptions")
 }
 
-model TherapyPackage {
-  id                 String   @id @default(cuid())
-  enrollmentId       String   @unique @map("enrollment_id")
-  totalSessions      Int      @map("total_sessions")
-  usedSessions       Int      @default(0) @map("used_sessions")
-  meetDefaultUrl     String?  @map("meet_default_url")
-  reprogrammingNotes String?  @map("reprogramming_notes") @db.Text
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  enrollment Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  sessions   TherapySession[]
-
-  @@map("therapy_packages")
-}
-
-model TherapySession {
-  id               String               @id @default(cuid())
-  therapyPackageId String               @map("therapy_package_id")
-  sessionNumber    Int                  @map("session_number")
-  scheduledAt      DateTime?            @map("scheduled_at")
-  durationMinutes  Int                  @default(60) @map("duration_minutes")
-  status           TherapySessionStatus @default(SCHEDULED)
-  meetUrl          String?              @map("meet_url")
-  /// Evento de Google Calendar que representa esta sesión, si se sincronizó.
-  /// Guardarlo hace que volver a sincronizar actualice el evento en vez de
-  /// crear uno nuevo cada vez.
-  googleEventId    String?              @map("google_event_id")
-  clinicalNotes    String?              @map("clinical_notes") @db.Text
-  completedAt      DateTime?            @map("completed_at")
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
-
-  therapyPackage TherapyPackage        @relation(fields: [therapyPackageId], references: [id], onDelete: Cascade)
-  notebookPages  ContactNotebookPage[]
-
-  @@unique([therapyPackageId, sessionNumber])
-  @@index([scheduledAt])
-  @@index([status, scheduledAt])
-  @@map("therapy_sessions")
-}
-
-model ContactNotebookPage {
-  id               String                 @id @default(cuid())
-  contactId        String                 @map("contact_id")
-  title            String
-  sortOrder        Int                    @map("sort_order")
-  kind             NotebookPageKind       @default(CANVAS)
-  background       NotebookPageBackground @default(BLANK)
-  canvasData       Json?                  @map("canvas_data")
-  canvasUrl        String?                @map("canvas_url")
-  bodyText         String?                @map("body_text") @db.Text
-  attachmentUrl    String?                @map("attachment_url")
-  attachmentMime   String?                @map("attachment_mime")
-  attachmentName   String?                @map("attachment_name")
-  previewUrl       String?                @map("preview_url")
-  therapySessionId String?                @map("therapy_session_id")
-  enrollmentId     String?                @map("enrollment_id")
-  createdByStaffId String?                @map("created_by_staff_id")
-  createdAt        DateTime               @default(now()) @map("created_at")
-  updatedAt        DateTime               @updatedAt @map("updated_at")
-
-  contact        Contact         @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  therapySession TherapySession? @relation(fields: [therapySessionId], references: [id], onDelete: SetNull)
-  enrollment     Enrollment?     @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
-  createdByStaff StaffUser?      @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
-
-  @@index([contactId, sortOrder])
-  @@index([contactId, updatedAt(sort: Desc)])
-  @@map("contact_notebook_pages")
-}
-
 model StaffUser {
   id              String    @id @default(cuid())
   email           String    @unique
@@ -913,7 +824,6 @@ model StaffUser {
 
   auditLogs                AuditLog[]
   messageLogs              MessageLog[]
-  notebookPages            ContactNotebookPage[]
   staffSessions            StaffSession[]
   paymentVerificationCodes PaymentVerificationCode[]
   notificationRecipients   NotificationRecipient[]
@@ -1769,9 +1679,11 @@ model PaymentLink {
   /// nunca del enlace, así que manipularlo no puede cambiar un importe.
   token String @unique
 
-  /// Opcional: un enlace se acuerda por teléfono o se manda a alguien que
-  /// todavía no está en el CRM. Sin contacto, el pago sigue el camino anónimo
-  /// normal del sitio y se reconcilia después.
+  /// Opcional a proposito. Un enlace puede crearse sin saber a quien se le
+  /// manda —un cobro acordado por telefono, un pago que se reenvia— y esa era
+  /// exactamente la limitacion que impedia cobrar. Sin contacto, el pago cae
+  /// en el camino anonimo normal del sitio y se reconcilia despues con lo que
+  /// reporte el pagador.
   contactId String? @map("contact_id")
   productId String  @map("product_id")
 
@@ -1794,22 +1706,27 @@ model PaymentLink {
   /// Se desactiva a mano desde el panel. Un enlace revocado responde 404.
   revokedAt DateTime? @map("revoked_at")
 
-  /// Se sella cuando el dinero llega. Sin esto el panel se quedaba en
-  /// «Empezó a pagar» para siempre.
+  /// Se sella cuando el cobro entra. Sin esto el panel se quedaba en «Empezó
+  /// a pagar» para siempre aunque el dinero hubiera llegado — el canal de
+  /// ventas diciendo que nadie compró.
+  ///
+  /// Sólo se sella en enlaces CON ficha: uno abierto es reutilizable a
+  /// propósito y no tiene un comprador único al que atribuirle el cobro.
   paidAt       DateTime? @map("paid_at")
   enrollmentId String?   @map("enrollment_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  /// `SetNull` y no `Cascade`: borrar un contacto no puede llevarse por
+  /// delante el rastro de un cobro acordado con esa persona.
   contact        Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdByStaff StaffUser?  @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
-  enrollment     Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
 
   @@index([contactId, createdAt(sort: Desc)])
-  /// Sostiene la conciliación: «un enlace de este contacto, para este
-  /// producto, que todavía no esté cobrado».
   @@index([contactId, productId, paidAt])
   @@map("payment_links")
 }

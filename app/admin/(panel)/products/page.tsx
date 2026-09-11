@@ -1,7 +1,7 @@
 import ProductsPageClient from "@/app/components/admin/crm/ProductsPageClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
-import { listAllProducts } from "@/lib/crm/products-admin";
+import { listSellableProducts } from "@/lib/crm/products-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ const ProductsPage = async () => {
   const staff = await getStaffSession();
   if (!staff) return null;
 
-  const products = await listAllProducts();
+  const products = await listSellableProducts();
 
   return (
     <ProductsPageClient

@@ -28,7 +28,6 @@ export default defineTool({
         status: e.status,
         productTitle: e.product.title,
         hasApprovedPayment: e.payments.some((p) => p.status === "APPROVED"),
-        hasTherapyPackage: e.therapyPackage != null,
         ref: { type: "enrollment" as const, id: e.id, href: `/admin/enrollments/${e.id}` },
       })),
     };

@@ -3,6 +3,7 @@ import { getActiveProducts, latestCopPrice, latestUsdPrice } from "./crm/product
 import { resolveUsdToCopRate } from "./crm/site-settings";
 import type { Plan } from "./plans";
 import { prisma } from "./db";
+import { resolveProductAccent } from "@/lib/products/accents";
 
 const kindToPlanKind = (kind: ProductKind): Plan["kind"] =>
   kind === ProductKind.THERAPY ? "therapy" : "course";
@@ -65,6 +66,7 @@ export const productToPlan = (
     membershipMonths: product.membershipMonths ?? undefined,
     tag: product.tag ?? undefined,
     highlight: product.highlight || undefined,
+    accent: resolveProductAccent(product.accent).id,
     therapyPresentation:
       kind === "therapy"
         ? {

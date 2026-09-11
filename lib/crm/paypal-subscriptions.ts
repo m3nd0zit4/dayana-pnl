@@ -80,6 +80,11 @@ export const syncSubscriptionActivated = async (
       data: {
         paypalSubscriptionId: subscriptionId,
         subscriptionStatus: SubscriptionStatus.ACTIVE,
+        // Mercado Pago sí lo escribía y PayPal no, así que la columna decía
+        // «ninguno» para media suscripción viva. Cualquier recuento por riel
+        // —el de la pantalla de Suscripciones, por ejemplo— daba cero en
+        // PayPal.
+        subscriptionProvider: PaymentProvider.PAYPAL,
       },
     });
   }
@@ -205,6 +210,7 @@ export const syncSubscriptionPayment = async (
     data: {
       paypalSubscriptionId: subscriptionId,
       subscriptionStatus: SubscriptionStatus.ACTIVE,
+      subscriptionProvider: PaymentProvider.PAYPAL,
     },
   });
 

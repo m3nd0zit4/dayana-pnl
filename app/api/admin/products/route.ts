@@ -6,7 +6,7 @@ import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createProduct,
   deactivateProduct,
-  listAllProducts,
+  listSellableProducts,
   updateProduct,
 } from "@/lib/crm/products-admin";
 import { canManageTeam } from "@/lib/crm/staff";
@@ -27,7 +27,7 @@ export async function GET() {
   const staff = await resolveAdminStaff();
   if (staff instanceof NextResponse) return staff;
 
-  const products = await listAllProducts();
+  const products = await listSellableProducts();
   return NextResponse.json({ products });
 }
 
@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
       unitPriceLabel: input.unitPriceLabel,
       therapyHeadline: input.therapyHeadline,
       whatsappMessage: input.whatsappMessage,
+      accent: input.accent,
       // Se crea desde la pestaña COP sin precio en dólares: queda a 0 y se
       // pone después. `isPlanVisibleForRegion` ya oculta lo que no tiene
       // precio en la moneda del visitante, así que no se publica roto.
@@ -166,6 +167,7 @@ export async function PATCH(req: NextRequest) {
       unitPriceLabel: body.unitPriceLabel,
       therapyHeadline: body.therapyHeadline,
       whatsappMessage: body.whatsappMessage,
+      accent: body.accent,
       isActive: body.isActive,
       kind: body.kind as ProductKind | undefined,
       // Ya lo aplicó `changeSubscriptionPrice`; volver a mandarlo haría saltar
@@ -209,7 +211,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   try {
-    const product = await deactivateProduct(body.id);
+    const result = await deactivateProduct(body.id);
     fireAuditLog({
       staffUserId: staff.id,
       action: "DELETE",
@@ -217,8 +219,27 @@ export async function DELETE(req: NextRequest) {
       entityId: body.id,
     });
     revalidatePublicCatalog();
-    return NextResponse.json({ product });
-  } catch {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    /*
+      `outcome` y `reason` viajan al panel para que pueda decir QUÉ pasó. Antes
+      sólo volvía el producto, así que desactivar un curso con lecciones y
+      borrar una terapia vacía eran indistinguibles desde la pantalla.
+    */
+    return NextResponse.json(result);
+  } catch (e) {
+    /*
+      El catch de antes convertía cualquier fallo en 404 «no encontrado»,
+      incluida una violación de clave ajena de Prisma. Quien pulsaba se
+      quedaba sin saber si el producto no existía o si no se pudo borrar, que
+      son cosas distintas y se arreglan distinto.
+    */
+    const message = e instanceof Error ? e.message : String(e);
+    if (message === "NOT_FOUND") {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    console.error("[products] DELETE falló", e);
+    return NextResponse.json(
+      { error: "delete_failed", message },
+      { status: 409 }
+    );
   }
 }

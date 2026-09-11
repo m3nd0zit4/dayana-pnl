@@ -9,13 +9,11 @@ import { BookOpen } from "lucide-react";
 import RegisterPaymentModal, {
   type RegisteredPayment,
 } from "@/app/components/admin/crm/RegisterPaymentModal";
-import ScheduleSessionModal from "@/app/components/admin/crm/ScheduleSessionModal";
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
-import { contactNotebookPath } from "@/lib/crm/contact-notebook-url";
 import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
 import { formatMoneyMinor } from "@/lib/crm/money";
 import { Button } from "@/app/components/ui/button";
@@ -69,14 +67,6 @@ const EnrollmentDetailClient = ({
     currency: string | null;
     contact: { id: string; firstName: string; phoneE164: string; timezone: string };
     product: { title: string; kind: string };
-    therapyPackage: {
-      id: string;
-      totalSessions: number;
-      usedSessions: number;
-      meetDefaultUrl: string | null;
-      reprogrammingNotes: string | null;
-      sessions: Session[];
-    } | null;
     payments: {
       id: string;
       status: string;
@@ -92,41 +82,26 @@ const EnrollmentDetailClient = ({
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-  const [scheduleSession, setScheduleSession] = useState<Session | null>(null);
-  const pkg = enrollment.therapyPackage;
 
-  const refreshPackage = useCallback(async () => {
-    const res = await fetch(
-      `/api/admin/therapy/sessions?enrollmentId=${enrollment.id}`
-    );
 
-    const data = (await res.json()) as {
-      therapyPackage?: (NonNullable<typeof initial.therapyPackage> & {
-        enrollment?: { status: string; sessionsUsed: number };
-      }) | null;
-    };
 
-    if (data.therapyPackage) {
-      const pkg = data.therapyPackage;
-      setEnrollment((e) => ({
-        ...e,
-        status: pkg.enrollment?.status ?? e.status,
-        sessionsUsed: pkg.enrollment?.sessionsUsed ?? pkg.usedSessions ?? e.sessionsUsed,
-        therapyPackage: {
-          ...pkg,
-          sessions: pkg.sessions.map((s) => ({
-            ...s,
-            scheduledAt:
-              typeof s.scheduledAt === "string"
-                ? s.scheduledAt
-                : s.scheduledAt
-                  ? new Date(s.scheduledAt as unknown as string).toISOString()
-                  : null,
-          })),
+
+  const handlePaymentSuccess = (payment: RegisteredPayment) => {
+    setEnrollment((e) => ({
+      ...e,
+      status: EnrollmentStatus.ACTIVE,
+      payments: [
+        {
+          id: payment.id,
+          status: payment.status,
+          amountMinor: payment.amountMinor,
+          currency: payment.currency,
+          provider: payment.provider,
         },
-      }));
-    }
-  }, [enrollment.id]);
+        ...e.payments,
+      ],
+    }));
+  };
 
   const patchEnrollment = async (status: EnrollmentStatus) => {
     const prevStatus = enrollment.status;
@@ -155,102 +130,7 @@ const EnrollmentDetailClient = ({
     if (data.enrollment) {
       setEnrollment((e) => ({ ...e, status: data.enrollment!.status }));
     }
-    toast(`Estado cambiado a «${enrollmentStatusLabel(status)}»`);
-    void refreshPackage();
-  };
-
-  const completeSession = (sessionId: string, sessionNumber: number) => {
-    if (!pkg || sessionId.startsWith("placeholder")) return;
-
-    confirm({
-      title: `Completar sesión ${sessionNumber}`,
-      message: "¿Marcar esta sesión como completada?",
-      onConfirm: async () => {
-        setBusy(true);
-        const res = await fetch("/api/admin/therapy/sessions", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            action: "complete",
-            sessionId,
-            therapyPackageId: pkg.id,
-            sessionNumber,
-          }),
-        });
-        setBusy(false);
-
-        if (res.ok) {
-          toast({
-            message: "Sesión completada",
-            variant: "success",
-            duration: 8000,
-            action: canEditNotes
-              ? {
-                  label: "Abrir cuaderno clínico",
-                  href: contactNotebookPath(enrollment.contact.id, {
-                    focus: true,
-                  }),
-                }
-              : undefined,
-          });
-          void refreshPackage();
-        } else {
-          toast("Error al completar", "error");
-        }
-      },
-    });
-  };
-
-  const uncompleteSession = (sessionId: string, sessionNumber: number) => {
-    if (!pkg || sessionId.startsWith("placeholder")) return;
-
-    confirm({
-      title: `Deshacer sesión ${sessionNumber}`,
-      message:
-        "¿Quitar el completado de esta sesión? Se restará del contador y el servicio volverá a activo si estaba marcado como completado.",
-      onConfirm: async () => {
-        setBusy(true);
-        const res = await fetch("/api/admin/therapy/sessions", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            action: "uncomplete",
-            sessionId,
-            therapyPackageId: pkg.id,
-            sessionNumber,
-          }),
-        });
-        setBusy(false);
-
-        const data = (await res.json()) as { error?: string };
-        if (res.ok) {
-          toast("Sesión desmarcada como completada");
-          void refreshPackage();
-        } else if (data.error === "ACTIVE_THERAPY_EXISTS") {
-          toast("Este contacto ya tiene otra terapia activa", "error");
-        } else {
-          toast("No se pudo deshacer el completado", "error");
-        }
-      },
-    });
-  };
-
-  const handlePaymentSuccess = (payment: RegisteredPayment) => {
-    setEnrollment((e) => ({
-      ...e,
-      status: EnrollmentStatus.ACTIVE,
-      payments: [
-        {
-          id: payment.id,
-          status: payment.status,
-          amountMinor: payment.amountMinor,
-          currency: payment.currency,
-          provider: payment.provider,
-        },
-        ...e.payments,
-      ],
-    }));
-    void refreshPackage();
+    toast(`Estado cambiado a Â«${enrollmentStatusLabel(status)}Â»`);
   };
 
   const hasApprovedPayment = enrollment.payments.some((p) => p.status === "APPROVED");
@@ -289,26 +169,13 @@ const EnrollmentDetailClient = ({
     (enrollment.status === EnrollmentStatus.LEAD ||
       enrollment.status === EnrollmentStatus.PENDING_PAYMENT);
 
-  const progress =
-    pkg && pkg.totalSessions > 0
-      ? (pkg.usedSessions / pkg.totalSessions) * 100
-      : enrollment.sessionsTotal
-        ? (enrollment.sessionsUsed / enrollment.sessionsTotal) * 100
-        : 0;
-
-  const allSessions =
-    pkg?.sessions.length
-      ? pkg.sessions
-      : pkg
-        ? Array.from({ length: pkg.totalSessions }, (_, i) => ({
-            id: `placeholder-${i + 1}`,
-            sessionNumber: i + 1,
-            status: "PENDING_SCHEDULE",
-            scheduledAt: null,
-            meetUrl: null,
-            durationMinutes: 60,
-          }))
-        : [];
+  /*
+    Las sesiones usadas/totales salen de la matrícula, que es donde de verdad
+    viven: describen lo que la clienta compró, no el seguimiento que se retiró.
+  */
+  const progress = enrollment.sessionsTotal
+    ? (enrollment.sessionsUsed / enrollment.sessionsTotal) * 100
+    : 0;
 
   return (
     <div className="space-y-8">
@@ -356,17 +223,6 @@ const EnrollmentDetailClient = ({
             searchMinOptions={99}
           />
 
-          {canEditNotes && (
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<Link href={contactNotebookPath(enrollment.contact.id, { focus: true })} />}
-            >
-              <BookOpen aria-hidden />
-              Cuaderno
-            </Button>
-          )}
 
           {enrollment.sessionsTotal != null && (
             <span className="text-xs text-muted-foreground">
@@ -442,77 +298,6 @@ const EnrollmentDetailClient = ({
             )}
           </CardContent>
         </Card>
-      )}
-
-      {pkg && (
-        <Card>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className={sectionHeading}>Sesiones</h2>
-              <p className="text-xs text-muted-foreground">Agenda en Google Calendar</p>
-            </div>
-
-            <div className="hidden lg:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Acción</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {allSessions.map((s) => (
-                    <SessionRow
-                      key={s.id}
-                      session={s}
-                      timezone={enrollment.contact.timezone}
-                      canWrite={canWrite}
-                      busy={busy}
-                      onComplete={() => completeSession(s.id, s.sessionNumber)}
-                      onUncomplete={() => uncompleteSession(s.id, s.sessionNumber)}
-                      onSchedule={() => setScheduleSession(s)}
-                    />
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="divide-y divide-border lg:hidden">
-              {allSessions.map((s) => (
-                <SessionCard
-                  key={s.id}
-                  session={s}
-                  timezone={enrollment.contact.timezone}
-                  canWrite={canWrite}
-                  busy={busy}
-                  onComplete={() => completeSession(s.id, s.sessionNumber)}
-                  onUncomplete={() => uncompleteSession(s.id, s.sessionNumber)}
-                  onSchedule={() => setScheduleSession(s)}
-                />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {pkg && scheduleSession && (
-        <ScheduleSessionModal
-          open={scheduleSession != null}
-          onClose={() => setScheduleSession(null)}
-          onScheduled={() => {
-            setScheduleSession(null);
-            void refreshPackage();
-          }}
-          therapyPackageId={pkg.id}
-          sessionNumber={scheduleSession.sessionNumber}
-          meetDefaultUrl={pkg.meetDefaultUrl}
-          contactTimezone={enrollment.contact.timezone}
-          contactName={enrollment.contact.firstName}
-          productTitle={enrollment.product.title}
-          initialScheduledAt={scheduleSession.scheduledAt ?? undefined}
-        />
       )}
 
       <RegisterPaymentModal

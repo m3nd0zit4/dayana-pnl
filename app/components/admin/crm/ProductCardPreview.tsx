@@ -5,6 +5,7 @@ import { useState } from "react";
 import PublicProductCard from "@/app/components/productos/PublicProductCard";
 import CrmSegmentedControl from "./CrmSegmentedControl";
 import type { Plan, PlanKind } from "@/lib/plans";
+import type { ProductAccentId } from "@/lib/products/accents";
 
 /**
  * La tarjeta pública, tal cual, dentro del panel.
@@ -34,6 +35,8 @@ export type ProductPreviewInput = {
   listAmountUsd: string;
   amountCop: string;
   listAmountCop: string;
+  /** El acento elegido ahora mismo, para que la vista previa no mienta. */
+  accent?: ProductAccentId;
 };
 
 const toNumber = (value: string): number | undefined => {
@@ -65,6 +68,7 @@ export const previewToPlan = (input: ProductPreviewInput): Plan => ({
   unitPrice: input.unitPriceLabel.trim() || undefined,
   tag: input.tag.trim() || undefined,
   highlight: input.highlight,
+  accent: input.accent,
   features: input.description
     .split("\n")
     .map((line) => line.trim())

@@ -386,7 +386,6 @@ export const getContactById = async (id: string) =>
         include: {
           product: true,
           payments: { orderBy: { createdAt: "desc" } },
-          therapyPackage: true,
         },
       },
       // El webinar gratuito se muestra en Servicios pero NO es un Enrollment:

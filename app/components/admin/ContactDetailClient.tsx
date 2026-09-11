@@ -9,7 +9,6 @@ import ContactEditForm from "@/app/components/admin/crm/ContactEditForm";
 import DeleteContactDialog from "@/app/components/admin/crm/DeleteContactDialog";
 import QuickMessagesPanel from "@/app/components/admin/crm/QuickMessagesPanel";
 import WhatsAppContactBlock from "@/app/components/admin/crm/WhatsAppContactBlock";
-import ContactNotesPanel from "@/app/components/admin/crm/ContactNotesPanel";
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmSegmentedControl from "@/app/components/admin/crm/CrmSegmentedControl";
 import RegisterPaymentModal from "@/app/components/admin/crm/RegisterPaymentModal";
@@ -20,7 +19,6 @@ import { formatMoneyMinor } from "@/lib/crm/money";
 import { contactDeleteConfirmationTarget } from "@/lib/crm/contact-phone";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
-import { stripEphemeralNotebookParams } from "@/lib/crm/contact-notebook-url";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { saveContactRecent } from "@/lib/crm/contact-search-recents";
@@ -109,7 +107,6 @@ const TABS = [
   { id: "resumen" as const, label: "Resumen" },
   { id: "servicios" as const, label: "Servicios" },
   { id: "pagos" as const, label: "Pagos" },
-  { id: "notas" as const, label: "Cuaderno" },
 ];
 type Tab = (typeof TABS)[number]["id"];
 
@@ -124,7 +121,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   const serviceCount = contact.enrollments.length + webinarRegistrations.length;
   const initialTab = searchParams.get("tab");
   const [tab, setTab] = useState<Tab>(
-    initialTab === "servicios" || initialTab === "pagos" || initialTab === "notas"
+    initialTab === "servicios" || initialTab === "pagos"
       ? initialTab
       : "resumen"
   );
@@ -135,11 +132,6 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const focusFromUrl = searchParams.get("focus") === "1";
-  const [notebookOpen, setNotebookOpen] = useState(
-    () => focusFromUrl && searchParams.get("tab") === "notas"
-  );
-
   useEffect(() => {
     saveContactRecent({
       id: contact.id,
@@ -155,66 +147,9 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   };
 
   useLayoutEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (!stripEphemeralNotebookParams(params)) return;
-    const qs = params.toString();
-    router.replace(`/admin/contacts/${contact.id}${qs ? `?${qs}` : ""}`, {
-      scroll: false,
-    });
-  }, [contact.id, router, searchParams]);
-
-  useLayoutEffect(() => {
     const t = searchParams.get("tab");
-    if (t === "servicios" || t === "pagos" || t === "resumen" || t === "notas") setTab(t);
-    const focus = searchParams.get("focus") === "1";
-    setFocusMode(focus);
-    if (focus && t === "notas") setNotebookOpen(true);
-  }, [searchParams, setFocusMode]);
-
-  // focusMode lives in CrmProvider (shared across the whole /admin layout),
-  // so it hides the sidebar/navbar app-wide, not just on this page. The only
-  // other place that clears it is exitFocusMode() (the notebook's own close
-  // button) — if this page is left any other way (browser back, sign out,
-  // a direct link) while in focus mode, the app is stranded without a
-  // sidebar on whatever page comes next. Reset it defensively on unmount.
-  useEffect(() => {
-    return () => setFocusMode(false);
-  }, [setFocusMode]);
-
-  const exitFocusMode = useCallback(() => {
-    setFocusMode(false);
-    setNotebookOpen(false);
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("focus");
-    const qs = params.toString();
-    router.replace(`/admin/contacts/${contact.id}${qs ? `?${qs}` : ""}`, {
-      scroll: false,
-    });
-  }, [contact.id, router, searchParams, setFocusMode]);
-
-  const openNotebook = useCallback(() => {
-    setNotebookOpen(true);
-    setFocusMode(true);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("tab", "notas");
-    params.set("focus", "1");
-    router.replace(`/admin/contacts/${contact.id}?${params.toString()}`, {
-      scroll: false,
-    });
-  }, [contact.id, router, searchParams, setFocusMode]);
-
-  const preloadNotebook = useCallback(() => {
-    void import("@excalidraw/excalidraw");
-  }, []);
-
-  useEffect(() => {
-    if (!focusMode) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") exitFocusMode();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [focusMode, exitFocusMode]);
+    if (t === "servicios" || t === "pagos" || t === "resumen") setTab(t);
+  }, [searchParams]);
 
   const goToTab = (next: Tab) => {
     setTab(next);
@@ -228,13 +163,6 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
     router.replace(`/admin/contacts/${contact.id}${qs ? `?${qs}` : ""}`, {
       scroll: false,
     });
-    if (next === "notas") {
-      requestAnimationFrame(() => {
-        document
-          .getElementById("cuaderno-clinico")
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
   };
 
   const deleteConfirmTarget = contactDeleteConfirmationTarget(contact);
@@ -292,16 +220,9 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
     setPickEnrollmentOpen(true);
   };
 
-  const isFocusNotebook = focusFromUrl && tab === "notas";
-
-  const notebookProps = {
-    contactId: contact.id,
-    contactName: `${contact.firstName} ${contact.lastName ?? ""}`.trim(),
-  };
-
   return (
-    <div className={isFocusNotebook ? "crm-focus-workspace" : "space-y-4"}>
-      {!isFocusNotebook && (
+    <div className="space-y-4">
+      {(
         <div className="space-y-3">
           <CrmPageHeader
             title={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
@@ -332,7 +253,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
         </div>
       )}
 
-      {!isFocusNotebook && tab === "resumen" && (
+      {tab === "resumen" && (
         <>
           <ContactEditForm contact={contact} />
           <section>
@@ -397,7 +318,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
         </>
       )}
 
-      {!isFocusNotebook && tab === "servicios" && (
+      {tab === "servicios" && (
         <section className="space-y-4">
           {canWrite && (
             <div className="flex justify-end">
@@ -460,26 +381,8 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
         </section>
       )}
 
-      {(tab === "notas" || isFocusNotebook) && (
-        <div
-          className={
-            isFocusNotebook
-              ? "crm-focus-workspace flex min-h-0 flex-1 flex-col"
-              : undefined
-          }
-        >
-          <ContactNotesPanel
-            {...notebookProps}
-            focusMode={isFocusNotebook}
-            notebookOpen={notebookOpen}
-            onOpenNotebook={openNotebook}
-            onPreloadNotebook={preloadNotebook}
-            onExitFocus={isFocusNotebook ? exitFocusMode : undefined}
-          />
-        </div>
-      )}
 
-      {!isFocusNotebook && tab === "pagos" && (
+      {tab === "pagos" && (
         <section className="space-y-4">
           {canWrite && (
             <div className="flex justify-end">

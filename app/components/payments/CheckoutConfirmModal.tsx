@@ -15,13 +15,13 @@ import {
 type Props = {
   planId: PlanId | null;
   provider: CheckoutProvider;
-  onClose: () => void;
   /**
-   * El token del enlace de pago, cuando la compra viene de `/pagar/<token>`.
-   * Viaja hasta `startCheckout` para que el cobro se cuelgue de la ficha a la
-   * que se mandó el enlace en vez de caer en la rama anónima.
+   * Token del enlace de pago, si la compra viene de `/pagar/<token>`. Se pasa
+   * tal cual a `startCheckout` para que el servidor cuelgue el cobro de la
+   * ficha del enlace en vez de crear un contacto temporal.
    */
   paymentLinkToken?: string;
+  onClose: () => void;
 };
 
 type Quote = {
@@ -77,8 +77,8 @@ const PROVIDER_LABEL: Record<CheckoutProvider, string> = {
 const CheckoutConfirmModal = ({
   planId,
   provider,
-  onClose,
   paymentLinkToken,
+  onClose,
 }: Props) => {
   const open = planId !== null;
   const { plan, loading: planLoading } = useCheckoutPlan(open ? planId : null);
@@ -223,6 +223,7 @@ const CheckoutConfirmModal = ({
     const failure = await startCheckout(provider, plan.id, {
       promoCode: code,
       funding,
+      paymentLinkToken,
     });
     if (failure) setUi({ kind: "error", message: failure });
   };

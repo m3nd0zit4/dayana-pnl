@@ -26,13 +26,6 @@ export default defineTool({
         contactRef: { type: "contact" as const, id: e.contact.id, href: `/admin/contacts/${e.contact.id}` },
       },
       payments: e.payments.map((p) => ({ id: p.id, status: p.status, provider: p.provider })),
-      therapySessions:
-        e.therapyPackage?.sessions.map((s) => ({
-          id: s.id,
-          sessionNumber: s.sessionNumber,
-          status: s.status,
-          scheduledAt: s.scheduledAt?.toISOString() ?? null,
-        })) ?? null,
     };
   },
 });

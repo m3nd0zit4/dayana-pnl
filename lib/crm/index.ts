@@ -1,7 +1,6 @@
 export * from "./contacts";
 export * from "./enrollments";
 export * from "./payments";
-export * from "./therapy";
 export * from "./products";
 export * from "./messages";
 export * from "./audit";

@@ -34,7 +34,6 @@ import {
 import { closeFreeWebinarIfDue, getFreeWebinar } from "../crm/free-webinar";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
-import { formatInstantForContact } from "../datetime/visitor-schedule";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
 import { inviteContactToPortal } from "../crm/member-accounts";
 import { applyMembershipExtension } from "../lms/membership";
@@ -96,94 +95,6 @@ export const paymentApprovedFn = inngest.createFunction(
     await step.run("meta-capi-purchase", async () =>
       sendPurchaseToMetaCapi(enrollmentId)
     );
-  }
-);
-
-export const sessionReminderFn = inngest.createFunction(
-  { id: "therapy-session-reminder" },
-  { cron: "0 14 * * *" },
-  async ({ step }) => {
-    const in24h = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const in25h = new Date(Date.now() + 25 * 60 * 60 * 1000);
-
-    const sessions = await step.run("find-upcoming-sessions", async () =>
-      prisma.therapySession.findMany({
-        where: {
-          status: "SCHEDULED",
-          scheduledAt: { gte: in24h, lte: in25h },
-        },
-        include: {
-          therapyPackage: {
-            include: {
-              enrollment: { include: { contact: true } },
-            },
-          },
-        },
-      })
-    );
-
-    const template = await step.run("load-reminder-template", async () =>
-      prisma.messageTemplate.findUnique({
-        where: { key_locale: { key: "session_reminder", locale: "es" } },
-      })
-    );
-
-    const templateBody =
-      template?.body ??
-      "Hola {{first_name}}, te recuerdo tu sesión el {{session_date}}.";
-
-    let sent = 0;
-
-    for (const session of sessions) {
-      const contact = session.therapyPackage.enrollment.contact;
-      const scheduledAt =
-        session.scheduledAt != null
-          ? new Date(session.scheduledAt as string | Date)
-          : null;
-
-      await step.run(`reminder-${session.id}`, async () => {
-        const formatted = scheduledAt
-          ? formatInstantForContact(scheduledAt, {
-              timezone: contact.timezone,
-              countryIso: contact.countryIso ?? contact.phoneCountryIso,
-            })
-          : null;
-        const vars = {
-          first_name: contact.firstName,
-          last_name: contact.lastName ?? "",
-          display_name: contact.displayName ?? contact.firstName,
-          phone: contact.phoneE164,
-          session_date: formatted?.date ?? "",
-          session_time: formatted?.timeWithPlace ?? "",
-          meet_url: session.meetUrl ?? "",
-        };
-        const rendered = renderQuickMessage(templateBody, vars);
-
-        if (await resolveNotificationsEnabled()) {
-          for (const channel of ["EMAIL", "SMS", "WHATSAPP_API"] as const) {
-            const { result } = await dispatchAndRecord({
-              contactId: contact.id,
-              channel,
-              templateKey: "session_reminder",
-              body: rendered,
-              vars,
-            });
-            if (result.status === NotificationDeliveryStatus.SENT) sent += 1;
-          }
-          return;
-        }
-
-        await prisma.messageLog.create({
-          data: {
-            contactId: contact.id,
-            bodySnapshot: rendered,
-            channel: "INTERNAL",
-          },
-        });
-      });
-    }
-
-    return { sessions: sessions.length, sent };
   }
 );
 
@@ -944,7 +855,6 @@ export const subscriptionPricePropagateMpFn = inngest.createFunction(
 
 export const inngestFunctions = [
   paymentApprovedFn,
-  sessionReminderFn,
   leadStaleFn,
   diagnosticCompletedFn,
   diagnosticUnconvertedFn,

@@ -3,11 +3,10 @@ import { prisma } from "@/lib/db";
 import { isPlanId } from "../../../../lib/plans";
 import { isActivePlanId } from "@/lib/plans-from-db";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
-import { createPendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
 import {
   mapCheckoutBeginError,
-  resolveCheckoutContactIdForRequest,
+  resolveCheckoutContactIdForPayment,
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import { createPayPalSubscription } from "@/lib/paypal/subscriptions";
@@ -37,6 +36,8 @@ type Body = CheckoutContactBody & {
   planId?: unknown;
   promoCode?: unknown;
   fromSession?: unknown;
+  /** Token de `/pagar/<token>`; el servidor resuelve de quien es el cobro. */
+  paymentLinkToken?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -83,20 +84,19 @@ export async function POST(req: NextRequest) {
     lastName: typeof body.lastName === "string" ? body.lastName : undefined,
     consentData: body.consentData,
   };
-  const hasContactData = Boolean(
-    contact.contactId || contact.phone || contact.email
-  );
-
   let contactId: string;
   try {
-    contactId =
-      hasContactData || body.fromSession === true
-        ? await resolveCheckoutContactIdForRequest({
-            planId,
-            contact,
-            fromSession: body.fromSession === true,
-          })
-        : await createPendingCheckoutContact(planId);
+    // Orden completo (enlace de pago -> datos/sesion -> temporal) en
+    // `resolveCheckoutContactIdForPayment`.
+    contactId = await resolveCheckoutContactIdForPayment({
+      planId,
+      contact,
+      fromSession: body.fromSession === true,
+      paymentLinkToken:
+        typeof body.paymentLinkToken === "string"
+          ? body.paymentLinkToken
+          : undefined,
+    });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[paypal-sub] contact register failed", e);

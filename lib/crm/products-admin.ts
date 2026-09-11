@@ -1,4 +1,4 @@
-import { ProductKind } from "@prisma/client";
+import { ProductAccent, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { uniqueSlug } from "./slug";
 
@@ -8,8 +8,30 @@ const priceInclude = {
   },
 } as const;
 
-export const listAllProducts = async () =>
+/**
+ * Lo que Paquetes lista: los productos que se COBRAN.
+ *
+ * El filtro es el mismo de `getActiveProducts` (lib/crm/products.ts) menos el
+ * `isActive`, porque el panel sí tiene que ver lo desactivado — es donde se
+ * vuelve a activar. No es un criterio inventado para esta pantalla: es el
+ * predicado que decide si algo puede cobrarse.
+ *
+ * Antes devolvía TODO, y la mitad de Paquetes eran los ocho cursos de la
+ * biblioteca: filas `isCourseContent` sin precio, marcadas «Sin precio · No
+ * visible», que no se venden y que se editan en Cursos → Módulos. Estaban ahí
+ * por descuido, y traían dos problemas de verdad:
+ *
+ * - Reordenar con las flechas manda la lista ENTERA a `reorderProducts`, que
+ *   reescribe cada id a 0..n-1. La numeración que los cursos traen de
+ *   `content/curriculum/*(/)curso.json` (5, 10, 20 … 70) se aplastaba de una
+ *   pulsada, y el siguiente `seed-curriculum` la devolvía: dos ordenaciones
+ *   peleándose.
+ * - El icono de la papelera quedaba a un clic de un curso con módulos,
+ *   lecciones y progreso de alumnas. Ver `deactivateProduct`.
+ */
+export const listSellableProducts = async () =>
   prisma.product.findMany({
+    where: { OR: [{ isCourseContent: false }, { sellsStandalone: true }] },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     include: priceInclude,
   });
@@ -33,6 +55,7 @@ export const createProduct = async (input: {
   unitPriceLabel?: string | null;
   therapyHeadline?: string | null;
   whatsappMessage?: string | null;
+  accent?: ProductAccent;
   amountUsd: number;
   listAmountUsd?: number | null;
   amountCop?: number | null;
@@ -99,6 +122,7 @@ export const createProduct = async (input: {
       unitPriceLabel: input.unitPriceLabel?.trim() || null,
       therapyHeadline: input.therapyHeadline?.trim() || null,
       whatsappMessage: input.whatsappMessage?.trim() || null,
+      accent: input.accent,
       isActive: true,
       sortOrder,
       prices: { create: priceRows },
@@ -143,6 +167,7 @@ export const updateProduct = async (
     unitPriceLabel?: string | null;
     therapyHeadline?: string | null;
     whatsappMessage?: string | null;
+    accent?: ProductAccent;
     amountUsd?: number;
     listAmountUsd?: number | null;
     amountCop?: number | null;
@@ -219,6 +244,7 @@ export const updateProduct = async (
         input.whatsappMessage !== undefined
           ? input.whatsappMessage?.trim() || null
           : undefined,
+      accent: input.accent,
       isActive: input.isActive,
       kind: input.kind,
       sortOrder: input.sortOrder,
@@ -267,18 +293,82 @@ export const updateProduct = async (
   });
 };
 
-export const deactivateProduct = async (id: string) => {
-  const enrollments = await prisma.enrollment.count({ where: { productId: id } });
-  if (enrollments > 0) {
-    return prisma.product.update({
-      where: { id },
-      data: { isActive: false },
-      include: priceInclude,
-    });
-  }
-  await prisma.productPrice.deleteMany({ where: { productId: id } });
-  return prisma.product.delete({
+/**
+ * «Eliminar» un producto: desactivar casi siempre, borrar sólo cuando no queda
+ * nada colgando.
+ *
+ * Contaba matrículas y nada más, y eso no bastaba ni de lejos. Un curso de la
+ * biblioteca normalmente tiene CERO matrículas —el acceso viene de la
+ * mensualidad, no de una matrícula por curso (lib/lms/membership.ts)— así que
+ * caía en la rama del borrado duro, y `product.delete` arrastra en cascada sus
+ * módulos, sus lecciones con los ids de Mux, y con ellas el progreso, los
+ * intentos de test, las respuestas escritas y los comentarios de cada alumna.
+ * El contenido se puede volver a sembrar desde `content/curriculum/**`; lo que
+ * escribieron las alumnas, no.
+ *
+ * Así que ahora se pregunta por todo lo que el borrado se llevaría:
+ *
+ * - **Módulos o clases** — es contenido del curso. Se desactiva.
+ * - **Un plan de suscripción** — la fila es el ÚNICO sitio donde vive el
+ *   puntero al plan de PayPal o de Mercado Pago, y ninguno de los dos deja
+ *   borrar un plan, sólo desactivarlo. Sin la fila queda un plan huérfano
+ *   cobrando y nada en el CRM que lo diga.
+ * - **Matrículas** — como antes.
+ *
+ * Devuelve qué hizo, para que el panel pueda decir por qué no se borró en vez
+ * de dejarlo en un «no se pudo» sin motivo.
+ */
+export type DeactivateProductResult = {
+  /** `deleted` sólo cuando de verdad se borró la fila. */
+  outcome: "deleted" | "deactivated";
+  /** Por qué se desactivó en vez de borrarse. Vacío si se borró. */
+  reason: string | null;
+  product: Awaited<ReturnType<typeof listSellableProducts>>[number] | null;
+};
+
+export const deactivateProduct = async (
+  id: string
+): Promise<DeactivateProductResult> => {
+  const product = await prisma.product.findUnique({
     where: { id },
-    include: priceInclude,
+    select: {
+      id: true,
+      paypalPlanId: true,
+      mercadoPagoPreapprovalPlanId: true,
+      _count: {
+        select: { enrollments: true, courseModules: true, liveClassSessions: true },
+      },
+    },
   });
+  if (!product) throw new Error("NOT_FOUND");
+
+  const { enrollments, courseModules, liveClassSessions } = product._count;
+
+  const reason =
+    courseModules > 0 || liveClassSessions > 0
+      ? `Es contenido de curso: ${courseModules} módulo(s) y ${liveClassSessions} ` +
+        "clase(s) con el progreso de las alumnas. Se desactivó en vez de borrarse."
+      : product.paypalPlanId || product.mercadoPagoPreapprovalPlanId
+        ? "Tiene un plan de suscripción, y los proveedores no dejan borrar un " +
+          "plan. Borrar la ficha dejaría el plan cobrando sin nada que lo " +
+          "señale, así que se desactivó."
+        : enrollments > 0
+          ? `Tiene ${enrollments} matrícula(s). Se desactivó en vez de borrarse.`
+          : null;
+
+  if (reason) {
+    return {
+      outcome: "deactivated",
+      reason,
+      product: await prisma.product.update({
+        where: { id },
+        data: { isActive: false },
+        include: priceInclude,
+      }),
+    };
+  }
+
+  await prisma.productPrice.deleteMany({ where: { productId: id } });
+  await prisma.product.delete({ where: { id } });
+  return { outcome: "deleted", reason: null, product: null };
 };

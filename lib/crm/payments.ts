@@ -2,7 +2,7 @@ import {
   EnrollmentStatus,
   PaymentProvider,
   PaymentStatus,
-  type Prisma,
+  Prisma,
 } from "@prisma/client";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
@@ -234,6 +234,21 @@ export const recordPayment = async (
   return payment;
 };
 
+/**
+ * Reclama la marca de idempotencia de un aviso. `false` significa —y sólo
+ * significa— **«este aviso ya se procesó»**.
+ *
+ * Antes capturaba cualquier excepción y devolvía `false` para todas. Un fallo
+ * transitorio de la base era indistinguible de un duplicado real, y los dos
+ * llamantes tratan el `false` como «ya está hecho» y responden 200: el
+ * proveedor daba la entrega por buena y no reintentaba. Un cobro cobrado que
+ * nunca se registra, sin que nadie se entere.
+ *
+ * Ahora sólo el conflicto de clave única (`P2002`, que es literalmente «ya
+ * existe esta fila») cuenta como duplicado. Cualquier otro error se propaga,
+ * el webhook responde 5xx y el proveedor reintenta — que es exactamente lo
+ * que hay que hacer cuando no sabemos si lo procesamos.
+ */
 export const registerWebhookEvent = async (
   provider: PaymentProvider,
   eventId: string,
@@ -248,8 +263,14 @@ export const registerWebhookEvent = async (
       },
     });
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    if (
+      e instanceof Prisma.PrismaClientKnownRequestError &&
+      e.code === "P2002"
+    ) {
+      return false;
+    }
+    throw e;
   }
 };
 

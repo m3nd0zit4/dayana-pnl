@@ -26,3 +26,4 @@ export {
 export { default as CrmFormActions } from "./CrmFormActions";
 export { default as CrmLoadMore } from "./CrmLoadMore";
 export { default as CrmFilterBar, CrmSearchInput } from "./CrmFilterBar";
+export { CrmField, CrmFieldset } from "./CrmField";

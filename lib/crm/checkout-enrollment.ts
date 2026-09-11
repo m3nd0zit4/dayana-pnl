@@ -5,6 +5,7 @@ import {
 } from "./checkout-contact";
 import { resolveSessionCheckoutContact } from "./checkout-session-contact";
 import { EnrollmentValidationError } from "./enrollments";
+import { prisma } from "../db";
 
 export type CheckoutContactBody = ResolveCheckoutContactInput & {
   contactId?: string;
@@ -63,6 +64,50 @@ export async function resolveCheckoutContactIdForRequest(input: {
     contact: input.contact,
   });
   return begun.contactId;
+}
+
+/**
+ * La ficha a la que se cuelga un cobro, sabiendo si viene de un enlace de pago.
+ *
+ * Es `resolveCheckoutContactIdForRequest` más el token del enlace, y el token
+ * **manda sobre todo lo demás**. Sin esto, una compra hecha desde
+ * `/pagar/<token>` caía en la rama anónima y fabricaba un contacto `+pending:`
+ * nuevo: Dayana mandaba el enlace a una clienta conocida y la matrícula
+ * aterrizaba en un duplicado, reconciliado más tarde sólo si el correo del
+ * pagador coincidía por casualidad.
+ *
+ * Viaja el TOKEN y no el `contactId` porque es lo único seguro: si el navegador
+ * mandara un `contactId`, cualquiera podría colgar su pago de la ficha de otra
+ * persona. El token es un secreto de 128 bits y aquí se comprueban además su
+ * caducidad y su revocación.
+ *
+ * Un token que no resuelve no es un error: el enlace puede haber caducado
+ * mientras la compradora tenía la pestaña abierta, y negarle el cobro sería
+ * perder una venta que ya estaba acordada. Se sigue por el camino normal.
+ */
+export async function resolveCheckoutContactIdForPayment(input: {
+  planId: string;
+  contact: CheckoutContactBody;
+  fromSession?: boolean;
+  paymentLinkToken?: string;
+}): Promise<string> {
+  if (input.paymentLinkToken) {
+    const link = await prisma.paymentLink.findUnique({
+      where: { token: input.paymentLinkToken },
+      select: { contactId: true, revokedAt: true, expiresAt: true },
+    });
+    const usable =
+      link != null &&
+      link.revokedAt == null &&
+      (link.expiresAt == null || link.expiresAt > new Date());
+    if (usable && link.contactId) return link.contactId;
+  }
+
+  return resolveCheckoutContactIdForRequest({
+    planId: input.planId,
+    contact: input.contact,
+    fromSession: input.fromSession,
+  });
 }
 
 export function mapCheckoutBeginError(e: unknown): {

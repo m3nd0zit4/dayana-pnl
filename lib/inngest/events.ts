@@ -7,6 +7,19 @@ const shouldEmitInngest = (): boolean => {
   return isInngestConfigured();
 };
 
+/**
+ * Un pago quedó aprobado.
+ *
+ * De este evento cuelga TODO lo que la clienta espera después de pagar: el
+ * correo de confirmación con su recibo en PDF, la invitación al portal, el
+ * Purchase de Meta y la red de seguridad que suma el mes de membresía.
+ *
+ * Por eso no se puede tragar en silencio. Antes era un `console.warn` y ya:
+ * el dinero entraba, nadie recibía nada, y no había forma de enterarse salvo
+ * porque la clienta escribiera preguntando. Sigue sin lanzar —el cobro está
+ * hecho y no se va a deshacer porque falle un aviso— pero deja constancia
+ * donde alguien la va a ver.
+ */
 export const emitPaymentApproved = async (enrollmentId: string) => {
   if (!shouldEmitInngest()) {
     return;
@@ -18,7 +31,27 @@ export const emitPaymentApproved = async (enrollmentId: string) => {
       data: { enrollmentId },
     });
   } catch (e) {
-    console.warn("[inngest] payment/approved emit failed", e);
+    console.error("[inngest] payment/approved emit failed", e);
+    const message = e instanceof Error ? e.message : String(e);
+    try {
+      const { emitPlatformNotification } = await import(
+        "@/lib/notifications/platform/emit"
+      );
+      await emitPlatformNotification({
+        eventType: "SYSTEM_ALERT",
+        title: "Un pago aprobado no disparó su confirmación",
+        body:
+          `El cobro está registrado, pero la clienta no ha recibido el correo ` +
+          `ni su recibo, y el mes de membresía puede no haberse sumado. ${message}`,
+        href: `/admin/enrollments/${enrollmentId}`,
+        entityType: "Enrollment",
+        entityId: enrollmentId,
+        metadata: { enrollmentId },
+        staff: "ALL",
+      });
+    } catch (notifyError) {
+      console.error("[inngest] tampoco se pudo avisar al equipo", notifyError);
+    }
   }
 };
 

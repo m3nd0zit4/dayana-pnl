@@ -60,7 +60,6 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         include: {
           product: true,
           contact: true,
-          therapyPackage: { include: { sessions: { orderBy: { sessionNumber: "asc" } } } },
         },
       });
     }

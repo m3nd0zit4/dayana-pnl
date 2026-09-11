@@ -3,10 +3,10 @@ import {
   CalendarDays,
   Clapperboard,
   CreditCard,
+  RefreshCw,
   ExternalLink,
   Inbox,
   GraduationCap,
-  HeartPulse,
   Home,
   ClipboardList,
   Compass,
@@ -79,19 +79,32 @@ export const crmHomeItem: CrmMenuItem = { icon: Home, label: "Inicio", href: "/a
  */
 export const crmMenuSections: CrmMenuSection[] = [
   {
-    // El diagnóstico es la puerta de entrada y el enlace de pago el empujón
-    // final: van con Pagos porque son el mismo recorrido, y estaban repartidos.
+    // Va primera porque es de lo que vive el negocio, y ahora lleva el
+    // recorrido entero del dinero: qué se vende y a qué precio (Paquetes,
+    // Códigos), con qué se cobra (Enlaces) y qué entró (Pagos).
+    //
+    // Paquetes y Códigos estaban en «Catálogo», separados de los cobros que
+    // gobiernan. Que se toquen poco no los hace de otra familia: el precio y
+    // el descuento SON la venta.
     title: "Ventas",
     items: [
-      { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
+      { icon: Package, label: "Paquetes", href: "/admin/products" },
+      { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
       { icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
       { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
+      // Detrás de Pagos: es la vista de los cobros que se repiten solos, y de
+      // los planes que los sostienen. Un plan no se puede borrar una vez
+      // creado, así que saber cuáles hay es parte de vender, no de ajustes.
+      { icon: RefreshCw, label: "Suscripciones", href: "/admin/suscripciones" },
     ],
   },
   {
     title: "Personas",
     items: [
       { icon: Users, label: "Contactos", href: "/admin/contacts" },
+      // El diagnóstico se mira para saber QUIÉN es quien llega y qué necesita,
+      // no para cobrarle. Por eso vive con las personas y no con el dinero.
+      { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
       // Sale del submenú de Cursos: es la lista de quién tiene acceso, que es
       // una pregunta sobre personas y no sobre el contenido del curso.
       { icon: UsersRound, label: "Miembros", href: "/admin/curso", exact: true },
@@ -100,7 +113,6 @@ export const crmMenuSections: CrmMenuSection[] = [
   {
     title: "Sesiones y clases",
     items: [
-      { icon: HeartPulse, label: "Terapias", href: "/admin/therapies" },
       {
         icon: GraduationCap,
         label: "Cursos",
@@ -114,14 +126,6 @@ export const crmMenuSections: CrmMenuSection[] = [
       // imparten, así que su sitio es este.
       { icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
       { icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
-    ],
-  },
-  {
-    // Lo que se configura una vez y casi no se vuelve a tocar.
-    title: "Catálogo",
-    items: [
-      { icon: Package, label: "Paquetes", href: "/admin/products" },
-      { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
     ],
   },
   {

@@ -15,28 +15,7 @@ const EnrollmentPage = async ({ params }: Props) => {
   return (
     <CrmPageShell>
       {/* «Volver» lo pinta CrmPageHeader dentro del cliente, junto al título. */}
-      <EnrollmentDetailClient
-        enrollment={{
-          ...enrollment,
-          therapyPackage: enrollment.therapyPackage
-            ? {
-                id: enrollment.therapyPackage.id,
-                totalSessions: enrollment.therapyPackage.totalSessions,
-                usedSessions: enrollment.therapyPackage.usedSessions,
-                meetDefaultUrl: enrollment.therapyPackage.meetDefaultUrl,
-                reprogrammingNotes: enrollment.therapyPackage.reprogrammingNotes,
-                sessions: enrollment.therapyPackage.sessions.map((s) => ({
-                  id: s.id,
-                  sessionNumber: s.sessionNumber,
-                  status: s.status,
-                  scheduledAt: s.scheduledAt?.toISOString() ?? null,
-                  meetUrl: s.meetUrl,
-                  durationMinutes: s.durationMinutes,
-                })),
-              }
-            : null,
-        }}
-      />
+      <EnrollmentDetailClient enrollment={enrollment} />
     </CrmPageShell>
   );
 };
