@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
       entityType: "PaymentLink",
       entityId: link.id,
-      changes: { productId: link.product.id, contactId: link.contact.id },
+      changes: { productId: link.product.id, contactId: link.contact?.id ?? null },
     });
 
     return NextResponse.json({ link });

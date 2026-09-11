@@ -17,7 +17,11 @@ import { trackMetaEvent } from "../components/analytics/MetaPixel";
 type Value = {
   isOpen: boolean;
   planId: PlanId | null;
-  openCheckout: (planId: PlanId, provider: CheckoutProvider) => void;
+  openCheckout: (
+    planId: PlanId,
+    provider: CheckoutProvider,
+    options?: { paymentLinkToken?: string },
+  ) => void;
   closeCheckout: () => void;
 };
 
@@ -32,10 +36,15 @@ export const CheckoutModalProvider = ({ children }: { children: ReactNode }) => 
   const [state, setState] = useState<{
     planId: PlanId;
     provider: CheckoutProvider;
+    paymentLinkToken?: string;
   } | null>(null);
 
   const openCheckout = useCallback(
-    (id: PlanId, provider: CheckoutProvider) => {
+    (
+      id: PlanId,
+      provider: CheckoutProvider,
+      options?: { paymentLinkToken?: string },
+    ) => {
       if (!isPlanId(id)) return;
       // El dataLayer no transmite por sí mismo; hay que empujarlo aquí.
       pushDataLayerEvent("begin_checkout", { plan_id: id, provider });
@@ -43,7 +52,7 @@ export const CheckoutModalProvider = ({ children }: { children: ReactNode }) => 
         content_ids: [id],
         content_type: "product",
       });
-      setState({ planId: id, provider });
+      setState({ planId: id, provider, paymentLinkToken: options?.paymentLinkToken });
     },
     []
   );
@@ -66,6 +75,7 @@ export const CheckoutModalProvider = ({ children }: { children: ReactNode }) => 
       <CheckoutConfirmModal
         planId={state?.planId ?? null}
         provider={state?.provider ?? "paypal"}
+        paymentLinkToken={state?.paymentLinkToken}
         onClose={closeCheckout}
       />
     </Ctx.Provider>

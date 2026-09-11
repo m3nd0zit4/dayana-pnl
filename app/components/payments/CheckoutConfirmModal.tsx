@@ -16,6 +16,12 @@ type Props = {
   planId: PlanId | null;
   provider: CheckoutProvider;
   onClose: () => void;
+  /**
+   * El token del enlace de pago, cuando la compra viene de `/pagar/<token>`.
+   * Viaja hasta `startCheckout` para que el cobro se cuelgue de la ficha a la
+   * que se mandó el enlace en vez de caer en la rama anónima.
+   */
+  paymentLinkToken?: string;
 };
 
 type Quote = {
@@ -68,7 +74,12 @@ const PROVIDER_LABEL: Record<CheckoutProvider, string> = {
  * NETO y el cobro la lleva encima) y aceptar el código promocional, que se
  * valida contra el CRM y no contra el proveedor.
  */
-const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
+const CheckoutConfirmModal = ({
+  planId,
+  provider,
+  onClose,
+  paymentLinkToken,
+}: Props) => {
   const open = planId !== null;
   const { plan, loading: planLoading } = useCheckoutPlan(open ? planId : null);
 

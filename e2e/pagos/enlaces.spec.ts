@@ -31,13 +31,13 @@ const makeContact = async (slug: string) =>
       lastName: slug,
       email: testEmail(`enlace-${slug}-${Date.now()}`),
       phoneE164: nextPhone(),
-      source: "MANUAL",
+      source: "OTHER",
     },
     select: { id: true },
   });
 
 const makeLink = async (
-  contactId: string,
+  contactId: string | null,
   overrides: { expiresAt?: Date | null; revokedAt?: Date | null } = {}
 ) =>
   db.paymentLink.create({
@@ -168,5 +168,108 @@ test.describe("Enlace de pago · a quién se le cobra", () => {
     // cobrara el neto, Dayana pagaría la comisión de su bolsillo en cada venta
     // del canal principal.
     expect(Number(res.amountValue)).toBeGreaterThan(net);
+  });
+});
+
+test.describe("Enlace de pago · sin contacto", () => {
+  test("un enlace abierto cobra igual, sin reventar", async ({ baseURL }) => {
+    // La razon de ser de todo esto: poder cobrar sin exigir la ficha antes.
+    const link = await makeLink(null);
+
+    const res = await createCheckout(baseURL!, "paypal", PRODUCT, {
+      paymentLinkToken: link.token,
+    });
+
+    expect(res.status).toBe(200);
+    // Cae en el camino anonimo normal del sitio: hay contacto, es temporal.
+    expect(res.contactId).toBeTruthy();
+  });
+
+  test("y por Mercado Pago tambien", async ({ baseURL }) => {
+    const link = await makeLink(null);
+
+    const res = await createCheckout(baseURL!, "mercadopago", PRODUCT, {
+      paymentLinkToken: link.token,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.contactId).toBeTruthy();
+  });
+
+  test("un enlace abierto sigue llevando el gross-up", async ({ baseURL }) => {
+    const link = await makeLink(null);
+
+    const res = await createCheckout(baseURL!, "paypal", PRODUCT, {
+      paymentLinkToken: link.token,
+    });
+
+    const price = await db.productPrice.findFirst({
+      where: { productId: PRODUCT, currency: "USD" },
+      orderBy: { validFrom: "desc" },
+    });
+    expect(Number(res.amountValue)).toBeGreaterThan(
+      (price?.amountMinor ?? 0) / 100
+    );
+  });
+});
+
+/**
+ * El enlace FIJO de un paquete: `/pagar/p/<id>`.
+ *
+ * No es un `PaymentLink`, es una ruta — así que aquí no hay fila que crear ni
+ * que limpiar. Lo que hay que demostrar es lo contrario que en el resto del
+ * fichero: que **NO** identifica a nadie. Ése es justo el motivo por el que se
+ * puede mandar a cincuenta personas.
+ */
+test.describe("Enlace fijo del paquete", () => {
+  test("un paquete a la venta se abre", async ({ request, baseURL }) => {
+    const res = await request.get(`${baseURL}/pagar/p/${PRODUCT}`);
+    expect(res.status()).toBe(200);
+  });
+
+  test("un curso de la biblioteca NO se puede cobrar por ahí", async ({
+    request,
+    baseURL,
+  }) => {
+    // `getPlanFromDb` rechaza los contenedores de curso. Sin esta puerta se
+    // publicaría un botón que revienta al llegar al checkout.
+    const res = await request.get(`${baseURL}/pagar/p/fundamentos-pnl`);
+    expect(res.status()).toBe(404);
+  });
+
+  test("un producto inexistente da 404 y no un error", async ({
+    request,
+    baseURL,
+  }) => {
+    const res = await request.get(`${baseURL}/pagar/p/no-existe-este-producto`);
+    expect(res.status()).toBe(404);
+  });
+
+  test("dos pagos por el mismo enlace van a DOS fichas distintas", async ({
+    baseURL,
+  }) => {
+    // La afirmación entera de esta sección. El enlace fijo no lleva token, así
+    // que la creación de la orden cae en el camino anónimo y cada compradora
+    // recibe la suya. Con un enlace personal compartido pasaría lo contrario:
+    // los dos cobros colgarían del mismo contacto.
+    const a = await createCheckout(baseURL!, "paypal", PRODUCT, {});
+    const b = await createCheckout(baseURL!, "paypal", PRODUCT, {});
+
+    expect(a.status).toBe(200);
+    expect(b.status).toBe(200);
+    expect(a.contactId).toBeTruthy();
+    expect(b.contactId).toBeTruthy();
+    expect(a.contactId).not.toBe(b.contactId);
+  });
+
+  test("sigue llevando el gross-up", async ({ baseURL }) => {
+    const res = await createCheckout(baseURL!, "paypal", PRODUCT, {});
+    const price = await db.productPrice.findFirst({
+      where: { productId: PRODUCT, currency: "USD" },
+      orderBy: { validFrom: "desc" },
+    });
+    expect(Number(res.amountValue)).toBeGreaterThan(
+      (price?.amountMinor ?? 0) / 100
+    );
   });
 });

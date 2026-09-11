@@ -27,7 +27,10 @@ export type PaymentLinkRow = {
   revokedAt: Date | null;
   createdAt: Date;
   product: { id: string; title: string };
-  contact: { id: string; firstName: string; lastName: string | null };
+  /// Nulo cuando el enlace se generó sin ficha, y también cuando la ficha se
+  /// borró después: el enlace es un hecho del negocio y sobrevive a la
+  /// limpieza de un contacto.
+  contact: { id: string; firstName: string; lastName: string | null } | null;
 };
 
 const SELECT = {
@@ -107,7 +110,7 @@ export type ResolvedPaymentLink = {
     firstName: string;
     email: string | null;
     phoneE164: string;
-  };
+  } | null;
 };
 
 /**
@@ -152,6 +155,28 @@ export async function resolvePaymentLink(
     plan,
     contact: link.contact,
   };
+}
+
+/**
+ * El enlace FIJO de un paquete: `/pagar/p/<productId>`.
+ *
+ * No hay fila en `payment_links` que resolver — este enlace no caduca, no se
+ * revoca y no lleva contacto. Lo unico que queda por comprobar es que el
+ * producto siga siendo comprable, y eso son las mismas dos puertas que aplica
+ * `resolvePaymentLink`: `getPlanFromDb` rechaza los contenedores de curso de
+ * la biblioteca, e `isPlanVisibleForRegion` rechaza un producto sin precio en
+ * la moneda de quien mira. Sin ellas se publicaria un boton que revienta al
+ * llegar al checkout.
+ *
+ * Devuelve `null` —404— por cualquiera de los dos motivos, sin distinguirlos.
+ */
+export async function resolveDefaultProductLink(
+  productId: string,
+  isColombia: boolean,
+): Promise<{ plan: Plan } | null> {
+  const plan = await getPlanFromDb(productId).catch(() => null);
+  if (!plan || !isPlanVisibleForRegion(plan, isColombia)) return null;
+  return { plan };
 }
 
 /** Sella la primera apertura. Recargar no mueve la fecha. */

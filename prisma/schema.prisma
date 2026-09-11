@@ -689,6 +689,9 @@ model Enrollment {
   @@index([updatedAt])
   @@index([paidUntil])
   @@map("enrollments")
+
+  /// Enlaces de pago que terminaron en esta matrícula.
+  paymentLinks PaymentLink[]
 }
 
 model Payment {
@@ -1766,8 +1769,11 @@ model PaymentLink {
   /// nunca del enlace, así que manipularlo no puede cambiar un importe.
   token String @unique
 
-  contactId String @map("contact_id")
-  productId String @map("product_id")
+  /// Opcional: un enlace se acuerda por teléfono o se manda a alguien que
+  /// todavía no está en el CRM. Sin contacto, el pago sigue el camino anónimo
+  /// normal del sitio y se reconcilia después.
+  contactId String? @map("contact_id")
+  productId String  @map("product_id")
 
   /// Nota corta que se pinta bajo el precio: "lo que hablamos el martes".
   /// La escribe quien genera el enlace y es lo que lo hace personal.
@@ -1788,13 +1794,22 @@ model PaymentLink {
   /// Se desactiva a mano desde el panel. Un enlace revocado responde 404.
   revokedAt DateTime? @map("revoked_at")
 
+  /// Se sella cuando el dinero llega. Sin esto el panel se quedaba en
+  /// «Empezó a pagar» para siempre.
+  paidAt       DateTime? @map("paid_at")
+  enrollmentId String?   @map("enrollment_id")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  contact        Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  contact        Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
   product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdByStaff StaffUser?  @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+  enrollment     Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
 
   @@index([contactId, createdAt(sort: Desc)])
+  /// Sostiene la conciliación: «un enlace de este contacto, para este
+  /// producto, que todavía no esté cobrado».
+  @@index([contactId, productId, paidAt])
   @@map("payment_links")
 }

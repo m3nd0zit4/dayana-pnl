@@ -36,7 +36,7 @@ export type PaymentLinkListRow = {
   revokedAt: string | null;
   createdAt: string;
   product: { id: string; title: string };
-  contact: { id: string; firstName: string; lastName: string | null };
+  contact: { id: string; firstName: string; lastName: string | null } | null;
 };
 
 type Props = {
@@ -314,7 +314,9 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
               >
                 <div className="min-w-0 flex-1 basis-52">
                   <p className="truncate font-medium">
-                    {`${row.contact.firstName} ${row.contact.lastName ?? ""}`.trim()}
+                    {row.contact
+                      ? `${row.contact.firstName} ${row.contact.lastName ?? ""}`.trim()
+                      : "Sin contacto"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {row.product.title}

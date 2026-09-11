@@ -43,6 +43,20 @@ export const startCheckout = async (
      * no reemplaza al pago suelto — se ofrecen las dos y la clienta elige.
      */
     subscribe?: boolean;
+    /**
+     * El token del enlace de pago, cuando la compra viene de `/pagar/<token>`.
+     *
+     * Viaja el TOKEN y no el `contactId`. El servidor resuelve la ficha a
+     * partir de el, que es lo unico seguro: si el navegador mandara un
+     * `contactId`, cualquiera podria colgar su pago de la ficha de otra
+     * persona. El token ya es un secreto de 128 bits y su resolucion comprueba
+     * ademas caducidad y revocacion.
+     *
+     * Sin esto, una compra por enlace caia en la rama anonima de
+     * `create-order` y creaba un contacto `+pending:` nuevo: Dayana mandaba el
+     * enlace a una clienta conocida y la matricula aterrizaba en un duplicado.
+     */
+    paymentLinkToken?: string;
   } = {}
 ): Promise<string | null> => {
   const subscribing = options.subscribe === true;
@@ -61,6 +75,9 @@ export const startCheckout = async (
       body: JSON.stringify({
         planId,
         ...(options.promoCode ? { promoCode: options.promoCode } : {}),
+        ...(options.paymentLinkToken
+          ? { paymentLinkToken: options.paymentLinkToken }
+          : {}),
         ...(provider === "mercadopago" ? { mode: "full" } : {}),
       }),
     });
