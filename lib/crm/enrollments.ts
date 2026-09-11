@@ -11,7 +11,6 @@ import {
 import { ENROLLMENT_STATUS_LABEL } from "./enrollment-labels";
 import { formatMoneyMinor } from "./money";
 import { getProduct, productSessionsTotal } from "./products";
-import { ensureTherapyPackage } from "./therapy";
 
 const contactName = (contact: {
   displayName: string | null;
@@ -151,14 +150,6 @@ export const createEnrollment = async (input: {
     });
   }
 
-  if (
-    status === EnrollmentStatus.ACTIVE &&
-    enrollment.product.kind === ProductKind.THERAPY &&
-    enrollment.sessionsTotal
-  ) {
-    await ensureTherapyPackage(enrollment.id, enrollment.sessionsTotal);
-  }
-
   return enrollment;
 };
 
@@ -271,10 +262,6 @@ export const markEnrollmentPaid = async (enrollmentId: string) => {
     include: { product: true, contact: true },
   });
 
-  if (updated.product.kind === ProductKind.THERAPY && updated.sessionsTotal) {
-    await ensureTherapyPackage(enrollmentId, updated.sessionsTotal);
-  }
-
   fireNotification({
     eventType: "ENROLLMENT_ACTIVATED",
     title: `Inscripción activada: ${contactName(updated.contact)} — ${updated.product.title}`,
@@ -351,14 +338,6 @@ export const updateEnrollmentStatus = async (
     },
     include: { product: true, contact: true, therapyPackage: true },
   });
-
-  if (
-    status === EnrollmentStatus.ACTIVE &&
-    updated.product.kind === ProductKind.THERAPY &&
-    updated.sessionsTotal
-  ) {
-    await ensureTherapyPackage(enrollmentId, updated.sessionsTotal);
-  }
 
   fireNotification({
     eventType: "ENROLLMENT_STATUS_CHANGED",

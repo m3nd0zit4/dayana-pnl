@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import PagarShell from "@/app/components/pagar/PagarShell";
 import PaymentLinkCheckout from "@/app/components/pagar/PaymentLinkCheckout";
-import PublicProductCard from "@/app/components/productos/PublicProductCard";
-import RevealScope from "@/app/components/common/RevealScope";
 import {
   markPaymentLinkOpened,
   resolvePaymentLink,
@@ -19,16 +18,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * La página de un pago acordado.
+ * El enlace de pago de UNA persona.
  *
- * Es deliberadamente escueta: nombre, precio, qué incluye, botón. Sin menú,
- * sin comparativa, sin las otras opciones y sin argumentos de venta. Quien
- * llega aquí ya habló con Dayana y ya decidió; todo lo que se añada a esta
- * pantalla es una oportunidad de reconsiderarlo.
+ * Lo que lo distingue del enlace fijo del paquete (`/pagar/p/<id>`) es que
+ * sabe de quién es: saluda por su nombre, puede llevar una nota, y el cobro se
+ * cuelga de su ficha en vez de fabricar un contacto nuevo.
  *
- * Por eso tampoco lleva el chrome de marketing (ver `app/providers.tsx`): un
- * enlace a "Terapias" en la cabecera devolvería al catálogo exactamente a la
- * persona que ya salió de él.
+ * La maqueta vive en `PagarShell`, compartida con la otra ruta.
  */
 const PagarPage = async ({
   params,
@@ -46,45 +42,19 @@ const PagarPage = async ({
 
   const { plan, contact, note } = link;
   return (
-    <main className="flex min-h-[100svh] items-center justify-center bg-hero-paper px-5 py-12 text-ink">
-      {/* Una entrada y nada más. Quien abre un enlace de pago ya decidió:
-          animar esta pantalla sólo retrasa el botón. */}
-      <RevealScope className="w-full max-w-md" selector=".reveal" y={24} step={0}>
-        <div className="reveal">
-        <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
-          {BRAND.name}
-        </p>
-        <h1 className="mt-4 font-[font2] text-3xl uppercase leading-[0.95]">
-          Hola, {contact.firstName}
-        </h1>
-        {note && (
-          <p className="mt-3 font-[font1] text-base leading-snug text-black/60">
-            {note}
-          </p>
-        )}
-
-        <div className="mt-8">
-          <PublicProductCard
-            plan={plan}
-            isColombia={isColombia}
-            size="sm"
-            action={
-              <PaymentLinkCheckout
-                plan={plan}
-                userCountry={userCountry}
-                token={token}
-              />
-            }
-          />
-        </div>
-
-        <p className="mt-6 text-center font-[font1] text-xs leading-relaxed text-black/45">
-          Pago seguro. Al terminar recibes la confirmación por correo y
-          coordinamos tu agenda.
-        </p>
-        </div>
-      </RevealScope>
-    </main>
+    <PagarShell
+      plan={plan}
+      isColombia={isColombia}
+      greetingName={contact?.firstName ?? null}
+      note={note}
+      action={
+        <PaymentLinkCheckout
+          plan={plan}
+          userCountry={userCountry}
+          token={token}
+        />
+      }
+    />
   );
 };
 

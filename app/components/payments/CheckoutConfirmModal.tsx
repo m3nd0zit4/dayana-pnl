@@ -157,7 +157,14 @@ const CheckoutConfirmModal = ({ planId, provider, onClose }: Props) => {
   /** Alta recurrente. Convive con el pago suelto en los dos rieles. */
   const goSubscribe = async () => {
     setUi({ kind: "redirecting" });
-    const failure = await startCheckout(provider, plan.id, { subscribe: true });
+    const failure = await startCheckout(provider, plan.id, {
+      subscribe: true,
+      // El token también aquí. Se arregló el pago suelto y esta rama se quedó
+      // fuera: una mensualidad dada de alta desde un enlace acababa colgada de
+      // un contacto temporal, que es exactamente el fallo que el token vino a
+      // cerrar.
+      paymentLinkToken,
+    });
     if (failure) setUi({ kind: "error", message: failure });
   };
 

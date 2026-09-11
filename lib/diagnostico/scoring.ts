@@ -19,7 +19,8 @@ import {
 export type DiagnosticProfileId =
   | "EXPLORADOR"
   | "EN_PROCESO"
-  | "RAIZ_PROFUNDA";
+  | "RAIZ_PROFUNDA"
+  | "EN_EXPANSION";
 
 export type DiagnosticModality = "individual" | "grupo" | "autonomo";
 
@@ -48,8 +49,14 @@ export type DiagnosticScore = {
 const THRESHOLDS = {
   /** Por debajo de esto la persona no compra hoy: se le nutre, no se le vende. */
   explorerUrgency: 6,
-  /** Patrón de raíz: años de historia y varias manifestaciones a la vez. */
-  deepDepth: 7,
+  /**
+   * Patrón de raíz. Antes exigía 7 y lo alcanzaba combinando `tiempo` con
+   * `manifestacion` (hasta +9 de profundidad). Esa pregunta se retiró para
+   * bajar el cuestionario a 5 pasos, así que ahora sólo `tiempo` aporta
+   * profundidad — su máximo es 5 — y el umbral baja a 4 para seguir siendo
+   * alcanzable. Ver `lib/diagnostico/questions.ts`.
+   */
+  deepDepth: 4,
   deepUrgency: 8,
 } as const;
 
@@ -70,6 +77,7 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
   let commitmentRaw = 0;
   let investmentBlocked = false;
   let modality: DiagnosticModality = "individual";
+  let track: "emocional" | "crecimiento" = "emocional";
 
   // Sólo las preguntas que se le llegaron a hacer. Puntuar una pregunta
   // oculta con los pesos de una respuesta vieja —si volvió atrás y cambió
@@ -83,6 +91,7 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
       if (w.compromiso) commitmentRaw += w.compromiso;
       if (w.bloqueaInversion) investmentBlocked = true;
       if (w.modalidad) modality = w.modalidad;
+      if (w.track) track = w.track;
     }
   }
 
@@ -103,22 +112,28 @@ export function scoreDiagnostic(answers: DiagnosticAnswers): DiagnosticScore {
   // declarar un 9 de urgencia y aun así decir que no piensa empezar. Creerle a
   // la acción declarada antes que al sentimiento declarado es lo que evita
   // ponerle un paquete de doce sesiones delante a quien vino a mirar.
-  const justBrowsing = answers.cuando === "explorando";
+  const justBrowsing = answers.cierre === "explorando";
 
-  // Quien sólo está mirando no ve el tramo de intención, así que su
-  // `commitmentScore` sale del suelo (3) sin haber contestado nada. Se deja
-  // explícito en 0 para que la bandeja del CRM no lo mezcle con quien sí
-  // contestó y puntuó bajo: son dos cosas distintas.
+  // Se deja explícito en 0 en vez de dejar que la fórmula (que daría 1) lo
+  // confunda con alguien que sí contestó con intención y puntuó bajo: son dos
+  // cosas distintas para la bandeja del CRM.
   const commitment = justBrowsing ? 0 : commitmentScore;
 
-  const profile: DiagnosticProfileId = justBrowsing
-    ? "EXPLORADOR"
-    : urgencyScore < THRESHOLDS.explorerUrgency
-      ? "EXPLORADOR"
-      : depthScore >= THRESHOLDS.deepDepth &&
-          urgencyScore >= THRESHOLDS.deepUrgency
-        ? "RAIZ_PROFUNDA"
-        : "EN_PROCESO";
+  // El track manda antes que nada: quien vino a crecer no es un "explorador"
+  // ni una "raíz profunda" con otro nombre, es un perfil distinto. La
+  // variación de producto dentro de esa pista viene de urgencia/modalidad
+  // más abajo, no de sub-perfiles.
+  const profile: DiagnosticProfileId =
+    track === "crecimiento"
+      ? "EN_EXPANSION"
+      : justBrowsing
+        ? "EXPLORADOR"
+        : urgencyScore < THRESHOLDS.explorerUrgency
+          ? "EXPLORADOR"
+          : depthScore >= THRESHOLDS.deepDepth &&
+              urgencyScore >= THRESHOLDS.deepUrgency
+            ? "RAIZ_PROFUNDA"
+            : "EN_PROCESO";
 
   const { recommendedProductId, upgradeProductId } = capToInvestment(
     recommendProduct(profile, modality),
@@ -189,6 +204,11 @@ function recommendProduct(
         recommendedProductId: "therapy-12",
         upgradeProductId: "therapy-24",
       };
+    case "EN_EXPANSION":
+      // Quiere avanzar, no está en crisis: ni el escalón de entrada (piensa
+      // en "probar si esto es para mí") ni el más largo (piensa en "reparar
+      // algo de raíz") encajan con el registro. El de en medio sí.
+      return { recommendedProductId: "therapy-6", upgradeProductId: "therapy-12" };
   }
 }
 

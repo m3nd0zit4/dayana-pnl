@@ -16,15 +16,12 @@ import {
 import {
   AUTHORITY_COPY,
   DIAGNOSTIC_PROFILES,
+  GROWTH_COPY,
   METHOD_STEPS,
   OBJECTION_COPY,
   PAIN_COPY,
 } from "@/lib/diagnostico/profiles";
-import {
-  answerLabels,
-  DIAGNOSTIC_QUESTIONS,
-  isQuestionVisible,
-} from "@/lib/diagnostico/questions";
+import { answerLabels } from "@/lib/diagnostico/questions";
 import { scoreDiagnostic, type DiagnosticProfileId } from "@/lib/diagnostico/scoring";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { isFreeWebinarActive } from "@/lib/crm/free-webinar";
@@ -81,45 +78,39 @@ const ResultadoPage = async ({
 
   await markDiagnosticViewed(token);
 
+  // Cuál de las dos mitades del cuestionario contestó decide de dónde sale el
+  // bloque de "lo que está pasando" — nunca las dos a la vez, porque sólo una
+  // de las dos preguntas de foco se le llegó a mostrar.
   const pain =
-    typeof diagnostic.answers.dolor === "string"
-      ? PAIN_COPY[diagnostic.answers.dolor]
+    profile !== "EN_EXPANSION" &&
+    typeof diagnostic.answers["foco-emocional"] === "string"
+      ? PAIN_COPY[diagnostic.answers["foco-emocional"] as string]
       : undefined;
+  const growth =
+    profile === "EN_EXPANSION" &&
+    typeof diagnostic.answers["foco-crecimiento"] === "string"
+      ? GROWTH_COPY[diagnostic.answers["foco-crecimiento"] as string]
+      : undefined;
+  const focusCopy = pain ?? growth;
 
-  const manifestations = answerLabels(
-    "manifestacion",
-    diagnostic.answers.manifestacion,
-  );
   const timeLabel = answerLabels("tiempo", diagnostic.answers.tiempo)[0] ?? null;
 
-  // Se contesta la objeción que eligió, no las cinco. Enumerarlas todas obliga
-  // a leer cuatro párrafos ajenos y, peor, planta dudas que no tenía.
+  // Se contesta la objeción que eligió, no todas. Enumerarlas obliga a leer
+  // párrafos ajenos y, peor, planta dudas que no tenía.
   const objection =
-    typeof diagnostic.answers.freno === "string"
-      ? OBJECTION_COPY[diagnostic.answers.freno]
+    typeof diagnostic.answers.cierre === "string"
+      ? OBJECTION_COPY[diagnostic.answers.cierre]
       : undefined;
 
-  // "Por qué ella" sólo lo ve quien dijo que aún no lo sabe. A quien la sigue
-  // hace tiempo o llegó por recomendación, repetírselo suena a relleno.
-  const whyDayana = Array.isArray(diagnostic.answers.porqueDayana)
-    ? diagnostic.answers.porqueDayana
-    : [];
-  // Sólo si la pregunta **se hizo** y contestó que aún no lo sabe. Antes
-  // bastaba con que viniera vacía, así que a quien se le salta la pregunta se
-  // le habría soltado un "Acabas de llegar" que puede ser falso: quizá lleva
-  // un año siguiéndola.
-  const askedWhyDayana = isQuestionVisible(
-    DIAGNOSTIC_QUESTIONS.find((q) => q.id === "porqueDayana")!,
-    diagnostic.answers,
-  );
-  const needsAuthority =
-    askedWhyDayana &&
-    (whyDayana.length === 0 || whyDayana.includes("aun-no-lo-se"));
-
+  // "Por qué ella" sólo se le muestra a quien llegó por un canal frío —
+  // `source` nulo o publicidad—, donde nadie le presentó a Dayana antes. A
+  // quien viene de `enlaces`/`home`/`historias` (contenido suyo) repetírselo
+  // suena a relleno.
+  const needsAuthority = diagnostic.source == null || diagnostic.source === "ad";
 
   const whatsappUrl = buildWhatsAppUrl(
     `${copy.whatsappIntro}${
-      manifestations.length ? ` Lo que más noto: ${manifestations[0].toLowerCase()}.` : ""
+      focusCopy ? ` Lo que más resuena: ${focusCopy.title.toLowerCase()}.` : ""
     } Me gustaría orientación antes de decidir.`,
   );
 
@@ -145,26 +136,14 @@ const ResultadoPage = async ({
               {copy.mirror}
             </p>
 
-            {(timeLabel || manifestations.length > 0) && (
-              <dl className="mt-7 grid gap-5 border-t border-black/10 pt-6 sm:grid-cols-2">
-                {timeLabel && (
-                  <div>
-                    <dt className="font-[font2] text-[10px] uppercase tracking-[0.24em] text-black/40">
-                      Lo llevas sintiendo
-                    </dt>
-                    <dd className="mt-1.5 font-[font1] text-base">{timeLabel}</dd>
-                  </div>
-                )}
-                {manifestations.length > 0 && (
-                  <div>
-                    <dt className="font-[font2] text-[10px] uppercase tracking-[0.24em] text-black/40">
-                      Y se te nota en
-                    </dt>
-                    <dd className="mt-1.5 font-[font1] text-base">
-                      {manifestations.join(" · ")}
-                    </dd>
-                  </div>
-                )}
+            {timeLabel && (
+              <dl className="mt-7 grid gap-5 border-t border-black/10 pt-6">
+                <div>
+                  <dt className="font-[font2] text-[10px] uppercase tracking-[0.24em] text-black/40">
+                    Le llevas dando vueltas
+                  </dt>
+                  <dd className="mt-1.5 font-[font1] text-base">{timeLabel}</dd>
+                </div>
               </dl>
             )}
           </div>
@@ -271,15 +250,15 @@ const ResultadoPage = async ({
             </div>
           </div>
         </section>
-        {/* 3 · Lo que está pasando, según su dolor */}
-        {pain && (
+        {/* 3 · Lo que está pasando, según su foco (dolor o crecimiento) */}
+        {focusCopy && (
           <section className="reveal border-t border-black/10 bg-linen/40">
             <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">
               <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
-                {pain.title}
+                {focusCopy.title}
               </h2>
               <p className="mt-5 font-[font1] text-lg leading-relaxed text-black/75">
-                {pain.body}
+                {focusCopy.body}
               </p>
             </div>
           </section>

@@ -26,32 +26,13 @@ import CrmModal from "./CrmModal";
 import RegisterPaymentModal from "./RegisterPaymentModal";
 import { useCrm } from "./CrmProvider";
 import { CrmEmptyState, CrmPublicLink } from "./ui";
+import { membershipChip } from "./membership-chip";
 
 type Props = {
   preview: boolean;
   courseTitle: string;
   courseProductId: string | null;
   initialMembers: CourseMemberRow[];
-};
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-const membershipChip = (row: CourseMemberRow) => {
-  if (row.status === "CANCELLED" || row.status === "REFUNDED") {
-    return { label: row.status === "CANCELLED" ? "Cancelado" : "Reembolsado", cls: "border-border bg-muted text-muted-foreground" };
-  }
-  if (!row.paidUntil) {
-    return { label: "Sin vigencia", cls: "border-border bg-muted text-muted-foreground" };
-  }
-  const paidUntil = new Date(row.paidUntil).getTime();
-  const now = Date.now();
-  if (paidUntil <= now) {
-    return { label: "Vencido", cls: "border-destructive/40 bg-destructive/10 text-destructive" };
-  }
-  if (paidUntil - now <= 7 * DAY_MS) {
-    return { label: "Vence pronto", cls: "border-warning/40 bg-warning/10 text-warning" };
-  }
-  return { label: "Al día", cls: "border-success/40 bg-success/10 text-success" };
 };
 
 const formatDate = (iso: string | null) =>

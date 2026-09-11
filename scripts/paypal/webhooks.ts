@@ -1,8 +1,9 @@
 /**
  * Inventario y sincronización de los webhooks de PayPal.
  *
- *   bun run scripts/paypal/webhooks.ts            # sólo mira y compara
- *   bun run scripts/paypal/webhooks.ts --sync URL # crea/actualiza los eventos
+ *   bun run scripts/paypal/webhooks.ts             # sólo mira y compara
+ *   bun run scripts/paypal/webhooks.ts --sync URL  # crea/actualiza los eventos
+ *   bun run scripts/paypal/webhooks.ts --prune URL # borra los que NO son esa URL
  *
  * Con `bun run`, no `bunx tsx`: bun carga `.env` solo y el script necesita las
  * credenciales del entorno que va a inspeccionar.
@@ -85,6 +86,13 @@ const call = async (path: string, init?: RequestInit) => {
 };
 
 async function main() {
+  const pruneIdx = process.argv.indexOf("--prune");
+  if (pruneIdx >= 0) {
+    const keepUrl = process.argv[pruneIdx + 1];
+    if (!keepUrl) throw new Error("--prune necesita la URL que se conserva");
+    return prune(keepUrl);
+  }
+
   const syncIdx = process.argv.indexOf("--sync");
   const targetUrl = syncIdx >= 0 ? process.argv[syncIdx + 1] : undefined;
   const entorno = isLive() ? "LIVE (producción)" : "SANDBOX (desarrollo)";
@@ -116,7 +124,9 @@ async function main() {
   }
 
   if (!targetUrl) {
-    console.log("\n(Sólo lectura. Usa --sync <url> para crear o actualizar.)");
+    console.log(
+      "\n(Solo lectura. `--sync <url>` crea o actualiza; `--prune <url>` borra los demas.)"
+    );
     return;
   }
 
@@ -139,6 +149,66 @@ async function main() {
   });
   console.log(`\nCreado ${created.id} -> ${targetUrl}`);
   console.log(`PAYPAL_WEBHOOK_ID=${created.id}`);
+
+  /**
+   * Los que apuntaban a otra URL quedan vivos, y eso no es inofensivo: PayPal
+   * les sigue enviando cada evento y acumulan entregas fallidas contra un host
+   * que ya no responde. Pasó al reapuntar del ápice a `www` en producción y
+   * hubo que borrarlo a mano, porque el síntoma —entregas fallidas— no dice
+   * cuál de los dos sobra.
+   *
+   * No se borran solos: `--prune` es una acción aparte y explícita. Borrar un
+   * webhook que alguien tiene puesto en su `.env` deja su entorno sin
+   * verificar firmas, y eso no se hace de propina dentro de otro comando.
+   */
+  const huerfanos = webhooks.filter((w) => w.url !== targetUrl);
+  if (huerfanos.length > 0) {
+    console.log(
+      `\n  Quedan ${huerfanos.length} webhook(s) apuntando a otra URL:` +
+        huerfanos.map((w) => `\n    ${w.id}  ${w.url}`).join("") +
+        `\n  PayPal les seguirá enviando eventos y acumularán entregas fallidas.` +
+        `\n  Bórralos con:  bun run scripts/paypal/webhooks.ts --prune ${targetUrl}`
+    );
+  }
+}
+
+/**
+ * Borra los webhooks que NO apuntan a `keepUrl`. Se pide la URL a conservar en
+ * vez de una lista de ids para que sea imposible borrar el que se acaba de
+ * crear por un id mal copiado.
+ */
+async function prune(keepUrl: string) {
+  const entorno = isLive() ? "LIVE (producción)" : "SANDBOX (desarrollo)";
+  console.log(`Entorno (PAYPAL_MODE) : ${entorno}`);
+  console.log(`Se conserva           : ${keepUrl}\n`);
+
+  const listed = (await call("/v1/notifications/webhooks")) as unknown as {
+    webhooks?: Webhook[];
+  };
+  const webhooks = listed.webhooks ?? [];
+  const sobran = webhooks.filter((w) => w.url !== keepUrl);
+
+  if (!webhooks.some((w) => w.url === keepUrl)) {
+    console.log(
+      "  ABORTA: ninguno de los webhooks apunta a esa URL.\n" +
+        "  Borrarlos todos dejaría la cuenta sin webhook. Revisa la URL."
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  if (sobran.length === 0) {
+    console.log("  No sobra ninguno.");
+    return;
+  }
+
+  for (const w of sobran) {
+    await call(`/v1/notifications/webhooks/${w.id}`, { method: "DELETE" });
+    console.log(`  Borrado ${w.id}  ${w.url}`);
+  }
+  console.log(
+    `\n  Hecho. Comprueba que PAYPAL_WEBHOOK_ID es el del que se conservó.`
+  );
 }
 
 main().catch((e) => {

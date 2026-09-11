@@ -44,18 +44,8 @@ const CrmShell = ({
   avatarUrl: string | null;
   preview: boolean;
 }) => {
-  const { focusMode, agentEnabled, agentPanelOpen, agentPanelExpanded } = useCrm();
+  const { agentEnabled, agentPanelOpen, agentPanelExpanded } = useCrm();
   const panelTakingOver = agentEnabled && agentPanelOpen && agentPanelExpanded;
-
-  if (focusMode) {
-    return (
-      <div className="crm-app flex h-[100dvh] min-h-0 flex-col">
-        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          {children}
-        </main>
-      </div>
-    );
-  }
 
   return (
     <SidebarProvider
@@ -84,7 +74,10 @@ const CrmShell = ({
                 <SidebarFooter>
                   <SidebarMenu>
                     <SidebarMenuItem>
-                      <SidebarMenuButton tooltip="Ajustes" render={<Link href="/admin/ajustes" />}>
+                      <SidebarMenuButton
+                        tooltip="Ajustes"
+                        render={<Link href="/admin/ajustes" />}
+                      >
                         <Settings />
                         <span>Ajustes</span>
                       </SidebarMenuButton>

@@ -4,10 +4,7 @@ import DiagnosticosPageClient, {
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { listCompletedDiagnostics } from "@/lib/crm/diagnostics";
-import {
-  OBJECTION_LABEL,
-  WHY_DAYANA_LABEL,
-} from "@/lib/diagnostico/profiles";
+import { OBJECTION_LABEL } from "@/lib/diagnostico/profiles";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +20,14 @@ const DiagnosticosPage = async () => {
   const rows = await listCompletedDiagnostics(200);
 
   const diagnosticos: DiagnosticoRow[] = rows.map((d) => {
-    const whyDayana = Array.isArray(d.answers.porqueDayana)
-      ? d.answers.porqueDayana
-      : [];
+    // Filas anteriores al rediseño de dos pistas no tienen `orientacion` —
+    // se quedan sin track en vez de adivinar uno.
+    const track =
+      d.answers.orientacion === "pesa"
+        ? "emocional"
+        : d.answers.orientacion === "avanzar"
+          ? "crecimiento"
+          : null;
 
     return {
       id: d.id,
@@ -47,13 +49,13 @@ const DiagnosticosPage = async () => {
             phoneE164: d.contact.phoneE164,
           }
         : null,
+      track,
       // Las respuestas se traducen aquí, en el servidor: el cliente no debería
       // tener que conocer los ids del cuestionario para pintar una fila.
       objection:
-        typeof d.answers.freno === "string"
-          ? (OBJECTION_LABEL[d.answers.freno] ?? d.answers.freno)
+        typeof d.answers.cierre === "string"
+          ? (OBJECTION_LABEL[d.answers.cierre] ?? null)
           : null,
-      whyDayana: whyDayana.map((v) => WHY_DAYANA_LABEL[v] ?? v),
     };
   });
 

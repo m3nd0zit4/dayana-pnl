@@ -19,7 +19,12 @@ import {
 export type DiagnosticoRow = {
   id: string;
   token: string;
-  profile: "EXPLORADOR" | "EN_PROCESO" | "RAIZ_PROFUNDA" | null;
+  profile:
+    | "EXPLORADOR"
+    | "EN_PROCESO"
+    | "RAIZ_PROFUNDA"
+    | "EN_EXPANSION"
+    | null;
   urgencyScore: number | null;
   commitmentScore: number | null;
   recommendedProductId: string | null;
@@ -34,14 +39,20 @@ export type DiagnosticoRow = {
   } | null;
   /** Qué dijo que la frenaba, ya traducido. */
   objection: string | null;
-  /** Por qué Dayana, ya traducido. */
-  whyDayana: string[];
+  /** Emocional o crecimiento. Null en diagnósticos de antes del rediseño. */
+  track: "emocional" | "crecimiento" | null;
 };
 
 const PROFILE_LABEL: Record<NonNullable<DiagnosticoRow["profile"]>, string> = {
   EXPLORADOR: "Explorador",
   EN_PROCESO: "En proceso",
   RAIZ_PROFUNDA: "Raíz profunda",
+  EN_EXPANSION: "En expansión",
+};
+
+const TRACK_LABEL: Record<NonNullable<DiagnosticoRow["track"]>, string> = {
+  emocional: "Emocional",
+  crecimiento: "Crecimiento",
 };
 
 type Segment = "todos" | "calientes" | "sin-comprar";
@@ -86,7 +97,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         d.contact?.email,
         d.contact?.phoneE164,
         d.objection,
-        ...d.whyDayana,
+        d.track ? TRACK_LABEL[d.track] : null,
       ]
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
@@ -163,6 +174,11 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
+                {d.track && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {TRACK_LABEL[d.track]}
+                  </p>
+                )}
               </div>
 
               <div className="sm:w-36">
@@ -181,11 +197,6 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 <p className="truncate text-xs text-muted-foreground">
                   {d.objection ? `Le frena: ${d.objection}` : "—"}
                 </p>
-                {d.whyDayana.length > 0 && (
-                  <p className="truncate text-xs text-muted-foreground">
-                    {d.whyDayana.join(" · ")}
-                  </p>
-                )}
               </div>
 
               <div className="sm:w-36">

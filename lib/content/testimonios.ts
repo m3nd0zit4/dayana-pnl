@@ -58,6 +58,24 @@ export const TESTIMONIOS: Testimonial[] = [
     cameFrom: "No sabía priorizarse",
     profiles: ["EXPLORADOR", "EN_PROCESO"],
   },
+  {
+    id: 5,
+    name: "Nati",
+    excerpt:
+      "Superé las creencias limitantes que me tenían estancada. Conocer a Dayana ha sido lo mejor que me ha pasado en la vida: hoy siento que avanzo de verdad, en todas las áreas.",
+    youtubeId: "SVR7_4Z5VJ4",
+    cameFrom: "Creencias limitantes",
+    profiles: ["EN_EXPANSION", "EN_PROCESO"],
+  },
+  {
+    id: 6,
+    name: "Karina",
+    excerpt:
+      "Conocí a Dayana y entré al taller sin saber muy bien qué esperar. Me liberé de algo que cargaba hace mucho tiempo — fue una experiencia espectacular, me encantó de principio a fin.",
+    youtubeId: "-z41PMiuctQ",
+    cameFrom: "Necesitaba liberarse",
+    profiles: ["EN_PROCESO", "RAIZ_PROFUNDA"],
+  },
 ];
 
 /**

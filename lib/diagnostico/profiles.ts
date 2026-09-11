@@ -79,6 +79,21 @@ export const DIAGNOSTIC_PROFILES: Record<
     whatsappIntro:
       "Hola Dayana, hice el diagnóstico en tu página y me salió que lo mío viene de raíz.",
   },
+  EN_EXPANSION: {
+    name: "No estás mal. Quieres más.",
+    tagline: "No vienes de una crisis. Vienes de querer ir más lejos.",
+    mirror:
+      "Sabes exactamente qué quieres cambiar y probablemente lo tienes clarísimo en la cabeza: lo has pensado, lo has planeado, hasta se lo has contado a alguien. Y aun así, cuando llega el momento de actuar distinto, vuelves al mismo patrón de siempre. Eso no es falta de voluntad. Es que decidir algo y sostenerlo son dos partes distintas del cerebro, y la que sostiene no se mueve solo con una decisión consciente.",
+    whyItFailed:
+      "Leer, planear y proponerte cambiar trabaja con la parte consciente. El hábito, la reacción automática, el techo que te frena justo antes del salto — eso vive en la parte que no negocia con argumentos. Por eso puedes tener el plan perfecto y seguir sin ejecutarlo.",
+    offerFraming:
+      "No se trata de aprender algo nuevo. Se trata de reprogramar la parte que sigue frenando lo que tu cabeza ya decidió.",
+    riskReversal:
+      "Empiezas en cuestión de días. Cada sesión admite reprogramación avisando con tiempo. Si en la primera sientes que no es tu camino, lo hablamos.",
+    ctaLabel: "Empezar mi proceso",
+    whatsappIntro:
+      "Hola Dayana, hice el diagnóstico en tu página y me salió que quiero avanzar, no que esté mal.",
+  },
 };
 
 /**
@@ -115,17 +130,42 @@ export const PAIN_COPY: Record<string, { title: string; body: string }> = {
   },
 };
 
+/**
+ * "En qué quieres avanzar", explicado según la categoría elegida en
+ * `foco-crecimiento`. El equivalente de `PAIN_COPY` para quien no está mal.
+ */
+export const GROWTH_COPY: Record<string, { title: string; body: string }> = {
+  habitos: {
+    title: "No es falta de disciplina. Es piloto automático.",
+    body: "Te propones algo, dura unos días, y sin darte cuenta vuelves al patrón viejo. Eso no mide tu voluntad: mide qué tan instalada está la versión anterior de ti. La disciplina consciente pierde contra un hábito automático casi siempre — hay que reprogramar el automático, no pelear contra él cada día.",
+  },
+  relaciones: {
+    title: "Ya sabes comunicarte. Algo se activa antes de lograrlo.",
+    body: "No es que no sepas qué decir o cómo estar presente — lo sabes. Pero en el momento hay una reacción que se adelanta: te cierras, te vas, respondes distinto a como querías. Esa reacción se aprendió antes de tener palabras para nombrarla. Se trabaja ahí, no en la técnica de comunicación.",
+  },
+  carrera: {
+    title: "El techo no está en el mercado. Está antes.",
+    body: "Tienes la capacidad y probablemente el plan. Lo que frena el salto —pedir el aumento, lanzar el negocio, tomar el liderazgo— casi nunca es falta de preparación: es un techo interno que se activa justo antes de cruzarlo. Se mueve el techo, no la preparación.",
+  },
+  proposito: {
+    title: "No te falta un plan. Te falta permiso.",
+    body: "El siguiente capítulo casi nunca se traba por no saber qué hacer — se traba por el miedo, guardado, a elegir mal o a dejar algo conocido. El trabajo no es diseñar el plan perfecto: es quitar lo que te impide moverte con el que ya tienes en la cabeza.",
+  },
+};
+
 /** Etiqueta corta del perfil, para el CRM y los tags de contacto. */
 export const PROFILE_TAG_SLUG: Record<DiagnosticProfileId, string> = {
   EXPLORADOR: "diagnostico-explorador",
   EN_PROCESO: "diagnostico-en-proceso",
   RAIZ_PROFUNDA: "diagnostico-raiz-profunda",
+  EN_EXPANSION: "diagnostico-en-expansion",
 };
 
 export const PROFILE_TAG_LABEL: Record<DiagnosticProfileId, string> = {
   EXPLORADOR: "Diagnóstico · Explorador",
   EN_PROCESO: "Diagnóstico · En proceso",
   RAIZ_PROFUNDA: "Diagnóstico · Raíz profunda",
+  EN_EXPANSION: "Diagnóstico · En expansión",
 };
 
 /** Los tres pasos del método. Iguales para todos: es la promesa de la marca. */
@@ -153,53 +193,32 @@ export const METHOD_STEPS = [
  * pregunta de qué te ha frenado ya la hizo elegir.
  */
 export const OBJECTION_COPY: Record<string, { title: string; body: string }> = {
-  dinero: {
-    title: "Dijiste que el dinero.",
-    body: "Entonces no empieces por el paquete grande. Una sesión suelta cuesta lo que una salida a cenar y te deja saber, con tu caso encima de la mesa y no en teoría, si esto te sirve. Si después decides continuar, ya sabrás exactamente qué estás comprando.",
+  "mes-organizando": {
+    title: "Dijiste que estás organizando tiempo o presupuesto.",
+    body: "Entonces no empieces por el paquete grande. Una sesión suelta cuesta lo que una salida a cenar, es una hora desde tu casa sin desplazamiento, y te deja saber —con tu caso encima de la mesa, no en teoría— si esto te sirve. El tiempo que llevas gastando en sostener el patrón —dándole vueltas, reparándolo, recuperándote— ya es mayor que esto.",
   },
-  tiempo: {
-    title: "Dijiste que el tiempo.",
-    body: "Es una hora, desde tu casa, sin desplazamiento. La agenda se arma contigo y cada sesión admite reprogramación avisando con tiempo. El tiempo que llevas gastando en sostener el patrón —dándole vueltas, reparándolo, recuperándote— ya es mayor que esto.",
-  },
-  miedo: {
-    title: "Dijiste que tienes miedo de que no funcione.",
-    body: "Es la objeción más sensata de todas, y viene de haber probado cosas que no sirvieron. Por eso no te pido que creas nada: la primera sesión es la prueba. Se trabaja un evento concreto tuyo y sales sabiendo si algo se movió, sin tener que esperar tres meses para averiguarlo.",
-  },
-  desconocimiento: {
-    title: "Dijiste que no sabías por dónde empezar.",
-    body: "Ya no es el caso: acabas de responder el cuestionario y arriba tienes el punto exacto por donde se empieza en tu caso. Eso era lo único que faltaba.",
-  },
-  nada: {
-    title: "Dijiste que nada te ha frenado, que simplemente no lo habías hecho.",
-    body: "Entonces esto es sencillo. No hay una objeción que resolver ni una duda que despejar: hay una decisión que llevas tiempo aplazando sin motivo, y tomarla te va a costar dos minutos menos de los que llevas leyendo.",
+  "pronto-inseguro": {
+    title: "Dijiste que quieres estar segura/o antes de decidir.",
+    body: "Es lo más sensato, sobre todo si ya probaste cosas que no sirvieron. Por eso no te pido que creas nada: la primera sesión es la prueba. Se trabaja un evento concreto tuyo y sales sabiendo si algo se movió, sin esperar tres meses para averiguarlo.",
   },
 };
 
 /**
- * Sólo se muestra a quien contestó "todavía no lo sé" en por qué Dayana.
- *
- * A quien la sigue hace tiempo o llegó por recomendación no hay que
- * convencerla de quién es: ya lo decidió, y repetírselo suena a relleno.
+ * Se muestra a quien llegó por tráfico frío — `source` nulo o `"ad"` — donde
+ * nadie le explicó antes quién es Dayana. La pregunta que antes decidía esto
+ * (`porqueDayana`) se retiró al bajar el cuestionario a 5 pasos; `source` ya
+ * se capturaba sin preguntar nada, así que hace el mismo trabajo sin costar
+ * un paso más. A quien llega desde `enlaces`, `home`, `historias` — contenido
+ * suyo — no hay que convencerla de quién es Dayana: ya lo decidió, y
+ * repetírselo suena a relleno.
  */
 export const AUTHORITY_COPY = {
   title: "Acabas de llegar, así que esto te falta",
   body: "Dayana es Maestra en Programación Neurolingüística y trabaja con la parte del cerebro donde el patrón se instaló, no con consejos ni con motivación. No hay promesa de resultado garantizado ni recetas de siete días: hay un método concreto, una hora contigo, y la parte que sólo puedes poner tú.",
 };
 
-/** Etiqueta corta de cada valor de `porqueDayana`, para el CRM. */
-export const WHY_DAYANA_LABEL: Record<string, string> = {
-  "la-sigo": "La sigue hace tiempo",
-  "me-identifique": "Se identificó con algo que dijo",
-  recomendacion: "Se la recomendaron",
-  "busco-pnl": "Busca PNL concretamente",
-  "aun-no-lo-se": "Aún no lo sabe",
-};
-
-/** Etiqueta corta de cada valor de `freno`, para el CRM. */
+/** Etiqueta corta de cada valor de `cierre`, para el CRM. */
 export const OBJECTION_LABEL: Record<string, string> = {
-  dinero: "El dinero",
-  tiempo: "El tiempo",
-  miedo: "Miedo a que no funcione",
-  desconocimiento: "No sabía por dónde empezar",
-  nada: "Nada en concreto",
+  "mes-organizando": "Organizando tiempo o presupuesto",
+  "pronto-inseguro": "Quiere estar segura/o antes",
 };

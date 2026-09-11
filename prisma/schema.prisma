@@ -714,6 +714,16 @@ model Payment {
   /// puede localizar la operación.
   failureMessage      String?         @map("failure_message") @db.Text
   rawPayload          Json?           @map("raw_payload")
+  /// Número del recibo, `REC-2026-0001`. Se asigna la primera vez que alguien
+  /// pide el recibo de un pago aprobado y ya no cambia: es el dato por el que
+  /// la clienta y la contabilidad se refieren al documento, y un `cuid` no se
+  /// dicta por teléfono.
+  ///
+  /// El correlativo sale de una secuencia de Postgres y es GLOBAL, no por año:
+  /// una secuencia por año obligaría a contar filas para saber el siguiente, y
+  /// dos recibos pedidos a la vez se llevarían el mismo número. Así el año del
+  /// prefijo es el del cobro y el contador nunca se reinicia ni se repite.
+  receiptNumber       String?         @unique @map("receipt_number")
   paidAt              DateTime?       @map("paid_at")
   membershipAppliedAt DateTime?       @map("membership_applied_at")
   /// Marca de que ya se envió el evento Purchase a Meta CAPI. `recordPayment`
@@ -1649,13 +1659,18 @@ model LessonComment {
 
 /// Perfil resuelto por el cuestionario público de `/diagnostico`.
 ///
-/// Son tres y no cinco a propósito: el perfil elige **qué se le recomienda**,
-/// no qué paquete existe. Cinco perfiles reproducirían dentro del resultado la
-/// misma parálisis de elección que el catálogo de `/servicios` provoca fuera.
+/// El perfil elige **qué se le recomienda**, no qué paquete existe — de ahí
+/// que sean pocos: más perfiles reproducirían dentro del resultado la misma
+/// parálisis de elección que el catálogo de `/servicios` provoca fuera.
+/// `EN_EXPANSION` es el cuarto y el único que no viene de la pista emocional:
+/// cubre a quien no está en crisis y quiere avanzar (carrera, hábitos,
+/// relaciones, propósito) — forzarlo dentro de los otros tres significaría
+/// hablarle de "patrón" y "dolor" a alguien que no vino por eso.
 enum DiagnosticProfile {
   EXPLORADOR
   EN_PROCESO
   RAIZ_PROFUNDA
+  EN_EXPANSION
 }
 
 /// Una sesión del cuestionario público. Es la llamada de ventas codificada:

@@ -6,36 +6,48 @@
  * datos, cambiar una palabra —o el orden, o los pesos— no toca React, no
  * arriesga una regresión de render y lo puede revisar alguien que no programa.
  *
- * **Ocho como mucho, y ninguna se escribe.** Hubo una versión de doce con dos
- * campos de texto libre y una escala del 1 al 10. Cada campo de texto es un
- * teclado que se abre en el móvil y una pantalla que se tapa a sí misma, y la
- * escala pedía calibrar un número cuando la pregunta "¿cuándo quieres empezar?"
- * mide lo mismo con tres toques. Se fueron los dos textos, la escala y la
- * pregunta de qué habías intentado —que `freno` ya responde—. Todo se contesta
+ * **Cinco como mucho, y ninguna se escribe.** Hubo una versión de doce con dos
+ * campos de texto libre y una escala del 1 al 10, y luego una de ocho. Cada
+ * campo de texto es un teclado que se abre en el móvil y una pantalla que se
+ * tapa a sí misma. Se acortó otra vez de ocho a cinco fusionando preguntas
+ * (`cuando`+`freno`+`inversion` → `cierre`) y retirando la de atribución
+ * (`porqueDayana`, que ya cubre `source`) — a cambio de perder granularidad de
+ * objeción, decisión explícita a favor de menos fricción. Todo se contesta
  * tocando hasta el paso de contacto, que es el único que pide escribir y llega
  * cuando ya hay motivo para hacerlo.
  *
- * El orden sí es deliberado: primero el problema, luego la decisión. Los datos
- * de contacto van al final, cuando ya hay inversión emocional; pedirlos
- * primero es lo que convierte un cuestionario en un formulario.
+ * **Dos pistas, no una.** No todo el mundo que llega aquí está mal: algunos
+ * quieren soltar algo, otros quieren avanzar sin estar en crisis. La primera
+ * pregunta (`orientacion`) decide cuál de las dos ve la persona, y el resto
+ * del banco tiene una rama por tema (`foco-emocional` / `foco-crecimiento`)
+ * que se muestra según esa respuesta — el mismo mecanismo de `showIf` que ya
+ * usaba el cuestionario para saltarse el tramo de intención con quien sólo
+ * está explorando.
+ *
+ * El orden sí es deliberado: primero el problema o la meta, luego la
+ * decisión. Los datos de contacto van al final, cuando ya hay inversión
+ * emocional; pedirlos primero es lo que convierte un cuestionario en un
+ * formulario.
  */
 
 export type DiagnosticQuestionId =
-  | "dolor"
+  // Decide el track antes de preguntar nada más: no toda persona que llega
+  // aquí está mal. Algunas quieren soltar algo; otras quieren avanzar sin
+  // estar en crisis. Preguntarles "¿qué te pesa?" a las segundas fuerza una
+  // respuesta falsa entre seis opciones de dolor.
+  | "orientacion"
+  // Tema. Sólo una de las dos se muestra — ver `showIf` más abajo — según lo
+  // que contestó en `orientacion`.
+  | "foco-emocional"
+  | "foco-crecimiento"
   | "tiempo"
-  | "manifestacion"
   | "modalidad"
-  | "cuando"
-  // Tramo 2 — intención y compromiso. Las cinco de arriba miden el dolor; sin
-  // estas tres el cuestionario recomienda un paquete sin saber si la persona
-  // puede pagarlo, cómo llegó, ni qué la ha frenado hasta hoy — que es
-  // exactamente lo que la llamada de ventas averigua antes de decir un precio.
-  //
-  // Se saltan enteras para quien responde que sólo está mirando: preguntarle
-  // a esa persona si puede invertir es justo la pregunta que sobra.
-  | "freno"
-  | "porqueDayana"
-  | "inversion";
+  // Cierre: cuándo, y con qué se topa. Antes eran tres preguntas separadas
+  // (`cuando`, `freno`, `inversion`) más una cuarta de atribución
+  // (`porqueDayana`); se fusionan en una sola para no pasar de cinco pasos
+  // por persona. Se pierde granularidad de objeción a cambio de menos
+  // fricción — decisión explícita, no descuido.
+  | "cierre";
 
 /**
  * Pesos que una opción aporta al scoring. Todos opcionales: una opción puede
@@ -55,6 +67,8 @@ export type DiagnosticWeights = {
   compromiso?: number;
   /** `true` en la opción que declara no poder invertir ahora mismo. */
   bloqueaInversion?: boolean;
+  /** Sólo en `orientacion`: decide qué mitad del cuestionario ve. */
+  track?: "emocional" | "crecimiento";
 };
 
 export type DiagnosticOption = {
@@ -96,11 +110,33 @@ export type DiagnosticQuestion = {
 
 export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
   {
-    id: "dolor",
+    id: "orientacion",
+    prompt: "¿Qué te trae hoy aquí?",
+    help: "No hay respuesta correcta. Elige lo que más se acerque.",
+    type: "single",
+    required: true,
+    options: [
+      {
+        id: "pesa",
+        label: "Algo me pesa y quiero soltarlo",
+        hint: "Ansiedad, una relación, un duelo, algo del pasado",
+        weights: { track: "emocional" },
+      },
+      {
+        id: "avanzar",
+        label: "Quiero crecer y dar el siguiente paso",
+        hint: "No es que esté mal. Quiero ir más lejos",
+        weights: { track: "crecimiento" },
+      },
+    ],
+  },
+  {
+    id: "foco-emocional",
     prompt: "¿Qué es lo que más te pesa hoy?",
     help: "Elige lo que más se acerque. No hay respuesta correcta.",
     type: "single",
     required: true,
+    showIf: { question: "orientacion", notEquals: ["avanzar"] },
     options: [
       {
         id: "ansiedad",
@@ -135,8 +171,38 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     ],
   },
   {
+    id: "foco-crecimiento",
+    prompt: "¿En qué quieres avanzar?",
+    help: "Elige lo que más se acerque. No hay respuesta correcta.",
+    type: "single",
+    required: true,
+    showIf: { question: "orientacion", notEquals: ["pesa"] },
+    options: [
+      {
+        id: "habitos",
+        label: "Mis hábitos y mi disciplina",
+        hint: "Consistencia, orden, dejar de posponer",
+      },
+      {
+        id: "relaciones",
+        label: "Mis relaciones",
+        hint: "Comunicarme mejor, estar más presente, conexión",
+      },
+      {
+        id: "carrera",
+        label: "Mi carrera, liderazgo o negocio",
+        hint: "Confianza para crecer, decidir, liderar",
+      },
+      {
+        id: "proposito",
+        label: "El siguiente capítulo de mi vida",
+        hint: "Dirección, una decisión grande, reinvención",
+      },
+    ],
+  },
+  {
     id: "tiempo",
-    prompt: "¿Hace cuánto lo sientes?",
+    prompt: "¿Hace cuánto le das vueltas a esto?",
     help: "Esto define la profundidad del proceso, no su precio.",
     type: "single",
     required: true,
@@ -148,37 +214,6 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
         id: "siempre",
         label: "Desde que tengo memoria",
         weights: { profundidad: 5, urgencia: 3 },
-      },
-    ],
-  },
-  {
-    id: "manifestacion",
-    prompt: "¿Cómo se te nota en el día a día?",
-    help: "Marca todas las que reconozcas.",
-    type: "multi",
-    required: true,
-    options: [
-      { id: "sueno", label: "No duermo bien", weights: { profundidad: 1 } },
-      {
-        id: "bloqueo",
-        label: "Me bloqueo cuando tengo que decidir",
-        weights: { profundidad: 2 },
-      },
-      {
-        id: "repito",
-        label: "Repito siempre la misma historia",
-        weights: { profundidad: 3 },
-      },
-      {
-        id: "cuerpo",
-        label: "Se me manifiesta en el cuerpo",
-        hint: "Dolores, tensión, cansancio sin causa",
-        weights: { profundidad: 3 },
-      },
-      {
-        id: "aparento",
-        label: "Por fuera estoy bien, por dentro no",
-        weights: { profundidad: 3 },
       },
     ],
   },
@@ -208,116 +243,29 @@ export const DIAGNOSTIC_QUESTIONS: DiagnosticQuestion[] = [
     ],
   },
   {
-    id: "cuando",
-    prompt: "¿Cuándo quieres empezar?",
+    id: "cierre",
+    prompt: "¿Cuándo te gustaría empezar?",
     type: "single",
     required: true,
     options: [
-      { id: "semana", label: "Esta semana", weights: { urgencia: 4, compromiso: 2 } },
-      { id: "mes", label: "Este mes", weights: { urgencia: 2, compromiso: 1 } },
+      { id: "ya", label: "Esta semana", weights: { urgencia: 4, compromiso: 3 } },
+      {
+        id: "mes-organizando",
+        label: "Este mes",
+        hint: "Estoy organizando tiempo o presupuesto",
+        weights: { urgencia: 2, compromiso: 1 },
+      },
+      {
+        id: "pronto-inseguro",
+        label: "Pronto",
+        hint: "Quiero estar segura/o de que es lo correcto",
+        weights: { urgencia: 1, compromiso: 0 },
+      },
       {
         id: "explorando",
         label: "Solo estoy explorando",
-        weights: { urgencia: -2, compromiso: -2 },
-      },
-    ],
-  },
-
-  // ── Tramo 2 · intención y compromiso ────────────────────────────────────
-  //
-  // Aquí cambia el registro: hasta ahora se hablaba del problema, ahora de la
-  // decisión. Va al final y no al principio porque preguntar "¿puedes
-  // invertir?" en frío ahuyenta, y preguntarlo tras cinco respuestas sobre lo
-  // que duele es la continuación natural de la conversación.
-
-  {
-    id: "freno",
-    prompt: "¿Qué te ha frenado hasta ahora?",
-    help: "Dayana lo lee antes de responderte, para no darte una respuesta genérica.",
-    type: "single",
-    required: true,
-    showIf: { question: "cuando", notEquals: ["explorando"] },
-    options: [
-      {
-        id: "dinero",
-        label: "El dinero",
-        hint: "No me parecía el momento de invertir en esto",
-      },
-      { id: "tiempo", label: "El tiempo", hint: "Nunca encuentro el hueco" },
-      {
-        id: "miedo",
-        label: "Miedo a que no funcione",
-        hint: "Ya probé cosas que no sirvieron",
-        weights: { compromiso: 1 },
-      },
-      {
-        id: "desconocimiento",
-        label: "No sabía por dónde empezar",
-        weights: { compromiso: 1 },
-      },
-      {
-        id: "nada",
-        label: "Nada. Simplemente no lo había hecho",
-        weights: { compromiso: 2 },
-      },
-    ],
-  },
-  {
-    id: "porqueDayana",
-    prompt: "¿Cómo llegaste hasta aquí?",
-    help: "Marca todo lo que aplique.",
-    type: "multi",
-    required: true,
-    showIf: { question: "cuando", notEquals: ["explorando"] },
-    options: [
-      {
-        id: "la-sigo",
-        label: "La sigo desde hace tiempo",
-        weights: { compromiso: 2 },
-      },
-      {
-        id: "me-identifique",
-        label: "Me identifiqué con algo que dijo",
-        weights: { compromiso: 2 },
-      },
-      {
-        id: "recomendacion",
-        label: "Me la recomendaron",
-        weights: { compromiso: 2 },
-      },
-      {
-        id: "busco-pnl",
-        label: "Busco PNL concretamente",
-        hint: "Llegué por el método, no por la persona",
-        weights: { compromiso: 1 },
-      },
-      {
-        id: "aun-no-lo-se",
-        label: "Todavía no lo sé",
-        hint: "Acabo de llegar",
-        weights: { compromiso: -1 },
-      },
-    ],
-  },
-  {
-    id: "inversion",
-    prompt: "¿Podrías empezar ahora, o prefieres más adelante?",
-    help: "Decide qué te recomendamos. Decir que todavía no es una respuesta válida.",
-    type: "single",
-    required: true,
-    showIf: { question: "cuando", notEquals: ["explorando"] },
-    options: [
-      { id: "si", label: "Sí", weights: { compromiso: 3 } },
-      {
-        id: "si-encaja",
-        label: "Sí, si veo que encaja conmigo",
-        weights: { compromiso: 1 },
-      },
-      {
-        id: "todavia-no",
-        label: "Todavía no",
-        hint: "Quiero saber qué necesito, pero aún no puedo",
-        weights: { compromiso: -3, bloqueaInversion: true },
+        hint: "Todavía no puedo decidir",
+        weights: { urgencia: -2, compromiso: -2, bloqueaInversion: true },
       },
     ],
   },
