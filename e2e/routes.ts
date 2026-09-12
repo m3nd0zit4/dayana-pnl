@@ -42,8 +42,10 @@ export const CRM_ROUTES: CrmRoute[] = [
     hasPrimaryAction: true,
   },
   {
-    path: "/admin/curso",
-    name: "Curso · Miembros",
+    // Sustituye a «Curso · Miembros» (`/admin/curso`) y a «Suscripciones»
+    // (`/admin/suscripciones`), que ahora redirigen aquí.
+    path: "/admin/membresias",
+    name: "Membresías",
     tier: "preview",
     hasPrimaryAction: true,
   },
@@ -68,10 +70,6 @@ export const CRM_ROUTES: CrmRoute[] = [
     expectEmpty: true,
   },
   { path: "/admin/payments", name: "Pagos", tier: "preview" },
-  // No lleva acción primaria a propósito: los planes se crean con los scripts
-  // de alta de cada proveedor, no desde el panel. Un botón «Nuevo plan» aquí
-  // prometería algo que no se puede deshacer — un plan no se borra.
-  { path: "/admin/suscripciones", name: "Suscripciones", tier: "preview" },
   // Las dos pantallas más nuevas del panel, y las últimas en entrar aquí: se
   // construyeron después de este manifiesto, así que nadie comprobaba que
   // cumplieran el contrato de cabecera.

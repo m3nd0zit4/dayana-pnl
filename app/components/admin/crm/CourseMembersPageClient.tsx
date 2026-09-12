@@ -21,7 +21,7 @@ import { Label } from "@/app/components/ui/label";
 import ContactPickerField from "./ContactPickerField";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
-import CrmPageShell from "./CrmPageShell";
+import CrmMaybeShell from "./CrmMaybeShell";
 import CrmModal from "./CrmModal";
 import RegisterPaymentModal from "./RegisterPaymentModal";
 import { useCrm } from "./CrmProvider";
@@ -33,6 +33,8 @@ type Props = {
   courseTitle: string;
   courseProductId: string | null;
   initialMembers: CourseMemberRow[];
+  /** Dentro de Membresías: sin marco ni cabecera propios. */
+  embedded?: boolean;
 };
 
 const formatDate = (iso: string | null) =>
@@ -51,6 +53,7 @@ const CourseMembersPageClient = ({
   courseTitle,
   courseProductId,
   initialMembers,
+  embedded = false,
 }: Props) => {
   const { canWrite, toast } = useCrm();
   const [rows, setRows] = useState<CourseMemberRow[]>(initialMembers);
@@ -177,28 +180,35 @@ const CourseMembersPageClient = ({
     void reload();
   };
 
-  return (
-    <CrmPageShell>
-      <CrmPageHeader
-        title="Curso · Miembros"
-        description={`Membresías mensuales de «${courseTitle}». Cada pago aprobado suma un mes de acceso al portal.`}
-        secondaryActions={
-          <CrmPublicLink href="/cursos" label="Ver cursos en la web" />
-        }
-        action={
-          !preview && canWrite && courseProductId ? (
-            <CrmNewButton
-              label="Nuevo miembro"
-              icon={UserPlus}
-              onClick={() => {
-                setNewMemberError(null);
-                setNewMemberContactId("");
-                setNewMemberOpen(true);
-              }}
-            />
-          ) : undefined
-        }
+  const newMemberAction =
+    !preview && canWrite && courseProductId ? (
+      <CrmNewButton
+        label="Nuevo miembro"
+        icon={UserPlus}
+        onClick={() => {
+          setNewMemberError(null);
+          setNewMemberContactId("");
+          setNewMemberOpen(true);
+        }}
       />
+    ) : undefined;
+
+  return (
+    <CrmMaybeShell embedded={embedded}>
+      {embedded ? (
+        newMemberAction ? (
+          <div className="flex justify-end">{newMemberAction}</div>
+        ) : null
+      ) : (
+        <CrmPageHeader
+          title="Curso · Miembros"
+          description={`Membresías mensuales de «${courseTitle}». Cada pago aprobado suma un mes de acceso al portal.`}
+          secondaryActions={
+            <CrmPublicLink href="/cursos" label="Ver cursos en la web" />
+          }
+          action={newMemberAction}
+        />
+      )}
 
       <div className="space-y-6">
         <Card className="overflow-hidden py-0">
@@ -439,7 +449,7 @@ const CourseMembersPageClient = ({
           </div>
         )}
       </CrmModal>
-    </CrmPageShell>
+    </CrmMaybeShell>
   );
 };
 

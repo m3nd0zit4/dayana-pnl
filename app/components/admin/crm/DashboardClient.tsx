@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ChevronDown, Mic, Paperclip, Send, Square, TrendingUp, TriangleAlert, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, CircleCheck, Mic, Paperclip, Send, Square, TrendingUp, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DashboardStats } from "@/lib/crm/dashboard-stats";
+import type { Pendiente } from "@/lib/crm/pendientes";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "@/app/components/ui/button-group";
@@ -25,6 +26,61 @@ import CrmPaymentsChart from "./CrmPaymentsChart";
 import CrmPipelineChart from "./CrmPipelineChart";
 import { STT_LANGUAGES, useSpeechToText } from "./agent-panel/use-speech-to-text";
 import { VoiceBars } from "./agent-panel/VoiceBars";
+
+/**
+ * «Qué hay que hacer hoy»: lo primero de la portada.
+ *
+ * Cada fila es un número y un enlace a la pantalla donde se resuelve. Si no hay
+ * nada, lo dice — una portada que sólo sabe avisar se deja de leer, y una que
+ * calla cuando todo va bien obliga a revisar a mano.
+ *
+ * Las conversaciones sin responder sólo se enseñan con la bandeja encendida:
+ * con el interruptor apagado su enlace llevaría a un 404.
+ */
+const PendientesList = ({ pendientes }: { pendientes: Pendiente[] }) => {
+  const { metaInboxEnabled } = useCrm();
+  const visible = pendientes.filter(
+    (p) => p.key !== "conversaciones-sin-responder" || metaInboxEnabled
+  );
+
+  return (
+    <section aria-labelledby="pendientes-title" className="space-y-3">
+      <h2 id="pendientes-title" className="text-sm font-medium">
+        Para hoy
+      </h2>
+      {visible.length === 0 ? (
+        <p className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+          <CircleCheck className="size-4 text-success" aria-hidden />
+          Todo al día: no hay nada pendiente.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          {visible.map((p) => (
+            <li key={p.key}>
+              <Link
+                href={p.href}
+                className="flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent/50"
+              >
+                <span
+                  className={cn(
+                    "min-w-8 rounded-md px-2 py-0.5 text-center text-sm font-semibold tabular-nums",
+                    p.tone === "alert"
+                      ? "bg-destructive/10 text-destructive"
+                      : "bg-muted text-foreground"
+                  )}
+                >
+                  {p.count}
+                </span>
+                <span className="flex-1">{p.label}</span>
+                <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+};
 
 const greeting = () => {
   const hour = new Date().getHours();
@@ -278,6 +334,8 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           </div>
         </div>
 
+        <PendientesList pendientes={data.pendientes} />
+
         <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6 py-10 text-center">
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">{greeting()}</h1>
@@ -290,22 +348,6 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
           <CrmPaymentsChart data={data.paymentsByDay} />
           <CrmPipelineChart data={data.pipeline} />
         </div>
-
-        {stats.unlinkedPaidEnrollments > 0 && (
-          <Alert variant="warning">
-            <TriangleAlert aria-hidden />
-            <AlertDescription>
-              <Link
-                href="/admin/payments?sin-identificar=1"
-                className="hover:underline"
-              >
-                {stats.unlinkedPaidEnrollments} pago
-                {stats.unlinkedPaidEnrollments === 1 ? "" : "s"} sin identificar
-                — asignarles contacto en Pagos
-              </Link>
-            </AlertDescription>
-          </Alert>
-        )}
 
         <div className="mt-8 grid justify-items-center gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PromoCard

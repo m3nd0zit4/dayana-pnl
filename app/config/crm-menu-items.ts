@@ -3,15 +3,12 @@ import {
   CalendarDays,
   Clapperboard,
   CreditCard,
-  RefreshCw,
   ExternalLink,
   Inbox,
   GraduationCap,
   Home,
-  ClipboardList,
   Compass,
   Link2,
-  Bell,
   MessageCircle,
   MessageSquare,
   Package,
@@ -76,6 +73,17 @@ export const crmHomeItem: CrmMenuItem = { icon: Home, label: "Inicio", href: "/a
  * sale un interesado hasta que paga—, **Personas** es quién es quién, y
  * **Sesiones y clases** es todo lo que hay que impartir. El catálogo queda para
  * lo que se configura una vez y casi no se toca.
+ *
+ * **Y el menú es corto a propósito: 14 entradas en 5 grupos** (antes 18 en 6).
+ * Nada de lo que salió se perdió:
+ *
+ * - **Notificaciones** es el historial de la campana, y la campana ya vive en la
+ *   barra superior con su «ver todas». La ruta se queda; deja de ocupar sitio.
+ * - **Staff** y **Auditoría** se miran una vez al mes, no a diario. Viven en
+ *   Ajustes, que ya los enlazaba, y el grupo «Equipo» desaparece.
+ * - **Miembros** y **Suscripciones** leían las mismas matrículas desde dos
+ *   pantallas. Ahora son **Membresías**, con una pestaña para cada pregunta.
+ *   Las dos rutas antiguas redirigen, así que ningún enlace se rompe.
  */
 export const crmMenuSections: CrmMenuSection[] = [
   {
@@ -92,10 +100,6 @@ export const crmMenuSections: CrmMenuSection[] = [
       { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
       { icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
       { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
-      // Detrás de Pagos: es la vista de los cobros que se repiten solos, y de
-      // los planes que los sostienen. Un plan no se puede borrar una vez
-      // creado, así que saber cuáles hay es parte de vender, no de ajustes.
-      { icon: RefreshCw, label: "Suscripciones", href: "/admin/suscripciones" },
     ],
   },
   {
@@ -105,9 +109,10 @@ export const crmMenuSections: CrmMenuSection[] = [
       // El diagnóstico se mira para saber QUIÉN es quien llega y qué necesita,
       // no para cobrarle. Por eso vive con las personas y no con el dinero.
       { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
-      // Sale del submenú de Cursos: es la lista de quién tiene acceso, que es
-      // una pregunta sobre personas y no sobre el contenido del curso.
-      { icon: UsersRound, label: "Miembros", href: "/admin/curso", exact: true },
+      // Quién tiene acceso (Personas) y qué cobros recurrentes lo sostienen
+      // (Planes), en una sola pantalla: las dos preguntas leen las mismas
+      // matrículas. Sustituye a «Miembros» y «Suscripciones».
+      { icon: UsersRound, label: "Membresías", href: "/admin/membresias" },
     ],
   },
   {
@@ -137,7 +142,6 @@ export const crmMenuSections: CrmMenuSection[] = [
         href: "/admin/inbox",
         flag: "metaInbox",
       },
-      { icon: Bell, label: "Notificaciones", href: "/admin/notificaciones" },
       { icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
       {
         icon: Clapperboard,
@@ -145,13 +149,6 @@ export const crmMenuSections: CrmMenuSection[] = [
         href: "/admin/contenido",
         flag: "socialPublishing",
       },
-    ],
-  },
-  {
-    title: "Equipo",
-    items: [
-      { icon: UsersRound, label: "Staff", href: "/admin/team" },
-      { icon: ClipboardList, label: "Auditoría", href: "/admin/audit" },
     ],
   },
   {

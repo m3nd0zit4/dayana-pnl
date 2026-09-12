@@ -2,6 +2,7 @@ import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
 import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
+import { getPendientes } from "@/lib/crm/pendientes";
 import {
   getDateKeyInTz,
   getStartOfDayInTz,
@@ -23,6 +24,9 @@ const STATUS_LABELS: Record<EnrollmentStatus, string> = {
 
 export const getDashboardStats = async () => {
   const now = new Date();
+  // En paralelo con el resto: la lista de pendientes no depende de ningún
+  // agregado de aquí y no debe alargar la carga de la portada.
+  const pendientesPromise = getPendientes(now);
   const startOfToday = getStartOfDayInTz(now, OPERATIONAL_TZ);
   const startOfTomorrow = getStartOfNextDayInTz(now, OPERATIONAL_TZ);
 
@@ -158,7 +162,10 @@ export const getDashboardStats = async () => {
     count: row._count._all,
   }));
 
+  const pendientes = await pendientesPromise;
+
   return {
+    pendientes,
     stats: {
       leads,
       paymentsToday,
@@ -185,6 +192,22 @@ export const getDashboardStats = async () => {
 export type DashboardStats = Awaited<ReturnType<typeof getDashboardStats>>;
 
 export const PREVIEW_DASHBOARD: DashboardStats = {
+  pendientes: [
+    {
+      key: "pagos-sin-identificar",
+      count: 1,
+      label: "pago sin identificar",
+      href: "/admin/payments?sin-identificar=1",
+      tone: "alert",
+    },
+    {
+      key: "membresias-por-vencer",
+      count: 3,
+      label: "membresías vencen esta semana",
+      href: "/admin/membresias",
+      tone: "todo",
+    },
+  ],
   stats: {
     leads: 4,
     paymentsToday: 2,

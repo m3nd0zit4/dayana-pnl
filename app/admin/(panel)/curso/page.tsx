@@ -1,40 +1,13 @@
-import CourseMembersPageClient from "@/app/components/admin/crm/CourseMembersPageClient";
-import { isCrmUiPreview } from "@/lib/auth/preview";
-import { getStaffSession } from "@/lib/auth/staff-session";
-import { getMembershipProduct } from "@/lib/lms/membership";
-import { listCourseMembersAdmin } from "@/lib/lms/course-admin";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-const CursoPage = async () => {
-  const preview = isCrmUiPreview();
-  if (preview) {
-    return (
-      <CourseMembersPageClient
-        preview
-        courseTitle="Curso en vivo"
-        courseProductId={null}
-        initialMembers={[]}
-      />
-    );
-  }
-
-  const staff = await getStaffSession();
-  if (!staff) return null;
-
-  // La membresía es lo que se paga; los cursos de la biblioteca no tienen
-  // inscripciones propias.
-  const membership = await getMembershipProduct();
-  const members = membership ? await listCourseMembersAdmin(membership.id) : [];
-
-  return (
-    <CourseMembersPageClient
-      preview={false}
-      courseTitle={membership?.title ?? "Membresía"}
-      courseProductId={membership?.id ?? null}
-      initialMembers={members}
-    />
-  );
-};
+/**
+ * «Miembros» vive ahora en Membresías, pestaña Personas. La ruta se queda como
+ * redirección para que no se rompa ningún enlace guardado ni ninguna
+ * notificación ya enviada que apunte aquí.
+ *
+ * Sólo la raíz: `/admin/curso/modulos` y `/admin/curso/comentarios` siguen
+ * siendo las pantallas del contenido del curso.
+ */
+const CursoPage = () => redirect("/admin/membresias");
 
 export default CursoPage;

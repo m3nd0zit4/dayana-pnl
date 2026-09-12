@@ -13,7 +13,7 @@ import type {
   SubscriptionPlanRow,
 } from "@/lib/crm/subscriptions";
 import CrmPageHeader from "./CrmPageHeader";
-import CrmPageShell from "./CrmPageShell";
+import CrmMaybeShell from "./CrmMaybeShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
 import { useCrm } from "./CrmProvider";
 import { membershipChip } from "./membership-chip";
@@ -44,6 +44,8 @@ type Props = {
   preview: boolean;
   plans: SubscriptionPlanRow[];
   subscribers: SubscriberRow[];
+  /** Dentro de Membresías: sin marco ni cabecera propios. */
+  embedded?: boolean;
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -79,7 +81,12 @@ const formatMoney = (minor: number | null, currency: string): string => {
 
 type Filter = "todas" | "activas" | "atencion";
 
-const SubscriptionsPageClient = ({ preview, plans, subscribers }: Props) => {
+const SubscriptionsPageClient = ({
+  preview,
+  plans,
+  subscribers,
+  embedded = false,
+}: Props) => {
   const { toast } = useCrm();
   const [filter, setFilter] = useState<Filter>("todas");
   const [verifying, setVerifying] = useState<string | null>(null);
@@ -146,11 +153,13 @@ const SubscriptionsPageClient = ({ preview, plans, subscribers }: Props) => {
   }, [subscribers, filter]);
 
   return (
-    <CrmPageShell>
-      <CrmPageHeader
-        title="Suscripciones"
-        description="Los planes que existen en PayPal y Mercado Pago, y quién se está cobrando por ellos."
-      />
+    <CrmMaybeShell embedded={embedded}>
+      {!embedded && (
+        <CrmPageHeader
+          title="Suscripciones"
+          description="Los planes que existen en PayPal y Mercado Pago, y quién se está cobrando por ellos."
+        />
+      )}
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -378,7 +387,7 @@ const SubscriptionsPageClient = ({ preview, plans, subscribers }: Props) => {
           </CardContent>
         </Card>
       )}
-    </CrmPageShell>
+    </CrmMaybeShell>
   );
 };
 

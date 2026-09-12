@@ -6,7 +6,7 @@ import { grossUpInt, grossUpUsd, mercadoPagoFee, paypalFee } from "../pricing/fe
  * Los planes de suscripción que existen, y quién se está cobrando por ellos.
  *
  * Existe porque el CRM no tenía dónde mirar ninguna de las dos cosas. Miembros
- * (`/admin/curso`) contesta «¿tiene el acceso al día?», que es otra pregunta:
+ * (Membresías · Personas) contesta «¿tiene el acceso al día?», que es otra pregunta:
  * quien pagó un mes suelto y quien está en un cobro recurrente se leen igual
  * si sólo se mira `paidUntil`.
  *
