@@ -311,3 +311,38 @@ export async function getPaymentTotals(
     a.currency.localeCompare(b.currency),
   );
 }
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Los filtros desde la query string, compartidos por la lista y la exportación.
+ *
+ * Una sola lectura para las dos rutas: si cada una parseara la URL a su manera,
+ * el CSV acabaría exportando algo distinto de lo que la pantalla enseña.
+ *
+ * Las fechas se aceptan sólo como `YYYY-MM-DD`, que es lo que manda el input
+ * de fecha. Cualquier otra cosa se ignora en vez de llegar a `new Date` y
+ * convertirse en una fecha inválida que Prisma rechaza con un 500.
+ */
+export function paymentListFiltersFromParams(
+  params: URLSearchParams,
+): PaymentListFilters {
+  const get = (key: string) => params.get(key)?.trim() || undefined;
+  const day = (key: string) => {
+    const v = get(key);
+    return v && ISO_DAY.test(v) ? v : undefined;
+  };
+  return {
+    q: get("q"),
+    from: day("from"),
+    to: day("to"),
+    status: get("status"),
+    provider: get("provider"),
+    productId: get("productId"),
+    // El aviso del panel enlaza con `?sin-identificar=1`; la pantalla manda
+    // `unidentified=1`. Las dos significan lo mismo.
+    unidentified:
+      params.get("unidentified") === "1" ||
+      params.get("sin-identificar") === "1",
+  };
+}
