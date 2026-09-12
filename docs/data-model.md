@@ -36,5 +36,5 @@
 
 ## Automatización (Fase 6)
 
-- Inngest emite eventos tras pagos y recordatorios de sesión.
+- Inngest emite eventos tras pagos y recordatorios de mensualidad.
 - WhatsApp sigue siendo principalmente `wa.me` hasta volumen que justifique Meta API.

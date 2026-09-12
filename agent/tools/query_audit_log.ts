@@ -5,7 +5,7 @@ import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Read recent audit log entries — who changed what. Filter by entity type (e.g. Enrollment, Contact) or action (e.g. AGENT_COMPLETE).",
+    "Read recent audit log entries — who changed what. Filter by entity type (e.g. Enrollment, Contact) or action (e.g. CREATE, UPDATE).",
   inputSchema: z.object({
     entityType: z.string().optional(),
     action: z.string().optional(),

@@ -5,7 +5,7 @@ import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Get full detail for one enrollment by id: status, product, contact, payment history (status only, not amounts), and therapy sessions if it's a therapy product.",
+    "Get full detail for one enrollment by id: status, product, contact, and payment history (status only, not amounts).",
   inputSchema: z.object({ enrollmentId: z.string().min(1) }),
   async execute({ enrollmentId }, ctx) {
     requireStaff(ctx);

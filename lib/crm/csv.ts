@@ -1,50 +1,40 @@
-/**
- * Serialización CSV para las descargas del panel.
- *
- * Existe porque cada exportación lo resolvía a su manera y ninguna escapaba
- * igual. Un nombre con coma —«Ruiz, Andrés»— partía la fila en dos columnas y
- * desplazaba todo lo que venía detrás, así que la hoja se leía bien hasta que
- * llegaba el primer cliente con apellido compuesto.
- */
+import { minorToMajor } from "./money";
 
 /**
- * Una celda.
+ * CSV mínimo para exports del CRM.
  *
- * Se entrecomilla SIEMPRE en lugar de sólo cuando hace falta. Decidir por celda
- * obliga a acertar con la lista de caracteres peligrosos —coma, comilla, salto
- * de línea, retorno de carro— y basta olvidar uno para corromper la fila. Las
- * comillas internas se duplican, que es como las escapa el propio formato.
+ * Dos riesgos por celda, no uno: separadores/comillas/saltos de línea
+ * (RFC 4180 — se resuelve envolviendo en comillas y doblando las internas), y
+ * una celda que EMPIEZA por `= + - @`, que Excel/Sheets interpreta como el
+ * inicio de una fórmula al abrir el archivo. Un nombre o un código de error
+ * que por casualidad empiece así ejecutaría lo que sea que venga después. Se
+ * neutraliza anteponiendo un apóstrofo: Excel lo muestra como texto plano.
  */
-const cell = (value: unknown): string => {
-  if (value === null || value === undefined) return '""';
-  const s = value instanceof Date ? value.toISOString() : String(value);
-  return '"' + s.replace(/"/g, '""') + '"';
+const FORMULA_PREFIX_RE = /^[=+\-@]/;
+
+export const csvField = (value: unknown): string => {
+  let s = value === null || value === undefined ? "" : String(value);
+  if (FORMULA_PREFIX_RE.test(s)) s = `'${s}`;
+  if (/[",\n\r]/.test(s)) s = `"${s.replace(/"/g, '""')}"`;
+  return s;
 };
 
-export type CsvColumn<T> = {
-  header: string;
-  value: (row: T) => unknown;
-};
+export const csvRow = (values: unknown[]): string =>
+  `${values.map(csvField).join(",")}\r\n`;
 
 /**
- * Filas a texto CSV.
+ * Importe para una celda de hoja de cálculo: unidades mayores, punto decimal,
+ * sin separador de miles.
  *
- * Lleva BOM porque el destino es Excel: sin él, Excel lee el archivo en la
- * codificación del sistema y cualquier tilde aparece rota. Y separa con CRLF,
- * que es lo que pide el formato y lo que Excel espera.
+ * NO se usa `formatMoneyMinor` aquí. Formatea los pesos con `es-CO`, que
+ * agrupa con punto: 157480 sale como «157.480», y un Excel con locale inglés
+ * lo lee como 157,48. En un export que alguien va a sumar para la
+ * contabilidad, eso es un error de dos órdenes de magnitud disfrazado de
+ * número correcto. El símbolo y el formato bonito son cosa de la pantalla; el
+ * CSV lleva la cifra cruda y la moneda en su propia columna.
  */
-export function toCsv<T>(rows: readonly T[], columns: readonly CsvColumn<T>[]): string {
-  const lines = [columns.map((c) => cell(c.header)).join(",")];
-  for (const row of rows) {
-    lines.push(columns.map((c) => cell(c.value(row))).join(","));
-  }
-  return "﻿" + lines.join("\r\n") + "\r\n";
-}
-
-/** Cabeceras para servir el CSV como descarga con nombre. */
-export function csvHeaders(filename: string): Record<string, string> {
-  return {
-    "Content-Type": "text/csv; charset=utf-8",
-    "Content-Disposition": `attachment; filename="${filename}"`,
-  };
-}
+export const csvMoney = (
+  amountMinor: number | null | undefined,
+  currency: string
+): string =>
+  amountMinor == null ? "" : minorToMajor(amountMinor, currency).toString();

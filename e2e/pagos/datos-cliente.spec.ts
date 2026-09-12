@@ -99,6 +99,9 @@ test.describe("Datos del pagador · Mercado Pago", () => {
     const chk = await createCheckout(baseURL!, "mercadopago", "therapy-1");
     const mpId = nextProviderId("MP").replace(/\D/g, "");
     const email = testEmail("con.telefono");
+    // `+573XXXXXXXXX`: se parte en indicativo (3 dígitos) y resto, que es como
+    // lo manda Mercado Pago.
+    const payerPhone = nextPhone();
 
     stubMercadoPago({
       [mpId]: {
@@ -111,7 +114,21 @@ test.describe("Datos del pagador · Mercado Pago", () => {
           email,
           first_name: "Marcela",
           last_name: "Ruiz",
-          phone: { area_code: "300", number: "1234567" },
+          /*
+            Teléfono generado, no fijo.
+
+            Estaba clavado en 300 1234567 y ese número acabó perteneciendo a
+            una ficha real creada probando el diagnóstico a mano. El pago se
+            enganchaba a ESA ficha —que es el comportamiento correcto, y lo
+            afirma la prueba siguiente— así que ésta fallaba diciendo que el
+            nombre del pagador no llegó, cuando lo que pasaba es que no debía
+            pisar el nombre de alguien que ya existía.
+
+            Un número que nadie más puede reclamar es lo que hace que esta
+            prueba mida lo que dice medir: que de un pagador NUEVO salga una
+            ficha nueva con sus datos.
+          */
+          phone: { area_code: payerPhone.slice(3, 6), number: payerPhone.slice(6) },
           address: { country: "CO" },
         },
       },
@@ -129,7 +146,7 @@ test.describe("Datos del pagador · Mercado Pago", () => {
     expect(
       contacto.phoneE164,
       "el teléfono del pagador se perdió; el contacto sigue temporal"
-    ).toBe("+573001234567");
+    ).toBe(payerPhone);
     expect(contacto.phoneCountryIso).toBe("CO");
     expect(contacto.countryIso).toBe("CO");
     expect(contacto.firstName).toBe("Marcela");

@@ -7,7 +7,7 @@ import { accountLabel, resolveGoogleAccount } from "@/agent/lib/google";
 
 export default defineTool({
   description:
-    "Create an event on a connected Google Calendar. Adding attendees makes Google email them an invitation, so confirm the addresses with the operator first.",
+    "Create an event on a connected Google Calendar — a therapy session, a call, or any other appointment. Adding attendees makes Google email them an invitation, so confirm the addresses with the operator first.",
   inputSchema: z.object({
     summary: z.string().trim().min(2).max(200),
     description: z.string().trim().max(4000).optional(),

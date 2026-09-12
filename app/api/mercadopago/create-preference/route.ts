@@ -7,12 +7,11 @@ import {
 } from "../../../../lib/mercadopago/amount";
 import {
   mapCheckoutBeginError,
-  resolveCheckoutContactIdForRequest,
+  resolveCheckoutContactIdForPayment,
   type CheckoutContactBody,
 } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
-import { createPendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
@@ -28,6 +27,8 @@ type Body = CheckoutContactBody & {
   /** full = todos los medios; cards = binary_mode (pago en línea con tarjeta) */
   mode?: "full" | "cards";
   fromSession?: boolean;
+  /** Token de `/pagar/<token>`; el servidor resuelve de quien es el cobro. */
+  paymentLinkToken?: string;
 };
 
 function parseContactBody(body: Body): CheckoutContactBody {
@@ -80,20 +81,19 @@ export async function POST(req: Request) {
   // el webhook, así que basta un contacto temporal y `syncMercadoPagoPayment`
   // lo completa. Si vinieron datos (o hay sesión), se respeta esa vía.
   const contact = parseContactBody(body);
-  const hasContactData = Boolean(
-    contact.contactId || contact.phone || contact.email
-  );
-
   let contactId: string;
   try {
-    contactId =
-      hasContactData || body.fromSession === true
-        ? await resolveCheckoutContactIdForRequest({
-            planId,
-            contact,
-            fromSession: body.fromSession === true,
-          })
-        : await createPendingCheckoutContact(planId);
+    // Orden completo (enlace de pago -> datos/sesion -> temporal) en
+    // `resolveCheckoutContactIdForPayment`.
+    contactId = await resolveCheckoutContactIdForPayment({
+      planId,
+      contact,
+      fromSession: body.fromSession === true,
+      paymentLinkToken:
+        typeof body.paymentLinkToken === "string"
+          ? body.paymentLinkToken
+          : undefined,
+    });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[mercadopago] contact register failed", e);

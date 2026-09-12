@@ -5,7 +5,11 @@ import {
 } from "@prisma/client";
 import { renderQuickMessage } from "@/lib/crm/render-message";
 import { prisma } from "@/lib/db";
-import { buildUnsubscribeHeaders, sendEmail } from "./channels/email";
+import {
+  buildUnsubscribeHeaders,
+  sendEmail,
+  type EmailAttachment,
+} from "./channels/email";
 import { sendSms } from "./channels/sms";
 import { sendWhatsAppTemplateMessage } from "./channels/whatsapp";
 import {
@@ -50,6 +54,11 @@ export type DispatchPayload = {
   recipient?: string;
   campaignId?: string;
   vars?: TemplateVars;
+  /**
+   * Adjuntos, sólo para EMAIL. Los otros canales los ignoran: un SMS no
+   * transporta ficheros y colarlos en el cuerpo sería peor que no mandarlos.
+   */
+  attachments?: EmailAttachment[];
 };
 
 const resolveRecipient = async (
@@ -175,6 +184,7 @@ export const dispatchToChannel = async (
         headers: payload.campaignId
           ? buildUnsubscribeHeaders(unsubscribeUrlFor(payload.contactId))
           : undefined,
+        attachments: payload.attachments,
       });
       providerId = result.providerId;
       messageId = result.messageId;

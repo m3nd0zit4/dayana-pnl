@@ -23,18 +23,52 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   if (!verifyMercadoPagoWebhook(req, rawBody)) {
+    /**
+     * El aviso lleva el id del recurso y el `x-request-id`.
+     *
+     * Sin ellos el mensaje era «revisa MERCADOPAGO_WEBHOOK_SECRET» y nada
+     * más, y eso no basta: Mercado Pago entrega el mismo pago por DOS vías —el
+     * `notification_url` de cada preferencia y el webhook del panel, que es
+     * configuración aparte— y cada una va firmada por la aplicación que la
+     * originó. Si sólo una de las dos firma con el secreto que tenemos, la
+     * mitad de las entregas se rechaza y el aviso no dice cuál.
+     *
+     * Con estos dos datos se cruza contra la lista de entregas del panel de
+     * MP y se ve en el acto qué remitente falla.
+     */
+    const rid = req.headers.get("x-request-id");
+    const resourceId =
+      req.headers.get("x-data-id") ??
+      (() => {
+        try {
+          const j = JSON.parse(rawBody) as { data?: { id?: string } };
+          return j.data?.id != null ? String(j.data.id) : null;
+        } catch {
+          return null;
+        }
+      })();
+
     fireAuditLog({
       action: "WEBHOOK_REJECTED",
       entityType: "WebhookEvent",
       entityId: "mercadopago",
-      changes: { reason: "invalid_signature" },
+      changes: { reason: "invalid_signature", resourceId, requestId: rid },
     });
     fireNotification({
       eventType: "PAYMENT_WEBHOOK_FAILED",
       title: "Webhook de Mercado Pago rechazado por firma inválida",
-      body: "Mercado Pago reintentará el aviso; si persiste, revisa MERCADOPAGO_WEBHOOK_SECRET.",
+      body:
+        `Recurso ${resourceId ?? "desconocido"} · petición ${rid ?? "sin id"}. ` +
+        "Búscalo en el panel de MP (Tus integraciones → Webhooks → Entregas): " +
+        "si esa entrega aparece ahí como correcta, el aviso rechazado viene de " +
+        "OTRA integración y su secreto no es el de MERCADOPAGO_WEBHOOK_SECRET.",
       href: "/admin/payments",
-      metadata: { provider: "MERCADO_PAGO", reason: "invalid_signature" },
+      metadata: {
+        provider: "MERCADO_PAGO",
+        reason: "invalid_signature",
+        resourceId,
+        requestId: rid,
+      },
       staff: "ALL",
     });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });

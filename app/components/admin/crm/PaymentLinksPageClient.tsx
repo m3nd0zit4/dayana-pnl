@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
@@ -15,7 +17,6 @@ import CrmPageShell from "./CrmPageShell";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 import { useActiveProducts } from "./hooks/useReferenceData";
-import { groupProductsByKind } from "@/lib/crm/product-kind-labels";
 import {
   CrmDataList,
   CrmDataListRow,
@@ -33,9 +34,12 @@ export type PaymentLinkListRow = {
   expiresAt: string | null;
   openedAt: string | null;
   checkoutStartedAt: string | null;
+  paidAt: string | null;
+  enrollmentId: string | null;
   revokedAt: string | null;
   createdAt: string;
   product: { id: string; title: string };
+  /** `null` en un enlace abierto, creado sin ficha. */
   contact: { id: string; firstName: string; lastName: string | null } | null;
 };
 
@@ -51,6 +55,10 @@ const emptyForm = () => ({
   productId: "",
   note: "",
   expiresInDays: "30",
+  // Datos escritos a mano cuando la persona todavia no esta en el CRM.
+  buyerName: "",
+  buyerPhone: "",
+  buyerEmail: "",
 });
 
 /**
@@ -101,14 +109,26 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
   };
 
   const save = async () => {
-    if (!form.contactId || !form.productId) return;
+    // Lo unico obligatorio es el producto. Sin contacto y sin datos escritos
+    // el enlace se crea igual: es un cobro abierto, y esa era justo la
+    // limitacion que impedia cobrar.
+    if (!form.productId) return;
     setSaving(true);
     try {
       const res = await fetch("/api/admin/payment-links", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contactId: form.contactId,
+          contactId: form.contactId || undefined,
+          buyer:
+            !form.contactId &&
+            (form.buyerPhone.trim() || form.buyerEmail.trim())
+              ? {
+                  firstName: form.buyerName.trim() || undefined,
+                  phone: form.buyerPhone.trim() || undefined,
+                  email: form.buyerEmail.trim() || undefined,
+                }
+              : undefined,
           productId: form.productId,
           note: form.note.trim() || undefined,
           expiresInDays: form.expiresInDays
@@ -160,6 +180,9 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
   };
 
   const statusOf = (row: PaymentLinkListRow) => {
+    // Cobrado primero: gana a revocado y a vencido. Un enlace que ya trajo el
+    // dinero es eso, pase lo que pase con el enlace despues.
+    if (row.paidAt) return { label: "Pagado", tone: "paid" as const };
     if (row.revokedAt) return { label: "Revocado", tone: "muted" as const };
     if (row.expiresAt && new Date(row.expiresAt) < new Date()) {
       return { label: "Vencido", tone: "muted" as const };
@@ -175,7 +198,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
     <CrmPageShell>
       <CrmPageHeader
         title="Enlaces de pago"
-        description="Tras acordar un paquete por llamada o WhatsApp, genera un enlace con ese producto y nada más. Quien lo abre ve su nombre, el precio y un botón. Si no importa a nombre de quién quede el cobro, no hace falta crear nada: copia el enlace fijo del paquete desde Paquetes, que sirve para cualquiera y no caduca."
+        description="Para UNA persona: quien lo abre ve su nombre y el cobro queda en su ficha. Para mandar un paquete a varias personas está el enlace fijo, que se copia desde la propia tarjeta en Paquetes."
         action={
           canManageTeam && !preview ? (
             <CrmNewButton
@@ -189,76 +212,130 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
         }
       />
 
+      {/*
+        La diferencia entre los dos enlaces no es de matiz: es a quién se le
+        atribuye el cobro. Decirla aquí, donde se decide crear uno, evita el
+        error caro — mandar un enlace personal a un grupo y que los cobros de
+        todos acaben colgados de la misma ficha.
+      */}
+      <Alert>
+        <AlertDescription>
+          <strong className="font-medium text-foreground">
+            ¿Y si es para varias personas?
+          </strong>{" "}
+          Cada paquete tiene su enlace fijo, que no caduca y sirve para
+          cualquiera: se copia con el icono de copiar en{" "}
+          <Link href="/admin/products" className="underline underline-offset-2">
+            Paquetes
+          </Link>
+          . Los de aquí son para una sola persona, y por eso el cobro se le
+          atribuye a ella.
+        </AlertDescription>
+      </Alert>
+
       <CrmModal
         title="Nuevo enlace de pago"
         open={creating && canManageTeam}
         onClose={() => setCreating(false)}
       >
         <div className="space-y-4">
-          <ContactPickerField
-            id="payment-link-contact"
-            label="¿Para quién?"
-            value={form.contactLabel}
-            onSelect={(c) =>
-              setForm((f) => ({
-                ...f,
-                contactId: c?.id ?? "",
-                contactLabel: c
-                  ? `${c.firstName} ${c.lastName ?? ""}`.trim()
-                  : "",
-              }))
-            }
-            required
-          />
-
+          {/* El producto primero: es lo unico obligatorio y lo que decide el
+              precio. A quien se le manda puede no saberse todavia. */}
           <SearchableSelect
             id="payment-link-product"
-            label="¿Qué acordaron?"
+            label="Producto"
             value={form.productId}
             onChange={(v) => setForm((f) => ({ ...f, productId: v }))}
-            options={groupProductsByKind(products ?? []).flatMap((g) =>
-              g.items.map((p) => ({
-                value: p.id,
-                label: p.title,
-                group: g.label,
-              })),
-            )}
+            options={(products ?? []).map((p) => ({
+              value: p.id,
+              label: p.title,
+            }))}
             placeholder="Elige el producto"
           />
 
-          <div className="space-y-1.5">
-            <Label htmlFor="payment-link-note">Nota (opcional)</Label>
-            <Input
-              id="payment-link-note"
-              value={form.note}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, note: e.target.value }))
+          <div className="space-y-2">
+            <ContactPickerField
+              id="payment-link-contact"
+              label="Para quien (opcional)"
+              value={form.contactLabel}
+              onSelect={(c) =>
+                setForm((f) => ({
+                  ...f,
+                  contactId: c?.id ?? "",
+                  contactLabel: c
+                    ? `${c.firstName} ${c.lastName ?? ""}`.trim()
+                    : "",
+                }))
               }
-              placeholder="Lo que hablamos el martes."
-              maxLength={400}
+              placeholder="Busca un contacto, o escribe los datos abajo"
             />
-            <p className="text-xs text-muted-foreground">
-              Se muestra bajo su nombre. Es lo que hace que el enlace no parezca
-              automático.
-            </p>
+
+            {/* Sin contacto elegido, se puede escribir a mano. Se da de alta
+                al crear el enlace, no al pagar, para que el cobro salga ya con
+                dueno. Si tampoco se escribe nada, el enlace es abierto. */}
+            {!form.contactId && (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Input
+                  aria-label="Nombre de quien paga"
+                  value={form.buyerName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, buyerName: e.target.value }))
+                  }
+                  placeholder="Nombre"
+                  maxLength={120}
+                />
+                <Input
+                  aria-label="Telefono de quien paga"
+                  type="tel"
+                  value={form.buyerPhone}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, buyerPhone: e.target.value }))
+                  }
+                  placeholder="Telefono"
+                  maxLength={30}
+                />
+                <Input
+                  aria-label="Correo de quien paga"
+                  type="email"
+                  value={form.buyerEmail}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, buyerEmail: e.target.value }))
+                  }
+                  placeholder="Correo"
+                  maxLength={200}
+                />
+              </div>
+            )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="payment-link-expiry">Caduca en (días)</Label>
-            <Input
-              id="payment-link-expiry"
-              type="number"
-              min={1}
-              max={90}
-              value={form.expiresInDays}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, expiresInDays: e.target.value }))
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Vacío = no caduca. Con fecha evitas que un precio antiguo siga
-              cobrándose meses después.
-            </p>
+          <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
+            <div className="space-y-1.5">
+              <Label htmlFor="payment-link-note">Nota (opcional)</Label>
+              <Input
+                id="payment-link-note"
+                value={form.note}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, note: e.target.value }))
+                }
+                placeholder="Lo que hablamos el martes."
+                maxLength={400}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="payment-link-expiry">Caduca (dias)</Label>
+              <Input
+                id="payment-link-expiry"
+                type="number"
+                min={1}
+                max={90}
+                value={form.expiresInDays}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, expiresInDays: e.target.value }))
+                }
+                placeholder="Sin caducidad"
+              />
+            </div>
           </div>
 
           <CrmFormActions size="sm">
@@ -267,7 +344,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
             </Button>
             <Button
               onClick={() => void save()}
-              disabled={saving || !form.contactId || !form.productId}
+              disabled={saving || !form.productId}
             >
               {saving ? "Creando…" : "Crear y copiar"}
             </Button>
@@ -313,10 +390,13 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                 }
               >
                 <div className="min-w-0 flex-1 basis-52">
+                  {/* Un enlace abierto no tiene a quien nombrar. Se dice lo
+                      que es en vez de dejar el hueco: la lista tiene que
+                      distinguir de un vistazo los dos tipos. */}
                   <p className="truncate font-medium">
                     {row.contact
                       ? `${row.contact.firstName} ${row.contact.lastName ?? ""}`.trim()
-                      : "Sin contacto"}
+                      : "Enlace abierto"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {row.product.title}
@@ -330,7 +410,22 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                 </div>
 
                 <div className="sm:w-36">
-                  {status.tone === "active" ? (
+                  {status.tone === "paid" ? (
+                    row.enrollmentId ? (
+                      <Link
+                        href={`/admin/enrollments/${row.enrollmentId}`}
+                        className="inline-flex"
+                      >
+                        <Badge className="border-success/40 bg-success/10 text-success">
+                          {status.label} →
+                        </Badge>
+                      </Link>
+                    ) : (
+                      <Badge className="border-success/40 bg-success/10 text-success">
+                        {status.label}
+                      </Badge>
+                    )
+                  ) : status.tone === "active" ? (
                     <Badge variant="secondary">{status.label}</Badge>
                   ) : (
                     <span className="text-xs text-muted-foreground">

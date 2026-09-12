@@ -36,7 +36,7 @@ export const paymentConfirmationHtml = (vars: TemplateVars): string => {
     });
   }
 
-  const hasTherapySessions = Boolean(vars.sessions_total);
+  const hasSessions = Boolean(vars.sessions_total);
 
   return wrapEmailHtml({
     preheader: `Pago confirmado · ${vars.payment_amount} · ${vars.product_title}`,
@@ -46,7 +46,7 @@ export const paymentConfirmationHtml = (vars: TemplateVars): string => {
     summaryRows,
     footnote:
       "Este correo es informativo. Si no realizaste este pago, contáctanos.",
-    ctaPrimary: hasTherapySessions
+    ctaPrimary: hasSessions
       ? {
           label: "Coordinar por WhatsApp",
           href: paymentWhatsAppHref(vars.first_name, vars.product_title),
@@ -55,13 +55,13 @@ export const paymentConfirmationHtml = (vars: TemplateVars): string => {
           label: "Visitar el sitio",
           href: vars.site_url,
         },
-    ctaSecondary: hasTherapySessions
+    ctaSecondary: hasSessions
       ? { label: "Ver dayanabeltran.com", href: vars.site_url }
       : undefined,
   });
 };
 
-const hasTherapySessions = (vars: TemplateVars) => Boolean(vars.sessions_total);
+const hasSessions = (vars: TemplateVars) => Boolean(vars.sessions_total);
 
 export const paymentConfirmationText = (vars: TemplateVars): string =>
   [
@@ -74,7 +74,7 @@ export const paymentConfirmationText = (vars: TemplateVars): string =>
     `Fecha: ${vars.payment_date}`,
     vars.sessions_total ? `Sesiones: ${vars.sessions_total}` : "",
     "",
-    hasTherapySessions(vars)
+    hasSessions(vars)
       ? `Coordinar por WhatsApp: ${paymentWhatsAppHref(vars.first_name, vars.product_title)}`
       : vars.site_url,
     "",

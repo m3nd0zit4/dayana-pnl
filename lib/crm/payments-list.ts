@@ -1,20 +1,44 @@
-import { PaymentProvider, PaymentStatus, Prisma } from "@prisma/client";
+import { PaymentProvider, PaymentStatus, type Prisma } from "@prisma/client";
 import { prisma } from "../db";
 import {
   isPlaceholderContactPhone,
   PLACEHOLDER_PHONE_PREFIX,
 } from "./checkout-placeholder";
+import {
+  OPERATIONAL_TZ,
+  getStartOfDayInTz,
+  getStartOfNextDayInTz,
+} from "./operational-timezone";
+import {
+  clampTake,
+  decodeCursor,
+  encodeCursor,
+  keysetWhere,
+  splitPage,
+} from "./pagination";
+import { MAX_SEARCH_TOKENS, foldForSearch } from "./search-normalize";
 
 /**
- * La lista de Pagos del panel: consulta, filtros y totales.
- *
- * Antes vivía entera dentro de la ruta de API, que devolvía las últimas 50
- * filas y nada más. Con eso no se podía trabajar: no había forma de buscar un
- * cobro concreto, de mirar un mes cerrado, ni de saber cuánto se llevaba
- * ingresado sin sumar a mano. Y la exportación necesita exactamente la misma
- * consulta, así que o se extraía aquí o se escribía dos veces y se separaban a
- * la primera.
+ * Lectura de pagos para `/admin/payments`. La escritura (`recordPayment`,
+ * webhooks) vive en `lib/crm/payments.ts` y no se toca aquí — son dos
+ * responsabilidades distintas y una de las dos es dinero real.
  */
+
+export type PaymentListFilters = {
+  /** Se recorta; una cadena vacía no es un filtro. */
+  q?: string;
+  /** `YYYY-MM-DD`, día calendario en la zona operativa (Bogotá). */
+  from?: string;
+  /** `YYYY-MM-DD`, inclusive del día completo — ver `buildPaymentsWhere`. */
+  to?: string;
+  status?: PaymentStatus | "all";
+  provider?: PaymentProvider | "all";
+  productId?: string | "all";
+  /** Mismo criterio que hoy: contacto con teléfono `+pending:…`. */
+  unidentified?: boolean;
+  cursor?: string | null;
+  limit?: number;
+};
 
 export type PaymentListRow = {
   id: string;
@@ -32,11 +56,6 @@ export type PaymentListRow = {
   providerOrderId: string | null;
   paidAt: string | null;
   createdAt: string;
-  /**
-   * El teléfono `+pending:` es el único rastro de que la conciliación no
-   * encontró a nadie. Se traduce a bandera aquí para no filtrar el placeholder
-   * al cliente ni obligarle a conocer el prefijo.
-   */
   unidentified: boolean;
   enrollment: {
     id: string;
@@ -52,8 +71,10 @@ export type PaymentListRow = {
 };
 
 /**
- * Totales del período, **siempre por moneda y nunca sumados entre ellas**:
- * sumar pesos con dólares da un número que no significa nada.
+ * Total de un período para UNA moneda. Nunca se suma entre monedas — sumar
+ * pesos y dólares da un número que no significa nada — y `approvedMinor`
+ * cuenta solo lo aprobado: un "total" que incluye rechazos en silencio es
+ * mentir sobre el ingreso real.
  */
 export type PaymentCurrencyTotal = {
   currency: string;
@@ -64,35 +85,105 @@ export type PaymentCurrencyTotal = {
   refundedCount: number;
 };
 
-export type PaymentListFilters = {
-  q?: string;
-  from?: string;
-  to?: string;
-  status?: string;
-  provider?: string;
-  productId?: string;
-  unidentified?: boolean;
+export type PaymentListResult = {
+  payments: PaymentListRow[];
+  nextCursor: string | null;
+  totals: PaymentCurrencyTotal[];
 };
 
-const SELECT = {
-  id: true,
-  provider: true,
-  status: true,
-  currency: true,
-  amountMinor: true,
-  feeMinor: true,
-  netMinor: true,
-  payerEmail: true,
-  payerCountryIso: true,
-  failureCode: true,
-  failureMessage: true,
-  providerPaymentId: true,
-  providerOrderId: true,
-  paidAt: true,
-  createdAt: true,
+const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * `YYYY-MM-DD` → un instante dentro de ese día, para dárselo a los ayudantes
+ * de zona, que trabajan sobre `Date` y no sobre una clave de día. Se ancla al
+ * mediodía UTC a propósito: cualquier hora cercana a medianoche caería en el
+ * día anterior o el siguiente según el desfase de la zona.
+ */
+const dayKeyToInstant = (dayKey: string): Date | null => {
+  if (!DAY_KEY_RE.test(dayKey)) return null;
+  const at = new Date(`${dayKey}T12:00:00.000Z`);
+  return Number.isNaN(at.getTime()) ? null : at;
+};
+
+export const buildPaymentsWhere = (
+  filters: PaymentListFilters
+): Prisma.PaymentWhereInput => {
+  const and: Prisma.PaymentWhereInput[] = [];
+
+  const q = (filters.q ?? "").trim();
+  if (q) {
+    const tokens = q.split(/\s+/).filter(Boolean).slice(0, MAX_SEARCH_TOKENS);
+    for (const token of tokens.length > 0 ? tokens : [q]) {
+      and.push({
+        OR: [
+          // `searchText` ya pliega nombre, apellido, display y email del
+          // contacto (ver Contact.searchText en el schema) — un solo `LIKE`
+          // servido por su GIN de trigramas en vez de recorrer cada campo.
+          {
+            enrollment: {
+              contact: { searchText: { contains: foldForSearch(token) } },
+            },
+          },
+          { payerEmail: { contains: token, mode: "insensitive" } },
+          { providerPaymentId: { contains: token, mode: "insensitive" } },
+          { providerOrderId: { contains: token, mode: "insensitive" } },
+        ],
+      });
+    }
+  }
+
+  /**
+   * `to` es inclusivo del día completo EN LA ZONA OPERATIVA (Bogotá), no en
+   * UTC: `lte: new Date(to)` trunca a medianoche UTC, que en Bogotá (UTC-5)
+   * cae a las 7pm del día anterior y recorta las últimas horas del día que el
+   * operador sí quiso incluir. Se resuelve como un rango semiabierto
+   * `[inicio de "from", inicio del día SIGUIENTE a "to")`.
+   */
+  const fromDay = filters.from ? dayKeyToInstant(filters.from) : null;
+  const toDay = filters.to ? dayKeyToInstant(filters.to) : null;
+  const fromAt = fromDay ? getStartOfDayInTz(fromDay, OPERATIONAL_TZ) : null;
+  const toAt = toDay ? getStartOfNextDayInTz(toDay, OPERATIONAL_TZ) : null;
+  if (fromAt || toAt) {
+    const range = {
+      ...(fromAt ? { gte: fromAt } : {}),
+      ...(toAt ? { lt: toAt } : {}),
+    };
+    and.push({
+      OR: [
+        // Un pago cobrado se ubica por `paidAt`.
+        { paidAt: range },
+        // Un intento sin cobrar (pendiente o rechazado) no tiene `paidAt`:
+        // cae a `createdAt`, que es cuando SÍ pasó algo. Sin este `fallback`
+        // un pago rechazado en el rango pedido desaparecería del todo en vez
+        // de aparecer como lo que es — un intento que no llegó a cobrarse.
+        { paidAt: null, createdAt: range },
+      ],
+    });
+  }
+
+  if (filters.status && filters.status !== "all") {
+    and.push({ status: filters.status });
+  }
+  if (filters.provider && filters.provider !== "all") {
+    and.push({ provider: filters.provider });
+  }
+  if (filters.productId && filters.productId !== "all") {
+    and.push({ enrollment: { productId: filters.productId } });
+  }
+  if (filters.unidentified) {
+    and.push({
+      enrollment: {
+        contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } },
+      },
+    });
+  }
+
+  return and.length > 0 ? { AND: and } : {};
+};
+
+const rowInclude = {
   enrollment: {
-    select: {
-      id: true,
+    include: {
       contact: {
         select: {
           id: true,
@@ -106,93 +197,13 @@ const SELECT = {
       product: { select: { id: true, title: true } },
     },
   },
-} satisfies Prisma.PaymentSelect;
+} as const;
 
-const isStatus = (v: string): v is PaymentStatus =>
-  Object.prototype.hasOwnProperty.call(PaymentStatus, v);
+type PaymentWithRelations = Prisma.PaymentGetPayload<{
+  include: typeof rowInclude;
+}>;
 
-const isProvider = (v: string): v is PaymentProvider =>
-  Object.prototype.hasOwnProperty.call(PaymentProvider, v);
-
-/**
- * El `to` del filtro es un día, no un instante.
- *
- * Quien escribe «hasta el 30» espera que entren los cobros del 30. Tomando la
- * fecha tal cual, el rango se cierra a las 00:00 y ese día entero se queda
- * fuera: un mes que no cuadra por los cobros del último día.
- */
-const endOfDay = (iso: string): Date => {
-  const d = new Date(iso);
-  d.setHours(23, 59, 59, 999);
-  return d;
-};
-
-export function paymentListWhere(
-  f: PaymentListFilters,
-): Prisma.PaymentWhereInput {
-  const where: Prisma.PaymentWhereInput = {};
-
-  if (f.status && f.status !== "all" && isStatus(f.status)) {
-    where.status = f.status;
-  }
-  if (f.provider && f.provider !== "all" && isProvider(f.provider)) {
-    where.provider = f.provider;
-  }
-
-  if (f.from || f.to) {
-    where.createdAt = {
-      ...(f.from ? { gte: new Date(f.from) } : {}),
-      ...(f.to ? { lte: endOfDay(f.to) } : {}),
-    };
-  }
-
-  const enrollment: Prisma.EnrollmentWhereInput = {};
-  if (f.productId && f.productId !== "all") {
-    enrollment.productId = f.productId;
-  }
-  if (f.unidentified) {
-    enrollment.contact = {
-      phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX },
-    };
-  }
-  if (Object.keys(enrollment).length > 0) {
-    where.enrollment = enrollment;
-  }
-
-  const q = f.q?.trim();
-  if (q) {
-    /*
-      Se busca por lo que Dayana tiene delante cuando pregunta por un cobro: el
-      nombre, el correo, o el identificador que le da el proveedor cuando
-      reclama. El id interno también, porque es lo que llevan los enlaces del
-      propio panel.
-    */
-    where.OR = [
-      { providerPaymentId: { contains: q, mode: "insensitive" } },
-      { providerOrderId: { contains: q, mode: "insensitive" } },
-      { payerEmail: { contains: q, mode: "insensitive" } },
-      { id: q },
-      {
-        enrollment: {
-          contact: {
-            OR: [
-              { firstName: { contains: q, mode: "insensitive" } },
-              { lastName: { contains: q, mode: "insensitive" } },
-              { displayName: { contains: q, mode: "insensitive" } },
-              { email: { contains: q, mode: "insensitive" } },
-            ],
-          },
-        },
-      },
-    ];
-  }
-
-  return where;
-}
-
-type RawRow = Prisma.PaymentGetPayload<{ select: typeof SELECT }>;
-
-const toRow = (p: RawRow): PaymentListRow => ({
+const toRow = (p: PaymentWithRelations): PaymentListRow => ({
   id: p.id,
   provider: p.provider,
   status: p.status,
@@ -208,6 +219,8 @@ const toRow = (p: RawRow): PaymentListRow => ({
   providerOrderId: p.providerOrderId,
   paidAt: p.paidAt ? p.paidAt.toISOString() : null,
   createdAt: p.createdAt.toISOString(),
+  // El teléfono `+pending:` es el único rastro de que la conciliación no
+  // encontró a nadie (ver `lib/crm/payments.ts`).
   unidentified: isPlaceholderContactPhone(p.enrollment.contact.phoneE164),
   enrollment: {
     id: p.enrollment.id,
@@ -222,127 +235,105 @@ const toRow = (p: RawRow): PaymentListRow => ({
   },
 });
 
-export type PaymentListPage = {
-  payments: PaymentListRow[];
-  nextCursor: string | null;
-};
-
-/**
- * Una página de la lista.
- *
- * Pagina por cursor y no por `skip`: la lista va por fecha descendente y entra
- * dinero mientras se navega, así que con desplazamiento numérico un cobro
- * nuevo empuja las filas y la página siguiente repite la última.
- */
-export async function listPayments(
-  filters: PaymentListFilters,
-  opts: { cursor?: string | null; limit?: number } = {},
-): Promise<PaymentListPage> {
-  const limit = Math.min(100, Math.max(1, opts.limit ?? 50));
-  const rows = await prisma.payment.findMany({
-    where: paymentListWhere(filters),
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    take: limit + 1,
-    ...(opts.cursor ? { cursor: { id: opts.cursor }, skip: 1 } : {}),
-    select: SELECT,
-  });
-
-  const hasMore = rows.length > limit;
-  const page = hasMore ? rows.slice(0, limit) : rows;
-  const last = page[page.length - 1];
-  return {
-    payments: page.map(toRow),
-    nextCursor: hasMore && last ? last.id : null,
-  };
-}
-
-/** Todas las filas que casan con el filtro, para la exportación. */
-export async function listAllPaymentsForExport(
-  filters: PaymentListFilters,
-): Promise<PaymentListRow[]> {
-  const rows = await prisma.payment.findMany({
-    where: paymentListWhere(filters),
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-    select: SELECT,
-  });
-  return rows.map(toRow);
-}
-
-/**
- * Los totales se calculan sobre **todo** lo que casa con el filtro, no sobre la
- * página cargada. Si no, el número de arriba cambiaría al pulsar «cargar más»,
- * que es justo lo que hace que nadie se fíe de él.
- */
-export async function getPaymentTotals(
-  filters: PaymentListFilters,
-): Promise<PaymentCurrencyTotal[]> {
-  const grouped = await prisma.payment.groupBy({
-    by: ["currency", "status"],
-    where: paymentListWhere(filters),
-    _sum: { amountMinor: true },
-    _count: { _all: true },
-  });
-
+const sumTotals = (
+  rows: { currency: string; status: PaymentStatus; _sum: { amountMinor: number | null }; _count: { _all: number } }[]
+): PaymentCurrencyTotal[] => {
   const byCurrency = new Map<string, PaymentCurrencyTotal>();
-  for (const g of grouped) {
-    const t = byCurrency.get(g.currency) ?? {
-      currency: g.currency,
+  for (const row of rows) {
+    const entry = byCurrency.get(row.currency) ?? {
+      currency: row.currency,
       approvedMinor: 0,
       approvedCount: 0,
       pendingCount: 0,
       failedCount: 0,
       refundedCount: 0,
     };
-    const n = g._count._all;
-    if (g.status === "APPROVED") {
-      t.approvedMinor += g._sum.amountMinor ?? 0;
-      t.approvedCount += n;
-    } else if (g.status === "PENDING") {
-      t.pendingCount += n;
-    } else if (g.status === "REFUNDED") {
-      t.refundedCount += n;
-    } else {
-      t.failedCount += n;
+    if (row.status === PaymentStatus.APPROVED) {
+      entry.approvedMinor += row._sum.amountMinor ?? 0;
+      entry.approvedCount += row._count._all;
+    } else if (row.status === PaymentStatus.PENDING) {
+      entry.pendingCount += row._count._all;
+    } else if (row.status === PaymentStatus.FAILED) {
+      entry.failedCount += row._count._all;
+    } else if (row.status === PaymentStatus.REFUNDED) {
+      entry.refundedCount += row._count._all;
     }
-    byCurrency.set(g.currency, t);
+    byCurrency.set(row.currency, entry);
   }
-
   return [...byCurrency.values()].sort((a, b) =>
-    a.currency.localeCompare(b.currency),
+    a.currency.localeCompare(b.currency)
   );
-}
-
-const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+};
 
 /**
- * Los filtros desde la query string, compartidos por la lista y la exportación.
+ * Página keyset de pagos + totales del período, ordenada por
+ * `(createdAt desc, id desc)` — mismo esquema de cursor que `contacts.ts`
+ * (`lib/crm/pagination.ts`).
  *
- * Una sola lectura para las dos rutas: si cada una parseara la URL a su manera,
- * el CSV acabaría exportando algo distinto de lo que la pantalla enseña.
- *
- * Las fechas se aceptan sólo como `YYYY-MM-DD`, que es lo que manda el input
- * de fecha. Cualquier otra cosa se ignora en vez de llegar a `new Date` y
- * convertirse en una fecha inválida que Prisma rechaza con un 500.
+ * Los totales se calculan sobre TODO el conjunto filtrado, no sobre la
+ * página: un `groupBy` aparte comparte exactamente el mismo `where` que la
+ * lista, así que no pueden divergir.
  */
-export function paymentListFiltersFromParams(
-  params: URLSearchParams,
-): PaymentListFilters {
-  const get = (key: string) => params.get(key)?.trim() || undefined;
-  const day = (key: string) => {
-    const v = get(key);
-    return v && ISO_DAY.test(v) ? v : undefined;
-  };
+export const listPayments = async (
+  filters: PaymentListFilters
+): Promise<PaymentListResult> => {
+  const where = buildPaymentsWhere(filters);
+  const take = clampTake(filters.limit);
+  const cursor = decodeCursor(filters.cursor);
+
+  const [rows, totalsRaw] = await Promise.all([
+    prisma.payment.findMany({
+      where: cursor ? { AND: [where, keysetWhere("createdAt", cursor)] } : where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: take + 1,
+      include: rowInclude,
+    }),
+    prisma.payment.groupBy({
+      by: ["currency", "status"],
+      where,
+      _sum: { amountMinor: true },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const { items, nextCursor } = splitPage(rows, take, (row) =>
+    encodeCursor(row.createdAt, row.id)
+  );
+
   return {
-    q: get("q"),
-    from: day("from"),
-    to: day("to"),
-    status: get("status"),
-    provider: get("provider"),
-    productId: get("productId"),
-    // El aviso del panel enlaza con `?sin-identificar=1`; la pantalla manda
-    // `unidentified=1`. Las dos significan lo mismo.
-    unidentified:
-      params.get("unidentified") === "1" ||
-      params.get("sin-identificar") === "1",
+    payments: items.map(toRow),
+    nextCursor,
+    totals: sumTotals(totalsRaw),
   };
-}
+};
+
+/** Tope duro de filas exportadas — el CSV no es una consulta libre. */
+export const PAYMENTS_EXPORT_LIMIT = 5000;
+
+export type PaymentExportResult = {
+  rows: PaymentListRow[];
+  /** `true` si había más filas de las que caben en `PAYMENTS_EXPORT_LIMIT`. */
+  truncated: boolean;
+};
+
+/**
+ * Todas las filas que casan con los filtros (hasta el tope), para el CSV.
+ * A propósito NO toma `cursor`/`limit`: el export es sobre los filtros
+ * aplicados, no sobre la página que el operador tiene abierta.
+ */
+export const listPaymentsForExport = async (
+  filters: Omit<PaymentListFilters, "cursor" | "limit">
+): Promise<PaymentExportResult> => {
+  const where = buildPaymentsWhere(filters);
+  const rows = await prisma.payment.findMany({
+    where,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: PAYMENTS_EXPORT_LIMIT + 1,
+    include: rowInclude,
+  });
+  const truncated = rows.length > PAYMENTS_EXPORT_LIMIT;
+  return {
+    rows: (truncated ? rows.slice(0, PAYMENTS_EXPORT_LIMIT) : rows).map(toRow),
+    truncated,
+  };
+};

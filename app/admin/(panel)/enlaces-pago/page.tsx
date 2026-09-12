@@ -28,6 +28,8 @@ const EnlacesPagoPage = async () => {
     expiresAt: l.expiresAt?.toISOString() ?? null,
     openedAt: l.openedAt?.toISOString() ?? null,
     checkoutStartedAt: l.checkoutStartedAt?.toISOString() ?? null,
+    paidAt: l.paidAt?.toISOString() ?? null,
+    enrollmentId: l.enrollmentId,
     revokedAt: l.revokedAt?.toISOString() ?? null,
     createdAt: l.createdAt.toISOString(),
     product: l.product,

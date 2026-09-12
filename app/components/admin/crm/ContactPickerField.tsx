@@ -2,7 +2,14 @@
 
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import { Clock, Search, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import {
   getContactRecents,
   saveContactRecent,
@@ -52,6 +59,27 @@ const ContactPickerField = ({
     initialContact?.label ?? ""
   );
   const wrapRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  /**
+   * El desplegable se pinta en un portal con posicion fija, no en el flujo.
+   *
+   * Antes iba en flujo con `max-h-72`, y su comentario explicaba por que: uno
+   * flotante se recortaba contra el borde del modal. El precio de esa solucion
+   * era que **metia 288px dentro del modal en cuanto enfocabas el campo**, y
+   * eso es lo que hacia que el formulario de enlaces se estirase hasta tener
+   * que hacer scroll.
+   *
+   * Mismo tratamiento que `CheckoutCountrySelect`: portal a `document.body`,
+   * medido contra el disparador y volteando hacia arriba cuando no cabe
+   * debajo. Asi no se recorta Y no empuja a nadie.
+   */
+  const [pos, setPos] = useState<{
+    left: number;
+    width: number;
+    maxHeight: number;
+    top?: number;
+    bottom?: number;
+  } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchContacts = useCallback(async (term: string, signal: AbortSignal) => {
@@ -87,7 +115,9 @@ const ContactPickerField = ({
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (panelRef.current?.contains(target)) return;
+      if (wrapRef.current && !wrapRef.current.contains(target)) {
         setOpen(false);
       }
     };
@@ -127,6 +157,49 @@ const ContactPickerField = ({
       </div>
     </button>
   );
+
+  const PANEL_GAP = 4;
+  const PANEL_MAX = 288;
+
+  const updatePosition = useCallback(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const below = window.innerHeight - rect.bottom - PANEL_GAP;
+    const above = rect.top - PANEL_GAP;
+    const openUp = below < 180 && above > below;
+    setPos({
+      left: rect.left,
+      width: rect.width,
+      maxHeight: Math.max(140, Math.min(PANEL_MAX, openUp ? above : below)),
+      ...(openUp
+        ? { bottom: window.innerHeight - rect.top + PANEL_GAP }
+        : { top: rect.bottom + PANEL_GAP }),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    // Medir y colocar antes de pintar: hacerlo despues deja ver el panel
+    // saltando desde la esquina. `CheckoutCountrySelect` hace lo mismo.
+    if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPos(null);
+      return;
+    }
+    updatePosition();
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onMove = () => updatePosition();
+    window.addEventListener("resize", onMove);
+    // `true`: el modal scrollea en su propio contenedor, no en la ventana.
+    window.addEventListener("scroll", onMove, true);
+    return () => {
+      window.removeEventListener("resize", onMove);
+      window.removeEventListener("scroll", onMove, true);
+    };
+  }, [open, updatePosition]);
 
   const showRecents = open && q.trim().length === 0 && recents.length > 0;
 
@@ -173,10 +246,19 @@ const ContactPickerField = ({
         </div>
       )}
 
-      {open && (
-        // En flujo (no absolute): dentro de un modal con overflow, un
-        // dropdown flotante se recorta en el borde — así el modal crece.
-        <div className="mt-1 max-h-72 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
+      {open && pos && typeof document !== "undefined"
+        ? createPortal(
+        <div
+          ref={panelRef}
+          style={{
+            position: "fixed",
+            left: pos.left,
+            width: pos.width,
+            maxHeight: pos.maxHeight,
+            ...(pos.top !== undefined ? { top: pos.top } : {}),
+            ...(pos.bottom !== undefined ? { bottom: pos.bottom } : {}),
+          }}
+          className="z-50 overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
           {showRecents && (
             <>
               <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">
@@ -194,8 +276,10 @@ const ContactPickerField = ({
             <p className="px-3 py-2 text-xs text-muted-foreground">Sin coincidencias</p>
           )}
           {!loading && hits.map((c) => renderRow(c))}
-        </div>
-      )}
+        </div>,
+        document.body
+      )
+        : null}
     </div>
   );
 };

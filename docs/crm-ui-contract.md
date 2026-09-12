@@ -76,36 +76,7 @@ cabecera, merece un nombre.
   taller sin publicar): el botón se muestra deshabilitado explicando por qué,
   en vez de llevar a un error.
 
-## R5 · Campos y acciones de formulario
-
-`CrmField` siempre para un campo. Nunca el bloque `<Label>` + control +
-`<p>` escrito a mano: así se llegó a sesenta copias, y cada copia se dejaba
-por el camino alguna de estas tres cosas.
-
-```tsx
-<CrmField label="Título" error={errors.title}>
-  <Input value={title} onChange={…} />
-</CrmField>
-```
-
-Lo que resuelve, y que a mano se olvida:
-
-- **El enlace etiqueta↔control sin escribir un `id`.** Base UI inyecta el
-  `id`, el `aria-labelledby` y el `aria-invalid`. Basta un `htmlFor` mal
-  escrito para que la etiqueta deje de leerse con lector de pantalla, y eso
-  no se ve mirando la pantalla.
-- **El hueco del error.** Reservado siempre, así que el formulario no pega un
-  salto cuando aparece un mensaje.
-- **Los estados en el DOM** (`data-dirty`, `data-touched`, `data-invalid`), de
-  donde sale «hay cambios sin guardar» sin llevar la cuenta a mano.
-
-`CrmFieldset` agrupa los campos que se leen juntos — los dos precios de una
-moneda, por ejemplo.
-
-**Lo que NO hay que hacer:** migrar las pantallas anteriores en una barrida.
-Se migran cuando se toquen.
-
-### Acciones
+## R5 · Acciones de formulario
 
 `CrmFormActions` siempre: alineado a la derecha, primario el último.
 
@@ -115,6 +86,32 @@ Se migran cuando se toquen.
 
 En móvil se apila con `flex-col-reverse`, así el primario queda arriba — donde
 llega el pulgar.
+
+### El campo se escribe con `CrmField`, no a mano
+
+```tsx
+<CrmField label="Título" description="Sale en la tarjeta." error={errors.title}>
+  <Input value={title} onChange={…} />
+</CrmField>
+```
+
+Envuelve `Field` de Base UI, que ya venía instalado y no se usaba. Da tres
+cosas que a mano se olvidan:
+
+- **El enlace etiqueta↔control sin `id` a mano.** El panel llegó a tener
+  sesenta copias del bloque `<div><Label/><Input/><p/></div>`, y basta que un
+  `htmlFor` no cuadre para que la etiqueta deje de leerse con lector de
+  pantalla.
+- **El hueco de error del campo**, que es el `role="alert"` que pide R9 más
+  abajo — ya no depende de que quien escribe la pantalla se acuerde.
+- **`data-dirty` / `data-invalid` / `data-touched` en el DOM**, de donde sale
+  «hay cambios sin guardar» sin llevar la cuenta a mano.
+
+Para agrupar, `CrmFieldset`: los `border-t` con un `<p>` de título agrupaban
+sólo de forma visual y para un lector de pantalla los campos quedaban sueltos.
+
+Las pantallas anteriores siguen a mano. Se migran cuando se toquen, no en una
+barrida.
 
 ## R6 · Acciones de fila
 
@@ -150,6 +147,52 @@ móvil.
 **Nunca envíes la lista dos veces** — una tabla para `lg` y tarjetas para
 móvil. Paquetes y Códigos lo hacían y las dos copias ya habían divergido.
 
+### Rejilla de tarjetas — la tercera forma, y la única excepción
+
+Se admite una rejilla en lugar de `CrmDataList` cuando **la fila ES lo que la
+clienta ve**: la pantalla no lista registros, lista las tarjetas publicadas, y
+enseñarlas como filas obligaría a mirar la web en otra pestaña para saber qué
+se está tocando. Hoy sólo la cumple **Paquetes** (`/admin/products`).
+
+Marcador: `data-crm-card-grid` en el contenedor.
+
+Las condiciones no son negociables, y existen porque la tarjeta pública y el
+panel dicen cosas distintas:
+
+- **Se renderiza el componente público de verdad**, nunca una imitación. En
+  Paquetes es `PublicProductCard`, el mismo que sirven `/pagar/<token>` y el
+  resultado del diagnóstico. Una copia dibujada aparte se desincroniza en el
+  primer cambio de estilo y a partir de ahí miente justo al publicar.
+- **Lo que es verdad del CRM va FUERA de la tarjeta.** El estado de
+  visibilidad, el aviso de sincronización de precio, las acciones de fila: la
+  clienta no debe verlos nunca, y perderlos sería perder el único sitio donde
+  se lee que un precio quedó sin propagar.
+- **El fondo es el de la web** (`bg-hero-paper`), no el del panel: una tarjeta
+  de papel crema se lee distinta sobre el gris del CRM, y la pregunta que
+  responde esta pantalla es «¿cómo se ve publicada?».
+- Vacío, carga y error siguen siendo los de R9. La rejilla sustituye a la
+  lista, no a sus estados.
+
+**Se admite un segundo modo, «compacta», y sólo bajo estas reglas.** Dieciséis
+paquetes en tamaño publicado son cuatro pantallas de scroll: para responder
+«¿cuál toco?» hay que recorrerlas todas, que es exactamente lo que la rejilla
+venía a evitar. El modo compacto reduce cada celda a título, línea de sesiones,
+precio y estado.
+
+- **«Publicada» sigue existiendo y es la que manda.** El interruptor va en la
+  cabecera, junto al de moneda, y el modo compacto no puede ser el único: la
+  pregunta «¿cómo se ve publicada?» tiene que poder contestarse sin salir.
+- **La compacta no imita la tarjeta.** Es una celda del panel con sus propios
+  tokens; no copia el papel crema ni el vocabulario de color de
+  `PublicProductCard`. Una imitación a media escala es justo la copia que el
+  punto de arriba prohíbe.
+- **El editor sigue enseñando la tarjeta de verdad**, dentro del panel lateral
+  y viva mientras se escribe. Ahí es donde se cumple «se renderiza el
+  componente público»: al abrir una celda compacta se ve la tarjeta publicada.
+
+Si aparece una segunda pantalla que quiera esto, se justifica igual o se queda
+en `CrmDataList`. «Se ve mejor» no basta.
+
 ## R9 · Vacío, carga, error, éxito
 
 | Estado | Componente |
@@ -158,7 +201,7 @@ móvil. Paquetes y Códigos lo hacían y las dos copias ya habían divergido.
 | Cargando | `CrmLoadingState` (esqueletos, nunca «Cargando…») |
 | Error | `CrmErrorState` con `onRetry` cuando se pueda reintentar |
 | Aviso | `<Alert variant="warning">` |
-| Error de campo | `CrmField error=` — no lo escribas a mano (R5) |
+| Error de campo | `CrmField error="…"` — lo pinta él (`role="alert"`, ver R5) |
 | **Éxito** | **siempre toast** |
 
 Nunca texto verde en línea para el éxito.

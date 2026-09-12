@@ -18,7 +18,7 @@ import { requireWriteStaff, auditAgentWrite } from "@/agent/lib/guard";
  */
 export default defineTool({
   description:
-    "Create a PENDING_PAYMENT enrollment for a contact on a therapy product (from list_products), the sale itself, before any payment is recorded. It never activates anything and never grants sessions by itself — record the payment afterward with request_payment_otp + record_manual_payment against the enrollmentId this returns, which is what actually activates it. Refuses any product that isn't kind THERAPY; for a course or workshop, tell the operator to use /admin/enrollments instead of trying to force it through this tool.",
+    "Create a PENDING_PAYMENT enrollment for a contact on a therapy product (from list_products), the step that was missing before a new or unregistered client could buy one from this chat. It never activates anything by itself — record the payment afterward with request_payment_otp + record_manual_payment against the enrollmentId this returns, which is what actually activates it. Refuses any product that isn't kind THERAPY; for a course or workshop, tell the operator to use /admin/enrollments instead of trying to force it through this tool.",
   inputSchema: z.object({
     contactId: z.string().min(1),
     productId: z
@@ -53,7 +53,7 @@ export default defineTool({
       sessionsTotal: enrollment.sessionsTotal,
       currency: enrollment.currency,
       amountMinor: enrollment.amountMinor,
-      note: "Todavía en PENDING_PAYMENT. Registra el pago (request_payment_otp + record_manual_payment) contra este enrollmentId para activarla y crear el paquete de terapia.",
+      note: "Todavía en PENDING_PAYMENT. Registra el pago (request_payment_otp + record_manual_payment) contra este enrollmentId para activarla.",
     };
   },
 });

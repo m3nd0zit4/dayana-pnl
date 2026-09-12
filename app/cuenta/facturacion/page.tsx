@@ -194,10 +194,24 @@ const Page = async () => {
                   <span className="font-[font2] text-sm">
                     {formatAmount(payment.currency, payment.amountMinor)}
                   </span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-black/45">
-                    {PROVIDER_LABELS[payment.provider] ?? payment.provider}
-                    {" · "}
-                    {dateFmt.format(payment.paidAt ?? payment.createdAt)}
+                  <span className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-black/45">
+                    <span>
+                      {PROVIDER_LABELS[payment.provider] ?? payment.provider}
+                      {" · "}
+                      {dateFmt.format(payment.paidAt ?? payment.createdAt)}
+                    </span>
+                    {/* Estos pagos ya vienen filtrados a APROBADOS por
+                        `getMembershipPayments`, así que todos tienen recibo.
+                        La ruta comprueba además que el pago sea de quien lo
+                        pide: un id de pago no es un secreto. */}
+                    <a
+                      href={`/api/miembros/pagos/${payment.id}/recibo`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline decoration-black/25 underline-offset-4 transition-colors hover:text-black/70"
+                    >
+                      Recibo PDF
+                    </a>
                   </span>
                 </li>
               ))}

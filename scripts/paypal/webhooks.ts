@@ -125,7 +125,7 @@ async function main() {
 
   if (!targetUrl) {
     console.log(
-      "\n(Solo lectura. `--sync <url>` crea o actualiza; `--prune <url>` borra los demas.)"
+      "\n(Sólo lectura. `--sync <url>` crea o actualiza; `--prune <url>` borra los demás.)"
     );
     return;
   }

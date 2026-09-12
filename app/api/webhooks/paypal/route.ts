@@ -83,11 +83,25 @@ export async function POST(req: NextRequest) {
   };
 
   const eventId = payload.id ?? `paypal-${Date.now()}`;
-  const isNew = await registerWebhookEvent(
-    PaymentProvider.PAYPAL,
-    eventId,
-    payload
-  );
+  /**
+   * Reclamar la marca puede fallar por algo que no sea un duplicado.
+   *
+   * `registerWebhookEvent` sólo devuelve `false` para el conflicto de clave
+   * única, que es un duplicado de verdad. Cualquier otro fallo —la base caída
+   * un instante— se propaga, y aquí se convierte en 503 a propósito: PayPal
+   * reintenta. Responder 200 sin saber si lo procesamos es como se pierde un
+   * cobro para siempre.
+   */
+  let isNew: boolean;
+  try {
+    isNew = await registerWebhookEvent(PaymentProvider.PAYPAL, eventId, payload);
+  } catch (e) {
+    console.error("[webhook paypal] no se pudo reclamar el evento", eventId, e);
+    return NextResponse.json(
+      { error: "claim_failed", retry: true },
+      { status: 503 }
+    );
+  }
   if (!isNew) {
     return NextResponse.json({ ok: true, duplicate: true });
   }

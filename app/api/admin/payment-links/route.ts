@@ -7,13 +7,33 @@ import {
   createPaymentLink,
   listPaymentLinksForContact,
   listRecentPaymentLinks,
+  resolvePaymentLinkBuyer,
   revokePaymentLink,
 } from "@/lib/crm/payment-links";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Tres formas validas, y la tercera es el punto:
+ *
+ *  - `contactId` de una ficha que ya existe
+ *  - `buyer` con nombre y telefono O correo, que se da de alta al crear
+ *  - ninguno de los dos: el enlace se crea igual
+ *
+ * Exigir la ficha antes de poder cobrar era la limitacion que costaba ventas.
+ * Un enlace sin contacto sigue el camino anonimo normal del sitio.
+ */
 const createSchema = z.object({
-  contactId: z.string().min(1),
+  contactId: z.string().min(1).optional(),
+  buyer: z
+    .object({
+      firstName: z.string().trim().max(120).optional(),
+      lastName: z.string().trim().max(120).optional(),
+      phone: z.string().trim().max(30).optional(),
+      phoneCountry: z.string().trim().max(2).optional(),
+      email: z.string().trim().email().max(200).optional(),
+    })
+    .optional(),
   productId: z.string().min(1),
   note: z.string().max(400).optional(),
   // 90 días es el techo: un enlace acordado en una llamada no debería seguir
@@ -43,8 +63,15 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const { contactId, buyer, ...rest } = parsed.data;
+    // La ficha escrita a mano se resuelve AL CREAR el enlace, no al pagar: asi
+    // el enlace ya sale con dueno y el cobro se le cuelga directo.
+    const resolvedContactId =
+      contactId ?? (await resolvePaymentLinkBuyer(buyer));
+
     const link = await createPaymentLink({
-      ...parsed.data,
+      ...rest,
+      contactId: resolvedContactId,
       staffUserId: staff.id,
     });
 

@@ -3,7 +3,6 @@ import { z } from "zod";
 import { requireStaff } from "@/agent/lib/guard";
 import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
 import { getWorkshopEditionBySlug } from "@/lib/crm/workshop-editions";
-import { prisma } from "@/lib/db";
 import { resolveCountryIso } from "@/lib/datetime/resolve-country-iso";
 import {
   formatInstantForContact,
@@ -174,7 +173,7 @@ const loadSource = async (input: {
 
 export default defineTool({
   description:
-    "Convert a scheduled event (free webinar, workshop, or raw UTC instant) into exact local date/time for one or more countries or IANA timezones. Use whenever the operator asks “qué hora sería en Japón/España/…” for a taller or webinar — never guess offsets mentally.",
+    "Convert a scheduled event (free webinar, workshop, or raw UTC instant) into exact local date/time for one or more countries or IANA timezones. Use whenever the operator asks “qué hora sería en Japón/España/…” for a taller o webinar — never guess offsets mentally.",
   inputSchema: z.object({
     source: z
       .enum(["free_webinar", "workshop", "instant"])

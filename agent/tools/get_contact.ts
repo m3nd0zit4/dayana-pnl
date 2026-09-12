@@ -5,7 +5,7 @@ import { requireStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Get full detail for one contact by id: profile, and their enrollments with products, payment status, and therapy package if any.",
+    "Get full detail for one contact by id: profile, and their enrollments with products and payment status.",
   inputSchema: z.object({ contactId: z.string().min(1) }),
   async execute({ contactId }, ctx) {
     requireStaff(ctx);

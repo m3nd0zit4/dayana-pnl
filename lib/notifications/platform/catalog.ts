@@ -19,8 +19,7 @@ import type {
 
 export const NOTIFICATION_GROUPS = [
   "Pagos y ventas",
-  "Embudo e inscripciones",
-  "Terapias",
+  "Embudo e inscripciones",
   "Curso y membresía",
   "Sistema y seguridad",
 ] as const;

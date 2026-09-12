@@ -10,7 +10,7 @@ En el panel lateral, el bloque **«Cómo usar el CRM»** resume el mismo flujo s
 |----------|--------|
 | **Contacto** | Persona (teléfono E.164). Siempre es el primer paso. |
 | **Producto** | Catálogo en `/admin/products` (terapia, curso, taller). |
-| **Servicio (Enrollment)** | Contrato del contacto con un producto. Estados: Lead → Pago pendiente → **Activo** → Completado. |
+| **Servicio (Enrollment)** | Contrato del contacto con un producto. Estados: Lead → Pago pendiente → **Activo** → Completado. `sessionsTotal`/`sessionsUsed` guardan cuántas sesiones compró, como una etiqueta de progreso — el CRM ya no agenda ni hace seguimiento de sesiones individuales. |
 
 ```mermaid
 flowchart LR
@@ -42,7 +42,7 @@ flowchart LR
 4. **Servicios** (`/admin/services`) — Verifica el enrollment (`PENDING_PAYMENT` → `ACTIVE` tras pago). Pagos legacy sin identificar: filtro **Sin identificar** o aviso en el dashboard.
 5. **Pagos** (`/admin/payments`) — Confirma el pago aprobado; enlaces a contacto y servicio.
 6. **Página de éxito** (`/pago/exito`) — Si el contacto ya está vinculado, solo muestra confirmación y WhatsApp; opcionalmente pide correo si falta. Pagos antiguos con placeholder pueden pedir teléfono para vincular manualmente.
-7. **Detalle del servicio** (`/admin/enrollments/[id]`) — Estado, sesiones usadas/totales y pagos del servicio.
+7. **Detalle del servicio** (`/admin/enrollments/[id]`) — Estado, pagos y cuántas sesiones incluye el paquete comprado. Coordinar las sesiones en sí ya no pasa por el CRM: se acuerdan por WhatsApp.
 8. **WhatsApp** — Botón **Abrir chat** en cada contacto (enlace directo). **Mensajes rápidos**: copiar texto y pegarlo tú misma en WhatsApp.
 
 ## 3. Cliente manual (sin pago web)
@@ -85,10 +85,8 @@ Configura Inngest según `docs/inngest-setup.md` para campañas grandes, cron de
 
 | Tarea | Dónde |
 |--------|--------|
-| Ver terapias activas y próxima sesión | Terapias |
 | Ficha completa del cliente | Contactos → detalle |
 | Cambiar pipeline lead → activo | Servicios o detalle enrollment |
-| Agendar / reprogramar sesión | Detalle enrollment (terapia) |
 | Cobro manual | Detalle enrollment → pagos |
 | Cambiar precio en la web | Productos |
 | Copiar mensaje y abrir WhatsApp | Ficha contacto · Mensajes rápidos |

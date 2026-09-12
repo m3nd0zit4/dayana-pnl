@@ -1,9 +1,11 @@
 import {
   EnrollmentStatus,
   LessonContentType,
+  PaymentProvider,
   PaymentStatus,
   ProductKind,
   RecordingStatus,
+  SubscriptionStatus,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getMuxClient } from "@/lib/mux/client";
@@ -81,6 +83,19 @@ export type CourseMemberRow = {
   enrollmentId: string;
   status: EnrollmentStatus;
   paidUntil: string | null;
+  /*
+    El cobro recurrente, que hasta ahora no salía por aquí.
+
+    La fila contestaba «¿tiene el acceso al día?» y nada más, así que no había
+    forma de distinguir a quien está en un cobro recurrente de quien pagó
+    suelto y se le acaba: los dos se leen igual mirando sólo `paidUntil`. Y sin
+    el id no se puede buscar la suscripción en el panel del proveedor, que es
+    lo único que sirve cuando hay que reclamar un cobro.
+  */
+  subscriptionStatus: SubscriptionStatus | null;
+  subscriptionProvider: PaymentProvider | null;
+  /** El id de la suscripción en el proveedor, si la hay. */
+  subscriptionRef: string | null;
   amountMinor: number | null;
   currency: string | null;
   lastPaymentAt: string | null;
@@ -133,6 +148,10 @@ export const listCourseMembersAdmin = async (
     enrollmentId: en.id,
     status: en.status,
     paidUntil: en.paidUntil?.toISOString() ?? null,
+    subscriptionStatus: en.subscriptionStatus,
+    subscriptionProvider: en.subscriptionProvider,
+    // Uno u otro; nunca los dos, porque una matrícula se cobra por un riel.
+    subscriptionRef: en.paypalSubscriptionId ?? en.mercadoPagoPreapprovalId,
     amountMinor: en.amountMinor,
     currency: en.currency,
     lastPaymentAt:

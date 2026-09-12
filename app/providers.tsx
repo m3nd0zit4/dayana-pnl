@@ -85,7 +85,20 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
       {isAdmin ? (
         <TooltipProvider>
           {children}
-          <Toaster />
+          {/*
+            Abajo al CENTRO en el panel, y no abajo a la derecha como en el
+            resto del sitio.
+
+            El aviso caía justo encima del pie del panel lateral de edición —
+            donde vive Guardar— y se lo comía: pulsabas y no pasaba
+            absolutamente nada, sin error y sin petición. Costó dos guardados
+            perdidos descubrir que el clic ni siquiera llegaba al botón.
+
+            Es el peor fallo posible en un formulario, porque se parece a «no
+            había nada que guardar». La esquina inferior derecha es de los
+            botones de acción; el aviso se aparta.
+          */}
+          <Toaster position="bottom-center" />
         </TooltipProvider>
       ) : isEnlaces || isCuestionario ? (
         <>

@@ -1,6 +1,11 @@
 /** Plantillas del sistema (pagos, cron, campañas). No aparecen en Mensajes rápidos. */
 export const SYSTEM_MESSAGE_TEMPLATE_KEYS = new Set([
   "post_payment_therapy",
+  // Se retiró con el seguimiento de terapias, y la migración borra su fila.
+  // Sigue listada aquí a propósito: sus variables —{{session_date}},
+  // {{session_time}}, {{meet_url}}— ya no las rellena nadie, así que si una
+  // fila sobreviviera en cualquier base, sacarla de esta lista la publicaría
+  // en Mensajes rápidos con los huecos vacíos.
   "session_reminder",
   "workshop_open",
   "lead_followup",
@@ -32,6 +37,8 @@ export const TRANSACTIONAL_TEMPLATE_KEYS = new Set([
   "membership_overdue",
   "new_recording_posted",
   "post_payment_therapy",
+  // Misma razón: sin sus variables, dejarla fuera de esta lista permitiría al
+  // asistente enviarla sola y sin supervisión.
   "session_reminder",
   "payment_confirmation",
 ]);

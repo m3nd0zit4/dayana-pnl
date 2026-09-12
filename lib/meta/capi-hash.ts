@@ -29,7 +29,7 @@ export const hashEmail = (email: string | null | undefined): string | null => {
  * (next-auth), y este código es alcanzable desde el build de eve — el mismo
  * problema que ya documenta `lib/crm/contacts.ts:289`.
  */
-const PLACEHOLDER_PHONE_PREFIXES = ["+pending", "+google", "+signup"];
+const PLACEHOLDER_PHONE_PREFIXES = ["+pending", "+google", "+signup", "+nophone"];
 
 export const isRealPhoneE164 = (
   phoneE164: string | null | undefined

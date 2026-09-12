@@ -8,13 +8,12 @@ import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
 import { grossUpUsd, paypalFee } from "../../../../lib/pricing/fees";
 import {
   mapCheckoutBeginError,
-  resolveCheckoutContactIdForRequest,
+  resolveCheckoutContactIdForPayment,
 } from "@/lib/crm/checkout-enrollment";
 import type { CheckoutContactBody } from "@/lib/crm/checkout-enrollment";
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import { siteBaseUrl } from "@/lib/mercadopago/amount";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
-import { createPendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import {
   clientIp,
@@ -30,6 +29,8 @@ type Body = CheckoutContactBody & {
   planId?: unknown;
   promoCode?: unknown;
   fromSession?: unknown;
+  /** Token de `/pagar/<token>`; el servidor resuelve de quien es el cobro. */
+  paymentLinkToken?: unknown;
 };
 
 function parseContactBody(body: Body): CheckoutContactBody {
@@ -103,24 +104,24 @@ export async function POST(req: NextRequest) {
   const itemTotalValue = breakdown.net.toFixed(2);
   const handlingValue = breakdown.fee.toFixed(2);
 
-  // Sin formulario previo: PayPal obliga a dar email y nombre para pagar, así
-  // que basta un contacto temporal aquí y la captura lo completa con lo que
-  // reporte el pagador. Si vinieron datos (o hay sesión), se respeta esa vía.
+  // Sin formulario previo: PayPal obliga a dar email y nombre para pagar, asi
+  // que basta un contacto temporal aqui y la captura lo completa con lo que
+  // reporte el pagador. Si vinieron datos (o hay sesion), se respeta esa via, y
+  // si la compra sale de un enlace de pago manda la ficha del enlace.
+  // El orden completo esta documentado en `resolveCheckoutContactIdForPayment`.
   const contact = parseContactBody(body);
-  const hasContactData = Boolean(
-    contact.contactId || contact.phone || contact.email
-  );
 
   let contactId: string;
   try {
-    contactId =
-      hasContactData || body.fromSession === true
-        ? await resolveCheckoutContactIdForRequest({
-            planId,
-            contact,
-            fromSession: body.fromSession === true,
-          })
-        : await createPendingCheckoutContact(planId);
+    contactId = await resolveCheckoutContactIdForPayment({
+      planId,
+      contact,
+      fromSession: body.fromSession === true,
+      paymentLinkToken:
+        typeof body.paymentLinkToken === "string"
+          ? body.paymentLinkToken
+          : undefined,
+    });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
     console.error("[paypal] contact register failed", e);

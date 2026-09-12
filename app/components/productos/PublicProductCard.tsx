@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { formatCop, formatUsd, type Plan } from "@/lib/plans";
+import { resolveProductAccent } from "@/lib/products/accents";
 
 /**
  * La tarjeta pública de un producto. Una sola, para todo.
@@ -58,6 +59,15 @@ const PublicProductCard = ({
 }: PublicProductCardProps) => {
   const compact = size === "sm";
   const listPrice = listPriceOf(plan, isColombia);
+  /*
+    Sólo el título y el precio. El resto de la tarjeta se queda en tinta: un
+    degradado sobre texto corrido se lee peor, y las fichitas y la nota son
+    justo lo que hay que poder leer de un vistazo.
+
+    `resolveProductAccent` nunca falla — un valor desconocido cae en el neutro.
+    Una tarjeta sin color es mejor que una página de producto que no carga.
+  */
+  const accent = resolveProductAccent(plan.accent).text;
 
   return (
     <div
@@ -88,7 +98,7 @@ const PublicProductCard = ({
       <h3
         className={`font-[font2] uppercase leading-tight ${
           compact ? "text-xl" : "text-2xl"
-        }`}
+        } ${accent}`}
       >
         {plan.title}
       </h3>
@@ -96,7 +106,7 @@ const PublicProductCard = ({
 
       <p className="mt-6 flex flex-wrap items-baseline gap-2.5">
         <span
-          className={`font-[font2] leading-none ${compact ? "text-3xl" : "text-4xl"}`}
+          className={`font-[font2] leading-none ${compact ? "text-3xl" : "text-4xl"} ${accent}`}
         >
           {priceOf(plan, isColombia)}
         </span>

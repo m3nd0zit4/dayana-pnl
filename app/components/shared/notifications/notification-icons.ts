@@ -3,7 +3,6 @@ import type {
   NotificationSeverity,
 } from "@prisma/client";
 import {
-  CalendarClock,
   CircleAlert,
   CircleCheck,
   CreditCard,
@@ -40,7 +39,6 @@ const TONE_BY_SEVERITY: Record<NotificationSeverity, NotificationTone> = {
 const ICON_BY_GROUP: Record<NotificationGroup, LucideIcon> = {
   "Pagos y ventas": CreditCard,
   "Embudo e inscripciones": UserPlus,
-  Terapias: CalendarClock,
   "Curso y membresía": GraduationCap,
   "Sistema y seguridad": ShieldAlert,
 };

@@ -1,12 +1,24 @@
 import { emailFrom, emailProviderId } from "../config";
 import { resolveDryRun } from "../platform/resolve";
 
+/**
+ * Un fichero adjunto. `content` va en base64 porque es lo que pide la API de
+ * Resend por HTTP; nodemailer lo acepta igual indicándole el `encoding`.
+ */
+export type EmailAttachment = {
+  filename: string;
+  /** Contenido en base64, sin el prefijo `data:`. */
+  content: string;
+  contentType?: string;
+};
+
 export type SendEmailInput = {
   to: string;
   subject: string;
   html: string;
   text: string;
   headers?: Record<string, string>;
+  attachments?: EmailAttachment[];
 };
 
 export type SendEmailResult = {
@@ -32,6 +44,11 @@ const sendViaResend = async (
       html: input.html,
       text: input.text,
       headers: input.headers,
+      attachments: input.attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+        content_type: a.contentType,
+      })),
     }),
   });
 
@@ -66,6 +83,12 @@ const sendViaSmtp = async (
     html: input.html,
     text: input.text,
     headers: input.headers,
+    attachments: input.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      encoding: "base64" as const,
+      contentType: a.contentType,
+    })),
   });
 
   return { providerId: "smtp", messageId: info.messageId };
@@ -78,6 +101,7 @@ export const sendEmail = async (
     console.info("[notifications:dry-run] email", {
       to: input.to,
       subject: input.subject,
+      attachments: input.attachments?.map((a) => a.filename),
     });
     return { providerId: "dry-run" };
   }

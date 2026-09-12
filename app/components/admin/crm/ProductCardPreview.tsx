@@ -35,8 +35,7 @@ export type ProductPreviewInput = {
   listAmountUsd: string;
   amountCop: string;
   listAmountCop: string;
-  /** El acento elegido ahora mismo, para que la vista previa no mienta. */
-  accent?: ProductAccentId;
+  accent: ProductAccentId;
 };
 
 const toNumber = (value: string): number | undefined => {

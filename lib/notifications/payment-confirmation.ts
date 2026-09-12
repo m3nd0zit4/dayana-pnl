@@ -8,6 +8,12 @@ import {
   paymentConfirmationText,
 } from "./templates/payment-confirmation";
 import { paymentVars } from "./variables";
+import {
+  buildReceiptData,
+  receiptFilename,
+  renderReceiptPdf,
+} from "@/lib/payments/receipt";
+import type { EmailAttachment } from "./channels/email";
 
 const defaultChannels: OutboundChannel[] = ["EMAIL", "SMS", "WHATSAPP_API"];
 
@@ -50,6 +56,33 @@ export const sendPaymentConfirmation = async (enrollmentId: string) => {
     "Hola {{first_name}}, recibimos tu pago de {{payment_amount}} por {{product_title}}.";
 
   const smsBody = renderQuickMessage(body, vars);
+
+  /**
+   * El recibo, adjunto al correo.
+   *
+   * Va en un try/catch a propósito y sin reintento: la confirmación del pago
+   * es lo que la clienta está esperando, y no puede dejar de salir porque el
+   * PDF falle. Si no se genera, el correo se manda igual y el recibo sigue
+   * estando a un clic en el panel y en `/cuenta/facturacion`.
+   */
+  let attachments: EmailAttachment[] | undefined;
+  try {
+    const receipt = await buildReceiptData(payment.id);
+    const pdf = await renderReceiptPdf(receipt);
+    attachments = [
+      {
+        filename: receiptFilename(receipt.receiptNumber),
+        content: pdf.toString("base64"),
+        contentType: "application/pdf",
+      },
+    ];
+  } catch (e) {
+    console.error("[payment-confirmation] no se pudo generar el recibo", {
+      paymentId: payment.id,
+      error: (e as Error).message,
+    });
+  }
+
   const results = [];
 
   for (const channel of defaultChannels) {
@@ -62,6 +95,9 @@ export const sendPaymentConfirmation = async (enrollmentId: string) => {
       subject: paymentConfirmationSubject(vars),
       html: paymentConfirmationHtml(vars),
       text: paymentConfirmationText(vars),
+      // Sólo el correo lleva el PDF; `dispatchToChannel` lo ignora en SMS y
+      // WhatsApp.
+      attachments: channel === "EMAIL" ? attachments : undefined,
     };
 
     if (channel === "EMAIL" && !contact.email && !payment.payerEmail) {

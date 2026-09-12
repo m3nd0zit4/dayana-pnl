@@ -2,13 +2,15 @@ import ProductsPageClient from "@/app/components/admin/crm/ProductsPageClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { listSellableProducts } from "@/lib/crm/products-admin";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
 const ProductsPage = async () => {
+  const siteUrl = getSiteUrl();
   const preview = isCrmUiPreview();
   if (preview) {
-    return <ProductsPageClient preview initialProducts={[]} />;
+    return <ProductsPageClient preview initialProducts={[]} siteUrl={siteUrl} />;
   }
 
   const staff = await getStaffSession();
@@ -19,6 +21,7 @@ const ProductsPage = async () => {
   return (
     <ProductsPageClient
       preview={false}
+      siteUrl={siteUrl}
       initialProducts={products.map((p) => ({
         id: p.id,
         kind: p.kind,
@@ -31,6 +34,7 @@ const ProductsPage = async () => {
         highlight: p.highlight,
         unitPriceLabel: p.unitPriceLabel,
         therapyHeadline: p.therapyHeadline,
+        accent: p.accent,
         whatsappMessage: p.whatsappMessage,
         isActive: p.isActive,
         sortOrder: p.sortOrder,

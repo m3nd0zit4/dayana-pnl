@@ -53,8 +53,8 @@ export const contactDeleteConfirmationMatches = (
     : contactNameConfirmationMatches(contact, input);
 
 /**
- * Deletes a contact and all related CRM data (enrollments, payments, notebook,
- * tags, message logs, notifications) via DB cascades.
+ * Deletes a contact and all related CRM data (enrollments, payments, tags,
+ * message logs, notifications) via DB cascades.
  */
 export const deleteContactAndRelations = async (contactId: string) => {
   const contact = await prisma.contact.findUnique({

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProductAccent } from "@prisma/client";
+import { PRODUCT_ACCENT_IDS } from "@/lib/products/accents";
 
 export const deleteContactSchema = z.object({
   /** The phone (real contacts) or full name (placeholder-phone leads —
@@ -231,11 +231,11 @@ const productPresentationSchema = {
   therapyHeadline: z.string().trim().max(120).nullable().optional(),
   whatsappMessage: z.string().trim().max(600).nullable().optional(),
   /*
-    El acento es una lista cerrada, no un color libre: la validación se
-    apoya en el enum de Prisma para que el panel y la base no puedan
-    divergir. Ver `lib/products/accents.ts`.
+    Enum y no texto: el acento decide colores publicados, y la lista cerrada
+    de `lib/products/accents.ts` es lo único que garantiza que lo elegido se
+    lee sobre el papel de la web. Ver allí.
   */
-  accent: z.nativeEnum(ProductAccent).optional(),
+  accent: z.enum(PRODUCT_ACCENT_IDS).optional(),
 };
 
 const productPriceSchema = {

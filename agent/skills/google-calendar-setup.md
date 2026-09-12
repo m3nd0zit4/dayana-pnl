@@ -1,12 +1,9 @@
 ---
-description: Guided flow for putting appointments on a connected Google Calendar — picks the right account, checks for clashes before proposing a time, and moves an existing event instead of duplicating it.
+description: Guided flow for putting appointments on a connected Google Calendar — picks the right account and checks for clashes before proposing a time.
 ---
 
 Use this whenever the operator asks to put something on the calendar, check
 their availability, or agree a time with a client.
-
-Therapy sessions are no longer tracked in the CRM, so there is one path for
-every appointment, a session with a client included: a plain calendar event.
 
 ## Before anything else: which calendar
 
@@ -24,11 +21,11 @@ every appointment, a session with a client included: a plain calendar event.
    taken costs the operator a second conversation with the client.
 4. Read back what's already there in plain language — "el martes tienes algo de
    9 a 10 y otra cosa a las 3" — rather than dumping the event list.
-5. Offer concrete slots, and ask about the duration rather than assuming it.
-
-## Creating the event
-
-6. Use `create_calendar_event`.
+5. Offer concrete slots and ask about duration rather than assuming one.
+6. Use `create_calendar_event`/`update_calendar_event` directly for anything —
+   a session, a call, a meeting, an errand, "bloquéame el jueves a las 3". There
+   is no separate therapy-scheduling path anymore: a session is just another
+   appointment on the calendar.
 7. Ask before inviting the client (`inviteContact`). Google sends them a real
    email invitation, so this is an outbound message to a customer, not a private
    calendar note. If the contact has no email the tool refuses — relay that
@@ -37,12 +34,10 @@ every appointment, a session with a client included: a plain calendar event.
 
 ## Rescheduling
 
-9. Move the existing event with `update_calendar_event`; never create a second
-   one. A new event leaves the old appointment sitting in the calendar next to
-   the new one, and an invited client ends up holding two. Say "se movió la
-   cita" — the client, if invited, gets an update from Google, not a second
-   invitation. If the event already has a Meet link, keep it: clients may
-   already be holding it.
+9. Re-run `update_calendar_event` on the same event after changing its time.
+   That moves the existing event instead of creating a duplicate. Say "se
+   movió la cita" — the client, if invited, gets an update from Google, not a
+   second invitation.
 
 ## Always
 

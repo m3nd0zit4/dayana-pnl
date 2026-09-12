@@ -5,6 +5,7 @@ import {
   cleanupTestData,
   db,
 } from "./helpers";
+import { getPricingRegion } from "@/lib/pricing/regions";
 
 /**
  * Creación de checkout para todo el catálogo, en los dos proveedores.
@@ -144,24 +145,49 @@ test.describe("Checkout · precios y comisión", () => {
   });
 });
 
-test.describe("Región · qué se le muestra a cada país", () => {
+/**
+ * Estas cinco pruebas pedían `/servicios` y buscaban «PayPal» o «MercadoPago»
+ * en el HTML. Esa página **se retiró** en agosto —el catálogo de precios de
+ * terapia dejó de existir: ahora se cualifica antes de cotizar— así que
+ * llevaban desde entonces fallando por 404, no por un fallo real.
+ *
+ * Y no se pueden reapuntar a otra página: el nombre de la pasarela sólo
+ * aparece cuando se abre el modal de pago, que es cliente. Ninguna página
+ * pública lo trae en el HTML servido; comprobado contra `/` y `/cursos`.
+ *
+ * Así que se comprueba la regla donde vive, igual que hacen las pruebas de
+ * estados de Mercado Pago con `lib/crm/*` (ver la cabecera de
+ * `playwright.payments.config.ts`). Lo que importaba fijar era el reparto, y
+ * ese sigue fijado: **Colombia por Mercado Pago en COP, el resto por PayPal en
+ * USD.**
+ */
+test.describe("Región · qué riel le toca a cada país", () => {
   const cases = [
-    { country: "CO", expect: "MercadoPago" },
-    { country: "US", expect: "PayPal" },
-    { country: "MX", expect: "PayPal" },
-    { country: "ES", expect: "PayPal" },
-    { country: "AR", expect: "PayPal" },
-  ];
+    { country: "CO", provider: "MERCADO_PAGO", currency: "COP" },
+    { country: "US", provider: "PAYPAL", currency: "USD" },
+    { country: "MX", provider: "PAYPAL", currency: "USD" },
+    { country: "ES", provider: "PAYPAL", currency: "USD" },
+    { country: "AR", provider: "PAYPAL", currency: "USD" },
+  ] as const;
 
   for (const c of cases) {
-    test(`${c.country} ve ${c.expect}`, async ({ request }) => {
-      const res = await request.get("/servicios", {
-        headers: { "x-country-code": c.country },
-      });
-      const html = await res.text();
-      expect(html).toContain(c.expect);
+    test(`${c.country} va por ${c.provider}`, () => {
+      const region = getPricingRegion(c.country);
+      expect(region.provider).toBe(c.provider);
+      expect(region.currency).toBe(c.currency);
     });
   }
+
+  test("un país desconocido cae en el riel internacional, no en ninguno", () => {
+    // Sin país resuelto —cabecera ausente, o un ISO que no conocemos— la
+    // compradora tiene que poder pagar igual. Quedarse sin riel sería una
+    // pantalla sin botón.
+    for (const country of [null, "XX", "JP"]) {
+      const region = getPricingRegion(country);
+      expect(region.provider).toBe("PAYPAL");
+      expect(region.currency).toBe("USD");
+    }
+  });
 
   test("un taller sin precio COP no muestra botón de pago en Colombia", async ({
     request,

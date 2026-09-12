@@ -5,7 +5,6 @@ import {
 } from "./checkout-contact";
 import { resolveSessionCheckoutContact } from "./checkout-session-contact";
 import { EnrollmentValidationError } from "./enrollments";
-import { prisma } from "../db";
 
 export type CheckoutContactBody = ResolveCheckoutContactInput & {
   contactId?: string;
@@ -67,23 +66,24 @@ export async function resolveCheckoutContactIdForRequest(input: {
 }
 
 /**
- * La ficha a la que se cuelga un cobro, sabiendo si viene de un enlace de pago.
+ * A quien se le cobra, resuelto en un solo sitio para las cuatro rutas que
+ * crean un cobro (orden y suscripcion, PayPal y Mercado Pago).
  *
- * Es `resolveCheckoutContactIdForRequest` más el token del enlace, y el token
- * **manda sobre todo lo demás**. Sin esto, una compra hecha desde
- * `/pagar/<token>` caía en la rama anónima y fabricaba un contacto `+pending:`
- * nuevo: Dayana mandaba el enlace a una clienta conocida y la matrícula
- * aterrizaba en un duplicado, reconciliado más tarde sólo si el correo del
- * pagador coincidía por casualidad.
+ * El orden importa y es este:
  *
- * Viaja el TOKEN y no el `contactId` porque es lo único seguro: si el navegador
- * mandara un `contactId`, cualquiera podría colgar su pago de la ficha de otra
- * persona. El token es un secreto de 128 bits y aquí se comprueban además su
- * caducidad y su revocación.
+ *  1. **El enlace de pago manda.** Si la peticion trae un token valido de
+ *     `/pagar/<token>` para ESTE producto, el cobro se cuelga de la ficha del
+ *     enlace. Se resuelve del token y nunca de un `contactId` del navegador:
+ *     aceptar ese dato dejaria colgar un pago de la ficha de cualquiera.
+ *     Un enlace sin contacto —los hay a proposito— no aporta nada aqui y se
+ *     sigue al paso siguiente.
+ *  2. Datos escritos o sesion iniciada: `resolveCheckoutContactIdForRequest`.
+ *  3. Nada de lo anterior: contacto temporal, que la captura o el webhook
+ *     completan con lo que reporte el pagador.
  *
- * Un token que no resuelve no es un error: el enlace puede haber caducado
- * mientras la compradora tenía la pestaña abierta, y negarle el cobro sería
- * perder una venta que ya estaba acordada. Se sigue por el camino normal.
+ * Vivia repetido en las cuatro rutas, y por eso la de alta de suscripcion se
+ * quedo sin el paso 1 cuando se anadio: una mensualidad comprada desde un
+ * enlace nacia huerfana igual que antes.
  */
 export async function resolveCheckoutContactIdForPayment(input: {
   planId: string;
@@ -92,22 +92,26 @@ export async function resolveCheckoutContactIdForPayment(input: {
   paymentLinkToken?: string;
 }): Promise<string> {
   if (input.paymentLinkToken) {
-    const link = await prisma.paymentLink.findUnique({
-      where: { token: input.paymentLinkToken },
-      select: { contactId: true, revokedAt: true, expiresAt: true },
-    });
-    const usable =
-      link != null &&
-      link.revokedAt == null &&
-      (link.expiresAt == null || link.expiresAt > new Date());
-    if (usable && link.contactId) return link.contactId;
+    const { resolvePaymentLinkOwner } = await import("./payment-links");
+    const owner = await resolvePaymentLinkOwner(input.paymentLinkToken);
+    if (owner?.contactId && owner.productId === input.planId) {
+      return owner.contactId;
+    }
   }
 
-  return resolveCheckoutContactIdForRequest({
-    planId: input.planId,
-    contact: input.contact,
-    fromSession: input.fromSession,
-  });
+  const hasContactData = Boolean(
+    input.contact.contactId || input.contact.phone || input.contact.email
+  );
+  if (hasContactData || input.fromSession === true) {
+    return resolveCheckoutContactIdForRequest({
+      planId: input.planId,
+      contact: input.contact,
+      fromSession: input.fromSession,
+    });
+  }
+
+  const { createPendingCheckoutContact } = await import("./checkout-placeholder");
+  return createPendingCheckoutContact(input.planId);
 }
 
 export function mapCheckoutBeginError(e: unknown): {

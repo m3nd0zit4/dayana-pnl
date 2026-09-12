@@ -4,8 +4,7 @@ import { displayContactPhone } from "@/lib/crm/contact-phone";
 import { EnrollmentStatus } from "@prisma/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
-import { BookOpen } from "lucide-react";
+import { useState } from "react";
 import RegisterPaymentModal, {
   type RegisteredPayment,
 } from "@/app/components/admin/crm/RegisterPaymentModal";
@@ -14,46 +13,11 @@ import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { enrollmentStatusSelectOptions } from "@/lib/crm/form-select-options";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
-import { formatSessionDateTimeEs } from "@/lib/crm/datetime-local";
 import { formatMoneyMinor } from "@/lib/crm/money";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/app/components/ui/table";
-
-type Session = {
-  id: string;
-  sessionNumber: number;
-  status: string;
-  scheduledAt: string | null;
-  meetUrl: string | null;
-  durationMinutes: number | null;
-};
-
-const sessionStatusLabel = (status: string) => {
-  if (status === "PENDING_SCHEDULE") return "Pendiente";
-  if (status === "COMPLETED") return "Completada";
-  if (status === "NO_SHOW") return "No asistió";
-  if (status === "SCHEDULED") return "Agendada";
-  if (status === "RESCHEDULED") return "Reagendada";
-  if (status === "CANCELLED") return "Cancelada";
-  return status;
-};
 
 const sectionHeading = "mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
-
-const SCHEDULABLE_STATUSES = new Set([
-  "PENDING_SCHEDULE",
-  "SCHEDULED",
-  "RESCHEDULED",
-  "CANCELLED",
-]);
 
 const EnrollmentDetailClient = ({
   enrollment: initial,
@@ -79,29 +43,8 @@ const EnrollmentDetailClient = ({
   const { canWrite, toast, confirm } = useCrm();
   const router = useRouter();
   const [enrollment, setEnrollment] = useState(initial);
-  const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
-
-
-
-
-  const handlePaymentSuccess = (payment: RegisteredPayment) => {
-    setEnrollment((e) => ({
-      ...e,
-      status: EnrollmentStatus.ACTIVE,
-      payments: [
-        {
-          id: payment.id,
-          status: payment.status,
-          amountMinor: payment.amountMinor,
-          currency: payment.currency,
-          provider: payment.provider,
-        },
-        ...e.payments,
-      ],
-    }));
-  };
 
   const patchEnrollment = async (status: EnrollmentStatus) => {
     const prevStatus = enrollment.status;
@@ -130,7 +73,24 @@ const EnrollmentDetailClient = ({
     if (data.enrollment) {
       setEnrollment((e) => ({ ...e, status: data.enrollment!.status }));
     }
-    toast(`Estado cambiado a Â«${enrollmentStatusLabel(status)}Â»`);
+    toast(`Estado cambiado a «${enrollmentStatusLabel(status)}»`);
+  };
+
+  const handlePaymentSuccess = (payment: RegisteredPayment) => {
+    setEnrollment((e) => ({
+      ...e,
+      status: EnrollmentStatus.ACTIVE,
+      payments: [
+        {
+          id: payment.id,
+          status: payment.status,
+          amountMinor: payment.amountMinor,
+          currency: payment.currency,
+          provider: payment.provider,
+        },
+        ...e.payments,
+      ],
+    }));
   };
 
   const hasApprovedPayment = enrollment.payments.some((p) => p.status === "APPROVED");
@@ -169,10 +129,6 @@ const EnrollmentDetailClient = ({
     (enrollment.status === EnrollmentStatus.LEAD ||
       enrollment.status === EnrollmentStatus.PENDING_PAYMENT);
 
-  /*
-    Las sesiones usadas/totales salen de la matrícula, que es donde de verdad
-    viven: describen lo que la clienta compró, no el seguimiento que se retiró.
-  */
   const progress = enrollment.sessionsTotal
     ? (enrollment.sessionsUsed / enrollment.sessionsTotal) * 100
     : 0;
@@ -223,7 +179,6 @@ const EnrollmentDetailClient = ({
             searchMinOptions={99}
           />
 
-
           {enrollment.sessionsTotal != null && (
             <span className="text-xs text-muted-foreground">
               Sesiones {enrollment.sessionsUsed}/{enrollment.sessionsTotal}
@@ -257,7 +212,7 @@ const EnrollmentDetailClient = ({
                   </p>
                 )}
               </div>
-              <Button size="sm" disabled={busy} onClick={() => setPaymentOpen(true)}>
+              <Button size="sm" disabled={deleting} onClick={() => setPaymentOpen(true)}>
                 {hasApprovedPayment ? "Registrar otro pago" : "Registrar pago"}
               </Button>
             </div>
@@ -310,99 +265,6 @@ const EnrollmentDetailClient = ({
         currency={enrollment.currency ?? "USD"}
         onSuccess={handlePaymentSuccess}
       />
-    </div>
-  );
-};
-
-/** Session status flags — shared by the desktop table row and mobile card. */
-const sessionFlags = (s: Session, canWrite: boolean) => {
-  const isCompleted = s.status === "COMPLETED";
-  const isPlaceholder = s.id.startsWith("placeholder");
-  return {
-    isCompleted,
-    canComplete: canWrite && !isCompleted && !isPlaceholder,
-    canUncomplete: canWrite && isCompleted && !isPlaceholder,
-    canSchedule: canWrite && !isPlaceholder && !isCompleted && SCHEDULABLE_STATUSES.has(s.status),
-  };
-};
-
-type SessionRowProps = {
-  session: Session;
-  timezone: string;
-  canWrite: boolean;
-  busy: boolean;
-  onComplete: () => void;
-  onUncomplete: () => void;
-  onSchedule: () => void;
-};
-
-const SessionActions = ({
-  session: s,
-  busy,
-  onComplete,
-  onUncomplete,
-  onSchedule,
-  canSchedule,
-  canComplete,
-  canUncomplete,
-  isCompleted,
-}: SessionRowProps & ReturnType<typeof sessionFlags>) => (
-  <div className="flex flex-wrap items-center gap-2">
-    {canSchedule && (
-      <Button variant="outline" size="sm" disabled={busy} onClick={onSchedule}>
-        {s.scheduledAt ? "Cambiar fecha" : "Agregar fecha"}
-      </Button>
-    )}
-    {canComplete && (
-      <Button size="sm" disabled={busy} onClick={onComplete}>
-        Completar
-      </Button>
-    )}
-    {canUncomplete && (
-      <Button variant="outline" size="sm" disabled={busy} onClick={onUncomplete}>
-        Quitar completado
-      </Button>
-    )}
-    {isCompleted && !canUncomplete && (
-      <span className="text-xs text-muted-foreground">Completada</span>
-    )}
-  </div>
-);
-
-const SessionRow = (props: SessionRowProps) => {
-  const { session: s, timezone, canWrite } = props;
-  const flags = sessionFlags(s, canWrite);
-
-  return (
-    <TableRow>
-      <TableCell className="font-medium">{s.sessionNumber}</TableCell>
-      <TableCell className="text-xs">{sessionStatusLabel(s.status)}</TableCell>
-      <TableCell className="text-xs text-muted-foreground">
-        {s.scheduledAt ? formatSessionDateTimeEs(s.scheduledAt, timezone) : "—"}
-      </TableCell>
-      <TableCell>
-        <SessionActions {...props} {...flags} />
-      </TableCell>
-    </TableRow>
-  );
-};
-
-const SessionCard = (props: SessionRowProps) => {
-  const { session: s, timezone, canWrite } = props;
-  const flags = sessionFlags(s, canWrite);
-
-  return (
-    <div className="p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">Sesión {s.sessionNumber}</span>
-        <span className="text-xs text-muted-foreground">{sessionStatusLabel(s.status)}</span>
-      </div>
-      <div className="mt-1 text-xs text-muted-foreground">
-        {s.scheduledAt ? formatSessionDateTimeEs(s.scheduledAt, timezone) : "—"}
-      </div>
-      <div className="mt-2">
-        <SessionActions {...props} {...flags} />
-      </div>
     </div>
   );
 };

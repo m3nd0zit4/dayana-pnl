@@ -2,6 +2,7 @@ import { EnrollmentStatus, PaymentStatus, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { createEnrollment } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
+import { markPaymentLinkPaid } from "./payment-links";
 import { redeemPromoCode } from "./promo-codes";
 
 export type FulfillCheckoutPaymentInput = Omit<
@@ -71,6 +72,11 @@ export const fulfillCheckoutPayment = async (
       input;
     await recordPayment({ ...rest, enrollmentId: existing.enrollmentId });
     await redeemIfPresent(existing.enrollmentId, input.currency, promo);
+    await markPaymentLinkPaid({
+      contactId: input.contactId,
+      productId: input.productId,
+      enrollmentId: existing.enrollmentId,
+    });
     return existing.enrollmentId;
   }
 
@@ -93,6 +99,11 @@ export const fulfillCheckoutPayment = async (
         enrollmentId: existingEnrollmentId,
       });
       await redeemIfPresent(existingEnrollmentId, input.currency, promoCodeRedemption);
+      await markPaymentLinkPaid({
+        contactId: input.contactId,
+        productId: input.productId,
+        enrollmentId: existingEnrollmentId,
+      });
       return existingEnrollmentId;
     }
   }
@@ -126,6 +137,12 @@ export const fulfillCheckoutPayment = async (
     if (raced) return raced.enrollmentId;
     throw e;
   }
+
+  await markPaymentLinkPaid({
+    contactId: input.contactId,
+    productId: input.productId,
+    enrollmentId: enrollment.id,
+  });
 
   return enrollment.id;
 };

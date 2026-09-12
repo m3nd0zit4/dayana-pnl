@@ -14,13 +14,23 @@ import { isPlanId, type PlanId } from "../../lib/plans";
 import { pushDataLayerEvent } from "../../lib/analytics/dataLayer";
 import { trackMetaEvent } from "../components/analytics/MetaPixel";
 
+/** Opciones que el modal arrastra hasta `startCheckout`. */
+export type OpenCheckoutOptions = {
+  /**
+   * Token del enlace de pago, cuando la compra sale de `/pagar/<token>`.
+   * Llega hasta la creacion de la orden para que el cobro se cuelgue de la
+   * ficha del enlace y no de un contacto temporal nuevo.
+   */
+  paymentLinkToken?: string;
+};
+
 type Value = {
   isOpen: boolean;
   planId: PlanId | null;
   openCheckout: (
     planId: PlanId,
     provider: CheckoutProvider,
-    options?: { paymentLinkToken?: string },
+    options?: OpenCheckoutOptions
   ) => void;
   closeCheckout: () => void;
 };
@@ -40,11 +50,7 @@ export const CheckoutModalProvider = ({ children }: { children: ReactNode }) => 
   } | null>(null);
 
   const openCheckout = useCallback(
-    (
-      id: PlanId,
-      provider: CheckoutProvider,
-      options?: { paymentLinkToken?: string },
-    ) => {
+    (id: PlanId, provider: CheckoutProvider, options?: OpenCheckoutOptions) => {
       if (!isPlanId(id)) return;
       // El dataLayer no transmite por sí mismo; hay que empujarlo aquí.
       pushDataLayerEvent("begin_checkout", { plan_id: id, provider });
@@ -52,7 +58,11 @@ export const CheckoutModalProvider = ({ children }: { children: ReactNode }) => 
         content_ids: [id],
         content_type: "product",
       });
-      setState({ planId: id, provider, paymentLinkToken: options?.paymentLinkToken });
+      setState({
+        planId: id,
+        provider,
+        paymentLinkToken: options?.paymentLinkToken,
+      });
     },
     []
   );
