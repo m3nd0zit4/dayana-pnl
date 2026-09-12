@@ -97,6 +97,20 @@ export const recordPayment = async (
     },
   });
 
+  /**
+   * La fila ya existía y cuelga de OTRA matrícula.
+   *
+   * Pasa cuando la captura en el navegador y el webhook del proveedor llegan a
+   * la vez: los dos ven que el cobro no existe, los dos crean su matrícula, y
+   * el segundo `upsert` actualiza la fila del primero en vez de fallar. Seguir
+   * adelante activaría la matrícula huérfana del segundo y duplicaría el aviso
+   * de pago aprobado. El primero ya hizo todo eso por la matrícula buena; aquí
+   * se devuelve la fila tal cual y quien llamó decide qué hacer con la suya.
+   */
+  if (payment.enrollmentId !== input.enrollmentId) {
+    return payment;
+  }
+
   const amountLabel = `${payment.currency} ${formatMoneyMinor(
     payment.amountMinor,
     payment.currency

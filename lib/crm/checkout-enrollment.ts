@@ -31,6 +31,19 @@ export async function beginCheckoutContact(
 }
 
 /**
+ * Un `contactId` que llega en el cuerpo de la petición no identifica a nadie:
+ * cualquiera puede escribir el de otra persona. Pasado a `upsertContactByPhone`,
+ * ese id ancla la escritura y sobrescribe el nombre, el correo y el teléfono de
+ * esa ficha, y el cobro se cuelga de ella. La identidad sólo sale de fuentes que
+ * el servidor comprueba: la sesión iniciada o el token de un enlace de pago.
+ */
+const withoutClientContactId = (contact: CheckoutContactBody): CheckoutContactBody => {
+  const { contactId: _untrusted, ...rest } = contact;
+  void _untrusted;
+  return rest;
+};
+
+/**
  * Contact resolution for the payment-creation routes. With `fromSession`,
  * the signed-in identity wins: a complete session contact is used directly
  * (no fields needed), an incomplete one anchors the posted fields to it,
@@ -50,7 +63,7 @@ export async function resolveCheckoutContactIdForRequest(input: {
       const begun = await beginCheckoutContact({
         planId: input.planId,
         contact: {
-          ...input.contact,
+          ...withoutClientContactId(input.contact),
           contactId: resolved.contactId ?? undefined,
         },
       });
@@ -60,7 +73,7 @@ export async function resolveCheckoutContactIdForRequest(input: {
 
   const begun = await beginCheckoutContact({
     planId: input.planId,
-    contact: input.contact,
+    contact: withoutClientContactId(input.contact),
   });
   return begun.contactId;
 }
@@ -99,9 +112,9 @@ export async function resolveCheckoutContactIdForPayment(input: {
     }
   }
 
-  const hasContactData = Boolean(
-    input.contact.contactId || input.contact.phone || input.contact.email
-  );
+  // Sin `contactId`: el del navegador no cuenta como dato (ver
+  // `withoutClientContactId`).
+  const hasContactData = Boolean(input.contact.phone || input.contact.email);
   if (hasContactData || input.fromSession === true) {
     return resolveCheckoutContactIdForRequest({
       planId: input.planId,

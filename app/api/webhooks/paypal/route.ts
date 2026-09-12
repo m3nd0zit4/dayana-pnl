@@ -11,6 +11,7 @@ import {
   resolveEnrollmentFromReference,
 } from "@/lib/crm/payments";
 import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
+import { assertPayPalCaptureAmount } from "@/lib/crm/enrollment-payment";
 import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
@@ -23,6 +24,8 @@ import {
   syncSubscriptionStatus,
 } from "@/lib/crm/paypal-subscriptions";
 import { prisma } from "@/lib/db";
+import { getPlanFromDb } from "@/lib/plans-from-db";
+import { grossUpUsd, paypalFee } from "@/lib/pricing/fees";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { verifyPayPalWebhook } from "@/lib/webhooks/verify";
 
@@ -282,6 +285,65 @@ export async function POST(req: NextRequest) {
 
       if (!approved) {
         return NextResponse.json({ ok: true, skipped_unpaid: true });
+      }
+
+      /**
+       * El importe cobrado tiene que ser el del producto.
+       *
+       * `capture-order` ya lo comprobaba, pero este webhook concedía el acceso
+       * con lo que dijera el evento. La referencia firmada viaja al navegador al
+       * crear la orden, así que alguien podía montar su propia orden de PayPal
+       * con esa referencia y un precio menor, y el webhook la activaba igual.
+       *
+       * Mismo cálculo que en la captura: precio de la base, menos el descuento
+       * que quedó grabado en la referencia, más la comisión. Si no cuadra no se
+       * concede nada: se avisa al equipo, que tiene el dinero cobrado delante
+       * y decide. Se responde 200 para que PayPal no reintente algo que va a
+       * seguir sin cuadrar.
+       */
+      const planForAmount = await getPlanFromDb(checkout.planId).catch(() => null);
+      const expectedGross = planForAmount
+        ? grossUpUsd(
+            Math.max(0, planForAmount.amountUsd - (checkout.discountMinor ?? 0) / 100),
+            paypalFee()
+          ).gross
+        : null;
+      let amountMatches = false;
+      if (expectedGross != null) {
+        try {
+          assertPayPalCaptureAmount(
+            amountMinor,
+            capture.amount?.currency_code ?? "",
+            expectedGross
+          );
+          amountMatches = true;
+        } catch {
+          amountMatches = false;
+        }
+      }
+      if (!amountMatches) {
+        const received = `${capture.amount?.currency_code ?? "?"} ${capture.amount?.value ?? "?"}`;
+        fireAuditLog({
+          action: "WEBHOOK_REJECTED",
+          entityType: "WebhookEvent",
+          entityId: capture.id,
+          changes: {
+            provider: "PAYPAL",
+            reason: "amount_mismatch",
+            planId: checkout.planId,
+            received,
+            expectedGrossUsd: expectedGross,
+          },
+        });
+        fireNotification({
+          eventType: "PAYMENT_WEBHOOK_FAILED",
+          title: "Cobro de PayPal con un importe distinto al del producto",
+          body: `Captura ${capture.id}: se recibió ${received} y el producto ${checkout.planId} cuesta ${expectedGross ?? "(producto no disponible)"} USD. No se activó la matrícula.`,
+          href: "/admin/payments",
+          metadata: { provider: "PAYPAL", reason: "amount_mismatch", captureId: capture.id },
+          staff: "ALL",
+        });
+        return NextResponse.json({ ok: true, amount_mismatch: true });
       }
 
       // Mismo tratamiento que en `capture-order`: el contacto puede ser el

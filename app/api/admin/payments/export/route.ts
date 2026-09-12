@@ -1,6 +1,6 @@
 import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { csvMoney, csvRow } from "@/lib/crm/csv";
 import { getDateKeyInTz, getTimeHmInTz } from "@/lib/crm/operational-timezone";
 import {
@@ -60,7 +60,10 @@ const asProvider = (raw: string | null): PaymentProvider | "all" | undefined => 
  * que se está viendo en pantalla.
  */
 export async function GET(req: NextRequest) {
-  const staff = await resolveAdminStaff();
+  // Un export entero con los correos de los contactos no es una lectura: es
+  // sacar datos personales en bloque. READONLY puede ver la lista en pantalla,
+  // pero no descargarla.
+  const staff = await requireWriteStaff();
   if (staff instanceof NextResponse) return staff;
 
   const params = req.nextUrl.searchParams;

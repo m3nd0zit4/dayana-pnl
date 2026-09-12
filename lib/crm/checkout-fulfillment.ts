@@ -1,6 +1,6 @@
 import { EnrollmentStatus, PaymentStatus, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
-import { createEnrollment } from "./enrollments";
+import { createEnrollment, markEnrollmentPaid } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
 import { markPaymentLinkPaid } from "./payment-links";
 import { redeemPromoCode } from "./promo-codes";
@@ -40,6 +40,32 @@ const redeemIfPresent = async (
 };
 
 /**
+ * Un cobro ya APROBADO cuya matrícula no quedó activa.
+ *
+ * Si la fila del pago se escribió pero `markEnrollmentPaid` falló después, el
+ * webhook suelta su marca y el proveedor reintenta — y ese reintento veía el
+ * pago ya aprobado y salía sin volver a activar. El dinero quedaba cobrado y
+ * el acceso sin conceder. Sólo se activa si NO está activa: activar dos veces
+ * una membresía podría sumar un mes de más.
+ */
+const ensureEnrollmentActivated = async (enrollmentId: string) => {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    select: { status: true },
+  });
+  if (!enrollment || enrollment.status === EnrollmentStatus.ACTIVE) return;
+  try {
+    await markEnrollmentPaid(enrollmentId);
+  } catch (e) {
+    console.error(
+      "[checkout-fulfillment] approved payment could not activate its enrollment",
+      enrollmentId,
+      e instanceof Error ? e.message : String(e)
+    );
+  }
+};
+
+/**
  * Creates an ACTIVE enrollment and records payment when web checkout completes.
  * Idempotent per provider payment id.
  */
@@ -65,6 +91,9 @@ export const fulfillCheckoutPayment = async (
    * Con la fila ya en estado final, sí es un reenvío y se devuelve tal cual.
    */
   if (existing && existing.status !== PaymentStatus.PENDING) {
+    if (existing.status === PaymentStatus.APPROVED) {
+      await ensureEnrollmentActivated(existing.enrollmentId);
+    }
     return existing.enrollmentId;
   }
   if (existing) {
@@ -119,10 +148,24 @@ export const fulfillCheckoutPayment = async (
   });
 
   try {
-    await recordPayment({
+    const payment = await recordPayment({
       ...paymentInput,
       enrollmentId: enrollment.id,
     });
+    if (payment.enrollmentId !== enrollment.id) {
+      // Carrera perdida: la captura y el webhook llegaron a la vez y el otro
+      // camino registró este cobro primero, con su matrícula. La nuestra no
+      // tiene pagos y sólo quedaría como una matrícula activa huérfana.
+      await prisma.enrollment
+        .delete({ where: { id: enrollment.id } })
+        .catch((e) =>
+          console.error(
+            "[checkout-fulfillment] orphan enrollment not removed",
+            e instanceof Error ? e.message : String(e)
+          )
+        );
+      return payment.enrollmentId;
+    }
     await redeemIfPresent(enrollment.id, input.currency, promoCodeRedemption);
   } catch (e) {
     const raced = await prisma.payment.findUnique({

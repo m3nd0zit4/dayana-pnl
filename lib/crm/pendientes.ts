@@ -77,9 +77,11 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
     }),
     // Enlaces que alguien abrió y no pagó, y que todavía pueden cobrarse. Un
     // enlace revocado o caducado ya no es trabajo pendiente: no hay nada que
-    // reenviar.
+    // reenviar. Y sólo los que tienen contacto: un enlace abierto se reutiliza
+    // a propósito y nunca se sella como pagado, así que contaría para siempre.
     prisma.paymentLink.count({
       where: {
+        contactId: { not: null },
         openedAt: { not: null },
         paidAt: null,
         revokedAt: null,

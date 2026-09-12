@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ link });
   } catch (e) {
-    console.error("[payment-links] create failed", e);
+    console.error("[payment-links] create failed", e instanceof Error ? e.message : String(e));
     return NextResponse.json({ error: "create_failed" }, { status: 400 });
   }
 }

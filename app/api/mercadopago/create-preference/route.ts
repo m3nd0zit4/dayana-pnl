@@ -96,7 +96,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
-    console.error("[mercadopago] contact register failed", e);
+    console.error("[mercadopago] contact register failed", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { error: mapped.error, message: mapped.message },
       { status: mapped.status }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import PagarShell from "@/app/components/pagar/PagarShell";
@@ -11,6 +12,9 @@ import { getServerUserCountry } from "@/lib/geo/user-country";
 import { BRAND } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
+
+const LINK_PREVIEW_BOT_RE =
+  /bot|crawler|spider|preview|facebookexternalhit|whatsapp|telegram|slack|discord|linkedin|twitter|skype|embedly|vkshare|pinterest/i;
 
 export const metadata: Metadata = {
   title: `Tu pago | ${BRAND.name}`,
@@ -38,7 +42,13 @@ const PagarPage = async ({
   const link = await resolvePaymentLink(token, isColombia);
   if (!link) notFound();
 
-  await markPaymentLinkOpened(token);
+  // Pegar el enlace en WhatsApp o Telegram hace que su robot pida la página
+  // para dibujar la vista previa, antes de que la persona lo toque. Contar esa
+  // visita marcaría «abierto» un enlace que nadie abrió.
+  const userAgent = (await headers()).get("user-agent") ?? "";
+  if (!LINK_PREVIEW_BOT_RE.test(userAgent)) {
+    await markPaymentLinkOpened(token);
+  }
 
   const { plan, contact, note } = link;
   return (

@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
-    console.error("[paypal] contact register failed", e);
+    console.error("[paypal] contact register failed", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { error: mapped.error, message: mapped.message },
       { status: mapped.status }

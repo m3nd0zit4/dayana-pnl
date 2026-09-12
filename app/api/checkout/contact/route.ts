@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ contactId, contactCreated, productId: body.planId });
   } catch (e) {
     const mapped = mapCheckoutBeginError(e);
-    console.error("[checkout/contact]", e);
+    console.error("[checkout/contact]", e instanceof Error ? e.message : String(e));
     return NextResponse.json(
       { error: mapped.error, message: mapped.message },
       { status: mapped.status }
