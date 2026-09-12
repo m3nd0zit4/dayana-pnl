@@ -113,7 +113,7 @@ type Tab = (typeof TABS)[number]["id"];
 const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { canWrite, toast, focusMode, setFocusMode } = useCrm();
+  const { canWrite, toast } = useCrm();
   // Sin ediciones locales del contacto: usar el prop directo hace que
   // router.refresh() traiga siempre el estado fresco del servidor.
   const contact = initial;

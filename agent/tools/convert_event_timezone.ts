@@ -89,7 +89,7 @@ const resolveTarget = (
 };
 
 type SourceInstant = {
-  kind: "free_webinar" | "workshop" | "therapy_session" | "instant";
+  kind: "free_webinar" | "workshop" | "instant";
   label: string;
   startsAtIso: string;
   hasTime: boolean;
@@ -98,9 +98,8 @@ type SourceInstant = {
 };
 
 const loadSource = async (input: {
-  source: "free_webinar" | "workshop" | "therapy_session" | "instant";
+  source: "free_webinar" | "workshop" | "instant";
   workshopSlug?: string;
-  therapySessionId?: string;
   startsAtIso?: string;
   hasTime?: boolean;
 }): Promise<SourceInstant | { error: string }> => {
@@ -175,21 +174,16 @@ const loadSource = async (input: {
 
 export default defineTool({
   description:
-    "Convert a scheduled event (free webinar, workshop, therapy session, or raw UTC instant) into exact local date/time for one or more countries or IANA timezones. Use whenever the operator asks “qué hora sería en Japón/España/…” for a taller, webinar or sesión — never guess offsets mentally.",
+    "Convert a scheduled event (free webinar, workshop, or raw UTC instant) into exact local date/time for one or more countries or IANA timezones. Use whenever the operator asks “qué hora sería en Japón/España/…” for a taller or webinar — never guess offsets mentally.",
   inputSchema: z.object({
     source: z
-      .enum(["free_webinar", "workshop", "therapy_session", "instant"])
+      .enum(["free_webinar", "workshop", "instant"])
       .describe("Which event to convert"),
     workshopSlug: z
       .string()
       .min(1)
       .optional()
       .describe("Required when source=workshop"),
-    therapySessionId: z
-      .string()
-      .min(1)
-      .optional()
-      .describe("Required when source=therapy_session"),
     startsAtIso: z
       .string()
       .datetime()

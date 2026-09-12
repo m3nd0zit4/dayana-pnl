@@ -175,7 +175,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
     <CrmPageShell>
       <CrmPageHeader
         title="Enlaces de pago"
-        description="Tras acordar un paquete por llamada o WhatsApp, genera un enlace con ese producto y nada más. Quien lo abre ve su nombre, el precio y un botón."
+        description="Tras acordar un paquete por llamada o WhatsApp, genera un enlace con ese producto y nada más. Quien lo abre ve su nombre, el precio y un botón. Si no importa a nombre de quién quede el cobro, no hace falta crear nada: copia el enlace fijo del paquete desde Paquetes, que sirve para cualquiera y no caduca."
         action={
           canManageTeam && !preview ? (
             <CrmNewButton

@@ -1,5 +1,5 @@
 ---
-description: Convert webinar/taller/sesión times to a visitor country (Japón, España, …) with exact local clock — never guess UTC offsets.
+description: Convert webinar/taller times to a visitor country (Japón, España, …) with exact local clock — never guess UTC offsets.
 ---
 
 Use this whenever the operator asks what time an event is **in another country or city** (Japón, España, México, Nueva York, etc.), or “qué hora sería para alguien en…”.
@@ -12,7 +12,6 @@ Call `convert_event_timezone` — do **not** do mental arithmetic on UTC offsets
 |---|---|---|
 | Webinar gratuito ¿a qué hora en Japón? | `free_webinar` | — |
 | Este taller ¿hora en España? | `workshop` | `workshopSlug` (from `list_workshop_editions` / context) |
-| Sesión de X ¿hora en Perú? | `therapy_session` | `therapySessionId` |
 | “Si fuera el domingo a las 7pm Colombia…” | `instant` | `startsAtIso` in UTC (convert Colombia wall time with care — prefer loading the real event) |
 
 `targets`: one or more of `{ countryName: "Japón" }`, `{ countryIso: "ES" }`, or `{ timeZone: "Asia/Tokyo" }`. You can pass several in one call.

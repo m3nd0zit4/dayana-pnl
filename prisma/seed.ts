@@ -171,11 +171,6 @@ async function seedMessageTemplates() {
       body: "Hola {{first_name}}, recibimos tu pago por {{product_title}}. Quedan {{sessions_left}} sesiones por agendar. Escríbeme para coordinar tu primera cita.",
     },
     {
-      key: "session_reminder",
-      title: "Recordatorio de sesión",
-      body: "Hola {{first_name}}, te recuerdo tu sesión el {{session_date}} (hora {{session_time}}). Link Meet: {{meet_url}}",
-    },
-    {
       key: "workshop_open",
       title: "Taller abierto",
       body: "Hola {{first_name}}, abrimos inscripciones para {{workshop_title}}. Fecha: {{workshop_date}}. ¿Te apunto?",

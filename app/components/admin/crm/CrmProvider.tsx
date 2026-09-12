@@ -13,7 +13,6 @@ import {
 } from "react";
 import {
   canWriteCrm,
-  canEditClinicalNotes,
   canManageTeam,
 } from "@/lib/crm/staff-permissions";
 import CrmConfirmDialog from "./CrmConfirmDialog";
@@ -37,7 +36,6 @@ type CrmContextValue = {
   role: StaffRole | "PREVIEW";
   preview: boolean;
   canWrite: boolean;
-  canEditNotes: boolean;
   canManageTeam: boolean;
   /** true cuando el agente CRM (eve) está habilitado para este staff — ver CRM_AGENT_ENABLED. */
   agentEnabled: boolean;
@@ -60,8 +58,6 @@ type CrmContextValue = {
   askAgent: (message: string, files?: File[]) => void;
   /** Abre el panel del agente sobre un hilo existente (p.ej. desde la lista del sidebar). */
   openAgentThread: (threadId: string) => void;
-  focusMode: boolean;
-  setFocusMode: (active: boolean) => void;
   toast: {
     (message: string, variant?: ToastVariant): number;
     (options: ToastOptions): number;
@@ -125,7 +121,6 @@ const CrmProvider = ({
   // confirmOpen alone drives visibility.
   const [confirmState, setConfirmState] = useState<ConfirmOptions | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [focusMode, setFocusMode] = useState(false);
   const [agentPanelOpen, setAgentPanelOpen] = useState(false);
   const [agentPanelExpanded, setAgentPanelExpanded] = useState(false);
   const [pendingAgentAction, setPendingAgentAction] = useState<PendingAgentAction | null>(null);
@@ -181,7 +176,6 @@ const CrmProvider = ({
       role,
       preview,
       canWrite: preview ? false : canWriteCrm(staffRole),
-      canEditNotes: preview ? false : canEditClinicalNotes(staffRole),
       canManageTeam: preview ? false : canManageTeam(staffRole),
       agentEnabled: preview ? false : agentEnabled,
       streamEnabled: preview ? false : streamEnabled,
@@ -195,8 +189,6 @@ const CrmProvider = ({
       clearPendingAgentAction,
       askAgent,
       openAgentThread,
-      focusMode,
-      setFocusMode,
       toast,
       dismissToast,
       confirm,
@@ -215,7 +207,6 @@ const CrmProvider = ({
       clearPendingAgentAction,
       askAgent,
       openAgentThread,
-      focusMode,
       toast,
       dismissToast,
       confirm,

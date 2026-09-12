@@ -77,12 +77,6 @@ const SKILLS = [
     description: "Compara contactos que podrían ser la misma persona",
     prompt: "Busca contactos que puedan estar duplicados y compáralos.",
   },
-  {
-    id: "therapy-schedule-audit",
-    name: "Sesiones sin agendar",
-    description: "Paquetes activos con terapias pendientes o vencidas",
-    prompt: "Revisa los paquetes de terapia activos y encuentra sesiones sin agendar o vencidas.",
-  },
 ] as const;
 
 type ContactHit = { id: string; firstName: string; lastName: string | null; phoneE164: string };

@@ -76,7 +76,7 @@ const EnrollmentDetailClient = ({
     }[];
   };
 }) => {
-  const { canWrite, canEditNotes, toast, confirm } = useCrm();
+  const { canWrite, toast, confirm } = useCrm();
   const router = useRouter();
   const [enrollment, setEnrollment] = useState(initial);
   const [busy, setBusy] = useState(false);

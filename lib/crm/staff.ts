@@ -4,7 +4,6 @@ import { prisma } from "../db";
 import { hashStaffPassword } from "../auth/password";
 
 export {
-  canEditClinicalNotes,
   canManageTeam,
   canWriteCrm,
 } from "./staff-permissions";

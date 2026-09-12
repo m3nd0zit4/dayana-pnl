@@ -38,7 +38,7 @@ const currentDateInstructions = () => {
   const iso = `${isoBogota.year}-${isoBogota.month}-${isoBogota.day}T${isoBogota.hour}:${isoBogota.minute}:${isoBogota.second}-05:00`;
 
   return defineInstructions({
-    markdown: `Hoy es ${formatted} (zona horaria America/Bogota, UTC-5), es decir ${iso} en ISO 8601. Usa esta fecha, no la de tu entrenamiento, para resolver cualquier referencia relativa ("mañana", "el próximo martes", "esta semana", "en 3 días") antes de llamar a cualquier tool que reciba una fecha — especialmente \`create_calendar_event\`, \`update_calendar_event\`, \`sync_therapy_session_to_calendar\`, \`schedule_therapy_session\` y \`list_calendar_events\`. Si el operador no da una fecha explícita para agendar algo, confírmala en una frase antes de escribir — no asumas en silencio.`,
+    markdown: `Hoy es ${formatted} (zona horaria America/Bogota, UTC-5), es decir ${iso} en ISO 8601. Usa esta fecha, no la de tu entrenamiento, para resolver cualquier referencia relativa ("mañana", "el próximo martes", "esta semana", "en 3 días") antes de llamar a cualquier tool que reciba una fecha — especialmente \`create_calendar_event\`, \`update_calendar_event\` y \`list_calendar_events\`. Si el operador no da una fecha explícita para agendar algo, confírmala en una frase antes de escribir — no asumas en silencio.`,
   });
 };
 

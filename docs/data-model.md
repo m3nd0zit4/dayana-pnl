@@ -16,7 +16,6 @@
 | `Product` / `ProductPrice` | Catálogo (terapia, curso, taller) |
 | `Enrollment` | Contrato / inscripción de un servicio |
 | `Payment` | Cobro real (PayPal, Mercado Pago, manual) |
-| `TherapyPackage` / `TherapySession` | Operación 1:1 |
 | `WorkshopEdition` | Ediciones de talleres |
 | `StaffUser` / `AuditLog` | Operadores del CRM |
 | `MessageTemplate` / `MessageLog` | Comunicación asistida |
@@ -25,7 +24,7 @@
 ## Flujo de pago
 
 1. Checkout crea `Enrollment` `PENDING_PAYMENT` → `external_reference` = `enrollmentId`.
-2. Webhook aprueba → `Payment` + `Enrollment.ACTIVE` + `TherapyPackage` si aplica.
+2. Webhook aprueba → `Payment` + `Enrollment.ACTIVE`.
 3. `/pago/exito` captura contacto (nombre, teléfono, consentimiento).
 
 ## Auth CRM
