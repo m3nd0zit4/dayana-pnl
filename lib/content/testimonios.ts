@@ -23,12 +23,21 @@ export type Testimonial = {
 
 export const TESTIMONIOS: Testimonial[] = [
   {
-    id: 1,
-    name: "Teresa",
+    id: 5,
+    name: "Nati",
     excerpt:
-      "Estaba pasando por un momento muy difícil y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante.",
-    youtubeId: "LnumJ4E208Y",
-    cameFrom: "No encontraba la salida",
+      "Superé las creencias limitantes que me tenían estancada. Conocer a Dayana ha sido lo mejor que me ha pasado en la vida: hoy siento que avanzo de verdad, en todas las áreas.",
+    youtubeId: "SVR7_4Z5VJ4",
+    cameFrom: "Creencias limitantes",
+    profiles: ["EN_EXPANSION", "EN_PROCESO"],
+  },
+  {
+    id: 6,
+    name: "Karina",
+    excerpt:
+      "Conocí a Dayana y entré al taller sin saber muy bien qué esperar. Me liberé de algo que cargaba hace mucho tiempo — fue una experiencia espectacular, me encantó de principio a fin.",
+    youtubeId: "-z41PMiuctQ",
+    cameFrom: "Necesitaba liberarse",
     profiles: ["EN_PROCESO", "RAIZ_PROFUNDA"],
   },
   {
@@ -39,6 +48,15 @@ export const TESTIMONIOS: Testimonial[] = [
     youtubeId: "uUqnsYrpXck",
     cameFrom: "Crisis emocional",
     profiles: ["EN_PROCESO", "EXPLORADOR"],
+  },
+  {
+    id: 1,
+    name: "Teresa",
+    excerpt:
+      "Estaba pasando por un momento muy difícil y no encontraba la salida. Gracias a las herramientas de Dayana, hoy me siento renovada, con una paz interior increíble y la fuerza para seguir adelante.",
+    youtubeId: "LnumJ4E208Y",
+    cameFrom: "No encontraba la salida",
+    profiles: ["EN_PROCESO", "RAIZ_PROFUNDA"],
   },
   {
     id: 3,
@@ -57,24 +75,6 @@ export const TESTIMONIOS: Testimonial[] = [
     youtubeId: "KHlVFKENIFw",
     cameFrom: "No sabía priorizarse",
     profiles: ["EXPLORADOR", "EN_PROCESO"],
-  },
-  {
-    id: 5,
-    name: "Nati",
-    excerpt:
-      "Superé las creencias limitantes que me tenían estancada. Conocer a Dayana ha sido lo mejor que me ha pasado en la vida: hoy siento que avanzo de verdad, en todas las áreas.",
-    youtubeId: "SVR7_4Z5VJ4",
-    cameFrom: "Creencias limitantes",
-    profiles: ["EN_EXPANSION", "EN_PROCESO"],
-  },
-  {
-    id: 6,
-    name: "Karina",
-    excerpt:
-      "Conocí a Dayana y entré al taller sin saber muy bien qué esperar. Me liberé de algo que cargaba hace mucho tiempo — fue una experiencia espectacular, me encantó de principio a fin.",
-    youtubeId: "-z41PMiuctQ",
-    cameFrom: "Necesitaba liberarse",
-    profiles: ["EN_PROCESO", "RAIZ_PROFUNDA"],
   },
 ];
 

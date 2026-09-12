@@ -68,20 +68,36 @@ export const listSubscriptionPlans = async (): Promise<SubscriptionPlanRow[]> =>
     include: { prices: { orderBy: { validFrom: "desc" } } },
   });
 
-  // Un solo agrupado para los recuentos, no una consulta por fila: son dos
-  // rieles por producto y la pantalla no debe crecer en consultas al crecer el
-  // catálogo.
-  const counts = await prisma.enrollment.groupBy({
-    by: ["productId", "subscriptionProvider"],
-    where: {
-      subscriptionStatus: "ACTIVE",
-      productId: { in: products.map((p) => p.id) },
-    },
-    _count: { _all: true },
-  });
+  /*
+    El recuento se hace por el ID de la suscripción, NO por
+    `subscriptionProvider`.
+
+    Esa columna la escribía Mercado Pago y no la escribía PayPal, así que
+    agrupar por ella daba cero suscripciones de PayPal aunque las hubiera. Ya
+    está arreglado en `lib/crm/paypal-subscriptions.ts`, pero las filas
+    anteriores siguen con el campo vacío y no se va a hacer un backfill para
+    una pantalla de consulta: el id es el hecho, la columna es la etiqueta.
+
+    Dos consultas y no una porque `groupBy` no sabe agrupar por «cuál de estos
+    dos campos está lleno». Son dos recuentos, no dos recorridos de tabla.
+  */
+  const productIds = products.map((p) => p.id);
+  const live = { subscriptionStatus: "ACTIVE" as const, productId: { in: productIds } };
+  const [paypalCounts, mpCounts] = await Promise.all([
+    prisma.enrollment.groupBy({
+      by: ["productId"],
+      where: { ...live, paypalSubscriptionId: { not: null } },
+      _count: { _all: true },
+    }),
+    prisma.enrollment.groupBy({
+      by: ["productId"],
+      where: { ...live, mercadoPagoPreapprovalId: { not: null } },
+      _count: { _all: true },
+    }),
+  ]);
   const countOf = (productId: string, provider: PaymentProvider) =>
-    counts.find(
-      (c) => c.productId === productId && c.subscriptionProvider === provider
+    (provider === PaymentProvider.PAYPAL ? paypalCounts : mpCounts).find(
+      (c) => c.productId === productId
     )?._count._all ?? 0;
 
   const rows: SubscriptionPlanRow[] = [];
@@ -213,7 +229,13 @@ export const listSubscribers = async (): Promise<SubscriberRow[]> => {
     productTitle: en.product.title,
     status: en.status,
     subscriptionStatus: en.subscriptionStatus,
-    provider: en.subscriptionProvider,
+    // Mismo criterio que el recuento: manda el id, que es el hecho. La columna
+    // `subscriptionProvider` sólo se usa si no hay ninguno de los dos.
+    provider: en.paypalSubscriptionId
+      ? PaymentProvider.PAYPAL
+      : en.mercadoPagoPreapprovalId
+        ? PaymentProvider.MERCADO_PAGO
+        : en.subscriptionProvider,
     subscriptionRef: en.paypalSubscriptionId ?? en.mercadoPagoPreapprovalId,
     paidUntil: en.paidUntil?.toISOString() ?? null,
     lastPaymentAt:

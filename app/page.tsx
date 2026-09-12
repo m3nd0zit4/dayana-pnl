@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Hero from "./components/home/Hero";
-import MethodSection from "./components/home/MethodSection";
 import ServicesTeaser from "./components/home/ServicesTeaser";
 import TestimonialsSection from "./components/home/TestimonialsSection";
 import ContactSection from "./components/home/ContactSection";
@@ -33,14 +32,15 @@ const Home = async () => {
     <>
       <main>
         <Hero />
-        {/* El orden es la decisión de esta página: primero se explica el
-            método y quién es ella, y sólo después aparece el formulario.
-            Aquí llegó a haber una invitación al cuestionario de terapias, y se
+        {/* El bloque del método salió de la portada por decisión de producto.
+            El mismo argumento se sigue contando en el resultado del
+            cuestionario (/terapias/resultado/<token>), que es donde alguien se
+            lo está preguntando de verdad.
+            Aquí llegó a haber también una invitación al cuestionario, y se
             quitó: pedirle a alguien que se autodiagnostique antes de saber
             quién eres es cobrar la entrada antes de enseñar la casa. El
             cuestionario vive en /terapias/empezar, a donde se llega por el
             menú y por el bloque de servicios de más abajo. */}
-        <MethodSection />
         <ContactSection userCountry={userCountry} />
         <TestimonialsSection />
         <ServicesTeaser

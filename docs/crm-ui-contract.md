@@ -76,7 +76,36 @@ cabecera, merece un nombre.
   taller sin publicar): el botón se muestra deshabilitado explicando por qué,
   en vez de llevar a un error.
 
-## R5 · Acciones de formulario
+## R5 · Campos y acciones de formulario
+
+`CrmField` siempre para un campo. Nunca el bloque `<Label>` + control +
+`<p>` escrito a mano: así se llegó a sesenta copias, y cada copia se dejaba
+por el camino alguna de estas tres cosas.
+
+```tsx
+<CrmField label="Título" error={errors.title}>
+  <Input value={title} onChange={…} />
+</CrmField>
+```
+
+Lo que resuelve, y que a mano se olvida:
+
+- **El enlace etiqueta↔control sin escribir un `id`.** Base UI inyecta el
+  `id`, el `aria-labelledby` y el `aria-invalid`. Basta un `htmlFor` mal
+  escrito para que la etiqueta deje de leerse con lector de pantalla, y eso
+  no se ve mirando la pantalla.
+- **El hueco del error.** Reservado siempre, así que el formulario no pega un
+  salto cuando aparece un mensaje.
+- **Los estados en el DOM** (`data-dirty`, `data-touched`, `data-invalid`), de
+  donde sale «hay cambios sin guardar» sin llevar la cuenta a mano.
+
+`CrmFieldset` agrupa los campos que se leen juntos — los dos precios de una
+moneda, por ejemplo.
+
+**Lo que NO hay que hacer:** migrar las pantallas anteriores en una barrida.
+Se migran cuando se toquen.
+
+### Acciones
 
 `CrmFormActions` siempre: alineado a la derecha, primario el último.
 
@@ -129,7 +158,7 @@ móvil. Paquetes y Códigos lo hacían y las dos copias ya habían divergido.
 | Cargando | `CrmLoadingState` (esqueletos, nunca «Cargando…») |
 | Error | `CrmErrorState` con `onRetry` cuando se pueda reintentar |
 | Aviso | `<Alert variant="warning">` |
-| Error de campo | `<p className="text-sm text-destructive" role="alert">` |
+| Error de campo | `CrmField error=` — no lo escribas a mano (R5) |
 | **Éxito** | **siempre toast** |
 
 Nunca texto verde en línea para el éxito.

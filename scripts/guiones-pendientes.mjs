@@ -50,9 +50,12 @@ for (const courseId of dirsIn(CURRICULUM)) {
       const rel = join(courseId, moduleDirName, fileName);
       const guionPath = join(GUIONES, rel);
       const exists = existsSync(guionPath);
-      const words = exists
-        ? readFileSync(guionPath, "utf8").split(/\s+/).filter(Boolean).length
-        : 0;
+      const raw = exists ? readFileSync(guionPath, "utf8") : "";
+      const { hablado, minutos } = exists ? estimar(raw) : { hablado: 0, minutos: 0 };
+      // Los vídeos con invitado no llevan guion palabra por palabra: llevan un
+      // guion de conducción con las preguntas y los avisos, porque escribirle
+      // los diálogos a una conversación real es justo lo que la estropea.
+      const conduccion = /## Guion de conducción/.test(raw);
       const min = /(\d+)\s*[-–]\s*(\d+)|(\d+)/.exec(data.video ?? "");
       const target = min ? Number(min[1] ?? min[3]) : 0;
 
