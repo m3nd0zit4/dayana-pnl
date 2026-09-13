@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -71,6 +72,30 @@ const emptyForm = () => ({
 const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
   const { canManageTeam, toast, confirm } = useCrm();
   const [links, setLinks] = useState<PaymentLinkListRow[]>(initialLinks ?? []);
+  const [contactQuery, setContactQuery] = useState("");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  /*
+    `?estado=sin-pagar` es a donde lleva «Para hoy». Tiene que enseñar
+    exactamente lo que allí se cuenta —con persona, abierto, sin pagar, sin
+    revocar y sin caducar—; antes aterrizaba en la lista entera y el número de
+    la portada no se encontraba en ningún sitio.
+  */
+  // «Ahora» se fija una vez por montaje: leer el reloj durante el render daría
+  // un resultado distinto en cada render, y React lo prohíbe.
+  const [nowMs] = useState(() => Date.now());
+  const onlyUnpaid = searchParams.get("estado") === "sin-pagar";
+  const visibleLinks = onlyUnpaid
+    ? links.filter(
+        (l) =>
+          l.contact !== null &&
+          Boolean(l.openedAt) &&
+          !l.paidAt &&
+          !l.revokedAt &&
+          (!l.expiresAt || new Date(l.expiresAt).getTime() > nowMs)
+      )
+    : links;
   const [loading, setLoading] = useState(initialLinks === undefined);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
@@ -119,6 +144,11 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
    */
   const formProblem = (): string | null => {
     if (!form.productId) return "Elige el producto.";
+    // Texto escrito en la búsqueda sin elegir a nadie: antes se ignoraba y salía
+    // un enlace abierto, el mismo error que con un nombre suelto.
+    if (!form.contactId && contactQuery.trim()) {
+      return "Elige un contacto de la lista, o borra la búsqueda y escribe los datos abajo.";
+    }
     if (!form.contactId) {
       const name = form.buyerName.trim();
       const phone = form.buyerPhone.trim();
@@ -306,6 +336,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
           <div className="space-y-2">
             <ContactPickerField
               id="payment-link-contact"
+              onQueryChange={setContactQuery}
               label="Para quién (opcional)"
               value={form.contactLabel}
               onSelect={(c) =>
@@ -404,7 +435,22 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
 
       {loading ? (
         <CrmLoadingState />
-      ) : links.length === 0 ? (
+      ) : (onlyUnpaid ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm">
+          <span>
+            Enlaces abiertos sin pagar: {visibleLinks.length}
+          </span>
+          <button
+            type="button"
+            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => router.push(pathname)}
+          >
+            Ver todos
+          </button>
+        </div>
+      ) : null)}
+
+      {loading ? null : visibleLinks.length === 0 ? (
         <CrmEmptyState
           icon={Link2}
           title="Todavía no has generado ningún enlace"
@@ -412,7 +458,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
         />
       ) : (
         <CrmDataList>
-          {links.map((row) => {
+          {visibleLinks.map((row) => {
             const status = statusOf(row);
             const dead =
               Boolean(row.revokedAt) ||

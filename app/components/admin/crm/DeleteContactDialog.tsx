@@ -53,7 +53,7 @@ const DeleteContactDialog = ({
           <AlertDialogTitle>Eliminar contacto</AlertDialogTitle>
           <AlertDialogDescription>
             Se borrará <span className="font-medium text-foreground">{contactName}</span>{" "}
-            y todo lo relacionado: servicios, pagos, cuaderno clínico, mensajes y
+            y todo lo relacionado: servicios, pagos, mensajes y
             notificaciones. Esta acción no se puede deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>

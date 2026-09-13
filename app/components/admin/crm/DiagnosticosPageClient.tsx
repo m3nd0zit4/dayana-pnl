@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { Compass } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -79,7 +80,25 @@ type Props = {
  * orden lo pone la consulta (`listCompletedDiagnostics`), en SQL.
  */
 const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
-  const [segment, setSegment] = useState<Segment>("calientes");
+  const searchParams = useSearchParams();
+  const urlSegment = searchParams.get("segmento");
+  const [segment, setSegment] = useState<Segment>(
+    urlSegment === "sin-comprar" || urlSegment === "todos" || urlSegment === "calientes"
+      ? urlSegment
+      : "calientes"
+  );
+  /*
+    `?recientes=14` es a donde lleva «Para hoy»: diagnósticos terminados en esos
+    días, con persona y sin compra. La pestaña «Sin comprar» sola cuenta todo
+    el histórico, y por eso el número de la portada no se encontraba aquí.
+  */
+  const recentParam = Number(searchParams.get("recientes"));
+  // «Ahora» se fija una vez por montaje: leer el reloj durante el render daría
+  // un resultado distinto en cada render, y React lo prohíbe.
+  const [nowMs] = useState(() => Date.now());
+  const [recentDays, setRecentDays] = useState<number | null>(
+    Number.isInteger(recentParam) && recentParam > 0 ? recentParam : null
+  );
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -91,6 +110,12 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         }
       }
       if (segment === "sin-comprar" && d.hasPurchased) return false;
+      if (recentDays !== null) {
+        if (!d.contact || !d.completedAt) return false;
+        if (nowMs - new Date(d.completedAt).getTime() > recentDays * 86_400_000) {
+          return false;
+        }
+      }
       if (!q) return true;
       return [
         d.contact?.name,
@@ -102,7 +127,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
-  }, [diagnosticos, segment, query]);
+  }, [diagnosticos, segment, query, recentDays, nowMs]);
 
   return (
     <CrmPageShell>
@@ -118,6 +143,21 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
           />
         }
       />
+
+      {recentDays !== null && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm">
+          <span>
+            Últimos {recentDays} días, con persona identificada: {filtered.length}
+          </span>
+          <button
+            type="button"
+            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => setRecentDays(null)}
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
 
       <CrmFilterBar count={`${filtered.length} de ${diagnosticos.length}`}>
         <CrmSearchInput

@@ -102,12 +102,17 @@ function SidebarProvider({
       ) {
         event.preventDefault()
         toggleSidebar()
+        return
+      }
+      // El panel móvil («Más») no se cerraba con Escape.
+      if (event.key === "Escape" && isMobile && openMobile) {
+        setOpenMobile(false)
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [toggleSidebar])
+  }, [toggleSidebar, isMobile, openMobile])
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
   // This makes it easier to style the sidebar with Tailwind classes.
@@ -196,8 +201,8 @@ function Sidebar({
           side={side}
         >
           <SheetHeader className="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            <SheetTitle>Menú del panel</SheetTitle>
+            <SheetDescription>Todas las secciones del CRM.</SheetDescription>
           </SheetHeader>
           <div className="flex h-full w-full flex-col">{children}</div>
         </SheetContent>

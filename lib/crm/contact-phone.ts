@@ -9,7 +9,9 @@
  * The last two are REAL contacts (leads) — they must show in the CRM, but
  * their placeholder must never be rendered as if it were a phone number.
  */
-const UNKNOWN_PHONE_PREFIXES = ["+pending", "+google:", "+signup:"];
+// `+nophone:` — comprador escrito a mano en un enlace de pago con nombre y
+// correo pero sin teléfono. Tampoco se puede marcar ni enseñar.
+const UNKNOWN_PHONE_PREFIXES = ["+pending", "+google:", "+signup:", "+nophone:"];
 
 /** True when the stored value is an actual phone number, not a sentinel. */
 export const hasRealContactPhone = (phone: string): boolean =>

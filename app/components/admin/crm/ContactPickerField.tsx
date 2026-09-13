@@ -31,6 +31,8 @@ type Props = {
   initialContact?: { id: string; label: string } | null;
   required?: boolean;
   placeholder?: string;
+  /** Lo que hay escrito en la búsqueda, para que el formulario sepa si se quedó sin elegir. */
+  onQueryChange?: (query: string) => void;
 };
 
 const contactLabel = (c: PickerContact) =>
@@ -49,6 +51,7 @@ const ContactPickerField = ({
   initialContact = null,
   required = false,
   placeholder = "Buscar por nombre, teléfono o email…",
+  onQueryChange,
 }: Props) => {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<PickerContact[]>([]);
@@ -134,6 +137,7 @@ const ContactPickerField = ({
     });
     setSelectedLabel(contactLabel(c));
     setQ("");
+    onQueryChange?.("");
     setOpen(false);
     onSelect(c);
   };
@@ -141,6 +145,7 @@ const ContactPickerField = ({
   const clear = () => {
     setSelectedLabel("");
     setQ("");
+    onQueryChange?.("");
     onSelect(null);
   };
 
@@ -230,6 +235,7 @@ const ContactPickerField = ({
             required={required && !value}
             onChange={(e) => {
               setQ(e.target.value);
+              onQueryChange?.(e.target.value);
               setOpen(true);
             }}
             onFocus={() => {

@@ -1,6 +1,7 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
+import { getMembershipProduct } from "@/lib/lms/membership";
 
 /**
  * Lo que hay que hacer hoy, para la portada del panel.
@@ -46,9 +47,14 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
   // Una membresía que caduca es una matrícula activa con `paidUntil`, sin
   // acceso de por vida. Las compras sueltas de un curso llevan `lifetimeAccess`
   // y `paidUntil` nulo, y no pueden aparecer aquí como «vencidas».
+  //
+  // Y sólo la del producto que enseña Membresías · Personas: contar también la
+  // anualidad daría un número que la pantalla de destino no muestra.
+  const membershipProduct = await getMembershipProduct();
   const membership = {
     status: EnrollmentStatus.ACTIVE,
     lifetimeAccess: false,
+    productId: membershipProduct?.id ?? "__sin-membresia__",
   } as const;
 
   const [
@@ -88,8 +94,9 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
     }),
-    // Diagnóstico terminado, con persona identificada, y sin una matrícula
-    // activada desde entonces. Es la lista de a quién llamar.
+    // Diagnóstico terminado en la ventana, con persona identificada y sin
+    // compra. «Sin compra» es exactamente lo que usa la pestaña de destino
+    // (`listCompletedDiagnostics`): ninguna matrícula ACTIVE ni COMPLETED.
     prisma.diagnostic.count({
       where: {
         completedAt: { gte: diagnosticsSince },
@@ -97,8 +104,7 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
         contact: {
           enrollments: {
             none: {
-              status: EnrollmentStatus.ACTIVE,
-              createdAt: { gte: diagnosticsSince },
+              status: { in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED] },
             },
           },
         },
@@ -131,28 +137,28 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
       key: "membresias-vencidas",
       count: overdue,
       label: plural(overdue, "membresía vencida", "membresías vencidas"),
-      href: "/admin/membresias",
+      href: "/admin/membresias?filtro=vencidas",
       tone: "alert",
     },
     {
       key: "membresias-por-vencer",
       count: expiring,
       label: plural(expiring, "membresía vence esta semana", "membresías vencen esta semana"),
-      href: "/admin/membresias",
+      href: "/admin/membresias?filtro=por-vencer",
       tone: "todo",
     },
     {
       key: "enlaces-sin-pagar",
       count: openLinks,
       label: plural(openLinks, "enlace de pago abierto sin pagar", "enlaces de pago abiertos sin pagar"),
-      href: "/admin/enlaces-pago",
+      href: "/admin/enlaces-pago?estado=sin-pagar",
       tone: "todo",
     },
     {
       key: "diagnosticos-sin-compra",
       count: diagnostics,
       label: plural(diagnostics, "diagnóstico reciente sin compra", "diagnósticos recientes sin compra"),
-      href: "/admin/diagnosticos",
+      href: `/admin/diagnosticos?segmento=sin-comprar&recientes=${PENDIENTES_DIAGNOSTIC_WINDOW_DAYS}`,
       tone: "todo",
     },
     {

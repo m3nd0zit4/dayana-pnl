@@ -28,6 +28,10 @@ import { useCrm } from "./CrmProvider";
 import { CrmEmptyState, CrmPublicLink } from "./ui";
 import { membershipChip } from "./membership-chip";
 
+export type MemberFilter = "vencidas" | "por-vencer";
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
 type Props = {
   preview: boolean;
   courseTitle: string;
@@ -35,6 +39,8 @@ type Props = {
   initialMembers: CourseMemberRow[];
   /** Dentro de Membresías: sin marco ni cabecera propios. */
   embedded?: boolean;
+  /** Filtro con el que llega desde «Para hoy». */
+  initialFilter?: MemberFilter | null;
 };
 
 const formatDate = (iso: string | null) =>
@@ -54,9 +60,29 @@ const CourseMembersPageClient = ({
   courseProductId,
   initialMembers,
   embedded = false,
+  initialFilter = null,
 }: Props) => {
   const { canWrite, toast } = useCrm();
   const [rows, setRows] = useState<CourseMemberRow[]>(initialMembers);
+  /*
+    Mismo criterio que la cuenta de «Para hoy» (`lib/crm/pendientes.ts`):
+    matrícula activa con `paidUntil` ya pasado, o que vence en los próximos
+    siete días. Sin esto el enlace de la portada caía en la lista entera.
+  */
+  const [filter, setFilter] = useState<MemberFilter | null>(initialFilter);
+  // «Ahora» se fija una vez por montaje: leer el reloj durante el render daría
+  // un resultado distinto en cada render, y React lo prohíbe.
+  const [nowMs] = useState(() => Date.now());
+  const visibleRows =
+    filter === null
+      ? rows
+      : rows.filter((r) => {
+          if (r.status !== "ACTIVE" || !r.paidUntil) return false;
+          const until = new Date(r.paidUntil).getTime();
+          return filter === "vencidas"
+            ? until < nowMs
+            : until >= nowMs && until < nowMs + WEEK_MS;
+        });
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [paymentTarget, setPaymentTarget] = useState<CourseMemberRow | null>(
     null
@@ -213,6 +239,23 @@ const CourseMembersPageClient = ({
       <div className="space-y-6">
         <Card className="overflow-hidden py-0">
           <CardContent className="divide-y divide-border p-0">
+            {filter !== null && (
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+                <span>
+                  {filter === "vencidas"
+                    ? "Membresías vencidas"
+                    : "Membresías que vencen esta semana"}
+                  : {visibleRows.length}
+                </span>
+                <button
+                  type="button"
+                  className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                  onClick={() => setFilter(null)}
+                >
+                  Ver todas
+                </button>
+              </div>
+            )}
             {rows.length === 0 && (
               <CrmEmptyState
                 icon={GraduationCap}
@@ -220,7 +263,7 @@ const CourseMembersPageClient = ({
                 description="Se crean al pagar el curso o al vincular el producto desde un contacto."
               />
             )}
-            {rows.map((row) => {
+            {visibleRows.map((row) => {
               const chip = membershipChip(row);
               return (
                 <div key={row.enrollmentId} className="p-4">

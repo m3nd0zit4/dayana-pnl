@@ -7,7 +7,7 @@ import AccountMenu from "./AccountMenu";
 
 const Navbar = () => {
   const navGreenRef = useRef<HTMLDivElement>(null);
-  const [, setNavOpen] = useContext(NavbarContext);
+  const [navOpen, setNavOpen] = useContext(NavbarContext);
   const [navColor, setNavColor] = useContext(NavbarColorContext);
   const pathname = usePathname();
   const homeHref = pathname === "/" ? "#hero" : "/#hero";
@@ -70,6 +70,7 @@ const Navbar = () => {
         <button
           type="button"
           aria-label="Abrir menú"
+          aria-expanded={Boolean(navOpen)}
           onClick={() => setNavOpen(true)}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}

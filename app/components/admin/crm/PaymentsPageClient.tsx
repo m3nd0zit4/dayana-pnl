@@ -60,12 +60,20 @@ type Filters = {
   unidentified: boolean;
 };
 
+const PAYMENT_STATUS_VALUES = ["PENDING", "APPROVED", "FAILED", "REFUNDED"] as const;
+const PAYMENT_PROVIDER_VALUES = ["PAYPAL", "MERCADO_PAGO", "MANUAL"] as const;
+const oneOf = (value: string | null, allowed: readonly string[]): string =>
+  value && allowed.includes(value) ? value : "all";
+
 const filtersFromParams = (params: URLSearchParams): Filters => ({
   q: params.get("q") ?? "",
   from: params.get("from") ?? "",
   to: params.get("to") ?? "",
-  status: params.get("status") ?? "all",
-  provider: params.get("provider") ?? "all",
+  // Un valor inventado en la URL —un enlace viejo, una errata— no puede dejar
+  // la lista en «No se pudo cargar» ni mandar el export a un 400 crudo: se
+  // ignora y se muestran todos.
+  status: oneOf(params.get("status"), PAYMENT_STATUS_VALUES),
+  provider: oneOf(params.get("provider"), PAYMENT_PROVIDER_VALUES),
   productId: params.get("productId") ?? "all",
   // El aviso del panel enlaza aquí con `?sin-identificar=1`, así que la lista
   // abre ya filtrada en vez de dejar a Dayana buscándolos a ojo.

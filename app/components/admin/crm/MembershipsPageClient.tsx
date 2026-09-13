@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
 import type { SubscriberRow, SubscriptionPlanRow } from "@/lib/crm/subscriptions";
-import CourseMembersPageClient from "./CourseMembersPageClient";
+import CourseMembersPageClient, { type MemberFilter } from "./CourseMembersPageClient";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
@@ -21,6 +21,7 @@ const SEGMENTS = [
 type Props = {
   preview: boolean;
   initialTab: MembershipsTab;
+  memberFilter: MemberFilter | null;
   courseTitle: string;
   courseProductId: string | null;
   members: CourseMemberRow[];
@@ -42,6 +43,7 @@ type Props = {
 const MembershipsPageClient = ({
   preview,
   initialTab,
+  memberFilter,
   courseTitle,
   courseProductId,
   members,
@@ -54,7 +56,9 @@ const MembershipsPageClient = ({
 
   const changeTab = (next: MembershipsTab) => {
     setTab(next);
-    router.replace(next === "personas" ? pathname : `${pathname}?tab=${next}`, {
+    // `push`, no `replace`: cada pestaña es un paso atrás posible con el botón
+    // del navegador, que era lo que se esperaba y no pasaba.
+    router.push(next === "personas" ? pathname : `${pathname}?tab=${next}`, {
       scroll: false,
     });
   };
@@ -76,6 +80,7 @@ const MembershipsPageClient = ({
           courseTitle={courseTitle}
           courseProductId={courseProductId}
           initialMembers={members}
+          initialFilter={memberFilter}
         />
       ) : (
         <SubscriptionsPageClient
