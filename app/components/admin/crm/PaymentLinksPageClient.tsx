@@ -108,11 +108,55 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
     }
   };
 
+  /**
+   * Lo que impide crear el enlace tal como está escrito, o `null`.
+   *
+   * Lo único obligatorio es el producto: sin contacto y sin datos el enlace se
+   * crea igual, abierto. Pero si se empieza a escribir a alguien, tiene que
+   * quedar identificado — nombre y además teléfono o correo. Antes un nombre
+   * solo se descartaba en silencio y salía un enlace abierto que parecía
+   * personal; y un teléfono sin nombre acababa saludando con el número.
+   */
+  const formProblem = (): string | null => {
+    if (!form.productId) return "Elige el producto.";
+    if (!form.contactId) {
+      const name = form.buyerName.trim();
+      const phone = form.buyerPhone.trim();
+      const email = form.buyerEmail.trim();
+      if (name && !phone && !email) {
+        return "Para un enlace a nombre de alguien, añade su teléfono o su correo.";
+      }
+      if ((phone || email) && !name) return "Escribe el nombre de quien paga.";
+      if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return "El correo no parece válido.";
+      }
+      if (phone && phone.replace(/\D/g, "").length < 7) {
+        return "El teléfono no parece válido: incluye el indicativo del país.";
+      }
+    }
+    const days = form.expiresInDays.trim();
+    if (days && !/^\d+$/.test(days)) return "La caducidad es un número entero de días.";
+    if (days && (Number(days) < 1 || Number(days) > 90)) {
+      return "La caducidad va de 1 a 90 días, o déjala vacía para que no caduque.";
+    }
+    return null;
+  };
+
+  const ERROR_MESSAGES: Record<string, string> = {
+    invalid_email: "El correo no parece válido.",
+    invalid_phone: "El teléfono no parece válido: incluye el indicativo del país.",
+    invalid_expiry: "La caducidad va de 1 a 90 días.",
+    missing_name: "Escribe el nombre de quien paga.",
+    missing_contact_data: "Para un enlace a nombre de alguien, añade su teléfono o su correo.",
+    missing_product: "Elige el producto.",
+  };
+
   const save = async () => {
-    // Lo unico obligatorio es el producto. Sin contacto y sin datos escritos
-    // el enlace se crea igual: es un cobro abierto, y esa era justo la
-    // limitacion que impedia cobrar.
-    if (!form.productId) return;
+    const problem = formProblem();
+    if (problem) {
+      toast(problem, "error");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/payment-links", {
@@ -120,9 +164,12 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contactId: form.contactId || undefined,
+          // Se manda en cuanto hay algo escrito, no sólo con teléfono o correo:
+          // así el servidor también rechaza un nombre suelto en vez de
+          // convertirlo en un enlace abierto sin decir nada.
           buyer:
             !form.contactId &&
-            (form.buyerPhone.trim() || form.buyerEmail.trim())
+            (form.buyerName.trim() || form.buyerPhone.trim() || form.buyerEmail.trim())
               ? {
                   firstName: form.buyerName.trim() || undefined,
                   phone: form.buyerPhone.trim() || undefined,
@@ -141,7 +188,10 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
         error?: string;
       };
       if (!res.ok || !data.link) {
-        toast("No se pudo crear el enlace", "error");
+        toast(
+          (data.error && ERROR_MESSAGES[data.error]) ?? "No se pudo crear el enlace",
+          "error"
+        );
         return;
       }
       setLinks((prev) => [data.link!, ...prev]);
@@ -256,7 +306,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
           <div className="space-y-2">
             <ContactPickerField
               id="payment-link-contact"
-              label="Para quien (opcional)"
+              label="Para quién (opcional)"
               value={form.contactLabel}
               onSelect={(c) =>
                 setForm((f) => ({
@@ -285,13 +335,13 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                   maxLength={120}
                 />
                 <Input
-                  aria-label="Telefono de quien paga"
+                  aria-label="Teléfono de quien paga"
                   type="tel"
                   value={form.buyerPhone}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, buyerPhone: e.target.value }))
                   }
-                  placeholder="Telefono"
+                  placeholder="Teléfono"
                   maxLength={30}
                 />
                 <Input
@@ -323,7 +373,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="payment-link-expiry">Caduca (dias)</Label>
+              <Label htmlFor="payment-link-expiry">Caduca (días)</Label>
               <Input
                 id="payment-link-expiry"
                 type="number"
@@ -406,6 +456,14 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                 <div className="min-w-0 sm:w-56">
                   <p className="truncate text-xs text-muted-foreground">
                     {row.note ?? "—"}
+                  </p>
+                  {/* Sin fechas, veinte «Enlace abierto» del mismo paquete eran
+                      indistinguibles. */}
+                  <p className="truncate text-xs text-muted-foreground">
+                    Creado {new Date(row.createdAt).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                    {row.expiresAt
+                      ? ` · caduca ${new Date(row.expiresAt).toLocaleDateString("es-CO", { day: "numeric", month: "short" })}`
+                      : " · sin caducidad"}
                   </p>
                 </div>
 

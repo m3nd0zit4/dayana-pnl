@@ -65,11 +65,15 @@ const Navbar = () => {
           LEFT edge — dragging the account menu (right-anchored, 210px wide)
           past the left viewport edge, where it rendered clipped. */}
       <div className="ml-auto flex items-center pointer-events-auto">
-        <div
+        {/* Un botón de verdad: como `div` no recibía foco ni tenía nombre, y el
+            menú no se podía abrir con teclado. */}
+        <button
+          type="button"
+          aria-label="Abrir menú"
           onClick={() => setNavOpen(true)}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className={`group lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer border ${
+          className={`group block p-0 lg:h-10 h-8 bg-black relative lg:w-28 w-20 cursor-pointer border ${
             navColor === "white" ? "border-white/40" : "border-transparent"
           }`}
         >
@@ -81,7 +85,7 @@ const Navbar = () => {
             <div className="lg:w-10 w-7 h-0.5 bg-white transition-colors group-hover:bg-black" />
             <div className="lg:w-6 w-4 h-0.5 bg-white transition-colors group-hover:bg-black" />
           </div>
-        </div>
+        </button>
         <AccountMenu navColor={navColor} />
       </div>
     </div>

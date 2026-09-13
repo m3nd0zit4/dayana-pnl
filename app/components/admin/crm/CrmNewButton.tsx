@@ -32,6 +32,10 @@ const CrmNewButton = ({
   <Button
     data-crm-primary-action=""
     size="sm"
+    // En móvil la etiqueta se oculta y queda sólo el icono: sin esto el botón
+    // no tiene nombre para un lector de pantalla.
+    aria-label={label}
+    title={label}
     onClick={onClick}
     disabled={disabled}
     className={className}

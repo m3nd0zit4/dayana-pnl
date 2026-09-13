@@ -59,7 +59,32 @@ export async function POST(req: NextRequest) {
 
   const parsed = createSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    // El formulario necesita saber QUÉ campo falla, no sólo que algo falló.
+    const field = String(parsed.error.issues[0]?.path.at(-1) ?? "");
+    const error =
+      field === "email"
+        ? "invalid_email"
+        : field === "phone"
+          ? "invalid_phone"
+          : field === "expiresInDays"
+            ? "invalid_expiry"
+            : field === "productId"
+              ? "missing_product"
+              : "invalid_request";
+    return NextResponse.json({ error }, { status: 400 });
+  }
+
+  // Un nombre sin teléfono ni correo no identifica a nadie: antes se descartaba
+  // en silencio y salía un enlace abierto que parecía personal. Y un teléfono
+  // o correo sin nombre dejaba la ficha —y el saludo— con el número.
+  const buyer = parsed.data.buyer;
+  const buyerHasName = Boolean(buyer?.firstName?.trim());
+  const buyerHasReach = Boolean(buyer?.phone?.trim() || buyer?.email?.trim());
+  if (!parsed.data.contactId && buyerHasName && !buyerHasReach) {
+    return NextResponse.json({ error: "missing_contact_data" }, { status: 400 });
+  }
+  if (!parsed.data.contactId && buyerHasReach && !buyerHasName) {
+    return NextResponse.json({ error: "missing_name" }, { status: 400 });
   }
 
   try {
@@ -85,7 +110,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ link });
   } catch (e) {
-    console.error("[payment-links] create failed", e instanceof Error ? e.message : String(e));
+    const message = e instanceof Error ? e.message : String(e);
+    if (message === "INVALID_PHONE") {
+      return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
+    }
+    console.error("[payment-links] create failed", message);
     return NextResponse.json({ error: "create_failed" }, { status: 400 });
   }
 }

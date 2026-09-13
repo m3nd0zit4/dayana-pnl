@@ -2,7 +2,7 @@
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { useContext, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { NavbarContext } from "../../context/NavContext";
 
@@ -125,6 +125,16 @@ const FullScreenNav = () => {
   const handleMenuClick = () => {
     setNavOpen(false);
   };
+
+  // Escape cierra el menú abierto, como cualquier capa a pantalla completa.
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navOpen, setNavOpen]);
 
   return (
     <div

@@ -17,7 +17,7 @@ export async function POST(
   try {
     await markPaymentLinkCheckoutStarted(token);
   } catch (e) {
-    console.error("[pagar] checkout mark failed", e);
+    console.error("[pagar] checkout mark failed", e instanceof Error ? e.message : String(e));
   }
   return NextResponse.json({ ok: true });
 }

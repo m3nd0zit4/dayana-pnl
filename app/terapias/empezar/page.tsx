@@ -5,7 +5,7 @@ import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = "Empezar tu proceso | Dayana Beltrán PNL";
 const description =
-  "Doce preguntas, tres minutos. Al final sabes qué patrón te está frenando, qué proceso necesitas y cuál es tu siguiente paso.";
+  "Unas pocas preguntas, tres minutos. Al final sabes qué patrón te está frenando, qué proceso necesitas y cuál es tu siguiente paso.";
 
 export const metadata: Metadata = {
   title,

@@ -64,7 +64,7 @@ const PagarShell = ({
         </h1>
 
         {note && (
-          <p className="mt-3 font-[font1] text-base leading-snug text-black/60">
+          <p className="[overflow-wrap:anywhere] mt-3 font-[font1] text-base leading-snug text-black/60">
             {note}
           </p>
         )}

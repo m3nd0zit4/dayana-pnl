@@ -44,8 +44,17 @@ const getUpstashLimiter = async (limit: number, windowMs: number) => {
 };
 
 /**
- * Rate limit distribuido (Upstash) con fallback en memoria para local/dev.
+ * Rate limit distribuido (Upstash) con fallback en memoria.
+ *
+ * El fallback cubre también que Upstash FALLE, no sólo que no esté
+ * configurado. Antes `upstash.limit()` iba sin `try`: un token malo o una
+ * caída de Upstash lanzaba dentro de la ruta y devolvía 500 en las diecinueve
+ * que lo usan — cuestionario, captación de leads, registro, cotización y
+ * checkout a la vez. Un limitador que no responde no puede bloquear ventas: se
+ * sigue con el de memoria, que protege peor pero protege.
  */
+let upstashFailureLogged = false;
+
 export const rateLimitDistributed = async (
   key: string,
   limit = 20,
@@ -53,8 +62,18 @@ export const rateLimitDistributed = async (
 ): Promise<RateLimitResult> => {
   const upstash = await getUpstashLimiter(limit, windowMs);
   if (upstash) {
-    const result = await upstash.limit(key);
-    return { ok: result.success, remaining: result.remaining };
+    try {
+      const result = await upstash.limit(key);
+      return { ok: result.success, remaining: result.remaining };
+    } catch (e) {
+      if (!upstashFailureLogged) {
+        upstashFailureLogged = true;
+        console.error(
+          "[rate-limit] Upstash failed, falling back to in-memory limits",
+          e instanceof Error ? e.message : String(e)
+        );
+      }
+    }
   }
   return rateLimitMemory(key, limit, windowMs);
 };

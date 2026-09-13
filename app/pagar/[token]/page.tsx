@@ -13,6 +13,19 @@ import { BRAND } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * El nombre con el que saluda la página, o nada.
+ *
+ * Una ficha creada con teléfono pero sin nombre guarda el número como nombre,
+ * y la página decía «Hola, +573005550199». Mejor el saludo genérico que
+ * saludar a alguien por su teléfono.
+ */
+const greetingFor = (firstName: string | null | undefined): string | null => {
+  const name = firstName?.trim();
+  if (!name || /^\+?[\d\s()-]{6,}$/.test(name)) return null;
+  return name;
+};
+
 const LINK_PREVIEW_BOT_RE =
   /bot|crawler|spider|preview|facebookexternalhit|whatsapp|telegram|slack|discord|linkedin|twitter|skype|embedly|vkshare|pinterest/i;
 
@@ -55,7 +68,7 @@ const PagarPage = async ({
     <PagarShell
       plan={plan}
       isColombia={isColombia}
-      greetingName={contact?.firstName ?? null}
+      greetingName={greetingFor(contact?.firstName)}
       note={note}
       action={
         <PaymentLinkCheckout

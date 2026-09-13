@@ -319,7 +319,7 @@ export async function resolveDefaultProductLink(
 /** Sella la primera apertura. Recargar no mueve la fecha. */
 export async function markPaymentLinkOpened(token: string): Promise<void> {
   await prisma.paymentLink.updateMany({
-    where: { token, openedAt: null },
+    where: { token, openedAt: null, revokedAt: null },
     data: { openedAt: new Date() },
   });
 }
@@ -328,7 +328,7 @@ export async function markPaymentLinkCheckoutStarted(
   token: string,
 ): Promise<void> {
   await prisma.paymentLink.updateMany({
-    where: { token, checkoutStartedAt: null },
+    where: { token, checkoutStartedAt: null, revokedAt: null },
     data: { checkoutStartedAt: new Date() },
   });
 }

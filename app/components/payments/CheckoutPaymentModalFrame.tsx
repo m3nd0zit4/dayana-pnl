@@ -75,6 +75,17 @@ const CheckoutPaymentModalFrame = ({
 }: CheckoutPaymentModalFrameProps) => {
   const maxHeight = useCheckoutModalMaxHeight();
 
+  // Escape cierra, y el foco entra al abrir: sin esto, con teclado el modal no
+  // se podía cerrar y el foco se quedaba en la página de detrás.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    closeButtonRef?.current?.focus();
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, closeButtonRef]);
+
   const modalStyle: CSSProperties | undefined = maxHeight
     ? { maxHeight }
     : { maxHeight: "min(92dvh, calc(100dvh - 1.25rem))" };
