@@ -31,7 +31,7 @@ export async function GET() {
     "",
     "## Por dónde empezar",
     "",
-    `- Cuestionario gratuito (8 preguntas, 2 minutos) — recomienda el proceso que corresponde y permite pagarlo: ${siteUrl}/terapias/empezar`,
+    `- Cuestionario gratuito (unas pocas preguntas, 3 minutos) — recomienda el proceso que corresponde y permite pagarlo: ${siteUrl}/terapias/empezar`,
     `- Historias reales en vídeo: ${siteUrl}/historias`,
     "",
     "## Contacto",

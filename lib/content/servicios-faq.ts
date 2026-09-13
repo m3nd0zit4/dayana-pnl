@@ -19,7 +19,7 @@ export const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "¿Qué paquete me conviene?",
-    a: "Si quieres conocer el proceso antes de comprometerte, empieza por una sesión. Si llevas meses o años con lo mismo, lo que necesitas es continuidad y no una sesión suelta. Si prefieres no adivinar, haz el diagnóstico gratuito: son 8 preguntas y al final te decimos cuál te corresponde y por qué.",
+    a: "Si quieres conocer el proceso antes de comprometerte, empieza por una sesión. Si llevas meses o años con lo mismo, lo que necesitas es continuidad y no una sesión suelta. Si prefieres no adivinar, haz el diagnóstico gratuito: son unas pocas preguntas y al final te decimos cuál te corresponde y por qué.",
   },
   {
     q: "¿Qué pasa después de pagar?",

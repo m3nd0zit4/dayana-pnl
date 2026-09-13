@@ -97,6 +97,16 @@ const nextConfig: NextConfig = {
        */
       { source: "/miembros/cuenta", destination: "/cuenta", permanent: false },
       { source: "/miembros/cuenta/general", destination: "/cuenta", permanent: false },
+      // Tres secciones cambiaron de nombre al salir del portal. Sin estas
+      // reglas, la comodín de abajo mandaba `/miembros/cuenta/avisos` a
+      // `/cuenta/avisos`, que no existe: 404 desde enlaces viejos y correos.
+      // Van antes de la comodín por lo mismo que las dos de arriba.
+      { source: "/miembros/cuenta/perfil", destination: "/cuenta", permanent: false },
+      { source: "/miembros/cuenta/avisos", destination: "/cuenta/notificaciones", permanent: false },
+      { source: "/miembros/cuenta/pagos", destination: "/cuenta/facturacion", permanent: false },
+      { source: "/cuenta/perfil", destination: "/cuenta", permanent: false },
+      { source: "/cuenta/avisos", destination: "/cuenta/notificaciones", permanent: false },
+      { source: "/cuenta/pagos", destination: "/cuenta/facturacion", permanent: false },
       {
         source: "/miembros/cuenta/:seccion*",
         destination: "/cuenta/:seccion*",

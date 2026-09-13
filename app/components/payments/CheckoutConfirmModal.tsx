@@ -165,6 +165,21 @@ const CheckoutConfirmModal = ({
    */
   const offersBoth = isMembership && plan.subscriptionAvailable === true;
 
+  /**
+   * Lo que cubre UN cobro suelto. Estaba fijo en «un mes» y la anualidad —
+   * también `recurring`— salía con «Biblioteca · Un año» en el título y
+   * «Pagar un mes» en el botón, cobrando el año entero.
+   */
+  const months = plan.membershipMonths ?? 1;
+  const period =
+    months >= 12 && months % 12 === 0
+      ? months === 12
+        ? "un año"
+        : `${months / 12} años`
+      : months > 1
+        ? `${months} meses`
+        : "un mes";
+
   /** Alta recurrente. Convive con el pago suelto en los dos rieles. */
   const goSubscribe = async () => {
     setUi({ kind: "redirecting" });
@@ -355,7 +370,7 @@ const CheckoutConfirmModal = ({
                 {ui.kind === "redirecting"
                   ? "Abriendo el pago seguro…"
                   : isMembership
-                    ? "Pagar un mes con tarjeta"
+                    ? `Pagar ${period} con tarjeta`
                     : "Pagar con tarjeta"}
               </button>
 
@@ -420,14 +435,14 @@ const CheckoutConfirmModal = ({
                 {ui.kind === "redirecting"
                   ? "Abriendo el pago seguro…"
                   : provider === "paypal"
-                    ? "Pagar un mes con tarjeta"
-                    : "Pagar un mes"}
+                    ? `Pagar ${period} con tarjeta`
+                    : `Pagar ${period}`}
               </button>
 
               <p className="pt-0.5 text-center font-[font1] text-[10px] leading-relaxed text-black/45">
                 {provider === "paypal"
-                  ? "Suscribirte requiere cuenta de PayPal. Un mes suelto, sólo tarjeta."
-                  : "La suscripción sólo admite tarjeta. Un mes suelto acepta PSE, Nequi y efectivo."}
+                  ? `Suscribirte requiere cuenta de PayPal. Pagar ${period} suelto, sólo tarjeta.`
+                  : `La suscripción sólo admite tarjeta. Pagar ${period} suelto acepta PSE, Nequi y efectivo.`}
               </p>
             </div>
           ) : (
@@ -440,7 +455,7 @@ const CheckoutConfirmModal = ({
               {ui.kind === "redirecting"
                 ? "Abriendo el pago seguro…"
                 : isMembership
-                  ? "Pagar un mes"
+                  ? `Pagar ${period}`
                   : "Pagar"}
             </button>
           )}

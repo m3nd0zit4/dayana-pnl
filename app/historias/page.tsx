@@ -113,7 +113,7 @@ Te lo cuentan ellas.`}
             ¿Y tú por qué llegarías?
           </h2>
           <p className="mx-auto mt-5 max-w-lg font-[font1] text-lg leading-relaxed text-black/70">
-            Responde ocho preguntas y sabrás qué patrón te está frenando y qué
+            Responde unas pocas preguntas y sabrás qué patrón te está frenando y qué
             proceso necesitas para moverlo. Son dos minutos y no cuesta nada.
           </p>
           <Link
