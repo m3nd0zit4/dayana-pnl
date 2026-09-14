@@ -2,11 +2,10 @@
 
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Fuse from "fuse.js";
-import { Clock, Search, Zap } from "lucide-react";
+import { Clock, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { crmMenuSections } from "@/app/config/crm-menu-items";
 import {
   getContactRecents,
   saveContactRecent,
@@ -24,16 +23,18 @@ type Props = {
   initialQ?: string;
   compact?: boolean;
   placeholder?: string;
+  /**
+   * A dónde lleva «Ver todos los resultados» / Enter. En la página de
+   * Contactos conserva los filtros puestos; por defecto, sólo la búsqueda.
+   */
+  listHref?: (term: string) => string;
 };
-
-const SEARCH_SHORTCUTS = crmMenuSections
-  .find((s) => s.title === "Clientes")
-  ?.items.filter((i) => !i.external) ?? [];
 
 const SmartContactSearch = ({
   initialQ = "",
   compact = false,
   placeholder = "Buscar contacto (nombre, teléfono, email…)",
+  listHref,
 }: Props) => {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
@@ -148,7 +149,11 @@ const SmartContactSearch = ({
   const goToList = () => {
     const term = q.trim();
     router.push(
-      term ? `/admin/contacts?q=${encodeURIComponent(term)}` : "/admin/contacts"
+      listHref
+        ? listHref(term)
+        : term
+          ? `/admin/contacts?q=${encodeURIComponent(term)}`
+          : "/admin/contacts"
     );
     setOpen(false);
   };
@@ -232,32 +237,6 @@ const SmartContactSearch = ({
                 Recientes
               </p>
               {recents.map((c) => renderContactRow(c))}
-            </>
-          )}
-          {SEARCH_SHORTCUTS.length > 0 && (
-            <>
-              {recents.length > 0 && <div className="my-1 border-t border-border" />}
-              <p className="flex items-center gap-1.5 px-3 pt-2 pb-1 text-[10px] text-muted-foreground uppercase tracking-wide">
-                <Zap className="size-3" />
-                Atajos
-              </p>
-              {SEARCH_SHORTCUTS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.href}
-                    type="button"
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-secondary/40"
-                    onClick={() => {
-                      router.push(item.href);
-                      setOpen(false);
-                    }}
-                  >
-                    <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
             </>
           )}
           <p className="border-t border-border px-3 py-2 text-[11px] text-muted-foreground">

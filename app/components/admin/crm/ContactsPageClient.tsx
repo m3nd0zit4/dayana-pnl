@@ -6,7 +6,6 @@ import { ChevronRight, MessageCircle, Users } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import ContactSearch from "@/app/components/admin/ContactSearch";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -19,12 +18,14 @@ import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import SmartContactSearch from "./SmartContactSearch";
 import { useCrm } from "./CrmProvider";
 import {
   CrmDataList,
   CrmDataListRow,
   CrmEmptyState,
   CrmFilterBar,
+  CrmFilterSheet,
   CrmLoadMore,
   CrmRowActions,
 } from "./ui";
@@ -133,15 +134,31 @@ const ContactsPageClient = ({
    * paso. La búsqueda por texto sigue aparte, en `ContactSearch`, que es quien
    * necesita el retardo.
    */
-  const pushFilters = (next: Partial<Filters>) => {
-    const merged = { country, source, activeTherapy, searchNotes, ...next };
+  const hrefFor = (next: Partial<Filters & { q: string }>) => {
+    const merged = { q: initialQ, country, source, activeTherapy, searchNotes, ...next };
     const p = new URLSearchParams();
-    if (initialQ.trim()) p.set("q", initialQ.trim());
+    if (merged.q.trim()) p.set("q", merged.q.trim());
     if (merged.country) p.set("country", merged.country);
     if (merged.source) p.set("source", merged.source);
     if (merged.activeTherapy) p.set("activeTherapy", "1");
     if (merged.searchNotes) p.set("notes", "1");
-    router.push(`/admin/contacts?${p}`);
+    const query = p.toString();
+    return `/admin/contacts${query ? `?${query}` : ""}`;
+  };
+
+  const pushFilters = (next: Partial<Filters>) => router.push(hrefFor(next));
+
+  // Lo que está en la hoja de filtros y no en su valor por defecto. Se ve en el
+  // botón, para que un filtro puesto nunca pase desapercibido.
+  const activeCount =
+    (country ? 1 : 0) + (source ? 1 : 0) + (activeTherapy ? 1 : 0) + (searchNotes ? 1 : 0);
+
+  const clearFilters = () => {
+    setCountry("");
+    setSource("");
+    setActiveTherapy(false);
+    setSearchNotes(false);
+    pushFilters({ country: "", source: "", activeTherapy: false, searchNotes: false });
   };
 
   return (
@@ -156,8 +173,6 @@ const ContactsPageClient = ({
         }
       />
 
-      <ContactSearch initialQ={initialQ} />
-
       {/* El recuento es el TOTAL que casa con los filtros, no las filas
           cargadas. Antes era `rows.length`, es decir el tamaño de página, y
           por eso decía siempre «80 contactos». */}
@@ -168,7 +183,16 @@ const ContactsPageClient = ({
             : `${numberFormat.format(total)} ${total === 1 ? "contacto" : "contactos"}`
         }
       >
-        <div className="w-full sm:w-52">
+        {/* Una sola búsqueda: la de la barra superior se oculta en esta
+            pantalla. Conserva recientes y el salto directo a la ficha, y al
+            pulsar Enter mantiene los filtros puestos. */}
+        <div className="w-full sm:w-80">
+          <SmartContactSearch
+            initialQ={initialQ}
+            listHref={(term) => hrefFor({ q: term })}
+          />
+        </div>
+        <CrmFilterSheet activeCount={activeCount} onClear={clearFilters}>
           <CountrySelect
             id="f-country"
             label="País"
@@ -180,8 +204,6 @@ const ContactsPageClient = ({
             allowEmpty
             emptyLabel="Todos los países"
           />
-        </div>
-        <div className="w-full sm:w-48">
           <SearchableSelect
             id="f-source"
             label="Origen"
@@ -195,7 +217,6 @@ const ContactsPageClient = ({
             emptyLabel="Todos los orígenes"
             searchMinOptions={99}
           />
-        </div>
         <label className="flex min-h-8 items-center gap-2 text-sm text-muted-foreground">
           <Checkbox
             checked={activeTherapy}
@@ -205,7 +226,7 @@ const ContactsPageClient = ({
               pushFilters({ activeTherapy: next });
             }}
           />
-          Terapia activa
+          Con terapia activa
         </label>
         {/* Buscar en notas es el camino lento: `notes` es @db.Text sin cota, y
             leerla por fila es lo que no escala. Existe, pero se pide. */}
@@ -218,8 +239,12 @@ const ContactsPageClient = ({
               pushFilters({ searchNotes: next });
             }}
           />
-          Buscar en notas
+          Buscar también en notas
         </label>
+        <p className="-mt-2 pl-6 text-xs text-muted-foreground">
+          Sólo aplica cuando hay texto en la búsqueda.
+        </p>
+        </CrmFilterSheet>
       </CrmFilterBar>
 
       <CrmDataList>

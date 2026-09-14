@@ -4,9 +4,12 @@ import Link from "next/link";
 import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Download, FileText, Receipt, UserPlus } from "lucide-react";
+import { CreditCard, Download, FileText, Receipt, UserPlus } from "lucide-react";
 import CrmPageHeader from "./CrmPageHeader";
+import CrmNewButton from "./CrmNewButton";
 import CrmPageShell from "./CrmPageShell";
+import { useCrm } from "./CrmProvider";
+import RegisterPaymentFlow from "./RegisterPaymentFlow";
 import IdentifyPaymentModal from "./IdentifyPaymentModal";
 import SearchableSelect from "./SearchableSelect";
 import { useActiveProducts } from "./hooks/useReferenceData";
@@ -23,8 +26,10 @@ import {
   CrmEmptyState,
   CrmErrorState,
   CrmFilterBar,
+  CrmFilterSheet,
   CrmLoadingState,
   CrmLoadMore,
+  CrmRowActions,
   CrmSearchInput,
 } from "./ui";
 
@@ -229,6 +234,8 @@ const formatDate = (iso: string) =>
 const PaymentsPageClient = ({ preview }: Props) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { canRecordPayments } = useCrm();
+  const [registering, setRegistering] = useState(false);
 
   const [filters, setFilters] = useState<Filters>(() => filtersFromParams(searchParams));
   // El texto se escribe aquí de inmediato; `filters.q` (lo que de verdad se
@@ -343,6 +350,18 @@ const PaymentsPageClient = ({ preview }: Props) => {
     0
   );
 
+  // Filtros de la hoja con un valor distinto del de por defecto. La búsqueda y
+  // «Sin identificar» se ven en la barra y no cuentan.
+  const activeCount =
+    (filters.from ? 1 : 0) +
+    (filters.to ? 1 : 0) +
+    (filters.status !== "all" ? 1 : 0) +
+    (filters.provider !== "all" ? 1 : 0) +
+    (filters.productId !== "all" ? 1 : 0);
+
+  const clearSheetFilters = () =>
+    setFilters((f) => ({ ...f, from: "", to: "", status: "all", provider: "all", productId: "all" }));
+
   const exportUrl = useMemo(() => {
     const query = buildQuery(filters).toString();
     return `/api/admin/payments/export${query ? `?${query}` : ""}`;
@@ -353,17 +372,13 @@ const PaymentsPageClient = ({ preview }: Props) => {
       <CrmPageHeader
         title="Pagos"
         description="PayPal, Mercado Pago y registros manuales vinculados a cada servicio."
-        secondaryActions={
-          !preview ? (
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<a href={exportUrl} />}
-            >
-              <Download aria-hidden />
-              Exportar CSV
-            </Button>
+        action={
+          canRecordPayments ? (
+            <CrmNewButton
+              label="Registrar pago"
+              icon={CreditCard}
+              onClick={() => setRegistering(true)}
+            />
           ) : undefined
         }
       />
@@ -404,7 +419,38 @@ const PaymentsPageClient = ({ preview }: Props) => {
           placeholder="Nombre, email o ID de pago…"
         />
 
-        <div className="flex items-end gap-2">
+        {/* Visible porque es a donde manda «Para hoy»: un pago que entró y no
+            se sabe de quién. */}
+        <Button
+          type="button"
+          variant={filters.unidentified ? "default" : "outline"}
+          onClick={() =>
+            setFilters((f) => ({ ...f, unidentified: !f.unidentified }))
+          }
+        >
+          <UserPlus aria-hidden />
+          {/* Sin contador: sólo se sabría el de la página cargada, y un «(3)»
+              con doce más esperando en la siguiente engaña más que ayuda. */}
+          Sin identificar
+        </Button>
+
+        <CrmFilterSheet
+          activeCount={activeCount}
+          onClear={clearSheetFilters}
+          footer={
+            !preview ? (
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<a href={exportUrl} />}
+              >
+                <Download aria-hidden />
+                Exportar estos pagos (CSV)
+              </Button>
+            ) : undefined
+          }
+        >
+        <div className="grid grid-cols-2 gap-2">
           <div>
             <Label htmlFor="pay-from" className="mb-1 block text-xs text-muted-foreground">
               Desde
@@ -414,7 +460,6 @@ const PaymentsPageClient = ({ preview }: Props) => {
               type="date"
               value={filters.from}
               onChange={(e) => setFilters((f) => ({ ...f, from: e.target.value }))}
-              className="w-36"
             />
           </div>
           <div>
@@ -426,12 +471,11 @@ const PaymentsPageClient = ({ preview }: Props) => {
               type="date"
               value={filters.to}
               onChange={(e) => setFilters((f) => ({ ...f, to: e.target.value }))}
-              className="w-36"
             />
           </div>
         </div>
 
-        <div className="w-full sm:w-44">
+        <div className="w-full">
           <SearchableSelect
             id="pay-status"
             label="Estado"
@@ -445,7 +489,7 @@ const PaymentsPageClient = ({ preview }: Props) => {
           />
         </div>
 
-        <div className="w-full sm:w-44">
+        <div className="w-full">
           <SearchableSelect
             id="pay-provider"
             label="Proveedor"
@@ -459,7 +503,7 @@ const PaymentsPageClient = ({ preview }: Props) => {
           />
         </div>
 
-        <div className="w-full sm:w-52">
+        <div className="w-full">
           <SearchableSelect
             id="pay-product"
             label="Producto"
@@ -469,20 +513,7 @@ const PaymentsPageClient = ({ preview }: Props) => {
             disabled={productsLoading}
           />
         </div>
-
-        <Button
-          type="button"
-          variant={filters.unidentified ? "default" : "outline"}
-          size="sm"
-          onClick={() =>
-            setFilters((f) => ({ ...f, unidentified: !f.unidentified }))
-          }
-        >
-          <UserPlus aria-hidden />
-          {/* Sin contador: sólo se sabría el de la página cargada, y un «(3)»
-              con doce más esperando en la siguiente engaña más que ayuda. */}
-          Sin identificar
-        </Button>
+        </CrmFilterSheet>
       </CrmFilterBar>
 
       {error ? (
@@ -503,9 +534,30 @@ const PaymentsPageClient = ({ preview }: Props) => {
                 key={p.id}
                 className="items-start transition-colors hover:bg-muted/50"
                 actions={
-                  <span className="text-xs text-muted-foreground">
-                    {formatDate(p.paidAt ?? p.createdAt)}
-                  </span>
+                  // Sólo lo aprobado lleva recibo: un comprobante dice «esto se
+                  // cobró», y emitirlo para un intento rechazado afirmaría algo
+                  // que no pasó. Abre en pestaña porque la ruta lo sirve
+                  // `inline` — se ve antes de guardarlo.
+                  !preview && p.status === "APPROVED" ? (
+                    <CrmRowActions>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Recibo PDF"
+                        title="Recibo PDF"
+                        nativeButton={false}
+                        render={
+                          <a
+                            href={`/api/admin/payments/${p.id}/receipt`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          />
+                        }
+                      >
+                        <FileText aria-hidden />
+                      </Button>
+                    </CrmRowActions>
+                  ) : undefined
                 }
               >
                 <div className="min-w-0 flex-1">
@@ -526,7 +578,7 @@ const PaymentsPageClient = ({ preview }: Props) => {
 
                   <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <span>
-                      {PROVIDER_LABEL[p.provider]}
+                      {formatDate(p.paidAt ?? p.createdAt)} · {PROVIDER_LABEL[p.provider]}
                       {p.payerCountryIso ? ` · ${p.payerCountryIso}` : ""}
                     </span>
                   </div>
@@ -580,31 +632,6 @@ const PaymentsPageClient = ({ preview }: Props) => {
                       — {p.enrollment.product.title}
                     </Link>
                   )}
-                  {!preview ? (
-                    <div className="mt-1 flex flex-wrap items-center gap-3">
-                      <Link
-                        href={`/admin/enrollments/${p.enrollment.id}`}
-                        className="text-xs text-muted-foreground hover:underline"
-                      >
-                        Ver servicio →
-                      </Link>
-                      {/* Sólo lo aprobado lleva recibo: un comprobante dice
-                          «esto se cobró», y emitirlo para un intento rechazado
-                          afirmaría algo que no pasó. Abre en pestaña porque la
-                          ruta lo sirve `inline` — se ve antes de guardarlo. */}
-                      {p.status === "APPROVED" ? (
-                        <a
-                          href={`/api/admin/payments/${p.id}/receipt`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                        >
-                          <FileText aria-hidden className="size-3" />
-                          Recibo PDF
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
                 </div>
               </CrmDataListRow>
             ))
@@ -613,6 +640,14 @@ const PaymentsPageClient = ({ preview }: Props) => {
       )}
 
       <CrmLoadMore hasMore={!preview && cursor !== null} loading={loadingMore} onClick={loadMore} />
+
+      {canRecordPayments ? (
+        <RegisterPaymentFlow
+          open={registering}
+          onClose={() => setRegistering(false)}
+          onSuccess={retry}
+        />
+      ) : null}
 
       {identifying ? (
         <IdentifyPaymentModal
