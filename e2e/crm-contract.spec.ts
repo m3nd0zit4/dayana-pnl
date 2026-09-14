@@ -235,8 +235,10 @@ test.describe("CRM · navegación", () => {
     await gotoCrm(page, "/admin");
 
     await expect(page.getByRole("link", { name: "Web pública" })).toHaveCount(0);
-    // El acceso a la web pública sigue en la barra superior.
-    await expect(page.getByRole("link", { name: "Abrir sitio público" })).toHaveCount(1);
+    // El acceso a la web pública sigue en la barra superior. Es un `Button`
+    // que pinta un `<a>`, y Base UI le deja el rol de botón: se busca por su
+    // nombre accesible, no por el rol de enlace.
+    await expect(page.getByRole("button", { name: "Abrir sitio público" })).toHaveCount(1);
   });
 });
 
