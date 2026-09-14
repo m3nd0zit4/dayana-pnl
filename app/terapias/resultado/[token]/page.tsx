@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Footer from "@/app/components/home/Footer";
 import RevealScope from "@/app/components/common/RevealScope";
 import FaqSection from "@/app/components/servicios/FaqSection";
-import DiagnosticCheckout from "@/app/components/diagnostico/DiagnosticCheckout";
+import DiagnosticContactCta from "@/app/components/diagnostico/DiagnosticContactCta";
 import PublicProductCard from "@/app/components/productos/PublicProductCard";
 import DiagnosticResultTracking from "@/app/components/diagnostico/DiagnosticResultTracking";
 import {
@@ -108,10 +108,14 @@ const ResultadoPage = async ({
   // suena a relleno.
   const needsAuthority = diagnostic.source == null || diagnostic.source === "ad";
 
+  // El mensaje lleva el perfil, el foco y el proceso recomendado: Dayana ve de
+  // un vistazo con quién habla sin tener que abrir el CRM.
   const whatsappUrl = buildWhatsAppUrl(
     `${copy.whatsappIntro}${
       focusCopy ? ` Lo que más resuena: ${focusCopy.title.toLowerCase()}.` : ""
-    } Me gustaría orientación antes de decidir.`,
+    }${
+      recommendation ? ` Me recomendó ${recommendation.plan.title}.` : ""
+    } Me gustaría hablar contigo para empezar.`,
   );
 
   return (
@@ -150,7 +154,11 @@ const ResultadoPage = async ({
         </section>
 
         {/*
-          2 · La oferta, inmediatamente.
+          2 · El camino recomendado, inmediatamente — sin precio.
+
+          El resultado recomienda un proceso y termina en hablar con Dayana por
+          WhatsApp, no en un botón de pago: el precio se habla en la
+          conversación, con la persona ya presentada.
 
           Estuvo la séptima: espejo, dolor, por qué falló, método, autoridad y
           objeción antes del precio. Quien termina el cuestionario quiere ver
@@ -177,35 +185,34 @@ const ResultadoPage = async ({
                 <PublicProductCard
                   plan={recommendation.plan}
                   isColombia={isColombia}
+                  hidePrice
                   action={
-                    <DiagnosticCheckout
-                      plan={recommendation.plan}
-                      userCountry={userCountry}
+                    <DiagnosticContactCta
+                      href={whatsappUrl}
                       token={token}
+                      profile={profile}
+                      label={copy.ctaLabel}
+                      className="mt-8"
                     />
                   }
                   footnote={copy.riskReversal}
                 />
               </div>
             ) : (
-              // Sin producto vendible en su región no hay botón que pintar —
-              // pasa si el catálogo se queda sin precio en su moneda. Un
-              // párrafo suelto dejaba la página sin ninguna acción justo donde
-              // más falta hace: aquí va el botón de WhatsApp con el perfil ya
-              // cargado en el mensaje, que es lo que haría de todos modos.
+              // Sin producto visible en su región no hay tarjeta que pintar —
+              // pasa si el catálogo se queda sin precio en su moneda. La
+              // salida es la misma que con tarjeta: hablar con Dayana.
               <div className="mt-9 rounded-3xl border border-black/12 bg-white/70 p-6 sm:p-8">
                 <p className="font-[font1] text-lg leading-relaxed text-black/75">
-                  Tu proceso ya está definido. Para tu país coordinamos el pago
-                  directamente: escríbeme y lo resolvemos en un minuto.
+                  Tu proceso ya está definido. Escríbeme y lo empezamos.
                 </p>
-                <a
+                <DiagnosticContactCta
                   href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-6 inline-block rounded-full bg-ink px-8 py-4 font-[font2] text-xs uppercase tracking-[0.18em] text-paper"
-                >
-                  {copy.ctaLabel}
-                </a>
+                  token={token}
+                  profile={profile}
+                  label={copy.ctaLabel}
+                  className="mt-6"
+                />
               </div>
             )}
 
@@ -226,7 +233,7 @@ const ResultadoPage = async ({
                 </h3>
                 <p className="mt-3 font-[font1] text-base leading-relaxed text-black/70">
                   Es en vivo y no cuesta nada. Vas a ver cómo trabaja Dayana
-                  antes de poner un peso, que es exactamente lo que necesitas
+                  antes de dar el paso, que es exactamente lo que necesitas
                   para decidir con información y no con fe.
                 </p>
                 <Link
@@ -238,16 +245,6 @@ const ResultadoPage = async ({
               </div>
             )}
 
-            <div className="mt-10 flex flex-col gap-4 border-t border-black/10 pt-8">
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-[font2] text-[11px] uppercase tracking-[0.24em] text-black/60 underline underline-offset-4 transition-colors hover:text-black"
-              >
-                Prefiero hablarlo antes de decidir
-              </a>
-            </div>
           </div>
         </section>
         {/* 3 · Lo que está pasando, según su foco (dolor o crecimiento) */}

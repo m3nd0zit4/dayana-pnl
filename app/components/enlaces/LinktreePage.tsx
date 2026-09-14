@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   Compass,
   GraduationCap,
-  LayoutList,
   Star,
   Users,
   ArrowUpRight,
@@ -84,14 +83,6 @@ const SECONDARY_LINKS: LinkRow[] = [
     sublabel: "Lo que dicen quienes ya vivieron el proceso",
     href: "/historias",
     icon: <Star className="h-5 w-5" />,
-    internal: true,
-  },
-  {
-    key: "terapias",
-    label: "Terapias 1:1",
-    sublabel: "Sesiones privadas con Dayana · precios",
-    href: "/terapias/empezar",
-    icon: <LayoutList className="h-5 w-5" />,
     internal: true,
   },
   {
@@ -391,12 +382,32 @@ const LinktreePage = ({
         </h1>
 
         {/* El orden es la decisión de producto de esta página: en un enlace de
-            biografía el primer botón se lleva la mayoría de los clics. Antes
-            era WhatsApp, que es el camino que consume el tiempo de Dayana por
-            cada persona. Ahora es el diagnóstico, que cualifica solo y deja el
-            correo. WhatsApp baja al final: sigue estando, deja de ser lo
-            primero. */}
+            biografía el primer botón se lleva la mayoría de los clics.
+
+            Primero WhatsApp —el chat y la comunidad—, por decisión de Dayana:
+            quien llega desde su perfil ya la conoce y lo que quiere es
+            escribirle. Justo después va el diagnóstico, que sigue siendo la
+            entrada gratuita para quien prefiere empezar solo. «Terapias 1:1»
+            ya no está: llevaba al mismo cuestionario, sin `ref`, y esas
+            personas se contaban como tráfico frío. */}
         <div className="mt-7 flex w-full flex-col gap-3">
+          <Cta
+            href={whatsappHref}
+            icon={<WhatsAppIcon />}
+            title="Escríbeme por WhatsApp"
+            subtitle={WHATSAPP_NUMBER}
+            variant="whatsapp"
+            delay={140}
+          />
+          <Cta
+            href={WHATSAPP_COMMUNITY_URL}
+            icon={<Users className="h-5 w-5" />}
+            title="Comunidad de WhatsApp"
+            subtitle="Únete y acompaña el proceso con otras personas"
+            badge="Gratis"
+            variant="community"
+            delay={180}
+          />
           <Cta
             href="/terapias/empezar?ref=enlaces"
             icon={<Compass className="h-5 w-5" />}
@@ -404,7 +415,7 @@ const LinktreePage = ({
             subtitle="3 minutos · sabrás qué te está frenando"
             badge="Gratis"
             variant="diagnostico"
-            delay={140}
+            delay={220}
             internal
           />
           {webinarActive && (
@@ -426,7 +437,7 @@ const LinktreePage = ({
               }
               badge="Gratis"
               variant="webinar"
-              delay={180}
+              delay={260}
               internal
             />
           )}
@@ -434,28 +445,8 @@ const LinktreePage = ({
 
         <div className="mt-9 flex w-full flex-col gap-3">
           {SECONDARY_LINKS.map((row, i) => (
-            <Row key={row.key} row={row} delay={200 + i * 40} />
+            <Row key={row.key} row={row} delay={300 + i * 40} />
           ))}
-        </div>
-
-        <div className="mt-8 flex w-full flex-col gap-3">
-          <Cta
-            href={WHATSAPP_COMMUNITY_URL}
-            icon={<Users className="h-5 w-5" />}
-            title="Comunidad de WhatsApp"
-            subtitle="Únete y acompaña el proceso con otras personas"
-            badge="Gratis"
-            variant="community"
-            delay={280}
-          />
-          <Cta
-            href={whatsappHref}
-            icon={<WhatsAppIcon />}
-            title="Escríbeme por WhatsApp"
-            subtitle={WHATSAPP_NUMBER}
-            variant="whatsapp"
-            delay={320}
-          />
         </div>
 
         <div className="mt-8 w-full">

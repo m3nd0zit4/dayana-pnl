@@ -32,6 +32,12 @@ export type PublicProductCardProps = {
   footnote?: ReactNode;
   /** `sm` para la columna estrecha del enlace de pago y de la vista previa. */
   size?: "sm" | "default";
+  /**
+   * Oculta precio, precio por unidad y precio tachado. Lo usa el resultado del
+   * diagnóstico, que recomienda el proceso pero manda a hablar con Dayana en
+   * vez de a pagar. Por defecto la tarjeta sigue enseñando el precio.
+   */
+  hidePrice?: boolean;
   className?: string;
 };
 
@@ -55,6 +61,7 @@ const PublicProductCard = ({
   action,
   footnote,
   size = "default",
+  hidePrice = false,
   className = "",
 }: PublicProductCardProps) => {
   const compact = size === "sm";
@@ -104,6 +111,7 @@ const PublicProductCard = ({
       </h3>
       <p className="mt-1.5 font-[font1] text-sm text-black/50">{plan.sessions}</p>
 
+      {!hidePrice && (
       <p className="mt-6 flex flex-wrap items-baseline gap-2.5">
         <span
           className={`font-[font2] leading-none ${compact ? "text-3xl" : "text-4xl"} ${accent}`}
@@ -121,6 +129,7 @@ const PublicProductCard = ({
           </span>
         )}
       </p>
+      )}
 
       {plan.features.length > 0 && (
         <ul className="mt-7 flex flex-col gap-2.5 border-t border-black/10 pt-6">

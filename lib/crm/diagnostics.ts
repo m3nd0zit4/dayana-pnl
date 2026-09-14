@@ -277,6 +277,11 @@ export async function markDiagnosticViewed(token: string): Promise<void> {
   });
 }
 
+/**
+ * Sella que la persona pulsó el CTA principal del resultado. Antes era el
+ * botón de pago; desde que el resultado no enseña precio es «Hablar con
+ * Dayana» (WhatsApp). La columna conserva su nombre para no migrar.
+ */
 export async function markDiagnosticCheckoutStarted(
   token: string,
 ): Promise<void> {

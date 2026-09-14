@@ -1,16 +1,18 @@
 /**
- * El FAQ de /servicios. Es también la fuente del `FAQPage` de JSON-LD, así que
- * lo que se escriba aquí puede acabar tal cual en un resultado de búsqueda.
+ * El FAQ de la página de resultado del diagnóstico. Es también la fuente del
+ * `FAQPage` de JSON-LD, así que lo que se escriba aquí puede acabar tal cual
+ * en un resultado de búsqueda.
  *
- * Cuidado con nombrar paquetes: la pregunta "¿qué paquete me conviene?" estuvo
- * citando cinco nombres que ya no existían en las tarjetas, porque los títulos
- * viven en la tabla `Product` y se editan desde el CRM sin pasar por aquí. La
- * versión actual no nombra ninguno a propósito — describe el caso y manda al
- * diagnóstico, que sí lee el catálogo real.
+ * El resultado ya no enseña precio: termina en hablar con Dayana por WhatsApp.
+ * Por eso aquí no hay preguntas de medios de pago ni de moneda — contestarlas
+ * junto a un botón de contacto sería volver a poner el precio por la puerta de
+ * atrás. Eso se habla en la conversación.
  *
- * El orden también importa: las tres primeras responden a lo que frena la
- * compra (cómo es, cuál elijo, qué pasa después). Moneda y medios de pago son
- * detalle operativo y van detrás.
+ * Cuidado con nombrar paquetes: los títulos viven en la tabla `Product` y se
+ * editan desde el CRM sin pasar por aquí.
+ *
+ * El orden importa: las primeras responden a lo que frena escribir (cómo es,
+ * cómo empiezo, qué pasa cuando escribo).
  */
 export const FAQS: { q: string; a: string }[] = [
   {
@@ -18,12 +20,12 @@ export const FAQS: { q: string; a: string }[] = [
     a: "En vivo, 1 a 1 con Dayana por Google Meet. Cada sesión dura 1 hora y la tomas desde donde estés.",
   },
   {
-    q: "¿Qué paquete me conviene?",
-    a: "Si quieres conocer el proceso antes de comprometerte, empieza por una sesión. Si llevas meses o años con lo mismo, lo que necesitas es continuidad y no una sesión suelta. Si prefieres no adivinar, haz el diagnóstico gratuito: son unas pocas preguntas y al final te decimos cuál te corresponde y por qué.",
+    q: "¿Cómo empiezo?",
+    a: "Escríbele a Dayana por WhatsApp con el botón de tu resultado. El mensaje ya lleva lo que te salió, así que no tienes que explicar nada desde cero.",
   },
   {
-    q: "¿Qué pasa después de pagar?",
-    a: "Recibes tu confirmación por correo y coordinamos tu agenda por WhatsApp para tu primera sesión. Lo habitual es empezar esa misma semana.",
+    q: "¿Qué pasa cuando le escribo?",
+    a: "Dayana lee tu resultado, resuelve tus dudas y te cuenta cómo sería tu proceso. Si decides empezar, coordinan juntas la agenda de tu primera sesión; lo habitual es empezar esa misma semana.",
   },
   {
     q: "¿Puedo reprogramar una sesión?",
@@ -32,13 +34,5 @@ export const FAQS: { q: string; a: string }[] = [
   {
     q: "¿Esto reemplaza a la terapia psicológica?",
     a: "No. La PNL trabaja sobre patrones y creencias, y suma muy bien a un proceso clínico, pero no sustituye un tratamiento psicológico o psiquiátrico. Si estás en tratamiento, coméntalo y lo tenemos en cuenta.",
-  },
-  {
-    q: "¿Cómo puedo pagar?",
-    a: "Desde Colombia con Mercado Pago: tarjetas de crédito y débito, PSE, Nequi y efectivo. Desde otros países con PayPal, con tu saldo o con tarjeta. Si prefieres coordinar el pago de otra forma, escríbenos por WhatsApp.",
-  },
-  {
-    q: "¿En qué moneda veo los precios?",
-    a: "Detectamos tu país automáticamente: en Colombia verás precios en pesos (COP); fuera de Colombia, en dólares (USD).",
   },
 ];

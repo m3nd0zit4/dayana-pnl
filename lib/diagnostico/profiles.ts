@@ -20,13 +20,13 @@ export type DiagnosticProfileCopy = {
   mirror: string;
   /** Por qué lo que ya intentó no funcionó. Cierra la objeción antes de que aparezca. */
   whyItFailed: string;
-  /** Encuadre de la oferta. Va justo encima del precio. */
+  /** Encuadre del camino recomendado. Va justo encima de la tarjeta del proceso. */
   offerFraming: string;
-  /** Qué pasa si no encaja. Reversión de riesgo, en su sitio: junto al botón. */
+  /** Qué pasa si no encaja. Reversión de riesgo, en su sitio: junto al botón de contacto. */
   riskReversal: string;
-  /** Texto del CTA principal. */
+  /** Texto del CTA principal: siempre lleva a hablar con Dayana, nunca a pagar. */
   ctaLabel: string;
-  /** Mensaje precargado de WhatsApp para la salida secundaria. */
+  /** Arranque del mensaje precargado de WhatsApp del CTA principal. */
   whatsappIntro: string;
 };
 
@@ -44,8 +44,8 @@ export const DIAGNOSTIC_PROFILES: Record<
     offerFraming:
       "No necesitas comprometerte con un proceso largo para saber si esto es para ti. Necesitas una sesión y comprobarlo.",
     riskReversal:
-      "Una sola sesión, sin compromiso posterior. Si después quieres continuar, lo que pagaste cuenta como tu primera sesión del paquete que elijas.",
-    ctaLabel: "Reservar mi primera sesión",
+      "Una sola sesión, sin compromiso posterior. Si después quieres continuar, esa sesión cuenta como la primera de tu proceso.",
+    ctaLabel: "Hablar con Dayana",
     whatsappIntro:
       "Hola Dayana, hice el diagnóstico en tu página y me salió que estoy empezando a mirar el tema.",
   },
@@ -60,7 +60,7 @@ export const DIAGNOSTIC_PROFILES: Record<
       "Un patrón de años no se desarma en una sesión, pero tampoco necesita veinticuatro. Necesita suficientes encuentros seguidos para que el cambio se sostenga solo.",
     riskReversal:
       "Empiezas en cuestión de días, no de semanas. Cada sesión admite reprogramación avisando con tiempo. Si en la primera sientes que no es tu camino, lo hablamos.",
-    ctaLabel: "Empezar mi proceso",
+    ctaLabel: "Hablar con Dayana",
     whatsappIntro:
       "Hola Dayana, hice el diagnóstico en tu página y me salió que ya identifiqué el patrón pero no logro moverlo.",
   },
@@ -75,7 +75,7 @@ export const DIAGNOSTIC_PROFILES: Record<
       "Un proceso de raíz necesita continuidad. No porque sea más difícil, sino porque hay que sostener el cambio mientras el sistema entero se reorganiza alrededor.",
     riskReversal:
       "Empiezas esta semana. El calendario se arma contigo y cada sesión admite reprogramación. Si quieres hablarlo antes de decidir, escríbeme y lo miramos juntas.",
-    ctaLabel: "Empezar mi proceso",
+    ctaLabel: "Hablar con Dayana",
     whatsappIntro:
       "Hola Dayana, hice el diagnóstico en tu página y me salió que lo mío viene de raíz.",
   },
@@ -90,7 +90,7 @@ export const DIAGNOSTIC_PROFILES: Record<
       "No se trata de aprender algo nuevo. Se trata de reprogramar la parte que sigue frenando lo que tu cabeza ya decidió.",
     riskReversal:
       "Empiezas en cuestión de días. Cada sesión admite reprogramación avisando con tiempo. Si en la primera sientes que no es tu camino, lo hablamos.",
-    ctaLabel: "Empezar mi proceso",
+    ctaLabel: "Hablar con Dayana",
     whatsappIntro:
       "Hola Dayana, hice el diagnóstico en tu página y me salió que quiero avanzar, no que esté mal.",
   },
