@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CalendarDays,
+  ChartColumn,
   Clapperboard,
   CreditCard,
   Inbox,
@@ -26,6 +27,7 @@ import {
  */
 export type CrmMenuItemId =
   | "home"
+  | "stats"
   | "payments"
   | "payment-links"
   | "products"
@@ -92,6 +94,20 @@ export const crmHomeItem: CrmMenuItem = {
   icon: Home,
   label: "Inicio",
   href: "/admin",
+};
+
+/**
+ * Estadísticas, junto a Inicio y no dentro de ningún grupo: es la vista de
+ * todo el negocio, no una tarea de un área concreta. Solo la ve quien puede
+ * administrar el equipo (OWNER) — visible en Ventas, Contactos, etc. sería
+ * un enlace que da 403 al resto del staff.
+ */
+export const crmStatsItem: CrmMenuItem = {
+  id: "stats",
+  icon: ChartColumn,
+  label: "Estadísticas",
+  href: "/admin/estadisticas",
+  ownerOnly: true,
 };
 
 /**
@@ -188,6 +204,7 @@ export const CRM_BOTTOM_TABS = ["home", "contacts", "payments"] as const satisfi
 
 export const findMenuItem = (id: CrmMenuItemId): CrmMenuItem | undefined => {
   if (crmHomeItem.id === id) return crmHomeItem;
+  if (crmStatsItem.id === id) return crmStatsItem;
   for (const section of crmMenuSections) {
     for (const item of section.items) {
       if (item.id === id) return item;

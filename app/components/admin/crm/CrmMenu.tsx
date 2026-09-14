@@ -7,6 +7,7 @@ import { useState } from "react";
 import {
   crmHomeItem,
   crmMenuSections,
+  crmStatsItem,
   isCrmPathActive,
   type CrmMenuItem,
   type CrmMenuSection,
@@ -219,6 +220,9 @@ const CrmMenu = ({ onNavigate }: Props) => {
         <SidebarGroupContent>
           <SidebarMenuRoot>
             <CrmMenuParentItem item={crmHomeItem} pathname={pathname} onNavigate={onNavigate} />
+            {canManageTeam ? (
+              <CrmMenuParentItem item={crmStatsItem} pathname={pathname} onNavigate={onNavigate} />
+            ) : null}
           </SidebarMenuRoot>
         </SidebarGroupContent>
       </SidebarGroup>

@@ -35,6 +35,7 @@ export type CrmRoute = {
 export const CRM_ROUTES: CrmRoute[] = [
   // ---------------------------------------------------------------- Tier A
   { path: "/admin", name: "Dashboard", tier: "preview" },
+  { path: "/admin/estadisticas", name: "Estadísticas", tier: "preview" },
   {
     path: "/admin/contacts",
     name: "Contactos",
