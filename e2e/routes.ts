@@ -77,6 +77,14 @@ export const CRM_ROUTES: CrmRoute[] = [
   // construyeron después de este manifiesto, así que nadie comprobaba que
   // cumplieran el contrato de cabecera.
   { path: "/admin/diagnosticos", name: "Diagnósticos", tier: "preview" },
+  {
+    // El id no se lee en preview (la rama `isCrmUiPreview()` del detalle
+    // siempre enseña `PREVIEW_DIAGNOSTICS[0]`), así que sirve cualquiera.
+    path: "/admin/diagnosticos/preview-diagnostic",
+    name: "Diagnóstico · Detalle",
+    tier: "preview",
+    hasPublicLink: true,
+  },
   { path: "/admin/enlaces-pago", name: "Enlaces de pago", tier: "preview" },
   {
     path: "/admin/workshops",

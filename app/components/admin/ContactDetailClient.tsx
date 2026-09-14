@@ -23,9 +23,11 @@ import { formatCountryLabel } from "@/lib/countries";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
+import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { saveContactRecent } from "@/lib/crm/contact-search-recents";
+import type { ContactDiagnosticSummary } from "@/lib/crm/diagnostics";
 
 type Enrollment = {
   id: string;
@@ -104,6 +106,92 @@ const paymentSummary = (en: Enrollment): string => {
   return `${label} · ${formatMoneyMinor(total, currency)} ${currency}`;
 };
 
+/**
+ * Fecha con la zona operativa fija: el servidor corre en UTC y el navegador en
+ * Bogotá, y sin `timeZone` el HTML de cada lado no coincidía al hidratar.
+ */
+const formatDiagnosticDate = (iso: string | null, timeZone: string): string | null =>
+  iso
+    ? new Date(iso).toLocaleDateString("es-CO", { dateStyle: "medium", timeZone })
+    : null;
+
+/**
+ * Tarjeta de resumen del último diagnóstico completado. Solo el más reciente
+ * se despliega entero; los anteriores quedan como enlaces a su detalle, para
+ * que ninguno se quede sin poder abrirse desde la ficha.
+ */
+const DiagnosticoCard = ({
+  diagnostics,
+  timeZone,
+}: {
+  diagnostics: ContactDiagnosticSummary[];
+  timeZone: string;
+}) => {
+  if (diagnostics.length === 0) return null;
+  const [latest, ...older] = diagnostics;
+  const answered = latest.answers.filter((a) => a.answers.length > 0).slice(0, 3);
+  const metaParts = [
+    formatDiagnosticDate(latest.completedAt, timeZone),
+    latest.recommendedProductTitle ? `Recomendado: ${latest.recommendedProductTitle}` : null,
+  ].filter((v): v is string => Boolean(v));
+
+  return (
+    <Card>
+      <CardContent className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Diagnóstico</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/admin/diagnosticos/${latest.id}`} />}
+          >
+            Ver todas las respuestas
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {latest.profileName ? <Badge variant="secondary">{latest.profileName}</Badge> : null}
+          {latest.profileName && metaParts.length > 0 ? (
+            <span className="text-muted-foreground">·</span>
+          ) : null}
+          {metaParts.length > 0 ? (
+            <span className="text-muted-foreground">{metaParts.join(" · ")}</span>
+          ) : null}
+        </div>
+        {answered.length > 0 ? (
+          <div className="space-y-2">
+            {answered.map((item) => (
+              <div key={item.id}>
+                <p className="text-xs text-muted-foreground">{item.question}</p>
+                <p className="text-sm">{item.answers.join(" · ")}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {older.length > 0 ? (
+          <div className="space-y-1 border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground">Diagnósticos anteriores</p>
+            <ul className="space-y-1">
+              {older.slice(0, 5).map((d) => (
+                <li key={d.id}>
+                  <Link
+                    href={`/admin/diagnosticos/${d.id}`}
+                    className="text-sm underline-offset-4 hover:underline"
+                  >
+                    {[formatDiagnosticDate(d.completedAt, timeZone), d.profileName]
+                      .filter(Boolean)
+                      .join(" · ") || "Ver diagnóstico"}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+};
+
 const WebinarServiceRow = ({ r }: { r: WebinarRegistrationRow }) => (
   <Link
     href="/admin/webinar"
@@ -152,7 +240,16 @@ const tabFromParam = (value: string | null): Tab =>
  * piden. «Registrar pago» va en la cabecera y funciona aunque la persona
  * todavía no tenga ningún servicio: el flujo lo crea.
  */
-const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
+const ContactDetailClient = ({
+  contact: initial,
+  diagnostics = [],
+  timeZone = "America/Bogota",
+}: {
+  contact: Contact;
+  diagnostics?: ContactDiagnosticSummary[];
+  /** Zona operativa resuelta en el servidor, para formatear fechas igual en los dos lados. */
+  timeZone?: string;
+}) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { canWrite, canRecordPayments, toast } = useCrm();
@@ -398,6 +495,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
               </CardContent>
             </Card>
           )}
+          <DiagnosticoCard diagnostics={diagnostics} timeZone={timeZone} />
           <Card>
             <CardContent>
               <QuickMessagesPanel vars={messageVars} />

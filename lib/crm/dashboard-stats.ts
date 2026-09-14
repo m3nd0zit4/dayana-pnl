@@ -73,7 +73,11 @@ export const getDashboardStats = async () => {
     // no otra migración de consulta.
     prisma.$queryRaw<PaymentDayRow[]>`
       SELECT
-        to_char(("paid_at" AT TIME ZONE ${OPERATIONAL_TZ})::date, 'YYYY-MM-DD') AS day,
+        -- paid_at es TIMESTAMP sin zona guardado en UTC. Primero se marca
+        -- como UTC y después se lleva a la zona operativa: con una sola
+        -- conversión Postgres lo leía como hora de Bogotá y todo pago después
+        -- de las ~19:00 UTC (14:00 en Bogotá) caía en el día siguiente.
+        to_char((("paid_at" AT TIME ZONE 'UTC') AT TIME ZONE ${OPERATIONAL_TZ})::date, 'YYYY-MM-DD') AS day,
         "currency" AS currency,
         SUM("amount_minor")::bigint AS minor
       FROM "payments"

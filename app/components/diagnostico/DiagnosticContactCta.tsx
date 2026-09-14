@@ -13,6 +13,11 @@ type Props = {
   profile: string;
   label: string;
   className?: string;
+  /**
+   * `false` cuando quien mira es alguien del equipo desde el CRM: su clic no
+   * es de la persona y no debe sellar el embudo ni contar como conversión.
+   */
+  track?: boolean;
 };
 
 /**
@@ -25,8 +30,16 @@ type Props = {
  * Es un `<a>` de verdad y no hace `preventDefault`: si la telemetría falla, o
  * el JavaScript no llegó a cargar, WhatsApp se abre igual.
  */
-const DiagnosticContactCta = ({ href, token, profile, label, className = "" }: Props) => {
+const DiagnosticContactCta = ({
+  href,
+  token,
+  profile,
+  label,
+  className = "",
+  track = true,
+}: Props) => {
   const handleClick = () => {
+    if (!track) return;
     void fetch(`/api/diagnostico/${token}/checkout`, {
       method: "POST",
       keepalive: true,

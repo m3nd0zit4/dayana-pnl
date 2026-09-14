@@ -3,15 +3,56 @@ import DiagnosticosPageClient, {
 } from "@/app/components/admin/crm/DiagnosticosPageClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
+import { diagnosticSourceLabel } from "@/lib/crm/diagnostic-answers";
 import { listCompletedDiagnostics } from "@/lib/crm/diagnostics";
+import { PREVIEW_DIAGNOSTIC_ANSWERS, PREVIEW_DIAGNOSTICS } from "@/lib/crm/preview-data";
 import { OBJECTION_LABEL } from "@/lib/diagnostico/profiles";
 
 export const dynamic = "force-dynamic";
 
+/** `orientacion` → track, para no repetir la traducción en dos sitios. */
+const trackFromAnswers = (
+  orientacion: unknown
+): DiagnosticoRow["track"] =>
+  orientacion === "pesa" ? "emocional" : orientacion === "avanzar" ? "crecimiento" : null;
+
+/** `cierre` → frase para la fila. Se traduce aquí, en el servidor. */
+const objectionFromAnswers = (cierre: unknown): string | null =>
+  typeof cierre === "string" ? (OBJECTION_LABEL[cierre] ?? null) : null;
+
 const DiagnosticosPage = async () => {
   const preview = isCrmUiPreview();
   if (preview) {
-    return <DiagnosticosPageClient preview diagnosticos={[]} />;
+    // Track y cierre salen de las respuestas crudas de cada ejemplo, igual que
+    // con una fila de verdad — no de listas paralelas emparejadas por posición,
+    // que se descuadran en silencio al reordenar los ejemplos.
+    const diagnosticos: DiagnosticoRow[] = PREVIEW_DIAGNOSTICS.map((d) => {
+      const raw = PREVIEW_DIAGNOSTIC_ANSWERS[d.id] ?? {};
+      return {
+        id: d.id,
+        token: d.token,
+        profile: d.profile,
+        urgencyScore: d.urgencyScore,
+        commitmentScore: d.commitmentScore,
+        recommendedProductTitle: d.recommendedProductTitle,
+        source: d.source,
+        sourceLabel: diagnosticSourceLabel(d.source),
+        completedAt: d.completedAt,
+        hasPurchased: d.isCustomer,
+        contact: d.contact
+          ? {
+              id: d.contact.id,
+              name: d.contact.name,
+              email: d.contact.email,
+              phoneE164: d.contact.phoneE164 ?? "",
+            }
+          : null,
+        track: trackFromAnswers(raw.orientacion),
+        objection: objectionFromAnswers(raw.cierre),
+      };
+    });
+
+    return <DiagnosticosPageClient preview diagnosticos={diagnosticos} />;
   }
 
   const staff = await getStaffSession();
@@ -19,45 +60,32 @@ const DiagnosticosPage = async () => {
 
   const rows = await listCompletedDiagnostics(200);
 
-  const diagnosticos: DiagnosticoRow[] = rows.map((d) => {
+  const diagnosticos: DiagnosticoRow[] = rows.map((d) => ({
+    id: d.id,
+    token: d.token,
+    profile: d.profile,
+    urgencyScore: d.urgencyScore,
+    commitmentScore: d.commitmentScore,
+    recommendedProductTitle: d.recommendedProductTitle,
+    source: d.source,
+    sourceLabel: diagnosticSourceLabel(d.source),
+    completedAt: d.completedAt ? d.completedAt.toISOString() : null,
+    hasPurchased: d.hasPurchased,
+    contact: d.contact
+      ? {
+          id: d.contact.id,
+          name: [d.contact.firstName, d.contact.lastName]
+            .filter(Boolean)
+            .join(" "),
+          email: d.contact.email,
+          phoneE164: d.contact.phoneE164,
+        }
+      : null,
     // Filas anteriores al rediseño de dos pistas no tienen `orientacion` —
     // se quedan sin track en vez de adivinar uno.
-    const track =
-      d.answers.orientacion === "pesa"
-        ? "emocional"
-        : d.answers.orientacion === "avanzar"
-          ? "crecimiento"
-          : null;
-
-    return {
-      id: d.id,
-      token: d.token,
-      profile: d.profile,
-      urgencyScore: d.urgencyScore,
-      commitmentScore: d.commitmentScore,
-      recommendedProductId: d.recommendedProductId,
-      source: d.source,
-      completedAt: d.completedAt ? d.completedAt.toISOString() : null,
-      hasPurchased: d.hasPurchased,
-      contact: d.contact
-        ? {
-            id: d.contact.id,
-            name: [d.contact.firstName, d.contact.lastName]
-              .filter(Boolean)
-              .join(" "),
-            email: d.contact.email,
-            phoneE164: d.contact.phoneE164,
-          }
-        : null,
-      track,
-      // Las respuestas se traducen aquí, en el servidor: el cliente no debería
-      // tener que conocer los ids del cuestionario para pintar una fila.
-      objection:
-        typeof d.answers.cierre === "string"
-          ? (OBJECTION_LABEL[d.answers.cierre] ?? null)
-          : null,
-    };
-  });
+    track: trackFromAnswers(d.answers.orientacion),
+    objection: objectionFromAnswers(d.answers.cierre),
+  }));
 
   return <DiagnosticosPageClient preview={false} diagnosticos={diagnosticos} />;
 };

@@ -28,6 +28,10 @@ jobs:
 
       - run: bun run typecheck
 
+      # Pruebas unitarias de `lib/` (bun test). Sólo `./lib`: las specs de
+      # Playwright en `e2e/` corren en su propio job.
+      - run: bun run test
+
       # Trinquete de paleta: falla solo si aparecen colores nuevos escritos a
       # mano. El contrato de Playwright no puede cazarlos — renderizan bien.
       - run: bun run check:tokens

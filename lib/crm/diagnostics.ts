@@ -4,6 +4,12 @@ import type { DiagnosticProfile, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { ensureContactTag } from "@/lib/crm/tags";
 import {
+  buildDiagnosticAnswers,
+  type DiagnosticAnswerItem,
+} from "@/lib/crm/diagnostic-answers";
+import { displayContactPhone } from "@/lib/crm/contact-phone";
+import {
+  DIAGNOSTIC_PROFILES,
   PROFILE_TAG_LABEL,
   PROFILE_TAG_SLUG,
 } from "@/lib/diagnostico/profiles";
@@ -345,6 +351,8 @@ export type DiagnosticListRow = DiagnosticRow & {
   } | null;
   /** Si ese contacto ya tiene alguna inscripción pagada. */
   hasPurchased: boolean;
+  /** Título del producto recomendado, no el slug — para no enseñarlo crudo. */
+  recommendedProductTitle: string | null;
 };
 
 /**
@@ -367,6 +375,9 @@ export async function listCompletedDiagnostics(
     take: limit,
     select: {
       ...SELECT,
+      // Título, no el id: la fila de lista lo enseña tal cual, y el slug del
+      // producto no le dice nada a Dayana.
+      product: { select: { title: true } },
       contact: {
         select: {
           id: true,
@@ -396,5 +407,147 @@ export async function listCompletedDiagnostics(
         }
       : null,
     hasPurchased: (row.contact?.enrollments.length ?? 0) > 0,
+    recommendedProductTitle: row.product?.title ?? null,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Ficha de un diagnóstico y resumen embebido en la ficha de contacto.
+//
+// Ambos comparten forma (`ContactDiagnosticSummary`) porque la tarjeta de
+// diagnósticos de la ficha de contacto y la página de detalle enseñan
+// exactamente los mismos datos de resumen — la segunda sólo añade lo que
+// necesita el detalle completo (token, timeline, datos del contacto).
+// ---------------------------------------------------------------------------
+
+export type ContactDiagnosticSummary = {
+  id: string;
+  profile: DiagnosticProfileId | null;
+  /** Nombre del perfil ya traducido — `DIAGNOSTIC_PROFILES[profile].name`. */
+  profileName: string | null;
+  completedAt: string | null;
+  source: string | null;
+  recommendedProductTitle: string | null;
+  answers: DiagnosticAnswerItem[];
+};
+
+const profileName = (profile: DiagnosticProfile | null): string | null =>
+  profile ? DIAGNOSTIC_PROFILES[profile as DiagnosticProfileId].name : null;
+
+const toIso = (d: Date | null): string | null => (d ? d.toISOString() : null);
+
+/**
+ * Diagnósticos completados de un contacto, el más reciente primero.
+ *
+ * Igual que `listCompletedDiagnostics`, sólo completados: uno abandonado no
+ * tiene perfil ni respuestas que enseñar en la ficha.
+ */
+export async function listDiagnosticsForContact(
+  contactId: string,
+): Promise<ContactDiagnosticSummary[]> {
+  const rows = await prisma.diagnostic.findMany({
+    where: { contactId, completedAt: { not: null } },
+    orderBy: { completedAt: "desc" },
+    select: {
+      id: true,
+      answers: true,
+      profile: true,
+      completedAt: true,
+      source: true,
+      product: { select: { title: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    profile: row.profile as DiagnosticProfileId | null,
+    profileName: profileName(row.profile),
+    completedAt: toIso(row.completedAt),
+    source: row.source,
+    recommendedProductTitle: row.product?.title ?? null,
+    answers: buildDiagnosticAnswers(row.answers),
+  }));
+}
+
+export type DiagnosticDetail = ContactDiagnosticSummary & {
+  token: string;
+  urgencyScore: number | null;
+  commitmentScore: number | null;
+  createdAt: string;
+  viewedResultAt: string | null;
+  /** Ya no es «empezó el pago»: es «pulsó Hablar con Dayana». Ver el modelo. */
+  checkoutStartedAt: string | null;
+  /** Mismo criterio que `hasPurchased` en la lista: alguna matrícula activa o completada. */
+  isCustomer: boolean;
+  contact: {
+    id: string;
+    name: string;
+    email: string | null;
+    phoneE164: string | null;
+  } | null;
+};
+
+/** Ficha completa de un diagnóstico, para `/admin/diagnosticos/[id]`. */
+export async function getDiagnosticById(id: string): Promise<DiagnosticDetail | null> {
+  const row = await prisma.diagnostic.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      token: true,
+      answers: true,
+      profile: true,
+      urgencyScore: true,
+      commitmentScore: true,
+      source: true,
+      completedAt: true,
+      createdAt: true,
+      viewedResultAt: true,
+      checkoutStartedAt: true,
+      product: { select: { title: true } },
+      contact: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          phoneE164: true,
+          enrollments: {
+            where: { status: { in: ["ACTIVE", "COMPLETED"] } },
+            select: { id: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    token: row.token,
+    profile: row.profile as DiagnosticProfileId | null,
+    profileName: profileName(row.profile),
+    completedAt: toIso(row.completedAt),
+    source: row.source,
+    recommendedProductTitle: row.product?.title ?? null,
+    answers: buildDiagnosticAnswers(row.answers),
+    urgencyScore: row.urgencyScore,
+    commitmentScore: row.commitmentScore,
+    createdAt: row.createdAt.toISOString(),
+    viewedResultAt: toIso(row.viewedResultAt),
+    checkoutStartedAt: toIso(row.checkoutStartedAt),
+    isCustomer: (row.contact?.enrollments.length ?? 0) > 0,
+    contact: row.contact
+      ? {
+          id: row.contact.id,
+          name: [row.contact.firstName, row.contact.lastName]
+            .filter(Boolean)
+            .join(" "),
+          email: row.contact.email,
+          // Los contactos de Google/registro directo guardan un centinela en
+          // vez de un teléfono real; no se enseña ni se manda a WhatsApp.
+          phoneE164: displayContactPhone(row.contact.phoneE164),
+        }
+      : null,
+  };
 }

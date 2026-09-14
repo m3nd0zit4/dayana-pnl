@@ -217,8 +217,25 @@ export const AUTHORITY_COPY = {
   body: "Dayana es Maestra en Programación Neurolingüística y trabaja con la parte del cerebro donde el patrón se instaló, no con consejos ni con motivación. No hay promesa de resultado garantizado ni recetas de siete días: hay un método concreto, una hora contigo, y la parte que sólo puedes poner tú.",
 };
 
-/** Etiqueta corta de cada valor de `cierre`, para el CRM. */
+/**
+ * Nombre corto del perfil para el panel (listas, detalle, ficha). Una sola
+ * fuente: estuvo copiado a mano en la lista y en el detalle de diagnósticos.
+ */
+export const PROFILE_SHORT_LABEL: Record<DiagnosticProfileId, string> = {
+  EXPLORADOR: "Explorador",
+  EN_PROCESO: "En proceso",
+  RAIZ_PROFUNDA: "Raíz profunda",
+  EN_EXPANSION: "En expansión",
+};
+
+/**
+ * Qué contestó en `cierre` («¿Cuándo te gustaría empezar?»), dicho como una
+ * frase suelta para el CRM. Se lee sin prefijo: un «Le frena:» delante no
+ * tiene sentido cuando la respuesta es que quiere empezar ya.
+ */
 export const OBJECTION_LABEL: Record<string, string> = {
+  ya: "Quiere empezar esta semana",
   "mes-organizando": "Organizando tiempo o presupuesto",
   "pronto-inseguro": "Quiere estar segura/o antes",
+  explorando: "Solo está explorando, no decide todavía",
 };

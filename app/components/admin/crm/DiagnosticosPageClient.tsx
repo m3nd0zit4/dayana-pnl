@@ -1,11 +1,12 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { Compass } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Compass, User } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/app/components/ui/badge";
+import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
@@ -14,6 +15,8 @@ import {
   CrmDataListRow,
   CrmEmptyState,
   CrmFilterBar,
+  CrmRowAction,
+  CrmRowActions,
   CrmSearchInput,
 } from "./ui";
 
@@ -28,8 +31,11 @@ export type DiagnosticoRow = {
     | null;
   urgencyScore: number | null;
   commitmentScore: number | null;
-  recommendedProductId: string | null;
+  /** Título del producto recomendado, ya resuelto — nunca el slug. */
+  recommendedProductTitle: string | null;
   source: string | null;
+  /** `source` ya traducido — "enlaces" → "Página de enlaces", etc. */
+  sourceLabel: string | null;
   completedAt: string | null;
   hasPurchased: boolean;
   contact: {
@@ -38,17 +44,10 @@ export type DiagnosticoRow = {
     email: string | null;
     phoneE164: string;
   } | null;
-  /** Qué dijo que la frenaba, ya traducido. */
+  /** Qué contestó sobre cuándo empezar, ya traducido. */
   objection: string | null;
   /** Emocional o crecimiento. Null en diagnósticos de antes del rediseño. */
   track: "emocional" | "crecimiento" | null;
-};
-
-const PROFILE_LABEL: Record<NonNullable<DiagnosticoRow["profile"]>, string> = {
-  EXPLORADOR: "Explorador",
-  EN_PROCESO: "En proceso",
-  RAIZ_PROFUNDA: "Raíz profunda",
-  EN_EXPANSION: "En expansión",
 };
 
 const TRACK_LABEL: Record<NonNullable<DiagnosticoRow["track"]>, string> = {
@@ -78,8 +77,13 @@ type Props = {
  * Ordena por compromiso y no por fecha a propósito: la pregunta que resuelve
  * esta pantalla no es "¿quién entró último?" sino "¿a quién llamo hoy?". El
  * orden lo pone la consulta (`listCompletedDiagnostics`), en SQL.
+ *
+ * Cada fila lleva al detalle (`/admin/diagnosticos/[id]`), donde se ven todas
+ * las respuestas — antes esta lista era el único sitio donde vivían y no
+ * había forma de leerlas.
  */
 const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const urlSegment = searchParams.get("segmento");
   const [segment, setSegment] = useState<Segment>(
@@ -122,6 +126,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         d.contact?.email,
         d.contact?.phoneE164,
         d.objection,
+        d.sourceLabel,
         d.track ? TRACK_LABEL[d.track] : null,
       ]
         .filter(Boolean)
@@ -133,7 +138,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
     <CrmPageShell>
       <CrmPageHeader
         title="Diagnósticos"
-        description="Quién respondió el cuestionario, qué necesita y qué la está frenando. Ordenados por lo cerca que están de decidirse, no por fecha."
+        description="Quién respondió el cuestionario, qué necesita y cuándo quiere empezar. Ordenados por lo cerca que están de decidirse, no por fecha. Abre uno para ver todas sus respuestas."
         trailing={
           <CrmSegmentedControl
             segments={SEGMENTS}
@@ -188,29 +193,39 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
           {filtered.map((d) => (
             <CrmDataListRow
               key={d.id}
+              // `relative` para el enlace estirado del nombre: toda la fila es
+              // clicable, y el foco del teclado se ve (con `display: contents`
+              // no había caja donde pintar el anillo).
+              className="relative transition-colors hover:bg-muted/50"
               actions={
                 d.contact ? (
-                  <Link
-                    href={`/admin/contacts/${d.contact.id}`}
-                    className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                  >
-                    Ver contacto
-                  </Link>
+                  <CrmRowActions className="relative z-10">
+                    <CrmRowAction
+                      icon={User}
+                      label="Ver contacto"
+                      onClick={() => router.push(`/admin/contacts/${d.contact!.id}`)}
+                    />
+                  </CrmRowActions>
                 ) : undefined
               }
             >
               <div className="min-w-0 flex-1 basis-56">
                 <p className="truncate font-medium">
-                  {d.contact?.name ?? "Sin contacto"}
+                  <Link
+                    href={`/admin/diagnosticos/${d.id}`}
+                    className="rounded-sm outline-none after:absolute after:inset-0 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {d.contact?.name ?? "Diagnóstico anónimo"}
+                  </Link>
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {d.contact?.email ?? d.contact?.phoneE164 ?? "—"}
+                  {d.contact?.email ?? d.contact?.phoneE164 ?? "Sin datos de contacto"}
                 </p>
               </div>
 
               <div className="sm:w-32">
                 {d.profile ? (
-                  <Badge variant="secondary">{PROFILE_LABEL[d.profile]}</Badge>
+                  <Badge variant="secondary">{PROFILE_SHORT_LABEL[d.profile]}</Badge>
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
@@ -235,16 +250,21 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
 
               <div className="min-w-0 sm:w-52">
                 <p className="truncate text-xs text-muted-foreground">
-                  {d.objection ? `Le frena: ${d.objection}` : "—"}
+                  {d.objection ?? "—"}
                 </p>
+                {d.sourceLabel && (
+                  <p className="truncate text-xs text-muted-foreground">
+                    Origen: {d.sourceLabel}
+                  </p>
+                )}
               </div>
 
-              <div className="sm:w-36">
+              <div className="min-w-0 sm:w-40">
                 {d.hasPurchased ? (
-                  <Badge variant="secondary">Ya compró</Badge>
-                ) : d.recommendedProductId ? (
-                  <span className="text-xs text-muted-foreground">
-                    Se le ofreció {d.recommendedProductId}
+                  <Badge variant="secondary">Ya es cliente</Badge>
+                ) : d.recommendedProductTitle ? (
+                  <span className="truncate text-xs text-muted-foreground">
+                    Se le recomendó {d.recommendedProductTitle}
                   </span>
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>

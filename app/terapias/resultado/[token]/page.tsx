@@ -26,6 +26,7 @@ import { scoreDiagnostic, type DiagnosticProfileId } from "@/lib/diagnostico/sco
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { isFreeWebinarActive } from "@/lib/crm/free-webinar";
 import { buildWhatsAppUrl } from "@/lib/contact";
+import { getStaffSession } from "@/lib/auth/staff-session";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +77,14 @@ const ResultadoPage = async ({
   const showWebinar =
     profile === "EXPLORADOR" && (await isFreeWebinarActive().catch(() => false));
 
-  await markDiagnosticViewed(token);
+  // Si quien abre el resultado es alguien del equipo (el enlace «Ver
+  // resultado» del CRM), no es la persona: no se sella «vio el resultado», no
+  // se manda el evento de analítica y su clic en «Hablar con Dayana» no cuenta.
+  // Sin esto, abrirlo desde el panel falseaba el embudo y el seguimiento.
+  const staffViewer = await getStaffSession().catch(() => null);
+  if (!staffViewer) {
+    await markDiagnosticViewed(token);
+  }
 
   // Cuál de las dos mitades del cuestionario contestó decide de dónde sale el
   // bloque de "lo que está pasando" — nunca las dos a la vez, porque sólo una
@@ -124,7 +132,7 @@ const ResultadoPage = async ({
 
   return (
     <>
-      <DiagnosticResultTracking profile={profile} />
+      {staffViewer ? null : <DiagnosticResultTracking profile={profile} />}
       <RevealScope className="bg-hero-paper text-ink" selector=".reveal">
         <main>
         {/* 1 · El espejo */}
@@ -192,6 +200,7 @@ const ResultadoPage = async ({
                   hidePrice
                   action={
                     <DiagnosticContactCta
+                      track={!staffViewer}
                       href={whatsappUrl}
                       token={token}
                       profile={profile}
@@ -211,6 +220,7 @@ const ResultadoPage = async ({
                   Tu proceso ya está definido. Escríbeme y lo empezamos.
                 </p>
                 <DiagnosticContactCta
+                  track={!staffViewer}
                   href={whatsappUrl}
                   token={token}
                   profile={profile}

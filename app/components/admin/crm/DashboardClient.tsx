@@ -1,17 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, ChevronRight, CircleCheck, Mic, Send, Square, TriangleAlert } from "lucide-react";
+import { ChevronRight, CircleCheck, Mic, Send, Square, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DashboardStats } from "@/lib/crm/dashboard-stats";
 import type { Pendiente } from "@/lib/crm/pendientes";
 import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/app/components/ui/collapsible";
 import { Input } from "@/app/components/ui/input";
 import { useIsMobile } from "@/app/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -214,33 +209,32 @@ const HeroAskAgentBox = () => {
   );
 };
 
-/** Estadísticas y gráficas: se miran de vez en cuando, así que van plegadas. */
+/**
+ * Números y gráficas, siempre a la vista: Dayana los mira al entrar.
+ *
+ * Estuvieron plegados y dejaron de verse. Cada cifra dice su propio alcance
+ * —no todas son «de los últimos 14 días»: leads, terapias y contactos son el
+ * total, y los pagos son los de hoy—, así que el título es sólo «Números».
+ */
 const NumbersSection = ({ data }: { data: DashboardStats }) => {
-  const [open, setOpen] = useState(false);
   const { stats } = data;
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/50">
-        Números de los últimos 14 días
-        <ChevronDown
-          aria-hidden
-          className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-180")}
-        />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="space-y-4 pt-4">
-        <div className="flex flex-wrap gap-6 rounded-lg border border-border bg-card px-4 py-3 sm:gap-8">
-          <StatItem label="Leads / pendientes" value={stats.leads} />
-          <StatItem label="Pagos hoy" value={stats.paymentsToday} href="/admin/payments" />
-          <StatItem label="Terapias activas" value={stats.activeTherapies} />
-          <StatItem label="Contactos" value={stats.contacts} href="/admin/contacts" />
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <CrmPaymentsChart data={data.paymentsByDay} />
-          <CrmPipelineChart data={data.pipeline} />
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+    <section aria-labelledby="numeros-title" className="space-y-3">
+      <h2 id="numeros-title" className="text-sm font-medium">
+        Números
+      </h2>
+      <div className="flex flex-wrap gap-6 rounded-lg border border-border bg-card px-4 py-3 sm:gap-8">
+        <StatItem label="Leads y pagos pendientes" value={stats.leads} />
+        <StatItem label="Pagos de hoy" value={stats.paymentsToday} href="/admin/payments" />
+        <StatItem label="Terapias activas" value={stats.activeTherapies} />
+        <StatItem label="Contactos en total" value={stats.contacts} href="/admin/contacts" />
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <CrmPaymentsChart data={data.paymentsByDay} />
+        <CrmPipelineChart data={data.pipeline} />
+      </div>
+    </section>
   );
 };
 
@@ -306,8 +300,8 @@ const DashboardClient = ({ initialData, dbError = false }: Props) => {
       <div className="relative flex flex-col gap-8">
         <DashboardDotBackground />
         <PendientesList pendientes={data.pendientes} />
-        <HeroAskAgentBox />
         <NumbersSection data={data} />
+        <HeroAskAgentBox />
       </div>
     </CrmPageShell>
   );

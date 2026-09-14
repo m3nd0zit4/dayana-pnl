@@ -87,7 +87,13 @@ test.describe("CRM · contrato de patrones", () => {
         }
 
         await page.setViewportSize({ width: 1440, height: 900 });
-        const box = await page.locator("[data-crm-page]").boundingBox();
+        // Al cambiar de tamaño el panel lateral se vuelve a montar (móvil ↔
+        // escritorio) y, con el dev server compilando en frío, la página puede
+        // pasar un instante por su `loading.tsx`: medir en ese hueco da `null`
+        // sin que haya nada roto. Se espera a que el contenedor esté visible.
+        const pageContainer = page.locator("[data-crm-page]");
+        await expect(pageContainer).toBeVisible();
+        const box = await pageContainer.boundingBox();
         expect(box, "sin bounding box").not.toBeNull();
         expect(box!.width).toBeLessThanOrEqual(MAX_CONTENT_WIDTH);
 

@@ -93,26 +93,40 @@
 }
 
 /*
- * Menú lateral del CRM: medido en el navegador (1280×800, panel de
- * conversaciones del agente activo) daba 912px de alto de contenido contra
- * 769px disponibles — 143px de scroll obligatorio antes de llegar a
- * «Ajustes». `SidebarGroup`/`SidebarGroupLabel` viven en
- * `app/components/ui/sidebar.tsx`, compartido con el reproductor del curso
- * (`/miembros`), así que el recorte va aquí, acotado a `.crm-app`, en vez de
- * tocar el primitivo para todo el mundo. El tamaño de los botones (`size="sm"`
- * en `CrmMenu.tsx`/`CrmShell.tsx`) sí usa la variante que el propio
- * componente ya ofrece.
+ * Menú lateral del CRM: con aire.
  *
- * Con esto más `size="sm"` el alto medido baja a ~656px: cabe sin scroll a
- * 1280×800 y a 1440×900, con margen para el zoom del navegador.
+ * Estuvo recortado para caber sin scroll a 1280×800 (grupos con 2px de
+ * margen, títulos de 22px y botones pegados unos a otros) y se leía apretado.
+ * Dayana prefirió espacio: el menú vuelve al ritmo del estilo «new-york» de
+ * shadcn —grupos con `p-2`, títulos de 32px, 4px entre botones— y botones de
+ * 36px. Si la ventana es baja, la lista hace scroll dentro de
+ * `SidebarContent`, que ya lo permite.
+ *
+ * Va aquí, acotado a `.crm-app`, y no en `app/components/ui/sidebar.tsx`:
+ * ese primitivo (estilo «base-nova», sin separación entre botones) lo
+ * comparte el reproductor del curso en `/miembros`. Sólo se toca el tamaño
+ * por defecto de los botones; los `lg` y los submenús quedan como están.
  */
-.crm-app [data-sidebar="group"] {
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
+/*
+ * En el móvil (< 1024px) el menú se abre en un Sheet que se monta fuera de
+ * `.crm-app`, así que el mismo ritmo se aplica también a ese panel, pero sólo
+ * en páginas del CRM (`body:has(.crm-app)`), nunca en el portal de miembros.
+ * Los grupos y sus títulos ya traen `p-2` y `h-8` del primitivo: basta con no
+ * recortarlos.
+ */
+.crm-app [data-sidebar="content"],
+body:has(.crm-app) [data-mobile="true"] [data-sidebar="content"] {
+  gap: 0.25rem;
 }
 
-.crm-app [data-sidebar="group-label"] {
-  height: 1.375rem;
+.crm-app [data-sidebar="menu"],
+body:has(.crm-app) [data-mobile="true"] [data-sidebar="menu"] {
+  gap: 0.25rem;
+}
+
+.crm-app [data-sidebar="menu-button"][data-size="default"],
+body:has(.crm-app) [data-mobile="true"] [data-sidebar="menu-button"][data-size="default"] {
+  height: 2.25rem;
 }
 
 /* Scroll del sidebar: hace falta que siga siendo posible (pantallas de

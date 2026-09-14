@@ -49,7 +49,7 @@ const CrmShell = ({
 
   return (
     <SidebarProvider
-      style={{ "--sidebar-width": "13.5rem" } as CSSProperties}
+      style={{ "--sidebar-width": "15rem" } as CSSProperties}
       className="crm-app h-[100dvh] min-h-0 flex-col"
     >
       <CrmNavBar
