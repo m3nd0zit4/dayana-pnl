@@ -235,7 +235,7 @@ const toRow = (p: PaymentWithRelations): PaymentListRow => ({
   },
 });
 
-const sumTotals = (
+export const sumTotals = (
   rows: { currency: string; status: PaymentStatus; _sum: { amountMinor: number | null }; _count: { _all: number } }[]
 ): PaymentCurrencyTotal[] => {
   const byCurrency = new Map<string, PaymentCurrencyTotal>();

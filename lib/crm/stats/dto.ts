@@ -70,9 +70,14 @@ export type AnswerDistribution = {
 };
 
 export type FunnelStats = {
-  /** Empezaron → terminaron → vieron el resultado → «Hablar con Dayana» → compraron. */
+  /** Empezaron → terminaron → vieron el resultado → «Hablar con Dayana» (anidados). */
   steps: FunnelStep[];
   completed: Kpi;
+  /**
+   * Terminados en el periodo que compraron dentro de `attributionDays`, por el
+   * camino que sea (con o sin «Hablar con Dayana»). Va aparte del embudo: como
+   * paso anidado dejaba fuera a quien compró sin ese clic.
+   */
   purchased: Kpi;
   bySource: BreakdownRow[];
   byProfile: BreakdownRow[];
