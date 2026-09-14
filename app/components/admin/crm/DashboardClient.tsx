@@ -218,12 +218,25 @@ const HeroAskAgentBox = () => {
  */
 const NumbersSection = ({ data }: { data: DashboardStats }) => {
   const { stats } = data;
+  // El enlace sólo para quien puede entrar: Estadísticas es de OWNER y a los
+  // demás les devolvería a Inicio.
+  const { canManageTeam } = useCrm();
 
   return (
     <section aria-labelledby="numeros-title" className="space-y-3">
-      <h2 id="numeros-title" className="text-sm font-medium">
-        Números
-      </h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="numeros-title" className="text-sm font-medium">
+          Números
+        </h2>
+        {canManageTeam ? (
+          <Link
+            href="/admin/estadisticas"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Ver todas las estadísticas
+          </Link>
+        ) : null}
+      </div>
       <div className="flex flex-wrap gap-6 rounded-lg border border-border bg-card px-4 py-3 sm:gap-8">
         <StatItem label="Leads y pagos pendientes" value={stats.leads} />
         <StatItem label="Pagos de hoy" value={stats.paymentsToday} href="/admin/payments" />
