@@ -1,6 +1,7 @@
 "use client";
 
-import { ExternalLink, PanelLeft } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import CrmLogo from "@/app/components/admin/crm/CrmLogo";
 import CrmNotificationBell from "@/app/components/admin/crm/CrmNotificationBell";
@@ -10,7 +11,6 @@ import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import { Button } from "@/app/components/ui/button";
 import { Separator } from "@/app/components/ui/separator";
-import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -26,26 +26,19 @@ const iconButtonClass =
 const CrmNavBar = ({ displayName, role, avatarUrl, preview }: Props) => {
   const { agentEnabled, agentPanelOpen, setAgentPanelOpen } = useCrm();
   const [agentButtonHovered, setAgentButtonHovered] = useState(false);
-  const { setOpenMobile } = useSidebar();
+  const pathname = usePathname();
+  // En Contactos la búsqueda de la página es la misma búsqueda, con recientes y
+  // salto directo a la ficha. Dos cajas iguales en la misma pantalla obligaban
+  // a decidir en cuál escribir.
+  const showTopSearch = !preview && pathname !== "/admin/contacts";
 
   return (
     <header className="sticky top-0 z-30 flex h-14 w-full shrink-0 items-center gap-4 bg-[var(--crm-topbar)] px-3 text-[var(--crm-topbar-foreground)] sm:px-4 lg:px-5">
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn("shrink-0 lg:hidden", iconButtonClass)}
-        aria-label="Abrir menú"
-        onClick={() => {
-          setAgentPanelOpen(false);
-          setOpenMobile(true);
-        }}
-      >
-        <PanelLeft />
-      </Button>
-
+      {/* Sin botón de menú en el móvil: «Más», en la barra inferior, abre el
+          mismo menú. Tener los dos era el mismo botón dos veces. */}
       <CrmLogo />
 
-      <div className="mx-auto hidden min-w-0 w-full max-w-xl lg:block">{!preview && <SmartContactSearch compact placeholder="Buscar…" />}</div>
+      <div className="mx-auto hidden min-w-0 w-full max-w-xl lg:block">{showTopSearch && <SmartContactSearch compact placeholder="Buscar…" />}</div>
       <div className="flex-1 lg:hidden" />
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">

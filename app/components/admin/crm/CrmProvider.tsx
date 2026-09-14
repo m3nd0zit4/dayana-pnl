@@ -14,6 +14,7 @@ import {
 import {
   canWriteCrm,
   canManageTeam,
+  canRecordManualPayments,
 } from "@/lib/crm/staff-permissions";
 import CrmConfirmDialog from "./CrmConfirmDialog";
 
@@ -37,6 +38,12 @@ type CrmContextValue = {
   preview: boolean;
   canWrite: boolean;
   canManageTeam: boolean;
+  /**
+   * Puede registrar pagos manuales (OWNER y OPERATOR). Es más estrecho que
+   * `canWrite`: un DEVELOPER escribe en el CRM pero la API de pagos manuales le
+   * responde 403, así que el botón no se le pinta.
+   */
+  canRecordPayments: boolean;
   /** true cuando el agente CRM (eve) está habilitado para este staff — ver CRM_AGENT_ENABLED. */
   agentEnabled: boolean;
   /**
@@ -177,6 +184,7 @@ const CrmProvider = ({
       preview,
       canWrite: preview ? false : canWriteCrm(staffRole),
       canManageTeam: preview ? false : canManageTeam(staffRole),
+      canRecordPayments: preview ? false : canRecordManualPayments(staffRole),
       agentEnabled: preview ? false : agentEnabled,
       streamEnabled: preview ? false : streamEnabled,
       metaInboxEnabled: preview ? false : metaInboxEnabled,

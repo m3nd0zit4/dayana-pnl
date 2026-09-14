@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { BookOpen, LogOut, Settings } from "lucide-react";
+import { BookOpen, LogOut } from "lucide-react";
 import {
   Avatar,
   AvatarFallback,
@@ -53,10 +53,8 @@ const CrmUserMenu = ({ displayName, role, avatarUrl }: CrmUserMenuProps) => (
         </DropdownMenuLabel>
       </DropdownMenuGroup>
       <DropdownMenuSeparator />
-      <DropdownMenuItem render={<Link href="/admin/ajustes/perfil" />}>
-        <Settings />
-        Mi cuenta
-      </DropdownMenuItem>
+      {/* «Mi cuenta» ya no está aquí: Ajustes, en el pie de la barra lateral,
+          abre en Perfil. Eran dos caminos a la misma pantalla. */}
       {/* OWNER only — lib/auth/portal-viewer.ts bridges her staff session
           into the course portal. Other staff roles stay CRM-only. */}
       {role === "OWNER" ? (

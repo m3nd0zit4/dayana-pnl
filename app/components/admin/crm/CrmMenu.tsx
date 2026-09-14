@@ -4,7 +4,13 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { crmHomeItem, crmMenuSections, type CrmMenuItem } from "@/app/config/crm-menu-items";
+import {
+  crmHomeItem,
+  crmMenuSections,
+  isCrmPathActive,
+  type CrmMenuItem,
+  type CrmMenuSection,
+} from "@/app/config/crm-menu-items";
 import {
   Collapsible,
   CollapsibleContent,
@@ -27,17 +33,22 @@ type Props = {
   onNavigate?: () => void;
 };
 
+const itemIsActive = (pathname: string, item: CrmMenuItem): boolean =>
+  isCrmPathActive(pathname, item.href, item.exact) ||
+  (item.items ?? []).some((c) => isCrmPathActive(pathname, c.href, c.exact));
+
 /**
- * `exact` existe para las entradas cuya ruta es prefijo de otra del menú.
- *
- * «Miembros» es `/admin/curso` y los módulos cuelgan de `/admin/curso/...`, así
- * que sin esto las dos se marcarían a la vez y la barra diría que estás en dos
- * sitios. Es el mismo caso que `/admin`, que ya se trataba aparte a mano.
+ * Abierto al llegar a una ruta suya; si no, lo último que se tocó. Compartido
+ * por las entradas con hijos y por los grupos plegables.
  */
-const isActive = (pathname: string, href: string, exact?: boolean) => {
-  if (href === "/") return false;
-  if (href === "/admin" || exact) return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
+const useOpenWhenActive = (pathname: string, active: boolean) => {
+  const [open, setOpen] = useState(active);
+  const [trackedPathname, setTrackedPathname] = useState(pathname);
+  if (pathname !== trackedPathname) {
+    setTrackedPathname(pathname);
+    if (active) setOpen(true);
+  }
+  return [open, setOpen] as const;
 };
 
 const CrmMenuParentItem = ({
@@ -52,19 +63,11 @@ const CrmMenuParentItem = ({
   const Icon = item.icon;
   const external = item.external === true;
   const children = item.items ?? [];
-  const childActive = children.some((c) => isActive(pathname, c.href, c.exact));
-
-  // Auto-expand when landing on a child route; otherwise follow whatever
-  // the user last toggled.
-  const [open, setOpen] = useState(childActive);
-  const [trackedPathname, setTrackedPathname] = useState(pathname);
-  if (pathname !== trackedPathname) {
-    setTrackedPathname(pathname);
-    if (childActive) setOpen(true);
-  }
+  const childActive = children.some((c) => isCrmPathActive(pathname, c.href, c.exact));
+  const [open, setOpen] = useOpenWhenActive(pathname, childActive);
 
   if (children.length === 0) {
-    const active = isActive(pathname, item.href, item.exact);
+    const active = isCrmPathActive(pathname, item.href, item.exact);
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
@@ -105,9 +108,9 @@ const CrmMenuParentItem = ({
             {children.map((child) => {
               const ChildIcon = child.icon;
               return (
-                <SidebarMenuSubItem key={child.href}>
+                <SidebarMenuSubItem key={child.id}>
                   <SidebarMenuSubButton
-                    isActive={isActive(pathname, child.href, child.exact)}
+                    isActive={isCrmPathActive(pathname, child.href, child.exact)}
                     render={
                       <Link href={child.href} prefetch={false} onClick={onNavigate} />
                     }
@@ -121,6 +124,67 @@ const CrmMenuParentItem = ({
           </SidebarMenuSub>
         </CollapsibleContent>
       </SidebarMenuItem>
+    </Collapsible>
+  );
+};
+
+const SectionItems = ({
+  section,
+  pathname,
+  onNavigate,
+}: {
+  section: CrmMenuSection;
+  pathname: string;
+  onNavigate?: () => void;
+}) => (
+  <SidebarGroupContent>
+    <SidebarMenuRoot>
+      {section.items.map((item) => (
+        <CrmMenuParentItem
+          key={item.id}
+          item={item}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
+      ))}
+    </SidebarMenuRoot>
+  </SidebarGroupContent>
+);
+
+/**
+ * Grupo plegado («Herramientas»): lo que casi no se usa, a un toque pero sin
+ * ocupar la lista diaria. Se abre solo cuando la página actual es suya, para
+ * que la entrada activa nunca quede escondida.
+ */
+const CollapsibleSection = ({
+  section,
+  pathname,
+  onNavigate,
+}: {
+  section: CrmMenuSection;
+  pathname: string;
+  onNavigate?: () => void;
+}) => {
+  const active = section.items.some((item) => itemIsActive(pathname, item));
+  const [open, setOpen] = useOpenWhenActive(pathname, active);
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <SidebarGroup>
+        <SidebarGroupLabel
+          render={<CollapsibleTrigger />}
+          className="w-full cursor-pointer hover:text-sidebar-foreground"
+        >
+          {section.title}
+          <ChevronRight
+            aria-hidden
+            className={`ml-auto transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+          />
+        </SidebarGroupLabel>
+        <CollapsibleContent>
+          <SectionItems section={section} pathname={pathname} onNavigate={onNavigate} />
+        </CollapsibleContent>
+      </SidebarGroup>
     </Collapsible>
   );
 };
@@ -159,23 +223,21 @@ const CrmMenu = ({ onNavigate }: Props) => {
         </SidebarGroupContent>
       </SidebarGroup>
 
-      {sections.map((section) => (
-        <SidebarGroup key={section.title}>
-          <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenuRoot>
-              {section.items.map((item) => (
-                <CrmMenuParentItem
-                  key={item.href}
-                  item={item}
-                  pathname={pathname}
-                  onNavigate={onNavigate}
-                />
-              ))}
-            </SidebarMenuRoot>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      ))}
+      {sections.map((section) =>
+        section.collapsible ? (
+          <CollapsibleSection
+            key={section.id}
+            section={section}
+            pathname={pathname}
+            onNavigate={onNavigate}
+          />
+        ) : (
+          <SidebarGroup key={section.id}>
+            <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+            <SectionItems section={section} pathname={pathname} onNavigate={onNavigate} />
+          </SidebarGroup>
+        )
+      )}
     </>
   );
 };

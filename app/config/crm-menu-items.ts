@@ -3,7 +3,6 @@ import {
   CalendarDays,
   Clapperboard,
   CreditCard,
-  ExternalLink,
   Inbox,
   GraduationCap,
   Home,
@@ -19,9 +18,36 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/**
+ * Identificador estable de cada entrada. La barra inferior del móvil y
+ * cualquier otro sitio que necesite «la entrada de Pagos» la buscan por `id`,
+ * nunca por el título: un buscador que buscaba la sección «Clientes» se quedó
+ * sin atajos el día que esa sección cambió de nombre, sin que nada fallara.
+ */
+export type CrmMenuItemId =
+  | "home"
+  | "payments"
+  | "payment-links"
+  | "products"
+  | "promo-codes"
+  | "contacts"
+  | "memberships"
+  | "diagnostics"
+  | "messages"
+  | "courses"
+  | "modules"
+  | "comments"
+  | "workshops"
+  | "webinar"
+  | "inbox"
+  | "content";
+
 export type CrmMenuItem = {
+  id: CrmMenuItemId;
   icon: LucideIcon;
   label: string;
+  /** Etiqueta corta para la barra inferior del móvil, donde caben ~9 caracteres. */
+  shortLabel?: string;
   href: string;
   external?: boolean;
   /**
@@ -42,10 +68,7 @@ export type CrmMenuItem = {
   flag?: "metaInbox" | "socialPublishing";
   /**
    * Marcar como activo sólo con la ruta exacta, no con sus descendientes.
-   *
-   * Hace falta cuando una entrada es prefijo de otra: «Miembros» es
-   * `/admin/curso` y los módulos cuelgan de `/admin/curso/…`, así que sin esto
-   * las dos se encienden a la vez.
+   * Hace falta cuando una entrada es prefijo de otra.
    */
   exact?: boolean;
   /** One level of nesting only (sidebar sub-items). */
@@ -53,97 +76,100 @@ export type CrmMenuItem = {
 };
 
 export type CrmMenuSection = {
+  id: string;
   title: string;
   items: CrmMenuItem[];
+  /**
+   * Grupo plegado por defecto: lo que casi no se usa sigue a un toque, pero no
+   * ocupa sitio en la lista diaria. Se abre solo si la página actual es suya.
+   */
+  collapsible?: boolean;
 };
 
 /** Standalone item rendered above every section, no group label — the logo lives in the top bar now, not the sidebar, so this is the only "go home" link. */
-export const crmHomeItem: CrmMenuItem = { icon: Home, label: "Inicio", href: "/admin" };
+export const crmHomeItem: CrmMenuItem = {
+  id: "home",
+  icon: Home,
+  label: "Inicio",
+  href: "/admin",
+};
 
 /**
- * Los grupos siguen lo que se hace cada día, no cómo está organizada la base
- * de datos.
+ * El menú sigue lo que Dayana hace cada día, en ese orden.
  *
- * Antes había una sección «Clientes» con seis entradas de las que sólo una eran
- * clientes: dentro convivían el diagnóstico, los cursos, las terapias, los
- * pagos y los enlaces de pago. Cada cosa nueva se había colgado donde cabía, y
- * el resultado mezclaba personas, dinero y entrega en el mismo cajón.
+ * - **Ventas** abre con Pagos y Enlaces, que se usan a diario; Paquetes y
+ *   Códigos se configuran y casi no se tocan.
+ * - **Personas** es quién es quién: contactos, membresías, diagnósticos y los
+ *   mensajes rápidos con los que se les escribe.
+ * - **Clases** es todo lo que hay que impartir.
+ * - **Herramientas** va plegado: la bandeja de Meta y la publicación en TikTok
+ *   funcionan igual, pero se usan poco (decisión de Dayana, sep. 2026).
  *
- * Ahora: **Ventas** es el recorrido del dinero de principio a fin —de dónde
- * sale un interesado hasta que paga—, **Personas** es quién es quién, y
- * **Sesiones y clases** es todo lo que hay que impartir. El catálogo queda para
- * lo que se configura una vez y casi no se toca.
- *
- * **Y el menú es corto a propósito: 14 entradas en 5 grupos** (antes 18 en 6).
  * Nada de lo que salió se perdió:
  *
- * - **Notificaciones** es el historial de la campana, y la campana ya vive en la
- *   barra superior con su «ver todas». La ruta se queda; deja de ocupar sitio.
- * - **Staff** y **Auditoría** se miran una vez al mes, no a diario. Viven en
- *   Ajustes, que ya los enlazaba, y el grupo «Equipo» desaparece.
- * - **Miembros** y **Suscripciones** leían las mismas matrículas desde dos
- *   pantallas. Ahora son **Membresías**, con una pestaña para cada pregunta.
- *   Las dos rutas antiguas redirigen, así que ningún enlace se rompe.
+ * - **Web pública** era un grupo de una sola entrada que repetía el icono de la
+ *   barra superior, que está en todos los tamaños.
+ * - **Ajustes** vive en el pie de la barra lateral; **Staff** y **Auditoría**,
+ *   dentro de Ajustes. **Notificaciones** es el historial de la campana.
+ * - **Miembros** y **Suscripciones** son **Membresías**, con una pestaña para
+ *   cada una. Las rutas antiguas redirigen.
  */
 export const crmMenuSections: CrmMenuSection[] = [
   {
-    // Va primera porque es de lo que vive el negocio, y ahora lleva el
-    // recorrido entero del dinero: qué se vende y a qué precio (Paquetes,
-    // Códigos), con qué se cobra (Enlaces) y qué entró (Pagos).
-    //
-    // Paquetes y Códigos estaban en «Catálogo», separados de los cobros que
-    // gobiernan. Que se toquen poco no los hace de otra familia: el precio y
-    // el descuento SON la venta.
+    id: "ventas",
     title: "Ventas",
     items: [
-      { icon: Package, label: "Paquetes", href: "/admin/products" },
-      { icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
-      { icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
-      { icon: CreditCard, label: "Pagos", href: "/admin/payments" },
+      { id: "payments", icon: CreditCard, label: "Pagos", href: "/admin/payments" },
+      { id: "payment-links", icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
+      { id: "products", icon: Package, label: "Paquetes", href: "/admin/products" },
+      { id: "promo-codes", icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
     ],
   },
   {
+    id: "personas",
     title: "Personas",
     items: [
-      { icon: Users, label: "Contactos", href: "/admin/contacts" },
+      { id: "contacts", icon: Users, label: "Contactos", href: "/admin/contacts" },
+      { id: "memberships", icon: UsersRound, label: "Membresías", href: "/admin/membresias" },
       // El diagnóstico se mira para saber QUIÉN es quien llega y qué necesita,
       // no para cobrarle. Por eso vive con las personas y no con el dinero.
-      { icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
-      // Quién tiene acceso (Personas) y qué cobros recurrentes lo sostienen
-      // (Planes), en una sola pantalla: las dos preguntas leen las mismas
-      // matrículas. Sustituye a «Miembros» y «Suscripciones».
-      { icon: UsersRound, label: "Membresías", href: "/admin/membresias" },
+      { id: "diagnostics", icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
+      // Plantillas para escribirle a una persona: se usan desde su ficha.
+      { id: "messages", icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
     ],
   },
   {
-    title: "Sesiones y clases",
+    id: "clases",
+    title: "Clases",
     items: [
       {
+        id: "courses",
         icon: GraduationCap,
         label: "Cursos",
         href: "/admin/curso/modulos",
         items: [
-          { icon: BookOpen, label: "Módulos", href: "/admin/curso/modulos" },
-          { icon: MessageCircle, label: "Comentarios", href: "/admin/curso/comentarios" },
+          { id: "modules", icon: BookOpen, label: "Módulos", href: "/admin/curso/modulos" },
+          { id: "comments", icon: MessageCircle, label: "Comentarios", href: "/admin/curso/comentarios" },
         ],
       },
-      // Talleres y webinar estaban en «Catálogo», junto a los precios. Se
-      // imparten, así que su sitio es este.
-      { icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
-      { icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
+      { id: "workshops", icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
+      { id: "webinar", icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
     ],
   },
   {
-    title: "Comunicación",
+    id: "herramientas",
+    title: "Herramientas",
+    collapsible: true,
     items: [
       {
+        id: "inbox",
         icon: Inbox,
         label: "Bandeja de entrada",
         href: "/admin/inbox",
         flag: "metaInbox",
       },
-      { icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
       {
+        id: "content",
         icon: Clapperboard,
         label: "Contenido",
         href: "/admin/contenido",
@@ -151,18 +177,33 @@ export const crmMenuSections: CrmMenuSection[] = [
       },
     ],
   },
-  {
-    title: "Sitio",
-    items: [
-      // "Ajustes" no va aquí: vive en el pie de la barra lateral, un único
-      // botón para toda la configuración. Tenerlo en los dos sitios era
-      // justo la duplicación que había que quitar.
-      {
-        icon: ExternalLink,
-        label: "Web pública",
-        href: "/",
-        external: true,
-      },
-    ],
-  },
 ];
+
+/**
+ * Los tres accesos de la barra inferior del móvil (el cuarto es siempre «Más»).
+ * Inicio lleva «Para hoy», que enlaza a diagnósticos, membresías y enlaces sin
+ * pasar por el menú.
+ */
+export const CRM_BOTTOM_TABS = ["home", "contacts", "payments"] as const satisfies readonly CrmMenuItemId[];
+
+export const findMenuItem = (id: CrmMenuItemId): CrmMenuItem | undefined => {
+  if (crmHomeItem.id === id) return crmHomeItem;
+  for (const section of crmMenuSections) {
+    for (const item of section.items) {
+      if (item.id === id) return item;
+      const child = item.items?.find((c) => c.id === id);
+      if (child) return child;
+    }
+  }
+  return undefined;
+};
+
+/**
+ * `/admin` sólo es activo con la ruta exacta; el resto, con sus descendientes.
+ * `exact` es para entradas cuya ruta es prefijo de otra del menú.
+ */
+export const isCrmPathActive = (pathname: string, href: string, exact?: boolean) => {
+  if (href === "/") return false;
+  if (href === "/admin" || exact) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+};
