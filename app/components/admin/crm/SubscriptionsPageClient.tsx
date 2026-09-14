@@ -2,16 +2,21 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Copy, RefreshCw } from "lucide-react";
+import { ChevronDown, Copy } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/app/components/ui/collapsible";
 import { displayContactPhone } from "@/lib/crm/contact-phone";
 import type {
   SubscriberRow,
   SubscriptionPlanRow,
 } from "@/lib/crm/subscriptions";
+import { cn } from "@/lib/utils";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmMaybeShell from "./CrmMaybeShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
@@ -27,17 +32,16 @@ import {
 } from "./ui";
 
 /**
- * Suscripciones: qué planes existen y quién se está cobrando por ellos.
+ * Suscripciones: quién se está cobrando cada mes, y con qué planes.
  *
- * Son dos preguntas y por eso son dos bloques. La de arriba no se podía
- * contestar en ninguna pantalla del panel, y es la que más pesa al decidir:
- * **un plan de suscripción no se borra**. Ni PayPal ni Mercado Pago lo
- * permiten, sólo desactivarlo. Así que antes de crear otro hay que poder ver
- * los que ya hay, y con su id — que es lo único con lo que se encuentran en el
- * panel del proveedor.
+ * Lo que se mira a diario —quién está suscrita y quién requiere atención— va
+ * primero. El catálogo de planes (ids, comisión, fecha de la última
+ * comprobación) es un dato técnico: sirve para buscar un plan en el panel del
+ * proveedor o antes de crear otro, y por eso va plegado debajo.
  *
- * La de abajo separa lo que Miembros mezcla: allí una fila dice si el acceso
- * está al día, y quien paga cada mes y quien pagó suelto se leen igual.
+ * **Un plan de suscripción no se borra**: ni PayPal ni Mercado Pago lo
+ * permiten, sólo desactivarlo. La comprobación de precio contra los
+ * proveedores vive en Paquetes, que es donde se cambia el precio.
  */
 
 type Props = {
@@ -89,8 +93,8 @@ const SubscriptionsPageClient = ({
 }: Props) => {
   const { toast } = useCrm();
   const [filter, setFilter] = useState<Filter>("todas");
-  const [verifying, setVerifying] = useState<string | null>(null);
-  const [rows, setRows] = useState(plans);
+  const [plansOpen, setPlansOpen] = useState(false);
+  const driftedPlans = plans.filter((p) => p.syncStatus === "DRIFTED").length;
 
   const copy = async (value: string, what: string) => {
     try {
@@ -98,43 +102,6 @@ const SubscriptionsPageClient = ({
       toast(`${what} copiado`);
     } catch {
       toast("No se pudo copiar", "error");
-    }
-  };
-
-  /**
-   * El viaje a los proveedores va aquí, a un botón, y no a la carga de la
-   * pantalla: son dos llamadas externas por producto, y el token de Mercado
-   * Pago es productivo incluso en desarrollo. Mirar no debe tocar la cuenta
-   * real; comprobar sí, porque se pide.
-   */
-  const verify = async (productId: string) => {
-    setVerifying(productId);
-    try {
-      const res = await fetch("/api/admin/products/verify-price-sync", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: productId }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        toast(data?.error ?? "No se pudo verificar", "error");
-        return;
-      }
-      toast(data.details ?? (data.inSync ? "Todo cuadra" : "Hay diferencias"));
-      setRows((prev) =>
-        prev.map((row) =>
-          row.productId === productId
-            ? {
-                ...row,
-                syncStatus: data.inSync ? "SYNCED" : "DRIFTED",
-                syncNote: data.inSync ? null : (data.details ?? null),
-                syncCheckedAt: new Date().toISOString(),
-              }
-            : row
-        )
-      );
-    } finally {
-      setVerifying(null);
     }
   };
 
@@ -157,114 +124,9 @@ const SubscriptionsPageClient = ({
       {!embedded && (
         <CrmPageHeader
           title="Suscripciones"
-          description="Los planes que existen en PayPal y Mercado Pago, y quién se está cobrando por ellos."
+          description="Quién se está cobrando cada mes, y con qué planes de PayPal y Mercado Pago."
         />
       )}
-
-      <section className="space-y-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-sm font-medium">Planes creados</h2>
-          <p className="text-xs text-muted-foreground">
-            Un plan no se puede borrar: ni PayPal ni Mercado Pago lo permiten,
-            sólo desactivarlo. Cambiar el precio reutiliza el plan que ya existe.
-          </p>
-        </div>
-
-        {rows.length === 0 ? (
-          <CrmEmptyState
-            title="No hay ningún plan de suscripción"
-            description="Se crean con los scripts de alta de PayPal y Mercado Pago, a partir del precio del producto."
-          />
-        ) : (
-          <CrmDataList>
-            <CrmDataListHeader>
-              <span className="w-56">Producto</span>
-              <span className="w-32">Pasarela</span>
-              <span className="w-32">Se anuncia</span>
-              <span className="w-36">El plan cobra</span>
-              <span className="w-24">Activas</span>
-            </CrmDataListHeader>
-
-            {rows.map((row) => (
-              <CrmDataListRow
-                key={`${row.productId}-${row.provider}`}
-                actions={
-                  <CrmRowActions>
-                    <CrmRowAction
-                      label="Copiar el id del plan"
-                      icon={Copy}
-                      onClick={() => copy(row.planId, "Id del plan")}
-                    />
-                    <CrmRowAction
-                      label="Verificar contra el proveedor"
-                      icon={RefreshCw}
-                      disabled={verifying === row.productId}
-                      onClick={() => verify(row.productId)}
-                    />
-                  </CrmRowActions>
-                }
-              >
-                <div className="w-56 min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {row.productTitle}
-                  </p>
-                  {/* El id es el dato con el que se busca el plan en el panel
-                      del proveedor. Viajaba al cliente y no se pintaba. */}
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    {row.planId}
-                  </p>
-                </div>
-
-                <span className="w-32 text-sm">
-                  {PROVIDER_LABEL[row.provider] ?? row.provider}
-                </span>
-
-                <span className="w-32 text-sm">
-                  {formatMoney(row.netMinor, row.currency)}
-                </span>
-
-                <div className="w-36">
-                  <p className="text-sm">
-                    {formatMoney(row.grossMinor, row.currency)}
-                  </p>
-                  {/* Anunciado y cobrado no son la misma cifra a propósito: el
-                      plan lleva la comisión dentro porque cobra un importe
-                      fijo. Enseñar sólo uno de los dos números hace parecer un
-                      error lo que es el diseño. */}
-                  <p className="text-xs text-muted-foreground">
-                    +{formatMoney(row.feeMinor, row.currency)} de comisión
-                  </p>
-                </div>
-
-                <span className="w-24 text-sm">{row.activeSubscribers}</span>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {!row.isActive && (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Producto inactivo
-                    </Badge>
-                  )}
-                  {row.syncStatus === "DRIFTED" ? (
-                    <Badge className="border-destructive/40 bg-destructive/10 text-destructive">
-                      Descuadrado
-                    </Badge>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Comprobado: {formatDate(row.syncCheckedAt)}
-                    </span>
-                  )}
-                </div>
-
-                {row.syncNote && (
-                  <p className="w-full text-xs text-destructive" role="alert">
-                    {row.syncNote}
-                  </p>
-                )}
-              </CrmDataListRow>
-            ))}
-          </CrmDataList>
-        )}
-      </section>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -307,10 +169,25 @@ const SubscriptionsPageClient = ({
             {visibleSubscribers.map((row) => {
               const chip = membershipChip(row);
               return (
-                <CrmDataListRow key={row.enrollmentId}>
+                <CrmDataListRow
+                  key={row.enrollmentId}
+                  actions={
+                    row.subscriptionRef ? (
+                      <CrmRowActions>
+                        <CrmRowAction
+                          icon={Copy}
+                          label="Copiar el id de la suscripción"
+                          onClick={() =>
+                            copy(row.subscriptionRef!, "Id de la suscripción")
+                          }
+                        />
+                      </CrmRowActions>
+                    ) : undefined
+                  }
+                >
                   <div className="w-56 min-w-0">
                     <Link
-                      href={`/admin/contacts/${row.contactId}`}
+                      href={preview ? "#" : `/admin/contacts/${row.contactId}`}
                       className="truncate text-sm font-medium hover:underline"
                     >
                       {row.name || displayContactPhone(row.phoneE164)}
@@ -351,20 +228,6 @@ const SubscriptionsPageClient = ({
                       {row.paymentsCount} pago(s)
                     </p>
                   </div>
-
-                  {row.subscriptionRef && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="font-mono text-xs text-muted-foreground"
-                      onClick={() =>
-                        copy(row.subscriptionRef!, "Id de la suscripción")
-                      }
-                    >
-                      {row.subscriptionRef}
-                    </Button>
-                  )}
                 </CrmDataListRow>
               );
             })}
@@ -387,6 +250,125 @@ const SubscriptionsPageClient = ({
           </CardContent>
         </Card>
       )}
+
+      <Collapsible open={plansOpen} onOpenChange={setPlansOpen}>
+        <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/50">
+          <span>
+            Detalles técnicos de los planes
+            {driftedPlans > 0 ? (
+              <Badge className="ml-2 border-destructive/40 bg-destructive/10 text-destructive">
+                {driftedPlans} descuadrado{driftedPlans === 1 ? "" : "s"}
+              </Badge>
+            ) : null}
+          </span>
+          <ChevronDown
+            aria-hidden
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground transition-transform",
+              plansOpen && "rotate-180"
+            )}
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3 pt-3">
+          <p className="text-xs text-muted-foreground">
+            Un plan no se puede borrar: ni PayPal ni Mercado Pago lo permiten,
+            sólo desactivarlo. Cambiar el precio reutiliza el plan que ya existe.
+            Para comprobar un precio contra los proveedores, ve a{" "}
+            <Link href="/admin/products" className="underline underline-offset-2">
+              Paquetes
+            </Link>
+            .
+          </p>
+
+          {plans.length === 0 ? (
+            <CrmEmptyState
+              title="No hay ningún plan de suscripción"
+              description="Se crean con los scripts de alta de PayPal y Mercado Pago, a partir del precio del producto."
+            />
+          ) : (
+            <CrmDataList>
+              <CrmDataListHeader>
+                <span className="w-56">Producto</span>
+                <span className="w-32">Pasarela</span>
+                <span className="w-32">Se anuncia</span>
+                <span className="w-36">El plan cobra</span>
+                <span className="w-24">Activas</span>
+              </CrmDataListHeader>
+
+              {plans.map((row) => (
+                <CrmDataListRow
+                  key={`${row.productId}-${row.provider}`}
+                  actions={
+                    <CrmRowActions>
+                      <CrmRowAction
+                        label="Copiar el id del plan"
+                        icon={Copy}
+                        onClick={() => copy(row.planId, "Id del plan")}
+                      />
+                    </CrmRowActions>
+                  }
+                >
+                  <div className="w-56 min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {row.productTitle}
+                    </p>
+                    {/* El id es el dato con el que se busca el plan en el panel
+                        del proveedor. */}
+                    <p className="truncate font-mono text-xs text-muted-foreground">
+                      {row.planId}
+                    </p>
+                  </div>
+
+                  <span className="w-32 text-sm">
+                    {PROVIDER_LABEL[row.provider] ?? row.provider}
+                  </span>
+
+                  <span className="w-32 text-sm">
+                    {formatMoney(row.netMinor, row.currency)}
+                  </span>
+
+                  <div className="w-36">
+                    <p className="text-sm">
+                      {formatMoney(row.grossMinor, row.currency)}
+                    </p>
+                    {/* Anunciado y cobrado no son la misma cifra a propósito: el
+                        plan lleva la comisión dentro porque cobra un importe
+                        fijo. */}
+                    <p className="text-xs text-muted-foreground">
+                      +{formatMoney(row.feeMinor, row.currency)} de comisión
+                    </p>
+                  </div>
+
+                  <span className="w-24 text-sm">{row.activeSubscribers}</span>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!row.isActive && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        Producto inactivo
+                      </Badge>
+                    )}
+                    {row.syncStatus === "DRIFTED" ? (
+                      <Badge className="border-destructive/40 bg-destructive/10 text-destructive">
+                        Descuadrado
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Comprobado: {formatDate(row.syncCheckedAt)}
+                      </span>
+                    )}
+                  </div>
+
+                  {row.syncNote && (
+                    <p className="w-full text-xs text-destructive" role="alert">
+                      {row.syncNote}
+                    </p>
+                  )}
+                </CrmDataListRow>
+              ))}
+            </CrmDataList>
+          )}
+        </CollapsibleContent>
+      </Collapsible>
     </CrmMaybeShell>
   );
 };

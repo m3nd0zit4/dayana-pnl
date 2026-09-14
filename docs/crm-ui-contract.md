@@ -6,9 +6,16 @@ página pública, cuatro de colocar el botón Guardar, cinco de decir «esto fal
 y veinte de decir «no hay nada aquí».
 
 **Estas reglas son verificables.** `e2e/crm-contract.spec.ts` las comprueba en
-las 15 rutas del CRM que funcionan en modo vista previa, y `bun run
+las 17 rutas del CRM que funcionan en modo vista previa, y `bun run
 check:tokens` caza la deriva de color que un navegador no puede detectar. Si
 cambias una regla, cambia también su test.
+
+**Y hay un criterio por encima de todas: menos botones, misma utilidad.** Quien
+usa el panel es Dayana, desde el teléfono y desde el computador. Cada pantalla
+tiene una sola acción principal; lo que se usa a diario está a la vista y lo
+que se usa de vez en cuando está a un toque (una hoja de filtros, un bloque
+plegado, el detalle). Antes de añadir un botón, pregunta dónde vive ya esa
+acción.
 
 ---
 
@@ -35,7 +42,7 @@ Ritmo vertical: `space-y-6` lo pone el shell. Dentro de una `Card`, `space-y-4`.
 Nada más.
 
 **Un solo `<h1>` por ruta, y lo pinta `CrmPageHeader`.** Nunca escribas uno a
-mano.
+mano. Vale también para Inicio: su `<h1>` es el saludo.
 
 ## R2 · Cabecera
 
@@ -50,6 +57,14 @@ Una sola disposición, sin variantes:
 otro sitio.** Usa `CrmNewButton`, que ya lleva el marcador
 `data-crm-primary-action`. Cualquier cosa que no cree algo — refrescar, marcar
 todo como leído, previsualizar — va en `secondaryActions`.
+
+«Crear» incluye registrar: en Pagos y en la ficha del contacto la primaria es
+«Registrar pago».
+
+**Pestañas en un detalle:** las pestañas (`CrmSegmentedControl`) van en
+`trailing`, dentro de la cabecera. Junto a ellas se admite **una** acción
+propia de la pestaña activa (p. ej. «Agregar servicio» en Servicios y pagos),
+como botón normal, no como primaria.
 
 ## R3 · Volver, no breadcrumbs
 
@@ -87,6 +102,10 @@ cabecera, merece un nombre.
 En móvil se apila con `flex-col-reverse`, así el primario queda arriba — donde
 llega el pulgar.
 
+**Detalles en lectura primero.** Una ficha abre mostrando los datos; el
+formulario aparece al pulsar «Editar», y eliminar vive dentro de ese modo, no
+en la vista por defecto.
+
 ### El campo se escribe con `CrmField`, no a mano
 
 ```tsx
@@ -116,12 +135,15 @@ barrida.
 ## R6 · Acciones de fila
 
 Solo icono, `variant="ghost" size="icon-sm"`, siempre con `aria-label` **y**
-`title`.
+`title`. **Como mucho tres por fila**; la fila entera es el enlace al detalle,
+así que «Ver»/«Gestionar» no es una acción.
 
 Orden fijo: **previsualizar → propias → editar → eliminar.** Eliminar siempre
 el último, lejos de donde el dedo va por inercia.
 
-No hay menú de desbordamiento «…». No lo añadas.
+No hay menú de desbordamiento «…». No lo añadas: si una fila necesita más de
+tres acciones, las que sobran van al detalle o a un diálogo que las agrupe
+(p. ej. «Acceso al portal» en Membresías agrupa invitar y generar contraseña).
 
 ## R7 · Destructivo
 
@@ -204,15 +226,42 @@ en `CrmDataList`. «Se ve mejor» no basta.
 | Error de campo | `CrmField error="…"` — lo pinta él (`role="alert"`, ver R5) |
 | **Éxito** | **siempre toast** |
 
-Nunca texto verde en línea para el éxito.
+Nunca texto verde en línea para el éxito. Y una explicación se dice una vez:
+si ya está en la descripción de la cabecera, no se repite en un aviso debajo.
 
 ## R10 · Paginación, pestañas, filtros
 
 - **Paginación:** `CrmLoadMore`. Un solo estilo.
 - **Pestañas:** `CrmSegmentedControl`. Ni `Tabs` crudo ni `role="tablist"` a
   mano.
-- **Filtros:** `CrmFilterBar` — búsqueda primero, luego selects, recuento a la
+- **Filtros:** `CrmFilterBar` — búsqueda primero, luego filtros, recuento a la
   derecha. **Se filtra al cambiar, sin botón de enviar.**
+  - **A la vista, como mucho dos filtros**: los que son destino de un aviso de
+    «Para hoy» (p. ej. «Sin identificar» en Pagos).
+  - **El resto va en `CrmFilterSheet`**: un botón «Filtros» con el número de
+    filtros puestos, que abre una hoja (desde abajo en móvil, desde la derecha
+    en escritorio) con «Limpiar filtros». Exportar lo filtrado va en el pie de
+    esa hoja, no en la cabecera.
+
+---
+
+## Navegación
+
+El menú, el grupo plegado y la barra inferior del móvil salen de
+`app/config/crm-menu-items.ts`. Nada de listas de enlaces escritas a mano en
+otro sitio.
+
+- **Cada entrada tiene un `id` estable.** Lo que necesite una entrada concreta
+  la busca con `findMenuItem(id)`, nunca por el título del grupo.
+- **Grupos por uso diario:** Ventas, Personas, Clases. Lo que se usa poco va
+  en **Herramientas** (`collapsible: true`), plegado por defecto y abierto solo
+  cuando la página actual es suya.
+- **Barra inferior (móvil):** `CRM_BOTTOM_TABS` — Inicio, Contactos, Pagos — y
+  «Más», que abre el menú completo. Es el único botón que abre el menú en el
+  móvil.
+- **Sin duplicados de chrome:** la web pública se abre desde el icono de la
+  barra superior; la cuenta propia, desde Ajustes. Una sola búsqueda por
+  pantalla (en Contactos la de la página sustituye a la de la barra).
 
 ---
 
@@ -248,20 +297,24 @@ tendrás que ponerlos tú — o mejor, usa el primitivo.
 | `data-crm-public-link` | `CrmPublicLink` |
 | `data-crm-empty` | `CrmEmptyState` |
 | `data-crm-form-actions` | `CrmFormActions`, `CrmConfirmDialog` |
+| `data-crm-filter-bar` | `CrmFilterBar` |
 
 ## Excepciones
 
-`/admin` (el panel de inicio) está en `CONTRACT_EXEMPT`. No es una página de
-lista: su `<h1>` es un saludo centrado sobre el cuadro del agente. Meterlo en
-`CrmPageHeader` no lo haría más consistente, lo convertiría en otra pantalla.
+Ninguna. Inicio estuvo exento mientras su saludo era un `<h1>` suelto; desde
+que la portada abre con `CrmPageHeader` (saludo y fecha) cumple el contrato
+como las demás.
 
-Añadir algo a esa lista exige explicar por qué la regla no aplica — no basta
-con que falle.
+Añadir algo a `CONTRACT_EXEMPT` exige explicar por qué la regla no aplica — no
+basta con que falle.
 
 ## Cobertura
 
-- **Tier A (15 rutas)** — funcionan con `CRM_UI_PREVIEW=true` sin base de
+- **Tier A (17 rutas)** — funcionan con `CRM_UI_PREVIEW=true` sin base de
   datos. El contrato se comprueba en cada PR.
 - **Tier B (12 rutas)** — detalle de contacto e inscripción, bandeja de
   entrada, contenido y todo `ajustes`. Necesitan sesión real, así que hoy no
   tienen cobertura automática: **revísalas a mano** al tocarlas.
+- **Vista previa = solo lectura.** En preview nadie tiene rol de escritura, así
+  que los botones de crear y registrar no se pintan. Lo que depende de permisos
+  (Registrar pago, Editar, Nuevo miembro) hay que revisarlo con sesión real.

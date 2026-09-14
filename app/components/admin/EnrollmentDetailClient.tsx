@@ -40,7 +40,7 @@ const EnrollmentDetailClient = ({
     }[];
   };
 }) => {
-  const { canWrite, toast, confirm } = useCrm();
+  const { canWrite, canRecordPayments, toast, confirm } = useCrm();
   const router = useRouter();
   const [enrollment, setEnrollment] = useState(initial);
   const [deleting, setDeleting] = useState(false);
@@ -212,9 +212,12 @@ const EnrollmentDetailClient = ({
                   </p>
                 )}
               </div>
-              <Button size="sm" disabled={deleting} onClick={() => setPaymentOpen(true)}>
-                {hasApprovedPayment ? "Registrar otro pago" : "Registrar pago"}
-              </Button>
+              {/* Sólo OWNER y OPERATOR: la API de pagos manuales rechaza al resto. */}
+              {canRecordPayments ? (
+                <Button size="sm" disabled={deleting} onClick={() => setPaymentOpen(true)}>
+                  {hasApprovedPayment ? "Registrar otro pago" : "Registrar pago"}
+                </Button>
+              ) : null}
             </div>
 
             {needsPayment && (

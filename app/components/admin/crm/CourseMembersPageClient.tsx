@@ -15,7 +15,6 @@ import { useCallback, useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import ContactPickerField from "./ContactPickerField";
@@ -23,9 +22,17 @@ import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmMaybeShell from "./CrmMaybeShell";
 import CrmModal from "./CrmModal";
-import RegisterPaymentModal from "./RegisterPaymentModal";
+import RegisterPaymentFlow from "./RegisterPaymentFlow";
 import { useCrm } from "./CrmProvider";
-import { CrmEmptyState, CrmPublicLink } from "./ui";
+import {
+  CrmDataList,
+  CrmDataListRow,
+  CrmEmptyState,
+  CrmFormActions,
+  CrmPublicLink,
+  CrmRowAction,
+  CrmRowActions,
+} from "./ui";
 import { membershipChip } from "./membership-chip";
 
 export type MemberFilter = "vencidas" | "por-vencer";
@@ -41,6 +48,12 @@ type Props = {
   embedded?: boolean;
   /** Filtro con el que llega desde «Para hoy». */
   initialFilter?: MemberFilter | null;
+  /**
+   * Embebido, el botón «Nuevo miembro» lo pinta la cabecera de Membresías y
+   * este componente sólo abre el diálogo.
+   */
+  newMemberOpen?: boolean;
+  onNewMemberOpenChange?: (open: boolean) => void;
 };
 
 const formatDate = (iso: string | null) =>
@@ -54,6 +67,17 @@ const toDateInputValue = (iso: string | null) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+const memberName = (row: CourseMemberRow) =>
+  `${row.contact.firstName} ${row.contact.lastName ?? ""}`.trim();
+
+/**
+ * Miembros del curso.
+ *
+ * Cada fila tenía cuatro botones con texto —Invitar, Otorgar acceso, Registrar
+ * pago, Ajustar vigencia— y dos de ellos eran la misma pregunta: cómo entra
+ * esta persona al portal. Ahora son tres iconos: acceso al portal (que agrupa
+ * invitar y la contraseña directa), pago y vigencia.
+ */
 const CourseMembersPageClient = ({
   preview,
   courseTitle,
@@ -61,8 +85,10 @@ const CourseMembersPageClient = ({
   initialMembers,
   embedded = false,
   initialFilter = null,
+  newMemberOpen: controlledNewMemberOpen,
+  onNewMemberOpenChange,
 }: Props) => {
-  const { canWrite, toast } = useCrm();
+  const { canWrite, canRecordPayments, toast } = useCrm();
   const [rows, setRows] = useState<CourseMemberRow[]>(initialMembers);
   /*
     Mismo criterio que la cuenta de «Para hoy» (`lib/crm/pendientes.ts`):
@@ -83,25 +109,43 @@ const CourseMembersPageClient = ({
             ? until < nowMs
             : until >= nowMs && until < nowMs + WEEK_MS;
         });
-  const [invitingId, setInvitingId] = useState<string | null>(null);
-  const [paymentTarget, setPaymentTarget] = useState<CourseMemberRow | null>(
-    null
-  );
-  const [adjustTarget, setAdjustTarget] = useState<CourseMemberRow | null>(
-    null
-  );
+  const [accessTarget, setAccessTarget] = useState<CourseMemberRow | null>(null);
+  const [inviting, setInviting] = useState(false);
+  const [granting, setGranting] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<CourseMemberRow | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<CourseMemberRow | null>(null);
   const [adjustDate, setAdjustDate] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
-  const [grantingId, setGrantingId] = useState<string | null>(null);
   const [grantedAccess, setGrantedAccess] = useState<{
     name: string;
     email: string | null;
     password: string;
   } | null>(null);
-  const [newMemberOpen, setNewMemberOpen] = useState(false);
+  const [localNewMemberOpen, setLocalNewMemberOpen] = useState(false);
+  const newMemberOpen = controlledNewMemberOpen ?? localNewMemberOpen;
+  const setNewMemberOpen = (open: boolean) =>
+    onNewMemberOpenChange ? onNewMemberOpenChange(open) : setLocalNewMemberOpen(open);
   const [newMemberContactId, setNewMemberContactId] = useState("");
   const [newMemberError, setNewMemberError] = useState<string | null>(null);
   const [newMemberBusy, setNewMemberBusy] = useState(false);
+
+  // Cada vez que se abre el diálogo, empieza limpio.
+  const [wasNewMemberOpen, setWasNewMemberOpen] = useState(newMemberOpen);
+  if (newMemberOpen !== wasNewMemberOpen) {
+    setWasNewMemberOpen(newMemberOpen);
+    if (newMemberOpen) {
+      setNewMemberContactId("");
+      setNewMemberError(null);
+    }
+  }
+
+  const reload = useCallback(async () => {
+    if (preview) return;
+    const res = await fetch("/api/admin/lms/members");
+    if (!res.ok) return;
+    const data = (await res.json()) as { members?: CourseMemberRow[] };
+    if (data.members) setRows(data.members);
+  }, [preview]);
 
   const addMember = async () => {
     if (!newMemberContactId || !courseProductId) return;
@@ -132,21 +176,13 @@ const CourseMembersPageClient = ({
     void reload();
   };
 
-  const reload = useCallback(async () => {
-    if (preview) return;
-    const res = await fetch("/api/admin/lms/members");
-    if (!res.ok) return;
-    const data = (await res.json()) as { members?: CourseMemberRow[] };
-    if (data.members) setRows(data.members);
-  }, [preview]);
-
   const invite = async (row: CourseMemberRow) => {
-    setInvitingId(row.contact.id);
+    setInviting(true);
     const res = await fetch(
       `/api/admin/lms/members/${row.contact.id}/invite`,
       { method: "POST" }
     );
-    setInvitingId(null);
+    setInviting(false);
     if (!res.ok) {
       const data = (await res.json().catch(() => null)) as {
         error?: string;
@@ -160,22 +196,24 @@ const CourseMembersPageClient = ({
       return;
     }
     toast("Invitación enviada");
+    setAccessTarget(null);
   };
 
   const grantAccess = async (row: CourseMemberRow) => {
-    setGrantingId(row.contact.id);
+    setGranting(true);
     const res = await fetch(
       `/api/admin/lms/members/${row.contact.id}/grant-access`,
       { method: "POST" }
     );
-    setGrantingId(null);
+    setGranting(false);
     if (!res.ok) {
       toast("No se pudo otorgar el acceso", "error");
       return;
     }
     const data = (await res.json()) as { email: string | null; password: string };
+    setAccessTarget(null);
     setGrantedAccess({
-      name: `${row.contact.firstName} ${row.contact.lastName ?? ""}`.trim(),
+      name: memberName(row),
       email: data.email,
       password: data.password,
     });
@@ -206,174 +244,183 @@ const CourseMembersPageClient = ({
     void reload();
   };
 
-  const newMemberAction =
-    !preview && canWrite && courseProductId ? (
-      <CrmNewButton
-        label="Nuevo miembro"
-        icon={UserPlus}
-        onClick={() => {
-          setNewMemberError(null);
-          setNewMemberContactId("");
-          setNewMemberOpen(true);
-        }}
-      />
-    ) : undefined;
-
   return (
     <CrmMaybeShell embedded={embedded}>
-      {embedded ? (
-        newMemberAction ? (
-          <div className="flex justify-end">{newMemberAction}</div>
-        ) : null
-      ) : (
+      {!embedded && (
         <CrmPageHeader
           title="Curso · Miembros"
           description={`Membresías mensuales de «${courseTitle}». Cada pago aprobado suma un mes de acceso al portal.`}
           secondaryActions={
             <CrmPublicLink href="/cursos" label="Ver cursos en la web" />
           }
-          action={newMemberAction}
+          action={
+            !preview && canWrite && courseProductId ? (
+              <CrmNewButton
+                label="Nuevo miembro"
+                icon={UserPlus}
+                onClick={() => setNewMemberOpen(true)}
+              />
+            ) : undefined
+          }
         />
       )}
 
-      <div className="space-y-6">
-        <Card className="overflow-hidden py-0">
-          <CardContent className="divide-y divide-border p-0">
-            {filter !== null && (
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-                <span>
-                  {filter === "vencidas"
-                    ? "Membresías vencidas"
-                    : "Membresías que vencen esta semana"}
-                  : {visibleRows.length}
-                </span>
-                <button
-                  type="button"
-                  className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
-                  onClick={() => setFilter(null)}
-                >
-                  Ver todas
-                </button>
-              </div>
-            )}
-            {rows.length === 0 && (
-              <CrmEmptyState
-                icon={GraduationCap}
-                title="Sin miembros todavía"
-                description="Se crean al pagar el curso o al vincular el producto desde un contacto."
-              />
-            )}
-            {visibleRows.map((row) => {
-              const chip = membershipChip(row);
-              return (
-                <div key={row.enrollmentId} className="p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <Link
-                        href={preview ? "#" : `/admin/contacts/${row.contact.id}`}
-                        className="text-sm font-semibold hover:underline"
-                      >
-                        {row.contact.firstName} {row.contact.lastName ?? ""}
-                      </Link>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {row.contact.email ?? "Sin email"} ·{" "}
-                        {displayContactPhone(row.contact.phoneE164) ?? "Sin teléfono"}
-                      </div>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-                        <span>
-                          Último pago: {formatDate(row.lastPaymentAt)} (
-                          {row.paymentsCount})
-                        </span>
-                        <span>
-                          Cuenta portal:{" "}
-                          {row.hasAccount ? "activa" : "sin crear"}
-                        </span>
-                      </div>
-                    </div>
+      {filter !== null && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm">
+          <span>
+            {filter === "vencidas"
+              ? "Membresías vencidas"
+              : "Membresías que vencen esta semana"}
+            : {visibleRows.length}
+          </span>
+          <button
+            type="button"
+            className="text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            onClick={() => setFilter(null)}
+          >
+            Ver todas
+          </button>
+        </div>
+      )}
 
-                    <div className="text-right">
-                      <Badge className={chip.cls}>{chip.label}</Badge>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Vigente hasta: {formatDate(row.paidUntil)}
-                      </div>
-
-                      {!preview && canWrite && (
-                        <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={
-                              invitingId === row.contact.id ||
-                              !row.contact.email
-                            }
-                            onClick={() => invite(row)}
-                            title={
-                              row.contact.email
-                                ? undefined
-                                : "El contacto no tiene email"
-                            }
-                          >
-                            <Mail aria-hidden />
-                            {invitingId === row.contact.id
-                              ? "Enviando…"
-                              : row.hasAccount
-                                ? "Reenviar acceso"
-                                : "Invitar"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={grantingId === row.contact.id}
-                            onClick={() => void grantAccess(row)}
-                            title="Genera una contraseña directa, sin depender del correo"
-                          >
-                            <KeyRound aria-hidden />
-                            {grantingId === row.contact.id
-                              ? "Generando…"
-                              : "Otorgar acceso"}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
+      <CrmDataList>
+        {rows.length === 0 ? (
+          <CrmEmptyState
+            icon={GraduationCap}
+            title="Sin miembros todavía"
+            description="Se crean al pagar el curso o al vincular el producto desde un contacto."
+          />
+        ) : (
+          visibleRows.map((row) => {
+            const chip = membershipChip(row);
+            return (
+              <CrmDataListRow
+                key={row.enrollmentId}
+                className="items-start"
+                actions={
+                  !preview && canWrite ? (
+                    <CrmRowActions>
+                      <CrmRowAction
+                        icon={KeyRound}
+                        label="Acceso al portal"
+                        onClick={() => setAccessTarget(row)}
+                      />
+                      {canRecordPayments ? (
+                        <>
+                          <CrmRowAction
+                            icon={CreditCard}
+                            label="Registrar pago"
                             onClick={() => setPaymentTarget(row)}
-                          >
-                            <CreditCard aria-hidden />
-                            Registrar pago
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
+                          />
+                          <CrmRowAction
+                            icon={CalendarClock}
+                            label="Ajustar vigencia"
                             onClick={() => {
                               setAdjustTarget(row);
                               setAdjustDate(toDateInputValue(row.paidUntil));
                             }}
-                          >
-                            <CalendarClock aria-hidden />
-                            Ajustar vigencia
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+                          />
+                        </>
+                      ) : null}
+                    </CrmRowActions>
+                  ) : undefined
+                }
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={preview ? "#" : `/admin/contacts/${row.contact.id}`}
+                      className="text-sm font-semibold hover:underline"
+                    >
+                      {memberName(row)}
+                    </Link>
+                    <Badge className={chip.cls}>{chip.label}</Badge>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    Vigente hasta {formatDate(row.paidUntil)} · Último pago{" "}
+                    {formatDate(row.lastPaymentAt)} ({row.paymentsCount})
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {row.contact.email ?? "Sin email"} ·{" "}
+                    {displayContactPhone(row.contact.phoneE164) ?? "Sin teléfono"} ·
+                    Portal: {row.hasAccount ? "cuenta activa" : "sin cuenta"}
                   </div>
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      </div>
+              </CrmDataListRow>
+            );
+          })
+        )}
+      </CrmDataList>
 
       {paymentTarget && (
-        <RegisterPaymentModal
+        <RegisterPaymentFlow
           open={!!paymentTarget}
           onClose={() => setPaymentTarget(null)}
-          enrollmentId={paymentTarget.enrollmentId}
-          productTitle={courseTitle}
-          contactName={`${paymentTarget.contact.firstName} ${paymentTarget.contact.lastName ?? ""}`.trim()}
-          suggestedAmountMinor={paymentTarget.amountMinor}
-          currency={paymentTarget.currency ?? "USD"}
+          contact={{ id: paymentTarget.contact.id, name: memberName(paymentTarget) }}
+          enrollment={{
+            id: paymentTarget.enrollmentId,
+            productTitle: courseTitle,
+            amountMinor: paymentTarget.amountMinor,
+            currency: paymentTarget.currency ?? "USD",
+          }}
           onSuccess={() => void reload()}
         />
       )}
+
+      <CrmModal
+        title="Acceso al portal"
+        open={!!accessTarget}
+        onClose={() => setAccessTarget(null)}
+      >
+        {accessTarget && (
+          <div className="space-y-4 text-sm">
+            <p className="text-muted-foreground">
+              <strong className="font-medium text-foreground">
+                {memberName(accessTarget)}
+              </strong>{" "}
+              {accessTarget.hasAccount
+                ? "ya tiene cuenta en el portal."
+                : "todavía no tiene cuenta en el portal."}
+            </p>
+            <div className="space-y-2">
+              <Button
+                className="w-full"
+                disabled={inviting || !accessTarget.contact.email}
+                onClick={() => void invite(accessTarget)}
+              >
+                <Mail aria-hidden />
+                {inviting
+                  ? "Enviando…"
+                  : accessTarget.hasAccount
+                    ? "Reenviar acceso por correo"
+                    : "Enviar invitación por correo"}
+              </Button>
+              {!accessTarget.contact.email ? (
+                <p className="text-xs text-muted-foreground">
+                  No tiene email: genera una contraseña y compártela por WhatsApp.
+                </p>
+              ) : null}
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={granting}
+                onClick={() => void grantAccess(accessTarget)}
+              >
+                <KeyRound aria-hidden />
+                {granting ? "Generando…" : "Generar contraseña directa"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                La contraseña se muestra una sola vez, sin depender del correo.
+              </p>
+            </div>
+            <CrmFormActions>
+              <Button variant="ghost" onClick={() => setAccessTarget(null)}>
+                Cerrar
+              </Button>
+            </CrmFormActions>
+          </div>
+        )}
+      </CrmModal>
 
       <CrmModal
         title="Ajustar vigencia"
@@ -383,28 +430,26 @@ const CourseMembersPageClient = ({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Fija hasta cuándo tiene acceso{" "}
-            <strong>
-              {adjustTarget?.contact.firstName}{" "}
-              {adjustTarget?.contact.lastName ?? ""}
-            </strong>
+            <strong>{adjustTarget ? memberName(adjustTarget) : ""}</strong>
             . Deja el campo vacío para quitar la vigencia.
           </p>
           <div className="space-y-1.5">
-            <Label>Vigente hasta</Label>
+            <Label htmlFor="adjust-paid-until">Vigente hasta</Label>
             <Input
+              id="adjust-paid-until"
               type="date"
               value={adjustDate}
               onChange={(e) => setAdjustDate(e.target.value)}
             />
           </div>
-          <div className="flex justify-end gap-2">
+          <CrmFormActions>
             <Button variant="outline" onClick={() => setAdjustTarget(null)}>
               Cancelar
             </Button>
             <Button disabled={adjustSaving} onClick={() => void saveAdjust()}>
               {adjustSaving ? "Guardando…" : "Guardar"}
             </Button>
-          </div>
+          </CrmFormActions>
         </div>
       </CrmModal>
 
@@ -430,16 +475,16 @@ const CourseMembersPageClient = ({
             required
           />
           <p className="text-xs text-muted-foreground">
-            Se crea la inscripción al curso sin vigencia. Después registra su
-            pago («Registrar pago») o fija la fecha («Ajustar vigencia») y
-            envíale el acceso al portal.
+            Se crea la inscripción al curso sin vigencia. Después, desde su
+            fila, registra el pago o ajusta la vigencia, y envíale el acceso al
+            portal.
           </p>
           {newMemberError && (
             <p className="text-sm text-destructive" role="alert">
               {newMemberError}
             </p>
           )}
-          <div className="flex justify-end gap-2">
+          <CrmFormActions>
             <Button variant="outline" onClick={() => setNewMemberOpen(false)}>
               Cancelar
             </Button>
@@ -449,7 +494,7 @@ const CourseMembersPageClient = ({
             >
               {newMemberBusy ? "Agregando…" : "Agregar miembro"}
             </Button>
-          </div>
+          </CrmFormActions>
         </div>
       </CrmModal>
 
@@ -486,9 +531,9 @@ const CourseMembersPageClient = ({
                 </Button>
               </div>
             </div>
-            <div className="flex justify-end">
+            <CrmFormActions>
               <Button onClick={() => setGrantedAccess(null)}>Listo</Button>
-            </div>
+            </CrmFormActions>
           </div>
         )}
       </CrmModal>

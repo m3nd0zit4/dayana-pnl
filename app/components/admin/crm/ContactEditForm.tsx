@@ -7,6 +7,8 @@ import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import ContactFormFields from "./ContactFormFields";
+import { useCrm } from "./CrmProvider";
+import { CrmFormActions } from "./ui";
 
 type Contact = {
   id: string;
@@ -27,7 +29,23 @@ type Contact = {
   consentMarketingAt: Date | null;
 };
 
-const ContactEditForm = ({ contact }: { contact: Contact }) => {
+type Props = {
+  contact: Contact;
+  /** Vuelve a la vista de solo lectura sin guardar. */
+  onCancel?: () => void;
+  /** Tras guardar: la ficha refresca y vuelve a la vista de solo lectura. */
+  onSaved?: () => void;
+};
+
+/**
+ * Edición de los datos de un contacto.
+ *
+ * Antes era la vista por defecto de la ficha: catorce campos abiertos para
+ * mirar un teléfono. Ahora se abre con «Editar» y, al guardar, confirma con un
+ * aviso (regla R9) en vez de un «Guardado» verde pegado al botón.
+ */
+const ContactEditForm = ({ contact, onCancel, onSaved }: Props) => {
+  const { toast } = useCrm();
   // Cuenta creada con Google/correo: el "teléfono" es un placeholder
   // (+google:/+signup:) — arrancar el campo vacío y permitir capturarlo.
   const phoneMissing = !hasRealContactPhone(contact.phoneE164);
@@ -35,7 +53,6 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
     const initial = contactToFormValues(contact);
     return phoneMissing ? { ...initial, phone: "" } : initial;
   });
-  const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +63,6 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setSaved(false);
     setError(null);
     const res = await fetch(`/api/admin/contacts/${contact.id}`, {
       method: "PATCH",
@@ -82,14 +98,15 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
       );
       return;
     }
-    setSaved(true);
+    toast("Cambios guardados");
+    onSaved?.();
   };
 
   return (
-    <Card className="mb-8 border-l-4 border-l-accent">
+    <Card>
       <CardContent>
         <form onSubmit={save} className="space-y-4">
-          <h2 className="text-sm font-semibold">Datos del contacto</h2>
+          <h2 className="text-sm font-semibold">Editar datos</h2>
           <ContactFormFields
             values={values}
             onChange={patch}
@@ -101,12 +118,16 @@ const ContactEditForm = ({ contact }: { contact: Contact }) => {
               {error}
             </p>
           )}
-          <div className="flex items-center gap-3">
+          <CrmFormActions>
+            {onCancel ? (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+                Cancelar
+              </Button>
+            ) : null}
             <Button type="submit" disabled={loading}>
               {loading ? "Guardando…" : "Guardar cambios"}
             </Button>
-            {saved && <span className="text-sm text-green-700">Guardado</span>}
-          </div>
+          </CrmFormActions>
         </form>
       </CardContent>
     </Card>

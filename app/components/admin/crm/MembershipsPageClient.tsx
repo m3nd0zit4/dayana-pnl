@@ -1,21 +1,26 @@
 "use client";
 
+import { UserPlus } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import type { CourseMemberRow } from "@/lib/lms/course-admin";
 import type { SubscriberRow, SubscriptionPlanRow } from "@/lib/crm/subscriptions";
 import CourseMembersPageClient, { type MemberFilter } from "./CourseMembersPageClient";
+import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import { useCrm } from "./CrmProvider";
 import CrmSegmentedControl from "./CrmSegmentedControl";
 import SubscriptionsPageClient from "./SubscriptionsPageClient";
 import { CrmPublicLink } from "./ui";
 
 export type MembershipsTab = "personas" | "planes";
 
+// Los ids de pestaña se quedan como estaban (`?tab=planes`): las rutas antiguas
+// redirigen a ellos y hay enlaces compartidos. Sólo cambia lo que se lee.
 const SEGMENTS = [
-  { id: "personas", label: "Personas" },
-  { id: "planes", label: "Planes" },
+  { id: "personas", label: "Miembros" },
+  { id: "planes", label: "Suscripciones" },
 ] as const;
 
 type Props = {
@@ -30,15 +35,14 @@ type Props = {
 };
 
 /**
- * Membresías: quién tiene acceso y qué cobros recurrentes lo sostienen.
+ * Membresías: quién tiene acceso y quién paga cada mes.
  *
  * Eran dos pantallas —«Miembros» y «Suscripciones»— que leían las mismas
- * matrículas y se diferenciaban en el orden y en que una dejaba escribir. Aquí
- * son dos pestañas de la misma pantalla, cada una con la pregunta que contesta.
+ * matrículas. Aquí son dos pestañas de la misma pantalla.
  *
- * La pestaña vive en la URL (`?tab=planes`) para que las rutas antiguas puedan
- * redirigir a la pestaña que les corresponde y un enlace compartido abra donde
- * se dejó.
+ * «Nuevo miembro» vive en esta cabecera, no dentro de la pestaña: una acción
+ * de crear pintada suelta en el cuerpo es justo lo que el contrato (R2)
+ * prohíbe, y en la vista previa nadie lo veía porque ahí no se pinta.
  */
 const MembershipsPageClient = ({
   preview,
@@ -52,7 +56,9 @@ const MembershipsPageClient = ({
 }: Props) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { canWrite } = useCrm();
   const [tab, setTab] = useState<MembershipsTab>(initialTab);
+  const [newMemberOpen, setNewMemberOpen] = useState(false);
 
   const changeTab = (next: MembershipsTab) => {
     setTab(next);
@@ -67,8 +73,17 @@ const MembershipsPageClient = ({
     <CrmPageShell>
       <CrmPageHeader
         title="Membresías"
-        description={`Quién tiene acceso a «${courseTitle}» y los planes de cobro recurrente que lo sostienen.`}
+        description={`Quién tiene acceso a «${courseTitle}» y quién paga cada mes.`}
         secondaryActions={<CrmPublicLink href="/cursos" label="Ver cursos en la web" />}
+        action={
+          tab === "personas" && !preview && canWrite && courseProductId ? (
+            <CrmNewButton
+              label="Nuevo miembro"
+              icon={UserPlus}
+              onClick={() => setNewMemberOpen(true)}
+            />
+          ) : undefined
+        }
       />
 
       <CrmSegmentedControl segments={SEGMENTS} value={tab} onChange={changeTab} />
@@ -81,6 +96,8 @@ const MembershipsPageClient = ({
           courseProductId={courseProductId}
           initialMembers={members}
           initialFilter={memberFilter}
+          newMemberOpen={newMemberOpen}
+          onNewMemberOpenChange={setNewMemberOpen}
         />
       ) : (
         <SubscriptionsPageClient

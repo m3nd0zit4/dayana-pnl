@@ -69,7 +69,10 @@ export const CRM_ROUTES: CrmRoute[] = [
     tier: "preview",
     expectEmpty: true,
   },
-  { path: "/admin/payments", name: "Pagos", tier: "preview" },
+  // «Registrar pago» es la acción primaria de Pagos. En preview no se pinta
+  // (sin rol de escritura), pero la regla de que no haya otra fuera de la
+  // cabecera se comprueba igual.
+  { path: "/admin/payments", name: "Pagos", tier: "preview", hasPrimaryAction: true },
   // Las dos pantallas más nuevas del panel, y las últimas en entrar aquí: se
   // construyeron después de este manifiesto, así que nadie comprobaba que
   // cumplieran el contrato de cabecera.

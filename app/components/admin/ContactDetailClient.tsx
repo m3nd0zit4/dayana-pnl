@@ -2,21 +2,25 @@
 
 import type { ContactSource } from "@prisma/client";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Copy, CreditCard, MessageCircle, Pencil, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import ContactEditForm from "@/app/components/admin/crm/ContactEditForm";
 import DeleteContactDialog from "@/app/components/admin/crm/DeleteContactDialog";
 import QuickMessagesPanel from "@/app/components/admin/crm/QuickMessagesPanel";
-import WhatsAppContactBlock from "@/app/components/admin/crm/WhatsAppContactBlock";
+import CrmNewButton from "@/app/components/admin/crm/CrmNewButton";
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmSegmentedControl from "@/app/components/admin/crm/CrmSegmentedControl";
-import RegisterPaymentModal from "@/app/components/admin/crm/RegisterPaymentModal";
+import RegisterPaymentFlow from "@/app/components/admin/crm/RegisterPaymentFlow";
 import AddEnrollmentModal from "@/app/components/admin/crm/AddEnrollmentModal";
-import CrmModal from "@/app/components/admin/crm/CrmModal";
-import SearchableSelect from "@/app/components/admin/crm/SearchableSelect";
 import { formatMoneyMinor } from "@/lib/crm/money";
-import { contactDeleteConfirmationTarget } from "@/lib/crm/contact-phone";
+import {
+  contactDeleteConfirmationTarget,
+  displayContactPhone,
+} from "@/lib/crm/contact-phone";
+import { contactFilterSourceSelectOptions } from "@/lib/crm/form-select-options";
+import { formatCountryLabel } from "@/lib/countries";
+import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { Button } from "@/app/components/ui/button";
@@ -88,6 +92,18 @@ const webinarSendSummary = (r: WebinarRegistrationRow): string => {
   return done.length ? `Enviado: ${done.join(", ")}` : "Sin correos aún";
 };
 
+/** «2 pagos · 160 USD» con lo aprobado; lo rechazado no cuenta como cobrado. */
+const paymentSummary = (en: Enrollment): string => {
+  const approved = en.payments.filter((p) => p.status === "APPROVED");
+  if (approved.length === 0) return "Sin pagos";
+  const label = `${approved.length} ${approved.length === 1 ? "pago" : "pagos"}`;
+  const currency = approved[0].currency;
+  // Nunca se suman monedas distintas: el número no significaría nada.
+  if (approved.some((p) => p.currency !== currency)) return label;
+  const total = approved.reduce((sum, p) => sum + p.amountMinor, 0);
+  return `${label} · ${formatMoneyMinor(total, currency)} ${currency}`;
+};
+
 const WebinarServiceRow = ({ r }: { r: WebinarRegistrationRow }) => (
   <Link
     href="/admin/webinar"
@@ -103,30 +119,53 @@ const WebinarServiceRow = ({ r }: { r: WebinarRegistrationRow }) => (
   </Link>
 );
 
+const DataField = ({
+  label,
+  children,
+  wide = false,
+}: {
+  label: string;
+  children: ReactNode;
+  wide?: boolean;
+}) => (
+  <div className={wide ? "sm:col-span-2" : undefined}>
+    <dt className="text-xs text-muted-foreground">{label}</dt>
+    <dd className="mt-0.5 break-words">{children}</dd>
+  </div>
+);
+
 const TABS = [
   { id: "resumen" as const, label: "Resumen" },
-  { id: "servicios" as const, label: "Servicios" },
-  { id: "pagos" as const, label: "Pagos" },
+  { id: "servicios" as const, label: "Servicios y pagos" },
 ];
 type Tab = (typeof TABS)[number]["id"];
 
+/** `?tab=pagos` era la pestaña de pagos: ahora vive dentro de Servicios y pagos. */
+const tabFromParam = (value: string | null): Tab =>
+  value === "servicios" || value === "pagos" ? "servicios" : "resumen";
+
+/**
+ * La ficha de un contacto.
+ *
+ * Abre en lectura: lo que se busca al entrar es un teléfono, una nota o si ya
+ * pagó, no un formulario de catorce campos. Editar y eliminar existen, pero se
+ * piden. «Registrar pago» va en la cabecera y funciona aunque la persona
+ * todavía no tenga ningún servicio: el flujo lo crea.
+ */
 const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { canWrite, toast } = useCrm();
+  const { canWrite, canRecordPayments, toast } = useCrm();
   // Sin ediciones locales del contacto: usar el prop directo hace que
   // router.refresh() traiga siempre el estado fresco del servidor.
   const contact = initial;
+  const fullName = `${contact.firstName} ${contact.lastName ?? ""}`.trim();
   const webinarRegistrations = contact.webinarRegistrations ?? [];
   const serviceCount = contact.enrollments.length + webinarRegistrations.length;
-  const initialTab = searchParams.get("tab");
-  const [tab, setTab] = useState<Tab>(
-    initialTab === "servicios" || initialTab === "pagos" ? initialTab : "resumen"
-  );
-  const [paymentEnrollment, setPaymentEnrollment] = useState<Enrollment | null>(null);
+  const [tab, setTab] = useState<Tab>(tabFromParam(searchParams.get("tab")));
+  const [editing, setEditing] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [addEnrollmentOpen, setAddEnrollmentOpen] = useState(false);
-  const [pickEnrollmentOpen, setPickEnrollmentOpen] = useState(false);
-  const [pickedEnrollmentId, setPickedEnrollmentId] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -147,7 +186,7 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
 
   useLayoutEffect(() => {
     const t = searchParams.get("tab");
-    if (t === "servicios" || t === "pagos" || t === "resumen") setTab(t);
+    if (t !== null) setTab(tabFromParam(t));
   }, [searchParams]);
 
   const goToTab = (next: Tab) => {
@@ -198,36 +237,53 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
     router.refresh();
   };
 
-  const allPayments = contact.enrollments.flatMap((en) =>
-    en.payments.map((p) => ({
-      ...p,
-      enrollmentId: en.id,
-      productTitle: en.product.title,
-    }))
-  );
+  const phone = displayContactPhone(contact.phoneE164);
+  const whatsAppUrl = buildContactWhatsAppUrl(contact.phoneE164);
+  const sourceLabel =
+    contactFilterSourceSelectOptions().find((o) => o.value === contact.source)?.label ??
+    contact.source;
 
-  const startRegisterPayment = () => {
-    if (contact.enrollments.length === 0) {
-      toast("Agrega un servicio primero para poder registrarle un pago", "error");
-      return;
+  const copyPhone = async () => {
+    if (!phone) return;
+    try {
+      await navigator.clipboard.writeText(phone);
+      toast("Número copiado");
+    } catch {
+      toast("No se pudo copiar", "error");
     }
-    if (contact.enrollments.length === 1) {
-      setPaymentEnrollment(contact.enrollments[0]);
-      return;
-    }
-    setPickedEnrollmentId(contact.enrollments[0].id);
-    setPickEnrollmentOpen(true);
   };
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <CrmPageHeader
-          title={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
-          backHref="/admin/contacts"
-          backLabel="Contactos"
-          trailing={
-            contact.tags && contact.tags.length > 0 ? (
+      <CrmPageHeader
+        title={fullName}
+        backHref="/admin/contacts"
+        backLabel="Contactos"
+        secondaryActions={
+          whatsAppUrl ? (
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" />}
+            >
+              <MessageCircle aria-hidden />
+              WhatsApp
+            </Button>
+          ) : undefined
+        }
+        action={
+          canRecordPayments ? (
+            <CrmNewButton
+              label="Registrar pago"
+              icon={CreditCard}
+              onClick={() => setRegistering(true)}
+            />
+          ) : undefined
+        }
+        trailing={
+          <div className="space-y-3">
+            {contact.tags && contact.tags.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {contact.tags.map(({ tag }) => (
                   <span
@@ -238,182 +294,164 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
                   </span>
                 ))}
               </div>
-            ) : undefined
-          }
-        />
-        <WhatsAppContactBlock phoneE164={contact.phoneE164} compact />
-        <CrmSegmentedControl
-          value={tab}
-          onChange={goToTab}
-          segments={TABS}
-          aria-label="Secciones del contacto"
-        />
-      </div>
+            ) : null}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CrmSegmentedControl
+                value={tab}
+                onChange={goToTab}
+                segments={TABS}
+                aria-label="Secciones del contacto"
+              />
+              {tab === "servicios" && canWrite ? (
+                <Button variant="outline" size="sm" onClick={() => setAddEnrollmentOpen(true)}>
+                  <Plus aria-hidden />
+                  Agregar servicio
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        }
+      />
 
       {tab === "resumen" && (
         <>
-          <ContactEditForm contact={contact} />
-          <section>
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-muted-foreground">Servicios</h2>
-              <Button variant="ghost" size="sm" onClick={() => goToTab("servicios")}>
-                {serviceCount > 0 ? "Ver todos" : "Agregar"}
-              </Button>
-            </div>
-            <Card className="overflow-hidden py-0">
-              <CardContent className="divide-y divide-border p-0">
-                {webinarRegistrations.slice(0, 2).map((r) => (
-                  <WebinarServiceRow key={r.id} r={r} />
-                ))}
-                {serviceCount === 0 ? (
-                  <p className="px-4 py-5 text-sm text-muted-foreground">Sin servicios</p>
-                ) : (
-                  contact.enrollments.slice(0, 5).map((en) => (
-                    <Link
-                      key={en.id}
-                      href={`/admin/enrollments/${en.id}`}
-                      className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <span className="font-medium">{en.product.title}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {enrollmentStatusLabel(en.status)}
-                        </span>
-                      </div>
-                      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                    </Link>
-                  ))
-                )}
+          {editing ? (
+            <>
+              <ContactEditForm
+                contact={contact}
+                onCancel={() => setEditing(false)}
+                onSaved={() => {
+                  setEditing(false);
+                  router.refresh();
+                }}
+              />
+              {canWrite ? (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    Eliminar contacto…
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <Card>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold">Datos</h2>
+                  {canWrite ? (
+                    <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                      <Pencil aria-hidden />
+                      Editar
+                    </Button>
+                  ) : null}
+                </div>
+                <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                  {contact.notes ? (
+                    <DataField label="Notas" wide>
+                      <span className="block whitespace-pre-wrap rounded-lg bg-muted/50 px-3 py-2">
+                        {contact.notes}
+                      </span>
+                    </DataField>
+                  ) : null}
+                  <DataField label="Teléfono">
+                    {phone ? (
+                      <span className="inline-flex items-center gap-1 font-mono">
+                        {phone}
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          aria-label="Copiar número"
+                          title="Copiar número"
+                          onClick={() => void copyPhone()}
+                        >
+                          <Copy aria-hidden />
+                        </Button>
+                      </span>
+                    ) : (
+                      "Sin teléfono"
+                    )}
+                  </DataField>
+                  <DataField label="Email">{contact.email ?? "—"}</DataField>
+                  <DataField label="País">
+                    {contact.countryIso ? formatCountryLabel(contact.countryIso) : "—"}
+                  </DataField>
+                  <DataField label="Origen">
+                    {sourceLabel}
+                    {contact.sourceDetail ? ` · ${contact.sourceDetail}` : ""}
+                  </DataField>
+                  {contact.tiktokHandle ? (
+                    <DataField label="TikTok">{contact.tiktokHandle}</DataField>
+                  ) : null}
+                  <DataField label="Consentimientos">
+                    Datos: {contact.consentDataAt ? "sí" : "no"} · Marketing:{" "}
+                    {contact.consentMarketingAt ? "sí" : "no"}
+                  </DataField>
+                </dl>
               </CardContent>
             </Card>
-          </section>
+          )}
           <Card>
             <CardContent>
               <QuickMessagesPanel vars={messageVars} />
             </CardContent>
           </Card>
-          {canWrite && (
-            <Card className="border-destructive/30">
-              <CardContent>
-                <h2 className="text-sm font-semibold text-destructive">Zona de riesgo</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Elimina este contacto y todos sus datos del CRM.
-                </p>
-                <Button
-                  variant="destructive"
-                  className="mt-3"
-                  onClick={() => {
-                    setDeleteError(null);
-                    setDeleteOpen(true);
-                  }}
-                >
-                  Eliminar contacto…
-                </Button>
-              </CardContent>
-            </Card>
-          )}
         </>
       )}
 
       {tab === "servicios" && (
-        <section className="space-y-4">
-          {canWrite && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={() => setAddEnrollmentOpen(true)}>
-                Agregar servicio
-              </Button>
-            </div>
-          )}
-          <Card className="overflow-hidden py-0">
-            <CardContent className="divide-y divide-border p-0">
-              {webinarRegistrations.map((r) => (
-                <WebinarServiceRow key={r.id} r={r} />
-              ))}
-              {serviceCount === 0 ? (
-                <p className="px-4 py-6 text-sm text-muted-foreground">Sin servicios</p>
-              ) : (
-                contact.enrollments.map((en) => (
-                  <div key={en.id} className="flex items-center gap-3 p-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-semibold">{en.product.title}</div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {enrollmentStatusLabel(en.status)}
-                        {en.sessionsTotal != null &&
-                          ` · ${en.sessionsUsed}/${en.sessionsTotal} sesiones`}
-                      </div>
-                      {en.product.kind === "THERAPY" &&
-                        en.sessionsTotal != null &&
-                        en.sessionsTotal > 0 && (
-                          <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-muted">
-                            <div
-                              className="h-full rounded-full bg-primary"
-                              style={{
-                                width: `${Math.min(100, (en.sessionsUsed / en.sessionsTotal) * 100)}%`,
-                              }}
-                            />
-                          </div>
-                        )}
+        <Card className="overflow-hidden py-0">
+          <CardContent className="divide-y divide-border p-0">
+            {webinarRegistrations.map((r) => (
+              <WebinarServiceRow key={r.id} r={r} />
+            ))}
+            {serviceCount === 0 ? (
+              <p className="px-4 py-6 text-sm text-muted-foreground">
+                Sin servicios todavía.
+                {canRecordPayments ? " Registrar un pago crea el servicio." : ""}
+              </p>
+            ) : (
+              contact.enrollments.map((en) => (
+                <Link
+                  key={en.id}
+                  href={`/admin/enrollments/${en.id}`}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium">{en.product.title}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      {enrollmentStatusLabel(en.status)}
+                      {en.sessionsTotal != null &&
+                        ` · ${en.sessionsUsed}/${en.sessionsTotal} sesiones`}
+                      {" · "}
+                      {paymentSummary(en)}
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      {canWrite && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPaymentEnrollment(en)}
-                        >
-                          {en.payments.some((p) => p.status === "APPROVED")
-                            ? "Registrar otro pago"
-                            : "Pago"}
-                        </Button>
+                    {en.product.kind === "THERAPY" &&
+                      en.sessionsTotal != null &&
+                      en.sessionsTotal > 0 && (
+                        <div className="mt-2 h-1.5 max-w-[10rem] overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{
+                              width: `${Math.min(100, (en.sessionsUsed / en.sessionsTotal) * 100)}%`,
+                            }}
+                          />
+                        </div>
                       )}
-                      <Button variant="ghost" size="sm" nativeButton={false} render={<Link href={`/admin/enrollments/${en.id}`} />}>
-                        Gestionar
-                      </Button>
-                    </div>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </section>
-      )}
-
-      {tab === "pagos" && (
-        <section className="space-y-4">
-          {canWrite && (
-            <div className="flex justify-end">
-              <Button size="sm" onClick={startRegisterPayment}>
-                Registrar pago
-              </Button>
-            </div>
-          )}
-          <Card className="overflow-hidden py-0">
-            <CardContent className="divide-y divide-border p-0">
-              {allPayments.length === 0 ? (
-                <p className="px-4 py-6 text-sm text-muted-foreground">Sin pagos</p>
-              ) : (
-                allPayments.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/admin/enrollments/${p.enrollmentId}`}
-                    className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{p.productTitle}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.provider} · {p.status}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-sm tabular-nums">
-                      {formatMoneyMinor(p.amountMinor, p.currency)} {p.currency}
-                    </span>
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  </Link>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </section>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                </Link>
+              ))
+            )}
+          </CardContent>
+        </Card>
       )}
 
       <AddEnrollmentModal
@@ -423,58 +461,18 @@ const ContactDetailClient = ({ contact: initial }: { contact: Contact }) => {
         onSuccess={() => router.refresh()}
       />
 
-      <CrmModal
-        title="¿A qué servicio corresponde el pago?"
-        open={pickEnrollmentOpen}
-        onClose={() => setPickEnrollmentOpen(false)}
-      >
-        <div className="space-y-4 text-sm">
-          <SearchableSelect
-            id="pick-payment-enrollment"
-            label="Servicio"
-            value={pickedEnrollmentId}
-            onChange={setPickedEnrollmentId}
-            options={contact.enrollments.map((en) => ({
-              value: en.id,
-              label: en.product.title,
-              hint: enrollmentStatusLabel(en.status),
-            }))}
-          />
-          <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" onClick={() => setPickEnrollmentOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={!pickedEnrollmentId}
-              onClick={() => {
-                const en = contact.enrollments.find((e) => e.id === pickedEnrollmentId);
-                if (!en) return;
-                setPickEnrollmentOpen(false);
-                setPaymentEnrollment(en);
-              }}
-            >
-              Continuar
-            </Button>
-          </div>
-        </div>
-      </CrmModal>
-
-      {paymentEnrollment && (
-        <RegisterPaymentModal
-          open={!!paymentEnrollment}
-          onClose={() => setPaymentEnrollment(null)}
-          enrollmentId={paymentEnrollment.id}
-          productTitle={paymentEnrollment.product.title}
-          contactName={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
-          suggestedAmountMinor={paymentEnrollment.amountMinor}
-          currency={paymentEnrollment.currency ?? "USD"}
+      {canRecordPayments ? (
+        <RegisterPaymentFlow
+          open={registering}
+          onClose={() => setRegistering(false)}
+          contact={{ id: contact.id, name: fullName }}
           onSuccess={() => router.refresh()}
         />
-      )}
+      ) : null}
 
       <DeleteContactDialog
         open={deleteOpen}
-        contactName={`${contact.firstName} ${contact.lastName ?? ""}`.trim()}
+        contactName={fullName}
         confirmTarget={deleteConfirmTarget}
         busy={deleteBusy}
         error={deleteError}

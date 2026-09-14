@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Alert, AlertDescription } from "@/app/components/ui/alert";
-import { Link2 } from "lucide-react";
+import { Copy, Link2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -24,6 +23,7 @@ import {
   CrmEmptyState,
   CrmFormActions,
   CrmLoadingState,
+  CrmRowAction,
   CrmRowActions,
   CrmRowDelete,
 } from "./ui";
@@ -278,7 +278,18 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
     <CrmPageShell>
       <CrmPageHeader
         title="Enlaces de pago"
-        description="Para UNA persona: quien lo abre ve su nombre y el cobro queda en su ficha. Para mandar un paquete a varias personas está el enlace fijo, que se copia desde la propia tarjeta en Paquetes."
+        description={
+          // Una sola explicación, aquí donde se decide crear uno. Estaba dos
+          // veces —esta línea y un aviso debajo— y el aviso empujaba la lista.
+          <>
+            Para una sola persona: el cobro queda en su ficha. Para varias,
+            usa el enlace fijo de cada paquete en{" "}
+            <Link href="/admin/products" className="underline underline-offset-2">
+              Paquetes
+            </Link>
+            .
+          </>
+        }
         action={
           canManageTeam && !preview ? (
             <CrmNewButton
@@ -291,27 +302,6 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
           ) : undefined
         }
       />
-
-      {/*
-        La diferencia entre los dos enlaces no es de matiz: es a quién se le
-        atribuye el cobro. Decirla aquí, donde se decide crear uno, evita el
-        error caro — mandar un enlace personal a un grupo y que los cobros de
-        todos acaben colgados de la misma ficha.
-      */}
-      <Alert>
-        <AlertDescription>
-          <strong className="font-medium text-foreground">
-            ¿Y si es para varias personas?
-          </strong>{" "}
-          Cada paquete tiene su enlace fijo, que no caduca y sirve para
-          cualquiera: se copia con el icono de copiar en{" "}
-          <Link href="/admin/products" className="underline underline-offset-2">
-            Paquetes
-          </Link>
-          . Los de aquí son para una sola persona, y por eso el cobro se le
-          atribuye a ella.
-        </AlertDescription>
-      </Alert>
 
       <CrmModal
         title="Nuevo enlace de pago"
@@ -468,14 +458,12 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                 key={row.id}
                 actions={
                   <CrmRowActions>
-                    <button
-                      type="button"
+                    <CrmRowAction
+                      icon={Copy}
+                      label="Copiar enlace"
                       onClick={() => void copy(row.token)}
                       disabled={dead}
-                      className="text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground disabled:opacity-40"
-                    >
-                      Copiar
-                    </button>
+                    />
                     {canManageTeam && !dead && (
                       <CrmRowDelete
                         label="Revocar"

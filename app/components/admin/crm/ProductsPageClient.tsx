@@ -161,7 +161,9 @@ const PriceSyncNotice = ({
             : ""}
         </span>
       )}
-      {canVerify ? (
+      {/* Sólo cuando hace falta: descuadrado o nunca comprobado. Con el precio
+          al día, un botón por tarjeta era ruido en toda la rejilla. */}
+      {canVerify && (drifted || !product.priceSyncCheckedAt) ? (
         <Button
           type="button"
           variant="outline"

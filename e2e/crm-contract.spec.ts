@@ -19,18 +19,15 @@ const PENDING_CONTRACT = new Set<string>([]);
  * Exenciones permanentes. No es lo mismo que `PENDING_CONTRACT`: estas rutas no
  * están pendientes de migrar, es que la regla no les aplica.
  *
- * El panel de inicio no es una página de lista: es un saludo centrado con el
- * cuadro del agente debajo, y su `<h1>` es ese saludo. Meterlo en
- * `CrmPageHeader` —título a la izquierda, acciones a la derecha— no lo haría
- * más consistente, lo convertiría en otra pantalla. Eso sería rediseño, y este
- * trabajo es de consistencia.
+ * Vacía. Inicio estuvo aquí mientras su `<h1>` era un saludo suelto; desde que
+ * la portada abre con `CrmPageHeader` (saludo y fecha) cumple el contrato.
  *
  * Añadir algo aquí exige explicar por qué, no solo que falle.
  */
-const CONTRACT_EXEMPT = new Set<string>(["/admin"]);
+const CONTRACT_EXEMPT = new Set<string>([]);
 
 /** Etiquetas que delatan una acción primaria de creación. */
-const CREATE_LABEL = /^\s*(Nuevo|Nueva|Crear|Añadir|Agregar)\b/i;
+const CREATE_LABEL = /^\s*(Nuevo|Nueva|Crear|Añadir|Agregar|Registrar)\b/i;
 
 /** Ancho máximo permitido para el cuerpo de página (R1: `max-w-6xl` = 72rem). */
 const MAX_CONTENT_WIDTH = 1200;
@@ -180,6 +177,67 @@ test.describe("CRM · contrato de patrones", () => {
       }
     });
   }
+});
+
+/**
+ * R10 — filtros: búsqueda y como mucho dos filtros a la vista; el resto en la
+ * hoja «Filtros». Exportar vive dentro de la hoja, no en la cabecera.
+ */
+const FILTER_SHEET_ROUTES = [
+  { path: "/admin/payments", sheetField: "Estado" },
+  { path: "/admin/contacts", sheetField: "País" },
+];
+
+test.describe("CRM · filtros en hoja", () => {
+  for (const { path, sheetField } of FILTER_SHEET_ROUTES) {
+    test(`${path}: búsqueda a la vista y el resto en «Filtros»`, async ({ page }) => {
+      await gotoCrm(page, path);
+
+      const bar = page.locator("[data-crm-filter-bar]").first();
+      await expect(bar.locator('input[type="search"]').first()).toBeVisible();
+
+      const trigger = bar.getByRole("button", { name: /^Filtros/ });
+      await expect(trigger).toBeVisible();
+
+      // Antes de abrir la hoja, los filtros secundarios no están a la vista.
+      await expect(page.getByText(sheetField, { exact: true })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /Exportar/ })).toHaveCount(0);
+
+      await trigger.click();
+      const sheet = page.getByRole("dialog");
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByText(sheetField, { exact: true }).first()).toBeVisible();
+    });
+  }
+});
+
+/**
+ * Navegación: sale de `app/config/crm-menu-items.ts` y no se duplica.
+ */
+test.describe("CRM · navegación", () => {
+  test("móvil: barra inferior Inicio · Contactos · Pagos · Más, sin segundo botón de menú", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoCrm(page, "/admin");
+
+    const nav = page.getByRole("navigation", { name: "Navegación principal" });
+    await expect(nav).toBeVisible();
+    for (const label of ["Inicio", "Contactos", "Pagos"]) {
+      await expect(nav.getByRole("link", { name: label })).toBeVisible();
+    }
+    await expect(nav.getByRole("button", { name: "Más opciones" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Abrir menú" })).toHaveCount(0);
+  });
+
+  test("escritorio: el menú no repite «Web pública» ni «Mi cuenta»", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await gotoCrm(page, "/admin");
+
+    await expect(page.getByRole("link", { name: "Web pública" })).toHaveCount(0);
+    // El acceso a la web pública sigue en la barra superior.
+    await expect(page.getByRole("link", { name: "Abrir sitio público" })).toHaveCount(1);
+  });
 });
 
 /**
