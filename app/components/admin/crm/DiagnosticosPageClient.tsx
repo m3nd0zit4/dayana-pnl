@@ -263,7 +263,12 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 {d.hasPurchased ? (
                   <Badge variant="secondary">Ya es cliente</Badge>
                 ) : d.recommendedProductTitle ? (
-                  <span className="truncate text-xs text-muted-foreground">
+                  // `block` para que `truncate` recorte de verdad: en línea el
+                  // texto largo invadía el icono de «Ver contacto».
+                  <span
+                    className="block truncate text-xs text-muted-foreground"
+                    title={`Se le recomendó ${d.recommendedProductTitle}`}
+                  >
                     Se le recomendó {d.recommendedProductTitle}
                   </span>
                 ) : (
