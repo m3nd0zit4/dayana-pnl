@@ -112,7 +112,11 @@ const ResultadoPage = async ({
   // un vistazo con quién habla sin tener que abrir el CRM.
   const whatsappUrl = buildWhatsAppUrl(
     `${copy.whatsappIntro}${
-      focusCopy ? ` Lo que más resuena: ${focusCopy.title.toLowerCase()}.` : ""
+      // Algunos títulos de foco ya terminan en punto («…Está antes.»): se
+      // quita antes de añadir el propio para no dejar «..» en el mensaje.
+      focusCopy
+        ? ` Lo que más resuena: ${focusCopy.title.toLowerCase().replace(/[.\s]+$/, "")}.`
+        : ""
     }${
       recommendation ? ` Me recomendó ${recommendation.plan.title}.` : ""
     } Me gustaría hablar contigo para empezar.`,
