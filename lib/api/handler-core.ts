@@ -17,8 +17,13 @@ export const apiError = (
   extra?: Record<string, unknown>
 ): NextResponse => NextResponse.json({ ...extra, error }, { status });
 
-/** Cuerpo JSON o `null` si no hay o no se puede leer (igual que `req.json().catch(() => null)`). */
-export const readJson = async (req: Request): Promise<unknown> =>
+/**
+ * Cuerpo JSON o `null` si no hay o no se puede leer. Mismo tipo que
+ * `req.json().catch(() => null)` (`any`): las rutas que validan con zod no lo
+ * notan y las que leen campos sueltos siguen compilando igual que antes.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const readJson = async (req: Request): Promise<any> =>
   req.json().catch(() => null);
 
 export type RouteContext<P> = { params: Promise<P> };
