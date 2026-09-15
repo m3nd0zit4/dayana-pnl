@@ -1,23 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { deleteLiveClass, updateLiveClass } from "@/lib/lms/course-admin";
 import { liveClassSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
-  const parsed = liveClassSchema
-    .partial()
-    .safeParse(await req.json().catch(() => null));
+export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
+  const { id } = params;
+  const parsed = liveClassSchema.partial().safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   // moduleId moves through the dedicated /assign endpoint (it also has to
@@ -32,7 +27,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }).catch(() => null);
 
   if (!liveClass) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   fireAuditLog({
@@ -44,16 +39,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ liveClass });
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
+  const { id } = params;
   const deleted = await deleteLiveClass(id).catch(() => null);
   if (!deleted) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   fireAuditLog({
@@ -64,4 +56,4 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});
