@@ -209,9 +209,14 @@ test.describe("CRM · filtros en hoja", () => {
       await expect(page.getByText(sheetField, { exact: true })).toHaveCount(0);
       await expect(page.getByRole("link", { name: /Exportar/ })).toHaveCount(0);
 
-      await trigger.click();
+      // El botón se pinta en el HTML del servidor antes de hidratar: un clic en
+      // ese hueco no hace nada. Se reintenta hasta que la hoja abre, en vez de
+      // dar por hecho que la página ya es interactiva.
       const sheet = page.getByRole("dialog");
-      await expect(sheet).toBeVisible();
+      await expect(async () => {
+        await trigger.click();
+        await expect(sheet).toBeVisible({ timeout: 2_000 });
+      }).toPass({ timeout: 20_000 });
       await expect(sheet.getByText(sheetField, { exact: true }).first()).toBeVisible();
     });
   }
