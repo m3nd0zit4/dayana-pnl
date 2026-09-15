@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleService } from "@prisma/client";
 import { z } from "zod";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   deleteGoogleAccount,
@@ -17,6 +17,8 @@ import { googleCallbackUrl } from "../../callback-url";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type Params = { id: string };
+
 const patchSchema = z.object({
   services: z.array(z.enum(GoogleService)),
 });
@@ -30,21 +32,15 @@ const patchSchema = z.object({
  * manda allí al operador en vez de dejar una cuenta que dice tener Calendario
  * pero falla en cuanto se usa.
  */
-export const PATCH = async (
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
-  const parsed = patchSchema.safeParse(await req.json().catch(() => null));
+export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) => {
+  const { id } = params;
+  const parsed = patchSchema.safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
+    return apiError("INVALID_BODY", 400);
   }
 
   const existing = await getGoogleAccount(id);
-  if (!existing) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!existing) return apiError("NOT_FOUND", 404);
 
   const { account, needsReauthorization } = await setGoogleAccountServices(
     id,
@@ -72,15 +68,12 @@ export const PATCH = async (
     return NextResponse.json({ account, url });
   } catch (error) {
     if (error instanceof GoogleNotConfiguredError) {
-      return NextResponse.json(
-        { error: "GOOGLE_NOT_CONFIGURED", detail: error.message },
-        { status: 503 }
-      );
+      return apiError("GOOGLE_NOT_CONFIGURED", 503, { detail: error.message });
     }
     console.error("[google re-authorize]", error);
-    return NextResponse.json({ error: "AUTHORIZATION_START_FAILED" }, { status: 502 });
+    return apiError("AUTHORIZATION_START_FAILED", 502);
   }
-};
+});
 
 /**
  * Desconecta la cuenta del CRM.
@@ -89,16 +82,10 @@ export const PATCH = async (
  * (myaccount.google.com/permissions). Se dice así en la UI para no dar a
  * entender que esto lo revoca todo.
  */
-export const DELETE = async (
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const DELETE = withStaff<Params>("owner", async ({ staff, params }) => {
+  const { id } = params;
   const existing = await getGoogleAccount(id);
-  if (!existing) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!existing) return apiError("NOT_FOUND", 404);
 
   await deleteGoogleAccount(id);
 
@@ -111,4 +98,4 @@ export const DELETE = async (
   });
 
   return NextResponse.json({ ok: true });
-};
+});

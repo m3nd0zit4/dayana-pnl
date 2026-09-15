@@ -1,7 +1,7 @@
 import type { NotificationEventType } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { NOTIFICATION_CATALOG } from "@/lib/notifications/platform/catalog";
 import {
@@ -49,10 +49,7 @@ const patchSchema = z
     { message: "empty_patch" }
   );
 
-export const GET = async () => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("owner", async () => {
   const config = await getNotificationSiteConfig();
   return NextResponse.json({
     ...config,
@@ -60,15 +57,12 @@ export const GET = async () => {
     // Solo lectura: vienen del entorno, no de la base.
     runtime: getNotificationsRuntimeStatus(),
   });
-};
+});
 
-export const PATCH = async (req: Request) => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const parsed = patchSchema.safeParse(await req.json().catch(() => null));
+export const PATCH = withStaff("owner", async ({ req, staff }) => {
+  const parsed = patchSchema.safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   await setNotificationSiteConfig(parsed.data);
@@ -87,4 +81,4 @@ export const PATCH = async (req: Request) => {
     ...config,
     runtime: getNotificationsRuntimeStatus(),
   });
-};
+});

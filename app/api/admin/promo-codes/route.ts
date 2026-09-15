@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { PromoDiscountType } from "@prisma/client";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { canManageTeam } from "@/lib/crm/staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
@@ -10,24 +10,19 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async () => {
   const promoCodes = await listAllPromoCodes();
   return NextResponse.json({ promoCodes });
-}
+});
 
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const POST = withStaff("write", async ({ req, staff }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   if (!body?.code || !body?.discountType) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   try {
@@ -59,17 +54,17 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
     if (msg === "INVALID_CODE") {
-      return NextResponse.json({ error: "invalid_code" }, { status: 400 });
+      return apiError("invalid_code", 400);
     }
     if (msg === "INVALID_PERCENT") {
-      return NextResponse.json({ error: "invalid_percent" }, { status: 400 });
+      return apiError("invalid_percent", 400);
     }
     if (msg === "INVALID_FIXED_AMOUNT") {
-      return NextResponse.json({ error: "invalid_fixed_amount" }, { status: 400 });
+      return apiError("invalid_fixed_amount", 400);
     }
     if (msg.includes("Unique constraint")) {
-      return NextResponse.json({ error: "duplicate_code" }, { status: 409 });
+      return apiError("duplicate_code", 409);
     }
-    return NextResponse.json({ error: msg }, { status: 400 });
+    return apiError(msg, 400);
   }
-}
+});

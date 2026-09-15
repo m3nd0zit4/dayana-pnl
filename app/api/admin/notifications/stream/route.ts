@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { withStaff } from "@/lib/api/handler";
 import { unreadSnapshot } from "@/lib/notifications/platform/feed";
 import {
   createFeedStream,
@@ -11,10 +10,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export const GET = async (req: Request) => {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async ({ req, staff }) => {
   const scope: FeedScope = { staffUserId: staff.id };
 
   const stream = createFeedStream({
@@ -24,4 +20,4 @@ export const GET = async (req: Request) => {
   });
 
   return new Response(stream, { headers: SSE_HEADERS });
-};
+});

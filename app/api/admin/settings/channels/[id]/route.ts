@@ -1,21 +1,17 @@
 import { NextResponse } from "next/server";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { setAgentChannelEnabled } from "@/lib/crm/agent-channels";
 
-export const PATCH = async (
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
+type Params = { id: string };
 
-  const { id } = await params;
-  const body = (await request.json().catch(() => null)) as {
+export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) => {
+  const { id } = params;
+  const body = (await readJson(req)) as {
     enabled?: boolean;
   } | null;
   if (!body || typeof body.enabled !== "boolean") {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   await setAgentChannelEnabled(id, body.enabled);
@@ -29,4 +25,4 @@ export const PATCH = async (
   });
 
   return NextResponse.json({ ok: true });
-};
+});

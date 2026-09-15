@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   activateGoogleAccount,
@@ -26,10 +26,7 @@ const back = (req: Request, params: Record<string, string>) =>
     new URL(`/admin/ajustes/google?${new URLSearchParams(params)}`, req.url)
   );
 
-export const GET = async (req: Request) => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("owner", async ({ req, staff }) => {
   const accountId = new URL(req.url).searchParams.get("accountId");
   if (!accountId) return back(req, { google: "invalid" });
 
@@ -56,4 +53,4 @@ export const GET = async (req: Request) => {
     console.error("[google callback]", error);
     return back(req, { google: "denied" });
   }
-};
+});

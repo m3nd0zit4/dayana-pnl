@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { withStaff } from "@/lib/api/handler";
 import { openSecret } from "@/lib/crypto/secret-box";
 import { prisma } from "@/lib/db";
 import {
@@ -16,10 +16,7 @@ export const dynamic = "force-dynamic";
  * Responde a la pregunta que más veces explica una bandeja muda: ¿a qué URL
  * está mandando Meta los webhooks, y sigue la Página suscrita?
  */
-export const GET = async () => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("owner", async () => {
   const account = await prisma.socialAccount.findFirst({
     where: { provider: "FACEBOOK", isActive: true },
     select: { externalId: true, accessTokenEnc: true },
@@ -33,4 +30,4 @@ export const GET = async () => {
   ]);
 
   return NextResponse.json({ app, page });
-};
+});

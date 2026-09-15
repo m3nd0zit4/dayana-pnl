@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { withStaff } from "@/lib/api/handler";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -29,10 +29,7 @@ const parseDate = (raw: string | null): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-export async function GET(req: NextRequest) {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("owner", async ({ req }) => {
   const params = req.nextUrl.searchParams;
 
   const take = Math.min(
@@ -95,4 +92,4 @@ export async function GET(req: NextRequest) {
     take,
     hasMore: skip + deliveries.length < total,
   });
-}
+});

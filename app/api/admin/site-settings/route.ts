@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { revalidatePublicCatalog } from "@/lib/crm/revalidate-catalog";
 import {
@@ -16,10 +16,7 @@ import { canManageTeam } from "@/lib/crm/staff";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async () => {
   const usdToCopRate = await resolveUsdToCopRate();
   const fromCrm = await getUsdToCopRateSetting();
   const operationalTimezone = await getOperationalTimezone();
@@ -29,22 +26,20 @@ export async function GET() {
     source: fromCrm != null ? "crm" : "env_or_default",
     operationalTimezone,
   });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const PATCH = withStaff("write", async ({ req, staff }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const body = (await req.json().catch(() => null)) as {
+  const body = (await readJson(req)) as {
     usdToCopRate?: unknown;
     operationalTimezone?: unknown;
   } | null;
 
   if (!body || (body.usdToCopRate == null && body.operationalTimezone == null)) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   const result: {
@@ -57,7 +52,7 @@ export async function PATCH(req: NextRequest) {
     if (body.usdToCopRate != null) {
       const rate = parseUsdToCopRate(body.usdToCopRate);
       if (rate == null) {
-        return NextResponse.json({ error: "invalid_rate" }, { status: 400 });
+        return apiError("invalid_rate", 400);
       }
       await setUsdToCopRateSetting(rate);
       fireAuditLog({
@@ -74,7 +69,7 @@ export async function PATCH(req: NextRequest) {
 
     if (body.operationalTimezone != null) {
       if (typeof body.operationalTimezone !== "string") {
-        return NextResponse.json({ error: "invalid_timezone" }, { status: 400 });
+        return apiError("invalid_timezone", 400);
       }
       await setOperationalTimezone(body.operationalTimezone);
       const operationalTimezone = await getOperationalTimezone();
@@ -92,11 +87,11 @@ export async function PATCH(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
     if (msg === "INVALID_RATE") {
-      return NextResponse.json({ error: "invalid_rate" }, { status: 400 });
+      return apiError("invalid_rate", 400);
     }
     if (msg === "INVALID_TIMEZONE") {
-      return NextResponse.json({ error: "invalid_timezone" }, { status: 400 });
+      return apiError("invalid_timezone", 400);
     }
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return apiError(msg, 500);
   }
-}
+});

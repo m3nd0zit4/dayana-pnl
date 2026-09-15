@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireTestEmailStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "@/lib/notifications/channels/email";
 import { siteUrl } from "@/lib/notifications/config";
@@ -18,15 +18,12 @@ const bodySchema = z.object({
 
 const TEMPLATE_KEY = "admin_test_email";
 
-export const POST = async (req: Request) => {
-  const staff = await requireTestEmailStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const POST = withStaff("testEmail", async ({ req, staff }) => {
   const parsed = bodySchema.safeParse(
     await req.json().catch(() => ({}))
   );
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+    return apiError("invalid_email", 400);
   }
 
   const to = parsed.data.to?.trim() || staff.email;
@@ -91,10 +88,7 @@ export const POST = async (req: Request) => {
   });
 
   if (errorMessage) {
-    return NextResponse.json(
-      { error: "send_failed", detail: errorMessage, providerId, dryRun },
-      { status: 502 }
-    );
+    return apiError("send_failed", 502, { detail: errorMessage, providerId, dryRun });
   }
 
   return NextResponse.json({
@@ -104,4 +98,4 @@ export const POST = async (req: Request) => {
     dryRun,
     notificationsEnabled: await resolveNotificationsEnabled(),
   });
-};
+});

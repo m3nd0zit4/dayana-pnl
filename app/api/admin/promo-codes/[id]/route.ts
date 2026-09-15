@@ -1,24 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { canManageTeam } from "@/lib/crm/staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { deletePromoCode, updatePromoCode } from "@/lib/crm/promo-codes-admin";
 
-type Ctx = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
+  const { id } = params;
+  const body = await readJson(req);
   if (!body) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   try {
@@ -63,26 +61,24 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : "error";
     if (msg === "NOT_FOUND") {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiError("not_found", 404);
     }
     if (msg === "INVALID_PERCENT") {
-      return NextResponse.json({ error: "invalid_percent" }, { status: 400 });
+      return apiError("invalid_percent", 400);
     }
     if (msg === "INVALID_PRODUCT_IDS") {
-      return NextResponse.json({ error: "invalid_product_ids" }, { status: 400 });
+      return apiError("invalid_product_ids", 400);
     }
-    return NextResponse.json({ error: msg }, { status: 400 });
+    return apiError(msg, 400);
   }
-}
+});
 
-export async function DELETE(_req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const { id } = await ctx.params;
+  const { id } = params;
 
   try {
     const promoCode = await deletePromoCode(id);
@@ -94,6 +90,6 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
     });
     return NextResponse.json({ promoCode });
   } catch {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
-}
+});

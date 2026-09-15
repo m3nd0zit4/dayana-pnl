@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleService } from "@prisma/client";
 import { z } from "zod";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createPendingGoogleAccount,
@@ -24,27 +24,21 @@ export const dynamic = "force-dynamic";
  * `/api/admin/social/tiktok/connect`.
  */
 
-export const GET = async () => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("owner", async () => {
   return NextResponse.json({
     enabled: isGoogleEnabled(),
     accounts: await listGoogleAccounts(),
   });
-};
+});
 
 const createSchema = z.object({
   services: z.array(z.enum(GoogleService)).min(1),
 });
 
-export const POST = async (req: Request) => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const parsed = createSchema.safeParse(await req.json().catch(() => null));
+export const POST = withStaff("owner", async ({ req, staff }) => {
+  const parsed = createSchema.safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
+    return apiError("INVALID_BODY", 400);
   }
 
   const account = await createPendingGoogleAccount({
@@ -67,10 +61,7 @@ export const POST = async (req: Request) => {
     await deleteGoogleAccount(account.id).catch(() => undefined);
 
     if (error instanceof GoogleNotConfiguredError) {
-      return NextResponse.json(
-        { error: "GOOGLE_NOT_CONFIGURED", detail: error.message },
-        { status: 503 }
-      );
+      return apiError("GOOGLE_NOT_CONFIGURED", 503, { detail: error.message });
     }
 
     console.error("[google connect]", error);
@@ -81,6 +72,6 @@ export const POST = async (req: Request) => {
       entityId: account.id,
       changes: { message: error instanceof Error ? error.message : "unknown" },
     });
-    return NextResponse.json({ error: "AUTHORIZATION_START_FAILED" }, { status: 502 });
+    return apiError("AUTHORIZATION_START_FAILED", 502);
   }
-};
+});

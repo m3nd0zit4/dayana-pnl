@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireBroadcastStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import {
   NOTIFICATION_CHANNELS,
   type NotificationAudience,
@@ -25,24 +25,17 @@ const parseChannels = (raw: unknown): OutboundChannel[] => {
   );
 };
 
-export async function POST(req: NextRequest) {
-  const staff = await requireBroadcastStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const POST = withStaff("broadcast", async ({ req, staff }) => {
   if (!(await resolveNotificationsEnabled())) {
-    return NextResponse.json(
-      {
-        error: "notifications_disabled",
-        hint: "Activa NOTIFICATIONS_ENABLED=true en .env",
-      },
-      { status: 503 }
-    );
+    return apiError("notifications_disabled", 503, {
+      hint: "Activa NOTIFICATIONS_ENABLED=true en .env",
+    });
   }
 
-  const raw = await req.json().catch(() => null);
+  const raw = await readJson(req);
   const parsed = broadcastSchema.safeParse(raw ?? {});
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_fields" }, { status: 400 });
+    return apiError("invalid_fields", 400);
   }
 
   const templateKey = parsed.data.templateKey;
@@ -53,20 +46,16 @@ export async function POST(req: NextRequest) {
   const runNow = parsed.data.runNow !== false;
 
   if (channels.length === 0) {
-    return NextResponse.json({ error: "no_channels" }, { status: 400 });
+    return apiError("no_channels", 400);
   }
 
   const configured = getConfiguredChannels();
   const missing = channels.filter((c) => !configured.includes(c));
   if (missing.length > 0) {
-    return NextResponse.json(
-      {
-        error: "channels_not_configured",
-        missing,
-        configured,
-      },
-      { status: 422 }
-    );
+    return apiError("channels_not_configured", 422, {
+      missing,
+      configured,
+    });
   }
 
   try {
@@ -86,13 +75,9 @@ export async function POST(req: NextRequest) {
       if (inngestConfigured) {
         await emitCampaignRun(campaign.id);
       } else if (contactCount > BROADCAST_SYNC_MAX_CONTACTS) {
-        return NextResponse.json(
-          {
-            error: "inngest_required",
-            hint: `Más de ${BROADCAST_SYNC_MAX_CONTACTS} contactos requiere Inngest (INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY).`,
-          },
-          { status: 422 }
-        );
+        return apiError("inngest_required", 422, {
+          hint: `Más de ${BROADCAST_SYNC_MAX_CONTACTS} contactos requiere Inngest (INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY).`,
+        });
       } else {
         await runBroadcastCampaign(campaign.id);
       }
@@ -115,6 +100,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "broadcast_failed";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return apiError(message, 400);
   }
-}
+});

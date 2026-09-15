@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { saveWebhookState } from "@/lib/crm/social-accounts";
 import { openSecret } from "@/lib/crypto/secret-box";
@@ -10,17 +10,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Reintenta la suscripción de la Página cuando falló al conectar. */
-export const POST = async () => {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const POST = withStaff("owner", async ({ staff }) => {
   const account = await prisma.socialAccount.findFirst({
     where: { provider: "FACEBOOK", isActive: true },
     select: { externalId: true, accessTokenEnc: true },
   });
 
   if (!account?.accessTokenEnc) {
-    return NextResponse.json({ error: "not_connected" }, { status: 400 });
+    return apiError("not_connected", 400);
   }
 
   const webhook = await subscribePageWebhooks(
@@ -38,4 +35,4 @@ export const POST = async () => {
   });
 
   return NextResponse.json(webhook);
-};
+});
