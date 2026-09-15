@@ -10,12 +10,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * clientes comparan esos códigos literalmente.
  */
 
-/** `{ error, ...extra }` con el status dado. */
+/**
+ * `{ error, ...extra }` con el status dado. `error` va primero, como en los
+ * cuerpos escritos a mano, y el segundo `assign` impide que `extra` lo pise.
+ */
 export const apiError = (
   error: string,
   status: number,
   extra?: Record<string, unknown>
-): NextResponse => NextResponse.json({ ...extra, error }, { status });
+): NextResponse =>
+  NextResponse.json(Object.assign({ error }, extra, { error }), { status });
 
 /**
  * Cuerpo JSON o `null` si no hay o no se puede leer. Mismo tipo que

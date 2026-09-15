@@ -20,6 +20,11 @@ describe("apiError", () => {
     const res = apiError("not_publishable", 400, { blockers: ["fecha"], error: "otro" });
     expect(await res.json()).toEqual({ blockers: ["fecha"], error: "not_publishable" });
   });
+
+  test("error es la primera clave del JSON, como en los cuerpos a mano", async () => {
+    const res = apiError("weak_password", 400, { message: "Muy corta" });
+    expect(await res.text()).toBe('{"error":"weak_password","message":"Muy corta"}');
+  });
 });
 
 describe("readJson", () => {
