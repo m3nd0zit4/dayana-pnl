@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { withStaff } from "@/lib/api/handler";
 import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
 import {
   listWebinarRegistrations,
@@ -20,10 +20,7 @@ const MAX_TAKE = 100;
  * `webinarId` permite servir también el historial de una edición archivada
  * con el mismo endpoint.
  */
-export async function GET(req: NextRequest) {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async ({ req }) => {
   const url = new URL(req.url);
   const webinarId =
     url.searchParams.get("webinarId")?.trim() ||
@@ -62,4 +59,4 @@ export async function GET(req: NextRequest) {
     stats,
     hasMore: rows.length === take,
   });
-}
+});

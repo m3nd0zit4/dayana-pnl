@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { ProductKind } from "@prisma/client";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { canManageTeam } from "@/lib/crm/staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { isQuickMessageTemplate } from "@/lib/crm/quick-message-templates";
@@ -9,28 +9,22 @@ import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async () => {
   const templates = await prisma.messageTemplate.findMany({
     orderBy: [{ key: "asc" }, { locale: "asc" }],
   });
 
   return NextResponse.json({ templates });
-}
+});
 
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const POST = withStaff("write", async ({ req, staff }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   if (!body?.title || !body?.body) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   const title = String(body.title).trim();
@@ -61,19 +55,16 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ template });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const PATCH = withStaff("write", async ({ req, staff }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   if (!body?.id) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   const template = await prisma.messageTemplate.update({
@@ -100,29 +91,26 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json({ template });
-}
+});
 
-export async function DELETE(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const DELETE = withStaff("write", async ({ req, staff }) => {
   if (!canManageTeam(staff.role)) {
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    return apiError("forbidden", 403);
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   const id = typeof body?.id === "string" ? body.id : undefined;
   if (!id) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   const existing = await prisma.messageTemplate.findUnique({ where: { id } });
   if (!existing) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   if (!isQuickMessageTemplate(existing.key)) {
-    return NextResponse.json({ error: "system_template" }, { status: 403 });
+    return apiError("system_template", 403);
   }
 
   await prisma.messageTemplate.delete({ where: { id } });
@@ -136,4 +124,4 @@ export async function DELETE(req: NextRequest) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

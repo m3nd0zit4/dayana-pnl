@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   createCourseModule,
@@ -10,34 +10,28 @@ import { courseModuleSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async ({ req }) => {
   const course = await requireCourseProduct(
     req.nextUrl.searchParams.get("productId")
   ).catch(() => null);
   if (!course) {
-    return NextResponse.json({ error: "no_course_product" }, { status: 404 });
+    return apiError("no_course_product", 404);
   }
 
   const modules = await listCourseModulesAdmin(course.id);
   return NextResponse.json({ modules });
-}
+});
 
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const parsed = courseModuleSchema.safeParse(await req.json().catch(() => null));
+export const POST = withStaff("write", async ({ req, staff }) => {
+  const parsed = courseModuleSchema.safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   const { productId, ...moduleInput } = parsed.data;
   const course = await requireCourseProduct(productId).catch(() => null);
   if (!course) {
-    return NextResponse.json({ error: "no_course_product" }, { status: 404 });
+    return apiError("no_course_product", 404);
   }
 
   const courseModule = await createCourseModule({
@@ -53,4 +47,4 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ module: courseModule });
-}
+});

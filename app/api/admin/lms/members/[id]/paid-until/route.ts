@@ -1,23 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireManualPaymentStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { setMembershipPaidUntil } from "@/lib/lms/membership";
 import { membershipPaidUntilSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
-  const staff = await requireManualPaymentStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id: enrollmentId } = await params;
-  const parsed = membershipPaidUntilSchema.safeParse(
-    await req.json().catch(() => null)
-  );
+export const PATCH = withStaff<Params>("manualPayment", async ({ req, staff, params }) => {
+  const { id: enrollmentId } = params;
+  const parsed = membershipPaidUntilSchema.safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   const paidUntil = parsed.data.paidUntil
@@ -28,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     () => null
   );
   if (!enrollment) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   fireAuditLog({
@@ -42,4 +37,4 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   return NextResponse.json({
     enrollment: { id: enrollment.id, paidUntil: enrollment.paidUntil },
   });
-}
+});

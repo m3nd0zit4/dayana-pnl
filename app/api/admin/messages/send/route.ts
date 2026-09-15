@@ -1,16 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { buildTemplatedWhatsAppUrl } from "@/lib/crm/messages";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const body = await req.json().catch(() => null);
+export const POST = withStaff("write", async ({ req, staff }) => {
+  const body = await readJson(req);
   if (!body?.contactId || !body?.templateKey) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   const vars =
@@ -26,4 +23,4 @@ export async function POST(req: NextRequest) {
   );
 
   return NextResponse.json({ url });
-}
+});

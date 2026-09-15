@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
-import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { updateStaffProfile } from "@/lib/crm/staff";
 import { updateStaffProfileSchema } from "@/lib/validations/admin";
 import { writeAuditLog } from "@/lib/crm/audit";
 
 export const dynamic = "force-dynamic";
 
-export const PATCH = async (req: Request) => {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const PATCH = withStaff("read", async ({ req, staff }) => {
   const parsed = updateStaffProfileSchema.safeParse(
-    await req.json().catch(() => null)
+    await readJson(req)
   );
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   await updateStaffProfile(staff.id, parsed.data);
@@ -27,4 +24,4 @@ export const PATCH = async (req: Request) => {
   }).catch(() => undefined);
 
   return NextResponse.json({ ok: true });
-};
+});

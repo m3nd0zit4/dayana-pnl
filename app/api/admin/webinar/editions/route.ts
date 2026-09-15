@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   archiveFreeWebinar,
@@ -10,11 +10,9 @@ import {
 export const dynamic = "force-dynamic";
 
 /** Historial de ediciones. Solo CRM: no se publica en ninguna página. */
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
+export const GET = withStaff("read", async () => {
   return NextResponse.json({ editions: await listArchivedWebinars() });
-}
+});
 
 /**
  * Archiva la edición terminada y deja una nueva lista.
@@ -23,10 +21,7 @@ export async function GET() {
  * archiva por su cuenta, para que nada se mueva de sitio sin que alguien lo
  * decida.
  */
-export async function POST() {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const POST = withStaff("write", async ({ staff }) => {
   try {
     const { archived, live } = await archiveFreeWebinar();
 
@@ -41,17 +36,13 @@ export async function POST() {
     return NextResponse.json({ archived, live });
   } catch (e) {
     if (e instanceof FreeWebinarArchiveError) {
-      return NextResponse.json(
-        {
-          error: e.reason,
-          message:
-            e.reason === "not_ended"
-              ? "El webinar todavía no ha terminado. Ciérralo antes de archivarlo."
-              : "No hay nada que archivar: esta edición no tiene fecha.",
-        },
-        { status: 400 }
-      );
+      return apiError(e.reason, 400, {
+        message:
+          e.reason === "not_ended"
+            ? "El webinar todavía no ha terminado. Ciérralo antes de archivarlo."
+            : "No hay nada que archivar: esta edición no tiene fecha.",
+      });
     }
     throw e;
   }
-}
+});

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import type { ContactSource } from "@prisma/client";
 import type { CountryCode } from "libphonenumber-js";
-import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   contactDeleteConfirmationMatches,
@@ -14,30 +14,24 @@ import { normalizePhoneWithCountry } from "@/lib/phone";
 import { prisma } from "@/lib/db";
 import { deleteContactSchema } from "@/lib/validations/admin";
 
-type Ctx = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest, ctx: Ctx) {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await ctx.params;
+export const GET = withStaff<Params>("read", async ({ params }) => {
+  const { id } = params;
   const contact = await getContactById(id);
   if (!contact) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
   return NextResponse.json({ contact });
-}
+});
 
-export async function PATCH(req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
+export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
+  const { id } = params;
+  const body = await readJson(req);
   if (!body) {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+    return apiError("invalid_json", 400);
   }
 
   const now = new Date();
@@ -59,10 +53,10 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       select: { phoneE164: true },
     });
     if (!existing) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiError("not_found", 404);
     }
     if (hasRealContactPhone(existing.phoneE164)) {
-      return NextResponse.json({ error: "phone_locked" }, { status: 400 });
+      return apiError("phone_locked", 400);
     }
     const normalized = normalizePhoneWithCountry(
       body.phone,
@@ -70,7 +64,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         "CO") as CountryCode
     );
     if (!normalized) {
-      return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
+      return apiError("invalid_phone", 400);
     }
     phoneUpdate = normalized;
   }
@@ -103,7 +97,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       e && typeof e === "object" && "code" in e ? String(e.code) : "";
     if (code === "P2002") {
       // phoneE164 es único — el número ya pertenece a otro contacto.
-      return NextResponse.json({ error: "phone_taken" }, { status: 409 });
+      return apiError("phone_taken", 409);
     }
     throw e;
   }
@@ -117,17 +111,14 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   });
 
   return NextResponse.json({ contact });
-}
+});
 
-export async function DELETE(req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
+export const DELETE = withStaff<Params>("write", async ({ req, staff, params }) => {
+  const { id } = params;
+  const body = await readJson(req);
   const parsed = deleteContactSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   const existing = await prisma.contact.findUnique({
@@ -143,11 +134,11 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   if (isPlaceholderContactPhone(existing.phoneE164)) {
-    return NextResponse.json({ error: "placeholder" }, { status: 400 });
+    return apiError("placeholder", 400);
   }
 
   const defaultCountry = (existing.phoneCountryIso ??
@@ -161,13 +152,13 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
       defaultCountry
     )
   ) {
-    return NextResponse.json({ error: "confirmation_mismatch" }, { status: 400 });
+    return apiError("confirmation_mismatch", 400);
   }
 
   try {
     const deleted = await deleteContactAndRelations(id);
     if (!deleted) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiError("not_found", 404);
     }
 
     fireAuditLog({
@@ -185,8 +176,8 @@ export async function DELETE(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof Error && err.message === "PLACEHOLDER") {
-      return NextResponse.json({ error: "placeholder" }, { status: 400 });
+      return apiError("placeholder", 400);
     }
     throw err;
   }
-}
+});

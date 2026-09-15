@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse, after } from "next/server";
+import { NextResponse, after } from "next/server";
 import { z } from "zod";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   ensureFreeWebinar,
@@ -52,25 +52,19 @@ const patchSchema = z.object({
   metaDescription: z.string().max(320).nullable().optional(),
 });
 
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async () => {
   const webinar = await ensureFreeWebinar();
   return NextResponse.json({
     webinar,
     operationalTimezone: await getOperationalTimezone(),
   });
-}
+});
 
-export async function PATCH(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const raw = await req.json().catch(() => null);
+export const PATCH = withStaff("write", async ({ req, staff }) => {
+  const raw = await readJson(req);
   const parsed = patchSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   const faq = parsed.data.faq as FreeWebinarFaqItem[] | undefined;
@@ -144,32 +138,21 @@ export async function PATCH(req: NextRequest) {
     });
   } catch (e) {
     if (e instanceof FreeWebinarMeetUrlError) {
-      return NextResponse.json(
-        {
-          error: "invalid_meet_url",
-          message: "El enlace de la reunión debe ser una URL https válida.",
-        },
-        { status: 400 }
-      );
+      return apiError("invalid_meet_url", 400, {
+        message: "El enlace de la reunión debe ser una URL https válida.",
+      });
     }
     if (e instanceof FreeWebinarPublishError) {
-      return NextResponse.json(
-        {
-          error: "not_publishable",
-          blockers: e.blockers,
-          message: `Falta: ${e.blockers
-            .map((b) => PUBLISH_BLOCKER_LABELS[b])
-            .join(", ")}`,
-        },
-        { status: 400 }
-      );
+      return apiError("not_publishable", 400, {
+        blockers: e.blockers,
+        message: `Falta: ${e.blockers
+          .map((b) => PUBLISH_BLOCKER_LABELS[b])
+          .join(", ")}`,
+      });
     }
     if (e instanceof Error && e.message === "INVALID_ZONED_DATETIME") {
-      return NextResponse.json(
-        { error: "invalid_datetime", message: "Fecha u hora inválida." },
-        { status: 400 }
-      );
+      return apiError("invalid_datetime", 400, { message: "Fecha u hora inválida." });
     }
     throw e;
   }
-}
+});

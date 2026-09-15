@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { put } from "@vercel/blob";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { createWorkshopDocument, listWorkshopDocuments } from "@/lib/crm/workshop-editions";
 import { prisma } from "@/lib/db";
@@ -17,47 +17,42 @@ const ALLOWED_MIMES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
-type Ctx = { params: Promise<{ slug: string }> };
+type Params = { slug: string };
 
-export async function GET(_req: NextRequest, ctx: Ctx) {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { slug } = await ctx.params;
+export const GET = withStaff<Params>("read", async ({ params }) => {
+  const { slug } = params;
   const edition = await prisma.workshopEdition.findUnique({
     where: { slug },
     select: { id: true },
   });
-  if (!edition) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!edition) return apiError("not_found", 404);
 
   const documents = await listWorkshopDocuments(edition.id);
   return NextResponse.json({ documents });
-}
+});
 
-export async function POST(req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const POST = withStaff<Params>("write", async ({ req, staff, params }) => {
   if (!isBlobConfigured()) return blobNotConfiguredResponse();
 
-  const { slug } = await ctx.params;
+  const { slug } = params;
   const edition = await prisma.workshopEdition.findUnique({
     where: { slug },
     select: { id: true },
   });
-  if (!edition) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (!edition) return apiError("not_found", 404);
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "missing_file" }, { status: 400 });
+    return apiError("missing_file", 400);
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "file_too_large" }, { status: 400 });
+    return apiError("file_too_large", 400);
   }
 
   const mime = file.type || "application/octet-stream";
   if (!ALLOWED_MIMES.has(mime)) {
-    return NextResponse.json({ error: "invalid_mime" }, { status: 400 });
+    return apiError("invalid_mime", 400);
   }
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 150);
@@ -85,6 +80,6 @@ export async function POST(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ document });
   } catch (err) {
     console.error("workshop document upload failed", err);
-    return NextResponse.json({ error: "blob_upload_failed" }, { status: 500 });
+    return apiError("blob_upload_failed", 500);
   }
-}
+});

@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { updateWorkshopEditionBySlug } from "@/lib/crm/workshop-editions";
 import {
@@ -11,31 +11,28 @@ import { isVirtualWorkshopSlug } from "@/lib/workshops";
 import { workshopEditionSchema } from "@/lib/validations/admin";
 import { WorkshopEditionStatus } from "@prisma/client";
 
-type Ctx = { params: Promise<{ slug: string }> };
+type Params = { slug: string };
 
 export const dynamic = "force-dynamic";
 
 const DATE_ONLY_ANCHOR = "12:00";
 
-export async function PATCH(req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { slug } = await ctx.params;
+export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
+  const { slug } = params;
 
   if (isVirtualWorkshopSlug(slug)) {
-    return NextResponse.json({ error: "virtual_edition" }, { status: 400 });
+    return apiError("virtual_edition", 400);
   }
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   const parsed = workshopEditionSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   const existing = await prisma.workshopEdition.findUnique({ where: { slug } });
   if (!existing) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   const tz = await getOperationalTimezone();
@@ -53,10 +50,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
           tz
         );
       } catch {
-        return NextResponse.json(
-          { error: "invalid_datetime", message: "Fecha u hora inválida." },
-          { status: 400 }
-        );
+        return apiError("invalid_datetime", 400, { message: "Fecha u hora inválida." });
       }
     }
   } else if (parsed.data.startsAt !== undefined) {
@@ -99,16 +93,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   });
 
   return NextResponse.json({ edition });
-}
+});
 
-export async function DELETE(_req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { slug } = await ctx.params;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
+  const { slug } = params;
 
   if (isVirtualWorkshopSlug(slug)) {
-    return NextResponse.json({ error: "virtual_edition" }, { status: 400 });
+    return apiError("virtual_edition", 400);
   }
 
   const edition = await prisma.workshopEdition.delete({ where: { slug } });
@@ -121,4 +112,4 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

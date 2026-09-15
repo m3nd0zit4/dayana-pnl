@@ -1,17 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { deleteCommentAsStaff } from "@/lib/lms/class-comments";
 
 export const dynamic = "force-dynamic";
 
-type RouteCtx = { params: Promise<{ id: string; commentId: string }> };
+type Params = { id: string; commentId: string };
 
-export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { commentId } = await ctx.params;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
+  const { commentId } = params;
   await deleteCommentAsStaff(commentId);
 
   fireAuditLog({
@@ -22,4 +19,4 @@ export async function DELETE(_req: NextRequest, ctx: RouteCtx) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

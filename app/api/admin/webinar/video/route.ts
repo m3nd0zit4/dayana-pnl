@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   clearWebinarVideo,
@@ -21,9 +21,7 @@ export const dynamic = "force-dynamic";
  * y en producción uno perdido dejaría el vídeo colgado en «procesando».
  */
 
-export async function POST() {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const POST = withStaff("write", async ({ staff }) => {
   if (!isMuxConfigured()) return muxNotConfiguredResponse();
 
   const upload = await createWebinarVideoUpload().catch((e) => {
@@ -31,7 +29,7 @@ export async function POST() {
     return null;
   });
   if (!upload) {
-    return NextResponse.json({ error: "upload_failed" }, { status: 502 });
+    return apiError("upload_failed", 502);
   }
 
   const webinar = await ensureFreeWebinar();
@@ -44,11 +42,9 @@ export async function POST() {
   });
 
   return NextResponse.json(upload);
-}
+});
 
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
+export const GET = withStaff("read", async () => {
   if (!isMuxConfigured()) return muxNotConfiguredResponse();
 
   const webinar = await reconcileWebinarVideo().catch((e) => {
@@ -56,16 +52,13 @@ export async function GET() {
     return null;
   });
   if (!webinar) {
-    return NextResponse.json({ error: "reconcile_failed" }, { status: 502 });
+    return apiError("reconcile_failed", 502);
   }
 
   return NextResponse.json({ webinar });
-}
+});
 
-export async function DELETE() {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const DELETE = withStaff("write", async ({ staff }) => {
   const webinar = await clearWebinarVideo();
 
   fireAuditLog({
@@ -77,4 +70,4 @@ export async function DELETE() {
   });
 
   return NextResponse.json({ webinar });
-}
+});

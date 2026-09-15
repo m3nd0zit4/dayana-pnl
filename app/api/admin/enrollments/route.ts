@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EnrollmentStatus } from "@prisma/client";
-import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
+import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { createEnrollmentSchema } from "@/lib/validations/admin";
 import { createEnrollment } from "@/lib/crm/enrollments";
@@ -38,14 +39,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ enrollments, nextCursor });
 }
 
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const raw = await req.json().catch(() => null);
+export const POST = withStaff("write", async ({ req, staff }) => {
+  const raw = await readJson(req);
   const parsed = createEnrollmentSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    return apiError("missing_fields", 400);
   }
 
   const body = parsed.data;
@@ -69,6 +67,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ enrollment });
   } catch (e) {
     const code = e instanceof Error && "code" in e ? String((e as { code: string }).code) : "error";
-    return NextResponse.json({ error: code }, { status: 400 });
+    return apiError(code, 400);
   }
-}
+});

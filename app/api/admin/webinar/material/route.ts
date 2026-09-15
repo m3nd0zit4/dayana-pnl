@@ -1,6 +1,6 @@
 import { del, put } from "@vercel/blob";
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   clearWebinarMaterial,
@@ -33,23 +33,21 @@ const ALLOWED_MIMES = new Set([
  * El blob es privado y se sirve por `/api/webinar/material`; la URL real nunca
  * sale de aquí.
  */
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const POST = withStaff("write", async ({ req, staff }) => {
   if (!isBlobConfigured()) return blobNotConfiguredResponse();
 
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "missing_file" }, { status: 400 });
+    return apiError("missing_file", 400);
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "file_too_large" }, { status: 400 });
+    return apiError("file_too_large", 400);
   }
 
   const mime = file.type || "application/octet-stream";
   if (!ALLOWED_MIMES.has(mime)) {
-    return NextResponse.json({ error: "invalid_mime" }, { status: 400 });
+    return apiError("invalid_mime", 400);
   }
 
   const webinar = await ensureFreeWebinar();
@@ -82,12 +80,9 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ webinar: updated });
-}
+});
 
-export async function DELETE() {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const DELETE = withStaff("write", async ({ staff }) => {
   const { webinar, previousUrl } = await clearWebinarMaterial();
   if (previousUrl) {
     await del(previousUrl).catch(() => {});
@@ -102,4 +97,4 @@ export async function DELETE() {
   });
 
   return NextResponse.json({ webinar });
-}
+});

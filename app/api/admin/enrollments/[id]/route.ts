@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { EnrollmentStatus } from "@prisma/client";
-import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   EnrollmentValidationError,
@@ -10,28 +10,22 @@ import {
 } from "@/lib/crm/enrollments";
 import { prisma } from "@/lib/db";
 
-type Ctx = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: NextRequest, ctx: Ctx) {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await ctx.params;
+export const GET = withStaff<Params>("read", async ({ params }) => {
+  const { id } = params;
   const enrollment = await getEnrollmentById(id);
   if (!enrollment) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
   return NextResponse.json({ enrollment });
-}
+});
 
-export async function PATCH(req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await ctx.params;
-  const body = await req.json().catch(() => null);
+export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
+  const { id } = params;
+  const body = await readJson(req);
 
   const hasMetaUpdate =
     body?.label !== undefined ||
@@ -46,7 +40,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       enrollment = await getEnrollmentById(id);
     }
     if (!enrollment) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
+      return apiError("not_found", 404);
     }
 
     if (hasMetaUpdate) {
@@ -65,7 +59,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     }
   } catch (e) {
     if (e instanceof EnrollmentValidationError) {
-      return NextResponse.json({ error: e.code }, { status: 409 });
+      return apiError(e.code, 409);
     }
     throw e;
   }
@@ -79,20 +73,17 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
   });
 
   return NextResponse.json({ enrollment });
-}
+});
 
-export async function DELETE(_req: NextRequest, ctx: Ctx) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await ctx.params;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
+  const { id } = params;
 
   try {
     await deleteEnrollment(id);
   } catch (e) {
     if (e instanceof EnrollmentValidationError) {
       const status = e.code === "NOT_FOUND" ? 404 : 409;
-      return NextResponse.json({ error: e.code }, { status });
+      return apiError(e.code, status);
     }
     throw e;
   }
@@ -105,4 +96,4 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

@@ -1,13 +1,13 @@
 import crypto from "crypto";
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { hashPassword } from "@/lib/auth/password";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { getMemberByContactId, setMemberPassword } from "@/lib/crm/member-accounts";
 
 export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
 /** Readable-ish random password, e.g. "k3m9-p7qz-4wxr" (16 chars, no email needed). */
 const generatePassword = () =>
@@ -24,14 +24,11 @@ const generatePassword = () =>
  * email. Same effect as the email flow (member can log in right away),
  * just handed to staff to relay however they want (WhatsApp, in person…).
  */
-export async function POST(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id: contactId } = await params;
+export const POST = withStaff<Params>("write", async ({ staff, params }) => {
+  const { id: contactId } = params;
   const member = await getMemberByContactId(contactId);
   if (!member) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   const password = generatePassword();
@@ -46,4 +43,4 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ ok: true, email: member.contact.email, password });
-}
+});

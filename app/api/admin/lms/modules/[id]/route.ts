@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
   deleteCourseModule,
@@ -9,18 +9,15 @@ import { courseModuleSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function PATCH(req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
+  const { id } = params;
   const parsed = courseModuleSchema
     .partial()
-    .safeParse(await req.json().catch(() => null));
+    .safeParse(await readJson(req));
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   // `productId` viaja en el schema para la creación; mover un módulo de curso
@@ -28,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const { productId: _productId, ...data } = parsed.data;
   const courseModule = await updateCourseModule(id, data).catch(() => null);
   if (!courseModule) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   fireAuditLog({
@@ -40,16 +37,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ module: courseModule });
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
+  const { id } = params;
   const deleted = await deleteCourseModule(id).catch(() => null);
   if (!deleted) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   fireAuditLog({
@@ -60,4 +54,4 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { WorkshopEditionStatus } from "@prisma/client";
-import { resolveAdminStaff, requireWriteStaff } from "@/lib/auth/api-staff";
+import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { uniqueSlug } from "@/lib/crm/slug";
 import { upsertWorkshopEdition } from "@/lib/crm/workshop-editions";
@@ -66,10 +66,7 @@ const toInput = async (
   };
 };
 
-export async function GET() {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
+export const GET = withStaff("read", async () => {
   const editions = await prisma.workshopEdition.findMany({
     where: crmEditionWhere,
     orderBy: { createdAt: "desc" },
@@ -78,16 +75,13 @@ export async function GET() {
     editions,
     operationalTimezone: await getOperationalTimezone(),
   });
-}
+});
 
-export async function POST(req: NextRequest) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const raw = await req.json().catch(() => null);
+export const POST = withStaff("write", async ({ req, staff }) => {
+  const raw = await readJson(req);
   const parsed = workshopEditionSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+    return apiError("invalid_body", 400);
   }
 
   let slug = String(parsed.data.slug ?? "").trim();
@@ -101,7 +95,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (isVirtualWorkshopSlug(slug)) {
-    return NextResponse.json({ error: "virtual_edition" }, { status: 400 });
+    return apiError("virtual_edition", 400);
   }
 
   try {
@@ -118,11 +112,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ edition });
   } catch (e) {
     if (e instanceof Error && e.message === "INVALID_ZONED_DATETIME") {
-      return NextResponse.json(
-        { error: "invalid_datetime", message: "Fecha u hora inválida." },
-        { status: 400 }
-      );
+      return apiError("invalid_datetime", 400, { message: "Fecha u hora inválida." });
     }
     throw e;
   }
-}
+});

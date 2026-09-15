@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireWriteStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { isMuxConfigured } from "@/lib/mux/client";
 import { muxNotConfiguredResponse } from "@/lib/mux/http";
@@ -7,19 +7,17 @@ import { clearRecording, createRecordingUpload } from "@/lib/lms/course-admin";
 
 export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export async function POST(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
+export const POST = withStaff<Params>("write", async ({ staff, params }) => {
   if (!isMuxConfigured()) return muxNotConfiguredResponse();
 
-  const { id } = await params;
+  const { id } = params;
   const { uploadUrl, uploadId } = await createRecordingUpload(id).catch(
     () => ({ uploadUrl: null, uploadId: null })
   );
   if (!uploadUrl || !uploadId) {
-    return NextResponse.json({ error: "upload_failed" }, { status: 502 });
+    return apiError("upload_failed", 502);
   }
 
   fireAuditLog({
@@ -31,16 +29,13 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ uploadUrl, uploadId });
-}
+});
 
-export async function DELETE(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireWriteStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
+  const { id } = params;
   const cleared = await clearRecording(id).catch(() => null);
   if (!cleared) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   fireAuditLog({
@@ -52,4 +47,4 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});

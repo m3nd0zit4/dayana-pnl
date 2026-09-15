@@ -1,23 +1,20 @@
 import { NextResponse } from "next/server";
-import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { revokeStaffSession, validateStaffSession } from "@/lib/auth/staff-sessions";
 
 export const dynamic = "force-dynamic";
 
-type RouteCtx = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
-export const POST = async (_req: Request, ctx: RouteCtx) => {
-  const staff = await resolveAdminStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id: sessionId } = await ctx.params;
+export const POST = withStaff<Params>("read", async ({ staff, params }) => {
+  const { id: sessionId } = params;
 
   const row = await validateStaffSession(sessionId);
   if (!row || row.staffUserId !== staff.id) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
 
   await revokeStaffSession(sessionId);
 
   return NextResponse.json({ ok: true });
-};
+});

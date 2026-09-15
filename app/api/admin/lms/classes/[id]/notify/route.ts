@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { EnrollmentStatus, ProductKind } from "@prisma/client";
-import { requireBroadcastStaff } from "@/lib/auth/api-staff";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { prisma } from "@/lib/db";
 import { renderQuickMessage } from "@/lib/crm/render-message";
@@ -20,22 +20,19 @@ const CHANNELS = ["EMAIL", "WHATSAPP_API"] as const;
  */
 const NOTIFY_MAX_TARGETS = 2000;
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
 /** Notifies members who are current on payments that a recording is up. */
-export async function POST(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireBroadcastStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const POST = withStaff<Params>("broadcast", async ({ staff, params }) => {
+  const { id } = params;
   const liveClass = await prisma.liveClassSession.findUnique({
     where: { id },
   });
   if (!liveClass) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return apiError("not_found", 404);
   }
   if (!isRecordingVisible(liveClass)) {
-    return NextResponse.json({ error: "no_visible_recording" }, { status: 400 });
+    return apiError("no_visible_recording", 400);
   }
 
   const audienceWhere = {
@@ -50,10 +47,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   // memoria y solo entonces se fallaba. Aquí se falla barato.
   const targetCount = await prisma.enrollment.count({ where: audienceWhere });
   if (targetCount > NOTIFY_MAX_TARGETS) {
-    return NextResponse.json(
-      { error: "audience_too_large", targets: targetCount },
-      { status: 422 }
-    );
+    return apiError("audience_too_large", 422, { targets: targetCount });
   }
 
   const enrollments = await prisma.enrollment.findMany({
@@ -114,4 +108,4 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ targets: enrollments.length, sent });
-}
+});

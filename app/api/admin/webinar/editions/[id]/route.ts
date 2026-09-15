@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireOwnerStaff } from "@/lib/auth/api-staff";
+import { NextResponse } from "next/server";
+import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { deleteArchivedWebinar } from "@/lib/crm/free-webinar";
 
 export const dynamic = "force-dynamic";
 
-type RouteParams = { params: Promise<{ id: string }> };
+type Params = { id: string };
 
 /**
  * Borra una edición archivada y, en cascada, su lista de registradas.
@@ -14,20 +14,13 @@ type RouteParams = { params: Promise<{ id: string }> };
  * por `slug != gratuito`: la edición viva no se puede borrar por aquí ni
  * pasando su id a mano.
  */
-export async function DELETE(_req: NextRequest, { params }: RouteParams) {
-  const staff = await requireOwnerStaff();
-  if (staff instanceof NextResponse) return staff;
-
-  const { id } = await params;
+export const DELETE = withStaff<Params>("owner", async ({ staff, params }) => {
+  const { id } = params;
   const count = await deleteArchivedWebinar(id);
   if (count === 0) {
-    return NextResponse.json(
-      {
-        error: "not_archived",
-        message: "Solo se pueden borrar ediciones ya archivadas.",
-      },
-      { status: 400 }
-    );
+    return apiError("not_archived", 400, {
+      message: "Solo se pueden borrar ediciones ya archivadas.",
+    });
   }
 
   fireAuditLog({
@@ -39,4 +32,4 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
   });
 
   return NextResponse.json({ ok: true });
-}
+});
