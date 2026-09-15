@@ -72,25 +72,6 @@ export function contactCountryKey(iso: string | null): string {
   return iso ?? "__sin-pais__";
 }
 
-export const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
-  ACTIVE: "Activa",
-  SUSPENDED: "Suspendida",
-  CANCELLED: "Cancelada",
-  EXPIRED: "Vencida",
-};
-
-export const subscriptionStatusLabel = (status: string): string =>
-  SUBSCRIPTION_STATUS_LABELS[status] ?? status;
-
-export const SUBSCRIPTION_PROVIDER_LABELS: Record<string, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Manual",
-};
-
-export const subscriptionProviderLabel = (provider: string): string =>
-  SUBSCRIPTION_PROVIDER_LABELS[provider] ?? provider;
-
 /**
  * Igual criterio que `lib/crm/subscriptions.ts`: manda el id de la
  * suscripción viva en el proveedor, no la columna `subscriptionProvider`
@@ -106,23 +87,6 @@ export function resolveSubscriptionProvider(row: {
   if (row.mercadoPagoPreapprovalId) return "MERCADO_PAGO";
   return row.subscriptionProvider;
 }
-
-/**
- * Plural del pipeline de Estadísticas. Mismas etiquetas que el mapa privado
- * de `lib/crm/dashboard-stats.ts` (no exportado): se duplica a propósito en
- * vez de importarlo, porque ese módulo no es de este paquete.
- */
-export const PIPELINE_STATUS_LABELS: Record<string, string> = {
-  LEAD: "Leads",
-  PENDING_PAYMENT: "Pago pendiente",
-  ACTIVE: "Activos",
-  COMPLETED: "Completados",
-  CANCELLED: "Cancelados",
-  REFUNDED: "Reembolsados",
-};
-
-export const pipelineStatusLabel = (status: string): string =>
-  PIPELINE_STATUS_LABELS[status] ?? status;
 
 /* -------------------------------------------------------------------------
  * Ediciones de taller

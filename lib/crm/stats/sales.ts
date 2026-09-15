@@ -3,6 +3,7 @@ import "server-only";
 import { PaymentStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { paymentProviderLabel } from "@/lib/crm/payment-labels";
 import { sumTotals } from "@/lib/crm/payments-list";
 import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 
@@ -15,7 +16,6 @@ import {
   NO_FAILURE_CODE_LABEL,
   NULL_KEY,
   PAYMENT_LINK_STEP_LABELS,
-  PAYMENT_PROVIDER_LABEL,
   averageTickets,
   buildSeriesByCurrency,
   buildUsdEquivalentSeries,
@@ -295,7 +295,7 @@ const providerAndCountryBreakdowns = (
     mergeBreakdownInputs(
       groups.map((g) => ({
         key: `${g.provider}:${g.currency}`,
-        label: PAYMENT_PROVIDER_LABEL[g.provider] ?? g.provider,
+        label: paymentProviderLabel(g.provider),
         value: g._sum.amountMinor ?? 0,
         currency: g.currency,
       })),

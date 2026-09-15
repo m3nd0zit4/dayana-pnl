@@ -6,19 +6,11 @@ import CancelSubscription from "@/app/components/miembros/CancelSubscription";
 import RenewMembership from "@/app/components/miembros/RenewMembership";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 import { getMemberWorkshops } from "@/lib/crm/member-workshops";
+import { paymentProviderLongLabel } from "@/lib/crm/payment-labels";
 import { getMembershipPayments } from "@/lib/lms/membership";
 import { requirePortalContext } from "@/lib/lms/portal";
 import { formatCop, formatUsd } from "@/lib/plans";
 import { getVisiblePublicPlans } from "@/lib/pricing/public-plans";
-
-// Ojo: el índice es `string`, no `PaymentProvider`, así que añadir un miembro
-// al enum NO rompe el typecheck aquí — sólo deja el pago sin etiqueta en la
-// factura del miembro. Mantener en sync con PROVIDER_LABEL de lib/crm/payments.ts.
-const PROVIDER_LABELS: Record<string, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Registro manual",
-};
 
 const formatAmount = (currency: string, amountMinor: number) =>
   currency === "COP"
@@ -196,7 +188,7 @@ const Page = async () => {
                   </span>
                   <span className="flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[0.18em] text-black/45">
                     <span>
-                      {PROVIDER_LABELS[payment.provider] ?? payment.provider}
+                      {paymentProviderLongLabel(payment.provider)}
                       {" · "}
                       {dateFmt.format(payment.paidAt ?? payment.createdAt)}
                     </span>

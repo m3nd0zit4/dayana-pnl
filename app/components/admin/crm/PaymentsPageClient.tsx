@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { PaymentProvider, PaymentStatus } from "@prisma/client";
+import type { PaymentStatus } from "@prisma/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CreditCard, Download, FileText, Receipt, UserPlus } from "lucide-react";
@@ -18,6 +18,10 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { formatMoneyMinor } from "@/lib/crm/money";
+import {
+  PAYMENT_PROVIDER_LABEL as PROVIDER_LABEL,
+  PAYMENT_STATUS_LABEL as STATUS_LABEL,
+} from "@/lib/crm/payment-labels";
 import { productSelectOptions } from "@/lib/crm/form-select-options";
 import type { PaymentCurrencyTotal, PaymentListRow } from "@/lib/crm/payments-list";
 import {
@@ -33,24 +37,11 @@ import {
   CrmSearchInput,
 } from "./ui";
 
-const STATUS_LABEL: Record<PaymentStatus, string> = {
-  PENDING: "Pendiente",
-  APPROVED: "Aprobado",
-  FAILED: "Fallido",
-  REFUNDED: "Reembolsado",
-};
-
 const STATUS_BADGE_CLASS: Record<PaymentStatus, string> = {
   APPROVED: "border-success/40 bg-success/10 text-success",
   PENDING: "border-warning/40 bg-warning/10 text-warning",
   FAILED: "border-destructive/40 bg-destructive/10 text-destructive",
   REFUNDED: "",
-};
-
-const PROVIDER_LABEL: Record<PaymentProvider, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Manual",
 };
 
 type Payment = PaymentListRow;

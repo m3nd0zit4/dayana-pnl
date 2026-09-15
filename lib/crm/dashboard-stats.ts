@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
 import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
 import { getPendientes } from "@/lib/crm/pendientes";
+import { ENROLLMENT_STATUS_PLURAL_LABEL } from "@/lib/crm/enrollment-labels";
 import {
   getDateKeyInTz,
   getStartOfDayInTz,
@@ -12,15 +13,6 @@ import {
 
 /** Fila del agregado de pagos por día y moneda. `minor` llega como bigint. */
 type PaymentDayRow = { day: string; currency: string; minor: bigint };
-
-const STATUS_LABELS: Record<EnrollmentStatus, string> = {
-  LEAD: "Leads",
-  PENDING_PAYMENT: "Pago pendiente",
-  ACTIVE: "Activos",
-  COMPLETED: "Completados",
-  CANCELLED: "Cancelados",
-  REFUNDED: "Reembolsados",
-};
 
 export const getDashboardStats = async () => {
   const now = new Date();
@@ -162,7 +154,7 @@ export const getDashboardStats = async () => {
 
   const pipeline = enrollmentsByStatus.map((row) => ({
     status: row.status,
-    label: STATUS_LABELS[row.status],
+    label: ENROLLMENT_STATUS_PLURAL_LABEL[row.status],
     count: row._count._all,
   }));
 

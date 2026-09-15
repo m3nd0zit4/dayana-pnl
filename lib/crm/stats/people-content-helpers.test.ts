@@ -4,11 +4,8 @@ import {
   contactCountryKey,
   contactCountryLabel,
   formatWebinarEditionLabel,
-  pipelineStatusLabel,
   resolveSubscriptionProvider,
   shapeWorkshopEditions,
-  subscriptionProviderLabel,
-  subscriptionStatusLabel,
   summarizeMembersSnapshot,
 } from "./people-content-helpers";
 
@@ -74,29 +71,6 @@ describe("etiquetas de país", () => {
 
   test("iso desconocido no revienta: se devuelve tal cual", () => {
     expect(contactCountryLabel("ZZ")).toBe("ZZ");
-  });
-});
-
-describe("etiquetas de suscripción y pipeline", () => {
-  test("estados con fallback al valor crudo", () => {
-    expect(subscriptionStatusLabel("ACTIVE")).toBe("Activa");
-    expect(subscriptionStatusLabel("SUSPENDED")).toBe("Suspendida");
-    expect(subscriptionStatusLabel("CANCELLED")).toBe("Cancelada");
-    expect(subscriptionStatusLabel("EXPIRED")).toBe("Vencida");
-    expect(subscriptionStatusLabel("ALGO_NUEVO")).toBe("ALGO_NUEVO");
-  });
-
-  test("proveedores con fallback al valor crudo", () => {
-    expect(subscriptionProviderLabel("PAYPAL")).toBe("PayPal");
-    expect(subscriptionProviderLabel("MERCADO_PAGO")).toBe("Mercado Pago");
-    expect(subscriptionProviderLabel("MANUAL")).toBe("Manual");
-    expect(subscriptionProviderLabel("STRIPE")).toBe("STRIPE");
-  });
-
-  test("pipeline usa las etiquetas plurales", () => {
-    expect(pipelineStatusLabel("LEAD")).toBe("Leads");
-    expect(pipelineStatusLabel("ACTIVE")).toBe("Activos");
-    expect(pipelineStatusLabel("REFUNDED")).toBe("Reembolsados");
   });
 });
 

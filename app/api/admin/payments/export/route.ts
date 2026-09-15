@@ -2,6 +2,7 @@ import { PaymentProvider, PaymentStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { csvMoney, csvRow } from "@/lib/crm/csv";
+import { PAYMENT_PROVIDER_LABEL, PAYMENT_STATUS_LABEL } from "@/lib/crm/payment-labels";
 import { getDateKeyInTz, getTimeHmInTz } from "@/lib/crm/operational-timezone";
 import {
   PAYMENTS_EXPORT_LIMIT,
@@ -9,19 +10,6 @@ import {
 } from "@/lib/crm/payments-list";
 
 export const dynamic = "force-dynamic";
-
-const PROVIDER_LABEL: Record<PaymentProvider, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Manual",
-};
-
-const STATUS_LABEL: Record<PaymentStatus, string> = {
-  PENDING: "Pendiente",
-  APPROVED: "Aprobado",
-  FAILED: "Fallido",
-  REFUNDED: "Reembolsado",
-};
 
 const HEADER = [
   "Fecha",
@@ -100,8 +88,8 @@ export async function GET(req: NextRequest) {
       contactName,
       p.enrollment.contact.email ?? "",
       p.enrollment.product.title,
-      PROVIDER_LABEL[p.provider],
-      STATUS_LABEL[p.status],
+      PAYMENT_PROVIDER_LABEL[p.provider],
+      PAYMENT_STATUS_LABEL[p.status],
       p.currency,
       csvMoney(p.amountMinor, p.currency),
       csvMoney(p.feeMinor, p.currency),

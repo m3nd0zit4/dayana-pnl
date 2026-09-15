@@ -12,6 +12,7 @@ import {
   CollapsibleTrigger,
 } from "@/app/components/ui/collapsible";
 import { displayContactPhone } from "@/lib/crm/contact-phone";
+import { paymentProviderLabel, subscriptionStatusLabel } from "@/lib/crm/payment-labels";
 import type {
   SubscriberRow,
   SubscriptionPlanRow,
@@ -50,19 +51,6 @@ type Props = {
   subscribers: SubscriberRow[];
   /** Dentro de Membresías: sin marco ni cabecera propios. */
   embedded?: boolean;
-};
-
-const PROVIDER_LABEL: Record<string, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Manual",
-};
-
-const SUBSCRIPTION_STATE_LABEL: Record<string, string> = {
-  ACTIVE: "Activa",
-  SUSPENDED: "Suspendida",
-  CANCELLED: "Cancelada",
-  EXPIRED: "Vencida",
 };
 
 const formatDate = (iso: string | null) =>
@@ -204,13 +192,12 @@ const SubscriptionsPageClient = ({
                   <div className="w-32">
                     <p className="text-sm">
                       {row.provider
-                        ? (PROVIDER_LABEL[row.provider] ?? row.provider)
+                        ? paymentProviderLabel(row.provider)
                         : "—"}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {row.subscriptionStatus
-                        ? (SUBSCRIPTION_STATE_LABEL[row.subscriptionStatus] ??
-                          row.subscriptionStatus)
+                        ? subscriptionStatusLabel(row.subscriptionStatus)
                         : "Pago suelto"}
                     </p>
                   </div>
@@ -320,7 +307,7 @@ const SubscriptionsPageClient = ({
                   </div>
 
                   <span className="w-32 text-sm">
-                    {PROVIDER_LABEL[row.provider] ?? row.provider}
+                    {paymentProviderLabel(row.provider)}
                   </span>
 
                   <span className="w-32 text-sm">

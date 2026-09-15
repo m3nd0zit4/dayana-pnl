@@ -20,12 +20,6 @@ import type { SeriesPoint, StatsGranularity } from "./types";
  */
 export const ATTRIBUTION_DAYS = 60;
 
-export const PAYMENT_PROVIDER_LABEL: Record<string, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Manual",
-};
-
 export const NO_FAILURE_CODE_LABEL = "sin código";
 export const NO_COUNTRY_LABEL = "Sin país";
 export const NO_SOURCE_LABEL = "Sin origen";

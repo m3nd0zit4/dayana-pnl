@@ -7,6 +7,8 @@ import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
 import { contactFilterSourceSelectOptions } from "@/lib/crm/form-select-options";
 import { getMembershipProduct } from "@/lib/lms/membership";
 import { PENDIENTES_EXPIRY_WINDOW_DAYS } from "@/lib/crm/pendientes";
+import { enrollmentStatusPluralLabel } from "@/lib/crm/enrollment-labels";
+import { paymentProviderLabel, subscriptionStatusLabel } from "@/lib/crm/payment-labels";
 
 import { toBreakdownRows } from "./breakdown";
 import type { PeopleStats } from "./dto";
@@ -18,10 +20,7 @@ import type { StatsRange } from "./types";
 import {
   contactCountryKey,
   contactCountryLabel,
-  pipelineStatusLabel,
   resolveSubscriptionProvider,
-  subscriptionProviderLabel,
-  subscriptionStatusLabel,
   summarizeMembersSnapshot,
 } from "./people-content-helpers";
 
@@ -213,7 +212,7 @@ export async function getPeopleStats(
     [...byProvider.entries()].map(([key, value]) => ({
       key,
       value,
-      label: key === "__sin-proveedor__" ? "Sin proveedor" : subscriptionProviderLabel(key),
+      label: key === "__sin-proveedor__" ? "Sin proveedor" : paymentProviderLabel(key),
     })),
   );
 
@@ -221,7 +220,7 @@ export async function getPeopleStats(
     pipelineRows.map((r) => ({
       key: r.status,
       value: r._count._all,
-      label: pipelineStatusLabel(r.status),
+      label: enrollmentStatusPluralLabel(r.status),
     })),
   );
 

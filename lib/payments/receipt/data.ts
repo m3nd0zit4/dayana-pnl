@@ -1,6 +1,7 @@
-import { PaymentProvider, PaymentStatus } from "@prisma/client";
+import { PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { formatMoneyMinor } from "@/lib/crm/money";
+import { PAYMENT_PROVIDER_LONG_LABEL } from "@/lib/crm/payment-labels";
 import {
   OPERATIONAL_TZ,
   getDateKeyInTz,
@@ -8,12 +9,6 @@ import {
 } from "@/lib/crm/operational-timezone";
 import { emailFrom, siteUrl } from "@/lib/notifications/config";
 import { ReceiptError, ensureReceiptNumber } from "./number";
-
-const PROVIDER_LABEL: Record<PaymentProvider, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Registro manual",
-};
 
 export type ReceiptData = {
   receiptNumber: string;
@@ -111,7 +106,7 @@ export const buildReceiptData = async (
       payment.netMinor != null
         ? formatMoneyMinor(payment.netMinor, payment.currency)
         : null,
-    method: PROVIDER_LABEL[payment.provider],
+    method: PAYMENT_PROVIDER_LONG_LABEL[payment.provider],
     providerReference: payment.providerPaymentId,
     sessions: payment.enrollment.sessionsTotal ?? null,
   };

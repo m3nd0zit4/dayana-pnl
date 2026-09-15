@@ -13,12 +13,7 @@ import {
 import { parseCheckoutReference } from "./checkout-reference";
 import { markEnrollmentPaid } from "./enrollments";
 import { formatMoneyMinor } from "./money";
-
-const PROVIDER_LABEL: Record<PaymentProvider, string> = {
-  PAYPAL: "PayPal",
-  MERCADO_PAGO: "Mercado Pago",
-  MANUAL: "Registro manual",
-};
+import { PAYMENT_PROVIDER_LONG_LABEL as PROVIDER_LABEL } from "./payment-labels";
 
 const contactName = (contact: {
   displayName: string | null;
