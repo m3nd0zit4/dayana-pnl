@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,16 +9,8 @@ import {
 } from "@/app/components/ui/dialog";
 import { Input } from "@/app/components/ui/input";
 import { useCrm } from "../CrmProvider";
+import { useContactSearch } from "../hooks/useContactSearch";
 import { humanizeInboxError } from "./types";
-
-type ContactHit = {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  displayName: string | null;
-  phoneE164: string;
-  email: string | null;
-};
 
 type Props = {
   conversationId: string;
@@ -36,38 +28,16 @@ type Props = {
 const LinkContactDialog = ({ conversationId, onClose, onLinked }: Props) => {
   const { toast } = useCrm();
   const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<ContactHit[]>([]);
-  const [searching, setSearching] = useState(false);
   const [linking, setLinking] = useState<string | null>(null);
 
-  // Se deriva en vez de limpiarse en un efecto: con menos de dos caracteres no
-  // hay nada que enseñar, y borrar el estado por efecto provoca un render extra.
+  // Con menos de dos caracteres no hay nada que enseñar; aquí sólo caben unos
+  // pocos resultados en pantalla.
   const term = query.trim();
-  const visibleHits = term.length < 2 ? [] : hits;
-
-  useEffect(() => {
-    if (term.length < 2) return;
-
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const res = await fetch(
-          `/api/admin/contacts?q=${encodeURIComponent(term)}`,
-          { cache: "no-store" }
-        );
-        if (!res.ok) return;
-        const data = (await res.json()) as { contacts?: ContactHit[] };
-        // El endpoint devuelve hasta 80; aquí solo caben unos pocos en pantalla.
-        setHits((data.contacts ?? []).slice(0, 8));
-      } catch {
-        // Silencioso: el operador puede seguir escribiendo y reintentar.
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [term]);
+  const { hits: visibleHits, loading: searching } = useContactSearch(query, {
+    minLength: 2,
+    limit: 8,
+    debounceMs: 300,
+  });
 
   const link = async (contactId: string) => {
     setLinking(contactId);

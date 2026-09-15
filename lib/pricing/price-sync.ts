@@ -40,6 +40,7 @@ import {
   mercadoPagoFee,
   paypalFee,
 } from "@/lib/pricing/fees";
+import { hasSubscriptionPlan } from "@/lib/pricing/subscription-plan";
 
 export type PriceSyncFailureCode =
   | "NOT_A_SUBSCRIPTION_PRODUCT"
@@ -54,12 +55,7 @@ export type ChangeSubscriptionPriceResult =
   | { ok: true; changed: boolean; product: Product; newGrossUsd: number | null }
   | { ok: false; code: PriceSyncFailureCode; message: string };
 
-/** ¿Este producto cobra por un plan recurrente de algún proveedor? */
-export const hasSubscriptionPlan = (product: {
-  paypalPlanId: string | null;
-  mercadoPagoPreapprovalPlanId: string | null;
-}): boolean =>
-  Boolean(product.paypalPlanId || product.mercadoPagoPreapprovalPlanId);
+export { hasSubscriptionPlan };
 
 const usdMinorToGross = (netMinor: number): number =>
   grossUpUsd(netMinor / 100, paypalFee()).gross;

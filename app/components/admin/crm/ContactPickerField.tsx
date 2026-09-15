@@ -17,6 +17,7 @@ import {
 } from "@/lib/crm/contact-search-recents";
 import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
+import { useContactSearch } from "./hooks/useContactSearch";
 
 export type PickerContact = ContactRecentHit & {
   displayName?: string | null;
@@ -40,8 +41,8 @@ const contactLabel = (c: PickerContact) =>
 
 /**
  * Campo de formulario para elegir contacto con búsqueda en servidor
- * (mismo patrón que SmartContactSearch: debounce 350ms + AbortController),
- * en lugar de descargar una lista limitada y filtrar en cliente.
+ * (`useContactSearch`, la misma que SmartContactSearch), en lugar de
+ * descargar una lista limitada y filtrar en cliente.
  */
 const ContactPickerField = ({
   id,
@@ -54,10 +55,9 @@ const ContactPickerField = ({
   onQueryChange,
 }: Props) => {
   const [q, setQ] = useState("");
-  const [hits, setHits] = useState<PickerContact[]>([]);
   const [recents, setRecents] = useState<ContactRecentHit[]>([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { hits, loading } = useContactSearch(q, { enabled: open });
   const [selectedLabel, setSelectedLabel] = useState(
     initialContact?.label ?? ""
   );
@@ -83,38 +83,6 @@ const ContactPickerField = ({
     top?: number;
     bottom?: number;
   } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const fetchContacts = useCallback(async (term: string, signal: AbortSignal) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (term.trim()) params.set("q", term.trim());
-      params.set("limit", "25");
-      const res = await fetch(`/api/admin/contacts/search?${params}`, { signal });
-      const data = (await res.json()) as { contacts?: PickerContact[] };
-      setHits(data.contacts ?? []);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setHits([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const t = setTimeout(() => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      void fetchContacts(q, controller.signal);
-    }, 350);
-    return () => {
-      clearTimeout(t);
-      abortRef.current?.abort();
-    };
-  }, [q, open, fetchContacts]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {

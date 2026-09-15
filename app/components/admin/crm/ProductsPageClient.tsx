@@ -25,6 +25,7 @@ import CrmSegmentedControl from "./CrmSegmentedControl";
 import ProductCardPreview, { previewToPlan } from "./ProductCardPreview";
 import PublicProductCard from "@/app/components/productos/PublicProductCard";
 import { formatCop, formatUsd, type Plan } from "@/lib/plans";
+import { hasSubscriptionPlan } from "@/lib/pricing/subscription-plan";
 import {
   DEFAULT_PRODUCT_ACCENT,
   PRODUCT_ACCENTS,
@@ -82,9 +83,6 @@ const KIND_LABEL: Record<ProductKind, string> = {
   COURSE: "Curso",
   WORKSHOP: "Taller",
 };
-
-const hasSubscriptionPlan = (p: Product) =>
-  Boolean(p.paypalPlanId || p.mercadoPagoPreapprovalPlanId);
 
 /**
  * El precio de un producto con plan recurrente sólo se guarda si PayPal y

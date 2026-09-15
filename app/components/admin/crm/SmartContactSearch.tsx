@@ -12,6 +12,7 @@ import {
   type ContactRecentHit,
 } from "@/lib/crm/contact-search-recents";
 import { MIN_SEARCH_TOKEN } from "@/lib/crm/search-normalize";
+import { useContactSearch } from "./hooks/useContactSearch";
 import { cn } from "@/lib/utils";
 
 export type SearchContactHit = ContactRecentHit & {
@@ -38,62 +39,17 @@ const SmartContactSearch = ({
 }: Props) => {
   const router = useRouter();
   const [q, setQ] = useState(initialQ);
-  const [hits, setHits] = useState<SearchContactHit[]>([]);
   const [recents, setRecents] = useState<ContactRecentHit[]>([]);
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  // 2 y no 1: un trigrama necesita 3 caracteres para usar el índice GIN,
+  // así que consultar con una sola letra garantiza un scan por pulsación.
+  const { hits, loading } = useContactSearch(q, { minLength: MIN_SEARCH_TOKEN });
 
   const refreshRecents = useCallback(() => {
     setRecents(getContactRecents());
   }, []);
-
-  const fetchContacts = useCallback(async (term: string, signal: AbortSignal) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (term.trim()) params.set("q", term.trim());
-      params.set("limit", "25");
-      const res = await fetch(`/api/admin/contacts/search?${params}`, { signal });
-      const data = (await res.json()) as { contacts?: SearchContactHit[] };
-      setHits(
-        (data.contacts ?? []).map((c) => ({
-          id: c.id,
-          firstName: c.firstName,
-          lastName: c.lastName,
-          phoneE164: c.phoneE164,
-          displayName: c.displayName,
-          email: c.email,
-        }))
-      );
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      setHits([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      // 2 y no 1: un trigrama necesita 3 caracteres para usar el índice GIN,
-      // así que consultar con una sola letra garantiza un scan por pulsación.
-      if (q.trim().length >= MIN_SEARCH_TOKEN) {
-        abortRef.current?.abort();
-        const controller = new AbortController();
-        abortRef.current = controller;
-        void fetchContacts(q, controller.signal);
-      } else {
-        setHits([]);
-      }
-    }, 350);
-    return () => {
-      clearTimeout(t);
-      abortRef.current?.abort();
-    };
-  }, [q, fetchContacts]);
 
   useEffect(() => {
     setQ(initialQ);
