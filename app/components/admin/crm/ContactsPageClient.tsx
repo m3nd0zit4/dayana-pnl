@@ -131,7 +131,7 @@ const ContactsPageClient = ({
    * desplegables. Como los tres controles son discretos —dos selects y una
    * casilla— cada cambio ya es una intención completa: no hay nada que esperar
    * a que el usuario «termine» de escribir, así que el botón solo añadía un
-   * paso. La búsqueda por texto sigue aparte, en `ContactSearch`, que es quien
+   * paso. La búsqueda por texto sigue aparte, en `SmartContactSearch`, que es quien
    * necesita el retardo.
    */
   const hrefFor = (next: Partial<Filters & { q: string }>) => {

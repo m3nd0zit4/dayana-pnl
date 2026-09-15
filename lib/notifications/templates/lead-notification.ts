@@ -50,21 +50,19 @@ export const leadNotificationHtml = (i: LeadEmailInput): string => {
       : `No dejó un mensaje adicional.`,
   ]);
 
+  const waUrl = buildContactWhatsAppUrl(
+    i.phoneE164,
+    `Hola ${i.firstName}, soy Dayana. Recibí tu mensaje desde la web 💛`
+  );
+
   return wrapEmailHtml({
     preheader: `Nuevo contacto: ${fullName(i)} · ${i.phoneE164}`,
     eyebrow: "Nuevo lead",
     title: "Tienes un nuevo contacto",
     bodyHtml: body,
     summaryRows: rows,
-    ctaPrimary: {
-      label: "Escribir por WhatsApp",
-      // Un teléfono que no es E.164 real armaría un wa.me hacia un número basura.
-      href:
-        buildContactWhatsAppUrl(
-          i.phoneE164,
-          `Hola ${i.firstName}, soy Dayana. Recibí tu mensaje desde la web 💛`
-        ) ?? siteUrl(),
-    },
+    // Sin botón si el teléfono no es E.164 real: armaría un wa.me hacia un número basura.
+    ...(waUrl ? { ctaPrimary: { label: "Escribir por WhatsApp", href: waUrl } } : {}),
     ctaSecondary: { label: "Ver el sitio", href: siteUrl() },
   });
 };

@@ -115,7 +115,13 @@ const SmartContactSearch = ({
   };
 
   const openContact = (c: ContactRecentHit) => {
-    saveContactRecent(c);
+    // Sólo los campos de «recientes»: lo que llegue de más en el hit no va a localStorage.
+    saveContactRecent({
+      id: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      phoneE164: c.phoneE164,
+    });
     refreshRecents();
     setOpen(false);
   };

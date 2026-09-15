@@ -29,7 +29,12 @@ export function useContactSearch(
   query: string,
   { enabled = true, minLength = 0, limit = 25, debounceMs = 350 }: Options = {}
 ) {
-  const [hits, setHits] = useState<ContactSearchHit[]>([]);
+  // Los resultados guardan el término que los produjo: así no reaparecen los
+  // de una búsqueda anterior mientras corre el debounce de la nueva.
+  const [result, setResult] = useState<{ term: string; hits: ContactSearchHit[] }>({
+    term: "",
+    hits: [],
+  });
   const [loading, setLoading] = useState(false);
   const term = query.trim();
   const active = enabled && term.length >= minLength;
@@ -46,10 +51,10 @@ export function useContactSearch(
           signal: controller.signal,
         });
         const data = (await res.json()) as { contacts?: ContactSearchHit[] };
-        setHits(data.contacts ?? []);
+        setResult({ term, hits: data.contacts ?? [] });
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setHits([]);
+        setResult({ term, hits: [] });
       } finally {
         setLoading(false);
       }
@@ -61,5 +66,8 @@ export function useContactSearch(
   }, [active, term, limit, debounceMs]);
 
   // Derivado en vez de limpiar en un efecto: evita un render extra.
-  return { hits: active ? hits : [], loading: active && loading };
+  return {
+    hits: active && result.term === term ? result.hits : [],
+    loading: active && loading,
+  };
 }

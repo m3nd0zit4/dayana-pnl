@@ -44,7 +44,6 @@
   --crm-shadow-segment: 0 1px 3px rgba(20, 18, 16, 0.1);
 
   /* Constantes de layout. */
-  --crm-dropdown-z: 110;
   --crm-touch: 44px;
   --crm-bottom-nav-h: 3.25rem;
   --crm-ask-pill-clearance: 4.5rem;
@@ -870,61 +869,6 @@ body:has(.crm-app) [data-mobile="true"] [data-sidebar="menu-button"][data-size="
   color: var(--crm-accent);
   font-size: 0.8125rem;
   padding: 0.75rem 1rem;
-}
-
-.crm-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 0;
-  background: rgba(10, 10, 10, 0.45);
-  backdrop-filter: blur(4px);
-}
-
-@media (min-width: 640px) {
-  .crm-modal-backdrop {
-    align-items: center;
-    padding: 1rem;
-  }
-}
-
-.crm-modal {
-  width: 100%;
-  max-width: 32rem;
-  max-height: min(92vh, 720px);
-  overflow-y: auto;
-  border-radius: var(--crm-radius-xl) var(--crm-radius-xl) 0 0;
-  background: var(--crm-card);
-  border: 0.5px solid var(--crm-separator);
-  box-shadow: var(--crm-shadow-md);
-  padding: 1.25rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
-  animation: crm-sheet-up 0.28s ease-out;
-}
-
-@media (min-width: 640px) {
-  .crm-modal {
-    border-radius: var(--crm-radius-xl);
-    padding: 1.5rem;
-    animation: none;
-  }
-}
-
-@keyframes crm-sheet-up {
-  from {
-    transform: translateY(100%);
-    opacity: 0.6;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.crm-modal-lg {
-  max-width: 40rem;
 }
 
 .crm-chart-card {
