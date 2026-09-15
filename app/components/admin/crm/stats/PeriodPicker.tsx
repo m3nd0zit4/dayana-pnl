@@ -54,7 +54,11 @@ const PeriodPicker = ({ period, fromKey, toKey, onChange }: Props) => {
       <div className="sm:hidden">
         <Select value={period} onValueChange={(v) => selectPreset(v as StatsPeriod)}>
           <SelectTrigger className="w-full" aria-label="Periodo">
-            <SelectValue />
+            {/* Sin esto el disparador pinta el valor crudo («30d») en vez de
+                la etiqueta de la opción. */}
+            <SelectValue>
+              {(value: string) => PERIOD_LABELS[value as StatsPeriod] ?? value}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {STATS_PERIODS.map((p) => (

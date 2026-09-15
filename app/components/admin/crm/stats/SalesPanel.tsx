@@ -53,10 +53,11 @@ const SalesPanel = ({ data, granularity }: Props) => {
           />
         ))}
         <KpiCard
-          label="Tasa de fallo"
+          label="Pagos rechazados"
           value={formatPercent(data.failureRate.value)}
           kpi={failureKpi}
-          note="FAILED / (APROBADOS + FAILED)"
+          positiveWhen="down"
+          note="De cada 100 intentos de pago (aprobados o rechazados)"
         />
       </div>
 
