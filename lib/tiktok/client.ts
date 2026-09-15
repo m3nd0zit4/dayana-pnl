@@ -120,17 +120,20 @@ export type TikTokConfig = {
   redirectUri: string;
 };
 
+/** `TIKTOK_REDIRECT_URI`, o el callback bajo `NEXT_PUBLIC_SITE_URL`; `null` si no hay ninguno. */
+export const tiktokRedirectUri = (): string | null =>
+  process.env.TIKTOK_REDIRECT_URI?.trim() ||
+  (process.env.NEXT_PUBLIC_SITE_URL?.trim()
+    ? `${process.env.NEXT_PUBLIC_SITE_URL.trim().replace(/\/$/, "")}/api/admin/social/tiktok/callback`
+    : null);
+
 export const tiktokConfig = (): TikTokConfig | null => {
   const clientKey = process.env.TIKTOK_CLIENT_KEY?.trim();
   const clientSecret = process.env.TIKTOK_CLIENT_SECRET?.trim();
-  const siteUrl =
-    process.env.TIKTOK_REDIRECT_URI?.trim() ||
-    (process.env.NEXT_PUBLIC_SITE_URL?.trim()
-      ? `${process.env.NEXT_PUBLIC_SITE_URL.trim().replace(/\/$/, "")}/api/admin/social/tiktok/callback`
-      : null);
+  const redirectUri = tiktokRedirectUri();
 
-  if (!clientKey || !clientSecret || !siteUrl) return null;
-  return { clientKey, clientSecret, redirectUri: siteUrl };
+  if (!clientKey || !clientSecret || !redirectUri) return null;
+  return { clientKey, clientSecret, redirectUri };
 };
 
 /**

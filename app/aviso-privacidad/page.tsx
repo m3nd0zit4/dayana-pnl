@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalLayout from "../components/legal/LegalLayout";
-import { BRAND, SOCIAL_LINKS, WHATSAPP_NUMBER } from "../../lib/contact";
+import { BRAND, SOCIAL_LINKS, WHATSAPP_DIGITS, WHATSAPP_NUMBER } from "../../lib/contact";
 
 const title = `Aviso de privacidad — ${BRAND.name}`;
 const description =
@@ -44,7 +44,7 @@ const Page = () => (
       </a>{" "}
       o al WhatsApp{" "}
       <a
-        href={`https://wa.me/${WHATSAPP_NUMBER.replace(/[^0-9]/g, "")}`}
+        href={`https://wa.me/${WHATSAPP_DIGITS}`}
         target="_blank"
         rel="noopener noreferrer"
         className="text-linen underline underline-offset-4"

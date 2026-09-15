@@ -7,12 +7,13 @@ export const BRAND = {
 
 export const WHATSAPP_NUMBER = "+573105833188";
 
+/** Sólo dígitos, como los pide wa.me. */
+export const WHATSAPP_DIGITS = WHATSAPP_NUMBER.replace(/[^0-9]/g, "");
+
 export const WHATSAPP_COMMUNITY_URL = "https://chat.whatsapp.com/GXPARCB8Ur0Fd0I78g2eYl";
 
-export const buildWhatsAppUrl = (message: string): string => {
-  const digits = WHATSAPP_NUMBER.replace(/[^0-9]/g, "");
-  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
-};
+export const buildWhatsAppUrl = (message: string): string =>
+  `https://wa.me/${WHATSAPP_DIGITS}?text=${encodeURIComponent(message)}`;
 
 export const SOCIAL_LINKS = {
   tiktok: "https://www.tiktok.com/@dayanapnl",

@@ -1,4 +1,4 @@
-import { buildWhatsAppUrl } from "@/lib/contact";
+import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { siteUrl } from "../config";
 import {
   escapeHtml,
@@ -50,8 +50,6 @@ export const leadNotificationHtml = (i: LeadEmailInput): string => {
       : `No dejó un mensaje adicional.`,
   ]);
 
-  const waDigits = i.phoneE164.replace(/[^0-9]/g, "");
-
   return wrapEmailHtml({
     preheader: `Nuevo contacto: ${fullName(i)} · ${i.phoneE164}`,
     eyebrow: "Nuevo lead",
@@ -60,9 +58,12 @@ export const leadNotificationHtml = (i: LeadEmailInput): string => {
     summaryRows: rows,
     ctaPrimary: {
       label: "Escribir por WhatsApp",
-      href: buildWhatsAppUrl(
-        `Hola ${i.firstName}, soy Dayana. Recibí tu mensaje desde la web 💛`
-      ).replace(/wa\.me\/\d+/, `wa.me/${waDigits}`),
+      // Un teléfono que no es E.164 real armaría un wa.me hacia un número basura.
+      href:
+        buildContactWhatsAppUrl(
+          i.phoneE164,
+          `Hola ${i.firstName}, soy Dayana. Recibí tu mensaje desde la web 💛`
+        ) ?? siteUrl(),
     },
     ctaSecondary: { label: "Ver el sitio", href: siteUrl() },
   });

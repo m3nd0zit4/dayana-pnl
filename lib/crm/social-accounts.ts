@@ -9,6 +9,7 @@ import {
 } from "../meta/config";
 import { unsubscribePageWebhooks } from "../meta/subscriptions";
 import { resolveSocialPublishingEnabled } from "../tiktok/resolve-flags";
+import { tiktokRedirectUri } from "../tiktok/client";
 
 /**
  * Estado de las cuentas enlazadas, para la pantalla de Conexiones.
@@ -194,11 +195,7 @@ export const getSocialConnections = async (): Promise<SocialConnection[]> => {
       connectHref: tiktokEnabled
         ? "/api/admin/social/tiktok/connect?dest=x"
         : null,
-      redirectUri:
-        process.env.TIKTOK_REDIRECT_URI?.trim() ||
-        (process.env.NEXT_PUBLIC_SITE_URL?.trim()
-          ? `${process.env.NEXT_PUBLIC_SITE_URL.trim().replace(/\/$/, "")}/api/admin/social/tiktok/callback`
-          : null),
+      redirectUri: tiktokRedirectUri(),
       accounts: tiktokAccounts,
       webhook: null,
     },
