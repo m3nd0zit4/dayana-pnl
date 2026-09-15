@@ -201,8 +201,6 @@ const WORKSHOP_CATALOG: WorkshopCard[] = [
 
 export const WORKSHOPS = buildPublicWorkshopListing(WORKSHOP_CATALOG);
 
-export const isLockedWorkshopSlug = (_slug: string): boolean => false;
-
 const STATUS_LABEL: Record<WorkshopStatus, string> = {
   completed: "Completado",
   upcoming: "Próximamente",

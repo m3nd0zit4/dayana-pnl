@@ -95,13 +95,6 @@ export type Plan = {
   whatsappMessage: string;
 };
 
-/** Ahorro en USD si hay lista por encima del precio promocional; si no, `null`. */
-export function getTherapySavingsUsd(plan: Plan): number | null {
-  if (plan.kind !== "therapy" || plan.listAmountUsd == null) return null;
-  const save = plan.listAmountUsd - plan.amountUsd;
-  return save > 0 ? save : null;
-}
-
 /** Valida la forma de un slug de plan (no consulta la DB — para eso `isActivePlanId`). */
 export const isPlanId = (value: unknown): value is PlanId =>
   typeof value === "string" && /^[a-z0-9][a-z0-9-]*$/.test(value);
