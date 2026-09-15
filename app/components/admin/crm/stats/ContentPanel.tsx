@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import type { ContentStats } from "@/lib/crm/stats/dto";
 import type { StatsGranularity } from "@/lib/crm/stats/types";
+import { DEFAULT_OPERATIONAL_TZ } from "@/lib/datetime/zoned-time";
 import { CrmEmptyState } from "@/app/components/admin/crm/ui";
 import KpiCard from "./KpiCard";
 import SeriesChartCard from "./SeriesChartCard";
@@ -11,7 +12,15 @@ const formatCount = (value: number): string => value.toLocaleString("es-CO");
 const formatPercent = (value: number | null): string =>
   value === null ? "—" : `${(value * 100).toLocaleString("es-CO", { maximumFractionDigits: 1 })} %`;
 
-const EDITION_DATE_FMT = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric" });
+// Zona operativa fija: este componente se pinta en el servidor (UTC en
+// Vercel) y se hidrata en el navegador (Bogotá). Sin `timeZone`, una edición
+// cerca de medianoche UTC mostraba un día distinto en cada lado.
+const EDITION_DATE_FMT = new Intl.DateTimeFormat("es-CO", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: DEFAULT_OPERATIONAL_TZ,
+});
 
 const formatEditionDate = (iso: string | null): string =>
   iso ? EDITION_DATE_FMT.format(new Date(iso)).replace(/\.(?=\s)/, "") : "Sin fecha";
@@ -43,6 +52,7 @@ const ContentPanel = ({ data, granularity }: Props) => {
           <KpiCard
             label="Registrados que compraron"
             value={formatCount(data.webinar.registrantsWhoPurchased)}
+            note="Compra en los 60 días siguientes a registrarse, igual que en el embudo del diagnóstico"
           />
         </div>
         <SeriesChartCard

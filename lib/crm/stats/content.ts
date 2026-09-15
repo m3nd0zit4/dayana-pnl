@@ -12,6 +12,7 @@ import { fillSeries, sumByBucket } from "./series";
 import { toNumber } from "./currency";
 import type { StatsRange } from "./types";
 import { formatWebinarEditionLabel, shapeWorkshopEditions } from "./people-content-helpers";
+import { ATTRIBUTION_DAYS } from "./sales-helpers";
 
 /**
  * «Webinar, talleres y cursos» de Estadísticas.
@@ -64,9 +65,10 @@ export async function getContentStats(range: StatsRange): Promise<ContentStats> 
     prisma.webinarRegistration.count({
       where: { lastSendErrorAt: { gte: range.from, lt: range.to } },
     }),
-    // Registradas del rango cuyo contacto tiene un pago APROBADO posterior
-    // (o igual) a su registro — señal de que el webinar gratuito las llevó a
-    // comprar, sin acotar a un producto concreto.
+    // Registradas del rango cuyo contacto tiene un pago APROBADO en los
+    // ATTRIBUTION_DAYS días siguientes a su registro — la misma ventana que el
+    // embudo del diagnóstico, para que «compró después» signifique lo mismo en
+    // las dos áreas. Sin acotar a un producto concreto.
     prisma.$queryRaw<{ count: bigint }[]>`
       SELECT COUNT(DISTINCT wr."id")::bigint AS count
       FROM "webinar_registrations" wr
@@ -78,6 +80,7 @@ export async function getContentStats(range: StatsRange): Promise<ContentStats> 
           WHERE e."contact_id" = wr."contact_id"
             AND p."status" = 'APPROVED'
             AND p."paid_at" >= wr."created_at"
+            AND p."paid_at" < wr."created_at" + ${ATTRIBUTION_DAYS}::int * interval '1 day'
         )
     `,
     // Ediciones vigentes o recientes de taller: pasadas hasta 30 días atrás

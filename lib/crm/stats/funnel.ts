@@ -111,7 +111,16 @@ export async function getFunnelStats(range: StatsRange): Promise<FunnelStats> {
       where: completedInRange,
       _count: { _all: true },
     }),
-    prisma.diagnostic.findMany({ where: completedInRange, select: { answers: true } }),
+    // Tope de seguridad: la distribución se calcula en Node sobre las
+    // respuestas crudas. Hoy son decenas por año; si algún día un periodo
+    // pasa de 5.000 diagnósticos terminados, la muestra (los más recientes)
+    // sigue siendo representativa y la consulta no crece sin límite.
+    prisma.diagnostic.findMany({
+      where: completedInRange,
+      select: { answers: true },
+      orderBy: { completedAt: "desc" },
+      take: 5000,
+    }),
   ]);
 
   const steps = stepsRows[0];
