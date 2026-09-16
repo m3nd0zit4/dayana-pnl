@@ -7,6 +7,7 @@ import {
   minorToMajor,
 } from "./money";
 import { formatCop, formatUsd } from "../plans";
+import { formatAmountWithCurrency } from "../format/money-display";
 
 describe("isZeroDecimalCurrency", () => {
   test("sólo COP es de cero decimales", () => {
@@ -79,14 +80,11 @@ describe("formatMoneyMinor", () => {
   });
 });
 
-// La factura de socia (`app/cuenta/facturacion/page.tsx`) define su propio
-// `formatAmount` local que llama a estas mismas funciones de lib/plans, con
-// una diferencia clave respecto a `formatMoneyMinor`: para USD divide entre
-// 100 y pasa el resultado por `formatUsd`, que trunca a 0 decimales.
-const facturacionFormatAmount = (currency: string, amountMinor: number) =>
-  currency === "COP"
-    ? `${formatCop(amountMinor)} COP`
-    : `${formatUsd(amountMinor / 100)} ${currency}`;
+// La factura de socia (`app/cuenta/facturacion/page.tsx`) usa
+// `formatAmountWithCurrency` de lib/format/money-display. Antes tenía un
+// `formatAmount` local que pasaba USD por `formatUsd` y perdía los centavos;
+// la dueña aprobó mostrar el cobro exacto (2026-09-15).
+const facturacionFormatAmount = formatAmountWithCurrency;
 
 describe("formatCop / formatUsd (lib/plans.ts)", () => {
   test("formatCop: símbolo y separador es-CO, sin decimales", () => {
@@ -115,29 +113,23 @@ describe("formatCop / formatUsd (lib/plans.ts)", () => {
   });
 });
 
-describe("formatAmount de app/cuenta/facturacion — el problema de los centavos en USD", () => {
+describe("formatAmount de app/cuenta/facturacion — centavos en USD", () => {
   test("COP: formatCop recibe amountMinor TAL CUAL (ya es la unidad mayor)", () => {
-    expect(facturacionFormatAmount("COP", 189900)).toBe("$ 189.900 COP");
+    expect(facturacionFormatAmount("COP", 189900)).toBe(`${formatCop(189900)} COP`);
   });
 
-  test("USD sin centavos: amountMinor/100 y formatUsd coinciden sin pérdida visible", () => {
-    expect(facturacionFormatAmount("USD", 9700)).toBe("$97 USD");
+  test("USD entero: lleva .00", () => {
+    expect(facturacionFormatAmount("USD", 9700)).toBe("$97.00 USD");
   });
 
-  // characterization: current behaviour, see report — BUG aparente. Un pago de
-  // 10.50 USD (amountMinor = 1050) se muestra en la factura de la socia como
-  // "$11 USD": formatUsd(1050 / 100) = formatUsd(10.5), y formatUsd trunca a
-  // enteros (maximumFractionDigits: 0 en el Intl.NumberFormat de lib/plans.ts).
-  // Los centavos reales cobrados desaparecen de la vista de la clienta, y el
-  // redondeo puede incluso cambiar la cifra mostrada. `formatMoneyMinor` (usado
-  // en otras partes del CRM) NO tiene este problema porque usa toFixed(2).
-  test("USD con centavos: la factura de socia OCULTA y REDONDEA los centavos (BUG)", () => {
-    expect(facturacionFormatAmount("USD", 1050)).toBe("$11 USD");
-    // El monto realmente cobrado, mostrado sin pérdida por la otra función:
+  // Antes: "$11 USD" — `formatUsd` redondeaba a dólares enteros. La dueña
+  // aprobó mostrar el cobro exacto (2026-09-15), como ya hacía `formatMoneyMinor`.
+  test("USD con centavos: la factura muestra el cobro exacto", () => {
+    expect(facturacionFormatAmount("USD", 1050)).toBe("$10.50 USD");
     expect(formatMoneyMinor(1050, "USD")).toBe("10.50");
   });
 
-  test("USD con centavos que redondean hacia abajo: 10.49 se ve como 10, no como 10.49", () => {
-    expect(facturacionFormatAmount("USD", 1049)).toBe("$10 USD");
+  test("USD con centavos que antes se redondeaban hacia abajo: 10.49 se ve como 10.49", () => {
+    expect(facturacionFormatAmount("USD", 1049)).toBe("$10.49 USD");
   });
 });

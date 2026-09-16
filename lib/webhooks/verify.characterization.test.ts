@@ -11,6 +11,12 @@ import { verifyMercadoPagoWebhook } from "./verify";
 // alcance (ver reporte).
 
 const ENV_KEYS = ["MERCADOPAGO_WEBHOOK_SECRET", "NODE_ENV"] as const;
+
+// `process.env.NODE_ENV` es de sólo lectura para TypeScript; en los tests hay
+// que escribirlo igualmente para ejercitar el bypass de desarrollo.
+const setNodeEnv = (value: string): void => {
+  (process.env as Record<string, string | undefined>).NODE_ENV = value;
+};
 const savedEnv = new Map<string, string | undefined>();
 
 beforeEach(() => {
@@ -36,13 +42,13 @@ const sign = (secret: string, dataId: string, requestId: string, ts: string): st
 describe("verifyMercadoPagoWebhook — sin MERCADOPAGO_WEBHOOK_SECRET configurado", () => {
   test("en desarrollo, pasa igual (bypass local)", () => {
     delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    process.env.NODE_ENV = "development";
+    setNodeEnv("development");
     expect(verifyMercadoPagoWebhook(makeRequest({}), "{}")).toBe(true);
   });
 
   test("fuera de desarrollo, rechaza (no hay forma segura de verificar)", () => {
     delete process.env.MERCADOPAGO_WEBHOOK_SECRET;
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
     expect(verifyMercadoPagoWebhook(makeRequest({}), "{}")).toBe(false);
   });
 });
@@ -52,7 +58,7 @@ describe("verifyMercadoPagoWebhook — con secreto configurado", () => {
 
   beforeEach(() => {
     process.env.MERCADOPAGO_WEBHOOK_SECRET = secret;
-    process.env.NODE_ENV = "production";
+    setNodeEnv("production");
   });
 
   test("faltan las cabeceras x-signature/x-request-id: rechaza", () => {

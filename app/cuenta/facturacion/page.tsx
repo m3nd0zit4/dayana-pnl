@@ -9,13 +9,9 @@ import { getMemberWorkshops } from "@/lib/crm/member-workshops";
 import { paymentProviderLongLabel } from "@/lib/crm/payment-labels";
 import { getMembershipPayments } from "@/lib/lms/membership";
 import { requirePortalContext } from "@/lib/lms/portal";
+import { formatAmountWithCurrency as formatAmount } from "@/lib/format/money-display";
 import { formatCop, formatUsd } from "@/lib/plans";
 import { getVisiblePublicPlans } from "@/lib/pricing/public-plans";
-
-const formatAmount = (currency: string, amountMinor: number) =>
-  currency === "COP"
-    ? `${formatCop(amountMinor)} COP`
-    : `${formatUsd(amountMinor / 100)} ${currency}`;
 
 const dateFmt = new Intl.DateTimeFormat("es-CO", {
   timeZone: "America/Bogota",
