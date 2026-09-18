@@ -470,6 +470,10 @@ model WorkshopEdition {
   id                         String                @id @default(cuid())
   slug                       String                @unique
   productId                  String?               @map("product_id")
+  /// Producto compartido que cobraba esta edicion antes de tener precio
+  /// propio (p. ej. `workshop-virtual`). Quien pago por ese producto conserva
+  /// el acceso aunque la edicion ya cobre `taller-<slug>`.
+  legacyProductId            String?               @map("legacy_product_id")
   title                      String
   editionLabel               String?               @map("edition_label")
   cardSummary                String?               @map("card_summary") @db.Text

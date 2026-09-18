@@ -46,7 +46,7 @@ export async function syncWorkshopEditionPrice(
   return prisma.$transaction(async (tx) => {
     const edition = await tx.workshopEdition.findUnique({
       where: { slug: input.slug },
-      select: { id: true, productId: true },
+      select: { id: true, productId: true, legacyProductId: true },
     });
     if (!edition) throw new Error(`WORKSHOP_NOT_FOUND:${input.slug}`);
 
@@ -95,7 +95,14 @@ export async function syncWorkshopEditionPrice(
     if (edition.productId !== productId) {
       await tx.workshopEdition.update({
         where: { id: edition.id },
-        data: { product: { connect: { id: productId } } },
+        data: {
+          product: { connect: { id: productId } },
+          // Quien pago por el producto anterior conserva el acceso: se guarda
+          // una sola vez, el primero, que es el que tiene compradores.
+          ...(edition.productId && !edition.legacyProductId
+            ? { legacyProductId: edition.productId }
+            : {}),
+        },
       });
     }
 

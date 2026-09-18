@@ -15,11 +15,28 @@ export const hasActiveWorkshopEnrollment = async (
   contactId: string,
   productId: string
 ): Promise<boolean> => {
+  // Una edicion con precio propio (`taller-<slug>`) tambien reconoce a quien
+  // la pago antes con el producto compartido, y a las matriculas ya ligadas
+  // a ella. Sin esto, poner precio a una edicion dejaba sin acceso a quien
+  // ya la habia comprado.
+  const edition = productId.startsWith("taller-")
+    ? await prisma.workshopEdition.findFirst({
+        where: { productId },
+        select: { id: true, legacyProductId: true },
+      })
+    : null;
+  const productIds = edition?.legacyProductId
+    ? [productId, edition.legacyProductId]
+    : [productId];
+
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       contactId,
-      productId,
       status: EnrollmentStatus.ACTIVE,
+      OR: [
+        { productId: { in: productIds } },
+        ...(edition ? [{ workshopEditionId: edition.id }] : []),
+      ],
     },
     select: { id: true },
   });
