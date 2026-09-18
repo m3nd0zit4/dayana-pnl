@@ -90,8 +90,11 @@ test.describe("CRM · contrato de patrones", () => {
         // Al cambiar de tamaño el panel lateral se vuelve a montar (móvil ↔
         // escritorio) y, con el dev server compilando en frío, la página puede
         // pasar un instante por su `loading.tsx`: medir en ese hueco da `null`
-        // sin que haya nada roto. Se espera a que el contenedor esté visible.
+        // sin que haya nada roto. Durante ese relevo conviven un instante el
+        // esqueleto y la página —dos [data-crm-page]—, y un locator estricto
+        // falla en seco en vez de esperar. Primero uno solo, luego visible.
         const pageContainer = page.locator("[data-crm-page]");
+        await expect(pageContainer).toHaveCount(1);
         await expect(pageContainer).toBeVisible();
         const box = await pageContainer.boundingBox();
         expect(box, "sin bounding box").not.toBeNull();
