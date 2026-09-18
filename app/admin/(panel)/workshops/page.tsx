@@ -31,6 +31,9 @@ const PREVIEW_WORKSHOPS: WorkshopRow[] = [
     metaTitle: null,
     metaDescription: null,
     productId: null,
+    productTitle: null,
+    prices: { cop: 180000, usd: 4500 },
+    paidCount: 12,
   },
 ];
 

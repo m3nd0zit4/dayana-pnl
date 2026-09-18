@@ -10,6 +10,7 @@ import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import BroadcastNotifyModal from "./BroadcastNotifyModal";
 import { useCrm } from "./CrmProvider";
+import { formatMoneyMinor } from "@/lib/crm/money";
 import {
   CrmDataList,
   CrmDataListRow,
@@ -32,6 +33,14 @@ const STATUS_LABEL: Record<WorkshopEditionStatus, string> = {
   OPEN: "Abierto",
   CLOSED: "Cerrado",
   COMPLETED: "Completado",
+};
+
+/** «$ 180.000 COP · US$45.00», o «Sin precio» si no tiene ninguna. */
+const priceLine = (e: WorkshopRow): string => {
+  const parts: string[] = [];
+  if (e.prices.cop != null) parts.push(`$ ${formatMoneyMinor(e.prices.cop, "COP")} COP`);
+  if (e.prices.usd != null) parts.push(`US$${formatMoneyMinor(e.prices.usd, "USD")}`);
+  return parts.length > 0 ? parts.join(" · ") : "Sin precio";
 };
 
 type Props = {
@@ -229,6 +238,10 @@ const WorkshopsPageClient = ({
                     {e.scheduleLabel ? ` · ${e.scheduleLabel}` : ""}
                   </p>
                 ) : null}
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {priceLine(e)}
+                  {e.paidCount ? ` · ${e.paidCount} inscritos pagados` : ""}
+                </p>
               </div>
               <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
                 {STATUS_LABEL[e.status]}

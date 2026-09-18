@@ -2,20 +2,23 @@
 
 import { WorkshopEditionStatus } from "@prisma/client";
 import { useEffect, useState } from "react";
-import { Badge } from "@/app/components/ui/badge";
+import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import CrmModal from "./CrmModal";
+import { CrmField } from "./ui";
 import CrmFormActions from "./ui/CrmFormActions";
 import ScheduleSlotEditor from "./ScheduleSlotEditor";
 import SearchableSelect from "./SearchableSelect";
 import StringListEditor from "./StringListEditor";
 import WorkshopDocumentsPanel, { type WorkshopDocumentItem } from "./WorkshopDocumentsPanel";
-import { invalidateCached, useActiveProducts } from "./hooks/useReferenceData";
+import { invalidateCached } from "./hooks/useReferenceData";
 import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
+import { minorToMajor } from "@/lib/crm/money";
+import { workshopProductIdFor } from "@/lib/crm/workshop-price-rows";
 import {
   DEFAULT_OPERATIONAL_TZ,
   getDateKeyInTz,
@@ -48,6 +51,15 @@ export type WorkshopRow = {
   metaTitle: string | null;
   metaDescription: string | null;
   productId: string | null;
+  /** Título del producto enlazado — el propio (`taller-<slug>`) o, mientras
+   *  no tenga precio propio, uno heredado de Paquetes. */
+  productTitle: string | null;
+  /** Precio vigente del producto enlazado, por moneda. `null` = sin precio
+   *  en esa moneda. */
+  prices: { cop: number | null; usd: number | null };
+  /** Matrículas activas o completadas ligadas a esta edición. Ausente en
+   *  las respuestas de creación/edición — sólo lo trae la lista. */
+  paidCount?: number;
 };
 
 const STATUSES: { value: WorkshopEditionStatus; label: string }[] = [
@@ -90,6 +102,9 @@ type ApiEdition = {
   metaTitle: string | null;
   metaDescription: string | null;
   productId: string | null;
+  productTitle?: string | null;
+  prices?: { cop: number | null; usd: number | null } | null;
+  paidCount?: number;
 };
 
 export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
@@ -121,6 +136,9 @@ export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
   metaTitle: e.metaTitle,
   metaDescription: e.metaDescription,
   productId: e.productId,
+  productTitle: e.productTitle ?? null,
+  prices: e.prices ?? { cop: null, usd: null },
+  paidCount: e.paidCount,
 });
 
 type Props = {
@@ -138,10 +156,6 @@ const WorkshopFormModal = ({
   onClose,
   onSaved,
 }: Props) => {
-  // Gated on `open` like the other call sites — no products fetch until the
-  // modal is actually opened.
-  const { products } = useActiveProducts(open);
-  const workshopProducts = products.filter((p) => p.kind === "WORKSHOP");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [editionLabel, setEditionLabel] = useState("");
@@ -154,13 +168,23 @@ const WorkshopFormModal = ({
   const [timeHm, setTimeHm] = useState("");
   const [focusTopics, setFocusTopics] = useState<string[]>([]);
   const [daySchedule, setDaySchedule] = useState<WorkshopScheduleSlot[]>([]);
-  const [productId, setProductId] = useState<string>("");
+  /** Pesos enteros, como se escriben. */
+  const [priceCop, setPriceCop] = useState("");
+  /** Dólares con centavos, como se escriben — se convierten a centavos al
+   *  mandar la petición. */
+  const [priceUsd, setPriceUsd] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState<WorkshopDocumentItem[]>([]);
-  const selectedProduct = workshopProducts.find((p) => p.id === productId);
-  const selectedProductHasCop =
-    selectedProduct?.prices.some((pr) => pr.currency === "COP" && pr.amountMinor > 0) ?? true;
+
+  /**
+   * Producto heredado: la edición cobra el precio de un paquete compartido
+   * (p. ej. `workshop-virtual`) en vez de tener el suyo propio
+   * (`taller-<slug>`). Escribir un precio aquí migra la edición al suyo —
+   * lo hace `syncWorkshopEditionPrice` en el servidor.
+   */
+  const isLegacyProduct =
+    !!edition?.productId && edition.productId !== workshopProductIdFor(edition.slug);
 
   useEffect(() => {
     if (!open) return;
@@ -187,7 +211,12 @@ const WorkshopFormModal = ({
       }
       setFocusTopics(edition.focusTopics ?? []);
       setDaySchedule(edition.daySchedule ?? []);
-      setProductId(edition.productId ?? "");
+      setPriceCop(edition.prices?.cop != null ? String(edition.prices.cop) : "");
+      setPriceUsd(
+        edition.prices?.usd != null
+          ? minorToMajor(edition.prices.usd, "USD").toFixed(2)
+          : ""
+      );
     } else {
       setTitle("");
       setDescription("");
@@ -199,7 +228,8 @@ const WorkshopFormModal = ({
       setTimeHm("");
       setFocusTopics([]);
       setDaySchedule([]);
-      setProductId("");
+      setPriceCop("");
+      setPriceUsd("");
     }
     setError(null);
   }, [open, edition, operationalTimezone]);
@@ -225,13 +255,37 @@ const WorkshopFormModal = ({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
 
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
     const trimmedTopics = focusTopics.map((t) => t.trim()).filter(Boolean);
     const trimmedSchedule = normalizeWorkshopSchedule(daySchedule);
+
+    const trimmedPriceCop = priceCop.trim();
+    const trimmedPriceUsd = priceUsd.trim();
+    const parsedPriceCop = trimmedPriceCop !== "" ? Number(trimmedPriceCop) : undefined;
+    const parsedPriceUsd = trimmedPriceUsd !== "" ? Number(trimmedPriceUsd) : undefined;
+
+    if (parsedPriceCop !== undefined && (!Number.isFinite(parsedPriceCop) || parsedPriceCop < 0)) {
+      setError("El precio en pesos no es válido.");
+      return;
+    }
+    if (parsedPriceUsd !== undefined && (!Number.isFinite(parsedPriceUsd) || parsedPriceUsd < 0)) {
+      setError("El precio en dólares no es válido.");
+      return;
+    }
+
+    const hasSavedPrice = (edition?.prices?.cop ?? null) != null || (edition?.prices?.usd ?? null) != null;
+    const hasEnteredPrice = parsedPriceCop !== undefined || parsedPriceUsd !== undefined;
+    if (status === WorkshopEditionStatus.OPEN && !hasSavedPrice && !hasEnteredPrice) {
+      setError(
+        "Para abrir este taller hace falta un precio: escribe el de pesos, el de dólares, o ambos."
+      );
+      return;
+    }
+
+    setLoading(true);
 
     const payload = {
       title: trimmedTitle,
@@ -245,7 +299,8 @@ const WorkshopFormModal = ({
         : null,
       focusTopics: trimmedTopics.length > 0 ? trimmedTopics : undefined,
       daySchedule: trimmedSchedule.length > 0 ? trimmedSchedule : undefined,
-      productId: productId || null,
+      priceCop: parsedPriceCop,
+      priceUsd: parsedPriceUsd,
     };
 
     const res = await fetch(
@@ -261,7 +316,12 @@ const WorkshopFormModal = ({
 
     setLoading(false);
     if (!res.ok) {
-      setError("No se pudo guardar el taller.");
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(
+        data.error === "price_sync_failed"
+          ? "El taller se guardó, pero no se pudo actualizar su precio. Vuelve a intentarlo."
+          : "No se pudo guardar el taller."
+      );
       return;
     }
     invalidateCached("workshops");
@@ -365,35 +425,46 @@ const WorkshopFormModal = ({
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <SearchableSelect
-            id="w-product"
-            label="Producto vinculado (cobro)"
-            value={productId}
-            options={[
-              ...workshopProducts.map((p) => ({ value: p.id, label: p.title })),
-              // A linked product that's been deactivated (or its kind
-              // changed) no longer appears in the active list — surface it
-              // instead of showing a confusingly blank picker while the
-              // link silently persists.
-              ...(productId && !workshopProducts.some((p) => p.id === productId)
-                ? [{ value: productId, label: `(producto inactivo) ${productId}` }]
-                : []),
-            ]}
-            onChange={setProductId}
-            allowEmpty
-            emptyLabel="Sin producto (solo WhatsApp, sin pago en línea)"
-          />
-          <p className="text-xs text-muted-foreground">
-            Define el precio que se cobra al pagar en línea y qué compra
-            desbloquea la página de este taller. Créalo primero en
-            Productos si aún no existe (tipo &quot;Taller&quot;).
-          </p>
-          {selectedProduct && !selectedProductHasCop && (
-            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-100 dark:text-amber-700">
-              Sin COP · Oculto en Colombia
-            </Badge>
+        <div className="space-y-3">
+          {isLegacyProduct && (
+            <Alert variant="warning">
+              <AlertDescription>
+                Este taller todavía cobra el precio del paquete «
+                {edition?.productTitle ?? "vinculado"}». Escribe su precio
+                para que tenga el suyo.
+              </AlertDescription>
+            </Alert>
           )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <CrmField
+              label="Precio en pesos (COP)"
+              description="Se cobra con Mercado Pago en Colombia. Es el precio neto: la comisión de cobro se suma en el checkout, igual que en Paquetes."
+            >
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={priceCop}
+                onChange={(e) => setPriceCop(e.target.value)}
+                placeholder="180000"
+              />
+            </CrmField>
+            <CrmField
+              label="Precio en dólares (USD)"
+              description="Se cobra con PayPal fuera de Colombia. También es el precio neto."
+            >
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={priceUsd}
+                onChange={(e) => setPriceUsd(e.target.value)}
+                placeholder="45.00"
+              />
+            </CrmField>
+          </div>
         </div>
 
         <StringListEditor

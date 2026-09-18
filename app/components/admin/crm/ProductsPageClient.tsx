@@ -2,7 +2,9 @@
 
 import { ProductKind } from "@prisma/client";
 import { ChevronDown, ChevronUp, Copy, Package } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, AlertDescription } from "@/app/components/ui/alert";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -83,6 +85,15 @@ const KIND_LABEL: Record<ProductKind, string> = {
   COURSE: "Curso",
   WORKSHOP: "Taller",
 };
+
+/**
+ * Desde que cada edición de taller tiene su propio precio
+ * (`syncWorkshopEditionPrice`, `taller-<slug>`), este producto sigue
+ * apareciendo en el catálogo —se puede desactivar o borrar como cualquier
+ * otro— pero su precio ya no se edita aquí: se edita en la edición, en
+ * Talleres. Dos formularios escribiendo el mismo precio se desincronizan.
+ */
+const isWorkshopManagedProduct = (id: string): boolean => id.startsWith("taller-");
 
 /**
  * El precio de un producto con plan recurrente sólo se guarda si PayPal y
@@ -403,6 +414,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
 
   const usdPrice = (p: Product) => p.prices.find((pr) => pr.currency === "USD") ?? null;
   const copPrice = (p: Product) => p.prices.find((pr) => pr.currency === "COP") ?? null;
+  const isWorkshopManaged = editing !== null && isWorkshopManagedProduct(editing.id);
 
   const openEdit = (p: Product) => {
     const usd = usdPrice(p);
@@ -445,7 +457,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
   const save = async () => {
     if (!canManageTeam) return;
 
-    if (form.kind === "WORKSHOP" && !copForm.amountCop) {
+    if (form.kind === "WORKSHOP" && !isWorkshopManaged && !copForm.amountCop) {
       toast("Los talleres requieren un precio COP (Mercado Pago) además del USD.", "error");
       return;
     }
@@ -695,12 +707,22 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                   </CrmField>
                 </div>
 
+                {isWorkshopManaged && (
+                  <Alert variant="warning">
+                    <AlertDescription>
+                      El precio de este taller se edita desde{" "}
+                      <Link href="/admin/workshops">Talleres</Link>, no aquí:
+                      cada edición tiene el suyo.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <CrmFieldset legend={"Precio Internacional — USD (PayPal)"}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <CrmField label="Precio USD">
                       <Input
                         type="number"
                         value={form.amountUsd}
+                        disabled={isWorkshopManaged}
                         onChange={(e) =>
                           setForm((f) => ({ ...f, amountUsd: e.target.value }))
                         }
@@ -710,6 +732,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                       <Input
                         type="number"
                         value={form.listAmountUsd}
+                        disabled={isWorkshopManaged}
                         onChange={(e) =>
                           setForm((f) => ({ ...f, listAmountUsd: e.target.value }))
                         }
@@ -718,14 +741,15 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                   </div>
                 </CrmFieldset>
                 <CrmFieldset legend={<>Precio Colombia — COP (Mercado Pago)
-                    {form.kind === "WORKSHOP" ? " (requerido para talleres)" : ""}</>}>
+                    {form.kind === "WORKSHOP" && !isWorkshopManaged ? " (requerido para talleres)" : ""}</>}>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <CrmField
-                      label={`Precio COP${form.kind === "WORKSHOP" ? " *" : ""}`}
+                      label={`Precio COP${form.kind === "WORKSHOP" && !isWorkshopManaged ? " *" : ""}`}
                     >
                       <Input
                         type="number"
                         value={copForm.amountCop}
+                        disabled={isWorkshopManaged}
                         onChange={(e) =>
                           setCopForm((f) => ({ ...f, amountCop: e.target.value }))
                         }
@@ -735,6 +759,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                       <Input
                         type="number"
                         value={copForm.listAmountCop}
+                        disabled={isWorkshopManaged}
                         onChange={(e) =>
                           setCopForm((f) => ({ ...f, listAmountCop: e.target.value }))
                         }
@@ -1118,6 +1143,11 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                       <p className="mt-1 text-xs text-muted-foreground">
                         {KIND_LABEL[p.kind]}
                       </p>
+                      {isWorkshopManagedProduct(p.id) && (
+                        <Badge variant="secondary" className="mt-1">
+                          Precio desde Talleres
+                        </Badge>
+                      )}
                     </div>
                   ) : null}
                   {canManageTeam && !preview ? (
@@ -1189,7 +1219,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                     <p className="mt-1.5 font-medium tabular-nums">
                       {compactPrice(isEditing ? draftPlan() : productToPreviewPlan(p), view)}
                     </p>
-                    <div className="mt-1.5">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       <ProductStatusBadge
                         view={view}
                         isActive={p.isActive}
@@ -1197,6 +1227,9 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                         usd={usd}
                         cop={cop}
                       />
+                      {isWorkshopManagedProduct(p.id) && (
+                        <Badge variant="secondary">Precio desde Talleres</Badge>
+                      )}
                     </div>
                   </div>
                 )}

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { updateWorkshopEditionBySlug } from "@/lib/crm/workshop-editions";
+import { majorToMinor } from "@/lib/crm/money";
+import {
+  getWorkshopEditionWithPricing,
+  parseWorkshopPriceFields,
+  updateWorkshopEditionBySlug,
+} from "@/lib/crm/workshop-editions";
+import { syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
 import {
   getOperationalTimezone,
   zonedDateTimeToUtc,
@@ -29,6 +35,7 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
   if (!parsed.success) {
     return apiError("invalid_body", 400);
   }
+  const { priceCop, priceUsd } = parseWorkshopPriceFields(body);
 
   const existing = await prisma.workshopEdition.findUnique({ where: { slug } });
   if (!existing) {
@@ -92,7 +99,24 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     changes: body,
   });
 
-  return NextResponse.json({ edition });
+  try {
+    await syncWorkshopEditionPrice({
+      slug: edition.slug,
+      title: edition.title,
+      status: edition.status,
+      copPesos: priceCop,
+      usdCents: priceUsd !== undefined ? majorToMinor(priceUsd, "USD") : undefined,
+    });
+  } catch (syncError) {
+    console.error("[workshops] no se pudo sincronizar el precio", syncError);
+    return apiError("price_sync_failed", 500);
+  }
+
+  const shaped = await getWorkshopEditionWithPricing(edition.slug);
+  return NextResponse.json({
+    edition: shaped ?? edition,
+    prices: shaped?.prices ?? { cop: null, usd: null },
+  });
 });
 
 export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {

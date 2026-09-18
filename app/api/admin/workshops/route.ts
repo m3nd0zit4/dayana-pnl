@@ -2,14 +2,20 @@ import { NextResponse } from "next/server";
 import { WorkshopEditionStatus } from "@prisma/client";
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { majorToMinor } from "@/lib/crm/money";
 import { uniqueSlug } from "@/lib/crm/slug";
-import { upsertWorkshopEdition } from "@/lib/crm/workshop-editions";
+import {
+  getWorkshopEditionWithPricing,
+  listWorkshopEditionsAdminWithPricing,
+  parseWorkshopPriceFields,
+  upsertWorkshopEdition,
+} from "@/lib/crm/workshop-editions";
+import { syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
 import {
   getOperationalTimezone,
   zonedDateTimeToUtc,
 } from "@/lib/crm/operational-timezone";
 import { prisma } from "@/lib/db";
-import { crmEditionWhere } from "@/lib/workshops-db";
 import { isVirtualWorkshopSlug } from "@/lib/workshops";
 import { workshopEditionSchema } from "@/lib/validations/admin";
 
@@ -49,7 +55,9 @@ const toInput = async (
     whatsappTemplate: body.whatsappTemplate,
     startsAt,
     timezone: tz,
-    productId: body.productId,
+    // Nunca del cliente en una edición nueva: el producto lo crea y enlaza
+    // `syncWorkshopEditionPrice` justo después de este alta, a partir del
+    // precio que se haya mandado. Ver TASKS §2.
     heroLine1: body.heroLine1,
     heroLine2: body.heroLine2,
     heroLine3: body.heroLine3,
@@ -67,10 +75,7 @@ const toInput = async (
 };
 
 export const GET = withStaff("read", async () => {
-  const editions = await prisma.workshopEdition.findMany({
-    where: crmEditionWhere,
-    orderBy: { createdAt: "desc" },
-  });
+  const editions = await listWorkshopEditionsAdminWithPricing();
   return NextResponse.json({
     editions,
     operationalTimezone: await getOperationalTimezone(),
@@ -83,6 +88,7 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   if (!parsed.success) {
     return apiError("invalid_body", 400);
   }
+  const { priceCop, priceUsd } = parseWorkshopPriceFields(raw);
 
   let slug = String(parsed.data.slug ?? "").trim();
   if (!slug) {
@@ -109,7 +115,25 @@ export const POST = withStaff("write", async ({ req, staff }) => {
       entityType: "WorkshopEdition",
       entityId: edition.id,
     });
-    return NextResponse.json({ edition });
+
+    try {
+      await syncWorkshopEditionPrice({
+        slug: edition.slug,
+        title: edition.title,
+        status: edition.status,
+        copPesos: priceCop,
+        usdCents: priceUsd !== undefined ? majorToMinor(priceUsd, "USD") : undefined,
+      });
+    } catch (syncError) {
+      console.error("[workshops] no se pudo sincronizar el precio", syncError);
+      return apiError("price_sync_failed", 500);
+    }
+
+    const shaped = await getWorkshopEditionWithPricing(edition.slug);
+    return NextResponse.json({
+      edition: shaped ?? edition,
+      prices: shaped?.prices ?? { cop: null, usd: null },
+    });
   } catch (e) {
     if (e instanceof Error && e.message === "INVALID_ZONED_DATETIME") {
       return apiError("invalid_datetime", 400, { message: "Fecha u hora inválida." });
