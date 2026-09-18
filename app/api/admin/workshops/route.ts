@@ -9,12 +9,7 @@ import {
   parseWorkshopPriceFields,
   upsertWorkshopEdition,
 } from "@/lib/crm/workshop-editions";
-import {
-  canOpenWithPrice,
-  countPaidForEdition,
-  deactivateWorkshopProducts,
-  syncWorkshopEditionPrice,
-} from "@/lib/crm/workshop-pricing";
+import { canOpenWithPrice, syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
 import { validateWorkshopPrices } from "@/lib/crm/workshop-price-rows";
 import {
   getOperationalTimezone,
