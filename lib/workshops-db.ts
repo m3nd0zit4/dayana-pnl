@@ -115,10 +115,9 @@ export const getActiveOpenWorkshop = async (): Promise<WorkshopDetail | null> =>
 
 /**
  * Raw event timing for JSON-LD — kept separate from the display DTO.
- * Rendered on the /taller-virtual listing page, not the [slug] detail page:
- * that route redirects anonymous visitors away whenever the edition has a
- * linked product (see app/taller-virtual/[slug]/page.tsx), so it's not a
- * page crawlers ever actually see content on.
+ * Rendered on the /taller-virtual listing page (the [slug] detail page has
+ * its own sales-page markup for non-buyers now, see
+ * app/taller-virtual/[slug]/page.tsx).
  */
 export const getWorkshopEventTiming = async (
   slug: string
@@ -133,4 +132,70 @@ export const getWorkshopEventTiming = async (
   });
 };
 
+/**
+ * Any-status detail lookup for the public [slug] page's sales/closed states.
+ *
+ * `getOpenWorkshopDetailBySlug` only returns OPEN editions — that's correct
+ * for the classic "does this exist for sale" check, but it means a
+ * CLOSED/COMPLETED edition looks exactly like a missing one, so the page
+ * can't render a "registrations closed" or "this already happened" state for
+ * it. This returns the DTO regardless of status; DRAFT is still not meant to
+ * be public — the page itself keeps treating DRAFT as not-found for
+ * non-owners, the same way it always has.
+ */
+export const getWorkshopDetailBySlugAnyStatus = async (
+  slug: string
+): Promise<WorkshopDetail | null> => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: editionSelect,
+  });
+
+  if (!edition || edition.slug === PROXIMO_WORKSHOP_SLUG) {
+    return null;
+  }
+
+  return mapEditionToDetail(edition);
+};
+
+/**
+ * Raw status + informational capacity for a slug — kept out of the display
+ * DTO (`WorkshopCard`/`WorkshopDetail` don't carry either field) so this
+ * stays a tiny, separate lookup rather than reshaping the shared mapper.
+ * Used by the [slug] sales page to tell DRAFT/CLOSED/COMPLETED apart (the
+ * DTO's UI status collapses DRAFT and CLOSED into the same "upcoming" value)
+ * and to show the informational capacity line.
+ */
+export const getWorkshopMetaBySlug = async (
+  slug: string
+): Promise<{ status: WorkshopEditionStatus; capacity: number | null } | null> => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: { status: true, capacity: true },
+  });
+  return edition ?? null;
+};
+
 export { crmEditionWhere };
+
+/**
+ * Slugs de las ediciones con página pública para el sitemap: abiertas,
+ * cerradas o ya realizadas. Los borradores responden 404 a quien no es del
+ * equipo y el marcador «próximo taller» no es una edición real.
+ */
+export const listPublicWorkshopSlugs = async (): Promise<string[]> => {
+  const rows = await prisma.workshopEdition.findMany({
+    where: {
+      ...crmEditionWhere,
+      status: {
+        in: [
+          WorkshopEditionStatus.OPEN,
+          WorkshopEditionStatus.CLOSED,
+          WorkshopEditionStatus.COMPLETED,
+        ],
+      },
+    },
+    select: { slug: true },
+  });
+  return rows.map((r) => r.slug);
+};

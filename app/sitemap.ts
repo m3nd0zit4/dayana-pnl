@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { isFreeWebinarActive } from "@/lib/crm/free-webinar";
 import { listCourseSlugs } from "@/lib/courses/catalog";
 import { getSiteUrl } from "@/lib/site-url";
+import { listPublicWorkshopSlugs } from "@/lib/workshops-db";
 
 export const revalidate = 3600;
 
@@ -24,10 +25,6 @@ const STATIC_ROUTES: {
   { path: "/terminos", changeFrequency: "yearly", priority: 0.1 },
 ];
 
-// Note: /taller-virtual/[slug] deliberately excluded — that route redirects
-// anonymous visitors to /taller-virtual whenever the edition has a linked
-// product (see app/taller-virtual/[slug]/page.tsx), so it isn't a page
-// crawlers can actually land on.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
   const now = new Date();
@@ -58,6 +55,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {
     /* DB unavailable — omit courses from sitemap */
+  }
+
+  // Cada edición de taller es ahora su propia página de venta (antes
+  // redirigía al listado a quien no había pagado, y por eso no entraba).
+  try {
+    for (const slug of await listPublicWorkshopSlugs()) {
+      routes.push({
+        path: `/taller-virtual/${slug}`,
+        changeFrequency: "weekly",
+        priority: 0.75,
+      });
+    }
+  } catch {
+    /* DB unavailable — omit workshop editions from sitemap */
   }
 
   return routes.map((route) => ({

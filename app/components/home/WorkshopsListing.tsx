@@ -84,7 +84,14 @@ const WorkshopCardItem = ({
   const visiblePlan = plan && isPlanVisibleForRegion(plan, isColombia) ? plan : null;
 
   return (
-    <article className="wk-card group flex h-full flex-col rounded-3xl border border-black/15 bg-white p-6 lg:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
+    <article className="wk-card group relative flex h-full flex-col rounded-3xl border border-black/15 bg-white p-6 lg:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-transform duration-300 hover:-translate-y-1">
+      {/* Whole card links to the edition page — the pay button (below, given
+          its own stacking context) still intercepts its own clicks. */}
+      <Link
+        href={`/taller-virtual/${workshop.slug}`}
+        className="absolute inset-0 z-0 rounded-3xl"
+        aria-label={`Ver taller: ${workshop.title}`}
+      />
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center rounded-full border border-black/15 px-3 py-1 font-[font2] text-[10px] uppercase tracking-[0.22em] text-black/70">
           {workshop.editionLabel}
@@ -138,7 +145,7 @@ const WorkshopCardItem = ({
       </div>
 
       {workshop.status === "open" ? (
-        <div className="mt-4">
+        <div className="relative z-10 mt-4">
           {hasAccess ? (
             <Link
               href={`/taller-virtual/${workshop.slug}`}
@@ -157,9 +164,12 @@ const WorkshopCardItem = ({
               />
             </Suspense>
           ) : (
-            <p className="mt-2 text-center font-[font1] text-sm text-black/55">
-              El pago en línea para este taller aún no está configurado.
-            </p>
+            <Link
+              href={`/taller-virtual/${workshop.slug}`}
+              className="mt-2 inline-flex w-full items-center justify-center rounded-full border border-black/15 px-6 py-3.5 font-[font2] text-xs uppercase tracking-[0.2em] text-black/75 transition-colors hover:border-black/30"
+            >
+              Ver taller
+            </Link>
           )}
         </div>
       ) : null}

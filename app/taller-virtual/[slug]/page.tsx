@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { WorkshopEditionStatus } from "@prisma/client";
+import { notFound } from "next/navigation";
 import WorkshopLanding from "@/app/components/home/WorkshopLanding";
+import WorkshopSalesPage from "@/app/components/workshops/WorkshopSalesPage";
 import Footer from "@/app/components/home/Footer";
 import JsonLd from "@/app/components/seo/JsonLd";
-import { getOpenWorkshopDetailBySlug, getWorkshopDetailForPreview } from "@/lib/workshops-db";
+import {
+  getWorkshopDetailBySlugAnyStatus,
+  getWorkshopDetailForPreview,
+  getWorkshopMetaBySlug,
+} from "@/lib/workshops-db";
 import { getMemberSession } from "@/lib/auth/member-session";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { resolveSessionCheckoutContact } from "@/lib/crm/checkout-session-contact";
@@ -12,6 +18,10 @@ import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
 import { listWorkshopDocumentsBySlug } from "@/lib/crm/workshop-editions";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getServerUserCountry } from "@/lib/geo/user-country";
+import { getPlanFromDb } from "@/lib/plans-from-db";
+import { isPlanVisibleForRegion } from "@/lib/pricing/plan-visibility";
+import { isGoogleAuthEnabled } from "@/auth";
+import type { Plan } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +33,14 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const workshop = await getOpenWorkshopDetailBySlug(slug);
+  const meta = await getWorkshopMetaBySlug(slug);
+  // DRAFT isn't public — same as today, where the OPEN-only lookup already
+  // hid it. CLOSED/COMPLETED now get real metadata instead of a 404 title,
+  // since the page renders a sales/closed state for them.
+  if (!meta || meta.status === WorkshopEditionStatus.DRAFT) {
+    return { title: "Taller no encontrado" };
+  }
+  const workshop = await getWorkshopDetailBySlugAnyStatus(slug);
   if (!workshop) return { title: "Taller no encontrado" };
   return {
     title: workshop.metadata.title,
@@ -50,10 +67,27 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
 
   const workshop = isOwnerPreview
     ? await getWorkshopDetailForPreview(slug)
-    : await getOpenWorkshopDetailBySlug(slug);
+    : await getWorkshopDetailBySlugAnyStatus(slug);
   if (!workshop) notFound();
 
+  const breadcrumb = (
+    <JsonLd
+      data={buildBreadcrumbSchema([
+        { name: "Inicio", url: "/" },
+        { name: "Talleres", url: "/taller-virtual" },
+        { name: workshop.title, url: `/taller-virtual/${slug}` },
+      ])}
+    />
+  );
+
   if (!isOwnerPreview) {
+    const meta = await getWorkshopMetaBySlug(slug);
+    const rawStatus = meta?.status ?? null;
+
+    // DRAFT isn't public — same rule as today (the OPEN-only lookup used to
+    // enforce this implicitly by returning null).
+    if (rawStatus === WorkshopEditionStatus.DRAFT) notFound();
+
     let hasAccess = false;
     if (workshop.productId) {
       const member = await getMemberSession();
@@ -79,10 +113,45 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
       hasAccess = true;
     }
 
-    // The details page doesn't exist for people who haven't paid — send them
-    // back to the listing instead of a locked/teaser view.
+    // Not a buyer (and not the owner): a payment sales page at this same
+    // URL, in place of the old redirect to the listing. Same page shape for
+    // OPEN-with-a-price, OPEN-without-a-price, CLOSED and COMPLETED — only
+    // the card content and CTA change.
     if (!hasAccess) {
-      redirect("/taller-virtual");
+      const userCountry = await getServerUserCountry();
+      let plan: Plan | null = null;
+      if (workshop.productId && rawStatus === WorkshopEditionStatus.OPEN) {
+        const candidate = await getPlanFromDb(workshop.productId);
+        const isColombia = userCountry === "CO";
+        plan =
+          candidate && isPlanVisibleForRegion(candidate, isColombia)
+            ? candidate
+            : null;
+      }
+
+      const state: "open" | "closed" | "completed" =
+        rawStatus === WorkshopEditionStatus.COMPLETED
+          ? "completed"
+          : plan
+            ? "open"
+            : "closed";
+
+      return (
+        <>
+          {breadcrumb}
+          <main>
+            <WorkshopSalesPage
+              workshop={workshop}
+              plan={plan}
+              userCountry={userCountry}
+              googleEnabled={isGoogleAuthEnabled()}
+              capacity={meta?.capacity ?? null}
+              state={state}
+            />
+          </main>
+          <Footer />
+        </>
+      );
     }
   }
 
@@ -91,13 +160,7 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
 
   return (
     <>
-      <JsonLd
-        data={buildBreadcrumbSchema([
-          { name: "Inicio", url: "/" },
-          { name: "Talleres", url: "/taller-virtual" },
-          { name: workshop.title, url: `/taller-virtual/${slug}` },
-        ])}
-      />
+      {breadcrumb}
       <main>
         <WorkshopLanding
           workshop={workshop}
