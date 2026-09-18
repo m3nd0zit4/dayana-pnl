@@ -31,6 +31,10 @@ import {
   drainWebinarMail,
   type WebinarMailPass,
 } from "../crm/webinar-mailer";
+import {
+  drainWorkshopReminders,
+  type WorkshopReminderPass,
+} from "../crm/workshop-reminders";
 import { closeFreeWebinarIfDue, getFreeWebinar } from "../crm/free-webinar";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
@@ -718,6 +722,33 @@ export const webinarMailContinueFn = inngest.createFunction(
 );
 
 /**
+ * Recordatorios de taller PAGADO: 24 h y 1 h antes de que arranque la
+ * edición. Aprobado por Dayana como «sí, como el del webinar» — mismo patrón
+ * de sello por fila (reclamar antes de enviar, soltar si falla), pero sin el
+ * fan-out por lotes del webinar: una edición de taller tiene decenas de
+ * matrículas, no miles, así que un solo paso por pase agota la cola sin
+ * acercarse al tope de una función de Vercel.
+ *
+ * Minutos `:07 :22 :37 :52` para no coincidir ni con el programador de redes
+ * (`*​/5`) ni con los minutos del cron del webinar (`3-53/10`).
+ */
+export const workshopReminderMailerFn = inngest.createFunction(
+  { id: "workshop-reminder-mailer", concurrency: { limit: 1 } },
+  { cron: "7,22,37,52 * * * *" },
+  async ({ step }) => {
+    const out: Record<string, unknown> = {};
+    // El de 1 h primero: su ventana es la única irrecuperable.
+    const passes: WorkshopReminderPass[] = ["1h", "24h"];
+    for (const pass of passes) {
+      out[pass] = await step.run(`workshop-reminder-${pass}`, () =>
+        drainWorkshopReminders(pass)
+      );
+    }
+    return out;
+  }
+);
+
+/**
  * Dayana acaba de guardar el enlace: se envía ya, sin esperar al cron.
  * `concurrency: 1` compartida con nada más, pero el reclamo por fila es lo que
  * de verdad impide que este envío y un tick del cron dupliquen un correo.
@@ -869,6 +900,7 @@ export const inngestFunctions = [
   socialPostPublishFn,
   webinarMailerFn,
   webinarMailContinueFn,
+  workshopReminderMailerFn,
   webinarMeetLinkBroadcastFn,
   subscriptionPriceDriftCheckFn,
   subscriptionPricePropagateMpFn,
