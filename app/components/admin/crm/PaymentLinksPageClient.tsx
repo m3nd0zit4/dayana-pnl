@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import ContactPickerField from "./ContactPickerField";
@@ -127,6 +128,22 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
   const copy = async (token: string) => {
     try {
       await navigator.clipboard.writeText(urlFor(token));
+      toast("Enlace copiado", "success");
+    } catch {
+      toast("No se pudo copiar", "error");
+    }
+  };
+
+  /**
+   * El enlace de TODAS las terapias (`/pagar/terapias`): no depende de ningún
+   * id, así que se construye igual que el de un enlace fijo de paquete —
+   * `siteUrl` más la ruta— y no una fila de `PaymentLink`.
+   */
+  const therapiesLinkUrl = `${siteUrl}/pagar/terapias`;
+
+  const copyTherapiesLink = async () => {
+    try {
+      await navigator.clipboard.writeText(therapiesLinkUrl);
       toast("Enlace copiado", "success");
     } catch {
       toast("No se pudo copiar", "error");
@@ -302,6 +319,38 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
           ) : undefined
         }
       />
+
+      {/*
+        Secundaria a propósito: la acción principal de esta pantalla es «Nuevo
+        enlace» (un producto, una persona). Esto es la excepción de mandarlo
+        todo de una vez — sin id de producto y sin ficha — así que va aparte,
+        con menos peso visual, no junto al botón primario de la cabecera.
+      */}
+      <Card size="sm">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              Enlace de todas las terapias
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Enseña cada terapia activa a precio de catálogo. No está
+              publicado en ningún otro sitio — sólo quien reciba este enlace
+              lo ve.
+            </p>
+            <p className="mt-1 truncate font-mono text-xs text-muted-foreground/80">
+              {therapiesLinkUrl}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void copyTherapiesLink()}
+          >
+            <Copy aria-hidden />
+            Copiar enlace
+          </Button>
+        </CardContent>
+      </Card>
 
       <CrmModal
         title="Nuevo enlace de pago"
