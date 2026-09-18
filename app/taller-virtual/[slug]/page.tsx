@@ -129,11 +129,17 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
             : null;
       }
 
-      const state: "open" | "closed" | "completed" =
+      // OPEN with no visible plan for this visitor's region (no plan at
+      // all, or one that exists but isn't visible for it) isn't the same as
+      // registrations being closed — "unavailable" says so instead of
+      // lying that inscriptions are closed.
+      const state: "open" | "unavailable" | "closed" | "completed" =
         rawStatus === WorkshopEditionStatus.COMPLETED
           ? "completed"
-          : plan
-            ? "open"
+          : rawStatus === WorkshopEditionStatus.OPEN
+            ? plan
+              ? "open"
+              : "unavailable"
             : "closed";
 
       return (

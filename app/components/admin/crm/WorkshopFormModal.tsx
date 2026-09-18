@@ -186,6 +186,20 @@ const WorkshopFormModal = ({
   const isLegacyProduct =
     !!edition?.productId && edition.productId !== workshopProductIdFor(edition.slug);
 
+  /** Precio heredado, formateado para la notice — solo se usa cuando
+   *  `isLegacyProduct`. */
+  const legacyPriceText = (() => {
+    if (!isLegacyProduct) return "";
+    const parts: string[] = [];
+    if (edition?.prices?.cop != null) {
+      parts.push(`$ ${edition.prices.cop.toLocaleString("es-CO")} COP`);
+    }
+    if (edition?.prices?.usd != null) {
+      parts.push(`US$${minorToMajor(edition.prices.usd, "USD").toFixed(2)}`);
+    }
+    return parts.join(" · ");
+  })();
+
   useEffect(() => {
     if (!open) return;
     if (edition) {
@@ -211,12 +225,24 @@ const WorkshopFormModal = ({
       }
       setFocusTopics(edition.focusTopics ?? []);
       setDaySchedule(edition.daySchedule ?? []);
-      setPriceCop(edition.prices?.cop != null ? String(edition.prices.cop) : "");
-      setPriceUsd(
-        edition.prices?.usd != null
-          ? minorToMajor(edition.prices.usd, "USD").toFixed(2)
-          : ""
-      );
+      // Legacy editions (still on a shared product like `workshop-virtual`)
+      // start with empty price inputs: prefilling from the LINKED product's
+      // price meant saving any unrelated field silently migrated the
+      // edition to its own product with that inherited price copied over.
+      // The inherited price is shown read-only in the notice below instead.
+      const legacy =
+        !!edition.productId && edition.productId !== workshopProductIdFor(edition.slug);
+      if (legacy) {
+        setPriceCop("");
+        setPriceUsd("");
+      } else {
+        setPriceCop(edition.prices?.cop != null ? String(edition.prices.cop) : "");
+        setPriceUsd(
+          edition.prices?.usd != null
+            ? minorToMajor(edition.prices.usd, "USD").toFixed(2)
+            : ""
+        );
+      }
     } else {
       setTitle("");
       setDescription("");
@@ -264,24 +290,42 @@ const WorkshopFormModal = ({
 
     const trimmedPriceCop = priceCop.trim();
     const trimmedPriceUsd = priceUsd.trim();
+
+    // Mirrors the server: COP is an integer number of pesos > 0, USD is a
+    // dollar amount > 0 with at most two decimals.
+    const INVALID_PRICE_ERROR =
+      "Revisa los precios: pesos enteros mayores que cero y dólares con máximo dos decimales.";
+    const COP_RE = /^\d+$/;
+    const USD_RE = /^\d+(\.\d{1,2})?$/;
+
+    if (trimmedPriceCop !== "" && (!COP_RE.test(trimmedPriceCop) || Number(trimmedPriceCop) <= 0)) {
+      setError(INVALID_PRICE_ERROR);
+      return;
+    }
+    if (trimmedPriceUsd !== "" && (!USD_RE.test(trimmedPriceUsd) || Number(trimmedPriceUsd) <= 0)) {
+      setError(INVALID_PRICE_ERROR);
+      return;
+    }
+
     const parsedPriceCop = trimmedPriceCop !== "" ? Number(trimmedPriceCop) : undefined;
     const parsedPriceUsd = trimmedPriceUsd !== "" ? Number(trimmedPriceUsd) : undefined;
 
-    if (parsedPriceCop !== undefined && (!Number.isFinite(parsedPriceCop) || parsedPriceCop < 0)) {
-      setError("El precio en pesos no es válido.");
-      return;
-    }
-    if (parsedPriceUsd !== undefined && (!Number.isFinite(parsedPriceUsd) || parsedPriceUsd < 0)) {
-      setError("El precio en dólares no es válido.");
-      return;
-    }
-
-    const hasSavedPrice = (edition?.prices?.cop ?? null) != null || (edition?.prices?.usd ?? null) != null;
-    const hasEnteredPrice = parsedPriceCop !== undefined || parsedPriceUsd !== undefined;
-    if (status === WorkshopEditionStatus.OPEN && !hasSavedPrice && !hasEnteredPrice) {
-      setError(
-        "Para abrir este taller hace falta un precio: escribe el de pesos, el de dólares, o ambos."
-      );
+    // OPEN needs a COP price: the edition's own product already having one,
+    // or one typed now. A legacy edition's inherited price never counts —
+    // it lives on a different product — except that a legacy edition with
+    // nothing typed at all keeps charging that inherited price, so it isn't
+    // blocked from staying OPEN today.
+    const hasOwnCopPrice = !isLegacyProduct && (edition?.prices?.cop ?? null) != null;
+    const hasEnteredCopPrice = parsedPriceCop !== undefined;
+    const legacyKeepsInheritedPrice =
+      isLegacyProduct && parsedPriceCop === undefined && parsedPriceUsd === undefined;
+    if (
+      status === WorkshopEditionStatus.OPEN &&
+      !hasOwnCopPrice &&
+      !hasEnteredCopPrice &&
+      !legacyKeepsInheritedPrice
+    ) {
+      setError("Para abrir inscripciones este taller necesita su precio en pesos (COP).");
       return;
     }
 
@@ -317,11 +361,27 @@ const WorkshopFormModal = ({
     setLoading(false);
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { error?: string };
-      setError(
-        data.error === "price_sync_failed"
-          ? "El taller se guardó, pero no se pudo actualizar su precio. Vuelve a intentarlo."
-          : "No se pudo guardar el taller."
-      );
+      if (data.error === "price_sync_failed") {
+        // The edition itself was saved — only the price write failed — so
+        // the list still needs to pick up the rest of the changes.
+        setError(
+          "El taller se guardó, pero no se pudo actualizar su precio. Vuelve a intentarlo."
+        );
+        invalidateCached("workshops");
+        onSaved();
+        return;
+      }
+      if (data.error === "invalid_price") {
+        setError(
+          "Revisa los precios: pesos enteros mayores que cero y dólares con máximo dos decimales."
+        );
+        return;
+      }
+      if (data.error === "open_requires_cop_price") {
+        setError("Para abrir inscripciones este taller necesita su precio en pesos (COP).");
+        return;
+      }
+      setError("No se pudo guardar el taller.");
       return;
     }
     invalidateCached("workshops");
@@ -429,9 +489,10 @@ const WorkshopFormModal = ({
           {isLegacyProduct && (
             <Alert variant="warning">
               <AlertDescription>
-                Este taller todavía cobra el precio del paquete «
-                {edition?.productTitle ?? "vinculado"}». Escribe su precio
-                para que tenga el suyo.
+                Hoy cobra el precio heredado del paquete «
+                {edition?.productTitle ?? "vinculado"}»
+                {legacyPriceText ? `: ${legacyPriceText}` : ""}. Escribe un
+                precio aquí solo si quieres que este taller tenga el suyo.
               </AlertDescription>
             </Alert>
           )}

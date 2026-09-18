@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
 import { Suspense, useRef } from "react";
 import {
+  PROXIMO_WORKSHOP_SLUG,
   WORKSHOPS,
   getWorkshopStatusLabel,
   type WorkshopCard,
@@ -75,7 +76,14 @@ const WorkshopCardItem = ({
   googleEnabled = false,
   hasAccess = false,
 }: WorkshopCardItemProps) => {
-  if (workshop.status === "upcoming") {
+  // Only real editions with a public page get the whole-card link and full
+  // rendering: OPEN, CLOSED, COMPLETED. "upcoming" covers DRAFT editions
+  // (not public yet) and the "próximo taller" placeholder — checked by slug
+  // too, defensively, since that's the other thing that identifies it.
+  const isLinkableEdition =
+    workshop.slug !== PROXIMO_WORKSHOP_SLUG && workshop.status !== "upcoming";
+
+  if (!isLinkableEdition) {
     return <UpcomingWorkshopCard />;
   }
 

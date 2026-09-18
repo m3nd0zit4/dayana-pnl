@@ -19,8 +19,10 @@ type Props = {
   googleEnabled?: boolean;
   /** Informational only — never enforced as a hard cap (same rule as the webinar). */
   capacity?: number | null;
-  /** Resuelto en el servidor: "open" solo cuando hay `plan`. */
-  state: "open" | "closed" | "completed";
+  /** Resuelto en el servidor. "open" solo cuando hay `plan`. "unavailable" es
+   *  OPEN sin plan visible para la región del visitante — no es lo mismo que
+   *  "closed" (inscripciones cerradas de verdad). */
+  state: "open" | "unavailable" | "closed" | "completed";
 };
 
 const scrollToPago = () => {
@@ -46,7 +48,7 @@ const WorkshopSalesPage = ({
   const whatsappHref = buildWhatsAppUrl(whatsappMessage);
 
   const statusBadgeLabel =
-    state === "open"
+    state === "open" || state === "unavailable"
       ? "Inscripciones abiertas"
       : state === "completed"
         ? "Taller finalizado"
@@ -148,7 +150,7 @@ const WorkshopSalesPage = ({
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <span
                 className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 font-[font2] text-[10px] uppercase tracking-[0.2em] ${
-                  state === "open"
+                  state === "open" || state === "unavailable"
                     ? "border-emerald-700/30 bg-emerald-700 text-white"
                     : "border-black/15 bg-white text-black/70"
                 }`}
@@ -182,7 +184,9 @@ const WorkshopSalesPage = ({
                 <p className="mt-4 font-[font1] text-sm leading-relaxed text-black/65">
                   {state === "completed"
                     ? "Este taller ya se realizó. Escríbenos por WhatsApp para avisarte de la próxima edición."
-                    : "Las inscripciones para esta edición no están abiertas en este momento. Escríbenos por WhatsApp y te avisamos apenas se abra un cupo."}
+                    : state === "unavailable"
+                      ? "Este taller aún no tiene precio en tu moneda. Escríbenos y te ayudamos a inscribirte."
+                      : "Las inscripciones para esta edición no están abiertas en este momento. Escríbenos por WhatsApp y te avisamos apenas se abra un cupo."}
                 </p>
                 <a
                   href={whatsappHref}
@@ -195,6 +199,18 @@ const WorkshopSalesPage = ({
                 </a>
               </div>
             )}
+
+            {/* Alguien que ya compró (p. ej. desde el correo recordatorio)
+                puede llegar aquí sin sesión — este enlace evita que pague
+                otra vez. Vuelve a esta misma página tras iniciar sesión. */}
+            <p className="mt-4 text-center font-[font1] text-xs text-black/45">
+              <a
+                href={`/acceso?callbackUrl=${encodeURIComponent(`/taller-virtual/${workshop.slug}`)}`}
+                className="underline decoration-black/20 underline-offset-2 transition-colors hover:text-black/70"
+              >
+                ¿Ya lo compraste? Inicia sesión para verlo
+              </a>
+            </p>
           </div>
         </div>
       </section>
