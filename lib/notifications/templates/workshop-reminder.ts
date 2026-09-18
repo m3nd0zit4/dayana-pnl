@@ -66,9 +66,20 @@ const whatsAppFailHtml = (title: string): string =>
 const FOOTNOTE =
   "Recibes este correo porque te inscribiste y pagaste este taller en dayanabeltran.com.";
 
+
+/**
+ * «hoy» o «mañana» segun la fecha local de la edicion. La ventana de 24 h
+ * tambien atrapa a quien compra la mañana de un taller nocturno, y a esa
+ * persona no se le puede decir «mañana».
+ */
+const dayWord = (i: WorkshopReminderInput): "hoy" | "mañana" =>
+  getDateKeyInTz(i.startsAt, i.timezone) === getDateKeyInTz(new Date(), i.timezone)
+    ? "hoy"
+    : "mañana";
+
 export const workshopReminderSubject = (i: WorkshopReminderInput): string =>
   i.pass === "24h"
-    ? `Tu taller es mañana: ${i.title}`
+    ? `Tu taller es ${dayWord(i)}: ${i.title}`
     : `Tu taller empieza en 1 hora: ${i.title}`;
 
 export const workshopReminderHtml = (i: WorkshopReminderInput): string => {
@@ -80,7 +91,7 @@ export const workshopReminderHtml = (i: WorkshopReminderInput): string => {
     is24h
       ? [
           `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
-          `Te escribo para recordarte que <strong style="font-weight:600;">mañana</strong> es tu taller: <strong style="font-weight:600;">${escapeHtml(i.title)}</strong>.`,
+          `Te escribo para recordarte que <strong style="font-weight:600;">${dayWord(i)}</strong> es tu taller: <strong style="font-weight:600;">${escapeHtml(i.title)}</strong>.`,
           `Es el <strong style="font-weight:600;">${escapeHtml(label)}</strong>.`,
           `Entra con el botón de aquí abajo el día del taller — el mismo enlace te lleva directo al contenido.`,
         ]
@@ -94,10 +105,10 @@ export const workshopReminderHtml = (i: WorkshopReminderInput): string => {
 
   return wrapEmailHtml({
     preheader: is24h
-      ? `Mañana es tu taller: ${i.title}.`
+      ? `${dayWord(i) === "hoy" ? "Hoy" : "Mañana"} es tu taller: ${i.title}.`
       : `Tu taller empieza en 1 hora: ${i.title}.`,
     eyebrow: "Taller",
-    title: is24h ? "Tu taller es mañana" : "Empezamos en 1 hora",
+    title: is24h ? `Tu taller es ${dayWord(i)}` : "Empezamos en 1 hora",
     bodyHtml: body + whatsAppFailHtml(i.title),
     summaryRows: [
       { label: "Taller", value: i.title },
@@ -117,7 +128,7 @@ export const workshopReminderText = (i: WorkshopReminderInput): string => {
     `Hola ${i.firstName},`,
     ``,
     is24h
-      ? `Mañana es tu taller: ${i.title}.`
+      ? `${dayWord(i) === "hoy" ? "Hoy" : "Mañana"} es tu taller: ${i.title}.`
       : `Tu taller empieza en 1 hora: ${i.title}.`,
     `Cuándo: ${label}.`,
     `Entra aquí: ${url}`,

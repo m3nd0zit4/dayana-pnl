@@ -32,7 +32,9 @@ export const hasActiveWorkshopEnrollment = async (
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       contactId,
-      status: EnrollmentStatus.ACTIVE,
+      // Completada tambien: marcar la matricula como terminada no puede
+      // quitarle a nadie el taller que pago (grabacion, documentos).
+      status: { in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED] },
       OR: [
         { productId: { in: productIds } },
         ...(edition ? [{ workshopEditionId: edition.id }] : []),

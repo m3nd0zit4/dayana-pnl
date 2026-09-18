@@ -147,3 +147,45 @@ export async function countPaidForEdition(editionId: string): Promise<number> {
     },
   });
 }
+
+/**
+ * ¿Puede abrirse la edicion con estos precios? Necesita precio en pesos,
+ * como todo taller del catalogo (en Colombia se cobra con Mercado Pago):
+ * el que se escribe ahora o uno ya guardado en su producto propio.
+ *
+ * Una edicion heredada —todavia en un producto compartido y sin producto
+ * propio— puede seguir abierta: sigue cobrando el precio heredado.
+ */
+export async function canOpenWithPrice(
+  slug: string,
+  copPesos: number | undefined,
+): Promise<boolean> {
+  if (copPesos) return true;
+  const ownId = workshopProductIdFor(slug);
+  const [ownCop, own, edition] = await Promise.all([
+    prisma.productPrice.findFirst({
+      where: { productId: ownId, currency: "COP" },
+      select: { id: true },
+    }),
+    prisma.product.findUnique({ where: { id: ownId }, select: { id: true } }),
+    prisma.workshopEdition.findUnique({ where: { slug }, select: { productId: true } }),
+  ]);
+  if (ownCop) return true;
+  return Boolean(edition?.productId && edition.productId !== ownId && !own);
+}
+
+/**
+ * Desactiva el producto propio de estas ediciones: una edicion cerrada o
+ * borrada no puede seguir cobrandose por `/pagar/p/<id>`, un enlace de pago
+ * ya enviado o una pestaña vieja. Solo toca `taller-<slug>`.
+ */
+export async function deactivateWorkshopProducts(
+  slugs: string[],
+  db: Pick<typeof prisma, "product"> = prisma,
+): Promise<void> {
+  if (slugs.length === 0) return;
+  await db.product.updateMany({
+    where: { id: { in: slugs.map(workshopProductIdFor) } },
+    data: { isActive: false },
+  });
+}

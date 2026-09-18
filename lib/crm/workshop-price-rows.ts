@@ -44,3 +44,32 @@ export function workshopPriceRowsToWrite(
 
 /** Id del producto propio de una edición. Legible, como el resto (`therapy-6`). */
 export const workshopProductIdFor = (slug: string): string => `taller-${slug}`;
+
+export type ValidatedWorkshopPrices =
+  | { ok: true; copPesos?: number; usdCents?: number }
+  | { ok: false };
+
+/**
+ * Valida los precios que llegan del formulario. COP en pesos enteros mayores
+ * que cero; USD en dolares mayores que cero con maximo dos decimales (se
+ * devuelve en centavos). `undefined` = no se escribio, no cambia nada.
+ *
+ * Antes un 0 o un `180000.5` se aceptaban y se descartaban en silencio: el
+ * formulario decia «guardado» y el precio no cambiaba.
+ */
+export function validateWorkshopPrices(input: {
+  priceCop?: number;
+  priceUsd?: number;
+}): ValidatedWorkshopPrices {
+  const { priceCop, priceUsd } = input;
+  if (priceCop !== undefined && !(Number.isInteger(priceCop) && priceCop > 0)) {
+    return { ok: false };
+  }
+  let usdCents: number | undefined;
+  if (priceUsd !== undefined) {
+    const cents = Math.round(priceUsd * 100);
+    if (!(priceUsd > 0) || Math.abs(cents - priceUsd * 100) > 1e-6) return { ok: false };
+    usdCents = cents;
+  }
+  return { ok: true, copPesos: priceCop, usdCents };
+}

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { WorkshopEditionStatus } from "@prisma/client";
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { majorToMinor } from "@/lib/crm/money";
 import { uniqueSlug } from "@/lib/crm/slug";
 import {
   getWorkshopEditionWithPricing,
@@ -10,7 +9,13 @@ import {
   parseWorkshopPriceFields,
   upsertWorkshopEdition,
 } from "@/lib/crm/workshop-editions";
-import { syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
+import {
+  canOpenWithPrice,
+  countPaidForEdition,
+  deactivateWorkshopProducts,
+  syncWorkshopEditionPrice,
+} from "@/lib/crm/workshop-pricing";
+import { validateWorkshopPrices } from "@/lib/crm/workshop-price-rows";
 import {
   getOperationalTimezone,
   zonedDateTimeToUtc,
@@ -88,7 +93,10 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   if (!parsed.success) {
     return apiError("invalid_body", 400);
   }
-  const { priceCop, priceUsd } = parseWorkshopPriceFields(raw);
+  const prices = validateWorkshopPrices(parseWorkshopPriceFields(raw));
+  if (!prices.ok) {
+    return apiError("invalid_price", 400);
+  }
 
   let slug = String(parsed.data.slug ?? "").trim();
   if (!slug) {
@@ -102,6 +110,13 @@ export const POST = withStaff("write", async ({ req, staff }) => {
 
   if (isVirtualWorkshopSlug(slug)) {
     return apiError("virtual_edition", 400);
+  }
+
+  if (
+    parsed.data.status === WorkshopEditionStatus.OPEN &&
+    !(await canOpenWithPrice(slug, prices.copPesos))
+  ) {
+    return apiError("open_requires_cop_price", 400);
   }
 
   try {
@@ -121,8 +136,8 @@ export const POST = withStaff("write", async ({ req, staff }) => {
         slug: edition.slug,
         title: edition.title,
         status: edition.status,
-        copPesos: priceCop,
-        usdCents: priceUsd !== undefined ? majorToMinor(priceUsd, "USD") : undefined,
+        copPesos: prices.copPesos,
+        usdCents: prices.usdCents,
       });
     } catch (syncError) {
       console.error("[workshops] no se pudo sincronizar el precio", syncError);

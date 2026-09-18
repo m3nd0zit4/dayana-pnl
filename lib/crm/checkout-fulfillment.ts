@@ -102,6 +102,10 @@ export const fulfillCheckoutPayment = async (
       input;
     await recordPayment({ ...rest, enrollmentId: existing.enrollmentId });
     await redeemIfPresent(existing.enrollmentId, input.currency, promo);
+    // PSE / efectivo de Mercado Pago: la matricula nacio en el aviso pendiente,
+    // fuera de este camino. Sin esto el pago aprobado quedaba sin edicion y la
+    // persona sin recordatorios. No-op para lo que no es taller.
+    await linkEnrollmentToWorkshopEdition(existing.enrollmentId, input.productId);
     await markPaymentLinkPaid({
       contactId: input.contactId,
       productId: input.productId,

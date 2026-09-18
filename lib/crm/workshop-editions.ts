@@ -1,4 +1,5 @@
 import { EnrollmentStatus, WorkshopEditionStatus } from "@prisma/client";
+import { deactivateWorkshopProducts } from "./workshop-pricing";
 import { enrichWorkshopInput } from "./workshop-enrichment";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
 import { prisma } from "../db";
@@ -72,12 +73,23 @@ const productRelationUpdate = (productId: string | null | undefined) =>
     : {};
 
 export const closeOtherOpenWorkshops = async (exceptSlug?: string) => {
-  await prisma.workshopEdition.updateMany({
-    where: {
-      status: WorkshopEditionStatus.OPEN,
-      ...(exceptSlug ? { slug: { not: exceptSlug } } : {}),
-    },
-    data: { status: WorkshopEditionStatus.CLOSED },
+  const where = {
+    status: WorkshopEditionStatus.OPEN,
+    ...(exceptSlug ? { slug: { not: exceptSlug } } : {}),
+  };
+  // Cerrar la edicion y dejar de cobrarla van juntos: con su producto aun
+  // activo, una edicion cerrada seguia cobrandose por /pagar/p/<id> o por un
+  // enlace de pago ya enviado.
+  await prisma.$transaction(async (tx) => {
+    const closing = await tx.workshopEdition.findMany({ where, select: { slug: true } });
+    await tx.workshopEdition.updateMany({
+      where,
+      data: { status: WorkshopEditionStatus.CLOSED },
+    });
+    await deactivateWorkshopProducts(
+      closing.map((e) => e.slug),
+      tx,
+    );
   });
 };
 
