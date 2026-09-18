@@ -7,6 +7,7 @@ import { getContactById } from "@/lib/crm/contacts";
 import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { listDiagnosticsForContact } from "@/lib/crm/diagnostics";
+import { whatsAppMarksForContact } from "@/lib/crm/whatsapp-touches";
 import {
   getOperationalTimezone,
   OPERATIONAL_TZ,
@@ -40,9 +41,10 @@ const ContactDetailPage = async ({ params }: Props) => {
   // la pestaña Resumen (ver ContactDetailClient).
   // Si la consulta falla, la ficha se abre igual, sin la tarjeta: los
   // diagnósticos son un complemento y no deben tumbar la página del contacto.
-  const [diagnostics, timeZone] = await Promise.all([
+  const [diagnostics, timeZone, whatsapp] = await Promise.all([
     listDiagnosticsForContact(contact.id).catch(() => []),
     getOperationalTimezone().catch(() => OPERATIONAL_TZ),
+    whatsAppMarksForContact(contact.id).catch(() => ({ leadAt: null, staffAt: null })),
   ]);
 
   // El enlace «volver» ya no vive aquí: lo pinta CrmPageHeader dentro del
@@ -63,6 +65,10 @@ const ContactDetailPage = async ({ params }: Props) => {
           }}
           diagnostics={diagnostics}
           timeZone={timeZone}
+          whatsapp={{
+            leadAt: whatsapp.leadAt?.toISOString() ?? null,
+            staffAt: whatsapp.staffAt?.toISOString() ?? null,
+          }}
         />
       </Suspense>
     </CrmPageShell>

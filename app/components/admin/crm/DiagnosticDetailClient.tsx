@@ -10,6 +10,7 @@ import { diagnosticSourceLabel } from "@/lib/crm/diagnostic-answers";
 import type { DiagnosticDetail } from "@/lib/crm/diagnostics";
 import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { trackStaffWhatsApp } from "./trackStaffWhatsApp";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import { CrmPublicLink } from "./ui";
@@ -110,7 +111,8 @@ const DiagnosticDetailClient = ({ diagnostic, timeZone }: Props) => {
     { label: "Empezó", at: diagnostic.createdAt },
     { label: "Terminó", at: diagnostic.completedAt },
     { label: "Vio el resultado", at: diagnostic.viewedResultAt },
-    { label: "Pulsó «Hablar con Dayana»", at: diagnostic.checkoutStartedAt },
+    { label: "Fue a WhatsApp", at: diagnostic.whatsappLeadAt },
+    { label: "Le escribiste por WhatsApp", at: diagnostic.whatsappStaffAt },
   ];
 
   const completedLabel = formatDateTime(diagnostic.completedAt, timeZone);
@@ -133,7 +135,7 @@ const DiagnosticDetailClient = ({ diagnostic, timeZone }: Props) => {
                 variant="outline"
                 size="sm"
                 nativeButton={false}
-                render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" />}
+                render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" onClick={() => contact && trackStaffWhatsApp(contact.id, "crm_diagnostic", diagnostic.id)} />}
               >
                 <MessageCircle aria-hidden />
                 WhatsApp

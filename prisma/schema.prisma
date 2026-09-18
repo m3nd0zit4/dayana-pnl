@@ -299,6 +299,8 @@ model Contact {
   webinarRegistrations   WebinarRegistration[]
   diagnostics            Diagnostic[]
   paymentLinks           PaymentLink[]
+  /// Clics hacia WhatsApp de la persona o del equipo. Ver `ContactTouch`.
+  touches                ContactTouch[]
 
   /// Columna de búsqueda plegada: nombre, apellido, display, email y teléfono
   /// (con y sin separadores) en minúsculas y sin tildes.
@@ -329,12 +331,12 @@ model Contact {
 }
 
 model Product {
-  id              String      @id
+  id              String        @id
   kind            ProductKind
   title           String
   /// Curso de la biblioteca (contenedor de módulos), no un ítem de checkout.
   /// El acceso lo abre la membresía mensual — ver lib/lms/membership.ts.
-  isCourseContent Boolean     @default(false) @map("is_course_content")
+  isCourseContent Boolean       @default(false) @map("is_course_content")
   /// El curso de la biblioteca se vende TAMBIÉN suelto, no sólo vía
   /// mensualidad. Sin esto un curso sigue siendo invisible para el catálogo
   /// público (`getActiveProducts`) y para el checkout (`getPlanFromDb`).
@@ -345,24 +347,24 @@ model Product {
   ///
   /// Sólo tiene sentido con `isCourseContent`. La mensualidad ya se vende por
   /// su propia vía y poner esto a true en ella no cambia nada.
-  sellsStandalone Boolean     @default(false) @map("sells_standalone")
-  imageUrl        String?     @map("image_url")
-  sessionsLabel   String      @map("sessions_label")
-  sessionsCount   Int?        @map("sessions_count")
-  description     String?     @db.Text
-  isActive        Boolean     @default(true) @map("is_active")
-  sortOrder       Int         @default(0) @map("sort_order")
-  unitPriceLabel  String?     @map("unit_price_label")
+  sellsStandalone Boolean       @default(false) @map("sells_standalone")
+  imageUrl        String?       @map("image_url")
+  sessionsLabel   String        @map("sessions_label")
+  sessionsCount   Int?          @map("sessions_count")
+  description     String?       @db.Text
+  isActive        Boolean       @default(true) @map("is_active")
+  sortOrder       Int           @default(0) @map("sort_order")
+  unitPriceLabel  String?       @map("unit_price_label")
   tag             String?
-  highlight       Boolean     @default(false)
-  whatsappMessage String?     @map("whatsapp_message") @db.Text
-  therapyHeadline String?     @map("therapy_headline")
+  highlight       Boolean       @default(false)
+  whatsappMessage String?       @map("whatsapp_message") @db.Text
+  therapyHeadline String?       @map("therapy_headline")
   /// Color del título y del precio en la tarjeta. Sólo eso: el cuerpo sigue
   /// en tinta porque texto corrido en degradado se lee peor.
   accent          ProductAccent @default(NEUTRAL)
 
   /// Espejo del Product de PayPal, escrito por scripts/paypal/setup-subscription.ts.
-  paypalProductId String? @unique @map("paypal_product_id")
+  paypalProductId  String? @unique @map("paypal_product_id")
   /// Billing Plan mensual de PayPal. Lleva el gross-up de comisión YA aplicado
   /// (lib/pricing/fees.ts): los planes cobran un importe fijo, no uno calculado
   /// por petición como hacen create-order y Mercado Pago. Cambiar
@@ -376,9 +378,9 @@ model Product {
   /// 12 la anualidad. Vive en el producto y no en una constante porque es lo
   /// que distingue los dos planes de membresía, y `applyMembershipExtension`
   /// tiene que poder decidirlo sin conocer ids concretos.
-  membershipMonths Int? @map("membership_months")
+  membershipMonths Int?    @map("membership_months")
 
-  paypalPlanId    String? @unique @map("paypal_plan_id")
+  paypalPlanId String? @unique @map("paypal_plan_id")
 
   /// Plan de suscripción (preapproval_plan) de Mercado Pago, en COP. Mismo
   /// criterio que `paypalPlanId`: el importe lleva el gross-up ya aplicado
@@ -396,11 +398,11 @@ model Product {
   priceSyncStatus    SubscriptionPriceSyncStatus @default(SYNCED) @map("price_sync_status")
   /// Qué cobra cada lado, en texto, para que el panel lo pueda enseñar sin
   /// tener que volver a llamar a los proveedores.
-  priceSyncNote      String?   @map("price_sync_note") @db.Text
-  priceSyncCheckedAt DateTime? @map("price_sync_checked_at")
+  priceSyncNote      String?                     @map("price_sync_note") @db.Text
+  priceSyncCheckedAt DateTime?                   @map("price_sync_checked_at")
 
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   prices            ProductPrice[]
   priceSyncs        ProductPriceSync[]
@@ -509,20 +511,20 @@ model WorkshopEdition {
 /// When `startsAtHasTime` is false, only the calendar date is shown publicly
 /// (`startsAt` is stored as noon in OPERATIONAL_TZ as a date anchor).
 model FreeWebinar {
-  id                String    @id @default(cuid())
-  slug              String    @unique @default("gratuito")
-  isActive          Boolean   @default(false) @map("is_active")
+  id                String          @id @default(cuid())
+  slug              String          @unique @default("gratuito")
+  isActive          Boolean         @default(false) @map("is_active")
   headline          String
-  subheadline       String?   @db.Text
-  body              String?   @db.Text
-  startsAt          DateTime? @map("starts_at")
-  startsAtHasTime   Boolean   @default(true) @map("starts_at_has_time")
+  subheadline       String?         @db.Text
+  body              String?         @db.Text
+  startsAt          DateTime?       @map("starts_at")
+  startsAtHasTime   Boolean         @default(true) @map("starts_at_has_time")
   /// Enlace de la reunión (Google Meet). Al cambiarlo se reenvía por correo a
   /// todas las registradas: `updateFreeWebinar` limpia `linkEmailSentAt`.
-  meetUrl           String?   @map("meet_url") @db.Text
+  meetUrl           String?         @map("meet_url") @db.Text
   /// Legado: URL del blob privado de Vercel. El vídeo promocional se sirve por
   /// Mux (`muxPlaybackId`); se conserva la columna para no perder el objeto.
-  videoUrl          String?   @map("video_url") @db.Text
+  videoUrl          String?         @map("video_url") @db.Text
   /// Vídeo promocional en Mux. A diferencia de las grabaciones del curso, la
   /// política de reproducción es `public` — es una landing de marketing.
   muxUploadId       String?         @map("mux_upload_id")
@@ -531,35 +533,35 @@ model FreeWebinar {
   videoStatus       RecordingStatus @default(NONE) @map("video_status")
   videoDurationSec  Int?            @map("video_duration_sec")
   videoErrorMessage String?         @map("video_error_message") @db.Text
-  learnSectionTitle String?   @map("learn_section_title")
-  learnItems        Json      @map("learn_items")
+  learnSectionTitle String?         @map("learn_section_title")
+  learnItems        Json            @map("learn_items")
   faq               Json?
-  ctaLabel          String    @default("Registrarme gratis") @map("cta_label")
-  formTitle         String    @default("Reserva tu lugar") @map("form_title")
-  metaTitle         String?   @map("meta_title")
-  metaDescription   String?   @map("meta_description") @db.Text
+  ctaLabel          String          @default("Registrarme gratis") @map("cta_label")
+  formTitle         String          @default("Reserva tu lugar") @map("form_title")
+  metaTitle         String?         @map("meta_title")
+  metaDescription   String?         @map("meta_description") @db.Text
   /// Cupo previsto de la sala. Es informativo, NO un tope: pasado el número
   /// la gente se sigue pudiendo registrar y sigue recibiendo el enlace. Sirve
   /// para fijar la expectativa en la landing y para que el CRM avise cuando se
   /// supera, no para cerrar el formulario.
-  capacity          Int?      @default(100)
+  capacity          Int?            @default(100)
   /// Material descargable opcional (una guía, un PDF de apoyo). Vive en el
   /// blob privado y se sirve por `/api/webinar/material`; nunca se expone la
   /// URL del blob. Opcional a propósito: no bloquea la publicación.
-  materialUrl       String?   @map("material_url") @db.Text
-  materialFileName  String?   @map("material_file_name")
-  materialMimeType  String?   @map("material_mime_type")
-  materialSizeBytes Int?      @map("material_size_bytes")
+  materialUrl       String?         @map("material_url") @db.Text
+  materialFileName  String?         @map("material_file_name")
+  materialMimeType  String?         @map("material_mime_type")
+  materialSizeBytes Int?            @map("material_size_bytes")
   /// Sellada por el cron cuando la fecha ya pasó más el margen. Corta registros
   /// y recordatorios sin tocar nada destructivo. Null = edición todavía en pie.
   /// No toca `isActive`: ese interruptor es de Dayana y el cron no se lo pisa.
-  endedAt           DateTime? @map("ended_at")
+  endedAt           DateTime?       @map("ended_at")
   /// La verdad sobre «cuál está viva» es el SLUG: la viva es siempre
   /// `gratuito`, y al archivar se renombra a `gratuito-<id>`. Esta columna es
   /// solo la fecha que se muestra en el historial — nunca un predicado.
-  archivedAt        DateTime? @map("archived_at")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  archivedAt        DateTime?       @map("archived_at")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
 
   registrations WebinarRegistration[]
 
@@ -613,20 +615,20 @@ model WorkshopDocument {
 }
 
 model Enrollment {
-  id                 String           @id @default(cuid())
-  contactId          String           @map("contact_id")
-  productId          String           @map("product_id")
-  workshopEditionId  String?          @map("workshop_edition_id")
-  status             EnrollmentStatus @default(LEAD)
-  label              String?
-  isPrimary          Boolean          @default(false) @map("is_primary")
-  parentEnrollmentId String?          @map("parent_enrollment_id")
-  sessionsTotal      Int?             @map("sessions_total")
-  sessionsUsed       Int              @default(0) @map("sessions_used")
-  currency           String?          @db.Char(3)
-  amountMinor        Int?             @map("amount_minor")
-  externalRef        String?          @map("external_ref")
-  paidUntil          DateTime?        @map("paid_until")
+  id                       String              @id @default(cuid())
+  contactId                String              @map("contact_id")
+  productId                String              @map("product_id")
+  workshopEditionId        String?             @map("workshop_edition_id")
+  status                   EnrollmentStatus    @default(LEAD)
+  label                    String?
+  isPrimary                Boolean             @default(false) @map("is_primary")
+  parentEnrollmentId       String?             @map("parent_enrollment_id")
+  sessionsTotal            Int?                @map("sessions_total")
+  sessionsUsed             Int                 @default(0) @map("sessions_used")
+  currency                 String?             @db.Char(3)
+  amountMinor              Int?                @map("amount_minor")
+  externalRef              String?             @map("external_ref")
+  paidUntil                DateTime?           @map("paid_until")
   /// Compra suelta de un curso de la biblioteca: el acceso no caduca.
   ///
   /// Es un booleano y no un `paidUntil` lejano porque «no caduca» y «caduca en
@@ -636,25 +638,25 @@ model Enrollment {
   ///
   /// OJO — con esto en true, `paidUntil == null` NO significa «nunca pagó».
   /// Ver `membershipInfoFrom` en lib/lms/membership.ts.
-  lifetimeAccess     Boolean          @default(false) @map("lifetime_access")
+  lifetimeAccess           Boolean             @default(false) @map("lifetime_access")
   /// Suscripción de PayPal que renueva esta matrícula. Es la clave por la que
   /// se resuelve cada cobro recurrente: `PAYMENT.SALE.COMPLETED` trae
   /// `billing_agreement_id` y NO garantiza propagar el `custom_id`.
-  paypalSubscriptionId String?             @unique @map("paypal_subscription_id")
+  paypalSubscriptionId     String?             @unique @map("paypal_subscription_id")
   /// Último estado reportado por PayPal. Es informativo para el portal: el
   /// acceso lo decide `paidUntil`, no esto — cancelar detiene la renovación,
   /// no el mes ya pagado.
-  subscriptionStatus   SubscriptionStatus? @map("subscription_status")
+  subscriptionStatus       SubscriptionStatus? @map("subscription_status")
   /// Suscripción de Mercado Pago (preapproval) que renueva esta matrícula.
-  mercadoPagoPreapprovalId String?         @unique @map("mercadopago_preapproval_id")
+  mercadoPagoPreapprovalId String?             @unique @map("mercadopago_preapproval_id")
   /// Quién cobra la renovación. Lo necesita el portal para saber a qué API
   /// pedir la cancelación.
-  subscriptionProvider PaymentProvider?    @map("subscription_provider")
-  leadAt             DateTime?        @map("lead_at")
-  paidAt             DateTime?        @map("paid_at")
-  completedAt        DateTime?        @map("completed_at")
-  createdAt          DateTime         @default(now()) @map("created_at")
-  updatedAt          DateTime         @updatedAt @map("updated_at")
+  subscriptionProvider     PaymentProvider?    @map("subscription_provider")
+  leadAt                   DateTime?           @map("lead_at")
+  paidAt                   DateTime?           @map("paid_at")
+  completedAt              DateTime?           @map("completed_at")
+  createdAt                DateTime            @default(now()) @map("created_at")
+  updatedAt                DateTime            @updatedAt @map("updated_at")
 
   contact                  Contact                   @relation(fields: [contactId], references: [id], onDelete: Cascade)
   product                  Product                   @relation(fields: [productId], references: [id])
@@ -836,6 +838,7 @@ model StaffUser {
   socialPosts              SocialPost[]
   googleAccounts           GoogleAccount[]
   paymentLinks             PaymentLink[]
+  contactTouches           ContactTouch[]
 
   @@map("staff_users")
 }
@@ -1478,11 +1481,11 @@ model LiveClassSession {
   createdAt             DateTime          @default(now()) @map("created_at")
   updatedAt             DateTime          @updatedAt @map("updated_at")
 
-  product  Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
-  module   CourseModule?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  progress CourseClassProgress[]
-  comments LessonComment[]
-  quizAttempts QuizAttempt[]
+  product           Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  module            CourseModule?         @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  progress          CourseClassProgress[]
+  comments          LessonComment[]
+  quizAttempts      QuizAttempt[]
   exerciseResponses ExerciseResponse[]
 
   @@unique([productId, slug])
@@ -1512,12 +1515,12 @@ model CourseClassProgress {
 /// `campoId → texto`, así que añadir o quitar un campo del ejercicio no invalida
 /// lo ya escrito.
 model ExerciseResponse {
-  id          String   @id @default(cuid())
-  classId     String   @map("class_id")
-  contactId   String   @map("contact_id")
-  answers     Json
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(cuid())
+  classId   String   @map("class_id")
+  contactId String   @map("contact_id")
+  answers   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   class   LiveClassSession @relation(fields: [classId], references: [id], onDelete: Cascade)
   contact Contact          @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -1649,8 +1652,9 @@ model Diagnostic {
 
   /// `SetNull` en ambos lados: borrar un contacto o retirar un producto no
   /// puede llevarse por delante la analítica del embudo.
-  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  product Product? @relation(fields: [recommendedProductId], references: [id], onDelete: SetNull)
+  contact Contact?       @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  product Product?       @relation(fields: [recommendedProductId], references: [id], onDelete: SetNull)
+  touches ContactTouch[]
 
   @@index([contactId])
   /// El panel lista por "completados, lo más reciente primero" y descarta los
@@ -1720,13 +1724,55 @@ model PaymentLink {
 
   /// `SetNull` y no `Cascade`: borrar un contacto no puede llevarse por
   /// delante el rastro de un cobro acordado con esa persona.
-  contact        Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdByStaff StaffUser?  @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+  contact        Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  product        Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdByStaff StaffUser? @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
 
   enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
 
   @@index([contactId, createdAt(sort: Desc)])
   @@index([contactId, productId, paidAt])
   @@map("payment_links")
+}
+
+enum ContactTouchKind {
+  /// La persona pulsó un botón de WhatsApp hacia Dayana (resultado del
+  /// diagnóstico, un correo, su cuenta) y se la mandó a WhatsApp.
+  LEAD_WHATSAPP
+  /// Alguien del equipo pulsó WhatsApp sobre esta persona desde el CRM.
+  STAFF_WHATSAPP
+}
+
+/// Un clic que abrió WhatsApp entre la persona y Dayana.
+///
+/// **Prueba que se abrió WhatsApp, no que se escribiera.** El clic pasa por el
+/// sitio antes de saltar a wa.me y ahí se registra; lo que ocurra dentro de
+/// WhatsApp no vuelve. Confirmar una conversación real exige la API de
+/// WhatsApp Business (`lib/meta/inbound.ts`), que no está configurada.
+///
+/// Tabla de eventos y no columnas en `Diagnostic`: los clics del equipo son
+/// sobre la persona, no sobre un diagnóstico concreto, y se leen igual desde
+/// la lista de Diagnósticos, su ficha y la del contacto.
+model ContactTouch {
+  id String @id @default(cuid())
+
+  contactId    String?          @map("contact_id")
+  /// Sólo cuando el clic nace en un diagnóstico concreto (su resultado).
+  diagnosticId String?          @map("diagnostic_id")
+  /// Quién del equipo pulsó; `null` en los clics de la persona.
+  staffUserId  String?          @map("staff_user_id")
+  kind         ContactTouchKind
+  /// Dónde se pulsó: `diagnostic_result`, `email:<evento>`, `web`,
+  /// `crm_contact`, `crm_list`, `crm_diagnostic`, ...
+  source       String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  contact    Contact?    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  diagnostic Diagnostic? @relation(fields: [diagnosticId], references: [id], onDelete: SetNull)
+  staffUser  StaffUser?  @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+
+  @@index([contactId, kind, createdAt(sort: Desc)])
+  @@index([diagnosticId])
+  @@map("contact_touches")
 }

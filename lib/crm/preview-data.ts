@@ -81,6 +81,8 @@ export const PREVIEW_DIAGNOSTICS: DiagnosticDetail[] = [
     createdAt: "2026-09-10T14:18:00.000Z",
     viewedResultAt: "2026-09-10T14:33:00.000Z",
     checkoutStartedAt: "2026-09-10T14:40:00.000Z",
+    whatsappLeadAt: "2026-09-10T14:40:00.000Z",
+    whatsappStaffAt: "2026-09-11T10:15:00.000Z",
     isCustomer: false,
     contact: {
       id: "preview-1",
@@ -103,6 +105,8 @@ export const PREVIEW_DIAGNOSTICS: DiagnosticDetail[] = [
     createdAt: "2026-09-08T08:58:00.000Z",
     viewedResultAt: null,
     checkoutStartedAt: null,
+    whatsappLeadAt: null,
+    whatsappStaffAt: null,
     isCustomer: false,
     // Diagnóstico sin contacto: llegó por anuncio y no dejó datos.
     contact: null,
@@ -121,6 +125,8 @@ export const PREVIEW_DIAGNOSTICS: DiagnosticDetail[] = [
     createdAt: "2026-08-28T19:02:00.000Z",
     viewedResultAt: "2026-08-28T19:21:00.000Z",
     checkoutStartedAt: null,
+    whatsappLeadAt: null,
+    whatsappStaffAt: "2026-08-29T16:00:00.000Z",
     isCustomer: true,
     contact: {
       id: "preview-3",

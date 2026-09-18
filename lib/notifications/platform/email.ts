@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { rewriteWhatsAppLinks } from "@/lib/crm/whatsapp-redirect";
 import { prisma } from "@/lib/db";
 import { sendEmail } from "../channels/email";
 import { sendSms } from "../channels/sms";
@@ -16,6 +17,30 @@ const SMS_MAX_CHARS = 300;
 
 // El predicado vive en ../e164 (sin dependencias, para que env.server.ts pueda
 // importarlo al arrancar). Se reexporta aquí porque ya había importadores.
+
+/**
+ * Los enlaces de WhatsApp de un correo a una persona pasan por `/w/...` para
+ * saber si pulso (ver `lib/crm/whatsapp-redirect.ts`). Se hace por
+ * destinatario porque el HTML es uno para todos. Si firmar falla, el correo
+ * sale con los enlaces directos: nunca se deja de enviar por esto.
+ */
+const personalizeWhatsAppLinks = (
+  html: string,
+  contactId: string,
+  eventType: string,
+): string => {
+  try {
+    return rewriteWhatsAppLinks(html, {
+      siteUrl: siteUrl(),
+      contactId,
+      source: `email:${eventType}`,
+      kind: "lead",
+    });
+  } catch {
+    return html;
+  }
+};
+
 export { isDialableE164 };
 
 /**
@@ -220,7 +245,10 @@ export const deliverNotificationEmails = async (notificationId: string) => {
         const result = await sendEmail({
           to,
           subject: notification.title,
-          html,
+          html:
+            isStaff || !recipient.contactId
+              ? html
+              : personalizeWhatsAppLinks(html, recipient.contactId, notification.eventType),
           text,
         });
         providerId = result.messageId

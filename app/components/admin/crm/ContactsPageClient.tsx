@@ -4,6 +4,7 @@ import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { ChevronRight, MessageCircle, Users } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { trackStaffWhatsApp } from "./trackStaffWhatsApp";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
@@ -269,7 +270,10 @@ const ContactsPageClient = ({
                         size="icon-sm"
                         aria-label="Escribir por WhatsApp"
                         title="Escribir por WhatsApp"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          trackStaffWhatsApp(c.id, "crm_list");
+                        }}
                         nativeButton={false}
                         render={
                           <a

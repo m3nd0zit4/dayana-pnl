@@ -26,6 +26,9 @@ import { getPlanFromDb } from "@/lib/plans-from-db";
 import { isPlanVisibleForRegion } from "@/lib/pricing/plan-visibility";
 import type { Plan } from "@/lib/plans";
 
+import type { WhatsAppMarks } from "./whatsapp-marks";
+import { whatsAppMarksForDiagnostics } from "./whatsapp-touches";
+
 /**
  * Acceso a la tabla `diagnostics`. Igual que el resto del CRM, las rutas de
  * API no hablan con Prisma directamente (ver CLAUDE.md).
@@ -353,6 +356,8 @@ export type DiagnosticListRow = DiagnosticRow & {
   hasPurchased: boolean;
   /** Título del producto recomendado, no el slug — para no enseñarlo crudo. */
   recommendedProductTitle: string | null;
+  /** Fue a WhatsApp y le escribiste, desde que hizo el diagnostico. */
+  whatsapp: WhatsAppMarks;
 };
 
 /**
@@ -375,6 +380,7 @@ export async function listCompletedDiagnostics(
     take: limit,
     select: {
       ...SELECT,
+      checkoutStartedAt: true,
       // Título, no el id: la fila de lista lo enseña tal cual, y el slug del
       // producto no le dice nada a Dayana.
       product: { select: { title: true } },
@@ -395,6 +401,16 @@ export async function listCompletedDiagnostics(
     },
   });
 
+  // Si fallan las marcas, la bandeja se abre igual, sin ellas.
+  const marks = await whatsAppMarksForDiagnostics(
+    rows.map((r) => ({
+      id: r.id,
+      contactId: r.contactId,
+      createdAt: r.createdAt,
+      checkoutStartedAt: r.checkoutStartedAt,
+    })),
+  ).catch(() => new Map<string, WhatsAppMarks>());
+
   return rows.map((row) => ({
     ...toRow(row),
     contact: row.contact
@@ -408,6 +424,7 @@ export async function listCompletedDiagnostics(
       : null,
     hasPurchased: (row.contact?.enrollments.length ?? 0) > 0,
     recommendedProductTitle: row.product?.title ?? null,
+    whatsapp: marks.get(row.id) ?? { leadAt: null, staffAt: null },
   }));
 }
 
@@ -477,6 +494,10 @@ export type DiagnosticDetail = ContactDiagnosticSummary & {
   viewedResultAt: string | null;
   /** Ya no es «empezó el pago»: es «pulsó Hablar con Dayana». Ver el modelo. */
   checkoutStartedAt: string | null;
+  /** Ultimo clic suyo hacia WhatsApp (resultado, correo, su cuenta). */
+  whatsappLeadAt: string | null;
+  /** Ultimo clic del equipo en WhatsApp con ella desde el CRM. */
+  whatsappStaffAt: string | null;
   /** Mismo criterio que `hasPurchased` en la lista: alguna matrícula activa o completada. */
   isCustomer: boolean;
   contact: {
@@ -522,6 +543,17 @@ export async function getDiagnosticById(id: string): Promise<DiagnosticDetail | 
   });
   if (!row) return null;
 
+  const marks = (
+    await whatsAppMarksForDiagnostics([
+      {
+        id: row.id,
+        contactId: row.contact?.id ?? null,
+        createdAt: row.createdAt,
+        checkoutStartedAt: row.checkoutStartedAt,
+      },
+    ]).catch(() => null)
+  )?.get(row.id);
+
   return {
     id: row.id,
     token: row.token,
@@ -536,6 +568,8 @@ export async function getDiagnosticById(id: string): Promise<DiagnosticDetail | 
     createdAt: row.createdAt.toISOString(),
     viewedResultAt: toIso(row.viewedResultAt),
     checkoutStartedAt: toIso(row.checkoutStartedAt),
+    whatsappLeadAt: toIso(marks?.leadAt ?? null),
+    whatsappStaffAt: toIso(marks?.staffAt ?? null),
     isCustomer: (row.contact?.enrollments.length ?? 0) > 0,
     contact: row.contact
       ? {

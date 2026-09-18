@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
+import { reportWhatsAppClick } from "@/app/components/whatsapp/reportWhatsAppClick";
 
 const FloatingWhatsApp = () => {
   const [visible, setVisible] = useState(false);
@@ -33,6 +34,7 @@ const FloatingWhatsApp = () => {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Escríbenos por WhatsApp"
+      onClick={() => reportWhatsAppClick(window.location.pathname)}
       className={`fixed bottom-5 right-5 lg:bottom-8 lg:right-8 z-40 flex items-center gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-full shadow-2xl shadow-[#25D366]/40 font-[font2] uppercase transition-all duration-500 px-4 py-3 lg:px-5 lg:py-4 group ${
         show
           ? "opacity-100 translate-y-0 pointer-events-auto"

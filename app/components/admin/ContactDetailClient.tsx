@@ -21,6 +21,7 @@ import {
 import { contactFilterSourceSelectOptions } from "@/lib/crm/form-select-options";
 import { formatCountryLabel } from "@/lib/countries";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { trackStaffWhatsApp } from "@/app/components/admin/crm/trackStaffWhatsApp";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { Badge } from "@/app/components/ui/badge";
@@ -244,9 +245,12 @@ const ContactDetailClient = ({
   contact: initial,
   diagnostics = [],
   timeZone = "America/Bogota",
+  whatsapp = { leadAt: null, staffAt: null },
 }: {
   contact: Contact;
   diagnostics?: ContactDiagnosticSummary[];
+  /** Ultimos clics hacia WhatsApp: de la persona y del equipo. */
+  whatsapp?: { leadAt: string | null; staffAt: string | null };
   /** Zona operativa resuelta en el servidor, para formatear fechas igual en los dos lados. */
   timeZone?: string;
 }) => {
@@ -362,7 +366,7 @@ const ContactDetailClient = ({
               variant="outline"
               size="sm"
               nativeButton={false}
-              render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" />}
+              render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackStaffWhatsApp(contact.id, "crm_contact")} />}
             >
               <MessageCircle aria-hidden />
               WhatsApp
@@ -490,6 +494,20 @@ const ContactDetailClient = ({
                   <DataField label="Consentimientos">
                     Datos: {contact.consentDataAt ? "sí" : "no"} · Marketing:{" "}
                     {contact.consentMarketingAt ? "sí" : "no"}
+                  </DataField>
+                  <DataField label="WhatsApp">
+                    {whatsapp.leadAt || whatsapp.staffAt
+                      ? [
+                          whatsapp.leadAt
+                            ? `Fue a WhatsApp el ${formatDiagnosticDate(whatsapp.leadAt, timeZone)}`
+                            : null,
+                          whatsapp.staffAt
+                            ? `Le escribiste el ${formatDiagnosticDate(whatsapp.staffAt, timeZone)}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : "Sin clics registrados"}
                   </DataField>
                 </dl>
               </CardContent>

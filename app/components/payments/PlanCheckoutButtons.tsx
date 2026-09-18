@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { buildWhatsAppUrl } from "../../../lib/contact";
+import { reportWhatsAppClick } from "@/app/components/whatsapp/reportWhatsAppClick";
 import { type Plan } from "../../../lib/plans";
 import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
 import { useCheckoutModal } from "../../context/CheckoutModalContext";
@@ -91,6 +92,7 @@ const PlanCheckoutButtons = ({
       {showWhatsApp && (
         <a
           href={buildWhatsAppUrl(plan.whatsappMessage)}
+          onClick={() => reportWhatsAppClick(`plan:${plan.id}`)}
           target="_blank"
           rel="noopener noreferrer"
           className={`w-full cursor-pointer text-center font-[font1] text-[11px] uppercase tracking-[0.3em] py-1 transition-colors ${

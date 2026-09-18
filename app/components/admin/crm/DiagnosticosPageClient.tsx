@@ -38,6 +38,10 @@ export type DiagnosticoRow = {
   sourceLabel: string | null;
   completedAt: string | null;
   hasPurchased: boolean;
+  /** Ultimo clic suyo hacia WhatsApp. */
+  whatsappLeadAt: string | null;
+  /** Ultimo clic del equipo en WhatsApp con ella. */
+  whatsappStaffAt: string | null;
   contact: {
     id: string;
     name: string;
@@ -53,6 +57,24 @@ export type DiagnosticoRow = {
 const TRACK_LABEL: Record<NonNullable<DiagnosticoRow["track"]>, string> = {
   emocional: "Emocional",
   crecimiento: "Crecimiento",
+};
+
+// Zona fija: esta lista se pinta en el servidor y se hidrata en el navegador;
+// sin `timeZone` una fecha cerca de medianoche saldria distinta en cada lado.
+const WHATSAPP_DATE = new Intl.DateTimeFormat("es-CO", {
+  day: "numeric",
+  month: "short",
+  timeZone: "America/Bogota",
+});
+const whatsappDate = (iso: string) => WHATSAPP_DATE.format(new Date(iso)).replace(".", "");
+
+/** "Fue a WhatsApp 12 sep · Le escribiste 13 sep", o null sin clics. */
+const whatsappLine = (d: DiagnosticoRow): string | null => {
+  const parts = [
+    d.whatsappLeadAt ? `Fue a WhatsApp ${whatsappDate(d.whatsappLeadAt)}` : null,
+    d.whatsappStaffAt ? `Le escribiste ${whatsappDate(d.whatsappStaffAt)}` : null,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(" · ") : null;
 };
 
 type Segment = "todos" | "calientes" | "sin-comprar";
@@ -274,6 +296,14 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
+                {whatsappLine(d) ? (
+                  <p
+                    className="mt-1 block truncate text-xs text-muted-foreground"
+                    title={whatsappLine(d) ?? undefined}
+                  >
+                    {whatsappLine(d)}
+                  </p>
+                ) : null}
               </div>
             </CrmDataListRow>
           ))}

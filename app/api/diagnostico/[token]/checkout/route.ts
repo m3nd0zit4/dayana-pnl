@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { markDiagnosticCheckoutStarted } from "@/lib/crm/diagnostics";
+import { recordDiagnosticResultWhatsApp } from "@/lib/crm/whatsapp-touches";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +19,12 @@ export async function POST(
 ) {
   const { token } = await params;
   try {
-    await markDiagnosticCheckoutStarted(token);
+    // `checkoutStartedAt` guarda el primer clic; la marca «fue a WhatsApp»
+    // guarda cada vuelta, para que un segundo intento días después se vea.
+    await Promise.all([
+      markDiagnosticCheckoutStarted(token),
+      recordDiagnosticResultWhatsApp(token),
+    ]);
   } catch (e) {
     console.error("[diagnostico] checkout mark failed", e);
   }

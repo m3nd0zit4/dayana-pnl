@@ -39,6 +39,8 @@ const DiagnosticosPage = async () => {
         sourceLabel: diagnosticSourceLabel(d.source),
         completedAt: d.completedAt,
         hasPurchased: d.isCustomer,
+        whatsappLeadAt: d.whatsappLeadAt,
+        whatsappStaffAt: d.whatsappStaffAt,
         contact: d.contact
           ? {
               id: d.contact.id,
@@ -71,6 +73,8 @@ const DiagnosticosPage = async () => {
     sourceLabel: diagnosticSourceLabel(d.source),
     completedAt: d.completedAt ? d.completedAt.toISOString() : null,
     hasPurchased: d.hasPurchased,
+    whatsappLeadAt: d.whatsapp.leadAt?.toISOString() ?? null,
+    whatsappStaffAt: d.whatsapp.staffAt?.toISOString() ?? null,
     contact: d.contact
       ? {
           id: d.contact.id,
