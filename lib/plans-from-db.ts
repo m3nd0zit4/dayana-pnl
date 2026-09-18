@@ -49,6 +49,7 @@ export const productToPlan = (
     kind,
     recurring,
     libraryCourse: product.isCourseContent || undefined,
+    workshop: product.kind === ProductKind.WORKSHOP || undefined,
     // Que el producto sea recurrente no basta: hace falta que el plan exista
     // en el proveedor, o el botón lleva a un error.
     subscriptionAvailable:
@@ -95,7 +96,7 @@ export const getPublicPlans = async () => {
     // suelta entran en `plans`, y sin este filtro un curso cualquiera podía
     // acabar presentándose como la mensualidad en /servicios y en el taller.
     plans.find(
-      (p) => p.kind === "course" && !p.libraryCourse && p.id !== "workshop-virtual"
+      (p) => p.kind === "course" && !p.libraryCourse && !p.workshop
     ) ??
     null;
   return { therapyPlans, coursePlan, courseLibrary, allPlans: plans, usdToCopRate };

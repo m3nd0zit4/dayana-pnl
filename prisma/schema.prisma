@@ -615,20 +615,20 @@ model WorkshopDocument {
 }
 
 model Enrollment {
-  id                       String              @id @default(cuid())
-  contactId                String              @map("contact_id")
-  productId                String              @map("product_id")
-  workshopEditionId        String?             @map("workshop_edition_id")
-  status                   EnrollmentStatus    @default(LEAD)
-  label                    String?
-  isPrimary                Boolean             @default(false) @map("is_primary")
-  parentEnrollmentId       String?             @map("parent_enrollment_id")
-  sessionsTotal            Int?                @map("sessions_total")
-  sessionsUsed             Int                 @default(0) @map("sessions_used")
-  currency                 String?             @db.Char(3)
-  amountMinor              Int?                @map("amount_minor")
-  externalRef              String?             @map("external_ref")
-  paidUntil                DateTime?           @map("paid_until")
+  id                        String              @id @default(cuid())
+  contactId                 String              @map("contact_id")
+  productId                 String              @map("product_id")
+  workshopEditionId         String?             @map("workshop_edition_id")
+  status                    EnrollmentStatus    @default(LEAD)
+  label                     String?
+  isPrimary                 Boolean             @default(false) @map("is_primary")
+  parentEnrollmentId        String?             @map("parent_enrollment_id")
+  sessionsTotal             Int?                @map("sessions_total")
+  sessionsUsed              Int                 @default(0) @map("sessions_used")
+  currency                  String?             @db.Char(3)
+  amountMinor               Int?                @map("amount_minor")
+  externalRef               String?             @map("external_ref")
+  paidUntil                 DateTime?           @map("paid_until")
   /// Compra suelta de un curso de la biblioteca: el acceso no caduca.
   ///
   /// Es un booleano y no un `paidUntil` lejano porque «no caduca» y «caduca en
@@ -638,25 +638,30 @@ model Enrollment {
   ///
   /// OJO — con esto en true, `paidUntil == null` NO significa «nunca pagó».
   /// Ver `membershipInfoFrom` en lib/lms/membership.ts.
-  lifetimeAccess           Boolean             @default(false) @map("lifetime_access")
+  lifetimeAccess            Boolean             @default(false) @map("lifetime_access")
   /// Suscripción de PayPal que renueva esta matrícula. Es la clave por la que
   /// se resuelve cada cobro recurrente: `PAYMENT.SALE.COMPLETED` trae
   /// `billing_agreement_id` y NO garantiza propagar el `custom_id`.
-  paypalSubscriptionId     String?             @unique @map("paypal_subscription_id")
+  paypalSubscriptionId      String?             @unique @map("paypal_subscription_id")
   /// Último estado reportado por PayPal. Es informativo para el portal: el
   /// acceso lo decide `paidUntil`, no esto — cancelar detiene la renovación,
   /// no el mes ya pagado.
-  subscriptionStatus       SubscriptionStatus? @map("subscription_status")
+  subscriptionStatus        SubscriptionStatus? @map("subscription_status")
   /// Suscripción de Mercado Pago (preapproval) que renueva esta matrícula.
-  mercadoPagoPreapprovalId String?             @unique @map("mercadopago_preapproval_id")
+  mercadoPagoPreapprovalId  String?             @unique @map("mercadopago_preapproval_id")
   /// Quién cobra la renovación. Lo necesita el portal para saber a qué API
   /// pedir la cancelación.
-  subscriptionProvider     PaymentProvider?    @map("subscription_provider")
-  leadAt                   DateTime?           @map("lead_at")
-  paidAt                   DateTime?           @map("paid_at")
-  completedAt              DateTime?           @map("completed_at")
-  createdAt                DateTime            @default(now()) @map("created_at")
-  updatedAt                DateTime            @updatedAt @map("updated_at")
+  subscriptionProvider      PaymentProvider?    @map("subscription_provider")
+  leadAt                    DateTime?           @map("lead_at")
+  paidAt                    DateTime?           @map("paid_at")
+  completedAt               DateTime?           @map("completed_at")
+  /// Recordatorios de taller ya enviados a esta matricula (24 h y 1 h antes
+  /// de la edicion). Se reclaman antes de enviar, igual que en el webinar,
+  /// para que un cron repetido no mande dos veces.
+  workshopReminder24hSentAt DateTime?           @map("workshop_reminder_24h_sent_at")
+  workshopReminder1hSentAt  DateTime?           @map("workshop_reminder_1h_sent_at")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
 
   contact                  Contact                   @relation(fields: [contactId], references: [id], onDelete: Cascade)
   product                  Product                   @relation(fields: [productId], references: [id])

@@ -89,6 +89,12 @@ export type Plan = {
    * entera mientras esté al día.
    */
   libraryCourse?: boolean;
+  /**
+   * Taller (una edición con su propio producto). `kind` no lo distingue —un
+   * taller llega como "course"— y hace falta para no confundirlo con la
+   * mensualidad.
+   */
+  workshop?: boolean;
   /** Terapia: titular; curso: sin usar. Detalle en `features`. */
   therapyPresentation?: TherapyPlanPresentation;
   features: string[];

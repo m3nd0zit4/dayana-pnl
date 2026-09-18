@@ -3,6 +3,7 @@ import { prisma } from "../db";
 import { createEnrollment, markEnrollmentPaid } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
 import { markPaymentLinkPaid } from "./payment-links";
+import { linkEnrollmentToWorkshopEdition } from "./workshop-pricing";
 import { redeemPromoCode } from "./promo-codes";
 
 export type FulfillCheckoutPaymentInput = Omit<
@@ -186,6 +187,12 @@ export const fulfillCheckoutPayment = async (
     productId: input.productId,
     enrollmentId: enrollment.id,
   });
+
+  // El pago de un taller queda ligado a SU edición (la del producto
+  // `taller-<slug>`), no a «la que esté abierta» cuando alguien la mire.
+  if (product?.kind === ProductKind.WORKSHOP) {
+    await linkEnrollmentToWorkshopEdition(enrollment.id, input.productId);
+  }
 
   return enrollment.id;
 };
