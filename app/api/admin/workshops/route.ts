@@ -109,7 +109,11 @@ export const POST = withStaff("write", async ({ req, staff }) => {
 
   if (
     parsed.data.status === WorkshopEditionStatus.OPEN &&
-    !(await canOpenWithPrice(slug, prices.copPesos))
+    !(await canOpenWithPrice(
+      slug,
+      prices.copPesos,
+      prices.copPesos !== undefined || prices.usdCents !== undefined,
+    ))
   ) {
     return apiError("open_requires_cop_price", 400);
   }

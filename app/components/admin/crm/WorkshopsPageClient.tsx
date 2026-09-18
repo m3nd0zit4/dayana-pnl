@@ -130,11 +130,16 @@ const WorkshopsPageClient = ({
           toast("Edición de taller eliminada");
           load();
         } else {
-          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+            message?: string;
+          };
           toast(
-            data.error === "locked_edition"
-              ? "Esta edición no se puede eliminar"
-              : "No se pudo eliminar la edición",
+            data.error === "has_paid_enrollments"
+              ? (data.message ?? "Este taller tiene inscripciones pagadas. Ciérralo en vez de borrarlo.")
+              : data.error === "virtual_edition"
+                ? "Esta edición no se puede eliminar"
+                : "No se pudo eliminar la edición",
             "error"
           );
         }

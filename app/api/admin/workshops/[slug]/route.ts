@@ -8,7 +8,6 @@ import {
 } from "@/lib/crm/workshop-editions";
 import {
   canOpenWithPrice,
-  countPaidForEdition,
   deactivateWorkshopProducts,
   syncWorkshopEditionPrice,
 } from "@/lib/crm/workshop-pricing";
@@ -20,7 +19,7 @@ import {
 import { prisma } from "@/lib/db";
 import { isVirtualWorkshopSlug } from "@/lib/workshops";
 import { workshopEditionSchema } from "@/lib/validations/admin";
-import { WorkshopEditionStatus } from "@prisma/client";
+import { WorkshopEditionStatus, EnrollmentStatus } from "@prisma/client";
 
 type Params = { slug: string };
 
@@ -53,7 +52,11 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
   const nextStatus = (parsed.data.status as WorkshopEditionStatus | undefined) ?? existing.status;
   if (
     nextStatus === WorkshopEditionStatus.OPEN &&
-    !(await canOpenWithPrice(slug, prices.copPesos))
+    !(await canOpenWithPrice(
+      slug,
+      prices.copPesos,
+      prices.copPesos !== undefined || prices.usdCents !== undefined,
+    ))
   ) {
     return apiError("open_requires_cop_price", 400);
   }
@@ -143,11 +146,28 @@ export const DELETE = withStaff<Params>("write", async ({ staff, params }) => {
 
   // Con compradores no se borra: se cierra. Borrar dejaria matriculas pagadas
   // sin edicion y sin forma de ver el taller que pagaron.
-  const target = await prisma.workshopEdition.findUnique({ where: { slug }, select: { id: true } });
+  const target = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: { id: true, productId: true, legacyProductId: true },
+  });
   if (!target) {
     return apiError("not_found", 404);
   }
-  if ((await countPaidForEdition(target.id)) > 0) {
+  // Cuenta tambien a quien compro con su producto (o el heredado) antes de que
+  // las matriculas se ligaran a la edicion.
+  const productIds = [target.productId, target.legacyProductId].filter(
+    (id): id is string => Boolean(id),
+  );
+  const paid = await prisma.enrollment.count({
+    where: {
+      status: { in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED] },
+      OR: [
+        { workshopEditionId: target.id },
+        ...(productIds.length > 0 ? [{ productId: { in: productIds } }] : []),
+      ],
+    },
+  });
+  if (paid > 0) {
     return apiError("has_paid_enrollments", 409, {
       message: "Este taller tiene inscripciones pagadas. Ciérralo en vez de borrarlo.",
     });

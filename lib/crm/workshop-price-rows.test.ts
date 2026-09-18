@@ -63,6 +63,9 @@ describe("validateWorkshopPrices", () => {
     expect(validateWorkshopPrices({ priceCop: 180000.5 }).ok).toBe(false);
     expect(validateWorkshopPrices({ priceUsd: 0 }).ok).toBe(false);
     expect(validateWorkshopPrices({ priceUsd: 45.555 }).ok).toBe(false);
+    expect(validateWorkshopPrices({ priceCop: Number.NaN }).ok).toBe(false);
+    expect(validateWorkshopPrices({ priceCop: 1e12 }).ok).toBe(false);
+    expect(validateWorkshopPrices({ priceUsd: 1e9 }).ok).toBe(false);
   });
 
   test("dolares tipicos con flotante impreciso se aceptan", () => {

@@ -94,6 +94,8 @@ export const fulfillCheckoutPayment = async (
   if (existing && existing.status !== PaymentStatus.PENDING) {
     if (existing.status === PaymentStatus.APPROVED) {
       await ensureEnrollmentActivated(existing.enrollmentId);
+      // Si la primera pasada murio antes de ligar la edicion, el reenvio la liga.
+      await linkEnrollmentToWorkshopEdition(existing.enrollmentId, input.productId);
     }
     return existing.enrollmentId;
   }

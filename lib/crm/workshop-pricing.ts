@@ -159,6 +159,8 @@ export async function countPaidForEdition(editionId: string): Promise<number> {
 export async function canOpenWithPrice(
   slug: string,
   copPesos: number | undefined,
+  /** Se esta escribiendo algun precio ahora (aunque sea solo USD). */
+  priceWritten = copPesos !== undefined,
 ): Promise<boolean> {
   if (copPesos) return true;
   const ownId = workshopProductIdFor(slug);
@@ -171,7 +173,27 @@ export async function canOpenWithPrice(
     prisma.workshopEdition.findUnique({ where: { slug }, select: { productId: true } }),
   ]);
   if (ownCop) return true;
+  // La excepcion heredada solo vale si no se escribe ningun precio: escribir
+  // uno (aunque sea solo USD) crea el producto propio y mueve la edicion, y
+  // entonces necesita su propio precio en pesos.
+  if (priceWritten) return false;
   return Boolean(edition?.productId && edition.productId !== ownId && !own);
+}
+
+/**
+ * Alinea el producto propio de una edicion con su estado: activo solo si la
+ * edicion esta ABIERTA. Lo llaman las funciones que escriben ediciones, asi
+ * que ninguna via (panel, asistente, futuras) deja una edicion cerrada a la
+ * venta ni una abierta sin poder cobrarse. Solo toca `taller-<slug>`.
+ */
+export async function alignWorkshopProductWithStatus(
+  slug: string,
+  status: WorkshopEditionStatus,
+): Promise<void> {
+  await prisma.product.updateMany({
+    where: { id: workshopProductIdFor(slug) },
+    data: { isActive: status === WorkshopEditionStatus.OPEN },
+  });
 }
 
 /**

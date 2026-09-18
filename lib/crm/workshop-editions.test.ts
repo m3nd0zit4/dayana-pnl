@@ -32,31 +32,28 @@ describe("parseWorkshopPriceFields", () => {
     });
   });
 
-  test("cero es válido (precio explícito de cero pesos/dólares)", () => {
+  test("cero se lee tal cual (la validación es la que lo rechaza)", () => {
     expect(parseWorkshopPriceFields({ priceCop: 0, priceUsd: 0 })).toEqual({
       priceCop: 0,
       priceUsd: 0,
     });
   });
 
-  test("ausente, vacío, negativo, NaN o texto se ignoran", () => {
+  test("ausente o vacío: no se escribió, se ignora", () => {
     expect(parseWorkshopPriceFields({})).toEqual({ priceCop: undefined, priceUsd: undefined });
-    expect(parseWorkshopPriceFields({ priceCop: "" })).toEqual({
+    expect(parseWorkshopPriceFields({ priceCop: "", priceUsd: null })).toEqual({
       priceCop: undefined,
       priceUsd: undefined,
     });
-    expect(parseWorkshopPriceFields({ priceCop: -5 })).toEqual({
-      priceCop: undefined,
-      priceUsd: undefined,
-    });
-    expect(parseWorkshopPriceFields({ priceUsd: "45.00" })).toEqual({
-      priceCop: undefined,
-      priceUsd: undefined,
-    });
-    expect(parseWorkshopPriceFields({ priceCop: Number.NaN })).toEqual({
-      priceCop: undefined,
-      priceUsd: undefined,
-    });
+  });
+
+  // Antes se ignoraban en silencio y el formulario decía «guardado» sin
+  // cambiar nada. Ahora llegan como NaN y `validateWorkshopPrices` los
+  // rechaza con `invalid_price`.
+  test("negativo, NaN o texto llegan como NaN para que la validación los rechace", () => {
+    expect(Number.isNaN(parseWorkshopPriceFields({ priceCop: -5 }).priceCop)).toBe(true);
+    expect(Number.isNaN(parseWorkshopPriceFields({ priceUsd: "45.00" }).priceUsd)).toBe(true);
+    expect(Number.isNaN(parseWorkshopPriceFields({ priceCop: Number.NaN }).priceCop)).toBe(true);
   });
 
   test("raw no-objeto no revienta", () => {

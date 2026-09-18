@@ -1,5 +1,5 @@
 import { EnrollmentStatus, WorkshopEditionStatus } from "@prisma/client";
-import { deactivateWorkshopProducts } from "./workshop-pricing";
+import { alignWorkshopProductWithStatus, deactivateWorkshopProducts } from "./workshop-pricing";
 import { enrichWorkshopInput } from "./workshop-enrichment";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
 import { prisma } from "../db";
@@ -104,7 +104,7 @@ export const upsertWorkshopEdition = async (
     await closeOtherOpenWorkshops(slug);
   }
 
-  return prisma.workshopEdition.upsert({
+  const edition = await prisma.workshopEdition.upsert({
     where: { slug },
     create: {
       slug,
@@ -120,6 +120,9 @@ export const upsertWorkshopEdition = async (
       ...productRelationUpdate(enriched.productId),
     },
   });
+  // Cerrada o borrador: su producto deja de cobrarse; abierta: vuelve a cobrarse.
+  await alignWorkshopProductWithStatus(slug, edition.status);
+  return edition;
 };
 
 export const updateWorkshopEditionBySlug = async (
@@ -132,7 +135,7 @@ export const updateWorkshopEditionBySlug = async (
     await closeOtherOpenWorkshops(slug);
   }
 
-  return prisma.workshopEdition.update({
+  const edition = await prisma.workshopEdition.update({
     where: { slug },
     data: {
       ...editionData(enriched),
@@ -140,6 +143,9 @@ export const updateWorkshopEditionBySlug = async (
       ...productRelationUpdate(enriched.productId),
     },
   });
+  // Cerrada o borrador: su producto deja de cobrarse; abierta: vuelve a cobrarse.
+  await alignWorkshopProductWithStatus(slug, edition.status);
+  return edition;
 };
 
 /** Same filter/order the admin workshops list route uses — every real edition, newest first, excluding the virtual "proximo-taller" placeholder. */
@@ -212,8 +218,15 @@ export const latestPricesFromRows = (
  * compartido). Un valor ausente, vacío o inválido se ignora — no cambia el
  * precio — en vez de fallar la petición entera.
  */
-const asNonNegativeFinite = (v: unknown): number | undefined =>
-  typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : undefined;
+/**
+ * `undefined` si no se envio (no cambia nada); `NaN` si se envio algo que no
+ * es un numero valido, para que la validacion lo rechace con `invalid_price`
+ * en vez de ignorarlo en silencio.
+ */
+const asNonNegativeFinite = (v: unknown): number | undefined => {
+  if (v === undefined || v === null || v === "") return undefined;
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : Number.NaN;
+};
 
 export const parseWorkshopPriceFields = (
   raw: unknown

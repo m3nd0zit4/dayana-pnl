@@ -62,13 +62,19 @@ export function validateWorkshopPrices(input: {
   priceUsd?: number;
 }): ValidatedWorkshopPrices {
   const { priceCop, priceUsd } = input;
-  if (priceCop !== undefined && !(Number.isInteger(priceCop) && priceCop > 0)) {
+  // Techos para no desbordar la columna `amountMinor` (Int de 32 bits).
+  if (
+    priceCop !== undefined &&
+    !(Number.isInteger(priceCop) && priceCop > 0 && priceCop <= 1_000_000_000)
+  ) {
     return { ok: false };
   }
   let usdCents: number | undefined;
   if (priceUsd !== undefined) {
     const cents = Math.round(priceUsd * 100);
-    if (!(priceUsd > 0) || Math.abs(cents - priceUsd * 100) > 1e-6) return { ok: false };
+    if (!(priceUsd > 0) || priceUsd > 10_000_000 || Math.abs(cents - priceUsd * 100) > 1e-6) {
+      return { ok: false };
+    }
     usdCents = cents;
   }
   return { ok: true, copPesos: priceCop, usdCents };
