@@ -21,10 +21,13 @@ export async function POST(
   try {
     // `checkoutStartedAt` guarda el primer clic; la marca «fue a WhatsApp»
     // guarda cada vuelta, para que un segundo intento días después se vea.
-    await Promise.all([
+    const results = await Promise.allSettled([
       markDiagnosticCheckoutStarted(token),
       recordDiagnosticResultWhatsApp(token),
     ]);
+    for (const r of results) {
+      if (r.status === "rejected") console.error("[diagnostico] checkout mark failed", r.reason);
+    }
   } catch (e) {
     console.error("[diagnostico] checkout mark failed", e);
   }

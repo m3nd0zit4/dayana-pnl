@@ -24,15 +24,28 @@ export type RecordContactTouchInput = {
 
 export async function recordContactTouch(input: RecordContactTouchInput): Promise<void> {
   const contactId = input.contactId ?? null;
-  const diagnosticId = input.diagnosticId ?? null;
+  let diagnosticId = input.diagnosticId ?? null;
   if (!contactId && !diagnosticId) return;
   const source = input.source.trim().slice(0, 80) || "desconocido";
+  const staffUserId = input.staffUserId ?? null;
 
   try {
+    // Un diagnostico que no es de esta persona (o que no existe) no se enlaza:
+    // se registra el clic sobre el contacto y se descarta el id ajeno. Sin
+    // esto, un id inexistente hacia fallar el insert y el clic se perdia.
+    if (diagnosticId && contactId) {
+      const owned = await prisma.diagnostic.findFirst({
+        where: { id: diagnosticId, contactId },
+        select: { id: true },
+      });
+      if (!owned) diagnosticId = null;
+    }
+
     const recent = await prisma.contactTouch.findFirst({
       where: {
         contactId,
         diagnosticId,
+        staffUserId,
         kind: input.kind,
         source,
         createdAt: { gte: new Date(Date.now() - DEDUPE_MS) },
@@ -45,7 +58,7 @@ export async function recordContactTouch(input: RecordContactTouchInput): Promis
       data: {
         contactId,
         diagnosticId,
-        staffUserId: input.staffUserId ?? null,
+        staffUserId,
         kind: input.kind,
         source,
       },

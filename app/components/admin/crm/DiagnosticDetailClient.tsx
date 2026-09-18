@@ -111,7 +111,8 @@ const DiagnosticDetailClient = ({ diagnostic, timeZone }: Props) => {
     { label: "Empezó", at: diagnostic.createdAt },
     { label: "Terminó", at: diagnostic.completedAt },
     { label: "Vio el resultado", at: diagnostic.viewedResultAt },
-    { label: "Fue a WhatsApp", at: diagnostic.whatsappLeadAt },
+    { label: "Pulsó «Hablar con Dayana»", at: diagnostic.checkoutStartedAt },
+    { label: "Fue a WhatsApp (última vez)", at: diagnostic.whatsappLeadAt },
     { label: "Le escribiste por WhatsApp", at: diagnostic.whatsappStaffAt },
   ];
 
