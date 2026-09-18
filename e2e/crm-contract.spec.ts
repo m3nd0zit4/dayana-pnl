@@ -93,12 +93,17 @@ test.describe("CRM · contrato de patrones", () => {
         // sin que haya nada roto. Durante ese relevo conviven un instante el
         // esqueleto y la página —dos [data-crm-page]—, y un locator estricto
         // falla en seco en vez de esperar. Primero uno solo, luego visible.
+        // El relevo puede repetirse (el panel lateral se vuelve a montar tras
+        // cambiar de tamaño), asi que se reintenta la medicion entera hasta
+        // que haya un solo contenedor, visible y con caja.
         const pageContainer = page.locator("[data-crm-page]");
-        await expect(pageContainer).toHaveCount(1);
-        await expect(pageContainer).toBeVisible();
-        const box = await pageContainer.boundingBox();
-        expect(box, "sin bounding box").not.toBeNull();
-        expect(box!.width).toBeLessThanOrEqual(MAX_CONTENT_WIDTH);
+        await expect(async () => {
+          await expect(pageContainer).toHaveCount(1);
+          await expect(pageContainer).toBeVisible();
+          const box = await pageContainer.boundingBox();
+          expect(box, "sin bounding box").not.toBeNull();
+          expect(box!.width).toBeLessThanOrEqual(MAX_CONTENT_WIDTH);
+        }).toPass({ timeout: 20_000 });
 
         await page.setViewportSize({ width: 390, height: 844 });
         const overflows = await page.evaluate(
@@ -352,15 +357,14 @@ test.describe("CRM · dark mode", () => {
       await page.evaluate(() => {
         document.documentElement.classList.add("dark");
       });
-      // Un frame para que el navegador recalcule estilos.
-      await page.waitForTimeout(100);
-
-      const dark = await readBg();
-
-      expect(
-        dark,
-        "el fondo no cambió con .dark — probablemente sigue atado a var(--crm-*)",
-      ).not.toBe(light);
+      // Se espera a que el color cambie en vez de dormir un tiempo fijo: con
+      // la maquina cargada 100 ms no bastaban para recalcular estilos.
+      await expect
+        .poll(readBg, {
+          message: "el fondo no cambió con .dark — probablemente sigue atado a var(--crm-*)",
+          timeout: 5_000,
+        })
+        .not.toBe(light);
     });
   }
 });
