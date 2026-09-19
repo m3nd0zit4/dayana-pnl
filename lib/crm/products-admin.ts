@@ -31,7 +31,16 @@ const priceInclude = {
  */
 export const listSellableProducts = async () =>
   prisma.product.findMany({
-    where: { OR: [{ isCourseContent: false }, { sellsStandalone: true }] },
+    where: {
+      AND: [
+        { OR: [{ isCourseContent: false }, { sellsStandalone: true }] },
+        // Talleres: solo los activos. Cada edicion tiene su propio producto
+        // (`taller-<slug>`) y se apaga al cerrarla; listar los cerrados llenaba
+        // Paquetes de talleres viejos. Terapias y cursos inactivos siguen
+        // apareciendo, porque desde aqui se reactivan.
+        { OR: [{ kind: { not: "WORKSHOP" } }, { isActive: true }] },
+      ],
+    },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     include: priceInclude,
   });
