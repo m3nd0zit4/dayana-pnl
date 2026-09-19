@@ -138,7 +138,15 @@ export const workshopEditionSchema = z.object({
   metaTitle: z.string().max(200).optional().nullable(),
   metaDescription: z.string().max(500).optional().nullable(),
   introOpen: z.string().max(5000).optional().nullable(),
-  meetingUrl: z.string().url().max(500).optional().nullable(),
+  // Solo https: `url()` también acepta `javascript:` y `data:`, y este
+  // enlace va tal cual al botón del correo.
+  meetingUrl: z
+    .string()
+    .url()
+    .max(500)
+    .refine((u) => /^https:\/\//i.test(u), "https_only")
+    .optional()
+    .nullable(),
   /** Nueva URL de la edicion (solo al editar). */
   newSlug: z.string().min(3).max(120).optional(),
 });

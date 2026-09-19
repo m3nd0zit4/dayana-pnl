@@ -61,12 +61,15 @@ const TRACK_LABEL: Record<NonNullable<DiagnosticoRow["track"]>, string> = {
 
 // Fecha y hora en que terminó el cuestionario, en la zona operativa fija
 // (mismo motivo que abajo: servidor y navegador deben pintar lo mismo).
+// Todo numérico y en 24 h: «sept.»/«sep.» y el espacio de «p. m.» cambian
+// entre el ICU de Node y el del navegador, y eso rompe la hidratación.
 const DIAGNOSTIC_DATE = new Intl.DateTimeFormat("es-CO", {
-  day: "numeric",
-  month: "short",
+  day: "2-digit",
+  month: "2-digit",
   year: "numeric",
-  hour: "numeric",
+  hour: "2-digit",
   minute: "2-digit",
+  hourCycle: "h23",
   timeZone: "America/Bogota",
 });
 
@@ -140,7 +143,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return diagnosticos.filter((d) => {
+    const rows = diagnosticos.filter((d) => {
       if (segment === "calientes") {
         if ((d.commitmentScore ?? 0) < HOT_COMMITMENT || d.hasPurchased) {
           return false;
@@ -165,6 +168,11 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         .filter(Boolean)
         .some((v) => String(v).toLowerCase().includes(q));
     });
+    // «Calientes» responde a «¿a quién llamo primero?»: ahí manda el
+    // compromiso, y la fecha solo desempata.
+    return segment === "calientes"
+      ? [...rows].sort((a, b) => (b.commitmentScore ?? 0) - (a.commitmentScore ?? 0))
+      : rows;
   }, [diagnosticos, segment, query, recentDays, nowMs]);
 
   return (

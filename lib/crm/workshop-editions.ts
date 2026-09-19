@@ -5,6 +5,7 @@ import { enrichWorkshopInput } from "./workshop-enrichment";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
 import { prisma } from "../db";
 import { crmEditionWhere } from "../workshops-db";
+import { Prisma } from "@prisma/client";
 import { uniqueSlug } from "./slug";
 export type WorkshopEditionInput = {
   slug?: string;
@@ -166,8 +167,25 @@ export const getWorkshopEditionBySlug = async (slug: string) =>
   });
 
 /** Same slug-generation the admin create route uses (app/api/admin/workshops/route.ts) — collision-checked against real WorkshopEdition rows. */
+/**
+ * ¿La usa ya alguna edición, hoy o antes de un cambio de URL? Una URL vieja
+ * sigue redirigiendo a su edición, así que no se puede dar a otra.
+ */
+export const isWorkshopSlugInUse = async (slug: string): Promise<boolean> =>
+  !!(await prisma.workshopEdition.findFirst({
+    where: { OR: [{ slug }, { previousSlugs: { has: slug } }] },
+    select: { id: true },
+  }));
+
+/** ¿Es la URL vieja de alguna edición? */
+export const isRetiredWorkshopSlug = async (slug: string): Promise<boolean> =>
+  !!(await prisma.workshopEdition.findFirst({
+    where: { previousSlugs: { has: slug } },
+    select: { id: true },
+  }));
+
 export const generateWorkshopSlug = async (title: string) =>
-  uniqueSlug(title, async (s) => !!(await prisma.workshopEdition.findUnique({ where: { slug: s } })));
+  uniqueSlug(title, isWorkshopSlugInUse);
 
 export const listWorkshopDocuments = (workshopEditionId: string) =>
   prisma.workshopDocument.findMany({
@@ -312,7 +330,25 @@ export const listWorkshopEditionsAdminWithPricing = async () => {
  */
 export const renameWorkshopSlug = async (oldSlug: string, newSlug: string) => {
   if (oldSlug === newSlug) return;
-  await prisma.$transaction(async (tx) => {
+  try {
+    await renameInTransaction(oldSlug, newSlug);
+  } catch (e) {
+    // Dos cambios a la misma URL a la vez: el índice único decide y el
+    // segundo recibe el mismo «ocupada» que si hubiera llegado después.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      throw new Error("SLUG_TAKEN");
+    }
+    throw e;
+  }
+};
+
+const renameInTransaction = (oldSlug: string, newSlug: string) =>
+  prisma.$transaction(async (tx) => {
+    // Un cambio de URL a la vez: `previousSlugs` no tiene índice único, y
+    // dos cambios cruzados podían dejar la URL vieja de una edición tapando
+    // la actual de otra.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('workshop-slug-rename'))`;
+
     const edition = await tx.workshopEdition.findUnique({
       where: { slug: oldSlug },
       select: { id: true, productId: true, previousSlugs: true },
@@ -328,14 +364,17 @@ export const renameWorkshopSlug = async (oldSlug: string, newSlug: string) => {
     });
     if (clash) throw new Error("SLUG_TAKEN");
 
+    // `taller-<nueva>` tiene que estar libre siempre: si quedó uno de un taller
+    // borrado (borrar solo lo desactiva), la edición lo adoptaría al ponerle
+    // precio, con precios y matrículas ajenas.
     const oldProductId = workshopProductIdFor(oldSlug);
     const newProductId = workshopProductIdFor(newSlug);
-    if (edition.productId === oldProductId) {
-      const productClash = await tx.product.findUnique({
-        where: { id: newProductId },
-        select: { id: true },
-      });
-      if (productClash) throw new Error("SLUG_TAKEN");
+    const [oldProduct, productClash] = await Promise.all([
+      tx.product.findUnique({ where: { id: oldProductId }, select: { id: true } }),
+      tx.product.findUnique({ where: { id: newProductId }, select: { id: true } }),
+    ]);
+    if (productClash) throw new Error("SLUG_TAKEN");
+    if (oldProduct) {
       await tx.product.update({ where: { id: oldProductId }, data: { id: newProductId } });
     }
 
@@ -349,7 +388,6 @@ export const renameWorkshopSlug = async (oldSlug: string, newSlug: string) => {
       },
     });
   });
-};
 
 /** URL actual de una edicion que antes se llamo `slug`, o `null`. */
 export const currentSlugForPrevious = async (slug: string): Promise<string | null> => {
@@ -358,4 +396,36 @@ export const currentSlugForPrevious = async (slug: string): Promise<string | nul
     select: { slug: true },
   });
   return edition?.slug ?? null;
+};
+
+/**
+ * ¿Pagó esta persona ESTA edición? Más estricto que el acceso a la página:
+ * quien compró otro taller con el producto compartido heredado ve la página,
+ * pero el enlace de la reunión y el aviso «Ya estás inscrita» son solo para
+ * quien pagó esta fecha — matrícula ligada a la edición o a su producto
+ * propio. Es la misma regla de los recordatorios.
+ */
+export const isEnrolledInEdition = async (
+  contactId: string,
+  slug: string
+): Promise<boolean> => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: { id: true, productId: true },
+  });
+  if (!edition) return false;
+  const ownProductId =
+    edition.productId === workshopProductIdFor(slug) ? edition.productId : null;
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      contactId,
+      status: { in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED] },
+      OR: [
+        { workshopEditionId: edition.id },
+        ...(ownProductId ? [{ productId: ownProductId }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  return enrollment !== null;
 };

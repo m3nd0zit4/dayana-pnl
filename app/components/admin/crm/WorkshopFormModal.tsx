@@ -366,10 +366,14 @@ const WorkshopFormModal = ({
     // una URL de verdad — igual de estricto que el servidor (`z.string().url()`).
     const trimmedMeetingUrl = meetingUrl.trim();
     if (trimmedMeetingUrl !== "") {
+      let protocol = "";
       try {
-        new URL(trimmedMeetingUrl);
+        protocol = new URL(trimmedMeetingUrl).protocol;
       } catch {
-        setError("El enlace de la reunión no es una URL válida.");
+        // cae abajo
+      }
+      if (protocol !== "https:") {
+        setError("El enlace de la reunión tiene que empezar por https://.");
         return;
       }
     }

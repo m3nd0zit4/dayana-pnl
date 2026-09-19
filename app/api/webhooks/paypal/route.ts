@@ -13,6 +13,7 @@ import {
 import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
 import { assertPayPalCaptureAmount } from "@/lib/crm/enrollment-payment";
 import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
+import { resolveRenamedProductId } from "@/lib/crm/renamed-product";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
 import { fireAuditLog } from "@/lib/crm/audit";
@@ -215,7 +216,11 @@ export async function POST(req: NextRequest) {
   const amountValue = Number(capture.amount?.value ?? 0);
   const amountMinor = Math.round(amountValue * 100);
   const payer = extractPayPalPayer(resource);
-  const checkout = parseCheckoutReference(reference);
+  const parsedCheckout = parseCheckoutReference(reference);
+  const checkout = parsedCheckout && {
+    ...parsedCheckout,
+    planId: await resolveRenamedProductId(parsedCheckout.planId),
+  };
 
   try {
     if (checkout) {

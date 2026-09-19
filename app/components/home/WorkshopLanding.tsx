@@ -30,6 +30,8 @@ type WorkshopLandingProps = {
   /** Solo para quien ya pagó (o el preview de OWNER) — nunca viene en el DTO
    *  compartido con `WorkshopSalesPage`. `null` = aún sin enlace. */
   meetingUrl?: string | null;
+  /** Pagó esta edición (o es el preview de OWNER): muestra «Ya estás inscrita». */
+  enrolled?: boolean;
 };
 
 const formatDocSize = (bytes: number) => {
@@ -42,6 +44,7 @@ const WorkshopLanding = ({
   documents = [],
   userCountry = null,
   meetingUrl = null,
+  enrolled = false,
 }: WorkshopLandingProps) => {
   const rootRef = useRef<HTMLElement>(null);
   const heroTitleRef = useRef<HTMLDivElement>(null);
@@ -120,6 +123,7 @@ const WorkshopLanding = ({
           </span>
         </div>
 
+        {enrolled ? (
         <div className="mt-6">
           <WorkshopEnrolledBanner
             title={workshop.title}
@@ -132,6 +136,7 @@ const WorkshopLanding = ({
             hasSchedule={workshop.daySchedule.length > 0}
           />
         </div>
+        ) : null}
 
         <div
           ref={heroTitleRef}

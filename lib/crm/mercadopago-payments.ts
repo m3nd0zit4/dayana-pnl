@@ -6,6 +6,7 @@ import {
 } from "./checkout-fulfillment";
 import { createEnrollment } from "./enrollments";
 import { parseCheckoutReference } from "./checkout-reference";
+import { resolveRenamedProductId } from "./renamed-product";
 import { recordPayment, resolveEnrollmentFromReference } from "./payments";
 import { reconcilePendingCheckoutContact } from "./checkout-placeholder";
 import { mapMercadoPagoStatus } from "../payments/errors";
@@ -135,7 +136,11 @@ export const syncMercadoPagoPayment = async (
   const currency = (payment.currency_id ?? "USD").toUpperCase();
   const amountMinor = toAmountMinor(payment.transaction_amount ?? 0, currency);
   const providerPaymentId = String(payment.id ?? paymentId);
-  const checkout = parseCheckoutReference(payment.external_reference);
+  const parsedCheckout = parseCheckoutReference(payment.external_reference);
+  const checkout = parsedCheckout && {
+    ...parsedCheckout,
+    planId: await resolveRenamedProductId(parsedCheckout.planId),
+  };
 
   if (checkout) {
     /**

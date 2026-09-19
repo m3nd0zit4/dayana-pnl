@@ -6,6 +6,8 @@ import { uniqueSlug } from "@/lib/crm/slug";
 import {
   getWorkshopEditionWithPricing,
   listWorkshopEditionsAdminWithPricing,
+  isRetiredWorkshopSlug,
+  isWorkshopSlugInUse,
   parseWorkshopPriceFields,
   upsertWorkshopEdition,
 } from "@/lib/crm/workshop-editions";
@@ -15,7 +17,6 @@ import {
   getOperationalTimezone,
   zonedDateTimeToUtc,
 } from "@/lib/crm/operational-timezone";
-import { prisma } from "@/lib/db";
 import { isVirtualWorkshopSlug } from "@/lib/workshops";
 import { workshopEditionSchema } from "@/lib/validations/admin";
 
@@ -96,12 +97,10 @@ export const POST = withStaff("write", async ({ req, staff }) => {
 
   let slug = String(parsed.data.slug ?? "").trim();
   if (!slug) {
-    slug = await uniqueSlug(parsed.data.title, async (s) => {
-      const found = await prisma.workshopEdition.findUnique({
-        where: { slug: s },
-      });
-      return !!found;
-    });
+    slug = await uniqueSlug(parsed.data.title, isWorkshopSlugInUse);
+  } else if (await isRetiredWorkshopSlug(slug)) {
+    // Es la URL vieja de otra edición y todavía redirige a ella.
+    return apiError("slug_taken", 409);
   }
 
   if (isVirtualWorkshopSlug(slug)) {

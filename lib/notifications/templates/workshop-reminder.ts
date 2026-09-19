@@ -153,6 +153,7 @@ export const workshopReminderText = (i: WorkshopReminderInput): string => {
     ``,
     `Dayana Beltrán PNL`,
   ]
-    .filter(Boolean)
+    // Solo fuera las líneas que no aplican (`null`); las vacías separan párrafos.
+    .filter((line): line is string => line !== null)
     .join("\n");
 };

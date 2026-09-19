@@ -63,27 +63,6 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     return apiError("open_requires_cop_price", 400);
   }
 
-  // Cambio de URL: primero se renombra (con su producto) y el resto de la
-  // edicion se guarda ya bajo la URL nueva.
-  const newSlug = parsed.data.newSlug?.trim();
-  if (newSlug && newSlug !== slug) {
-    if (!isValidWorkshopSlug(newSlug)) {
-      return apiError("invalid_slug", 400);
-    }
-    if (isVirtualWorkshopSlug(newSlug)) {
-      return apiError("virtual_edition", 400);
-    }
-    try {
-      await renameWorkshopSlug(slug, newSlug);
-    } catch (e) {
-      if (e instanceof Error && e.message === "SLUG_TAKEN") {
-        return apiError("slug_taken", 409);
-      }
-      throw e;
-    }
-    slug = newSlug;
-  }
-
   const tz = await getOperationalTimezone();
   let startsAt: Date | null | undefined = undefined;
   if (parsed.data.startsAtLocal !== undefined) {
@@ -104,6 +83,28 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     }
   } else if (parsed.data.startsAt !== undefined) {
     startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
+  }
+
+  // Cambio de URL: al final de las validaciones, para que un error en la
+  // fecha no deje la URL cambiada a medias; luego el resto se guarda ya bajo
+  // la URL nueva.
+  const newSlug = parsed.data.newSlug?.trim();
+  if (newSlug && newSlug !== slug) {
+    if (!isValidWorkshopSlug(newSlug)) {
+      return apiError("invalid_slug", 400);
+    }
+    if (isVirtualWorkshopSlug(newSlug)) {
+      return apiError("virtual_edition", 400);
+    }
+    try {
+      await renameWorkshopSlug(slug, newSlug);
+    } catch (e) {
+      if (e instanceof Error && e.message === "SLUG_TAKEN") {
+        return apiError("slug_taken", 409);
+      }
+      throw e;
+    }
+    slug = newSlug;
   }
 
   const edition = await updateWorkshopEditionBySlug(slug, {

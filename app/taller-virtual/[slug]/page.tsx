@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { WorkshopEditionStatus } from "@prisma/client";
-import { notFound, permanentRedirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import WorkshopLanding from "@/app/components/home/WorkshopLanding";
 import WorkshopSalesPage from "@/app/components/workshops/WorkshopSalesPage";
 import Footer from "@/app/components/home/Footer";
@@ -16,7 +16,11 @@ import { getStaffSession } from "@/lib/auth/staff-session";
 import { resolveSessionCheckoutContact } from "@/lib/crm/checkout-session-contact";
 import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
-import { currentSlugForPrevious, listWorkshopDocumentsBySlug } from "@/lib/crm/workshop-editions";
+import {
+  currentSlugForPrevious,
+  isEnrolledInEdition,
+  listWorkshopDocumentsBySlug,
+} from "@/lib/crm/workshop-editions";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { getPlanFromDb } from "@/lib/plans-from-db";
@@ -58,9 +62,6 @@ export async function generateMetadata({
 
 const WorkshopDetailPage = async ({ params }: PageProps) => {
   const { slug } = await params;
-  // URL cambiada: los enlaces viejos (correos, WhatsApp) llevan a la nueva.
-  const renamedTo = await currentSlugForPrevious(slug);
-  if (renamedTo) permanentRedirect(`/taller-virtual/${renamedTo}`);
 
   // OWNER always sees the real post-payment landing here, regardless of
   // whether she's actually enrolled — including for DRAFT/CLOSED editions,
@@ -72,7 +73,14 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
   const workshop = isOwnerPreview
     ? await getWorkshopDetailForPreview(slug)
     : await getWorkshopDetailBySlugAnyStatus(slug);
-  if (!workshop) notFound();
+  if (!workshop) {
+    // URL cambiada: los enlaces viejos (correos, WhatsApp) llevan a la nueva.
+    // Después de buscar la actual, para que una URL vieja nunca tape a una
+    // edición que hoy la usa. 307 y no 308: la URL se puede volver a cambiar.
+    const renamedTo = await currentSlugForPrevious(slug);
+    if (renamedTo) redirect(`/taller-virtual/${renamedTo}`);
+    notFound();
+  }
 
   const breadcrumb = (
     <JsonLd
@@ -83,6 +91,10 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
       ])}
     />
   );
+
+  // Quién mira, si se sabe: decide el aviso «Ya estás inscrita» y el enlace
+  // de la reunión, que piden haber pagado ESTA edición (no solo tener acceso).
+  let viewerContactId: string | null = null;
 
   if (!isOwnerPreview) {
     const meta = await getWorkshopMetaBySlug(slug);
@@ -96,6 +108,7 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
     if (workshop.productId) {
       const member = await getMemberSession();
       if (member) {
+        viewerContactId = member.contact.id;
         hasAccess = await hasActiveWorkshopEnrollment(
           member.contact.id,
           workshop.productId
@@ -105,6 +118,7 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
         // should see the landing too, not the pay button forever.
         const sessionContact = await resolveSessionCheckoutContact();
         if (sessionContact?.contactId) {
+          viewerContactId = sessionContact.contactId;
           hasAccess = await hasActiveWorkshopEnrollment(
             sessionContact.contactId,
             workshop.productId
@@ -167,10 +181,14 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
 
   const documents = await listWorkshopDocumentsBySlug(slug);
   const userCountry = await getServerUserCountry();
-  // Solo se pide aquí, dentro de la rama de comprador/OWNER — nunca se junta
-  // con `workshop` (el DTO compartido con `WorkshopSalesPage`) para que el
-  // enlace de reunión no pueda llegar a quien no pagó.
-  const meetingUrl = await getWorkshopMeetingUrl(slug);
+  // Tener acceso no basta: una edición sin producto es pública y una en el
+  // producto compartido abre a quien compró cualquier taller anterior. El
+  // enlace se pide aparte —nunca en `workshop`, el DTO que también usa
+  // `WorkshopSalesPage`— y solo para OWNER o quien pagó esta edición.
+  const enrolledHere =
+    isOwnerPreview ||
+    (viewerContactId !== null && (await isEnrolledInEdition(viewerContactId, slug)));
+  const meetingUrl = enrolledHere ? await getWorkshopMeetingUrl(slug) : null;
 
   return (
     <>
@@ -181,6 +199,7 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
           documents={documents}
           userCountry={userCountry}
           meetingUrl={meetingUrl}
+          enrolled={enrolledHere}
         />
       </main>
       <Footer />
