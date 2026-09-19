@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
+import { currentSlugForPrevious } from "@/lib/crm/workshop-editions";
 
 import PagarShell from "@/app/components/pagar/PagarShell";
 import PaymentLinkCheckout from "@/app/components/pagar/PaymentLinkCheckout";
@@ -49,6 +50,12 @@ const PagarProductoPage = async ({
     que revienta al llegar al checkout.
   */
   const resolved = await resolveDefaultProductLink(productId, isColombia);
+  if (!resolved && productId.startsWith("taller-")) {
+    // El taller cambio de URL (y su producto de id): el enlace fijo viejo
+    // lleva al nuevo en vez de dar 404.
+    const renamedTo = await currentSlugForPrevious(productId.slice("taller-".length));
+    if (renamedTo) permanentRedirect(`/pagar/p/taller-${renamedTo}`);
+  }
   if (!resolved) notFound();
 
   return (

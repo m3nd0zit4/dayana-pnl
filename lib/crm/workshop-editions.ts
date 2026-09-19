@@ -1,4 +1,5 @@
 import { EnrollmentStatus, WorkshopEditionStatus } from "@prisma/client";
+import { workshopProductIdFor } from "./workshop-price-rows";
 import { alignWorkshopProductWithStatus, deactivateWorkshopProducts } from "./workshop-pricing";
 import { enrichWorkshopInput } from "./workshop-enrichment";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
@@ -31,6 +32,8 @@ export type WorkshopEditionInput = {
   metaTitle?: string | null;
   metaDescription?: string | null;
   introOpen?: string | null;
+  /** `undefined` = no tocar (el asistente no lo envia). */
+  meetingUrl?: string | null;
 };
 
 const editionData = (input: WorkshopEditionInput) => ({
@@ -58,6 +61,7 @@ const editionData = (input: WorkshopEditionInput) => ({
   metaTitle: input.metaTitle ?? null,
   metaDescription: input.metaDescription ?? null,
   introOpen: input.introOpen ?? null,
+  meetingUrl: input.meetingUrl === undefined ? undefined : input.meetingUrl || null,
 });
 
 /**
@@ -292,4 +296,66 @@ export const listWorkshopEditionsAdminWithPricing = async () => {
     prices: latestPricesFromRows(product?.prices ?? []),
     paidCount: paidCounts[rest.id] ?? 0,
   }));
+};
+
+/**
+ * Cambia la URL de una edicion. En una sola transaccion:
+ *
+ * - comprueba que la nueva URL no la use otra edicion, ni hoy ni antes;
+ * - renombra su producto propio `taller-<vieja>` a `taller-<nueva>` (todas las
+ *   relaciones con productos son ON UPDATE CASCADE: matriculas, precios,
+ *   enlaces de pago y codigos promocionales lo siguen);
+ * - guarda la URL vieja para que los enlaces ya enviados redirijan.
+ *
+ * Lanza `SLUG_TAKEN` si la URL esta ocupada y `WORKSHOP_NOT_FOUND` si la
+ * edicion no existe.
+ */
+export const renameWorkshopSlug = async (oldSlug: string, newSlug: string) => {
+  if (oldSlug === newSlug) return;
+  await prisma.$transaction(async (tx) => {
+    const edition = await tx.workshopEdition.findUnique({
+      where: { slug: oldSlug },
+      select: { id: true, productId: true, previousSlugs: true },
+    });
+    if (!edition) throw new Error("WORKSHOP_NOT_FOUND");
+
+    const clash = await tx.workshopEdition.findFirst({
+      where: {
+        OR: [{ slug: newSlug }, { previousSlugs: { has: newSlug } }],
+        NOT: { id: edition.id },
+      },
+      select: { id: true },
+    });
+    if (clash) throw new Error("SLUG_TAKEN");
+
+    const oldProductId = workshopProductIdFor(oldSlug);
+    const newProductId = workshopProductIdFor(newSlug);
+    if (edition.productId === oldProductId) {
+      const productClash = await tx.product.findUnique({
+        where: { id: newProductId },
+        select: { id: true },
+      });
+      if (productClash) throw new Error("SLUG_TAKEN");
+      await tx.product.update({ where: { id: oldProductId }, data: { id: newProductId } });
+    }
+
+    await tx.workshopEdition.update({
+      where: { id: edition.id },
+      data: {
+        slug: newSlug,
+        previousSlugs: {
+          set: [...new Set([...edition.previousSlugs.filter((s) => s !== newSlug), oldSlug])],
+        },
+      },
+    });
+  });
+};
+
+/** URL actual de una edicion que antes se llamo `slug`, o `null`. */
+export const currentSlugForPrevious = async (slug: string): Promise<string | null> => {
+  const edition = await prisma.workshopEdition.findFirst({
+    where: { previousSlugs: { has: slug } },
+    select: { slug: true },
+  });
+  return edition?.slug ?? null;
 };

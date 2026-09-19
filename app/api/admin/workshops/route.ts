@@ -71,6 +71,7 @@ const toInput = async (
     metaTitle: body.metaTitle,
     metaDescription: body.metaDescription,
     introOpen: body.introOpen,
+    meetingUrl: body.meetingUrl,
   };
 };
 

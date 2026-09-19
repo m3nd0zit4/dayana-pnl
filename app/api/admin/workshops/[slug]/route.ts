@@ -4,6 +4,7 @@ import { fireAuditLog } from "@/lib/crm/audit";
 import {
   getWorkshopEditionWithPricing,
   parseWorkshopPriceFields,
+  renameWorkshopSlug,
   updateWorkshopEditionBySlug,
 } from "@/lib/crm/workshop-editions";
 import {
@@ -12,6 +13,7 @@ import {
   syncWorkshopEditionPrice,
 } from "@/lib/crm/workshop-pricing";
 import { validateWorkshopPrices } from "@/lib/crm/workshop-price-rows";
+import { isValidWorkshopSlug } from "@/lib/crm/workshop-slug";
 import {
   getOperationalTimezone,
   zonedDateTimeToUtc,
@@ -28,7 +30,7 @@ export const dynamic = "force-dynamic";
 const DATE_ONLY_ANCHOR = "12:00";
 
 export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) => {
-  const { slug } = params;
+  let { slug } = params;
 
   if (isVirtualWorkshopSlug(slug)) {
     return apiError("virtual_edition", 400);
@@ -59,6 +61,27 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     ))
   ) {
     return apiError("open_requires_cop_price", 400);
+  }
+
+  // Cambio de URL: primero se renombra (con su producto) y el resto de la
+  // edicion se guarda ya bajo la URL nueva.
+  const newSlug = parsed.data.newSlug?.trim();
+  if (newSlug && newSlug !== slug) {
+    if (!isValidWorkshopSlug(newSlug)) {
+      return apiError("invalid_slug", 400);
+    }
+    if (isVirtualWorkshopSlug(newSlug)) {
+      return apiError("virtual_edition", 400);
+    }
+    try {
+      await renameWorkshopSlug(slug, newSlug);
+    } catch (e) {
+      if (e instanceof Error && e.message === "SLUG_TAKEN") {
+        return apiError("slug_taken", 409);
+      }
+      throw e;
+    }
+    slug = newSlug;
   }
 
   const tz = await getOperationalTimezone();
@@ -107,6 +130,7 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     metaTitle: parsed.data.metaTitle,
     metaDescription: parsed.data.metaDescription,
     introOpen: parsed.data.introOpen,
+    meetingUrl: parsed.data.meetingUrl,
   });
 
   fireAuditLog({

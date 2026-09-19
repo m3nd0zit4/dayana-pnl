@@ -498,6 +498,12 @@ model WorkshopEdition {
   metaTitle                  String?               @map("meta_title")
   metaDescription            String?               @map("meta_description") @db.Text
   introOpen                  String?               @map("intro_open") @db.Text
+  /// Enlace de la reunion (Zoom, Meet). Solo lo ve quien pago: la pagina del
+  /// taller y los recordatorios.
+  meetingUrl                 String?               @map("meeting_url") @db.Text
+  /// URLs anteriores de la edicion. Cambiar la URL no rompe los enlaces ya
+  /// enviados: `/taller-virtual/<vieja>` redirige a la nueva.
+  previousSlugs              String[]              @default([]) @map("previous_slugs")
   createdAt                  DateTime              @default(now()) @map("created_at")
   updatedAt                  DateTime              @updatedAt @map("updated_at")
 
