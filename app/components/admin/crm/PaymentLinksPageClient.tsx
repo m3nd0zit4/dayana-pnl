@@ -154,10 +154,10 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
    * Lo que impide crear el enlace tal como está escrito, o `null`.
    *
    * Lo único obligatorio es el producto: sin contacto y sin datos el enlace se
-   * crea igual, abierto. Pero si se empieza a escribir a alguien, tiene que
-   * quedar identificado — nombre y además teléfono o correo. Antes un nombre
-   * solo se descartaba en silencio y salía un enlace abierto que parecía
-   * personal; y un teléfono sin nombre acababa saludando con el número.
+   * crea igual, abierto. Si se escribe a alguien, basta con su nombre: el
+   * teléfono y el correo son opcionales (el enlace la saluda por su nombre y
+   * el cobro se cuelga de su ficha). Un teléfono o correo sin nombre sí se
+   * rechaza, porque acabaría saludando con el número.
    */
   const formProblem = (): string | null => {
     if (!form.productId) return "Elige el producto.";
@@ -170,9 +170,6 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
       const name = form.buyerName.trim();
       const phone = form.buyerPhone.trim();
       const email = form.buyerEmail.trim();
-      if (name && !phone && !email) {
-        return "Para un enlace a nombre de alguien, añade su teléfono o su correo.";
-      }
       if ((phone || email) && !name) return "Escribe el nombre de quien paga.";
       if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
         return "El correo no parece válido.";

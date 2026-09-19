@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * Tres formas validas, y la tercera es el punto:
  *
  *  - `contactId` de una ficha que ya existe
- *  - `buyer` con nombre y telefono O correo, que se da de alta al crear
+ *  - `buyer` con nombre (telefono y correo opcionales), que se da de alta al crear
  *  - ninguno de los dos: el enlace se crea igual
  *
  * Exigir la ficha antes de poder cobrar era la limitacion que costaba ventas.
@@ -80,9 +80,6 @@ export async function POST(req: NextRequest) {
   const buyer = parsed.data.buyer;
   const buyerHasName = Boolean(buyer?.firstName?.trim());
   const buyerHasReach = Boolean(buyer?.phone?.trim() || buyer?.email?.trim());
-  if (!parsed.data.contactId && buyerHasName && !buyerHasReach) {
-    return NextResponse.json({ error: "missing_contact_data" }, { status: 400 });
-  }
   if (!parsed.data.contactId && buyerHasReach && !buyerHasName) {
     return NextResponse.json({ error: "missing_name" }, { status: 400 });
   }

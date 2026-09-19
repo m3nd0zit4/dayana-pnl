@@ -81,6 +81,11 @@ export type PaymentLinkBuyer = {
  * telefono y lanza `INVALID_PHONE` sin el, asi que el caso «nombre + correo»
  * no tenia via: se resuelve buscando por correo primero —`Contact.email` es
  * unico— y creando con telefono provisional si no existe.
+ *
+ * Con **solo el nombre** tambien se crea la ficha, con telefono provisional:
+ * Dayana a veces solo sabe como se llama la persona, y el enlace debe
+ * saludarla y colgar el cobro de su ficha. Los datos de contacto llegan
+ * despues, con el pago.
  */
 export async function resolvePaymentLinkBuyer(
   buyer: PaymentLinkBuyer | undefined | null,
@@ -90,7 +95,20 @@ export async function resolvePaymentLinkBuyer(
   const email = buyer?.email?.trim().toLowerCase() || undefined;
   const phone = buyer?.phone?.trim() || undefined;
 
-  if (!phone && !email) return null;
+  if (!phone && !email) {
+    if (!firstName) return null;
+    const created = await prisma.contact.create({
+      data: {
+        phoneE164: `${LINK_BUYER_PLACEHOLDER_PHONE_PREFIX}:${randomUUID()}`,
+        firstName,
+        ...(lastName ? { lastName } : {}),
+        source: "WHATSAPP_DIRECT",
+        sourceDetail: "enlace de pago",
+      },
+      select: { id: true },
+    });
+    return created.id;
+  }
 
   if (phone) {
     const { upsertContactByPhone } = await import("./contacts");
