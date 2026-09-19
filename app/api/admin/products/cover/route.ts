@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
@@ -14,8 +16,9 @@ export const dynamic = "force-dynamic";
  * en la práctica significaba subir la imagen a otro sitio primero. Aquí se
  * sube y ya.
  *
- * `access: "public"` porque la portada se sirve en la tarjeta pública: pasarla
- * por una ruta firmada sería pagar una función por cada imagen de catálogo.
+ * El store de Blob es privado: subir con `access: "public"` fallaba siempre
+ * («Cannot use public access on a private store»). Se sube privada y se sirve
+ * por `/api/media/products/covers/<archivo>`, que la cachea un año en el CDN.
  */
 
 /** Una portada de tarjeta. Más de esto es una foto sin optimizar. */
@@ -48,10 +51,13 @@ export const POST = async (req: Request) => {
     return NextResponse.json({ error: "invalid_mime" }, { status: 415 });
   }
 
-  const blob = await put(`products/covers/${Date.now()}.${ext}`, file, {
-    access: "public",
+  // Nombre unico y estable: la ruta publica lo valida con esta misma forma.
+  const name = `${Date.now()}-${randomBytes(4).toString("hex")}.${ext}`;
+  await put(`products/covers/${name}`, file, {
+    access: "private",
     contentType: file.type,
+    addRandomSuffix: false,
   });
 
-  return NextResponse.json({ url: blob.url });
+  return NextResponse.json({ url: `/api/media/products/covers/${name}` });
 };

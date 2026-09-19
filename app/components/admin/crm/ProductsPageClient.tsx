@@ -96,6 +96,53 @@ const KIND_LABEL: Record<ProductKind, string> = {
 const isWorkshopManagedProduct = (id: string): boolean => id.startsWith("taller-");
 
 /**
+ * Qué campos de presentación tienen sentido según el tipo. Antes el formulario
+ * era el mismo para todo: un taller pedía «Nº sesiones (terapia)» y el titular
+ * del diagnóstico, y un curso sugería «/ sesión». Ocultar un campo no borra lo
+ * que ya tenga guardado.
+ */
+const KIND_FIELDS: Record<
+  ProductKind,
+  {
+    sessionsLabel: string;
+    sessionsPlaceholder: string;
+    sessionsCount: boolean;
+    unitPrice: boolean;
+    unitPricePlaceholder: string;
+    diagnosticHeadline: boolean;
+    featuresPlaceholder: string;
+  }
+> = {
+  THERAPY: {
+    sessionsLabel: "Etiqueta de sesiones",
+    sessionsPlaceholder: "Ej. 6 sesiones",
+    sessionsCount: true,
+    unitPrice: true,
+    unitPricePlaceholder: "Ej. / sesión",
+    diagnosticHeadline: true,
+    featuresPlaceholder: "Ej. 4 sesiones de 60 minutos",
+  },
+  COURSE: {
+    sessionsLabel: "Qué incluye (resumen)",
+    sessionsPlaceholder: "Ej. Acceso a todas las clases",
+    sessionsCount: false,
+    unitPrice: true,
+    unitPricePlaceholder: "Ej. / mes",
+    diagnosticHeadline: true,
+    featuresPlaceholder: "Ej. Clases en vivo cada semana",
+  },
+  WORKSHOP: {
+    sessionsLabel: "Formato",
+    sessionsPlaceholder: "Ej. Taller en vivo",
+    sessionsCount: false,
+    unitPrice: false,
+    unitPricePlaceholder: "",
+    diagnosticHeadline: false,
+    featuresPlaceholder: "Ej. 1 día en vivo por Zoom",
+  },
+};
+
+/**
  * El precio de un producto con plan recurrente sólo se guarda si PayPal y
  * Mercado Pago aceptaron cobrarlo. Cuando uno dice que no, no se guarda nada —
  * y hay que decir exactamente qué pasó, porque «Error al guardar» dejaría a
@@ -354,7 +401,9 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
             ? "La imagen pesa más de 6 MB."
             : data.error === "invalid_mime"
               ? "Formato no admitido: usa JPG, PNG, WEBP o AVIF."
-              : "No se pudo subir la portada.",
+              : data.error === "blob_not_configured"
+                ? "El almacenamiento de imágenes no está configurado."
+                : "No se pudo subir la portada. Inténtalo de nuevo.",
           "error",
         );
         return;
@@ -688,23 +737,26 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                       )}
                     </div>
                   </CrmField>
-                  <CrmField label="Etiqueta sesiones">
+                  <CrmField label={KIND_FIELDS[form.kind].sessionsLabel}>
                     <Input
                       value={form.sessionsLabel}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, sessionsLabel: e.target.value }))
                       }
+                      placeholder={KIND_FIELDS[form.kind].sessionsPlaceholder}
                     />
                   </CrmField>
-                  <CrmField label="Nº sesiones (terapia)">
-                    <Input
-                      type="number"
-                      value={form.sessionsCount}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, sessionsCount: e.target.value }))
-                      }
-                    />
-                  </CrmField>
+                  {KIND_FIELDS[form.kind].sessionsCount && (
+                    <CrmField label="Nº de sesiones">
+                      <Input
+                        type="number"
+                        value={form.sessionsCount}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, sessionsCount: e.target.value }))
+                        }
+                      />
+                    </CrmField>
+                  )}
                 </div>
 
                 {isWorkshopManaged && (
@@ -780,7 +832,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                   onChange={(items) =>
                     setForm((f) => ({ ...f, description: itemsToDescription(items) }))
                   }
-                  placeholder="Ej. 4 sesiones de 60 minutos"
+                  placeholder={KIND_FIELDS[form.kind].featuresPlaceholder}
                   addLabel="Agregar ficha"
                 />
 
@@ -793,15 +845,17 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                         placeholder="Ej. Más elegido"
                       />
                     </CrmField>
-                    <CrmField label="Precio por unidad">
-                      <Input
-                        value={form.unitPriceLabel}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, unitPriceLabel: e.target.value }))
-                        }
-                        placeholder="Ej. / sesión"
-                      />
-                    </CrmField>
+                    {KIND_FIELDS[form.kind].unitPrice && (
+                      <CrmField label="Precio por unidad">
+                        <Input
+                          value={form.unitPriceLabel}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, unitPriceLabel: e.target.value }))
+                          }
+                          placeholder={KIND_FIELDS[form.kind].unitPricePlaceholder}
+                        />
+                      </CrmField>
+                    )}
                   </div>
 
                   {/*
@@ -860,6 +914,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                     <span className="text-sm">Destacar esta tarjeta</span>
                   </label>
 
+                  {KIND_FIELDS[form.kind].diagnosticHeadline && (
                   <div className="mt-3 space-y-1.5">
                     <Label>Titular en el diagnóstico (opcional)</Label>
                     <Input
@@ -870,6 +925,7 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                       placeholder="Frase con la que se presenta al recomendarlo"
                     />
                   </div>
+                  )}
 
                   <div className="mt-3 space-y-1.5">
                     <Label>Mensaje de WhatsApp (opcional)</Label>
