@@ -30,6 +30,9 @@ export type WorkshopReminderInput = {
   /** IANA, p. ej. "America/Bogota". */
   timezone: string;
   pass: WorkshopReminderPass;
+  /** Solo presente cuando la edición ya tiene enlace de Zoom/Meet cargado —
+   *  quien llega hasta aquí ya pagó, así que mostrarlo es seguro. */
+  meetingUrl?: string | null;
 };
 
 const workshopUrl = (slug: string): string =>
@@ -86,6 +89,14 @@ export const workshopReminderHtml = (i: WorkshopReminderInput): string => {
   const is24h = i.pass === "24h";
   const label = workshopReminderScheduleLabel(i);
   const url = workshopUrl(i.slug);
+  const meetingUrl = i.meetingUrl?.trim() || null;
+  // Con enlace de reunión el CTA fuerte lleva directo a Zoom/Meet — es lo
+  // que hay que abrir el día del taller — y "Entrar al taller" queda como
+  // secundario, hacia el contenido/materiales. Sin enlace, todo sigue
+  // apuntando a la página del taller como siempre.
+  const entryLine = meetingUrl
+    ? `Entra a la reunión con el botón de aquí abajo. El otro enlace te lleva a la página del taller, con los materiales.`
+    : `Entra con el botón de aquí abajo el día del taller — el mismo enlace te lleva directo al contenido.`;
 
   const body = varsToPlainParagraphs(
     is24h
@@ -93,13 +104,13 @@ export const workshopReminderHtml = (i: WorkshopReminderInput): string => {
           `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
           `Te escribo para recordarte que <strong style="font-weight:600;">${dayWord(i)}</strong> es tu taller: <strong style="font-weight:600;">${escapeHtml(i.title)}</strong>.`,
           `Es el <strong style="font-weight:600;">${escapeHtml(label)}</strong>.`,
-          `Entra con el botón de aquí abajo el día del taller — el mismo enlace te lleva directo al contenido.`,
+          entryLine,
         ]
       : [
           `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
           `Empezamos en <strong style="font-weight:600;">una hora</strong>: <strong style="font-weight:600;">${escapeHtml(i.title)}</strong>.`,
           `Este es el momento de buscar un lugar tranquilo y dejar el teléfono a un lado.`,
-          `Entra con el botón de aquí abajo.`,
+          entryLine,
         ]
   );
 
@@ -114,7 +125,10 @@ export const workshopReminderHtml = (i: WorkshopReminderInput): string => {
       { label: "Taller", value: i.title },
       { label: "Cuándo", value: label, highlight: true },
     ],
-    ctaPrimary: { label: "Entrar al taller", href: url },
+    ctaPrimary: meetingUrl
+      ? { label: "Entrar a la reunión", href: meetingUrl }
+      : { label: "Entrar al taller", href: url },
+    ctaSecondary: meetingUrl ? { label: "Entrar al taller", href: url } : undefined,
     footnote: FOOTNOTE,
   });
 };
@@ -123,6 +137,7 @@ export const workshopReminderText = (i: WorkshopReminderInput): string => {
   const is24h = i.pass === "24h";
   const label = workshopReminderScheduleLabel(i);
   const url = workshopUrl(i.slug);
+  const meetingUrl = i.meetingUrl?.trim() || null;
 
   return [
     `Hola ${i.firstName},`,
@@ -131,7 +146,8 @@ export const workshopReminderText = (i: WorkshopReminderInput): string => {
       ? `${dayWord(i) === "hoy" ? "Hoy" : "Mañana"} es tu taller: ${i.title}.`
       : `Tu taller empieza en 1 hora: ${i.title}.`,
     `Cuándo: ${label}.`,
-    `Entra aquí: ${url}`,
+    meetingUrl ? `Entra a la reunión: ${meetingUrl}` : null,
+    meetingUrl ? `Página del taller (materiales): ${url}` : `Entra aquí: ${url}`,
     ``,
     `¿Algo falla? Escríbele a Dayana por WhatsApp: ${WHATSAPP_NUMBER}`,
     ``,

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { WorkshopEditionStatus } from "@prisma/client";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import WorkshopLanding from "@/app/components/home/WorkshopLanding";
 import WorkshopSalesPage from "@/app/components/workshops/WorkshopSalesPage";
 import Footer from "@/app/components/home/Footer";
@@ -8,6 +8,7 @@ import JsonLd from "@/app/components/seo/JsonLd";
 import {
   getWorkshopDetailBySlugAnyStatus,
   getWorkshopDetailForPreview,
+  getWorkshopMeetingUrl,
   getWorkshopMetaBySlug,
 } from "@/lib/workshops-db";
 import { getMemberSession } from "@/lib/auth/member-session";
@@ -15,7 +16,7 @@ import { getStaffSession } from "@/lib/auth/staff-session";
 import { resolveSessionCheckoutContact } from "@/lib/crm/checkout-session-contact";
 import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { hasActiveWorkshopEnrollment } from "@/lib/crm/workshop-access";
-import { listWorkshopDocumentsBySlug } from "@/lib/crm/workshop-editions";
+import { currentSlugForPrevious, listWorkshopDocumentsBySlug } from "@/lib/crm/workshop-editions";
 import { buildBreadcrumbSchema } from "@/lib/seo/schema";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { getPlanFromDb } from "@/lib/plans-from-db";
@@ -57,6 +58,9 @@ export async function generateMetadata({
 
 const WorkshopDetailPage = async ({ params }: PageProps) => {
   const { slug } = await params;
+  // URL cambiada: los enlaces viejos (correos, WhatsApp) llevan a la nueva.
+  const renamedTo = await currentSlugForPrevious(slug);
+  if (renamedTo) permanentRedirect(`/taller-virtual/${renamedTo}`);
 
   // OWNER always sees the real post-payment landing here, regardless of
   // whether she's actually enrolled — including for DRAFT/CLOSED editions,
@@ -163,6 +167,10 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
 
   const documents = await listWorkshopDocumentsBySlug(slug);
   const userCountry = await getServerUserCountry();
+  // Solo se pide aquí, dentro de la rama de comprador/OWNER — nunca se junta
+  // con `workshop` (el DTO compartido con `WorkshopSalesPage`) para que el
+  // enlace de reunión no pueda llegar a quien no pagó.
+  const meetingUrl = await getWorkshopMeetingUrl(slug);
 
   return (
     <>
@@ -172,6 +180,7 @@ const WorkshopDetailPage = async ({ params }: PageProps) => {
           workshop={workshop}
           documents={documents}
           userCountry={userCountry}
+          meetingUrl={meetingUrl}
         />
       </main>
       <Footer />

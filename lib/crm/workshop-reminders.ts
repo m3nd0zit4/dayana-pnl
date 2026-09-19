@@ -85,7 +85,14 @@ const RECIPIENT_SELECT = {
     select: { id: true, firstName: true, lastName: true, email: true },
   },
   workshopEdition: {
-    select: { id: true, slug: true, title: true, startsAt: true, timezone: true },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      startsAt: true,
+      timezone: true,
+      meetingUrl: true,
+    },
   },
 } satisfies Prisma.EnrollmentSelect;
 
@@ -184,6 +191,10 @@ const deliverOne = async (
     slug: edition.slug,
     startsAt: edition.startsAt,
     timezone: edition.timezone,
+    // Solo llega aquí porque `recipient` viene de una matrícula ACTIVA/COMPLETED
+    // — es decir, alguien que pagó — así que no hace falta comprobar acceso
+    // otra vez antes de meterlo en el recordatorio.
+    meetingUrl: edition.meetingUrl,
     pass,
   };
 

@@ -19,6 +19,7 @@ import type { WorkshopScheduleSlot } from "@/lib/workshops";
 import { normalizeWorkshopSchedule, parseWorkshopSchedule } from "@/lib/workshop-schedule";
 import { minorToMajor } from "@/lib/crm/money";
 import { workshopProductIdFor } from "@/lib/crm/workshop-price-rows";
+import { isValidWorkshopSlug, normalizeWorkshopSlug } from "@/lib/crm/workshop-slug";
 import {
   DEFAULT_OPERATIONAL_TZ,
   getDateKeyInTz,
@@ -51,6 +52,9 @@ export type WorkshopRow = {
   metaTitle: string | null;
   metaDescription: string | null;
   productId: string | null;
+  /** Zoom/Meet — solo la ve quien pagó, nunca en la página de venta. Opcional
+   *  porque el preview estático del CRM (`PREVIEW_WORKSHOPS`) no lo trae. */
+  meetingUrl?: string | null;
   /** Título del producto enlazado — el propio (`taller-<slug>`) o, mientras
    *  no tenga precio propio, uno heredado de Paquetes. */
   productTitle: string | null;
@@ -102,6 +106,7 @@ type ApiEdition = {
   metaTitle: string | null;
   metaDescription: string | null;
   productId: string | null;
+  meetingUrl?: string | null;
   productTitle?: string | null;
   prices?: { cop: number | null; usd: number | null } | null;
   paidCount?: number;
@@ -136,6 +141,7 @@ export const mapApiEditionToRow = (e: ApiEdition): WorkshopRow => ({
   metaTitle: e.metaTitle,
   metaDescription: e.metaDescription,
   productId: e.productId,
+  meetingUrl: e.meetingUrl ?? null,
   productTitle: e.productTitle ?? null,
   prices: e.prices ?? { cop: null, usd: null },
   paidCount: e.paidCount,
@@ -173,6 +179,17 @@ const WorkshopFormModal = ({
   /** Dólares con centavos, como se escriben — se convierten a centavos al
    *  mandar la petición. */
   const [priceUsd, setPriceUsd] = useState("");
+  /** Solo edición: el input de la URL, sin el prefijo. */
+  const [slugInput, setSlugInput] = useState("");
+  /**
+   * La URL real de la edición, tal como la conoce el servidor en este
+   * momento — arranca en `edition.slug` pero se actualiza en cuanto un PATCH
+   * la cambia, para que una petición siguiente (subir un documento, guardar
+   * otra vez si el modal se queda abierto por un error de precio) use la
+   * nueva y no la que trajo el prop original.
+   */
+  const [effectiveSlug, setEffectiveSlug] = useState<string | null>(null);
+  const [meetingUrl, setMeetingUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState<WorkshopDocumentItem[]>([]);
@@ -243,6 +260,9 @@ const WorkshopFormModal = ({
             : ""
         );
       }
+      setSlugInput(edition.slug);
+      setEffectiveSlug(edition.slug);
+      setMeetingUrl(edition.meetingUrl ?? "");
     } else {
       setTitle("");
       setDescription("");
@@ -256,17 +276,20 @@ const WorkshopFormModal = ({
       setDaySchedule([]);
       setPriceCop("");
       setPriceUsd("");
+      setSlugInput("");
+      setEffectiveSlug(null);
+      setMeetingUrl("");
     }
     setError(null);
   }, [open, edition, operationalTimezone]);
 
   useEffect(() => {
-    if (!open || !edition) {
+    if (!open || !edition || !effectiveSlug) {
       setDocuments([]);
       return;
     }
     let cancelled = false;
-    fetch(`/api/admin/workshops/${encodeURIComponent(edition.slug)}/documents`)
+    fetch(`/api/admin/workshops/${encodeURIComponent(effectiveSlug)}/documents`)
       .then((r) => r.json())
       .then((d: { documents?: WorkshopDocumentItem[] }) => {
         if (!cancelled) setDocuments(d.documents ?? []);
@@ -277,7 +300,7 @@ const WorkshopFormModal = ({
     return () => {
       cancelled = true;
     };
-  }, [open, edition]);
+  }, [open, edition, effectiveSlug]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,6 +352,28 @@ const WorkshopFormModal = ({
       return;
     }
 
+    // URL del taller: solo se manda `newSlug` cuando de verdad cambió, y
+    // solo en edición (crear ya deja elegir el slug inicial en otro flujo).
+    const currentSlug = effectiveSlug ?? edition?.slug ?? null;
+    const normalizedSlug = edition ? normalizeWorkshopSlug(slugInput) : "";
+    const slugChanged = !!edition && normalizedSlug !== currentSlug;
+    if (slugChanged && !isValidWorkshopSlug(normalizedSlug)) {
+      setError("La URL solo puede tener minúsculas, números y guiones.");
+      return;
+    }
+
+    // Enlace de la reunión: opcional, pero si se escribe algo tiene que ser
+    // una URL de verdad — igual de estricto que el servidor (`z.string().url()`).
+    const trimmedMeetingUrl = meetingUrl.trim();
+    if (trimmedMeetingUrl !== "") {
+      try {
+        new URL(trimmedMeetingUrl);
+      } catch {
+        setError("El enlace de la reunión no es una URL válida.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     const payload = {
@@ -345,11 +390,13 @@ const WorkshopFormModal = ({
       daySchedule: trimmedSchedule.length > 0 ? trimmedSchedule : undefined,
       priceCop: parsedPriceCop,
       priceUsd: parsedPriceUsd,
+      meetingUrl: trimmedMeetingUrl === "" ? null : trimmedMeetingUrl,
+      ...(slugChanged ? { newSlug: normalizedSlug } : {}),
     };
 
     const res = await fetch(
-      edition
-        ? `/api/admin/workshops/${encodeURIComponent(edition.slug)}`
+      edition && currentSlug
+        ? `/api/admin/workshops/${encodeURIComponent(currentSlug)}`
         : "/api/admin/workshops",
       {
         method: edition ? "PATCH" : "POST",
@@ -363,7 +410,14 @@ const WorkshopFormModal = ({
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (data.error === "price_sync_failed") {
         // The edition itself was saved — only the price write failed — so
-        // the list still needs to pick up the rest of the changes.
+        // the list still needs to pick up the rest of the changes. If the
+        // rename was part of this same request it already went through
+        // (it's the first thing the PATCH does), so the slug used for the
+        // next request has to move on with it.
+        if (slugChanged) {
+          setEffectiveSlug(normalizedSlug);
+          setSlugInput(normalizedSlug);
+        }
         setError(
           "El taller se guardó, pero no se pudo actualizar su precio. Vuelve a intentarlo."
         );
@@ -381,8 +435,27 @@ const WorkshopFormModal = ({
         setError("Para abrir inscripciones este taller necesita su precio en pesos (COP).");
         return;
       }
+      if (data.error === "invalid_slug") {
+        setError("La URL solo puede tener minúsculas, números y guiones.");
+        return;
+      }
+      if (data.error === "slug_taken") {
+        setError("Esa URL ya la usa otro taller.");
+        return;
+      }
+      if (data.error === "virtual_edition") {
+        setError("Esa URL está reservada.");
+        return;
+      }
       setError("No se pudo guardar el taller.");
       return;
+    }
+    const data = (await res.json().catch(() => ({}))) as {
+      edition?: { slug?: string };
+    };
+    if (data.edition?.slug) {
+      setEffectiveSlug(data.edition.slug);
+      setSlugInput(data.edition.slug);
     }
     invalidateCached("workshops");
     onSaved();
@@ -412,6 +485,28 @@ const WorkshopFormModal = ({
             placeholder="Tu versión imparable"
           />
         </div>
+
+        {edition ? (
+          <div className="space-y-1.5">
+            <Label htmlFor="w-slug">URL del taller</Label>
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
+              <span className="shrink-0 truncate rounded-md bg-muted px-2.5 py-2 font-mono text-xs text-muted-foreground">
+                dayanabeltran.com/taller-virtual/
+              </span>
+              <Input
+                id="w-slug"
+                value={slugInput}
+                onChange={(e) => setSlugInput(e.target.value)}
+                onBlur={() => setSlugInput((v) => normalizeWorkshopSlug(v))}
+                placeholder="mi-taller"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Si la cambias, los enlaces viejos siguen funcionando: redirigen
+              a la nueva.
+            </p>
+          </div>
+        ) : null}
 
         <div className="space-y-1.5">
           <Label htmlFor="w-desc">Descripción *</Label>
@@ -483,6 +578,18 @@ const WorkshopFormModal = ({
               placeholder="Ej. jornada completa · virtual"
             />
           </div>
+          <CrmField
+            label="Enlace de la reunión (Zoom, Meet…)"
+            description="Solo lo ven quienes pagaron, en la página del taller y en los recordatorios."
+            className="sm:col-span-2"
+          >
+            <Input
+              type="url"
+              value={meetingUrl}
+              onChange={(e) => setMeetingUrl(e.target.value)}
+              placeholder="https://zoom.us/j/1234567890"
+            />
+          </CrmField>
         </div>
 
         <div className="space-y-3">
@@ -543,7 +650,7 @@ const WorkshopFormModal = ({
 
         {edition ? (
           <WorkshopDocumentsPanel
-            slug={edition.slug}
+            slug={effectiveSlug ?? edition.slug}
             documents={documents}
             onChange={setDocuments}
           />

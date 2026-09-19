@@ -176,6 +176,23 @@ export const getWorkshopMetaBySlug = async (
   return edition ?? null;
 };
 
+/**
+ * Enlace de reunión (Zoom/Meet) de una edición — deliberadamente FUERA de
+ * `editionSelect`/`WorkshopDetail`: ese DTO también alimenta
+ * `WorkshopSalesPage`, que se le muestra a quien todavía no pagó. Esta
+ * consulta aparte es la única forma de leer `meetingUrl`, y quien la llama
+ * debe comprobar `hasAccess` primero (ver app/taller-virtual/[slug]/page.tsx).
+ */
+export const getWorkshopMeetingUrl = async (
+  slug: string
+): Promise<string | null> => {
+  const edition = await prisma.workshopEdition.findUnique({
+    where: { slug },
+    select: { meetingUrl: true },
+  });
+  return edition?.meetingUrl ?? null;
+};
+
 export { crmEditionWhere };
 
 /**

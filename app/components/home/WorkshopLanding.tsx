@@ -12,6 +12,7 @@ import {
 } from "../../../lib/workshops";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
 import WorkshopSlotLocalTime from "@/app/components/datetime/WorkshopSlotLocalTime";
+import WorkshopEnrolledBanner from "@/app/components/workshops/WorkshopEnrolledBanner";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -26,6 +27,9 @@ type WorkshopLandingProps = {
   workshop: WorkshopDetail;
   documents?: WorkshopDocument[];
   userCountry?: string | null;
+  /** Solo para quien ya pagó (o el preview de OWNER) — nunca viene en el DTO
+   *  compartido con `WorkshopSalesPage`. `null` = aún sin enlace. */
+  meetingUrl?: string | null;
 };
 
 const formatDocSize = (bytes: number) => {
@@ -37,6 +41,7 @@ const WorkshopLanding = ({
   workshop,
   documents = [],
   userCountry = null,
+  meetingUrl = null,
 }: WorkshopLandingProps) => {
   const rootRef = useRef<HTMLElement>(null);
   const heroTitleRef = useRef<HTMLDivElement>(null);
@@ -113,6 +118,19 @@ const WorkshopLanding = ({
           <span className="inline-flex items-center rounded-full border border-emerald-700/30 bg-emerald-700 px-4 py-1.5 font-[font2] text-[10px] uppercase tracking-[0.25em] text-white">
             {statusLabel}
           </span>
+        </div>
+
+        <div className="mt-6">
+          <WorkshopEnrolledBanner
+            title={workshop.title}
+            startsAtIso={workshop.startsAtIso}
+            dateLabel={workshop.dateLabel}
+            scheduleLabel={workshop.scheduleLabel}
+            userCountry={userCountry}
+            meetingUrl={meetingUrl}
+            documentsCount={documents.length}
+            hasSchedule={workshop.daySchedule.length > 0}
+          />
         </div>
 
         <div
@@ -214,7 +232,7 @@ const WorkshopLanding = ({
       )}
 
       {workshop.daySchedule.length > 0 && (
-        <div className="px-3 lg:px-8 py-16 border-t border-black/10">
+        <div id="cronograma" className="px-3 lg:px-8 py-16 border-t border-black/10 scroll-mt-24">
           <div className="max-w-[1400px] mx-auto">
             <div className="wk-reveal flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
               <h2 className="font-[font2] text-4xl sm:text-5xl lg:text-6xl uppercase leading-[0.92] shrink-0">
@@ -252,7 +270,7 @@ const WorkshopLanding = ({
       )}
 
       {documents.length > 0 && (
-        <div className="px-3 lg:px-8 py-16 border-t border-black/10">
+        <div id="materiales" className="px-3 lg:px-8 py-16 border-t border-black/10 scroll-mt-24">
           <div className="max-w-[1400px] mx-auto">
             <h2 className="wk-reveal font-[font2] text-4xl sm:text-5xl lg:text-6xl uppercase leading-[0.92] mb-10">
               Materiales
