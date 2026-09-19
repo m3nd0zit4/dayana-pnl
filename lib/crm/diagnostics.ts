@@ -370,13 +370,10 @@ export async function listCompletedDiagnostics(
 ): Promise<DiagnosticListRow[]> {
   const rows = await prisma.diagnostic.findMany({
     where: { completedAt: { not: null } },
-    // Compromiso primero: la bandeja responde a "¿a quién llamo hoy?", no a
-    // "¿quién entró último?". Los nulos (diagnósticos anteriores al tramo de
-    // intención) caen al final, que es donde corresponde a algo sin medir.
-    orderBy: [
-      { commitmentScore: { sort: "desc", nulls: "last" } },
-      { completedAt: "desc" },
-    ],
+    // Por fecha, lo más reciente primero (pedido de Dayana, 2026-09-19): así
+    // se ve de un vistazo quién lo hizo hoy. «Calientes» sigue filtrando por
+    // compromiso para responder a «¿a quién llamo primero?».
+    orderBy: [{ completedAt: "desc" }, { createdAt: "desc" }],
     take: limit,
     select: {
       ...SELECT,

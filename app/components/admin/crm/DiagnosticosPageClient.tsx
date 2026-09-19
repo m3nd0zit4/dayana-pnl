@@ -59,6 +59,17 @@ const TRACK_LABEL: Record<NonNullable<DiagnosticoRow["track"]>, string> = {
   crecimiento: "Crecimiento",
 };
 
+// Fecha y hora en que terminó el cuestionario, en la zona operativa fija
+// (mismo motivo que abajo: servidor y navegador deben pintar lo mismo).
+const DIAGNOSTIC_DATE = new Intl.DateTimeFormat("es-CO", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: "America/Bogota",
+});
+
 // Zona fija: esta lista se pinta en el servidor y se hidrata en el navegador;
 // sin `timeZone` una fecha cerca de medianoche saldria distinta en cada lado.
 const WHATSAPP_DATE = new Intl.DateTimeFormat("es-CO", {
@@ -96,9 +107,9 @@ type Props = {
 /**
  * La bandeja que sustituye a la llamada de calificación.
  *
- * Ordena por compromiso y no por fecha a propósito: la pregunta que resuelve
- * esta pantalla no es "¿quién entró último?" sino "¿a quién llamo hoy?". El
- * orden lo pone la consulta (`listCompletedDiagnostics`), en SQL.
+ * Ordenada por fecha, lo más reciente primero, con la fecha en cada fila. El
+ * segmento «Calientes» filtra por compromiso para decidir a quién llamar
+ * primero. El orden lo pone la consulta (`listCompletedDiagnostics`), en SQL.
  *
  * Cada fila lleva al detalle (`/admin/diagnosticos/[id]`), donde se ven todas
  * las respuestas — antes esta lista era el único sitio donde vivían y no
@@ -160,7 +171,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
     <CrmPageShell>
       <CrmPageHeader
         title="Diagnósticos"
-        description="Quién respondió el cuestionario, qué necesita y cuándo quiere empezar. Ordenados por lo cerca que están de decidirse, no por fecha. Abre uno para ver todas sus respuestas."
+        description="Quién respondió el cuestionario, qué necesita y cuándo quiere empezar. Del más reciente al más antiguo. Abre uno para ver todas sus respuestas."
         trailing={
           <CrmSegmentedControl
             segments={SEGMENTS}
@@ -243,6 +254,11 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 <p className="truncate text-xs text-muted-foreground">
                   {d.contact?.email ?? d.contact?.phoneE164 ?? "Sin datos de contacto"}
                 </p>
+                {d.completedAt ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    Hecho el {DIAGNOSTIC_DATE.format(new Date(d.completedAt))}
+                  </p>
+                ) : null}
               </div>
 
               <div className="sm:w-32">
