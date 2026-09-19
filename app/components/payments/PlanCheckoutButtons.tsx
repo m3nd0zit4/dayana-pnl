@@ -6,6 +6,7 @@ import { reportWhatsAppClick } from "@/app/components/whatsapp/reportWhatsAppCli
 import { type Plan } from "../../../lib/plans";
 import { isPlanVisibleForRegion } from "../../../lib/pricing/plan-visibility";
 import { useCheckoutModal } from "../../context/CheckoutModalContext";
+import ColombiaPaymentMethods from "./ColombiaPaymentMethods";
 
 type Props = {
   plan: Plan;
@@ -89,6 +90,7 @@ const PlanCheckoutButtons = ({
       >
         Pagar
       </button>
+      {isColombia && <ColombiaPaymentMethods isDark={isDark} className="pt-1" />}
       {showWhatsApp && (
         <a
           href={buildWhatsAppUrl(plan.whatsappMessage)}

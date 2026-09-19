@@ -6,6 +6,7 @@ import { formatCop, formatUsd, type PlanId } from "../../../lib/plans";
 import { useCheckoutPlan } from "./useCheckoutPlan";
 import CheckoutPaymentModalFrame from "./CheckoutPaymentModalFrame";
 import { PayPalWordmark } from "./PayPalBrandRow";
+import ColombiaPaymentMethods from "./ColombiaPaymentMethods";
 import {
   startCheckout,
   type CheckoutProvider,
@@ -459,6 +460,12 @@ const CheckoutConfirmModal = ({
                   : "Pagar"}
             </button>
           )}
+
+          {/* Mercado Pago = Colombia: se recuerda que no hace falta tarjeta. La
+              suscripción (`offersBoth`) es solo con tarjeta, así que ahí no. */}
+          {provider === "mercadopago" && !offersBoth ? (
+            <ColombiaPaymentMethods className="mt-3" />
+          ) : null}
         </>
       )}
 
