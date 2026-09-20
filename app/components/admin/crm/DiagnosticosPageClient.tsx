@@ -1,11 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Compass, User } from "lucide-react";
+import { Compass, FileText, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { trackStaffWhatsApp } from "./trackStaffWhatsApp";
 import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
@@ -82,19 +85,12 @@ const WHATSAPP_DATE = new Intl.DateTimeFormat("es-CO", {
 });
 const whatsappDate = (iso: string) => WHATSAPP_DATE.format(new Date(iso)).replace(".", "");
 
-/** "Fue a WhatsApp 12 sep · Le escribiste 13 sep", o null sin clics. */
-const whatsappLine = (d: DiagnosticoRow): string | null => {
-  const parts = [
-    d.whatsappLeadAt ? `Fue a WhatsApp ${whatsappDate(d.whatsappLeadAt)}` : null,
-    d.whatsappStaffAt ? `Le escribiste ${whatsappDate(d.whatsappStaffAt)}` : null,
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join(" · ") : null;
-};
-
-type Segment = "todos" | "calientes" | "sin-comprar";
+type Segment = "todos" | "calientes" | "sin-contactar" | "sin-comprar";
 
 const SEGMENTS = [
   { id: "calientes" as const, label: "Listos para hablar" },
+  // La pregunta que se hacía a mano, fila por fila: «¿a esta ya le escribí?».
+  { id: "sin-contactar" as const, label: "Sin contactar" },
   { id: "sin-comprar" as const, label: "Sin comprar" },
   { id: "todos" as const, label: "Todos" },
 ];
@@ -123,7 +119,10 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
   const searchParams = useSearchParams();
   const urlSegment = searchParams.get("segmento");
   const [segment, setSegment] = useState<Segment>(
-    urlSegment === "sin-comprar" || urlSegment === "todos" || urlSegment === "calientes"
+    urlSegment === "sin-comprar" ||
+    urlSegment === "sin-contactar" ||
+    urlSegment === "todos" ||
+    urlSegment === "calientes"
       ? urlSegment
       : "calientes"
   );
@@ -140,6 +139,12 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
     Number.isInteger(recentParam) && recentParam > 0 ? recentParam : null
   );
   const [query, setQuery] = useState("");
+  /**
+   * Filas a las que se les acaba de escribir desde esta pantalla. El registro
+   * viaja al servidor en segundo plano; sin esto la fila seguiría diciendo
+   * «Sin contactar» hasta recargar, que es justo la duda que esto resuelve.
+   */
+  const [writtenNow, setWrittenNow] = useState<Set<string>>(new Set());
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -150,6 +155,11 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         }
       }
       if (segment === "sin-comprar" && d.hasPurchased) return false;
+      // Nadie del equipo le ha escrito todavía (y no se le acaba de escribir
+      // desde esta misma pantalla).
+      if (segment === "sin-contactar" && (d.whatsappStaffAt || writtenNow.has(d.id))) {
+        return false;
+      }
       if (recentDays !== null) {
         if (!d.contact || !d.completedAt) return false;
         if (nowMs - new Date(d.completedAt).getTime() > recentDays * 86_400_000) {
@@ -173,7 +183,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
     return segment === "calientes"
       ? [...rows].sort((a, b) => (b.commitmentScore ?? 0) - (a.commitmentScore ?? 0))
       : rows;
-  }, [diagnosticos, segment, query, recentDays, nowMs]);
+  }, [diagnosticos, segment, query, recentDays, nowMs, writtenNow]);
 
   return (
     <CrmPageShell>
@@ -231,7 +241,12 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         />
       ) : (
         <CrmDataList>
-          {filtered.map((d) => (
+          {filtered.map((d) => {
+            const waUrl = d.contact?.phoneE164
+              ? buildContactWhatsAppUrl(d.contact.phoneE164)
+              : null;
+            const written = writtenNow.has(d.id) || !!d.whatsappStaffAt;
+            return (
             <CrmDataListRow
               key={d.id}
               // `relative` para el enlace estirado del nombre: toda la fila es
@@ -239,21 +254,50 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
               // no había caja donde pintar el anillo).
               className="relative transition-colors hover:bg-muted/50"
               actions={
-                d.contact ? (
-                  <CrmRowActions className="relative z-10">
-                    <CrmRowAction
-                      icon={User}
-                      label="Ver contacto"
-                      onClick={() => router.push(`/admin/contacts/${d.contact!.id}`)}
-                    />
-                  </CrmRowActions>
-                ) : undefined
+                <CrmRowActions className="relative z-10">
+                  {/* Escribirle desde aquí: es lo que se hace con esta lista
+                      en la mano, y deja la fila marcada al instante. */}
+                  {!preview && waUrl ? (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Escribir por WhatsApp"
+                      title="Escribir por WhatsApp"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!d.contact) return;
+                        trackStaffWhatsApp(d.contact.id, "crm_diagnosticos", d.id);
+                        setWrittenNow((prev) => new Set(prev).add(d.id));
+                      }}
+                      nativeButton={false}
+                      render={
+                        <a href={waUrl} target="_blank" rel="noopener noreferrer" />
+                      }
+                    >
+                      <MessageCircle strokeWidth={1.75} aria-hidden />
+                    </Button>
+                  ) : null}
+                  <CrmRowAction
+                    icon={FileText}
+                    label="Ver respuestas"
+                    onClick={() => router.push(`/admin/diagnosticos/${d.id}`)}
+                  />
+                </CrmRowActions>
               }
             >
               <div className="min-w-0 flex-1 basis-56">
                 <p className="truncate font-medium">
+                  {/* La fila lleva a la PERSONA, que es donde se sigue la
+                      conversación: historial, pagos y sus diagnósticos. Las
+                      respuestas quedan a un clic, en «Ver respuestas». Un
+                      diagnóstico sin ficha no tiene a dónde llevar, y va al
+                      detalle. */}
                   <Link
-                    href={`/admin/diagnosticos/${d.id}`}
+                    href={
+                      d.contact
+                        ? `/admin/contacts/${d.contact.id}`
+                        : `/admin/diagnosticos/${d.id}`
+                    }
                     className="rounded-sm outline-none after:absolute after:inset-0 after:content-[''] focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {d.contact?.name ?? "Diagnóstico anónimo"}
@@ -320,17 +364,32 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 ) : (
                   <span className="text-xs text-muted-foreground">—</span>
                 )}
-                {whatsappLine(d) ? (
-                  <p
-                    className="mt-1 block truncate text-xs text-muted-foreground"
-                    title={whatsappLine(d) ?? undefined}
-                  >
-                    {whatsappLine(d)}
-                  </p>
-                ) : null}
+              </div>
+
+              {/* Estado del contacto, a la vista: saber si ya le escribiste era
+                  lo que obligaba a abrir las fichas una por una. */}
+              <div className="min-w-0 sm:w-40">
+                {!d.contact ? (
+                  // Un diagnóstico sin ficha no tiene a quién escribirle.
+                  <span className="text-xs text-muted-foreground">—</span>
+                ) : written ? (
+                  <Badge className="border-success/40 bg-success/10 text-success">
+                    Le escribiste
+                    {d.whatsappStaffAt ? ` ${whatsappDate(d.whatsappStaffAt)}` : " ahora"}
+                  </Badge>
+                ) : d.whatsappLeadAt ? (
+                  <Badge variant="outline">
+                    Te buscó {whatsappDate(d.whatsappLeadAt)}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground">
+                    Sin contactar
+                  </Badge>
+                )}
               </div>
             </CrmDataListRow>
-          ))}
+            );
+          })}
         </CrmDataList>
       )}
     </CrmPageShell>
