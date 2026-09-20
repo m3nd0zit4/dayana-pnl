@@ -35,6 +35,8 @@ const createSchema = z.object({
     })
     .optional(),
   productId: z.string().min(1),
+  /** Opciones adicionales: el enlace muestra varias y la persona elige una. */
+  extraProductIds: z.array(z.string().min(1)).max(9).optional(),
   note: z.string().max(400).optional(),
   // 90 días es el techo: un enlace acordado en una llamada no debería seguir
   // cobrando meses después, cuando el precio ya cambió.

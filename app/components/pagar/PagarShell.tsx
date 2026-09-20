@@ -27,7 +27,12 @@ import type { Plan } from "@/lib/plans";
  */
 
 type Props = {
-  plan: Plan;
+  /**
+   * Lo que se ofrece. Una sola opcion es el caso normal; con varias la
+   * persona elige UNA y paga ahi mismo, sin volver a WhatsApp a decir cual
+   * quiere. Nunca es un catalogo: son las opciones que se acordaron.
+   */
+  plans: Plan[];
   isColombia: boolean;
   /**
    * Nombre de pila para el saludo, si se sabe de quién es el enlace.
@@ -39,12 +44,12 @@ type Props = {
   greetingName?: string | null;
   /** Nota bajo el titular. La escribe Dayana al crear un enlace personal. */
   note?: string | null;
-  /** Los botones de pago. */
-  action: ReactNode;
+  /** Los botones de pago de cada opcion. */
+  action: (plan: Plan) => ReactNode;
 };
 
 const PagarShell = ({
-  plan,
+  plans,
   isColombia,
   greetingName = null,
   note = null,
@@ -63,19 +68,29 @@ const PagarShell = ({
           {greetingName ? `Hola, ${greetingName}` : "Tu pago"}
         </h1>
 
+
         {note && (
           <p className="[overflow-wrap:anywhere] mt-3 font-[font1] text-base leading-snug text-black/60">
             {note}
           </p>
         )}
 
-        <div className="mt-8">
-          <PublicProductCard
-            plan={plan}
-            isColombia={isColombia}
-            size="sm"
-            action={action}
-          />
+        {plans.length > 1 && (
+          <p className="mt-3 font-[font1] text-base leading-snug text-black/60">
+            Elige una opción y págala aquí mismo.
+          </p>
+        )}
+
+        <div className="mt-8 flex flex-col gap-6">
+          {plans.map((plan) => (
+            <PublicProductCard
+              key={plan.id}
+              plan={plan}
+              isColombia={isColombia}
+              size="sm"
+              action={action(plan)}
+            />
+          ))}
         </div>
 
         <p className="mt-6 text-center font-[font1] text-xs leading-relaxed text-black/45">

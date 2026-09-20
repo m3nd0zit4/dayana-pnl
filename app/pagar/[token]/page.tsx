@@ -63,20 +63,20 @@ const PagarPage = async ({
     await markPaymentLinkOpened(token);
   }
 
-  const { plan, contact, note } = link;
+  const { plans, contact, note } = link;
   return (
     <PagarShell
-      plan={plan}
+      plans={plans}
       isColombia={isColombia}
       greetingName={greetingFor(contact?.firstName)}
       note={note}
-      action={
+      action={(plan) => (
         <PaymentLinkCheckout
           plan={plan}
           userCountry={userCountry}
           token={token}
         />
-      }
+      )}
     />
   );
 };

@@ -107,7 +107,7 @@ export async function resolveCheckoutContactIdForPayment(input: {
   if (input.paymentLinkToken) {
     const { resolvePaymentLinkOwner } = await import("./payment-links");
     const owner = await resolvePaymentLinkOwner(input.paymentLinkToken);
-    if (owner?.contactId && owner.productId === input.planId) {
+    if (owner?.contactId && owner.productIds.includes(input.planId)) {
       return owner.contactId;
     }
   }

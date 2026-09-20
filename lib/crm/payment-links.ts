@@ -29,6 +29,8 @@ export type PaymentLinkRow = {
   enrollmentId: string | null;
   createdAt: Date;
   product: { id: string; title: string };
+  /** Las opciones adicionales, si el enlace ofrece varias. */
+  options: { productId: string; product: { title: string } }[];
   /** `null` cuando el enlace se creo sin ficha, o si la ficha se borro. */
   contact: { id: string; firstName: string; lastName: string | null } | null;
 };
@@ -45,6 +47,10 @@ const SELECT = {
   enrollmentId: true,
   createdAt: true,
   product: { select: { id: true, title: true } },
+  options: {
+    select: { productId: true, product: { select: { title: true } } },
+    orderBy: { sortOrder: "asc" },
+  },
   contact: { select: { id: true, firstName: true, lastName: true } },
 } as const;
 
@@ -172,7 +178,12 @@ export async function markPaymentLinkPaid(input: {
     const pending = await prisma.paymentLink.findFirst({
       where: {
         contactId: input.contactId,
-        productId: input.productId,
+        // Un enlace con varias opciones se cobra por CUALQUIERA de ellas: lo
+        // que se pagó es una de las que se ofrecieron.
+        OR: [
+          { productId: input.productId },
+          { options: { some: { productId: input.productId } } },
+        ],
         paidAt: null,
         revokedAt: null,
       },
@@ -193,7 +204,14 @@ export async function markPaymentLinkPaid(input: {
 export async function createPaymentLink(input: {
   /** Opcional: un enlace puede crearse sin saber todavia a quien se manda. */
   contactId?: string | null;
+  /** La primera opcion. Con `productIds` es la primera de la lista. */
   productId: string;
+  /**
+   * Las demas opciones, cuando el enlace ofrece varias para elegir. La
+   * primera se guarda ademas en `productId` para que todo lo que ya leia el
+   * enlace siga funcionando sin cambios.
+   */
+  extraProductIds?: string[];
   note?: string | null;
   /** Días hasta que caduque. Sin valor, no caduca. */
   expiresInDays?: number | null;
@@ -204,6 +222,10 @@ export async function createPaymentLink(input: {
       ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
       : null;
 
+  const extras = (input.extraProductIds ?? []).filter(
+    (id) => id && id !== input.productId,
+  );
+
   return prisma.paymentLink.create({
     data: {
       token: newToken(),
@@ -212,6 +234,14 @@ export async function createPaymentLink(input: {
       note: input.note?.trim() || null,
       expiresAt,
       createdByStaffId: input.staffUserId ?? null,
+      options: extras.length
+        ? {
+            create: [...new Set(extras)].map((productId, i) => ({
+              productId,
+              sortOrder: i + 1,
+            })),
+          }
+        : undefined,
     },
     select: SELECT,
   });
@@ -249,7 +279,10 @@ export async function revokePaymentLink(id: string): Promise<void> {
 export type ResolvedPaymentLink = {
   token: string;
   note: string | null;
+  /** La primera opcion: la unica que hay cuando el enlace ofrece una sola. */
   plan: Plan;
+  /** Todas las opciones visibles para quien mira, en orden. */
+  plans: Plan[];
   /**
    * A quien se le manda, si se sabe. `null` en un enlace abierto: la pagina
    * saluda sin nombre y el pago sigue el camino anonimo normal.
@@ -282,6 +315,7 @@ export async function resolvePaymentLink(
       revokedAt: true,
       expiresAt: true,
       productId: true,
+      options: { select: { productId: true }, orderBy: { sortOrder: "asc" } },
       contact: {
         select: { id: true, firstName: true, email: true, phoneE164: true },
       },
@@ -295,13 +329,23 @@ export async function resolvePaymentLink(
   // productos que no son comprables (los cursos de la biblioteca), así que un
   // enlace apuntando a uno de esos responde 404 en vez de pintar un botón que
   // fallaría en el checkout.
-  const plan = await getPlanFromDb(link.productId).catch(() => null);
-  if (!plan || !isPlanVisibleForRegion(plan, isColombia)) return null;
+  const ids = [link.productId, ...link.options.map((o) => o.productId)];
+  const resolved = await Promise.all(
+    ids.map((id) => getPlanFromDb(id).catch(() => null)),
+  );
+  // Una opción retirada, o sin precio en la moneda de quien mira, sale de la
+  // lista en vez de pintar un botón que fallaría en el checkout. Si no queda
+  // ninguna, el enlace responde 404 igual que antes.
+  const plans = resolved.filter(
+    (plan): plan is Plan => !!plan && isPlanVisibleForRegion(plan, isColombia),
+  );
+  if (plans.length === 0) return null;
 
   return {
     token: link.token,
     note: link.note,
-    plan,
+    plan: plans[0],
+    plans,
     contact: link.contact,
   };
 }
@@ -366,7 +410,7 @@ export async function markPaymentLinkCheckoutStarted(
  */
 export async function resolvePaymentLinkOwner(
   token: string,
-): Promise<{ contactId: string | null; productId: string } | null> {
+): Promise<{ contactId: string | null; productIds: string[] } | null> {
   const clean = token.trim();
   if (!clean) return null;
 
@@ -375,6 +419,7 @@ export async function resolvePaymentLinkOwner(
     select: {
       contactId: true,
       productId: true,
+      options: { select: { productId: true } },
       revokedAt: true,
       expiresAt: true,
     },
@@ -383,5 +428,10 @@ export async function resolvePaymentLinkOwner(
   if (!link || link.revokedAt) return null;
   if (link.expiresAt && link.expiresAt < new Date()) return null;
 
-  return { contactId: link.contactId, productId: link.productId };
+  return {
+    contactId: link.contactId,
+    // Cualquiera de las opciones ofrecidas cuelga el cobro de su ficha; un
+    // producto que este enlace no ofrece, no.
+    productIds: [link.productId, ...link.options.map((o) => o.productId)],
+  };
 }

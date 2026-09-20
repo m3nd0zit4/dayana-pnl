@@ -60,11 +60,11 @@ const PagarProductoPage = async ({
 
   return (
     <PagarShell
-      plan={resolved.plan}
+      plans={[resolved.plan]}
       isColombia={isColombia}
-      action={
+      action={() => (
         <PaymentLinkCheckout plan={resolved.plan} userCountry={userCountry} />
-      }
+      )}
     />
   );
 };

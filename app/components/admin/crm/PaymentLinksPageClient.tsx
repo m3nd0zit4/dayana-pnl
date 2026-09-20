@@ -41,6 +41,8 @@ export type PaymentLinkListRow = {
   revokedAt: string | null;
   createdAt: string;
   product: { id: string; title: string };
+  /** Las demás opciones, cuando el enlace ofrece varias para elegir. */
+  options?: { productId: string; product: { title: string } }[];
   /** `null` en un enlace abierto, creado sin ficha. */
   contact: { id: string; firstName: string; lastName: string | null } | null;
 };
@@ -54,7 +56,8 @@ type Props = {
 const emptyForm = () => ({
   contactId: "",
   contactLabel: "",
-  productId: "",
+  /** Lo que se ofrece. Varias = la persona elige UNA en la página. */
+  productIds: [] as string[],
   note: "",
   expiresInDays: "30",
   // Datos escritos a mano cuando la persona todavia no esta en el CRM.
@@ -160,7 +163,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
    * rechaza, porque acabaría saludando con el número.
    */
   const formProblem = (): string | null => {
-    if (!form.productId) return "Elige el producto.";
+    if (form.productIds.length === 0) return "Elige al menos un producto.";
     // Texto escrito en la búsqueda sin elegir a nadie: antes se ignoraba y salía
     // un enlace abierto, el mismo error que con un nombre suelto.
     if (!form.contactId && contactQuery.trim()) {
@@ -192,7 +195,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
     invalid_expiry: "La caducidad va de 1 a 90 días.",
     missing_name: "Escribe el nombre de quien paga.",
     missing_contact_data: "Para un enlace a nombre de alguien, añade su teléfono o su correo.",
-    missing_product: "Elige el producto.",
+    missing_product: "Elige al menos un producto.",
   };
 
   const save = async () => {
@@ -220,7 +223,10 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                   email: form.buyerEmail.trim() || undefined,
                 }
               : undefined,
-          productId: form.productId,
+          // El primero manda: es el que se guarda en el enlace y el que ya
+          // leen el panel y el sellado del cobro. El resto son opciones.
+          productId: form.productIds[0],
+          extraProductIds: form.productIds.slice(1),
           note: form.note.trim() || undefined,
           expiresInDays: form.expiresInDays
             ? Number(form.expiresInDays)
@@ -355,19 +361,73 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
         onClose={() => setCreating(false)}
       >
         <div className="space-y-4">
-          {/* El producto primero: es lo unico obligatorio y lo que decide el
-              precio. A quien se le manda puede no saberse todavia. */}
-          <SearchableSelect
-            id="payment-link-product"
-            label="Producto"
-            value={form.productId}
-            onChange={(v) => setForm((f) => ({ ...f, productId: v }))}
-            options={(products ?? []).map((p) => ({
-              value: p.id,
-              label: p.title,
-            }))}
-            placeholder="Elige el producto"
-          />
+          {/* Los productos primero: es lo unico obligatorio y lo que decide
+              el precio. A quien se le manda puede no saberse todavia.
+
+              Se pueden anadir varios: la pagina los muestra todos y la
+              persona paga UNO. Es el caso de «te mando lo de 3 y lo de 6
+              sesiones y eliges», que antes obligaba a mandar dos enlaces. */}
+          <div className="space-y-2">
+            <SearchableSelect
+              id="payment-link-product"
+              label={
+                form.productIds.length > 1
+                  ? "Productos (la persona elige uno)"
+                  : "Producto"
+              }
+              value=""
+              onChange={(v) =>
+                setForm((f) =>
+                  f.productIds.includes(v)
+                    ? f
+                    : { ...f, productIds: [...f.productIds, v] },
+                )
+              }
+              options={(products ?? [])
+                .filter((p) => !form.productIds.includes(p.id))
+                .map((p) => ({ value: p.id, label: p.title }))}
+              placeholder={
+                form.productIds.length === 0
+                  ? "Elige el producto"
+                  : "Añade otra opción (opcional)"
+              }
+            />
+
+            {form.productIds.length > 0 && (
+              <ul className="space-y-1.5">
+                {form.productIds.map((id, i) => (
+                  <li
+                    key={id}
+                    className="flex items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm"
+                  >
+                    <span className="min-w-0 truncate">
+                      {i + 1}.{" "}
+                      {(products ?? []).find((p) => p.id === id)?.title ?? id}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          productIds: f.productIds.filter((x) => x !== id),
+                        }))
+                      }
+                      className="shrink-0 text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {form.productIds.length > 1 && (
+              <p className="text-[11px] text-muted-foreground">
+                La página mostrará las {form.productIds.length} opciones y
+                pagará solo la que elija.
+              </p>
+            )}
+          </div>
 
           <div className="space-y-2">
             <ContactPickerField
@@ -461,7 +521,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
             </Button>
             <Button
               onClick={() => void save()}
-              disabled={saving || !form.productId}
+              disabled={saving || form.productIds.length === 0}
             >
               {saving ? "Creando…" : "Crear y copiar"}
             </Button>
@@ -530,6 +590,9 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {row.product.title}
+                    {row.options && row.options.length > 0
+                      ? ` y ${row.options.length} ${row.options.length === 1 ? "opción más" : "opciones más"}`
+                      : ""}
                   </p>
                 </div>
 

@@ -404,15 +404,16 @@ model Product {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  prices            ProductPrice[]
-  priceSyncs        ProductPriceSync[]
-  enrollments       Enrollment[]
-  workshopEditions  WorkshopEdition[]
-  courseModules     CourseModule[]
-  liveClassSessions LiveClassSession[]
-  promoCodes        PromoCodeProduct[]
-  diagnostics       Diagnostic[]
-  paymentLinks      PaymentLink[]
+  prices             ProductPrice[]
+  priceSyncs         ProductPriceSync[]
+  enrollments        Enrollment[]
+  workshopEditions   WorkshopEdition[]
+  courseModules      CourseModule[]
+  liveClassSessions  LiveClassSession[]
+  promoCodes         PromoCodeProduct[]
+  diagnostics        Diagnostic[]
+  paymentLinks       PaymentLink[]
+  paymentLinkOptions PaymentLinkOption[]
 
   @@index([kind])
   @@map("products")
@@ -1745,9 +1746,39 @@ model PaymentLink {
 
   enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
 
+  /// Las demás opciones del enlace, cuando se mandan varias para que la
+  /// persona elija una. `productId` sigue siendo la primera: así todo lo que
+  /// ya leía el enlace (panel, sellado del cobro) sigue funcionando igual.
+  options PaymentLinkOption[]
+
   @@index([contactId, createdAt(sort: Desc)])
   @@index([contactId, productId, paidAt])
   @@map("payment_links")
+}
+
+/// Una de las opciones de un enlace con varias: «terapia de 3 sesiones o de
+/// 6, elige». La persona paga UNA; las demás desaparecen al pagar.
+///
+/// El precio no vive aquí: sale del producto en cada carga, igual que en el
+/// enlace de una sola opción.
+model PaymentLinkOption {
+  id String @id @default(cuid())
+
+  paymentLinkId String @map("payment_link_id")
+  productId     String @map("product_id")
+
+  /// Orden en que se pintan. La primera es la que el panel sigue guardando en
+  /// `PaymentLink.productId`.
+  sortOrder Int @default(0) @map("sort_order")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  link    PaymentLink @relation(fields: [paymentLinkId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([paymentLinkId, productId])
+  @@index([productId])
+  @@map("payment_link_options")
 }
 
 enum ContactTouchKind {
