@@ -297,6 +297,7 @@ model Contact {
   conversations          Conversation[]
   channelIdentities      ContactChannelIdentity[]
   webinarRegistrations   WebinarRegistration[]
+  magnetClaims           MagnetClaim[]
   diagnostics            Diagnostic[]
   paymentLinks           PaymentLink[]
   /// Clics hacia WhatsApp de la persona o del equipo. Ver `ContactTouch`.
@@ -1821,4 +1822,82 @@ model ContactTouch {
   @@index([contactId, kind, createdAt(sort: Desc)])
   @@index([diagnosticId])
   @@map("contact_touches")
+}
+
+/// Una palabra clave de redes y el material que entrega.
+///
+/// Nace de los videos de TikTok e Instagram donde se pide «comenta ÉXITO y te
+/// mando el material». TikTok **no** tiene API para leer ni responder
+/// comentarios ni mensajes de una cuenta normal (solo la Research API, para
+/// instituciones académicas), así que la respuesta al comentario la pega una
+/// persona; lo que se automatiza es todo lo que viene después: la página de
+/// entrega, el correo con el material y la ficha del lead en el CRM.
+model KeywordMagnet {
+  id String @id @default(cuid())
+
+  /// Normalizada —minúsculas, sin tildes— para que «ÉXITO», «Exito» y «exito»
+  /// sean la misma. Es también el último tramo de la URL: /material/exito.
+  keyword String @unique
+
+  /// Como se escribe en el video: «ÉXITO». Solo para mostrar.
+  label String
+
+  /// Titular de la página de entrega y asunto del correo.
+  title String
+
+  /// Una o dos líneas de qué es y para qué sirve.
+  description String? @db.Text
+
+  /// A dónde lleva el botón: un enlace externo o un archivo subido
+  /// (/api/media/material/<archivo>). El precio de equivocarse aquí es alto,
+  /// así que la pantalla del CRM enseña el enlace final antes de guardar.
+  deliveryUrl String @map("delivery_url") @db.Text
+
+  /// Texto listo para pegar como respuesta al comentario, con el enlace
+  /// dentro. Se copia de un toque desde el CRM.
+  replyText String? @map("reply_text") @db.Text
+
+  /// Igual, para el mensaje directo (que en TikTok también se manda a mano).
+  dmText String? @map("dm_text") @db.Text
+
+  /// Apagada no entrega nada: la página responde 404 en vez de dar un material
+  /// que ya no se quiere repartir.
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  claims MagnetClaim[]
+
+  @@map("keyword_magnets")
+}
+
+/// Quién pidió el material, una fila por persona y palabra.
+model MagnetClaim {
+  id String @id @default(cuid())
+
+  magnetId String @map("magnet_id")
+
+  /// La ficha del CRM. Siempre se crea o se reutiliza: el material es la
+  /// excusa, el lead es el punto.
+  contactId String @map("contact_id")
+
+  email     String
+  firstName String @map("first_name")
+
+  /// De dónde dijo que venía (tiktok, instagram…), para saber qué video tira.
+  source String?
+
+  /// Sellado cuando el correo con el material sale de verdad.
+  emailSentAt DateTime? @map("email_sent_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  magnet  KeywordMagnet @relation(fields: [magnetId], references: [id], onDelete: Cascade)
+  contact Contact       @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  /// Pedirlo dos veces no crea dos leads ni manda dos correos.
+  @@unique([magnetId, email])
+  @@index([magnetId, createdAt(sort: Desc)])
+  @@map("magnet_claims")
 }

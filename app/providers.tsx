@@ -63,6 +63,12 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // rama sin proveedores de /enlaces.
   const isPagar = pathname.startsWith("/pagar/");
 
+  // La entrega de un material prometido en un video («comenta ÉXITO»): dos
+  // campos y el archivo. Quien llega no viene a mirar el catálogo, y una
+  // cabecera con «Ingresar / Crear cuenta» encima del formulario es la forma
+  // más rápida de perderla antes de que deje el correo.
+  const isMaterial = pathname.startsWith("/material");
+
   // Dark mode is scoped to the CRM + member portal. It used to be scoped by
   // mounting ThemeProvider only on those routes — but next-themes renders an
   // inline <script> to set the class before paint, and a client-side
@@ -106,7 +112,7 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
           {children}
           <Toaster />
         </>
-      ) : isPortal || isPagar ? (
+      ) : isPortal || isPagar || isMaterial ? (
         <CheckoutModalProvider>
           {children}
           <Toaster />

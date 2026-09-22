@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MessageSquare,
   Package,
+  Sparkles,
   Tag,
   Users,
   UsersRound,
@@ -36,6 +37,7 @@ export type CrmMenuItemId =
   | "memberships"
   | "diagnostics"
   | "messages"
+  | "magnets"
   | "courses"
   | "modules"
   | "comments"
@@ -152,6 +154,10 @@ export const crmMenuSections: CrmMenuSection[] = [
       { id: "diagnostics", icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
       // Plantillas para escribirle a una persona: se usan desde su ficha.
       { id: "messages", icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
+      // «Comenta ÉXITO y te mando el material»: la palabra de cada video, su
+      // material y la respuesta lista para pegar. Vive con las personas
+      // porque lo que produce son leads, no ventas directas.
+      { id: "magnets", icon: Sparkles, label: "Palabras clave", shortLabel: "Palabras", href: "/admin/palabras-clave" },
     ],
   },
   {
