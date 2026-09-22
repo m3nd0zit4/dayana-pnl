@@ -98,6 +98,11 @@ const SOURCES = new Set([
   "webinar",
   "taller",
   "ad",
+  // Quien comentó una palabra clave en un video y llegó por
+  // `/material/<palabra>`. Sin esto el diagnóstico de esa campaña se guardaba
+  // sin fuente y no había forma de saber qué video la trajo.
+  "tiktok",
+  "instagram",
   // `servicios` se queda por las filas antiguas: la ruta redirige a /terapias
   // pero los diagnósticos que ya se guardaron con esa fuente siguen ahí.
   "servicios",

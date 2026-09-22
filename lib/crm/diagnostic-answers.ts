@@ -131,6 +131,8 @@ export const DIAGNOSTIC_SOURCE_LABEL: Record<string, string> = {
   webinar: "Webinar",
   taller: "Taller",
   ad: "Anuncio",
+  tiktok: "TikTok",
+  instagram: "Instagram",
   // Fuente retirada: se queda por los diagnósticos que ya se guardaron con
   // ella (ver `SOURCES` en `lib/crm/diagnostics.ts`).
   servicios: "Servicios (antiguo)",
