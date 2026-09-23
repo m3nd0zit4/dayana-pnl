@@ -18,6 +18,13 @@ import { prisma } from "@/lib/db";
  * Dayana la aprueba.
  */
 
+export const playbookSchema = z.object({
+  name: z.string().trim().min(2).max(80),
+  trigger: z.string().trim().min(3).max(500),
+  steps: z.string().trim().min(3).max(3000),
+  isEnabled: z.boolean().optional(),
+});
+
 export type PlaybookRow = {
   id: string;
   name: string;
