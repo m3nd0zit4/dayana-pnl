@@ -14,6 +14,10 @@ export type StoredAttachment = {
   caption: string | null;
   /** Por qué no hay URL, cuando la rehospedación no fue posible. */
   unavailableReason?: string;
+  /** Huella del archivo: el mismo sticker enviado dos veces tiene la misma. */
+  sha256?: string;
+  /** Id del medio en WhatsApp (sirve para reintentar la descarga un tiempo). */
+  mediaId?: string;
 };
 
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -21,6 +25,9 @@ const EXTENSION_BY_MIME: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "image/gif": "gif",
+  "audio/aac": "aac",
+  "audio/mp4": "m4a",
+  "video/3gpp": "3gp",
   "video/mp4": "mp4",
   "audio/ogg": "ogg",
   "audio/mpeg": "mp3",
@@ -72,6 +79,7 @@ export const rehostAttachment = async (
     url: null,
     mimeType: attachment.mimeType ?? null,
     caption: attachment.caption ?? null,
+    ...(attachment.mediaId ? { mediaId: attachment.mediaId } : {}),
   };
 
   if (!isBlobConfigured()) {
@@ -104,12 +112,18 @@ export const rehostAttachment = async (
   const contentType = mimeType ?? downloaded.contentType;
 
   try {
+    // El store de Blob es privado: con `access: "public"` cada adjunto fallaba
+    // («upload_failed») y en el CRM no se veía ni una foto ni un audio. Se
+    // guarda privado y el CRM lo pide por `/api/admin/whatsapp/media`, con
+    // sesión de staff.
+    const digest = await crypto.subtle.digest("SHA-256", downloaded.buffer);
+    const sha256 = Buffer.from(digest).toString("hex");
     const blob = await put(
       `inbox/${crypto.randomUUID()}.${extensionFor(contentType)}`,
       downloaded.buffer,
-      { access: "public", contentType, addRandomSuffix: false }
+      { access: "private", contentType, addRandomSuffix: false }
     );
-    return { ...base, url: blob.url, mimeType: contentType };
+    return { ...base, url: blob.url, mimeType: contentType, sha256 };
   } catch (e) {
     console.warn("[meta] blob upload failed", e);
     return { ...base, unavailableReason: "upload_failed" };

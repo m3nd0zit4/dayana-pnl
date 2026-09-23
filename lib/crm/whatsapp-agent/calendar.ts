@@ -35,12 +35,23 @@ const toMs = (
   return null;
 };
 
-export const readBusy = async (
+/**
+ * Un evento que Dayana crea en su calendario para marcar cuándo atiende:
+ * «Disponible», «Citas», «Agenda» o «Disponible para citas». No ocupa: marca
+ * el rato en que la IA puede ofrecer horas.
+ */
+export const isAvailabilityBlock = (summary?: string | null): boolean =>
+  /^\s*(disponible|citas?|agenda)(\s+(para\s+)?(citas?|sesiones|agendar))?\s*$/i.test(summary ?? "");
+
+export type CalendarView = { busy: Busy[]; windows: Busy[] };
+
+/** Lo ocupado y los bloques «Disponible» del calendario, entre dos instantes. */
+export const readCalendar = async (
   config: WhatsAppBookingConfig,
   from: Date,
   to: Date,
   timezone: string
-): Promise<Busy[]> => {
+): Promise<CalendarView> => {
   const { token } = await account(config);
   const events = await listEvents(token, {
     timeMin: from.toISOString(),
@@ -48,16 +59,28 @@ export const readBusy = async (
     maxResults: 250,
   });
   const busy: Busy[] = [];
+  const windows: Busy[] = [];
   for (const event of events) {
-    if (event.status === "cancelled" || event.transparency === "transparent") {
-      continue;
-    }
+    if (event.status === "cancelled") continue;
     const start = toMs(event.start, timezone);
     const end = toMs(event.end, timezone);
-    if (start != null && end != null && end > start) busy.push({ start, end });
+    if (start == null || end == null || end <= start) continue;
+    if (isAvailabilityBlock(event.summary)) {
+      windows.push({ start, end });
+      continue;
+    }
+    if (event.transparency === "transparent") continue;
+    busy.push({ start, end });
   }
-  return busy;
+  return { busy, windows };
 };
+
+export const readBusy = async (
+  config: WhatsAppBookingConfig,
+  from: Date,
+  to: Date,
+  timezone: string
+): Promise<Busy[]> => (await readCalendar(config, from, to, timezone)).busy;
 
 export const availableSlots = async (input: {
   config: WhatsAppBookingConfig;
@@ -69,11 +92,12 @@ export const availableSlots = async (input: {
 }): Promise<Slot[]> => {
   const now = input.now ?? new Date();
   const until = new Date(now.getTime() + input.config.horizonDays * DAY);
-  const busy = await readBusy(input.config, now, until, input.timezone);
+  const { busy, windows } = await readCalendar(input.config, now, until, input.timezone);
   return findFreeSlots({
     config: input.config,
     durationMin: input.durationMin,
     busy,
+    windows,
     timezone: input.timezone,
     now,
     from: input.from,
@@ -109,27 +133,23 @@ export const bookOnCalendar = async (input: {
   if (input.start.getTime() < minStart) {
     throw new SlotUnavailableError("Esa hora está demasiado cerca.");
   }
-  if (
-    !isWithinBookingHours(
-      input.config,
-      input.start,
-      input.durationMin,
-      input.timezone
-    )
-  ) {
-    throw new SlotUnavailableError("Esa hora está fuera del horario de citas.");
-  }
-
   const { account: acc, token } = await account(input.config);
-  const busy = await readBusy(
+  const { busy, windows } = await readCalendar(
     input.config,
-    new Date(input.start.getTime() - DAY / 2),
-    new Date(end.getTime() + DAY / 2),
+    new Date(input.start.getTime() - DAY),
+    new Date(end.getTime() + DAY),
     input.timezone
   );
-  if (
-    overlapsBusy(input.start.getTime(), end.getTime(), busy, input.config.bufferMin)
-  ) {
+  // Con bloques «Disponible» en el calendario, la cita tiene que caber en uno;
+  // sin ellos, en el horario base.
+  const fits =
+    windows.length > 0
+      ? windows.some((w) => input.start.getTime() >= w.start && end.getTime() <= w.end)
+      : isWithinBookingHours(input.config, input.start, input.durationMin, input.timezone);
+  if (!fits) {
+    throw new SlotUnavailableError("Esa hora está fuera del horario en que Dayana atiende.");
+  }
+  if (overlapsBusy(input.start.getTime(), end.getTime(), busy, input.config.bufferMin)) {
     throw new SlotUnavailableError("Esa hora ya se ocupó.");
   }
 

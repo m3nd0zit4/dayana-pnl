@@ -8,6 +8,7 @@ import {
   Dialog360Error,
   getWhatsAppProviderSummary,
   registerDialog360Webhook,
+  requestDialog360HistorySync,
   saveWhatsAppProvider,
   testDialog360Connection,
 } from "@/lib/meta/whatsapp-provider";
@@ -42,7 +43,7 @@ export const PATCH = withStaff("owner", async ({ req, staff }) => {
   return NextResponse.json({ summary: await getWhatsAppProviderSummary() });
 });
 
-const actionSchema = z.object({ action: z.enum(["test", "register-webhook"]) });
+const actionSchema = z.object({ action: z.enum(["test", "register-webhook", "sync-history"]) });
 
 /** Probar la clave o registrar la URL de avisos en 360dialog. */
 export const POST = withStaff("owner", async ({ req, staff }) => {
@@ -50,6 +51,18 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
   if (!parsed.success) return apiError("invalid_body", 400);
 
   try {
+    if (parsed.data.action === "sync-history") {
+      const results = await requestDialog360HistorySync();
+      fireAuditLog({
+        staffUserId: staff.id,
+        action: "UPDATE",
+        entityType: "WhatsAppProvider",
+        entityId: "whatsapp-provider",
+        changes: { historySync: results },
+      });
+      return NextResponse.json({ ok: results.some((r) => r.ok), results });
+    }
+
     if (parsed.data.action === "test") {
       const result = await testDialog360Connection();
       return NextResponse.json({ ok: true, ...result });

@@ -50,6 +50,8 @@ export type BrainBooking = {
 
 export type BrainResult = {
   outcome: BrainOutcome;
+  /** Sticker de Dayana para mandar después del texto, si la IA eligió uno. */
+  stickerUrl: string | null;
   examples: SimilarExample[];
   toolCalls: { tool: string; input: unknown; output: unknown }[];
   booking: BrainBooking | null;
@@ -132,7 +134,7 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
   if (config.booking.enabled) {
     lines.push(
       "",
-      "CITAS QUE PUEDES AGENDAR TÚ MISMA en el calendario de Dayana (usa check_availability y book_appointment):",
+      "CITAS QUE PUEDES AGENDAR TÚ MISMA en el Google Calendar de Dayana (usa check_availability y book_appointment; nunca envíes enlaces de agenda):",
       ...config.booking.services.map((s) => `- ${s.name}: ${s.minutes} minutos`),
       config.booking.addMeet
         ? "Las citas son por Google Meet; el enlace sale al agendar."
@@ -228,7 +230,7 @@ Ahora es ${now}.
 
 Qué haces:
 - Informas y orientas con los DATOS (paquetes, precios exactos, cómo pagar, taller, webinar, materiales).
-- AGENDAS citas directamente cuando la persona lo pide: averigua qué quiere agendar, usa check_availability con la duración de ese servicio, ofrece 2 o 3 opciones concretas y, cuando elija, usa book_appointment. Confirma día, hora y enlace de Meet. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
+- AGENDAS citas tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que la persona agende sola): averigua qué quiere agendar, usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas. Cuando elija una, CONFIRMA antes de agendar repitiendo servicio, día y hora («¿Te agendo la sesión el jueves 25 a las 3:00 p. m.?»). Solo cuando diga que sí, usa book_appointment y comparte el día, la hora y el enlace de Meet. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
 - Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para no preguntar lo que ya se habló.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
@@ -314,10 +316,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const toolCalls: BrainResult["toolCalls"] = [];
   // En un objeto y no en `let`: las tools lo escriben desde closures y TS no
   // ensancharía el tipo de una variable ya estrechada a null.
-  const state: { outcome: BrainOutcome | null; booking: BrainBooking | null } = {
+  const state: {
+    outcome: BrainOutcome | null;
+    booking: BrainBooking | null;
+    stickerUrl: string | null;
+  } = {
     outcome: null,
     booking: null,
+    stickerUrl: null,
   };
+
+  // Los stickers que Dayana usa de verdad (al menos dos veces), con lo que
+  // suele escribir antes de mandarlos.
+  const { listDayanaStickers } = await import("./workspace");
+  const stickers = (await listDayanaStickers(20).catch(() => [])).filter((s) => s.uses >= 2).slice(0, 12);
 
   const lastInbound: string[] = [];
   for (const m of [...input.transcript].reverse()) {
@@ -404,7 +416,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           }),
           book_appointment: tool({
             description:
-              "Agenda la cita en el calendario de Dayana. Solo con una hora que salió de check_availability y que la persona aceptó.",
+              "Agenda la cita en el Google Calendar de Dayana. Solo con una hora que salió de check_availability y DESPUÉS de que la persona confirmó explícitamente ese día y esa hora.",
             inputSchema: z.object({
               service: z.string().describe(`Uno de: ${serviceNames.join(", ")}`),
               startIso: z.string().describe("El startIso exacto de check_availability."),
@@ -471,6 +483,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           }),
         }
       : {}),
+    ...(stickers.length > 0
+      ? {
+          send_sticker: tool({
+            description:
+              "Manda, después de tu mensaje, uno de los stickers que usa Dayana, solo cuando ella lo mandaría en una situación así (mira lo que suele escribir antes). Como mucho uno, y no en temas delicados.",
+            inputSchema: z.object({
+              sticker: z.number().int().min(1).max(stickers.length).describe("Número del sticker de la lista."),
+            }),
+            execute: async ({ sticker }) => {
+              const chosen = stickers[sticker - 1];
+              state.stickerUrl = chosen?.url ?? null;
+              return log("send_sticker", { sticker }, { ok: Boolean(chosen) });
+            },
+          }),
+        }
+      : {}),
     search_past_chats: tool({
       description:
         "Busca cómo contestó Dayana antes sobre un tema (para imitar su forma, no para sacar precios).",
@@ -499,6 +527,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       input.memory ? `MEMORIA (lo que sabemos de esta persona):\n${input.memory}` : null,
       examplesBlock(examples),
+      stickers.length > 0
+        ? `STICKERS DE DAYANA (usa send_sticker con el número; cuándo los manda ella):\n${stickers
+            .map((st, i) => `${i + 1}. usado ${st.uses} veces; lo manda después de: ${st.contexts.map((c) => `«${c}»`).join(" / ") || "(sin texto antes)"}`)
+            .join("\n")}`
+        : null,
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
       `Su número: +${input.phone}`,
       `CONVERSACIÓN (lo último abajo):\n${input.transcript.map(describeLine).join("\n")}`,
@@ -524,6 +557,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     outcome: finalOutcome,
     examples,
     toolCalls,
+    stickerUrl: finalOutcome.kind === "reply" ? state.stickerUrl : null,
     booking: state.booking,
     model: modelId(),
     usage: {

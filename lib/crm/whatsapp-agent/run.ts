@@ -302,6 +302,11 @@ export const runWhatsAppAi = async (input: {
     } else {
       await setStatus(run.id, "SENDING", meta);
       await sendAuto(conversationId, body);
+      if (result.stickerUrl) {
+        await sendAutoSticker(conversationId, result.stickerUrl).catch((e) =>
+          console.warn("[whatsapp-agent] sticker", e)
+        );
+      }
       await finish(run.id, "REPLIED");
     }
 
@@ -526,6 +531,18 @@ const escalate = async (
     entityType: "Conversation",
     entityId: conversationId,
     staff: config?.notify === "OWNERS" ? await ownerIds() : "ALL",
+  });
+};
+
+const sendAutoSticker = async (conversationId: string, url: string) => {
+  const result = await sendMetaMessage({
+    conversationId,
+    body: "",
+    attachment: { url, mimeType: "image/webp", filename: "sticker.webp", kind: "sticker" },
+  });
+  await prisma.conversationMessage.update({
+    where: { id: result.messageId },
+    data: { isAutoReply: true },
   });
 };
 

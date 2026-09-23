@@ -46,7 +46,7 @@ const WhatsAppProviderCard = ({
   const [summary, setSummary] = useState(initial);
   const [provider, setProvider] = useState(initial.provider);
   const [apiKey, setApiKey] = useState("");
-  const [busy, setBusy] = useState<null | "save" | "test" | "webhook">(null);
+  const [busy, setBusy] = useState<null | "save" | "test" | "webhook" | "history">(null);
 
   const save = async () => {
     setBusy("save");
@@ -66,6 +66,36 @@ const WhatsAppProviderCard = ({
       setSummary(data.summary);
       setApiKey("");
       toast("Proveedor guardado", "success");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const syncHistory = async () => {
+    setBusy("history");
+    try {
+      const res = await fetch("/api/admin/settings/whatsapp-provider", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync-history" }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        results?: { syncType: string; ok: boolean; detail: string }[];
+        message?: string;
+      };
+      const history = data.results?.find((r) => r.syncType === "history");
+      if (res.ok && history?.ok) {
+        toast(
+          "Pedido. En unos minutos llegan los chats de los últimos meses y la IA aprende de ellos sola.",
+          "success"
+        );
+      } else {
+        toast(
+          `WhatsApp no aceptó el pedido: ${history?.detail ?? data.message ?? "sin respuesta"}. Si ya pasó el plazo, sube chats exportados en «Aprender de mis conversaciones».`,
+          "error"
+        );
+      }
     } finally {
       setBusy(null);
     }
@@ -181,6 +211,11 @@ const WhatsAppProviderCard = ({
                     ? "Volver a conectar"
                     : "Conectar mensajes entrantes"}
               </Button>
+              {summary.webhookRegistered && (
+                <Button variant="outline" onClick={() => void syncHistory()} disabled={busy !== null}>
+                  {busy === "history" ? "Pidiendo…" : "Traer historial (6 meses)"}
+                </Button>
+              )}
             </>
           )}
 

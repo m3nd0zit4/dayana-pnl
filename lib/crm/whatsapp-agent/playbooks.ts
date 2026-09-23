@@ -41,7 +41,7 @@ export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }
     name: "Agendar",
     trigger: "La persona quiere una cita, una sesión o una llamada, o pregunta por horarios.",
     steps:
-      "1. Si no está claro, pregunta qué quiere agendar (sesión o llamada) y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas (día y hora).\n3. Cuando elija una, confirma con book_appointment y comparte el día, la hora y el enlace de Meet si lo hay.\n4. Si ninguna le sirve, pregunta qué día le queda mejor y vuelve a buscar.",
+      "1. Si no está claro, pregunta qué quiere agendar (sesión o llamada) y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas (día y hora).\n3. Cuando elija una, confírmala: repite servicio, día y hora y pregunta si te la agenda.\n4. Solo con su «sí», usa book_appointment y comparte el día, la hora y el enlace de Meet.\n5. Si ninguna le sirve, pregunta qué día le queda mejor y vuelve a buscar. Nunca mandes enlaces de agenda.",
   },
   {
     name: "Pagos",

@@ -17,6 +17,7 @@ import {
   Smartphone,
   Sparkles,
   Star,
+  Sticker,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
@@ -79,6 +80,82 @@ const timeLabel = (iso: string) => {
     : d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
 };
 
+/** Los archivos viven en el store privado: el navegador los pide por el CRM. */
+const mediaSrc = (url: string | null): string | null => {
+  if (!url) return null;
+  if (url.startsWith("/")) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname.endsWith("blob.vercel-storage.com")) {
+      return `/api/admin/whatsapp/media?path=${encodeURIComponent(u.pathname.replace(/^\//, ""))}`;
+    }
+  } catch {
+    return null;
+  }
+  return url;
+};
+
+const KIND_LABEL: Record<string, string> = {
+  image: "📷 Foto",
+  sticker: "Sticker",
+  audio: "🎤 Audio",
+  video: "🎥 Video",
+  document: "📄 Documento",
+};
+
+const URL_SPLIT = /(https?:\/\/[^\s]+)/g;
+const IS_URL = /^https?:\/\//;
+
+/** Texto con los enlaces tocables, como en WhatsApp. */
+const Linkified = ({ text }: { text: string }) => (
+  <>
+    {text.split(URL_SPLIT).map((part, i) =>
+      IS_URL.test(part) ? (
+        <a key={i} href={part} target="_blank" rel="noreferrer" className="break-all text-[#027eb5] hover:underline">
+          {part}
+        </a>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    )}
+  </>
+);
+
+type Attachment = ChatDetail["messages"][number]["attachments"][number];
+
+const AttachmentView = ({ a }: { a: Attachment }) => {
+  const src = mediaSrc(a.url);
+  if (!src) {
+    return (
+      <div className="mb-1 rounded-md bg-black/5 px-2 py-1.5 text-xs text-[#54656f]">
+        {KIND_LABEL[a.kind] ?? "📎 Archivo"} · no se pudo descargar (ábrelo en el celular)
+      </div>
+    );
+  }
+  switch (a.kind) {
+    case "image":
+      return (
+        <a href={src} target="_blank" rel="noreferrer">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={src} alt={a.caption ?? "Foto"} className="mb-1 max-h-80 rounded-md" loading="lazy" />
+        </a>
+      );
+    case "sticker":
+      // eslint-disable-next-line @next/next/no-img-element
+      return <img src={src} alt="Sticker" className="size-32 object-contain" loading="lazy" />;
+    case "audio":
+      return <audio src={src} controls preload="none" className="mb-1 h-10 w-64 max-w-full" />;
+    case "video":
+      return <video src={src} controls preload="metadata" className="mb-1 max-h-80 rounded-md" />;
+    default:
+      return (
+        <a href={src} target="_blank" rel="noreferrer" className="mb-1 flex items-center gap-2 rounded-md bg-black/5 px-2 py-2 text-sm text-[#111b21] hover:bg-black/10">
+          <Paperclip className="size-4 text-[#54656f]" /> {a.caption || "Documento"}
+        </a>
+      );
+  }
+};
+
 const initials = (name: string) =>
   name
     .replace(/^\+/, "")
@@ -99,7 +176,7 @@ const Avatar = ({ name, size = 49 }: { name: string; size?: number }) => (
 /** Etiqueta pequeña de quién atiende el chat, como las etiquetas de WhatsApp Business. */
 const HandlerTag = ({ item }: { item: Pick<ChatListItem, "aiMode" | "paused" | "priority"> }) => {
   const [label, cls] = item.priority
-    ? ["Favorito", "bg-[#fff1c2] text-[#7a5b00]"]
+    ? ["⭐ Favorito", "bg-[#f0f2f5] text-[#111b21]"]
     : item.aiMode === "MANUAL"
       ? ["Tú", "bg-[#e7f0ff] text-[#1d4ed8]"]
       : item.aiMode === "COPILOT"
@@ -252,6 +329,8 @@ const Thread = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [memory, setMemory] = useState(chat.memory?.notes ?? "");
   const [showInfo, setShowInfo] = useState(false);
+  const [stickers, setStickers] = useState<{ key: string; url: string; uses: number }[] | null>(null);
+  const [showStickers, setShowStickers] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const lastRun = chat.runs[0] ?? null;
   const live = isRunLive(lastRun);
@@ -325,6 +404,21 @@ const Thread = ({
     if (!data) return;
     if (!data.text) toast("No hay horas libres en tu horario de citas.", "info");
     else setText((t) => (t.trim() ? `${t}\n\n${data.text}` : data.text));
+  };
+
+  const openStickers = async () => {
+    setShowStickers((v) => !v);
+    if (stickers === null) {
+      const res = await fetch("/api/admin/whatsapp/stickers", { cache: "no-store" }).catch(() => null);
+      setStickers(
+        res?.ok ? ((await res.json()) as { items: { key: string; url: string; uses: number }[] }).items : []
+      );
+    }
+  };
+
+  const sendSticker = async (url: string) => {
+    setShowStickers(false);
+    await act("sticker", { action: "sticker", url });
   };
 
   const mine = chat.aiMode === "MANUAL" || chat.priority;
@@ -429,41 +523,52 @@ const Thread = ({
           >
             {chat.messages.map((m) => {
               const out = m.direction === "OUTBOUND";
+              const onlySticker =
+                !m.body && m.attachments.length > 0 && m.attachments.every((a) => a.kind === "sticker" && a.url);
+              const meta = (
+                <div className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-[#667781]">
+                  {m.isEcho && <Smartphone className="size-3" aria-label="Desde el celular" />}
+                  {m.staffName && !m.isAutoReply && <span>{m.staffName} ·</span>}
+                  <span>{new Date(m.sentAt).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })}</span>
+                  {out && m.status !== "FAILED" && (
+                    <CheckCheck className={cn("size-4", m.status === "READ" ? "text-[#53bdeb]" : "text-[#8696a0]")} />
+                  )}
+                  {m.status === "FAILED" && <span className="font-medium text-[#d92d20]">no enviado</span>}
+                </div>
+              );
               return (
                 <div key={m.id} className={cn("flex", out ? "justify-end" : "justify-start")}>
-                  <div
-                    className={cn(
-                      "max-w-[75%] rounded-lg px-2.5 pt-1.5 pb-1 text-[14.2px] leading-snug text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]",
-                      out ? "rounded-tr-none bg-[#d9fdd3]" : "rounded-tl-none bg-white",
-                      m.status === "FAILED" && "ring-1 ring-[#d92d20]"
-                    )}
-                  >
-                    {m.isAutoReply && (
-                      <div className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-[#008069]">
-                        <Bot className="size-3" /> Asistente IA
-                      </div>
-                    )}
-                    {m.attachments.map((a, i) =>
-                      a.url && a.kind === "image" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={i} src={a.url} alt={a.caption ?? "imagen"} className="mb-1 max-h-72 rounded-md" />
-                      ) : (
-                        <a key={i} href={a.url ?? undefined} target="_blank" rel="noreferrer" className="mb-1 flex items-center gap-1 text-sm text-[#027eb5] underline">
-                          <Paperclip className="size-3.5" /> {a.kind}
-                        </a>
-                      )
-                    )}
-                    {m.body && <p className="whitespace-pre-wrap break-words">{m.body}</p>}
-                    <div className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-[#667781]">
-                      {m.isEcho && <Smartphone className="size-3" aria-label="Desde el celular" />}
-                      {m.staffName && !m.isAutoReply && <span>{m.staffName} ·</span>}
-                      <span>{new Date(m.sentAt).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })}</span>
-                      {out && m.status !== "FAILED" && (
-                        <CheckCheck className={cn("size-4", m.status === "READ" ? "text-[#53bdeb]" : "text-[#8696a0]")} />
-                      )}
-                      {m.status === "FAILED" && <span className="font-medium text-[#d92d20]">no enviado</span>}
+                  {onlySticker ? (
+                    <div className={cn("flex flex-col", out ? "items-end" : "items-start")}>
+                      {m.attachments.map((a, i) => (
+                        <AttachmentView key={i} a={a} />
+                      ))}
+                      <div className="rounded-full bg-white/80 px-1.5">{meta}</div>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "max-w-[75%] rounded-lg px-2.5 pt-1.5 pb-1 text-[14.2px] leading-snug text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]",
+                        out ? "rounded-tr-none bg-[#d9fdd3]" : "rounded-tl-none bg-white",
+                        m.status === "FAILED" && "ring-1 ring-[#d92d20]"
+                      )}
+                    >
+                      {m.isAutoReply && (
+                        <div className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-[#008069]">
+                          <Bot className="size-3" /> Asistente IA
+                        </div>
+                      )}
+                      {m.attachments.map((a, i) => (
+                        <AttachmentView key={i} a={a} />
+                      ))}
+                      {m.body && (
+                        <p className="whitespace-pre-wrap break-words">
+                          <Linkified text={m.body} />
+                        </p>
+                      )}
+                      {meta}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -501,7 +606,47 @@ const Thread = ({
                 </button>
               ))}
             </div>
+            {showStickers && (
+              <div className="max-h-56 overflow-y-auto rounded-lg bg-white p-2 dark:bg-card">
+                {stickers === null ? (
+                  <Loader2 className="mx-auto size-5 animate-spin text-[#00a884]" />
+                ) : stickers.length === 0 ? (
+                  <p className="p-2 text-center text-xs text-[#667781]">
+                    Aún no hay stickers: aparecen aquí cuando Dayana manda alguno desde su celular.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-5 gap-1 sm:grid-cols-8">
+                    {stickers.map((st) => (
+                      <button
+                        key={st.key}
+                        type="button"
+                        onClick={() => void sendSticker(st.url)}
+                        disabled={!canWrite || busy !== null || !chat.windowOpen}
+                        className="rounded-md p-1 hover:bg-[#f0f2f5]"
+                        title={`Enviar (usado ${st.uses} ${st.uses === 1 ? "vez" : "veces"})`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={mediaSrc(st.url) ?? ""} alt="Sticker" className="size-16 object-contain" loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex items-end gap-2">
+              <button
+                type="button"
+                onClick={() => void openStickers()}
+                disabled={!canWrite}
+                title="Stickers de Dayana"
+                aria-label="Stickers de Dayana"
+                className={cn(
+                  "grid size-[42px] shrink-0 place-items-center rounded-full text-[#54656f] hover:bg-black/5",
+                  showStickers && "bg-black/5 text-[#00a884]"
+                )}
+              >
+                <Sticker className="size-6" />
+              </button>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}

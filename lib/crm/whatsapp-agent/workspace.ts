@@ -82,6 +82,14 @@ const RUN_SELECT = {
   latencyMs: true,
 } as const;
 
+const PREVIEW_KIND: Record<string, string> = {
+  image: "📷 Foto",
+  sticker: "Sticker",
+  audio: "🎤 Audio",
+  video: "🎥 Video",
+  document: "📄 Documento",
+};
+
 const queueWhere = (queue: ChatQueue): Prisma.ConversationWhereInput => {
   switch (queue) {
     case "attention":
@@ -158,7 +166,11 @@ export const listChats = async (input: {
       name,
       contactId: c.contactId,
       lastMessageAt: c.lastMessageAt.toISOString(),
-      lastMessage: last?.body ?? (last?.attachments ? "(adjunto)" : null),
+      lastMessage:
+        last?.body ||
+        (Array.isArray(last?.attachments) && last.attachments.length > 0
+          ? PREVIEW_KIND[String((last.attachments[0] as { kind?: string }).kind)] ?? "📎 Archivo"
+          : null),
       lastDirection: last?.direction ?? null,
       lastIsAutoReply: last?.isAutoReply ?? false,
       unreadCount: c.unreadCount,
@@ -416,4 +428,53 @@ export const isWhatsAppWorkspaceAvailable = async (): Promise<boolean> => {
   const p = await getWhatsAppProviderSummary().catch(() => null);
   if (!p) return false;
   return p.provider === "dialog360" ? p.hasApiKey : p.metaEnvConfigured;
+};
+
+export type StickerView = {
+  key: string;
+  url: string;
+  uses: number;
+  lastUsedAt: string;
+  /** Lo que Dayana escribió justo antes de mandarlo: dice para qué lo usa. */
+  contexts: string[];
+};
+
+/**
+ * Los stickers que usa Dayana: los que ha mandado (desde el celular o el CRM),
+ * sin repetir y los más usados primero. El mismo sticker enviado varias veces
+ * se reconoce por su huella (sha256).
+ */
+export const listDayanaStickers = async (limit = 60): Promise<StickerView[]> => {
+  const rows = await prisma.$queryRaw<
+    { attachments: unknown; sent_at: Date; before: string | null }[]
+  >(Prisma.sql`
+    SELECT m.attachments, m.sent_at,
+      (SELECT p.body FROM conversation_messages p
+        WHERE p.conversation_id = m.conversation_id
+          AND p.direction = 'OUTBOUND' AND p.body IS NOT NULL AND p.body <> ''
+          AND p.sent_at <= m.sent_at AND p.sent_at > m.sent_at - interval '3 minutes'
+        ORDER BY p.sent_at DESC LIMIT 1) AS before
+    FROM conversation_messages m
+    WHERE m.direction = 'OUTBOUND'
+      AND m.attachments @> '[{"kind":"sticker"}]'::jsonb
+    ORDER BY m.sent_at DESC
+    LIMIT 3000`);
+  const byKey = new Map<string, StickerView>();
+  for (const row of rows) {
+    for (const a of (Array.isArray(row.attachments) ? row.attachments : []) as {
+      kind?: string;
+      url?: string | null;
+      sha256?: string;
+    }[]) {
+      if (a.kind !== "sticker" || !a.url) continue;
+      const key = a.sha256 ?? a.url;
+      const current =
+        byKey.get(key) ??
+        { key, url: a.url, uses: 0, lastUsedAt: row.sent_at.toISOString(), contexts: [] };
+      current.uses++;
+      if (row.before && current.contexts.length < 3) current.contexts.push(row.before.slice(0, 120));
+      byKey.set(key, current);
+    }
+  }
+  return [...byKey.values()].sort((a, b) => b.uses - a.uses).slice(0, limit);
 };

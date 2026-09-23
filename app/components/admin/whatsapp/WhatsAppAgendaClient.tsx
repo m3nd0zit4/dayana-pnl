@@ -9,6 +9,7 @@ import { Switch } from "@/app/components/ui/switch";
 import type { WhatsAppBookingConfig } from "@/lib/crm/whatsapp-ai-config";
 import CrmPageShell from "../crm/CrmPageShell";
 import { useCrm } from "../crm/CrmProvider";
+import GoogleCalendarView from "./GoogleCalendarView";
 import { useNow } from "./status";
 
 export type BookingRow = {
@@ -98,7 +99,6 @@ const WhatsAppAgendaClient = ({
   };
 
   const now = useNow(true, 60_000);
-  const upcoming = bookings.filter((b) => new Date(b.startsAt).getTime() >= now - 3600_000);
   const past = bookings.filter((b) => new Date(b.startsAt).getTime() < now - 3600_000);
 
   return (
@@ -106,12 +106,12 @@ const WhatsAppAgendaClient = ({
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-semibold">Agenda</h1>
         <span className="text-xs text-muted-foreground">
-          La IA agenda directo en tu Google Calendar, sin enlaces, respetando lo que ya tienes ahí.
+          Tu agenda es tu Google Calendar: la IA agenda ahí directo, sin enlaces, y confirma con la persona antes.
         </span>
       </div>
 
       {calendarAccounts === 0 && (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+        <p className="rounded-lg border border-[#e9edef] bg-white p-3 text-sm text-[#54656f]">
           No hay Google Calendar conectado. Conéctalo en{" "}
           <Link href="/admin/ajustes/google" className="underline">
             Ajustes → Google
@@ -120,14 +120,7 @@ const WhatsAppAgendaClient = ({
         </p>
       )}
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-semibold">Próximas citas agendadas por la IA</h2>
-        {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Ninguna por ahora.</p>
-        ) : (
-          <BookingList rows={upcoming} />
-        )}
-      </section>
+      <GoogleCalendarView />
 
       <section className="space-y-4 rounded-xl border border-border bg-card p-4">
         <div className="flex items-center gap-3">
@@ -201,7 +194,7 @@ const WhatsAppAgendaClient = ({
 
         <div className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Horario de citas (hora de Colombia)
+            Horario base (hora de Colombia) — solo se usa si no hay bloques «Disponible» en tu calendario
           </h3>
           {DAYS.map((label, weekday) => {
             const ranges = hoursFor(weekday);

@@ -12,7 +12,11 @@ import { clientContext } from "@/lib/crm/whatsapp-agent/brain";
 import { availableSlots } from "@/lib/crm/whatsapp-agent/calendar";
 import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
-import { getChat, isWhatsAppWorkspaceAvailable } from "@/lib/crm/whatsapp-agent/workspace";
+import {
+  getChat,
+  isWhatsAppWorkspaceAvailable,
+  listDayanaStickers,
+} from "@/lib/crm/whatsapp-agent/workspace";
 import { getTimeHmInTz } from "@/lib/datetime/zoned-time";
 import { MetaWindowError } from "@/lib/meta/send";
 
@@ -45,6 +49,8 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("draft"), body: z.string().max(4000).nullable() }),
   z.object({ action: z.literal("memory"), notes: z.string().max(1500) }),
   z.object({ action: z.literal("read") }),
+  /** Enviar uno de los stickers de Dayana (su URL del store privado). */
+  z.object({ action: z.literal("sticker"), url: z.string().url().max(600) }),
 ]);
 
 export const POST = withStaff<Params>("write", async ({ req, staff, params }) => {
@@ -202,5 +208,28 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "read":
       await markConversationRead(id);
       return NextResponse.json({ ok: true });
+    case "sticker": {
+      // Solo stickers que ya están en la biblioteca: la ruta no manda
+      // cualquier archivo que alguien escriba.
+      const known = (await listDayanaStickers(500)).some((s) => s.url === input.url);
+      if (!known) return apiError("unknown_sticker", 400);
+      try {
+        const result = await replyToConversation({
+          conversationId: id,
+          body: "",
+          staffUserId: staff.id,
+          attachment: {
+            url: input.url,
+            mimeType: "image/webp",
+            filename: "sticker.webp",
+            kind: "sticker",
+          },
+        });
+        return NextResponse.json(result);
+      } catch (e) {
+        if (e instanceof MetaWindowError) return apiError("window_closed", 409);
+        return apiError(e instanceof Error ? e.message : "send_failed", 400);
+      }
+    }
   }
 });

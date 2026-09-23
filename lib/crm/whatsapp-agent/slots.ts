@@ -64,6 +64,11 @@ export const findFreeSlots = (input: {
   /** Hasta cuándo (por defecto, el horizonte configurado). */
   to?: Date;
   limit?: number;
+  /**
+   * Bloques «Disponible» del Google Calendar de Dayana. Si hay, mandan: solo
+   * se ofrecen horas dentro de ellos, y el horario base no se usa.
+   */
+  windows?: Busy[];
 }): Slot[] => {
   const { config, durationMin, busy, timezone, now } = input;
   const earliest = Math.max(
@@ -84,6 +89,26 @@ export const findFreeSlots = (input: {
 
   const slots: Slot[] = [];
   const step = stepMinutes(durationMin);
+
+  if (input.windows && input.windows.length > 0) {
+    const sorted = [...input.windows].sort((a, b) => a.start - b.start);
+    for (const w of sorted) {
+      for (let t = w.start; t + durationMin * MINUTE <= w.end && slots.length < limit; t += step * MINUTE) {
+        const endMs = t + durationMin * MINUTE;
+        if (t < earliest || endMs > latest) continue;
+        if (overlapsBusy(t, endMs, busy, config.bufferMin)) continue;
+        const start = new Date(t);
+        if (slots.some((x) => x.startIso === start.toISOString())) continue;
+        slots.push({
+          startIso: start.toISOString(),
+          endIso: new Date(endMs).toISOString(),
+          dateKey: getDateKeyInTz(start, timezone),
+          time: getTimeHmInTz(start, timezone),
+        });
+      }
+    }
+    return slots;
+  }
   const days = Math.ceil((latest - now.getTime()) / DAY) + 1;
 
   for (let i = 0; i <= days && slots.length < limit; i++) {

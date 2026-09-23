@@ -119,6 +119,59 @@ const WHATSAPP_STATUS: Record<string, MessageDeliveryStatus> = {
 };
 
 /**
+ * Mensajes de WhatsApp que no son texto ni archivo. Devuelve el texto que los
+ * representa, `null` si no hay nada que guardar, o `undefined` si el tipo no
+ * es de estos (texto o archivo, que se tratan aparte).
+ */
+const describeSpecialMessage = (
+  type: string | null,
+  message: Record<string, unknown>
+): string | null | undefined => {
+  switch (type) {
+    case "reaction": {
+      const emoji = asString(asRecord(message.reaction)?.emoji);
+      // Quitar una reacción llega como reacción vacía: no es un mensaje.
+      return emoji ? `Reaccionó ${emoji}` : null;
+    }
+    case "location": {
+      const loc = asRecord(message.location);
+      const lat = loc?.latitude;
+      const lng = loc?.longitude;
+      const label = [asString(loc?.name), asString(loc?.address)].filter(Boolean).join(" · ");
+      return `📍 Ubicación${label ? `: ${label}` : ""}${
+        lat != null && lng != null ? `
+https://maps.google.com/?q=${lat},${lng}` : ""
+      }`;
+    }
+    case "contacts": {
+      const names = asArray(message.contacts)
+        .map((c) => {
+          const rec = asRecord(c);
+          const name = asString(asRecord(rec?.name)?.formatted_name);
+          const phone = asString(asRecord(asArray(rec?.phones)[0])?.phone);
+          return [name, phone].filter(Boolean).join(" ");
+        })
+        .filter(Boolean);
+      return `👤 Contacto compartido: ${names.join(", ") || "sin datos"}`;
+    }
+    case "interactive": {
+      const i = asRecord(message.interactive);
+      const reply = asRecord(i?.button_reply) ?? asRecord(i?.list_reply);
+      return asString(reply?.title) ?? "(respuesta a un botón)";
+    }
+    case "button":
+      return asString(asRecord(message.button)?.text) ?? "(respuesta a un botón)";
+    case "unsupported":
+    case "unknown":
+      return "(Mensaje que WhatsApp no deja ver aquí: ábrelo en el celular)";
+    case "system":
+      return null;
+    default:
+      return undefined;
+  }
+};
+
+/**
  * Un mensaje de WhatsApp en formato Cloud API. El mismo objeto llega en
  * `messages` (entrante), en `message_echoes` (lo que Dayana escribe desde la
  * app del celular) y dentro de `history` (el pasado); solo cambia de quién es
@@ -145,7 +198,13 @@ const parseWhatsAppMessage = (
   const attachments: NormalizedAttachment[] = [];
   let body = asString(asRecord(message.text)?.body);
 
-  if (type && type !== "text") {
+  // Lo que no es texto ni archivo se convierte en texto legible: si no, en el
+  // CRM salía como «unknown» y la IA no sabía qué le habían mandado.
+  const special = describeSpecialMessage(type, message);
+  if (special !== undefined) {
+    if (special === null) return null;
+    body = special;
+  } else if (type && type !== "text") {
     const media = asRecord(message[type]);
     if (media) {
       const caption = asString(media.caption);

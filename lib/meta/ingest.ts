@@ -377,5 +377,23 @@ export const processHistoryEvents = async (
   for (const conversationId of touched) {
     await learnFromConversation(conversationId);
   }
+
+  // Con el historial ya aprendido, la guía de estilo se escribe sola si
+  // todavía no hay una: así la IA habla como Dayana desde el primer mensaje.
+  if (touched.size > 0) {
+    try {
+      const { getWhatsAppAiConfig, setWhatsAppAiConfig } = await import(
+        "@/lib/crm/whatsapp-ai-config"
+      );
+      const config = await getWhatsAppAiConfig();
+      if (!config.styleGuide.trim()) {
+        const { draftStyleGuide } = await import("@/lib/crm/whatsapp-learning");
+        const styleGuide = (await draftStyleGuide()).slice(0, 4000);
+        if (styleGuide.trim()) await setWhatsAppAiConfig({ ...config, styleGuide });
+      }
+    } catch (e) {
+      console.warn("[historial WhatsApp] sin guía de estilo todavía", e);
+    }
+  }
   return { stored, conversations: touched.size };
 };

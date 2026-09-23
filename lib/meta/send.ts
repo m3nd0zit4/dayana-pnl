@@ -38,6 +38,8 @@ export type SendAttachment = {
   url: string;
   mimeType: string;
   filename: string;
+  /** Un sticker se envía como sticker (sin pie), no como imagen. */
+  kind?: "sticker";
 };
 
 export type SendInput = {
@@ -171,11 +173,14 @@ const sendWhatsApp = async (
   }
 
   if (input.attachment) {
-    const kind = mediaKindFor(input.attachment.mimeType);
+    const kind =
+      input.attachment.kind === "sticker" ? "sticker" : mediaKindFor(input.attachment.mimeType);
     // WhatsApp audio messages reject a `caption` field outright — the only
     // media type of the four that doesn't support one. The text isn't
-    // dropped, just delivered as its own follow-up message below.
-    const caption = kind !== "audio" && input.body ? input.body : undefined;
+    // dropped, just delivered as its own follow-up message below. Stickers
+    // don't take one either.
+    const caption =
+      kind !== "audio" && kind !== "sticker" && input.body ? input.body : undefined;
     const bytes = await fetchAttachmentBytes(input.attachment);
     const mediaId = await uploadWhatsAppMedia(bytes, input.attachment.mimeType, credentials);
     const res = await graphPost<GraphMessageResponse>(
@@ -405,7 +410,10 @@ export const sendMetaMessage = async (
   const attachments = input.attachment
     ? [
         {
-          kind: mediaKindFor(input.attachment.mimeType),
+          kind:
+            input.attachment.kind === "sticker"
+              ? "sticker"
+              : mediaKindFor(input.attachment.mimeType),
           url: input.attachment.url,
           mimeType: input.attachment.mimeType,
           caption: input.body || null,

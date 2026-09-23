@@ -159,7 +159,7 @@ const dialog360Fetch = async (
     throw new Dialog360Error(
       res.status === 401
         ? "360dialog rechazó la clave: revisa que esté completa y activa."
-        : `360dialog respondió ${res.status}.`,
+        : `360dialog respondió ${res.status}: ${JSON.stringify(body).slice(0, 300)}`,
       res.status
     );
   }
@@ -220,4 +220,38 @@ export const registerDialog360Webhook = async (siteUrl: string): Promise<string>
   });
   await writeConfig({ ...config, webhookSecret: secret });
   return url;
+};
+
+/**
+ * Pide a WhatsApp que vuelva a mandar el historial de chats de la app (hasta
+ * 6 meses) y la libreta de contactos (coexistencia).
+ *
+ * Meta solo lo entrega una vez y durante las primeras horas después de
+ * conectar el número. La primera vez se perdió: llegó cuando el CRM todavía no
+ * sabía leerlo. Esto lo vuelve a pedir; si ya pasó el plazo, WhatsApp responde
+ * con un error y se muestra tal cual. Lo que llegue entra por el webhook
+ * (`history`, `smb_app_state_sync`) y se procesa como siempre.
+ */
+export const requestDialog360HistorySync = async (): Promise<
+  { syncType: string; ok: boolean; detail: string }[]
+> => {
+  const apiKey = openApiKey(await readConfig());
+  if (!apiKey) throw new Dialog360Error("No hay clave de 360dialog guardada.", 400);
+  const results: { syncType: string; ok: boolean; detail: string }[] = [];
+  for (const syncType of ["smb_app_state_sync", "history"]) {
+    try {
+      const body = await dialog360Fetch(apiKey, "smb_app_data", {
+        method: "POST",
+        body: JSON.stringify({ messaging_product: "whatsapp", sync_type: syncType }),
+      });
+      results.push({ syncType, ok: true, detail: JSON.stringify(body).slice(0, 300) });
+    } catch (e) {
+      results.push({
+        syncType,
+        ok: false,
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+  return results;
 };

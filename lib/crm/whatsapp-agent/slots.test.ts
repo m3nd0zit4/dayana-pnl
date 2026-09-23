@@ -87,6 +87,21 @@ describe("findFreeSlots", () => {
   });
 });
 
+describe("findFreeSlots con bloques Disponible", () => {
+  test("solo ofrece horas dentro de los bloques y libres", () => {
+    const windows: Busy[] = [
+      // miércoles 14:00-17:00 Bogotá
+      { start: at("2026-09-30T19:00:00Z"), end: at("2026-09-30T22:00:00Z") },
+    ];
+    const busy: Busy[] = [
+      // 15:00-15:30 ocupado
+      { start: at("2026-09-30T20:00:00Z"), end: at("2026-09-30T20:30:00Z") },
+    ];
+    const slots = findFreeSlots({ config, durationMin: 60, busy, windows, timezone: TZ, now: monday6am });
+    expect(slots.map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-09-30 16:00"]);
+  });
+});
+
 describe("spreadSlots", () => {
   test("reparte entre días distintos", () => {
     const all = findFreeSlots({
