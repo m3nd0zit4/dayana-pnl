@@ -17,4 +17,12 @@ export const TOOL_LABELS: Record<string, string> = {
   create_staff_user: "Creando cuenta de staff",
   list_message_templates: "Listando plantillas de mensajes",
   prepare_customer_whatsapp_message: "Preparando mensaje de WhatsApp",
+  whatsapp_ai_status: "Revisando la IA de WhatsApp",
+  whatsapp_get_config: "Leyendo la configuración de WhatsApp",
+  whatsapp_update_config: "Cambiando la configuración de WhatsApp",
+  whatsapp_list_playbooks: "Leyendo los procedimientos de WhatsApp",
+  whatsapp_save_playbook: "Guardando un procedimiento de WhatsApp",
+  whatsapp_find_chat: "Buscando chats de WhatsApp",
+  whatsapp_set_chat: "Cambiando un chat de WhatsApp",
+  whatsapp_simulate_reply: "Probando una respuesta de WhatsApp",
 };
