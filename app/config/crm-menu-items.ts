@@ -48,6 +48,7 @@ export type CrmMenuItemId =
   | "free-events-history"
   | "free-events-people"
   | "inbox"
+  | "whatsapp"
   | "content";
 
 export type CrmMenuItem = {
@@ -100,6 +101,18 @@ export const crmHomeItem: CrmMenuItem = {
   icon: Home,
   label: "Inicio",
   href: "/admin",
+};
+
+/**
+ * WhatsApp, junto a Inicio: es donde se atiende el día a día. Abre su propia
+ * sección con su propio menú (chats, estado de la IA, agenda, ajustes).
+ */
+export const crmWhatsAppItem: CrmMenuItem = {
+  id: "whatsapp",
+  icon: MessageCircle,
+  label: "WhatsApp",
+  shortLabel: "WhatsApp",
+  href: "/admin/whatsapp",
 };
 
 /**

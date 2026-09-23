@@ -43,7 +43,7 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
       // lib/crm/agent-channels.ts.
       { href: "/admin/ajustes/canales", label: "Canales del agente" },
       // Qué contesta la IA por WhatsApp y qué ha aprendido de Dayana.
-      { href: "/admin/ajustes/asistente-whatsapp", label: "Asistente de WhatsApp" },
+      { href: "/admin/whatsapp/ajustes", label: "Asistente de WhatsApp" },
     ],
   },
   {

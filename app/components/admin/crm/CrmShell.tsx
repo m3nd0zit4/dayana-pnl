@@ -2,6 +2,7 @@
 
 import type { StaffRole } from "@prisma/client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 import type { CSSProperties } from "react";
 import AdminPreviewBanner from "@/app/components/admin/AdminPreviewBanner";
@@ -12,6 +13,9 @@ import CrmBottomNav from "@/app/components/admin/crm/CrmBottomNav";
 import CrmMenu from "@/app/components/admin/crm/CrmMenu";
 import CrmNavBar from "@/app/components/admin/crm/CrmNavBar";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import WhatsAppSidebarMenu, {
+  isWhatsAppWorkspacePath,
+} from "@/app/components/admin/whatsapp/WhatsAppSidebarMenu";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -28,6 +32,11 @@ import {
 /** Lives inside SidebarProvider so it can close the mobile drawer on nav. */
 const CrmMenuWithAutoClose = () => {
   const { setOpenMobile } = useSidebar();
+  const pathname = usePathname();
+  // Dentro de WhatsApp el menú del CRM se cambia por el de WhatsApp.
+  if (isWhatsAppWorkspacePath(pathname)) {
+    return <WhatsAppSidebarMenu onNavigate={() => setOpenMobile(false)} />;
+  }
   return <CrmMenu onNavigate={() => setOpenMobile(false)} />;
 };
 
@@ -46,6 +55,7 @@ const CrmShell = ({
 }) => {
   const { agentEnabled, agentPanelOpen, agentPanelExpanded } = useCrm();
   const panelTakingOver = agentEnabled && agentPanelOpen && agentPanelExpanded;
+  const inWhatsApp = isWhatsAppWorkspacePath(usePathname());
 
   return (
     <SidebarProvider
@@ -69,7 +79,7 @@ const CrmShell = ({
               >
                 <SidebarContent>
                   <CrmMenuWithAutoClose />
-                  {agentEnabled && <AgentThreadsMenuSection />}
+                  {agentEnabled && !inWhatsApp && <AgentThreadsMenuSection />}
                 </SidebarContent>
                 <SidebarFooter>
                   <SidebarMenu>
