@@ -1,14 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 
-import { after, NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { fireAuditLog } from "@/lib/crm/audit";
-import { emitMetaWebhook } from "@/lib/inngest/events";
-import {
-  isBulkSyncEvent,
-  normalizeMetaPayload,
-  threadKeyOf,
-} from "@/lib/meta/inbound";
+import { dispatchMetaEvents } from "@/lib/meta/dispatch";
+import { normalizeMetaPayload } from "@/lib/meta/inbound";
 import { getDialog360WebhookSecret } from "@/lib/meta/whatsapp-provider";
 
 export const runtime = "nodejs";
@@ -22,7 +18,7 @@ export const maxDuration = 300;
  *
  * El cuerpo es el mismo de la Cloud API de Meta, así que después de validar
  * el origen se procesa exactamente igual que `/api/webhooks/meta`: misma
- * normalización, misma cola, misma bandeja.
+ * normalización, mismo procesamiento (`lib/meta/dispatch.ts`), misma bandeja.
  *
  * Lo que cambia es la prueba de origen. 360dialog no firma los avisos de un
  * cliente directo como hace Meta; en su lugar manda en la cabecera
@@ -68,42 +64,7 @@ export async function POST(req: NextRequest) {
       ? String((payload as { object?: unknown }).object ?? "whatsapp_business_account")
       : "whatsapp_business_account";
 
-  // Historial y libreta de la app: en bloque, fuera de la cola.
-  const bulk = events.filter(isBulkSyncEvent);
-  if (bulk.length > 0) {
-    after(async () => {
-      const { processHistoryEvents } = await import("@/lib/meta/ingest");
-      await processHistoryEvents(object, bulk);
-    });
-  }
-  const live = events.filter((event) => !isBulkSyncEvent(event));
+  const counts = dispatchMetaEvents(object, events, "360dialog");
 
-  const queued = await Promise.all(
-    live.map((event) =>
-      emitMetaWebhook({ object, threadKey: threadKeyOf(event), event })
-    )
-  );
-
-  // Mismo respaldo que la ruta de Meta: lo que no se pudo encolar se procesa
-  // en línea después de responder, para que 360dialog no reintente.
-  const pending = live.filter((_, i) => !queued[i]);
-  if (pending.length > 0) {
-    after(async () => {
-      const { processNormalizedEvent } = await import("@/lib/meta/ingest");
-      for (const event of pending) {
-        try {
-          await processNormalizedEvent(object, event);
-        } catch (e) {
-          console.error("[webhook 360dialog] inline processing failed", e);
-        }
-      }
-    });
-  }
-
-  return NextResponse.json({
-    ok: true,
-    queued: queued.filter(Boolean).length,
-    inline: pending.length,
-    bulk: bulk.length,
-  });
+  return NextResponse.json({ ok: true, ...counts });
 }

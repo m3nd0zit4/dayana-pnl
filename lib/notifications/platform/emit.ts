@@ -170,7 +170,25 @@ export const emitPlatformNotification = async (
     select: { id: true },
   });
 
-  scheduleNotificationEmails(notification.id);
+  if (entry.immediate) {
+    // Alguien espera del otro lado: correo y push ahora, en esta invocación.
+    const { deliverNotificationEmails } = await import("./email");
+    const { sendPushToStaff } = await import("../channels/push");
+    await Promise.all([
+      deliverNotificationEmails(notification.id).catch((e) =>
+        console.error("[notificaciones] correo inmediato falló", e)
+      ),
+      sendPushToStaff(staffIds, {
+        title: input.title,
+        body: input.body ?? "",
+        href: input.href ?? "/admin",
+        tag: `${input.eventType}:${input.entityId ?? notification.id}`,
+        urgent: (input.severity ?? entry.defaultSeverity) !== "INFO",
+      }).catch((e) => console.error("[notificaciones] push falló", e)),
+    ]);
+  } else {
+    scheduleNotificationEmails(notification.id);
+  }
   return notification.id;
 };
 

@@ -21,6 +21,43 @@ const hm = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora en formato HH:MM");
 
+const bookingSchema = z.object({
+  /** Apagado, la IA no agenda: pasa las citas a Dayana (o comparte `bookingUrl`). */
+  enabled: z.boolean(),
+  /** Cuenta de Google con Calendar. Vacío = la única conectada. */
+  accountId: z.string().trim().max(60),
+  /** Franjas en que se puede agendar, en la zona operativa (0 = domingo). */
+  hours: z
+    .array(
+      z.object({
+        weekday: z.number().int().min(0).max(6),
+        from: hm,
+        to: hm,
+      })
+    )
+    .max(21),
+  /** Minutos libres antes y después de cada cita. */
+  bufferMin: z.number().int().min(0).max(120),
+  /** Antelación mínima para agendar, en horas. */
+  minNoticeHours: z.number().int().min(0).max(168),
+  /** Hasta cuántos días hacia adelante ofrece horas. */
+  horizonDays: z.number().int().min(1).max(60),
+  /** Qué se puede agendar y cuánto dura. La IA elige según la conversación. */
+  services: z
+    .array(
+      z.object({
+        name: z.string().trim().min(2).max(80),
+        minutes: z.number().int().min(10).max(240),
+      })
+    )
+    .min(1)
+    .max(12),
+  /** Crea un enlace de Google Meet en cada cita. */
+  addMeet: z.boolean(),
+});
+
+export type WhatsAppBookingConfig = z.infer<typeof bookingSchema>;
+
 export const whatsAppAiConfigSchema = z.object({
   /**
    * `assistant`: escribe DE PARTE de Dayana, en tercera persona.
@@ -73,6 +110,17 @@ export const whatsAppAiConfigSchema = z.object({
   }),
   /** A quién avisa cuando pasa un hilo a una persona. */
   notify: z.enum(["ALL", "OWNERS"]),
+  /** Cómo arranca un chat nuevo: la IA contesta sola o deja borradores. */
+  defaultMode: z.enum(["AUTO", "COPILOT"]),
+  /** Citas directas en el Google Calendar conectado. */
+  booking: bookingSchema,
+  escalation: z.object({
+    /**
+     * Lo que se le dice a la persona cuando la IA pasa el chat a Dayana.
+     * Vacío = no se le dice nada: la IA se calla y Dayana contesta.
+     */
+    holdingMessage: z.string().trim().max(300),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -95,6 +143,25 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   styleGuide: "",
   learning: { enabled: true, examples: 6 },
   notify: "ALL",
+  defaultMode: "AUTO",
+  booking: {
+    enabled: true,
+    accountId: "",
+    hours: [1, 2, 3, 4, 5].map((weekday) => ({
+      weekday,
+      from: "08:00",
+      to: "18:00",
+    })),
+    bufferMin: 15,
+    minNoticeHours: 3,
+    horizonDays: 21,
+    services: [
+      { name: "Sesión de terapia", minutes: 60 },
+      { name: "Llamada de valoración", minutes: 20 },
+    ],
+    addMeet: true,
+  },
+  escalation: { holdingMessage: "" },
 });
 
 /**

@@ -318,6 +318,12 @@ export const processNormalizedEvent = async (
     const { learnFromLatestReply } =
       await import("@/lib/crm/whatsapp-learning");
     await learnFromLatestReply(result.conversationId);
+    const { learnIfCorrectingAutoReply } = await import(
+      "@/lib/crm/whatsapp-agent/corrections"
+    );
+    await learnIfCorrectingAutoReply(result.conversationId).catch(
+      () => undefined
+    );
   }
 
   if (result.outcome === "stored" && result.isInbound) {
@@ -326,16 +332,14 @@ export const processNormalizedEvent = async (
     // el catálogo del CRM, y la mayoría de los eventos de Meta (acuses, ecos,
     // Instagram) no lo necesitan. Nunca lanza hacia fuera.
     if (event.channel === "WHATSAPP") {
-      // El saludo va primero y, si sale, la IA no contesta encima en este
-      // mismo mensaje: dos respuestas seguidas a un «hola» delatan al robot.
-      const { maybeSendWelcome } = await import("@/lib/crm/whatsapp-welcome");
-      const greeted = await maybeSendWelcome(result.conversationId).catch(
-        () => false
-      );
-      if (!greeted) {
-        const { maybeAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
-        await maybeAutoReply(result.conversationId).catch(() => undefined);
-      }
+      // Saludo, IA y estados en vivo: todo pasa por el ejecutor, que espera a
+      // que la persona termine de escribir y contesta la ráfaga entera una sola
+      // vez. Nunca lanza hacia fuera.
+      const { runWhatsAppAi } = await import("@/lib/crm/whatsapp-agent/run");
+      await runWhatsAppAi({
+        conversationId: result.conversationId,
+        triggerMessageId: event.externalMessageId,
+      });
     }
   }
 
