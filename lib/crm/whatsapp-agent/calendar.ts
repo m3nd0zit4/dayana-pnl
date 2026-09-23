@@ -1,6 +1,7 @@
 import { resolveGoogleAccount } from "@/agent/lib/google";
 import { createEvent, listEvents } from "@/lib/google/calendar";
 import { getSiteUrl } from "@/lib/site-url";
+import { zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppBookingConfig } from "../whatsapp-ai-config";
 import {
   findFreeSlots,
@@ -24,18 +25,21 @@ const DAY = 24 * 60 * 60_000;
 const account = (config: WhatsAppBookingConfig) =>
   resolveGoogleAccount("CALENDAR", config.accountId || undefined);
 
-const toMs = (value?: { dateTime?: string; date?: string }): number | null => {
+const toMs = (
+  value: { dateTime?: string; date?: string } | undefined,
+  timezone: string
+): number | null => {
   if (value?.dateTime) return new Date(value.dateTime).getTime();
-  // Todo el día: la fecha sola. Se toma como día completo en UTC-5, que es
-  // de sobra para no ofrecer horas un día que Dayana bloqueó entero.
-  if (value?.date) return new Date(`${value.date}T00:00:00-05:00`).getTime();
+  // Todo el día: la fecha sola, medianoche en la zona operativa.
+  if (value?.date) return zonedDateTimeToUtc(value.date, "00:00", timezone).getTime();
   return null;
 };
 
 export const readBusy = async (
   config: WhatsAppBookingConfig,
   from: Date,
-  to: Date
+  to: Date,
+  timezone: string
 ): Promise<Busy[]> => {
   const { token } = await account(config);
   const events = await listEvents(token, {
@@ -48,8 +52,8 @@ export const readBusy = async (
     if (event.status === "cancelled" || event.transparency === "transparent") {
       continue;
     }
-    const start = toMs(event.start);
-    const end = toMs(event.end);
+    const start = toMs(event.start, timezone);
+    const end = toMs(event.end, timezone);
     if (start != null && end != null && end > start) busy.push({ start, end });
   }
   return busy;
@@ -65,7 +69,7 @@ export const availableSlots = async (input: {
 }): Promise<Slot[]> => {
   const now = input.now ?? new Date();
   const until = new Date(now.getTime() + input.config.horizonDays * DAY);
-  const busy = await readBusy(input.config, now, until);
+  const busy = await readBusy(input.config, now, until, input.timezone);
   return findFreeSlots({
     config: input.config,
     durationMin: input.durationMin,
@@ -120,7 +124,8 @@ export const bookOnCalendar = async (input: {
   const busy = await readBusy(
     input.config,
     new Date(input.start.getTime() - DAY / 2),
-    new Date(end.getTime() + DAY / 2)
+    new Date(end.getTime() + DAY / 2),
+    input.timezone
   );
   if (
     overlapsBusy(input.start.getTime(), end.getTime(), busy, input.config.bufferMin)
