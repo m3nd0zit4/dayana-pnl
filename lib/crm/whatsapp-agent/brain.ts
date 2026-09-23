@@ -6,7 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { BRAND } from "@/lib/contact";
 import { getSiteUrl } from "@/lib/site-url";
-import { getDateKeyInTz, getTimeHmInTz } from "@/lib/datetime/zoned-time";
+import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { findSimilarExamples, type SimilarExample } from "../whatsapp-learning";
 import { availableSlots, bookOnCalendar, SlotUnavailableError } from "./calendar";
@@ -376,10 +376,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               try {
                 const minutes = durationOf(args.service);
                 const from = args.fromDate
-                  ? new Date(`${args.fromDate}T00:00:00-05:00`)
+                  ? zonedDateTimeToUtc(args.fromDate, "00:00", timezone)
                   : undefined;
                 const to = args.toDate
-                  ? new Date(new Date(`${args.toDate}T00:00:00-05:00`).getTime() + 86_400_000)
+                  ? new Date(zonedDateTimeToUtc(args.toDate, "00:00", timezone).getTime() + 86_400_000)
                   : undefined;
                 let slots = await availableSlots({ config: config.booking, durationMin: minutes, timezone, from, to, now });
                 if (args.partOfDay && args.partOfDay !== "any") {
