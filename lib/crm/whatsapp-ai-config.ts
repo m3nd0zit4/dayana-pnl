@@ -141,7 +141,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   bookingUrl: "",
   instructions: "",
   styleGuide: "",
-  learning: { enabled: true, examples: 6 },
+  learning: { enabled: true, examples: 10 },
   notify: "ALL",
   defaultMode: "AUTO",
   booking: {
@@ -156,8 +156,8 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
     minNoticeHours: 3,
     horizonDays: 21,
     services: [
+      { name: "Consulta gratis 15 min", minutes: 15 },
       { name: "Sesión de terapia", minutes: 60 },
-      { name: "Llamada de valoración", minutes: 20 },
     ],
     addMeet: true,
   },

@@ -268,7 +268,7 @@ export const getChat = async (id: string) => {
       aiBookings: {
         orderBy: { startsAt: "desc" },
         take: 10,
-        select: { id: true, service: true, startsAt: true, meetUrl: true, status: true },
+        select: { id: true, service: true, startsAt: true, meetUrl: true, eventUrl: true, status: true },
       },
     },
   });
@@ -323,6 +323,7 @@ export const getChat = async (id: string) => {
       service: b.service,
       startsAt: b.startsAt.toISOString(),
       meetUrl: b.meetUrl,
+      eventUrl: b.eventUrl,
       status: b.status,
     })),
     memory: memory ? { notes: memory.notes, updatedAt: memory.updatedAt.toISOString() } : null,

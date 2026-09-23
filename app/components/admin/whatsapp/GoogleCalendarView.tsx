@@ -106,13 +106,13 @@ const GoogleCalendarView = () => {
                     </Link>
                   )}
                   {e.meetUrl && (
-                    <a href={e.meetUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-[#027eb5] hover:underline">
+                    <a href={e.meetUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full bg-[#00a884] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#008069]">
                       <Video className="size-3.5" /> Meet
                     </a>
                   )}
                   {e.link && (
-                    <a href={e.link} target="_blank" rel="noreferrer" className="text-[#667781] hover:text-[#111b21]" aria-label="Abrir en Google Calendar">
-                      <ExternalLink className="size-3.5" />
+                    <a href={e.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-[#d1d7db] px-2.5 py-1 text-xs font-medium text-[#111b21] hover:bg-[#f5f6f6] dark:border-border dark:text-foreground">
+                      <ExternalLink className="size-3.5" /> Calendario
                     </a>
                   )}
                 </li>

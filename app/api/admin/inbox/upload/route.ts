@@ -15,6 +15,8 @@ const EXTENSION: Record<string, string> = {
   "video/mp4": "mp4",
   "audio/ogg": "ogg",
   "audio/mpeg": "mp3",
+  "audio/mp4": "m4a",
+  "audio/aac": "aac",
   "application/pdf": "pdf",
 };
 
@@ -28,6 +30,8 @@ const MAX_BYTES: Record<string, number> = {
   "video/mp4": 16 * 1024 * 1024,
   "audio/ogg": 16 * 1024 * 1024,
   "audio/mpeg": 16 * 1024 * 1024,
+  "audio/mp4": 16 * 1024 * 1024,
+  "audio/aac": 16 * 1024 * 1024,
   "application/pdf": 100 * 1024 * 1024,
 };
 
@@ -42,7 +46,10 @@ const MAX_BYTES: Record<string, number> = {
  * Messenger/Instagram) — nunca por `link`/`payload.url`.
  */
 export const POST = async (req: Request) => {
-  if (!isMetaInboxEnabled()) {
+  // La bandeja general puede estar apagada; la sección de WhatsApp también sube
+  // adjuntos (fotos, documentos, notas de voz).
+  const { isWhatsAppWorkspaceAvailable } = await import("@/lib/crm/whatsapp-agent/workspace");
+  if (!isMetaInboxEnabled() && !(await isWhatsAppWorkspaceAvailable())) {
     return NextResponse.json({ error: "inbox_disabled" }, { status: 404 });
   }
 
@@ -57,24 +64,26 @@ export const POST = async (req: Request) => {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "missing_file" }, { status: 400 });
   }
-  const extension = EXTENSION[file.type];
+  // «audio/ogg; codecs=opus» (nota de voz grabada en el navegador) es audio/ogg.
+  const mimeType = file.type.split(";")[0].trim().toLowerCase();
+  const extension = EXTENSION[mimeType];
   if (!extension) {
     return NextResponse.json({ error: "unsupported_type" }, { status: 415 });
   }
-  if (file.size > MAX_BYTES[file.type]) {
+  if (file.size > MAX_BYTES[mimeType]) {
     return NextResponse.json({ error: "file_too_large" }, { status: 413 });
   }
 
   try {
     const blob = await put(`inbox/outbound/${crypto.randomUUID()}.${extension}`, file, {
       access: "private",
-      contentType: file.type,
+      contentType: mimeType,
       addRandomSuffix: false,
     });
 
     return NextResponse.json({
       url: blob.url,
-      mimeType: file.type,
+      mimeType,
       filename: file.name || `adjunto.${extension}`,
       size: file.size,
     });

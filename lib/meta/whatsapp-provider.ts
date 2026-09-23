@@ -37,6 +37,10 @@ type StoredConfig = {
    * inyectar mensajes falsos en la bandeja.
    */
   webhookSecret?: string | null;
+  /** El secreto anterior sigue valiendo unos minutos tras volver a conectar:
+   * los avisos que ya venían en camino no se pierden. */
+  previousWebhookSecret?: string | null;
+  previousUntil?: string | null;
 };
 
 export type WhatsAppProviderSummary = {
@@ -129,6 +133,21 @@ export const resolveWhatsAppCredentials =
   };
 
 /** Secreto esperado en los avisos de 360dialog, o `null` si no se registró. */
+/** Secretos válidos ahora: el actual y, unos minutos, el anterior. */
+export const getDialog360WebhookSecrets = async (): Promise<string[]> => {
+  const config = await readConfig();
+  const list: string[] = [];
+  if (config.webhookSecret) list.push(config.webhookSecret);
+  if (
+    config.previousWebhookSecret &&
+    config.previousUntil &&
+    new Date(config.previousUntil).getTime() > Date.now()
+  ) {
+    list.push(config.previousWebhookSecret);
+  }
+  return list;
+};
+
 export const getDialog360WebhookSecret = async (): Promise<string | null> =>
   (await readConfig()).webhookSecret ?? null;
 
@@ -218,40 +237,14 @@ export const registerDialog360Webhook = async (siteUrl: string): Promise<string>
       headers: { "X-Webhook-Secret": secret, ...target.headers },
     }),
   });
-  await writeConfig({ ...config, webhookSecret: secret });
+  await writeConfig({
+    ...config,
+    webhookSecret: secret,
+    previousWebhookSecret: config.webhookSecret ?? null,
+    previousUntil: config.webhookSecret
+      ? new Date(Date.now() + 10 * 60_000).toISOString()
+      : null,
+  });
   return url;
 };
 
-/**
- * Pide a WhatsApp que vuelva a mandar el historial de chats de la app (hasta
- * 6 meses) y la libreta de contactos (coexistencia).
- *
- * Meta solo lo entrega una vez y durante las primeras horas después de
- * conectar el número. La primera vez se perdió: llegó cuando el CRM todavía no
- * sabía leerlo. Esto lo vuelve a pedir; si ya pasó el plazo, WhatsApp responde
- * con un error y se muestra tal cual. Lo que llegue entra por el webhook
- * (`history`, `smb_app_state_sync`) y se procesa como siempre.
- */
-export const requestDialog360HistorySync = async (): Promise<
-  { syncType: string; ok: boolean; detail: string }[]
-> => {
-  const apiKey = openApiKey(await readConfig());
-  if (!apiKey) throw new Dialog360Error("No hay clave de 360dialog guardada.", 400);
-  const results: { syncType: string; ok: boolean; detail: string }[] = [];
-  for (const syncType of ["smb_app_state_sync", "history"]) {
-    try {
-      const body = await dialog360Fetch(apiKey, "smb_app_data", {
-        method: "POST",
-        body: JSON.stringify({ messaging_product: "whatsapp", sync_type: syncType }),
-      });
-      results.push({ syncType, ok: true, detail: JSON.stringify(body).slice(0, 300) });
-    } catch (e) {
-      results.push({
-        syncType,
-        ok: false,
-        detail: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
-  return results;
-};

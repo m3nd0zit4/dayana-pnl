@@ -228,14 +228,18 @@ const systemPrompt = (config: WhatsAppAiConfig, now: string): string => {
 
 Ahora es ${now}.
 
-Qué haces:
-- Informas y orientas con los DATOS (paquetes, precios exactos, cómo pagar, taller, webinar, materiales).
-- AGENDAS citas tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que la persona agende sola): averigua qué quiere agendar, usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas. Cuando elija una, CONFIRMA antes de agendar repitiendo servicio, día y hora («¿Te agendo la sesión el jueves 25 a las 3:00 p. m.?»). Solo cuando diga que sí, usa book_appointment y comparte el día, la hora y el enlace de Meet. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
-- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para no preguntar lo que ya se habló.
+Cómo conversas (así vende Dayana):
+- Primero la persona, no el precio. Saluda con calidez y pregúntale cómo está, qué la trae, qué está viviendo.
+- Haz una o dos preguntas que la hagan mirar su situación, una a la vez: «¿hace cuánto te sientes así?», «¿cómo te está afectando en tu día a día?», «¿cuánto tiempo más quieres seguir viviendo esto?». Refleja en una frase lo que te cuenta, con empatía, sin dar consejos ni diagnosticar.
+- El objetivo con quien escribe por primera vez es casi siempre la CONSULTA GRATIS DE 15 MINUTOS con Dayana: invítala («Dayana tiene un espacio gratuito de 15 minutos para escucharte y decirte qué proceso te sirve, ¿te lo agendo?»). Si no quiere hablar de lo que vive, invítala directo a la consulta.
+- Precios: no los des de entrada. Si los pide, primero ofrece la consulta gratis («ahí Dayana te dice cuál proceso te conviene»); si insiste, da el precio exacto de los DATOS.
+- Pago: solo si pide cómo pagar o quiere pagar un paquete, usa payment_link con ese paquete y comparte el enlace.
+- AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio y ofrece 2 o 3 opciones concretas. Cuando elija, CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
+- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 Llama a escalate (y NO escribas ningún mensaje) cuando:
-- category=payment: menciona un pago hecho, una transferencia, manda un comprobante (una imagen o documento sin explicación casi siempre lo es), pregunta por un cobro, un reembolso o una factura, o pide un descuento.
+- category=payment: menciona un pago YA hecho, una transferencia, manda un comprobante (una imagen o documento sin explicación casi siempre lo es), pregunta por un cobro, un reembolso o una factura, o pide un descuento. (Pedir cómo pagar NO es esto: para eso está payment_link.)
 - category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (audio, imagen sin contexto).
 - category=reschedule: quiere cambiar o cancelar una cita ya agendada.
 - category=complaint: se queja o está molesta.
@@ -447,6 +451,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   name,
                   phone: input.phone,
                   conversationId: input.conversationId,
+                  contactId: input.contactId,
                 });
                 const row = await prisma.whatsAppBooking.create({
                   data: {
@@ -460,6 +465,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                     googleAccountId: created.accountId,
                     calendarEventId: created.eventId,
                     meetUrl: created.meetUrl,
+                    eventUrl: created.eventUrl,
                   },
                 });
                 state.booking = { id: row.id, startsAt: start, service: args.service, meetUrl: created.meetUrl };
@@ -467,6 +473,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   ok: true,
                   label: formatSlot(args.startIso, timezone),
                   meetUrl: created.meetUrl,
+                  calendarTitle: created.title,
                 });
               } catch (e) {
                 if (e instanceof SlotUnavailableError) {
@@ -499,6 +506,41 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           }),
         }
       : {}),
+    payment_link: tool({
+      description:
+        "Crea el enlace de pago de un paquete de los DATOS, solo cuando la persona pide cómo pagar o quiere pagar. Devuelve la URL para compartirla tal cual.",
+      inputSchema: z.object({
+        product: z.string().describe("Nombre del paquete tal como aparece en los DATOS."),
+      }),
+      execute: async ({ product }) => {
+        const site = getSiteUrl();
+        const products = await prisma.product.findMany({
+          where: { isActive: true, OR: [{ isCourseContent: false }, { sellsStandalone: true }] },
+          select: { id: true, title: true },
+        });
+        const norm = (v: string) => v.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+        const match =
+          products.find((p) => norm(p.title) === norm(product)) ??
+          products.find((p) => norm(p.title).includes(norm(product)) || norm(product).includes(norm(p.title)));
+        if (!match) {
+          return log("payment_link", { product }, {
+            url: `${site}/pagar/terapias`,
+            note: "No encontré ese paquete exacto: este enlace muestra todos los paquetes.",
+          });
+        }
+        if (input.mode === "preview" || !input.conversationId) {
+          return log("payment_link", { product }, { url: `${site}/pagar/(enlace-de-prueba)`, product: match.title });
+        }
+        const { createPaymentLink } = await import("@/lib/crm/payment-links");
+        const link = await createPaymentLink({
+          contactId: input.contactId,
+          productId: match.id,
+          note: "Enviado por el asistente de WhatsApp",
+          expiresInDays: 14,
+        });
+        return log("payment_link", { product }, { url: `${site}/pagar/${link.token}`, product: match.title });
+      },
+    }),
     search_past_chats: tool({
       description:
         "Busca cómo contestó Dayana antes sobre un tema (para imitar su forma, no para sacar precios).",

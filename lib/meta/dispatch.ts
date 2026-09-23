@@ -19,6 +19,54 @@ import { isBulkSyncEvent, type NormalizedEvent } from "./inbound";
  * (`lib/crm/whatsapp-agent/run.ts`), que espera a que la persona deje de
  * escribir y toma un candado por conversación.
  */
+const mask = (id: string) => (id.length > 4 ? `…${id.slice(-4)}` : id);
+
+/**
+ * Una línea por aviso en los logs de Vercel: qué llegó (campos, tipos de
+ * mensaje, hilos con los últimos 4 dígitos). Es lo que permite responder
+ * «me escribió alguien y no aparece» mirando los logs en vez de adivinar.
+ */
+export const describeWebhook = (payload: unknown, events: NormalizedEvent[]): string => {
+  const fields = new Set<string>();
+  const types = new Set<string>();
+  const entries = (payload as { entry?: { changes?: { field?: string; value?: { messages?: { type?: string }[] } }[] }[] })?.entry ?? [];
+  for (const e of entries) {
+    for (const c of e.changes ?? []) {
+      if (c.field) fields.add(c.field);
+      for (const m of c.value?.messages ?? []) if (m.type) types.add(m.type);
+    }
+  }
+  const kinds: Record<string, number> = {};
+  const threads = new Set<string>();
+  for (const ev of events) {
+    kinds[ev.kind] = (kinds[ev.kind] ?? 0) + 1;
+    if (ev.kind === "message") threads.add(mask(ev.threadId));
+  }
+  return `fields=${[...fields].join(",") || "-"} types=${[...types].join(",") || "-"} events=${JSON.stringify(kinds)} threads=${[...threads].join(",") || "-"}`;
+};
+
+/**
+ * Un aviso que no se convirtió en nada se guarda tal cual (con los textos
+ * recortados) para poder ver qué forma tenía y arreglar el lector.
+ */
+export const keepUnparsedPayload = async (payload: unknown): Promise<void> => {
+  const trimmed = JSON.parse(
+    JSON.stringify(payload, (key, value) =>
+      key === "body" && typeof value === "string" ? value.slice(0, 40) : value
+    )
+  );
+  const { prisma } = await import("@/lib/db");
+  await prisma.metaWebhookEvent
+    .create({
+      data: {
+        object: "unparsed",
+        eventId: `unparsed:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+        payload: trimmed,
+      },
+    })
+    .catch((e: unknown) => console.warn("[webhook] no se pudo guardar el aviso sin leer", e));
+};
+
 export const dispatchMetaEvents = (
   object: string,
   events: NormalizedEvent[],

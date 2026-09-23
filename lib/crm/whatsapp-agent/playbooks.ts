@@ -38,16 +38,22 @@ export type PlaybookRow = {
 
 export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }[] = [
   {
-    name: "Agendar",
-    trigger: "La persona quiere una cita, una sesión o una llamada, o pregunta por horarios.",
+    name: "Primer contacto",
+    trigger: "Alguien escribe por primera vez, saluda o pregunta algo general (qué hace Dayana, cómo funciona, cuánto vale).",
     steps:
-      "1. Si no está claro, pregunta qué quiere agendar (sesión o llamada) y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas (día y hora).\n3. Cuando elija una, confírmala: repite servicio, día y hora y pregunta si te la agenda.\n4. Solo con su «sí», usa book_appointment y comparte el día, la hora y el enlace de Meet.\n5. Si ninguna le sirve, pregunta qué día le queda mejor y vuelve a buscar. Nunca mandes enlaces de agenda.",
+      "1. Saluda con calidez y pregunta cómo está y qué la trae.\n2. Una pregunta a la vez para que mire su situación: «¿hace cuánto te sientes así?», «¿cómo te afecta en tu día a día?», «¿cuánto tiempo más quieres seguir viviendo esto?».\n3. Refleja lo que cuenta en una frase, sin aconsejar.\n4. Invítala a la consulta gratis de 15 minutos con Dayana y ofrécele horas.\n5. No des precios de entrada; si los pide, ofrece primero la consulta gratis.",
+  },
+  {
+    name: "Agendar",
+    trigger: "La persona quiere una cita, una sesión, la consulta gratis, o pregunta por horarios.",
+    steps:
+      "1. Si no está claro, pregunta si es la consulta gratis de 15 minutos o una sesión, y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas.\n3. Si no sabes su nombre, pídeselo.\n4. Cuando elija, confirma servicio, día y hora y pregunta si te lo agenda.\n5. Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Nunca mandes enlaces de agenda.",
   },
   {
     name: "Pagos",
-    trigger: "Menciona que pagó, transfirió, manda un comprobante, pregunta por un cobro, reembolso o factura.",
+    trigger: "Pide cómo pagar un paquete, o menciona que ya pagó, manda un comprobante, pregunta por un cobro, reembolso o factura.",
     steps:
-      "Nunca confirmes ni niegues un pago. Llama a escalate con category=payment y no respondas nada más.",
+      "Si quiere pagar: usa payment_link con el paquete que eligió y comparte el enlace. Si dice que ya pagó o manda comprobante: nunca confirmes ni niegues el pago; llama a escalate con category=payment y no respondas nada más.",
   },
 ];
 

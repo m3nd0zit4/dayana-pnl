@@ -161,6 +161,14 @@ https://maps.google.com/?q=${lat},${lng}` : ""
     }
     case "button":
       return asString(asRecord(message.button)?.text) ?? "(respuesta a un botón)";
+    case "request_welcome":
+      return "👋 Abrió el chat";
+    case "order": {
+      const items = asArray(asRecord(message.order)?.product_items).length;
+      return `🛒 Pedido${items ? ` (${items} producto${items === 1 ? "" : "s"})` : ""}`;
+    }
+    case "ephemeral":
+      return "(Mensaje temporal: ábrelo en el celular)";
     case "unsupported":
     case "unknown":
       return "(Mensaje que WhatsApp no deja ver aquí: ábrelo en el celular)";
@@ -217,6 +225,12 @@ const parseWhatsAppMessage = (
       // El pie de foto es el texto del mensaje para quien lo lee.
       if (!body && caption) body = caption;
     }
+  }
+
+  const referral = asRecord(message.referral);
+  if (referral) {
+    const ad = asString(referral.headline) ?? asString(referral.body) ?? asString(referral.source_url);
+    body = `${body ?? ""}${body ? "\n" : ""}(Llegó desde un anuncio${ad ? `: ${ad}` : ""})`;
   }
 
   return {
@@ -332,22 +346,36 @@ const normalizeWhatsAppValue = (
   // `contacts` trae el nombre de perfil, pero indexado por wa_id, no por
   // mensaje. Se resuelve a un mapa antes de recorrer los mensajes.
   const profileNames = new Map<string, string>();
-  for (const entry of asArray(value.contacts)) {
-    const contact = asRecord(entry);
-    const waId = asString(contact?.wa_id);
-    const name = asString(asRecord(contact?.profile)?.name);
-    if (waId && name) profileNames.set(waId, name);
+  const contacts = asArray(value.contacts).map(asRecord).filter(Boolean) as Record<string, unknown>[];
+  for (const contact of contacts) {
+    const name = asString(asRecord(contact.profile)?.name);
+    for (const key of [asString(contact.wa_id), asString(contact.user_id)]) {
+      if (key && name) profileNames.set(key, name);
+    }
   }
 
   for (const entry of asArray(value.messages)) {
     const message = asRecord(entry);
-    const from = asString(message?.from);
-    if (!message || !from) continue;
+    if (!message) continue;
+    // Con los nombres de usuario de WhatsApp (2026) un mensaje puede llegar sin
+    // `from` (el teléfono), solo con el id de usuario. Antes esos mensajes se
+    // descartaban en silencio: nunca aparecían en el CRM. Ahora el hilo es el
+    // teléfono si viene, y si no el id de usuario o el del contacto.
+    const from =
+      asString(message.from) ??
+      asString(message.from_user_id) ??
+      asString(contacts[0]?.wa_id) ??
+      asString(contacts[0]?.user_id);
+    if (!from) continue;
     const parsed = parseWhatsAppMessage(message, {
       metaAccountId,
       threadId: from,
       isEcho: false,
-      participantName: profileNames.get(from) ?? null,
+      participantName:
+        profileNames.get(from) ??
+        profileNames.get(asString(message.from_user_id) ?? "") ??
+        asString(asRecord(contacts[0]?.profile)?.name) ??
+        null,
     });
     if (parsed) events.push(parsed);
   }

@@ -2044,6 +2044,8 @@ model WhatsAppBooking {
   googleAccountId String   @map("google_account_id")
   calendarEventId String   @map("calendar_event_id")
   meetUrl         String?  @map("meet_url")
+  /// Enlace al evento en Google Calendar (para abrirlo desde el CRM).
+  eventUrl        String?  @map("event_url")
   /// BOOKED | CANCELLED
   status          String   @default("BOOKED")
   createdAt       DateTime @default(now()) @map("created_at")

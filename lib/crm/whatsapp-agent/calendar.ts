@@ -2,7 +2,9 @@ import { resolveGoogleAccount } from "@/agent/lib/google";
 import { createEvent, listEvents } from "@/lib/google/calendar";
 import { getSiteUrl } from "@/lib/site-url";
 import { zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
+import { prisma } from "@/lib/db";
 import type { WhatsAppBookingConfig } from "../whatsapp-ai-config";
+import { buildEventTitle, isFreeCallService } from "./event-title";
 import {
   findFreeSlots,
   isWithinBookingHours,
@@ -121,10 +123,13 @@ export const bookOnCalendar = async (input: {
   name: string | null;
   phone: string;
   conversationId: string;
+  contactId?: string | null;
 }): Promise<{
   accountId: string;
   eventId: string;
   meetUrl: string | null;
+  eventUrl: string | null;
+  title: string;
   end: Date;
 }> => {
   const end = new Date(input.start.getTime() + input.durationMin * 60_000);
@@ -153,13 +158,35 @@ export const bookOnCalendar = async (input: {
     throw new SlotUnavailableError("Esa hora ya se ocupó.");
   }
 
-  const who = input.name?.trim() || `+${input.phone}`;
+  // Título con la forma de Dayana: `X/Y Nombre +teléfono`.
+  const [contact, enrollment] = input.contactId
+    ? await Promise.all([
+        prisma.contact.findUnique({
+          where: { id: input.contactId },
+          select: { firstName: true, lastName: true },
+        }),
+        prisma.enrollment.findFirst({
+          where: { contactId: input.contactId, status: "ACTIVE", sessionsTotal: { gt: 0 } },
+          orderBy: { createdAt: "desc" },
+          select: { sessionsUsed: true, sessionsTotal: true },
+        }),
+      ])
+    : [null, null];
+  const crmName = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ").trim();
+  const title = buildEventTitle({
+    name: crmName || input.name,
+    phone: input.phone,
+    enrollment,
+    freeCall: isFreeCallService(input.service, input.durationMin),
+  });
+  const digits = input.phone.replace(/\D/g, "");
   const event = await createEvent(token, {
-    summary: `${input.service} — ${who}`,
+    summary: title,
     description: [
-      `Agendada por el asistente de WhatsApp.`,
-      `WhatsApp: +${input.phone}`,
+      input.service,
+      `WhatsApp: https://wa.me/${digits}`,
       `Chat en el CRM: ${getSiteUrl()}/admin/whatsapp?conversation=${input.conversationId}`,
+      "Agendada por el asistente de WhatsApp.",
     ].join("\n"),
     startIso: input.start.toISOString(),
     endIso: end.toISOString(),
@@ -171,6 +198,8 @@ export const bookOnCalendar = async (input: {
     accountId: acc.id,
     eventId: event.id,
     meetUrl: event.hangoutLink ?? null,
+    eventUrl: event.htmlLink ?? null,
+    title,
     end,
   };
 };

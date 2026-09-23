@@ -26,6 +26,7 @@ import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { ChatDetail, ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import { useCrm } from "../crm/CrmProvider";
+import VoiceRecorder from "./VoiceRecorder";
 import { useWhatsAppLive } from "./live";
 import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, isRunLive, useNow } from "./status";
 
@@ -106,14 +107,35 @@ const KIND_LABEL: Record<string, string> = {
 const URL_SPLIT = /(https?:\/\/[^\s]+)/g;
 const IS_URL = /^https?:\/\//;
 
+/** Enlaces que conviene ver como botón: Meet, pago, WhatsApp, calendario. */
+const linkKind = (url: string): string | null => {
+  if (/meet\.google\.com\//.test(url)) return "🎥 Abrir Meet";
+  if (/\/pagar\//.test(url)) return "💳 Enlace de pago";
+  if (/wa\.me\//.test(url)) return "💬 Abrir WhatsApp";
+  if (/calendar\.google\.com\//.test(url)) return "📅 Ver en el calendario";
+  return null;
+};
+
 /** Texto con los enlaces tocables, como en WhatsApp. */
 const Linkified = ({ text }: { text: string }) => (
   <>
     {text.split(URL_SPLIT).map((part, i) =>
       IS_URL.test(part) ? (
-        <a key={i} href={part} target="_blank" rel="noreferrer" className="break-all text-[#027eb5] hover:underline">
-          {part}
-        </a>
+        linkKind(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            className="my-0.5 inline-flex max-w-full items-center gap-1 rounded-full bg-[#00a884] px-2.5 py-0.5 text-xs font-medium text-white hover:bg-[#008069]"
+          >
+            {linkKind(part)}
+          </a>
+        ) : (
+          <a key={i} href={part} target="_blank" rel="noreferrer" className="break-all text-[#027eb5] hover:underline">
+            {part}
+          </a>
+        )
       ) : (
         <span key={i}>{part}</span>
       )
@@ -406,6 +428,48 @@ const Thread = ({
     else setText((t) => (t.trim() ? `${t}\n\n${data.text}` : data.text));
   };
 
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  /** Sube un archivo (foto, documento, nota de voz) y lo manda en este chat. */
+  const sendFile = async (file: File, caption?: string) => {
+    setBusy("file");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/admin/inbox/upload", { method: "POST", body: form });
+      const up = (await res.json().catch(() => ({}))) as {
+        url?: string;
+        mimeType?: string;
+        filename?: string;
+        error?: string;
+      };
+      if (!res.ok || !up.url) {
+        toast(
+          up.error === "unsupported_type"
+            ? "Ese tipo de archivo no se puede mandar por WhatsApp."
+            : up.error === "file_too_large"
+              ? "El archivo es muy pesado para WhatsApp."
+              : "No se pudo subir el archivo.",
+          "error"
+        );
+        return;
+      }
+      await post(chat.id, {
+        action: "attachment",
+        url: up.url,
+        mimeType: up.mimeType,
+        filename: up.filename,
+        body: caption,
+      });
+      onChanged();
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "error";
+      toast(code === "window_closed" ? "Pasaron más de 24 h desde su último mensaje." : `No se pudo enviar: ${code}`, "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const openStickers = async () => {
     setShowStickers((v) => !v);
     if (stickers === null) {
@@ -634,6 +698,27 @@ const Thread = ({
               </div>
             )}
             <div className="flex items-end gap-2">
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,video/mp4,audio/ogg,audio/mpeg,audio/mp4,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void sendFile(file, text.trim() || undefined).then(() => setText(""));
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                disabled={!canWrite || busy !== null || !chat.windowOpen}
+                title="Adjuntar foto o documento"
+                aria-label="Adjuntar foto o documento"
+                className="grid size-[42px] shrink-0 place-items-center rounded-full text-[#54656f] hover:bg-black/5 disabled:opacity-40"
+              >
+                {busy === "file" ? <Loader2 className="size-5 animate-spin" /> : <Paperclip className="size-5" />}
+              </button>
               <button
                 type="button"
                 onClick={() => void openStickers()}
@@ -661,15 +746,22 @@ const Thread = ({
                   }
                 }}
               />
-              <button
-                type="button"
-                onClick={send}
-                disabled={!canWrite || !text.trim() || busy !== null || !chat.windowOpen}
-                aria-label="Enviar"
-                className="grid size-[42px] shrink-0 place-items-center rounded-full bg-[#00a884] text-white hover:bg-[#008069] disabled:opacity-40"
-              >
-                {busy === "send" ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
-              </button>
+              {text.trim() ? (
+                <button
+                  type="button"
+                  onClick={send}
+                  disabled={!canWrite || !text.trim() || busy !== null || !chat.windowOpen}
+                  aria-label="Enviar"
+                  className="grid size-[42px] shrink-0 place-items-center rounded-full bg-[#00a884] text-white hover:bg-[#008069] disabled:opacity-40"
+                >
+                  {busy === "send" ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
+                </button>
+              ) : (
+                <VoiceRecorder
+                  disabled={!canWrite || busy !== null || !chat.windowOpen}
+                  onRecorded={(file) => sendFile(file)}
+                />
+              )}
             </div>
             {chat.aiMode === "AUTO" && !chat.paused && !chat.priority && (
               <p className="text-[11px] text-[#667781]">Enter envía · Shift+Enter nueva línea · si escribes aquí, la IA se aparta unas horas.</p>
@@ -704,11 +796,43 @@ const Thread = ({
                     <div className="capitalize text-[#54656f]">
                       {new Date(b.startsAt).toLocaleString("es-CO", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" })}
                     </div>
-                    {b.meetUrl && <a href={b.meetUrl} target="_blank" rel="noreferrer" className="font-medium text-[#027eb5] hover:underline">Abrir Meet</a>}
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {b.meetUrl && (
+                        <a href={b.meetUrl} target="_blank" rel="noreferrer" className="rounded-full bg-[#00a884] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#008069]">
+                          🎥 Abrir Meet
+                        </a>
+                      )}
+                      {b.eventUrl && (
+                        <a href={b.eventUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[#d1d7db] px-2.5 py-1 text-xs font-medium text-[#111b21] hover:bg-[#f5f6f6]">
+                          📅 Ver en el calendario
+                        </a>
+                      )}
+                    </div>
                   </div>
                 ))}
               </section>
             )}
+
+            {(() => {
+              const links = chat.runs.flatMap((r) =>
+                Array.isArray(r.toolCalls)
+                  ? (r.toolCalls as { tool: string; output?: { url?: string; product?: string } }[])
+                      .filter((t) => t.tool === "payment_link" && t.output?.url)
+                      .map((t) => ({ url: t.output!.url!, product: t.output?.product ?? "Paquetes" }))
+                  : []
+              );
+              return links.length > 0 ? (
+                <section className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[#008069]">Enlaces de pago enviados</h3>
+                  {links.map((l) => (
+                    <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-2 rounded-lg border border-[#e9edef] px-2.5 py-2 text-sm hover:bg-[#f5f6f6] dark:border-border">
+                      <span className="truncate">{l.product}</span>
+                      <span className="shrink-0 text-xs font-medium text-[#008069]">💳 Abrir</span>
+                    </a>
+                  ))}
+                </section>
+              ) : null;
+            })()}
 
             <section className="space-y-2">
               <h3 className="text-sm font-semibold text-[#008069]">Lo que hizo la IA aquí</h3>

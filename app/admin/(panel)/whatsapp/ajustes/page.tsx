@@ -3,6 +3,7 @@ import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import WhatsAppAiSettingsClient from "@/app/components/admin/crm/settings/WhatsAppAiSettingsClient";
 import WhatsAppProviderCard from "@/app/components/admin/crm/settings/WhatsAppProviderCard";
 import WhatsAppWelcomeCard from "@/app/components/admin/crm/settings/WhatsAppWelcomeCard";
+import HistoryImportCard from "@/app/components/admin/whatsapp/HistoryImportCard";
 import PushToggle from "@/app/components/admin/whatsapp/PushToggle";
 import WhatsAppBehaviorCard from "@/app/components/admin/whatsapp/WhatsAppBehaviorCard";
 import WhatsAppPlaybooksCard from "@/app/components/admin/whatsapp/WhatsAppPlaybooksCard";
@@ -47,6 +48,7 @@ const Page = async () => {
     <CrmPageShell>
       <h1 className="text-xl font-semibold">Ajustes de WhatsApp</h1>
       <WhatsAppProviderCard initial={provider} />
+      <HistoryImportCard />
       <WhatsAppBehaviorCard
         initialMode={config.defaultMode}
         initialHolding={config.escalation.holdingMessage}

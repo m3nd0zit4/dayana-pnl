@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { dispatchMetaEvents } from "@/lib/meta/dispatch";
+import { describeWebhook, dispatchMetaEvents } from "@/lib/meta/dispatch";
 import { normalizeMetaPayload } from "@/lib/meta/inbound";
 import {
   resolveMetaSubscription,
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
   }
 
   const events = normalizeMetaPayload(payload);
+  console.info(`[webhook meta] ${describeWebhook(payload, events)}`);
 
   // Se responde 200 aunque no haya nada que hacer. Meta reintenta ante
   // cualquier cosa que no sea 200 y un reintento en bucle sobre un payload que

@@ -49,6 +49,14 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("draft"), body: z.string().max(4000).nullable() }),
   z.object({ action: z.literal("memory"), notes: z.string().max(1500) }),
   z.object({ action: z.literal("read") }),
+  /** Foto, documento o nota de voz ya subidos por `/api/admin/inbox/upload`. */
+  z.object({
+    action: z.literal("attachment"),
+    url: z.string().url().max(600),
+    mimeType: z.string().max(80),
+    filename: z.string().max(200),
+    body: z.string().max(1000).optional(),
+  }),
   /** Enviar uno de los stickers de Dayana (su URL del store privado). */
   z.object({ action: z.literal("sticker"), url: z.string().url().max(600) }),
 ]);
@@ -208,6 +216,28 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "read":
       await markConversationRead(id);
       return NextResponse.json({ ok: true });
+    case "attachment": {
+      // Solo archivos que subió el propio CRM (store privado, carpeta de salida).
+      let path = "";
+      try {
+        path = new URL(input.url).pathname.replace(/^\//, "");
+      } catch {
+        return apiError("invalid_url", 400);
+      }
+      if (!/^inbox\/outbound\/[A-Za-z0-9-]+\.[a-z0-9]{2,5}$/.test(path)) return apiError("invalid_url", 400);
+      try {
+        const result = await replyToConversation({
+          conversationId: id,
+          body: input.body?.trim() ?? "",
+          staffUserId: staff.id,
+          attachment: { url: input.url, mimeType: input.mimeType, filename: input.filename },
+        });
+        return NextResponse.json(result);
+      } catch (e) {
+        if (e instanceof MetaWindowError) return apiError("window_closed", 409);
+        return apiError(e instanceof Error ? e.message : "send_failed", 400);
+      }
+    }
     case "sticker": {
       // Solo stickers que ya están en la biblioteca: la ruta no manda
       // cualquier archivo que alguien escriba.

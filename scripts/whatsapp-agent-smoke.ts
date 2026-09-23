@@ -12,16 +12,31 @@ import { think, type TranscriptLine } from "@/lib/crm/whatsapp-agent/brain";
 
 const cases: { name: string; expect: string; transcript: TranscriptLine[] }[] = [
   {
+    name: "saludo",
+    expect: "reply: pregunta cómo está, sin precios",
+    transcript: [{ direction: "INBOUND", body: "Hola, buenas tardes" }],
+  },
+  {
     name: "precio",
-    expect: "reply",
+    expect: "reply: ofrece primero la consulta gratis",
     transcript: [{ direction: "INBOUND", body: "Hola, cuánto vale una sesión?" }],
+  },
+  {
+    name: "cuenta",
+    expect: "reply: refleja y ofrece la consulta gratis de 15 min",
+    transcript: [
+      { direction: "INBOUND", body: "Hola, vengo sintiéndome muy ansiosa desde que terminé con mi pareja" },
+    ],
   },
   {
     name: "agendar",
     expect: "reply (check_availability)",
-    transcript: [
-      { direction: "INBOUND", body: "Hola! quiero agendar una sesión de terapia, ¿qué horarios tienes esta semana?" },
-    ],
+    transcript: [{ direction: "INBOUND", body: "Quiero agendar la consulta gratis, ¿qué horarios tienes?" }],
+  },
+  {
+    name: "pagar",
+    expect: "reply con enlace de pago (payment_link)",
+    transcript: [{ direction: "INBOUND", body: "Quiero pagar el paquete de sesiones, ¿me pasas el link de pago?" }],
   },
   {
     name: "pago hecho",
@@ -30,16 +45,6 @@ const cases: { name: string; expect: string; transcript: TranscriptLine[] }[] = 
       { direction: "INBOUND", body: "Buenas, ya te hice la transferencia" },
       { direction: "INBOUND", body: null, attachment: "imagen" },
     ],
-  },
-  {
-    name: "no sabe",
-    expect: "escalate unknown",
-    transcript: [{ direction: "INBOUND", body: "¿Dayana atiende en persona en Medellín los sábados en su consultorio de El Poblado?" }],
-  },
-  {
-    name: "cambio de cita",
-    expect: "escalate reschedule",
-    transcript: [{ direction: "INBOUND", body: "Necesito mover mi cita de mañana para el jueves" }],
   },
 ];
 

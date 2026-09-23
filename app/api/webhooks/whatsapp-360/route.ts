@@ -1,11 +1,15 @@
 import { timingSafeEqual } from "node:crypto";
 
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 
 import { fireAuditLog } from "@/lib/crm/audit";
-import { dispatchMetaEvents } from "@/lib/meta/dispatch";
+import {
+  describeWebhook,
+  dispatchMetaEvents,
+  keepUnparsedPayload,
+} from "@/lib/meta/dispatch";
 import { normalizeMetaPayload } from "@/lib/meta/inbound";
-import { getDialog360WebhookSecret } from "@/lib/meta/whatsapp-provider";
+import { getDialog360WebhookSecrets } from "@/lib/meta/whatsapp-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,10 +38,11 @@ const sameSecret = (a: string, b: string): boolean => {
 };
 
 export async function POST(req: NextRequest) {
-  const expected = await getDialog360WebhookSecret();
+  const secrets = await getDialog360WebhookSecrets();
+  const expected = secrets[0] ?? null;
   const received = req.headers.get("x-webhook-secret") ?? "";
 
-  if (!expected || !received || !sameSecret(received, expected)) {
+  if (!expected || !received || !secrets.some((secret) => sameSecret(received, secret))) {
     fireAuditLog({
       action: "WEBHOOK_REJECTED",
       entityType: "MetaWebhookEvent",
@@ -55,7 +60,9 @@ export async function POST(req: NextRequest) {
   }
 
   const events = normalizeMetaPayload(payload);
+  console.info(`[webhook 360dialog] ${describeWebhook(payload, events)}`);
   if (events.length === 0) {
+    after(() => keepUnparsedPayload(payload));
     return NextResponse.json({ ok: true, queued: 0 });
   }
 
