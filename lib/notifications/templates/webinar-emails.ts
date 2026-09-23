@@ -1,4 +1,5 @@
 import { siteUrl } from "../config";
+import { FREE_EVENT_PATH } from "@/lib/crm/free-webinar-publish";
 import {
   escapeHtml,
   varsToPlainParagraphs,
@@ -23,10 +24,19 @@ export type WebinarMailInput = {
   /** «9 de agosto de 2026 · 19:00 (America/Bogota)» */
   scheduleLabel?: string | null;
   timezone?: string | null;
+  /** Qué es el evento («Webinar gratuito», «Masterclass gratuita»…). */
+  eventLabel?: string | null;
+  /** Título del evento (el titular de la página). */
+  eventTitle?: string | null;
 };
 
-const FOOTNOTE =
-  "Recibes este correo porque te registraste en dayanabeltran.com/webinar-gratuito.";
+const labelOf = (i: WebinarMailInput) => i.eventLabel?.trim() || "Evento gratuito";
+/** «Reprograma tu mente con PNL», o el tipo de evento si no hay titular. */
+const titleOf = (i: WebinarMailInput) =>
+  i.eventTitle?.trim() || labelOf(i).toLowerCase();
+const pageUrl = () => `${siteUrl()}${FREE_EVENT_PATH}`;
+
+const FOOTNOTE = `Recibes este correo porque te registraste en dayanabeltran.com${FREE_EVENT_PATH}.`;
 
 const scheduleRows = (i: WebinarMailInput): SummaryRow[] => {
   const rows: SummaryRow[] = [];
@@ -53,14 +63,14 @@ const linkFallbackHtml = (meetUrl: string): string =>
 
 // ── Enlace de la reunión ────────────────────────────────────────────────────
 
-export const webinarMeetLinkSubject = (): string =>
-  "Tu enlace de acceso al webinar gratuito · Dayana Beltrán";
+export const webinarMeetLinkSubject = (i?: WebinarMailInput): string =>
+  `Tu enlace de acceso · ${i ? labelOf(i) : "Evento gratuito"} · Dayana Beltrán`;
 
 export const webinarMeetLinkHtml = (i: WebinarMailInput): string => {
   const meetUrl = i.meetUrl ?? "";
   const body = varsToPlainParagraphs([
     `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
-    `Ya tienes el enlace para entrar al <strong style="font-weight:600;">webinar gratuito</strong>. Guárdalo: es el mismo con el que entrarás el día del encuentro.`,
+    `Ya tienes el enlace para entrar a <strong style="font-weight:600;">${escapeHtml(titleOf(i))}</strong>. Guárdalo: es el mismo con el que entrarás el día del encuentro.`,
     i.scheduleLabel
       ? `Nos vemos el <strong style="font-weight:600;">${escapeHtml(i.scheduleLabel)}</strong>.`
       : `Te confirmamos la fecha por este mismo correo.`,
@@ -68,8 +78,8 @@ export const webinarMeetLinkHtml = (i: WebinarMailInput): string => {
   ]);
 
   return wrapEmailHtml({
-    preheader: "Este es tu enlace para entrar al webinar gratuito.",
-    eyebrow: "Webinar gratuito",
+    preheader: `Este es tu enlace para entrar a ${titleOf(i)}.`,
+    eyebrow: labelOf(i),
     title: "Tu enlace de acceso",
     bodyHtml:
       body +
@@ -77,8 +87,8 @@ export const webinarMeetLinkHtml = (i: WebinarMailInput): string => {
       (i.materialFileName ? materialHtml(i.materialFileName) : ""),
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
-      ? { label: "Entrar al webinar", href: meetUrl }
-      : { label: "Ver la página del webinar", href: `${siteUrl()}/webinar-gratuito` },
+      ? { label: "Entrar al evento", href: meetUrl }
+      : { label: "Ver la página del evento", href: pageUrl() },
     footnote: FOOTNOTE,
   });
 };
@@ -87,7 +97,7 @@ export const webinarMeetLinkText = (i: WebinarMailInput): string =>
   [
     `Hola ${i.firstName},`,
     ``,
-    `Ya tienes el enlace para entrar al webinar gratuito. Guárdalo: es el mismo del día del encuentro.`,
+    `Ya tienes el enlace para entrar a ${titleOf(i)}. Guárdalo: es el mismo del día del encuentro.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
     i.materialFileName ? materialText(i.materialFileName) : "",
@@ -95,7 +105,7 @@ export const webinarMeetLinkText = (i: WebinarMailInput): string =>
     `Te recomiendo entrar unos minutos antes.`,
     ``,
     `Dayana Beltrán PNL`,
-    `${siteUrl()}/webinar-gratuito`,
+    pageUrl(),
   ]
     .filter(Boolean)
     .join("\n");
@@ -117,10 +127,10 @@ export type WebinarReminderInput = WebinarMailInput & {
 };
 
 export const webinarReminderSubject = (i: WebinarReminderInput): string => {
-  if (i.kind === "24h") return "Mañana es el webinar gratuito · Dayana Beltrán";
+  if (i.kind === "24h") return `Mañana nos vemos · ${labelOf(i)} · Dayana Beltrán`;
   return i.hasStarted
-    ? "Ya empezamos — entra ahora al webinar"
-    : "Empezamos en una hora · webinar gratuito";
+    ? `Ya empezamos — entra ahora · ${labelOf(i)}`
+    : `Empezamos en una hora · ${labelOf(i)}`;
 };
 
 export const webinarReminderHtml = (i: WebinarReminderInput): string => {
@@ -130,7 +140,7 @@ export const webinarReminderHtml = (i: WebinarReminderInput): string => {
     is24h
       ? [
           `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
-          `Te escribo para recordarte que <strong style="font-weight:600;">mañana</strong> nos vemos en el webinar gratuito.`,
+          `Te escribo para recordarte que <strong style="font-weight:600;">mañana</strong> nos vemos en <strong style="font-weight:600;">${escapeHtml(titleOf(i))}</strong>.`,
           i.scheduleLabel
             ? `Es el <strong style="font-weight:600;">${escapeHtml(i.scheduleLabel)}</strong>.`
             : "",
@@ -153,11 +163,11 @@ export const webinarReminderHtml = (i: WebinarReminderInput): string => {
 
   return wrapEmailHtml({
     preheader: is24h
-      ? "Mañana nos vemos en el webinar gratuito."
+      ? `Mañana nos vemos en ${titleOf(i)}.`
       : i.hasStarted
-        ? "El webinar ya empezó — entra ahora."
-        : "El webinar gratuito empieza en una hora.",
-    eyebrow: "Webinar gratuito",
+        ? "Ya empezamos — entra ahora."
+        : `${titleOf(i)} empieza en una hora.`,
+    eyebrow: labelOf(i),
     title: is24h
       ? "Mañana nos vemos"
       : i.hasStarted
@@ -170,10 +180,10 @@ export const webinarReminderHtml = (i: WebinarReminderInput): string => {
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
       ? {
-          label: i.hasStarted ? "Entrar ahora" : "Entrar al webinar",
+          label: i.hasStarted ? "Entrar ahora" : "Entrar al evento",
           href: meetUrl,
         }
-      : { label: "Ver la página del webinar", href: `${siteUrl()}/webinar-gratuito` },
+      : { label: "Ver la página del evento", href: pageUrl() },
     footnote: FOOTNOTE,
   });
 };
@@ -183,16 +193,16 @@ export const webinarReminderText = (i: WebinarReminderInput): string =>
     `Hola ${i.firstName},`,
     ``,
     i.kind === "24h"
-      ? `Mañana nos vemos en el webinar gratuito.`
+      ? `Mañana nos vemos en ${titleOf(i)}.`
       : i.hasStarted
         ? `Ya estamos en vivo. Entra ahora — todavía estás a tiempo.`
-        : `El webinar gratuito empieza en una hora.`,
+        : `${titleOf(i)} empieza en una hora.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
     i.materialFileName ? materialText(i.materialFileName) : "",
     ``,
     `Dayana Beltrán PNL`,
-    `${siteUrl()}/webinar-gratuito`,
+    pageUrl(),
   ]
     .filter(Boolean)
     .join("\n");

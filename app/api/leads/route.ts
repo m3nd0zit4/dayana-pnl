@@ -260,6 +260,8 @@ export async function POST(req: NextRequest) {
     let alreadyRegistered = false;
     let webinarMeetUrl: string | null = null;
     let webinarScheduleLabel: string | null = null;
+    let webinarEventLabel: string | null = null;
+    let webinarEventTitle: string | null = null;
     // Un formulario cacheado puede llegar después del webinar. Sin esta guarda
     // se crea una inscripción contra una edición terminada y se manda un
     // enlace de Meet muerto. El contacto se guarda igual — sigue siendo un
@@ -283,6 +285,8 @@ export async function POST(req: NextRequest) {
         if (webinarOpen) {
           webinarMeetUrl = webinar.meetUrl;
           webinarScheduleLabel = formatWebinarScheduleLabel(webinar);
+          webinarEventLabel = webinar.eventLabel;
+          webinarEventTitle = webinar.headline;
           // Si la confirmación ya lleva el enlace dentro, se sella el envío
           // aquí mismo: si no, el fan-out mandaría un segundo correo con
           // exactamente lo mismo unos minutos después.
@@ -333,6 +337,8 @@ export async function POST(req: NextRequest) {
             alreadyRegistered,
             scheduleLabel: webinarScheduleLabel,
             meetUrl: webinarMeetUrl,
+            eventLabel: webinarEventLabel,
+            eventTitle: webinarEventTitle,
           });
         } else {
           await notifyNewLead({

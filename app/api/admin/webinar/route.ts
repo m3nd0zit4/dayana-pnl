@@ -50,6 +50,16 @@ const patchSchema = z.object({
   formTitle: z.string().min(1).max(120).optional(),
   metaTitle: z.string().max(120).nullable().optional(),
   metaDescription: z.string().max(320).nullable().optional(),
+  // Personalización de la página y del botón en /enlaces.
+  eventLabel: z.string().trim().min(1).max(60).optional(),
+  locationLabel: z.string().trim().min(1).max(60).optional(),
+  priceLabel: z.string().trim().min(1).max(40).optional(),
+  faqTitle: z.string().trim().max(120).nullable().optional(),
+  materialLabel: z.string().trim().max(60).nullable().optional(),
+  successMessage: z.string().trim().max(600).nullable().optional(),
+  linkEnabled: z.boolean().optional(),
+  linkTitle: z.string().trim().max(80).nullable().optional(),
+  linkSubtitle: z.string().trim().max(120).nullable().optional(),
 });
 
 export const GET = withStaff("read", async () => {

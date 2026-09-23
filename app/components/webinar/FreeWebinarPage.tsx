@@ -75,7 +75,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
         <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-12">
           <div>
             <span className="inline-flex rounded-full bg-terracotta px-3.5 py-1.5 font-[font2] text-[10px] uppercase tracking-[0.22em] text-white">
-              Webinar gratuito
+              {webinar.eventLabel}
             </span>
             <h1 className="mt-4 font-[font2] text-[clamp(1.85rem,4.8vw,3.25rem)] uppercase leading-[0.95] tracking-tight">
               {webinar.headline}
@@ -101,11 +101,11 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
               ) : null}
               <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-3.5 py-2 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md">
                 <Laptop className="h-4 w-4 text-terracotta" />
-                Online
+                {webinar.locationLabel}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-3.5 py-2 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md">
                 <Gift className="h-4 w-4 text-terracotta" />
-                Gratis
+                {webinar.priceLabel}
               </span>
               {webinar.capacity ? (
                 <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-3.5 py-2 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md">
@@ -136,7 +136,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
               {webinar.ctaLabel}
             </button>
             <p className="mt-3 font-[font1] text-xs text-black/40 lg:hidden">
-              {BRAND.shortName} · sin costo
+              {BRAND.shortName} · {webinar.priceLabel.toLowerCase()}
             </p>
 
             {webinar.materialFileName ? (
@@ -145,7 +145,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
                 className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white/55 px-4 py-2.5 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md transition-colors hover:border-terracotta/40 hover:text-terracotta"
               >
                 <Download className="h-4 w-4 text-terracotta" />
-                Descargar material
+                {webinar.materialLabel?.trim() || "Descargar material"}
               </a>
             ) : null}
 
@@ -178,6 +178,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
                 sourceDetail={WEBINAR_INTEREST_LABEL}
                 submitLabel={webinar.ctaLabel}
                 variant="webinar"
+                successMessage={webinar.successMessage}
               />
             </div>
           </div>
@@ -210,7 +211,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
         <section className="relative border-t border-black/8 px-5 py-12 lg:px-12 lg:py-14 xl:px-20">
           <div className="mx-auto max-w-3xl">
             <h2 className="font-[font2] text-xl uppercase tracking-wide lg:text-2xl">
-              Preguntas frecuentes
+              {webinar.faqTitle?.trim() || "Preguntas frecuentes"}
             </h2>
             <div className="mt-5">
               {webinar.faq.map((item) => (

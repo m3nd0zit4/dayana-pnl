@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
               eventType: "SYSTEM_ALERT",
               title: "Falló el procesamiento del vídeo del webinar",
               body: message ?? "Mux no pudo procesar el vídeo promocional.",
-              href: "/admin/webinar",
+              href: "/admin/eventos",
               entityType: "FreeWebinar",
               entityId: webinar.id,
               metadata: { assetId, message },

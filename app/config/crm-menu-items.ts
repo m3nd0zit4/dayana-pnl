@@ -6,6 +6,7 @@ import {
   CreditCard,
   Inbox,
   GraduationCap,
+  History,
   Home,
   Compass,
   Link2,
@@ -42,7 +43,10 @@ export type CrmMenuItemId =
   | "modules"
   | "comments"
   | "workshops"
-  | "webinar"
+  | "free-events"
+  | "free-events-current"
+  | "free-events-history"
+  | "free-events-people"
   | "inbox"
   | "content";
 
@@ -175,7 +179,37 @@ export const crmMenuSections: CrmMenuSection[] = [
         ],
       },
       { id: "workshops", icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
-      { id: "webinar", icon: Video, label: "Webinar gratuito", href: "/admin/webinar" },
+      // Antes «Webinar gratuito». Mismo patrón que Cursos: el evento que se
+      // prepara, el historial de los que ya pasaron y quién se inscribió.
+      {
+        id: "free-events",
+        icon: Video,
+        label: "Eventos gratuitos",
+        shortLabel: "Eventos",
+        href: "/admin/eventos",
+        items: [
+          {
+            id: "free-events-current",
+            icon: Video,
+            label: "Evento actual",
+            href: "/admin/eventos",
+            // `/admin/eventos` es prefijo de Historial e Inscritas.
+            exact: true,
+          },
+          {
+            id: "free-events-history",
+            icon: History,
+            label: "Historial",
+            href: "/admin/eventos/historial",
+          },
+          {
+            id: "free-events-people",
+            icon: UsersRound,
+            label: "Inscritas",
+            href: "/admin/eventos/inscritas",
+          },
+        ],
+      },
     ],
   },
   {

@@ -96,11 +96,23 @@ export const CRM_ROUTES: CrmRoute[] = [
     hasPublicLink: true,
   },
   {
-    path: "/admin/webinar",
-    name: "Webinar gratuito",
+    path: "/admin/eventos",
+    name: "Eventos gratuitos · Evento actual",
     tier: "preview",
     hasPublicLink: true,
     width: "narrow",
+  },
+  {
+    path: "/admin/eventos/historial",
+    name: "Eventos gratuitos · Historial",
+    tier: "preview",
+    expectEmpty: true,
+  },
+  {
+    path: "/admin/eventos/inscritas",
+    name: "Eventos gratuitos · Inscritas",
+    tier: "preview",
+    expectEmpty: true,
   },
   {
     path: "/admin/products",

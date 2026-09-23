@@ -420,7 +420,7 @@ const LinktreePage = ({
           />
           {webinarActive && (
             <Cta
-              href="/webinar-gratuito"
+              href="/eventos-gratuitos"
               icon={<Video className="h-5 w-5" />}
               title={webinarCtaTitle}
               subtitle={

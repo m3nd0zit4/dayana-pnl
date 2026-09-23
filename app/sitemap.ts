@@ -33,7 +33,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     if (await isFreeWebinarActive()) {
       routes.push({
-        path: "/webinar-gratuito",
+        path: "/eventos-gratuitos",
         changeFrequency: "weekly",
         priority: 0.85,
       });

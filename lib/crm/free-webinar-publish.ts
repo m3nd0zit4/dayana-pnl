@@ -16,3 +16,9 @@ export const PUBLISH_BLOCKER_LABELS: Record<PublishBlocker, string> = {
 };
 
 export type FreeWebinarFaqItem = { q: string; a: string };
+
+/**
+ * Dirección pública de los eventos gratuitos. `/webinar-gratuito` (la de
+ * antes) redirige aquí para no romper los enlaces ya compartidos.
+ */
+export const FREE_EVENT_PATH = "/eventos-gratuitos";

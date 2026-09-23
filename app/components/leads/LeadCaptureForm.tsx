@@ -31,6 +31,8 @@ export type LeadCaptureFormProps = {
   className?: string;
   /** Visual density for webinar landing vs home. */
   variant?: "home" | "webinar";
+  /** Texto propio tras inscribirse (eventos gratuitos). Vacío = el de siempre. */
+  successMessage?: string | null;
 };
 
 const INTERESTS = [
@@ -49,6 +51,7 @@ const LeadCaptureForm = ({
   formId,
   className = "",
   variant = "home",
+  successMessage = null,
 }: LeadCaptureFormProps) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -195,8 +198,9 @@ const LeadCaptureForm = ({
         <p className="mt-4 max-w-md font-[font1] text-base leading-snug text-black/70 lg:text-lg">
           {fixedInterest === WEBINAR_INTEREST_LABEL
             ? isAlready
-              ? "Tu lugar en el webinar gratuito sigue activo. Te escribimos al correo con los detalles y el enlace cuando toque — no necesitas registrarte otra vez."
-              : "Tu lugar quedó reservado. Te enviamos un correo de confirmación y te escribimos con los detalles del webinar y el enlace de acceso."
+              ? "Tu lugar en el evento sigue activo. Te escribimos al correo con los detalles y el enlace cuando toque — no necesitas registrarte otra vez."
+              : successMessage?.trim() ||
+                "Tu lugar quedó reservado. Te enviamos un correo de confirmación y te escribimos con los detalles del evento y el enlace de acceso."
             : "Recibí tus datos. Te contacto muy pronto — y te enviamos un correo para crear tu acceso a tu cuenta."}
         </p>
       </div>

@@ -1,44 +1,10 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import FreeWebinarPage from "@/app/components/webinar/FreeWebinarPage";
-import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
-import { getServerUserCountry } from "@/lib/geo/user-country";
-import { BRAND } from "@/lib/contact";
+import { permanentRedirect } from "next/navigation";
+import { FREE_EVENT_PATH } from "@/lib/crm/free-webinar-publish";
 
-export const dynamic = "force-dynamic";
-
-export async function generateMetadata(): Promise<Metadata> {
-  const webinar = await ensureFreeWebinar();
-  if (!webinar.isActive || !webinar.startsAt || webinar.endedAt) {
-    return { title: `Webinar | ${BRAND.name}`, robots: { index: false } };
-  }
-  const title = webinar.metaTitle ?? `Webinar gratuito | ${BRAND.name}`;
-  const description =
-    webinar.metaDescription ??
-    webinar.subheadline ??
-    "Regístrate al webinar gratuito en vivo con Dayana Beltrán.";
-  return {
-    title,
-    description,
-    alternates: { canonical: "/webinar-gratuito" },
-    openGraph: {
-      title,
-      description,
-      url: "/webinar-gratuito",
-      type: "website",
-    },
-  };
-}
-
-const Page = async () => {
-  const webinar = await ensureFreeWebinar();
-  // `endedAt` cierra la landing igual que `isActive: false`: es una pagina
-  // de registro, y dejarla viva con el CTA muerto no capta a nadie.
-  if (!webinar.isActive || !webinar.startsAt || webinar.endedAt) notFound();
-
-  const userCountry = await getServerUserCountry();
-
-  return <FreeWebinarPage webinar={webinar} userCountry={userCountry} />;
-};
+/**
+ * La dirección de antes. Sigue en la bio, en correos ya enviados y en
+ * publicaciones: redirige para que ninguno de esos enlaces se rompa.
+ */
+const Page = () => permanentRedirect(FREE_EVENT_PATH);
 
 export default Page;

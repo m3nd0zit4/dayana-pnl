@@ -333,7 +333,7 @@ test.describe("CRM · dark mode", () => {
    */
   const PENDING_DARK_MODE = new Set<string>([]);
 
-  const DARK_ROUTES = ["/admin/webinar", "/admin/contacts"].filter(
+  const DARK_ROUTES = ["/admin/eventos", "/admin/contacts"].filter(
     (path) => baselineMode || !PENDING_DARK_MODE.has(path),
   );
 

@@ -6,7 +6,7 @@ import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = `Enlaces — ${BRAND.name}`;
 const description =
-  "Todos los enlaces de Dayana Beltrán: WhatsApp, webinar gratuito, servicios, talleres, portal de miembros y redes sociales.";
+  "Todos los enlaces de Dayana Beltrán: WhatsApp, eventos gratuitos, servicios, talleres, portal de miembros y redes sociales.";
 
 export const metadata: Metadata = {
   title,
@@ -19,8 +19,8 @@ export const dynamic = "force-dynamic";
 
 const Page = async () => {
   let webinarActive = false;
-  let webinarCtaTitle = "Webinar gratuito";
-  let webinarCtaSubtitle = "Registro webinar gratis en vivo";
+  let webinarCtaTitle = "Evento gratuito";
+  let webinarCtaSubtitle = "Regístrate gratis";
   let webinarStartsAtIso: string | null = null;
   let webinarHasTime = true;
 
@@ -28,14 +28,25 @@ const Page = async () => {
 
   try {
     const webinar = await getFreeWebinar();
-    if (webinar?.isActive && webinar.startsAt && !webinar.endedAt) {
+    // El botón se configura en el CRM (Eventos gratuitos → Botón en Enlaces).
+    if (
+      webinar?.isActive &&
+      webinar.linkEnabled &&
+      webinar.startsAt &&
+      !webinar.endedAt
+    ) {
       webinarActive = true;
-      webinarCtaTitle = "Webinar gratuito";
-      webinarStartsAtIso = webinar.startsAtIso;
+      webinarCtaTitle = webinar.linkTitle?.trim() || webinar.eventLabel;
       webinarHasTime = webinar.startsAtHasTime;
-      webinarCtaSubtitle = webinarHasTime
-        ? "Webinar gratis en vivo"
-        : "Fecha confirmada · hora por definir";
+      const customSubtitle = webinar.linkSubtitle?.trim();
+      // Con subtítulo propio se muestra tal cual; sin él, la fecha en la hora
+      // local de quien mira.
+      webinarStartsAtIso = customSubtitle ? null : webinar.startsAtIso;
+      webinarCtaSubtitle =
+        customSubtitle ||
+        (webinarHasTime
+          ? `${webinar.eventLabel} en vivo`
+          : "Fecha confirmada · hora por definir");
     }
   } catch {
     /* DB down — hide webinar CTA */

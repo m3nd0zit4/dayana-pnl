@@ -395,7 +395,15 @@ export const getContactById = async (id: string) =>
         orderBy: { createdAt: "desc" },
         include: {
           webinar: {
-            select: { slug: true, startsAt: true, startsAtHasTime: true, meetUrl: true },
+            select: {
+              id: true,
+              slug: true,
+              headline: true,
+              eventLabel: true,
+              startsAt: true,
+              startsAtHasTime: true,
+              meetUrl: true,
+            },
           },
         },
       },

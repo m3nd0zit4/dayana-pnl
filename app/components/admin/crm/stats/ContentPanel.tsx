@@ -41,7 +41,7 @@ const ContentPanel = ({ data, granularity }: Props) => {
   return (
     <div className="space-y-6">
       <section className="space-y-4">
-        <h2 className="text-sm font-medium">Webinar gratuito</h2>
+        <h2 className="text-sm font-medium">Eventos gratuitos</h2>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <KpiCard
             label="Registros"

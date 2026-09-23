@@ -76,6 +76,9 @@ export type WebinarRegistrationRow = {
   reminder24hSentAt: Date | string | null;
   reminder1hSentAt: Date | string | null;
   webinar: {
+    id: string;
+    headline: string;
+    eventLabel: string;
     slug: string;
     startsAt: Date | string | null;
     startsAtHasTime: boolean;
@@ -195,11 +198,14 @@ const DiagnosticoCard = ({
 
 const WebinarServiceRow = ({ r }: { r: WebinarRegistrationRow }) => (
   <Link
-    href="/admin/webinar"
+    href={`/admin/eventos/historial/${r.webinar.id}`}
     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
   >
     <div className="min-w-0 flex-1">
-      <span className="font-medium">Webinar gratuito</span>
+      <span className="font-medium">{r.webinar.eventLabel}</span>
+      <span className="ml-2 text-xs text-muted-foreground">
+        {r.webinar.headline}
+      </span>
       <span className="ml-2 text-xs text-muted-foreground">
         Registrada {shortDate(r.createdAt)} · {webinarSendSummary(r)}
       </span>

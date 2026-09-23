@@ -201,11 +201,13 @@ export const buildWebinarMailPayload = (
     // El material viaja con el enlace: quien recibe uno recibe el otro.
     materialFileName: webinar.materialFileName,
     scheduleLabel: formatWebinarScheduleLabel(webinar),
+    eventLabel: webinar.eventLabel,
+    eventTitle: webinar.headline,
   };
   if (pass === "link") {
     return {
       templateKey: "webinar_meet_link",
-      subject: webinarMeetLinkSubject(),
+      subject: webinarMeetLinkSubject(vars),
       html: webinarMeetLinkHtml(vars),
       text: webinarMeetLinkText(vars),
       body: webinarMeetLinkText(vars),

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as UpChunk from "@mux/upchunk";
 import { FileText, Trash2, Upload, Video } from "lucide-react";
@@ -13,6 +14,7 @@ import { Switch } from "@/app/components/ui/switch";
 import { Textarea } from "@/app/components/ui/textarea";
 import type { FreeWebinarPublic } from "@/lib/crm/free-webinar";
 import {
+  FREE_EVENT_PATH,
   PUBLISH_BLOCKER_LABELS,
   type FreeWebinarFaqItem,
   type PublishBlocker,
@@ -27,9 +29,6 @@ import {
 } from "@/app/components/admin/crm/ui";
 import StringListEditor from "@/app/components/admin/crm/StringListEditor";
 import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";
-import WebinarEditionsPanel, {
-  type ArchivedEditionRow,
-} from "@/app/components/admin/crm/WebinarEditionsPanel";
 import WebinarRegistrantsPanel, {
   type WebinarRegistrantRow,
   type WebinarRegistrationStats,
@@ -40,7 +39,6 @@ type Props = {
   operationalTimezone?: string;
   registrations?: WebinarRegistrantRow[];
   registrationStats?: WebinarRegistrationStats;
-  archivedEditions?: ArchivedEditionRow[];
   /** OWNER: unico rol que puede reenviar a todas y borrar historial. */
   canBroadcast?: boolean;
 };
@@ -66,7 +64,6 @@ const FreeWebinarAdminClient = ({
     pendingLink: 0,
     failed: 0,
   },
-  archivedEditions = [],
   canBroadcast = false,
 }: Props) => {
   const router = useRouter();
@@ -101,6 +98,17 @@ const FreeWebinarAdminClient = ({
   const [metaDescription, setMetaDescription] = useState(
     initial.metaDescription ?? ""
   );
+  const [eventLabel, setEventLabel] = useState(initial.eventLabel);
+  const [locationLabel, setLocationLabel] = useState(initial.locationLabel);
+  const [priceLabel, setPriceLabel] = useState(initial.priceLabel);
+  const [faqTitle, setFaqTitle] = useState(initial.faqTitle ?? "");
+  const [materialLabel, setMaterialLabel] = useState(initial.materialLabel ?? "");
+  const [successMessage, setSuccessMessage] = useState(
+    initial.successMessage ?? ""
+  );
+  const [linkEnabled, setLinkEnabled] = useState(initial.linkEnabled);
+  const [linkTitle, setLinkTitle] = useState(initial.linkTitle ?? "");
+  const [linkSubtitle, setLinkSubtitle] = useState(initial.linkSubtitle ?? "");
 
   const [saving, setSaving] = useState(false);
   const [toggling, setToggling] = useState(false);
@@ -145,6 +153,15 @@ const FreeWebinarAdminClient = ({
     formTitle: formTitle.trim() || "Reserva tu lugar",
     metaTitle: metaTitle.trim() || null,
     metaDescription: metaDescription.trim() || null,
+    eventLabel: eventLabel.trim() || "Evento gratuito",
+    locationLabel: locationLabel.trim() || "Online",
+    priceLabel: priceLabel.trim() || "Gratis",
+    faqTitle: faqTitle.trim() || null,
+    materialLabel: materialLabel.trim() || null,
+    successMessage: successMessage.trim() || null,
+    linkEnabled,
+    linkTitle: linkTitle.trim() || null,
+    linkSubtitle: linkSubtitle.trim() || null,
     ...overrides,
   });
 
@@ -172,6 +189,15 @@ const FreeWebinarAdminClient = ({
     setFormTitle(webinar.formTitle);
     setMetaTitle(webinar.metaTitle ?? "");
     setMetaDescription(webinar.metaDescription ?? "");
+    setEventLabel(webinar.eventLabel);
+    setLocationLabel(webinar.locationLabel);
+    setPriceLabel(webinar.priceLabel);
+    setFaqTitle(webinar.faqTitle ?? "");
+    setMaterialLabel(webinar.materialLabel ?? "");
+    setSuccessMessage(webinar.successMessage ?? "");
+    setLinkEnabled(webinar.linkEnabled);
+    setLinkTitle(webinar.linkTitle ?? "");
+    setLinkSubtitle(webinar.linkSubtitle ?? "");
   };
 
   const patch = async (body: Record<string, unknown>) => {
@@ -479,7 +505,7 @@ const FreeWebinarAdminClient = ({
   return (
     <CrmPageShell>
       <CrmPageHeader
-        title="Webinar gratuito"
+        title="Evento gratuito"
         description={
           <>
             Fechas en{" "}
@@ -493,7 +519,7 @@ const FreeWebinarAdminClient = ({
         // muestra deshabilitado con el motivo en vez de llevar a un error.
         secondaryActions={
           <CrmPublicLink
-            href="/webinar-gratuito"
+            href={FREE_EVENT_PATH}
             copy
             disabledReason={
               isActive
@@ -509,7 +535,7 @@ const FreeWebinarAdminClient = ({
           <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground">
-                Este webinar ya terminó
+                Este evento ya terminó
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 Se cerró el{" "}
@@ -555,7 +581,7 @@ const FreeWebinarAdminClient = ({
               {endedAt
                 ? "Terminado: oculta aunque el interruptor siga encendido."
                 : isActive
-                  ? "Visible en /webinar-gratuito y en Enlaces."
+                  ? `Visible en ${FREE_EVENT_PATH}${linkEnabled ? " y en Enlaces" : ""}.`
                   : "Oculta (404). El botón en Enlaces también desaparece."}
             </p>
           </div>
@@ -627,7 +653,7 @@ const FreeWebinarAdminClient = ({
                 value={subheadline}
                 onChange={(e) => setSubheadline(e.target.value)}
                 rows={2}
-                placeholder="Una línea clara de qué es el webinar"
+                placeholder="Una línea clara de qué es el evento"
               />
             </div>
             <div className="sm:col-span-2 space-y-1.5">
@@ -885,6 +911,131 @@ const FreeWebinarAdminClient = ({
         <Card>
           <CardHeader>
             <CardTitle className="text-base uppercase tracking-wide">
+              Cómo se ve la página
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="eventLabel">Tipo de evento *</Label>
+              <Input
+                id="eventLabel"
+                value={eventLabel}
+                maxLength={60}
+                onChange={(e) => setEventLabel(e.target.value)}
+                placeholder="Webinar gratuito, Masterclass gratuita…"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                La etiqueta sobre el titular y el nombre del evento en los
+                correos.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="locationLabel">Dónde</Label>
+              <Input
+                id="locationLabel"
+                value={locationLabel}
+                maxLength={60}
+                onChange={(e) => setLocationLabel(e.target.value)}
+                placeholder="Online"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="priceLabel">Precio</Label>
+              <Input
+                id="priceLabel"
+                value={priceLabel}
+                maxLength={40}
+                onChange={(e) => setPriceLabel(e.target.value)}
+                placeholder="Gratis"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="faqTitle">Título de las preguntas</Label>
+              <Input
+                id="faqTitle"
+                value={faqTitle}
+                maxLength={120}
+                onChange={(e) => setFaqTitle(e.target.value)}
+                placeholder="Preguntas frecuentes"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="materialLabel">Texto del botón de material</Label>
+              <Input
+                id="materialLabel"
+                value={materialLabel}
+                maxLength={60}
+                onChange={(e) => setMaterialLabel(e.target.value)}
+                placeholder="Descargar material"
+              />
+            </div>
+            <div className="sm:col-span-2 space-y-1.5">
+              <Label htmlFor="successMessage">
+                Mensaje al inscribirse (opcional)
+              </Label>
+              <Textarea
+                id="successMessage"
+                value={successMessage}
+                maxLength={600}
+                rows={2}
+                onChange={(e) => setSuccessMessage(e.target.value)}
+                placeholder="Tu lugar quedó reservado. Te enviamos un correo de confirmación y te escribimos con los detalles del evento y el enlace de acceso."
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base uppercase tracking-wide">
+              Botón en Enlaces
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Label htmlFor="linkEnabled">Mostrar en /enlaces</Label>
+                <p className="text-[11px] text-muted-foreground">
+                  El botón de la página de enlaces de tu bio. Solo aparece
+                  mientras el evento está publicado y no ha terminado.
+                </p>
+              </div>
+              <Switch
+                id="linkEnabled"
+                checked={linkEnabled}
+                onCheckedChange={setLinkEnabled}
+              />
+            </div>
+            {linkEnabled ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="linkTitle">Título del botón</Label>
+                  <Input
+                    id="linkTitle"
+                    value={linkTitle}
+                    maxLength={80}
+                    onChange={(e) => setLinkTitle(e.target.value)}
+                    placeholder={eventLabel || "Evento gratuito"}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="linkSubtitle">Subtítulo</Label>
+                  <Input
+                    id="linkSubtitle"
+                    value={linkSubtitle}
+                    maxLength={120}
+                    onChange={(e) => setLinkSubtitle(e.target.value)}
+                    placeholder="Vacío = la fecha en la hora de quien mira"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base uppercase tracking-wide">
               SEO (opcional)
             </CardTitle>
           </CardHeader>
@@ -940,10 +1091,13 @@ const FreeWebinarAdminClient = ({
           </Button>
         </CrmFormActions>
 
-        <WebinarEditionsPanel
-          editions={archivedEditions}
-          canDelete={canBroadcast}
-        />
+        <p className="text-xs text-muted-foreground">
+          Los eventos anteriores y sus inscritas están en{" "}
+          <Link href="/admin/eventos/historial" className="underline underline-offset-4">
+            Historial
+          </Link>
+          .
+        </p>
       </div>
     </CrmPageShell>
   );

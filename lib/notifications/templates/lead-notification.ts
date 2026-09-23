@@ -1,4 +1,5 @@
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { FREE_EVENT_PATH } from "@/lib/crm/free-webinar-publish";
 import { siteUrl } from "../config";
 import {
   escapeHtml,
@@ -131,26 +132,36 @@ export type WebinarLeadEmailInput = LeadEmailInput & {
    * the fan-out doesn't send the same link again minutes later.
    */
   meetUrl?: string | null;
+  /** Qué es el evento («Webinar gratuito», «Masterclass gratuita»…). */
+  eventLabel?: string | null;
+  /** Título del evento (el titular de la página). */
+  eventTitle?: string | null;
 };
+
+const eventLabelOf = (i: WebinarLeadEmailInput) =>
+  i.eventLabel?.trim() || "Evento gratuito";
+const eventTitleOf = (i: WebinarLeadEmailInput) =>
+  i.eventTitle?.trim() || eventLabelOf(i).toLowerCase();
+const eventPageUrl = () => `${siteUrl()}${FREE_EVENT_PATH}`;
 
 export const webinarConfirmationSubject = (
   i: WebinarLeadEmailInput
 ): string =>
   i.alreadyRegistered
-    ? `Ya estabas registrada — webinar gratuito · Dayana Beltrán`
-    : `Tu lugar está reservado — webinar gratuito · Dayana Beltrán`;
+    ? `Ya estabas registrada — ${eventLabelOf(i)} · Dayana Beltrán`
+    : `Tu lugar está reservado — ${eventLabelOf(i)} · Dayana Beltrán`;
 
 export const webinarConfirmationHtml = (i: WebinarLeadEmailInput): string => {
   const meetUrl = i.meetUrl?.trim() || null;
   // Con enlace ya disponible, la confirmación no promete nada: lo entrega.
   const linkLine = meetUrl
-    ? `Este es tu enlace de acceso — guárdalo, es el mismo con el que entrarás el día del webinar.`
+    ? `Este es tu enlace de acceso — guárdalo, es el mismo con el que entrarás el día del evento.`
     : null;
 
   const lines: (string | null)[] = i.alreadyRegistered
     ? [
         `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
-        `Ya tenías tu lugar en el <strong style="font-weight:600;">webinar gratuito</strong>. No hace falta registrarte otra vez — tu inscripción sigue activa.`,
+        `Ya tenías tu lugar en <strong style="font-weight:600;">${escapeHtml(eventTitleOf(i))}</strong>. No hace falta registrarte otra vez — tu inscripción sigue activa.`,
         i.scheduleLabel
           ? `Fecha prevista: <strong style="font-weight:600;">${escapeHtml(i.scheduleLabel)}</strong>.`
           : `Cuando confirmemos o actualicemos la fecha y el enlace, te escribimos al mismo correo.`,
@@ -158,7 +169,7 @@ export const webinarConfirmationHtml = (i: WebinarLeadEmailInput): string => {
       ]
     : [
         `Hola <strong style="font-weight:700;">${escapeHtml(i.firstName)}</strong>,`,
-        `¡Listo! Tu lugar en el <strong style="font-weight:600;">webinar gratuito</strong> quedó reservado.`,
+        `¡Listo! Tu lugar en <strong style="font-weight:600;">${escapeHtml(eventTitleOf(i))}</strong> quedó reservado.`,
         i.scheduleLabel
           ? `Fecha prevista: <strong style="font-weight:600;">${escapeHtml(i.scheduleLabel)}</strong>.`
           : `Te enviaremos por este correo (y WhatsApp si hace falta) la fecha confirmada y el enlace de acceso.`,
@@ -179,27 +190,26 @@ export const webinarConfirmationHtml = (i: WebinarLeadEmailInput): string => {
 
   return wrapEmailHtml({
     preheader: i.alreadyRegistered
-      ? "Ya estabas registrada en el webinar gratuito."
-      : "Tu lugar en el webinar gratuito está reservado.",
-    eyebrow: "Webinar gratuito",
+      ? `Ya estabas registrada en ${eventTitleOf(i)}.`
+      : `Tu lugar en ${eventTitleOf(i)} está reservado.`,
+    eyebrow: eventLabelOf(i),
     title: i.alreadyRegistered
       ? "Ya estabas registrada"
       : "Registro confirmado",
     bodyHtml: body + linkFallback,
     ctaPrimary: meetUrl
-      ? { label: "Entrar al webinar", href: meetUrl }
+      ? { label: "Entrar al evento", href: meetUrl }
       : {
-          label: "Ver la página del webinar",
-          href: `${siteUrl()}/webinar-gratuito`,
+          label: "Ver la página del evento",
+          href: eventPageUrl(),
         },
     ctaSecondary: meetUrl
       ? {
           label: "Ver la página",
-          href: `${siteUrl()}/webinar-gratuito`,
+          href: eventPageUrl(),
         }
       : undefined,
-    footnote:
-      "Recibes este correo porque te registraste en dayanabeltran.com/webinar-gratuito.",
+    footnote: `Recibes este correo porque te registraste en dayanabeltran.com${FREE_EVENT_PATH}.`,
   });
 };
 
@@ -208,8 +218,8 @@ export const webinarConfirmationText = (i: WebinarLeadEmailInput): string =>
     `Hola ${i.firstName},`,
     ``,
     i.alreadyRegistered
-      ? `Ya tenías tu lugar en el webinar gratuito. Tu inscripción sigue activa.`
-      : `¡Listo! Tu lugar en el webinar gratuito quedó reservado.`,
+      ? `Ya tenías tu lugar en ${eventTitleOf(i)}. Tu inscripción sigue activa.`
+      : `¡Listo! Tu lugar en ${eventTitleOf(i)} quedó reservado.`,
     i.scheduleLabel ? `Fecha prevista: ${i.scheduleLabel}.` : "",
     i.meetUrl
       ? `Tu enlace de acceso: ${i.meetUrl}`
@@ -218,7 +228,7 @@ export const webinarConfirmationText = (i: WebinarLeadEmailInput): string =>
         : `Te enviaremos la fecha confirmada y el enlace de acceso.`,
     ``,
     `Dayana Beltrán PNL`,
-    `${siteUrl()}/webinar-gratuito`,
+    eventPageUrl(),
   ]
     .filter(Boolean)
     .join("\n");

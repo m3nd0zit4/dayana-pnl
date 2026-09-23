@@ -243,7 +243,7 @@ const ResultadoPage = async ({
                   Antes de decidir
                 </p>
                 <h3 className="mt-3 font-[font2] text-xl uppercase leading-tight">
-                  Ven al webinar gratuito
+                  Ven al evento gratuito
                 </h3>
                 <p className="mt-3 font-[font1] text-base leading-relaxed text-black/70">
                   Es en vivo y no cuesta nada. Vas a ver cómo trabaja Dayana
@@ -251,7 +251,7 @@ const ResultadoPage = async ({
                   para decidir con información y no con fe.
                 </p>
                 <Link
-                  href="/webinar-gratuito"
+                  href="/eventos-gratuitos"
                   className="mt-6 inline-block rounded-full border border-ink px-7 py-3 font-[font2] text-xs uppercase tracking-[0.18em] transition-colors hover:bg-ink hover:text-paper"
                 >
                   Reservar mi lugar

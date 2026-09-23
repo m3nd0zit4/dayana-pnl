@@ -552,6 +552,20 @@ model FreeWebinar {
   formTitle         String          @default("Reserva tu lugar") @map("form_title")
   metaTitle         String?         @map("meta_title")
   metaDescription   String?         @map("meta_description") @db.Text
+  /// Lo que es el evento, en la etiqueta de la página y en los correos
+  /// («Webinar gratuito», «Masterclass gratuita», «Taller en vivo»…).
+  eventLabel        String          @default("Webinar gratuito") @map("event_label")
+  /// Chips de la página: dónde y cuánto cuesta.
+  locationLabel     String          @default("Online") @map("location_label")
+  priceLabel        String          @default("Gratis") @map("price_label")
+  faqTitle          String?         @map("faq_title")
+  materialLabel     String?         @map("material_label")
+  /// Lo que ve quien se acaba de inscribir. Vacío = texto por defecto.
+  successMessage    String?         @map("success_message") @db.Text
+  /// Botón en /enlaces: si se muestra y con qué texto.
+  linkEnabled       Boolean         @default(true) @map("link_enabled")
+  linkTitle         String?         @map("link_title")
+  linkSubtitle      String?         @map("link_subtitle")
   /// Cupo previsto de la sala. Es informativo, NO un tope: pasado el número
   /// la gente se sigue pudiendo registrar y sigue recibiendo el enlace. Sirve
   /// para fijar la expectativa en la landing y para que el CRM avise cuando se

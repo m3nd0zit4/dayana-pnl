@@ -59,6 +59,17 @@ export type FreeWebinarPublic = {
   formTitle: string;
   metaTitle: string | null;
   metaDescription: string | null;
+  /** Qué es el evento: etiqueta de la página y nombre en los correos. */
+  eventLabel: string;
+  locationLabel: string;
+  priceLabel: string;
+  faqTitle: string | null;
+  materialLabel: string | null;
+  successMessage: string | null;
+  /** Botón en /enlaces. */
+  linkEnabled: boolean;
+  linkTitle: string | null;
+  linkSubtitle: string | null;
   updatedAt: Date;
 };
 
@@ -81,6 +92,15 @@ export type FreeWebinarUpdateInput = {
   formTitle?: string;
   metaTitle?: string | null;
   metaDescription?: string | null;
+  eventLabel?: string;
+  locationLabel?: string;
+  priceLabel?: string;
+  faqTitle?: string | null;
+  materialLabel?: string | null;
+  successMessage?: string | null;
+  linkEnabled?: boolean;
+  linkTitle?: string | null;
+  linkSubtitle?: string | null;
 };
 
 const parseLearnItems = (raw: Prisma.JsonValue): string[] => {
@@ -150,6 +170,15 @@ export const toFreeWebinarPublic = (
     formTitle: row.formTitle,
     metaTitle: row.metaTitle,
     metaDescription: row.metaDescription,
+    eventLabel: row.eventLabel,
+    locationLabel: row.locationLabel,
+    priceLabel: row.priceLabel,
+    faqTitle: row.faqTitle,
+    materialLabel: row.materialLabel,
+    successMessage: row.successMessage,
+    linkEnabled: row.linkEnabled,
+    linkTitle: row.linkTitle,
+    linkSubtitle: row.linkSubtitle,
     updatedAt: row.updatedAt,
   };
 };
@@ -416,6 +445,22 @@ export const updateFreeWebinar = async (
     data.metaDescription = input.metaDescription;
   }
   if (input.isActive !== undefined) data.isActive = input.isActive;
+  // Personalización de la página y del botón en /enlaces.
+  for (const key of [
+    "eventLabel",
+    "locationLabel",
+    "priceLabel",
+    "faqTitle",
+    "materialLabel",
+    "successMessage",
+    "linkEnabled",
+    "linkTitle",
+    "linkSubtitle",
+  ] as const) {
+    if (input[key] !== undefined) {
+      (data as Record<string, unknown>)[key] = input[key];
+    }
+  }
 
   const tz = await getOperationalTimezone();
   const current = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
@@ -869,6 +914,16 @@ export const archiveFreeWebinar = async (
         formTitle: current.formTitle,
         metaTitle: current.metaTitle,
         metaDescription: current.metaDescription,
+        // La personalización es de la marca del evento, no de la fecha.
+        eventLabel: current.eventLabel,
+        locationLabel: current.locationLabel,
+        priceLabel: current.priceLabel,
+        faqTitle: current.faqTitle,
+        materialLabel: current.materialLabel,
+        successMessage: current.successMessage,
+        linkEnabled: current.linkEnabled,
+        linkTitle: current.linkTitle,
+        linkSubtitle: current.linkSubtitle,
         // El cupo es una expectativa de la sala, no un hecho de la edicion.
         capacity: current.capacity,
         // El material es del tema, no de la fecha: se hereda igual que el video.
