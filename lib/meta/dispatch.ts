@@ -67,6 +67,29 @@ export const keepUnparsedPayload = async (payload: unknown): Promise<void> => {
     .catch((e: unknown) => console.warn("[webhook] no se pudo guardar el aviso sin leer", e));
 };
 
+let backfillStarted = false;
+
+/**
+ * Los audios que llegaron antes de que existiera la transcripción se pasan a
+ * texto poco a poco, aprovechando los avisos que ya están corriendo (una tanda
+ * por instancia y como mucho cada 10 minutos).
+ */
+const backfillAudioOnce = async () => {
+  if (backfillStarted) return;
+  backfillStarted = true;
+  try {
+    const { getSiteSetting, setSiteSetting } = await import("@/lib/crm/site-settings");
+    const last = Number(await getSiteSetting("whatsapp.audioBackfillAt")) || 0;
+    if (Date.now() - last < 10 * 60_000) return;
+    await setSiteSetting("whatsapp.audioBackfillAt", String(Date.now()));
+    const { transcribePendingAudio } = await import("@/lib/crm/whatsapp-agent/transcribe");
+    const done = await transcribePendingAudio({ limit: 25 });
+    if (done > 0) console.info(`[transcripción] ${done} audios pasados a texto`);
+  } catch (e) {
+    console.warn("[transcripción] tanda pendiente falló", e);
+  }
+};
+
 export const dispatchMetaEvents = (
   object: string,
   events: NormalizedEvent[],
@@ -79,6 +102,7 @@ export const dispatchMetaEvents = (
     const { processNormalizedEvent, processHistoryEvents } = await import(
       "./ingest"
     );
+    await backfillAudioOnce();
     for (const event of live) {
       try {
         await processNormalizedEvent(object, event);

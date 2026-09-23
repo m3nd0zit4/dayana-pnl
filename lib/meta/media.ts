@@ -18,6 +18,8 @@ export type StoredAttachment = {
   sha256?: string;
   /** Id del medio en WhatsApp (sirve para reintentar la descarga un tiempo). */
   mediaId?: string;
+  /** Lo que dice una nota de voz, transcrito al recibirla. */
+  transcript?: string;
 };
 
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -123,7 +125,17 @@ export const rehostAttachment = async (
       downloaded.buffer,
       { access: "private", contentType, addRandomSuffix: false }
     );
-    return { ...base, url: blob.url, mimeType: contentType, sha256 };
+    // Una nota de voz se transcribe ya: la IA contesta y aprende del texto.
+    let transcript: string | undefined;
+    if (attachment.kind === "audio") {
+      const { transcribeAudio } = await import("@/lib/crm/whatsapp-agent/transcribe");
+      transcript =
+        (await transcribeAudio(downloaded.buffer, contentType).catch((e) => {
+          console.warn("[meta] no se pudo transcribir un audio", e);
+          return null;
+        })) ?? undefined;
+    }
+    return { ...base, url: blob.url, mimeType: contentType, sha256, ...(transcript ? { transcript } : {}) };
   } catch (e) {
     console.warn("[meta] blob upload failed", e);
     return { ...base, unavailableReason: "upload_failed" };

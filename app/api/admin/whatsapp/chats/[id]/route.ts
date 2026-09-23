@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
@@ -29,6 +29,14 @@ export const GET = withStaff<Params>("read", async ({ params }) => {
   if (!(await isWhatsAppWorkspaceAvailable())) return apiError("whatsapp_disabled", 404);
   const chat = await getChat(params.id);
   if (!chat) return apiError("not_found", 404);
+  // Audios de este chat que aún no tienen texto: se transcriben en segundo
+  // plano; el panel los muestra en la siguiente actualización.
+  if (chat.messages.some((m) => !m.body && m.attachments.some((a) => a.kind === "audio" && a.url))) {
+    after(async () => {
+      const { transcribePendingAudio } = await import("@/lib/crm/whatsapp-agent/transcribe");
+      await transcribePendingAudio({ conversationId: params.id, limit: 30 }).catch(() => undefined);
+    });
+  }
   return NextResponse.json(chat);
 });
 

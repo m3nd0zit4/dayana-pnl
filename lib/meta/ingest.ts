@@ -177,7 +177,11 @@ export const ingestMessage = async (
         status: message.isEcho ? "SENT" : "RECEIVED",
         externalMessageId: message.externalMessageId,
         replyToExternalId: message.replyToExternalId,
-        body: message.body,
+        body:
+          message.body ||
+          (attachments.find((a) => a.transcript)?.transcript
+            ? `🎤 ${attachments.find((a) => a.transcript)!.transcript}`
+            : message.body),
         attachments:
           attachments.length > 0
             ? (attachments as unknown as Prisma.InputJsonValue)
