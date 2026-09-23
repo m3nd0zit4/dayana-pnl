@@ -3,7 +3,7 @@ import DashboardClient, {
 } from "@/app/components/admin/crm/DashboardClient";
 import { prisma } from "@/lib/db";
 import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
-import { isMetaInboxEnabled } from "@/lib/meta/client";
+import { isWhatsAppWorkspaceAvailable } from "@/lib/crm/whatsapp-agent/workspace";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import {
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 /** Lo que enseña el botón verde de WhatsApp. Un fallo aquí no tira la portada. */
 const whatsAppSummary = async (): Promise<WhatsAppHomeSummary | null> => {
-  if (!isMetaInboxEnabled()) return null;
+  if (!(await isWhatsAppWorkspaceAvailable())) return null;
   try {
     const [unread, handedOff, aiEnabled] = await Promise.all([
       prisma.conversation.aggregate({

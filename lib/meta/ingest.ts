@@ -262,7 +262,10 @@ export const notifyInboundMessage = (
     eventType: "INBOX_MESSAGE_RECEIVED",
     title: `${CHANNEL_LABEL[message.channel]}: mensaje de ${who}`,
     body: message.body?.slice(0, 160) ?? "(adjunto)",
-    href: `/admin/inbox/${conversationId}`,
+    href:
+      message.channel === "WHATSAPP"
+        ? `/admin/whatsapp?conversation=${conversationId}`
+        : `/admin/inbox/${conversationId}`,
     entityType: "Conversation",
     entityId: conversationId,
     staff: "ALL",

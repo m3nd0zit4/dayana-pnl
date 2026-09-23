@@ -175,6 +175,30 @@ export const testDialog360Connection = async (): Promise<{ webhookUrl: string | 
 };
 
 /**
+ * A dónde apunta el webhook.
+ *
+ * En producción, al dominio del sitio. En una Preview de Vercel, a la propia
+ * Preview (si no, «Conectar» desde una Preview movería los avisos de
+ * producción sin querer) y con la cabecera de «Protection Bypass for
+ * Automation»: las Previews están detrás del login de Vercel y 360dialog no
+ * podría entrar. `VERCEL_AUTOMATION_BYPASS_SECRET` la pone Vercel sola cuando
+ * esa protección está activada en el proyecto.
+ */
+export const webhookTarget = (
+  siteUrl: string
+): { base: string; headers: Record<string, string> } => {
+  const host = process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL;
+  if (process.env.VERCEL_ENV === "preview" && host) {
+    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
+    return {
+      base: `https://${host}`,
+      headers: bypass ? { "x-vercel-protection-bypass": bypass } : {},
+    };
+  }
+  return { base: siteUrl.replace(/\/$/, ""), headers: {} };
+};
+
+/**
  * Registra en 360dialog la URL de avisos del CRM con un secreto nuevo en la
  * cabecera. Rotar el secreto en cada registro es lo que permite «volver a
  * conectar» si alguna vez se filtra.
@@ -185,10 +209,14 @@ export const registerDialog360Webhook = async (siteUrl: string): Promise<string>
   if (!apiKey) throw new Dialog360Error("No hay clave de 360dialog guardada.", 400);
 
   const secret = randomBytes(24).toString("hex");
-  const url = `${siteUrl.replace(/\/$/, "")}/api/webhooks/whatsapp-360`;
+  const target = webhookTarget(siteUrl);
+  const url = `${target.base}/api/webhooks/whatsapp-360`;
   await dialog360Fetch(apiKey, "v1/configs/webhook", {
     method: "POST",
-    body: JSON.stringify({ url, headers: { "X-Webhook-Secret": secret } }),
+    body: JSON.stringify({
+      url,
+      headers: { "X-Webhook-Secret": secret, ...target.headers },
+    }),
   });
   await writeConfig({ ...config, webhookSecret: secret });
   return url;

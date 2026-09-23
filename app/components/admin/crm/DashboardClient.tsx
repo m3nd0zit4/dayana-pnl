@@ -312,7 +312,7 @@ const WhatsAppHomeButton = ({ summary }: { summary: WhatsAppHomeSummary }) => {
 
   return (
     <Link
-      href="/admin/inbox?channel=WHATSAPP"
+      href="/admin/whatsapp"
       className="flex items-center gap-3 rounded-lg bg-success px-4 py-3 text-white shadow-sm transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
       <MessageCircle className="size-6 shrink-0" aria-hidden />
