@@ -27,8 +27,8 @@ const ERRORS: Record<string, string> = {
  * El primer mensaje que recibe quien escribe por WhatsApp por primera vez.
  *
  * Separado de la respuesta automática a propósito: esto no lo escribe el
- * modelo, lo escribe Dayana, y se envía tal cual. El botón abre la agenda
- * dentro de WhatsApp, sin que la persona tenga que copiar un enlace.
+ * modelo, lo escribe Dayana, y se envía tal cual. El botón abre su página de
+ * citas de Google Calendar dentro de WhatsApp, sin copiar enlaces.
  */
 const WhatsAppWelcomeCard = ({
   initial,
@@ -115,7 +115,7 @@ const WhatsAppWelcomeCard = ({
               onChange={(e) =>
                 setConfig((c) => ({ ...c, buttonUrl: e.target.value }))
               }
-              placeholder="https://www.dayanabeltran.com/agenda?de=whatsapp"
+              placeholder="https://calendar.app.google/tu-enlace"
             />
           </div>
         </div>

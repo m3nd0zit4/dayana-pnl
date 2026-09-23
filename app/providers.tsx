@@ -69,10 +69,6 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // más rápida de perderla antes de que deje el correo.
   const isMaterial = pathname.startsWith("/material");
 
-  // Reservar una cita: calendario, horas y dos campos. Lo mismo que en /pagar
-  // y /material — quien llega ya decidió, el catálogo solo distrae.
-  const isAgenda = pathname.startsWith("/agenda");
-
   // Dark mode is scoped to the CRM + member portal. It used to be scoped by
   // mounting ThemeProvider only on those routes — but next-themes renders an
   // inline <script> to set the class before paint, and a client-side
@@ -116,7 +112,7 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
           {children}
           <Toaster />
         </>
-      ) : isPortal || isPagar || isMaterial || isAgenda ? (
+      ) : isPortal || isPagar || isMaterial ? (
         <CheckoutModalProvider>
           {children}
           <Toaster />

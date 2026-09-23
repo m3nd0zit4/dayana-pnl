@@ -3,13 +3,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { sendMetaMessage } from "@/lib/meta/send";
-import { getSiteUrl } from "@/lib/site-url";
 
 /**
  * Saludo automático a quien escribe por primera vez.
  *
  * Es lo primero que ve alguien que llega de un video o de la bio: un mensaje
- * corto y un botón que abre la agenda. No pasa por el modelo — es un texto
+ * corto y, si Dayana lo configura, un botón que abre su página de citas de
+ * Google Calendar. No pasa por el modelo — es un texto
  * fijo que Dayana escribe, y eso es a propósito: el primer mensaje es el que
  * más se lee y el que menos se puede improvisar.
  *
@@ -32,9 +32,11 @@ export type WelcomeConfig = z.infer<typeof welcomeConfigSchema>;
 export const defaultWelcomeConfig = (): WelcomeConfig => ({
   isActive: false,
   text: "¡Hola! Gracias por escribir 💛 Cuéntame en qué quieres trabajar y te oriento. Si prefieres, toma tu hora directamente aquí abajo.",
-  // WhatsApp corta las etiquetas largas: 20 caracteres es el tope real.
-  buttonLabel: "Agendar mi cita",
-  buttonUrl: `${getSiteUrl()}/agenda?de=whatsapp`,
+  // Vacíos a propósito: el botón lo enciende Dayana con SU enlace de citas de
+  // Google Calendar (Ajustes → Canales). Un botón por defecto hacia una página
+  // que no existe es peor que no tener botón.
+  buttonLabel: "",
+  buttonUrl: "",
 });
 
 export const getWelcomeConfig = async (): Promise<WelcomeConfig> => {

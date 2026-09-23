@@ -297,7 +297,6 @@ model Contact {
   conversations          Conversation[]
   channelIdentities      ContactChannelIdentity[]
   webinarRegistrations   WebinarRegistration[]
-  appointments           Appointment[]
   magnetClaims           MagnetClaim[]
   diagnostics            Diagnostic[]
   paymentLinks           PaymentLink[]
@@ -1913,55 +1912,4 @@ model MagnetClaim {
   @@unique([magnetId, email])
   @@index([magnetId, createdAt(sort: Desc)])
   @@map("magnet_claims")
-}
-
-/// Una cita agendada desde la web (`/agenda`).
-///
-/// La fuente de verdad de la disponibilidad es el Google Calendar de Dayana:
-/// aquí solo vive lo que hace falta para el CRM —quién reservó, cuándo, y con
-/// qué evento quedó— y para poder cancelar sin entrar al calendario.
-model Appointment {
-  id String @id @default(cuid())
-
-  contactId String @map("contact_id")
-
-  /// Instante de inicio en UTC. La zona en que se eligió va aparte porque
-  /// «9:00 en Bogotá» y «9:00 en Madrid» no son el mismo hueco.
-  startsAt DateTime @map("starts_at")
-  endsAt   DateTime @map("ends_at")
-  /// Zona operativa con la que se calculó el hueco (IANA).
-  timezone String
-
-  name  String
-  email String
-  phone String?
-  /// Lo que escribió al reservar: en qué quiere trabajar.
-  note  String? @db.Text
-
-  /// Evento creado en el calendario, para poder borrarlo al cancelar.
-  googleEventId   String? @map("google_event_id")
-  googleAccountId String? @map("google_account_id")
-  meetUrl         String? @map("meet_url")
-
-  /// Secreto del enlace de cancelación que viaja en el correo.
-  cancelToken String @unique @map("cancel_token")
-
-  status      AppointmentStatus @default(BOOKED)
-  cancelledAt DateTime?         @map("cancelled_at")
-  /// Quién canceló: la persona desde su enlace, o el equipo desde el panel.
-  cancelledBy String?           @map("cancelled_by")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  @@index([startsAt])
-  @@index([status, startsAt])
-  @@map("appointments")
-}
-
-enum AppointmentStatus {
-  BOOKED
-  CANCELLED
 }
