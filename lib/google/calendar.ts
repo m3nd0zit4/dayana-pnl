@@ -35,6 +35,8 @@ export type CalendarEvent = {
   description?: string;
   location?: string;
   status?: string;
+  /** `transparent` = «Disponible» en Google: no ocupa la agenda. */
+  transparency?: string;
   htmlLink?: string;
   hangoutLink?: string;
   start?: { dateTime?: string; date?: string; timeZone?: string };

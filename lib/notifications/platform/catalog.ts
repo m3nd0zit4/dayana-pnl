@@ -19,7 +19,8 @@ import type {
 
 export const NOTIFICATION_GROUPS = [
   "Pagos y ventas",
-  "Embudo e inscripciones",
+  "Embudo e inscripciones",
+
   "Curso y membresía",
   "Sistema y seguridad",
 ] as const;
@@ -56,6 +57,12 @@ export type NotificationCatalogEntry = {
    * en vez de insertar una fila nueva. Omitir = sin coalescencia.
    */
   coalesceWindowSec?: number;
+  /**
+   * Urgente para quien atiende: además de la campana, push al teléfono y el
+   * correo sale en esta misma invocación (sin pasar por la cola), porque la
+   * persona está esperando del otro lado.
+   */
+  immediate?: boolean;
 };
 
 const OWNER_ONLY = ["OWNER"] as const satisfies readonly StaffRole[];
@@ -493,6 +500,30 @@ export const NOTIFICATION_CATALOG: Record<
     roles: WRITE_ROLES,
     // Un hilo activo son muchos mensajes seguidos; se agrupan por conversación.
     coalesceWindowSec: 300,
+  },
+  WHATSAPP_AI_ESCALATED: {
+    label: "WhatsApp: te toca responder",
+    description:
+      "La IA de WhatsApp pasó un chat a una persona: un pago, algo que no sabe, una queja o algo delicado.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    // Sí por correo: la IA se calla y la persona queda esperando a Dayana.
+    defaultEmail: true,
+    roles: WRITE_ROLES,
+    immediate: true,
+  },
+  WHATSAPP_AI_BOOKED: {
+    label: "WhatsApp: cita agendada",
+    description: "La IA de WhatsApp agendó una cita en tu Google Calendar.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "INFO",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: true,
+    roles: WRITE_ROLES,
+    immediate: true,
   },
 };
 

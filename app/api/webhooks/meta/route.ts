@@ -1,11 +1,7 @@
-import { after, NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { emitMetaWebhook } from "@/lib/inngest/events";
-import {
-  isBulkSyncEvent,
-  normalizeMetaPayload,
-  threadKeyOf,
-} from "@/lib/meta/inbound";
+import { dispatchMetaEvents } from "@/lib/meta/dispatch";
+import { normalizeMetaPayload } from "@/lib/meta/inbound";
 import {
   resolveMetaSubscription,
   verifyMetaWebhook,
@@ -13,7 +9,8 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// El historial de la app (coexistencia) se procesa tras responder y puede
+// La IA de WhatsApp contesta dentro de esta invocación (tras responder), y
+// el historial de la app (coexistencia) se procesa tras responder y puede
 // ser largo.
 export const maxDuration = 300;
 
@@ -72,50 +69,7 @@ export async function POST(req: NextRequest) {
       ? String((payload as { object?: unknown }).object ?? "unknown")
       : "unknown";
 
-  // El trabajo real se hace en Inngest: da reintentos duraderos y, sobre todo,
-  // serializa por hilo, que es lo que evita que tres mensajes seguidos del
-  // mismo cliente se guarden desordenados.
-  // Historial y libreta de la app: en bloque, fuera de la cola.
-  const bulk = events.filter(isBulkSyncEvent);
-  if (bulk.length > 0) {
-    after(async () => {
-      const { processHistoryEvents } = await import("@/lib/meta/ingest");
-      await processHistoryEvents(object, bulk);
-    });
-  }
-  const live = events.filter((event) => !isBulkSyncEvent(event));
+  const counts = dispatchMetaEvents(object, events, "meta");
 
-  const queued = await Promise.all(
-    live.map((event) =>
-      emitMetaWebhook({
-        object,
-        threadKey: threadKeyOf(event),
-        event,
-      })
-    )
-  );
-
-  // Respaldo en línea de lo que no se pudo encolar. `after()` mantiene viva la
-  // invocación tras responder, que es lo que Meta necesita: acuse rápido y el
-  // trabajo terminado igualmente.
-  const pending = live.filter((_, i) => !queued[i]);
-  if (pending.length > 0) {
-    after(async () => {
-      const { processNormalizedEvent } = await import("@/lib/meta/ingest");
-      for (const event of pending) {
-        try {
-          await processNormalizedEvent(object, event);
-        } catch (e) {
-          console.error("[webhook meta] inline processing failed", e);
-        }
-      }
-    });
-  }
-
-  return NextResponse.json({
-    ok: true,
-    queued: queued.filter(Boolean).length,
-    inline: pending.length,
-    bulk: bulk.length,
-  });
+  return NextResponse.json({ ok: true, ...counts });
 }

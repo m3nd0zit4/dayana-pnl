@@ -238,6 +238,8 @@ enum NotificationEventType {
   LOGIN_SUCCEEDED
   STAFF_USER_CREATED
   AGENT_ACTION_EXECUTED
+  WHATSAPP_AI_ESCALATED
+  WHATSAPP_AI_BOOKED
   CAMPAIGN_COMPLETED
   NOTIFICATION_DELIVERY_FAILED
   SYSTEM_ALERT
@@ -856,6 +858,7 @@ model StaffUser {
   googleAccounts           GoogleAccount[]
   paymentLinks             PaymentLink[]
   contactTouches           ContactTouch[]
+  pushSubscriptions        PushSubscription[]
 
   @@map("staff_users")
 }
@@ -1033,11 +1036,21 @@ model Conversation {
   /// (un dolor fuerte, un problema de pago, una queja) y también cualquier
   /// respuesta escrita por el equipo: si alguien ya entró a la conversación,
   /// un robot escribiendo encima es peor que el silencio.
-  aiPausedAt DateTime? @map("ai_paused_at")
+  aiPausedAt     DateTime? @map("ai_paused_at")
   /// Por qué se pausó: `human` (alguien del equipo contestó; se reanuda sola
   /// tras las horas de relevo configuradas) o `escalation` (la IA pidió a
   /// una persona; solo se reanuda a mano).
-  aiPausedReason String? @map("ai_paused_reason")
+  aiPausedReason String?   @map("ai_paused_reason")
+
+  /// Quién lleva el hilo: la IA sola (`AUTO`), la IA deja borradores y Dayana
+  /// los envía (`COPILOT`), o solo Dayana (`MANUAL`).
+  aiMode             WhatsAppAiMode @default(AUTO) @map("ai_mode")
+  /// Dayana marcó este chat como suyo y prioritario: sube a «Tú atiendes».
+  priorityAt         DateTime?      @map("priority_at")
+  /// Última escalada de la IA: por qué y cuán urgente. Se borra al reanudar.
+  escalationCategory String?        @map("escalation_category")
+  escalationSeverity String?        @map("escalation_severity")
+  escalationReason   String?        @map("escalation_reason")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1046,6 +1059,8 @@ model Conversation {
   assignedStaff StaffUser?             @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
   messages      ConversationMessage[]
   replyExamples WhatsAppReplyExample[]
+  aiRuns        WhatsAppAiRun[]
+  aiBookings    WhatsAppBooking[]
 
   @@unique([channel, externalThreadId])
   @@index([status, lastMessageAt(sort: Desc)])
@@ -1965,4 +1980,112 @@ model WhatsAppKnownContact {
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   @@map("whatsapp_known_contacts")
+}
+
+enum WhatsAppAiMode {
+  AUTO
+  COPILOT
+  MANUAL
+}
+
+/// Cada vez que la IA de WhatsApp mira un chat: en qué estado está, cuánto
+/// tardó y qué decidió. Es lo que pinta «Pensando… 4 s» en el panel y lo que
+/// explica un silencio (`SKIPPED` con su motivo) en vez de adivinarlo.
+model WhatsAppAiRun {
+  id               String    @id @default(cuid())
+  conversationId   String    @map("conversation_id")
+  /// QUEUED | THINKING | SENDING | REPLIED | DRAFTED | ESCALATED | SKIPPED | ERROR
+  status           String
+  reason           String?
+  category         String?
+  severity         String?
+  /// Id del mensaje entrante que la disparó (el último de la ráfaga).
+  triggerMessageId String?   @map("trigger_message_id")
+  toolCalls        Json?     @map("tool_calls")
+  model            String?
+  inputTokens      Int?      @map("input_tokens")
+  outputTokens     Int?      @map("output_tokens")
+  queuedAt         DateTime  @default(now()) @map("queued_at")
+  startedAt        DateTime? @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  latencyMs        Int?      @map("latency_ms")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, queuedAt(sort: Desc)])
+  @@index([queuedAt(sort: Desc)])
+  @@map("whatsapp_ai_runs")
+}
+
+/// Una cita que la IA agendó en el Google Calendar de Dayana.
+model WhatsAppBooking {
+  id              String   @id @default(cuid())
+  conversationId  String   @map("conversation_id")
+  contactId       String?  @map("contact_id")
+  phone           String
+  name            String?
+  service         String
+  startsAt        DateTime @map("starts_at")
+  endsAt          DateTime @map("ends_at")
+  googleAccountId String   @map("google_account_id")
+  calendarEventId String   @map("calendar_event_id")
+  meetUrl         String?  @map("meet_url")
+  /// BOOKED | CANCELLED
+  status          String   @default("BOOKED")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([startsAt])
+  @@index([conversationId])
+  @@map("whatsapp_bookings")
+}
+
+/// Memoria de la IA sobre una persona que escribe por WhatsApp: lo que conviene
+/// recordar entre conversaciones (qué busca, qué se le prometió, cómo prefiere
+/// que le hablen). La escribe la IA al cerrar un intercambio y Dayana la edita.
+model WhatsAppMemory {
+  /// Teléfono en dígitos, sin `+` (igual que el id del hilo).
+  phone     String   @id
+  contactId String?  @map("contact_id")
+  notes     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("whatsapp_memories")
+}
+
+/// Procedimiento que la IA sigue para un tipo de situación (agendar, precios,
+/// pagos…). Lo escribe Dayana, o la IA lo propone a partir de sus correcciones
+/// y Dayana lo aprueba.
+model WhatsAppPlaybook {
+  id        String   @id @default(cuid())
+  name      String
+  /// Cuándo aplica, en palabras: la IA lo lee para decidir si lo sigue.
+  trigger   String   @db.Text
+  steps     String   @db.Text
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  /// `manual` | `learned` (propuesto por la IA; nace apagado hasta que Dayana lo aprueba)
+  source    String   @default("manual")
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("whatsapp_playbooks")
+}
+
+/// Suscripción de notificaciones push de un navegador o teléfono del equipo.
+model PushSubscription {
+  id          String    @id @default(cuid())
+  staffUserId String    @map("staff_user_id")
+  endpoint    String    @unique
+  p256dh      String
+  auth        String
+  userAgent   String?   @map("user_agent")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffUserId])
+  @@map("push_subscriptions")
 }

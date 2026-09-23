@@ -341,6 +341,10 @@ export type ReplyInput = {
 
 /** Responde en un hilo. Deja rastro en el audit log como toda escritura del CRM. */
 export const replyToConversation = async (input: ReplyInput) => {
+  const before = await prisma.conversation.findUnique({
+    where: { id: input.conversationId },
+    select: { aiMode: true, draftBody: true, draftSource: true },
+  });
   const result = await sendMetaMessage({
     conversationId: input.conversationId,
     body: input.body,
@@ -350,9 +354,38 @@ export const replyToConversation = async (input: ReplyInput) => {
   });
 
   // Entró una persona: la IA no vuelve a escribir en este hilo. Escribir
-  // encima de una respuesta humana es la peor forma de automatizar.
-  const { pauseAutoReply } = await import("./whatsapp-autoreply");
-  await pauseAutoReply(input.conversationId).catch(() => undefined);
+  // encima de una respuesta humana es la peor forma de automatizar. En modo
+  // copiloto no: ahí Dayana envía los borradores de la IA y la IA sigue.
+  if (before?.aiMode !== "COPILOT") {
+    const { pauseAutoReply } = await import("./whatsapp-autoreply");
+    await pauseAutoReply(input.conversationId).catch(() => undefined);
+  }
+  // Un borrador de la IA que Dayana cambió antes de enviar es una corrección:
+  // puede enseñar un procedimiento nuevo (queda como propuesta, apagada).
+  if (
+    before?.draftSource === "AI" &&
+    before.draftBody &&
+    before.draftBody.trim() !== input.body.trim()
+  ) {
+    const { learnFromCorrection } = await import("./whatsapp-agent/corrections");
+    await learnFromCorrection({
+      conversationId: input.conversationId,
+      aiReply: before.draftBody,
+      dayanaReply: input.body,
+    }).catch((e) => console.error("[whatsapp-agent] corrección", e));
+  }
+  if (before?.aiMode === "AUTO") {
+    const { learnIfCorrectingAutoReply } = await import(
+      "./whatsapp-agent/corrections"
+    );
+    await learnIfCorrectingAutoReply(input.conversationId).catch(() => undefined);
+  }
+  if (before?.draftSource === "AI") {
+    await prisma.conversation.update({
+      where: { id: input.conversationId },
+      data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
+    });
+  }
   // Y lo que escribió es un ejemplo más de cómo contesta Dayana.
   const { learnFromLatestReply } = await import("./whatsapp-learning");
   await learnFromLatestReply(input.conversationId);
