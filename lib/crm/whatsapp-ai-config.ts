@@ -111,7 +111,7 @@ export const whatsAppAiConfigSchema = z.object({
   /** A quién avisa cuando pasa un hilo a una persona. */
   notify: z.enum(["ALL", "OWNERS"]),
   /** Cómo arranca un chat nuevo: la IA contesta sola o deja borradores. */
-  defaultMode: z.enum(["AUTO", "COPILOT"]),
+  defaultMode: z.enum(["AUTO", "COPILOT", "MANUAL"]),
   /** Citas directas en el Google Calendar conectado. */
   booking: bookingSchema,
   escalation: z.object({

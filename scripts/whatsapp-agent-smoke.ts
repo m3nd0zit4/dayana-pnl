@@ -39,6 +39,11 @@ const cases: { name: string; expect: string; transcript: TranscriptLine[] }[] = 
     transcript: [{ direction: "INBOUND", body: "Quiero pagar el paquete de sesiones, ¿me pasas el link de pago?" }],
   },
   {
+    name: "eventos",
+    expect: "reply: dice qué eventos/talleres hay (o que no hay próximos), sin preguntarle a la persona",
+    transcript: [{ direction: "INBOUND", body: "Hola, ¿tienes algún taller o webinar gratis próximamente?" }],
+  },
+  {
     name: "pago hecho",
     expect: "escalate payment",
     transcript: [

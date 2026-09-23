@@ -81,7 +81,7 @@ const money = (currency: string, minor: number) =>
 /** Lo único que la IA puede afirmar: sale del CRM en cada respuesta. */
 export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> => {
   const site = getSiteUrl();
-  const [products, workshop, webinar, magnets] = await Promise.all([
+  const [products, workshops, events, magnets] = await Promise.all([
     prisma.product.findMany({
       // Misma regla que `isSellable` (lib/plans-from-db.ts).
       where: {
@@ -99,14 +99,43 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
       },
       take: 12,
     }),
-    prisma.workshopEdition.findFirst({
-      where: { status: "OPEN" },
+    prisma.workshopEdition.findMany({
+      where: {
+        OR: [
+          { status: "OPEN" },
+          { status: { not: "DRAFT" }, startsAt: { gte: new Date(Date.now() - 24 * 3600_000) } },
+        ],
+      },
       orderBy: { startsAt: "asc" },
-      select: { title: true, slug: true, dateLabel: true, scheduleLabel: true },
+      take: 5,
+      select: {
+        title: true,
+        slug: true,
+        status: true,
+        startsAt: true,
+        dateLabel: true,
+        scheduleLabel: true,
+        cardSummary: true,
+        product: {
+          select: {
+            prices: { orderBy: { validFrom: "desc" }, select: { currency: true, amountMinor: true } },
+          },
+        },
+      },
     }),
-    prisma.freeWebinar.findFirst({
-      where: { isActive: true, endedAt: null },
-      select: { startsAt: true },
+    prisma.freeWebinar.findMany({
+      where: { isActive: true },
+      orderBy: { startsAt: "desc" },
+      take: 3,
+      select: {
+        headline: true,
+        subheadline: true,
+        eventLabel: true,
+        locationLabel: true,
+        startsAt: true,
+        startsAtHasTime: true,
+        endedAt: true,
+      },
     }),
     prisma.keywordMagnet.findMany({
       where: { isActive: true },
@@ -146,17 +175,50 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
     lines.push("", "AGENDAR: no agendas tú; las citas las coordina Dayana (escala).");
   }
 
-  if (workshop) {
+  const when = (d: Date | null, withTime = true) =>
+    d
+      ? `${new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(d)}${
+          withTime ? `, ${new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "numeric", minute: "2-digit" }).format(d)} hora de Colombia` : ""
+        }`
+      : null;
+  const now = Date.now();
+
+  lines.push("", "TALLERES:");
+  if (workshops.length === 0) {
+    lines.push("- No hay ningún taller abierto ni programado ahora mismo. Dayana anuncia los próximos por aquí y en sus redes.");
+  }
+  for (const w of workshops) {
+    const price = (w.product?.prices ?? [])
+      .filter((x, i, all) => all.findIndex((y) => y.currency === x.currency) === i)
+      .map((x) => money(x.currency, x.amountMinor))
+      .join(" · ");
+    const date = w.dateLabel || when(w.startsAt);
     lines.push(
-      "",
-      `TALLER ABIERTO: ${workshop.title}${workshop.dateLabel ? ` — ${workshop.dateLabel}` : ""}${
-        workshop.scheduleLabel ? ` (${workshop.scheduleLabel})` : ""
-      }. Página: ${site}/taller-virtual/${workshop.slug}`
+      `- ${w.title}${date ? ` — ${date}` : ""}${w.scheduleLabel ? ` (${w.scheduleLabel})` : ""}${
+        w.status === "OPEN" ? " — INSCRIPCIONES ABIERTAS" : ` — ${w.status === "CLOSED" ? "inscripciones cerradas" : "próximamente"}`
+      }${price ? ` — ${price}` : ""}. Página: ${site}/taller-virtual/${w.slug}${w.cardSummary ? `\n  De qué trata: ${w.cardSummary}` : ""}`
     );
   }
-  if (webinar?.startsAt) {
-    lines.push("", `WEBINAR GRATIS: inscripción en ${site}/webinar-gratuito`);
+
+  lines.push("", "EVENTOS GRATUITOS (masterclass, webinars):");
+  const upcoming = events.filter((e) => !e.endedAt && (!e.startsAt || e.startsAt.getTime() > now - 3 * 3600_000));
+  const past = events.filter((e) => !upcoming.includes(e));
+  if (upcoming.length === 0) {
+    lines.push("- No hay ningún evento gratuito próximo anunciado.");
   }
+  for (const e of upcoming) {
+    lines.push(
+      `- ${e.eventLabel}: «${e.headline}»${e.subheadline ? ` — ${e.subheadline}` : ""}. Cuándo: ${
+        when(e.startsAt, e.startsAtHasTime) ?? "fecha por anunciar"
+      }. Dónde: ${e.locationLabel}. Es gratis. Inscripción: ${site}/eventos-gratuitos`
+    );
+  }
+  for (const e of past) {
+    lines.push(
+      `- El último fue «${e.headline}» (${e.eventLabel}) el ${when(e.startsAt, false) ?? "hace poco"}; ya pasó. El próximo se anuncia por aquí y en las redes de Dayana.`
+    );
+  }
+
   if (magnets.length > 0) {
     lines.push(
       "",
@@ -237,6 +299,7 @@ Cómo conversas (así vende Dayana):
 - Pago: solo si pide cómo pagar o quiere pagar un paquete, usa payment_link con ese paquete y comparte el enlace.
 - AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio y ofrece 2 o 3 opciones concretas. Cuando elija, CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
 - Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 Llama a escalate (y NO escribas ningún mensaje) cuando:

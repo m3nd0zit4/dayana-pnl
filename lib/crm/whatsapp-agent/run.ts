@@ -119,9 +119,23 @@ export const runWhatsAppAi = async (input: {
     const enabled = await isWhatsAppAutoReplyEnabled();
     const head = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: { channel: true, aiMode: true, priorityAt: true },
+      select: {
+        channel: true,
+        aiMode: true,
+        priorityAt: true,
+        _count: { select: { messages: true } },
+      },
     });
     if (!head || head.channel !== "WHATSAPP") return;
+
+    // Un chat nuevo arranca en el modo general (IA, copiloto o manual).
+    if (head._count.messages <= 1) {
+      const { defaultMode } = await getWhatsAppAiConfig();
+      if (defaultMode !== head.aiMode) {
+        await prisma.conversation.update({ where: { id: conversationId }, data: { aiMode: defaultMode } });
+        head.aiMode = defaultMode;
+      }
+    }
 
     // Favoritos (la estrella): chats importantes para Dayana. La IA no los
     // lee, no los contesta y no los saluda.

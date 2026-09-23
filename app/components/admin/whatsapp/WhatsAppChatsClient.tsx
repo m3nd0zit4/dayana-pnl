@@ -26,6 +26,7 @@ import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { ChatDetail, ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import { useCrm } from "../crm/CrmProvider";
+import GlobalModeSwitch from "./GlobalModeSwitch";
 import VoiceRecorder from "./VoiceRecorder";
 import { useWhatsAppLive } from "./live";
 import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, isRunLive, useNow } from "./status";
@@ -967,6 +968,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
           )}
         </div>
         <div className="space-y-2 border-b border-[#e9edef] px-3 py-2 dark:border-border">
+          <GlobalModeSwitch onChanged={refresh} />
           <div className="flex items-center gap-2 rounded-lg bg-[#f0f2f5] px-3 dark:bg-muted/40">
             <Search className="size-4 shrink-0 text-[#54656f]" />
             <input

@@ -16,7 +16,7 @@ const WhatsAppBehaviorCard = ({
   initialMode,
   initialHolding,
 }: {
-  initialMode: "AUTO" | "COPILOT";
+  initialMode: "AUTO" | "COPILOT" | "MANUAL";
   initialHolding: string;
 }) => {
   const { toast } = useCrm();
