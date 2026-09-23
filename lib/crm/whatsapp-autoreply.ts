@@ -8,6 +8,13 @@ import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { getSiteUrl } from "@/lib/site-url";
+import {
+  getWhatsAppAiConfig,
+  isWithinOwnerHours,
+  type WhatsAppAiConfig,
+} from "./whatsapp-ai-config";
+import { findSimilarExamples, type SimilarExample } from "./whatsapp-learning";
+import { getOperationalTimezone } from "./operational-timezone";
 
 /**
  * Respuesta automática de WhatsApp.
@@ -28,6 +35,11 @@ import { getSiteUrl } from "@/lib/site-url";
  * 3. **Tope por hilo y día.** Un bucle de dos robots hablándose, o un modelo
  *    que se emociona, cuesta dinero y credibilidad.
  *
+ * El resto se configura en Ajustes → Asistente de WhatsApp
+ * (`whatsapp-ai-config.ts`): a quién contesta, en qué horario, cómo se
+ * presenta, instrucciones y estilo propios, y si usa respuestas reales de
+ * Dayana como ejemplos (`whatsapp-learning.ts`).
+ *
  * Lo que NUNCA hace, esté como esté el modelo: dar consejo clínico, diagnosticar,
  * prometer resultados, inventar precios o fechas, o pedir datos de pago.
  */
@@ -41,20 +53,21 @@ export const isWhatsAppAutoReplyEnabled = async (): Promise<boolean> =>
 export const setWhatsAppAutoReplyEnabled = (enabled: boolean): Promise<void> =>
   setSiteSetting(ENABLED_KEY, String(enabled));
 
-/** Máximo de mensajes automáticos por hilo en 24 h. */
-const MAX_AUTO_PER_DAY = 6;
-
 /** Cuántos mensajes del hilo lee para entender de qué se habla. */
 const HISTORY = 12;
 
 const decision = z.object({
   action: z
     .enum(["reply", "escalate"])
-    .describe("`reply` solo si la respuesta sale de los DATOS. Si no, `escalate`."),
+    .describe(
+      "`reply` solo si la respuesta sale de los DATOS. Si no, `escalate`."
+    ),
   message: z
     .string()
     .max(700)
-    .describe("Lo que se le envía. En `escalate`, una línea avisando que Dayana responde."),
+    .describe(
+      "Lo que se le envía. En `escalate`, una línea avisando que Dayana responde."
+    ),
   reason: z
     .string()
     .max(200)
@@ -144,14 +157,25 @@ const facts = async (): Promise<string> => {
     lines.push(
       "",
       "MATERIALES GRATIS por palabra clave:",
-      ...magnets.map((m) => `- ${m.label}: ${m.title} → ${site}/material/${m.keyword}`)
+      ...magnets.map(
+        (m) => `- ${m.label}: ${m.title} → ${site}/material/${m.keyword}`
+      )
     );
   }
 
   return lines.join("\n");
 };
 
-const SYSTEM = `Eres quien contesta el primer mensaje del WhatsApp de ${BRAND.name}. Escribes como ella: cercana, en español, de tú, sin adornos ni emojis de más (uno como mucho). Mensajes cortos: 2 o 3 frases.
+const IDENTITY: Record<WhatsAppAiConfig["identity"], string> = {
+  assistant:
+    "Escribes DE PARTE de Dayana, no eres ella: nunca digas «soy Dayana» ni hables como si fueras ella. Habla de Dayana en tercera persona («Dayana te responde», «ella revisa»). Tampoco te presentes como robot o inteligencia artificial salvo que te lo pregunten directamente; si te lo preguntan, dilo con naturalidad y escala.",
+  owner:
+    "Escribes en primera persona, con la voz de Dayana, porque es su número. Pero si la persona pregunta si habla con un robot, con una IA o con un asistente, NO lo niegues: di con naturalidad que es una respuesta automática y escala para que Dayana conteste en persona.",
+};
+
+const systemPrompt = (config: WhatsAppAiConfig): string => {
+  const parts = [
+    `Eres quien contesta el WhatsApp de ${BRAND.name}. Escribes como ella: cercana, en español, de tú, sin adornos ni emojis de más (uno como mucho). Mensajes cortos: 2 o 3 frases. Si más abajo hay una guía de estilo o ejemplos reales de Dayana, su forma de escribir manda sobre esta.
 
 Tu trabajo es SOLO informar y orientar hacia el enlace correcto. No eres terapeuta.
 
@@ -166,15 +190,93 @@ Escala (action "escalate") SIEMPRE que:
 - pregunte algo que no esté en los DATOS, o pida un descuento;
 - sea una conversación ya empezada con una persona del equipo.
 
-Escribes DE PARTE de Dayana, no eres ella: nunca digas «soy Dayana» ni hables como si fueras ella. Habla de Dayana en tercera persona («Dayana te responde», «ella revisa»). Tampoco te presentes como robot o inteligencia artificial salvo que te lo pregunten directamente; si te lo preguntan, dilo con naturalidad y escala.
+${IDENTITY[config.identity]}
 
-Al escalar, el mensaje es UNA línea, cálida y sin promesas de tiempo exacto: que Dayana lo lee y te responde personalmente.
+Al escalar, el mensaje es UNA línea, cálida y sin promesas de tiempo exacto: que Dayana lo lee y responde personalmente (en primera persona si escribes con su voz: «lo leo con calma y te respondo yo»).
 
-Prohibido siempre: dar consejo clínico o diagnóstico, prometer resultados o curas, inventar precios, fechas, horarios o enlaces que no estén en los DATOS, pedir datos de tarjeta o contraseñas, y hablar de otra cosa que no sea este negocio.`;
+Prohibido siempre: dar consejo clínico o diagnóstico, prometer resultados o curas, inventar precios, fechas, horarios o enlaces que no estén en los DATOS, pedir datos de tarjeta o contraseñas, y hablar de otra cosa que no sea este negocio.`,
+  ];
+
+  if (config.styleGuide) {
+    parts.push(`CÓMO ESCRIBE DAYANA (imítalo):\n${config.styleGuide}`);
+  }
+  if (config.instructions) {
+    parts.push(
+      `INSTRUCCIONES DE DAYANA (cúmplelas, salvo que choquen con las prohibiciones de arriba):\n${config.instructions}`
+    );
+  }
+  return parts.join("\n\n");
+};
+
+const examplesBlock = (examples: SimilarExample[]): string | null =>
+  examples.length === 0
+    ? null
+    : [
+        "EJEMPLOS REALES de cómo contestó Dayana a mensajes parecidos. Úsalos SOLO para el tono, el largo, el trato y las frases. Los precios, fechas, enlaces u ofertas que aparezcan en ellos pueden estar viejos: esos datos salen únicamente de los DATOS.",
+        ...examples.map(
+          (e, i) =>
+            `#${i + 1}\nCLIENTA: ${e.clientText}\nDAYANA: ${e.replyText}`
+        ),
+      ].join("\n\n");
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY?.trim(),
 });
+
+export type ReplyDraft = z.infer<typeof decision> & {
+  examples: SimilarExample[];
+};
+
+/**
+ * Lo que la IA contestaría a esta conversación. No envía nada: lo usan la
+ * respuesta automática y el botón «Probar» del panel, para que lo que Dayana
+ * prueba sea exactamente lo que saldría.
+ */
+export const draftAutoReply = async (input: {
+  config: WhatsAppAiConfig;
+  transcript: { direction: "INBOUND" | "OUTBOUND"; body: string | null }[];
+  name: string | null;
+}): Promise<ReplyDraft> => {
+  const lines = input.transcript.map(
+    (m) =>
+      `${m.direction === "INBOUND" ? "CLIENTA" : "NOSOTROS"}: ${m.body?.trim() ?? "(adjunto)"}`
+  );
+
+  // Lo último que escribió la persona, junto: es lo que se busca en los
+  // ejemplos. Un fallo aquí no puede dejar a nadie sin respuesta.
+  const lastInbound: string[] = [];
+  for (const m of [...input.transcript].reverse()) {
+    if (m.direction !== "INBOUND") break;
+    if (m.body?.trim()) lastInbound.unshift(m.body.trim());
+  }
+  const examples = input.config.learning.enabled
+    ? await findSimilarExamples(
+        lastInbound.join("\n"),
+        input.config.learning.examples
+      ).catch((e) => {
+        console.error("[whatsapp-autoreply] sin ejemplos", e);
+        return [] as SimilarExample[];
+      })
+    : [];
+
+  const { object } = await generateObject({
+    model: google(process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash"),
+    schema: decision,
+    system: systemPrompt(input.config),
+    prompt: [
+      `DATOS (lo único que puedes afirmar):\n${await facts()}`,
+      examplesBlock(examples),
+      input.name
+        ? `La persona se llama ${input.name}.`
+        : "No sabemos su nombre.",
+      `CONVERSACIÓN:\n${lines.join("\n")}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n"),
+  });
+
+  return { ...object, examples };
+};
 
 /** Pausa el hilo: a partir de aquí contesta una persona. */
 export const pauseAutoReply = async (conversationId: string): Promise<void> => {
@@ -184,7 +286,9 @@ export const pauseAutoReply = async (conversationId: string): Promise<void> => {
   });
 };
 
-export const resumeAutoReply = async (conversationId: string): Promise<void> => {
+export const resumeAutoReply = async (
+  conversationId: string
+): Promise<void> => {
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { aiPausedAt: null },
@@ -209,6 +313,21 @@ export const maybeAutoReply = async (
       return { status: "skipped", reason: "no_model_key" };
     }
 
+    const config = await getWhatsAppAiConfig();
+
+    // En su horario contesta Dayana. No se pausa el hilo: fuera de horario la
+    // IA puede volver a ayudar si nadie contestó.
+    if (
+      config.schedule.mode === "outside_hours" &&
+      isWithinOwnerHours(
+        config.schedule,
+        new Date(),
+        await getOperationalTimezone()
+      )
+    ) {
+      return { status: "skipped", reason: "owner_hours" };
+    }
+
     const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
       select: {
@@ -216,8 +335,18 @@ export const maybeAutoReply = async (
         channel: true,
         aiPausedAt: true,
         assignedStaffId: true,
+        externalThreadId: true,
         participantName: true,
-        contact: { select: { firstName: true } },
+        contact: {
+          select: {
+            firstName: true,
+            enrollments: {
+              where: { status: { in: ["ACTIVE", "COMPLETED"] } },
+              select: { id: true },
+              take: 1,
+            },
+          },
+        },
         messages: {
           orderBy: { sentAt: "desc" },
           take: HISTORY,
@@ -251,7 +380,10 @@ export const maybeAutoReply = async (
       // Una foto o un audio sin texto: no hay nada que leer, y adivinar es
       // justo lo que no debe hacer.
       await pauseAutoReply(conversationId);
-      return { status: "escalated", reason: "mensaje sin texto (audio o imagen)" };
+      return {
+        status: "escalated",
+        reason: "mensaje sin texto (audio o imagen)",
+      };
     }
 
     // Alguien del equipo ya escribió aquí: el hilo es suyo.
@@ -260,13 +392,39 @@ export const maybeAutoReply = async (
       return { status: "skipped", reason: "human_replied" };
     }
 
+    // A quién NO le contesta, según Ajustes. Con el número compartido, quien
+    // ya conoce a Dayana (su libreta, o un chat donde ella ya escribió) no
+    // debería recibir una respuesta automática.
+    if (config.audience.skipKnownContacts) {
+      const [inAddressBook, humanBefore] = await Promise.all([
+        prisma.whatsAppKnownContact.count({
+          where: { phone: conversation.externalThreadId, removedAt: null },
+        }),
+        prisma.conversationMessage.count({
+          where: { conversationId, direction: "OUTBOUND", isAutoReply: false },
+        }),
+      ]);
+      if (inAddressBook > 0 || humanBefore > 0) {
+        return { status: "skipped", reason: "known_contact" };
+      }
+    }
+    if (
+      config.audience.skipCustomers &&
+      (conversation.contact?.enrollments.length ?? 0) > 0
+    ) {
+      return { status: "skipped", reason: "customer" };
+    }
+
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const autoToday = await prisma.conversationMessage.count({
       where: { conversationId, isAutoReply: true, sentAt: { gte: since } },
     });
-    if (autoToday >= MAX_AUTO_PER_DAY) {
+    if (autoToday >= config.maxPerDay) {
       await pauseAutoReply(conversationId);
-      return { status: "escalated", reason: "demasiadas respuestas automáticas seguidas" };
+      return {
+        status: "escalated",
+        reason: "demasiadas respuestas automáticas seguidas",
+      };
     }
 
     const name =
@@ -274,23 +432,7 @@ export const maybeAutoReply = async (
       conversation.participantName?.trim() ||
       null;
 
-    const transcript = history
-      .map(
-        (m) =>
-          `${m.direction === "INBOUND" ? "CLIENTA" : "NOSOTROS"}: ${m.body?.trim() ?? "(adjunto)"}`
-      )
-      .join("\n");
-
-    const { object } = await generateObject({
-      model: google(process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash"),
-      schema: decision,
-      system: SYSTEM,
-      prompt: [
-        `DATOS (lo único que puedes afirmar):\n${await facts()}`,
-        name ? `La persona se llama ${name}.` : "No sabemos su nombre.",
-        `CONVERSACIÓN:\n${transcript}`,
-      ].join("\n\n"),
-    });
+    const object = await draftAutoReply({ config, transcript: history, name });
 
     const body = object.message.trim();
     if (!body) {
@@ -312,7 +454,7 @@ export const maybeAutoReply = async (
         href: `/admin/inbox?conversation=${conversationId}`,
         entityType: "Conversation",
         entityId: conversationId,
-        staff: "ALL",
+        staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
       });
       return { status: "escalated", reason: object.reason };
     }
@@ -326,6 +468,14 @@ export const maybeAutoReply = async (
     return { status: "skipped", reason: "error" };
   }
 };
+
+const ownerIds = async (): Promise<string[]> =>
+  (
+    await prisma.staffUser.findMany({
+      where: { role: "OWNER", isActive: true },
+      select: { id: true },
+    })
+  ).map((s) => s.id);
 
 const sendAuto = async (conversationId: string, body: string) => {
   const result = await sendMetaMessage({ conversationId, body });

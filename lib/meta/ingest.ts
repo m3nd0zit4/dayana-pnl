@@ -18,10 +18,13 @@ import { rehostAttachment, type StoredAttachment } from "./media";
 const UNIQUE_VIOLATION = "P2002";
 
 const isUniqueViolation = (e: unknown): boolean =>
-  e instanceof Prisma.PrismaClientKnownRequestError && e.code === UNIQUE_VIOLATION;
+  e instanceof Prisma.PrismaClientKnownRequestError &&
+  e.code === UNIQUE_VIOLATION;
 
 const credentialsFor = async (channel: ConversationChannel) =>
-  channel === "WHATSAPP" ? resolveWhatsAppCredentials() : resolvePageCredentials();
+  channel === "WHATSAPP"
+    ? resolveWhatsAppCredentials()
+    : resolvePageCredentials();
 
 /**
  * Reserva el id del mensaje. Devuelve false si ya se había procesado.
@@ -97,6 +100,7 @@ const storeAttachments = async (
 
 export type IngestResult =
   | { outcome: "stored"; conversationId: string; isInbound: boolean }
+  | { outcome: "contact_synced" }
   | { outcome: "duplicate" }
   | { outcome: "ignored"; reason: string };
 
@@ -107,42 +111,63 @@ export const ingestMessage = async (
   const attachments = await storeAttachments(message);
   const contactId = await resolveContactId(message.channel, message.threadId);
 
-  const conversation = await prisma.conversation.upsert({
-    where: {
-      channel_externalThreadId: {
-        channel: message.channel,
-        externalThreadId: message.threadId,
-      },
-    },
-    create: {
+  const where = {
+    channel_externalThreadId: {
       channel: message.channel,
       externalThreadId: message.threadId,
-      metaAccountId: message.metaAccountId,
-      contactId,
-      participantName: message.participantName,
-      lastMessageAt: message.sentAt,
-      lastInboundAt: message.isEcho ? null : message.sentAt,
-      unreadCount: message.isEcho ? 0 : 1,
-      status: "OPEN",
     },
-    update: {
-      lastMessageAt: message.sentAt,
-      // Un eco no reabre la ventana de 24 h: la ventana la abre el cliente.
-      ...(message.isEcho
-        ? { status: "PENDING" as const }
-        : {
-            lastInboundAt: message.sentAt,
-            unreadCount: { increment: 1 },
-            status: "OPEN" as const,
-          }),
-      // Nunca sobreescribir un contacto ya vinculado a mano con un null.
-      ...(contactId ? { contactId } : {}),
-      ...(message.participantName
-        ? { participantName: message.participantName }
-        : {}),
-    },
-    select: { id: true },
-  });
+  };
+
+  // El historial es pasado: crea el hilo si no existe, pero no lo abre, no
+  // suma no leídos y solo adelanta las fechas si de verdad son más nuevas.
+  // Seis meses de chats no pueden aparecer de golpe como pendientes.
+  const conversation = message.isHistory
+    ? await prisma.conversation.upsert({
+        where,
+        create: {
+          channel: message.channel,
+          externalThreadId: message.threadId,
+          metaAccountId: message.metaAccountId,
+          contactId,
+          lastMessageAt: message.sentAt,
+          lastInboundAt: message.isEcho ? null : message.sentAt,
+          unreadCount: 0,
+          status: "CLOSED",
+        },
+        update: contactId ? { contactId } : {},
+        select: { id: true },
+      })
+    : await prisma.conversation.upsert({
+        where,
+        create: {
+          channel: message.channel,
+          externalThreadId: message.threadId,
+          metaAccountId: message.metaAccountId,
+          contactId,
+          participantName: message.participantName,
+          lastMessageAt: message.sentAt,
+          lastInboundAt: message.isEcho ? null : message.sentAt,
+          unreadCount: message.isEcho ? 0 : 1,
+          status: "OPEN",
+        },
+        update: {
+          lastMessageAt: message.sentAt,
+          // Un eco no reabre la ventana de 24 h: la ventana la abre el cliente.
+          ...(message.isEcho
+            ? { status: "PENDING" as const }
+            : {
+                lastInboundAt: message.sentAt,
+                unreadCount: { increment: 1 },
+                status: "OPEN" as const,
+              }),
+          // Nunca sobreescribir un contacto ya vinculado a mano con un null.
+          ...(contactId ? { contactId } : {}),
+          ...(message.participantName
+            ? { participantName: message.participantName }
+            : {}),
+        },
+        select: { id: true },
+      });
 
   try {
     await prisma.conversationMessage.create({
@@ -166,6 +191,25 @@ export const ingestMessage = async (
     // solo ocurre si el claim de MetaWebhookEvent no atajó, así que se informa.
     if (isUniqueViolation(e)) return { outcome: "duplicate" };
     throw e;
+  }
+
+  if (message.isHistory) {
+    await prisma.conversation.updateMany({
+      where: { id: conversation.id, lastMessageAt: { lt: message.sentAt } },
+      data: { lastMessageAt: message.sentAt },
+    });
+    if (!message.isEcho) {
+      await prisma.conversation.updateMany({
+        where: {
+          id: conversation.id,
+          OR: [
+            { lastInboundAt: null },
+            { lastInboundAt: { lt: message.sentAt } },
+          ],
+        },
+        data: { lastInboundAt: message.sentAt },
+      });
+    }
   }
 
   return {
@@ -243,6 +287,12 @@ export const processNormalizedEvent = async (
     return ingestStatus(event);
   }
 
+  if (event.kind === "contact") {
+    const { upsertKnownContact } = await import("@/lib/crm/whatsapp-learning");
+    await upsertKnownContact(event);
+    return { outcome: "contact_synced" };
+  }
+
   const claimed = await claimMetaEvent(
     object,
     event.externalMessageId,
@@ -251,6 +301,24 @@ export const processNormalizedEvent = async (
   if (!claimed) return { outcome: "duplicate" };
 
   const result = await ingestMessage(event);
+
+  // El pasado no avisa, no saluda y no contesta. Se aprende de él en tanda,
+  // al final de la sincronización (`processHistoryEvents`).
+  if (event.isHistory) return result;
+
+  // Dayana contestó desde la app del celular (coexistencia): el hilo es suyo
+  // y lo que escribió es un ejemplo más de cómo responde.
+  if (
+    result.outcome === "stored" &&
+    event.isEcho &&
+    event.channel === "WHATSAPP"
+  ) {
+    const { pauseAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
+    await pauseAutoReply(result.conversationId).catch(() => undefined);
+    const { learnFromLatestReply } =
+      await import("@/lib/crm/whatsapp-learning");
+    await learnFromLatestReply(result.conversationId);
+  }
 
   if (result.outcome === "stored" && result.isInbound) {
     notifyInboundMessage(event, result.conversationId);
@@ -261,7 +329,9 @@ export const processNormalizedEvent = async (
       // El saludo va primero y, si sale, la IA no contesta encima en este
       // mismo mensaje: dos respuestas seguidas a un «hola» delatan al robot.
       const { maybeSendWelcome } = await import("@/lib/crm/whatsapp-welcome");
-      const greeted = await maybeSendWelcome(result.conversationId).catch(() => false);
+      const greeted = await maybeSendWelcome(result.conversationId).catch(
+        () => false
+      );
       if (!greeted) {
         const { maybeAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
         await maybeAutoReply(result.conversationId).catch(() => undefined);
@@ -270,4 +340,35 @@ export const processNormalizedEvent = async (
   }
 
   return result;
+};
+
+/**
+ * El historial de la app llega en trozos grandes (cientos de mensajes). Se
+ * procesa aquí, en serie y sin la cola: mandar un evento por mensaje a Inngest
+ * serían miles de eventos para algo que no tiene prisa ni a nadie esperando.
+ * Al final se aprende de los hilos que cambiaron.
+ */
+export const processHistoryEvents = async (
+  object: string,
+  events: NormalizedEvent[]
+): Promise<{ stored: number; conversations: number }> => {
+  const touched = new Set<string>();
+  let stored = 0;
+  for (const event of events) {
+    try {
+      const result = await processNormalizedEvent(object, event);
+      if (result.outcome === "stored") {
+        stored++;
+        touched.add(result.conversationId);
+      }
+    } catch (e) {
+      console.error("[historial WhatsApp] no se pudo guardar un mensaje", e);
+    }
+  }
+
+  const { learnFromConversation } = await import("@/lib/crm/whatsapp-learning");
+  for (const conversationId of touched) {
+    await learnFromConversation(conversationId);
+  }
+  return { stored, conversations: touched.size };
 };

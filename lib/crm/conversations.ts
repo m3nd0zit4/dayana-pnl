@@ -353,6 +353,9 @@ export const replyToConversation = async (input: ReplyInput) => {
   // encima de una respuesta humana es la peor forma de automatizar.
   const { pauseAutoReply } = await import("./whatsapp-autoreply");
   await pauseAutoReply(input.conversationId).catch(() => undefined);
+  // Y lo que escribió es un ejemplo más de cómo contesta Dayana.
+  const { learnFromLatestReply } = await import("./whatsapp-learning");
+  await learnFromLatestReply(input.conversationId);
 
   await writeAuditLog({
     staffUserId: input.staffUserId,

@@ -4,11 +4,18 @@ import { after, NextResponse, type NextRequest } from "next/server";
 
 import { fireAuditLog } from "@/lib/crm/audit";
 import { emitMetaWebhook } from "@/lib/inngest/events";
-import { normalizeMetaPayload, threadKeyOf } from "@/lib/meta/inbound";
+import {
+  isBulkSyncEvent,
+  normalizeMetaPayload,
+  threadKeyOf,
+} from "@/lib/meta/inbound";
 import { getDialog360WebhookSecret } from "@/lib/meta/whatsapp-provider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// El historial de la app (coexistencia) se procesa tras responder y puede
+// ser largo.
+export const maxDuration = 300;
 
 /**
  * Avisos de WhatsApp que llegan por 360dialog (coexistencia).
@@ -61,15 +68,25 @@ export async function POST(req: NextRequest) {
       ? String((payload as { object?: unknown }).object ?? "whatsapp_business_account")
       : "whatsapp_business_account";
 
+  // Historial y libreta de la app: en bloque, fuera de la cola.
+  const bulk = events.filter(isBulkSyncEvent);
+  if (bulk.length > 0) {
+    after(async () => {
+      const { processHistoryEvents } = await import("@/lib/meta/ingest");
+      await processHistoryEvents(object, bulk);
+    });
+  }
+  const live = events.filter((event) => !isBulkSyncEvent(event));
+
   const queued = await Promise.all(
-    events.map((event) =>
+    live.map((event) =>
       emitMetaWebhook({ object, threadKey: threadKeyOf(event), event })
     )
   );
 
   // Mismo respaldo que la ruta de Meta: lo que no se pudo encolar se procesa
   // en línea después de responder, para que 360dialog no reintente.
-  const pending = events.filter((_, i) => !queued[i]);
+  const pending = live.filter((_, i) => !queued[i]);
   if (pending.length > 0) {
     after(async () => {
       const { processNormalizedEvent } = await import("@/lib/meta/ingest");
@@ -87,5 +104,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     queued: queued.filter(Boolean).length,
     inline: pending.length,
+    bulk: bulk.length,
   });
 }

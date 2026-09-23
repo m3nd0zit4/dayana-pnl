@@ -1,7 +1,11 @@
 import { after, NextResponse, type NextRequest } from "next/server";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { emitMetaWebhook } from "@/lib/inngest/events";
-import { normalizeMetaPayload, threadKeyOf } from "@/lib/meta/inbound";
+import {
+  isBulkSyncEvent,
+  normalizeMetaPayload,
+  threadKeyOf,
+} from "@/lib/meta/inbound";
 import {
   resolveMetaSubscription,
   verifyMetaWebhook,
@@ -9,6 +13,9 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// El historial de la app (coexistencia) se procesa tras responder y puede
+// ser largo.
+export const maxDuration = 300;
 
 /**
  * Endpoint único de los webhooks de Meta: WhatsApp, Messenger e Instagram.
@@ -68,8 +75,18 @@ export async function POST(req: NextRequest) {
   // El trabajo real se hace en Inngest: da reintentos duraderos y, sobre todo,
   // serializa por hilo, que es lo que evita que tres mensajes seguidos del
   // mismo cliente se guarden desordenados.
+  // Historial y libreta de la app: en bloque, fuera de la cola.
+  const bulk = events.filter(isBulkSyncEvent);
+  if (bulk.length > 0) {
+    after(async () => {
+      const { processHistoryEvents } = await import("@/lib/meta/ingest");
+      await processHistoryEvents(object, bulk);
+    });
+  }
+  const live = events.filter((event) => !isBulkSyncEvent(event));
+
   const queued = await Promise.all(
-    events.map((event) =>
+    live.map((event) =>
       emitMetaWebhook({
         object,
         threadKey: threadKeyOf(event),
@@ -81,7 +98,7 @@ export async function POST(req: NextRequest) {
   // Respaldo en línea de lo que no se pudo encolar. `after()` mantiene viva la
   // invocación tras responder, que es lo que Meta necesita: acuse rápido y el
   // trabajo terminado igualmente.
-  const pending = events.filter((_, i) => !queued[i]);
+  const pending = live.filter((_, i) => !queued[i]);
   if (pending.length > 0) {
     after(async () => {
       const { processNormalizedEvent } = await import("@/lib/meta/ingest");
@@ -99,5 +116,6 @@ export async function POST(req: NextRequest) {
     ok: true,
     queued: queued.filter(Boolean).length,
     inline: pending.length,
+    bulk: bulk.length,
   });
 }

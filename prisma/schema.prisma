@@ -9,7 +9,7 @@ datasource db {
   directUrl  = env("DIRECT_URL")
   // pg_trgm sostiene el índice GIN de Contact.searchText — sin él la búsqueda
   // de contactos es un seq scan por pulsación de tecla.
-  extensions = [pg_trgm]
+  extensions = [pg_trgm, vector]
 }
 
 enum ContactSource {
@@ -1038,9 +1038,10 @@ model Conversation {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  contact       Contact?              @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  assignedStaff StaffUser?            @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  contact       Contact?               @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedStaff StaffUser?             @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
   messages      ConversationMessage[]
+  replyExamples WhatsAppReplyExample[]
 
   @@unique([channel, externalThreadId])
   @@index([status, lastMessageAt(sort: Desc)])
@@ -1912,4 +1913,52 @@ model MagnetClaim {
   @@unique([magnetId, email])
   @@index([magnetId, createdAt(sort: Desc)])
   @@map("magnet_claims")
+}
+
+/// Una respuesta real de Dayana por WhatsApp, guardada como ejemplo para que
+/// la respuesta automática escriba como ella.
+///
+/// Sale de tres sitios: el historial de la app que Meta manda al conectar el
+/// número (coexistencia), lo que Dayana contesta a diario (desde el celular o
+/// desde el CRM) y los chats exportados que se suben a mano. De cada uno se
+/// guarda el par «lo que escribió la persona → lo que contestó Dayana», con su
+/// vector para buscar los más parecidos al mensaje nuevo.
+model WhatsAppReplyExample {
+  id             String  @id @default(cuid())
+  /// Único por origen: el id del último mensaje de la respuesta, o un hash
+  /// del par cuando viene de un chat exportado. Reconstruir no duplica.
+  sourceKey      String  @unique @map("source_key")
+  /// `history` | `live` | `import`
+  source         String
+  conversationId String? @map("conversation_id")
+
+  clientText String                      @map("client_text") @db.Text
+  replyText  String                      @map("reply_text") @db.Text
+  /// Vector de `clientText` (Gemini, 768 dimensiones, pgvector). Nulo =
+  /// pendiente; se escribe y se consulta con SQL en lib/crm/whatsapp-learning.ts.
+  embedding  Unsupported("vector(768)")?
+  /// Apagado desde el CRM: la IA no lo usa, pero no se vuelve a crear.
+  isEnabled  Boolean                     @default(true) @map("is_enabled")
+  repliedAt  DateTime                    @map("replied_at")
+  createdAt  DateTime                    @default(now()) @map("created_at")
+
+  conversation Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([isEnabled, repliedAt(sort: Desc)])
+  @@map("whatsapp_reply_examples")
+}
+
+/// Un contacto de la libreta de la app de WhatsApp Business de Dayana.
+///
+/// Llega por la sincronización de coexistencia. Sirve para que la IA no le
+/// conteste a la familia, a los amigos ni a quien Dayana ya conoce, si así se
+/// configura: al compartir el número, no todo el que escribe es un cliente.
+model WhatsAppKnownContact {
+  /// Teléfono en dígitos, sin `+` (igual que el id del hilo).
+  phone     String    @id
+  name      String?
+  removedAt DateTime? @map("removed_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("whatsapp_known_contacts")
 }

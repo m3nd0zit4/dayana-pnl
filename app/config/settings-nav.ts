@@ -42,6 +42,8 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
       // Por dónde se puede hablar con el asistente, no a qué llama — ver
       // lib/crm/agent-channels.ts.
       { href: "/admin/ajustes/canales", label: "Canales del agente" },
+      // Qué contesta la IA por WhatsApp y qué ha aprendido de Dayana.
+      { href: "/admin/ajustes/asistente-whatsapp", label: "Asistente de WhatsApp" },
     ],
   },
   {
