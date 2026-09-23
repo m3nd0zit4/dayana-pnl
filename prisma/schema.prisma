@@ -1027,6 +1027,14 @@ model Conversation {
   draftSource    String?   @map("draft_source")
   draftUpdatedAt DateTime? @map("draft_updated_at")
 
+  /// Desde cuándo la IA no contesta sola en este hilo.
+  ///
+  /// Lo pone la propia IA cuando decide que esto lo tiene que ver una persona
+  /// (un dolor fuerte, un problema de pago, una queja) y también cualquier
+  /// respuesta escrita por el equipo: si alguien ya entró a la conversación,
+  /// un robot escribiendo encima es peor que el silencio.
+  aiPausedAt DateTime? @map("ai_paused_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1060,6 +1068,10 @@ model ConversationMessage {
   staffUserId String? @map("staff_user_id")
   /// Un mensaje que Meta nos devuelve porque se envió desde la app de Meta.
   isEcho      Boolean @default(false) @map("is_echo")
+
+  /// La escribió la IA, no una persona. Sirve para el límite por hilo y para
+  /// que en la bandeja se vea quién contestó.
+  isAutoReply Boolean @default(false) @map("is_auto_reply")
 
   sentAt       DateTime  @default(now()) @map("sent_at")
   deliveredAt  DateTime? @map("delivered_at")

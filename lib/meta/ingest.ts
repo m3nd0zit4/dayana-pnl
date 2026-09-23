@@ -254,6 +254,13 @@ export const processNormalizedEvent = async (
 
   if (result.outcome === "stored" && result.isInbound) {
     notifyInboundMessage(event, result.conversationId);
+    // Respuesta automática de WhatsApp. Import perezoso: arrastra el modelo y
+    // el catálogo del CRM, y la mayoría de los eventos de Meta (acuses, ecos,
+    // Instagram) no lo necesitan. Nunca lanza hacia fuera.
+    if (event.channel === "WHATSAPP") {
+      const { maybeAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
+      await maybeAutoReply(result.conversationId).catch(() => undefined);
+    }
   }
 
   return result;

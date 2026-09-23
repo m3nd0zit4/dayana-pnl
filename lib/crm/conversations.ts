@@ -349,6 +349,11 @@ export const replyToConversation = async (input: ReplyInput) => {
     attachment: input.attachment,
   });
 
+  // Entró una persona: la IA no vuelve a escribir en este hilo. Escribir
+  // encima de una respuesta humana es la peor forma de automatizar.
+  const { pauseAutoReply } = await import("./whatsapp-autoreply");
+  await pauseAutoReply(input.conversationId).catch(() => undefined);
+
   await writeAuditLog({
     staffUserId: input.staffUserId,
     action: "CONVERSATION_REPLIED",
