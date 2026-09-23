@@ -258,8 +258,14 @@ export const processNormalizedEvent = async (
     // el catálogo del CRM, y la mayoría de los eventos de Meta (acuses, ecos,
     // Instagram) no lo necesitan. Nunca lanza hacia fuera.
     if (event.channel === "WHATSAPP") {
-      const { maybeAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
-      await maybeAutoReply(result.conversationId).catch(() => undefined);
+      // El saludo va primero y, si sale, la IA no contesta encima en este
+      // mismo mensaje: dos respuestas seguidas a un «hola» delatan al robot.
+      const { maybeSendWelcome } = await import("@/lib/crm/whatsapp-welcome");
+      const greeted = await maybeSendWelcome(result.conversationId).catch(() => false);
+      if (!greeted) {
+        const { maybeAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
+        await maybeAutoReply(result.conversationId).catch(() => undefined);
+      }
     }
   }
 

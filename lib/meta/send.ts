@@ -51,6 +51,12 @@ export type SendInput = {
     /** Parámetros posicionales del cuerpo de la plantilla. */
     variables?: string[];
   } | null;
+  /**
+   * Botón que abre un enlace, bajo el texto (solo WhatsApp y dentro de la
+   * ventana de 24 h). Un botón se toca; un enlace suelto en el texto hay que
+   * leerlo, reconocerlo y decidir tocarlo.
+   */
+  ctaUrl?: { label: string; url: string } | null;
   attachment?: SendAttachment | null;
 };
 
@@ -206,6 +212,34 @@ const sendWhatsApp = async (
     }
 
     return messageId;
+  }
+
+  if (input.ctaUrl) {
+    // `cta_url` es un mensaje interactivo: WhatsApp lo pinta como botón. La
+    // etiqueta la corta a 20 caracteres, así que se recorta aquí antes de que
+    // Meta rechace el envío entero por eso.
+    const res = await graphPost<GraphMessageResponse>(
+      `${credentials.accountId}/messages`,
+      {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to,
+        type: "interactive",
+        interactive: {
+          type: "cta_url",
+          body: { text: input.body },
+          action: {
+            name: "cta_url",
+            parameters: {
+              display_text: input.ctaUrl.label.slice(0, 20),
+              url: input.ctaUrl.url,
+            },
+          },
+        },
+      },
+      credentials
+    );
+    return readMessageId(res);
   }
 
   const res = await graphPost<GraphMessageResponse>(

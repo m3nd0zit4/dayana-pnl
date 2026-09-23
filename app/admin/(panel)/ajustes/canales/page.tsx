@@ -1,7 +1,9 @@
 import AgentChannelsClient from "@/app/components/admin/crm/settings/AgentChannelsClient";
+import WhatsAppWelcomeCard from "@/app/components/admin/crm/settings/WhatsAppWelcomeCard";
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
 import { isAgentChannelEnabled } from "@/lib/crm/agent-channels";
 import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
+import { getWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
 import {
   getAgentEnabledOverride,
   resolveAgentEnabled,
@@ -12,10 +14,11 @@ export const dynamic = "force-dynamic";
 const Page = async () => {
   await requireOwnerSettings();
 
-  const [enabled, whatsAppAuto, agentEnabled, agentEnabledOverride] =
+  const [enabled, whatsAppAuto, welcome, agentEnabled, agentEnabledOverride] =
     await Promise.all([
       isAgentChannelEnabled("eve"),
       isWhatsAppAutoReplyEnabled(),
+      getWelcomeConfig(),
       resolveAgentEnabled(),
       getAgentEnabledOverride(),
     ]);
@@ -26,6 +29,7 @@ const Page = async () => {
   );
 
   return (
+    <>
     <AgentChannelsClient
       globalEnabled={agentEnabled}
       globalOverride={agentEnabledOverride}
@@ -51,6 +55,8 @@ const Page = async () => {
         },
       ]}
     />
+    <WhatsAppWelcomeCard initial={welcome} configured={whatsAppConfigured} />
+    </>
   );
 };
 
