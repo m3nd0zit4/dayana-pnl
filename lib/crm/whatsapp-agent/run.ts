@@ -152,9 +152,12 @@ export const runWhatsAppAi = async (input: {
     // La persona suele mandar dos o tres mensajes seguidos. Se espera un poco
     // y se contesta todo junto, como haría una persona.
     await sleep(DEBOUNCE_MS);
+    // Meta da la hora al segundo: con dos mensajes en el mismo segundo, el id
+    // (cuid, crece con el tiempo) desempata igual para todas las ejecuciones,
+    // así que exactamente una se queda con la ráfaga.
     const latest = await prisma.conversationMessage.findFirst({
       where: { conversationId, direction: "INBOUND" },
-      orderBy: { sentAt: "desc" },
+      orderBy: [{ sentAt: "desc" }, { id: "desc" }],
       select: { externalMessageId: true },
     });
     if (latest?.externalMessageId && latest.externalMessageId !== input.triggerMessageId) {
@@ -250,12 +253,32 @@ export const runWhatsAppAi = async (input: {
     }
 
     const body = result.outcome.message;
-    if (conversation.aiMode === "COPILOT") {
+    // Mientras pensaba (unos segundos) Dayana pudo tomar el chat o escribir:
+    // entonces no se envía nada; la respuesta queda como borrador para ella.
+    const now = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { aiMode: true, aiPausedAt: true },
+    });
+    const humanSince = await prisma.conversationMessage.count({
+      where: {
+        conversationId,
+        direction: "OUTBOUND",
+        isAutoReply: false,
+        status: { not: "FAILED" },
+        sentAt: { gte: new Date(Date.now() - DEBOUNCE_MS - 5 * 60_000) },
+      },
+    });
+    const tookOver =
+      !now || now.aiMode === "MANUAL" || Boolean(now.aiPausedAt) || humanSince > 0;
+    if (tookOver || now?.aiMode === "COPILOT" || conversation.aiMode === "COPILOT") {
       await prisma.conversation.update({
         where: { id: conversationId },
         data: { draftBody: body, draftSource: "AI", draftUpdatedAt: new Date() },
       });
-      await finish(run.id, "DRAFTED", meta);
+      await finish(run.id, "DRAFTED", {
+        ...meta,
+        ...(tookOver ? { reason: "Tomaste el chat mientras la IA pensaba: quedó como borrador." } : {}),
+      });
     } else {
       await setStatus(run.id, "SENDING", meta);
       await sendAuto(conversationId, body);
