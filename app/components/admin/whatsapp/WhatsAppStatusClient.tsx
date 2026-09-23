@@ -46,7 +46,7 @@ const Check = ({ ok, label, hint }: { ok: boolean; label: string; hint?: string 
     {ok ? (
       <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" />
     ) : (
-      <CircleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
+      <CircleAlert className="mt-0.5 size-4 shrink-0 text-[#667781]" />
     )}
     <span>
       {label}
@@ -93,7 +93,7 @@ const WhatsAppStatusClient = () => {
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         <Kpi label="Respondió sola" value={kpis.replied} tone="text-emerald-700" />
         <Kpi label="Borradores" value={kpis.drafted} tone="text-violet-700" />
-        <Kpi label="Te pasó a ti" value={kpis.escalated} tone="text-amber-700" />
+        <Kpi label="Te pasó a ti" value={kpis.escalated} tone="text-[#008069]" />
         <Kpi label="Citas agendadas" value={kpis.bookings} tone="text-sky-700" />
         <Kpi label="No respondió" value={kpis.skipped} />
         <Kpi label="Fallas" value={kpis.errors} tone={kpis.errors ? "text-red-700" : ""} />

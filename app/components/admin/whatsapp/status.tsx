@@ -20,6 +20,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
 export const SKIP_LABEL: Record<string, string> = {
   disabled: "IA apagada",
   manual: "Lo atiendes tú",
+  favorite: "Favorito: la IA no lo toca",
   paused: "IA en pausa",
   owner_hours: "Tu horario: contestas tú",
   assigned: "Asignado a alguien del equipo",
@@ -94,38 +95,38 @@ export const RunStatus = ({
 
   let icon = <Bot className="size-3.5" />;
   let text = "";
-  let tone = "text-muted-foreground";
+  let tone = "text-[#667781] dark:text-muted-foreground";
 
   switch (run.status) {
     case "QUEUED":
       icon = <Clock className="size-3.5 animate-pulse" />;
       text = `Esperando que termine de escribir… ${since(run.queuedAt)}`;
-      tone = "text-sky-700 dark:text-sky-300";
+      tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "THINKING":
       icon = <Loader2 className="size-3.5 animate-spin" />;
       text = `Pensando la respuesta… ${since(run.startedAt ?? run.queuedAt)}`;
-      tone = "text-sky-700 dark:text-sky-300";
+      tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "SENDING":
       icon = <Send className="size-3.5 animate-pulse" />;
       text = `Enviando… ${since(run.queuedAt)}`;
-      tone = "text-sky-700 dark:text-sky-300";
+      tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "REPLIED":
       icon = <CheckCheck className="size-3.5" />;
       text = compact ? `IA respondió ${ended}` : `La IA respondió ${ended}${took}`;
-      tone = "text-emerald-700 dark:text-emerald-300";
+      tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "DRAFTED":
       icon = <FilePen className="size-3.5" />;
       text = compact ? "Borrador listo" : `Borrador listo para que lo envíes ${ended}${took}`;
-      tone = "text-violet-700 dark:text-violet-300";
+      tone = "text-[#6d28d9] dark:text-violet-300";
       break;
     case "ESCALATED":
       icon = <AlertTriangle className="size-3.5" />;
       text = `Te toca: ${CATEGORY_LABEL[run.category ?? ""] ?? "revisar"}${compact ? "" : ` · ${ended}`}`;
-      tone = run.severity === "urgent" ? "text-red-700 dark:text-red-300" : "text-amber-700 dark:text-amber-300";
+      tone = run.severity === "urgent" ? "text-[#d92d20] dark:text-red-300" : "text-[#008069] dark:text-emerald-300";
       break;
     case "ERROR":
       icon = <XCircle className="size-3.5" />;

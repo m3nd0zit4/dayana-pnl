@@ -119,9 +119,25 @@ export const runWhatsAppAi = async (input: {
     const enabled = await isWhatsAppAutoReplyEnabled();
     const head = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: { channel: true, aiMode: true },
+      select: { channel: true, aiMode: true, priorityAt: true },
     });
     if (!head || head.channel !== "WHATSAPP") return;
+
+    // Favoritos (la estrella): chats importantes para Dayana. La IA no los
+    // lee, no los contesta y no los saluda.
+    if (enabled && head.priorityAt) {
+      await prisma.whatsAppAiRun.create({
+        data: {
+          conversationId,
+          status: "SKIPPED",
+          reason: "favorite",
+          triggerMessageId: input.triggerMessageId,
+          finishedAt: new Date(),
+          latencyMs: 0,
+        },
+      });
+      return;
+    }
 
     if (!enabled || head.aiMode === "MANUAL") {
       // Sin IA, el saludo de bienvenida (si está encendido) sigue funcionando.
@@ -257,7 +273,7 @@ export const runWhatsAppAi = async (input: {
     // entonces no se envía nada; la respuesta queda como borrador para ella.
     const now = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: { aiMode: true, aiPausedAt: true },
+      select: { aiMode: true, aiPausedAt: true, priorityAt: true },
     });
     const humanSince = await prisma.conversationMessage.count({
       where: {
@@ -269,7 +285,11 @@ export const runWhatsAppAi = async (input: {
       },
     });
     const tookOver =
-      !now || now.aiMode === "MANUAL" || Boolean(now.aiPausedAt) || humanSince > 0;
+      !now ||
+      now.aiMode === "MANUAL" ||
+      Boolean(now.aiPausedAt) ||
+      Boolean(now.priorityAt) ||
+      humanSince > 0;
     if (tookOver || now?.aiMode === "COPILOT" || conversation.aiMode === "COPILOT") {
       await prisma.conversation.update({
         where: { id: conversationId },
@@ -328,6 +348,7 @@ const loadConversation = (conversationId: string) =>
       aiMode: true,
       aiPausedAt: true,
       aiPausedReason: true,
+      priorityAt: true,
       assignedStaffId: true,
       externalThreadId: true,
       contactId: true,
@@ -374,6 +395,7 @@ const gate = async (
   const conversation = await loadConversation(conversationId);
   if (!conversation) return { skip: true, reason: "not_found" };
   if (conversation.aiMode === "MANUAL") return { skip: true, reason: "manual" };
+  if (conversation.priorityAt) return { skip: true, reason: "favorite" };
 
   if (conversation.aiPausedAt) {
     // Una escalada espera a una persona. Una pausa por respuesta humana se

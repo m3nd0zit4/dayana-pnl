@@ -97,7 +97,7 @@ const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
                       <span>{item.label}</span>
                     </SidebarMenuButton>
                     {item.href === "/admin/whatsapp" && attention > 0 && (
-                      <SidebarMenuBadge className="bg-amber-500 text-white">{attention}</SidebarMenuBadge>
+                      <SidebarMenuBadge className="bg-[#00a884] text-white">{attention}</SidebarMenuBadge>
                     )}
                   </SidebarMenuItem>
                 );
