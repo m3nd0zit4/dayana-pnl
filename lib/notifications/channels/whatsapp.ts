@@ -1,4 +1,5 @@
-import { graphPost, whatsAppCredentials } from "@/lib/meta/client";
+import { graphPost } from "@/lib/meta/client";
+import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
 import { resolveDryRun } from "../platform/resolve";
 
 export type SendWhatsAppInput = {
@@ -33,10 +34,10 @@ export const sendWhatsAppTemplateMessage = async (
     return { providerId: "dry-run" };
   }
 
-  const credentials = whatsAppCredentials();
+  const credentials = await resolveWhatsAppCredentials();
   if (!credentials) {
     throw new Error(
-      "WhatsApp API no configurada: WHATSAPP_API_TOKEN y WHATSAPP_PHONE_NUMBER_ID"
+      "WhatsApp no configurado: elige el proveedor y su clave en Ajustes → Canales."
     );
   }
 

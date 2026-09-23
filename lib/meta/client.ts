@@ -16,6 +16,46 @@ export type MetaCredentials = {
   /** Id de la cuenta emisora: phone_number_id (WhatsApp) o page id (IG/Messenger). */
   accountId: string;
   token: string;
+  /**
+   * Por dónde sale WhatsApp. `dialog360` es el socio de Meta que permite la
+   * coexistencia (el número sigue en la app del celular y a la vez en la API).
+   * Su API es la de Meta con otra dirección y otra cabecera; el resto del
+   * código no se entera. Ausente = Meta directo.
+   */
+  provider?: "meta" | "dialog360";
+};
+
+/** Host de la API de 360dialog (mismo formato que la Cloud API de Meta). */
+export const DIALOG360_HOST = "https://waba-v2.360dialog.io";
+
+/**
+ * `accountId` de las credenciales de 360dialog. La API del socio no lleva el
+ * phone_number_id en la ruta (la clave ya identifica el número), así que las
+ * rutas `"<id>/messages"` que arma el resto del código se reescriben quitando
+ * este prefijo.
+ */
+export const DIALOG360_ACCOUNT = "dialog360";
+
+type Auth = Pick<MetaCredentials, "token" | "provider">;
+
+/** URL y cabecera de autenticación según el proveedor. */
+const endpointFor = (
+  path: string,
+  credentials: Auth
+): { url: string; headers: Record<string, string> } => {
+  if (credentials.provider === "dialog360") {
+    const rest = path.startsWith(`${DIALOG360_ACCOUNT}/`)
+      ? path.slice(DIALOG360_ACCOUNT.length + 1)
+      : path;
+    return {
+      url: `${DIALOG360_HOST}/${rest}`,
+      headers: { "D360-API-KEY": credentials.token },
+    };
+  }
+  return {
+    url: `${GRAPH_HOST}/${META_GRAPH_VERSION}/${path}`,
+    headers: { Authorization: `Bearer ${credentials.token}` },
+  };
 };
 
 /**
@@ -83,12 +123,13 @@ const readGraphError = async (
 export const graphPost = async <T>(
   path: string,
   payload: unknown,
-  credentials: Pick<MetaCredentials, "token">
+  credentials: Auth
 ): Promise<T> => {
-  const res = await fetch(`${GRAPH_HOST}/${META_GRAPH_VERSION}/${path}`, {
+  const endpoint = endpointFor(path, credentials);
+  const res = await fetch(endpoint.url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${credentials.token}`,
+      ...endpoint.headers,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -115,11 +156,12 @@ export const graphPost = async <T>(
 export const graphPostForm = async <T>(
   path: string,
   form: FormData,
-  credentials: Pick<MetaCredentials, "token">
+  credentials: Auth
 ): Promise<T> => {
-  const res = await fetch(`${GRAPH_HOST}/${META_GRAPH_VERSION}/${path}`, {
+  const endpoint = endpointFor(path, credentials);
+  const res = await fetch(endpoint.url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${credentials.token}` },
+    headers: endpoint.headers,
     body: form,
   });
 
@@ -140,14 +182,14 @@ export const graphPostForm = async <T>(
 export const graphGet = async <T>(
   path: string,
   params: Record<string, string>,
-  credentials: Pick<MetaCredentials, "token">
+  credentials: Auth
 ): Promise<T> => {
   const search = new URLSearchParams(params).toString();
   const suffix = search ? `?${search}` : "";
-  const res = await fetch(
-    `${GRAPH_HOST}/${META_GRAPH_VERSION}/${path}${suffix}`,
-    { headers: { Authorization: `Bearer ${credentials.token}` } }
-  );
+  const endpoint = endpointFor(path, credentials);
+  const res = await fetch(`${endpoint.url}${suffix}`, {
+    headers: endpoint.headers,
+  });
 
   if (!res.ok) {
     const { message, body } = await readGraphError(res);
@@ -170,11 +212,18 @@ export const graphGet = async <T>(
  */
 export const graphFetchMedia = async (
   url: string,
-  credentials: Pick<MetaCredentials, "token">
+  credentials: Auth
 ): Promise<{ buffer: ArrayBuffer; contentType: string } | null> => {
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${credentials.token}` },
-  });
+  // 360dialog sirve los medios por su propio host: la URL que devuelve es la
+  // de Meta (lookaside.fbsbx.com) y hay que pedirla a través del socio.
+  const res =
+    credentials.provider === "dialog360"
+      ? await fetch(url.replace(/^https:\/\/lookaside\.fbsbx\.com/, DIALOG360_HOST), {
+          headers: { "D360-API-KEY": credentials.token },
+        })
+      : await fetch(url, {
+          headers: { Authorization: `Bearer ${credentials.token}` },
+        });
   if (!res.ok) {
     console.warn("[meta] media download failed", res.status, url);
     return null;

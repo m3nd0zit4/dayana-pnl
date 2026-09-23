@@ -1,7 +1,7 @@
 import { Prisma, type ConversationChannel } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { fireNotification } from "@/lib/notifications/platform/emit";
-import { whatsAppCredentials } from "./client";
+import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { resolvePageCredentials } from "./credentials";
 import type { NormalizedEvent, NormalizedMessage } from "./inbound";
 import { rehostAttachment, type StoredAttachment } from "./media";
@@ -21,7 +21,7 @@ const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === UNIQUE_VIOLATION;
 
 const credentialsFor = async (channel: ConversationChannel) =>
-  channel === "WHATSAPP" ? whatsAppCredentials() : resolvePageCredentials();
+  channel === "WHATSAPP" ? resolveWhatsAppCredentials() : resolvePageCredentials();
 
 /**
  * Reserva el id del mensaje. Devuelve false si ya se había procesado.

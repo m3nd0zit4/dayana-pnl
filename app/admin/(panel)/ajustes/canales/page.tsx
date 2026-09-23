@@ -1,9 +1,14 @@
 import AgentChannelsClient from "@/app/components/admin/crm/settings/AgentChannelsClient";
 import WhatsAppWelcomeCard from "@/app/components/admin/crm/settings/WhatsAppWelcomeCard";
+import WhatsAppProviderCard from "@/app/components/admin/crm/settings/WhatsAppProviderCard";
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
 import { isAgentChannelEnabled } from "@/lib/crm/agent-channels";
 import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
 import { getWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
+import {
+  getWhatsAppProviderSummary,
+  resolveWhatsAppCredentials,
+} from "@/lib/meta/whatsapp-provider";
 import {
   getAgentEnabledOverride,
   resolveAgentEnabled,
@@ -23,10 +28,13 @@ const Page = async () => {
       getAgentEnabledOverride(),
     ]);
 
-  const whatsAppConfigured = Boolean(
-    process.env.WHATSAPP_API_TOKEN?.trim() &&
-      process.env.WHATSAPP_PHONE_NUMBER_ID?.trim()
-  );
+  // Lo decide el proveedor elegido en el CRM (Meta directo o 360dialog), no
+  // solo las variables de entorno.
+  const [providerSummary, whatsAppCredentials] = await Promise.all([
+    getWhatsAppProviderSummary(),
+    resolveWhatsAppCredentials(),
+  ]);
+  const whatsAppConfigured = whatsAppCredentials !== null;
 
   return (
     <>
@@ -48,13 +56,14 @@ const Page = async () => {
           label: "WhatsApp (respuesta automática)",
           description: whatsAppConfigured
             ? "Contesta el primer mensaje con precios, enlaces y horarios sacados del CRM. En cuanto la conversación se pone personal —dolor, un pago, una queja, algo que no sabe— deja de escribir, te avisa y el hilo queda para ti."
-            : "Falta conectar WhatsApp: sin WHATSAPP_API_TOKEN y WHATSAPP_PHONE_NUMBER_ID no puede escribir aunque lo enciendas.",
+            : "Falta conectar WhatsApp: elige el proveedor y su clave aquí abajo.",
           enabled: whatsAppAuto,
           agentEnabled: whatsAppConfigured,
           allowLocalDevAuth: false,
         },
       ]}
     />
+    <WhatsAppProviderCard initial={providerSummary} />
     <WhatsAppWelcomeCard initial={welcome} configured={whatsAppConfigured} />
     </>
   );

@@ -9,11 +9,11 @@ import type { Conversation, Prisma } from "@prisma/client";
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
+import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import {
   graphPost,
   graphPostForm,
   MetaApiError,
-  whatsAppCredentials,
   type MetaCredentials,
 } from "./client";
 import {
@@ -348,13 +348,13 @@ export const sendMetaMessage = async (
     conversation.channel === "WHATSAPP" ? null : await resolvePageCredentials();
   const credentials =
     conversation.channel === "WHATSAPP"
-      ? whatsAppCredentials()
+      ? await resolveWhatsAppCredentials()
       : pageCredentialsUsed;
 
   if (!credentials) {
     throw new MetaSendError(
       conversation.channel === "WHATSAPP"
-        ? "WhatsApp no está configurado (WHATSAPP_API_TOKEN y WHATSAPP_PHONE_NUMBER_ID)."
+        ? "WhatsApp no está configurado: elige el proveedor y su clave en Ajustes → Canales."
         : "La Página de Meta no está configurada (META_PAGE_ID y META_PAGE_ACCESS_TOKEN)."
     );
   }
