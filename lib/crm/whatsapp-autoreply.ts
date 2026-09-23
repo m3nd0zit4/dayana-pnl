@@ -53,8 +53,9 @@ export const isWhatsAppAutoReplyEnabled = async (): Promise<boolean> =>
 export const setWhatsAppAutoReplyEnabled = (enabled: boolean): Promise<void> =>
   setSiteSetting(ENABLED_KEY, String(enabled));
 
-/** Cuántos mensajes del hilo lee para entender de qué se habla. */
-const HISTORY = 12;
+/** Cuántos mensajes del hilo lee: con clientes de siempre, el contexto es
+ * lo que evita preguntar lo que ya se habló. */
+const HISTORY = 40;
 
 const decision = z.object({
   action: z
@@ -79,7 +80,7 @@ export type AutoReplyOutcome =
   | { status: "replied" }
   | { status: "escalated"; reason: string };
 
-const facts = async (): Promise<string> => {
+const facts = async (bookingUrl: string): Promise<string> => {
   const site = getSiteUrl();
 
   const [products, workshop, webinar, magnets] = await Promise.all([
@@ -140,6 +141,9 @@ const facts = async (): Promise<string> => {
     "",
     `Para pagar cualquier terapia: ${site}/pagar/terapias`,
     `Cuestionario gratis (3 min, dice qué proceso le sirve): ${site}/terapias/empezar`,
+    bookingUrl
+      ? `Para AGENDAR una sesión o una llamada con Dayana (ella elige día y hora ahí mismo): ${bookingUrl}`
+      : "AGENDAR: no hay enlace de citas; las citas las coordina Dayana en persona.",
   ];
 
   if (workshop) {
@@ -179,16 +183,18 @@ const systemPrompt = (config: WhatsAppAiConfig): string => {
 
 Tu trabajo es SOLO informar y orientar hacia el enlace correcto. No eres terapeuta.
 
-Responde (action "reply") únicamente cuando la respuesta salga literal de los DATOS: qué paquetes hay, cuánto valen, cómo se paga, qué es el taller o el webinar, dónde está el material gratis, cómo funciona una sesión.
+Responde (action "reply") únicamente cuando la respuesta salga de los DATOS, de CLIENTA EN EL CRM o de la CONVERSACIÓN: qué paquetes hay, cuánto valen, cómo se paga, cómo agendar, qué es el taller o el webinar, dónde está el material gratis, cómo funciona una sesión, en qué va su proceso.
 
 Escala (action "escalate") SIEMPRE que:
 - la persona cuente un dolor emocional fuerte, una crisis, una pérdida, o pida ayuda psicológica;
-- mencione hacerse daño o quitarse la vida — escala de inmediato y marca la razón como URGENTE;
+- mencione hacerse daño o quitarse la vida — escala de inmediato, marca la razón como URGENTE y, además de avisar que Dayana la lee, dile con calidez que si está en peligro ahora llame a la línea 106 o al 123 en Colombia, o al número de emergencias de su país;
 - hable de un pago hecho, un cobro mal, un reembolso o una factura;
-- pida agendar, cambiar o cancelar una cita concreta;
+- pida CAMBIAR o CANCELAR una cita ya agendada (para agendar una nueva, comparte el enlace de AGENDAR si está en los DATOS; si no está, escala);
 - se queje, reclame o esté molesta;
 - pregunte algo que no esté en los DATOS, o pida un descuento;
-- sea una conversación ya empezada con una persona del equipo.
+- en la conversación Dayana prometió algo o quedó algo pendiente que no puedes resolver con los DATOS.
+
+Si es una clienta que ya conoce a Dayana, usa la CONVERSACIÓN y los datos de CLIENTA EN EL CRM para no preguntar lo que ya se habló y contestar con continuidad (qué proceso tiene, cuántas sesiones lleva). No inventes nada que no esté ahí.
 
 ${IDENTITY[config.identity]}
 
@@ -236,6 +242,8 @@ export const draftAutoReply = async (input: {
   config: WhatsAppAiConfig;
   transcript: { direction: "INBOUND" | "OUTBOUND"; body: string | null }[];
   name: string | null;
+  /** Lo que el CRM sabe de esta persona, ya en texto. */
+  client?: string | null;
 }): Promise<ReplyDraft> => {
   const lines = input.transcript.map(
     (m) =>
@@ -264,7 +272,8 @@ export const draftAutoReply = async (input: {
     schema: decision,
     system: systemPrompt(input.config),
     prompt: [
-      `DATOS (lo único que puedes afirmar):\n${await facts()}`,
+      `DATOS (lo único que puedes afirmar):\n${await facts(input.config.bookingUrl)}`,
+      input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       examplesBlock(examples),
       input.name
         ? `La persona se llama ${input.name}.`
@@ -278,11 +287,34 @@ export const draftAutoReply = async (input: {
   return { ...object, examples };
 };
 
-/** Pausa el hilo: a partir de aquí contesta una persona. */
-export const pauseAutoReply = async (conversationId: string): Promise<void> => {
+export type PauseReason = "human" | "escalation";
+
+/**
+ * Pausa el hilo: a partir de aquí contesta una persona.
+ *
+ * `human` (Dayana o el equipo escribieron) se renueva con cada mensaje suyo y
+ * se levanta sola pasadas las horas de relevo. `escalation` (la IA pidió a una
+ * persona) no se levanta sola: una crisis o un problema de pago no vuelve a
+ * manos del robot por esperar.
+ */
+export const pauseAutoReply = async (
+  conversationId: string,
+  reason: PauseReason = "human"
+): Promise<void> => {
+  if (reason === "escalation") {
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { aiPausedAt: new Date(), aiPausedReason: "escalation" },
+    });
+    return;
+  }
+  // Una respuesta humana no pisa una escalada pendiente.
   await prisma.conversation.updateMany({
-    where: { id: conversationId, aiPausedAt: null },
-    data: { aiPausedAt: new Date() },
+    where: {
+      id: conversationId,
+      OR: [{ aiPausedReason: null }, { aiPausedReason: { not: "escalation" } }],
+    },
+    data: { aiPausedAt: new Date(), aiPausedReason: "human" },
   });
 };
 
@@ -291,8 +323,60 @@ export const resumeAutoReply = async (
 ): Promise<void> => {
   await prisma.conversation.update({
     where: { id: conversationId },
-    data: { aiPausedAt: null },
+    data: { aiPausedAt: null, aiPausedReason: null },
   });
+};
+
+/** Lo que el CRM sabe de la persona, para contestar con continuidad. */
+const clientContext = async (
+  contactId: string | null
+): Promise<string | null> => {
+  if (!contactId) return null;
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: {
+      firstName: true,
+      lastName: true,
+      enrollments: {
+        where: { status: { in: ["ACTIVE", "COMPLETED", "PENDING_PAYMENT"] } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: {
+          status: true,
+          sessionsTotal: true,
+          sessionsUsed: true,
+          paidUntil: true,
+          createdAt: true,
+          product: { select: { title: true } },
+        },
+      },
+    },
+  });
+  if (!contact) return null;
+  const STATUS: Record<string, string> = {
+    ACTIVE: "activo",
+    COMPLETED: "terminado",
+    PENDING_PAYMENT: "pendiente de pago",
+  };
+  const lines = [
+    `Nombre: ${[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "sin nombre"}`,
+  ];
+  if (contact.enrollments.length === 0) {
+    lines.push("Todavía no ha comprado nada.");
+  }
+  for (const e of contact.enrollments) {
+    const sessions =
+      e.sessionsTotal != null
+        ? ` · sesiones ${e.sessionsUsed} de ${e.sessionsTotal}`
+        : "";
+    const until = e.paidUntil
+      ? ` · acceso hasta ${e.paidUntil.toLocaleDateString("es-CO")}`
+      : "";
+    lines.push(
+      `- ${e.product.title}: ${STATUS[e.status] ?? e.status}${sessions}${until} (desde ${e.createdAt.toLocaleDateString("es-CO")})`
+    );
+  }
+  return lines.join("\n");
 };
 
 /**
@@ -334,8 +418,10 @@ export const maybeAutoReply = async (
         id: true,
         channel: true,
         aiPausedAt: true,
+        aiPausedReason: true,
         assignedStaffId: true,
         externalThreadId: true,
+        contactId: true,
         participantName: true,
         contact: {
           select: {
@@ -366,7 +452,26 @@ export const maybeAutoReply = async (
     if (conversation.channel !== "WHATSAPP") {
       return { status: "skipped", reason: "other_channel" };
     }
-    if (conversation.aiPausedAt) return { status: "skipped", reason: "paused" };
+    if (conversation.aiPausedAt) {
+      // Una escalada espera a una persona. Una pausa por respuesta humana se
+      // levanta sola si Dayana lleva las horas de relevo sin escribir aquí.
+      if (
+        conversation.aiPausedReason === "escalation" ||
+        config.handoffHours === 0
+      ) {
+        return { status: "skipped", reason: "paused" };
+      }
+      const lastHuman = await prisma.conversationMessage.findFirst({
+        where: { conversationId, direction: "OUTBOUND", isAutoReply: false },
+        orderBy: { sentAt: "desc" },
+        select: { sentAt: true },
+      });
+      const since = (lastHuman?.sentAt ?? conversation.aiPausedAt).getTime();
+      if (Date.now() - since < config.handoffHours * 3600_000) {
+        return { status: "skipped", reason: "paused" };
+      }
+      await resumeAutoReply(conversationId);
+    }
     if (conversation.assignedStaffId) {
       return { status: "skipped", reason: "assigned" };
     }
@@ -386,25 +491,26 @@ export const maybeAutoReply = async (
       };
     }
 
-    // Alguien del equipo ya escribió aquí: el hilo es suyo.
-    if (history.some((m) => m.staffUserId || (m.isEcho && !m.isAutoReply))) {
+    // Dayana escribió aquí hace poco: el hilo es suyo por ahora.
+    const lastHumanAt = history
+      .filter((m) => m.direction === "OUTBOUND" && !m.isAutoReply)
+      .at(-1)?.sentAt;
+    if (
+      lastHumanAt &&
+      (config.handoffHours === 0 ||
+        Date.now() - lastHumanAt.getTime() < config.handoffHours * 3600_000)
+    ) {
       await pauseAutoReply(conversationId);
       return { status: "skipped", reason: "human_replied" };
     }
 
-    // A quién NO le contesta, según Ajustes. Con el número compartido, quien
-    // ya conoce a Dayana (su libreta, o un chat donde ella ya escribió) no
-    // debería recibir una respuesta automática.
-    if (config.audience.skipKnownContacts) {
-      const [inAddressBook, humanBefore] = await Promise.all([
-        prisma.whatsAppKnownContact.count({
-          where: { phone: conversation.externalThreadId, removedAt: null },
-        }),
-        prisma.conversationMessage.count({
-          where: { conversationId, direction: "OUTBOUND", isAutoReply: false },
-        }),
-      ]);
-      if (inAddressBook > 0 || humanBefore > 0) {
+    // Libreta personal del celular (familia, amigos): si está guardado ahí y
+    // no es alguien del CRM, no es un cliente escribiendo.
+    if (config.audience.skipKnownContacts && !conversation.contactId) {
+      const inAddressBook = await prisma.whatsAppKnownContact.count({
+        where: { phone: conversation.externalThreadId, removedAt: null },
+      });
+      if (inAddressBook > 0) {
         return { status: "skipped", reason: "known_contact" };
       }
     }
@@ -432,7 +538,12 @@ export const maybeAutoReply = async (
       conversation.participantName?.trim() ||
       null;
 
-    const object = await draftAutoReply({ config, transcript: history, name });
+    const object = await draftAutoReply({
+      config,
+      transcript: history,
+      name,
+      client: await clientContext(conversation.contactId),
+    });
 
     const body = object.message.trim();
     if (!body) {
@@ -441,7 +552,7 @@ export const maybeAutoReply = async (
     }
 
     if (object.action === "escalate") {
-      await pauseAutoReply(conversationId);
+      await pauseAutoReply(conversationId, "escalation");
       await sendAuto(conversationId, body);
       await prisma.conversation.update({
         where: { id: conversationId },

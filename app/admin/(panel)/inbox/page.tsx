@@ -16,7 +16,18 @@ export const loadAssignableStaff = () =>
     select: { id: true, displayName: true },
   });
 
-const InboxPage = async () => {
+const CHANNELS = ["WHATSAPP", "MESSENGER", "INSTAGRAM"] as const;
+type Channel = (typeof CHANNELS)[number];
+
+const InboxPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ channel?: string }>;
+}) => {
+  // `?channel=WHATSAPP` abre la bandeja ya filtrada (botón verde de Inicio).
+  const requested = (await searchParams).channel?.toUpperCase();
+  const channel = CHANNELS.find((c) => c === requested) as Channel | undefined;
+
   // La bandeja no tiene modo vista previa: sin credenciales de Meta no hay nada
   // que enseñar, y los hilos son datos reales de clientes.
   if (!isMetaInboxEnabled()) notFound();
@@ -25,7 +36,7 @@ const InboxPage = async () => {
   if (!staffSession) return null;
 
   const [{ items, nextCursor }, staff] = await Promise.all([
-    listConversations(),
+    listConversations(channel ? { channel } : {}),
     loadAssignableStaff(),
   ]);
 
@@ -35,6 +46,7 @@ const InboxPage = async () => {
       initialCursor={nextCursor}
       initialSelectedId={null}
       initialDetail={null}
+      initialChannel={channel}
       staff={staff}
     />
   );

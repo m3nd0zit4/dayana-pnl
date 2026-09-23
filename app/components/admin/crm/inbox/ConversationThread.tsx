@@ -85,6 +85,7 @@ const MessageBubble = ({ message }: { message: ConversationMessageView }) => {
         <p className="flex items-center gap-2 text-[10px] opacity-70">
           <span>{when}</span>
           {message.staffUser && <span>· {message.staffUser.displayName}</span>}
+          {message.isAutoReply && <span>· IA</span>}
           {message.isEcho && <span>· desde la app</span>}
         </p>
 
@@ -275,6 +276,49 @@ const ConversationThread = ({ detail, staff, canWrite, busy, onRefresh }: Props)
         <span className="text-sm font-medium">{title}</span>
         <Badge variant="outline">{CHANNEL_LABEL[detail.channel]}</Badge>
         <Badge variant="secondary">{STATUS_LABEL[detail.status]}</Badge>
+        {detail.channel === "WHATSAPP" && (
+          <span className="flex items-center gap-1">
+            <Badge
+              variant="outline"
+              className={
+                detail.ai.pausedAt
+                  ? detail.ai.reason === "escalation"
+                    ? "border-warning/40 text-warning"
+                    : ""
+                  : "border-success/40 text-success"
+              }
+              title={
+                detail.ai.reason === "human"
+                  ? "Vuelve a contestar sola tras las horas de relevo sin que nadie escriba aquí."
+                  : undefined
+              }
+            >
+              <Sparkles className="size-3" aria-hidden />
+              {detail.ai.pausedAt
+                ? detail.ai.reason === "escalation"
+                  ? "IA en pausa: te toca"
+                  : "IA en pausa"
+                : "IA activa"}
+            </Badge>
+            {canWrite && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-xs"
+                onClick={() =>
+                  void act(
+                    { action: "ai", paused: !detail.ai.pausedAt },
+                    detail.ai.pausedAt
+                      ? "La IA vuelve a contestar en este chat."
+                      : "La IA no contestará en este chat hasta que la reanudes."
+                  )
+                }
+              >
+                {detail.ai.pausedAt ? "Reanudar" : "Pausar"}
+              </Button>
+            )}
+          </span>
+        )}
 
         {!detail.contact && canWrite && (
           <Button

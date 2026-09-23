@@ -29,8 +29,8 @@ export const whatsAppAiConfigSchema = z.object({
    */
   identity: z.enum(["assistant", "owner"]),
   audience: z.object({
-    /** No contesta a quien Dayana ya conoce: libreta del celular, chats
-     * anteriores o hilos donde ella ya escribió. */
+    /** No contesta a su libreta personal: contactos guardados en el celular
+     * que no son clientes ni están en el CRM (familia, amigos). */
     skipKnownContacts: z.boolean(),
     /** No contesta a quien ya pagó algo: a un cliente lo atiende ella. */
     skipCustomers: z.boolean(),
@@ -45,6 +45,22 @@ export const whatsAppAiConfigSchema = z.object({
   }),
   /** Máximo de mensajes automáticos por hilo en 24 h. */
   maxPerDay: z.number().int().min(1).max(20),
+  /**
+   * Cuando Dayana contesta en un chat, la IA se aparta. Pasadas estas horas
+   * sin que ella vuelva a escribir ahí, la IA puede volver a contestar.
+   * 0 = nunca vuelve sola (hay que reanudarla a mano).
+   */
+  handoffHours: z.number().int().min(0).max(168),
+  /** Enlace para agendar (página de citas de Google Calendar). Vacío = la
+   * IA pasa las citas a Dayana. */
+  bookingUrl: z
+    .string()
+    .trim()
+    .max(600)
+    .refine(
+      (v) => v === "" || /^https:\/\//i.test(v),
+      "Debe empezar por https://"
+    ),
   /** Instrucciones propias de Dayana: lo que debe saber o evitar. */
   instructions: z.string().trim().max(3000),
   /** Cómo escribe Dayana, en sus palabras (se puede generar desde sus chats). */
@@ -73,6 +89,8 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
     end: "18:00",
   },
   maxPerDay: 6,
+  handoffHours: 12,
+  bookingUrl: "",
   instructions: "",
   styleGuide: "",
   learning: { enabled: true, examples: 6 },

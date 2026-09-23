@@ -1034,6 +1034,10 @@ model Conversation {
   /// respuesta escrita por el equipo: si alguien ya entró a la conversación,
   /// un robot escribiendo encima es peor que el silencio.
   aiPausedAt DateTime? @map("ai_paused_at")
+  /// Por qué se pausó: `human` (alguien del equipo contestó; se reanuda sola
+  /// tras las horas de relevo configuradas) o `escalation` (la IA pidió a
+  /// una persona; solo se reanuda a mano).
+  aiPausedReason String? @map("ai_paused_reason")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

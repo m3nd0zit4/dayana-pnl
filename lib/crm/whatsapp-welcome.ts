@@ -54,6 +54,28 @@ export const setWelcomeConfig = (config: WelcomeConfig): Promise<void> =>
   setSiteSetting(CONFIG_KEY, JSON.stringify(config));
 
 /**
+ * El botón del saludo. Si Dayana no puso uno propio, usa el enlace para
+ * agendar del asistente. Un enlace a la antigua agenda del sitio (ya borrada)
+ * se ignora: un botón que lleva a una página que no existe es peor que ninguno.
+ */
+const resolveButton = async (
+  config: WelcomeConfig
+): Promise<{ label: string; url: string } | null> => {
+  const own =
+    config.buttonLabel &&
+    config.buttonUrl &&
+    !/\/agenda(?:[/?#]|$)/i.test(config.buttonUrl)
+      ? { label: config.buttonLabel, url: config.buttonUrl }
+      : null;
+  if (own) return own;
+  const { getWhatsAppAiConfig } = await import("./whatsapp-ai-config");
+  const { bookingUrl } = await getWhatsAppAiConfig();
+  return bookingUrl
+    ? { label: config.buttonLabel || "Agendar mi cita", url: bookingUrl }
+    : null;
+};
+
+/**
  * Manda el saludo si a este hilo le toca. Devuelve `true` cuando lo envió,
  * para que la respuesta automática no conteste encima en el mismo mensaje.
  *
@@ -84,13 +106,11 @@ export const maybeSendWelcome = async (
     const [first, second] = conversation.messages;
     if (!first || second || first.direction !== "INBOUND") return false;
 
-    const hasButton = Boolean(config.buttonLabel && config.buttonUrl);
+    const button = await resolveButton(config);
     const result = await sendMetaMessage({
       conversationId,
       body: config.text,
-      ...(hasButton
-        ? { ctaUrl: { label: config.buttonLabel, url: config.buttonUrl } }
-        : {}),
+      ...(button ? { ctaUrl: button } : {}),
     });
 
     await prisma.conversationMessage.update({

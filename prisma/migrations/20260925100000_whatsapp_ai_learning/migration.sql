@@ -36,3 +36,6 @@ CREATE INDEX "whatsapp_reply_examples_is_enabled_replied_at_idx" ON "whatsapp_re
 -- AddForeignKey
 ALTER TABLE "whatsapp_reply_examples" ADD CONSTRAINT "whatsapp_reply_examples_conversation_id_fkey" FOREIGN KEY ("conversation_id") REFERENCES "conversations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+
+-- AlterTable
+ALTER TABLE "conversations" ADD COLUMN "ai_paused_reason" TEXT;

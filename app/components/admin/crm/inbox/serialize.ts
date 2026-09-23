@@ -80,6 +80,7 @@ export const toDetailView = (
     failedReason: message.failedReason,
     sentAt: message.sentAt.toISOString(),
     isEcho: message.isEcho,
+    isAutoReply: message.isAutoReply,
     staffUser: message.staffUser,
   })),
   window: {
@@ -88,6 +89,10 @@ export const toDetailView = (
     expiresAt: conversation.window.expiresAt?.toISOString() ?? null,
   },
   windowNotice: conversation.windowNotice,
+  ai: {
+    pausedAt: conversation.aiPausedAt?.toISOString() ?? null,
+    reason: conversation.aiPausedReason,
+  },
   templates: conversation.templates.map((template) => ({
     id: template.id,
     title: template.title,

@@ -64,6 +64,8 @@ export type ConversationMessageView = {
   failedReason: string | null;
   sentAt: string;
   isEcho: boolean;
+  /** La escribió la IA (o el saludo automático). */
+  isAutoReply: boolean;
   staffUser: StaffRef | null;
 };
 
@@ -101,6 +103,12 @@ export type ConversationDetailView = {
   windowNotice: string | null;
   /** Vacío dentro de la ventana; solo se resuelven cuando hacen falta. */
   templates: WhatsAppTemplateOption[];
+  /** Estado de la respuesta automática en este hilo (solo WhatsApp). */
+  ai: {
+    pausedAt: string | null;
+    /** `human`: alguien contestó. `escalation`: la IA pidió a una persona. */
+    reason: string | null;
+  };
 };
 
 export type InboxFilters = {

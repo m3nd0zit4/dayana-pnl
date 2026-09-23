@@ -63,6 +63,7 @@ export const PATCH = async (req: Request, { params }: Params) => {
     assignedStaffId?: string | null;
     contactId?: string;
     draft?: string | null;
+    paused?: boolean;
   };
 
   try {
@@ -93,6 +94,16 @@ export const PATCH = async (req: Request, { params }: Params) => {
         );
       case "read":
         return NextResponse.json(await markConversationRead(id));
+      case "ai": {
+        // Pausar o reanudar la respuesta automática en este hilo. Reanudar es
+        // la única salida de una escalada: la decide una persona.
+        const { pauseAutoReply, resumeAutoReply } = await import(
+          "@/lib/crm/whatsapp-autoreply"
+        );
+        if (input.paused) await pauseAutoReply(id, "escalation");
+        else await resumeAutoReply(id);
+        return NextResponse.json({ ok: true });
+      }
       default:
         return NextResponse.json({ error: "unknown_action" }, { status: 400 });
     }

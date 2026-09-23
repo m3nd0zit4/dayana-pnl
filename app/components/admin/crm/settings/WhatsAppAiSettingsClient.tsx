@@ -418,8 +418,8 @@ const WhatsAppAiSettingsClient = ({
       >
         <ToggleRow
           id="ai-known"
-          label="No responder a quien ya conozco"
-          hint={`Contactos de la libreta de tu celular (${summary.knownContacts} sincronizados) y chats donde tú ya escribiste.`}
+          label="No responder a mi libreta personal"
+          hint={`Contactos guardados en tu celular que no son clientes del CRM, como familia y amigos (${summary.knownContacts} sincronizados). A tus clientes sí les responde, con el historial de su chat.`}
           checked={config.audience.skipKnownContacts}
           onChange={(v) =>
             update("audience", { ...config.audience, skipKnownContacts: v })
@@ -434,6 +434,33 @@ const WhatsAppAiSettingsClient = ({
             update("audience", { ...config.audience, skipCustomers: v })
           }
         />
+      </Section>
+
+      <Section
+        title="Agendar citas"
+        hint="Pega el enlace de tu página de citas de Google Calendar. El asistente lo comparte cuando alguien quiere agendar, y el saludo lo usa como botón. Cambiar o cancelar una cita siempre te la pasa a ti."
+      >
+        <div className="space-y-1.5">
+          <Label htmlFor="ai-booking">Enlace para agendar</Label>
+          <Input
+            id="ai-booking"
+            type="url"
+            inputMode="url"
+            placeholder="https://calendar.app.google/…"
+            value={config.bookingUrl}
+            onChange={(e) => update("bookingUrl", e.target.value.trim())}
+          />
+          {config.bookingUrl && !/^https:\/\//i.test(config.bookingUrl) && (
+            <p className="text-xs text-destructive">
+              Debe empezar por https://
+            </p>
+          )}
+          {!config.bookingUrl && (
+            <p className="text-xs text-muted-foreground">
+              Sin enlace, cuando alguien quiera agendar te pasa la conversación.
+            </p>
+          )}
+        </div>
       </Section>
 
       <Section title="Cuándo responde">
@@ -520,6 +547,30 @@ const WhatsAppAiSettingsClient = ({
       </Section>
 
       <Section title="Límites y avisos">
+        <div className="space-y-1.5">
+          <Label htmlFor="ai-handoff">
+            Cuando tú contestas un chat, el asistente vuelve después de (horas)
+          </Label>
+          <Input
+            id="ai-handoff"
+            type="number"
+            min={0}
+            max={168}
+            className="w-28"
+            value={config.handoffHours}
+            onChange={(e) =>
+              update(
+                "handoffHours",
+                Math.min(168, Math.max(0, Number(e.target.value) || 0))
+              )
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Mientras tanto el chat es tuyo. 0 = no vuelve solo; lo reanudas
+            desde la bandeja. Si el asistente te pasó el chat (una crisis, un
+            pago, una queja), no vuelve solo nunca.
+          </p>
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="ai-max">
             Máximo de respuestas por conversación en 24 h

@@ -27,6 +27,8 @@ import {
 } from "./types";
 
 type Props = {
+  /** Filtro de canal con el que se abre (p. ej. desde el botón de Inicio). */
+  initialChannel?: InboxChannel;
   initialItems: ConversationListItem[];
   initialCursor: string | null;
   initialSelectedId: string | null;
@@ -69,6 +71,7 @@ const buildQuery = (filters: InboxFilters, cursor?: string | null): string => {
 };
 
 const InboxPageClient = ({
+  initialChannel,
   initialItems,
   initialCursor,
   initialSelectedId,
@@ -79,7 +82,9 @@ const InboxPageClient = ({
 
   const [items, setItems] = useState(initialItems);
   const [cursor, setCursor] = useState(initialCursor);
-  const [filters, setFilters] = useState<InboxFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<InboxFilters>(
+    initialChannel ? { ...EMPTY_FILTERS, channel: initialChannel } : EMPTY_FILTERS
+  );
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
   const [detail, setDetail] = useState<ConversationDetailView | null>(
     initialDetail
