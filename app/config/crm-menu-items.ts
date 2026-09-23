@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  CalendarClock,
   CalendarDays,
   ChartColumn,
   Clapperboard,
@@ -38,6 +39,7 @@ export type CrmMenuItemId =
   | "diagnostics"
   | "messages"
   | "magnets"
+  | "agenda"
   | "courses"
   | "modules"
   | "comments"
@@ -158,6 +160,9 @@ export const crmMenuSections: CrmMenuSection[] = [
       // material y la respuesta lista para pegar. Vive con las personas
       // porque lo que produce son leads, no ventas directas.
       { id: "magnets", icon: Sparkles, label: "Palabras clave", shortLabel: "Palabras", href: "/admin/palabras-clave" },
+      // La agenda vive con las personas: lo que produce es una cita con
+      // alguien, y se mira junto a su ficha.
+      { id: "agenda", icon: CalendarClock, label: "Agenda", href: "/admin/agenda" },
     ],
   },
   {

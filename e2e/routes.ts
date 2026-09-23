@@ -88,6 +88,7 @@ export const CRM_ROUTES: CrmRoute[] = [
   },
   { path: "/admin/enlaces-pago", name: "Enlaces de pago", tier: "preview" },
   { path: "/admin/palabras-clave", name: "Palabras clave", tier: "preview" },
+  { path: "/admin/agenda", name: "Agenda", tier: "preview" },
   {
     path: "/admin/workshops",
     name: "Talleres",

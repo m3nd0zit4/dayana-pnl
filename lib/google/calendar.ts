@@ -143,3 +143,53 @@ export const updateEvent = (
     { method: "PATCH", body: JSON.stringify(toEventBody(input)) }
   );
 };
+
+export type BusyPeriod = { start: string; end: string };
+
+/**
+ * Franjas ocupadas de un calendario entre dos instantes.
+ *
+ * Se usa `freeBusy` y no `listEvents` a propósito: devuelve solo horas, sin
+ * títulos ni invitados, así que la página pública de agenda nunca puede
+ * filtrar de qué es cada hueco ocupado. Además resuelve por su cuenta los
+ * eventos periódicos y los de todo el día.
+ */
+export const freeBusy = async (
+  token: string,
+  input: { timeMin: string; timeMax: string; calendarId?: string; timeZone?: string }
+): Promise<BusyPeriod[]> => {
+  const calendarId = input.calendarId ?? "primary";
+  const data = await request<{
+    calendars?: Record<string, { busy?: BusyPeriod[]; errors?: { reason?: string }[] }>;
+  }>(token, "/freeBusy", {
+    method: "POST",
+    body: JSON.stringify({
+      timeMin: input.timeMin,
+      timeMax: input.timeMax,
+      timeZone: input.timeZone ?? "America/Bogota",
+      items: [{ id: calendarId }],
+    }),
+  });
+
+  const calendar = data.calendars?.[calendarId];
+  if (calendar?.errors?.length) {
+    throw new Error(
+      `Google no pudo leer el calendario (${calendar.errors[0]?.reason ?? "error"}).`
+    );
+  }
+  return calendar?.busy ?? [];
+};
+
+/** Borra un evento. Un 404/410 se traga: ya no está, que es lo que se quería. */
+export const deleteEvent = async (
+  token: string,
+  eventId: string,
+  calendarId = "primary"
+): Promise<void> => {
+  const res = await fetch(
+    `${CALENDAR_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
+    { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
+  );
+  if (res.ok || res.status === 404 || res.status === 410) return;
+  await throwGoogleApiError("calendar", res);
+};
