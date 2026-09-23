@@ -67,6 +67,14 @@ export type TranscriptLine = {
   isAutoReply?: boolean;
 };
 
+/** El modelo a veces escribe en Markdown; WhatsApp usa *un* asterisco para negrita. */
+export const toWhatsAppFormat = (text: string): string =>
+  text
+    .trim()
+    .replace(/\*\*(.+?)\*\*/g, "*$1*")
+    .replace(/__(.+?)__/g, "_$1_")
+    .replace(/^#{1,6}\s+/gm, "");
+
 export const modelId = () => process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
 
 const google = createGoogleGenerativeAI({
@@ -314,7 +322,7 @@ ${IDENTITY[config.identity]}
 
 Prohibido siempre: dar consejo clínico o diagnóstico, prometer resultados, inventar precios, fechas, horarios o enlaces, confirmar un pago, pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
 
-Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones.`,
+Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
   ];
   if (config.styleGuide) parts.push(`CÓMO ESCRIBE DAYANA (imítalo):\n${config.styleGuide}`);
   if (config.instructions) {
@@ -476,7 +484,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 });
               } catch (e) {
                 return log("check_availability", args, {
-                  error: "No se pudo leer el calendario. Escala con category=unknown.",
+                  error:
+                    "No se pudo leer el calendario en este momento. NO escales por esto: sigue la conversación con normalidad y, si quiere agendar, pregúntale qué días y franja le quedan mejor y dile que Dayana le confirma la hora exacta.",
                   detail: e instanceof Error ? e.message : String(e),
                 });
               }
@@ -651,7 +660,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const finalOutcome: BrainOutcome =
     state.outcome ??
     (result.text.trim()
-      ? { kind: "reply", message: result.text.trim().slice(0, 1500) }
+      ? { kind: "reply", message: toWhatsAppFormat(result.text).slice(0, 1500) }
       : {
           kind: "escalate",
           category: "unknown",
