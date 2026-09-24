@@ -4,7 +4,7 @@ import { sendMetaMessage, type SendAttachment } from "@/lib/meta/send";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { windowStateOf } from "./whatsapp-outbound-plan";
 import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
-import { approvedTemplateFor } from "./whatsapp-templates";
+import { approvedTemplateFor, refreshTemplatesIfPending } from "./whatsapp-templates";
 
 /** Plantillas con las que se puede reenviar un texto fuera de las 24 h, en orden. */
 const RESEND_TEMPLATE_KEYS = ["autoevaluacion_bienvenida", "retomar_conversacion"];
@@ -110,6 +110,7 @@ export const resendFailedMessage = async (input: {
   }
 
   // Fuera de las 24 h: solo con plantilla aprobada (y solo texto).
+  await refreshTemplatesIfPending().catch(() => undefined);
   let template = null;
   for (const key of RESEND_TEMPLATE_KEYS) {
     template = await approvedTemplateFor(key);

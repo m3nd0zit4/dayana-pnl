@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
-import { approvedTemplateFor } from "../whatsapp-templates";
+import { approvedTemplateFor, refreshTemplatesIfPending } from "../whatsapp-templates";
 import { approvalDelivery, type ApprovalDelivery } from "../whatsapp-outbound-plan";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { prisma } from "@/lib/db";
@@ -206,6 +206,7 @@ export const resolveApprovalDelivery = async (
     conversation.lastInboundAt && Date.now() - conversation.lastInboundAt.getTime() < 24 * 3600_000
   );
   if (windowOpen || proposal.kind === "booking" || proposal.kind === "payment_link") return "text";
+  await refreshTemplatesIfPending().catch(() => undefined);
   let hasApprovedTemplate = false;
   for (const key of proposal.template?.keys ?? []) {
     if (await approvedTemplateFor(key)) {

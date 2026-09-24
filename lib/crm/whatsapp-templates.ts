@@ -241,7 +241,7 @@ export const createWhatsAppTemplate = async (input: {
       ],
     }),
   })) as { status?: string };
-  const status = response.status ?? "PENDING";
+  const status = (response.status ?? "PENDING").toUpperCase();
   await prisma.messageTemplate.upsert({
     where: { key_locale: { key: input.key, locale: "es" } },
     create: {
@@ -388,4 +388,27 @@ export const ensureTemplatesSubmitted = async (
   }
   if (result.submitted.length) console.log(`[whatsapp-templates] enviadas a revisión: ${result.submitted.join(", ")}`);
   return result;
+};
+
+const SYNC_KEY = "whatsapp.templates.syncedAt";
+
+/**
+ * Mientras haya plantillas en revisión, pregunta a 360dialog si Meta ya las
+ * aprobó (como mucho cada 10 minutos). Así, en cuanto las aprueban, los envíos
+ * pendientes salen sin que nadie tenga que abrir «Plantillas».
+ */
+export const refreshTemplatesIfPending = async (): Promise<void> => {
+  const pending = await prisma.messageTemplate.count({
+    where: {
+      metaTemplateName: { not: null },
+      NOT: { metaApprovalStatus: { in: ["APPROVED", "approved"] } },
+    },
+  });
+  if (pending === 0) return;
+  const last = Number((await getSiteSetting(SYNC_KEY)) ?? 0);
+  if (Date.now() - last < 10 * 60_000) return;
+  await setSiteSetting(SYNC_KEY, String(Date.now()));
+  await syncWhatsAppTemplates().catch((e) =>
+    console.error(`[whatsapp-templates] no se pudo actualizar el estado: ${e instanceof Error ? e.message : e}`)
+  );
 };

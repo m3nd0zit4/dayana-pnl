@@ -12,6 +12,7 @@ import { summarizePlans, type SendSummary } from "./whatsapp-outbound-plan";
 import {
   approvedTemplateFor,
   ensureTemplatesSubmitted,
+  refreshTemplatesIfPending,
   getTemplatePrices,
   priceFor,
   type WaTemplate,
@@ -82,6 +83,7 @@ export const previewSend = async (input: {
   templateKey?: string | null;
   kind?: SendKind;
 }): Promise<SendPreview> => {
+  await refreshTemplatesIfPending().catch(() => undefined);
   const [recipients, template, prices] = await Promise.all([
     loadRecipients(input.contactIds),
     approvedTemplateFor(input.templateKey),
