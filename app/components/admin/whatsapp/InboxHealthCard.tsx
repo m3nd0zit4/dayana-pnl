@@ -54,9 +54,9 @@ const InboxHealthCard = () => {
     <section className="space-y-2 rounded-xl border border-border bg-card p-3">
       <div className="flex flex-wrap items-center gap-2">
         {ok ? (
-          <CheckCircle2 className="size-5 text-emerald-600" aria-hidden />
+          <CheckCircle2 className="size-5 text-[#00a884]" aria-hidden />
         ) : (
-          <TriangleAlert className="size-5 text-amber-600" aria-hidden />
+          <TriangleAlert className="size-5 text-warning" aria-hidden />
         )}
         <h2 className="flex-1 text-sm font-semibold">
           {ok
@@ -70,7 +70,7 @@ const InboxHealthCard = () => {
             type="button"
             onClick={() => void reprocess()}
             disabled={busy}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#00a884] px-3 text-xs font-medium text-white hover:bg-[#008069] disabled:opacity-50"
           >
             {busy ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />} Reprocesar
           </button>

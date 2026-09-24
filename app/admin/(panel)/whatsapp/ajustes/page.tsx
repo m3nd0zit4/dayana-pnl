@@ -1,17 +1,17 @@
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
-import WhatsAppAiSettingsClient from "@/app/components/admin/crm/settings/WhatsAppAiSettingsClient";
-import WhatsAppProviderCard from "@/app/components/admin/crm/settings/WhatsAppProviderCard";
-import WhatsAppWelcomeCard from "@/app/components/admin/crm/settings/WhatsAppWelcomeCard";
-import HistoryImportCard from "@/app/components/admin/whatsapp/HistoryImportCard";
-import PushToggle from "@/app/components/admin/whatsapp/PushToggle";
-import WhatsAppBehaviorCard from "@/app/components/admin/whatsapp/WhatsAppBehaviorCard";
-import WhatsAppPlaybooksCard from "@/app/components/admin/whatsapp/WhatsAppPlaybooksCard";
+import WhatsAppSettingsClient from "@/app/components/admin/whatsapp/settings/WhatsAppSettingsClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
+import { listActiveGoogleAccountsForService } from "@/lib/crm/google-accounts";
 import { defaultWhatsAppAiConfig, getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
 import { getLearningSummary } from "@/lib/crm/whatsapp-learning";
-import { getWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
+import {
+  DEFAULT_WHATSAPP_SETTINGS_TAB,
+  isWhatsAppSettingsTab,
+} from "@/lib/crm/whatsapp-settings-registry";
+import { listWhatsAppTemplates } from "@/lib/crm/whatsapp-templates";
+import { defaultWelcomeConfig, getWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
 import {
   getWhatsAppProviderSummary,
   resolveWhatsAppCredentials,
@@ -19,50 +19,77 @@ import {
 
 export const dynamic = "force-dynamic";
 
+/** Aprobadas, en revisión y rechazadas, como las pinta la pantalla de plantillas. */
+const countTemplates = (statuses: (string | null)[]) => {
+  const counts = { approved: 0, pending: 0, rejected: 0 };
+  for (const raw of statuses) {
+    const s = (raw ?? "").toUpperCase();
+    if (s === "APPROVED") counts.approved++;
+    else if (s.startsWith("REJECTED") || s === "DISABLED") counts.rejected++;
+    else counts.pending++;
+  }
+  return counts;
+};
+
 /**
- * Todo lo que se configura de WhatsApp, en un solo sitio: conexión, cómo se
- * comporta la IA, sus procedimientos, lo que aprendió, el saludo y los avisos.
+ * Todo lo que se configura de WhatsApp, en un solo sitio y por pestañas:
+ * conexión, IA, citas, avisos, plantillas y avanzado. `?tab=` abre una.
  */
-const Page = async () => {
+const Page = async ({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) => {
   await requireOwnerSettings();
+  const { tab: rawTab } = await searchParams;
+  const tab = isWhatsAppSettingsTab(rawTab) ? rawTab : DEFAULT_WHATSAPP_SETTINGS_TAB;
 
   if (isCrmUiPreview()) {
-    const config = defaultWhatsAppAiConfig();
     return (
-      <CrmPageShell>
-        <WhatsAppBehaviorCard initialMode={config.defaultMode} initialHolding="" initialOutreach={config.diagnosticOutreach} />
+      <CrmPageShell width="narrow">
+        <WhatsAppSettingsClient
+          preview
+          initialTab={tab}
+          initialConfig={defaultWhatsAppAiConfig()}
+          initialEnabled={false}
+          initialSummary={{
+            total: 0,
+            enabled: 0,
+            pendingEmbedding: 0,
+            imported: 0,
+            knownContacts: 0,
+            lastLearnedAt: null,
+          }}
+          initialWelcome={defaultWelcomeConfig()}
+          configured={false}
+          provider={null}
+          calendarAccounts={[]}
+          templateCounts={null}
+        />
       </CrmPageShell>
     );
   }
 
-  const [config, enabled, summary, credentials, provider, welcome] = await Promise.all([
+  const [config, enabled, summary, credentials, provider, welcome, accounts, templates] = await Promise.all([
     getWhatsAppAiConfig(),
     isWhatsAppAutoReplyEnabled(),
     getLearningSummary(),
     resolveWhatsAppCredentials(),
     getWhatsAppProviderSummary(),
     getWelcomeConfig(),
+    listActiveGoogleAccountsForService("CALENDAR"),
+    listWhatsAppTemplates(),
   ]);
 
   return (
-    <CrmPageShell>
-      <h1 className="text-xl font-semibold">Ajustes de WhatsApp</h1>
-      <WhatsAppProviderCard initial={provider} />
-      <HistoryImportCard />
-      <WhatsAppBehaviorCard
-        initialMode={config.defaultMode}
-        initialHolding={config.escalation.holdingMessage}
-        initialOutreach={config.diagnosticOutreach}
-      />
-      <WhatsAppPlaybooksCard />
-      <PushToggle />
-      <WhatsAppAiSettingsClient
+    <CrmPageShell width="narrow">
+      <WhatsAppSettingsClient
+        initialTab={tab}
         initialConfig={config}
         initialEnabled={enabled}
         initialSummary={summary}
+        initialWelcome={welcome}
         configured={credentials !== null}
+        provider={provider}
+        calendarAccounts={accounts.map((a) => ({ id: a.id, email: a.email, displayName: a.displayName }))}
+        templateCounts={countTemplates(templates.map((t) => t.metaApprovalStatus))}
       />
-      <WhatsAppWelcomeCard initial={welcome} configured={credentials !== null} />
     </CrmPageShell>
   );
 };
