@@ -71,6 +71,11 @@ export type SendInput = {
    * devuelve el mensaje ya creado en vez de mandarlo otra vez.
    */
   clientKey?: string | null;
+  /**
+   * `wamid` del mensaje al que responde (la cita de WhatsApp). Sale como
+   * `context.message_id` y se guarda en la fila para pintar la cita.
+   */
+  replyToExternalId?: string | null;
 };
 
 type MediaKind = "image" | "video" | "audio" | "document";
@@ -145,6 +150,8 @@ const sendWhatsApp = async (
   // «PE.2290…»: se le responde con `recipient`. Quitarle las letras lo volvía
   // un número inexistente y WhatsApp devolvía «Message undeliverable».
   const target = whatsAppRecipient(conversation.externalThreadId, digitsOnly);
+  // Citar un mensaje: WhatsApp lo muestra encima de la respuesta.
+  const context = input.replyToExternalId ? { context: { message_id: input.replyToExternalId } } : {};
 
   // Fuera de ventana WhatsApp rechaza el texto libre. Antes esto se enviaba
   // igual y fallaba en silencio; ahora se exige plantilla de forma explícita.
@@ -203,6 +210,7 @@ const sendWhatsApp = async (
         messaging_product: "whatsapp",
         recipient_type: "individual",
         ...target,
+        ...context,
         type: kind,
         [kind]: {
           id: mediaId,
@@ -243,6 +251,7 @@ const sendWhatsApp = async (
         messaging_product: "whatsapp",
         recipient_type: "individual",
         ...target,
+        ...context,
         type: "interactive",
         interactive: {
           type: "cta_url",
@@ -267,12 +276,63 @@ const sendWhatsApp = async (
       messaging_product: "whatsapp",
       recipient_type: "individual",
       ...target,
+      ...context,
       type: "text",
       text: { preview_url: true, body: input.body },
     },
     credentials
   );
   return readMessageId(res);
+};
+
+/**
+ * Reacciona (👍 ❤️ …) a un mensaje de WhatsApp. Un emoji vacío quita la
+ * reacción, como en la app. WhatsApp solo acepta reacciones dentro de la
+ * ventana de 24 h: fuera de ella se corta aquí con `MetaWindowError` en vez de
+ * dejar que Meta la rechace. En modo prueba no sale nada (igual que los envíos).
+ */
+export const sendWhatsAppReaction = async (
+  conversation: Pick<Conversation, "channel" | "externalThreadId" | "lastInboundAt">,
+  wamid: string,
+  emoji: string
+): Promise<{ dryRun: boolean }> => {
+  if (conversation.channel !== "WHATSAPP") {
+    throw new MetaSendError("Solo se puede reaccionar en chats de WhatsApp.");
+  }
+  const window = resolveWindow(conversation.channel, conversation.lastInboundAt);
+  if (!window.isOpen) {
+    throw new MetaWindowError(
+      "Pasaron más de 24 h desde su último mensaje: WhatsApp no deja reaccionar.",
+      window
+    );
+  }
+  if (await resolveDryRun()) return { dryRun: true };
+  const credentials = await resolveWhatsAppCredentials();
+  if (!credentials) {
+    throw new MetaSendError("WhatsApp no está configurado: elige el proveedor y su clave en Ajustes → Canales.");
+  }
+  try {
+    await graphPost<GraphMessageResponse>(
+      `${credentials.accountId}/messages`,
+      {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        ...whatsAppRecipient(conversation.externalThreadId, digitsOnly),
+        type: "reaction",
+        reaction: { message_id: wamid, emoji },
+      },
+      credentials
+    );
+  } catch (e) {
+    throw new MetaSendError(
+      e instanceof MetaApiError
+        ? `${e.message}${e.code ? ` (código ${e.code})` : ""}`
+        : e instanceof Error
+          ? e.message
+          : "Error desconocido"
+    );
+  }
+  return { dryRun: false };
 };
 
 const sendViaPage = async (
@@ -425,6 +485,7 @@ export const sendMetaMessage = async (
       source: input.source ?? null,
       isAutoReply: input.isAutoReply ?? false,
       clientKey: input.clientKey ?? null,
+      replyToExternalId: input.replyToExternalId ?? null,
     },
     select: { id: true },
   })

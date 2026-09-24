@@ -79,13 +79,13 @@ const ApprovalBar = ({
         return (
           <div
             key={runId}
-            className="rounded-xl border-2 border-[#00a884] bg-white p-3 shadow-sm dark:bg-card"
+            className="rounded-xl border-2 border-(--wa-green) bg-(--wa-surface) p-3 shadow-sm"
           >
             <div className="flex items-start gap-2">
-              <Icon className="mt-0.5 size-5 shrink-0 text-[#008069]" />
+              <Icon className="mt-0.5 size-5 shrink-0 text-(--wa-accent)" />
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold text-[#111b21] dark:text-foreground">{head.title}</div>
-                <div className="text-xs text-[#667781]">
+                <div className="text-sm font-semibold text-(--wa-text)">{head.title}</div>
+                <div className="text-xs text-(--wa-meta)">
                   {blocked
                     ? "Aún no se le puede escribir desde el CRM: esta persona nunca te ha escrito (o pasaron más de 24 h) y la plantilla todavía no está aprobada por Meta. En cuanto la aprueben, «Aceptar y enviar» funciona aquí mismo; puedes dejarla lista o modificarla."
                     : delivery === "template"
@@ -93,18 +93,18 @@ const ApprovalBar = ({
                       : head.hint}
                 </div>
                 {p.kind === "booking" && p.booking && (
-                  <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-lg bg-[#d9fdd3] px-2.5 py-1 text-sm font-medium text-[#006e4f]">
+                  <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-lg bg-(--wa-green-soft) px-2.5 py-1 text-sm font-medium text-(--wa-green-ink)">
                     <CalendarCheck className="size-4" /> {p.booking.service} · {p.booking.label}
                     {p.booking.name ? ` · ${p.booking.name}` : ""}
                   </div>
                 )}
                 {p.kind === "payment_link" && p.payment && (
-                  <div className="mt-1.5 inline-flex items-center gap-2 rounded-lg bg-[#d9fdd3] px-2.5 py-1 text-sm font-medium text-[#006e4f]">
+                  <div className="mt-1.5 inline-flex items-center gap-2 rounded-lg bg-(--wa-green-soft) px-2.5 py-1 text-sm font-medium text-(--wa-green-ink)">
                     <CreditCard className="size-4" /> {p.payment.product}
                   </div>
                 )}
                 {p.kind === "payment_received" && p.reason && (
-                  <div className="mt-1.5 text-sm text-[#54656f]">{p.reason}</div>
+                  <div className="mt-1.5 text-sm text-(--wa-icon)">{p.reason}</div>
                 )}
               </div>
             </div>
@@ -114,10 +114,10 @@ const ApprovalBar = ({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 rows={4}
-                className="mt-2 w-full rounded-lg border border-[#d1d7db] bg-white p-2 text-sm outline-none focus:border-[#00a884] dark:border-border dark:bg-card"
+                className="mt-2 w-full rounded-lg border border-(--wa-border) bg-(--wa-surface) p-2 text-sm outline-none focus:border-(--wa-green)"
               />
             ) : (
-              <p className="mt-2 rounded-lg bg-[#f0f2f5] px-3 py-2 text-sm whitespace-pre-wrap text-[#111b21] dark:bg-muted/40 dark:text-foreground">
+              <p className="mt-2 rounded-lg bg-(--wa-panel) px-3 py-2 text-sm whitespace-pre-wrap text-(--wa-text)">
                 {preview}
               </p>
             )}
@@ -128,7 +128,7 @@ const ApprovalBar = ({
                   type="button"
                   disabled={!canWrite || busy !== null || !text.trim() || blocked}
                   onClick={() => void decide(runId, "approve", text)}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-full md:h-9 bg-(--wa-green) px-4 text-sm font-medium text-white hover:bg-(--wa-green-strong) disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                   {p.kind === "booking" ? "Agendar y enviar mi versión" : "Enviar mi versión"}
@@ -138,7 +138,7 @@ const ApprovalBar = ({
                   type="button"
                   disabled={!canWrite || busy !== null || blocked}
                   onClick={() => void decide(runId, "approve")}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-full md:h-9 bg-(--wa-green) px-4 text-sm font-medium text-white hover:bg-(--wa-green-strong) disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                   {blocked ? "Esperando plantilla" : p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
@@ -155,7 +155,7 @@ const ApprovalBar = ({
                     setText(p.message);
                   }
                 }}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#d1d7db] bg-white px-4 text-sm font-medium text-[#111b21] hover:bg-[#f5f6f6] disabled:opacity-50 dark:border-border dark:bg-card dark:text-foreground"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full md:h-9 border border-(--wa-border) bg-(--wa-surface) px-4 text-sm font-medium text-(--wa-text) hover:bg-(--wa-hover) disabled:opacity-50"
               >
                 <Pencil className="size-4" /> {isEditing ? "Dejar como estaba" : "Modificar"}
               </button>
@@ -163,14 +163,14 @@ const ApprovalBar = ({
                 type="button"
                 disabled={!canWrite || busy !== null}
                 onClick={() => void decide(runId, "reject")}
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#f3b9b4] bg-white px-4 text-sm font-medium text-[#b42318] hover:bg-[#fef3f2] disabled:opacity-50"
+                className="inline-flex h-10 items-center gap-1.5 rounded-full md:h-9 border border-(--wa-danger-border) bg-(--wa-surface) px-4 text-sm font-medium text-(--wa-danger-ink) hover:bg-(--wa-danger-soft) disabled:opacity-50"
               >
                 {busy === `${runId}:reject` ? <Loader2 className="size-4 animate-spin" /> : <X className="size-4" />}
                 Cancelar
               </button>
             </div>
             {isEditing && p.kind === "payment_link" && (
-              <p className="mt-1 text-[11px] text-[#667781]">
+              <p className="mt-1 text-[11px] text-(--wa-meta)">
                 Deja {PLACEHOLDER} donde va el enlace (si lo quitas, se agrega al final).
               </p>
             )}

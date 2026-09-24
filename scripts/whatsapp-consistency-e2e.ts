@@ -11,6 +11,8 @@
  * 5. El mismo envío con la misma clave no sale dos veces.
  * 6. México: un contacto +52… con chat 521… tiene la ventana abierta.
  * 7. Un destinatario masivo atascado en «enviando» se recupera sin duplicar.
+ * 8. Un ✓✓ se ve en vivo y los chats largos se cargan por páginas.
+ * 9. Responder citando un mensaje guarda la cita; reaccionar guarda la reacción.
  */
 import { prisma } from "@/lib/db";
 import { applyStatus, attachPendingStatuses } from "@/lib/meta/status";
@@ -162,6 +164,37 @@ const main = async () => {
   check("en orden, el último abajo", long.messages.at(-1)?.body === `mensaje ${CHAT_PAGE + 29}`, long.messages.at(-1)?.body);
   const page = await getOlderMessages(longConv.id, new Date(long.messages[0].sentAt));
   check("«Cargar anteriores» trae los 30 que faltaban", page.messages.length === 30 && !page.hasMore && page.messages[0].body === "mensaje 0", { n: page.messages.length, first: page.messages[0]?.body });
+
+  console.log("\n9. Responder citando y reaccionar");
+  const quoted = await sendMetaMessage({ conversationId: conv.id, body: "respondo a eso", replyToExternalId: w1 });
+  const quotedRow = await prisma.conversationMessage.findUniqueOrThrow({ where: { id: quoted.messageId } });
+  check("la respuesta guarda el wamid citado", quotedRow.replyToExternalId === w1, quotedRow.replyToExternalId);
+  const view = (await getChat(conv.id))!.messages.find((m) => m.id === quoted.messageId);
+  check("el chat la entrega con su cita", view?.replyToExternalId === w1, view?.replyToExternalId);
+  const { reactToMessage, getMessageInfo } = await import("@/lib/crm/whatsapp-message-actions");
+  const reacted = await reactToMessage({ conversationId: conv.id, messageId: m1.id, emoji: "❤️" });
+  check("en modo prueba no sale nada a WhatsApp", reacted.dryRun === true, reacted);
+  const reaction = await prisma.messageReaction.findUnique({ where: { messageId_actor: { messageId: m1.id, actor: "business" } } });
+  check("queda la reacción de Dayana", reaction?.emoji === "❤️", reaction);
+  await reactToMessage({ conversationId: conv.id, messageId: m1.id, emoji: "👍" });
+  const replaced = await prisma.messageReaction.findMany({ where: { messageId: m1.id, actor: "business" } });
+  check("una nueva reemplaza la anterior", replaced.length === 1 && replaced[0].emoji === "👍", replaced);
+  await reactToMessage({ conversationId: conv.id, messageId: m1.id, emoji: "" });
+  const removed = await prisma.messageReaction.count({ where: { messageId: m1.id, actor: "business" } });
+  check("un emoji vacío la quita", removed === 0, removed);
+  const noWamid = await reactToMessage({ conversationId: conv.id, messageId: quoted.messageId, emoji: "👍" }).then(
+    () => "ok",
+    (e: Error) => e.message
+  );
+  check("sin wamid no se puede reaccionar", noWamid !== "ok", noWamid);
+  await prisma.conversation.update({ where: { id: conv.id }, data: { lastInboundAt: new Date(Date.now() - 25 * 3600_000) } });
+  const closed = await reactToMessage({ conversationId: conv.id, messageId: m1.id, emoji: "👍" }).then(
+    () => "ok",
+    (e: Error) => e.name
+  );
+  check("fuera de las 24 h no deja reaccionar", closed === "MetaWindowError", closed);
+  const info = await getMessageInfo(m1.id);
+  check("Info del mensaje trae el historial", info?.events.length === 3 && info.events.some((e) => e.status === "READ"), info?.events);
 
   console.log(failures.length ? `\n❌ ${failures.length} fallaron:\n- ${failures.join("\n- ")}` : "\n✅ Consistencia OK");
   process.exit(failures.length ? 1 : 0);
