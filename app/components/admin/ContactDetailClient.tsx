@@ -5,7 +5,7 @@ import ContactWhatsAppPanel from "@/app/components/admin/whatsapp/ContactWhatsAp
 import { SendWhatsAppButton } from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
 import { contactPresets } from "@/lib/crm/whatsapp-presets";
 import Link from "next/link";
-import { ChevronRight, Copy, CreditCard, MessageCircle, Pencil, Plus } from "lucide-react";
+import { ChevronRight, Copy, CreditCard, Pencil, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import ContactEditForm from "@/app/components/admin/crm/ContactEditForm";
@@ -24,7 +24,6 @@ import {
 import { contactFilterSourceSelectOptions } from "@/lib/crm/form-select-options";
 import { formatCountryLabel } from "@/lib/countries";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
-import { trackStaffWhatsApp } from "@/app/components/admin/crm/trackStaffWhatsApp";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { Badge } from "@/app/components/ui/badge";
@@ -383,16 +382,6 @@ const ContactDetailClient = ({
                 presets={contactPresets()}
                 source="perfil"
               />
-              <Button
-                variant="ghost"
-                size="sm"
-                nativeButton={false}
-                title="Abrir el chat en el WhatsApp del celular"
-                render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackStaffWhatsApp(contact.id, "crm_contact")} />}
-              >
-                <MessageCircle aria-hidden />
-                Celular
-              </Button>
             </span>
           ) : undefined
         }

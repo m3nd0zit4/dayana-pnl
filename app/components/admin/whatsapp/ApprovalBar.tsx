@@ -13,16 +13,6 @@ export type PendingApproval = {
   phoneUrl?: string | null;
 };
 
-/** wa.me con el texto que quedó (el de la IA o el modificado). */
-const withText = (url: string, message: string) => {
-  try {
-    const u = new URL(url);
-    u.searchParams.set("text", message);
-    return u.toString();
-  } catch {
-    return url;
-  }
-};
 
 const PLACEHOLDER = "{{ENLACE_DE_PAGO}}";
 
@@ -77,14 +67,12 @@ const ApprovalBar = ({
 
   return (
     <div className="space-y-2">
-      {approvals.map(({ runId, proposal: p, delivery, phoneUrl }) => {
+      {approvals.map(({ runId, proposal: p, delivery }) => {
         const head = HEAD[p.kind] ?? HEAD.reply;
-        const byPhone = delivery === "phone" && Boolean(phoneUrl);
-        // Se abre en el mismo clic (si no, el navegador bloquea la ventana).
-        const openPhone = (message: string) => {
-          if (phoneUrl) window.open(withText(phoneUrl, message), "_blank", "noopener,noreferrer");
-          void decide(runId, "phone", message);
-        };
+        // Sin ventana de 24 h y sin plantilla aprobada, WhatsApp no deja que el
+        // CRM escriba primero. No se manda a nadie a otra app: se dice por qué
+        // y se envía desde aquí en cuanto Meta apruebe la plantilla.
+        const blocked = delivery === "phone";
         const Icon = head.icon;
         const isEditing = editing === runId;
         const preview = p.message.split(PLACEHOLDER).join("🔗 [enlace de pago]");
@@ -98,10 +86,8 @@ const ApprovalBar = ({
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-[#111b21] dark:text-foreground">{head.title}</div>
                 <div className="text-xs text-[#667781]">
-                  {byPhone
-                    ? p.phoneOpenedAt
-                      ? "Se abrió en WhatsApp, pero el mensaje todavía no llegó aquí. Envíalo desde el WhatsApp de Dayana (su celular o su WhatsApp Web): en cuanto salga, esta propuesta se cierra sola."
-                      : "Esta persona nunca te ha escrito y la plantilla aún está en revisión de Meta. Se abre WhatsApp con el mensaje escrito: hazlo desde el WhatsApp de Dayana (su celular o su WhatsApp Web) y solo pulsa enviar. Es gratis y el mensaje aparece aquí."
+                  {blocked
+                    ? "Aún no se le puede escribir desde el CRM: esta persona nunca te ha escrito (o pasaron más de 24 h) y la plantilla todavía no está aprobada por Meta. En cuanto la aprueben, «Aceptar y enviar» funciona aquí mismo; puedes dejarla lista o modificarla."
                     : delivery === "template"
                       ? "Pasaron más de 24 h: al aceptar se envía con la plantilla aprobada."
                       : head.hint}
@@ -140,22 +126,22 @@ const ApprovalBar = ({
               {isEditing ? (
                 <button
                   type="button"
-                  disabled={!canWrite || busy !== null || !text.trim()}
-                  onClick={() => (byPhone ? openPhone(text) : void decide(runId, "approve", text))}
+                  disabled={!canWrite || busy !== null || !text.trim() || blocked}
+                  onClick={() => void decide(runId, "approve", text)}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                  {byPhone ? "Enviar mi versión desde mi celular" : p.kind === "booking" ? "Agendar y enviar mi versión" : "Enviar mi versión"}
+                  {p.kind === "booking" ? "Agendar y enviar mi versión" : "Enviar mi versión"}
                 </button>
               ) : (
                 <button
                   type="button"
-                  disabled={!canWrite || busy !== null}
-                  onClick={() => (byPhone ? openPhone(p.message) : void decide(runId, "approve"))}
+                  disabled={!canWrite || busy !== null || blocked}
+                  onClick={() => void decide(runId, "approve")}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                  {byPhone ? (p.phoneOpenedAt ? "Abrir otra vez en WhatsApp" : "Enviar desde el WhatsApp de Dayana") : p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
+                  {blocked ? "Esperando plantilla" : p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
                 </button>
               )}
               <button

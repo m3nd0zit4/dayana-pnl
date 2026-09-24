@@ -19,7 +19,9 @@ import {
   Sparkles,
   Star,
   Sticker,
+  Trash2,
   UserRound,
+  XCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -150,6 +152,18 @@ const Linkified = ({ text }: { text: string }) => (
 
 type Attachment = ChatDetail["messages"][number]["attachments"][number];
 
+/** ✓ enviado · ✓✓ le llegó · ✓✓ azul lo leyó · ✕ no le llegó (como WhatsApp). */
+const Ticks = ({ status }: { status: string | null }) =>
+  status === "FAILED" ? (
+    <XCircle className="size-4 shrink-0 text-[#d92d20]" aria-label="No le llegó" />
+  ) : status === "READ" ? (
+    <CheckCheck className="size-4 shrink-0 text-[#53bdeb]" aria-label="Lo leyó" />
+  ) : status === "DELIVERED" ? (
+    <CheckCheck className="size-4 shrink-0 text-[#8696a0]" aria-label="Le llegó" />
+  ) : (
+    <Check className="size-4 shrink-0 text-[#8696a0]" aria-label="Enviado" />
+  );
+
 /** El tipo por lo que el archivo ES (un video mandado «como archivo» sigue siendo video). */
 const shownKind = (a: Attachment): string => {
   const mime = (a.mimeType ?? "").toLowerCase();
@@ -249,9 +263,7 @@ const ChatRow = ({ item, active, onOpen }: { item: ChatListItem; active: boolean
           </span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
-          {item.lastDirection === "OUTBOUND" && (
-            <CheckCheck className="size-4 shrink-0 text-[#53bdeb]" />
-          )}
+          {item.lastDirection === "OUTBOUND" && <Ticks status={item.lastStatus} />}
           <span className="min-w-0 flex-1 truncate text-sm text-[#667781]">
             {item.lastDirection === "OUTBOUND" && item.lastIsAutoReply ? "IA: " : ""}
             {item.lastMessage ?? "📎 Adjunto"}
@@ -285,6 +297,17 @@ const ChatRow = ({ item, active, onOpen }: { item: ChatListItem; active: boolean
               <ShieldAlert className="size-3.5" />
               {urgent ? "Urgente · " : "Te toca · "}
               {CATEGORY_LABEL[item.escalation.category ?? ""] ?? "revisar"}
+            </span>
+          ) : item.lastDirection === "OUTBOUND" && !isRunLive(item.lastRun) ? (
+            // Lo último fue nuestro: manda el estado de ESE mensaje (igual que en el chat).
+            <span
+              className={cn(
+                "inline-flex min-w-0 flex-1 items-center gap-1 truncate text-xs",
+                item.lastStatus === "FAILED" ? "text-[#d92d20]" : "text-[#667781]"
+              )}
+            >
+              <Ticks status={item.lastStatus} />
+              <span className="truncate">{deliveryLabel(item.lastStatus, item.lastFailedReason).label}</span>
             </span>
           ) : (
             <RunStatus run={item.lastRun} compact className="min-w-0 flex-1" />
@@ -468,6 +491,23 @@ const Thread = ({
     [chat.messages]
   );
 
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  /** Quita del chat un mensaje que no llegó (la persona nunca lo vio). */
+  const removeFailed = async (messageId: string) => {
+    setBusy(`delete:${messageId}`);
+    try {
+      await post(chat.id, { action: "delete_failed", messageId });
+      toast("Mensaje eliminado del chat", "success");
+    } catch (e) {
+      toast(`No se pudo eliminar: ${e instanceof Error ? e.message : "error"}`, "error");
+    } finally {
+      setConfirmDelete(null);
+      setBusy(null);
+      onChanged();
+    }
+  };
+
   /** Reenvía un mensaje que WhatsApp no entregó; si no se puede desde el CRM, abre WhatsApp. */
   const resend = async (messageId: string) => {
     setBusy(`resend:${messageId}`);
@@ -481,8 +521,7 @@ const Thread = ({
       if (data.status === "sent") {
         toast(data.mode === "template" ? "Reenviado con plantilla" : "Reenviado", "success");
       } else {
-        if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
-        toast(data.reason ?? "Envíalo desde el WhatsApp de Dayana", "info");
+        toast(data.reason ?? "Aún no se puede reenviar desde aquí.", "info");
       }
     } catch (e) {
       toast(`No se pudo reenviar: ${e instanceof Error ? e.message : "error"}`, "error");
@@ -506,7 +545,7 @@ const Thread = ({
         decision === "approve"
           ? "Enviado"
           : decision === "phone"
-            ? "Se abrió WhatsApp con el mensaje: envíalo desde el WhatsApp de Dayana"
+            ? "Listo"
             : "Propuesta cancelada",
         "success"
       );
@@ -515,7 +554,7 @@ const Thread = ({
       const code = e instanceof Error ? e.message : "error";
       toast(
         code === "window_closed" || code === "needs_phone"
-          ? "Desde el CRM no se le puede escribir ahora (sin plantilla aprobada). Usa «Enviar desde mi celular»."
+          ? "Aún no se le puede escribir: falta que Meta apruebe la plantilla (WhatsApp → Plantillas)."
           : code.startsWith("slot:")
             ? `${code.slice(5)} Pídele a la IA otras horas o agenda tú.`
             : `No se pudo: ${code}`,
@@ -747,12 +786,23 @@ const Thread = ({
                               type="button"
                               disabled={!canWrite || busy !== null}
                               onClick={() => void resend(m.id)}
-                              className="inline-flex h-7 items-center gap-1 rounded-full bg-[#d92d20] px-3 text-xs font-medium text-white hover:bg-[#b42318] disabled:opacity-50"
+                              className="inline-flex h-7 items-center gap-1 rounded-full bg-[#00a884] px-3 text-xs font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                             >
                               {busy === `resend:${m.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
                               Reenviar
                             </button>
                           )}
+                          <button
+                            type="button"
+                            disabled={!canWrite || busy !== null}
+                            onClick={() => (confirmDelete === m.id ? void removeFailed(m.id) : setConfirmDelete(m.id))}
+                            onBlur={() => setConfirmDelete((c) => (c === m.id ? null : c))}
+                            title="La persona nunca lo vio: se quita solo de aquí"
+                            className="inline-flex h-7 items-center gap-1 rounded-full border border-[#f3b9b4] bg-white px-3 text-xs font-medium text-[#b42318] hover:bg-[#fef3f2] disabled:opacity-50"
+                          >
+                            {busy === `delete:${m.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                            {confirmDelete === m.id ? "¿Seguro? Eliminar" : "Eliminar"}
+                          </button>
                         </div>
                       )}
                     </div>
@@ -768,16 +818,6 @@ const Thread = ({
             {!chat.windowOpen && windowNotice(chat.windowState) && (
               <p className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs text-[#54656f] dark:bg-card">
                 <span className="flex-1">{windowNotice(chat.windowState)}</span>
-                {chat.approvals.length === 0 && /^\d+$/.test(chat.phone) && (
-                  <a
-                    href={`https://wa.me/${chat.phone}${text.trim() ? `?text=${encodeURIComponent(text.trim())}` : ""}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-[#008069] hover:underline"
-                  >
-                    Abrir en mi celular
-                  </a>
-                )}
               </p>
             )}
             <ApprovalBar approvals={chat.approvals} canWrite={canWrite} onDecide={decide} />

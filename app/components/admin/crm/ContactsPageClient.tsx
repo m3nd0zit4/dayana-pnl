@@ -4,7 +4,8 @@ import { displayContactPhone } from "@/lib/crm/contact-phone";
 import Link from "next/link";
 import { ChevronRight, MessageCircle, Users } from "lucide-react";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
-import { trackStaffWhatsApp } from "./trackStaffWhatsApp";
+import SendWhatsAppDialog from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
+import { contactPresets } from "@/lib/crm/whatsapp-presets";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
@@ -80,6 +81,7 @@ const ContactsPageClient = ({
   const router = useRouter();
   const { toast } = useCrm();
   const [modalOpen, setModalOpen] = useState(false);
+  const [waFor, setWaFor] = useState<{ id: string; name: string } | null>(null);
   const [country, setCountry] = useState(filters.country);
   const [source, setSource] = useState(filters.source);
   const [activeTherapy, setActiveTherapy] = useState(filters.activeTherapy);
@@ -272,16 +274,8 @@ const ContactsPageClient = ({
                         title="Escribir por WhatsApp"
                         onClick={(e) => {
                           e.stopPropagation();
-                          trackStaffWhatsApp(c.id, "crm_list");
+                          setWaFor({ id: c.id, name: [c.firstName, c.lastName].filter(Boolean).join(" ") });
                         }}
-                        nativeButton={false}
-                        render={
-                          <a
-                            href={whatsAppUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          />
-                        }
                       >
                         <MessageCircle strokeWidth={1.75} aria-hidden />
                       </Button>
@@ -375,6 +369,16 @@ const ContactsPageClient = ({
           router.refresh();
         }}
       />
+      {waFor && (
+        <SendWhatsAppDialog
+          contactId={waFor.id}
+          name={waFor.name}
+          presets={contactPresets()}
+          source="contactos"
+          open
+          onClose={() => setWaFor(null)}
+        />
+      )}
     </CrmPageShell>
   );
 };

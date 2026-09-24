@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { diagnosticSourceLabel } from "@/lib/crm/diagnostic-answers";
 import type { DiagnosticDetail } from "@/lib/crm/diagnostics";
 import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
-import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
-import { trackStaffWhatsApp } from "./trackStaffWhatsApp";
+import { diagnosticPresets } from "@/lib/crm/whatsapp-presets";
+import { SendWhatsAppButton } from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
 import { CrmPublicLink } from "./ui";
@@ -105,9 +103,6 @@ type Props = {
  */
 const DiagnosticDetailClient = ({ diagnostic, timeZone, outreach }: Props) => {
   const contact = diagnostic.contact;
-  const whatsAppUrl = contact?.phoneE164
-    ? buildContactWhatsAppUrl(contact.phoneE164)
-    : null;
 
   const steps: TimelineStep[] = [
     { label: "Empezó", at: diagnostic.createdAt },
@@ -133,16 +128,13 @@ const DiagnosticDetailClient = ({ diagnostic, timeZone, outreach }: Props) => {
         backLabel="Diagnósticos"
         secondaryActions={
           <>
-            {whatsAppUrl ? (
-              <Button
-                variant="outline"
-                size="sm"
-                nativeButton={false}
-                render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" onClick={() => contact && trackStaffWhatsApp(contact.id, "crm_diagnostic", diagnostic.id)} />}
-              >
-                <MessageCircle aria-hidden />
-                WhatsApp
-              </Button>
+            {contact?.phoneE164 ? (
+              <SendWhatsAppButton
+                contactId={contact.id}
+                name={contact.name}
+                presets={diagnosticPresets()}
+                source="diagnostico"
+              />
             ) : null}
             {/* Abrirlo desde aquí no cuenta como visita de la persona: la
                 página pública no sella nada cuando quien mira es del equipo. */}

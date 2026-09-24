@@ -3,8 +3,6 @@
 import { CheckCircle2, Loader2, MessageCircle, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { resolvePresetVars } from "@/lib/crm/whatsapp-presets";
-import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
-import { trackStaffWhatsApp } from "../crm/trackStaffWhatsApp";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
 import type { WhatsAppPreset } from "./SendWhatsAppDialog";
@@ -19,8 +17,6 @@ type Preview = {
   templateInfo: { key: string; title: string; category: string | null; status: string | null } | null;
   phoneOnly: { contactId: string; name: string | null; phone: string; suggested: string | null }[];
 };
-
-const firstName = (name: string | null) => (name ?? "").trim().split(/\s+/)[0] ?? "";
 
 type Progress = { status: string; total: number; sent: number; failed: number; skipped: number; pending: number };
 
@@ -53,7 +49,6 @@ const WhatsAppBulkSend = ({
   const [preview, setPreview] = useState<Preview | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [running, setRunning] = useState(false);
-  const [opened, setOpened] = useState<Set<string>>(new Set());
 
   useEffect(() => setText(preset?.text ?? ""), [presetId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -173,48 +168,6 @@ const WhatsAppBulkSend = ({
                         ? `la plantilla «${preview.templateInfo.title}» está ${preview.templateInfo.status === "APPROVED" ? "aprobada" : "en revisión o rechazada"}`
                         : "no hay plantilla para esto"}
                       . Créala o revísala en WhatsApp → Plantillas.
-                    </div>
-                  )}
-                  {preview.phoneOnly.length > 0 && (
-                    <div className="space-y-1.5 rounded-lg border border-[#d1d7db] bg-white p-2.5 dark:border-border dark:bg-card">
-                      <div className="font-medium text-[#111b21] dark:text-foreground">
-                        Mientras tanto, envíaselo desde tu celular (gratis)
-                      </div>
-                      <p className="text-xs text-[#667781]">
-                        Desde tu WhatsApp no hay límite de 24 h. Cada botón abre el chat con el mensaje ya escrito
-                        {kind === "diagnostico" ? " (el que la IA preparó para esa persona, si ya la leyó)" : ""}; solo
-                        pulsa enviar. El mensaje aparece después aquí en el CRM.
-                      </p>
-                      <ul className="max-h-56 space-y-1 overflow-y-auto">
-                        {preview.phoneOnly.map((p) => {
-                          const body = (p.suggested ?? text).split("{{nombre}}").join(firstName(p.name)).trim();
-                          const url = buildContactWhatsAppUrl(p.phone, body);
-                          const done = opened.has(p.contactId);
-                          return (
-                            <li key={p.contactId} className="flex items-center gap-2">
-                              <span className="min-w-0 flex-1 truncate">
-                                {p.name ?? p.phone}
-                                {p.suggested ? <span className="ml-1 text-xs text-[#008069]">· mensaje de la IA</span> : null}
-                              </span>
-                              {url && (
-                                <a
-                                  href={url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={() => {
-                                    trackStaffWhatsApp(p.contactId, "crm_bulk_phone");
-                                    setOpened((prev) => new Set(prev).add(p.contactId));
-                                  }}
-                                  className={`inline-flex h-7 items-center gap-1 rounded-full px-3 text-xs font-medium ${done ? "bg-[#d9fdd3] text-[#006e4f]" : "bg-[#00a884] text-white hover:bg-[#008069]"}`}
-                                >
-                                  {done ? <CheckCircle2 className="size-3.5" /> : <MessageCircle className="size-3.5" />}
-                                  {done ? "Abierto" : "Abrir en WhatsApp"}
-                                </a>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
                     </div>
                   )}
                   {preview.skipped.no_phone > 0 && <div className="text-[#54656f]">— {preview.skipped.no_phone} sin número de WhatsApp</div>}

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { writeAuditLog } from "./audit";
 import { sendMetaMessage, type SendAttachment } from "@/lib/meta/send";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { windowStateOf } from "./whatsapp-outbound-plan";
@@ -12,6 +13,32 @@ export type ResendResult =
   | { status: "sent"; messageId: string; mode: "text" | "template" }
   | { status: "phone"; url: string | null; reason: string }
   | { status: "failed"; error: string };
+
+/**
+ * Quita del chat un mensaje nuestro que WhatsApp no entregó (la persona nunca
+ * lo vio). Queda copia en la bitácora de auditoría con su texto.
+ */
+export const deleteFailedMessage = async (input: {
+  messageId: string;
+  conversationId: string;
+  staffId: string | null;
+  why: "deleted" | "resent";
+}): Promise<boolean> => {
+  const m = await prisma.conversationMessage.findFirst({
+    where: { id: input.messageId, conversationId: input.conversationId, direction: "OUTBOUND", status: "FAILED" },
+    select: { id: true, body: true, failedReason: true, sentAt: true },
+  });
+  if (!m) return false;
+  await prisma.conversationMessage.delete({ where: { id: m.id } });
+  await writeAuditLog({
+    staffUserId: input.staffId ?? undefined,
+    action: input.why === "resent" ? "WHATSAPP_FAILED_RESENT" : "WHATSAPP_FAILED_DELETED",
+    entityType: "WhatsAppChat",
+    entityId: input.conversationId,
+    changes: { messageId: m.id, body: m.body, failedReason: m.failedReason, sentAt: m.sentAt.toISOString() },
+  }).catch(() => undefined);
+  return true;
+};
 
 /** Marca en `source` del mensaje nuevo: así el viejo muestra «Reenviado». */
 export const resendSource = (originalId: string) => `resend:${originalId}`;
@@ -75,6 +102,7 @@ export const resendFailedMessage = async (input: {
         where: { id: sent.messageId },
         data: { isAutoReply: original.isAutoReply },
       });
+      await deleteFailedMessage({ messageId: original.id, conversationId: conv.id, staffId: input.staffId, why: "resent" });
       return { status: "sent", messageId: sent.messageId, mode: "text" };
     } catch (e) {
       return { status: "failed", error: e instanceof Error ? e.message : String(e) };
@@ -103,13 +131,16 @@ export const resendFailedMessage = async (input: {
       source: resendSource(original.id),
       staffId: input.staffId,
     });
-    if (r.status === "sent") return { status: "sent", messageId: r.messageId, mode: "template" };
+    if (r.status === "sent") {
+      await deleteFailedMessage({ messageId: original.id, conversationId: conv.id, staffId: input.staffId, why: "resent" });
+      return { status: "sent", messageId: r.messageId, mode: "template" };
+    }
     if (r.status === "failed") return { status: "failed", error: r.error };
   }
   return {
     status: "phone",
     url: phone ? buildContactWhatsAppUrl(phone, body) : null,
     reason:
-      "Pasaron más de 24 h desde su último mensaje y aún no hay plantilla aprobada: envíalo desde el WhatsApp de Dayana.",
+      "Pasaron más de 24 h desde su último mensaje y la plantilla aún no está aprobada por Meta: se podrá reenviar en cuanto la aprueben.",
   };
 };

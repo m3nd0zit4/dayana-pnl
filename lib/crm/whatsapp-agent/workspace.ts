@@ -80,6 +80,9 @@ export type ChatListItem = {
   lastMessage: string | null;
   lastDirection: "INBOUND" | "OUTBOUND" | null;
   lastIsAutoReply: boolean;
+  /** Lo que dijo WhatsApp del último mensaje (el mismo estado que en el chat). */
+  lastStatus: string | null;
+  lastFailedReason: string | null;
   unreadCount: number;
   aiMode: WhatsAppAiMode;
   paused: boolean;
@@ -242,6 +245,8 @@ export const listChats = async (input: {
           : null),
       lastDirection: last?.direction ?? null,
       lastIsAutoReply: last?.isAutoReply ?? false,
+      lastStatus: last?.status ?? null,
+      lastFailedReason: last?.status === "FAILED" ? (last.failedReason ?? null) : null,
       unreadCount: c.unreadCount,
       aiMode: c.aiMode,
       paused: Boolean(c.aiPausedAt),

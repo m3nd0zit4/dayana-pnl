@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, MessageCircle } from "lucide-react";
+import { Copy } from "lucide-react";
 import { hasRealContactPhone } from "@/lib/crm/contact-phone";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { Button } from "@/app/components/ui/button";
@@ -60,14 +60,6 @@ const WhatsAppContactBlock = ({
           <p className="mt-1 font-mono text-sm text-foreground">{phoneE164}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            className="bg-[#25D366] hover:bg-[#25D366]/90"
-            nativeButton={false}
-            render={<a href={chatUrl} target="_blank" rel="noopener noreferrer" />}
-          >
-            <MessageCircle />
-            Abrir chat
-          </Button>
           <Button variant="outline" size="sm" onClick={() => void copyPhone()}>
             <Copy />
             Copiar número
@@ -76,8 +68,8 @@ const WhatsAppContactBlock = ({
       </div>
       {!compact && (
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Se abre WhatsApp con este contacto. Usa los mensajes rápidos de abajo para copiar el
-          texto y pegarlo tú misma.
+          Para escribirle usa «Enviar WhatsApp» en su ficha o WhatsApp → Chats: sale desde el CRM y
+          queda en su historial.
         </p>
       )}
     </div>

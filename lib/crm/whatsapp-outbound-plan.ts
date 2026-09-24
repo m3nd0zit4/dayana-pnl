@@ -104,5 +104,5 @@ export const windowNotice = (state: WindowState): string | null =>
   state === "open"
     ? null
     : state === "never"
-      ? "Esta persona todavía no te ha escrito: desde el CRM solo se le puede escribir con una plantilla aprobada. Mientras tanto, envíaselo desde tu celular (gratis)."
-      : "Pasaron más de 24 h desde su último mensaje: desde el CRM solo con una plantilla aprobada. Mientras tanto, envíaselo desde tu celular (gratis).";
+      ? "Esta persona todavía no te ha escrito: WhatsApp solo deja escribirle primero con una plantilla aprobada por Meta (WhatsApp → Plantillas)."
+      : "Pasaron más de 24 h desde su último mensaje: WhatsApp solo deja escribirle con una plantilla aprobada por Meta (WhatsApp → Plantillas).";

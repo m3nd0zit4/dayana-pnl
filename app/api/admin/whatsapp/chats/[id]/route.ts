@@ -62,6 +62,8 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reject"), runId: z.string() }),
   /** Reenviar un mensaje que WhatsApp no entregó. */
   z.object({ action: z.literal("resend"), messageId: z.string() }),
+  /** Quitar del chat un mensaje nuestro que WhatsApp no entregó. */
+  z.object({ action: z.literal("delete_failed"), messageId: z.string() }),
   /** Dayana lo envía desde su celular (sin ventana ni plantilla aprobada). */
   z.object({ action: z.literal("approve_phone"), runId: z.string(), message: z.string().max(4000).optional() }),
   /** Foto, documento o nota de voz ya subidos por `/api/admin/inbox/upload`. */
@@ -249,6 +251,17 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         if (e instanceof SlotUnavailableError) return apiError(`slot:${e.message}`, 409);
         return apiError(e instanceof Error ? e.message : "approve_failed", 400);
       }
+    }
+    case "delete_failed": {
+      const { deleteFailedMessage } = await import("@/lib/crm/whatsapp-resend");
+      const ok = await deleteFailedMessage({
+        messageId: input.messageId,
+        conversationId: id,
+        staffId: staff.id,
+        why: "deleted",
+      });
+      if (!ok) return apiError("Solo se pueden eliminar mensajes que WhatsApp no entregó.", 409);
+      return NextResponse.json({ ok: true });
     }
     case "resend": {
       const { resendFailedMessage } = await import("@/lib/crm/whatsapp-resend");

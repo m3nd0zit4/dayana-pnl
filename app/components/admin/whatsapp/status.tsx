@@ -148,8 +148,8 @@ export const RunStatus = ({
     case "APPROVED":
       icon = <CheckCheck className="size-3.5" />;
       text = compact
-        ? "Aprobado y enviado"
-        : `Aprobaste y se envió ${agoLabel(run.finishedAt ?? run.queuedAt, now)}${deliveredLabel(run.delivery)}`;
+        ? "Aprobado"
+        : `Aprobaste la propuesta ${agoLabel(run.finishedAt ?? run.queuedAt, now)}${deliveredLabel(run.delivery)}`;
       tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "CANCELLED":
