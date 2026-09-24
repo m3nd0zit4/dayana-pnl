@@ -1,6 +1,7 @@
 import { MessageChannel } from "@prisma/client";
 import { prisma } from "../db";
 import { buildWhatsAppUrl } from "../contact";
+import { buildContactWhatsAppUrl } from "../whatsapp-contact";
 import {
   isAgentSendableTemplate,
   isQuickMessageTemplate,
@@ -92,5 +93,10 @@ export const buildTemplatedWhatsAppUrl = async (
     staffUserId,
   });
 
-  return buildWhatsAppUrl(body);
+  // Al número de la persona, no al de Dayana (antes abría el chat con ella misma).
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    select: { phoneE164: true },
+  });
+  return (contact?.phoneE164 ? buildContactWhatsAppUrl(contact.phoneE164, body) : null) ?? buildWhatsAppUrl(body);
 };

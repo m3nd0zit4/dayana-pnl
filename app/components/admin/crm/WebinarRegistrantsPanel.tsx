@@ -256,8 +256,18 @@ const WebinarRegistrantsPanel = ({
         <CardTitle className="text-base uppercase tracking-wide">
           Registradas
         </CardTitle>
-        <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-          {stats.total.toLocaleString("es-CO")}
+        <span className="flex items-center gap-2">
+          {stats.total > 0 ? (
+            <Link
+              href="/admin/eventos/inscritas"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#00a884] px-3 text-xs font-medium text-white hover:bg-[#008069]"
+            >
+              Enviar por WhatsApp
+            </Link>
+          ) : null}
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {stats.total.toLocaleString("es-CO")}
+          </span>
         </span>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -467,8 +477,8 @@ const WebinarRegistrantsPanel = ({
         {stats.unreachable > 0 ? (
           <p className="text-xs text-warning">
             {stats.unreachable.toLocaleString("es-CO")} sin correo o dadas de
-            baja: no reciben ni el enlace ni los recordatorios. Escríbeles por
-            WhatsApp desde su ficha.
+            baja: no reciben ni el enlace ni los recordatorios. Envíales el
+            enlace por WhatsApp desde «Enviar por WhatsApp».
           </p>
         ) : null}
       </CardContent>

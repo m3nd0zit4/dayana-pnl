@@ -4,6 +4,8 @@ import {
   Activity,
   ArrowLeft,
   CalendarDays,
+  FileText,
+  Send,
   MessageCircle,
   Settings2,
   Sparkles,
@@ -36,6 +38,8 @@ const ITEMS = [
   { href: "/admin/whatsapp/estado", label: "Estado de la IA", icon: Activity },
   { href: "/admin/whatsapp/personas", label: "Personas", icon: Users },
   { href: "/admin/whatsapp/agenda", label: "Agenda", icon: CalendarDays },
+  { href: "/admin/whatsapp/envios", label: "Envíos", icon: Send },
+  { href: "/admin/whatsapp/plantillas", label: "Plantillas", icon: FileText },
   { href: "/admin/whatsapp/asistente", label: "Hablar con la IA", icon: Sparkles, ownerOnly: true },
   { href: "/admin/whatsapp/ajustes", label: "Ajustes", icon: Settings2, ownerOnly: true },
 ] as const;

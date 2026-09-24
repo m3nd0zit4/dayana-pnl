@@ -222,6 +222,7 @@ export const approveProposal = async (input: {
     conversationId: input.conversationId,
     body: message,
     staffUserId: input.staffId,
+    source: "approval",
   });
   // Tal cual la escribió la IA: cuenta como respuesta de la IA. Si Dayana la
   // cambió, es suya (y la IA aprende de la diferencia).

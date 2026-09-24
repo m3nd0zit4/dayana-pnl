@@ -344,6 +344,24 @@ export const processNormalizedEvent = async (
     // el catálogo del CRM, y la mayoría de los eventos de Meta (acuses, ecos,
     // Instagram) no lo necesitan. Nunca lanza hacia fuera.
     if (event.channel === "WHATSAPP") {
+      // «Stop», «no me escribas más»: no vuelve a recibir envíos del CRM.
+      const { isOptOutMessage } = await import("@/lib/crm/whatsapp-outbound-plan");
+      if (isOptOutMessage(event.body)) {
+        const conv = await prisma.conversation.findUnique({
+          where: { id: result.conversationId },
+          select: { contactId: true },
+        });
+        if (conv?.contactId) {
+          await prisma.contact.update({ where: { id: conv.contactId }, data: { notifyWhatsapp: false } });
+          const { fireAuditLog } = await import("@/lib/crm/audit");
+          fireAuditLog({
+            action: "WHATSAPP_OPT_OUT",
+            entityType: "Contact",
+            entityId: conv.contactId,
+            changes: { message: event.body?.slice(0, 80) },
+          });
+        }
+      }
       // Saludo, IA y estados en vivo: todo pasa por el ejecutor, que espera a
       // que la persona termine de escribir y contesta la ráfaga entera una sola
       // vez. Nunca lanza hacia fuera.

@@ -1,7 +1,10 @@
 "use client";
 
+import SendWhatsAppDialog from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
+import { paymentLinkPresets } from "@/lib/crm/whatsapp-presets";
+
 import Link from "next/link";
-import { Copy, Link2 } from "lucide-react";
+import { Copy, Link2, MessageCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -125,6 +128,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
   }, [initialLinks, load]);
 
   const { products } = useActiveProducts(creating);
+  const [waRow, setWaRow] = useState<PaymentLinkListRow | null>(null);
 
   const urlFor = (token: string) => `${siteUrl}/pagar/${token}`;
 
@@ -570,6 +574,13 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                       onClick={() => void copy(row.token)}
                       disabled={dead}
                     />
+                    {row.contact && !dead && (
+                      <CrmRowAction
+                        icon={MessageCircle}
+                        label="Enviar por WhatsApp"
+                        onClick={() => setWaRow(row)}
+                      />
+                    )}
                     {canManageTeam && !dead && (
                       <CrmRowDelete
                         label="Revocar"
@@ -638,6 +649,16 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
             );
           })}
         </CrmDataList>
+      )}
+      {waRow?.contact && (
+        <SendWhatsAppDialog
+          open
+          onClose={() => setWaRow(null)}
+          contactId={waRow.contact.id}
+          name={`${waRow.contact.firstName} ${waRow.contact.lastName ?? ""}`.trim()}
+          presets={paymentLinkPresets({ url: urlFor(waRow.token), product: waRow.product.title })}
+          source="enlaces-pago"
+        />
       )}
     </CrmPageShell>
   );

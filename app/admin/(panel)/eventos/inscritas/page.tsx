@@ -3,12 +3,7 @@ import { Users } from "lucide-react";
 
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
-import {
-  CrmDataList,
-  CrmDataListHeader,
-  CrmDataListRow,
-  CrmEmptyState,
-} from "@/app/components/admin/crm/ui";
+import { CrmEmptyState } from "@/app/components/admin/crm/ui";
 import { Badge } from "@/app/components/ui/badge";
 import { Button, buttonVariants } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -20,6 +15,9 @@ import {
   type FreeEventRow,
 } from "@/lib/crm/free-events";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
+import { prisma } from "@/lib/db";
+import { freeEventPresets } from "@/lib/crm/whatsapp-presets";
+import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +52,29 @@ const FreeEventPeoplePage = async ({
       : listFreeEventPeople({ eventId, q, page, pageSize: PAGE_SIZE }),
     getOperationalTimezone(),
   ]);
+
+  // El evento del que se habla en los mensajes: el filtrado, o el actual.
+  const focusEvent =
+    (eventId ? events.find((e) => e.id === eventId) : null) ??
+    events.find((e) => e.isCurrent) ??
+    events[0] ??
+    null;
+  const presets = freeEventPresets(focusEvent, tz);
+  // «Enviar a todas» = todas las del filtro, no solo esta página.
+  const allContactIds = preview
+    ? []
+    : q
+      ? result.people.map((p) => p.contactId)
+      : [
+          ...new Set(
+            (
+              await prisma.webinarRegistration.findMany({
+                where: eventId ? { webinarId: eventId } : {},
+                select: { contactId: true },
+              })
+            ).map((r) => r.contactId)
+          ),
+        ];
 
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
   const hrefFor = (nextPage: number) => {
@@ -140,29 +161,14 @@ const FreeEventPeoplePage = async ({
               {repeaters} de esta página fueron a más de un evento.
             </p>
           ) : null}
-          <CrmDataList>
-            <CrmDataListHeader>
-              <span className="flex-1">Persona</span>
-              <span className="w-56">Contacto</span>
-              <span className="w-64">Eventos</span>
-            </CrmDataListHeader>
-            {result.people.map((person) => (
-              <CrmDataListRow key={person.contactId}>
-                <Link
-                  href={`/admin/contacts/${person.contactId}`}
-                  className="min-w-40 flex-1 truncate text-sm font-medium hover:underline"
-                >
-                  {person.name}
-                </Link>
-                <span className="w-full truncate text-xs text-muted-foreground lg:w-56">
-                  {[person.email, person.phoneE164]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </span>
-                <span className="flex w-full flex-wrap gap-1 lg:w-64">
-                  {person.events.length > 1 ? (
-                    <Badge>{person.events.length} eventos</Badge>
-                  ) : null}
+          <PeopleWhatsAppList
+            people={result.people.map((person) => ({
+              contactId: person.contactId,
+              name: person.name,
+              detail: [person.email, person.phoneE164].filter(Boolean).join(" · ") || "—",
+              extra: (
+                <span className="mt-1 flex flex-wrap gap-1">
+                  {person.events.length > 1 ? <Badge>{person.events.length} eventos</Badge> : null}
                   {person.events.slice(0, 3).map((e) => (
                     <Link key={e.id} href={`/admin/eventos/historial/${e.id}`}>
                       <Badge variant="outline" className="hover:bg-accent">
@@ -171,9 +177,15 @@ const FreeEventPeoplePage = async ({
                     </Link>
                   ))}
                 </span>
-              </CrmDataListRow>
-            ))}
-          </CrmDataList>
+              ),
+            }))}
+            allContactIds={allContactIds}
+            presets={presets}
+            kind="evento"
+            title={focusEvent ? `Evento: ${focusEvent.headline}` : "Eventos gratuitos"}
+            source="eventos"
+            allLabel={eventId ? `Enviar a todas las del evento` : q ? "Enviar a las de la búsqueda" : "Enviar a todas las inscritas"}
+          />
           {pages > 1 ? (
             <div className="flex items-center justify-between text-sm">
               {page > 1 ? (

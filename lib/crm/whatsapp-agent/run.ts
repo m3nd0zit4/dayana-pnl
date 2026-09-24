@@ -51,6 +51,13 @@ export type RunStatus =
   | "CANCELLED"
   | "SUPERSEDED";
 
+/**
+ * Mensajes que no son «Dayana tomó el chat»: envíos masivos del CRM y
+ * respuestas de la IA que ella aprobó. La IA no se aparta por ellos.
+ */
+const isSystemSource = (source: string | null | undefined) =>
+  Boolean(source && (source.startsWith("bulk:") || source === "approval"));
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const setStatus = (
@@ -298,11 +305,13 @@ export const runWhatsAppAi = async (input: {
           status: { not: "FAILED" },
           sentAt: { gte: recentSince },
         },
-        select: { id: true },
+        select: { id: true, source: true },
       }),
       approvedMessageIds(conversationId, recentSince),
     ]);
-    const humanSince = recentHuman.filter((m) => !recentApproved.has(m.id)).length;
+    const humanSince = recentHuman.filter(
+      (m) => !recentApproved.has(m.id) && !isSystemSource(m.source)
+    ).length;
     const tookOver =
       !now ||
       now.aiMode === "MANUAL" ||
@@ -410,6 +419,7 @@ const loadConversation = (conversationId: string) =>
           sentAt: true,
           status: true,
           isAutoReply: true,
+          source: true,
         },
       },
     },
@@ -471,7 +481,11 @@ const gate = async (
   const lastHumanAt = ordered
     .filter(
       (m) =>
-        m.direction === "OUTBOUND" && !m.isAutoReply && m.status !== "FAILED" && !viaApproval.has(m.id)
+        m.direction === "OUTBOUND" &&
+        !m.isAutoReply &&
+        m.status !== "FAILED" &&
+        !viaApproval.has(m.id) &&
+        !isSystemSource(m.source)
     )
     .at(-1)?.sentAt;
   if (

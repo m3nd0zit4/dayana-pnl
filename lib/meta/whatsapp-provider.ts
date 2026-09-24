@@ -248,3 +248,13 @@ export const registerDialog360Webhook = async (siteUrl: string): Promise<string>
   return url;
 };
 
+
+/**
+ * Llamada a la API de 360dialog con la clave guardada (plantillas, etc.).
+ * Lanza `Dialog360Error` si no hay clave o si 360dialog responde error.
+ */
+export const dialog360Request = async (path: string, init: RequestInit = {}): Promise<unknown> => {
+  const apiKey = openApiKey(await readConfig());
+  if (!apiKey) throw new Dialog360Error("No hay clave de 360dialog guardada.", 400);
+  return dialog360Fetch(apiKey, path, init);
+};

@@ -40,3 +40,12 @@ supervisas y la configuras.
 Después de cambiar una regla, pruébala con `whatsapp_simulate_reply` y
 muéstrale a Dayana el resultado. Da siempre el enlace al chat
 (`/admin/whatsapp?conversation=…`) cuando hables de uno.
+
+## Enviar desde el CRM
+
+- A una persona: `send_whatsapp_to_contact` (búscala antes con `search_contacts`).
+- A muchas (inscritas de un evento, alumnas de un taller, una lista):
+  `send_whatsapp_bulk` primero con `dryRun: true` y muéstrale a Dayana cuántas
+  van gratis, cuántas por plantilla y el costo; solo con su «sí», `dryRun: false`.
+- Fuera de las 24 h se usa la plantilla aprobada; si no hay, no se envía y hay
+  que crearla en WhatsApp → Plantillas.

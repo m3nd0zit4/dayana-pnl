@@ -1,6 +1,9 @@
 "use client";
 
 import type { ContactSource } from "@prisma/client";
+import ContactWhatsAppPanel from "@/app/components/admin/whatsapp/ContactWhatsAppPanel";
+import { SendWhatsAppButton } from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
+import { contactPresets } from "@/lib/crm/whatsapp-presets";
 import Link from "next/link";
 import { ChevronRight, Copy, CreditCard, MessageCircle, Pencil, Plus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -231,13 +234,18 @@ const DataField = ({
 
 const TABS = [
   { id: "resumen" as const, label: "Resumen" },
+  { id: "whatsapp" as const, label: "WhatsApp" },
   { id: "servicios" as const, label: "Servicios y pagos" },
 ];
 type Tab = (typeof TABS)[number]["id"];
 
 /** `?tab=pagos` era la pestaña de pagos: ahora vive dentro de Servicios y pagos. */
 const tabFromParam = (value: string | null): Tab =>
-  value === "servicios" || value === "pagos" ? "servicios" : "resumen";
+  value === "servicios" || value === "pagos"
+    ? "servicios"
+    : value === "whatsapp"
+      ? "whatsapp"
+      : "resumen";
 
 /**
  * La ficha de un contacto.
@@ -368,15 +376,24 @@ const ContactDetailClient = ({
         backLabel="Contactos"
         secondaryActions={
           whatsAppUrl ? (
-            <Button
-              variant="outline"
-              size="sm"
-              nativeButton={false}
-              render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackStaffWhatsApp(contact.id, "crm_contact")} />}
-            >
-              <MessageCircle aria-hidden />
-              WhatsApp
-            </Button>
+            <span className="flex items-center gap-2">
+              <SendWhatsAppButton
+                contactId={contact.id}
+                name={fullName}
+                presets={contactPresets()}
+                source="perfil"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                nativeButton={false}
+                title="Abrir el chat en el WhatsApp del celular"
+                render={<a href={whatsAppUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackStaffWhatsApp(contact.id, "crm_contact")} />}
+              >
+                <MessageCircle aria-hidden />
+                Celular
+              </Button>
+            </span>
           ) : undefined
         }
         action={
@@ -419,6 +436,10 @@ const ContactDetailClient = ({
           </div>
         }
       />
+
+      {tab === "whatsapp" && (
+        <ContactWhatsAppPanel contactId={contact.id} name={fullName} hasPhone={Boolean(whatsAppUrl)} />
+      )}
 
       {tab === "resumen" && (
         <>

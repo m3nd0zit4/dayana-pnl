@@ -60,6 +60,8 @@ export type SendInput = {
    */
   ctaUrl?: { label: string; url: string } | null;
   attachment?: SendAttachment | null;
+  /** De dónde sale: `crm:<pantalla>`, `bulk:<envío>`, `approval`… */
+  source?: string | null;
 };
 
 type MediaKind = "image" | "video" | "audio" | "document";
@@ -431,6 +433,7 @@ export const sendMetaMessage = async (
       attachments: attachments as unknown as Prisma.InputJsonValue | undefined,
       staffUserId: input.staffUserId ?? null,
       failedReason,
+      source: input.source ?? null,
     },
     select: { id: true },
   });

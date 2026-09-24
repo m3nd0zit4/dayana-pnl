@@ -25,4 +25,6 @@ export const TOOL_LABELS: Record<string, string> = {
   whatsapp_find_chat: "Buscando chats de WhatsApp",
   whatsapp_set_chat: "Cambiando un chat de WhatsApp",
   whatsapp_simulate_reply: "Probando una respuesta de WhatsApp",
+  send_whatsapp_to_contact: "Enviando un WhatsApp",
+  send_whatsapp_bulk: "Enviando WhatsApp a varias personas",
 };

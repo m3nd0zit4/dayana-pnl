@@ -946,9 +946,15 @@ model MessageTemplate {
   productKind ProductKind? @map("product_kind")
 
   /// Metadatos de la plantilla equivalente aprobada en WhatsApp Cloud API.
-  metaTemplateName   String? @map("meta_template_name")
-  metaTemplateLang   String? @map("meta_template_lang")
-  metaApprovalStatus String? @map("meta_approval_status")
+  metaTemplateName   String?  @map("meta_template_name")
+  metaTemplateLang   String?  @map("meta_template_lang")
+  metaApprovalStatus String?  @map("meta_approval_status")
+  /// UTILITY | MARKETING | AUTHENTICATION (lo que Meta aprobó).
+  metaCategory       String?  @map("meta_category")
+  /// Cuerpo tal como está aprobado en WhatsApp, con {{1}}, {{2}}…
+  metaBody           String?  @map("meta_body") @db.Text
+  /// Qué dato del CRM va en cada {{n}}, en orden: ["nombre", "evento", "enlace"].
+  metaVarNames       String[] @default([]) @map("meta_var_names")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1107,6 +1113,10 @@ model ConversationMessage {
   /// La escribió la IA, no una persona. Sirve para el límite por hilo y para
   /// que en la bandeja se vea quién contestó.
   isAutoReply Boolean @default(false) @map("is_auto_reply")
+
+  /// De dónde salió un mensaje enviado desde el CRM: `crm:<pantalla>` (uno a
+  /// uno), `bulk:<id del envío>` (masivo), `approval` (autorización de la IA).
+  source String? @map("source")
 
   sentAt       DateTime  @default(now()) @map("sent_at")
   deliveredAt  DateTime? @map("delivered_at")
@@ -2111,4 +2121,55 @@ model PushSubscription {
 
   @@index([staffUserId])
   @@map("push_subscriptions")
+}
+
+/// Un envío masivo de WhatsApp desde el CRM (enlace de un evento a las
+/// inscritas, recordatorio de un taller, seguimiento de diagnósticos…).
+model WhatsAppSend {
+  id          String    @id @default(cuid())
+  title       String
+  /// evento | taller | diagnostico | pago | libre
+  kind        String
+  /// Texto libre para quien está dentro de las 24 h ({{nombre}} etc.).
+  text        String    @db.Text
+  /// Clave de la plantilla para quien está fuera de las 24 h.
+  templateKey String?   @map("template_key")
+  /// Valores comunes (evento, fecha, enlace…).
+  vars        Json?
+  /// PREPARED | SENDING | DONE | CANCELLED
+  status      String    @default("PREPARED")
+  total       Int       @default(0)
+  sent        Int       @default(0)
+  failed      Int       @default(0)
+  skipped     Int       @default(0)
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  finishedAt  DateTime? @map("finished_at")
+
+  recipients WhatsAppSendRecipient[]
+
+  @@index([createdAt(sort: Desc)])
+  @@map("whatsapp_sends")
+}
+
+model WhatsAppSendRecipient {
+  id             String    @id @default(cuid())
+  sendId         String    @map("send_id")
+  contactId      String?   @map("contact_id")
+  phone          String?
+  name           String?
+  /// PENDING | SENT | NEEDS_TEMPLATE | NO_PHONE | OPTED_OUT | FAILED
+  status         String    @default("PENDING")
+  /// text | template
+  mode           String?
+  conversationId String?   @map("conversation_id")
+  messageId      String?   @map("message_id")
+  error          String?   @db.Text
+  processedAt    DateTime? @map("processed_at")
+
+  send WhatsAppSend @relation(fields: [sendId], references: [id], onDelete: Cascade)
+
+  @@unique([sendId, contactId])
+  @@index([sendId, status])
+  @@map("whatsapp_send_recipients")
 }

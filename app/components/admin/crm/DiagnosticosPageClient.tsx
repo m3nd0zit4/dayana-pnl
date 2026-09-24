@@ -8,7 +8,9 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
-import { trackStaffWhatsApp } from "./trackStaffWhatsApp";
+import SendWhatsAppDialog from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
+import WhatsAppBulkSend from "@/app/components/admin/whatsapp/WhatsAppBulkSend";
+import { diagnosticPresets } from "@/lib/crm/whatsapp-presets";
 import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
@@ -145,6 +147,7 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
    * «Sin contactar» hasta recargar, que es justo la duda que esto resuelve.
    */
   const [writtenNow, setWrittenNow] = useState<Set<string>>(new Set());
+  const [waFor, setWaFor] = useState<{ diagnosticId: string; contactId: string; name: string } | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -215,6 +218,32 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
         </div>
       )}
 
+      {!preview && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#e9edef] bg-white p-3 dark:border-border dark:bg-card">
+          <WhatsAppBulkSend
+            contactIds={[
+              ...new Set(
+                filtered
+                  .filter((d) => d.contact && !d.whatsappStaffAt && !writtenNow.has(d.id))
+                  .map((d) => d.contact!.id)
+              ),
+            ]}
+            presets={diagnosticPresets()}
+            kind="diagnostico"
+            title="Seguimiento de diagnósticos"
+            label="Seguimiento por WhatsApp a los sin contactar"
+            onDone={() =>
+              setWrittenNow((prev) => {
+                const next = new Set(prev);
+                filtered.forEach((d) => next.add(d.id));
+                return next;
+              })
+            }
+          />
+          <span className="text-xs text-[#667781]">De la lista filtrada, a quienes aún no les escribiste.</span>
+        </div>
+      )}
+
       <CrmFilterBar count={`${filtered.length} de ${diagnosticos.length}`}>
         <CrmSearchInput
           value={query}
@@ -257,22 +286,21 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
                 <CrmRowActions className="relative z-10">
                   {/* Escribirle desde aquí: es lo que se hace con esta lista
                       en la mano, y deja la fila marcada al instante. */}
-                  {!preview && waUrl ? (
+                  {!preview && waUrl && d.contact ? (
                     <Button
                       variant="ghost"
                       size="icon-sm"
-                      aria-label="Escribir por WhatsApp"
-                      title="Escribir por WhatsApp"
+                      aria-label="Enviar WhatsApp"
+                      title="Enviar WhatsApp"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (!d.contact) return;
-                        trackStaffWhatsApp(d.contact.id, "crm_diagnosticos", d.id);
-                        setWrittenNow((prev) => new Set(prev).add(d.id));
+                        setWaFor({
+                          diagnosticId: d.id,
+                          contactId: d.contact.id,
+                          name: d.contact.name,
+                        });
                       }}
-                      nativeButton={false}
-                      render={
-                        <a href={waUrl} target="_blank" rel="noopener noreferrer" />
-                      }
                     >
                       <MessageCircle strokeWidth={1.75} aria-hidden />
                     </Button>
@@ -391,6 +419,17 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
             );
           })}
         </CrmDataList>
+      )}
+      {waFor && (
+        <SendWhatsAppDialog
+          open
+          onClose={() => setWaFor(null)}
+          contactId={waFor.contactId}
+          name={waFor.name}
+          presets={diagnosticPresets()}
+          source="diagnosticos"
+          onSent={() => setWrittenNow((prev) => new Set(prev).add(waFor.diagnosticId))}
+        />
       )}
     </CrmPageShell>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { WorkshopEditionStatus } from "@prisma/client";
-import { CalendarRange, Megaphone } from "lucide-react";
+import { CalendarRange, Megaphone, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -159,6 +160,8 @@ const WorkshopsPageClient = ({
       ? undefined
       : `Esta edición está en ${STATUS_LABEL[e.status].toLowerCase()}: aún no tiene página pública.`;
 
+  const router = useRouter();
+
   const EditionActions = ({ e }: { e: WorkshopRow }) => {
     if (preview) return null;
     return (
@@ -173,6 +176,11 @@ const WorkshopsPageClient = ({
           density="row"
           copy
           disabledReason={previewBlockedReason(e)}
+        />
+        <CrmRowAction
+          icon={MessageCircle}
+          label="WhatsApp: inscritas e invitaciones"
+          onClick={() => router.push(`/admin/workshops/${e.slug}/whatsapp`)}
         />
         <CrmRowAction
           icon={Megaphone}
