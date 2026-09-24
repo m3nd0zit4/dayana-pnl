@@ -1,14 +1,9 @@
 import AgentChannelsClient from "@/app/components/admin/crm/settings/AgentChannelsClient";
-import WhatsAppWelcomeCard from "@/app/components/admin/crm/settings/WhatsAppWelcomeCard";
-import WhatsAppProviderCard from "@/app/components/admin/crm/settings/WhatsAppProviderCard";
+import WhatsAppSettingsLinkCard from "@/app/components/admin/whatsapp/settings/WhatsAppSettingsLinkCard";
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
 import { isAgentChannelEnabled } from "@/lib/crm/agent-channels";
 import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
-import { getWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
-import {
-  getWhatsAppProviderSummary,
-  resolveWhatsAppCredentials,
-} from "@/lib/meta/whatsapp-provider";
+import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
 import {
   getAgentEnabledOverride,
   resolveAgentEnabled,
@@ -19,21 +14,16 @@ export const dynamic = "force-dynamic";
 const Page = async () => {
   await requireOwnerSettings();
 
-  const [enabled, whatsAppAuto, welcome, agentEnabled, agentEnabledOverride] =
+  // Lo decide el proveedor elegido en el CRM (Meta directo o 360dialog), no
+  // solo las variables de entorno.
+  const [enabled, whatsAppAuto, agentEnabled, agentEnabledOverride, whatsAppCredentials] =
     await Promise.all([
       isAgentChannelEnabled("eve"),
       isWhatsAppAutoReplyEnabled(),
-      getWelcomeConfig(),
       resolveAgentEnabled(),
       getAgentEnabledOverride(),
+      resolveWhatsAppCredentials(),
     ]);
-
-  // Lo decide el proveedor elegido en el CRM (Meta directo o 360dialog), no
-  // solo las variables de entorno.
-  const [providerSummary, whatsAppCredentials] = await Promise.all([
-    getWhatsAppProviderSummary(),
-    resolveWhatsAppCredentials(),
-  ]);
   const whatsAppConfigured = whatsAppCredentials !== null;
 
   return (
@@ -56,15 +46,15 @@ const Page = async () => {
           label: "WhatsApp (respuesta automática)",
           description: whatsAppConfigured
             ? "Contesta el primer mensaje con precios, enlaces y horarios sacados del CRM. En cuanto la conversación se pone personal —dolor, un pago, una queja, algo que no sabe— deja de escribir, te avisa y el hilo queda para ti."
-            : "Falta conectar WhatsApp: elige el proveedor y su clave aquí abajo.",
+            : "Falta conectar WhatsApp: se hace en WhatsApp → Ajustes → Conexión.",
           enabled: whatsAppAuto,
           agentEnabled: whatsAppConfigured,
           allowLocalDevAuth: false,
         },
       ]}
     />
-    <WhatsAppProviderCard initial={providerSummary} />
-    <WhatsAppWelcomeCard initial={welcome} configured={whatsAppConfigured} />
+    {/* Proveedor, saludo y todo lo demás de WhatsApp viven en su sección. */}
+    <WhatsAppSettingsLinkCard />
     </>
   );
 };

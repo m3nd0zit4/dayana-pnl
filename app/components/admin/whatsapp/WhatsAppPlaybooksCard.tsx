@@ -117,11 +117,11 @@ const WhatsAppPlaybooksCard = () => {
                   {proposal && <span className="ml-2 rounded bg-violet-200 px-1.5 py-0.5 text-[10px] text-violet-900">propuesta de la IA</span>}
                 </span>
                 {proposal ? (
-                  <Button size="xs" onClick={() => void call(`/api/admin/whatsapp/playbooks/${p.id}`, "PATCH", { isEnabled: true })} disabled={busy} className="bg-[#128c4a] hover:bg-[#0f7a40]">
+                  <Button size="xs" onClick={() => void call(`/api/admin/whatsapp/playbooks/${p.id}`, "PATCH", { isEnabled: true })} disabled={busy} className="bg-[#00a884] text-white hover:bg-[#008069]">
                     <Check /> Aprobar
                   </Button>
                 ) : (
-                  <Switch checked={p.isEnabled} disabled={busy} onCheckedChange={(v) => void call(`/api/admin/whatsapp/playbooks/${p.id}`, "PATCH", { isEnabled: v })} />
+                  <Switch className="data-checked:bg-[#00a884]" checked={p.isEnabled} disabled={busy} onCheckedChange={(v) => void call(`/api/admin/whatsapp/playbooks/${p.id}`, "PATCH", { isEnabled: v })} />
                 )}
                 <Button size="icon-xs" variant="ghost" aria-label="Editar" onClick={() => setEditing({ id: p.id, name: p.name, trigger: p.trigger, steps: p.steps })}>
                   <Pencil />

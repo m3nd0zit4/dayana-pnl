@@ -71,14 +71,14 @@ const HistoryImportCard = () => {
   };
 
   return (
-    <section className="space-y-3 rounded-xl border border-[#e9edef] bg-white p-4 dark:border-border dark:bg-card">
+    <section className="space-y-3 rounded-xl border border-border bg-card p-4">
       <h2 className="flex items-center gap-2 font-semibold">
         <History className="size-5 text-[#00a884]" /> Importar el historial de chats (últimos 6 meses)
       </h2>
-      <ol className="list-decimal space-y-1 pl-5 text-sm text-[#54656f]">
+      <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
         <li>
           Entra al{" "}
-          <a href="https://hub.360dialog.com" target="_blank" rel="noreferrer" className="font-medium text-[#008069] hover:underline">
+          <a href="https://hub.360dialog.com" target="_blank" rel="noreferrer" className="font-medium text-[#008069] dark:text-[#00a884] hover:underline">
             Hub de 360dialog
           </a>{" "}
           → tu número → <strong>Coexistence</strong> (coexistencia).
@@ -86,7 +86,7 @@ const HistoryImportCard = () => {
         <li>Sincroniza el historial de chats y descárgalo.</li>
         <li>Sube aquí el archivo tal como se descargó (.json o .zip).</li>
       </ol>
-      <p className="text-xs text-[#667781]">
+      <p className="text-xs text-muted-foreground">
         La IA lee esos chats, aprende cómo responde Dayana y escribe su guía de estilo sola. Subirlo dos veces no
         duplica nada.
       </p>
@@ -112,17 +112,17 @@ const HistoryImportCard = () => {
       </button>
 
       {status?.status === "processing" && (
-        <p className="flex items-center gap-2 text-sm text-[#008069]">
+        <p className="flex items-center gap-2 text-sm text-[#008069] dark:text-[#00a884]">
           <Loader2 className="size-4 animate-spin" /> Leyendo {status.file ?? "el archivo"}… puede tardar unos minutos.
         </p>
       )}
       {status?.status === "done" && (
-        <p className="flex items-center gap-2 text-sm text-[#008069]">
+        <p className="flex items-center gap-2 text-sm text-[#008069] dark:text-[#00a884]">
           <CheckCircle2 className="size-4" /> {status.stored ?? 0} mensajes nuevos de {status.conversations ?? 0} chats
           importados ({status.file}). La IA ya aprende de ellos.
         </p>
       )}
-      {status?.status === "error" && <p className="text-sm text-[#d92d20]">{status.error}</p>}
+      {status?.status === "error" && <p className="text-sm text-destructive">{status.error}</p>}
     </section>
   );
 };

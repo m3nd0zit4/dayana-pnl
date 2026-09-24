@@ -45,6 +45,23 @@ const saveSchema = z.object({
   config: whatsAppAiConfigSchema.optional(),
 });
 
+/** El error de validación en palabras de Dayana. */
+const friendlyIssue = (issue: z.core.$ZodIssue): string => {
+  if (issue.code === "too_small") {
+    return issue.origin === "string" || issue.origin === "array"
+      ? "No puede quedar vacío."
+      : `El mínimo es ${String(issue.minimum)}.`;
+  }
+  if (issue.code === "too_big") {
+    return issue.origin === "string"
+      ? `Máximo ${String(issue.maximum)} caracteres.`
+      : `El máximo es ${String(issue.maximum)}.`;
+  }
+  if (issue.code === "invalid_type") return "Falta un valor.";
+  // Los mensajes propios del esquema ya están en español («Hora en formato HH:MM»).
+  return issue.message.startsWith("Invalid") ? "Valor no válido." : issue.message;
+};
+
 export const PATCH = withStaff("owner", async ({ req, staff }) => {
   const parsed = saveSchema.safeParse(await readJson(req));
   if (!parsed.success) return apiError("invalid_body", 400);
@@ -52,7 +69,15 @@ export const PATCH = withStaff("owner", async ({ req, staff }) => {
   let config = parsed.data.config ?? null;
   if (!config && parsed.data.patch) {
     const merged = whatsAppAiConfigSchema.safeParse(deepMerge(await getWhatsAppAiConfig(), parsed.data.patch));
-    if (!merged.success) return apiError("invalid_config", 400);
+    if (!merged.success) {
+      // Cada ajuste se guarda solo: el error vuelve junto al campo que lo causó.
+      return apiError("invalid_config", 400, {
+        issues: merged.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: friendlyIssue(issue),
+        })),
+      });
+    }
     config = merged.data;
   }
   await Promise.all([
@@ -67,7 +92,7 @@ export const PATCH = withStaff("owner", async ({ req, staff }) => {
     entityId: "whatsapp-ai",
     changes: {
       enabled: parsed.data.enabled,
-      patch: parsed.data.patch ? Object.keys(parsed.data.patch) : "config",
+      patch: parsed.data.patch ? Object.keys(parsed.data.patch) : parsed.data.config ? "config" : undefined,
     },
   });
 
