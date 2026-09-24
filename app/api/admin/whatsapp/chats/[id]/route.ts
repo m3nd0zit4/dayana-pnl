@@ -14,6 +14,7 @@ import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
 import {
   getChat,
+  getOlderMessages,
   isWhatsAppWorkspaceAvailable,
   listDayanaStickers,
 } from "@/lib/crm/whatsapp-agent/workspace";
@@ -25,8 +26,15 @@ export const maxDuration = 120;
 
 type Params = { id: string };
 
-export const GET = withStaff<Params>("read", async ({ params }) => {
+export const GET = withStaff<Params>("read", async ({ params, req }) => {
   if (!(await isWhatsAppWorkspaceAvailable())) return apiError("whatsapp_disabled", 404);
+  // «Cargar anteriores»: solo la página de mensajes anteriores a `before`.
+  const before = new URL(req.url).searchParams.get("before");
+  if (before) {
+    const date = new Date(before);
+    if (Number.isNaN(date.getTime())) return apiError("invalid_before", 400);
+    return NextResponse.json(await getOlderMessages(params.id, date));
+  }
   const chat = await getChat(params.id);
   if (!chat) return apiError("not_found", 404);
   // Audios de este chat que aún no tienen texto: se transcriben en segundo

@@ -19,7 +19,12 @@ export const GET = withStaff("read", async ({ req }) => {
   const requested = url.searchParams.get("queue") as ChatQueue | null;
   const queue: ChatQueue = requested && QUEUES.has(requested) ? requested : "all";
   const [items, counts] = await Promise.all([
-    listChats({ queue, q: url.searchParams.get("q") ?? undefined }),
+    listChats({
+      queue,
+      q: url.searchParams.get("q") ?? undefined,
+      // «Ver más chats»: de 60 en 60, hasta 600.
+      take: Math.min(600, Math.max(20, Number(url.searchParams.get("take")) || 60)),
+    }),
     queueCounts(),
   ]);
   return NextResponse.json({ items, counts });

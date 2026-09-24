@@ -405,6 +405,35 @@ const Thread = ({
   const [stickers, setStickers] = useState<{ key: string; url: string; uses: number }[] | null>(null);
   const [showStickers, setShowStickers] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  // «Cargar anteriores»: páginas de mensajes más viejos que los que trae el chat.
+  const [older, setOlder] = useState<ChatDetail["messages"]>([]);
+  const [olderHasMore, setOlderHasMore] = useState<boolean | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  useEffect(() => {
+    setOlder([]);
+    setOlderHasMore(null);
+  }, [chat.id]);
+  const hasMore = olderHasMore ?? chat.hasMore;
+  const allMessages = useMemo(() => {
+    const seen = new Set(chat.messages.map((m) => m.id));
+    return [...older.filter((m) => !seen.has(m.id)), ...chat.messages];
+  }, [older, chat.messages]);
+  const loadOlder = async () => {
+    const first = allMessages[0];
+    if (!first) return;
+    setLoadingOlder(true);
+    try {
+      const res = await fetch(`/api/admin/whatsapp/chats/${chat.id}?before=${encodeURIComponent(first.sentAt)}`, { cache: "no-store" });
+      if (!res.ok) throw new Error();
+      const page = (await res.json()) as { messages: ChatDetail["messages"]; hasMore: boolean };
+      setOlder((prev) => [...page.messages, ...prev]);
+      setOlderHasMore(page.hasMore);
+    } catch {
+      toast("No se pudieron cargar los mensajes anteriores.", "error");
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
   const lastRun = chat.runs[0] ?? null;
   const live = isRunLive(lastRun);
   const now = useNow(true, 30_000);
@@ -721,7 +750,19 @@ const Thread = ({
             className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-3 md:px-[6%] md:py-4 dark:bg-muted/20"
             style={{ backgroundColor: WA.chatBg }}
           >
-            {chat.messages.map((m) => {
+            {hasMore && (
+              <div className="flex justify-center py-1">
+                <button
+                  type="button"
+                  onClick={() => void loadOlder()}
+                  disabled={loadingOlder}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white px-3 text-xs font-medium text-[#54656f] shadow-sm hover:bg-[#f5f6f6] disabled:opacity-60 dark:bg-card dark:text-muted-foreground"
+                >
+                  {loadingOlder ? <Loader2 className="size-3.5 animate-spin" /> : null} Cargar mensajes anteriores
+                </button>
+              </div>
+            )}
+            {allMessages.map((m) => {
               if (m.kind === "system") {
                 // Aviso gris centrado (reacción, encuesta, algo que solo se ve
                 // en el celular): no es un mensaje que la persona escribió.
@@ -1095,8 +1136,10 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     selectedRef.current = selectedId;
   });
 
+  const takeRef = useRef(60);
+  const [listTake, setListTake] = useState(60);
   const loadList = useCallback(async () => {
-    const params = new URLSearchParams({ queue: queueRef.current });
+    const params = new URLSearchParams({ queue: queueRef.current, take: String(takeRef.current) });
     if (qRef.current.trim()) params.set("q", qRef.current.trim());
     try {
       const res = await fetch(`/api/admin/whatsapp/chats?${params}`, { cache: "no-store" });
@@ -1238,6 +1281,21 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
           {items?.map((item) => (
             <ChatRow key={item.id} item={item} active={item.id === selectedId} onOpen={() => setSelectedId(item.id)} />
           ))}
+          {items && items.length >= listTake && (
+            <div className="flex justify-center p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  takeRef.current = listTake + 60;
+                  setListTake(takeRef.current);
+                  void loadList();
+                }}
+                className="inline-flex h-8 items-center rounded-full bg-[#f0f2f5] px-4 text-xs font-medium text-[#54656f] hover:bg-[#e9edef] dark:bg-muted/40 dark:text-muted-foreground"
+              >
+                Ver más chats
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

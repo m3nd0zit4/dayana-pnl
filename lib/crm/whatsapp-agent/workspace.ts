@@ -317,6 +317,64 @@ export type ChatMessageView = {
   revokedAt: string | null;
 };
 
+/** Cuántos mensajes trae un chat de entrada (y cada «Cargar anteriores»). */
+export const CHAT_PAGE = 120;
+
+const MESSAGE_SELECT = {
+  id: true,
+  direction: true,
+  body: true,
+  attachments: true,
+  sentAt: true,
+  status: true,
+  isAutoReply: true,
+  isEcho: true,
+  failedReason: true,
+  source: true,
+  kind: true,
+  editedAt: true,
+  originalBody: true,
+  revokedAt: true,
+  reactions: { select: { actor: true, emoji: true } },
+  staffUser: { select: { displayName: true } },
+} as const;
+
+type MessageRow = Prisma.ConversationMessageGetPayload<{ select: typeof MESSAGE_SELECT }>;
+
+const toMessageView = (m: MessageRow): ChatMessageView => ({
+  id: m.id,
+  direction: m.direction as ChatMessageView["direction"],
+  body: m.body,
+  attachments: Array.isArray(m.attachments) ? (m.attachments as ChatMessageView["attachments"]) : [],
+  sentAt: m.sentAt.toISOString(),
+  status: m.status,
+  isAutoReply: m.isAutoReply,
+  isEcho: m.isEcho,
+  staffName: m.staffUser?.displayName ?? null,
+  failedReason: m.status === "FAILED" ? (m.failedReason ?? null) : null,
+  source: m.source ?? null,
+  kind: m.kind,
+  reactions: m.reactions,
+  editedAt: m.editedAt?.toISOString() ?? null,
+  originalBody: m.originalBody,
+  revokedAt: m.revokedAt?.toISOString() ?? null,
+});
+
+/** Mensajes anteriores a `before` («Cargar anteriores»), del más viejo al más nuevo. */
+export const getOlderMessages = async (
+  conversationId: string,
+  before: Date,
+  limit = CHAT_PAGE
+): Promise<{ messages: ChatMessageView[]; hasMore: boolean }> => {
+  const rows = await prisma.conversationMessage.findMany({
+    where: { conversationId, sentAt: { lt: before } },
+    orderBy: { sentAt: "desc" },
+    take: limit + 1,
+    select: MESSAGE_SELECT,
+  });
+  return { messages: rows.slice(0, limit).reverse().map(toMessageView), hasMore: rows.length > limit };
+};
+
 export const getChat = async (id: string) => {
   const c = await prisma.conversation.findUnique({
     where: { id },
@@ -339,25 +397,9 @@ export const getChat = async (id: string) => {
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
-        take: 120,
-        select: {
-          id: true,
-          direction: true,
-          body: true,
-          attachments: true,
-          sentAt: true,
-          status: true,
-          isAutoReply: true,
-          isEcho: true,
-          failedReason: true,
-          source: true,
-          kind: true,
-          editedAt: true,
-          originalBody: true,
-          revokedAt: true,
-          reactions: { select: { actor: true, emoji: true } },
-          staffUser: { select: { displayName: true } },
-        },
+        // Uno más de la página: si llega, hay mensajes anteriores por cargar.
+        take: CHAT_PAGE + 1,
+        select: MESSAGE_SELECT,
       },
       aiRuns: { orderBy: { queuedAt: "desc" }, take: 20, select: { ...RUN_SELECT, toolCalls: true, proposal: true } },
       aiBookings: {
@@ -416,28 +458,9 @@ export const getChat = async (id: string) => {
         : null,
     priority: Boolean(c.priorityAt),
     draft: c.draftBody ? { body: c.draftBody, source: c.draftSource } : null,
-    messages: [...c.messages].reverse().map(
-      (m): ChatMessageView => ({
-        id: m.id,
-        direction: m.direction,
-        body: m.body,
-        attachments: Array.isArray(m.attachments)
-          ? (m.attachments as ChatMessageView["attachments"])
-          : [],
-        sentAt: m.sentAt.toISOString(),
-        status: m.status,
-        isAutoReply: m.isAutoReply,
-        isEcho: m.isEcho,
-        staffName: m.staffUser?.displayName ?? null,
-        failedReason: m.status === "FAILED" ? (m.failedReason ?? null) : null,
-        source: m.source ?? null,
-        kind: m.kind,
-        reactions: m.reactions,
-        editedAt: m.editedAt?.toISOString() ?? null,
-        originalBody: m.originalBody,
-        revokedAt: m.revokedAt?.toISOString() ?? null,
-      })
-    ),
+    messages: [...c.messages.slice(0, CHAT_PAGE)].reverse().map(toMessageView),
+    /** Hay mensajes más antiguos que los que se ven (botón «Cargar anteriores»). */
+    hasMore: c.messages.length > CHAT_PAGE,
     runs: c.aiRuns.map((r) => ({ ...runView(r), toolCalls: r.toolCalls, delivery: deliveryOf(r, c.messages) })),
     bookings: c.aiBookings.map((b) => ({
       id: b.id,
@@ -463,7 +486,10 @@ export const workspaceSnapshot = async (): Promise<{ unread: number; latestAt: n
         (SELECT MAX(last_message_at) FROM conversations WHERE channel = 'WHATSAPP'),
         (SELECT MAX(GREATEST(queued_at, COALESCE(started_at, queued_at), COALESCE(finished_at, queued_at)))
            FROM whatsapp_ai_runs WHERE queued_at > now() - interval '1 day'),
-        (SELECT MAX(updated_at) FROM conversations WHERE channel = 'WHATSAPP')
+        (SELECT MAX(updated_at) FROM conversations WHERE channel = 'WHATSAPP'),
+        -- Un ✓✓, una reacción, una transcripción o un archivo recuperado
+        -- cambian el mensaje, no el chat: también cuentan como novedad.
+        (SELECT MAX(updated_at) FROM conversation_messages WHERE updated_at > now() - interval '1 day')
       ) AS latest`);
   return { unread: Number(row?.unread ?? 0), latestAt: row?.latest?.getTime() ?? 0 };
 };

@@ -135,6 +135,34 @@ const main = async () => {
   const back = await prisma.whatsAppSendRecipient.findUniqueOrThrow({ where: { id: rec.id } });
   check("vuelve a la cola para reintentarse", back.status === "PENDING", back.status);
 
+  console.log("\n8. Un ✓✓ se ve en vivo y los chats largos se cargan por páginas");
+  const { workspaceSnapshot, getChat, getOlderMessages, CHAT_PAGE } = await import("@/lib/crm/whatsapp-agent/workspace");
+  const before8 = await workspaceSnapshot();
+  await new Promise((r) => setTimeout(r, 1100));
+  await applyStatus({ wamid: w3, status: "READ", at: new Date() });
+  const after8 = await workspaceSnapshot();
+  check("un cambio de estado cambia la versión de la pantalla", after8.latestAt > before8.latestAt, { before8, after8 });
+  const LONG = "573000006702";
+  await prisma.conversation.deleteMany({ where: { channel: "WHATSAPP", externalThreadId: LONG } });
+  const longConv = await prisma.conversation.create({
+    data: { channel: "WHATSAPP", externalThreadId: LONG, metaAccountId: "test-phone-id", lastMessageAt: new Date() },
+  });
+  const t0 = Date.now() - 200 * 60_000;
+  await prisma.conversationMessage.createMany({
+    data: Array.from({ length: CHAT_PAGE + 30 }, (_, i) => ({
+      conversationId: longConv.id,
+      direction: i % 2 ? "OUTBOUND" : "INBOUND",
+      status: i % 2 ? "SENT" : "RECEIVED",
+      body: `mensaje ${i}`,
+      sentAt: new Date(t0 + i * 60_000),
+    })) as never,
+  });
+  const long = (await getChat(longConv.id))!;
+  check(`el chat abre con los últimos ${CHAT_PAGE} y avisa que hay más`, long.messages.length === CHAT_PAGE && long.hasMore === true, { n: long.messages.length, more: long.hasMore });
+  check("en orden, el último abajo", long.messages.at(-1)?.body === `mensaje ${CHAT_PAGE + 29}`, long.messages.at(-1)?.body);
+  const page = await getOlderMessages(longConv.id, new Date(long.messages[0].sentAt));
+  check("«Cargar anteriores» trae los 30 que faltaban", page.messages.length === 30 && !page.hasMore && page.messages[0].body === "mensaje 0", { n: page.messages.length, first: page.messages[0]?.body });
+
   console.log(failures.length ? `\n❌ ${failures.length} fallaron:\n- ${failures.join("\n- ")}` : "\n✅ Consistencia OK");
   process.exit(failures.length ? 1 : 0);
 };
