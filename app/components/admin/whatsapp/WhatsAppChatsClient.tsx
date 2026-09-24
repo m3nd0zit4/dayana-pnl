@@ -722,6 +722,21 @@ const Thread = ({
             style={{ backgroundColor: WA.chatBg }}
           >
             {chat.messages.map((m) => {
+              if (m.kind === "system") {
+                // Aviso gris centrado (reacción, encuesta, algo que solo se ve
+                // en el celular): no es un mensaje que la persona escribió.
+                return (
+                  <div key={m.id} className="flex justify-center py-0.5">
+                    <span className="max-w-[85%] rounded-lg bg-white/90 px-3 py-1 text-center text-xs text-[#54656f] shadow-sm dark:bg-card dark:text-muted-foreground">
+                      {m.direction === "OUTBOUND" ? "Tú: " : ""}
+                      {m.body}
+                      <span className="ml-1.5 text-[10px] text-[#8696a0]">
+                        {new Date(m.sentAt).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })}
+                      </span>
+                    </span>
+                  </div>
+                );
+              }
               const out = m.direction === "OUTBOUND";
               const onlySticker =
                 !m.body && m.attachments.length > 0 && m.attachments.every((a) => a.kind === "sticker" && a.url);

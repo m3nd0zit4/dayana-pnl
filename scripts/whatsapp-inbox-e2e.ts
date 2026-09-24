@@ -121,6 +121,27 @@ const main = async () => {
     console.log("\n6. No leídos");
     const after = await prisma.conversation.findUniqueOrThrow({ where: { id: conv.id } });
     check("3 mensajes entrantes → 3 sin leer (no más)", after.unreadCount === 3, after.unreadCount);
+
+    console.log("\n7. Fantasmas y avisos de sistema (desde el webhook real)");
+    const raw = (messages: Record<string, unknown>[]) => ({
+      object: "whatsapp_business_account",
+      entry: [{ id: "waba", changes: [{ field: "messages", value: { metadata: { phone_number_id: "test-phone-id" }, contacts: [{ wa_id: THREAD, profile: { name: "Prueba Cola" } }], messages } }] }],
+    });
+    const { normalizeMetaPayload } = await import("@/lib/meta/inbound");
+    const events = normalizeMetaPayload(
+      raw([
+        { id: wamid("ph"), from: THREAD, timestamp: String(Math.floor(Date.now() / 1000)), type: "unsupported", unsupported: { type: "media_placeholder" } },
+        { id: wamid("rx"), from: THREAD, timestamp: String(Math.floor(Date.now() / 1000)), type: "reaction", reaction: { emoji: "❤️", message_id: wamid("a") } },
+      ])
+    );
+    check("el marcador interno ni siquiera entra a la cola", events.length === 1, events.length);
+    await enqueue(events);
+    await drainInbox({ budgetMs: 30_000 });
+    const rx = await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("rx") } });
+    check("la reacción queda como aviso gris", rx?.kind === "system", rx?.kind);
+    const afterRx = await prisma.conversation.findUniqueOrThrow({ where: { id: conv.id } });
+    check("y no suma no leídos", afterRx.unreadCount === 3, afterRx.unreadCount);
+    check("no hay fila del marcador", !(await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("ph") } })));
   } finally {
     if (prevAi) await prisma.siteSetting.update({ where: { key: prevAi.key }, data: { value: prevAi.value } });
   }

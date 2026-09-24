@@ -303,6 +303,8 @@ export const runWhatsAppAi = async (input: {
           direction: "OUTBOUND",
           isAutoReply: false,
           status: { not: "FAILED" },
+          // Una reacción u otro aviso desde el celular no es «Dayana contestó».
+          kind: "message",
           sentAt: { gte: recentSince },
         },
         select: { id: true, source: true },
@@ -456,6 +458,7 @@ const gate = async (
         direction: "OUTBOUND",
         isAutoReply: false,
         status: { not: "FAILED" },
+        kind: "message",
       },
       orderBy: { sentAt: "desc" },
       select: { sentAt: true },

@@ -306,6 +306,8 @@ export type ChatMessageView = {
   failedReason: string | null;
   /** Quién lo originó («resend:<id>» = reenvío de un mensaje que falló). */
   source: string | null;
+  /** message | system (aviso gris: reacción, encuesta, tipo no compatible…). */
+  kind: string;
 };
 
 export const getChat = async (id: string) => {
@@ -342,6 +344,7 @@ export const getChat = async (id: string) => {
           isEcho: true,
           failedReason: true,
           source: true,
+          kind: true,
           staffUser: { select: { displayName: true } },
         },
       },
@@ -417,6 +420,7 @@ export const getChat = async (id: string) => {
         staffName: m.staffUser?.displayName ?? null,
         failedReason: m.status === "FAILED" ? (m.failedReason ?? null) : null,
         source: m.source ?? null,
+        kind: m.kind,
       })
     ),
     runs: c.aiRuns.map((r) => ({ ...runView(r), toolCalls: r.toolCalls, delivery: deliveryOf(r, c.messages) })),

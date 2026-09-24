@@ -90,3 +90,33 @@ describe("archivos que «no cargaban»", () => {
     expect(m.kind === "message" && m.body).toContain("tipo «poll»");
   });
 });
+
+describe("mensajes fantasma y avisos de sistema", () => {
+  const one = (m: Record<string, unknown>) => normalizeMetaPayload(wrap({ messages: [{ id: "u", from: "573001", timestamp: "1", ...m }] }));
+
+  test("un marcador interno no es un mensaje: no se guarda nada", () => {
+    expect(one({ type: "unsupported", unsupported: { type: "media_placeholder" } })).toHaveLength(0);
+    expect(one({ type: "unsupported", unsupported: { type: "keep_in_chat" } })).toHaveLength(0);
+    expect(one({ type: "unsupported", unsupported: { type: "pin" } })).toHaveLength(0);
+  });
+  test("una encuesta o un editado es un aviso gris, no algo que la persona escribió", () => {
+    const [poll] = one({ type: "unsupported", unsupported: { type: "poll_creation" } });
+    expect(poll.kind === "message" && poll.system).toBe(true);
+    expect(poll.kind === "message" && poll.body).toContain("encuesta");
+    const [edit] = one({ type: "unsupported", unsupported: { type: "edit" } });
+    expect(edit.kind === "message" && edit.system && edit.body).toContain("Editó");
+  });
+  test("errores de WhatsApp (131051) dicen qué pasó", () => {
+    const [m] = one({ type: "unknown", errors: [{ code: 131051, title: "Unsupported message type" }] });
+    expect(m.kind === "message" && m.system).toBe(true);
+    expect(m.kind === "message" && m.body).toContain("131051");
+  });
+  test("una reacción no despierta a la IA", () => {
+    const [r] = one({ type: "reaction", reaction: { emoji: "❤️", message_id: "x" } });
+    expect(r.kind === "message" && r.system).toBe(true);
+  });
+  test("un texto normal no es aviso", () => {
+    const [t] = one({ type: "text", text: { body: "Hola" } });
+    expect(t.kind === "message" && t.system).toBeFalsy();
+  });
+});

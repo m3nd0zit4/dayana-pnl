@@ -46,6 +46,12 @@ export type NormalizedMessage = {
    * es pasado, no alguien esperando.
    */
   isHistory?: boolean;
+  /**
+   * Aviso de sistema, no algo que la persona escribió: una reacción, una
+   * encuesta, un «ver una vez», un mensaje editado… Se guarda como aviso gris:
+   * no despierta a la IA, no suma no leídos y no abre la ventana de 24 h.
+   */
+  system?: boolean;
 };
 
 /** Un contacto de la libreta de la app de WhatsApp Business (coexistencia). */
@@ -187,6 +193,43 @@ https://maps.google.com/?q=${lat},${lng}` : ""
  * app del celular) y dentro de `history` (el pasado); solo cambia de quién es
  * el hilo y hacia dónde va.
  */
+/**
+ * Lo que WhatsApp manda como `unsupported` (o con `errors[]`) en coexistencia.
+ * - `null`: no es un mensaje (marcadores internos): no se guarda nada.
+ * - texto: se guarda como aviso gris de sistema.
+ */
+const UNSUPPORTED_LABEL: Record<string, string | null> = {
+  media_placeholder: null,
+  keep_in_chat: null,
+  pin: null,
+  edit: "✏️ Editó un mensaje (el cambio solo se ve en el celular)",
+  poll_creation: "📊 Envió una encuesta: ábrela en el celular",
+  poll_update: "📊 Votó en una encuesta",
+  group_invite: "👥 Compartió una invitación a un grupo",
+  gif: "GIF: ábrelo en el celular",
+  view_once: "👁️ Foto o video de «ver una vez»: ábrelo en el celular",
+  reaction: null,
+};
+
+export const classifyUnsupported = (
+  message: Record<string, unknown>
+): { skip: true } | { skip: false; body: string } => {
+  const sub = asString(asRecord(message.unsupported)?.type);
+  if (sub && sub in UNSUPPORTED_LABEL) {
+    const label = UNSUPPORTED_LABEL[sub];
+    return label === null ? { skip: true } : { skip: false, body: label };
+  }
+  const err = asRecord(asArray(message.errors)[0]);
+  const code = typeof err?.code === "number" ? err.code : null;
+  return {
+    skip: false,
+    body:
+      code === 131060
+        ? "Mensaje que WhatsApp aún no deja ver aquí: ábrelo en el celular"
+        : `Mensaje que WhatsApp no deja ver aquí${sub ? ` (${sub})` : ""}${code ? ` · código ${code}` : ""}: ábrelo en el celular`,
+  };
+};
+
 const parseWhatsAppMessage = (
   message: Record<string, unknown>,
   ctx: {
@@ -207,13 +250,28 @@ const parseWhatsAppMessage = (
 
   const attachments: NormalizedAttachment[] = [];
   let body = asString(asRecord(message.text)?.body);
+  let system = false;
+
+  // Tipos que WhatsApp no pasa a la API en coexistencia: marcadores internos
+  // (no son mensajes: antes aparecían como si la persona hubiera mandado un
+  // archivo) y cosas que solo se ven en el celular (aviso gris).
+  if (type === "unsupported" || (type === "unknown" && asArray(message.errors).length > 0)) {
+    const c = classifyUnsupported(message);
+    if (c.skip) return null;
+    body = c.body;
+    system = true;
+  }
 
   // Lo que no es texto ni archivo se convierte en texto legible: si no, en el
   // CRM salía como «unknown» y la IA no sabía qué le habían mandado.
-  const special = describeSpecialMessage(type, message);
-  if (special !== undefined) {
+  const special = system ? undefined : describeSpecialMessage(type, message);
+  if (system) {
+    // ya clasificado arriba
+  } else if (special !== undefined) {
     if (special === null) return null;
     body = special;
+    // Una reacción no es un mensaje nuevo: no despierta a la IA.
+    if (type === "reaction") system = true;
   } else if (type && type !== "text") {
     const media = asRecord(message[type]);
     if (!media || (!ATTACHMENT_KINDS.has(type) && !asString(media.id))) {
@@ -221,6 +279,7 @@ const parseWhatsAppMessage = (
       // vez», etc.): se dice qué es en vez de un adjunto vacío que «no carga».
       console.warn(`[whatsapp] tipo de mensaje sin soporte: ${type} (${Object.keys(message).join(",")})`);
       body = body ?? `(Mensaje de WhatsApp tipo «${type}» que no se puede ver aquí: ábrelo en el celular)`;
+      system = true;
     } else {
       const caption = asString(media.caption);
       const mime = asString(media.mime_type);
@@ -263,6 +322,7 @@ const parseWhatsAppMessage = (
     sentAt: secondsToDate(message.timestamp),
     participantName: ctx.participantName,
     ...(ctx.isHistory ? { isHistory: true } : {}),
+    ...(system ? { system: true } : {}),
   };
 };
 

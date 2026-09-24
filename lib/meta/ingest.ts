@@ -166,14 +166,18 @@ export const ingestMessage = async (
           contactId,
           participantName: message.participantName,
           lastMessageAt: message.sentAt,
-          lastInboundAt: message.isEcho ? null : message.sentAt,
-          unreadCount: message.isEcho ? 0 : 1,
+          lastInboundAt: message.isEcho || message.system ? null : message.sentAt,
+          unreadCount: message.isEcho || message.system ? 0 : 1,
           status: "OPEN",
         },
         update: {
           lastMessageAt: message.sentAt,
           // Un eco no reabre la ventana de 24 h: la ventana la abre el cliente.
-          ...(message.isEcho
+          // Un aviso de sistema (reacción, encuesta…) no suma no leídos ni
+          // abre la ventana.
+          ...(message.system
+            ? {}
+            : message.isEcho
             ? { status: "PENDING" as const }
             : {
                 lastInboundAt: message.sentAt,
@@ -207,6 +211,7 @@ export const ingestMessage = async (
             : undefined,
         isEcho: message.isEcho,
         sentAt: message.sentAt,
+        ...(message.system ? { kind: "system" } : {}),
       },
     });
     return conversation;
@@ -334,6 +339,11 @@ export const processNormalizedEvent = async (
   // El pasado no avisa, no saluda y no contesta. Se aprende de él en tanda,
   // al final de la sincronización (`processHistoryEvents`).
   if (event.isHistory) return result;
+
+  // Un aviso de sistema (reacción, encuesta, mensaje editado…) no es una
+  // respuesta: ni despierta a la IA, ni avisa, ni cuenta como que Dayana tomó
+  // el chat si vino del celular.
+  if (event.system) return result;
 
   // Dayana contestó desde la app del celular (coexistencia): el hilo es suyo
   // y lo que escribió es un ejemplo más de cómo responde.
