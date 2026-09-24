@@ -34,7 +34,7 @@ const PeopleWhatsAppList = ({
   /** Todas las personas del filtro (no solo esta página), para «enviar a todas». */
   allContactIds: string[];
   presets: Preset[];
-  kind: "evento" | "taller" | "diagnostico" | "pago" | "libre";
+  kind: "evento" | "taller" | "diagnostico" | "pago" | "libre" | "comunidad";
   title: string;
   source: string;
   allLabel: string;

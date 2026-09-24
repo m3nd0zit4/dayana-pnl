@@ -132,3 +132,25 @@ export const resolvePresetVars = (
   const clean = text.replace(/\{\{\s*nombre\s*\}\}/g, "").replace(/^\s*hola\s*,?\s*/i, "").trim();
   return Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, v === TEXT_SLOT ? clean : v]));
 };
+
+/** Invitar a una comunidad o grupo de WhatsApp: el enlace va 1 a 1. */
+export const communityInvitePresets = (c: { name: string; inviteLink: string | null }): Preset[] => [
+  {
+    id: "invitacion",
+    label: "Invitación con enlace",
+    text: `Hola {{nombre}}, te bendigo 💛 Te invito a unirte a ${c.name}. Entra con este enlace: ${c.inviteLink ?? ""} ¡Te espero!`,
+    templateKey: "comunidad_invitacion",
+    vars: { comunidad: c.name, enlace: c.inviteLink ?? "" },
+  },
+];
+
+/** Anuncio a quienes ya están en la comunidad, 1 a 1. */
+export const communityAnnouncePresets = (c: { name: string }): Preset[] => [
+  {
+    id: "anuncio",
+    label: "Anuncio",
+    text: `Hola {{nombre}}, te bendigo 💛 Novedad en ${c.name}: `,
+    templateKey: "comunidad_anuncio",
+    vars: { comunidad: c.name, mensaje: TEXT_SLOT },
+  },
+];

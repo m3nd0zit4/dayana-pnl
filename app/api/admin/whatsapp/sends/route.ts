@@ -15,7 +15,7 @@ const schema = z.object({
   contactIds: z.array(z.string()).min(1).max(2000),
   templateKey: z.string().max(120).nullish(),
   title: z.string().trim().max(200).default("Envío por WhatsApp"),
-  kind: z.enum(["evento", "taller", "diagnostico", "pago", "libre"]).default("libre"),
+  kind: z.enum(["evento", "taller", "diagnostico", "pago", "libre", "comunidad"]).default("libre"),
   text: z.string().trim().max(4000).default(""),
   vars: z.record(z.string(), z.string().max(1000)).optional(),
 });

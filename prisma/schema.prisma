@@ -305,6 +305,8 @@ model Contact {
   paymentLinks           PaymentLink[]
   /// Clics hacia WhatsApp de la persona o del equipo. Ver `ContactTouch`.
   touches                ContactTouch[]
+  /// Comunidades y grupos de WhatsApp a los que se invitó o en los que está.
+  whatsAppCommunities    WhatsAppCommunityMember[]
 
   /// Columna de búsqueda plegada: nombre, apellido, display, email y teléfono
   /// (con y sin separadores) en minúsculas y sin tildes.
@@ -1203,6 +1205,8 @@ model ConversationMessage {
 
   @@index([conversationId, sentAt])
   @@index([conversationId, updatedAt])
+  /// La pantalla en vivo pregunta por el último cambio de cualquier mensaje (migración 20261005100000).
+  @@index([updatedAt])
   @@index([source])
   @@index([direction, isAutoReply, sentAt])
   @@map("conversation_messages")
@@ -2306,4 +2310,53 @@ model WhatsAppSendRecipient {
   @@unique([sendId, contactId])
   @@index([sendId, status])
   @@map("whatsapp_send_recipients")
+}
+
+/// Una comunidad o grupo de WhatsApp que Dayana administra desde su celular.
+/// El número está en coexistencia (App + Cloud API) y Meta no permite la API de
+/// grupos ahí: el CRM no lee ni publica en el grupo. Aquí se lleva quién está,
+/// a quién se invitó (el enlace se manda 1 a 1) y los anuncios 1 a 1.
+model WhatsAppCommunity {
+  id          String    @id @default(cuid())
+  name        String
+  /// community | group
+  kind        String    @default("group")
+  /// Un grupo dentro de una comunidad.
+  parentId    String?   @map("parent_id")
+  inviteLink  String?   @map("invite_link")
+  description String?   @db.Text
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  parent   WhatsAppCommunity?        @relation("WhatsAppCommunityTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children WhatsAppCommunity[]       @relation("WhatsAppCommunityTree")
+  members  WhatsAppCommunityMember[]
+
+  @@index([archivedAt])
+  @@map("whatsapp_communities")
+}
+
+model WhatsAppCommunityMember {
+  id           String    @id @default(cuid())
+  communityId  String    @map("community_id")
+  contactId    String    @map("contact_id")
+  /// INVITED | JOINED | LEFT | DECLINED
+  status       String    @default("INVITED")
+  /// manual | bulk_paste | reply
+  joinedVia    String?   @map("joined_via")
+  invitedAt    DateTime? @map("invited_at")
+  joinedAt     DateTime? @map("joined_at")
+  /// El envío masivo con el que se le mandó el enlace.
+  inviteSendId String?   @map("invite_send_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  community WhatsAppCommunity @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  contact   Contact           @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, contactId])
+  @@index([communityId, status])
+  @@index([contactId])
+  @@map("whatsapp_community_members")
 }

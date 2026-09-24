@@ -33,13 +33,19 @@ const WhatsAppBulkSend = ({
   title,
   onDone,
   label = "Enviar por WhatsApp",
+  create,
 }: {
   contactIds: string[];
   presets: WhatsAppPreset[];
-  kind: "evento" | "taller" | "diagnostico" | "pago" | "libre";
+  kind: "evento" | "taller" | "diagnostico" | "pago" | "libre" | "comunidad";
   title: string;
   onDone?: () => void;
   label?: string;
+  /**
+   * Arma el envío en otra ruta (p. ej. la comunidad, que además deja a cada
+   * persona como invitada). Devuelve el id del envío; las tandas son las de siempre.
+   */
+  create?: (input: { contactIds: string[]; text: string; templateKey: string | null }) => Promise<{ id: string }>;
 }) => {
   const { toast } = useCrm();
   const [open, setOpen] = useState(false);
@@ -67,21 +73,24 @@ const WhatsAppBulkSend = ({
   const run = async () => {
     setRunning(true);
     try {
-      const res = await fetch("/api/admin/whatsapp/sends", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create",
-          contactIds,
-          templateKey: preset?.templateKey ?? null,
-          title: `${title} · ${preset?.label ?? ""}`.trim(),
-          kind,
-          text,
-          vars: resolvePresetVars(preset?.vars, text),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      const { id } = (await res.json()) as { id: string };
+      const { id } = create
+        ? await create({ contactIds, text, templateKey: preset?.templateKey ?? null })
+        : await fetch("/api/admin/whatsapp/sends", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "create",
+              contactIds,
+              templateKey: preset?.templateKey ?? null,
+              title: `${title} · ${preset?.label ?? ""}`.trim(),
+              kind,
+              text,
+              vars: resolvePresetVars(preset?.vars, text),
+            }),
+          }).then(async (res) => {
+            if (!res.ok) throw new Error();
+            return (await res.json()) as { id: string };
+          });
       for (;;) {
         const step = await fetch(`/api/admin/whatsapp/sends/${id}`, {
           method: "POST",
