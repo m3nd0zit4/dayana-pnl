@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { approvedTemplateFor } from "../whatsapp-templates";
+import { approvalDelivery, type ApprovalDelivery } from "../whatsapp-outbound-plan";
+import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
@@ -188,6 +190,70 @@ const sendWithTemplate = async (input: {
   );
 };
 
+/**
+ * Cómo saldría esta propuesta si Dayana la acepta ahora. Nunca deja un
+ * callejón sin salida: sin ventana ni plantilla aprobada, sale desde su
+ * celular (`phone`). Citas y enlaces de pago siempre por el CRM (hay que
+ * crear la cita o el enlace).
+ */
+export const resolveApprovalDelivery = async (
+  conversation: { lastInboundAt: Date | null },
+  proposal: Proposal
+): Promise<ApprovalDelivery> => {
+  const windowOpen = Boolean(
+    conversation.lastInboundAt && Date.now() - conversation.lastInboundAt.getTime() < 24 * 3600_000
+  );
+  if (windowOpen || proposal.kind === "booking" || proposal.kind === "payment_link") return "text";
+  let hasApprovedTemplate = false;
+  for (const key of proposal.template?.keys ?? []) {
+    if (await approvedTemplateFor(key)) {
+      hasApprovedTemplate = true;
+      break;
+    }
+  }
+  return approvalDelivery({ windowOpen, hasApprovedTemplate });
+};
+
+/** El enlace que abre el WhatsApp de Dayana con el mensaje escrito. */
+export const phoneUrlFor = (phoneDigits: string, message: string): string | null =>
+  buildContactWhatsAppUrl(`+${phoneDigits}`, message.split(PAYMENT_PLACEHOLDER).join("").trim());
+
+/**
+ * Dayana lo manda desde su celular: la propuesta queda aprobada (sin enviar
+ * nada desde el CRM). Cuando ella pulse enviar en su WhatsApp, el mensaje
+ * llega aquí solo (coexistencia) y queda en el chat.
+ */
+export const approveByPhone = async (input: {
+  runId: string;
+  conversationId: string;
+  staffId: string;
+  message?: string | null;
+}): Promise<{ ok: true; url: string | null }> => {
+  const run = await loadPending(input.runId, input.conversationId);
+  const p = run.proposal;
+  const message = (input.message?.trim() || p.message).trim();
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: input.conversationId },
+    select: { externalThreadId: true },
+  });
+  if (!conversation) throw new ApprovalError("El chat no existe.");
+  await prisma.whatsAppAiRun.update({
+    where: { id: run.id },
+    data: {
+      proposal: { ...p, sentVia: "phone", message } as unknown as Prisma.InputJsonValue,
+      status: "APPROVED",
+      reason: "Dayana lo envía desde su celular.",
+      decidedAt: new Date(),
+      decidedById: input.staffId,
+    },
+  });
+  await prisma.conversation.update({
+    where: { id: input.conversationId },
+    data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
+  });
+  return { ok: true, url: phoneUrlFor(conversation.externalThreadId, message) };
+};
+
 export const approveProposal = async (input: {
   runId: string;
   conversationId: string;
@@ -201,9 +267,12 @@ export const approveProposal = async (input: {
 
   const conversation = await prisma.conversation.findUnique({
     where: { id: input.conversationId },
-    select: { externalThreadId: true, contactId: true, participantName: true },
+    select: { externalThreadId: true, contactId: true, participantName: true, lastInboundAt: true },
   });
   if (!conversation) throw new ApprovalError("El chat no existe.");
+  if ((await resolveApprovalDelivery(conversation, p)) === "phone") {
+    throw new ApprovalError("needs_phone");
+  }
 
   if (p.kind === "booking" && p.booking) {
     const config = await getWhatsAppAiConfig();

@@ -4,7 +4,25 @@ import { CalendarCheck, Check, CreditCard, FilePen, Loader2, Pencil, ShieldCheck
 import { useState } from "react";
 import type { Proposal } from "@/lib/crm/whatsapp-agent/approvals";
 
-export type PendingApproval = { runId: string; createdAt: string; proposal: Proposal };
+export type PendingApproval = {
+  runId: string;
+  createdAt: string;
+  proposal: Proposal;
+  /** `phone`: el CRM no puede enviarlo (sin ventana ni plantilla); sale desde el celular. */
+  delivery?: "text" | "template" | "phone";
+  phoneUrl?: string | null;
+};
+
+/** wa.me con el texto que quedó (el de la IA o el modificado). */
+const withText = (url: string, message: string) => {
+  try {
+    const u = new URL(url);
+    u.searchParams.set("text", message);
+    return u.toString();
+  } catch {
+    return url;
+  }
+};
 
 const PLACEHOLDER = "{{ENLACE_DE_PAGO}}";
 
@@ -39,7 +57,7 @@ const ApprovalBar = ({
 }: {
   approvals: PendingApproval[];
   canWrite: boolean;
-  onDecide: (runId: string, decision: "approve" | "reject", message?: string) => Promise<void>;
+  onDecide: (runId: string, decision: "approve" | "reject" | "phone", message?: string) => Promise<void>;
 }) => {
   const [editing, setEditing] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -47,7 +65,7 @@ const ApprovalBar = ({
 
   if (approvals.length === 0) return null;
 
-  const decide = async (runId: string, decision: "approve" | "reject", message?: string) => {
+  const decide = async (runId: string, decision: "approve" | "reject" | "phone", message?: string) => {
     setBusy(`${runId}:${decision}`);
     try {
       await onDecide(runId, decision, message);
@@ -59,8 +77,14 @@ const ApprovalBar = ({
 
   return (
     <div className="space-y-2">
-      {approvals.map(({ runId, proposal: p }) => {
+      {approvals.map(({ runId, proposal: p, delivery, phoneUrl }) => {
         const head = HEAD[p.kind] ?? HEAD.reply;
+        const byPhone = delivery === "phone" && Boolean(phoneUrl);
+        // Se abre en el mismo clic (si no, el navegador bloquea la ventana).
+        const openPhone = (message: string) => {
+          if (phoneUrl) window.open(withText(phoneUrl, message), "_blank", "noopener,noreferrer");
+          void decide(runId, "phone", message);
+        };
         const Icon = head.icon;
         const isEditing = editing === runId;
         const preview = p.message.split(PLACEHOLDER).join("🔗 [enlace de pago]");
@@ -73,7 +97,13 @@ const ApprovalBar = ({
               <Icon className="mt-0.5 size-5 shrink-0 text-[#008069]" />
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-[#111b21] dark:text-foreground">{head.title}</div>
-                <div className="text-xs text-[#667781]">{head.hint}</div>
+                <div className="text-xs text-[#667781]">
+                  {byPhone
+                    ? "Todavía no se le puede escribir desde el CRM (sin plantilla aprobada). Al aceptar se abre tu WhatsApp con el mensaje escrito: solo pulsa enviar. Es gratis y el mensaje aparece aquí."
+                    : delivery === "template"
+                      ? "Pasaron más de 24 h: al aceptar se envía con la plantilla aprobada."
+                      : head.hint}
+                </div>
                 {p.kind === "booking" && p.booking && (
                   <div className="mt-1.5 inline-flex flex-wrap items-center gap-2 rounded-lg bg-[#d9fdd3] px-2.5 py-1 text-sm font-medium text-[#006e4f]">
                     <CalendarCheck className="size-4" /> {p.booking.service} · {p.booking.label}
@@ -109,21 +139,21 @@ const ApprovalBar = ({
                 <button
                   type="button"
                   disabled={!canWrite || busy !== null || !text.trim()}
-                  onClick={() => void decide(runId, "approve", text)}
+                  onClick={() => (byPhone ? openPhone(text) : void decide(runId, "approve", text))}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                  {p.kind === "booking" ? "Agendar y enviar mi versión" : "Enviar mi versión"}
+                  {byPhone ? "Enviar mi versión desde mi celular" : p.kind === "booking" ? "Agendar y enviar mi versión" : "Enviar mi versión"}
                 </button>
               ) : (
                 <button
                   type="button"
                   disabled={!canWrite || busy !== null}
-                  onClick={() => void decide(runId, "approve")}
+                  onClick={() => (byPhone ? openPhone(p.message) : void decide(runId, "approve"))}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                  {p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
+                  {byPhone ? "Enviar desde mi celular" : p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
                 </button>
               )}
               <button

@@ -24,6 +24,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { windowNotice } from "@/lib/crm/whatsapp-outbound-plan";
 import type { ChatDetail, ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import { useCrm } from "../crm/CrmProvider";
 import ApprovalBar from "./ApprovalBar";
@@ -443,16 +444,30 @@ const Thread = ({
 
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const decide = async (runId: string, decision: "approve" | "reject", message?: string) => {
+  const decide = async (runId: string, decision: "approve" | "reject" | "phone", message?: string) => {
     try {
-      await post(chat.id, decision === "approve" ? { action: "approve", runId, message } : { action: "reject", runId });
-      toast(decision === "approve" ? "Enviado" : "Propuesta cancelada", "success");
+      await post(
+        chat.id,
+        decision === "approve"
+          ? { action: "approve", runId, message }
+          : decision === "phone"
+            ? { action: "approve_phone", runId, message }
+            : { action: "reject", runId }
+      );
+      toast(
+        decision === "approve"
+          ? "Enviado"
+          : decision === "phone"
+            ? "Se abrió tu WhatsApp con el mensaje: pulsa enviar allí"
+            : "Propuesta cancelada",
+        "success"
+      );
       onChanged();
     } catch (e) {
       const code = e instanceof Error ? e.message : "error";
       toast(
-        code === "window_closed"
-          ? "Pasaron más de 24 h desde su último mensaje: WhatsApp no deja escribirle ahora."
+        code === "window_closed" || code === "needs_phone"
+          ? "Desde el CRM no se le puede escribir ahora (sin plantilla aprobada). Usa «Enviar desde mi celular»."
           : code.startsWith("slot:")
             ? `${code.slice(5)} Pídele a la IA otras horas o agenda tú.`
             : `No se pudo: ${code}`,
@@ -672,9 +687,19 @@ const Thread = ({
 
           {/* Escribir */}
           <div className="space-y-2 bg-[#f0f2f5] px-3 py-2 dark:bg-muted/40">
-            {!chat.windowOpen && (
-              <p className="rounded-md bg-white px-3 py-1.5 text-xs text-[#54656f] dark:bg-card">
-                Pasaron más de 24 h desde su último mensaje: WhatsApp solo deja escribir cuando vuelva a escribir.
+            {!chat.windowOpen && windowNotice(chat.windowState) && (
+              <p className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs text-[#54656f] dark:bg-card">
+                <span className="flex-1">{windowNotice(chat.windowState)}</span>
+                {chat.approvals.length === 0 && (
+                  <a
+                    href={`https://wa.me/${chat.phone}${text.trim() ? `?text=${encodeURIComponent(text.trim())}` : ""}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-[#008069] hover:underline"
+                  >
+                    Abrir en mi celular
+                  </a>
+                )}
               </p>
             )}
             <ApprovalBar approvals={chat.approvals} canWrite={canWrite} onDecide={decide} />

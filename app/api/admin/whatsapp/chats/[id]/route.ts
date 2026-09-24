@@ -60,6 +60,8 @@ const actionSchema = z.discriminatedUnion("action", [
   /** Aceptar lo que propuso la IA, tal cual o con el mensaje cambiado. */
   z.object({ action: z.literal("approve"), runId: z.string(), message: z.string().max(4000).optional() }),
   z.object({ action: z.literal("reject"), runId: z.string() }),
+  /** Dayana lo envía desde su celular (sin ventana ni plantilla aprobada). */
+  z.object({ action: z.literal("approve_phone"), runId: z.string(), message: z.string().max(4000).optional() }),
   /** Foto, documento o nota de voz ya subidos por `/api/admin/inbox/upload`. */
   z.object({
     action: z.literal("attachment"),
@@ -244,6 +246,22 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         const { SlotUnavailableError } = await import("@/lib/crm/whatsapp-agent/calendar");
         if (e instanceof SlotUnavailableError) return apiError(`slot:${e.message}`, 409);
         return apiError(e instanceof Error ? e.message : "approve_failed", 400);
+      }
+    }
+    case "approve_phone": {
+      const { approveByPhone, ApprovalError } = await import("@/lib/crm/whatsapp-agent/approvals");
+      try {
+        const result = await approveByPhone({
+          runId: input.runId,
+          conversationId: id,
+          staffId: staff.id,
+          message: input.message,
+        });
+        audit({ approvedByPhone: input.runId });
+        return NextResponse.json(result);
+      } catch (e) {
+        if (e instanceof ApprovalError) return apiError(e.message, 409);
+        throw e;
       }
     }
     case "reject": {

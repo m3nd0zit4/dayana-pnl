@@ -5,6 +5,8 @@ import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
+import { windowStateOf } from "../whatsapp-outbound-plan";
+import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 
 /**
  * Lo que lee la sección de WhatsApp del CRM: chats con su estado de IA en
@@ -181,8 +183,11 @@ export const listChats = async (input: {
       name,
       contactId: c.contactId,
       lastMessageAt: c.lastMessageAt.toISOString(),
-      lastMessage:
-        last?.body ||
+      lastMessage: !last
+        ? pendingBy.has(c.id)
+          ? "Mensaje por aprobar"
+          : "Aún no hay mensajes"
+        : last.body ||
         (Array.isArray(last?.attachments) && last.attachments.length > 0
           ? PREVIEW_KIND[String((last.attachments[0] as { kind?: string }).kind)] ?? "📎 Archivo"
           : null),
@@ -295,6 +300,18 @@ export const getChat = async (id: string) => {
     orderBy: { queuedAt: "desc" },
     select: { id: true, proposal: true, queuedAt: true },
   });
+  const approvalViews = await Promise.all(
+    approvals.map(async (a) => {
+      const proposal = a.proposal as unknown as Proposal;
+      return {
+        runId: a.id,
+        createdAt: a.queuedAt.toISOString(),
+        proposal,
+        delivery: await resolveApprovalDelivery({ lastInboundAt: c.lastInboundAt }, proposal),
+        phoneUrl: phoneUrlFor(c.externalThreadId, proposal.message),
+      };
+    })
+  );
 
   const memory = await prisma.whatsAppMemory.findUnique({
     where: { phone: c.externalThreadId },
@@ -315,6 +332,7 @@ export const getChat = async (id: string) => {
     windowOpen: c.lastInboundAt
       ? Date.now() - c.lastInboundAt.getTime() < 24 * 3600_000
       : false,
+    windowState: windowStateOf(c.lastInboundAt),
     aiMode: c.aiMode,
     paused: Boolean(c.aiPausedAt),
     pausedReason: c.aiPausedReason,
@@ -349,11 +367,7 @@ export const getChat = async (id: string) => {
       status: b.status,
     })),
     memory: memory ? { notes: memory.notes, updatedAt: memory.updatedAt.toISOString() } : null,
-    approvals: approvals.map((a) => ({
-      runId: a.id,
-      createdAt: a.queuedAt.toISOString(),
-      proposal: a.proposal as unknown as import("./approvals").Proposal,
-    })),
+    approvals: approvalViews,
   };
 };
 

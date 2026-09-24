@@ -24,7 +24,8 @@
     "e2e:pagos": "playwright test --config playwright.payments.config.ts",
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report",
-    "test": "bun test ./lib"
+    "test": "bun test ./lib",
+    "e2e:whatsapp": "bun scripts/whatsapp-outreach-e2e.ts && bun scripts/whatsapp-bulk-e2e.ts"
   },
   "prisma": {
     "seed": "bunx tsx prisma/seed.ts"

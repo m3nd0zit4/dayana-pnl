@@ -78,3 +78,31 @@ export const summarizePlans = (plans: SendPlan[], pricePerTemplate: number): Sen
   summary.estimatedCost = Math.round(summary.template * pricePerTemplate * 10000) / 10000;
   return summary;
 };
+
+/**
+ * Cómo sale un mensaje aprobado por Dayana:
+ * - `text`: escribió hace menos de 24 h, va tal cual y gratis.
+ * - `template`: fuera de las 24 h, con la plantilla aprobada (se cobra).
+ * - `phone`: fuera de las 24 h y sin plantilla aprobada. El CRM no puede
+ *   enviarlo; se abre el WhatsApp de Dayana con el mensaje escrito (gratis).
+ */
+export type ApprovalDelivery = "text" | "template" | "phone";
+
+export const approvalDelivery = (input: {
+  windowOpen: boolean;
+  hasApprovedTemplate: boolean;
+}): ApprovalDelivery => (input.windowOpen ? "text" : input.hasApprovedTemplate ? "template" : "phone");
+
+/** `never`: la persona nunca ha escrito (le escribimos nosotros primero). */
+export type WindowState = "open" | "closed" | "never";
+
+export const windowStateOf = (lastInboundAt: Date | null, now = Date.now()): WindowState =>
+  !lastInboundAt ? "never" : now - lastInboundAt.getTime() < 24 * 3600_000 ? "open" : "closed";
+
+/** El aviso encima de la caja de escribir, según la ventana. */
+export const windowNotice = (state: WindowState): string | null =>
+  state === "open"
+    ? null
+    : state === "never"
+      ? "Esta persona todavía no te ha escrito: desde el CRM solo se le puede escribir con una plantilla aprobada. Mientras tanto, envíaselo desde tu celular (gratis)."
+      : "Pasaron más de 24 h desde su último mensaje: desde el CRM solo con una plantilla aprobada. Mientras tanto, envíaselo desde tu celular (gratis).";

@@ -1,12 +1,15 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  approvalDelivery,
   fillVars,
   firstName,
   isOptOutMessage,
   planSend,
   summarizePlans,
   templateParams,
+  windowNotice,
+  windowStateOf,
 } from "./whatsapp-outbound-plan";
 
 describe("planSend", () => {
@@ -72,5 +75,22 @@ describe("resumen", () => {
     );
     expect(s).toMatchObject({ total: 4, text: 1, template: 2, estimatedCost: 0.1 });
     expect(s.skipped.no_phone).toBe(1);
+  });
+});
+
+describe("approval delivery", () => {
+  test("never blocks: without template it goes from the phone", () => {
+    expect(approvalDelivery({ windowOpen: true, hasApprovedTemplate: false })).toBe("text");
+    expect(approvalDelivery({ windowOpen: false, hasApprovedTemplate: true })).toBe("template");
+    expect(approvalDelivery({ windowOpen: false, hasApprovedTemplate: false })).toBe("phone");
+  });
+  test("window state and notice", () => {
+    const now = Date.parse("2026-09-24T12:00:00Z");
+    expect(windowStateOf(null, now)).toBe("never");
+    expect(windowStateOf(new Date(now - 3600_000), now)).toBe("open");
+    expect(windowStateOf(new Date(now - 30 * 3600_000), now)).toBe("closed");
+    expect(windowNotice("open")).toBeNull();
+    expect(windowNotice("never")).toContain("todavía no te ha escrito");
+    expect(windowNotice("closed")).toContain("24 h");
   });
 });
