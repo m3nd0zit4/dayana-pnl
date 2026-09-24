@@ -16,6 +16,7 @@ import {
 } from "../whatsapp-autoreply";
 import { clientContext, think, type TranscriptLine } from "./brain";
 import { getMemory, refreshMemory } from "./memory";
+import { approvedMessageIds, proposeForApproval, type Proposal } from "./approvals";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -44,7 +45,11 @@ export type RunStatus =
   | "DRAFTED"
   | "ESCALATED"
   | "SKIPPED"
-  | "ERROR";
+  | "ERROR"
+  | "AWAITING_APPROVAL"
+  | "APPROVED"
+  | "CANCELLED"
+  | "SUPERSEDED";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -256,29 +261,23 @@ export const runWhatsAppAi = async (input: {
       toolCalls: result.toolCalls as unknown as Prisma.InputJsonValue,
     };
 
-    if (result.booking) {
-      const when = new Intl.DateTimeFormat("es-CO", {
-        timeZone: timezone,
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        hour: "numeric",
-        minute: "2-digit",
-      }).format(result.booking.startsAt);
-      fireNotification({
-        eventType: "WHATSAPP_AI_BOOKED",
-        title: `Agendé a ${name ?? `+${phone}`}: ${result.booking.service}`,
-        body: `${when}${result.booking.meetUrl ? ` · ${result.booking.meetUrl}` : ""}`,
-        href: `/admin/whatsapp?conversation=${conversationId}`,
-        entityType: "Conversation",
-        entityId: conversationId,
-        staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
-      });
-    }
-
     if (result.outcome.kind === "escalate") {
       await setStatus(run.id, "SENDING", meta);
       await escalate(conversationId, run.id, config, result.outcome, name, meta);
+      // Un pago que la persona dice haber hecho: Dayana lo verifica y, con un
+      // toque, manda la respuesta que la IA dejó preparada.
+      if (result.outcome.category === "payment" && result.suggestedReply) {
+        await proposeForApproval({
+          runId: run.id,
+          conversationId,
+          name,
+          proposal: {
+            kind: "payment_received",
+            message: result.suggestedReply,
+            reason: result.outcome.reason,
+          },
+        });
+      }
       return;
     }
 
@@ -289,30 +288,48 @@ export const runWhatsAppAi = async (input: {
       where: { id: conversationId },
       select: { aiMode: true, aiPausedAt: true, priorityAt: true },
     });
-    const humanSince = await prisma.conversationMessage.count({
-      where: {
-        conversationId,
-        direction: "OUTBOUND",
-        isAutoReply: false,
-        status: { not: "FAILED" },
-        sentAt: { gte: new Date(Date.now() - DEBOUNCE_MS - 5 * 60_000) },
-      },
-    });
+    const recentSince = new Date(Date.now() - DEBOUNCE_MS - 5 * 60_000);
+    const [recentHuman, recentApproved] = await Promise.all([
+      prisma.conversationMessage.findMany({
+        where: {
+          conversationId,
+          direction: "OUTBOUND",
+          isAutoReply: false,
+          status: { not: "FAILED" },
+          sentAt: { gte: recentSince },
+        },
+        select: { id: true },
+      }),
+      approvedMessageIds(conversationId, recentSince),
+    ]);
+    const humanSince = recentHuman.filter((m) => !recentApproved.has(m.id)).length;
     const tookOver =
       !now ||
       now.aiMode === "MANUAL" ||
       Boolean(now.aiPausedAt) ||
       Boolean(now.priorityAt) ||
       humanSince > 0;
-    if (tookOver || now?.aiMode === "COPILOT" || conversation.aiMode === "COPILOT") {
-      await prisma.conversation.update({
-        where: { id: conversationId },
-        data: { draftBody: body, draftSource: "AI", draftUpdatedAt: new Date() },
-      });
-      await finish(run.id, "DRAFTED", {
-        ...meta,
-        ...(tookOver ? { reason: "Tomaste el chat mientras la IA pensaba: quedó como borrador." } : {}),
-      });
+
+    // Agendar y mandar enlaces de pago siempre esperan la autorización de
+    // Dayana; en copiloto (o si ella tomó el chat mientras la IA pensaba), toda
+    // respuesta espera. Solo en modo IA una respuesta simple sale sola.
+    const needsApproval =
+      Boolean(result.pendingBooking) ||
+      Boolean(result.pendingPayment) ||
+      tookOver ||
+      now?.aiMode === "COPILOT" ||
+      conversation.aiMode === "COPILOT";
+
+    if (needsApproval) {
+      const proposal: Proposal = {
+        kind: result.pendingBooking ? "booking" : result.pendingPayment ? "payment_link" : "reply",
+        message: body,
+        ...(result.pendingBooking ? { booking: result.pendingBooking } : {}),
+        ...(result.pendingPayment ? { payment: result.pendingPayment } : {}),
+        stickerUrl: result.stickerUrl,
+        ...(tookOver ? { reason: "Tomaste el chat mientras la IA pensaba." } : {}),
+      };
+      await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta });
     } else {
       await setStatus(run.id, "SENDING", meta);
       await sendAuto(conversationId, body);
@@ -386,6 +403,7 @@ const loadConversation = (conversationId: string) =>
         orderBy: { sentAt: "desc" },
         take: HISTORY,
         select: {
+          id: true,
           direction: true,
           body: true,
           attachments: true,
@@ -446,8 +464,15 @@ const gate = async (
 
   // Dayana escribió aquí hace poco (desde el CRM o el celular): el hilo es suyo.
   // Un envío fallido no cuenta como respuesta suya.
+  const viaApproval = await approvedMessageIds(
+    conversationId,
+    new Date(Date.now() - Math.max(config.handoffHours, 1) * 3600_000)
+  );
   const lastHumanAt = ordered
-    .filter((m) => m.direction === "OUTBOUND" && !m.isAutoReply && m.status !== "FAILED")
+    .filter(
+      (m) =>
+        m.direction === "OUTBOUND" && !m.isAutoReply && m.status !== "FAILED" && !viaApproval.has(m.id)
+    )
     .at(-1)?.sentAt;
   if (
     conversation.aiMode === "AUTO" &&

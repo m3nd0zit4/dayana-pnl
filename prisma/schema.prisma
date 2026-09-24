@@ -240,6 +240,7 @@ enum NotificationEventType {
   AGENT_ACTION_EXECUTED
   WHATSAPP_AI_ESCALATED
   WHATSAPP_AI_BOOKED
+  WHATSAPP_AI_APPROVAL
   CAMPAIGN_COMPLETED
   NOTIFICATION_DELIVERY_FAILED
   SYSTEM_ALERT
@@ -2016,6 +2017,12 @@ model WhatsAppAiRun {
   /// Id del mensaje entrante que la disparó (el último de la ráfaga).
   triggerMessageId String?   @map("trigger_message_id")
   toolCalls        Json?     @map("tool_calls")
+  /// Lo que la IA propone y espera la aprobación de Dayana: un borrador, una
+  /// cita, un enlace de pago o la respuesta a un pago recibido (ver
+  /// lib/crm/whatsapp-agent/approvals.ts).
+  proposal         Json?
+  decidedAt        DateTime? @map("decided_at")
+  decidedById      String?   @map("decided_by_id")
   model            String?
   inputTokens      Int?      @map("input_tokens")
   outputTokens     Int?      @map("output_tokens")

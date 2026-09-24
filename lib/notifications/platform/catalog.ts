@@ -514,6 +514,18 @@ export const NOTIFICATION_CATALOG: Record<
     roles: WRITE_ROLES,
     immediate: true,
   },
+  WHATSAPP_AI_APPROVAL: {
+    label: "WhatsApp: autoriza a la IA",
+    description:
+      "La IA quiere agendar una cita, mandar un enlace de pago o responder a un pago: espera tu autorización.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: true,
+    roles: WRITE_ROLES,
+    immediate: true,
+  },
   WHATSAPP_AI_BOOKED: {
     label: "WhatsApp: cita agendada",
     description: "La IA de WhatsApp agendó una cita en tu Google Calendar.",

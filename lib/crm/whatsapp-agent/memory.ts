@@ -69,7 +69,7 @@ export const refreshMemory = async (input: {
   const { text } = await generateText({
     model: google(process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash"),
     system:
-      "Mantienes la ficha breve de una persona que escribe al WhatsApp de una terapeuta. Guardas solo hechos útiles para atenderla mejor la próxima vez: nombre, qué busca, en qué proceso va, citas o pagos mencionados, lo que se le prometió, preferencias (horarios, trato). Nada clínico íntimo más allá de una frase general. Máximo 8 viñetas cortas. Si la conversación no añade nada nuevo, devuelve la ficha anterior tal cual. Devuelve SOLO la ficha.",
+      "Mantienes la ficha breve de una persona que escribe al WhatsApp de una terapeuta. Guardas solo hechos útiles para atenderla mejor la próxima vez: nombre, si es hombre o mujer (por su nombre y cómo habla de sí; escribe «Género: hombre», «Género: mujer» o «Género: no se sabe»), qué busca, en qué proceso va, citas o pagos mencionados, lo que se le prometió, preferencias (horarios, trato). Nada clínico íntimo más allá de una frase general. Máximo 8 viñetas cortas. Si la conversación no añade nada nuevo, devuelve la ficha anterior tal cual. Devuelve SOLO la ficha.",
     prompt: `FICHA ANTERIOR:\n${previous || "(vacía)"}\n\nCONVERSACIÓN RECIENTE:\n${recent}`,
   });
 

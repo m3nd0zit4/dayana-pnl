@@ -9,9 +9,10 @@ import { getSiteUrl } from "@/lib/site-url";
 import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { findSimilarExamples, type SimilarExample } from "../whatsapp-learning";
-import { availableSlots, bookOnCalendar, SlotUnavailableError } from "./calendar";
+import { availableSlots, SlotUnavailableError } from "./calendar";
 import { playbooksBlock } from "./playbooks";
 import { spreadSlots } from "./slots";
+import { PAYMENT_PLACEHOLDER } from "./placeholders";
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -55,6 +56,18 @@ export type BrainResult = {
   examples: SimilarExample[];
   toolCalls: { tool: string; input: unknown; output: unknown }[];
   booking: BrainBooking | null;
+  /** Cita que la IA quiere agendar: espera la autorización de Dayana. */
+  pendingBooking: {
+    service: string;
+    startIso: string;
+    durationMin: number;
+    name: string | null;
+    label: string;
+  } | null;
+  /** Enlace de pago que la IA quiere mandar: espera la autorización de Dayana. */
+  pendingPayment: { productId: string; product: string } | null;
+  /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
+  suggestedReply: string | null;
   model: string;
   usage: { inputTokens?: number; outputTokens?: number };
 };
@@ -299,6 +312,7 @@ const systemPrompt = (config: WhatsAppAiConfig, now: string): string => {
 Ahora es ${now}.
 
 Cómo conversas (así vende Dayana):
+- Género: antes de usar cualquier palabra con género o apodo cariñoso, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa siempre masculino («querido», «bienvenido», «te bendigo»); JAMÁS «mi bella», «mi hermosa», «querida» ni adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
 - Primero la persona, no el precio. Saluda con calidez y pregúntale cómo está, qué la trae, qué está viviendo.
 - Haz una o dos preguntas que la hagan mirar su situación, una a la vez: «¿hace cuánto te sientes así?», «¿cómo te está afectando en tu día a día?», «¿cuánto tiempo más quieres seguir viviendo esto?». Refleja en una frase lo que te cuenta, con empatía, sin dar consejos ni diagnosticar.
@@ -396,10 +410,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     outcome: BrainOutcome | null;
     booking: BrainBooking | null;
     stickerUrl: string | null;
+    pendingBooking: BrainResult["pendingBooking"];
+    pendingPayment: BrainResult["pendingPayment"];
+    suggestedReply: string | null;
   } = {
     outcome: null,
     booking: null,
     stickerUrl: null,
+    pendingBooking: null,
+    pendingPayment: null,
+    suggestedReply: null,
   };
 
   // Los stickers que Dayana usa de verdad (al menos dos veces), con lo que
@@ -440,10 +460,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         category: z.enum(["payment", "unknown", "complaint", "clinical", "reschedule", "other"]),
         severity: z.enum(["normal", "urgent"]),
         reason: z.string().max(200).describe("Para Dayana: qué pasa, en una línea."),
+        suggestedReply: z
+          .string()
+          .max(500)
+          .optional()
+          .describe(
+            "Solo en pagos ya hechos: el mensaje corto y cálido que Dayana puede enviar cuando verifique el pago (agradece y confirma los siguientes pasos, sin inventar montos)."
+          ),
       }),
-      execute: async (args) => {
+      execute: async ({ suggestedReply, ...args }) => {
         state.outcome = { kind: "escalate", ...args };
-        return log("escalate", args, { ok: true });
+        if (suggestedReply?.trim()) state.suggestedReply = suggestedReply.trim();
+        return log("escalate", { ...args, suggestedReply }, { ok: true });
       },
     }),
     ...(config.booking.enabled
@@ -515,38 +543,30 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               }
               try {
                 const name = args.name?.trim() || input.name;
-                const created = await bookOnCalendar({
+                // La hora tiene que seguir libre ahora; se vuelve a mirar al aprobar.
+                const free = await availableSlots({
                   config: config.booking,
-                  timezone,
-                  start,
                   durationMin: minutes,
+                  timezone,
+                  now,
+                  from: new Date(start.getTime() - 60_000),
+                  to: new Date(start.getTime() + minutes * 60_000 + 60_000),
+                });
+                if (!free.some((slot) => slot.startIso === start.toISOString())) {
+                  throw new SlotUnavailableError("Esa hora ya no está libre.");
+                }
+                state.pendingBooking = {
                   service: args.service,
-                  name,
-                  phone: input.phone,
-                  conversationId: input.conversationId,
-                  contactId: input.contactId,
-                });
-                const row = await prisma.whatsAppBooking.create({
-                  data: {
-                    conversationId: input.conversationId,
-                    contactId: input.contactId,
-                    phone: input.phone,
-                    name,
-                    service: args.service,
-                    startsAt: start,
-                    endsAt: created.end,
-                    googleAccountId: created.accountId,
-                    calendarEventId: created.eventId,
-                    meetUrl: created.meetUrl,
-                    eventUrl: created.eventUrl,
-                  },
-                });
-                state.booking = { id: row.id, startsAt: start, service: args.service, meetUrl: created.meetUrl };
+                  startIso: start.toISOString(),
+                  durationMin: minutes,
+                  name: name ?? null,
+                  label: formatSlot(args.startIso, timezone),
+                };
                 return log("book_appointment", args, {
                   ok: true,
+                  pendingApproval: true,
                   label: formatSlot(args.startIso, timezone),
-                  meetUrl: created.meetUrl,
-                  calendarTitle: created.title,
+                  note: "La cita queda lista para que Dayana la autorice. Escribe el mensaje de confirmación con el servicio, el día y la hora. NO escribas ningún enlace: el de la videollamada se agrega solo cuando Dayana la aprueba.",
                 });
               } catch (e) {
                 if (e instanceof SlotUnavailableError) {
@@ -604,14 +624,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         if (input.mode === "preview" || !input.conversationId) {
           return log("payment_link", { product }, { url: `${site}/pagar/(enlace-de-prueba)`, product: match.title });
         }
-        const { createPaymentLink } = await import("@/lib/crm/payment-links");
-        const link = await createPaymentLink({
-          contactId: input.contactId,
-          productId: match.id,
-          note: "Enviado por el asistente de WhatsApp",
-          expiresInDays: 14,
+        state.pendingPayment = { productId: match.id, product: match.title };
+        return log("payment_link", { product }, {
+          url: PAYMENT_PLACEHOLDER,
+          product: match.title,
+          note: `Escribe ${PAYMENT_PLACEHOLDER} exactamente donde va el enlace. Dayana lo autoriza y el enlace real se pone solo.`,
         });
-        return log("payment_link", { product }, { url: `${site}/pagar/${link.token}`, product: match.title });
       },
     }),
     search_past_chats: tool({
@@ -674,6 +692,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     toolCalls,
     stickerUrl: finalOutcome.kind === "reply" ? state.stickerUrl : null,
     booking: state.booking,
+    pendingBooking: finalOutcome.kind === "reply" ? state.pendingBooking : null,
+    pendingPayment: finalOutcome.kind === "reply" ? state.pendingPayment : null,
+    suggestedReply: finalOutcome.kind === "escalate" ? state.suggestedReply : null,
     model: modelId(),
     usage: {
       inputTokens: result.totalUsage?.inputTokens ?? undefined,

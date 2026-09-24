@@ -133,6 +133,24 @@ export const RunStatus = ({
       text = compact ? "La IA falló" : `La IA falló ${ended}: ${run.reason ?? ""}`;
       tone = "text-red-700 dark:text-red-300";
       break;
+    case "AWAITING_APPROVAL":
+      icon = <FilePen className="size-3.5" />;
+      text = compact ? "Espera tu aprobación" : `Espera tu aprobación · ${ended}`;
+      tone = "text-[#6d28d9] dark:text-violet-300";
+      break;
+    case "APPROVED":
+      icon = <CheckCheck className="size-3.5" />;
+      text = compact ? "Aprobado y enviado" : `Aprobaste y se envió ${agoLabel(run.finishedAt ?? run.queuedAt, now)}`;
+      tone = "text-[#008069] dark:text-emerald-300";
+      break;
+    case "CANCELLED":
+      icon = <XCircle className="size-3.5" />;
+      text = "Cancelaste la propuesta";
+      break;
+    case "SUPERSEDED":
+      icon = <Hand className="size-3.5" />;
+      text = run.reason ?? "Respondiste tú";
+      break;
     case "SKIPPED":
       icon = run.reason === "manual" ? <Hand className="size-3.5" /> : <PauseCircle className="size-3.5" />;
       text = `${SKIP_LABEL[run.reason ?? ""] ?? run.reason ?? "No respondió"}${compact ? "" : ` · ${ended}`}`;

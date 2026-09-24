@@ -26,6 +26,7 @@ import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import type { ChatDetail, ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import { useCrm } from "../crm/CrmProvider";
+import ApprovalBar from "./ApprovalBar";
 import GlobalModeSwitch from "./GlobalModeSwitch";
 import VoiceRecorder from "./VoiceRecorder";
 import { useWhatsAppLive } from "./live";
@@ -248,7 +249,18 @@ const ChatRow = ({ item, active, onOpen }: { item: ChatListItem; active: boolean
           )}
         </div>
         <div className="mt-1 flex items-center gap-2">
-          {item.escalation ? (
+          {item.awaitingApproval ? (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-[#6d28d9]">
+              <ShieldAlert className="size-3.5" />
+              {item.awaitingApproval === "booking"
+                ? "Autoriza la cita"
+                : item.awaitingApproval === "payment_link"
+                  ? "Autoriza el enlace de pago"
+                  : item.awaitingApproval === "payment_received"
+                    ? "Confirma el pago"
+                    : "Borrador por aprobar"}
+            </span>
+          ) : item.escalation ? (
             <span
               className={cn(
                 "inline-flex items-center gap-1 text-xs font-medium",
@@ -430,6 +442,24 @@ const Thread = ({
   };
 
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const decide = async (runId: string, decision: "approve" | "reject", message?: string) => {
+    try {
+      await post(chat.id, decision === "approve" ? { action: "approve", runId, message } : { action: "reject", runId });
+      toast(decision === "approve" ? "Enviado" : "Propuesta cancelada", "success");
+      onChanged();
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "error";
+      toast(
+        code === "window_closed"
+          ? "Pasaron más de 24 h desde su último mensaje: WhatsApp no deja escribirle ahora."
+          : code.startsWith("slot:")
+            ? `${code.slice(5)} Pídele a la IA otras horas o agenda tú.`
+            : `No se pudo: ${code}`,
+        "error"
+      );
+    }
+  };
 
   /** Sube un archivo (foto, documento, nota de voz) y lo manda en este chat. */
   const sendFile = async (file: File, caption?: string) => {
@@ -647,6 +677,7 @@ const Thread = ({
                 Pasaron más de 24 h desde su último mensaje: WhatsApp solo deja escribir cuando vuelva a escribir.
               </p>
             )}
+            <ApprovalBar approvals={chat.approvals} canWrite={canWrite} onDecide={decide} />
             {chat.draft?.source === "AI" && text === chat.draft.body && (
               <p className="flex items-center gap-1 text-xs font-medium text-[#008069]">
                 <Sparkles className="size-3.5" /> Borrador de la IA: envíalo o cámbialo (aprende de tus cambios).

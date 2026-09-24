@@ -322,6 +322,11 @@ export const processNormalizedEvent = async (
   ) {
     const { pauseAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
     await pauseAutoReply(result.conversationId).catch(() => undefined);
+    // Lo que la IA había propuesto ya no es la respuesta: Dayana contestó.
+    const { supersedePending } = await import("@/lib/crm/whatsapp-agent/approvals");
+    await supersedePending(result.conversationId, "Dayana respondió desde el celular.").catch(
+      () => undefined
+    );
     const { learnFromLatestReply } =
       await import("@/lib/crm/whatsapp-learning");
     await learnFromLatestReply(result.conversationId);

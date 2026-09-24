@@ -57,6 +57,9 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("draft"), body: z.string().max(4000).nullable() }),
   z.object({ action: z.literal("memory"), notes: z.string().max(1500) }),
   z.object({ action: z.literal("read") }),
+  /** Aceptar lo que propuso la IA, tal cual o con el mensaje cambiado. */
+  z.object({ action: z.literal("approve"), runId: z.string(), message: z.string().max(4000).optional() }),
+  z.object({ action: z.literal("reject"), runId: z.string() }),
   /** Foto, documento o nota de voz ya subidos por `/api/admin/inbox/upload`. */
   z.object({
     action: z.literal("attachment"),
@@ -224,6 +227,36 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "read":
       await markConversationRead(id);
       return NextResponse.json({ ok: true });
+    case "approve": {
+      const { approveProposal, ApprovalError } = await import("@/lib/crm/whatsapp-agent/approvals");
+      try {
+        const result = await approveProposal({
+          runId: input.runId,
+          conversationId: id,
+          staffId: staff.id,
+          message: input.message,
+        });
+        audit({ approved: input.runId, edited: Boolean(input.message) });
+        return NextResponse.json(result);
+      } catch (e) {
+        if (e instanceof MetaWindowError) return apiError("window_closed", 409);
+        if (e instanceof ApprovalError) return apiError(e.message, 409);
+        const { SlotUnavailableError } = await import("@/lib/crm/whatsapp-agent/calendar");
+        if (e instanceof SlotUnavailableError) return apiError(`slot:${e.message}`, 409);
+        return apiError(e instanceof Error ? e.message : "approve_failed", 400);
+      }
+    }
+    case "reject": {
+      const { cancelProposal, ApprovalError } = await import("@/lib/crm/whatsapp-agent/approvals");
+      try {
+        await cancelProposal({ runId: input.runId, conversationId: id, staffId: staff.id });
+        audit({ rejected: input.runId });
+        return NextResponse.json({ ok: true });
+      } catch (e) {
+        if (e instanceof ApprovalError) return apiError(e.message, 409);
+        throw e;
+      }
+    }
     case "attachment": {
       // Solo archivos que subió el propio CRM (store privado, carpeta de salida).
       let path = "";

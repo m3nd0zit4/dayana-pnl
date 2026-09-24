@@ -45,6 +45,8 @@ export type ChatListItem = {
   escalation: { category: string | null; severity: string | null; reason: string | null } | null;
   priority: boolean;
   hasDraft: boolean;
+  /** Hay algo esperando la autorización de Dayana (borrador, cita, pago). */
+  awaitingApproval: string | null;
   lastRun: RunView | null;
 };
 
@@ -93,7 +95,12 @@ const PREVIEW_KIND: Record<string, string> = {
 const queueWhere = (queue: ChatQueue): Prisma.ConversationWhereInput => {
   switch (queue) {
     case "attention":
-      return { aiPausedReason: "escalation" };
+      return {
+        OR: [
+          { aiPausedReason: "escalation" },
+          { aiRuns: { some: { status: "AWAITING_APPROVAL" } } },
+        ],
+      };
     case "mine":
       return { OR: [{ aiMode: "MANUAL" }, { priorityAt: { not: null } }] };
     case "ai":
@@ -154,6 +161,14 @@ export const listChats = async (input: {
     },
   });
 
+  const pending = await prisma.whatsAppAiRun.findMany({
+    where: { conversationId: { in: rows.map((r) => r.id) }, status: "AWAITING_APPROVAL" },
+    select: { conversationId: true, proposal: true },
+  });
+  const pendingBy = new Map(
+    pending.map((p) => [p.conversationId, (p.proposal as { kind?: string } | null)?.kind ?? "reply"])
+  );
+
   const items = rows.map((c): ChatListItem => {
     const last = c.messages[0];
     const name =
@@ -187,6 +202,7 @@ export const listChats = async (input: {
           : null,
       priority: Boolean(c.priorityAt),
       hasDraft: Boolean(c.draftBody),
+      awaitingApproval: pendingBy.get(c.id) ?? null,
       lastRun: c.aiRuns[0] ? runView(c.aiRuns[0]) : null,
     };
   });
@@ -274,6 +290,12 @@ export const getChat = async (id: string) => {
   });
   if (!c || c.channel !== "WHATSAPP") return null;
 
+  const approvals = await prisma.whatsAppAiRun.findMany({
+    where: { conversationId: id, status: "AWAITING_APPROVAL" },
+    orderBy: { queuedAt: "desc" },
+    select: { id: true, proposal: true, queuedAt: true },
+  });
+
   const memory = await prisma.whatsAppMemory.findUnique({
     where: { phone: c.externalThreadId },
     select: { notes: true, updatedAt: true },
@@ -327,6 +349,11 @@ export const getChat = async (id: string) => {
       status: b.status,
     })),
     memory: memory ? { notes: memory.notes, updatedAt: memory.updatedAt.toISOString() } : null,
+    approvals: approvals.map((a) => ({
+      runId: a.id,
+      createdAt: a.queuedAt.toISOString(),
+      proposal: a.proposal as unknown as import("./approvals").Proposal,
+    })),
   };
 };
 

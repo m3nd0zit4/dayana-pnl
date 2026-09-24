@@ -380,6 +380,10 @@ export const replyToConversation = async (input: ReplyInput) => {
     );
     await learnIfCorrectingAutoReply(input.conversationId).catch(() => undefined);
   }
+  {
+    const { supersedePending } = await import("./whatsapp-agent/approvals");
+    await supersedePending(input.conversationId, "Respondiste desde el CRM.").catch(() => undefined);
+  }
   if (before?.draftSource === "AI") {
     await prisma.conversation.update({
       where: { id: input.conversationId },
