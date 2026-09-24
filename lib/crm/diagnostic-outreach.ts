@@ -95,6 +95,8 @@ export const analyzeDiagnostic = async (input: {
   name: string;
   signals: DiagnosticSignals;
   config: WhatsAppAiConfig;
+  /** Días desde que la terminó (0 = ahora mismo). */
+  daysAgo?: number;
 }): Promise<z.infer<typeof analysisSchema> & { model: string | null }> => {
   if (!process.env.GEMINI_API_KEY?.trim()) return { ...fallbackAnalysis(input.name, input.signals), model: null };
   const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
@@ -119,7 +121,13 @@ export const analyzeDiagnostic = async (input: {
     ]
       .filter(Boolean)
       .join("\n\n"),
-    prompt: `Nombre: ${input.name || "(sin nombre)"}\n${describeSignals(input.signals)}`,
+    prompt: [
+      `Nombre: ${input.name || "(sin nombre)"}`,
+      describeSignals(input.signals),
+      input.daysAgo && input.daysAgo >= 1
+        ? `La terminó hace ${input.daysAgo} día${input.daysAgo === 1 ? "" : "s"} y nadie le ha escrito todavía: el mensaje lo reconoce con naturalidad («hace unos días hiciste tu autoevaluación…»), sin disculparse de más. La lectura de la hora es la de cuando la hizo.`
+        : "La acaba de terminar: le escribes en este momento.",
+    ].join("\n"),
   });
   // Los límites van aquí y no en el esquema: si el modelo se pasa por unas
   // letras, se recorta; con el límite en el esquema se perdía la lectura entera.
@@ -159,6 +167,86 @@ const ownerIds = async (config: WhatsAppAiConfig): Promise<string[] | "ALL"> =>
     : "ALL";
 
 /**
+ * Lee una autoevaluación con la IA y guarda la lectura (sin escribirle a
+ * nadie). La usa el envío automático y el botón «Leer pendientes con IA».
+ */
+export const readDiagnostic = async (diagnosticId: string, config: WhatsAppAiConfig) => {
+  const d = await prisma.diagnostic.findUniqueOrThrow({
+    where: { id: diagnosticId },
+    include: {
+      contact: {
+        select: { id: true, firstName: true, lastName: true, countryIso: true, timezone: true, phoneE164: true },
+      },
+    },
+  });
+  const contact = d.contact!;
+  const signals = buildDiagnosticSignals({
+    answers: sanitizeAnswers(d.answers),
+    profile: d.profile,
+    urgencyScore: d.urgencyScore,
+    commitmentScore: d.commitmentScore,
+    completedAt: d.completedAt ?? new Date(),
+    phoneCountry: contact.countryIso,
+    contactTimezone: contact.timezone,
+    clientTimezone: d.clientTimezone,
+    ipCountry: d.ipCountry,
+    ipCity: d.ipCity,
+    ipTimezone: d.ipTimezone,
+  });
+  const name = firstNameOf(contact.firstName);
+  const daysAgo = Math.floor((Date.now() - (d.completedAt ?? new Date()).getTime()) / 86_400_000);
+  const raw = await analyzeDiagnostic({ name, signals, config, daysAgo }).catch((e) => {
+    console.error("[autoevaluacion] análisis", e);
+    return { ...fallbackAnalysis(name, signals), model: null };
+  });
+  const analysis: DiagnosticAnalysis = {
+    ...raw,
+    signals: {
+      localTime: signals.localTime,
+      localWeekday: signals.localWeekday,
+      dayPart: signals.dayPart,
+      lateNight: signals.lateNight,
+      timezone: signals.timezone,
+      timezoneSource: signals.timezoneSource,
+      livesIn: signals.livesIn,
+      livesInName: countryName(signals.livesIn),
+      ipCity: signals.ipCity,
+      phoneCountry: signals.phoneCountry,
+      abroad: signals.abroad,
+    },
+    at: new Date().toISOString(),
+  };
+  await prisma.diagnostic.update({
+    where: { id: diagnosticId },
+    data: { aiAnalysis: analysis as unknown as Prisma.InputJsonValue },
+  });
+  return { d, contact, signals, analysis, raw };
+};
+
+/** Lee con la IA las autoevaluaciones completas que aún no tienen lectura. */
+export const readPendingDiagnostics = async (limit = 6): Promise<{ read: number; pending: number }> => {
+  const config = await getWhatsAppAiConfig();
+  const where: Prisma.DiagnosticWhereInput = {
+    completedAt: { not: null },
+    contactId: { not: null },
+    aiAnalysis: { equals: Prisma.DbNull },
+  };
+  const rows = await prisma.diagnostic.findMany({
+    where,
+    orderBy: { completedAt: "desc" },
+    take: limit,
+    select: { id: true },
+  });
+  let read = 0;
+  for (const r of rows) {
+    await readDiagnostic(r.id, config)
+      .then(() => read++)
+      .catch((e) => console.error("[autoevaluacion] lectura", r.id, e));
+  }
+  return { read, pending: await prisma.diagnostic.count({ where }) };
+};
+
+/**
  * Lee la autoevaluación y le escribe a la persona. Se reclama una sola vez
  * por diagnóstico (salvo `force`, que es el botón «Escribirle ahora» del CRM:
  * ahí Dayana ya decidió y se envía sin pasar por la aprobación).
@@ -182,54 +270,7 @@ export const runDiagnosticOutreach = async (
   if (claimed.count === 0) return { status: "SKIPPED", reason: "Ya se le escribió o no está completa." };
 
   try {
-    const d = await prisma.diagnostic.findUniqueOrThrow({
-      where: { id: diagnosticId },
-      include: {
-        contact: {
-          select: { id: true, firstName: true, lastName: true, countryIso: true, timezone: true, phoneE164: true },
-        },
-      },
-    });
-    const contact = d.contact!;
-    const signals = buildDiagnosticSignals({
-      answers: sanitizeAnswers(d.answers),
-      profile: d.profile,
-      urgencyScore: d.urgencyScore,
-      commitmentScore: d.commitmentScore,
-      completedAt: d.completedAt ?? new Date(),
-      phoneCountry: contact.countryIso,
-      contactTimezone: contact.timezone,
-      clientTimezone: d.clientTimezone,
-      ipCountry: d.ipCountry,
-      ipCity: d.ipCity,
-      ipTimezone: d.ipTimezone,
-    });
-    const name = firstNameOf(contact.firstName);
-    const raw = await analyzeDiagnostic({ name, signals, config }).catch((e) => {
-      console.error("[autoevaluacion] análisis", e);
-      return { ...fallbackAnalysis(name, signals), model: null };
-    });
-    const analysis: DiagnosticAnalysis = {
-      ...raw,
-      signals: {
-        localTime: signals.localTime,
-        localWeekday: signals.localWeekday,
-        dayPart: signals.dayPart,
-        lateNight: signals.lateNight,
-        timezone: signals.timezone,
-        timezoneSource: signals.timezoneSource,
-        livesIn: signals.livesIn,
-        livesInName: countryName(signals.livesIn),
-        ipCity: signals.ipCity,
-        phoneCountry: signals.phoneCountry,
-        abroad: signals.abroad,
-      },
-      at: new Date().toISOString(),
-    };
-    await prisma.diagnostic.update({
-      where: { id: diagnosticId },
-      data: { aiAnalysis: analysis as unknown as Prisma.InputJsonValue },
-    });
+    const { d, contact, signals, analysis, raw } = await readDiagnostic(diagnosticId, config);
 
     const who = [contact.firstName, contact.lastName].filter(Boolean).join(" ") || "Alguien";
     const diagHref = `/admin/diagnosticos/${diagnosticId}`;

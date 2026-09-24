@@ -13,6 +13,7 @@ import WhatsAppBulkSend from "@/app/components/admin/whatsapp/WhatsAppBulkSend";
 import { diagnosticPresets } from "@/lib/crm/whatsapp-presets";
 import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
 import CrmPageHeader from "./CrmPageHeader";
+import ReadPendingDiagnosticsButton from "./ReadPendingDiagnosticsButton";
 import CrmPageShell from "./CrmPageShell";
 import CrmSegmentedControl from "./CrmSegmentedControl";
 import {
@@ -202,6 +203,8 @@ const DiagnosticosPageClient = ({ preview, diagnosticos }: Props) => {
           />
         }
       />
+
+      <ReadPendingDiagnosticsButton />
 
       {recentDays !== null && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm">
