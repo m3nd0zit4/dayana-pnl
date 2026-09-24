@@ -33,3 +33,13 @@ describe("templateBodyProblem", () => {
     expect(templateBodyProblem("Hola {{nombre}} {{evento}} ya")).toContain("seguidas");
   });
 });
+
+import { utilityCategoryWarning } from "./whatsapp-template-rules";
+
+describe("categoría de utilidad", () => {
+  test("palabras de venta en UTILIDAD avisan (Meta la pasaría a Marketing)", () => {
+    expect(utilityCategoryWarning("UTILITY", "Hola, aprovecha el descuento de hoy")).toContain("Marketing");
+    expect(utilityCategoryWarning("UTILITY", "Hola, te recuerdo tu cita de mañana")).toBeNull();
+    expect(utilityCategoryWarning("MARKETING", "Hola, aprovecha el descuento")).toBeNull();
+  });
+});

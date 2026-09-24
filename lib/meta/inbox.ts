@@ -36,6 +36,8 @@ export const dedupeKeyFor = (event: NormalizedEvent): string => {
       return `msg:${event.externalMessageId}`;
     case "status":
       return `st:${event.externalMessageId}:${event.status}`;
+    case "template":
+      return `tpl:${event.name}:${event.status ?? ""}:${event.newCategory ?? ""}:${event.reason ?? ""}`;
     default:
       return `ct:${sha(event)}`;
   }

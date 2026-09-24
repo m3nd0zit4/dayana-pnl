@@ -120,3 +120,22 @@ describe("mensajes fantasma y avisos de sistema", () => {
     expect(t.kind === "message" && t.system).toBeFalsy();
   });
 });
+
+describe("aviso de Meta sobre una plantilla", () => {
+  test("aprobada o rechazada llega como evento de plantilla", () => {
+    const [ok] = normalizeMetaPayload(
+      wrap({ event: "APPROVED", message_template_name: "seguimiento_diagnostico", message_template_language: "es", reason: "NONE" }, "message_template_status_update")
+    );
+    expect(ok).toEqual({ kind: "template", name: "seguimiento_diagnostico", language: "es", status: "APPROVED", reason: null, newCategory: null });
+    const [no] = normalizeMetaPayload(
+      wrap({ event: "REJECTED", message_template_name: "x", reason: "INVALID_FORMAT" }, "message_template_status_update")
+    );
+    expect(no.kind === "template" && no.reason).toBe("INVALID_FORMAT");
+  });
+  test("cambio de categoría", () => {
+    const [c] = normalizeMetaPayload(
+      wrap({ message_template_name: "x", previous_category: "UTILITY", new_category: "MARKETING" }, "template_category_update")
+    );
+    expect(c.kind === "template" && c.newCategory).toBe("MARKETING");
+  });
+});

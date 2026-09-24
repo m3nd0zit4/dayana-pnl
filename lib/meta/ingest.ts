@@ -373,6 +373,25 @@ export const processNormalizedEvent = async (
     return ingestStatus(event);
   }
 
+  if (event.kind === "template") {
+    // Meta aprobó / rechazó / pausó una plantilla o le cambió la categoría.
+    const { count } = await prisma.messageTemplate.updateMany({
+      where: { metaTemplateName: event.name, ...(event.language ? { metaTemplateLang: event.language } : {}) },
+      data: {
+        ...(event.status
+          ? {
+              metaApprovalStatus:
+                event.status === "REJECTED" && event.reason
+                  ? `REJECTED · ${event.reason}`.slice(0, 120)
+                  : event.status,
+            }
+          : {}),
+        ...(event.newCategory ? { metaCategory: event.newCategory } : {}),
+      },
+    });
+    return count > 0 ? { outcome: "contact_synced" } : { outcome: "ignored", reason: "unknown_template" };
+  }
+
   if (event.kind === "contact") {
     const { upsertKnownContact } = await import("@/lib/crm/whatsapp-learning");
     await upsertKnownContact(event);

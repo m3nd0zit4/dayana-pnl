@@ -82,8 +82,22 @@ export type NormalizedStatus = {
   failedCode?: number | null;
 };
 
+/**
+ * Meta revisó una plantilla (aprobada, rechazada, pausada…) o le cambió la
+ * categoría. Llega por el mismo webhook: el CRM se entera al instante.
+ */
+export type NormalizedTemplateUpdate = {
+  kind: "template";
+  name: string;
+  language: string | null;
+  /** APPROVED | REJECTED | PAUSED | DISABLED | PENDING… (null si solo cambió la categoría) */
+  status: string | null;
+  reason: string | null;
+  newCategory: string | null;
+};
+
 export type NormalizedEvent =
-  NormalizedMessage | NormalizedStatus | NormalizedContactSync;
+  NormalizedMessage | NormalizedStatus | NormalizedContactSync | NormalizedTemplateUpdate;
 
 // ── Utilidades ─────────────────────────────────────────────────────────────
 
@@ -627,6 +641,21 @@ export const normalizeMetaPayload = (payload: unknown): NormalizedEvent[] => {
           case "smb_app_state_sync":
             events.push(...normalizeWhatsAppStateSync(value));
             break;
+          case "message_template_status_update":
+          case "template_category_update": {
+            const name = asString(value.message_template_name);
+            if (!name) break;
+            const reason = asString(value.reason);
+            events.push({
+              kind: "template",
+              name,
+              language: asString(value.message_template_language),
+              status: asString(value.event)?.toUpperCase() ?? null,
+              reason: reason && reason !== "NONE" ? reason : null,
+              newCategory: asString(value.new_category)?.toUpperCase() ?? null,
+            });
+            break;
+          }
         }
       }
       continue;
@@ -641,13 +670,6 @@ export const normalizeMetaPayload = (payload: unknown): NormalizedEvent[] => {
   }
 
   return events;
-};
-
-/** Clave de serialización por hilo, para que Inngest no reordene un mismo chat. */
-export const threadKeyOf = (event: NormalizedEvent): string => {
-  if (event.kind === "message") return `${event.channel}:${event.threadId}`;
-  if (event.kind === "contact") return `contact:${event.phone}`;
-  return `status:${event.externalMessageId}`;
 };
 
 /**

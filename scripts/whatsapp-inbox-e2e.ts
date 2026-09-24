@@ -173,6 +173,26 @@ const main = async () => {
     check("eliminar para todos marca el original (el texto se conserva)", Boolean(tgt2.revokedAt) && Boolean(tgt2.body), tgt2.revokedAt);
     const orphan = await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("r3") } });
     check("reacción a un mensaje que no está: queda como aviso gris", orphan?.kind === "system", orphan?.kind);
+
+    console.log("\n9. Meta aprueba una plantilla: el CRM se entera al instante");
+    const tplName = `e2e_tpl_${run}`;
+    await prisma.messageTemplate.create({
+      data: { key: tplName, title: "e2e", body: "Hola {{nombre}}, prueba.", metaTemplateName: tplName, metaTemplateLang: "es", metaApprovalStatus: "PENDING", metaCategory: "UTILITY" },
+    });
+    await enqueue(
+      normalizeMetaPayload({
+        object: "whatsapp_business_account",
+        entry: [{ id: "waba", changes: [
+          { field: "message_template_status_update", value: { event: "APPROVED", message_template_name: tplName, message_template_language: "es", reason: "NONE" } },
+          { field: "template_category_update", value: { message_template_name: tplName, previous_category: "UTILITY", new_category: "MARKETING" } },
+        ] }],
+      })
+    );
+    await drainInbox({ budgetMs: 30_000 });
+    const tpl = await prisma.messageTemplate.findFirstOrThrow({ where: { metaTemplateName: tplName } });
+    check("queda aprobada sin esperar a nadie", tpl.metaApprovalStatus === "APPROVED", tpl.metaApprovalStatus);
+    check("y con la categoría que decidió Meta", tpl.metaCategory === "MARKETING", tpl.metaCategory);
+    await prisma.messageTemplate.delete({ where: { id: tpl.id } });
   } finally {
     if (prevAi) await prisma.siteSetting.update({ where: { key: prevAi.key }, data: { value: prevAi.value } });
   }

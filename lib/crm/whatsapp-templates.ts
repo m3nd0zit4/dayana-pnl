@@ -111,19 +111,8 @@ export const toMetaBody = (body: string): { text: string; varNames: string[] } =
 };
 
 /** Nombre válido para Meta: minúsculas, números y guion bajo. */
-/**
- * Las reglas de Meta que más rechazos causan, revisadas antes de enviar: no
- * empezar ni terminar con una variable, ni dos variables seguidas.
- */
-export const templateBodyProblem = (body: string): string | null => {
-  const t = body.trim();
-  if (/^\{\{\w+\}\}/.test(t)) return "No puede empezar con una variable: pon un saludo antes.";
-  if (/\{\{\w+\}\}[\s.!?¡¿:,;]*$/.test(t))
-    return "No puede terminar con una variable (por ejemplo el enlace): agrega una frase después.";
-  if (/\}\}\s*\{\{/.test(t)) return "No puede tener dos variables seguidas: pon texto entre ellas.";
-  if (t.length > 1024) return "Es demasiado larga (máximo 1024 caracteres).";
-  return null;
-};
+export { templateBodyProblem, utilityCategoryWarning } from "./whatsapp-template-rules";
+import { templateBodyProblem } from "./whatsapp-template-rules";
 
 export const metaTemplateName = (key: string): string =>
   key

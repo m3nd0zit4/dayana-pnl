@@ -1,5 +1,6 @@
 "use client";
 
+import { templateBodyProblem, utilityCategoryWarning } from "@/lib/crm/whatsapp-template-rules";
 import { CheckCircle2, Clock, Loader2, RefreshCw, Send, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import CrmPageShell from "../crm/CrmPageShell";
@@ -239,9 +240,18 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
                   <p className="text-[11px] text-[#667781]">
                     {"{{nombre}}"}, {"{{evento}}"}, {"{{fecha}}"}, {"{{enlace}}"}… se rellenan solos al enviar.
                   </p>
+                  {(() => {
+                    // Lo que Meta rechaza o reclasifica, dicho antes de mandarla.
+                    const body = drafts[st.key] ?? st.body;
+                    const problem = templateBodyProblem(body);
+                    const warn = utilityCategoryWarning(st.category, body);
+                    return problem || warn ? (
+                      <p className={`text-xs ${problem ? "text-[#b42318]" : "text-[#8a5a00]"}`}>{problem ?? warn}</p>
+                    ) : null;
+                  })()}
                   <button
                     type="button"
-                    disabled={busy !== null}
+                    disabled={busy !== null || Boolean(templateBodyProblem(drafts[st.key] ?? st.body))}
                     onClick={() =>
                       void post(
                         st.key,
