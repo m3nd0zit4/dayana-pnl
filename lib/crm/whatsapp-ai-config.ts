@@ -114,6 +114,15 @@ export const whatsAppAiConfigSchema = z.object({
   defaultMode: z.enum(["AUTO", "COPILOT", "MANUAL"]),
   /** Citas directas en el Google Calendar conectado. */
   booking: bookingSchema,
+  /**
+   * Autoevaluación → WhatsApp: al terminarla, la IA la lee (respuestas, país,
+   * hora local) y le escribe a la persona. `requireApproval`: deja el mensaje
+   * en la barra de aprobación en vez de enviarlo.
+   */
+  diagnosticOutreach: z.object({
+    enabled: z.boolean(),
+    requireApproval: z.boolean(),
+  }),
   escalation: z.object({
     /**
      * Lo que se le dice a la persona cuando la IA pasa el chat a Dayana.
@@ -161,6 +170,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
     ],
     addMeet: true,
   },
+  diagnosticOutreach: { enabled: true, requireApproval: false },
   escalation: { holdingMessage: "" },
 });
 

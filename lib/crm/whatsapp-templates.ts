@@ -78,6 +78,16 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     example: { nombre: "Ana" },
   },
   {
+    key: "autoevaluacion_bienvenida",
+    title: "Después de la autoevaluación",
+    category: "MARKETING",
+    body: "Hola {{nombre}}, te bendigo 💛 Gracias por hacer tu autoevaluación. {{mensaje}}",
+    example: {
+      nombre: "Ana",
+      mensaje: "Leí lo que compartiste y me gustaría escucharte. ¿Te regalo una consulta gratis de 15 minutos?",
+    },
+  },
+  {
     key: "retomar_conversacion",
     title: "Retomar la conversación",
     category: "MARKETING",

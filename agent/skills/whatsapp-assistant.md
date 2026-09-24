@@ -49,3 +49,12 @@ muéstrale a Dayana el resultado. Da siempre el enlace al chat
   van gratis, cuántas por plantilla y el costo; solo con su «sí», `dryRun: false`.
 - Fuera de las 24 h se usa la plantilla aprobada; si no hay, no se envía y hay
   que crearla en WhatsApp → Plantillas.
+
+## Autoevaluación → WhatsApp
+
+Cuando alguien termina la autoevaluación, la IA la lee (respuestas, país, hora
+local de la persona) y le escribe enseguida (plantilla «Después de la
+autoevaluación»). Si la lectura sale urgente, avisa a Dayana y se aparta de ese
+chat. Se enciende, se apaga o se pone «con aprobación» con
+`whatsapp_update_config` → `diagnosticOutreach {enabled, requireApproval}`. La
+lectura se ve en la ficha del diagnóstico.

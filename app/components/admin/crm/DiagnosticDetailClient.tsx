@@ -94,6 +94,8 @@ type Props = {
   diagnostic: DiagnosticDetail;
   /** Zona operativa (ajustes del sitio), resuelta en el servidor. */
   timeZone: string;
+  /** Lectura de la IA y el primer WhatsApp (se arma en el servidor). */
+  outreach?: React.ReactNode;
 };
 
 /**
@@ -101,7 +103,7 @@ type Props = {
  * embudo. Al estilo de una respuesta individual de Formbricks: resumen
  * arriba, línea de tiempo, y todas las respuestas debajo, sin pestañas.
  */
-const DiagnosticDetailClient = ({ diagnostic, timeZone }: Props) => {
+const DiagnosticDetailClient = ({ diagnostic, timeZone, outreach }: Props) => {
   const contact = diagnostic.contact;
   const whatsAppUrl = contact?.phoneE164
     ? buildContactWhatsAppUrl(contact.phoneE164)
@@ -151,6 +153,8 @@ const DiagnosticDetailClient = ({ diagnostic, timeZone }: Props) => {
           </>
         }
       />
+
+      {outreach}
 
       <Card>
         <CardContent className="space-y-4">

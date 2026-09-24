@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import DiagnosticDetailClient from "@/app/components/admin/crm/DiagnosticDetailClient";
+import DiagnosticOutreachCard from "@/app/components/admin/crm/DiagnosticOutreachCard";
+import { prisma } from "@/lib/db";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import { getDiagnosticById } from "@/lib/crm/diagnostics";
@@ -37,13 +39,42 @@ const DiagnosticoDetailPage = async ({ params }: Props) => {
   const staff = await getStaffSession();
   if (!staff) return null;
 
-  const [diagnostic, timeZone] = await Promise.all([
+  const [diagnostic, timeZone, outreach] = await Promise.all([
     getDiagnosticById(id),
     getOperationalTimezone().catch(() => OPERATIONAL_TZ),
+    prisma.diagnostic.findUnique({
+      where: { id },
+      select: {
+        aiAnalysis: true,
+        outreachStatus: true,
+        outreachReason: true,
+        outreachAt: true,
+        outreachConversationId: true,
+        completedAt: true,
+      },
+    }),
   ]);
   if (!diagnostic) notFound();
 
-  return <DiagnosticDetailClient diagnostic={diagnostic} timeZone={timeZone} />;
+  return (
+    <DiagnosticDetailClient
+      diagnostic={diagnostic}
+      timeZone={timeZone}
+      outreach={
+        outreach?.completedAt ? (
+          <DiagnosticOutreachCard
+            diagnosticId={id}
+            analysis={outreach.aiAnalysis as never}
+            status={outreach.outreachStatus}
+            reason={outreach.outreachReason}
+            at={outreach.outreachAt?.toISOString() ?? null}
+            conversationId={outreach.outreachConversationId}
+            hasPhone={Boolean(diagnostic.contact?.phoneE164)}
+          />
+        ) : null
+      }
+    />
+  );
 };
 
 export default DiagnosticoDetailPage;

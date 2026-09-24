@@ -251,6 +251,34 @@ export async function POST(req: NextRequest) {
           // el envío se perdería en silencio.
           const id = diagnostic.id;
           after(() => emitDiagnosticCompleted(id));
+          // Dónde estaba y a qué hora de su día (Vercel pone la IP geolocalizada
+          // en cabeceras), y enseguida la IA le escribe por WhatsApp.
+          const geo = (h: string) => {
+            const v = req.headers.get(h);
+            try {
+              return v ? decodeURIComponent(v).slice(0, 80) : null;
+            } catch {
+              return v?.slice(0, 80) ?? null;
+            }
+          };
+          await prisma.diagnostic
+            .update({
+              where: { id },
+              data: {
+                clientTimezone:
+                  typeof body.timezone === "string" ? body.timezone.slice(0, 64) : null,
+                ipCountry: geo("x-vercel-ip-country"),
+                ipCity: geo("x-vercel-ip-city"),
+                ipTimezone: geo("x-vercel-ip-timezone"),
+              },
+            })
+            .catch(() => undefined);
+          after(async () => {
+            const { runDiagnosticOutreach } = await import("@/lib/crm/diagnostic-outreach");
+            await runDiagnosticOutreach(id).catch((e) =>
+              console.error("[leads] autoevaluación → WhatsApp", e)
+            );
+          });
         }
       } catch (e) {
         console.error("[leads] diagnostic completion failed", e);

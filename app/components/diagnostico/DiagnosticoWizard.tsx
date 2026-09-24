@@ -206,6 +206,15 @@ const DiagnosticoWizard = ({ userCountry, source = "terapias" }: Props) => {
           email: email.trim(),
           phone: normalized!.phoneE164,
           phoneCountry: country,
+          // La hora de SU día (no la del servidor): la IA la usa para leer
+          // cómo está (no es lo mismo terminar esto a las 3 a. m.).
+          timezone: (() => {
+            try {
+              return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+            } catch {
+              return undefined;
+            }
+          })(),
           source: "web_lead_form",
           sourceDetail: "Diagnóstico",
           interest: "Diagnóstico",

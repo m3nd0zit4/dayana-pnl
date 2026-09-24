@@ -30,7 +30,7 @@ const Page = async () => {
     const config = defaultWhatsAppAiConfig();
     return (
       <CrmPageShell>
-        <WhatsAppBehaviorCard initialMode={config.defaultMode} initialHolding="" />
+        <WhatsAppBehaviorCard initialMode={config.defaultMode} initialHolding="" initialOutreach={config.diagnosticOutreach} />
       </CrmPageShell>
     );
   }
@@ -52,6 +52,7 @@ const Page = async () => {
       <WhatsAppBehaviorCard
         initialMode={config.defaultMode}
         initialHolding={config.escalation.holdingMessage}
+        initialOutreach={config.diagnosticOutreach}
       />
       <WhatsAppPlaybooksCard />
       <PushToggle />

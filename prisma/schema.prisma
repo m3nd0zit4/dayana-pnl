@@ -1721,6 +1721,25 @@ model Diagnostic {
   /// persona.
   followUpNotifiedAt DateTime? @map("follow_up_notified_at")
 
+  /// Dónde y a qué hora lo hizo: la zona horaria del navegador y lo que dice
+  /// la IP (Vercel). El país del teléfono no basta: mucha gente vive fuera.
+  clientTimezone String? @map("client_timezone")
+  ipCountry      String? @map("ip_country")
+  ipCity         String? @map("ip_city")
+  ipTimezone     String? @map("ip_timezone")
+
+  /// Lectura de la IA al completarlo: cómo se siente, contexto de la hora,
+  /// nivel de cuidado y el primer mensaje de WhatsApp (ver
+  /// lib/crm/diagnostic-outreach.ts).
+  aiAnalysis Json? @map("ai_analysis")
+  /// ANALYZING | SENT | AWAITING_APPROVAL | NEEDS_TEMPLATE | SKIPPED | FAILED
+  outreachStatus         String?   @map("outreach_status")
+  outreachReason         String?   @map("outreach_reason")
+  /// Se reclama antes de escribir (`updateMany` con `IS NULL`): un reintento
+  /// no le escribe dos veces a la misma persona.
+  outreachAt             DateTime? @map("outreach_at")
+  outreachConversationId String?   @map("outreach_conversation_id")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

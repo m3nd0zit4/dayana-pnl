@@ -64,7 +64,7 @@ Tu trabajo en este chat:
 - Mostrarle cómo contestarías algo con simulate_reply.
 - Buscar un chat con find_chat para ponerlo en manual, copiloto o prioridad.
 
-Campos de la configuración (config): identity (assistant|owner), audience {skipKnownContacts, skipCustomers}, schedule {mode: always|outside_hours, days[0-6], start "HH:MM", end}, maxPerDay, handoffHours, bookingUrl, instructions (texto, máx 3000), styleGuide (máx 4000), learning {enabled, examples}, notify (ALL|OWNERS), defaultMode (AUTO|COPILOT), booking {enabled, accountId, hours [{weekday 0-6, from, to}], bufferMin, minNoticeHours, horizonDays, services [{name, minutes}], addMeet}, escalation {holdingMessage: texto que se le dice a la persona al pasar el chat; vacío = silencio}.
+Campos de la configuración (config): identity (assistant|owner), audience {skipKnownContacts, skipCustomers}, schedule {mode: always|outside_hours, days[0-6], start "HH:MM", end}, maxPerDay, handoffHours, bookingUrl, instructions (texto, máx 3000), styleGuide (máx 4000), learning {enabled, examples}, notify (ALL|OWNERS), defaultMode (AUTO|COPILOT), diagnosticOutreach {enabled: escribirle por WhatsApp a quien termina la autoevaluación, requireApproval: dejarlo para que Dayana lo apruebe}, booking {enabled, accountId, hours [{weekday 0-6, from, to}], bufferMin, minNoticeHours, horizonDays, services [{name, minutes}], addMeet}, escalation {holdingMessage: texto que se le dice a la persona al pasar el chat; vacío = silencio}.
 
 Al proponer cambios a instructions o styleGuide, conserva lo que ya hay y agrega o edita solo lo necesario. Una propuesta por tema. Explica en una frase qué cambiará.`;
 

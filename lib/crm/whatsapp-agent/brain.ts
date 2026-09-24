@@ -285,6 +285,9 @@ export const clientContext = async (
     `Nombre: ${[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "sin nombre"}`,
   ];
   if (contact.enrollments.length === 0) lines.push("Todavía no ha comprado nada.");
+  const { diagnosticContextFor } = await import("../diagnostic-outreach");
+  const diagnostic = await diagnosticContextFor(contactId).catch(() => null);
+  if (diagnostic) lines.push(diagnostic);
   for (const e of contact.enrollments) {
     const sessions =
       e.sessionsTotal != null ? ` · sesiones ${e.sessionsUsed} de ${e.sessionsTotal}` : "";

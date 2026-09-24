@@ -56,7 +56,7 @@ export type RunStatus =
  * respuestas de la IA que ella aprobó. La IA no se aparta por ellos.
  */
 const isSystemSource = (source: string | null | undefined) =>
-  Boolean(source && (source.startsWith("bulk:") || source === "approval"));
+  Boolean(source && (source.startsWith("bulk:") || source === "approval" || source === "autoevaluacion"));
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

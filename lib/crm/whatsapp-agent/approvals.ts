@@ -46,6 +46,11 @@ export type Proposal = {
   stickerUrl?: string | null;
   /** Por qué la IA escaló (pagos recibidos). */
   reason?: string;
+  /**
+   * Primer mensaje a alguien que nunca escribió (autoevaluación): fuera de
+   * las 24 h va con la primera plantilla aprobada de `keys`.
+   */
+  template?: { keys: string[]; vars: Record<string, string> };
 };
 
 export const PENDING = "AWAITING_APPROVAL";
@@ -141,6 +146,48 @@ const loadPending = async (runId: string, conversationId: string) => {
  * el enlace, y se envía. Si cambió el texto, cuenta como corrección para que la
  * IA aprenda.
  */
+const sendWithTemplate = async (input: {
+  conversation: { externalThreadId: string; contactId: string | null; participantName: string | null };
+  message: string;
+  template: NonNullable<Proposal["template"]>;
+  edited: boolean;
+  staffId: string;
+}): Promise<{ messageId: string }> => {
+  const { recipientFromContact, sendWhatsAppToRecipient } = await import("../whatsapp-outbound");
+  const { approvedTemplateFor } = await import("../whatsapp-templates");
+  let template = null;
+  for (const key of input.template.keys) {
+    template = await approvedTemplateFor(key);
+    if (template) break;
+  }
+  const c = input.conversation;
+  const recipient = (c.contactId ? await recipientFromContact(c.contactId) : null) ?? {
+    contactId: c.contactId,
+    phoneE164: `+${c.externalThreadId}`,
+    name: c.participantName,
+    optedOut: false,
+  };
+  const vars = input.edited
+    ? { ...input.template.vars, mensaje: input.message.replace(/\s*\n+\s*/g, " ").trim() }
+    : input.template.vars;
+  const r = await sendWhatsAppToRecipient({
+    recipient,
+    text: input.message,
+    template,
+    vars,
+    source: "approval",
+    staffId: input.staffId,
+  });
+  if (r.status === "sent") return { messageId: r.messageId };
+  throw new ApprovalError(
+    r.status === "skipped"
+      ? r.reason === "needs_template"
+        ? "Pasaron más de 24 h y la plantilla «Después de la autoevaluación» aún no está aprobada (WhatsApp → Plantillas). Escríbele desde el celular."
+        : "No se le puede escribir a este número."
+      : r.error
+  );
+};
+
 export const approveProposal = async (input: {
   runId: string;
   conversationId: string;
@@ -218,12 +265,20 @@ export const approveProposal = async (input: {
   }
   message = message.split(PAYMENT_PLACEHOLDER).join("").trim();
 
-  const result = await sendMetaMessage({
-    conversationId: input.conversationId,
-    body: message,
-    staffUserId: input.staffId,
-    source: "approval",
-  });
+  const result = p.template
+    ? await sendWithTemplate({
+        conversation,
+        message,
+        template: p.template,
+        edited: Boolean(edited),
+        staffId: input.staffId,
+      })
+    : await sendMetaMessage({
+        conversationId: input.conversationId,
+        body: message,
+        staffUserId: input.staffId,
+        source: "approval",
+      });
   // Tal cual la escribió la IA: cuenta como respuesta de la IA. Si Dayana la
   // cambió, es suya (y la IA aprende de la diferencia).
   await prisma.conversationMessage.update({
