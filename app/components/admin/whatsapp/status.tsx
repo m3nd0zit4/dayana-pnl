@@ -76,6 +76,20 @@ export const isRunLive = (run: RunView | null) =>
  * Una línea con lo que está haciendo la IA en este chat, con tiempos en vivo:
  * «Leyendo… 3 s», «Pensando… 6 s», «Respondió hace 2 min · tardó 9 s».
  */
+/** « · le llegó» / « · lo leyó»: lo que confirmó WhatsApp. */
+const deliveredLabel = (d: RunView["delivery"]) =>
+  d?.status === "READ" ? " · lo leyó" : d?.status === "DELIVERED" ? " · le llegó" : "";
+
+/** El motivo de WhatsApp, en palabras de persona. */
+export const failedLabel = (reason: string) =>
+  /undeliverable/i.test(reason)
+    ? "WhatsApp no pudo entregarlo a esa persona"
+    : /24|re-engagement|window/i.test(reason)
+      ? "pasaron más de 24 h desde su último mensaje"
+      : /template/i.test(reason)
+        ? "problema con la plantilla"
+        : reason;
+
 export const RunStatus = ({
   run,
   compact = false,
@@ -115,7 +129,7 @@ export const RunStatus = ({
       break;
     case "REPLIED":
       icon = <CheckCheck className="size-3.5" />;
-      text = compact ? `IA respondió ${ended}` : `La IA respondió ${ended}${took}`;
+      text = compact ? `IA respondió ${ended}` : `La IA respondió ${ended}${took}${deliveredLabel(run.delivery)}`;
       tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "DRAFTED":
@@ -140,7 +154,9 @@ export const RunStatus = ({
       break;
     case "APPROVED":
       icon = <CheckCheck className="size-3.5" />;
-      text = compact ? "Aprobado y enviado" : `Aprobaste y se envió ${agoLabel(run.finishedAt ?? run.queuedAt, now)}`;
+      text = compact
+        ? "Aprobado y enviado"
+        : `Aprobaste y se envió ${agoLabel(run.finishedAt ?? run.queuedAt, now)}${deliveredLabel(run.delivery)}`;
       tone = "text-[#008069] dark:text-emerald-300";
       break;
     case "CANCELLED":
@@ -155,6 +171,14 @@ export const RunStatus = ({
       icon = run.reason === "manual" ? <Hand className="size-3.5" /> : <PauseCircle className="size-3.5" />;
       text = `${SKIP_LABEL[run.reason ?? ""] ?? run.reason ?? "No respondió"}${compact ? "" : ` · ${ended}`}`;
       break;
+  }
+
+  if (run.delivery?.status === "FAILED" && (run.status === "APPROVED" || run.status === "REPLIED")) {
+    icon = <XCircle className="size-3.5" />;
+    text = compact
+      ? "No se entregó"
+      : `${run.status === "APPROVED" ? "Lo aprobaste" : "La IA respondió"}, pero WhatsApp no lo entregó${run.delivery.error ? ` (${failedLabel(run.delivery.error)})` : ""}`;
+    tone = "text-[#d92d20] dark:text-red-300";
   }
 
   return (

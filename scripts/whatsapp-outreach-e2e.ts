@@ -7,7 +7,9 @@
  *
  * Lo que protege (todos fueron errores reales):
  * - «Aceptar y enviar» nunca termina en error: sin ventana ni plantilla
- *   aprobada, la propuesta se envía desde el celular de Dayana.
+ *   aprobada, la propuesta se envía desde el WhatsApp de Dayana, y no se da
+ *   por enviada hasta que el mensaje llega de verdad (eco del celular).
+ * - México (521…) y Argentina (549…): la respuesta cae en el mismo chat.
  * - Un chat sin mensajes no aparece como «📎 Adjunto».
  * - A quien nunca escribió no se le dice «pasaron más de 24 h».
  * - Con plantilla aprobada sale por plantilla; con ventana abierta, texto.
@@ -21,6 +23,24 @@ import { getChat, listChats } from "@/lib/crm/whatsapp-agent/workspace";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { STARTER_TEMPLATES, templateBodyProblem } from "@/lib/crm/whatsapp-templates";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
+import { whatsAppDigits } from "@/lib/whatsapp-contact";
+import { processNormalizedEvent } from "@/lib/meta/ingest";
+import type { NormalizedMessage } from "@/lib/meta/inbound";
+
+/** Un mensaje que llega por el webhook (de la persona, o eco del celular de Dayana). */
+const webhookMessage = (threadId: string, body: string, isEcho: boolean): NormalizedMessage => ({
+  kind: "message",
+  channel: "WHATSAPP",
+  metaAccountId: "test-phone-id",
+  threadId,
+  externalMessageId: `wamid.e2e.${isEcho ? "echo" : "in"}.${Date.now()}.${Math.random().toString(36).slice(2)}`,
+  isEcho,
+  body,
+  attachments: [],
+  replyToExternalId: null,
+  sentAt: new Date(),
+  participantName: isEcho ? null : "Persona de prueba",
+});
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
 process.env.NOTIFICATIONS_DRY_RUN = "true";
@@ -61,11 +81,14 @@ let seq = 0;
 /** Persona nueva que acaba de terminar la autoevaluación. */
 const newPerson = async (
   firstName: string,
-  opts: { wroteHoursAgo?: number; aiMode?: "AUTO" | "COPILOT" } = {}
+  opts: { wroteHoursAgo?: number; aiMode?: "AUTO" | "COPILOT"; phone?: string } = {}
 ) => {
   seq++;
-  const phone = `+5730000079${String(seq).padStart(2, "0")}`;
+  const phone = opts.phone ?? `+5730000079${String(seq).padStart(2, "0")}`;
   const digits = phone.slice(1);
+  await prisma.conversation.deleteMany({
+    where: { channel: "WHATSAPP", externalThreadId: { in: [digits, whatsAppDigits(phone)] } },
+  });
   await prisma.conversation.deleteMany({ where: { channel: "WHATSAPP", externalThreadId: digits } });
   const contact = await prisma.contact.upsert({
     where: { phoneE164: phone },
@@ -150,11 +173,17 @@ const main = async () => {
       }
       check("«Aceptar y enviar» por el CRM no intenta un envío imposible", code === "needs_phone", code);
       const byPhone = await approveByPhone({ runId: a.runId, conversationId: chat.id, staffId: staff.id });
-      check("«Enviar desde mi celular» funciona", Boolean(byPhone.url?.startsWith("https://wa.me/")), byPhone);
-      const after = (await getChat(chat.id))!;
-      check("ya no queda propuesta pendiente", after.approvals.length === 0, after.approvals.length);
-      const list2 = await listChats({ queue: "all", q: digits });
-      check("chat vacío se ve como vacío", list2[0]?.lastMessage === "Aún no hay mensajes", list2[0]?.lastMessage);
+      check("«Enviar desde el WhatsApp de Dayana» da el enlace", Boolean(byPhone.url?.startsWith("https://wa.me/")), byPhone);
+      const opened = (await getChat(chat.id))!;
+      check(
+        "abrirlo NO la da por enviada (el caso de Mario, Ángela y Nancy)",
+        opened.approvals.length === 1 && Boolean(opened.approvals[0].proposal.phoneOpenedAt),
+        opened.approvals.map((x) => x.proposal.phoneOpenedAt)
+      );
+      await processNormalizedEvent("whatsapp_business_account", webhookMessage(chat.phone, opened.approvals[0].proposal.message, true));
+      const sent = (await getChat(chat.id))!;
+      check("cuando sale del celular de Dayana, la propuesta se cierra", sent.approvals.length === 0, sent.approvals.length);
+      check("y el mensaje queda en el chat", sent.messages.some((m) => m.direction === "OUTBOUND"), sent.messages.length);
     }
 
     console.log("\n2. Copiloto, nunca escribió, CON plantilla aprobada");
@@ -193,6 +222,23 @@ const main = async () => {
       const chat = (await getChat(r.conversationId!))!;
       check("ventana cerrada (no «nunca»)", chat.windowState === "closed", chat.windowState);
       check("sale por el celular", chat.approvals[0]?.delivery === "phone", chat.approvals[0]?.delivery);
+    }
+
+    console.log("\n4b. México y Argentina: la respuesta cae en el mismo chat");
+    await setMode("COPILOT");
+    for (const [label, phone, expected] of [
+      ["México", "+529990001122", "5219990001122"],
+      ["Argentina", "+542990001122", "5492990001122"],
+    ] as const) {
+      const { diagnostic } = await newPerson(`Prueba ${label}`, { phone });
+      const r = await runDiagnosticOutreach(diagnostic.id);
+      const conv = await prisma.conversation.findUnique({ where: { id: r.conversationId! } });
+      check(`${label}: el chat usa el número de WhatsApp (${expected})`, conv?.externalThreadId === expected, conv?.externalThreadId);
+      await processNormalizedEvent("whatsapp_business_account", webhookMessage(expected, "Hola, sí quiero la consulta", false));
+      const chats = await prisma.conversation.count({ where: { channel: "WHATSAPP", externalThreadId: { in: [phone.slice(1), expected] } } });
+      check(`${label}: su respuesta no crea otro chat`, chats === 1, chats);
+      const chat = (await getChat(r.conversationId!))!;
+      check(`${label}: se abre la ventana de 24 h`, chat.windowState === "open", chat.windowState);
     }
 
     console.log("\n5. IA sola, nunca escribió, sin plantilla");

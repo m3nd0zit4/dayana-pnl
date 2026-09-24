@@ -1,3 +1,4 @@
+import { whatsAppRecipient } from "@/lib/whatsapp-contact";
 import type { Conversation, Prisma } from "@prisma/client";
 // Imported directly (not via `lib/storage/blob.ts`, which this whole module
 // tree is reachable from through `agent/tools/*` → `lib/crm/conversations.ts`
@@ -132,7 +133,10 @@ const sendWhatsApp = async (
   window: WindowState,
   credentials: MetaCredentials
 ): Promise<string | null> => {
-  const to = digitsOnly(conversation.externalThreadId);
+  // Quien escribe con nombre de usuario (sin número) llega con un id tipo
+  // «PE.2290…»: se le responde con `recipient`. Quitarle las letras lo volvía
+  // un número inexistente y WhatsApp devolvía «Message undeliverable».
+  const target = whatsAppRecipient(conversation.externalThreadId, digitsOnly);
 
   // Fuera de ventana WhatsApp rechaza el texto libre. Antes esto se enviaba
   // igual y fallaba en silencio; ahora se exige plantilla de forma explícita.
@@ -149,7 +153,7 @@ const sendWhatsApp = async (
       {
         messaging_product: "whatsapp",
         recipient_type: "individual",
-        to,
+        ...target,
         type: "template",
         template: {
           name: input.template.name,
@@ -190,7 +194,7 @@ const sendWhatsApp = async (
       {
         messaging_product: "whatsapp",
         recipient_type: "individual",
-        to,
+        ...target,
         type: kind,
         [kind]: {
           id: mediaId,
@@ -210,7 +214,7 @@ const sendWhatsApp = async (
         {
           messaging_product: "whatsapp",
           recipient_type: "individual",
-          to,
+          ...target,
           type: "text",
           text: { preview_url: true, body: input.body },
         },
@@ -230,7 +234,7 @@ const sendWhatsApp = async (
       {
         messaging_product: "whatsapp",
         recipient_type: "individual",
-        to,
+        ...target,
         type: "interactive",
         interactive: {
           type: "cta_url",
@@ -254,7 +258,7 @@ const sendWhatsApp = async (
     {
       messaging_product: "whatsapp",
       recipient_type: "individual",
-      to,
+      ...target,
       type: "text",
       text: { preview_url: true, body: input.body },
     },

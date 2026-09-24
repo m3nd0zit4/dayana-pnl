@@ -31,7 +31,7 @@ import ApprovalBar from "./ApprovalBar";
 import GlobalModeSwitch from "./GlobalModeSwitch";
 import VoiceRecorder from "./VoiceRecorder";
 import { useWhatsAppLive } from "./live";
-import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, isRunLive, useNow } from "./status";
+import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, failedLabel, isRunLive, useNow } from "./status";
 
 /**
  * Chats de WhatsApp, con la cara de WhatsApp Web: lista blanca a la izquierda,
@@ -458,7 +458,7 @@ const Thread = ({
         decision === "approve"
           ? "Enviado"
           : decision === "phone"
-            ? "Se abrió tu WhatsApp con el mensaje: pulsa enviar allí"
+            ? "Se abrió WhatsApp con el mensaje: envíalo desde el WhatsApp de Dayana"
             : "Propuesta cancelada",
         "success"
       );
@@ -536,7 +536,7 @@ const Thread = ({
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Cabecera, como la de WhatsApp Web */}
-      <div className="flex min-h-[60px] flex-wrap items-center gap-2 border-l border-[#d1d7db] bg-[#f0f2f5] px-3 py-2 dark:border-border dark:bg-muted/40">
+      <div className="flex min-h-[60px] flex-wrap items-center gap-x-2 gap-y-1.5 border-l border-[#d1d7db] bg-[#f0f2f5] px-2 py-2 sm:px-3 dark:border-border dark:bg-muted/40">
         <button type="button" className="md:hidden" onClick={onBack} aria-label="Volver">
           <ArrowLeft className="size-5 text-[#54656f]" />
         </button>
@@ -553,7 +553,7 @@ const Thread = ({
         <div className="min-w-0 flex-1">
           <div className="truncate text-base text-[#111b21] dark:text-foreground">{chat.name}</div>
           <div className="flex items-center gap-2 text-xs text-[#667781]">
-            <span>+{chat.phone}</span>
+            <span>{/^\d+$/.test(chat.phone) ? `+${chat.phone}` : "Escribe con usuario (sin número visible)"}</span>
             {chat.contactId && (
               <Link href={`/admin/contacts/${chat.contactId}`} className="font-medium text-[#008069] hover:underline">
                 Ver ficha
@@ -570,20 +570,6 @@ const Thread = ({
         >
           <Star className={cn("size-5", chat.priority ? "fill-[#f5b400] text-[#f5b400]" : "text-[#54656f]")} />
         </button>
-        <ModeSwitch
-          mode={chat.aiMode}
-          disabled={!canWrite || busy !== null}
-          onChange={(mode) => act("mode", { action: "mode", mode }, MODE_LABEL[mode])}
-        />
-        {mine ? (
-          <ActionButton tone="outline" disabled={!canWrite || busy !== null} onClick={() => act("release", { action: "release" }, "La IA vuelve a atender este chat")}>
-            <Bot /> Devolver a la IA
-          </ActionButton>
-        ) : (
-          <ActionButton tone="primary" disabled={!canWrite || busy !== null} onClick={() => act("take", { action: "take" }, "Chat tuyo: la IA no escribe aquí")}>
-            <Hand /> Tomar chat
-          </ActionButton>
-        )}
         <button
           type="button"
           onClick={() => setShowInfo((v) => !v)}
@@ -593,6 +579,23 @@ const Thread = ({
         >
           <PanelRight className="size-5 text-[#54656f]" />
         </button>
+        {/* En el celular van en su propia fila: la cabecera no se amontona. */}
+        <div className="order-last flex w-full items-center justify-between gap-2 md:order-none md:w-auto md:justify-start">
+          <ModeSwitch
+            mode={chat.aiMode}
+            disabled={!canWrite || busy !== null}
+            onChange={(mode) => act("mode", { action: "mode", mode }, MODE_LABEL[mode])}
+          />
+          {mine ? (
+            <ActionButton tone="outline" disabled={!canWrite || busy !== null} onClick={() => act("release", { action: "release" }, "La IA vuelve a atender este chat")}>
+              <Bot /> <span className="hidden sm:inline">Devolver a la IA</span><span className="sm:hidden">A la IA</span>
+            </ActionButton>
+          ) : (
+            <ActionButton tone="primary" disabled={!canWrite || busy !== null} onClick={() => act("take", { action: "take" }, "Chat tuyo: la IA no escribe aquí")}>
+              <Hand /> Tomar chat
+            </ActionButton>
+          )}
+        </div>
       </div>
 
       {/* Qué está haciendo la IA aquí */}
@@ -628,7 +631,7 @@ const Thread = ({
         <div className="flex min-h-0 flex-1 flex-col">
           {/* Mensajes */}
           <div
-            className="min-h-0 flex-1 space-y-1 overflow-y-auto px-[6%] py-4 dark:bg-muted/20"
+            className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-3 md:px-[6%] md:py-4 dark:bg-muted/20"
             style={{ backgroundColor: WA.chatBg }}
           >
             {chat.messages.map((m) => {
@@ -643,7 +646,11 @@ const Thread = ({
                   {out && m.status !== "FAILED" && (
                     <CheckCheck className={cn("size-4", m.status === "READ" ? "text-[#53bdeb]" : "text-[#8696a0]")} />
                   )}
-                  {m.status === "FAILED" && <span className="font-medium text-[#d92d20]">no enviado</span>}
+                  {m.status === "FAILED" && (
+                    <span className="font-medium text-[#d92d20]" title={m.failedReason ?? undefined}>
+                      No se entregó{m.failedReason ? `: ${failedLabel(m.failedReason)}` : ""}
+                    </span>
+                  )}
                 </div>
               );
               return (
@@ -658,7 +665,7 @@ const Thread = ({
                   ) : (
                     <div
                       className={cn(
-                        "max-w-[75%] rounded-lg px-2.5 pt-1.5 pb-1 text-[14.2px] leading-snug text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]",
+                        "max-w-[88%] md:max-w-[75%] rounded-lg px-2.5 pt-1.5 pb-1 text-[14.2px] leading-snug text-[#111b21] shadow-[0_1px_0.5px_rgba(11,20,26,0.13)]",
                         out ? "rounded-tr-none bg-[#d9fdd3]" : "rounded-tl-none bg-white",
                         m.status === "FAILED" && "ring-1 ring-[#d92d20]"
                       )}
@@ -690,7 +697,7 @@ const Thread = ({
             {!chat.windowOpen && windowNotice(chat.windowState) && (
               <p className="flex flex-wrap items-center gap-2 rounded-md bg-white px-3 py-1.5 text-xs text-[#54656f] dark:bg-card">
                 <span className="flex-1">{windowNotice(chat.windowState)}</span>
-                {chat.approvals.length === 0 && (
+                {chat.approvals.length === 0 && /^\d+$/.test(chat.phone) && (
                   <a
                     href={`https://wa.me/${chat.phone}${text.trim() ? `?text=${encodeURIComponent(text.trim())}` : ""}`}
                     target="_blank"
@@ -708,7 +715,7 @@ const Thread = ({
                 <Sparkles className="size-3.5" /> Borrador de la IA: envíalo o cámbialo (aprende de tus cambios).
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0 [&>*]:shrink-0">
               <ActionButton tone="outline" disabled={!canWrite || busy !== null} onClick={suggest}>
                 {busy === "suggest" ? <Loader2 className="animate-spin" /> : <Sparkles className="text-[#00a884]" />} Que la IA proponga
               </ActionButton>
@@ -795,7 +802,7 @@ const Thread = ({
                 placeholder={canWrite ? "Escribe un mensaje" : "Solo lectura"}
                 disabled={!canWrite}
                 rows={1}
-                className="max-h-40 min-h-[42px] flex-1 resize-none rounded-lg border-0 bg-white px-3 py-2.5 text-[15px] text-[#111b21] outline-none placeholder:text-[#667781] dark:bg-card dark:text-foreground"
+                className="max-h-40 min-h-[42px] min-w-0 flex-1 resize-none rounded-lg border-0 bg-white px-3 py-2.5 text-base md:text-[15px] text-[#111b21] outline-none placeholder:text-[#667781] dark:bg-card dark:text-foreground"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -821,14 +828,21 @@ const Thread = ({
               )}
             </div>
             {chat.aiMode === "AUTO" && !chat.paused && !chat.priority && (
-              <p className="text-[11px] text-[#667781]">Enter envía · Shift+Enter nueva línea · si escribes aquí, la IA se aparta unas horas.</p>
+              <p className="hidden text-[11px] text-[#667781] md:block">Enter envía · Shift+Enter nueva línea · si escribes aquí, la IA se aparta unas horas.</p>
             )}
           </div>
         </div>
 
         {/* Lo que sabe la IA */}
         {showInfo && (
-          <aside className="w-80 shrink-0 space-y-5 overflow-y-auto border-l border-[#d1d7db] bg-white p-4 text-sm dark:border-border dark:bg-card">
+          <aside className="fixed inset-0 z-40 w-full shrink-0 space-y-5 overflow-y-auto bg-white p-4 text-sm md:static md:z-auto md:w-80 md:border-l md:border-[#d1d7db] dark:border-border dark:bg-card">
+            <button
+              type="button"
+              onClick={() => setShowInfo(false)}
+              className="flex items-center gap-2 text-sm font-medium text-[#008069] md:hidden"
+            >
+              <ArrowLeft className="size-4" /> Volver al chat
+            </button>
             <section className="space-y-2">
               <h3 className="text-sm font-semibold text-[#008069]">Lo que la IA recuerda</h3>
               <textarea
@@ -1033,7 +1047,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
               onKeyDown={(e) => e.key === "Enter" && void loadList()}
               onBlur={() => void loadList()}
               placeholder="Buscar un chat o número"
-              className="h-9 w-full bg-transparent text-sm text-[#111b21] outline-none placeholder:text-[#667781] dark:text-foreground"
+              className="h-9 w-full bg-transparent text-base text-[#111b21] outline-none placeholder:text-[#667781] md:text-sm dark:text-foreground"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto pb-0.5">

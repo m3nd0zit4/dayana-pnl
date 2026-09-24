@@ -11,6 +11,7 @@ import {
 import { summarizePlans, type SendSummary } from "./whatsapp-outbound-plan";
 import {
   approvedTemplateFor,
+  ensureTemplatesSubmitted,
   getTemplatePrices,
   priceFor,
   type WaTemplate,
@@ -93,6 +94,9 @@ export const previewSend = async (input: {
       })
     : null;
   const plans = await Promise.all(recipients.map((r) => planForRecipient(r, template)));
+  if (!template && input.templateKey && plans.some((p) => p.action === "skip" && p.reason === "needs_template")) {
+    await ensureTemplatesSubmitted([input.templateKey]).catch(() => undefined);
+  }
   const price = priceFor(prices, template?.metaCategory ?? anyTemplate?.metaCategory);
   return {
     ...summarizePlans(plans, price),

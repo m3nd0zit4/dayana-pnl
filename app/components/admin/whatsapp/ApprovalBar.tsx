@@ -99,7 +99,9 @@ const ApprovalBar = ({
                 <div className="text-sm font-semibold text-[#111b21] dark:text-foreground">{head.title}</div>
                 <div className="text-xs text-[#667781]">
                   {byPhone
-                    ? "Todavía no se le puede escribir desde el CRM (sin plantilla aprobada). Al aceptar se abre tu WhatsApp con el mensaje escrito: solo pulsa enviar. Es gratis y el mensaje aparece aquí."
+                    ? p.phoneOpenedAt
+                      ? "Se abrió en WhatsApp, pero el mensaje todavía no llegó aquí. Envíalo desde el WhatsApp de Dayana (su celular o su WhatsApp Web): en cuanto salga, esta propuesta se cierra sola."
+                      : "Esta persona nunca te ha escrito y la plantilla aún está en revisión de Meta. Se abre WhatsApp con el mensaje escrito: hazlo desde el WhatsApp de Dayana (su celular o su WhatsApp Web) y solo pulsa enviar. Es gratis y el mensaje aparece aquí."
                     : delivery === "template"
                       ? "Pasaron más de 24 h: al aceptar se envía con la plantilla aprobada."
                       : head.hint}
@@ -153,7 +155,7 @@ const ApprovalBar = ({
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   {busy === `${runId}:approve` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                  {byPhone ? "Enviar desde mi celular" : p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
+                  {byPhone ? (p.phoneOpenedAt ? "Abrir otra vez en WhatsApp" : "Enviar desde el WhatsApp de Dayana") : p.kind === "booking" ? "Aceptar: agendar y enviar" : "Aceptar y enviar"}
                 </button>
               )}
               <button

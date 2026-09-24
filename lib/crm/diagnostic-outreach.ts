@@ -11,7 +11,7 @@ import { buildDiagnosticSignals, countryName, describeSignals, type DiagnosticSi
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled, pauseAutoReply } from "./whatsapp-autoreply";
 import { ensureWhatsAppConversation, recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
-import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
+import { approvedTemplateFor, ensureTemplatesSubmitted, type WaTemplate } from "./whatsapp-templates";
 import { proposeForApproval } from "./whatsapp-agent/approvals";
 
 /**
@@ -336,6 +336,10 @@ export const runDiagnosticOutreach = async (
     }
 
     const template = await pickTemplate();
+    if (!template) {
+      // Nadie la ha mandado a aprobar: se manda sola (no cuesta; se cobra el envío).
+      await ensureTemplatesSubmitted(OUTREACH_TEMPLATE_KEYS).catch(() => undefined);
+    }
     const vars = { mensaje: oneLine(analysis.templateMessage) };
     const aiEnabled = await isWhatsAppAutoReplyEnabled();
 

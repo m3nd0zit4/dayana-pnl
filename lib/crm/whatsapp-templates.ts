@@ -347,3 +347,45 @@ export const setTemplatePrices = (prices: TemplatePrices) =>
 
 export const priceFor = (prices: TemplatePrices, category: string | null | undefined): number =>
   category === "MARKETING" ? prices.MARKETING : category === "UTILITY" ? prices.UTILITY : prices.MARKETING;
+
+// ── Mandarlas solas a aprobar ──────────────────────────────────────────────
+
+const AUTO_SUBMIT_KEY = "whatsapp.templates.autoSubmitAt";
+
+/**
+ * Si una plantilla que el CRM necesita nunca se mandó a aprobar (o Meta la
+ * rechazó), la manda sola desde las recomendadas. Como mucho una vez cada
+ * 30 minutos, para no insistirle a 360dialog en cada envío. Mandarla a
+ * revisión no cuesta; lo que se cobra es cada mensaje enviado con ella.
+ */
+export const ensureTemplatesSubmitted = async (
+  keys: string[]
+): Promise<{ submitted: string[]; failed: { key: string; error: string }[] }> => {
+  const result = { submitted: [] as string[], failed: [] as { key: string; error: string }[] };
+  const last = Number((await getSiteSetting(AUTO_SUBMIT_KEY)) ?? 0);
+  if (Date.now() - last < 30 * 60_000) return result;
+  const existing = await prisma.messageTemplate.findMany({
+    where: { key: { in: keys }, metaTemplateName: { not: null } },
+    select: { key: true, metaApprovalStatus: true },
+  });
+  const missing = keys.filter((key) => {
+    const t = existing.find((e) => e.key === key);
+    return !t || (t.metaApprovalStatus ?? "").toUpperCase().startsWith("REJECTED");
+  });
+  if (missing.length === 0) return result;
+  await setSiteSetting(AUTO_SUBMIT_KEY, String(Date.now()));
+  for (const key of missing) {
+    const starter = STARTER_TEMPLATES.find((t) => t.key === key);
+    if (!starter) continue;
+    try {
+      await createWhatsAppTemplate(starter);
+      result.submitted.push(key);
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      console.error(`[whatsapp-templates] no se pudo mandar a aprobar ${key}: ${error}`);
+      result.failed.push({ key, error });
+    }
+  }
+  if (result.submitted.length) console.log(`[whatsapp-templates] enviadas a revisión: ${result.submitted.join(", ")}`);
+  return result;
+};

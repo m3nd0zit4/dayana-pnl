@@ -66,6 +66,7 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
     return NextResponse.json({ ok: true, ...created, items: await listWhatsAppTemplates() });
   } catch (e) {
     if (e instanceof Dialog360Error) {
+      console.error(`[whatsapp-templates] ${e.message}`);
       return NextResponse.json({ error: "dialog360_error", message: e.message }, { status: 502 });
     }
     throw e;

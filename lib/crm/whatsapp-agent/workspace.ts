@@ -27,6 +27,46 @@ export type RunView = {
   startedAt: string | null;
   finishedAt: string | null;
   latencyMs: number | null;
+  /**
+   * Lo que dijo WhatsApp del mensaje que salió en esta vuelta (enviado,
+   * entregado, leído o fallido). La línea de estado y la burbuja del mensaje
+   * salen de aquí las dos, para que nunca digan cosas distintas.
+   */
+  delivery?: { status: string; error: string | null } | null;
+};
+
+type DeliveryMessage = {
+  id: string;
+  direction: string;
+  status: string | null;
+  failedReason?: string | null;
+  isAutoReply: boolean;
+  sentAt: Date;
+};
+
+/**
+ * El mensaje que salió en una vuelta de la IA: el aprobado (su id queda en la
+ * propuesta) o el que la IA mandó sola mientras corría.
+ */
+export const deliveryOf = (
+  run: { status: string; startedAt: Date | null; finishedAt: Date | null; proposal?: unknown },
+  messages: DeliveryMessage[]
+): RunView["delivery"] => {
+  const pick = (m: DeliveryMessage | undefined) =>
+    m ? { status: m.status ?? "SENT", error: m.status === "FAILED" ? (m.failedReason ?? null) : null } : null;
+  if (run.status === "APPROVED") {
+    const id = (run.proposal as { sentMessageId?: string } | null)?.sentMessageId;
+    return id ? pick(messages.find((m) => m.id === id)) : null;
+  }
+  if (run.status === "REPLIED" && run.startedAt) {
+    const from = run.startedAt.getTime();
+    const to = (run.finishedAt ?? run.startedAt).getTime() + 15_000;
+    const sent = messages.filter(
+      (m) => m.direction === "OUTBOUND" && m.isAutoReply && m.sentAt.getTime() >= from && m.sentAt.getTime() <= to
+    );
+    return pick(sent.find((m) => m.status === "FAILED") ?? sent[sent.length - 1]);
+  }
+  return null;
 };
 
 export type ChatQueue = "attention" | "mine" | "ai" | "all";
@@ -156,10 +196,19 @@ export const listChats = async (input: {
       contact: { select: { firstName: true, lastName: true } },
       messages: {
         orderBy: { sentAt: "desc" },
-        take: 1,
-        select: { body: true, direction: true, isAutoReply: true, attachments: true },
+        take: 3,
+        select: {
+          id: true,
+          body: true,
+          direction: true,
+          isAutoReply: true,
+          attachments: true,
+          status: true,
+          failedReason: true,
+          sentAt: true,
+        },
       },
-      aiRuns: { orderBy: { queuedAt: "desc" }, take: 1, select: RUN_SELECT },
+      aiRuns: { orderBy: { queuedAt: "desc" }, take: 1, select: { ...RUN_SELECT, proposal: true } },
     },
   });
 
@@ -208,7 +257,7 @@ export const listChats = async (input: {
       priority: Boolean(c.priorityAt),
       hasDraft: Boolean(c.draftBody),
       awaitingApproval: pendingBy.get(c.id) ?? null,
-      lastRun: c.aiRuns[0] ? runView(c.aiRuns[0]) : null,
+      lastRun: c.aiRuns[0] ? { ...runView(c.aiRuns[0]), delivery: deliveryOf(c.aiRuns[0], c.messages) } : null,
     };
   });
 
@@ -248,6 +297,8 @@ export type ChatMessageView = {
   isAutoReply: boolean;
   isEcho: boolean;
   staffName: string | null;
+  /** Por qué WhatsApp no lo entregó (solo si falló). */
+  failedReason: string | null;
 };
 
 export const getChat = async (id: string) => {
@@ -282,10 +333,11 @@ export const getChat = async (id: string) => {
           status: true,
           isAutoReply: true,
           isEcho: true,
+          failedReason: true,
           staffUser: { select: { displayName: true } },
         },
       },
-      aiRuns: { orderBy: { queuedAt: "desc" }, take: 20, select: { ...RUN_SELECT, toolCalls: true } },
+      aiRuns: { orderBy: { queuedAt: "desc" }, take: 20, select: { ...RUN_SELECT, toolCalls: true, proposal: true } },
       aiBookings: {
         orderBy: { startsAt: "desc" },
         take: 10,
@@ -355,9 +407,10 @@ export const getChat = async (id: string) => {
         isAutoReply: m.isAutoReply,
         isEcho: m.isEcho,
         staffName: m.staffUser?.displayName ?? null,
+        failedReason: m.status === "FAILED" ? (m.failedReason ?? null) : null,
       })
     ),
-    runs: c.aiRuns.map((r) => ({ ...runView(r), toolCalls: r.toolCalls })),
+    runs: c.aiRuns.map((r) => ({ ...runView(r), toolCalls: r.toolCalls, delivery: deliveryOf(r, c.messages) })),
     bookings: c.aiBookings.map((b) => ({
       id: b.id,
       service: b.service,

@@ -1,3 +1,4 @@
+import { whatsAppDigits } from "@/lib/whatsapp-contact";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage, MetaWindowError, type SendAttachment } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
@@ -25,7 +26,25 @@ export const ensureWhatsAppConversation = async (input: {
   contactId?: string | null;
   name?: string | null;
 }): Promise<{ id: string; lastInboundAt: Date | null }> => {
-  const threadId = digits(input.phoneE164);
+  const threadId = whatsAppDigits(input.phoneE164);
+  const legacyId = digits(input.phoneE164);
+  // Chats creados antes con el E.164 tal cual (México/Argentina): se pasan al
+  // número de WhatsApp para que la respuesta de la persona caiga en el mismo.
+  if (legacyId !== threadId) {
+    const [current, legacy] = await Promise.all([
+      prisma.conversation.findUnique({
+        where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: threadId } },
+        select: { id: true },
+      }),
+      prisma.conversation.findUnique({
+        where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: legacyId } },
+        select: { id: true },
+      }),
+    ]);
+    if (legacy && !current) {
+      await prisma.conversation.update({ where: { id: legacy.id }, data: { externalThreadId: threadId } });
+    }
+  }
   const credentials = await resolveWhatsAppCredentials();
   return prisma.conversation.upsert({
     where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: threadId } },

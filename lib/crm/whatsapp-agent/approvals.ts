@@ -50,6 +50,8 @@ export type Proposal = {
   stickerUrl?: string | null;
   /** Por qué la IA escaló (pagos recibidos). */
   reason?: string;
+  /** Cuándo Dayana lo abrió en su celular (sigue pendiente hasta que llegue). */
+  phoneOpenedAt?: string;
   /**
    * Primer mensaje a alguien que nunca escribió (autoevaluación): fuera de
    * las 24 h va con la primera plantilla aprobada de `keys`.
@@ -237,19 +239,14 @@ export const approveByPhone = async (input: {
     select: { externalThreadId: true },
   });
   if (!conversation) throw new ApprovalError("El chat no existe.");
+  // No se da por enviada: queda pendiente hasta que el mensaje llegue desde su
+  // WhatsApp (el eco la retira). Si se abrió en un teléfono que no es el de
+  // Dayana, sigue aquí y se ve que no salió.
   await prisma.whatsAppAiRun.update({
     where: { id: run.id },
     data: {
-      proposal: { ...p, sentVia: "phone", message } as unknown as Prisma.InputJsonValue,
-      status: "APPROVED",
-      reason: "Dayana lo envía desde su celular.",
-      decidedAt: new Date(),
-      decidedById: input.staffId,
+      proposal: { ...p, message, phoneOpenedAt: new Date().toISOString() } as unknown as Prisma.InputJsonValue,
     },
-  });
-  await prisma.conversation.update({
-    where: { id: input.conversationId },
-    data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
   });
   return { ok: true, url: phoneUrlFor(conversation.externalThreadId, message) };
 };
