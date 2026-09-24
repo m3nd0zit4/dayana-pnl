@@ -10,6 +10,7 @@ import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetim
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { findSimilarExamples, type SimilarExample } from "../whatsapp-learning";
 import { availableSlots, SlotUnavailableError } from "./calendar";
+import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { spreadSlots } from "./slots";
 import { PAYMENT_PLACEHOLDER } from "./placeholders";
@@ -285,7 +286,6 @@ export const clientContext = async (
     `Nombre: ${[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "sin nombre"}`,
   ];
   if (contact.enrollments.length === 0) lines.push("Todavía no ha comprado nada.");
-  const { diagnosticContextFor } = await import("../diagnostic-outreach");
   const diagnostic = await diagnosticContextFor(contactId).catch(() => null);
   if (diagnostic) lines.push(diagnostic);
   for (const e of contact.enrollments) {

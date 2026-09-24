@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 
+import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
+import { approvedTemplateFor } from "../whatsapp-templates";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
@@ -153,8 +155,6 @@ const sendWithTemplate = async (input: {
   edited: boolean;
   staffId: string;
 }): Promise<{ messageId: string }> => {
-  const { recipientFromContact, sendWhatsAppToRecipient } = await import("../whatsapp-outbound");
-  const { approvedTemplateFor } = await import("../whatsapp-templates");
   let template = null;
   for (const key of input.template.keys) {
     template = await approvedTemplateFor(key);
