@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "@/lib/crm/site-settings";
 import type { NormalizedEvent } from "./inbound";
 import { finishHistorySync, processNormalizedEvent } from "./ingest";
+import { recoverStuck } from "./recover";
 
 /**
  * Cola durable de entrada de WhatsApp (y Messenger/Instagram).
@@ -194,6 +195,10 @@ export const drainInbox = async (opts: { budgetMs?: number; batchSize?: number }
     await Promise.allSettled(
       [...aiTriggers].map(([conversationId, triggerMessageId]) => runWhatsAppAi({ conversationId, triggerMessageId }))
     );
+  }
+  const recovered = await recoverStuck().catch(() => null);
+  if (recovered && (recovered.approvals || recovered.queued || recovered.bulk)) {
+    console.warn(`[cola WhatsApp] recuperado a medias: ${JSON.stringify(recovered)}`);
   }
   await pruneInbox().catch(() => undefined);
   return stats;

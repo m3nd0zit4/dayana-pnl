@@ -45,3 +45,13 @@ describe("cola de entrada", () => {
     expect(back.kind === "message" && back.sentAt.toISOString()).toBe("2026-09-24T10:00:00.000Z");
   });
 });
+
+import { contactPhoneCandidates } from "./ingest";
+
+describe("contacto de México y Argentina", () => {
+  test("521… encuentra al contacto guardado como +52…", () => {
+    expect(contactPhoneCandidates("5219514733665")).toEqual(["+5219514733665", "+529514733665"]);
+    expect(contactPhoneCandidates("5492975808165")).toEqual(["+5492975808165", "+542975808165"]);
+    expect(contactPhoneCandidates("573107785255")).toEqual(["+573107785255"]);
+  });
+});

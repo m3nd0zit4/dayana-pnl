@@ -410,14 +410,13 @@ export const runDiagnosticOutreach = async (
       vars,
       source: "autoevaluacion",
       staffId: opts.staffId ?? null,
+      // La escribió la IA (salvo que Dayana pulsara «Escribirle ahora»).
+      isAutoReply: !opts.staffId,
+      clientKey: `autoevaluacion:${diagnosticId}:${opts.force ? Date.now() : "auto"}`,
     });
 
     if (result.status === "sent") {
       // La escribió la IA (salvo que Dayana pulsara «Escribirle ahora»).
-      await prisma.conversationMessage.update({
-        where: { id: result.messageId },
-        data: { isAutoReply: !opts.staffId },
-      });
       await prisma.whatsAppAiRun.create({
         data: {
           conversationId: conversation.id,

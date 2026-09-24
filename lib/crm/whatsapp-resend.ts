@@ -97,10 +97,9 @@ export const resendFailedMessage = async (input: {
         attachment,
         staffUserId: input.staffId,
         source: resendSource(original.id),
-      });
-      await prisma.conversationMessage.update({
-        where: { id: sent.messageId },
-        data: { isAutoReply: original.isAutoReply },
+        isAutoReply: original.isAutoReply,
+        // Un mensaje fallido se reenvía una sola vez, aunque pulsen dos veces.
+        clientKey: resendSource(original.id),
       });
       await deleteFailedMessage({ messageId: original.id, conversationId: conv.id, staffId: input.staffId, why: "resent" });
       return { status: "sent", messageId: sent.messageId, mode: "text" };
@@ -131,6 +130,8 @@ export const resendFailedMessage = async (input: {
       vars: { mensaje: body.replace(/\s*\n+\s*/g, " ").trim() },
       source: resendSource(original.id),
       staffId: input.staffId,
+      isAutoReply: original.isAutoReply,
+      clientKey: resendSource(original.id),
     });
     if (r.status === "sent") {
       await deleteFailedMessage({ messageId: original.id, conversationId: conv.id, staffId: input.staffId, why: "resent" });

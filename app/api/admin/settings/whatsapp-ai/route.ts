@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { deepMerge } from "@/lib/crm/whatsapp-agent/config-patch";
 import { prisma } from "@/lib/db";
 import {
   getWhatsAppAiConfig,
@@ -36,18 +37,27 @@ export const GET = withStaff("owner", async () => {
   return NextResponse.json({ config, enabled, summary });
 });
 
+// `patch` (solo lo que cambió) se mezcla sobre la configuración ACTUAL de la
+// base. `config` completo se acepta por compatibilidad, pero ya no lo manda el CRM.
 const saveSchema = z.object({
-  enabled: z.boolean(),
-  config: whatsAppAiConfigSchema,
+  enabled: z.boolean().optional(),
+  patch: z.record(z.string(), z.unknown()).optional(),
+  config: whatsAppAiConfigSchema.optional(),
 });
 
 export const PATCH = withStaff("owner", async ({ req, staff }) => {
   const parsed = saveSchema.safeParse(await readJson(req));
   if (!parsed.success) return apiError("invalid_body", 400);
 
+  let config = parsed.data.config ?? null;
+  if (!config && parsed.data.patch) {
+    const merged = whatsAppAiConfigSchema.safeParse(deepMerge(await getWhatsAppAiConfig(), parsed.data.patch));
+    if (!merged.success) return apiError("invalid_config", 400);
+    config = merged.data;
+  }
   await Promise.all([
-    setWhatsAppAiConfig(parsed.data.config),
-    setWhatsAppAutoReplyEnabled(parsed.data.enabled),
+    config ? setWhatsAppAiConfig(config) : Promise.resolve(),
+    parsed.data.enabled !== undefined ? setWhatsAppAutoReplyEnabled(parsed.data.enabled) : Promise.resolve(),
   ]);
 
   fireAuditLog({
@@ -57,10 +67,7 @@ export const PATCH = withStaff("owner", async ({ req, staff }) => {
     entityId: "whatsapp-ai",
     changes: {
       enabled: parsed.data.enabled,
-      identity: parsed.data.config.identity,
-      audience: parsed.data.config.audience,
-      schedule: parsed.data.config.schedule.mode,
-      learning: parsed.data.config.learning,
+      patch: parsed.data.patch ? Object.keys(parsed.data.patch) : "config",
     },
   });
 

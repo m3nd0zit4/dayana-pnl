@@ -107,15 +107,13 @@ export const maybeSendWelcome = async (
     if (!first || second || first.direction !== "INBOUND") return false;
 
     const button = await resolveButton(config);
-    const result = await sendMetaMessage({
+    await sendMetaMessage({
       conversationId,
       body: config.text,
       ...(button ? { ctaUrl: button } : {}),
-    });
-
-    await prisma.conversationMessage.update({
-      where: { id: result.messageId },
-      data: { isAutoReply: true },
+      isAutoReply: true,
+      // Un solo saludo por chat aunque dos procesos lo intenten a la vez.
+      clientKey: `welcome:${conversationId}`,
     });
 
     return true;

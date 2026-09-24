@@ -52,6 +52,10 @@ export type Proposal = {
   reason?: string;
   /** Cuándo Dayana lo abrió en su celular (sigue pendiente hasta que llegue). */
   phoneOpenedAt?: string;
+  /** La cita ya se creó (para no duplicarla si el mensaje hay que reintentarlo). */
+  bookingDone?: { meetUrl: string | null; eventId: string | null };
+  /** El enlace de pago ya creado (mismo motivo). */
+  paymentUrl?: string;
   /**
    * Primer mensaje a alguien que nunca escribió (autoevaluación): fuera de
    * las 24 h va con la primera plantilla aprobada de `keys`.
@@ -158,6 +162,7 @@ const sendWithTemplate = async (input: {
   template: NonNullable<Proposal["template"]>;
   edited: boolean;
   staffId: string;
+  clientKey: string;
 }): Promise<{ messageId: string }> => {
   let template = null;
   for (const key of input.template.keys) {
@@ -181,6 +186,8 @@ const sendWithTemplate = async (input: {
     vars,
     source: "approval",
     staffId: input.staffId,
+    isAutoReply: !input.edited,
+    clientKey: input.clientKey,
   });
   if (r.status === "sent") return { messageId: r.messageId };
   throw new ApprovalError(
@@ -272,7 +279,20 @@ export const approveProposal = async (input: {
     throw new ApprovalError("needs_phone");
   }
 
-  if (p.kind === "booking" && p.booking) {
+  // Candado: dos clics (o dos pestañas) a la vez no envían ni agendan dos veces.
+  const claimed = await prisma.whatsAppAiRun.updateMany({
+    where: { id: run.id, status: PENDING },
+    data: { status: "SENDING", decidedAt: new Date() },
+  });
+  if (claimed.count === 0) throw new ApprovalError("Esa propuesta ya se está enviando.");
+  try {
+
+  if (p.kind === "booking" && p.booking && p.bookingDone) {
+    // Reintento después de un envío fallido: la cita ya existe, no se duplica.
+    if (p.bookingDone.meetUrl && !message.includes(p.bookingDone.meetUrl)) {
+      message = `${message}\n\nEnlace de la videollamada: ${p.bookingDone.meetUrl}`;
+    }
+  } else if (p.kind === "booking" && p.booking) {
     const config = await getWhatsAppAiConfig();
     const timezone = await getOperationalTimezone();
     const start = new Date(p.booking.startIso);
@@ -305,6 +325,11 @@ export const approveProposal = async (input: {
     if (created.meetUrl && !message.includes(created.meetUrl)) {
       message = `${message}\n\nEnlace de la videollamada: ${created.meetUrl}`;
     }
+    p.bookingDone = { meetUrl: created.meetUrl ?? null, eventId: created.eventId };
+    await prisma.whatsAppAiRun.update({
+      where: { id: run.id },
+      data: { proposal: p as unknown as Prisma.InputJsonValue },
+    });
     fireNotification({
       eventType: "WHATSAPP_AI_BOOKED",
       title: `Cita agendada: ${created.title}`,
@@ -316,7 +341,11 @@ export const approveProposal = async (input: {
     });
   }
 
-  if (p.kind === "payment_link" && p.payment) {
+  if (p.kind === "payment_link" && p.payment && p.paymentUrl) {
+    message = message.includes(PAYMENT_PLACEHOLDER)
+      ? message.split(PAYMENT_PLACEHOLDER).join(p.paymentUrl)
+      : `${message}\n\n${p.paymentUrl}`;
+  } else if (p.kind === "payment_link" && p.payment) {
     const { createPaymentLink } = await import("@/lib/crm/payment-links");
     const link = await createPaymentLink({
       contactId: conversation.contactId,
@@ -326,6 +355,11 @@ export const approveProposal = async (input: {
       staffUserId: input.staffId,
     });
     const url = `${getSiteUrl()}/pagar/${link.token}`;
+    p.paymentUrl = url;
+    await prisma.whatsAppAiRun.update({
+      where: { id: run.id },
+      data: { proposal: p as unknown as Prisma.InputJsonValue },
+    });
     message = message.includes(PAYMENT_PLACEHOLDER)
       ? message.split(PAYMENT_PLACEHOLDER).join(url)
       : `${message}\n\n${url}`;
@@ -339,19 +373,18 @@ export const approveProposal = async (input: {
         template: p.template,
         edited: Boolean(edited),
         staffId: input.staffId,
+        clientKey: `approval:${run.id}`,
       })
     : await sendMetaMessage({
         conversationId: input.conversationId,
         body: message,
         staffUserId: input.staffId,
         source: "approval",
+        // Tal cual la escribió la IA: cuenta como respuesta de la IA. Si
+        // Dayana la cambió, es suya (y la IA aprende de la diferencia).
+        isAutoReply: !edited,
+        clientKey: `approval:${run.id}`,
       });
-  // Tal cual la escribió la IA: cuenta como respuesta de la IA. Si Dayana la
-  // cambió, es suya (y la IA aprende de la diferencia).
-  await prisma.conversationMessage.update({
-    where: { id: result.messageId },
-    data: { isAutoReply: !edited },
-  });
   if (p.stickerUrl && !edited) {
     await sendMetaMessage({
       conversationId: input.conversationId,
@@ -388,6 +421,15 @@ export const approveProposal = async (input: {
     }).catch(() => undefined);
   }
   return { ok: true, sent: message };
+  } catch (e) {
+    // No salió: la propuesta vuelve a esperar (la cita o el enlace ya creados
+    // quedan guardados en ella y no se repiten al reintentar).
+    await prisma.whatsAppAiRun.updateMany({
+      where: { id: run.id, status: "SENDING" },
+      data: { status: PENDING },
+    });
+    throw e;
+  }
 };
 
 export const cancelProposal = async (input: {

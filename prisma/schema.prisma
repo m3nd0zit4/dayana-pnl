@@ -1136,6 +1136,7 @@ model Conversation {
   aiBookings    WhatsAppBooking[]
 
   @@unique([channel, externalThreadId])
+  @@index([channel, lastMessageAt(sort: Desc)])
   @@index([status, lastMessageAt(sort: Desc)])
   @@index([contactId, lastMessageAt(sort: Desc)])
   @@index([assignedStaffId, lastMessageAt(sort: Desc)])
@@ -1174,12 +1175,50 @@ model ConversationMessage {
   deliveredAt  DateTime? @map("delivered_at")
   readAt       DateTime? @map("read_at")
   failedReason String?   @map("failed_reason")
+  /// Código de error de WhatsApp (131051, 131047…), para explicarlo bien.
+  failedCode   Int?      @map("failed_code")
+
+  /// Orden del estado: 0 en cola/recibido, 1 enviado, 2 entregado, 3 leído,
+  /// 4 fallido. Un estado solo avanza (`WHERE status_rank < nuevo`): un
+  /// «entregado» que llega tarde nunca tapa un «leído».
+  statusRank Int     @default(0) @map("status_rank")
+  /// Clave del envío (la pone quien envía): el mismo envío repetido
+  /// (doble clic, reintento) no sale dos veces.
+  clientKey  String? @unique @map("client_key")
+  /// message | system (aviso gris: tipo no compatible, etc.)
+  kind       String  @default("message")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   staffUser    StaffUser?   @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  statusEvents MessageStatusEvent[]
 
   @@index([conversationId, sentAt])
+  @@index([conversationId, updatedAt])
+  @@index([source])
+  @@index([direction, isAutoReply, sentAt])
   @@map("conversation_messages")
+}
+
+/// Historial de estados de un mensaje (Info del mensaje): cuándo se envió, se
+/// entregó, se leyó o falló. También guarda los que llegan antes que su
+/// mensaje (sin `messageId`), que se ligan cuando el mensaje aparece.
+model MessageStatusEvent {
+  id         String   @id @default(cuid())
+  messageId  String?  @map("message_id")
+  wamid      String
+  /// SENT | DELIVERED | READ | FAILED
+  status     String
+  occurredAt DateTime @map("occurred_at")
+  errorCode  Int?     @map("error_code")
+  errorTitle String?  @map("error_title")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  message ConversationMessage? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([wamid, status])
+  @@index([messageId])
+  @@map("message_status_events")
 }
 
 /// Una cuenta de red social conectada por OAuth.

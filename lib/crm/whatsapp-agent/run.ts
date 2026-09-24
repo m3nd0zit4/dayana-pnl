@@ -587,22 +587,18 @@ const escalate = async (
   });
 };
 
+// `isAutoReply` va en la misma fila que se crea: si se marcaba después, el
+// filtro de «Dayana tomó el chat» podía ver un instante la respuesta de la IA
+// como humana y pausar el chat.
 const sendAutoSticker = async (conversationId: string, url: string) => {
-  const result = await sendMetaMessage({
+  await sendMetaMessage({
     conversationId,
     body: "",
     attachment: { url, mimeType: "image/webp", filename: "sticker.webp", kind: "sticker" },
-  });
-  await prisma.conversationMessage.update({
-    where: { id: result.messageId },
-    data: { isAutoReply: true },
+    isAutoReply: true,
   });
 };
 
 const sendAuto = async (conversationId: string, body: string) => {
-  const result = await sendMetaMessage({ conversationId, body });
-  await prisma.conversationMessage.update({
-    where: { id: result.messageId },
-    data: { isAutoReply: true },
-  });
+  await sendMetaMessage({ conversationId, body, isAutoReply: true });
 };

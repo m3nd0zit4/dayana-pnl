@@ -63,6 +63,8 @@ export type NormalizedStatus = {
   status: MessageDeliveryStatus;
   at: Date;
   failedReason: string | null;
+  /** Código de error de WhatsApp (131047, 131051…), si falló. */
+  failedCode?: number | null;
 };
 
 export type NormalizedEvent =
@@ -412,6 +414,7 @@ const normalizeWhatsAppValue = (
       at: secondsToDate(status.timestamp),
       failedReason:
         asString(firstError?.title) ?? asString(firstError?.message) ?? null,
+      failedCode: typeof firstError?.code === "number" ? firstError.code : null,
     });
   }
 

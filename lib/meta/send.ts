@@ -1,5 +1,5 @@
 import { whatsAppRecipient } from "@/lib/whatsapp-contact";
-import type { Conversation, Prisma } from "@prisma/client";
+import { Conversation, Prisma } from "@prisma/client";
 // Imported directly (not via `lib/storage/blob.ts`, which this whole module
 // tree is reachable from through `agent/tools/*` → `lib/crm/conversations.ts`
 // → here): that file pulls in `next/server` for its route-response helper,
@@ -11,6 +11,7 @@ import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import { resolveWhatsAppCredentials } from "./whatsapp-provider";
+import { attachPendingStatuses } from "./status";
 import {
   graphPost,
   graphPostForm,
@@ -63,6 +64,13 @@ export type SendInput = {
   attachment?: SendAttachment | null;
   /** De dónde sale: `crm:<pantalla>`, `bulk:<envío>`, `approval`… */
   source?: string | null;
+  /** Lo escribió la IA (se guarda en la misma fila, no en un segundo paso). */
+  isAutoReply?: boolean;
+  /**
+   * Clave del envío: el mismo envío repetido (doble clic, reintento de red)
+   * devuelve el mensaje ya creado en vez de mandarlo otra vez.
+   */
+  clientKey?: string | null;
 };
 
 type MediaKind = "image" | "video" | "audio" | "document";
@@ -370,9 +378,75 @@ export const sendMetaMessage = async (
     );
   }
 
+  if (input.clientKey) {
+    const existing = await prisma.conversationMessage.findUnique({
+      where: { clientKey: input.clientKey },
+      select: { id: true, externalMessageId: true, status: true, failedReason: true },
+    });
+    if (existing && existing.status !== "FAILED") {
+      return { messageId: existing.id, externalMessageId: existing.externalMessageId, dryRun: false };
+    }
+    // Un intento que falló no bloquea el reintento: suelta la clave.
+    if (existing) {
+      await prisma.conversationMessage.update({ where: { id: existing.id }, data: { clientKey: null } });
+    }
+  }
+
+  // Same `StoredAttachment` shape inbound attachments persist as (see
+  // `lib/meta/media.ts`) — `MessageBubble` already renders that shape
+  // regardless of direction, so an outbound one needs no UI-side changes.
+  const attachments = input.attachment
+    ? [
+        {
+          kind:
+            input.attachment.kind === "sticker"
+              ? "sticker"
+              : mediaKindFor(input.attachment.mimeType),
+          url: input.attachment.url,
+          mimeType: input.attachment.mimeType,
+          caption: input.body || null,
+        },
+      ]
+    : undefined;
+
+  // Bandeja de salida: la fila se escribe ANTES de llamar a WhatsApp (en
+  // cola). Así un acuse que llega rapidísimo encuentra su mensaje, y si la
+  // función se corta a mitad de envío queda rastro (el barrido lo marca).
+  const message = await prisma.conversationMessage
+    .create({
+    data: {
+      conversationId: conversation.id,
+      direction: "OUTBOUND",
+      status: "QUEUED",
+      statusRank: 0,
+      body: input.body,
+      attachments: attachments as unknown as Prisma.InputJsonValue | undefined,
+      staffUserId: input.staffUserId ?? null,
+      source: input.source ?? null,
+      isAutoReply: input.isAutoReply ?? false,
+      clientKey: input.clientKey ?? null,
+    },
+    select: { id: true },
+  })
+    .catch((e: unknown) => {
+      // Dos clics a la vez con la misma clave: el segundo no envía.
+      if (input.clientKey && e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        return null;
+      }
+      throw e;
+    });
+  if (!message) {
+    const existing = await prisma.conversationMessage.findUniqueOrThrow({
+      where: { clientKey: input.clientKey! },
+      select: { id: true, externalMessageId: true },
+    });
+    return { messageId: existing.id, externalMessageId: existing.externalMessageId, dryRun: false };
+  }
+
   const dryRun = await resolveDryRun();
   let externalMessageId: string | null = null;
   let failedReason: string | null = null;
+  let failedCode: number | null = null;
 
   if (!dryRun) {
     try {
@@ -383,7 +457,11 @@ export const sendMetaMessage = async (
     } catch (e) {
       // La ventana se valida antes de llegar a la red: es un error del operador,
       // no un fallo de envío, así que no deja una fila fallida en el hilo.
-      if (e instanceof MetaWindowError) throw e;
+      if (e instanceof MetaWindowError) {
+        await prisma.conversationMessage.delete({ where: { id: message.id } }).catch(() => undefined);
+        throw e;
+      }
+      if (e instanceof MetaApiError && typeof e.code === "number") failedCode = e.code;
 
       // Token de Página muerto: se marca la conexión como caída para que la
       // pantalla de Conexiones ofrezca reconectar, y el motivo que queda en el
@@ -410,37 +488,19 @@ export const sendMetaMessage = async (
     }
   }
 
-  // Same `StoredAttachment` shape inbound attachments persist as (see
-  // `lib/meta/media.ts`) — `MessageBubble` already renders that shape
-  // regardless of direction, so an outbound one needs no UI-side changes.
-  const attachments = input.attachment
-    ? [
-        {
-          kind:
-            input.attachment.kind === "sticker"
-              ? "sticker"
-              : mediaKindFor(input.attachment.mimeType),
-          url: input.attachment.url,
-          mimeType: input.attachment.mimeType,
-          caption: input.body || null,
-        },
-      ]
-    : undefined;
-
-  const message = await prisma.conversationMessage.create({
-    data: {
-      conversationId: conversation.id,
-      direction: "OUTBOUND",
-      status: failedReason ? "FAILED" : "SENT",
-      externalMessageId,
-      body: input.body,
-      attachments: attachments as unknown as Prisma.InputJsonValue | undefined,
-      staffUserId: input.staffUserId ?? null,
-      failedReason,
-      source: input.source ?? null,
-    },
-    select: { id: true },
-  });
+  if (failedReason) {
+    await prisma.conversationMessage.update({
+      where: { id: message.id },
+      data: { status: "FAILED", statusRank: 4, failedReason, failedCode },
+    });
+  } else {
+    await prisma.conversationMessage.update({
+      where: { id: message.id },
+      data: { externalMessageId, status: "SENT", statusRank: 1 },
+    });
+    // Acuses que llegaron antes de conocer el wamid.
+    if (externalMessageId) await attachPendingStatuses(message.id, externalMessageId);
+  }
 
   if (!failedReason) {
     await prisma.conversation.update({

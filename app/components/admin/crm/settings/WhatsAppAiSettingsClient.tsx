@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { diffConfig } from "@/lib/crm/whatsapp-agent/config-diff";
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
@@ -164,6 +165,8 @@ const WhatsAppAiSettingsClient = ({
 }) => {
   const { toast } = useCrm();
   const [config, setConfig] = useState(initialConfig);
+  // Lo último guardado: al guardar se manda solo la diferencia contra esto.
+  const [baseline, setBaseline] = useState(initialConfig);
   const [enabled, setEnabled] = useState(initialEnabled);
   const [summary, setSummary] = useState(initialSummary);
   const [dirty, setDirty] = useState(false);
@@ -183,7 +186,7 @@ const WhatsAppAiSettingsClient = ({
       const res = await fetch(API, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled, config }),
+        body: JSON.stringify({ enabled, patch: diffConfig(baseline, config) ?? {} }),
       });
       if (!res.ok) {
         toast(
@@ -193,6 +196,7 @@ const WhatsAppAiSettingsClient = ({
         return;
       }
       setDirty(false);
+      setBaseline(config);
       toast("Asistente guardado", "success");
     } finally {
       setBusy(null);

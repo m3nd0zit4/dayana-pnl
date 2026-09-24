@@ -93,7 +93,7 @@ export const planForRecipient = async (
   let windowOpen = false;
   if (r.phoneE164) {
     const conv = await prisma.conversation.findUnique({
-      where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: digits(r.phoneE164) } },
+      where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: whatsAppDigits(r.phoneE164) } },
       select: { lastInboundAt: true },
     });
     windowOpen = resolveWindow("WHATSAPP", conv?.lastInboundAt ?? null).isOpen;
@@ -124,6 +124,10 @@ export const sendWhatsAppToRecipient = async (input: {
   source: string;
   staffId?: string | null;
   template?: WaTemplate | null;
+  /** Lo escribió la IA. */
+  isAutoReply?: boolean;
+  /** Clave del envío (evita enviarlo dos veces). */
+  clientKey?: string | null;
 }): Promise<SendResult> => {
   const r = input.recipient;
   const template = input.template !== undefined ? input.template : await approvedTemplateFor(input.templateKey);
@@ -148,6 +152,8 @@ export const sendWhatsAppToRecipient = async (input: {
       body,
       staffUserId: input.staffId ?? null,
       source: input.source,
+      isAutoReply: input.isAutoReply ?? false,
+      clientKey: input.clientKey ?? null,
       ...(plan.action === "template" && template
         ? {
             template: {

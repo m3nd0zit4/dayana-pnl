@@ -209,7 +209,7 @@ export const processNextBatch = async (
     // Se marca antes de enviar: si la invocación se corta, no se repite.
     const claimed = await prisma.whatsAppSendRecipient.updateMany({
       where: { id: row.id, status: "PENDING" },
-      data: { status: "SENDING" },
+      data: { status: "SENDING", processedAt: new Date() },
     });
     if (claimed.count === 0) continue;
 
@@ -223,6 +223,8 @@ export const processNextBatch = async (
           vars,
           source: `bulk:${sendId}`,
           staffId,
+          // Si esta tanda se corta y se reintenta, a esta persona no le llega dos veces.
+          clientKey: `bulk:${sendId}:${row.id}`,
         })
       : ({ status: "failed", error: "El contacto ya no existe." } as const);
 

@@ -16,6 +16,8 @@ import { isWhatsAppAutoReplyEnabled, setWhatsAppAutoReplyEnabled } from "../what
 const isPlainObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
+export { diffConfig } from "./config-diff";
+
 export const deepMerge = <T>(base: T, patch: unknown): T => {
   if (!isPlainObject(base) || !isPlainObject(patch)) {
     return (patch === undefined ? base : patch) as T;

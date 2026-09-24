@@ -5,6 +5,7 @@ import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { resolvePageCredentials } from "./credentials";
 import type { NormalizedEvent, NormalizedMessage } from "./inbound";
 import { rehostAttachment, type StoredAttachment } from "./media";
+import { applyStatus } from "./status";
 
 /**
  * Persistencia de los eventos entrantes de Meta.
@@ -69,11 +70,22 @@ const resolveContactId = async (
   if (channel !== "WHATSAPP") return null;
 
   // WhatsApp entrega el número sin `+`; los contactos se guardan en E.164.
-  const contact = await prisma.contact.findUnique({
-    where: { phoneE164: `+${threadId.replace(/\D/g, "")}` },
+  // México llega como 521… y Argentina como 549…, pero el contacto puede
+  // estar guardado como +52… / +54…: se prueban las dos formas.
+  const contact = await prisma.contact.findFirst({
+    where: { phoneE164: { in: contactPhoneCandidates(threadId) } },
     select: { id: true },
   });
   return contact?.id ?? null;
+};
+
+/** +521… ↔ +52…, +549… ↔ +54…: las formas en que puede estar guardado el contacto. */
+export const contactPhoneCandidates = (threadId: string): string[] => {
+  const d = threadId.replace(/\D/g, "");
+  const out = [`+${d}`];
+  if (d.length === 13 && (d.startsWith("521") || d.startsWith("549"))) out.push(`+${d.slice(0, 2)}${d.slice(3)}`);
+  if (d.length === 12 && (d.startsWith("52") || d.startsWith("54"))) out.push(`+${d.slice(0, 2)}${d.startsWith("52") ? "1" : "9"}${d.slice(2)}`);
+  return out;
 };
 
 const storeAttachments = async (
@@ -233,31 +245,27 @@ export const ingestMessage = async (
   };
 };
 
-/** Aplica un acuse de entrega sobre un mensaje ya guardado. */
+/**
+ * Aplica un acuse de entrega. El estado solo avanza (`lib/meta/status.ts`) y
+ * queda en el historial. Si el mensaje aún no está guardado, se informa y la
+ * cola de entrada lo reintenta.
+ */
 export const ingestStatus = async (
   event: Extract<NormalizedEvent, { kind: "status" }>
 ): Promise<IngestResult> => {
-  const existing = await prisma.conversationMessage.findUnique({
-    where: { externalMessageId: event.externalMessageId },
-    select: { id: true, conversationId: true },
+  const { messageId } = await applyStatus({
+    wamid: event.externalMessageId,
+    status: event.status,
+    at: event.at,
+    failedReason: event.failedReason,
+    failedCode: event.failedCode ?? null,
   });
-  if (!existing) return { outcome: "ignored", reason: "unknown_message" };
-
-  await prisma.conversationMessage.update({
-    where: { id: existing.id },
-    data: {
-      status: event.status,
-      failedReason: event.failedReason,
-      ...(event.status === "DELIVERED" ? { deliveredAt: event.at } : {}),
-      ...(event.status === "READ" ? { readAt: event.at } : {}),
-    },
+  if (!messageId) return { outcome: "ignored", reason: "unknown_message" };
+  const message = await prisma.conversationMessage.findUnique({
+    where: { id: messageId },
+    select: { conversationId: true },
   });
-
-  return {
-    outcome: "stored",
-    conversationId: existing.conversationId,
-    isInbound: false,
-  };
+  return { outcome: "stored", conversationId: message?.conversationId ?? "", isInbound: false };
 };
 
 const CHANNEL_LABEL: Record<ConversationChannel, string> = {
