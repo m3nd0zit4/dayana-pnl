@@ -16,10 +16,10 @@ const StatusPill = ({ status }: { status: string | null }) => {
         <CheckCircle2 className="size-3.5" /> Aprobada
       </span>
     );
-  if (s === "REJECTED" || s === "DISABLED")
+  if (s.startsWith("REJECTED") || s === "DISABLED")
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-[#fef3f2] px-2 py-0.5 text-xs font-medium text-[#b42318]">
-        <XCircle className="size-3.5" /> Rechazada
+        <XCircle className="size-3.5" /> Rechazada{s.includes("·") ? ` (${s.split("·")[1].trim().toLowerCase().replace(/_/g, " ")})` : ""}
       </span>
     );
   return (
@@ -78,7 +78,36 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const existingKeys = new Set((items ?? []).map((t) => t.key));
+  // Una rechazada se puede corregir y volver a mandar.
+  const existingKeys = new Set(
+    (items ?? []).filter((t) => !t.metaApprovalStatus?.startsWith("REJECTED")).map((t) => t.key)
+  );
+  const pendingStarters = starters.filter((st) => !existingKeys.has(st.key));
+
+  const submitAll = async () => {
+    setBusy("all");
+    const failed: string[] = [];
+    for (const st of pendingStarters) {
+      const res = await fetch("/api/admin/whatsapp/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          key: st.key,
+          title: st.title,
+          category: st.category,
+          body: drafts[st.key] ?? st.body,
+          example: st.example,
+        }),
+      }).catch(() => null);
+      const d = (await res?.json().catch(() => ({}))) as { message?: string; items?: WaTemplate[] } | undefined;
+      if (!res?.ok) failed.push(`${st.title}: ${d?.message ?? "error"}`);
+      else if (d?.items) setItems(d.items);
+    }
+    setBusy(null);
+    if (failed.length) toast(`No se pudieron mandar: ${failed.join(" · ")}`, "error");
+    else toast("Enviadas a revisión de Meta", "success");
+  };
 
   return (
     <CrmPageShell>
@@ -180,10 +209,21 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
 
       {canEdit && (
         <section className="space-y-2">
-          <h2 className="font-semibold">Recomendadas para mandar a aprobar</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="flex-1 font-semibold">Recomendadas para mandar a aprobar</h2>
+            {pendingStarters.length > 1 && (
+              <button
+                type="button"
+                onClick={() => void submitAll()}
+                disabled={busy !== null}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069] disabled:opacity-50"
+              >
+                {busy === "all" && <Loader2 className="size-4 animate-spin" />} Mandar a aprobar todas ({pendingStarters.length})
+              </button>
+            )}
+          </div>
           <ul className="space-y-2">
-            {starters
-              .filter((st) => !existingKeys.has(st.key))
+            {pendingStarters
               .map((st) => (
                 <li key={st.key} className="space-y-2 rounded-xl border border-[#e9edef] bg-white p-3 dark:border-border dark:bg-card">
                   <div className="flex flex-wrap items-center gap-2">

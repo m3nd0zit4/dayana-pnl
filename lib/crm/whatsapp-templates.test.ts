@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { STARTER_TEMPLATES, metaTemplateName, toMetaBody } from "./whatsapp-templates";
+import { STARTER_TEMPLATES, metaTemplateName, templateBodyProblem, toMetaBody } from "./whatsapp-templates";
 
 describe("plantillas", () => {
   test("{{nombre}} → {{1}} en orden, repetidos reutilizan el número", () => {
@@ -19,5 +19,17 @@ describe("plantillas", () => {
       const { varNames } = toMetaBody(t.body);
       for (const v of varNames) expect(t.example[v]).toBeTruthy();
     }
+  });
+});
+
+describe("templateBodyProblem", () => {
+  test("every starter passes Meta's rules", () => {
+    for (const t of STARTER_TEMPLATES) expect(templateBodyProblem(t.body)).toBeNull();
+  });
+  test("rejects dangling or adjacent variables", () => {
+    expect(templateBodyProblem("Hola, entra aquí: {{enlace}}")).toContain("terminar");
+    expect(templateBodyProblem("Hola, entra aquí: {{enlace}}.")).toContain("terminar");
+    expect(templateBodyProblem("{{nombre}}, hola")).toContain("empezar");
+    expect(templateBodyProblem("Hola {{nombre}} {{evento}} ya")).toContain("seguidas");
   });
 });

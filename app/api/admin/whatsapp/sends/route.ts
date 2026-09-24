@@ -25,7 +25,9 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   if (!parsed.success) return apiError("invalid_body", 400);
   const input = parsed.data;
   if (input.action === "preview") {
-    return NextResponse.json(await previewSend({ contactIds: input.contactIds, templateKey: input.templateKey }));
+    return NextResponse.json(
+      await previewSend({ contactIds: input.contactIds, templateKey: input.templateKey, kind: input.kind })
+    );
   }
   if (!input.text && !input.templateKey) return apiError("empty_message", 400);
   const created = await createSend({

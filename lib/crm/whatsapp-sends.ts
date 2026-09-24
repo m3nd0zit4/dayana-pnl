@@ -35,6 +35,12 @@ export type SendPreview = SendSummary & {
   currency: string;
   /** Hasta 8 personas de ejemplo por grupo, para que se vea a quién le llega. */
   sample: { name: string | null; action: string }[];
+  /**
+   * A quienes no se les puede escribir desde el CRM (más de 24 h y sin
+   * plantilla aprobada): Dayana se lo manda desde su celular, gratis. En
+   * diagnósticos lleva el mensaje que la IA escribió para esa persona.
+   */
+  phoneOnly: { contactId: string; name: string | null; phone: string; suggested: string | null }[];
 };
 
 const loadRecipients = async (contactIds: string[]): Promise<RecipientInfo[]> => {
@@ -43,9 +49,37 @@ const loadRecipients = async (contactIds: string[]): Promise<RecipientInfo[]> =>
   return rows.filter((r): r is RecipientInfo => Boolean(r));
 };
 
+const phoneOnlyList = async (
+  recipients: RecipientInfo[],
+  withDiagnosticMessage: boolean
+): Promise<SendPreview["phoneOnly"]> => {
+  const people = recipients.filter((r): r is RecipientInfo & { contactId: string; phoneE164: string } =>
+    Boolean(r.contactId && r.phoneE164)
+  );
+  const suggested = new Map<string, string>();
+  if (withDiagnosticMessage && people.length) {
+    const rows = await prisma.diagnostic.findMany({
+      where: { contactId: { in: people.map((p) => p.contactId) }, completedAt: { not: null }, aiAnalysis: { not: Prisma.DbNull } },
+      orderBy: { completedAt: "desc" },
+      select: { contactId: true, aiAnalysis: true },
+    });
+    for (const r of rows) {
+      const message = (r.aiAnalysis as { message?: string } | null)?.message;
+      if (r.contactId && message && !suggested.has(r.contactId)) suggested.set(r.contactId, message);
+    }
+  }
+  return people.map((p) => ({
+    contactId: p.contactId,
+    name: p.name,
+    phone: p.phoneE164,
+    suggested: suggested.get(p.contactId) ?? null,
+  }));
+};
+
 export const previewSend = async (input: {
   contactIds: string[];
   templateKey?: string | null;
+  kind?: SendKind;
 }): Promise<SendPreview> => {
   const [recipients, template, prices] = await Promise.all([
     loadRecipients(input.contactIds),
@@ -72,6 +106,10 @@ export const previewSend = async (input: {
       : null,
     pricePerTemplate: price,
     currency: prices.currency,
+    phoneOnly: await phoneOnlyList(
+      recipients.filter((_, i) => plans[i].action === "skip" && (plans[i] as { reason: string }).reason === "needs_template"),
+      input.kind === "diagnostico"
+    ),
     sample: recipients.slice(0, 8).map((r, i) => {
       const p = plans[i];
       return { name: r.name, action: p.action === "skip" ? p.reason : p.action };

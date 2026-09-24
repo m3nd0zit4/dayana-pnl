@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { dialog360Request } from "@/lib/meta/whatsapp-provider";
+import { Dialog360Error, dialog360Request } from "@/lib/meta/whatsapp-provider";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 
 /**
@@ -32,42 +32,42 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     key: "evento_gratis_invitacion",
     title: "Evento gratuito: invitación",
     category: "MARKETING",
-    body: "Hola {{nombre}}, te bendigo 💛 Te invito a {{evento}}, gratis, el {{fecha}}. Reserva tu lugar aquí: {{enlace}}",
+    body: "Hola {{nombre}}, te bendigo 💛 Te invito a {{evento}}, gratis, el {{fecha}}. Reserva tu lugar aquí: {{enlace}} ¡Te espero!",
     example: { nombre: "Ana", evento: "la masterclass Reprograma tu mente", fecha: "jueves 2 de octubre, 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
   },
   {
     key: "evento_gratis_recordatorio",
     title: "Evento gratuito: recordatorio",
     category: "UTILITY",
-    body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}}",
+    body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}} Nos vemos pronto 💛",
     example: { nombre: "Ana", evento: "la masterclass", fecha: "hoy a las 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
   },
   {
     key: "evento_grabacion",
     title: "Evento: grabación o material",
     category: "UTILITY",
-    body: "Hola {{nombre}}, aquí tienes {{evento}}: {{enlace}}",
+    body: "Hola {{nombre}}, aquí tienes {{evento}}: {{enlace}} Espero que te sirva mucho 💛",
     example: { nombre: "Ana", evento: "la grabación de la masterclass", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
   },
   {
     key: "enlace_de_pago",
     title: "Enlace de pago",
     category: "UTILITY",
-    body: "Hola {{nombre}}, aquí tienes el enlace para pagar {{paquete}}: {{enlace}}",
+    body: "Hola {{nombre}}, aquí tienes el enlace para pagar {{paquete}}: {{enlace}} Cualquier duda me escribes por aquí.",
     example: { nombre: "Ana", paquete: "el paquete de 3 sesiones", enlace: "https://www.dayanabeltran.com/pagar/terapias" },
   },
   {
     key: "taller_invitacion",
     title: "Taller: invitación",
     category: "MARKETING",
-    body: "Hola {{nombre}}, te bendigo 💛 Abrimos {{evento}}, el {{fecha}}. Toda la información y tu inscripción aquí: {{enlace}}",
+    body: "Hola {{nombre}}, te bendigo 💛 Abrimos {{evento}}, el {{fecha}}. Toda la información y tu inscripción aquí: {{enlace}} ¡Me encantaría verte!",
     example: { nombre: "Ana", evento: "el taller Sanando a mi niña interior", fecha: "sábado 11 de octubre", enlace: "https://www.dayanabeltran.com/taller-virtual/sanando" },
   },
   {
     key: "taller_recordatorio",
     title: "Taller: recordatorio",
     category: "UTILITY",
-    body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Ingresa aquí: {{enlace}}",
+    body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Ingresa aquí: {{enlace}} ¡Te espero!",
     example: { nombre: "Ana", evento: "tu taller", fecha: "mañana a las 9:00 a. m.", enlace: "https://www.dayanabeltran.com/taller-virtual/sanando" },
   },
   {
@@ -81,7 +81,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     key: "autoevaluacion_bienvenida",
     title: "Después de la autoevaluación",
     category: "MARKETING",
-    body: "Hola {{nombre}}, te bendigo 💛 Gracias por hacer tu autoevaluación. {{mensaje}}",
+    body: "Hola {{nombre}}, te bendigo 💛 Gracias por hacer tu autoevaluación. {{mensaje}} Quedo atenta a tu respuesta por aquí.",
     example: {
       nombre: "Ana",
       mensaje: "Leí lo que compartiste y me gustaría escucharte. ¿Te regalo una consulta gratis de 15 minutos?",
@@ -91,7 +91,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     key: "retomar_conversacion",
     title: "Retomar la conversación",
     category: "MARKETING",
-    body: "Hola {{nombre}}, te bendigo 💛 {{mensaje}}",
+    body: "Hola {{nombre}}, te bendigo 💛 Te escribo para retomar nuestra conversación. {{mensaje}} Quedo atenta a tu respuesta por aquí.",
     example: { nombre: "Ana", mensaje: "Quería saber cómo sigues." },
   },
 ];
@@ -111,6 +111,20 @@ export const toMetaBody = (body: string): { text: string; varNames: string[] } =
 };
 
 /** Nombre válido para Meta: minúsculas, números y guion bajo. */
+/**
+ * Las reglas de Meta que más rechazos causan, revisadas antes de enviar: no
+ * empezar ni terminar con una variable, ni dos variables seguidas.
+ */
+export const templateBodyProblem = (body: string): string | null => {
+  const t = body.trim();
+  if (/^\{\{\w+\}\}/.test(t)) return "No puede empezar con una variable: pon un saludo antes.";
+  if (/\{\{\w+\}\}[\s.!?¡¿:,;]*$/.test(t))
+    return "No puede terminar con una variable (por ejemplo el enlace): agrega una frase después.";
+  if (/\}\}\s*\{\{/.test(t)) return "No puede tener dos variables seguidas: pon texto entre ellas.";
+  if (t.length > 1024) return "Es demasiado larga (máximo 1024 caracteres).";
+  return null;
+};
+
 export const metaTemplateName = (key: string): string =>
   key
     .normalize("NFD")
@@ -125,8 +139,17 @@ type RemoteTemplate = {
   language?: string;
   status?: string;
   category?: string;
+  rejected_reason?: string;
   components?: { type?: string; text?: string }[];
 };
+
+/** "REJECTED · INVALID_FORMAT": el motivo de Meta queda a la vista. */
+const remoteStatus = (t: RemoteTemplate): string | null =>
+  t.status
+    ? t.status.toUpperCase() === "REJECTED" && t.rejected_reason && t.rejected_reason !== "NONE"
+      ? `REJECTED · ${t.rejected_reason}`.slice(0, 120)
+      : t.status.toUpperCase()
+    : null;
 
 const remoteBody = (t: RemoteTemplate) =>
   t.components?.find((c) => c.type?.toUpperCase() === "BODY")?.text ?? null;
@@ -136,7 +159,7 @@ const remoteBody = (t: RemoteTemplate) =>
  * que se crearon fuera del CRM también aparecen (con su nombre como clave).
  */
 export const syncWhatsAppTemplates = async (): Promise<number> => {
-  const data = (await dialog360Request("message_templates?limit=200")) as {
+  const data = (await dialog360Request("v1/configs/templates?limit=200")) as {
     waba_templates?: RemoteTemplate[];
     data?: RemoteTemplate[];
   };
@@ -153,7 +176,7 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
       await prisma.messageTemplate.update({
         where: { id: existing.id },
         data: {
-          metaApprovalStatus: t.status ?? null,
+          metaApprovalStatus: remoteStatus(t),
           metaCategory: t.category ?? null,
           ...(body ? { metaBody: body } : {}),
         },
@@ -171,7 +194,7 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
           body: numbered,
           metaTemplateName: t.name,
           metaTemplateLang: lang,
-          metaApprovalStatus: t.status ?? null,
+          metaApprovalStatus: remoteStatus(t),
           metaCategory: t.category ?? null,
           metaBody: body,
           metaVarNames: [...new Set(vars)],
@@ -179,7 +202,7 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
         update: {
           metaTemplateName: t.name,
           metaTemplateLang: lang,
-          metaApprovalStatus: t.status ?? null,
+          metaApprovalStatus: remoteStatus(t),
           metaCategory: t.category ?? null,
           metaBody: body,
         },
@@ -198,10 +221,12 @@ export const createWhatsAppTemplate = async (input: {
   body: string;
   example: Record<string, string>;
 }): Promise<{ name: string; status: string }> => {
+  const problem = templateBodyProblem(input.body);
+  if (problem) throw new Dialog360Error(problem, 400);
   const { text, varNames } = toMetaBody(input.body);
   const name = metaTemplateName(input.key);
   const examples = varNames.map((v) => input.example[v] || v);
-  const response = (await dialog360Request("message_templates", {
+  const response = (await dialog360Request("v1/configs/templates", {
     method: "POST",
     body: JSON.stringify({
       name,

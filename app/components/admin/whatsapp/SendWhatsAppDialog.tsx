@@ -3,6 +3,8 @@
 import { Loader2, MessageCircle, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { resolvePresetVars } from "@/lib/crm/whatsapp-presets";
+import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { trackStaffWhatsApp } from "../crm/trackStaffWhatsApp";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
 
@@ -25,7 +27,7 @@ const SKIP_TEXT = {
   no_phone: "Esta persona no tiene un número de WhatsApp válido en su ficha.",
   opted_out: "Esta persona pidió no recibir mensajes por WhatsApp.",
   needs_template:
-    "Pasaron más de 24 h desde su último mensaje: WhatsApp solo deja escribirle con una plantilla aprobada, y esta no tiene. Créala en WhatsApp → Plantillas.",
+    "Pasaron más de 24 h desde su último mensaje: desde el CRM solo se le puede escribir con una plantilla aprobada, y esta aún no lo está (WhatsApp → Plantillas). Mientras tanto, mándaselo desde tu celular: es gratis.",
 };
 
 /**
@@ -54,7 +56,13 @@ const SendWhatsAppDialog = ({
   const [presetId, setPresetId] = useState(presets[0]?.id ?? "libre");
   const preset = presets.find((p) => p.id === presetId) ?? null;
   const [text, setText] = useState(preset?.text ?? "");
-  const [info, setInfo] = useState<{ plan: Plan; price: number; currency: string; template: { title: string; body: string } | null } | null>(null);
+  const [info, setInfo] = useState<{
+    plan: Plan;
+    price: number;
+    currency: string;
+    template: { title: string; body: string } | null;
+    recipient?: { name: string | null; phone: string | null };
+  } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -144,6 +152,25 @@ const SendWhatsAppDialog = ({
           <p className="text-xs text-[#008069]">Escribió en las últimas 24 h: va como mensaje normal, gratis.</p>
         )}
         {plan?.action === "skip" && <p className="text-xs text-[#d92d20]">{SKIP_TEXT[plan.reason]}</p>}
+        {plan?.action === "skip" && plan.reason === "needs_template" && info?.recipient?.phone && text.trim() && (
+          <a
+            href={
+              buildContactWhatsAppUrl(
+                info.recipient.phone,
+                text.split("{{nombre}}").join((info.recipient.name ?? name ?? "").trim().split(/\s+/)[0] ?? "").trim()
+              ) ?? "#"
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              trackStaffWhatsApp(contactId, `${source}_phone`);
+              onClose();
+            }}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#00a884] px-4 font-medium text-[#008069] hover:bg-[#f0faf7]"
+          >
+            <MessageCircle className="size-4" /> Abrir en mi celular con el mensaje
+          </a>
+        )}
 
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className="h-9 rounded-full px-4 text-[#54656f] hover:bg-[#f5f6f6]">
