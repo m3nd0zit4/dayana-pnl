@@ -94,6 +94,20 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, te bendigo 💛 Te escribo para retomar nuestra conversación. {{mensaje}} Quedo atenta a tu respuesta por aquí.",
     example: { nombre: "Ana", mensaje: "Quería saber cómo sigues." },
   },
+  {
+    key: "comunidad_invitacion",
+    title: "Comunidad: invitación",
+    category: "MARKETING",
+    body: "Hola {{nombre}}, te bendigo 💛 Te invito a unirte a {{comunidad}}. Entra con este enlace: {{enlace}} ¡Te espero!",
+    example: { nombre: "Ana", comunidad: "la comunidad Mujeres que sanan", enlace: "https://chat.whatsapp.com/AbCdEfGhIjK" },
+  },
+  {
+    key: "comunidad_anuncio",
+    title: "Comunidad: anuncio",
+    category: "MARKETING",
+    body: "Hola {{nombre}}, te bendigo 💛 Novedad en {{comunidad}}: {{mensaje}} Un abrazo.",
+    example: { nombre: "Ana", comunidad: "la comunidad Mujeres que sanan", mensaje: "El jueves tenemos meditación en vivo a las 7 p. m." },
+  },
 ];
 
 /** {{nombre}} {{evento}} → {{1}} {{2}} y la lista de nombres en orden. */

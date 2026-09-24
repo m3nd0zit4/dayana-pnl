@@ -29,7 +29,7 @@ import {
  * plantilla (y cuánto costaría) y cuántos no se pueden.
  */
 
-export type SendKind = "evento" | "taller" | "diagnostico" | "pago" | "libre";
+export type SendKind = "evento" | "taller" | "diagnostico" | "pago" | "libre" | "comunidad";
 
 export type SendPreview = SendSummary & {
   templateInfo: { key: string; title: string; category: string | null; status: string | null } | null;
