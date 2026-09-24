@@ -315,6 +315,10 @@ export type ChatMessageView = {
   originalBody: string | null;
   /** Lo eliminó para todos (el texto se conserva para el equipo). */
   revokedAt: string | null;
+  /** `wamid` de este mensaje (para citarlo o reaccionar). */
+  externalMessageId: string | null;
+  /** `wamid` del mensaje que cita (respuesta a un mensaje concreto). */
+  replyToExternalId: string | null;
 };
 
 /** Cuántos mensajes trae un chat de entrada (y cada «Cargar anteriores»). */
@@ -335,6 +339,8 @@ const MESSAGE_SELECT = {
   editedAt: true,
   originalBody: true,
   revokedAt: true,
+  externalMessageId: true,
+  replyToExternalId: true,
   reactions: { select: { actor: true, emoji: true } },
   staffUser: { select: { displayName: true } },
 } as const;
@@ -358,6 +364,8 @@ const toMessageView = (m: MessageRow): ChatMessageView => ({
   editedAt: m.editedAt?.toISOString() ?? null,
   originalBody: m.originalBody,
   revokedAt: m.revokedAt?.toISOString() ?? null,
+  externalMessageId: m.externalMessageId,
+  replyToExternalId: m.replyToExternalId,
 });
 
 /** Mensajes anteriores a `before` («Cargar anteriores»), del más viejo al más nuevo. */

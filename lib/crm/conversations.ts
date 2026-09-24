@@ -337,6 +337,8 @@ export type ReplyInput = {
     variables?: string[];
   } | null;
   attachment?: SendAttachment | null;
+  /** `wamid` del mensaje que se cita (responder a un mensaje concreto). */
+  replyToExternalId?: string | null;
 };
 
 /** Responde en un hilo. Deja rastro en el audit log como toda escritura del CRM. */
@@ -351,6 +353,7 @@ export const replyToConversation = async (input: ReplyInput) => {
     staffUserId: input.staffUserId,
     template: input.template,
     attachment: input.attachment,
+    replyToExternalId: input.replyToExternalId ?? null,
   });
 
   // Entró una persona: la IA no vuelve a escribir en este hilo. Escribir

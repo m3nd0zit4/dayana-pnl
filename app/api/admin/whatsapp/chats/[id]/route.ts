@@ -49,7 +49,14 @@ export const GET = withStaff<Params>("read", async ({ params, req }) => {
 });
 
 const actionSchema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("send"), body: z.string().trim().min(1).max(4000) }),
+  z.object({
+    action: z.literal("send"),
+    body: z.string().trim().min(1).max(4000),
+    /** `wamid` del mensaje que se cita («Responder»). */
+    replyTo: z.string().trim().min(1).max(256).optional(),
+  }),
+  /** Reaccionar a un mensaje (emoji vacío = quitar la reacción). */
+  z.object({ action: z.literal("react"), messageId: z.string(), emoji: z.string().max(16) }),
   z.object({ action: z.literal("mode"), mode: z.enum(["AUTO", "COPILOT", "MANUAL"]) }),
   /** «Tomar este chat»: lo atiende Dayana y sube a «Tú atiendes». */
   z.object({ action: z.literal("take") }),
@@ -115,11 +122,23 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
           conversationId: id,
           body: input.body,
           staffUserId: staff.id,
+          replyToExternalId: input.replyTo ?? null,
         });
         return NextResponse.json(result);
       } catch (e) {
         if (e instanceof MetaWindowError) return apiError("window_closed", 409);
         return apiError(e instanceof Error ? e.message : "send_failed", 400);
+      }
+    }
+    case "react": {
+      const { reactToMessage, MessageActionError } = await import("@/lib/crm/whatsapp-message-actions");
+      try {
+        const result = await reactToMessage({ conversationId: id, messageId: input.messageId, emoji: input.emoji });
+        return NextResponse.json(result);
+      } catch (e) {
+        if (e instanceof MetaWindowError) return apiError("window_closed", 409);
+        if (e instanceof MessageActionError) return apiError(e.message, e.message === "not_found" ? 404 : 409);
+        return apiError(e instanceof Error ? e.message : "react_failed", 400);
       }
     }
     case "mode": {

@@ -90,19 +90,19 @@ const VoiceRecorder = ({
 
   if (state === "recording") {
     return (
-      <div className="flex h-[42px] items-center gap-2 rounded-full bg-white px-3 dark:bg-card">
-        <button type="button" onClick={() => stop(false)} aria-label="Descartar" className="text-[#54656f] hover:text-[#d92d20]">
+      <div className="flex h-[42px] items-center gap-1 rounded-full bg-(--wa-surface) px-1">
+        <button type="button" onClick={() => stop(false)} aria-label="Descartar" className="grid size-10 place-items-center rounded-full text-(--wa-icon) hover:text-(--wa-danger)">
           <Trash2 className="size-5" />
         </button>
-        <span className="size-2.5 animate-pulse rounded-full bg-[#d92d20]" />
-        <span className="w-12 text-sm tabular-nums text-[#111b21] dark:text-foreground">
+        <span className="size-2.5 animate-pulse rounded-full bg-(--wa-danger)" />
+        <span className="w-12 text-sm tabular-nums text-(--wa-text)">
           {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
         </span>
         <button
           type="button"
           onClick={() => stop(true)}
           aria-label="Enviar nota de voz"
-          className="grid size-9 place-items-center rounded-full bg-[#00a884] text-white hover:bg-[#008069]"
+          className="grid size-10 place-items-center rounded-full bg-(--wa-green) text-white hover:bg-(--wa-green-strong)"
         >
           <Send className="size-4" />
         </button>
@@ -118,11 +118,11 @@ const VoiceRecorder = ({
         disabled={disabled || state === "sending"}
         aria-label="Grabar nota de voz"
         title="Grabar nota de voz"
-        className="grid size-[42px] shrink-0 place-items-center rounded-full bg-[#00a884] text-white hover:bg-[#008069] disabled:opacity-40"
+        className="grid size-[42px] shrink-0 place-items-center rounded-full bg-(--wa-green) text-white hover:bg-(--wa-green-strong) disabled:opacity-40"
       >
         {state === "sending" ? <Loader2 className="size-5 animate-spin" /> : <Mic className="size-5" />}
       </button>
-      {error && <span className="mt-1 text-[11px] text-[#d92d20]">{error}</span>}
+      {error && <span className="mt-1 text-[11px] text-(--wa-danger)">{error}</span>}
     </div>
   );
 };

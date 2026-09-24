@@ -57,8 +57,8 @@ const GlobalModeSwitch = ({ onChanged }: { onChanged: () => void }) => {
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2">
-        <span className="text-xs font-medium text-[#54656f]">Todos los chats:</span>
-        <div className="inline-flex rounded-full border border-[#d1d7db] bg-white p-0.5 dark:border-border dark:bg-card" role="radiogroup" aria-label="Modo general">
+        <span className="text-xs font-medium text-(--wa-icon)">Todos los chats:</span>
+        <div className="inline-flex rounded-full border border-(--wa-border) bg-(--wa-surface) p-0.5" role="radiogroup" aria-label="Modo general">
           {OPTIONS.map((o) => (
             <button
               key={o.mode}
@@ -69,23 +69,23 @@ const GlobalModeSwitch = ({ onChanged }: { onChanged: () => void }) => {
               disabled={!canWrite || busy}
               onClick={() => (o.mode === mode ? undefined : setPending(o.mode))}
               className={cn(
-                "h-7 rounded-full px-3 text-xs font-medium transition-colors",
-                mode === o.mode ? "bg-[#00a884] text-white" : "text-[#54656f] hover:text-[#111b21] dark:text-muted-foreground"
+                "h-10 rounded-full px-3 text-xs font-medium transition-colors md:h-7",
+                mode === o.mode ? "bg-(--wa-green) text-white" : "text-(--wa-icon) hover:text-(--wa-text)"
               )}
             >
               {o.label}
             </button>
           ))}
         </div>
-        {busy && <Loader2 className="size-4 animate-spin text-[#00a884]" />}
+        {busy && <Loader2 className="size-4 animate-spin text-(--wa-green)" />}
       </div>
       {pendingOption && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[#f0f2f5] px-2.5 py-2 text-xs text-[#111b21] dark:bg-muted/40 dark:text-foreground">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg bg-(--wa-panel) px-2.5 py-2 text-xs text-(--wa-text)">
           <span className="min-w-0 flex-1">{pendingOption.confirm}</span>
-          <button type="button" onClick={() => void apply(pendingOption.mode)} className="rounded-full bg-[#00a884] px-3 py-1 font-medium text-white hover:bg-[#008069]">
+          <button type="button" onClick={() => void apply(pendingOption.mode)} className="h-10 rounded-full bg-(--wa-green) px-3 font-medium md:h-8 text-white hover:bg-(--wa-green-strong)">
             Aplicar a todos
           </button>
-          <button type="button" onClick={() => setPending(null)} className="rounded-full px-2 py-1 text-[#54656f] hover:text-[#111b21]">
+          <button type="button" onClick={() => setPending(null)} className="h-10 rounded-full px-2 text-(--wa-icon) md:h-8 hover:text-(--wa-text)">
             Cancelar
           </button>
         </div>
