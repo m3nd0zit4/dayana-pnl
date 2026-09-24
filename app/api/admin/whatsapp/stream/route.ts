@@ -6,6 +6,7 @@ import {
   workspaceSnapshot,
 } from "@/lib/crm/whatsapp-agent/workspace";
 import { createFeedStream, SSE_HEADERS } from "@/lib/notifications/platform/stream";
+import { kickSweep } from "@/lib/meta/inbox";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,8 +24,17 @@ export const GET = async (req: Request) => {
   const staff = await resolveAdminStaff();
   if (staff instanceof NextResponse) return staff;
 
+  // Mientras alguien mira WhatsApp, cada ~30 s se barre la cola de entrada:
+  // lo que falló se reintenta aunque no lleguen avisos nuevos.
+  let lastSweep = 0;
   const stream = createFeedStream({
-    poll: () => workspaceSnapshot(),
+    poll: () => {
+      if (Date.now() - lastSweep > 30_000) {
+        lastSweep = Date.now();
+        void kickSweep().catch((e) => console.warn("[cola WhatsApp] barrido", e));
+      }
+      return workspaceSnapshot();
+    },
     signal: req.signal,
     intervalMs: 2000,
     lastEventId: req.headers.get("last-event-id") ?? undefined,

@@ -1,5 +1,6 @@
 "use client";
 
+import InboxHealthCard from "./InboxHealthCard";
 import { CheckCircle2, CircleAlert, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -89,6 +90,8 @@ const WhatsAppStatusClient = () => {
         </span>
         <span className="text-xs text-muted-foreground">Últimas 24 horas · se actualiza sola</span>
       </div>
+
+      <InboxHealthCard />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         <Kpi label="Respondió sola" value={kpis.replied} tone="text-emerald-700" />

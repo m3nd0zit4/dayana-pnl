@@ -1,6 +1,6 @@
 import { after } from "next/server";
 
-import { isBulkSyncEvent, type NormalizedEvent } from "./inbound";
+import type { NormalizedEvent } from "./inbound";
 
 /**
  * Procesa lo que llegó por un webhook de Meta o de 360dialog, después de
@@ -90,35 +90,29 @@ const backfillAudioOnce = async () => {
   }
 };
 
-export const dispatchMetaEvents = (
-  object: string,
-  events: NormalizedEvent[],
-  source: string
-): { live: number; bulk: number } => {
-  const bulk = events.filter(isBulkSyncEvent);
-  const live = events.filter((event) => !isBulkSyncEvent(event));
-
+/**
+ * Recibe un aviso: lo guarda en la cola durable (`lib/meta/inbox.ts`) y,
+ * ya respondido el webhook, la vacía. Lanza si no pudo guardar: la ruta
+ * responde 500 y 360dialog/Meta lo reintentan (nunca un 200 sin guardar).
+ */
+export const acceptMetaEvents = async (input: {
+  source: string;
+  object: string;
+  raw: unknown;
+  events: NormalizedEvent[];
+}): Promise<{ received: number; queued: number }> => {
+  const { enqueueMetaEvents, drainInbox } = await import("./inbox");
+  const counts = await enqueueMetaEvents(input);
   after(async () => {
-    const { processNormalizedEvent, processHistoryEvents } = await import(
-      "./ingest"
-    );
+    try {
+      const stats = await drainInbox({ budgetMs: 240_000 });
+      if (stats.retried || stats.dead) {
+        console.warn(`[webhook ${input.source}] cola: ${JSON.stringify(stats)}`);
+      }
+    } catch (e) {
+      console.error(`[webhook ${input.source}] no se pudo vaciar la cola`, e);
+    }
     await backfillAudioOnce();
-    for (const event of live) {
-      try {
-        await processNormalizedEvent(object, event);
-      } catch (e) {
-        console.error(`[webhook ${source}] no se pudo procesar un evento`, e);
-      }
-    }
-    // El historial va después: no tiene prisa y puede ser largo.
-    if (bulk.length > 0) {
-      try {
-        await processHistoryEvents(object, bulk);
-      } catch (e) {
-        console.error(`[webhook ${source}] historial incompleto`, e);
-      }
-    }
   });
-
-  return { live: live.length, bulk: bulk.length };
+  return counts;
 };

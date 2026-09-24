@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { describeWebhook, dispatchMetaEvents } from "@/lib/meta/dispatch";
+import { acceptMetaEvents, describeWebhook } from "@/lib/meta/dispatch";
 import { normalizeMetaPayload } from "@/lib/meta/inbound";
 import {
   resolveMetaSubscription,
@@ -70,7 +70,11 @@ export async function POST(req: NextRequest) {
       ? String((payload as { object?: unknown }).object ?? "unknown")
       : "unknown";
 
-  const counts = dispatchMetaEvents(object, events, "meta");
-
-  return NextResponse.json({ ok: true, ...counts });
+  try {
+    const counts = await acceptMetaEvents({ source: "meta", object, raw: payload, events });
+    return NextResponse.json({ ok: true, ...counts });
+  } catch (e) {
+    console.error("[webhook meta] no se pudo guardar el aviso", e);
+    return NextResponse.json({ error: "store_failed" }, { status: 500 });
+  }
 }

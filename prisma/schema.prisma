@@ -1020,6 +1020,58 @@ model MetaWebhookEvent {
   @@map("meta_webhook_events")
 }
 
+/// Cada aviso de Meta/360dialog tal como llegó, guardado ANTES de responder
+/// 200. Si el procesamiento falla, de aquí se puede volver a leer: nada se
+/// pierde. Se borra a los 30 días (el mensaje ya vive en `conversation_messages`).
+model MetaWebhookPayload {
+  id         String   @id @default(cuid())
+  /// 360dialog | meta
+  source     String
+  receivedAt DateTime @default(now()) @map("received_at")
+  raw        Json
+
+  events MetaInboxEvent[]
+
+  @@index([receivedAt])
+  @@map("meta_webhook_payloads")
+}
+
+/// Cola durable de entrada: un evento por fila (mensaje, acuse, contacto),
+/// con reintentos. Un mensaje queda DONE solo cuando ya está guardado en su
+/// chat; si algo falla se reintenta con espera creciente y, tras 12 intentos,
+/// queda DEAD para revisarlo a mano (Estado → Reprocesar).
+model MetaInboxEvent {
+  id            String    @id @default(cuid())
+  /// msg:<wamid> | st:<wamid>:<estado> | ct:<hash> — un evento repetido no
+  /// entra dos veces.
+  dedupeKey     String    @unique @map("dedupe_key")
+  /// message | status | contact | history
+  kind          String
+  wamid         String?
+  /// Campo `object` del aviso (whatsapp_business_account | page | instagram).
+  object        String
+  payloadId     String?   @map("payload_id")
+  /// El evento ya normalizado (lo que procesa `processNormalizedEvent`).
+  normalized    Json
+  /// RECEIVED | PROCESSING | DONE | FAILED | DEAD
+  state         String    @default("RECEIVED")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  leaseUntil    DateTime? @map("lease_until")
+  lastError     String?   @map("last_error")
+  /// stored | duplicate | ignored:<motivo> — qué pasó al procesarlo.
+  outcome       String?
+  receivedAt    DateTime  @default(now()) @map("received_at")
+  processedAt   DateTime? @map("processed_at")
+
+  payload MetaWebhookPayload? @relation(fields: [payloadId], references: [id], onDelete: SetNull)
+
+  @@index([state, nextAttemptAt])
+  @@index([wamid])
+  @@index([receivedAt])
+  @@map("meta_inbox_events")
+}
+
 /// Un hilo con una persona en un canal de Meta.
 ///
 /// La identidad externa es la clave: teléfono (WhatsApp), PSID (Messenger) o

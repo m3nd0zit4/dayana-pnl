@@ -4,8 +4,8 @@ import { after, NextResponse, type NextRequest } from "next/server";
 
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
+  acceptMetaEvents,
   describeWebhook,
-  dispatchMetaEvents,
   keepUnparsedPayload,
 } from "@/lib/meta/dispatch";
 import { normalizeMetaPayload } from "@/lib/meta/inbound";
@@ -71,7 +71,13 @@ export async function POST(req: NextRequest) {
       ? String((payload as { object?: unknown }).object ?? "whatsapp_business_account")
       : "whatsapp_business_account";
 
-  const counts = dispatchMetaEvents(object, events, "360dialog");
-
-  return NextResponse.json({ ok: true, ...counts });
+  // Primero se guarda (cola durable) y solo entonces se responde 200. Si no se
+  // pudo guardar, 500: 360dialog reintenta y el mensaje no se pierde.
+  try {
+    const counts = await acceptMetaEvents({ source: "360dialog", object, raw: payload, events });
+    return NextResponse.json({ ok: true, ...counts });
+  } catch (e) {
+    console.error("[webhook 360dialog] no se pudo guardar el aviso", e);
+    return NextResponse.json({ error: "store_failed" }, { status: 500 });
+  }
 }

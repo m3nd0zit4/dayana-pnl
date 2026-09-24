@@ -9,10 +9,11 @@ import { rehostAttachment, type StoredAttachment } from "./media";
 /**
  * Persistencia de los eventos entrantes de Meta.
  *
- * Todo lo de aquí debe ser idempotente: Meta reintenta, y el mismo mensaje
- * puede llegar varias veces. La barrera es el índice único de
- * `MetaWebhookEvent.eventId`, y por debajo el de
- * `ConversationMessage.externalMessageId`.
+ * Todo lo de aquí debe ser idempotente: Meta reintenta, la cola de entrada
+ * (`lib/meta/inbox.ts`) reintenta, y el mismo mensaje puede llegar varias
+ * veces. La barrera es el índice único de `ConversationMessage.externalMessageId`:
+ * un mensaje cuenta como procesado solo cuando YA está guardado en su chat
+ * (antes se marcaba «visto» primero y, si algo fallaba después, se perdía).
  */
 
 const UNIQUE_VIOLATION = "P2002";
@@ -108,6 +109,12 @@ export type IngestResult =
 export const ingestMessage = async (
   message: NormalizedMessage
 ): Promise<IngestResult> => {
+  const already = await prisma.conversationMessage.findUnique({
+    where: { externalMessageId: message.externalMessageId },
+    select: { id: true },
+  });
+  if (already) return { outcome: "duplicate" };
+
   const attachments = await storeAttachments(message);
   const contactId = await resolveContactId(message.channel, message.threadId);
 
@@ -121,8 +128,9 @@ export const ingestMessage = async (
   // El historial es pasado: crea el hilo si no existe, pero no lo abre, no
   // suma no leídos y solo adelanta las fechas si de verdad son más nuevas.
   // Seis meses de chats no pueden aparecer de golpe como pendientes.
+  const stored = await prisma.$transaction(async (tx) => {
   const conversation = message.isHistory
-    ? await prisma.conversation.upsert({
+    ? await tx.conversation.upsert({
         where,
         create: {
           channel: message.channel,
@@ -137,7 +145,7 @@ export const ingestMessage = async (
         update: contactId ? { contactId } : {},
         select: { id: true },
       })
-    : await prisma.conversation.upsert({
+    : await tx.conversation.upsert({
         where,
         create: {
           channel: message.channel,
@@ -169,8 +177,7 @@ export const ingestMessage = async (
         select: { id: true },
       });
 
-  try {
-    await prisma.conversationMessage.create({
+    await tx.conversationMessage.create({
       data: {
         conversationId: conversation.id,
         direction: message.isEcho ? "OUTBOUND" : "INBOUND",
@@ -190,12 +197,15 @@ export const ingestMessage = async (
         sentAt: message.sentAt,
       },
     });
-  } catch (e) {
-    // El contador del hilo ya se incrementó arriba; con un duplicado real esto
-    // solo ocurre si el claim de MetaWebhookEvent no atajó, así que se informa.
-    if (isUniqueViolation(e)) return { outcome: "duplicate" };
+    return conversation;
+  }).catch((e: unknown) => {
+    // Otro proceso lo guardó en el mismo instante: la transacción se deshace
+    // entera (el contador de no leídos no se infla).
+    if (isUniqueViolation(e)) return null;
     throw e;
-  }
+  });
+  if (!stored) return { outcome: "duplicate" };
+  const conversation = stored;
 
   if (message.isHistory) {
     await prisma.conversation.updateMany({
@@ -284,9 +294,19 @@ export const notifyInboundMessage = (
  * Inngest no está configurado. Un mensaje de un cliente no se puede perder solo
  * porque falte una variable de entorno.
  */
+export type ProcessOptions = {
+  /**
+   * Si se pasa, la IA no corre aquí: se le avisa al llamante (la cola de
+   * entrada) para que la lance al final, en paralelo, sin frenar los demás
+   * mensajes que esperan.
+   */
+  deferAi?: (conversationId: string, triggerMessageId: string) => void;
+};
+
 export const processNormalizedEvent = async (
   object: string,
-  event: NormalizedEvent
+  event: NormalizedEvent,
+  opts: ProcessOptions = {}
 ): Promise<IngestResult> => {
   if (event.kind === "status") {
     // Los acuses no se dedupean: son idempotentes por naturaleza (escriben un
@@ -300,14 +320,8 @@ export const processNormalizedEvent = async (
     return { outcome: "contact_synced" };
   }
 
-  const claimed = await claimMetaEvent(
-    object,
-    event.externalMessageId,
-    event as unknown as Prisma.InputJsonValue
-  );
-  if (!claimed) return { outcome: "duplicate" };
-
   const result = await ingestMessage(event);
+  if (result.outcome !== "stored") return result;
 
   // El pasado no avisa, no saluda y no contesta. Se aprende de él en tanda,
   // al final de la sincronización (`processHistoryEvents`).
@@ -365,11 +379,15 @@ export const processNormalizedEvent = async (
       // Saludo, IA y estados en vivo: todo pasa por el ejecutor, que espera a
       // que la persona termine de escribir y contesta la ráfaga entera una sola
       // vez. Nunca lanza hacia fuera.
-      const { runWhatsAppAi } = await import("@/lib/crm/whatsapp-agent/run");
-      await runWhatsAppAi({
-        conversationId: result.conversationId,
-        triggerMessageId: event.externalMessageId,
-      });
+      if (opts.deferAi) {
+        opts.deferAi(result.conversationId, event.externalMessageId);
+      } else {
+        const { runWhatsAppAi } = await import("@/lib/crm/whatsapp-agent/run");
+        await runWhatsAppAi({
+          conversationId: result.conversationId,
+          triggerMessageId: event.externalMessageId,
+        });
+      }
     }
   }
 
@@ -400,9 +418,20 @@ export const processHistoryEvents = async (
     }
   }
 
+  await finishHistorySync(touched);
+  return { stored, conversations: touched.size };
+};
+
+/**
+ * Después de guardar historial: aprende de los chats que cambiaron y, si aún
+ * no hay guía de estilo, la escribe. Lo usan la importación y la cola de entrada.
+ */
+export const finishHistorySync = async (touched: Set<string>): Promise<void> => {
   const { learnFromConversation } = await import("@/lib/crm/whatsapp-learning");
   for (const conversationId of touched) {
-    await learnFromConversation(conversationId);
+    await learnFromConversation(conversationId).catch((e: unknown) =>
+      console.warn("[historial WhatsApp] no se pudo aprender de un chat", e)
+    );
   }
 
   // Con el historial ya aprendido, la guía de estilo se escribe sola si
@@ -422,5 +451,4 @@ export const processHistoryEvents = async (
       console.warn("[historial WhatsApp] sin guía de estilo todavía", e);
     }
   }
-  return { stored, conversations: touched.size };
 };
