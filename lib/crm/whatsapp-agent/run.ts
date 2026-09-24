@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { loadImages, pickImages } from "./vision";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
@@ -248,6 +249,9 @@ export const runWhatsAppAi = async (input: {
     const name =
       conversation.contact?.firstName?.trim() || conversation.participantName?.trim() || null;
 
+    // Lo que la persona mandó en fotos o stickers, para que la IA lo vea.
+    const images = await loadImages(pickImages([...conversation.messages].reverse())).catch(() => []);
+
     const result = await think({
       config,
       transcript: history,
@@ -259,6 +263,7 @@ export const runWhatsAppAi = async (input: {
       memory: await getMemory(phone),
       timezone,
       mode: "live",
+      images,
     });
 
     const meta = {
@@ -422,6 +427,7 @@ const loadConversation = (conversationId: string) =>
           status: true,
           isAutoReply: true,
           source: true,
+          kind: true,
         },
       },
     },
@@ -533,7 +539,8 @@ const gate = async (
     .filter((m) => m.status !== "FAILED")
     .map((m) => ({
       direction: m.direction === "INBOUND" ? "INBOUND" : "OUTBOUND",
-      body: m.body,
+      // Un aviso gris (reacción, encuesta…) va marcado: no es algo que escribió.
+      body: m.kind === "system" ? `(aviso de WhatsApp: ${m.body ?? ""})` : m.body,
       attachment: attachmentLabel(m.attachments),
       isAutoReply: m.isAutoReply,
     }));

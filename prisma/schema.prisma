@@ -1189,15 +1189,39 @@ model ConversationMessage {
   kind       String  @default("message")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
 
+  /// La persona (o Dayana desde el celular) editó el mensaje: el texto nuevo
+  /// va en `body` y el de antes queda aquí.
+  editedAt     DateTime? @map("edited_at")
+  originalBody String?   @map("original_body") @db.Text
+  /// Lo eliminó para todos. El texto se conserva para el equipo.
+  revokedAt    DateTime? @map("revoked_at")
+
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   staffUser    StaffUser?   @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
   statusEvents MessageStatusEvent[]
+  reactions    MessageReaction[]
 
   @@index([conversationId, sentAt])
   @@index([conversationId, updatedAt])
   @@index([source])
   @@index([direction, isAutoReply, sentAt])
   @@map("conversation_messages")
+}
+
+/// Una reacción a un mensaje (❤️ 👍 …). Una por persona y mensaje: una nueva
+/// reemplaza la anterior y una vacía la quita, como en WhatsApp.
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  /// contact (la persona) | business (Dayana, desde el celular o el CRM)
+  actor     String
+  emoji     String
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  message ConversationMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, actor])
+  @@map("message_reactions")
 }
 
 /// Historial de estados de un mensaje (Info del mensaje): cuándo se envió, se

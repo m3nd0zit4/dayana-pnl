@@ -137,11 +137,42 @@ const main = async () => {
     check("el marcador interno ni siquiera entra a la cola", events.length === 1, events.length);
     await enqueue(events);
     await drainInbox({ budgetMs: 30_000 });
-    const rx = await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("rx") } });
-    check("la reacción queda como aviso gris", rx?.kind === "system", rx?.kind);
+    const reacted = await prisma.messageReaction.findFirst({ where: { message: { externalMessageId: wamid("a") } } });
+    check("la reacción queda sobre el mensaje reaccionado (no como mensaje)", reacted?.emoji === "❤️", reacted?.emoji);
     const afterRx = await prisma.conversation.findUniqueOrThrow({ where: { id: conv.id } });
     check("y no suma no leídos", afterRx.unreadCount === 3, afterRx.unreadCount);
     check("no hay fila del marcador", !(await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("ph") } })));
+
+    console.log("\n8. Reacción, edición y eliminación sobre el mensaje original");
+    const ts = () => String(Math.floor(Date.now() / 1000));
+    const target = wamid("b"); // «Segundo mensaje» (caso 3)
+    await enqueue(
+      normalizeMetaPayload(
+        raw([
+          { id: wamid("r1"), from: THREAD, timestamp: ts(), type: "reaction", reaction: { emoji: "😍", message_id: target } },
+          { id: wamid("e1"), from: THREAD, timestamp: ts(), type: "edit", edit: { original_message_id: target, message: { type: "text", text: { body: "Segundo mensaje (corregido)" } } } },
+        ])
+      )
+    );
+    await drainInbox({ budgetMs: 30_000 });
+    const tgt = await prisma.conversationMessage.findUniqueOrThrow({ where: { externalMessageId: target }, include: { reactions: true } });
+    check("la reacción queda en el mensaje, no como mensaje nuevo", tgt.reactions[0]?.emoji === "😍" && !(await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("r1") } })), tgt.reactions);
+    check("la edición cambia el texto y guarda el anterior", tgt.body === "Segundo mensaje (corregido)" && tgt.originalBody === "Segundo mensaje" && Boolean(tgt.editedAt), { body: tgt.body, orig: tgt.originalBody });
+    await enqueue(
+      normalizeMetaPayload(
+        raw([
+          { id: wamid("r2"), from: THREAD, timestamp: ts(), type: "reaction", reaction: { emoji: "", message_id: target } },
+          { id: wamid("v1"), from: THREAD, timestamp: ts(), type: "revoke", revoke: { original_message_id: target } },
+          { id: wamid("r3"), from: THREAD, timestamp: ts(), type: "reaction", reaction: { emoji: "👍", message_id: "wamid.no.existe" } },
+        ])
+      )
+    );
+    await drainInbox({ budgetMs: 30_000 });
+    const tgt2 = await prisma.conversationMessage.findUniqueOrThrow({ where: { externalMessageId: target }, include: { reactions: true } });
+    check("quitar la reacción la borra", tgt2.reactions.length === 0, tgt2.reactions);
+    check("eliminar para todos marca el original (el texto se conserva)", Boolean(tgt2.revokedAt) && Boolean(tgt2.body), tgt2.revokedAt);
+    const orphan = await prisma.conversationMessage.findUnique({ where: { externalMessageId: wamid("r3") } });
+    check("reacción a un mensaje que no está: queda como aviso gris", orphan?.kind === "system", orphan?.kind);
   } finally {
     if (prevAi) await prisma.siteSetting.update({ where: { key: prevAi.key }, data: { value: prevAi.value } });
   }

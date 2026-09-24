@@ -743,6 +743,11 @@ const Thread = ({
               const meta = (
                 <div className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-[#667781]">
                   {m.isEcho && <Smartphone className="size-3" aria-label="Desde el celular" />}
+                  {m.editedAt && (
+                    <span title={m.originalBody ? `Antes decía: ${m.originalBody}` : undefined} className="italic">
+                      Editado ·
+                    </span>
+                  )}
                   {m.staffName && !m.isAutoReply && <span>{m.staffName} ·</span>}
                   <span>{new Date(m.sentAt).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })}</span>
                   {out && m.status !== "FAILED" && (
@@ -786,12 +791,29 @@ const Thread = ({
                       {m.attachments.map((a, i) => (
                         <AttachmentView key={i} a={a} />
                       ))}
-                      {m.body && (
-                        <p className="whitespace-pre-wrap break-words">
-                          <Linkified text={m.body} />
+                      {m.revokedAt ? (
+                        <p className="text-sm italic text-[#667781]">
+                          🚫 {out ? "Eliminaste" : "Eliminó"} este mensaje
+                          {m.body ? <span className="block text-xs not-italic opacity-70">Decía: {m.body}</span> : null}
                         </p>
+                      ) : (
+                        m.body && (
+                          <p className="whitespace-pre-wrap break-words">
+                            <Linkified text={m.body} />
+                          </p>
+                        )
                       )}
                       {meta}
+                      {m.reactions.length > 0 && (
+                        <div className={cn("-mb-3 mt-0.5 flex", out ? "justify-start" : "justify-end")}>
+                          <span
+                            className="rounded-full border border-[#e9edef] bg-white px-1.5 py-0.5 text-sm shadow-sm dark:border-border dark:bg-card"
+                            title={m.reactions.map((r) => `${r.actor === "business" ? "Tú" : "Persona"}: ${r.emoji}`).join(" · ")}
+                          >
+                            {m.reactions.map((r) => r.emoji).join(" ")}
+                          </span>
+                        </div>
+                      )}
                       {m.status === "FAILED" && out && (
                         <div className="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-[#d92d20]/20 pt-1">
                           {resentIds.has(m.id) ? (

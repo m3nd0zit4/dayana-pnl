@@ -52,6 +52,15 @@ export type NormalizedMessage = {
    * no despierta a la IA, no suma no leídos y no abre la ventana de 24 h.
    */
   system?: boolean;
+  /**
+   * No es un mensaje nuevo sino un cambio sobre otro: una reacción (emoji
+   * vacío = la quitó), una edición o un «eliminar para todos». Se aplica al
+   * mensaje original; si todavía no está guardado, queda como aviso gris.
+   */
+  action?:
+    | { type: "reaction"; targetId: string; emoji: string }
+    | { type: "edit"; targetId: string; body: string | null }
+    | { type: "revoke"; targetId: string };
 };
 
 /** Un contacto de la libreta de la app de WhatsApp Business (coexistencia). */
@@ -252,6 +261,35 @@ const parseWhatsAppMessage = (
   let body = asString(asRecord(message.text)?.body);
   let system = false;
 
+  // Reacciones, ediciones y «eliminar para todos»: cambios sobre otro mensaje.
+  let action: NormalizedMessage["action"];
+  if (type === "reaction") {
+    const r = asRecord(message.reaction);
+    const targetId = asString(r?.message_id);
+    const emoji = asString(r?.emoji) ?? "";
+    if (targetId) {
+      action = { type: "reaction", targetId, emoji };
+      body = emoji ? `Reaccionó ${emoji}` : "Quitó una reacción";
+      system = true;
+    }
+  } else if (type === "revoke") {
+    const targetId = asString(asRecord(message.revoke)?.original_message_id);
+    if (targetId) {
+      action = { type: "revoke", targetId };
+      body = "🚫 Eliminó un mensaje";
+      system = true;
+    }
+  } else if (type === "edit") {
+    const e = asRecord(message.edit);
+    const targetId = asString(e?.original_message_id);
+    const newBody = asString(asRecord(asRecord(e?.message)?.text)?.body) ?? asString(asRecord(e?.text)?.body);
+    if (targetId) {
+      action = { type: "edit", targetId, body: newBody };
+      body = "✏️ Editó un mensaje";
+      system = true;
+    }
+  }
+
   // Tipos que WhatsApp no pasa a la API en coexistencia: marcadores internos
   // (no son mensajes: antes aparecían como si la persona hubiera mandado un
   // archivo) y cosas que solo se ven en el celular (aviso gris).
@@ -264,7 +302,7 @@ const parseWhatsAppMessage = (
 
   // Lo que no es texto ni archivo se convierte en texto legible: si no, en el
   // CRM salía como «unknown» y la IA no sabía qué le habían mandado.
-  const special = system ? undefined : describeSpecialMessage(type, message);
+  const special = system || action ? undefined : describeSpecialMessage(type, message);
   if (system) {
     // ya clasificado arriba
   } else if (special !== undefined) {
@@ -323,6 +361,7 @@ const parseWhatsAppMessage = (
     participantName: ctx.participantName,
     ...(ctx.isHistory ? { isHistory: true } : {}),
     ...(system ? { system: true } : {}),
+    ...(action ? { action } : {}),
   };
 };
 

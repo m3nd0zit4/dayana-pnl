@@ -111,6 +111,45 @@ const storeAttachments = async (
   );
 };
 
+/**
+ * Aplica una reacción / edición / eliminación sobre el mensaje original.
+ * Devuelve null si el original no está guardado.
+ */
+const applyMessageAction = async (message: NormalizedMessage): Promise<IngestResult | null> => {
+  const action = message.action!;
+  const target = await prisma.conversationMessage.findUnique({
+    where: { externalMessageId: action.targetId },
+    select: { id: true, conversationId: true, body: true, originalBody: true },
+  });
+  if (!target) return null;
+  const actor = message.isEcho ? "business" : "contact";
+  if (action.type === "reaction") {
+    if (action.emoji) {
+      await prisma.messageReaction.upsert({
+        where: { messageId_actor: { messageId: target.id, actor } },
+        create: { messageId: target.id, actor, emoji: action.emoji },
+        update: { emoji: action.emoji },
+      });
+    } else {
+      await prisma.messageReaction.deleteMany({ where: { messageId: target.id, actor } });
+    }
+    // Para que la pantalla se entere del cambio.
+    await prisma.conversationMessage.update({ where: { id: target.id }, data: { updatedAt: new Date() } });
+  } else if (action.type === "edit") {
+    await prisma.conversationMessage.update({
+      where: { id: target.id },
+      data: {
+        editedAt: message.sentAt,
+        originalBody: target.originalBody ?? target.body,
+        ...(action.body ? { body: action.body } : {}),
+      },
+    });
+  } else {
+    await prisma.conversationMessage.update({ where: { id: target.id }, data: { revokedAt: message.sentAt } });
+  }
+  return { outcome: "stored", conversationId: target.conversationId, isInbound: false };
+};
+
 export type IngestResult =
   | { outcome: "stored"; conversationId: string; isInbound: boolean }
   | { outcome: "contact_synced" }
@@ -126,6 +165,13 @@ export const ingestMessage = async (
     select: { id: true },
   });
   if (already) return { outcome: "duplicate" };
+
+  // Una reacción, edición o eliminación se aplica al mensaje original.
+  if (message.action) {
+    const applied = await applyMessageAction(message);
+    if (applied) return applied;
+    // El original aún no está: queda como aviso gris (no se pierde).
+  }
 
   const attachments = await storeAttachments(message);
   const contactId = await resolveContactId(message.channel, message.threadId);

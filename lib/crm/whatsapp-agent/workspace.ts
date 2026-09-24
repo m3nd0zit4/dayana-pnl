@@ -308,6 +308,13 @@ export type ChatMessageView = {
   source: string | null;
   /** message | system (aviso gris: reacción, encuesta, tipo no compatible…). */
   kind: string;
+  /** Reacciones (❤️ 👍…) de la persona y de Dayana. */
+  reactions: { actor: string; emoji: string }[];
+  editedAt: string | null;
+  /** El texto antes de editarlo. */
+  originalBody: string | null;
+  /** Lo eliminó para todos (el texto se conserva para el equipo). */
+  revokedAt: string | null;
 };
 
 export const getChat = async (id: string) => {
@@ -345,6 +352,10 @@ export const getChat = async (id: string) => {
           failedReason: true,
           source: true,
           kind: true,
+          editedAt: true,
+          originalBody: true,
+          revokedAt: true,
+          reactions: { select: { actor: true, emoji: true } },
           staffUser: { select: { displayName: true } },
         },
       },
@@ -421,6 +432,10 @@ export const getChat = async (id: string) => {
         failedReason: m.status === "FAILED" ? (m.failedReason ?? null) : null,
         source: m.source ?? null,
         kind: m.kind,
+        reactions: m.reactions,
+        editedAt: m.editedAt?.toISOString() ?? null,
+        originalBody: m.originalBody,
+        revokedAt: m.revokedAt?.toISOString() ?? null,
       })
     ),
     runs: c.aiRuns.map((r) => ({ ...runView(r), toolCalls: r.toolCalls, delivery: deliveryOf(r, c.messages) })),

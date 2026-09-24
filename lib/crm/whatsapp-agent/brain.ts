@@ -328,8 +328,9 @@ Cómo conversas (así vende Dayana):
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 Llama a escalate (y NO escribas ningún mensaje) cuando:
-- category=payment: menciona un pago YA hecho, una transferencia, manda un comprobante (una imagen o documento sin explicación casi siempre lo es), pregunta por un cobro, un reembolso o una factura, o pide un descuento. (Pedir cómo pagar NO es esto: para eso está payment_link.)
-- category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen sin contexto, un audio marcado «(inaudible)»). Las notas de voz llegan transcritas con 🎤 delante: léelas como si te las hubiera escrito.
+- category=payment: menciona un pago YA hecho, una transferencia, manda un comprobante (MIRA las imágenes adjuntas: si es un comprobante, transferencia o recibo, es esto), pregunta por un cobro, un reembolso o una factura, o pide un descuento. (Pedir cómo pagar NO es esto: para eso está payment_link.)
+- category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen que no sabes interpretar, un audio marcado «(inaudible)»).
+- Las fotos y stickers que mandó la persona van adjuntos como imágenes: míralos y responde a lo que muestran (una captura de un horario, una foto de algo que le pasa, un sticker de cariño…). Nunca digas que no puedes ver imágenes. Las notas de voz llegan transcritas con 🎤 delante: léelas como si te las hubiera escrito.
 - category=reschedule: quiere cambiar o cancelar una cita ya agendada.
 - category=complaint: se queja o está molesta.
 - category=clinical: cuenta una crisis o un dolor emocional fuerte, o pide ayuda psicológica. Si menciona hacerse daño, severity=urgent.
@@ -401,6 +402,8 @@ export type BrainInput = {
   /** `preview` no agenda de verdad (botón «Probar», chat con el asistente). */
   mode: "live" | "preview";
   now?: Date;
+  /** Las últimas fotos o stickers de la persona: la IA las ve (Gemini). */
+  images?: { data: Uint8Array; mediaType: string }[];
 };
 
 export const think = async (input: BrainInput): Promise<BrainResult> => {
@@ -654,10 +657,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
 
   const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeHmInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;
 
-  const result = await generateText({
-    model: google(modelId()),
-    system: systemPrompt(config, nowLabel),
-    prompt: [
+  const promptText = [
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config)}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
@@ -671,9 +671,29 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
       `Su número: +${input.phone}`,
       `CONVERSACIÓN (lo último abajo):\n${input.transcript.map(describeLine).join("\n")}`,
+      input.images?.length
+        ? `IMÁGENES: van adjuntas las ${input.images.length} últimas fotos o stickers que mandó la persona (la más reciente primero). Míralas.`
+        : null,
     ]
       .filter(Boolean)
-      .join("\n\n"),
+      .join("\n\n");
+
+  const result = await generateText({
+    model: google(modelId()),
+    system: systemPrompt(config, nowLabel),
+    ...(input.images?.length
+      ? {
+          messages: [
+            {
+              role: "user" as const,
+              content: [
+                { type: "text" as const, text: promptText },
+                ...input.images.map((img) => ({ type: "image" as const, image: img.data, mediaType: img.mediaType })),
+              ],
+            },
+          ],
+        }
+      : { prompt: promptText }),
     tools,
     stopWhen: [isStepCount(6), hasToolCall("escalate")],
   });
