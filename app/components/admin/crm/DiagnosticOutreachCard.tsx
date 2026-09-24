@@ -9,6 +9,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import type { DiagnosticAnalysis } from "@/lib/crm/diagnostic-outreach";
+import { deliveryLabel } from "@/lib/crm/whatsapp-delivery-labels";
 
 const STATUS: Record<string, string> = {
   ANALYZING: "La IA la está leyendo…",
@@ -34,10 +35,12 @@ type Props = {
   at: string | null;
   conversationId: string | null;
   hasPhone: boolean;
+  /** Lo que dijo WhatsApp del último mensaje que se le mandó. */
+  delivery?: { status: string; failedReason: string | null } | null;
 };
 
 /** Lo que la IA leyó de la autoevaluación y el primer WhatsApp que se le mandó. */
-const DiagnosticOutreachCard = ({ diagnosticId, analysis, status, reason, conversationId, hasPhone }: Props) => {
+const DiagnosticOutreachCard = ({ diagnosticId, analysis, status, reason, conversationId, hasPhone, delivery }: Props) => {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +60,7 @@ const DiagnosticOutreachCard = ({ diagnosticId, analysis, status, reason, conver
 
   const care = analysis ? CARE[analysis.care] : null;
   const s = analysis?.signals;
-  const canWrite = hasPhone && status !== "SENT" && status !== "ANALYZING";
+  const canWrite = hasPhone && status !== "ANALYZING" && (status !== "SENT" || delivery?.status === "FAILED");
 
   return (
     <Card>
@@ -110,7 +113,12 @@ const DiagnosticOutreachCard = ({ diagnosticId, analysis, status, reason, conver
         )}
 
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {status ? (
+          {status === "SENT" && delivery ? (
+            // Una vez enviado, se dice lo mismo que en el chat: le llegó, lo leyó o no le llegó.
+            <span className={deliveryLabel(delivery.status).tone === "fail" ? "text-[#b42318]" : "text-[#008069]"}>
+              WhatsApp: {deliveryLabel(delivery.status, delivery.failedReason).label}
+            </span>
+          ) : status ? (
             <span className={status === "SENT" ? "text-[#008069]" : "text-muted-foreground"}>
               {STATUS[status] ?? status}
               {reason && status !== "SENT" ? ` — ${reason}` : ""}

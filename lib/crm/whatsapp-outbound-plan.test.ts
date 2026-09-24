@@ -94,3 +94,17 @@ describe("approval delivery", () => {
     expect(windowNotice("closed")).toContain("24 h");
   });
 });
+
+import { deliveryLabel } from "./whatsapp-delivery-labels";
+
+describe("deliveryLabel: la misma frase en todo el CRM", () => {
+  test("cada estado de WhatsApp tiene una sola frase", () => {
+    expect(deliveryLabel("SENT").label).toBe("Enviado, aún no le llega");
+    expect(deliveryLabel("DELIVERED").label).toBe("Le llegó");
+    expect(deliveryLabel("READ").label).toBe("Lo leyó");
+    expect(deliveryLabel("FAILED", "Message undeliverable").label).toBe(
+      "No le llegó: WhatsApp no pudo entregarlo a esa persona"
+    );
+    expect(deliveryLabel("FAILED").tone).toBe("fail");
+  });
+});

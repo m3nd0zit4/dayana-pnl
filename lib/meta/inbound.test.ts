@@ -60,3 +60,33 @@ describe("normalizeMetaPayload (WhatsApp)", () => {
     expect(events[0].kind === "message" && events[0].body).toBe("Info\n(Llegó desde un anuncio: Terapia online)");
   });
 });
+
+describe("archivos que «no cargaban»", () => {
+  test("un video mandado como archivo se guarda como video", () => {
+    const [m] = normalizeMetaPayload(
+      wrap({
+        messages: [
+          { id: "v", from: "573001", timestamp: "1", type: "document", document: { id: "media1", mime_type: "video/mp4", filename: "clip.mp4" } },
+        ],
+      })
+    );
+    expect(m.kind === "message" && m.attachments[0]?.kind).toBe("video");
+  });
+  test("un PDF sigue siendo documento", () => {
+    const [m] = normalizeMetaPayload(
+      wrap({
+        messages: [
+          { id: "d", from: "573001", timestamp: "1", type: "document", document: { id: "media2", mime_type: "application/pdf" } },
+        ],
+      })
+    );
+    expect(m.kind === "message" && m.attachments[0]?.kind).toBe("document");
+  });
+  test("un tipo nuevo sin archivo dice qué es, no un adjunto vacío", () => {
+    const [m] = normalizeMetaPayload(
+      wrap({ messages: [{ id: "p", from: "573001", timestamp: "1", type: "poll", poll: { question: "¿?" } }] })
+    );
+    expect(m.kind === "message" && m.attachments).toHaveLength(0);
+    expect(m.kind === "message" && m.body).toContain("tipo «poll»");
+  });
+});

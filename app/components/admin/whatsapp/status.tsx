@@ -4,6 +4,7 @@ import { AlertTriangle, Bot, CheckCheck, Clock, FilePen, Loader2, Send, Hand, XC
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { RunView } from "@/lib/crm/whatsapp-agent/workspace";
+import { deliveryLabel, failedLabel } from "@/lib/crm/whatsapp-delivery-labels";
 
 /** Lo que cada estado de la IA significa, dicho para Dayana. */
 
@@ -76,19 +77,11 @@ export const isRunLive = (run: RunView | null) =>
  * Una línea con lo que está haciendo la IA en este chat, con tiempos en vivo:
  * «Leyendo… 3 s», «Pensando… 6 s», «Respondió hace 2 min · tardó 9 s».
  */
-/** « · le llegó» / « · lo leyó»: lo que confirmó WhatsApp. */
+/** « · le llegó» / « · lo leyó»: la misma frase que en el chat y en la ficha. */
 const deliveredLabel = (d: RunView["delivery"]) =>
-  d?.status === "READ" ? " · lo leyó" : d?.status === "DELIVERED" ? " · le llegó" : "";
+  d && d.status !== "FAILED" ? ` · ${deliveryLabel(d.status).label.toLowerCase()}` : "";
 
-/** El motivo de WhatsApp, en palabras de persona. */
-export const failedLabel = (reason: string) =>
-  /undeliverable/i.test(reason)
-    ? "WhatsApp no pudo entregarlo a esa persona"
-    : /24|re-engagement|window/i.test(reason)
-      ? "pasaron más de 24 h desde su último mensaje"
-      : /template/i.test(reason)
-        ? "problema con la plantilla"
-        : reason;
+export { failedLabel };
 
 export const RunStatus = ({
   run,
@@ -177,7 +170,7 @@ export const RunStatus = ({
     icon = <XCircle className="size-3.5" />;
     text = compact
       ? "No se entregó"
-      : `${run.status === "APPROVED" ? "Lo aprobaste" : "La IA respondió"}, pero WhatsApp no lo entregó${run.delivery.error ? ` (${failedLabel(run.delivery.error)})` : ""}`;
+      : `${run.status === "APPROVED" ? "Lo aprobaste" : "La IA respondió"} · ${deliveryLabel("FAILED", run.delivery.error).label}. Reenvíalo desde el mensaje`;
     tone = "text-[#d92d20] dark:text-red-300";
   }
 

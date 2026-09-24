@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Bot,
   CalendarClock,
+  Check,
   CheckCheck,
   Hand,
   Loader2,
@@ -25,13 +26,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { windowNotice } from "@/lib/crm/whatsapp-outbound-plan";
+import { deliveryLabel } from "@/lib/crm/whatsapp-delivery-labels";
 import type { ChatDetail, ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import { useCrm } from "../crm/CrmProvider";
 import ApprovalBar from "./ApprovalBar";
 import GlobalModeSwitch from "./GlobalModeSwitch";
 import VoiceRecorder from "./VoiceRecorder";
 import { useWhatsAppLive } from "./live";
-import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, failedLabel, isRunLive, useNow } from "./status";
+import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, isRunLive, useNow } from "./status";
 
 /**
  * Chats de WhatsApp, con la cara de WhatsApp Web: lista blanca a la izquierda,
@@ -148,16 +150,28 @@ const Linkified = ({ text }: { text: string }) => (
 
 type Attachment = ChatDetail["messages"][number]["attachments"][number];
 
+/** El tipo por lo que el archivo ES (un video mandado «como archivo» sigue siendo video). */
+const shownKind = (a: Attachment): string => {
+  const mime = (a.mimeType ?? "").toLowerCase();
+  if (a.kind === "sticker") return "sticker";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("image/")) return "image";
+  return a.kind;
+};
+
 const AttachmentView = ({ a }: { a: Attachment }) => {
   const src = mediaSrc(a.url);
   if (!src) {
     return (
       <div className="mb-1 rounded-md bg-black/5 px-2 py-1.5 text-xs text-[#54656f]">
-        {KIND_LABEL[a.kind] ?? "📎 Archivo"} · no se pudo descargar (ábrelo en el celular)
+        {a.kind === "unknown"
+          ? "Mensaje que WhatsApp no deja ver aquí (encuesta, ver una vez u otro tipo nuevo): ábrelo en el celular"
+          : `${KIND_LABEL[shownKind(a)] ?? "📎 Archivo"} · WhatsApp no dejó descargarlo: ábrelo en el celular`}
       </div>
     );
   }
-  switch (a.kind) {
+  switch (shownKind(a)) {
     case "image":
       return (
         <a href={src} target="_blank" rel="noreferrer">
@@ -171,7 +185,7 @@ const AttachmentView = ({ a }: { a: Attachment }) => {
     case "audio":
       return <audio src={src} controls preload="none" className="mb-1 h-10 w-64 max-w-full" />;
     case "video":
-      return <video src={src} controls preload="metadata" className="mb-1 max-h-80 rounded-md" />;
+      return <video src={src} controls playsInline preload="metadata" className="mb-1 max-h-80 w-full max-w-sm rounded-md" />;
     default:
       return (
         <a href={src} target="_blank" rel="noreferrer" className="mb-1 flex items-center gap-2 rounded-md bg-black/5 px-2 py-2 text-sm text-[#111b21] hover:bg-black/10">
@@ -444,6 +458,40 @@ const Thread = ({
 
   const fileInput = useRef<HTMLInputElement>(null);
 
+  const resentIds = useMemo(
+    () =>
+      new Set(
+        chat.messages
+          .filter((m) => m.source?.startsWith("resend:") && m.status !== "FAILED")
+          .map((m) => m.source!.slice("resend:".length))
+      ),
+    [chat.messages]
+  );
+
+  /** Reenvía un mensaje que WhatsApp no entregó; si no se puede desde el CRM, abre WhatsApp. */
+  const resend = async (messageId: string) => {
+    setBusy(`resend:${messageId}`);
+    try {
+      const data = (await post(chat.id, { action: "resend", messageId })) as {
+        status: "sent" | "phone";
+        url?: string | null;
+        reason?: string;
+        mode?: string;
+      };
+      if (data.status === "sent") {
+        toast(data.mode === "template" ? "Reenviado con plantilla" : "Reenviado", "success");
+      } else {
+        if (data.url) window.open(data.url, "_blank", "noopener,noreferrer");
+        toast(data.reason ?? "Envíalo desde el WhatsApp de Dayana", "info");
+      }
+    } catch (e) {
+      toast(`No se pudo reenviar: ${e instanceof Error ? e.message : "error"}`, "error");
+    } finally {
+      setBusy(null);
+      onChanged();
+    }
+  };
+
   const decide = async (runId: string, decision: "approve" | "reject" | "phone", message?: string) => {
     try {
       await post(
@@ -644,11 +692,17 @@ const Thread = ({
                   {m.staffName && !m.isAutoReply && <span>{m.staffName} ·</span>}
                   <span>{new Date(m.sentAt).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" })}</span>
                   {out && m.status !== "FAILED" && (
-                    <CheckCheck className={cn("size-4", m.status === "READ" ? "text-[#53bdeb]" : "text-[#8696a0]")} />
+                    <span title={deliveryLabel(m.status).label} className="inline-flex">
+                      {m.status === "SENT" ? (
+                        <Check className="size-4 text-[#8696a0]" />
+                      ) : (
+                        <CheckCheck className={cn("size-4", m.status === "READ" ? "text-[#53bdeb]" : "text-[#8696a0]")} />
+                      )}
+                    </span>
                   )}
                   {m.status === "FAILED" && (
                     <span className="font-medium text-[#d92d20]" title={m.failedReason ?? undefined}>
-                      No se entregó{m.failedReason ? `: ${failedLabel(m.failedReason)}` : ""}
+                      {deliveryLabel("FAILED", m.failedReason).label}
                     </span>
                   )}
                 </div>
@@ -684,6 +738,23 @@ const Thread = ({
                         </p>
                       )}
                       {meta}
+                      {m.status === "FAILED" && out && (
+                        <div className="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-[#d92d20]/20 pt-1">
+                          {resentIds.has(m.id) ? (
+                            <span className="text-[11px] font-medium text-[#008069]">Reenviado: míralo abajo</span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={!canWrite || busy !== null}
+                              onClick={() => void resend(m.id)}
+                              className="inline-flex h-7 items-center gap-1 rounded-full bg-[#d92d20] px-3 text-xs font-medium text-white hover:bg-[#b42318] disabled:opacity-50"
+                            >
+                              {busy === `resend:${m.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
+                              Reenviar
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

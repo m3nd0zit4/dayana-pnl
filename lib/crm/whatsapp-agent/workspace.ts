@@ -299,6 +299,8 @@ export type ChatMessageView = {
   staffName: string | null;
   /** Por qué WhatsApp no lo entregó (solo si falló). */
   failedReason: string | null;
+  /** Quién lo originó («resend:<id>» = reenvío de un mensaje que falló). */
+  source: string | null;
 };
 
 export const getChat = async (id: string) => {
@@ -334,6 +336,7 @@ export const getChat = async (id: string) => {
           isAutoReply: true,
           isEcho: true,
           failedReason: true,
+          source: true,
           staffUser: { select: { displayName: true } },
         },
       },
@@ -408,6 +411,7 @@ export const getChat = async (id: string) => {
         isEcho: m.isEcho,
         staffName: m.staffUser?.displayName ?? null,
         failedReason: m.status === "FAILED" ? (m.failedReason ?? null) : null,
+        source: m.source ?? null,
       })
     ),
     runs: c.aiRuns.map((r) => ({ ...runView(r), toolCalls: r.toolCalls, delivery: deliveryOf(r, c.messages) })),

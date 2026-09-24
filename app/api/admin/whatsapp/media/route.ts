@@ -2,6 +2,7 @@ import { get } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { parseRange } from "@/lib/http/range";
 import { blobNotConfiguredResponse, isBlobConfigured } from "@/lib/storage/blob";
 
 export const runtime = "nodejs";
@@ -14,6 +15,9 @@ export const runtime = "nodejs";
  * Solo lee dentro de `inbox/` (lo que guarda la bandeja al recibir y al
  * enviar): la ruta no sirve para leer otros archivos del store. Cada archivo
  * tiene un nombre único que nunca se reescribe, así que el navegador lo guarda.
+ *
+ * Responde por partes (`Range`): Safari en iPhone no reproduce un audio ni un
+ * video si el servidor no lo acepta, y en el celular «no cargaban».
  */
 
 const PATH_RE = /^inbox\/(?:outbound\/)?[A-Za-z0-9-]+\.[a-z0-9]{2,5}$/;
@@ -31,10 +35,33 @@ export const GET = async (req: Request) => {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  return new NextResponse(result.stream, {
-    headers: {
-      "Content-Type": result.blob.contentType ?? "application/octet-stream",
-      "Cache-Control": "private, max-age=31536000, immutable",
-    },
-  });
+  const contentType = result.blob.contentType ?? "application/octet-stream";
+  // Los adjuntos de WhatsApp son pequeños (fotos, notas de voz, videos de
+  // pocos MB): se leen enteros para poder responder por partes.
+  const bytes = Buffer.from(await new Response(result.stream).arrayBuffer());
+  const size = bytes.length;
+  const common = {
+    "Content-Type": contentType,
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "private, max-age=31536000, immutable",
+  };
+
+  const rangeHeader = req.headers.get("range");
+  if (rangeHeader) {
+    const range = parseRange(rangeHeader, size);
+    if (!range) {
+      return new NextResponse(null, { status: 416, headers: { ...common, "Content-Range": `bytes */${size}` } });
+    }
+    const [start, end] = range;
+    return new NextResponse(bytes.subarray(start, end + 1), {
+      status: 206,
+      headers: {
+        ...common,
+        "Content-Range": `bytes ${start}-${end}/${size}`,
+        "Content-Length": String(end - start + 1),
+      },
+    });
+  }
+
+  return new NextResponse(bytes, { headers: { ...common, "Content-Length": String(size) } });
 };

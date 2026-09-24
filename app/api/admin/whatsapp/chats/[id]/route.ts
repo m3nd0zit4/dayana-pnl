@@ -60,6 +60,8 @@ const actionSchema = z.discriminatedUnion("action", [
   /** Aceptar lo que propuso la IA, tal cual o con el mensaje cambiado. */
   z.object({ action: z.literal("approve"), runId: z.string(), message: z.string().max(4000).optional() }),
   z.object({ action: z.literal("reject"), runId: z.string() }),
+  /** Reenviar un mensaje que WhatsApp no entregó. */
+  z.object({ action: z.literal("resend"), messageId: z.string() }),
   /** Dayana lo envía desde su celular (sin ventana ni plantilla aprobada). */
   z.object({ action: z.literal("approve_phone"), runId: z.string(), message: z.string().max(4000).optional() }),
   /** Foto, documento o nota de voz ya subidos por `/api/admin/inbox/upload`. */
@@ -247,6 +249,18 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         if (e instanceof SlotUnavailableError) return apiError(`slot:${e.message}`, 409);
         return apiError(e instanceof Error ? e.message : "approve_failed", 400);
       }
+    }
+    case "resend": {
+      const { resendFailedMessage } = await import("@/lib/crm/whatsapp-resend");
+      const owns = await prisma.conversationMessage.findFirst({
+        where: { id: input.messageId, conversationId: id },
+        select: { id: true },
+      });
+      if (!owns) return apiError("not_found", 404);
+      const result = await resendFailedMessage({ messageId: input.messageId, staffId: staff.id });
+      audit({ resend: input.messageId, result: result.status });
+      if (result.status === "failed") return apiError(result.error, 409);
+      return NextResponse.json(result);
     }
     case "approve_phone": {
       const { approveByPhone, ApprovalError } = await import("@/lib/crm/whatsapp-agent/approvals");

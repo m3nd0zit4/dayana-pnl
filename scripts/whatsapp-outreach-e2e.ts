@@ -24,6 +24,7 @@ import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-
 import { STARTER_TEMPLATES, templateBodyProblem } from "@/lib/crm/whatsapp-templates";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
 import { whatsAppDigits } from "@/lib/whatsapp-contact";
+import { resendFailedMessage, resendSource } from "@/lib/crm/whatsapp-resend";
 import { processNormalizedEvent } from "@/lib/meta/ingest";
 import type { NormalizedMessage } from "@/lib/meta/inbound";
 
@@ -239,6 +240,39 @@ const main = async () => {
       check(`${label}: su respuesta no crea otro chat`, chats === 1, chats);
       const chat = (await getChat(r.conversationId!))!;
       check(`${label}: se abre la ventana de 24 h`, chat.windowState === "open", chat.windowState);
+    }
+
+    console.log("\n4c. Mensaje que WhatsApp no entregó: «Reenviar»");
+    for (const [label, hours, expected] of [
+      ["ventana abierta", 1, "sent"],
+      ["ventana cerrada, sin plantilla", 48, "phone"],
+    ] as const) {
+      const { contact } = await newPerson(`Reenvío ${label}`, { wroteHoursAgo: hours, aiMode: "COPILOT" });
+      const conv = await prisma.conversation.findFirstOrThrow({ where: { contactId: contact.id, channel: "WHATSAPP" } });
+      const failed = await prisma.conversationMessage.create({
+        data: {
+          conversationId: conv.id,
+          direction: "OUTBOUND",
+          body: "Hola, ¿cómo sigues?",
+          status: "FAILED",
+          failedReason: "Message undeliverable",
+          externalMessageId: `wamid.e2e.failed.${Date.now()}.${seq}`,
+          sentAt: new Date(),
+        },
+      });
+      const chat = (await getChat(conv.id))!;
+      const bubble = chat.messages.find((m) => m.id === failed.id);
+      check(`${label}: el chat dice por qué no llegó`, bubble?.failedReason === "Message undeliverable", bubble?.failedReason);
+      const r = await resendFailedMessage({ messageId: failed.id, staffId: staff.id });
+      check(`${label}: «Reenviar» → ${expected}`, r.status === expected, r);
+      if (expected === "sent") {
+        const copy = await prisma.conversationMessage.findFirst({ where: { source: resendSource(failed.id) } });
+        check(`${label}: el reenvío queda ligado al original`, Boolean(copy), copy?.id);
+        const again = await resendFailedMessage({ messageId: failed.id, staffId: staff.id });
+        check(`${label}: no se reenvía dos veces`, again.status === "failed", again);
+      } else {
+        check(`${label}: trae el enlace para el WhatsApp de Dayana`, r.status === "phone" && Boolean(r.url?.startsWith("https://wa.me/")), r);
+      }
     }
 
     console.log("\n5. IA sola, nunca escribió, sin plantilla");

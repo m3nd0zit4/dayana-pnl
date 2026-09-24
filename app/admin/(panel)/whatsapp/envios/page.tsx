@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import { prisma } from "@/lib/db";
+import { deliveryLabel } from "@/lib/crm/whatsapp-delivery-labels";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ const Page = async ({ searchParams }: { searchParams: Promise<{ id?: string }> }
   const messages = detail
     ? await prisma.conversationMessage.findMany({
         where: { id: { in: detail.recipients.map((r) => r.messageId).filter((m): m is string => Boolean(m)) } },
-        select: { id: true, status: true, conversationId: true },
+        select: { id: true, status: true, conversationId: true, failedReason: true },
       })
     : [];
   const byMessage = new Map(messages.map((m) => [m.id, m]));
@@ -74,8 +75,8 @@ const Page = async ({ searchParams }: { searchParams: Promise<{ id?: string }> }
           <ul className="divide-y divide-[#f0f2f5] rounded-xl border border-[#e9edef] bg-white text-sm dark:divide-border dark:border-border dark:bg-card">
             {detail.recipients.map((r) => {
               const msg = r.messageId ? byMessage.get(r.messageId) : null;
-              const delivery =
-                msg?.status === "READ" ? "Leído" : msg?.status === "DELIVERED" ? "Entregado" : msg?.status === "FAILED" ? "No entregado" : null;
+              // Una vez enviado, manda lo que dijo WhatsApp de ESE mensaje (igual que en el chat).
+              const delivery = r.status === "SENT" && msg ? deliveryLabel(msg.status, msg.failedReason) : null;
               return (
                 <li key={r.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
                   {r.contactId ? (
@@ -86,9 +87,8 @@ const Page = async ({ searchParams }: { searchParams: Promise<{ id?: string }> }
                     <span className="min-w-0 flex-1 truncate">{r.name ?? r.phone ?? "—"}</span>
                   )}
                   <span className="text-xs text-[#667781]">{r.mode === "template" ? "con plantilla" : r.mode === "text" ? "texto" : ""}</span>
-                  <span className={`text-xs ${r.status === "SENT" ? "text-[#008069]" : r.status === "FAILED" ? "text-[#d92d20]" : "text-[#54656f]"}`}>
-                    {STATUS_LABEL[r.status] ?? r.status}
-                    {delivery ? ` · ${delivery}` : ""}
+                  <span className={`text-xs ${delivery?.tone === "fail" || r.status === "FAILED" ? "text-[#d92d20]" : delivery && delivery.tone !== "wait" ? "text-[#008069]" : "text-[#54656f]"}`}>
+                    {delivery ? delivery.label : (STATUS_LABEL[r.status] ?? r.status)}
                   </span>
                   {msg?.conversationId && (
                     <Link href={`/admin/whatsapp?conversation=${msg.conversationId}`} className="text-xs font-medium text-[#008069] hover:underline">

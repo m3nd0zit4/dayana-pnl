@@ -214,10 +214,25 @@ const parseWhatsAppMessage = (
     body = special;
   } else if (type && type !== "text") {
     const media = asRecord(message[type]);
-    if (media) {
+    if (!media || (!ATTACHMENT_KINDS.has(type) && !asString(media.id))) {
+      // Un tipo nuevo de WhatsApp sin archivo que bajar (encuesta, «ver una
+      // vez», etc.): se dice qué es en vez de un adjunto vacío que «no carga».
+      console.warn(`[whatsapp] tipo de mensaje sin soporte: ${type} (${Object.keys(message).join(",")})`);
+      body = body ?? `(Mensaje de WhatsApp tipo «${type}» que no se puede ver aquí: ábrelo en el celular)`;
+    } else {
       const caption = asString(media.caption);
+      const mime = asString(media.mime_type);
       attachments.push({
-        kind: toAttachmentKind(type),
+        // Tipo por lo que el archivo ES: un video mandado «como archivo» se ve como video.
+        kind: ATTACHMENT_KINDS.has(type) && type !== "document"
+          ? toAttachmentKind(type)
+          : mime?.startsWith("video/")
+            ? "video"
+            : mime?.startsWith("audio/")
+              ? "audio"
+              : mime?.startsWith("image/")
+                ? "image"
+                : toAttachmentKind(type),
         mediaId: asString(media.id) ?? undefined,
         mimeType: asString(media.mime_type) ?? undefined,
         caption: caption ?? undefined,

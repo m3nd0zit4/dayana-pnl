@@ -55,6 +55,14 @@ const DiagnosticoDetailPage = async ({ params }: Props) => {
     }),
   ]);
   if (!diagnostic) notFound();
+  // El estado real del primer mensaje (el mismo que se ve en el chat).
+  const firstMessage = outreach?.outreachConversationId
+    ? await prisma.conversationMessage.findFirst({
+        where: { conversationId: outreach.outreachConversationId, direction: "OUTBOUND" },
+        orderBy: { sentAt: "desc" },
+        select: { status: true, failedReason: true },
+      })
+    : null;
 
   return (
     <DiagnosticDetailClient
@@ -70,6 +78,7 @@ const DiagnosticoDetailPage = async ({ params }: Props) => {
             at={outreach.outreachAt?.toISOString() ?? null}
             conversationId={outreach.outreachConversationId}
             hasPhone={Boolean(diagnostic.contact?.phoneE164)}
+            delivery={firstMessage ? { status: firstMessage.status, failedReason: firstMessage.failedReason } : null}
           />
         ) : null
       }
