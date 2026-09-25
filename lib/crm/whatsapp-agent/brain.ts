@@ -17,6 +17,7 @@ import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { spreadSlots } from "./slots";
 import { redactPrices } from "./price-guard";
+import { withDayanaWording } from "./wording";
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -74,6 +75,8 @@ export type BrainResult = {
   pendingSlots: { service: string; options: { startIso: string; label: string }[] } | null;
   /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
   suggestedReply: string | null;
+  /** La persona quiere agendar: se le avisa a Dayana para que ella agende. */
+  bookingRequest: { service: string; when: string | null; note: string } | null;
   model: string;
   usage: { inputTokens?: number; outputTokens?: number };
 };
@@ -86,6 +89,20 @@ export type TranscriptLine = {
   isAutoReply?: boolean;
   /** Cuándo se escribió: marca los días en la conversación. */
   sentAt?: Date;
+};
+
+/**
+ * ¿Persona nueva o ya hay conversación? Nueva: no está en el CRM y, antes de
+ * lo que acaba de escribir, casi no había hablado (un «gracias» a una
+ * invitación no cuenta como conversación).
+ */
+export const chatSituation = (transcript: TranscriptLine[], inCrm: boolean): string => {
+  let i = transcript.length;
+  while (i > 0 && transcript[i - 1].direction === "INBOUND") i--;
+  const priorInbound = transcript.slice(0, i).filter((m) => m.direction === "INBOUND").length;
+  return !inCrm && priorInbound < 2
+    ? "PERSONA NUEVA (no hay conversación previa con ella)."
+    : "PERSONA CON CONVERSACIÓN PREVIA: lee el hilo antes de contestar.";
 };
 
 /** La conversación con un separador por día, para que la IA sepa cuándo pasó cada cosa. */
@@ -107,13 +124,18 @@ const transcriptText = (lines: TranscriptLine[], timezone: string): string => {
   return out.join("\n");
 };
 
-/** El modelo a veces escribe en Markdown; WhatsApp usa *un* asterisco para negrita. */
+/**
+ * El modelo a veces escribe en Markdown; WhatsApp usa *un* asterisco para
+ * negrita. Y Dayana nunca dice «De nada»: dice «Con gusto».
+ */
 export const toWhatsAppFormat = (text: string): string =>
-  text
-    .trim()
-    .replace(/\*\*(.+?)\*\*/g, "*$1*")
-    .replace(/__(.+?)__/g, "_$1_")
-    .replace(/^#{1,6}\s+/gm, "");
+  withDayanaWording(
+    text
+      .trim()
+      .replace(/\*\*(.+?)\*\*/g, "*$1*")
+      .replace(/__(.+?)__/g, "_$1_")
+      .replace(/^#{1,6}\s+/gm, "")
+  );
 
 export const modelId = () => process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
 
@@ -188,7 +210,13 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
     `Cuestionario gratis (3 min, dice qué proceso le sirve): ${site}/terapias/empezar`,
   ];
 
-  if (config.booking.enabled) {
+  if (!config.booking.aiSchedules) {
+    lines.push(
+      "",
+      "AGENDAR: tú no buscas horas ni agendas. Pregúntale a la persona qué día y hora le quedan bien y usa request_booking: Dayana recibe el aviso, agenda y le confirma. Nunca envíes enlaces de agenda.",
+      "La llamada gratis dura 15 minutos."
+    );
+  } else if (config.booking.enabled) {
     lines.push(
       "",
       "CITAS QUE PUEDES AGENDAR TÚ MISMA en el Google Calendar de Dayana (usa check_availability y book_appointment; nunca envíes enlaces de agenda):",
@@ -331,6 +359,15 @@ const IDENTITY: Record<WhatsAppAiConfig["identity"], string> = {
     "Escribes en primera persona, con la voz de Dayana, porque es su número. Si la persona pregunta si habla con un robot o una IA, no lo niegues: di con naturalidad que es una respuesta automática y escala.",
 };
 
+/** Solo si la IA agenda sola (booking.aiSchedules): cómo busca y propone horas. */
+const aiBookingRule = (config: WhatsAppAiConfig): string =>
+  `- AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio${
+    config.booking.approveSlots
+      ? " y luego offer_times con 2 o 3 opciones: Dayana las aprueba antes de que salgan, y tu mensaje lleva {{HORARIOS}} donde van (no las escribas tú). Cuando la persona elija una de las horas que ya se le enviaron,"
+      : " y ofrece 2 o 3 opciones concretas. Cuando elija,"
+  } CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
+`;
+
 const systemPrompt = (config: WhatsAppAiConfig, now: string): string => {
   const parts = [
     `Contestas el WhatsApp de ${BRAND.name}.
@@ -344,13 +381,15 @@ Ahora es ${now}.
 Cómo conversas (así trabaja Dayana):
 - Género: antes de usar cualquier palabra con género o apodo cariñoso, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa siempre masculino («querido», «bienvenido», «te bendigo»); JAMÁS «mi bella», «mi hermosa», «querida» ni adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
-- Primero la persona, no el precio. Saluda con calidez y pregúntale cómo está, qué la trae, qué está viviendo.
-- Escucha: una pregunta a la vez para saber QUÉ QUIERE lograr o sanar y CÓMO SE SIENTE («¿hace cuánto te sientes así?», «¿cómo te está afectando en tu día a día?»). Refleja en una frase lo que te cuenta, con empatía, sin dar consejos ni diagnosticar.
-- En cuanto ya contó lo que quiere y cómo se siente, no sigas preguntando: nombra su emoción y lo que desea, y ofrécele la llamada. Por ejemplo: «Te entiendo, [nombre]: esto te tiene [emoción] y lo que quieres es [lo que desea]. Estoy lista para ayudarte a resolverlo. Podemos agendar una llamada gratuita de 15 minutos con Dayana, ¿te gustaría?». Si no quiere hablar de lo que vive, invítala directo a la llamada.
-- Solo si dice que sí, buscas horas (check_availability) y se las propones; si duda o dice que no, respétalo sin presionar y deja la puerta abierta.
-- Primero se agenda la consulta gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
-- AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio${config.booking.approveSlots ? " y luego offer_times con 2 o 3 opciones: Dayana las aprueba antes de que salgan, y tu mensaje lleva {{HORARIOS}} donde van (no las escribas tú). Cuando la persona elija una de las horas que ya se le enviaron," : " y ofrece 2 o 3 opciones concretas. Cuando elija,"} CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
-- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
+- PERSONA NUEVA (mira SITUACIÓN DEL CHAT, más abajo):
+  · Saluda y pregúntale cómo está y qué la trae.
+  · Si cuenta lo que le pasa o lo que quiere («tengo ansiedad», «quiero encontrar pareja», «necesito ayuda emocional», «me siento estancada, bloqueada»…), no la interrogues: refleja en una frase lo que siente y pregúntale «¿Cuánto tiempo más quieres seguir así?», o invítala directo: «Si quieres soltarlo, podemos agendar una llamada gratuita de 15 minutos con Dayana. Dime qué día y hora te quedan bien.»
+  · Si quiere agendar o ya dijo un día u hora: usa request_booking (Dayana recibe el aviso y le confirma la hora).
+  · Si dice que no puede, que no quiere, o habla de otra cosa: no insistas. Algo como: «Listo, perfecto. Entonces quedamos en contacto; si necesitas información o algo de mí, me escribes por aquí.»
+- PERSONA CON CONVERSACIÓN PREVIA: lee el hilo y entiende qué pide ahora. Si quiere agendar (una llamada o una sesión), usa request_booking. Si quiere cambiar o cancelar una cita que ya tiene, escala con category=reschedule. Si puedes responder con los DATOS y lo que ya se habló, responde corto. Si no sabes qué decir, escala con category=unknown.
+- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
+- Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
+${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
 - Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
@@ -464,6 +503,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stickerUrl: string | null;
     pendingBooking: BrainResult["pendingBooking"];
     pendingPayment: BrainResult["pendingPayment"];
+    bookingRequest: BrainResult["bookingRequest"];
     pendingSlots: BrainResult["pendingSlots"];
     suggestedReply: string | null;
   } = {
@@ -472,6 +512,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stickerUrl: null,
     pendingBooking: null,
     pendingPayment: null,
+    bookingRequest: null,
     pendingSlots: null,
     suggestedReply: null,
   };
@@ -542,7 +583,30 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         return log("escalate", { ...args, suggestedReply }, { ok: true });
       },
     }),
-    ...(config.booking.enabled
+    // Lo normal: la IA no busca horas; pregunta cuándo le sirve y le avisa a Dayana.
+    ...(!config.booking.aiSchedules
+      ? {
+          request_booking: tool({
+            description:
+              "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella agende y confirme. Úsalo UNA vez; tu respuesta dice que Dayana le confirma la hora.",
+            inputSchema: z.object({
+              service: z.string().describe("«Llamada gratis de 15 minutos» o la sesión que pide."),
+              when: z.string().optional().describe("El día y la hora que dijo la persona, tal cual (si ya lo dijo)."),
+              note: z.string().describe("Para Dayana, en una línea: qué quiere trabajar la persona y lo importante."),
+            }),
+            execute: async (args) => {
+              state.bookingRequest = { service: args.service, when: args.when?.trim() || null, note: args.note.trim() };
+              return log("request_booking", args, {
+                ok: true,
+                note: args.when
+                  ? "Dayana recibe el aviso. Responde corto y cálido: que ya le pasas su horario a Dayana y ella le confirma por aquí."
+                  : "Dayana recibe el aviso. Pregúntale qué día y hora le quedan bien, y dile que Dayana le confirma por aquí.",
+              });
+            },
+          }),
+        }
+      : {}),
+    ...(config.booking.enabled && config.booking.aiSchedules
       ? {
           check_availability: tool({
             description:
@@ -739,6 +803,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .map((st, i) => `${i + 1}. usado ${st.uses} veces; lo manda después de: ${st.contexts.map((c) => `«${c}»`).join(" / ") || "(sin texto antes)"}`)
             .join("\n")}`
         : null,
+      `SITUACIÓN DEL CHAT: ${chatSituation(input.transcript, Boolean(input.client))}`,
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
       `Su número: +${input.phone}`,
       `CONVERSACIÓN de las últimas 2 semanas (lo último abajo). Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
@@ -788,6 +853,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     booking: state.booking,
     pendingBooking: finalOutcome.kind === "reply" ? state.pendingBooking : null,
     pendingPayment: finalOutcome.kind === "reply" ? state.pendingPayment : null,
+    bookingRequest: finalOutcome.kind === "reply" ? state.bookingRequest : null,
     pendingSlots: finalOutcome.kind === "reply" ? state.pendingSlots : null,
     suggestedReply: finalOutcome.kind === "escalate" ? state.suggestedReply : null,
     model: modelId(),

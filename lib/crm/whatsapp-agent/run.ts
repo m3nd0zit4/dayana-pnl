@@ -121,6 +121,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   reschedule: "cambio de cita",
   other: "pendiente",
   error: "falló la IA",
+  booking: "quiere agendar",
 };
 
 /** ¿Hay que saludar en vez de contestar con la IA? (IA apagada o chat manual). */
@@ -378,6 +379,26 @@ export const runWhatsAppAi = async (input: {
         );
       }
       await finish(run.id, "REPLIED");
+    }
+
+    // Quiere agendar: Dayana recibe el aviso (suena) y el chat pasa a ella para
+    // que agende y confirme; la IA no sigue contestando ahí.
+    if (result.bookingRequest) {
+      const b = result.bookingRequest;
+      await pauseAutoReply(conversationId, "escalation", {
+        category: "booking",
+        severity: "normal",
+        reason: `Quiere agendar: ${b.service}${b.when ? ` · ${b.when}` : ""}`,
+      });
+      fireNotification({
+        eventType: "WHATSAPP_AI_ESCALATED",
+        title: `Quiere agendar: ${name ?? conversation.participantName ?? `+${phone}`}`,
+        body: [b.service, b.when ? `Le sirve: ${b.when}` : "Aún no dijo hora", b.note].filter(Boolean).join(" · ").slice(0, 200),
+        href: `/admin/whatsapp?conversation=${conversationId}`,
+        entityType: "Conversation",
+        entityId: conversationId,
+        staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
+      });
     }
 
     await refreshMemory({

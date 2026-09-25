@@ -42,6 +42,12 @@ const bookingSchema = z.object({
    * sin este campo sigue siendo válida.
    */
   approveSlots: z.boolean().default(true),
+  /**
+   * La IA busca horas en el calendario y las propone. Apagado (lo normal): la
+   * IA le pregunta a la persona qué día y hora le sirven y le avisa a Dayana
+   * para que ella agende.
+   */
+  aiSchedules: z.boolean().default(false),
   /** Minutos libres antes y después de cada cita. */
   bufferMin: z.number().int().min(0).max(120),
   /** Antelación mínima para agendar, en horas. */
@@ -168,6 +174,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
       to: "18:00",
     })),
     approveSlots: true,
+    aiSchedules: false,
     bufferMin: 15,
     minNoticeHours: 3,
     horizonDays: 21,
