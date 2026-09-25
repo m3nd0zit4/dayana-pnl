@@ -94,6 +94,29 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, te bendigo 💛 Te escribo para retomar nuestra conversación. {{mensaje}} Quedo atenta a tu respuesta por aquí.",
     example: { nombre: "Ana", mensaje: "Quería saber cómo sigues." },
   },
+  // Citas: de UTILIDAD (informativas, sin palabras de venta) para que Meta las
+  // apruebe rápido y se cobren como utilidad.
+  {
+    key: "cita_confirmacion",
+    title: "Cita: confirmación",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, tu cita de {{servicio}} quedó para el {{fecha}} a las {{hora}}. Enlace de la videollamada: {{enlace}} Si necesitas cambiarla, escríbeme por aquí.",
+    example: { nombre: "Ana", servicio: "consulta de 15 minutos", fecha: "jueves 2 de octubre", hora: "10:00 a. m.", enlace: "https://meet.google.com/abc-defg-hij" },
+  },
+  {
+    key: "cita_recordatorio",
+    title: "Cita: recordatorio 24 h",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, te recuerdo tu cita de {{servicio}} mañana {{fecha}} a las {{hora}}. Enlace: {{enlace}} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.",
+    example: { nombre: "Ana", servicio: "sesión de terapia", fecha: "jueves 2 de octubre", hora: "10:00 a. m.", enlace: "https://meet.google.com/abc-defg-hij" },
+  },
+  {
+    key: "cita_reprogramar",
+    title: "Cita: reprogramar",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, necesito mover tu cita de {{servicio}} del {{fecha}}. ¿Te sirve otro horario? Responde por aquí y lo acomodamos.",
+    example: { nombre: "Ana", servicio: "sesión de terapia", fecha: "jueves 2 de octubre" },
+  },
   {
     key: "comunidad_invitacion",
     title: "Comunidad: invitación",

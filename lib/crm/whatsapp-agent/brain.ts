@@ -1,4 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { appointmentsFor, confirmAppointment } from "./appointments";
+import { contactStage } from "../contact-stage";
+import { getOperationalTimezone } from "../operational-timezone";
 import { Prisma } from "@prisma/client";
 import { generateText, hasToolCall, isStepCount, tool } from "ai";
 import { z } from "zod";
@@ -67,6 +70,8 @@ export type BrainResult = {
   } | null;
   /** Enlace de pago que la IA quiere mandar: espera la autorización de Dayana. */
   pendingPayment: { productId: string; product: string } | null;
+  /** Horas que la IA quiere ofrecer: Dayana las aprueba (o cambia) antes de que salgan. */
+  pendingSlots: { service: string; options: { startIso: string; label: string }[] } | null;
   /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
   suggestedReply: string | null;
   model: string;
@@ -253,50 +258,71 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
 
 /** Lo que el CRM sabe de la persona, para contestar con continuidad. */
 export const clientContext = async (
-  contactId: string | null
+  contactId: string | null,
+  /** Número del chat: las citas se encuentran también sin contacto en el CRM. */
+  phone?: string | null
 ): Promise<string | null> => {
-  if (!contactId) return null;
-  const contact = await prisma.contact.findUnique({
-    where: { id: contactId },
-    select: {
-      firstName: true,
-      lastName: true,
-      enrollments: {
-        where: { status: { in: ["ACTIVE", "COMPLETED", "PENDING_PAYMENT"] } },
-        orderBy: { createdAt: "desc" },
-        take: 5,
+  const contact = contactId
+    ? await prisma.contact.findUnique({
+        where: { id: contactId },
         select: {
-          status: true,
-          sessionsTotal: true,
-          sessionsUsed: true,
-          paidUntil: true,
-          createdAt: true,
-          product: { select: { title: true } },
+          firstName: true,
+          lastName: true,
+          enrollments: {
+            where: { status: { in: ["ACTIVE", "COMPLETED", "PENDING_PAYMENT", "LEAD"] } },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+            select: {
+              status: true,
+              sessionsTotal: true,
+              sessionsUsed: true,
+              paidUntil: true,
+              createdAt: true,
+              product: { select: { title: true } },
+            },
+          },
+          _count: { select: { diagnostics: true } },
         },
-      },
-    },
+      })
+    : null;
+  const { next, last } = await appointmentsFor({ contactId, phone }).catch(() => ({ next: null, last: null }));
+  if (!contact && !next && !last) return null;
+
+  const tz = await getOperationalTimezone().catch(() => "America/Bogota");
+  const when = (d: Date) =>
+    new Intl.DateTimeFormat("es-CO", { timeZone: tz, weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" }).format(d);
+  const enrollments = contact?.enrollments ?? [];
+  const stage = contactStage({
+    enrollments: enrollments.map((e) => ({ status: e.status, sessionsUsed: e.sessionsUsed, sessionsTotal: e.sessionsTotal, product: e.product.title })),
+    nextAppointment: next ? { startsAt: next.startsAt, sessionsLabel: next.sessionsLabel } : null,
+    lastAppointment: last ? { startsAt: last.startsAt } : null,
+    hasDiagnostic: (contact?._count.diagnostics ?? 0) > 0,
   });
-  if (!contact) return null;
+
+  const lines: string[] = [];
+  if (contact) lines.push(`Nombre: ${[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "sin nombre"}`);
+  lines.push(`Etapa: ${stage.label}`);
+  if (next) {
+    lines.push(
+      `Próxima cita: ${when(next.startsAt)}${next.sessionsLabel && next.sessionsLabel !== "0/0" ? ` (sesión ${next.sessionsLabel})` : " (llamada gratis)"}${next.confirmedAt ? " · ya confirmó" : next.reminderSentAt ? " · se le mandó el recordatorio, aún no confirma" : ""}. Si la persona confirma («sí», «ahí estaré»), usa confirm_appointment.`
+    );
+  }
+  if (last) lines.push(`Última cita: ${when(last.startsAt)}.`);
   const STATUS: Record<string, string> = {
     ACTIVE: "activo",
     COMPLETED: "terminado",
     PENDING_PAYMENT: "pendiente de pago",
+    LEAD: "interesada",
   };
-  const lines = [
-    `Nombre: ${[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "sin nombre"}`,
-  ];
-  if (contact.enrollments.length === 0) lines.push("Todavía no ha comprado nada.");
-  const diagnostic = await diagnosticContextFor(contactId).catch(() => null);
-  if (diagnostic) lines.push(diagnostic);
-  for (const e of contact.enrollments) {
-    const sessions =
-      e.sessionsTotal != null ? ` · sesiones ${e.sessionsUsed} de ${e.sessionsTotal}` : "";
-    const until = e.paidUntil
-      ? ` · acceso hasta ${e.paidUntil.toLocaleDateString("es-CO")}`
-      : "";
-    lines.push(
-      `- ${e.product.title}: ${STATUS[e.status] ?? e.status}${sessions}${until} (desde ${e.createdAt.toLocaleDateString("es-CO")})`
-    );
+  if (contact) {
+    if (!enrollments.some((e) => e.status === "ACTIVE" || e.status === "COMPLETED")) lines.push("Todavía no ha comprado nada.");
+    const diagnostic = contactId ? await diagnosticContextFor(contactId).catch(() => null) : null;
+    if (diagnostic) lines.push(diagnostic);
+    for (const e of enrollments) {
+      const sessions = e.sessionsTotal != null ? ` · sesiones ${e.sessionsUsed} de ${e.sessionsTotal}` : "";
+      const until = e.paidUntil ? ` · acceso hasta ${e.paidUntil.toLocaleDateString("es-CO")}` : "";
+      lines.push(`- ${e.product.title}: ${STATUS[e.status] ?? e.status}${sessions}${until} (desde ${e.createdAt.toLocaleDateString("es-CO")})`);
+    }
   }
   return lines.join("\n");
 };
@@ -322,7 +348,7 @@ Cómo conversas (así vende Dayana):
 - El objetivo con quien escribe por primera vez es casi siempre la CONSULTA GRATIS DE 15 MINUTOS con Dayana: invítala («Dayana tiene un espacio gratuito de 15 minutos para escucharte y decirte qué proceso te sirve, ¿te lo agendo?»). Si no quiere hablar de lo que vive, invítala directo a la consulta.
 - Precios: no los des de entrada. Si los pide, primero ofrece la consulta gratis («ahí Dayana te dice cuál proceso te conviene»); si insiste, da el precio exacto de los DATOS.
 - Pago: solo si pide cómo pagar o quiere pagar un paquete, usa payment_link con ese paquete y comparte el enlace.
-- AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio y ofrece 2 o 3 opciones concretas. Cuando elija, CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
+- AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio${config.booking.approveSlots ? " y luego offer_times con 2 o 3 opciones: Dayana las aprueba antes de que salgan, y tu mensaje lleva {{HORARIOS}} donde van (no las escribas tú). Cuando la persona elija una de las horas que ya se le enviaron," : " y ofrece 2 o 3 opciones concretas. Cuando elija,"} CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
 - Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
 - Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
@@ -406,6 +432,23 @@ export type BrainInput = {
   images?: { data: Uint8Array; mediaType: string }[];
 };
 
+/** Horas que Dayana ya aprobó para ofrecer en este chat (últimos 14 días). */
+export const approvedSlotsFor = async (conversationId: string | null): Promise<string[]> => {
+  if (!conversationId) return [];
+  const runs = await prisma.whatsAppAiRun.findMany({
+    where: { conversationId, status: "APPROVED", queuedAt: { gte: new Date(Date.now() - 14 * 24 * 3600_000) } },
+    orderBy: { queuedAt: "desc" },
+    take: 20,
+    select: { proposal: true },
+  });
+  const out: string[] = [];
+  for (const r of runs) {
+    const p = r.proposal as { kind?: string; approvedSlots?: { startIso: string }[] } | null;
+    if (p?.kind === "slots") for (const s of p.approvedSlots ?? []) out.push(s.startIso);
+  }
+  return out;
+};
+
 export const think = async (input: BrainInput): Promise<BrainResult> => {
   const now = input.now ?? new Date();
   const { config, timezone } = input;
@@ -418,6 +461,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stickerUrl: string | null;
     pendingBooking: BrainResult["pendingBooking"];
     pendingPayment: BrainResult["pendingPayment"];
+    pendingSlots: BrainResult["pendingSlots"];
     suggestedReply: string | null;
   } = {
     outcome: null,
@@ -425,8 +469,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stickerUrl: null,
     pendingBooking: null,
     pendingPayment: null,
+    pendingSlots: null,
     suggestedReply: null,
   };
+  // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
+  const seenOptions = new Map<string, string>();
 
   // Los stickers que Dayana usa de verdad (al menos dos veces), con lo que
   // suele escribir antes de mandarlos.
@@ -459,6 +506,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   };
 
   const tools = {
+    confirm_appointment: tool({
+      description:
+        "La persona confirma que asistirá a su próxima cita (responde sí al recordatorio). Márcala como confirmada y agradécele en tu respuesta.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        if (input.mode !== "live") return log("confirm_appointment", {}, { ok: true, preview: true });
+        const { next } = await appointmentsFor({ contactId: input.contactId, phone: input.phone });
+        if (!next) return log("confirm_appointment", {}, { ok: false, reason: "No tiene cita próxima." });
+        await confirmAppointment(next.id);
+        return log("confirm_appointment", {}, { ok: true, cita: next.startsAt.toISOString() });
+      },
+    }),
     escalate: tool({
       description:
         "Pasa el chat a Dayana y no contestes nada. Úsalo en pagos, preguntas que no están en los DATOS, cambios de cita, quejas o temas clínicos.",
@@ -511,10 +570,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   });
                 }
                 const picked = spreadSlots(slots, 4);
+                for (const p of picked) seenOptions.set(p.startIso, formatSlot(p.startIso, timezone));
                 return log("check_availability", args, {
                   durationMinutes: minutes,
                   options: picked.map((s) => ({ startIso: s.startIso, label: formatSlot(s.startIso, timezone) })),
-                  note: picked.length === 0 ? "No hay horas libres en ese rango. Ofrece buscar otro día." : undefined,
+                  note:
+                    picked.length === 0
+                      ? "No hay horas libres en ese rango. Ofrece buscar otro día."
+                      : config.booking.approveSlots
+                        ? "NO escribas estas horas en tu mensaje: usa offer_times con 2 o 3 de ellas; Dayana las aprueba antes de que le lleguen a la persona."
+                        : undefined,
                 });
               } catch (e) {
                 return log("check_availability", args, {
@@ -525,6 +590,31 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               }
             },
           }),
+          ...(config.booking.approveSlots
+            ? {
+                offer_times: tool({
+                  description:
+                    "Propón a Dayana 2 o 3 horas (de check_availability) para ofrecerle a la persona. Ella las aprueba, quita o cambia, y solo entonces se envían. Tu respuesta final es el mensaje para la persona con {{HORARIOS}} donde van las horas (no escribas las horas tú).",
+                  inputSchema: z.object({
+                    service: z.string().describe(`Uno de: ${serviceNames.join(", ")}`),
+                    startIsos: z.array(z.string()).min(1).max(4).describe("startIso exactos de check_availability."),
+                  }),
+                  execute: async (args) => {
+                    const options = args.startIsos
+                      .filter((iso) => seenOptions.has(iso))
+                      .map((iso) => ({ startIso: iso, label: seenOptions.get(iso)! }));
+                    if (options.length === 0) {
+                      return log("offer_times", args, { error: "Esas horas no salieron de check_availability. Úsalo primero." });
+                    }
+                    state.pendingSlots = { service: args.service, options };
+                    return log("offer_times", args, {
+                      ok: true,
+                      note: "Escribe ahora el mensaje para la persona: cálido, corto, y con {{HORARIOS}} en el lugar donde van las horas (Dayana las aprueba antes).",
+                    });
+                  },
+                }),
+              }
+            : {}),
           book_appointment: tool({
             description:
               "Agenda la cita en el Google Calendar de Dayana. Solo con una hora que salió de check_availability y DESPUÉS de que la persona confirmó explícitamente ese día y esa hora.",
@@ -546,6 +636,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   label: formatSlot(args.startIso, timezone),
                   meetUrl: config.booking.addMeet ? "https://meet.google.com/(de-prueba)" : null,
                 });
+              }
+              if (config.booking.approveSlots) {
+                const approved = await approvedSlotsFor(input.conversationId);
+                if (!approved.includes(start.toISOString())) {
+                  return log("book_appointment", args, {
+                    error:
+                      "Esa hora no la aprobó Dayana. Usa check_availability y offer_times para proponerle horas (ella las aprueba antes de ofrecerlas).",
+                  });
+                }
               }
               try {
                 const name = args.name?.trim() || input.name;
@@ -717,6 +816,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     booking: state.booking,
     pendingBooking: finalOutcome.kind === "reply" ? state.pendingBooking : null,
     pendingPayment: finalOutcome.kind === "reply" ? state.pendingPayment : null,
+    pendingSlots: finalOutcome.kind === "reply" ? state.pendingSlots : null,
     suggestedReply: finalOutcome.kind === "escalate" ? state.suggestedReply : null,
     model: modelId(),
     usage: {

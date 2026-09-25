@@ -41,13 +41,13 @@ export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }
     name: "Primer contacto",
     trigger: "Alguien escribe por primera vez, saluda o pregunta algo general (qué hace Dayana, cómo funciona, cuánto vale).",
     steps:
-      "1. Saluda con calidez y pregunta cómo está y qué la trae.\n2. Una pregunta a la vez para que mire su situación: «¿hace cuánto te sientes así?», «¿cómo te afecta en tu día a día?», «¿cuánto tiempo más quieres seguir viviendo esto?».\n3. Refleja lo que cuenta en una frase, sin aconsejar.\n4. Invítala a la consulta gratis de 15 minutos con Dayana y ofrécele horas.\n5. No des precios de entrada; si los pide, ofrece primero la consulta gratis.",
+      "1. Primer mensaje (un solo saludo): saluda con calidez, pregunta cómo está y qué la trae por aquí, en un mensaje corto.\n2. Cuando responda: nombra con delicadeza la emoción que parece sentir («siento que esto te tiene muy cansada…»), sin diagnosticar, y haz UNA pregunta para que mire su situación («¿hace cuánto te sientes así?», «¿cómo te afecta en tu día a día?»).\n3. Refleja lo que cuenta en una frase, sin aconsejar.\n4. Invítala a la consulta gratis de 15 minutos con Dayana.\n5. Si dice que sí: usa check_availability y offer_times (Dayana aprueba las horas antes de que se ofrezcan); cuando elija una, confirma y agenda con book_appointment.\n6. No des precios de entrada; si los pide, ofrece primero la consulta gratis.",
   },
   {
     name: "Agendar",
     trigger: "La persona quiere una cita, una sesión, la consulta gratis, o pregunta por horarios.",
     steps:
-      "1. Si no está claro, pregunta si es la consulta gratis de 15 minutos o una sesión, y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y ofrece 2 o 3 opciones concretas.\n3. Si no sabes su nombre, pídeselo.\n4. Cuando elija, confirma servicio, día y hora y pregunta si te lo agenda.\n5. Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Nunca mandes enlaces de agenda.",
+      "1. Si no está claro, pregunta si es la consulta gratis de 15 minutos o una sesión, y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y luego offer_times con 2 o 3 opciones: Dayana las aprueba antes de que le lleguen; tu mensaje lleva {{HORARIOS}} donde van.\n3. Si no sabes su nombre, pídeselo.\n4. Cuando elija una de las horas que se le enviaron, confirma servicio, día y hora y pregunta si te lo agenda.\n5. Solo con su «sí», usa book_appointment. Nunca mandes enlaces de agenda.",
   },
   {
     name: "Pagos",

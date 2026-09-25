@@ -195,3 +195,24 @@ export const deleteEvent = async (
   if (res.ok || res.status === 404 || res.status === 410) return;
   await throwGoogleApiError("calendar", res);
 };
+
+/**
+ * Cambia solo el título y/o la descripción de un evento (PATCH parcial): la
+ * hora, los invitados y el Meet quedan como estaban.
+ */
+export const patchEventText = (
+  token: string,
+  eventId: string,
+  input: { summary?: string; description?: string; calendarId?: string }
+): Promise<CalendarEvent> =>
+  request(
+    token,
+    `/calendars/${encodeURIComponent(input.calendarId ?? "primary")}/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        ...(input.summary !== undefined ? { summary: input.summary } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+      }),
+    }
+  );

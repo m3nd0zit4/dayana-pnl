@@ -43,3 +43,15 @@ describe("categoría de utilidad", () => {
     expect(utilityCategoryWarning("MARKETING", "Hola, aprovecha el descuento")).toBeNull();
   });
 });
+
+describe("plantillas de citas", () => {
+  test("son de utilidad y cumplen las reglas de Meta sin palabras de venta", async () => {
+    const { utilityCategoryWarning } = await import("./whatsapp-template-rules");
+    for (const key of ["cita_confirmacion", "cita_recordatorio", "cita_reprogramar"]) {
+      const t = STARTER_TEMPLATES.find((x) => x.key === key)!;
+      expect(t.category).toBe("UTILITY");
+      expect(templateBodyProblem(t.body)).toBeNull();
+      expect(utilityCategoryWarning(t.category, t.body)).toBeNull();
+    }
+  });
+});

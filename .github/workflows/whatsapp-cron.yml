@@ -1,0 +1,21 @@
+# Reloj de WhatsApp (gratis): cada 10 minutos le pide al CRM sincronizar las
+# citas del Google Calendar, mandar los recordatorios de 24 h y vaciar la cola
+# de mensajes. Necesita el secreto CRON_SECRET (el mismo que está en Vercel).
+name: whatsapp-cron
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Llamar al reloj del CRM
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS --max-time 150 -X POST "https://www.dayanabeltran.com/api/cron/whatsapp" \
+            -H "Authorization: Bearer ${CRON_SECRET}"

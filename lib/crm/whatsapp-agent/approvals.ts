@@ -33,7 +33,7 @@ import { PAYMENT_PLACEHOLDER } from "./placeholders";
 
 export { PAYMENT_PLACEHOLDER };
 
-export type ProposalKind = "reply" | "booking" | "payment_link" | "payment_received";
+export type ProposalKind = "reply" | "booking" | "payment_link" | "payment_received" | "slots";
 
 export type Proposal = {
   kind: ProposalKind;
@@ -52,6 +52,10 @@ export type Proposal = {
   reason?: string;
   /** Cuándo Dayana lo abrió en su celular (sigue pendiente hasta que llegue). */
   phoneOpenedAt?: string;
+  /** Horas que la IA quiere ofrecer (Dayana las aprueba antes de que salgan). */
+  slots?: { service: string; options: { startIso: string; label: string }[] };
+  /** Las horas que Dayana dejó (y agregó): solo esas se pueden agendar. */
+  approvedSlots?: { startIso: string; label: string }[];
   /** La cita ya se creó (para no duplicarla si el mensaje hay que reintentarlo). */
   bookingDone?: { meetUrl: string | null; eventId: string | null };
   /** El enlace de pago ya creado (mismo motivo). */
@@ -88,6 +92,7 @@ const TITLES: Record<ProposalKind, string> = {
   booking: "Autoriza una cita",
   payment_link: "Autoriza un enlace de pago",
   payment_received: "Confirma un pago",
+  slots: "Aprueba horarios",
 };
 
 /** Deja la propuesta esperando a Dayana y le avisa (las importantes, al teléfono). */
@@ -131,6 +136,8 @@ export const proposeForApproval = async (input: {
         ? `${p.booking.service} · ${p.booking.label}`
         : p.kind === "payment_link" && p.payment
           ? `Enlace de pago · ${p.payment.product}`
+          : p.kind === "slots" && p.slots
+            ? `${p.slots.service}: ${p.slots.options.map((o) => o.label).join(" · ")}`
           : (p.reason ?? p.message).slice(0, 200),
     href: `/admin/whatsapp?conversation=${input.conversationId}`,
     entityType: "Conversation",
@@ -264,6 +271,8 @@ export const approveProposal = async (input: {
   conversationId: string;
   staffId: string;
   message?: string | null;
+  /** Horas que Dayana dejó / agregó (propuesta de horarios). */
+  slots?: { startIso: string; label: string }[] | null;
 }): Promise<{ ok: true; sent: string }> => {
   const run = await loadPending(input.runId, input.conversationId);
   const p = run.proposal;
@@ -363,6 +372,13 @@ export const approveProposal = async (input: {
     message = message.includes(PAYMENT_PLACEHOLDER)
       ? message.split(PAYMENT_PLACEHOLDER).join(url)
       : `${message}\n\n${url}`;
+  }
+  if (p.kind === "slots") {
+    const chosen = (input.slots ?? p.slots?.options ?? []).filter((o) => o.startIso && o.label);
+    if (chosen.length === 0) throw new ApprovalError("Deja al menos una hora para ofrecer.");
+    const list = chosen.map((o) => `• ${o.label}`).join("\n");
+    message = message.includes("{{HORARIOS}}") ? message.split("{{HORARIOS}}").join(list) : `${message}\n\n${list}`;
+    p.approvedSlots = chosen;
   }
   message = message.split(PAYMENT_PLACEHOLDER).join("").trim();
 

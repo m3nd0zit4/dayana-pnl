@@ -37,3 +37,12 @@ export const whatsAppRecipient = (
   toDigits: (v: string) => string = (v) => v.replace(/\D/g, "")
 ): { to: string } | { recipient: string } =>
   isWhatsAppUserId(threadId) ? { recipient: threadId } : { to: toDigits(threadId) };
+
+/** +521… ↔ +52…, +549… ↔ +54…: las formas en que puede estar guardado el contacto. */
+export const contactPhoneCandidates = (threadId: string): string[] => {
+  const d = threadId.replace(/\D/g, "");
+  const out = [`+${d}`];
+  if (d.length === 13 && (d.startsWith("521") || d.startsWith("549"))) out.push(`+${d.slice(0, 2)}${d.slice(3)}`);
+  if (d.length === 12 && (d.startsWith("52") || d.startsWith("54"))) out.push(`+${d.slice(0, 2)}${d.startsWith("52") ? "1" : "9"}${d.slice(2)}`);
+  return out;
+};

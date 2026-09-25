@@ -2186,6 +2186,44 @@ model WhatsAppAiRun {
   @@map("whatsapp_ai_runs")
 }
 
+/// Una cita del Google Calendar de Dayana (la agende la IA o ella a mano),
+/// ligada a la persona. Sirve para que la IA sepa quién tiene cita, para
+/// completar el número en el título y para el recordatorio de 24 h.
+model CalendarAppointment {
+  id              String    @id @default(cuid())
+  eventId         String    @unique @map("event_id")
+  googleAccountId String?   @map("google_account_id")
+  startsAt        DateTime  @map("starts_at")
+  endsAt          DateTime  @map("ends_at")
+  title           String
+  /// Lo que se leyó del título.
+  name            String?
+  phone           String?
+  sessionsLabel   String?   @map("sessions_label")
+  meetUrl         String?   @map("meet_url")
+  contactId       String?   @map("contact_id")
+  conversationId  String?   @map("conversation_id")
+  /// ai (la agendó la IA) | manual (Dayana en su calendario)
+  source          String    @default("manual")
+  /// active | cancelled
+  status          String    @default("active")
+  /// phone (el título traía el número) | auto (se encontró solo y se agregó) |
+  /// confirmed (Dayana eligió) | ambiguous (varias personas) | unmatched (nadie)
+  matchState      String    @default("unmatched") @map("match_state")
+  /// Posibles personas cuando hay duda: [{ name, phone, contactId }]
+  candidates      Json?
+  confirmedAt     DateTime? @map("confirmed_at")
+  reminderSentAt  DateTime? @map("reminder_sent_at")
+  reminderError   String?   @map("reminder_error")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([startsAt])
+  @@index([contactId])
+  @@index([phone])
+  @@map("calendar_appointments")
+}
+
 /// Una cita que la IA agendó en el Google Calendar de Dayana.
 model WhatsAppBooking {
   id              String   @id @default(cuid())

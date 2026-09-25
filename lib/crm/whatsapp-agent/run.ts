@@ -259,7 +259,7 @@ export const runWhatsAppAi = async (input: {
       phone,
       conversationId,
       contactId: conversation.contactId,
-      client: await clientContext(conversation.contactId),
+      client: await clientContext(conversation.contactId, conversation.externalThreadId),
       memory: await getMemory(phone),
       timezone,
       mode: "live",
@@ -330,6 +330,7 @@ export const runWhatsAppAi = async (input: {
     // Dayana; en copiloto (o si ella tomó el chat mientras la IA pensaba), toda
     // respuesta espera. Solo en modo IA una respuesta simple sale sola.
     const needsApproval =
+      Boolean(result.pendingSlots) ||
       Boolean(result.pendingBooking) ||
       Boolean(result.pendingPayment) ||
       tookOver ||
@@ -338,8 +339,15 @@ export const runWhatsAppAi = async (input: {
 
     if (needsApproval) {
       const proposal: Proposal = {
-        kind: result.pendingBooking ? "booking" : result.pendingPayment ? "payment_link" : "reply",
-        message: body,
+        kind: result.pendingSlots
+          ? "slots"
+          : result.pendingBooking
+            ? "booking"
+            : result.pendingPayment
+              ? "payment_link"
+              : "reply",
+        message: result.pendingSlots && !body.includes("{{HORARIOS}}") ? `${body}\n\n{{HORARIOS}}` : body,
+        ...(result.pendingSlots ? { slots: result.pendingSlots } : {}),
         ...(result.pendingBooking ? { booking: result.pendingBooking } : {}),
         ...(result.pendingPayment ? { payment: result.pendingPayment } : {}),
         stickerUrl: result.stickerUrl,

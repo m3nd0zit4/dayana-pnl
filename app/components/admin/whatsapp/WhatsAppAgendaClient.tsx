@@ -1,5 +1,6 @@
 "use client";
 
+import UpcomingAppointments from "./UpcomingAppointments";
 import { Settings2, Video } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/app/components/ui/button";
@@ -74,6 +75,8 @@ const WhatsAppAgendaClient = ({
           Tu agenda es tu Google Calendar: la IA agenda ahí directo, sin enlaces, y confirma con la persona antes.
         </span>
       </div>
+
+      {calendarAccounts > 0 && <UpcomingAppointments canEdit={canEdit} />}
 
       {calendarAccounts === 0 && (
         <p className="rounded-lg border border-border bg-card p-3 text-sm text-muted-foreground">

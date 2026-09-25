@@ -73,7 +73,13 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("memory"), notes: z.string().max(1500) }),
   z.object({ action: z.literal("read") }),
   /** Aceptar lo que propuso la IA, tal cual o con el mensaje cambiado. */
-  z.object({ action: z.literal("approve"), runId: z.string(), message: z.string().max(4000).optional() }),
+  z.object({
+    action: z.literal("approve"),
+    runId: z.string(),
+    message: z.string().max(4000).optional(),
+    /** Horas aprobadas (propuesta de horarios). */
+    slots: z.array(z.object({ startIso: z.string().datetime(), label: z.string().max(120) })).max(8).optional(),
+  }),
   z.object({ action: z.literal("reject"), runId: z.string() }),
   /** Reenviar un mensaje que WhatsApp no entregó. */
   z.object({ action: z.literal("resend"), messageId: z.string() }),
@@ -268,6 +274,7 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
           conversationId: id,
           staffId: staff.id,
           message: input.message,
+          slots: input.slots,
         });
         audit({ approved: input.runId, edited: Boolean(input.message) });
         return NextResponse.json(result);

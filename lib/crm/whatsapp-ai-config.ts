@@ -36,6 +36,12 @@ const bookingSchema = z.object({
       })
     )
     .max(21),
+  /**
+   * Dayana aprueba las horas ANTES de que la IA se las ofrezca a la persona
+   * (hay horas libres que no quiere dar). Con default: una configuración vieja
+   * sin este campo sigue siendo válida.
+   */
+  approveSlots: z.boolean().default(true),
   /** Minutos libres antes y después de cada cita. */
   bufferMin: z.number().int().min(0).max(120),
   /** Antelación mínima para agendar, en horas. */
@@ -161,6 +167,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
       from: "08:00",
       to: "18:00",
     })),
+    approveSlots: true,
     bufferMin: 15,
     minNoticeHours: 3,
     horizonDays: 21,

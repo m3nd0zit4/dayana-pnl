@@ -185,12 +185,17 @@ const ChatView = ({
     }
   };
 
-  const decide = async (runId: string, decision: "approve" | "reject" | "phone", message?: string) => {
+  const decide = async (
+    runId: string,
+    decision: "approve" | "reject" | "phone",
+    message?: string,
+    slots?: { startIso: string; label: string }[]
+  ) => {
     try {
       await post(
         chat.id,
         decision === "approve"
-          ? { action: "approve", runId, message }
+          ? { action: "approve", runId, message, slots }
           : decision === "phone"
             ? { action: "approve_phone", runId, message }
             : { action: "reject", runId }
