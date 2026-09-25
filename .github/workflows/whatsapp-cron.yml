@@ -17,5 +17,7 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          # Sin el secreto todavía configurado, no se llama (y el job no falla).
+          if [ -z "${CRON_SECRET}" ]; then echo "Falta el secreto CRON_SECRET: no se llama al CRM."; exit 0; fi
           curl -fsS --max-time 150 -X POST "https://www.dayanabeltran.com/api/cron/whatsapp" \
             -H "Authorization: Bearer ${CRON_SECRET}"
