@@ -1,4 +1,5 @@
 import { mentionsPrice } from "./price-guard";
+import { polishReply } from "./wording";
 import { Prisma } from "@prisma/client";
 
 import { loadImages, pickImages } from "./vision";
@@ -301,7 +302,12 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
-    const body = result.outcome.message;
+    // Como lo diría Dayana: sin frases hechas, sin repetir «mi hermosa» ni el
+    // corazón si ya salieron en el chat (lo que la IA lee: 2 semanas).
+    const recentOutbound = history
+      .filter((m) => m.direction === "OUTBOUND" && m.body)
+      .map((m) => m.body as string);
+    const body = polishReply(result.outcome.message, recentOutbound);
     // Mientras pensaba (unos segundos) Dayana pudo tomar el chat o escribir:
     // entonces no se envía nada; la respuesta queda como borrador para ella.
     const now = await prisma.conversation.findUnique({

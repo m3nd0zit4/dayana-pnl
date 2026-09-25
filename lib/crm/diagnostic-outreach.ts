@@ -13,6 +13,7 @@ import { isWhatsAppAutoReplyEnabled, pauseAutoReply } from "./whatsapp-autoreply
 import { ensureWhatsAppConversation, recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
 import { approvedTemplateFor, ensureTemplatesSubmitted, refreshTemplatesIfPending, type WaTemplate } from "./whatsapp-templates";
 import { proposeForApproval } from "./whatsapp-agent/approvals";
+import { polishReply } from "./whatsapp-agent/wording";
 
 /**
  * Autoevaluación → WhatsApp.
@@ -138,7 +139,7 @@ export const analyzeDiagnostic = async (input: {
     insights: object.insights.slice(0, 4).map((i) => cut(i, 200)),
     timeContext: cut(object.timeContext, 250),
     careReason: cut(object.careReason, 250),
-    message: object.message.slice(0, 900),
+    message: polishReply(object.message).slice(0, 900),
     templateMessage: oneLine(object.templateMessage).slice(0, 600),
     suggestionForDayana: cut(object.suggestionForDayana, 400),
     model: modelName,

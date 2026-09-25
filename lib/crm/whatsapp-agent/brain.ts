@@ -17,7 +17,9 @@ import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { spreadSlots } from "./slots";
 import { redactPrices } from "./price-guard";
-import { withDayanaWording } from "./wording";
+import { softenForPrompt, withDayanaWording } from "./wording";
+import { countryName, describeRequestedTime, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
+import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -103,6 +105,14 @@ export const chatSituation = (transcript: TranscriptLine[], inCrm: boolean): str
   return !inCrm && priorInbound < 2
     ? "PERSONA NUEVA (no hay conversación previa con ella)."
     : "PERSONA CON CONVERSACIÓN PREVIA: lee el hilo antes de contestar.";
+};
+
+/** Pista del país por el número (no reemplaza preguntarlo). */
+const countryHint = (phone: string): string | null => {
+  const iso = inferLocaleFromPhone(`+${phone}`, "CO")?.countryIso;
+  return iso
+    ? `El número es de ${countryName(iso)}, pero la persona puede estar en otro país: confírmalo preguntando.`
+    : null;
 };
 
 /** La conversación con un separador por día, para que la IA sepa cuándo pasó cada cosa. */
@@ -374,7 +384,9 @@ const systemPrompt = (config: WhatsAppAiConfig, now: string): string => {
 
 REGLA Nº 1 — PRECIOS: NUNCA escribas un precio, valor, monto, tarifa, costo, descuento ni forma de pago, aunque la persona insista, aunque lo veas en la conversación o en un ejemplo. Los valores SOLO los da Dayana, en la llamada. Si pregunta cuánto cuesta: dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos, y ofrécele agendarla. Si insiste o ya quiere pagar: escala con category=payment.
 
-TONO: cálido pero profesional. Cercana, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). Como mucho una expresión cariñosa de Dayana en el saludo («mi hermosa», «te bendigo»), no en cada mensaje ni varias juntas; nada de exageraciones, jerga ni muchos emojis (máximo uno). Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
+TONO: cálido pero profesional. Cercana, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. «Mi hermosa» o «mi bella» como mucho UNA vez en toda la conversación y solo si queda natural; corazones (💛) como mucho uno en toda la conversación. Nada de exageraciones, jerga ni muchos emojis.
+NUNCA escribas: «¿Qué te trae por aquí?», «Qué alegría tenerte por aquí», «¿Hay algo más en lo que te pueda ayudar?», «De nada» (di «Con gusto»).
+Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
 
 Ahora es ${now}.
 
@@ -382,7 +394,8 @@ Cómo conversas (así trabaja Dayana):
 - Género: antes de usar cualquier palabra con género o apodo cariñoso, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa siempre masculino («querido», «bienvenido», «te bendigo»); JAMÁS «mi bella», «mi hermosa», «querida» ni adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
 - PERSONA NUEVA (mira SITUACIÓN DEL CHAT, más abajo):
-  · Saluda y pregúntale cómo está y qué la trae.
+  · Primer mensaje: «Hola [nombre], te bendigo. Cuéntame, ¿cómo estás?».
+  · Al inicio (en el primer o el segundo mensaje, una sola vez) pregúntale desde qué país escribe: «¿Desde qué país me escribes?». En México, Estados Unidos, Brasil, Canadá, España, Argentina o Chile pregunta también la ciudad (tienen varias horas). Cuando lo diga, usa save_country. Si ya lo dijo en la conversación, no lo vuelvas a preguntar.
   · Si cuenta lo que le pasa o lo que quiere («tengo ansiedad», «quiero encontrar pareja», «necesito ayuda emocional», «me siento estancada, bloqueada»…), no la interrogues: refleja en una frase lo que siente y pregúntale «¿Cuánto tiempo más quieres seguir así?», o invítala directo: «Si quieres soltarlo, podemos agendar una llamada gratuita de 15 minutos con Dayana. Dime qué día y hora te quedan bien.»
   · Si quiere agendar o ya dijo un día u hora: usa request_booking (Dayana recibe el aviso y le confirma la hora).
   · Si dice que no puede, que no quiere, o habla de otra cosa: no insistas. Algo como: «Listo, perfecto. Entonces quedamos en contacto; si necesitas información o algo de mí, me escribes por aquí.»
@@ -409,7 +422,7 @@ Prohibido siempre: dar precios o valores de cualquier tipo, enlaces de pago, dar
 Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
   ];
   if (config.styleGuide) {
-    parts.push(`CÓMO ESCRIBE DAYANA (imítalo, sin salirte del tono profesional y sin dar precios):\n${redactPrices(config.styleGuide)}`);
+    parts.push(`CÓMO ESCRIBE DAYANA (imítalo, sin salirte del tono profesional y sin dar precios):\n${softenForPrompt(redactPrices(config.styleGuide))}`);
   }
   if (config.instructions) {
     parts.push(
@@ -424,7 +437,7 @@ const examplesBlock = (examples: SimilarExample[]): string | null =>
     ? null
     : [
         "EJEMPLOS REALES de cómo contestó Dayana a mensajes parecidos. Imita su forma. Las fechas, enlaces u ofertas pueden estar viejos (esos datos salen solo de los DATOS) y los precios están borrados: tú nunca das precios.",
-        ...examples.map((e, i) => `#${i + 1}\nPERSONA: ${redactPrices(e.clientText)}\nDAYANA: ${redactPrices(e.replyText)}`),
+        ...examples.map((e, i) => `#${i + 1}\nPERSONA: ${redactPrices(e.clientText)}\nDAYANA: ${softenForPrompt(redactPrices(e.replyText))}`),
       ].join("\n\n");
 
 const describeLine = (m: TranscriptLine): string => {
@@ -504,6 +517,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     pendingBooking: BrainResult["pendingBooking"];
     pendingPayment: BrainResult["pendingPayment"];
     bookingRequest: BrainResult["bookingRequest"];
+    country: { iso: string; city: string | null; timezone: string } | null;
     pendingSlots: BrainResult["pendingSlots"];
     suggestedReply: string | null;
   } = {
@@ -513,6 +527,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     pendingBooking: null,
     pendingPayment: null,
     bookingRequest: null,
+    country: null,
     pendingSlots: null,
     suggestedReply: null,
   };
@@ -586,21 +601,76 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // Lo normal: la IA no busca horas; pregunta cuándo le sirve y le avisa a Dayana.
     ...(!config.booking.aiSchedules
       ? {
+          save_country: tool({
+            description:
+              "La persona dijo desde qué país (y ciudad) escribe. Guárdalo para agendar en su hora y no volver a preguntarlo.",
+            inputSchema: z.object({
+              countryIso: z.string().describe("Código de 2 letras del país: MX, CO, PE, ES, US…"),
+              city: z.string().optional().describe("Ciudad o estado, si lo dijo."),
+              timezone: z
+                .string()
+                .optional()
+                .describe("Zona IANA de su ciudad si el país tiene varias (p. ej. La Paz, Baja California Sur = America/Mazatlan)."),
+            }),
+            execute: async (args) => {
+              const iso = args.countryIso.trim().toUpperCase().slice(0, 2);
+              const tz = resolvePersonTimezone(iso, args.timezone);
+              if (!tz) return log("save_country", args, { error: "País no reconocido. Pregúntale de nuevo." });
+              state.country = { iso, city: args.city?.trim() || null, timezone: tz };
+              if (input.mode === "live" && input.contactId) {
+                await prisma.contact
+                  .update({ where: { id: input.contactId }, data: { countryIso: iso, timezone: tz } })
+                  .catch(() => undefined);
+              }
+              return log("save_country", args, {
+                ok: true,
+                country: countryName(iso),
+                timezone: tz,
+                note:
+                  MULTI_ZONE_COUNTRIES.has(iso) && !args.city && !args.timezone
+                    ? "Ese país tiene varias horas: pregúntale en qué ciudad está."
+                    : undefined,
+              });
+            },
+          }),
           request_booking: tool({
             description:
-              "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella agende y confirme. Úsalo UNA vez; tu respuesta dice que Dayana le confirma la hora.",
+              "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella agende y confirme. Antes tienes que saber desde qué país escribe. Úsalo UNA vez; tu respuesta dice que Dayana le confirma la hora.",
             inputSchema: z.object({
               service: z.string().describe("«Llamada gratis de 15 minutos» o la sesión que pide."),
+              countryIso: z.string().optional().describe("País de la persona (2 letras), el que dijo en la conversación."),
+              city: z.string().optional(),
+              timezone: z.string().optional().describe("Zona IANA de su ciudad si el país tiene varias."),
               when: z.string().optional().describe("El día y la hora que dijo la persona, tal cual (si ya lo dijo)."),
+              localDateTime: z
+                .string()
+                .optional()
+                .describe("Ese día y hora en la hora DE LA PERSONA, como YYYY-MM-DDTHH:mm (usa la fecha de hoy para calcular «el jueves»)."),
               note: z.string().describe("Para Dayana, en una línea: qué quiere trabajar la persona y lo importante."),
             }),
             execute: async (args) => {
-              state.bookingRequest = { service: args.service, when: args.when?.trim() || null, note: args.note.trim() };
+              const iso = (args.countryIso ?? state.country?.iso ?? "").trim().toUpperCase().slice(0, 2);
+              if (!iso) {
+                return log("request_booking", args, {
+                  error: "Aún no sabes desde qué país escribe. Pregúntaselo primero («¿Desde qué país me escribes?») para no confundir horarios.",
+                });
+              }
+              const tz = resolvePersonTimezone(iso, args.timezone ?? state.country?.timezone) ?? "America/Bogota";
+              const city = args.city?.trim() || state.country?.city || null;
+              const place = `${countryName(iso)}${city ? ` (${city})` : ""}`;
+              const time = args.localDateTime
+                ? describeRequestedTime({ localDateTime: args.localDateTime, personTz: tz, place })
+                : null;
+              state.bookingRequest = {
+                service: args.service,
+                when: time?.text ?? (args.when?.trim() ? `${args.when.trim()} (hora de ${place})` : null),
+                note: `${args.note.trim()} · Desde ${place}`,
+              };
               return log("request_booking", args, {
                 ok: true,
-                note: args.when
-                  ? "Dayana recibe el aviso. Responde corto y cálido: que ya le pasas su horario a Dayana y ella le confirma por aquí."
-                  : "Dayana recibe el aviso. Pregúntale qué día y hora le quedan bien, y dile que Dayana le confirma por aquí.",
+                note: time || args.when
+                  ? "Dayana recibe el aviso. Responde corto y cálido: que ya le pasas su horario (en su hora) a Dayana y ella le confirma por aquí."
+                  : "Dayana recibe el aviso. Pregúntale qué día y hora le quedan bien (en su hora), y dile que Dayana le confirma por aquí.",
               });
             },
           }),
@@ -783,7 +853,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           searchDayanaReplies(args.query).catch(() => []),
         ]);
         return log("search_past_chats", args, {
-          examples: similar.map((e) => ({ persona: redactPrices(e.clientText), dayana: redactPrices(e.replyText) })),
+          examples: similar.map((e) => ({ persona: redactPrices(e.clientText), dayana: softenForPrompt(redactPrices(e.replyText)) })),
           dayanaWrote: literal.map(redactPrices),
         });
       },
@@ -805,7 +875,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         : null,
       `SITUACIÓN DEL CHAT: ${chatSituation(input.transcript, Boolean(input.client))}`,
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
-      `Su número: +${input.phone}`,
+      `Su número: +${input.phone}.`,
+      countryHint(input.phone),
       `CONVERSACIÓN de las últimas 2 semanas (lo último abajo). Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
       input.images?.length
         ? `IMÁGENES: van adjuntas las ${input.images.length} últimas fotos o stickers que mandó la persona (la más reciente primero). Míralas.`
