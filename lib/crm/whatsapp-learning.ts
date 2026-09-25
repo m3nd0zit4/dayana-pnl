@@ -418,7 +418,7 @@ ${sample
   .map((s, i) => `#${i + 1}\nCLIENTE: ${s.clientText}\nDAYANA: ${s.replyText}`)
   .join("\n\n")}
 
-Escribe una guía de estilo de máximo 200 palabras: cómo saluda, cómo trata a la persona (tú/usted, apodos cariñosos), tono, largo de los mensajes, uso de emojis y cuáles, frases o muletillas que repite, cómo cierra, cómo habla de precios y cómo invita a dar el siguiente paso. No incluyas precios, fechas ni enlaces concretos.`,
+Escribe una guía de estilo de máximo 200 palabras: cómo saluda, cómo trata a la persona (tú/usted, apodos cariñosos), tono, largo de los mensajes, uso de emojis y cuáles, frases o muletillas que repite, cómo cierra, cómo responde cuando le preguntan precios (sin dar valores: invita a la llamada gratis) y cómo invita a dar el siguiente paso. No incluyas precios, fechas ni enlaces concretos.`,
   });
   return text.trim().slice(0, 4000);
 };

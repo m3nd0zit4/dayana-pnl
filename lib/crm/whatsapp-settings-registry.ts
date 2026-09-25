@@ -70,6 +70,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     keywords: ["exportar chat", "celular", "txt", "sin archivos", "chats antiguos", "importar", "historial"],
     tab: "conexion",
   },
+  {
+    id: "wa-chat-backup",
+    label: "Respaldo de chats",
+    keywords: ["respaldo", "backup", "copia", "descargar chats", "exportar"],
+    tab: "conexion",
+  },
 
   // ── IA y respuestas ────────────────────────────────────────────────────
   {

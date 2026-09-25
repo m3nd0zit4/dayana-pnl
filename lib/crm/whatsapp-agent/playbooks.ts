@@ -39,21 +39,39 @@ export type PlaybookRow = {
 export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }[] = [
   {
     name: "Primer contacto",
-    trigger: "Alguien escribe por primera vez, saluda o pregunta algo general (qué hace Dayana, cómo funciona, cuánto vale).",
+    trigger: "Alguien escribe por primera vez, saluda, pregunta algo general (qué hace Dayana, cómo funciona, cuánto vale) o si tiene que registrarse de nuevo.",
     steps:
-      "1. Primer mensaje (un solo saludo): saluda con calidez, pregunta cómo está y qué la trae por aquí, en un mensaje corto.\n2. Cuando responda: nombra con delicadeza la emoción que parece sentir («siento que esto te tiene muy cansada…»), sin diagnosticar, y haz UNA pregunta para que mire su situación («¿hace cuánto te sientes así?», «¿cómo te afecta en tu día a día?»).\n3. Refleja lo que cuenta en una frase, sin aconsejar.\n4. Invítala a la consulta gratis de 15 minutos con Dayana.\n5. Si dice que sí: usa check_availability y offer_times (Dayana aprueba las horas antes de que se ofrezcan); cuando elija una, confirma y agenda con book_appointment.\n6. No des precios de entrada; si los pide, ofrece primero la consulta gratis.",
+      "1. Un solo saludo, cálido y profesional (como mucho una expresión de Dayana: «mi hermosa», «te bendigo»): pregunta cómo está y qué la trae por aquí, en un mensaje corto.\n2. Cuando responda: nombra con delicadeza la emoción que parece sentir («siento que esto te tiene muy cansada…»), sin diagnosticar, y haz UNA pregunta para que mire su situación.\n3. Si cuenta lo que vive, sigue «Conversación de sanación».\n4. Invítala a la consulta gratis de 15 minutos con Dayana y, si dice que sí, sigue «Agendar».\n5. Si pregunta si tiene que registrarse otra vez (masterclass, eventos) y ya lo hizo, confírmale que está perfecto para que no repita pasos.\n6. Si pregunta el precio, sigue «Precios y pagos»: nunca des valores.",
+  },
+  {
+    name: "Conversación de sanación",
+    trigger: "La persona pregunta por la terapia, qué incluye, cuántas sesiones necesita, o empieza a contar lo que está viviendo.",
+    steps:
+      "Una o dos preguntas por mensaje, esperando la respuesta:\n1. ¿Qué deseas sanar o reprogramar? ¿En lo personal, la pareja, tu emprendimiento, tus metas?\n2. ¿Con qué intención quieres hacerlo?\n3. ¿Hace cuánto te sientes así?\n4. ¿Qué emoción te genera: tristeza, miedo, rabia, culpa, ansiedad?\n5. Devuélvele en una frase lo que escuchaste y explica con las palabras de Dayana: se trabajan desde la raíz los eventos de la niñez, la infancia y la adolescencia (y luego los de pareja) donde sintió vacío, rechazo, abandono o soledad; al quitar la emoción negativa de raíz recupera su autoestima, seguridad y confianza.\n6. Cierra invitándola a la consulta gratis de 15 minutos: ahí Dayana la escucha, le dice qué proceso le sirve y le explica las opciones y los valores. Si dice que sí, sigue «Agendar».\nNunca des precios, nunca diagnostiques ni prometas resultados; si cuenta una crisis o habla de hacerse daño, escala.",
   },
   {
     name: "Agendar",
     trigger: "La persona quiere una cita, una sesión, la consulta gratis, o pregunta por horarios.",
     steps:
-      "1. Si no está claro, pregunta si es la consulta gratis de 15 minutos o una sesión, y si prefiere mañana o tarde.\n2. Usa check_availability con la duración de ese servicio y luego offer_times con 2 o 3 opciones: Dayana las aprueba antes de que le lleguen; tu mensaje lleva {{HORARIOS}} donde van.\n3. Si no sabes su nombre, pídeselo.\n4. Cuando elija una de las horas que se le enviaron, confirma servicio, día y hora y pregunta si te lo agenda.\n5. Solo con su «sí», usa book_appointment. Nunca mandes enlaces de agenda.",
+      "1. Si no está claro, pregunta si es la consulta gratis de 15 minutos o una sesión, y si prefiere mañana o tarde.\n2. Usa check_availability con la duración del servicio y ofrece 2 o 3 horas (si tienes offer_times, úsalo: las horas le llegan cuando Dayana las revisa).\n3. Si no sabes su nombre, pídeselo.\n4. Cuando elija una hora, confirma servicio, día y hora y pregunta si te la agenda. Si no le sirve ninguna, pregúntale qué día y franja le quedan bien y busca de nuevo.\n5. Solo con su «sí», usa book_appointment. Nunca mandes enlaces de agenda.",
   },
   {
-    name: "Pagos",
-    trigger: "Pide cómo pagar un paquete, o menciona que ya pagó, manda un comprobante, pregunta por un cobro, reembolso o factura.",
+    name: "Precios y pagos",
+    trigger: "Pregunta cuánto cuesta, pide precios o paquetes, quiere pagar, dice que ya pagó, manda un comprobante o pregunta por un cobro, reembolso o factura.",
     steps:
-      "Si quiere pagar: usa payment_link con el paquete que eligió y comparte el enlace. Si dice que ya pagó o manda comprobante: nunca confirmes ni niegues el pago; llama a escalate con category=payment y no respondas nada más.",
+      "1. Si pregunta el precio: NUNCA des valores. Dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos; ofrécele agendarla (sigue «Agendar»).\n2. Si insiste en el precio, quiere pagar o pide cómo pagar: escala con category=payment y no respondas nada más.\n3. Si dice que ya pagó o manda un comprobante: nunca confirmes ni niegues el pago; escala con category=payment.",
+  },
+  {
+    name: "Acceso a grabaciones de clases",
+    trigger: "La persona pregunta por las grabaciones de las clases o dónde encontrarlas.",
+    steps:
+      "1. Responde con calidez y de forma breve.\n2. Indícale que las grabaciones están en el grupo.\n3. Invítala a revisarlo allí; si no las encuentra, escala con category=unknown.",
+  },
+  {
+    name: "Cierre de conversación",
+    trigger: "La persona agradece o se despide al terminar.",
+    steps:
+      "1. Responde corto y cálido, con una expresión de Dayana («Un abrazo, mi bella», «Te bendigo»).\n2. NUNCA preguntes «¿Hay algo más en lo que te pueda ayudar hoy?» ni frases de soporte: el cierre es humano y natural.",
   },
 ];
 

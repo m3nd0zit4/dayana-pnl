@@ -16,7 +16,7 @@ import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { spreadSlots } from "./slots";
-import { PAYMENT_PLACEHOLDER } from "./placeholders";
+import { redactPrices } from "./price-guard";
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -84,6 +84,27 @@ export type TranscriptLine = {
   /** «imagen», «audio»… si trae adjunto. */
   attachment?: string | null;
   isAutoReply?: boolean;
+  /** Cuándo se escribió: marca los días en la conversación. */
+  sentAt?: Date;
+};
+
+/** La conversación con un separador por día, para que la IA sepa cuándo pasó cada cosa. */
+const transcriptText = (lines: TranscriptLine[], timezone: string): string => {
+  const day = (d: Date) =>
+    new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(d);
+  const out: string[] = [];
+  let lastDay = "";
+  for (const m of lines) {
+    if (m.sentAt) {
+      const d = day(m.sentAt);
+      if (d !== lastDay) {
+        out.push(`— ${d} —`);
+        lastDay = d;
+      }
+    }
+    out.push(describeLine(m));
+  }
+  return out.join("\n");
 };
 
 /** El modelo a veces escribe en Markdown; WhatsApp usa *un* asterisco para negrita. */
@@ -100,11 +121,6 @@ const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY?.trim(),
 });
 
-const money = (currency: string, minor: number) =>
-  currency === "COP"
-    ? `${minor.toLocaleString("es-CO")} COP`
-    : `${(minor / 100).toFixed(2)} USD`;
-
 /** Lo único que la IA puede afirmar: sale del CRM en cada respuesta. */
 export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> => {
   const site = getSiteUrl();
@@ -119,10 +135,6 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
       select: {
         title: true,
         sessionsLabel: true,
-        prices: {
-          orderBy: { validFrom: "desc" },
-          select: { currency: true, amountMinor: true },
-        },
       },
       take: 12,
     }),
@@ -143,11 +155,6 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
         dateLabel: true,
         scheduleLabel: true,
         cardSummary: true,
-        product: {
-          select: {
-            prices: { orderBy: { validFrom: "desc" }, select: { currency: true, amountMinor: true } },
-          },
-        },
       },
     }),
     prisma.freeWebinar.findMany({
@@ -174,16 +181,10 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
   const lines: string[] = [
     `Negocio: ${BRAND.name}, ${BRAND.tagline}. Sitio: ${site}`,
     "",
-    "PAQUETES ACTIVOS (precio exacto, no lo cambies ni lo redondees):",
-    ...products.map((p) => {
-      const price = p.prices
-        .filter((x, i, all) => all.findIndex((y) => y.currency === x.currency) === i)
-        .map((x) => money(x.currency, x.amountMinor))
-        .join(" · ");
-      return `- ${p.title}${p.sessionsLabel ? ` (${p.sessionsLabel})` : ""}: ${price || "sin precio publicado"}`;
-    }),
+    // Sin precios: los valores solo los da Dayana en la llamada.
+    "PROCESOS QUE OFRECE DAYANA (los valores NO se dan por chat: los explica Dayana en la llamada gratis):",
+    ...products.map((p) => `- ${p.title}${p.sessionsLabel ? ` (${p.sessionsLabel})` : ""}`),
     "",
-    `Para pagar cualquier terapia: ${site}/pagar/terapias`,
     `Cuestionario gratis (3 min, dice qué proceso le sirve): ${site}/terapias/empezar`,
   ];
 
@@ -215,15 +216,11 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
     lines.push("- No hay ningún taller abierto ni programado ahora mismo. Dayana anuncia los próximos por aquí y en sus redes.");
   }
   for (const w of workshops) {
-    const price = (w.product?.prices ?? [])
-      .filter((x, i, all) => all.findIndex((y) => y.currency === x.currency) === i)
-      .map((x) => money(x.currency, x.amountMinor))
-      .join(" · ");
     const date = w.dateLabel || when(w.startsAt);
     lines.push(
       `- ${w.title}${date ? ` — ${date}` : ""}${w.scheduleLabel ? ` (${w.scheduleLabel})` : ""}${
         w.status === "OPEN" ? " — INSCRIPCIONES ABIERTAS" : ` — ${w.status === "CLOSED" ? "inscripciones cerradas" : "próximamente"}`
-      }${price ? ` — ${price}` : ""}. Página: ${site}/taller-virtual/${w.slug}${w.cardSummary ? `\n  De qué trata: ${w.cardSummary}` : ""}`
+      }. Página (ahí está toda la información): ${site}/taller-virtual/${w.slug}${w.cardSummary ? `\n  De qué trata: ${w.cardSummary}` : ""}`
     );
   }
 
@@ -336,25 +333,28 @@ const IDENTITY: Record<WhatsAppAiConfig["identity"], string> = {
 
 const systemPrompt = (config: WhatsAppAiConfig, now: string): string => {
   const parts = [
-    `Contestas el WhatsApp de ${BRAND.name}. Lo más importante: escribir COMO ESCRIBE DAYANA. Sus ejemplos reales y su guía de estilo (más abajo) mandan sobre cualquier otra indicación de tono: largo de los mensajes, saludos, forma de tratar, palabras que usa, emojis. Si no hay ejemplos: cercana, en español, de tú, mensajes cortos (2 o 3 frases).
+    `Contestas el WhatsApp de ${BRAND.name}.
+
+REGLA Nº 1 — PRECIOS: NUNCA escribas un precio, valor, monto, tarifa, costo, descuento ni forma de pago, aunque la persona insista, aunque lo veas en la conversación o en un ejemplo. Los valores SOLO los da Dayana, en la llamada. Si pregunta cuánto cuesta: dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos, y ofrécele agendarla. Si insiste o ya quiere pagar: escala con category=payment.
+
+TONO: cálido pero profesional. Cercana, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). Como mucho una expresión cariñosa de Dayana en el saludo («mi hermosa», «te bendigo»), no en cada mensaje ni varias juntas; nada de exageraciones, jerga ni muchos emojis (máximo uno). Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
 
 Ahora es ${now}.
 
-Cómo conversas (así vende Dayana):
+Cómo conversas (así trabaja Dayana):
 - Género: antes de usar cualquier palabra con género o apodo cariñoso, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa siempre masculino («querido», «bienvenido», «te bendigo»); JAMÁS «mi bella», «mi hermosa», «querida» ni adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
 - Primero la persona, no el precio. Saluda con calidez y pregúntale cómo está, qué la trae, qué está viviendo.
 - Haz una o dos preguntas que la hagan mirar su situación, una a la vez: «¿hace cuánto te sientes así?», «¿cómo te está afectando en tu día a día?», «¿cuánto tiempo más quieres seguir viviendo esto?». Refleja en una frase lo que te cuenta, con empatía, sin dar consejos ni diagnosticar.
 - El objetivo con quien escribe por primera vez es casi siempre la CONSULTA GRATIS DE 15 MINUTOS con Dayana: invítala («Dayana tiene un espacio gratuito de 15 minutos para escucharte y decirte qué proceso te sirve, ¿te lo agendo?»). Si no quiere hablar de lo que vive, invítala directo a la consulta.
-- Precios: no los des de entrada. Si los pide, primero ofrece la consulta gratis («ahí Dayana te dice cuál proceso te conviene»); si insiste, da el precio exacto de los DATOS.
-- Pago: solo si pide cómo pagar o quiere pagar un paquete, usa payment_link con ese paquete y comparte el enlace.
+- Primero se agenda la consulta gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - AGENDAS tú misma en el Google Calendar de Dayana (nunca mandes enlaces para que agende sola): usa check_availability con la duración del servicio${config.booking.approveSlots ? " y luego offer_times con 2 o 3 opciones: Dayana las aprueba antes de que salgan, y tu mensaje lleva {{HORARIOS}} donde van (no las escribas tú). Cuando la persona elija una de las horas que ya se le enviaron," : " y ofrece 2 o 3 opciones concretas. Cuando elija,"} CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
 - Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
 - Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 Llama a escalate (y NO escribas ningún mensaje) cuando:
-- category=payment: menciona un pago YA hecho, una transferencia, manda un comprobante (MIRA las imágenes adjuntas: si es un comprobante, transferencia o recibo, es esto), pregunta por un cobro, un reembolso o una factura, o pide un descuento. (Pedir cómo pagar NO es esto: para eso está payment_link.)
+- category=payment: insiste en saber el precio, quiere pagar o pide cómo pagar, menciona un pago YA hecho, una transferencia, manda un comprobante (MIRA las imágenes adjuntas: si es un comprobante, transferencia o recibo, es esto), pregunta por un cobro, un reembolso o una factura, o pide un descuento.
 - category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen que no sabes interpretar, un audio marcado «(inaudible)»).
 - Las fotos y stickers que mandó la persona van adjuntos como imágenes: míralos y responde a lo que muestran (una captura de un horario, una foto de algo que le pasa, un sticker de cariño…). Nunca digas que no puedes ver imágenes. Las notas de voz llegan transcritas con 🎤 delante: léelas como si te las hubiera escrito.
 - category=reschedule: quiere cambiar o cancelar una cita ya agendada.
@@ -364,11 +364,13 @@ Llama a escalate (y NO escribas ningún mensaje) cuando:
 
 ${IDENTITY[config.identity]}
 
-Prohibido siempre: dar consejo clínico o diagnóstico, prometer resultados, inventar precios, fechas, horarios o enlaces, confirmar un pago, pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
+Prohibido siempre: dar precios o valores de cualquier tipo, enlaces de pago, dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios o enlaces, confirmar un pago, pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
 
 Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
   ];
-  if (config.styleGuide) parts.push(`CÓMO ESCRIBE DAYANA (imítalo):\n${config.styleGuide}`);
+  if (config.styleGuide) {
+    parts.push(`CÓMO ESCRIBE DAYANA (imítalo, sin salirte del tono profesional y sin dar precios):\n${redactPrices(config.styleGuide)}`);
+  }
   if (config.instructions) {
     parts.push(
       `INSTRUCCIONES DE DAYANA (cúmplelas, salvo que choquen con lo prohibido):\n${config.instructions}`
@@ -381,8 +383,8 @@ const examplesBlock = (examples: SimilarExample[]): string | null =>
   examples.length === 0
     ? null
     : [
-        "EJEMPLOS REALES de cómo contestó Dayana a mensajes parecidos. Imita su forma. Los precios, fechas, enlaces u ofertas que aparezcan pueden estar viejos: esos datos salen solo de los DATOS.",
-        ...examples.map((e, i) => `#${i + 1}\nPERSONA: ${e.clientText}\nDAYANA: ${e.replyText}`),
+        "EJEMPLOS REALES de cómo contestó Dayana a mensajes parecidos. Imita su forma. Las fechas, enlaces u ofertas pueden estar viejos (esos datos salen solo de los DATOS) y los precios están borrados: tú nunca das precios.",
+        ...examples.map((e, i) => `#${i + 1}\nPERSONA: ${redactPrices(e.clientText)}\nDAYANA: ${redactPrices(e.replyText)}`),
       ].join("\n\n");
 
 const describeLine = (m: TranscriptLine): string => {
@@ -704,39 +706,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           }),
         }
       : {}),
-    payment_link: tool({
-      description:
-        "Crea el enlace de pago de un paquete de los DATOS, solo cuando la persona pide cómo pagar o quiere pagar. Devuelve la URL para compartirla tal cual.",
-      inputSchema: z.object({
-        product: z.string().describe("Nombre del paquete tal como aparece en los DATOS."),
-      }),
-      execute: async ({ product }) => {
-        const site = getSiteUrl();
-        const products = await prisma.product.findMany({
-          where: { isActive: true, OR: [{ isCourseContent: false }, { sellsStandalone: true }] },
-          select: { id: true, title: true },
-        });
-        const norm = (v: string) => v.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
-        const match =
-          products.find((p) => norm(p.title) === norm(product)) ??
-          products.find((p) => norm(p.title).includes(norm(product)) || norm(product).includes(norm(p.title)));
-        if (!match) {
-          return log("payment_link", { product }, {
-            url: `${site}/pagar/terapias`,
-            note: "No encontré ese paquete exacto: este enlace muestra todos los paquetes.",
-          });
-        }
-        if (input.mode === "preview" || !input.conversationId) {
-          return log("payment_link", { product }, { url: `${site}/pagar/(enlace-de-prueba)`, product: match.title });
-        }
-        state.pendingPayment = { productId: match.id, product: match.title };
-        return log("payment_link", { product }, {
-          url: PAYMENT_PLACEHOLDER,
-          product: match.title,
-          note: `Escribe ${PAYMENT_PLACEHOLDER} exactamente donde va el enlace. Dayana lo autoriza y el enlace real se pone solo.`,
-        });
-      },
-    }),
+    // Sin payment_link: los enlaces de pago muestran el precio y los precios
+    // solo los da Dayana. Quien quiere pagar se escala (category=payment).
     search_past_chats: tool({
       description:
         "Busca cómo contestó Dayana antes sobre un tema (para imitar su forma, no para sacar precios).",
@@ -747,8 +718,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           searchDayanaReplies(args.query).catch(() => []),
         ]);
         return log("search_past_chats", args, {
-          examples: similar.map((e) => ({ persona: e.clientText, dayana: e.replyText })),
-          dayanaWrote: literal,
+          examples: similar.map((e) => ({ persona: redactPrices(e.clientText), dayana: redactPrices(e.replyText) })),
+          dayanaWrote: literal.map(redactPrices),
         });
       },
     }),
@@ -769,7 +740,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         : null,
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
       `Su número: +${input.phone}`,
-      `CONVERSACIÓN (lo último abajo):\n${input.transcript.map(describeLine).join("\n")}`,
+      `CONVERSACIÓN de las últimas 2 semanas (lo último abajo). Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
       input.images?.length
         ? `IMÁGENES: van adjuntas las ${input.images.length} últimas fotos o stickers que mandó la persona (la más reciente primero). Míralas.`
         : null,

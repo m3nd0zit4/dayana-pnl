@@ -1,3 +1,4 @@
+import { mentionsPrice } from "./price-guard";
 import { Prisma } from "@prisma/client";
 
 import { loadImages, pickImages } from "./vision";
@@ -33,8 +34,14 @@ import { approvedMessageIds, proposeForApproval, type Proposal } from "./approva
 
 /** Cuánto se espera a que la persona termine de escribir. */
 const DEBOUNCE_MS = Number(process.env.WHATSAPP_AI_DEBOUNCE_MS ?? 8000);
-/** Mensajes del hilo que lee el modelo. */
-const HISTORY = 40;
+/**
+ * Lo que lee el modelo del hilo: todo lo de las últimas 2 semanas (hasta
+ * HISTORY mensajes) y, si el chat estuvo quieto, al menos los últimos
+ * HISTORY_MIN, para no perder el hilo.
+ */
+const HISTORY = 400;
+const HISTORY_MIN = 40;
+const HISTORY_DAYS = 14;
 /** Otra ejecución en curso en el mismo chat se espera hasta esto. */
 const BUSY_WAIT_MS = 60_000;
 
@@ -329,7 +336,11 @@ export const runWhatsAppAi = async (input: {
     // Agendar y mandar enlaces de pago siempre esperan la autorización de
     // Dayana; en copiloto (o si ella tomó el chat mientras la IA pensaba), toda
     // respuesta espera. Solo en modo IA una respuesta simple sale sola.
+    // Los precios solo los da Dayana: si la respuesta menciona un monto, nunca
+    // sale sola, queda como borrador para ella.
+    const saysPrice = mentionsPrice(body);
     const needsApproval =
+      saysPrice ||
       Boolean(result.pendingSlots) ||
       Boolean(result.pendingBooking) ||
       Boolean(result.pendingPayment) ||
@@ -351,7 +362,11 @@ export const runWhatsAppAi = async (input: {
         ...(result.pendingBooking ? { booking: result.pendingBooking } : {}),
         ...(result.pendingPayment ? { payment: result.pendingPayment } : {}),
         stickerUrl: result.stickerUrl,
-        ...(tookOver ? { reason: "Tomaste el chat mientras la IA pensaba." } : {}),
+        ...(saysPrice
+          ? { reason: "La IA escribió un precio: los precios solo los das tú. Cámbialo o descártalo." }
+          : tookOver
+            ? { reason: "Tomaste el chat mientras la IA pensaba." }
+            : {}),
       };
       await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta });
     } else {
@@ -543,9 +558,12 @@ const gate = async (
     return { skip: true, escalate: true, reason: "Demasiadas respuestas automáticas hoy en este chat." };
   }
 
+  const since = Date.now() - HISTORY_DAYS * 24 * 3600_000;
   const history: TranscriptLine[] = ordered
+    .filter((m, i) => i >= ordered.length - HISTORY_MIN || m.sentAt.getTime() >= since)
     .filter((m) => m.status !== "FAILED")
     .map((m) => ({
+      sentAt: m.sentAt,
       direction: m.direction === "INBOUND" ? "INBOUND" : "OUTBOUND",
       // Un aviso gris (reacción, encuesta…) va marcado: no es algo que escribió.
       body: m.kind === "system" ? `(aviso de WhatsApp: ${m.body ?? ""})` : m.body,
