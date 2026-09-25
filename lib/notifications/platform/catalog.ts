@@ -504,7 +504,7 @@ export const NOTIFICATION_CATALOG: Record<
   WHATSAPP_AI_ESCALATED: {
     label: "WhatsApp: te toca responder",
     description:
-      "La IA de WhatsApp pasó un chat a una persona: un pago, algo que no sabe, una queja o algo delicado.",
+      "Solo lo importante: la IA no sabe qué contestar, alguien dice que ya pagó o quiere pagar, o algo delicado.",
     group: "Sistema y seguridad",
     defaultSeverity: "WARNING",
     audience: "STAFF",
@@ -517,7 +517,7 @@ export const NOTIFICATION_CATALOG: Record<
   WHATSAPP_AI_APPROVAL: {
     label: "WhatsApp: autoriza a la IA",
     description:
-      "La IA quiere agendar una cita, mandar un enlace de pago o responder a un pago: espera tu autorización.",
+      "Una cita por confirmar (horas u hora que la IA quiere dar) o una respuesta a un pago: espera tu autorización.",
     group: "Sistema y seguridad",
     defaultSeverity: "WARNING",
     audience: "STAFF",
@@ -526,6 +526,7 @@ export const NOTIFICATION_CATALOG: Record<
     roles: WRITE_ROLES,
     immediate: true,
   },
+  // Ya pasó (la cita quedó creada): no hace falta interrumpir a Dayana.
   WHATSAPP_AI_BOOKED: {
     label: "WhatsApp: cita agendada",
     description: "La IA de WhatsApp agendó una cita en tu Google Calendar.",
@@ -533,9 +534,21 @@ export const NOTIFICATION_CATALOG: Record<
     defaultSeverity: "INFO",
     audience: "STAFF",
     defaultInApp: true,
-    defaultEmail: true,
+    defaultEmail: false,
     roles: WRITE_ROLES,
-    immediate: true,
+  },
+  // Lo que no es urgente (quejas, citas sin número, un recordatorio que no
+  // salió…): solo en la campana, sin push ni correo. Lo importante (no sabe
+  // qué decir, pagos, citas por confirmar) va por ESCALATED o APPROVAL.
+  WHATSAPP_AI_INFO: {
+    label: "WhatsApp: para cuando revises",
+    description: "Avisos de WhatsApp que no son urgentes. Quedan en la campana; no suenan ni llegan por correo.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "INFO",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: WRITE_ROLES,
   },
 };
 

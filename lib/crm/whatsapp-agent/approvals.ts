@@ -102,6 +102,8 @@ export const proposeForApproval = async (input: {
   proposal: Proposal;
   name: string | null;
   meta?: Prisma.WhatsAppAiRunUpdateInput;
+  /** Un borrador que no debe esperar a que Dayana abra el CRM (p. ej. la IA escribió un precio). */
+  important?: boolean;
 }) => {
   // Solo la propuesta más reciente de un chat está viva.
   await prisma.whatsAppAiRun.updateMany({
@@ -125,12 +127,14 @@ export const proposeForApproval = async (input: {
   });
 
   const p = input.proposal;
-  if (p.kind === "reply") return; // un borrador de copiloto se ve en la lista; no hace falta sonar
+  // Un borrador de copiloto se ve en la lista; no hace falta sonar. Suenan las
+  // citas por confirmar, los pagos y los borradores marcados como importantes.
+  if (p.kind === "reply" && !input.important) return;
   const config = await getWhatsAppAiConfig();
   const who = input.name ?? "una persona";
   fireNotification({
     eventType: "WHATSAPP_AI_APPROVAL",
-    title: `${TITLES[p.kind]}: ${who}`,
+    title: p.kind === "reply" ? `La IA no sabe cómo responder: ${who}` : `${TITLES[p.kind]}: ${who}`,
     body:
       p.kind === "booking" && p.booking
         ? `${p.booking.service} · ${p.booking.label}`

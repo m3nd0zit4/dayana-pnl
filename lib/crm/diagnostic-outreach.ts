@@ -354,7 +354,7 @@ export const runDiagnosticOutreach = async (
       await setStatus(diagnosticId, "DRAFT", "Chat manual o favorito: quedó el borrador para Dayana.");
       if (!urgent) {
         fireNotification({
-          eventType: "WHATSAPP_AI_APPROVAL",
+          eventType: "WHATSAPP_AI_INFO",
           title: `Autoevaluación de ${who}: mensaje listo`,
           body: analysis.feeling.slice(0, 200) || analysis.message.slice(0, 200),
           href: chatHref,
@@ -391,7 +391,7 @@ export const runDiagnosticOutreach = async (
       await setStatus(diagnosticId, "AWAITING_APPROVAL", "Esperando que Dayana lo apruebe.");
       if (!urgent) {
         fireNotification({
-          eventType: "WHATSAPP_AI_APPROVAL",
+          eventType: "WHATSAPP_AI_INFO",
           title: `Autoevaluación de ${who}: aprueba el primer mensaje`,
           body: analysis.feeling.slice(0, 200) || analysis.message.slice(0, 200),
           href: chatHref,
@@ -450,7 +450,7 @@ export const runDiagnosticOutreach = async (
     await setStatus(diagnosticId, status, reason);
     const waUrl = buildContactWhatsAppUrl(recipient.phoneE164, analysis.message);
     fireNotification({
-      eventType: "WHATSAPP_AI_APPROVAL",
+      eventType: "WHATSAPP_AI_INFO",
       title: `Autoevaluación de ${who}: no se pudo escribir solo`,
       body: `${reason}${waUrl ? ` Escríbele desde el celular: ${waUrl}` : ""}`.slice(0, 400),
       href: diagHref,

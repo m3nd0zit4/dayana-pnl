@@ -368,7 +368,7 @@ export const runWhatsAppAi = async (input: {
             ? { reason: "Tomaste el chat mientras la IA pensaba." }
             : {}),
       };
-      await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta });
+      await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta, important: saysPrice });
     } else {
       await setStatus(run.id, "SENDING", meta);
       await sendAuto(conversationId, body);
@@ -611,8 +611,11 @@ const escalate = async (
     )?.participantName ??
     null;
   const urgent = outcome.severity === "urgent";
+  // Solo suena lo importante: la IA no sabe qué decir, un pago, una cita, algo
+  // delicado. Una queja queda en la campana (sin push ni correo).
+  const important = urgent || outcome.category !== "complaint";
   fireNotification({
-    eventType: "WHATSAPP_AI_ESCALATED",
+    eventType: important ? "WHATSAPP_AI_ESCALATED" : "WHATSAPP_AI_INFO",
     severity: urgent ? "ERROR" : "WARNING",
     title: `${urgent ? "URGENTE — " : ""}WhatsApp: te toca${who ? ` con ${who}` : ""} (${CATEGORY_LABEL[outcome.category] ?? outcome.category})`,
     body: outcome.reason.slice(0, 200),

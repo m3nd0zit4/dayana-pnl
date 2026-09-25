@@ -217,7 +217,7 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
 
   if (newlyAmbiguous.length) {
     fireNotification({
-      eventType: "WHATSAPP_AI_APPROVAL",
+      eventType: "WHATSAPP_AI_INFO",
       title: `Citas sin número: ${newlyAmbiguous.slice(0, 3).join(", ")}${newlyAmbiguous.length > 3 ? "…" : ""}`,
       body: "Hay varias personas con ese nombre. Elige quién es en WhatsApp → Agenda para mandarle el recordatorio.",
       href: "/admin/whatsapp/agenda",
@@ -335,7 +335,7 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
     if (r.status === "skipped") result.skipped++;
     else result.failed++;
     fireNotification({
-      eventType: "WHATSAPP_AI_APPROVAL",
+      eventType: "WHATSAPP_AI_INFO",
       title: `No pude recordarle la cita a ${appt.name ?? `+${appt.phone}`}`,
       body: reason.slice(0, 200),
       href: "/admin/whatsapp/agenda",
