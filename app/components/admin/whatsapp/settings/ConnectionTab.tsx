@@ -5,6 +5,7 @@ import WhatsAppProviderCard, {
 } from "../../crm/settings/WhatsAppProviderCard";
 import HistoryImportCard from "../HistoryImportCard";
 import InboxHealthCard from "../InboxHealthCard";
+import PhoneExportImportCard from "../PhoneExportImportCard";
 import { SettingAnchor } from "./SettingRow";
 
 /** Pestaña «Conexión»: por dónde entran los mensajes y si llegan todos. */
@@ -24,6 +25,9 @@ const ConnectionTab = ({ provider }: { provider: WhatsAppProviderSummaryDto | nu
     </SettingAnchor>
     <SettingAnchor id="wa-history-import">
       <HistoryImportCard />
+    </SettingAnchor>
+    <SettingAnchor id="wa-phone-export-import">
+      <PhoneExportImportCard />
     </SettingAnchor>
   </div>
 );

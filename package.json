@@ -25,7 +25,7 @@
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report",
     "test": "bun test ./lib",
-    "e2e:whatsapp": "bun scripts/whatsapp-inbox-e2e.ts && bun scripts/whatsapp-consistency-e2e.ts && bun scripts/whatsapp-outreach-e2e.ts && bun scripts/whatsapp-bulk-e2e.ts && bun scripts/whatsapp-communities-e2e.ts"
+    "e2e:whatsapp": "bun scripts/whatsapp-inbox-e2e.ts && bun scripts/whatsapp-consistency-e2e.ts && bun scripts/whatsapp-outreach-e2e.ts && bun scripts/whatsapp-bulk-e2e.ts && bun scripts/whatsapp-communities-e2e.ts && bun scripts/whatsapp-export-import-e2e.ts"
   },
   "prisma": {
     "seed": "bunx tsx prisma/seed.ts"

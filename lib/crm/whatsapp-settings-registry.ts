@@ -64,6 +64,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     keywords: ["historial", "importar", "subir", "360dialog", "hub", "chats antiguos", "zip", "json"],
     tab: "conexion",
   },
+  {
+    id: "wa-phone-export-import",
+    label: "Importar chats del celular",
+    keywords: ["exportar chat", "celular", "txt", "sin archivos", "chats antiguos", "importar", "historial"],
+    tab: "conexion",
+  },
 
   // ── IA y respuestas ────────────────────────────────────────────────────
   {
