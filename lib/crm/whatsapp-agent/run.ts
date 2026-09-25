@@ -1,5 +1,6 @@
 import { mentionsPrice } from "./price-guard";
 import { polishReply } from "./wording";
+import { effectiveAiMode } from "./mode";
 import { Prisma } from "@prisma/client";
 
 import { loadImages, pickImages } from "./vision";
@@ -150,12 +151,15 @@ export const runWhatsAppAi = async (input: {
     });
     if (!head || head.channel !== "WHATSAPP") return;
 
-    // Un chat nuevo arranca en el modo general (IA, copiloto o manual).
-    if (head._count.messages <= 1) {
+    // El modo general (Ajustes) manda: ningún chat es más suelto que él, sea
+    // nuevo, creado por un envío masivo o viejo. Se deja guardado para que el
+    // chat muestre el modo con el que de verdad trabaja.
+    {
       const { defaultMode } = await getWhatsAppAiConfig();
-      if (defaultMode !== head.aiMode) {
-        await prisma.conversation.update({ where: { id: conversationId }, data: { aiMode: defaultMode } });
-        head.aiMode = defaultMode;
+      const mode = effectiveAiMode(head.aiMode, defaultMode);
+      if (mode !== head.aiMode) {
+        await prisma.conversation.update({ where: { id: conversationId }, data: { aiMode: mode } });
+        head.aiMode = mode;
       }
     }
 
@@ -333,9 +337,12 @@ export const runWhatsAppAi = async (input: {
     const humanSince = recentHuman.filter(
       (m) => !recentApproved.has(m.id) && !isSystemSource(m.source)
     ).length;
+    // Se vuelve a leer el modo general: pudo cambiar mientras la IA pensaba.
+    const generalMode = (await getWhatsAppAiConfig()).defaultMode;
+    const modeNow = effectiveAiMode(now?.aiMode ?? conversation.aiMode, generalMode);
     const tookOver =
       !now ||
-      now.aiMode === "MANUAL" ||
+      modeNow === "MANUAL" ||
       Boolean(now.aiPausedAt) ||
       Boolean(now.priorityAt) ||
       humanSince > 0;
@@ -352,8 +359,8 @@ export const runWhatsAppAi = async (input: {
       Boolean(result.pendingBooking) ||
       Boolean(result.pendingPayment) ||
       tookOver ||
-      now?.aiMode === "COPILOT" ||
-      conversation.aiMode === "COPILOT";
+      modeNow === "COPILOT" ||
+      effectiveAiMode(conversation.aiMode, generalMode) === "COPILOT";
 
     if (needsApproval) {
       const proposal: Proposal = {
@@ -499,7 +506,8 @@ const gate = async (
 
   const conversation = await loadConversation(conversationId);
   if (!conversation) return { skip: true, reason: "not_found" };
-  if (conversation.aiMode === "MANUAL") return { skip: true, reason: "manual" };
+  const mode = effectiveAiMode(conversation.aiMode, config.defaultMode);
+  if (mode === "MANUAL") return { skip: true, reason: "manual" };
   if (conversation.priorityAt) return { skip: true, reason: "favorite" };
 
   if (conversation.aiPausedAt) {
@@ -548,7 +556,7 @@ const gate = async (
     )
     .at(-1)?.sentAt;
   if (
-    conversation.aiMode === "AUTO" &&
+    mode === "AUTO" &&
     lastHumanAt &&
     (config.handoffHours === 0 ||
       Date.now() - lastHumanAt.getTime() < config.handoffHours * 3600_000)

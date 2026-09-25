@@ -7,6 +7,7 @@ import { writeAuditLog } from "./audit";
 import { recordContactTouch } from "./whatsapp-touches";
 import { fillVars, firstName, planSend, templateParams, type SendPlan } from "./whatsapp-outbound-plan";
 import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
+import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
 
 /**
  * Enviar WhatsApp de verdad desde cualquier parte del CRM (no abrir wa.me).
@@ -45,12 +46,14 @@ export const ensureWhatsAppConversation = async (input: {
       await prisma.conversation.update({ where: { id: legacy.id }, data: { externalThreadId: threadId } });
     }
   }
-  const credentials = await resolveWhatsAppCredentials();
+  const [credentials, { defaultMode }] = await Promise.all([resolveWhatsAppCredentials(), getWhatsAppAiConfig()]);
   return prisma.conversation.upsert({
     where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: threadId } },
     create: {
       channel: "WHATSAPP",
       externalThreadId: threadId,
+      // Nace en el modo general (un envío masivo no puede dejar chats en «IA»).
+      aiMode: defaultMode,
       metaAccountId: credentials?.accountId ?? "unknown",
       contactId: input.contactId ?? null,
       participantName: input.name ?? null,

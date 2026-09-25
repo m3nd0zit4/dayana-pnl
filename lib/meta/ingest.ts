@@ -180,6 +180,15 @@ export const ingestMessage = async (
   // El historial es pasado: crea el hilo si no existe, pero no lo abre, no
   // suma no leídos y solo adelanta las fechas si de verdad son más nuevas.
   // Seis meses de chats no pueden aparecer de golpe como pendientes.
+  // Un chat de WhatsApp nuevo nace en el modo general (IA, copiloto o manual).
+  const aiMode =
+    message.channel === "WHATSAPP"
+      ? await import("@/lib/crm/whatsapp-ai-config")
+          .then((m) => m.getWhatsAppAiConfig())
+          .then((c) => c.defaultMode)
+          .catch(() => undefined)
+      : undefined;
+
   const stored = await prisma.$transaction(async (tx) => {
   const conversation = message.isHistory
     ? await tx.conversation.upsert({
@@ -193,6 +202,7 @@ export const ingestMessage = async (
           lastInboundAt: message.isEcho ? null : message.sentAt,
           unreadCount: 0,
           status: "CLOSED",
+          ...(aiMode ? { aiMode } : {}),
         },
         update: contactId ? { contactId } : {},
         select: { id: true },
@@ -209,6 +219,7 @@ export const ingestMessage = async (
           lastInboundAt: message.isEcho || message.system ? null : message.sentAt,
           unreadCount: message.isEcho || message.system ? 0 : 1,
           status: "OPEN",
+          ...(aiMode ? { aiMode } : {}),
         },
         update: {
           lastMessageAt: message.sentAt,

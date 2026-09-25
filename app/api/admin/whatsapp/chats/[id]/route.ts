@@ -7,6 +7,7 @@ import { markConversationRead, replyToConversation } from "@/lib/crm/conversatio
 import { prisma } from "@/lib/db";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
+import { effectiveAiMode } from "@/lib/crm/whatsapp-agent/mode";
 import { draftAutoReply, pauseAutoReply, resumeAutoReply } from "@/lib/crm/whatsapp-autoreply";
 import { clientContext } from "@/lib/crm/whatsapp-agent/brain";
 import { availableSlots } from "@/lib/crm/whatsapp-agent/calendar";
@@ -148,6 +149,9 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
       }
     }
     case "mode": {
+      // El modo general manda: un chat no puede ser más suelto que él.
+      const { defaultMode } = await getWhatsAppAiConfig();
+      if (effectiveAiMode(input.mode, defaultMode) !== input.mode) return apiError("general_mode", 409);
       await prisma.conversation.update({ where: { id }, data: { aiMode: input.mode } });
       if (input.mode !== "MANUAL") await resumeAutoReply(id);
       audit({ aiMode: input.mode });

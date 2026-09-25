@@ -76,7 +76,12 @@ const ChatView = ({
     }
   }, [chat.draft?.body]);
 
-  const errorText = (code: string) => (code === "window_closed" ? WINDOW_CLOSED_TEXT : `No se pudo: ${code}`);
+  const errorText = (code: string) =>
+    code === "window_closed"
+      ? WINDOW_CLOSED_TEXT
+      : code === "general_mode"
+        ? "El modo general (Ajustes) está en Copiloto o Manual: ningún chat puede responder solo. Cámbialo allí si quieres la IA."
+        : `No se pudo: ${code}`;
 
   const act = async (key: string, body: Record<string, unknown>, done?: string) => {
     setBusy(key);

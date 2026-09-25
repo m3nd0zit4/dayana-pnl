@@ -14,6 +14,7 @@ import { ensureWhatsAppConversation, recipientFromContact, sendWhatsAppToRecipie
 import { approvedTemplateFor, ensureTemplatesSubmitted, refreshTemplatesIfPending, type WaTemplate } from "./whatsapp-templates";
 import { proposeForApproval } from "./whatsapp-agent/approvals";
 import { polishReply } from "./whatsapp-agent/wording";
+import { effectiveAiMode } from "./whatsapp-agent/mode";
 
 /**
  * Autoevaluación → WhatsApp.
@@ -305,10 +306,9 @@ export const runDiagnosticOutreach = async (
       where: { id: conversation.id },
       select: { aiMode: true, priorityAt: true, _count: { select: { messages: true } } },
     });
-    // Un chat que nace aquí arranca en el modo general, igual que uno entrante.
-    let aiMode = conv.aiMode;
-    if (conv._count.messages === 0 && aiMode !== config.defaultMode) {
-      aiMode = config.defaultMode;
+    // El modo general manda: ningún chat es más suelto que él.
+    const aiMode = effectiveAiMode(conv.aiMode, config.defaultMode);
+    if (aiMode !== conv.aiMode) {
       await prisma.conversation.update({ where: { id: conversation.id }, data: { aiMode } });
     }
     await prisma.diagnostic.update({
