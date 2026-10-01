@@ -61,7 +61,7 @@ export type ReplyMessage = {
 };
 
 /** `source` de los envíos que no son una respuesta a la persona. */
-const AUTO_SOURCES = ["bulk:", "recordatorio:"];
+const AUTO_SOURCES = ["bulk:", "recordatorio:", "evento:"];
 /** Por la clave del envío: el saludo no lleva `source` (`welcome:<chat>`). */
 const AUTO_CLIENT_KEYS = ["welcome:", "reminder:", "bulk:"];
 

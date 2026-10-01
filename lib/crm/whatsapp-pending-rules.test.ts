@@ -72,6 +72,8 @@ describe("replyStateOf (del más nuevo al más viejo)", () => {
 
   test("recordatorios, masivos y saludo no son una respuesta", () => {
     expect(replyStateOf([msg({ isAutoReply: true, source: "recordatorio:evt1" })])).toBe("auto");
+    // Recordatorios del evento gratuito (24 h / 1 h).
+    expect(replyStateOf([msg({ isAutoReply: true, source: "evento:fw1:24h" })])).toBe("auto");
     expect(replyStateOf([msg({ source: "bulk:abc" })])).toBe("auto");
     expect(replyStateOf([msg({ isAutoReply: true, clientKey: "welcome:conv1" })])).toBe("auto");
   });
