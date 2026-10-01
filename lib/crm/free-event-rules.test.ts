@@ -1,9 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  EVENT_CONFIRMATION_CAP,
   FREE_EVENT_ALIAS_SLUG,
   buildFreeEventTimeline,
+  confirmationCapReason,
+  endedEventAgentMessage,
   freeEventAcceptsReminders,
+  isFreeEventEnded,
   freeEventPublicPath,
   freeEventSlugBase,
   freeEventSlugCandidates,
@@ -322,5 +326,51 @@ describe("inscripciones por día y sellos", () => {
     expect(s.first?.toISOString()).toBe("2026-10-03T14:33:00.000Z");
     expect(s.last?.toISOString()).toBe("2026-10-04T13:33:00.000Z");
     expect(summarizeFlag([])).toEqual({ count: 0, first: null, last: null });
+  });
+});
+
+describe("un evento que ya pasó", () => {
+  test("terminado o realizado: ya pasó", () => {
+    expect(isFreeEventEnded({ status: "COMPLETED", endedAt: null })).toBe(true);
+    expect(isFreeEventEnded({ status: "OPEN", endedAt: new Date() })).toBe(true);
+    expect(isFreeEventEnded({ status: "CLOSED", endedAt: null })).toBe(false);
+    expect(isFreeEventEnded({ status: "DRAFT", endedAt: null })).toBe(false);
+  });
+
+  test("realizado sin fecha de cierre (base vieja): sin recordatorios", () => {
+    expect(
+      freeEventAcceptsReminders({ status: "COMPLETED", isActive: true, startsAt: new Date(), endedAt: null })
+    ).toBe(false);
+  });
+
+  test("el agente lo dice y manda a crear el siguiente", () => {
+    const msg = endedEventAgentMessage("Reprograma tu mente");
+    expect(msg).toContain("«Reprograma tu mente»");
+    expect(msg).toContain("Nuevo evento");
+    expect(msg).toContain("Duplicar");
+  });
+});
+
+describe("tope de confirmaciones por WhatsApp", () => {
+  test("por debajo de los dos topes, sale", () => {
+    expect(confirmationCapReason({ lastHour: 0, lastDay: 0 })).toBeNull();
+    expect(
+      confirmationCapReason({ lastHour: EVENT_CONFIRMATION_CAP.perHour - 1, lastDay: EVENT_CONFIRMATION_CAP.perDay - 1 })
+    ).toBeNull();
+  });
+
+  test("en el tope de la hora o del día, no sale", () => {
+    expect(confirmationCapReason({ lastHour: EVENT_CONFIRMATION_CAP.perHour, lastDay: 10 })).toBe("hour");
+    expect(confirmationCapReason({ lastHour: 3, lastDay: EVENT_CONFIRMATION_CAP.perDay })).toBe("day");
+    expect(confirmationCapReason({ lastHour: 500, lastDay: 500 })).toBe("hour");
+  });
+
+  test("con un tope propio", () => {
+    expect(confirmationCapReason({ lastHour: 2, lastDay: 2 }, { perHour: 2, perDay: 10 })).toBe("hour");
+    expect(confirmationCapReason({ lastHour: 1, lastDay: 1 }, { perHour: 2, perDay: 10 })).toBeNull();
+  });
+
+  test("los topes por defecto: 40 por hora y 300 por día", () => {
+    expect(EVENT_CONFIRMATION_CAP).toEqual({ perHour: 40, perDay: 300 });
   });
 });

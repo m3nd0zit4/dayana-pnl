@@ -23,10 +23,12 @@ import {
 } from "@/lib/crm/free-event-activity";
 import {
   FREE_EVENT_ALIAS_SLUG,
+  ENDED_EVENT_MESSAGE,
   freeEventAcceptsReminders,
   freeEventPublicPath,
   freeEventSlugBase,
   freeEventSlugCandidates,
+  isFreeEventEnded,
   isFreeEventOpenRow,
   isReservedFreeEventSlug,
   pickCurrentFreeEvent,
@@ -655,7 +657,7 @@ export class FreeEventLifecycleError extends Error {
 
 export const FREE_EVENT_LIFECYCLE_MESSAGE: Record<FreeEventLifecycleError["reason"], string> = {
   not_found: "No encontré ese evento.",
-  ended: "Este evento ya terminó. Duplícalo para preparar otro.",
+  ended: ENDED_EVENT_MESSAGE,
   has_registrations: "Este evento tiene inscritas: no se borra, queda en la historia.",
   open: "Está publicado. Ciérralo antes de borrarlo.",
 };
@@ -717,7 +719,7 @@ export const publishFreeEvent = async (
   const tz = await getOperationalTimezone();
   const row = await prisma.freeWebinar.findUnique({ where: { id } });
   if (!row) throw new FreeEventLifecycleError("not_found");
-  if (row.endedAt) throw new FreeEventLifecycleError("ended");
+  if (isFreeEventEnded(row)) throw new FreeEventLifecycleError("ended");
   const blockers = getPublishBlockers(toFreeWebinarPublic(row, tz));
   if (blockers.length > 0) throw new FreeWebinarPublishError(blockers);
 
@@ -995,6 +997,21 @@ export const updateFreeWebinar = async (
     (schedule.startsAt?.getTime() ?? null) !==
       (current.startsAt?.getTime() ?? null);
 
+  // Uno que ya pasó no se reprograma ni cambia de enlace: haría lo mismo que
+  // en uno vivo —borrar los sellos de sus inscritas y mandarles el enlace
+  // nuevo—, y sus inscritas son historia. Los textos sí se pueden corregir.
+  // Se compara con lo guardado: el panel reenvía la fecha y el enlace tal
+  // cual en cada guardado.
+  if (isFreeEventEnded(current)) {
+    const hasTimeChanged =
+      schedule !== undefined && schedule.startsAt !== null && schedule.startsAtHasTime !== current.startsAtHasTime;
+    const meetChanged =
+      input.meetUrl !== undefined && normalizeMeetUrl(input.meetUrl) !== (current.meetUrl ?? null);
+    if (startsAtChanged || hasTimeChanged || meetChanged) {
+      throw new FreeEventLifecycleError("ended");
+    }
+  }
+
   const nextHeadline = typeof data.headline === "string" ? data.headline : current.headline;
   const nextStartsAt = schedule !== undefined ? schedule.startsAt : current.startsAt;
 
@@ -1029,7 +1046,7 @@ export const updateFreeWebinar = async (
     if (blockers.length > 0) {
       throw new FreeWebinarPublishError(blockers);
     }
-    if (current.endedAt) throw new FreeEventLifecycleError("ended");
+    if (isFreeEventEnded(current)) throw new FreeEventLifecycleError("ended");
   }
 
   // La URL sigue al titular y a la fecha mientras el evento no se ha
@@ -1120,6 +1137,8 @@ export const resetFreeWebinar = async (
   actor: FreeEventActor = {}
 ): Promise<FreeWebinarPublic> => {
   const current = await resolveRow(eventId);
+  // Volver a cero borra fecha, enlace y sellos: en uno que ya pasó, no.
+  if (isFreeEventEnded(current)) throw new FreeEventLifecycleError("ended");
   if (current.status === "OPEN") await unpublishFreeEvent(current.id, actor);
   const row = await prisma.freeWebinar.update({
     where: { id: current.id },

@@ -153,7 +153,7 @@ const FreeEventsPageClient = ({
         <CrmRowActions>
           <CrmPublicLink href={e.publicPath} label="Ver en web" density="row" />
           {inscritas}
-          <CrmRowAction icon={Flag} label="Terminar" disabled={busy} onClick={() => actions.end(target)} />
+          <CrmRowAction icon={Flag} label="Terminar (corta inscripciones, enlace y recordatorios)" disabled={busy} onClick={() => actions.end(target)} />
         </CrmRowActions>
       );
     }
@@ -167,7 +167,7 @@ const FreeEventsPageClient = ({
             onClick={() => actions.publish(target, open)}
           />
           {inscritas}
-          <CrmRowAction icon={Flag} label="Terminar" disabled={busy} onClick={() => actions.end(target)} />
+          <CrmRowAction icon={Flag} label="Terminar (corta inscripciones, enlace y recordatorios)" disabled={busy} onClick={() => actions.end(target)} />
         </CrmRowActions>
       );
     }

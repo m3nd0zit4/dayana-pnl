@@ -31,6 +31,7 @@ import {
   listFreeEventRegistrantsForWhatsApp,
 } from "@/lib/crm/free-events";
 import { freeEventEditionsEnabled } from "@/lib/crm/free-event-settings";
+import { isFreeEventEnded } from "@/lib/crm/free-event-rules";
 import {
   getFreeEventById,
   getOpenFreeEvent,
@@ -249,13 +250,23 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
     getOpenFreeEvent(),
   ]);
 
+  // Junto a «Cerrar inscripciones» y «Terminar»: cuál corta qué.
+  const lifecycleHint =
+    event.status === "OPEN"
+      ? "«Cerrar inscripciones» deja de aceptar registros pero el enlace y los recordatorios siguen saliendo; «Terminar» corta todo."
+      : event.status === "CLOSED"
+        ? "Inscripciones cerradas: quien ya se inscribió sigue recibiendo el enlace y los recordatorios. «Terminar» corta todo."
+        : null;
   const description = (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-      <FreeEventStatusBadge status={event.status} />
-      <span>
-        {eventDateLabel(event, tz)} · {event.eventLabel}
+    <>
+      <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+        <FreeEventStatusBadge status={event.status} />
+        <span>
+          {eventDateLabel(event, tz)} · {event.eventLabel}
+        </span>
       </span>
-    </span>
+      {lifecycleHint ? <span className="mt-1 block text-xs">{lifecycleHint}</span> : null}
+    </>
   );
 
   let content: React.ReactNode;
@@ -275,6 +286,7 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
         apiBase={`/api/admin/eventos/${event.id}`}
         pendingLink={pendingLink}
         canDelete={registrations === 0 && event.status !== "OPEN"}
+        ended={isFreeEventEnded(event)}
       />
     );
   }

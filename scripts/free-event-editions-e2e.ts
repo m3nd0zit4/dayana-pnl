@@ -18,7 +18,9 @@
  */
 import { NextRequest } from "next/server";
 
+import deactivateFreeWebinarTool from "@/agent/tools/deactivate_free_webinar";
 import getFreeWebinarTool from "@/agent/tools/get_free_webinar";
+import updateFreeWebinarTool from "@/agent/tools/update_free_webinar";
 import { POST as leadsPost } from "@/app/api/leads/route";
 import { prisma } from "@/lib/db";
 import {
@@ -27,6 +29,7 @@ import {
 } from "@/lib/crm/free-event-confirmation";
 import { getFreeEventTimeline, listFreeEventPeople, listFreeEvents } from "@/lib/crm/free-events";
 import {
+  clearFreeWebinarSchedule,
   closeDueFreeEvents,
   createFreeEvent,
   deleteFreeEvent,
@@ -39,10 +42,11 @@ import {
   getFreeWebinar,
   getOpenFreeEvent,
   publishFreeEvent,
+  resetFreeWebinar,
   resolveRegistrationEvent,
   updateFreeWebinar,
 } from "@/lib/crm/free-webinar";
-import { drainWebinarMail } from "@/lib/crm/webinar-mailer";
+import { drainWebinarMail, resendWebinarMailToAll, sendPendingWebinarLinkEmails } from "@/lib/crm/webinar-mailer";
 import { recordWebinarRegistration } from "@/lib/crm/webinar-registrations";
 import { createSend, processNextBatch } from "@/lib/crm/whatsapp-sends";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
@@ -60,7 +64,7 @@ const check = (name: string, ok: boolean, detail?: unknown) => {
 const run = Date.now();
 const t0 = new Date();
 const DAY = 86_400_000;
-const PHONES = { lead: "+573000007781", direct: "+573000007782" } as const;
+const PHONES = { lead: "+573000007781", direct: "+573000007782", bot: "+573000007783" } as const;
 const MEET = "https://meet.google.com/e2e-ediciones";
 
 /** `YYYY-MM-DD` en Bogotá, a `days` días de hoy. */
@@ -360,6 +364,60 @@ const main = async () => {
   check("A realizado y anotado como cierre del reloj", aDone.status === "COMPLETED" && (cronAct?.meta as { by?: string } | null)?.by === "cron");
   check("un segundo tick no lo cierra dos veces", !(await closeDueFreeEvents()).some((e) => e.id === a.id));
 
+  console.log("\n8b. Uno que ya pasó no se reprograma ni se le manda nada en masa");
+  const stampsOf = () =>
+    prisma.webinarRegistration.findMany({
+      where: { webinarId: b.id },
+      orderBy: { id: "asc" },
+      select: {
+        linkEmailSentAt: true,
+        reminder24hSentAt: true,
+        reminder1hSentAt: true,
+        reminder24hWaSentAt: true,
+        reminder1hWaSentAt: true,
+        confirmationWaSentAt: true,
+      },
+    });
+  const stampsBefore = JSON.stringify(await stampsOf());
+  const endedErr = async (fn: () => Promise<unknown>) =>
+    fn().then(
+      () => null,
+      (e: unknown) => (e instanceof FreeEventLifecycleError ? e.reason : String(e))
+    );
+  check(
+    "cambiarle la fecha: no",
+    (await endedErr(() => updateFreeWebinar({ startsAtLocal: { date: dateIn(30), time: "10:00" } }, b.id, actor))) === "ended"
+  );
+  check(
+    "cambiarle el enlace: no",
+    (await endedErr(() => updateFreeWebinar({ meetUrl: "https://meet.google.com/otro-enlace" }, b.id, actor))) === "ended"
+  );
+  check("volverlo a cero: no", (await endedErr(() => resetFreeWebinar(b.id, actor))) === "ended");
+  check("quitarle la fecha: no", (await endedErr(() => clearFreeWebinarSchedule(b.id, actor))) === "ended");
+  const bNow = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: b.id } });
+  const copyEdit = await updateFreeWebinar(
+    {
+      subheadline: `Corrección ${run}`,
+      // Lo que manda el panel en cada guardado: la misma fecha y el mismo enlace.
+      startsAt: bNow.startsAt,
+      startsAtHasTime: bNow.startsAtHasTime,
+      meetUrl: bNow.meetUrl,
+    },
+    b.id,
+    actor
+  ).then(
+    (r) => r,
+    () => null
+  );
+  check("corregir un texto sí (aunque lleguen la misma fecha y enlace)", copyEdit?.webinar.subheadline === `Corrección ${run}`);
+  check("los sellos de sus inscritas siguen intactos", JSON.stringify(await stampsOf()) === stampsBefore);
+  await prisma.webinarRegistration.updateMany({ where: { webinarId: b.id }, data: { linkEmailSentAt: null } });
+  const endedLink = await sendPendingWebinarLinkEmails(undefined, b.id);
+  const stillPending = await prisma.webinarRegistration.count({ where: { webinarId: b.id, linkEmailSentAt: null } });
+  check("el reparto del enlace se salta un evento terminado", endedLink.skipped && endedLink.reason === "ended" && stillPending === 1, endedLink);
+  const endedAll = await resendWebinarMailToAll("link", b.id);
+  check("«reenviar a todas» tampoco (y no devuelve a nadie a la cola)", endedAll.reason === "ended" && endedAll.requeued === 0, endedAll);
+
   console.log("\n9. Duplicar y borrar");
   const c = await duplicateFreeEvent(b.id, actor);
   createdIds.push(c.id);
@@ -387,12 +445,68 @@ const main = async () => {
   check("sin inscritas, sí", (await prisma.freeWebinar.count({ where: { id: c.id } })) === 0);
 
   console.log("\n10. El agente ve el evento actual");
+  // Sin borradores, el actual es el último realizado (justo lo que pasa en
+  // producción tras un evento y antes de crear el siguiente).
+  await deleteFreeEvent(noDate.id);
   const current = await getCurrentFreeEvent();
   const tool = (await getFreeWebinarTool.execute(
     {},
     { session: { auth: { current: { principalId: staff.id, attributes: { role: "OWNER" } } } } } as never
   )) as { webinar: { id: string; status: string } };
   check("get_free_webinar devuelve el actual", tool.webinar.id === current?.id, { tool: tool.webinar.id, current: current?.id });
+
+  // Todos los de esta prueba ya pasaron (y el de la base de desarrollo, que el
+  // reloj cerró en el paso 8): el actual es uno realizado.
+  const toolCtx = { session: { auth: { current: { principalId: staff.id, attributes: { role: "OWNER" } } } } } as never;
+  if (current && (current.status === "COMPLETED" || current.endedAt)) {
+    const before = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: current.id } });
+    check("get_free_webinar avisa que ya pasó", (tool as { notice?: string }).notice?.includes("Nuevo evento") === true);
+    const upd = (await updateFreeWebinarTool.execute({ startsAtDate: dateIn(40), startsAtTime: "10:00" }, toolCtx)) as {
+      ok: boolean;
+      error?: string;
+      message?: string;
+    };
+    const deact = (await deactivateFreeWebinarTool.execute({ mode: "reset" }, toolCtx)) as { ok: boolean; error?: string };
+    const after = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: current.id } });
+    check(
+      "update_free_webinar se niega y lo dice",
+      upd.ok === false && upd.error === "ended" && Boolean(upd.message?.includes("Nuevo evento")),
+      upd
+    );
+    check("deactivate_free_webinar (reset) también", deact.ok === false && deact.error === "ended", deact);
+    check(
+      "y el evento sigue igual",
+      after.startsAt?.getTime() === before.startsAt?.getTime() && after.headline === before.headline && after.meetUrl === before.meetUrl
+    );
+  } else {
+    check("el actual es uno realizado (para probar la negativa del agente)", false, current?.status);
+  }
+
+  console.log("\n11. La trampa de bots del formulario");
+  const botRes = await leadsPost(
+    new NextRequest("http://localhost/api/leads", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-forwarded-for": `10.78.${run % 250}.1` },
+      body: JSON.stringify({
+        firstName: "Bot",
+        email: `e2e-bot-${run}@example.com`,
+        phone: PHONES.bot,
+        phoneCountry: "CO",
+        source: "web_lead_form",
+        notify: true,
+        consentData: true,
+        tag: "webinar-gratuito",
+        hp: "https://spam.example",
+      }),
+    })
+  );
+  const botJson = (await botRes.json()) as { ok?: boolean; contactId?: string | null };
+  check(
+    "contesta «listo» pero no guarda a nadie",
+    botRes.status === 200 && botJson.ok === true && botJson.contactId === null &&
+      (await prisma.contact.count({ where: { phoneE164: PHONES.bot } })) === 0,
+    botJson
+  );
 };
 
 main()

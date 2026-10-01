@@ -32,7 +32,14 @@ type Props = {
   pendingLink?: number;
   /** Sin inscritas y sin publicar: se puede borrar. */
   canDelete?: boolean;
+  /**
+   * Ya pasó: la fecha y el enlace quedan de solo lectura (el servidor también
+   * lo rechaza). Los textos se pueden corregir.
+   */
+  ended?: boolean;
 };
+
+const ENDED_HINT = "Este evento ya pasó: crea uno nuevo o duplícalo.";
 
 const WebinarMuxVideo = dynamic(
   () => import("@/app/components/webinar/WebinarMuxVideo"),
@@ -53,6 +60,7 @@ const FreeEventPageEditor = ({
   apiBase,
   pendingLink = 0,
   canDelete = false,
+  ended = false,
 }: Props) => {
   const router = useRouter();
   const { toast, confirm } = useCrm();
@@ -121,10 +129,13 @@ const FreeEventPageEditor = ({
     headline: headline.trim(),
     subheadline: subheadline.trim() || null,
     body: body.trim() || null,
-    startsAtLocal: dateKey
-      ? { date: dateKey, time: timeHm.trim() || null }
-      : null,
-    meetUrl: meetUrl.trim() || null,
+    // En uno que ya pasó ni se mandan: no se reprograma ni cambia de enlace.
+    ...(ended
+      ? {}
+      : {
+          startsAtLocal: dateKey ? { date: dateKey, time: timeHm.trim() || null } : null,
+          meetUrl: meetUrl.trim() || null,
+        }),
     capacity: capacity.trim() ? Number(capacity.trim()) : null,
     learnSectionTitle: learnSectionTitle.trim() || null,
     learnItems: learnItems.map((l) => l.trim()).filter(Boolean),
@@ -279,7 +290,7 @@ const FreeEventPageEditor = ({
       setError("El titular es obligatorio.");
       return;
     }
-    if (!dateKey && timeHm) {
+    if (!ended && !dateKey && timeHm) {
       setError("Indica la fecha si ya tienes una hora.");
       return;
     }
@@ -435,15 +446,18 @@ const FreeEventPageEditor = ({
               id="meetUrl"
               type="url"
               value={meetUrl}
+              readOnly={ended}
+              disabled={ended}
               onChange={(e) => setMeetUrl(e.target.value)}
               placeholder="https://meet.google.com/abc-defg-hij"
             />
             <p className="text-[11px] text-muted-foreground">
-              Al guardar se envía a quien aún no lo tenga. Si lo cambias, se
-              reenvía a todas las inscritas de este evento.
+              {ended
+                ? ENDED_HINT
+                : "Al guardar se envía a quien aún no lo tenga. Si lo cambias, se reenvía a todas las inscritas de este evento."}
             </p>
           </div>
-          {meetUrl.trim() && pendingLink > 0 ? (
+          {!ended && meetUrl.trim() && pendingLink > 0 ? (
             <p className="rounded-lg bg-terracotta/8 px-3 py-2 text-xs text-terracotta">
               {pendingLink.toLocaleString("es-CO")} sin el enlace todavía.
             </p>
@@ -493,8 +507,10 @@ const FreeEventPageEditor = ({
               id="dateKey"
               type="date"
               value={dateKey}
+              disabled={ended}
               onChange={(e) => setDateKey(e.target.value)}
             />
+            {ended ? <p className="text-[11px] text-muted-foreground">{ENDED_HINT}</p> : null}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="timeHm">Hora (opcional)</Label>
@@ -502,11 +518,12 @@ const FreeEventPageEditor = ({
               id="timeHm"
               type="time"
               value={timeHm}
+              disabled={ended}
               onChange={(e) => setTimeHm(e.target.value)}
             />
             <p className="text-[11px] text-muted-foreground">
-              Zona CRM: {operationalTimezone}. Cambiar la fecha vuelve a
-              mandar los recordatorios.
+              Zona CRM: {operationalTimezone}.
+              {ended ? "" : " Cambiar la fecha vuelve a mandar los recordatorios."}
             </p>
           </div>
           <div className="space-y-1.5">

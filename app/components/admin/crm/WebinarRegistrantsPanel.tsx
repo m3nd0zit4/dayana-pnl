@@ -304,6 +304,7 @@ const WebinarRegistrantsPanel = ({
         no_meet_url: "Falta el enlace de la reunion.",
         inactive: "El webinar no esta activo.",
         notifications_disabled: "Las notificaciones estan apagadas.",
+        ended: "Este evento ya pasó: no se envía nada a todas.",
       };
       toast(
         scope === "one"

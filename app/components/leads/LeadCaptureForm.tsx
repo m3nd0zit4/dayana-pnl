@@ -65,6 +65,8 @@ const LeadCaptureForm = ({
     fixedInterest ?? INTERESTS[0]
   );
   const [consent, setConsent] = useState(false);
+  /** Trampa para bots (ver el campo oculto del formulario). */
+  const [hp, setHp] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
@@ -118,6 +120,7 @@ const LeadCaptureForm = ({
           ...(fixedInterest === WEBINAR_INTEREST_LABEL
             ? { tag: "webinar-gratuito", ...(freeEventId ? { freeEventId } : {}) }
             : {}),
+          ...(hp ? { hp } : {}),
         }),
       });
 
@@ -217,6 +220,22 @@ const LeadCaptureForm = ({
       noValidate
       className={`flex scroll-mt-24 flex-col gap-5 ${className}`}
     >
+      {/* Trampa para bots: fuera de la pantalla, sin foco y oculta a los
+          lectores de pantalla. Una persona nunca la rellena; si llega con
+          algo, el servidor contesta «listo» sin guardar ni enviar nada. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden">
+        <label>
+          No completes este campo
+          <input
+            type="text"
+            name="sitio_web_hp"
+            tabIndex={-1}
+            autoComplete="off"
+            value={hp}
+            onChange={(e) => setHp(e.target.value)}
+          />
+        </label>
+      </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <label className="block">
           <span className={labelCls}>Nombre</span>

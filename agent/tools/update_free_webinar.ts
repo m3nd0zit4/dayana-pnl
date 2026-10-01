@@ -3,6 +3,7 @@ import { always } from "eve/tools/approval";
 import { z } from "zod";
 import {
   clearWebinarVideo,
+  ensureFreeWebinar,
   updateFreeWebinar,
   FREE_EVENT_LIFECYCLE_MESSAGE,
   FreeEventLifecycleError,
@@ -10,13 +11,17 @@ import {
   FreeWebinarPublishError,
   PUBLISH_BLOCKER_LABELS,
 } from "@/lib/crm/free-webinar";
-import { FREE_EVENT_PUBLIC_ROOT } from "@/lib/crm/free-event-rules";
+import {
+  endedEventAgentMessage,
+  FREE_EVENT_PUBLIC_ROOT,
+  isFreeEventEnded,
+} from "@/lib/crm/free-event-rules";
 import { siteUrl } from "@/lib/notifications/config";
 import { requireWriteStaff, auditAgentWrite, getCallerStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Update the CURRENT free event's landing (/eventos-gratuitos) — the one get_free_webinar returns. Pass only fields you want to change. Schedule uses startsAtDate (YYYY-MM-DD) in the CRM operational timezone; startsAtTime (HH:mm) is optional until confirmed. Setting isActive true publishes it (requires headline, subheadline, date, and at least one learn item) and closes registrations of any other published event. To prepare a NEW event (another date) don't overwrite this one: tell Dayana to use «Nuevo evento» in /admin/eventos. Registrations are tagged webinar-gratuito.",
+    "Update the CURRENT free event's landing (/eventos-gratuitos) — the one get_free_webinar returns. Pass only fields you want to change. Schedule uses startsAtDate (YYYY-MM-DD) in the CRM operational timezone; startsAtTime (HH:mm) is optional until confirmed. Setting isActive true publishes it (requires headline, subheadline, date, and at least one learn item) and closes registrations of any other published event. To prepare a NEW event (another date) don't overwrite this one: tell Dayana to use «Nuevo evento» in /admin/eventos. If the current event already happened (COMPLETED) this tool refuses and changes nothing — the next event has to be created in /admin/eventos first. Registrations are tagged webinar-gratuito.",
   inputSchema: z.object({
     isActive: z
       .boolean()
@@ -92,9 +97,17 @@ export default defineTool({
       };
     }
 
+    // Se fija el evento una vez: el actual podría cambiar a mitad de camino.
+    const current = await ensureFreeWebinar();
+    // Uno que ya pasó no se toca: cambiarle la fecha borraría los sellos de
+    // sus inscritas. El siguiente se crea en el panel.
+    if (isFreeEventEnded(current)) {
+      return { ok: false as const, error: "ended", message: endedEventAgentMessage(current.headline) };
+    }
+
     try {
       const actor = { staffUserId: getCallerStaff(ctx).staffId };
-      if (clearVideo) await clearWebinarVideo();
+      if (clearVideo) await clearWebinarVideo(current.id);
 
       const { webinar, meetUrlChanged, linkEmailsReset, closedOthers } =
         await updateFreeWebinar(
@@ -110,7 +123,7 @@ export default defineTool({
                   }
                 : undefined,
           },
-          undefined,
+          current.id,
           actor
         );
 

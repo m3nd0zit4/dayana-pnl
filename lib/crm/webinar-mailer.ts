@@ -7,7 +7,7 @@ import {
   type FreeWebinarPublic,
 } from "@/lib/crm/free-webinar";
 import { recordFreeEventActivity, type FreeEventActivityKind } from "@/lib/crm/free-event-activity";
-import { freeEventAcceptsReminders } from "@/lib/crm/free-event-rules";
+import { freeEventAcceptsReminders, isFreeEventEnded } from "@/lib/crm/free-event-rules";
 import {
   claimRegistrationFlag,
   clearRegistrationSendError,
@@ -254,6 +254,10 @@ export const sendPendingWebinarLinkEmails = async (
 
     const webinar = await getFreeWebinar(webinarId);
     if (!webinar) return noop("no_event");
+    // Uno que ya pasó no reparte enlaces: sería mandar uno muerto a toda su
+    // lista. El reenvío a una sola persona (`resendWebinarMailToOne`) es la
+    // única puerta, y es a mano.
+    if (isFreeEventEnded(webinar)) return noop("ended");
     if (!webinar.meetUrl) return noop("no_meet_url");
 
     const recipients = await findPendingLinkRecipients(
@@ -323,6 +327,7 @@ export const sendPendingWebinarReminders = async (
 
   const webinar = await getFreeWebinar(webinarId);
   if (!webinar) return noop("no_event");
+  if (isFreeEventEnded(webinar)) return noop("ended");
   // Publicado o con inscripciones cerradas: publicar el siguiente no deja sin
   // recordatorio a quien ya se inscribió en este.
   if (!freeEventAcceptsReminders(webinar)) return noop("inactive");
@@ -464,8 +469,10 @@ export const resendWebinarMailToOne = async (
   const webinar = await getFreeEventById(registration.webinarId);
   if (!webinar) return { ok: false, reason: "not_found" };
   // Un evento ya realizado conserva su meetUrl histórico, y reenviarlo
-  // mandaría un enlace muerto. Se permite en el actual aunque haya terminado
-  // (como antes: «cerrado pero sin archivar»), por si hace falta a última hora.
+  // mandaría un enlace muerto. Excepción deliberada y explícita: a UNA persona
+  // y a mano, en el evento actual aunque haya terminado (como antes: «cerrado
+  // pero sin archivar»), por si alguien lo pide a última hora. Los barridos y
+  // el «a todas» nunca envían a uno terminado.
   if (webinar.status === "COMPLETED" && (await findCurrentFreeEventRow())?.id !== webinar.id) {
     return { ok: false, reason: "wrong_webinar" };
   }
@@ -503,6 +510,9 @@ export const resendWebinarMailToAll = async (
 ): Promise<WebinarMailResult & { requeued: number }> => {
   const webinar = await getFreeWebinar(webinarId);
   if (!webinar) return { ...noop("no_event"), requeued: 0 };
+  // Antes de devolver nadie a la cola: en uno terminado, borraría sus sellos
+  // sin mandar nada.
+  if (isFreeEventEnded(webinar)) return { ...noop("ended"), requeued: 0 };
   const requeued =
     pass === "link"
       ? await resetLinkEmails(webinar.id)

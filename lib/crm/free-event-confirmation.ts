@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { eventConfirmationText, eventFecha, greetingName, reminderZone } from "./event-reminder-text";
+import { confirmationCapReason, EVENT_CONFIRMATION_CAP } from "./free-event-rules";
 import { getOperationalTimezone } from "./operational-timezone";
 import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
 import { ensureTemplatesSubmitted } from "./whatsapp-templates";
@@ -14,6 +15,11 @@ import { ensureTemplatesSubmitted } from "./whatsapp-templates";
  * Una vez por persona y evento: se sella al reclamar (como los
  * recordatorios), así que reinscribirse o dos peticiones a la vez no mandan
  * dos.
+ *
+ * Y con tope por evento (`EVENT_CONFIRMATION_CAP`): el formulario es público
+ * y la plantilla se paga, así que un bot con números inventados no puede
+ * convertirla en un gasto. Pasado el tope no sale el WhatsApp (queda el
+ * motivo); el correo sí.
  */
 
 export const EVENT_CONFIRMATION_TEMPLATE_KEY = "evento_gratis_confirmacion";
@@ -29,7 +35,8 @@ export type EventConfirmationResult =
         | "already_sent"
         | "no_phone"
         | "opted_out"
-        | "needs_template";
+        | "needs_template"
+        | "capped";
     }
   | { status: "failed"; error: string };
 
@@ -60,6 +67,31 @@ export const sendFreeEventConfirmationWhatsApp = async (input: {
   if (!event) return { status: "skipped", reason: "no_event" };
   if (!event.waConfirmationEnabled) return { status: "skipped", reason: "disabled" };
   if (!event.startsAt) return { status: "skipped", reason: "no_schedule" };
+
+  // Tope: cuántas confirmaciones salieron de verdad (sello sin error) en la
+  // última hora y el último día. Dos inscripciones a la vez pueden pasarlo
+  // por una o dos; es un freno de gasto, no una cuenta exacta.
+  const now = Date.now();
+  const sentSince = (ms: number) =>
+    prisma.webinarRegistration.count({
+      where: { webinarId, confirmationWaSentAt: { gte: new Date(now - ms) }, confirmationWaError: null },
+    });
+  const [lastHour, lastDay] = await Promise.all([sentSince(60 * 60_000), sentSince(24 * 60 * 60_000)]);
+  const capped = confirmationCapReason({ lastHour, lastDay });
+  if (capped) {
+    // Se sella con el motivo: no se reintenta sola.
+    const stamped = await prisma.webinarRegistration.updateMany({
+      where: { webinarId, contactId, confirmationWaSentAt: null },
+      data: {
+        confirmationWaSentAt: new Date(),
+        confirmationWaError:
+          capped === "hour"
+            ? `Tope: más de ${EVENT_CONFIRMATION_CAP.perHour} confirmaciones en una hora; no se envió (le llegó el correo).`
+            : `Tope: más de ${EVENT_CONFIRMATION_CAP.perDay} confirmaciones en un día; no se envió (le llegó el correo).`,
+      },
+    });
+    return { status: "skipped", reason: stamped.count === 0 ? "already_sent" : "capped" };
+  }
 
   // Reclamo: solo una vez por persona y evento.
   const claimed = await prisma.webinarRegistration.updateMany({

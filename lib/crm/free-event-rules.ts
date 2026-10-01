@@ -95,7 +95,47 @@ export const isFreeEventOpenRow = (e: StatusRow): boolean =>
  * antes) que todavía no tienen estado.
  */
 export const freeEventAcceptsReminders = (e: StatusRow): boolean =>
-  e.endedAt == null && (e.status === "OPEN" || e.status === "CLOSED" || e.isActive);
+  !isFreeEventEnded(e) && (e.status === "OPEN" || e.status === "CLOSED" || e.isActive);
+
+/**
+ * Ya pasó: terminado (a mano o por el reloj) o realizado. A un evento así no
+ * se le cambia la fecha ni el enlace ni se le manda nada en masa: sus
+ * inscritas y sus sellos son historia. Para otro evento, uno nuevo.
+ */
+export const isFreeEventEnded = (e: { status: FreeEventStatus; endedAt: Date | null }): boolean =>
+  e.endedAt != null || e.status === "COMPLETED";
+
+/** Lo que se le dice a quien intenta reprogramar uno ya pasado (panel y agente). */
+export const ENDED_EVENT_MESSAGE =
+  "Este evento ya pasó: no se le cambia la fecha ni el enlace. Crea uno nuevo o duplícalo en Eventos (/admin/eventos).";
+
+/**
+ * Lo que dice el agente cuando «el evento actual» ya pasó (por ejemplo, justo
+ * después de un evento y antes de crear el siguiente): no lo toca.
+ */
+export const endedEventAgentMessage = (headline: string): string =>
+  `El evento actual («${headline}») ya pasó, así que no lo modifico: sus inscritas y su historia se quedan como están. Para el próximo, crea uno con «Nuevo evento» (o «Duplicar» para copiar su página) en /admin/eventos; en cuanto exista, ese pasa a ser el actual y ya lo puedo editar.`;
+
+/* -------------------------------------------------------------------------
+ * Tope de confirmaciones por WhatsApp
+ * ---------------------------------------------------------------------- */
+
+/**
+ * La confirmación al inscribirse sale de un formulario público y puede ser
+ * una plantilla de pago: un tope por evento evita que un bot que rellena el
+ * formulario con números cualquiera la convierta en un gasto. Pasado el tope
+ * sigue llegando el correo; solo se salta el WhatsApp.
+ */
+export const EVENT_CONFIRMATION_CAP = { perHour: 40, perDay: 300 } as const;
+
+export const confirmationCapReason = (
+  sent: { lastHour: number; lastDay: number },
+  cap: { perHour: number; perDay: number } = EVENT_CONFIRMATION_CAP
+): "hour" | "day" | null => {
+  if (sent.lastHour >= cap.perHour) return "hour";
+  if (sent.lastDay >= cap.perDay) return "day";
+  return null;
+};
 
 /** `isActive` es el espejo de OPEN: quien escribe el estado escribe esto. */
 export const isActiveFor = (status: FreeEventStatus): boolean => status === "OPEN";

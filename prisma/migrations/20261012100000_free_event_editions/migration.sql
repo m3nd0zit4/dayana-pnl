@@ -68,14 +68,31 @@ SET "status" = (CASE
   ELSE 'DRAFT'
 END)::"FreeEventStatus";
 
+-- La auditoría del panel con el evento al que de verdad pertenece cada fila.
+-- La edición de agosto (fw_masterclass_20260816) se separó después de pasar:
+-- sus guardados quedaron con el id de la fila viva (cmsgp4r1b0000la04x8iby1ym).
+-- Lo de esa fila anterior al final de agosto (16-08 14:30 + 3 h) es de agosto.
+-- En una base sin esas filas no cambia nada. Se borra al final.
+CREATE OR REPLACE VIEW "_free_event_audit" AS
+SELECT
+  x.*,
+  CASE
+    WHEN x."entity_id" = 'cmsgp4r1b0000la04x8iby1ym'
+      AND x."created_at" < TIMESTAMP '2026-08-16 17:30:00'
+    THEN 'fw_masterclass_20260816'
+    ELSE x."entity_id"
+  END AS "event_id"
+FROM "audit_logs" x
+WHERE x."entity_type" = 'FreeWebinar';
+
 -- 2. Fecha de publicación (aproximada): el primer guardado con la página
 --    encendida que quede en la auditoría; si no hay, la creación (o la fecha
 --    del evento, si la fila se creó después — la edición separada de agosto).
 UPDATE "free_webinars" w
 SET "published_at" = COALESCE(
   (
-    SELECT min(a."created_at") FROM "audit_logs" a
-    WHERE a."entity_type" = 'FreeWebinar' AND a."entity_id" = w."id"
+    SELECT min(a."created_at") FROM "_free_event_audit" a
+    WHERE a."event_id" = w."id"
       AND a."changes"->>'isActive' = 'true'
   ),
   LEAST(w."created_at", COALESCE(w."starts_at", w."created_at"))
@@ -155,49 +172,49 @@ ON CONFLICT ("id") DO NOTHING;
 
 -- Desde la auditoría del panel (solo filas que todavía existen).
 INSERT INTO "free_event_activities" ("id", "free_webinar_id", "kind", "at", "staff_user_id", "meta")
-SELECT 'bf-audit-' || a."id" || '-meet', a."entity_id", 'meet_link_changed', a."created_at", a."staff_user_id",
+SELECT 'bf-audit-' || a."id" || '-meet', a."event_id", 'meet_link_changed', a."created_at", a."staff_user_id",
   '{"backfill": true}'::jsonb
-FROM "audit_logs" a JOIN "free_webinars" w ON w."id" = a."entity_id"
+FROM "_free_event_audit" a JOIN "free_webinars" w ON w."id" = a."event_id"
 WHERE a."entity_type" = 'FreeWebinar' AND a."changes"->>'meetUrlChanged' = 'true'
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "free_event_activities" ("id", "free_webinar_id", "kind", "at", "staff_user_id", "meta")
-SELECT 'bf-audit-' || a."id" || '-date', a."entity_id", 'date_changed', a."created_at", a."staff_user_id",
+SELECT 'bf-audit-' || a."id" || '-date', a."event_id", 'date_changed', a."created_at", a."staff_user_id",
   jsonb_build_object('backfill', true, 'startsAtIso', a."changes"->>'startsAtIso')
-FROM "audit_logs" a JOIN "free_webinars" w ON w."id" = a."entity_id"
+FROM "_free_event_audit" a JOIN "free_webinars" w ON w."id" = a."event_id"
 WHERE a."entity_type" = 'FreeWebinar' AND a."changes"->>'startsAtChanged' = 'true'
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "free_event_activities" ("id", "free_webinar_id", "kind", "at", "staff_user_id", "meta")
-SELECT 'bf-audit-' || a."id" || '-reopen', a."entity_id", 'reopened', a."created_at", a."staff_user_id",
+SELECT 'bf-audit-' || a."id" || '-reopen', a."event_id", 'reopened', a."created_at", a."staff_user_id",
   '{"backfill": true}'::jsonb
-FROM "audit_logs" a JOIN "free_webinars" w ON w."id" = a."entity_id"
+FROM "_free_event_audit" a JOIN "free_webinars" w ON w."id" = a."event_id"
 WHERE a."entity_type" = 'FreeWebinar' AND a."changes"->>'ended' = 'false'
 ON CONFLICT ("id") DO NOTHING;
 
 INSERT INTO "free_event_activities" ("id", "free_webinar_id", "kind", "at", "staff_user_id", "meta")
-SELECT 'bf-audit-' || a."id" || '-material', a."entity_id", 'material_uploaded', a."created_at", a."staff_user_id",
+SELECT 'bf-audit-' || a."id" || '-material', a."event_id", 'material_uploaded', a."created_at", a."staff_user_id",
   jsonb_build_object('backfill', true, 'fileName', a."changes"->>'material')
-FROM "audit_logs" a JOIN "free_webinars" w ON w."id" = a."entity_id"
+FROM "_free_event_audit" a JOIN "free_webinars" w ON w."id" = a."event_id"
 WHERE a."entity_type" = 'FreeWebinar' AND a."changes" ? 'material' AND a."changes"->>'material' IS NOT NULL
 ON CONFLICT ("id") DO NOTHING;
 
 -- Reenvíos manuales de correo (pendientes o a todas) con su resultado.
 INSERT INTO "free_event_activities" ("id", "free_webinar_id", "kind", "at", "count", "failed", "staff_user_id", "meta")
-SELECT 'bf-audit-' || a."id" || '-resend', a."entity_id",
+SELECT 'bf-audit-' || a."id" || '-resend', a."event_id",
   CASE a."changes"->>'pass' WHEN '24h' THEN 'reminder_24h_email' WHEN '1h' THEN 'reminder_1h_email' ELSE 'link_emails' END,
   a."created_at",
   CASE WHEN a."changes"->'result'->>'sent' ~ '^\d+$' THEN (a."changes"->'result'->>'sent')::int END,
   CASE WHEN a."changes"->'result'->>'failed' ~ '^\d+$' THEN (a."changes"->'result'->>'failed')::int END,
   a."staff_user_id",
   jsonb_build_object('backfill', true, 'manual', true, 'scope', a."changes"->>'resend')
-FROM "audit_logs" a JOIN "free_webinars" w ON w."id" = a."entity_id"
+FROM "_free_event_audit" a JOIN "free_webinars" w ON w."id" = a."event_id"
 WHERE a."entity_type" = 'FreeWebinar' AND a."changes"->>'resend' IN ('pending', 'all')
 ON CONFLICT ("id") DO NOTHING;
 
 -- Recordatorios por WhatsApp enviados a mano.
 INSERT INTO "free_event_activities" ("id", "free_webinar_id", "kind", "at", "count", "failed", "staff_user_id", "meta")
-SELECT 'bf-audit-' || a."id" || '-wa', a."entity_id",
+SELECT 'bf-audit-' || a."id" || '-wa', a."event_id",
   CASE a."changes"->>'pass' WHEN '1h' THEN 'reminder_1h_wa' ELSE 'reminder_24h_wa' END,
   a."created_at",
   CASE WHEN a."changes"->'result'->>'sent' ~ '^\d+$' THEN (a."changes"->'result'->>'sent')::int END,
@@ -205,10 +222,12 @@ SELECT 'bf-audit-' || a."id" || '-wa', a."entity_id",
     + (CASE WHEN a."changes"->'result'->>'skipped' ~ '^\d+$' THEN (a."changes"->'result'->>'skipped')::int ELSE 0 END),
   a."staff_user_id",
   '{"backfill": true, "manual": true}'::jsonb
-FROM "audit_logs" a JOIN "free_webinars" w ON w."id" = a."entity_id"
+FROM "_free_event_audit" a JOIN "free_webinars" w ON w."id" = a."event_id"
 WHERE a."entity_type" = 'FreeWebinar' AND a."action" = 'WHATSAPP_SENT'
   AND a."changes"->>'source' = 'evento:recordatorio'
 ON CONFLICT ("id") DO NOTHING;
+
+DROP VIEW IF EXISTS "_free_event_audit";
 
 -- 6. Envíos de WhatsApp → su evento o taller (aproximado).
 --    Evento: solo los hechos desde un evento concreto («Evento: …»; los de
