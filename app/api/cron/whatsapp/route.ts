@@ -1,7 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { NextResponse } from "next/server";
 
+import { authorized } from "@/lib/cron-auth";
 import { kickSweep } from "@/lib/meta/inbox";
 import { sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
@@ -19,15 +18,6 @@ export const maxDuration = 120;
  * Cada paso va aparte: si el calendario falla, la cola y los recordatorios
  * siguen.
  */
-const authorized = (req: Request): boolean => {
-  const secret = process.env.CRON_SECRET?.trim();
-  const got = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (!secret || !got) return false;
-  const a = Buffer.from(secret);
-  const b = Buffer.from(got);
-  return a.length === b.length && timingSafeEqual(a, b);
-};
-
 const step = async <T,>(name: string, fn: () => Promise<T>) => {
   try {
     return { name, ok: true, result: await fn() };

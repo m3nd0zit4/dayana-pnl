@@ -10,6 +10,11 @@ import {
   listWebinarRegistrations,
   webinarRegistrationStats,
 } from "@/lib/crm/webinar-registrations";
+import {
+  EVENT_WA_TEMPLATE_KEY,
+  eventWaRemindersEnabled,
+} from "@/lib/crm/event-whatsapp-reminders";
+import { prisma } from "@/lib/db";
 
 /** Primera página del panel; el resto se pide desde el cliente. */
 const PAGE_SIZE = 50;
@@ -37,6 +42,10 @@ const FreeEventAdminPage = async () => {
           unreachable: 0,
           pendingLink: 0,
           failed: 0,
+          wa24h: 0,
+          wa1h: 0,
+          waFailed: 0,
+          noWhatsApp: 0,
         }}
         initial={{
           id: "preview",
@@ -88,7 +97,7 @@ const FreeEventAdminPage = async () => {
   const webinar = await ensureFreeWebinar();
   // Solo la primera página. Con 10k registradas, traerlas todas reventaría el
   // servidor y el DOM; los totales salen de contadores agregados.
-  const [rows, stats] = await Promise.all([
+  const [rows, stats, waEnabled, waTemplate] = await Promise.all([
     listWebinarRegistrations(webinar.id, { take: PAGE_SIZE }).catch(() => []),
     webinarRegistrationStats(webinar.id).catch(() => ({
       total: 0,
@@ -98,7 +107,18 @@ const FreeEventAdminPage = async () => {
       unreachable: 0,
       pendingLink: 0,
       failed: 0,
+      wa24h: 0,
+      wa1h: 0,
+      waFailed: 0,
+      noWhatsApp: 0,
     })),
+    eventWaRemindersEnabled(),
+    prisma.messageTemplate
+      .findFirst({
+        where: { key: EVENT_WA_TEMPLATE_KEY, metaTemplateName: { not: null } },
+        select: { metaApprovalStatus: true },
+      })
+      .catch(() => null),
   ]);
 
   const staff = await getStaffSession().catch(() => null);
@@ -121,6 +141,10 @@ const FreeEventAdminPage = async () => {
     reminder1hSentAt: r.reminder1hSentAt?.toISOString() ?? null,
     lastSendError: r.lastSendError,
     lastSendErrorAt: r.lastSendErrorAt?.toISOString() ?? null,
+    notifyWhatsapp: r.contact.notifyWhatsapp,
+    reminder24hWaSentAt: r.reminder24hWaSentAt?.toISOString() ?? null,
+    reminder1hWaSentAt: r.reminder1hWaSentAt?.toISOString() ?? null,
+    waReminderError: r.waReminderError,
   }));
 
   return (
@@ -130,6 +154,10 @@ const FreeEventAdminPage = async () => {
       registrations={registrations}
       registrationStats={stats}
       canBroadcast={canBroadcast}
+      whatsApp={{
+        enabled: waEnabled,
+        templateStatus: waTemplate?.metaApprovalStatus ?? null,
+      }}
     />
   );
 };

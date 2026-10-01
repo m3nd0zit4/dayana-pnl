@@ -1,6 +1,8 @@
-# Reloj de WhatsApp (gratis): cada 10 minutos le pide al CRM sincronizar las
+# Reloj del CRM (gratis): cada 10 minutos le pide al CRM sincronizar las
 # citas del Google Calendar, mandar los recordatorios de 24 h y vaciar la cola
-# de mensajes. Necesita el secreto CRON_SECRET (el mismo que está en Vercel).
+# de mensajes; y después, los correos y WhatsApp del evento gratuito, los
+# recordatorios de los talleres y el cierre del evento. Necesita el secreto
+# CRON_SECRET (el mismo que está en Vercel).
 name: whatsapp-cron
 
 on:
@@ -11,7 +13,7 @@ on:
 jobs:
   tick:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - name: Llamar al reloj del CRM
         env:
@@ -20,4 +22,14 @@ jobs:
           # Sin el secreto todavía configurado, no se llama (y el job no falla).
           if [ -z "${CRON_SECRET}" ]; then echo "Falta el secreto CRON_SECRET: no se llama al CRM."; exit 0; fi
           curl -fsS --max-time 150 -X POST "https://www.dayanabeltran.com/api/cron/whatsapp" \
+            -H "Authorization: Bearer ${CRON_SECRET}"
+      # Aparte y aunque el anterior falle: los recordatorios del evento no
+      # pueden depender de que el calendario de Google responda.
+      - name: Llamar al reloj de eventos
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "${CRON_SECRET}" ]; then echo "Falta el secreto CRON_SECRET: no se llama al CRM."; exit 0; fi
+          curl -fsS --max-time 285 -X POST "https://www.dayanabeltran.com/api/cron/eventos" \
             -H "Authorization: Bearer ${CRON_SECRET}"

@@ -652,7 +652,9 @@ export const webinarMailerFn = inngest.createFunction(
           eventType: "SYSTEM_ALERT",
           title: "El webinar gratuito ya terminó",
           body: "Se cerraron los registros y los recordatorios. Puedes archivarlo para dejar lista la próxima edición.",
-          href: "/admin/webinar",
+          // Mismo aviso que `/api/cron/eventos`: solo lo emite quien ganó el
+          // compare-and-swap de `endedAt`, así que nunca salen dos.
+          href: "/admin/eventos",
           entityType: "FreeWebinar",
           entityId: closed.webinar.id,
           staff: "ALL",
