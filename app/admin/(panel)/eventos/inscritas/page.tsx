@@ -3,12 +3,19 @@ import { Users } from "lucide-react";
 
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
+import {
+  FreeEventPeopleSearch,
+  FreeEventSwitcher,
+} from "@/app/components/admin/crm/FreeEventPeopleFilters";
 import { CrmEmptyState } from "@/app/components/admin/crm/ui";
 import { Badge } from "@/app/components/ui/badge";
-import { Button, buttonVariants } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
+import { buttonVariants } from "@/app/components/ui/button";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import {
+  eventDateLabel,
+  FREE_EVENT_STATUS_LABEL,
+  isFreeEventOpen,
+  isFreeEventUpcoming,
   listFreeEventPeople,
   listFreeEvents,
   type FreeEventPeoplePage,
@@ -16,17 +23,24 @@ import {
 } from "@/lib/crm/free-events";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { prisma } from "@/lib/db";
-import { freeEventPresets } from "@/lib/crm/whatsapp-presets";
+import { freeEventPresetsFor } from "@/lib/crm/whatsapp-presets";
 import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
+/** Badges de evento por persona: cuántos se ven antes de resumir. */
+const MAX_EVENT_BADGES = 3;
+
+const shorten = (s: string, max = 26) =>
+  s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
+
 /**
  * Las personas que se han inscrito a eventos gratuitos: una fila por persona,
  * con todos los eventos a los que fue. Sirve para ver quién repite y para
- * escribirle a quien ya mostró interés.
+ * escribirle a quien ya mostró interés. Los mensajes listos cambian según el
+ * evento que se mira (ver `freeEventPresetsFor`).
  */
 const FreeEventPeoplePage = async ({
   searchParams,
@@ -53,13 +67,21 @@ const FreeEventPeoplePage = async ({
     getOperationalTimezone(),
   ]);
 
-  // El evento del que se habla en los mensajes: el filtrado, o el actual.
-  const focusEvent =
-    (eventId ? events.find((e) => e.id === eventId) : null) ??
-    events.find((e) => e.isCurrent) ??
-    events[0] ??
-    null;
-  const presets = freeEventPresets(focusEvent, tz);
+  // El actual primero, luego los anteriores del más reciente al más antiguo.
+  const ordered = [
+    ...events.filter((e) => e.isCurrent),
+    ...events.filter((e) => !e.isCurrent),
+  ];
+  const selected = eventId
+    ? (events.find((e) => e.id === eventId) ?? null)
+    : null;
+  const selectedUpcoming = selected ? isFreeEventUpcoming(selected) : false;
+  const openEvent = events.find(isFreeEventOpen) ?? null;
+  const presets = freeEventPresetsFor(
+    { selected, selectedUpcoming, openEvent },
+    tz
+  );
+
   // «Enviar a todas» = todas las del filtro, no solo esta página.
   const allContactIds = preview
     ? []
@@ -96,49 +118,54 @@ const FreeEventPeoplePage = async ({
       : "sin fecha";
   const repeaters = result.people.filter((p) => p.events.length > 1).length;
 
+  const peopleCount =
+    result.total > 0
+      ? `${result.total.toLocaleString("es-CO")} ${result.total === 1 ? "persona" : "personas"}${q ? " coinciden con la búsqueda" : ""}`
+      : null;
+  const description = selected ? (
+    <>
+      <strong className="font-medium text-foreground">
+        «{selected.headline}»
+      </strong>{" "}
+      · {selectedUpcoming ? "Evento actual" : FREE_EVENT_STATUS_LABEL[selected.status]}
+      {" · "}
+      {eventDateLabel(selected, tz)}
+      {peopleCount ? ` · ${peopleCount}` : ""}
+    </>
+  ) : eventId ? (
+    "Evento no encontrado."
+  ) : (
+    <>
+      <strong className="font-medium text-foreground">Todos los eventos</strong>
+      {peopleCount
+        ? ` · ${peopleCount}`
+        : " · Quién se ha inscrito a tus eventos gratuitos."}
+    </>
+  );
+
   return (
     <CrmPageShell>
       <CrmPageHeader
         title="Inscritas"
-        description={
-          result.total > 0
-            ? `${result.total.toLocaleString("es-CO")} ${result.total === 1 ? "persona" : "personas"}${eventId ? " en este evento" : " en todos los eventos"}`
-            : "Quién se ha inscrito a tus eventos gratuitos."
+        description={description}
+        trailing={
+          <FreeEventSwitcher
+            // Se remonta al cambiar de evento: la pestaña marcada es la de la URL.
+            key={eventId ?? "todos"}
+            value={eventId}
+            q={q}
+            segments={ordered.map((e) => ({
+              id: e.id,
+              label: e.isCurrent
+                ? `Actual · ${shorten(e.headline)}`
+                : `${shortDate(e.startsAt)} · ${shorten(e.headline, 20)}`,
+              count: e.registrations,
+            }))}
+          />
         }
       />
 
-      <form
-        className="flex flex-wrap items-end gap-2"
-        action="/admin/eventos/inscritas"
-        method="get"
-      >
-        <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs text-muted-foreground">
-          Evento
-          <select
-            name="evento"
-            defaultValue={eventId ?? ""}
-            className="h-9 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-          >
-            <option value="">Todos los eventos</option>
-            {events.map((e) => (
-              <option key={e.id} value={e.id}>
-                {shortDate(e.startsAt)} · {e.headline}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs text-muted-foreground">
-          Buscar
-          <Input
-            name="q"
-            defaultValue={q}
-            placeholder="Nombre, correo o teléfono"
-          />
-        </label>
-        <Button type="submit" variant="outline">
-          Filtrar
-        </Button>
-      </form>
+      <FreeEventPeopleSearch eventId={eventId} q={q} />
 
       {result.people.length === 0 ? (
         <CrmEmptyState
@@ -162,29 +189,70 @@ const FreeEventPeoplePage = async ({
             </p>
           ) : null}
           <PeopleWhatsAppList
-            people={result.people.map((person) => ({
-              contactId: person.contactId,
-              name: person.name,
-              detail: [person.email, person.phoneE164].filter(Boolean).join(" · ") || "—",
-              extra: (
-                <span className="mt-1 flex flex-wrap gap-1">
-                  {person.events.length > 1 ? <Badge>{person.events.length} eventos</Badge> : null}
-                  {person.events.slice(0, 3).map((e) => (
-                    <Link key={e.id} href={`/admin/eventos/historial/${e.id}`}>
-                      <Badge variant="outline" className="hover:bg-accent">
-                        {shortDate(e.startsAt)}
+            people={result.people.map((person) => {
+              // El evento que se mira siempre a la vista, aunque la persona
+              // haya ido a varios después.
+              const at = selected
+                ? person.events.findIndex((e) => e.id === selected.id)
+                : -1;
+              const shown =
+                at >= MAX_EVENT_BADGES
+                  ? [
+                      ...person.events.slice(0, MAX_EVENT_BADGES - 1),
+                      person.events[at],
+                    ]
+                  : person.events.slice(0, MAX_EVENT_BADGES);
+              return {
+                contactId: person.contactId,
+                name: person.name,
+                detail:
+                  [person.email, person.phoneE164].filter(Boolean).join(" · ") ||
+                  "—",
+                extra: (
+                  <span className="mt-1 flex flex-wrap gap-1">
+                    {person.events.length > 1 ? (
+                      <Badge variant="secondary">
+                        {person.events.length} eventos
                       </Badge>
-                    </Link>
-                  ))}
-                </span>
-              ),
-            }))}
+                    ) : null}
+                    {shown.map((e) => {
+                      const isSelected = e.id === selected?.id;
+                      return (
+                        <Link
+                          key={e.id}
+                          href={`/admin/eventos/historial/${e.id}`}
+                          title={e.headline}
+                          aria-current={isSelected ? "true" : undefined}
+                        >
+                          <Badge
+                            variant={isSelected ? "default" : "outline"}
+                            className={isSelected ? undefined : "hover:bg-accent"}
+                          >
+                            {shortDate(e.startsAt)}
+                          </Badge>
+                        </Link>
+                      );
+                    })}
+                  </span>
+                ),
+              };
+            })}
             allContactIds={allContactIds}
             presets={presets}
             kind="evento"
-            title={focusEvent ? `Evento: ${focusEvent.headline}` : "Eventos gratuitos"}
+            title={
+              selected
+                ? `Evento: ${selected.headline}`
+                : "Inscritas de todos los eventos"
+            }
             source="eventos"
-            allLabel={eventId ? `Enviar a todas las del evento` : q ? "Enviar a las de la búsqueda" : "Enviar a todas las inscritas"}
+            allLabel={
+              eventId
+                ? "Enviar a todas las del evento"
+                : q
+                  ? "Enviar a las de la búsqueda"
+                  : "Enviar a todas las inscritas"
+            }
           />
           {pages > 1 ? (
             <div className="flex items-center justify-between text-sm">

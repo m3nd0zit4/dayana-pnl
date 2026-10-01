@@ -128,8 +128,8 @@ export type WebinarLeadEmailInput = LeadEmailInput & {
   scheduleLabel?: string | null;
   /**
    * Meet link, when Dayana already set one. Present → the confirmation *is*
-   * the link email, and the registration row is stamped `linkEmailSentAt` so
-   * the fan-out doesn't send the same link again minutes later.
+   * the link email, and — once it actually went out — the registration row is
+   * stamped `linkEmailSentAt` so the fan-out doesn't send the same link again.
    */
   meetUrl?: string | null;
   /** Qué es el evento («Webinar gratuito», «Masterclass gratuita»…). */

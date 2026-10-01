@@ -2,12 +2,14 @@
  * Prueba de punta a punta de los envíos por WhatsApp desde el CRM, contra la
  * base de DESARROLLO y en modo prueba (no sale nada): tres personas — una que
  * escribió hace poco (texto gratis), otra hace días (plantilla) y otra sin
- * número — reciben el enlace del evento gratuito.
+ * número — reciben el enlace del evento gratuito, y después el recordatorio
+ * armado con el mensaje listo del CRM (que tiene que llevar el enlace de Meet).
  *
  *   NOTIFICATIONS_DRY_RUN=true bun scripts/whatsapp-bulk-e2e.ts
  */
 import { prisma } from "@/lib/db";
 import { createSend, previewSend, processNextBatch } from "@/lib/crm/whatsapp-sends";
+import { freeEventPresets, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
 import { whatsAppStatusFor } from "@/lib/crm/whatsapp-outbound";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
 
@@ -92,11 +94,57 @@ const main = async () => {
   for (const m of msgs) console.log(`  MSG [${m.source}] ${m.status}: ${m.body}`);
   console.log("STATUS", await whatsAppStatusFor(contactIds));
 
+  // El recordatorio, con el mensaje listo de «Inscritas»: entra con el enlace
+  // de Meet (no la landing) y se lee «te recuerdo que «…» es el domingo…».
+  await prisma.messageTemplate.upsert({
+    where: { key_locale: { key: "evento_gratis_recordatorio", locale: "es" } },
+    create: {
+      key: "evento_gratis_recordatorio",
+      title: "Evento gratuito: recordatorio",
+      body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}} Nos vemos pronto 💛",
+      metaTemplateName: "evento_gratis_recordatorio",
+      metaTemplateLang: "es",
+      metaApprovalStatus: "APPROVED",
+      metaCategory: "UTILITY",
+      metaBody: "Hola {{1}}, te recuerdo que {{2}} es el {{3}}. Entra aquí: {{4}} Nos vemos pronto 💛",
+      metaVarNames: ["nombre", "evento", "fecha", "enlace"],
+    },
+    update: { metaApprovalStatus: "APPROVED" },
+  });
+  const meet = "https://meet.google.com/e2e-bulk-rec";
+  const reminder = freeEventPresets(
+    { headline: "Sanar la relación", startsAt: new Date("2026-10-04T14:30:00Z"), startsAtHasTime: true, meetUrl: meet },
+    "America/Bogota"
+  ).find((p) => p.id === "recordatorio")!;
+  const reminderSend = await createSend({
+    title: "E2E · recordatorio del evento",
+    kind: "evento",
+    text: reminder.text,
+    templateKey: reminder.templateKey,
+    vars: resolvePresetVars(reminder.vars, reminder.text),
+    contactIds,
+    staffId: staff.id,
+  });
+  let reminderProgress = await processNextBatch(reminderSend.id, staff.id);
+  while (reminderProgress.pending > 0) reminderProgress = await processNextBatch(reminderSend.id, staff.id);
+  const reminderRows = await prisma.whatsAppSendRecipient.findMany({ where: { sendId: reminderSend.id } });
+  const reminderMsgs = await prisma.conversationMessage.findMany({
+    where: { id: { in: reminderRows.map((r) => r.messageId).filter((m): m is string => Boolean(m)) } },
+    select: { body: true },
+  });
+  for (const m of reminderMsgs) console.log(`  RECORDATORIO: ${m.body}`);
+  const reminderOk =
+    reminderMsgs.length === 2 &&
+    reminderMsgs.every((m) => m.body?.includes(meet)) &&
+    reminderMsgs.some((m) => m.body?.includes("te recuerdo que «Sanar la relación» es el domingo 4 de octubre"));
+  console.log(reminderOk ? "  recordatorio con Meet ✓" : "  recordatorio con Meet ✗");
+
   const ok =
     progress.sent === 2 &&
     progress.skipped === 1 &&
     rows.some((r) => r.mode === "text") &&
-    rows.some((r) => r.mode === "template");
+    rows.some((r) => r.mode === "template") &&
+    reminderOk;
   console.log(ok ? "\n✅ OK" : "\n❌ FALLÓ");
   process.exit(ok ? 0 : 1);
 };

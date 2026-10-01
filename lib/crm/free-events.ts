@@ -44,6 +44,44 @@ export const freeEventStatus = (
   return row.isActive ? "published" : "draft";
 };
 
+type MaterialGateInput = {
+  slug: string;
+  isActive: boolean;
+  startsAt: Date | null;
+  endedAt: Date | null;
+  materialUrl: string | null;
+};
+
+/**
+ * `/api/webinar/material` lo sirve ahora mismo. Es la misma puerta que esa
+ * ruta: solo el evento actual, publicado, con fecha y sin cerrar. Un evento
+ * pasado conserva sus columnas, pero su material ya no se descarga por la web
+ * — mandar ese enlace sería mandar un 404.
+ */
+export const isFreeEventMaterialDownloadable = (row: MaterialGateInput) =>
+  row.slug === FREE_WEBINAR_SLUG &&
+  row.isActive &&
+  row.startsAt != null &&
+  row.endedAt == null &&
+  row.materialUrl != null;
+
+/**
+ * El evento actual que todavía no se cerró: el único al que tiene sentido
+ * recordarle la cita a la gente con el enlace de la reunión. No exige estar
+ * publicado: despublicar para cerrar inscripciones no cancela el evento.
+ */
+export const isFreeEventUpcoming = (e: {
+  isCurrent: boolean;
+  endedAt: Date | null;
+}) => e.isCurrent && e.endedAt == null;
+
+/** Abierto a inscripciones — el mismo criterio que `/api/leads`. */
+export const isFreeEventOpen = (e: {
+  isCurrent: boolean;
+  isActive: boolean;
+  endedAt: Date | null;
+}) => isFreeEventUpcoming(e) && e.isActive;
+
 export type FreeEventRow = {
   id: string;
   headline: string;
@@ -52,6 +90,11 @@ export type FreeEventRow = {
   startsAtHasTime: boolean;
   status: FreeEventStatus;
   isCurrent: boolean;
+  isActive: boolean;
+  endedAt: Date | null;
+  /** Enlace de la reunión: el recordatorio lo prefiere a la landing. */
+  meetUrl: string | null;
+  materialDownloadable: boolean;
   registrations: number;
 };
 
@@ -72,6 +115,8 @@ export const listFreeEvents = async (): Promise<FreeEventRow[]> => {
       startsAtHasTime: true,
       endedAt: true,
       archivedAt: true,
+      meetUrl: true,
+      materialUrl: true,
       _count: { select: { registrations: true } },
     },
   });
@@ -93,6 +138,10 @@ export const listFreeEvents = async (): Promise<FreeEventRow[]> => {
         startsAtHasTime: r.startsAtHasTime,
         status: freeEventStatus(r, now),
         isCurrent: r.slug === FREE_WEBINAR_SLUG,
+        isActive: r.isActive,
+        endedAt: r.endedAt,
+        meetUrl: r.meetUrl,
+        materialDownloadable: isFreeEventMaterialDownloadable(r),
         registrations: r._count.registrations,
       }))
   );
@@ -111,8 +160,6 @@ export type FreeEventRegistrant = {
 
 export type FreeEventDetail = FreeEventRow & {
   subheadline: string | null;
-  meetUrl: string | null;
-  endedAt: Date | null;
   archivedAt: Date | null;
   registrants: FreeEventRegistrant[];
 };
@@ -153,8 +200,10 @@ export const getFreeEventDetail = async (
     startsAtHasTime: row.startsAtHasTime,
     status: freeEventStatus(row),
     isCurrent: row.slug === FREE_WEBINAR_SLUG,
+    isActive: row.isActive,
     registrations: row.registrations.length,
     meetUrl: row.meetUrl,
+    materialDownloadable: isFreeEventMaterialDownloadable(row),
     endedAt: row.endedAt,
     archivedAt: row.archivedAt,
     registrants: row.registrations.map((r) => ({

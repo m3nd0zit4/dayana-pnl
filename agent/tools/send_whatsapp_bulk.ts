@@ -4,12 +4,19 @@ import { z } from "zod";
 import { requireWriteStaff, getCallerStaff } from "@/agent/lib/guard";
 import { prisma } from "@/lib/db";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
-import { freeEventPresets, resolvePresetVars, workshopPresets } from "@/lib/crm/whatsapp-presets";
+import { isFreeEventMaterialDownloadable } from "@/lib/crm/free-events";
+import { FREE_WEBINAR_SLUG } from "@/lib/crm/free-webinar";
+import {
+  freeEventPresets,
+  presetMissingLink,
+  resolvePresetVars,
+  workshopPresets,
+} from "@/lib/crm/whatsapp-presets";
 import { createSend, previewSend, processNextBatch } from "@/lib/crm/whatsapp-sends";
 
 export default defineTool({
   description:
-    "Send a WhatsApp message to many people at once: the registrants of a free event, the enrollees of a workshop edition, or a list of contactIds. First call it with dryRun=true to get the preview (how many go free, how many by paid template and the estimated cost, how many can't be reached) and show it to Dayana; then call again with dryRun=false after she approves. message = 'enlace' | 'recordatorio' | 'material' | 'invitacion' | 'libre' (libre uses `text`).",
+    "Send a WhatsApp message to many people at once: the registrants of a free event, the enrollees of a workshop edition, or a list of contactIds. First call it with dryRun=true to get the preview (how many go free, how many by paid template and the estimated cost, how many can't be reached) and show it to Dayana; then call again with dryRun=false after she approves. message = 'enlace' | 'recordatorio' | 'material' | 'invitacion' | 'libre' (libre uses `text`). For free events: 'invitacion'/'enlace' link to the landing page, 'recordatorio' carries the Meet link; 'material' of an event that already ended needs the recording/material URL inside `text`.",
   inputSchema: z.object({
     audience: z.enum(["event_registrants", "workshop_enrollees", "contacts"]),
     eventId: z.string().optional().describe("Evento gratuito; sin él, el evento actual."),
@@ -31,14 +38,20 @@ export default defineTool({
     let kind: "evento" | "taller" | "libre" = "libre";
 
     if (input.audience === "event_registrants") {
+      // El actual es el del slug, no «el último activo»: despublicado para
+      // cerrar inscripciones sigue siendo el evento de sus inscritas.
       const event = input.eventId
         ? await prisma.freeWebinar.findUnique({ where: { id: input.eventId } })
-        : await prisma.freeWebinar.findFirst({ where: { isActive: true }, orderBy: { startsAt: "desc" } });
+        : await prisma.freeWebinar.findUnique({ where: { slug: FREE_WEBINAR_SLUG } });
       if (!event) throw new Error("No encontré el evento.");
       contactIds = (
         await prisma.webinarRegistration.findMany({ where: { webinarId: event.id }, select: { contactId: true } })
       ).map((r) => r.contactId);
-      presets = freeEventPresets(event, tz);
+      // El recordatorio entra con el enlace de la reunión (meetUrl).
+      presets = freeEventPresets(
+        { ...event, materialDownloadable: isFreeEventMaterialDownloadable(event) },
+        tz
+      );
       title = `Evento: ${event.headline}`;
       kind = "evento";
     } else if (input.audience === "workshop_enrollees") {
@@ -65,6 +78,11 @@ export default defineTool({
     const presetId = input.message === "enlace" ? "invitacion" : input.message;
     const preset = presets.find((p) => p.id === presetId) ?? presets.find((p) => p.id === "libre")!;
     const text = input.text?.trim() || preset.text;
+    if (presetMissingLink(preset, text)) {
+      throw new Error(
+        "El material de este evento ya no se descarga desde la web: pídele a Dayana el enlace (grabación o material) y ponlo en `text`."
+      );
+    }
     const vars = resolvePresetVars(preset.vars, text);
 
     if (input.dryRun) {
