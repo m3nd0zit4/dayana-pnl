@@ -1,5 +1,6 @@
 import {
   Document,
+  Font,
   Page,
   StyleSheet,
   Text,
@@ -7,6 +8,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { ReceiptData } from "./data";
+import { RECEIPT_FONT_BOLD, RECEIPT_FONT_REGULAR } from "./fonts.generated";
 
 /**
  * El recibo, como documento.
@@ -27,6 +29,27 @@ import type { ReceiptData } from "./data";
  * que existe sobre papel.
  */
 
+/**
+ * La fuente va incrustada (Arimo, con las métricas de Helvetica) y no es la
+ * Helvetica integrada del PDF: ésa sólo conoce WinAnsi, así que una tilde
+ * suelta o cualquier carácter fuera de esa tabla salía roto. Los TTF viajan
+ * como data URLs en `fonts.generated.ts` para que las tres llamadas (dos rutas
+ * y el correo) los tengan en Vercel sin depender del file tracing.
+ */
+const FONT_FAMILY = "ReceiptSans";
+
+Font.register({
+  family: FONT_FAMILY,
+  fonts: [
+    { src: RECEIPT_FONT_REGULAR, fontWeight: 400 },
+    { src: RECEIPT_FONT_BOLD, fontWeight: 700 },
+  ],
+});
+
+// Sin guiones: un nombre o una referencia de pago no se parten en dos líneas
+// con un «-» que no existe.
+Font.registerHyphenationCallback((word) => [word]);
+
 const COLORS = {
   ink: "#141210",
   muted: "#6f655c",
@@ -43,7 +66,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.ink,
     backgroundColor: COLORS.surface,
-    fontFamily: "Helvetica",
+    fontFamily: FONT_FAMILY,
   },
   header: {
     flexDirection: "row",
@@ -53,7 +76,12 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.line,
     paddingBottom: 16,
   },
-  brandName: { fontSize: 15, fontFamily: "Helvetica-Bold", color: COLORS.brand },
+  brandName: {
+    fontSize: 15,
+    fontFamily: FONT_FAMILY,
+    fontWeight: 700,
+    color: COLORS.brand,
+  },
   brandLine: { fontSize: 9, color: COLORS.muted, marginTop: 3 },
   docLabel: {
     fontSize: 8,
@@ -63,7 +91,8 @@ const styles = StyleSheet.create({
   },
   docNumber: {
     fontSize: 14,
-    fontFamily: "Helvetica-Bold",
+    fontFamily: FONT_FAMILY,
+    fontWeight: 700,
     textAlign: "right",
     marginTop: 4,
   },
@@ -76,7 +105,7 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     marginBottom: 7,
   },
-  strong: { fontFamily: "Helvetica-Bold" },
+  strong: { fontFamily: FONT_FAMILY, fontWeight: 700 },
 
   row: {
     flexDirection: "row",
@@ -97,8 +126,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 2,
     borderTopColor: COLORS.brand,
   },
-  totalLabel: { fontSize: 11, fontFamily: "Helvetica-Bold" },
-  totalValue: { fontSize: 16, fontFamily: "Helvetica-Bold", color: COLORS.brand },
+  totalLabel: { fontSize: 11, fontFamily: FONT_FAMILY, fontWeight: 700 },
+  totalValue: {
+    fontSize: 16,
+    fontFamily: FONT_FAMILY,
+    fontWeight: 700,
+    color: COLORS.brand,
+  },
 
   note: {
     marginTop: 30,

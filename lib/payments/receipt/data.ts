@@ -7,8 +7,10 @@ import {
   getDateKeyInTz,
   getTimeHmInTz,
 } from "@/lib/crm/operational-timezone";
+import { BRAND } from "@/lib/contact";
 import { emailFrom, siteUrl } from "@/lib/notifications/config";
 import { ReceiptError, ensureReceiptNumber } from "./number";
+import { pdfText, pdfTextOrNull } from "./text";
 
 export type ReceiptData = {
   receiptNumber: string;
@@ -32,12 +34,15 @@ export type ReceiptData = {
   sessions: number | null;
 };
 
+// Si el nombre visible era sólo un emoji, queda vacío al limpiarlo y se cae al
+// nombre y apellido: un recibo con el «pagado por» en blanco no sirve.
 const payerName = (c: {
   displayName: string | null;
   firstName: string;
   lastName: string | null;
 }): string =>
-  c.displayName ?? `${c.firstName} ${c.lastName ?? ""}`.trim();
+  pdfTextOrNull(c.displayName) ??
+  pdfText(`${c.firstName} ${c.lastName ?? ""}`);
 
 /**
  * Reúne todo lo que va impreso en el recibo.
@@ -85,17 +90,20 @@ export const buildReceiptData = async (
       at,
       OPERATIONAL_TZ
     )} (hora de Colombia)`,
+    // El nombre del emisor sale de la marca y no de la variable de entorno del
+    // remitente: el recibo es un documento que se guarda, y un valor mal
+    // cargado en Vercel sale impreso tal cual — así apareció «Beltr?n».
     emitter: {
-      name: from.name,
-      email: from.email,
-      site: siteUrl().replace(/^https?:\/\//, ""),
+      name: pdfText(BRAND.shortName),
+      email: pdfText(from.email),
+      site: pdfText(siteUrl().replace(/^https?:\/\//, "")),
     },
     payer: {
       name: payerName(contact),
-      email: contact.email ?? payment.payerEmail,
-      countryIso: payment.payerCountryIso,
+      email: pdfTextOrNull(contact.email ?? payment.payerEmail),
+      countryIso: pdfTextOrNull(payment.payerCountryIso),
     },
-    concept: payment.enrollment.product.title,
+    concept: pdfText(payment.enrollment.product.title),
     currency: payment.currency,
     totalLabel: formatMoneyMinor(payment.amountMinor, payment.currency),
     feeLabel:
@@ -106,8 +114,8 @@ export const buildReceiptData = async (
       payment.netMinor != null
         ? formatMoneyMinor(payment.netMinor, payment.currency)
         : null,
-    method: PAYMENT_PROVIDER_LONG_LABEL[payment.provider],
-    providerReference: payment.providerPaymentId,
+    method: pdfText(PAYMENT_PROVIDER_LONG_LABEL[payment.provider]),
+    providerReference: pdfText(payment.providerPaymentId),
     sessions: payment.enrollment.sessionsTotal ?? null,
   };
 };

@@ -1,4 +1,5 @@
 import type { MessageChannel } from "@prisma/client";
+import { BRAND } from "@/lib/contact";
 
 export type NotificationAudience = "ALL_CONTACTS" | "MARKETING_CONSENT";
 
@@ -18,13 +19,26 @@ export const isDryRun = (): boolean =>
   (process.env.NODE_ENV !== "production" &&
     process.env.NOTIFICATIONS_DRY_RUN !== "false");
 
+/**
+ * Nombre del remitente.
+ *
+ * Un «?» o un U+FFFD en el valor es la huella de una variable que pasó por una
+ * terminal sin UTF-8 (`Beltrán` → `Beltr?n`, p. ej. un pipe de PowerShell al
+ * CLI de Vercel). Ningún nombre de marca lleva «?», así que se descarta y se
+ * usa el de la marca, que vive en el código y no puede llegar roto.
+ */
+const fromName = (): string => {
+  const raw = process.env.NOTIFICATIONS_EMAIL_FROM_NAME?.trim().normalize("NFC");
+  if (!raw || /[?\u{FFFD}]/u.test(raw)) return BRAND.shortName;
+  return raw;
+};
+
 export const emailFrom = (): { email: string; name: string } => ({
   email:
     process.env.NOTIFICATIONS_EMAIL_FROM?.trim() ||
     process.env.SMTP_USER?.trim() ||
     "contacto@dayanabeltran.com",
-  name:
-    process.env.NOTIFICATIONS_EMAIL_FROM_NAME?.trim() || "Dayana Beltrán PNL",
+  name: fromName(),
 });
 
 export const siteUrl = (): string =>
