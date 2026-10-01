@@ -42,6 +42,8 @@ export type CalendarEvent = {
   start?: { dateTime?: string; date?: string; timeZone?: string };
   end?: { dateTime?: string; date?: string; timeZone?: string };
   attendees?: { email?: string; responseStatus?: string }[];
+  /** Última modificación del evento (RFC 3339), la pone Google. */
+  updated?: string;
 };
 
 export const listEvents = async (

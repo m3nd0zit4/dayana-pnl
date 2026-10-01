@@ -13,6 +13,17 @@ import { post } from "./chat/utils";
 import { useWhatsAppLive } from "./live";
 import { isRunLive, useNow } from "./status";
 
+// El chat abierto vive en la URL (`?conversation=`). Abrir uno empuja una
+// entrada al historial: en el celular, «atrás» (el de Android o el del
+// navegador) cierra el chat y vuelve a la lista en vez de salir de la sección.
+const urlFor = (id: string | null) => {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("conversation", id);
+  else url.searchParams.delete("conversation");
+  return url;
+};
+const pushedByUs = () => Boolean((window.history.state as { waChat?: string } | null)?.waChat);
+
 /**
  * Chats de WhatsApp, con la cara de WhatsApp Web: lista a la izquierda,
  * conversación con el fondo beige (u oscuro) y burbujas verdes, barra de
@@ -26,10 +37,11 @@ import { isRunLive, useNow } from "./status";
 const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId: string | null }) => {
   const { canWrite, toast } = useCrm();
   const { toggleSidebar } = useSidebar();
-  const [queue, setQueue] = useState<ChatQueue>("all");
+  // Se abre en «Pendientes»: lo que alguien escribió y nadie ha dado por atendido.
+  const [queue, setQueue] = useState<ChatQueue>("pending");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ChatListItem[] | null>(null);
-  const [counts, setCounts] = useState<Counts>({ attention: 0, mine: 0, ai: 0, unread: 0 });
+  const [counts, setCounts] = useState<Counts>({ pending: 0, attention: 0, mine: 0, ai: 0, unread: 0 });
   const [selectedId, setSelectedId] = useState<string | null>(initialConversationId);
   const [chat, setChat] = useState<ChatDetail | null>(null);
   const queueRef = useRef(queue);
@@ -84,19 +96,51 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     setChat(null);
     void loadChat(selectedId);
     void post(selectedId, { action: "read" }).catch(() => undefined);
-    const url = new URL(window.location.href);
-    url.searchParams.set("conversation", selectedId);
-    window.history.replaceState(null, "", url);
   }, [selectedId, loadChat]);
+
+  const openChat = (id: string) => {
+    if (id === selectedRef.current) return;
+    if (selectedRef.current) {
+      // Cambiar de chat (en la computadora) no apila entradas.
+      window.history.replaceState(pushedByUs() ? { waChat: id } : null, "", urlFor(id));
+    } else {
+      window.history.pushState({ waChat: id }, "", urlFor(id));
+    }
+    setSelectedId(id);
+  };
+
+  const closeChat = () => {
+    // Si la entrada la pusimos nosotros, «atrás» la quita (y `popstate` cierra el chat).
+    if (pushedByUs()) {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(null, "", urlFor(null));
+    setSelectedId(null);
+  };
+
+  useEffect(() => {
+    // Llegó con un chat abierto (un aviso, un enlace): debajo queda la lista,
+    // para que «atrás» vuelva a ella.
+    if (initialConversationId && !pushedByUs()) {
+      window.history.replaceState(null, "", urlFor(null));
+      window.history.pushState({ waChat: initialConversationId }, "", urlFor(initialConversationId));
+    }
+    const onPop = () => setSelectedId(new URL(window.location.href).searchParams.get("conversation"));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [initialConversationId]);
 
   useWhatsAppLive(() => {
     void loadList();
     if (selectedRef.current) void loadChat(selectedRef.current);
   });
 
-  // Mientras la IA trabaja en algún chat, el reloj de la lista avanza.
+  // Mientras la IA trabaja en algún chat, el reloj de la lista avanza; y cada
+  // minuto, para que «Sin responder · hace 5 min» no se quede quieto.
   const anyLive = useMemo(() => (items ?? []).some((i) => isRunLive(i.lastRun)), [items]);
   useNow(anyLive);
+  const now = useNow(true, 60_000);
 
   const refresh = () => {
     void loadList();
@@ -119,10 +163,11 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
         selectedId={selectedId}
         canLoadMore={Boolean(items && items.length >= listTake)}
         hidden={Boolean(selectedId)}
+        now={now}
         onQueue={pickQueue}
         onQuery={setQ}
         onSearch={() => void loadList()}
-        onOpen={setSelectedId}
+        onOpen={openChat}
         onLoadMore={() => {
           takeRef.current = listTake + 60;
           setListTake(takeRef.current);
@@ -142,7 +187,9 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
               </span>
               <h2 className="text-2xl font-light text-(--wa-heading)">WhatsApp de Dayana</h2>
               <p className="text-sm text-(--wa-meta)">
-                Elige un chat. En «Te toca» están los que la IA te pasó. La ⭐ marca un chat como favorito: la IA no lo toca.
+                Elige un chat. En «Pendientes» está lo que alguien escribió y nadie ha dado por atendido (contestar no
+                basta: márcalo como atendido). En «Te toca», lo que la IA te pasó. La ⭐ marca un chat como favorito: la
+                IA no lo toca.
               </p>
             </div>
           </div>
@@ -157,7 +204,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
             key={chat.id}
             chat={chat}
             canWrite={canWrite}
-            onBack={() => setSelectedId(null)}
+            onBack={closeChat}
             onToggleSidebar={toggleSidebar}
             onChanged={refresh}
           />

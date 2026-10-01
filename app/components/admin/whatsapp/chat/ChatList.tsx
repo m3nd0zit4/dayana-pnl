@@ -7,9 +7,14 @@ import GlobalModeSwitch from "../GlobalModeSwitch";
 import ChatRow from "./ChatRow";
 import { wa } from "./chatTheme";
 
-export type Counts = { attention: number; mine: number; ai: number; unread: number };
+export type Counts = { pending: number; attention: number; mine: number; ai: number; unread: number };
 
 const QUEUES: { id: ChatQueue; label: string; hint: string }[] = [
+  {
+    id: "pending",
+    label: "Pendientes",
+    hint: "Escribieron y nadie lo ha dado por atendido (responder no basta: márcalo como atendido)",
+  },
   { id: "all", label: "Todos", hint: "Todos los chats" },
   { id: "attention", label: "Te toca", hint: "La IA te los pasó" },
   { id: "mine", label: "Tuyos", hint: "Tomados o favoritos: la IA no los toca" },
@@ -25,6 +30,7 @@ const ChatList = ({
   selectedId,
   canLoadMore,
   hidden,
+  now,
   onQueue,
   onQuery,
   onSearch,
@@ -41,6 +47,8 @@ const ChatList = ({
   canLoadMore: boolean;
   /** En el celular, con un chat abierto, la lista se esconde. */
   hidden: boolean;
+  /** Reloj de la lista («Sin responder · hace 5 min»). */
+  now: number;
   onQueue: (id: ChatQueue) => void;
   onQuery: (q: string) => void;
   onSearch: () => void;
@@ -81,7 +89,16 @@ const ChatList = ({
       </div>
       <div className="flex gap-2 overflow-x-auto pb-0.5">
         {QUEUES.map((qq) => {
-          const n = qq.id === "attention" ? counts.attention : qq.id === "mine" ? counts.mine : qq.id === "ai" ? counts.ai : null;
+          const n =
+            qq.id === "pending"
+              ? counts.pending
+              : qq.id === "attention"
+                ? counts.attention
+                : qq.id === "mine"
+                  ? counts.mine
+                  : qq.id === "ai"
+                    ? counts.ai
+                    : null;
           const active = queue === qq.id;
           return (
             <button
@@ -102,7 +119,9 @@ const ChatList = ({
                 <span
                   className={cn(
                     "rounded-full px-1.5 text-[11px]",
-                    qq.id === "attention" ? "bg-(--wa-green) text-white" : "bg-(--wa-surface)/80 text-(--wa-icon)"
+                    qq.id === "pending" || qq.id === "attention"
+                      ? "bg-(--wa-green) text-white"
+                      : "bg-(--wa-surface)/80 text-(--wa-icon)"
                   )}
                 >
                   {n}
@@ -119,13 +138,23 @@ const ChatList = ({
           <Loader2 className="size-5 animate-spin text-(--wa-green)" />
         </div>
       )}
-      {items?.length === 0 && (
-        <div className="p-8 text-center text-sm text-(--wa-meta)">
-          {queue === "attention" ? "Nada pendiente: la IA no te ha pasado ningún chat." : "No hay chats aquí."}
-        </div>
-      )}
+      {items?.length === 0 &&
+        (q.trim() ? (
+          <div className="p-8 text-center text-sm text-(--wa-meta)">Ningún chat de esta lista coincide con «{q.trim()}».</div>
+        ) : queue === "pending" ? (
+          <div className="space-y-1 p-8 text-center">
+            <p className="text-base font-medium text-(--wa-text)">Nada pendiente 🎉</p>
+            <p className="text-sm text-(--wa-meta)">
+              Cuando alguien escriba, su chat aparece aquí hasta que lo marques como atendido.
+            </p>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-sm text-(--wa-meta)">
+            {queue === "attention" ? "La IA no te ha pasado ningún chat." : "No hay chats aquí."}
+          </div>
+        ))}
       {items?.map((item) => (
-        <ChatRow key={item.id} item={item} active={item.id === selectedId} onOpen={() => onOpen(item.id)} />
+        <ChatRow key={item.id} item={item} active={item.id === selectedId} now={now} onOpen={() => onOpen(item.id)} />
       ))}
       {canLoadMore && (
         <div className="flex justify-center p-3">

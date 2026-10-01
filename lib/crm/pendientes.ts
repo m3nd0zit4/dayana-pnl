@@ -1,6 +1,7 @@
 import { EnrollmentStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { PLACEHOLDER_PHONE_PREFIX } from "@/lib/crm/checkout-placeholder";
+import { pendingWhere } from "@/lib/crm/whatsapp-agent/pending";
 import { getMembershipProduct } from "@/lib/lms/membership";
 
 /**
@@ -21,6 +22,7 @@ export type PendienteKey =
   | "enlaces-sin-pagar"
   | "diagnosticos-sin-compra"
   | "precios-descuadrados"
+  | "whatsapp-pendientes"
   | "conversaciones-sin-responder";
 
 export type Pendiente = {
@@ -64,6 +66,7 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
     openLinks,
     diagnostics,
     drifted,
+    whatsappPending,
     conversations,
   ] = await Promise.all([
     // El mismo criterio que el aviso que había en la portada: cobro aprobado
@@ -113,8 +116,12 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
     // Un precio que no se propagó a los proveedores: se anuncia uno y los
     // planes cobran otro.
     prisma.product.count({ where: { priceSyncStatus: "DRIFTED" } }),
+    // Chats de WhatsApp donde alguien escribió y nadie lo dio por atendido
+    // (la cola «Pendientes» de la sección de WhatsApp).
+    prisma.conversation.count({ where: { channel: "WHATSAPP", ...pendingWhere() } }),
+    // WhatsApp ya cuenta arriba con su propio criterio: aquí no se repite.
     prisma.conversation.count({
-      where: { status: "OPEN", unreadCount: { gt: 0 } },
+      where: { channel: { not: "WHATSAPP" }, status: "OPEN", unreadCount: { gt: 0 } },
     }),
   ]);
 
@@ -159,6 +166,13 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
       count: diagnostics,
       label: plural(diagnostics, "diagnóstico reciente sin compra", "diagnósticos recientes sin compra"),
       href: `/admin/diagnosticos?segmento=sin-comprar&recientes=${PENDIENTES_DIAGNOSTIC_WINDOW_DAYS}`,
+      tone: "todo",
+    },
+    {
+      key: "whatsapp-pendientes",
+      count: whatsappPending,
+      label: plural(whatsappPending, "chat de WhatsApp pendiente", "chats de WhatsApp pendientes"),
+      href: "/admin/whatsapp",
       tone: "todo",
     },
     {

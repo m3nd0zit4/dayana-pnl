@@ -6,7 +6,9 @@ import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
 import { windowStateOf } from "../whatsapp-outbound-plan";
+import { isPending, replyStateOf, type ReplyState } from "../whatsapp-pending-rules";
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
+import { pendingWhere } from "./pending";
 
 /**
  * Lo que lee la sección de WhatsApp del CRM: chats con su estado de IA en
@@ -69,7 +71,7 @@ export const deliveryOf = (
   return null;
 };
 
-export type ChatQueue = "attention" | "mine" | "ai" | "all";
+export type ChatQueue = "pending" | "attention" | "mine" | "ai" | "all";
 
 export type ChatListItem = {
   id: string;
@@ -90,9 +92,19 @@ export type ChatListItem = {
   escalation: { category: string | null; severity: string | null; reason: string | null } | null;
   priority: boolean;
   hasDraft: boolean;
+  /** El borrador, recortado (como «Borrador: …» en WhatsApp). */
+  draftPreview: string | null;
   /** Hay algo esperando la autorización de Dayana (borrador, cita, pago). */
   awaitingApproval: string | null;
   lastRun: RunView | null;
+  /** La persona escribió y nadie lo dio por atendido (responder no cuenta). */
+  pending: boolean;
+  /** Último mensaje de la persona, si el chat está pendiente. */
+  pendingSince: string | null;
+  /** Quién contestó lo último (sin responder, tú, tú desde el celular, IA, automático). */
+  replyState: ReplyState | null;
+  /** Por qué quedó atendido (cita, pago, a mano…), si no está pendiente. */
+  resolvedReason: string | null;
 };
 
 const runView = (r: {
@@ -139,6 +151,8 @@ const PREVIEW_KIND: Record<string, string> = {
 
 const queueWhere = (queue: ChatQueue): Prisma.ConversationWhereInput => {
   switch (queue) {
+    case "pending":
+      return pendingWhere();
     case "attention":
       return {
         OR: [
@@ -164,22 +178,29 @@ export const listChats = async (input: {
   const rows = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
-      ...queueWhere(input.queue),
-      ...(q
-        ? {
-            OR: [
-              { participantName: { contains: q, mode: "insensitive" } },
-              { externalThreadId: { contains: q.replace(/\D/g, "") || q } },
-              { contact: { firstName: { contains: q, mode: "insensitive" } } },
-              { contact: { lastName: { contains: q, mode: "insensitive" } } },
-            ],
-          }
-        : {}),
+      // Con AND: la búsqueda tiene su propio OR y no puede pisar el de la cola
+      // (antes, buscar dentro de «Te toca» buscaba en todos los chats).
+      AND: [
+        queueWhere(input.queue),
+        q
+          ? {
+              OR: [
+                { participantName: { contains: q, mode: "insensitive" } },
+                { externalThreadId: { contains: q.replace(/\D/g, "") || q } },
+                { contact: { firstName: { contains: q, mode: "insensitive" } } },
+                { contact: { lastName: { contains: q, mode: "insensitive" } } },
+              ],
+            }
+          : {},
+      ],
     },
     orderBy:
       input.queue === "mine"
         ? [{ priorityAt: { sort: "desc", nulls: "last" } }, { lastMessageAt: "desc" }]
-        : [{ lastMessageAt: "desc" }],
+        : input.queue === "pending"
+          ? // Lo último que escribieron, arriba.
+            [{ lastInboundAt: { sort: "desc", nulls: "last" } }, { lastMessageAt: "desc" }]
+          : [{ lastMessageAt: "desc" }],
     take: input.take ?? 60,
     select: {
       id: true,
@@ -196,15 +217,24 @@ export const listChats = async (input: {
       escalationReason: true,
       priorityAt: true,
       draftBody: true,
+      lastInboundAt: true,
+      resolvedAt: true,
+      resolvedReason: true,
       contact: { select: { firstName: true, lastName: true } },
       messages: {
         orderBy: { sentAt: "desc" },
-        take: 3,
+        // Unos cuantos: para saber quién contestó se saltan los avisos grises
+        // y lo que no se entregó.
+        take: 6,
         select: {
           id: true,
           body: true,
           direction: true,
           isAutoReply: true,
+          isEcho: true,
+          source: true,
+          kind: true,
+          clientKey: true,
           attachments: true,
           status: true,
           failedReason: true,
@@ -225,6 +255,7 @@ export const listChats = async (input: {
 
   const items = rows.map((c): ChatListItem => {
     const last = c.messages[0];
+    const chatPending = isPending(c);
     const name =
       [c.contact?.firstName, c.contact?.lastName].filter(Boolean).join(" ") ||
       c.participantName ||
@@ -261,8 +292,13 @@ export const listChats = async (input: {
           : null,
       priority: Boolean(c.priorityAt),
       hasDraft: Boolean(c.draftBody),
+      draftPreview: c.draftBody?.trim() ? c.draftBody.trim().replace(/\s+/g, " ").slice(0, 120) : null,
       awaitingApproval: pendingBy.get(c.id) ?? null,
       lastRun: c.aiRuns[0] ? { ...runView(c.aiRuns[0]), delivery: deliveryOf(c.aiRuns[0], c.messages) } : null,
+      pending: chatPending,
+      pendingSince: chatPending ? (c.lastInboundAt?.toISOString() ?? null) : null,
+      replyState: replyStateOf(c.messages),
+      resolvedReason: chatPending ? null : c.resolvedReason,
     };
   });
 
@@ -278,9 +314,12 @@ export const listChats = async (input: {
   return items;
 };
 
-export const queueCounts = async () => {
+export type QueueCounts = { pending: number; attention: number; mine: number; ai: number; unread: number };
+
+export const queueCounts = async (): Promise<QueueCounts> => {
   const base = { channel: "WHATSAPP" as const };
-  const [attention, mine, ai, unread] = await Promise.all([
+  const [pending, attention, mine, ai, unread] = await Promise.all([
+    prisma.conversation.count({ where: { ...base, ...queueWhere("pending") } }),
     prisma.conversation.count({ where: { ...base, ...queueWhere("attention") } }),
     prisma.conversation.count({ where: { ...base, ...queueWhere("mine") } }),
     prisma.conversation.count({ where: { ...base, ...queueWhere("ai") } }),
@@ -289,7 +328,7 @@ export const queueCounts = async () => {
       _sum: { unreadCount: true },
     }),
   ]);
-  return { attention, mine, ai, unread: unread._sum.unreadCount ?? 0 };
+  return { pending, attention, mine, ai, unread: unread._sum.unreadCount ?? 0 };
 };
 
 export type ChatMessageView = {
@@ -402,6 +441,8 @@ export const getChat = async (id: string) => {
       priorityAt: true,
       draftBody: true,
       draftSource: true,
+      resolvedAt: true,
+      resolvedReason: true,
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -465,6 +506,12 @@ export const getChat = async (id: string) => {
         ? { category: c.escalationCategory, severity: c.escalationSeverity, reason: c.escalationReason }
         : null,
     priority: Boolean(c.priorityAt),
+    /** Pendiente hasta «Marcar como atendido» (o una cita / un pago); responder no lo resuelve. */
+    pending: isPending(c),
+    /** Último mensaje de la persona: «Marcar como atendido» solo cubre hasta aquí. */
+    lastInboundAt: c.lastInboundAt?.toISOString() ?? null,
+    resolvedAt: c.resolvedAt?.toISOString() ?? null,
+    resolvedReason: c.resolvedReason,
     draft: c.draftBody ? { body: c.draftBody, source: c.draftSource } : null,
     messages: [...c.messages.slice(0, CHAT_PAGE)].reverse().map(toMessageView),
     /** Hay mensajes más antiguos que los que se ven (botón «Cargar anteriores»). */

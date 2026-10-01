@@ -1,5 +1,6 @@
 import { Prisma, type ConversationChannel } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { isPending } from "@/lib/crm/whatsapp-pending-rules";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { resolvePageCredentials } from "./credentials";
@@ -202,6 +203,9 @@ export const ingestMessage = async (
           lastInboundAt: message.isEcho ? null : message.sentAt,
           unreadCount: 0,
           status: "CLOSED",
+          // El pasado nunca queda pendiente.
+          resolvedAt: new Date(),
+          resolvedReason: "import",
           ...(aiMode ? { aiMode } : {}),
         },
         update: contactId ? { contactId } : {},
@@ -229,11 +233,18 @@ export const ingestMessage = async (
           ...(message.system
             ? {}
             : message.isEcho
-            ? { status: "PENDING" as const }
+            ? // Dayana contestó desde el celular: ya lo leyó allí. Sigue
+              // pendiente (responder no es resolver).
+              { status: "PENDING" as const, unreadCount: 0 }
             : {
                 lastInboundAt: message.sentAt,
                 unreadCount: { increment: 1 },
                 status: "OPEN" as const,
+                // Un mensaje nuevo reabre el pendiente, aunque Meta lo
+                // feche un instante antes de que se resolviera.
+                resolvedAt: null,
+                resolvedReason: null,
+                resolvedById: null,
               }),
           // Nunca sobreescribir un contacto ya vinculado a mano con un null.
           ...(contactId ? { contactId } : {}),
@@ -281,16 +292,30 @@ export const ingestMessage = async (
       data: { lastMessageAt: message.sentAt },
     });
     if (!message.isEcho) {
-      await prisma.conversation.updateMany({
-        where: {
-          id: conversation.id,
-          OR: [
-            { lastInboundAt: null },
-            { lastInboundAt: { lt: message.sentAt } },
-          ],
-        },
-        data: { lastInboundAt: message.sentAt },
+      // Si el historial adelanta el último mensaje de la persona, el chat no
+      // pasa a pendiente por eso: si no lo estaba, se da por atendido ahora.
+      const before = await prisma.conversation.findUnique({
+        where: { id: conversation.id },
+        select: { lastInboundAt: true, resolvedAt: true, resolvedReason: true },
       });
+      if (before && (!before.lastInboundAt || before.lastInboundAt < message.sentAt)) {
+        const wasPending = isPending(before);
+        await prisma.conversation.updateMany({
+          where: {
+            id: conversation.id,
+            OR: [
+              { lastInboundAt: null },
+              { lastInboundAt: { lt: message.sentAt } },
+            ],
+          },
+          data: {
+            lastInboundAt: message.sentAt,
+            ...(wasPending
+              ? {}
+              : { resolvedAt: new Date(), resolvedReason: before.resolvedReason ?? "import" }),
+          },
+        });
+      }
     }
   }
 

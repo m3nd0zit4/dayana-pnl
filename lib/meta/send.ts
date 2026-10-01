@@ -9,6 +9,7 @@ import { Conversation, Prisma } from "@prisma/client";
 // has no such dependency.
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
+import { sendClearsUnread } from "@/lib/crm/whatsapp-pending-rules";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { attachPendingStatuses } from "./status";
@@ -564,18 +565,34 @@ export const sendMetaMessage = async (
   }
 
   if (!failedReason) {
+    // Solo una persona contestando desde el CRM deja el chat leído y consume
+    // el borrador. La IA, el saludo, los recordatorios y los masivos no
+    // significan que alguien vio el chat.
+    const human = sendClearsUnread(input);
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: {
         lastMessageAt: new Date(),
         status: "PENDING",
-        unreadCount: 0,
-        // Responder consume el borrador: dejarlo puesto invita a enviarlo dos veces.
-        draftBody: null,
-        draftSource: null,
-        draftUpdatedAt: null,
+        ...(human
+          ? {
+              unreadCount: 0,
+              // Responder consume el borrador: dejarlo puesto invita a enviarlo dos veces.
+              draftBody: null,
+              draftSource: null,
+              draftUpdatedAt: null,
+            }
+          : {}),
       },
     });
+    // La IA contestó sola: su sugerencia anterior ya no vale (lo que Dayana
+    // estaba escribiendo sí se queda).
+    if (!human && input.isAutoReply && !input.source) {
+      await prisma.conversation.updateMany({
+        where: { id: conversation.id, draftSource: "AI" },
+        data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
+      });
+    }
   }
 
   if (failedReason) throw new MetaSendError(failedReason);

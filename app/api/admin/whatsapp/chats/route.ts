@@ -10,12 +10,18 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const QUEUES = new Set<ChatQueue>(["attention", "mine", "ai", "all"]);
+const QUEUES = new Set<ChatQueue>(["pending", "attention", "mine", "ai", "all"]);
 
-/** Chats de WhatsApp por cola («Te toca», «Tú atiendes», «IA», «Todos»). */
+/**
+ * Chats de WhatsApp por cola («Pendientes», «Te toca», «Tuyos», «IA», «Todos»).
+ * `countsOnly=1`: solo los números (el menú lateral no necesita la lista).
+ */
 export const GET = withStaff("read", async ({ req }) => {
   if (!(await isWhatsAppWorkspaceAvailable())) return apiError("whatsapp_disabled", 404);
   const url = new URL(req.url);
+  if (url.searchParams.get("countsOnly") === "1") {
+    return NextResponse.json({ counts: await queueCounts() });
+  }
   const requested = url.searchParams.get("queue") as ChatQueue | null;
   const queue: ChatQueue = requested && QUEUES.has(requested) ? requested : "all";
   const [items, counts] = await Promise.all([

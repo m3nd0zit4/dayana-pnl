@@ -1128,6 +1128,15 @@ model Conversation {
   escalationSeverity String?        @map("escalation_severity")
   escalationReason   String?        @map("escalation_reason")
 
+  /// «Pendiente» = la persona escribió después de `resolvedAt` (o nunca se
+  /// resolvió). Responder no lo resuelve: solo «Marcar como atendido» o, solo,
+  /// una cita agendada / confirmada o un pago confirmado.
+  resolvedAt     DateTime? @map("resolved_at")
+  /// manual | appointment | payment | import | backfill
+  resolvedReason String?   @map("resolved_reason")
+  /// Quién lo marcó como atendido (sin relación: es solo para el rastro).
+  resolvedById   String?   @map("resolved_by_id")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -1143,6 +1152,7 @@ model Conversation {
   @@index([status, lastMessageAt(sort: Desc)])
   @@index([contactId, lastMessageAt(sort: Desc)])
   @@index([assignedStaffId, lastMessageAt(sort: Desc)])
+  @@index([channel, lastInboundAt(sort: Desc)])
   @@map("conversations")
 }
 
