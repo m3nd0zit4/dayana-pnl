@@ -42,6 +42,15 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}} Nos vemos pronto 💛",
     example: { nombre: "Ana", evento: "la masterclass", fecha: "hoy a las 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
   },
+  // Al inscribirse. De UTILIDAD: confirma algo que la persona acaba de pedir,
+  // sin palabras de venta (ni «gratis»), para que Meta no la pase a Marketing.
+  {
+    key: "evento_gratis_confirmacion",
+    title: "Evento gratuito: confirmación de inscripción",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, quedaste inscrita en {{evento}} el {{fecha}}. Te mando el enlace para entrar por aquí antes de empezar.",
+    example: { nombre: "Ana", evento: "«Reprograma tu mente»", fecha: "domingo 4 de octubre a las 9:30 a. m. (hora de Colombia)" },
+  },
   {
     key: "evento_grabacion",
     title: "Evento: grabación o material",
@@ -308,6 +317,15 @@ export type WaTemplate = {
   metaBody: string | null;
   metaVarNames: string[];
 };
+
+/** Estado en Meta de la plantilla de esa clave (`APPROVED`, `PENDING`…), o null si nunca se mandó. */
+export const getWhatsAppTemplateStatus = async (key: string): Promise<string | null> =>
+  (
+    await prisma.messageTemplate.findFirst({
+      where: { key, metaTemplateName: { not: null } },
+      select: { metaApprovalStatus: true },
+    })
+  )?.metaApprovalStatus ?? null;
 
 export const listWhatsAppTemplates = (): Promise<WaTemplate[]> =>
   prisma.messageTemplate.findMany({

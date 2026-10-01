@@ -1,66 +1,10 @@
-import { NextResponse } from "next/server";
 import { withStaff } from "@/lib/api/handler";
-import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
-import {
-  listWebinarRegistrations,
-  webinarRegistrationStats,
-} from "@/lib/crm/webinar-registrations";
+import { getRegistrations } from "@/app/api/admin/eventos/_lib/handlers";
 
 export const dynamic = "force-dynamic";
 
-const MAX_TAKE = 100;
-
 /**
- * Lista paginada de registradas.
- *
- * Existe porque el panel se renderiza con las 50 más recientes: sin búsqueda
- * ni paginación no había forma de llegar a nadie más allá de esa fila, y el
- * reenvío individual sería inalcanzable justo para quien más lo necesita.
- *
- * `webinarId` permite servir también el historial de una edición archivada
- * con el mismo endpoint.
+ * Ruta de antes: inscritas del evento actual, o de `?webinarId=`. Ver
+ * `/api/admin/eventos/[id]/registrations`.
  */
-export const GET = withStaff("read", async ({ req }) => {
-  const url = new URL(req.url);
-  const webinarId =
-    url.searchParams.get("webinarId")?.trim() ||
-    (await ensureFreeWebinar()).id;
-
-  const take = Math.min(
-    Math.max(Number(url.searchParams.get("take") ?? 50) || 50, 1),
-    MAX_TAKE
-  );
-  const skip = Math.max(Number(url.searchParams.get("skip") ?? 0) || 0, 0);
-  const q = url.searchParams.get("q") ?? undefined;
-  const failedOnly = url.searchParams.get("failedOnly") === "true";
-
-  const [rows, stats] = await Promise.all([
-    listWebinarRegistrations(webinarId, { take, skip, q, failedOnly }),
-    skip === 0
-      ? webinarRegistrationStats(webinarId)
-      : Promise.resolve(null),
-  ]);
-
-  return NextResponse.json({
-    registrations: rows.map((r) => ({
-      id: r.id,
-      contactId: r.contact.id,
-      name: [r.contact.firstName, r.contact.lastName].filter(Boolean).join(" "),
-      email: r.contact.email,
-      phoneE164: r.contact.phoneE164,
-      notifyEmail: r.contact.notifyEmail,
-      createdAtIso: r.createdAt.toISOString(),
-      linkEmailSentAt: r.linkEmailSentAt?.toISOString() ?? null,
-      reminder24hSentAt: r.reminder24hSentAt?.toISOString() ?? null,
-      reminder1hSentAt: r.reminder1hSentAt?.toISOString() ?? null,
-      lastSendError: r.lastSendError,
-      lastSendErrorAt: r.lastSendErrorAt?.toISOString() ?? null,
-      notifyWhatsapp: r.contact.notifyWhatsapp,
-      reminder24hWaSentAt: r.reminder24hWaSentAt?.toISOString() ?? null,
-      reminder1hWaSentAt: r.reminder1hWaSentAt?.toISOString() ?? null,
-      waReminderError: r.waReminderError,
-    })),
-    stats,
-    hasMore: rows.length === take,
-  });
-});
+export const GET = withStaff("read", async (ctx) => getRegistrations(ctx));

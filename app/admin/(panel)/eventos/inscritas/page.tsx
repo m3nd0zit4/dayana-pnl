@@ -22,7 +22,7 @@ import {
   type FreeEventRow,
 } from "@/lib/crm/free-events";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
-import { prisma } from "@/lib/db";
+import { listRegistrationContactIds } from "@/lib/crm/webinar-registrations";
 import { freeEventPresetsFor } from "@/lib/crm/whatsapp-presets";
 import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 
@@ -67,18 +67,19 @@ const FreeEventPeoplePage = async ({
     getOperationalTimezone(),
   ]);
 
-  // El actual primero, luego los anteriores del más reciente al más antiguo.
-  const ordered = [
-    ...events.filter((e) => e.isCurrent),
-    ...events.filter((e) => !e.isCurrent),
-  ];
+  // Como la lista de eventos: el publicado, los que vienen y los pasados.
+  const ordered = events;
   const selected = eventId
     ? (events.find((e) => e.id === eventId) ?? null)
     : null;
   const selectedUpcoming = selected ? isFreeEventUpcoming(selected) : false;
   const openEvent = events.find(isFreeEventOpen) ?? null;
   const presets = freeEventPresetsFor(
-    { selected, selectedUpcoming, openEvent },
+    {
+      selected: selected ? { ...selected, id: selected.id } : null,
+      selectedUpcoming,
+      openEvent: openEvent && openEvent.id !== selected?.id ? openEvent : null,
+    },
     tz
   );
 
@@ -87,16 +88,7 @@ const FreeEventPeoplePage = async ({
     ? []
     : q
       ? result.people.map((p) => p.contactId)
-      : [
-          ...new Set(
-            (
-              await prisma.webinarRegistration.findMany({
-                where: eventId ? { webinarId: eventId } : {},
-                select: { contactId: true },
-              })
-            ).map((r) => r.contactId)
-          ),
-        ];
+      : await listRegistrationContactIds(eventId);
 
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
   const hrefFor = (nextPage: number) => {
@@ -127,7 +119,7 @@ const FreeEventPeoplePage = async ({
       <strong className="font-medium text-foreground">
         «{selected.headline}»
       </strong>{" "}
-      · {selectedUpcoming ? "Evento actual" : FREE_EVENT_STATUS_LABEL[selected.status]}
+      · {FREE_EVENT_STATUS_LABEL[selected.status]}
       {" · "}
       {eventDateLabel(selected, tz)}
       {peopleCount ? ` · ${peopleCount}` : ""}
@@ -156,9 +148,10 @@ const FreeEventPeoplePage = async ({
             q={q}
             segments={ordered.map((e) => ({
               id: e.id,
-              label: e.isCurrent
-                ? `Actual · ${shorten(e.headline)}`
-                : `${shortDate(e.startsAt)} · ${shorten(e.headline, 20)}`,
+              label:
+                e.status === "OPEN"
+                  ? `Publicado · ${shorten(e.headline)}`
+                  : `${shortDate(e.startsAt)} · ${shorten(e.headline, 20)}`,
               count: e.registrations,
             }))}
           />
@@ -220,7 +213,7 @@ const FreeEventPeoplePage = async ({
                       return (
                         <Link
                           key={e.id}
-                          href={`/admin/eventos/historial/${e.id}`}
+                          href={`/admin/eventos/${e.id}?tab=inscritas`}
                           title={e.headline}
                           aria-current={isSelected ? "true" : undefined}
                         >
@@ -253,6 +246,8 @@ const FreeEventPeoplePage = async ({
                   ? "Enviar a las de la búsqueda"
                   : "Enviar a todas las inscritas"
             }
+            // Con un evento elegido, el envío queda en su historia.
+            link={selected ? { freeWebinarId: selected.id } : undefined}
           />
           {pages > 1 ? (
             <div className="flex items-center justify-between text-sm">

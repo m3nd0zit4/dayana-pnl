@@ -1,165 +1,62 @@
-import FreeWebinarAdminClient from "@/app/components/admin/crm/FreeWebinarAdminClient";
-import type { WebinarRegistrantRow } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
-import {
-  ensureFreeWebinar,
-  DEFAULT_FREE_WEBINAR,
-} from "@/lib/crm/free-webinar";
-import { getStaffSession } from "@/lib/auth/staff-session";
-import { canBroadcastNotifications } from "@/lib/crm/staff-permissions";
-import {
-  listWebinarRegistrations,
-  webinarRegistrationStats,
-} from "@/lib/crm/webinar-registrations";
-import {
-  EVENT_WA_TEMPLATE_KEY,
-  eventWaRemindersEnabled,
-} from "@/lib/crm/event-whatsapp-reminders";
-import { prisma } from "@/lib/db";
-
-/** Primera página del panel; el resto se pide desde el cliente. */
-const PAGE_SIZE = 50;
-import {
-  getOperationalTimezone,
-} from "@/lib/crm/operational-timezone";
+import FreeEventsPageClient, {
+  type FreeEventListItem,
+} from "@/app/components/admin/crm/free-events/FreeEventsPageClient";
 import { isCrmUiPreview } from "@/lib/auth/preview";
+import { eventDateLabel, listFreeEvents } from "@/lib/crm/free-events";
+import { freeEventEditionsEnabled } from "@/lib/crm/free-event-settings";
+import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 
 export const dynamic = "force-dynamic";
 
-const FreeEventAdminPage = async () => {
-  const operationalTimezone = await getOperationalTimezone();
-
-  if (isCrmUiPreview()) {
-    const now = new Date();
-    return (
-      <FreeWebinarAdminClient
-        operationalTimezone={operationalTimezone}
-        registrations={[]}
-        registrationStats={{
-          total: 0,
-          linkSent: 0,
-          reminder24h: 0,
-          reminder1h: 0,
-          unreachable: 0,
-          pendingLink: 0,
-          failed: 0,
-          wa24h: 0,
-          wa1h: 0,
-          waFailed: 0,
-          noWhatsApp: 0,
-        }}
-        initial={{
-          id: "preview",
-          slug: "gratuito",
-          isActive: false,
-          headline: DEFAULT_FREE_WEBINAR.headline,
-          subheadline: DEFAULT_FREE_WEBINAR.subheadline,
-          body: DEFAULT_FREE_WEBINAR.body,
-          startsAt: null,
-          startsAtIso: null,
-          startsAtDateKey: null,
-          startsAtTimeHm: null,
-          startsAtHasTime: false,
-          operationalTimezone,
-          capacity: 100,
-          materialUrl: null,
-          materialFileName: null,
-          materialMimeType: null,
-          materialSizeBytes: null,
-          endedAt: null,
-          archivedAt: null,
-          meetUrl: null,
-          muxPlaybackId: null,
-          videoStatus: "NONE",
-          videoDurationSec: null,
-          videoErrorMessage: null,
-          learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
-          learnItems: DEFAULT_FREE_WEBINAR.learnItems,
-          faq: DEFAULT_FREE_WEBINAR.faq,
-          ctaLabel: DEFAULT_FREE_WEBINAR.ctaLabel,
-          formTitle: DEFAULT_FREE_WEBINAR.formTitle,
-          metaTitle: DEFAULT_FREE_WEBINAR.metaTitle,
-          metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
-          eventLabel: "Webinar gratuito",
-          locationLabel: "Online",
-          priceLabel: "Gratis",
-          faqTitle: null,
-          materialLabel: null,
-          successMessage: null,
-          linkEnabled: true,
-          linkTitle: null,
-          linkSubtitle: null,
-          updatedAt: now,
-        }}
-      />
-    );
-  }
-
-  const webinar = await ensureFreeWebinar();
-  // Solo la primera página. Con 10k registradas, traerlas todas reventaría el
-  // servidor y el DOM; los totales salen de contadores agregados.
-  const [rows, stats, waEnabled, waTemplate] = await Promise.all([
-    listWebinarRegistrations(webinar.id, { take: PAGE_SIZE }).catch(() => []),
-    webinarRegistrationStats(webinar.id).catch(() => ({
-      total: 0,
-      linkSent: 0,
-      reminder24h: 0,
-      reminder1h: 0,
-      unreachable: 0,
-      pendingLink: 0,
-      failed: 0,
-      wa24h: 0,
-      wa1h: 0,
-      waFailed: 0,
-      noWhatsApp: 0,
-    })),
-    eventWaRemindersEnabled(),
-    prisma.messageTemplate
-      .findFirst({
-        where: { key: EVENT_WA_TEMPLATE_KEY, metaTemplateName: { not: null } },
-        select: { metaApprovalStatus: true },
-      })
-      .catch(() => null),
+/**
+ * Los eventos gratuitos, uno por fila, como los talleres. «Próximos» (el
+ * publicado, los cerrados que aún no pasan y los borradores) y «Pasados»
+ * (`?vista=pasados`, a donde redirige el antiguo Historial).
+ */
+const FreeEventsPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ vista?: string }>;
+}) => {
+  const sp = await searchParams;
+  const preview = isCrmUiPreview();
+  const [rows, tz, editionsEnabled] = await Promise.all([
+    preview ? Promise.resolve([]) : listFreeEvents(),
+    getOperationalTimezone(),
+    preview ? Promise.resolve(false) : freeEventEditionsEnabled(),
   ]);
 
-  const staff = await getStaffSession().catch(() => null);
-  // Reenviar a todas es acción de OWNER; la UI oculta el botón y la ruta lo
-  // vuelve a comprobar.
-  const canBroadcast = staff ? canBroadcastNotifications(staff.role) : false;
-
-  // Se aplana aquí: el panel es un componente cliente y las fechas tienen que
-  // cruzar la frontera como cadenas.
-  const registrations: WebinarRegistrantRow[] = rows.map((r) => ({
-    id: r.id,
-    contactId: r.contact.id,
-    name: [r.contact.firstName, r.contact.lastName].filter(Boolean).join(" "),
-    email: r.contact.email,
-    phoneE164: r.contact.phoneE164,
-    notifyEmail: r.contact.notifyEmail,
-    createdAtIso: r.createdAt.toISOString(),
-    linkEmailSentAt: r.linkEmailSentAt?.toISOString() ?? null,
-    reminder24hSentAt: r.reminder24hSentAt?.toISOString() ?? null,
-    reminder1hSentAt: r.reminder1hSentAt?.toISOString() ?? null,
-    lastSendError: r.lastSendError,
-    lastSendErrorAt: r.lastSendErrorAt?.toISOString() ?? null,
-    notifyWhatsapp: r.contact.notifyWhatsapp,
-    reminder24hWaSentAt: r.reminder24hWaSentAt?.toISOString() ?? null,
-    reminder1hWaSentAt: r.reminder1hWaSentAt?.toISOString() ?? null,
-    waReminderError: r.waReminderError,
+  const events: FreeEventListItem[] = rows.map((e) => ({
+    id: e.id,
+    headline: e.headline,
+    eventLabel: e.eventLabel,
+    status: e.status,
+    publicPath: e.publicPath,
+    dateLabel: eventDateLabel(e, tz),
+    registrations: e.registrations,
+    stats: {
+      linkSent: e.stats.linkSent,
+      reminder24h: e.stats.reminder24h,
+      reminder1h: e.stats.reminder1h,
+      wa24h: e.stats.wa24h,
+      wa1h: e.stats.wa1h,
+      waConfirmation: e.stats.waConfirmation,
+    },
   }));
 
+  // Sin próximos, se abre en los pasados: es lo que hay que ver.
+  const hasUpcoming = events.some((e) => e.status !== "COMPLETED");
+  const initialView =
+    sp.vista === "pasados" || (!sp.vista && !hasUpcoming && events.length > 0) ? "pasados" : "proximos";
+
   return (
-    <FreeWebinarAdminClient
-      initial={webinar}
-      operationalTimezone={webinar.operationalTimezone ?? operationalTimezone}
-      registrations={registrations}
-      registrationStats={stats}
-      canBroadcast={canBroadcast}
-      whatsApp={{
-        enabled: waEnabled,
-        templateStatus: waTemplate?.metaApprovalStatus ?? null,
-      }}
+    <FreeEventsPageClient
+      events={events}
+      initialView={initialView}
+      editionsEnabled={editionsEnabled}
+      operationalTimezone={tz}
     />
   );
 };
 
-export default FreeEventAdminPage;
+export default FreeEventsPage;

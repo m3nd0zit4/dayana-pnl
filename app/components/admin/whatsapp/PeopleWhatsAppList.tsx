@@ -29,6 +29,7 @@ const PeopleWhatsAppList = ({
   title,
   source,
   allLabel,
+  link,
 }: {
   people: PersonRow[];
   /** Todas las personas del filtro (no solo esta página), para «enviar a todas». */
@@ -38,6 +39,8 @@ const PeopleWhatsAppList = ({
   title: string;
   source: string;
   allLabel: string;
+  /** El evento o el taller de los envíos masivos: quedan en su historia. */
+  link?: { freeWebinarId?: string | null; workshopEditionId?: string | null };
 }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [statuses, setStatuses] = useState<Record<string, WhatsAppStatus>>({});
@@ -76,6 +79,7 @@ const PeopleWhatsAppList = ({
           title={title}
           onDone={load}
           label={allLabel}
+          link={link}
         />
         {selected.size > 0 && (
           <WhatsAppBulkSend
@@ -88,6 +92,7 @@ const PeopleWhatsAppList = ({
               void load();
             }}
             label="Enviar a las elegidas"
+            link={link}
           />
         )}
         <span className="text-xs text-[#667781]">

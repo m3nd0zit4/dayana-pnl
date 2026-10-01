@@ -18,6 +18,9 @@ const schema = z.object({
   kind: z.enum(["evento", "taller", "diagnostico", "pago", "libre", "comunidad"]).default("libre"),
   text: z.string().trim().max(4000).default(""),
   vars: z.record(z.string(), z.string().max(1000)).optional(),
+  /** El evento o el taller del envío, para su historia. */
+  freeWebinarId: z.string().max(64).nullish(),
+  workshopEditionId: z.string().max(64).nullish(),
 });
 
 export const POST = withStaff("write", async ({ req, staff }) => {
@@ -38,6 +41,8 @@ export const POST = withStaff("write", async ({ req, staff }) => {
     vars: input.vars,
     contactIds: input.contactIds,
     staffId: staff.id,
+    freeWebinarId: input.freeWebinarId ?? null,
+    workshopEditionId: input.workshopEditionId ?? null,
   });
   return NextResponse.json(created);
 });

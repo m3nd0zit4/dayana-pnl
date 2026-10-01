@@ -28,6 +28,8 @@ export type WebinarMailInput = {
   eventLabel?: string | null;
   /** Título del evento (el titular de la página). */
   eventTitle?: string | null;
+  /** El evento: el material se descarga del suyo, no del que esté abierto. */
+  eventId?: string | null;
 };
 
 const labelOf = (i: WebinarMailInput) => i.eventLabel?.trim() || "Evento gratuito";
@@ -51,11 +53,14 @@ const scheduleRows = (i: WebinarMailInput): SummaryRow[] => {
  * Enlace al material. Apunta a la ruta del sitio, no al blob: el blob es
  * privado y la ruta es la que comprueba que el webinar sigue vivo.
  */
-const materialHtml = (fileName: string): string =>
-  `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#33302b;text-align:center;">Material de apoyo: <a href="${escapeHtml(`${siteUrl()}/api/webinar/material`)}" style="color:#c0654a;font-weight:600;">descargar ${escapeHtml(fileName)}</a></p>`;
+const materialUrl = (eventId?: string | null): string =>
+  `${siteUrl()}/api/webinar/material${eventId ? `?evento=${encodeURIComponent(eventId)}` : ""}`;
 
-const materialText = (fileName: string): string =>
-  `Material de apoyo (${fileName}): ${siteUrl()}/api/webinar/material`;
+const materialHtml = (fileName: string, eventId?: string | null): string =>
+  `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;color:#33302b;text-align:center;">Material de apoyo: <a href="${escapeHtml(materialUrl(eventId))}" style="color:#c0654a;font-weight:600;">descargar ${escapeHtml(fileName)}</a></p>`;
+
+const materialText = (fileName: string, eventId?: string | null): string =>
+  `Material de apoyo (${fileName}): ${materialUrl(eventId)}`;
 
 /** El enlace también en texto: algunos clientes ocultan los botones. */
 const linkFallbackHtml = (meetUrl: string): string =>
@@ -84,7 +89,7 @@ export const webinarMeetLinkHtml = (i: WebinarMailInput): string => {
     bodyHtml:
       body +
       (meetUrl ? linkFallbackHtml(meetUrl) : "") +
-      (i.materialFileName ? materialHtml(i.materialFileName) : ""),
+      (i.materialFileName ? materialHtml(i.materialFileName, i.eventId) : ""),
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
       ? { label: "Entrar al evento", href: meetUrl }
@@ -100,7 +105,7 @@ export const webinarMeetLinkText = (i: WebinarMailInput): string =>
     `Ya tienes el enlace para entrar a ${titleOf(i)}. Guárdalo: es el mismo del día del encuentro.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
-    i.materialFileName ? materialText(i.materialFileName) : "",
+    i.materialFileName ? materialText(i.materialFileName, i.eventId) : "",
     ``,
     `Te recomiendo entrar unos minutos antes.`,
     ``,
@@ -176,7 +181,7 @@ export const webinarReminderHtml = (i: WebinarReminderInput): string => {
     bodyHtml:
       body +
       (meetUrl ? linkFallbackHtml(meetUrl) : "") +
-      (i.materialFileName ? materialHtml(i.materialFileName) : ""),
+      (i.materialFileName ? materialHtml(i.materialFileName, i.eventId) : ""),
     summaryRows: scheduleRows(i),
     ctaPrimary: meetUrl
       ? {
@@ -199,7 +204,7 @@ export const webinarReminderText = (i: WebinarReminderInput): string =>
         : `${titleOf(i)} empieza en una hora.`,
     i.scheduleLabel ? `Cuándo: ${i.scheduleLabel}.` : "",
     i.meetUrl ? `Enlace: ${i.meetUrl}` : "",
-    i.materialFileName ? materialText(i.materialFileName) : "",
+    i.materialFileName ? materialText(i.materialFileName, i.eventId) : "",
     ``,
     `Dayana Beltrán PNL`,
     pageUrl(),

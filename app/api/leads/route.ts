@@ -18,9 +18,10 @@ import {
   WEBINAR_INTEREST_LABEL,
 } from "@/lib/crm/tags";
 import {
-  ensureFreeWebinar,
   formatWebinarScheduleLabel,
+  resolveRegistrationEvent,
 } from "@/lib/crm/free-webinar";
+import { sendFreeEventConfirmationWhatsApp } from "@/lib/crm/free-event-confirmation";
 import { recordWebinarRegistration } from "@/lib/crm/webinar-registrations";
 import { completeDiagnostic } from "@/lib/crm/diagnostics";
 import { leadEventId } from "@/lib/meta/capi";
@@ -58,6 +59,16 @@ type Body = {
   /** Optional CRM tag slug (e.g. webinar-gratuito). */
   tag?: string;
   /**
+   * El evento gratuito de la página donde se inscribió. Solo vale si sigue
+   * abierto; si no (formulario cacheado del anterior), el abierto de ahora.
+   */
+  freeEventId?: string;
+  /**
+   * Trampa para bots: un campo invisible de `LeadCaptureForm`. Una persona
+   * nunca lo rellena.
+   */
+  hp?: string;
+  /**
    * Consentimiento de medición publicitaria. Separado de `consentData` a
    * propósito: aceptar que te contacten no es aceptar que tus datos se envíen
    * a Meta. Sin esta bandera, CAPI no manda nada de este contacto.
@@ -87,6 +98,18 @@ const sourceMap: Record<string, ContactSource> = {
   web_lead_form: ContactSource.WEB_LEAD_FORM,
   whatsapp: ContactSource.WHATSAPP_DIRECT,
   referral: ContactSource.REFERRAL,
+};
+
+/**
+ * `after()` dentro de una petición; fuera (pruebas que llaman a la ruta
+ * directamente) lanza, y ahí se espera en línea.
+ */
+const afterResponse = async (task: () => Promise<void>): Promise<void> => {
+  try {
+    after(task);
+  } catch {
+    await task();
+  }
 };
 
 const appendWebinarNote = async (
@@ -121,6 +144,25 @@ export async function POST(req: NextRequest) {
     body = (await req.json()) as Body;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  // Un bot que rellenó la trampa recibe un «listo» normal y no se guarda ni se
+  // envía nada: ni contacto, ni inscripción, ni correo, ni WhatsApp (que puede
+  // ser una plantilla de pago).
+  if (typeof body.hp === "string" && body.hp.trim()) {
+    console.warn("[leads] trampa de bots rellenada; se ignora");
+    return NextResponse.json({
+      ok: true,
+      contactId: null,
+      enrollmentId: null,
+      created: true,
+      alreadyRegistered: false,
+      webinar: body.tag === WEBINAR_GRATUITO_TAG_SLUG,
+      freeEventId: null,
+      diagnosticProfile: null,
+      diagnosticToken: null,
+      diagnosticLeadEventId: null,
+    });
   }
 
   const phone = typeof body.phone === "string" ? body.phone : "";
@@ -307,10 +349,12 @@ export async function POST(req: NextRequest) {
         await ensureWebinarGratuitoTag(contact.id);
         await appendWebinarNote(contact.id, hadTag);
 
-        const webinar = await ensureFreeWebinar();
-        webinarOpen = webinar.isActive && !webinar.endedAt;
+        const webinar = await resolveRegistrationEvent(
+          typeof body.freeEventId === "string" ? body.freeEventId.trim().slice(0, 64) : null
+        );
+        webinarOpen = webinar !== null;
 
-        if (webinarOpen) {
+        if (webinar) {
           webinarId = webinar.id;
           webinarMeetUrl = webinar.meetUrl;
           webinarScheduleLabel = formatWebinarScheduleLabel(webinar);
@@ -331,6 +375,16 @@ export async function POST(req: NextRequest) {
           // Sin sello aquí: el enlace se da por enviado solo cuando la
           // confirmación con el enlace sale de verdad (más abajo).
           await recordWebinarRegistration(webinar.id, contact.id);
+          // Confirmación por WhatsApp, fuera de la petición: la persona ya
+          // tiene su «listo». Una sola vez por evento (se sella al reclamar).
+          const eventId = webinar.id;
+          const registeredContactId = contact.id;
+          await afterResponse(async () => {
+            await sendFreeEventConfirmationWhatsApp({
+              webinarId: eventId,
+              contactId: registeredContactId,
+            }).catch((e) => console.error("[leads] confirmación por WhatsApp", e));
+          });
         }
       } catch (e) {
         console.error("[leads] webinar registration failed", e);
@@ -454,6 +508,7 @@ export async function POST(req: NextRequest) {
       created,
       alreadyRegistered,
       webinar: wantsWebinarTag,
+      freeEventId: webinarId,
       diagnosticProfile,
       diagnosticToken,
       diagnosticLeadEventId,

@@ -200,7 +200,7 @@ const DiagnosticoCard = ({
 
 const WebinarServiceRow = ({ r }: { r: WebinarRegistrationRow }) => (
   <Link
-    href={`/admin/eventos/historial/${r.webinar.id}`}
+    href={`/admin/eventos/${r.webinar.id}?tab=inscritas`}
     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
   >
     <div className="min-w-0 flex-1">

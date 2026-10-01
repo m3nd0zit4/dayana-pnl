@@ -68,6 +68,16 @@ enum WorkshopEditionStatus {
   COMPLETED
 }
 
+/// Ciclo de un evento gratuito, como el de los talleres: borrador → abierto
+/// (página publicada, acepta inscripciones) → cerrado (sin inscripciones, el
+/// evento aún no pasa: los recordatorios siguen) → realizado.
+enum FreeEventStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  COMPLETED
+}
+
 enum StaffRole {
   OWNER
   OPERATOR
@@ -519,19 +529,31 @@ model WorkshopEdition {
   enrollments           Enrollment[]
   notificationCampaigns NotificationCampaign[]
   documents             WorkshopDocument[]
+  whatsAppSends         WhatsAppSend[]
 
   @@map("workshop_editions")
 }
 
-/// Singleton-style landing for the free webinar funnel (`/webinar-gratuito`).
-/// One row per slug; seed creates `gratuito`. Toggle `isActive` to publish/unpublish.
+/// Un evento gratuito: una fila por edición, igual que `WorkshopEdition`. La
+/// que está `OPEN` es la de `/eventos-gratuitos` (publicar una cierra las
+/// demás); `gratuito` es solo un alias público de esa. Cada edición tiene sus
+/// inscritas, su historia (`FreeEventActivity`) y sus envíos de WhatsApp.
 /// `startsAt` is the real UTC instant; staff enter date/time in OPERATIONAL_TZ.
 /// When `startsAtHasTime` is false, only the calendar date is shown publicly
 /// (`startsAt` is stored as noon in OPERATIONAL_TZ as a date anchor).
 model FreeWebinar {
   id                String          @id @default(cuid())
   slug              String          @unique @default("gratuito")
+  /// Espejo de `status === OPEN`, para el código viejo y las consultas
+  /// simples. Lo escribe siempre quien cambia `status`.
   isActive          Boolean         @default(false) @map("is_active")
+  status            FreeEventStatus @default(DRAFT)
+  /// URLs anteriores: `/eventos-gratuitos/<vieja>` redirige a la actual.
+  previousSlugs     String[]        @default([]) @map("previous_slugs")
+  /// Primera vez que se publicó. Desde ahí la URL no cambia sola.
+  publishedAt       DateTime?       @map("published_at")
+  /// Confirmación por WhatsApp al inscribirse (`evento_gratis_confirmacion`).
+  waConfirmationEnabled Boolean     @default(true) @map("wa_confirmation_enabled")
   headline          String
   subheadline       String?         @db.Text
   body              String?         @db.Text
@@ -588,17 +610,43 @@ model FreeWebinar {
   /// y recordatorios sin tocar nada destructivo. Null = edición todavía en pie.
   /// No toca `isActive`: ese interruptor es de Dayana y el cron no se lo pisa.
   endedAt           DateTime?       @map("ended_at")
-  /// La verdad sobre «cuál está viva» es el SLUG: la viva es siempre
-  /// `gratuito`, y al archivar se renombra a `gratuito-<id>`. Esta columna es
-  /// solo la fecha que se muestra en el historial — nunca un predicado.
+  /// Legado: el archivado por renombre (`gratuito-<id>`) que hubo antes de las
+  /// ediciones. Solo una fecha para mostrar — nunca un predicado.
   archivedAt        DateTime?       @map("archived_at")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
 
   registrations WebinarRegistration[]
+  activities    FreeEventActivity[]
+  whatsAppSends WhatsAppSend[]
 
   @@index([archivedAt])
+  @@index([status, startsAt])
   @@map("free_webinars")
+}
+
+/// La historia de un evento: lo que pasó y cuándo (creado, publicado, enlace
+/// puesto, cada pasada de recordatorios con cuántos salieron…). Solo se
+/// añade; el panel la mezcla con los envíos de WhatsApp y las inscripciones.
+model FreeEventActivity {
+  id             String   @id @default(cuid())
+  freeWebinarId  String   @map("free_webinar_id")
+  /// created | published | unpublished | closed | ended | reopened |
+  /// meet_link_set | meet_link_changed | date_changed | link_emails |
+  /// reminder_24h_email | reminder_1h_email | reminder_24h_wa |
+  /// reminder_1h_wa | material_uploaded | material_sent | whatsapp_bulk | …
+  kind           String
+  at             DateTime @default(now())
+  count          Int?
+  failed         Int?
+  staffUserId    String?  @map("staff_user_id")
+  whatsAppSendId String?  @map("whatsapp_send_id")
+  meta           Json?
+
+  freeWebinar FreeWebinar @relation(fields: [freeWebinarId], references: [id], onDelete: Cascade)
+
+  @@index([freeWebinarId, at])
+  @@map("free_event_activities")
 }
 
 /// Una fila por persona registrada al webinar. Los contactos ya llevan la
@@ -626,6 +674,10 @@ model WebinarRegistration {
   reminder1hWaSentAt  DateTime? @map("reminder_1h_wa_sent_at")
   waReminderError     String?   @map("wa_reminder_error") @db.Text
   waReminderErrorAt   DateTime? @map("wa_reminder_error_at")
+  /// Confirmación por WhatsApp al inscribirse. Se sella al reclamar (una sola
+  /// vez por persona y evento); si no salió, el motivo queda en el error.
+  confirmationWaSentAt DateTime? @map("confirmation_wa_sent_at")
+  confirmationWaError  String?   @map("confirmation_wa_error") @db.Text
 
   webinar FreeWebinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
@@ -2339,10 +2391,17 @@ model WhatsAppSend {
   createdById String?   @map("created_by_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   finishedAt  DateTime? @map("finished_at")
+  /// El evento o el taller del envío, para su historia. Null = suelto.
+  freeWebinarId     String? @map("free_webinar_id")
+  workshopEditionId String? @map("workshop_edition_id")
 
-  recipients WhatsAppSendRecipient[]
+  recipients      WhatsAppSendRecipient[]
+  freeWebinar     FreeWebinar?     @relation(fields: [freeWebinarId], references: [id], onDelete: SetNull)
+  workshopEdition WorkshopEdition? @relation(fields: [workshopEditionId], references: [id], onDelete: SetNull)
 
   @@index([createdAt(sort: Desc)])
+  @@index([freeWebinarId])
+  @@index([workshopEditionId])
   @@map("whatsapp_sends")
 }
 

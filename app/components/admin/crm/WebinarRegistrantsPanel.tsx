@@ -37,6 +37,9 @@ export type WebinarRegistrantRow = {
   reminder24hWaSentAt: string | null;
   reminder1hWaSentAt: string | null;
   waReminderError: string | null;
+  /** Confirmación por WhatsApp al inscribirse. */
+  confirmationWaSentAt?: string | null;
+  confirmationWaError?: string | null;
 };
 
 export type WebinarRegistrationStats = {
@@ -51,6 +54,7 @@ export type WebinarRegistrationStats = {
   wa1h: number;
   waFailed: number;
   noWhatsApp: number;
+  waConfirmation?: number;
 };
 
 export type MailPass = "link" | "24h" | "1h";
@@ -65,8 +69,13 @@ export type EventWhatsAppState = {
 };
 
 type Props = {
-  /** La edición que se muestra: para enlazar a sus inscritas. */
+  /** El evento que se muestra. */
   webinarId: string;
+  /**
+   * Base de las rutas: `/api/admin/eventos/<id>` (las de este evento). La
+   * vieja `/api/admin/webinar` trabaja sobre el evento actual.
+   */
+  apiBase?: string;
   registrations: WebinarRegistrantRow[];
   stats: WebinarRegistrationStats;
   /** OWNER puede reenviar a todas; el resto solo individual y pendientes. */
@@ -158,6 +167,7 @@ const failedWaPass = (r: WebinarRegistrantRow): WaPass | null =>
  */
 const WebinarRegistrantsPanel = ({
   webinarId,
+  apiBase = "/api/admin/webinar",
   registrations: initial,
   stats: initialStats,
   canBroadcast = false,
@@ -192,7 +202,7 @@ const WebinarRegistrantsPanel = ({
       });
       if (search.trim()) params.set("q", search.trim());
       if (onlyFailed) params.set("failedOnly", "true");
-      const res = await fetch(`/api/admin/webinar/registrations?${params}`);
+      const res = await fetch(`${apiBase}/registrations?${params}`);
       if (!res.ok) throw new Error("load_failed");
       return (await res.json()) as {
         registrations: WebinarRegistrantRow[];
@@ -200,7 +210,7 @@ const WebinarRegistrantsPanel = ({
         hasMore: boolean;
       };
     },
-    [webinarId]
+    [webinarId, apiBase]
   );
 
   // Búsqueda con retardo: filtrar al escribir es la regla del contrato, pero
@@ -254,7 +264,7 @@ const WebinarRegistrantsPanel = ({
   ) => {
     if (registrationId) setBusyId(registrationId);
     try {
-      const res = await fetch("/api/admin/webinar/registrations/resend", {
+      const res = await fetch(`${apiBase}/registrations/resend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scope, pass, registrationId }),
@@ -278,7 +288,7 @@ const WebinarRegistrantsPanel = ({
                 {
                   unreachable: "Esa persona no tiene correo o se dio de baja.",
                   no_meet_url: "Todavía no hay enlace de reunión que enviar.",
-                  wrong_webinar: "Esa inscripción es de una edición archivada.",
+                  wrong_webinar: "Esa inscripción es de un evento ya realizado.",
                   notifications_disabled: "Las notificaciones están apagadas.",
                 }[data.reason ?? ""] ||
                 "No se pudo reenviar."
@@ -294,6 +304,7 @@ const WebinarRegistrantsPanel = ({
         no_meet_url: "Falta el enlace de la reunion.",
         inactive: "El webinar no esta activo.",
         notifications_disabled: "Las notificaciones estan apagadas.",
+        ended: "Este evento ya pasó: no se envía nada a todas.",
       };
       toast(
         scope === "one"
@@ -326,7 +337,7 @@ const WebinarRegistrantsPanel = ({
     });
   };
 
-  const waEndpoint = "/api/admin/webinar/registrations/whatsapp";
+  const waEndpoint = `${apiBase}/registrations/whatsapp`;
 
   const postWa = async (body: { scope: "pending" | "one"; pass: WaPass; registrationId?: string }) => {
     const res = await fetch(waEndpoint, {
@@ -340,7 +351,7 @@ const WebinarRegistrantsPanel = ({
         res.status === 429
           ? "Demasiados envíos seguidos. Espera unos minutos."
           : data.error === "wrong_webinar"
-            ? "Esa inscripción es de una edición archivada."
+            ? "Esa inscripción es de otro evento."
             : "No se pudo enviar por WhatsApp."
       );
     }
@@ -463,7 +474,7 @@ const WebinarRegistrantsPanel = ({
         <span className="flex items-center gap-2">
           {stats.total > 0 ? (
             <Link
-              href={`/admin/eventos/inscritas?evento=${encodeURIComponent(webinarId)}`}
+              href={`/admin/eventos/${encodeURIComponent(webinarId)}?tab=whatsapp`}
               className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#00a884] px-3 text-xs font-medium text-white hover:bg-[#008069]"
             >
               Enviar por WhatsApp
@@ -485,6 +496,7 @@ const WebinarRegistrantsPanel = ({
                 ["Sin correo / baja", stats.unreachable],
                 ["WhatsApp 24 h", stats.wa24h],
                 ["WhatsApp 1 h", stats.wa1h],
+                ["Confirmación WA", stats.waConfirmation ?? 0],
                 ["Sin WhatsApp", stats.noWhatsApp],
               ] as const
             ).map(([label, value]) => (
@@ -713,6 +725,11 @@ const WebinarRegistrantsPanel = ({
                         {r.lastSendError ? (
                           <div className="mt-1 text-xs text-destructive">
                             Falló: {r.lastSendError}
+                          </div>
+                        ) : null}
+                        {r.confirmationWaError ? (
+                          <div className="mt-1 text-xs text-warning">
+                            Confirmación por WhatsApp: {r.confirmationWaError}
                           </div>
                         ) : null}
                         {r.waReminderError ? (

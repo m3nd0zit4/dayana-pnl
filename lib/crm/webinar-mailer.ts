@@ -1,9 +1,13 @@
 import { NotificationDeliveryStatus } from "@prisma/client";
 import {
-  ensureFreeWebinar,
+  findCurrentFreeEventRow,
   formatWebinarScheduleLabel,
+  getFreeEventById,
+  getFreeWebinar,
   type FreeWebinarPublic,
 } from "@/lib/crm/free-webinar";
+import { recordFreeEventActivity, type FreeEventActivityKind } from "@/lib/crm/free-event-activity";
+import { freeEventAcceptsReminders, isFreeEventEnded } from "@/lib/crm/free-event-rules";
 import {
   claimRegistrationFlag,
   clearRegistrationSendError,
@@ -203,6 +207,7 @@ export const buildWebinarMailPayload = (
     scheduleLabel: formatWebinarScheduleLabel(webinar),
     eventLabel: webinar.eventLabel,
     eventTitle: webinar.headline,
+    eventId: webinar.id,
   };
   if (pass === "link") {
     return {
@@ -241,11 +246,18 @@ const notificationsOff = async (): Promise<boolean> =>
   !(await resolveNotificationsEnabled());
 
 export const sendPendingWebinarLinkEmails = async (
-    deadline?: number
+    deadline?: number,
+    /** Sin él, el evento actual. */
+    webinarId?: string
   ): Promise<WebinarMailResult> => {
     if (await notificationsOff()) return noop("notifications_disabled");
 
-    const webinar = await ensureFreeWebinar();
+    const webinar = await getFreeWebinar(webinarId);
+    if (!webinar) return noop("no_event");
+    // Uno que ya pasó no reparte enlaces: sería mandar uno muerto a toda su
+    // lista. El reenvío a una sola persona (`resendWebinarMailToOne`) es la
+    // única puerta, y es a mano.
+    if (isFreeEventEnded(webinar)) return noop("ended");
     if (!webinar.meetUrl) return noop("no_meet_url");
 
     const recipients = await findPendingLinkRecipients(
@@ -307,12 +319,18 @@ export const sendPendingWebinarReminders = async (
    * evidente y negarse no ayuda a nadie — de hecho es justo cuando más falta
    * hace, porque la gente todavía no ha entrado. El cron nunca lo usa.
    */
-  ignoreWindow = false
+  ignoreWindow = false,
+  /** Sin él, el evento actual. */
+  webinarId?: string
 ): Promise<WebinarMailResult> => {
   if (await notificationsOff()) return noop("notifications_disabled");
 
-  const webinar = await ensureFreeWebinar();
-  if (!webinar.isActive) return noop("inactive");
+  const webinar = await getFreeWebinar(webinarId);
+  if (!webinar) return noop("no_event");
+  if (isFreeEventEnded(webinar)) return noop("ended");
+  // Publicado o con inscripciones cerradas: publicar el siguiente no deja sin
+  // recordatorio a quien ya se inscribió en este.
+  if (!freeEventAcceptsReminders(webinar)) return noop("inactive");
   if (!ignoreWindow && !reminderWindowOpen(webinar, kind, now)) {
     return noop("outside_window");
   }
@@ -351,48 +369,71 @@ export type WebinarDrainResult = WebinarMailResult & {
   pending: boolean;
 };
 
+const PASS_ACTIVITY: Record<WebinarMailPass, FreeEventActivityKind> = {
+  link: "link_emails",
+  "24h": "reminder_24h_email",
+  "1h": "reminder_1h_email",
+};
+
 /**
  * Vacía la cola en lotes hasta agotarla o hasta quedarse sin presupuesto.
- * Nunca corre indefinidamente y nunca deja trabajo perdido.
+ * Nunca corre indefinidamente y nunca deja trabajo perdido. Cada pasada que
+ * envía algo queda en la historia del evento con cuántos salieron.
  */
 export const drainWebinarMail = async (
   pass: WebinarMailPass,
   budgetMs = TIME_BUDGET_MS,
-  ignoreWindow = false
+  ignoreWindow = false,
+  /** Sin él, el evento actual. */
+  webinarId?: string
 ): Promise<WebinarDrainResult> => {
   const deadline = Date.now() + budgetMs;
+  // Se fija el evento al empezar: el actual podría cambiar a mitad de pasada.
+  const eventId = webinarId ?? (await findCurrentFreeEventRow())?.id;
+  if (!eventId) return { sent: 0, failed: 0, skipped: true, reason: "no_event", pending: false };
   let sent = 0;
   let failed = 0;
-  let firstSkip: WebinarMailResult | null = null;
+
+  const finish = async (result: WebinarDrainResult): Promise<WebinarDrainResult> => {
+    if (result.sent + result.failed > 0) {
+      await recordFreeEventActivity({
+        freeWebinarId: eventId,
+        kind: PASS_ACTIVITY[pass],
+        count: result.sent,
+        failed: result.failed || null,
+        meta: ignoreWindow ? { manual: true } : null,
+      });
+    }
+    return result;
+  };
 
   while (Date.now() < deadline) {
     const r =
       pass === "link"
-        ? await sendPendingWebinarLinkEmails(deadline)
+        ? await sendPendingWebinarLinkEmails(deadline, eventId)
         : await sendPendingWebinarReminders(
             pass,
             new Date(),
             deadline,
-            ignoreWindow
+            ignoreWindow,
+            eventId
           );
 
     if (r.skipped) {
-      firstSkip ??= r;
-      return { sent, failed, skipped: sent + failed === 0, reason: r.reason, pending: false };
+      return finish({ sent, failed, skipped: sent + failed === 0, reason: r.reason, pending: false });
     }
     sent += r.sent;
     failed += r.failed;
     if (r.stoppedEarly) {
-      return { sent, failed, skipped: false, pending: true };
+      return finish({ sent, failed, skipped: false, pending: true });
     }
     // Lote incompleto = la cola se acabó.
     if (r.sent + r.failed < WEBINAR_MAIL_BATCH) {
-      return { sent, failed, skipped: false, pending: false };
+      return finish({ sent, failed, skipped: false, pending: false });
     }
   }
 
-  void firstSkip;
-  return { sent, failed, skipped: false, pending: true };
+  return finish({ sent, failed, skipped: false, pending: true });
 };
 
 /* -------------------------------------------------------------------------
@@ -425,10 +466,14 @@ export const resendWebinarMailToOne = async (
   const registration = await findRegistrationForResend(registrationId);
   if (!registration) return { ok: false, reason: "not_found" };
 
-  const webinar = await ensureFreeWebinar();
-  // Solo la edicion viva. Una archivada conserva su meetUrl historico, y
-  // reenviarlo mandaria un enlace muerto a una lista ya cerrada.
-  if (registration.webinarId !== webinar.id) {
+  const webinar = await getFreeEventById(registration.webinarId);
+  if (!webinar) return { ok: false, reason: "not_found" };
+  // Un evento ya realizado conserva su meetUrl histórico, y reenviarlo
+  // mandaría un enlace muerto. Excepción deliberada y explícita: a UNA persona
+  // y a mano, en el evento actual aunque haya terminado (como antes: «cerrado
+  // pero sin archivar»), por si alguien lo pide a última hora. Los barridos y
+  // el «a todas» nunca envían a uno terminado.
+  if (webinar.status === "COMPLETED" && (await findCurrentFreeEventRow())?.id !== webinar.id) {
     return { ok: false, reason: "wrong_webinar" };
   }
   if (pass === "link" && !webinar.meetUrl) {
@@ -455,19 +500,25 @@ export const resendWebinarMailToOne = async (
 };
 
 /**
- * Devuelve a la cola a TODAS las registradas de la edicion viva y la vacia.
+ * Devuelve a la cola a TODAS las registradas del evento y la vacia.
  * Es la version deliberada de lo que ya hace cambiar el enlace de la reunion.
  */
 export const resendWebinarMailToAll = async (
-  pass: WebinarMailPass
+  pass: WebinarMailPass,
+  /** Sin él, el evento actual. */
+  webinarId?: string
 ): Promise<WebinarMailResult & { requeued: number }> => {
-  const webinar = await ensureFreeWebinar();
+  const webinar = await getFreeWebinar(webinarId);
+  if (!webinar) return { ...noop("no_event"), requeued: 0 };
+  // Antes de devolver nadie a la cola: en uno terminado, borraría sus sellos
+  // sin mandar nada.
+  if (isFreeEventEnded(webinar)) return { ...noop("ended"), requeued: 0 };
   const requeued =
     pass === "link"
       ? await resetLinkEmails(webinar.id)
       : await resetOneReminder(webinar.id, pass);
 
   // Manual: sin ventana. Ver `ignoreWindow`.
-  const result = await drainWebinarMail(pass, undefined, true);
+  const result = await drainWebinarMail(pass, undefined, true, webinar.id);
   return { ...result, requeued };
 };

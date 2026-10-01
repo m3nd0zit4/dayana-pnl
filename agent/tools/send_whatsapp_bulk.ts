@@ -5,7 +5,7 @@ import { requireWriteStaff, getCallerStaff } from "@/agent/lib/guard";
 import { prisma } from "@/lib/db";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { isFreeEventMaterialDownloadable } from "@/lib/crm/free-events";
-import { FREE_WEBINAR_SLUG } from "@/lib/crm/free-webinar";
+import { findCurrentFreeEventRow } from "@/lib/crm/free-webinar";
 import {
   freeEventPresets,
   presetMissingLink,
@@ -36,13 +36,15 @@ export default defineTool({
     let presets = freeEventPresets(null, tz);
     let title = "Envío por WhatsApp";
     let kind: "evento" | "taller" | "libre" = "libre";
+    let freeWebinarId: string | null = null;
+    let workshopEditionId: string | null = null;
 
     if (input.audience === "event_registrants") {
-      // El actual es el del slug, no «el último activo»: despublicado para
-      // cerrar inscripciones sigue siendo el evento de sus inscritas.
+      // El actual (`findCurrentFreeEventRow`), no «el último activo»: con las
+      // inscripciones cerradas sigue siendo el evento de sus inscritas.
       const event = input.eventId
         ? await prisma.freeWebinar.findUnique({ where: { id: input.eventId } })
-        : await prisma.freeWebinar.findUnique({ where: { slug: FREE_WEBINAR_SLUG } });
+        : await findCurrentFreeEventRow();
       if (!event) throw new Error("No encontré el evento.");
       contactIds = (
         await prisma.webinarRegistration.findMany({ where: { webinarId: event.id }, select: { contactId: true } })
@@ -54,10 +56,12 @@ export default defineTool({
       );
       title = `Evento: ${event.headline}`;
       kind = "evento";
+      freeWebinarId = event.id;
     } else if (input.audience === "workshop_enrollees") {
       const w = await prisma.workshopEdition.findUnique({
         where: { slug: input.workshopSlug ?? "" },
         select: {
+          id: true,
           title: true,
           slug: true,
           startsAt: true,
@@ -71,6 +75,7 @@ export default defineTool({
       presets = workshopPresets(w, tz);
       title = `Taller: ${w.title}`;
       kind = "taller";
+      workshopEditionId = w.id;
     } else {
       contactIds = input.contactIds ?? [];
     }
@@ -98,6 +103,8 @@ export default defineTool({
       vars,
       contactIds,
       staffId,
+      freeWebinarId,
+      workshopEditionId,
     });
     let progress = await processNextBatch(created.id, staffId);
     for (let i = 0; i < 200 && progress.pending > 0; i++) {

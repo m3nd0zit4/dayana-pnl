@@ -3,22 +3,30 @@ import { always } from "eve/tools/approval";
 import { z } from "zod";
 import {
   clearWebinarVideo,
+  ensureFreeWebinar,
   updateFreeWebinar,
+  FREE_EVENT_LIFECYCLE_MESSAGE,
+  FreeEventLifecycleError,
   FreeWebinarMeetUrlError,
   FreeWebinarPublishError,
   PUBLISH_BLOCKER_LABELS,
 } from "@/lib/crm/free-webinar";
+import {
+  endedEventAgentMessage,
+  FREE_EVENT_PUBLIC_ROOT,
+  isFreeEventEnded,
+} from "@/lib/crm/free-event-rules";
 import { siteUrl } from "@/lib/notifications/config";
-import { requireWriteStaff, auditAgentWrite } from "@/agent/lib/guard";
+import { requireWriteStaff, auditAgentWrite, getCallerStaff } from "@/agent/lib/guard";
 
 export default defineTool({
   description:
-    "Update the free webinar landing (/webinar-gratuito). Pass only fields you want to change. Schedule uses startsAtDate (YYYY-MM-DD) in the CRM operational timezone; startsAtTime (HH:mm) is optional until confirmed. Setting isActive true requires headline, subheadline, date, and at least one learn item. Registrations are tagged webinar-gratuito.",
+    "Update the CURRENT free event's landing (/eventos-gratuitos) — the one get_free_webinar returns. Pass only fields you want to change. Schedule uses startsAtDate (YYYY-MM-DD) in the CRM operational timezone; startsAtTime (HH:mm) is optional until confirmed. Setting isActive true publishes it (requires headline, subheadline, date, and at least one learn item) and closes registrations of any other published event. To prepare a NEW event (another date) don't overwrite this one: tell Dayana to use «Nuevo evento» in /admin/eventos. If the current event already happened (COMPLETED) this tool refuses and changes nothing — the next event has to be created in /admin/eventos first. Registrations are tagged webinar-gratuito.",
   inputSchema: z.object({
     isActive: z
       .boolean()
       .optional()
-      .describe("true = publish public page + Enlaces CTA; false = hide (404)"),
+      .describe("true = publish public page + Enlaces CTA (closes any other published event); false = close registrations"),
     headline: z.string().min(1).max(300).optional(),
     subheadline: z.string().max(1000).nullable().optional(),
     body: z.string().max(2000).nullable().optional(),
@@ -89,24 +97,37 @@ export default defineTool({
       };
     }
 
+    // Se fija el evento una vez: el actual podría cambiar a mitad de camino.
+    const current = await ensureFreeWebinar();
+    // Uno que ya pasó no se toca: cambiarle la fecha borraría los sellos de
+    // sus inscritas. El siguiente se crea en el panel.
+    if (isFreeEventEnded(current)) {
+      return { ok: false as const, error: "ended", message: endedEventAgentMessage(current.headline) };
+    }
+
     try {
-      if (clearVideo) await clearWebinarVideo();
+      const actor = { staffUserId: getCallerStaff(ctx).staffId };
+      if (clearVideo) await clearWebinarVideo(current.id);
 
-      const { webinar, meetUrlChanged, linkEmailsReset } =
-        await updateFreeWebinar({
-          ...rest,
-          isActive: clearSchedule ? false : isActive,
-          startsAtLocal: clearSchedule
-            ? null
-            : startsAtDate
-              ? {
-                  date: startsAtDate,
-                  time: startsAtTime === undefined ? null : startsAtTime,
-                }
-              : undefined,
-        });
+      const { webinar, meetUrlChanged, linkEmailsReset, closedOthers } =
+        await updateFreeWebinar(
+          {
+            ...rest,
+            isActive: clearSchedule ? false : isActive,
+            startsAtLocal: clearSchedule
+              ? null
+              : startsAtDate
+                ? {
+                    date: startsAtDate,
+                    time: startsAtTime === undefined ? null : startsAtTime,
+                  }
+                : undefined,
+          },
+          current.id,
+          actor
+        );
 
-      // El fan-out lo recoge el cron `webinar-mailer`; aquí solo se informa.
+      // El fan-out lo recoge el reloj de eventos; aquí solo se informa.
       void meetUrlChanged;
       void linkEmailsReset;
 
@@ -120,6 +141,8 @@ export default defineTool({
       return {
         ok: true as const,
         webinar: {
+          id: webinar.id,
+          status: webinar.status,
           isActive: webinar.isActive,
           headline: webinar.headline,
           startsAtDate: webinar.startsAtDateKey,
@@ -127,12 +150,20 @@ export default defineTool({
           startsAtHasTime: webinar.startsAtHasTime,
           operationalTimezone: webinar.operationalTimezone,
           link:
-            webinar.isActive && webinar.startsAt
-              ? `${siteUrl()}/webinar-gratuito`
+            webinar.status === "OPEN" && webinar.startsAt
+              ? `${siteUrl()}${FREE_EVENT_PUBLIC_ROOT}`
               : null,
         },
+        closedOtherEvents: closedOthers.map((o) => o.headline),
       };
     } catch (e) {
+      if (e instanceof FreeEventLifecycleError) {
+        return {
+          ok: false as const,
+          error: e.reason,
+          message: FREE_EVENT_LIFECYCLE_MESSAGE[e.reason],
+        };
+      }
       if (e instanceof FreeWebinarMeetUrlError) {
         return {
           ok: false as const,

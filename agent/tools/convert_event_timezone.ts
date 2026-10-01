@@ -2,6 +2,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireStaff } from "@/agent/lib/guard";
 import { ensureFreeWebinar } from "@/lib/crm/free-webinar";
+import { endedEventAgentMessage, isFreeEventEnded } from "@/lib/crm/free-event-rules";
 import { getWorkshopEditionBySlug } from "@/lib/crm/workshop-editions";
 import { resolveCountryIso } from "@/lib/datetime/resolve-country-iso";
 import {
@@ -106,6 +107,11 @@ const loadSource = async (input: {
 
   if (input.source === "free_webinar") {
     const webinar = await ensureFreeWebinar();
+    // Convertir la hora de uno que ya pasó no le sirve a nadie, y suele ser
+    // que el próximo todavía no está creado.
+    if (isFreeEventEnded(webinar)) {
+      return { error: endedEventAgentMessage(webinar.headline) };
+    }
     if (!webinar.startsAtIso) {
       return { error: "El webinar gratuito aún no tiene fecha programada." };
     }

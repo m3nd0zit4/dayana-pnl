@@ -33,6 +33,8 @@ export type LeadCaptureFormProps = {
   variant?: "home" | "webinar";
   /** Texto propio tras inscribirse (eventos gratuitos). Vacío = el de siempre. */
   successMessage?: string | null;
+  /** El evento gratuito de la página: la inscripción va a ese si sigue abierto. */
+  freeEventId?: string | null;
 };
 
 const INTERESTS = [
@@ -52,6 +54,7 @@ const LeadCaptureForm = ({
   className = "",
   variant = "home",
   successMessage = null,
+  freeEventId = null,
 }: LeadCaptureFormProps) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -62,6 +65,8 @@ const LeadCaptureForm = ({
     fixedInterest ?? INTERESTS[0]
   );
   const [consent, setConsent] = useState(false);
+  /** Trampa para bots (ver el campo oculto del formulario). */
+  const [hp, setHp] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
@@ -113,8 +118,9 @@ const LeadCaptureForm = ({
           notify: true,
           consentData: true,
           ...(fixedInterest === WEBINAR_INTEREST_LABEL
-            ? { tag: "webinar-gratuito" }
+            ? { tag: "webinar-gratuito", ...(freeEventId ? { freeEventId } : {}) }
             : {}),
+          ...(hp ? { hp } : {}),
         }),
       });
 
@@ -214,6 +220,22 @@ const LeadCaptureForm = ({
       noValidate
       className={`flex scroll-mt-24 flex-col gap-5 ${className}`}
     >
+      {/* Trampa para bots: fuera de la pantalla, sin foco y oculta a los
+          lectores de pantalla. Una persona nunca la rellena; si llega con
+          algo, el servidor contesta «listo» sin guardar ni enviar nada. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-px w-px overflow-hidden">
+        <label>
+          No completes este campo
+          <input
+            type="text"
+            name="sitio_web_hp"
+            tabIndex={-1}
+            autoComplete="off"
+            value={hp}
+            onChange={(e) => setHp(e.target.value)}
+          />
+        </label>
+      </div>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <label className="block">
           <span className={labelCls}>Nombre</span>

@@ -33,7 +33,7 @@ import {
   drainWorkshopReminders,
   type WorkshopReminderPass,
 } from "../crm/workshop-reminders";
-import { closeFreeWebinarIfDue, getFreeWebinar } from "../crm/free-webinar";
+import { closeDueFreeEvents, getFreeEventById, listLiveFreeEvents } from "../crm/free-webinar";
 import { publishSocialPost } from "../tiktok/publisher";
 import { renderQuickMessage } from "../crm/render-message";
 import { abandonStalePlaceholderCheckouts } from "../crm/checkout-placeholder";
@@ -592,7 +592,9 @@ export const socialPostPublishFn = inngest.createFunction(
 );
 
 /**
- * Embudo del webinar gratuito: enlace de la reunión y los dos recordatorios.
+ * Embudo de los eventos gratuitos: enlace de la reunión y los dos
+ * recordatorios, para cada evento en pie (publicado o con inscripciones
+ * cerradas, sin terminar).
  *
  * Los minutos `:03 :13 :23 :33 :43 :53` esquivan al programador de redes
  * (`*​/5`) para no pelear por la misma conexión de Neon. Cada 10 minutos es
@@ -608,55 +610,54 @@ export const webinarMailerFn = inngest.createFunction(
   { cron: "3-53/10 * * * *" },
   async ({ step }) => {
     // La guarda va aquí y no dentro del mailer: así los reenvíos manuales
-    // siguen funcionando sobre una edición ya cerrada pero sin archivar.
-    // `getFreeWebinar` y no `ensureFreeWebinar` — un cron no crea filas.
-    const live = await step.run("load-live", () => getFreeWebinar());
-    if (!live) return { skipped: "no_webinar" };
+    // siguen funcionando sobre un evento ya cerrado. Un cron no crea filas.
+    const liveIds = await step.run("load-live", async () =>
+      (await listLiveFreeEvents()).map((e) => e.id)
+    );
 
     const out: Record<string, unknown> = {};
 
-    if (live.endedAt) {
-      out.mail = { skipped: "ended" };
-    } else {
-      // Cada pasada vacía la cola en lotes de 500 con 10 envíos en vuelo, y se
-      // corta sola antes del tope de 300 s de una función de Vercel. El
-      // recordatorio de 1 h va primero: su ventana es la única irrecuperable.
-      const passes: WebinarMailPass[] = ["1h", "24h", "link"];
+    // Cada pasada vacía la cola en lotes de 500 con 10 envíos en vuelo, y se
+    // corta sola antes del tope de 300 s de una función de Vercel. El
+    // recordatorio de 1 h va primero: su ventana es la única irrecuperable.
+    const passes: WebinarMailPass[] = ["1h", "24h", "link"];
+    for (const webinarId of liveIds) {
       for (const pass of passes) {
-        const r = await step.run(`webinar-${pass}`, () =>
-          drainWebinarMail(pass)
+        const r = await step.run(`webinar-${pass}-${webinarId}`, () =>
+          drainWebinarMail(pass, undefined, false, webinarId)
         );
-        out[pass] = r;
+        out[`${webinarId}:${pass}`] = r;
         // Se agotó el presupuesto con cola pendiente: se encadena otra
         // invocación en vez de alargar esta hasta que Vercel la mate.
         if (r.pending) {
-          await step.sendEvent(`continue-${pass}`, {
+          await step.sendEvent(`continue-${pass}-${webinarId}`, {
             name: "webinar/mail.continue",
-            data: { pass },
+            data: { pass, webinarId },
           });
         }
       }
     }
 
     // El cierre va al final para que este mismo tick alcance a enviar el
-    // recordatorio de 1 h antes de dar el webinar por terminado.
-    const closed = await step.run("close-if-due", () => closeFreeWebinarIfDue());
+    // recordatorio de 1 h antes de dar el evento por terminado.
+    const closed = await step.run("close-if-due", async () =>
+      (await closeDueFreeEvents()).map((e) => ({ id: e.id, headline: e.headline }))
+    );
     out.close = closed;
 
-    if (closed.closed) {
-      // Sin este aviso nadie se entera de que ya se puede archivar.
+    for (const event of closed) {
       // `SYSTEM_ALERT` ya existe: un tipo nuevo costaría migración del enum
       // más una entrada en el catálogo exhaustivo, para un solo mensaje.
-      await step.run("notify-ended", async () => {
+      await step.run(`notify-ended-${event.id}`, async () => {
         await emitPlatformNotification({
           eventType: "SYSTEM_ALERT",
-          title: "El webinar gratuito ya terminó",
-          body: "Se cerraron los registros y los recordatorios. Puedes archivarlo para dejar lista la próxima edición.",
+          title: "El evento gratuito ya terminó",
+          body: `«${event.headline}»: se cerraron los registros y los recordatorios. Mira su historia o prepara el siguiente.`,
           // Mismo aviso que `/api/cron/eventos`: solo lo emite quien ganó el
           // compare-and-swap de `endedAt`, así que nunca salen dos.
-          href: "/admin/eventos",
+          href: `/admin/eventos/${event.id}?tab=historia`,
           entityType: "FreeWebinar",
-          entityId: closed.webinar.id,
+          entityId: event.id,
           staff: "ALL",
         });
         return { notified: true };
@@ -681,16 +682,21 @@ export const webinarMailContinueFn = inngest.createFunction(
   { event: "webinar/mail.continue" },
   async ({ event, step }) => {
     const pass = event.data.pass as WebinarMailPass;
-    // Misma guarda que el cron: si la edición se cerró mientras la cola se
+    // Las encoladas antes de las ediciones no traen evento: el actual.
+    const webinarId = (event.data.webinarId as string | undefined) ?? undefined;
+    // Misma guarda que el cron: si el evento se cerró mientras la cola se
     // vaciaba, la continuación no debe seguir enviando.
-    const live = await step.run("load-live", () => getFreeWebinar());
-    if (!live || live.endedAt) return { skipped: "ended" };
+    const ended = await step.run("load-event", async () => {
+      const e = webinarId ? await getFreeEventById(webinarId) : null;
+      return webinarId ? !e || Boolean(e.endedAt) : false;
+    });
+    if (ended) return { skipped: "ended" };
 
-    const r = await step.run(`drain-${pass}`, () => drainWebinarMail(pass));
+    const r = await step.run(`drain-${pass}`, () => drainWebinarMail(pass, undefined, false, webinarId));
     if (r.pending) {
       await step.sendEvent(`continue-${pass}`, {
         name: "webinar/mail.continue",
-        data: { pass },
+        data: { pass, webinarId },
       });
     }
     return r;
@@ -732,8 +738,10 @@ export const workshopReminderMailerFn = inngest.createFunction(
 export const webinarMeetLinkBroadcastFn = inngest.createFunction(
   { id: "webinar-meet-link-broadcast", concurrency: { limit: 1 } },
   { event: "webinar/meet-link.changed" },
-  async ({ step }) =>
-    step.run("send-link-emails", () => drainWebinarMail("link"))
+  async ({ event, step }) =>
+    step.run("send-link-emails", () =>
+      drainWebinarMail("link", undefined, false, (event.data.webinarId as string | undefined) ?? undefined)
+    )
 );
 
 /**

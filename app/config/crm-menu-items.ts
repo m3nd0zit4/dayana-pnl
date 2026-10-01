@@ -6,7 +6,6 @@ import {
   CreditCard,
   Inbox,
   GraduationCap,
-  History,
   Home,
   Compass,
   Link2,
@@ -44,8 +43,7 @@ export type CrmMenuItemId =
   | "comments"
   | "workshops"
   | "free-events"
-  | "free-events-current"
-  | "free-events-history"
+  | "free-events-list"
   | "free-events-people"
   | "inbox"
   | "whatsapp"
@@ -77,9 +75,11 @@ export type CrmMenuItem = {
   flag?: "metaInbox" | "socialPublishing";
   /**
    * Marcar como activo sólo con la ruta exacta, no con sus descendientes.
-   * Hace falta cuando una entrada es prefijo de otra.
+   * Hace falta cuando una entrada es prefijo de otra. `{ except }`: con sus
+   * descendientes, salvo esas rutas (la lista de eventos y su detalle, pero no
+   * Inscritas).
    */
-  exact?: boolean;
+  exact?: boolean | { except: string[] };
   /** One level of nesting only (sidebar sub-items). */
   items?: Omit<CrmMenuItem, "items">[];
 };
@@ -192,8 +192,8 @@ export const crmMenuSections: CrmMenuSection[] = [
         ],
       },
       { id: "workshops", icon: CalendarDays, label: "Talleres", href: "/admin/workshops" },
-      // Antes «Webinar gratuito». Mismo patrón que Cursos: el evento que se
-      // prepara, el historial de los que ya pasaron y quién se inscribió.
+      // Antes «Webinar gratuito». Como Talleres: cada evento es una edición
+      // con su página, sus inscritas y su historia; Inscritas cruza todos.
       {
         id: "free-events",
         icon: Video,
@@ -202,18 +202,12 @@ export const crmMenuSections: CrmMenuSection[] = [
         href: "/admin/eventos",
         items: [
           {
-            id: "free-events-current",
+            id: "free-events-list",
             icon: Video,
-            label: "Evento actual",
+            label: "Eventos",
             href: "/admin/eventos",
-            // `/admin/eventos` es prefijo de Historial e Inscritas.
-            exact: true,
-          },
-          {
-            id: "free-events-history",
-            icon: History,
-            label: "Historial",
-            href: "/admin/eventos/historial",
+            // Activo en la lista y en cada evento, no en Inscritas.
+            exact: { except: ["/admin/eventos/inscritas"] },
           },
           {
             id: "free-events-people",
@@ -270,10 +264,15 @@ export const findMenuItem = (id: CrmMenuItemId): CrmMenuItem | undefined => {
 
 /**
  * `/admin` sólo es activo con la ruta exacta; el resto, con sus descendientes.
- * `exact` es para entradas cuya ruta es prefijo de otra del menú.
+ * `exact` es para entradas cuya ruta es prefijo de otra del menú; con
+ * `{ except }`, con sus descendientes salvo esas.
  */
-export const isCrmPathActive = (pathname: string, href: string, exact?: boolean) => {
+export const isCrmPathActive = (pathname: string, href: string, exact?: CrmMenuItem["exact"]) => {
   if (href === "/") return false;
-  if (href === "/admin" || exact) return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (href === "/admin" || exact === true) return pathname === href;
+  const inside = pathname === href || pathname.startsWith(`${href}/`);
+  if (inside && exact && typeof exact === "object") {
+    return !exact.except.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  }
+  return inside;
 };

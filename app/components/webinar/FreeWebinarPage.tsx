@@ -141,7 +141,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
 
             {webinar.materialFileName ? (
               <a
-                href="/api/webinar/material"
+                href={`/api/webinar/material?evento=${encodeURIComponent(webinar.id)}`}
                 className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white/55 px-4 py-2.5 font-[font1] text-sm text-black/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md transition-colors hover:border-terracotta/40 hover:text-terracotta"
               >
                 <Download className="h-4 w-4 text-terracotta" />
@@ -179,6 +179,7 @@ const FreeWebinarPage = ({ webinar, userCountry }: Props) => {
                 submitLabel={webinar.ctaLabel}
                 variant="webinar"
                 successMessage={webinar.successMessage}
+                freeEventId={webinar.id}
               />
             </div>
           </div>
