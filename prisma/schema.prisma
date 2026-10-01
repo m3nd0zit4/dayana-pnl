@@ -619,6 +619,13 @@ model WebinarRegistration {
   /// completo de intentos (providerId, cuerpo, error) vive allí, no aquí.
   lastSendError     String?   @map("last_send_error") @db.Text
   lastSendErrorAt   DateTime? @map("last_send_error_at")
+  /// Recordatorios por WhatsApp (`lib/crm/event-whatsapp-reminders.ts`). Se
+  /// sellan al reclamar y NO se sueltan si falla: una plantilla se cobra, así
+  /// que reintentar es decisión de Dayana («Reintentar WA»).
+  reminder24hWaSentAt DateTime? @map("reminder_24h_wa_sent_at")
+  reminder1hWaSentAt  DateTime? @map("reminder_1h_wa_sent_at")
+  waReminderError     String?   @map("wa_reminder_error") @db.Text
+  waReminderErrorAt   DateTime? @map("wa_reminder_error_at")
 
   webinar FreeWebinar @relation(fields: [webinarId], references: [id], onDelete: Cascade)
   contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)

@@ -75,3 +75,6 @@ next-env.d.ts
 # Claude Code local runtime state (per-machine, not shared)
 /.claude/settings.local.json
 /.claude/scheduled_tasks.lock
+
+# copias de seguridad de scripts de datos (scripts/free-event-split.ts)
+/backups/

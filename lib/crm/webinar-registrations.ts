@@ -32,6 +32,23 @@ const EMAILABLE_CONTACT = {
   notifyEmail: true,
 } satisfies Prisma.ContactWhereInput;
 
+/**
+ * A quién se le puede escribir por WhatsApp: no se dio de baja y tiene un
+ * número de verdad. Los contactos sin teléfono guardan un marcador
+ * (`+pending:…`, `+nophone…`, `+google…`, `+signup…`): «+ seguido de un
+ * dígito» los deja fuera a todos sin tener que listarlos.
+ */
+export const WHATSAPPABLE_CONTACT = {
+  notifyWhatsapp: true,
+  OR: ["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => ({
+    phoneE164: { startsWith: `+${d}` },
+  })),
+} satisfies Prisma.ContactWhereInput;
+
+/** Sello de WhatsApp por pasada. */
+export const waReminderFlag = (kind: ReminderKind) =>
+  kind === "24h" ? ("reminder24hWaSentAt" as const) : ("reminder1hWaSentAt" as const);
+
 const RECIPIENT_SELECT = {
   id: true,
   contactId: true,
@@ -52,6 +69,10 @@ const LIST_SELECT = {
   reminder1hSentAt: true,
   lastSendError: true,
   lastSendErrorAt: true,
+  reminder24hWaSentAt: true,
+  reminder1hWaSentAt: true,
+  waReminderError: true,
+  waReminderErrorAt: true,
   contact: {
     select: {
       id: true,
@@ -61,6 +82,7 @@ const LIST_SELECT = {
       phoneE164: true,
       countryIso: true,
       notifyEmail: true,
+      notifyWhatsapp: true,
     },
   },
 } satisfies Prisma.WebinarRegistrationSelect;
@@ -105,7 +127,9 @@ export const listWebinarRegistrations = async (
   return prisma.webinarRegistration.findMany({
     where: {
       webinarId,
-      ...(opts.failedOnly ? { lastSendError: { not: null } } : {}),
+      ...(opts.failedOnly
+        ? { OR: [{ lastSendError: { not: null } }, { waReminderError: { not: null } }] }
+        : {}),
       ...(q
         ? {
             contact: {
@@ -137,8 +161,26 @@ export const webinarRegistrationStats = async (
   unreachable: number;
   pendingLink: number;
   failed: number;
+  /** WhatsApp: recordatorios sellados (enviados o intentados con error). */
+  wa24h: number;
+  wa1h: number;
+  waFailed: number;
+  /** Sin número de WhatsApp o dadas de baja: el WhatsApp no les llega. */
+  noWhatsApp: number;
 }> => {
-  const [total, linkSent, reminder24h, reminder1h, unreachable, pendingLink, failed] =
+  const [
+    total,
+    linkSent,
+    reminder24h,
+    reminder1h,
+    unreachable,
+    pendingLink,
+    failed,
+    wa24h,
+    wa1h,
+    waFailed,
+    noWhatsApp,
+  ] =
     await prisma.$transaction([
       prisma.webinarRegistration.count({ where: { webinarId } }),
       prisma.webinarRegistration.count({
@@ -162,6 +204,18 @@ export const webinarRegistrationStats = async (
       prisma.webinarRegistration.count({
         where: { webinarId, lastSendError: { not: null } },
       }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, reminder24hWaSentAt: { not: null }, waReminderError: null },
+      }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, reminder1hWaSentAt: { not: null }, waReminderError: null },
+      }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, waReminderError: { not: null } },
+      }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, contact: { NOT: WHATSAPPABLE_CONTACT } },
+      }),
     ]);
   return {
     total,
@@ -171,8 +225,21 @@ export const webinarRegistrationStats = async (
     unreachable,
     pendingLink,
     failed,
+    wa24h,
+    wa1h,
+    waFailed,
+    noWhatsApp,
   };
 };
+
+/** Cuántas esperan todavía un recordatorio de WhatsApp de esa pasada. */
+export const countPendingWaReminderRecipients = async (
+  webinarId: string,
+  kind: ReminderKind
+): Promise<number> =>
+  prisma.webinarRegistration.count({
+    where: { webinarId, [waReminderFlag(kind)]: null, contact: WHATSAPPABLE_CONTACT },
+  });
 
 export const countPendingLinkRecipients = async (
   webinarId: string
@@ -210,9 +277,21 @@ export const resetReminders = async (webinarId: string): Promise<number> => {
       OR: [
         { reminder24hSentAt: { not: null } },
         { reminder1hSentAt: { not: null } },
+        { reminder24hWaSentAt: { not: null } },
+        { reminder1hWaSentAt: { not: null } },
+        { waReminderError: { not: null } },
       ],
     },
-    data: { reminder24hSentAt: null, reminder1hSentAt: null },
+    // Los de WhatsApp también: el recordatorio dice la fecha, y uno con la
+    // fecha vieja es peor que ninguno.
+    data: {
+      reminder24hSentAt: null,
+      reminder1hSentAt: null,
+      reminder24hWaSentAt: null,
+      reminder1hWaSentAt: null,
+      waReminderError: null,
+      waReminderErrorAt: null,
+    },
   });
   return count;
 };

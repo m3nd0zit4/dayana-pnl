@@ -30,6 +30,7 @@ import {
 import StringListEditor from "@/app/components/admin/crm/StringListEditor";
 import FaqListEditor from "@/app/components/admin/crm/FaqListEditor";
 import WebinarRegistrantsPanel, {
+  type EventWhatsAppState,
   type WebinarRegistrantRow,
   type WebinarRegistrationStats,
 } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
@@ -41,6 +42,8 @@ type Props = {
   registrationStats?: WebinarRegistrationStats;
   /** OWNER: unico rol que puede reenviar a todas y borrar historial. */
   canBroadcast?: boolean;
+  /** Recordatorios por WhatsApp: interruptor y estado de la plantilla. */
+  whatsApp?: EventWhatsAppState;
 };
 
 const WebinarMuxVideo = dynamic(
@@ -63,8 +66,13 @@ const FreeWebinarAdminClient = ({
     unreachable: 0,
     pendingLink: 0,
     failed: 0,
+    wa24h: 0,
+    wa1h: 0,
+    waFailed: 0,
+    noWhatsApp: 0,
   },
   canBroadcast = false,
+  whatsApp = { enabled: true, templateStatus: null },
 }: Props) => {
   const router = useRouter();
   const { toast, confirm } = useCrm();
@@ -595,9 +603,11 @@ const FreeWebinarAdminClient = ({
 
       <div className="flex flex-col gap-6">
         <WebinarRegistrantsPanel
+          webinarId={initial.id}
           registrations={registrations}
           stats={registrationStats}
           canBroadcast={canBroadcast}
+          whatsApp={whatsApp}
           capacity={capacity.trim() ? Number(capacity.trim()) : null}
         />
 
