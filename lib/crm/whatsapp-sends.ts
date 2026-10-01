@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "./audit";
+import { recordFreeEventActivity } from "./free-event-activity";
 import {
   planForRecipient,
   recipientFromContact,
@@ -131,8 +132,21 @@ export const createSend = async (input: {
   vars?: Record<string, string>;
   contactIds: string[];
   staffId: string;
+  /** El evento del envío: queda en su historia. */
+  freeWebinarId?: string | null;
+  /** El taller del envío. */
+  workshopEditionId?: string | null;
 }): Promise<{ id: string; total: number }> => {
   const recipients = await loadRecipients(input.contactIds);
+  // Un id que ya no existe deja el envío suelto en vez de tumbarlo.
+  const [event, workshop] = await Promise.all([
+    input.freeWebinarId
+      ? prisma.freeWebinar.findUnique({ where: { id: input.freeWebinarId }, select: { id: true } })
+      : null,
+    input.workshopEditionId
+      ? prisma.workshopEdition.findUnique({ where: { id: input.workshopEditionId }, select: { id: true } })
+      : null,
+  ]);
   const send = await prisma.whatsAppSend.create({
     data: {
       title: input.title.slice(0, 200),
@@ -143,6 +157,8 @@ export const createSend = async (input: {
       status: "SENDING",
       total: recipients.length,
       createdById: input.staffId,
+      freeWebinarId: event?.id ?? null,
+      workshopEditionId: workshop?.id ?? null,
       recipients: {
         create: recipients.map((r) => ({
           contactId: r.contactId,
@@ -160,8 +176,22 @@ export const createSend = async (input: {
     entityId: send.id,
     changes: { title: input.title, kind: input.kind, total: send.total, templateKey: input.templateKey },
   }).catch(() => undefined);
+  if (event) {
+    // Los números en vivo los pone la fila del envío; aquí, que existió.
+    await recordFreeEventActivity({
+      freeWebinarId: event.id,
+      kind: input.templateKey === MATERIAL_TEMPLATE_KEY ? "material_sent" : "whatsapp_bulk",
+      count: send.total,
+      staffUserId: input.staffId,
+      whatsAppSendId: send.id,
+      meta: { title: input.title.slice(0, 200) },
+    });
+  }
   return send;
 };
+
+/** La plantilla del material o la grabación de un evento. */
+const MATERIAL_TEMPLATE_KEY = "evento_grabacion";
 
 export type SendProgress = {
   id: string;

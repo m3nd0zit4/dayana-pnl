@@ -236,6 +236,7 @@ export const applyFreeEventSplit = async (plan: SplitPlan): Promise<SplitApplied
             // Temporal: el slug definitivo lleva el id, que aún no existe.
             slug: `${slug}-split-${Date.now()}`,
             isActive: false,
+            status: "COMPLETED",
             headline: l.headline,
             subheadline: l.subheadline,
             body: l.body,

@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  eventConfirmationText,
   eventFecha,
   eventReminderText,
   eventReminderVars,
@@ -153,5 +154,22 @@ describe("waReminderDue", () => {
   });
   test("sin fecha, nunca", () => {
     expect(waReminderDue("24h", null, true, at(10 * H))).toBe(false);
+  });
+});
+
+describe("confirmación al inscribirse", () => {
+  test("mismas palabras que la plantilla, con la fecha de eventFecha", () => {
+    const text = eventConfirmationText({
+      nombre: "Ana",
+      evento: "«Reprograma tu mente»",
+      fecha: fecha(reminderZone({ timezone: BOG, phoneE164: "+573001112233" }, BOG)),
+    });
+    expect(text).toBe(
+      "Hola Ana, quedaste inscrita en «Reprograma tu mente» el domingo 4 de octubre a las 9:30 a. m. (hora de Colombia). Te mando el enlace para entrar por aquí antes de empezar."
+    );
+  });
+
+  test("sin nombre, saluda sin él", () => {
+    expect(eventConfirmationText({ evento: "«X»", fecha: "lunes 5 de octubre" })).toStartWith("Hola, quedaste inscrita");
   });
 });

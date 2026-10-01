@@ -187,6 +187,20 @@ export const eventReminderText = (input: EventReminderVars & { nombre?: string |
 };
 
 /**
+ * La confirmación al inscribirse, en texto libre: mismas palabras que la
+ * plantilla `evento_gratis_confirmacion`. `fecha` sale de `eventFecha` (con la
+ * hora de Colombia y la de la persona si es otra).
+ */
+export const eventConfirmationText = (input: {
+  evento: string;
+  fecha: string;
+  nombre?: string | null;
+}): string => {
+  const nombre = input.nombre?.trim();
+  return `Hola${nombre ? ` ${nombre}` : ""}, quedaste inscrita en ${input.evento} el ${input.fecha}. Te mando el enlace para entrar por aquí antes de empezar.`;
+};
+
+/**
  * Las mismas ventanas que los correos (`reminderWindowOpen` del mailer):
  * - 24 h: entre 2 h y 24 h antes (quien llega más tarde lo recibe en el de 1 h).
  * - 1 h: dentro de la última hora, y solo si el evento tiene hora real.

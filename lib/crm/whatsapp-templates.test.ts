@@ -55,3 +55,14 @@ describe("plantillas de citas", () => {
     }
   });
 });
+
+describe("confirmación de inscripción a un evento gratuito", () => {
+  test("es de utilidad, cumple las reglas de Meta y no tiene palabras de venta", () => {
+    const t = STARTER_TEMPLATES.find((x) => x.key === "evento_gratis_confirmacion")!;
+    expect(t).toBeDefined();
+    expect(t.category).toBe("UTILITY");
+    expect(templateBodyProblem(t.body)).toBeNull();
+    expect(utilityCategoryWarning(t.category, t.body)).toBeNull();
+    expect(toMetaBody(t.body).varNames).toEqual(["nombre", "evento", "fecha"]);
+  });
+});

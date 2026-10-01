@@ -1,7 +1,9 @@
 import type { FreeWebinar } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
-import { FREE_WEBINAR_SLUG } from "./free-webinar";
+import { recordFreeEventActivity } from "./free-event-activity";
+import { freeEventAcceptsReminders } from "./free-event-rules";
+import { findCurrentFreeEventRow } from "./free-webinar";
 import { getOperationalTimezone } from "./operational-timezone";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import {
@@ -84,9 +86,7 @@ type Row = { id: string; contactId: string; contact: { timezone: string; phoneE1
 type Outcome = { outcome: "sent" | "failed" | "skipped" | "claimed_elsewhere"; error?: string };
 
 const loadEvent = (webinarId?: string): Promise<FreeWebinar | null> =>
-  webinarId
-    ? prisma.freeWebinar.findUnique({ where: { id: webinarId } })
-    : prisma.freeWebinar.findUnique({ where: { slug: FREE_WEBINAR_SLUG } });
+  webinarId ? prisma.freeWebinar.findUnique({ where: { id: webinarId } }) : findCurrentFreeEventRow();
 
 const saveError = (id: string, message: string) =>
   prisma.webinarRegistration
@@ -95,7 +95,7 @@ const saveError = (id: string, message: string) =>
 
 export const sendEventWhatsAppReminders = async (opts: {
   pass: EventWaPass;
-  /** Sin él, la edición viva (`gratuito`). */
+  /** Sin él, el evento actual. */
   webinarId?: string;
   now?: Date;
   budgetMs?: number;
@@ -121,8 +121,10 @@ export const sendEventWhatsAppReminders = async (opts: {
     reason,
   });
 
-  if (!event.isActive) return stop("inactive");
   if (event.endedAt) return stop("ended");
+  // Publicado o con inscripciones cerradas: publicar el siguiente no deja sin
+  // recordatorio a quien ya se inscribió en este.
+  if (!freeEventAcceptsReminders(event)) return stop("inactive");
   if (!event.startsAt) return stop("no_schedule");
   if (!event.meetUrl) return stop("no_meet_url");
   if (!(await eventWaRemindersEnabled())) return stop("disabled");
@@ -225,6 +227,18 @@ export const sendEventWhatsAppReminders = async (opts: {
 
   result.remaining = await pending();
 
+  // La pasada queda en la historia del evento (las de una sola persona, no:
+  // son reintentos y ya se ven en su fila).
+  if (!registrationId && result.sent + result.failed + result.skipped > 0) {
+    await recordFreeEventActivity({
+      freeWebinarId: event.id,
+      kind: pass === "24h" ? "reminder_24h_wa" : "reminder_1h_wa",
+      count: result.sent,
+      failed: result.failed + result.skipped || null,
+      meta: ignoreWindow ? { manual: true } : null,
+    });
+  }
+
   // Un solo aviso por pasada (solo campana). Se espera en vez de dispararlo
   // suelto: quien llama es el reloj o el botón, que ya son de larga duración,
   // y fuera de una petición un aviso suelto puede perderse.
@@ -233,7 +247,7 @@ export const sendEventWhatsAppReminders = async (opts: {
       eventType: "WHATSAPP_AI_INFO",
       title: `Recordatorio de ${pass} por WhatsApp: ${result.failed + result.skipped} sin enviar`,
       body: `${result.sent} enviados. ${[...new Set(errors)].join(" ")}`.slice(0, 300),
-      href: "/admin/eventos",
+      href: `/admin/eventos/${event.id}?tab=inscritas`,
       entityType: "FreeWebinar",
       entityId: event.id,
       staff: "ALL",

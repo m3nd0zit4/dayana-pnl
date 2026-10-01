@@ -73,6 +73,8 @@ const LIST_SELECT = {
   reminder1hWaSentAt: true,
   waReminderError: true,
   waReminderErrorAt: true,
+  confirmationWaSentAt: true,
+  confirmationWaError: true,
   contact: {
     select: {
       id: true,
@@ -167,6 +169,8 @@ export const webinarRegistrationStats = async (
   waFailed: number;
   /** Sin número de WhatsApp o dadas de baja: el WhatsApp no les llega. */
   noWhatsApp: number;
+  /** Confirmación por WhatsApp al inscribirse que sí salió. */
+  waConfirmation: number;
 }> => {
   const [
     total,
@@ -180,6 +184,7 @@ export const webinarRegistrationStats = async (
     wa1h,
     waFailed,
     noWhatsApp,
+    waConfirmation,
   ] =
     await prisma.$transaction([
       prisma.webinarRegistration.count({ where: { webinarId } }),
@@ -216,6 +221,9 @@ export const webinarRegistrationStats = async (
       prisma.webinarRegistration.count({
         where: { webinarId, contact: { NOT: WHATSAPPABLE_CONTACT } },
       }),
+      prisma.webinarRegistration.count({
+        where: { webinarId, confirmationWaSentAt: { not: null }, confirmationWaError: null },
+      }),
     ]);
   return {
     total,
@@ -229,8 +237,52 @@ export const webinarRegistrationStats = async (
     wa1h,
     waFailed,
     noWhatsApp,
+    waConfirmation,
   };
 };
+
+/** A quiénes les falta el recordatorio de WhatsApp de esa pasada (vista previa). */
+export const listPendingWaReminderContactIds = async (
+  webinarId: string,
+  kind: ReminderKind,
+  take = 2000
+): Promise<string[]> =>
+  (
+    await prisma.webinarRegistration.findMany({
+      where: { webinarId, [waReminderFlag(kind)]: null, contact: WHATSAPPABLE_CONTACT },
+      select: { contactId: true },
+      take,
+    })
+  ).map((r) => r.contactId);
+
+/** El evento de una inscripción, o null si ya no existe. */
+export const registrationEventId = async (registrationId: string): Promise<string | null> =>
+  (
+    await prisma.webinarRegistration.findUnique({
+      where: { id: registrationId },
+      select: { webinarId: true },
+    })
+  )?.webinarId ?? null;
+
+/** «Reintentar WA»: suelta el sello de esa pasada y su error. */
+export const releaseWaReminder = async (registrationId: string, kind: ReminderKind): Promise<void> => {
+  await prisma.webinarRegistration.update({
+    where: { id: registrationId },
+    data: { [waReminderFlag(kind)]: null, waReminderError: null, waReminderErrorAt: null },
+  });
+};
+
+/** Todas las personas inscritas a un evento (para «enviar a todas»). */
+export const listRegistrationContactIds = async (webinarId?: string | null): Promise<string[]> => [
+  ...new Set(
+    (
+      await prisma.webinarRegistration.findMany({
+        where: webinarId ? { webinarId } : {},
+        select: { contactId: true },
+      })
+    ).map((r) => r.contactId)
+  ),
+];
 
 /** Cuántas esperan todavía un recordatorio de WhatsApp de esa pasada. */
 export const countPendingWaReminderRecipients = async (

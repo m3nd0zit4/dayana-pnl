@@ -34,6 +34,7 @@ const WhatsAppBulkSend = ({
   onDone,
   label = "Enviar por WhatsApp",
   create,
+  link,
 }: {
   contactIds: string[];
   presets: WhatsAppPreset[];
@@ -41,6 +42,8 @@ const WhatsAppBulkSend = ({
   title: string;
   onDone?: () => void;
   label?: string;
+  /** El evento o el taller del envío: queda en su historia. */
+  link?: { freeWebinarId?: string | null; workshopEditionId?: string | null };
   /**
    * Arma el envío en otra ruta (p. ej. la comunidad, que además deja a cada
    * persona como invitada). Devuelve el id del envío; las tandas son las de siempre.
@@ -86,6 +89,8 @@ const WhatsAppBulkSend = ({
               kind,
               text,
               vars: resolvePresetVars(preset?.vars, text),
+              freeWebinarId: link?.freeWebinarId ?? null,
+              workshopEditionId: link?.workshopEditionId ?? null,
             }),
           }).then(async (res) => {
             if (!res.ok) throw new Error();

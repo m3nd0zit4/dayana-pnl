@@ -93,6 +93,7 @@ const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
           kind="taller"
           title={`Taller: ${edition.title} (invitación)`}
           label="Invitar por WhatsApp"
+          link={{ workshopEditionId: edition.id }}
         />
       </section>
 
@@ -107,6 +108,7 @@ const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
           title={`Taller: ${edition.title}`}
           source="talleres"
           allLabel="Enviar a todas las inscritas"
+          link={{ workshopEditionId: edition.id }}
         />
       )}
     </CrmPageShell>

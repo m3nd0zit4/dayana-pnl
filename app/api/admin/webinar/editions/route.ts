@@ -1,48 +1,58 @@
 import { NextResponse } from "next/server";
 import { apiError, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
-import {
-  archiveFreeWebinar,
-  FreeWebinarArchiveError,
-  listArchivedWebinars,
-} from "@/lib/crm/free-webinar";
+import { listFreeEvents } from "@/lib/crm/free-events";
+import { duplicateFreeEvent, ensureFreeWebinar } from "@/lib/crm/free-webinar";
+import { freeEventEditionsEnabled } from "@/lib/crm/free-event-settings";
 
 export const dynamic = "force-dynamic";
 
-/** Historial de ediciones. Solo CRM: no se publica en ninguna página. */
+/**
+ * Ruta de antes del historial por renombre. Ahora cada evento es su propia
+ * fila (`/api/admin/eventos`); esto sigue respondiendo con la forma vieja.
+ *
+ * GET: los eventos que no son el actual.
+ */
 export const GET = withStaff("read", async () => {
-  return NextResponse.json({ editions: await listArchivedWebinars() });
+  const editions = (await listFreeEvents())
+    .filter((e) => !e.isCurrent)
+    .map((e) => ({
+      id: e.id,
+      startsAt: e.startsAt,
+      startsAtHasTime: e.startsAtHasTime,
+      archivedAt: null,
+      endedAt: e.endedAt,
+      headline: e.headline,
+      meetUrl: e.meetUrl,
+      registrations: e.registrations,
+    }));
+  return NextResponse.json({ editions });
 });
 
 /**
- * Archiva la edición terminada y deja una nueva lista.
- *
- * Es la única acción manual del ciclo: el cron solo marca `endedAt`, nunca
- * archiva por su cuenta, para que nada se mueva de sitio sin que alguien lo
- * decida.
+ * «Archivar» de antes: el evento actual ya terminado se queda como está (es su
+ * propia fila) y se prepara uno nuevo con su página — lo mismo que «Duplicar».
  */
 export const POST = withStaff("write", async ({ staff }) => {
-  try {
-    const { archived, live } = await archiveFreeWebinar();
-
-    fireAuditLog({
-      staffUserId: staff.id,
-      action: "UPDATE",
-      entityType: "FreeWebinar",
-      entityId: archived.id,
-      changes: { archived: true, newEditionId: live.id },
+  if (!(await freeEventEditionsEnabled())) return apiError("editions_disabled", 403);
+  const current = await ensureFreeWebinar();
+  if (!current.startsAt) {
+    return apiError("nothing_to_archive", 400, {
+      message: "No hay nada que archivar: esta edición no tiene fecha.",
     });
-
-    return NextResponse.json({ archived, live });
-  } catch (e) {
-    if (e instanceof FreeWebinarArchiveError) {
-      return apiError(e.reason, 400, {
-        message:
-          e.reason === "not_ended"
-            ? "El webinar todavía no ha terminado. Ciérralo antes de archivarlo."
-            : "No hay nada que archivar: esta edición no tiene fecha.",
-      });
-    }
-    throw e;
   }
+  if (!current.endedAt) {
+    return apiError("not_ended", 400, {
+      message: "El webinar todavía no ha terminado. Ciérralo antes de archivarlo.",
+    });
+  }
+  const live = await duplicateFreeEvent(current.id, { staffUserId: staff.id });
+  fireAuditLog({
+    staffUserId: staff.id,
+    action: "CREATE",
+    entityType: "FreeWebinar",
+    entityId: live.id,
+    changes: { copiedFrom: current.id },
+  });
+  return NextResponse.json({ archived: current, live });
 });

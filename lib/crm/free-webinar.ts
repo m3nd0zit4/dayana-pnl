@@ -1,4 +1,4 @@
-import { Prisma, RecordingStatus, type FreeWebinar } from "@prisma/client";
+import { Prisma, RecordingStatus, type FreeEventStatus, type FreeWebinar } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getMuxClient } from "@/lib/mux/client";
 import { getSiteUrl } from "@/lib/site-url";
@@ -13,10 +13,27 @@ import {
   zonedDateTimeToUtc,
 } from "@/lib/crm/operational-timezone";
 import {
-  PUBLISH_BLOCKER_LABELS,
   type PublishBlocker,
   type FreeWebinarFaqItem,
 } from "@/lib/crm/free-webinar-publish";
+import {
+  recordFreeEventActivitiesTx,
+  recordFreeEventActivity,
+  type FreeEventActivityInput,
+} from "@/lib/crm/free-event-activity";
+import {
+  FREE_EVENT_ALIAS_SLUG,
+  freeEventAcceptsReminders,
+  freeEventPublicPath,
+  freeEventSlugBase,
+  freeEventSlugCandidates,
+  isFreeEventOpenRow,
+  isReservedFreeEventSlug,
+  pickCurrentFreeEvent,
+  resolveRegistrationTarget,
+  statusAfterReopen,
+  statusAfterUnpublish,
+} from "@/lib/crm/free-event-rules";
 
 export {
   PUBLISH_BLOCKER_LABELS,
@@ -24,12 +41,26 @@ export {
   type FreeWebinarFaqItem,
 } from "@/lib/crm/free-webinar-publish";
 
-export const FREE_WEBINAR_SLUG = "gratuito";
+/**
+ * Eventos gratuitos, uno por fila, como las ediciones de los talleres.
+ *
+ * Antes había una sola fila viva (`slug = "gratuito"`) y el historial se hacía
+ * renombrándola. Ahora cada evento tiene su fila, su estado (borrador →
+ * publicado → inscripciones cerradas → realizado), sus inscritas y su
+ * historia. «El evento actual» lo decide `pickCurrentFreeEvent`; `gratuito`
+ * queda como alias público de ese evento.
+ */
+export const FREE_WEBINAR_SLUG = FREE_EVENT_ALIAS_SLUG;
 
 export type FreeWebinarPublic = {
   id: string;
   slug: string;
+  status: FreeEventStatus;
+  /** Espejo de `status === OPEN`. */
   isActive: boolean;
+  publishedAt: Date | null;
+  /** Página propia del evento (`/eventos-gratuitos/<slug>`). */
+  publicPath: string;
   headline: string;
   subheadline: string | null;
   body: string | null;
@@ -70,6 +101,8 @@ export type FreeWebinarPublic = {
   linkEnabled: boolean;
   linkTitle: string | null;
   linkSubtitle: string | null;
+  /** Confirmación por WhatsApp al inscribirse. */
+  waConfirmationEnabled: boolean;
   updatedAt: Date;
 };
 
@@ -101,7 +134,11 @@ export type FreeWebinarUpdateInput = {
   linkEnabled?: boolean;
   linkTitle?: string | null;
   linkSubtitle?: string | null;
+  waConfirmationEnabled?: boolean;
 };
+
+/** Quién hace el cambio, para la historia del evento. */
+export type FreeEventActor = { staffUserId?: string | null };
 
 const parseLearnItems = (raw: Prisma.JsonValue): string[] => {
   if (!Array.isArray(raw)) return [];
@@ -136,7 +173,10 @@ export const toFreeWebinarPublic = (
   return {
     id: row.id,
     slug: row.slug,
+    status: row.status,
     isActive: row.isActive,
+    publishedAt: row.publishedAt,
+    publicPath: freeEventPublicPath(row),
     headline: row.headline,
     subheadline: row.subheadline,
     body: row.body,
@@ -179,6 +219,7 @@ export const toFreeWebinarPublic = (
     linkEnabled: row.linkEnabled,
     linkTitle: row.linkTitle,
     linkSubtitle: row.linkSubtitle,
+    waConfirmationEnabled: row.waConfirmationEnabled,
     updatedAt: row.updatedAt,
   };
 };
@@ -300,7 +341,7 @@ type ResolvedSchedule =
   | { startsAt: null; startsAtHasTime: false };
 
 const resolveSchedule = async (
-  input: FreeWebinarUpdateInput
+  input: Pick<FreeWebinarUpdateInput, "startsAtLocal" | "startsAt" | "startsAtHasTime">
 ): Promise<ResolvedSchedule | undefined> => {
   if (input.startsAtLocal === null) {
     return { startsAt: null, startsAtHasTime: false };
@@ -328,76 +369,322 @@ const resolveSchedule = async (
       startsAtHasTime: input.startsAtHasTime ?? true,
     };
   }
-  if (input.startsAtHasTime !== undefined) {
-    return undefined;
-  }
   return undefined;
 };
 
-export const getFreeWebinar = async (
-  slug: string = FREE_WEBINAR_SLUG
-): Promise<FreeWebinarPublic | null> => {
-  const row = await prisma.freeWebinar.findUnique({ where: { slug } });
+/* -------------------------------------------------------------------------
+ * Cuál es el evento: el actual, el abierto, uno por id o por URL
+ * ---------------------------------------------------------------------- */
+
+const CURRENT_SELECT = {
+  id: true,
+  slug: true,
+  status: true,
+  startsAt: true,
+  endedAt: true,
+  publishedAt: true,
+  createdAt: true,
+} satisfies Prisma.FreeWebinarSelect;
+
+/** La fila del evento actual (ver `pickCurrentFreeEvent`), sin crear nada. */
+export const findCurrentFreeEventRow = async (): Promise<FreeWebinar | null> => {
+  const candidates = await prisma.freeWebinar.findMany({ select: CURRENT_SELECT });
+  const pick = pickCurrentFreeEvent(candidates);
+  return pick ? prisma.freeWebinar.findUnique({ where: { id: pick.id } }) : null;
+};
+
+/** El evento actual, o null si todavía no hay ninguno. No crea filas. */
+export const getCurrentFreeEvent = async (): Promise<FreeWebinarPublic | null> => {
+  const row = await findCurrentFreeEventRow();
   if (!row) return null;
-  const tz = await getOperationalTimezone();
-  return toFreeWebinarPublic(row, tz);
+  return toFreeWebinarPublic(row, await getOperationalTimezone());
 };
 
-export const isFreeWebinarActive = async (
-  slug: string = FREE_WEBINAR_SLUG
-): Promise<boolean> => {
-  const row = await prisma.freeWebinar.findUnique({
-    where: { slug },
-    select: { isActive: true, startsAt: true, endedAt: true },
+/**
+ * El evento abierto a inscripciones: el de `/eventos-gratuitos`, `/enlaces`,
+ * el sitemap y `/api/leads`. Una sola consulta (índice `status, starts_at`):
+ * la landing la hace en cada visita.
+ */
+export const getOpenFreeEvent = async (): Promise<FreeWebinarPublic | null> => {
+  const row = await prisma.freeWebinar.findFirst({
+    where: { status: "OPEN", startsAt: { not: null }, endedAt: null },
+    orderBy: [{ startsAt: "desc" }, { publishedAt: "desc" }],
   });
-  return (
-    row?.isActive === true && row.startsAt != null && row.endedAt == null
-  );
+  if (!row) return null;
+  return toFreeWebinarPublic(row, await getOperationalTimezone());
 };
 
-export const ensureFreeWebinar = async (
-  slug: string = FREE_WEBINAR_SLUG
+export const getFreeEventById = async (id: string): Promise<FreeWebinarPublic | null> => {
+  const row = await prisma.freeWebinar.findUnique({ where: { id } });
+  if (!row) return null;
+  return toFreeWebinarPublic(row, await getOperationalTimezone());
+};
+
+/** Uno concreto por id; sin id, el actual. No crea filas. */
+export const getFreeWebinar = async (
+  eventId?: string
+): Promise<FreeWebinarPublic | null> =>
+  eventId ? getFreeEventById(eventId) : getCurrentFreeEvent();
+
+/** ¿Hay un evento abierto a inscripciones? */
+export const isFreeWebinarActive = async (): Promise<boolean> =>
+  (await getOpenFreeEvent()) !== null;
+
+export type FreeEventSlugLookup =
+  | { kind: "event"; event: FreeWebinarPublic }
+  | { kind: "redirect"; to: string }
+  | { kind: "current" }
+  | { kind: "not_found" };
+
+/**
+ * `/eventos-gratuitos/<slug>`: el evento con esa URL; una URL vieja redirige a
+ * la de ahora; `gratuito` es el evento actual; y la fila heredada que aún se
+ * llama `gratuito` se alcanza por su id.
+ */
+export const findFreeEventByPublicSlug = async (slug: string): Promise<FreeEventSlugLookup> => {
+  if (isReservedFreeEventSlug(slug)) return { kind: "current" };
+  const tz = await getOperationalTimezone();
+  const bySlug = await prisma.freeWebinar.findUnique({ where: { slug } });
+  if (bySlug) return { kind: "event", event: toFreeWebinarPublic(bySlug, tz) };
+  const renamed = await prisma.freeWebinar.findFirst({
+    where: { previousSlugs: { has: slug } },
+    select: { id: true, slug: true },
+  });
+  if (renamed) return { kind: "redirect", to: freeEventPublicPath(renamed) };
+  const byId = await prisma.freeWebinar.findUnique({ where: { id: slug } });
+  if (byId) {
+    return isReservedFreeEventSlug(byId.slug)
+      ? { kind: "event", event: toFreeWebinarPublic(byId, tz) }
+      : { kind: "redirect", to: freeEventPublicPath(byId) };
+  }
+  return { kind: "not_found" };
+};
+
+/* -------------------------------------------------------------------------
+ * URLs de los eventos
+ * ---------------------------------------------------------------------- */
+
+type Db = Pick<typeof prisma, "freeWebinar">;
+
+/** ¿La usa ya otro evento, hoy o antes de cambiarla? `gratuito` siempre. */
+export const isFreeEventSlugInUse = async (
+  slug: string,
+  exceptId?: string,
+  db: Db = prisma
+): Promise<boolean> => {
+  if (isReservedFreeEventSlug(slug)) return true;
+  const hit = await db.freeWebinar.findFirst({
+    where: {
+      OR: [{ slug }, { previousSlugs: { has: slug } }],
+      ...(exceptId ? { NOT: { id: exceptId } } : {}),
+    },
+    select: { id: true },
+  });
+  return hit !== null;
+};
+
+const uniqueFreeEventSlug = async (
+  base: string,
+  exceptId?: string,
+  db: Db = prisma
+): Promise<string> => {
+  for (const candidate of freeEventSlugCandidates(base)) {
+    if (!(await isFreeEventSlugInUse(candidate, exceptId, db))) return candidate;
+  }
+  return `${base}-${Date.now()}`;
+};
+
+const slugBaseFor = (
+  row: { headline: string; startsAt: Date | null },
+  tz: string
+): string => freeEventSlugBase(row.headline, row.startsAt ? getDateKeyInTz(row.startsAt, tz) : null);
+
+/* -------------------------------------------------------------------------
+ * Crear, copiar, borrar
+ * ---------------------------------------------------------------------- */
+
+/** Lo que pasa de un evento a otro al copiar la página: la marca, no la fecha. */
+const pageTemplateOf = (src: FreeWebinar) => ({
+  headline: src.headline,
+  subheadline: src.subheadline,
+  body: src.body,
+  learnSectionTitle: src.learnSectionTitle,
+  learnItems: src.learnItems as Prisma.InputJsonValue,
+  // `faq` es Json anulable: `null` escribiría un JSON null, no un NULL de SQL.
+  faq: src.faq === null ? Prisma.DbNull : (src.faq as Prisma.InputJsonValue),
+  ctaLabel: src.ctaLabel,
+  formTitle: src.formTitle,
+  metaTitle: src.metaTitle,
+  metaDescription: src.metaDescription,
+  eventLabel: src.eventLabel,
+  locationLabel: src.locationLabel,
+  priceLabel: src.priceLabel,
+  faqTitle: src.faqTitle,
+  materialLabel: src.materialLabel,
+  successMessage: src.successMessage,
+  linkEnabled: src.linkEnabled,
+  linkTitle: src.linkTitle,
+  linkSubtitle: src.linkSubtitle,
+  capacity: src.capacity,
+  waConfirmationEnabled: src.waConfirmationEnabled,
+  // El material es del tema, no de la fecha. Quitarlo de un evento no borra el
+  // archivo si otro lo sigue usando (`materialBlobInUse`).
+  materialUrl: src.materialUrl,
+  materialFileName: src.materialFileName,
+  materialMimeType: src.materialMimeType,
+  materialSizeBytes: src.materialSizeBytes,
+  // El vídeo listo se comparte por su playbackId. Los ids de subida y de asset
+  // NO: el webhook de Mux casa por ellos con updateMany y escribiría en las
+  // dos filas. Uno a medio procesar no se copia.
+  ...(src.videoStatus === RecordingStatus.READY && src.muxPlaybackId
+    ? {
+        muxPlaybackId: src.muxPlaybackId,
+        videoStatus: RecordingStatus.READY,
+        videoDurationSec: src.videoDurationSec,
+      }
+    : {}),
+});
+
+const defaultTemplate = () => ({
+  headline: DEFAULT_FREE_WEBINAR.headline,
+  subheadline: DEFAULT_FREE_WEBINAR.subheadline,
+  body: DEFAULT_FREE_WEBINAR.body,
+  learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
+  learnItems: DEFAULT_FREE_WEBINAR.learnItems,
+  faq: DEFAULT_FREE_WEBINAR.faq,
+  ctaLabel: DEFAULT_FREE_WEBINAR.ctaLabel,
+  formTitle: DEFAULT_FREE_WEBINAR.formTitle,
+  metaTitle: DEFAULT_FREE_WEBINAR.metaTitle,
+  metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
+});
+
+export type CreateFreeEventInput = {
+  headline?: string | null;
+  startsAtLocal?: { date: string; time?: string | null } | null;
+  /** Copiar la página (textos, FAQ, vídeo, material…) de otro evento. */
+  copyFromId?: string | null;
+};
+
+/**
+ * Un evento nuevo, en borrador. Nunca hereda la fecha, el enlace de la
+ * reunión ni las inscritas: esos son hechos de cada edición. Heredar el
+ * `meetUrl` haría que el compare-and-swap viera «no cambió» al volver a pegar
+ * el enlace de una sala recurrente, y no se enviaría a nadie.
+ */
+export const createFreeEvent = async (
+  input: CreateFreeEventInput = {},
+  actor: FreeEventActor = {}
 ): Promise<FreeWebinarPublic> => {
   const tz = await getOperationalTimezone();
-  const existing = await prisma.freeWebinar.findUnique({ where: { slug } });
-  if (existing) return toFreeWebinarPublic(existing, tz);
+  const source = input.copyFromId
+    ? await prisma.freeWebinar.findUnique({ where: { id: input.copyFromId } })
+    : null;
+  if (input.copyFromId && !source) throw new FreeEventLifecycleError("not_found");
 
-  try {
-    const created = await prisma.freeWebinar.create({
-      data: {
-        slug,
-        isActive: false,
-        headline: DEFAULT_FREE_WEBINAR.headline,
-        subheadline: DEFAULT_FREE_WEBINAR.subheadline,
-        body: DEFAULT_FREE_WEBINAR.body,
-        startsAt: null,
-        startsAtHasTime: false,
-        videoUrl: null,
-        learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
-        learnItems: DEFAULT_FREE_WEBINAR.learnItems,
-        faq: DEFAULT_FREE_WEBINAR.faq,
-        ctaLabel: DEFAULT_FREE_WEBINAR.ctaLabel,
-        formTitle: DEFAULT_FREE_WEBINAR.formTitle,
-        metaTitle: DEFAULT_FREE_WEBINAR.metaTitle,
-        metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
-      },
-    });
-    return toFreeWebinarPublic(created, tz);
-  } catch (e) {
-    // Dos peticiones simultáneas pueden fallar las dos el findUnique y chocar
-    // en el índice único. Antes esa ventana solo existía con la tabla vacía;
-    // archivar la abre a propósito, y encima sobre una landing pública — un
-    // P2002 sin capturar sería un 500 en marketing.
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2002"
-    ) {
-      const raced = await prisma.freeWebinar.findUnique({ where: { slug } });
-      if (raced) return toFreeWebinarPublic(raced, tz);
+  const template = source ? pageTemplateOf(source) : defaultTemplate();
+  const headline = input.headline?.trim() || template.headline;
+  const schedule = input.startsAtLocal ? await resolveSchedule({ startsAtLocal: input.startsAtLocal }) : undefined;
+  const startsAt = schedule?.startsAt ?? null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const slug = await uniqueFreeEventSlug(slugBaseFor({ headline, startsAt }, tz));
+    try {
+      const row = await prisma.freeWebinar.create({
+        data: {
+          ...template,
+          headline,
+          slug,
+          status: "DRAFT",
+          isActive: false,
+          startsAt,
+          startsAtHasTime: schedule?.startsAtHasTime ?? false,
+          meetUrl: null,
+          endedAt: null,
+          archivedAt: null,
+        },
+      });
+      await recordFreeEventActivity({
+        freeWebinarId: row.id,
+        kind: "created",
+        at: row.createdAt,
+        staffUserId: actor.staffUserId,
+        meta: source ? { copiedFromId: source.id, copiedFromHeadline: source.headline } : null,
+      });
+      return toFreeWebinarPublic(row, tz);
+    } catch (e) {
+      // Dos altas a la vez eligieron la misma URL: el índice único decide y la
+      // segunda prueba la siguiente.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") continue;
+      throw e;
     }
-    throw e;
   }
+  throw new Error("free_event_slug_race");
 };
+
+/** «Duplicar»: un borrador nuevo con la página de este. */
+export const duplicateFreeEvent = (
+  id: string,
+  actor: FreeEventActor = {}
+): Promise<FreeWebinarPublic> => createFreeEvent({ copyFromId: id }, actor);
+
+/**
+ * El evento sobre el que se trabaja: el indicado o el actual. Si no hay
+ * ninguno —base recién creada— se crea un borrador, como hacía siempre la
+ * fila única.
+ */
+const resolveRow = async (eventId?: string): Promise<FreeWebinar> => {
+  if (eventId) return prisma.freeWebinar.findUniqueOrThrow({ where: { id: eventId } });
+  const current = await findCurrentFreeEventRow();
+  if (current) return current;
+  const created = await createFreeEvent();
+  return prisma.freeWebinar.findUniqueOrThrow({ where: { id: created.id } });
+};
+
+/** Uno por id o el actual; con la base vacía, crea el primer borrador. */
+export const ensureFreeWebinar = async (eventId?: string): Promise<FreeWebinarPublic> =>
+  toFreeWebinarPublic(await resolveRow(eventId), await getOperationalTimezone());
+
+export class FreeEventLifecycleError extends Error {
+  constructor(
+    readonly reason: "not_found" | "ended" | "has_registrations" | "open"
+  ) {
+    super(reason);
+    this.name = "FreeEventLifecycleError";
+  }
+}
+
+export const FREE_EVENT_LIFECYCLE_MESSAGE: Record<FreeEventLifecycleError["reason"], string> = {
+  not_found: "No encontré ese evento.",
+  ended: "Este evento ya terminó. Duplícalo para preparar otro.",
+  has_registrations: "Este evento tiene inscritas: no se borra, queda en la historia.",
+  open: "Está publicado. Ciérralo antes de borrarlo.",
+};
+
+/** ¿Otro evento sigue usando este archivo de material? Entonces no se borra. */
+const materialBlobInUse = async (url: string, exceptId: string): Promise<boolean> =>
+  (await prisma.freeWebinar.count({ where: { materialUrl: url, id: { not: exceptId } } })) > 0;
+
+/**
+ * Borra un evento sin inscritas (si tiene, es historia y se queda, como un
+ * taller con pagos). Devuelve el material a borrar del almacenamiento si nadie
+ * más lo usa.
+ */
+export const deleteFreeEvent = async (id: string): Promise<{ materialUrl: string | null }> => {
+  const row = await prisma.freeWebinar.findUnique({
+    where: { id },
+    select: { id: true, status: true, materialUrl: true, _count: { select: { registrations: true } } },
+  });
+  if (!row) throw new FreeEventLifecycleError("not_found");
+  if (row._count.registrations > 0) throw new FreeEventLifecycleError("has_registrations");
+  if (row.status === "OPEN") throw new FreeEventLifecycleError("open");
+  await prisma.freeWebinar.delete({ where: { id } });
+  const orphan = row.materialUrl && !(await materialBlobInUse(row.materialUrl, id)) ? row.materialUrl : null;
+  return { materialUrl: orphan };
+};
+
+/* -------------------------------------------------------------------------
+ * Publicar, cerrar, terminar
+ * ---------------------------------------------------------------------- */
 
 export class FreeWebinarPublishError extends Error {
   readonly blockers: PublishBlocker[];
@@ -408,6 +695,235 @@ export class FreeWebinarPublishError extends Error {
   }
 }
 
+export type PublishResult = {
+  webinar: FreeWebinarPublic;
+  /** Los que estaban publicados y pasaron a «inscripciones cerradas». */
+  closed: { id: string; headline: string }[];
+};
+
+/**
+ * Publica un evento y cierra las inscripciones del que estuviera publicado,
+ * en una transacción — como `closeOtherOpenWorkshops`. El cerrado no se
+ * cancela: si aún no pasó, sus inscritas siguen recibiendo los recordatorios.
+ *
+ * Si alguna fila conserva el nombre heredado `gratuito`, aquí recibe su URL
+ * propia: desde ahora `gratuito` es solo el alias del evento abierto.
+ */
+export const publishFreeEvent = async (
+  id: string,
+  actor: FreeEventActor = {},
+  now: Date = new Date()
+): Promise<PublishResult> => {
+  const tz = await getOperationalTimezone();
+  const row = await prisma.freeWebinar.findUnique({ where: { id } });
+  if (!row) throw new FreeEventLifecycleError("not_found");
+  if (row.endedAt) throw new FreeEventLifecycleError("ended");
+  const blockers = getPublishBlockers(toFreeWebinarPublic(row, tz));
+  if (blockers.length > 0) throw new FreeWebinarPublishError(blockers);
+
+  const closed = await prisma.$transaction(async (tx) => {
+    // Dos publicaciones a la vez podrían dejar dos abiertos.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('free-event-publish'))`;
+
+    const others = await tx.freeWebinar.findMany({
+      where: { status: "OPEN", id: { not: id } },
+      select: { id: true, headline: true },
+    });
+    if (others.length > 0) {
+      await tx.freeWebinar.updateMany({
+        where: { id: { in: others.map((o) => o.id) } },
+        data: { status: "CLOSED", isActive: false },
+      });
+    }
+    // El espejo, por si alguna fila vieja quedó encendida sin estar OPEN.
+    await tx.freeWebinar.updateMany({
+      where: { isActive: true, status: { not: "OPEN" }, id: { not: id } },
+      data: { isActive: false },
+    });
+
+    const legacy = await tx.freeWebinar.findMany({
+      where: { slug: FREE_EVENT_ALIAS_SLUG },
+      select: { id: true, headline: true, startsAt: true },
+    });
+    for (const l of legacy) {
+      const slug = await uniqueFreeEventSlug(slugBaseFor(l, tz), l.id, tx);
+      await tx.freeWebinar.update({ where: { id: l.id }, data: { slug } });
+    }
+
+    if (row.status !== "OPEN" || !row.isActive) {
+      await tx.freeWebinar.update({
+        where: { id },
+        data: { status: "OPEN", isActive: true, publishedAt: row.publishedAt ?? now },
+      });
+      const activities: FreeEventActivityInput[] = [
+        { freeWebinarId: id, kind: "published", at: now, staffUserId: actor.staffUserId },
+        ...others.map(
+          (o): FreeEventActivityInput => ({
+            freeWebinarId: o.id,
+            kind: "closed",
+            at: now,
+            staffUserId: actor.staffUserId,
+            meta: { byEventId: id, byHeadline: row.headline },
+          })
+        ),
+      ];
+      await recordFreeEventActivitiesTx(tx, activities);
+    }
+    return others;
+  });
+
+  const fresh = await prisma.freeWebinar.findUniqueOrThrow({ where: { id } });
+  return { webinar: toFreeWebinarPublic(fresh, tz), closed };
+};
+
+/** Apaga la página: el publicado pasa a «inscripciones cerradas». */
+export const unpublishFreeEvent = async (
+  id: string,
+  actor: FreeEventActor = {}
+): Promise<FreeWebinarPublic> => {
+  const row = await prisma.freeWebinar.findUniqueOrThrow({ where: { id } });
+  const next = statusAfterUnpublish(row.status);
+  if (next !== row.status || row.isActive) {
+    await prisma.freeWebinar.update({ where: { id }, data: { status: next, isActive: false } });
+    if (row.status === "OPEN") {
+      await recordFreeEventActivity({ freeWebinarId: id, kind: "unpublished", staffUserId: actor.staffUserId });
+    }
+  }
+  return toFreeWebinarPublic(
+    await prisma.freeWebinar.findUniqueOrThrow({ where: { id } }),
+    await getOperationalTimezone()
+  );
+};
+
+/**
+ * Da el evento por realizado: corta inscripciones, enlace y recordatorios.
+ * Compare-and-swap sobre `endedAt: null`: dos ticks del reloj (o el reloj y
+ * Dayana) no pueden terminarlo dos veces ni anotarlo dos veces.
+ */
+export const endFreeEvent = async (
+  id: string,
+  opts: FreeEventActor & { by: "cron" | "staff"; now?: Date }
+): Promise<boolean> => {
+  const now = opts.now ?? new Date();
+  const { count } = await prisma.freeWebinar.updateMany({
+    where: { id, endedAt: null },
+    data: { endedAt: now, status: "COMPLETED", isActive: false },
+  });
+  if (count === 0) {
+    // Terminado de antes sin estado (base vieja): se pone al día sin anotar.
+    await prisma.freeWebinar.updateMany({
+      where: { id, endedAt: { not: null }, status: { not: "COMPLETED" } },
+      data: { status: "COMPLETED", isActive: false },
+    });
+    return false;
+  }
+  await recordFreeEventActivity({
+    freeWebinarId: id,
+    kind: "ended",
+    at: now,
+    staffUserId: opts.staffUserId,
+    meta: { by: opts.by },
+  });
+  return true;
+};
+
+/** Reabrir uno terminado por error: queda sin inscripciones hasta publicarlo. */
+export const reopenFreeEvent = async (
+  id: string,
+  actor: FreeEventActor = {}
+): Promise<FreeWebinarPublic> => {
+  const row = await prisma.freeWebinar.findUniqueOrThrow({ where: { id } });
+  if (row.endedAt || row.status === "COMPLETED") {
+    await prisma.freeWebinar.update({
+      where: { id },
+      data: { endedAt: null, status: statusAfterReopen(row.status), isActive: false },
+    });
+    await recordFreeEventActivity({ freeWebinarId: id, kind: "reopened", staffUserId: actor.staffUserId });
+  }
+  return toFreeWebinarPublic(
+    await prisma.freeWebinar.findUniqueOrThrow({ where: { id } }),
+    await getOperationalTimezone()
+  );
+};
+
+/** Cerrar o reabrir a mano (el interruptor de antes). Sin id, el actual. */
+export const setFreeWebinarEnded = async (
+  ended: boolean,
+  eventId?: string,
+  actor: FreeEventActor = {}
+): Promise<FreeWebinarPublic> => {
+  const row = await resolveRow(eventId);
+  if (!ended) return reopenFreeEvent(row.id, actor);
+  await endFreeEvent(row.id, { by: "staff", staffUserId: actor.staffUserId });
+  return toFreeWebinarPublic(
+    await prisma.freeWebinar.findUniqueOrThrow({ where: { id: row.id } }),
+    await getOperationalTimezone()
+  );
+};
+
+/** Margen tras un evento con hora real antes de darlo por terminado. */
+const CLOSE_GRACE_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * Cuando se da por terminado un evento.
+ *
+ * Con hora real: `startsAt` + 3 h. Sin hora, `startsAt` guarda un ancla de
+ * mediodia (`DATE_ONLY_ANCHOR_TIME`), no una hora de verdad — sumarle 3 h
+ * cerraria a las 15:00 una sesion de las 20:00. En ese caso se cierra a las
+ * 03:00 del dia siguiente en la zona operativa, que es configurable, asi que
+ * se calcula con la zona y no con un desplazamiento fijo.
+ */
+export const resolveWebinarCloseAt = (
+  webinar: Pick<FreeWebinarPublic, "startsAt" | "startsAtHasTime">,
+  timezone: string
+): Date | null => {
+  if (!webinar.startsAt) return null;
+  if (webinar.startsAtHasTime) {
+    return new Date(webinar.startsAt.getTime() + CLOSE_GRACE_MS);
+  }
+  const nextMidnight = getStartOfNextDayInTz(webinar.startsAt, timezone);
+  return new Date(nextMidnight.getTime() + 3 * 60 * 60 * 1000);
+};
+
+/**
+ * Los eventos en pie (publicados o con inscripciones cerradas, sin terminar):
+ * los que el reloj atiende — enlace, recordatorios y cierre. Normalmente uno;
+ * dos cuando se publica el siguiente antes de que pase el actual.
+ */
+export const listLiveFreeEvents = async (): Promise<FreeWebinarPublic[]> => {
+  const rows = await prisma.freeWebinar.findMany({
+    where: {
+      endedAt: null,
+      OR: [{ status: { in: ["OPEN", "CLOSED"] } }, { isActive: true }],
+    },
+    orderBy: [{ startsAt: { sort: "asc", nulls: "last" } }],
+  });
+  const tz = await getOperationalTimezone();
+  return rows.filter(freeEventAcceptsReminders).map((r) => toFreeWebinarPublic(r, tz));
+};
+
+/** El reloj: termina los que ya pasaron. Devuelve los que terminó ESTE proceso. */
+export const closeDueFreeEvents = async (
+  now: Date = new Date()
+): Promise<FreeWebinarPublic[]> => {
+  const tz = await getOperationalTimezone();
+  const live = await listLiveFreeEvents();
+  const closed: FreeWebinarPublic[] = [];
+  for (const e of live) {
+    const closeAt = resolveWebinarCloseAt(e, tz);
+    if (!closeAt || now < closeAt) continue;
+    if (await endFreeEvent(e.id, { by: "cron", now })) {
+      const fresh = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: e.id } });
+      closed.push(toFreeWebinarPublic(fresh, tz));
+    }
+  }
+  return closed;
+};
+
+/* -------------------------------------------------------------------------
+ * Editar
+ * ---------------------------------------------------------------------- */
+
 export type FreeWebinarUpdateResult = {
   webinar: FreeWebinarPublic;
   /** El enlace quedó distinto al guardado → hay que reenviarlo a todas. */
@@ -416,13 +932,35 @@ export type FreeWebinarUpdateResult = {
   startsAtChanged: boolean;
   /** Registros que vuelven a la cola del enlace por el cambio. */
   linkEmailsReset: number;
+  /** Al publicar: los que estaban publicados y cerraron inscripciones. */
+  closedOthers: { id: string; headline: string }[];
 };
 
+const PASSTHROUGH_KEYS = [
+  "eventLabel",
+  "locationLabel",
+  "priceLabel",
+  "faqTitle",
+  "materialLabel",
+  "successMessage",
+  "linkEnabled",
+  "linkTitle",
+  "linkSubtitle",
+  "waConfirmationEnabled",
+] as const;
+
+/**
+ * Guarda la página de un evento (sin id, el actual). `isActive: true` lo
+ * publica (y cierra el que estuviera publicado); `false` cierra inscripciones.
+ */
 export const updateFreeWebinar = async (
   input: FreeWebinarUpdateInput,
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string,
+  actor: FreeEventActor = {}
 ): Promise<FreeWebinarUpdateResult> => {
-  await ensureFreeWebinar(slug);
+  const current = await resolveRow(eventId);
+  const id = current.id;
+  const tz = await getOperationalTimezone();
 
   const data: Prisma.FreeWebinarUpdateInput = {};
   if (input.headline !== undefined) data.headline = input.headline;
@@ -444,46 +982,27 @@ export const updateFreeWebinar = async (
   if (input.metaDescription !== undefined) {
     data.metaDescription = input.metaDescription;
   }
-  if (input.isActive !== undefined) data.isActive = input.isActive;
   // Antes del update: asignarlo después no lo guardaba nunca.
   if (input.capacity !== undefined) data.capacity = input.capacity;
-  // Personalización de la página y del botón en /enlaces.
-  for (const key of [
-    "eventLabel",
-    "locationLabel",
-    "priceLabel",
-    "faqTitle",
-    "materialLabel",
-    "successMessage",
-    "linkEnabled",
-    "linkTitle",
-    "linkSubtitle",
-  ] as const) {
+  for (const key of PASSTHROUGH_KEYS) {
     if (input[key] !== undefined) {
       (data as Record<string, unknown>)[key] = input[key];
     }
   }
-
-  const tz = await getOperationalTimezone();
-  const current = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
 
   const startsAtChanged =
     schedule !== undefined &&
     (schedule.startsAt?.getTime() ?? null) !==
       (current.startsAt?.getTime() ?? null);
 
+  const nextHeadline = typeof data.headline === "string" ? data.headline : current.headline;
+  const nextStartsAt = schedule !== undefined ? schedule.startsAt : current.startsAt;
+
   if (input.isActive === true) {
-    const nextStartsAt =
-      schedule !== undefined ? schedule.startsAt : current.startsAt;
-    const nextHasTime =
-      schedule !== undefined
-        ? schedule.startsAtHasTime
-        : current.startsAtHasTime;
     const preview = toFreeWebinarPublic(
       {
         ...current,
-        headline:
-          typeof data.headline === "string" ? data.headline : current.headline,
+        headline: nextHeadline,
         subheadline:
           data.subheadline === undefined
             ? current.subheadline
@@ -491,7 +1010,8 @@ export const updateFreeWebinar = async (
         body:
           data.body === undefined ? current.body : (data.body as string | null),
         startsAt: nextStartsAt,
-        startsAtHasTime: nextHasTime,
+        startsAtHasTime:
+          schedule !== undefined ? schedule.startsAtHasTime : current.startsAtHasTime,
         learnItems:
           input.learnItems !== undefined
             ? (input.learnItems as Prisma.JsonValue)
@@ -509,12 +1029,21 @@ export const updateFreeWebinar = async (
     if (blockers.length > 0) {
       throw new FreeWebinarPublishError(blockers);
     }
+    if (current.endedAt) throw new FreeEventLifecycleError("ended");
   }
 
-  const row = await prisma.freeWebinar.update({
-    where: { slug },
-    data,
-  });
+  // La URL sigue al titular y a la fecha mientras el evento no se ha
+  // publicado nunca; desde que tiene página pública ya no se mueve sola.
+  if (
+    !current.publishedAt &&
+    !isReservedFreeEventSlug(current.slug) &&
+    (nextHeadline !== current.headline || startsAtChanged)
+  ) {
+    const base = slugBaseFor({ headline: nextHeadline, startsAt: nextStartsAt }, tz);
+    if (!current.slug.startsWith(base)) data.slug = await uniqueFreeEventSlug(base, id);
+  }
+
+  const row = await prisma.freeWebinar.update({ where: { id }, data });
 
   // El enlace se escribe aparte, con compare-and-swap: es la base de datos la
   // que responde «¿cambió de verdad?». Guardar dos veces el mismo enlace no
@@ -527,8 +1056,8 @@ export const updateFreeWebinar = async (
     const next = normalizeMeetUrl(input.meetUrl);
     const where: Prisma.FreeWebinarWhereInput =
       next === null
-        ? { slug, meetUrl: { not: null } }
-        : { slug, OR: [{ meetUrl: null }, { meetUrl: { not: next } }] };
+        ? { id, meetUrl: { not: null } }
+        : { id, OR: [{ meetUrl: null }, { meetUrl: { not: next } }] };
     const { count } = await prisma.freeWebinar.updateMany({
       where,
       data: { meetUrl: next },
@@ -536,6 +1065,12 @@ export const updateFreeWebinar = async (
     meetUrlChanged = count > 0;
     if (meetUrlChanged && next !== null) {
       linkEmailsReset = await resetLinkEmails(row.id);
+      await recordFreeEventActivity({
+        freeWebinarId: id,
+        kind: current.meetUrl ? "meet_link_changed" : "meet_link_set",
+        count: linkEmailsReset || null,
+        staffUserId: actor.staffUserId,
+      });
     }
   }
 
@@ -543,49 +1078,60 @@ export const updateFreeWebinar = async (
   // anterior: nadie recibiría aviso de la nueva.
   if (startsAtChanged) {
     await resetReminders(row.id);
+    const fresh = toFreeWebinarPublic(row, tz);
+    await recordFreeEventActivity({
+      freeWebinarId: id,
+      kind: "date_changed",
+      staffUserId: actor.staffUserId,
+      meta: {
+        from: current.startsAt?.toISOString() ?? null,
+        to: row.startsAt?.toISOString() ?? null,
+        label: formatWebinarScheduleLabel(fresh),
+      },
+    });
   }
 
-  const finalRow =
-    input.meetUrl !== undefined
-      ? await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } })
-      : row;
+  let closedOthers: PublishResult["closed"] = [];
+  if (input.isActive === true) {
+    closedOthers = (await publishFreeEvent(id, actor)).closed;
+  } else if (input.isActive === false) {
+    await unpublishFreeEvent(id, actor);
+  }
 
+  const finalRow = await prisma.freeWebinar.findUniqueOrThrow({ where: { id } });
   return {
     webinar: toFreeWebinarPublic(finalRow, tz),
     meetUrlChanged,
     startsAtChanged,
     linkEmailsReset,
+    closedOthers,
   };
 };
 
 export const clearFreeWebinarSchedule = async (
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string,
+  actor: FreeEventActor = {}
 ): Promise<FreeWebinarPublic> =>
-  (await updateFreeWebinar({ isActive: false, startsAt: null }, slug)).webinar;
+  (await updateFreeWebinar({ isActive: false, startsAt: null }, eventId, actor)).webinar;
 
+/** Volver a los textos de ejemplo, sin fecha y en borrador. */
 export const resetFreeWebinar = async (
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string,
+  actor: FreeEventActor = {}
 ): Promise<FreeWebinarPublic> => {
-  await ensureFreeWebinar(slug);
+  const current = await resolveRow(eventId);
+  if (current.status === "OPEN") await unpublishFreeEvent(current.id, actor);
   const row = await prisma.freeWebinar.update({
-    where: { slug },
+    where: { id: current.id },
     data: {
       isActive: false,
-      headline: DEFAULT_FREE_WEBINAR.headline,
-      subheadline: DEFAULT_FREE_WEBINAR.subheadline,
-      body: DEFAULT_FREE_WEBINAR.body,
+      ...(current.endedAt ? {} : { status: "DRAFT" as const }),
+      ...defaultTemplate(),
       startsAt: null,
       startsAtHasTime: false,
       meetUrl: null,
       videoUrl: null,
       ...CLEARED_VIDEO_FIELDS,
-      learnSectionTitle: DEFAULT_FREE_WEBINAR.learnSectionTitle,
-      learnItems: DEFAULT_FREE_WEBINAR.learnItems,
-      faq: DEFAULT_FREE_WEBINAR.faq,
-      ctaLabel: DEFAULT_FREE_WEBINAR.ctaLabel,
-      formTitle: DEFAULT_FREE_WEBINAR.formTitle,
-      metaTitle: DEFAULT_FREE_WEBINAR.metaTitle,
-      metaDescription: DEFAULT_FREE_WEBINAR.metaDescription,
     },
   });
   await resetLinkEmails(row.id);
@@ -615,9 +1161,9 @@ const CLEARED_VIDEO_FIELDS = {
 
 /** Abre una subida directa en Mux y deja la fila en `UPLOADING`. */
 export const createWebinarVideoUpload = async (
-  slug: string = FREE_WEBINAR_SLUG
-): Promise<{ uploadUrl: string; uploadId: string }> => {
-  await ensureFreeWebinar(slug);
+  eventId?: string
+): Promise<{ uploadUrl: string; uploadId: string; eventId: string }> => {
+  const row = await resolveRow(eventId);
   const mux = getMuxClient();
   const created = await mux.video.uploads.create({
     cors_origin: getSiteUrl(),
@@ -635,7 +1181,7 @@ export const createWebinarVideoUpload = async (
   if (!created.url) throw new Error("mux_upload_without_url");
 
   await prisma.freeWebinar.update({
-    where: { slug },
+    where: { id: row.id },
     data: {
       ...CLEARED_VIDEO_FIELDS,
       muxUploadId: created.id,
@@ -643,15 +1189,15 @@ export const createWebinarVideoUpload = async (
     },
   });
 
-  return { uploadUrl: created.url, uploadId: created.id };
+  return { uploadUrl: created.url, uploadId: created.id, eventId: row.id };
 };
 
 export const clearWebinarVideo = async (
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string
 ): Promise<FreeWebinarPublic> => {
-  await ensureFreeWebinar(slug);
+  const current = await resolveRow(eventId);
   const row = await prisma.freeWebinar.update({
-    where: { slug },
+    where: { id: current.id },
     data: { ...CLEARED_VIDEO_FIELDS, videoUrl: null },
   });
   const tz = await getOperationalTimezone();
@@ -708,10 +1254,10 @@ export const handleWebinarMuxAssetErrored = async (
  * perdido dejaría el vídeo colgado en «procesando» para siempre.
  */
 export const reconcileWebinarVideo = async (
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string
 ): Promise<FreeWebinarPublic> => {
   const tz = await getOperationalTimezone();
-  const row = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
+  const row = await resolveRow(eventId);
 
   const pending =
     row.videoStatus === RecordingStatus.UPLOADING ||
@@ -746,275 +1292,17 @@ export const reconcileWebinarVideo = async (
     );
   }
 
-  const fresh = await prisma.freeWebinar.findUniqueOrThrow({ where: { slug } });
+  const fresh = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: row.id } });
   return toFreeWebinarPublic(fresh, tz);
-};
-
-/* -------------------------------------------------------------------------
- * Ciclo de vida: cerrar, archivar, historial
- *
- * La invariante que sostiene todo esto: la edicion viva es siempre la que
- * tiene slug `gratuito`. Archivar renombra la terminada a `gratuito-<id>` y
- * crea una nueva `gratuito` en la misma transaccion, asi que las ~20 llamadas
- * que resuelven por ese slug (landing, /enlaces, sitemap, herramientas del
- * agente, el mailer, /api/leads) siguen funcionando sin tocar ni una.
- *
- * `archivedAt` es solo la fecha que se muestra en el historial. Nunca se usa
- * como condicion: si el slug y la columna pudieran discrepar, cada consulta
- * tendria que adivinar cual manda. Y como `slug` ya es unico, la base de datos
- * garantiza sola que no haya dos ediciones vivas.
- * ---------------------------------------------------------------------- */
-
-/** Margen tras un webinar con hora real antes de darlo por terminado. */
-const CLOSE_GRACE_MS = 3 * 60 * 60 * 1000;
-
-/**
- * Cuando se da por terminada una edicion.
- *
- * Con hora real: `startsAt` + 3 h. Sin hora, `startsAt` guarda un ancla de
- * mediodia (`DATE_ONLY_ANCHOR_TIME`), no una hora de verdad — sumarle 3 h
- * cerraria a las 15:00 una sesion de las 20:00. En ese caso se cierra a las
- * 03:00 del dia siguiente en la zona operativa, que es configurable, asi que
- * se calcula con la zona y no con un desplazamiento fijo.
- */
-export const resolveWebinarCloseAt = (
-  webinar: Pick<FreeWebinarPublic, "startsAt" | "startsAtHasTime">,
-  timezone: string
-): Date | null => {
-  if (!webinar.startsAt) return null;
-  if (webinar.startsAtHasTime) {
-    return new Date(webinar.startsAt.getTime() + CLOSE_GRACE_MS);
-  }
-  const nextMidnight = getStartOfNextDayInTz(webinar.startsAt, timezone);
-  return new Date(nextMidnight.getTime() + 3 * 60 * 60 * 1000);
-};
-
-export type WebinarCloseResult =
-  | { closed: false; reason: "no_schedule" | "not_due" | "already_ended" }
-  | { closed: true; webinar: FreeWebinarPublic };
-
-/**
- * Sella `endedAt` si la fecha ya paso. No toca `isActive`: ese interruptor es
- * de Dayana, y verlo en «borrador» sin haberlo tocado se lee como perdida de
- * datos. El compare-and-swap sobre `endedAt: null` hace que dos ticks del cron
- * no puedan mover la marca.
- */
-export const closeFreeWebinarIfDue = async (
-  now: Date = new Date(),
-  slug: string = FREE_WEBINAR_SLUG
-): Promise<WebinarCloseResult> => {
-  const tz = await getOperationalTimezone();
-  const row = await prisma.freeWebinar.findUnique({ where: { slug } });
-  if (!row) return { closed: false, reason: "no_schedule" };
-  if (row.endedAt) return { closed: false, reason: "already_ended" };
-  if (!row.startsAt) return { closed: false, reason: "no_schedule" };
-
-  const closeAt = resolveWebinarCloseAt(
-    { startsAt: row.startsAt, startsAtHasTime: row.startsAtHasTime },
-    tz
-  );
-  if (!closeAt || now < closeAt) return { closed: false, reason: "not_due" };
-
-  const { count } = await prisma.freeWebinar.updateMany({
-    where: { id: row.id, endedAt: null },
-    data: { endedAt: now },
-  });
-  if (count === 0) return { closed: false, reason: "already_ended" };
-
-  const fresh = await prisma.freeWebinar.findUniqueOrThrow({
-    where: { id: row.id },
-  });
-  return { closed: true, webinar: toFreeWebinarPublic(fresh, tz) };
-};
-
-/** Reabrir manualmente una edicion cerrada por error. */
-export const setFreeWebinarEnded = async (
-  ended: boolean,
-  slug: string = FREE_WEBINAR_SLUG
-): Promise<FreeWebinarPublic> => {
-  const tz = await getOperationalTimezone();
-  const row = await prisma.freeWebinar.update({
-    where: { slug },
-    data: { endedAt: ended ? new Date() : null },
-  });
-  return toFreeWebinarPublic(row, tz);
-};
-
-export class FreeWebinarArchiveError extends Error {
-  constructor(readonly reason: "not_ended" | "nothing_to_archive") {
-    super(reason);
-    this.name = "FreeWebinarArchiveError";
-  }
-}
-
-/**
- * Archiva la edicion terminada y deja una nueva lista para la siguiente.
- *
- * Renombrar en vez de copiar es lo que hace esto O(1) con 10k registradas: las
- * inscripciones no se mueven, siguen colgando de la fila que ahora es
- * historico. Lo que se hereda es la plantilla de la landing (textos, FAQ y el
- * video promocional, que no es de una edicion concreta); lo que se queda atras
- * son los hechos de la edicion.
- *
- * `meetUrl` NO se hereda, y es el campo mas delicado: heredarlo mandaria un
- * enlace muerto o, peor, haria que el compare-and-swap viera «no ha cambiado»
- * cuando Dayana vuelva a pegar el mismo enlace de una sala recurrente — y
- * entonces no se enviaria a nadie.
- */
-export const archiveFreeWebinar = async (
-  slug: string = FREE_WEBINAR_SLUG
-): Promise<{ archived: FreeWebinarPublic; live: FreeWebinarPublic }> => {
-  const tz = await getOperationalTimezone();
-  const current = await prisma.freeWebinar.findUniqueOrThrow({
-    where: { slug },
-  });
-
-  // Archivar una edicion sin fecha no archiva nada: eso es `resetFreeWebinar`.
-  if (!current.startsAt) {
-    throw new FreeWebinarArchiveError("nothing_to_archive");
-  }
-  if (!current.endedAt) throw new FreeWebinarArchiveError("not_ended");
-
-  const now = new Date();
-
-  // Forma de array: secuencial y atomica. El orden importa — el renombrado
-  // tiene que confirmarse antes del insert o el indice unico de `slug` lo
-  // rechaza. Y va en una sola transaccion para que ninguna peticion publica
-  // llegue a ver la tabla sin fila `gratuito`.
-  const [archived, live] = await prisma.$transaction([
-    prisma.freeWebinar.update({
-      where: { id: current.id }, // por id: el slug es justo lo que cambia
-      data: {
-        slug: `${FREE_WEBINAR_SLUG}-${current.id}`,
-        isActive: false,
-        archivedAt: now,
-        // El webhook de Mux casa por estos dos ids con updateMany: si viven en
-        // dos filas a la vez, un webhook escribiria en ambas. `muxPlaybackId`
-        // se queda — nadie casa por el y el historico conserva el video.
-        muxUploadId: null,
-        muxAssetId: null,
-      },
-    }),
-    prisma.freeWebinar.create({
-      data: {
-        slug: FREE_WEBINAR_SLUG,
-        isActive: false,
-        // Plantilla heredada
-        headline: current.headline,
-        subheadline: current.subheadline,
-        body: current.body,
-        learnSectionTitle: current.learnSectionTitle,
-        learnItems: current.learnItems as Prisma.InputJsonValue,
-        // `faq` es Json anulable: pasar `null` escribiria un JSON null en vez
-        // de un NULL de SQL.
-        faq:
-          current.faq === null
-            ? Prisma.DbNull
-            : (current.faq as Prisma.InputJsonValue),
-        ctaLabel: current.ctaLabel,
-        formTitle: current.formTitle,
-        metaTitle: current.metaTitle,
-        metaDescription: current.metaDescription,
-        // La personalización es de la marca del evento, no de la fecha.
-        eventLabel: current.eventLabel,
-        locationLabel: current.locationLabel,
-        priceLabel: current.priceLabel,
-        faqTitle: current.faqTitle,
-        materialLabel: current.materialLabel,
-        successMessage: current.successMessage,
-        linkEnabled: current.linkEnabled,
-        linkTitle: current.linkTitle,
-        linkSubtitle: current.linkSubtitle,
-        // El cupo es una expectativa de la sala, no un hecho de la edicion.
-        capacity: current.capacity,
-        // El material es del tema, no de la fecha: se hereda igual que el video.
-        materialUrl: current.materialUrl,
-        materialFileName: current.materialFileName,
-        materialMimeType: current.materialMimeType,
-        materialSizeBytes: current.materialSizeBytes,
-        // El video promocional tambien se hereda: es material de marca, no de
-        // una edicion, y volver a subirlo cada vez no aporta nada.
-        videoUrl: current.videoUrl,
-        muxUploadId: current.muxUploadId,
-        muxAssetId: current.muxAssetId,
-        muxPlaybackId: current.muxPlaybackId,
-        videoStatus: current.videoStatus,
-        videoDurationSec: current.videoDurationSec,
-        videoErrorMessage: current.videoErrorMessage,
-        // Hechos de la edicion: no se heredan.
-        startsAt: null,
-        startsAtHasTime: false,
-        meetUrl: null,
-        endedAt: null,
-        archivedAt: null,
-      },
-    }),
-  ]);
-
-  return {
-    archived: toFreeWebinarPublic(archived, tz),
-    live: toFreeWebinarPublic(live, tz),
-  };
-};
-
-export type ArchivedWebinarRow = {
-  id: string;
-  startsAt: Date | null;
-  startsAtHasTime: boolean;
-  archivedAt: Date | null;
-  endedAt: Date | null;
-  headline: string;
-  meetUrl: string | null;
-  registrations: number;
-};
-
-/** Historial, solo para el CRM: nunca se publica en ninguna pagina. */
-export const listArchivedWebinars = async (
-  take = 50
-): Promise<ArchivedWebinarRow[]> => {
-  const rows = await prisma.freeWebinar.findMany({
-    where: { slug: { not: FREE_WEBINAR_SLUG } },
-    orderBy: [{ startsAt: "desc" }, { archivedAt: "desc" }],
-    take,
-    select: {
-      id: true,
-      startsAt: true,
-      startsAtHasTime: true,
-      archivedAt: true,
-      endedAt: true,
-      headline: true,
-      meetUrl: true,
-      _count: { select: { registrations: true } },
-    },
-  });
-  return rows.map(({ _count, ...row }) => ({
-    ...row,
-    registrations: _count.registrations,
-  }));
-};
-
-/**
- * Borra una edicion archivada. El `slug: { not: FREE_WEBINAR_SLUG }` es el
- * guardarrail que importa: la edicion viva nunca se puede borrar por aqui.
- * Las inscripciones se van en cascada — es el borrado explicito que se pidio,
- * no un efecto colateral.
- */
-export const deleteArchivedWebinar = async (id: string): Promise<number> => {
-  const { count } = await prisma.freeWebinar.deleteMany({
-    where: { id, slug: { not: FREE_WEBINAR_SLUG } },
-  });
-  return count;
 };
 
 /* -------------------------------------------------------------------------
  * Material descargable (opcional)
  *
- * Un solo adjunto por edicion, guardado en columnas de la propia fila en vez
- * de una tabla hija: con un unico archivo, una relacion uno-a-muchos y su
- * `sortOrder` no aportarian nada. Mismo patron que el material de las clases.
- *
- * Es opcional a proposito y NO entra en `getPublishBlockers`: el webinar se
- * publica con o sin el.
+ * Un solo adjunto por evento, guardado en columnas de la propia fila. Es
+ * opcional a proposito y NO entra en `getPublishBlockers`. Copiar la página de
+ * un evento comparte el archivo: por eso solo se devuelve la URL vieja para
+ * borrarla si ningún otro evento la usa.
  * ---------------------------------------------------------------------- */
 
 export type WebinarMaterialInput = {
@@ -1024,24 +1312,16 @@ export type WebinarMaterialInput = {
   sizeBytes: number;
 };
 
-/**
- * Guarda el material y devuelve la URL del anterior, si habia.
- *
- * Devolverla es lo que permite a la ruta borrar el blob viejo: sin eso, cada
- * reemplazo dejaria un huerfano pagando almacenamiento para siempre — que es
- * justo lo que hace hoy `clearClassMaterial` en el curso.
- */
+/** Guarda el material y devuelve la URL del anterior si ya nadie la usa. */
 export const setWebinarMaterial = async (
   input: WebinarMaterialInput,
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string,
+  actor: FreeEventActor = {}
 ): Promise<{ webinar: FreeWebinarPublic; previousUrl: string | null }> => {
   const tz = await getOperationalTimezone();
-  const current = await prisma.freeWebinar.findUniqueOrThrow({
-    where: { slug },
-    select: { materialUrl: true },
-  });
+  const current = await resolveRow(eventId);
   const row = await prisma.freeWebinar.update({
-    where: { slug },
+    where: { id: current.id },
     data: {
       materialUrl: input.url,
       materialFileName: input.fileName,
@@ -1049,22 +1329,26 @@ export const setWebinarMaterial = async (
       materialSizeBytes: input.sizeBytes,
     },
   });
-  return {
-    webinar: toFreeWebinarPublic(row, tz),
-    previousUrl: current.materialUrl,
-  };
+  await recordFreeEventActivity({
+    freeWebinarId: row.id,
+    kind: "material_uploaded",
+    staffUserId: actor.staffUserId,
+    meta: { fileName: input.fileName },
+  });
+  const previousUrl =
+    current.materialUrl && !(await materialBlobInUse(current.materialUrl, row.id))
+      ? current.materialUrl
+      : null;
+  return { webinar: toFreeWebinarPublic(row, tz), previousUrl };
 };
 
 export const clearWebinarMaterial = async (
-  slug: string = FREE_WEBINAR_SLUG
+  eventId?: string
 ): Promise<{ webinar: FreeWebinarPublic; previousUrl: string | null }> => {
   const tz = await getOperationalTimezone();
-  const current = await prisma.freeWebinar.findUniqueOrThrow({
-    where: { slug },
-    select: { materialUrl: true },
-  });
+  const current = await resolveRow(eventId);
   const row = await prisma.freeWebinar.update({
-    where: { slug },
+    where: { id: current.id },
     data: {
       materialUrl: null,
       materialFileName: null,
@@ -1072,8 +1356,22 @@ export const clearWebinarMaterial = async (
       materialSizeBytes: null,
     },
   });
-  return {
-    webinar: toFreeWebinarPublic(row, tz),
-    previousUrl: current.materialUrl,
-  };
+  const previousUrl =
+    current.materialUrl && !(await materialBlobInUse(current.materialUrl, row.id))
+      ? current.materialUrl
+      : null;
+  return { webinar: toFreeWebinarPublic(row, tz), previousUrl };
+};
+
+/**
+ * El evento al que va una inscripción: el pedido (`freeEventId` del
+ * formulario) si sigue abierto; si no, el abierto de ahora. Un formulario
+ * cacheado del evento anterior no inscribe a nadie en algo que ya cerró.
+ */
+export const resolveRegistrationEvent = async (
+  requestedId?: string | null
+): Promise<FreeWebinarPublic | null> => {
+  const requested = requestedId ? await getFreeEventById(requestedId).catch(() => null) : null;
+  const open = requested && isFreeEventOpenRow(requested) ? null : await getOpenFreeEvent();
+  return resolveRegistrationTarget(requested, open);
 };

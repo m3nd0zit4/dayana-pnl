@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/contact";
 import LinktreePage from "@/app/components/enlaces/LinktreePage";
-import { getFreeWebinar } from "@/lib/crm/free-webinar";
+import { getOpenFreeEvent } from "@/lib/crm/free-webinar";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = `Enlaces — ${BRAND.name}`;
@@ -27,14 +27,10 @@ const Page = async () => {
   const userCountry = await getServerUserCountry();
 
   try {
-    const webinar = await getFreeWebinar();
-    // El botón se configura en el CRM (Eventos gratuitos → Botón en Enlaces).
-    if (
-      webinar?.isActive &&
-      webinar.linkEnabled &&
-      webinar.startsAt &&
-      !webinar.endedAt
-    ) {
+    // El publicado, con fecha y sin terminar. El botón se configura en el CRM
+    // (Eventos → el evento → Botón en Enlaces).
+    const webinar = await getOpenFreeEvent();
+    if (webinar?.linkEnabled) {
       webinarActive = true;
       webinarCtaTitle = webinar.linkTitle?.trim() || webinar.eventLabel;
       webinarHasTime = webinar.startsAtHasTime;

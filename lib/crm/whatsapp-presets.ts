@@ -54,6 +54,8 @@ const beforePeriod = (s: string) => s.replace(/\.$/, "");
 
 /** Lo que los mensajes necesitan de un evento gratuito. */
 export type FreeEventPresetEvent = {
+  /** Con él, la descarga del material es la de ESTE evento. */
+  id?: string;
   headline: string;
   startsAt: Date | null;
   startsAtHasTime: boolean;
@@ -106,7 +108,9 @@ const freeEventReminder = (event: FreeEventPresetEvent | null, tz: string): Pres
  */
 const freeEventMaterial = (event: FreeEventPresetEvent | null, label: string): Preset => {
   const evento = eventName(event);
-  const download = event?.materialDownloadable ? `${getSiteUrl()}/api/webinar/material` : null;
+  const download = event?.materialDownloadable
+    ? `${getSiteUrl()}/api/webinar/material${event.id ? `?evento=${encodeURIComponent(event.id)}` : ""}`
+    : null;
   return {
     id: "material",
     label,

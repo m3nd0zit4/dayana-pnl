@@ -33,6 +33,8 @@ export type LeadCaptureFormProps = {
   variant?: "home" | "webinar";
   /** Texto propio tras inscribirse (eventos gratuitos). Vacío = el de siempre. */
   successMessage?: string | null;
+  /** El evento gratuito de la página: la inscripción va a ese si sigue abierto. */
+  freeEventId?: string | null;
 };
 
 const INTERESTS = [
@@ -52,6 +54,7 @@ const LeadCaptureForm = ({
   className = "",
   variant = "home",
   successMessage = null,
+  freeEventId = null,
 }: LeadCaptureFormProps) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -113,7 +116,7 @@ const LeadCaptureForm = ({
           notify: true,
           consentData: true,
           ...(fixedInterest === WEBINAR_INTEREST_LABEL
-            ? { tag: "webinar-gratuito" }
+            ? { tag: "webinar-gratuito", ...(freeEventId ? { freeEventId } : {}) }
             : {}),
         }),
       });

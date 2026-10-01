@@ -97,15 +97,10 @@ export const CRM_ROUTES: CrmRoute[] = [
   },
   {
     path: "/admin/eventos",
-    name: "Eventos gratuitos · Evento actual",
+    name: "Eventos gratuitos",
     tier: "preview",
+    hasPrimaryAction: true,
     hasPublicLink: true,
-    width: "narrow",
-  },
-  {
-    path: "/admin/eventos/historial",
-    name: "Eventos gratuitos · Historial",
-    tier: "preview",
     expectEmpty: true,
   },
   {

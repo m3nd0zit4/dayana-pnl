@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { authorized } from "@/lib/cron-auth";
 import { sendEventWhatsAppReminders } from "@/lib/crm/event-whatsapp-reminders";
-import { closeFreeWebinarIfDue, getFreeWebinar } from "@/lib/crm/free-webinar";
+import { closeDueFreeEvents, listLiveFreeEvents } from "@/lib/crm/free-webinar";
 import { drainWebinarMail } from "@/lib/crm/webinar-mailer";
 import { drainWorkshopReminders } from "@/lib/crm/workshop-reminders";
 import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
@@ -14,9 +14,13 @@ export const maxDuration = 300;
 /**
  * El reloj de los eventos: lo llama GitHub Actions cada 10 minutos, después del
  * de WhatsApp (`.github/workflows/whatsapp-cron.yml`). Hace lo que hacían los
- * crons de Inngest, que en producción no corren: correos del evento gratuito
- * (enlace y recordatorios), sus recordatorios por WhatsApp, los recordatorios
- * de los talleres y el cierre del evento cuando ya pasó.
+ * crons de Inngest, que en producción no corren: correos de los eventos
+ * gratuitos (enlace y recordatorios), sus recordatorios por WhatsApp, los
+ * recordatorios de los talleres y el cierre de los eventos que ya pasaron.
+ *
+ * Atiende a todos los eventos en pie (publicado o con inscripciones cerradas,
+ * sin terminar): normalmente uno, dos si ya se publicó el siguiente antes de
+ * que pase el actual — sus inscritas siguen recibiendo los avisos.
  *
  * Si Inngest vuelve a correr no pasa nada: cada envío reclama su fila antes de
  * salir, así que dos relojes a la vez no mandan nada dos veces.
@@ -38,6 +42,8 @@ const step = async <T,>(name: string, fn: () => Promise<T>) => {
   }
 };
 
+type Pass = [string, () => Promise<unknown>];
+
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const deadline = Date.now() + TOTAL_MS;
@@ -45,24 +51,36 @@ export async function POST(req: Request) {
   const budget = (cap: number) => Math.max(0, Math.min(cap, deadline - TAIL_MS - Date.now()));
   const steps: Awaited<ReturnType<typeof step>>[] = [];
 
-  const live = await getFreeWebinar().catch(() => null);
-  if (live && !live.endedAt) {
-    const passes: [string, () => Promise<unknown>][] = [
-      ["correo 1h", () => drainWebinarMail("1h", budget(60_000))],
-      ["whatsapp 1h", () => sendEventWhatsAppReminders({ pass: "1h", budgetMs: budget(60_000) })],
-      ["correo 24h", () => drainWebinarMail("24h", budget(50_000))],
-      ["whatsapp 24h", () => sendEventWhatsAppReminders({ pass: "24h", budgetMs: budget(50_000) })],
-      ["correo enlace", () => drainWebinarMail("link", budget(30_000))],
-    ];
-    for (const [name, run] of passes) {
-      if (budget(1) <= 0) {
-        steps.push({ name, ok: true, result: { skipped: "sin tiempo" } });
-        continue;
-      }
-      steps.push(await step(name, run));
+  const live = await listLiveFreeEvents().catch(() => []);
+  if (live.length === 0) {
+    steps.push({ name: "evento", ok: true, result: { skipped: "sin evento en pie" } });
+  }
+  // Con dos eventos en pie, el nombre del paso dice de cuál es.
+  const tag = (id: string) => (live.length > 1 ? ` · ${id.slice(-6)}` : "");
+  // Primero el de 1 h de todos (el que no se recupera), luego el resto.
+  const passes: Pass[] = [
+    ...live.flatMap((e): Pass[] => [
+      [`correo 1h${tag(e.id)}`, () => drainWebinarMail("1h", budget(60_000), false, e.id)],
+      [
+        `whatsapp 1h${tag(e.id)}`,
+        () => sendEventWhatsAppReminders({ pass: "1h", webinarId: e.id, budgetMs: budget(60_000) }),
+      ],
+    ]),
+    ...live.flatMap((e): Pass[] => [
+      [`correo 24h${tag(e.id)}`, () => drainWebinarMail("24h", budget(50_000), false, e.id)],
+      [
+        `whatsapp 24h${tag(e.id)}`,
+        () => sendEventWhatsAppReminders({ pass: "24h", webinarId: e.id, budgetMs: budget(50_000) }),
+      ],
+      [`correo enlace${tag(e.id)}`, () => drainWebinarMail("link", budget(30_000), false, e.id)],
+    ]),
+  ];
+  for (const [name, run] of passes) {
+    if (budget(1) <= 0) {
+      steps.push({ name, ok: true, result: { skipped: "sin tiempo" } });
+      continue;
     }
-  } else {
-    steps.push({ name: "evento", ok: true, result: { skipped: live ? "terminado" : "sin evento" } });
+    steps.push(await step(name, run));
   }
 
   steps.push(await step("taller 1h", () => drainWorkshopReminders("1h")));
@@ -73,20 +91,19 @@ export async function POST(req: Request) {
   // si Inngest también corre, solo uno de los dos lo gana.
   steps.push(
     await step("cierre", async () => {
-      const closed = await closeFreeWebinarIfDue();
-      if (closed.closed) {
+      const closed = await closeDueFreeEvents();
+      for (const event of closed) {
         await emitPlatformNotification({
           eventType: "SYSTEM_ALERT",
           title: "El evento gratuito ya terminó",
-          body: "Se cerraron los registros y los recordatorios. Puedes archivarlo para dejar lista la próxima edición.",
-          href: "/admin/eventos",
+          body: `«${event.headline}»: se cerraron los registros y los recordatorios. Mira su historia o prepara el siguiente.`,
+          href: `/admin/eventos/${event.id}?tab=historia`,
           entityType: "FreeWebinar",
-          entityId: closed.webinar.id,
+          entityId: event.id,
           staff: "ALL",
         }).catch(() => undefined);
-        return { closed: true };
       }
-      return closed;
+      return { closed: closed.map((e) => e.id) };
     })
   );
 
