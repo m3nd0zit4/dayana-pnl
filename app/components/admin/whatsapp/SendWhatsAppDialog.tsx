@@ -2,7 +2,7 @@
 
 import { Loader2, MessageCircle, Send } from "lucide-react";
 import { useEffect, useState } from "react";
-import { resolvePresetVars } from "@/lib/crm/whatsapp-presets";
+import { LINK_SLOT, presetMissingLink, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
 
@@ -108,6 +108,10 @@ const SendWhatsAppDialog = ({
 
   const plan = info?.plan;
   const usesTemplate = plan?.action === "template";
+  // El enlace que pide la plantilla sale de la caja (grabación de un evento
+  // pasado): con plantilla la caja tiene que seguir a la vista.
+  const needsLink = Boolean(preset?.vars && Object.values(preset.vars).includes(LINK_SLOT));
+  const missingLink = presetMissingLink(preset, text);
 
   return (
     <CrmModal title={`WhatsApp a ${name ?? "esta persona"}`} open={open} onClose={onClose}>
@@ -135,7 +139,8 @@ const SendWhatsAppDialog = ({
             </p>
             <p className="rounded-lg bg-[#d9fdd3] px-3 py-2 whitespace-pre-wrap text-[#111b21]">{info.template.body}</p>
           </div>
-        ) : (
+        ) : null}
+        {usesTemplate && info?.template && !needsLink ? null : (
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -143,6 +148,11 @@ const SendWhatsAppDialog = ({
             placeholder="Escribe el mensaje. Puedes usar {{nombre}}."
             className="w-full rounded-lg border border-[#d1d7db] bg-white p-2.5 outline-none focus:border-[#00a884] dark:border-border dark:bg-card"
           />
+        )}
+        {missingLink && (
+          <p className="text-xs text-[#d92d20]">
+            Pega en el mensaje el enlace de la grabación o del material{usesTemplate ? ": va en la plantilla" : ""}.
+          </p>
         )}
 
         {!info && <Loader2 className="size-4 animate-spin text-[#00a884]" />}
@@ -158,7 +168,7 @@ const SendWhatsAppDialog = ({
           <button
             type="button"
             onClick={() => void send()}
-            disabled={busy || !plan || plan.action === "skip" || (!usesTemplate && !text.trim())}
+            disabled={busy || !plan || plan.action === "skip" || (!usesTemplate && !text.trim()) || missingLink}
             className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 font-medium text-white hover:bg-[#008069] disabled:opacity-50"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar

@@ -53,16 +53,32 @@ export async function notifyNewLead(input: LeadEmailInput): Promise<void> {
   }
 }
 
+export type WebinarNotifyResult = {
+  /**
+   * Salió el correo de confirmación CON el enlace de Meet dentro. Solo
+   * entonces se puede sellar `linkEmailSentAt`: sellar antes, y tragarse el
+   * fallo, dejaba a la persona sin enlace y fuera de la cola del fan-out.
+   */
+  confirmationSent: boolean;
+};
+
 /**
  * Webinar gratuito: notify Dayana + send a dedicated confirmation (or
  * "already registered") email to the attendee. Does not send the generic
  * lead-confirmation copy.
+ *
+ * `send` se inyecta solo en los tests (sin `mock.module`, que sustituiría el
+ * módulo para todo el proceso).
  */
 export async function notifyWebinarRegistration(
-  input: WebinarLeadEmailInput
-): Promise<void> {
+  input: WebinarLeadEmailInput,
+  send: typeof sendEmail = sendEmail
+): Promise<WebinarNotifyResult> {
+  const adminMessage = input.alreadyRegistered
+    ? "Ya estaba inscrita en este evento (re-registro)."
+    : input.message;
   try {
-    await sendEmail({
+    await send({
       to: leadInbox(),
       subject: input.alreadyRegistered
         ? `Re-registro webinar · ${[input.firstName, input.lastName].filter(Boolean).join(" ")}`
@@ -70,16 +86,12 @@ export async function notifyWebinarRegistration(
       html: leadNotificationHtml({
         ...input,
         interest: input.interest ?? "Webinar gratuito",
-        message: input.alreadyRegistered
-          ? "Ya tenía la etiqueta de webinar gratuito (re-registro)."
-          : input.message,
+        message: adminMessage,
       }),
       text: leadNotificationText({
         ...input,
         interest: input.interest ?? "Webinar gratuito",
-        message: input.alreadyRegistered
-          ? "Ya tenía la etiqueta de webinar gratuito (re-registro)."
-          : input.message,
+        message: adminMessage,
       }),
     });
   } catch (e) {
@@ -89,14 +101,17 @@ export async function notifyWebinarRegistration(
     );
   }
 
+  let confirmationSent = false;
   if (input.email && input.email.includes("@")) {
     try {
-      await sendEmail({
+      await send({
         to: input.email,
         subject: webinarConfirmationSubject(input),
         html: webinarConfirmationHtml(input),
         text: webinarConfirmationText(input),
       });
+      // Sin enlace la confirmación no sustituye al correo del enlace.
+      confirmationSent = Boolean(input.meetUrl?.trim());
     } catch (e) {
       console.error(
         "[lead-notify] webinar confirm",
@@ -104,4 +119,5 @@ export async function notifyWebinarRegistration(
       );
     }
   }
+  return { confirmationSent };
 }

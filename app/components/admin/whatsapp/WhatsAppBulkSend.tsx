@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Loader2, MessageCircle, Send } from "lucide-react";
 import { useEffect, useState } from "react";
-import { resolvePresetVars } from "@/lib/crm/whatsapp-presets";
+import { presetMissingLink, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
 import type { WhatsAppPreset } from "./SendWhatsAppDialog";
@@ -113,6 +113,8 @@ const WhatsAppBulkSend = ({
 
   const toSend = preview ? preview.text + preview.template : 0;
   const done = progress && progress.pending === 0;
+  // La grabación de un evento pasado no vive en el CRM: el enlace se pega aquí.
+  const missingLink = presetMissingLink(preset, text);
 
   return (
     <>
@@ -156,6 +158,11 @@ const WhatsAppBulkSend = ({
                   className="w-full rounded-lg border border-[#d1d7db] bg-white p-2.5 outline-none focus:border-[#00a884] dark:border-border dark:bg-card"
                 />
               </label>
+              {missingLink && (
+                <p className="text-xs text-[#d92d20]">
+                  Pega en el mensaje el enlace de la grabación o del material: también va en la plantilla.
+                </p>
+              )}
 
               {!preview ? (
                 <Loader2 className="size-4 animate-spin text-[#00a884]" />
@@ -191,7 +198,7 @@ const WhatsAppBulkSend = ({
                 <button
                   type="button"
                   onClick={() => void run()}
-                  disabled={!preview || toSend === 0 || running || !text.trim()}
+                  disabled={!preview || toSend === 0 || running || !text.trim() || missingLink}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   <Send className="size-4" /> Enviar a {toSend}

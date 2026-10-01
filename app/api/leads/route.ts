@@ -91,10 +91,10 @@ const sourceMap: Record<string, ContactSource> = {
 
 const appendWebinarNote = async (
   contactId: string,
-  alreadyRegistered: boolean
+  hadTag: boolean
 ): Promise<void> => {
   const stamp = new Date().toLocaleDateString("es-CO", { dateStyle: "medium" });
-  const line = alreadyRegistered
+  const line = hadTag
     ? `[${stamp}] Re-registro webinar gratuito (ya tenía la etiqueta).`
     : `[${stamp}] Registro webinar gratuito.`;
   const current = await prisma.contact.findUnique({
@@ -286,6 +286,7 @@ export async function POST(req: NextRequest) {
     }
 
     let alreadyRegistered = false;
+    let webinarId: string | null = null;
     let webinarMeetUrl: string | null = null;
     let webinarScheduleLabel: string | null = null;
     let webinarEventLabel: string | null = null;
@@ -297,32 +298,39 @@ export async function POST(req: NextRequest) {
     let webinarOpen = false;
     if (wantsWebinarTag) {
       try {
-        // `alreadyRegistered` sigue derivándose de la etiqueta, no de la tabla
-        // de registros: los contactos anteriores a esa tabla tienen etiqueta y
-        // el mensaje "ya estabas registrada" debe seguir siendo correcto.
-        alreadyRegistered = await contactHasTag(
+        // La etiqueta es de por vida: sirve para la nota y la segmentación,
+        // no para decir «ya estabas registrada» en una edición nueva.
+        const hadTag = await contactHasTag(
           contact.id,
           WEBINAR_GRATUITO_TAG_SLUG
         );
         await ensureWebinarGratuitoTag(contact.id);
-        await appendWebinarNote(contact.id, alreadyRegistered);
+        await appendWebinarNote(contact.id, hadTag);
 
         const webinar = await ensureFreeWebinar();
         webinarOpen = webinar.isActive && !webinar.endedAt;
 
         if (webinarOpen) {
+          webinarId = webinar.id;
           webinarMeetUrl = webinar.meetUrl;
           webinarScheduleLabel = formatWebinarScheduleLabel(webinar);
           webinarEventLabel = webinar.eventLabel;
           webinarEventTitle = webinar.headline;
-          // Si la confirmación ya lleva el enlace dentro, se sella el envío
-          // aquí mismo: si no, el fan-out mandaría un segundo correo con
-          // exactamente lo mismo unos minutos después.
-          await recordWebinarRegistration(webinar.id, contact.id, {
-            linkAlreadySent: Boolean(
-              webinarMeetUrl && body.email && body.email.includes("@")
-            ),
-          });
+          // «Ya estabas registrada» es por edición: quien vino al evento
+          // anterior tiene la etiqueta pero aún no tiene sitio en este.
+          alreadyRegistered =
+            (await prisma.webinarRegistration.findUnique({
+              where: {
+                webinarId_contactId: {
+                  webinarId: webinar.id,
+                  contactId: contact.id,
+                },
+              },
+              select: { id: true },
+            })) !== null;
+          // Sin sello aquí: el enlace se da por enviado solo cuando la
+          // confirmación con el enlace sale de verdad (más abajo).
+          await recordWebinarRegistration(webinar.id, contact.id);
         }
       } catch (e) {
         console.error("[leads] webinar registration failed", e);
@@ -353,7 +361,7 @@ export async function POST(req: NextRequest) {
     if (body.notify) {
       try {
         if (wantsWebinarTag && webinarOpen) {
-          await notifyWebinarRegistration({
+          const { confirmationSent } = await notifyWebinarRegistration({
             firstName,
             lastName: body.lastName,
             phoneE164: contact.phoneE164 ?? phone,
@@ -368,6 +376,19 @@ export async function POST(req: NextRequest) {
             eventLabel: webinarEventLabel,
             eventTitle: webinarEventTitle,
           });
+          // La confirmación llevaba el enlace → el fan-out no debe mandar otro
+          // correo igual. Sello condicional (solo si seguía vacío): si el
+          // fan-out ya lo había reclamado, no se pisa su marca.
+          if (confirmationSent && webinarId) {
+            await prisma.webinarRegistration
+              .updateMany({
+                where: { webinarId, contactId: contact.id, linkEmailSentAt: null },
+                data: { linkEmailSentAt: new Date() },
+              })
+              .catch((e) =>
+                console.error("[leads] sello del enlace del webinar", e)
+              );
+          }
         } else {
           await notifyNewLead({
             firstName,

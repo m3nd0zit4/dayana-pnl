@@ -17,43 +17,139 @@ export type Preset = {
 
 export const TEXT_SLOT = "{{texto}}";
 
-const when = (d: Date | null, hasTime: boolean, tz: string) =>
-  d
-    ? `${new Intl.DateTimeFormat("es-CO", { timeZone: tz, weekday: "long", day: "numeric", month: "long" }).format(d)}${
-        hasTime ? `, ${new Intl.DateTimeFormat("es-CO", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d)}` : ""
-      }`
-    : "próximamente";
+/**
+ * En una variable: el primer enlace escrito en la caja. Para lo que el CRM no
+ * guarda —la grabación de un evento que ya pasó— y solo puede pegar quien
+ * envía.
+ */
+export const LINK_SLOT = "{{enlace_del_texto}}";
 
-export const freeEventPresets = (
-  event: { headline: string; eventLabel: string; startsAt: Date | null; startsAtHasTime: boolean } | null,
+const firstUrl = (text: string): string =>
+  text.match(/https?:\/\/\S+/)?.[0].replace(/[.,;:!?)»"']+$/, "") ?? "";
+
+/**
+ * «domingo 4 de octubre a las 9:30 a. m.». Empieza por el día de la semana
+ * porque las plantillas dicen «es el {{fecha}}» y «el {{fecha}}». Sin los
+ * espacios duros de Intl (`\s` los cubre), que cambian según la versión de ICU.
+ */
+export const eventDateText = (d: Date | null, hasTime: boolean, tz: string): string => {
+  if (!d) return "próximamente";
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("es-CO", { timeZone: tz, weekday: "long", day: "numeric", month: "long" })
+      .formatToParts(d)
+      .map((part) => [part.type, part.value])
+  );
+  const day = `${p.weekday} ${p.day} de ${p.month}`;
+  if (!hasTime) return day;
+  const hour = new Intl.DateTimeFormat("es-CO", { timeZone: tz, hour: "numeric", minute: "2-digit" })
+    .format(d)
+    .replace(/\s/g, " ");
+  return `${day} ${hour.startsWith("1:") ? "a la" : "a las"} ${hour}`;
+};
+
+// Las plantillas ponen punto justo después de {{fecha}} («es el {{fecha}}.
+// Entra aquí»): con «a. m.» quedaba «a. m.. Entra». El punto de la abreviatura
+// se funde con el de la frase.
+const beforePeriod = (s: string) => s.replace(/\.$/, "");
+
+/** Lo que los mensajes necesitan de un evento gratuito. */
+export type FreeEventPresetEvent = {
+  headline: string;
+  startsAt: Date | null;
+  startsAtHasTime: boolean;
+  /** Enlace de la reunión; sin él, el recordatorio manda a la landing. */
+  meetUrl?: string | null;
+  /** `/api/webinar/material` lo sirve ahora (`isFreeEventMaterialDownloadable`). */
+  materialDownloadable?: boolean;
+};
+
+// Las plantillas ya ponen el artículo y el «gratis»: con el tipo de evento
+// delante se leía «te recuerdo que webinar gratuito «…» es el…».
+const eventName = (e: FreeEventPresetEvent | null) =>
+  e ? `«${e.headline.trim()}»` : "mi próximo evento gratuito";
+const eventDate = (e: FreeEventPresetEvent | null, tz: string) =>
+  beforePeriod(e ? eventDateText(e.startsAt, e.startsAtHasTime, tz) : "próximamente");
+const landingUrl = () => `${getSiteUrl()}/eventos-gratuitos`;
+
+/** Invitación: a la landing, que es donde se reserva el lugar. */
+const freeEventInvitation = (event: FreeEventPresetEvent | null, tz: string, label = "Invitación"): Preset => {
+  const evento = eventName(event);
+  const fecha = eventDate(event, tz);
+  const enlace = landingUrl();
+  return {
+    id: "invitacion",
+    label,
+    text: `Hola {{nombre}}, te bendigo 💛 Te invito a ${evento}, gratis, el ${fecha}. Reserva tu lugar aquí: ${enlace} ¡Te espero!`,
+    templateKey: "evento_gratis_invitacion",
+    vars: { evento, fecha, enlace },
+  };
+};
+
+/** Recordatorio: directo a la reunión; la landing solo si aún no hay enlace. */
+const freeEventReminder = (event: FreeEventPresetEvent | null, tz: string): Preset => {
+  const evento = eventName(event);
+  const fecha = eventDate(event, tz);
+  const meet = event?.meetUrl?.trim() || null;
+  const enlace = meet ?? landingUrl();
+  return {
+    id: "recordatorio",
+    label: meet ? "Recordatorio con el enlace de Meet" : "Recordatorio (aún sin enlace de Meet)",
+    text: `Hola {{nombre}}, te recuerdo que ${evento} es el ${fecha}. Entra aquí: ${enlace} Nos vemos pronto 💛`,
+    templateKey: "evento_gratis_recordatorio",
+    vars: { evento, fecha, enlace },
+  };
+};
+
+/**
+ * Material: la descarga de la web mientras la sirva; si no (evento pasado o
+ * sin archivo) el enlace lo pega quien envía — mandar la descarga sería un 404.
+ */
+const freeEventMaterial = (event: FreeEventPresetEvent | null, label: string): Preset => {
+  const evento = eventName(event);
+  const download = event?.materialDownloadable ? `${getSiteUrl()}/api/webinar/material` : null;
+  return {
+    id: "material",
+    label,
+    text: `Hola {{nombre}}, aquí tienes el material de ${evento}: ${download ?? ""}`,
+    templateKey: "evento_grabacion",
+    vars: { evento: `el material de ${evento}`, enlace: download ?? LINK_SLOT },
+  };
+};
+
+/** Todos los mensajes de un evento (el agente elige por id). */
+export const freeEventPresets = (event: FreeEventPresetEvent | null, tz: string): Preset[] => [
+  freeEventInvitation(event, tz),
+  freeEventReminder(event, tz),
+  freeEventMaterial(event, "Grabación o material"),
+  genericPreset(),
+];
+
+/**
+ * Los mensajes que tienen sentido según el evento que se mira:
+ * - ninguno (todas las inscritas): invitarlas al evento abierto;
+ * - el actual, sin cerrar: el recordatorio con el enlace de la reunión y el material;
+ * - uno pasado: su material o grabación, e invitarlas al evento abierto.
+ * El mensaje libre, siempre.
+ */
+export const freeEventPresetsFor = (
+  input: {
+    selected: FreeEventPresetEvent | null;
+    /** El seleccionado es el actual y no se ha cerrado (`isFreeEventUpcoming`). */
+    selectedUpcoming: boolean;
+    /** El evento con inscripciones abiertas, si lo hay (`isFreeEventOpen`). */
+    openEvent: FreeEventPresetEvent | null;
+  },
   tz: string
 ): Preset[] => {
-  const site = getSiteUrl();
-  const link = `${site}/eventos-gratuitos`;
-  const name = event ? `${event.eventLabel.toLowerCase()} «${event.headline}»` : "el evento gratuito";
-  const fecha = event ? when(event.startsAt, event.startsAtHasTime, tz) : "próximamente";
+  const { selected, openEvent } = input;
+  const invite = (label?: string) => (openEvent ? [freeEventInvitation(openEvent, tz, label)] : []);
+  if (!selected) return [...invite(), genericPreset()];
+  if (input.selectedUpcoming) {
+    return [freeEventReminder(selected, tz), freeEventMaterial(selected, "Material"), genericPreset()];
+  }
   return [
-    {
-      id: "invitacion",
-      label: "Enlace del evento",
-      text: `Hola {{nombre}}, te bendigo 💛 Te comparto el enlace de ${name} (${fecha}): ${link}`,
-      templateKey: "evento_gratis_invitacion",
-      vars: { evento: name, fecha, enlace: link },
-    },
-    {
-      id: "recordatorio",
-      label: "Recordatorio",
-      text: `Hola {{nombre}}, te recuerdo que ${name} es el ${fecha}. Entra aquí: ${link}`,
-      templateKey: "evento_gratis_recordatorio",
-      vars: { evento: name, fecha, enlace: link },
-    },
-    {
-      id: "material",
-      label: "Grabación o material",
-      text: `Hola {{nombre}}, aquí tienes el material de ${name}: ${site}/api/webinar/material`,
-      templateKey: "evento_grabacion",
-      vars: { evento: `el material de ${name}`, enlace: `${site}/api/webinar/material` },
-    },
+    freeEventMaterial(selected, "Material o grabación"),
+    ...invite("Invitación al evento actual"),
     genericPreset(),
   ];
 };
@@ -102,7 +198,7 @@ export const workshopPresets = (
 ): Preset[] => {
   const site = getSiteUrl();
   const page = `${site}/taller-virtual/${w.slug}`;
-  const fecha = w.dateLabel || when(w.startsAt, true, tz);
+  const fecha = beforePeriod(w.dateLabel || eventDateText(w.startsAt, true, tz));
   const entrar = w.meetingUrl || page;
   return [
     {
@@ -123,15 +219,26 @@ export const workshopPresets = (
   ];
 };
 
-/** Pone lo escrito en la caja donde una variable pide `{{texto}}`. */
+/**
+ * Pone lo escrito en la caja donde una variable pide `{{texto}}`, y el primer
+ * enlace escrito donde pide `{{enlace_del_texto}}`.
+ */
 export const resolvePresetVars = (
   vars: Record<string, string> | undefined,
   text: string
 ): Record<string, string> | undefined => {
   if (!vars) return vars;
   const clean = text.replace(/\{\{\s*nombre\s*\}\}/g, "").replace(/^\s*hola\s*,?\s*/i, "").trim();
-  return Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, v === TEXT_SLOT ? clean : v]));
+  return Object.fromEntries(
+    Object.entries(vars).map(([k, v]) => [k, v === TEXT_SLOT ? clean : v === LINK_SLOT ? firstUrl(text) : v])
+  );
 };
+
+/** El mensaje necesita un enlace que solo puede pegar quien envía, y aún no está. */
+export const presetMissingLink = (
+  preset: Pick<Preset, "vars"> | null | undefined,
+  text: string
+): boolean => Boolean(preset?.vars && Object.values(preset.vars).includes(LINK_SLOT) && !firstUrl(text));
 
 /** Invitar a una comunidad o grupo de WhatsApp: el enlace va 1 a 1. */
 export const communityInvitePresets = (c: { name: string; inviteLink: string | null }): Preset[] => [

@@ -445,6 +445,8 @@ export const updateFreeWebinar = async (
     data.metaDescription = input.metaDescription;
   }
   if (input.isActive !== undefined) data.isActive = input.isActive;
+  // Antes del update: asignarlo después no lo guardaba nunca.
+  if (input.capacity !== undefined) data.capacity = input.capacity;
   // Personalización de la página y del botón en /enlaces.
   for (const key of [
     "eventLabel",
@@ -521,7 +523,6 @@ export const updateFreeWebinar = async (
   // concurrente enviaría el enlace viejo y lo daría por entregado.
   let meetUrlChanged = false;
   let linkEmailsReset = 0;
-  if (input.capacity !== undefined) data.capacity = input.capacity;
   if (input.meetUrl !== undefined) {
     const next = normalizeMeetUrl(input.meetUrl);
     const where: Prisma.FreeWebinarWhereInput =
