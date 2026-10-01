@@ -81,7 +81,11 @@ const ChatView = ({
       ? WINDOW_CLOSED_TEXT
       : code === "general_mode"
         ? "El modo general (Ajustes) está en Copiloto o Manual: ningún chat puede responder solo. Cámbialo allí si quieres la IA."
-        : `No se pudo: ${code}`;
+        : code === "new_message"
+          ? "Escribió algo nuevo: léelo antes de marcarlo como atendido."
+          : code === "no_inbound"
+            ? "Esta persona nunca ha escrito: no hay nada pendiente."
+            : `No se pudo: ${code}`;
 
   const act = async (key: string, body: Record<string, unknown>, done?: string) => {
     setBusy(key);
@@ -91,7 +95,10 @@ const ChatView = ({
       onChanged();
       return data;
     } catch (e) {
-      toast(errorText(e instanceof Error ? e.message : "error"), "error");
+      const code = e instanceof Error ? e.message : "error";
+      toast(errorText(code), "error");
+      // Llegó un mensaje que aún no se ve: se trae para que lo lea.
+      if (code === "new_message") onChanged();
       return null;
     } finally {
       setBusy(null);
@@ -339,6 +346,7 @@ const ChatView = ({
         canWrite={canWrite}
         busy={busy}
         act={act}
+        now={now}
         onBack={onBack}
         onToggleSidebar={onToggleSidebar}
         showInfo={showInfo}

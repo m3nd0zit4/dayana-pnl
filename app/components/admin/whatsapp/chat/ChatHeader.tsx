@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   Bot,
+  CheckCheck,
   ChevronDown,
   ChevronUp,
   Hand,
@@ -18,11 +19,69 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
-import { CATEGORY_LABEL, MODE_LABEL, RunStatus, isRunLive } from "../status";
+import { resolvedLabel } from "@/lib/crm/whatsapp-pending-rules";
+import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, isRunLive } from "../status";
 import { wa } from "./chatTheme";
 import { ActionButton, Avatar } from "./ui";
 
 type Act = (key: string, body: Record<string, unknown>, done?: string) => unknown;
+
+/**
+ * Pendiente o atendido. Responder no saca el chat de pendientes (Dayana
+ * contesta mucho desde el celular y eso no cierra el asunto): esto sí.
+ */
+const PendingBar = ({
+  chat,
+  canWrite,
+  busy,
+  act,
+  now,
+}: {
+  chat: ChatDetail;
+  canWrite: boolean;
+  busy: string | null;
+  act: Act;
+  now: number;
+}) => {
+  if (!chat.lastInboundAt) return null;
+  if (chat.pending) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-(--wa-divider) bg-(--wa-pending-soft) px-3 py-1.5 sm:px-4">
+        <span className="size-2.5 shrink-0 rounded-full bg-(--wa-pending)" aria-hidden />
+        <span className="min-w-0 flex-1 text-sm text-(--wa-text)">
+          <strong className="font-medium">Pendiente</strong>
+          <span className="text-(--wa-icon)"> · escribió {agoLabel(chat.lastInboundAt, now)}</span>
+        </span>
+        <span className="ml-auto">
+          <ActionButton
+            tone="primary"
+            disabled={!canWrite || busy !== null}
+            title="Sale de «Pendientes» hasta que vuelva a escribir"
+            onClick={() =>
+              act("resolve", { action: "resolve", seenInboundAt: chat.lastInboundAt }, "Atendido: sale de Pendientes")
+            }
+          >
+            <CheckCheck /> Marcar como atendido
+          </ActionButton>
+        </span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 border-b border-(--wa-divider) bg-(--wa-surface) px-3 py-0.5 sm:px-4">
+      <CheckCheck className="size-4 shrink-0 text-(--wa-accent)" aria-hidden />
+      <span className="min-w-0 flex-1 truncate text-xs text-(--wa-meta)">Atendido · {resolvedLabel(chat.resolvedReason)}</span>
+      <button
+        type="button"
+        disabled={!canWrite || busy !== null}
+        onClick={() => act("reopen", { action: "reopen" }, "Volvió a Pendientes")}
+        className="h-10 shrink-0 rounded-full px-3 text-xs font-medium text-(--wa-accent) hover:bg-(--wa-text)/5 disabled:opacity-50 md:h-8"
+      >
+        Volver a pendiente
+      </button>
+    </div>
+  );
+};
 
 const ModeSwitch = ({
   mode,
@@ -115,6 +174,7 @@ const ChatHeader = ({
   canWrite,
   busy,
   act,
+  now,
   onBack,
   onToggleSidebar,
   showInfo,
@@ -126,6 +186,8 @@ const ChatHeader = ({
   canWrite: boolean;
   busy: string | null;
   act: Act;
+  /** El reloj del chat abierto (avanza solo), para «escribió hace 5 min». */
+  now: number;
   onBack: () => void;
   onToggleSidebar: () => void;
   showInfo: boolean;
@@ -257,6 +319,8 @@ const ChatHeader = ({
           </span>
         </div>
       )}
+
+      <PendingBar chat={chat} canWrite={canWrite} busy={busy} act={act} now={now} />
     </>
   );
 };

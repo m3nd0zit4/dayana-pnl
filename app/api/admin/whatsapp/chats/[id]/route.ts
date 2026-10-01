@@ -12,7 +12,9 @@ import { draftAutoReply, pauseAutoReply, resumeAutoReply } from "@/lib/crm/whats
 import { clientContext } from "@/lib/crm/whatsapp-agent/brain";
 import { availableSlots } from "@/lib/crm/whatsapp-agent/calendar";
 import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
+import { reopenConversation, resolveConversations } from "@/lib/crm/whatsapp-agent/pending";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
+import { isPending } from "@/lib/crm/whatsapp-pending-rules";
 import {
   getChat,
   getOlderMessages,
@@ -73,6 +75,13 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("draft"), body: z.string().max(4000).nullable() }),
   z.object({ action: z.literal("memory"), notes: z.string().max(1500) }),
   z.object({ action: z.literal("read") }),
+  /**
+   * «Marcar como atendido». `seenInboundAt`: el último mensaje de la persona
+   * que Dayana tenía en pantalla; si llegó otro después, no se resuelve.
+   */
+  z.object({ action: z.literal("resolve"), seenInboundAt: z.string().datetime().nullish() }),
+  /** «Volver a pendiente». */
+  z.object({ action: z.literal("reopen") }),
   /** Aceptar lo que propuso la IA, tal cual o con el mensaje cambiado. */
   z.object({
     action: z.literal("approve"),
@@ -270,6 +279,28 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "read":
       await markConversationRead(id);
       return NextResponse.json({ ok: true });
+    case "resolve": {
+      const resolved = await resolveConversations({ ids: [id] }, "manual", staff.id, {
+        seenInboundAt: input.seenInboundAt ? new Date(input.seenInboundAt) : null,
+      });
+      if (resolved.length === 0) {
+        // O ya estaba atendido (nada que hacer), o escribió algo que aún no se vio.
+        const now = await prisma.conversation.findUnique({
+          where: { id },
+          select: { lastInboundAt: true, resolvedAt: true },
+        });
+        if (now && isPending(now)) return apiError("new_message", 409);
+        return NextResponse.json({ ok: true, already: true });
+      }
+      await markConversationRead(id);
+      audit({ resolved: "manual" });
+      return NextResponse.json({ ok: true });
+    }
+    case "reopen": {
+      if (!(await reopenConversation(id))) return apiError("no_inbound", 409);
+      audit({ reopened: true });
+      return NextResponse.json({ ok: true });
+    }
     case "approve": {
       const { approveProposal, ApprovalError } = await import("@/lib/crm/whatsapp-agent/approvals");
       try {

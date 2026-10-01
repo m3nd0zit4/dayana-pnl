@@ -14,7 +14,9 @@ export const CATEGORY_LABEL: Record<string, string> = {
   complaint: "Queja",
   clinical: "Tema delicado",
   reschedule: "Cambio de cita",
-  other: "Pendiente",
+  booking: "Quiere agendar",
+  // No «Pendiente»: esa palabra ahora es la cola de chats sin atender.
+  other: "Revisar",
   error: "Falló la IA",
 };
 

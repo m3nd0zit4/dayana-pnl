@@ -8,8 +8,10 @@ import { contactPhoneCandidates, whatsAppDigits } from "@/lib/whatsapp-contact";
 import { getOperationalTimezone } from "../operational-timezone";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
+import { appointmentCoversUntil, appointmentJustLinked } from "../whatsapp-pending-rules";
 import { isAvailabilityBlock } from "./calendar";
 import { foldName, nameMatches, parseEventTitle, withPhone } from "./event-title";
+import { resolveConversations } from "./pending";
 
 /**
  * Las citas del Google Calendar de Dayana, ligadas a cada persona.
@@ -91,11 +93,21 @@ export type SyncDeps = {
   now?: Date;
 };
 
-export type SyncResult = { seen: number; linked: number; titled: number; ambiguous: number; cancelled: number };
+export type SyncResult = {
+  seen: number;
+  linked: number;
+  titled: number;
+  ambiguous: number;
+  cancelled: number;
+  /** Chats pendientes que quedaron atendidos por una cita nueva o movida. */
+  resolved: number;
+};
 
 export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult> => {
   const now = deps.now ?? new Date();
-  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0 };
+  const startedAt = new Date();
+  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0, resolved: 0 };
+  const toResolve: { conversationId: string | null; phone: string | null; contactId: string | null; until: Date }[] = [];
   let events = deps.events;
   let patchTitle = deps.patchTitle;
   let googleAccountId: string | null = null;
@@ -202,6 +214,10 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
         ...(existing && existing.startsAt.getTime() !== start.getTime() ? { reminderSentAt: null, reminderError: null, confirmedAt: null } : {}),
       },
     });
+    // Cita recién ligada (o movida): lo que la persona pidió antes ya quedó atendido.
+    if (appointmentJustLinked({ before: existing, phone, contactId, startsAt: start, now })) {
+      toResolve.push({ conversationId, phone, contactId, until: appointmentCoversUntil(ev.updated, startedAt) });
+    }
   }
 
   // Lo que ya no está en el calendario (dentro de la ventana leída) se cancela.
@@ -214,6 +230,19 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
     data: { status: "cancelled" },
   });
   result.cancelled = gone.count;
+
+  for (const r of toResolve) {
+    const ids = await resolveConversations(
+      { ids: [r.conversationId], phones: [r.phone], contactIds: [r.contactId] },
+      "appointment",
+      null,
+      { seenInboundAt: r.until }
+    ).catch((e: unknown) => {
+      console.warn("[citas] no se pudo marcar el chat como atendido", e);
+      return [] as string[];
+    });
+    result.resolved += ids.length;
+  }
 
   if (newlyAmbiguous.length) {
     fireNotification({
@@ -235,6 +264,7 @@ export const confirmAppointmentPerson = async (input: {
   phoneE164: string;
   patchTitle?: (eventId: string, summary: string) => Promise<void>;
 }): Promise<void> => {
+  const startedAt = new Date();
   const appt = await prisma.calendarAppointment.findUniqueOrThrow({ where: { id: input.appointmentId } });
   const phone = whatsAppDigits(input.phoneE164);
   const who = await byPhone(phone);
@@ -252,6 +282,15 @@ export const confirmAppointmentPerson = async (input: {
     where: { id: appt.id },
     data: { phone, title: newTitle, contactId: who.contactId, conversationId: who.conversationId, matchState: "confirmed", candidates: Prisma.DbNull },
   });
+  // Dayana dijo de quién es la cita: su chat queda atendido (si la cita sigue en pie).
+  if (appt.status === "active" && appt.startsAt.getTime() > startedAt.getTime()) {
+    await resolveConversations(
+      { ids: [who.conversationId], phones: [phone], contactIds: [who.contactId] },
+      "appointment",
+      null,
+      { seenInboundAt: startedAt }
+    ).catch((e: unknown) => console.warn("[citas] no se pudo marcar el chat como atendido", e));
+  }
 };
 
 /** ¿Toca recordarle? Entre 23 y 25 h antes (el reloj pasa cada 10 min). */
@@ -347,9 +386,30 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
   return result;
 };
 
-/** La persona respondió «sí»: queda confirmada (y se anota en el evento). */
-export const confirmAppointment = async (appointmentId: string): Promise<void> => {
-  await prisma.calendarAppointment.update({ where: { id: appointmentId }, data: { confirmedAt: new Date() } });
+/**
+ * La persona respondió «sí»: queda confirmada (y se anota en el evento).
+ * `seenInboundAt`: el último mensaje suyo que se leyó al confirmar (la IA
+ * trabaja con la conversación que cargó antes de pensar). Sin él, cuenta
+ * hasta ahora.
+ */
+export const confirmAppointment = async (
+  appointmentId: string,
+  opts: { seenInboundAt?: Date | null } = {}
+): Promise<void> => {
+  const seenInboundAt = opts.seenInboundAt ?? new Date();
+  const appt = await prisma.calendarAppointment.update({
+    where: { id: appointmentId },
+    data: { confirmedAt: new Date() },
+    select: { conversationId: true, phone: true, contactId: true },
+  });
+  // Confirmó su cita: el chat queda atendido. Lo que escribió después de lo
+  // leído sigue pendiente (y si vuelve a escribir, se reabre).
+  await resolveConversations(
+    { ids: [appt.conversationId], phones: [appt.phone], contactIds: [appt.contactId] },
+    "appointment",
+    null,
+    { seenInboundAt }
+  ).catch((e: unknown) => console.warn("[citas] no se pudo marcar el chat como atendido", e));
 };
 
 /** Próxima cita (y la última) de una persona, para la IA y la pantalla. */

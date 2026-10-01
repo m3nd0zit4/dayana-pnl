@@ -12,6 +12,7 @@ import { getOperationalTimezone } from "../operational-timezone";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { resumeAutoReply } from "../whatsapp-autoreply";
 import { bookOnCalendar } from "./calendar";
+import { resolveConversations } from "./pending";
 
 /**
  * Lo que la IA propone y Dayana autoriza.
@@ -278,6 +279,8 @@ export const approveProposal = async (input: {
   /** Horas que Dayana dejó / agregó (propuesta de horarios). */
   slots?: { startIso: string; label: string }[] | null;
 }): Promise<{ ok: true; sent: string }> => {
+  // Lo que la persona escribió hasta ahora es lo que Dayana está atendiendo.
+  const startedAt = new Date();
   const run = await loadPending(input.runId, input.conversationId);
   const p = run.proposal;
   const edited = input.message?.trim() && input.message.trim() !== p.message.trim();
@@ -425,6 +428,15 @@ export const approveProposal = async (input: {
   });
   // Un pago confirmado o una cita aprobada: el chat vuelve a la IA.
   if (p.kind === "payment_received") await resumeAutoReply(input.conversationId);
+  // Y deja de estar pendiente (si la persona escribe otra vez, se reabre).
+  if ((p.kind === "booking" && p.bookingDone) || p.kind === "payment_received") {
+    await resolveConversations(
+      { ids: [input.conversationId] },
+      p.kind === "booking" ? "appointment" : "payment",
+      input.staffId,
+      { seenInboundAt: startedAt }
+    ).catch((e: unknown) => console.warn("[whatsapp-agent] no se pudo marcar el chat como atendido", e));
+  }
   await prisma.conversation.update({
     where: { id: input.conversationId },
     data: { draftBody: null, draftSource: null, draftUpdatedAt: null },

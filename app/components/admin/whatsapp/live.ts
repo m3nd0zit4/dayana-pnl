@@ -13,13 +13,39 @@ type Listener = () => void;
 const listeners = new Set<Listener>();
 let source: EventSource | null = null;
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
+let wakeHooked = false;
+let lastWake = 0;
+
+/**
+ * Al volver a la pestaña (el celular la duerme en cuanto se bloquea o se
+ * cambia de app): si el stream murió se abre otro, y se pide lo que cambió
+ * mientras tanto — sin esto la lista se quedaba como estaba al irse.
+ */
+const onWake = () => {
+  if (document.visibilityState !== "visible" || listeners.size === 0) return;
+  const now = Date.now();
+  if (now - lastWake < 1500) return;
+  lastWake = now;
+  if (source && source.readyState === EventSource.CLOSED) {
+    source.close();
+    source = null;
+  }
+  ensure();
+  listeners.forEach((l) => l());
+};
 
 const ensure = () => {
   if (closeTimer) {
     clearTimeout(closeTimer);
     closeTimer = null;
   }
-  if (source || typeof window === "undefined") return;
+  if (typeof window === "undefined") return;
+  if (!wakeHooked) {
+    wakeHooked = true;
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("online", onWake);
+  }
+  if (source) return;
   source = new EventSource("/api/admin/whatsapp/stream");
   source.onmessage = () => listeners.forEach((l) => l());
 };

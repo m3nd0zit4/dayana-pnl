@@ -52,15 +52,16 @@ export const isWhatsAppWorkspacePath = (pathname: string) =>
 const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname();
   const { role } = useCrm();
-  const [attention, setAttention] = useState(0);
+  const [pending, setPending] = useState(0);
 
-  // El número de «Te toca» en el menú, al día con el stream de la sección.
+  // El número de «Pendientes» en el menú, al día con el stream de la sección.
+  // Solo los números: la lista la carga la pantalla de chats.
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/whatsapp/chats?queue=attention", { cache: "no-store" });
+      const res = await fetch("/api/admin/whatsapp/chats?countsOnly=1", { cache: "no-store" });
       if (!res.ok) return;
-      const data = (await res.json()) as { counts: { attention: number } };
-      setAttention(data.counts.attention);
+      const data = (await res.json()) as { counts: { pending: number } };
+      setPending(data.counts.pending);
     } catch {
       // sin red: se queda el último número
     }
@@ -102,8 +103,10 @@ const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
                       <Icon />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
-                    {item.href === "/admin/whatsapp" && attention > 0 && (
-                      <SidebarMenuBadge className="bg-[#00a884] text-white">{attention}</SidebarMenuBadge>
+                    {item.href === "/admin/whatsapp" && pending > 0 && (
+                      <SidebarMenuBadge className="bg-[#00a884] text-white" title={`${pending} pendientes`}>
+                        {pending}
+                      </SidebarMenuBadge>
                     )}
                   </SidebarMenuItem>
                 );
