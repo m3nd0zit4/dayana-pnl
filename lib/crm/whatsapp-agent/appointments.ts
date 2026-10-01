@@ -386,17 +386,29 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
   return result;
 };
 
-/** La persona respondió «sí»: queda confirmada (y se anota en el evento). */
-export const confirmAppointment = async (appointmentId: string): Promise<void> => {
+/**
+ * La persona respondió «sí»: queda confirmada (y se anota en el evento).
+ * `seenInboundAt`: el último mensaje suyo que se leyó al confirmar (la IA
+ * trabaja con la conversación que cargó antes de pensar). Sin él, cuenta
+ * hasta ahora.
+ */
+export const confirmAppointment = async (
+  appointmentId: string,
+  opts: { seenInboundAt?: Date | null } = {}
+): Promise<void> => {
+  const seenInboundAt = opts.seenInboundAt ?? new Date();
   const appt = await prisma.calendarAppointment.update({
     where: { id: appointmentId },
     data: { confirmedAt: new Date() },
     select: { conversationId: true, phone: true, contactId: true },
   });
-  // Confirmó su cita: el chat queda atendido (si vuelve a escribir, se reabre).
+  // Confirmó su cita: el chat queda atendido. Lo que escribió después de lo
+  // leído sigue pendiente (y si vuelve a escribir, se reabre).
   await resolveConversations(
     { ids: [appt.conversationId], phones: [appt.phone], contactIds: [appt.contactId] },
-    "appointment"
+    "appointment",
+    null,
+    { seenInboundAt }
   ).catch((e: unknown) => console.warn("[citas] no se pudo marcar el chat como atendido", e));
 };
 

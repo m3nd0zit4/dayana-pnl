@@ -12,6 +12,7 @@ import { getSiteUrl } from "@/lib/site-url";
 import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { findSimilarExamples, type SimilarExample } from "../whatsapp-learning";
+import { lastInboundSeen } from "../whatsapp-pending-rules";
 import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
@@ -573,7 +574,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         if (input.mode !== "live") return log("confirm_appointment", {}, { ok: true, preview: true });
         const { next } = await appointmentsFor({ contactId: input.contactId, phone: input.phone });
         if (!next) return log("confirm_appointment", {}, { ok: false, reason: "No tiene cita próxima." });
-        await confirmAppointment(next.id);
+        // Solo cubre lo que la IA leyó: algo que llegó después sigue pendiente.
+        await confirmAppointment(next.id, { seenInboundAt: lastInboundSeen(input.transcript, now) });
         return log("confirm_appointment", {}, { ok: true, cita: next.startsAt.toISOString() });
       },
     }),

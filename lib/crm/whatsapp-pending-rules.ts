@@ -126,6 +126,24 @@ export const appointmentCoversUntil = (eventUpdated: string | null | undefined, 
 };
 
 /**
+ * El último mensaje de la persona que la IA tuvo delante (su conversación se
+ * carga antes de pensar). Lo que llegue después no lo leyó nadie: no puede
+ * quedar como atendido por algo que la IA hizo. Sin fechas, el inicio de la vuelta.
+ */
+export const lastInboundSeen = (
+  transcript: { direction: string; sentAt?: Date | null }[],
+  fallback: Date
+): Date => {
+  let newest: number | null = null;
+  for (const m of transcript) {
+    if (m.direction !== "INBOUND" || !m.sentAt) continue;
+    const t = m.sentAt.getTime();
+    if (!Number.isNaN(t) && (newest === null || t > newest)) newest = t;
+  }
+  return newest === null ? fallback : new Date(newest);
+};
+
+/**
  * ¿Un envío deja el chat «leído»? Solo cuando lo manda una persona desde el
  * CRM (o aprueba una propuesta): ahí Dayana vio el chat. La IA, el saludo, los
  * recordatorios y los envíos masivos no: nadie miró ese chat.

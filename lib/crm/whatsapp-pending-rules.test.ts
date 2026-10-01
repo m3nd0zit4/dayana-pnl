@@ -3,6 +3,7 @@ import {
   appointmentCoversUntil,
   appointmentJustLinked,
   isPending,
+  lastInboundSeen,
   replyStateOf,
   resolvedLabel,
   sendClearsUnread,
@@ -155,6 +156,24 @@ test("appointmentCoversUntil: hasta que Dayana creó o movió el evento", () => 
   expect(appointmentCoversUntil("no-es-fecha", now).getTime()).toBe(now.getTime());
   // Un reloj adelantado no cubre mensajes del futuro.
   expect(appointmentCoversUntil(at(50).toISOString(), now).getTime()).toBe(now.getTime());
+});
+
+test("lastInboundSeen: el último mensaje de la persona que la IA leyó", () => {
+  const start = at(30);
+  expect(
+    lastInboundSeen(
+      [
+        { direction: "INBOUND", sentAt: at(1) },
+        { direction: "OUTBOUND", sentAt: at(5) },
+        { direction: "INBOUND", sentAt: at(7) },
+        { direction: "OUTBOUND", sentAt: at(9) },
+      ],
+      start
+    ).getTime()
+  ).toBe(at(7).getTime());
+  // Sin fechas (o sin mensajes suyos): el inicio de la vuelta.
+  expect(lastInboundSeen([{ direction: "INBOUND" }], start).getTime()).toBe(start.getTime());
+  expect(lastInboundSeen([{ direction: "OUTBOUND", sentAt: at(3) }], start).getTime()).toBe(start.getTime());
 });
 
 test("resolvedLabel", () => {

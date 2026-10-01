@@ -24,6 +24,7 @@ import { confirmAppointment, syncAppointments } from "@/lib/crm/whatsapp-agent/a
 import { approveProposal, proposeForApproval } from "@/lib/crm/whatsapp-agent/approvals";
 import { pendingWhere, reopenConversation, resolveConversations } from "@/lib/crm/whatsapp-agent/pending";
 import { getChat, listChats, queueCounts } from "@/lib/crm/whatsapp-agent/workspace";
+import { lastInboundSeen } from "@/lib/crm/whatsapp-pending-rules";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
 process.env.NOTIFICATIONS_DRY_RUN = "true";
@@ -146,6 +147,16 @@ const main = async () => {
     const item3 = await itemIn("pending", a);
     check("sigue pendiente", Boolean(item3?.pending));
     check("«Respondiste desde el celular»", item3?.replyState === "you_phone", item3?.replyState);
+    // Avisos en desorden: un eco más viejo que el último mensaje de la persona
+    // llega después y no puede borrar su no leído.
+    const t2 = new Date();
+    await inbound(A, "¿Y a qué hora exactamente?", { sentAt: t2 });
+    await inbound(A, "Te escribo en un rato", { isEcho: true, sentAt: new Date(t2.getTime() - 60_000) });
+    check("un eco viejo que llega tarde no borra el no leído", (await conv(a)).unreadCount === 1, (await conv(a)).unreadCount);
+    // (Mismo instante que su mensaje: cuenta como posterior. Sin fechas futuras:
+    // lo que sigue en la prueba tiene que quedar más nuevo que este eco.)
+    await inbound(A, "A las 3 en punto", { isEcho: true, sentAt: t2 });
+    check("un eco posterior sí lo deja leído", (await conv(a)).unreadCount === 0, (await conv(a)).unreadCount);
 
     console.log("\n4. La IA, recordatorios y masivos no lo dan por leído");
     await inbound(A, "Perfecto, ¿cuánto cuesta?");
@@ -210,8 +221,22 @@ const main = async () => {
     check("si la cita se mueve, cuenta como atendido otra vez", s3.resolved === 1 && !(await itemIn("pending", a)), s3);
 
     console.log("\n7. Confirmar la cita / un pago");
-    await inbound(A, "SÍ");
+    await inbound(A, "SÍ", { sentAt: new Date(Date.now() - 1000) });
     const appt = await prisma.calendarAppointment.findUniqueOrThrow({ where: { eventId: events[0].id } });
+    // La IA carga la conversación hasta aquí y, mientras piensa, llega otra pregunta.
+    const transcript = await prisma.conversationMessage.findMany({
+      where: { conversationId: a },
+      orderBy: { sentAt: "asc" },
+      select: { direction: true, sentAt: true },
+    });
+    await inbound(A, "¿Y me mandas el enlace?");
+    await confirmAppointment(appt.id, { seenInboundAt: lastInboundSeen(transcript, new Date()) });
+    const a7 = await conv(a);
+    check(
+      "confirmar con una pregunta que la IA no leyó: sigue pendiente",
+      (await itemIn("pending", a))?.pending === true && a7.resolvedReason === null,
+      a7
+    );
     await confirmAppointment(appt.id);
     check("confirmar la cita lo resuelve", (await conv(a)).resolvedReason === "appointment" && !(await itemIn("pending", a)));
     const p = await inbound(P, "Ya te hice la transferencia");

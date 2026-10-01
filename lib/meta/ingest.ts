@@ -233,9 +233,9 @@ export const ingestMessage = async (
           ...(message.system
             ? {}
             : message.isEcho
-            ? // Dayana contestó desde el celular: ya lo leyó allí. Sigue
-              // pendiente (responder no es resolver).
-              { status: "PENDING" as const, unreadCount: 0 }
+            ? // Los no leídos los pone a 0 el paso siguiente (solo si el eco
+              // no es más viejo que lo último que escribió la persona).
+              { status: "PENDING" as const }
             : {
                 lastInboundAt: message.sentAt,
                 unreadCount: { increment: 1 },
@@ -254,6 +254,20 @@ export const ingestMessage = async (
         },
         select: { id: true },
       });
+
+    // Dayana contestó desde el celular: lo que la persona escribió hasta ese
+    // momento ya lo leyó allí (sigue pendiente: responder no es resolver). Los
+    // avisos pueden llegar en desorden: un eco más viejo que el último mensaje
+    // de la persona no borra un no leído que ella todavía no vio.
+    if (!message.isHistory && message.isEcho && !message.system) {
+      await tx.conversation.updateMany({
+        where: {
+          id: conversation.id,
+          OR: [{ lastInboundAt: null }, { lastInboundAt: { lte: message.sentAt } }],
+        },
+        data: { unreadCount: 0 },
+      });
+    }
 
     await tx.conversationMessage.create({
       data: {
