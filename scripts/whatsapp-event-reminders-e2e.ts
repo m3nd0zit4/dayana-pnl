@@ -407,19 +407,34 @@ const cronPart = async () => {
   check("sin secreto: 401", (await call()).status === 401);
   check("con un secreto equivocado: 401", (await call("Bearer otro-secreto")).status === 401);
 
-  // El reloj trabaja sobre la edición viva compartida de desarrollo: se
-  // guarda su estado y se deja igual al terminar.
-  const live = await prisma.freeWebinar.findUnique({ where: { slug: FREE_WEBINAR_SLUG } });
+  // El reloj trabaja sobre los eventos compartidos de desarrollo (cierra los
+  // que ya pasaron): se guarda su estado y se deja igual al terminar.
+  const before = await prisma.freeWebinar.findMany({
+    select: { id: true, endedAt: true, status: true, isActive: true },
+  });
+  check("la edición viva sigue existiendo", (await prisma.freeWebinar.count({ where: { slug: FREE_WEBINAR_SLUG } })) <= 1);
   const res = await call(`Bearer ${process.env.CRON_SECRET}`);
   const json = (await res.json()) as { ok: boolean; steps: { name: string; ok: boolean }[] };
   check("con el secreto: 200 y todos los pasos", res.status === 200 && json.steps.some((s) => s.name === "cierre"), json);
   check("ningún paso falló", json.ok, json.steps.filter((s) => !s.ok));
-  if (live) {
-    const now = await prisma.freeWebinar.findUnique({ where: { id: live.id }, select: { endedAt: true } });
-    if (now && (now.endedAt?.getTime() ?? null) !== (live.endedAt?.getTime() ?? null)) {
-      await prisma.freeWebinar.update({ where: { id: live.id }, data: { endedAt: live.endedAt } });
+  for (const row of before) {
+    const now = await prisma.freeWebinar.findUnique({
+      where: { id: row.id },
+      select: { endedAt: true, status: true, isActive: true },
+    });
+    if (
+      now &&
+      ((now.endedAt?.getTime() ?? null) !== (row.endedAt?.getTime() ?? null) ||
+        now.status !== row.status ||
+        now.isActive !== row.isActive)
+    ) {
+      await prisma.freeWebinar.update({
+        where: { id: row.id },
+        data: { endedAt: row.endedAt, status: row.status, isActive: row.isActive },
+      });
+      await prisma.freeEventActivity.deleteMany({ where: { freeWebinarId: row.id, at: { gte: t0 } } });
       await prisma.platformNotification.deleteMany({
-        where: { eventType: "SYSTEM_ALERT", entityType: "FreeWebinar", entityId: live.id, createdAt: { gte: t0 } },
+        where: { eventType: "SYSTEM_ALERT", entityType: "FreeWebinar", entityId: row.id, createdAt: { gte: t0 } },
       });
     }
   }
