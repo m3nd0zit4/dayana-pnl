@@ -418,7 +418,14 @@ export type ClassifyRunResult = {
  * Sin IA (o sin clave) recorre todos: las reglas son baratas.
  */
 export const classifyPending = async (
-  opts: { limit?: number; budgetMs?: number; useAi?: boolean; concurrency?: number } = {}
+  opts: {
+    limit?: number;
+    budgetMs?: number;
+    useAi?: boolean;
+    concurrency?: number;
+    /** Solo estos chats (pruebas y scripts). */
+    ids?: string[];
+  } = {}
 ): Promise<ClassifyRunResult> => {
   const started = Date.now();
   const useAi = (opts.useAi ?? true) && hasModelKey();
@@ -439,8 +446,11 @@ export const classifyPending = async (
     errors: [],
   };
 
+  const where: Prisma.ConversationWhereInput = opts.ids
+    ? { AND: [pendingClassificationWhere(), { id: { in: opts.ids } }] }
+    : pendingClassificationWhere();
   const batch = await prisma.conversation.findMany({
-    where: pendingClassificationWhere(),
+    where,
     orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
     take: useAi ? (opts.limit ?? 40) : 1000,
     select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
@@ -478,7 +488,7 @@ export const classifyPending = async (
     await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.concurrency ?? 4, batch.length)) }, worker));
   }
 
-  result.remaining = await prisma.conversation.count({ where: pendingClassificationWhere() });
+  result.remaining = await prisma.conversation.count({ where });
   result.ms = Date.now() - started;
   return result;
 };

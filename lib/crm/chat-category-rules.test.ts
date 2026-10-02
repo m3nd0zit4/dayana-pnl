@@ -229,6 +229,20 @@ describe("negocio (lo que escribió, sin señales del CRM)", () => {
     ).toBeNull();
   });
 
+  test("lo que pregunta una interesada no es de empresa", () => {
+    expect(negocioSignal("Hola, ¿tu paquete de 4 sesiones está en promoción?")).toBeNull();
+    expect(negocioSignal("¿Tienes alguna oferta especial este mes?")).toBeNull();
+    expect(negocioSignal("¿Me das 10% de descuento si pago hoy?")).toBeNull();
+    expect(negocioSignal("¿Cómo podemos ayudar a mi hija con la ansiedad?")).toBeNull();
+    expect(negocioSignal("No estamos disponibles el sábado, ¿puede ser el lunes?")).toBeNull();
+    expect(negocioSignal("https://mpago.la/2xYz9")).toBeNull();
+  });
+
+  test("las promos como afirmación sí son publicidad", () => {
+    expect(negocioSignal("Aprovecha nuestra oferta: hasta 50% de descuento en toda la tienda")?.kind).toBe("spam");
+    expect(negocioSignal("Hola, ¿en qué podemos ayudarte hoy?")?.kind).toBe("auto");
+  });
+
   test("«no me llega el código de verificación» no es un código", () => {
     expect(negocioSignal("Hola, no me llega el código de verificación para entrar")).toBeNull();
   });

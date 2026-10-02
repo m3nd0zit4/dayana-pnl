@@ -281,14 +281,17 @@ const main = async () => {
     check("sin nada nuevo no se vuelve a mirar", upToDate.status === "skipped" && upToDate.reason === "up_to_date", upToDate);
 
     console.log("\n5. «Clasificar todo» y contadores");
+    // Solo los chats de prueba: la base de desarrollo es compartida y la IA cuesta.
+    const own = Object.values(ids);
     await prisma.conversation.update({ where: { id: ids.comunidad }, data: { categorizedThroughAt: null } });
     let rounds = 0;
-    let progress = await classifyPending({ limit: 40, budgetMs: 45_000 });
+    let progress = await classifyPending({ limit: 40, budgetMs: 45_000, ids: own });
     rounds++;
-    while (progress.remaining > 0 && progress.classified > 0 && rounds < 10) {
-      progress = await classifyPending({ limit: 40, budgetMs: 45_000 });
+    while (progress.remaining > 0 && progress.classified > 0 && rounds < 5) {
+      progress = await classifyPending({ limit: 40, budgetMs: 45_000, ids: own });
       rounds++;
     }
+    check("«clasificar todo» no toca la manual", progress.skipped === 0 && progress.failed === 0, progress);
     const ownPending = await prisma.conversation.count({ where: { id: { in: Object.values(ids) }, ...pendingClassificationWhere() } });
     check("no queda ninguno de los de prueba pendiente", ownPending === 0, ownPending);
     check("comunidad sigue en comunidad", (await state(ids.comunidad)).category === "comunidad");
@@ -307,7 +310,13 @@ const main = async () => {
     const restored = prevTeam ? (JSON.parse(prevTeam.value) as string[]) : [];
     const res = await setTeamPhones(restored, staff.id);
     const eq = await state(ids.equipo);
-    check("ya no es «equipo»", res.reclassified.length >= 1 && eq.category !== "equipo", { res: res.reclassified, eq });
+    // Puede que la IA, leyendo «subí el video editado», diga «equipo» por su
+    // cuenta: lo que se comprueba es que ya no sale de la regla del número.
+    check(
+      "ya no es «equipo» por el número",
+      res.reclassified.length >= 1 && eq.categoryReason !== "Número del equipo",
+      { res: res.reclassified, eq }
+    );
     if (eq.categorySource === "ai") {
       const out = res.reclassified.find((o) => o.id === ids.equipo);
       if (out?.status === "classified") aiStats.push(out);

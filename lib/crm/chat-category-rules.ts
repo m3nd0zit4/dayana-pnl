@@ -265,11 +265,12 @@ const AUTO_RES: RegExp[] = [
   /\bgracias\s+por\s+(?:contactarnos|escribirnos|preferirnos|elegirnos)\b/,
   /\ben\s+breve\s+(?:te|le|lo|la|nos)?\s*(?:atenderemos|responderemos|contestaremos|contactaremos|comunicaremos|atendera|respondera|pondremos)\b/,
   /\b(?:te|le)\s+(?:responderemos|atenderemos|contactaremos|contestaremos)\s+(?:lo\s+antes\s+posible|lo\s+mas\s+pronto|a\s+la\s+brevedad|en\s+breve|pronto|en\s+un\s+momento)/,
-  /\bnuestro\s+horario\b|\bhorario\s+de\s+atencion\s*(?:es\b|:|de\s+lunes|lunes)|\bfuera\s+de(?:l)?\s+(?:nuestro\s+)?horario\s+de\s+atencion/,
+  /\bnuestro\s+horario\s+de\s+atencion\b|\bhorario\s+de\s+atencion\s*(?:es\b|:|de\s+lunes|lunes)|\bfuera\s+de(?:l)?\s+(?:nuestro\s+)?horario\s+de\s+atencion/,
   /\bno\s+(?:responda|respondas|responder)\s+(?:a\s+)?este\s+(?:mensaje|numero|chat|correo)/,
   /\beste\s+numero\s+no\s+(?:recibe|acepta|responde|atiende)\b/,
-  /\b(?:en\s+que|como)\s+(?:podemos|le\s+podemos|te\s+podemos)\s+(?:ayudarte|ayudarle|ayudar|servirte|servirle|colaborarte)/,
-  /\bestamos\s+(?:ausentes|fuera\s+de\s+(?:la\s+)?oficina|cerrados)\b|\bno\s+estamos\s+disponibles\b/,
+  // «¿Cómo podemos ayudar a mi hija?» lo pregunta una madre: solo «en qué (te) podemos ayudar».
+  /\ben\s+que\s+(?:te\s+|le\s+)?podemos\s+(?:ayudarte|ayudarle|ayudar|servirte|servirle|colaborarte)\b/,
+  /\bestamos\s+(?:ausentes|fuera\s+de\s+(?:la\s+)?oficina)\b|\ben\s+este\s+momento\s+no\s+(?:estamos\s+disponibles|podemos\s+atender(?:te|le)?)\b/,
   /\bbienvenid[oa]s?\s+a\s+(?:nuestr[oa]|la\s+linea\s+de|el\s+canal\s+de)\b/,
 ];
 /** «Este es un mensaje automático» — pero «¿esto es un mensaje automático?» lo pregunta una persona. */
@@ -279,7 +280,7 @@ const BOT_RES: RegExp[] = [
   /\b(?:selecciona|elige|escoge|digita|marca|escribe|responde\s+con)\s+(?:una\s+|la\s+|el\s+numero\s+de\s+la\s+|el\s+numero\s+de\s+tu\s+)?opcion\b/,
   /\bmenu\s+(?:principal|de\s+opciones)\b/,
   /\bver\s+(?:nuestro\s+|el\s+)?catalogo\b|\bnuestro\s+catalogo\b/,
-  /\b(?:tu|su)\s+(?:pedido|orden|compra|envio|paquete)\s+(?:ha\s+sido|fue|esta|se\s+encuentra|va\s+en\s+camino|llego|#|numero|no\.)/,
+  /\b(?:tu|su)\s+(?:pedido|orden|compra|envio)\s+(?:ha\s+sido|fue|esta|se\s+encuentra|va\s+en\s+camino|llego|#|numero|no\.)/,
   /\bnumero\s+de\s+(?:pedido|orden|guia|seguimiento|rastreo)\b/,
   /\b(?:haz|realiza|haga|realice)\s+(?:tu|su)\s+pedido\b/,
 ];
@@ -291,13 +292,23 @@ const SPAM_RES: RegExp[] = [
   /\bcopy\s*trading\b|\btrading\b|\bforex\b|\bcriptomonedas?\b|\bbitcoin\b|\bbinance\b|\busdt\b/,
   /\binversion\s+(?:minima|segura|garantizada)\b|\brentabilidad\s+(?:diaria|garantizada)\b|\bganancias?\s+(?:diarias|garantizadas|aseguradas)\b/,
   /\boferta\s+de\s+(?:empleo|trabajo)\b|\btrabaja\s+desde\s+(?:casa|tu\s+celular)\b/,
-  /\b(?:descuento|oferta|promocion|promo)\s+(?:exclusiva|especial|valida|por\s+tiempo\s+limitado|imperdible)\b|\baprovecha\s+(?:esta|nuestra|nuestras|nuestros)\s+(?:oferta|promo|descuento)|\bultimas\s+unidades\b|\b\d{1,2}\s?%\s+(?:de\s+)?(?:descuento|off|dcto)\b/,
   /\b(?:responde|envia|escribe)\s+(?:baja|stop|salir)\b|\bpara\s+(?:dejar\s+de\s+recibir|no\s+recibir\s+mas)\b|\bdarte\s+de\s+baja\b/,
   /\bfelicidades,?\s+(?:has\s+sido|fuiste)\s+(?:seleccionad|el\s+ganador|la\s+ganadora)|\bhas\s+ganado\b|\breclama\s+tu\s+premio\b/,
 ];
 
-/** Enlaces que comparte una persona (un reel, una ubicación, la web de Dayana). */
-const PERSONAL_LINK_RE = /instagram|tiktok|youtu|facebook|fb\.watch|x\.com|twitter|spotify|maps|goo\.gl|wa\.me|dayanabeltran|meet\.google|zoom\.us|drive\.google|docs\.google|pin\.it|pinterest|threads/;
+/**
+ * Ofertas y descuentos: cuentan solo como afirmación. «¿Tienes alguna oferta
+ * especial?» o «¿me das 10% de descuento?» lo pregunta una interesada.
+ */
+const PROMO_RES: RegExp[] = [
+  /\b(?:descuento|oferta|promocion|promo)\s+(?:exclusiva|especial|valida|por\s+tiempo\s+limitado|imperdible)\b/,
+  /\baprovecha\s+(?:esta|nuestra|nuestras|nuestros)\s+(?:oferta|promo|descuento)|\bultimas\s+unidades\b/,
+  /\b(?:hasta|obten|aprovecha|con)\s+(?:un\s+|el\s+)?\d{1,2}\s?%\s+(?:de\s+)?(?:descuento|off|dcto)\b/,
+];
+
+/** Enlaces que comparte una persona (un reel, una ubicación, la web de Dayana, un pago). */
+const PERSONAL_LINK_RE =
+  /instagram|tiktok|youtu|facebook|fb\.watch|x\.com|twitter|spotify|maps|goo\.gl|wa\.me|dayanabeltran|meet\.google|zoom\.us|drive\.google|docs\.google|pin\.it|pinterest|threads|mpago|mercadopago|paypal|nequi|bancolombia|daviplata/;
 
 /** ¿Por qué este mensaje parece de una empresa? `null` si parece de una persona. */
 export const negocioSignal = (body: string | null | undefined): { kind: NegocioKind; reason: string } | null => {
@@ -310,7 +321,9 @@ export const negocioSignal = (body: string | null | undefined): { kind: NegocioK
   }
   const brand = t.match(BRAND_SENDER_RE);
   if (brand) return { kind: "brand", reason: `Notificación de ${brandLabel(brand[1] ?? brand[2])}` };
-  if (SPAM_RES.some((r) => r.test(t))) return { kind: "spam", reason: "Publicidad o spam" };
+  if (SPAM_RES.some((r) => r.test(t)) || (!/[?¿]/.test(raw) && PROMO_RES.some((r) => r.test(t)))) {
+    return { kind: "spam", reason: "Publicidad o spam" };
+  }
   if (BOT_RES.some((r) => r.test(t))) return { kind: "bot", reason: "Menú o pedidos de un bot" };
   if (AUTO_RES.some((r) => r.test(t)) || (AUTO_MESSAGE_RE.test(t) && !/[?¿]/.test(raw))) {
     return { kind: "auto", reason: "Respuesta automática de una empresa" };
