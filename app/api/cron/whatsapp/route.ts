@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { authorized } from "@/lib/cron-auth";
 import { kickSweep } from "@/lib/meta/inbox";
+import { classifyFromCron } from "@/lib/crm/chat-category";
 import { sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
 
@@ -27,13 +28,24 @@ const step = async <T,>(name: string, fn: () => Promise<T>) => {
   }
 };
 
+/**
+ * Clasificar chats va al final y solo con el tiempo que sobra: como mucho
+ * 40 s y nunca más allá de los 95 s del reloj (el límite es 120).
+ */
+const CLASSIFY_MAX_MS = 40_000;
+const CLASSIFY_DEADLINE_MS = 95_000;
+
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const started = Date.now();
   const steps = [
     await step("citas", () => syncAppointments()),
     await step("recordatorios", () => sendDueReminders()),
     await step("cola", () => kickSweep()),
     await step("plantillas", () => refreshTemplatesIfPending()),
+    await step("clasificar", () =>
+      classifyFromCron(Math.min(CLASSIFY_MAX_MS, CLASSIFY_DEADLINE_MS - (Date.now() - started)))
+    ),
   ];
   console.info(`[reloj WhatsApp] ${JSON.stringify(steps)}`);
   return NextResponse.json({ ok: steps.every((s) => s.ok), steps });
