@@ -52,16 +52,16 @@ export const isWhatsAppWorkspacePath = (pathname: string) =>
 const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname();
   const { role } = useCrm();
-  const [pending, setPending] = useState(0);
+  const [waiting, setWaiting] = useState(0);
 
-  // El número de «Pendientes» en el menú, al día con el stream de la sección.
+  // El número de «Te toca» en el menú, al día con el stream de la sección.
   // Solo los números: la lista la carga la pantalla de chats.
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/whatsapp/chats?countsOnly=1", { cache: "no-store" });
       if (!res.ok) return;
-      const data = (await res.json()) as { counts: { pending: number } };
-      setPending(data.counts.pending);
+      const data = (await res.json()) as { counts: { attention: number } };
+      setWaiting(data.counts.attention);
     } catch {
       // sin red: se queda el último número
     }
@@ -86,7 +86,7 @@ const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
         </SidebarGroupContent>
       </SidebarGroup>
       <SidebarGroup>
-        <SidebarGroupLabel className="text-[#128c4a]">WhatsApp</SidebarGroupLabel>
+        <SidebarGroupLabel className="text-success">WhatsApp</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             {ITEMS.filter((i) => !("ownerOnly" in i && i.ownerOnly) || role === "OWNER" || role === "PREVIEW").map(
@@ -103,9 +103,12 @@ const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
                       <Icon />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
-                    {item.href === "/admin/whatsapp" && pending > 0 && (
-                      <SidebarMenuBadge className="bg-[#00a884] text-white" title={`${pending} pendientes`}>
-                        {pending}
+                    {item.href === "/admin/whatsapp" && waiting > 0 && (
+                      <SidebarMenuBadge
+                        className="bg-success text-white"
+                        title={`${waiting} ${waiting === 1 ? "te espera" : "te esperan"}`}
+                      >
+                        {waiting}
                       </SidebarMenuBadge>
                     )}
                   </SidebarMenuItem>

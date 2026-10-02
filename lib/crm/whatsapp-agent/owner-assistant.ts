@@ -175,7 +175,7 @@ export const runOwnerAssistant = async (
     }),
     propose_chat_mode: tool({
       description:
-        "Propone cambiar quién atiende un chat: AUTO (tú sola), COPILOT (borradores que Dayana envía) o MANUAL (solo Dayana). priority=true lo sube a «Tú atiendes».",
+        "Propone cambiar quién atiende un chat: AUTO (tú sola), COPILOT (borradores que Dayana envía) o MANUAL (solo Dayana: modo «Yo»). priority=true lo marca como favorito ⭐ (la IA no lo toca).",
       inputSchema: z.object({
         conversationId: z.string(),
         mode: z.enum(["AUTO", "COPILOT", "MANUAL"]),

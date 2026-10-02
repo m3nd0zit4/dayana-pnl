@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type NotificationEventType } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import {
@@ -163,6 +163,35 @@ export const markRead = async (
 export const markAllRead = async (scope: FeedScope): Promise<number> => {
   const result = await prisma.notificationRecipient.updateMany({
     where: { ...scopeWhere(scope), readAt: null, dismissedAt: null },
+    data: { readAt: new Date() },
+  });
+  return result.count;
+};
+
+/**
+ * Marca como leídas, para TODOS sus destinatarios, las notificaciones de una
+ * entidad (p. ej. un chat de WhatsApp que ya se atendió): avisar de algo que
+ * ya se resolvió —desde el CRM o desde el celular— solo hace ruido. `before`:
+ * solo las creadas hasta ese momento (lo que llegó después sigue sin leer).
+ * Devuelve las filas afectadas.
+ */
+export const markReadByEntity = async (input: {
+  entityType: string;
+  entityId: string;
+  eventTypes: NotificationEventType[];
+  before?: Date;
+}): Promise<number> => {
+  if (input.eventTypes.length === 0) return 0;
+  const result = await prisma.notificationRecipient.updateMany({
+    where: {
+      readAt: null,
+      notification: {
+        entityType: input.entityType,
+        entityId: input.entityId,
+        eventType: { in: input.eventTypes },
+        ...(input.before ? { createdAt: { lte: input.before } } : {}),
+      },
+    },
     data: { readAt: new Date() },
   });
   return result.count;

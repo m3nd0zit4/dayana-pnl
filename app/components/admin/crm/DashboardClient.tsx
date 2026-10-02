@@ -290,7 +290,7 @@ const NumbersSection = ({ data }: { data: DashboardStats }) => {
 export type WhatsAppHomeSummary = {
   /** Mensajes sin leer en chats de WhatsApp abiertos. */
   unread: number;
-  /** Chats donde la IA pidió que contestara una persona. */
+  /** Chats en «Te toca»: necesitan a Dayana (salen en cuanto ella contesta). */
   handedOff: number;
   aiEnabled: boolean;
 };

@@ -13,6 +13,7 @@ import { isWhatsAppAutoReplyEnabled, pauseAutoReply } from "./whatsapp-autoreply
 import { ensureWhatsAppConversation, recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
 import { approvedTemplateFor, ensureTemplatesSubmitted, refreshTemplatesIfPending, type WaTemplate } from "./whatsapp-templates";
 import { proposeForApproval } from "./whatsapp-agent/approvals";
+import { openAttention } from "./whatsapp-agent/attention";
 import { polishReply } from "./whatsapp-agent/wording";
 import { effectiveAiMode } from "./whatsapp-agent/mode";
 
@@ -324,6 +325,8 @@ export const runDiagnosticOutreach = async (
         severity: "urgent",
         reason: `Autoevaluación: ${analysis.careReason}`,
       });
+      // Le toca a Dayana desde ya (aunque la persona aún no haya escrito).
+      await openAttention(conversation.id, "clinical");
       fireNotification({
         eventType: "WHATSAPP_AI_ESCALATED",
         severity: "ERROR",

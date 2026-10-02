@@ -6,9 +6,9 @@ import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
 import { windowStateOf } from "../whatsapp-outbound-plan";
-import { isPending, replyStateOf, type ReplyState } from "../whatsapp-pending-rules";
+import { replyStateOf, type ReplyState } from "../whatsapp-attention-rules";
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
-import { pendingWhere } from "./pending";
+import { attentionWhere, seguimientoWhere } from "./attention";
 
 /**
  * Lo que lee la sección de WhatsApp del CRM: chats con su estado de IA en
@@ -71,7 +71,39 @@ export const deliveryOf = (
   return null;
 };
 
-export type ChatQueue = "pending" | "attention" | "mine" | "ai" | "all";
+/**
+ * «Te toca» (lo que necesita a Dayana), «Seguimiento» (interesadas que no
+ * agendaron ni pagaron) y «Todos», que se puede filtrar por modo: `mine`
+ * (modo Yo o ⭐) e `ai` (los lleva la IA).
+ */
+export type ChatQueue = "attention" | "seguimiento" | "mine" | "ai" | "all";
+
+/** Por qué le toca a Dayana y desde cuándo. */
+export type AttentionView = {
+  /** unanswered | payment | booking | clinical | unknown | complaint | reschedule | other | error */
+  reason: string;
+  /** El mensaje que lo abrió. */
+  since: string;
+  urgent: boolean;
+  /** Lo que explicó la IA al pasárselo. */
+  detail: string | null;
+};
+
+const attentionView = (c: {
+  attentionAt: Date | null;
+  attentionReason: string | null;
+  aiPausedReason: string | null;
+  escalationSeverity: string | null;
+  escalationReason: string | null;
+}): AttentionView | null =>
+  c.attentionAt
+    ? {
+        reason: c.attentionReason ?? "other",
+        since: c.attentionAt.toISOString(),
+        urgent: c.aiPausedReason === "escalation" && c.escalationSeverity === "urgent",
+        detail: c.aiPausedReason === "escalation" ? c.escalationReason : null,
+      }
+    : null;
 
 export type ChatListItem = {
   id: string;
@@ -97,14 +129,10 @@ export type ChatListItem = {
   /** Hay algo esperando la autorización de Dayana (borrador, cita, pago). */
   awaitingApproval: string | null;
   lastRun: RunView | null;
-  /** La persona escribió y nadie lo dio por atendido (responder no cuenta). */
-  pending: boolean;
-  /** Último mensaje de la persona, si el chat está pendiente. */
-  pendingSince: string | null;
+  /** «Te toca»: por qué y desde cuándo (nulo si no le toca). */
+  attention: AttentionView | null;
   /** Quién contestó lo último (sin responder, tú, tú desde el celular, IA, automático). */
   replyState: ReplyState | null;
-  /** Por qué quedó atendido (cita, pago, a mano…), si no está pendiente. */
-  resolvedReason: string | null;
 };
 
 const runView = (r: {
@@ -149,17 +177,12 @@ const PREVIEW_KIND: Record<string, string> = {
   document: "📄 Documento",
 };
 
-const queueWhere = (queue: ChatQueue): Prisma.ConversationWhereInput => {
+const queueWhere = async (queue: ChatQueue): Promise<Prisma.ConversationWhereInput> => {
   switch (queue) {
-    case "pending":
-      return pendingWhere();
     case "attention":
-      return {
-        OR: [
-          { aiPausedReason: "escalation" },
-          { aiRuns: { some: { status: "AWAITING_APPROVAL" } } },
-        ],
-      };
+      return attentionWhere();
+    case "seguimiento":
+      return seguimientoWhere();
     case "mine":
       return { OR: [{ aiMode: "MANUAL" }, { priorityAt: { not: null } }] };
     case "ai":
@@ -181,7 +204,7 @@ export const listChats = async (input: {
       // Con AND: la búsqueda tiene su propio OR y no puede pisar el de la cola
       // (antes, buscar dentro de «Te toca» buscaba en todos los chats).
       AND: [
-        queueWhere(input.queue),
+        await queueWhere(input.queue),
         q
           ? {
               OR: [
@@ -197,7 +220,7 @@ export const listChats = async (input: {
     orderBy:
       input.queue === "mine"
         ? [{ priorityAt: { sort: "desc", nulls: "last" } }, { lastMessageAt: "desc" }]
-        : input.queue === "pending"
+        : input.queue === "seguimiento"
           ? // Lo último que escribieron, arriba.
             [{ lastInboundAt: { sort: "desc", nulls: "last" } }, { lastMessageAt: "desc" }]
           : [{ lastMessageAt: "desc" }],
@@ -217,9 +240,8 @@ export const listChats = async (input: {
       escalationReason: true,
       priorityAt: true,
       draftBody: true,
-      lastInboundAt: true,
-      resolvedAt: true,
-      resolvedReason: true,
+      attentionAt: true,
+      attentionReason: true,
       contact: { select: { firstName: true, lastName: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -255,7 +277,6 @@ export const listChats = async (input: {
 
   const items = rows.map((c): ChatListItem => {
     const last = c.messages[0];
-    const chatPending = isPending(c);
     const name =
       [c.contact?.firstName, c.contact?.lastName].filter(Boolean).join(" ") ||
       c.participantName ||
@@ -295,10 +316,8 @@ export const listChats = async (input: {
       draftPreview: c.draftBody?.trim() ? c.draftBody.trim().replace(/\s+/g, " ").slice(0, 120) : null,
       awaitingApproval: pendingBy.get(c.id) ?? null,
       lastRun: c.aiRuns[0] ? { ...runView(c.aiRuns[0]), delivery: deliveryOf(c.aiRuns[0], c.messages) } : null,
-      pending: chatPending,
-      pendingSince: chatPending ? (c.lastInboundAt?.toISOString() ?? null) : null,
+      attention: attentionView(c),
       replyState: replyStateOf(c.messages),
-      resolvedReason: chatPending ? null : c.resolvedReason,
     };
   });
 
@@ -306,30 +325,35 @@ export const listChats = async (input: {
   if (input.queue === "attention") {
     items.sort(
       (a, b) =>
-        Number(b.escalation?.severity === "urgent") -
-          Number(a.escalation?.severity === "urgent") ||
+        Number(Boolean(b.attention?.urgent)) - Number(Boolean(a.attention?.urgent)) ||
         b.lastMessageAt.localeCompare(a.lastMessageAt)
     );
   }
   return items;
 };
 
-export type QueueCounts = { pending: number; attention: number; mine: number; ai: number; unread: number };
+export type QueueCounts = { attention: number; seguimiento: number; mine: number; ai: number; unread: number };
 
+/** Los números de las pestañas (y del menú, la portada y los pendientes del CRM). */
 export const queueCounts = async (): Promise<QueueCounts> => {
   const base = { channel: "WHATSAPP" as const };
-  const [pending, attention, mine, ai, unread] = await Promise.all([
-    prisma.conversation.count({ where: { ...base, ...queueWhere("pending") } }),
-    prisma.conversation.count({ where: { ...base, ...queueWhere("attention") } }),
-    prisma.conversation.count({ where: { ...base, ...queueWhere("mine") } }),
-    prisma.conversation.count({ where: { ...base, ...queueWhere("ai") } }),
+  const count = async (queue: ChatQueue) =>
+    prisma.conversation.count({ where: { AND: [base, await queueWhere(queue)] } });
+  const [attention, seguimiento, mine, ai, unread] = await Promise.all([
+    count("attention"),
+    count("seguimiento"),
+    count("mine"),
+    count("ai"),
     prisma.conversation.aggregate({
       where: { ...base, unreadCount: { gt: 0 } },
       _sum: { unreadCount: true },
     }),
   ]);
-  return { pending, attention, mine, ai, unread: unread._sum.unreadCount ?? 0 };
+  return { attention, seguimiento, mine, ai, unread: unread._sum.unreadCount ?? 0 };
 };
+
+/** Cuántos chats le tocan a Dayana: el número del menú, la portada y los pendientes. */
+export const attentionCount = (): Promise<number> => prisma.conversation.count({ where: attentionWhere() });
 
 export type ChatMessageView = {
   id: string;
@@ -441,8 +465,8 @@ export const getChat = async (id: string) => {
       priorityAt: true,
       draftBody: true,
       draftSource: true,
-      resolvedAt: true,
-      resolvedReason: true,
+      attentionAt: true,
+      attentionReason: true,
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -506,12 +530,10 @@ export const getChat = async (id: string) => {
         ? { category: c.escalationCategory, severity: c.escalationSeverity, reason: c.escalationReason }
         : null,
     priority: Boolean(c.priorityAt),
-    /** Pendiente hasta «Marcar como atendido» (o una cita / un pago); responder no lo resuelve. */
-    pending: isPending(c),
-    /** Último mensaje de la persona: «Marcar como atendido» solo cubre hasta aquí. */
+    /** «Te toca»: sale al contestar (CRM o celular) o con «Listo». */
+    attention: attentionView(c),
+    /** Último mensaje de la persona: «Listo» solo cubre hasta aquí. */
     lastInboundAt: c.lastInboundAt?.toISOString() ?? null,
-    resolvedAt: c.resolvedAt?.toISOString() ?? null,
-    resolvedReason: c.resolvedReason,
     draft: c.draftBody ? { body: c.draftBody, source: c.draftSource } : null,
     messages: [...c.messages.slice(0, CHAT_PAGE)].reverse().map(toMessageView),
     /** Hay mensajes más antiguos que los que se ven (botón «Cargar anteriores»). */

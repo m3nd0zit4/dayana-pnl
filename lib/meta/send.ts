@@ -9,7 +9,8 @@ import { Conversation, Prisma } from "@prisma/client";
 // has no such dependency.
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
-import { sendClearsUnread } from "@/lib/crm/whatsapp-pending-rules";
+import { isHumanSend } from "@/lib/crm/whatsapp-attention-rules";
+import { noteHumanReply } from "@/lib/crm/whatsapp-agent/attention";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
 import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { attachPendingStatuses } from "./status";
@@ -565,10 +566,11 @@ export const sendMetaMessage = async (
   }
 
   if (!failedReason) {
-    // Solo una persona contestando desde el CRM deja el chat leído y consume
-    // el borrador. La IA, el saludo, los recordatorios y los masivos no
-    // significan que alguien vio el chat.
-    const human = sendClearsUnread(input);
+    // Solo una persona contestando desde el CRM (o aprobando una propuesta)
+    // deja el chat leído, consume el borrador y lo saca de «Te toca». La IA,
+    // el saludo, los recordatorios y los masivos no: nadie miró ese chat.
+    const human = isHumanSend(input);
+    const sentAt = new Date();
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: {
@@ -592,6 +594,11 @@ export const sendMetaMessage = async (
         where: { id: conversation.id, draftSource: "AI" },
         data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
       });
+    }
+    if (human && conversation.channel === "WHATSAPP") {
+      await noteHumanReply(conversation.id, sentAt, input.source === "approval" ? "approval" : "reply").catch(
+        (e: unknown) => console.warn("[meta] no se pudo cerrar «Te toca»", e)
+      );
     }
   }
 

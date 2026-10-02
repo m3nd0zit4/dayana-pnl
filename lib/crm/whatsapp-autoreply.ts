@@ -21,7 +21,8 @@ import type { SimilarExample } from "./whatsapp-learning";
  * 2. **Modo por chat** (`Conversation.aiMode`): `MANUAL` no escribe, `COPILOT`
  *    solo deja borradores.
  * 3. **Pausa por hilo** (`aiPausedAt`): la pone la IA al escalar y cualquier
- *    mensaje escrito por Dayana. Una escalada no se levanta sola.
+ *    mensaje escrito por Dayana. Una escalada no se levanta sola: espera a
+ *    que ella conteste o pulse «Listo» (y entonces pasa a pausa humana).
  * 4. **Tope por hilo y día.**
  */
 
@@ -41,8 +42,10 @@ export type PauseReason = "human" | "escalation";
  *
  * `human` (Dayana o el equipo escribieron) se renueva con cada mensaje suyo y
  * se levanta sola pasadas las horas de relevo. `escalation` (la IA pidió a una
- * persona) no se levanta sola: una crisis o un problema de pago no vuelve a
- * manos del robot por esperar.
+ * persona) no se levanta por esperar: una crisis o un problema de pago no
+ * vuelve a manos del robot solo. Cuando Dayana contesta o pulsa «Listo», la
+ * escalada pasa a `human` (`whatsapp-agent/attention.ts`) y desde ahí corre
+ * el relevo como con cualquier respuesta suya.
  */
 export const pauseAutoReply = async (
   conversationId: string,

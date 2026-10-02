@@ -3,7 +3,7 @@ import DashboardClient, {
 } from "@/app/components/admin/crm/DashboardClient";
 import { prisma } from "@/lib/db";
 import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
-import { isWhatsAppWorkspaceAvailable } from "@/lib/crm/whatsapp-agent/workspace";
+import { attentionCount, isWhatsAppWorkspaceAvailable } from "@/lib/crm/whatsapp-agent/workspace";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
 import {
@@ -23,9 +23,8 @@ const whatsAppSummary = async (): Promise<WhatsAppHomeSummary | null> => {
         where: { channel: "WHATSAPP", status: { not: "CLOSED" } },
         _sum: { unreadCount: true },
       }),
-      prisma.conversation.count({
-        where: { channel: "WHATSAPP", aiPausedReason: "escalation" },
-      }),
+      // «Te toca»: el mismo número que la pestaña y el menú de WhatsApp.
+      attentionCount(),
       isWhatsAppAutoReplyEnabled(),
     ]);
     return { unread: unread._sum.unreadCount ?? 0, handedOff, aiEnabled };

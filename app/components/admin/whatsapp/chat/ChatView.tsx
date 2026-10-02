@@ -80,12 +80,10 @@ const ChatView = ({
     code === "window_closed"
       ? WINDOW_CLOSED_TEXT
       : code === "general_mode"
-        ? "El modo general (Ajustes) está en Copiloto o Manual: ningún chat puede responder solo. Cámbialo allí si quieres la IA."
+        ? "El modo de todos los chats está en Copiloto o Yo: ningún chat puede responder solo. Cámbialo arriba, en la lista de chats, si quieres la IA."
         : code === "new_message"
-          ? "Escribió algo nuevo: léelo antes de marcarlo como atendido."
-          : code === "no_inbound"
-            ? "Esta persona nunca ha escrito: no hay nada pendiente."
-            : `No se pudo: ${code}`;
+          ? "Escribió algo nuevo: léelo antes de darlo por listo."
+          : `No se pudo: ${code}`;
 
   const act = async (key: string, body: Record<string, unknown>, done?: string) => {
     setBusy(key);

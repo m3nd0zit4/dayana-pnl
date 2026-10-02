@@ -8,37 +8,60 @@ import { deliveryLabel, failedLabel } from "@/lib/crm/whatsapp-delivery-labels";
 
 /** Lo que cada estado de la IA significa, dicho para Dayana. */
 
+/** Por qué le toca a Dayana: la categoría de la escalada o «sin responder». */
 export const CATEGORY_LABEL: Record<string, string> = {
+  unanswered: "Sin responder",
   payment: "Pago",
   unknown: "No sabe qué responder",
   complaint: "Queja",
   clinical: "Tema delicado",
   reschedule: "Cambio de cita",
   booking: "Quiere agendar",
-  // No «Pendiente»: esa palabra ahora es la cola de chats sin atender.
   other: "Revisar",
   error: "Falló la IA",
 };
 
+/** «Te toca · Pago» / «Urgente · Tema delicado». */
+export const attentionLabel = (a: { reason: string; urgent: boolean }) =>
+  `${a.urgent ? "Urgente" : "Te toca"} · ${CATEGORY_LABEL[a.reason] ?? "Revisar"}`;
+
+/** Lo que espera la autorización de Dayana, dicho como acción. */
+export const APPROVAL_LABEL: Record<string, string> = {
+  booking: "Autoriza la cita",
+  payment_link: "Autoriza el enlace de pago",
+  payment_received: "Confirma el pago",
+  slots: "Aprueba los horarios",
+  reply: "Borrador por aprobar",
+};
+
 export const SKIP_LABEL: Record<string, string> = {
   disabled: "IA apagada",
-  manual: "Lo atiendes tú",
+  manual: "Modo Yo: la IA no escribe",
   favorite: "Favorito: la IA no lo toca",
   paused: "IA en pausa",
   owner_hours: "Tu horario: contestas tú",
   assigned: "Asignado a alguien del equipo",
   no_inbound: "Nada nuevo que contestar",
-  human_replied: "Contestaste tú hace poco",
+  human_replied: "Contestaste hace poco",
+  replied_meanwhile: "Contestaste mientras la IA esperaba",
+  trivial: "No hacía falta responder",
   known_contact: "Está en tu libreta (familia o amigos)",
   customer: "Es clienta: la atiendes tú",
   no_model_key: "Falta la clave del modelo",
   not_found: "Chat no encontrado",
 };
 
+/** El nombre corto de cada modo: «Yo» es Dayana, en todas partes. */
+export const MODE_SHORT = {
+  AUTO: "IA",
+  COPILOT: "Copiloto",
+  MANUAL: "Yo",
+} as const;
+
 export const MODE_LABEL = {
-  AUTO: "IA responde sola",
-  COPILOT: "IA sugiere, tú envías",
-  MANUAL: "Lo atiendes tú",
+  AUTO: "IA: responde sola",
+  COPILOT: "Copiloto: la IA sugiere, tú envías",
+  MANUAL: "Yo: la IA no escribe",
 } as const;
 
 /** Reloj que avanza cada segundo mientras algo está en curso. */

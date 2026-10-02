@@ -90,7 +90,7 @@ const AiMasterBar = ({
           options={[
             { id: "AUTO", label: "IA", icon: Bot, hint: MODE_HINT.AUTO },
             { id: "COPILOT", label: "Copiloto", icon: PenLine, hint: MODE_HINT.COPILOT },
-            { id: "MANUAL", label: "Manual", icon: Hand, hint: MODE_HINT.MANUAL },
+            { id: "MANUAL", label: "Yo", icon: Hand, hint: MODE_HINT.MANUAL },
           ]}
         />
       </div>

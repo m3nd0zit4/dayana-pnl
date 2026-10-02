@@ -1,6 +1,7 @@
 import { Prisma, type ConversationChannel } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { isPending } from "@/lib/crm/whatsapp-pending-rules";
+import { isPending } from "@/lib/crm/whatsapp-attention-rules";
+import { noteHumanReply } from "@/lib/crm/whatsapp-agent/attention";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { resolvePageCredentials } from "./credentials";
@@ -256,9 +257,9 @@ export const ingestMessage = async (
       });
 
     // Dayana contestó desde el celular: lo que la persona escribió hasta ese
-    // momento ya lo leyó allí (sigue pendiente: responder no es resolver). Los
-    // avisos pueden llegar en desorden: un eco más viejo que el último mensaje
-    // de la persona no borra un no leído que ella todavía no vio.
+    // momento ya lo leyó allí. Los avisos pueden llegar en desorden: un eco más
+    // viejo que el último mensaje de la persona no borra un no leído que ella
+    // todavía no vio.
     if (!message.isHistory && message.isEcho && !message.system) {
       await tx.conversation.updateMany({
         where: {
@@ -461,6 +462,11 @@ export const processNormalizedEvent = async (
     event.isEcho &&
     event.channel === "WHATSAPP"
   ) {
+    // Contestó: sale de «Te toca» (si le tocaba desde antes de este mensaje;
+    // un eco viejo que llega tarde no cierra lo que vino después).
+    await noteHumanReply(result.conversationId, event.sentAt, "reply").catch((e: unknown) =>
+      console.warn("[meta] no se pudo cerrar «Te toca»", e)
+    );
     const { pauseAutoReply } = await import("@/lib/crm/whatsapp-autoreply");
     await pauseAutoReply(result.conversationId).catch(() => undefined);
     // Lo que la IA había propuesto ya no es la respuesta: Dayana contestó.

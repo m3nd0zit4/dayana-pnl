@@ -37,11 +37,12 @@ const pushedByUs = () => Boolean((window.history.state as { waChat?: string } | 
 const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId: string | null }) => {
   const { canWrite, toast } = useCrm();
   const { toggleSidebar } = useSidebar();
-  // Se abre en «Pendientes»: lo que alguien escribió y nadie ha dado por atendido.
-  const [queue, setQueue] = useState<ChatQueue>("pending");
+  // Se abre en «Te toca»: solo lo que de verdad necesita que ella conteste.
+  const [queue, setQueue] = useState<ChatQueue>("attention");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ChatListItem[] | null>(null);
-  const [counts, setCounts] = useState<Counts>({ pending: 0, attention: 0, mine: 0, ai: 0, unread: 0 });
+  const [counts, setCounts] = useState<Counts>({ attention: 0, seguimiento: 0, mine: 0, ai: 0, unread: 0 });
+  const [generalMode, setGeneralMode] = useState<ChatListItem["aiMode"] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialConversationId);
   const [chat, setChat] = useState<ChatDetail | null>(null);
   const queueRef = useRef(queue);
@@ -61,9 +62,14 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     try {
       const res = await fetch(`/api/admin/whatsapp/chats?${params}`, { cache: "no-store" });
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as { items: ChatListItem[]; counts: Counts };
+      const data = (await res.json()) as {
+        items: ChatListItem[];
+        counts: Counts;
+        generalMode: ChatListItem["aiMode"];
+      };
       setItems(data.items);
       setCounts(data.counts);
+      setGeneralMode(data.generalMode);
     } catch {
       toast("No se pudo cargar la lista de chats.", "error");
     }
@@ -137,7 +143,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
   });
 
   // Mientras la IA trabaja en algún chat, el reloj de la lista avanza; y cada
-  // minuto, para que «Sin responder · hace 5 min» no se quede quieto.
+  // minuto, para que «Te toca · hace 5 min» no se quede quieto.
   const anyLive = useMemo(() => (items ?? []).some((i) => isRunLive(i.lastRun)), [items]);
   useNow(anyLive);
   const now = useNow(true, 60_000);
@@ -160,6 +166,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
         counts={counts}
         queue={queue}
         q={q}
+        generalMode={generalMode}
         selectedId={selectedId}
         canLoadMore={Boolean(items && items.length >= listTake)}
         hidden={Boolean(selectedId)}
@@ -187,9 +194,9 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
               </span>
               <h2 className="text-2xl font-light text-(--wa-heading)">WhatsApp de Dayana</h2>
               <p className="text-sm text-(--wa-meta)">
-                Elige un chat. En «Pendientes» está lo que alguien escribió y nadie ha dado por atendido (contestar no
-                basta: márcalo como atendido). En «Te toca», lo que la IA te pasó. La ⭐ marca un chat como favorito: la
-                IA no lo toca.
+                Elige un chat. En «Te toca» está lo que necesita que contestes: sale en cuanto respondes (aquí o desde
+                el celular) o pulsas «Listo». En «Seguimiento», quien escribió y no ha agendado ni pagado. La ⭐ marca
+                un chat como favorito: la IA no lo toca.
               </p>
             </div>
           </div>

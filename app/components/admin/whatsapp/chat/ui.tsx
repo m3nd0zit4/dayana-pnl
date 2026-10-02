@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { highlightParts } from "@/lib/crm/whatsapp-chat-format";
 import type { ChatListItem } from "@/lib/crm/whatsapp-agent/workspace";
+import { MODE_SHORT } from "../status";
 import { wa } from "./chatTheme";
 import { initials, linkKind } from "./utils";
 
@@ -80,19 +81,22 @@ export const Avatar = ({ name, size = 49 }: { name: string; size?: number }) => 
   </span>
 );
 
-/** Etiqueta pequeña de quién atiende el chat, como las etiquetas de WhatsApp Business. */
-export const HandlerTag = ({ item }: { item: Pick<ChatListItem, "aiMode" | "paused" | "priority"> }) => {
-  const [label, cls] = item.priority
-    ? ["⭐ Favorito", "bg-(--wa-panel) text-(--wa-text)"]
-    : item.aiMode === "MANUAL"
-      ? ["Tú", "bg-(--wa-blue-soft) text-(--wa-blue)"]
-      : item.aiMode === "COPILOT"
-        ? ["Copiloto", "bg-(--wa-violet-soft) text-(--wa-violet)"]
-        : item.paused
-          ? ["IA en pausa", "bg-(--wa-panel) text-(--wa-icon)"]
-          : ["IA", "bg-(--wa-green-soft) text-(--wa-green-ink)"];
-  return <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", cls)}>{label}</span>;
+const MODE_TAG: Record<ChatListItem["aiMode"], string> = {
+  MANUAL: "bg-(--wa-blue-soft) text-(--wa-blue)",
+  COPILOT: "bg-(--wa-violet-soft) text-(--wa-violet)",
+  AUTO: "bg-(--wa-green-soft) text-(--wa-green-ink)",
 };
+
+/**
+ * Etiqueta del modo del chat, como las de WhatsApp Business. Solo cuando no es
+ * el modo general: si todos están en IA, decir «IA» en cada fila es ruido.
+ */
+export const ModeTag = ({ mode, generalMode }: { mode: ChatListItem["aiMode"]; generalMode: ChatListItem["aiMode"] | null }) =>
+  generalMode && mode !== generalMode ? (
+    <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold", MODE_TAG[mode])}>
+      {MODE_SHORT[mode]}
+    </span>
+  ) : null;
 
 /** Botón claro y visible, en la paleta de WhatsApp (40 px en el celular). */
 export const ActionButton = ({

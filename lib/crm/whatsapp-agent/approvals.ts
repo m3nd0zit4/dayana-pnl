@@ -7,6 +7,7 @@ import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
+import { markReadByEntity } from "@/lib/notifications/platform/feed";
 import { getSiteUrl } from "@/lib/site-url";
 import { getOperationalTimezone } from "../operational-timezone";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
@@ -28,6 +29,10 @@ import { resolveConversations } from "./pending";
  * Aceptar · Modificar · Cancelar. Si Dayana contesta ella misma (desde el CRM o
  * desde el celular), las propuestas pendientes de ese chat se retiran solas:
  * ya no son la respuesta a lo último que pasó.
+ *
+ * Mientras una propuesta espera, el chat está en «Te toca» (`./attention`):
+ * sale al aprobarla (el envío cuenta como respuesta suya), cancelarla, o al
+ * contestar ella o pulsar «Listo».
  */
 
 import { PAYMENT_PLACEHOLDER } from "./placeholders";
@@ -474,6 +479,18 @@ export const cancelProposal = async (input: {
     where: { id: run.id },
     data: { status: "CANCELLED", reason: "Dayana la canceló.", decidedAt: new Date(), decidedById: input.staffId },
   });
+  // Sin nada más por autorizar, el aviso «autoriza…» ya está decidido. Una
+  // escalada del mismo chat (p. ej. «dice que pagó») sigue en «Te toca»
+  // hasta que ella conteste o pulse «Listo»: cancelar la respuesta de la IA
+  // no es atender a la persona.
+  const left = await prisma.whatsAppAiRun.count({ where: { conversationId: input.conversationId, status: PENDING } });
+  if (left === 0) {
+    await markReadByEntity({
+      entityType: "Conversation",
+      entityId: input.conversationId,
+      eventTypes: ["WHATSAPP_AI_APPROVAL"],
+    }).catch(() => 0);
+  }
 };
 
 /**

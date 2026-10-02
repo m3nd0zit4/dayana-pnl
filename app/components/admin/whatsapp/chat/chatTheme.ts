@@ -45,9 +45,9 @@ const LIGHT = [
   "[--wa-read:#53bdeb]",
   "[--wa-unread:#25d366]",
   "[--wa-star:#f5b400]",
-  // Pendiente: alguien escribió y nadie lo dio por atendido.
-  "[--wa-pending:#b45309]",
-  "[--wa-pending-soft:#fff7e6]",
+  // «Te toca»: este chat necesita a Dayana.
+  "[--wa-attention:#b45309]",
+  "[--wa-attention-soft:#fff7e6]",
   "[--wa-danger:#d92d20]",
   "[--wa-danger-ink:#b42318]",
   "[--wa-danger-border:#f3b9b4]",
@@ -87,8 +87,8 @@ const DARK = [
   "dark:[--wa-read:#53bdeb]",
   "dark:[--wa-unread:#00a884]",
   "dark:[--wa-star:#f5b400]",
-  "dark:[--wa-pending:#f5b400]",
-  "dark:[--wa-pending-soft:#33290f]",
+  "dark:[--wa-attention:#f5b400]",
+  "dark:[--wa-attention-soft:#33290f]",
   "dark:[--wa-danger:#f15c6d]",
   "dark:[--wa-danger-ink:#f58b97]",
   "dark:[--wa-danger-border:#7a2a33]",

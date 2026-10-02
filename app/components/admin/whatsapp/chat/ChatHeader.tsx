@@ -7,30 +7,45 @@ import {
   ChevronDown,
   ChevronUp,
   Hand,
+  MoreVertical,
   PanelLeft,
   PanelRight,
-  RotateCcw,
   Search,
   ShieldAlert,
   Star,
+  UserRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
-import { resolvedLabel } from "@/lib/crm/whatsapp-pending-rules";
-import { CATEGORY_LABEL, MODE_LABEL, RunStatus, agoLabel, isRunLive } from "../status";
+import { APPROVAL_LABEL, MODE_LABEL, MODE_SHORT, RunStatus, agoLabel, attentionLabel, isRunLive } from "../status";
 import { wa } from "./chatTheme";
 import { ActionButton, Avatar } from "./ui";
 
 type Act = (key: string, body: Record<string, unknown>, done?: string) => unknown;
 
+const MODES = ["AUTO", "COPILOT", "MANUAL"] as const;
+/** Opciones del menú cómodas con el dedo. */
+const ITEM = "min-h-10 gap-2 px-2.5 text-sm";
+
 /**
- * Pendiente o atendido. Responder no saca el chat de pendientes (Dayana
- * contesta mucho desde el celular y eso no cierra el asunto): esto sí.
+ * «Te toca» (o algo por autorizar): por qué, y UNA acción, «Listo». Contestar
+ * también lo saca de aquí; «Listo» es para lo que se resolvió por otro lado.
  */
-const PendingBar = ({
+const AttentionBar = ({
   chat,
   canWrite,
   busy,
@@ -43,79 +58,126 @@ const PendingBar = ({
   act: Act;
   now: number;
 }) => {
-  if (!chat.lastInboundAt) return null;
-  if (chat.pending) {
-    return (
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-(--wa-divider) bg-(--wa-pending-soft) px-3 py-1.5 sm:px-4">
-        <span className="size-2.5 shrink-0 rounded-full bg-(--wa-pending)" aria-hidden />
-        <span className="min-w-0 flex-1 text-sm text-(--wa-text)">
-          <strong className="font-medium">Pendiente</strong>
-          <span className="text-(--wa-icon)"> · escribió {agoLabel(chat.lastInboundAt, now)}</span>
-        </span>
-        <span className="ml-auto">
-          <ActionButton
-            tone="primary"
-            disabled={!canWrite || busy !== null}
-            title="Sale de «Pendientes» hasta que vuelva a escribir"
-            onClick={() =>
-              act("resolve", { action: "resolve", seenInboundAt: chat.lastInboundAt }, "Atendido: sale de Pendientes")
-            }
-          >
-            <CheckCheck /> Marcar como atendido
-          </ActionButton>
-        </span>
-      </div>
-    );
-  }
+  const a = chat.attention;
+  const approval = chat.approvals[0]?.proposal.kind ?? null;
+  if (!a && !approval) return null;
+  const urgent = Boolean(a?.urgent);
+  const title = a ? attentionLabel(a) : (APPROVAL_LABEL[approval ?? "reply"] ?? APPROVAL_LABEL.reply);
+  // Con una propuesta abajo, el motivo ya lo dice ella: aquí solo desde cuándo.
+  const detail = a
+    ? [approval ? null : a.detail, a.reason === "unanswered" ? `escribió ${agoLabel(a.since, now)}` : agoLabel(a.since, now)]
+        .filter(Boolean)
+        .join(" · ")
+    : "Acéptalo o cancélalo abajo, o contéstale tú.";
   return (
-    <div className="flex items-center gap-2 border-b border-(--wa-divider) bg-(--wa-surface) px-3 py-0.5 sm:px-4">
-      <CheckCheck className="size-4 shrink-0 text-(--wa-accent)" aria-hidden />
-      <span className="min-w-0 flex-1 truncate text-xs text-(--wa-meta)">Atendido · {resolvedLabel(chat.resolvedReason)}</span>
-      <button
-        type="button"
+    <div
+      className={cn(
+        "flex items-center gap-2 border-b border-(--wa-divider) px-3 py-2 sm:px-4",
+        urgent ? "bg-(--wa-danger-soft)" : "bg-(--wa-attention-soft)"
+      )}
+    >
+      <ShieldAlert className={cn("size-5 shrink-0", urgent ? "text-(--wa-danger)" : "text-(--wa-attention)")} />
+      <div className="min-w-0 flex-1 leading-snug">
+        <div className="truncate text-sm font-medium text-(--wa-text)">{title}</div>
+        <div className="line-clamp-2 text-xs text-(--wa-icon)">{detail}</div>
+      </div>
+      <ActionButton
+        tone="primary"
         disabled={!canWrite || busy !== null}
-        onClick={() => act("reopen", { action: "reopen" }, "Volvió a Pendientes")}
-        className="h-10 shrink-0 rounded-full px-3 text-xs font-medium text-(--wa-accent) hover:bg-(--wa-text)/5 disabled:opacity-50 md:h-8"
+        title="Sale de «Te toca» (no cambia quién responde). Contestar también lo saca."
+        onClick={() =>
+          act("resolve", { action: "resolve", seenInboundAt: chat.lastInboundAt }, "Listo: salió de «Te toca»")
+        }
       >
-        Volver a pendiente
-      </button>
+        <CheckCheck /> Listo
+      </ActionButton>
     </div>
   );
 };
 
-const ModeSwitch = ({
-  mode,
-  disabled,
-  onChange,
+/** Lo que no se usa a diario: modo, tomar/devolver, favorito, la ficha, lo que sabe la IA. */
+const ChatMenu = ({
+  chat,
+  canWrite,
+  busy,
+  act,
+  onToggleInfo,
 }: {
-  mode: ChatDetail["aiMode"];
-  disabled: boolean;
-  onChange: (mode: ChatDetail["aiMode"]) => void;
-}) => (
-  <div
-    className="inline-flex h-11 items-center rounded-full border border-(--wa-border) bg-(--wa-surface) p-0.5 md:h-9"
-    role="radiogroup"
-    aria-label="Quién responde"
-  >
-    {(["AUTO", "COPILOT", "MANUAL"] as const).map((m) => (
-      <button
-        key={m}
-        type="button"
-        role="radio"
-        aria-checked={mode === m}
-        disabled={disabled}
-        onClick={() => onChange(m)}
-        title={MODE_LABEL[m]}
-        className={cn(
-          "h-10 rounded-full px-3 text-sm font-medium transition-colors md:h-8",
-          mode === m ? "bg-(--wa-green) text-white" : "text-(--wa-icon) hover:text-(--wa-text)"
+  chat: ChatDetail;
+  canWrite: boolean;
+  busy: string | null;
+  act: Act;
+  onToggleInfo: () => void;
+}) => {
+  const mine = chat.aiMode === "MANUAL" || chat.priority;
+  const disabled = !canWrite || busy !== null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className={wa.iconButton} aria-label="Más opciones del chat" title="Más opciones">
+        <MoreVertical className="size-5" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Quién responde aquí</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={chat.aiMode}
+            onValueChange={(mode) =>
+              act("mode", { action: "mode", mode }, MODE_LABEL[mode as (typeof MODES)[number]])
+            }
+          >
+            {MODES.map((m) => (
+              <DropdownMenuRadioItem key={m} value={m} disabled={disabled} className={ITEM}>
+                <span>
+                  <span className="font-medium">{MODE_SHORT[m]}</span>
+                  <span className="text-muted-foreground"> · {MODE_LABEL[m].split(": ")[1]}</span>
+                </span>
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        {mine ? (
+          <DropdownMenuItem
+            className={ITEM}
+            disabled={disabled}
+            onClick={() => act("release", { action: "release" }, "La IA vuelve a atender este chat")}
+          >
+            <Bot /> Devolver a la IA
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            className={ITEM}
+            disabled={disabled}
+            onClick={() => act("take", { action: "take" }, "Modo Yo: la IA no escribe aquí")}
+          >
+            <Hand /> Tomar chat
+          </DropdownMenuItem>
         )}
-      >
-        {m === "AUTO" ? "IA" : m === "COPILOT" ? "Copiloto" : "Yo"}
-      </button>
-    ))}
-  </div>
-);
+        <DropdownMenuItem
+          className={ITEM}
+          disabled={disabled}
+          onClick={() =>
+            act(
+              "priority",
+              { action: "priority", on: !chat.priority },
+              chat.priority ? "Ya no es favorito" : "Favorito: la IA no toca este chat"
+            )
+          }
+        >
+          <Star /> {chat.priority ? "Quitar de favoritos" : "Marcar como favorito"}
+        </DropdownMenuItem>
+        <DropdownMenuItem className={ITEM} onClick={onToggleInfo}>
+          <PanelRight /> Lo que sabe la IA
+        </DropdownMenuItem>
+        {chat.contactId && (
+          <DropdownMenuItem className={ITEM} render={<Link href={`/admin/contacts/${chat.contactId}`} />}>
+            <UserRound /> Ver ficha
+          </DropdownMenuItem>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 /** Buscar dentro del chat: resalta y salta entre coincidencias. */
 export const ChatSearchBar = ({
@@ -168,7 +230,10 @@ export const ChatSearchBar = ({
   );
 };
 
-/** Cabecera del chat (como la de WhatsApp Web) y la línea de lo que hace la IA. */
+/**
+ * Cabecera del chat (como la de WhatsApp): nombre, buscar y «⋯». Debajo, una
+ * sola barra: «Te toca» con «Listo» si le toca, o lo que hace la IA si no.
+ */
 const ChatHeader = ({
   chat,
   canWrite,
@@ -195,12 +260,12 @@ const ChatHeader = ({
   searchOpen: boolean;
   onToggleSearch: () => void;
 }) => {
-  const mine = chat.aiMode === "MANUAL" || chat.priority;
   const lastRun = chat.runs[0] ?? null;
   const live = isRunLive(lastRun);
+  const needsYou = Boolean(chat.attention || chat.approvals.length > 0);
   return (
     <>
-      <div className="flex min-h-[60px] flex-wrap items-center gap-x-1 gap-y-1.5 border-l border-(--wa-border) bg-(--wa-panel) px-1 py-2 sm:px-3 md:gap-x-2">
+      <div className="flex h-[60px] items-center gap-1 border-l border-(--wa-border) bg-(--wa-panel) px-1 sm:px-3 md:gap-2">
         <button type="button" className={cn(wa.iconButton, "md:hidden")} onClick={onBack} aria-label="Volver">
           <ArrowLeft className="size-5" />
         </button>
@@ -215,14 +280,12 @@ const ChatHeader = ({
         </button>
         <Avatar name={chat.name} size={40} />
         <div className="min-w-0 flex-1 pl-1">
-          <div className="truncate text-base text-(--wa-text)">{chat.name}</div>
-          <div className="flex min-w-0 items-center gap-2 text-xs text-(--wa-meta)">
-            <span className="truncate">{/^\d+$/.test(chat.phone) ? `+${chat.phone}` : "Escribe con usuario (sin número visible)"}</span>
-            {chat.contactId && (
-              <Link href={`/admin/contacts/${chat.contactId}`} className="shrink-0 font-medium text-(--wa-accent) hover:underline">
-                Ver ficha
-              </Link>
-            )}
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="truncate text-base text-(--wa-text)">{chat.name}</span>
+            {chat.priority && <Star className="size-3.5 shrink-0 fill-(--wa-star) text-(--wa-star)" aria-label="Favorito" />}
+          </div>
+          <div className="truncate text-xs text-(--wa-meta)">
+            {/^\d+$/.test(chat.phone) ? `+${chat.phone}` : "Escribe con usuario (sin número visible)"}
           </div>
         </div>
         <button
@@ -237,75 +300,19 @@ const ChatHeader = ({
         </button>
         <button
           type="button"
-          onClick={() =>
-            act("priority", { action: "priority", on: !chat.priority }, chat.priority ? "Ya no es favorito" : "Favorito: la IA no toca este chat")
-          }
-          disabled={!canWrite}
-          title={chat.priority ? "Quitar de favoritos" : "Favorito: la IA no lo toca"}
-          aria-label={chat.priority ? "Quitar de favoritos" : "Marcar como favorito"}
-          className={wa.iconButton}
-        >
-          <Star className={cn("size-5", chat.priority && "fill-(--wa-star) text-(--wa-star)")} />
-        </button>
-        <button
-          type="button"
           onClick={onToggleInfo}
           title="Lo que sabe la IA de este chat"
           aria-label="Lo que sabe la IA de este chat"
           aria-pressed={showInfo}
-          className={cn(wa.iconButton, showInfo && "bg-(--wa-text)/5")}
+          className={cn(wa.iconButton, "hidden md:grid", showInfo && "bg-(--wa-text)/5")}
         >
           <PanelRight className="size-5" />
         </button>
-        {/* Hasta pantallas muy anchas van en su propia fila: el nombre no se corta. */}
-        <div className="order-last flex w-full items-center justify-between gap-2 px-1 2xl:order-none 2xl:w-auto 2xl:justify-start 2xl:px-0">
-          <ModeSwitch
-            mode={chat.aiMode}
-            disabled={!canWrite || busy !== null}
-            onChange={(mode) => act("mode", { action: "mode", mode }, MODE_LABEL[mode])}
-          />
-          {mine ? (
-            <ActionButton
-              tone="outline"
-              disabled={!canWrite || busy !== null}
-              onClick={() => act("release", { action: "release" }, "La IA vuelve a atender este chat")}
-            >
-              <Bot /> <span className="hidden sm:inline">Devolver a la IA</span>
-              <span className="sm:hidden">A la IA</span>
-            </ActionButton>
-          ) : (
-            <ActionButton
-              tone="primary"
-              disabled={!canWrite || busy !== null}
-              onClick={() => act("take", { action: "take" }, "Chat tuyo: la IA no escribe aquí")}
-            >
-              <Hand /> Tomar chat
-            </ActionButton>
-          )}
-        </div>
+        <ChatMenu chat={chat} canWrite={canWrite} busy={busy} act={act} onToggleInfo={onToggleInfo} />
       </div>
 
-      {/* Qué está haciendo la IA aquí */}
-      {chat.escalation ? (
-        <div className="flex flex-wrap items-center gap-2 border-b border-(--wa-divider) bg-(--wa-surface) px-4 py-2.5 text-sm">
-          <ShieldAlert
-            className={cn("size-5 shrink-0", chat.escalation.severity === "urgent" ? "text-(--wa-danger)" : "text-(--wa-accent)")}
-          />
-          <span className="min-w-0 flex-1 text-(--wa-text)">
-            <strong>
-              {chat.escalation.severity === "urgent" ? "Urgente — " : "Te toca — "}
-              {CATEGORY_LABEL[chat.escalation.category ?? ""] ?? "revisar"}.
-            </strong>{" "}
-            <span className="text-(--wa-icon)">{chat.escalation.reason}</span>
-          </span>
-          <ActionButton
-            tone="primary"
-            disabled={!canWrite || busy !== null}
-            onClick={() => act("resume", { action: "resume" }, "La IA vuelve a responder aquí")}
-          >
-            <RotateCcw /> Listo, que siga la IA
-          </ActionButton>
-        </div>
+      {needsYou ? (
+        <AttentionBar chat={chat} canWrite={canWrite} busy={busy} act={act} now={now} />
       ) : (
         <div className="flex min-w-0 items-center gap-2 border-b border-(--wa-divider) bg-(--wa-surface) px-4 py-1.5">
           {lastRun ? (
@@ -314,13 +321,11 @@ const ChatHeader = ({
             <span className="text-xs text-(--wa-meta)">La IA aún no ha mirado este chat.</span>
           )}
           <span className="ml-auto shrink-0 text-xs text-(--wa-meta)">
-            {chat.priority ? "Favorito: la IA no lo toca" : MODE_LABEL[chat.aiMode]}
+            {chat.priority ? "Favorito: la IA no lo toca" : `Modo ${MODE_SHORT[chat.aiMode]}`}
             {chat.paused && !chat.priority ? " · en pausa" : ""}
           </span>
         </div>
       )}
-
-      <PendingBar chat={chat} canWrite={canWrite} busy={busy} act={act} now={now} />
     </>
   );
 };

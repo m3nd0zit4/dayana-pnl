@@ -1,59 +1,91 @@
 "use client";
 
-import { CheckCheck, ShieldAlert, Star } from "lucide-react";
+import { ShieldAlert, Smartphone, Star } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { deliveryLabel } from "@/lib/crm/whatsapp-delivery-labels";
 import type { ChatListItem } from "@/lib/crm/whatsapp-agent/workspace";
-import { resolvedLabel } from "@/lib/crm/whatsapp-pending-rules";
-import { CATEGORY_LABEL, RunStatus, agoLabel, isRunLive } from "../status";
-import { Avatar, HandlerTag, Ticks } from "./ui";
+import { APPROVAL_LABEL, RunStatus, agoLabel, attentionLabel, isRunLive } from "../status";
+import { Avatar, ModeTag, Ticks } from "./ui";
 import { timeLabel } from "./utils";
 
-const REPLY_LABEL: Record<NonNullable<ChatListItem["replyState"]>, string> = {
-  unanswered: "Sin responder",
+/** Quién contestó lo último (cuando no hay nada más importante que decir). */
+const REPLY_LABEL: Partial<Record<NonNullable<ChatListItem["replyState"]>, string>> = {
   you: "Respondiste",
   you_phone: "Respondiste desde el celular",
-  ai: "Respondió la IA",
-  auto: "Mensaje automático enviado",
+  ai: "La IA respondió",
+  auto: "Mensaje automático",
 };
 
-/** Pendiente: quién contestó lo último (responder no lo saca de pendientes). */
-const PendingLine = ({ item, now }: { item: ChatListItem; now: number }) => {
-  const unanswered = item.replyState === "unanswered" || item.replyState === null;
+/**
+ * La tercera línea de la fila: UN estado, el más importante. Autorizar algo →
+ * «Te toca» → no le llegó → la IA trabajando → quién contestó → nada.
+ */
+const stateLine = (item: ChatListItem, now: number): ReactNode => {
+  if (item.awaitingApproval) {
+    return (
+      <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium text-(--wa-violet)">
+        <ShieldAlert className="size-3.5 shrink-0" />
+        <span className="truncate">{APPROVAL_LABEL[item.awaitingApproval] ?? APPROVAL_LABEL.reply}</span>
+      </span>
+    );
+  }
+  if (item.attention) {
+    return (
+      <span
+        className={cn(
+          "inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium",
+          item.attention.urgent ? "text-(--wa-danger)" : "text-(--wa-attention)"
+        )}
+      >
+        <ShieldAlert className="size-3.5 shrink-0" />
+        <span className="truncate">
+          {attentionLabel(item.attention)} · {agoLabel(item.attention.since, now)}
+        </span>
+      </span>
+    );
+  }
+  if (item.lastDirection === "OUTBOUND" && item.lastStatus === "FAILED") {
+    return (
+      <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-(--wa-danger)">
+        <Ticks status="FAILED" />
+        <span className="truncate">{deliveryLabel("FAILED", item.lastFailedReason).label}</span>
+      </span>
+    );
+  }
+  if (isRunLive(item.lastRun)) return <RunStatus run={item.lastRun} compact className="min-w-0" />;
+  const reply = item.replyState ? REPLY_LABEL[item.replyState] : undefined;
+  if (!reply) return null;
   return (
-    <span
-      className={cn(
-        "min-w-0 flex-1 truncate text-xs",
-        unanswered ? "font-medium text-(--wa-pending)" : "text-(--wa-meta)"
-      )}
-    >
-      {REPLY_LABEL[item.replyState ?? "unanswered"]}
-      {unanswered && item.pendingSince ? ` · ${agoLabel(item.pendingSince, now)}` : ""}
+    <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-(--wa-meta)">
+      {item.replyState === "you_phone" && <Smartphone className="size-3.5 shrink-0" />}
+      <span className="truncate">{reply}</span>
     </span>
   );
 };
 
-/** Una fila de la lista de chats, como en WhatsApp Web. `now`: el reloj de la lista. */
+/**
+ * Una fila de la lista de chats, como en WhatsApp: nombre y hora; el último
+ * mensaje (o el borrador); y, si hay algo que decir, un solo estado. El modo
+ * solo se marca si no es el general. `now`: el reloj de la lista.
+ */
 const ChatRow = ({
   item,
   active,
   now,
+  generalMode,
   onOpen,
 }: {
   item: ChatListItem;
   active: boolean;
   now: number;
+  generalMode: ChatListItem["aiMode"] | null;
   onOpen: () => void;
 }) => {
-  const urgent = item.escalation?.severity === "urgent";
   const unread = item.unreadCount > 0;
-  const live = isRunLive(item.lastRun);
-  const failed = item.lastDirection === "OUTBOUND" && item.lastStatus === "FAILED";
-  // Atendido por una cita o un pago: vale la pena decirlo (a mano, no).
-  const resolvedBy =
-    !item.pending && (item.resolvedReason === "appointment" || item.resolvedReason === "payment")
-      ? resolvedLabel(item.resolvedReason)
-      : null;
+  const state = stateLine(item, now);
+  const tag = <ModeTag mode={item.aiMode} generalMode={generalMode} />;
+  const showMode = Boolean(generalMode && item.aiMode !== generalMode);
   return (
     <button
       type="button"
@@ -66,10 +98,9 @@ const ChatRow = ({
       <Avatar name={item.name} />
       <div className="min-w-0 flex-1 border-b border-(--wa-divider) py-3">
         <div className="flex items-center gap-2">
-          {item.pending && (
-            <span role="img" aria-label="Pendiente" title="Pendiente" className="size-2.5 shrink-0 rounded-full bg-(--wa-pending)" />
-          )}
-          <span className="min-w-0 flex-1 truncate text-[15px] text-(--wa-text)">{item.name}</span>
+          <span className={cn("min-w-0 flex-1 truncate text-[15px] text-(--wa-text)", unread && "font-medium")}>
+            {item.name}
+          </span>
           <span className={cn("shrink-0 text-xs", unread ? "font-medium text-(--wa-unread)" : "text-(--wa-meta)")}>
             {timeLabel(item.lastMessageAt)}
           </span>
@@ -90,61 +121,21 @@ const ChatRow = ({
               </span>
             </>
           )}
-          {item.priority && <Star className="size-3.5 shrink-0 fill-(--wa-star) text-(--wa-star)" />}
+          {item.priority && (
+            <Star className="size-3.5 shrink-0 fill-(--wa-star) text-(--wa-star)" aria-label="Favorito" />
+          )}
           {unread && (
             <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-(--wa-unread) px-1.5 text-[11px] font-semibold text-white">
               {item.unreadCount}
             </span>
           )}
         </div>
-        <div className="mt-1 flex items-center gap-2">
-          {item.awaitingApproval ? (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-(--wa-violet)">
-              <ShieldAlert className="size-3.5" />
-              {item.awaitingApproval === "booking"
-                ? "Autoriza la cita"
-                : item.awaitingApproval === "payment_link"
-                  ? "Autoriza el enlace de pago"
-                  : item.awaitingApproval === "payment_received"
-                    ? "Confirma el pago"
-                    : "Borrador por aprobar"}
-            </span>
-          ) : item.escalation ? (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 text-xs font-medium",
-                urgent ? "text-(--wa-danger)" : "text-(--wa-accent)"
-              )}
-            >
-              <ShieldAlert className="size-3.5" />
-              {urgent ? "Urgente · " : "Te toca · "}
-              {CATEGORY_LABEL[item.escalation.category ?? ""] ?? "revisar"}
-            </span>
-          ) : !live && (failed || (item.lastDirection === "OUTBOUND" && !item.pending && !resolvedBy)) ? (
-            // Lo último fue nuestro: manda el estado de ESE mensaje (igual que en el chat).
-            // Un fallo se ve siempre, aunque el chat esté pendiente.
-            <span
-              className={cn(
-                "inline-flex min-w-0 flex-1 items-center gap-1 truncate text-xs",
-                failed ? "text-(--wa-danger)" : "text-(--wa-meta)"
-              )}
-            >
-              <Ticks status={item.lastStatus} />
-              <span className="truncate">{deliveryLabel(item.lastStatus, item.lastFailedReason).label}</span>
-            </span>
-          ) : item.pending && !live ? (
-            <PendingLine item={item} now={now} />
-          ) : resolvedBy && !live ? (
-            <span className="inline-flex min-w-0 flex-1 items-center gap-1 truncate text-xs text-(--wa-meta)">
-              <CheckCheck className="size-3.5 shrink-0" />
-              <span className="truncate">Atendido · {resolvedBy}</span>
-            </span>
-          ) : (
-            <RunStatus run={item.lastRun} compact className="min-w-0 flex-1" />
-          )}
-          <span className="ml-auto" />
-          <HandlerTag item={item} />
-        </div>
+        {(state || showMode) && (
+          <div className="mt-1 flex min-w-0 items-center gap-2">
+            <span className="flex min-w-0 flex-1">{state}</span>
+            {tag}
+          </div>
+        )}
       </div>
     </button>
   );

@@ -1213,6 +1213,18 @@ model Conversation {
   @@index([assignedStaffId, lastMessageAt(sort: Desc)])
   @@index([channel, lastInboundAt(sort: Desc)])
   @@map("conversations")
+
+  /// «Te toca»: desde cuándo este chat necesita a Dayana (el mensaje que lo
+  /// abrió). Nulo = no le toca. Lo abren una escalada de la IA o un mensaje que
+  /// importa y que nadie va a contestar; lo cierra su respuesta (CRM o
+  /// celular), «Listo», una cita o un pago. Ver `whatsapp-agent/attention.ts`.
+  attentionAt      DateTime? @map("attention_at")
+  /// unanswered | payment | booking | clinical | unknown | complaint | reschedule | other | error
+  attentionReason  String?   @map("attention_reason")
+  /// Última respuesta de una persona (CRM, propuesta aprobada o eco del celular).
+  lastHumanReplyAt DateTime? @map("last_human_reply_at")
+
+  @@index([channel, attentionAt])
 }
 
 model ConversationMessage {

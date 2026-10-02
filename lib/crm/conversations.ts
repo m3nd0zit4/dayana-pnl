@@ -359,6 +359,8 @@ export const replyToConversation = async (input: ReplyInput) => {
   // Entró una persona: la IA no vuelve a escribir en este hilo. Escribir
   // encima de una respuesta humana es la peor forma de automatizar. En modo
   // copiloto no: ahí Dayana envía los borradores de la IA y la IA sigue.
+  // (El envío ya sacó el chat de «Te toca» y, si estaba escalado, lo dejó en
+  // pausa humana: `sendMetaMessage` → `noteHumanReply`.)
   if (before?.aiMode !== "COPILOT") {
     const { pauseAutoReply } = await import("./whatsapp-autoreply");
     await pauseAutoReply(input.conversationId).catch(() => undefined);
