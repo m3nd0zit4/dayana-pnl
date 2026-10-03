@@ -49,6 +49,7 @@ import {
   WORKSHOP_WA_REMINDERS_SETTING,
   WORKSHOP_WA_TEMPLATE_KEY,
 } from "@/lib/crm/workshop-whatsapp-reminders";
+import { findPendingWorkshopReminderRecipients } from "@/lib/crm/workshop-reminders";
 import { createSend } from "@/lib/crm/whatsapp-sends";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
@@ -380,6 +381,18 @@ const main = async () => {
   });
   check("la historia lo anota con cuántos volvieron a la cola", (linkAct?.meta as { remindersReset?: number })?.remindersReset === 3, linkAct?.meta);
 
+  // Y si el enlace vuelve a ser el de antes (A → B → A), también sale otra vez.
+  const withMeet = () =>
+    prisma.conversationMessage.count({ where: { source: `taller:${a.id}:24h`, body: { contains: MEET } } });
+  const meetBefore = await withMeet();
+  await updateWorkshopEditionBySlug(a.slug, { title: a.title, meetingUrl: MEET }, actor);
+  const r4 = await sendWorkshopWhatsAppReminders({ pass: "24h", editionId: a.id });
+  check(
+    "el enlace de antes otra vez: sale otra vez (no se da por enviado)",
+    r4.sent === 2 && (await withMeet()) === meetBefore + 2,
+    { r4, before: meetBefore, after: await withMeet() }
+  );
+
   console.log("\n7c. El de 1 h no tapa un 24 h que falló");
   await prisma.enrollment.updateMany({
     where: { workshopEditionId: a.id, contactId: cOpen },
@@ -487,6 +500,74 @@ const main = async () => {
       (await prisma.product.findUniqueOrThrow({ where: { id: workshopProductIdFor(agentRow.slug) } })).isActive === false,
     { upd, agentDone }
   );
+  const agentPast = await Promise.resolve()
+    .then(() => updateWorkshopTool.execute({ slug: a.slug, title: a.title, status: "OPEN" }, toolCtx))
+    .then(
+      () => null,
+      (e: unknown) => e
+    );
+  const aAfterAgent = await prisma.workshopEdition.findUniqueOrThrow({ where: { id: a.id } });
+  check(
+    "update_workshop con OPEN en uno que ya pasó: se niega y dice por qué",
+    agentPast instanceof Error && agentPast.message.startsWith("La fecha ya pasó") && aAfterAgent.status === "COMPLETED" && aAfterAgent.endedAt !== null,
+    { error: agentPast instanceof Error ? agentPast.message : agentPast, status: aAfterAgent.status }
+  );
+  check(
+    "y no se pone a la venta",
+    (await prisma.product.findUniqueOrThrow({ where: { id: workshopProductIdFor(a.slug) } })).isActive === false
+  );
+
+  console.log("\n13. El reloj, las fechas sin hora y los borradores sin fecha");
+  // Publicada y ya pasada: se termina aunque alguien la haya reabierto antes.
+  const d = await createWorkshopEdition(
+    { copyFromId: a.id, title: `Taller E2E D ${run}`, startsAt: new Date(Date.now() + 5 * 24 * H), startsAtHasTime: true },
+    actor
+  );
+  createdIds.push(d.id);
+  await syncWorkshopEditionPrice({ slug: d.slug, title: d.title, status: "DRAFT", copPesos: 90000 });
+  await publishWorkshopEdition(d.id, actor);
+  await prisma.workshopEditionActivity.create({ data: { workshopEditionId: d.id, kind: "reopened" } });
+  await prisma.workshopEdition.update({ where: { id: d.id }, data: { startsAt: new Date(Date.now() - 4 * H) } });
+  const closedD = await closeDueWorkshops();
+  const dAfter = await prisma.workshopEdition.findUniqueOrThrow({ where: { id: d.id } });
+  check(
+    "publicada y pasada: el reloj la termina aunque tenga un «reabierto» posterior al cierre",
+    closedD.some((w) => w.id === d.id) && dAfter.status === "COMPLETED" && dAfter.endedAt !== null
+  );
+  check(
+    "y deja de venderse",
+    (await prisma.product.findUniqueOrThrow({ where: { id: workshopProductIdFor(d.slug) } })).isActive === false
+  );
+
+  // Primer guardado de un borrador sin fecha: no es «Fecha cambiada».
+  const e = await createWorkshopEdition({ title: `Taller E2E E ${run}` }, actor);
+  createdIds.push(e.id);
+  await updateWorkshopEditionBySlug(
+    e.slug,
+    { title: e.title, cardSummary: "Sin fecha todavía.", startsAt: null, startsAtHasTime: false },
+    actor
+  );
+  check(
+    "un borrador sin fecha guardado sin fecha: no anota «Fecha cambiada»",
+    (await prisma.workshopEditionActivity.count({ where: { workshopEditionId: e.id, kind: "date_changed" } })) === 0
+  );
+
+  // Solo el día: el correo de 1 h no sale (tampoco el WhatsApp).
+  const soon = new Date(Date.now() + 30 * 60_000);
+  const f = await createWorkshopEdition(
+    { copyFromId: a.id, title: `Taller E2E F ${run}`, startsAt: soon, startsAtHasTime: false },
+    actor
+  );
+  createdIds.push(f.id);
+  await prisma.workshopEdition.update({ where: { id: f.id }, data: { status: "CLOSED", publishedAt: new Date() } });
+  const fEnrollment = await prisma.enrollment.create({
+    data: { contactId: cNever, productId: workshopProductIdFor(a.slug), workshopEditionId: f.id, status: "ACTIVE", paidAt: new Date() },
+  });
+  const pendingDateOnly = await findPendingWorkshopReminderRecipients("1h", new Date());
+  check("solo el día: el correo de 1 h no entra en la cola", !pendingDateOnly.some((r) => r.id === fEnrollment.id));
+  await prisma.workshopEdition.update({ where: { id: f.id }, data: { startsAtHasTime: true } });
+  const pendingTimed = await findPendingWorkshopReminderRecipients("1h", new Date());
+  check("con hora real, sí", pendingTimed.some((r) => r.id === fEnrollment.id));
 };
 
 main()

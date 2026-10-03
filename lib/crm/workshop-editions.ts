@@ -2,6 +2,7 @@ import { EnrollmentStatus, Prisma, WorkshopEditionStatus, type WorkshopEdition }
 import { workshopProductIdFor } from "./workshop-price-rows";
 import { enrichWorkshopInput } from "./workshop-enrichment";
 import { recordWorkshopActivity } from "./workshop-activity";
+import { alignOwnWorkshopProduct } from "./workshop-pricing";
 import { applyWorkshopStatus, WorkshopLifecycleError, type WorkshopActor } from "./workshop-lifecycle";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
 import { getOperationalTimezone } from "./operational-timezone";
@@ -128,7 +129,11 @@ const recordEditChanges = async (
 ) => {
   const startsBefore = before.startsAt?.getTime() ?? null;
   const startsAfter = after.startsAt?.getTime() ?? null;
-  const dateChanged = startsBefore !== startsAfter || before.startsAtHasTime !== after.startsAtHasTime;
+  // «Lleva hora» solo cuenta con una fecha puesta (antes y después): el primer
+  // guardado de un borrador sin fecha no es una fecha cambiada.
+  const dateChanged =
+    startsBefore !== startsAfter ||
+    (startsBefore !== null && startsAfter !== null && before.startsAtHasTime !== after.startsAtHasTime);
   if (dateChanged) {
     const { count } = await resetWorkshopReminders(before.id);
     await recordWorkshopActivity({
@@ -155,19 +160,7 @@ const recordEditChanges = async (
   }
 };
 
-/**
- * El producto propio de la edición (`taller-<slug>`) con su título y su
- * estado: se cobra con ese nombre (checkout, recibos, correos) y solo se vende
- * publicada. Nunca crea uno ni toca un paquete compartido heredado.
- */
-const alignOwnProduct = (edition: Pick<WorkshopEdition, "slug" | "title" | "status" | "endedAt">) =>
-  prisma.product.updateMany({
-    where: { id: workshopProductIdFor(edition.slug) },
-    data: {
-      title: edition.title,
-      isActive: edition.status === WorkshopEditionStatus.OPEN && !edition.endedAt,
-    },
-  });
+
 
 /**
  * Alta (o reescritura) de una edición con un slug dado. La usa el asistente
@@ -259,7 +252,8 @@ export const updateWorkshopEditionBySlug = async (
     },
   });
   await recordEditChanges(existing, edition, actor);
-  await alignOwnProduct(edition);
+  // Se cobra con este nombre (checkout, recibos, correos) y solo publicada.
+  await alignOwnWorkshopProduct(edition.id);
 
   if (input.status !== undefined && input.status !== edition.status) {
     await applyWorkshopStatus(edition.id, input.status, actor);

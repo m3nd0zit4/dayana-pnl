@@ -122,6 +122,9 @@ export const findPendingWorkshopReminderRecipients = async (
         status: { in: [WorkshopEditionStatus.OPEN, WorkshopEditionStatus.CLOSED] },
         endedAt: null,
         startsAt: { gt, lte },
+        // Sin hora real (solo el día), «en 1 hora» no tiene sentido: como en
+        // WhatsApp, el de 1 h no sale.
+        ...(pass === "1h" ? { startsAtHasTime: true } : {}),
       },
     },
     orderBy: { createdAt: "asc" },

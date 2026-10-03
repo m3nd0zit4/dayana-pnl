@@ -11,10 +11,20 @@ ALTER TABLE "enrollments" ADD COLUMN     "workshop_wa_reminder_1h_error" TEXT;
 
 -- Relleno con la regla que había: sin fecha, o a las 12:00 en su zona (el
 -- ancla de «solo el día») salvo que el cronograma empiece de verdad a esa hora.
-UPDATE "workshop_editions"
+-- Una zona que Postgres no conoce no tumba la migración: se lee en Bogotá.
+UPDATE "workshop_editions" e
 SET "starts_at_has_time" = false
-WHERE "starts_at" IS NULL
+WHERE e."starts_at" IS NULL
    OR (
-     to_char(("starts_at" AT TIME ZONE 'UTC') AT TIME ZONE "timezone", 'HH24:MI') = '12:00'
-     AND COALESCE("day_schedule"->0->>'startTime', '') <> '12:00'
+     to_char(
+       (e."starts_at" AT TIME ZONE 'UTC') AT TIME ZONE COALESCE(
+         (SELECT z."name" FROM pg_timezone_names z WHERE z."name" = e."timezone" LIMIT 1),
+         'America/Bogota'
+       ),
+       'HH24:MI'
+     ) = '12:00'
+     AND COALESCE(
+       CASE WHEN jsonb_typeof(e."day_schedule") = 'array' THEN e."day_schedule"->0->>'startTime' END,
+       ''
+     ) <> '12:00'
    );

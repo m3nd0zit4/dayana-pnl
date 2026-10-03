@@ -77,14 +77,19 @@ export const releaseWorkshopWaReminder = (enrollmentId: string, pass: EventWaPas
   });
 
 /**
- * Huella corta del enlace para la clave de envío. Cambiar el enlace antes del
- * taller devuelve los recordatorios a la cola, y tienen que poder salir otra
- * vez con el enlace nuevo: con la clave de antes se darían por enviados.
+ * Para la clave de envío: cuándo volvieron los recordatorios a la cola por
+ * última vez (otra fecha u otro enlace). Así salen otra vez aunque el enlace o
+ * la fecha vuelvan a ser los de antes (A → B → A); con la clave de antes se
+ * darían por enviados. Sin vuelta a la cola, la clave no cambia y nadie recibe
+ * dos.
  */
-export const linkFingerprint = (url: string | null | undefined): string => {
-  let h = 5381;
-  for (const ch of url ?? "") h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0;
-  return h.toString(36);
+const lastRequeueKey = async (workshopEditionId: string): Promise<string | undefined> => {
+  const last = await prisma.workshopEditionActivity.findFirst({
+    where: { workshopEditionId, kind: { in: ["date_changed", "meeting_link_changed"] } },
+    orderBy: { at: "desc" },
+    select: { at: true },
+  });
+  return last ? last.at.getTime().toString(36) : undefined;
 };
 
 const SKIP_MESSAGE: Record<WaSkipReason, string> = {
@@ -105,7 +110,10 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
   limit?: number;
 }): Promise<EventWaResult> => {
   const { pass, editionId } = opts;
-  const edition = await prisma.workshopEdition.findUnique({ where: { id: editionId } });
+  const [edition, requeueKey] = await Promise.all([
+    prisma.workshopEdition.findUnique({ where: { id: editionId } }),
+    lastRequeueKey(editionId),
+  ]);
   const flag = workshopWaFlag(pass);
   const hasTime = edition ? workshopStartsAtHasTime(edition) : false;
 
@@ -123,7 +131,7 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
     pass,
     templateKey: WORKSHOP_WA_TEMPLATE_KEY,
     sourcePrefix: "taller",
-    keySuffix: linkFingerprint(edition?.meetingUrl),
+    keySuffix: requeueKey,
     enabled: workshopWaRemindersEnabled,
     findRows: (take, rowId) =>
       prisma.enrollment.findMany({

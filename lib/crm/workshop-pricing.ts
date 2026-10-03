@@ -121,8 +121,30 @@ export async function syncWorkshopEditionPrice(
       });
     }
 
+    // El estado de venta sale del estado de la edición en este momento, no
+    // del que traía quien llamó: entre su lectura y esta escritura pudo
+    // publicarse o terminarse.
+    await alignOwnWorkshopProduct(edition.id, tx);
     return productId;
   });
+}
+
+/**
+ * El producto propio de la edición (`taller-<slug>`) con su título y su
+ * estado de venta, en una sola sentencia que lee la edición tal como está al
+ * escribir: activo solo si está publicada y sin terminar. Nunca crea uno ni
+ * toca un paquete compartido heredado.
+ */
+export async function alignOwnWorkshopProduct(
+  editionId: string,
+  db: Pick<typeof prisma, "$executeRaw"> = prisma,
+): Promise<number> {
+  return db.$executeRaw`
+    UPDATE "products" p
+    SET "title" = e."title",
+        "is_active" = (e."status" = 'OPEN' AND e."ended_at" IS NULL)
+    FROM "workshop_editions" e
+    WHERE e."id" = ${editionId} AND p."id" = 'taller-' || e."slug"`;
 }
 
 /**

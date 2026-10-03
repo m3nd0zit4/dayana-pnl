@@ -7,6 +7,7 @@ import {
   type WorkshopActivityInput,
 } from "./workshop-activity";
 import {
+  isWorkshopDatePast,
   isWorkshopEnded,
   lifecycleStepFor,
   workshopBlockersMessage,
@@ -47,7 +48,9 @@ export const WORKSHOP_LIFECYCLE_MESSAGE: Record<WorkshopLifecycleError["reason"]
 export class WorkshopPublishError extends Error {
   readonly blockers: WorkshopPublishBlocker[];
   constructor(blockers: WorkshopPublishBlocker[]) {
-    super("not_publishable");
+    // El mensaje es el que se le dice a Dayana (o al asistente): la API mira
+    // la clase y `blockers`, no el texto.
+    super(workshopBlockersMessage(blockers));
     this.name = "WorkshopPublishError";
     this.blockers = blockers;
   }
@@ -256,9 +259,9 @@ export const listLiveWorkshopEditions = () =>
  * Termina las que ya pasaron. Devuelve las que terminó ESTE proceso.
  *
  * Una que Dayana reabrió a mano después de su hora de cierre no se vuelve a
- * terminar sola: la reabrió para algo (cambiarle la fecha). Publicarla pide
- * antes una fecha que no haya pasado; con la fecha nueva el reloj vuelve a
- * mandar.
+ * terminar sola mientras siga sin publicar: la reabrió para algo (cambiarle
+ * la fecha). Publicarla pide antes una fecha que no haya pasado; una
+ * publicada que ya pasó se termina siempre.
  */
 export const closeDueWorkshops = async (now: Date = new Date()): Promise<WorkshopEdition[]> => {
   const live = await listLiveWorkshopEditions();
@@ -266,11 +269,14 @@ export const closeDueWorkshops = async (now: Date = new Date()): Promise<Worksho
   for (const e of live) {
     const closeAt = workshopCloseAt(e);
     if (!closeAt || now < closeAt) continue;
-    const reopened = await prisma.workshopEditionActivity.findFirst({
-      where: { workshopEditionId: e.id, kind: "reopened", at: { gte: closeAt } },
-      select: { id: true },
-    });
-    if (reopened) continue;
+    // Una publicada que ya pasó se termina siempre: se estaría vendiendo.
+    if (e.status !== WorkshopEditionStatus.OPEN) {
+      const reopened = await prisma.workshopEditionActivity.findFirst({
+        where: { workshopEditionId: e.id, kind: "reopened", at: { gte: closeAt } },
+        select: { id: true },
+      });
+      if (reopened) continue;
+    }
     if (await endWorkshopEdition(e.id, { by: "cron", now })) {
       closed.push(await prisma.workshopEdition.findUniqueOrThrow({ where: { id: e.id } }));
     }
@@ -294,6 +300,10 @@ export const applyWorkshopStatus = async (
 ): Promise<void> => {
   const row = await load(id);
   const step = lifecycleStepFor(row, target);
+  // Ni el asistente publica uno cuya fecha ya pasó: quedaría a la venta.
+  if ((step === "publish" || step === "reopen_publish") && isWorkshopDatePast(row)) {
+    throw new WorkshopPublishError(["pastDate"]);
+  }
   switch (step) {
     case null:
       return;

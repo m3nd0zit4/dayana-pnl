@@ -10,7 +10,7 @@ import {
   updateWorkshopEditionBySlug,
   type WorkshopEditionInput,
 } from "@/lib/crm/workshop-editions";
-import { isWorkshopEnded } from "@/lib/crm/workshop-lifecycle-rules";
+import { isWorkshopDatePast, isWorkshopEnded } from "@/lib/crm/workshop-lifecycle-rules";
 import { canOpenWithPrice, syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
 import { validateWorkshopPrices } from "@/lib/crm/workshop-price-rows";
 import { isValidWorkshopSlug } from "@/lib/crm/workshop-slug";
@@ -84,6 +84,23 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     return workshopErrorResponse(e) ?? apiError("invalid_datetime", 400);
   }
   const startsAt = schedule?.startsAt;
+
+  // Publicado, no se le pone una fecha que ya pasó: quedaría a la venta algo
+  // hecho. Para eso, cerrar inscripciones o terminarlo.
+  if (
+    schedule?.startsAt &&
+    existing.status === WorkshopEditionStatus.OPEN &&
+    isWorkshopDatePast({
+      ...existing,
+      startsAt: schedule.startsAt,
+      startsAtHasTime: schedule.startsAtHasTime,
+      timezone: await getOperationalTimezone(),
+    })
+  ) {
+    return apiError("past_date", 400, {
+      message: "Está publicado: no se le pone una fecha que ya pasó. Cierra las inscripciones o termínalo antes.",
+    });
+  }
 
   // Uno que ya pasó no se reprograma ni cambia de sala: para otra fecha, se duplica.
   if (isWorkshopEnded(existing)) {
