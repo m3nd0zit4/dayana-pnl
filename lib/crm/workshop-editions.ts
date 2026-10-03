@@ -1,17 +1,22 @@
-import { EnrollmentStatus, WorkshopEditionStatus } from "@prisma/client";
+import { EnrollmentStatus, Prisma, WorkshopEditionStatus, type WorkshopEdition } from "@prisma/client";
 import { workshopProductIdFor } from "./workshop-price-rows";
-import { alignWorkshopProductWithStatus, deactivateWorkshopProducts } from "./workshop-pricing";
 import { enrichWorkshopInput } from "./workshop-enrichment";
+import { recordWorkshopActivity } from "./workshop-activity";
+import { applyWorkshopStatus, WorkshopLifecycleError, type WorkshopActor } from "./workshop-lifecycle";
 import { normalizeWorkshopSchedule } from "../workshop-schedule";
+import { getOperationalTimezone } from "./operational-timezone";
 import { prisma } from "../db";
 import { crmEditionWhere } from "../workshops-db";
-import { Prisma } from "@prisma/client";
 import { uniqueSlug } from "./slug";
 export type WorkshopEditionInput = {
   slug?: string;
   title: string;
   editionLabel?: string | null;
   cardSummary?: string | null;
+  /**
+   * El estado lo cambian los pasos del ciclo (`workshop-lifecycle.ts`). Si
+   * llega aquí (el asistente), se aplica con esos mismos pasos.
+   */
   status?: WorkshopEditionStatus;
   dateLabel?: string | null;
   scheduleLabel?: string | null;
@@ -37,32 +42,38 @@ export type WorkshopEditionInput = {
   meetingUrl?: string | null;
 };
 
-const editionData = (input: WorkshopEditionInput) => ({
-  title: input.title,
+/** Lo que el enriquecido deriva del título y la descripción. */
+const derivedData = (enriched: WorkshopEditionInput) => ({
+  title: enriched.title,
+  cardSummary: enriched.cardSummary ?? null,
+  detailSummary: enriched.detailSummary ?? null,
+  intro: enriched.intro ?? null,
+  heroLine1: enriched.heroLine1 ?? null,
+  heroLine2: enriched.heroLine2 ?? null,
+  heroLine3: enriched.heroLine3 ?? null,
+  whatsappTemplate: enriched.whatsappTemplate ?? null,
+  topicsSectionTitle: enriched.topicsSectionTitle ?? null,
+  topicsSectionDescription: enriched.topicsSectionDescription ?? null,
+  scheduleSectionDescription: enriched.scheduleSectionDescription ?? null,
+  metaTitle: enriched.metaTitle ?? null,
+  metaDescription: enriched.metaDescription ?? null,
+  introOpen: enriched.introOpen ?? null,
+});
+
+/** Una lista vacía o `null` borra; `undefined` no toca. */
+const jsonList = <T>(v: T[] | null | undefined): T[] | undefined => (v === undefined ? undefined : (v ?? []));
+
+const editionCreateData = (input: WorkshopEditionInput) => ({
+  ...derivedData(input),
   editionLabel: input.editionLabel ?? null,
-  cardSummary: input.cardSummary ?? null,
   dateLabel: input.dateLabel ?? null,
   scheduleLabel: input.scheduleLabel ?? null,
   capacity: input.capacity ?? null,
-  whatsappTemplate: input.whatsappTemplate ?? null,
   startsAt: input.startsAt ?? null,
   timezone: input.timezone ?? "America/Bogota",
-  heroLine1: input.heroLine1 ?? null,
-  heroLine2: input.heroLine2 ?? null,
-  heroLine3: input.heroLine3 ?? null,
-  detailSummary: input.detailSummary ?? null,
-  intro: input.intro ?? null,
-  focusTopics: input.focusTopics ?? undefined,
-  daySchedule: input.daySchedule
-    ? normalizeWorkshopSchedule(input.daySchedule)
-    : undefined,
-  topicsSectionTitle: input.topicsSectionTitle ?? null,
-  topicsSectionDescription: input.topicsSectionDescription ?? null,
-  scheduleSectionDescription: input.scheduleSectionDescription ?? null,
-  metaTitle: input.metaTitle ?? null,
-  metaDescription: input.metaDescription ?? null,
-  introOpen: input.introOpen ?? null,
-  meetingUrl: input.meetingUrl === undefined ? undefined : input.meetingUrl || null,
+  focusTopics: jsonList(input.focusTopics),
+  daySchedule: input.daySchedule ? normalizeWorkshopSchedule(input.daySchedule) : undefined,
+  meetingUrl: input.meetingUrl || null,
 });
 
 /**
@@ -77,81 +88,251 @@ const productRelationUpdate = (productId: string | null | undefined) =>
       : { product: { disconnect: true as const } }
     : {};
 
-export const closeOtherOpenWorkshops = async (exceptSlug?: string) => {
-  const where = {
-    status: WorkshopEditionStatus.OPEN,
-    ...(exceptSlug ? { slug: { not: exceptSlug } } : {}),
-  };
-  // Cerrar la edicion y dejar de cobrarla van juntos: con su producto aun
-  // activo, una edicion cerrada seguia cobrandose por /pagar/p/<id> o por un
-  // enlace de pago ya enviado.
-  await prisma.$transaction(async (tx) => {
-    const closing = await tx.workshopEdition.findMany({ where, select: { slug: true } });
-    await tx.workshopEdition.updateMany({
-      where,
-      data: { status: WorkshopEditionStatus.CLOSED },
-    });
-    await deactivateWorkshopProducts(
-      closing.map((e) => e.slug),
-      tx,
-    );
+/** Lo que no viene se queda como estaba. */
+const keep = <T>(next: T | undefined, prev: T): T => (next === undefined ? prev : next);
+
+/**
+ * Cambiar la fecha deja sin valor los recordatorios ya enviados: vuelven a la
+ * cola (correo y WhatsApp), como al reprogramar un evento.
+ */
+export const resetWorkshopReminders = (workshopEditionId: string) =>
+  prisma.enrollment.updateMany({
+    where: { workshopEditionId },
+    data: {
+      workshopReminder24hSentAt: null,
+      workshopReminder1hSentAt: null,
+      workshopReminder24hWaSentAt: null,
+      workshopReminder1hWaSentAt: null,
+      workshopWaReminderError: null,
+      workshopWaReminderErrorAt: null,
+    },
   });
+
+const dateLabelFor = (d: Date | null, tz: string) =>
+  d ? d.toLocaleString("es-CO", { timeZone: tz, dateStyle: "long", timeStyle: "short" }) : "sin fecha";
+
+/**
+ * Anota lo que cambió de verdad (fecha, enlace) y, si cambió la fecha,
+ * devuelve los recordatorios a la cola.
+ */
+const recordEditChanges = async (
+  before: Pick<WorkshopEdition, "id" | "startsAt" | "meetingUrl" | "timezone">,
+  after: Pick<WorkshopEdition, "startsAt" | "meetingUrl" | "timezone">,
+  actor: WorkshopActor
+) => {
+  const startsBefore = before.startsAt?.getTime() ?? null;
+  const startsAfter = after.startsAt?.getTime() ?? null;
+  if (startsBefore !== startsAfter) {
+    const { count } = await resetWorkshopReminders(before.id);
+    await recordWorkshopActivity({
+      workshopEditionId: before.id,
+      kind: "date_changed",
+      staffUserId: actor.staffUserId,
+      meta: {
+        startsAtIso: after.startsAt?.toISOString() ?? null,
+        label: dateLabelFor(after.startsAt, after.timezone),
+        remindersReset: count,
+      },
+    });
+  }
+  if ((before.meetingUrl ?? null) !== (after.meetingUrl ?? null)) {
+    await recordWorkshopActivity({
+      workshopEditionId: before.id,
+      kind: before.meetingUrl ? "meeting_link_changed" : "meeting_link_set",
+      staffUserId: actor.staffUserId,
+      meta: after.meetingUrl ? null : { removed: true },
+    });
+  }
 };
 
+/**
+ * Alta (o reescritura) de una edición con un slug dado. La usa el asistente
+ * (`create_workshop`): nace en borrador y, si pide un estado, se aplica con
+ * los pasos del ciclo.
+ */
 export const upsertWorkshopEdition = async (
   slug: string,
-  input: WorkshopEditionInput
-) => {
+  input: WorkshopEditionInput,
+  actor: WorkshopActor = {}
+): Promise<WorkshopEdition> => {
+  const existing = await prisma.workshopEdition.findUnique({ where: { slug }, select: { id: true } });
+  if (existing) return updateWorkshopEditionBySlug(slug, input, actor);
+
   const enriched = enrichWorkshopInput(input);
-  const status = enriched.status ?? WorkshopEditionStatus.DRAFT;
-
-  if (status === WorkshopEditionStatus.OPEN) {
-    await closeOtherOpenWorkshops(slug);
-  }
-
-  const edition = await prisma.workshopEdition.upsert({
-    where: { slug },
-    create: {
+  const created = await prisma.workshopEdition.create({
+    data: {
       slug,
-      status,
-      ...editionData(enriched),
-      ...(enriched.productId
-        ? { product: { connect: { id: enriched.productId } } }
-        : {}),
-    },
-    update: {
-      ...editionData(enriched),
-      status,
-      ...productRelationUpdate(enriched.productId),
+      status: WorkshopEditionStatus.DRAFT,
+      ...editionCreateData(enriched),
+      ...(enriched.productId ? { product: { connect: { id: enriched.productId } } } : {}),
     },
   });
-  // Cerrada o borrador: su producto deja de cobrarse; abierta: vuelve a cobrarse.
-  await alignWorkshopProductWithStatus(slug, edition.status);
-  return edition;
+  await recordWorkshopActivity({
+    workshopEditionId: created.id,
+    kind: "created",
+    at: created.createdAt,
+    staffUserId: actor.staffUserId,
+  });
+  if (input.status && input.status !== WorkshopEditionStatus.DRAFT) {
+    await applyWorkshopStatus(created.id, input.status, actor);
+  }
+  return prisma.workshopEdition.findUniqueOrThrow({ where: { id: created.id } });
 };
 
+/**
+ * Guarda una edición. Lo que no viene (`undefined`) se queda como estaba —
+ * antes cada guardado borraba el cupo, las etiquetas y la fecha que el
+ * formulario no enviaba. Los textos derivados (cabecera, SEO, mensaje de
+ * WhatsApp) se recalculan con el título y la descripción, como siempre.
+ */
 export const updateWorkshopEditionBySlug = async (
   slug: string,
-  input: WorkshopEditionInput
-) => {
-  const enriched = enrichWorkshopInput(input);
+  input: WorkshopEditionInput,
+  actor: WorkshopActor = {}
+): Promise<WorkshopEdition> => {
+  const existing = await prisma.workshopEdition.findUniqueOrThrow({ where: { slug } });
 
-  if (enriched.status === WorkshopEditionStatus.OPEN) {
-    await closeOtherOpenWorkshops(slug);
+  // La descripción: la que llega o la guardada. Vacía se queda vacía (no se
+  // rellena con el título: publicar la pide).
+  const description =
+    input.cardSummary !== undefined
+      ? input.cardSummary?.trim() || input.detailSummary?.trim() || input.intro?.trim() || ""
+      : existing.cardSummary?.trim() || existing.detailSummary?.trim() || existing.intro?.trim() || "";
+  const enriched = enrichWorkshopInput({
+    ...input,
+    cardSummary: description || null,
+    detailSummary: null,
+    intro: null,
+    topicsSectionTitle: keep(input.topicsSectionTitle, existing.topicsSectionTitle),
+    introOpen: keep(input.introOpen, existing.introOpen),
+  });
+  const derived = derivedData(enriched);
+  if (!description) {
+    Object.assign(derived, {
+      cardSummary: null,
+      detailSummary: null,
+      intro: null,
+      metaDescription: input.metaDescription?.trim() || null,
+    });
   }
 
+  const meetingUrl = input.meetingUrl === undefined ? existing.meetingUrl : input.meetingUrl || null;
   const edition = await prisma.workshopEdition.update({
     where: { slug },
     data: {
-      ...editionData(enriched),
-      ...(enriched.status !== undefined ? { status: enriched.status } : {}),
-      ...productRelationUpdate(enriched.productId),
+      ...derived,
+      editionLabel: keep(input.editionLabel, existing.editionLabel),
+      dateLabel: keep(input.dateLabel, existing.dateLabel),
+      scheduleLabel: keep(input.scheduleLabel, existing.scheduleLabel),
+      capacity: keep(input.capacity, existing.capacity),
+      startsAt: keep(input.startsAt, existing.startsAt),
+      timezone: input.timezone ?? existing.timezone,
+      focusTopics: jsonList(input.focusTopics),
+      daySchedule: input.daySchedule === undefined ? undefined : normalizeWorkshopSchedule(input.daySchedule ?? []),
+      meetingUrl,
+      ...productRelationUpdate(input.productId),
     },
   });
-  // Cerrada o borrador: su producto deja de cobrarse; abierta: vuelve a cobrarse.
-  await alignWorkshopProductWithStatus(slug, edition.status);
+  await recordEditChanges(existing, edition, actor);
+
+  if (input.status !== undefined && input.status !== edition.status) {
+    await applyWorkshopStatus(edition.id, input.status, actor);
+    return prisma.workshopEdition.findUniqueOrThrow({ where: { id: edition.id } });
+  }
   return edition;
 };
+
+/* -------------------------------------------------------------------------
+ * «Nuevo taller» y «Duplicar»
+ * ---------------------------------------------------------------------- */
+
+/**
+ * ¿La URL está libre? Ni la usa otra edición (hoy o antes de un cambio de
+ * URL), ni queda un producto `taller-<slug>` de un taller borrado: la edición
+ * nueva lo adoptaría al ponerle precio, con precios y matrículas ajenas.
+ */
+const isNewWorkshopSlugTaken = async (slug: string): Promise<boolean> =>
+  (await isWorkshopSlugInUse(slug)) ||
+  Boolean(await prisma.product.findUnique({ where: { id: workshopProductIdFor(slug) }, select: { id: true } }));
+
+export type CreateWorkshopEditionInput = {
+  title?: string | null;
+  startsAt?: Date | null;
+  /** Copiar la página (textos, temas, cronograma, cupo) de otra edición. */
+  copyFromId?: string | null;
+};
+
+/**
+ * Una edición nueva, en borrador, como «Nuevo evento». La copia hereda la
+ * página y nunca los hechos de la edición: ni la fecha, ni el precio, ni las
+ * inscritas, ni los documentos, ni el enlace de la reunión (heredarlo haría
+ * que el recordatorio llevara a la sala de otra fecha).
+ */
+export const createWorkshopEdition = async (
+  input: CreateWorkshopEditionInput = {},
+  actor: WorkshopActor = {}
+): Promise<WorkshopEdition> => {
+  const source = input.copyFromId
+    ? await prisma.workshopEdition.findUnique({ where: { id: input.copyFromId } })
+    : null;
+  if (input.copyFromId && !source) throw new WorkshopLifecycleError("not_found");
+
+  const tz = source?.timezone ?? (await getOperationalTimezone());
+  const title = input.title?.trim() || source?.title || "Nuevo taller";
+  const description = source ? source.cardSummary?.trim() || source.detailSummary?.trim() || "" : "";
+  // Sin descripción no se inventa una con el título: publicar la pedirá.
+  const derived = enrichWorkshopInput({
+    title,
+    cardSummary: description || null,
+    topicsSectionTitle: source?.topicsSectionTitle ?? null,
+    introOpen: source?.introOpen ?? null,
+    metaDescription: source && description ? source.metaDescription : null,
+  });
+  const page = {
+    ...derivedData(derived),
+    ...(description ? {} : { cardSummary: null, detailSummary: null, intro: null, metaDescription: null }),
+    topicsSectionDescription: source?.topicsSectionDescription ?? null,
+    scheduleSectionDescription: source?.scheduleSectionDescription ?? null,
+    scheduleLabel: source?.scheduleLabel ?? null,
+    capacity: source?.capacity ?? null,
+    focusTopics: (source?.focusTopics ?? undefined) as Prisma.InputJsonValue | undefined,
+    daySchedule: (source?.daySchedule ?? undefined) as Prisma.InputJsonValue | undefined,
+  };
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const slug = await uniqueSlug(title, isNewWorkshopSlugTaken);
+    try {
+      const row = await prisma.workshopEdition.create({
+        data: {
+          ...page,
+          slug,
+          status: WorkshopEditionStatus.DRAFT,
+          startsAt: input.startsAt ?? null,
+          timezone: tz,
+          meetingUrl: null,
+        },
+      });
+      await recordWorkshopActivity({
+        workshopEditionId: row.id,
+        kind: "created",
+        at: row.createdAt,
+        staffUserId: actor.staffUserId,
+        meta: source ? { copiedFromId: source.id, copiedFromTitle: source.title } : null,
+      });
+      return row;
+    } catch (e) {
+      // Dos altas a la vez eligieron la misma URL: el índice decide y la
+      // segunda prueba la siguiente.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") continue;
+      throw e;
+    }
+  }
+  throw new Error("workshop_slug_race");
+};
+
+/** «Duplicar»: un borrador nuevo con la página de esta edición. */
+export const duplicateWorkshopEdition = (id: string, actor: WorkshopActor = {}) =>
+  createWorkshopEdition({ copyFromId: id }, actor);
 
 /** Same filter/order the admin workshops list route uses — every real edition, newest first, excluding the virtual "proximo-taller" placeholder. */
 export const listWorkshopEditionsAdmin = async () =>

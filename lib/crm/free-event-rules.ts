@@ -350,11 +350,28 @@ export const sendLabel = (title: string): string => {
  * números en vivo (los de la fila del envío, que avanzan por tandas). Las
  * pasadas del reloj que van seguidas se juntan en una sola línea con el total.
  * Devuelve de la más reciente a la más antigua.
+ *
+ * `vocab` deja reutilizarla para otras ediciones (los talleres): sus títulos y
+ * sus detalles mandan sobre los del evento; lo que no nombran sale igual.
  */
-export const buildFreeEventTimeline = (input: {
-  activities: ActivityLike[];
-  sends: SendLike[];
-}): TimelineItem[] => {
+export type TimelineVocabulary = {
+  titles?: Record<string, string>;
+  /** `undefined` = el detalle de siempre. */
+  detail?: (a: ActivityLike) => string | null | undefined;
+};
+
+export const buildFreeEventTimeline = (
+  input: {
+    activities: ActivityLike[];
+    sends: SendLike[];
+  },
+  vocab: TimelineVocabulary = {}
+): TimelineItem[] => {
+  const titleOf = (kind: string) => vocab.titles?.[kind] ?? ACTIVITY_TITLE[kind] ?? kind;
+  const detailOf = (a: ActivityLike) => {
+    const own = vocab.detail?.(a);
+    return own === undefined ? activityDetail(a) : own;
+  };
   const sendIds = new Set(input.sends.map((s) => s.id));
   const items: TimelineItem[] = [];
 
@@ -367,8 +384,8 @@ export const buildFreeEventTimeline = (input: {
       at: a.at,
       until: null,
       runs: 1,
-      title: ACTIVITY_TITLE[a.kind] ?? a.kind,
-      detail: activityDetail(a),
+      title: titleOf(a.kind),
+      detail: detailOf(a),
       count: a.count,
       failed: a.failed,
       sendId: a.whatsAppSendId,

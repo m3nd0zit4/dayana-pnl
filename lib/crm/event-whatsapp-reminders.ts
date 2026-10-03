@@ -12,24 +12,30 @@ import {
   greetingName,
   reminderZone,
   waReminderDue,
+  type EventReminderVars,
   type EventWaPass,
+  type ReminderZone,
 } from "./event-reminder-text";
 import { countPendingWaReminderRecipients, waReminderFlag, WHATSAPPABLE_CONTACT } from "./webinar-registrations";
 import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
 import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
 
 /**
- * Recordatorios del evento gratuito por WhatsApp: 24 h y 1 h antes, a cada
- * inscrita con número. Mismo patrón que `sendDueReminders` de las citas:
+ * Recordatorios por WhatsApp de una edición (evento gratuito o taller): 24 h
+ * y 1 h antes, a cada persona con número. Mismo patrón que `sendDueReminders`
+ * de las citas:
  *
  * - Se reclama la fila (sello con `updateMany … where sello = null`) antes de
  *   enviar, así que el cron, el botón manual y un reintento nunca mandan dos.
- * - Si no sale, el sello SE QUEDA y el motivo va a `waReminderError`. A
+ * - Si no sale, el sello SE QUEDA y el motivo va a la columna de error. A
  *   diferencia del correo no se reintenta solo: una plantilla se cobra, y un
  *   fallo repetido cada 10 minutos sería dinero tirado. «Reintentar WA» lo
  *   decide Dayana.
  * - Texto libre (gratis) si la persona escribió en las últimas 24 h; si no, la
- *   plantilla aprobada `evento_gratis_recordatorio`.
+ *   plantilla aprobada (`evento_gratis_recordatorio` / `taller_recordatorio`).
+ *
+ * El núcleo (`runWaReminderPass`) no sabe de eventos ni de talleres: cada uno
+ * le dice de dónde salen las filas, cómo se sellan y qué dice el mensaje.
  */
 
 export const EVENT_WA_TEMPLATE_KEY = "evento_gratis_recordatorio";
@@ -68,115 +74,129 @@ export const eventWaRemindersEnabled = async (): Promise<boolean> =>
 export const setEventWaRemindersEnabled = (enabled: boolean): Promise<void> =>
   setSiteSetting(EVENT_WA_REMINDERS_SETTING, enabled ? "true" : "false");
 
-const SKIP_MESSAGE: Record<"needs_template" | "opted_out" | "no_phone", string> = {
-  needs_template:
-    "No escribió en las últimas 24 h y la plantilla «evento_gratis_recordatorio» no está aprobada.",
-  opted_out: "Pidió no recibir WhatsApp.",
-  no_phone: "Sin número de WhatsApp válido.",
+/* -------------------------------------------------------------------------
+ * El núcleo, común a eventos y talleres
+ * ---------------------------------------------------------------------- */
+
+export type WaSkipReason = "needs_template" | "opted_out" | "no_phone";
+
+/** Una persona en la cola: la fila que se sella y su contacto. */
+export type WaReminderRow = {
+  id: string;
+  contactId: string;
+  contact: { timezone: string; phoneE164: string; phoneCountryIso: string | null };
 };
 
-const ROW_SELECT = {
+export const WA_REMINDER_ROW_SELECT = {
   id: true,
   contactId: true,
   contact: { select: { timezone: true, phoneE164: true, phoneCountryIso: true } },
 } as const;
 
-type Row = { id: string; contactId: string; contact: { timezone: string; phoneE164: string; phoneCountryIso: string | null } };
+/** La edición tal como la necesita el envío. */
+export type WaReminderTarget = {
+  id: string;
+  startsAt: Date | null;
+  startsAtHasTime: boolean;
+  meetUrl: string | null;
+  ended: boolean;
+  /** Publicada o con inscripciones cerradas, sin terminar. */
+  live: boolean;
+};
+
+export type WaReminderSpec = {
+  target: WaReminderTarget | null;
+  pass: EventWaPass;
+  templateKey: string;
+  /** `evento` | `taller`: prefijo de `source` y de la clave de envío. */
+  sourcePrefix: string;
+  enabled: () => Promise<boolean>;
+  /** Pendientes de este recordatorio (sin sello, con WhatsApp). */
+  findRows: (take: number, rowId?: string) => Promise<WaReminderRow[]>;
+  /** Sella la fila si seguía sin sello; `false` = otro proceso la tomó. */
+  claim: (rowId: string) => Promise<boolean>;
+  saveError: (rowId: string, message: string) => Promise<unknown>;
+  pending: () => Promise<number>;
+  vars: (input: { zone: ReminderZone; opTz: string; now: Date }) => EventReminderVars;
+  text: (input: EventReminderVars & { nombre?: string | null }) => string;
+  skipMessages: Record<WaSkipReason, string>;
+  /** Anota la pasada en la historia de la edición. */
+  recordPass: (result: EventWaResult, manual: boolean) => Promise<void>;
+  /** El aviso a la campana cuando algo no salió. */
+  notify: { href: string; entityType: string };
+};
 
 type Outcome = { outcome: "sent" | "failed" | "skipped" | "claimed_elsewhere"; error?: string };
 
-const loadEvent = (webinarId?: string): Promise<FreeWebinar | null> =>
-  webinarId ? prisma.freeWebinar.findUnique({ where: { id: webinarId } }) : findCurrentFreeEventRow();
-
-const saveError = (id: string, message: string) =>
-  prisma.webinarRegistration
-    .update({ where: { id }, data: { waReminderError: message.slice(0, 300), waReminderErrorAt: new Date() } })
-    .catch(() => undefined);
-
-export const sendEventWhatsAppReminders = async (opts: {
-  pass: EventWaPass;
-  /** Sin él, el evento actual. */
-  webinarId?: string;
-  now?: Date;
-  budgetMs?: number;
-  /** Solo los envíos manuales: mandar aunque no sea su momento. */
-  ignoreWindow?: boolean;
-  /** Solo esa inscripción. */
-  registrationId?: string;
-  /** Tamaño de cada tanda. */
-  limit?: number;
-}): Promise<EventWaResult> => {
-  const { pass, budgetMs = 90_000, ignoreWindow = false, registrationId, limit = 200 } = opts;
+export const runWaReminderPass = async (
+  spec: WaReminderSpec,
+  opts: {
+    now?: Date;
+    budgetMs?: number;
+    /** Solo los envíos manuales: mandar aunque no sea su momento. */
+    ignoreWindow?: boolean;
+    /** Solo esa fila. */
+    rowId?: string;
+    /** Tamaño de cada tanda. */
+    limit?: number;
+  } = {}
+): Promise<EventWaResult> => {
+  const { pass } = spec;
+  const { budgetMs = 90_000, ignoreWindow = false, rowId, limit = 200 } = opts;
   const now = opts.now ?? new Date();
   const deadline = Date.now() + budgetMs;
   const result: EventWaResult = { sent: 0, failed: 0, skipped: 0, remaining: 0, stoppedEarly: false };
 
-  const event = await loadEvent(opts.webinarId);
-  if (!event) return { ...result, reason: "no_event" };
-  const flag = waReminderFlag(pass);
-  const pending = () => countPendingWaReminderRecipients(event.id, pass);
+  const target = spec.target;
+  if (!target) return { ...result, reason: "no_event" };
   const stop = async (reason: EventWaStopReason): Promise<EventWaResult> => ({
     ...result,
-    remaining: await pending(),
+    remaining: await spec.pending(),
     reason,
   });
 
-  if (event.endedAt) return stop("ended");
-  // Publicado o con inscripciones cerradas: publicar el siguiente no deja sin
-  // recordatorio a quien ya se inscribió en este.
-  if (!freeEventAcceptsReminders(event)) return stop("inactive");
-  if (!event.startsAt) return stop("no_schedule");
-  if (!event.meetUrl) return stop("no_meet_url");
-  if (!(await eventWaRemindersEnabled())) return stop("disabled");
-  if (!ignoreWindow && !waReminderDue(pass, event.startsAt, event.startsAtHasTime, now)) {
+  if (target.ended) return stop("ended");
+  // Publicada o con inscripciones cerradas: publicar la siguiente no deja sin
+  // recordatorio a quien ya se inscribió en esta.
+  if (!target.live) return stop("inactive");
+  if (!target.startsAt) return stop("no_schedule");
+  if (!target.meetUrl) return stop("no_meet_url");
+  if (!(await spec.enabled())) return stop("disabled");
+  if (!ignoreWindow && !waReminderDue(pass, target.startsAt, target.startsAtHasTime, now)) {
     return stop("outside_window");
   }
 
-  const startsAt = event.startsAt;
-  const meetUrl = event.meetUrl;
-  const [opTz, template] = await Promise.all([getOperationalTimezone(), approvedTemplateFor(EVENT_WA_TEMPLATE_KEY)]);
+  const startsAt = target.startsAt;
+  const [opTz, template] = await Promise.all([getOperationalTimezone(), approvedTemplateFor(spec.templateKey)]);
   const errors: string[] = [];
 
-  const deliver = async (row: Row, tpl: WaTemplate | null): Promise<Outcome> => {
+  const deliver = async (row: WaReminderRow, tpl: WaTemplate | null): Promise<Outcome> => {
     // Reclamo: si otro proceso ya lo tomó, no se manda dos veces.
-    const claimed = await prisma.webinarRegistration.updateMany({
-      where: { id: row.id, [flag]: null },
-      data: { [flag]: new Date(), waReminderError: null, waReminderErrorAt: null },
-    });
-    if (claimed.count === 0) return { outcome: "claimed_elsewhere" };
+    if (!(await spec.claim(row.id))) return { outcome: "claimed_elsewhere" };
 
     const recipient = await recipientFromContact(row.contactId);
     if (!recipient?.phoneE164) {
-      const error = recipient ? SKIP_MESSAGE.no_phone : "El contacto ya no existe.";
-      await saveError(row.id, error);
+      const error = recipient ? spec.skipMessages.no_phone : "El contacto ya no existe.";
+      await spec.saveError(row.id, error);
       return { outcome: "skipped", error };
     }
-    const vars = eventReminderVars({
-      headline: event.headline,
-      startsAt,
-      startsAtHasTime: event.startsAtHasTime,
-      meetUrl,
-      pass,
-      opTz,
-      zone: reminderZone(row.contact, opTz),
-      now,
-    });
+    const vars = spec.vars({ zone: reminderZone(row.contact, opTz), opTz, now });
     const nombre = greetingName(recipient.name);
     const r = await sendWhatsAppToRecipient({
       recipient,
-      text: eventReminderText({ ...vars, nombre }),
-      templateKey: EVENT_WA_TEMPLATE_KEY,
+      text: spec.text({ ...vars, nombre }),
+      templateKey: spec.templateKey,
       template: tpl,
       // WhatsApp no deja un parámetro vacío: sin nombre, un saludo neutro.
       vars: { ...vars, nombre: nombre || "😊" },
-      source: `evento:${event.id}:${pass}`,
+      source: `${spec.sourcePrefix}:${target.id}:${pass}`,
       isAutoReply: true,
-      clientKey: `evento:${event.id}:${pass}:${startsAt.getTime()}:${recipient.phoneE164.replace(/\D/g, "")}`,
+      clientKey: `${spec.sourcePrefix}:${target.id}:${pass}:${startsAt.getTime()}:${recipient.phoneE164.replace(/\D/g, "")}`,
     }).catch((e: unknown) => ({ status: "failed" as const, error: e instanceof Error ? e.message : String(e) }));
 
     if (r.status === "sent") return { outcome: "sent" };
-    const error = r.status === "skipped" ? SKIP_MESSAGE[r.reason] : `WhatsApp no lo aceptó: ${r.error}`;
-    await saveError(row.id, error);
+    const error = r.status === "skipped" ? spec.skipMessages[r.reason] : `WhatsApp no lo aceptó: ${r.error}`;
+    await spec.saveError(row.id, error);
     return { outcome: r.status === "skipped" ? "skipped" : "failed", error };
   };
 
@@ -187,17 +207,7 @@ export const sendEventWhatsAppReminders = async (opts: {
       result.stoppedEarly = true;
       break;
     }
-    const rows: Row[] = await prisma.webinarRegistration.findMany({
-      where: {
-        webinarId: event.id,
-        ...(registrationId ? { id: registrationId } : {}),
-        [flag]: null,
-        contact: WHATSAPPABLE_CONTACT,
-      },
-      orderBy: { createdAt: "asc" },
-      take: limit,
-      select: ROW_SELECT,
-    });
+    const rows = await spec.findRows(limit, rowId);
     if (rows.length === 0) break;
 
     let cursor = 0;
@@ -222,21 +232,15 @@ export const sendEventWhatsAppReminders = async (opts: {
       }
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, rows.length) }, lane));
-    if (result.stoppedEarly || registrationId || rows.length < limit) break;
+    if (result.stoppedEarly || rowId || rows.length < limit) break;
   }
 
-  result.remaining = await pending();
+  result.remaining = await spec.pending();
 
-  // La pasada queda en la historia del evento (las de una sola persona, no:
-  // son reintentos y ya se ven en su fila).
-  if (!registrationId && result.sent + result.failed + result.skipped > 0) {
-    await recordFreeEventActivity({
-      freeWebinarId: event.id,
-      kind: pass === "24h" ? "reminder_24h_wa" : "reminder_1h_wa",
-      count: result.sent,
-      failed: result.failed + result.skipped || null,
-      meta: ignoreWindow ? { manual: true } : null,
-    });
+  // La pasada queda en la historia (las de una sola persona, no: son
+  // reintentos y ya se ven en su fila).
+  if (!rowId && result.sent + result.failed + result.skipped > 0) {
+    await spec.recordPass(result, ignoreWindow);
   }
 
   // Un solo aviso por pasada (solo campana). Se espera en vez de dispararlo
@@ -247,11 +251,115 @@ export const sendEventWhatsAppReminders = async (opts: {
       eventType: "WHATSAPP_AI_INFO",
       title: `Recordatorio de ${pass} por WhatsApp: ${result.failed + result.skipped} sin enviar`,
       body: `${result.sent} enviados. ${[...new Set(errors)].join(" ")}`.slice(0, 300),
-      href: `/admin/eventos/${event.id}?tab=inscritas`,
-      entityType: "FreeWebinar",
-      entityId: event.id,
+      href: spec.notify.href,
+      entityType: spec.notify.entityType,
+      entityId: target.id,
       staff: "ALL",
     }).catch((e: unknown) => console.error("[recordatorios WhatsApp] aviso", e));
   }
   return result;
 };
+
+/* -------------------------------------------------------------------------
+ * Eventos gratuitos
+ * ---------------------------------------------------------------------- */
+
+const EVENT_SKIP_MESSAGE: Record<WaSkipReason, string> = {
+  needs_template:
+    "No escribió en las últimas 24 h y la plantilla «evento_gratis_recordatorio» no está aprobada.",
+  opted_out: "Pidió no recibir WhatsApp.",
+  no_phone: "Sin número de WhatsApp válido.",
+};
+
+const loadEvent = (webinarId?: string): Promise<FreeWebinar | null> =>
+  webinarId ? prisma.freeWebinar.findUnique({ where: { id: webinarId } }) : findCurrentFreeEventRow();
+
+const saveEventError = (id: string, message: string) =>
+  prisma.webinarRegistration
+    .update({ where: { id }, data: { waReminderError: message.slice(0, 300), waReminderErrorAt: new Date() } })
+    .catch(() => undefined);
+
+const eventSpec = (event: FreeWebinar | null, pass: EventWaPass): WaReminderSpec => {
+  const flag = waReminderFlag(pass);
+  const id = event?.id ?? "";
+  return {
+    target: event
+      ? {
+          id: event.id,
+          startsAt: event.startsAt,
+          startsAtHasTime: event.startsAtHasTime,
+          meetUrl: event.meetUrl,
+          ended: Boolean(event.endedAt),
+          live: freeEventAcceptsReminders(event),
+        }
+      : null,
+    pass,
+    templateKey: EVENT_WA_TEMPLATE_KEY,
+    sourcePrefix: "evento",
+    enabled: eventWaRemindersEnabled,
+    findRows: (take, rowId) =>
+      prisma.webinarRegistration.findMany({
+        where: {
+          webinarId: id,
+          ...(rowId ? { id: rowId } : {}),
+          [flag]: null,
+          contact: WHATSAPPABLE_CONTACT,
+        },
+        orderBy: { createdAt: "asc" },
+        take,
+        select: WA_REMINDER_ROW_SELECT,
+      }),
+    claim: async (rowId) =>
+      (
+        await prisma.webinarRegistration.updateMany({
+          where: { id: rowId, [flag]: null },
+          data: { [flag]: new Date(), waReminderError: null, waReminderErrorAt: null },
+        })
+      ).count > 0,
+    saveError: saveEventError,
+    pending: () => countPendingWaReminderRecipients(id, pass),
+    vars: ({ zone, opTz, now }) =>
+      eventReminderVars({
+        headline: event?.headline ?? "",
+        startsAt: event?.startsAt ?? now,
+        startsAtHasTime: event?.startsAtHasTime ?? false,
+        meetUrl: event?.meetUrl ?? "",
+        pass,
+        opTz,
+        zone,
+        now,
+      }),
+    text: eventReminderText,
+    skipMessages: EVENT_SKIP_MESSAGE,
+    recordPass: (result, manual) =>
+      recordFreeEventActivity({
+        freeWebinarId: id,
+        kind: pass === "24h" ? "reminder_24h_wa" : "reminder_1h_wa",
+        count: result.sent,
+        failed: result.failed + result.skipped || null,
+        meta: manual ? { manual: true } : null,
+      }),
+    notify: { href: `/admin/eventos/${id}?tab=inscritas`, entityType: "FreeWebinar" },
+  };
+};
+
+export const sendEventWhatsAppReminders = async (opts: {
+  pass: EventWaPass;
+  /** Sin él, el evento actual. */
+  webinarId?: string;
+  now?: Date;
+  budgetMs?: number;
+  /** Solo los envíos manuales: mandar aunque no sea su momento. */
+  ignoreWindow?: boolean;
+  /** Solo esa inscripción. */
+  registrationId?: string;
+  /** Tamaño de cada tanda. */
+  limit?: number;
+}): Promise<EventWaResult> =>
+  runWaReminderPass(eventSpec(await loadEvent(opts.webinarId), opts.pass), {
+    now: opts.now,
+    budgetMs: opts.budgetMs,
+    ignoreWindow: opts.ignoreWindow,
+    rowId: opts.registrationId,
+    limit: opts.limit,
+  });

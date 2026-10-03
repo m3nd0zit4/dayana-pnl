@@ -2,6 +2,7 @@ import { EnrollmentStatus, ProductKind, WorkshopEditionStatus } from "@prisma/cl
 
 import { prisma } from "@/lib/db";
 
+import { recordWorkshopActivitiesTx } from "./workshop-activity";
 import {
   workshopPriceRowsToWrite,
   workshopProductIdFor,
@@ -27,6 +28,8 @@ export type SyncWorkshopPriceInput = WorkshopPriceInput & {
   slug: string;
   title: string;
   status: WorkshopEditionStatus;
+  /** Quién lo cambió, para la historia de la edición. */
+  staffUserId?: string | null;
 };
 
 /**
@@ -90,6 +93,18 @@ export async function syncWorkshopEditionPrice(
       await tx.productPrice.createMany({
         data: rows.map((r) => ({ productId, currency: r.currency, amountMinor: r.amountMinor })),
       });
+      // El precio nuevo queda en la historia, con lo que quedó vigente.
+      await recordWorkshopActivitiesTx(tx, [
+        {
+          workshopEditionId: edition.id,
+          kind: "price_changed",
+          staffUserId: input.staffUserId,
+          meta: {
+            cop: rows.find((r) => r.currency === "COP")?.amountMinor ?? current.cop,
+            usd: rows.find((r) => r.currency === "USD")?.amountMinor ?? current.usd,
+          },
+        },
+      ]);
     }
 
     if (edition.productId !== productId) {

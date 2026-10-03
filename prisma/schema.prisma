@@ -522,16 +522,45 @@ model WorkshopEdition {
   /// URLs anteriores de la edicion. Cambiar la URL no rompe los enlaces ya
   /// enviados: `/taller-virtual/<vieja>` redirige a la nueva.
   previousSlugs              String[]              @default([]) @map("previous_slugs")
+  /// Primera vez que se publico (como en los eventos gratuitos).
+  publishedAt                DateTime?             @map("published_at")
+  /// Sellada al terminar: a mano («Terminar») o por el reloj de eventos al
+  /// pasar la fecha. Corta ventas y recordatorios. Null = edicion en pie.
+  endedAt                    DateTime?             @map("ended_at")
   createdAt                  DateTime              @default(now()) @map("created_at")
   updatedAt                  DateTime              @updatedAt @map("updated_at")
 
-  product               Product?               @relation(fields: [productId], references: [id])
+  product               Product?                  @relation(fields: [productId], references: [id])
   enrollments           Enrollment[]
   notificationCampaigns NotificationCampaign[]
   documents             WorkshopDocument[]
   whatsAppSends         WhatsAppSend[]
+  activities            WorkshopEditionActivity[]
 
   @@map("workshop_editions")
+}
+
+/// La historia de una edicion de taller, como `FreeEventActivity`: creada,
+/// publicada, cerrada, terminada, fecha / enlace / precio cambiados y cada
+/// pasada de recordatorios con cuantos salieron. Solo se anade.
+model WorkshopEditionActivity {
+  id                String   @id @default(cuid())
+  workshopEditionId String   @map("workshop_edition_id")
+  /// created | published | unpublished | closed | ended | reopened |
+  /// date_changed | meeting_link_set | meeting_link_changed | price_changed |
+  /// reminder_24h_email | reminder_1h_email | reminder_24h_wa | reminder_1h_wa | …
+  kind              String
+  at                DateTime @default(now())
+  count             Int?
+  failed            Int?
+  staffUserId       String?  @map("staff_user_id")
+  whatsAppSendId    String?  @map("whatsapp_send_id")
+  meta              Json?
+
+  workshopEdition WorkshopEdition @relation(fields: [workshopEditionId], references: [id], onDelete: Cascade)
+
+  @@index([workshopEditionId, at])
+  @@map("workshop_edition_activities")
 }
 
 /// Un evento gratuito: una fila por edición, igual que `WorkshopEdition`. La
@@ -751,6 +780,13 @@ model Enrollment {
   /// para que un cron repetido no mande dos veces.
   workshopReminder24hSentAt DateTime?           @map("workshop_reminder_24h_sent_at")
   workshopReminder1hSentAt  DateTime?           @map("workshop_reminder_1h_sent_at")
+  /// Los mismos recordatorios por WhatsApp (plantilla `taller_recordatorio`).
+  /// Como en los eventos, el sello se queda aunque falle y el motivo va a
+  /// `workshopWaReminderError`: una plantilla se cobra, no se reintenta sola.
+  workshopReminder24hWaSentAt DateTime?         @map("workshop_reminder_24h_wa_sent_at")
+  workshopReminder1hWaSentAt  DateTime?         @map("workshop_reminder_1h_wa_sent_at")
+  workshopWaReminderError     String?           @map("workshop_wa_reminder_error") @db.Text
+  workshopWaReminderErrorAt   DateTime?         @map("workshop_wa_reminder_error_at")
   createdAt                 DateTime            @default(now()) @map("created_at")
   updatedAt                 DateTime            @updatedAt @map("updated_at")
 
