@@ -69,9 +69,12 @@ const Mark = ({ at, error, label }: { at: string | null; error?: string | null; 
     </span>
   );
 
-/** La pasada del error: la última que se intentó. */
-const failedWaPass = (r: WorkshopEnrollmentRow): WaPass | null =>
-  r.waReminderError ? (r.reminder1hWaSentAt ? "1h" : "24h") : null;
+/** Las pasadas de WhatsApp que no salieron, cada una con su motivo. */
+const failedWaPasses = (r: WorkshopEnrollmentRow): { pass: WaPass; error: string }[] =>
+  [
+    r.waReminderError ? { pass: "24h" as const, error: r.waReminderError } : null,
+    r.waReminder1hError ? { pass: "1h" as const, error: r.waReminder1hError } : null,
+  ].filter((x): x is { pass: WaPass; error: string } => x !== null);
 
 /**
  * La pestaña «Inscritas» de un taller: quién pagó, qué recordatorios le
@@ -231,9 +234,7 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
     });
   };
 
-  const retryWa = async (r: WorkshopEnrollmentRow) => {
-    const pass = failedWaPass(r);
-    if (!pass) return;
+  const retryWa = async (r: WorkshopEnrollmentRow, pass: WaPass) => {
     setBusyId(r.id);
     try {
       const res = await postWa({ scope: "one", pass, enrollmentId: r.id });
@@ -389,16 +390,21 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
               <CrmDataListRow
                 key={r.id}
                 actions={
-                  r.waReminderError ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={busyId === r.id || !waEnabled || waRun !== null}
-                      onClick={() => void retryWa(r)}
-                    >
-                      Reintentar WA
-                    </Button>
+                  failedWaPasses(r).length > 0 ? (
+                    <div className="flex flex-col items-end gap-1">
+                      {failedWaPasses(r).map(({ pass }) => (
+                        <Button
+                          key={pass}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={busyId === r.id || !waEnabled || waRun !== null}
+                          onClick={() => void retryWa(r, pass)}
+                        >
+                          Reintentar WA {pass === "24h" ? "24 h" : "1 h"}
+                        </Button>
+                      ))}
+                    </div>
                   ) : undefined
                 }
               >
@@ -422,19 +428,15 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
                   <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
                     <Mark at={r.reminder24hSentAt} label="Correo 24 h" />
                     <Mark at={r.reminder1hSentAt} label="Correo 1 h" />
-                    <Mark
-                      at={r.reminder24hWaSentAt}
-                      error={failedWaPass(r) === "24h" ? r.waReminderError : null}
-                      label="WA 24 h"
-                    />
-                    <Mark
-                      at={r.reminder1hWaSentAt}
-                      error={failedWaPass(r) === "1h" ? r.waReminderError : null}
-                      label="WA 1 h"
-                    />
+                    <Mark at={r.reminder24hWaSentAt} error={r.waReminderError} label="WA 24 h" />
+                    <Mark at={r.reminder1hWaSentAt} error={r.waReminder1hError} label="WA 1 h" />
                   </p>
-                  {r.waReminderError ? (
-                    <p className="mt-1 text-xs text-destructive">WhatsApp no salió: {r.waReminderError}</p>
+                  {failedWaPasses(r).length > 0 ? (
+                    failedWaPasses(r).map(({ pass, error }) => (
+                      <p key={pass} className="mt-1 text-xs text-destructive">
+                        WhatsApp {pass === "24h" ? "24 h" : "1 h"} no salió: {error}
+                      </p>
+                    ))
                   ) : !r.notifyWhatsapp ? (
                     <p className="mt-1 text-xs text-warning">Pidió no recibir WhatsApp</p>
                   ) : null}

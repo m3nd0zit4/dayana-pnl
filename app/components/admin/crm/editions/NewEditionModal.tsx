@@ -37,6 +37,8 @@ type Props = {
   defaultSourceId?: string | null;
   /** Qué se copia y qué no. */
   copyHint: string;
+  /** El largo que acepta la API (talleres 200, eventos 300). */
+  titleMaxLength?: number;
   operationalTimezone: string;
   /** Crea el borrador; devuelve el mensaje de error o null (y quien llama navega). */
   onCreate: (values: NewEditionValues) => Promise<string | null>;
@@ -55,6 +57,7 @@ const NewEditionModal = ({
   sources,
   defaultSourceId,
   copyHint,
+  titleMaxLength = 200,
   operationalTimezone,
   onCreate,
 }: Props) => {
@@ -108,7 +111,7 @@ const NewEditionModal = ({
         }}
       >
         <CrmField label="Título" description={titleDescription}>
-          <Input value={title} maxLength={300} onChange={(ev) => setTitle(ev.target.value)} />
+          <Input value={title} maxLength={titleMaxLength} onChange={(ev) => setTitle(ev.target.value)} />
         </CrmField>
         <div className="grid grid-cols-2 gap-3">
           <CrmField label="Fecha">

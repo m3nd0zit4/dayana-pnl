@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useCrm } from "../CrmProvider";
+import { confirmLeave, isEditorDirty } from "./dirty-guard";
 
 /** Lo que las acciones necesitan saber de una edición. */
 export type EditionActionTarget = {
@@ -62,6 +63,20 @@ export const useEditionActions = (config: EditionActionsConfig) => {
   const [busyId, setBusyId] = useState<string | null>(null);
   const { apiBase, copy } = config;
 
+  /**
+   * Con cambios sin guardar en la pestaña abierta, los pasos del ciclo esperan:
+   * publicar con un precio a medio escribir vendería al precio viejo. Se dice
+   * y no se hace nada.
+   */
+  const unsaved = (verb: string): boolean => {
+    if (!isEditorDirty()) return false;
+    toast(`Tienes cambios sin guardar: guárdalos (o descártalos) antes de ${verb}.`, "error");
+    return true;
+  };
+
+  /** Duplicar lleva a otra página: con cambios sin guardar, pregunta antes. */
+  const leaving = (go: () => void) => (isEditorDirty() ? confirmLeave(confirm, go) : go());
+
   const run = useCallback(
     async (id: string, fn: () => Promise<void>) => {
       setBusyId(id);
@@ -81,6 +96,7 @@ export const useEditionActions = (config: EditionActionsConfig) => {
    * en la confirmación, con su nombre, para que no sea una sorpresa.
    */
   const publish = (e: EditionActionTarget, openOther?: EditionOther) =>
+    unsaved("publicar") ||
     confirm({
       title: copy.publishTitle,
       message: copy.publishMessage(e, openOther && openOther.id !== e.id ? openOther : null),
@@ -103,6 +119,7 @@ export const useEditionActions = (config: EditionActionsConfig) => {
     });
 
   const unpublish = (e: EditionActionTarget) =>
+    unsaved("cerrar inscripciones") ||
     confirm({
       title: "Cerrar inscripciones",
       message: copy.unpublishMessage,
@@ -117,6 +134,7 @@ export const useEditionActions = (config: EditionActionsConfig) => {
     });
 
   const end = (e: EditionActionTarget) =>
+    unsaved("terminar") ||
     confirm({
       title: copy.endTitle,
       message: copy.endMessage(e),
@@ -132,23 +150,28 @@ export const useEditionActions = (config: EditionActionsConfig) => {
     });
 
   const reopen = (e: EditionActionTarget) =>
+    unsaved("reabrir") ||
     run(e.id, async () => {
       const r = await post(`${apiBase(e.key)}/reopen`);
       if (!r.ok) return void toast(messageOf(r, "No se pudo reabrir."), "error");
-      toast(copy.reopenDone);
+      // La API puede avisar de algo (p. ej. que la fecha ya pasó).
+      toast(typeof r.data.notice === "string" && r.data.notice ? r.data.notice : copy.reopenDone);
       router.refresh();
     });
 
   /** Un borrador con la misma página, y se abre para ponerle fecha. */
   const duplicate = (e: EditionActionTarget) =>
-    run(e.id, async () => {
-      const r = await post(`${apiBase(e.key)}/duplicate`);
-      const href = r.ok ? config.createdHref(r.data) : null;
-      if (!href) return void toast(messageOf(r, "No se pudo duplicar."), "error");
-      toast(copy.duplicateDone, "success");
-      router.push(href);
+    leaving(() => {
+      void run(e.id, async () => {
+        const r = await post(`${apiBase(e.key)}/duplicate`);
+        const href = r.ok ? config.createdHref(r.data) : null;
+        if (!href) return void toast(messageOf(r, "No se pudo duplicar."), "error");
+        toast(copy.duplicateDone, "success");
+        router.push(href);
+      });
     });
 
+  /** Borrar la edición se lleva también lo que no se guardó: no hace falta preguntar dos veces. */
   const remove = (e: EditionActionTarget, after?: () => void) =>
     confirm({
       title: copy.removeTitle,

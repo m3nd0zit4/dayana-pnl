@@ -34,23 +34,28 @@ const EditionSection = ({
   return (
     <Card data-open={open ? "" : undefined}>
       <CardHeader>
+        {/* Teléfono: el título es el botón que pliega. */}
         <button
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="-m-1 flex w-[calc(100%+0.5rem)] items-center justify-between gap-3 rounded-md p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:pointer-events-none"
+          className="-m-1 flex w-[calc(100%+0.5rem)] items-center justify-between gap-3 rounded-md p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:hidden"
         >
           <span className="min-w-0">
-            <CardTitle className="text-base uppercase tracking-wide">{title}</CardTitle>
+            <span className="block font-heading text-base leading-snug font-medium uppercase tracking-wide">
+              {title}
+            </span>
             {summary && !open ? (
-              <span className="mt-0.5 block truncate text-xs text-muted-foreground sm:hidden">{summary}</span>
+              <span className="mt-0.5 block truncate text-xs text-muted-foreground">{summary}</span>
             ) : null}
           </span>
           <ChevronDown
             aria-hidden
-            className={cn("size-4 shrink-0 text-muted-foreground transition-transform sm:hidden", open && "rotate-180")}
+            className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}
           />
         </button>
+        {/* Desde sm siempre abierto: un título, no un control. */}
+        <CardTitle className="hidden text-base uppercase tracking-wide sm:block">{title}</CardTitle>
       </CardHeader>
       <CardContent className={cn(open ? "block" : "hidden", "sm:block")}>
         <div className={cn("space-y-4", contentClassName)}>{children}</div>

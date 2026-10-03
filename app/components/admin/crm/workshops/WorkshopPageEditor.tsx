@@ -75,29 +75,39 @@ const WorkshopPageEditor = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /** Lo que hay en el formulario, tal cual: de aquí sale «Cambios sin guardar». */
+  const values = () => ({
+    title: title.trim(),
+    cardSummary: description.trim() || null,
+    editionLabel: editionLabel.trim() || null,
+    dateLabel: dateLabel.trim() || null,
+    scheduleLabel: scheduleLabel.trim() || null,
+    capacity: capacity.trim() ? Number(capacity.trim()) : null,
+    focusTopics: focusTopics.map((t) => t.trim()).filter(Boolean),
+    daySchedule: normalizeWorkshopSchedule(daySchedule),
+    startsAtLocal: dateKey ? { date: dateKey, time: timeHm.trim() || null } : null,
+    meetingUrl: meetingUrl.trim() || null,
+    slug: normalizeWorkshopSlug(slugInput),
+  });
+
+  /**
+   * Lo que se manda: el cronograma solo si cambió (normalizarlo reescribe sus
+   * textos), la URL solo si es otra, y la fecha y el enlace nunca en uno que
+   * ya pasó.
+   */
   const payload = () => {
-    const slug = normalizeWorkshopSlug(slugInput);
+    const { slug, daySchedule: schedule, startsAtLocal, meetingUrl: link, ...rest } = values();
+    const scheduleChanged =
+      JSON.stringify(schedule) !== JSON.stringify(normalizeWorkshopSchedule(initial.daySchedule));
     return {
-      title: title.trim(),
-      cardSummary: description.trim() || null,
-      editionLabel: editionLabel.trim() || null,
-      dateLabel: dateLabel.trim() || null,
-      scheduleLabel: scheduleLabel.trim() || null,
-      capacity: capacity.trim() ? Number(capacity.trim()) : null,
-      focusTopics: focusTopics.map((t) => t.trim()).filter(Boolean),
-      daySchedule: normalizeWorkshopSchedule(daySchedule),
-      // En uno que ya pasó ni se mandan.
-      ...(initial.ended
-        ? {}
-        : {
-            startsAtLocal: dateKey ? { date: dateKey, time: timeHm.trim() || null } : null,
-            meetingUrl: meetingUrl.trim() || null,
-          }),
+      ...rest,
+      ...(scheduleChanged ? { daySchedule: schedule } : {}),
+      ...(initial.ended ? {} : { startsAtLocal, meetingUrl: link }),
       ...(slug && slug !== initial.slug ? { newSlug: slug } : {}),
     };
   };
 
-  const { dirty, reset: markSaved } = useDirtyBaseline(JSON.stringify(payload()));
+  const { dirty, reset: markSaved } = useDirtyBaseline(JSON.stringify(values()));
   useUnsavedChangesGuard(dirty);
 
   const discard = () => {
@@ -196,7 +206,7 @@ const WorkshopPageEditor = ({
           description={
             initial.ended
               ? ENDED_HINT
-              : "Solo lo ve quien pagó: en la página del taller y en los recordatorios de 24 h y 1 h (correo y WhatsApp)."
+              : "Solo lo ve quien pagó: en la página del taller y en los recordatorios de 24 h y 1 h (correo y WhatsApp). Si lo cambias antes del taller, los recordatorios vuelven a salir con el enlace nuevo."
           }
         >
           <Input

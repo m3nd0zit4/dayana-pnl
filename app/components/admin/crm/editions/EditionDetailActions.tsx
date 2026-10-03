@@ -13,6 +13,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { useCrm } from "../CrmProvider";
 import { CrmPublicLink } from "../ui";
+import { isEditorDirty } from "./dirty-guard";
 import type { EditionStatus } from "./status";
 import {
   useEditionActions,
@@ -66,7 +67,9 @@ const EditionDetailActions = ({
   const busy = actions.busyId === target.id;
 
   const publish = () => {
-    if (publishBlockedReason) return void toast(publishBlockedReason, "error");
+    // Con cambios sin guardar manda eso (lo dice `actions.publish`): lo que
+    // falta puede estar justo en lo que no se guardó.
+    if (!isEditorDirty() && publishBlockedReason) return void toast(publishBlockedReason, "error");
     actions.publish(target, openOther);
   };
 

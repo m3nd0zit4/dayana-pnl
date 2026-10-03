@@ -89,7 +89,12 @@ const WhatsAppTab = async ({ edition, tz }: { edition: WorkshopForPanel; tz: str
     listWorkshopPeopleForWhatsApp(edition.id),
     isOpen ? listWorkshopInviteContactIds(edition.id) : Promise.resolve([] as string[]),
   ]);
+  // El enlace de la reunión es de quien pagó: el recordatorio que lo lleva
+  // solo se ofrece para ellas; a las demás y a las invitadas, sin él.
   const presets = workshopPresets(edition, tz);
+  const withoutLink = presets.filter((p) => p.id !== "recordatorio");
+  const paid = people.filter((p) => p.paid);
+  const others = people.filter((p) => !p.paid);
   const link = { workshopEditionId: edition.id };
   return (
     <div className="flex flex-col gap-4">
@@ -106,7 +111,7 @@ const WhatsAppTab = async ({ edition, tz }: { edition: WorkshopForPanel; tz: str
             <WorkshopEmailNotifyButton editionId={edition.id} title={edition.title} />
             <WhatsAppBulkSend
               contactIds={inviteIds}
-              presets={presets}
+              presets={withoutLink}
               kind="taller"
               title={`Taller: ${edition.title} (invitación)`}
               label="Invitar por WhatsApp"
@@ -127,17 +132,43 @@ const WhatsAppTab = async ({ edition, tz }: { edition: WorkshopForPanel; tz: str
           }
         />
       ) : (
-        <PeopleWhatsAppList
-          key={edition.id}
-          people={people}
-          allContactIds={people.map((p) => p.contactId)}
-          presets={presets}
-          kind="taller"
-          title={`Taller: ${edition.title}`}
-          source="talleres"
-          allLabel="Enviar a todas las inscritas"
-          link={link}
-        />
+        <>
+          {paid.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h2 className="text-sm font-medium">Pagaron ({paid.length.toLocaleString("es-CO")})</h2>
+              <PeopleWhatsAppList
+                key={`${edition.id}:pagaron`}
+                people={paid}
+                allContactIds={paid.map((p) => p.contactId)}
+                presets={presets}
+                kind="taller"
+                title={`Taller: ${edition.title}`}
+                source="talleres"
+                allLabel="Enviar a todas las que pagaron"
+                link={link}
+              />
+            </section>
+          ) : null}
+          {others.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h2 className="text-sm font-medium">Sin pagar ({others.length.toLocaleString("es-CO")})</h2>
+              <p className="text-xs text-muted-foreground">
+                Interesadas o con el pago pendiente: a ellas no se les manda el enlace de la reunión.
+              </p>
+              <PeopleWhatsAppList
+                key={`${edition.id}:sin-pagar`}
+                people={others}
+                allContactIds={others.map((p) => p.contactId)}
+                presets={withoutLink}
+                kind="taller"
+                title={`Taller: ${edition.title} (sin pagar)`}
+                source="talleres"
+                allLabel="Enviar a todas las que no han pagado"
+                link={link}
+              />
+            </section>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -195,7 +226,7 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
   const status = ended ? "COMPLETED" : edition.status;
   const publishBlockedReason =
     !ended && edition.status !== "OPEN" && blockers.length > 0
-      ? `${workshopBlockersMessage(blockers)}. Complétalo en «Página» y «Precio».`
+      ? `${workshopBlockersMessage(blockers)}. ${blockers.some((b) => b !== "pastDate") ? "Complétalo en «Página» y «Precio»." : ""}`.trim()
       : null;
   // Lo que le falta para que salgan los recordatorios a quien pagó.
   const reminderGap = ended
@@ -237,7 +268,7 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
       .join(" · ");
     content = (
       <WorkshopPriceEditor
-        key={`${edition.id}:${edition.updatedAt.getTime()}`}
+        key={edition.id}
         slug={edition.slug}
         status={status}
         prices={edition.prices}
@@ -263,7 +294,7 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
     const hasTime = workshopStartsAtHasTime(edition);
     content = (
       <WorkshopPageEditor
-        key={`${edition.id}:${edition.updatedAt.getTime()}`}
+        key={edition.id}
         operationalTimezone={tz}
         initial={{
           slug: edition.slug,

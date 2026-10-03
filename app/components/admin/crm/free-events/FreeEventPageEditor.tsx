@@ -148,18 +148,15 @@ const FreeEventPageEditor = ({
   const { dirty, reset: markSaved } = useDirtyBaseline(JSON.stringify(savePayload()));
   useUnsavedChangesGuard(dirty);
 
-  const applyWebinar = (webinar: FreeWebinarPublic) => {
+  /** Lo que se guarda con la barra: los campos de texto, fechas e interruptores. */
+  const applyFields = (webinar: FreeWebinarPublic) => {
     setHeadline(webinar.headline);
     setSubheadline(webinar.subheadline ?? "");
     setBody(webinar.body ?? "");
     setDateKey(webinar.startsAtDateKey ?? "");
     setTimeHm(webinar.startsAtTimeHm ?? "");
     setMeetUrl(webinar.meetUrl ?? "");
-    setMaterial({ fileName: webinar.materialFileName, sizeBytes: webinar.materialSizeBytes });
     setCapacity(webinar.capacity != null ? String(webinar.capacity) : "");
-    setVideoStatus(webinar.videoStatus);
-    setMuxPlaybackId(webinar.muxPlaybackId);
-    setVideoErrorMessage(webinar.videoErrorMessage);
     setLearnSectionTitle(webinar.learnSectionTitle ?? "Lo que vas a llevarte");
     setLearnItems(webinar.learnItems.length ? webinar.learnItems : [""]);
     setFaq(webinar.faq);
@@ -177,6 +174,18 @@ const FreeEventPageEditor = ({
     setLinkTitle(webinar.linkTitle ?? "");
     setLinkSubtitle(webinar.linkSubtitle ?? "");
     setWaConfirmationEnabled(webinar.waConfirmationEnabled);
+  };
+
+  /**
+   * Todo, también el material y el vídeo (que se suben al momento, sin la
+   * barra): lo que devuelve el servidor tras guardar.
+   */
+  const applyWebinar = (webinar: FreeWebinarPublic) => {
+    applyFields(webinar);
+    setMaterial({ fileName: webinar.materialFileName, sizeBytes: webinar.materialSizeBytes });
+    setVideoStatus(webinar.videoStatus);
+    setMuxPlaybackId(webinar.muxPlaybackId);
+    setVideoErrorMessage(webinar.videoErrorMessage);
   };
 
   const patch = async (payload: Record<string, unknown>) => {
@@ -293,8 +302,10 @@ const FreeEventPageEditor = ({
     }
   };
 
+  // «Descartar» vuelve a lo guardado solo en los campos de la barra: el
+  // material y el vídeo ya se guardaron al subirlos.
   const onDiscard = () => {
-    applyWebinar(saved.current);
+    applyFields(saved.current);
     setError(null);
     setBlockers([]);
     markSaved();
