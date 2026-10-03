@@ -23,6 +23,8 @@ export type WorkshopEditionInput = {
   capacity?: number | null;
   whatsappTemplate?: string | null;
   startsAt?: Date | null;
+  /** false = solo el día (la hora de `startsAt` es un ancla). */
+  startsAtHasTime?: boolean;
   timezone?: string | null;
   productId?: string | null;
   heroLine1?: string | null;
@@ -70,6 +72,7 @@ const editionCreateData = (input: WorkshopEditionInput) => ({
   scheduleLabel: input.scheduleLabel ?? null,
   capacity: input.capacity ?? null,
   startsAt: input.startsAt ?? null,
+  startsAtHasTime: input.startsAtHasTime ?? true,
   timezone: input.timezone ?? "America/Bogota",
   focusTopics: jsonList(input.focusTopics),
   daySchedule: input.daySchedule ? normalizeWorkshopSchedule(input.daySchedule) : undefined,
@@ -104,6 +107,7 @@ export const resetWorkshopReminders = (workshopEditionId: string) =>
       workshopReminder24hWaSentAt: null,
       workshopReminder1hWaSentAt: null,
       workshopWaReminderError: null,
+      workshopWaReminder1hError: null,
       workshopWaReminderErrorAt: null,
     },
   });
@@ -112,17 +116,20 @@ const dateLabelFor = (d: Date | null, tz: string) =>
   d ? d.toLocaleString("es-CO", { timeZone: tz, dateStyle: "long", timeStyle: "short" }) : "sin fecha";
 
 /**
- * Anota lo que cambió de verdad (fecha, enlace) y, si cambió la fecha,
- * devuelve los recordatorios a la cola.
+ * Anota lo que cambió de verdad (fecha, enlace) y devuelve los recordatorios
+ * a la cola: con otra fecha los enviados dejan de valer, y con otro enlace
+ * —si el taller aún no empezó— llevaban la sala vieja. Como en los eventos,
+ * esa vuelta a la cola es el reenvío.
  */
 const recordEditChanges = async (
-  before: Pick<WorkshopEdition, "id" | "startsAt" | "meetingUrl" | "timezone">,
-  after: Pick<WorkshopEdition, "startsAt" | "meetingUrl" | "timezone">,
+  before: Pick<WorkshopEdition, "id" | "startsAt" | "startsAtHasTime" | "meetingUrl" | "timezone">,
+  after: Pick<WorkshopEdition, "startsAt" | "startsAtHasTime" | "meetingUrl" | "timezone">,
   actor: WorkshopActor
 ) => {
   const startsBefore = before.startsAt?.getTime() ?? null;
   const startsAfter = after.startsAt?.getTime() ?? null;
-  if (startsBefore !== startsAfter) {
+  const dateChanged = startsBefore !== startsAfter || before.startsAtHasTime !== after.startsAtHasTime;
+  if (dateChanged) {
     const { count } = await resetWorkshopReminders(before.id);
     await recordWorkshopActivity({
       workshopEditionId: before.id,
@@ -136,14 +143,31 @@ const recordEditChanges = async (
     });
   }
   if ((before.meetingUrl ?? null) !== (after.meetingUrl ?? null)) {
+    const notStarted = !after.startsAt || after.startsAt.getTime() > Date.now();
+    // Con la fecha cambiada ya volvieron a la cola.
+    const reset = notStarted && !dateChanged && before.meetingUrl ? (await resetWorkshopReminders(before.id)).count : 0;
     await recordWorkshopActivity({
       workshopEditionId: before.id,
       kind: before.meetingUrl ? "meeting_link_changed" : "meeting_link_set",
       staffUserId: actor.staffUserId,
-      meta: after.meetingUrl ? null : { removed: true },
+      meta: { ...(after.meetingUrl ? {} : { removed: true }), ...(reset ? { remindersReset: reset } : {}) },
     });
   }
 };
+
+/**
+ * El producto propio de la edición (`taller-<slug>`) con su título y su
+ * estado: se cobra con ese nombre (checkout, recibos, correos) y solo se vende
+ * publicada. Nunca crea uno ni toca un paquete compartido heredado.
+ */
+const alignOwnProduct = (edition: Pick<WorkshopEdition, "slug" | "title" | "status" | "endedAt">) =>
+  prisma.product.updateMany({
+    where: { id: workshopProductIdFor(edition.slug) },
+    data: {
+      title: edition.title,
+      isActive: edition.status === WorkshopEditionStatus.OPEN && !edition.endedAt,
+    },
+  });
 
 /**
  * Alta (o reescritura) de una edición con un slug dado. La usa el asistente
@@ -226,6 +250,7 @@ export const updateWorkshopEditionBySlug = async (
       scheduleLabel: keep(input.scheduleLabel, existing.scheduleLabel),
       capacity: keep(input.capacity, existing.capacity),
       startsAt: keep(input.startsAt, existing.startsAt),
+      startsAtHasTime: keep(input.startsAtHasTime, existing.startsAtHasTime),
       timezone: input.timezone ?? existing.timezone,
       focusTopics: jsonList(input.focusTopics),
       daySchedule: input.daySchedule === undefined ? undefined : normalizeWorkshopSchedule(input.daySchedule ?? []),
@@ -234,6 +259,7 @@ export const updateWorkshopEditionBySlug = async (
     },
   });
   await recordEditChanges(existing, edition, actor);
+  await alignOwnProduct(edition);
 
   if (input.status !== undefined && input.status !== edition.status) {
     await applyWorkshopStatus(edition.id, input.status, actor);
@@ -258,6 +284,8 @@ const isNewWorkshopSlugTaken = async (slug: string): Promise<boolean> =>
 export type CreateWorkshopEditionInput = {
   title?: string | null;
   startsAt?: Date | null;
+  /** false = solo el día. */
+  startsAtHasTime?: boolean;
   /** Copiar la página (textos, temas, cronograma, cupo) de otra edición. */
   copyFromId?: string | null;
 };
@@ -308,6 +336,7 @@ export const createWorkshopEdition = async (
           slug,
           status: WorkshopEditionStatus.DRAFT,
           startsAt: input.startsAt ?? null,
+          startsAtHasTime: input.startsAtHasTime ?? true,
           timezone: tz,
           meetingUrl: null,
         },
@@ -365,8 +394,11 @@ export const isRetiredWorkshopSlug = async (slug: string): Promise<boolean> =>
     select: { id: true },
   }));
 
-export const generateWorkshopSlug = async (title: string) =>
-  uniqueSlug(title, isWorkshopSlugInUse);
+/**
+ * La URL de una edición nueva (la usa el asistente): libre de verdad, sin
+ * chocar con un `taller-<slug>` que haya quedado de un taller borrado.
+ */
+export const generateWorkshopSlug = async (title: string) => uniqueSlug(title, isNewWorkshopSlugTaken);
 
 export const listWorkshopDocuments = (workshopEditionId: string) =>
   prisma.workshopDocument.findMany({

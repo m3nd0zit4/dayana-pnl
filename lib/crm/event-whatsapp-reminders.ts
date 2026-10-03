@@ -110,6 +110,11 @@ export type WaReminderSpec = {
   templateKey: string;
   /** `evento` | `taller`: prefijo de `source` y de la clave de envío. */
   sourcePrefix: string;
+  /**
+   * Se añade a la clave de envío: con otra (p. ej. otro enlace de la reunión)
+   * el mismo recordatorio puede volver a salir; con la misma, nunca dos veces.
+   */
+  keySuffix?: string;
   enabled: () => Promise<boolean>;
   /** Pendientes de este recordatorio (sin sello, con WhatsApp). */
   findRows: (take: number, rowId?: string) => Promise<WaReminderRow[]>;
@@ -191,7 +196,7 @@ export const runWaReminderPass = async (
       vars: { ...vars, nombre: nombre || "😊" },
       source: `${spec.sourcePrefix}:${target.id}:${pass}`,
       isAutoReply: true,
-      clientKey: `${spec.sourcePrefix}:${target.id}:${pass}:${startsAt.getTime()}:${recipient.phoneE164.replace(/\D/g, "")}`,
+      clientKey: `${spec.sourcePrefix}:${target.id}:${pass}:${startsAt.getTime()}:${recipient.phoneE164.replace(/\D/g, "")}${spec.keySuffix ? `:${spec.keySuffix}` : ""}`,
     }).catch((e: unknown) => ({ status: "failed" as const, error: e instanceof Error ? e.message : String(e) }));
 
     if (r.status === "sent") return { outcome: "sent" };

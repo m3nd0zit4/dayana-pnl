@@ -33,6 +33,7 @@ import {
   WORKSHOP_WA_TEMPLATE_KEY,
   workshopWaRemindersEnabled,
 } from "@/lib/crm/workshop-whatsapp-reminders";
+import { isWorkshopDatePast, PAST_DATE_MESSAGE } from "@/lib/crm/workshop-lifecycle-rules";
 import { previewSend } from "@/lib/crm/whatsapp-sends";
 import { prisma } from "@/lib/db";
 import { isVirtualWorkshopSlug } from "@/lib/workshops";
@@ -90,15 +91,20 @@ const withEdition = (slug: string, fn: (e: WorkshopEdition) => Promise<Response>
     return fn(edition);
   });
 
-/** Una fecha del panel (día + hora opcional, en la zona del CRM) → instante. */
-export const startsAtFromLocal = async (
+/**
+ * Una fecha del panel (día + hora opcional, en la zona del CRM) → instante, y
+ * si lleva hora. Sin hora se guarda a mediodía como ancla y lo dice
+ * `startsAtHasTime: false`: nunca se deduce de las 12:00.
+ */
+export const scheduleFromLocal = async (
   local: { date: string; time?: string | null } | null | undefined
-): Promise<Date | null | undefined> => {
+): Promise<{ startsAt: Date | null; startsAtHasTime: boolean } | undefined> => {
   if (local === undefined) return undefined;
-  if (local === null) return null;
+  if (local === null) return { startsAt: null, startsAtHasTime: false };
   const tz = await getOperationalTimezone();
   const time = local.time?.trim() ?? "";
-  return zonedDateTimeToUtc(local.date, /^\d{1,2}:\d{2}$/.test(time) ? time : "12:00", tz);
+  const hasTime = /^\d{1,2}:\d{2}$/.test(time);
+  return { startsAt: zonedDateTimeToUtc(local.date, hasTime ? time : "12:00", tz), startsAtHasTime: hasTime };
 };
 
 /* -------------------------------------------------------------------------
@@ -126,7 +132,7 @@ export const createWorkshopResponse = ({ req, staff }: Ctx) =>
     const edition = await createWorkshopEdition(
       {
         title: parsed.data.title ?? null,
-        startsAt: (await startsAtFromLocal(parsed.data.startsAtLocal ?? null)) ?? null,
+        ...(await scheduleFromLocal(parsed.data.startsAtLocal ?? null)),
         copyFromId: parsed.data.copyFromId ?? null,
       },
       { staffUserId: staff.id }
@@ -171,7 +177,11 @@ export const reopenWorkshopResponse = (slug: string, staff: StaffUser) =>
   withEdition(slug, async (e) => {
     const edition = await reopenWorkshopEdition(e.id, { staffUserId: staff.id });
     audit(staff.id, e.id, "UPDATE", { ended: false });
-    return NextResponse.json({ edition });
+    // Reabierta pero con la fecha ya pasada: publicarla pide otra fecha antes.
+    const notice = isWorkshopDatePast(edition)
+      ? `Reabierto. ${PAST_DATE_MESSAGE} (pestaña «Página»).`
+      : undefined;
+    return NextResponse.json({ edition, notice });
   });
 
 export const deleteWorkshopResponse = (slug: string, staff: StaffUser) =>

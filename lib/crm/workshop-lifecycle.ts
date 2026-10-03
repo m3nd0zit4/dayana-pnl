@@ -65,9 +65,10 @@ const load = async (id: string): Promise<WorkshopEdition> => {
 
 /** Lo que le falta para publicarse: título, descripción, fecha y precio en pesos. */
 export const getWorkshopPublishBlockers = async (
-  row: Pick<WorkshopEdition, "slug" | "title" | "cardSummary" | "detailSummary" | "intro" | "startsAt">
+  row: WorkshopEdition,
+  now: Date = new Date()
 ): Promise<WorkshopPublishBlocker[]> =>
-  workshopPublishBlockers(row, await canOpenWithPrice(row.slug, undefined, false));
+  workshopPublishBlockers(row, await canOpenWithPrice(row.slug, undefined, false), now);
 
 export type WorkshopPublishResult = {
   edition: WorkshopEdition;
@@ -92,7 +93,7 @@ export const publishWorkshopEdition = async (
   const row = await load(id);
   if (isWorkshopEnded(row)) throw new WorkshopLifecycleError("ended");
   if (opts.enforceBlockers !== false) {
-    const blockers = await getWorkshopPublishBlockers(row);
+    const blockers = await getWorkshopPublishBlockers(row, now);
     if (blockers.length > 0) throw new WorkshopPublishError(blockers);
   }
 
@@ -251,13 +252,25 @@ export const listLiveWorkshopEditions = () =>
     orderBy: [{ startsAt: { sort: "asc", nulls: "last" } }],
   });
 
-/** Termina las que ya pasaron. Devuelve las que terminó ESTE proceso. */
+/**
+ * Termina las que ya pasaron. Devuelve las que terminó ESTE proceso.
+ *
+ * Una que Dayana reabrió a mano después de su hora de cierre no se vuelve a
+ * terminar sola: la reabrió para algo (cambiarle la fecha). Publicarla pide
+ * antes una fecha que no haya pasado; con la fecha nueva el reloj vuelve a
+ * mandar.
+ */
 export const closeDueWorkshops = async (now: Date = new Date()): Promise<WorkshopEdition[]> => {
   const live = await listLiveWorkshopEditions();
   const closed: WorkshopEdition[] = [];
   for (const e of live) {
     const closeAt = workshopCloseAt(e);
     if (!closeAt || now < closeAt) continue;
+    const reopened = await prisma.workshopEditionActivity.findFirst({
+      where: { workshopEditionId: e.id, kind: "reopened", at: { gte: closeAt } },
+      select: { id: true },
+    });
+    if (reopened) continue;
     if (await endWorkshopEdition(e.id, { by: "cron", now })) {
       closed.push(await prisma.workshopEdition.findUniqueOrThrow({ where: { id: e.id } }));
     }

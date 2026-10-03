@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   buildWorkshopTimeline,
+  isWorkshopDatePast,
   isWorkshopEnded,
   isWorkshopPast,
   lifecycleStepFor,
@@ -45,33 +46,53 @@ describe("estado", () => {
 });
 
 describe("publicar", () => {
-  const ready = { title: "Sanando", cardSummary: "Una jornada en vivo.", startsAt: START };
+  /** Antes del taller: nada pasó todavía. */
+  const BEFORE = new Date("2026-11-01T12:00:00.000Z");
+  const ready = {
+    title: "Sanando",
+    cardSummary: "Una jornada en vivo.",
+    startsAt: START,
+    startsAtHasTime: true,
+    timezone: TZ,
+  };
 
   test("completo y con precio en pesos: nada que bloquee", () => {
-    expect(workshopPublishBlockers(ready, true)).toEqual([]);
+    expect(workshopPublishBlockers(ready, true, BEFORE)).toEqual([]);
   });
 
   test("sin precio en pesos no se publica", () => {
-    expect(workshopPublishBlockers(ready, false)).toEqual(["priceCop"]);
+    expect(workshopPublishBlockers(ready, false, BEFORE)).toEqual(["priceCop"]);
   });
 
   test("sin fecha, sin descripción o con la descripción igual al título", () => {
-    expect(workshopPublishBlockers({ ...ready, startsAt: null }, true)).toEqual(["startsAt"]);
-    expect(workshopPublishBlockers({ ...ready, cardSummary: null }, true)).toEqual(["description"]);
-    expect(workshopPublishBlockers({ ...ready, cardSummary: "Sanando" }, true)).toEqual(["description"]);
-    expect(workshopPublishBlockers({ ...ready, cardSummary: null, detailSummary: "Otra" }, true)).toEqual([]);
+    expect(workshopPublishBlockers({ ...ready, startsAt: null }, true, BEFORE)).toEqual(["startsAt"]);
+    expect(workshopPublishBlockers({ ...ready, cardSummary: null }, true, BEFORE)).toEqual(["description"]);
+    expect(workshopPublishBlockers({ ...ready, cardSummary: "Sanando" }, true, BEFORE)).toEqual(["description"]);
+    expect(
+      workshopPublishBlockers({ ...ready, cardSummary: null, detailSummary: "Otra" }, true, BEFORE)
+    ).toEqual([]);
+  });
+
+  test("con la fecha ya pasada no se publica (reabierto, por ejemplo)", () => {
+    const after = new Date(START.getTime() + 4 * H);
+    expect(isWorkshopDatePast(ready, after)).toBe(true);
+    expect(workshopPublishBlockers(ready, true, after)).toEqual(["pastDate"]);
+    expect(workshopBlockersMessage(["pastDate"])).toBe("La fecha ya pasó: cámbiala antes de publicar");
   });
 
   test("el mensaje nombra lo que falta", () => {
     expect(workshopBlockersMessage(["startsAt", "priceCop"])).toBe("Falta la fecha, el precio en pesos (COP)");
+    expect(workshopBlockersMessage(["pastDate", "priceCop"])).toBe(
+      "La fecha ya pasó: cámbiala antes de publicar. Falta el precio en pesos (COP)"
+    );
   });
 });
 
 describe("cuándo termina", () => {
+  const timed = { startsAt: START, startsAtHasTime: true, timezone: TZ };
+
   test("con hora: 3 h después de empezar", () => {
-    expect(workshopCloseAt({ startsAt: START, timezone: TZ })?.toISOString()).toBe(
-      new Date(START.getTime() + 3 * H).toISOString()
-    );
+    expect(workshopCloseAt(timed)?.toISOString()).toBe(new Date(START.getTime() + 3 * H).toISOString());
   });
 
   test("nunca antes de que acabe el cronograma", () => {
@@ -80,30 +101,31 @@ describe("cuándo termina", () => {
       { startTime: "13:00", endTime: "16:30", title: "Tarde" },
     ];
     // 16:30 en Bogotá = 21:30 UTC.
-    expect(workshopCloseAt({ startsAt: START, timezone: TZ, daySchedule })?.toISOString()).toBe(
-      "2026-11-08T21:30:00.000Z"
-    );
+    expect(workshopCloseAt({ ...timed, daySchedule })?.toISOString()).toBe("2026-11-08T21:30:00.000Z");
   });
 
   test("endsAt manda", () => {
     const endsAt = new Date("2026-11-08T23:00:00.000Z");
-    expect(workshopCloseAt({ startsAt: START, endsAt, timezone: TZ })).toEqual(endsAt);
+    expect(workshopCloseAt({ ...timed, endsAt })).toEqual(endsAt);
   });
 
-  test("sin hora (ancla de mediodía): 03:00 del día siguiente", () => {
+  test("solo el día: 03:00 del día siguiente", () => {
     const noon = new Date("2026-11-08T17:00:00.000Z");
-    expect(workshopStartsAtHasTime({ startsAt: noon, timezone: TZ })).toBe(false);
-    expect(workshopCloseAt({ startsAt: noon, timezone: TZ })?.toISOString()).toBe("2026-11-09T08:00:00.000Z");
+    const dateOnly = { startsAt: noon, startsAtHasTime: false, timezone: TZ };
+    expect(workshopStartsAtHasTime(dateOnly)).toBe(false);
+    expect(workshopCloseAt(dateOnly)?.toISOString()).toBe("2026-11-09T08:00:00.000Z");
   });
 
-  test("mediodía de verdad si el cronograma empieza a las 12:00", () => {
+  test("un taller a mediodía conserva su hora: no se deduce de las 12:00", () => {
     const noon = new Date("2026-11-08T17:00:00.000Z");
-    const daySchedule = [{ startTime: "12:00", endTime: "13:00", title: "Bloque" }];
-    expect(workshopStartsAtHasTime({ startsAt: noon, timezone: TZ, daySchedule })).toBe(true);
+    const atNoon = { startsAt: noon, startsAtHasTime: true, timezone: TZ };
+    expect(workshopStartsAtHasTime(atNoon)).toBe(true);
+    expect(workshopCloseAt(atNoon)?.toISOString()).toBe("2026-11-08T20:00:00.000Z");
   });
 
   test("sin fecha no se cierra solo", () => {
-    expect(workshopCloseAt({ startsAt: null, timezone: TZ })).toBeNull();
+    expect(workshopCloseAt({ startsAt: null, startsAtHasTime: false, timezone: TZ })).toBeNull();
+    expect(workshopStartsAtHasTime({ startsAt: null, startsAtHasTime: true })).toBe(false);
   });
 });
 

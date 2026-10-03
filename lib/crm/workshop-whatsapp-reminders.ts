@@ -32,6 +32,10 @@ export const setWorkshopWaRemindersEnabled = (enabled: boolean): Promise<void> =
 export const workshopWaFlag = (pass: EventWaPass) =>
   pass === "24h" ? ("workshopReminder24hWaSentAt" as const) : ("workshopReminder1hWaSentAt" as const);
 
+/** El error de cada pasada va aparte: un 1 h que sale no tapa un 24 h que falló. */
+export const workshopWaErrorColumn = (pass: EventWaPass) =>
+  pass === "24h" ? ("workshopWaReminderError" as const) : ("workshopWaReminder1hError" as const);
+
 /** Pagaron esta edición (la misma regla que los correos). */
 export const PAID_ENROLLMENT = {
   in: [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED],
@@ -69,8 +73,19 @@ export const listPendingWorkshopWaContactIds = async (
 export const releaseWorkshopWaReminder = (enrollmentId: string, pass: EventWaPass) =>
   prisma.enrollment.updateMany({
     where: { id: enrollmentId },
-    data: { [workshopWaFlag(pass)]: null, workshopWaReminderError: null, workshopWaReminderErrorAt: null },
+    data: { [workshopWaFlag(pass)]: null, [workshopWaErrorColumn(pass)]: null },
   });
+
+/**
+ * Huella corta del enlace para la clave de envío. Cambiar el enlace antes del
+ * taller devuelve los recordatorios a la cola, y tienen que poder salir otra
+ * vez con el enlace nuevo: con la clave de antes se darían por enviados.
+ */
+export const linkFingerprint = (url: string | null | undefined): string => {
+  let h = 5381;
+  for (const ch of url ?? "") h = ((h << 5) + h + ch.charCodeAt(0)) >>> 0;
+  return h.toString(36);
+};
 
 const SKIP_MESSAGE: Record<WaSkipReason, string> = {
   needs_template: "No escribió en las últimas 24 h y la plantilla «taller_recordatorio» no está aprobada.",
@@ -108,6 +123,7 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
     pass,
     templateKey: WORKSHOP_WA_TEMPLATE_KEY,
     sourcePrefix: "taller",
+    keySuffix: linkFingerprint(edition?.meetingUrl),
     enabled: workshopWaRemindersEnabled,
     findRows: (take, rowId) =>
       prisma.enrollment.findMany({
@@ -120,14 +136,14 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
       (
         await prisma.enrollment.updateMany({
           where: { id: rowId, [flag]: null },
-          data: { [flag]: new Date(), workshopWaReminderError: null, workshopWaReminderErrorAt: null },
+          data: { [flag]: new Date(), [workshopWaErrorColumn(pass)]: null },
         })
       ).count > 0,
     saveError: (rowId, message) =>
       prisma.enrollment
         .update({
           where: { id: rowId },
-          data: { workshopWaReminderError: message.slice(0, 300), workshopWaReminderErrorAt: new Date() },
+          data: { [workshopWaErrorColumn(pass)]: message.slice(0, 300), workshopWaReminderErrorAt: new Date() },
         })
         .catch(() => undefined),
     pending: () => countPendingWorkshopWaReminders(editionId, pass),

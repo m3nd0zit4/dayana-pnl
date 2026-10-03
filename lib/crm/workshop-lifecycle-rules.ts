@@ -1,5 +1,5 @@
 import type { WorkshopEditionStatus } from "@prisma/client";
-import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
+import { getDateKeyInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import { parseWorkshopSchedule } from "@/lib/workshop-schedule";
 import {
   buildFreeEventTimeline,
@@ -46,13 +46,14 @@ export const workshopStatusAfterReopen = (s: WorkshopEditionStatus): WorkshopEdi
  * Publicar
  * ---------------------------------------------------------------------- */
 
-export type WorkshopPublishBlocker = "title" | "description" | "startsAt" | "priceCop";
+export type WorkshopPublishBlocker = "title" | "description" | "startsAt" | "priceCop" | "pastDate";
 
 export const WORKSHOP_PUBLISH_BLOCKER_LABELS: Record<WorkshopPublishBlocker, string> = {
   title: "el título",
   description: "la descripción",
   startsAt: "la fecha",
   priceCop: "el precio en pesos (COP)",
+  pastDate: "una fecha que no haya pasado",
 };
 
 /** La descripción que sale en la tarjeta y en la página. */
@@ -62,52 +63,25 @@ export const workshopDescriptionOf = (e: {
   intro?: string | null;
 }): string => e.cardSummary?.trim() || e.detailSummary?.trim() || e.intro?.trim() || "";
 
-/**
- * Lo que falta para publicar. El precio en pesos lo decide `canOpenWithPrice`
- * (el propio o, en una edición heredada, el del paquete compartido): aquí
- * llega ya resuelto.
- */
-export const workshopPublishBlockers = (
-  e: { title: string; cardSummary?: string | null; detailSummary?: string | null; intro?: string | null; startsAt: Date | null },
-  hasCopPrice: boolean
-): WorkshopPublishBlocker[] => {
-  const out: WorkshopPublishBlocker[] = [];
-  if (!e.title.trim()) out.push("title");
-  // Sin descripción propia el enriquecido repite el título: no cuenta.
-  const description = workshopDescriptionOf(e);
-  if (!description || description === e.title.trim()) out.push("description");
-  if (!e.startsAt) out.push("startsAt");
-  if (!hasCopPrice) out.push("priceCop");
-  return out;
-};
-
-export const workshopBlockersMessage = (blockers: WorkshopPublishBlocker[]): string =>
-  `Falta ${blockers.map((b) => WORKSHOP_PUBLISH_BLOCKER_LABELS[b]).join(", ")}`;
-
 /* -------------------------------------------------------------------------
  * Fecha y cierre
  * ---------------------------------------------------------------------- */
 
-/** El panel guarda las fechas sin hora a mediodía (ancla), como los eventos. */
-const DATE_ONLY_ANCHOR = "12:00";
-
 type TimingRow = {
   startsAt: Date | null;
+  /** Sin hora: `startsAt` es un ancla de mediodía, no una hora de verdad. */
+  startsAtHasTime: boolean;
   endsAt?: Date | null;
   timezone: string;
   daySchedule?: unknown;
 };
 
 /**
- * ¿`startsAt` lleva hora de verdad? Una fecha sin hora se guarda a las 12:00:
- * solo cuenta como hora real si no es esa, o si el cronograma también empieza
- * a las 12:00.
+ * ¿`startsAt` lleva hora de verdad? Lo guarda quien pone la fecha (como en
+ * los eventos); no se deduce: un taller a mediodía es un taller a mediodía.
  */
-export const workshopStartsAtHasTime = (e: TimingRow): boolean => {
-  if (!e.startsAt) return false;
-  if (getTimeHmInTz(e.startsAt, e.timezone) !== DATE_ONLY_ANCHOR) return true;
-  return parseWorkshopSchedule(e.daySchedule)[0]?.startTime === DATE_ONLY_ANCHOR;
-};
+export const workshopStartsAtHasTime = (e: Pick<TimingRow, "startsAt" | "startsAtHasTime">): boolean =>
+  Boolean(e.startsAt) && e.startsAtHasTime;
 
 /** Margen tras el inicio antes de darlo por realizado, como en los eventos. */
 export const WORKSHOP_CLOSE_GRACE_MS = 3 * 60 * 60 * 1000;
@@ -123,8 +97,7 @@ export const workshopCloseAt = (e: TimingRow): Date | null => {
   if (!e.startsAt) return null;
   const dateKey = getDateKeyInTz(e.startsAt, e.timezone);
   if (!workshopStartsAtHasTime(e)) {
-    const next = new Date(zonedDateTimeToUtc(dateKey, "00:00", e.timezone).getTime() + 27 * 60 * 60 * 1000);
-    return next;
+    return new Date(zonedDateTimeToUtc(dateKey, "00:00", e.timezone).getTime() + 27 * 60 * 60 * 1000);
   }
   let closeAt = e.startsAt.getTime() + WORKSHOP_CLOSE_GRACE_MS;
   const slots = parseWorkshopSchedule(e.daySchedule);
@@ -138,6 +111,53 @@ export const workshopCloseAt = (e: TimingRow): Date | null => {
     }
   }
   return new Date(closeAt);
+};
+
+/** Ya pasó su hora de cierre: publicarlo lo vendería después de hecho. */
+export const isWorkshopDatePast = (e: TimingRow, now: Date = new Date()): boolean => {
+  const closeAt = workshopCloseAt(e);
+  return closeAt !== null && now.getTime() >= closeAt.getTime();
+};
+
+/* -------------------------------------------------------------------------
+ * Publicar
+ * ---------------------------------------------------------------------- */
+
+/**
+ * Lo que falta para publicar. El precio en pesos lo decide `canOpenWithPrice`
+ * (el propio o, en una edición heredada, el del paquete compartido): aquí
+ * llega ya resuelto. Una fecha que ya pasó también bloquea: se cambia antes.
+ */
+export const workshopPublishBlockers = (
+  e: {
+    title: string;
+    cardSummary?: string | null;
+    detailSummary?: string | null;
+    intro?: string | null;
+  } & TimingRow,
+  hasCopPrice: boolean,
+  now: Date = new Date()
+): WorkshopPublishBlocker[] => {
+  const out: WorkshopPublishBlocker[] = [];
+  if (!e.title.trim()) out.push("title");
+  // Sin descripción propia el enriquecido repite el título: no cuenta.
+  const description = workshopDescriptionOf(e);
+  if (!description || description === e.title.trim()) out.push("description");
+  if (!e.startsAt) out.push("startsAt");
+  else if (isWorkshopDatePast(e, now)) out.push("pastDate");
+  if (!hasCopPrice) out.push("priceCop");
+  return out;
+};
+
+export const PAST_DATE_MESSAGE = "La fecha ya pasó: cámbiala antes de publicar";
+
+export const workshopBlockersMessage = (blockers: WorkshopPublishBlocker[]): string => {
+  const missing = blockers.filter((b) => b !== "pastDate");
+  const parts = [
+    blockers.includes("pastDate") ? PAST_DATE_MESSAGE : null,
+    missing.length ? `Falta ${missing.map((b) => WORKSHOP_PUBLISH_BLOCKER_LABELS[b]).join(", ")}` : null,
+  ].filter(Boolean);
+  return parts.join(". ");
 };
 
 /* -------------------------------------------------------------------------

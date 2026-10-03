@@ -21,9 +21,14 @@ import { workshopProductIdFor } from "./workshop-price-rows";
 
 const PAID = [EnrollmentStatus.ACTIVE, EnrollmentStatus.COMPLETED];
 
+/** Algún recordatorio por WhatsApp no salió (el de 24 h o el de 1 h). */
+const WA_FAILED = {
+  OR: [{ workshopWaReminderError: { not: null } }, { workshopWaReminder1hError: { not: null } }],
+} satisfies Prisma.EnrollmentWhereInput;
+
 /** «16 de mayo de 2026, 7:30 a. m.» en la zona del taller; el texto propio si no hay fecha. */
 export const workshopDateLabel = (
-  row: Pick<WorkshopEdition, "startsAt" | "timezone" | "dateLabel" | "daySchedule">,
+  row: Pick<WorkshopEdition, "startsAt" | "startsAtHasTime" | "timezone" | "dateLabel">,
   timeZone?: string
 ): string => {
   if (!row.startsAt) return row.dateLabel?.trim() || "Sin fecha";
@@ -153,7 +158,7 @@ export const listWorkshopCopySources = async (timeZone?: string) =>
     await prisma.workshopEdition.findMany({
       where: { slug: { not: PROXIMO_WORKSHOP_SLUG } },
       orderBy: [{ startsAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-      select: { id: true, title: true, startsAt: true, timezone: true, dateLabel: true, daySchedule: true },
+      select: { id: true, title: true, startsAt: true, startsAtHasTime: true, timezone: true, dateLabel: true },
       take: 50,
     })
   ).map((e) => ({ id: e.id, title: e.title, label: `${e.title} · ${workshopDateLabel(e, timeZone)}` }));
@@ -186,9 +191,9 @@ export const workshopEnrollmentStats = async (editionId: string): Promise<Worksh
       where: { ...base, workshopReminder24hWaSentAt: { not: null }, workshopWaReminderError: null },
     }),
     prisma.enrollment.count({
-      where: { ...base, workshopReminder1hWaSentAt: { not: null }, workshopWaReminderError: null },
+      where: { ...base, workshopReminder1hWaSentAt: { not: null }, workshopWaReminder1hError: null },
     }),
-    prisma.enrollment.count({ where: { ...base, workshopWaReminderError: { not: null } } }),
+    prisma.enrollment.count({ where: { ...base, ...WA_FAILED } }),
     prisma.enrollment.count({ where: { ...base, contact: { NOT: WHATSAPPABLE_CONTACT } } }),
   ]);
   return { total, email24h, email1h, noEmail, wa24h, wa1h, waFailed, noWhatsApp };
@@ -203,7 +208,7 @@ export const listWorkshopEnrollments = async (
     where: {
       workshopEditionId: editionId,
       status: { in: PAID },
-      ...(opts.failedOnly ? { workshopWaReminderError: { not: null } } : {}),
+      ...(opts.failedOnly ? WA_FAILED : {}),
       ...(q
         ? {
             contact: {
@@ -230,6 +235,7 @@ export const listWorkshopEnrollments = async (
       workshopReminder24hWaSentAt: true,
       workshopReminder1hWaSentAt: true,
       workshopWaReminderError: true,
+      workshopWaReminder1hError: true,
       contact: {
         select: {
           id: true,
@@ -257,7 +263,10 @@ export const listWorkshopEnrollments = async (
     reminder1hSentAt: r.workshopReminder1hSentAt?.toISOString() ?? null,
     reminder24hWaSentAt: r.workshopReminder24hWaSentAt?.toISOString() ?? null,
     reminder1hWaSentAt: r.workshopReminder1hWaSentAt?.toISOString() ?? null,
+    /** Por qué no salió el de 24 h por WhatsApp. */
     waReminderError: r.workshopWaReminderError,
+    /** Por qué no salió el de 1 h por WhatsApp. */
+    waReminder1hError: r.workshopWaReminder1hError,
   }));
 };
 
@@ -279,7 +288,10 @@ const ENROLLMENT_STATUS_LABEL: Partial<Record<EnrollmentStatus, string>> = {
   LEAD: "Interesada",
 };
 
-/** Las personas de la edición (cualquier estado), una por contacto. */
+/**
+ * Las personas de la edición (cualquier estado), una por contacto. `paid`
+ * separa a quien pagó: solo a ellas se les manda el enlace de la reunión.
+ */
 export const listWorkshopPeopleForWhatsApp = async (editionId: string) => {
   const rows = await prisma.enrollment.findMany({
     where: { workshopEditionId: editionId },
@@ -289,14 +301,18 @@ export const listWorkshopPeopleForWhatsApp = async (editionId: string) => {
       contact: { select: { id: true, firstName: true, lastName: true, phoneE164: true, email: true } },
     },
   });
+  const paidContacts = new Set(
+    rows.filter((r) => PAID.some((p) => p === r.status)).map((r) => r.contact.id)
+  );
   const seen = new Set<string>();
   return rows
     .filter((e) => (seen.has(e.contact.id) ? false : (seen.add(e.contact.id), true)))
     .map((e) => ({
       contactId: e.contact.id,
       name: [e.contact.firstName, e.contact.lastName].filter(Boolean).join(" "),
+      paid: paidContacts.has(e.contact.id),
       detail: [
-        ENROLLMENT_STATUS_LABEL[e.status] ?? e.status,
+        paidContacts.has(e.contact.id) ? "Pagó" : (ENROLLMENT_STATUS_LABEL[e.status] ?? e.status),
         e.contact.phoneE164.startsWith("+nophone") ? "sin número" : e.contact.phoneE164,
         e.contact.email,
       ]
@@ -370,6 +386,7 @@ export const getWorkshopTimeline = async (id: string, timeZone: string): Promise
         workshopReminder24hWaSentAt: true,
         workshopReminder1hWaSentAt: true,
         workshopWaReminderError: true,
+        workshopWaReminder1hError: true,
       },
     }),
   ]);
@@ -385,7 +402,7 @@ export const getWorkshopTimeline = async (id: string, timeZone: string): Promise
       email1h: summarizeFlag(regs.map((r) => r.workshopReminder1hSentAt)),
       wa24h: summarizeFlag(regs.map((r) => r.workshopReminder24hWaSentAt)),
       wa1h: summarizeFlag(regs.map((r) => r.workshopReminder1hWaSentAt)),
-      waErrors: regs.filter((r) => r.workshopWaReminderError).length,
+      waErrors: regs.filter((r) => r.workshopWaReminderError || r.workshopWaReminder1hError).length,
     },
   };
 };

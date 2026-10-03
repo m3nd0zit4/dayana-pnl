@@ -16,7 +16,7 @@ import { validateWorkshopPrices } from "@/lib/crm/workshop-price-rows";
 import { isValidWorkshopSlug } from "@/lib/crm/workshop-slug";
 import { isVirtualWorkshopSlug } from "@/lib/workshops";
 import { workshopEditionSchema } from "@/lib/validations/admin";
-import { deleteWorkshopResponse, findEdition, startsAtFromLocal, workshopErrorResponse } from "../_lib/lifecycle";
+import { deleteWorkshopResponse, findEdition, scheduleFromLocal, workshopErrorResponse } from "../_lib/lifecycle";
 
 type Params = { slug: string };
 
@@ -70,23 +70,27 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     });
   }
 
-  let startsAt: Date | null | undefined;
+  // La fecha del panel dice también si lleva hora; un instante suelto (API
+  // vieja) se toma como fecha con hora.
+  let schedule: { startsAt: Date | null; startsAtHasTime: boolean } | undefined;
   try {
-    startsAt =
+    schedule =
       parsed.data.startsAtLocal !== undefined
-        ? await startsAtFromLocal(parsed.data.startsAtLocal)
+        ? await scheduleFromLocal(parsed.data.startsAtLocal)
         : parsed.data.startsAt !== undefined
-          ? parsed.data.startsAt
-            ? new Date(parsed.data.startsAt)
-            : null
+          ? { startsAt: parsed.data.startsAt ? new Date(parsed.data.startsAt) : null, startsAtHasTime: true }
           : undefined;
   } catch (e) {
     return workshopErrorResponse(e) ?? apiError("invalid_datetime", 400);
   }
+  const startsAt = schedule?.startsAt;
 
   // Uno que ya pasó no se reprograma ni cambia de sala: para otra fecha, se duplica.
   if (isWorkshopEnded(existing)) {
-    const dateChanged = startsAt !== undefined && (startsAt?.getTime() ?? null) !== (existing.startsAt?.getTime() ?? null);
+    const dateChanged =
+      schedule !== undefined &&
+      ((schedule.startsAt?.getTime() ?? null) !== (existing.startsAt?.getTime() ?? null) ||
+        (schedule.startsAt !== null && schedule.startsAtHasTime !== existing.startsAtHasTime));
     const linkChanged =
       parsed.data.meetingUrl !== undefined && (parsed.data.meetingUrl || null) !== (existing.meetingUrl ?? null);
     if (dateChanged || linkChanged) {
@@ -124,7 +128,7 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
       capacity: d.capacity,
       whatsappTemplate: d.whatsappTemplate,
       startsAt,
-      ...(startsAt !== undefined ? { timezone: await getOperationalTimezone() } : {}),
+      ...(schedule ? { startsAtHasTime: schedule.startsAtHasTime, timezone: await getOperationalTimezone() } : {}),
       heroLine1: d.heroLine1,
       heroLine2: d.heroLine2,
       heroLine3: d.heroLine3,
@@ -153,7 +157,10 @@ export const PATCH = withStaff<Params>("write", async ({ req, staff, params }) =
     changes: body,
   });
 
-  if (priceWritten) {
+  // Siempre, también sin precio nuevo: el producto propio sigue el título de
+  // la edición (checkout, recibos, correos) y su estado. No crea uno sin
+  // precio ni toca un paquete compartido heredado.
+  {
     try {
       await syncWorkshopEditionPrice({
         slug: edition.slug,

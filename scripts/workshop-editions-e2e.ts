@@ -40,6 +40,7 @@ import {
   WorkshopLifecycleError,
   WorkshopPublishError,
 } from "@/lib/crm/workshop-lifecycle";
+import { workshopCloseAt } from "@/lib/crm/workshop-lifecycle-rules";
 import { getWorkshopTimeline, listWorkshopsForPanel } from "@/lib/crm/workshop-panel";
 import { syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
 import { workshopProductIdFor } from "@/lib/crm/workshop-price-rows";
@@ -66,6 +67,7 @@ const run = Date.now();
 const t0 = new Date();
 const H = 3600_000;
 const MEET = "https://zoom.us/j/e2e-talleres";
+const MEET2 = "https://zoom.us/j/e2e-talleres-nuevo";
 const PHONES = { open: "+573000007791", never: "+573000007792", optout: "+573000007793" } as const;
 const threads = Object.values(PHONES).map((p) => whatsAppDigits(p));
 
@@ -269,6 +271,33 @@ const main = async () => {
     (await prisma.product.findUniqueOrThrow({ where: { id: workshopProductIdFor(a.slug) } })).isActive === false
   );
 
+  console.log("\n5b. Cambiar el título renombra lo que se cobra; un taller a mediodía conserva su hora");
+  await updateWorkshopEditionBySlug(b.slug, { title: `Taller E2E B renombrado ${run}` }, actor);
+  const productB = await prisma.product.findUniqueOrThrow({ where: { id: workshopProductIdFor(b.slug) } });
+  check(
+    "el producto de B (checkout, recibos, correos) lleva el título nuevo y sigue a la venta",
+    productB.title === `Taller E2E B renombrado ${run}` && productB.isActive,
+    productB
+  );
+  // 12:00 en Bogotá = 17:00 UTC.
+  const noonDay = new Date(Date.now() + 15 * 24 * H);
+  noonDay.setUTCHours(17, 0, 0, 0);
+  const noon = await createWorkshopEdition(
+    { title: `Taller E2E mediodía ${run}`, startsAt: noonDay, startsAtHasTime: true },
+    actor
+  );
+  createdIds.push(noon.id);
+  const noonRow = (await listWorkshopsForPanel("America/Bogota")).find((w) => w.id === noon.id);
+  check(
+    "a mediodía: guarda que lleva hora y la lista la muestra",
+    noon.startsAtHasTime === true && Boolean(noonRow?.dateLabel.includes("12:00")),
+    noonRow?.dateLabel
+  );
+  check(
+    "y el reloj lo cierra 3 h después (no al día siguiente)",
+    workshopCloseAt(noon)?.getTime() === noonDay.getTime() + 3 * H
+  );
+
   console.log("\n6. Inscritas pagadas; cambiar la fecha devuelve los recordatorios a la cola");
   const cOpen = await upsertContact(PHONES.open, "Abierta");
   const cNever = await upsertContact(PHONES.never, "Nunca");
@@ -333,6 +362,38 @@ const main = async () => {
   const outside = await sendWorkshopWhatsAppReminders({ pass: "1h", editionId: a.id });
   check("el de 1 h todavía no toca", outside.reason === "outside_window" && outside.sent === 0, outside);
 
+  console.log("\n7b. Otro enlace antes del taller: el recordatorio vuelve a salir, con el enlace nuevo");
+  await updateWorkshopEditionBySlug(a.slug, { title: a.title, meetingUrl: MEET2 }, actor);
+  const afterLink = await prisma.enrollment.findMany({
+    where: { workshopEditionId: a.id, contactId: { in: [cOpen, cNever] } },
+    select: { workshopReminder24hWaSentAt: true },
+  });
+  check("los sellos vuelven a cero", afterLink.every((e) => e.workshopReminder24hWaSentAt === null), afterLink);
+  const r3 = await sendWorkshopWhatsAppReminders({ pass: "24h", editionId: a.id });
+  const resent = await prisma.conversationMessage.findMany({
+    where: { source: `taller:${a.id}:24h`, body: { contains: MEET2 } },
+    select: { id: true },
+  });
+  check("salen otra vez las 2, con el enlace nuevo", r3.sent === 2 && resent.length === 2, { r3, resent: resent.length });
+  const linkAct = await prisma.workshopEditionActivity.findFirst({
+    where: { workshopEditionId: a.id, kind: "meeting_link_changed" },
+  });
+  check("la historia lo anota con cuántos volvieron a la cola", (linkAct?.meta as { remindersReset?: number })?.remindersReset === 3, linkAct?.meta);
+
+  console.log("\n7c. El de 1 h no tapa un 24 h que falló");
+  await prisma.enrollment.updateMany({
+    where: { workshopEditionId: a.id, contactId: cOpen },
+    data: { workshopWaReminderError: "falló el de 24 h" },
+  });
+  const oneHour = await sendWorkshopWhatsAppReminders({ pass: "1h", editionId: a.id, ignoreWindow: true });
+  const openRow = await prisma.enrollment.findFirstOrThrow({ where: { workshopEditionId: a.id, contactId: cOpen } });
+  check(
+    "sale el de 1 h y el error del de 24 h sigue ahí",
+    oneHour.sent === 2 && openRow.workshopReminder1hWaSentAt !== null && openRow.workshopWaReminderError === "falló el de 24 h",
+    { oneHour, err: openRow.workshopWaReminderError }
+  );
+  await prisma.enrollment.updateMany({ where: { workshopEditionId: a.id }, data: { workshopWaReminderError: null } });
+
   console.log("\n8. Un envío por WhatsApp desde el taller queda en su historia");
   const send = await createSend({
     title: `Taller: ${a.title} · Invitación`,
@@ -377,6 +438,20 @@ const main = async () => {
   check("con pagos no se borra", delPaid instanceof WorkshopLifecycleError && delPaid.reason === "has_paid_enrollments", String(delPaid));
   const reopened = await reopenWorkshopEdition(a.id, actor);
   check("reabrir: cerrada y sin sello de fin", reopened.status === "CLOSED" && reopened.endedAt === null);
+  const pastPublish = await publishWorkshopEdition(a.id, actor).catch((e: unknown) => e);
+  check(
+    "reabierta con la fecha ya pasada no se publica («La fecha ya pasó»)",
+    pastPublish instanceof WorkshopPublishError &&
+      pastPublish.blockers.includes("pastDate") &&
+      pastPublish.messageEs.startsWith("La fecha ya pasó: cámbiala antes de publicar"),
+    pastPublish instanceof WorkshopPublishError ? pastPublish.messageEs : String(pastPublish)
+  );
+  const reclosed = await closeDueWorkshops();
+  check(
+    "y el reloj no la vuelve a terminar sola (se reabrió a mano después del cierre)",
+    !reclosed.some((w) => w.id === a.id) &&
+      (await prisma.workshopEdition.findUniqueOrThrow({ where: { id: a.id } })).endedAt === null
+  );
   const reended = await endWorkshopEdition(a.id, { by: "staff", staffUserId: staff.id });
   check("y se puede volver a terminar", reended);
   await deleteWorkshopEdition(dup.id);
