@@ -163,6 +163,14 @@ const handOffIfNeeded = async (conversationId: string, skipReason: string) => {
   );
 };
 
+/** ¿Lo último que se le mandó (del más nuevo al más viejo) fue el recordatorio de su cita? */
+const afterReminder = (messagesNewestFirst: { direction: string; kind: string; source: string | null }[]) =>
+  Boolean(
+    messagesNewestFirst
+      .find((m) => m.direction === "OUTBOUND" && m.kind !== "system")
+      ?.source?.startsWith("recordatorio:")
+  );
+
 const ATTENTION_REASONS = new Set<string>([
   "payment",
   "unknown",
@@ -317,6 +325,19 @@ export const runWhatsAppAi = async (input: {
     }
 
     const { conversation, history } = verdict;
+
+    // En copiloto, a un «gracias», un 👍 o un sticker no hace falta proponerle
+    // nada a Dayana: ni se llama al modelo. Salvo justo después de un
+    // recordatorio de cita: ahí un «ok» puede ser la confirmación (la IA la anota).
+    if (
+      effectiveAiMode(conversation.aiMode, config.defaultMode) === "COPILOT" &&
+      !needsReply(inboundSinceLastReply(conversation.messages)) &&
+      !afterReminder(conversation.messages)
+    ) {
+      await finish(run.id, "SKIPPED", { reason: "trivial" });
+      return;
+    }
+
     await setStatus(run.id, "THINKING", { startedAt: new Date() });
 
     const timezone = await getOperationalTimezone();
@@ -454,9 +475,10 @@ export const runWhatsAppAi = async (input: {
       Boolean(result.pendingPayment) ||
       copilot;
 
-    // En copiloto, a un «gracias», un 👍 o un sticker no hace falta proponerle
-    // nada a Dayana (en modo IA sí puede salir un «Con gusto»). Lo que pide una
-    // cita, un pago o lleva un precio sigue esperando su autorización.
+    // Lo mismo después de pensar (el caso del recordatorio: la IA ya anotó la
+    // confirmación; un «¡Perfecto!» no hace falta proponerlo). En modo IA sí
+    // puede salir un «Con gusto». Lo que pide una cita, un pago o lleva un
+    // precio sigue esperando su autorización.
     const plainReply =
       !saysPrice && !result.pendingSlots && !result.pendingBooking && !result.pendingPayment && !result.bookingRequest;
     if (copilot && plainReply && !needsReply(inboundSinceLastReply(conversation.messages))) {

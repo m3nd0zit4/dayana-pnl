@@ -264,9 +264,9 @@ const main = async () => {
       check("sin aviso", (await notices(c)).length === 0);
     }
 
-    console.log("\n5. Copiloto: «gracias» no deja propuesta");
+    console.log("\n5. Copiloto: «gracias» no deja propuesta (ni se llama al modelo)");
     if (!hasModel) {
-      console.log("  (omitida: necesita el modelo)");
+      console.log("  (omitida: sin GEMINI_API_KEY la IA no pasa el primer filtro)");
     } else {
       const c = await store(T.thanks, "Hola, ¿cuánto dura una sesión?", { sentAt: new Date(Date.now() - 30 * 60_000) });
       await prisma.conversationMessage.create({
@@ -284,6 +284,7 @@ const main = async () => {
       const r = await lastRun(c);
       const c1 = await conv(c);
       check("la IA no propone nada («no hacía falta responder»)", r?.status === "SKIPPED" && r.reason === "trivial", { status: r?.status, reason: r?.reason });
+      check("sin llamar al modelo", r?.startedAt === null && r?.model === null, { startedAt: r?.startedAt, model: r?.model });
       check("sin propuesta ni «Te toca»", (await awaiting(c)) === 0 && c1.attentionAt === null && !(await inAttention(c)));
       check("sin borrador", c1.draftBody === null, c1.draftBody);
     }
