@@ -6,7 +6,7 @@ import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
 import { windowStateOf } from "../whatsapp-outbound-plan";
-import { replyStateOf, type ReplyState } from "../whatsapp-attention-rules";
+import { isManualPause, replyStateOf, type ReplyState } from "../whatsapp-attention-rules";
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 import { attentionWhere, seguimientoWhere } from "./attention";
 
@@ -446,6 +446,35 @@ export const getOlderMessages = async (
   return { messages: rows.slice(0, limit).reverse().map(toMessageView), hasMore: rows.length > limit };
 };
 
+/**
+ * Por qué una escalada sigue en pie: la pausó ella (`manual`), le toca
+ * (`open`), se resolvió con un pago o una cita, ya contestó (`answered`; lo
+ * delicado espera a «Listo»), o nada de eso (`waiting`).
+ */
+export type EscalationCause = "manual" | "open" | "payment" | "appointment" | "answered" | "waiting";
+
+const escalationCause = (c: {
+  escalationCategory: string | null;
+  escalationReason: string | null;
+  attentionAt: Date | null;
+  aiPausedAt: Date | null;
+  lastHumanReplyAt: Date | null;
+  resolvedAt: Date | null;
+  resolvedReason: string | null;
+}): EscalationCause => {
+  if (isManualPause({ category: c.escalationCategory, reason: c.escalationReason })) return "manual";
+  if (c.attentionAt) return "open";
+  const since = c.aiPausedAt?.getTime() ?? 0;
+  if (
+    (c.resolvedReason === "payment" || c.resolvedReason === "appointment") &&
+    (c.resolvedAt?.getTime() ?? 0) >= since
+  ) {
+    return c.resolvedReason;
+  }
+  if ((c.lastHumanReplyAt?.getTime() ?? 0) >= since && c.lastHumanReplyAt) return "answered";
+  return "waiting";
+};
+
 export const getChat = async (id: string) => {
   const c = await prisma.conversation.findUnique({
     where: { id },
@@ -467,6 +496,9 @@ export const getChat = async (id: string) => {
       draftSource: true,
       attentionAt: true,
       attentionReason: true,
+      lastHumanReplyAt: true,
+      resolvedAt: true,
+      resolvedReason: true,
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -527,7 +559,13 @@ export const getChat = async (id: string) => {
     pausedReason: c.aiPausedReason,
     escalation:
       c.aiPausedReason === "escalation"
-        ? { category: c.escalationCategory, severity: c.escalationSeverity, reason: c.escalationReason }
+        ? {
+            category: c.escalationCategory,
+            severity: c.escalationSeverity,
+            reason: c.escalationReason,
+            /** Por qué la IA sigue apartada (para decirlo en la cabecera). */
+            cause: escalationCause(c),
+          }
         : null,
     priority: Boolean(c.priorityAt),
     /** «Te toca»: sale al contestar (CRM o celular) o con «Listo». */

@@ -13,6 +13,7 @@ import { clientContext } from "@/lib/crm/whatsapp-agent/brain";
 import { availableSlots } from "@/lib/crm/whatsapp-agent/calendar";
 import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
 import { markAttended } from "@/lib/crm/whatsapp-agent/attention";
+import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
 import {
   getChat,
@@ -160,9 +161,10 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
       const { defaultMode } = await getWhatsAppAiConfig();
       if (effectiveAiMode(input.mode, defaultMode) !== input.mode) return apiError("general_mode", 409);
       await prisma.conversation.update({ where: { id }, data: { aiMode: input.mode } });
-      if (input.mode !== "MANUAL") await resumeAutoReply(id);
+      // Una escalada delicada sigue en pausa hasta «Listo» (`stillPaused`).
+      const resumed = input.mode !== "MANUAL" ? await resumeAutoReply(id) : true;
       audit({ aiMode: input.mode });
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, ...(resumed ? {} : { stillPaused: true }) });
     }
     case "take": {
       await prisma.conversation.update({
@@ -178,19 +180,20 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         where: { id },
         data: { aiMode: config.defaultMode, priorityAt: null },
       });
-      await resumeAutoReply(id);
+      const resumed = await resumeAutoReply(id);
       audit({ released: true });
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, ...(resumed ? {} : { stillPaused: true }) });
     }
-    case "resume":
-      await resumeAutoReply(id);
-      audit({ resumed: true });
-      return NextResponse.json({ ok: true });
+    case "resume": {
+      const resumed = await resumeAutoReply(id);
+      audit({ resumed });
+      return NextResponse.json({ ok: true, ...(resumed ? {} : { stillPaused: true }) });
+    }
     case "pause":
       await pauseAutoReply(id, "escalation", {
         category: "other",
         severity: "normal",
-        reason: "Pausado a mano.",
+        reason: MANUAL_PAUSE_REASON,
       });
       audit({ paused: true });
       return NextResponse.json({ ok: true });

@@ -13,13 +13,20 @@ export const recoverStuck = async (): Promise<{ approvals: number; queued: numbe
   // La IA se cortó a medias (esperando, pensando o enviando su respuesta): la
   // vuelta queda como fallida y, si lo que escribió la persona importa, le
   // toca a Dayana (nadie más lo va a contestar). Las aprobaciones «enviando»
-  // llevan `decidedAt` y van aparte.
+  // llevan `decidedAt` y van aparte. Solo lo de las últimas 48 h (lo de antes
+  // ya no espera a nadie: abrirlo llenaría «Te toca» de chats viejos) y de a
+  // poco, porque esto corre dentro del barrido de la cola de entrada.
   const stuckWhere = {
     status: { in: ["QUEUED", "THINKING", "SENDING"] },
     decidedAt: null,
-    queuedAt: { lt: minutesAgo(5) },
+    queuedAt: { lt: minutesAgo(10), gte: minutesAgo(48 * 60) },
   };
-  const stuck = await prisma.whatsAppAiRun.findMany({ where: stuckWhere, select: { id: true, conversationId: true } });
+  const stuck = await prisma.whatsAppAiRun.findMany({
+    where: stuckWhere,
+    orderBy: { queuedAt: "asc" },
+    take: 20,
+    select: { id: true, conversationId: true },
+  });
   let aiRuns = 0;
   if (stuck.length > 0) {
     const { count } = await prisma.whatsAppAiRun.updateMany({

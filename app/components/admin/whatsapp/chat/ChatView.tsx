@@ -89,7 +89,10 @@ const ChatView = ({
     setBusy(key);
     try {
       const data = await post(chat.id, body);
-      if (done) toast(done, "success");
+      if ((data as { stillPaused?: boolean } | null)?.stillPaused) {
+        // Algo clínico, un pago o algo urgente: la IA no vuelve sin «Listo».
+        toast("La IA sigue en pausa: es un tema delicado. Pulsa «Listo» cuando lo hayas atendido.", "info");
+      } else if (done) toast(done, "success");
       onChanged();
       return data;
     } catch (e) {

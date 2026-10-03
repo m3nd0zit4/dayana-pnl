@@ -44,6 +44,8 @@ const summary = async () => {
     SELECT
       COUNT(*) FILTER (WHERE attention_at IS NOT NULL) AS te_toca,
       COUNT(*) FILTER (WHERE ai_paused_reason = 'escalation') AS escaladas,
+      COUNT(*) FILTER (WHERE ai_paused_reason = 'escalation' AND (escalation_category IS NULL
+        OR (escalation_category = 'other' AND COALESCE(escalation_reason, '') = 'Pausado a mano.'))) AS pausas_a_mano,
       COUNT(*) FILTER (WHERE ai_paused_reason = 'escalation'
         AND (COALESCE(escalation_category, '') IN ('clinical', 'payment') OR escalation_severity = 'urgent')) AS escaladas_delicadas,
       COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM whatsapp_ai_runs r
@@ -52,6 +54,7 @@ const summary = async () => {
   return {
     teToca: n(row?.te_toca),
     escaladas: n(row?.escaladas),
+    pausasAMano: n(row?.pausas_a_mano),
     escaladasDelicadas: n(row?.escaladas_delicadas),
     conPropuesta: n(row?.con_propuesta),
   };

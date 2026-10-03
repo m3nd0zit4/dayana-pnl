@@ -363,6 +363,16 @@ export const canClose = (by: CloseBy, attention: { reason: string | null; urgent
 export const isSensitiveEscalation = (e: { category: string | null; severity: string | null }): boolean =>
   e.category === "clinical" || e.category === "payment" || e.severity === "urgent";
 
+/** El motivo que deja «Pausar» en el chat (la IA nunca escala con él). */
+export const MANUAL_PAUSE_REASON = "Pausado a mano.";
+
+/**
+ * ¿Una pausa que puso Dayana (o el equipo) y no la IA? Sin categoría (la
+ * bandeja general) o la de «Pausar». No es una escalada: no le toca nada.
+ */
+export const isManualPause = (e: { category: string | null; reason: string | null }): boolean =>
+  !e.category || (e.category === "other" && e.reason === MANUAL_PAUSE_REASON);
+
 /**
  * ¿Una respuesta (o «Listo», una cita, un pago) en `upTo` cierra lo abierto
  * en `attentionAt`? Solo si es posterior: un eco que llega tarde pero se

@@ -77,7 +77,15 @@ export const resolveConversations = async (
   for (const r of rows) {
     const closed = await closeAttention(r.id, { by: CLOSE_BY[reason], upTo });
     let resolved = false;
-    if (isPending(r) && r.lastInboundAt && r.lastInboundAt.getTime() <= upTo.getTime()) {
+    if (closed) {
+      // Lo que de verdad lo sacó de «Te toca» queda como el motivo (una cita
+      // anterior que no cerraba un pago no se queda con el mérito del pago).
+      await prisma.conversation.update({
+        where: { id: r.id },
+        data: { resolvedAt: new Date(), resolvedReason: reason, resolvedById: staffId ?? null },
+      });
+      resolved = true;
+    } else if (isPending(r) && r.lastInboundAt && r.lastInboundAt.getTime() <= upTo.getTime()) {
       const { count } = await prisma.conversation.updateMany({
         // Se repite la condición: entre leer y escribir pudo entrar otro mensaje.
         where: { id: r.id, lastInboundAt: { lte: upTo }, OR: [{ resolvedAt: null }, { resolvedAt: r.resolvedAt }] },

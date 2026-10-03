@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import type { WhatsAppAiConfig } from "./whatsapp-ai-config";
 import { getOperationalTimezone } from "./operational-timezone";
+import { isSensitiveEscalation } from "./whatsapp-attention-rules";
 import { clearEscalationAttention } from "./whatsapp-agent/attention";
 import { think, type BrainOutcome, type TranscriptLine } from "./whatsapp-agent/brain";
 import type { SimilarExample } from "./whatsapp-learning";
@@ -81,16 +82,30 @@ export const pauseAutoReply = async (
 };
 
 /**
- * La IA vuelve a contestar en el hilo. Si había una escalada, lo que esa
- * escalada abrió en «Te toca» se cierra con ella («Devolver a la IA», cambiar
- * el modo, reanudar desde el agente…); un «sin responder» se queda.
+ * La IA vuelve a contestar en el hilo («Devolver a la IA», cambiar el modo,
+ * reanudar desde el agente…). Si había una escalada, lo que esa escalada abrió
+ * en «Te toca» se cierra con ella; un «sin responder» se queda.
+ *
+ * Una escalada delicada (clínica, pago, urgente) NO se levanta así: sigue en
+ * pausa, en «Te toca» y con su aviso hasta que Dayana pulse «Listo». Solo
+ * confirmar un pago (`allowPayment`) puede devolver un pago a la IA —para eso
+ * está—, nunca algo clínico o urgente. Devuelve si la IA quedó atendiendo.
  */
-export const resumeAutoReply = async (conversationId: string): Promise<void> => {
+export const resumeAutoReply = async (
+  conversationId: string,
+  opts: { allowPayment?: boolean } = {}
+): Promise<boolean> => {
   const before = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    select: { aiPausedReason: true },
+    select: { aiPausedReason: true, escalationCategory: true, escalationSeverity: true },
   });
-  if (before?.aiPausedReason === "escalation") await clearEscalationAttention(conversationId);
+  if (!before) return false;
+  if (before.aiPausedReason === "escalation") {
+    const escalation = { category: before.escalationCategory, severity: before.escalationSeverity };
+    const paymentOnly = escalation.category === "payment" && escalation.severity !== "urgent";
+    if (isSensitiveEscalation(escalation) && !(opts.allowPayment && paymentOnly)) return false;
+    await clearEscalationAttention(conversationId);
+  }
   await prisma.conversation.update({
     where: { id: conversationId },
     data: {
@@ -101,6 +116,7 @@ export const resumeAutoReply = async (conversationId: string): Promise<void> => 
       escalationReason: null,
     },
   });
+  return true;
 };
 
 export type ReplyDraft = {
