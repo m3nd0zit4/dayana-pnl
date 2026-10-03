@@ -1225,6 +1225,23 @@ model Conversation {
   lastHumanReplyAt DateTime? @map("last_human_reply_at")
 
   @@index([channel, attentionAt])
+
+  // Clasificación del chat
+  /// cliente | interesada | comunidad | personal | negocio | equipo | otro.
+  /// Nulo = sin clasificar. Ver lib/crm/chat-category-rules.ts.
+  category             String?   @map("category")
+  /// rule | ai | manual. Lo que puso el equipo (`manual`) nunca se pisa.
+  categorySource       String?   @map("category_source")
+  categoryConfidence   Float?    @map("category_confidence")
+  categoryReason       String?   @map("category_reason")
+  categorizedAt        DateTime? @map("categorized_at")
+  /// Hasta qué mensaje cubre la clasificación (`lastMessageAt` de entonces):
+  /// si llega otro después, se vuelve a mirar.
+  categorizedThroughAt DateTime? @map("categorized_through_at")
+  /// La IA no estaba segura (confianza < 0,7): la pantalla dice «revisar».
+  categoryReview       Boolean   @default(false) @map("category_review")
+
+  @@index([channel, category])
 }
 
 model ConversationMessage {
