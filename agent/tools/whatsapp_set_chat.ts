@@ -36,14 +36,24 @@ export default defineTool({
         },
       });
     }
-    if (resume || (mode && mode !== "MANUAL")) await resumeAutoReply(conversationId);
+    // Una escalada clínica, de pago o urgente no se levanta desde aquí: espera a «Listo».
+    const resumed = resume || (mode && mode !== "MANUAL") ? await resumeAutoReply(conversationId) : true;
     if (memory !== undefined) await setMemory(chat.externalThreadId, memory, chat.contactId);
     await auditAgentWrite(ctx, {
       action: "WHATSAPP_CHAT_UPDATED",
       entityType: "WhatsAppChat",
       entityId: conversationId,
-      changes: { mode, priority, resume, memory: memory !== undefined },
+      changes: { mode, priority, resume, memory: memory !== undefined, stillPaused: !resumed },
     });
-    return { ok: true, link: `/admin/whatsapp?conversation=${conversationId}` };
+    return {
+      ok: true,
+      ...(resumed
+        ? {}
+        : {
+            stillPaused:
+              "The AI stays paused: it is a clinical, payment or urgent hand-off. Dayana must open the chat and press «Listo».",
+          }),
+      link: `/admin/whatsapp?conversation=${conversationId}`,
+    };
   },
 });

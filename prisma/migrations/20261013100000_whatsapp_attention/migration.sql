@@ -18,9 +18,11 @@ ALTER TABLE "conversations"
 CREATE INDEX IF NOT EXISTS "conversations_channel_attention_at_idx" ON "conversations"("channel", "attention_at");
 
 -- 1. Última respuesta humana de cada chat: lo que mandó una persona desde el
---    CRM, una propuesta de la IA que aprobó, o un eco del celular. No cuentan
---    la IA sola, lo que no se entregó, los avisos grises, ni los envíos que no
---    contestan a nadie (masivos, recordatorios, evento, saludo).
+--    CRM (con su usuario), una propuesta de la IA que aprobó, o un eco del
+--    celular. No cuentan la IA sola, lo que salió sin nadie detrás (p. ej. el
+--    sticker que acompaña a una aprobación), lo que no se entregó, los avisos
+--    grises, ni los envíos que no contestan a nadie (masivos, recordatorios,
+--    evento, saludo).
 UPDATE "conversations" c
 SET "last_human_reply_at" = h.last_at
 FROM (
@@ -29,6 +31,7 @@ FROM (
   WHERE m."direction" = 'OUTBOUND'
     AND m."kind" = 'message'
     AND m."status" <> 'FAILED'
+    AND (m."is_echo" OR m."staff_user_id" IS NOT NULL)
     AND (m."is_auto_reply" = false OR m."source" = 'approval')
     AND (m."source" IS NULL OR (m."source" NOT LIKE 'bulk:%' AND m."source" NOT LIKE 'recordatorio:%' AND m."source" NOT LIKE 'evento:%'))
     AND (m."client_key" IS NULL OR (m."client_key" NOT LIKE 'welcome:%' AND m."client_key" NOT LIKE 'reminder:%' AND m."client_key" NOT LIKE 'bulk:%'))
@@ -50,6 +53,7 @@ FROM (
     AND m."kind" = 'message'
     AND m."status" <> 'FAILED'
     AND m."is_auto_reply" = false
+    AND (m."is_echo" OR m."staff_user_id" IS NOT NULL)
     AND (m."source" IS NULL OR (m."source" <> 'approval' AND m."source" NOT LIKE 'bulk:%' AND m."source" NOT LIKE 'recordatorio:%' AND m."source" NOT LIKE 'evento:%'))
     AND (m."client_key" IS NULL OR (m."client_key" NOT LIKE 'welcome:%' AND m."client_key" NOT LIKE 'reminder:%' AND m."client_key" NOT LIKE 'bulk:%'))
   GROUP BY m."conversation_id"
@@ -57,11 +61,16 @@ FROM (
 WHERE h."conversation_id" = c."id"
   AND c."last_human_reply_at" < h.last_at;
 
--- 2. Escaladas que nadie contestó después: siguen en «Te toca», desde la escalada.
+-- 2. Escaladas de la IA que nadie contestó después: siguen en «Te toca»,
+--    desde la escalada. Una pausa que puso Dayana a mano (sin categoría, o
+--    «Pausado a mano.») no es una escalada: se queda como está, fuera de «Te
+--    toca» (el próximo mensaje que importe la abre).
 UPDATE "conversations"
 SET "attention_at" = "ai_paused_at",
-    "attention_reason" = COALESCE("escalation_category", 'other')
+    "attention_reason" = "escalation_category"
 WHERE "ai_paused_reason" = 'escalation'
+  AND "escalation_category" IS NOT NULL
+  AND NOT ("escalation_category" = 'other' AND COALESCE("escalation_reason", '') = 'Pausado a mano.')
   AND "ai_paused_at" IS NOT NULL
   AND "attention_at" IS NULL
   AND ("last_human_reply_at" IS NULL OR "last_human_reply_at" < "ai_paused_at");
@@ -77,6 +86,8 @@ FROM (
   FROM "conversations" c2
   JOIN "conversation_messages" m ON m."conversation_id" = c2."id"
   WHERE c2."ai_paused_reason" = 'escalation'
+    AND c2."escalation_category" IS NOT NULL
+    AND NOT (c2."escalation_category" = 'other' AND COALESCE(c2."escalation_reason", '') = 'Pausado a mano.')
     AND c2."attention_at" IS NULL
     AND c2."ai_paused_at" IS NOT NULL
     AND c2."last_human_reply_at" IS NOT NULL
@@ -90,16 +101,30 @@ FROM (
 ) n
 WHERE n."id" = c."id";
 
--- 3. Escaladas que Dayana ya contestó y no son delicadas: quedan como
---    cualquier respuesta suya (pausa humana; la IA vuelve pasadas las horas
---    de relevo, contadas desde hoy). Lo clínico, los pagos y lo urgente siguen
---    apartados de la IA hasta que ella pulse «Listo».
+-- 3. Escaladas de la IA que Dayana ya contestó y no son delicadas: quedan
+--    como cualquier respuesta suya (pausa humana; la IA vuelve pasadas las
+--    horas de relevo, contadas desde hoy). Lo clínico, los pagos y lo urgente
+--    siguen apartados de la IA hasta que ella pulse «Listo»; una pausa a mano
+--    se queda como está.
 UPDATE "conversations"
 SET "ai_paused_reason" = 'human',
     "ai_paused_at" = (now() AT TIME ZONE 'UTC')
 WHERE "ai_paused_reason" = 'escalation'
+  AND "escalation_category" IS NOT NULL
+  AND NOT ("escalation_category" = 'other' AND COALESCE("escalation_reason", '') = 'Pausado a mano.')
   AND "ai_paused_at" IS NOT NULL
   AND "last_human_reply_at" IS NOT NULL
   AND "last_human_reply_at" >= "ai_paused_at"
-  AND COALESCE("escalation_category", '') NOT IN ('clinical', 'payment')
+  AND "escalation_category" NOT IN ('clinical', 'payment')
   AND COALESCE("escalation_severity", '') <> 'urgent';
+
+-- 4. Lo que quedó en «Te toca» y ella contestó mientras el código viejo
+--    seguía sirviendo (el rato del despliegue): sale. Solo en pausa humana:
+--    una escalada delicada abierta espera a «Listo».
+UPDATE "conversations"
+SET "attention_at" = NULL,
+    "attention_reason" = NULL
+WHERE "ai_paused_reason" = 'human'
+  AND "attention_at" IS NOT NULL
+  AND "last_human_reply_at" IS NOT NULL
+  AND "last_human_reply_at" >= "attention_at";

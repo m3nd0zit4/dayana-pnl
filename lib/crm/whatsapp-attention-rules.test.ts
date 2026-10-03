@@ -6,7 +6,9 @@ import {
   canClose,
   closesAttention,
   firstNeedingReply,
+  isManualPause,
   isSensitiveEscalation,
+  MANUAL_PAUSE_REASON,
   trivialKind,
   inboundSinceLastReply,
   isHumanSend,
@@ -293,6 +295,13 @@ describe("abrir y cerrar «Te toca»", () => {
     // La IA: solo «sin responder».
     expect(canClose("ai", open("unanswered"))).toBe(true);
     expect(canClose("ai", open("booking"))).toBe(false);
+  });
+
+  test("una pausa a mano no es una escalada", () => {
+    expect(isManualPause({ category: null, reason: null })).toBe(true);
+    expect(isManualPause({ category: "other", reason: MANUAL_PAUSE_REASON })).toBe(true);
+    expect(isManualPause({ category: "other", reason: "La persona pide algo raro" })).toBe(false);
+    expect(isManualPause({ category: "clinical", reason: MANUAL_PAUSE_REASON })).toBe(false);
   });
 
   test("escaladas delicadas: clínica, pago o urgente", () => {

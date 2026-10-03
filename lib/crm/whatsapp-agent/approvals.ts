@@ -439,7 +439,8 @@ export const approveProposal = async (input: {
     console.warn("[whatsapp-agent] no se pudo cerrar «Te toca»", e)
   );
   // Un pago confirmado o una cita aprobada: el chat vuelve a la IA.
-  if (p.kind === "payment_received") await resumeAutoReply(input.conversationId);
+  // (Solo un pago: si además hay algo clínico o urgente, eso espera a «Listo».)
+  if (p.kind === "payment_received") await resumeAutoReply(input.conversationId, { allowPayment: true });
   // Y queda resuelto por cita o por pago (si la persona escribe otra vez, se reabre).
   if ((p.kind === "booking" && p.bookingDone) || p.kind === "payment_received") {
     await resolveConversations(

@@ -73,12 +73,23 @@ const AttentionBar = ({
   const approval = chat.approvals[0]?.proposal.kind ?? null;
   const escalation = chat.escalation;
   if (!a && !approval && !escalation) return null;
-  const urgent = Boolean(a?.urgent) || escalation?.severity === "urgent";
+  const cause = escalation?.cause ?? null;
+  const urgent = Boolean(a?.urgent) || (cause !== "manual" && escalation?.severity === "urgent");
   const title = a
     ? attentionLabel(a)
     : approval
       ? (APPROVAL_LABEL[approval] ?? APPROVAL_LABEL.reply)
-      : `${urgent ? "Urgente" : "IA en pausa"} · ${CATEGORY_LABEL[escalation?.category ?? ""] ?? "Revisar"}`;
+      : cause === "manual"
+        ? "IA en pausa (la pausaste tú)"
+        : `${urgent ? "Urgente" : "IA en pausa"} · ${CATEGORY_LABEL[escalation?.category ?? ""] ?? "Revisar"}`;
+  // Sin «Te toca» ni propuesta: por qué la IA sigue apartada.
+  const pausedDetail: Record<string, string> = {
+    manual: "Pulsa «Listo» cuando quieras que la IA vuelva a este chat.",
+    payment: "Se resolvió con el pago. La IA vuelve a este chat cuando pulses «Listo».",
+    appointment: "Se resolvió con la cita. La IA vuelve a este chat cuando pulses «Listo».",
+    answered: "Ya contestaste. La IA no vuelve a este chat hasta que pulses «Listo».",
+    waiting: "La IA no vuelve a este chat hasta que pulses «Listo».",
+  };
   // Con una propuesta abajo, el motivo ya lo dice ella: aquí solo desde cuándo.
   const detail = a
     ? [approval ? null : a.detail, a.reason === "unanswered" ? `escribió ${agoLabel(a.since, now)}` : agoLabel(a.since, now)]
@@ -86,7 +97,7 @@ const AttentionBar = ({
         .join(" · ")
     : approval
       ? "Acéptalo o cancélalo abajo, o contéstale tú."
-      : "Ya contestaste. La IA no vuelve a este chat hasta que pulses «Listo».";
+      : (pausedDetail[cause ?? "waiting"] ?? pausedDetail.waiting);
   return (
     <div
       className={cn(

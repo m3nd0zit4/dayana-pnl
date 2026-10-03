@@ -22,8 +22,12 @@
  * 10. Una cita no cierra un pago.
  * 11. Cancelar la propuesta deja el chat en «Te toca» si el mensaje importa.
  * 12. Una respuesta que WhatsApp no entregó no cuenta: vuelve a «Te toca».
- * 13. Los contadores (pestaña, menú, pendientes del CRM) dicen lo mismo.
- * 14. La migración sobre filas de prueba (tablas temporales, se deshace).
+ * 13. Una vuelta de la IA que se cortó: la reciente le toca a Dayana; la de hace días no.
+ * 14. «Devolver a la IA» no levanta algo clínico o urgente (sí lo demás).
+ * 15. Confirmar un pago devuelve el pago a la IA, nunca algo clínico.
+ * 16. Una pausa a mano no es una escalada.
+ * 17. Los contadores (pestaña, menú, pendientes del CRM) dicen lo mismo.
+ * 18. La migración sobre filas de prueba (tablas temporales, se deshace).
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -32,11 +36,13 @@ import { prisma } from "@/lib/db";
 import type { NormalizedMessage } from "@/lib/meta/inbound";
 import { ingestMessage, processNormalizedEvent } from "@/lib/meta/ingest";
 import { sendMetaMessage } from "@/lib/meta/send";
+import { recoverStuck } from "@/lib/meta/recover";
 import { applyStatus } from "@/lib/meta/status";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
 import { getPendientes } from "@/lib/crm/pendientes";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
-import { pauseAutoReply } from "@/lib/crm/whatsapp-autoreply";
+import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
+import { pauseAutoReply, resumeAutoReply } from "@/lib/crm/whatsapp-autoreply";
 import { approveProposal, cancelProposal, proposeForApproval } from "@/lib/crm/whatsapp-agent/approvals";
 import {
   attentionWhere,
@@ -45,7 +51,7 @@ import {
   openAttentionIfNeedsReply,
 } from "@/lib/crm/whatsapp-agent/attention";
 import { resolveConversations } from "@/lib/crm/whatsapp-agent/pending";
-import { listChats, queueCounts } from "@/lib/crm/whatsapp-agent/workspace";
+import { getChat, listChats, queueCounts } from "@/lib/crm/whatsapp-agent/workspace";
 import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
@@ -76,6 +82,13 @@ const T = {
   apptPay: "573000009412",
   cancel: "573000009413",
   failed: "573000009414",
+  stuckOld: "573000009415",
+  stuckNew: "573000009416",
+  resumeClinical: "573000009417",
+  resumeUnknown: "573000009418",
+  payOk: "573000009419",
+  payClinical: "573000009420",
+  manualPause: "573000009421",
 };
 const THREADS = Object.values(T);
 
@@ -255,6 +268,7 @@ const main = async () => {
       const c1 = await conv(c);
       check("el eco la saca de «Te toca»", c1.attentionAt === null && !(await inAttention(c)), c1);
       check("pero un pago sigue apartado de la IA (hasta «Listo»)", c1.aiPausedReason === "escalation", c1.aiPausedReason);
+      check("la cabecera dice «Ya contestaste»", (await getChat(c))?.escalation?.cause === "answered", (await getChat(c))?.escalation);
       const n = await notices(c);
       check("el aviso queda leído", n.length > 0 && n.every((x) => x.readAt !== null), n);
     }
@@ -444,6 +458,7 @@ const main = async () => {
       check("agendar no cierra un «pago»", c1.attentionAt !== null && c1.attentionReason === "payment", { changed, c1 });
       await resolveConversations({ ids: [c] }, "payment", staff.id);
       check("confirmar el pago sí", (await conv(c)).attentionAt === null);
+      check("la cabecera dice que se resolvió con el pago", (await getChat(c))?.escalation?.cause === "payment", (await getChat(c))?.escalation);
     }
 
     console.log("\n11. Cancelar la propuesta");
@@ -472,7 +487,69 @@ const main = async () => {
       check("y esa respuesta deja de contar", c1.lastHumanReplyAt === null, c1.lastHumanReplyAt);
     }
 
-    console.log("\n13. Los contadores dicen lo mismo");
+    console.log("\n13. Vueltas de la IA que se cortaron");
+    {
+      const o = await store(T.stuckOld, "¿Tienen sesiones en línea?", { sentAt: new Date(Date.now() - 50 * 3600_000) });
+      const n = await store(T.stuckNew, "¿Tienen sesiones en línea?", { sentAt: new Date(Date.now() - 47 * 3600_000) });
+      const old = await prisma.whatsAppAiRun.create({
+        data: { conversationId: o, status: "THINKING", queuedAt: new Date(Date.now() - 49 * 3600_000) },
+      });
+      const recent = await prisma.whatsAppAiRun.create({
+        data: { conversationId: n, status: "THINKING", queuedAt: new Date(Date.now() - 47 * 3600_000) },
+      });
+      await recoverStuck();
+      const [oldAfter, recentAfter] = await Promise.all([
+        prisma.whatsAppAiRun.findUniqueOrThrow({ where: { id: old.id } }),
+        prisma.whatsAppAiRun.findUniqueOrThrow({ where: { id: recent.id } }),
+      ]);
+      check("una vuelta de hace más de 48 h no se toca (ni abre «Te toca»)", oldAfter.status === "THINKING" && (await conv(o)).attentionAt === null, oldAfter.status);
+      check("una reciente se da por fallida y le toca a Dayana", recentAfter.status === "ERROR" && (await conv(n)).attentionReason === "unanswered", recentAfter.status);
+    }
+
+    console.log("\n14. Devolver a la IA / cambiar el modo");
+    {
+      const c = await store(T.resumeClinical, "No me siento bien", { sentAt: new Date(Date.now() - 5 * 60_000) });
+      await escalateByHand(c, "clinical", staff.id, "urgent");
+      const resumed = await resumeAutoReply(c);
+      const c1 = await conv(c);
+      check("algo clínico urgente no se devuelve a la IA sin «Listo»", !resumed && c1.aiPausedReason === "escalation", { resumed, c1 });
+      check("sigue en «Te toca»", c1.attentionReason === "clinical" && (await inAttention(c)));
+      check("con su aviso URGENTE sin leer", (await notices(c)).some((x) => x.readAt === null));
+
+      const u = await store(T.resumeUnknown, "Una pregunta rara", { sentAt: new Date(Date.now() - 5 * 60_000) });
+      await escalateByHand(u, "unknown", staff.id);
+      const back = await resumeAutoReply(u);
+      const u1 = await conv(u);
+      check("«no sabe qué responder» sí vuelve a la IA y sale de «Te toca»", back && u1.aiPausedReason === null && u1.attentionAt === null, { back, u1 });
+    }
+
+    console.log("\n15. Confirmar un pago devuelve el pago a la IA, nunca algo clínico");
+    {
+      const p = await store(T.payOk, "Ya pagué", { sentAt: new Date(Date.now() - 5 * 60_000) });
+      await escalateByHand(p, "payment", staff.id);
+      const r = await propose(p, { kind: "payment_received", message: "¡Gracias! Quedó confirmado.", reason: "Dice que pagó." });
+      await approveProposal({ runId: r, conversationId: p, staffId: staff.id });
+      const p1 = await conv(p);
+      check("confirmar el pago: sale de «Te toca» y la IA vuelve", p1.attentionAt === null && p1.aiPausedReason === null, p1);
+
+      const k = await store(T.payClinical, "Ya pagué, pero me siento fatal", { sentAt: new Date(Date.now() - 5 * 60_000) });
+      await escalateByHand(k, "clinical", staff.id, "urgent");
+      const rk = await propose(k, { kind: "payment_received", message: "¡Gracias! Quedó confirmado.", reason: "Dice que pagó." });
+      await approveProposal({ runId: rk, conversationId: k, staffId: staff.id });
+      const k1 = await conv(k);
+      check("con algo clínico urgente: sigue en pausa y en «Te toca»", k1.aiPausedReason === "escalation" && k1.attentionReason === "clinical", k1);
+    }
+
+    console.log("\n16. Una pausa a mano no es una escalada");
+    {
+      const c = await store(T.manualPause, "Hola", { sentAt: new Date(Date.now() - 5 * 60_000) });
+      await pauseAutoReply(c, "escalation", { category: "other", severity: "normal", reason: MANUAL_PAUSE_REASON });
+      const chat = await getChat(c);
+      check("no está en «Te toca»", !(await inAttention(c)));
+      check("la cabecera dice «la pausaste tú»", chat?.escalation?.cause === "manual", chat?.escalation);
+    }
+
+    console.log("\n17. Los contadores dicen lo mismo");
     {
       const [counts, direct, list, pendientes] = await Promise.all([
         queueCounts(),
@@ -486,7 +563,7 @@ const main = async () => {
       check("los pendientes del CRM cuentan lo mismo", todo === direct, { todo, direct });
     }
 
-    console.log("\n14. La migración (tablas temporales, se deshace)");
+    console.log("\n18. La migración (tablas temporales, se deshace)");
     await checkBackfill();
   } finally {
     await cleanup();
@@ -547,15 +624,23 @@ const checkBackfill = async () => {
         await tx.$executeRawUnsafe(
           `ALTER TABLE pg_temp."conversations" DROP COLUMN IF EXISTS "attention_at", DROP COLUMN IF EXISTS "attention_reason", DROP COLUMN IF EXISTS "last_human_reply_at"`
         );
-        const conv = (id: string, reason: string | null, pausedAt: Date | null, category: string | null, severity: string | null = "normal") =>
+        const conv = (
+          id: string,
+          reason: string | null,
+          pausedAt: Date | null,
+          category: string | null,
+          severity: string | null = "normal",
+          escalationReason: string | null = "Prueba"
+        ) =>
           tx.$executeRawUnsafe(
-            `INSERT INTO pg_temp."conversations" (id, channel, external_thread_id, meta_account_id, ai_paused_reason, ai_paused_at, escalation_category, escalation_severity, updated_at)
-             VALUES ($1, 'WHATSAPP', $1, 'e2e', $2, $3, $4, $5, now())`,
+            `INSERT INTO pg_temp."conversations" (id, channel, external_thread_id, meta_account_id, ai_paused_reason, ai_paused_at, escalation_category, escalation_severity, escalation_reason, updated_at)
+             VALUES ($1, 'WHATSAPP', $1, 'e2e', $2, $3, $4, $5, $6, now())`,
             id,
             reason,
             pausedAt,
             category,
-            severity
+            severity,
+            escalationReason
           );
         let m = 0;
         const message = (
@@ -571,11 +656,13 @@ const checkBackfill = async () => {
             status?: string;
             kind?: string;
             attachments?: unknown;
+            /** Salió sin nadie detrás (p. ej. el sticker que acompaña a una aprobación). */
+            staffless?: boolean;
           } = {}
         ) =>
           tx.$executeRawUnsafe(
-            `INSERT INTO pg_temp."conversation_messages" (id, conversation_id, direction, status, body, attachments, is_echo, is_auto_reply, source, client_key, kind, sent_at)
-             VALUES ($1, $2, $3::"MessageDirection", $4::"MessageDeliveryStatus", $5, $6::jsonb, $7, $8, $9, $10, $11, $12)`,
+            `INSERT INTO pg_temp."conversation_messages" (id, conversation_id, direction, status, body, attachments, is_echo, is_auto_reply, source, client_key, kind, staff_user_id, sent_at)
+             VALUES ($1, $2, $3::"MessageDirection", $4::"MessageDeliveryStatus", $5, $6::jsonb, $7, $8, $9, $10, $11, $12, $13)`,
             `bf-msg-${++m}`,
             conversationId,
             o.inbound ? "INBOUND" : "OUTBOUND",
@@ -587,6 +674,8 @@ const checkBackfill = async () => {
             o.source ?? null,
             o.clientKey ?? null,
             o.kind ?? "message",
+            // Lo que se manda desde el CRM lleva a quien lo mandó.
+            o.inbound || o.echo || o.staffless ? null : "staff-e2e",
             sentAt
           );
 
@@ -611,8 +700,9 @@ const checkBackfill = async () => {
         // E: aprobó una propuesta de la IA → cuenta como respuesta suya.
         await conv("bf-e", "escalation", at(0), "booking");
         await message("bf-e", at(5), { auto: true, source: "approval" });
-        // F: escalada sin categoría → «revisar» (other).
-        await conv("bf-f", "escalation", at(0), null);
+        // F: pausa sin categoría (la puso alguien en la bandeja general) → no
+        //    es una escalada: fuera de «Te toca» y se queda como está.
+        await conv("bf-f", "escalation", at(0), null, null, null);
         // G: sin escalada: solo se anota la última respuesta.
         await conv("bf-g", "human", at(0), null);
         await message("bf-g", at(5));
@@ -631,6 +721,13 @@ const checkBackfill = async () => {
         await message("bf-k", at(5));
         await message("bf-k", at(8), { inbound: true, body: "Muchas gracias ❤️" });
         await message("bf-k", at(9), { inbound: true, body: "", attachments: [{ kind: "sticker" }] });
+        // L: lo único después fue algo sin nadie detrás (el sticker que acompaña
+        //    a una aprobación) → no cuenta: le sigue tocando.
+        await conv("bf-l", "escalation", at(0), "unknown");
+        await message("bf-l", at(5), { staffless: true, attachments: [{ kind: "sticker" }], body: "" });
+        // M: «Pausar» a mano y luego contestó → se queda como está (ni «Te toca» ni pausa humana).
+        await conv("bf-m", "escalation", at(0), "other", "normal", "Pausado a mano.");
+        await message("bf-m", at(5));
 
         const read = () =>
           tx.$queryRawUnsafe<Row[]>(
@@ -639,9 +736,12 @@ const checkBackfill = async () => {
         for (const s of statements) await tx.$executeRawUnsafe(s);
         rows = await read();
         // Otra pasada (el script de puesta al día, con el código nuevo ya
-        // sirviendo): no cambia nada. Y una aprobación que el código anotó
-        // hasta lo que leyó la IA (antes del envío) no se adelanta.
+        // sirviendo): no cambia nada, salvo lo que pasó en el rato del
+        // despliegue. Una aprobación que el código anotó hasta lo que leyó la
+        // IA (antes del envío) no se adelanta; y Dayana contestó a D mientras
+        // servía el código viejo (que no sabe de «Te toca»).
         await tx.$executeRawUnsafe(`UPDATE pg_temp."conversations" SET last_human_reply_at = $1 WHERE id = 'bf-e'`, at(3));
+        await message("bf-d", at(20));
         for (const s of statements) await tx.$executeRawUnsafe(s);
         second = await read();
         throw new Rollback();
@@ -659,15 +759,25 @@ const checkBackfill = async () => {
   check("C: contestó desde el celular → sale y pasa a pausa humana desde hoy", row("bf-c")?.attention_at === null && row("bf-c")?.ai_paused_reason === "human" && recent(row("bf-c")?.ai_paused_at), row("bf-c"));
   check("D: IA, masivo, recordatorio, saludo, fallo y aviso no cuentan", same(row("bf-d")?.attention_at, at(0)) && row("bf-d")?.ai_paused_reason === "escalation" && same(row("bf-d")?.last_human_reply_at, at(-60)), row("bf-d"));
   check("E: una propuesta aprobada cuenta como respuesta", row("bf-e")?.attention_at === null && row("bf-e")?.ai_paused_reason === "human", row("bf-e"));
-  check("F: sin categoría → «other»", row("bf-f")?.attention_reason === "other", row("bf-f"));
+  check("F: pausa sin categoría (a mano) → fuera de «Te toca», sigue igual", row("bf-f")?.attention_at === null && row("bf-f")?.ai_paused_reason === "escalation", row("bf-f"));
+  check("L: algo enviado sin nadie detrás no cuenta como respuesta", same(row("bf-l")?.attention_at, at(0)) && row("bf-l")?.last_human_reply_at === null, row("bf-l"));
+  check("M: una pausa a mano contestada se queda como está", row("bf-m")?.attention_at === null && row("bf-m")?.ai_paused_reason === "escalation" && same(row("bf-m")?.ai_paused_at, at(0)), row("bf-m"));
   check("G: sin escalada no le toca; se anota la respuesta", row("bf-g")?.attention_at === null && same(row("bf-g")?.last_human_reply_at, at(5)), row("bf-g"));
   check("H: pago contestado → sigue apartado", row("bf-h")?.attention_at === null && row("bf-h")?.ai_paused_reason === "escalation", row("bf-h"));
   check("I: urgente contestado → sigue apartado", row("bf-i")?.attention_at === null && row("bf-i")?.ai_paused_reason === "escalation", row("bf-i"));
   check("J: volvió a escribir algo que importa → le toca desde ahí («sin responder»)", same(row("bf-j")?.attention_at, at(9)) && row("bf-j")?.attention_reason === "unanswered" && row("bf-j")?.ai_paused_reason === "human", row("bf-j"));
   check("K: solo «gracias» o un sticker → no le toca", row("bf-k")?.attention_at === null && row("bf-k")?.ai_paused_reason === "human", row("bf-k"));
   const key = (r: Row | undefined) => JSON.stringify(r ?? null);
-  const changed = rows.filter((r) => r.id !== "bf-e" && key(r) !== key(second.find((s) => s.id === r.id))).map((r) => r.id);
+  const changed = rows
+    .filter((r) => r.id !== "bf-e" && r.id !== "bf-d" && key(r) !== key(second.find((s) => s.id === r.id)))
+    .map((r) => r.id);
   check("otra pasada no cambia nada", changed.length === 0 && second.length === rows.length, changed);
+  const d2 = second.find((s) => s.id === "bf-d");
+  check(
+    "lo contestado en el rato del despliegue sale de «Te toca» al volver a pasar",
+    d2?.attention_at === null && d2?.ai_paused_reason === "human" && same(d2?.last_human_reply_at, at(20)),
+    d2
+  );
   check(
     "otra pasada no adelanta lo que cubre una aprobación hasta su hora de envío",
     same(second.find((s) => s.id === "bf-e")?.last_human_reply_at, at(3)),
