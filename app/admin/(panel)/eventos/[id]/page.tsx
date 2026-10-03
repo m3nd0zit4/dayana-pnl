@@ -4,15 +4,19 @@ import { CalendarDays, MessageCircle } from "lucide-react";
 
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
-import FreeEventPageEditor from "@/app/components/admin/crm/FreeEventPageEditor";
 import WebinarRegistrantsPanel, {
   type WebinarRegistrantRow,
 } from "@/app/components/admin/crm/WebinarRegistrantsPanel";
+import EditionStatusBadge from "@/app/components/admin/crm/editions/EditionStatusBadge";
+import EditionTabs from "@/app/components/admin/crm/editions/EditionTabs";
 import FreeEventDetailActions from "@/app/components/admin/crm/free-events/FreeEventDetailActions";
 import FreeEventHistory from "@/app/components/admin/crm/free-events/FreeEventHistory";
-import FreeEventStatusBadge from "@/app/components/admin/crm/free-events/FreeEventStatusBadge";
-import FreeEventTabs from "@/app/components/admin/crm/free-events/FreeEventTabs";
-import { parseFreeEventTab, type FreeEventTab } from "@/app/components/admin/crm/free-events/tabs";
+import FreeEventPageEditor from "@/app/components/admin/crm/free-events/FreeEventPageEditor";
+import {
+  freeEventTabSpecs,
+  parseFreeEventTab,
+  type FreeEventTab,
+} from "@/app/components/admin/crm/free-events/tabs";
 import { CrmEmptyState } from "@/app/components/admin/crm/ui";
 import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 import WhatsAppBulkSend from "@/app/components/admin/whatsapp/WhatsAppBulkSend";
@@ -260,7 +264,7 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
   const description = (
     <>
       <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-        <FreeEventStatusBadge status={event.status} />
+        <EditionStatusBadge status={event.status} />
         <span>
           {eventDateLabel(event, tz)} · {event.eventLabel}
         </span>
@@ -285,7 +289,6 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
         operationalTimezone={tz}
         apiBase={`/api/admin/eventos/${event.id}`}
         pendingLink={pendingLink}
-        canDelete={registrations === 0 && event.status !== "OPEN"}
         ended={isFreeEventEnded(event)}
       />
     );
@@ -311,7 +314,15 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
             editionsEnabled={editionsEnabled}
           />
         }
-        trailing={<FreeEventTabs key={tab} eventId={event.id} value={tab} registrations={registrations} />}
+        trailing={
+          <EditionTabs
+            key={tab}
+            basePath={`/admin/eventos/${event.id}`}
+            value={tab}
+            tabs={freeEventTabSpecs(registrations)}
+            ariaLabel="Secciones del evento"
+          />
+        }
       />
       {content}
     </CrmPageShell>
