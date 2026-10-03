@@ -5,12 +5,17 @@ import { markReadByEntity } from "@/lib/notifications/platform/feed";
 import {
   SEGUIMIENTO_QUIET_HOURS,
   SEGUIMIENTO_WINDOW_DAYS,
+  burstState,
+  canClose,
   closesAttention,
-  firstNeedingReply,
-  inboundSinceLastReply,
+  isAutoSend,
+  isSensitiveEscalation,
   mergeAttention,
   type AttentionReason,
+  type CloseBy,
 } from "../whatsapp-attention-rules";
+
+export type { CloseBy };
 
 /**
  * «Te toca» en la base: quién entra, quién sale y la consulta que usan la
@@ -20,8 +25,9 @@ import {
  * - Entra (`openAttention`): una escalada de la IA, «quiere agendar», una
  *   autoevaluación urgente, o un mensaje que importa en un chat donde la IA no
  *   va a contestar (manual, favorito, IA apagada, en pausa, tope del día…).
- * - Sale (`closeAttention`): Dayana contesta (CRM, propuesta aprobada o eco
- *   del celular), pulsa «Listo», o se agenda / confirma una cita o un pago.
+ * - Sale (`closeAttention`): Dayana contesta (CRM o eco del celular), pulsa
+ *   «Listo», aprueba lo que propuso la IA, o se agenda / confirma una cita o un
+ *   pago — cada cosa cierra solo lo suyo (`canClose`).
  * - Lo que espera su autorización (`AWAITING_APPROVAL`) también le toca, por
  *   su cuenta: sale al aprobarlo, cancelarlo o contestar ella.
  *
@@ -44,8 +50,12 @@ export const attentionWhere = (): Prisma.ConversationWhereInput => ({
 const CHAT_NOTICES: NotificationEventType[] = ["WHATSAPP_AI_ESCALATED", "WHATSAPP_AI_APPROVAL", "WHATSAPP_AI_INFO"];
 
 /** Los avisos del chat, leídos para todo el equipo (los creados hasta `before`). */
-export const markChatNoticesRead = (conversationId: string, before: Date = new Date()) =>
-  markReadByEntity({ entityType: "Conversation", entityId: conversationId, eventTypes: CHAT_NOTICES, before }).catch(
+export const markChatNoticesRead = (
+  conversationId: string,
+  before: Date = new Date(),
+  eventTypes: NotificationEventType[] = CHAT_NOTICES
+) =>
+  markReadByEntity({ entityType: "Conversation", entityId: conversationId, eventTypes, before }).catch(
     (e: unknown) => {
       console.warn("[te toca] no se pudieron marcar los avisos como leídos", e);
       return 0;
@@ -90,24 +100,44 @@ const BURST_SELECT = {
   sentAt: true,
 } as const;
 
-/**
- * El primer mensaje que importa de lo que la persona escribió desde la última
- * respuesta (solo lo posterior a `after`, si se pasa). `null` si no hay nada
- * que pida respuesta: «gracias», un sticker, un 👍.
- */
-const unansweredSince = async (conversationId: string, after?: Date): Promise<Date | null> => {
-  const rows = await prisma.conversationMessage.findMany({
-    where: { conversationId, ...(after ? { sentAt: { gt: after } } : {}) },
-    orderBy: { sentAt: "desc" },
-    take: 40,
-    select: BURST_SELECT,
+/** Cuánto atrás cuenta una oferta aprobada (horas, cita, enlace de pago) para que un «ok» sea un «sí». */
+const OFFER_HOURS = 12;
+
+/** ¿Hace poco Dayana aprobó ofrecerle horas, una cita o un enlace de pago? */
+export const recentOffer = async (conversationId: string, now: Date = new Date()): Promise<boolean> => {
+  const runs = await prisma.whatsAppAiRun.findMany({
+    where: { conversationId, status: "APPROVED", decidedAt: { gte: new Date(now.getTime() - OFFER_HOURS * 3600_000) } },
+    select: { proposal: true },
   });
-  return firstNeedingReply(inboundSinceLastReply(rows));
+  return runs.some((r) => ["slots", "booking", "payment_link"].includes((r.proposal as { kind?: string } | null)?.kind ?? ""));
 };
 
 /**
- * La IA no va a contestar (chat manual, favorito, IA apagada, en pausa…): si
- * lo que escribió la persona importa, le toca a Dayana. Un «gracias» no.
+ * El primer mensaje que importa de lo que la persona escribió desde la última
+ * respuesta (solo lo posterior a `after`, si se pasa). `null` si no hay nada
+ * que pida respuesta: «gracias», un sticker, un 👍 a algo que no preguntamos.
+ */
+const unansweredSince = async (conversationId: string, after?: Date): Promise<Date | null> => {
+  const [rows, offer, conv] = await Promise.all([
+    prisma.conversationMessage.findMany({
+      where: { conversationId },
+      orderBy: { sentAt: "desc" },
+      take: 40,
+      select: BURST_SELECT,
+    }),
+    recentOffer(conversationId),
+    prisma.conversation.findUnique({ where: { id: conversationId }, select: { lastHumanReplyAt: true } }),
+  ]);
+  // Lo escrito hasta su última respuesta (o hasta `after`) ya está atendido.
+  const covered = [conv?.lastHumanReplyAt?.getTime(), after?.getTime()].filter((t): t is number => t !== undefined);
+  const coveredUntil = covered.length ? new Date(Math.max(...covered)) : null;
+  return burstState(rows, { recentOffer: offer, coveredUntil }).since;
+};
+
+/**
+ * La IA no va a contestar (chat manual, favorito, IA apagada, en pausa…), una
+ * respuesta no llegó o la IA se cortó: si lo que escribió la persona importa,
+ * le toca a Dayana. Un «gracias» no.
  */
 export const openAttentionIfNeedsReply = async (conversationId: string): Promise<boolean> => {
   const since = await unansweredSince(conversationId);
@@ -115,19 +145,18 @@ export const openAttentionIfNeedsReply = async (conversationId: string): Promise
   return openAttention(conversationId, "unanswered", since);
 };
 
-/** Quién cierra: su respuesta, una propuesta aprobada, «Listo», una cita, un pago o la IA. */
-export type CloseBy = "reply" | "approval" | "listo" | "appointment" | "payment" | "ai";
-
 /**
- * Cierra «Te toca» si lo abierto es anterior a `upTo` (la hora de la
- * respuesta; un eco viejo que llega tarde no cierra lo que vino después). Lo
- * que la persona escribió después de `upTo` y nadie contestó lo deja abierto
- * («sin responder», desde ese mensaje).
+ * Cierra «Te toca» si quien cierra puede (`canClose`: una cita no cierra un
+ * pago, aprobar no cierra algo delicado) y lo abierto es anterior a `upTo` (un
+ * eco viejo que llega tarde no cierra lo que vino después). Lo que la persona
+ * escribió después de `upTo` y nadie contestó lo deja abierto («sin
+ * responder», desde ese mensaje).
  *
- * - La IA (`ai`) solo cierra «sin responder»: nunca una escalada.
- * - Una escalada que Dayana atiende pasa a pausa humana: la IA vuelve pasadas
- *   las horas de relevo, como con cualquier respuesta suya. No se le devuelve ya.
- * - Los avisos de la campana de ese chat quedan leídos para todos.
+ * - Una escalada atendida pasa a pausa humana (la IA vuelve pasadas las horas
+ *   de relevo), salvo si es delicada (clínica, pago, urgente): esa sigue
+ *   apartada hasta «Listo».
+ * - Los avisos de la campana de ese chat quedan leídos para todos (si se
+ *   cerró; aprobar algo deja leído al menos su aviso de «autoriza»).
  */
 export const closeAttention = async (
   conversationId: string,
@@ -137,12 +166,20 @@ export const closeAttention = async (
   const upTo = opts.upTo ?? now;
   const c = await prisma.conversation.findUnique({
     where: { id: conversationId },
-    select: { attentionAt: true, attentionReason: true, aiPausedReason: true },
+    select: {
+      attentionAt: true,
+      attentionReason: true,
+      aiPausedReason: true,
+      escalationCategory: true,
+      escalationSeverity: true,
+    },
   });
   if (!c) return false;
+  const escalated = c.aiPausedReason === "escalation";
+  const urgent = escalated && c.escalationSeverity === "urgent";
 
   let closed = false;
-  if (closesAttention(c.attentionAt, upTo) && (opts.by !== "ai" || c.attentionReason === "unanswered")) {
+  if (closesAttention(c.attentionAt, upTo) && canClose(opts.by, { reason: c.attentionReason, urgent })) {
     const later = await unansweredSince(conversationId, upTo);
     const { count } = await prisma.conversation.updateMany({
       where: { id: conversationId, attentionAt: c.attentionAt },
@@ -151,21 +188,31 @@ export const closeAttention = async (
         : { attentionAt: null, attentionReason: null },
     });
     closed = count > 0;
-    if (closed && opts.by !== "ai" && c.aiPausedReason === "escalation") {
+    if (
+      closed &&
+      escalated &&
+      opts.by !== "ai" &&
+      (opts.by === "listo" ||
+        !isSensitiveEscalation({ category: c.escalationCategory, severity: c.escalationSeverity }))
+    ) {
       await prisma.conversation.updateMany({
         where: { id: conversationId, aiPausedReason: "escalation" },
         data: { aiPausedReason: "human", aiPausedAt: now },
       });
     }
   }
+  if (opts.by === "ai") return closed;
   // «Listo» cubre todo lo que había hasta ahora; una respuesta, lo de antes de ella.
-  if (opts.by !== "ai") await markChatNoticesRead(conversationId, opts.by === "listo" ? now : upTo);
+  const before = opts.by === "listo" ? now : upTo;
+  if (closed || opts.by === "reply" || opts.by === "listo") await markChatNoticesRead(conversationId, before);
+  else if (opts.by === "approval") await markChatNoticesRead(conversationId, now, ["WHATSAPP_AI_APPROVAL"]);
   return closed;
 };
 
 /**
- * Una persona contestó en este chat (CRM, propuesta aprobada o eco del
- * celular) en `sentAt`: queda anotado y, si le tocaba, sale de «Te toca».
+ * Una persona contestó en este chat (CRM o eco del celular) en `sentAt`, o
+ * aprobó una propuesta que la IA pensó con lo escrito hasta `sentAt`: queda
+ * anotado y, si le tocaba, sale de «Te toca».
  */
 export const noteHumanReply = async (
   conversationId: string,
@@ -180,11 +227,80 @@ export const noteHumanReply = async (
   return closeAttention(conversationId, { by, upTo: sentAt });
 };
 
+/**
+ * Hasta dónde cubre aprobar una propuesta: el último mensaje de la persona que
+ * la IA leyó al pensarla (lo que llegó después no lo atendió nadie). Sin
+ * mensajes suyos, el momento en que la IA empezó.
+ */
+export const approvalCoversUntil = async (runId: string): Promise<Date> => {
+  const run = await prisma.whatsAppAiRun.findUnique({
+    where: { id: runId },
+    select: { conversationId: true, startedAt: true, queuedAt: true },
+  });
+  if (!run) return new Date();
+  const readUntil = run.startedAt ?? run.queuedAt;
+  const lastRead = await prisma.conversationMessage.findFirst({
+    where: { conversationId: run.conversationId, direction: "INBOUND", kind: "message", sentAt: { lte: readUntil } },
+    orderBy: { sentAt: "desc" },
+    select: { sentAt: true },
+  });
+  return lastRead?.sentAt ?? readUntil;
+};
+
+/** ¿Este mensaje es una respuesta de una persona? (CRM con su usuario o eco del celular; sin aprobaciones). */
+const humanMessageWhere = (conversationId: string): Prisma.ConversationMessageWhereInput => ({
+  conversationId,
+  direction: "OUTBOUND",
+  kind: "message",
+  status: { not: "FAILED" },
+  OR: [{ isEcho: true }, { staffUserId: { not: null }, isAutoReply: false, NOT: { source: "approval" } }],
+});
+
+/**
+ * WhatsApp avisó que una respuesta de Dayana no llegó: no cuenta como
+ * respuesta. Si era la última, se recalcula; y si lo que escribió la persona
+ * importa, vuelve a «Te toca».
+ */
+export const reopenAfterFailedReply = async (messageId: string): Promise<boolean> => {
+  const m = await prisma.conversationMessage.findUnique({
+    where: { id: messageId },
+    select: {
+      conversationId: true,
+      direction: true,
+      sentAt: true,
+      staffUserId: true,
+      isAutoReply: true,
+      isEcho: true,
+      source: true,
+      clientKey: true,
+      conversation: { select: { channel: true, lastHumanReplyAt: true } },
+    },
+  });
+  if (!m || m.direction !== "OUTBOUND" || m.conversation.channel !== "WHATSAPP") return false;
+  const human = m.isEcho || m.source === "approval" || (Boolean(m.staffUserId) && !m.isAutoReply && !isAutoSend(m));
+  if (!human) return false;
+  const current = m.conversation.lastHumanReplyAt;
+  // Una aprobación anota hasta dónde leyó la IA (antes de enviarse): si falla, también se recalcula.
+  if (current && (m.source === "approval" || current.getTime() >= m.sentAt.getTime() - 60_000)) {
+    const latest = await prisma.conversationMessage.findFirst({
+      where: humanMessageWhere(m.conversationId),
+      orderBy: { sentAt: "desc" },
+      select: { sentAt: true },
+    });
+    await prisma.conversation.update({
+      where: { id: m.conversationId },
+      data: { lastHumanReplyAt: latest?.sentAt ?? null },
+    });
+  }
+  return openAttentionIfNeedsReply(m.conversationId);
+};
+
 export type ListoResult = "ok" | "new_message" | "not_found";
 
 /**
  * «Listo»: Dayana lo dio por atendido. Sale de «Te toca», se retira lo que la
- * IA proponía y una escalada pasa a pausa humana. No cambia el modo del chat.
+ * IA proponía y una escalada (también la delicada) pasa a pausa humana: la IA
+ * vuelve pasadas las horas de relevo. No cambia el modo del chat.
  * `seenInboundAt`: el último mensaje de la persona que ella tenía en pantalla;
  * si llegó otro después, no se cierra (no se traga un mensaje sin leer).
  */
@@ -218,6 +334,19 @@ export const markAttended = async (
     data: { resolvedAt: now, resolvedReason: "manual", resolvedById: staffId },
   });
   return "ok";
+};
+
+/**
+ * La IA vuelve a atender el chat («Devolver a la IA», cambiar el modo,
+ * reanudar): si había una escalada, lo que esa escalada abrió en «Te toca» se
+ * cierra con ella. Un «sin responder» se queda (alguien tiene que contestarlo).
+ */
+export const clearEscalationAttention = async (conversationId: string): Promise<void> => {
+  const { count } = await prisma.conversation.updateMany({
+    where: { id: conversationId, attentionAt: { not: null }, NOT: { attentionReason: "unanswered" } },
+    data: { attentionAt: null, attentionReason: null },
+  });
+  if (count > 0) await markChatNoticesRead(conversationId);
 };
 
 /**

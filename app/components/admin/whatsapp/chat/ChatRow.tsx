@@ -17,11 +17,29 @@ const REPLY_LABEL: Partial<Record<NonNullable<ChatListItem["replyState"]>, strin
   auto: "Mensaje automático",
 };
 
+const AttentionState = ({ attention, now }: { attention: NonNullable<ChatListItem["attention"]>; now: number }) => (
+  <span
+    className={cn(
+      "inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium",
+      attention.urgent ? "text-(--wa-danger)" : "text-(--wa-attention)"
+    )}
+  >
+    <ShieldAlert className="size-3.5 shrink-0" />
+    <span className="truncate">
+      {attentionLabel(attention)} · {agoLabel(attention.since, now)}
+    </span>
+  </span>
+);
+
 /**
- * La tercera línea de la fila: UN estado, el más importante. Autorizar algo →
- * «Te toca» → no le llegó → la IA trabajando → quién contestó → nada.
+ * La tercera línea de la fila: UN estado, el más importante. Algo urgente o
+ * delicado → autorizar algo → «Te toca» → no le llegó → la IA trabajando →
+ * quién contestó → nada.
  */
 const stateLine = (item: ChatListItem, now: number): ReactNode => {
+  if (item.attention && (item.attention.urgent || item.attention.reason === "clinical")) {
+    return <AttentionState attention={item.attention} now={now} />;
+  }
   if (item.awaitingApproval) {
     return (
       <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium text-(--wa-violet)">
@@ -30,21 +48,7 @@ const stateLine = (item: ChatListItem, now: number): ReactNode => {
       </span>
     );
   }
-  if (item.attention) {
-    return (
-      <span
-        className={cn(
-          "inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium",
-          item.attention.urgent ? "text-(--wa-danger)" : "text-(--wa-attention)"
-        )}
-      >
-        <ShieldAlert className="size-3.5 shrink-0" />
-        <span className="truncate">
-          {attentionLabel(item.attention)} · {agoLabel(item.attention.since, now)}
-        </span>
-      </span>
-    );
-  }
+  if (item.attention) return <AttentionState attention={item.attention} now={now} />;
   if (item.lastDirection === "OUTBOUND" && item.lastStatus === "FAILED") {
     return (
       <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-(--wa-danger)">

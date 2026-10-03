@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { openAttentionIfNeedsReply } from "@/lib/crm/whatsapp-agent/attention";
 
 /**
  * Lo que quedó a medias porque una invocación se cortó (tiempo agotado,
@@ -6,8 +7,32 @@ import { prisma } from "@/lib/db";
  * reenvía a ciegas: los envíos llevan clave (`clientKey`), así que volver a
  * intentarlos nunca duplica un mensaje que sí salió.
  */
-export const recoverStuck = async (): Promise<{ approvals: number; queued: number; bulk: number }> => {
+export const recoverStuck = async (): Promise<{ approvals: number; queued: number; bulk: number; aiRuns: number }> => {
   const minutesAgo = (n: number) => new Date(Date.now() - n * 60_000);
+
+  // La IA se cortó a medias (esperando, pensando o enviando su respuesta): la
+  // vuelta queda como fallida y, si lo que escribió la persona importa, le
+  // toca a Dayana (nadie más lo va a contestar). Las aprobaciones «enviando»
+  // llevan `decidedAt` y van aparte.
+  const stuckWhere = {
+    status: { in: ["QUEUED", "THINKING", "SENDING"] },
+    decidedAt: null,
+    queuedAt: { lt: minutesAgo(5) },
+  };
+  const stuck = await prisma.whatsAppAiRun.findMany({ where: stuckWhere, select: { id: true, conversationId: true } });
+  let aiRuns = 0;
+  if (stuck.length > 0) {
+    const { count } = await prisma.whatsAppAiRun.updateMany({
+      where: { ...stuckWhere, id: { in: stuck.map((r) => r.id) } },
+      data: { status: "ERROR", reason: "La IA se cortó antes de terminar.", finishedAt: new Date() },
+    });
+    aiRuns = count;
+    for (const conversationId of new Set(stuck.map((r) => r.conversationId))) {
+      await openAttentionIfNeedsReply(conversationId).catch((e: unknown) =>
+        console.warn("[recuperar] no se pudo abrir «Te toca»", e)
+      );
+    }
+  }
 
   // Aprobaciones que quedaron «enviando»: vuelven a esperar a Dayana.
   const approvals = await prisma.whatsAppAiRun.updateMany({
@@ -33,5 +58,5 @@ export const recoverStuck = async (): Promise<{ approvals: number; queued: numbe
     data: { status: "PENDING" },
   });
 
-  return { approvals: approvals.count, queued: queued.count, bulk: bulk.count };
+  return { approvals: approvals.count, queued: queued.count, bulk: bulk.count, aiRuns };
 };

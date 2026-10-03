@@ -1,6 +1,7 @@
 import { Prisma, type MessageDeliveryStatus } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { reopenAfterFailedReply } from "@/lib/crm/whatsapp-agent/attention";
 
 /**
  * Estados de un mensaje que SOLO AVANZAN.
@@ -86,7 +87,13 @@ const applyToMessage = async (messageId: string, input: StatusInput) => {
         failedCode: input.failedCode ?? null,
       },
     });
-    if (count > 0) await markBulkRecipientFailed(messageId, input.failedReason ?? null);
+    if (count > 0) {
+      await markBulkRecipientFailed(messageId, input.failedReason ?? null);
+      // Si era una respuesta de Dayana, no contestó nada: vuelve a «Te toca» si hace falta.
+      await reopenAfterFailedReply(messageId).catch((e: unknown) =>
+        console.warn("[meta] no se pudo reabrir «Te toca»", e)
+      );
+    }
     return;
   }
   await prisma.conversationMessage.updateMany({

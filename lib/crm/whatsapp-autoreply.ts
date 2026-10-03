@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import type { WhatsAppAiConfig } from "./whatsapp-ai-config";
 import { getOperationalTimezone } from "./operational-timezone";
+import { clearEscalationAttention } from "./whatsapp-agent/attention";
 import { think, type BrainOutcome, type TranscriptLine } from "./whatsapp-agent/brain";
 import type { SimilarExample } from "./whatsapp-learning";
 
@@ -79,7 +80,17 @@ export const pauseAutoReply = async (
   });
 };
 
+/**
+ * La IA vuelve a contestar en el hilo. Si había una escalada, lo que esa
+ * escalada abrió en «Te toca» se cierra con ella («Devolver a la IA», cambiar
+ * el modo, reanudar desde el agente…); un «sin responder» se queda.
+ */
 export const resumeAutoReply = async (conversationId: string): Promise<void> => {
+  const before = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { aiPausedReason: true },
+  });
+  if (before?.aiPausedReason === "escalation") await clearEscalationAttention(conversationId);
   await prisma.conversation.update({
     where: { id: conversationId },
     data: {

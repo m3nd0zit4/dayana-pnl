@@ -7,7 +7,9 @@
 -- chats de «Te toca» ya los había contestado ella después de la escalada.
 --
 -- Aditiva: tres columnas y un índice. Repetible (IF NOT EXISTS; los UPDATE
--- dan lo mismo si se vuelven a correr).
+-- dan lo mismo si se vuelven a correr). El build la aplica antes de que el
+-- código nuevo sirva: lo que pase en ese rato lo pone al día
+-- `scripts/whatsapp-attention-backfill.ts --apply` (los mismos UPDATE).
 ALTER TABLE "conversations"
   ADD COLUMN IF NOT EXISTS "attention_at" TIMESTAMP(3),
   ADD COLUMN IF NOT EXISTS "attention_reason" TEXT,
@@ -33,7 +35,27 @@ FROM (
   GROUP BY m."conversation_id"
 ) h
 WHERE h."conversation_id" = c."id"
-  AND (c."last_human_reply_at" IS NULL OR c."last_human_reply_at" < h.last_at);
+  AND c."last_human_reply_at" IS NULL;
+
+-- 1b. Al volver a correrla con el código nuevo ya sirviendo, solo las
+--     respuestas desde el CRM o el celular la adelantan: una propuesta
+--     aprobada anota hasta dónde leyó la IA (no la hora de envío), y eso ya lo
+--     lleva el código.
+UPDATE "conversations" c
+SET "last_human_reply_at" = h.last_at
+FROM (
+  SELECT m."conversation_id", MAX(m."sent_at") AS last_at
+  FROM "conversation_messages" m
+  WHERE m."direction" = 'OUTBOUND'
+    AND m."kind" = 'message'
+    AND m."status" <> 'FAILED'
+    AND m."is_auto_reply" = false
+    AND (m."source" IS NULL OR (m."source" <> 'approval' AND m."source" NOT LIKE 'bulk:%' AND m."source" NOT LIKE 'recordatorio:%' AND m."source" NOT LIKE 'evento:%'))
+    AND (m."client_key" IS NULL OR (m."client_key" NOT LIKE 'welcome:%' AND m."client_key" NOT LIKE 'reminder:%' AND m."client_key" NOT LIKE 'bulk:%'))
+  GROUP BY m."conversation_id"
+) h
+WHERE h."conversation_id" = c."id"
+  AND c."last_human_reply_at" < h.last_at;
 
 -- 2. Escaladas que nadie contestó después: siguen en «Te toca», desde la escalada.
 UPDATE "conversations"
@@ -44,11 +66,40 @@ WHERE "ai_paused_reason" = 'escalation'
   AND "attention_at" IS NULL
   AND ("last_human_reply_at" IS NULL OR "last_human_reply_at" < "ai_paused_at");
 
--- 3. Escaladas que Dayana ya contestó: salen de «Te toca» y quedan como
---    cualquier respuesta suya (la IA vuelve pasadas las horas de relevo).
+-- 2b. Escaladas que Dayana contestó, pero la persona volvió a escribir
+--     después de su respuesta: le toca otra vez («sin responder», desde ese
+--     mensaje). Un «gracias» o un sticker solos no cuentan.
+UPDATE "conversations" c
+SET "attention_at" = n.first_at,
+    "attention_reason" = 'unanswered'
+FROM (
+  SELECT c2."id", MIN(m."sent_at") AS first_at
+  FROM "conversations" c2
+  JOIN "conversation_messages" m ON m."conversation_id" = c2."id"
+  WHERE c2."ai_paused_reason" = 'escalation'
+    AND c2."attention_at" IS NULL
+    AND c2."ai_paused_at" IS NOT NULL
+    AND c2."last_human_reply_at" IS NOT NULL
+    AND c2."last_human_reply_at" >= c2."ai_paused_at"
+    AND m."direction" = 'INBOUND'
+    AND m."kind" = 'message'
+    AND m."sent_at" > c2."last_human_reply_at"
+    AND NOT (COALESCE(m."body", '') ~* '^[^[:alnum:]]*((muchas|muchísimas|mil)[[:space:]]+)?(gracias|grax|amén|amen|bendiciones|igualmente)[^[:alnum:]]*$')
+    AND NOT (COALESCE(m."body", '') = '' AND COALESCE(m."attachments" @> '[{"kind":"sticker"}]'::jsonb, false))
+  GROUP BY c2."id"
+) n
+WHERE n."id" = c."id";
+
+-- 3. Escaladas que Dayana ya contestó y no son delicadas: quedan como
+--    cualquier respuesta suya (pausa humana; la IA vuelve pasadas las horas
+--    de relevo, contadas desde hoy). Lo clínico, los pagos y lo urgente siguen
+--    apartados de la IA hasta que ella pulse «Listo».
 UPDATE "conversations"
-SET "ai_paused_reason" = 'human'
+SET "ai_paused_reason" = 'human',
+    "ai_paused_at" = (now() AT TIME ZONE 'UTC')
 WHERE "ai_paused_reason" = 'escalation'
   AND "ai_paused_at" IS NOT NULL
   AND "last_human_reply_at" IS NOT NULL
-  AND "last_human_reply_at" >= "ai_paused_at";
+  AND "last_human_reply_at" >= "ai_paused_at"
+  AND COALESCE("escalation_category", '') NOT IN ('clinical', 'payment')
+  AND COALESCE("escalation_severity", '') <> 'urgent';

@@ -12,6 +12,7 @@ import { getSiteUrl } from "@/lib/site-url";
 import { getOperationalTimezone } from "../operational-timezone";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { resumeAutoReply } from "../whatsapp-autoreply";
+import { approvalCoversUntil, noteHumanReply, openAttentionIfNeedsReply } from "./attention";
 import { bookOnCalendar } from "./calendar";
 import { resolveConversations } from "./pending";
 
@@ -284,9 +285,10 @@ export const approveProposal = async (input: {
   /** Horas que Dayana dejó / agregó (propuesta de horarios). */
   slots?: { startIso: string; label: string }[] | null;
 }): Promise<{ ok: true; sent: string }> => {
-  // Lo que la persona escribió hasta ahora es lo que Dayana está atendiendo.
-  const startedAt = new Date();
   const run = await loadPending(input.runId, input.conversationId);
+  // Aprobar atiende lo que la IA leyó al pensar la propuesta, no lo que llegó
+  // después (eso lo contesta la siguiente vuelta o Dayana).
+  const coversUntil = await approvalCoversUntil(run.id);
   const p = run.proposal;
   const edited = input.message?.trim() && input.message.trim() !== p.message.trim();
   let message = (input.message?.trim() || p.message).trim();
@@ -431,15 +433,20 @@ export const approveProposal = async (input: {
       decidedById: input.staffId,
     },
   });
+  // Cuenta como respuesta suya hasta lo que la IA leyó: sale de «Te toca»
+  // (salvo algo delicado o urgente, que no se cierra con un botón).
+  await noteHumanReply(input.conversationId, coversUntil, "approval").catch((e: unknown) =>
+    console.warn("[whatsapp-agent] no se pudo cerrar «Te toca»", e)
+  );
   // Un pago confirmado o una cita aprobada: el chat vuelve a la IA.
   if (p.kind === "payment_received") await resumeAutoReply(input.conversationId);
-  // Y deja de estar pendiente (si la persona escribe otra vez, se reabre).
+  // Y queda resuelto por cita o por pago (si la persona escribe otra vez, se reabre).
   if ((p.kind === "booking" && p.bookingDone) || p.kind === "payment_received") {
     await resolveConversations(
       { ids: [input.conversationId] },
       p.kind === "booking" ? "appointment" : "payment",
       input.staffId,
-      { seenInboundAt: startedAt }
+      { seenInboundAt: coversUntil }
     ).catch((e: unknown) => console.warn("[whatsapp-agent] no se pudo marcar el chat como atendido", e));
   }
   await prisma.conversation.update({
@@ -491,6 +498,10 @@ export const cancelProposal = async (input: {
       eventTypes: ["WHATSAPP_AI_APPROVAL"],
     }).catch(() => 0);
   }
+  // Lo que escribió sigue sin respuesta: si importa, le sigue tocando.
+  await openAttentionIfNeedsReply(input.conversationId).catch((e: unknown) =>
+    console.warn("[whatsapp-agent] no se pudo abrir «Te toca»", e)
+  );
 };
 
 /**

@@ -13,7 +13,7 @@
  * 5. Una cita nueva en el calendario lo saca de «Te toca» («por cita»); si escribió después, no.
  * 6. Confirmar la cita o un pago lo saca (lo que la IA no leyó sigue tocando).
  * 7. El historial importado nunca abre nada.
- * 8. Buscar dentro de «Te toca» no se sale de «Te toca».
+ * 8. Buscar busca en todos los chats, esté en la pestaña que esté.
  */
 import { prisma } from "@/lib/db";
 import type { CalendarEvent } from "@/lib/google/calendar";
@@ -253,16 +253,20 @@ const main = async () => {
     await inbound(H, "Otro de hace un rato", { isHistory: true, sentAt: new Date(Date.now() - 3600_000) });
     check("un mensaje del historial más nuevo tampoco", (await conv(h)).attentionAt === null);
 
-    console.log("\n8. Buscar dentro de «Te toca»");
+    console.log("\n8. Buscar busca en todos los chats");
     const token = `Busqueda${run}`;
     const s1c = await inbound(S1, "hola", { participantName: `${token} Uno` });
-    await inbound(S2, "hola", { participantName: `${token} Dos` });
+    const s2c = await inbound(S2, "hola", { participantName: `${token} Dos` });
     await open(s1c, "payment");
-    const inAttention = await listChats({ queue: "attention", q: token });
-    check("en «Te toca» solo al que le toca", inAttention.length === 1 && inAttention[0].id === s1c, inAttention.map((i) => i.name));
-    check("con su motivo", inAttention[0]?.attention?.reason === "payment", inAttention[0]?.attention);
-    const inAll = await listChats({ queue: "all", q: token });
-    check("en «Todos», los dos", inAll.length === 2, inAll.map((i) => i.name));
+    const fromAttention = await listChats({ queue: "attention", q: token });
+    check(
+      "buscando desde «Te toca» aparecen los dos (la búsqueda no se queda en la pestaña)",
+      fromAttention.length === 2 && fromAttention.some((i) => i.id === s2c),
+      fromAttention.map((i) => i.name)
+    );
+    check("el que le toca dice su motivo", fromAttention.find((i) => i.id === s1c)?.attention?.reason === "payment");
+    const onlyAttention = (await listChats({ queue: "attention", take: 600 })).filter((i) => i.name.startsWith(token));
+    check("sin buscar, en «Te toca» solo el que le toca", onlyAttention.length === 1 && onlyAttention[0].id === s1c, onlyAttention.map((i) => i.name));
   } finally {
     await cleanup();
     if (prevAi) await prisma.siteSetting.update({ where: { key: prevAi.key }, data: { value: prevAi.value } });

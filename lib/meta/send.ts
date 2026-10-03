@@ -570,7 +570,6 @@ export const sendMetaMessage = async (
     // deja el chat leído, consume el borrador y lo saca de «Te toca». La IA,
     // el saludo, los recordatorios y los masivos no: nadie miró ese chat.
     const human = isHumanSend(input);
-    const sentAt = new Date();
     await prisma.conversation.update({
       where: { id: conversation.id },
       data: {
@@ -595,10 +594,19 @@ export const sendMetaMessage = async (
         data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
       });
     }
-    if (human && conversation.channel === "WHATSAPP") {
-      await noteHumanReply(conversation.id, sentAt, input.source === "approval" ? "approval" : "reply").catch(
-        (e: unknown) => console.warn("[meta] no se pudo cerrar «Te toca»", e)
-      );
+    // Su respuesta la saca de «Te toca» (una propuesta aprobada la anota
+    // `approveProposal`, que sabe hasta dónde leyó la IA). Si WhatsApp ya
+    // avisó que no llegó (un acuse que se adelantó), no cuenta.
+    if (human && input.source !== "approval" && conversation.channel === "WHATSAPP") {
+      const row = await prisma.conversationMessage.findUnique({
+        where: { id: message.id },
+        select: { sentAt: true, status: true },
+      });
+      if (row && row.status !== "FAILED") {
+        await noteHumanReply(conversation.id, row.sentAt, "reply").catch((e: unknown) =>
+          console.warn("[meta] no se pudo cerrar «Te toca»", e)
+        );
+      }
     }
   }
 

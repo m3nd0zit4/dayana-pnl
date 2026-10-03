@@ -119,16 +119,19 @@ const fold = (s: string) =>
 /** «graciaaas» → «gracias», «okkk» → «ok» (se aplica igual al vocabulario). */
 const squeeze = (w: string) => w.replace(/(.)\1+/g, "$1");
 
-/** Lo que hace que un mensaje sea un agradecimiento o un «ok». */
-const CORE = new Set(
+/**
+ * Agradecer o bendecir: no contesta nada, ni siquiera a una pregunta. (Sin
+ * «listo»: después de un enlace de pago, «listo» es «ya pagué».)
+ */
+const THANKS = new Set(
   [
     "gracias", "grax", "grasias", "gracia", "thanks",
-    "ok", "okay", "okey", "oki", "okis",
-    "listo", "lista",
     "amen", "bendiciones", "bendicion", "bendigo", "bendiga",
     "igualmente",
   ].map(squeeze)
 );
+/** Un «ok»: no pide nada… salvo que le hayamos preguntado algo (entonces es un «sí»). */
+const ACK = new Set(["ok", "okay", "okey", "oki", "okis"].map(squeeze));
 /** Lo que puede acompañarlo sin cambiar nada («muchas», «a ti», «que Dios te…»). */
 const FILLER = new Set(
   [
@@ -148,18 +151,21 @@ const attachmentKinds = (attachments: unknown): string[] =>
   Array.isArray(attachments) ? attachments.map((a) => String((a as { kind?: string } | null)?.kind ?? "")) : [];
 
 /**
- * ¿Un mensaje que no pide respuesta? «gracias», «muchas gracias 🙏», «ok»,
- * «listo», «amén», «bendiciones», «te bendigo», «igualmente», solo emojis, un
- * sticker, una reacción. Una pregunta, una foto, un audio o un documento
- * (puede ser el comprobante de un pago) nunca lo son.
+ * ¿Qué clase de mensaje que no pide respuesta es?
+ * - `thanks`: «gracias», «muchas gracias 🙏», «amén», «bendiciones», «te
+ *   bendigo», «igualmente». No contesta nada, ni siquiera a una pregunta.
+ * - `ack`: «ok», un emoji suelto, un sticker. Solo es trivial si no le
+ *   preguntamos nada: a «¿te sirve el jueves?», un 👍 es un «sí».
+ * - `null`: pide respuesta. Una pregunta, una foto, un audio o un documento
+ *   (puede ser el comprobante de un pago) siempre la piden.
+ * Los avisos grises (reacciones, encuestas) llegan como `system` y no cuentan.
  */
-export const isTrivialMessage = (m: TrivialInput): boolean => {
-  if (m.kind === "system") return true;
+export const trivialKind = (m: TrivialInput): "thanks" | "ack" | null => {
+  if (m.kind === "system") return "thanks";
   const kinds = attachmentKinds(m.attachments);
-  if (kinds.some((k) => k !== "sticker")) return false;
+  if (kinds.some((k) => k !== "sticker")) return null;
   const text = (m.body ?? "").trim();
-  if (/^(Reaccionó|Quitó una reacción)/.test(text)) return true;
-  if (/[?¿]/.test(text) || text.length > 80) return false;
+  if (/[?¿]/.test(text) || text.length > 80) return null;
   const hadEmoji = text.replace(EMOJI, "") !== text;
   const words = fold(text)
     .replace(EMOJI, " ")
@@ -167,44 +173,106 @@ export const isTrivialMessage = (m: TrivialInput): boolean => {
     .split(/\s+/)
     .filter(Boolean)
     .map(squeeze);
-  if (words.length === 0) return hadEmoji || kinds.length > 0;
-  if (words.length > 8) return false;
-  return words.every((w) => CORE.has(w) || FILLER.has(w)) && words.some((w) => CORE.has(w));
+  if (words.length === 0) return hadEmoji || kinds.length > 0 ? "ack" : null;
+  if (words.length > 8) return null;
+  const core = (w: string) => THANKS.has(w) || ACK.has(w);
+  if (!words.every((w) => core(w) || FILLER.has(w)) || !words.some(core)) return null;
+  return words.some((w) => ACK.has(w)) ? "ack" : "thanks";
 };
+
+/** ¿No pide respuesta (sin contar lo que le preguntamos)? */
+export const isTrivialMessage = (m: TrivialInput): boolean => trivialKind(m) !== null;
 
 export type BurstMessage = ReplyMessage & TrivialInput & { sentAt?: Date | null };
 
 /**
  * Lo que la persona escribió desde la última respuesta (de Dayana o de la IA),
  * del más nuevo al más viejo. Los envíos automáticos, los avisos grises y lo
- * que no se entregó no cortan la ráfaga.
+ * que no se entregó no cortan la ráfaga. Una propuesta aprobada tampoco: cubre
+ * solo lo que la IA leyó al pensarla, y eso lo dice `coveredUntil`
+ * (`Conversation.lastHumanReplyAt`): lo escrito hasta ahí ya está atendido.
  */
-export const inboundSinceLastReply = <T extends BurstMessage>(messagesNewestFirst: T[]): T[] => {
+export const inboundSinceLastReply = <T extends BurstMessage>(
+  messagesNewestFirst: T[],
+  coveredUntil?: Date | null
+): T[] => {
   const out: T[] = [];
   for (const m of messagesNewestFirst) {
     if (m.kind === "system") continue;
     if (m.direction === "INBOUND") {
-      out.push(m);
+      if (!coveredUntil || !m.sentAt || m.sentAt.getTime() > coveredUntil.getTime()) out.push(m);
       continue;
     }
-    if (m.status === "FAILED" || isAutoSend(m)) continue;
+    if (m.status === "FAILED" || isAutoSend(m) || m.source === "approval") continue;
     break;
   }
   return out;
 };
 
+/** ¿Este mensaje pide respuesta? `prompted`: lo último nuestro le preguntaba algo. */
+const asksForReply = (m: TrivialInput, prompted: boolean): boolean => {
+  const kind = trivialKind(m);
+  return kind === null || (prompted && kind === "ack");
+};
+
 /** ¿Algo de la ráfaga necesita respuesta? (vacía: no). */
-export const needsReply = (burst: TrivialInput[]): boolean => burst.some((m) => !isTrivialMessage(m));
+export const needsReply = (burst: TrivialInput[], prompted = false): boolean =>
+  burst.some((m) => asksForReply(m, prompted));
 
 /** El primer mensaje de la ráfaga que pide respuesta (desde ahí «te toca»). */
-export const firstNeedingReply = (burst: (TrivialInput & { sentAt?: Date | null })[]): Date | null => {
+export const firstNeedingReply = (
+  burst: (TrivialInput & { sentAt?: Date | null })[],
+  prompted = false
+): Date | null => {
   let first: number | null = null;
   for (const m of burst) {
-    if (isTrivialMessage(m) || !m.sentAt) continue;
+    if (!asksForReply(m, prompted) || !m.sentAt) continue;
     const t = m.sentAt.getTime();
     if (first === null || t < first) first = t;
   }
   return first === null ? null : new Date(first);
+};
+
+/** Lo último que le mandamos (del más nuevo al más viejo): sin avisos grises ni lo que falló. */
+export const lastOutbound = <T extends BurstMessage>(messagesNewestFirst: T[]): T | null =>
+  messagesNewestFirst.find((m) => m.direction === "OUTBOUND" && m.kind !== "system" && m.status !== "FAILED") ??
+  null;
+
+/**
+ * ¿Ese mensaje nuestro esperaba respuesta? Una pregunta, un enlace (pago,
+ * agenda), un envío masivo (una invitación) o un recordatorio de cita.
+ */
+export const askedSomething = (m: (TrivialInput & { source?: string | null; clientKey?: string | null }) | null): boolean => {
+  if (!m) return false;
+  const text = m.body ?? "";
+  if (/[?¿]/.test(text) || /https?:\/\//i.test(text)) return true;
+  return isAutoSend(m);
+};
+
+/**
+ * Lo que escribió la persona desde la última respuesta y si pide respuesta,
+ * teniendo en cuenta lo último que le dijimos antes de eso. `recentOffer`:
+ * hace poco se aprobó ofrecerle horas, una cita o un enlace de pago (un «ok»
+ * puede ser el «sí»). `coveredUntil`: ver `inboundSinceLastReply`.
+ */
+export const burstState = <T extends BurstMessage>(
+  messagesNewestFirst: T[],
+  opts: { recentOffer?: boolean; coveredUntil?: Date | null } = {}
+) => {
+  const burst = inboundSinceLastReply(messagesNewestFirst, opts.coveredUntil);
+  // Lo nuestro anterior a su último mensaje: a eso contestaba.
+  const newest = burst[0]?.sentAt?.getTime();
+  const before =
+    newest === undefined
+      ? messagesNewestFirst
+      : messagesNewestFirst.filter((m) => !m.sentAt || m.sentAt.getTime() <= newest);
+  const prompted = Boolean(opts.recentOffer) || askedSomething(lastOutbound(before));
+  return {
+    burst,
+    prompted,
+    needsReply: needsReply(burst, prompted),
+    since: firstNeedingReply(burst, prompted),
+  };
 };
 
 // ─── «Te toca» ──────────────────────────────────────────────────────────────
@@ -260,6 +328,40 @@ export const mergeAttention = (
   if (at.getTime() === was && reason === current.reason) return null;
   return { at, reason };
 };
+
+/** Quién cierra: su respuesta, una propuesta aprobada, «Listo», una cita, un pago o la IA. */
+export type CloseBy = "reply" | "approval" | "listo" | "appointment" | "payment" | "ai";
+
+/**
+ * ¿Qué cierra cada cosa? Contestar o «Listo», todo. Aprobar lo que propuso la
+ * IA, todo menos algo delicado o urgente (eso lo atiende ella, no un botón).
+ * Una cita, lo que pedía cita; un pago, lo que era de un pago. La IA, solo
+ * «sin responder».
+ */
+export const canClose = (by: CloseBy, attention: { reason: string | null; urgent: boolean }): boolean => {
+  const reason = attention.reason ?? "other";
+  switch (by) {
+    case "reply":
+    case "listo":
+      return true;
+    case "approval":
+      return reason !== "clinical" && !attention.urgent;
+    case "appointment":
+      return reason === "unanswered" || reason === "booking" || reason === "reschedule";
+    case "payment":
+      return reason === "unanswered" || reason === "payment";
+    case "ai":
+      return reason === "unanswered";
+  }
+};
+
+/**
+ * Una escalada delicada (algo clínico, un pago, algo urgente): aunque Dayana
+ * conteste, la IA sigue apartada hasta que ella pulse «Listo». Las demás
+ * pasan a pausa humana y la IA vuelve pasadas las horas de relevo.
+ */
+export const isSensitiveEscalation = (e: { category: string | null; severity: string | null }): boolean =>
+  e.category === "clinical" || e.category === "payment" || e.severity === "urgent";
 
 /**
  * ¿Una respuesta (o «Listo», una cita, un pago) en `upTo` cierra lo abierto

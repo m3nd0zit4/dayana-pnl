@@ -31,7 +31,16 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
-import { APPROVAL_LABEL, MODE_LABEL, MODE_SHORT, RunStatus, agoLabel, attentionLabel, isRunLive } from "../status";
+import {
+  APPROVAL_LABEL,
+  CATEGORY_LABEL,
+  MODE_LABEL,
+  MODE_SHORT,
+  RunStatus,
+  agoLabel,
+  attentionLabel,
+  isRunLive,
+} from "../status";
 import { wa } from "./chatTheme";
 import { ActionButton, Avatar } from "./ui";
 
@@ -44,6 +53,8 @@ const ITEM = "min-h-10 gap-2 px-2.5 text-sm";
 /**
  * «Te toca» (o algo por autorizar): por qué, y UNA acción, «Listo». Contestar
  * también lo saca de aquí; «Listo» es para lo que se resolvió por otro lado.
+ * Una escalada delicada (clínica, pago, urgente) sigue aquí después de
+ * contestar: la IA no vuelve hasta que ella pulse «Listo».
  */
 const AttentionBar = ({
   chat,
@@ -60,15 +71,22 @@ const AttentionBar = ({
 }) => {
   const a = chat.attention;
   const approval = chat.approvals[0]?.proposal.kind ?? null;
-  if (!a && !approval) return null;
-  const urgent = Boolean(a?.urgent);
-  const title = a ? attentionLabel(a) : (APPROVAL_LABEL[approval ?? "reply"] ?? APPROVAL_LABEL.reply);
+  const escalation = chat.escalation;
+  if (!a && !approval && !escalation) return null;
+  const urgent = Boolean(a?.urgent) || escalation?.severity === "urgent";
+  const title = a
+    ? attentionLabel(a)
+    : approval
+      ? (APPROVAL_LABEL[approval] ?? APPROVAL_LABEL.reply)
+      : `${urgent ? "Urgente" : "IA en pausa"} · ${CATEGORY_LABEL[escalation?.category ?? ""] ?? "Revisar"}`;
   // Con una propuesta abajo, el motivo ya lo dice ella: aquí solo desde cuándo.
   const detail = a
     ? [approval ? null : a.detail, a.reason === "unanswered" ? `escribió ${agoLabel(a.since, now)}` : agoLabel(a.since, now)]
         .filter(Boolean)
         .join(" · ")
-    : "Acéptalo o cancélalo abajo, o contéstale tú.";
+    : approval
+      ? "Acéptalo o cancélalo abajo, o contéstale tú."
+      : "Ya contestaste. La IA no vuelve a este chat hasta que pulses «Listo».";
   return (
     <div
       className={cn(
@@ -262,7 +280,7 @@ const ChatHeader = ({
 }) => {
   const lastRun = chat.runs[0] ?? null;
   const live = isRunLive(lastRun);
-  const needsYou = Boolean(chat.attention || chat.approvals.length > 0);
+  const needsYou = Boolean(chat.attention || chat.approvals.length > 0 || chat.escalation);
   return (
     <>
       <div className="flex h-[60px] items-center gap-1 border-l border-(--wa-border) bg-(--wa-panel) px-1 sm:px-3 md:gap-2">

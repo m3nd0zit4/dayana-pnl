@@ -201,10 +201,10 @@ export const listChats = async (input: {
   const rows = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
-      // Con AND: la búsqueda tiene su propio OR y no puede pisar el de la cola
-      // (antes, buscar dentro de «Te toca» buscaba en todos los chats).
+      // Buscar busca en todos los chats, esté en la pestaña que esté (se abre
+      // en «Te toca»: buscar a alguien ahí casi nunca lo encontraría).
       AND: [
-        await queueWhere(input.queue),
+        q ? {} : await queueWhere(input.queue),
         q
           ? {
               OR: [
@@ -218,9 +218,9 @@ export const listChats = async (input: {
       ],
     },
     orderBy:
-      input.queue === "mine"
+      input.queue === "mine" && !q
         ? [{ priorityAt: { sort: "desc", nulls: "last" } }, { lastMessageAt: "desc" }]
-        : input.queue === "seguimiento"
+        : input.queue === "seguimiento" && !q
           ? // Lo último que escribieron, arriba.
             [{ lastInboundAt: { sort: "desc", nulls: "last" } }, { lastMessageAt: "desc" }]
           : [{ lastMessageAt: "desc" }],
@@ -322,7 +322,7 @@ export const listChats = async (input: {
   });
 
   // En «Te toca», lo urgente arriba.
-  if (input.queue === "attention") {
+  if (input.queue === "attention" && !q) {
     items.sort(
       (a, b) =>
         Number(Boolean(b.attention?.urgent)) - Number(Boolean(a.attention?.urgent)) ||

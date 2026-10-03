@@ -43,7 +43,7 @@ const chip = (active: boolean) =>
 
 const Empty = ({ queue, q }: { queue: ChatQueue; q: string }) => {
   if (q.trim()) {
-    return <div className="p-8 text-center text-sm text-(--wa-meta)">Ningún chat de esta lista coincide con «{q.trim()}».</div>;
+    return <div className="p-8 text-center text-sm text-(--wa-meta)">Ningún chat coincide con «{q.trim()}».</div>;
   }
   if (queue === "attention") {
     return (
@@ -192,6 +192,10 @@ const ChatList = ({
         )}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {q.trim() && items !== null && items.length > 0 && (
+          // Buscar mira todos los chats, no solo la pestaña abierta.
+          <p className="px-4 pt-2 text-xs text-(--wa-meta)">Resultados en todos los chats</p>
+        )}
         {items === null && (
           <div className="grid place-items-center p-8">
             <Loader2 className="size-5 animate-spin text-(--wa-green)" />

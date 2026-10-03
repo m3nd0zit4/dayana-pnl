@@ -19,17 +19,16 @@ import {
   resumeAutoReply,
 } from "../whatsapp-autoreply";
 import {
-  inboundSinceLastReply,
+  burstState,
   lastInboundSeen,
-  needsReply,
   opensAttention,
   repliedSince,
   type AttentionReason,
 } from "../whatsapp-attention-rules";
 import { clientContext, think, type TranscriptLine } from "./brain";
 import { getMemory, refreshMemory } from "./memory";
-import { approvedMessageIds, proposeForApproval, type Proposal } from "./approvals";
-import { closeAttention, openAttention, openAttentionIfNeedsReply } from "./attention";
+import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal } from "./approvals";
+import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -162,14 +161,6 @@ const handOffIfNeeded = async (conversationId: string, skipReason: string) => {
     console.warn("[whatsapp-agent] no se pudo abrir «Te toca»", e)
   );
 };
-
-/** ¿Lo último que se le mandó (del más nuevo al más viejo) fue el recordatorio de su cita? */
-const afterReminder = (messagesNewestFirst: { direction: string; kind: string; source: string | null }[]) =>
-  Boolean(
-    messagesNewestFirst
-      .find((m) => m.direction === "OUTBOUND" && m.kind !== "system")
-      ?.source?.startsWith("recordatorio:")
-  );
 
 const ATTENTION_REASONS = new Set<string>([
   "payment",
@@ -326,14 +317,17 @@ export const runWhatsAppAi = async (input: {
 
     const { conversation, history } = verdict;
 
-    // En copiloto, a un «gracias», un 👍 o un sticker no hace falta proponerle
-    // nada a Dayana: ni se llama al modelo. Salvo justo después de un
-    // recordatorio de cita: ahí un «ok» puede ser la confirmación (la IA la anota).
-    if (
-      effectiveAiMode(conversation.aiMode, config.defaultMode) === "COPILOT" &&
-      !needsReply(inboundSinceLastReply(conversation.messages)) &&
-      !afterReminder(conversation.messages)
-    ) {
+    // ¿Lo que escribió pide respuesta? Un «gracias» nunca; un «ok», un 👍 o un
+    // sticker solo si le habíamos preguntado algo (una pregunta, un enlace, una
+    // invitación, un recordatorio, horas o una cita ofrecidas hace poco): ahí
+    // es un «sí».
+    const burst = burstState(conversation.messages, {
+      recentOffer: await recentOffer(conversationId),
+      coveredUntil: conversation.lastHumanReplyAt,
+    });
+    // En copiloto, a lo que no pide respuesta no se le propone nada: ni se
+    // llama al modelo. (En modo IA sí puede salir un «Con gusto».)
+    if (effectiveAiMode(conversation.aiMode, config.defaultMode) === "COPILOT" && !burst.needsReply) {
       await finish(run.id, "SKIPPED", { reason: "trivial" });
       return;
     }
@@ -475,13 +469,12 @@ export const runWhatsAppAi = async (input: {
       Boolean(result.pendingPayment) ||
       copilot;
 
-    // Lo mismo después de pensar (el caso del recordatorio: la IA ya anotó la
-    // confirmación; un «¡Perfecto!» no hace falta proponerlo). En modo IA sí
-    // puede salir un «Con gusto». Lo que pide una cita, un pago o lleva un
-    // precio sigue esperando su autorización.
+    // Lo mismo después de pensar, por si el modo pasó a copiloto mientras la IA
+    // pensaba. Lo que pide una cita, un pago o lleva un precio sigue esperando
+    // su autorización.
     const plainReply =
       !saysPrice && !result.pendingSlots && !result.pendingBooking && !result.pendingPayment && !result.bookingRequest;
-    if (copilot && plainReply && !needsReply(inboundSinceLastReply(conversation.messages))) {
+    if (copilot && plainReply && !burst.needsReply) {
       await finish(run.id, "SKIPPED", { ...meta, reason: "trivial" });
       return;
     }
@@ -593,6 +586,7 @@ const loadConversation = (conversationId: string) =>
       externalThreadId: true,
       contactId: true,
       participantName: true,
+      lastHumanReplyAt: true,
       contact: {
         select: {
           firstName: true,
@@ -769,7 +763,20 @@ const escalate = async (
     return false;
   }
   await pauseAutoReply(conversationId, "escalation", outcome);
+  // Lo que la IA había propuesto antes ya no es la respuesta: ahora le toca a
+  // Dayana (y aprobarlo no debe cerrar esta escalada). La respuesta al pago
+  // que la IA deja con esta escalada se propone después.
+  await supersedePending(conversationId, "La IA le pasó el chat a Dayana.").catch(() => 0);
   await openAttention(conversationId, attentionReasonOf(outcome.category), from ?? new Date());
+  // Si contestó justo entre la primera comprobación y abrir «Te toca», su
+  // respuesta ya no lo pudo cerrar: se cierra aquí.
+  const replied = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { lastHumanReplyAt: true },
+  });
+  if (from && replied?.lastHumanReplyAt && repliedSince(replied.lastHumanReplyAt, from)) {
+    await closeAttention(conversationId, { by: "reply", upTo: replied.lastHumanReplyAt });
+  }
   const holding = config?.escalation.holdingMessage.trim();
   if (holding && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>

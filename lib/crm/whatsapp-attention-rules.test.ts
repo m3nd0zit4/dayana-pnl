@@ -2,8 +2,12 @@ import { describe, expect, test } from "bun:test";
 import {
   appointmentCoversUntil,
   appointmentJustLinked,
+  burstState,
+  canClose,
   closesAttention,
   firstNeedingReply,
+  isSensitiveEscalation,
+  trivialKind,
   inboundSinceLastReply,
   isHumanSend,
   isPending,
@@ -41,9 +45,16 @@ describe("isTrivialMessage: lo que no pide respuesta", () => {
     }
   });
 
-  test("«ok», «listo» y sus formas", () => {
-    for (const body of ["ok", "Ok.", "OKAY", "Okey 👍", "oki", "okkk", "Listo", "listo, gracias", "Ok gracias"]) {
-      expect(trivial(body)).toBe(true);
+  test("«ok» y sus formas (un «ok», no un «gracias»)", () => {
+    for (const body of ["ok", "Ok.", "OKAY", "Okey 👍", "oki", "okkk", "Ok gracias"]) {
+      expect(trivialKind({ body })).toBe("ack");
+    }
+    expect(trivialKind({ body: "Muchas gracias 🙏" })).toBe("thanks");
+  });
+
+  test("«listo» no es trivial: después de un enlace de pago es «ya pagué»", () => {
+    for (const body of ["Listo", "listo, gracias", "Lista"]) {
+      expect(trivial(body)).toBe(false);
     }
   });
 
@@ -53,17 +64,17 @@ describe("isTrivialMessage: lo que no pide respuesta", () => {
     }
   });
 
-  test("solo emojis", () => {
+  test("solo emojis o un sticker: como un «ok»", () => {
     for (const body of ["👍", "🙏", "🙏🏽", "❤️", "😊😊", "👍🏻❤️"]) {
-      expect(trivial(body)).toBe(true);
+      expect(trivialKind({ body })).toBe("ack");
     }
+    expect(trivialKind({ body: null, attachments: [{ kind: "sticker" }] })).toBe("ack");
   });
 
-  test("sticker, reacción y avisos grises", () => {
-    expect(isTrivialMessage({ body: null, attachments: [{ kind: "sticker" }] })).toBe(true);
-    expect(isTrivialMessage({ body: "Reaccionó ❤️" })).toBe(true);
-    expect(isTrivialMessage({ body: "Quitó una reacción" })).toBe(true);
+  test("las reacciones llegan como aviso gris (system): no cuentan; un texto «Reaccionó…» escrito sí", () => {
+    expect(isTrivialMessage({ body: "Reaccionó ❤️", kind: "system" })).toBe(true);
     expect(isTrivialMessage({ body: "Encuesta: ¿qué día?", kind: "system" })).toBe(true);
+    expect(isTrivialMessage({ body: "Reaccionó ❤️" })).toBe(false);
   });
 
   test("un saludo, una pregunta o algo concreto sí piden respuesta", () => {
@@ -150,6 +161,57 @@ describe("inboundSinceLastReply / needsReply (del más nuevo al más viejo)", ()
       ])?.getTime()
     ).toBe(at(4).getTime());
     expect(firstNeedingReply([{ body: "gracias", sentAt: at(1) }])).toBeNull();
+    // Si le habíamos preguntado algo, el 👍 ya es la respuesta.
+    expect(firstNeedingReply([{ body: "👍", sentAt: at(3) }], true)?.getTime()).toBe(at(3).getTime());
+  });
+
+  test("una propuesta aprobada no corta la ráfaga: cubre hasta lo que la IA leyó", () => {
+    const messages = [
+      msg({ source: "approval", body: "Claro, te ayudo", sentAt: at(9) }),
+      msg({ direction: "INBOUND", body: "¿y el precio?", sentAt: at(8) }),
+      msg({ direction: "INBOUND", body: "Hola, quiero una cita", sentAt: at(5) }),
+    ];
+    expect(inboundSinceLastReply(messages, at(5)).map((m) => m.body)).toEqual(["¿y el precio?"]);
+    expect(inboundSinceLastReply(messages, at(8))).toEqual([]);
+  });
+});
+
+describe("burstState: lo que escribió según lo que le dijimos", () => {
+  const thread = (prev: Partial<BurstMessage>, reply: string) => [
+    msg({ direction: "INBOUND", body: reply, sentAt: at(10) }),
+    msg({ sentAt: at(5), ...prev }),
+  ];
+
+  test("«gracias» nunca pide respuesta, ni después de una pregunta o un recordatorio", () => {
+    expect(burstState(thread({ body: "¿Te sirve el jueves?" }, "Gracias 🙏")).needsReply).toBe(false);
+    expect(burstState(thread({ body: "Te recuerdo tu cita de mañana", source: "recordatorio:e1", isAutoReply: true }, "gracias")).needsReply).toBe(false);
+    expect(burstState(thread({ body: "Con gusto, te espero" }, "gracias")).needsReply).toBe(false);
+  });
+
+  test("«ok», 👍 o un sticker después de una pregunta, un enlace, una invitación o un recordatorio: es un «sí»", () => {
+    expect(burstState(thread({ body: "¿Te sirve el jueves a las 3?" }, "ok")).needsReply).toBe(true);
+    expect(burstState(thread({ body: "Aquí tienes el enlace: https://pago.example/x" }, "👍")).needsReply).toBe(true);
+    expect(burstState(thread({ body: "Te invito al taller del sábado", source: "bulk:s1" }, "ok")).needsReply).toBe(true);
+    expect(burstState(thread({ body: "Te recuerdo tu cita de mañana", source: "recordatorio:e1", isAutoReply: true }, "ok")).needsReply).toBe(true);
+  });
+
+  test("«ok» a algo que no preguntaba nada: no pide respuesta", () => {
+    expect(burstState(thread({ body: "Te espero el jueves" }, "ok")).needsReply).toBe(false);
+  });
+
+  test("con horas, una cita o un enlace de pago aprobados hace poco, un «ok» es un «sí»", () => {
+    const s = burstState(thread({ body: "Perfecto" }, "ok"), { recentOffer: true });
+    expect(s.needsReply).toBe(true);
+    expect(s.since?.getTime()).toBe(at(10).getTime());
+  });
+
+  test("lo que le dijimos DESPUÉS de su mensaje no cuenta como pregunta", () => {
+    const messages = [
+      msg({ source: "approval", body: "¿Te sirve el jueves?", sentAt: at(12) }),
+      msg({ direction: "INBOUND", body: "ok", sentAt: at(10) }),
+      msg({ body: "Te espero", sentAt: at(5) }),
+    ];
+    expect(burstState(messages).needsReply).toBe(false);
   });
 });
 
@@ -205,6 +267,40 @@ describe("abrir y cerrar «Te toca»", () => {
       at: at(2),
       reason: "booking",
     });
+  });
+
+  test("cada cosa cierra solo lo suyo", () => {
+    const open = (reason: string, urgent = false) => ({ reason, urgent });
+    // Contestar o «Listo»: todo.
+    for (const r of ["unanswered", "payment", "clinical", "complaint", "booking"]) {
+      expect(canClose("reply", open(r))).toBe(true);
+      expect(canClose("listo", open(r, true))).toBe(true);
+    }
+    // Aprobar lo que propuso la IA: nunca algo delicado o urgente.
+    expect(canClose("approval", open("unanswered"))).toBe(true);
+    expect(canClose("approval", open("payment"))).toBe(true);
+    expect(canClose("approval", open("clinical"))).toBe(false);
+    expect(canClose("approval", open("other", true))).toBe(false);
+    // Una cita: lo que pedía cita. Un pago: lo que era de un pago.
+    expect(canClose("appointment", open("booking"))).toBe(true);
+    expect(canClose("appointment", open("reschedule"))).toBe(true);
+    expect(canClose("appointment", open("unanswered"))).toBe(true);
+    expect(canClose("appointment", open("payment"))).toBe(false);
+    expect(canClose("appointment", open("clinical"))).toBe(false);
+    expect(canClose("payment", open("payment"))).toBe(true);
+    expect(canClose("payment", open("booking"))).toBe(false);
+    expect(canClose("payment", open("complaint"))).toBe(false);
+    // La IA: solo «sin responder».
+    expect(canClose("ai", open("unanswered"))).toBe(true);
+    expect(canClose("ai", open("booking"))).toBe(false);
+  });
+
+  test("escaladas delicadas: clínica, pago o urgente", () => {
+    expect(isSensitiveEscalation({ category: "clinical", severity: "normal" })).toBe(true);
+    expect(isSensitiveEscalation({ category: "payment", severity: null })).toBe(true);
+    expect(isSensitiveEscalation({ category: "other", severity: "urgent" })).toBe(true);
+    expect(isSensitiveEscalation({ category: "unknown", severity: "normal" })).toBe(false);
+    expect(isSensitiveEscalation({ category: "booking", severity: null })).toBe(false);
   });
 
   test("una respuesta solo cierra lo que se abrió antes de ella (ecos en desorden)", () => {
