@@ -11,7 +11,14 @@
  * 3. Una categoría manual sobrevive a «volver a clasificar» y a «clasificar todo».
  * 4. Un mensaje nuevo lo vuelve a mirar; uno nuestro no vuelve a pagar a la IA.
  * 5. Los contadores cuadran.
+ * 6. Sacar un número del equipo lo vuelve a clasificar.
+ * 7. Un 403 de facturación de Google (simulado) para la IA en esa vuelta sin
+ *    marcar nada; las reglas siguen. Si la IA real está bloqueada así, sus
+ *    comprobaciones salen SKIPPED («IA bloqueada por facturación de Google»);
+ *    cualquier otro error de la IA falla.
  */
+import { APICallError } from "ai";
+
 import { prisma } from "@/lib/db";
 import {
   TEAM_PHONES_KEY,
@@ -34,6 +41,14 @@ const check = (name: string, ok: boolean, detail?: unknown) => {
   console.log(`${ok ? "  ✅" : "  ❌"} ${name}${!ok && detail !== undefined ? ` → ${JSON.stringify(detail)}` : ""}`);
   if (!ok) failures.push(name);
 };
+/** Solo para lo que necesita la IA viva cuando Google la bloquea por facturación. */
+const skipped: string[] = [];
+const AI_BILLING = "IA bloqueada por facturación de Google";
+const skip = (name: string) => {
+  console.log(`  ⏭️  ${name} — SKIPPED: ${AI_BILLING}`);
+  skipped.push(name);
+};
+let aiBlocked = false;
 
 const run = Date.now();
 const T = {
@@ -47,6 +62,9 @@ const T = {
   manual: "573000009408",
   aiInterest: "573000009409",
   aiVendor: "573000009410",
+  billing1: "573000009411",
+  billing2: "573000009412",
+  billing3: "573000009413",
 } as const;
 const THREADS = Object.values(T);
 const DIAG_TOKEN = `e2e-clasif-${run}`;
@@ -151,8 +169,18 @@ const main = async () => {
     const cInteresada = await contact(T.interesada, "Interesada E2E");
     await prisma.diagnostic.create({ data: { token: DIAG_TOKEN, contactId: cInteresada.id, completedAt: new Date() } });
     const cComunidad = await contact(T.comunidad, "Comunidad E2E");
+    // Realizado y del año 2000: nunca pasa a ser «el evento actual» de otras
+    // pruebas que corren a la vez en la base compartida.
+    const longAgo = new Date(Date.UTC(2000, 0, 1));
     const webinar = await prisma.freeWebinar.create({
-      data: { slug: WEBINAR_SLUG, headline: "Masterclass de prueba (clasificación)", learnItems: [] },
+      data: {
+        slug: WEBINAR_SLUG,
+        headline: "Masterclass de prueba (clasificación)",
+        learnItems: [],
+        status: "COMPLETED",
+        startsAt: longAgo,
+        endedAt: longAgo,
+      },
       select: { id: true },
     });
     await prisma.webinarRegistration.create({ data: { webinarId: webinar.id, contactId: cComunidad.id } });
@@ -247,33 +275,51 @@ const main = async () => {
     }
     const ai1 = aiOutcomes.aiInterest;
     const ai2 = aiOutcomes.aiVendor;
-    check(
-      "pregunta por sesiones y precio → interesada (IA)",
-      ai1.status === "classified" && ai1.source === "ai" && ai1.category === "interesada",
-      ai1
-    );
-    check(
-      "agencia ofreciendo anuncios → negocio (IA)",
-      ai2.status === "classified" && ai2.source === "ai" && (ai2.category === "negocio" || ai2.category === "otro"),
-      ai2
-    );
-    for (const key of ["aiInterest", "aiVendor"] as const) {
-      const s = await state(ids[key]);
+    // Solo el 403 de facturación de Google se salta; cualquier otro error falla.
+    aiBlocked = [ai1, ai2].some((o) => o.status === "error" && o.aiBlocked === "billing");
+    if (aiBlocked) {
+      skip("pregunta por sesiones y precio → interesada (IA)");
+      skip("agencia ofreciendo anuncios → negocio (IA)");
+      skip("guarda confianza, motivo corto y «revisar» si < 0,7");
+      for (const key of ["aiInterest", "aiVendor"] as const) {
+        const o = aiOutcomes[key];
+        check(`${key}: el error es exactamente el 403 de facturación`, o.status === "error" && o.aiBlocked === "billing", o);
+        const s = await state(ids[key]);
+        check(`${key}: con la IA bloqueada el chat queda sin tocar`, s.category === null && s.categorizedThroughAt === null, s);
+      }
+    } else {
       check(
-        `${key}: guarda confianza, motivo corto y «revisar» si < 0,7`,
-        s.categorySource === "ai" &&
-          typeof s.categoryConfidence === "number" &&
-          (s.categoryReason?.length ?? 0) > 0 &&
-          (s.categoryReason?.length ?? 0) <= 120 &&
-          s.categoryReview === (s.categoryConfidence ?? 0) < 0.7,
-        s
+        "pregunta por sesiones y precio → interesada (IA)",
+        ai1.status === "classified" && ai1.source === "ai" && ai1.category === "interesada",
+        ai1
       );
+      check(
+        "agencia ofreciendo anuncios → negocio (IA)",
+        ai2.status === "classified" && ai2.source === "ai" && (ai2.category === "negocio" || ai2.category === "otro"),
+        ai2
+      );
+      for (const key of ["aiInterest", "aiVendor"] as const) {
+        const s = await state(ids[key]);
+        check(
+          `${key}: guarda confianza, motivo corto y «revisar» si < 0,7`,
+          s.categorySource === "ai" &&
+            typeof s.categoryConfidence === "number" &&
+            (s.categoryReason?.length ?? 0) > 0 &&
+            (s.categoryReason?.length ?? 0) <= 120 &&
+            s.categoryReview === (s.categoryConfidence ?? 0) < 0.7,
+          s
+        );
+      }
     }
 
     console.log("\n4. Mensajes nuevos");
     await addMessage(ids.aiInterest, { dir: "OUTBOUND", body: "¡Hola Lucía! Te cuento…" });
-    const keptOut = await classifyConversation(ids.aiInterest);
-    check("un mensaje nuestro no vuelve a llamar a la IA (se conserva)", keptOut.status === "classified" && keptOut.kept === true, keptOut);
+    if (aiBlocked) {
+      skip("un mensaje nuestro no vuelve a llamar a la IA (se conserva)");
+    } else {
+      const keptOut = await classifyConversation(ids.aiInterest);
+      check("un mensaje nuestro no vuelve a llamar a la IA (se conserva)", keptOut.status === "classified" && keptOut.kept === true, keptOut);
+    }
     await addMessage(ids.otro, { dir: "INBOUND", body: "Tu código de acceso es 55821" });
     const again = await classifyConversation(ids.otro);
     check("«otro» que escribe un código → negocio", again.status === "classified" && again.category === "negocio", again);
@@ -287,13 +333,29 @@ const main = async () => {
     let rounds = 0;
     let progress = await classifyPending({ limit: 40, budgetMs: 45_000, ids: own });
     rounds++;
-    while (progress.remaining > 0 && progress.classified > 0 && rounds < 5) {
+    while (progress.remaining > 0 && progress.classified > 0 && !progress.aiBlocked && rounds < 5) {
       progress = await classifyPending({ limit: 40, budgetMs: 45_000, ids: own });
       rounds++;
     }
-    check("«clasificar todo» no toca la manual", progress.skipped === 0 && progress.failed === 0, progress);
-    const ownPending = await prisma.conversation.count({ where: { id: { in: Object.values(ids) }, ...pendingClassificationWhere() } });
-    check("no queda ninguno de los de prueba pendiente", ownPending === 0, ownPending);
+    check("«clasificar todo» no toca la manual ni falla", progress.skipped === 0 && progress.failed === 0, progress);
+    const ownPending = await prisma.conversation.findMany({
+      where: { id: { in: own }, ...pendingClassificationWhere() },
+      select: { id: true },
+    });
+    if (aiBlocked) {
+      check("la tanda avisa que la IA está bloqueada por facturación", progress.aiBlocked === "billing", progress);
+      check(
+        "solo quedan pendientes los dos dudosos (esperan a la IA); las reglas siguieron",
+        ownPending.length === 2 &&
+          ownPending.every((p) => p.id === ids.aiInterest || p.id === ids.aiVendor) &&
+          progress.needsAi === 2 &&
+          progress.byRule >= 1,
+        { ownPending, progress }
+      );
+      skip("no queda ninguno de los de prueba pendiente");
+    } else {
+      check("no queda ninguno de los de prueba pendiente", ownPending.length === 0, ownPending);
+    }
     check("comunidad sigue en comunidad", (await state(ids.comunidad)).category === "comunidad");
     m = await state(ids.manual);
     check("la manual sobrevive a «clasificar todo»", m.category === "personal" && m.categorySource === "manual", m);
@@ -303,6 +365,11 @@ const main = async () => {
     check("categorías + sin clasificar = total", sum + counts.unclassified === counts.total, counts);
     const direct = await prisma.conversation.count({ where: { channel: "WHATSAPP", category: "equipo" } });
     check("el contador de «equipo» cuadra con la base", counts.counts.equipo === direct, { counts: counts.counts.equipo, direct });
+    const unclassified = await prisma.conversation.count({ where: { channel: "WHATSAPP", category: null } });
+    check("el contador de «sin clasificar» cuadra con la base", counts.unclassified === unclassified, {
+      counts: counts.unclassified,
+      unclassified,
+    });
     check("cuenta las manuales", counts.manual >= 1, counts.manual);
     check("el equipo guardado incluye el número de prueba", counts.teamPhones.includes(`+${T.equipo}`), counts.teamPhones);
 
@@ -317,10 +384,64 @@ const main = async () => {
       res.reclassified.length >= 1 && eq.categoryReason !== "Número del equipo",
       { res: res.reclassified, eq }
     );
-    if (eq.categorySource === "ai") {
+    if (aiBlocked) {
+      check("con la IA bloqueada queda sin clasificar (se reintenta luego)", eq.category === null, eq);
+    } else if (eq.categorySource === "ai") {
       const out = res.reclassified.find((o) => o.id === ids.equipo);
       if (out?.status === "classified") aiStats.push(out);
     }
+
+    console.log("\n7. 403 de facturación de Google (simulado): la vuelta sigue con reglas y no marca nada");
+    const b = {
+      dudosa1: await createChat(T.billing1, "Dudosa 1", [{ dir: "INBOUND", body: "Hola, ¿me puedes contar algo?" }]),
+      dudosa2: await createChat(T.billing2, "Dudosa 2", [{ dir: "INBOUND", body: "Buenas, una consulta" }]),
+      codigo: await createChat(T.billing3, "Código", [{ dir: "INBOUND", body: "Tu código de verificación es 330145" }]),
+    };
+    const bIds = Object.values(b);
+    let calls = 0;
+    const billing = await classifyPending({
+      ids: bIds,
+      concurrency: 1,
+      budgetMs: 30_000,
+      classifier: async () => {
+        calls++;
+        throw new APICallError({
+          message: "Lightning dunning decision is deny for project: projects/000000000000",
+          url: "https://generativelanguage.googleapis.com",
+          requestBodyValues: {},
+          statusCode: 403,
+        });
+      },
+    });
+    check("la tanda dice «bloqueada por facturación»", billing.aiBlocked === "billing", billing);
+    check("deja de llamar a la IA tras el primer 403", calls === 1, calls);
+    check("no lo cuenta como fallo; los dudosos esperan a la IA", billing.failed === 0 && billing.needsAi === 2, billing);
+    check("las reglas siguen: el código queda como negocio", (await state(b.codigo)).category === "negocio");
+    for (const key of ["dudosa1", "dudosa2"] as const) {
+      const s = await state(b[key]);
+      check(`${key}: sin tocar (sigue pendiente)`, s.category === null && s.categorizedThroughAt === null, s);
+    }
+    const stillPending = await prisma.conversation.count({ where: { id: { in: bIds }, ...pendingClassificationWhere() } });
+    check("los dos dudosos siguen en la cola para la próxima vuelta", stillPending === 2 && billing.remaining === 2, {
+      stillPending,
+      remaining: billing.remaining,
+    });
+
+    let otherCalls = 0;
+    const quota = await classifyPending({
+      ids: bIds,
+      concurrency: 1,
+      budgetMs: 30_000,
+      classifier: async () => {
+        otherCalls++;
+        throw new APICallError({ message: "Resource has been exhausted", url: "x", requestBodyValues: {}, statusCode: 429 });
+      },
+    });
+    check(
+      "otro error (429) sí es un fallo y no se toma por facturación",
+      quota.aiBlocked === null && quota.failed === 2 && otherCalls === 2,
+      quota
+    );
   } finally {
     await cleanup();
     if (prevTeam) {
@@ -345,11 +466,16 @@ const main = async () => {
     );
   }
 
+  if (skipped.length) console.log(`\n⏭️  ${skipped.length} comprobación(es) SKIPPED: ${AI_BILLING} (403).`);
   if (failures.length) {
     console.log(`\n❌ ${failures.length} fallo(s):\n - ${failures.join("\n - ")}`);
     process.exit(1);
   }
-  console.log("\n✅ Clasificación de chats: todo bien.");
+  console.log(
+    skipped.length
+      ? `\n✅ Clasificación de chats: todo bien, salvo la IA viva (${AI_BILLING}).`
+      : "\n✅ Clasificación de chats: todo bien."
+  );
 };
 
 main()

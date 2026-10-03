@@ -46,6 +46,7 @@ const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => (
   skipped: a.skipped + b.skipped,
   remaining: b.remaining,
   models: [...new Set([...a.models, ...b.models])],
+  aiBlocked: a.aiBlocked ?? b.aiBlocked,
   ms: a.ms + b.ms,
   errors: [...a.errors, ...b.errors].slice(0, 5),
 });
@@ -72,8 +73,9 @@ export const POST = withStaff("write", async ({ req, staff }) => {
         budgetMs: CLASSIFY_ALL_BUDGET_MS - (Date.now() - started),
       });
       total = total ? sum(total, run) : run;
-      // Sin avances (solo quedan dudosos sin IA o fallos) o sin pendientes: listo.
-      if (run.remaining === 0 || run.classified === 0) {
+      // Sin avances (solo quedan dudosos sin IA o fallos), sin pendientes o
+      // la IA bloqueada por facturación (ya se pasaron las reglas): listo.
+      if (run.remaining === 0 || run.classified === 0 || run.aiBlocked) {
         done = true;
         break;
       }

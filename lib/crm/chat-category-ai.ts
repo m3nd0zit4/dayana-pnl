@@ -108,6 +108,17 @@ export type AiVerdict = {
   outputTokens: number | null;
 };
 
+/**
+ * Google bloqueó el proyecto por facturación (403 «Lightning dunning decision
+ * is deny…»): ningún modelo va a responder hasta que la dueña pague. No es un
+ * fallo del chat: se deja sin clasificar y se reintenta en otra vuelta.
+ */
+export const isAiBillingBlocked = (e: unknown): boolean => {
+  const err = (e as { lastError?: unknown })?.lastError ?? e;
+  if (!APICallError.isInstance(err) || err.statusCode !== 403) return false;
+  return /dunning|billing|facturaci/i.test(`${err.message} ${err.responseBody ?? ""}`);
+};
+
 const isModelNotFound = (e: unknown): boolean => {
   const err = (e as { lastError?: unknown })?.lastError ?? e;
   if (APICallError.isInstance(err)) {

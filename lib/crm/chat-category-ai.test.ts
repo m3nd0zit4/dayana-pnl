@@ -139,6 +139,22 @@ describe("classifyWithAi", () => {
     expect(calls.map((c) => c.model)).toEqual(["gemini-3.5-flash-lite"]);
   });
 
+  test("403 de facturación de Google: se reconoce; otro 403 no", async () => {
+    failWith = new APICallError({
+      message: "Lightning dunning decision is deny for project: projects/124162576759",
+      url: "x",
+      requestBodyValues: {},
+      statusCode: 403,
+    });
+    const err = await ai.classifyWithAi({ messages: [inb("hola")], hints: [] }).catch((e: unknown) => e);
+    expect(ai.isAiBillingBlocked(err)).toBe(true);
+    expect(calls.map((c) => c.model)).toEqual(["gemini-3.5-flash-lite"]); // no prueba el de respaldo
+    const permission = new APICallError({ message: "Permission denied", url: "x", requestBodyValues: {}, statusCode: 403 });
+    expect(ai.isAiBillingBlocked(permission)).toBe(false);
+    expect(ai.isAiBillingBlocked(new Error("dunning"))).toBe(false);
+    expect(ai.isAiBillingBlocked({ lastError: failWith })).toBe(true);
+  });
+
   test("sin clave no se llama al modelo", async () => {
     const key = process.env.GEMINI_API_KEY;
     process.env.GEMINI_API_KEY = "";

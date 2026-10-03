@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { contactPhoneCandidates, isWhatsAppUserId } from "@/lib/whatsapp-contact";
 import { writeAuditLog } from "./audit";
-import { classifyWithAi } from "./chat-category-ai";
+import { classifyWithAi, isAiBillingBlocked } from "./chat-category-ai";
 import {
   CHAT_CATEGORIES,
   classifyByRules,
@@ -263,7 +263,22 @@ export type ClassifyOutcome =
       inputTokens?: number | null;
       outputTokens?: number | null;
     }
-  | { id: string; status: "error"; error: string };
+  | {
+      id: string;
+      status: "error";
+      error: string;
+      /** Google bloqueó la IA por facturación: el chat queda sin tocar. */
+      aiBlocked?: "billing";
+    };
+
+const errorOutcome = (id: string, e: unknown): ClassifyOutcome => ({
+  id,
+  status: "error",
+  error: e instanceof Error ? e.message.slice(0, 200) : String(e),
+  ...(isAiBillingBlocked(e) ? { aiBlocked: "billing" as const } : {}),
+});
+
+type AiClassifier = typeof classifyWithAi;
 
 /** Nunca escribe sobre una clasificación manual, aunque se haya puesto mientras tanto. */
 const notManual = { OR: [{ categorySource: null }, { categorySource: { not: "manual" } }] };
@@ -291,7 +306,7 @@ const save = async (
 const classifyLoaded = async (
   conversation: ConversationBase & ClassificationState,
   facts: LoadedFacts,
-  opts: { force?: boolean; useAi: boolean }
+  opts: { force?: boolean; useAi: boolean; classifier?: AiClassifier }
 ): Promise<ClassifyOutcome> => {
   const id = conversation.id;
   if (conversation.categorySource === "manual") return { id, status: "skipped", reason: "manual" };
@@ -343,7 +358,7 @@ const classifyLoaded = async (
   }
 
   if (!opts.useAi || !hasModelKey()) return { id, status: "skipped", reason: "needs_ai" };
-  const ai = await classifyWithAi({ messages: facts.messages, hints: signalHints(facts) });
+  const ai = await (opts.classifier ?? classifyWithAi)({ messages: facts.messages, hints: signalHints(facts) });
   const data = { category: ai.category, source: "ai" as const, confidence: ai.confidence, reason: ai.reason, review: ai.review };
   if (!(await save(id, through, data))) return { id, status: "skipped", reason: "manual" };
   return {
@@ -375,7 +390,7 @@ export const classifyConversation = async (
   try {
     return await classifyLoaded(conversation, facts, { force: opts.force, useAi: opts.useAi ?? true });
   } catch (e) {
-    return { id, status: "error", error: e instanceof Error ? e.message.slice(0, 200) : String(e) };
+    return errorOutcome(id, e);
   }
 };
 
@@ -401,13 +416,15 @@ export type ClassifyRunResult = {
   /** Se conservó lo que había dicho la IA (sin mensajes nuevos de la persona). */
   kept: number;
   review: number;
-  /** Dudosos que esperan a la IA (sin clave o `useAi: false`). */
+  /** Dudosos que esperan a la IA (sin clave, `useAi: false` o IA bloqueada). */
   needsAi: number;
   failed: number;
   skipped: number;
   /** Pendientes que quedan después de esta tanda. */
   remaining: number;
   models: string[];
+  /** Google bloqueó la IA por facturación en esta vuelta: se siguió solo con reglas. */
+  aiBlocked: "billing" | null;
   ms: number;
   errors: string[];
 };
@@ -416,6 +433,10 @@ export type ClassifyRunResult = {
  * Una tanda: los chats pendientes con actividad más reciente primero, hasta
  * `limit` o hasta agotar `budgetMs` (no empieza uno nuevo pasado el tiempo).
  * Sin IA (o sin clave) recorre todos: las reglas son baratas.
+ *
+ * Si Google bloquea la IA por facturación, no se le vuelve a llamar en esta
+ * vuelta, el chat se deja tal cual (sigue pendiente) y se avisa una sola vez;
+ * lo que las reglas sí saben decidir se clasifica igual.
  */
 export const classifyPending = async (
   opts: {
@@ -425,10 +446,12 @@ export const classifyPending = async (
     concurrency?: number;
     /** Solo estos chats (pruebas y scripts). */
     ids?: string[];
+    /** Solo pruebas: sustituye al modelo (p. ej. para simular el 403 de facturación). */
+    classifier?: AiClassifier;
   } = {}
 ): Promise<ClassifyRunResult> => {
   const started = Date.now();
-  const useAi = (opts.useAi ?? true) && hasModelKey();
+  let aiOn = (opts.useAi ?? true) && hasModelKey();
   const budgetMs = opts.budgetMs ?? 40_000;
   const result: ClassifyRunResult = {
     processed: 0,
@@ -442,6 +465,7 @@ export const classifyPending = async (
     skipped: 0,
     remaining: 0,
     models: [],
+    aiBlocked: null,
     ms: 0,
     errors: [],
   };
@@ -449,25 +473,45 @@ export const classifyPending = async (
   const where: Prisma.ConversationWhereInput = opts.ids
     ? { AND: [pendingClassificationWhere(), { id: { in: opts.ids } }] }
     : pendingClassificationWhere();
-  const batch = await prisma.conversation.findMany({
-    where,
-    orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
-    take: useAi ? (opts.limit ?? 40) : 1000,
-    select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
-  });
-  if (batch.length > 0) {
+  const seen = new Set<string>();
+
+  const runBatch = async (take: number) => {
+    const batch = (
+      await prisma.conversation.findMany({
+        where,
+        orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
+        take,
+        select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
+      })
+    ).filter((c) => !seen.has(c.id));
+    if (batch.length === 0) return;
     const facts = await loadFactsBatch(batch, await getTeamPhones());
     let next = 0;
     const worker = async () => {
       while (next < batch.length && Date.now() - started < budgetMs) {
         const conversation = batch[next++];
+        seen.add(conversation.id);
         let outcome: ClassifyOutcome;
         try {
-          outcome = await classifyLoaded(conversation, facts.get(conversation.id)!, { useAi });
+          outcome = await classifyLoaded(conversation, facts.get(conversation.id)!, {
+            useAi: aiOn,
+            classifier: opts.classifier,
+          });
         } catch (e) {
-          outcome = { id: conversation.id, status: "error", error: e instanceof Error ? e.message.slice(0, 200) : String(e) };
+          outcome = errorOutcome(conversation.id, e);
         }
         result.processed++;
+        if (outcome.status === "error" && outcome.aiBlocked) {
+          if (aiOn) {
+            aiOn = false;
+            result.aiBlocked = "billing";
+            console.warn(
+              "[clasificar] Google bloqueó la IA por facturación (403): esta vuelta sigue solo con reglas; los dudosos quedan pendientes."
+            );
+          }
+          result.needsAi++;
+          continue;
+        }
         if (outcome.status === "classified") {
           result.classified++;
           if (outcome.kept) result.kept++;
@@ -486,7 +530,12 @@ export const classifyPending = async (
       }
     };
     await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.concurrency ?? 4, batch.length)) }, worker));
-  }
+  };
+
+  await runBatch(aiOn ? (opts.limit ?? 40) : 1000);
+  // IA bloqueada: el resto, solo con reglas. Si no, los dudosos (que quedan
+  // pendientes y arriba) taparían en cada vuelta a los que las reglas sí deciden.
+  if (result.aiBlocked && Date.now() - started < budgetMs) await runBatch(1000);
 
   result.remaining = await prisma.conversation.count({ where });
   result.ms = Date.now() - started;
