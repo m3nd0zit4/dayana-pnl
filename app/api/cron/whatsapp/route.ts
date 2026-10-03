@@ -30,10 +30,11 @@ const step = async <T,>(name: string, fn: () => Promise<T>) => {
 
 /**
  * Clasificar chats va al final y solo con el tiempo que sobra: como mucho
- * 40 s y nunca más allá de los 95 s del reloj (el límite es 120).
+ * 40 s y nunca más allá de los 80 s del reloj (la llamada a la IA en curso
+ * también corta ahí), para que la ruta termine antes de ~90 s (límite 120).
  */
 const CLASSIFY_MAX_MS = 40_000;
-const CLASSIFY_DEADLINE_MS = 95_000;
+const CLASSIFY_DEADLINE_MS = 80_000;
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

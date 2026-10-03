@@ -7,6 +7,7 @@ import {
   classifyConversation,
   classifyPending,
   clearManualCategory,
+  setClassifyEnabled,
   setManualCategory,
   setTeamPhones,
   type ClassifyRunResult,
@@ -32,6 +33,7 @@ const bodySchema = z.discriminatedUnion("action", [
   }),
   z.object({ action: z.literal("reclassify"), conversationId: z.string().min(1) }),
   z.object({ action: z.literal("team_phones"), phones: z.array(z.string().max(40)).max(50) }),
+  z.object({ action: z.literal("enable"), enabled: z.boolean() }),
 ]);
 
 const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => ({
@@ -47,16 +49,22 @@ const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => (
   remaining: b.remaining,
   models: [...new Set([...a.models, ...b.models])],
   aiBlocked: a.aiBlocked ?? b.aiBlocked,
+  aiDisabled: a.aiDisabled || b.aiDisabled,
+  busy: b.busy,
   ms: a.ms + b.ms,
   errors: [...a.errors, ...b.errors].slice(0, 5),
 });
 
 /**
  * - `classify_all`: clasifica tandas hasta ~50 s y dice cuánto falta; la
- *   pantalla vuelve a llamar mientras `done` sea false.
+ *   pantalla vuelve a llamar mientras `done` sea false. Con la clasificación
+ *   apagada, solo reglas (`aiDisabled`). `busy`: el reloj está clasificando.
  * - `set`: categoría manual (gana siempre) o `null` para volver a automático.
  * - `reclassify`: vuelve a mirar un chat (no toca los manuales).
- * - `team_phones`: los números del equipo (sus chats pasan a «equipo»).
+ * - `team_phones` (solo la dueña): los números del equipo (sus chats pasan a
+ *   «equipo»). 400 `invalid_phones` con los que no traen código de país.
+ * - `enable` (solo la dueña): enciende o apaga la clasificación automática y
+ *   el uso de la IA (apagada por defecto).
  */
 export const POST = withStaff("write", async ({ req, staff }) => {
   const parsed = bodySchema.safeParse(await readJson(req));
@@ -73,8 +81,9 @@ export const POST = withStaff("write", async ({ req, staff }) => {
         budgetMs: CLASSIFY_ALL_BUDGET_MS - (Date.now() - started),
       });
       total = total ? sum(total, run) : run;
-      // Sin avances (solo quedan dudosos sin IA o fallos), sin pendientes o
-      // la IA bloqueada por facturación (ya se pasaron las reglas): listo.
+      if (run.busy) break;
+      // Sin pendientes, sin avances (solo dudosos que esperan a la IA) o con
+      // la IA cortada (facturación, clave, cuota): listo por ahora.
       if (run.remaining === 0 || run.classified === 0 || run.aiBlocked) {
         done = true;
         break;
@@ -100,6 +109,14 @@ export const POST = withStaff("write", async ({ req, staff }) => {
     return NextResponse.json({ ok: outcome.status !== "error", outcome });
   }
 
+  // Lo que puede silenciar chats o mandar conversaciones a la IA: solo la dueña.
+  if (staff.role !== "OWNER") return apiError("forbidden", 403);
+
+  if (body.action === "enable") {
+    return NextResponse.json({ ok: true, enabled: await setClassifyEnabled(body.enabled, staff.id) });
+  }
+
   const result = await setTeamPhones(body.phones, staff.id);
-  return NextResponse.json({ ok: true, ...result });
+  if (!result.ok) return apiError("invalid_phones", 400, { invalid: result.invalid });
+  return NextResponse.json(result);
 });

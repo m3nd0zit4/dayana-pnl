@@ -3,11 +3,14 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { contactPhoneCandidates, isWhatsAppUserId } from "@/lib/whatsapp-contact";
 import { writeAuditLog } from "./audit";
-import { classifyWithAi, isAiBillingBlocked } from "./chat-category-ai";
+import { aiErrorKind, classifyWithAi, type AiErrorKind } from "./chat-category-ai";
 import {
   CHAT_CATEGORIES,
   classifyByRules,
+  crmVerdict,
+  isSilencingCategory,
   isTeamThread,
+  needsReview,
   normalizeTeamPhone,
   parseTeamPhones,
   phoneDigitVariants,
@@ -17,23 +20,38 @@ import {
   type ChatCategory,
   type ChatFacts,
 } from "./chat-category-rules";
-import { getSiteSetting, getSiteSettingBoolean, setSiteSetting } from "./site-settings";
+import { getSiteSetting, getSiteSettingBoolean, setSiteSetting, setSiteSettingBoolean } from "./site-settings";
+import { effectiveAiMode, type AiMode } from "./whatsapp-agent/mode";
+import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
 
 /**
  * Clasificación de los chats de WhatsApp: carga lo que sabe el CRM de cada
  * chat, aplica las reglas (chat-category-rules.ts) y, si no deciden, pregunta
  * al modelo (chat-category-ai.ts). Lo marcado a mano nunca se pisa.
  *
- * Un chat se vuelve a mirar cuando tiene mensajes nuevos desde la última vez
- * (`categorizedThroughAt < lastMessageAt`). Si la última decisión fue de la IA
- * y la persona no escribió nada nuevo, se conserva sin volver a llamarla.
+ * - Apagada por defecto (`whatsapp.classify_enabled`): la enciende la dueña
+ *   después de ver la vista previa. Apagada, nada corre solo y nada va a la
+ *   IA; «Clasificar todo» aplica solo las reglas.
+ * - Los chats en modo Manual (Dayana los lleva) nunca van a la IA.
+ * - Un chat se vuelve a mirar cuando tiene mensajes nuevos desde la última
+ *   vez (`categorizedThroughAt < lastMessageAt`). Si la última decisión fue de
+ *   la IA y la persona no escribió nada nuevo, se conserva sin volver a
+ *   llamarla. Lo que cambia en el CRM (pagó, agendó…) lo recoge
+ *   `refreshCrmCategories` en cada vuelta del reloj.
  */
 
 export const TEAM_PHONES_KEY = "whatsapp.team_phones";
 export const CLASSIFY_ENABLED_KEY = "whatsapp.classify_enabled";
+/** Una sola tanda a la vez (reloj y «Clasificar todo»): arriendo con caducidad. */
+const CLASSIFY_LOCK_KEY = "whatsapp.classify_lock";
+const LOCK_TTL_MS = 3 * 60_000;
 
 /** Mensajes que leen las reglas (la IA usa los últimos 30 de estos). */
 const RULE_MESSAGES = 60;
+/** Fallos seguidos de la IA (no de cuota ni de clave) que cortan la IA en esa vuelta. */
+const MAX_CONSECUTIVE_AI_FAILURES = 3;
+/** No se empieza una llamada a la IA con menos tiempo que esto. */
+const MIN_AI_CALL_MS = 3_000;
 
 const hasModelKey = () => Boolean(process.env.GEMINI_API_KEY?.trim());
 
@@ -41,9 +59,29 @@ const hasModelKey = () => Boolean(process.env.GEMINI_API_KEY?.trim());
 
 export const getTeamPhones = async (): Promise<string[]> => parseTeamPhones(await getSiteSetting(TEAM_PHONES_KEY));
 
-/** Apagado a mano en Ajustes (`whatsapp.classify_enabled = false`). Encendido por defecto. */
+/** Encendida solo si la dueña la encendió (`true`). Por defecto, apagada. */
 export const isClassifyEnabled = async (): Promise<boolean> =>
-  (await getSiteSettingBoolean(CLASSIFY_ENABLED_KEY)) !== false;
+  (await getSiteSettingBoolean(CLASSIFY_ENABLED_KEY)) === true;
+
+export const setClassifyEnabled = async (enabled: boolean, staffId: string | null) => {
+  const prev = await isClassifyEnabled();
+  await setSiteSettingBoolean(CLASSIFY_ENABLED_KEY, enabled);
+  await writeAuditLog({
+    staffUserId: staffId ?? undefined,
+    action: "UPDATE",
+    entityType: "SiteSetting",
+    entityId: CLASSIFY_ENABLED_KEY,
+    changes: { from: prev, to: enabled },
+  });
+  return enabled;
+};
+
+type RunContext = { teamPhones: string[]; generalMode: AiMode; aiEnabled: boolean };
+
+const loadRunContext = async (): Promise<RunContext> => {
+  const [teamPhones, config, enabled] = await Promise.all([getTeamPhones(), getWhatsAppAiConfig(), isClassifyEnabled()]);
+  return { teamPhones, generalMode: config.defaultMode, aiEnabled: enabled && hasModelKey() };
+};
 
 // ── Carga ─────────────────────────────────────────────────────────────────
 
@@ -55,6 +93,7 @@ const CONVERSATION_SELECT = {
   participantName: true,
   lastMessageAt: true,
   lastInboundAt: true,
+  aiMode: true,
 } as const;
 
 /** Lo mínimo de un chat para clasificarlo (sin las columnas de la clasificación). */
@@ -63,10 +102,22 @@ export type ConversationBase = Prisma.ConversationGetPayload<{ select: typeof CO
 type ClassificationState = {
   category: string | null;
   categorySource: string | null;
+  categoryConfidence: number | null;
+  categoryReason: string | null;
+  categoryReview: boolean;
   categorizedThroughAt: Date | null;
 };
 
-const STATE_SELECT = { category: true, categorySource: true, categorizedThroughAt: true } as const;
+const STATE_SELECT = {
+  category: true,
+  categorySource: true,
+  categoryConfidence: true,
+  categoryReason: true,
+  categoryReview: true,
+  categorizedThroughAt: true,
+} as const;
+
+type FullConversation = ConversationBase & ClassificationState;
 
 export type LoadedFacts = ChatFacts & {
   /** Orden cronológico (lo más viejo primero), para el modelo. */
@@ -97,14 +148,46 @@ const isPackageSession = (label: string | null): boolean => {
   return Boolean(m && Number(m[2]) > 0);
 };
 
+/** Los últimos 60 mensajes de cada chat: una consulta, con el índice (conversation_id, sent_at). */
+const loadMessages = async (ids: string[]): Promise<Map<string, CategoryMessage[]>> => {
+  const rows = await prisma.$queryRaw<MessageRow[]>(Prisma.sql`
+    SELECT c.id AS conversation_id, m.direction::text AS direction, m.body, m.kind, m.is_echo,
+           m.is_auto_reply, m.source, m.attachments, m.sent_at
+    FROM (VALUES ${Prisma.join(ids.map((id) => Prisma.sql`(${id}::text)`))}) AS c(id)
+    CROSS JOIN LATERAL (
+      SELECT direction, body, kind, is_echo, is_auto_reply, source, attachments, sent_at
+      FROM conversation_messages
+      WHERE conversation_id = c.id
+      ORDER BY sent_at DESC
+      LIMIT ${RULE_MESSAGES}
+    ) m
+    ORDER BY m.sent_at ASC`);
+  const out = new Map<string, CategoryMessage[]>();
+  for (const r of rows) {
+    const list = out.get(r.conversation_id) ?? [];
+    list.push({
+      direction: r.direction,
+      body: r.body,
+      kind: r.kind,
+      isEcho: r.is_echo,
+      isAutoReply: r.is_auto_reply,
+      source: r.source,
+      attachments: r.attachments,
+    });
+    out.set(r.conversation_id, list);
+  }
+  return out;
+};
+
 /**
- * Señales del CRM y últimos mensajes de varios chats a la vez: una consulta
- * por tabla, no una por chat. Solo lee: sirve también para la vista previa
- * contra una base sin la migración.
+ * Señales del CRM (y, si se piden, los últimos mensajes) de varios chats a la
+ * vez: una consulta por tabla, no una por chat. Solo lee: sirve también para
+ * la vista previa contra una base sin la migración.
  */
 export const loadFactsBatch = async (
-  conversations: ConversationBase[],
-  teamPhones: string[]
+  conversations: Pick<ConversationBase, "id" | "externalThreadId" | "contactId" | "participantName" | "lastInboundAt">[],
+  teamPhones: string[],
+  opts: { messages?: boolean } = {}
 ): Promise<Map<string, LoadedFacts>> => {
   const out = new Map<string, LoadedFacts>();
   if (conversations.length === 0) return out;
@@ -129,7 +212,7 @@ export const loadFactsBatch = async (
   const inContacts = { in: contactIds };
   const phoneForms = [...allDigits, ...allE164];
 
-  const [enrollments, diagnostics, registrations, bookings, appointments, known, communities, messageRows] =
+  const [enrollments, diagnostics, registrations, bookings, appointments, known, communities, messages] =
     await Promise.all([
       contactIds.length
         ? prisma.enrollment.findMany({
@@ -174,31 +257,9 @@ export const loadFactsBatch = async (
             select: { contactId: true },
           })
         : [],
-      prisma.$queryRaw<MessageRow[]>(Prisma.sql`
-        SELECT conversation_id, direction::text AS direction, body, kind, is_echo, is_auto_reply, source, attachments, sent_at
-        FROM (
-          SELECT m.*, ROW_NUMBER() OVER (PARTITION BY m.conversation_id ORDER BY m.sent_at DESC) AS rn
-          FROM conversation_messages m
-          WHERE m.conversation_id IN (${Prisma.join(ids)})
-        ) t
-        WHERE t.rn <= ${RULE_MESSAGES}
-        ORDER BY sent_at ASC`),
+      opts.messages === false ? Promise.resolve(new Map<string, CategoryMessage[]>()) : loadMessages(ids),
     ]);
 
-  const messagesOf = new Map<string, CategoryMessage[]>();
-  for (const r of messageRows) {
-    const list = messagesOf.get(r.conversation_id) ?? [];
-    list.push({
-      direction: r.direction,
-      body: r.body,
-      kind: r.kind,
-      isEcho: r.is_echo,
-      isAutoReply: r.is_auto_reply,
-      source: r.source,
-      attachments: r.attachments,
-    });
-    messagesOf.set(r.conversation_id, list);
-  }
   const knownPhones = new Set(known.map((k) => k.phone));
 
   for (const c of conversations) {
@@ -207,9 +268,10 @@ export const loadFactsBatch = async (
     const forms = new Set([...e164, ...digits]);
     const mine = <T extends { contactId: string | null }>(rows: T[]) => rows.filter((r) => r.contactId && cids.has(r.contactId));
     const ownEnrollments = mine(enrollments);
-    const paid = ownEnrollments.find(
-      (e) => (e.status === "ACTIVE" || e.status === "COMPLETED") && e.amountMinor !== 0
-    );
+    const active = ownEnrollments.filter((e) => e.status === "ACTIVE" || e.status === "COMPLETED");
+    // Un importe nulo (a mano, gratis) no es «pagó»: lo dice un pago aprobado.
+    const paid = active.find((e) => (e.amountMinor ?? 0) > 0);
+    const approved = ownEnrollments.some((e) => e.payments.length > 0);
     const linked = <T extends { conversationId: string | null; contactId: string | null; phone: string | null }>(rows: T[]) =>
       rows.filter(
         (r) =>
@@ -223,7 +285,8 @@ export const loadFactsBatch = async (
       isTeamPhone: isTeamThread(c.externalThreadId, teamPhones),
       hasPaidEnrollment: Boolean(paid),
       paidKind: paid?.product.kind ?? null,
-      hasApprovedPayment: ownEnrollments.some((e) => e.payments.length > 0),
+      hasApprovedPayment: approved,
+      hasUnpaidActiveEnrollment: active.length > 0 && !paid && !approved,
       hasTherapySession: ownAppointments.some((a) => isPackageSession(a.sessionsLabel)),
       hasLeadEnrollment: ownEnrollments.some((e) => e.status === "LEAD"),
       hasPendingPayment: ownEnrollments.some((e) => e.status === "PENDING_PAYMENT"),
@@ -236,7 +299,7 @@ export const loadFactsBatch = async (
     };
     out.set(c.id, {
       signals,
-      messages: messagesOf.get(c.id) ?? [],
+      messages: messages.get(c.id) ?? [],
       participantName: c.participantName,
       everWrote: c.lastInboundAt !== null,
     });
@@ -244,10 +307,10 @@ export const loadFactsBatch = async (
   return out;
 };
 
-// ── Decidir y guardar ─────────────────────────────────────────────────────
+// ── Guardar ───────────────────────────────────────────────────────────────
 
 export type ClassifyOutcome =
-  | { id: string; status: "skipped"; reason: "not_found" | "manual" | "up_to_date" | "needs_ai" }
+  | { id: string; status: "skipped"; reason: "not_found" | "manual" | "up_to_date" | "needs_ai" | "stale" }
   | {
       id: string;
       status: "classified";
@@ -263,39 +326,29 @@ export type ClassifyOutcome =
       inputTokens?: number | null;
       outputTokens?: number | null;
     }
-  | {
-      id: string;
-      status: "error";
-      error: string;
-      /** Google bloqueó la IA por facturación: el chat queda sin tocar. */
-      aiBlocked?: "billing";
-    };
-
-const errorOutcome = (id: string, e: unknown): ClassifyOutcome => ({
-  id,
-  status: "error",
-  error: e instanceof Error ? e.message.slice(0, 200) : String(e),
-  ...(isAiBillingBlocked(e) ? { aiBlocked: "billing" as const } : {}),
-});
-
-type AiClassifier = typeof classifyWithAi;
+  | { id: string; status: "error"; error: string; kind: AiErrorKind };
 
 /** Nunca escribe sobre una clasificación manual, aunque se haya puesto mientras tanto. */
 const notManual = { OR: [{ categorySource: null }, { categorySource: { not: "manual" } }] };
 
-const save = async (
-  id: string,
-  through: Date,
-  data: { category: ChatCategory; source: "rule" | "ai"; confidence: number; reason: string; review: boolean }
-) => {
+type Verdict = { category: ChatCategory; source: "rule" | "ai"; confidence: number; reason: string; review: boolean };
+
+/**
+ * Guarda si no es manual y nadie guardó algo más nuevo mientras tanto (otra
+ * tanda que ya vio un mensaje posterior). `false` si no se guardó.
+ */
+const save = async (id: string, through: Date, v: Verdict): Promise<boolean> => {
   const r = await prisma.conversation.updateMany({
-    where: { id, ...notManual },
+    where: {
+      id,
+      AND: [notManual, { OR: [{ categorizedThroughAt: null }, { categorizedThroughAt: { lte: through } }] }],
+    },
     data: {
-      category: data.category,
-      categorySource: data.source,
-      categoryConfidence: data.confidence,
-      categoryReason: data.reason.slice(0, 200),
-      categoryReview: data.review,
+      category: v.category,
+      categorySource: v.source,
+      categoryConfidence: v.confidence,
+      categoryReason: v.reason.slice(0, 200),
+      categoryReview: v.review,
       categorizedAt: new Date(),
       categorizedThroughAt: through,
     },
@@ -303,96 +356,160 @@ const save = async (
   return r.count > 0;
 };
 
-const classifyLoaded = async (
-  conversation: ConversationBase & ClassificationState,
-  facts: LoadedFacts,
-  opts: { force?: boolean; useAi: boolean; classifier?: AiClassifier }
-): Promise<ClassifyOutcome> => {
-  const id = conversation.id;
-  if (conversation.categorySource === "manual") return { id, status: "skipped", reason: "manual" };
-  if (
-    !opts.force &&
-    conversation.categorizedThroughAt &&
-    conversation.categorizedThroughAt.getTime() >= conversation.lastMessageAt.getTime()
-  ) {
-    return { id, status: "skipped", reason: "up_to_date" };
-  }
-  const through = conversation.lastMessageAt;
+const savedOrSkipped = async (c: FullConversation, v: Verdict, extra: Partial<Extract<ClassifyOutcome, { status: "classified" }>> = {}) =>
+  (await save(c.id, c.lastMessageAt, v))
+    ? ({ id: c.id, status: "classified", ...v, ...extra } as ClassifyOutcome)
+    : ({ id: c.id, status: "skipped", reason: c.categorySource === "manual" ? "manual" : "stale" } as ClassifyOutcome);
 
-  const rule = classifyByRules(facts);
-  if (rule) {
-    const data = { ...rule, source: "rule" as const, review: false };
-    if (!(await save(id, through, data))) return { id, status: "skipped", reason: "manual" };
-    return { id, status: "classified", ...data };
+/** El modelo no pudo devolver una categoría (bloqueo de seguridad, JSON roto): nunca se silencia. */
+const NO_OBJECT_VERDICT: Verdict = {
+  category: "interesada",
+  source: "ai",
+  confidence: 0.5,
+  reason: "La IA no pudo decidir: revisar",
+  review: true,
+};
+
+type AiClassifier = typeof classifyWithAi;
+
+/**
+ * Paso de reglas de un chat: guarda si las reglas deciden o si se conserva lo
+ * que dijo la IA. Devuelve `null` si hace falta la IA.
+ */
+const rulesStep = async (c: FullConversation, facts: LoadedFacts, force: boolean): Promise<ClassifyOutcome | null> => {
+  if (c.categorySource === "manual") return { id: c.id, status: "skipped", reason: "manual" };
+  if (!force && c.categorizedThroughAt && c.categorizedThroughAt.getTime() >= c.lastMessageAt.getTime()) {
+    return { id: c.id, status: "skipped", reason: "up_to_date" };
   }
+  const rule = classifyByRules(facts);
+  if (rule) return savedOrSkipped(c, { ...rule, source: "rule", review: needsReview(rule.category, rule.confidence) });
 
   // La IA ya habló y la persona no escribió nada desde entonces (solo
   // mensajes nuestros): se conserva sin pagar otra llamada.
-  const lastInbound = conversation.lastInboundAt?.getTime() ?? 0;
+  const lastInbound = c.lastInboundAt?.getTime() ?? 0;
   if (
-    !opts.force &&
-    conversation.categorySource === "ai" &&
-    conversation.category &&
-    conversation.categorizedThroughAt &&
-    conversation.categorizedThroughAt.getTime() >= lastInbound
+    !force &&
+    c.categorySource === "ai" &&
+    c.category &&
+    c.categorizedThroughAt &&
+    c.categorizedThroughAt.getTime() >= lastInbound
   ) {
-    const r = await prisma.conversation.updateMany({
-      where: { id, categorySource: "ai" },
-      data: { categorizedThroughAt: through },
-    });
-    if (r.count === 0) return { id, status: "skipped", reason: "manual" };
-    const kept = await prisma.conversation.findUniqueOrThrow({
-      where: { id },
-      select: { categoryConfidence: true, categoryReason: true, categoryReview: true },
-    });
-    return {
-      id,
-      status: "classified",
-      category: conversation.category as ChatCategory,
+    const kept: Verdict = {
+      category: c.category as ChatCategory,
       source: "ai",
-      confidence: kept.categoryConfidence ?? 0,
-      reason: kept.categoryReason ?? "",
-      review: kept.categoryReview,
-      kept: true,
+      confidence: c.categoryConfidence ?? 0,
+      reason: c.categoryReason ?? "",
+      review: c.categoryReview,
     };
+    return savedOrSkipped(c, kept, { kept: true });
   }
-
-  if (!opts.useAi || !hasModelKey()) return { id, status: "skipped", reason: "needs_ai" };
-  const ai = await (opts.classifier ?? classifyWithAi)({ messages: facts.messages, hints: signalHints(facts) });
-  const data = { category: ai.category, source: "ai" as const, confidence: ai.confidence, reason: ai.reason, review: ai.review };
-  if (!(await save(id, through, data))) return { id, status: "skipped", reason: "manual" };
-  return {
-    id,
-    status: "classified",
-    ...data,
-    model: ai.model,
-    latencyMs: ai.latencyMs,
-    inputTokens: ai.inputTokens,
-    outputTokens: ai.outputTokens,
-  };
+  return null;
 };
+
+/** Paso de IA de un chat (las reglas no decidieron). Lanza si la IA falla, salvo «sin categoría». */
+const aiStep = async (
+  c: FullConversation,
+  facts: LoadedFacts,
+  classifier: AiClassifier,
+  deadline?: number
+): Promise<ClassifyOutcome> => {
+  try {
+    const ai = await classifier({ messages: facts.messages, hints: signalHints(facts), deadline });
+    return savedOrSkipped(
+      c,
+      { category: ai.category, source: "ai", confidence: ai.confidence, reason: ai.reason, review: ai.review },
+      { model: ai.model, latencyMs: ai.latencyMs, inputTokens: ai.inputTokens, outputTokens: ai.outputTokens }
+    );
+  } catch (e) {
+    if (aiErrorKind(e) === "no_object") return savedOrSkipped(c, NO_OBJECT_VERDICT);
+    throw e;
+  }
+};
+
+const errorOutcome = (id: string, e: unknown): ClassifyOutcome => ({
+  id,
+  status: "error",
+  error: e instanceof Error ? e.message.slice(0, 200) : String(e),
+  kind: aiErrorKind(e),
+});
+
+/** ¿Este chat puede ir a la IA? No si Dayana lo lleva a mano (modo Manual). */
+const aiAllowedFor = (c: Pick<ConversationBase, "aiMode">, ctx: RunContext) =>
+  ctx.aiEnabled && effectiveAiMode(c.aiMode, ctx.generalMode) !== "MANUAL";
+
+const loadConversation = (id: string) =>
+  prisma.conversation.findFirst({
+    where: { id, channel: "WHATSAPP" },
+    select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
+  });
 
 /**
  * Clasifica un chat. `force` lo vuelve a mirar aunque no tenga mensajes
  * nuevos (y vuelve a preguntar a la IA), pero nunca pisa lo manual.
+ * `useAi: false`: solo reglas. La IA además exige la clasificación encendida
+ * y que el chat no esté en modo Manual.
  */
 export const classifyConversation = async (
   id: string,
-  opts: { force?: boolean; useAi?: boolean } = {}
+  opts: { force?: boolean; useAi?: boolean; classifier?: AiClassifier } = {}
 ): Promise<ClassifyOutcome> => {
-  const conversation = await prisma.conversation.findUnique({
-    where: { id },
-    select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
-  });
-  if (!conversation) return { id, status: "skipped", reason: "not_found" };
-  if (conversation.categorySource === "manual") return { id, status: "skipped", reason: "manual" };
-  const facts = (await loadFactsBatch([conversation], await getTeamPhones())).get(id)!;
+  const c = await loadConversation(id);
+  if (!c) return { id, status: "skipped", reason: "not_found" };
+  if (c.categorySource === "manual") return { id, status: "skipped", reason: "manual" };
+  const ctx = await loadRunContext();
+  const facts = (await loadFactsBatch([c], ctx.teamPhones)).get(id)!;
+  const ruled = await rulesStep(c, facts, Boolean(opts.force));
+  if (ruled) return ruled;
+  if (opts.useAi === false || !aiAllowedFor(c, ctx)) return { id, status: "skipped", reason: "needs_ai" };
   try {
-    return await classifyLoaded(conversation, facts, { force: opts.force, useAi: opts.useAi ?? true });
+    return await aiStep(c, facts, opts.classifier ?? classifyWithAi);
   } catch (e) {
     return errorOutcome(id, e);
   }
 };
+
+/**
+ * Antes de callar en un chat (fase B2): vuelve a pasar las reglas, sin IA y
+ * sin esperar a la próxima vuelta del reloj, por si cambió algo en el CRM
+ * (pagó, agendó, hizo la autoevaluación). Devuelve el estado con el que hay
+ * que decidir y si de verdad silencia.
+ */
+export const reclassifyByRulesNow = async (conversationId: string) => {
+  const c = await loadConversation(conversationId);
+  if (!c) return null;
+  if (c.categorySource !== "manual") {
+    const facts = (await loadFactsBatch([c], await getTeamPhones())).get(c.id)!;
+    const rule = classifyByRules(facts);
+    if (rule && (rule.category !== c.category || c.categorySource !== "rule" || rule.reason !== c.categoryReason)) {
+      await save(c.id, c.lastMessageAt, { ...rule, source: "rule", review: needsReview(rule.category, rule.confidence) });
+    }
+  }
+  const now = await prisma.conversation.findUniqueOrThrow({
+    where: { id: c.id },
+    select: { id: true, category: true, categorySource: true, categoryConfidence: true, categoryReview: true },
+  });
+  return { ...now, silencing: isSilencingCategory(now) };
+};
+
+/**
+ * Algo cambió en el CRM de esta persona: sus chats se vuelven a mirar en la
+ * próxima vuelta (no toca los manuales). Para llamarlo desde los pagos, citas,
+ * autoevaluaciones e inscripciones (fase B2).
+ */
+export const markForReclassification = async (target: { conversationId?: string; contactId?: string; phone?: string }) => {
+  const or: Prisma.ConversationWhereInput[] = [];
+  if (target.conversationId) or.push({ id: target.conversationId });
+  if (target.contactId) or.push({ contactId: target.contactId });
+  if (target.phone) or.push({ externalThreadId: { in: phoneDigitVariants(target.phone) } });
+  if (or.length === 0) return 0;
+  const r = await prisma.conversation.updateMany({
+    where: { channel: "WHATSAPP", AND: [notManual, { OR: or }] },
+    data: { categorizedThroughAt: null },
+  });
+  return r.count;
+};
+
+// ── Tandas ────────────────────────────────────────────────────────────────
 
 /** Chats de WhatsApp sin clasificar o con mensajes nuevos desde la última vez (sin los manuales). */
 export const pendingClassificationWhere = (): Prisma.ConversationWhereInput => ({
@@ -408,6 +525,9 @@ export const pendingClassificationWhere = (): Prisma.ConversationWhereInput => (
   ],
 });
 
+/** Por qué se dejó de llamar a la IA en una vuelta. */
+export type AiStop = "billing" | "auth" | "rate" | "errors";
+
 export type ClassifyRunResult = {
   processed: number;
   classified: number;
@@ -416,27 +536,87 @@ export type ClassifyRunResult = {
   /** Se conservó lo que había dicho la IA (sin mensajes nuevos de la persona). */
   kept: number;
   review: number;
-  /** Dudosos que esperan a la IA (sin clave, `useAi: false` o IA bloqueada). */
+  /** Dudosos que esperan a la IA (apagada, sin clave, chat Manual o IA cortada). */
   needsAi: number;
   failed: number;
   skipped: number;
   /** Pendientes que quedan después de esta tanda. */
   remaining: number;
   models: string[];
-  /** Google bloqueó la IA por facturación en esta vuelta: se siguió solo con reglas. */
-  aiBlocked: "billing" | null;
+  /** La IA se cortó en esta vuelta (facturación, clave, cuota o fallos seguidos). */
+  aiBlocked: AiStop | null;
+  /** La IA no se usó: clasificación apagada o sin clave. */
+  aiDisabled: boolean;
+  /** Otra tanda estaba corriendo: esta no hizo nada. */
+  busy: boolean;
   ms: number;
   errors: string[];
 };
 
+const emptyResult = (): ClassifyRunResult => ({
+  processed: 0,
+  classified: 0,
+  byRule: 0,
+  byAi: 0,
+  kept: 0,
+  review: 0,
+  needsAi: 0,
+  failed: 0,
+  skipped: 0,
+  remaining: 0,
+  models: [],
+  aiBlocked: null,
+  aiDisabled: false,
+  busy: false,
+  ms: 0,
+  errors: [],
+});
+
+const tally = (result: ClassifyRunResult, outcome: ClassifyOutcome) => {
+  result.processed++;
+  if (outcome.status === "classified") {
+    result.classified++;
+    if (outcome.kept) result.kept++;
+    else if (outcome.source === "rule") result.byRule++;
+    else result.byAi++;
+    if (outcome.review) result.review++;
+    if (outcome.model && !result.models.includes(outcome.model)) result.models.push(outcome.model);
+  } else if (outcome.status === "error") {
+    result.failed++;
+    if (result.errors.length < 5) result.errors.push(outcome.error);
+  } else if (outcome.reason === "needs_ai") {
+    result.needsAi++;
+  } else {
+    result.skipped++;
+  }
+};
+
+/** El arriendo de la tanda (exportado para las pruebas). `null` si otra tanda lo tiene. */
+export const acquireClassifyLock = async (): Promise<string | null> => {
+  const token = `${new Date().toISOString()}#${Math.random().toString(36).slice(2, 10)}`;
+  const staleBefore = new Date(Date.now() - LOCK_TTL_MS).toISOString();
+  const rows = await prisma.$queryRaw<{ key: string }[]>`
+    INSERT INTO site_settings (key, value, updated_at) VALUES (${CLASSIFY_LOCK_KEY}, ${token}, now())
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+    WHERE site_settings.value < ${staleBefore}
+    RETURNING key`;
+  return rows.length > 0 ? token : null;
+};
+
+export const releaseClassifyLock = (token: string) =>
+  prisma.siteSetting.deleteMany({ where: { key: CLASSIFY_LOCK_KEY, value: token } }).catch(() => undefined);
+
 /**
- * Una tanda: los chats pendientes con actividad más reciente primero, hasta
- * `limit` o hasta agotar `budgetMs` (no empieza uno nuevo pasado el tiempo).
- * Sin IA (o sin clave) recorre todos: las reglas son baratas.
+ * Una tanda, en dos pasos:
+ * 1. Reglas para TODOS los pendientes (son baratas): ningún dudoso tapa a los
+ *    que las reglas sí saben decidir.
+ * 2. IA para hasta `limit` dudosos, lo más reciente primero, sin pasar de
+ *    `budgetMs` (tampoco una llamada en curso: se le pasa la hora límite).
  *
- * Si Google bloquea la IA por facturación, no se le vuelve a llamar en esta
- * vuelta, el chat se deja tal cual (sigue pendiente) y se avisa una sola vez;
- * lo que las reglas sí saben decidir se clasifica igual.
+ * La IA se corta en esa vuelta —el chat queda sin tocar y se avisa una vez—
+ * con el 403 de facturación de Google, una clave inválida (401/403), cuota
+ * (429) o 3 fallos seguidos. Si el modelo no devuelve categoría (bloqueo de
+ * seguridad), el chat queda «interesada · revisar»: nunca callado.
  */
 export const classifyPending = async (
   opts: {
@@ -444,110 +624,147 @@ export const classifyPending = async (
     budgetMs?: number;
     useAi?: boolean;
     concurrency?: number;
-    /** Solo estos chats (pruebas y scripts). */
+    /** Solo estos chats (pruebas y scripts); sin arriendo. */
     ids?: string[];
     /** Solo pruebas: sustituye al modelo (p. ej. para simular el 403 de facturación). */
     classifier?: AiClassifier;
   } = {}
 ): Promise<ClassifyRunResult> => {
   const started = Date.now();
-  let aiOn = (opts.useAi ?? true) && hasModelKey();
   const budgetMs = opts.budgetMs ?? 40_000;
-  const result: ClassifyRunResult = {
-    processed: 0,
-    classified: 0,
-    byRule: 0,
-    byAi: 0,
-    kept: 0,
-    review: 0,
-    needsAi: 0,
-    failed: 0,
-    skipped: 0,
-    remaining: 0,
-    models: [],
-    aiBlocked: null,
-    ms: 0,
-    errors: [],
-  };
+  const deadline = started + budgetMs;
+  const result = emptyResult();
 
-  const where: Prisma.ConversationWhereInput = opts.ids
-    ? { AND: [pendingClassificationWhere(), { id: { in: opts.ids } }] }
-    : pendingClassificationWhere();
-  const seen = new Set<string>();
+  const lock = opts.ids ? null : await acquireClassifyLock();
+  if (!opts.ids && !lock) return { ...result, busy: true, ms: Date.now() - started };
 
-  const runBatch = async (take: number) => {
-    const batch = (
-      await prisma.conversation.findMany({
-        where,
-        orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
-        take,
-        select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
-      })
-    ).filter((c) => !seen.has(c.id));
-    if (batch.length === 0) return;
-    const facts = await loadFactsBatch(batch, await getTeamPhones());
-    let next = 0;
-    const worker = async () => {
-      while (next < batch.length && Date.now() - started < budgetMs) {
-        const conversation = batch[next++];
-        seen.add(conversation.id);
-        let outcome: ClassifyOutcome;
+  try {
+    const ctx = await loadRunContext();
+    const aiWanted = opts.useAi ?? true;
+    result.aiDisabled = aiWanted && !ctx.aiEnabled;
+    const where: Prisma.ConversationWhereInput = opts.ids
+      ? { AND: [pendingClassificationWhere(), { id: { in: opts.ids } }] }
+      : pendingClassificationWhere();
+
+    // 1. Reglas.
+    const pending = await prisma.conversation.findMany({
+      where,
+      orderBy: [{ lastMessageAt: "desc" }, { id: "asc" }],
+      take: 500,
+      select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
+    });
+    const forAi: { c: FullConversation; facts: LoadedFacts }[] = [];
+    for (let i = 0; i < pending.length && Date.now() < deadline; i += 100) {
+      const chunk = pending.slice(i, i + 100);
+      const facts = await loadFactsBatch(chunk, ctx.teamPhones);
+      for (const c of chunk) {
+        const f = facts.get(c.id)!;
+        let outcome: ClassifyOutcome | null;
         try {
-          outcome = await classifyLoaded(conversation, facts.get(conversation.id)!, {
-            useAi: aiOn,
-            classifier: opts.classifier,
-          });
+          outcome = await rulesStep(c, f, false);
         } catch (e) {
-          outcome = errorOutcome(conversation.id, e);
+          outcome = errorOutcome(c.id, e);
         }
-        result.processed++;
-        if (outcome.status === "error" && outcome.aiBlocked) {
-          if (aiOn) {
-            aiOn = false;
-            result.aiBlocked = "billing";
-            console.warn(
-              "[clasificar] Google bloqueó la IA por facturación (403): esta vuelta sigue solo con reglas; los dudosos quedan pendientes."
-            );
-          }
-          result.needsAi++;
+        if (outcome) tally(result, outcome);
+        else if (aiWanted && aiAllowedFor(c, ctx)) forAi.push({ c, facts: f });
+        else tally(result, { id: c.id, status: "skipped", reason: "needs_ai" });
+      }
+    }
+
+    // 2. IA.
+    const classifier = opts.classifier ?? classifyWithAi;
+    const queue = forAi.slice(0, opts.limit ?? 40);
+    result.needsAi += forAi.length - queue.length;
+    let next = 0;
+    let consecutive = 0;
+    const stop = (why: AiStop) => {
+      if (result.aiBlocked) return;
+      result.aiBlocked = why;
+      console.warn(
+        `[clasificar] IA cortada en esta vuelta (${why === "billing" ? "Google la bloqueó por facturación (403)" : why}); los dudosos quedan pendientes.`
+      );
+    };
+    const worker = async () => {
+      while (next < queue.length) {
+        const { c, facts } = queue[next++];
+        if (result.aiBlocked || deadline - Date.now() < MIN_AI_CALL_MS) {
+          tally(result, { id: c.id, status: "skipped", reason: "needs_ai" });
           continue;
         }
-        if (outcome.status === "classified") {
-          result.classified++;
-          if (outcome.kept) result.kept++;
-          else if (outcome.source === "rule") result.byRule++;
-          else result.byAi++;
-          if (outcome.review) result.review++;
-          if (outcome.model && !result.models.includes(outcome.model)) result.models.push(outcome.model);
-        } else if (outcome.status === "error") {
-          result.failed++;
-          if (result.errors.length < 5) result.errors.push(outcome.error);
-        } else if (outcome.reason === "needs_ai") {
-          result.needsAi++;
-        } else {
-          result.skipped++;
+        let outcome: ClassifyOutcome;
+        try {
+          outcome = await aiStep(c, facts, classifier, deadline);
+          consecutive = 0;
+        } catch (e) {
+          outcome = errorOutcome(c.id, e);
         }
+        if (outcome.status === "error") {
+          if (outcome.kind === "billing") {
+            // No es un fallo del chat: queda pendiente para cuando se pague.
+            stop("billing");
+            tally(result, { id: c.id, status: "skipped", reason: "needs_ai" });
+            continue;
+          }
+          if (outcome.kind === "auth" || outcome.kind === "rate") stop(outcome.kind);
+          else if (++consecutive >= MAX_CONSECUTIVE_AI_FAILURES) stop("errors");
+        }
+        tally(result, outcome);
       }
     };
-    await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.concurrency ?? 4, batch.length)) }, worker));
-  };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.concurrency ?? 4, queue.length)) }, worker));
 
-  await runBatch(aiOn ? (opts.limit ?? 40) : 1000);
-  // IA bloqueada: el resto, solo con reglas. Si no, los dudosos (que quedan
-  // pendientes y arriba) taparían en cada vuelta a los que las reglas sí deciden.
-  if (result.aiBlocked && Date.now() - started < budgetMs) await runBatch(1000);
-
-  result.remaining = await prisma.conversation.count({ where });
+    result.remaining = await prisma.conversation.count({ where });
+  } finally {
+    if (lock) await releaseClassifyLock(lock);
+  }
   result.ms = Date.now() - started;
   return result;
 };
 
-/** El paso del reloj de WhatsApp: solo con clave del modelo y sin el interruptor apagado. */
+/**
+ * Lo que decide el CRM (equipo, cliente, interesada) vuelve a mirarse en
+ * todos los chats, sin mensajes ni IA: quien pagó o agendó deja de estar en
+ * «negocio» o «comunidad» aunque no haya escrito nada nuevo.
+ */
+export const refreshCrmCategories = async (opts: { ids?: string[] } = {}) => {
+  const rows = await prisma.conversation.findMany({
+    where: { channel: "WHATSAPP", ...(opts.ids ? { id: { in: opts.ids } } : {}), AND: [notManual] },
+    select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
+  });
+  const teamPhones = await getTeamPhones();
+  let updated = 0;
+  for (let i = 0; i < rows.length; i += 200) {
+    const chunk = rows.slice(i, i + 200);
+    const facts = await loadFactsBatch(chunk, teamPhones, { messages: false });
+    for (const c of chunk) {
+      const v = crmVerdict(facts.get(c.id)!.signals);
+      if (!v || (v.category === c.category && c.categorySource === "rule" && v.reason === c.categoryReason)) continue;
+      const r = await prisma.conversation.updateMany({
+        where: { id: c.id, AND: [notManual] },
+        data: {
+          category: v.category,
+          categorySource: "rule",
+          categoryConfidence: v.confidence,
+          categoryReason: v.reason,
+          categoryReview: needsReview(v.category, v.confidence),
+          categorizedAt: new Date(),
+        },
+      });
+      updated += r.count;
+    }
+  }
+  return { checked: rows.length, updated };
+};
+
+/** El paso del reloj de WhatsApp. Nada si la clasificación está apagada (por defecto). */
 export const classifyFromCron = async (budgetMs: number) => {
-  if (!hasModelKey()) return { skipped: "no_model_key" as const };
   if (!(await isClassifyEnabled())) return { skipped: "disabled" as const };
   if (budgetMs < 5_000) return { skipped: "no_time" as const };
-  return classifyPending({ limit: 40, budgetMs });
+  const started = Date.now();
+  const crm = await refreshCrmCategories();
+  // Sin clave, solo reglas (no sale nada de la base).
+  const run = await classifyPending({ limit: 40, budgetMs: budgetMs - (Date.now() - started) });
+  return { crm, ...run };
 };
 
 // ── Manual ────────────────────────────────────────────────────────────────
@@ -555,8 +772,8 @@ export const classifyFromCron = async (budgetMs: number) => {
 /** El equipo decide la categoría. Gana siempre: nada automático la pisa. */
 export const setManualCategory = async (id: string, category: ChatCategory, staffId: string | null) => {
   if (!CHAT_CATEGORIES.includes(category)) throw new Error("INVALID_CATEGORY");
-  const before = await prisma.conversation.findUnique({
-    where: { id },
+  const before = await prisma.conversation.findFirst({
+    where: { id, channel: "WHATSAPP" },
     select: { category: true, categorySource: true, lastMessageAt: true },
   });
   if (!before) return null;
@@ -585,7 +802,10 @@ export const setManualCategory = async (id: string, category: ChatCategory, staf
 
 /** Quita la marca manual: el chat vuelve a clasificarse solo. */
 export const clearManualCategory = async (id: string, staffId: string | null): Promise<ClassifyOutcome | null> => {
-  const before = await prisma.conversation.findUnique({ where: { id }, select: { category: true, categorySource: true } });
+  const before = await prisma.conversation.findFirst({
+    where: { id, channel: "WHATSAPP" },
+    select: { category: true, categorySource: true },
+  });
   if (!before) return null;
   if (before.categorySource === "manual") {
     await prisma.conversation.update({
@@ -613,12 +833,26 @@ export const clearManualCategory = async (id: string, staffId: string | null): P
 
 // ── Equipo ────────────────────────────────────────────────────────────────
 
+export type TeamPhonesResult =
+  | { ok: false; invalid: string[] }
+  | {
+      ok: true;
+      phones: string[];
+      /** Números del equipo que son de alguien que pagó: ojo, se silenciarían. */
+      warnings: { phone: string; name: string }[];
+      reclassified: ClassifyOutcome[];
+    };
+
 /**
- * Guarda los números del equipo y vuelve a mirar los chats de los números
- * que entran o salen de la lista (los manuales no se tocan).
+ * Guarda los números del equipo. Rechaza los que no traen código de país
+ * (salvo un celular de Colombia de 10 dígitos que empieza por 3). Avisa si
+ * alguno es de una clienta, y vuelve a mirar —solo con reglas, sin IA— los
+ * chats de los números que entran o salen (los manuales no se tocan).
  */
-export const setTeamPhones = async (phones: string[], staffId: string | null) => {
-  const next = [...new Set(phones.map(normalizeTeamPhone).filter((p): p is string => p !== null))];
+export const setTeamPhones = async (phones: string[], staffId: string | null): Promise<TeamPhonesResult> => {
+  const invalid = phones.filter((p) => !normalizeTeamPhone(p));
+  if (invalid.length) return { ok: false, invalid };
+  const next = [...new Set(phones.map((p) => normalizeTeamPhone(p)!))];
   const prev = await getTeamPhones();
   await setSiteSetting(TEAM_PHONES_KEY, JSON.stringify(next));
   await writeAuditLog({
@@ -629,19 +863,37 @@ export const setTeamPhones = async (phones: string[], staffId: string | null) =>
     changes: { from: prev, to: next },
   });
 
+  const paying = next.length
+    ? await prisma.contact.findMany({
+        where: {
+          phoneE164: { in: next.flatMap((p) => contactPhoneCandidates(p)) },
+          enrollments: {
+            some: {
+              OR: [
+                { status: { in: ["ACTIVE", "COMPLETED"] }, amountMinor: { gt: 0 } },
+                { payments: { some: { status: "APPROVED" } } },
+              ],
+            },
+          },
+        },
+        select: { phoneE164: true, firstName: true, lastName: true },
+      })
+    : [];
+  const warnings = paying.map((c) => ({ phone: c.phoneE164, name: `${c.firstName} ${c.lastName ?? ""}`.trim() }));
+
   const changed = [...prev.filter((p) => !next.includes(p)), ...next.filter((p) => !prev.includes(p))];
   const threads = [...new Set(changed.flatMap(phoneDigitVariants))];
   const affected = threads.length
     ? await prisma.conversation.findMany({
-        where: { channel: "WHATSAPP", externalThreadId: { in: threads }, ...notManual },
+        where: { channel: "WHATSAPP", externalThreadId: { in: threads }, AND: [notManual] },
         select: { id: true },
       })
     : [];
-  // Quien sale del equipo no se queda con «equipo» si la IA no responde:
-  // queda sin clasificar y el reloj lo vuelve a intentar.
+  // Quien sale del equipo no se queda con «equipo»: queda sin clasificar y
+  // el reloj lo vuelve a mirar (con IA si hace falta).
   if (affected.length) {
     await prisma.conversation.updateMany({
-      where: { id: { in: affected.map((c) => c.id) }, category: "equipo", ...notManual },
+      where: { id: { in: affected.map((c) => c.id) }, category: "equipo", AND: [notManual] },
       data: {
         category: null,
         categorySource: null,
@@ -652,9 +904,9 @@ export const setTeamPhones = async (phones: string[], staffId: string | null) =>
       },
     });
   }
-  const outcomes: ClassifyOutcome[] = [];
-  for (const c of affected) outcomes.push(await classifyConversation(c.id, { force: true }));
-  return { phones: next, reclassified: outcomes };
+  const reclassified: ClassifyOutcome[] = [];
+  for (const c of affected) reclassified.push(await classifyConversation(c.id, { force: true, useAi: false }));
+  return { ok: true, phones: next, warnings, reclassified };
 };
 
 // ── Contadores ────────────────────────────────────────────────────────────
@@ -664,7 +916,7 @@ export type CategoryCounts = {
   counts: Record<ChatCategory, number>;
   /** Sin categoría todavía. */
   unclassified: number;
-  /** La IA no estaba segura: «revisar». */
+  /** Etiquetas con poca confianza: «revisar». */
   review: number;
   manual: number;
   /** Sin clasificar o con mensajes nuevos desde la última vez. */
@@ -678,7 +930,7 @@ export const categoryCounts = async (): Promise<CategoryCounts> => {
   const where = { channel: "WHATSAPP" as const };
   const [groups, review, manual, pending, enabled, teamPhones] = await Promise.all([
     prisma.conversation.groupBy({ by: ["category"], where, _count: { _all: true } }),
-    prisma.conversation.count({ where: { ...where, categoryReview: true, ...notManual } }),
+    prisma.conversation.count({ where: { ...where, categoryReview: true, AND: [notManual] } }),
     prisma.conversation.count({ where: { ...where, categorySource: "manual" } }),
     prisma.conversation.count({ where: pendingClassificationWhere() }),
     isClassifyEnabled(),
