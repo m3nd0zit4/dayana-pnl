@@ -75,11 +75,11 @@ const CrmSegmentedControl = <T extends string>({
                 ) : null}
               </span>
             ) : null}
-            <span className="max-w-full truncate sm:hidden">
+            <span data-tab-label="" className="max-w-full truncate sm:hidden">
               {seg.shortLabel ?? seg.label}
               {!Icon && seg.count != null ? ` (${seg.count})` : ""}
             </span>
-            <span className="hidden sm:inline">
+            <span data-tab-label="" className="hidden sm:inline">
               {seg.count != null ? `${seg.label} (${seg.count})` : seg.label}
             </span>
           </TabsTrigger>

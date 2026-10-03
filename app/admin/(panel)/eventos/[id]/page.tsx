@@ -238,7 +238,19 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
   if (isCrmUiPreview()) {
     return (
       <CrmPageShell>
-        <CrmPageHeader title="Evento" backHref="/admin/eventos" backLabel="Eventos" />
+        <CrmPageHeader
+          title="Evento"
+          backHref="/admin/eventos"
+          backLabel="Eventos"
+          trailing={
+            <EditionTabs
+              basePath={`/admin/eventos/${id}`}
+              value={tab}
+              tabs={freeEventTabSpecs(0)}
+              ariaLabel="Secciones del evento"
+            />
+          }
+        />
         <CrmEmptyState icon={CalendarDays} title="Vista previa sin datos" />
       </CrmPageShell>
     );

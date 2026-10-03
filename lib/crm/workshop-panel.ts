@@ -156,7 +156,7 @@ export const listWorkshopCopySources = async (timeZone?: string) =>
       select: { id: true, title: true, startsAt: true, timezone: true, dateLabel: true, daySchedule: true },
       take: 50,
     })
-  ).map((e) => ({ id: e.id, label: `${e.title} · ${workshopDateLabel(e, timeZone)}` }));
+  ).map((e) => ({ id: e.id, title: e.title, label: `${e.title} · ${workshopDateLabel(e, timeZone)}` }));
 
 /* -------------------------------------------------------------------------
  * Inscritas (pagadas)

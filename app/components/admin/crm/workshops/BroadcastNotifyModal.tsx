@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
-import CrmModal from "./CrmModal";
-import SearchableSelect from "./SearchableSelect";
-import { useCrm } from "./CrmProvider";
+import CrmModal from "../CrmModal";
+import SearchableSelect from "../SearchableSelect";
+import { useCrm } from "../CrmProvider";
+import { CrmFormActions } from "../ui";
 
 type Props = {
   open: boolean;
@@ -152,20 +153,20 @@ const BroadcastNotifyModal = ({
           Listas grandes se envían en lotes en segundo plano.
         </p>
 
-        <p className="rounded-lg border border-sky-200/80 bg-sky-50/80 px-3 py-2 text-[11px] leading-relaxed text-sky-900">
+        <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
           Si tienes cientos o miles de contactos, el envío puede tardar varios
           minutos. Verás el aviso «En cola» y podrás seguir el progreso sin
           esperar en esta pantalla.
         </p>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <CrmFormActions className="mt-2">
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
           <Button disabled={loading} onClick={handleSend}>
             {loading ? "Enviando…" : "Enviar campaña"}
           </Button>
-        </div>
+        </CrmFormActions>
       </div>
     </CrmModal>
   );

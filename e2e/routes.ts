@@ -96,11 +96,33 @@ export const CRM_ROUTES: CrmRoute[] = [
     hasPublicLink: true,
   },
   {
+    // Como el detalle de un evento: en preview no se lee el slug y se pinta
+    // la cabecera con sus pestañas y el enlace a la web (deshabilitado).
+    path: "/admin/workshops/preview-workshop",
+    name: "Talleres · Detalle",
+    tier: "preview",
+    hasPublicLink: true,
+    expectEmpty: true,
+  },
+  {
+    path: "/admin/workshops/preview-workshop?tab=inscritas",
+    name: "Talleres · Detalle (Inscritas)",
+    tier: "preview",
+    expectEmpty: true,
+  },
+  {
     path: "/admin/eventos",
     name: "Eventos gratuitos",
     tier: "preview",
     hasPrimaryAction: true,
     hasPublicLink: true,
+    expectEmpty: true,
+  },
+  {
+    // El id no se lee en preview: cabecera, pestañas y un vacío.
+    path: "/admin/eventos/preview-event",
+    name: "Eventos gratuitos · Detalle",
+    tier: "preview",
     expectEmpty: true,
   },
   {

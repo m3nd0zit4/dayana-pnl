@@ -1,81 +1,12 @@
 import { NextResponse } from "next/server";
-import { WorkshopEditionStatus } from "@prisma/client";
-import { apiError, readJson, withStaff } from "@/lib/api/handler";
-import { fireAuditLog } from "@/lib/crm/audit";
-import { uniqueSlug } from "@/lib/crm/slug";
-import {
-  getWorkshopEditionWithPricing,
-  listWorkshopEditionsAdminWithPricing,
-  isRetiredWorkshopSlug,
-  isWorkshopSlugInUse,
-  parseWorkshopPriceFields,
-  upsertWorkshopEdition,
-} from "@/lib/crm/workshop-editions";
-import { canOpenWithPrice, syncWorkshopEditionPrice } from "@/lib/crm/workshop-pricing";
-import { validateWorkshopPrices } from "@/lib/crm/workshop-price-rows";
-import {
-  getOperationalTimezone,
-  zonedDateTimeToUtc,
-} from "@/lib/crm/operational-timezone";
-import { isVirtualWorkshopSlug } from "@/lib/workshops";
-import { workshopEditionSchema } from "@/lib/validations/admin";
+import { withStaff } from "@/lib/api/handler";
+import { listWorkshopEditionsAdminWithPricing } from "@/lib/crm/workshop-editions";
+import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
+import { createWorkshopResponse } from "./_lib/lifecycle";
 
 export const dynamic = "force-dynamic";
 
-const DATE_ONLY_ANCHOR = "12:00";
-
-const toInput = async (
-  body: ReturnType<typeof workshopEditionSchema.parse>
-) => {
-  const tz = await getOperationalTimezone();
-  let startsAt: Date | null | undefined = undefined;
-  if (body.startsAtLocal !== undefined) {
-    if (body.startsAtLocal === null) {
-      startsAt = null;
-    } else {
-      const time = body.startsAtLocal.time?.trim() ?? "";
-      const hasTime = /^\d{1,2}:\d{2}$/.test(time);
-      startsAt = zonedDateTimeToUtc(
-        body.startsAtLocal.date,
-        hasTime ? time : DATE_ONLY_ANCHOR,
-        tz
-      );
-    }
-  } else if (body.startsAt !== undefined) {
-    startsAt = body.startsAt ? new Date(body.startsAt) : null;
-  }
-
-  return {
-    title: body.title,
-    editionLabel: body.editionLabel,
-    cardSummary: body.cardSummary,
-    status: body.status as WorkshopEditionStatus | undefined,
-    dateLabel: body.dateLabel,
-    scheduleLabel: body.scheduleLabel,
-    capacity: body.capacity,
-    whatsappTemplate: body.whatsappTemplate,
-    startsAt,
-    timezone: tz,
-    // Nunca del cliente en una edición nueva: el producto lo crea y enlaza
-    // `syncWorkshopEditionPrice` justo después de este alta, a partir del
-    // precio que se haya mandado. Ver TASKS §2.
-    heroLine1: body.heroLine1,
-    heroLine2: body.heroLine2,
-    heroLine3: body.heroLine3,
-    detailSummary: body.detailSummary,
-    intro: body.intro,
-    focusTopics: body.focusTopics,
-    daySchedule: body.daySchedule,
-    topicsSectionTitle: body.topicsSectionTitle,
-    topicsSectionDescription: body.topicsSectionDescription,
-    scheduleSectionDescription: body.scheduleSectionDescription,
-    metaTitle: body.metaTitle,
-    metaDescription: body.metaDescription,
-    introOpen: body.introOpen,
-    meetingUrl: body.meetingUrl,
-  };
-};
-
+/** Todas las ediciones con su precio vigente y sus pagadas. */
 export const GET = withStaff("read", async () => {
   const editions = await listWorkshopEditionsAdminWithPricing();
   return NextResponse.json({
@@ -84,74 +15,9 @@ export const GET = withStaff("read", async () => {
   });
 });
 
-export const POST = withStaff("write", async ({ req, staff }) => {
-  const raw = await readJson(req);
-  const parsed = workshopEditionSchema.safeParse(raw);
-  if (!parsed.success) {
-    return apiError("invalid_body", 400);
-  }
-  const prices = validateWorkshopPrices(parseWorkshopPriceFields(raw));
-  if (!prices.ok) {
-    return apiError("invalid_price", 400);
-  }
-
-  let slug = String(parsed.data.slug ?? "").trim();
-  if (!slug) {
-    slug = await uniqueSlug(parsed.data.title, isWorkshopSlugInUse);
-  } else if (await isRetiredWorkshopSlug(slug)) {
-    // Es la URL vieja de otra edición y todavía redirige a ella.
-    return apiError("slug_taken", 409);
-  }
-
-  if (isVirtualWorkshopSlug(slug)) {
-    return apiError("virtual_edition", 400);
-  }
-
-  if (
-    parsed.data.status === WorkshopEditionStatus.OPEN &&
-    !(await canOpenWithPrice(
-      slug,
-      prices.copPesos,
-      prices.copPesos !== undefined || prices.usdCents !== undefined,
-    ))
-  ) {
-    return apiError("open_requires_cop_price", 400);
-  }
-
-  try {
-    const edition = await upsertWorkshopEdition(
-      slug,
-      await toInput(parsed.data)
-    );
-    fireAuditLog({
-      staffUserId: staff.id,
-      action: "UPSERT",
-      entityType: "WorkshopEdition",
-      entityId: edition.id,
-    });
-
-    try {
-      await syncWorkshopEditionPrice({
-        slug: edition.slug,
-        title: edition.title,
-        status: edition.status,
-        copPesos: prices.copPesos,
-        usdCents: prices.usdCents,
-      });
-    } catch (syncError) {
-      console.error("[workshops] no se pudo sincronizar el precio", syncError);
-      return apiError("price_sync_failed", 500);
-    }
-
-    const shaped = await getWorkshopEditionWithPricing(edition.slug);
-    return NextResponse.json({
-      edition: shaped ?? edition,
-      prices: shaped?.prices ?? { cop: null, usd: null },
-    });
-  } catch (e) {
-    if (e instanceof Error && e.message === "INVALID_ZONED_DATETIME") {
-      return apiError("invalid_datetime", 400, { message: "Fecha u hora inválida." });
-    }
-    throw e;
-  }
-});
+/**
+ * «Nuevo taller», como «Nuevo evento»: un borrador con título, fecha y hora
+ * (opcionales) y, si se pide, la página de otra edición. Lo demás —precio,
+ * enlace, documentos— se pone en su detalle; publicar va con su botón.
+ */
+export const POST = withStaff("write", async (ctx) => createWorkshopResponse(ctx));

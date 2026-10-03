@@ -262,6 +262,47 @@ test.describe("CRM · navegación", () => {
 });
 
 /**
+ * R10 — las pestañas de una edición (evento o taller) caben en un teléfono.
+ *
+ * Un taller tiene seis: en 390 px una fila de texto se cortaba o se iba de
+ * lado. En el móvil son una rejilla (icono y etiqueta corta): cada pestaña
+ * tiene que verse entera, sin recortes y sin salirse de la pantalla.
+ */
+const EDITION_TAB_ROUTES = [
+  { path: "/admin/workshops/preview-workshop", tabs: 6 },
+  { path: "/admin/eventos/preview-event", tabs: 4 },
+];
+
+test.describe("CRM · pestañas de una edición en el móvil", () => {
+  for (const { path, tabs } of EDITION_TAB_ROUTES) {
+    test(`${path}: las ${tabs} pestañas caben enteras a 390 px`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await gotoCrm(page, path);
+      const triggers = page.locator("[data-crm-page-header] [data-slot=tabs-trigger]");
+      await expect(triggers).toHaveCount(tabs);
+      const boxes = await triggers.evaluateAll((els) =>
+        els.map((el) => {
+          const r = el.getBoundingClientRect();
+          const label = Array.from(el.querySelectorAll<HTMLElement>("[data-tab-label]")).find(
+            (s) => getComputedStyle(s).display !== "none"
+          );
+          return {
+            left: r.left,
+            right: r.right,
+            clipped: label ? label.scrollWidth > label.clientWidth + 1 : true,
+          };
+        })
+      );
+      for (const b of boxes) {
+        expect(b.left, "una pestaña empieza fuera de la pantalla").toBeGreaterThanOrEqual(0);
+        expect(b.right, "una pestaña se sale de la pantalla").toBeLessThanOrEqual(390);
+        expect(b.clipped, "la etiqueta de una pestaña está recortada").toBe(false);
+      }
+    });
+  }
+});
+
+/**
  * R5 — orden y alineación del footer de modal.
  *
  * Se prueba solo donde hay un modal de creación accesible desde la acción
