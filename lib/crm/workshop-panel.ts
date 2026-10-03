@@ -147,12 +147,12 @@ export const getOpenWorkshop = () =>
     select: { id: true, slug: true, title: true },
   });
 
-/** Las ediciones para «Copiar la página de…», la más reciente primero. */
+/** Las ediciones para «Copiar la página de…»: la de fecha más reciente primero. */
 export const listWorkshopCopySources = async (timeZone?: string) =>
   (
     await prisma.workshopEdition.findMany({
       where: { slug: { not: PROXIMO_WORKSHOP_SLUG } },
-      orderBy: [{ startsAt: { sort: "desc", nulls: "first" } }, { createdAt: "desc" }],
+      orderBy: [{ startsAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
       select: { id: true, title: true, startsAt: true, timezone: true, dateLabel: true, daySchedule: true },
       take: 50,
     })

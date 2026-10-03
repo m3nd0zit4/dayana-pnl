@@ -6,7 +6,7 @@ import { CrmFormActions } from "../ui";
 
 /**
  * La barra de guardar de un editor de página. Pegada abajo mientras se
- * desplaza —en el teléfono, por encima de la barra inferior y de «Pregunta»—,
+ * desplaza —en el teléfono, justo encima de la barra inferior y de «Pregunta»—,
  * así «Guardar» está siempre a mano y nunca hay que bajar diez tarjetas para
  * encontrarlo. Dice si hay cambios sin guardar.
  */
@@ -26,10 +26,9 @@ const EditionSaveBar = ({
   label?: string;
 }) => (
   <div
-    className={cn(
-      "sticky z-20 -mx-1 lg:bottom-3",
-      "bottom-[calc(var(--crm-bottom-nav-h)+env(safe-area-inset-bottom,0px)+var(--crm-ask-pill-clearance))]"
-    )}
+    // El contenedor que desplaza ya reserva abajo el sitio de la barra
+    // inferior y de «Pregunta» (su padding): la barra se pega justo encima.
+    className="sticky bottom-3 z-20 -mx-1"
   >
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card/95 px-3 py-2 shadow-md backdrop-blur supports-[backdrop-filter]:bg-card/85">
       <p className="flex min-w-0 flex-1 items-center gap-2 text-xs" role="status" aria-live="polite">
@@ -48,7 +47,14 @@ const EditionSaveBar = ({
           </Button>
         ) : null}
         <Button type="button" size="sm" disabled={saving || disabled || !dirty} onClick={onSave}>
-          {saving ? "Guardando…" : label}
+          {saving ? (
+            "Guardando…"
+          ) : (
+            <>
+              <span className="sm:hidden">Guardar</span>
+              <span className="hidden sm:inline">{label}</span>
+            </>
+          )}
         </Button>
       </CrmFormActions>
     </div>

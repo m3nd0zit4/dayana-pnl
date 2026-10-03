@@ -204,7 +204,7 @@ const WorkshopPageEditor = ({
             value={meetingUrl}
             disabled={initial.ended}
             onChange={(e) => setMeetingUrl(e.target.value)}
-            placeholder="https://zoom.us/j/1234567890"
+            placeholder="Pega aquí el enlace de Zoom o Meet"
           />
         </CrmField>
         <div className="grid gap-4 sm:grid-cols-2">

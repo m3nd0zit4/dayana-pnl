@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Minus, Users, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Switch } from "@/app/components/ui/switch";
 import type { WorkshopEnrollmentRow, WorkshopEnrollmentStats } from "@/lib/crm/workshop-panel";
 import { useCrm } from "../CrmProvider";
 import { CrmDataList, CrmDataListRow, CrmEmptyState, CrmFilterBar, CrmLoadMore, CrmSearchInput } from "../ui";
+import EditionSection from "../editions/EditionSection";
 
 type WaPass = "24h" | "1h";
 
@@ -267,15 +267,16 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
     }
   };
 
-  const statCells: [string, number][] = [
-    ["Pagaron", stats.total],
-    ["Correo 24 h", stats.email24h],
-    ["Correo 1 h", stats.email1h],
-    ["Sin correo / baja", stats.noEmail],
-    ["WhatsApp 24 h", stats.wa24h],
-    ["WhatsApp 1 h", stats.wa1h],
-    ["WhatsApp falló", stats.waFailed],
-    ["Sin WhatsApp", stats.noWhatsApp],
+  /** Cuatro casillas, no ocho: en el teléfono la lista tiene que verse pronto. */
+  const statCells: [string, string, string | null][] = [
+    ["Pagaron", stats.total.toLocaleString("es-CO"), null],
+    ["Correo", `${stats.email24h} · ${stats.email1h}`, "24 h · 1 h"],
+    ["WhatsApp", `${stats.wa24h} · ${stats.wa1h}`, "24 h · 1 h"],
+    [
+      "No les llega",
+      `${stats.waFailed + stats.noWhatsApp} · ${stats.noEmail}`,
+      "WhatsApp · correo",
+    ],
   ];
 
   if (stats.total === 0 && !q && !failedOnly) {
@@ -291,31 +292,47 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
   return (
     <div className="flex flex-col gap-4">
       <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {statCells.map(([label, value]) => (
+        {statCells.map(([label, value, hint]) => (
           <div key={label} className="rounded-xl border border-border bg-card px-3 py-2">
             <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</dt>
-            <dd className="mt-0.5 text-base font-semibold tabular-nums text-foreground">{value.toLocaleString("es-CO")}</dd>
+            <dd className="mt-0.5 text-base font-semibold tabular-nums text-foreground">
+              {value}
+              {hint ? <span className="ml-1.5 text-[10px] font-normal text-muted-foreground">{hint}</span> : null}
+            </dd>
           </div>
         ))}
       </dl>
 
+      {blockedReason ? <p className="text-xs text-warning">{blockedReason}</p> : null}
+      {stats.waFailed > 0 ? (
+        <p className="flex items-center gap-2 text-xs text-destructive">
+          <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
+          {stats.waFailed.toLocaleString("es-CO")} sin enviar por WhatsApp. No se reintentan solos: filtra «Solo
+          fallidas» y pulsa «Reintentar WA».
+        </p>
+      ) : null}
+
       {/* Salen solos con el reloj (24 h y 1 h antes). Los botones son el
-          respaldo si el reloj no corrió. */}
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          respaldo si el reloj no corrió. En el teléfono, plegado. */}
+      <EditionSection
+        title="Recordatorios por WhatsApp"
+        summary={`${waEnabled ? "Encendidos" : "Apagados"} · plantilla ${templateApproved ? "aprobada" : "pendiente"}`}
+      >
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <CardTitle className="text-base uppercase tracking-wide">Recordatorios por WhatsApp</CardTitle>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               {waEnabled
                 ? "Salen solos 24 h y 1 h antes, con el enlace de la reunión, una vez por persona."
                 : "Apagados para todos los talleres: no sale ninguno, ni solo ni con los botones."}
             </p>
-            <p className={`mt-1 text-xs ${templateApproved ? "text-success" : "text-warning"}`} title={whatsApp.templateStatus ?? "Sin plantilla"}>
+            <p
+              className={`mt-1 text-xs ${templateApproved ? "text-success" : "text-warning"}`}
+              title={whatsApp.templateStatus ?? "Sin plantilla"}
+            >
               {templateApproved
                 ? "Plantilla «taller_recordatorio» aprobada"
                 : "Plantilla «taller_recordatorio» pendiente: solo saldrá a quien escribió en 24 h"}
             </p>
-            {blockedReason ? <p className="mt-1 text-xs text-warning">{blockedReason}</p> : null}
           </div>
           <Switch
             checked={waEnabled}
@@ -323,42 +340,33 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
             onCheckedChange={(v) => void toggleWa(v)}
             aria-label="Recordatorios por WhatsApp de los talleres"
           />
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            {(["24h", "1h"] as const).map((pass) => (
-              <Button
-                key={pass}
-                type="button"
-                variant="outline"
-                size="sm"
-                className="justify-start sm:justify-center"
-                disabled={!waEnabled || waRun !== null}
-                onClick={() => void confirmWaPass(pass)}
-              >
-                {waRun?.pass === pass ? "Enviando…" : `Enviar el de ${pass === "24h" ? "24 h" : "1 h"} ahora`}
-              </Button>
-            ))}
-          </div>
-          {waRun ? (
-            <p className="text-xs text-muted-foreground" aria-live="polite">
-              Enviando el de {waRun.pass === "24h" ? "24 h" : "1 h"}: {waRun.sent.toLocaleString("es-CO")} enviados
-              {waRun.notSent ? ` · ${waRun.notSent.toLocaleString("es-CO")} sin enviar` : ""}
-              {waRun.remaining ? ` · quedan ${waRun.remaining.toLocaleString("es-CO")}` : ""}. No cierres esta página.
-            </p>
-          ) : null}
-          {stats.waFailed > 0 ? (
-            <p className="flex items-center gap-2 text-xs text-destructive">
-              <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
-              {stats.waFailed.toLocaleString("es-CO")} sin enviar por WhatsApp. No se reintentan solos: filtra «Solo
-              fallidas» y pulsa «Reintentar WA».
-            </p>
-          ) : null}
-          <p className="text-xs text-muted-foreground">
-            Los recordatorios por correo (24 h y 1 h) salen solos con el reloj a quien tiene correo.
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {(["24h", "1h"] as const).map((pass) => (
+            <Button
+              key={pass}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="justify-start sm:justify-center"
+              disabled={!waEnabled || waRun !== null}
+              onClick={() => void confirmWaPass(pass)}
+            >
+              {waRun?.pass === pass ? "Enviando…" : `Enviar el de ${pass === "24h" ? "24 h" : "1 h"} ahora`}
+            </Button>
+          ))}
+        </div>
+        {waRun ? (
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            Enviando el de {waRun.pass === "24h" ? "24 h" : "1 h"}: {waRun.sent.toLocaleString("es-CO")} enviados
+            {waRun.notSent ? ` · ${waRun.notSent.toLocaleString("es-CO")} sin enviar` : ""}
+            {waRun.remaining ? ` · quedan ${waRun.remaining.toLocaleString("es-CO")}` : ""}. No cierres esta página.
           </p>
-        </CardContent>
-      </Card>
+        ) : null}
+        <p className="text-xs text-muted-foreground">
+          Los recordatorios por correo (24 h y 1 h) salen solos con el reloj a quien tiene correo.
+        </p>
+      </EditionSection>
 
       <CrmFilterBar count={`${rows.length} de ${stats.total.toLocaleString("es-CO")}`}>
         <CrmSearchInput value={q} onChange={setQ} placeholder="Buscar por nombre, correo o teléfono" />

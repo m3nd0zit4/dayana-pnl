@@ -218,7 +218,8 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
         <EditionStatusBadge status={status} />
         <span>{workshopDateLabel(edition, tz)}</span>
       </span>
-      {lifecycleHint ? <span className="mt-1 block text-xs">{lifecycleHint}</span> : null}
+      {/* En el teléfono no cabe: lo explica la confirmación de cada botón. */}
+      {lifecycleHint ? <span className="mt-1 hidden text-xs sm:block">{lifecycleHint}</span> : null}
       {publishBlockedReason ? <span className="mt-1 block text-xs text-warning">{publishBlockedReason}</span> : null}
       {!publishBlockedReason && (status === "OPEN" || status === "CLOSED") && reminderGap ? (
         <span className="mt-1 block text-xs text-warning">{reminderGap}</span>

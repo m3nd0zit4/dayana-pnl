@@ -281,7 +281,8 @@ const FreeEventDetailPage = async ({ params, searchParams }: PageProps) => {
           {eventDateLabel(event, tz)} · {event.eventLabel}
         </span>
       </span>
-      {lifecycleHint ? <span className="mt-1 block text-xs">{lifecycleHint}</span> : null}
+      {/* En el teléfono no cabe: lo explica la confirmación de cada botón. */}
+      {lifecycleHint ? <span className="mt-1 hidden text-xs sm:block">{lifecycleHint}</span> : null}
     </>
   );
 
