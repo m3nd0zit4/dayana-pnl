@@ -64,26 +64,29 @@ export const needsReview = (category: ChatCategory, confidence: number): boolean
 
 /**
  * ¿Esta etiqueta puede silenciar el chat (fase B2)? Solo si es segura:
- * puesta a mano, un número del equipo, un código / notificación detectado
- * por regla, o la IA con confianza ≥ 0,9 y sin «revisar». Cualquier otra cosa
- * —incluida una etiqueta vieja o rara— no silencia.
+ * puesta a mano, o un número del equipo / un código o notificación detectado
+ * por regla, o la IA (personal / negocio) — estas dos últimas con confianza
+ * ≥ 0,9 y sin «revisar». Cualquier otra cosa —incluida una etiqueta vieja o
+ * rara— no silencia.
+ *
+ * `enabled`: si la clasificación está apagada (`whatsapp.classify_enabled`),
+ * nada silencia: las etiquetas se quedan, pero solo informan. Es obligatorio
+ * para que quien la use (B2) no se olvide de mirarlo.
  */
-export const isSilencingCategory = (c: {
-  category: string | null | undefined;
-  categorySource: string | null | undefined;
-  categoryConfidence?: number | null;
-  categoryReview?: boolean | null;
-}): boolean => {
-  if (!isSilentCategory(c.category)) return false;
+export const isSilencingCategory = (
+  c: {
+    category: string | null | undefined;
+    categorySource: string | null | undefined;
+    categoryConfidence?: number | null;
+    categoryReview?: boolean | null;
+  },
+  opts: { enabled: boolean }
+): boolean => {
+  if (!opts.enabled || !isSilentCategory(c.category)) return false;
   if (c.categorySource === "manual") return true;
-  if (c.categorySource === "rule") return c.category === "equipo" || c.category === "negocio";
-  if (c.categorySource === "ai") {
-    return (
-      (c.category === "personal" || c.category === "negocio") &&
-      (c.categoryConfidence ?? 0) >= REVIEW_BELOW_SILENT &&
-      !c.categoryReview
-    );
-  }
+  const sure = (c.categoryConfidence ?? 0) >= REVIEW_BELOW_SILENT && !c.categoryReview;
+  if (c.categorySource === "rule") return (c.category === "equipo" || c.category === "negocio") && sure;
+  if (c.categorySource === "ai") return (c.category === "personal" || c.category === "negocio") && sure;
   return false;
 };
 
@@ -153,10 +156,14 @@ export type ChatFacts = {
 export const normalizeTeamPhone = (raw: string): string | null => {
   const s = String(raw ?? "").trim();
   const d = s.replace(/\D/g, "");
+  // Un 0 al principio o justo después del código de país («+0573…»,
+  // «+57 0300…») es el prefijo de larga distancia: no es un E.164 válido.
+  if (LEADING_ZERO_RE.test(d)) return null;
   if (s.startsWith("+")) return d.length >= 8 && d.length <= 15 ? `+${d}` : null;
   if (d.length === 10 && d.startsWith("3")) return `+57${d}`;
   return d.length >= 11 && d.length <= 15 ? `+${d}` : null;
 };
+const LEADING_ZERO_RE = /^(?:0|10|(?:57|52|54|51|56|58|34|44|49|33)0|(?:59[1-8]|50[2-7])0)/;
 
 /** El valor guardado (JSON de E.164) → lista limpia, sin repetidos. */
 export const parseTeamPhones = (raw: string | null | undefined): string[] => {
@@ -236,7 +243,7 @@ const FIRST_PERSON =
  * empresa decide nada: «Nequi: … ahí te pago», «ya te consigné lo de la sesión».
  */
 const INTEREST_OR_PAYMENT =
-  /\b(?:quiero|quisiera|terapia|terapias|sesion|sesiones|precio|precios|costo|cuesta|cuanto|pagar|pago|pague|pagado|consigne|consignacion|consignado|transferi|transferencia\s+que\s+te|deposite|consulta|curso|taller|cita|agendar|agenda|informacion|ayuda|dayana)\b/;
+  /\b(?:quiero|quisiera|terapia|terapias|sesion|sesiones|precio|precios|costo|cuesta|cuanto|pagar|pago|pague|pagado|pagaste|consigne|consignaste|consignacion|consignado|transferi|transferiste|te\s+transferi|transferencia\s+que\s+te|envie|enviaste|deposite|depositaste|comprobante|compra|compre|compraste|consulta|curso|taller|cita|agendar|agenda|informacion|ayuda|dayana)\b|\bdesde\s+tu\s+cuenta\b|\ba\s+la\s+(?:cuenta|llave)\b/;
 
 // ── Cortesía: gracias, saludos, bendiciones, emojis ──────────────────────
 
@@ -311,8 +318,14 @@ const BRAND_PREFIX_RE = new RegExp(`^\\W*\\[?(${alternation(UNAMBIGUOUS)})\\]?\\
 /** «Claro te informa…», «Bancolombia le notifica…». */
 const BRAND_INFORMS_RE = new RegExp(`\\b(${alternation(BRANDS)})\\s+(?:te|le)\\s+(?:informa|recuerda|notifica|avisa)\\b`);
 /** Lo que trae una notificación de verdad: un monto o su vocabulario. */
+/**
+ * Lo que dice una notificación de la marca a la persona: dinero que LE llegó
+ * o algo de su cuenta. Un monto solo no basta, y lo que la persona pagó o
+ * envió («Transferiste $150.000…», «Compra por…») nunca cuenta: es un
+ * comprobante que una clienta reenvía.
+ */
 const NOTIFICATION_BODY_RE =
-  /\$\s?\d|\b\d{1,3}(?:[.,]\d{3})+\b|\b(?:cop|usd|mxn)\s?\d|\b(?:recibiste|transferencia\s+(?:recibida|exitosa|enviada)|compra\s+(?:por|aprobada|en)|retiro|tu\s+saldo|transaccion|movimiento|tu\s+pedido|tu\s+factura|tu\s+recarga)\b/;
+  /\b(?:recibiste|te\s+(?:enviaron|transfirieron|consignaron|abonaron|llego\s+(?:un|una)\s+(?:pago|transferencia))|(?:transferencia|pago|abono)\s+recibid[oa]|tu\s+(?:pedido|factura|recarga|saldo|plan|suscripcion|paquete\s+de\s+datos))\b/;
 
 const BRAND_LABEL: Record<string, string> = {
   bancolombia: "Bancolombia", nequi: "Nequi", daviplata: "Daviplata", davivienda: "Davivienda",
@@ -456,6 +469,11 @@ export const crmVerdict = (s: CategorySignals): CategoryVerdict | null => {
   if (s.hasTherapySession) {
     return { category: "cliente", confidence: 0.9, reason: "Tiene sesiones de terapia en el calendario" };
   }
+  // Activa o terminada pero sin importe ni pago: puesta a mano o gratis.
+  // Probablemente clienta, con menos certeza (nunca silencia).
+  if (s.hasUnpaidActiveEnrollment) {
+    return { category: "cliente", confidence: 0.8, reason: "Tiene una inscripción activa sin pago registrado" };
+  }
   if (s.hasBooking) return { category: "interesada", confidence: 0.92, reason: "Agendó la llamada gratis" };
   if (s.hasDiagnostic) return { category: "interesada", confidence: 0.9, reason: "Hizo la autoevaluación" };
   if (s.hasPendingPayment) return { category: "interesada", confidence: 0.88, reason: "Empezó a pagar y no terminó" };
@@ -502,11 +520,11 @@ export const classifyByRules = (facts: ChatFacts): CategoryVerdict | null => {
   }
 
   if (person.length > 0) {
-    // Primero fuera su contestador; lo que queda tiene que ser TODO código o
-    // notificación. Cualquier otra cosa (aunque sea un «hola») → el modelo.
-    const rest = person.filter((m) => negocioSignal(m.body)?.kind !== "auto");
-    const hits = rest.map((m) => negocioSignal(m.body));
-    if (rest.length > 0 && hits.every((h) => h?.kind === "otp" || h?.kind === "notification")) {
+    // TODO lo que escribió tiene que ser código o notificación. Cualquier otra
+    // cosa (un «hola», su propio contestador —es el negocio de una persona,
+    // que puede estar interesada—) → el modelo.
+    const hits = person.map((m) => negocioSignal(m.body));
+    if (hits.every((h) => h?.kind === "otp" || h?.kind === "notification")) {
       return { category: "negocio", confidence: 0.95, reason: hits[0]!.reason };
     }
     return null;
@@ -530,7 +548,6 @@ export const signalHints = (facts: Pick<ChatFacts, "signals" | "participantName"
   if (s.inAddressBook) {
     out.push("Está guardada en la libreta del celular de Dayana (ahí guarda familia y amigos, pero también clientas).");
   }
-  if (s.hasUnpaidActiveEnrollment) out.push("Tiene una inscripción activa sin pago registrado.");
 
   const person = personMessages(facts.messages ?? []);
   if (person.length > 0) {

@@ -6,9 +6,12 @@ import { writeAuditLog } from "./audit";
 import { aiErrorKind, classifyWithAi, type AiErrorKind } from "./chat-category-ai";
 import {
   CHAT_CATEGORIES,
+  REVIEW_BELOW_SILENT,
+  SILENT_CATEGORIES,
   classifyByRules,
   crmVerdict,
   isSilencingCategory,
+  isSilentCategory,
   isTeamThread,
   needsReview,
   normalizeTeamPhone,
@@ -468,27 +471,82 @@ export const classifyConversation = async (
   }
 };
 
+/** Deja la etiqueta automática sin efecto: el chat queda pendiente para la próxima vuelta. */
+const CLEARED = {
+  category: null,
+  categorySource: null,
+  categoryConfidence: null,
+  categoryReason: null,
+  categoryReview: false,
+  categorizedThroughAt: null,
+} as const;
+
 /**
  * Antes de callar en un chat (fase B2): vuelve a pasar las reglas, sin IA y
  * sin esperar a la próxima vuelta del reloj, por si cambió algo en el CRM
- * (pagó, agendó, hizo la autoevaluación). Devuelve el estado con el que hay
- * que decidir y si de verdad silencia.
+ * (pagó, agendó, hizo la autoevaluación) o la persona escribió algo nuevo.
+ * Devuelve el estado con el que hay que decidir y si de verdad silencia:
+ *
+ * - clasificación apagada → nunca silencia (la etiqueta se queda);
+ * - manual → manda lo manual;
+ * - las reglas deciden → se guarda y manda eso;
+ * - las reglas ya no deciden y la etiqueta era de una regla → era vieja: se
+ *   borra (queda pendiente) y no silencia;
+ * - la etiqueta es de la IA pero la persona escribió después → no silencia
+ *   hasta que la IA lo vuelva a mirar (ya está en la cola de pendientes).
  */
 export const reclassifyByRulesNow = async (conversationId: string) => {
   const c = await loadConversation(conversationId);
   if (!c) return null;
+  const enabled = await isClassifyEnabled();
+  let stale = false;
   if (c.categorySource !== "manual") {
     const facts = (await loadFactsBatch([c], await getTeamPhones())).get(c.id)!;
     const rule = classifyByRules(facts);
-    if (rule && (rule.category !== c.category || c.categorySource !== "rule" || rule.reason !== c.categoryReason)) {
-      await save(c.id, c.lastMessageAt, { ...rule, source: "rule", review: needsReview(rule.category, rule.confidence) });
+    if (rule) {
+      if (rule.category !== c.category || c.categorySource !== "rule" || rule.reason !== c.categoryReason) {
+        await save(c.id, c.lastMessageAt, { ...rule, source: "rule", review: needsReview(rule.category, rule.confidence) });
+      }
+    } else if (c.categorySource === "rule" && isSilentCategory(c.category)) {
+      await prisma.conversation.updateMany({ where: { id: c.id, categorySource: "rule" }, data: CLEARED });
+    } else if (
+      c.categorySource === "ai" &&
+      c.lastInboundAt &&
+      (!c.categorizedThroughAt || c.lastInboundAt.getTime() > c.categorizedThroughAt.getTime())
+    ) {
+      stale = true;
     }
   }
   const now = await prisma.conversation.findUniqueOrThrow({
     where: { id: c.id },
     select: { id: true, category: true, categorySource: true, categoryConfidence: true, categoryReview: true },
   });
-  return { ...now, silencing: isSilencingCategory(now) };
+  return { ...now, stale, silencing: !stale && isSilencingCategory(now, { enabled }) };
+};
+
+/**
+ * Para las colas de B2 («Te toca», «Pendientes»): los chats que NO silencian,
+ * el mismo criterio que `isSilencingCategory` en SQL y sin perder los nulos.
+ * Apagada la clasificación, no excluye nada (`{}`).
+ */
+export const notSilencedWhere = (enabled: boolean): Prisma.ConversationWhereInput => {
+  if (!enabled) return {};
+  const silent = [...SILENT_CATEGORIES];
+  const unsure: Prisma.ConversationWhereInput[] = [
+    { categoryConfidence: null },
+    { categoryConfidence: { lt: REVIEW_BELOW_SILENT } },
+    { categoryReview: true },
+  ];
+  return {
+    OR: [
+      { category: null },
+      { category: { notIn: silent } },
+      { categorySource: null },
+      { categorySource: { notIn: ["manual", "rule", "ai"] } },
+      { categorySource: "rule", OR: [{ category: "personal" }, ...unsure] },
+      { categorySource: "ai", OR: [{ category: "equipo" }, ...unsure] },
+    ],
+  };
 };
 
 /**
@@ -547,11 +605,18 @@ export type ClassifyRunResult = {
   aiBlocked: AiStop | null;
   /** La IA no se usó: clasificación apagada o sin clave. */
   aiDisabled: boolean;
-  /** Otra tanda estaba corriendo: esta no hizo nada. */
+  /**
+   * Otra tanda estaba corriendo: esta no hizo nada. Quien llama (la pantalla)
+   * tiene que esperar `retryAfterMs` antes de volver a intentar, no insistir.
+   */
   busy: boolean;
+  retryAfterMs?: number;
   ms: number;
   errors: string[];
 };
+
+/** Cuánto esperar si otra tanda tiene el arriendo (una tanda dura ≤ ~50 s). */
+export const BUSY_RETRY_AFTER_MS = 15_000;
 
 const emptyResult = (): ClassifyRunResult => ({
   processed: 0,
@@ -591,14 +656,19 @@ const tally = (result: ClassifyRunResult, outcome: ClassifyOutcome) => {
   }
 };
 
-/** El arriendo de la tanda (exportado para las pruebas). `null` si otra tanda lo tiene. */
+/**
+ * El arriendo de la tanda (exportado para las pruebas). `null` si otra tanda
+ * lo tiene. Con el reloj de la base (no el de cada servidor): caduca a los
+ * 3 minutos por si quien lo tenía murió sin soltarlo.
+ */
 export const acquireClassifyLock = async (): Promise<string | null> => {
-  const token = `${new Date().toISOString()}#${Math.random().toString(36).slice(2, 10)}`;
-  const staleBefore = new Date(Date.now() - LOCK_TTL_MS).toISOString();
+  const token = `${Date.now()}#${Math.random().toString(36).slice(2, 10)}`;
+  const ttlSeconds = Math.round(LOCK_TTL_MS / 1000);
   const rows = await prisma.$queryRaw<{ key: string }[]>`
-    INSERT INTO site_settings (key, value, updated_at) VALUES (${CLASSIFY_LOCK_KEY}, ${token}, now())
-    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()
-    WHERE site_settings.value < ${staleBefore}
+    INSERT INTO site_settings (key, value, updated_at)
+    VALUES (${CLASSIFY_LOCK_KEY}, ${token}, (now() AT TIME ZONE 'UTC'))
+    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = (now() AT TIME ZONE 'UTC')
+    WHERE site_settings.updated_at < (now() AT TIME ZONE 'UTC') - (${ttlSeconds}::int * interval '1 second')
     RETURNING key`;
   return rows.length > 0 ? token : null;
 };
@@ -626,6 +696,8 @@ export const classifyPending = async (
     concurrency?: number;
     /** Solo estos chats (pruebas y scripts); sin arriendo. */
     ids?: string[];
+    /** Quien llama ya tiene el arriendo (el reloj). */
+    leaseHeld?: boolean;
     /** Solo pruebas: sustituye al modelo (p. ej. para simular el 403 de facturación). */
     classifier?: AiClassifier;
   } = {}
@@ -635,8 +707,10 @@ export const classifyPending = async (
   const deadline = started + budgetMs;
   const result = emptyResult();
 
-  const lock = opts.ids ? null : await acquireClassifyLock();
-  if (!opts.ids && !lock) return { ...result, busy: true, ms: Date.now() - started };
+  const lock = opts.ids || opts.leaseHeld ? null : await acquireClassifyLock();
+  if (!opts.ids && !opts.leaseHeld && !lock) {
+    return { ...result, busy: true, retryAfterMs: BUSY_RETRY_AFTER_MS, ms: Date.now() - started };
+  }
 
   try {
     const ctx = await loadRunContext();
@@ -724,17 +798,22 @@ export const classifyPending = async (
 /**
  * Lo que decide el CRM (equipo, cliente, interesada) vuelve a mirarse en
  * todos los chats, sin mensajes ni IA: quien pagó o agendó deja de estar en
- * «negocio» o «comunidad» aunque no haya escrito nada nuevo.
+ * «negocio» o «comunidad» aunque no haya escrito nada nuevo. Sin pasar de
+ * `deadline` (epoch ms): lo que no alcance, en la próxima vuelta.
  */
-export const refreshCrmCategories = async (opts: { ids?: string[] } = {}) => {
+export const refreshCrmCategories = async (opts: { ids?: string[]; deadline?: number } = {}) => {
   const rows = await prisma.conversation.findMany({
     where: { channel: "WHATSAPP", ...(opts.ids ? { id: { in: opts.ids } } : {}), AND: [notManual] },
     select: { ...CONVERSATION_SELECT, ...STATE_SELECT },
+    orderBy: { lastMessageAt: "desc" },
   });
   const teamPhones = await getTeamPhones();
   let updated = 0;
+  let checked = 0;
   for (let i = 0; i < rows.length; i += 200) {
+    if (opts.deadline && Date.now() >= opts.deadline) break;
     const chunk = rows.slice(i, i + 200);
+    checked += chunk.length;
     const facts = await loadFactsBatch(chunk, teamPhones, { messages: false });
     for (const c of chunk) {
       const v = crmVerdict(facts.get(c.id)!.signals);
@@ -753,18 +832,30 @@ export const refreshCrmCategories = async (opts: { ids?: string[] } = {}) => {
       updated += r.count;
     }
   }
-  return { checked: rows.length, updated };
+  return { checked, total: rows.length, updated };
 };
 
-/** El paso del reloj de WhatsApp. Nada si la clasificación está apagada (por defecto). */
+/**
+ * El paso del reloj de WhatsApp. Nada si la clasificación está apagada (por
+ * defecto). Todo bajo un solo arriendo: si «Clasificar todo» está corriendo,
+ * esta vuelta no hace nada.
+ */
 export const classifyFromCron = async (budgetMs: number) => {
   if (!(await isClassifyEnabled())) return { skipped: "disabled" as const };
   if (budgetMs < 5_000) return { skipped: "no_time" as const };
   const started = Date.now();
-  const crm = await refreshCrmCategories();
-  // Sin clave, solo reglas (no sale nada de la base).
-  const run = await classifyPending({ limit: 40, budgetMs: budgetMs - (Date.now() - started) });
-  return { crm, ...run };
+  const deadline = started + budgetMs;
+  const lock = await acquireClassifyLock();
+  if (!lock) return { skipped: "busy" as const };
+  try {
+    // Lo del CRM, como mucho la mitad del tiempo; el resto, la tanda.
+    const crm = await refreshCrmCategories({ deadline: started + budgetMs / 2 });
+    // Sin clave, solo reglas (no sale nada de la base).
+    const run = await classifyPending({ limit: 40, budgetMs: deadline - Date.now(), leaseHeld: true });
+    return { crm, ...run };
+  } finally {
+    await releaseClassifyLock(lock);
+  }
 };
 
 // ── Manual ────────────────────────────────────────────────────────────────

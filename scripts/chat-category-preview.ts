@@ -5,7 +5,7 @@
  *   bun scripts/chat-category-preview.ts --dry-run          solo reglas, no escribe nada
  *   bun scripts/chat-category-preview.ts --dry-run --ai     + la IA para los dudosos (cuesta centavos), sin escribir
  *   bun scripts/chat-category-preview.ts --apply            guarda lo que deciden las reglas (requiere la migración)
- *   bun scripts/chat-category-preview.ts --apply --ai       guarda reglas + IA (requiere whatsapp.classify_enabled)
+ *   bun scripts/chat-category-preview.ts --apply --ai       guarda reglas + IA
  *
  * Opciones: --samples N (20 por defecto); --show enseña nombres y el último
  * mensaje (por defecto van tapados: la salida puede acabar en un chat o un log).
@@ -13,6 +13,10 @@
  * Sin `--apply` no se escribe NADA: solo hay lecturas (SELECT). Sin `--ai` no
  * se llama al modelo. Los chats en modo Manual nunca van al modelo. Nunca
  * toca lo marcado a mano.
+ *
+ * `--ai` (con --dry-run o --apply) manda conversaciones a Google, así que pide
+ * lo mismo que la app: la clasificación encendida (`whatsapp.classify_enabled`)
+ * y, contra una base cuyo nombre no lleva «dev», además `--i-know-prod`.
  */
 import { prisma } from "@/lib/db";
 import {
@@ -55,14 +59,28 @@ if (APPLY === DRY) {
   process.exit(2);
 }
 
-const target = (() => {
+const dbUrl = (() => {
   try {
-    const u = new URL(process.env.DATABASE_URL ?? "");
-    return `${u.hostname}${u.pathname}`;
+    return new URL(process.env.DATABASE_URL ?? "");
   } catch {
-    return "(DATABASE_URL no válida)";
+    return null;
   }
 })();
+const target = dbUrl ? `${dbUrl.hostname}${dbUrl.pathname}` : "(DATABASE_URL no válida)";
+const isDevDb = Boolean(dbUrl?.pathname.toLowerCase().includes("dev"));
+
+/** `--ai` manda chats a Google: mismas condiciones que la app, y producción solo a sabiendas. */
+const guardAi = async () => {
+  if (!AI) return;
+  if (!isDevDb && !has("--i-know-prod")) {
+    console.error(`--ai contra ${target}, que no parece de desarrollo: añade --i-know-prod si de verdad quieres.`);
+    process.exit(2);
+  }
+  if (!(await isClassifyEnabled())) {
+    console.error("La clasificación está apagada (whatsapp.classify_enabled): enciéndela en el CRM antes de usar --ai.");
+    process.exit(2);
+  }
+};
 
 /** +57300•••4567: lo justo para reconocerlo. */
 const maskPhone = (thread: string) =>
@@ -89,10 +107,7 @@ const apply = async () => {
     console.error("La base no tiene la migración 20261013110000_chat_category: no hay dónde guardar.");
     process.exit(2);
   }
-  if (AI && !(await isClassifyEnabled())) {
-    console.error("La clasificación está apagada (whatsapp.classify_enabled): enciéndela en el CRM antes de usar --apply --ai.");
-    process.exit(2);
-  }
+  await guardAi();
   console.log(`Guardando (${AI ? "reglas + IA" : "solo reglas"}) en ${target}…`);
   let rounds = 0;
   for (;;) {
@@ -125,6 +140,7 @@ type Row = {
 };
 
 const preview = async () => {
+  await guardAi();
   const withColumns = await hasCategoryColumns();
   const conversations = await prisma.conversation.findMany({
     where: { channel: "WHATSAPP" },
@@ -212,9 +228,9 @@ const preview = async () => {
   if (manualModeUndecided) console.log(`Dudosos en modo Manual (nunca van a la IA): ${manualModeUndecided}`);
   show("Solo reglas:", tally((r) => r.verdict?.category ?? null));
   const silencedByRules = rows.filter(
-    (r) => r.verdict && isSilencingCategory({ category: r.verdict.category, categorySource: "rule" })
+    (r) => r.verdict && isSilencingCategory({ category: r.verdict.category, categorySource: "rule", categoryConfidence: r.verdict.confidence, categoryReview: needsReview(r.verdict.category, r.verdict.confidence) }, { enabled: true })
   ).length;
-  console.log(`  silenciarían (fase B2): ${silencedByRules} — solo equipo y códigos / notificaciones`);
+  console.log(`  silenciarían en B2 (con la clasificación encendida): ${silencedByRules} — solo equipo y códigos / notificaciones`);
   if (AI) {
     show("Reglas + IA:", tally((r) => r.verdict?.category ?? r.ai?.category ?? null));
     const models = [...new Set(rows.flatMap((r) => (r.ai ? [r.ai.model] : [])))];
@@ -222,7 +238,7 @@ const preview = async () => {
     const silencedByAi = rows.filter(
       (r) =>
         r.ai &&
-        isSilencingCategory({ category: r.ai.category, categorySource: "ai", categoryConfidence: r.ai.confidence, categoryReview: r.ai.review })
+        isSilencingCategory({ category: r.ai.category, categorySource: "ai", categoryConfidence: r.ai.confidence, categoryReview: r.ai.review }, { enabled: true })
     ).length;
     console.log(`  modelo: ${models.join(", ") || "—"} · por revisar: ${review} · la IA silenciaría (≥ 0,9): ${silencedByAi}`);
   }

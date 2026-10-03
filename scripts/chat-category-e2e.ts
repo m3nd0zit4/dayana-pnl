@@ -22,13 +22,16 @@ import { APICallError, NoObjectGeneratedError } from "ai";
 
 import { prisma } from "@/lib/db";
 import {
+  BUSY_RETRY_AFTER_MS,
   CLASSIFY_ENABLED_KEY,
   TEAM_PHONES_KEY,
   acquireClassifyLock,
   categoryCounts,
   classifyConversation,
+  classifyFromCron,
   classifyPending,
   markForReclassification,
+  notSilencedWhere,
   pendingClassificationWhere,
   reclassifyByRulesNow,
   refreshCrmCategories,
@@ -51,6 +54,8 @@ const check = (name: string, ok: boolean, detail?: unknown) => {
 };
 /** Solo para lo que necesita la IA viva cuando Google la bloquea por facturación. */
 const skipped: string[] = [];
+/** La clasificación está encendida durante la prueba. */
+const ON = { enabled: true };
 const AI_BILLING = "IA bloqueada por facturación de Google";
 const GENERAL_MANUAL = "modo general Manual (lo cambió otra prueba en la base compartida)";
 let skipWhy = AI_BILLING;
@@ -313,8 +318,8 @@ const main = async () => {
       );
     }
     const equipoState = await state(ids.equipo);
-    check("la regla del equipo no pide «revisar» y silencia", !equipoState.categoryReview && isSilencingCategory(equipoState));
-    check("el código por regla silencia", isSilencingCategory(await state(ids.negocio)));
+    check("la regla del equipo no pide «revisar» y silencia", !equipoState.categoryReview && isSilencingCategory(equipoState, ON));
+    check("el código por regla silencia", isSilencingCategory(await state(ids.negocio), ON));
     check("cubre hasta el último mensaje", equipoState.categorizedThroughAt?.getTime() === equipoState.lastMessageAt.getTime());
     const libretaRules = await classifyConversation(ids.libreta, { useAi: false });
     check(
@@ -326,7 +331,7 @@ const main = async () => {
     console.log("\n2. Manual: gana siempre");
     await setManualCategory(ids.manual, "personal", staff.id);
     let m = await state(ids.manual);
-    check("se guardó como manual (y silencia)", m.category === "personal" && m.categorySource === "manual" && isSilencingCategory(m), m);
+    check("se guardó como manual (y silencia)", m.category === "personal" && m.categorySource === "manual" && isSilencingCategory(m, ON), m);
     const audit = await prisma.auditLog.count({ where: { entityType: "ConversationCategory", entityId: ids.manual } });
     check("queda en el registro de auditoría", audit === 1, audit);
     const forced = await classifyConversation(ids.manual, { force: true });
@@ -410,7 +415,7 @@ const main = async () => {
         );
         check(
           `${key}: silencia solo si es personal/negocio con ≥ 0,9`,
-          isSilencingCategory(s) === (silent && (s.categoryConfidence ?? 0) >= 0.9),
+          isSilencingCategory(s, ON) === (silent && (s.categoryConfidence ?? 0) >= 0.9),
           s
         );
       }
@@ -440,7 +445,7 @@ const main = async () => {
       where: { id: ids.aiVendor },
       data: { category: "negocio", categorySource: "ai", categoryConfidence: 0.95, categoryReview: false, categoryReason: "Agencia" },
     });
-    check("antes del cambio, silenciaría", isSilencingCategory(await state(ids.aiVendor)));
+    check("antes del cambio, silenciaría", isSilencingCategory(await state(ids.aiVendor), ON));
     const cVendor = await contact(T.aiVendor, "Carolina E2E");
     await prisma.conversation.update({ where: { id: ids.aiVendor }, data: { contactId: cVendor.id } });
     await prisma.diagnostic.create({ data: { token: `${DIAG_PREFIX}${run}-b`, contactId: cVendor.id, completedAt: new Date() } });
@@ -452,6 +457,49 @@ const main = async () => {
     );
     const manualNow = await reclassifyByRulesNow(ids.manual);
     check("reclassifyByRulesNow respeta lo manual", manualNow?.categorySource === "manual" && manualNow.silencing === true, manualNow);
+
+    // N9: con la clasificación apagada nada silencia; la etiqueta se queda.
+    await setEnabled(false);
+    const offNow = await reclassifyByRulesNow(ids.manual);
+    await setEnabled(true);
+    check(
+      "apagada: ni lo manual silencia (la etiqueta se queda)",
+      offNow?.category === "personal" && offNow.categorySource === "manual" && offNow.silencing === false,
+      offNow
+    );
+
+    // N2: una regla que ya no aplica (era un código; ahora escribe de verdad).
+    await addMessage(ids.negocio, { dir: "INBOUND", body: "Hola Dayana, quiero información de la terapia" });
+    const ruleStale = await reclassifyByRulesNow(ids.negocio);
+    const negocioAfter = await state(ids.negocio);
+    check(
+      "regla vieja que ya no aplica: se borra, queda pendiente y no silencia",
+      ruleStale?.category === null && ruleStale.silencing === false && negocioAfter.categorizedThroughAt === null,
+      { ruleStale, negocioAfter }
+    );
+
+    // N2: la IA dijo «personal», pero la persona escribió después.
+    const libretaNow = await state(ids.libreta);
+    await prisma.conversation.update({
+      where: { id: ids.libreta },
+      data: {
+        category: "personal",
+        categorySource: "ai",
+        categoryConfidence: 0.95,
+        categoryReview: false,
+        categoryReason: "Familiar",
+        categorizedThroughAt: libretaNow.lastMessageAt,
+      },
+    });
+    const aiFresh = await reclassifyByRulesNow(ids.libreta);
+    check("IA segura y sin mensajes nuevos: silencia", aiFresh?.silencing === true && aiFresh.stale === false, aiFresh);
+    await addMessage(ids.libreta, { dir: "INBOUND", body: "Oye, ¿y cuánto cuesta una sesión contigo?" });
+    const aiStale = await reclassifyByRulesNow(ids.libreta);
+    check(
+      "IA vieja (escribió después): no silencia hasta que la IA lo vuelva a mirar",
+      aiStale?.category === "personal" && aiStale.stale === true && aiStale.silencing === false,
+      aiStale
+    );
 
     // Pagó: el reloj lo recoge aunque no haya mensajes nuevos.
     await prisma.enrollment.create({
@@ -481,11 +529,25 @@ const main = async () => {
     await prisma.conversation.update({ where: { id: ids.comunidad }, data: { categorizedThroughAt: null, category: null } });
 
     console.log("\n5. «Clasificar todo», arriendo y contadores");
+    // Nunca se llama a una tanda sin `ids` si no tenemos el arriendo: correría
+    // sobre toda la base compartida. Si no se puede tomar, la prueba falla.
     const lock = await acquireClassifyLock();
     check("se toma el arriendo", Boolean(lock));
-    const busy = await classifyPending({ useAi: false });
-    check("con el arriendo tomado, otra tanda no hace nada", busy.busy && busy.processed === 0, busy);
-    if (lock) await releaseClassifyLock(lock);
+    if (lock) {
+      try {
+        const busy = await classifyPending({ useAi: false });
+        check(
+          "con el arriendo tomado, otra tanda no hace nada y dice cuándo reintentar",
+          busy.busy && busy.processed === 0 && busy.retryAfterMs === BUSY_RETRY_AFTER_MS,
+          busy
+        );
+        const cronBusy = await classifyFromCron(30_000);
+        check("el reloj tampoco (todo bajo el mismo arriendo)", "skipped" in cronBusy && cronBusy.skipped === "busy", cronBusy);
+        check("el arriendo no se da dos veces", (await acquireClassifyLock()) === null);
+      } finally {
+        await releaseClassifyLock(lock);
+      }
+    }
 
     let rounds = 0;
     let progress = await classifyPending({ limit: 40, budgetMs: 45_000, ids: own });
@@ -500,7 +562,7 @@ const main = async () => {
       select: { id: true },
     });
     // Queda el chat en modo Manual (nunca va a la IA) y, si Google bloquea la IA, los dudosos.
-    const allowedPending = new Set([ids.modoManual, ...(aiBlocked ? [ids.aiInterest, ids.aiVendor, ids.libreta] : [])]);
+    const allowedPending = new Set([ids.modoManual, ...(aiBlocked ? [ids.aiInterest, ids.aiVendor, ids.libreta, ids.negocio] : [])]);
     check("solo quedan pendientes los que esperan a la IA", ownPending.every((p) => allowedPending.has(p.id)), {
       ownPending,
       progress,
@@ -520,6 +582,24 @@ const main = async () => {
       unclassified,
     });
     check("cuenta las manuales y dice que está encendida", counts.manual >= 1 && counts.enabled, counts);
+
+    // Para las colas de B2: el mismo criterio que isSilencingCategory, en SQL.
+    const ownStates = await prisma.conversation.findMany({
+      where: { id: { in: own } },
+      select: { id: true, category: true, categorySource: true, categoryConfidence: true, categoryReview: true },
+    });
+    const notSilenced = new Set(
+      (await prisma.conversation.findMany({ where: { id: { in: own }, ...notSilencedWhere(true) }, select: { id: true } })).map(
+        (r) => r.id
+      )
+    );
+    const mismatches = ownStates.filter((st) => notSilenced.has(st.id) === isSilencingCategory(st, ON));
+    check(
+      "notSilencedWhere = !isSilencingCategory (sin perder los sin clasificar)",
+      mismatches.length === 0 && ownStates.some((st) => st.category === null) && ownStates.some((st) => isSilencingCategory(st, ON)),
+      { mismatches, ownStates }
+    );
+    check("notSilencedWhere apagada no excluye nada", Object.keys(notSilencedWhere(false)).length === 0);
 
     console.log("\n6. Equipo");
     const bad = await setTeamPhones(["300 123 4567", "12345678", "55 1234 5678"], staff.id);
@@ -598,7 +678,7 @@ const main = async () => {
         "sin categoría (bloqueo de seguridad): «interesada · revisar», nunca callado",
         rn.byAi === 4 &&
           rn.review === 4 &&
-          dStates.every((s) => s.category === "interesada" && s.categoryReview && s.categorySource === "ai" && !isSilencingCategory(s)),
+          dStates.every((s) => s.category === "interesada" && s.categoryReview && s.categorySource === "ai" && !isSilencingCategory(s, ON)),
         { rn, dStates }
       );
     }

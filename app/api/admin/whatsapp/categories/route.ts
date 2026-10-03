@@ -51,6 +51,7 @@ const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => (
   aiBlocked: a.aiBlocked ?? b.aiBlocked,
   aiDisabled: a.aiDisabled || b.aiDisabled,
   busy: b.busy,
+  retryAfterMs: b.retryAfterMs,
   ms: a.ms + b.ms,
   errors: [...a.errors, ...b.errors].slice(0, 5),
 });
@@ -58,7 +59,9 @@ const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => (
 /**
  * - `classify_all`: clasifica tandas hasta ~50 s y dice cuánto falta; la
  *   pantalla vuelve a llamar mientras `done` sea false. Con la clasificación
- *   apagada, solo reglas (`aiDisabled`). `busy`: el reloj está clasificando.
+ *   apagada, solo reglas (`aiDisabled`). `busy`: otra tanda (el reloj) tiene
+ *   el arriendo; la pantalla DEBE esperar `retryAfterMs` antes de reintentar
+ *   (también va en la cabecera `Retry-After`).
  * - `set`: categoría manual (gana siempre) o `null` para volver a automático.
  * - `reclassify`: vuelve a mirar un chat (no toca los manuales).
  * - `team_phones` (solo la dueña): los números del equipo (sus chats pasan a
@@ -89,7 +92,10 @@ export const POST = withStaff("write", async ({ req, staff }) => {
         break;
       }
     }
-    return NextResponse.json({ ok: true, done, ...total, counts: await categoryCounts() });
+    const payload = { ok: true, done, ...total, counts: await categoryCounts() };
+    return total?.busy
+      ? NextResponse.json(payload, { headers: { "Retry-After": String(Math.ceil((total.retryAfterMs ?? 15_000) / 1000)) } })
+      : NextResponse.json(payload);
   }
 
   if (body.action === "set") {

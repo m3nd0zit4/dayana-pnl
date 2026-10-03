@@ -61,11 +61,10 @@ describe("cliente, interesada y equipo (lo que dice el CRM manda)", () => {
     expect(classifyByRules(facts({ hasApprovedPayment: true }, [inb("hola")]))?.reason).toBe("Tiene un pago aprobado");
   });
 
-  test("una matrícula activa SIN importe ni pago no es «cliente»: es pista", () => {
-    expect(classifyByRules(facts({ hasUnpaidActiveEnrollment: true }, [inb("hola, ¿cómo entro al curso?")]))).toBeNull();
-    expect(signalHints({ signals: { hasUnpaidActiveEnrollment: true } })).toContain(
-      "Tiene una inscripción activa sin pago registrado."
-    );
+  test("una matrícula activa SIN importe ni pago es «cliente» con menos certeza (no silencia)", () => {
+    const v = classifyByRules(facts({ hasUnpaidActiveEnrollment: true }, [inb("hola, ¿cómo entro al curso?")]));
+    expect(v?.category).toBe("cliente");
+    expect(v?.confidence).toBe(0.8);
   });
 
   test("sesiones de paquete en el calendario (3/8) → cliente", () => {
@@ -180,19 +179,17 @@ describe("negocio: solo códigos y notificaciones de verdad", () => {
     expect(negocioSignal("Usa 5531 para entrar. No compartas este código.")?.kind).toBe("otp");
   });
 
-  test("notificación de banco con monto: «Bancolombia te informa compra por $45.000»", () => {
-    expect(classifyByRules(only("Bancolombia te informa compra por $45.000 en EXITO. Si no fuiste tú llama al 01800"))).toEqual({
-      category: "negocio",
-      confidence: 0.95,
-      reason: "Notificación de Bancolombia",
-    });
+  test("notificación de dinero que LE llegó: «Nequi: Recibiste $50.000…», «Claro te informa: tu factura…»", () => {
     expect(negocioSignal("Nequi: Recibiste $50.000 de JUAN PEREZ")?.kind).toBe("notification");
+    expect(classifyByRules(only("Claro te informa: tu factura de $89.900 vence el 15"))?.reason).toBe("Notificación de Claro");
   });
 
-  test("su contestador + códigos: el contestador no cuenta, los códigos sí", () => {
-    expect(cat(only("Gracias por comunicarte con Banco X, en breve te atenderemos", "Tu código de acceso es 99812"))).toBe(
-      "negocio"
-    );
+  test("una compra con tarjeta no es notificación (puede ser el comprobante de un pago a Dayana)", () => {
+    expect(classifyByRules(only("Bancolombia te informa compra por $45.000 en EXITO. Si no fuiste tú llama al 01800"))).toBeNull();
+  });
+
+  test("su contestador + un código: el modelo (es el negocio de una persona)", () => {
+    expect(classifyByRules(only("Gracias por comunicarte con Banco X, en breve te atenderemos", "Tu código de acceso es 99812"))).toBeNull();
   });
 
   test("el banco guardado en la libreta sigue siendo negocio", () => {
@@ -350,24 +347,129 @@ describe("revisar y silenciar", () => {
     expect(needsReview("otro", 0.7)).toBe(false);
   });
 
+  const on = { enabled: true };
   test("isSilencingCategory: solo lo seguro silencia", () => {
     const base = { categoryConfidence: 0.95, categoryReview: false };
-    expect(isSilencingCategory({ ...base, category: "personal", categorySource: "manual" })).toBe(true);
-    expect(isSilencingCategory({ ...base, category: "equipo", categorySource: "rule" })).toBe(true);
-    expect(isSilencingCategory({ ...base, category: "negocio", categorySource: "rule" })).toBe(true);
-    expect(isSilencingCategory({ ...base, category: "negocio", categorySource: "ai" })).toBe(true);
-    expect(isSilencingCategory({ ...base, category: "personal", categorySource: "ai" })).toBe(true);
+    expect(isSilencingCategory({ ...base, category: "personal", categorySource: "manual" }, on)).toBe(true);
+    expect(isSilencingCategory({ ...base, category: "equipo", categorySource: "rule" }, on)).toBe(true);
+    expect(isSilencingCategory({ ...base, category: "negocio", categorySource: "rule" }, on)).toBe(true);
+    expect(isSilencingCategory({ ...base, category: "negocio", categorySource: "ai" }, on)).toBe(true);
+    expect(isSilencingCategory({ ...base, category: "personal", categorySource: "ai" }, on)).toBe(true);
     // La IA con dudas, o diciendo «equipo», no silencia.
     expect(
-      isSilencingCategory({ category: "negocio", categorySource: "ai", categoryConfidence: 0.85, categoryReview: false })
+      isSilencingCategory({ category: "negocio", categorySource: "ai", categoryConfidence: 0.85, categoryReview: false }, on)
     ).toBe(false);
-    expect(isSilencingCategory({ ...base, category: "negocio", categorySource: "ai", categoryReview: true })).toBe(false);
-    expect(isSilencingCategory({ ...base, category: "equipo", categorySource: "ai" })).toBe(false);
+    expect(isSilencingCategory({ ...base, category: "negocio", categorySource: "ai", categoryReview: true }, on)).toBe(false);
+    expect(isSilencingCategory({ ...base, category: "equipo", categorySource: "ai" }, on)).toBe(false);
     // Una regla vieja que decía «personal» tampoco.
-    expect(isSilencingCategory({ ...base, category: "personal", categorySource: "rule" })).toBe(false);
+    expect(isSilencingCategory({ ...base, category: "personal", categorySource: "rule" }, on)).toBe(false);
     // Lo que no silencia, nunca.
-    expect(isSilencingCategory({ ...base, category: "interesada", categorySource: "manual" })).toBe(false);
-    expect(isSilencingCategory({ category: null, categorySource: null })).toBe(false);
+    expect(isSilencingCategory({ ...base, category: "interesada", categorySource: "manual" }, on)).toBe(false);
+    expect(isSilencingCategory({ category: null, categorySource: null }, on)).toBe(false);
+  });
+
+  // probe3: la tabla del revisor.
+  test.each([
+    [{ category: "personal", categorySource: "ai", categoryConfidence: 0.89, categoryReview: false }, false],
+    [{ category: "personal", categorySource: "ai", categoryConfidence: 0.95, categoryReview: true }, false],
+    [{ category: "personal", categorySource: "ai", categoryConfidence: 0.95, categoryReview: false }, true],
+    [{ category: "negocio", categorySource: "ai", categoryConfidence: 0.9, categoryReview: null }, true],
+    [{ category: "equipo", categorySource: "ai", categoryConfidence: 1, categoryReview: false }, false],
+    [{ category: "comunidad", categorySource: "manual" }, false],
+    [{ category: "personal", categorySource: "rule", categoryConfidence: 0.85 }, false],
+    // N3: una regla con poca confianza o «revisar» tampoco silencia.
+    [{ category: "negocio", categorySource: "rule", categoryConfidence: 0.75, categoryReview: true }, false],
+    [{ category: "negocio", categorySource: "rule", categoryConfidence: 0.95, categoryReview: true }, false],
+    [{ category: "negocio", categorySource: "rule", categoryConfidence: null, categoryReview: false }, false],
+    [{ category: "personal", categorySource: "manual" }, true],
+    [{ category: "negocio", categorySource: null }, false],
+    [{ category: "personal", categorySource: "ai", categoryConfidence: null, categoryReview: false }, false],
+  ] as const)("%j → %p", (c, expected) => {
+    expect(isSilencingCategory(c, on)).toBe(expected);
+  });
+
+  test("N9: con la clasificación apagada nada silencia (ni lo manual)", () => {
+    const off = { enabled: false };
+    expect(isSilencingCategory({ category: "personal", categorySource: "manual" }, off)).toBe(false);
+    expect(isSilencingCategory({ category: "equipo", categorySource: "rule", categoryConfidence: 1, categoryReview: false }, off)).toBe(
+      false
+    );
+    expect(isSilencingCategory({ category: "negocio", categorySource: "ai", categoryConfidence: 0.99, categoryReview: false }, off)).toBe(
+      false
+    );
+  });
+
+  test("probe3: umbrales de «revisar»", () => {
+    expect(needsReview("personal", 0.89)).toBe(true);
+    expect(needsReview("interesada", 0.69)).toBe(true);
+    expect(needsReview("otro", 0.7)).toBe(false);
+  });
+});
+
+describe("probe3: comprobantes reenviados, contestadores y notificaciones", () => {
+  test("lo que sí sigue siendo negocio por regla", () => {
+    expect(cat(only("Tu código de verificación es 330145"))).toBe("negocio");
+    expect(cat(only("Tu código de WhatsApp: 123-456. No compartas este código."))).toBe("negocio");
+    expect(classifyByRules(only("Bancolombia: Recibiste una transferencia por $50.000 de MARIA PEREZ en tu cuenta *1234"))).toEqual({
+      category: "negocio",
+      confidence: 0.95,
+      reason: "Notificación de Bancolombia",
+    });
+    expect(classifyByRules(only("Rappi: tu pedido llegó. Total $32.900"))?.reason).toBe("Notificación de Rappi");
+  });
+
+  // N1: lo que una clienta reenvía (lo que ELLA pagó o envió) nunca es negocio.
+  test.each([
+    ["Bancolombia: Transferiste $150.000 desde tu cuenta *1234 a la cuenta *5678 el 02/10/2026"],
+    ["Nequi: Enviaste $180.000 a la llave @dayana el 02/10"],
+    ["Bancolombia te informa compra por $150.000 en DAYANA BELTRAN"],
+    ["Daviplata: Pagaste $120.000 a DAYANA"],
+    ["Nequi: Consignaste $90.000"],
+    ["Bancolombia: comprobante de transferencia por $150.000"],
+    ["Bancolombia: $150.000"],
+  ])("«%s» no es negocio", (body) => {
+    expect(negocioSignal(body)).toBeNull();
+    expect(classifyByRules(only(body))).toBeNull();
+  });
+
+  test("comprobante + «hola», o su contestador + un código: el modelo", () => {
+    expect(classifyByRules(only("Hola", "Bancolombia: Transferiste $150.000 a la cuenta *5678"))).toBeNull();
+    expect(classifyByRules(only("Gracias por comunicarte con Spa Luz", "Tu código es 4455"))).toBeNull();
+    expect(classifyByRules(only("Tu código de verificación es 330145", "gracias"))).toBeNull();
+    expect(classifyByRules(only("Gracias por comunicarte con Spa Luz. En breve te atenderemos"))).toBeNull();
+  });
+
+  test("nunca escribió (con o sin libreta) → otro; escribió «Hola prima» → el modelo", () => {
+    expect(cat(facts({}, []))).toBe("otro");
+    expect(cat(facts({ inAddressBook: true }, []))).toBe("otro");
+    expect(classifyByRules(facts({ inAddressBook: true }, [inb("Hola prima")]))).toBeNull();
+  });
+
+  test("eventos: «Info» → modelo; gracias → comunidad; su contestador → comunidad", () => {
+    expect(classifyByRules(facts({ hasWebinarRegistration: true }, [inb("Info")]))).toBeNull();
+    expect(cat(facts({ hasWebinarRegistration: true }, [inb("Gracias Dayana, bendiciones 🙏")]))).toBe("comunidad");
+    expect(cat(facts({ hasWebinarRegistration: true }, [inb("Gracias por comunicarte con Spa Luz")]))).toBe("comunidad");
+  });
+
+  test("N8: inscripción activa sin importe → cliente 0,8 (no silencia)", () => {
+    expect(classifyByRules(facts({ hasUnpaidActiveEnrollment: true }, [inb("Hola Dayana, nos vemos el jueves")]))).toEqual({
+      category: "cliente",
+      confidence: 0.8,
+      reason: "Tiene una inscripción activa sin pago registrado",
+    });
+  });
+
+  test("pistas: libreta y contestador; el nombre de una persona no va", () => {
+    expect(
+      signalHints({ signals: { inAddressBook: true }, participantName: "Laura Gómez", messages: [inb("Gracias por comunicarte con Spa Luz")] })
+    ).toEqual([
+      "Está guardada en la libreta del celular de Dayana (ahí guarda familia y amigos, pero también clientas).",
+      "1 de 1 mensajes de la persona parecen una respuesta automática de empresa (puede ser el contestador de su propio negocio).",
+    ]);
+    expect(signalHints({ signals: {}, participantName: "Bancolombia", messages: [] })).toEqual([
+      "El nombre de perfil de WhatsApp parece de una empresa (Bancolombia).",
+      "No hay nada de esta persona en el CRM.",
+    ]);
   });
 });
 
@@ -383,6 +485,17 @@ describe("teléfonos del equipo", () => {
     expect(normalizeTeamPhone("12345678")).toBeNull(); // sin código de país
     expect(normalizeTeamPhone("55 1234 5678")).toBeNull();
     expect(normalizeTeamPhone("+1 555 123 4567")).toBe("+15551234567");
+    // probe3
+    expect(normalizeTeamPhone("+57 300 123 4567")).toBe("+573001234567");
+    expect(normalizeTeamPhone("3001234567")).toBe("+573001234567");
+    expect(normalizeTeamPhone("5512345678")).toBeNull();
+    expect(normalizeTeamPhone("+52 1 55 1234 5678")).toBe("+5215512345678");
+    expect(normalizeTeamPhone("13055551234")).toBe("+13055551234");
+    // Un 0 tras el «+» o tras el código de país no es E.164.
+    expect(normalizeTeamPhone("0573001234567")).toBeNull();
+    expect(normalizeTeamPhone("+0573001234567")).toBeNull();
+    expect(normalizeTeamPhone("+57 0300 123 4567")).toBeNull();
+    expect(normalizeTeamPhone("+39 06 1234 5678")).toBe("+390612345678"); // Italia sí lleva el 0
   });
 
   test("México y Argentina: el chat llega con 521 / 549", () => {

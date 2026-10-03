@@ -66,10 +66,24 @@ export const sanitizeForAi = (text: string): string =>
   text
     .replace(/\s+/g, " ")
     .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, "[correo]")
-    .replace(/\+?\d(?:[\s.-]?\d){6,}/g, "[número]")
+    .replace(/(\$\s?)?\+?\(?\d[\d\s().-]*\d/g, redactNumber)
     .replace(/<\s*\/?\s*conversaci[oó]n\s*>/gi, " ")
     .replace(/\b(persona|dayana|ia|pistas(?:\s+del\s+crm)?)\s*:/gi, "$1 —")
     .trim();
+
+/**
+ * Tapa una tira de 7 dígitos o más (teléfono, cuenta, cédula), salvo un
+ * monto («$1.200.000», «1500000 pesos») o años («2020 2021»).
+ */
+function redactNumber(match: string, dollar: string | undefined, offset: number, whole: string): string {
+  if (match.replace(/\D/g, "").length < 7) return match;
+  if (dollar) return match;
+  if (/^\s*(?:pesos|cop|usd|d[oó]lares|mil)\b/i.test(whole.slice(offset + match.length, offset + match.length + 10))) {
+    return match;
+  }
+  if (/^(?:(?:19|20)\d{2}[\s,.-]*)+$/.test(match)) return match;
+  return "[número]";
+}
 
 const lineOf = (m: CategoryMessage): string | null => {
   if ((m.kind ?? "message") === "system") return null;
