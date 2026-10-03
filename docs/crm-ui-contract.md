@@ -66,6 +66,16 @@ todo como leído, previsualizar — va en `secondaryActions`.
 propia de la pestaña activa (p. ej. «Agregar servicio» en Servicios y pagos),
 como botón normal, no como primaria.
 
+**Ediciones (eventos gratuitos y talleres):** el mismo detalle para las dos,
+con las piezas de `app/components/admin/crm/editions/`. Las pestañas van con
+`mobileGrid` (en el teléfono, una celda por pestaña con icono y etiqueta
+corta: ninguna se corta a 390 px, lo comprueba el contrato). Las acciones de la
+cabecera (`EditionDetailActions`): en el teléfono queda a la vista el paso del
+ciclo y el resto entra en «⋯»; **borrar vive solo en «⋯»**, nunca en el
+formulario. Los formularios largos (`EditionSection`) se pliegan en el
+teléfono y guardan con `EditionSaveBar`, pegada abajo, que avisa de los
+cambios sin guardar.
+
 ## R3 · Volver, no breadcrumbs
 
 No hay sistema de breadcrumbs y no se va a construir: la profundidad de rutas
