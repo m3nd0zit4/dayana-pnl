@@ -448,6 +448,14 @@ const main = async () => {
   // Sin borradores, el actual es el último realizado (justo lo que pasa en
   // producción tras un evento y antes de crear el siguiente).
   await deleteFreeEvent(noDate.id);
+  // Lo que ya hubiera en la base de desarrollo no puede ganarle: los eventos
+  // de antes que siguen en pie (un borrador, uno publicado) pasan a realizados
+  // mientras dura la prueba, y `restore` los deja como estaban. Así la
+  // prueba no depende de cómo esté la base.
+  await prisma.freeWebinar.updateMany({
+    where: { id: { in: snapshot.map((r) => r.id) }, status: { not: "COMPLETED" } },
+    data: { status: "COMPLETED", isActive: false, endedAt: new Date() },
+  });
   const current = await getCurrentFreeEvent();
   const tool = (await getFreeWebinarTool.execute(
     {},
@@ -455,8 +463,8 @@ const main = async () => {
   )) as { webinar: { id: string; status: string } };
   check("get_free_webinar devuelve el actual", tool.webinar.id === current?.id, { tool: tool.webinar.id, current: current?.id });
 
-  // Todos los de esta prueba ya pasaron (y el de la base de desarrollo, que el
-  // reloj cerró en el paso 8): el actual es uno realizado.
+  // Todos los de esta prueba ya pasaron (y los de la base de desarrollo, que
+  // se marcaron realizados arriba): el actual es uno realizado.
   const toolCtx = { session: { auth: { current: { principalId: staff.id, attributes: { role: "OWNER" } } } } } as never;
   if (current && (current.status === "COMPLETED" || current.endedAt)) {
     const before = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: current.id } });
