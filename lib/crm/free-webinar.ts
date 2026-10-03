@@ -648,7 +648,7 @@ export const ensureFreeWebinar = async (eventId?: string): Promise<FreeWebinarPu
 
 export class FreeEventLifecycleError extends Error {
   constructor(
-    readonly reason: "not_found" | "ended" | "has_registrations" | "open"
+    readonly reason: "not_found" | "ended" | "has_registrations" | "open" | "past_date"
   ) {
     super(reason);
     this.name = "FreeEventLifecycleError";
@@ -660,6 +660,7 @@ export const FREE_EVENT_LIFECYCLE_MESSAGE: Record<FreeEventLifecycleError["reaso
   ended: ENDED_EVENT_MESSAGE,
   has_registrations: "Este evento tiene inscritas: no se borra, queda en la historia.",
   open: "Está publicado. Ciérralo antes de borrarlo.",
+  past_date: "La fecha ya pasó: cámbiala antes de publicar.",
 };
 
 /** ¿Otro evento sigue usando este archivo de material? Entonces no se borra. */
@@ -720,8 +721,12 @@ export const publishFreeEvent = async (
   const row = await prisma.freeWebinar.findUnique({ where: { id } });
   if (!row) throw new FreeEventLifecycleError("not_found");
   if (isFreeEventEnded(row)) throw new FreeEventLifecycleError("ended");
-  const blockers = getPublishBlockers(toFreeWebinarPublic(row, tz));
+  const pub = toFreeWebinarPublic(row, tz);
+  const blockers = getPublishBlockers(pub);
   if (blockers.length > 0) throw new FreeWebinarPublishError(blockers);
+  // Reabierto con la fecha ya pasada: publicarlo abriría inscripciones a algo hecho.
+  const closeAt = resolveWebinarCloseAt(pub, tz);
+  if (closeAt && now >= closeAt) throw new FreeEventLifecycleError("past_date");
 
   const closed = await prisma.$transaction(async (tx) => {
     // Dos publicaciones a la vez podrían dejar dos abiertos.
@@ -904,7 +909,11 @@ export const listLiveFreeEvents = async (): Promise<FreeWebinarPublic[]> => {
   return rows.filter(freeEventAcceptsReminders).map((r) => toFreeWebinarPublic(r, tz));
 };
 
-/** El reloj: termina los que ya pasaron. Devuelve los que terminó ESTE proceso. */
+/**
+ * El reloj: termina los que ya pasaron. Devuelve los que terminó ESTE proceso.
+ * Uno que Dayana reabrió a mano después de su cierre no se vuelve a terminar
+ * solo mientras siga sin publicar: lo reabrió para algo (cambiarle la fecha).
+ */
 export const closeDueFreeEvents = async (
   now: Date = new Date()
 ): Promise<FreeWebinarPublic[]> => {
@@ -914,6 +923,14 @@ export const closeDueFreeEvents = async (
   for (const e of live) {
     const closeAt = resolveWebinarCloseAt(e, tz);
     if (!closeAt || now < closeAt) continue;
+    // Uno publicado que ya pasó se termina siempre: seguiría aceptando inscripciones.
+    if (e.status !== "OPEN") {
+      const reopened = await prisma.freeEventActivity.findFirst({
+        where: { freeWebinarId: e.id, kind: "reopened", at: { gte: closeAt } },
+        select: { id: true },
+      });
+      if (reopened) continue;
+    }
     if (await endFreeEvent(e.id, { by: "cron", now })) {
       const fresh = await prisma.freeWebinar.findUniqueOrThrow({ where: { id: e.id } });
       closed.push(toFreeWebinarPublic(fresh, tz));

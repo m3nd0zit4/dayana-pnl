@@ -13,6 +13,7 @@ import {
   workshopReminderText,
   type WorkshopReminderPass,
 } from "@/lib/notifications/templates/workshop-reminder";
+import { recordWorkshopActivity } from "./workshop-activity";
 
 export type { WorkshopReminderPass } from "@/lib/notifications/templates/workshop-reminder";
 
@@ -119,7 +120,11 @@ export const findPendingWorkshopReminderRecipients = async (
         // Nunca DRAFT (no publicada) ni COMPLETED (ya pasó): igual que el
         // webinar no manda recordatorios de una edición ya cerrada del todo.
         status: { in: [WorkshopEditionStatus.OPEN, WorkshopEditionStatus.CLOSED] },
+        endedAt: null,
         startsAt: { gt, lte },
+        // Sin hora real (solo el día), «en 1 hora» no tiene sentido: como en
+        // WhatsApp, el de 1 h no sale.
+        ...(pass === "1h" ? { startsAtHasTime: true } : {}),
       },
     },
     orderBy: { createdAt: "asc" },
@@ -263,17 +268,31 @@ export const drainWorkshopReminders = async (
 
   let sent = 0;
   let failed = 0;
+  /** Por edición, para su historia. */
+  const byEdition = new Map<string, { sent: number; failed: number }>();
+  const tally = (editionId: string | undefined, key: "sent" | "failed") => {
+    if (!editionId) return;
+    const t = byEdition.get(editionId) ?? { sent: 0, failed: 0 };
+    t[key] += 1;
+    byEdition.set(editionId, t);
+  };
 
   for (const recipient of recipients) {
     const startsAt = recipient.workshopEdition?.startsAt;
     // Defensa extra con la misma función pura que se prueba por separado:
     // si la ventana ya se cerró entre la consulta y este punto, se salta.
     if (!startsAt || !reminderDue(pass, startsAt, now)) continue;
+    const editionId = recipient.workshopEdition?.id;
 
     try {
       const { outcome } = await deliverOne(recipient, pass);
-      if (outcome === "failed") failed += 1;
-      else sent += 1;
+      if (outcome === "failed") {
+        failed += 1;
+        tally(editionId, "failed");
+      } else {
+        sent += 1;
+        if (outcome === "sent") tally(editionId, "sent");
+      }
     } catch (e) {
       // No debería llegar aquí — deliverOne ya atrapa sus propios errores —
       // pero un fallo aquí NUNCA debe tumbar el resto de la cola.
@@ -282,7 +301,18 @@ export const drainWorkshopReminders = async (
         e instanceof Error ? e.message : String(e)
       );
       failed += 1;
+      tally(editionId, "failed");
     }
+  }
+
+  // Cada pasada queda en la historia de su edición.
+  for (const [workshopEditionId, t] of byEdition) {
+    await recordWorkshopActivity({
+      workshopEditionId,
+      kind: pass === "24h" ? "reminder_24h_email" : "reminder_1h_email",
+      count: t.sent,
+      failed: t.failed || null,
+    });
   }
 
   return { sent, failed, skipped: false };

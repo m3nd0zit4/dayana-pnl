@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, Minus, RotateCw, X } from "lucide-react";
+import { AlertTriangle, Check, MessageCircle, Minus, RotateCw, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Switch } from "@/app/components/ui/switch";
 import {
@@ -473,12 +473,15 @@ const WebinarRegistrantsPanel = ({
         </CardTitle>
         <span className="flex items-center gap-2">
           {stats.total > 0 ? (
-            <Link
-              href={`/admin/eventos/${encodeURIComponent(webinarId)}?tab=whatsapp`}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-[#00a884] px-3 text-xs font-medium text-white hover:bg-[#008069]"
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={`/admin/eventos/${encodeURIComponent(webinarId)}?tab=whatsapp`} />}
             >
+              <MessageCircle aria-hidden />
               Enviar por WhatsApp
-            </Link>
+            </Button>
           ) : null}
           <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             {stats.total.toLocaleString("es-CO")}

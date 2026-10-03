@@ -11,6 +11,7 @@ import {
   getFreeEventById,
   publishFreeEvent,
   reopenFreeEvent,
+  resolveWebinarCloseAt,
   unpublishFreeEvent,
   type CreateFreeEventInput,
 } from "@/lib/crm/free-webinar";
@@ -83,7 +84,13 @@ export const reopenEventResponse = (id: string, staffUserId: string) =>
   run(async () => {
     const webinar = await reopenFreeEvent(id, { staffUserId });
     audit(staffUserId, id, "UPDATE", { ended: false });
-    return NextResponse.json({ webinar });
+    // Reabierto con la fecha ya pasada: publicarlo pide antes otra fecha.
+    const closeAt = resolveWebinarCloseAt(webinar, webinar.operationalTimezone);
+    const notice =
+      closeAt && Date.now() >= closeAt.getTime()
+        ? "Reabierto. La fecha ya pasó: cámbiala en «Página» antes de publicar."
+        : undefined;
+    return NextResponse.json({ webinar, notice });
   });
 
 export const deleteEventResponse = (id: string, staffUserId: string) =>

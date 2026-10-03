@@ -8,6 +8,8 @@ import {
   greetingName,
   reminderZone,
   waReminderDue,
+  workshopReminderVars,
+  workshopWaReminderText,
 } from "./event-reminder-text";
 
 const BOG = "America/Bogota";
@@ -171,5 +173,28 @@ describe("confirmación al inscribirse", () => {
 
   test("sin nombre, saluda sin él", () => {
     expect(eventConfirmationText({ evento: "«X»", fecha: "lunes 5 de octubre" })).toStartWith("Hola, quedaste inscrita");
+  });
+});
+
+describe("recordatorio de taller", () => {
+  test("las palabras de la plantilla taller_recordatorio, con la hora de Colombia y la de la persona", () => {
+    const vars = workshopReminderVars({
+      title: "Sanando a mi niña  interior",
+      startsAt: START,
+      startsAtHasTime: true,
+      meetingUrl: " https://zoom.us/j/123 ",
+      pass: "1h",
+      opTz: BOG,
+      zone: reminderZone({ timezone: BOG, phoneE164: "+5215512345678" }, BOG),
+    });
+    expect(vars.evento).toBe("tu taller «Sanando a mi niña interior»");
+    expect(vars.enlace).toBe("https://zoom.us/j/123");
+    expect(vars.fecha).toContain("hora de Colombia");
+    expect(vars.fecha).toContain("en México");
+    expect(vars.fecha.endsWith("(en 1 hora)")).toBe(true);
+    const text = workshopWaReminderText({ ...vars, nombre: "Ana" });
+    expect(text.startsWith("Hola Ana, te recuerdo que tu taller «Sanando a mi niña interior» es el domingo 4 de octubre")).toBe(true);
+    expect(text.endsWith("Ingresa aquí: https://zoom.us/j/123 ¡Te espero!")).toBe(true);
+    expect(/[\r\n]/.test(text)).toBe(false);
   });
 });

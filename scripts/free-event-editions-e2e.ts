@@ -42,6 +42,7 @@ import {
   getFreeWebinar,
   getOpenFreeEvent,
   publishFreeEvent,
+  reopenFreeEvent,
   resetFreeWebinar,
   resolveRegistrationEvent,
   updateFreeWebinar,
@@ -363,6 +364,20 @@ const main = async () => {
   const cronAct = await prisma.freeEventActivity.findFirst({ where: { freeWebinarId: a.id, kind: "ended" } });
   check("A realizado y anotado como cierre del reloj", aDone.status === "COMPLETED" && (cronAct?.meta as { by?: string } | null)?.by === "cron");
   check("un segundo tick no lo cierra dos veces", !(await closeDueFreeEvents()).some((e) => e.id === a.id));
+  // Reabrirlo con la fecha ya pasada: no se publica hasta cambiarla, y el reloj
+  // no lo vuelve a terminar solo (se reabrió a mano después del cierre).
+  await reopenFreeEvent(a.id, actor);
+  const pastPub = await publishFreeEvent(a.id, actor).then(
+    () => null,
+    (e: unknown) => e
+  );
+  check(
+    "reabierto con la fecha pasada no se publica",
+    pastPub instanceof FreeEventLifecycleError && pastPub.reason === "past_date",
+    String(pastPub)
+  );
+  check("y el reloj no lo vuelve a terminar", !(await closeDueFreeEvents()).some((e) => e.id === a.id));
+  check("lo termina quien lo reabrió", await endFreeEvent(a.id, { by: "staff", staffUserId: staff.id }));
 
   console.log("\n8b. Uno que ya pasó no se reprograma ni se le manda nada en masa");
   const stampsOf = () =>

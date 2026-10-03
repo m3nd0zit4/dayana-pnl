@@ -2,6 +2,7 @@ import { EnrollmentStatus, ProductKind, WorkshopEditionStatus } from "@prisma/cl
 
 import { prisma } from "@/lib/db";
 
+import { recordWorkshopActivitiesTx } from "./workshop-activity";
 import {
   workshopPriceRowsToWrite,
   workshopProductIdFor,
@@ -27,6 +28,8 @@ export type SyncWorkshopPriceInput = WorkshopPriceInput & {
   slug: string;
   title: string;
   status: WorkshopEditionStatus;
+  /** Quién lo cambió, para la historia de la edición. */
+  staffUserId?: string | null;
 };
 
 /**
@@ -90,6 +93,18 @@ export async function syncWorkshopEditionPrice(
       await tx.productPrice.createMany({
         data: rows.map((r) => ({ productId, currency: r.currency, amountMinor: r.amountMinor })),
       });
+      // El precio nuevo queda en la historia, con lo que quedó vigente.
+      await recordWorkshopActivitiesTx(tx, [
+        {
+          workshopEditionId: edition.id,
+          kind: "price_changed",
+          staffUserId: input.staffUserId,
+          meta: {
+            cop: rows.find((r) => r.currency === "COP")?.amountMinor ?? current.cop,
+            usd: rows.find((r) => r.currency === "USD")?.amountMinor ?? current.usd,
+          },
+        },
+      ]);
     }
 
     if (edition.productId !== productId) {
@@ -106,8 +121,30 @@ export async function syncWorkshopEditionPrice(
       });
     }
 
+    // El estado de venta sale del estado de la edición en este momento, no
+    // del que traía quien llamó: entre su lectura y esta escritura pudo
+    // publicarse o terminarse.
+    await alignOwnWorkshopProduct(edition.id, tx);
     return productId;
   });
+}
+
+/**
+ * El producto propio de la edición (`taller-<slug>`) con su título y su
+ * estado de venta, en una sola sentencia que lee la edición tal como está al
+ * escribir: activo solo si está publicada y sin terminar. Nunca crea uno ni
+ * toca un paquete compartido heredado.
+ */
+export async function alignOwnWorkshopProduct(
+  editionId: string,
+  db: Pick<typeof prisma, "$executeRaw"> = prisma,
+): Promise<number> {
+  return db.$executeRaw`
+    UPDATE "products" p
+    SET "title" = e."title",
+        "is_active" = (e."status" = 'OPEN' AND e."ended_at" IS NULL)
+    FROM "workshop_editions" e
+    WHERE e."id" = ${editionId} AND p."id" = 'taller-' || e."slug"`;
 }
 
 /**

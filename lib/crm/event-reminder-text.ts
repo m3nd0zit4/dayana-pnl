@@ -187,6 +187,33 @@ export const eventReminderText = (input: EventReminderVars & { nombre?: string |
 };
 
 /**
+ * Lo mismo para un taller pagado. La plantilla `taller_recordatorio` dice «te
+ * recuerdo que {{evento}} es el {{fecha}}. Ingresa aquí: {{enlace}} ¡Te
+ * espero!», así que `evento` es «tu taller «…»» y la fecha sale igual que la
+ * del evento (su hora de Colombia y la de la persona si es otra).
+ */
+export const workshopReminderVars = (input: {
+  title: string;
+  startsAt: Date;
+  startsAtHasTime: boolean;
+  meetingUrl: string;
+  pass: EventWaPass;
+  opTz: string;
+  zone: ReminderZone;
+  now?: Date;
+}): EventReminderVars => ({
+  evento: `tu taller «${input.title.replace(/\s+/g, " ").trim()}»`,
+  fecha: eventFecha(input),
+  enlace: input.meetingUrl.trim(),
+});
+
+/** El texto libre del recordatorio de taller: las palabras de su plantilla. */
+export const workshopWaReminderText = (input: EventReminderVars & { nombre?: string | null }): string => {
+  const nombre = input.nombre?.trim();
+  return `Hola${nombre ? ` ${nombre}` : ""}, te recuerdo que ${input.evento} es el ${input.fecha}. Ingresa aquí: ${input.enlace} ¡Te espero!`;
+};
+
+/**
  * La confirmación al inscribirse, en texto libre: mismas palabras que la
  * plantilla `evento_gratis_confirmacion`. `fecha` sale de `eventFecha` (con la
  * hora de Colombia y la de la persona si es otra).
