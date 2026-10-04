@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import type { CategoryCounts } from "@/lib/crm/chat-category";
 import type { ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import GlobalModeSwitch from "../GlobalModeSwitch";
-import { CATEGORY_FILTERS } from "../status";
+import { CATEGORY_FILTERS, categoryCountOf, showCategoryFilter } from "../status";
 import ChatRow from "./ChatRow";
 import { wa } from "./chatTheme";
 
@@ -43,13 +43,6 @@ const subChip = (active: boolean) =>
     "h-10 shrink-0 rounded-full px-2.5 text-xs font-medium transition-colors md:h-7",
     active ? "bg-(--wa-text) text-(--wa-surface)" : "text-(--wa-icon) hover:bg-(--wa-panel)"
   );
-
-const categoryCountOf = (c: CategoryCounts | null, id: string): number => {
-  if (!c) return 0;
-  if (id === "unclassified") return c.unclassified;
-  if (id === "review") return c.review;
-  return c.counts[id as keyof CategoryCounts["counts"]] ?? 0;
-};
 
 const chip = (active: boolean) =>
   cn(
@@ -222,10 +215,10 @@ const ChatList = ({
               Todas
             </button>
             {CATEGORY_FILTERS.map((f) => {
-              const n = categoryCountOf(categoryCounts, f.id);
               const active = category === f.id;
               // Lo que no tiene ningún chat no se enseña (salvo si está elegido).
-              if (n === 0 && !active) return null;
+              if (!showCategoryFilter(categoryCounts, f.id, active)) return null;
+              const n = categoryCountOf(categoryCounts, f.id);
               return (
                 <button
                   key={f.id}
