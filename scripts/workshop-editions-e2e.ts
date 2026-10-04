@@ -419,7 +419,10 @@ const main = async () => {
   check("el envío queda ligado al taller", (await prisma.whatsAppSend.findUniqueOrThrow({ where: { id: send.id } })).workshopEditionId === a.id);
 
   console.log("\n9. El reloj da por realizado el taller que ya pasó");
-  await prisma.workshopEdition.update({ where: { id: a.id }, data: { startsAt: new Date(Date.now() - 4 * H) } });
+  // 30 h atrás y no 4: el reloj espera también a que acabe el cronograma del
+  // día (o a las 03:00 del día siguiente sin hora), así que con 4 h la prueba
+  // fallaba de día y pasaba de madrugada.
+  await prisma.workshopEdition.update({ where: { id: a.id }, data: { startsAt: new Date(Date.now() - 30 * H) } });
   const closed1 = await closeDueWorkshops();
   const aDone = await prisma.workshopEdition.findUniqueOrThrow({ where: { id: a.id } });
   check("A realizado y sellado", closed1.some((w) => w.id === a.id) && aDone.status === "COMPLETED" && aDone.endedAt !== null);
@@ -527,7 +530,7 @@ const main = async () => {
   await syncWorkshopEditionPrice({ slug: d.slug, title: d.title, status: "DRAFT", copPesos: 90000 });
   await publishWorkshopEdition(d.id, actor);
   await prisma.workshopEditionActivity.create({ data: { workshopEditionId: d.id, kind: "reopened" } });
-  await prisma.workshopEdition.update({ where: { id: d.id }, data: { startsAt: new Date(Date.now() - 4 * H) } });
+  await prisma.workshopEdition.update({ where: { id: d.id }, data: { startsAt: new Date(Date.now() - 30 * H) } });
   const closedD = await closeDueWorkshops();
   const dAfter = await prisma.workshopEdition.findUniqueOrThrow({ where: { id: d.id } });
   check(
