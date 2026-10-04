@@ -15,6 +15,7 @@ import {
   type AttentionReason,
   type CloseBy,
 } from "../whatsapp-attention-rules";
+import { SEGUIMIENTO_EXCLUDED_CATEGORIES } from "../whatsapp-category-filter";
 
 export type { CloseBy };
 
@@ -408,10 +409,10 @@ export const clearEscalationAttention = async (conversationId: string): Promise<
  * - No es clienta: sin matrícula activa ni terminada.
  * - No quedó cerrado por una cita o un pago (si escribe otra vez, se reabre).
  * - No pidió que no le escribieran.
- * - Con la clasificación encendida, nunca lo que su categoría calla (personal,
- *   negocio/app, equipo) ni las clientas o la comunidad; sí las interesadas,
- *   «otro», lo dudoso («revisar») y lo que aún no se clasificó.
- *   Apagada, la regla de arriba tal cual.
+ * - Con la clasificación encendida, nunca una clienta, la comunidad, lo
+ *   personal, lo de negocio/app ni el equipo (sea de una regla, de la IA o a
+ *   mano, dudoso o no); sí las interesadas, «otro» (también si está «por
+ *   revisar») y lo que aún no se clasificó. Apagada, la regla de arriba tal cual.
  */
 export const seguimientoWhere = async (now: Date = new Date()): Promise<Prisma.ConversationWhereInput> => {
   const quiet = new Date(now.getTime() - SEGUIMIENTO_QUIET_HOURS * 3600_000);
@@ -450,12 +451,11 @@ export const seguimientoWhere = async (now: Date = new Date()): Promise<Prisma.C
         ],
       },
       { OR: [{ resolvedReason: null }, { resolvedReason: { notIn: ["appointment", "payment"] } }] },
-      // Encendida: fuera lo callado, las clientas y la comunidad (lo dudoso se queda).
+      // Encendida: es seguimiento de ventas. Fuera cualquier chat con una de
+      // estas categorías, venga de donde venga, dudosa o vieja. El `null` va
+      // aparte: en SQL, `NOT IN` deja fuera los nulos.
       ...(classify
-        ? [
-            notSilencedChatsWhere(true),
-            { OR: [{ category: null }, { category: { notIn: ["cliente", "comunidad"] } }, { categoryReview: true }] },
-          ]
+        ? [{ OR: [{ category: null }, { category: { notIn: [...SEGUIMIENTO_EXCLUDED_CATEGORIES] } }] }]
         : []),
     ],
   };

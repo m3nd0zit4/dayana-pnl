@@ -172,6 +172,24 @@ const handOffIfNeeded = async (conversationId: string, skipReason: string, silen
   );
 };
 
+/**
+ * El último mensaje de la persona en el chat. Meta da la hora al segundo: con
+ * dos mensajes en el mismo segundo, el id (cuid, crece con el tiempo) desempata
+ * igual para todas las ejecuciones, así que exactamente una se queda con la ráfaga.
+ */
+const latestInbound = (conversationId: string) =>
+  prisma.conversationMessage.findFirst({
+    where: { conversationId, direction: "INBOUND" },
+    orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+    select: { externalMessageId: true, sentAt: true },
+  });
+
+/** ¿Llegó un mensaje de la persona después del que despertó esta vuelta? */
+const newerThan = (
+  latest: { externalMessageId: string | null } | null,
+  triggerMessageId: string
+): boolean => Boolean(latest?.externalMessageId && latest.externalMessageId !== triggerMessageId);
+
 const ATTENTION_REASONS = new Set<string>([
   "payment",
   "unknown",
@@ -266,15 +284,8 @@ export const runWhatsAppAi = async (input: {
     // La persona suele mandar dos o tres mensajes seguidos. Se espera un poco
     // y se contesta todo junto, como haría una persona.
     await sleep(DEBOUNCE_MS);
-    // Meta da la hora al segundo: con dos mensajes en el mismo segundo, el id
-    // (cuid, crece con el tiempo) desempata igual para todas las ejecuciones,
-    // así que exactamente una se queda con la ráfaga.
-    const latest = await prisma.conversationMessage.findFirst({
-      where: { conversationId, direction: "INBOUND" },
-      orderBy: [{ sentAt: "desc" }, { id: "desc" }],
-      select: { externalMessageId: true, sentAt: true },
-    });
-    if (latest?.externalMessageId && latest.externalMessageId !== input.triggerMessageId) {
+    const latest = await latestInbound(conversationId);
+    if (newerThan(latest, input.triggerMessageId)) {
       // Llegó otro mensaje después: esa ejecución contesta los dos.
       await prisma.whatsAppAiRun.delete({ where: { id: run.id } });
       runId = null;
@@ -341,6 +352,16 @@ export const runWhatsAppAi = async (input: {
     // llama al modelo. (En modo IA sí puede salir un «Con gusto».)
     if (effectiveAiMode(conversation.aiMode, config.defaultMode) === "COPILOT" && !burst.needsReply) {
       await finish(run.id, "SKIPPED", { reason: "trivial" });
+      return;
+    }
+
+    // La puerta pudo tardar (la IA volvió a mirar la categoría) y esta vuelta
+    // sigue en cola: la espera de arriba no la ve. Si mientras tanto escribió
+    // otra vez, la vuelta de ese mensaje contesta todo y esta se retira: una
+    // sola respuesta.
+    if (newerThan(await latestInbound(conversationId), input.triggerMessageId)) {
+      await prisma.whatsAppAiRun.delete({ where: { id: run.id } });
+      runId = null;
       return;
     }
 
@@ -677,9 +698,10 @@ const gate = async (
   if (conversation.assignedStaffId) return { skip: true, reason: "assigned" };
 
   // Personal, negocio/app o equipo (con la clasificación encendida y una
-  // etiqueta segura): la IA no contesta y no le toca a Dayana. Si la etiqueta
-  // de la IA quedó vieja (escribió después), la IA la vuelve a mirar ahora.
-  const silenced = await silencedBy({ allowAi: true });
+  // etiqueta segura): la IA no contesta y no le toca a Dayana. Aquí solo las
+  // reglas y lo guardado; una etiqueta vieja de la IA se vuelve a mirar al
+  // final, cuando ya pasó todo lo que no cuesta nada.
+  const silenced = await silencedBy({ allowAi: false });
   if (silenced) return { skip: true, reason: `category_${silenced}` };
 
   const ordered = [...conversation.messages].reverse();
@@ -739,6 +761,12 @@ const gate = async (
   if (autoToday >= config.maxPerDay) {
     return { skip: true, escalate: true, reason: "Demasiadas respuestas automáticas hoy en este chat." };
   }
+
+  // La etiqueta de la IA callaría pero quedó vieja (escribió después): la IA
+  // la vuelve a mirar ahora, una llamada corta. Al final, para no gastarla en
+  // un chat que igual se iba a saltar. Si falla o tarda, no calla.
+  const refreshed = await silencedBy({ allowAi: true });
+  if (refreshed) return { skip: true, reason: `category_${refreshed}` };
 
   const since = Date.now() - HISTORY_DAYS * 24 * 3600_000;
   const history: TranscriptLine[] = ordered

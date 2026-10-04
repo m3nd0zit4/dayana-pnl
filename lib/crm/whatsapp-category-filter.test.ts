@@ -4,10 +4,12 @@ import type { CategoryCounts } from "./chat-category";
 import {
   CATEGORY_FILTERS,
   attentionSurvivesSilence,
+  categoryChangeNeedsOwner,
   categoryCountOf,
   chatCategoryWhere,
   isChatCategoryFilter,
   isStaleAiLabel,
+  seguimientoAllowsCategory,
   showCategoryFilter,
   showsInTeToca,
   silencesNow,
@@ -24,6 +26,39 @@ const label = (o: Partial<CategoryLabelState> = {}): CategoryLabelState => ({
   categorizedThroughAt: t0,
   lastInboundAt: t0,
   ...o,
+});
+
+describe("quién puede cambiar la categoría a mano", () => {
+  const auto = { category: "interesada", categorySource: "ai" };
+  test("callar un chat (personal, negocio, equipo): solo la dueña", () => {
+    for (const next of ["personal", "negocio", "equipo"]) expect(categoryChangeNeedsOwner(auto, next)).toBe(true);
+  });
+
+  test("lo que no calla, cualquiera que pueda escribir", () => {
+    for (const next of ["cliente", "interesada", "comunidad", "otro", null]) {
+      expect(categoryChangeNeedsOwner(auto, next)).toBe(false);
+    }
+    expect(categoryChangeNeedsOwner({ category: "cliente", categorySource: "manual" }, "interesada")).toBe(false);
+    expect(categoryChangeNeedsOwner({ category: "cliente", categorySource: "manual" }, null)).toBe(false);
+  });
+
+  test("quitar una marca a mano que callaba: solo la dueña", () => {
+    const quiet = { category: "personal", categorySource: "manual" };
+    expect(categoryChangeNeedsOwner(quiet, "cliente")).toBe(true);
+    expect(categoryChangeNeedsOwner(quiet, null)).toBe(true);
+    // Una etiqueta automática que calla no es una marca a mano: pasarla a «cliente» sí se puede.
+    expect(categoryChangeNeedsOwner({ category: "personal", categorySource: "ai" }, "cliente")).toBe(false);
+  });
+});
+
+describe("«Seguimiento» por categoría (encendida)", () => {
+  test("nunca clientas, comunidad, personal, negocio ni equipo", () => {
+    for (const c of ["cliente", "comunidad", "personal", "negocio", "equipo"]) expect(seguimientoAllowsCategory(c)).toBe(false);
+  });
+
+  test("sí interesadas, «otro» y lo sin clasificar", () => {
+    for (const c of ["interesada", "otro", null]) expect(seguimientoAllowsCategory(c)).toBe(true);
+  });
 });
 
 describe("silencio por categoría, en el momento", () => {
