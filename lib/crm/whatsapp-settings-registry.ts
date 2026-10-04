@@ -97,6 +97,30 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-classify",
+    label: "Clasificar los chats",
+    keywords: ["clasificar", "categoría", "personal", "negocio", "apps", "silenciar", "callar", "google"],
+    tab: "ia",
+  },
+  {
+    id: "wa-classify-preview",
+    label: "Vista previa de la clasificación",
+    keywords: ["vista previa", "clasificar", "categorías", "cuántos", "revisar"],
+    tab: "ia",
+  },
+  {
+    id: "wa-classify-run",
+    label: "Clasificar todos ahora",
+    keywords: ["clasificar todos", "categorías", "reglas", "ia"],
+    tab: "ia",
+  },
+  {
+    id: "wa-team-phones",
+    label: "Números del equipo",
+    keywords: ["equipo", "números", "teléfonos", "staff", "no contestar"],
+    tab: "ia",
+  },
+  {
     id: "wa-schedule",
     label: "Cuándo responde la IA (horario)",
     keywords: ["horario", "horas", "días", "noche", "fuera de horario", "siempre", "cuándo responde"],

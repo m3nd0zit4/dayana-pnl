@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { deliveryLabel } from "@/lib/crm/whatsapp-delivery-labels";
 import type { ChatListItem } from "@/lib/crm/whatsapp-agent/workspace";
 import { APPROVAL_LABEL, RunStatus, agoLabel, attentionLabel, isRunLive } from "../status";
-import { Avatar, ModeTag, Ticks } from "./ui";
+import { Avatar, CategoryChip, ModeTag, Ticks } from "./ui";
 import { timeLabel } from "./utils";
 
 /** Quién contestó lo último (cuando no hay nada más importante que decir). */
@@ -102,8 +102,11 @@ const ChatRow = ({
       <Avatar name={item.name} />
       <div className="min-w-0 flex-1 border-b border-(--wa-divider) py-3">
         <div className="flex items-center gap-2">
-          <span className={cn("min-w-0 flex-1 truncate text-[15px] text-(--wa-text)", unread && "font-medium")}>
-            {item.name}
+          <span className="flex min-w-0 flex-1 items-center gap-1.5">
+            <span className={cn("min-w-0 truncate text-[15px] text-(--wa-text)", unread && "font-medium")}>
+              {item.name}
+            </span>
+            <CategoryChip category={item.category} review={item.categoryReview} />
           </span>
           <span className={cn("shrink-0 text-xs", unread ? "font-medium text-(--wa-unread)" : "text-(--wa-meta)")}>
             {timeLabel(item.lastMessageAt)}

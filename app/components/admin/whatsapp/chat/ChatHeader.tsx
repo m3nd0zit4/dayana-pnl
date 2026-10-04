@@ -10,9 +10,12 @@ import {
   MoreVertical,
   PanelLeft,
   PanelRight,
+  RefreshCw,
   Search,
   ShieldAlert,
   Star,
+  Tags,
+  Undo2,
   UserRound,
   X,
 } from "lucide-react";
@@ -27,8 +30,12 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
+import { CHAT_CATEGORIES, CHAT_CATEGORY_LABEL, isChatCategory, type ChatCategory } from "@/lib/crm/chat-category-rules";
 import { cn } from "@/lib/utils";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import {
@@ -45,6 +52,8 @@ import { wa } from "./chatTheme";
 import { ActionButton, Avatar } from "./ui";
 
 type Act = (key: string, body: Record<string, unknown>, done?: string) => unknown;
+/** Cambiar la categoría (`/api/admin/whatsapp/categories`). */
+export type CategoryAct = (body: Record<string, unknown>, done: string) => unknown;
 
 const MODES = ["AUTO", "COPILOT", "MANUAL"] as const;
 /** Opciones del menú cómodas con el dedo. */
@@ -124,19 +133,88 @@ const AttentionBar = ({
   );
 };
 
-/** Lo que no se usa a diario: modo, tomar/devolver, favorito, la ficha, lo que sabe la IA. */
+/**
+ * La categoría del chat (cliente, interesada, personal…): elegirla a mano (gana
+ * siempre), volver a lo automático o pedir que se vuelva a mirar.
+ */
+const CategoryMenu = ({
+  chat,
+  disabled,
+  onCategory,
+}: {
+  chat: ChatDetail;
+  disabled: boolean;
+  onCategory: CategoryAct;
+}) => {
+  const c = chat.classification;
+  const current = c.category && isChatCategory(c.category) ? CHAT_CATEGORY_LABEL[c.category] : "Sin clasificar";
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger className={ITEM}>
+        <Tags className="size-4" />
+        <span className="min-w-0 flex-1 truncate">
+          Categoría: <span className="font-medium">{current}</span>
+          {c.source === "manual" ? <span className="text-muted-foreground"> · a mano</span> : null}
+        </span>
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent className="w-56">
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Marcar a mano</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={c.source === "manual" ? (c.category ?? "") : ""}
+            onValueChange={(category) =>
+              onCategory(
+                { action: "set", conversationId: chat.id, category },
+                `Categoría: ${CHAT_CATEGORY_LABEL[category as ChatCategory] ?? category}`
+              )
+            }
+          >
+            {CHAT_CATEGORIES.map((cat) => (
+              <DropdownMenuRadioItem key={cat} value={cat} disabled={disabled} className={ITEM}>
+                {CHAT_CATEGORY_LABEL[cat]}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+        {c.source === "manual" && (
+          <DropdownMenuItem
+            className={ITEM}
+            disabled={disabled}
+            onClick={() =>
+              onCategory({ action: "set", conversationId: chat.id, category: null }, "Vuelve a clasificarse solo")
+            }
+          >
+            <Undo2 /> Volver a automático
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          className={ITEM}
+          disabled={disabled || c.source === "manual"}
+          onClick={() => onCategory({ action: "reclassify", conversationId: chat.id }, "Se volvió a mirar")}
+        >
+          <RefreshCw /> Reclasificar
+        </DropdownMenuItem>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+};
+
+/** Lo que no se usa a diario: modo, tomar/devolver, favorito, categoría, la ficha, lo que sabe la IA. */
 const ChatMenu = ({
   chat,
   canWrite,
   busy,
   act,
   onToggleInfo,
+  onCategory,
 }: {
   chat: ChatDetail;
   canWrite: boolean;
   busy: string | null;
   act: Act;
   onToggleInfo: () => void;
+  onCategory: CategoryAct;
 }) => {
   const mine = chat.aiMode === "MANUAL" || chat.priority;
   const disabled = !canWrite || busy !== null;
@@ -195,6 +273,7 @@ const ChatMenu = ({
         >
           <Star /> {chat.priority ? "Quitar de favoritos" : "Marcar como favorito"}
         </DropdownMenuItem>
+        <CategoryMenu chat={chat} disabled={disabled} onCategory={onCategory} />
         <DropdownMenuItem className={ITEM} onClick={onToggleInfo}>
           <PanelRight /> Lo que sabe la IA
         </DropdownMenuItem>
@@ -275,6 +354,7 @@ const ChatHeader = ({
   onToggleInfo,
   searchOpen,
   onToggleSearch,
+  onCategory,
 }: {
   chat: ChatDetail;
   canWrite: boolean;
@@ -288,6 +368,7 @@ const ChatHeader = ({
   onToggleInfo: () => void;
   searchOpen: boolean;
   onToggleSearch: () => void;
+  onCategory: CategoryAct;
 }) => {
   const lastRun = chat.runs[0] ?? null;
   const live = isRunLive(lastRun);
@@ -337,7 +418,14 @@ const ChatHeader = ({
         >
           <PanelRight className="size-5" />
         </button>
-        <ChatMenu chat={chat} canWrite={canWrite} busy={busy} act={act} onToggleInfo={onToggleInfo} />
+        <ChatMenu
+          chat={chat}
+          canWrite={canWrite}
+          busy={busy}
+          act={act}
+          onToggleInfo={onToggleInfo}
+          onCategory={onCategory}
+        />
       </div>
 
       {needsYou ? (

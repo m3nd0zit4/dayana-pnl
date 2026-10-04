@@ -4,6 +4,7 @@ import { Bot, Loader2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSidebar } from "@/app/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import type { CategoryCounts } from "@/lib/crm/chat-category";
 import type { ChatDetail, ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import { useCrm } from "../crm/CrmProvider";
 import ChatList, { type Counts } from "./chat/ChatList";
@@ -45,20 +46,37 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
   const [generalMode, setGeneralMode] = useState<ChatListItem["aiMode"] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialConversationId);
   const [chat, setChat] = useState<ChatDetail | null>(null);
+  // Filtro de categoría de «Todos» y cuántos chats hay de cada una.
+  const [category, setCategory] = useState<string | null>(null);
+  const [categoryCounts, setCategoryCounts] = useState<CategoryCounts | null>(null);
   const queueRef = useRef(queue);
   const qRef = useRef(q);
   const selectedRef = useRef(selectedId);
+  const categoryRef = useRef(category);
   useEffect(() => {
     queueRef.current = queue;
     qRef.current = q;
     selectedRef.current = selectedId;
+    categoryRef.current = category;
   });
+
+  /** Los números de cada categoría: solo hacen falta en «Todos», y no en cada aviso en vivo. */
+  const categoriesAt = useRef(0);
+  const loadCategories = useCallback(async () => {
+    if (Date.now() - categoriesAt.current < 20_000) return;
+    categoriesAt.current = Date.now();
+    const res = await fetch("/api/admin/whatsapp/categories", { cache: "no-store" }).catch(() => null);
+    if (res?.ok) setCategoryCounts((await res.json()) as CategoryCounts);
+  }, []);
 
   const takeRef = useRef(60);
   const [listTake, setListTake] = useState(60);
   const loadList = useCallback(async () => {
+    const inAll = queueRef.current !== "attention" && queueRef.current !== "seguimiento";
     const params = new URLSearchParams({ queue: queueRef.current, take: String(takeRef.current) });
     if (qRef.current.trim()) params.set("q", qRef.current.trim());
+    if (inAll && categoryRef.current) params.set("category", categoryRef.current);
+    if (inAll) void loadCategories();
     try {
       const res = await fetch(`/api/admin/whatsapp/chats?${params}`, { cache: "no-store" });
       if (!res.ok) throw new Error();
@@ -73,7 +91,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     } catch {
       toast("No se pudo cargar la lista de chats.", "error");
     }
-  }, [toast]);
+  }, [toast, loadCategories]);
 
   const loadChat = useCallback(
     async (id: string) => {
@@ -159,6 +177,12 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     void loadList();
   };
 
+  const pickCategory = (next: string | null) => {
+    categoryRef.current = next;
+    setCategory(next);
+    void loadList();
+  };
+
   return (
     <div className={cn("flex h-full min-h-0 w-full max-w-full overflow-hidden bg-(--wa-surface)", WA_THEME)}>
       <ChatList
@@ -182,6 +206,9 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
         }}
         onToggleSidebar={toggleSidebar}
         onModeChanged={refresh}
+        categoryCounts={categoryCounts}
+        category={category}
+        onCategory={pickCategory}
       />
 
       {/* Conversación */}

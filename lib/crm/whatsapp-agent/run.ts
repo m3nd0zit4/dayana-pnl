@@ -29,6 +29,7 @@ import { clientContext, think, type TranscriptLine } from "./brain";
 import { getMemory, refreshMemory } from "./memory";
 import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal } from "./approvals";
 import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
+import { isClassifyEnabled, reclassifyByRulesNow } from "../chat-category";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -134,8 +135,24 @@ const CATEGORY_LABEL: Record<string, string> = {
   booking: "quiere agendar",
 };
 
-/** ¿Hay que saludar en vez de contestar con la IA? (IA apagada o chat manual). */
+/**
+ * ¿Este chat está callado por su categoría (personal, negocio/app, equipo)?
+ * Solo con la clasificación encendida —apagada, nada se calla y ni se miran
+ * las reglas—, y vuelve a pasar las reglas antes de decidir, por si cambió
+ * algo (pagó, agendó, escribió algo nuevo). Devuelve la categoría o `null`.
+ */
+const silencedCategory = async (conversationId: string): Promise<string | null> => {
+  if (!(await isClassifyEnabled())) return null;
+  const cat = await reclassifyByRulesNow(conversationId).catch((e: unknown) => {
+    console.warn("[whatsapp-agent] no se pudo mirar la categoría", e);
+    return null;
+  });
+  return cat?.silencing ? cat.category : null;
+};
+
+/** ¿Hay que saludar en vez de contestar con la IA? (IA apagada o chat manual). Nunca a un chat callado. */
 const greetIfNeeded = async (conversationId: string) => {
+  if (await silencedCategory(conversationId)) return;
   const { maybeSendWelcome } = await import("../whatsapp-welcome");
   await maybeSendWelcome(conversationId).catch(() => false);
 };
@@ -154,9 +171,13 @@ const answeredSince = async (conversationId: string, since: Date | null | undefi
   return repliedSince(c?.lastHumanReplyAt, since);
 };
 
-/** La IA no contesta aquí: si lo que escribió importa, le toca a Dayana. */
+/**
+ * La IA no contesta aquí: si lo que escribió importa, le toca a Dayana. Un
+ * chat callado por su categoría (personal, negocio/app, equipo) no le toca.
+ */
 const handOffIfNeeded = async (conversationId: string, skipReason: string) => {
   if (!opensAttention(skipReason)) return;
+  if (await silencedCategory(conversationId)) return;
   await openAttentionIfNeedsReply(conversationId).catch((e: unknown) =>
     console.warn("[whatsapp-agent] no se pudo abrir «Te toca»", e)
   );
@@ -662,6 +683,11 @@ const gate = async (
     await resumeAutoReply(conversationId);
   }
   if (conversation.assignedStaffId) return { skip: true, reason: "assigned" };
+
+  // Personal, negocio/app o equipo (con la clasificación encendida y una
+  // etiqueta segura): la IA no contesta y no le toca a Dayana.
+  const silenced = await silencedCategory(conversationId);
+  if (silenced) return { skip: true, reason: `category_${silenced}` };
 
   const ordered = [...conversation.messages].reverse();
   const last = ordered.at(-1);

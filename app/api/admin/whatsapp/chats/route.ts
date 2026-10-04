@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { apiError, withStaff } from "@/lib/api/handler";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import {
+  isChatCategoryFilter,
   isWhatsAppWorkspaceAvailable,
   listChats,
   queueCounts,
@@ -26,10 +27,13 @@ export const GET = withStaff("read", async ({ req }) => {
   }
   const requested = url.searchParams.get("queue") as ChatQueue | null;
   const queue: ChatQueue = requested && QUEUES.has(requested) ? requested : "attention";
+  const category = url.searchParams.get("category");
   const [items, counts, config] = await Promise.all([
     listChats({
       queue,
       q: url.searchParams.get("q") ?? undefined,
+      // Filtro de categoría de «Todos» (una categoría, `unclassified` o `review`).
+      category: queue !== "attention" && queue !== "seguimiento" && isChatCategoryFilter(category) ? category : null,
       // «Ver más chats»: de 60 en 60, hasta 600.
       take: Math.min(600, Math.max(20, Number(url.searchParams.get("take")) || 60)),
     }),

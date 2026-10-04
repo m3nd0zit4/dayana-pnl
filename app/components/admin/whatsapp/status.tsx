@@ -49,6 +49,28 @@ export const SKIP_LABEL: Record<string, string> = {
   customer: "Es clienta: la atiendes tú",
   no_model_key: "Falta la clave del modelo",
   not_found: "Chat no encontrado",
+  category_negocio: "Negocio/app: la IA no responde",
+  category_personal: "Personal: la IA no responde",
+  category_equipo: "Equipo: la IA no responde",
+};
+
+/** Filtros de categoría de «Todos», en este orden. */
+export const CATEGORY_FILTERS: { id: string; label: string }[] = [
+  { id: "cliente", label: "Clientes" },
+  { id: "interesada", label: "Interesadas" },
+  { id: "comunidad", label: "Comunidad" },
+  { id: "personal", label: "Personales" },
+  { id: "negocio", label: "Negocios" },
+  { id: "equipo", label: "Equipo" },
+  { id: "unclassified", label: "Sin clasificar" },
+  { id: "review", label: "Revisar" },
+];
+
+/** De dónde salió la categoría de un chat. */
+export const CATEGORY_SOURCE_LABEL: Record<string, string> = {
+  rule: "por regla",
+  ai: "la IA",
+  manual: "a mano",
 };
 
 /** El nombre corto de cada modo: «Yo» es Dayana, en todas partes. */

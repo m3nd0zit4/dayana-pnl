@@ -118,7 +118,7 @@ export async function getPendientes(now: Date = new Date()): Promise<Pendiente[]
     prisma.product.count({ where: { priceSyncStatus: "DRIFTED" } }),
     // Chats de WhatsApp que necesitan a Dayana: «Te toca» en la sección de
     // WhatsApp (el mismo criterio que el menú y la portada).
-    prisma.conversation.count({ where: attentionWhere() }),
+    attentionWhere().then((where) => prisma.conversation.count({ where })),
     // WhatsApp ya cuenta arriba con su propio criterio: aquí no se repite.
     prisma.conversation.count({
       where: { channel: { not: "WHATSAPP" }, status: "OPEN", unreadCount: { gt: 0 } },

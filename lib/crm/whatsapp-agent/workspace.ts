@@ -9,6 +9,9 @@ import { windowStateOf } from "../whatsapp-outbound-plan";
 import { isManualPause, replyStateOf, type ReplyState } from "../whatsapp-attention-rules";
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 import { attentionWhere, seguimientoWhere } from "./attention";
+import { isClassifyEnabled } from "../chat-category";
+import { isSilencingCategory } from "../chat-category-rules";
+import { chatCategoryWhere, type ChatCategoryFilter } from "../whatsapp-category-filter";
 
 /**
  * Lo que lee la sección de WhatsApp del CRM: chats con su estado de IA en
@@ -133,7 +136,15 @@ export type ChatListItem = {
   attention: AttentionView | null;
   /** Quién contestó lo último (sin responder, tú, tú desde el celular, IA, automático). */
   replyState: ReplyState | null;
+  /** Clasificación del chat (cliente, interesada…); nula sin clasificar. */
+  category: string | null;
+  /** rule | ai | manual. */
+  categorySource: string | null;
+  /** La etiqueta es dudosa: «revisar». */
+  categoryReview: boolean;
 };
+
+export { chatCategoryWhere, isChatCategoryFilter, type ChatCategoryFilter } from "../whatsapp-category-filter";
 
 const runView = (r: {
   id: string;
@@ -196,15 +207,18 @@ export const listChats = async (input: {
   queue: ChatQueue;
   q?: string;
   take?: number;
+  /** Solo en «Todos»: una categoría, sin clasificar o por revisar. */
+  category?: ChatCategoryFilter | null;
 }): Promise<ChatListItem[]> => {
   const q = input.q?.trim();
   const rows = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
-      // Buscar busca en todos los chats, esté en la pestaña que esté (se abre
-      // en «Te toca»: buscar a alguien ahí casi nunca lo encontraría).
+      // Buscar busca en todos los chats, esté en la pestaña o el filtro que
+      // esté (se abre en «Te toca»: buscar a alguien ahí casi nunca lo encontraría).
       AND: [
         q ? {} : await queueWhere(input.queue),
+        q ? {} : chatCategoryWhere(input.category),
         q
           ? {
               OR: [
@@ -242,6 +256,9 @@ export const listChats = async (input: {
       draftBody: true,
       attentionAt: true,
       attentionReason: true,
+      category: true,
+      categorySource: true,
+      categoryReview: true,
       contact: { select: { firstName: true, lastName: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -318,6 +335,9 @@ export const listChats = async (input: {
       lastRun: c.aiRuns[0] ? { ...runView(c.aiRuns[0]), delivery: deliveryOf(c.aiRuns[0], c.messages) } : null,
       attention: attentionView(c),
       replyState: replyStateOf(c.messages),
+      category: c.category,
+      categorySource: c.categorySource,
+      categoryReview: c.categoryReview && c.categorySource !== "manual",
     };
   });
 
@@ -353,7 +373,7 @@ export const queueCounts = async (): Promise<QueueCounts> => {
 };
 
 /** Cuántos chats le tocan a Dayana: el número del menú, la portada y los pendientes. */
-export const attentionCount = (): Promise<number> => prisma.conversation.count({ where: attentionWhere() });
+export const attentionCount = async (): Promise<number> => prisma.conversation.count({ where: await attentionWhere() });
 
 export type ChatMessageView = {
   id: string;
@@ -499,6 +519,12 @@ export const getChat = async (id: string) => {
       lastHumanReplyAt: true,
       resolvedAt: true,
       resolvedReason: true,
+      category: true,
+      categorySource: true,
+      categoryConfidence: true,
+      categoryReason: true,
+      categoryReview: true,
+      categorizedAt: true,
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -534,10 +560,13 @@ export const getChat = async (id: string) => {
     })
   );
 
-  const memory = await prisma.whatsAppMemory.findUnique({
-    where: { phone: c.externalThreadId },
-    select: { notes: true, updatedAt: true },
-  });
+  const [memory, classifyEnabled] = await Promise.all([
+    prisma.whatsAppMemory.findUnique({
+      where: { phone: c.externalThreadId },
+      select: { notes: true, updatedAt: true },
+    }),
+    isClassifyEnabled(),
+  ]);
 
   const name =
     [c.contact?.firstName, c.contact?.lastName].filter(Boolean).join(" ") ||
@@ -570,6 +599,20 @@ export const getChat = async (id: string) => {
     priority: Boolean(c.priorityAt),
     /** «Te toca»: sale al contestar (CRM o celular) o con «Listo». */
     attention: attentionView(c),
+    /**
+     * Clasificación: categoría, de dónde salió (regla, IA o a mano), por qué y
+     * si hoy calla el chat (la IA no contesta y no cuenta en «Te toca»).
+     */
+    classification: {
+      enabled: classifyEnabled,
+      category: c.category,
+      source: c.categorySource,
+      confidence: c.categoryConfidence,
+      reason: c.categoryReason,
+      review: c.categoryReview && c.categorySource !== "manual",
+      at: c.categorizedAt?.toISOString() ?? null,
+      silencing: isSilencingCategory(c, { enabled: classifyEnabled }),
+    },
     /** Último mensaje de la persona: «Listo» solo cubre hasta aquí. */
     lastInboundAt: c.lastInboundAt?.toISOString() ?? null,
     draft: c.draftBody ? { body: c.draftBody, source: c.draftSource } : null,

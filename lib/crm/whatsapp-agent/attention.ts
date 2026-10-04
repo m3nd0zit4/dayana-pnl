@@ -2,6 +2,7 @@ import type { NotificationEventType, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { markReadByEntity } from "@/lib/notifications/platform/feed";
+import { isClassifyEnabled, notSilencedWhere } from "../chat-category";
 import {
   SEGUIMIENTO_QUIET_HOURS,
   SEGUIMIENTO_WINDOW_DAYS,
@@ -37,13 +38,39 @@ export type { CloseBy };
  */
 
 /**
- * La única definición de «Te toca». Cuando los chats tengan categoría, lo
- * personal y lo de negocio se sacan aquí con una línea:
- *   `{ OR: [{ category: null }, { category: { notIn: ["personal", "negocio"] } }] }`
+ * Chats que su categoría NO calla: con la clasificación apagada, todos. Encendida,
+ * el criterio de `notSilencedWhere` y, además, los que la IA etiquetó pero la
+ * persona escribió después (la etiqueta quedó vieja: la IA vuelve a contestar
+ * hasta que se mire otra vez, y «Te toca» tiene que verlos igual que ella).
  */
-export const attentionWhere = (): Prisma.ConversationWhereInput => ({
+export const notSilencedChatsWhere = (enabled: boolean): Prisma.ConversationWhereInput =>
+  enabled
+    ? {
+        OR: [
+          notSilencedWhere(true),
+          {
+            categorySource: "ai",
+            OR: [
+              { categorizedThroughAt: null },
+              { lastInboundAt: { gt: prisma.conversation.fields.categorizedThroughAt } },
+            ],
+          },
+        ],
+      }
+    : {};
+
+/**
+ * La única definición de «Te toca» (la cola, el menú, la portada, los
+ * pendientes del CRM y la herramienta del agente). Con la clasificación
+ * encendida, lo callado por su categoría (personal, negocio/app, equipo, con
+ * etiqueta segura) no cuenta; apagada, no se quita nada.
+ */
+export const attentionWhere = async (): Promise<Prisma.ConversationWhereInput> => ({
   channel: "WHATSAPP",
-  AND: [{ OR: [{ attentionAt: { not: null } }, { aiRuns: { some: { status: "AWAITING_APPROVAL" } } }] }],
+  AND: [
+    { OR: [{ attentionAt: { not: null } }, { aiRuns: { some: { status: "AWAITING_APPROVAL" } } }] },
+    notSilencedChatsWhere(await isClassifyEnabled()),
+  ],
 });
 
 /** Avisos de la campana que pierden sentido cuando el chat se atiende. */
@@ -362,14 +389,20 @@ export const clearEscalationAttention = async (conversationId: string): Promise<
  * - No es clienta: sin matrícula activa ni terminada.
  * - No quedó cerrado por una cita o un pago (si escribe otra vez, se reabre).
  * - No pidió que no le escribieran.
+ * - Con la clasificación encendida, solo «interesada» o sin clasificar todavía
+ *   (nunca lo personal, lo de negocio/app, el equipo, la comunidad…).
+ *   Apagada, la regla de arriba tal cual.
  */
 export const seguimientoWhere = async (now: Date = new Date()): Promise<Prisma.ConversationWhereInput> => {
   const quiet = new Date(now.getTime() - SEGUIMIENTO_QUIET_HOURS * 3600_000);
   const oldest = new Date(now.getTime() - SEGUIMIENTO_WINDOW_DAYS * 24 * 3600_000);
-  const upcoming = await prisma.calendarAppointment.findMany({
-    where: { status: "active", startsAt: { gt: now } },
-    select: { conversationId: true, contactId: true, phone: true },
-  });
+  const [upcoming, classify] = await Promise.all([
+    prisma.calendarAppointment.findMany({
+      where: { status: "active", startsAt: { gt: now } },
+      select: { conversationId: true, contactId: true, phone: true },
+    }),
+    isClassifyEnabled(),
+  ]);
   const uniq = (v: (string | null)[]) => [...new Set(v.filter((x): x is string => Boolean(x)))];
   const convIds = uniq(upcoming.map((a) => a.conversationId));
   const contactIds = uniq(upcoming.map((a) => a.contactId));
@@ -397,6 +430,7 @@ export const seguimientoWhere = async (now: Date = new Date()): Promise<Prisma.C
         ],
       },
       { OR: [{ resolvedReason: null }, { resolvedReason: { notIn: ["appointment", "payment"] } }] },
+      ...(classify ? [{ OR: [{ category: null }, { category: "interesada" }] }] : []),
     ],
   };
 };

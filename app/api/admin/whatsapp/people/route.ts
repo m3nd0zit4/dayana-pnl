@@ -1,24 +1,33 @@
 import { NextResponse } from "next/server";
 
 import { withStaff } from "@/lib/api/handler";
+import { chatCategoryWhere, isChatCategoryFilter } from "@/lib/crm/whatsapp-agent/workspace";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-/** Personas que escribieron, con lo que la IA recuerda de cada una. */
+/**
+ * Personas que escribieron, con lo que la IA recuerda de cada una.
+ * `category`: solo una categoría (o `unclassified` / `review`).
+ */
 export const GET = withStaff("read", async ({ req }) => {
-  const q = new URL(req.url).searchParams.get("q")?.trim();
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q")?.trim();
+  const category = url.searchParams.get("category");
   const chats = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
-      ...(q
-        ? {
-            OR: [
-              { participantName: { contains: q, mode: "insensitive" } },
-              { externalThreadId: { contains: q.replace(/\D/g, "") || q } },
-            ],
-          }
-        : {}),
+      AND: [
+        q
+          ? {
+              OR: [
+                { participantName: { contains: q, mode: "insensitive" } },
+                { externalThreadId: { contains: q.replace(/\D/g, "") || q } },
+              ],
+            }
+          : {},
+        chatCategoryWhere(isChatCategoryFilter(category) ? category : null),
+      ],
     },
     orderBy: { lastMessageAt: "desc" },
     take: 100,
@@ -29,6 +38,9 @@ export const GET = withStaff("read", async ({ req }) => {
       contactId: true,
       aiMode: true,
       lastMessageAt: true,
+      category: true,
+      categoryReview: true,
+      categorySource: true,
       contact: { select: { firstName: true, lastName: true } },
       _count: { select: { messages: true, aiBookings: true } },
     },
@@ -59,6 +71,8 @@ export const GET = withStaff("read", async ({ req }) => {
       inAddressBook: knownSet.has(c.externalThreadId),
       memory: memoryBy.get(c.externalThreadId)?.notes ?? null,
       memoryUpdatedAt: memoryBy.get(c.externalThreadId)?.updatedAt.toISOString() ?? null,
+      category: c.category,
+      categoryReview: c.categoryReview && c.categorySource !== "manual",
     })),
   });
 });

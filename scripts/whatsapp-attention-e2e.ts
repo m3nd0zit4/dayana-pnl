@@ -553,7 +553,7 @@ const main = async () => {
     {
       const [counts, direct, list, pendientes] = await Promise.all([
         queueCounts(),
-        prisma.conversation.count({ where: attentionWhere() }),
+        attentionWhere().then((where) => prisma.conversation.count({ where })),
         listChats({ queue: "attention", take: 600 }),
         getPendientes(),
       ]);

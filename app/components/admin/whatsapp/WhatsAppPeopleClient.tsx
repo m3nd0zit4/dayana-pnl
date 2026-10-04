@@ -4,8 +4,10 @@ import { BookUser, CalendarCheck, Loader2, Search } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/app/components/ui/input";
+import { CHAT_CATEGORY_LABEL, isChatCategory } from "@/lib/crm/chat-category-rules";
+import { cn } from "@/lib/utils";
 import CrmPageShell from "../crm/CrmPageShell";
-import { MODE_LABEL, agoLabel, useNow } from "./status";
+import { CATEGORY_FILTERS, MODE_LABEL, agoLabel, useNow } from "./status";
 
 type Person = {
   conversationId: string;
@@ -19,25 +21,33 @@ type Person = {
   inAddressBook: boolean;
   memory: string | null;
   memoryUpdatedAt: string | null;
+  category: string | null;
+  categoryReview: boolean;
 };
 
 /** Quién escribe y qué recuerda la IA de cada persona. */
 const WhatsAppPeopleClient = () => {
   const [items, setItems] = useState<Person[] | null>(null);
   const [q, setQ] = useState("");
+  const [category, setCategory] = useState<string | null>(null);
   const now = useNow(true, 60_000);
 
-  const load = useCallback(async (query: string) => {
-    const params = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
-    const res = await fetch(`/api/admin/whatsapp/people${params}`, { cache: "no-store" }).catch(
-      () => null
-    );
+  const load = useCallback(async (query: string, cat: string | null) => {
+    const params = new URLSearchParams();
+    if (query.trim()) params.set("q", query.trim());
+    if (cat) params.set("category", cat);
+    const res = await fetch(`/api/admin/whatsapp/people?${params}`, { cache: "no-store" }).catch(() => null);
     if (res?.ok) setItems(((await res.json()) as { items: Person[] }).items);
   }, []);
 
   useEffect(() => {
-    void load("");
+    void load("", null);
   }, [load]);
+
+  const pick = (next: string | null) => {
+    setCategory(next);
+    void load(q, next);
+  };
 
   return (
     <CrmPageShell>
@@ -52,15 +62,36 @@ const WhatsAppPeopleClient = () => {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void load(q)}
+          onKeyDown={(e) => e.key === "Enter" && void load(q, category)}
           placeholder="Buscar nombre o número"
           className="pl-7"
         />
       </div>
+      <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Categoría">
+        {[{ id: null as string | null, label: "Todas" }, ...CATEGORY_FILTERS].map((f) => {
+          const active = category === f.id;
+          return (
+            <button
+              key={f.id ?? "all"}
+              type="button"
+              aria-pressed={active}
+              onClick={() => pick(f.id)}
+              className={cn(
+                "h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-colors md:h-8",
+                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
       {items === null ? (
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nadie ha escrito todavía.</p>
+        <p className="text-sm text-muted-foreground">
+          {category || q.trim() ? "Nadie coincide con este filtro." : "Nadie ha escrito todavía."}
+        </p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {items.map((p) => (
@@ -70,7 +101,14 @@ const WhatsAppPeopleClient = () => {
               className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
             >
               <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
+                <span className="min-w-0 truncate font-medium">{p.name}</span>
+                {p.category && isChatCategory(p.category) && (
+                  <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                    {CHAT_CATEGORY_LABEL[p.category]}
+                    {p.categoryReview ? " · revisar" : ""}
+                  </span>
+                )}
+                <span className="flex-1" />
                 <span className="text-[11px] text-muted-foreground">{agoLabel(p.lastMessageAt, now)}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">

@@ -95,7 +95,7 @@ const open = async (id: string, reason: Parameters<typeof openAttention>[1] = "u
 const attentionCounts = async () => {
   const [total, others] = await Promise.all([
     queueCounts().then((c) => c.attention),
-    prisma.conversation.count({ where: { AND: [attentionWhere(), { externalThreadId: { notIn: THREADS } }] } }),
+    attentionWhere().then((w) => prisma.conversation.count({ where: { AND: [w, { externalThreadId: { notIn: THREADS } }] } })),
   ]);
   return { total, others };
 };
