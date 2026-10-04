@@ -441,10 +441,11 @@ export const getWaReminders = async ({ req }: Pick<Ctx, "req">, eventId?: string
   const event = await getFreeWebinar(eventId);
   if (!event) return apiError("no_event", 404);
 
-  // La plantilla que usarán los botones: la de utilidad si Meta ya la aprobó.
+  // La plantilla que usarán los botones de esta pasada: la de horarios o la
+  // de utilidad si Meta ya la aprobó.
   const [contactIds, templateKey] = await Promise.all([
     listPendingWaReminderContactIds(event.id, pass.data),
-    eventWaTemplateKey(),
+    eventWaTemplateKey({ pass: pass.data }),
   ]);
   const [preview, enabled] = await Promise.all([
     previewSend({ contactIds, templateKey, kind: "evento" }),

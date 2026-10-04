@@ -16,6 +16,22 @@ export const EVENT_REMINDER_UTILITY_TEMPLATE_TITLE = "Evento: recordatorio a ins
 /** La de antes, por si la de utilidad aún no está aprobada. */
 export const EVENT_REMINDER_FALLBACK_TEMPLATE_KEY = "evento_gratis_recordatorio";
 
+/**
+ * Las de horarios por país (`event-template-vars.ts`). `evento_acceso` es de
+ * UTILIDAD (a quien se inscribió o pagó: confirmación y recordatorio de 24 h);
+ * las de invitación, de MARKETING. La de imagen se crea a mano en el Hub.
+ */
+export const EVENT_ACCESS_TEMPLATE_KEY = "evento_acceso";
+export const EVENT_INVITATION_TEMPLATE_KEY = "evento_invitacion";
+export const EVENT_INVITATION_IMAGE_TEMPLATE_KEY = "evento_invitacion_imagen";
+
+/** Las que el CRM manda solas a aprobar (reloj de eventos, abrir un evento o taller). */
+export const EVENT_TEMPLATE_KEYS_TO_ENSURE = [
+  EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
+  EVENT_ACCESS_TEMPLATE_KEY,
+  EVENT_INVITATION_TEMPLATE_KEY,
+];
+
 /** Lo que hace falta saber de una plantilla para elegirla. */
 export type TemplateBilling = {
   key: string;
@@ -31,10 +47,18 @@ export const isApprovedUtility = (t: TemplateBilling | null | undefined): boolea
   isTemplateApproved(t) && (t?.metaCategory ?? "").toUpperCase() === "UTILITY";
 
 /**
- * La clave del recordatorio: la de utilidad si Meta la aprobó como UTILITY;
- * si no, la de siempre.
+ * La clave del recordatorio. El de 24 h: `evento_acceso` (con los horarios por
+ * país) si Meta la aprobó como UTILITY. El de 1 h (y el de 24 h mientras
+ * tanto): la corta de utilidad si Meta la aprobó como UTILITY; si no, la de
+ * siempre.
  */
-export const preferredEventReminderTemplateKey = (templates: TemplateBilling[]): string =>
-  isApprovedUtility(templates.find((t) => t.key === EVENT_REMINDER_UTILITY_TEMPLATE_KEY))
+export const preferredEventReminderTemplateKey = (
+  templates: TemplateBilling[],
+  pass: "24h" | "1h" = "1h"
+): string => {
+  const approved = (key: string) => isApprovedUtility(templates.find((t) => t.key === key));
+  if (pass === "24h" && approved(EVENT_ACCESS_TEMPLATE_KEY)) return EVENT_ACCESS_TEMPLATE_KEY;
+  return approved(EVENT_REMINDER_UTILITY_TEMPLATE_KEY)
     ? EVENT_REMINDER_UTILITY_TEMPLATE_KEY
     : EVENT_REMINDER_FALLBACK_TEMPLATE_KEY;
+};

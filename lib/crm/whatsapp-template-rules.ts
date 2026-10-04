@@ -1,5 +1,22 @@
 // Reglas de Meta para plantillas. Puro: lo usa también la pantalla de Plantillas.
 
+/** {{nombre}} {{evento}} → {{1}} {{2}} y la lista de nombres en orden. */
+export const toMetaBody = (body: string): { text: string; varNames: string[] } => {
+  const varNames: string[] = [];
+  const text = body.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (_, name: string) => {
+    let index = varNames.indexOf(name);
+    if (index === -1) {
+      varNames.push(name);
+      index = varNames.length - 1;
+    }
+    return `{{${index + 1}}}`;
+  });
+  return { text, varNames };
+};
+
+/** Máximo de Meta para el cuerpo, contado como lo recibe: con {{1}}, {{2}}… */
+export const META_BODY_MAX = 1024;
+
 /**
  * Las reglas de Meta que más rechazos causan, revisadas antes de enviar: no
  * empezar ni terminar con una variable, ni dos variables seguidas.
@@ -10,7 +27,7 @@ export const templateBodyProblem = (body: string): string | null => {
   if (/\{\{\w+\}\}[\s.!?¡¿:,;]*$/.test(t))
     return "No puede terminar con una variable (por ejemplo el enlace): agrega una frase después.";
   if (/\}\}\s*\{\{/.test(t)) return "No puede tener dos variables seguidas: pon texto entre ellas.";
-  if (t.length > 1024) return "Es demasiado larga (máximo 1024 caracteres).";
+  if (toMetaBody(t).text.length > META_BODY_MAX) return "Es demasiado larga (máximo 1024 caracteres).";
   return null;
 };
 

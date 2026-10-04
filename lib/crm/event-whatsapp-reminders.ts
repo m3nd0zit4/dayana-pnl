@@ -12,13 +12,13 @@ import {
   greetingName,
   reminderZone,
   waReminderDue,
-  type EventReminderVars,
   type EventWaPass,
   type ReminderZone,
 } from "./event-reminder-text";
 import { countPendingWaReminderRecipients, waReminderFlag, WHATSAPPABLE_CONTACT } from "./webinar-registrations";
 import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
-import { EVENT_REMINDER_FALLBACK_TEMPLATE_KEY } from "./event-reminder-template";
+import { EVENT_ACCESS_TEMPLATE_KEY, EVENT_REMINDER_FALLBACK_TEMPLATE_KEY } from "./event-reminder-template";
+import { EVENT_ACCESS_BODY, eventTemplateVars, renderEventTemplate } from "./event-template-vars";
 import { approvedTemplateFor, eventReminderTemplateKey, type WaTemplate } from "./whatsapp-templates";
 
 /**
@@ -33,8 +33,11 @@ import { approvedTemplateFor, eventReminderTemplateKey, type WaTemplate } from "
  *   fallo repetido cada 10 minutos sería dinero tirado. «Reintentar WA» lo
  *   decide Dayana.
  * - Texto libre (gratis) si la persona escribió en las últimas 24 h; si no, la
- *   plantilla aprobada (`evento_inscrita_recordatorio` si Meta la aprobó como
- *   UTILITY, si no `evento_gratis_recordatorio`; `taller_recordatorio`).
+ *   plantilla aprobada. El de 24 h: `evento_acceso` (con los horarios por
+ *   país) si Meta la aprobó como UTILITY. El de 1 h (y el de 24 h mientras
+ *   tanto): `evento_inscrita_recordatorio` si Meta la aprobó como UTILITY, si
+ *   no `evento_gratis_recordatorio`. Talleres: `evento_acceso` en cuanto
+ *   está aprobada, si no `taller_recordatorio`.
  *
  * El núcleo (`runWaReminderPass`) no sabe de eventos ni de talleres: cada uno
  * le dice de dónde salen las filas, cómo se sellan y qué dice el mensaje.
@@ -47,7 +50,7 @@ import { approvedTemplateFor, eventReminderTemplateKey, type WaTemplate } from "
 export const EVENT_WA_TEMPLATE_KEY = EVENT_REMINDER_FALLBACK_TEMPLATE_KEY;
 
 /** La plantilla del recordatorio ahora; si no se puede mirar, la de siempre. */
-export const eventWaTemplateKey = (opts: { ensure?: boolean } = {}): Promise<string> =>
+export const eventWaTemplateKey = (opts: { ensure?: boolean; pass?: EventWaPass } = {}): Promise<string> =>
   eventReminderTemplateKey(opts).catch(() => EVENT_WA_TEMPLATE_KEY);
 /** Interruptor de Dayana. Sin fila = encendido. */
 export const EVENT_WA_REMINDERS_SETTING = "free_event_wa_reminders";
@@ -132,8 +135,10 @@ export type WaReminderSpec = {
   claim: (rowId: string) => Promise<boolean>;
   saveError: (rowId: string, message: string) => Promise<unknown>;
   pending: () => Promise<number>;
-  vars: (input: { zone: ReminderZone; opTz: string; now: Date }) => EventReminderVars;
-  text: (input: EventReminderVars & { nombre?: string | null }) => string;
+  /** Las variables de la plantilla (sin `nombre`). */
+  vars: (input: { zone: ReminderZone; opTz: string; now: Date }) => Record<string, string>;
+  /** El texto libre con esas variables; `nombre` vacío = sin nombre. */
+  text: (vars: Record<string, string>, nombre: string) => string;
   skipMessages: Record<WaSkipReason, string>;
   /** Anota la pasada en la historia de la edición. */
   recordPass: (result: EventWaResult, manual: boolean) => Promise<void>;
@@ -199,7 +204,7 @@ export const runWaReminderPass = async (
     const nombre = greetingName(recipient.name);
     const r = await sendWhatsAppToRecipient({
       recipient,
-      text: spec.text({ ...vars, nombre }),
+      text: spec.text(vars, nombre),
       templateKey: spec.templateKey,
       template: tpl,
       // WhatsApp no deja un parámetro vacío: sin nombre, un saludo neutro.
@@ -296,6 +301,8 @@ const saveEventError = (id: string, message: string) =>
 const eventSpec = (event: FreeWebinar | null, pass: EventWaPass, templateKey: string): WaReminderSpec => {
   const flag = waReminderFlag(pass);
   const id = event?.id ?? "";
+  // `evento_acceso`: el horario por país en vez de la hora de cada persona.
+  const access = templateKey === EVENT_ACCESS_TEMPLATE_KEY;
   return {
     target: event
       ? {
@@ -333,7 +340,9 @@ const eventSpec = (event: FreeWebinar | null, pass: EventWaPass, templateKey: st
     saveError: saveEventError,
     pending: () => countPendingWaReminderRecipients(id, pass),
     vars: ({ zone, opTz, now }) =>
-      eventReminderVars({
+      access && event
+        ? eventTemplateVars(event, { for: "inscrita" })
+        : eventReminderVars({
         headline: event?.headline ?? "",
         startsAt: event?.startsAt ?? now,
         startsAtHasTime: event?.startsAtHasTime ?? false,
@@ -343,7 +352,10 @@ const eventSpec = (event: FreeWebinar | null, pass: EventWaPass, templateKey: st
         zone,
         now,
       }),
-    text: eventReminderText,
+    text: (v, nombre) =>
+      access
+        ? renderEventTemplate(EVENT_ACCESS_BODY, v, nombre)
+        : eventReminderText({ evento: v.evento, fecha: v.fecha, enlace: v.enlace, nombre }),
     skipMessages: eventSkipMessages(templateKey),
     recordPass: (result, manual) =>
       recordFreeEventActivity({
@@ -372,10 +384,17 @@ export const sendEventWhatsAppReminders = async (opts: {
 }): Promise<EventWaResult> =>
   // El reloj y los botones de 24 h / 1 h: la de utilidad si ya está aprobada
   // (y si nunca se mandó a aprobar, se manda sola).
-  runWaReminderPass(eventSpec(await loadEvent(opts.webinarId), opts.pass, await eventWaTemplateKey({ ensure: true })), {
+  runWaReminderPass(
+    eventSpec(
+      await loadEvent(opts.webinarId),
+      opts.pass,
+      await eventWaTemplateKey({ ensure: true, pass: opts.pass })
+    ),
+    {
     now: opts.now,
     budgetMs: opts.budgetMs,
     ignoreWindow: opts.ignoreWindow,
     rowId: opts.registrationId,
     limit: opts.limit,
-  });
+    }
+  );

@@ -77,9 +77,10 @@ const EMPTY_STATS = {
 };
 
 /**
- * Sin el reloj de eventos (o antes de su próxima vuelta), la plantilla de
- * utilidad del recordatorio se mandaría a revisión recién al primer envío, que
- * saldría con la de siempre. Abrir el evento ya la manda (una vez cada 30 min,
+ * Sin el reloj de eventos (o antes de su próxima vuelta), las plantillas de
+ * utilidad del recordatorio y las de horarios (`evento_acceso`,
+ * `evento_invitacion`) se mandarían a revisión recién al primer envío, que
+ * saldría con la de siempre. Abrir el evento ya las manda (una vez cada 30 min,
  * después de responder: no demora la página).
  */
 const ensureReminderTemplateSoon = () => {
@@ -163,6 +164,7 @@ const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string
   ]);
   const selected = {
     id: event.id,
+    slug: event.slug,
     headline: event.headline,
     startsAt: event.startsAt,
     startsAtHasTime: event.startsAtHasTime,

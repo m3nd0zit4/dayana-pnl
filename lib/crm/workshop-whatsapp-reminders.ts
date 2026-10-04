@@ -8,6 +8,9 @@ import {
   type WaSkipReason,
 } from "./event-whatsapp-reminders";
 import { workshopReminderVars, workshopWaReminderText, type EventWaPass } from "./event-reminder-text";
+import { EVENT_ACCESS_TEMPLATE_KEY } from "./event-reminder-template";
+import { EVENT_ACCESS_BODY, eventTemplateVars, renderEventTemplate } from "./event-template-vars";
+import { approvedTemplateFor, ensureEventTemplatesSubmitted } from "./whatsapp-templates";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { recordWorkshopActivity } from "./workshop-activity";
 import { workshopAcceptsReminders, workshopStartsAtHasTime } from "./workshop-lifecycle-rules";
@@ -17,9 +20,20 @@ import { WHATSAPPABLE_CONTACT } from "./webinar-registrations";
  * Recordatorios por WhatsApp de un taller, 24 h y 1 h antes, con el enlace de
  * la reunión: el mismo envío que el de los eventos (`runWaReminderPass`), a
  * quien pagó la edición. El sello vive en la matrícula.
+ *
+ * Plantilla: `evento_acceso` (con los horarios por país) en cuanto Meta la
+ * aprueba; mientras tanto, la de siempre (`taller_recordatorio`).
  */
 
+/** La de siempre: el respaldo mientras `evento_acceso` no esté aprobada. */
 export const WORKSHOP_WA_TEMPLATE_KEY = "taller_recordatorio";
+
+/** La plantilla del recordatorio ahora; con `ensure`, manda a aprobar las que faltan. */
+export const workshopWaTemplateKey = async (opts: { ensure?: boolean } = {}): Promise<string> => {
+  if (opts.ensure) await ensureEventTemplatesSubmitted();
+  const access = await approvedTemplateFor(EVENT_ACCESS_TEMPLATE_KEY).catch(() => null);
+  return access ? EVENT_ACCESS_TEMPLATE_KEY : WORKSHOP_WA_TEMPLATE_KEY;
+};
 /** Interruptor de Dayana, aparte del de los eventos. Sin fila = encendido. */
 export const WORKSHOP_WA_REMINDERS_SETTING = "workshop_wa_reminders";
 
@@ -92,11 +106,11 @@ const lastRequeueKey = async (workshopEditionId: string): Promise<string | undef
   return last ? last.at.getTime().toString(36) : undefined;
 };
 
-const SKIP_MESSAGE: Record<WaSkipReason, string> = {
-  needs_template: "No escribió en las últimas 24 h y la plantilla «taller_recordatorio» no está aprobada.",
+const skipMessages = (templateKey: string): Record<WaSkipReason, string> => ({
+  needs_template: `No escribió en las últimas 24 h y la plantilla «${templateKey}» no está aprobada.`,
   opted_out: "Pidió no recibir WhatsApp.",
   no_phone: "Sin número de WhatsApp válido.",
-};
+});
 
 export const sendWorkshopWhatsAppReminders = async (opts: {
   pass: EventWaPass;
@@ -110,12 +124,14 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
   limit?: number;
 }): Promise<EventWaResult> => {
   const { pass, editionId } = opts;
-  const [edition, requeueKey] = await Promise.all([
+  const [edition, requeueKey, templateKey] = await Promise.all([
     prisma.workshopEdition.findUnique({ where: { id: editionId } }),
     lastRequeueKey(editionId),
+    workshopWaTemplateKey({ ensure: true }),
   ]);
   const flag = workshopWaFlag(pass);
   const hasTime = edition ? workshopStartsAtHasTime(edition) : false;
+  const access = templateKey === EVENT_ACCESS_TEMPLATE_KEY;
 
   const spec: WaReminderSpec = {
     target: edition
@@ -129,7 +145,7 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
         }
       : null,
     pass,
-    templateKey: WORKSHOP_WA_TEMPLATE_KEY,
+    templateKey,
     sourcePrefix: "taller",
     keySuffix: requeueKey,
     enabled: workshopWaRemindersEnabled,
@@ -156,7 +172,9 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
         .catch(() => undefined),
     pending: () => countPendingWorkshopWaReminders(editionId, pass),
     vars: ({ zone, opTz, now }) =>
-      workshopReminderVars({
+      access && edition
+        ? eventTemplateVars({ ...edition, startsAtHasTime: hasTime }, { for: "inscrita" })
+        : workshopReminderVars({
         title: edition?.title ?? "",
         startsAt: edition?.startsAt ?? now,
         startsAtHasTime: hasTime,
@@ -166,8 +184,11 @@ export const sendWorkshopWhatsAppReminders = async (opts: {
         zone,
         now,
       }),
-    text: workshopWaReminderText,
-    skipMessages: SKIP_MESSAGE,
+    text: (v, nombre) =>
+      access
+        ? renderEventTemplate(EVENT_ACCESS_BODY, v, nombre)
+        : workshopWaReminderText({ evento: v.evento, fecha: v.fecha, enlace: v.enlace, nombre }),
+    skipMessages: skipMessages(templateKey),
     recordPass: (result, manual) =>
       recordWorkshopActivity({
         workshopEditionId: editionId,

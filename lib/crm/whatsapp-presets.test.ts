@@ -125,7 +125,8 @@ describe("freeEventPresetsFor — según el evento que se mira", () => {
 
   test("ninguno: invitación al evento abierto y mensaje libre", () => {
     const p = freeEventPresetsFor({ selected: null, selectedUpcoming: false, openEvent: event }, TZ);
-    expect(ids(p)).toEqual(["invitacion", "libre"]);
+    // Primero las de horarios (la de imagen solo se ve si Meta la aprobó); la de antes, de respaldo.
+    expect(ids(p)).toEqual(["invitacion_horarios", "invitacion_imagen", "invitacion", "libre"]);
     expect(p[0].vars?.evento).toBe("«Sanar la relación con mamá»");
   });
 
@@ -134,20 +135,20 @@ describe("freeEventPresetsFor — según el evento que se mira", () => {
     expect(ids(p)).toEqual(["libre"]);
   });
 
-  test("el actual: recordatorio con Meet, material y libre", () => {
+  test("el actual: acceso con horarios, recordatorio con Meet, material y libre", () => {
     const p = freeEventPresetsFor({ selected: event, selectedUpcoming: true, openEvent: event }, TZ);
-    expect(ids(p)).toEqual(["recordatorio", "material", "libre"]);
+    expect(ids(p)).toEqual(["acceso", "recordatorio", "material", "libre"]);
     expect(p[0].vars?.enlace).toBe(MEET);
   });
 
   test("recordatorio: la plantilla de utilidad si ya está aprobada, si no la de siempre; mismas variables", () => {
     const base = { selected: event, selectedUpcoming: true, openEvent: event };
-    const old = freeEventPresetsFor(base, TZ)[0];
+    const old = byId(freeEventPresetsFor(base, TZ), "recordatorio")!;
     expect(old.templateKey).toBe(EVENT_REMINDER_FALLBACK_TEMPLATE_KEY);
     const key = preferredEventReminderTemplateKey([
       { key: EVENT_REMINDER_UTILITY_TEMPLATE_KEY, metaApprovalStatus: "APPROVED", metaCategory: "UTILITY" },
     ]);
-    const utility = freeEventPresetsFor({ ...base, reminderTemplateKey: key }, TZ)[0];
+    const utility = byId(freeEventPresetsFor({ ...base, reminderTemplateKey: key }, TZ), "recordatorio")!;
     expect(utility.templateKey).toBe(EVENT_REMINDER_UTILITY_TEMPLATE_KEY);
     expect(utility.vars).toEqual(old.vars);
     expect(byId(freeEventPresets(event, TZ, key), "recordatorio")?.templateKey).toBe(EVENT_REMINDER_UTILITY_TEMPLATE_KEY);
@@ -155,21 +156,25 @@ describe("freeEventPresetsFor — según el evento que se mira", () => {
 
   test("uno pasado: su material e invitación al actual", () => {
     const p = freeEventPresetsFor({ selected: past, selectedUpcoming: false, openEvent: event }, TZ);
-    expect(ids(p)).toEqual(["material", "invitacion", "libre"]);
+    expect(ids(p)).toEqual(["material", "invitacion_horarios", "invitacion_imagen", "invitacion", "libre"]);
     expect(p[0].vars?.evento).toBe("el material de «Evento de agosto»");
     expect(p[0].vars?.enlace).toBe(LINK_SLOT);
-    expect(p[1].label).toBe("Invitación al evento actual");
-    expect(p[1].vars?.evento).toBe("«Sanar la relación con mamá»");
-    expect(p[1].vars?.enlace).toBe(landing());
+    const inv = byId(p, "invitacion")!;
+    expect(inv.label).toBe("Invitación al evento actual");
+    expect(inv.vars?.evento).toBe("«Sanar la relación con mamá»");
+    expect(inv.vars?.enlace).toBe(landing());
   });
 });
 
 describe("workshopPresets", () => {
   test("la fecha también empieza por el día de la semana", () => {
-    const [inv] = workshopPresets(
-      { title: "Niña interior", slug: "nina", startsAt: event.startsAt, dateLabel: null, meetingUrl: null },
-      TZ
-    );
+    const inv = byId(
+      workshopPresets(
+        { title: "Niña interior", slug: "nina", startsAt: event.startsAt, dateLabel: null, meetingUrl: null },
+        TZ
+      ),
+      "invitacion"
+    )!;
     // Sin el punto final: la plantilla pone el suyo («el {{fecha}}. Toda…»).
     expect(inv.vars?.fecha).toBe("domingo 4 de octubre a las 9:30 a. m");
     expect(inv.text).toContain("a las 9:30 a. m. Toda la información");

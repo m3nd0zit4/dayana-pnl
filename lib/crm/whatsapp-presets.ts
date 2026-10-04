@@ -1,5 +1,17 @@
 import { getSiteUrl } from "@/lib/site-url";
-import { EVENT_REMINDER_FALLBACK_TEMPLATE_KEY } from "./event-reminder-template";
+import {
+  EVENT_ACCESS_TEMPLATE_KEY,
+  EVENT_INVITATION_IMAGE_TEMPLATE_KEY,
+  EVENT_INVITATION_TEMPLATE_KEY,
+  EVENT_REMINDER_FALLBACK_TEMPLATE_KEY,
+} from "./event-reminder-template";
+import {
+  EVENT_ACCESS_BODY,
+  EVENT_INVITATION_BODY,
+  eventTemplateVars,
+  fillKnownVars,
+  sanitizeMensaje,
+} from "./event-template-vars";
 
 /**
  * Mensajes listos para enviar por WhatsApp desde cada pantalla del CRM. Cada
@@ -14,9 +26,24 @@ export type Preset = {
   text: string;
   templateKey?: string | null;
   vars?: Record<string, string>;
+  /**
+   * Su plantilla lleva imagen arriba: solo el envío masivo (que sube la
+   * imagen) la ofrece, y solo cuando Meta ya la aprobó.
+   */
+  imageTemplate?: boolean;
 };
 
 export const TEXT_SLOT = "{{texto}}";
+
+/**
+ * En una variable: lo escrito en «Tu mensaje» (una línea, hasta 300). Lo
+ * llena el envío; en el texto libre queda {{mensaje}} y se llena igual.
+ */
+export const MESSAGE_SLOT = "{{tu_mensaje}}";
+
+/** El mensaje pide «Tu mensaje» (la invitación con horarios). */
+export const presetNeedsMessage = (preset: Pick<Preset, "vars"> | null | undefined): boolean =>
+  Boolean(preset?.vars && Object.values(preset.vars).includes(MESSAGE_SLOT));
 
 /**
  * En una variable: el primer enlace escrito en la caja. Para lo que el CRM no
@@ -64,6 +91,53 @@ export type FreeEventPresetEvent = {
   meetUrl?: string | null;
   /** `/api/webinar/material` lo sirve ahora (`isFreeEventMaterialDownloadable`). */
   materialDownloadable?: boolean;
+  /** Para enlazar su página (`/eventos-gratuitos/<slug>`); sin él, la landing. */
+  slug?: string | null;
+};
+
+type ScheduleSource = Parameters<typeof eventTemplateVars>[0];
+
+/**
+ * Acceso con horarios, a quien se inscribió o pagó (`evento_acceso`). El
+ * texto libre ya viene lleno, con el horario de cada país; solo {{nombre}}
+ * se llena al enviar.
+ */
+const accessPreset = (source: ScheduleSource): Preset => {
+  const vars = eventTemplateVars(source, { for: "inscrita" });
+  return {
+    id: "acceso",
+    label: "Acceso con horarios (inscritas)",
+    text: fillKnownVars(EVENT_ACCESS_BODY, vars),
+    templateKey: EVENT_ACCESS_TEMPLATE_KEY,
+    vars,
+  };
+};
+
+/**
+ * Invitación con horarios (`evento_invitacion`) y, si Meta ya aprobó la
+ * creada a mano en el Hub, la misma con imagen arriba. {{mensaje}} es lo que
+ * Dayana escribe en «Tu mensaje».
+ */
+const invitationPresets = (source: ScheduleSource): Preset[] => {
+  const vars = eventTemplateVars(source, { for: "invitacion" });
+  const text = fillKnownVars(EVENT_INVITATION_BODY, vars);
+  return [
+    {
+      id: "invitacion_horarios",
+      label: "Invitación con horarios",
+      text,
+      templateKey: EVENT_INVITATION_TEMPLATE_KEY,
+      vars: { ...vars, mensaje: MESSAGE_SLOT },
+    },
+    {
+      id: "invitacion_imagen",
+      label: "Invitación con imagen y horarios",
+      text,
+      templateKey: EVENT_INVITATION_IMAGE_TEMPLATE_KEY,
+      vars: { ...vars, mensaje: MESSAGE_SLOT },
+      imageTemplate: true,
+    },
+  ];
 };
 
 // Las plantillas ya ponen el artículo y el «gratis»: con el tipo de evento
@@ -166,10 +240,12 @@ export const freeEventPresetsFor = (
   tz: string
 ): Preset[] => {
   const { selected, openEvent } = input;
-  const invite = (label?: string) => (openEvent ? [freeEventInvitation(openEvent, tz, label)] : []);
+  const invite = (label?: string) =>
+    openEvent ? [...invitationPresets(openEvent), freeEventInvitation(openEvent, tz, label)] : [];
   if (!selected) return [...invite(), genericPreset()];
   if (input.selectedUpcoming) {
     return [
+      accessPreset(selected),
       freeEventReminder(selected, tz, input.reminderTemplateKey),
       freeEventMaterial(selected, "Material"),
       genericPreset(),
@@ -221,14 +297,27 @@ export const paymentLinkPresets = (input: { url: string; product: string }): Pre
 ];
 
 export const workshopPresets = (
-  w: { title: string; slug: string; startsAt: Date | null; dateLabel: string | null; meetingUrl: string | null },
+  w: {
+    title: string;
+    slug: string;
+    startsAt: Date | null;
+    /** Sin él, se da por hecho que tiene hora. */
+    startsAtHasTime?: boolean;
+    dateLabel: string | null;
+    meetingUrl: string | null;
+    /** El precio vigente (`EditionPrices`), para la invitación con horarios. */
+    prices?: { cop: number | null; usd: number | null } | null;
+  },
   tz: string
 ): Preset[] => {
   const site = getSiteUrl();
   const page = `${site}/taller-virtual/${w.slug}`;
   const fecha = beforePeriod(w.dateLabel || eventDateText(w.startsAt, true, tz));
   const entrar = w.meetingUrl || page;
+  const schedule = { ...w, startsAtHasTime: w.startsAtHasTime ?? true };
   return [
+    accessPreset(schedule),
+    ...invitationPresets(schedule),
     {
       id: "invitacion",
       label: "Invitación",
@@ -253,12 +342,17 @@ export const workshopPresets = (
  */
 export const resolvePresetVars = (
   vars: Record<string, string> | undefined,
-  text: string
+  text: string,
+  /** Lo escrito en «Tu mensaje», donde una variable pide `{{tu_mensaje}}`. */
+  mensaje?: string | null
 ): Record<string, string> | undefined => {
   if (!vars) return vars;
   const clean = text.replace(/\{\{\s*nombre\s*\}\}/g, "").replace(/^\s*hola\s*,?\s*/i, "").trim();
   return Object.fromEntries(
-    Object.entries(vars).map(([k, v]) => [k, v === TEXT_SLOT ? clean : v === LINK_SLOT ? firstUrl(text) : v])
+    Object.entries(vars).map(([k, v]) => [
+      k,
+      v === TEXT_SLOT ? clean : v === LINK_SLOT ? firstUrl(text) : v === MESSAGE_SLOT ? sanitizeMensaje(mensaje) : v,
+    ])
   );
 };
 

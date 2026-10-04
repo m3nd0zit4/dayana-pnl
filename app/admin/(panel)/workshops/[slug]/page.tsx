@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
 import { CalendarRange, MessageCircle } from "lucide-react";
 
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
@@ -40,9 +41,9 @@ import {
   workshopEnrollmentStats,
   type WorkshopForPanel,
 } from "@/lib/crm/workshop-panel";
-import { WORKSHOP_WA_TEMPLATE_KEY, workshopWaRemindersEnabled } from "@/lib/crm/workshop-whatsapp-reminders";
+import { workshopWaRemindersEnabled, workshopWaTemplateKey } from "@/lib/crm/workshop-whatsapp-reminders";
 import { workshopPresets } from "@/lib/crm/whatsapp-presets";
-import { getWhatsAppTemplateStatus } from "@/lib/crm/whatsapp-templates";
+import { ensureEventTemplatesSubmitted, getWhatsAppTemplateStatus } from "@/lib/crm/whatsapp-templates";
 import { getDateKeyInTz, getTimeHmInTz } from "@/lib/datetime/zoned-time";
 import { parseWorkshopSchedule } from "@/lib/workshop-schedule";
 import { formatMoneyMinor } from "@/lib/crm/money";
@@ -63,7 +64,10 @@ const EnrollmentsTab = async ({ edition, blockedReason }: { edition: WorkshopFor
     listWorkshopEnrollments(edition.id, { take: 50 }),
     workshopEnrollmentStats(edition.id),
     workshopWaRemindersEnabled(),
-    getWhatsAppTemplateStatus(WORKSHOP_WA_TEMPLATE_KEY).catch(() => null),
+    // La plantilla que de verdad usa el recordatorio (`evento_acceso` si ya está aprobada).
+    workshopWaTemplateKey()
+      .then((key) => getWhatsAppTemplateStatus(key))
+      .catch(() => null),
   ]);
   return (
     <WorkshopEnrollmentsPanel
@@ -89,10 +93,10 @@ const WhatsAppTab = async ({ edition, tz }: { edition: WorkshopForPanel; tz: str
     listWorkshopPeopleForWhatsApp(edition.id),
     isOpen ? listWorkshopInviteContactIds(edition.id) : Promise.resolve([] as string[]),
   ]);
-  // El enlace de la reunión es de quien pagó: el recordatorio que lo lleva
-  // solo se ofrece para ellas; a las demás y a las invitadas, sin él.
+  // El enlace de la reunión es de quien pagó: el recordatorio y el acceso que
+  // lo llevan solo se ofrecen para ellas; a las demás y a las invitadas, sin él.
   const presets = workshopPresets(edition, tz);
-  const withoutLink = presets.filter((p) => p.id !== "recordatorio");
+  const withoutLink = presets.filter((p) => p.id !== "recordatorio" && p.id !== "acceso");
   const paid = people.filter((p) => p.paid);
   const others = people.filter((p) => !p.paid);
   const link = { workshopEditionId: edition.id };
@@ -207,6 +211,11 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
       </CrmPageShell>
     );
   }
+
+  // Las plantillas con horarios (y la corta de utilidad) se mandan solas a
+  // aprobar si faltan, después de responder: no demora la página. Como mucho
+  // una vez cada 30 min.
+  after(() => ensureEventTemplatesSubmitted().catch(() => undefined));
 
   const edition = await getWorkshopForPanel(slug);
   if (!edition) {

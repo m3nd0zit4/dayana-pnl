@@ -2,11 +2,19 @@ import { prisma } from "@/lib/db";
 import { Dialog360Error, dialog360Request } from "@/lib/meta/whatsapp-provider";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import {
+  EVENT_ACCESS_TEMPLATE_KEY,
+  EVENT_INVITATION_IMAGE_TEMPLATE_KEY,
+  EVENT_INVITATION_TEMPLATE_KEY,
   EVENT_REMINDER_FALLBACK_TEMPLATE_KEY,
   EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
   EVENT_REMINDER_UTILITY_TEMPLATE_TITLE,
+  EVENT_TEMPLATE_KEYS_TO_ENSURE,
+  isTemplateApproved,
   preferredEventReminderTemplateKey,
 } from "./event-reminder-template";
+import { scheduleVars } from "./event-schedule";
+import { EVENT_ACCESS_BODY, EVENT_INVITATION_BODY } from "./event-template-vars";
+import { toMetaBody } from "./whatsapp-template-rules";
 
 /**
  * Plantillas de WhatsApp (las que Meta aprueba) conectadas con el CRM.
@@ -30,13 +38,67 @@ export type StarterTemplate = {
   /** Texto con {{nombre}}, {{evento}}… (se convierte a {{1}}… al enviarla a Meta). */
   body: string;
   example: Record<string, string>;
+  /**
+   * Con imagen arriba: el CRM solo crea plantillas de texto, así que esta se
+   * crea a mano en el Hub (la página dice cómo) y nunca se manda sola.
+   */
+  manual?: boolean;
+  /**
+   * Retirada: la reemplazan estas. Su fila queda (es el respaldo hasta que
+   * Meta apruebe las nuevas), pero nunca se vuelve a mandar a aprobar.
+   */
+  replacedBy?: string[];
+};
+
+/** Fecha de ejemplo para Meta: domingo 4 de octubre, 9:30 a. m. en Colombia. */
+const SAMPLE_STARTS_AT = new Date("2026-10-04T14:30:00Z");
+
+const EVENT_INVITATION_EXAMPLE: Record<string, string> = {
+  nombre: "Ana",
+  mensaje: "te invito a una clase en vivo para soltar lo que ya no te sirve.",
+  evento: "«Reprograma tu mente con PNL»",
+  fecha: "domingo 4 de octubre",
+  precio: "Gratis",
+  enlace: "https://www.dayanabeltran.com/eventos-gratuitos",
+  ...scheduleVars(SAMPLE_STARTS_AT),
 };
 
 /** Las que conviene tener aprobadas desde el principio. Editables antes de enviarlas. */
 export const STARTER_TEMPLATES: StarterTemplate[] = [
+  // Con el horario por país (`event-template-vars.ts`). Las cuatro de antes
+  // (invitación y recordatorio de evento y de taller) quedan de respaldo.
+  {
+    key: EVENT_ACCESS_TEMPLATE_KEY,
+    title: "Evento o taller: acceso con horarios (inscritas)",
+    category: "UTILITY",
+    body: EVENT_ACCESS_BODY,
+    example: {
+      nombre: "Ana",
+      evento: "«Reprograma tu mente con PNL»",
+      fecha: "domingo 4 de octubre",
+      enlace: "https://meet.google.com/abc-defg-hij",
+      ...scheduleVars(SAMPLE_STARTS_AT),
+    },
+  },
+  {
+    key: EVENT_INVITATION_TEMPLATE_KEY,
+    title: "Evento o taller: invitación con horarios",
+    category: "MARKETING",
+    body: EVENT_INVITATION_BODY,
+    example: EVENT_INVITATION_EXAMPLE,
+  },
+  {
+    key: EVENT_INVITATION_IMAGE_TEMPLATE_KEY,
+    title: "Evento o taller: invitación con imagen y horarios",
+    category: "MARKETING",
+    body: EVENT_INVITATION_BODY,
+    example: EVENT_INVITATION_EXAMPLE,
+    manual: true,
+  },
   {
     key: "evento_gratis_invitacion",
     title: "Evento gratuito: invitación",
+    replacedBy: [EVENT_INVITATION_TEMPLATE_KEY],
     category: "MARKETING",
     body: "Hola {{nombre}}, te bendigo 💛 Te invito a {{evento}}, gratis, el {{fecha}}. Reserva tu lugar aquí: {{enlace}} ¡Te espero!",
     example: { nombre: "Ana", evento: "la masterclass Reprograma tu mente", fecha: "jueves 2 de octubre, 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
@@ -44,6 +106,8 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     key: "evento_gratis_recordatorio",
     title: "Evento gratuito: recordatorio",
+    // El de 24 h pasa a `evento_acceso`; el de 1 h, a la corta de utilidad.
+    replacedBy: [EVENT_ACCESS_TEMPLATE_KEY, EVENT_REMINDER_UTILITY_TEMPLATE_KEY],
     category: "UTILITY",
     body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}} Nos vemos pronto 💛",
     example: { nombre: "Ana", evento: "la masterclass", fecha: "hoy a las 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
@@ -90,6 +154,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     key: "taller_invitacion",
     title: "Taller: invitación",
+    replacedBy: [EVENT_INVITATION_TEMPLATE_KEY],
     category: "MARKETING",
     body: "Hola {{nombre}}, te bendigo 💛 Abrimos {{evento}}, el {{fecha}}. Toda la información y tu inscripción aquí: {{enlace}} ¡Me encantaría verte!",
     example: { nombre: "Ana", evento: "el taller Sanando a mi niña interior", fecha: "sábado 11 de octubre", enlace: "https://www.dayanabeltran.com/taller-virtual/sanando" },
@@ -97,6 +162,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     key: "taller_recordatorio",
     title: "Taller: recordatorio",
+    replacedBy: [EVENT_ACCESS_TEMPLATE_KEY],
     category: "UTILITY",
     body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Ingresa aquí: {{enlace}} ¡Te espero!",
     example: { nombre: "Ana", evento: "tu taller", fecha: "mañana a las 9:00 a. m.", enlace: "https://www.dayanabeltran.com/taller-virtual/sanando" },
@@ -164,19 +230,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   },
 ];
 
-/** {{nombre}} {{evento}} → {{1}} {{2}} y la lista de nombres en orden. */
-export const toMetaBody = (body: string): { text: string; varNames: string[] } => {
-  const varNames: string[] = [];
-  const text = body.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (_, name: string) => {
-    let index = varNames.indexOf(name);
-    if (index === -1) {
-      varNames.push(name);
-      index = varNames.length - 1;
-    }
-    return `{{${index + 1}}}`;
-  });
-  return { text, varNames };
-};
+export { toMetaBody };
 
 /** Nombre válido para Meta: minúsculas, números y guion bajo. */
 export { templateBodyProblem, utilityCategoryWarning } from "./whatsapp-template-rules";
@@ -247,8 +301,22 @@ const remoteBody = (t: RemoteTemplate) =>
   t.components?.find((c) => c.type?.toUpperCase() === "BODY")?.text ?? null;
 
 /**
+ * La recomendada cuyo nombre en Meta es `name`, con sus variables en su orden
+ * ({{1}} = la primera de su cuerpo…). `null` si no es de ninguna.
+ */
+export const starterLinkForRemote = (
+  name: string
+): { key: string; title: string; body: string; metaVarNames: string[] } | null => {
+  const starter = STARTER_TEMPLATES.find((s) => metaTemplateName(s.key) === name);
+  return starter
+    ? { key: starter.key, title: starter.title, body: starter.body, metaVarNames: toMetaBody(starter.body).varNames }
+    : null;
+};
+
+/**
  * Trae de 360dialog todas las plantillas y actualiza su estado en el CRM. Las
- * que se crearon fuera del CRM también aparecen (con su nombre como clave).
+ * que se crearon fuera del CRM también aparecen: con la clave de la
+ * recomendada si se llaman igual que una, si no con su nombre como clave.
  */
 export const syncWhatsAppTemplates = async (): Promise<number> => {
   // Una plantilla con cabecera (IMAGE…) entra igual: de ella se guarda el cuerpo.
@@ -261,7 +329,8 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
       where: { metaTemplateName: t.name, metaTemplateLang: lang },
     });
     const body = remoteBody(t);
-    if (existing) {
+    const link = starterLinkForRemote(t.name);
+    if (existing && (!link || existing.key === link.key)) {
       await prisma.messageTemplate.update({
         where: { id: existing.id },
         data: {
@@ -269,6 +338,23 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
           metaCategory: t.category ?? null,
           ...(body ? { metaBody: body } : {}),
         },
+      });
+    } else if (link) {
+      // Creada en el Hub con el nombre de una recomendada (la de imagen): se
+      // liga a su clave con sus variables en el orden de la recomendada, así
+      // los envíos la llenan por nombre (con `wa_…` y var1… no se podría).
+      const remoteFields = {
+        metaTemplateName: t.name,
+        metaTemplateLang: lang,
+        metaApprovalStatus: remoteStatus(t),
+        metaCategory: t.category ?? null,
+        metaBody: body,
+        metaVarNames: link.metaVarNames,
+      };
+      await prisma.messageTemplate.upsert({
+        where: { key_locale: { key: link.key, locale: "es" } },
+        create: { key: link.key, title: link.title, locale: "es", body: link.body, ...remoteFields },
+        update: { body: link.body, ...remoteFields },
       });
     } else {
       // Plantilla creada en el Hub: queda disponible con su nombre como clave.
@@ -460,13 +546,20 @@ export const ensureTemplatesSubmitted = async (
   keys: string[]
 ): Promise<{ submitted: string[]; failed: { key: string; error: string }[] }> => {
   const result = { submitted: [] as string[], failed: [] as { key: string; error: string }[] };
+  // Nunca solas: las retiradas (ya tienen reemplazo) ni las de imagen (se
+  // crean a mano en el Hub).
+  const wanted = keys.filter((key) => {
+    const starter = STARTER_TEMPLATES.find((t) => t.key === key);
+    return !starter?.manual && !starter?.replacedBy;
+  });
+  if (wanted.length === 0) return result;
   const last = Number((await getSiteSetting(AUTO_SUBMIT_KEY)) ?? 0);
   if (Date.now() - last < 30 * 60_000) return result;
   const existing = await prisma.messageTemplate.findMany({
-    where: { key: { in: keys }, metaTemplateName: { not: null } },
+    where: { key: { in: wanted }, metaTemplateName: { not: null } },
     select: { key: true, metaApprovalStatus: true },
   });
-  const missing = keys.filter((key) => {
+  const missing = wanted.filter((key) => {
     const t = existing.find((e) => e.key === key);
     return !t || (t.metaApprovalStatus ?? "").toUpperCase().startsWith("REJECTED");
   });
@@ -489,27 +582,74 @@ export const ensureTemplatesSubmitted = async (
 };
 
 /**
- * La plantilla del recordatorio de un evento: `evento_inscrita_recordatorio`
- * si Meta ya la aprobó como UTILITY; si no, `evento_gratis_recordatorio`.
+ * La plantilla del recordatorio de un evento (`preferredEventReminderTemplateKey`):
+ * el de 24 h, `evento_acceso` si Meta la aprobó como UTILITY; el de 1 h (y
+ * el de 24 h mientras tanto), `evento_inscrita_recordatorio` si Meta la
+ * aprobó como UTILITY; si no, `evento_gratis_recordatorio`.
  *
  * Con `ensure` (el reloj de los eventos y los recordatorios) además la manda
  * sola a aprobar si nunca se mandó o Meta la rechazó (con el tope de una vez
  * cada 30 min de `ensureTemplatesSubmitted`) y pregunta a 360dialog si ya la
  * aprobaron. Así, tras el despliegue, nadie tiene que hacer nada.
  */
-export const eventReminderTemplateKey = async (opts: { ensure?: boolean } = {}): Promise<string> => {
-  if (opts.ensure) {
-    await ensureTemplatesSubmitted([EVENT_REMINDER_UTILITY_TEMPLATE_KEY]).catch(() => undefined);
-    await refreshTemplatesIfPending().catch(() => undefined);
-  }
+export const eventReminderTemplateKey = async (
+  opts: { ensure?: boolean; pass?: "24h" | "1h" } = {}
+): Promise<string> => {
+  if (opts.ensure) await ensureEventTemplatesSubmitted();
   const rows = await prisma.messageTemplate.findMany({
     where: {
-      key: { in: [EVENT_REMINDER_UTILITY_TEMPLATE_KEY, EVENT_REMINDER_FALLBACK_TEMPLATE_KEY] },
+      key: { in: [EVENT_ACCESS_TEMPLATE_KEY, EVENT_REMINDER_UTILITY_TEMPLATE_KEY, EVENT_REMINDER_FALLBACK_TEMPLATE_KEY] },
       metaTemplateName: { not: null },
     },
     select: { key: true, metaApprovalStatus: true, metaCategory: true },
   });
-  return preferredEventReminderTemplateKey(rows);
+  return preferredEventReminderTemplateKey(rows, opts.pass);
+};
+
+/**
+ * Manda solas a aprobar las plantillas de eventos y talleres que faltan
+ * (`evento_inscrita_recordatorio`, `evento_acceso`, `evento_invitacion`), con
+ * el tope de una vez cada 30 min, y pregunta si Meta ya las aprobó. Lo llaman
+ * los recordatorios y, después de responder, abrir un evento o un taller.
+ */
+export const ensureEventTemplatesSubmitted = async (): Promise<void> => {
+  await ensureTemplatesSubmitted(EVENT_TEMPLATE_KEYS_TO_ENSURE).catch(() => undefined);
+  await refreshTemplatesIfPending().catch(() => undefined);
+};
+
+/** Plantilla ligada a la clave, aprobada y que Meta cobra como Utilidad. */
+export const approvedUtilityTemplateFor = async (key: string): Promise<WaTemplate | null> => {
+  const t = await approvedTemplateFor(key);
+  return t && (t.metaCategory ?? "").toUpperCase() === "UTILITY" ? t : null;
+};
+
+/**
+ * «Quitar de WhatsApp» (solo OWNER, a mano): borra de 360dialog una plantilla
+ * retirada, y solo si las que la reemplazan ya están aprobadas. La fila queda
+ * en el CRM como «DELETED» (así nadie la elige). 360dialog borra todos los
+ * idiomas de ese nombre, y Meta no deja reutilizar el nombre por 30 días.
+ */
+export const deleteRetiredWhatsAppTemplate = async (key: string): Promise<{ name: string }> => {
+  const starter = STARTER_TEMPLATES.find((t) => t.key === key);
+  if (!starter?.replacedBy) throw new Dialog360Error("Solo se pueden quitar las plantillas reemplazadas.", 400);
+  const [row, replacements] = await Promise.all([
+    prisma.messageTemplate.findFirst({ where: { key, metaTemplateName: { not: null } } }),
+    prisma.messageTemplate.findMany({
+      where: { key: { in: starter.replacedBy }, metaTemplateName: { not: null } },
+      select: { key: true, metaApprovalStatus: true },
+    }),
+  ]);
+  const waiting = starter.replacedBy.filter((k) => !isTemplateApproved(replacements.find((r) => r.key === k)));
+  if (waiting.length) {
+    throw new Dialog360Error(`Todavía no está aprobada la que la reemplaza: ${waiting.join(", ")}.`, 409);
+  }
+  if (!row?.metaTemplateName) throw new Dialog360Error("Esta plantilla no está en WhatsApp.", 404);
+  await dialog360Request(`v1/configs/templates/${encodeURIComponent(row.metaTemplateName)}`, { method: "DELETE" });
+  await prisma.messageTemplate.updateMany({
+    where: { metaTemplateName: row.metaTemplateName },
+    data: { metaApprovalStatus: "DELETED" },
+  });
+  return { name: row.metaTemplateName };
 };
 
 const SYNC_KEY = "whatsapp.templates.syncedAt";
@@ -523,7 +663,7 @@ export const refreshTemplatesIfPending = async (): Promise<void> => {
   const pending = await prisma.messageTemplate.count({
     where: {
       metaTemplateName: { not: null },
-      NOT: { metaApprovalStatus: { in: ["APPROVED", "approved"] } },
+      NOT: { metaApprovalStatus: { in: ["APPROVED", "approved", "DELETED"] } },
     },
   });
   if (pending === 0) return;

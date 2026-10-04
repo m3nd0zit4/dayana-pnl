@@ -2,7 +2,8 @@
 
 import { Loader2, MessageCircle, Send } from "lucide-react";
 import { useEffect, useState } from "react";
-import { LINK_SLOT, presetMissingLink, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
+import { LINK_SLOT, presetMissingLink, presetNeedsMessage, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
+import PresetMessageField from "./PresetMessageField";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
 
@@ -14,6 +15,8 @@ export type WhatsAppPreset = {
   /** Plantilla para quien está fuera de las 24 h. */
   templateKey?: string | null;
   vars?: Record<string, string>;
+  /** Su plantilla lleva imagen: solo el envío masivo la ofrece. */
+  imageTemplate?: boolean;
 };
 
 type Plan =
@@ -36,7 +39,7 @@ const SKIP_TEXT = {
 const SendWhatsAppDialog = ({
   contactId,
   name,
-  presets,
+  presets: allPresets,
   source,
   open,
   onClose,
@@ -51,9 +54,13 @@ const SendWhatsAppDialog = ({
   onSent?: () => void;
 }) => {
   const { toast } = useCrm();
+  // Aquí no se sube imagen: los mensajes con plantilla de imagen, solo en el masivo.
+  const presets = allPresets.filter((p) => !p.imageTemplate);
   const [presetId, setPresetId] = useState(presets[0]?.id ?? "libre");
   const preset = presets.find((p) => p.id === presetId) ?? null;
   const [text, setText] = useState(preset?.text ?? "");
+  const [mensaje, setMensaje] = useState("");
+  const needsMessage = presetNeedsMessage(preset);
   const [info, setInfo] = useState<{
     plan: Plan;
     price: number;
@@ -87,7 +94,7 @@ const SendWhatsAppDialog = ({
           contactId,
           text,
           templateKey: preset?.templateKey ?? null,
-          vars: resolvePresetVars(preset?.vars, text),
+          vars: resolvePresetVars(preset?.vars, text, mensaje),
           source,
         }),
       });
@@ -140,6 +147,7 @@ const SendWhatsAppDialog = ({
             <p className="rounded-lg bg-[#d9fdd3] px-3 py-2 whitespace-pre-wrap text-[#111b21]">{info.template.body}</p>
           </div>
         ) : null}
+        {needsMessage && <PresetMessageField value={mensaje} onChange={setMensaje} />}
         {usesTemplate && info?.template && !needsLink ? null : (
           <textarea
             value={text}
@@ -168,7 +176,14 @@ const SendWhatsAppDialog = ({
           <button
             type="button"
             onClick={() => void send()}
-            disabled={busy || !plan || plan.action === "skip" || (!usesTemplate && !text.trim()) || missingLink}
+            disabled={
+              busy ||
+              !plan ||
+              plan.action === "skip" ||
+              (!usesTemplate && !text.trim()) ||
+              missingLink ||
+              (needsMessage && !mensaje.trim())
+            }
             className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 font-medium text-white hover:bg-[#008069] disabled:opacity-50"
           >
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Enviar

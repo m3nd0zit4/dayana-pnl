@@ -8,9 +8,10 @@ import {
   isTemplateApproved,
   type TemplateBilling,
 } from "@/lib/crm/event-reminder-template";
-import { presetMissingLink, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
+import { presetMissingLink, presetNeedsMessage, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
+import PresetMessageField from "./PresetMessageField";
 import type { WhatsAppPreset } from "./SendWhatsAppDialog";
 
 type Preview = {
@@ -121,15 +122,21 @@ const WhatsAppBulkSend = ({
 }) => {
   const { toast } = useCrm();
   const [open, setOpen] = useState(false);
-  const [presetId, setPresetId] = useState(presets[0]?.id ?? "");
-  const preset = presets.find((p) => p.id === presetId) ?? presets[0];
-  const [text, setText] = useState(preset?.text ?? "");
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [progress, setProgress] = useState<Progress | null>(null);
-  const [running, setRunning] = useState(false);
   // Otra plantilla aprobada en vez de la del mensaje (p. ej. una con imagen
   // creada en el Hub). `null` = la del mensaje.
   const [approved, setApproved] = useState<ApprovedTemplate[]>([]);
+  // Un mensaje cuya plantilla lleva imagen (la invitación con imagen, creada a
+  // mano en el Hub) solo aparece cuando Meta ya la aprobó.
+  const visiblePresets = presets.filter((p) => !p.imageTemplate || approved.some((t) => t.key === p.templateKey));
+  const [presetId, setPresetId] = useState(visiblePresets[0]?.id ?? "");
+  const preset = visiblePresets.find((p) => p.id === presetId) ?? visiblePresets[0];
+  const [text, setText] = useState(preset?.text ?? "");
+  // «Tu mensaje» de la invitación con horarios: va en {{mensaje}}.
+  const [mensaje, setMensaje] = useState("");
+  const needsMessage = presetNeedsMessage(preset);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [running, setRunning] = useState(false);
   // La de utilidad del recordatorio a inscritas (si ya se mandó a Meta), para
   // sugerirla cuando la elegida se cobra como Marketing.
   const [utilityReminder, setUtilityReminder] = useState<TemplateBilling | null>(null);
@@ -239,7 +246,7 @@ const WhatsAppBulkSend = ({
               title: `${title} · ${templateOverride && chosen ? chosen.title : (preset?.label ?? "")}`.trim(),
               kind,
               text,
-              vars: resolvePresetVars(preset?.vars, text),
+              vars: resolvePresetVars(preset?.vars, text, mensaje),
               freeWebinarId: link?.freeWebinarId ?? null,
               workshopEditionId: link?.workshopEditionId ?? null,
               headerImageId,
@@ -324,7 +331,7 @@ const WhatsAppBulkSend = ({
           {!progress && (
             <>
               <div className="flex flex-wrap gap-1.5">
-                {presets.map((p) => (
+                {visiblePresets.map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -352,16 +359,18 @@ const WhatsAppBulkSend = ({
                   </select>
                 </label>
               )}
+              {needsMessage && <PresetMessageField value={mensaje} onChange={setMensaje} />}
               <label className="block space-y-1">
                 <span className="text-xs text-muted-foreground">
-                  {templateOverride
-                    ? "Texto de la plantilla: es lo que recibe también quien escribió en las últimas 24 h (gratis)."
-                    : <>Mensaje para quien escribió en las últimas 24 h (gratis). {"{{nombre}}"} pone su nombre.</>}
+                  {templateOverride ? "Texto de la plantilla elegida. " : ""}
+                  Solo quien escribió en las últimas 24 h (gratis) recibe este texto, con tus cambios. A las demás les
+                  llega la plantilla aprobada tal como Meta la aprobó, con sus datos: tus cambios aquí no la cambian.{" "}
+                  {"{{nombre}}"} pone su nombre{needsMessage ? <> y {"{{mensaje}}"}, lo que escribas en «Tu mensaje»</> : null}.
                 </span>
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  rows={5}
+                  rows={needsMessage || preset?.id === "acceso" ? 12 : 5}
                   className="w-full rounded-lg border border-border bg-card p-2.5 text-base outline-none focus:border-[#00a884] md:text-sm"
                 />
               </label>
@@ -500,7 +509,15 @@ const WhatsAppBulkSend = ({
                 <button
                   type="button"
                   onClick={() => void run()}
-                  disabled={!preview || toSend === 0 || running || !text.trim() || missingLink || missingImage}
+                  disabled={
+                    !preview ||
+                    toSend === 0 ||
+                    running ||
+                    !text.trim() ||
+                    missingLink ||
+                    missingImage ||
+                    (needsMessage && !mensaje.trim())
+                  }
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   <Send className="size-4" /> Enviar a {toSend}

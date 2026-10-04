@@ -30,7 +30,7 @@ import {
   sendWorkshopWhatsAppReminders,
   setWorkshopWaRemindersEnabled,
   WORKSHOP_WA_REMINDERS_SETTING,
-  WORKSHOP_WA_TEMPLATE_KEY,
+  workshopWaTemplateKey,
   workshopWaRemindersEnabled,
 } from "@/lib/crm/workshop-whatsapp-reminders";
 import { isWorkshopDatePast, PAST_DATE_MESSAGE } from "@/lib/crm/workshop-lifecycle-rules";
@@ -235,9 +235,13 @@ export const getWaRemindersResponse = (req: NextRequest, slug: string) =>
   withEdition(slug, async (e) => {
     const pass = waPassSchema.safeParse(new URL(req.url).searchParams.get("pass") ?? "24h");
     if (!pass.success) return apiError("invalid_pass", 400);
-    const contactIds = await listPendingWorkshopWaContactIds(e.id, pass.data);
+    // La plantilla que usará el envío: `evento_acceso` si ya está aprobada.
+    const [contactIds, templateKey] = await Promise.all([
+      listPendingWorkshopWaContactIds(e.id, pass.data),
+      workshopWaTemplateKey(),
+    ]);
     const [preview, enabled] = await Promise.all([
-      previewSend({ contactIds, templateKey: WORKSHOP_WA_TEMPLATE_KEY, kind: "taller" }),
+      previewSend({ contactIds, templateKey, kind: "taller" }),
       workshopWaRemindersEnabled(),
     ]);
     return NextResponse.json({
