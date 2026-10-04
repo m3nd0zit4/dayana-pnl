@@ -54,17 +54,8 @@ export const SKIP_LABEL: Record<string, string> = {
   category_equipo: "Equipo: la IA no responde",
 };
 
-/** Filtros de categoría de «Todos», en este orden. */
-export const CATEGORY_FILTERS: { id: string; label: string }[] = [
-  { id: "cliente", label: "Clientes" },
-  { id: "interesada", label: "Interesadas" },
-  { id: "comunidad", label: "Comunidad" },
-  { id: "personal", label: "Personales" },
-  { id: "negocio", label: "Negocios" },
-  { id: "equipo", label: "Equipo" },
-  { id: "unclassified", label: "Sin clasificar" },
-  { id: "review", label: "Revisar" },
-];
+/** Filtros de categoría de «Todos» y Personas (viven en lib para poder probarlos). */
+export { CATEGORY_FILTERS, categoryCountOf, showCategoryFilter } from "@/lib/crm/whatsapp-category-filter";
 
 /** De dónde salió la categoría de un chat. */
 export const CATEGORY_SOURCE_LABEL: Record<string, string> = {

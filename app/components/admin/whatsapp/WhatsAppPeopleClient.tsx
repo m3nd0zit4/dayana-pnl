@@ -7,7 +7,8 @@ import { Input } from "@/app/components/ui/input";
 import { CHAT_CATEGORY_LABEL, isChatCategory } from "@/lib/crm/chat-category-rules";
 import { cn } from "@/lib/utils";
 import CrmPageShell from "../crm/CrmPageShell";
-import { CATEGORY_FILTERS, MODE_LABEL, agoLabel, useNow } from "./status";
+import type { CategoryCounts } from "@/lib/crm/chat-category";
+import { CATEGORY_FILTERS, MODE_LABEL, agoLabel, showCategoryFilter, useNow } from "./status";
 
 type Person = {
   conversationId: string;
@@ -30,6 +31,7 @@ const WhatsAppPeopleClient = () => {
   const [items, setItems] = useState<Person[] | null>(null);
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [counts, setCounts] = useState<CategoryCounts | null>(null);
   const now = useNow(true, 60_000);
 
   const load = useCallback(async (query: string, cat: string | null) => {
@@ -42,6 +44,10 @@ const WhatsAppPeopleClient = () => {
 
   useEffect(() => {
     void load("", null);
+    // Las cuentas solo esconden los filtros vacíos; si fallan, se enseñan todos.
+    void fetch("/api/admin/whatsapp/categories", { cache: "no-store" })
+      .then((res) => (res.ok ? (res.json() as Promise<CategoryCounts>) : null))
+      .then(setCounts, () => null);
   }, [load]);
 
   const pick = (next: string | null) => {
@@ -70,6 +76,8 @@ const WhatsAppPeopleClient = () => {
       <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Categoría">
         {[{ id: null as string | null, label: "Todas" }, ...CATEGORY_FILTERS].map((f) => {
           const active = category === f.id;
+          // Como en «Todos»: lo que no tiene a nadie no se enseña (salvo si está elegido).
+          if (f.id && !showCategoryFilter(counts, f.id, active)) return null;
           return (
             <button
               key={f.id ?? "all"}

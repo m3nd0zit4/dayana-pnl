@@ -21,13 +21,13 @@ import { prisma } from "@/lib/db";
 import type { NormalizedMessage } from "@/lib/meta/inbound";
 import { ingestMessage, processNormalizedEvent } from "@/lib/meta/ingest";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
-import { CLASSIFY_ENABLED_KEY, reclassifyByRulesNow, setManualCategory } from "@/lib/crm/chat-category";
+import { CLASSIFY_ENABLED_KEY, categoryCounts, reclassifyByRulesNow, setManualCategory } from "@/lib/crm/chat-category";
 import { isSilencingCategory } from "@/lib/crm/chat-category-rules";
 import { getPendientes } from "@/lib/crm/pendientes";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { getWelcomeConfig, setWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
 import { attentionWhere, openAttention } from "@/lib/crm/whatsapp-agent/attention";
-import { listChats, queueCounts } from "@/lib/crm/whatsapp-agent/workspace";
+import { chatCategoryWhere, listChats, queueCounts } from "@/lib/crm/whatsapp-agent/workspace";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
 process.env.NOTIFICATIONS_DRY_RUN = "true";
@@ -50,6 +50,7 @@ const T = {
   followPersonal: "573000009445",
   followInteresada: "573000009446",
   unclassified: "573000009447",
+  otro: "573000009448",
 };
 const THREADS = Object.values(T);
 
@@ -271,6 +272,15 @@ const main = async () => {
       check("«Revisar» trae el dudoso", await has("review", unsure));
       check("«Sin clasificar» trae el que nadie miró", await has("unclassified", u));
       check("«Clientes» no trae lo personal", !(await has("cliente", sure)));
+      const o = await store(T.otro, "Hola");
+      await aiLabel(o, "otro", 0.9, false);
+      check("«Otros» trae el de categoría «otro»", await has("otro", o));
+      check("y no queda en «Sin clasificar»", !(await has("unclassified", o)));
+      check(
+        "Personas filtra igual (mismo where)",
+        (await prisma.conversation.count({ where: { id: o, ...chatCategoryWhere("otro") } })) === 1
+      );
+      check("el contador de «Otros» lo cuenta (el chip se ve)", (await categoryCounts()).counts.otro >= 1);
       const item = (await listChats({ queue: "all", category: "review", take: 600 })).find((i) => i.id === unsure);
       check("la fila lleva su categoría y el punto de «revisar»", item?.category === "personal" && item.categoryReview === true, item);
     }
