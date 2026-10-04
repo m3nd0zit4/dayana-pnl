@@ -25,7 +25,7 @@ const WorkshopDetailActions = ({ edition, openOther, publishBlockedReason, owner
     target={{ id: edition.id, key: edition.slug, title: edition.title, registrations: edition.paid, status: edition.status }}
     publicLink={{
       href: `/taller-virtual/${edition.slug}`,
-      label: ownerPreview && edition.status === "DRAFT" ? "Ver en web (vista previa)" : "Ver en web",
+      label: ownerPreview && edition.status === "DRAFT" ? "Ver página pública (vista previa)" : "Ver página pública",
       copy: edition.status !== "DRAFT",
       disabledReason:
         edition.status === "DRAFT" && !ownerPreview ? "Es un borrador: aún no tiene página pública." : undefined,

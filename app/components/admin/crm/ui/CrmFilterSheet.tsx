@@ -24,6 +24,8 @@ type Props = {
   /** Acciones sobre el resultado filtrado, p. ej. exportar. */
   footer?: ReactNode;
   description?: string;
+  /** Clases extra del botón «Filtros» (p. ej. 40 px de alto en el chat). */
+  triggerClassName?: string;
 };
 
 /**
@@ -44,6 +46,7 @@ const CrmFilterSheet = ({
   children,
   footer,
   description = "Se aplican al momento.",
+  triggerClassName,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -54,6 +57,7 @@ const CrmFilterSheet = ({
         type="button"
         variant="outline"
         onClick={() => setOpen(true)}
+        className={triggerClassName}
         aria-label={activeCount > 0 ? `Filtros (${activeCount} activos)` : "Filtros"}
       >
         <SlidersHorizontal aria-hidden />

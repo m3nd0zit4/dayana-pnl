@@ -83,7 +83,7 @@ const WorkshopsPageClient = ({ workshops, initialView, operationalTimezone, copy
     if (w.status === "OPEN" && !w.ended) {
       return (
         <CrmRowActions>
-          <CrmPublicLink href={w.publicPath} label="Ver en web" density="row" />
+          <CrmPublicLink href={w.publicPath} label="Ver página pública" density="row" />
           {inscritas}
           {terminar}
         </CrmRowActions>
@@ -201,7 +201,7 @@ const WorkshopsPageClient = ({ workshops, initialView, operationalTimezone, copy
           "Ninguno publicado ahora. Cada taller tiene su página, su precio, sus inscritas y su historia."
         )
       }
-      secondaryActions={<CrmPublicLink href="/taller-virtual" label="Ver listado público" copy />}
+      secondaryActions={<CrmPublicLink href="/taller-virtual" label="Ver página pública" copy />}
       newLabel={writable ? "Nuevo taller" : undefined}
       onNew={() => setCreating(true)}
       basePath="/admin/workshops"

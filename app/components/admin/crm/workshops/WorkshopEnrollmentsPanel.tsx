@@ -309,7 +309,7 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
         <p className="flex items-center gap-2 text-xs text-destructive">
           <AlertTriangle className="size-3.5 shrink-0" aria-hidden />
           {stats.waFailed.toLocaleString("es-CO")} sin enviar por WhatsApp. No se reintentan solos: filtra «Solo
-          fallidas» y pulsa «Reintentar WA».
+          fallidas» y pulsa «Reintentar WhatsApp».
         </p>
       ) : null}
 
@@ -401,7 +401,7 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
                           disabled={busyId === r.id || !waEnabled || waRun !== null}
                           onClick={() => void retryWa(r, pass)}
                         >
-                          Reintentar WA {pass === "24h" ? "24 h" : "1 h"}
+                          Reintentar WhatsApp {pass === "24h" ? "24 h" : "1 h"}
                         </Button>
                       ))}
                     </div>
@@ -428,8 +428,8 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
                   <p className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
                     <Mark at={r.reminder24hSentAt} label="Correo 24 h" />
                     <Mark at={r.reminder1hSentAt} label="Correo 1 h" />
-                    <Mark at={r.reminder24hWaSentAt} error={r.waReminderError} label="WA 24 h" />
-                    <Mark at={r.reminder1hWaSentAt} error={r.waReminder1hError} label="WA 1 h" />
+                    <Mark at={r.reminder24hWaSentAt} error={r.waReminderError} label="WhatsApp 24 h" />
+                    <Mark at={r.reminder1hWaSentAt} error={r.waReminder1hError} label="WhatsApp 1 h" />
                   </p>
                   {failedWaPasses(r).length > 0 ? (
                     failedWaPasses(r).map(({ pass, error }) => (

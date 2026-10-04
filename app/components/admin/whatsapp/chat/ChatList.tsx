@@ -4,10 +4,11 @@ import { Loader2, PanelLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CategoryCounts } from "@/lib/crm/chat-category";
 import type { ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
+import { CrmFilterSheet } from "../../crm/ui";
 import GlobalModeSwitch from "../GlobalModeSwitch";
 import { CATEGORY_FILTERS, categoryCountOf, showCategoryFilter } from "../status";
 import ChatRow from "./ChatRow";
-import { wa } from "./chatTheme";
+import { WA_THEME, wa } from "./chatTheme";
 
 export type Counts = { attention: number; seguimiento: number; mine: number; ai: number; unread: number };
 
@@ -57,6 +58,98 @@ const chip = (active: boolean) =>
     active ? "bg-(--wa-green-soft) text-(--wa-accent)" : "bg-(--wa-panel) text-(--wa-icon) hover:bg-(--wa-divider)"
   );
 
+/**
+ * Los filtros de «Todos»: quién responde y categoría. En la computadora, dos
+ * filas bajo las pestañas; en el teléfono, dentro de la hoja «Filtros» (las dos
+ * filas apiladas empujaban el primer chat media pantalla abajo).
+ */
+const AllFilters = ({
+  inSheet,
+  queue,
+  onQueue,
+  showCategories,
+  searching,
+  category,
+  categoryCounts,
+  onCategory,
+}: {
+  inSheet: boolean;
+  queue: ChatQueue;
+  onQueue: (id: ChatQueue) => void;
+  showCategories: boolean;
+  searching: boolean;
+  category: string | null;
+  categoryCounts: CategoryCounts | null;
+  onCategory: (category: string | null) => void;
+}) => {
+  // En la hoja, los chips bajan de línea; en la fila, se desliza de lado.
+  const row = inSheet ? "flex flex-wrap items-center gap-1.5" : "flex items-center gap-1.5 overflow-x-auto";
+  const label = inSheet ? "w-full text-xs font-medium text-(--wa-meta)" : "shrink-0 text-xs text-(--wa-meta)";
+  return (
+    <>
+      <div className={row} role="group" aria-label="Quién responde">
+        <span className={label}>{inSheet ? "Quién responde" : "Quién responde:"}</span>
+        {MODE_FILTERS.map((f) => {
+          const active = queue === f.id;
+          return (
+            <button
+              key={f.id}
+              type="button"
+              title={f.hint}
+              aria-pressed={active}
+              onClick={() => onQueue(f.id)}
+              className={subChip(active)}
+            >
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+      {showCategories && (
+        <div
+          className={cn(row, !inSheet && "pb-0.5")}
+          role="group"
+          aria-label="Categoría"
+          title={searching ? SEARCH_IGNORES_CATEGORY : undefined}
+        >
+          <span className={label}>{inSheet ? "Categoría" : "Categoría:"}</span>
+          {/* Buscar mira todos los chats: el filtro se ve, pero no aplica. */}
+          {searching && <span className="shrink-0 text-xs italic text-(--wa-meta)">no aplica al buscar</span>}
+          <button
+            type="button"
+            aria-pressed={!searching && !category}
+            disabled={searching}
+            onClick={() => onCategory(null)}
+            className={cn(subChip(!searching && !category), searching && "opacity-50")}
+          >
+            Todas
+          </button>
+          {CATEGORY_FILTERS.map((f) => {
+            const chosen = category === f.id;
+            // Lo que no tiene ningún chat no se enseña (salvo si está elegido).
+            if (!showCategoryFilter(categoryCounts, f.id, chosen)) return null;
+            const active = chosen && !searching;
+            const n = categoryCountOf(categoryCounts, f.id);
+            return (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={active}
+                disabled={searching}
+                onClick={() => onCategory(chosen ? null : f.id)}
+                className={cn(subChip(active), searching && "opacity-50")}
+              >
+                {f.label}
+                <span className={cn("ml-1 tabular-nums", active ? "opacity-80" : "text-(--wa-meta)")}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+};
+
 const Empty = ({ queue, q }: { queue: ChatQueue; q: string }) => {
   if (q.trim()) {
     return <div className="p-8 text-center text-sm text-(--wa-meta)">Ningún chat coincide con «{q.trim()}».</div>;
@@ -103,6 +196,7 @@ const ChatList = ({
   categoryCounts,
   category,
   onCategory,
+  onClearFilters,
 }: {
   items: ChatListItem[] | null;
   counts: Counts;
@@ -128,6 +222,8 @@ const ChatList = ({
   /** Filtro de categoría de «Todos» (una categoría, `unclassified` o `review`). */
   category: string | null;
   onCategory: (category: string | null) => void;
+  /** «Limpiar filtros» de la hoja: quién responde y categoría a la vez, en una sola carga. */
+  onClearFilters: () => void;
 }) => {
   const tab = tabOf(queue);
   // Los filtros de categoría solo si la clasificación está encendida o ya hay chats clasificados.
@@ -136,6 +232,9 @@ const ChatList = ({
   );
   // Buscar busca en todos los chats: el filtro de categoría no aplica mientras tanto.
   const searching = Boolean(q.trim());
+  const filterProps = { queue, onQueue, showCategories, searching, category, categoryCounts, onCategory };
+  // Lo que cuenta el botón «Filtros»: lo mismo que se ve marcado dentro de la hoja.
+  const activeFilters = (queue === "ai" || queue === "mine" ? 1 : 0) + (category && !searching ? 1 : 0);
   return (
     <div className={cn("flex w-full min-w-0 flex-col bg-(--wa-surface) md:w-[26rem] md:shrink-0", hidden && "hidden md:flex")}>
       <div className="flex h-[60px] items-center gap-2 bg-(--wa-panel) px-2 md:px-3">
@@ -157,17 +256,30 @@ const ChatList = ({
         <GlobalModeSwitch onChanged={onModeChanged} />
       </div>
       <div className="space-y-2 border-b border-(--wa-divider) px-3 py-2">
-        <div className="flex items-center gap-2 rounded-lg bg-(--wa-panel) px-3">
-          <Search className="size-4 shrink-0 text-(--wa-icon)" />
-          <input
-            value={q}
-            onChange={(e) => onQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && onSearch()}
-            onBlur={onSearch}
-            placeholder="Buscar un chat o número"
-            aria-label="Buscar un chat o número"
-            className="h-10 w-full bg-transparent text-base text-(--wa-text) outline-none placeholder:text-(--wa-meta) md:h-9 md:text-sm"
-          />
+        <div className="flex items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg bg-(--wa-panel) px-3">
+            <Search className="size-4 shrink-0 text-(--wa-icon)" />
+            <input
+              value={q}
+              onChange={(e) => onQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSearch()}
+              onBlur={onSearch}
+              placeholder="Buscar un chat o número"
+              aria-label="Buscar un chat o número"
+              className="h-10 w-full bg-transparent text-base text-(--wa-text) outline-none placeholder:text-(--wa-meta) md:h-9 md:text-sm"
+            />
+          </div>
+          {/* Teléfono: los filtros de «Todos» en una hoja, como en el resto del CRM. */}
+          {tab === "all" && (
+            <div className="shrink-0 md:hidden">
+              <CrmFilterSheet activeCount={activeFilters} onClear={onClearFilters} triggerClassName="h-10">
+                {/* La hoja se pinta fuera del chat: necesita su paleta para los chips. */}
+                <div className={cn(WA_THEME, "flex flex-col gap-4")}>
+                  <AllFilters inSheet {...filterProps} />
+                </div>
+              </CrmFilterSheet>
+            </div>
+          )}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-0.5" role="group" aria-label="Qué chats ver">
           {TABS.map((t) => {
@@ -197,65 +309,10 @@ const ChatList = ({
             );
           })}
         </div>
+        {/* En la computadora, a la vista; en el teléfono viven en «Filtros», junto a la búsqueda. */}
         {tab === "all" && (
-          <div className="flex items-center gap-1.5 overflow-x-auto" role="group" aria-label="Quién responde">
-            <span className="shrink-0 text-xs text-(--wa-meta)">Quién responde:</span>
-            {MODE_FILTERS.map((f) => {
-              const active = queue === f.id;
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  title={f.hint}
-                  aria-pressed={active}
-                  onClick={() => onQueue(f.id)}
-                  className={subChip(active)}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {tab === "all" && showCategories && (
-          <div
-            className="flex items-center gap-1.5 overflow-x-auto pb-0.5"
-            role="group"
-            aria-label="Categoría"
-            title={searching ? SEARCH_IGNORES_CATEGORY : undefined}
-          >
-            <span className="shrink-0 text-xs text-(--wa-meta)">Categoría:</span>
-            {/* Buscar mira todos los chats: el filtro se ve, pero no aplica. */}
-            {searching && <span className="shrink-0 text-xs italic text-(--wa-meta)">no aplica al buscar</span>}
-            <button
-              type="button"
-              aria-pressed={!searching && !category}
-              disabled={searching}
-              onClick={() => onCategory(null)}
-              className={cn(subChip(!searching && !category), searching && "opacity-50")}
-            >
-              Todas
-            </button>
-            {CATEGORY_FILTERS.map((f) => {
-              const chosen = category === f.id;
-              // Lo que no tiene ningún chat no se enseña (salvo si está elegido).
-              if (!showCategoryFilter(categoryCounts, f.id, chosen)) return null;
-              const active = chosen && !searching;
-              const n = categoryCountOf(categoryCounts, f.id);
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  aria-pressed={active}
-                  disabled={searching}
-                  onClick={() => onCategory(chosen ? null : f.id)}
-                  className={cn(subChip(active), searching && "opacity-50")}
-                >
-                  {f.label}
-                  <span className={cn("ml-1 tabular-nums", active ? "opacity-80" : "text-(--wa-meta)")}>{n}</span>
-                </button>
-              );
-            })}
+          <div className="hidden space-y-2 md:block">
+            <AllFilters inSheet={false} {...filterProps} />
           </div>
         )}
       </div>

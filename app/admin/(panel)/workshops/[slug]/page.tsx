@@ -192,7 +192,7 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
           backHref="/admin/workshops"
           backLabel="Talleres"
           secondaryActions={
-            <CrmPublicLink href={`/taller-virtual/${slug}`} label="Ver en web" disabledReason="Vista previa sin datos." />
+            <CrmPublicLink href={`/taller-virtual/${slug}`} label="Ver página pública" disabledReason="Vista previa sin datos." />
           }
           trailing={
             <EditionTabs

@@ -117,7 +117,7 @@ const EditionDetailActions = ({
       <div className="hidden flex-wrap items-center gap-2 sm:flex">
         <CrmPublicLink
           href={publicLink.href}
-          label={publicLink.label ?? "Ver en web"}
+          label={publicLink.label ?? "Ver página pública"}
           copy={publicLink.copy}
           disabledReason={publicLink.disabledReason}
         />
@@ -180,7 +180,7 @@ const EditionDetailActions = ({
               onClick={() => window.open(publicLink.href, "_blank", "noopener,noreferrer")}
             >
               <ExternalLink aria-hidden />
-              {publicLink.label ?? "Ver en web"}
+              {publicLink.label ?? "Ver página pública"}
             </DropdownMenuItem>
             {publicLink.copy && !linkDisabled ? (
               <DropdownMenuItem onClick={() => void copyLink()}>

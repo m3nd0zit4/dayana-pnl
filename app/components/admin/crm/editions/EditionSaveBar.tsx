@@ -41,12 +41,26 @@ const EditionSaveBar = ({
         </span>
       </p>
       <CrmFormActions className="mt-0 shrink-0 flex-row items-center">
+        {/* En el teléfono, 40 px de alto (con el pulgar); en escritorio, el `sm` de siempre. */}
         {dirty && onDiscard ? (
-          <Button type="button" variant="ghost" size="sm" disabled={saving} onClick={onDiscard}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={saving}
+            onClick={onDiscard}
+            className="h-10 px-3 sm:h-7 sm:px-2.5"
+          >
             Descartar
           </Button>
         ) : null}
-        <Button type="button" size="sm" disabled={saving || disabled || !dirty} onClick={onSave}>
+        <Button
+          type="button"
+          size="sm"
+          disabled={saving || disabled || !dirty}
+          onClick={onSave}
+          className="h-10 px-4 sm:h-7 sm:px-2.5"
+        >
           {saving ? (
             "Guardando…"
           ) : (

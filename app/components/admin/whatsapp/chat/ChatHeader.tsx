@@ -271,7 +271,12 @@ const ChatMenu = ({
             // Tomarlo también lo marca como favorito ⭐ (la API pone las dos cosas).
             onClick={() => act("take", { action: "take" }, "Modo Yo y favorito ⭐: la IA no toca este chat")}
           >
-            <Hand /> Tomar chat
+            <Hand />
+            {/* Justo debajo del modo «Yo»: la línea dice en qué se diferencia. */}
+            <span className="flex flex-col py-1">
+              <span>Tomar chat</span>
+              <span className="text-xs text-muted-foreground">Modo Yo + favorito ⭐</span>
+            </span>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem
