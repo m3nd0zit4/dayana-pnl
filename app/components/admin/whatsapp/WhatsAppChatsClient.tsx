@@ -60,10 +60,13 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     categoryRef.current = category;
   });
 
-  /** Los números de cada categoría: solo hacen falta en «Todos», y no en cada aviso en vivo. */
+  /**
+   * Los números de cada categoría: solo hacen falta en «Todos», y no en cada
+   * aviso en vivo. `force`: justo después de cambiar una categoría a mano.
+   */
   const categoriesAt = useRef(0);
-  const loadCategories = useCallback(async () => {
-    if (Date.now() - categoriesAt.current < 20_000) return;
+  const loadCategories = useCallback(async (force = false) => {
+    if (!force && Date.now() - categoriesAt.current < 20_000) return;
     categoriesAt.current = Date.now();
     const res = await fetch("/api/admin/whatsapp/categories", { cache: "no-store" }).catch(() => null);
     if (res?.ok) setCategoryCounts((await res.json()) as CategoryCounts);
@@ -241,6 +244,10 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
             onBack={closeChat}
             onToggleSidebar={toggleSidebar}
             onChanged={refresh}
+            onCategoryChanged={() => {
+              void loadCategories(true);
+              refresh();
+            }}
           />
         )}
       </div>

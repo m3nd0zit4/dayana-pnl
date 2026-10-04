@@ -40,8 +40,9 @@ export type { CloseBy };
 /**
  * Chats que su categoría NO calla: con la clasificación apagada, todos. Encendida,
  * el criterio de `notSilencedWhere` y, además, los que la IA etiquetó pero la
- * persona escribió después (la etiqueta quedó vieja: la IA vuelve a contestar
- * hasta que se mire otra vez, y «Te toca» tiene que verlos igual que ella).
+ * persona escribió después (la etiqueta quedó vieja: no calla hasta que se
+ * vuelva a mirar, cosa que la IA hace en el momento antes de contestar).
+ * En puro: `!silencesNow` (`../whatsapp-category-filter`).
  */
 export const notSilencedChatsWhere = (enabled: boolean): Prisma.ConversationWhereInput =>
   enabled
@@ -63,15 +64,33 @@ export const notSilencedChatsWhere = (enabled: boolean): Prisma.ConversationWher
  * La única definición de «Te toca» (la cola, el menú, la portada, los
  * pendientes del CRM y la herramienta del agente). Con la clasificación
  * encendida, lo callado por su categoría (personal, negocio/app, equipo, con
- * etiqueta segura) no cuenta; apagada, no se quita nada.
+ * etiqueta segura) no cuenta como «sin responder»; una escalada (pago,
+ * clínico, queja, urgencia…) y lo que espera su autorización cuentan siempre.
+ * Apagada, no se quita nada. En puro: `showsInTeToca`.
  */
-export const attentionWhere = async (): Promise<Prisma.ConversationWhereInput> => ({
-  channel: "WHATSAPP",
-  AND: [
-    { OR: [{ attentionAt: { not: null } }, { aiRuns: { some: { status: "AWAITING_APPROVAL" } } }] },
-    notSilencedChatsWhere(await isClassifyEnabled()),
-  ],
-});
+export const attentionWhere = async (): Promise<Prisma.ConversationWhereInput> => {
+  const enabled = await isClassifyEnabled();
+  return {
+    channel: "WHATSAPP",
+    OR: [
+      { aiRuns: { some: { status: "AWAITING_APPROVAL" } } },
+      {
+        AND: [
+          { attentionAt: { not: null } },
+          enabled
+            ? {
+                OR: [
+                  // `attentionSurvivesSilence`: con motivo y que no sea «sin responder».
+                  { AND: [{ attentionReason: { not: null } }, { attentionReason: { not: "unanswered" } }] },
+                  notSilencedChatsWhere(true),
+                ],
+              }
+            : {},
+        ],
+      },
+    ],
+  };
+};
 
 /** Avisos de la campana que pierden sentido cuando el chat se atiende. */
 const CHAT_NOTICES: NotificationEventType[] = ["WHATSAPP_AI_ESCALATED", "WHATSAPP_AI_APPROVAL", "WHATSAPP_AI_INFO"];
@@ -389,8 +408,9 @@ export const clearEscalationAttention = async (conversationId: string): Promise<
  * - No es clienta: sin matrícula activa ni terminada.
  * - No quedó cerrado por una cita o un pago (si escribe otra vez, se reabre).
  * - No pidió que no le escribieran.
- * - Con la clasificación encendida, solo «interesada» o sin clasificar todavía
- *   (nunca lo personal, lo de negocio/app, el equipo, la comunidad…).
+ * - Con la clasificación encendida, nunca lo que su categoría calla (personal,
+ *   negocio/app, equipo) ni las clientas o la comunidad; sí las interesadas,
+ *   «otro», lo dudoso («revisar») y lo que aún no se clasificó.
  *   Apagada, la regla de arriba tal cual.
  */
 export const seguimientoWhere = async (now: Date = new Date()): Promise<Prisma.ConversationWhereInput> => {
@@ -430,7 +450,13 @@ export const seguimientoWhere = async (now: Date = new Date()): Promise<Prisma.C
         ],
       },
       { OR: [{ resolvedReason: null }, { resolvedReason: { notIn: ["appointment", "payment"] } }] },
-      ...(classify ? [{ OR: [{ category: null }, { category: "interesada" }] }] : []),
+      // Encendida: fuera lo callado, las clientas y la comunidad (lo dudoso se queda).
+      ...(classify
+        ? [
+            notSilencedChatsWhere(true),
+            { OR: [{ category: null }, { category: { notIn: ["cliente", "comunidad"] } }, { categoryReview: true }] },
+          ]
+        : []),
     ],
   };
 };

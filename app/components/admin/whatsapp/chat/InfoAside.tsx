@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { CHAT_CATEGORY_LABEL, isChatCategory } from "@/lib/crm/chat-category-rules";
+import { CHAT_CATEGORY_LABEL, isChatCategory, isSilencingCategory } from "@/lib/crm/chat-category-rules";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import { CATEGORY_SOURCE_LABEL, RunStatus, agoLabel } from "../status";
 import { wa } from "./chatTheme";
@@ -14,6 +14,13 @@ const ClassificationInfo = ({ classification: c }: { classification: ChatDetail[
   const label = c.category && isChatCategory(c.category) ? CHAT_CATEGORY_LABEL[c.category] : null;
   const source = c.source ? (CATEGORY_SOURCE_LABEL[c.source] ?? c.source) : null;
   const confidence = c.source === "ai" && c.confidence != null ? ` · ${Math.round(c.confidence * 100)} %` : "";
+  // Callaría, pero la etiqueta de la IA quedó vieja (la persona escribió después).
+  const wouldSilence =
+    c.stale &&
+    isSilencingCategory(
+      { category: c.category, categorySource: c.source, categoryConfidence: c.confidence, categoryReview: c.review },
+      { enabled: c.enabled }
+    );
   return (
     <section className="space-y-1.5">
       <h3 className="text-sm font-semibold text-(--wa-accent)">Categoría</h3>
@@ -33,10 +40,12 @@ const ClassificationInfo = ({ classification: c }: { classification: ChatDetail[
           {c.reason && <p className="text-xs text-(--wa-icon)">{c.reason}</p>}
           <p className="text-xs text-(--wa-meta)">
             {c.silencing
-              ? "La IA no le contesta y no aparece en «Te toca»."
+              ? "La IA no le contesta y no aparece en «Te toca» (salvo un pago, una urgencia o algo por aprobar)."
               : !c.enabled
                 ? "La clasificación está apagada: la categoría solo informa."
-                : "Esta categoría no silencia a la IA."}
+                : wouldSilence
+                  ? "Escribió después de que la IA lo mirara: lo vuelve a mirar antes de contestar."
+                  : "Esta categoría no silencia a la IA."}
           </p>
         </>
       ) : (

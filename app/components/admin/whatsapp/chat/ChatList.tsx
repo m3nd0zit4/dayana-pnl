@@ -37,6 +37,8 @@ const MODE_FILTERS: { id: "all" | "ai" | "mine"; label: string; hint: string }[]
 export const tabOf = (queue: ChatQueue): Tab =>
   queue === "attention" || queue === "seguimiento" ? queue : "all";
 
+const SEARCH_IGNORES_CATEGORY = "La búsqueda mira todos los chats: borra la búsqueda para filtrar por categoría.";
+
 /** Los filtros de dentro de «Todos» (quién responde, categoría): más discretos que las pestañas. */
 const subChip = (active: boolean) =>
   cn(
@@ -127,6 +129,8 @@ const ChatList = ({
   const showCategories = Boolean(
     categoryCounts && (categoryCounts.enabled || categoryCounts.total > categoryCounts.unclassified)
   );
+  // Buscar busca en todos los chats: el filtro de categoría no aplica mientras tanto.
+  const searching = Boolean(q.trim());
   return (
     <div className={cn("flex w-full min-w-0 flex-col bg-(--wa-surface) md:w-[26rem] md:shrink-0", hidden && "hidden md:flex")}>
       <div className="flex h-[60px] items-center gap-2 bg-(--wa-panel) px-2 md:px-3">
@@ -209,23 +213,38 @@ const ChatList = ({
           </div>
         )}
         {tab === "all" && showCategories && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="Categoría">
+          <div
+            className="flex items-center gap-1.5 overflow-x-auto pb-0.5"
+            role="group"
+            aria-label="Categoría"
+            title={searching ? SEARCH_IGNORES_CATEGORY : undefined}
+          >
             <span className="shrink-0 text-xs text-(--wa-meta)">Categoría:</span>
-            <button type="button" aria-pressed={!category} onClick={() => onCategory(null)} className={subChip(!category)}>
+            {/* Buscar mira todos los chats: el filtro se ve, pero no aplica. */}
+            {searching && <span className="shrink-0 text-xs italic text-(--wa-meta)">no aplica al buscar</span>}
+            <button
+              type="button"
+              aria-pressed={!searching && !category}
+              disabled={searching}
+              onClick={() => onCategory(null)}
+              className={cn(subChip(!searching && !category), searching && "opacity-50")}
+            >
               Todas
             </button>
             {CATEGORY_FILTERS.map((f) => {
-              const active = category === f.id;
+              const chosen = category === f.id;
               // Lo que no tiene ningún chat no se enseña (salvo si está elegido).
-              if (!showCategoryFilter(categoryCounts, f.id, active)) return null;
+              if (!showCategoryFilter(categoryCounts, f.id, chosen)) return null;
+              const active = chosen && !searching;
               const n = categoryCountOf(categoryCounts, f.id);
               return (
                 <button
                   key={f.id}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => onCategory(active ? null : f.id)}
-                  className={subChip(active)}
+                  disabled={searching}
+                  onClick={() => onCategory(chosen ? null : f.id)}
+                  className={cn(subChip(active), searching && "opacity-50")}
                 >
                   {f.label}
                   <span className={cn("ml-1 tabular-nums", active ? "opacity-80" : "text-(--wa-meta)")}>{n}</span>
