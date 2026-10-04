@@ -9,8 +9,9 @@ import {
   EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
   EVENT_REMINDER_UTILITY_TEMPLATE_TITLE,
   EVENT_TEMPLATE_KEYS_TO_ENSURE,
-  isTemplateApproved,
   preferredEventReminderTemplateKey,
+  RETIRED_TEMPLATES,
+  retiredTemplateRemovable,
 } from "./event-reminder-template";
 import { scheduleVars } from "./event-schedule";
 import { EVENT_ACCESS_BODY, EVENT_INVITATION_BODY } from "./event-template-vars";
@@ -98,7 +99,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     key: "evento_gratis_invitacion",
     title: "Evento gratuito: invitación",
-    replacedBy: [EVENT_INVITATION_TEMPLATE_KEY],
+    replacedBy: RETIRED_TEMPLATES.evento_gratis_invitacion,
     category: "MARKETING",
     body: "Hola {{nombre}}, te bendigo 💛 Te invito a {{evento}}, gratis, el {{fecha}}. Reserva tu lugar aquí: {{enlace}} ¡Te espero!",
     example: { nombre: "Ana", evento: "la masterclass Reprograma tu mente", fecha: "jueves 2 de octubre, 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
@@ -107,7 +108,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     key: "evento_gratis_recordatorio",
     title: "Evento gratuito: recordatorio",
     // El de 24 h pasa a `evento_acceso`; el de 1 h, a la corta de utilidad.
-    replacedBy: [EVENT_ACCESS_TEMPLATE_KEY, EVENT_REMINDER_UTILITY_TEMPLATE_KEY],
+    replacedBy: RETIRED_TEMPLATES[EVENT_REMINDER_FALLBACK_TEMPLATE_KEY],
     category: "UTILITY",
     body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}} Nos vemos pronto 💛",
     example: { nombre: "Ana", evento: "la masterclass", fecha: "hoy a las 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
@@ -154,7 +155,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     key: "taller_invitacion",
     title: "Taller: invitación",
-    replacedBy: [EVENT_INVITATION_TEMPLATE_KEY],
+    replacedBy: RETIRED_TEMPLATES.taller_invitacion,
     category: "MARKETING",
     body: "Hola {{nombre}}, te bendigo 💛 Abrimos {{evento}}, el {{fecha}}. Toda la información y tu inscripción aquí: {{enlace}} ¡Me encantaría verte!",
     example: { nombre: "Ana", evento: "el taller Sanando a mi niña interior", fecha: "sábado 11 de octubre", enlace: "https://www.dayanabeltran.com/taller-virtual/sanando" },
@@ -162,7 +163,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   {
     key: "taller_recordatorio",
     title: "Taller: recordatorio",
-    replacedBy: [EVENT_ACCESS_TEMPLATE_KEY],
+    replacedBy: RETIRED_TEMPLATES.taller_recordatorio,
     category: "UTILITY",
     body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Ingresa aquí: {{enlace}} ¡Te espero!",
     example: { nombre: "Ana", evento: "tu taller", fecha: "mañana a las 9:00 a. m.", enlace: "https://www.dayanabeltran.com/taller-virtual/sanando" },
@@ -297,20 +298,30 @@ const remoteStatus = (t: RemoteTemplate): string | null =>
       : t.status.toUpperCase()
     : null;
 
-const remoteBody = (t: RemoteTemplate) =>
+const remoteBody = (t: Pick<RemoteTemplate, "components">) =>
   t.components?.find((c) => c.type?.toUpperCase() === "BODY")?.text ?? null;
 
+const sameText = (a: string, b: string) => a.replace(/\s+/g, " ").trim() === b.replace(/\s+/g, " ").trim();
+
+/** La recomendada que se llama como esa plantilla de Meta, si hay. */
+const starterNamed = (name: string) => STARTER_TEMPLATES.find((s) => metaTemplateName(s.key) === name) ?? null;
+
 /**
- * La recomendada cuyo nombre en Meta es `name`, con sus variables en su orden
- * ({{1}} = la primera de su cuerpo…). `null` si no es de ninguna.
+ * La recomendada a la que se liga una plantilla creada en el Hub (la de
+ * imagen), con sus variables en su orden ({{1}} = la primera de su cuerpo…).
+ * Solo si se llama igual, está en español y su cuerpo es el de la
+ * recomendada ya en {{1}}… (espacios aparte): con otro cuerpo, las variables
+ * irían en otro orden. `null` si no.
  */
 export const starterLinkForRemote = (
-  name: string
+  t: Pick<RemoteTemplate, "name" | "language" | "components">
 ): { key: string; title: string; body: string; metaVarNames: string[] } | null => {
-  const starter = STARTER_TEMPLATES.find((s) => metaTemplateName(s.key) === name);
-  return starter
-    ? { key: starter.key, title: starter.title, body: starter.body, metaVarNames: toMetaBody(starter.body).varNames }
-    : null;
+  const starter = t.name ? starterNamed(t.name) : null;
+  const body = remoteBody(t);
+  if (!starter || (t.language ?? "es") !== "es" || !body) return null;
+  const meta = toMetaBody(starter.body);
+  if (!sameText(body, meta.text)) return null;
+  return { key: starter.key, title: starter.title, body: starter.body, metaVarNames: meta.varNames };
 };
 
 /**
@@ -329,7 +340,7 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
       where: { metaTemplateName: t.name, metaTemplateLang: lang },
     });
     const body = remoteBody(t);
-    const link = starterLinkForRemote(t.name);
+    const link = starterLinkForRemote(t);
     if (existing && (!link || existing.key === link.key)) {
       await prisma.messageTemplate.update({
         where: { id: existing.id },
@@ -357,6 +368,11 @@ export const syncWhatsAppTemplates = async (): Promise<number> => {
         update: { body: link.body, ...remoteFields },
       });
     } else {
+      if (starterNamed(t.name)) {
+        console.warn(
+          `[whatsapp-templates] «${t.name}» (${lang}) se llama como una recomendada pero su cuerpo no es el de ella: queda como wa_${t.name}, sin ligar.`
+        );
+      }
       // Plantilla creada en el Hub: queda disponible con su nombre como clave.
       const numbered = body ?? "";
       const vars = [...numbered.matchAll(/\{\{(\d+)\}\}/g)].map((m) => `var${m[1]}`);
@@ -617,6 +633,13 @@ export const ensureEventTemplatesSubmitted = async (): Promise<void> => {
   await refreshTemplatesIfPending().catch(() => undefined);
 };
 
+/** Cómo está cada plantilla en Meta (para ordenar los mensajes listos). */
+export const listTemplateBilling = () =>
+  prisma.messageTemplate.findMany({
+    where: { metaTemplateName: { not: null } },
+    select: { key: true, metaApprovalStatus: true, metaCategory: true },
+  });
+
 /** Plantilla ligada a la clave, aprobada y que Meta cobra como Utilidad. */
 export const approvedUtilityTemplateFor = async (key: string): Promise<WaTemplate | null> => {
   const t = await approvedTemplateFor(key);
@@ -636,12 +659,16 @@ export const deleteRetiredWhatsAppTemplate = async (key: string): Promise<{ name
     prisma.messageTemplate.findFirst({ where: { key, metaTemplateName: { not: null } } }),
     prisma.messageTemplate.findMany({
       where: { key: { in: starter.replacedBy }, metaTemplateName: { not: null } },
-      select: { key: true, metaApprovalStatus: true },
+      select: { key: true, metaApprovalStatus: true, metaCategory: true },
     }),
   ]);
-  const waiting = starter.replacedBy.filter((k) => !isTemplateApproved(replacements.find((r) => r.key === k)));
-  if (waiting.length) {
-    throw new Dialog360Error(`Todavía no está aprobada la que la reemplaza: ${waiting.join(", ")}.`, 409);
+  // Las de recordatorio, aprobadas como UTILITY: si Meta las pasó a Marketing
+  // el CRM sigue usando esta, y quitarla dejaría los recordatorios sin respaldo.
+  if (!retiredTemplateRemovable(key, replacements)) {
+    throw new Dialog360Error(
+      `Todavía no está en uso la que la reemplaza (${starter.replacedBy.join(", ")}): tiene que estar aprobada, y como Utilidad si es un recordatorio.`,
+      409
+    );
   }
   if (!row?.metaTemplateName) throw new Dialog360Error("Esta plantilla no está en WhatsApp.", 404);
   await dialog360Request(`v1/configs/templates/${encodeURIComponent(row.metaTemplateName)}`, { method: "DELETE" });

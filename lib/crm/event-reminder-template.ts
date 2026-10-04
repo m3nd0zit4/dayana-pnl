@@ -47,6 +47,35 @@ export const isApprovedUtility = (t: TemplateBilling | null | undefined): boolea
   isTemplateApproved(t) && (t?.metaCategory ?? "").toUpperCase() === "UTILITY";
 
 /**
+ * Las cuatro de antes, retiradas, y las que las reemplazan. Su fila queda de
+ * respaldo y nunca se vuelven a mandar a aprobar.
+ */
+export const RETIRED_TEMPLATES: Record<string, string[]> = {
+  evento_gratis_invitacion: [EVENT_INVITATION_TEMPLATE_KEY],
+  taller_invitacion: [EVENT_INVITATION_TEMPLATE_KEY],
+  // El de 24 h pasa a `evento_acceso`; el de 1 h, a la corta de utilidad.
+  [EVENT_REMINDER_FALLBACK_TEMPLATE_KEY]: [EVENT_ACCESS_TEMPLATE_KEY, EVENT_REMINDER_UTILITY_TEMPLATE_KEY],
+  taller_recordatorio: [EVENT_ACCESS_TEMPLATE_KEY],
+};
+
+/** Las que el CRM solo usa si Meta las aprueba como UTILITY (los recordatorios). */
+const UTILITY_ONLY = new Set([EVENT_ACCESS_TEMPLATE_KEY, EVENT_REMINDER_UTILITY_TEMPLATE_KEY]);
+
+/**
+ * La nueva ya la usa el CRM: aprobada, y como UTILITY si es de las de
+ * recordatorio (si Meta la pasa a Marketing, los recordatorios siguen con la
+ * de antes, así que esa no se puede quitar).
+ */
+export const templateInUse = (key: string, rows: TemplateBilling[]): boolean => {
+  const row = rows.find((t) => t.key === key);
+  return UTILITY_ONLY.has(key) ? isApprovedUtility(row) : isTemplateApproved(row);
+};
+
+/** Una retirada se puede quitar de WhatsApp: todas sus reemplazantes ya están en uso. */
+export const retiredTemplateRemovable = (key: string, rows: TemplateBilling[]): boolean =>
+  (RETIRED_TEMPLATES[key] ?? []).every((k) => templateInUse(k, rows));
+
+/**
  * La clave del recordatorio. El de 24 h: `evento_acceso` (con los horarios por
  * país) si Meta la aprobó como UTILITY. El de 1 h (y el de 24 h mientras
  * tanto): la corta de utilidad si Meta la aprobó como UTILITY; si no, la de

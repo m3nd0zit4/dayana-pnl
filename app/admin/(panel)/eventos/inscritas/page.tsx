@@ -26,6 +26,7 @@ import { inscritasBulkLabel } from "@/lib/crm/free-event-rules";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { whatsAppStatusFor, type WhatsAppStatus } from "@/lib/crm/whatsapp-outbound";
 import { freeEventPresetsFor } from "@/lib/crm/whatsapp-presets";
+import { listTemplateBilling } from "@/lib/crm/whatsapp-templates";
 import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ const FreeEventPeoplePage = async ({
     pageSize: PAGE_SIZE,
     contactIds: [],
   };
-  const [events, result, tz, reminderTemplateKey] = await Promise.all([
+  const [events, result, tz, reminderTemplateKey, approvals] = await Promise.all([
     preview ? Promise.resolve([] as FreeEventRow[]) : listFreeEvents(),
     preview
       ? Promise.resolve(empty)
@@ -70,6 +71,8 @@ const FreeEventPeoplePage = async ({
     getOperationalTimezone(),
     // La plantilla del recordatorio: la de utilidad si Meta ya la aprobó.
     preview ? Promise.resolve(EVENT_WA_TEMPLATE_KEY) : eventWaTemplateKey(),
+    // Cómo está cada plantilla en Meta: qué mensaje va por defecto y cuáles se ofrecen.
+    preview ? Promise.resolve(undefined) : listTemplateBilling().catch(() => undefined),
   ]);
 
   // Como la lista de eventos: el publicado, los que vienen y los pasados.
@@ -85,6 +88,7 @@ const FreeEventPeoplePage = async ({
       selectedUpcoming,
       openEvent: openEvent && openEvent.id !== selected?.id ? openEvent : null,
       reminderTemplateKey,
+      approvals,
     },
     tz
   );

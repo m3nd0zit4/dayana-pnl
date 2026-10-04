@@ -49,7 +49,7 @@ import {
   webinarRegistrationStats,
 } from "@/lib/crm/webinar-registrations";
 import { freeEventPresetsFor } from "@/lib/crm/whatsapp-presets";
-import { getWhatsAppTemplateStatus } from "@/lib/crm/whatsapp-templates";
+import { getWhatsAppTemplateStatus, listTemplateBilling } from "@/lib/crm/whatsapp-templates";
 
 export const dynamic = "force-dynamic";
 
@@ -155,12 +155,14 @@ const RegistrantsTab = async ({ event }: { event: FreeWebinarPublic }) => {
  */
 const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string }) => {
   ensureReminderTemplateSoon();
-  const [registrants, allContactIds, openEvent, inviteIds, reminderTemplateKey] = await Promise.all([
+  const [registrants, allContactIds, openEvent, inviteIds, reminderTemplateKey, approvals] = await Promise.all([
     listFreeEventRegistrantsForWhatsApp(event.id, 100),
     listRegistrationContactIds(event.id),
     getOpenFreeEvent(),
     event.status === "OPEN" ? listFreeEventInviteContactIds(event.id) : Promise.resolve([] as string[]),
     eventWaTemplateKey(),
+    // Cómo está cada plantilla en Meta: qué mensaje va por defecto y cuáles se ofrecen.
+    listTemplateBilling().catch(() => undefined),
   ]);
   const selected = {
     id: event.id,
@@ -177,10 +179,14 @@ const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string
       selectedUpcoming: isFreeEventUpcoming(event),
       openEvent: openEvent && openEvent.id !== event.id ? openEvent : null,
       reminderTemplateKey,
+      approvals,
     },
     tz
   );
-  const invitePresets = freeEventPresetsFor({ selected: null, selectedUpcoming: false, openEvent: selected }, tz);
+  const invitePresets = freeEventPresetsFor(
+    { selected: null, selectedUpcoming: false, openEvent: selected, approvals },
+    tz
+  );
   const link = { freeWebinarId: event.id };
   const shortDate = (d: Date) =>
     d.toLocaleDateString("es-CO", { timeZone: tz, day: "numeric", month: "short" });

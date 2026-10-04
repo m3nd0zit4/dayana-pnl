@@ -41,9 +41,13 @@ import {
   workshopEnrollmentStats,
   type WorkshopForPanel,
 } from "@/lib/crm/workshop-panel";
-import { workshopWaRemindersEnabled, workshopWaTemplateKey } from "@/lib/crm/workshop-whatsapp-reminders";
+import {
+  WORKSHOP_WA_TEMPLATE_KEY,
+  workshopWaRemindersEnabled,
+  workshopWaTemplateKey,
+} from "@/lib/crm/workshop-whatsapp-reminders";
 import { workshopPresets } from "@/lib/crm/whatsapp-presets";
-import { ensureEventTemplatesSubmitted, getWhatsAppTemplateStatus } from "@/lib/crm/whatsapp-templates";
+import { ensureEventTemplatesSubmitted, getWhatsAppTemplateStatus, listTemplateBilling } from "@/lib/crm/whatsapp-templates";
 import { getDateKeyInTz, getTimeHmInTz } from "@/lib/datetime/zoned-time";
 import { parseWorkshopSchedule } from "@/lib/workshop-schedule";
 import { formatMoneyMinor } from "@/lib/crm/money";
@@ -60,14 +64,13 @@ const stringList = (v: unknown): string[] =>
 
 /** «Inscritas»: quién pagó y qué recordatorios le llegaron. */
 const EnrollmentsTab = async ({ edition, blockedReason }: { edition: WorkshopForPanel; blockedReason: string | null }) => {
+  // La plantilla que de verdad usa el recordatorio (`evento_acceso` si ya está aprobada como UTILITY).
+  const templateKey = await workshopWaTemplateKey().catch(() => WORKSHOP_WA_TEMPLATE_KEY);
   const [rows, stats, waEnabled, templateStatus] = await Promise.all([
     listWorkshopEnrollments(edition.id, { take: 50 }),
     workshopEnrollmentStats(edition.id),
     workshopWaRemindersEnabled(),
-    // La plantilla que de verdad usa el recordatorio (`evento_acceso` si ya está aprobada).
-    workshopWaTemplateKey()
-      .then((key) => getWhatsAppTemplateStatus(key))
-      .catch(() => null),
+    getWhatsAppTemplateStatus(templateKey).catch(() => null),
   ]);
   return (
     <WorkshopEnrollmentsPanel
@@ -75,7 +78,7 @@ const EnrollmentsTab = async ({ edition, blockedReason }: { edition: WorkshopFor
       slug={edition.slug}
       enrollments={rows}
       stats={stats}
-      whatsApp={{ enabled: waEnabled, templateStatus }}
+      whatsApp={{ enabled: waEnabled, templateStatus, templateKey }}
       blockedReason={blockedReason}
     />
   );
@@ -89,13 +92,15 @@ const EnrollmentsTab = async ({ edition, blockedReason }: { edition: WorkshopFor
  */
 const WhatsAppTab = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
   const isOpen = edition.status === "OPEN" && !isWorkshopEnded(edition);
-  const [people, inviteIds] = await Promise.all([
+  const [people, inviteIds, approvals] = await Promise.all([
     listWorkshopPeopleForWhatsApp(edition.id),
     isOpen ? listWorkshopInviteContactIds(edition.id) : Promise.resolve([] as string[]),
+    // Cómo está cada plantilla en Meta: qué mensaje va por defecto y cuáles se ofrecen.
+    listTemplateBilling().catch(() => undefined),
   ]);
   // El enlace de la reunión es de quien pagó: el recordatorio y el acceso que
   // lo llevan solo se ofrecen para ellas; a las demás y a las invitadas, sin él.
-  const presets = workshopPresets(edition, tz);
+  const presets = workshopPresets(edition, tz, approvals);
   const withoutLink = presets.filter((p) => p.id !== "recordatorio" && p.id !== "acceso");
   const paid = people.filter((p) => p.paid);
   const others = people.filter((p) => !p.paid);

@@ -10,7 +10,7 @@ import {
 import { workshopReminderVars, workshopWaReminderText, type EventWaPass } from "./event-reminder-text";
 import { EVENT_ACCESS_TEMPLATE_KEY } from "./event-reminder-template";
 import { EVENT_ACCESS_BODY, eventTemplateVars, renderEventTemplate } from "./event-template-vars";
-import { approvedTemplateFor, ensureEventTemplatesSubmitted } from "./whatsapp-templates";
+import { approvedUtilityTemplateFor, ensureEventTemplatesSubmitted } from "./whatsapp-templates";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { recordWorkshopActivity } from "./workshop-activity";
 import { workshopAcceptsReminders, workshopStartsAtHasTime } from "./workshop-lifecycle-rules";
@@ -22,7 +22,8 @@ import { WHATSAPPABLE_CONTACT } from "./webinar-registrations";
  * quien pagó la edición. El sello vive en la matrícula.
  *
  * Plantilla: `evento_acceso` (con los horarios por país) en cuanto Meta la
- * aprueba; mientras tanto, la de siempre (`taller_recordatorio`).
+ * aprueba como UTILITY, como en los eventos; mientras tanto (o si Meta la pasa
+ * a Marketing), la de siempre (`taller_recordatorio`).
  */
 
 /** La de siempre: el respaldo mientras `evento_acceso` no esté aprobada. */
@@ -31,7 +32,7 @@ export const WORKSHOP_WA_TEMPLATE_KEY = "taller_recordatorio";
 /** La plantilla del recordatorio ahora; con `ensure`, manda a aprobar las que faltan. */
 export const workshopWaTemplateKey = async (opts: { ensure?: boolean } = {}): Promise<string> => {
   if (opts.ensure) await ensureEventTemplatesSubmitted();
-  const access = await approvedTemplateFor(EVENT_ACCESS_TEMPLATE_KEY).catch(() => null);
+  const access = await approvedUtilityTemplateFor(EVENT_ACCESS_TEMPLATE_KEY).catch(() => null);
   return access ? EVENT_ACCESS_TEMPLATE_KEY : WORKSHOP_WA_TEMPLATE_KEY;
 };
 /** Interruptor de Dayana, aparte del de los eventos. Sin fila = encendido. */

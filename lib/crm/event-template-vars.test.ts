@@ -7,6 +7,7 @@ import {
   EVENT_REMINDER_FALLBACK_TEMPLATE_KEY,
   EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
   preferredEventReminderTemplateKey,
+  retiredTemplateRemovable,
 } from "./event-reminder-template";
 import { SCHEDULE_VAR_NAMES } from "./event-schedule";
 import {
@@ -87,15 +88,117 @@ describe("plantillas con horarios", () => {
 });
 
 describe("sincronizar: una plantilla del Hub con el nombre de una recomendada", () => {
-  test("se liga a su clave, con las variables en el orden de la recomendada", () => {
-    const link = starterLinkForRemote("evento_invitacion_imagen");
+  const hub = (text: string, language = "es", name = "evento_invitacion_imagen") => ({
+    name,
+    language,
+    components: [{ type: "HEADER", format: "IMAGE" }, { type: "BODY", text }],
+  });
+  const metaText = toMetaBody(EVENT_INVITATION_BODY).text;
+
+  test("con el cuerpo de la recomendada: se liga a su clave, con las variables en su orden", () => {
+    const link = starterLinkForRemote(hub(metaText));
     expect(link?.key).toBe(EVENT_INVITATION_IMAGE_TEMPLATE_KEY);
     expect(link?.metaVarNames).toEqual(toMetaBody(EVENT_INVITATION_BODY).varNames);
-    expect(link?.metaVarNames[0]).toBe("nombre");
-    expect(link?.metaVarNames[1]).toBe("mensaje");
+    expect(link?.metaVarNames.slice(0, 2)).toEqual(["nombre", "mensaje"]);
   });
-  test("una que no es de ninguna recomendada: null (queda como wa_…)", () => {
-    expect(starterLinkForRemote("masterclass_gratuita_20261004")).toBeNull();
+  test("los espacios y saltos de línea de más no cuentan", () => {
+    expect(starterLinkForRemote(hub(`  ${metaText.replace(/\n/g, "\n\n")}  `))?.key).toBe(
+      EVENT_INVITATION_IMAGE_TEMPLATE_KEY
+    );
+  });
+  test("otro cuerpo (otro orden de variables) u otro idioma: no se liga (queda como wa_…)", () => {
+    expect(starterLinkForRemote(hub(metaText.replace("{{1}}, {{2}}", "{{2}}, {{1}}")))).toBeNull();
+    expect(starterLinkForRemote(hub(metaText, "en"))).toBeNull();
+    expect(starterLinkForRemote({ name: "evento_invitacion_imagen", language: "es" })).toBeNull();
+  });
+  test("una que no es de ninguna recomendada: null", () => {
+    expect(starterLinkForRemote(hub(metaText, "es", "masterclass_gratuita_20261004"))).toBeNull();
+  });
+});
+
+describe("«Quitar de WhatsApp»: solo cuando las nuevas ya están en uso", () => {
+  const row = (key: string, metaCategory: string, metaApprovalStatus = "APPROVED") => ({
+    key,
+    metaApprovalStatus,
+    metaCategory,
+  });
+  test("las de recordatorio tienen que estar aprobadas como UTILITY", () => {
+    const access = row(EVENT_ACCESS_TEMPLATE_KEY, "UTILITY");
+    expect(retiredTemplateRemovable("taller_recordatorio", [access])).toBe(true);
+    expect(retiredTemplateRemovable("taller_recordatorio", [row(EVENT_ACCESS_TEMPLATE_KEY, "MARKETING")])).toBe(false);
+    // Meta pasó la corta a Marketing: el de 1 h sigue con la de antes.
+    expect(
+      retiredTemplateRemovable(EVENT_REMINDER_FALLBACK_TEMPLATE_KEY, [
+        access,
+        row(EVENT_REMINDER_UTILITY_TEMPLATE_KEY, "MARKETING"),
+      ])
+    ).toBe(false);
+    expect(
+      retiredTemplateRemovable(EVENT_REMINDER_FALLBACK_TEMPLATE_KEY, [
+        access,
+        row(EVENT_REMINDER_UTILITY_TEMPLATE_KEY, "UTILITY"),
+      ])
+    ).toBe(true);
+  });
+  test("las invitaciones: aprobadas (son de Marketing)", () => {
+    expect(retiredTemplateRemovable("taller_invitacion", [row(EVENT_INVITATION_TEMPLATE_KEY, "MARKETING")])).toBe(true);
+    expect(
+      retiredTemplateRemovable("evento_gratis_invitacion", [row(EVENT_INVITATION_TEMPLATE_KEY, "MARKETING", "PENDING")])
+    ).toBe(false);
+    expect(retiredTemplateRemovable("enlace_de_pago", [])).toBe(true);
+  });
+});
+
+describe("mensajes listos según cómo está cada plantilla en Meta", () => {
+  const ids = (p: { id: string }[]) => p.map((x) => x.id);
+  const row = (key: string, metaApprovalStatus = "APPROVED", metaCategory = "UTILITY") => ({
+    key,
+    metaApprovalStatus,
+    metaCategory,
+  });
+  const upcoming = (approvals: ReturnType<typeof row>[]) =>
+    freeEventPresetsFor({ selected: event, selectedUpcoming: true, openEvent: null, approvals }, "America/Bogota");
+
+  test("sin evento_acceso en uso, el de por defecto sigue siendo el recordatorio de antes", () => {
+    const old = row(EVENT_REMINDER_FALLBACK_TEMPLATE_KEY, "APPROVED", "MARKETING");
+    expect(ids(upcoming([old]))).toEqual(["recordatorio", "acceso", "material", "libre"]);
+    expect(ids(upcoming([old, row(EVENT_ACCESS_TEMPLATE_KEY, "APPROVED", "MARKETING")]))[0]).toBe("recordatorio");
+    expect(ids(upcoming([old, row(EVENT_ACCESS_TEMPLATE_KEY)]))[0]).toBe("acceso");
+  });
+
+  test("una retirada quitada de WhatsApp o sin aprobar no se ofrece", () => {
+    const p = freeEventPresetsFor(
+      {
+        selected: null,
+        selectedUpcoming: false,
+        openEvent: event,
+        approvals: [row("evento_gratis_invitacion", "DELETED"), row(EVENT_INVITATION_TEMPLATE_KEY, "APPROVED", "MARKETING")],
+      },
+      "America/Bogota"
+    );
+    expect(ids(p)).toEqual(["invitacion_horarios", "invitacion_imagen", "libre"]);
+  });
+
+  test("invitación nueva en revisión: la de antes va primero", () => {
+    const p = freeEventPresetsFor(
+      {
+        selected: null,
+        selectedUpcoming: false,
+        openEvent: event,
+        approvals: [row("evento_gratis_invitacion", "APPROVED", "MARKETING"), row(EVENT_INVITATION_TEMPLATE_KEY, "PENDING")],
+      },
+      "America/Bogota"
+    );
+    expect(ids(p)).toEqual(["invitacion", "invitacion_horarios", "invitacion_imagen", "libre"]);
+  });
+
+  test("taller con todo pendiente: la invitación de antes por defecto y el acceso detrás del recordatorio", () => {
+    const p = workshopPresets(
+      { title: "Sanando", slug: "sanando", startsAt: STARTS, dateLabel: null, meetingUrl: null },
+      "America/Bogota",
+      [row("taller_invitacion", "APPROVED", "MARKETING"), row("taller_recordatorio", "APPROVED", "MARKETING")]
+    );
+    expect(ids(p)).toEqual(["invitacion", "invitacion_horarios", "invitacion_imagen", "recordatorio", "acceso", "libre"]);
   });
 });
 

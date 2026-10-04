@@ -1,5 +1,6 @@
 "use client";
 
+import { retiredTemplateRemovable } from "@/lib/crm/event-reminder-template";
 import { templateBodyProblem, toMetaBody, utilityCategoryWarning } from "@/lib/crm/whatsapp-template-rules";
 import { CheckCircle2, Clock, Copy, Loader2, RefreshCw, Send, Trash2, XCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -147,8 +148,6 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
   const pendingStarters = starters.filter((st) => !existingKeys.has(st.key) && !st.replacedBy);
   const submittable = pendingStarters.filter((st) => !st.manual);
   const titleOf = (key: string) => starters.find((s) => s.key === key)?.title ?? key;
-  const isApproved = (key: string) =>
-    (items ?? []).some((t) => t.key === key && (t.metaApprovalStatus ?? "").toUpperCase() === "APPROVED");
 
   const submitAll = async () => {
     setBusy("all");
@@ -272,7 +271,9 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
                   const replacedBy = starters.find((s) => s.key === t.key)?.replacedBy;
                   if (!replacedBy) return null;
                   const deleted = (t.metaApprovalStatus ?? "").toUpperCase() === "DELETED";
-                  const ready = replacedBy.every(isApproved);
+                  // Las de recordatorio cuentan solo aprobadas como UTILITY: si Meta
+                  // las pasa a Marketing, el CRM sigue usando esta.
+                  const ready = retiredTemplateRemovable(t.key, items ?? []);
                   return (
                     <div className="mt-2 space-y-1.5 rounded-lg bg-[#f5f6f6] p-2 text-xs text-[#54656f] dark:bg-muted/40">
                       <div>
@@ -280,8 +281,8 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
                         {deleted
                           ? ""
                           : ready
-                            ? "La nueva ya está aprobada: el CRM ya no usa esta."
-                            : "Se sigue usando de respaldo hasta que Meta apruebe la nueva."}
+                            ? "La nueva ya está en uso: el CRM ya no usa esta."
+                            : "Se sigue usando de respaldo hasta que Meta apruebe la nueva (como Utilidad si es un recordatorio)."}
                       </div>
                       {canEdit && !deleted && (
                         confirmDelete === t.key ? (
@@ -315,7 +316,11 @@ const WhatsAppTemplatesClient = ({ canEdit }: { canEdit: boolean }) => {
                           <button
                             type="button"
                             disabled={!ready || busy !== null}
-                            title={ready ? undefined : "Se puede quitar cuando Meta apruebe la que la reemplaza."}
+                            title={
+                              ready
+                                ? undefined
+                                : "Se puede quitar cuando Meta apruebe la que la reemplaza (como Utilidad si es un recordatorio)."
+                            }
                             onClick={() => setConfirmDelete(t.key)}
                             className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[#d1d7db] bg-white px-3 font-medium hover:bg-[#f5f6f6] disabled:opacity-50 dark:border-border dark:bg-card"
                           >

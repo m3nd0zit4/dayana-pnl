@@ -34,7 +34,8 @@ type Props = {
   slug: string;
   enrollments: WorkshopEnrollmentRow[];
   stats: WorkshopEnrollmentStats;
-  whatsApp: { enabled: boolean; templateStatus: string | null };
+  /** `templateKey`: la plantilla que usa el recordatorio ahora (`evento_acceso` o `taller_recordatorio`). */
+  whatsApp: { enabled: boolean; templateStatus: string | null; templateKey?: string };
   /** Lo que le falta para que salgan los recordatorios, si algo. */
   blockedReason: string | null;
 };
@@ -331,8 +332,8 @@ const WorkshopEnrollmentsPanel = ({ slug, enrollments, stats: initialStats, what
               title={whatsApp.templateStatus ?? "Sin plantilla"}
             >
               {templateApproved
-                ? "Plantilla «taller_recordatorio» aprobada"
-                : "Plantilla «taller_recordatorio» pendiente: solo saldrá a quien escribió en 24 h"}
+                ? `Plantilla «${whatsApp.templateKey ?? "taller_recordatorio"}» aprobada`
+                : `Plantilla «${whatsApp.templateKey ?? "taller_recordatorio"}» pendiente: solo saldrá a quien escribió en 24 h`}
             </p>
           </div>
           <Switch

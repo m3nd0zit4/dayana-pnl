@@ -4,6 +4,10 @@ import {
   EVENT_INVITATION_IMAGE_TEMPLATE_KEY,
   EVENT_INVITATION_TEMPLATE_KEY,
   EVENT_REMINDER_FALLBACK_TEMPLATE_KEY,
+  isTemplateApproved,
+  RETIRED_TEMPLATES,
+  templateInUse,
+  type TemplateBilling,
 } from "./event-reminder-template";
 import {
   EVENT_ACCESS_BODY,
@@ -31,6 +35,46 @@ export type Preset = {
    * imagen) la ofrece, y solo cuando Meta ya la aprobó.
    */
   imageTemplate?: boolean;
+  /**
+   * El mensaje de antes al que reemplaza (`recordatorio`, `invitacion`):
+   * mientras su plantilla no esté en uso, va detrás de él (no es el de por
+   * defecto).
+   */
+  replaces?: string;
+};
+
+/**
+ * Los mensajes según cómo está cada plantilla en Meta (`approvals`; sin él,
+ * tal cual):
+ * - uno con plantilla retirada que ya no está aprobada (en revisión,
+ *   rechazada o quitada de WhatsApp) no se ofrece;
+ * - uno nuevo cuya plantilla aún no está en uso (`evento_acceso` aprobada
+ *   como UTILITY, la invitación aprobada) va detrás del de antes, así el de
+ *   por defecto sigue siendo el que llega a todas.
+ */
+export const arrangePresets = (presets: Preset[], approvals?: TemplateBilling[]): Preset[] => {
+  if (!approvals) return presets;
+  const offered = presets.filter(
+    (p) =>
+      !(
+        p.templateKey &&
+        RETIRED_TEMPLATES[p.templateKey] &&
+        !isTemplateApproved(approvals.find((t) => t.key === p.templateKey))
+      )
+  );
+  const waiting = offered.filter(
+    (p) =>
+      p.replaces &&
+      p.templateKey &&
+      !templateInUse(p.templateKey, approvals) &&
+      offered.some((o) => o.id === p.replaces)
+  );
+  const out = offered.filter((p) => !waiting.includes(p));
+  for (const id of [...new Set(waiting.map((p) => p.replaces!))]) {
+    const at = out.findIndex((p) => p.id === id);
+    out.splice(at + 1, 0, ...waiting.filter((p) => p.replaces === id));
+  }
+  return out;
 };
 
 export const TEXT_SLOT = "{{texto}}";
@@ -110,6 +154,7 @@ const accessPreset = (source: ScheduleSource): Preset => {
     text: fillKnownVars(EVENT_ACCESS_BODY, vars),
     templateKey: EVENT_ACCESS_TEMPLATE_KEY,
     vars,
+    replaces: "recordatorio",
   };
 };
 
@@ -128,6 +173,7 @@ const invitationPresets = (source: ScheduleSource): Preset[] => {
       text,
       templateKey: EVENT_INVITATION_TEMPLATE_KEY,
       vars: { ...vars, mensaje: MESSAGE_SLOT },
+      replaces: "invitacion",
     },
     {
       id: "invitacion_imagen",
@@ -136,6 +182,7 @@ const invitationPresets = (source: ScheduleSource): Preset[] => {
       templateKey: EVENT_INVITATION_IMAGE_TEMPLATE_KEY,
       vars: { ...vars, mensaje: MESSAGE_SLOT },
       imageTemplate: true,
+      replaces: "invitacion",
     },
   ];
 };
@@ -236,26 +283,30 @@ export const freeEventPresetsFor = (
      * utilidad si Meta ya la aprobó como UTILITY. Sin ella, la de siempre.
      */
     reminderTemplateKey?: string;
+    /** Cómo está cada plantilla en Meta (`listTemplateBilling`), para `arrangePresets`. */
+    approvals?: TemplateBilling[];
   },
   tz: string
 ): Preset[] => {
   const { selected, openEvent } = input;
   const invite = (label?: string) =>
     openEvent ? [...invitationPresets(openEvent), freeEventInvitation(openEvent, tz, label)] : [];
-  if (!selected) return [...invite(), genericPreset()];
+  if (!selected) return arrangePresets([...invite(), genericPreset()], input.approvals);
   if (input.selectedUpcoming) {
-    return [
-      accessPreset(selected),
-      freeEventReminder(selected, tz, input.reminderTemplateKey),
-      freeEventMaterial(selected, "Material"),
-      genericPreset(),
-    ];
+    return arrangePresets(
+      [
+        accessPreset(selected),
+        freeEventReminder(selected, tz, input.reminderTemplateKey),
+        freeEventMaterial(selected, "Material"),
+        genericPreset(),
+      ],
+      input.approvals
+    );
   }
-  return [
-    freeEventMaterial(selected, "Material o grabación"),
-    ...invite("Invitación al evento actual"),
-    genericPreset(),
-  ];
+  return arrangePresets(
+    [freeEventMaterial(selected, "Material o grabación"), ...invite("Invitación al evento actual"), genericPreset()],
+    input.approvals
+  );
 };
 
 export const genericPreset = (): Preset => ({
@@ -308,14 +359,16 @@ export const workshopPresets = (
     /** El precio vigente (`EditionPrices`), para la invitación con horarios. */
     prices?: { cop: number | null; usd: number | null } | null;
   },
-  tz: string
+  tz: string,
+  /** Cómo está cada plantilla en Meta (`listTemplateBilling`), para `arrangePresets`. */
+  approvals?: TemplateBilling[]
 ): Preset[] => {
   const site = getSiteUrl();
   const page = `${site}/taller-virtual/${w.slug}`;
   const fecha = beforePeriod(w.dateLabel || eventDateText(w.startsAt, true, tz));
   const entrar = w.meetingUrl || page;
   const schedule = { ...w, startsAtHasTime: w.startsAtHasTime ?? true };
-  return [
+  return arrangePresets([
     accessPreset(schedule),
     ...invitationPresets(schedule),
     {
@@ -333,7 +386,7 @@ export const workshopPresets = (
       vars: { evento: `tu taller «${w.title}»`, fecha, enlace: entrar },
     },
     genericPreset(),
-  ];
+  ], approvals);
 };
 
 /**
