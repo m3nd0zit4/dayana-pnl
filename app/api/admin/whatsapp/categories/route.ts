@@ -13,6 +13,8 @@ import {
   type ClassifyRunResult,
 } from "@/lib/crm/chat-category";
 import { CHAT_CATEGORIES } from "@/lib/crm/chat-category-rules";
+import { categoryChangeNeedsOwner } from "@/lib/crm/whatsapp-category-filter";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
@@ -69,7 +71,9 @@ const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => (
  *   el arriendo; la pantalla DEBE esperar `retryAfterMs` antes de reintentar
  *   (también va en la cabecera `Retry-After`).
  * - `set`: categoría manual (gana siempre) o `null` para volver a automático.
- * - `reclassify`: vuelve a mirar un chat (no toca los manuales).
+ *   Callar un chat (personal, negocio/app, equipo) o quitarle esa marca a
+ *   mano decide si la IA contesta: solo la dueña. Lo demás, quien pueda escribir.
+ * - `reclassify` (solo la dueña: gasta la IA): vuelve a mirar un chat (no toca los manuales).
  * - `team_phones` (solo la dueña): los números del equipo (sus chats pasan a
  *   «equipo»). 400 `invalid_phones` con los que no traen código de país.
  * - `enable` (solo la dueña): enciende o apaga la clasificación automática y
@@ -81,6 +85,16 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   const body = parsed.data;
 
   if (body.action === "set") {
+    if (staff.role !== "OWNER") {
+      const current = await prisma.conversation.findFirst({
+        where: { id: body.conversationId, channel: "WHATSAPP" },
+        select: { category: true, categorySource: true },
+      });
+      if (!current) return apiError("not_found", 404);
+      if (categoryChangeNeedsOwner(current, body.category)) {
+        return apiError("forbidden", 403, { message: "Solo la dueña puede callar un chat o quitarle esa marca." });
+      }
+    }
     if (body.category === null) {
       const outcome = await clearManualCategory(body.conversationId, staff.id);
       if (!outcome) return apiError("not_found", 404);
@@ -91,14 +105,14 @@ export const POST = withStaff("write", async ({ req, staff }) => {
     return NextResponse.json({ ok: true, conversation: updated });
   }
 
+  // Lo que puede silenciar chats o mandar conversaciones a la IA: solo la dueña.
+  if (staff.role !== "OWNER") return apiError("forbidden", 403, { message: "Solo la dueña puede hacer esto." });
+
   if (body.action === "reclassify") {
     const outcome = await classifyConversation(body.conversationId, { force: true });
     if (outcome.status === "skipped" && outcome.reason === "not_found") return apiError("not_found", 404);
     return NextResponse.json({ ok: outcome.status !== "error", outcome });
   }
-
-  // Lo que puede silenciar chats o mandar conversaciones a la IA: solo la dueña.
-  if (staff.role !== "OWNER") return apiError("forbidden", 403);
 
   if (body.action === "classify_all") {
     const started = Date.now();

@@ -118,8 +118,19 @@ const ChatView = ({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; outcome?: { status?: string } };
-      if (!res.ok) throw new Error(data.error ?? "error");
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        outcome?: { status?: string };
+      };
+      if (!res.ok) {
+        // «Solo la dueña…»: el servidor ya lo dice en palabras.
+        if (data.message) {
+          toast(data.message, "error");
+          return;
+        }
+        throw new Error(data.error ?? "error");
+      }
       // Reclasificar con la IA puede no decidir (apagada, sin clave, cuota): se dice.
       if (data.outcome?.status === "error") toast("No se pudo volver a mirar ahora. Inténtalo más tarde.", "info");
       else toast(done, "success");

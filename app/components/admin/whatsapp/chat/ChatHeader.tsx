@@ -36,6 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { CHAT_CATEGORIES, CHAT_CATEGORY_LABEL, isChatCategory, type ChatCategory } from "@/lib/crm/chat-category-rules";
+import { categoryChangeNeedsOwner } from "@/lib/crm/whatsapp-category-filter";
 import { cn } from "@/lib/utils";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import {
@@ -48,6 +49,7 @@ import {
   attentionLabel,
   isRunLive,
 } from "../status";
+import { useCrm } from "../../crm/CrmProvider";
 import { wa } from "./chatTheme";
 import { ActionButton, Avatar } from "./ui";
 
@@ -135,7 +137,9 @@ const AttentionBar = ({
 
 /**
  * La categoría del chat (cliente, interesada, personal…): elegirla a mano (gana
- * siempre), volver a lo automático o pedir que se vuelva a mirar.
+ * siempre), volver a lo automático o pedir que se vuelva a mirar. Callar un
+ * chat (o quitarle esa marca) y reclasificar con la IA, solo la dueña: al
+ * resto esas opciones le salen apagadas.
  */
 const CategoryMenu = ({
   chat,
@@ -146,8 +150,12 @@ const CategoryMenu = ({
   disabled: boolean;
   onCategory: CategoryAct;
 }) => {
+  const { role } = useCrm();
+  const isOwner = role === "OWNER";
   const c = chat.classification;
   const current = c.category && isChatCategory(c.category) ? CHAT_CATEGORY_LABEL[c.category] : "Sin clasificar";
+  const label = { category: c.category, categorySource: c.source };
+  const ownerOnly = (next: string | null) => !isOwner && categoryChangeNeedsOwner(label, next);
   return (
     <DropdownMenuSub>
       <DropdownMenuSubTrigger className={ITEM}>
@@ -170,7 +178,7 @@ const CategoryMenu = ({
             }
           >
             {CHAT_CATEGORIES.map((cat) => (
-              <DropdownMenuRadioItem key={cat} value={cat} disabled={disabled} className={ITEM}>
+              <DropdownMenuRadioItem key={cat} value={cat} disabled={disabled || ownerOnly(cat)} className={ITEM}>
                 {CHAT_CATEGORY_LABEL[cat]}
               </DropdownMenuRadioItem>
             ))}
@@ -180,7 +188,7 @@ const CategoryMenu = ({
         {c.source === "manual" && (
           <DropdownMenuItem
             className={ITEM}
-            disabled={disabled}
+            disabled={disabled || ownerOnly(null)}
             onClick={() =>
               onCategory({ action: "set", conversationId: chat.id, category: null }, "Vuelve a clasificarse solo")
             }
@@ -190,11 +198,16 @@ const CategoryMenu = ({
         )}
         <DropdownMenuItem
           className={ITEM}
-          disabled={disabled || c.source === "manual"}
+          disabled={disabled || c.source === "manual" || !isOwner}
           onClick={() => onCategory({ action: "reclassify", conversationId: chat.id }, "Se volvió a mirar")}
         >
           <RefreshCw /> Reclasificar
         </DropdownMenuItem>
+        {!isOwner && (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            Callar un chat (personal, negocio, equipo) o reclasificarlo: solo la dueña.
+          </p>
+        )}
       </DropdownMenuSubContent>
     </DropdownMenuSub>
   );

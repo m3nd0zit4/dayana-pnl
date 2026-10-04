@@ -1,19 +1,42 @@
 import type { Prisma } from "@prisma/client";
 
 import type { CategoryCounts } from "./chat-category";
-import { CHAT_CATEGORIES, isChatCategory, isSilencingCategory, type ChatCategory } from "./chat-category-rules";
+import {
+  CHAT_CATEGORIES,
+  isChatCategory,
+  isSilencingCategory,
+  isSilentCategory,
+  type ChatCategory,
+} from "./chat-category-rules";
 
 // ── Silencio por categoría, en el momento ───────────────────────────────────
 
-/** Lo que hace falta de un chat para saber si su categoría lo calla hoy. */
+/**
+ * Lo que hace falta de un chat para saber si su categoría lo calla hoy. Todo
+ * obligatorio (puede ser `null`): olvidar `categorizedThroughAt` o
+ * `lastInboundAt` en el `select` daría una etiqueta «al día» que no lo está.
+ */
 export type CategoryLabelState = {
   category: string | null;
   categorySource: string | null;
-  categoryConfidence?: number | null;
-  categoryReview?: boolean | null;
-  categorizedThroughAt?: Date | null;
-  lastInboundAt?: Date | null;
+  categoryConfidence: number | null;
+  categoryReview: boolean | null;
+  categorizedThroughAt: Date | null;
+  lastInboundAt: Date | null;
 };
+
+/**
+ * ¿Este cambio de categoría a mano lo puede hacer solo la dueña? Sí si deja el
+ * chat callado (personal, negocio/app, equipo) o si quita una marca a mano que
+ * lo callaba: las dos cosas deciden si la IA contesta. Lo demás, cualquiera que
+ * pueda escribir.
+ */
+export const categoryChangeNeedsOwner = (
+  current: { category: string | null; categorySource: string | null },
+  next: string | null
+): boolean =>
+  isSilentCategory(next) ||
+  (current.categorySource === "manual" && isSilentCategory(current.category) && next !== current.category);
 
 /**
  * Etiqueta de la IA que quedó vieja: la persona escribió después de que la IA
@@ -43,6 +66,23 @@ export const showsInTeToca = (
 ): boolean =>
   Boolean(c.awaitingApproval) ||
   (c.attentionAt != null && (attentionSurvivesSilence(c.attentionReason) || !silencesNow(c, enabled)));
+
+/**
+ * «Seguimiento» es seguimiento de ventas: con la clasificación encendida, un
+ * chat con una de estas categorías nunca entra, sea de una regla, de la IA o a
+ * mano, dudosa o vieja. Sí entran las interesadas, «otro» y lo sin clasificar.
+ */
+export const SEGUIMIENTO_EXCLUDED_CATEGORIES: readonly ChatCategory[] = [
+  "cliente",
+  "comunidad",
+  "personal",
+  "negocio",
+  "equipo",
+];
+
+/** La misma regla en puro (`seguimientoWhere` la aplica en SQL). */
+export const seguimientoAllowsCategory = (category: string | null): boolean =>
+  !category || !(SEGUIMIENTO_EXCLUDED_CATEGORIES as readonly string[]).includes(category);
 
 // ── Filtros de categoría («Todos», Personas) ─────────────────────────────────
 
