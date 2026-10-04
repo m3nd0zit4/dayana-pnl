@@ -31,6 +31,21 @@ export const FREE_EVENT_STATUS_SHORT: Record<FreeEventStatus, string> = {
   COMPLETED: "Realizado",
 };
 
+/**
+ * El botón «enviar a todas» de Inscritas dice a quién va, según el filtro que
+ * se mira. Con «Todos» va a las inscritas de TODOS los eventos, pasados
+ * incluidos: tiene que leerse antes de tocarlo, o se le escribe a las de
+ * agosto creyendo que son las de hoy.
+ */
+export const inscritasBulkLabel = (filter: { eventSelected: boolean; searching: boolean }): string => {
+  if (filter.searching) {
+    return filter.eventSelected
+      ? "Enviar a las de la búsqueda"
+      : "Enviar a las de la búsqueda (todos los eventos)";
+  }
+  return filter.eventSelected ? "Enviar a todas las del evento" : "Enviar a todas (todos los eventos)";
+};
+
 /* -------------------------------------------------------------------------
  * URLs
  * ---------------------------------------------------------------------- */

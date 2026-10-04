@@ -293,6 +293,11 @@ export type FreeEventPeoplePage = {
   total: number;
   page: number;
   pageSize: number;
+  /**
+   * Todas las personas del filtro (evento y búsqueda), no solo esta página:
+   * a quién va «enviar a todas». Así el número del botón es el de la lista.
+   */
+  contactIds: string[];
 };
 
 const fullName = (c: { firstName: string | null; lastName: string | null }) =>
@@ -382,6 +387,7 @@ export const listFreeEventPeople = async (input: {
     total: people.length,
     page,
     pageSize,
+    contactIds: people.map((p) => p.contactId),
   };
 };
 

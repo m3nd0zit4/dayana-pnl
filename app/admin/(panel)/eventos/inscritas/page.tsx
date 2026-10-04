@@ -22,8 +22,9 @@ import {
   type FreeEventRow,
 } from "@/lib/crm/free-events";
 import { EVENT_WA_TEMPLATE_KEY, eventWaTemplateKey } from "@/lib/crm/event-whatsapp-reminders";
+import { inscritasBulkLabel } from "@/lib/crm/free-event-rules";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
-import { listRegistrationContactIds } from "@/lib/crm/webinar-registrations";
+import { whatsAppStatusFor, type WhatsAppStatus } from "@/lib/crm/whatsapp-outbound";
 import { freeEventPresetsFor } from "@/lib/crm/whatsapp-presets";
 import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 
@@ -59,6 +60,7 @@ const FreeEventPeoplePage = async ({
     total: 0,
     page: 1,
     pageSize: PAGE_SIZE,
+    contactIds: [],
   };
   const [events, result, tz, reminderTemplateKey] = await Promise.all([
     preview ? Promise.resolve([] as FreeEventRow[]) : listFreeEvents(),
@@ -87,12 +89,18 @@ const FreeEventPeoplePage = async ({
     tz
   );
 
-  // «Enviar a todas» = todas las del filtro, no solo esta página.
-  const allContactIds = preview
-    ? []
-    : q
-      ? result.people.map((p) => p.contactId)
-      : await listRegistrationContactIds(eventId);
+  // «Enviar a todas» = todas las del filtro (evento y búsqueda), no solo esta
+  // página: el número del botón es el de la lista que se ve.
+  const allContactIds = result.contactIds;
+
+  // El estado de WhatsApp de esta página, con el mismo helper que la ruta de
+  // estado (la que usa la pestaña WhatsApp del evento). Antes la columna solo
+  // se pedía desde el navegador después de pintar, y mientras tanto —o si esa
+  // petición fallaba— decía «Sin WhatsApp» a todas.
+  const initialStatuses: Record<string, WhatsAppStatus> | null =
+    preview || result.people.length === 0
+      ? null
+      : await whatsAppStatusFor(result.people.map((p) => p.contactId)).catch(() => null);
 
   const pages = Math.max(1, Math.ceil(result.total / PAGE_SIZE));
   const hrefFor = (nextPage: number) => {
@@ -186,6 +194,8 @@ const FreeEventPeoplePage = async ({
             </p>
           ) : null}
           <PeopleWhatsAppList
+            // Otro filtro u otra página: lista nueva (casillas y estados de cero).
+            key={`${eventId ?? "todos"}|${q}|${page}`}
             people={result.people.map((person) => {
               // El evento que se mira siempre a la vista, aunque la persona
               // haya ido a varios después.
@@ -218,6 +228,9 @@ const FreeEventPeoplePage = async ({
                         <Link
                           key={e.id}
                           href={`/admin/eventos/${e.id}?tab=inscritas`}
+                          // Hasta 150 chips por página: precargarlos todos
+                          // pintaba el detalle del evento en paralelo, para nada.
+                          prefetch={false}
                           title={e.headline}
                           aria-current={isSelected ? "true" : undefined}
                         >
@@ -243,15 +256,13 @@ const FreeEventPeoplePage = async ({
                 : "Inscritas de todos los eventos"
             }
             source="eventos"
-            allLabel={
-              eventId
-                ? "Enviar a todas las del evento"
-                : q
-                  ? "Enviar a las de la búsqueda"
-                  : "Enviar a todas las inscritas"
-            }
+            // Dice a quién va según el filtro; con «Todos», que son todos los
+            // eventos (pasados incluidos).
+            allLabel={inscritasBulkLabel({ eventSelected: Boolean(eventId), searching: Boolean(q) })}
             // Con un evento elegido, el envío queda en su historia.
             link={selected ? { freeWebinarId: selected.id } : undefined}
+            initialStatuses={initialStatuses}
+            timeZone={tz}
           />
           {pages > 1 ? (
             <div className="flex items-center justify-between text-sm">
