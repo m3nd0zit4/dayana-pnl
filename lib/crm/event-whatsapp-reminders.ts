@@ -18,7 +18,8 @@ import {
 } from "./event-reminder-text";
 import { countPendingWaReminderRecipients, waReminderFlag, WHATSAPPABLE_CONTACT } from "./webinar-registrations";
 import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
-import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
+import { EVENT_REMINDER_FALLBACK_TEMPLATE_KEY } from "./event-reminder-template";
+import { approvedTemplateFor, eventReminderTemplateKey, type WaTemplate } from "./whatsapp-templates";
 
 /**
  * Recordatorios por WhatsApp de una edición (evento gratuito o taller): 24 h
@@ -32,13 +33,22 @@ import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
  *   fallo repetido cada 10 minutos sería dinero tirado. «Reintentar WA» lo
  *   decide Dayana.
  * - Texto libre (gratis) si la persona escribió en las últimas 24 h; si no, la
- *   plantilla aprobada (`evento_gratis_recordatorio` / `taller_recordatorio`).
+ *   plantilla aprobada (`evento_inscrita_recordatorio` si Meta la aprobó como
+ *   UTILITY, si no `evento_gratis_recordatorio`; `taller_recordatorio`).
  *
  * El núcleo (`runWaReminderPass`) no sabe de eventos ni de talleres: cada uno
  * le dice de dónde salen las filas, cómo se sellan y qué dice el mensaje.
  */
 
-export const EVENT_WA_TEMPLATE_KEY = "evento_gratis_recordatorio";
+/**
+ * La plantilla de siempre del recordatorio. La que se usa la elige
+ * `eventWaTemplateKey()`: la de utilidad en cuanto Meta la aprueba.
+ */
+export const EVENT_WA_TEMPLATE_KEY = EVENT_REMINDER_FALLBACK_TEMPLATE_KEY;
+
+/** La plantilla del recordatorio ahora; si no se puede mirar, la de siempre. */
+export const eventWaTemplateKey = (opts: { ensure?: boolean } = {}): Promise<string> =>
+  eventReminderTemplateKey(opts).catch(() => EVENT_WA_TEMPLATE_KEY);
 /** Interruptor de Dayana. Sin fila = encendido. */
 export const EVENT_WA_REMINDERS_SETTING = "free_event_wa_reminders";
 
@@ -269,12 +279,11 @@ export const runWaReminderPass = async (
  * Eventos gratuitos
  * ---------------------------------------------------------------------- */
 
-const EVENT_SKIP_MESSAGE: Record<WaSkipReason, string> = {
-  needs_template:
-    "No escribió en las últimas 24 h y la plantilla «evento_gratis_recordatorio» no está aprobada.",
+const eventSkipMessages = (templateKey: string): Record<WaSkipReason, string> => ({
+  needs_template: `No escribió en las últimas 24 h y la plantilla «${templateKey}» no está aprobada.`,
   opted_out: "Pidió no recibir WhatsApp.",
   no_phone: "Sin número de WhatsApp válido.",
-};
+});
 
 const loadEvent = (webinarId?: string): Promise<FreeWebinar | null> =>
   webinarId ? prisma.freeWebinar.findUnique({ where: { id: webinarId } }) : findCurrentFreeEventRow();
@@ -284,7 +293,7 @@ const saveEventError = (id: string, message: string) =>
     .update({ where: { id }, data: { waReminderError: message.slice(0, 300), waReminderErrorAt: new Date() } })
     .catch(() => undefined);
 
-const eventSpec = (event: FreeWebinar | null, pass: EventWaPass): WaReminderSpec => {
+const eventSpec = (event: FreeWebinar | null, pass: EventWaPass, templateKey: string): WaReminderSpec => {
   const flag = waReminderFlag(pass);
   const id = event?.id ?? "";
   return {
@@ -299,7 +308,7 @@ const eventSpec = (event: FreeWebinar | null, pass: EventWaPass): WaReminderSpec
         }
       : null,
     pass,
-    templateKey: EVENT_WA_TEMPLATE_KEY,
+    templateKey,
     sourcePrefix: "evento",
     enabled: eventWaRemindersEnabled,
     findRows: (take, rowId) =>
@@ -335,7 +344,7 @@ const eventSpec = (event: FreeWebinar | null, pass: EventWaPass): WaReminderSpec
         now,
       }),
     text: eventReminderText,
-    skipMessages: EVENT_SKIP_MESSAGE,
+    skipMessages: eventSkipMessages(templateKey),
     recordPass: (result, manual) =>
       recordFreeEventActivity({
         freeWebinarId: id,
@@ -361,7 +370,9 @@ export const sendEventWhatsAppReminders = async (opts: {
   /** Tamaño de cada tanda. */
   limit?: number;
 }): Promise<EventWaResult> =>
-  runWaReminderPass(eventSpec(await loadEvent(opts.webinarId), opts.pass), {
+  // El reloj y los botones de 24 h / 1 h: la de utilidad si ya está aprobada
+  // (y si nunca se mandó a aprobar, se manda sola).
+  runWaReminderPass(eventSpec(await loadEvent(opts.webinarId), opts.pass, await eventWaTemplateKey({ ensure: true })), {
     now: opts.now,
     budgetMs: opts.budgetMs,
     ignoreWindow: opts.ignoreWindow,

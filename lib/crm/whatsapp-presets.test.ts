@@ -2,6 +2,11 @@ import { describe, expect, test } from "bun:test";
 
 import { getSiteUrl } from "@/lib/site-url";
 import {
+  EVENT_REMINDER_FALLBACK_TEMPLATE_KEY,
+  EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
+  preferredEventReminderTemplateKey,
+} from "./event-reminder-template";
+import {
   eventDateText,
   freeEventPresets,
   freeEventPresetsFor,
@@ -133,6 +138,19 @@ describe("freeEventPresetsFor — según el evento que se mira", () => {
     const p = freeEventPresetsFor({ selected: event, selectedUpcoming: true, openEvent: event }, TZ);
     expect(ids(p)).toEqual(["recordatorio", "material", "libre"]);
     expect(p[0].vars?.enlace).toBe(MEET);
+  });
+
+  test("recordatorio: la plantilla de utilidad si ya está aprobada, si no la de siempre; mismas variables", () => {
+    const base = { selected: event, selectedUpcoming: true, openEvent: event };
+    const old = freeEventPresetsFor(base, TZ)[0];
+    expect(old.templateKey).toBe(EVENT_REMINDER_FALLBACK_TEMPLATE_KEY);
+    const key = preferredEventReminderTemplateKey([
+      { key: EVENT_REMINDER_UTILITY_TEMPLATE_KEY, metaApprovalStatus: "APPROVED", metaCategory: "UTILITY" },
+    ]);
+    const utility = freeEventPresetsFor({ ...base, reminderTemplateKey: key }, TZ)[0];
+    expect(utility.templateKey).toBe(EVENT_REMINDER_UTILITY_TEMPLATE_KEY);
+    expect(utility.vars).toEqual(old.vars);
+    expect(byId(freeEventPresets(event, TZ, key), "recordatorio")?.templateKey).toBe(EVENT_REMINDER_UTILITY_TEMPLATE_KEY);
   });
 
   test("uno pasado: su material e invitación al actual", () => {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { authorized } from "@/lib/cron-auth";
-import { sendEventWhatsAppReminders } from "@/lib/crm/event-whatsapp-reminders";
+import { eventWaTemplateKey, sendEventWhatsAppReminders } from "@/lib/crm/event-whatsapp-reminders";
 import { closeDueFreeEvents, listLiveFreeEvents } from "@/lib/crm/free-webinar";
 import { drainWebinarMail } from "@/lib/crm/webinar-mailer";
 import { closeDueWorkshops, listLiveWorkshopEditions } from "@/lib/crm/workshop-lifecycle";
@@ -58,6 +58,9 @@ export async function POST(req: Request) {
   const live = await listLiveFreeEvents().catch(() => []);
   if (live.length === 0) {
     steps.push({ name: "evento", ok: true, result: { skipped: "sin evento en pie" } });
+    // La plantilla de utilidad del recordatorio se manda sola a aprobar (con
+    // eventos en pie lo hace cada pasada de WhatsApp, antes de enviar).
+    steps.push(await step("plantilla recordatorio", () => eventWaTemplateKey({ ensure: true })));
   }
   // Talleres en pie con fecha y enlace: los únicos a los que les toca WhatsApp.
   const liveWorkshops = (await listLiveWorkshopEditions().catch(() => [])).filter(

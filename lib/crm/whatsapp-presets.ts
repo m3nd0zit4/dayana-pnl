@@ -1,4 +1,5 @@
 import { getSiteUrl } from "@/lib/site-url";
+import { EVENT_REMINDER_FALLBACK_TEMPLATE_KEY } from "./event-reminder-template";
 
 /**
  * Mensajes listos para enviar por WhatsApp desde cada pantalla del CRM. Cada
@@ -87,8 +88,17 @@ const freeEventInvitation = (event: FreeEventPresetEvent | null, tz: string, lab
   };
 };
 
-/** Recordatorio: directo a la reunión; la landing solo si aún no hay enlace. */
-const freeEventReminder = (event: FreeEventPresetEvent | null, tz: string): Preset => {
+/**
+ * Recordatorio: directo a la reunión; la landing solo si aún no hay enlace.
+ * `templateKey`: la de utilidad (`evento_inscrita_recordatorio`) si Meta ya la
+ * aprobó como UTILITY (`eventReminderTemplateKey`); si no, la de siempre.
+ * Las dos llevan las mismas variables.
+ */
+const freeEventReminder = (
+  event: FreeEventPresetEvent | null,
+  tz: string,
+  templateKey: string = EVENT_REMINDER_FALLBACK_TEMPLATE_KEY
+): Preset => {
   const evento = eventName(event);
   const fecha = eventDate(event, tz);
   const meet = event?.meetUrl?.trim() || null;
@@ -97,7 +107,7 @@ const freeEventReminder = (event: FreeEventPresetEvent | null, tz: string): Pres
     id: "recordatorio",
     label: meet ? "Recordatorio con el enlace de Meet" : "Recordatorio (aún sin enlace de Meet)",
     text: `Hola {{nombre}}, te recuerdo que ${evento} es el ${fecha}. Entra aquí: ${enlace} Nos vemos pronto 💛`,
-    templateKey: "evento_gratis_recordatorio",
+    templateKey,
     vars: { evento, fecha, enlace },
   };
 };
@@ -121,9 +131,14 @@ const freeEventMaterial = (event: FreeEventPresetEvent | null, label: string): P
 };
 
 /** Todos los mensajes de un evento (el agente elige por id). */
-export const freeEventPresets = (event: FreeEventPresetEvent | null, tz: string): Preset[] => [
+export const freeEventPresets = (
+  event: FreeEventPresetEvent | null,
+  tz: string,
+  /** La plantilla del recordatorio (`eventReminderTemplateKey`). */
+  reminderTemplateKey?: string
+): Preset[] => [
   freeEventInvitation(event, tz),
-  freeEventReminder(event, tz),
+  freeEventReminder(event, tz, reminderTemplateKey),
   freeEventMaterial(event, "Grabación o material"),
   genericPreset(),
 ];
@@ -142,6 +157,11 @@ export const freeEventPresetsFor = (
     selectedUpcoming: boolean;
     /** El evento con inscripciones abiertas, si lo hay (`isFreeEventOpen`). */
     openEvent: FreeEventPresetEvent | null;
+    /**
+     * La plantilla del recordatorio (`eventReminderTemplateKey`): la de
+     * utilidad si Meta ya la aprobó como UTILITY. Sin ella, la de siempre.
+     */
+    reminderTemplateKey?: string;
   },
   tz: string
 ): Preset[] => {
@@ -149,7 +169,11 @@ export const freeEventPresetsFor = (
   const invite = (label?: string) => (openEvent ? [freeEventInvitation(openEvent, tz, label)] : []);
   if (!selected) return [...invite(), genericPreset()];
   if (input.selectedUpcoming) {
-    return [freeEventReminder(selected, tz), freeEventMaterial(selected, "Material"), genericPreset()];
+    return [
+      freeEventReminder(selected, tz, input.reminderTemplateKey),
+      freeEventMaterial(selected, "Material"),
+      genericPreset(),
+    ];
   }
   return [
     freeEventMaterial(selected, "Material o grabación"),

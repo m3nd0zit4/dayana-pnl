@@ -37,8 +37,34 @@ export const HEADER_IMAGE_VAR = "__headerImageId";
  */
 export const HEADER_IMAGE_URL_VAR = "__headerImageUrl";
 export const HEADER_IMAGE_MIME_VAR = "__headerImageMime";
+/**
+ * A quién le llega la imagen (`HeaderImageScope`). Sin la clave, `all`: los
+ * envíos de antes solo podían llevar imagen con plantilla con imagen arriba.
+ */
+export const HEADER_IMAGE_SCOPE_VAR = "__headerImageScope";
 
 export type HeaderImageCopy = { url: string; mimeType: string };
+
+/**
+ * A quién le llega la imagen de un envío:
+ * - `all`: la plantilla aprobada lleva imagen arriba; les llega a todas
+ *   (cabecera de la plantilla fuera de las 24 h, imagen con pie dentro).
+ * - `window`: plantilla solo de texto (o sin plantilla). La imagen les llega
+ *   solo a quienes escribieron en las últimas 24 h; las demás reciben la
+ *   plantilla sin imagen, porque Meta rechaza una cabecera que la plantilla
+ *   aprobada no tiene.
+ */
+export type HeaderImageScope = "all" | "window";
+
+/** El alcance de la imagen según la cabecera de la plantilla aprobada. */
+export const headerImageScope = (headerFormat: string | null | undefined): HeaderImageScope =>
+  headerFormat === "IMAGE" ? "all" : "window";
+
+/** Si la imagen del envío va en el mensaje de esta persona (texto libre o plantilla). */
+export const sendsHeaderImage = (action: "text" | "template", scope: HeaderImageScope): boolean =>
+  action === "text" || scope === "all";
+
+export type SendHeaderImage = { id: string; copy: HeaderImageCopy | null; scope: HeaderImageScope };
 
 /**
  * Separa la imagen del envío (las claves `__…`) de las variables del mensaje:
@@ -46,7 +72,7 @@ export type HeaderImageCopy = { url: string; mimeType: string };
  */
 export const splitSendVars = (
   raw: Record<string, string> | null | undefined
-): { vars: Record<string, string>; headerImage: { id: string; copy: HeaderImageCopy | null } | null } => {
+): { vars: Record<string, string>; headerImage: SendHeaderImage | null } => {
   const vars: Record<string, string> = {};
   for (const [key, value] of Object.entries(raw ?? {})) if (!key.startsWith("__")) vars[key] = value;
   const id = raw?.[HEADER_IMAGE_VAR];
@@ -54,7 +80,11 @@ export const splitSendVars = (
   return {
     vars,
     headerImage: id
-      ? { id, copy: url ? { url, mimeType: raw?.[HEADER_IMAGE_MIME_VAR] || "image/jpeg" } : null }
+      ? {
+          id,
+          copy: url ? { url, mimeType: raw?.[HEADER_IMAGE_MIME_VAR] || "image/jpeg" } : null,
+          scope: raw?.[HEADER_IMAGE_SCOPE_VAR] === "window" ? "window" : "all",
+        }
       : null,
   };
 };
@@ -71,9 +101,10 @@ export const splitImageCaption = (body: string): { caption: string; separateText
   body.length > IMAGE_CAPTION_MAX ? { caption: "", separateText: body } : { caption: body, separateText: null };
 
 /**
- * Imagen y plantilla tienen que ir juntas: una plantilla con cabecera IMAGE
- * sin imagen la rechaza Meta, y una imagen con una plantilla sin cabecera
- * IMAGE no tiene dónde ir. `headerFormat`: el de la plantilla aprobada en
+ * Imagen y plantilla: una plantilla con cabecera IMAGE sin imagen la rechaza
+ * Meta. Con una plantilla solo de texto (o sin plantilla) la imagen sí se
+ * puede: les llega solo a quienes escribieron en las últimas 24 h
+ * (`headerImageScope`). `headerFormat`: el de la plantilla aprobada en
  * 360dialog (`null` sin cabecera, `undefined` si no se pudo comprobar).
  * Devuelve el motivo para mostrárselo a quien envía, o `null` si se puede.
  */
@@ -89,14 +120,10 @@ export const headerImageProblem = (input: {
       ? `La plantilla «${templateTitle}» lleva una imagen arriba: adjunta la imagen para poder enviarla.`
       : null;
   }
-  if (!templateTitle) {
-    return "Para enviar con imagen hace falta una plantilla aprobada por Meta con imagen arriba. Quita la imagen o espera a que la aprueben.";
-  }
-  if (headerFormat === undefined) {
+  // Sin saber si la plantilla lleva imagen no se sabe a quién mandársela:
+  // con imagen arriba, sin ella Meta la rechaza; sin imagen arriba, con ella.
+  if (templateTitle && headerFormat === undefined) {
     return `No pude comprobar en 360dialog si la plantilla «${templateTitle}» lleva imagen. Inténtalo de nuevo en un momento o envía sin imagen.`;
-  }
-  if (headerFormat !== "IMAGE") {
-    return `La plantilla «${templateTitle}» no lleva imagen arriba: quita la imagen o usa una plantilla con imagen.`;
   }
   return null;
 };
@@ -151,6 +178,7 @@ export const summarizePlans = (plans: SendPlan[], pricePerTemplate: number): Sen
     else if (p.action === "template") summary.template++;
     else summary.skipped[p.reason]++;
   }
+  // Precio plano; `previewSend` lo cambia por la suma de las tarifas por país.
   summary.estimatedCost = Math.round(summary.template * pricePerTemplate * 10000) / 10000;
   return summary;
 };

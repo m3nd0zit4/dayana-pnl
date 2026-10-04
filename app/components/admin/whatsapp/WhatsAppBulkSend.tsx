@@ -2,6 +2,12 @@
 
 import { CheckCircle2, ImagePlus, Loader2, MessageCircle, Send, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+  EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
+  EVENT_REMINDER_UTILITY_TEMPLATE_TITLE,
+  isTemplateApproved,
+  type TemplateBilling,
+} from "@/lib/crm/event-reminder-template";
 import { presetMissingLink, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
@@ -14,6 +20,10 @@ type Preview = {
   skipped: { no_phone: number; opted_out: number; needs_template: number };
   estimatedCost: number;
   currency: string;
+  /** `rates`: tarifas de Meta por país; `manual`: el precio puesto en Plantillas. */
+  costSource?: "rates" | "manual";
+  /** Cuántas plantillas y cuánto, por grupo de país. */
+  costByCountry?: { key: string; label: string; count: number; subtotal: number }[];
   templateInfo: { key: string; title: string; category: string | null; status: string | null } | null;
   phoneOnly: { contactId: string; name: string | null; phone: string; suggested: string | null }[];
   /** `IMAGE`: la plantilla lleva imagen arriba; `UNKNOWN`: no se pudo mirar. */
@@ -34,12 +44,41 @@ type Progress = {
 /** Lo que el diálogo necesita de una plantilla aprobada para ofrecerla. */
 type ApprovedTemplate = { key: string; title: string; body: string; metaVarNames: string[] };
 
+/** Cómo la cobra Meta, según la categoría que le dejó. */
+const categoryLabel = (category: string | null | undefined): string | null => {
+  const c = (category ?? "").toUpperCase();
+  return c === "UTILITY" ? "Meta la cobra como Utilidad" : c === "MARKETING" ? "Meta la cobra como Marketing" : null;
+};
+
 /** WhatsApp: JPG o PNG de hasta 5 MB. */
 const IMAGE_TYPES = ["image/jpeg", "image/png"];
 const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
 
 /** Un motivo para mostrarle tal cual a quien envía. */
 class ShownError extends Error {}
+
+/** «US$ 2.89» (o «2.89 COP» con un precio puesto a mano en otra moneda). */
+const money = (amount: number, currency: string) =>
+  currency === "USD" ? `US$ ${amount.toFixed(2)}` : `${amount.toFixed(2)} ${currency}`;
+
+/**
+ * A quién le llega la imagen con una plantilla solo de texto: dentro de las
+ * 24 h sí (imagen con el texto de pie); fuera, solo la plantilla de texto.
+ */
+const windowOnlyImageNote = (inWindow: number, outside: number): string => {
+  const reached =
+    inWindow === 0
+      ? "Nadie de esta lista escribió en las últimas 24 h, así que la imagen no le llega a nadie."
+      : inWindow === 1
+        ? "La imagen le llega a la persona que escribió en las últimas 24 h."
+        : `La imagen les llega a las ${inWindow} que escribieron en las últimas 24 h.`;
+  if (outside === 0) return inWindow === 0 ? "" : reached;
+  const others =
+    outside === 1
+      ? "A la persona restante le llega solo el texto, porque WhatsApp exige una plantilla aprobada con imagen para ella."
+      : `A las ${outside} restantes les llega solo el texto, porque WhatsApp exige una plantilla aprobada con imagen para ellas.`;
+  return `${reached} ${others} Cuando Meta apruebe una plantilla con imagen, elígela arriba y les llega a todas.`;
+};
 
 /** El motivo que manda el servidor (`message`), o `fallback`. */
 const readError = async (res: Response, fallback: string): Promise<ShownError> => {
@@ -91,6 +130,9 @@ const WhatsAppBulkSend = ({
   // Otra plantilla aprobada en vez de la del mensaje (p. ej. una con imagen
   // creada en el Hub). `null` = la del mensaje.
   const [approved, setApproved] = useState<ApprovedTemplate[]>([]);
+  // La de utilidad del recordatorio a inscritas (si ya se mandó a Meta), para
+  // sugerirla cuando la elegida se cobra como Marketing.
+  const [utilityReminder, setUtilityReminder] = useState<TemplateBilling | null>(null);
   const [templateOverride, setTemplateOverride] = useState<string | null>(null);
   const [image, setImage] = useState<File | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
@@ -113,11 +155,11 @@ const WhatsAppBulkSend = ({
     if (!open) return;
     void fetch("/api/admin/whatsapp/templates", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d: { items?: (ApprovedTemplate & { metaApprovalStatus: string | null })[] } | null) =>
-        setApproved(
-          (d?.items ?? []).filter((t) => (t.metaApprovalStatus ?? "").toUpperCase() === "APPROVED")
-        )
-      )
+      .then((d: { items?: (ApprovedTemplate & TemplateBilling)[] } | null) => {
+        const items = d?.items ?? [];
+        setApproved(items.filter((t) => isTemplateApproved(t)));
+        setUtilityReminder(items.find((t) => t.key === EVENT_REMINDER_UTILITY_TEMPLATE_KEY) ?? null);
+      })
       .catch(() => undefined);
   }, [open]);
   const pickable = approved.filter(
@@ -140,10 +182,13 @@ const WhatsAppBulkSend = ({
 
   const header = preview?.templateHeader ?? null;
   const needsImage = header === "IMAGE";
-  // Solo con una plantilla que lleve imagen (o si no se pudo comprobar: el
-  // servidor lo vuelve a mirar al crear el envío y lo dice).
-  const canImage = !create && (header === "IMAGE" || header === "UNKNOWN");
-  // Con una plantilla sin imagen, la elegida antes no se manda.
+  // La imagen siempre se puede adjuntar (salvo cuando otra ruta arma el
+  // envío). Con una plantilla con imagen arriba les llega a todas y es
+  // obligatoria; con una solo de texto, solo a quienes escribieron en las
+  // últimas 24 h. Si no se pudo comprobar, el servidor lo vuelve a mirar al
+  // crear el envío y lo dice.
+  const canImage = !create;
+  const imageWindowOnly = Boolean(preview) && header !== "IMAGE" && header !== "UNKNOWN";
   const imageToSend = canImage ? image : null;
 
   const pickImage = (file: File | null) => {
@@ -234,6 +279,22 @@ const WhatsAppBulkSend = ({
   };
 
   const toSend = preview ? preview.text + preview.template : 0;
+  // Desglose del costo por país (Colombia 200 (US$ 2.50) · México 20…).
+  const costGroups = preview?.costByCountry ?? [];
+  // Cómo cobra Meta la plantilla elegida. Un recordatorio a inscritas que Meta
+  // cobra como Marketing: la de utilidad sale mucho más barata (salvo que Meta
+  // también la haya pasado a Marketing). Solo recordatorios: una invitación
+  // es Marketing de verdad.
+  const templateCategory = (preview?.templateInfo?.category ?? "").toUpperCase();
+  const chargedAs = categoryLabel(templateCategory);
+  const utilityApproved = isTemplateApproved(utilityReminder);
+  const suggestUtility =
+    (kind === "evento" || kind === "taller") &&
+    templateCategory === "MARKETING" &&
+    /recordatorio/.test(preview?.templateInfo?.key ?? "") &&
+    preview?.templateInfo?.key !== EVENT_REMINDER_UTILITY_TEMPLATE_KEY &&
+    !(utilityApproved && (utilityReminder?.metaCategory ?? "").toUpperCase() !== "UTILITY");
+  const utilityPickable = pickable.some((t) => t.key === EVENT_REMINDER_UTILITY_TEMPLATE_KEY);
   const done = progress && progress.pending === 0;
   // La grabación de un evento pasado no vive en el CRM: el enlace se pega aquí.
   const missingLink = presetMissingLink(preset, text);
@@ -311,11 +372,19 @@ const WhatsAppBulkSend = ({
               )}
               {canImage && (
                 <div className="space-y-1.5">
+                  <span className="block text-xs font-medium text-foreground">
+                    {needsImage ? "Imagen (obligatoria con esta plantilla)" : "Imagen (opcional)"}
+                  </span>
                   <span className="block text-xs text-muted-foreground">
                     {needsImage
                       ? "Esta plantilla lleva una imagen arriba: adjúntala (JPG o PNG, hasta 5 MB). Se sube una sola vez y les llega a todas."
-                      : "Imagen arriba (JPG o PNG, hasta 5 MB), solo si la plantilla aprobada la lleva."}
+                      : header === "UNKNOWN"
+                        ? "JPG o PNG, hasta 5 MB. No pude comprobar en 360dialog si la plantilla lleva imagen arriba: lo vuelvo a mirar al enviar."
+                        : "JPG o PNG, hasta 5 MB. Va con el texto de pie."}
                   </span>
+                  {imageWindowOnly && preview && (preview.text > 0 || preview.template > 0) && (
+                    <p className="text-xs text-foreground">{windowOnlyImageNote(preview.text, preview.template)}</p>
+                  )}
                   {image && imageUrl ? (
                     <div className="flex items-start gap-3">
                       {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
@@ -370,15 +439,46 @@ const WhatsAppBulkSend = ({
                   <div className="font-medium text-foreground">A quién le llega</div>
                   <div>
                     ✅ {preview.text} con {imageToSend ? "la imagen y " : ""}el mensaje de arriba (gratis, escribieron hace menos de
-                    24 h)
+                    24 h) · 0 US$
                   </div>
                   <div>
                     📨 {preview.template} con la plantilla{" "}
                     {preview.templateInfo ? `«${preview.templateInfo.title}»` : ""}
-                    {preview.template > 0 && preview.estimatedCost > 0
-                      ? ` · costo aprox. ${preview.estimatedCost} ${preview.currency}`
-                      : ""}
+                    {imageToSend && preview.template > 0 && (needsImage ? " (con la imagen)" : imageWindowOnly ? " (solo el texto)" : "")}
+                    {chargedAs && (
+                      <span className="ml-1.5 inline-block rounded-full bg-card px-2 py-0.5 align-middle text-[11px] text-muted-foreground">
+                        {chargedAs}
+                      </span>
+                    )}
                   </div>
+                  {suggestUtility && (
+                    <div className="text-xs text-foreground">
+                      Es un recordatorio a personas inscritas: usa «{EVENT_REMINDER_UTILITY_TEMPLATE_TITLE}»
+                      {utilityApproved ? "" : " (en revisión de Meta)"}, que Meta cobra mucho más barato.
+                      {utilityPickable && (
+                        <button
+                          type="button"
+                          onClick={() => pickTemplate(EVENT_REMINDER_UTILITY_TEMPLATE_KEY)}
+                          className="ml-1.5 inline-flex h-10 items-center rounded-full px-2 font-medium text-[#008069] hover:bg-muted md:h-6"
+                        >
+                          Usarla
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  <div className="font-medium text-foreground">
+                    Costo aproximado: {money(preview.estimatedCost, preview.currency)}{" "}
+                    <span className="font-normal text-muted-foreground">
+                      {preview.costSource === "manual"
+                        ? "(con el precio por plantilla que pusiste en Plantillas; puede variar un poco)"
+                        : "(tarifas de Meta por país; puede variar un poco)"}
+                    </span>
+                  </div>
+                  {costGroups.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      {costGroups.map((g) => `${g.label} ${g.count} (${money(g.subtotal, preview.currency)})`).join(" · ")}
+                    </div>
+                  )}
                   {preview.skipped.needs_template > 0 && (
                     <div className="text-destructive">
                       ⚠️ {preview.skipped.needs_template} no se pueden: pasaron más de 24 h y{" "}

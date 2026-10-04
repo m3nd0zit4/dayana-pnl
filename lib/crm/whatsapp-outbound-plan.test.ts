@@ -5,12 +5,15 @@ import {
   fillVars,
   firstName,
   HEADER_IMAGE_MIME_VAR,
+  HEADER_IMAGE_SCOPE_VAR,
   HEADER_IMAGE_URL_VAR,
   HEADER_IMAGE_VAR,
   headerImageProblem,
+  headerImageScope,
   IMAGE_CAPTION_MAX,
   isOptOutMessage,
   planSend,
+  sendsHeaderImage,
   splitImageCaption,
   splitSendVars,
   summarizePlans,
@@ -131,11 +134,29 @@ describe("headerImageProblem", () => {
   test("imagen con plantilla con cabecera IMAGE: se puede", () => {
     expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: "IMAGE" })).toBeNull();
   });
-  test("imagen sin plantilla, con plantilla sin imagen o sin poder comprobar: bloqueado", () => {
-    expect(headerImageProblem({ hasImage: true, templateTitle: null, headerFormat: null })).toContain("plantilla aprobada");
-    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: null })).toContain("no lleva imagen");
-    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: "TEXT" })).toContain("no lleva imagen");
+  test("imagen con plantilla solo de texto o sin plantilla: se puede (solo dentro de las 24 h)", () => {
+    expect(headerImageProblem({ hasImage: true, templateTitle: null, headerFormat: null })).toBeNull();
+    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: null })).toBeNull();
+    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: "TEXT" })).toBeNull();
+  });
+  test("imagen sin poder comprobar la plantilla: bloqueado (no se sabe a quién mandarla)", () => {
     expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: undefined })).toContain("No pude comprobar");
+  });
+});
+
+describe("a quién le llega la imagen", () => {
+  test("plantilla con imagen arriba: a todas; solo de texto o sin plantilla: dentro de las 24 h", () => {
+    expect(headerImageScope("IMAGE")).toBe("all");
+    expect(headerImageScope("TEXT")).toBe("window");
+    expect(headerImageScope(null)).toBe("window");
+    expect(headerImageScope(undefined)).toBe("window");
+  });
+  test("dentro de las 24 h siempre va; fuera, solo si la plantilla lleva imagen arriba", () => {
+    expect(sendsHeaderImage("text", "all")).toBe(true);
+    expect(sendsHeaderImage("text", "window")).toBe(true);
+    expect(sendsHeaderImage("template", "all")).toBe(true);
+    // Meta rechaza una cabecera de imagen en una plantilla que no la tiene.
+    expect(sendsHeaderImage("template", "window")).toBe(false);
   });
 });
 
@@ -171,11 +192,18 @@ describe("splitSendVars", () => {
     expect(out.headerImage).toEqual({
       id: "media-1",
       copy: { url: "https://x.private.blob.vercel-storage.com/inbox/outbound/a.png", mimeType: "image/png" },
+      scope: "all",
     });
   });
 
-  test("envío viejo sin copia, o sin imagen", () => {
-    expect(splitSendVars({ [HEADER_IMAGE_VAR]: "media-1" }).headerImage).toEqual({ id: "media-1", copy: null });
+  test("plantilla solo de texto: la imagen solo dentro de las 24 h", () => {
+    const out = splitSendVars({ evento: "x", [HEADER_IMAGE_VAR]: "media-1", [HEADER_IMAGE_SCOPE_VAR]: "window" });
+    expect(out.vars).toEqual({ evento: "x" });
+    expect(out.headerImage).toEqual({ id: "media-1", copy: null, scope: "window" });
+  });
+
+  test("envío viejo sin copia ni alcance (a todas), o sin imagen", () => {
+    expect(splitSendVars({ [HEADER_IMAGE_VAR]: "media-1" }).headerImage).toEqual({ id: "media-1", copy: null, scope: "all" });
     expect(splitSendVars({ evento: "x" })).toEqual({ vars: { evento: "x" }, headerImage: null });
     expect(splitSendVars(null)).toEqual({ vars: {}, headerImage: null });
   });

@@ -22,10 +22,7 @@ import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppLi
 import WhatsAppBulkSend from "@/app/components/admin/whatsapp/WhatsAppBulkSend";
 import { isCrmUiPreview } from "@/lib/auth/preview";
 import { getStaffSession } from "@/lib/auth/staff-session";
-import {
-  EVENT_WA_TEMPLATE_KEY,
-  eventWaRemindersEnabled,
-} from "@/lib/crm/event-whatsapp-reminders";
+import { eventWaRemindersEnabled, eventWaTemplateKey } from "@/lib/crm/event-whatsapp-reminders";
 import {
   eventDateLabel,
   getFreeEventTimeline,
@@ -84,7 +81,10 @@ const RegistrantsTab = async ({ event }: { event: FreeWebinarPublic }) => {
     listWebinarRegistrations(event.id, { take: PAGE_SIZE }).catch(() => []),
     webinarRegistrationStats(event.id).catch(() => EMPTY_STATS),
     eventWaRemindersEnabled(),
-    getWhatsAppTemplateStatus(EVENT_WA_TEMPLATE_KEY).catch(() => null),
+    // La plantilla que de verdad usa el recordatorio (la de utilidad si ya está aprobada).
+    eventWaTemplateKey()
+      .then((key) => getWhatsAppTemplateStatus(key))
+      .catch(() => null),
     getStaffSession().catch(() => null),
   ]);
   // Las fechas cruzan al cliente como cadenas.
@@ -140,11 +140,12 @@ const RegistrantsTab = async ({ event }: { event: FreeWebinarPublic }) => {
  * que se envía desde aquí queda en la historia del evento.
  */
 const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string }) => {
-  const [registrants, allContactIds, openEvent, inviteIds] = await Promise.all([
+  const [registrants, allContactIds, openEvent, inviteIds, reminderTemplateKey] = await Promise.all([
     listFreeEventRegistrantsForWhatsApp(event.id, 100),
     listRegistrationContactIds(event.id),
     getOpenFreeEvent(),
     event.status === "OPEN" ? listFreeEventInviteContactIds(event.id) : Promise.resolve([] as string[]),
+    eventWaTemplateKey(),
   ]);
   const selected = {
     id: event.id,
@@ -159,6 +160,7 @@ const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string
       selected,
       selectedUpcoming: isFreeEventUpcoming(event),
       openEvent: openEvent && openEvent.id !== event.id ? openEvent : null,
+      reminderTemplateKey,
     },
     tz
   );

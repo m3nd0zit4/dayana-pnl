@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/db";
 import { Dialog360Error, dialog360Request } from "@/lib/meta/whatsapp-provider";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
+import {
+  EVENT_REMINDER_FALLBACK_TEMPLATE_KEY,
+  EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
+  EVENT_REMINDER_UTILITY_TEMPLATE_TITLE,
+  preferredEventReminderTemplateKey,
+} from "./event-reminder-template";
 
 /**
  * Plantillas de WhatsApp (las que Meta aprueba) conectadas con el CRM.
@@ -41,6 +47,22 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     category: "UTILITY",
     body: "Hola {{nombre}}, te recuerdo que {{evento}} es el {{fecha}}. Entra aquí: {{enlace}} Nos vemos pronto 💛",
     example: { nombre: "Ana", evento: "la masterclass", fecha: "hoy a las 7:00 p. m.", enlace: "https://www.dayanabeltran.com/eventos-gratuitos" },
+  },
+  // El recordatorio a quien se inscribió, de UTILIDAD: Meta pasó la de arriba
+  // a Marketing por el tono cálido. Estrictamente informativa (sin emojis ni
+  // palabras de venta) y ligada a su inscripción. Mismas variables que la de
+  // arriba; se prefiere en cuanto Meta la aprueba como UTILITY.
+  {
+    key: EVENT_REMINDER_UTILITY_TEMPLATE_KEY,
+    title: EVENT_REMINDER_UTILITY_TEMPLATE_TITLE,
+    category: "UTILITY",
+    body: "Hola {{nombre}}, te escribimos porque te inscribiste en {{evento}}. Recordatorio: es el {{fecha}}. Enlace para ingresar: {{enlace}} Si ya no puedes asistir, responde este mensaje.",
+    example: {
+      nombre: "Ana",
+      evento: "la masterclass Reprograma tu mente con PNL",
+      fecha: "domingo 4 de octubre a las 9:30 a. m. (hora de Colombia)",
+      enlace: "https://meet.google.com/abc-defg-hij",
+    },
   },
   // Al inscribirse. De UTILIDAD: confirma algo que la persona acaba de pedir,
   // sin palabras de venta (ni «gratis»), para que Meta no la pase a Marketing.
@@ -464,6 +486,30 @@ export const ensureTemplatesSubmitted = async (
   }
   if (result.submitted.length) console.log(`[whatsapp-templates] enviadas a revisión: ${result.submitted.join(", ")}`);
   return result;
+};
+
+/**
+ * La plantilla del recordatorio de un evento: `evento_inscrita_recordatorio`
+ * si Meta ya la aprobó como UTILITY; si no, `evento_gratis_recordatorio`.
+ *
+ * Con `ensure` (el reloj de los eventos y los recordatorios) además la manda
+ * sola a aprobar si nunca se mandó o Meta la rechazó (con el tope de una vez
+ * cada 30 min de `ensureTemplatesSubmitted`) y pregunta a 360dialog si ya la
+ * aprobaron. Así, tras el despliegue, nadie tiene que hacer nada.
+ */
+export const eventReminderTemplateKey = async (opts: { ensure?: boolean } = {}): Promise<string> => {
+  if (opts.ensure) {
+    await ensureTemplatesSubmitted([EVENT_REMINDER_UTILITY_TEMPLATE_KEY]).catch(() => undefined);
+    await refreshTemplatesIfPending().catch(() => undefined);
+  }
+  const rows = await prisma.messageTemplate.findMany({
+    where: {
+      key: { in: [EVENT_REMINDER_UTILITY_TEMPLATE_KEY, EVENT_REMINDER_FALLBACK_TEMPLATE_KEY] },
+      metaTemplateName: { not: null },
+    },
+    select: { key: true, metaApprovalStatus: true, metaCategory: true },
+  });
+  return preferredEventReminderTemplateKey(rows);
 };
 
 const SYNC_KEY = "whatsapp.templates.syncedAt";

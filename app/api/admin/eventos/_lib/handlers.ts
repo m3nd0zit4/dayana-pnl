@@ -8,7 +8,7 @@ import { rateLimitDistributed } from "@/lib/api/rate-limit-distributed";
 import { requireBroadcastStaff, requireWriteStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
-  EVENT_WA_TEMPLATE_KEY,
+  eventWaTemplateKey,
   eventWaRemindersEnabled,
   sendEventWhatsAppReminders,
   setEventWaRemindersEnabled,
@@ -441,9 +441,13 @@ export const getWaReminders = async ({ req }: Pick<Ctx, "req">, eventId?: string
   const event = await getFreeWebinar(eventId);
   if (!event) return apiError("no_event", 404);
 
-  const contactIds = await listPendingWaReminderContactIds(event.id, pass.data);
+  // La plantilla que usarán los botones: la de utilidad si Meta ya la aprobó.
+  const [contactIds, templateKey] = await Promise.all([
+    listPendingWaReminderContactIds(event.id, pass.data),
+    eventWaTemplateKey(),
+  ]);
   const [preview, enabled] = await Promise.all([
-    previewSend({ contactIds, templateKey: EVENT_WA_TEMPLATE_KEY, kind: "evento" }),
+    previewSend({ contactIds, templateKey, kind: "evento" }),
     eventWaRemindersEnabled(),
   ]);
   return NextResponse.json({

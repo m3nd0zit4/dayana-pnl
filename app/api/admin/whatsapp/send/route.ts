@@ -7,7 +7,8 @@ import {
   recipientFromContact,
   sendWhatsAppToContact,
 } from "@/lib/crm/whatsapp-outbound";
-import { approvedTemplateFor, getTemplatePrices, priceFor } from "@/lib/crm/whatsapp-templates";
+import { estimateTemplateCost } from "@/lib/crm/whatsapp-rates";
+import { approvedTemplateFor, getTemplatePrices } from "@/lib/crm/whatsapp-templates";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -22,12 +23,18 @@ export const GET = withStaff("read", async ({ req }) => {
   const templateKey = url.searchParams.get("templateKey");
   const [template, prices] = await Promise.all([approvedTemplateFor(templateKey), getTemplatePrices()]);
   const plan = await planForRecipient(recipient, template);
+  // Por el país de la persona (tabla de Meta), o el precio puesto a mano.
+  const cost = estimateTemplateCost(
+    plan.action === "template" ? [recipient.phoneE164] : [],
+    template?.metaCategory,
+    prices
+  );
   return NextResponse.json({
     plan,
     recipient: { name: recipient.name, phone: recipient.phoneE164, optedOut: recipient.optedOut },
     template: template ? { key: template.key, title: template.title, body: template.body } : null,
-    price: plan.action === "template" ? priceFor(prices, template?.metaCategory) : 0,
-    currency: prices.currency,
+    price: cost.total,
+    currency: cost.currency,
   });
 });
 

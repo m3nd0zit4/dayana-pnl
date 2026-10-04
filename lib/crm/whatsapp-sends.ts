@@ -11,21 +11,23 @@ import {
 } from "./whatsapp-outbound";
 import {
   HEADER_IMAGE_MIME_VAR,
+  HEADER_IMAGE_SCOPE_VAR,
   HEADER_IMAGE_URL_VAR,
   HEADER_IMAGE_VAR,
   headerImageProblem,
+  headerImageScope,
   splitSendVars,
   summarizePlans,
   type HeaderImageCopy,
   type SendSummary,
 } from "./whatsapp-outbound-plan";
+import { estimateTemplateCost, type CostEstimate } from "./whatsapp-rates";
 import {
   approvedTemplateFor,
   remoteTemplateHeaderFormat,
   ensureTemplatesSubmitted,
   refreshTemplatesIfPending,
   getTemplatePrices,
-  priceFor,
   type WaTemplate,
 } from "./whatsapp-templates";
 
@@ -44,8 +46,15 @@ export type SendKind = "evento" | "taller" | "diagnostico" | "pago" | "libre" | 
 
 export type SendPreview = SendSummary & {
   templateInfo: { key: string; title: string; category: string | null; status: string | null } | null;
+  /** Lo que cuesta de media cada plantilla de este envío. */
   pricePerTemplate: number;
   currency: string;
+  /**
+   * De dónde sale `estimatedCost` (tabla de Meta por país o precio a mano) y
+   * su desglose por grupo de país (cuántas y cuánto).
+   */
+  costSource: CostEstimate["source"];
+  costByCountry: CostEstimate["groups"];
   /** Hasta 8 personas de ejemplo por grupo, para que se vea a quién le llega. */
   sample: { name: string | null; action: string }[];
   /**
@@ -138,9 +147,18 @@ export const previewSend = async (input: {
   if (!template && input.templateKey && plans.some((p) => p.action === "skip" && p.reason === "needs_template")) {
     await ensureTemplatesSubmitted([input.templateKey]).catch(() => undefined);
   }
-  const price = priceFor(prices, template?.metaCategory ?? anyTemplate?.metaCategory);
+  // Meta cobra cada plantilla entregada según el país de la persona y la
+  // categoría (lo gratis, dentro de las 24 h, no cuenta). Un precio puesto a
+  // mano en Plantillas manda sobre la tabla.
+  const cost = estimateTemplateCost(
+    recipients.filter((_, i) => plans[i].action === "template").map((r) => r.phoneE164),
+    template?.metaCategory ?? anyTemplate?.metaCategory,
+    prices
+  );
+  const summary = summarizePlans(plans, 0);
   return {
-    ...summarizePlans(plans, price),
+    ...summary,
+    estimatedCost: cost.total,
     templateInfo: anyTemplate
       ? {
           key: anyTemplate.key,
@@ -149,8 +167,10 @@ export const previewSend = async (input: {
           status: anyTemplate.metaApprovalStatus,
         }
       : null,
-    pricePerTemplate: price,
-    currency: prices.currency,
+    pricePerTemplate: summary.template ? Math.round((cost.total / summary.template) * 10000) / 10000 : 0,
+    currency: cost.currency,
+    costSource: cost.source,
+    costByCountry: cost.groups,
     phoneOnly: await phoneOnlyList(
       recipients.filter((_, i) => plans[i].action === "skip" && (plans[i] as { reason: string }).reason === "needs_template"),
       input.kind === "diagnostico"
@@ -177,8 +197,10 @@ export const createSend = async (input: {
   workshopEditionId?: string | null;
   /**
    * Id del medio de WhatsApp de la imagen (subida una vez,
-   * `POST /api/admin/whatsapp/sends/image`). Va en `vars` y la reutilizan
-   * todas: cabecera de la plantilla fuera de las 24 h, imagen con pie dentro.
+   * `POST /api/admin/whatsapp/sends/image`). Va en `vars` y la reutilizan:
+   * dentro de las 24 h, imagen con pie; fuera, cabecera de la plantilla si
+   * la plantilla lleva imagen arriba. Con una plantilla solo de texto, fuera
+   * de las 24 h va la plantilla sin imagen.
    */
   headerImageId?: string | null;
   /** La copia de esa imagen en Blob (misma subida), para verla en el chat. */
@@ -191,14 +213,18 @@ export const createSend = async (input: {
   checkHeader?: boolean;
 }): Promise<{ id: string; total: number }> => {
   const template = await approvedTemplateFor(input.templateKey);
-  // Imagen y plantilla van juntas: se comprueba en 360dialog antes de empezar.
-  // El agente y las invitaciones a la comunidad no adjuntan imagen: se ahorran
-  // la llamada (y si 360dialog no responde, sin imagen se deja pasar).
+  // Imagen y plantilla: se comprueba en 360dialog antes de empezar si la
+  // plantilla lleva imagen arriba (sin imagen no sale; con una plantilla solo
+  // de texto, la imagen solo va dentro de las 24 h). El agente y las
+  // invitaciones a la comunidad no adjuntan imagen: se ahorran la llamada (y
+  // si 360dialog no responde, sin imagen se deja pasar).
+  let headerFormat: string | null | undefined = null;
   if (input.headerImageId || input.checkHeader) {
+    headerFormat = await approvedHeaderFormat(template);
     const problem = headerImageProblem({
       hasImage: Boolean(input.headerImageId),
       templateTitle: template?.title ?? null,
-      headerFormat: await approvedHeaderFormat(template),
+      headerFormat,
     });
     if (problem) throw new WhatsAppSendSetupError(problem);
   }
@@ -211,6 +237,8 @@ export const createSend = async (input: {
       vars[HEADER_IMAGE_URL_VAR] = input.headerImageCopy.url;
       vars[HEADER_IMAGE_MIME_VAR] = input.headerImageCopy.mimeType;
     }
+    // Plantilla solo de texto (o sin plantilla): la imagen, solo dentro de las 24 h.
+    if (headerImageScope(headerFormat) === "window") vars[HEADER_IMAGE_SCOPE_VAR] = "window";
   }
 
   const recipients = await loadRecipients(input.contactIds);
@@ -356,6 +384,8 @@ export const processNextBatch = async (
           vars,
           headerImage: headerImage ? { id: headerImage.id } : null,
           headerImageCopy: headerImage?.copy ?? null,
+          // Plantilla solo de texto: fuera de las 24 h, la plantilla sin imagen.
+          headerImageScope: headerImage?.scope ?? "all",
           source: `bulk:${sendId}`,
           staffId,
           // Si esta tanda se corta y se reintenta, a esta persona no le llega dos veces.

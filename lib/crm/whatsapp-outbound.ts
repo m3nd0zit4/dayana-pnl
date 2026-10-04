@@ -9,9 +9,11 @@ import {
   fillVars,
   firstName,
   planSend,
+  sendsHeaderImage,
   splitImageCaption,
   templateParams,
   type HeaderImageCopy,
+  type HeaderImageScope,
   type SendPlan,
 } from "./whatsapp-outbound-plan";
 import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
@@ -133,13 +135,19 @@ export const sendWhatsAppToRecipient = async (input: {
   vars?: Record<string, string | null | undefined>;
   attachment?: SendAttachment | null;
   /**
-   * Imagen ya subida a WhatsApp (envío masivo): fuera de las 24 h va como
-   * cabecera de la plantilla (que debe tener cabecera IMAGE); dentro, como
-   * imagen con el texto de pie.
+   * Imagen ya subida a WhatsApp (envío masivo): dentro de las 24 h va como
+   * imagen con el texto de pie; fuera, como cabecera de la plantilla, solo si
+   * `headerImageScope` es `all` (la plantilla tiene cabecera IMAGE).
    */
   headerImage?: WhatsAppImageRef | null;
   /** Copia de `headerImage` en Blob, para que el chat del CRM muestre la foto. */
   headerImageCopy?: HeaderImageCopy | null;
+  /**
+   * `window`: la plantilla es solo de texto, así que fuera de las 24 h la
+   * plantilla sale sin imagen (Meta rechaza una cabecera que no tiene).
+   * Por defecto `all`.
+   */
+  headerImageScope?: HeaderImageScope;
   source: string;
   staffId?: string | null;
   template?: WaTemplate | null;
@@ -171,18 +179,23 @@ export const sendWhatsAppToRecipient = async (input: {
     source: input.source,
     isAutoReply: input.isAutoReply ?? false,
   };
+  // Con una plantilla solo de texto, la imagen va solo dentro de las 24 h:
+  // fuera, la plantilla sale sin cabecera (Meta rechaza una que no tiene).
+  const withImage = sendsHeaderImage(plan.action, input.headerImageScope ?? "all");
+  const headerImage = withImage ? (input.headerImage ?? null) : null;
+  const headerImageCopy = headerImage ? (input.headerImageCopy ?? null) : null;
   // Dentro de las 24 h el texto va de pie de la imagen, y WhatsApp no admite
   // un pie de más de 1024: entonces la imagen va sola y el texto justo detrás.
   const separateText =
-    plan.action === "text" && input.headerImage && !input.attachment ? splitImageCaption(body).separateText : null;
+    plan.action === "text" && headerImage && !input.attachment ? splitImageCaption(body).separateText : null;
 
   try {
     const result = separateText
       ? await sendMetaMessage({
           ...common,
           body: "",
-          image: input.headerImage,
-          imageCopy: input.headerImageCopy ?? null,
+          image: headerImage,
+          imageCopy: headerImageCopy,
           clientKey: input.clientKey ? `${input.clientKey}:imagen` : null,
         }).then(() => sendMetaMessage({ ...common, body: separateText, clientKey: input.clientKey ?? null }))
       : await sendMetaMessage({
@@ -195,14 +208,14 @@ export const sendWhatsAppToRecipient = async (input: {
                   name: template.metaTemplateName!,
                   language: template.metaTemplateLang ?? "es",
                   variables: templateParams(template.metaVarNames, vars),
-                  headerImage: input.headerImage ?? null,
+                  headerImage,
                 },
-                imageCopy: input.headerImageCopy ?? null,
+                imageCopy: headerImageCopy,
               }
             : {
                 attachment: input.attachment ?? null,
-                image: input.headerImage ?? null,
-                imageCopy: input.headerImageCopy ?? null,
+                image: headerImage,
+                imageCopy: headerImageCopy,
               }),
         });
     if (r.contactId) {

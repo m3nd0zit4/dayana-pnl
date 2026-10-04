@@ -21,6 +21,7 @@ import {
   type FreeEventPeoplePage,
   type FreeEventRow,
 } from "@/lib/crm/free-events";
+import { EVENT_WA_TEMPLATE_KEY, eventWaTemplateKey } from "@/lib/crm/event-whatsapp-reminders";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { listRegistrationContactIds } from "@/lib/crm/webinar-registrations";
 import { freeEventPresetsFor } from "@/lib/crm/whatsapp-presets";
@@ -59,12 +60,14 @@ const FreeEventPeoplePage = async ({
     page: 1,
     pageSize: PAGE_SIZE,
   };
-  const [events, result, tz] = await Promise.all([
+  const [events, result, tz, reminderTemplateKey] = await Promise.all([
     preview ? Promise.resolve([] as FreeEventRow[]) : listFreeEvents(),
     preview
       ? Promise.resolve(empty)
       : listFreeEventPeople({ eventId, q, page, pageSize: PAGE_SIZE }),
     getOperationalTimezone(),
+    // La plantilla del recordatorio: la de utilidad si Meta ya la aprobó.
+    preview ? Promise.resolve(EVENT_WA_TEMPLATE_KEY) : eventWaTemplateKey(),
   ]);
 
   // Como la lista de eventos: el publicado, los que vienen y los pasados.
@@ -79,6 +82,7 @@ const FreeEventPeoplePage = async ({
       selected: selected ? { ...selected, id: selected.id } : null,
       selectedUpcoming,
       openEvent: openEvent && openEvent.id !== selected?.id ? openEvent : null,
+      reminderTemplateKey,
     },
     tz
   );
