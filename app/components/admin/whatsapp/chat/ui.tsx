@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { highlightParts } from "@/lib/crm/whatsapp-chat-format";
 import type { ChatListItem } from "@/lib/crm/whatsapp-agent/workspace";
+import { CHAT_CATEGORY_LABEL, isChatCategory } from "@/lib/crm/chat-category-rules";
 import { MODE_SHORT } from "../status";
 import { wa } from "./chatTheme";
 import { initials, linkKind } from "./utils";
@@ -97,6 +98,24 @@ export const ModeTag = ({ mode, generalMode }: { mode: ChatListItem["aiMode"]; g
       {MODE_SHORT[mode]}
     </span>
   ) : null;
+
+/**
+ * La categoría del chat junto al nombre: discreta (no compite con el estado de
+ * la fila), con un punto si la etiqueta es dudosa («revisar»).
+ */
+export const CategoryChip = ({ category, review }: { category: string | null; review?: boolean }) => {
+  if (!category || !isChatCategory(category)) return null;
+  const label = CHAT_CATEGORY_LABEL[category];
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-(--wa-panel) px-1.5 py-px text-[10px] font-medium text-(--wa-meta)"
+      title={review ? `${label} · por revisar` : label}
+    >
+      {label}
+      {review && <span aria-label="por revisar" className="size-1.5 rounded-full bg-(--wa-attention)" />}
+    </span>
+  );
+};
 
 /** Botón claro y visible, en la paleta de WhatsApp (40 px en el celular). */
 export const ActionButton = ({

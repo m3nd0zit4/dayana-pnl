@@ -2,8 +2,10 @@
 
 import { Loader2, PanelLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { CategoryCounts } from "@/lib/crm/chat-category";
 import type { ChatListItem, ChatQueue } from "@/lib/crm/whatsapp-agent/workspace";
 import GlobalModeSwitch from "../GlobalModeSwitch";
+import { CATEGORY_FILTERS } from "../status";
 import ChatRow from "./ChatRow";
 import { wa } from "./chatTheme";
 
@@ -34,6 +36,20 @@ const MODE_FILTERS: { id: "all" | "ai" | "mine"; label: string; hint: string }[]
 
 export const tabOf = (queue: ChatQueue): Tab =>
   queue === "attention" || queue === "seguimiento" ? queue : "all";
+
+/** Los filtros de dentro de «Todos» (quién responde, categoría): más discretos que las pestañas. */
+const subChip = (active: boolean) =>
+  cn(
+    "h-10 shrink-0 rounded-full px-2.5 text-xs font-medium transition-colors md:h-7",
+    active ? "bg-(--wa-text) text-(--wa-surface)" : "text-(--wa-icon) hover:bg-(--wa-panel)"
+  );
+
+const categoryCountOf = (c: CategoryCounts | null, id: string): number => {
+  if (!c) return 0;
+  if (id === "unclassified") return c.unclassified;
+  if (id === "review") return c.review;
+  return c.counts[id as keyof CategoryCounts["counts"]] ?? 0;
+};
 
 const chip = (active: boolean) =>
   cn(
@@ -84,6 +100,9 @@ const ChatList = ({
   onLoadMore,
   onToggleSidebar,
   onModeChanged,
+  categoryCounts,
+  category,
+  onCategory,
 }: {
   items: ChatListItem[] | null;
   counts: Counts;
@@ -104,8 +123,17 @@ const ChatList = ({
   onLoadMore: () => void;
   onToggleSidebar: () => void;
   onModeChanged: () => void;
+  /** Cuántos chats hay de cada categoría (`null` mientras carga). */
+  categoryCounts: CategoryCounts | null;
+  /** Filtro de categoría de «Todos» (una categoría, `unclassified` o `review`). */
+  category: string | null;
+  onCategory: (category: string | null) => void;
 }) => {
   const tab = tabOf(queue);
+  // Los filtros de categoría solo si la clasificación está encendida o ya hay chats clasificados.
+  const showCategories = Boolean(
+    categoryCounts && (categoryCounts.enabled || categoryCounts.total > categoryCounts.unclassified)
+  );
   return (
     <div className={cn("flex w-full min-w-0 flex-col bg-(--wa-surface) md:w-[26rem] md:shrink-0", hidden && "hidden md:flex")}>
       <div className="flex h-[60px] items-center gap-2 bg-(--wa-panel) px-2 md:px-3">
@@ -179,12 +207,35 @@ const ChatList = ({
                   title={f.hint}
                   aria-pressed={active}
                   onClick={() => onQueue(f.id)}
-                  className={cn(
-                    "h-10 shrink-0 rounded-full px-2.5 text-xs font-medium transition-colors md:h-7",
-                    active ? "bg-(--wa-text) text-(--wa-surface)" : "text-(--wa-icon) hover:bg-(--wa-panel)"
-                  )}
+                  className={subChip(active)}
                 >
                   {f.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {tab === "all" && showCategories && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="Categoría">
+            <span className="shrink-0 text-xs text-(--wa-meta)">Categoría:</span>
+            <button type="button" aria-pressed={!category} onClick={() => onCategory(null)} className={subChip(!category)}>
+              Todas
+            </button>
+            {CATEGORY_FILTERS.map((f) => {
+              const n = categoryCountOf(categoryCounts, f.id);
+              const active = category === f.id;
+              // Lo que no tiene ningún chat no se enseña (salvo si está elegido).
+              if (n === 0 && !active) return null;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onCategory(active ? null : f.id)}
+                  className={subChip(active)}
+                >
+                  {f.label}
+                  <span className={cn("ml-1 tabular-nums", active ? "opacity-80" : "text-(--wa-meta)")}>{n}</span>
                 </button>
               );
             })}

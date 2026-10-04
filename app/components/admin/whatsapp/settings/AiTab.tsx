@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useCrm } from "../../crm/CrmProvider";
 import WhatsAppPlaybooksCard from "../WhatsAppPlaybooksCard";
 import ChoiceCards from "./ChoiceCards";
+import ClassifySection from "./ClassifySection";
 import { TYPING_DELAY, WHATSAPP_AI_API, useSettings } from "./context";
 import { ExpandableText, NumberField } from "./fields";
 import SettingRow, { SettingAnchor, SettingsGroup } from "./SettingRow";
@@ -206,6 +207,8 @@ const AiTab = () => {
           onChange={(v) => change("wa-audience-customers", "audience.skipCustomers", v)}
         />
       </SettingsGroup>
+
+      <ClassifySection />
 
       <SettingsGroup title="Cuándo responde">
         <SettingRow

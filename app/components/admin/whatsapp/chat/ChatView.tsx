@@ -106,6 +106,28 @@ const ChatView = ({
     }
   };
 
+  /** Marcar la categoría a mano, volver a automático o reclasificar. */
+  const categoryAct = async (body: Record<string, unknown>, done: string) => {
+    setBusy("category");
+    try {
+      const res = await fetch("/api/admin/whatsapp/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string; outcome?: { status?: string } };
+      if (!res.ok) throw new Error(data.error ?? "error");
+      // Reclasificar con la IA puede no decidir (apagada, sin clave, cuota): se dice.
+      if (data.outcome?.status === "error") toast("No se pudo volver a mirar ahora. Inténtalo más tarde.", "info");
+      else toast(done, "success");
+      onChanged();
+    } catch (e) {
+      toast(`No se pudo: ${e instanceof Error ? e.message : "error"}`, "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   // Responder citando un mensaje.
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
 
@@ -354,6 +376,7 @@ const ChatView = ({
         onToggleInfo={() => setShowInfo((v) => !v)}
         searchOpen={searchOpen}
         onToggleSearch={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+        onCategory={(body, done) => void categoryAct(body, done)}
       />
       {searchOpen && (
         <ChatSearchBar
