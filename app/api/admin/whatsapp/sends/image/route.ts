@@ -5,6 +5,8 @@ import { MetaApiError } from "@/lib/meta/client";
 import { uploadWhatsAppMedia } from "@/lib/meta/send";
 import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
 import { resolveDryRun } from "@/lib/notifications/platform/resolve";
+import { isBlobConfigured } from "@/lib/storage/blob";
+import { putOutboundMedia } from "@/lib/storage/outbound-media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,10 +25,31 @@ const sniffImageType = (bytes: Uint8Array): "image/png" | "image/jpeg" | null =>
 };
 
 /**
+ * La copia para el chat del CRM, guardada como los adjuntos de la bandeja:
+ * sin ella cada mensaje del envío se ve solo con el texto. Si falla, el envío
+ * sigue igual (la imagen les llega por el id de WhatsApp) y el chat muestra
+ * el aviso de «📷 Foto».
+ */
+const storeChatCopy = async (
+  buffer: ArrayBuffer,
+  mimeType: "image/png" | "image/jpeg"
+): Promise<{ url: string; mimeType: string } | null> => {
+  if (!isBlobConfigured()) return null;
+  try {
+    const url = await putOutboundMedia(buffer, mimeType, mimeType === "image/png" ? "png" : "jpg");
+    return { url, mimeType };
+  } catch (e) {
+    console.warn("[whatsapp-sends/image] no se pudo guardar la copia para el chat", e);
+    return null;
+  }
+};
+
+/**
  * Sube UNA vez la imagen de un envío masivo a los medios de WhatsApp y
  * devuelve su id. El envío lo guarda en `vars` y cada persona lo reutiliza
  * (cabecera de la plantilla o imagen con pie): 159 personas no son 159 subidas.
  * En modo prueba no sale nada: devuelve un id de mentira.
+ * `copy`: la misma imagen en Blob, para que el chat la muestre.
  */
 export const POST = withStaff("write", async ({ req }) => {
   const form = await req.formData().catch(() => null);
@@ -44,7 +67,11 @@ export const POST = withStaff("write", async ({ req }) => {
   }
 
   if (await resolveDryRun()) {
-    return NextResponse.json({ id: `dryrun-${crypto.randomUUID()}`, dryRun: true });
+    return NextResponse.json({
+      id: `dryrun-${crypto.randomUUID()}`,
+      dryRun: true,
+      copy: await storeChatCopy(buffer, mimeType),
+    });
   }
 
   const credentials = await resolveWhatsAppCredentials();
@@ -55,7 +82,7 @@ export const POST = withStaff("write", async ({ req }) => {
   }
   try {
     const id = await uploadWhatsAppMedia(buffer, mimeType, credentials);
-    return NextResponse.json({ id, dryRun: false });
+    return NextResponse.json({ id, dryRun: false, copy: await storeChatCopy(buffer, mimeType) });
   } catch (e) {
     const detail =
       e instanceof MetaApiError ? `${e.message}${e.code ? ` (código ${e.code})` : ""}` : e instanceof Error ? e.message : "";

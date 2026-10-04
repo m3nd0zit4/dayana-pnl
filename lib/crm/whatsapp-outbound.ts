@@ -5,7 +5,15 @@ import { resolveWindow } from "@/lib/meta/window";
 import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
 import { writeAuditLog } from "./audit";
 import { recordContactTouch } from "./whatsapp-touches";
-import { fillVars, firstName, planSend, templateParams, type SendPlan } from "./whatsapp-outbound-plan";
+import {
+  fillVars,
+  firstName,
+  planSend,
+  splitImageCaption,
+  templateParams,
+  type HeaderImageCopy,
+  type SendPlan,
+} from "./whatsapp-outbound-plan";
 import { approvedTemplateFor, type WaTemplate } from "./whatsapp-templates";
 import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
 
@@ -130,6 +138,8 @@ export const sendWhatsAppToRecipient = async (input: {
    * imagen con el texto de pie.
    */
   headerImage?: WhatsAppImageRef | null;
+  /** Copia de `headerImage` en Blob, para que el chat del CRM muestre la foto. */
+  headerImageCopy?: HeaderImageCopy | null;
   source: string;
   staffId?: string | null;
   template?: WaTemplate | null;
@@ -155,25 +165,46 @@ export const sendWhatsAppToRecipient = async (input: {
       ? fillVars(template.body, vars)
       : fillVars(input.text, vars);
 
+  const common = {
+    conversationId: conversation.id,
+    staffUserId: input.staffId ?? null,
+    source: input.source,
+    isAutoReply: input.isAutoReply ?? false,
+  };
+  // Dentro de las 24 h el texto va de pie de la imagen, y WhatsApp no admite
+  // un pie de más de 1024: entonces la imagen va sola y el texto justo detrás.
+  const separateText =
+    plan.action === "text" && input.headerImage && !input.attachment ? splitImageCaption(body).separateText : null;
+
   try {
-    const result = await sendMetaMessage({
-      conversationId: conversation.id,
-      body,
-      staffUserId: input.staffId ?? null,
-      source: input.source,
-      isAutoReply: input.isAutoReply ?? false,
-      clientKey: input.clientKey ?? null,
-      ...(plan.action === "template" && template
-        ? {
-            template: {
-              name: template.metaTemplateName!,
-              language: template.metaTemplateLang ?? "es",
-              variables: templateParams(template.metaVarNames, vars),
-              headerImage: input.headerImage ?? null,
-            },
-          }
-        : { attachment: input.attachment ?? null, image: input.headerImage ?? null }),
-    });
+    const result = separateText
+      ? await sendMetaMessage({
+          ...common,
+          body: "",
+          image: input.headerImage,
+          imageCopy: input.headerImageCopy ?? null,
+          clientKey: input.clientKey ? `${input.clientKey}:imagen` : null,
+        }).then(() => sendMetaMessage({ ...common, body: separateText, clientKey: input.clientKey ?? null }))
+      : await sendMetaMessage({
+          ...common,
+          body,
+          clientKey: input.clientKey ?? null,
+          ...(plan.action === "template" && template
+            ? {
+                template: {
+                  name: template.metaTemplateName!,
+                  language: template.metaTemplateLang ?? "es",
+                  variables: templateParams(template.metaVarNames, vars),
+                  headerImage: input.headerImage ?? null,
+                },
+                imageCopy: input.headerImageCopy ?? null,
+              }
+            : {
+                attachment: input.attachment ?? null,
+                image: input.headerImage ?? null,
+                imageCopy: input.headerImageCopy ?? null,
+              }),
+        });
     if (r.contactId) {
       await recordContactTouch({
         contactId: r.contactId,

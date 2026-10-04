@@ -4,9 +4,15 @@ import {
   approvalDelivery,
   fillVars,
   firstName,
+  HEADER_IMAGE_MIME_VAR,
+  HEADER_IMAGE_URL_VAR,
+  HEADER_IMAGE_VAR,
   headerImageProblem,
+  IMAGE_CAPTION_MAX,
   isOptOutMessage,
   planSend,
+  splitImageCaption,
+  splitSendVars,
   summarizePlans,
   templateParams,
   windowNotice,
@@ -130,5 +136,47 @@ describe("headerImageProblem", () => {
     expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: null })).toContain("no lleva imagen");
     expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: "TEXT" })).toContain("no lleva imagen");
     expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: undefined })).toContain("No pude comprobar");
+  });
+});
+
+describe("splitImageCaption", () => {
+  test("cabe en el pie: un solo mensaje con la imagen y el texto", () => {
+    expect(splitImageCaption("Hola Ana")).toEqual({ caption: "Hola Ana", separateText: null });
+    const exact = "a".repeat(IMAGE_CAPTION_MAX);
+    expect(splitImageCaption(exact)).toEqual({ caption: exact, separateText: null });
+  });
+
+  test("no cabe: la imagen sin pie y el texto aparte, entero", () => {
+    const long = "a".repeat(IMAGE_CAPTION_MAX + 1);
+    expect(splitImageCaption(long)).toEqual({ caption: "", separateText: long });
+  });
+
+  test("se mide el texto ya con el nombre puesto", () => {
+    const text = `Hola {{nombre}}, ${"a".repeat(IMAGE_CAPTION_MAX - 10)}`;
+    expect(splitImageCaption(fillVars(text, { nombre: "" })).separateText).toBeNull();
+    expect(splitImageCaption(fillVars(text, { nombre: "Maximiliana" })).separateText).not.toBeNull();
+  });
+});
+
+describe("splitSendVars", () => {
+  test("la imagen y su copia salen de las variables del mensaje", () => {
+    const out = splitSendVars({
+      evento: "«Taller»",
+      [HEADER_IMAGE_VAR]: "media-1",
+      [HEADER_IMAGE_URL_VAR]: "https://x.private.blob.vercel-storage.com/inbox/outbound/a.png",
+      [HEADER_IMAGE_MIME_VAR]: "image/png",
+      __otra: "no va al texto",
+    });
+    expect(out.vars).toEqual({ evento: "«Taller»" });
+    expect(out.headerImage).toEqual({
+      id: "media-1",
+      copy: { url: "https://x.private.blob.vercel-storage.com/inbox/outbound/a.png", mimeType: "image/png" },
+    });
+  });
+
+  test("envío viejo sin copia, o sin imagen", () => {
+    expect(splitSendVars({ [HEADER_IMAGE_VAR]: "media-1" }).headerImage).toEqual({ id: "media-1", copy: null });
+    expect(splitSendVars({ evento: "x" })).toEqual({ vars: { evento: "x" }, headerImage: null });
+    expect(splitSendVars(null)).toEqual({ vars: {}, headerImage: null });
   });
 });

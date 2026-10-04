@@ -31,6 +31,44 @@ export const planSend = (input: {
  * chocar con una variable de plantilla.
  */
 export const HEADER_IMAGE_VAR = "__headerImageId";
+/**
+ * La copia de esa imagen en Blob (URL y tipo), solo para que el chat del CRM
+ * la muestre: a WhatsApp se le manda el id de arriba.
+ */
+export const HEADER_IMAGE_URL_VAR = "__headerImageUrl";
+export const HEADER_IMAGE_MIME_VAR = "__headerImageMime";
+
+export type HeaderImageCopy = { url: string; mimeType: string };
+
+/**
+ * Separa la imagen del envío (las claves `__…`) de las variables del mensaje:
+ * esas no son de la plantilla y no pueden acabar en el texto.
+ */
+export const splitSendVars = (
+  raw: Record<string, string> | null | undefined
+): { vars: Record<string, string>; headerImage: { id: string; copy: HeaderImageCopy | null } | null } => {
+  const vars: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw ?? {})) if (!key.startsWith("__")) vars[key] = value;
+  const id = raw?.[HEADER_IMAGE_VAR];
+  const url = raw?.[HEADER_IMAGE_URL_VAR];
+  return {
+    vars,
+    headerImage: id
+      ? { id, copy: url ? { url, mimeType: raw?.[HEADER_IMAGE_MIME_VAR] || "image/jpeg" } : null }
+      : null,
+  };
+};
+
+/** WhatsApp no acepta el pie de una imagen de más de 1024 caracteres. */
+export const IMAGE_CAPTION_MAX = 1024;
+
+/**
+ * Imagen con el texto de pie (dentro de las 24 h). Si el texto, ya con
+ * {{nombre}} puesto, no cabe en el pie, WhatsApp rechazaría el mensaje
+ * entero: la imagen va sin pie y el texto en un mensaje aparte, justo después.
+ */
+export const splitImageCaption = (body: string): { caption: string; separateText: string | null } =>
+  body.length > IMAGE_CAPTION_MAX ? { caption: "", separateText: body } : { caption: body, separateText: null };
 
 /**
  * Imagen y plantilla tienen que ir juntas: una plantilla con cabecera IMAGE

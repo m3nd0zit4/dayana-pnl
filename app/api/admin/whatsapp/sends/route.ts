@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { createSend, listRecentSends, previewSend, WhatsAppSendSetupError } from "@/lib/crm/whatsapp-sends";
+import { isOutboundMediaUrl } from "@/lib/storage/outbound-media";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -25,6 +26,17 @@ const schema = z.object({
   checkHeader: z.boolean().optional(),
   /** Id del medio de WhatsApp de la imagen, de `POST …/sends/image`. */
   headerImageId: z.string().trim().min(1).max(200).nullish(),
+  /**
+   * La copia de esa imagen en Blob (de la misma subida), para verla en el chat.
+   * Solo para mostrar: si no es una URL nuestra se ignora y el envío sigue.
+   */
+  headerImageCopy: z
+    .object({
+      url: z.string().max(500).refine(isOutboundMediaUrl),
+      mimeType: z.enum(["image/jpeg", "image/png"]),
+    })
+    .nullish()
+    .catch(null),
 });
 
 export const POST = withStaff("write", async ({ req, staff }) => {
@@ -54,6 +66,9 @@ export const POST = withStaff("write", async ({ req, staff }) => {
       freeWebinarId: input.freeWebinarId ?? null,
       workshopEditionId: input.workshopEditionId ?? null,
       headerImageId: input.headerImageId ?? null,
+      headerImageCopy: input.headerImageCopy ?? null,
+      // El diálogo masivo: una plantilla con imagen arriba no sale sin imagen.
+      checkHeader: true,
     });
     return NextResponse.json(created);
   } catch (e) {

@@ -1,8 +1,8 @@
-import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { requireWriteStaff } from "@/lib/auth/api-staff";
 import { isMetaInboxEnabled } from "@/lib/meta/client";
 import { blobNotConfiguredResponse, isBlobConfigured } from "@/lib/storage/blob";
+import { putOutboundMedia } from "@/lib/storage/outbound-media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -75,14 +75,10 @@ export const POST = async (req: Request) => {
   }
 
   try {
-    const blob = await put(`inbox/outbound/${crypto.randomUUID()}.${extension}`, file, {
-      access: "private",
-      contentType: mimeType,
-      addRandomSuffix: false,
-    });
+    const url = await putOutboundMedia(file, mimeType, extension);
 
     return NextResponse.json({
-      url: blob.url,
+      url,
       mimeType,
       filename: file.name || `adjunto.${extension}`,
       size: file.size,

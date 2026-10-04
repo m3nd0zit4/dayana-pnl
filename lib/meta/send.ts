@@ -71,6 +71,12 @@ export type SendInput = {
    */
   image?: WhatsAppImageRef | null;
   /**
+   * Solo para el hilo del CRM: la copia en Blob de `image` o de la cabecera
+   * de la plantilla, para que el chat muestre la foto que salió. A Meta no se
+   * le manda (ya tiene el id).
+   */
+  imageCopy?: { url: string; mimeType: string } | null;
+  /**
    * Botón que abre un enlace, bajo el texto (solo WhatsApp y dentro de la
    * ventana de 24 h). Un botón se toca; un enlace suelto en el texto hay que
    * leerlo, reconocerlo y decidir tocarlo.
@@ -474,6 +480,16 @@ export const sendMetaMessage = async (
   // Same `StoredAttachment` shape inbound attachments persist as (see
   // `lib/meta/media.ts`) — `MessageBubble` already renders that shape
   // regardless of direction, so an outbound one needs no UI-side changes.
+  // La imagen ya subida que de verdad sale (la misma rama que `sendWhatsApp`):
+  // dentro de la ventana, `image`; fuera, la cabecera de la plantilla. Queda
+  // como adjunto de imagen para que el chat no muestre solo el texto: con la
+  // copia en Blob se ve la foto; sin ella, el aviso de «📷 Foto».
+  const sentImage =
+    conversation.channel !== "WHATSAPP" || input.attachment
+      ? null
+      : window.isOpen
+        ? (input.image ?? null)
+        : (input.template?.headerImage ?? null);
   const attachments = input.attachment
     ? [
         {
@@ -486,7 +502,16 @@ export const sendMetaMessage = async (
           caption: input.body || null,
         },
       ]
-    : undefined;
+    : sentImage
+      ? [
+          {
+            kind: "image",
+            url: input.imageCopy?.url ?? null,
+            mimeType: input.imageCopy?.mimeType ?? null,
+            caption: input.body || null,
+          },
+        ]
+      : undefined;
 
   // Bandeja de salida: la fila se escribe ANTES de llamar a WhatsApp (en
   // cola). Así un acuse que llega rapidísimo encuentra su mensaje, y si la

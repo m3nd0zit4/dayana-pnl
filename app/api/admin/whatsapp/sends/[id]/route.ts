@@ -34,7 +34,8 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
   try {
     return NextResponse.json(await processNextBatch(params.id, staff.id));
   } catch (e) {
-    // P. ej. la imagen del envío caducó: el motivo, en español, para el diálogo.
+    // Un motivo en español para el diálogo. (La imagen caducada ya no llega
+    // aquí: cierra el envío y vuelve en `notice` del progreso.)
     if (e instanceof WhatsAppSendSetupError) return apiError("send_blocked", 400, { message: e.message });
     return apiError(e instanceof Error ? e.message : "send_failed", 400);
   }

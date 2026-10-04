@@ -20,7 +20,16 @@ type Preview = {
   templateHeader?: string | null;
 };
 
-type Progress = { status: string; total: number; sent: number; failed: number; skipped: number; pending: number };
+type Progress = {
+  status: string;
+  total: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  /** Por qué terminó antes de tiempo (p. ej. la imagen caducó). */
+  notice?: string;
+};
 
 /** Lo que el diálogo necesita de una plantilla aprobada para ofrecerla. */
 type ApprovedTemplate = { key: string; title: string; body: string; metaVarNames: string[] };
@@ -162,12 +171,16 @@ const WhatsAppBulkSend = ({
     try {
       // La imagen se sube una sola vez; el envío guarda su id y lo reutiliza.
       let headerImageId: string | null = null;
+      // La misma imagen guardada para el chat del CRM (si se pudo).
+      let headerImageCopy: { url: string; mimeType: string } | null = null;
       if (imageToSend) {
         const form = new FormData();
         form.append("file", imageToSend);
         const res = await fetch("/api/admin/whatsapp/sends/image", { method: "POST", body: form });
         if (!res.ok) throw await readError(res, "No se pudo subir la imagen a WhatsApp.");
-        headerImageId = ((await res.json()) as { id: string }).id;
+        const uploaded = (await res.json()) as { id: string; copy?: { url: string; mimeType: string } | null };
+        headerImageId = uploaded.id;
+        headerImageCopy = uploaded.copy ?? null;
       }
       const { id } = create
         ? await create({ contactIds, text, templateKey })
@@ -185,11 +198,13 @@ const WhatsAppBulkSend = ({
               freeWebinarId: link?.freeWebinarId ?? null,
               workshopEditionId: link?.workshopEditionId ?? null,
               headerImageId,
+              headerImageCopy,
             }),
           }).then(async (res) => {
             if (!res.ok) throw await readError(res, "No se pudo preparar el envío.");
             return (await res.json()) as { id: string };
           });
+      let notice: string | undefined;
       for (;;) {
         const step = await fetch(`/api/admin/whatsapp/sends/${id}`, {
           method: "POST",
@@ -199,9 +214,12 @@ const WhatsAppBulkSend = ({
         if (!step.ok) throw await readError(step, "");
         const p = (await step.json()) as Progress;
         setProgress(p);
+        notice = p.notice;
         if (p.pending === 0 || p.status === "DONE" || p.status === "CANCELLED") break;
       }
-      toast("Envío terminado", "success");
+      // Terminó antes de tiempo (la imagen caducó): el motivo, no «terminado».
+      if (notice) toast(notice, "error");
+      else toast("Envío terminado", "success");
       onDone?.();
     } catch (e) {
       toast(
@@ -220,7 +238,9 @@ const WhatsAppBulkSend = ({
   // La grabación de un evento pasado no vive en el CRM: el enlace se pega aquí.
   const missingLink = presetMissingLink(preset, text);
   const missingImage = needsImage && !image;
-  // Dentro de las 24 h el texto va como pie de la imagen: WhatsApp corta en 1024.
+  // Dentro de las 24 h el texto va como pie de la imagen y WhatsApp lo admite
+  // hasta 1024. Solo avisa: si no cabe, el servidor manda la imagen sola y el
+  // texto aparte (lo mide ya con el nombre de cada persona).
   const captionTooLong = Boolean(imageToSend) && text.length > 1024;
 
   return (
@@ -335,8 +355,9 @@ const WhatsAppBulkSend = ({
                     <p className="text-xs text-destructive">Sin la imagen, WhatsApp rechaza esta plantilla.</p>
                   )}
                   {captionTooLong && (
-                    <p className="text-xs text-destructive">
-                      Con imagen, el texto va como pie y WhatsApp admite hasta 1024 caracteres (tiene {text.length}).
+                    <p className="text-xs text-muted-foreground">
+                      El texto tiene {text.length} caracteres y el pie de una imagen admite hasta 1024: a quien escribió en
+                      las últimas 24 h le llega la imagen y, justo después, el texto en otro mensaje.
                     </p>
                   )}
                 </div>
@@ -379,9 +400,7 @@ const WhatsAppBulkSend = ({
                 <button
                   type="button"
                   onClick={() => void run()}
-                  disabled={
-                    !preview || toSend === 0 || running || !text.trim() || missingLink || missingImage || captionTooLong
-                  }
+                  disabled={!preview || toSend === 0 || running || !text.trim() || missingLink || missingImage}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   <Send className="size-4" /> Enviar a {toSend}
@@ -405,6 +424,7 @@ const WhatsAppBulkSend = ({
                   {!done && ` · faltan ${progress.pending}`}
                 </span>
               </div>
+              {progress.notice && <p className="text-xs text-destructive">{progress.notice}</p>}
               {done && (
                 <p className="text-xs text-muted-foreground">
                   Cada mensaje quedó en el chat de esa persona (WhatsApp → Chats), con sus ✓✓ de entregado y leído.

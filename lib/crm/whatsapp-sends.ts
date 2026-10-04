@@ -10,9 +10,13 @@ import {
   type RecipientInfo,
 } from "./whatsapp-outbound";
 import {
+  HEADER_IMAGE_MIME_VAR,
+  HEADER_IMAGE_URL_VAR,
   HEADER_IMAGE_VAR,
   headerImageProblem,
+  splitSendVars,
   summarizePlans,
+  type HeaderImageCopy,
   type SendSummary,
 } from "./whatsapp-outbound-plan";
 import {
@@ -177,19 +181,37 @@ export const createSend = async (input: {
    * todas: cabecera de la plantilla fuera de las 24 h, imagen con pie dentro.
    */
   headerImageId?: string | null;
+  /** La copia de esa imagen en Blob (misma subida), para verla en el chat. */
+  headerImageCopy?: HeaderImageCopy | null;
+  /**
+   * Comprobar en 360dialog la cabecera de la plantilla aunque no haya imagen
+   * (el diálogo masivo: una plantilla con imagen arriba la exige). Con imagen
+   * se comprueba siempre; sin imagen y sin pedirlo, no se llama a 360dialog.
+   */
+  checkHeader?: boolean;
 }): Promise<{ id: string; total: number }> => {
-  // Imagen y plantilla van juntas: se comprueba en 360dialog antes de empezar.
   const template = await approvedTemplateFor(input.templateKey);
-  const problem = headerImageProblem({
-    hasImage: Boolean(input.headerImageId),
-    templateTitle: template?.title ?? null,
-    headerFormat: await approvedHeaderFormat(template),
-  });
-  if (problem) throw new WhatsAppSendSetupError(problem);
+  // Imagen y plantilla van juntas: se comprueba en 360dialog antes de empezar.
+  // El agente y las invitaciones a la comunidad no adjuntan imagen: se ahorran
+  // la llamada (y si 360dialog no responde, sin imagen se deja pasar).
+  if (input.headerImageId || input.checkHeader) {
+    const problem = headerImageProblem({
+      hasImage: Boolean(input.headerImageId),
+      templateTitle: template?.title ?? null,
+      headerFormat: await approvedHeaderFormat(template),
+    });
+    if (problem) throw new WhatsAppSendSetupError(problem);
+  }
 
-  const vars: Record<string, string> = { ...(input.vars ?? {}) };
-  delete vars[HEADER_IMAGE_VAR];
-  if (input.headerImageId) vars[HEADER_IMAGE_VAR] = input.headerImageId;
+  // Las claves `__…` son de la imagen: solo las pone este código.
+  const vars = splitSendVars(input.vars).vars;
+  if (input.headerImageId) {
+    vars[HEADER_IMAGE_VAR] = input.headerImageId;
+    if (input.headerImageCopy) {
+      vars[HEADER_IMAGE_URL_VAR] = input.headerImageCopy.url;
+      vars[HEADER_IMAGE_MIME_VAR] = input.headerImageCopy.mimeType;
+    }
+  }
 
   const recipients = await loadRecipients(input.contactIds);
   // Un id que ya no existe deja el envío suelto en vez de tumbarlo.
@@ -261,7 +283,13 @@ export type SendProgress = {
   failed: number;
   skipped: number;
   pending: number;
+  /** Por qué el envío terminó antes de tiempo (p. ej. la imagen caducó), para mostrarlo. */
+  notice?: string;
 };
+
+/** El id del medio de la imagen caducó: el motivo que queda en cada persona y se muestra. */
+const EXPIRED_IMAGE_REASON =
+  "La imagen de este envío ya caducó en WhatsApp (dura 30 días). Crea un envío nuevo con la imagen para las personas que faltan.";
 
 const progressOf = async (id: string): Promise<SendProgress> => {
   const send = await prisma.whatsAppSend.findUniqueOrThrow({ where: { id } });
@@ -287,15 +315,23 @@ export const processNextBatch = async (
   if (!send) throw new Error("El envío no existe.");
   if (send.status === "CANCELLED" || send.status === "DONE") return progressOf(sendId);
 
-  const template: WaTemplate | null = await approvedTemplateFor(send.templateKey);
-  const { [HEADER_IMAGE_VAR]: headerImageId, ...vars } = (send.vars ?? {}) as Record<string, string>;
+  const { vars, headerImage } = splitSendVars(send.vars as Record<string, string> | null);
   // El id del medio caduca a los 30 días: retomar un envío viejo fallaría
-  // persona por persona (y fuera de las 24 h, cobrando el intento). Se corta antes.
-  if (headerImageId && Date.now() - send.createdAt.getTime() > HEADER_IMAGE_TTL_MS) {
-    throw new WhatsAppSendSetupError(
-      "La imagen de este envío ya caducó en WhatsApp (dura 30 días). Crea un envío nuevo con la imagen para las personas que faltan."
-    );
+  // persona por persona (y fuera de las 24 h, cobrando el intento). Se cierra
+  // antes: las que faltan quedan fallidas con el motivo y el envío, terminado,
+  // para que la página lo diga y deje de pedir tandas.
+  if (headerImage && Date.now() - send.createdAt.getTime() > HEADER_IMAGE_TTL_MS) {
+    const expired = await prisma.whatsAppSendRecipient.updateMany({
+      where: { sendId, status: "PENDING" },
+      data: { status: "FAILED", error: EXPIRED_IMAGE_REASON, processedAt: new Date() },
+    });
+    await prisma.whatsAppSend.update({
+      where: { id: sendId },
+      data: { status: "DONE", finishedAt: new Date(), failed: { increment: expired.count } },
+    });
+    return { ...(await progressOf(sendId)), notice: EXPIRED_IMAGE_REASON };
   }
+  const template: WaTemplate | null = await approvedTemplateFor(send.templateKey);
   const batch = await prisma.whatsAppSendRecipient.findMany({
     where: { sendId, status: "PENDING" },
     take: batchSize,
@@ -318,7 +354,8 @@ export const processNextBatch = async (
           templateKey: send.templateKey,
           template,
           vars,
-          headerImage: headerImageId ? { id: headerImageId } : null,
+          headerImage: headerImage ? { id: headerImage.id } : null,
+          headerImageCopy: headerImage?.copy ?? null,
           source: `bulk:${sendId}`,
           staffId,
           // Si esta tanda se corta y se reintenta, a esta persona no le llega dos veces.
