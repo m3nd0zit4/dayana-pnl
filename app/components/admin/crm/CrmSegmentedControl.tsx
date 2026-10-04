@@ -46,16 +46,20 @@ const CrmSegmentedControl = <T extends string>({
       aria-label={ariaLabel}
       className={
         mobileGrid
-          ? "grid w-full auto-cols-fr grid-flow-col group-data-horizontal/tabs:h-auto sm:inline-flex sm:w-fit sm:group-data-horizontal/tabs:h-8"
+          ? // Cada celda mide al menos lo que su texto (`minmax(max-content,1fr)`)
+            // y, si no caben, la fila se desplaza dentro de sí misma: nunca se
+            // pisan. Desde `sm`, cada pestaña del ancho de su etiqueta.
+            "grid w-full auto-cols-[minmax(max-content,1fr)] grid-flow-col overflow-x-auto overflow-y-hidden group-data-horizontal/tabs:h-auto sm:inline-flex sm:w-fit sm:max-w-full sm:gap-1 sm:group-data-horizontal/tabs:h-8"
           : undefined
       }
     >
       {segments.map((seg) => {
         const Icon = seg.icon;
+        const fullLabel = seg.count != null ? `${seg.label} (${seg.count})` : seg.label;
         if (!mobileGrid) {
           return (
-            <TabsTrigger key={seg.id} value={seg.id}>
-              {seg.count != null ? `${seg.label} (${seg.count})` : seg.label}
+            <TabsTrigger key={seg.id} value={seg.id} aria-label={fullLabel}>
+              {fullLabel}
             </TabsTrigger>
           );
         }
@@ -63,8 +67,13 @@ const CrmSegmentedControl = <T extends string>({
           <TabsTrigger
             key={seg.id}
             value={seg.id}
+            // Nombre accesible explícito: la etiqueta visible cambia entre el
+            // teléfono y el escritorio, y la otra queda en `display: none`.
+            aria-label={fullLabel}
             // `min-h-11`: en el teléfono cada celda es un toque de pulgar (≥ 40 px).
-            className="h-auto min-h-11 min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[11px] leading-tight tracking-tight sm:h-[calc(100%-1px)] sm:min-h-0 sm:flex-row sm:gap-1.5 sm:px-1.5 sm:py-0.5 sm:text-sm sm:tracking-normal"
+            // Desde `sm`, `flex-none` y `min-w-max`: con `flex-1` y `min-w-0`
+            // todas medían lo mismo y «Inscritas (159)» se montaba sobre «WhatsApp».
+            className="h-auto min-h-11 min-w-0 flex-col gap-0.5 px-1 py-1.5 text-[11px] leading-tight tracking-tight sm:h-[calc(100%-1px)] sm:min-h-0 sm:min-w-max sm:flex-none sm:flex-row sm:gap-1.5 sm:px-3 sm:py-0.5 sm:text-sm sm:tracking-normal"
           >
             {Icon ? (
               <span className="relative sm:hidden">

@@ -211,6 +211,7 @@ const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string
             source="eventos"
             allLabel="Enviar a todas las inscritas"
             link={link}
+            timeZone={tz}
           />
           {allContactIds.length > registrants.length ? (
             <Link

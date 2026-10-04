@@ -11,6 +11,7 @@ import {
   freeEventPublicPath,
   freeEventSlugBase,
   freeEventSlugCandidates,
+  inscritasBulkLabel,
   isActiveFor,
   isFreeEventOpenRow,
   isReservedFreeEventSlug,
@@ -372,5 +373,24 @@ describe("tope de confirmaciones por WhatsApp", () => {
 
   test("los topes por defecto: 40 por hora y 300 por día", () => {
     expect(EVENT_CONFIRMATION_CAP).toEqual({ perHour: 40, perDay: 300 });
+  });
+});
+
+describe("inscritasBulkLabel", () => {
+  test("con «Todos» dice que son todos los eventos", () => {
+    expect(inscritasBulkLabel({ eventSelected: false, searching: false })).toBe(
+      "Enviar a todas (todos los eventos)"
+    );
+  });
+
+  test("con un evento elegido, las del evento", () => {
+    expect(inscritasBulkLabel({ eventSelected: true, searching: false })).toBe("Enviar a todas las del evento");
+  });
+
+  test("con búsqueda, las de la búsqueda (y si es sobre todos, lo dice)", () => {
+    expect(inscritasBulkLabel({ eventSelected: true, searching: true })).toBe("Enviar a las de la búsqueda");
+    expect(inscritasBulkLabel({ eventSelected: false, searching: true })).toBe(
+      "Enviar a las de la búsqueda (todos los eventos)"
+    );
   });
 });

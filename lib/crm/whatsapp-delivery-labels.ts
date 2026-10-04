@@ -40,3 +40,40 @@ export const deliveryLabel = (
       return { label: "Enviado, aún no le llega", tone: "wait" };
   }
 };
+
+/** Lo que se sabe del último WhatsApp a una persona (ver `whatsAppStatusFor`). */
+export type PersonWhatsAppFacts = {
+  lastSentAt: string | null;
+  lastStatus: string | null;
+  answeredAt: string | null;
+};
+
+export type PersonStatusTone = DeliveryTone | "answered";
+
+/**
+ * La línea de estado de una persona en las listas (inscritas, alumnas,
+ * comunidades): «Respondió» si contestó después del último envío; si no, lo
+ * que WhatsApp dice de ese envío. `at` es la hora que va al lado: la de su
+ * respuesta o la del envío. `null` = nunca se le escribió por WhatsApp.
+ */
+export const personStatusLine = (
+  facts: PersonWhatsAppFacts | null | undefined
+): { label: string; tone: PersonStatusTone; at: string } | null => {
+  if (!facts?.lastSentAt) return null;
+  if (facts.answeredAt) return { label: "Respondió", tone: "answered", at: facts.answeredAt };
+  const status = (facts.lastStatus ?? "").toUpperCase();
+  // En una fila no cabe el motivo: va en la ficha y en el chat.
+  if (status === "FAILED") return { label: "No le llegó", tone: "fail", at: facts.lastSentAt };
+  const { label, tone } = deliveryLabel(status);
+  return { label, tone, at: facts.lastSentAt };
+};
+
+/** «4 oct, 4:16 a. m.»: corto, para una sola línea (sin el «de» de es-CO). */
+export const shortWhen = (iso: string, timeZone?: string): string => {
+  const d = new Date(iso);
+  const day = d
+    .toLocaleDateString("es-CO", { timeZone, day: "numeric", month: "short" })
+    .replace(/\s+de\s+/, " ");
+  const time = d.toLocaleTimeString("es-CO", { timeZone, hour: "numeric", minute: "2-digit" });
+  return `${day}, ${time}`;
+};
