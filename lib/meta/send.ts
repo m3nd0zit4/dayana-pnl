@@ -26,6 +26,14 @@ import {
   resolvePageCredentials,
 } from "./credentials";
 import { resolveWindow, type WindowState } from "./window";
+import {
+  buildMediaPayload,
+  buildTemplatePayload,
+  type WhatsAppImageRef,
+  type WhatsAppTemplateInput,
+} from "./whatsapp-payload";
+
+export type { WhatsAppImageRef } from "./whatsapp-payload";
 
 /**
  * Envío saliente unificado para WhatsApp, Messenger e Instagram.
@@ -50,13 +58,18 @@ export type SendInput = {
   conversationId: string;
   body: string;
   staffUserId?: string | null;
-  /** Plantilla aprobada, obligatoria en WhatsApp fuera de la ventana de 24 h. */
-  template?: {
-    name: string;
-    language: string;
-    /** Parámetros posicionales del cuerpo de la plantilla. */
-    variables?: string[];
-  } | null;
+  /**
+   * Plantilla aprobada, obligatoria en WhatsApp fuera de la ventana de 24 h.
+   * `headerImage` solo con plantillas aprobadas con cabecera IMAGE.
+   */
+  template?: WhatsAppTemplateInput | null;
+  /**
+   * Imagen ya subida a WhatsApp (o enlace público) para enviar dentro de la
+   * ventana de 24 h, con `body` como pie. A diferencia de `attachment` no se
+   * sube en cada mensaje: un envío masivo la sube una vez y la reutiliza.
+   * Solo WhatsApp; fuera de la ventana va como cabecera de la plantilla.
+   */
+  image?: WhatsAppImageRef | null;
   /**
    * Botón que abre un enlace, bajo el texto (solo WhatsApp y dentro de la
    * ventana de 24 h). Un botón se toca; un enlace suelto en el texto hay que
@@ -128,8 +141,9 @@ const fetchAttachmentBytes = async (attachment: SendAttachment): Promise<ArrayBu
 
 /** Sube los bytes al endpoint de medios de WhatsApp y devuelve el `media_id`
  * que reemplaza a `link` en el mensaje — el store de Blob es privado, así
- * que un `link` público nunca fue una opción real aquí. */
-const uploadWhatsAppMedia = async (
+ * que un `link` público nunca fue una opción real aquí. Exportada para el
+ * envío masivo con imagen, que la sube una vez y reutiliza el id. */
+export const uploadWhatsAppMedia = async (
   buffer: ArrayBuffer,
   mimeType: string,
   credentials: MetaCredentials
@@ -172,23 +186,25 @@ const sendWhatsApp = async (
         recipient_type: "individual",
         ...target,
         type: "template",
-        template: {
-          name: input.template.name,
-          language: { code: input.template.language },
-          ...(input.template.variables?.length
-            ? {
-                components: [
-                  {
-                    type: "body",
-                    parameters: input.template.variables.map((text) => ({
-                      type: "text",
-                      text,
-                    })),
-                  },
-                ],
-              }
-            : {}),
-        },
+        template: buildTemplatePayload(input.template),
+      },
+      credentials
+    );
+    return readMessageId(res);
+  }
+
+  // Imagen ya subida (envío masivo): la misma forma que un adjunto de imagen,
+  // con el texto de pie, pero sin bajarla ni subirla otra vez.
+  if (input.image && !input.attachment) {
+    const res = await graphPost<GraphMessageResponse>(
+      `${credentials.accountId}/messages`,
+      {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        ...target,
+        ...context,
+        type: "image",
+        image: buildMediaPayload({ kind: "image", media: input.image, caption: input.body || null }),
       },
       credentials
     );
@@ -214,11 +230,12 @@ const sendWhatsApp = async (
         ...target,
         ...context,
         type: kind,
-        [kind]: {
-          id: mediaId,
-          ...(caption ? { caption } : {}),
-          ...(kind === "document" ? { filename: input.attachment.filename } : {}),
-        },
+        [kind]: buildMediaPayload({
+          kind,
+          media: { id: mediaId },
+          caption,
+          filename: input.attachment.filename,
+        }),
       },
       credentials
     );

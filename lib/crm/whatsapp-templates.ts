@@ -169,13 +169,48 @@ export const metaTemplateName = (key: string): string =>
     .replace(/^_+|_+$/g, "")
     .slice(0, 60);
 
-type RemoteTemplate = {
+export type RemoteTemplate = {
   name?: string;
   language?: string;
   status?: string;
   category?: string;
   rejected_reason?: string;
-  components?: { type?: string; text?: string }[];
+  /** La cabecera trae `format`: TEXT, IMAGE, VIDEO, DOCUMENT, LOCATION. */
+  components?: { type?: string; text?: string; format?: string }[];
+};
+
+/**
+ * Formato de la cabecera de una plantilla de 360dialog (`IMAGE`, `TEXT`…), o
+ * `null` si no tiene cabecera. Una cabecera sin `format` es de texto.
+ */
+export const headerFormatOf = (t: RemoteTemplate): string | null => {
+  const header = t.components?.find((c) => c.type?.toUpperCase() === "HEADER");
+  return header ? (header.format ?? "TEXT").toUpperCase() : null;
+};
+
+const fetchRemoteTemplates = async (init: RequestInit = {}): Promise<RemoteTemplate[]> => {
+  const data = (await dialog360Request("v1/configs/templates?limit=200", init)) as {
+    waba_templates?: RemoteTemplate[];
+    data?: RemoteTemplate[];
+  };
+  return data.waba_templates ?? data.data ?? [];
+};
+
+/**
+ * La cabecera de la plantilla tal como está ahora en 360dialog (la aprobada,
+ * si hay varias con ese nombre e idioma). La base no la guarda —sería una
+ * migración—, así que se pregunta al empezar cada envío masivo.
+ * `null`: sin cabecera; `undefined`: no está en 360dialog. Lanza si 360dialog
+ * no responde (10 s como mucho).
+ */
+export const remoteTemplateHeaderFormat = async (
+  name: string,
+  language: string
+): Promise<string | null | undefined> => {
+  const remote = await fetchRemoteTemplates({ signal: AbortSignal.timeout(10_000) });
+  const matches = remote.filter((t) => t.name === name && (t.language ?? "es") === language);
+  const chosen = matches.find((t) => t.status?.toUpperCase() === "APPROVED") ?? matches[0];
+  return chosen ? headerFormatOf(chosen) : undefined;
 };
 
 /** "REJECTED · INVALID_FORMAT": el motivo de Meta queda a la vista. */
@@ -194,11 +229,8 @@ const remoteBody = (t: RemoteTemplate) =>
  * que se crearon fuera del CRM también aparecen (con su nombre como clave).
  */
 export const syncWhatsAppTemplates = async (): Promise<number> => {
-  const data = (await dialog360Request("v1/configs/templates?limit=200")) as {
-    waba_templates?: RemoteTemplate[];
-    data?: RemoteTemplate[];
-  };
-  const remote = data.waba_templates ?? data.data ?? [];
+  // Una plantilla con cabecera (IMAGE…) entra igual: de ella se guarda el cuerpo.
+  const remote = await fetchRemoteTemplates();
   let count = 0;
   for (const t of remote) {
     if (!t.name) continue;

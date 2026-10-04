@@ -9,9 +9,15 @@ import {
   sendWhatsAppToRecipient,
   type RecipientInfo,
 } from "./whatsapp-outbound";
-import { summarizePlans, type SendSummary } from "./whatsapp-outbound-plan";
+import {
+  HEADER_IMAGE_VAR,
+  headerImageProblem,
+  summarizePlans,
+  type SendSummary,
+} from "./whatsapp-outbound-plan";
 import {
   approvedTemplateFor,
+  remoteTemplateHeaderFormat,
   ensureTemplatesSubmitted,
   refreshTemplatesIfPending,
   getTemplatePrices,
@@ -44,6 +50,31 @@ export type SendPreview = SendSummary & {
    * diagnósticos lleva el mensaje que la IA escribió para esa persona.
    */
   phoneOnly: { contactId: string; name: string | null; phone: string; suggested: string | null }[];
+  /**
+   * Solo si se pidió (`checkHeader`): la cabecera de la plantilla aprobada en
+   * 360dialog. `IMAGE` exige adjuntar la imagen; `UNKNOWN` = no se pudo mirar.
+   */
+  templateHeader?: string | null;
+};
+
+/** Errores de preparación de un envío que se le muestran tal cual a quien envía. */
+export class WhatsAppSendSetupError extends Error {}
+
+/** Envíos con imagen: el id del medio en WhatsApp dura 30 días. */
+const HEADER_IMAGE_TTL_MS = 29 * 24 * 3600_000;
+
+/**
+ * La cabecera de la plantilla aprobada según 360dialog: `undefined` si no se
+ * pudo comprobar (sin clave, 360dialog caído, no aparece).
+ */
+const approvedHeaderFormat = async (template: WaTemplate | null): Promise<string | null | undefined> => {
+  if (!template?.metaTemplateName) return null;
+  return remoteTemplateHeaderFormat(template.metaTemplateName, template.metaTemplateLang ?? "es").catch(
+    (e: unknown) => {
+      console.warn(`[whatsapp-sends] no se pudo leer la cabecera de ${template.metaTemplateName}: ${e instanceof Error ? e.message : e}`);
+      return undefined;
+    }
+  );
 };
 
 const loadRecipients = async (contactIds: string[]): Promise<RecipientInfo[]> => {
@@ -83,6 +114,8 @@ export const previewSend = async (input: {
   contactIds: string[];
   templateKey?: string | null;
   kind?: SendKind;
+  /** Preguntar a 360dialog si la plantilla lleva imagen (el diálogo masivo). */
+  checkHeader?: boolean;
 }): Promise<SendPreview> => {
   await refreshTemplatesIfPending().catch(() => undefined);
   const [recipients, template, prices] = await Promise.all([
@@ -90,6 +123,7 @@ export const previewSend = async (input: {
     approvedTemplateFor(input.templateKey),
     getTemplatePrices(),
   ]);
+  const header = input.checkHeader ? await approvedHeaderFormat(template) : null;
   const anyTemplate = input.templateKey
     ? await prisma.messageTemplate.findFirst({
         where: { key: input.templateKey },
@@ -121,6 +155,7 @@ export const previewSend = async (input: {
       const p = plans[i];
       return { name: r.name, action: p.action === "skip" ? p.reason : p.action };
     }),
+    ...(input.checkHeader ? { templateHeader: header === undefined ? "UNKNOWN" : header } : {}),
   };
 };
 
@@ -136,7 +171,26 @@ export const createSend = async (input: {
   freeWebinarId?: string | null;
   /** El taller del envío. */
   workshopEditionId?: string | null;
+  /**
+   * Id del medio de WhatsApp de la imagen (subida una vez,
+   * `POST /api/admin/whatsapp/sends/image`). Va en `vars` y la reutilizan
+   * todas: cabecera de la plantilla fuera de las 24 h, imagen con pie dentro.
+   */
+  headerImageId?: string | null;
 }): Promise<{ id: string; total: number }> => {
+  // Imagen y plantilla van juntas: se comprueba en 360dialog antes de empezar.
+  const template = await approvedTemplateFor(input.templateKey);
+  const problem = headerImageProblem({
+    hasImage: Boolean(input.headerImageId),
+    templateTitle: template?.title ?? null,
+    headerFormat: await approvedHeaderFormat(template),
+  });
+  if (problem) throw new WhatsAppSendSetupError(problem);
+
+  const vars: Record<string, string> = { ...(input.vars ?? {}) };
+  delete vars[HEADER_IMAGE_VAR];
+  if (input.headerImageId) vars[HEADER_IMAGE_VAR] = input.headerImageId;
+
   const recipients = await loadRecipients(input.contactIds);
   // Un id que ya no existe deja el envío suelto en vez de tumbarlo.
   const [event, workshop] = await Promise.all([
@@ -153,7 +207,7 @@ export const createSend = async (input: {
       kind: input.kind,
       text: input.text,
       templateKey: input.templateKey ?? null,
-      vars: (input.vars ?? {}) as Prisma.InputJsonValue,
+      vars: vars as Prisma.InputJsonValue,
       status: "SENDING",
       total: recipients.length,
       createdById: input.staffId,
@@ -174,7 +228,13 @@ export const createSend = async (input: {
     action: "WHATSAPP_BULK_CREATED",
     entityType: "WhatsAppSend",
     entityId: send.id,
-    changes: { title: input.title, kind: input.kind, total: send.total, templateKey: input.templateKey },
+    changes: {
+      title: input.title,
+      kind: input.kind,
+      total: send.total,
+      templateKey: input.templateKey,
+      ...(input.headerImageId ? { headerImage: true } : {}),
+    },
   }).catch(() => undefined);
   if (event) {
     // Los números en vivo los pone la fila del envío; aquí, que existió.
@@ -228,7 +288,14 @@ export const processNextBatch = async (
   if (send.status === "CANCELLED" || send.status === "DONE") return progressOf(sendId);
 
   const template: WaTemplate | null = await approvedTemplateFor(send.templateKey);
-  const vars = (send.vars ?? {}) as Record<string, string>;
+  const { [HEADER_IMAGE_VAR]: headerImageId, ...vars } = (send.vars ?? {}) as Record<string, string>;
+  // El id del medio caduca a los 30 días: retomar un envío viejo fallaría
+  // persona por persona (y fuera de las 24 h, cobrando el intento). Se corta antes.
+  if (headerImageId && Date.now() - send.createdAt.getTime() > HEADER_IMAGE_TTL_MS) {
+    throw new WhatsAppSendSetupError(
+      "La imagen de este envío ya caducó en WhatsApp (dura 30 días). Crea un envío nuevo con la imagen para las personas que faltan."
+    );
+  }
   const batch = await prisma.whatsAppSendRecipient.findMany({
     where: { sendId, status: "PENDING" },
     take: batchSize,
@@ -251,6 +318,7 @@ export const processNextBatch = async (
           templateKey: send.templateKey,
           template,
           vars,
+          headerImage: headerImageId ? { id: headerImageId } : null,
           source: `bulk:${sendId}`,
           staffId,
           // Si esta tanda se corta y se reintenta, a esta persona no le llega dos veces.

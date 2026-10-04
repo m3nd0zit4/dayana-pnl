@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { prisma } from "@/lib/db";
-import { cancelSend, processNextBatch } from "@/lib/crm/whatsapp-sends";
+import { cancelSend, processNextBatch, WhatsAppSendSetupError } from "@/lib/crm/whatsapp-sends";
 
 export const dynamic = "force-dynamic";
 // Una tanda de 20 mensajes con su respiro cabe de sobra.
@@ -34,6 +34,8 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
   try {
     return NextResponse.json(await processNextBatch(params.id, staff.id));
   } catch (e) {
+    // P. ej. la imagen del envío caducó: el motivo, en español, para el diálogo.
+    if (e instanceof WhatsAppSendSetupError) return apiError("send_blocked", 400, { message: e.message });
     return apiError(e instanceof Error ? e.message : "send_failed", 400);
   }
 });
