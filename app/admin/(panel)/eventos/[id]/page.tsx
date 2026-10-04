@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { CalendarDays, MessageCircle } from "lucide-react";
 
 import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
@@ -75,8 +76,20 @@ const EMPTY_STATS = {
   waConfirmation: 0,
 };
 
+/**
+ * Sin el reloj de eventos (o antes de su próxima vuelta), la plantilla de
+ * utilidad del recordatorio se mandaría a revisión recién al primer envío, que
+ * saldría con la de siempre. Abrir el evento ya la manda (una vez cada 30 min,
+ * después de responder: no demora la página).
+ */
+const ensureReminderTemplateSoon = () => {
+  if (isCrmUiPreview()) return;
+  after(() => eventWaTemplateKey({ ensure: true }).then(() => undefined, () => undefined));
+};
+
 /** «Inscritas»: el panel de siempre, ahora de ESTE evento. */
 const RegistrantsTab = async ({ event }: { event: FreeWebinarPublic }) => {
+  ensureReminderTemplateSoon();
   const [rows, stats, waEnabled, templateStatus, staff] = await Promise.all([
     listWebinarRegistrations(event.id, { take: PAGE_SIZE }).catch(() => []),
     webinarRegistrationStats(event.id).catch(() => EMPTY_STATS),
@@ -140,6 +153,7 @@ const RegistrantsTab = async ({ event }: { event: FreeWebinarPublic }) => {
  * que se envía desde aquí queda en la historia del evento.
  */
 const WhatsAppTab = async ({ event, tz }: { event: FreeWebinarPublic; tz: string }) => {
+  ensureReminderTemplateSoon();
   const [registrants, allContactIds, openEvent, inviteIds, reminderTemplateKey] = await Promise.all([
     listFreeEventRegistrantsForWhatsApp(event.id, 100),
     listRegistrationContactIds(event.id),
