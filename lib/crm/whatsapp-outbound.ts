@@ -1,6 +1,6 @@
 import { whatsAppDigits } from "@/lib/whatsapp-contact";
 import { prisma } from "@/lib/db";
-import { sendMetaMessage, MetaWindowError, type SendAttachment } from "@/lib/meta/send";
+import { sendMetaMessage, MetaWindowError, type SendAttachment, type WhatsAppImageRef } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
 import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
 import { writeAuditLog } from "./audit";
@@ -124,6 +124,12 @@ export const sendWhatsAppToRecipient = async (input: {
   templateKey?: string | null;
   vars?: Record<string, string | null | undefined>;
   attachment?: SendAttachment | null;
+  /**
+   * Imagen ya subida a WhatsApp (envío masivo): fuera de las 24 h va como
+   * cabecera de la plantilla (que debe tener cabecera IMAGE); dentro, como
+   * imagen con el texto de pie.
+   */
+  headerImage?: WhatsAppImageRef | null;
   source: string;
   staffId?: string | null;
   template?: WaTemplate | null;
@@ -163,9 +169,10 @@ export const sendWhatsAppToRecipient = async (input: {
               name: template.metaTemplateName!,
               language: template.metaTemplateLang ?? "es",
               variables: templateParams(template.metaVarNames, vars),
+              headerImage: input.headerImage ?? null,
             },
           }
-        : { attachment: input.attachment ?? null }),
+        : { attachment: input.attachment ?? null, image: input.headerImage ?? null }),
     });
     if (r.contactId) {
       await recordContactTouch({

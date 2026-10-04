@@ -25,6 +25,44 @@ export const planSend = (input: {
   return { action: "skip", reason: "needs_template" };
 };
 
+/**
+ * Clave de `whatsapp_sends.vars` con el id del medio de la imagen del envío
+ * (subida una vez a WhatsApp, la reutilizan todas). Empieza por `__` para no
+ * chocar con una variable de plantilla.
+ */
+export const HEADER_IMAGE_VAR = "__headerImageId";
+
+/**
+ * Imagen y plantilla tienen que ir juntas: una plantilla con cabecera IMAGE
+ * sin imagen la rechaza Meta, y una imagen con una plantilla sin cabecera
+ * IMAGE no tiene dónde ir. `headerFormat`: el de la plantilla aprobada en
+ * 360dialog (`null` sin cabecera, `undefined` si no se pudo comprobar).
+ * Devuelve el motivo para mostrárselo a quien envía, o `null` si se puede.
+ */
+export const headerImageProblem = (input: {
+  hasImage: boolean;
+  /** Título de la plantilla aprobada que se usaría, o `null` si no hay. */
+  templateTitle: string | null;
+  headerFormat: string | null | undefined;
+}): string | null => {
+  const { hasImage, templateTitle, headerFormat } = input;
+  if (!hasImage) {
+    return templateTitle && headerFormat === "IMAGE"
+      ? `La plantilla «${templateTitle}» lleva una imagen arriba: adjunta la imagen para poder enviarla.`
+      : null;
+  }
+  if (!templateTitle) {
+    return "Para enviar con imagen hace falta una plantilla aprobada por Meta con imagen arriba. Quita la imagen o espera a que la aprueben.";
+  }
+  if (headerFormat === undefined) {
+    return `No pude comprobar en 360dialog si la plantilla «${templateTitle}» lleva imagen. Inténtalo de nuevo en un momento o envía sin imagen.`;
+  }
+  if (headerFormat !== "IMAGE") {
+    return `La plantilla «${templateTitle}» no lleva imagen arriba: quita la imagen o usa una plantilla con imagen.`;
+  }
+  return null;
+};
+
 /** Reemplaza {{nombre}}, {{evento}}… Lo que no tiene valor se quita. */
 export const fillVars = (text: string, vars: Record<string, string | null | undefined>): string =>
   text.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (_, key: string) => vars[key]?.toString().trim() ?? "");

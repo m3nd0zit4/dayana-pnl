@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckCircle2, Loader2, MessageCircle, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle2, ImagePlus, Loader2, MessageCircle, Send, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { presetMissingLink, resolvePresetVars } from "@/lib/crm/whatsapp-presets";
 import CrmModal from "../crm/CrmModal";
 import { useCrm } from "../crm/CrmProvider";
@@ -16,9 +16,30 @@ type Preview = {
   currency: string;
   templateInfo: { key: string; title: string; category: string | null; status: string | null } | null;
   phoneOnly: { contactId: string; name: string | null; phone: string; suggested: string | null }[];
+  /** `IMAGE`: la plantilla lleva imagen arriba; `UNKNOWN`: no se pudo mirar. */
+  templateHeader?: string | null;
 };
 
 type Progress = { status: string; total: number; sent: number; failed: number; skipped: number; pending: number };
+
+/** Lo que el diálogo necesita de una plantilla aprobada para ofrecerla. */
+type ApprovedTemplate = { key: string; title: string; body: string; metaVarNames: string[] };
+
+/** WhatsApp: JPG o PNG de hasta 5 MB. */
+const IMAGE_TYPES = ["image/jpeg", "image/png"];
+const IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Un motivo para mostrarle tal cual a quien envía. */
+class ShownError extends Error {}
+
+/** El motivo que manda el servidor (`message`), o `fallback`. */
+const readError = async (res: Response, fallback: string): Promise<ShownError> => {
+  const d = (await res.json().catch(() => ({}))) as { message?: string };
+  if (d.message) return new ShownError(d.message);
+  // El servidor corta los cuerpos de más de ~4,5 MB antes de llegar a la ruta.
+  if (res.status === 413) return new ShownError("La imagen pesa demasiado para subirla: usa una de menos de 4 MB.");
+  return new ShownError(fallback);
+};
 
 /**
  * Enviar por WhatsApp a varias personas a la vez (inscritas de un evento,
@@ -55,8 +76,43 @@ const WhatsAppBulkSend = ({
   const [preview, setPreview] = useState<Preview | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [running, setRunning] = useState(false);
+  // Otra plantilla aprobada en vez de la del mensaje (p. ej. una con imagen
+  // creada en el Hub). `null` = la del mensaje.
+  const [approved, setApproved] = useState<ApprovedTemplate[]>([]);
+  const [templateOverride, setTemplateOverride] = useState<string | null>(null);
+  const [image, setImage] = useState<File | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const imageUrl = useMemo(() => (image ? URL.createObjectURL(image) : null), [image]);
+  useEffect(() => () => {
+    if (imageUrl) URL.revokeObjectURL(imageUrl);
+  }, [imageUrl]);
 
-  useEffect(() => setText(preset?.text ?? ""), [presetId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const templateKey = templateOverride ?? preset?.templateKey ?? null;
+  const chosen = approved.find((t) => t.key === templateKey) ?? null;
+
+  useEffect(() => {
+    setText(preset?.text ?? "");
+    setTemplateOverride(null);
+  }, [presetId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Las aprobadas que este mensaje puede llenar: sin variables, o con las que
+  // trae el mensaje. Una con variables que no tiene saldría con guiones.
+  useEffect(() => {
+    if (!open) return;
+    void fetch("/api/admin/whatsapp/templates", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { items?: (ApprovedTemplate & { metaApprovalStatus: string | null })[] } | null) =>
+        setApproved(
+          (d?.items ?? []).filter((t) => (t.metaApprovalStatus ?? "").toUpperCase() === "APPROVED")
+        )
+      )
+      .catch(() => undefined);
+  }, [open]);
+  const pickable = approved.filter(
+    (t) =>
+      t.key !== preset?.templateKey &&
+      t.metaVarNames.every((v) => v === "nombre" || Object.hasOwn(preset?.vars ?? {}, v))
+  );
 
   useEffect(() => {
     if (!open || contactIds.length === 0) return;
@@ -64,31 +120,69 @@ const WhatsAppBulkSend = ({
     void fetch("/api/admin/whatsapp/sends", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "preview", contactIds, templateKey: preset?.templateKey ?? null, kind }),
+      body: JSON.stringify({ action: "preview", contactIds, templateKey, kind, checkHeader: !create }),
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d && setPreview(d as Preview));
-  }, [open, contactIds, preset?.templateKey]);
+  }, [open, contactIds, templateKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const header = preview?.templateHeader ?? null;
+  const needsImage = header === "IMAGE";
+  // Solo con una plantilla que lleve imagen (o si no se pudo comprobar: el
+  // servidor lo vuelve a mirar al crear el envío y lo dice).
+  const canImage = !create && (header === "IMAGE" || header === "UNKNOWN");
+  // Con una plantilla sin imagen, la elegida antes no se manda.
+  const imageToSend = canImage ? image : null;
+
+  const pickImage = (file: File | null) => {
+    setImageError(null);
+    if (!file) return setImage(null);
+    if (!IMAGE_TYPES.includes(file.type)) return setImageError("La imagen debe ser JPG o PNG.");
+    if (file.size > IMAGE_MAX_BYTES) return setImageError("La imagen pesa más de 5 MB (el tope de WhatsApp).");
+    setImage(file);
+  };
+
+  const pickTemplate = (key: string) => {
+    const t = approved.find((a) => a.key === key);
+    if (!t || key === preset?.templateKey) {
+      setTemplateOverride(null);
+      setText(preset?.text ?? "");
+      return;
+    }
+    // Quien escribió en las últimas 24 h recibe lo mismo: el texto de la plantilla.
+    setTemplateOverride(key);
+    setText(t.body);
+  };
 
   const run = async () => {
     setRunning(true);
     try {
+      // La imagen se sube una sola vez; el envío guarda su id y lo reutiliza.
+      let headerImageId: string | null = null;
+      if (imageToSend) {
+        const form = new FormData();
+        form.append("file", imageToSend);
+        const res = await fetch("/api/admin/whatsapp/sends/image", { method: "POST", body: form });
+        if (!res.ok) throw await readError(res, "No se pudo subir la imagen a WhatsApp.");
+        headerImageId = ((await res.json()) as { id: string }).id;
+      }
       const { id } = create
-        ? await create({ contactIds, text, templateKey: preset?.templateKey ?? null })
+        ? await create({ contactIds, text, templateKey })
         : await fetch("/api/admin/whatsapp/sends", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               action: "create",
               contactIds,
-              templateKey: preset?.templateKey ?? null,
-              title: `${title} · ${preset?.label ?? ""}`.trim(),
+              templateKey,
+              title: `${title} · ${templateOverride && chosen ? chosen.title : (preset?.label ?? "")}`.trim(),
               kind,
               text,
               vars: resolvePresetVars(preset?.vars, text),
+              headerImageId,
             }),
           }).then(async (res) => {
-            if (!res.ok) throw new Error();
+            if (!res.ok) throw await readError(res, "No se pudo preparar el envío.");
             return (await res.json()) as { id: string };
           });
       for (;;) {
@@ -97,15 +191,20 @@ const WhatsAppBulkSend = ({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "next" }),
         });
-        if (!step.ok) throw new Error();
+        if (!step.ok) throw await readError(step, "");
         const p = (await step.json()) as Progress;
         setProgress(p);
         if (p.pending === 0 || p.status === "DONE" || p.status === "CANCELLED") break;
       }
       toast("Envío terminado", "success");
       onDone?.();
-    } catch {
-      toast("El envío se interrumpió. Puedes volver a intentarlo: no se repite a quien ya le llegó.", "error");
+    } catch (e) {
+      toast(
+        e instanceof ShownError && e.message
+          ? e.message
+          : "El envío se interrumpió. Puedes volver a intentarlo: no se repite a quien ya le llegó.",
+        "error"
+      );
     } finally {
       setRunning(false);
     }
@@ -115,6 +214,9 @@ const WhatsAppBulkSend = ({
   const done = progress && progress.pending === 0;
   // La grabación de un evento pasado no vive en el CRM: el enlace se pega aquí.
   const missingLink = presetMissingLink(preset, text);
+  const missingImage = needsImage && !image;
+  // Dentro de las 24 h el texto va como pie de la imagen: WhatsApp corta en 1024.
+  const captionTooLong = Boolean(imageToSend) && text.length > 1024;
 
   return (
     <>
@@ -147,9 +249,28 @@ const WhatsAppBulkSend = ({
                   </button>
                 ))}
               </div>
+              {pickable.length > 0 && (
+                <label className="block space-y-1">
+                  <span className="text-xs text-[#54656f]">Plantilla para quien no escribió en las últimas 24 h</span>
+                  <select
+                    value={templateOverride ?? ""}
+                    onChange={(e) => pickTemplate(e.target.value)}
+                    className="h-9 w-full rounded-lg border border-[#d1d7db] bg-white px-2 outline-none focus:border-[#00a884] dark:border-border dark:bg-card"
+                  >
+                    <option value="">La de este mensaje{preset?.templateKey ? ` (${preset.templateKey})` : ""}</option>
+                    {pickable.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="block space-y-1">
                 <span className="text-xs text-[#54656f]">
-                  Mensaje para quien escribió en las últimas 24 h (gratis). {"{{nombre}}"} pone su nombre.
+                  {templateOverride
+                    ? "Texto de la plantilla: es lo que recibe también quien escribió en las últimas 24 h (gratis)."
+                    : <>Mensaje para quien escribió en las últimas 24 h (gratis). {"{{nombre}}"} pone su nombre.</>}
                 </span>
                 <textarea
                   value={text}
@@ -163,13 +284,68 @@ const WhatsAppBulkSend = ({
                   Pega en el mensaje el enlace de la grabación o del material: también va en la plantilla.
                 </p>
               )}
+              {canImage && (
+                <div className="space-y-1.5">
+                  <span className="block text-xs text-[#54656f]">
+                    {needsImage
+                      ? "Esta plantilla lleva una imagen arriba: adjúntala (JPG o PNG, hasta 5 MB). Se sube una sola vez y les llega a todas."
+                      : "Imagen arriba (JPG o PNG, hasta 5 MB), solo si la plantilla aprobada la lleva."}
+                  </span>
+                  {image && imageUrl ? (
+                    <div className="flex items-start gap-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
+                      <img
+                        src={imageUrl}
+                        alt="Imagen que va arriba del mensaje"
+                        className="max-h-40 rounded-lg border border-[#d1d7db] object-contain dark:border-border"
+                      />
+                      <div className="space-y-1 text-xs text-[#54656f]">
+                        <div className="break-all">{image.name}</div>
+                        <div>{(image.size / 1024 / 1024).toFixed(1)} MB</div>
+                        <button
+                          type="button"
+                          onClick={() => pickImage(null)}
+                          className="inline-flex items-center gap-1 rounded-full px-2 py-1 hover:bg-[#f5f6f6]"
+                        >
+                          <X className="size-3.5" /> Quitar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-[#d1d7db] bg-white px-4 text-sm hover:bg-[#f5f6f6] dark:border-border dark:bg-card">
+                      <ImagePlus className="size-4" /> Elegir imagen
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        className="sr-only"
+                        onChange={(e) => {
+                          pickImage(e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                  {imageError && <p className="text-xs text-[#d92d20]">{imageError}</p>}
+                  {missingImage && !imageError && (
+                    <p className="text-xs text-[#d92d20]">Sin la imagen, WhatsApp rechaza esta plantilla.</p>
+                  )}
+                  {captionTooLong && (
+                    <p className="text-xs text-[#d92d20]">
+                      Con imagen, el texto va como pie y WhatsApp admite hasta 1024 caracteres (tiene {text.length}).
+                    </p>
+                  )}
+                </div>
+              )}
 
               {!preview ? (
                 <Loader2 className="size-4 animate-spin text-[#00a884]" />
               ) : (
                 <div className="space-y-1.5 rounded-lg bg-[#f0f2f5] p-3 dark:bg-muted/40">
                   <div className="font-medium text-[#111b21] dark:text-foreground">A quién le llega</div>
-                  <div>✅ {preview.text} con el mensaje de arriba (gratis, escribieron hace menos de 24 h)</div>
+                  <div>
+                    ✅ {preview.text} con {imageToSend ? "la imagen y " : ""}el mensaje de arriba (gratis, escribieron hace menos de
+                    24 h)
+                  </div>
                   <div>
                     📨 {preview.template} con la plantilla{" "}
                     {preview.templateInfo ? `«${preview.templateInfo.title}»` : ""}
@@ -198,7 +374,9 @@ const WhatsAppBulkSend = ({
                 <button
                   type="button"
                   onClick={() => void run()}
-                  disabled={!preview || toSend === 0 || running || !text.trim() || missingLink}
+                  disabled={
+                    !preview || toSend === 0 || running || !text.trim() || missingLink || missingImage || captionTooLong
+                  }
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 font-medium text-white hover:bg-[#008069] disabled:opacity-50"
                 >
                   <Send className="size-4" /> Enviar a {toSend}

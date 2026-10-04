@@ -1,6 +1,32 @@
 import { describe, expect, test } from "bun:test";
 
-import { STARTER_TEMPLATES, metaTemplateName, templateBodyProblem, toMetaBody } from "./whatsapp-templates";
+import {
+  STARTER_TEMPLATES,
+  headerFormatOf,
+  metaTemplateName,
+  templateBodyProblem,
+  toMetaBody,
+} from "./whatsapp-templates";
+
+describe("headerFormatOf (cabecera de la plantilla en 360dialog)", () => {
+  test("cabecera IMAGE, como la crea el Hub", () => {
+    expect(
+      headerFormatOf({
+        name: "masterclass_gratuita_20261004",
+        components: [
+          { type: "HEADER", format: "IMAGE" },
+          { type: "BODY", text: "✨ *MASTERCLASS GRATUITA* ✨" },
+        ],
+      })
+    ).toBe("IMAGE");
+  });
+  test("sin cabecera: null; cabecera sin format: TEXT; minúsculas", () => {
+    expect(headerFormatOf({ components: [{ type: "BODY", text: "Hola {{1}}" }] })).toBeNull();
+    expect(headerFormatOf({})).toBeNull();
+    expect(headerFormatOf({ components: [{ type: "HEADER", text: "Hola" }] })).toBe("TEXT");
+    expect(headerFormatOf({ components: [{ type: "header", format: "image" }] })).toBe("IMAGE");
+  });
+});
 
 describe("plantillas", () => {
   test("{{nombre}} → {{1}} en orden, repetidos reutilizan el número", () => {

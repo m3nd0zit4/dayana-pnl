@@ -4,6 +4,7 @@ import {
   approvalDelivery,
   fillVars,
   firstName,
+  headerImageProblem,
   isOptOutMessage,
   planSend,
   summarizePlans,
@@ -106,5 +107,28 @@ describe("deliveryLabel: la misma frase en todo el CRM", () => {
       "No le llegó: WhatsApp no pudo entregarlo a esa persona"
     );
     expect(deliveryLabel("FAILED").tone).toBe("fail");
+  });
+});
+
+describe("headerImageProblem", () => {
+  const T = "masterclass_gratuita_20261004";
+  test("sin imagen y sin cabecera IMAGE: se puede (como antes)", () => {
+    expect(headerImageProblem({ hasImage: false, templateTitle: null, headerFormat: null })).toBeNull();
+    expect(headerImageProblem({ hasImage: false, templateTitle: T, headerFormat: null })).toBeNull();
+    expect(headerImageProblem({ hasImage: false, templateTitle: T, headerFormat: "TEXT" })).toBeNull();
+    // No se pudo mirar 360dialog: un envío sin imagen no se bloquea por eso.
+    expect(headerImageProblem({ hasImage: false, templateTitle: T, headerFormat: undefined })).toBeNull();
+  });
+  test("plantilla con imagen sin imagen: bloqueado", () => {
+    expect(headerImageProblem({ hasImage: false, templateTitle: T, headerFormat: "IMAGE" })).toContain("adjunta la imagen");
+  });
+  test("imagen con plantilla con cabecera IMAGE: se puede", () => {
+    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: "IMAGE" })).toBeNull();
+  });
+  test("imagen sin plantilla, con plantilla sin imagen o sin poder comprobar: bloqueado", () => {
+    expect(headerImageProblem({ hasImage: true, templateTitle: null, headerFormat: null })).toContain("plantilla aprobada");
+    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: null })).toContain("no lleva imagen");
+    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: "TEXT" })).toContain("no lleva imagen");
+    expect(headerImageProblem({ hasImage: true, templateTitle: T, headerFormat: undefined })).toContain("No pude comprobar");
   });
 });
