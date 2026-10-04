@@ -206,7 +206,7 @@ const FreeEventsPageClient = ({ events, initialView, editionsEnabled, operationa
         titleDescription="Lo puedes cambiar después. Vacío = el de la página copiada."
         sources={events.map((e) => ({ id: e.id, title: e.headline, label: `${e.headline} · ${e.dateLabel}` }))}
         defaultSourceId={events[0]?.id ?? null}
-        copyHint="Textos, preguntas, vídeo y material. Nunca la fecha, el enlace de la reunión ni las inscritas."
+        copyHint="Textos, preguntas, video y material. Nunca la fecha, el enlace de la reunión ni las inscritas."
         titleMaxLength={300}
         operationalTimezone={operationalTimezone}
         onCreate={create}

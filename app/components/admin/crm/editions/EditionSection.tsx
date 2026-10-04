@@ -39,7 +39,7 @@ const EditionSection = ({
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="-m-1 flex w-[calc(100%+0.5rem)] items-center justify-between gap-3 rounded-md p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:hidden"
+          className="-m-1 flex min-h-10 w-[calc(100%+0.5rem)] items-center justify-between gap-3 rounded-md p-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:hidden"
         >
           <span className="min-w-0">
             <span className="block font-heading text-base leading-snug font-medium uppercase tracking-wide">

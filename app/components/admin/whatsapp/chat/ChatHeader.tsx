@@ -268,7 +268,8 @@ const ChatMenu = ({
           <DropdownMenuItem
             className={ITEM}
             disabled={disabled}
-            onClick={() => act("take", { action: "take" }, "Modo Yo: la IA no escribe aquí")}
+            // Tomarlo también lo marca como favorito ⭐ (la API pone las dos cosas).
+            onClick={() => act("take", { action: "take" }, "Modo Yo y favorito ⭐: la IA no toca este chat")}
           >
             <Hand /> Tomar chat
           </DropdownMenuItem>

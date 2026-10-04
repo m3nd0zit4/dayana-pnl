@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CHAT_CATEGORY_LABEL, isChatCategory, isSilencingCategory } from "@/lib/crm/chat-category-rules";
@@ -91,13 +91,32 @@ const InfoAside = ({
 
   return (
     <aside className="fixed inset-0 z-40 w-full shrink-0 space-y-5 overflow-y-auto bg-(--wa-surface) p-4 text-sm text-(--wa-text) md:static md:z-auto md:w-80 md:border-l md:border-(--wa-border)">
-      <button
-        type="button"
-        onClick={onClose}
-        className="flex h-10 items-center gap-2 text-sm font-medium text-(--wa-accent) md:hidden"
-      >
-        <ArrowLeft className="size-4" /> Volver al chat
-      </button>
+      {/* El nombre de lo que se abrió desde «⋯ → Lo que sabe la IA» (en el
+          teléfono es una pantalla entera: sin título no se sabe dónde se está). */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Volver al chat"
+          title="Volver al chat"
+          className={cn(wa.iconButton, "-ml-2 md:hidden")}
+        >
+          <ArrowLeft className="size-5" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-(--wa-text)">Lo que sabe la IA</h2>
+          <p className="truncate text-xs text-(--wa-meta)">{chat.name}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          title="Cerrar"
+          className={cn(wa.iconButton, "-mr-2 hidden md:grid")}
+        >
+          <X className="size-5" />
+        </button>
+      </div>
       <section className="space-y-2">
         <h3 className="text-sm font-semibold text-(--wa-accent)">Lo que la IA recuerda</h3>
         <textarea

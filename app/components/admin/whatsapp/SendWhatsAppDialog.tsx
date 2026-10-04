@@ -123,7 +123,7 @@ const SendWhatsAppDialog = ({
                 key={p.id}
                 type="button"
                 onClick={() => setPresetId(p.id)}
-                className={`rounded-full px-3 py-1 text-xs font-medium ${presetId === p.id ? "bg-[#00a884] text-white" : "bg-[#f0f2f5] text-[#54656f] hover:bg-[#e9edef]"}`}
+                className={`h-10 rounded-full px-3 text-xs font-medium md:h-7 ${presetId === p.id ? "bg-[#00a884] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}
               >
                 {p.label}
               </button>
@@ -133,7 +133,7 @@ const SendWhatsAppDialog = ({
 
         {usesTemplate && info?.template ? (
           <div className="space-y-1">
-            <p className="text-xs text-[#54656f]">
+            <p className="text-xs text-muted-foreground">
               Pasaron más de 24 h desde su último mensaje: va con la plantilla aprobada «{info.template.title}»
               {info.price > 0 ? ` (≈ ${info.price} ${info.currency})` : ""}.
             </p>
@@ -146,23 +146,23 @@ const SendWhatsAppDialog = ({
             onChange={(e) => setText(e.target.value)}
             rows={5}
             placeholder="Escribe el mensaje. Puedes usar {{nombre}}."
-            className="w-full rounded-lg border border-[#d1d7db] bg-white p-2.5 outline-none focus:border-[#00a884] dark:border-border dark:bg-card"
+            className="w-full rounded-lg border border-border bg-card p-2.5 text-base outline-none focus:border-[#00a884] md:text-sm"
           />
         )}
         {missingLink && (
-          <p className="text-xs text-[#d92d20]">
+          <p className="text-xs text-destructive">
             Pega en el mensaje el enlace de la grabación o del material{usesTemplate ? ": va en la plantilla" : ""}.
           </p>
         )}
 
         {!info && <Loader2 className="size-4 animate-spin text-[#00a884]" />}
         {plan?.action === "text" && (
-          <p className="text-xs text-[#008069]">Escribió en las últimas 24 h: va como mensaje normal, gratis.</p>
+          <p className="text-xs text-success">Escribió en las últimas 24 h: va como mensaje normal, gratis.</p>
         )}
-        {plan?.action === "skip" && <p className="text-xs text-[#d92d20]">{SKIP_TEXT[plan.reason]}</p>}
+        {plan?.action === "skip" && <p className="text-xs text-destructive">{SKIP_TEXT[plan.reason]}</p>}
 
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-9 rounded-full px-4 text-[#54656f] hover:bg-[#f5f6f6]">
+          <button type="button" onClick={onClose} className="h-9 rounded-full px-4 text-muted-foreground hover:bg-muted">
             Cancelar
           </button>
           <button
@@ -193,7 +193,8 @@ export const SendWhatsAppButton = ({
         onClick={() => setOpen(true)}
         className={
           small
-            ? "inline-flex items-center gap-1 rounded-full bg-[#d9fdd3] px-2.5 py-1 text-xs font-medium text-[#008069] hover:bg-[#c5f5bd]"
+            ? // 40 px en el teléfono: es el botón de cada fila de la lista.
+              "inline-flex h-10 items-center gap-1 rounded-full bg-[#d9fdd3] px-3 text-xs font-medium text-[#008069] hover:bg-[#c5f5bd] md:h-7 md:px-2.5"
             : "inline-flex h-9 items-center gap-1.5 rounded-full bg-[#00a884] px-4 text-sm font-medium text-white hover:bg-[#008069]"
         }
       >

@@ -146,25 +146,25 @@ const WhatsAppBulkSend = ({
                     key={p.id}
                     type="button"
                     onClick={() => setPresetId(p.id)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${presetId === p.id ? "bg-[#00a884] text-white" : "bg-[#f0f2f5] text-[#54656f] hover:bg-[#e9edef]"}`}
+                    className={`h-10 rounded-full px-3 text-xs font-medium md:h-7 ${presetId === p.id ? "bg-[#00a884] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}
                   >
                     {p.label}
                   </button>
                 ))}
               </div>
               <label className="block space-y-1">
-                <span className="text-xs text-[#54656f]">
+                <span className="text-xs text-muted-foreground">
                   Mensaje para quien escribió en las últimas 24 h (gratis). {"{{nombre}}"} pone su nombre.
                 </span>
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   rows={5}
-                  className="w-full rounded-lg border border-[#d1d7db] bg-white p-2.5 outline-none focus:border-[#00a884] dark:border-border dark:bg-card"
+                  className="w-full rounded-lg border border-border bg-card p-2.5 text-base outline-none focus:border-[#00a884] md:text-sm"
                 />
               </label>
               {missingLink && (
-                <p className="text-xs text-[#d92d20]">
+                <p className="text-xs text-destructive">
                   Pega en el mensaje el enlace de la grabación o del material: también va en la plantilla.
                 </p>
               )}
@@ -172,8 +172,8 @@ const WhatsAppBulkSend = ({
               {!preview ? (
                 <Loader2 className="size-4 animate-spin text-[#00a884]" />
               ) : (
-                <div className="space-y-1.5 rounded-lg bg-[#f0f2f5] p-3 dark:bg-muted/40">
-                  <div className="font-medium text-[#111b21] dark:text-foreground">A quién le llega</div>
+                <div className="space-y-1.5 rounded-lg bg-muted/60 p-3">
+                  <div className="font-medium text-foreground">A quién le llega</div>
                   <div>✅ {preview.text} con el mensaje de arriba (gratis, escribieron hace menos de 24 h)</div>
                   <div>
                     📨 {preview.template} con la plantilla{" "}
@@ -183,7 +183,7 @@ const WhatsAppBulkSend = ({
                       : ""}
                   </div>
                   {preview.skipped.needs_template > 0 && (
-                    <div className="text-[#d92d20]">
+                    <div className="text-destructive">
                       ⚠️ {preview.skipped.needs_template} no se pueden: pasaron más de 24 h y{" "}
                       {preview.templateInfo
                         ? `la plantilla «${preview.templateInfo.title}» está ${preview.templateInfo.status === "APPROVED" ? "aprobada" : "en revisión o rechazada"}`
@@ -191,13 +191,13 @@ const WhatsAppBulkSend = ({
                       . Créala o revísala en WhatsApp → Plantillas.
                     </div>
                   )}
-                  {preview.skipped.no_phone > 0 && <div className="text-[#54656f]">— {preview.skipped.no_phone} sin número de WhatsApp</div>}
-                  {preview.skipped.opted_out > 0 && <div className="text-[#54656f]">— {preview.skipped.opted_out} pidieron no recibir mensajes</div>}
+                  {preview.skipped.no_phone > 0 && <div className="text-muted-foreground">— {preview.skipped.no_phone} sin número de WhatsApp</div>}
+                  {preview.skipped.opted_out > 0 && <div className="text-muted-foreground">— {preview.skipped.opted_out} pidieron no recibir mensajes</div>}
                 </div>
               )}
 
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setOpen(false)} className="h-9 rounded-full px-4 text-[#54656f] hover:bg-[#f5f6f6]">
+                <button type="button" onClick={() => setOpen(false)} className="h-9 rounded-full px-4 text-muted-foreground hover:bg-muted">
                   Cancelar
                 </button>
                 <button
@@ -214,7 +214,7 @@ const WhatsAppBulkSend = ({
 
           {progress && (
             <div className="space-y-3">
-              <div className="h-2 overflow-hidden rounded-full bg-[#e9edef]">
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full bg-[#00a884] transition-all"
                   style={{ width: `${progress.total ? ((progress.total - progress.pending) / progress.total) * 100 : 100}%` }}
@@ -228,7 +228,7 @@ const WhatsAppBulkSend = ({
                 </span>
               </div>
               {done && (
-                <p className="text-xs text-[#54656f]">
+                <p className="text-xs text-muted-foreground">
                   Cada mensaje quedó en el chat de esa persona (WhatsApp → Chats), con sus ✓✓ de entregado y leído.
                 </p>
               )}

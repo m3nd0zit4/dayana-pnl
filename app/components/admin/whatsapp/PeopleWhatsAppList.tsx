@@ -70,8 +70,8 @@ const PeopleWhatsAppList = ({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#e9edef] bg-white p-3 dark:border-border dark:bg-card">
-        <span className="text-sm font-medium text-[#111b21] dark:text-foreground">WhatsApp:</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-3">
+        <span className="text-sm font-medium text-foreground">WhatsApp:</span>
         <WhatsAppBulkSend
           contactIds={allContactIds}
           presets={presets}
@@ -95,13 +95,13 @@ const PeopleWhatsAppList = ({
             link={link}
           />
         )}
-        <span className="text-xs text-[#667781]">
+        <span className="text-xs text-muted-foreground">
           Quien escribió en las últimas 24 h recibe el mensaje gratis; al resto le llega con plantilla aprobada.
         </span>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-[#e9edef] bg-white dark:border-border dark:bg-card">
-        <div className="flex items-center gap-3 border-b border-[#e9edef] px-3 py-2 text-xs font-medium text-[#667781] dark:border-border">
+      <div className="overflow-hidden rounded-xl border border-border bg-card">
+        <div className="flex items-center gap-3 border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">
           <input
             type="checkbox"
             aria-label="Elegir todas las de esta página"
@@ -121,7 +121,7 @@ const PeopleWhatsAppList = ({
           <span className="w-28 text-right">Escribirle</span>
         </div>
         {people.map((p) => (
-          <div key={p.contactId} className="flex flex-wrap items-center gap-3 border-b border-[#f0f2f5] px-3 py-2.5 last:border-0 dark:border-border">
+          <div key={p.contactId} className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2.5 last:border-0">
             <input
               type="checkbox"
               aria-label={`Elegir a ${p.name}`}
@@ -133,7 +133,7 @@ const PeopleWhatsAppList = ({
               <Link href={`/admin/contacts/${p.contactId}`} className="block truncate text-sm font-medium hover:underline">
                 {p.name}
               </Link>
-              <div className="truncate text-xs text-[#667781]">{p.detail}</div>
+              <div className="truncate text-xs text-muted-foreground">{p.detail}</div>
               {p.extra}
               <div className="md:hidden">
                 <WhatsAppStatusBadge status={statuses[p.contactId]} />

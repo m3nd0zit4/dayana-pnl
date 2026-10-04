@@ -39,16 +39,21 @@ export const tabOf = (queue: ChatQueue): Tab =>
 
 const SEARCH_IGNORES_CATEGORY = "La búsqueda mira todos los chats: borra la búsqueda para filtrar por categoría.";
 
+/** Anillo de foco de los botones hechos a mano: con teclado se ve dónde se está. */
+const FOCUS = "outline-none focus-visible:ring-2 focus-visible:ring-(--wa-green)";
+
 /** Los filtros de dentro de «Todos» (quién responde, categoría): más discretos que las pestañas. */
 const subChip = (active: boolean) =>
   cn(
     "h-10 shrink-0 rounded-full px-2.5 text-xs font-medium transition-colors md:h-7",
+    FOCUS,
     active ? "bg-(--wa-text) text-(--wa-surface)" : "text-(--wa-icon) hover:bg-(--wa-panel)"
   );
 
 const chip = (active: boolean) =>
   cn(
     "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors md:h-8",
+    FOCUS,
     active ? "bg-(--wa-green-soft) text-(--wa-accent)" : "bg-(--wa-panel) text-(--wa-icon) hover:bg-(--wa-divider)"
   );
 
@@ -280,7 +285,10 @@ const ChatList = ({
             <button
               type="button"
               onClick={onLoadMore}
-              className="inline-flex h-10 items-center rounded-full bg-(--wa-panel) px-4 text-xs font-medium text-(--wa-icon) hover:bg-(--wa-divider) md:h-8"
+              className={cn(
+                "inline-flex h-10 items-center rounded-full bg-(--wa-panel) px-4 text-xs font-medium text-(--wa-icon) hover:bg-(--wa-divider) md:h-8",
+                FOCUS
+              )}
             >
               Ver más chats
             </button>

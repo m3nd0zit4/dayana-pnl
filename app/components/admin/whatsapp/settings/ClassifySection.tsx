@@ -184,7 +184,7 @@ const ClassifySection = () => {
   return (
     <SettingsGroup
       title="Clasificar chats"
-      description="Cliente, interesada, comunidad, personal, negocio/app o equipo."
+      description="Cliente, interesada, comunidad, personal, negocio/app, equipo u otro."
     >
       <ToggleRow
         id="wa-classify"

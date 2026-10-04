@@ -15,25 +15,27 @@ const dateLabel = (iso: string) =>
  */
 const WhatsAppStatusBadge = ({ status, compact }: { status: WhatsAppStatus | null | undefined; compact?: boolean }) => {
   if (!status?.lastSentAt) {
-    return <span className="text-xs text-[#8696a0]">{compact ? "—" : "Sin WhatsApp"}</span>;
+    return <span className="text-xs text-muted-foreground">{compact ? "—" : "Sin WhatsApp"}</span>;
   }
   const answered = Boolean(status.answeredAt);
   const s = status.lastStatus;
+  // Tokens del CRM (vive fuera del chat): los grises de WhatsApp no se leían en
+  // modo oscuro. Solo el azul de «leído» es el de WhatsApp, en los dos temas.
   const [icon, label, cls] = answered
-    ? [<MessageCircleReply key="a" className="size-3.5" />, "Respondió", "text-[#008069] font-medium"]
+    ? [<MessageCircleReply key="a" className="size-3.5" />, "Respondió", "text-success font-medium"]
     : s === "READ"
-      ? [<CheckCheck key="r" className="size-3.5 text-[#53bdeb]" />, deliveryLabel(s).label, "text-[#54656f]"]
+      ? [<CheckCheck key="r" className="size-3.5 text-[#53bdeb]" />, deliveryLabel(s).label, "text-muted-foreground"]
       : s === "DELIVERED"
-        ? [<CheckCheck key="d" className="size-3.5" />, deliveryLabel(s).label, "text-[#54656f]"]
+        ? [<CheckCheck key="d" className="size-3.5" />, deliveryLabel(s).label, "text-muted-foreground"]
         : s === "FAILED"
-          ? [<XCircle key="f" className="size-3.5" />, "No le llegó", "text-[#d92d20]"]
-          : [<Check key="s" className="size-3.5" />, deliveryLabel(s).label, "text-[#54656f]"];
+          ? [<XCircle key="f" className="size-3.5" />, "No le llegó", "text-destructive"]
+          : [<Check key="s" className="size-3.5" />, deliveryLabel(s).label, "text-muted-foreground"];
   const when = answered ? status.answeredAt! : status.lastSentAt;
   const content = (
     <span className={cn("inline-flex items-center gap-1 text-xs", cls)} title={`${label} · ${dateLabel(when)}`}>
       {icon}
       {label}
-      {!compact && <span className="text-[#8696a0]">· {dateLabel(when)}</span>}
+      {!compact && <span className="text-muted-foreground">· {dateLabel(when)}</span>}
     </span>
   );
   return status.conversationId ? (
