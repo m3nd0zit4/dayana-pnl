@@ -25,7 +25,7 @@ const OPTIONS: { mode: Mode; hint: string; confirm: string }[] = [
 
 /**
  * El modo general de WhatsApp, a un toque desde la lista de chats: un botón
- * pequeño («Todos: IA») que abre las tres opciones y pide confirmación, porque
+ * pequeño («Modo: IA») que abre las tres opciones y pide confirmación, porque
  * cambia todos los chats a la vez (menos los favoritos ⭐). Cada chat se sigue
  * cambiando aparte desde su menú «⋯».
  */
@@ -83,7 +83,7 @@ const GlobalModeSwitch = ({ onChanged }: { onChanged: () => void }) => {
         )}
       >
         {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
-        Todos: <span className="text-(--wa-text)">{mode ? MODE_SHORT[mode] : "…"}</span>
+        Modo: <span className="text-(--wa-text)">{mode ? MODE_SHORT[mode] : "…"}</span>
         <ChevronDown className="size-3.5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">

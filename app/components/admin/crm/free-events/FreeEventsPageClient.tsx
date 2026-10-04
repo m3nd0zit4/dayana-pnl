@@ -63,7 +63,7 @@ const FreeEventsPageClient = ({ events, initialView, editionsEnabled, operationa
     if (e.status === "OPEN") {
       return (
         <CrmRowActions>
-          <CrmPublicLink href={e.publicPath} label="Ver en web" density="row" />
+          <CrmPublicLink href={e.publicPath} label="Ver página pública" density="row" />
           {inscritas}
           <CrmRowAction
             icon={Flag}

@@ -34,7 +34,7 @@ const FreeEventDetailActions = ({ event, openOther, editionsEnabled }: Props) =>
     }}
     publicLink={{
       href: event.status === "OPEN" ? "/eventos-gratuitos" : event.publicPath,
-      label: "Ver en web",
+      label: "Ver página pública",
       copy: event.status !== "DRAFT",
       disabledReason: event.status === "DRAFT" ? "Es un borrador: aún no tiene página pública." : undefined,
     }}

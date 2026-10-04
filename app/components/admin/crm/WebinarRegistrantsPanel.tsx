@@ -499,7 +499,8 @@ const WebinarRegistrantsPanel = ({
                 ["Sin correo / baja", stats.unreachable],
                 ["WhatsApp 24 h", stats.wa24h],
                 ["WhatsApp 1 h", stats.wa1h],
-                ["Confirmación WA", stats.waConfirmation ?? 0],
+                // «Confirmación WhatsApp» no cabe en una línea de la casilla a 390 px.
+                ["WhatsApp registro", stats.waConfirmation ?? 0],
                 ["Sin WhatsApp", stats.noWhatsApp],
               ] as const
             ).map(([label, value]) => (
@@ -665,7 +666,7 @@ const WebinarRegistrantsPanel = ({
                   <AlertTriangle className="size-3.5 shrink-0" />
                   {stats.waFailed.toLocaleString("es-CO")} sin enviar por
                   WhatsApp. No se reintentan solos: filtra «Solo fallidas» y
-                  pulsa «Reintentar WA».
+                  pulsa «Reintentar WhatsApp».
                 </p>
               ) : null}
             </div>
@@ -696,8 +697,8 @@ const WebinarRegistrantsPanel = ({
                     <th className="pb-2 text-center font-medium">Enlace</th>
                     <th className="pb-2 text-center font-medium">24 h</th>
                     <th className="pb-2 text-center font-medium">1 h</th>
-                    <th className="pb-2 text-center font-medium">WA 24 h</th>
-                    <th className="pb-2 text-center font-medium">WA 1 h</th>
+                    <th className="pb-2 text-center font-medium">WhatsApp 24 h</th>
+                    <th className="pb-2 text-center font-medium">WhatsApp 1 h</th>
                     <th className="pb-2 text-right font-medium">Reenviar</th>
                   </tr>
                 </thead>
@@ -790,7 +791,7 @@ const WebinarRegistrantsPanel = ({
                               disabled={busyId === r.id || !waEnabled || waRun !== null}
                               onClick={() => void retryWa(r)}
                             >
-                              Reintentar WA
+                              Reintentar WhatsApp
                             </Button>
                           ) : null}
                         </div>

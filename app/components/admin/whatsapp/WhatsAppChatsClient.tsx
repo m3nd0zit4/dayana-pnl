@@ -186,6 +186,16 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
     void loadList();
   };
 
+  // «Limpiar filtros» (hoja del teléfono): los dos a la vez y una sola carga,
+  // para que dos respuestas cruzadas no dejen la lista a medio filtrar.
+  const clearAllFilters = () => {
+    queueRef.current = "all";
+    setQueue("all");
+    categoryRef.current = null;
+    setCategory(null);
+    void loadList();
+  };
+
   return (
     <div className={cn("flex h-full min-h-0 w-full max-w-full overflow-hidden bg-(--wa-surface)", WA_THEME)}>
       <ChatList
@@ -212,6 +222,7 @@ const WhatsAppChatsClient = ({ initialConversationId }: { initialConversationId:
         categoryCounts={categoryCounts}
         category={category}
         onCategory={pickCategory}
+        onClearFilters={clearAllFilters}
       />
 
       {/* Conversación */}
