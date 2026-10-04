@@ -63,7 +63,8 @@ const CrmSegmentedControl = <T extends string>({
           <TabsTrigger
             key={seg.id}
             value={seg.id}
-            className="h-auto min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[11px] leading-tight tracking-tight sm:h-[calc(100%-1px)] sm:flex-row sm:gap-1.5 sm:px-1.5 sm:py-0.5 sm:text-sm sm:tracking-normal"
+            // `min-h-11`: en el teléfono cada celda es un toque de pulgar (≥ 40 px).
+            className="h-auto min-h-11 min-w-0 flex-col gap-0.5 px-0 py-1.5 text-[11px] leading-tight tracking-tight sm:h-[calc(100%-1px)] sm:min-h-0 sm:flex-row sm:gap-1.5 sm:px-1.5 sm:py-0.5 sm:text-sm sm:tracking-normal"
           >
             {Icon ? (
               <span className="relative sm:hidden">

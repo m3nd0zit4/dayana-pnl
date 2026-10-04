@@ -95,7 +95,7 @@ const ChatRow = ({
       type="button"
       onClick={onOpen}
       className={cn(
-        "flex w-full items-center gap-3 px-3 text-left transition-colors hover:bg-(--wa-hover)",
+        "flex w-full items-center gap-3 px-3 text-left transition-colors outline-none hover:bg-(--wa-hover) focus-visible:bg-(--wa-hover) focus-visible:ring-2 focus-visible:ring-(--wa-green) focus-visible:ring-inset",
         active && "bg-(--wa-active) hover:bg-(--wa-active)"
       )}
     >

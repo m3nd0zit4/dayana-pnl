@@ -24,6 +24,7 @@ import FaqListEditor from "../FaqListEditor";
 import EditionSaveBar from "../editions/EditionSaveBar";
 import EditionSection from "../editions/EditionSection";
 import { useDirtyBaseline, useUnsavedChangesGuard } from "../editions/dirty-guard";
+import { dateKeyLabel } from "../editions/status";
 
 type Props = {
   initial: FreeWebinarPublic;
@@ -403,19 +404,24 @@ const FreeEventPageEditor = ({
     }
   };
 
-  const dateSummary = dateKey
-    ? `${dateKey}${timeHm ? ` · ${timeHm}` : ""}${meetUrl.trim() ? " · con enlace" : " · sin enlace"}`
-    : "Sin fecha";
+  // Como en los talleres: fecha legible, enlace y cupo.
+  const dateSummary = [
+    dateKey ? dateKeyLabel(dateKey, timeHm) : "Sin fecha",
+    meetUrl.trim() ? "con enlace" : "sin enlace",
+    capacity.trim() ? `cupo ${capacity.trim()}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <EditionSection title="Fecha y enlace" summary={dateSummary} defaultOpen>
+      <EditionSection title="Fecha, enlace y cupo" summary={dateSummary} defaultOpen>
         <div className="grid gap-4 sm:grid-cols-2">
           <CrmField label="Fecha *" description={ended ? ENDED_HINT : undefined}>
             <Input type="date" value={dateKey} disabled={ended} onChange={(e) => setDateKey(e.target.value)} />
           </CrmField>
           <CrmField
-            label="Hora (opcional)"
+            label="Hora de inicio (opcional)"
             description={`Zona CRM: ${operationalTimezone}.${ended ? "" : " Cambiar la fecha vuelve a mandar los recordatorios."}`}
           >
             <Input type="time" value={timeHm} disabled={ended} onChange={(e) => setTimeHm(e.target.value)} />
@@ -511,8 +517,8 @@ const FreeEventPageEditor = ({
       </EditionSection>
 
       <EditionSection
-        title="Vídeo y material"
-        summary={[videoReady ? "Con vídeo" : "Sin vídeo", material.fileName ? "con material" : "sin material"].join(" · ")}
+        title="Video y material"
+        summary={[videoReady ? "Con video" : "Sin video", material.fileName ? "con material" : "sin material"].join(" · ")}
       >
         <div className="space-y-3">
           <p className="text-sm font-medium">Video (opcional)</p>

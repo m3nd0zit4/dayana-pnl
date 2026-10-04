@@ -1,14 +1,16 @@
 "use client";
 
-import { BookUser, CalendarCheck, Loader2, Search } from "lucide-react";
+import { BookUser, CalendarCheck, Search, Users } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/app/components/ui/input";
 import { CHAT_CATEGORY_LABEL, isChatCategory } from "@/lib/crm/chat-category-rules";
 import { cn } from "@/lib/utils";
+import CrmPageHeader from "../crm/CrmPageHeader";
 import CrmPageShell from "../crm/CrmPageShell";
+import { CrmEmptyState, CrmLoadingState } from "../crm/ui";
 import type { CategoryCounts } from "@/lib/crm/chat-category";
-import { CATEGORY_FILTERS, MODE_LABEL, agoLabel, showCategoryFilter, useNow } from "./status";
+import { CATEGORY_FILTERS, MODE_LABEL, agoLabel, categoryCountOf, showCategoryFilter, useNow } from "./status";
 
 type Person = {
   conversationId: string;
@@ -57,12 +59,10 @@ const WhatsAppPeopleClient = () => {
 
   return (
     <CrmPageShell>
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">Personas</h1>
-        <span className="text-xs text-muted-foreground">
-          Lo que la IA recuerda de cada persona. Se edita desde su chat.
-        </span>
-      </div>
+      <CrmPageHeader
+        title="Personas"
+        description="Lo que la IA recuerda de cada persona. Se edita desde su chat."
+      />
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
@@ -85,35 +85,47 @@ const WhatsAppPeopleClient = () => {
               aria-pressed={active}
               onClick={() => pick(f.id)}
               className={cn(
-                "h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-colors md:h-8",
+                "h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:h-8",
                 active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
               )}
             >
               {f.label}
+              {/* Cuántas hay, como en los filtros de «Todos» de los chats. */}
+              {f.id && counts ? (
+                <span className={cn("ml-1 tabular-nums", active ? "opacity-80" : "text-muted-foreground/80")}>
+                  {categoryCountOf(counts, f.id)}
+                </span>
+              ) : null}
             </button>
           );
         })}
       </div>
       {items === null ? (
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <CrmLoadingState variant="card" rows={3} />
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {category || q.trim() ? "Nadie coincide con este filtro." : "Nadie ha escrito todavía."}
-        </p>
+        <CrmEmptyState
+          icon={Users}
+          title={category || q.trim() ? "Nadie coincide con este filtro" : "Nadie ha escrito todavía"}
+          description={
+            category || q.trim()
+              ? "Prueba con otra categoría o borra la búsqueda."
+              : "Cuando alguien escriba por WhatsApp, aquí verás lo que la IA recuerda de esa persona."
+          }
+        />
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {items.map((p) => (
             <Link
               key={p.conversationId}
               href={`/admin/whatsapp?conversation=${p.conversationId}`}
-              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+              className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 transition-colors outline-none hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <div className="flex items-center gap-2">
                 <span className="min-w-0 truncate font-medium">{p.name}</span>
                 {p.category && isChatCategory(p.category) && (
                   <span className="shrink-0 rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
                     {CHAT_CATEGORY_LABEL[p.category]}
-                    {p.categoryReview ? " · revisar" : ""}
+                    {p.categoryReview ? " · por revisar" : ""}
                   </span>
                 )}
                 <span className="flex-1" />
@@ -128,11 +140,11 @@ const WhatsAppPeopleClient = () => {
                   </span>
                 )}
                 {p.bookings > 0 && (
-                  <span className="inline-flex items-center gap-0.5 text-sky-700">
-                    <CalendarCheck className="size-3" /> {p.bookings} cita(s)
+                  <span className="inline-flex items-center gap-0.5 text-primary">
+                    <CalendarCheck className="size-3" /> {p.bookings} {p.bookings === 1 ? "cita" : "citas"}
                   </span>
                 )}
-                {p.contactId && <span className="text-emerald-700">· en el CRM</span>}
+                {p.contactId && <span className="text-success">· en el CRM</span>}
               </div>
               <p className="line-clamp-5 whitespace-pre-wrap text-xs">
                 {p.memory ?? <span className="text-muted-foreground">La IA aún no guarda nada de esta persona.</span>}

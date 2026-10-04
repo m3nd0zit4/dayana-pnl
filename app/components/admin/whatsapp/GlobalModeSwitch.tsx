@@ -19,7 +19,7 @@ type Mode = "AUTO" | "COPILOT" | "MANUAL";
 
 const OPTIONS: { mode: Mode; hint: string; confirm: string }[] = [
   { mode: "AUTO", hint: "La IA responde sola", confirm: "La IA responderá sola en todos los chats (menos los favoritos ⭐)." },
-  { mode: "COPILOT", hint: "La IA deja borradores y tú los envías", confirm: "En todos los chats la IA dejará borradores y ustedes los envían." },
+  { mode: "COPILOT", hint: "La IA deja borradores y tú los envías", confirm: "En todos los chats la IA dejará borradores y tú los envías." },
   { mode: "MANUAL", hint: "Contestas tú: la IA no escribe", confirm: "La IA dejará de escribir en todos los chats." },
 ];
 

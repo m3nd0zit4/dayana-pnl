@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import { useCrm } from "../CrmProvider";
 import { CrmPublicLink } from "../ui";
 import { isEditorDirty } from "./dirty-guard";
@@ -142,7 +143,7 @@ const EditionDetailActions = ({
         ))}
       </div>
 
-      {/* Teléfono: el paso principal y «⋯». */}
+      {/* Teléfono: el paso principal y «⋯», de 40 px (con el pulgar). */}
       {mobileMain ? (
         <Button
           type="button"
@@ -150,7 +151,7 @@ const EditionDetailActions = ({
           size="sm"
           disabled={busy}
           onClick={mobileMain.run}
-          className="sm:hidden"
+          className="h-10 px-4 sm:hidden"
         >
           <mobileMain.icon aria-hidden />
           {mobileMain.label}
@@ -166,7 +167,7 @@ const EditionDetailActions = ({
               size="icon-sm"
               aria-label="Más acciones"
               title="Más acciones"
-              className={canWrite ? undefined : "sm:hidden"}
+              className={cn("size-10 sm:size-7", !canWrite && "sm:hidden")}
             />
           }
         >

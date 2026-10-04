@@ -14,6 +14,7 @@ import { CrmField } from "../ui";
 import EditionSaveBar from "../editions/EditionSaveBar";
 import EditionSection from "../editions/EditionSection";
 import { useDirtyBaseline, useUnsavedChangesGuard } from "../editions/dirty-guard";
+import { dateKeyLabel } from "../editions/status";
 
 /** Lo que la pestaña necesita de la edición, ya serializado. */
 export type WorkshopPageInitial = {
@@ -177,7 +178,7 @@ const WorkshopPageEditor = ({
   };
 
   const dateSummary = [
-    dateKey ? `${dateKey}${timeHm ? ` · ${timeHm}` : ""}` : "Sin fecha",
+    dateKey ? dateKeyLabel(dateKey, timeHm) : "Sin fecha",
     meetingUrl.trim() ? "con enlace" : "sin enlace",
     capacity.trim() ? `cupo ${capacity.trim()}` : null,
   ]
@@ -195,7 +196,7 @@ const WorkshopPageEditor = ({
             <Input type="date" value={dateKey} disabled={initial.ended} onChange={(e) => setDateKey(e.target.value)} />
           </CrmField>
           <CrmField
-            label="Hora de inicio"
+            label="Hora de inicio (opcional)"
             description={`Zona CRM: ${operationalTimezone}.${initial.ended ? "" : " Cambiarla vuelve a mandar los recordatorios."}`}
           >
             <Input type="time" value={timeHm} disabled={initial.ended} onChange={(e) => setTimeHm(e.target.value)} />

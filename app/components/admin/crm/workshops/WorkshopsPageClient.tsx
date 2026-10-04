@@ -147,9 +147,16 @@ const WorkshopsPageClient = ({ workshops, initialView, operationalTimezone, copy
             </span>
           </span>
           {w.paid > 0 && w.status !== "DRAFT" ? (
-            <span className="mt-1 block text-[11px] leading-snug text-muted-foreground tabular-nums">
-              <span className="font-medium text-foreground/80">Recordatorios</span> · correo 24 h {n(w.stats.email24h)} ·
-              1 h {n(w.stats.email1h)} · WhatsApp 24 h {n(w.stats.wa24h)} · 1 h {n(w.stats.wa1h)}
+            // Dos líneas cortas, como en los eventos: correo y WhatsApp.
+            <span className="mt-1 block space-y-0.5 text-[11px] leading-snug text-muted-foreground tabular-nums">
+              <span className="block">
+                <span className="font-medium text-foreground/80">Correo</span> · 24 h {n(w.stats.email24h)} · 1 h{" "}
+                {n(w.stats.email1h)}
+              </span>
+              <span className="block">
+                <span className="font-medium text-foreground/80">WhatsApp</span> · 24 h {n(w.stats.wa24h)} · 1 h{" "}
+                {n(w.stats.wa1h)}
+              </span>
             </span>
           ) : null}
           {warnings.length > 0 ? (

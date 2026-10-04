@@ -117,7 +117,8 @@ const NewEditionModal = ({
           <CrmField label="Fecha">
             <Input type="date" value={dateKey} onChange={(ev) => setDateKey(ev.target.value)} />
           </CrmField>
-          <CrmField label="Hora" description={operationalTimezone}>
+          {/* Igual que en la pestaña «Página»: que se lea que es la zona horaria. */}
+          <CrmField label="Hora (opcional)" description={`Zona CRM: ${operationalTimezone}`}>
             <Input type="time" value={timeHm} onChange={(ev) => setTimeHm(ev.target.value)} />
           </CrmField>
         </div>

@@ -60,7 +60,7 @@ export { CATEGORY_FILTERS, categoryCountOf, showCategoryFilter } from "@/lib/crm
 /** De dónde salió la categoría de un chat. */
 export const CATEGORY_SOURCE_LABEL: Record<string, string> = {
   rule: "por regla",
-  ai: "la IA",
+  ai: "por la IA",
   manual: "a mano",
 };
 
@@ -121,6 +121,19 @@ const deliveredLabel = (d: RunView["delivery"]) =>
 
 export { failedLabel };
 
+/**
+ * Los tonos de la línea de estado. Dentro del chat salen de la paleta de
+ * WhatsApp (`--wa-*`, clara y oscura); fuera de él —«Estado de la IA» no la
+ * declara— caen en los tokens del CRM. Nada de hex a mano con su `dark:` aparte.
+ */
+const TONE = {
+  muted: "text-[color:var(--wa-meta,var(--muted-foreground))]",
+  ok: "text-[color:var(--wa-accent,var(--success))]",
+  draft: "text-[color:var(--wa-violet,var(--primary))]",
+  attention: "text-[color:var(--wa-attention,var(--warning))]",
+  danger: "text-[color:var(--wa-danger,var(--destructive))]",
+} as const;
+
 export const RunStatus = ({
   run,
   compact = false,
@@ -140,55 +153,56 @@ export const RunStatus = ({
 
   let icon = <Bot className="size-3.5" />;
   let text = "";
-  let tone = "text-[#667781] dark:text-muted-foreground";
+  let tone: string = TONE.muted;
 
   switch (run.status) {
     case "QUEUED":
       icon = <Clock className="size-3.5 animate-pulse" />;
       text = `Esperando que termine de escribir… ${since(run.queuedAt)}`;
-      tone = "text-[#008069] dark:text-emerald-300";
+      tone = TONE.ok;
       break;
     case "THINKING":
       icon = <Loader2 className="size-3.5 animate-spin" />;
       text = `Pensando la respuesta… ${since(run.startedAt ?? run.queuedAt)}`;
-      tone = "text-[#008069] dark:text-emerald-300";
+      tone = TONE.ok;
       break;
     case "SENDING":
       icon = <Send className="size-3.5 animate-pulse" />;
       text = `Enviando… ${since(run.queuedAt)}`;
-      tone = "text-[#008069] dark:text-emerald-300";
+      tone = TONE.ok;
       break;
     case "REPLIED":
       icon = <CheckCheck className="size-3.5" />;
-      text = compact ? `IA respondió ${ended}` : `La IA respondió ${ended}${took}${deliveredLabel(run.delivery)}`;
-      tone = "text-[#008069] dark:text-emerald-300";
+      text = compact ? `La IA respondió ${ended}` : `La IA respondió ${ended}${took}${deliveredLabel(run.delivery)}`;
+      tone = TONE.ok;
       break;
     case "DRAFTED":
       icon = <FilePen className="size-3.5" />;
       text = compact ? "Borrador listo" : `Borrador listo para que lo envíes ${ended}${took}`;
-      tone = "text-[#6d28d9] dark:text-violet-300";
+      tone = TONE.draft;
       break;
     case "ESCALATED":
       icon = <AlertTriangle className="size-3.5" />;
       text = `Te toca: ${CATEGORY_LABEL[run.category ?? ""] ?? "revisar"}${compact ? "" : ` · ${ended}`}`;
-      tone = run.severity === "urgent" ? "text-[#d92d20] dark:text-red-300" : "text-[#008069] dark:text-emerald-300";
+      // El mismo ámbar que «Te toca» en la lista (rojo si es urgente).
+      tone = run.severity === "urgent" ? TONE.danger : TONE.attention;
       break;
     case "ERROR":
       icon = <XCircle className="size-3.5" />;
       text = compact ? "La IA falló" : `La IA falló ${ended}: ${run.reason ?? ""}`;
-      tone = "text-red-700 dark:text-red-300";
+      tone = TONE.danger;
       break;
     case "AWAITING_APPROVAL":
       icon = <FilePen className="size-3.5" />;
       text = compact ? "Espera tu aprobación" : `Espera tu aprobación · ${ended}`;
-      tone = "text-[#6d28d9] dark:text-violet-300";
+      tone = TONE.draft;
       break;
     case "APPROVED":
       icon = <CheckCheck className="size-3.5" />;
       text = compact
         ? "Aprobado"
         : `Aprobaste la propuesta ${agoLabel(run.finishedAt ?? run.queuedAt, now)}${deliveredLabel(run.delivery)}`;
-      tone = "text-[#008069] dark:text-emerald-300";
+      tone = TONE.ok;
       break;
     case "CANCELLED":
       icon = <XCircle className="size-3.5" />;
@@ -196,7 +210,7 @@ export const RunStatus = ({
       break;
     case "SUPERSEDED":
       icon = <Hand className="size-3.5" />;
-      text = run.reason ?? "Respondiste tú";
+      text = run.reason ?? "Respondiste";
       break;
     case "SKIPPED":
       icon = run.reason === "manual" ? <Hand className="size-3.5" /> : <PauseCircle className="size-3.5" />;
@@ -209,7 +223,7 @@ export const RunStatus = ({
     text = compact
       ? "No se entregó"
       : `${run.status === "APPROVED" ? "Lo aprobaste" : "La IA respondió"} · ${deliveryLabel("FAILED", run.delivery.error).label}. Reenvíalo desde el mensaje`;
-    tone = "text-[#d92d20] dark:text-red-300";
+    tone = TONE.danger;
   }
 
   return (
