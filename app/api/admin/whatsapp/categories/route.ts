@@ -20,8 +20,14 @@ export const maxDuration = 90;
 /** «Clasificar todo» trabaja como mucho esto por llamada; la pantalla repite hasta terminar. */
 const CLASSIFY_ALL_BUDGET_MS = 50_000;
 
-/** Cuántos chats hay de cada categoría, cuántos por revisar y cuántos sin clasificar. */
-export const GET = withStaff("read", async () => NextResponse.json(await categoryCounts()));
+/**
+ * Cuántos chats hay de cada categoría, cuántos por revisar y cuántos sin
+ * clasificar. Los números del equipo, solo a la dueña (al resto, vacío).
+ */
+export const GET = withStaff("read", async ({ staff }) => {
+  const counts = await categoryCounts();
+  return NextResponse.json({ ...counts, teamPhones: staff.role === "OWNER" ? counts.teamPhones : [] });
+});
 
 const bodySchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("classify_all") }),
@@ -57,7 +63,7 @@ const sum = (a: ClassifyRunResult, b: ClassifyRunResult): ClassifyRunResult => (
 });
 
 /**
- * - `classify_all`: clasifica tandas hasta ~50 s y dice cuánto falta; la
+ * - `classify_all` (solo la dueña: gasta la IA): clasifica tandas hasta ~50 s y dice cuánto falta; la
  *   pantalla vuelve a llamar mientras `done` sea false. Con la clasificación
  *   apagada, solo reglas (`aiDisabled`). `busy`: otra tanda (el reloj) tiene
  *   el arriendo; la pantalla DEBE esperar `retryAfterMs` antes de reintentar
@@ -73,6 +79,26 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   const parsed = bodySchema.safeParse(await readJson(req));
   if (!parsed.success) return apiError("invalid_body", 400);
   const body = parsed.data;
+
+  if (body.action === "set") {
+    if (body.category === null) {
+      const outcome = await clearManualCategory(body.conversationId, staff.id);
+      if (!outcome) return apiError("not_found", 404);
+      return NextResponse.json({ ok: true, outcome });
+    }
+    const updated = await setManualCategory(body.conversationId, body.category, staff.id);
+    if (!updated) return apiError("not_found", 404);
+    return NextResponse.json({ ok: true, conversation: updated });
+  }
+
+  if (body.action === "reclassify") {
+    const outcome = await classifyConversation(body.conversationId, { force: true });
+    if (outcome.status === "skipped" && outcome.reason === "not_found") return apiError("not_found", 404);
+    return NextResponse.json({ ok: outcome.status !== "error", outcome });
+  }
+
+  // Lo que puede silenciar chats o mandar conversaciones a la IA: solo la dueña.
+  if (staff.role !== "OWNER") return apiError("forbidden", 403);
 
   if (body.action === "classify_all") {
     const started = Date.now();
@@ -97,26 +123,6 @@ export const POST = withStaff("write", async ({ req, staff }) => {
       ? NextResponse.json(payload, { headers: { "Retry-After": String(Math.ceil((total.retryAfterMs ?? 15_000) / 1000)) } })
       : NextResponse.json(payload);
   }
-
-  if (body.action === "set") {
-    if (body.category === null) {
-      const outcome = await clearManualCategory(body.conversationId, staff.id);
-      if (!outcome) return apiError("not_found", 404);
-      return NextResponse.json({ ok: true, outcome });
-    }
-    const updated = await setManualCategory(body.conversationId, body.category, staff.id);
-    if (!updated) return apiError("not_found", 404);
-    return NextResponse.json({ ok: true, conversation: updated });
-  }
-
-  if (body.action === "reclassify") {
-    const outcome = await classifyConversation(body.conversationId, { force: true });
-    if (outcome.status === "skipped" && outcome.reason === "not_found") return apiError("not_found", 404);
-    return NextResponse.json({ ok: outcome.status !== "error", outcome });
-  }
-
-  // Lo que puede silenciar chats o mandar conversaciones a la IA: solo la dueña.
-  if (staff.role !== "OWNER") return apiError("forbidden", 403);
 
   if (body.action === "enable") {
     return NextResponse.json({ ok: true, enabled: await setClassifyEnabled(body.enabled, staff.id) });

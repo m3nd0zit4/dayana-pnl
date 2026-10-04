@@ -148,6 +148,17 @@ describe("inboundSinceLastReply / needsReply (del más nuevo al más viejo)", ()
     expect(burst.map((m) => m.body)).toEqual(["¿a qué hora?"]);
   });
 
+  test("el recordatorio del taller tampoco: «¿cuál es el link?» sigue sin respuesta", () => {
+    const burst = inboundSinceLastReply([
+      msg({ source: "taller:ed1:1h", isAutoReply: true, body: "Hoy es el taller 🌿" }),
+      msg({ clientKey: "taller:ed1:24h", isAutoReply: true, body: "Mañana es el taller" }),
+      msg({ direction: "INBOUND", body: "¿cuál es el link?" }),
+      msg({ isEcho: true }),
+    ]);
+    expect(burst.map((m) => m.body)).toEqual(["¿cuál es el link?"]);
+    expect(needsReply(burst)).toBe(true);
+  });
+
   test("solo «gracias» después de contestar: no pide respuesta", () => {
     const burst = inboundSinceLastReply([msg({ direction: "INBOUND", body: "Muchas gracias 🙏" }), msg({ isEcho: true })]);
     expect(needsReply(burst)).toBe(false);
@@ -233,6 +244,10 @@ describe("isHumanSend (y sendClearsUnread)", () => {
     expect(isHumanSend({ staffUserId: "s1", source: "bulk:abc" })).toBe(false);
     // «Reintentar WA» de un recordatorio del evento lo pulsa Dayana, pero no contesta a nadie.
     expect(isHumanSend({ staffUserId: "s1", source: "evento:fw1:24h" })).toBe(false);
+    // Los recordatorios del taller (`taller:<edición>:<pase>`), por `source` o por clave.
+    expect(isHumanSend({ isAutoReply: true, source: "taller:ed1:24h" })).toBe(false);
+    expect(isHumanSend({ staffUserId: "s1", source: "taller:ed1:24h" })).toBe(false);
+    expect(isHumanSend({ isAutoReply: true, clientKey: "taller:ed1:1h" })).toBe(false);
   });
 
   test("reenviar algo que escribió la IA no cuenta como respuesta suya", () => {
@@ -356,6 +371,8 @@ describe("replyStateOf (del más nuevo al más viejo)", () => {
   test("recordatorios, masivos y saludo no son una respuesta", () => {
     expect(replyStateOf([reply({ isAutoReply: true, source: "recordatorio:evt1" })])).toBe("auto");
     expect(replyStateOf([reply({ isAutoReply: true, source: "evento:fw1:24h" })])).toBe("auto");
+    expect(replyStateOf([reply({ isAutoReply: true, source: "taller:ed1:24h" })])).toBe("auto");
+    expect(replyStateOf([reply({ isAutoReply: true, clientKey: "taller:ed1:1h" })])).toBe("auto");
     expect(replyStateOf([reply({ source: "bulk:abc" })])).toBe("auto");
     expect(replyStateOf([reply({ isAutoReply: true, clientKey: "welcome:conv1" })])).toBe("auto");
   });

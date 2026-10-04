@@ -3,11 +3,69 @@ import { CHAT_CATEGORIES } from "./chat-category-rules";
 import type { CategoryCounts } from "./chat-category";
 import {
   CATEGORY_FILTERS,
+  attentionSurvivesSilence,
   categoryCountOf,
   chatCategoryWhere,
   isChatCategoryFilter,
+  isStaleAiLabel,
   showCategoryFilter,
+  showsInTeToca,
+  silencesNow,
+  type CategoryLabelState,
 } from "./whatsapp-category-filter";
+
+const t0 = new Date("2026-10-01T10:00:00Z");
+const later = new Date("2026-10-01T11:00:00Z");
+const label = (o: Partial<CategoryLabelState> = {}): CategoryLabelState => ({
+  category: "personal",
+  categorySource: "ai",
+  categoryConfidence: 0.95,
+  categoryReview: false,
+  categorizedThroughAt: t0,
+  lastInboundAt: t0,
+  ...o,
+});
+
+describe("silencio por categoría, en el momento", () => {
+  test("la etiqueta de la IA queda vieja si la persona escribió después", () => {
+    expect(isStaleAiLabel(label())).toBe(false);
+    expect(isStaleAiLabel(label({ lastInboundAt: later }))).toBe(true);
+    expect(isStaleAiLabel(label({ categorizedThroughAt: null }))).toBe(true);
+    // Lo manual y las reglas nunca quedan viejos por esto.
+    expect(isStaleAiLabel(label({ categorySource: "manual", lastInboundAt: later }))).toBe(false);
+    expect(isStaleAiLabel(label({ categorySource: "rule", category: "negocio", lastInboundAt: later }))).toBe(false);
+  });
+
+  test("calla solo encendida, segura y al día", () => {
+    expect(silencesNow(label(), true)).toBe(true);
+    expect(silencesNow(label(), false)).toBe(false);
+    expect(silencesNow(label({ lastInboundAt: later }), true)).toBe(false);
+    expect(silencesNow(label({ categoryConfidence: 0.8 }), true)).toBe(false);
+    expect(silencesNow(label({ categoryReview: true }), true)).toBe(false);
+    expect(silencesNow(label({ categorySource: "manual", lastInboundAt: later }), true)).toBe(true);
+  });
+
+  test("el silencio solo esconde «sin responder»", () => {
+    expect(attentionSurvivesSilence("unanswered")).toBe(false);
+    expect(attentionSurvivesSilence(null)).toBe(false);
+    for (const r of ["clinical", "payment", "complaint", "booking", "other", "error"]) {
+      expect(attentionSurvivesSilence(r)).toBe(true);
+    }
+  });
+
+  test("«Te toca» de un chat callado: escaladas y aprobaciones sí, «sin responder» no", () => {
+    const quiet = { ...label({ categorySource: "manual" }), attentionAt: t0 };
+    expect(showsInTeToca({ ...quiet, attentionReason: "unanswered" }, true)).toBe(false);
+    expect(showsInTeToca({ ...quiet, attentionReason: "clinical" }, true)).toBe(true);
+    expect(showsInTeToca({ ...quiet, attentionReason: "payment" }, true)).toBe(true);
+    expect(showsInTeToca({ ...quiet, attentionAt: null, attentionReason: null, awaitingApproval: true }, true)).toBe(true);
+    // Apagada, no se esconde nada; sin «Te toca» abierto, nada.
+    expect(showsInTeToca({ ...quiet, attentionReason: "unanswered" }, false)).toBe(true);
+    expect(showsInTeToca({ ...quiet, attentionAt: null, attentionReason: null }, false)).toBe(false);
+    // Etiqueta vieja de la IA: no calla, le toca.
+    expect(showsInTeToca({ ...label({ lastInboundAt: later }), attentionAt: t0, attentionReason: "unanswered" }, true)).toBe(true);
+  });
+});
 
 describe("filtro de categoría de «Todos»", () => {
   test("acepta las categorías, «sin clasificar» y «revisar»; nada más", () => {

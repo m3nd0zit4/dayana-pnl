@@ -29,7 +29,7 @@ import { clientContext, think, type TranscriptLine } from "./brain";
 import { getMemory, refreshMemory } from "./memory";
 import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal } from "./approvals";
 import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
-import { isClassifyEnabled, reclassifyByRulesNow } from "../chat-category";
+import { categoryGate, type CategoryGate } from "./category-gate";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -136,23 +136,11 @@ const CATEGORY_LABEL: Record<string, string> = {
 };
 
 /**
- * ¿Este chat está callado por su categoría (personal, negocio/app, equipo)?
- * Solo con la clasificación encendida —apagada, nada se calla y ni se miran
- * las reglas—, y vuelve a pasar las reglas antes de decidir, por si cambió
- * algo (pagó, agendó, escribió algo nuevo). Devuelve la categoría o `null`.
+ * ¿Hay que saludar en vez de contestar con la IA? (IA apagada o chat manual).
+ * Nunca a un chat callado por su categoría (aquí sin preguntar a la IA).
  */
-const silencedCategory = async (conversationId: string): Promise<string | null> => {
-  if (!(await isClassifyEnabled())) return null;
-  const cat = await reclassifyByRulesNow(conversationId).catch((e: unknown) => {
-    console.warn("[whatsapp-agent] no se pudo mirar la categoría", e);
-    return null;
-  });
-  return cat?.silencing ? cat.category : null;
-};
-
-/** ¿Hay que saludar en vez de contestar con la IA? (IA apagada o chat manual). Nunca a un chat callado. */
-const greetIfNeeded = async (conversationId: string) => {
-  if (await silencedCategory(conversationId)) return;
+const greetIfNeeded = async (conversationId: string, silenced: CategoryGate) => {
+  if (await silenced({ allowAi: false })) return;
   const { maybeSendWelcome } = await import("../whatsapp-welcome");
   await maybeSendWelcome(conversationId).catch(() => false);
 };
@@ -174,10 +162,11 @@ const answeredSince = async (conversationId: string, since: Date | null | undefi
 /**
  * La IA no contesta aquí: si lo que escribió importa, le toca a Dayana. Un
  * chat callado por su categoría (personal, negocio/app, equipo) no le toca.
+ * No pregunta a la IA: usa lo que ya decidió la puerta en esta vuelta, si llegó.
  */
-const handOffIfNeeded = async (conversationId: string, skipReason: string) => {
+const handOffIfNeeded = async (conversationId: string, skipReason: string, silenced: CategoryGate) => {
   if (!opensAttention(skipReason)) return;
-  if (await silencedCategory(conversationId)) return;
+  if (await silenced({ allowAi: false })) return;
   await openAttentionIfNeedsReply(conversationId).catch((e: unknown) =>
     console.warn("[whatsapp-agent] no se pudo abrir «Te toca»", e)
   );
@@ -203,6 +192,8 @@ export const runWhatsAppAi = async (input: {
   let runId: string | null = null;
   try {
     const conversationId = input.conversationId;
+    // La categoría se mira como mucho una vez por vuelta (reglas y, si hace falta, la IA).
+    const silenced = categoryGate(conversationId);
     const enabled = await isWhatsAppAutoReplyEnabled();
     const head = await prisma.conversation.findUnique({
       where: { id: conversationId },
@@ -240,13 +231,13 @@ export const runWhatsAppAi = async (input: {
           latencyMs: 0,
         },
       });
-      await handOffIfNeeded(conversationId, "favorite");
+      await handOffIfNeeded(conversationId, "favorite", silenced);
       return;
     }
 
     if (!enabled || head.aiMode === "MANUAL") {
       // Sin IA, el saludo de bienvenida (si está encendido) sigue funcionando.
-      await greetIfNeeded(conversationId);
+      await greetIfNeeded(conversationId, silenced);
       const reason = enabled ? "manual" : "disabled";
       await prisma.whatsAppAiRun.create({
         data: {
@@ -258,7 +249,7 @@ export const runWhatsAppAi = async (input: {
           latencyMs: 0,
         },
       });
-      await handOffIfNeeded(conversationId, reason);
+      await handOffIfNeeded(conversationId, reason, silenced);
       return;
     }
 
@@ -316,7 +307,7 @@ export const runWhatsAppAi = async (input: {
     }
 
     const config = await getWhatsAppAiConfig();
-    const verdict = await gate(conversationId, config);
+    const verdict = await gate(conversationId, config, silenced);
     if (verdict.skip) {
       if (verdict.escalate) {
         await escalate(
@@ -331,7 +322,7 @@ export const runWhatsAppAi = async (input: {
         );
       } else {
         await finish(run.id, "SKIPPED", { reason: verdict.reason });
-        await handOffIfNeeded(conversationId, verdict.reason);
+        await handOffIfNeeded(conversationId, verdict.reason, silenced);
       }
       return;
     }
@@ -641,7 +632,8 @@ const loadConversation = (conversationId: string) =>
 /** Las reglas que no dependen del modelo. */
 const gate = async (
   conversationId: string,
-  config: WhatsAppAiConfig
+  config: WhatsAppAiConfig,
+  silencedBy: CategoryGate
 ): Promise<GateResult> => {
   if (!process.env.GEMINI_API_KEY?.trim()) return { skip: true, reason: "no_model_key" };
 
@@ -685,8 +677,9 @@ const gate = async (
   if (conversation.assignedStaffId) return { skip: true, reason: "assigned" };
 
   // Personal, negocio/app o equipo (con la clasificación encendida y una
-  // etiqueta segura): la IA no contesta y no le toca a Dayana.
-  const silenced = await silencedCategory(conversationId);
+  // etiqueta segura): la IA no contesta y no le toca a Dayana. Si la etiqueta
+  // de la IA quedó vieja (escribió después), la IA la vuelve a mirar ahora.
+  const silenced = await silencedBy({ allowAi: true });
   if (silenced) return { skip: true, reason: `category_${silenced}` };
 
   const ordered = [...conversation.messages].reverse();

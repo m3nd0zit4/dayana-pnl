@@ -24,12 +24,15 @@ const ChatView = ({
   onBack,
   onToggleSidebar,
   onChanged,
+  onCategoryChanged = onChanged,
 }: {
   chat: ChatDetail;
   canWrite: boolean;
   onBack: () => void;
   onToggleSidebar: () => void;
   onChanged: () => void;
+  /** Se cambió la categoría (a mano, automático o reclasificar): también los números de los filtros. */
+  onCategoryChanged?: () => void;
 }) => {
   const { toast } = useCrm();
   const [text, setText] = useState(chat.draft?.body ?? "");
@@ -120,7 +123,7 @@ const ChatView = ({
       // Reclasificar con la IA puede no decidir (apagada, sin clave, cuota): se dice.
       if (data.outcome?.status === "error") toast("No se pudo volver a mirar ahora. Inténtalo más tarde.", "info");
       else toast(done, "success");
-      onChanged();
+      onCategoryChanged();
     } catch (e) {
       toast(`No se pudo: ${e instanceof Error ? e.message : "error"}`, "error");
     } finally {

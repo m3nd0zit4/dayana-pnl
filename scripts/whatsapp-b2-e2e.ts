@@ -14,8 +14,15 @@
  *    0,8 «por revisar» → NO callado.
  * 4. Una etiqueta de la IA vieja (la persona escribió después) → no calla.
  * 5. Apagar la clasificación → nada callado: el chat vuelve a «Te toca».
- * 6. «Seguimiento»: encendida, solo interesadas y sin clasificar; apagada, como antes.
- * 7. Filtros de categoría de «Todos» y contadores que coinciden.
+ * 6. «Seguimiento»: encendida, fuera lo callado, clientas y comunidad (sí
+ *    interesadas, «otro», lo dudoso y lo sin clasificar); apagada, como antes.
+ * 7. Filtros de categoría de «Todos» (también «Otros») y contadores que coinciden.
+ * 8. Etiqueta vieja de la IA en la puerta: la IA la vuelve a mirar en el
+ *    momento (una llamada; aquí una IA de prueba) y usa lo que diga; si falla
+ *    o tarda, no calla. Sin la IA de WhatsApp (modo Yo) o apagada la
+ *    clasificación, no se llama a nadie.
+ * 9. Un chat callado sigue en «Te toca» por una escalada (clínico, pago) o
+ *    algo por aprobar; «sin responder», no (ni la insignia en «Todos»).
  */
 import { prisma } from "@/lib/db";
 import type { NormalizedMessage } from "@/lib/meta/inbound";
@@ -27,6 +34,7 @@ import { getPendientes } from "@/lib/crm/pendientes";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { getWelcomeConfig, setWelcomeConfig } from "@/lib/crm/whatsapp-welcome";
 import { attentionWhere, openAttention } from "@/lib/crm/whatsapp-agent/attention";
+import { GATE_AI_TIMEOUT_MS, categoryGate, setGateClassifierForTests } from "@/lib/crm/whatsapp-agent/category-gate";
 import { chatCategoryWhere, listChats, queueCounts } from "@/lib/crm/whatsapp-agent/workspace";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
@@ -51,6 +59,14 @@ const T = {
   followInteresada: "573000009446",
   unclassified: "573000009447",
   otro: "573000009448",
+  followOtro: "573000009449",
+  followCliente: "573000009450",
+  followReview: "573000009451",
+  gateSilence: "573000009452",
+  gateFail: "573000009453",
+  gateManual: "573000009454",
+  quietClinical: "573000009455",
+  quietApproval: "573000009456",
 };
 const THREADS = Object.values(T);
 
@@ -256,8 +272,17 @@ const main = async () => {
       await aiLabel(fp, "personal", 0.95, false);
       const fi = await store(T.followInteresada, "Me interesa la terapia, ¿cómo funciona?", { sentAt: old });
       await aiLabel(fi, "interesada", 0.9, false);
+      const fo = await store(T.followOtro, "Hola", { sentAt: old });
+      await aiLabel(fo, "otro", 0.9, false);
+      const fc = await store(T.followCliente, "Gracias por la sesión", { sentAt: old });
+      await aiLabel(fc, "cliente", 0.95, false);
+      const fr = await store(T.followReview, "Hola, ¿qué tal?", { sentAt: old });
+      await aiLabel(fr, "personal", 0.8, true);
       check("encendida: la interesada sí", await inSeguimiento(fi));
       check("encendida: lo personal no", !(await inSeguimiento(fp)));
+      check("encendida: «otro» sí", await inSeguimiento(fo));
+      check("encendida: lo dudoso («revisar») sí", await inSeguimiento(fr));
+      check("encendida: la clienta no", !(await inSeguimiento(fc)));
       await setClassify(false);
       check("apagada: como antes, las dos", (await inSeguimiento(fi)) && (await inSeguimiento(fp)));
       await setClassify(true);
@@ -284,7 +309,103 @@ const main = async () => {
       const item = (await listChats({ queue: "all", category: "review", take: 600 })).find((i) => i.id === unsure);
       check("la fila lleva su categoría y el punto de «revisar»", item?.category === "personal" && item.categoryReview === true, item);
     }
+
+    console.log("\n8. Etiqueta vieja de la IA en la puerta");
+    {
+      let calls = 0;
+      const verdict = (category: "personal" | "interesada", confidence: number) => async () => {
+        calls++;
+        return { category, confidence, reason: "IA de prueba", review: false, model: "prueba", latencyMs: 1, inputTokens: null, outputTokens: null };
+      };
+      const stale = async (threadId: string) => {
+        const id = await store(threadId, "Hola prima", { sentAt: new Date(Date.now() - 60 * 60_000) });
+        await aiLabel(id, "personal", 0.95, false);
+        await store(threadId, "¿Y entonces el domingo?");
+        return id;
+      };
+
+      const s = await stale(T.gateSilence);
+      check("la etiqueta quedó vieja", (await reclassifyByRulesNow(s))?.stale === true);
+      setGateClassifierForTests(verdict("personal", 0.96));
+      calls = 0;
+      if (hasKey) {
+        const before = await outbound(s);
+        await arrive(T.gateSilence, "¿Me confirmas?");
+        const r = await lastRun(s);
+        check("la IA lo vuelve a mirar en la puerta y calla", r?.status === "SKIPPED" && r.reason === "category_personal", { status: r?.status, reason: r?.reason });
+        check("una sola llamada a la IA en esa vuelta", calls === 1, calls);
+        check("no se envía nada", (await outbound(s)) === before);
+        const row = await prisma.conversation.findUniqueOrThrow({
+          where: { id: s },
+          select: { categorizedThroughAt: true, lastInboundAt: true, categoryConfidence: true },
+        });
+        check(
+          "la etiqueta queda al día",
+          Boolean(row.categorizedThroughAt && row.lastInboundAt && row.categorizedThroughAt >= row.lastInboundAt) && row.categoryConfidence === 0.96,
+          row
+        );
+      } else {
+        check("la puerta calla con lo que diga la IA", (await categoryGate(s)({ allowAi: true })) === "personal");
+      }
+
+      const f = await stale(T.gateFail);
+      setGateClassifierForTests(async () => {
+        calls++;
+        throw Object.assign(new Error("billing"), { statusCode: 403 });
+      });
+      calls = 0;
+      check("si la IA falla, no calla", (await categoryGate(f)({ allowAi: true })) === null && calls === 1, calls);
+      setGateClassifierForTests(verdict("interesada", 0.9));
+      check("si la IA dice otra cosa, no calla", (await categoryGate(f)({ allowAi: true })) === null);
+      await aiLabel(f, "personal", 0.95, false);
+      await store(T.gateFail, "¿Sigues ahí?");
+      setGateClassifierForTests(() => new Promise(() => undefined));
+      const t0 = Date.now();
+      check(
+        "si la IA tarda, no calla (y no espera más de la cuenta)",
+        (await categoryGate(f)({ allowAi: true })) === null && Date.now() - t0 < GATE_AI_TIMEOUT_MS + 4_000,
+        Date.now() - t0
+      );
+
+      // Sin la IA de WhatsApp en el chat (modo Yo) o con la clasificación apagada: nadie llama a la IA.
+      setGateClassifierForTests(verdict("personal", 0.96));
+      const m = await stale(T.gateManual);
+      await prisma.conversation.update({ where: { id: m }, data: { aiMode: "MANUAL" } });
+      calls = 0;
+      await arrive(T.gateManual, "Hola otra vez");
+      check("modo Yo: no se llama a la IA para clasificar", calls === 0, calls);
+      check("sin llamar a la IA, una etiqueta vieja no calla (le toca)", await inAttention(m));
+      await setClassify(false);
+      calls = 0;
+      check("apagada: no se mira nada", (await categoryGate(m)({ allowAi: true })) === null && calls === 0);
+      await setClassify(true);
+      setGateClassifierForTests(null);
+    }
+
+    console.log("\n9. Un chat callado y «Te toca»");
+    {
+      const c = await store(T.quietClinical, "No puedo más", { sentAt: new Date(Date.now() - 20 * 60_000) });
+      await setManualCategory(c, "personal", staff.id);
+      await openAttention(c, "unanswered", new Date(Date.now() - 20 * 60_000));
+      check("«sin responder» en un chat callado: no le toca", !(await inAttention(c)));
+      const row = (await listChats({ queue: "all", take: 600 })).find((i) => i.id === c);
+      check("y en «Todos» no lleva la insignia de «Te toca»", row?.attention === null, row?.attention);
+      await openAttention(c, "clinical");
+      check("una escalada clínica sí le toca aunque esté callado", await inAttention(c));
+      const row2 = (await listChats({ queue: "all", take: 600 })).find((i) => i.id === c);
+      check("con su insignia", row2?.attention?.reason === "clinical", row2?.attention);
+
+      const a = await store(T.quietApproval, "Ya pagué", { sentAt: new Date(Date.now() - 20 * 60_000) });
+      await setManualCategory(a, "negocio", staff.id);
+      check("callado y sin nada: no le toca", !(await inAttention(a)));
+      await prisma.whatsAppAiRun.create({
+        data: { conversationId: a, status: "AWAITING_APPROVAL", proposal: { kind: "reply", message: "Gracias", reason: "Prueba B2" } },
+      });
+      check("algo por aprobar sí le toca aunque esté callado", await inAttention(a));
+      await countersAgree("callados con escaladas");
+    }
   } finally {
+    setGateClassifierForTests(null);
     await cleanup();
     for (const key of keys) {
       const prev = saved.find((s) => s.key === key);

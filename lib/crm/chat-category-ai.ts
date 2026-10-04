@@ -45,7 +45,7 @@ const ATTACHMENT_LABEL: Record<string, string> = {
   sticker: "sticker",
 };
 
-const BULK_SOURCES = ["bulk:", "recordatorio:", "evento:"];
+const BULK_SOURCES = ["bulk:", "recordatorio:", "evento:", "taller:"];
 
 const speaker = (m: CategoryMessage): string => {
   if (m.direction === "INBOUND" && !m.isEcho) return "PERSONA";

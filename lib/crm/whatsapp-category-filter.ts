@@ -1,7 +1,50 @@
 import type { Prisma } from "@prisma/client";
 
 import type { CategoryCounts } from "./chat-category";
-import { CHAT_CATEGORIES, isChatCategory, type ChatCategory } from "./chat-category-rules";
+import { CHAT_CATEGORIES, isChatCategory, isSilencingCategory, type ChatCategory } from "./chat-category-rules";
+
+// ── Silencio por categoría, en el momento ───────────────────────────────────
+
+/** Lo que hace falta de un chat para saber si su categoría lo calla hoy. */
+export type CategoryLabelState = {
+  category: string | null;
+  categorySource: string | null;
+  categoryConfidence?: number | null;
+  categoryReview?: boolean | null;
+  categorizedThroughAt?: Date | null;
+  lastInboundAt?: Date | null;
+};
+
+/**
+ * Etiqueta de la IA que quedó vieja: la persona escribió después de que la IA
+ * la mirara. No calla hasta que se vuelva a mirar (la IA lo hace en el momento,
+ * antes de contestar). El mismo criterio que `notSilencedChatsWhere` en SQL.
+ */
+export const isStaleAiLabel = (c: CategoryLabelState): boolean =>
+  c.categorySource === "ai" &&
+  (!c.categorizedThroughAt ||
+    (c.lastInboundAt != null && c.lastInboundAt.getTime() > c.categorizedThroughAt.getTime()));
+
+/** ¿La categoría calla este chat ahora mismo? (encendida, etiqueta segura y al día). */
+export const silencesNow = (c: CategoryLabelState, enabled: boolean): boolean =>
+  isSilencingCategory(c, { enabled }) && !isStaleAiLabel(c);
+
+/**
+ * El silencio solo esconde «sin responder». Una escalada (pago, clínico,
+ * queja, urgencia…) le toca igual aunque el chat esté callado.
+ */
+export const attentionSurvivesSilence = (reason: string | null | undefined): boolean =>
+  Boolean(reason) && reason !== "unanswered";
+
+/** ¿Sale en «Te toca»? El mismo criterio que `attentionWhere` (para la insignia y la barra). */
+export const showsInTeToca = (
+  c: CategoryLabelState & { attentionAt: Date | null; attentionReason: string | null; awaitingApproval?: boolean },
+  enabled: boolean
+): boolean =>
+  Boolean(c.awaitingApproval) ||
+  (c.attentionAt != null && (attentionSurvivesSilence(c.attentionReason) || !silencesNow(c, enabled)));
+
+// ── Filtros de categoría («Todos», Personas) ─────────────────────────────────
 
 /**
  * El filtro de categoría de «Todos» (y de Personas): una categoría, sin

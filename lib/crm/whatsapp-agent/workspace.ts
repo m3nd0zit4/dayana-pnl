@@ -10,8 +10,14 @@ import { isManualPause, replyStateOf, type ReplyState } from "../whatsapp-attent
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 import { attentionWhere, seguimientoWhere } from "./attention";
 import { isClassifyEnabled } from "../chat-category";
-import { isSilencingCategory } from "../chat-category-rules";
-import { chatCategoryWhere, type ChatCategoryFilter } from "../whatsapp-category-filter";
+import {
+  attentionSurvivesSilence,
+  chatCategoryWhere,
+  isStaleAiLabel,
+  silencesNow,
+  type CategoryLabelState,
+  type ChatCategoryFilter,
+} from "../whatsapp-category-filter";
 
 /**
  * Lo que lee la sección de WhatsApp del CRM: chats con su estado de IA en
@@ -92,14 +98,22 @@ export type AttentionView = {
   detail: string | null;
 };
 
-const attentionView = (c: {
-  attentionAt: Date | null;
-  attentionReason: string | null;
-  aiPausedReason: string | null;
-  escalationSeverity: string | null;
-  escalationReason: string | null;
-}): AttentionView | null =>
-  c.attentionAt
+/**
+ * La insignia y la barra de «Te toca». Un chat que su categoría calla no la
+ * lleva por «sin responder» (no está en la cola ni en los números); una
+ * escalada, sí (`attentionSurvivesSilence`).
+ */
+const attentionView = (
+  c: CategoryLabelState & {
+    attentionAt: Date | null;
+    attentionReason: string | null;
+    aiPausedReason: string | null;
+    escalationSeverity: string | null;
+    escalationReason: string | null;
+  },
+  classifyEnabled: boolean
+): AttentionView | null =>
+  c.attentionAt && (attentionSurvivesSilence(c.attentionReason) || !silencesNow(c, classifyEnabled))
     ? {
         reason: c.attentionReason ?? "other",
         since: c.attentionAt.toISOString(),
@@ -256,9 +270,12 @@ export const listChats = async (input: {
       draftBody: true,
       attentionAt: true,
       attentionReason: true,
+      lastInboundAt: true,
       category: true,
       categorySource: true,
+      categoryConfidence: true,
       categoryReview: true,
+      categorizedThroughAt: true,
       contact: { select: { firstName: true, lastName: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -284,10 +301,13 @@ export const listChats = async (input: {
     },
   });
 
-  const pending = await prisma.whatsAppAiRun.findMany({
-    where: { conversationId: { in: rows.map((r) => r.id) }, status: "AWAITING_APPROVAL" },
-    select: { conversationId: true, proposal: true },
-  });
+  const [pending, classifyEnabled] = await Promise.all([
+    prisma.whatsAppAiRun.findMany({
+      where: { conversationId: { in: rows.map((r) => r.id) }, status: "AWAITING_APPROVAL" },
+      select: { conversationId: true, proposal: true },
+    }),
+    isClassifyEnabled(),
+  ]);
   const pendingBy = new Map(
     pending.map((p) => [p.conversationId, (p.proposal as { kind?: string } | null)?.kind ?? "reply"])
   );
@@ -333,7 +353,7 @@ export const listChats = async (input: {
       draftPreview: c.draftBody?.trim() ? c.draftBody.trim().replace(/\s+/g, " ").slice(0, 120) : null,
       awaitingApproval: pendingBy.get(c.id) ?? null,
       lastRun: c.aiRuns[0] ? { ...runView(c.aiRuns[0]), delivery: deliveryOf(c.aiRuns[0], c.messages) } : null,
-      attention: attentionView(c),
+      attention: attentionView(c, classifyEnabled),
       replyState: replyStateOf(c.messages),
       category: c.category,
       categorySource: c.categorySource,
@@ -525,6 +545,7 @@ export const getChat = async (id: string) => {
       categoryReason: true,
       categoryReview: true,
       categorizedAt: true,
+      categorizedThroughAt: true,
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -598,7 +619,7 @@ export const getChat = async (id: string) => {
         : null,
     priority: Boolean(c.priorityAt),
     /** «Te toca»: sale al contestar (CRM o celular) o con «Listo». */
-    attention: attentionView(c),
+    attention: attentionView(c, classifyEnabled),
     /**
      * Clasificación: categoría, de dónde salió (regla, IA o a mano), por qué y
      * si hoy calla el chat (la IA no contesta y no cuenta en «Te toca»).
@@ -611,7 +632,9 @@ export const getChat = async (id: string) => {
       reason: c.categoryReason,
       review: c.categoryReview && c.categorySource !== "manual",
       at: c.categorizedAt?.toISOString() ?? null,
-      silencing: isSilencingCategory(c, { enabled: classifyEnabled }),
+      /** La persona escribió después de que la IA la mirara: no calla hasta volver a mirarla. */
+      stale: isStaleAiLabel(c),
+      silencing: silencesNow(c, classifyEnabled),
     },
     /** Último mensaje de la persona: «Listo» solo cubre hasta aquí. */
     lastInboundAt: c.lastInboundAt?.toISOString() ?? null,

@@ -189,8 +189,8 @@ const ClassifySection = () => {
       <ToggleRow
         id="wa-classify"
         label="Clasificar los chats"
-        help="Con la clasificación apagada no sale nada a Google y nada se silencia."
-        info="Encendida, la IA deja de contestar —y no te aparecen en «Te toca»— los chats que son claramente personales, de negocios o apps (códigos, notificaciones) o del equipo. Solo cuando está segura; lo dudoso queda «por revisar» y se atiende como siempre."
+        help="Encendida, los chats dudosos se mandan a Google para clasificarlos, también en el momento en que vuelve a escribir alguien que la IA había callado. Apagada, no sale nada a Google y nada se silencia."
+        info="Encendida, la IA deja de contestar —y no te aparecen en «Te toca» como «sin responder»— los chats que son claramente personales, de negocios o apps (códigos, notificaciones) o del equipo. Solo cuando está segura; lo dudoso queda «por revisar» y se atiende como siempre. Si alguien que la IA calló vuelve a escribir, la IA lo vuelve a mirar antes de contestar; si no puede (tarda, falla), contesta como siempre. Un pago, una urgencia o algo por aprobar te aparecen siempre."
         checked={enabled}
         disabled={!counts || busy !== null || preview}
         onChange={(v) => void enable(v)}

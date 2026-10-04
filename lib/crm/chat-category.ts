@@ -450,11 +450,12 @@ const loadConversation = (id: string) =>
  * Clasifica un chat. `force` lo vuelve a mirar aunque no tenga mensajes
  * nuevos (y vuelve a preguntar a la IA), pero nunca pisa lo manual.
  * `useAi: false`: solo reglas. La IA además exige la clasificación encendida
- * y que el chat no esté en modo Manual.
+ * y que el chat no esté en modo Manual. `deadline` (epoch ms): la hora a la
+ * que la IA tiene que haber terminado aunque falle (la llamada se corta).
  */
 export const classifyConversation = async (
   id: string,
-  opts: { force?: boolean; useAi?: boolean; classifier?: AiClassifier } = {}
+  opts: { force?: boolean; useAi?: boolean; classifier?: AiClassifier; deadline?: number } = {}
 ): Promise<ClassifyOutcome> => {
   const c = await loadConversation(id);
   if (!c) return { id, status: "skipped", reason: "not_found" };
@@ -465,7 +466,7 @@ export const classifyConversation = async (
   if (ruled) return ruled;
   if (opts.useAi === false || !aiAllowedFor(c, ctx)) return { id, status: "skipped", reason: "needs_ai" };
   try {
-    return await aiStep(c, facts, opts.classifier ?? classifyWithAi);
+    return await aiStep(c, facts, opts.classifier ?? classifyWithAi, opts.deadline);
   } catch (e) {
     return errorOutcome(id, e);
   }

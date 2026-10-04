@@ -53,10 +53,10 @@ export type ReplyMessage = {
   clientKey?: string | null;
 };
 
-/** `source` de los envíos que no son una respuesta a la persona. */
-const AUTO_SOURCES = ["bulk:", "recordatorio:", "evento:"];
+/** `source` de los envíos que no son una respuesta a la persona (`taller:<edición>:<pase>`: recordatorios del taller). */
+const AUTO_SOURCES = ["bulk:", "recordatorio:", "evento:", "taller:"];
 /** Por la clave del envío: el saludo no lleva `source` (`welcome:<chat>`). */
-const AUTO_CLIENT_KEYS = ["welcome:", "reminder:", "bulk:"];
+const AUTO_CLIENT_KEYS = ["welcome:", "reminder:", "bulk:", "taller:"];
 
 const startsWithAny = (v: string | null | undefined, prefixes: string[]) =>
   Boolean(v) && prefixes.some((p) => v!.startsWith(p));
