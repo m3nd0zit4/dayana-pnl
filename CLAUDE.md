@@ -230,7 +230,8 @@ Two surfaces, one shared account store.
 **Inbox** (`/admin/inbox`) — WhatsApp, Instagram DMs and Facebook Messenger in one thread list. All three arrive at **one webhook**, `app/api/webhooks/meta/route.ts`, discriminated by the payload's top-level `object` field. Signature verification runs over the **raw body** (`verifyMetaWebhook`), so the route reads `req.text()` once and parses from that string — re-serializing the JSON changes the bytes the HMAC covers.
 
 - `lib/meta/inbound.ts` normalizes all three shapes into `NormalizedEvent`; nothing downstream knows the differences. It never throws — an unrecognized payload yields `[]`, because a 500 just makes Meta retry the same broken thing.
-- Work is queued on Inngest with `concurrency: { key: threadKey, limit: 1 }`. That serialization is the point: without it three fast messages from one person are processed in parallel and the thread reads out of order. If Inngest is unconfigured the route falls back to inline processing via `after()` — a customer message must not vanish because an env var is unset.
+- Events go to a durable inbox (`meta_inbox_events`, `lib/meta/inbox.ts`) and are drained inline with `after()` (`lib/meta/dispatch.ts`); Inngest is no longer in that path. A sweep (`kickSweep`, also called by the cron) retries what failed.
+- **One person, one chat** (`lib/meta/whatsapp-thread.ts`): before storing, a WhatsApp message reuses the chat that already exists under another form of the same number (MX 52/521, AR 54/549, BR with/without the 9) or under the sender's username id (BSUID, carried as `altThreadIds`). `scripts/whatsapp-merge-threads.ts` joins old duplicates (dry run by default).
 - Idempotency is `MetaWebhookEvent.eventId`, keyed on the **message** id (`wamid…`/`mid…`), not the delivery — Meta re-sends the same message inside different envelopes.
 - Echoes (`is_echo`) are stored as OUTBOUND, not dropped: when Dayana replies from her phone the CRM thread stays correct.
 - Meta closes the reply window 24 h after the customer's last message. `lib/meta/window.ts` resolves `free | template | human_agent | closed`; out-of-window WhatsApp requires an **approved template** (`MessageTemplate.metaTemplateName` + `metaApprovalStatus`), and Messenger/Instagram get the `HUMAN_AGENT` tag up to 7 days. The composer reflects this rather than letting Meta reject the send.
@@ -245,6 +246,20 @@ Two surfaces, one shared account store.
 - There is **no auto-refresh**: Meta long-lived tokens cannot be extended without a human, so the screen shows a countdown and a Reconnect button. A code-190 failure marks the connection down and rewrites the thread error to say who can fix it, since an OPERATOR cannot open that screen.
 - **Disconnect deactivates, never deletes** — `SocialPost.account` cascades, so deleting an account would take its publishing history with it.
 - `getSocialConnections()` (`lib/crm/social-accounts.ts`) is the DB-backed twin of `getIntegrationHealth()`. It lives separately because the latter is deliberately pure-env and zero-I/O so `ajustes/integraciones` can call it synchronously — don't put DB reads in it.
+
+### WhatsApp assistant (`lib/crm/whatsapp-agent/`)
+
+The AI answers Dayana's WhatsApp (360dialog coexistence) as her **personal assistant**. Entry point `run.ts` (`runWhatsAppAi`), prompt and tools in `brain.ts`, all settings in the `whatsapp.ai` SiteSetting (`lib/crm/whatsapp-ai-config.ts`, every key top-level with full defaults: a bad nested field would reset its whole block). Every new behaviour ships behind a switch that defaults off:
+
+- `context.v2` — reads the last N messages whatever their age, decides "new person" over the whole chat (`situation.ts`), adds older matching messages of the same chat (`context.ts`). Each run stores what it read in `whatsapp_ai_runs.context`.
+- `dossier.enabled` — a file per chat (`whatsapp_dossiers`, `dossier.ts`) built from the WHOLE chat in resumable ~150-message steps; reset when older history is imported or chats are merged; the cron refreshes stale ones.
+- **Segments** (`segment.ts` pure, `segment-store.ts`): new_lead / returning_lead / free_call_booked / client / ignored. Client = paid in CRM, package session, Dayana's manual mark (manual category `cliente`), or payment evidence in the chat (`client-evidence.ts` + the file). **When unsure, treat as client** (AI silent, `segmentReview` for Dayana) — pitching the free call to a paying client is the worse error.
+- `router.enabled` (`route.ts`) — the mode comes from the segment (`router.modes`) or Dayana's per-chat choice (`conversations.ai_mode_override`); the general mode is only a cap. Nothing is persisted back into `aiMode` any more (it used to stick).
+- `salesFlow.enabled` (`sales-flow.ts`) — first-contact flow: greet as assistant, how they feel, where they write from (`save_country`, stored on the file too), listen, the key question for their "buy button" (internal, editable list), invite to the free 15-min call, offer real slots (`offer_free_call_slots`), book (`book_free_call`). `freeCall.autoBook` books without approval only for leads in AUTO; otherwise a `booking` proposal (no Meet link: Dayana calls by WhatsApp).
+- `waitingRoom.enabled` (`waiting-room.ts`, rules in `waiting-room-rules.ts`) — at the time of a FREE call, if the calendar shows Dayana in another meeting: "Dayana está terminando una reunión, espérala unos 5 minutos" (max 2 per appointment), push to Dayana, and the AI doesn't chat during that window.
+- Personal numbers (`whatsapp_ignored_numbers`) store only an HMAC of the number; those chats are never imported and the AI never answers them.
+- Phone-export import (`whatsapp-export-*.ts`, `PhoneExportImportCard.tsx`) classifies every chat before saving: work → import, personal/group/team → never stored, unclear → Dayana decides.
+- Tests never touch Dayana's real calendar: `setFreeCallCalendarForTests` / `setWaitingCalendarForTests`. E2E scripts run against `neondb_dev` only (`bun run e2e:whatsapp`, `GEMINI_MODEL=gemini-3.5-flash` for the ones that call the model).
 
 ### Free events funnel (`/eventos-gratuitos` + `/admin/eventos`)
 

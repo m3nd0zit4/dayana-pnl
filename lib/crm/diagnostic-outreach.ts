@@ -307,11 +307,9 @@ export const runDiagnosticOutreach = async (
       where: { id: conversation.id },
       select: { aiMode: true, priorityAt: true, _count: { select: { messages: true } } },
     });
-    // El modo general manda: ningún chat es más suelto que él.
+    // El modo general manda: ningún chat es más suelto que él. Se calcula,
+    // no se guarda en el chat (guardarlo lo dejaba pegado).
     const aiMode = effectiveAiMode(conv.aiMode, config.defaultMode);
-    if (aiMode !== conv.aiMode) {
-      await prisma.conversation.update({ where: { id: conversation.id }, data: { aiMode } });
-    }
     await prisma.diagnostic.update({
       where: { id: diagnosticId },
       data: { outreachConversationId: conversation.id },

@@ -160,7 +160,8 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
       // El modo general manda: un chat no puede ser más suelto que él.
       const { defaultMode } = await getWhatsAppAiConfig();
       if (effectiveAiMode(input.mode, defaultMode) !== input.mode) return apiError("general_mode", 409);
-      await prisma.conversation.update({ where: { id }, data: { aiMode: input.mode } });
+      // `aiModeOverride`: lo eligió Dayana para este chat (gana al segmento).
+      await prisma.conversation.update({ where: { id }, data: { aiMode: input.mode, aiModeOverride: input.mode } });
       // Una escalada delicada sigue en pausa hasta «Listo» (`stillPaused`).
       const resumed = input.mode !== "MANUAL" ? await resumeAutoReply(id) : true;
       audit({ aiMode: input.mode });
@@ -169,7 +170,7 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "take": {
       await prisma.conversation.update({
         where: { id },
-        data: { aiMode: "MANUAL", priorityAt: new Date() },
+        data: { aiMode: "MANUAL", aiModeOverride: "MANUAL", priorityAt: new Date() },
       });
       audit({ taken: true });
       return NextResponse.json({ ok: true });
@@ -178,7 +179,8 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
       const config = await getWhatsAppAiConfig();
       await prisma.conversation.update({
         where: { id },
-        data: { aiMode: config.defaultMode, priorityAt: null },
+        // Suelta el chat: vuelve a decidirlo el segmento (o el modo general).
+        data: { aiMode: config.defaultMode, aiModeOverride: null, priorityAt: null },
       });
       const resumed = await resumeAutoReply(id);
       audit({ released: true });

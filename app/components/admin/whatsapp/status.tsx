@@ -47,6 +47,8 @@ export const SKIP_LABEL: Record<string, string> = {
   trivial: "No hacía falta responder",
   known_contact: "Está en tu libreta (familia o amigos)",
   personal_number: "Número personal: la IA no responde",
+  ignored_segment: "Personal, equipo o empresa: la IA no responde",
+  free_call_now: "Es la hora de su llamada gratis: la IA no conversa",
   customer: "Es clienta: la atiendes tú",
   no_model_key: "Falta la clave del modelo",
   not_found: "Chat no encontrado",

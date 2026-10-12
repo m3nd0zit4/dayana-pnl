@@ -22,6 +22,16 @@ import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
+import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
+import {
+  afterFreeCallBooked,
+  bookFreeCall,
+  dualZoneLabel,
+  FreeCallError,
+  freeCallService,
+  offeredFreeCallSlots,
+  offerFreeCallSlots,
+} from "./free-call";
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -72,6 +82,8 @@ export type BrainResult = {
     durationMin: number;
     name: string | null;
     label: string;
+    /** La llamada gratis: Dayana llama por WhatsApp (sin enlace de Meet). */
+    whatsappCall?: boolean;
   } | null;
   /** Enlace de pago que la IA quiere mandar: espera la autorización de Dayana. */
   pendingPayment: { productId: string; product: string } | null;
@@ -239,7 +251,13 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
     `Cuestionario gratis (3 min, dice qué proceso le sirve): ${site}/terapias/empezar`,
   ];
 
-  if (!config.booking.aiSchedules) {
+  if (config.salesFlow.enabled && config.booking.enabled) {
+    lines.push(
+      "",
+      "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia) y, cuando elija, book_free_call. Nunca envíes enlaces de agenda.",
+      "La llamada gratis dura 15 minutos, no tiene costo ni compromiso, y Dayana llama por WhatsApp a este número."
+    );
+  } else if (!config.booking.aiSchedules) {
     lines.push(
       "",
       "AGENDAR: tú no buscas horas ni agendas. Pregúntale a la persona qué día y hora le quedan bien y usa request_booking: Dayana recibe el aviso, agenda y le confirma. Nunca envíes enlaces de agenda.",
@@ -400,7 +418,24 @@ const aiBookingRule = (config: WhatsAppAiConfig): string =>
   } CONFIRMA repitiendo servicio, día y hora («¿Te agendo la consulta el jueves 25 a las 3:00 p. m.?»). Solo con su «sí», usa book_appointment y comparte día, hora y el enlace de Meet. Si no sabes su nombre, pídeselo antes de agendar. Las horas son de Colombia; si el número no es de Colombia (+57), aclara «hora de Colombia».
 `;
 
-const systemPrompt = (config: WhatsAppAiConfig, now: string): string => {
+/** Persona nueva y con conversación previa, antes del flujo de venta (`salesFlow` apagado). */
+const LEGACY_LEAD_RULES = `- PERSONA NUEVA (mira SITUACIÓN DEL CHAT, más abajo):
+  · Primer mensaje: «Hola [nombre], te bendigo. Cuéntame, ¿cómo estás?».
+  · Al inicio (en el primer o el segundo mensaje, una sola vez) pregúntale desde qué país escribe: «¿Desde qué país me escribes?». En México, Estados Unidos, Brasil, Canadá, España, Argentina o Chile pregunta también la ciudad (tienen varias horas). Cuando lo diga, usa save_country. Si ya lo dijo en la conversación, no lo vuelvas a preguntar.
+  · Si cuenta lo que le pasa o lo que quiere («tengo ansiedad», «quiero encontrar pareja», «necesito ayuda emocional», «me siento estancada, bloqueada»…), no la interrogues: refleja en una frase lo que siente y pregúntale «¿Cuánto tiempo más quieres seguir así?», o invítala directo: «Si quieres soltarlo, podemos agendar una llamada gratuita de 15 minutos con Dayana. Dime qué día y hora te quedan bien.»
+  · Si quiere agendar o ya dijo un día u hora: usa request_booking (Dayana recibe el aviso y le confirma la hora).
+  · Si dice que no puede, que no quiere, o habla de otra cosa: no insistas. Algo como: «Listo, perfecto. Entonces quedamos en contacto; si necesitas información o algo de mí, me escribes por aquí.»
+- PERSONA CON CONVERSACIÓN PREVIA: lee el hilo y entiende qué pide ahora. Si quiere agendar (una llamada o una sesión), usa request_booking. Si quiere cambiar o cancelar una cita que ya tiene, escala con category=reschedule. Si puedes responder con los DATOS y lo que ya se habló, responde corto. Si no sabes qué decir, escala con category=unknown.
+`;
+
+const CLINICAL_LEGACY =
+  "- category=clinical: cuenta una crisis o un dolor emocional fuerte, o pide ayuda psicológica. Si menciona hacerse daño, severity=urgent.";
+const CLINICAL_SALES =
+  "- category=clinical: SOLO una crisis o un riesgo (habla de hacerse daño, de no querer vivir, de violencia): severity=urgent. Lo que siente (tristeza, ansiedad, duelo…) no se escala: es lo que Dayana trabaja.";
+
+const systemPrompt = (config: WhatsAppAiConfig, now: string, opts: { salesFlow: boolean; autoBook: boolean } = { salesFlow: false, autoBook: false }): string => {
+  const leadRules = opts.salesFlow ? salesFlowRules(config, { autoBook: opts.autoBook }) : LEGACY_LEAD_RULES;
+  const clinicalRule = opts.salesFlow ? CLINICAL_SALES : CLINICAL_LEGACY;
   const parts = [
     `Contestas el WhatsApp de ${BRAND.name}.
 
@@ -415,14 +450,7 @@ Ahora es ${now}.
 Cómo conversas (así trabaja Dayana):
 - Género: antes de usar cualquier palabra con género o apodo cariñoso, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa siempre masculino («querido», «bienvenido», «te bendigo»); JAMÁS «mi bella», «mi hermosa», «querida» ni adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
-- PERSONA NUEVA (mira SITUACIÓN DEL CHAT, más abajo):
-  · Primer mensaje: «Hola [nombre], te bendigo. Cuéntame, ¿cómo estás?».
-  · Al inicio (en el primer o el segundo mensaje, una sola vez) pregúntale desde qué país escribe: «¿Desde qué país me escribes?». En México, Estados Unidos, Brasil, Canadá, España, Argentina o Chile pregunta también la ciudad (tienen varias horas). Cuando lo diga, usa save_country. Si ya lo dijo en la conversación, no lo vuelvas a preguntar.
-  · Si cuenta lo que le pasa o lo que quiere («tengo ansiedad», «quiero encontrar pareja», «necesito ayuda emocional», «me siento estancada, bloqueada»…), no la interrogues: refleja en una frase lo que siente y pregúntale «¿Cuánto tiempo más quieres seguir así?», o invítala directo: «Si quieres soltarlo, podemos agendar una llamada gratuita de 15 minutos con Dayana. Dime qué día y hora te quedan bien.»
-  · Si quiere agendar o ya dijo un día u hora: usa request_booking (Dayana recibe el aviso y le confirma la hora).
-  · Si dice que no puede, que no quiere, o habla de otra cosa: no insistas. Algo como: «Listo, perfecto. Entonces quedamos en contacto; si necesitas información o algo de mí, me escribes por aquí.»
-- PERSONA CON CONVERSACIÓN PREVIA: lee el hilo y entiende qué pide ahora. Si quiere agendar (una llamada o una sesión), usa request_booking. Si quiere cambiar o cancelar una cita que ya tiene, escala con category=reschedule. Si puedes responder con los DATOS y lo que ya se habló, responde corto. Si no sabes qué decir, escala con category=unknown.
-- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
+${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
 - Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
@@ -434,7 +462,7 @@ Llama a escalate (y NO escribas ningún mensaje) cuando:
 - Las fotos y stickers que mandó la persona van adjuntos como imágenes: míralos y responde a lo que muestran (una captura de un horario, una foto de algo que le pasa, un sticker de cariño…). Nunca digas que no puedes ver imágenes. Las notas de voz llegan transcritas con 🎤 delante: léelas como si te las hubiera escrito.
 - category=reschedule: quiere cambiar o cancelar una cita ya agendada.
 - category=complaint: se queja o está molesta.
-- category=clinical: cuenta una crisis o un dolor emocional fuerte, o pide ayuda psicológica. Si menciona hacerse daño, severity=urgent.
+${clinicalRule}
 - category=other: Dayana prometió algo en la conversación que tú no puedes cumplir con los DATOS.
 
 ${IDENTITY[config.identity]}
@@ -516,6 +544,11 @@ export type BrainInput = {
   dossier?: string | null;
   /** Mensajes viejos del mismo chat que tocan lo que acaba de escribir (`context.ts`). */
   olderSnippets?: TranscriptLine[];
+  /**
+   * La llamada gratis (`salesFlow`): si la asistente puede agendar sola y la
+   * zona horaria de la persona, si ya se sabe.
+   */
+  freeCall?: { autoBook: boolean; personTimezone: string | null };
 };
 
 /** Horas que Dayana ya aprobó para ofrecer en este chat (últimos 14 días). */
@@ -564,6 +597,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
   const seenOptions = new Map<string, string>();
+  // El flujo de venta (persona nueva → llamada gratis) y las horas de la llamada ofrecidas en esta vuelta.
+  const salesOn = config.salesFlow.enabled && config.booking.enabled;
+  const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
+  const offeredNow = new Set<string>();
+  const offeredBefore =
+    salesOn && input.conversationId ? await offeredFreeCallSlots(input.conversationId, now).catch(() => [] as string[]) : [];
+  const personTz = () => state.country?.timezone ?? input.freeCall?.personTimezone ?? null;
 
   // Los stickers que Dayana usa de verdad (al menos dos veces), con lo que
   // suele escribir antes de mandarlos.
@@ -631,7 +671,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       },
     }),
     // Lo normal: la IA no busca horas; pregunta cuándo le sirve y le avisa a Dayana.
-    ...(!config.booking.aiSchedules
+    // Con el flujo de venta, siempre sabe de dónde escribe (para ofrecer horas en su hora).
+    ...(!config.booking.aiSchedules || salesOn
       ? {
           save_country: tool({
             description:
@@ -654,6 +695,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   .update({ where: { id: input.contactId }, data: { countryIso: iso, timezone: tz } })
                   .catch(() => undefined);
               }
+              // También sin contacto en el CRM: en la ficha, para la próxima vuelta.
+              if (input.mode === "live" && input.conversationId) {
+                await prisma.whatsAppDossier
+                  .upsert({
+                    where: { conversationId: input.conversationId },
+                    create: { conversationId: input.conversationId, countryIso: iso, timezone: tz },
+                    update: { countryIso: iso, timezone: tz },
+                  })
+                  .catch(() => undefined);
+              }
               return log("save_country", args, {
                 ok: true,
                 country: countryName(iso),
@@ -665,6 +716,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               });
             },
           }),
+          ...(salesOn ? {} : {
           request_booking: tool({
             description:
               "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella agende y confirme. Antes tienes que saber desde qué país escribe. Úsalo UNA vez; tu respuesta dice que Dayana le confirma la hora.",
@@ -703,6 +755,118 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 note: time || args.when
                   ? "Dayana recibe el aviso. Responde corto y cálido: que ya le pasas su horario (en su hora) a Dayana y ella le confirma por aquí."
                   : "Dayana recibe el aviso. Pregúntale qué día y hora le quedan bien (en su hora), y dile que Dayana le confirma por aquí.",
+              });
+            },
+          }),
+          }),
+        }
+      : {}),
+    // La llamada gratis con horas reales del calendario (flujo de venta).
+    ...(salesOn
+      ? {
+          offer_free_call_slots: tool({
+            description:
+              "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia. Úsalo cuando acepte la llamada o pida otras horas. Escribe en tu mensaje las horas tal cual (label).",
+            inputSchema: z.object({}),
+            execute: async () => {
+              const tz = personTz();
+              if (!tz) {
+                return log("offer_free_call_slots", {}, {
+                  error: "Aún no sabes desde dónde escribe. Pregúntaselo primero («¿Desde qué país me escribes?») y usa save_country.",
+                });
+              }
+              try {
+                const options = await offerFreeCallSlots({ config, personTz: tz, dayanaTz: timezone, now });
+                if (options.length === 0) {
+                  return log("offer_free_call_slots", {}, {
+                    error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
+                  });
+                }
+                options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
+                return log("offer_free_call_slots", {}, {
+                  ok: true,
+                  options,
+                  note: "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
+                });
+              } catch (e) {
+                return log("offer_free_call_slots", {}, {
+                  error: "No pude leer la agenda de Dayana. Escala con category=unknown.",
+                  detail: e instanceof Error ? e.message : String(e),
+                });
+              }
+            },
+          }),
+          book_free_call: tool({
+            description:
+              "Agenda la llamada gratis en una de las horas que ya le ofreciste con offer_free_call_slots y que la persona eligió. Usa el startIso exacto de esa hora.",
+            inputSchema: z.object({
+              startIso: z.string().describe("El startIso exacto de offer_free_call_slots."),
+              name: z.string().optional().describe("Nombre de la persona si lo dijo."),
+            }),
+            execute: async (args) => {
+              const start = new Date(args.startIso);
+              if (Number.isNaN(start.getTime())) return log("book_free_call", args, { error: "Hora inválida." });
+              const iso = start.toISOString();
+              if (!offeredNow.has(iso) && !offeredBefore.includes(iso)) {
+                return log("book_free_call", args, { error: "Esa hora no se la ofreciste. Usa offer_free_call_slots primero." });
+              }
+              const tz = personTz() ?? timezone;
+              const service = freeCallService(config);
+              const name = args.name?.trim() || input.name;
+              const label = dualZoneLabel(iso, tz, timezone);
+              if (input.mode === "preview" || !input.conversationId) {
+                return log("book_free_call", args, { ok: true, simulated: true, label });
+              }
+              if (autoBook) {
+                try {
+                  const booking = await bookFreeCall({
+                    config,
+                    dayanaTz: timezone,
+                    personTz: tz,
+                    start,
+                    conversationId: input.conversationId,
+                    contactId: input.contactId,
+                    phone: input.phone,
+                    name: name ?? null,
+                  });
+                  await afterFreeCallBooked({ conversationId: input.conversationId, contactId: input.contactId, phone: input.phone, booking });
+                  state.booking = { id: booking.bookingId, startsAt: booking.startsAt, service: service.name, meetUrl: null };
+                  return log("book_free_call", args, {
+                    ok: true,
+                    booked: true,
+                    label: booking.label,
+                    note: "Agendada. Confírmale el día y la hora (en su hora) y que Dayana la llama por WhatsApp a este número. No escribas enlaces.",
+                  });
+                } catch (e) {
+                  if (e instanceof FreeCallError) {
+                    return log("book_free_call", args, {
+                      error: e.message,
+                      note:
+                        e.code === "already_booked"
+                          ? "Recuérdale con calidez la llamada que ya tiene."
+                          : "Ofrécele otras horas con offer_free_call_slots.",
+                    });
+                  }
+                  return log("book_free_call", args, {
+                    error: "No se pudo agendar. Escala con category=unknown.",
+                    detail: e instanceof Error ? e.message : String(e),
+                  });
+                }
+              }
+              // Sin agendar sola: queda para que Dayana la autorice (como cualquier cita).
+              state.pendingBooking = {
+                service: service.name,
+                startIso: iso,
+                durationMin: service.minutes,
+                name: name ?? null,
+                label,
+                whatsappCall: true,
+              };
+              return log("book_free_call", args, {
+                ok: true,
+                pendingApproval: true,
+                label,
+                note: "Queda para que Dayana la confirme. Dile que en un momento le confirmamos la hora por aquí. No escribas enlaces.",
               });
             },
           }),
@@ -912,6 +1076,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .join("\n")}`
         : null,
       `SITUACIÓN DEL CHAT: ${input.situation ?? chatSituation(input.transcript, Boolean(input.client))}`,
+      salesOn
+        ? flowStateText(
+            flowState(input.transcript, {
+              keyQuestions: config.salesFlow.buyButtons.map((b) => b.keyQuestion),
+              offeredSlots: offeredBefore.length > 0,
+            })
+          )
+        : null,
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
       `Su número: +${input.phone}.`,
       countryHint(input.phone),
@@ -925,7 +1097,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
 
   const result = await generateText({
     model: google(modelId()),
-    system: systemPrompt(config, nowLabel),
+    system: systemPrompt(config, nowLabel, { salesFlow: salesOn, autoBook }),
     ...(input.images?.length
       ? {
           messages: [

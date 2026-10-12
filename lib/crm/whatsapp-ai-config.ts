@@ -17,6 +17,29 @@ import { getSiteSetting, setSiteSetting } from "./site-settings";
 
 const CONFIG_KEY = "whatsapp.ai";
 
+/** Lo que mueve a buscar ayuda y la pregunta clave para cada cosa (las de Dayana). */
+export const DEFAULT_BUY_BUTTONS = [
+  { key: "tristeza", label: "Tristeza", keyQuestion: "¿Cuánto tiempo más quieres seguir con esa tristeza?", enabled: true },
+  {
+    key: "ansiedad",
+    label: "Ansiedad",
+    keyQuestion: "Si quieres recuperar tu esencia y liberar esa ansiedad, puedes agendar una llamada gratis con Dayana y te ayudamos.",
+    enabled: true,
+  },
+  { key: "autoestima", label: "Autoestima", keyQuestion: "¿Cuánto tiempo más quieres seguir sintiendo que no vales lo suficiente?", enabled: true },
+  { key: "pareja", label: "Pareja / relaciones", keyQuestion: "¿Cuánto tiempo más quieres seguir viviendo tu relación así?", enabled: true },
+  { key: "dinero", label: "Dinero / bloqueos", keyQuestion: "¿Cuánto tiempo más quieres seguir con esos bloqueos con el dinero?", enabled: true },
+  {
+    key: "duelo",
+    label: "Duelo / pérdida",
+    keyQuestion: "Ese dolor se puede sanar. ¿Te gustaría hablarlo con Dayana en una llamada gratis de 15 minutos?",
+    enabled: true,
+  },
+  { key: "miedo", label: "Miedos", keyQuestion: "¿Cuánto tiempo más quieres que ese miedo decida por ti?", enabled: true },
+  { key: "soledad", label: "Soledad", keyQuestion: "¿Cuánto tiempo más quieres seguir sintiéndote sola?", enabled: true },
+  { key: "estancamiento", label: "Estancamiento", keyQuestion: "¿Cuánto tiempo más quieres seguir sintiéndote estancada?", enabled: true },
+];
+
 const hm = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Hora en formato HH:MM");
@@ -160,6 +183,68 @@ export const whatsAppAiConfigSchema = z.object({
   dossier: z.object({
     enabled: z.boolean().default(false),
   }),
+  /**
+   * Quién atiende a quién (`route.ts`): el modo de cada chat sale del
+   * segmento de la persona; el modo general sigue siendo el tope.
+   */
+  router: z.object({
+    enabled: z.boolean().default(false),
+    modes: z.object({
+      new_lead: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("COPILOT"),
+      returning_lead: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("COPILOT"),
+      free_call_booked: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("COPILOT"),
+      client: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("MANUAL"),
+      ignored: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("MANUAL"),
+    }),
+    /** Respuestas automáticas en 24 h para una persona nueva (necesita más vueltas hasta agendar). */
+    maxPerDayNewLead: z.number().int().min(1).max(30).default(12),
+  }),
+  /**
+   * El flujo de primera vez (`sales-flow.ts`): saludo como asistente, cómo
+   * está, de dónde escribe, lo que la mueve, la pregunta clave y la
+   * invitación a la llamada gratis, con horas reales del calendario.
+   */
+  salesFlow: z.object({
+    enabled: z.boolean().default(false),
+    /**
+     * Lo que mueve a una persona a buscar ayuda (interno: nunca se le nombra
+     * así) y la pregunta clave para cada cosa. Lo edita Dayana.
+     */
+    buyButtons: z
+      .array(
+        z.object({
+          key: z.string().trim().min(2).max(30),
+          label: z.string().trim().min(2).max(60),
+          keyQuestion: z.string().trim().min(5).max(300),
+          enabled: z.boolean().default(true),
+        })
+      )
+      .max(20)
+      .default(DEFAULT_BUY_BUTTONS),
+  }),
+  /** La llamada gratis de 15 minutos (Dayana llama por WhatsApp). */
+  freeCall: z.object({
+    /**
+     * La asistente agenda sola, sin esperar la aprobación de Dayana (solo a
+     * personas nuevas o que ya conversaron, con el enrutador y en modo IA).
+     */
+    autoBook: z.boolean().default(false),
+    serviceName: z.string().trim().min(2).max(80).default("Consulta gratis 15 min"),
+    /** Llamadas gratis por día como mucho. */
+    maxPerDay: z.number().int().min(1).max(20).default(6),
+    /** Cuántas horas se ofrecen a la vez. */
+    offer: z.number().int().min(2).max(4).default(3),
+  }),
+  /**
+   * Sala de espera de la llamada gratis (`waiting-room.ts`): si la persona
+   * escribe a su hora y Dayana sigue en otra reunión, «espérala unos 5
+   * minutos». `proactive`: el reloj se lo dice aunque no escriba (solo con la
+   * ventana de 24 h abierta).
+   */
+  waitingRoom: z.object({
+    enabled: z.boolean().default(false),
+    proactive: z.boolean().default(false),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -206,6 +291,14 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   escalation: { holdingMessage: "" },
   context: { v2: false, recentMessages: 60, snippets: 5 },
   dossier: { enabled: false },
+  router: {
+    enabled: false,
+    modes: { new_lead: "COPILOT", returning_lead: "COPILOT", free_call_booked: "COPILOT", client: "MANUAL", ignored: "MANUAL" },
+    maxPerDayNewLead: 12,
+  },
+  salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },
+  freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3 },
+  waitingRoom: { enabled: false, proactive: false },
 });
 
 /**

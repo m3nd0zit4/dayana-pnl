@@ -6,6 +6,7 @@ import { classifyFromCron } from "@/lib/crm/chat-category";
 import { areRemindersEnabled, sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
 import { refreshStaleDossiers } from "@/lib/crm/whatsapp-agent/dossier";
+import { sweepWaitingRoom } from "@/lib/crm/whatsapp-agent/waiting-room";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 
 export const runtime = "nodejs";
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
     await step("citas", () => syncAppointments()),
     await step("recordatorios", async () => ((await areRemindersEnabled()) ? sendDueReminders() : { off: true })),
     await step("cola", () => kickSweep()),
+    await step("sala de espera", async () => sweepWaitingRoom(await getWhatsAppAiConfig())),
     await step("plantillas", () => refreshTemplatesIfPending()),
     await step("fichas", async () =>
       (await getWhatsAppAiConfig()).dossier.enabled ? refreshStaleDossiers(DOSSIER_MAX_MS, { limit: 15 }) : { off: true }

@@ -21,6 +21,15 @@ type Overview = {
     bookings: number;
     avgLatencyMs: number | null;
   };
+  week: {
+    days: number;
+    newLeads: number;
+    freeCallsBooked: number;
+    approvedAsIs: number;
+    approvedEdited: number;
+    waitingNotices: number;
+    medianReplyMs: number | null;
+  } | null;
   health: {
     provider: string;
     providerConnected: boolean;
@@ -105,6 +114,22 @@ const WhatsAppStatusClient = () => {
           value={kpis.avgLatencyMs ? `${Math.round(kpis.avgLatencyMs / 1000)} s` : "—"}
         />
       </div>
+
+      {data.week && (
+        <section className="rounded-xl border border-border bg-card p-3">
+          <h2 className="text-sm font-semibold">Primera vez · últimos {data.week.days} días</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {data.week.newLeads} personas nuevas · {data.week.freeCallsBooked} llamadas gratis agendadas
+            {data.week.newLeads > 0 && ` (${Math.round((data.week.freeCallsBooked / data.week.newLeads) * 100)} %)`}
+            {" · "}
+            {data.week.approvedAsIs + data.week.approvedEdited > 0
+              ? `aprobaste tal cual ${data.week.approvedAsIs} de ${data.week.approvedAsIs + data.week.approvedEdited} propuestas`
+              : "sin propuestas aprobadas"}
+            {data.week.waitingNotices > 0 && ` · ${data.week.waitingNotices} avisos de sala de espera`}
+            {data.week.medianReplyMs && ` · responde en ${Math.round(data.week.medianReplyMs / 1000)} s (mediana)`}
+          </p>
+        </section>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <section className="rounded-xl border border-border bg-card">

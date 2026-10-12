@@ -52,6 +52,8 @@ export type Proposal = {
     durationMin: number;
     name: string | null;
     label: string;
+    /** La llamada gratis: Dayana llama por WhatsApp (sin enlace de Meet). */
+    whatsappCall?: boolean;
   };
   payment?: { productId: string; product: string };
   stickerUrl?: string | null;
@@ -320,7 +322,8 @@ export const approveProposal = async (input: {
     const timezone = await getOperationalTimezone();
     const start = new Date(p.booking.startIso);
     const created = await bookOnCalendar({
-      config: config.booking,
+      // La llamada gratis va por WhatsApp: sin enlace de Meet.
+      config: p.booking.whatsappCall ? { ...config.booking, addMeet: false } : config.booking,
       timezone,
       start,
       durationMin: p.booking.durationMin,

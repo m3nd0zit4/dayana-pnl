@@ -13,6 +13,8 @@ import ChoiceCards from "./ChoiceCards";
 import ClassifySection from "./ClassifySection";
 import ReadingSection from "./ReadingSection";
 import ClientReviewSection from "./ClientReviewSection";
+import RouterSection from "./RouterSection";
+import SalesFlowSection from "./SalesFlowSection";
 import { TYPING_DELAY, WHATSAPP_AI_API, useSettings } from "./context";
 import { ExpandableText, NumberField } from "./fields";
 import SettingRow, { SettingAnchor, SettingsGroup } from "./SettingRow";
@@ -213,6 +215,10 @@ const AiTab = () => {
       <ReadingSection />
 
       <ClientReviewSection />
+
+      <RouterSection />
+
+      <SalesFlowSection />
 
       <ClassifySection />
 

@@ -46,10 +46,14 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   const result = await applyConfigPatch({ defaultMode: mode });
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
 
-  const updated = await prisma.conversation.updateMany({
-    where: { channel: "WHATSAPP", priorityAt: null },
-    data: { aiMode: mode },
-  });
+  // Con el enrutador, el modo general es solo el tope: cada chat sigue en el
+  // modo de su segmento (o el que eligió Dayana) sin reescribirlos todos.
+  const updated = result.config.router.enabled
+    ? { count: 0 }
+    : await prisma.conversation.updateMany({
+        where: { channel: "WHATSAPP", priorityAt: null },
+        data: { aiMode: mode },
+      });
   // Al volver a IA o copiloto, las pausas por «contestó una persona» se
   // levantan; las escaladas no.
   if (mode !== "MANUAL") {

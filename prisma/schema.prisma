@@ -1223,6 +1223,8 @@ model Conversation {
   /// Quién lleva el hilo: la IA sola (`AUTO`), la IA deja borradores y Dayana
   /// los envía (`COPILOT`), o solo Dayana (`MANUAL`).
   aiMode             WhatsAppAiMode @default(AUTO) @map("ai_mode")
+  /// Lo que Dayana eligió para ESTE chat. null = lo decide el segmento (`route.ts`).
+  aiModeOverride   WhatsAppAiMode?     @map("ai_mode_override")
   /// Dayana marcó este chat como suyo y prioritario: sube a «Tú atiendes».
   priorityAt         DateTime?      @map("priority_at")
   /// Última escalada de la IA: por qué y cuán urgente. Se borra al reanudar.
@@ -2312,6 +2314,9 @@ model WhatsAppDossier {
   segmentAt         DateTime? @map("segment_at")
   /// Citas del chat que muestran que ya pagó por fuera del CRM.
   clientEvidence    Json?     @map("client_evidence")
+  /// De dónde escribe (lo dijo en el chat; `save_country`), para ofrecerle horas en su hora.
+  countryIso        String?   @map("country_iso")
+  timezone          String?
   /// Hasta qué mensaje está leída la ficha.
   coveredThroughAt  DateTime? @map("covered_through_at")
   coveredCount      Int       @default(0) @map("covered_count")
@@ -2409,6 +2414,10 @@ model CalendarAppointment {
   confirmedAt     DateTime? @map("confirmed_at")
   reminderSentAt  DateTime? @map("reminder_sent_at")
   reminderError   String?   @map("reminder_error")
+  /// Sala de espera de la llamada gratis: cuántas veces se le dijo «Dayana
+  /// está terminando una reunión» / «ya le aviso» y cuándo (máx. 2 por cita).
+  waitNoticeCount Int       @default(0) @map("wait_notice_count")
+  waitNoticeAt    DateTime? @map("wait_notice_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

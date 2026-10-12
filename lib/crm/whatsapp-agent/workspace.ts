@@ -10,6 +10,10 @@ import { isManualPause, replyStateOf, type ReplyState } from "../whatsapp-attent
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 import { attentionWhere, seguimientoWhere } from "./attention";
 import { isClassifyEnabled } from "../chat-category";
+import { decideRoute } from "./route";
+import { salesMetrics } from "./metrics";
+import { freeCallService } from "./free-call";
+import { SEGMENTS, type Segment } from "./segment";
 import {
   attentionSurvivesSilence,
   chatCategoryWhere,
@@ -526,6 +530,7 @@ export const getChat = async (id: string) => {
       contactId: true,
       lastInboundAt: true,
       aiMode: true,
+      aiModeOverride: true,
       aiPausedAt: true,
       aiPausedReason: true,
       escalationCategory: true,
@@ -584,13 +589,28 @@ export const getChat = async (id: string) => {
     })
   );
 
-  const [memory, classifyEnabled] = await Promise.all([
+  const [memory, classifyEnabled, config] = await Promise.all([
     prisma.whatsAppMemory.findUnique({
       where: { phone: c.externalThreadId },
       select: { notes: true, updatedAt: true },
     }),
     isClassifyEnabled(),
+    getWhatsAppAiConfig(),
   ]);
+  // El modo con el que de verdad trabaja (con el enrutador sale del segmento
+  // y del tope general; ya no se guarda en el chat).
+  const savedSegment = c.dossier?.segment;
+  const route = decideRoute({
+    routerEnabled: config.router.enabled,
+    generalMode: config.defaultMode,
+    chatMode: c.aiMode,
+    override: c.aiModeOverride,
+    segment:
+      savedSegment && (SEGMENTS as readonly string[]).includes(savedSegment)
+        ? { segment: savedSegment as Segment, confidence: 1, reason: "", review: false, source: "rules" }
+        : null,
+    modes: config.router.modes,
+  });
 
   const name =
     [c.contact?.firstName, c.contact?.lastName].filter(Boolean).join(" ") ||
@@ -607,7 +627,9 @@ export const getChat = async (id: string) => {
       ? Date.now() - c.lastInboundAt.getTime() < 24 * 3600_000
       : false,
     windowState: windowStateOf(c.lastInboundAt),
-    aiMode: c.aiMode,
+    aiMode: route.mode,
+    /** Lo eligió Dayana para este chat (si no, lo decide el segmento). */
+    aiModeOverride: c.aiModeOverride,
     paused: Boolean(c.aiPausedAt),
     pausedReason: c.aiPausedReason,
     escalation:
@@ -728,9 +750,10 @@ export const getOverview = async () => {
     ]);
 
   const count = (s: string) => byStatus.find((b) => b.status === s)?._count._all ?? 0;
-  const bookingsToday = await prisma.whatsAppBooking.count({
-    where: { createdAt: { gte: startOfDay } },
-  });
+  const [bookingsToday, week] = await Promise.all([
+    prisma.whatsAppBooking.count({ where: { createdAt: { gte: startOfDay } } }),
+    salesMetrics(7, freeCallService(config).name).catch(() => null),
+  ]);
 
   return {
     enabled,
@@ -743,6 +766,8 @@ export const getOverview = async () => {
       bookings: bookingsToday,
       avgLatencyMs: avg._avg.latencyMs ? Math.round(avg._avg.latencyMs) : null,
     },
+    /** Últimos 7 días del flujo de primera vez. */
+    week,
     health: {
       provider: provider.provider,
       providerConnected:

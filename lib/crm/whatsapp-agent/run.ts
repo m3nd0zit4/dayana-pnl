@@ -34,6 +34,9 @@ import { conversationSituation, situationText } from "./situation";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier";
 import { olderSnippets } from "./context";
+import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
+import { segmentOrSafe } from "./segment-store";
+import { handleWaitingRoom } from "./waiting-room";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -222,21 +225,48 @@ export const runWhatsAppAi = async (input: {
       select: {
         channel: true,
         aiMode: true,
+        aiModeOverride: true,
         priorityAt: true,
         _count: { select: { messages: true } },
       },
     });
     if (!head || head.channel !== "WHATSAPP") return;
 
-    // El modo general (Ajustes) manda: ningún chat es más suelto que él, sea
-    // nuevo, creado por un envío masivo o viejo. Se deja guardado para que el
-    // chat muestre el modo con el que de verdad trabaja.
-    {
-      const { defaultMode } = await getWhatsAppAiConfig();
-      const mode = effectiveAiMode(head.aiMode, defaultMode);
-      if (mode !== head.aiMode) {
-        await prisma.conversation.update({ where: { id: conversationId }, data: { aiMode: mode } });
-        head.aiMode = mode;
+    // Quién atiende este chat. El modo general (Ajustes) es el tope: ningún
+    // chat es más suelto que él. Ya no se guarda el modo más estricto en el
+    // chat (se quedaba pegado): se calcula en cada vuelta. Con el enrutador,
+    // el modo sale del segmento de la persona (nueva, clienta…) o de lo que
+    // Dayana eligió para este chat.
+    const routeConfig = await getWhatsAppAiConfig();
+    const route: RouteDecision = decideRoute({
+      routerEnabled: routeConfig.router.enabled,
+      generalMode: routeConfig.defaultMode,
+      chatMode: head.aiMode,
+      override: head.aiModeOverride,
+      segment: routeConfig.router.enabled && !head.priorityAt ? await segmentOrSafe(conversationId) : null,
+      modes: routeConfig.router.modes,
+    });
+
+    // Sala de espera de la llamada gratis: un aviso corto y a tiempo («Dayana
+    // está terminando una reunión»), aunque el chat esté en copiloto o en
+    // pausa. A la hora de su llamada, la IA no se pone a conversar.
+    // Si Dayana tomó el chat, lo atiende ella.
+    if (enabled && head.aiModeOverride !== "MANUAL") {
+      const waiting = await handleWaitingRoom({ config: routeConfig, conversationId, triggerMessageId: input.triggerMessageId });
+      if (waiting.quiet) {
+        if (!waiting.sent) {
+          await prisma.whatsAppAiRun.create({
+            data: {
+              conversationId,
+              status: "SKIPPED",
+              reason: "free_call_now",
+              triggerMessageId: input.triggerMessageId,
+              finishedAt: new Date(),
+              latencyMs: 0,
+            },
+          });
+        }
+        return;
       }
     }
 
@@ -257,10 +287,11 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
-    if (!enabled || head.aiMode === "MANUAL") {
+    if (!enabled || route.mode === "MANUAL") {
       // Sin IA, el saludo de bienvenida (si está encendido) sigue funcionando.
-      await greetIfNeeded(conversationId, silenced);
-      const reason = enabled ? "manual" : "disabled";
+      // A una clienta o a un número personal no se le saluda como nueva.
+      if (route.skip !== "customer" && route.skip !== "ignored_segment") await greetIfNeeded(conversationId, silenced);
+      const reason = enabled ? (route.skip ?? "manual") : "disabled";
       await prisma.whatsAppAiRun.create({
         data: {
           conversationId,
@@ -322,7 +353,7 @@ export const runWhatsAppAi = async (input: {
     }
 
     const config = await getWhatsAppAiConfig();
-    const verdict = await gate(conversationId, config, silenced);
+    const verdict = await gate(conversationId, config, silenced, route);
     if (verdict.skip) {
       if (verdict.escalate) {
         await escalate(
@@ -354,7 +385,7 @@ export const runWhatsAppAi = async (input: {
     });
     // En copiloto, a lo que no pide respuesta no se le propone nada: ni se
     // llama al modelo. (En modo IA sí puede salir un «Con gusto».)
-    if (effectiveAiMode(conversation.aiMode, config.defaultMode) === "COPILOT" && !burst.needsReply) {
+    if (route.mode === "COPILOT" && !burst.needsReply) {
       await finish(run.id, "SKIPPED", { reason: "trivial" });
       return;
     }
@@ -435,6 +466,23 @@ export const runWhatsAppAi = async (input: {
       situation,
       dossier: dossierText(dossier),
       olderSnippets: older,
+      // La llamada gratis: agenda sola solo con el enrutador, a una persona que
+      // aún no es clienta, en modo IA. La zona horaria: la que dijo en el chat.
+      freeCall: {
+        autoBook:
+          config.freeCall.autoBook &&
+          route.routerEnabled &&
+          route.mode === "AUTO" &&
+          (route.segment === "new_lead" || route.segment === "returning_lead"),
+        personTimezone:
+          dossier?.timezone ??
+          (config.salesFlow.enabled
+            ? (await prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { timezone: true } }).catch(() => null))
+                ?.timezone
+            : null) ??
+          conversation.contact?.timezone ??
+          null,
+      },
     });
 
     const meta = {
@@ -490,7 +538,7 @@ export const runWhatsAppAi = async (input: {
     // queda como borrador para ella, no como propuesta.
     const now = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: { aiMode: true, aiPausedAt: true, priorityAt: true },
+      select: { aiMode: true, aiModeOverride: true, aiPausedAt: true, priorityAt: true },
     });
     const recentSince = new Date(Date.now() - DEBOUNCE_MS - 5 * 60_000);
     const [recentHuman, recentApproved] = await Promise.all([
@@ -513,7 +561,11 @@ export const runWhatsAppAi = async (input: {
     ).length;
     // Se vuelve a leer el modo general: pudo cambiar mientras la IA pensaba.
     const generalMode = (await getWhatsAppAiConfig()).defaultMode;
-    const modeNow = effectiveAiMode(now?.aiMode ?? conversation.aiMode, generalMode);
+    // Con el enrutador, lo que Dayana eligió AHORA para el chat (p. ej. lo tomó)
+    // pesa sobre el modo de la vuelta; sin él, como siempre.
+    const modeNow = route.routerEnabled
+      ? strictest(generalMode, route.mode, now?.aiModeOverride ?? "AUTO")
+      : effectiveAiMode(now?.aiMode ?? conversation.aiMode, generalMode);
     const tookOver =
       !now ||
       modeNow === "MANUAL" ||
@@ -542,8 +594,7 @@ export const runWhatsAppAi = async (input: {
     // respuesta simple sale sola. Los precios solo los da Dayana: si la
     // respuesta menciona un monto, nunca sale sola, queda como borrador para ella.
     const saysPrice = mentionsPrice(body);
-    const copilot =
-      modeNow === "COPILOT" || effectiveAiMode(conversation.aiMode, generalMode) === "COPILOT";
+    const copilot = modeNow === "COPILOT" || route.mode === "COPILOT";
     const needsApproval =
       saysPrice ||
       Boolean(result.pendingSlots) ||
@@ -681,6 +732,7 @@ const loadConversation = (conversationId: string) =>
       contact: {
         select: {
           firstName: true,
+          timezone: true,
           enrollments: {
             where: { status: { in: ["ACTIVE", "COMPLETED"] } },
             select: { id: true },
@@ -713,7 +765,8 @@ const loadConversation = (conversationId: string) =>
 const gate = async (
   conversationId: string,
   config: WhatsAppAiConfig,
-  silencedBy: CategoryGate
+  silencedBy: CategoryGate,
+  route: RouteDecision
 ): Promise<GateResult> => {
   if (!process.env.GEMINI_API_KEY?.trim()) return { skip: true, reason: "no_model_key" };
 
@@ -726,8 +779,8 @@ const gate = async (
 
   const conversation = await loadConversation(conversationId);
   if (!conversation) return { skip: true, reason: "not_found" };
-  const mode = effectiveAiMode(conversation.aiMode, config.defaultMode);
-  if (mode === "MANUAL") return { skip: true, reason: "manual" };
+  const mode = route.mode;
+  if (mode === "MANUAL") return { skip: true, reason: route.skip ?? "manual" };
   if (conversation.priorityAt) return { skip: true, reason: "favorite" };
 
   if (conversation.aiPausedAt) {
@@ -808,7 +861,9 @@ const gate = async (
   }
   // Dayana marcó el número como personal (familia, amigos): nunca contesta.
   if (await isIgnoredNumber(conversation.externalThreadId)) return { skip: true, reason: "personal_number" };
-  if (config.audience.skipCustomers && (conversation.contact?.enrollments.length ?? 0) > 0) {
+  // Con el enrutador, las clientas (también las que pagaron por fuera) ya se
+  // apartaron arriba por su segmento.
+  if (!route.routerEnabled && config.audience.skipCustomers && (conversation.contact?.enrollments.length ?? 0) > 0) {
     return { skip: true, reason: "customer" };
   }
 
@@ -819,7 +874,7 @@ const gate = async (
       sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
     },
   });
-  if (autoToday >= config.maxPerDay) {
+  if (autoToday >= maxPerDayFor(config, route.segment)) {
     return { skip: true, escalate: true, reason: "Demasiadas respuestas automáticas hoy en este chat." };
   }
 

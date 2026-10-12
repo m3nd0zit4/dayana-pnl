@@ -61,6 +61,7 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
         where: { id: p.conversationId },
         data: {
           aiMode: p.mode,
+          aiModeOverride: p.mode,
           ...(p.priority === undefined ? {} : { priorityAt: p.priority ? new Date() : null }),
         },
       });
