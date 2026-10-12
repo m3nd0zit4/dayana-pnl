@@ -97,6 +97,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-context-v2",
+    label: "Leer el historial completo del chat",
+    keywords: ["historial", "contexto", "memoria", "primera vez", "saluda", "mensajes anteriores", "lee"],
+    tab: "ia",
+  },
+  {
     id: "wa-classify",
     label: "Clasificar los chats",
     keywords: ["clasificar", "categoría", "personal", "negocio", "apps", "silenciar", "callar", "google"],

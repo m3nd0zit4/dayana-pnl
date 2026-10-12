@@ -208,6 +208,18 @@ const AiTab = () => {
         />
       </SettingsGroup>
 
+      <SettingsGroup title="Lo que lee de cada chat">
+        <ToggleRow
+          id="wa-context-v2"
+          label="Leer el historial completo del chat"
+          help={`Lee los últimos ${config.context.recentMessages} mensajes, sean de cuando sean, y no saluda como nueva a quien ya habló contigo.`}
+          info="Apagado, lee solo las últimas 2 semanas (o los últimos 40 mensajes)."
+          state={states["wa-context-v2"]}
+          checked={config.context.v2}
+          onChange={(v) => change("wa-context-v2", "context.v2", v)}
+        />
+      </SettingsGroup>
+
       <ClassifySection />
 
       <SettingsGroup title="Cuándo responde">
