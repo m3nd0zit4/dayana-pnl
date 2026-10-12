@@ -103,6 +103,18 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-dossier",
+    label: "Ficha de cada persona",
+    keywords: ["ficha", "resumen", "memoria", "historial", "persona", "quién es", "contexto"],
+    tab: "ia",
+  },
+  {
+    id: "wa-dossier-build",
+    label: "Construir fichas",
+    keywords: ["fichas", "construir", "armar", "importar", "historial", "resumen"],
+    tab: "ia",
+  },
+  {
     id: "wa-classify",
     label: "Clasificar los chats",
     keywords: ["clasificar", "categoría", "personal", "negocio", "apps", "silenciar", "callar", "google"],

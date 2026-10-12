@@ -5,6 +5,8 @@ import { kickSweep } from "@/lib/meta/inbox";
 import { classifyFromCron } from "@/lib/crm/chat-category";
 import { areRemindersEnabled, sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
+import { refreshStaleDossiers } from "@/lib/crm/whatsapp-agent/dossier";
+import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,6 +37,8 @@ const step = async <T,>(name: string, fn: () => Promise<T>) => {
  */
 const CLASSIFY_MAX_MS = 40_000;
 const CLASSIFY_DEADLINE_MS = 80_000;
+/** Fichas viejas o que faltan: hasta 25 s por vuelta (solo con la ficha encendida). */
+const DOSSIER_MAX_MS = 25_000;
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -44,6 +48,9 @@ export async function POST(req: Request) {
     await step("recordatorios", async () => ((await areRemindersEnabled()) ? sendDueReminders() : { off: true })),
     await step("cola", () => kickSweep()),
     await step("plantillas", () => refreshTemplatesIfPending()),
+    await step("fichas", async () =>
+      (await getWhatsAppAiConfig()).dossier.enabled ? refreshStaleDossiers(DOSSIER_MAX_MS, { limit: 15 }) : { off: true }
+    ),
     await step("clasificar", () =>
       classifyFromCron(Math.min(CLASSIFY_MAX_MS, CLASSIFY_DEADLINE_MS - (Date.now() - started)))
     ),

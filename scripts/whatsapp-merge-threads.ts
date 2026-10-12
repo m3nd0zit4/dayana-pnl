@@ -74,6 +74,11 @@ const mergeOne = async (plan: MergePlan) => {
       }
 
       await tx.conversation.delete({ where: { id: gone.id } });
+      // La ficha del que queda se vuelve a leer con todos los mensajes.
+      await tx.whatsAppDossier.updateMany({
+        where: { conversationId: keep.id },
+        data: { coveredThroughAt: null, coveredCount: 0, summary: "", facts: {} },
+      });
       await tx.conversation.update({
         where: { id: keep.id },
         data: {

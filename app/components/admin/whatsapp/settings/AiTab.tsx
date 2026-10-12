@@ -11,6 +11,7 @@ import { useCrm } from "../../crm/CrmProvider";
 import WhatsAppPlaybooksCard from "../WhatsAppPlaybooksCard";
 import ChoiceCards from "./ChoiceCards";
 import ClassifySection from "./ClassifySection";
+import ReadingSection from "./ReadingSection";
 import { TYPING_DELAY, WHATSAPP_AI_API, useSettings } from "./context";
 import { ExpandableText, NumberField } from "./fields";
 import SettingRow, { SettingAnchor, SettingsGroup } from "./SettingRow";
@@ -208,17 +209,7 @@ const AiTab = () => {
         />
       </SettingsGroup>
 
-      <SettingsGroup title="Lo que lee de cada chat">
-        <ToggleRow
-          id="wa-context-v2"
-          label="Leer el historial completo del chat"
-          help={`Lee los últimos ${config.context.recentMessages} mensajes, sean de cuando sean, y no saluda como nueva a quien ya habló contigo.`}
-          info="Apagado, lee solo las últimas 2 semanas (o los últimos 40 mensajes)."
-          state={states["wa-context-v2"]}
-          checked={config.context.v2}
-          onChange={(v) => change("wa-context-v2", "context.v2", v)}
-        />
-      </SettingsGroup>
+      <ReadingSection />
 
       <ClassifySection />
 

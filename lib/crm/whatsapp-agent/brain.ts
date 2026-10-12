@@ -512,6 +512,10 @@ export type BrainInput = {
    * ella se deduce de lo que la IA lee (puede quedarse corto).
    */
   situation?: string | null;
+  /** La ficha de la persona, armada con todo su chat (`dossier.ts`). */
+  dossier?: string | null;
+  /** Mensajes viejos del mismo chat que tocan lo que acaba de escribir (`context.ts`). */
+  olderSnippets?: TranscriptLine[];
 };
 
 /** Horas que Dayana ya aprobó para ofrecer en este chat (últimos 14 días). */
@@ -894,7 +898,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config)}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
+      input.dossier
+        ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona):\n${input.dossier}`
+        : null,
       input.memory ? `MEMORIA (lo que sabemos de esta persona):\n${input.memory}` : null,
+      input.olderSnippets?.length
+        ? `LO QUE SE HABLÓ ANTES SOBRE ESTO (mensajes viejos de este mismo chat que coinciden con lo que acaba de escribir):\n${transcriptText(input.olderSnippets, timezone)}`
+        : null,
       examplesBlock(examples),
       stickers.length > 0
         ? `STICKERS DE DAYANA (usa send_sticker con el número; cuándo los manda ella):\n${stickers

@@ -150,6 +150,15 @@ export const whatsAppAiConfigSchema = z.object({
   context: z.object({
     v2: z.boolean().default(false),
     recentMessages: z.number().int().min(20).max(200).default(60),
+    /** Mensajes viejos (fuera de lo que lee) que tocan el mismo tema. */
+    snippets: z.number().int().min(0).max(10).default(5),
+  }),
+  /**
+   * Ficha por persona armada con todo su chat (`dossier.ts`): la IA la lee
+   * antes de contestar y el reloj la mantiene al día.
+   */
+  dossier: z.object({
+    enabled: z.boolean().default(false),
   }),
 });
 
@@ -195,7 +204,8 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   },
   diagnosticOutreach: { enabled: true, requireApproval: false },
   escalation: { holdingMessage: "" },
-  context: { v2: false, recentMessages: 60 },
+  context: { v2: false, recentMessages: 60, snippets: 5 },
+  dossier: { enabled: false },
 });
 
 /**

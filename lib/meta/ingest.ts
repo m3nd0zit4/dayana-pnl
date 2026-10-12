@@ -572,6 +572,16 @@ export const processHistoryEvents = async (
  * no hay guía de estilo, la escribe. Lo usan la importación y la cola de entrada.
  */
 export const finishHistorySync = async (touched: Set<string>): Promise<void> => {
+  // Llegaron mensajes más viejos que lo que leyó la ficha: se vuelve a leer
+  // el chat entero (se conserva el segmento y lo que marcó Dayana).
+  if (touched.size > 0) {
+    await prisma.whatsAppDossier
+      .updateMany({
+        where: { conversationId: { in: [...touched] } },
+        data: { coveredThroughAt: null, coveredCount: 0, summary: "", facts: {} },
+      })
+      .catch((e: unknown) => console.warn("[historial WhatsApp] no se pudo reiniciar la ficha", e));
+  }
   const { learnFromConversation } = await import("@/lib/crm/whatsapp-learning");
   for (const conversationId of touched) {
     await learnFromConversation(conversationId).catch((e: unknown) =>

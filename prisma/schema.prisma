@@ -1248,6 +1248,7 @@ model Conversation {
   replyExamples WhatsAppReplyExample[]
   aiRuns        WhatsAppAiRun[]
   aiBookings    WhatsAppBooking[]
+  dossier       WhatsAppDossier?
 
   @@unique([channel, externalThreadId])
   @@index([channel, lastMessageAt(sort: Desc)])
@@ -2290,6 +2291,41 @@ model WhatsAppKnownContact {
 /// Números personales de Dayana (familia, amigos) que la IA nunca atiende y
 /// que no se importan. Solo se guarda una huella (HMAC) del número, nunca el
 /// número ni el nombre: el CRM no guarda nada de su vida personal.
+/// Ficha de una persona de WhatsApp, armada con TODO su chat (también el
+/// historial importado del celular): quién es, de dónde escribe, qué la trae
+/// (los «botones» que la mueven, interno), qué se le ofreció, qué se le
+/// prometió, y en qué segmento está (nueva, clienta, ya agendó…). La IA la lee
+/// antes de contestar, así nunca trata como nueva a alguien que ya habló con
+/// Dayana aunque esa conversación fuera hace meses.
+model WhatsAppDossier {
+  conversationId    String    @id @map("conversation_id")
+  summary           String    @default("") @db.Text
+  facts             Json      @default("{}")
+  /// new_lead | returning_lead | free_call_booked | client | ignored
+  segment           String?
+  /// rules | ai | manual
+  segmentSource     String?   @map("segment_source")
+  segmentConfidence Float?    @map("segment_confidence")
+  segmentReason     String?   @map("segment_reason")
+  /// Dudoso: Dayana lo revisa (mientras tanto se trata como clienta).
+  segmentReview     Boolean   @default(false) @map("segment_review")
+  segmentAt         DateTime? @map("segment_at")
+  /// Citas del chat que muestran que ya pagó por fuera del CRM.
+  clientEvidence    Json?     @map("client_evidence")
+  /// Hasta qué mensaje está leída la ficha.
+  coveredThroughAt  DateTime? @map("covered_through_at")
+  coveredCount      Int       @default(0) @map("covered_count")
+  version           Int       @default(0)
+  model             String?
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([segment])
+  @@map("whatsapp_dossiers")
+}
+
 model WhatsAppIgnoredNumber {
   phoneHash String   @id @map("phone_hash")
   /// De dónde salió: `phone_export` (importación) o `manual`.
@@ -2323,6 +2359,10 @@ model WhatsAppAiRun {
   /// cita, un enlace de pago o la respuesta a un pago recibido (ver
   /// lib/crm/whatsapp-agent/approvals.ts).
   proposal         Json?
+  /// Qué leyó la IA: segmento, si la persona era nueva, cuántos mensajes,
+  /// desde cuándo, cuántos importados, si había ficha. Para comprobar que
+  /// de verdad leyó el historial.
+  context          Json?
   decidedAt        DateTime? @map("decided_at")
   decidedById      String?   @map("decided_by_id")
   model            String?

@@ -32,6 +32,8 @@ import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer }
 import { categoryGate, type CategoryGate } from "./category-gate";
 import { conversationSituation, situationText } from "./situation";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
+import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier";
+import { olderSnippets } from "./context";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -377,6 +379,47 @@ export const runWhatsAppAi = async (input: {
     // Lo que la persona mandó en fotos o stickers, para que la IA lo vea.
     const images = await loadImages(pickImages([...conversation.messages].reverse())).catch(() => []);
 
+    // La ficha (armada con todo el chat). Un chat con más historia de la que
+    // la IA lee y sin ficha todavía (p. ej. recién importado) la arma ahora,
+    // con tope de tiempo; lo demás lo pone al día el reloj.
+    let dossier: Dossier = null;
+    if (config.dossier.enabled) {
+      dossier = await getDossier(conversationId).catch(() => null);
+      if (!dossier && messageCount > history.length) {
+        await updateDossier(conversationId, { deadline: Date.now() + 25_000 }).catch((e: unknown) =>
+          console.warn("[whatsapp-agent] no se pudo armar la ficha", e)
+        );
+        dossier = await getDossier(conversationId).catch(() => null);
+      }
+    }
+    // Lo viejo del mismo chat que toca lo que acaba de escribir.
+    let tail = history.length;
+    while (tail > 0 && history[tail - 1].direction === "INBOUND") tail--;
+    const lastBurst = history
+      .slice(tail)
+      .map((m) => m.body ?? "")
+      .join(" ");
+    const older =
+      config.context.v2 && config.context.snippets > 0 && history[0]?.sentAt
+        ? await olderSnippets({
+            conversationId,
+            before: history[0].sentAt,
+            query: lastBurst,
+            limit: config.context.snippets,
+          }).catch(() => [])
+        : [];
+    // Lo que leyó la IA, para poder comprobarlo después en el rastro.
+    const context = {
+      v2: config.context.v2,
+      situation: situation ? (situation.startsWith("PERSONA NUEVA") ? "new" : "returning") : null,
+      messages: messageCount,
+      transcript: history.length,
+      oldestAt: history[0]?.sentAt?.toISOString() ?? null,
+      imported: history.filter((h) => h.imported).length,
+      snippets: older.length,
+      dossier: dossier ? { version: dossier.version, covered: dossier.coveredCount } : null,
+    };
+
     const result = await think({
       config,
       transcript: history,
@@ -390,6 +433,8 @@ export const runWhatsAppAi = async (input: {
       mode: "live",
       images,
       situation,
+      dossier: dossierText(dossier),
+      olderSnippets: older,
     });
 
     const meta = {
@@ -397,6 +442,7 @@ export const runWhatsAppAi = async (input: {
       inputTokens: result.usage.inputTokens ?? null,
       outputTokens: result.usage.outputTokens ?? null,
       toolCalls: result.toolCalls as unknown as Prisma.InputJsonValue,
+      context: context as unknown as Prisma.InputJsonValue,
     };
 
     // El último mensaje de la persona que la IA leyó. Si Dayana contestó
@@ -579,6 +625,11 @@ export const runWhatsAppAi = async (input: {
       contactId: conversation.contactId,
       transcript: [...history, { direction: "OUTBOUND", body }],
     }).catch((e) => console.error("[whatsapp-agent] memoria", e));
+    if (config.dossier.enabled) {
+      await updateDossier(conversationId, { deadline: Date.now() + 30_000 }).catch((e: unknown) =>
+        console.warn("[whatsapp-agent] no se pudo poner al día la ficha", e)
+      );
+    }
   } catch (e) {
     console.error("[whatsapp-agent] no se pudo responder", e);
     if (runId) {
