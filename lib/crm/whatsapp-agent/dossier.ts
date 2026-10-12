@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { sanitizeForAi } from "../chat-category-ai";
 import { isAutoSend } from "../whatsapp-attention-rules";
+import { computeSegment } from "./segment-store";
 
 /**
  * La ficha de cada persona, armada con TODO su chat (también el historial
@@ -246,7 +247,11 @@ export const refreshStaleDossiers = async (budgetMs: number, opts: { limit?: num
       console.warn("[fichas] no se pudo armar", id, e instanceof Error ? e.message : e);
       return null;
     });
-    if (r?.built) built++;
+    if (r?.built) {
+      built++;
+      // La ficha nueva puede cambiar el segmento (p. ej. «ya pagó por transferencia»).
+      await computeSegment(id).catch((e: unknown) => console.warn("[fichas] no se pudo calcular el segmento", id, e));
+    }
     if (r?.done) pending--;
   }
   return { checked: rows.length, built, pending, ms: Date.now() - started };

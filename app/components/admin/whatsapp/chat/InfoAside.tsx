@@ -5,6 +5,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { CHAT_CATEGORY_LABEL, isChatCategory, isSilencingCategory } from "@/lib/crm/chat-category-rules";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
+import { SEGMENT_LABEL, SEGMENTS, type Segment } from "@/lib/crm/whatsapp-agent/segment";
 import { CATEGORY_SOURCE_LABEL, RunStatus, agoLabel } from "../status";
 import { wa } from "./chatTheme";
 import { ActionButton } from "./ui";
@@ -51,6 +52,73 @@ const ClassificationInfo = ({ classification: c }: { classification: ChatDetail[
       ) : (
         <p className="text-xs text-(--wa-meta)">Sin clasificar todavía. Cámbiala desde «⋯» si hace falta.</p>
       )}
+    </section>
+  );
+};
+
+const isSegment = (v: string): v is Segment => (SEGMENTS as readonly string[]).includes(v);
+
+/**
+ * Quién es para la IA (nueva, ya conversó, clienta…). Si la trata como clienta
+ * por duda (el chat dice que pagó), Dayana confirma o descarta aquí; la marca
+ * es la misma categoría manual que en «⋯».
+ */
+const SegmentInfo = ({
+  conversationId,
+  segment: s,
+  canWrite,
+}: {
+  conversationId: string;
+  segment: ChatDetail["segment"];
+  canWrite: boolean;
+}) => {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!s) return null;
+  const mark = async (isClient: boolean) => {
+    setBusy(true);
+    setError(null);
+    const res = await fetch("/api/admin/whatsapp/segments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "mark", conversationId, isClient }),
+    }).catch(() => null);
+    if (!res?.ok) setError("No se pudo guardar. Intenta de nuevo.");
+    setBusy(false);
+  };
+  return (
+    <section className="space-y-1.5">
+      <h3 className="text-sm font-semibold text-(--wa-accent)">Quién es</h3>
+      <p>
+        <span className="font-medium">{isSegment(s.segment) ? SEGMENT_LABEL[s.segment] : s.segment}</span>
+        {s.review && <span className="text-(--wa-attention)"> · por revisar</span>}
+      </p>
+      {s.reason && <p className="text-xs text-(--wa-icon)">{s.reason}</p>}
+      {s.review && (
+        <p className="text-xs text-(--wa-meta)">
+          Mientras no lo confirmes, la IA la trata como clienta: no le contesta y te la pasa a ti.
+        </p>
+      )}
+      {s.evidence.length > 0 && (
+        <ul className="space-y-1 text-xs text-(--wa-icon)">
+          {s.evidence.map((e) => (
+            <li key={`${e.at}-${e.quote}`}>
+              «{e.quote}» <span className="text-(--wa-meta)">({e.who === "dayana" ? "tú" : "ella"})</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {canWrite && (
+        <div className="flex flex-wrap gap-2 pt-1">
+          <ActionButton disabled={busy || (s.segment === "client" && !s.review)} onClick={() => void mark(true)}>
+            Es clienta
+          </ActionButton>
+          <ActionButton disabled={busy || (s.segment !== "client" && s.source === "manual")} onClick={() => void mark(false)}>
+            No es clienta
+          </ActionButton>
+        </div>
+      )}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </section>
   );
 };
@@ -135,6 +203,8 @@ const InfoAside = ({
           Guardar
         </ActionButton>
       </section>
+
+      <SegmentInfo conversationId={chat.id} segment={chat.segment} canWrite={canWrite} />
 
       <ClassificationInfo classification={chat.classification} />
 

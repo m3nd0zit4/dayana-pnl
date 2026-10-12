@@ -546,6 +546,9 @@ export const getChat = async (id: string) => {
       categoryReview: true,
       categorizedAt: true,
       categorizedThroughAt: true,
+      dossier: {
+        select: { segment: true, segmentReason: true, segmentReview: true, segmentSource: true, clientEvidence: true, summary: true },
+      },
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
         orderBy: { sentAt: "desc" },
@@ -636,6 +639,19 @@ export const getChat = async (id: string) => {
       stale: isStaleAiLabel(c),
       silencing: silencesNow(c, classifyEnabled),
     },
+    /**
+     * Segmento (nueva, ya conversó, clienta…) y por qué. `review`: la IA la
+     * trata como clienta por duda; Dayana confirma o descarta.
+     */
+    segment: c.dossier?.segment
+      ? {
+          segment: c.dossier.segment,
+          reason: c.dossier.segmentReason,
+          review: c.dossier.segmentReview,
+          source: c.dossier.segmentSource,
+          evidence: ((c.dossier.clientEvidence ?? []) as { who: string; quote: string; at: string }[]).slice(-3),
+        }
+      : null,
     /** Último mensaje de la persona: «Listo» solo cubre hasta aquí. */
     lastInboundAt: c.lastInboundAt?.toISOString() ?? null,
     draft: c.draftBody ? { body: c.draftBody, source: c.draftSource } : null,

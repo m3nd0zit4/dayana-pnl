@@ -115,6 +115,18 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-segments",
+    label: "Quién es quién (segmentos)",
+    keywords: ["segmento", "clienta", "nueva", "calcular", "quién es", "clientes"],
+    tab: "ia",
+  },
+  {
+    id: "wa-client-review",
+    label: "Clientas por revisar",
+    keywords: ["revisar", "clienta", "pagó", "transferencia", "comprobante", "no es clienta"],
+    tab: "ia",
+  },
+  {
     id: "wa-classify",
     label: "Clasificar los chats",
     keywords: ["clasificar", "categoría", "personal", "negocio", "apps", "silenciar", "callar", "google"],
