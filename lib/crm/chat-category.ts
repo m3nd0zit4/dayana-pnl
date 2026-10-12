@@ -24,6 +24,7 @@ import {
   type ChatFacts,
 } from "./chat-category-rules";
 import { getSiteSetting, getSiteSettingBoolean, setSiteSetting, setSiteSettingBoolean } from "./site-settings";
+import { isFreeCallAppointment } from "./whatsapp-agent/event-title";
 import { effectiveAiMode, type AiMode } from "./whatsapp-agent/mode";
 import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
 
@@ -246,7 +247,7 @@ export const loadFactsBatch = async (
         where: {
           OR: [{ conversationId: { in: ids } }, { contactId: inContacts }, { phone: { in: phoneForms } }],
         },
-        select: { conversationId: true, contactId: true, phone: true, sessionsLabel: true },
+        select: { conversationId: true, contactId: true, phone: true, sessionsLabel: true, startsAt: true, endsAt: true },
       }),
       allDigits.length
         ? prisma.whatsAppKnownContact.findMany({
@@ -290,12 +291,14 @@ export const loadFactsBatch = async (
       paidKind: paid?.product.kind ?? null,
       hasApprovedPayment: approved,
       hasUnpaidActiveEnrollment: active.length > 0 && !paid && !approved,
-      hasTherapySession: ownAppointments.some((a) => isPackageSession(a.sessionsLabel)),
+      // Una sesión de paquete, o una cita que no es la llamada gratis (una
+      // sesión pagada sin paquete también se escribe 0/0).
+      hasTherapySession: ownAppointments.some((a) => isPackageSession(a.sessionsLabel) || !isFreeCallAppointment(a)),
       hasLeadEnrollment: ownEnrollments.some((e) => e.status === "LEAD"),
       hasPendingPayment: ownEnrollments.some((e) => e.status === "PENDING_PAYMENT"),
       hasDiagnostic: diagnostics.some((d) => d.outreachConversationId === c.id || (d.contactId && cids.has(d.contactId))),
       hasBooking:
-        linked(bookings).length > 0 || ownAppointments.some((a) => !isPackageSession(a.sessionsLabel)),
+        linked(bookings).length > 0 || ownAppointments.some((a) => isFreeCallAppointment(a)),
       hasWebinarRegistration: mine(registrations).length > 0,
       communityMember: mine(communities).length > 0,
       inAddressBook: digits.some((d) => knownPhones.has(d)),

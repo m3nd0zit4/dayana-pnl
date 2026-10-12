@@ -14,3 +14,22 @@ describe("etapa de la persona", () => {
   });
   test("terminó", () => expect(contactStage({ enrollments: [{ status: "COMPLETED", sessionsUsed: 6, sessionsTotal: 6 }] }).key).toBe("termino"));
 });
+
+describe("contactStage: llamada gratis vs sesión, y conversación previa", () => {
+  const start = new Date("2026-10-20T15:00:00Z");
+  const end = (min: number) => new Date(start.getTime() + min * 60_000);
+
+  test("0/0 de 15 min: llamada gratis", () => {
+    expect(contactStage({ enrollments: [], nextAppointment: { startsAt: start, endsAt: end(15), sessionsLabel: "0/0" } }).key).toBe("llamada_gratis");
+  });
+
+  test("0/0 de una hora: sesión pagada sin paquete, no llamada gratis", () => {
+    const stage = contactStage({ enrollments: [], nextAppointment: { startsAt: start, endsAt: end(60), sessionsLabel: "0/0" } });
+    expect(stage.key).toBe("conversando");
+    expect(stage.label).toContain("sesión");
+  });
+
+  test("con mensajes en el chat no es «primera vez que escribe»", () => {
+    expect(contactStage({ enrollments: [], messages: 12 }).key).toBe("conversando");
+  });
+});

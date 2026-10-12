@@ -21,6 +21,7 @@ import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
+import { isFreeCallAppointment } from "./event-title";
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -92,6 +93,8 @@ export type TranscriptLine = {
   isAutoReply?: boolean;
   /** Cuándo se escribió: marca los días en la conversación. */
   sentAt?: Date;
+  /** Viene del historial importado del celular (no llegó en vivo). */
+  imported?: boolean;
 };
 
 /**
@@ -122,7 +125,13 @@ const transcriptText = (lines: TranscriptLine[], timezone: string): string => {
     new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(d);
   const out: string[] = [];
   let lastDay = "";
+  let inImport = false;
   for (const m of lines) {
+    // El historial importado va marcado: es pasado real, pero de antes del CRM.
+    if (Boolean(m.imported) !== inImport) {
+      inImport = Boolean(m.imported);
+      out.push(inImport ? "— (historial importado del celular) —" : "— (desde aquí, mensajes en vivo) —");
+    }
     if (m.sentAt) {
       const d = day(m.sentAt);
       if (d !== lastDay) {
@@ -133,6 +142,15 @@ const transcriptText = (lines: TranscriptLine[], timezone: string): string => {
     out.push(describeLine(m));
   }
   return out.join("\n");
+};
+
+/** «CONVERSACIÓN (últimos N mensajes, desde …)»: lo que de verdad lee la IA. */
+const transcriptHeader = (lines: TranscriptLine[], timezone: string): string => {
+  const first = lines.find((l) => l.sentAt)?.sentAt;
+  const since = first
+    ? `, desde el ${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, day: "numeric", month: "long", year: "numeric" }).format(first)}`
+    : "";
+  return `CONVERSACIÓN (últimos ${lines.length} mensajes${since}; lo último abajo)`;
 };
 
 /**
@@ -296,7 +314,9 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
 export const clientContext = async (
   contactId: string | null,
   /** Número del chat: las citas se encuentran también sin contacto en el CRM. */
-  phone?: string | null
+  phone?: string | null,
+  /** Mensajes en su chat: con conversación no es «primera vez que escribe». */
+  opts: { messages?: number } = {}
 ): Promise<string | null> => {
   const contact = contactId
     ? await prisma.contact.findUnique({
@@ -330,9 +350,10 @@ export const clientContext = async (
   const enrollments = contact?.enrollments ?? [];
   const stage = contactStage({
     enrollments: enrollments.map((e) => ({ status: e.status, sessionsUsed: e.sessionsUsed, sessionsTotal: e.sessionsTotal, product: e.product.title })),
-    nextAppointment: next ? { startsAt: next.startsAt, sessionsLabel: next.sessionsLabel } : null,
+    nextAppointment: next ? { startsAt: next.startsAt, endsAt: next.endsAt, sessionsLabel: next.sessionsLabel } : null,
     lastAppointment: last ? { startsAt: last.startsAt } : null,
     hasDiagnostic: (contact?._count.diagnostics ?? 0) > 0,
+    messages: opts.messages,
   });
 
   const lines: string[] = [];
@@ -340,7 +361,7 @@ export const clientContext = async (
   lines.push(`Etapa: ${stage.label}`);
   if (next) {
     lines.push(
-      `Próxima cita: ${when(next.startsAt)}${next.sessionsLabel && next.sessionsLabel !== "0/0" ? ` (sesión ${next.sessionsLabel})` : " (llamada gratis)"}${next.confirmedAt ? " · ya confirmó" : next.reminderSentAt ? " · se le mandó el recordatorio, aún no confirma" : ""}. Si la persona confirma («sí», «ahí estaré»), usa confirm_appointment.`
+      `Próxima cita: ${when(next.startsAt)}${isFreeCallAppointment(next) ? " (llamada gratis)" : next.sessionsLabel && next.sessionsLabel !== "0/0" ? ` (sesión ${next.sessionsLabel})` : " (sesión)"}${next.confirmedAt ? " · ya confirmó" : next.reminderSentAt ? " · se le mandó el recordatorio, aún no confirma" : ""}. Si la persona confirma («sí», «ahí estaré»), usa confirm_appointment.`
     );
   }
   if (last) lines.push(`Última cita: ${when(last.startsAt)}.`);
@@ -486,6 +507,11 @@ export type BrainInput = {
   now?: Date;
   /** Las últimas fotos o stickers de la persona: la IA las ve (Gemini). */
   images?: { data: Uint8Array; mediaType: string }[];
+  /**
+   * «SITUACIÓN DEL CHAT» calculada sobre todo el chat (`situation.ts`). Sin
+   * ella se deduce de lo que la IA lee (puede quedarse corto).
+   */
+  situation?: string | null;
 };
 
 /** Horas que Dayana ya aprobó para ofrecer en este chat (últimos 14 días). */
@@ -875,11 +901,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .map((st, i) => `${i + 1}. usado ${st.uses} veces; lo manda después de: ${st.contexts.map((c) => `«${c}»`).join(" / ") || "(sin texto antes)"}`)
             .join("\n")}`
         : null,
-      `SITUACIÓN DEL CHAT: ${chatSituation(input.transcript, Boolean(input.client))}`,
+      `SITUACIÓN DEL CHAT: ${input.situation ?? chatSituation(input.transcript, Boolean(input.client))}`,
       input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
       `Su número: +${input.phone}.`,
       countryHint(input.phone),
-      `CONVERSACIÓN de las últimas 2 semanas (lo último abajo). Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
+      `${transcriptHeader(input.transcript, timezone)}. Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
       input.images?.length
         ? `IMÁGENES: van adjuntas las ${input.images.length} últimas fotos o stickers que mandó la persona (la más reciente primero). Míralas.`
         : null,

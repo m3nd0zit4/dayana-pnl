@@ -142,6 +142,15 @@ export const whatsAppAiConfigSchema = z.object({
      */
     holdingMessage: z.string().trim().max(300),
   }),
+  /**
+   * Qué lee la IA de cada chat. `v2`: los últimos `recentMessages` mensajes,
+   * sean de cuando sean (antes: 2 semanas o los últimos 40), y la persona es
+   * «nueva» solo si de verdad nunca conversó (contando todo el chat).
+   */
+  context: z.object({
+    v2: z.boolean().default(false),
+    recentMessages: z.number().int().min(20).max(200).default(60),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -186,6 +195,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   },
   diagnosticOutreach: { enabled: true, requireApproval: false },
   escalation: { holdingMessage: "" },
+  context: { v2: false, recentMessages: 60 },
 });
 
 /**

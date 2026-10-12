@@ -30,6 +30,7 @@ import { getMemory, refreshMemory } from "./memory";
 import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal } from "./approvals";
 import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
 import { categoryGate, type CategoryGate } from "./category-gate";
+import { conversationSituation, situationText } from "./situation";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -338,7 +339,7 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
-    const { conversation, history } = verdict;
+    const { conversation, history, messageCount, situation } = verdict;
 
     // ¿Lo que escribió pide respuesta? Un «gracias» nunca; un «ok», un 👍 o un
     // sticker solo si le habíamos preguntado algo (una pregunta, un enlace, una
@@ -382,11 +383,12 @@ export const runWhatsAppAi = async (input: {
       phone,
       conversationId,
       contactId: conversation.contactId,
-      client: await clientContext(conversation.contactId, conversation.externalThreadId),
+      client: await clientContext(conversation.contactId, conversation.externalThreadId, { messages: messageCount }),
       memory: await getMemory(phone),
       timezone,
       mode: "live",
       images,
+      situation,
     });
 
     const meta = {
@@ -604,6 +606,10 @@ type GateResult =
       skip: false;
       conversation: NonNullable<Awaited<ReturnType<typeof loadConversation>>>;
       history: TranscriptLine[];
+      /** Mensajes del chat que se cargaron (sin avisos grises). */
+      messageCount: number;
+      /** «SITUACIÓN DEL CHAT» sobre todo el chat (solo con `context.v2`). */
+      situation: string | null;
     };
 
 const loadConversation = (conversationId: string) =>
@@ -645,6 +651,7 @@ const loadConversation = (conversationId: string) =>
           source: true,
           clientKey: true,
           kind: true,
+          externalMessageId: true,
         },
       },
     },
@@ -768,9 +775,13 @@ const gate = async (
   const refreshed = await silencedBy({ allowAi: true });
   if (refreshed) return { skip: true, reason: `category_${refreshed}` };
 
+  // v2: los últimos N mensajes, sean de cuando sean. Antes: 2 semanas o los
+  // últimos 40, y quien volvía tras un mes leía un hilo casi vacío.
   const since = Date.now() - HISTORY_DAYS * 24 * 3600_000;
-  const history: TranscriptLine[] = ordered
-    .filter((m, i) => i >= ordered.length - HISTORY_MIN || m.sentAt.getTime() >= since)
+  const recent = config.context.v2
+    ? ordered.slice(-config.context.recentMessages)
+    : ordered.filter((m, i) => i >= ordered.length - HISTORY_MIN || m.sentAt.getTime() >= since);
+  const history: TranscriptLine[] = recent
     .filter((m) => m.status !== "FAILED")
     .map((m) => ({
       sentAt: m.sentAt,
@@ -779,9 +790,27 @@ const gate = async (
       body: m.kind === "system" ? `(aviso de WhatsApp: ${m.body ?? ""})` : m.body,
       attachment: attachmentLabel(m.attachments),
       isAutoReply: m.isAutoReply,
+      // Los chats exportados del celular se guardan con id `export:…`.
+      imported: m.externalMessageId?.startsWith("export:") || undefined,
     }));
 
-  return { skip: false, conversation, history };
+  const situation = config.context.v2
+    ? situationText(
+        conversationSituation(
+          ordered.map((m) => ({
+            direction: m.direction === "INBOUND" ? ("INBOUND" as const) : ("OUTBOUND" as const),
+            kind: m.kind,
+            source: m.source,
+            clientKey: m.clientKey,
+            status: m.status,
+          }))
+        ),
+        Boolean(conversation.contactId)
+      )
+    : null;
+  const messageCount = ordered.filter((m) => m.kind !== "system").length;
+
+  return { skip: false, conversation, history, messageCount, situation };
 };
 
 /**

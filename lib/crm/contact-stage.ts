@@ -1,3 +1,5 @@
+import { isFreeCallAppointment } from "./whatsapp-agent/event-title";
+
 /**
  * En qué punto está una persona con Dayana, en una línea. Se deriva de lo que
  * ya hay en el CRM (matrículas, pagos, citas, diagnóstico, chat): no hay un
@@ -6,7 +8,8 @@
 
 export type StageInput = {
   enrollments: { status: string; sessionsUsed: number; sessionsTotal: number | null; product?: string | null }[];
-  nextAppointment?: { startsAt: Date; sessionsLabel: string | null } | null;
+  /** Con `endsAt` se distingue la llamada gratis de una sesión pagada sin paquete (también 0/0). */
+  nextAppointment?: { startsAt: Date; endsAt?: Date | null; sessionsLabel: string | null } | null;
   lastAppointment?: { startsAt: Date } | null;
   hasDiagnostic?: boolean;
   /** Mensajes en su chat de WhatsApp. */
@@ -25,8 +28,12 @@ export const contactStage = (input: StageInput): Stage => {
     return { key: "termino", label: "Ya terminó un proceso con Dayana" };
   }
   const next = input.nextAppointment;
-  if (next && (!next.sessionsLabel || next.sessionsLabel === "0/0")) {
-    return { key: "llamada_gratis", label: "Tiene agendada la llamada gratis" };
+  if (next) {
+    const free = next.endsAt
+      ? isFreeCallAppointment({ sessionsLabel: next.sessionsLabel, startsAt: next.startsAt, endsAt: next.endsAt })
+      : !next.sessionsLabel || next.sessionsLabel === "0/0";
+    if (free) return { key: "llamada_gratis", label: "Tiene agendada la llamada gratis" };
+    return { key: "conversando", label: "Tiene una sesión agendada con Dayana" };
   }
   if ((input.messages ?? 0) > 2 || input.hasDiagnostic || input.enrollments.some((e) => e.status === "PENDING_PAYMENT" || e.status === "LEAD")) {
     return { key: "conversando", label: "Conversando (aún no es clienta)" };
