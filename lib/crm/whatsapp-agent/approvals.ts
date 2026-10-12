@@ -13,6 +13,7 @@ import { getOperationalTimezone } from "../operational-timezone";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { resumeAutoReply } from "../whatsapp-autoreply";
 import { approvalCoversUntil, noteHumanReply, openAttentionIfNeedsReply } from "./attention";
+import { bookFreeCall } from "./free-call";
 import { bookOnCalendar } from "./calendar";
 import { resolveConversations } from "./pending";
 
@@ -317,6 +318,35 @@ export const approveProposal = async (input: {
     if (p.bookingDone.meetUrl && !message.includes(p.bookingDone.meetUrl)) {
       message = `${message}\n\nEnlace de la videollamada: ${p.bookingDone.meetUrl}`;
     }
+  } else if (p.kind === "booking" && p.booking?.whatsappCall) {
+    // La llamada gratis que Dayana aprobó: las mismas protecciones que cuando
+    // la asistente agenda sola (candado, una por persona, tope diario) y sin Meet.
+    const config = await getWhatsAppAiConfig();
+    const timezone = await getOperationalTimezone();
+    const booked = await bookFreeCall({
+      config,
+      dayanaTz: timezone,
+      personTz: timezone,
+      start: new Date(p.booking.startIso),
+      conversationId: input.conversationId,
+      contactId: conversation.contactId,
+      phone: conversation.externalThreadId,
+      name: p.booking.name,
+    });
+    p.bookingDone = { meetUrl: null, eventId: null };
+    await prisma.whatsAppAiRun.update({
+      where: { id: run.id },
+      data: { proposal: p as unknown as Prisma.InputJsonValue },
+    });
+    fireNotification({
+      eventType: "WHATSAPP_AI_BOOKED",
+      title: `Llamada gratis agendada: ${booked.title}`,
+      body: `${p.booking.service} · ${p.booking.label} · la llamas por WhatsApp`,
+      href: `/admin/whatsapp?conversation=${input.conversationId}`,
+      entityType: "Conversation",
+      entityId: input.conversationId,
+      staff: [input.staffId],
+    });
   } else if (p.kind === "booking" && p.booking) {
     const config = await getWhatsAppAiConfig();
     const timezone = await getOperationalTimezone();

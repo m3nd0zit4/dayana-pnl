@@ -181,3 +181,32 @@ describe("una persona, un chat (ids de usuario)", () => {
     expect(m.kind === "message" && m.altThreadIds).toBeUndefined();
   });
 });
+
+describe("ids alternos de la persona correcta", () => {
+  test("dos personas en el mismo aviso: cada una con sus propios alternos", () => {
+    const events = normalizeMetaPayload(
+      wrap({
+        contacts: [
+          { wa_id: "573001110001", user_id: "CO.1111111111111111", profile: { name: "Ana" } },
+          { wa_id: "573001110002", user_id: "CO.2222222222222222", profile: { name: "Bea" } },
+        ],
+        messages: [
+          { id: "m1", from: "573001110001", timestamp: "1", type: "text", text: { body: "Hola" } },
+          { id: "m2", from: "573001110002", timestamp: "2", type: "text", text: { body: "Hola" } },
+        ],
+      })
+    );
+    const alts = events.map((e) => (e.kind === "message" ? e.altThreadIds : null));
+    expect(alts).toEqual([["CO.1111111111111111"], ["CO.2222222222222222"]]);
+  });
+
+  test("un contacto que no es el remitente no presta sus ids", () => {
+    const [m] = normalizeMetaPayload(
+      wrap({
+        contacts: [{ wa_id: "573001110009", user_id: "CO.9999999999999999" }],
+        messages: [{ id: "m3", from: "573001110003", timestamp: "1", type: "text", text: { body: "Hola" } }],
+      })
+    );
+    expect(m.kind === "message" && m.altThreadIds).toBeUndefined();
+  });
+});

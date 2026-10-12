@@ -6,6 +6,11 @@
  *
  *   bun scripts/whatsapp-merge-threads.ts                              (prueba: dice qué uniría y no toca nada)
  *   bun scripts/whatsapp-merge-threads.ts --apply --i-have-a-backup    (lo aplica)
+ *   … --include-ar    (también Argentina 54/549: un fijo y un celular podrían ser
+ *                      personas distintas; revisa la lista antes)
+ *
+ * Mejor con poco tráfico: un mensaje que llegue en pleno cambio se vuelve a
+ * mover justo antes de borrar el chat duplicado.
  *
  * Se pasan al chat que queda: mensajes, ejecuciones de la IA, ejemplos,
  * reservas, citas, autoevaluaciones y destinatarios de envíos; la memoria se
@@ -25,6 +30,7 @@ import { writeAuditLog } from "@/lib/crm/audit";
 import { planThreadMerges, type MergePlan } from "@/lib/crm/whatsapp-thread-merge";
 
 const apply = process.argv.includes("--apply");
+const includeArgentina = process.argv.includes("--include-ar");
 const backedUp = process.argv.includes("--i-have-a-backup");
 
 const dbName = () => {
@@ -34,6 +40,11 @@ const dbName = () => {
     return "?";
   }
 };
+
+const STRICTNESS = { AUTO: 0, COPILOT: 1, MANUAL: 2 } as const;
+type Mode = keyof typeof STRICTNESS;
+const strictestOverride = (a: Mode | null, b: Mode | null): Mode | null =>
+  !a ? b : !b ? a : STRICTNESS[a] >= STRICTNESS[b] ? a : b;
 
 const later = (a: Date | null, b: Date | null) => (!a ? b : !b ? a : a > b ? a : b);
 const earlier = (a: Date | null, b: Date | null) => (!a ? b : !b ? a : a < b ? a : b);
@@ -73,11 +84,15 @@ const mergeOne = async (plan: MergePlan) => {
         await tx.whatsAppMemory.delete({ where: { phone: gone.externalThreadId } });
       }
 
+      // Lo que haya llegado mientras tanto también se pasa (si no, se borraría con el chat).
+      await tx.conversationMessage.updateMany({ where: { conversationId: gone.id }, data: to });
+      await tx.whatsAppAiRun.updateMany({ where: { conversationId: gone.id }, data: to });
       await tx.conversation.delete({ where: { id: gone.id } });
-      // La ficha del que queda se vuelve a leer con todos los mensajes.
+      // La ficha del que queda se vuelve a leer con todos los mensajes (lo
+      // que ya decía se conserva como «ficha anterior»).
       await tx.whatsAppDossier.updateMany({
         where: { conversationId: keep.id },
-        data: { coveredThroughAt: null, coveredCount: 0, summary: "", facts: {} },
+        data: { coveredThroughAt: null, coveredCount: 0 },
       });
       await tx.conversation.update({
         where: { id: keep.id },
@@ -90,6 +105,8 @@ const mergeOne = async (plan: MergePlan) => {
           lastHumanReplyAt: later(keep.lastHumanReplyAt, gone.lastHumanReplyAt),
           unreadCount: keep.unreadCount + gone.unreadCount,
           priorityAt: keep.priorityAt ?? gone.priorityAt,
+          // Si Dayana tomó cualquiera de los dos chats, el que queda sigue tomado.
+          aiModeOverride: strictestOverride(keep.aiModeOverride, gone.aiModeOverride),
           // Una pausa o escalada en cualquiera de los dos sigue en pie.
           ...(keep.aiPausedAt || !gone.aiPausedAt
             ? {}
@@ -124,7 +141,7 @@ const mergeOne = async (plan: MergePlan) => {
         changes: { merged: gone.id, from: gone.externalThreadId, into: keep.externalThreadId, moved },
       });
       console.info(`  unido ${gone.externalThreadId} → ${keep.externalThreadId}`, moved);
-    });
+    }, { timeout: 120_000, maxWait: 20_000 });
   }
 };
 
@@ -147,7 +164,10 @@ const main = async () => {
     GROUP BY c.id`;
 
   const plans = planThreadMerges(
-    rows.map((r) => ({
+    rows
+      // Argentina 54/549 solo si se pide: un fijo y un celular podrían ser dos personas.
+      .filter((r) => includeArgentina || !r.external_thread_id.startsWith("54"))
+      .map((r) => ({
       id: r.id,
       externalThreadId: r.external_thread_id,
       messages: Number(r.messages),

@@ -4,9 +4,9 @@ import { fireNotification } from "@/lib/notifications/platform/emit";
 import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { getOperationalTimezone } from "../operational-timezone";
 import { isAutoSend } from "../whatsapp-attention-rules";
+import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
-import { isFreeCallAppointment } from "./event-title";
 import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
 
 /**
@@ -88,11 +88,10 @@ const noticeFor = async (input: {
   triggerMessageId?: string | null;
   /** El reloj solo avisa «está terminando una reunión» (sin que la persona escriba, «ya le aviso» no tiene sentido). */
   onlyBusy?: boolean;
-}): Promise<{ sent: boolean; decision: WaitingDecision; freeCallNow: boolean }> => {
+}): Promise<{ sent: boolean; decision: WaitingDecision; holdAi: boolean }> => {
   const appt = await appointmentNear(input, input.now);
-  if (!appt) return { sent: false, decision: { kind: "none", reason: "sin cita cerca" }, freeCallNow: false };
+  if (!appt) return { sent: false, decision: { kind: "none", reason: "sin cita cerca" }, holdAi: false };
   const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true } });
-  const freeCallNow = isFreeCallAppointment({ ...appt, bookingService: booking?.service ?? null });
   const decision = decideWaiting({
     now: input.now,
     appointment: { startsAt: appt.startsAt, endsAt: appt.endsAt, sessionsLabel: appt.sessionsLabel, bookingService: booking?.service ?? null },
@@ -100,7 +99,8 @@ const noticeFor = async (input: {
     lastDayanaAt: await lastDayanaMessage(input.conversationId),
     notices: { count: appt.waitNoticeCount, lastAt: appt.waitNoticeAt },
   });
-  if (decision.kind === "none" || (input.onlyBusy && decision.kind !== "busy")) return { sent: false, decision, freeCallNow };
+  if (decision.kind === "none") return { sent: false, decision, holdAi: Boolean(decision.holdAi) };
+  if (input.onlyBusy && decision.kind !== "busy") return { sent: false, decision, holdAi: false };
 
   // Reclamo atómico: dos mensajes seguidos de la persona no mandan dos avisos.
   const claimed = await prisma.calendarAppointment.updateMany({
@@ -111,7 +111,7 @@ const noticeFor = async (input: {
     },
     data: { waitNoticeCount: { increment: 1 }, waitNoticeAt: input.now },
   });
-  if (claimed.count === 0) return { sent: false, decision: { kind: "none", reason: "otro proceso ya avisó" }, freeCallNow };
+  if (claimed.count === 0) return { sent: false, decision: { kind: "none", reason: "otro proceso ya avisó" }, holdAi: true };
 
   const body = waitingMessage(decision.kind, appt.name ?? input.name);
   await sendMetaMessage({ conversationId: input.conversationId, body, isAutoReply: true });
@@ -137,8 +137,50 @@ const noticeFor = async (input: {
     entityId: input.conversationId,
     staff: "ALL",
   });
-  return { sent: true, decision, freeCallNow };
+  return { sent: true, decision, holdAi: true };
 };
+
+const SILENCING = new Set(["personal", "negocio", "equipo"]);
+
+const GUARD_SELECT = {
+  id: true,
+  externalThreadId: true,
+  contactId: true,
+  participantName: true,
+  priorityAt: true,
+  lastInboundAt: true,
+  aiModeOverride: true,
+  aiPausedReason: true,
+  category: true,
+  categorySource: true,
+  contact: { select: { firstName: true } },
+  dossier: { select: { segment: true } },
+} as const;
+
+type GuardedConversation = {
+  externalThreadId: string;
+  priorityAt: Date | null;
+  aiModeOverride: string | null;
+  aiPausedReason: string | null;
+  category: string | null;
+  categorySource: string | null;
+  dossier: { segment: string | null } | null;
+};
+
+/**
+ * Los mismos silencios que respeta la IA: modo general Manual, chat tomado por
+ * Dayana o favorito, escalada esperándola, número personal, categoría
+ * personal/negocio/equipo puesta a mano, clienta o «no atender».
+ */
+const waitingRoomBlocked = async (conv: GuardedConversation, config: WhatsAppAiConfig): Promise<boolean> =>
+  config.defaultMode === "MANUAL" ||
+  Boolean(conv.priorityAt) ||
+  conv.aiModeOverride === "MANUAL" ||
+  conv.aiPausedReason === "escalation" ||
+  (conv.categorySource === "manual" && SILENCING.has(conv.category ?? "")) ||
+  conv.dossier?.segment === "client" ||
+  conv.dossier?.segment === "ignored" ||
+  (await isIgnoredNumber(conv.externalThreadId));
 
 /**
  * Cuando la persona escribe. `sent`: se le mandó el aviso. `quiet`: es la hora
@@ -152,11 +194,8 @@ export const handleWaitingRoom = async (input: {
 }): Promise<{ sent: boolean; quiet: boolean }> => {
   const none = { sent: false, quiet: false };
   if (!input.config.waitingRoom.enabled) return none;
-  const conv = await prisma.conversation.findUnique({
-    where: { id: input.conversationId },
-    select: { externalThreadId: true, contactId: true, participantName: true, priorityAt: true, contact: { select: { firstName: true } } },
-  });
-  if (!conv || conv.priorityAt) return none;
+  const conv = await prisma.conversation.findUnique({ where: { id: input.conversationId }, select: GUARD_SELECT });
+  if (!conv || (await waitingRoomBlocked(conv, input.config))) return none;
   const r = await noticeFor({
     config: input.config,
     conversationId: input.conversationId,
@@ -167,9 +206,9 @@ export const handleWaitingRoom = async (input: {
     triggerMessageId: input.triggerMessageId,
   }).catch((e: unknown) => {
     console.warn("[sala de espera] no se pudo revisar", e);
-    return { sent: false, freeCallNow: false };
+    return { sent: false, holdAi: false };
   });
-  return { sent: r.sent, quiet: r.sent || r.freeCallNow };
+  return { sent: r.sent, quiet: r.sent || r.holdAi };
 };
 
 /** El reloj: a quien ya es su hora y Dayana sigue ocupada, aunque no haya escrito (ventana abierta). */
@@ -187,12 +226,10 @@ export const sweepWaitingRoom = async (config: WhatsAppAiConfig, now = new Date(
   });
   let sent = 0;
   for (const a of due) {
-    const conv = await prisma.conversation.findUnique({
-      where: { id: a.conversationId! },
-      select: { id: true, externalThreadId: true, contactId: true, participantName: true, priorityAt: true, lastInboundAt: true },
-    });
+    const conv = await prisma.conversation.findUnique({ where: { id: a.conversationId! }, select: GUARD_SELECT });
     // Fuera de la ventana de 24 h haría falta una plantilla: no se manda.
-    if (!conv || conv.priorityAt || !conv.lastInboundAt || now.getTime() - conv.lastInboundAt.getTime() > 23.5 * 3600_000) continue;
+    if (!conv || !conv.lastInboundAt || now.getTime() - conv.lastInboundAt.getTime() > 23.5 * 3600_000) continue;
+    if (await waitingRoomBlocked(conv, config)) continue;
     const r = await noticeFor({
       config,
       conversationId: conv.id,

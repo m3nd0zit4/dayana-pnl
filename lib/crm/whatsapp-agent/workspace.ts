@@ -213,7 +213,7 @@ const queueWhere = async (queue: ChatQueue): Promise<Prisma.ConversationWhereInp
     case "seguimiento":
       return seguimientoWhere();
     case "mine":
-      return { OR: [{ aiMode: "MANUAL" }, { priorityAt: { not: null } }] };
+      return { OR: [{ aiMode: "MANUAL" }, { aiModeOverride: "MANUAL" }, { priorityAt: { not: null } }] };
     case "ai":
       return { aiMode: { in: ["AUTO", "COPILOT"] }, aiPausedAt: null, priorityAt: null };
     default:
@@ -265,6 +265,8 @@ export const listChats = async (input: {
       lastMessageAt: true,
       unreadCount: true,
       aiMode: true,
+      aiModeOverride: true,
+      dossier: { select: { segment: true } },
       aiPausedAt: true,
       aiPausedReason: true,
       escalationCategory: true,
@@ -305,13 +307,27 @@ export const listChats = async (input: {
     },
   });
 
-  const [pending, classifyEnabled] = await Promise.all([
+  const [pending, classifyEnabled, aiConfig] = await Promise.all([
     prisma.whatsAppAiRun.findMany({
       where: { conversationId: { in: rows.map((r) => r.id) }, status: "AWAITING_APPROVAL" },
       select: { conversationId: true, proposal: true },
     }),
     isClassifyEnabled(),
+    getWhatsAppAiConfig(),
   ]);
+  // El modo con el que de verdad trabaja cada chat (ya no se guarda en el chat).
+  const modeOf = (c: (typeof rows)[number]) =>
+    decideRoute({
+      routerEnabled: aiConfig.router.enabled,
+      generalMode: aiConfig.defaultMode,
+      chatMode: c.aiMode,
+      override: c.aiModeOverride,
+      segment:
+        c.dossier?.segment && (SEGMENTS as readonly string[]).includes(c.dossier.segment)
+          ? { segment: c.dossier.segment as Segment, confidence: 1, reason: "", review: false, source: "rules" }
+          : null,
+      modes: aiConfig.router.modes,
+    }).mode;
   const pendingBy = new Map(
     pending.map((p) => [p.conversationId, (p.proposal as { kind?: string } | null)?.kind ?? "reply"])
   );
@@ -341,7 +357,7 @@ export const listChats = async (input: {
       lastStatus: last?.status ?? null,
       lastFailedReason: last?.status === "FAILED" ? (last.failedReason ?? null) : null,
       unreadCount: c.unreadCount,
-      aiMode: c.aiMode,
+      aiMode: modeOf(c),
       paused: Boolean(c.aiPausedAt),
       pausedReason: c.aiPausedReason,
       escalation:

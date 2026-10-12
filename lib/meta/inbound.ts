@@ -523,10 +523,20 @@ const normalizeWhatsAppValue = (
       asString(contacts[0]?.wa_id) ??
       asString(contacts[0]?.user_id);
     if (!from) continue;
+    // Los ids alternos solo del contacto que es ESTA persona (por su teléfono o
+    // su id de usuario). Un aviso puede traer mensajes de varias personas:
+    // tomar el primer contacto mezclaría los chats.
+    const fromUser = asString(message.from_user_id);
+    const own =
+      contacts.find((c) => {
+        const waId = asString(c.wa_id);
+        const userId = asString(c.user_id);
+        return (waId !== null && waId === from) || (userId !== null && (userId === from || userId === fromUser));
+      }) ?? (contacts.length === 1 && !asString(message.from) ? contacts[0] : undefined);
     const parsed = parseWhatsAppMessage(message, {
       metaAccountId,
       threadId: from,
-      altThreadIds: [asString(message.from_user_id), asString(contacts[0]?.user_id), asString(contacts[0]?.wa_id)],
+      altThreadIds: [fromUser, asString(own?.user_id), asString(own?.wa_id)],
       isEcho: false,
       participantName:
         profileNames.get(from) ??

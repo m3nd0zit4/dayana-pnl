@@ -43,6 +43,8 @@ export type SegmentInput = {
     hasApprovedPayment?: boolean;
     hasPaidEnrollment?: boolean;
     hasTherapySession?: boolean;
+    /** Inscripción activa o terminada SIN pago registrado (regalo, a mano, gratis). */
+    hasUnpaidActiveEnrollment?: boolean;
   };
   history?: {
     /** Frases que dicen que pagó o que tiene sesiones (`client-evidence.ts`). */
@@ -86,6 +88,11 @@ export const resolveSegment = (input: SegmentInput): SegmentVerdict => {
   }
   if (crm.hasTherapySession) {
     return { segment: "client", confidence: 0.9, reason: "Tiene sesiones en el calendario.", review: false, source: "rules" };
+  }
+  // Inscrita sin pago registrado (a mano, regalo, pagó por fuera): ante la
+  // duda, clienta (la IA no le ofrece la llamada gratis) y Dayana lo revisa.
+  if (crm.hasUnpaidActiveEnrollment && input.categorySource !== "manual") {
+    return { segment: "client", confidence: 0.75, reason: "Tiene una inscripción activa sin pago registrado.", review: true, source: "rules" };
   }
 
   // «No es clienta» puesto a mano: lo que diga el chat no la vuelve clienta.

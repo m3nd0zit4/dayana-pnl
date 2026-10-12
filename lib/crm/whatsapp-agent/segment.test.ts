@@ -15,6 +15,10 @@ describe("resolveSegment", () => {
     expect(resolveSegment({ crm: { hasApprovedPayment: true }, hadConversation: true })).toMatchObject({ segment: "client", review: false });
   });
 
+  test("inscripción activa sin pago registrado: clienta, por revisar", () => {
+    expect(resolveSegment({ crm: { hasUnpaidActiveEnrollment: true }, hadConversation: true })).toMatchObject({ segment: "client", review: true });
+  });
+
   test("pagó por transferencia (frases y ficha coinciden): clienta sin revisar", () => {
     expect(resolveSegment({ history: { strongEvidence: 2, dossierPaidSignals: 1 } })).toMatchObject({ segment: "client", review: false });
   });

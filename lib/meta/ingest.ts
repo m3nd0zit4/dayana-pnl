@@ -573,12 +573,13 @@ export const processHistoryEvents = async (
  */
 export const finishHistorySync = async (touched: Set<string>): Promise<void> => {
   // Llegaron mensajes más viejos que lo que leyó la ficha: se vuelve a leer
-  // el chat entero (se conserva el segmento y lo que marcó Dayana).
+  // el chat entero. Lo que ya decía (resumen, señales de pago, segmento, lo que
+  // marcó Dayana) se conserva: la relectura lo recibe como «ficha anterior».
   if (touched.size > 0) {
     await prisma.whatsAppDossier
       .updateMany({
         where: { conversationId: { in: [...touched] } },
-        data: { coveredThroughAt: null, coveredCount: 0, summary: "", facts: {} },
+        data: { coveredThroughAt: null, coveredCount: 0 },
       })
       .catch((e: unknown) => console.warn("[historial WhatsApp] no se pudo reiniciar la ficha", e));
   }

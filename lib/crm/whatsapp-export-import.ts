@@ -73,6 +73,8 @@ export type ExportFilePreview = {
   decision: ExportDecision;
   /** El número ya está en la lista de personales: no se importa. */
   ignored: boolean;
+  /** De dónde salió el número: del propio archivo, o adivinado de un contacto o chat con ese nombre. */
+  phoneSource: "file" | "candidate" | null;
 };
 
 const looksLikePhone = (value: string | null | undefined) => Boolean(value && normalizePhoneInput(value));
@@ -175,7 +177,7 @@ export const crmFactsForPhone = async (
 };
 
 /** Las primeras y las últimas líneas: el modelo no necesita el chat entero para saber si es trabajo. */
-const AI_SAMPLE = 15;
+const AI_SAMPLE = 8;
 
 /**
  * Lo que las reglas no saben decidir, lo mira el modelo pequeño (las mismas
@@ -250,6 +252,7 @@ const previewOf = async (
     classification,
     decision: ignored ? "skip" : decideExport(classification),
     ignored,
+    phoneSource: parsed.phoneFromName ? "file" : phoneE164 ? "candidate" : null,
   };
 };
 

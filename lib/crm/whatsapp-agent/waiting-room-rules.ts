@@ -40,7 +40,8 @@ export type WaitingAppointment = {
 export type WaitingDecision =
   | { kind: "busy"; reason: string }
   | { kind: "not_started"; reason: string }
-  | { kind: "none"; reason: string };
+  /** `holdAi`: es la hora de su llamada y ya se le avisó (o Dayana ya empezó): la IA no se pone a conversar. */
+  | { kind: "none"; reason: string; holdAi?: boolean };
 
 export const decideWaiting = (input: {
   now: Date;
@@ -64,11 +65,11 @@ export const decideWaiting = (input: {
   }
   // Dayana ya le escribió cerca de la hora: está con ella.
   if (input.lastDayanaAt && input.lastDayanaAt.getTime() >= start - cfg.beforeMin * 60_000) {
-    return { kind: "none", reason: "Dayana ya empezó con ella" };
+    return { kind: "none", reason: "Dayana ya empezó con ella", holdAi: true };
   }
-  if (input.notices.count >= cfg.maxNotices) return { kind: "none", reason: "ya se le avisó" };
+  if (input.notices.count >= cfg.maxNotices) return { kind: "none", reason: "ya se le avisó", holdAi: true };
   if (input.notices.lastAt && now - input.notices.lastAt.getTime() < cfg.minGapMin * 60_000) {
-    return { kind: "none", reason: "se le avisó hace muy poco" };
+    return { kind: "none", reason: "se le avisó hace muy poco", holdAi: true };
   }
 
   const busyNow = input.busy.some((b) => {

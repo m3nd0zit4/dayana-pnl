@@ -124,48 +124,35 @@ export const bookFreeCall = async (input: {
 }): Promise<FreeCallBooking> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
+  const active = { notIn: ["CANCELLED", "cancelled"] };
 
-  return prisma.$transaction(
+  // 1. Reservar en la base, con candado: las comprobaciones y la reserva van
+  //    juntas, así dos personas no se quedan con la misma hora. Google no se
+  //    llama aquí dentro (si tardara, la transacción se cortaría con el evento
+  //    ya creado).
+  const pending = await prisma.$transaction(
     async (tx) => {
-      // Una llamada gratis a la vez en todo el CRM: nadie se queda con la misma hora.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('whatsapp-free-call'))`;
-
       const existing = await tx.whatsAppBooking.findFirst({
-        where: { conversationId: input.conversationId, startsAt: { gte: new Date() }, status: { notIn: ["CANCELLED", "cancelled"] } },
-        select: { service: true, startsAt: true },
+        where: { conversationId: input.conversationId, startsAt: { gte: new Date() }, status: active },
+        select: { service: true },
       });
       if (existing && isFreeCallService(existing.service, service.minutes)) {
         throw new FreeCallError("already_booked", "Ya tiene agendada su llamada gratis.");
       }
-
+      const taken = await tx.whatsAppBooking.findFirst({
+        where: { startsAt: { lt: end }, endsAt: { gt: input.start }, status: active },
+        select: { id: true },
+      });
+      if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
       const { from, to } = dayBounds(input.start, input.dayanaTz);
       const sameDay = await tx.whatsAppBooking.count({
-        where: { startsAt: { gte: from, lt: to }, service: service.name, status: { notIn: ["CANCELLED", "cancelled"] } },
+        where: { startsAt: { gte: from, lt: to }, service: service.name, status: active },
       });
       if (sameDay >= input.config.freeCall.maxPerDay) {
         throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
-
-      let created: Awaited<ReturnType<typeof bookOnCalendar>>;
-      try {
-        // Por WhatsApp: sin enlace de Meet.
-        created = await (calendarDeps.book ?? bookOnCalendar)({
-          config: { ...input.config.booking, addMeet: false },
-          timezone: input.dayanaTz,
-          start: input.start,
-          durationMin: service.minutes,
-          service: `${service.name} (Dayana llama por WhatsApp)`,
-          name: input.name,
-          phone: input.phone,
-          conversationId: input.conversationId,
-          contactId: input.contactId,
-        });
-      } catch (e) {
-        if (e instanceof SlotUnavailableError) throw new FreeCallError("unavailable", e.message);
-        throw e;
-      }
-
-      const booking = await tx.whatsAppBooking.create({
+      return tx.whatsAppBooking.create({
         data: {
           conversationId: input.conversationId,
           contactId: input.contactId,
@@ -173,43 +160,73 @@ export const bookFreeCall = async (input: {
           name: input.name,
           service: service.name,
           startsAt: input.start,
-          endsAt: created.end,
-          googleAccountId: created.accountId,
-          calendarEventId: created.eventId,
-          meetUrl: null,
-          eventUrl: created.eventUrl,
+          endsAt: end,
+          googleAccountId: "pending",
+          calendarEventId: `pending:${input.conversationId}:${input.start.toISOString()}`,
+          status: "PENDING",
         },
+        select: { id: true },
       });
-      // En la agenda del CRM al instante (el reloj la volvería a leer en 10 min).
-      await tx.calendarAppointment.upsert({
-        where: { eventId: created.eventId },
-        create: {
-          eventId: created.eventId,
-          googleAccountId: created.accountId,
-          startsAt: input.start,
-          endsAt: created.end,
-          title: created.title,
-          name: input.name,
-          phone: input.phone,
-          sessionsLabel: "0/0",
-          contactId: input.contactId,
-          conversationId: input.conversationId,
-          source: "ai",
-          status: "active",
-          matchState: "phone",
-        },
-        update: {},
-      });
-      return {
-        bookingId: booking.id,
-        startsAt: input.start,
-        endsAt: end,
-        title: created.title,
-        label: dualZoneLabel(input.start.toISOString(), input.personTz, input.dayanaTz),
-      };
     },
-    { timeout: 30_000, maxWait: 15_000 }
+    { timeout: 15_000, maxWait: 15_000 }
   );
+
+  // 2. El evento en el calendario (vuelve a mirar que la hora siga libre).
+  //    Por WhatsApp: sin enlace de Meet. Si falla, se suelta la reserva.
+  let created: Awaited<ReturnType<typeof bookOnCalendar>>;
+  try {
+    created = await (calendarDeps.book ?? bookOnCalendar)({
+      config: { ...input.config.booking, addMeet: false },
+      timezone: input.dayanaTz,
+      start: input.start,
+      durationMin: service.minutes,
+      service: `${service.name} (Dayana llama por WhatsApp)`,
+      name: input.name,
+      phone: input.phone,
+      conversationId: input.conversationId,
+      contactId: input.contactId,
+    });
+  } catch (e) {
+    await prisma.whatsAppBooking.delete({ where: { id: pending.id } }).catch(() => undefined);
+    if (e instanceof SlotUnavailableError) throw new FreeCallError("unavailable", e.message);
+    throw e;
+  }
+
+  // 3. La reserva pasa a cita, y queda en la agenda del CRM al instante (el
+  //    reloj la volvería a leer en 10 min). Si esto fallara, el evento existe
+  //    en el calendario y el reloj lo liga solo por el número del título.
+  await prisma.whatsAppBooking.update({
+    where: { id: pending.id },
+    data: { googleAccountId: created.accountId, calendarEventId: created.eventId, eventUrl: created.eventUrl, endsAt: created.end, status: "BOOKED" },
+  });
+  await prisma.calendarAppointment
+    .upsert({
+      where: { eventId: created.eventId },
+      create: {
+        eventId: created.eventId,
+        googleAccountId: created.accountId,
+        startsAt: input.start,
+        endsAt: created.end,
+        title: created.title,
+        name: input.name,
+        phone: input.phone,
+        sessionsLabel: "0/0",
+        contactId: input.contactId,
+        conversationId: input.conversationId,
+        source: "ai",
+        status: "active",
+        matchState: "phone",
+      },
+      update: {},
+    })
+    .catch((e: unknown) => console.warn("[llamada gratis] la cita no quedó en la agenda del CRM (el reloj la leerá)", e));
+  return {
+    bookingId: pending.id,
+    startsAt: input.start,
+    endsAt: created.end,
+    title: created.title,
+    label: dualZoneLabel(input.start.toISOString(), input.personTz, input.dayanaTz),
+  };
 };
 
 /** Después de agendar: el chat queda atendido y Dayana se entera (con sonido). */

@@ -29,6 +29,7 @@ type Preview = {
   classification: { verdict: Verdict; confidence: number; reasons: string[]; source: "rules" | "ai" };
   decision: "import" | "skip" | "review";
   ignored: boolean;
+  phoneSource: "file" | "candidate" | null;
 };
 
 type ImportResult = {
@@ -198,7 +199,13 @@ const PhoneExportImportCard = () => {
           phone: preview.phoneE164 ?? (map.size ? (lookupPhone(map, preview.contactName) ?? "") : ""),
           dayana: preview.dayanaAuthor ?? "",
           choice: choiceOf(preview),
-          personal: preview.classification.verdict === "personal" && !preview.ignored,
+          // Solo se propone marcarlo personal si lo dijeron las reglas y el número
+          // es el del archivo: un número adivinado por el nombre podría ser de otra persona.
+          personal:
+            preview.classification.verdict === "personal" &&
+            preview.classification.source === "rules" &&
+            preview.phoneSource === "file" &&
+            !preview.ignored,
           state: "ready",
         });
       }

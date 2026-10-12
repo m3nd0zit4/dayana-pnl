@@ -11,20 +11,27 @@ import { isWhatsAppUserId, whatsAppIdVariants } from "@/lib/whatsapp-contact";
  *
  * La huella es la misma para todas las formas del número (México 52/521,
  * Argentina 54/549, Brasil con y sin 9).
+ *
+ * La clave es `WHATSAPP_IGNORE_SECRET` o, si no está, `AUTH_SECRET`. Sin
+ * ninguna, no se calcula nada (una clave conocida dejaría adivinar los
+ * números probando todos). Cambiar la clave vacía la lista: los números
+ * vuelven a contar como no personales.
  */
 
-const key = () => process.env.AUTH_SECRET?.trim() || "dayana-ignored-numbers";
+const key = (): string | null => process.env.WHATSAPP_IGNORE_SECRET?.trim() || process.env.AUTH_SECRET?.trim() || null;
 
 /** Huella del número, igual para todas sus formas. null si no es un número. */
 export const phoneHash = (phone: string): string | null => {
-  if (isWhatsAppUserId(phone.trim())) return null;
+  const secret = key();
+  if (!secret || isWhatsAppUserId(phone.trim())) return null;
   const variants = whatsAppIdVariants(phone);
   if (variants.length === 0 || variants[0].length < 8) return null;
   const canonical = [...variants].sort()[0];
-  return createHmac("sha256", key()).update(`wa:${canonical}`).digest("hex");
+  return createHmac("sha256", secret).update(`wa:${canonical}`).digest("hex");
 };
 
 export const ignoreNumbers = async (phones: string[], source: "phone_export" | "manual"): Promise<number> => {
+  if (!key()) throw new Error("NO_IGNORE_SECRET");
   const hashes = [...new Set(phones.map(phoneHash).filter((h): h is string => Boolean(h)))];
   if (hashes.length === 0) return 0;
   const r = await prisma.whatsAppIgnoredNumber.createMany({
@@ -43,5 +50,5 @@ export const unignoreNumber = async (phone: string): Promise<void> => {
 export const isIgnoredNumber = async (threadId: string): Promise<boolean> => {
   const hash = phoneHash(threadId);
   if (!hash) return false;
-  return (await prisma.whatsAppIgnoredNumber.count({ where: { phoneHash: hash } })) > 0;
+  return (await prisma.whatsAppIgnoredNumber.count({ where: { phoneHash: hash } }).catch(() => 0)) > 0;
 };

@@ -209,11 +209,23 @@ export const updateDossier = async (conversationId: string, opts: { deadline?: n
       coveredThroughAt,
       model: modelId(),
     };
-    dossier = await prisma.whatsAppDossier.upsert({
-      where: { conversationId },
-      create: { conversationId, ...data, coveredCount: lines.length, version: 1 },
-      update: { ...data, coveredCount: { increment: lines.length }, version: { increment: 1 } },
-    });
+    // Escritura condicional: si otro proceso (el reloj y la respuesta en vivo)
+    // ya avanzó la ficha mientras el modelo pensaba, este tramo no se guarda.
+    if (!dossier) {
+      try {
+        dossier = await prisma.whatsAppDossier.create({ data: { conversationId, ...data, coveredCount: lines.length, version: 1 } });
+      } catch {
+        return result;
+      }
+    } else {
+      const moved = await prisma.whatsAppDossier.updateMany({
+        where: { conversationId, coveredThroughAt: dossier.coveredThroughAt, version: dossier.version },
+        data: { ...data, coveredCount: { increment: lines.length }, version: { increment: 1 } },
+      });
+      if (moved.count === 0) return result;
+      dossier = await getDossier(conversationId);
+      if (!dossier) return result;
+    }
     result.built = true;
     result.chunks++;
     result.covered += lines.length;

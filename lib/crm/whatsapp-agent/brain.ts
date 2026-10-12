@@ -716,7 +716,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               });
             },
           }),
-          ...(salesOn ? {} : {
+          // Con el flujo de venta, la asistente agenda con horas reales. Un
+          // procedimiento viejo puede seguir diciendo «request_booking»: la
+          // herramienta existe y la redirige, para que no falle la vuelta.
+          ...(salesOn ? {
+          request_booking: tool({
+            description: "No la uses: para agendar la llamada gratis usa offer_free_call_slots y luego book_free_call.",
+            inputSchema: z.object({}).passthrough(),
+            execute: async (args) =>
+              log("request_booking", args, {
+                error: "En este flujo agendas tú: usa offer_free_call_slots para ofrecer horas y book_free_call cuando elija una.",
+              }),
+          }),
+          } : {
           request_booking: tool({
             description:
               "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella agende y confirme. Antes tienes que saber desde qué país escribe. Úsalo UNA vez; tu respuesta dice que Dayana le confirma la hora.",

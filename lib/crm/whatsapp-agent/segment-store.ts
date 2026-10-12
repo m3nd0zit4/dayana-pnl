@@ -90,6 +90,7 @@ export const computeSegment = async (conversationId: string): Promise<SegmentVer
       hasApprovedPayment: facts.hasApprovedPayment,
       hasPaidEnrollment: facts.hasPaidEnrollment,
       hasTherapySession: facts.hasTherapySession,
+      hasUnpaidActiveEnrollment: facts.hasUnpaidActiveEnrollment,
     },
     history: {
       strongEvidence: evidence.filter((e) => e.strength === "strong").length,
