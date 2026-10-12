@@ -6,6 +6,17 @@ import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
 import { isWhatsAppUserId, whatsAppDigits } from "@/lib/whatsapp-contact";
 import { getOperationalTimezone } from "./operational-timezone";
 import { foldForSearch } from "./search-normalize";
+import { classifyWithAi } from "./chat-category-ai";
+import { isTeamThread } from "./chat-category-rules";
+import { getTeamPhones } from "./chat-category";
+import { isIgnoredNumber } from "./whatsapp-ignored-numbers";
+import {
+  classifyExportRules,
+  decideExport,
+  type ExportClassification,
+  type ExportClassifyInput,
+  type ExportDecision,
+} from "./whatsapp-export-classify";
 import {
   detectDayanaAuthor,
   normalizePhoneInput,
@@ -56,6 +67,12 @@ export type ExportFilePreview = {
   candidates: ExportMatchCandidate[];
   /** Más de dos personas escribiendo: es un grupo y no se importa. */
   isGroup: boolean;
+  /** ¿Trabajo o personal? Lo personal no se sube al CRM. */
+  classification: ExportClassification & { source: "rules" | "ai" };
+  /** Lo que se propone: importar, saltar o que Dayana revise. */
+  decision: ExportDecision;
+  /** El número ya está en la lista de personales: no se importa. */
+  ignored: boolean;
 };
 
 const looksLikePhone = (value: string | null | undefined) => Boolean(value && normalizePhoneInput(value));
@@ -125,28 +142,122 @@ export const findExportCandidates = async (
   return out;
 };
 
-const previewOf = async (file: ExportTextFile, parsed: ParsedExportFile): Promise<ExportFilePreview> => {
+/** Lo que el CRM sabe de un número: si pagó, se inscribió, agendó… o es del equipo. */
+export const crmFactsForPhone = async (
+  phoneE164: string | null,
+  teamPhones: string[]
+): Promise<NonNullable<ExportClassifyInput["crm"]>> => {
+  if (!phoneE164) return {};
+  const thread = whatsAppDigits(phoneE164);
+  const contacts = await prisma.contact.findMany({
+    where: { phoneE164: { in: contactPhoneCandidates(thread) } },
+    select: { id: true },
+    take: 3,
+  });
+  const ids = contacts.map((c) => c.id);
+  const [payments, enrollments, diagnostics, webinars, appointments] = ids.length
+    ? await Promise.all([
+        prisma.payment.count({ where: { status: "APPROVED", enrollment: { contactId: { in: ids } } } }),
+        prisma.enrollment.count({ where: { contactId: { in: ids } } }),
+        prisma.diagnostic.count({ where: { contactId: { in: ids } } }),
+        prisma.webinarRegistration.count({ where: { contactId: { in: ids } } }),
+        prisma.calendarAppointment.count({ where: { contactId: { in: ids } } }),
+      ])
+    : [0, 0, 0, 0, 0];
+  return {
+    isTeam: isTeamThread(thread, teamPhones),
+    hasPayment: payments > 0,
+    hasEnrollment: enrollments > 0,
+    hasDiagnostic: diagnostics > 0,
+    hasWebinar: webinars > 0,
+    hasAppointment: appointments > 0,
+  };
+};
+
+/** Las primeras y las últimas líneas: el modelo no necesita el chat entero para saber si es trabajo. */
+const AI_SAMPLE = 15;
+
+/**
+ * Lo que las reglas no saben decidir, lo mira el modelo pequeño (las mismas
+ * reglas de privacidad que al clasificar chats: números y correos tapados).
+ * Si no hay modelo o falla, queda «revisar».
+ */
+const classifyWithModel = async (
+  parsed: ParsedExportFile,
+  dayanaAuthor: string | null
+): Promise<(ExportClassification & { source: "ai" }) | null> => {
+  if (!process.env.GEMINI_API_KEY?.trim()) return null;
+  const sample =
+    parsed.messages.length <= AI_SAMPLE * 2
+      ? parsed.messages
+      : [...parsed.messages.slice(0, AI_SAMPLE), ...parsed.messages.slice(-AI_SAMPLE)];
+  try {
+    const verdict = await classifyWithAi({
+      messages: sample.map((m) => ({
+        direction: dayanaAuthor && m.author === dayanaAuthor ? "OUTBOUND" : "INBOUND",
+        body: m.body,
+        isEcho: false,
+      })),
+      hints: ["Chat antiguo exportado del celular de Dayana (antes de conectar el CRM)."],
+    });
+    const reasons = [verdict.reason];
+    // Una empresa o un bot tampoco es una clienta: no se sube, igual que lo personal.
+    if (verdict.category === "personal" || verdict.category === "negocio") {
+      return { verdict: "personal", confidence: verdict.confidence, reasons, source: "ai" };
+    }
+    if (verdict.category === "otro") return { verdict: "unknown", confidence: verdict.confidence, reasons, source: "ai" };
+    return { verdict: "business", confidence: verdict.confidence, reasons, source: "ai" };
+  } catch (e) {
+    console.warn("[importar chats] la IA no pudo clasificar", e instanceof Error ? e.message : e);
+    return null;
+  }
+};
+
+const previewOf = async (
+  file: ExportTextFile,
+  parsed: ParsedExportFile,
+  teamPhones: string[]
+): Promise<ExportFilePreview> => {
   const candidates = await findExportCandidates(parsed.contactName, parsed.phoneFromName);
   const dates = parsed.messages.map((m) => m.sentAt.getTime());
+  const phoneE164 = parsed.phoneFromName ?? candidates[0]?.phoneE164 ?? null;
+  const dayanaAuthor = detectDayanaAuthor(parsed.authors, { contactName: parsed.contactName });
+
+  const rules = classifyExportRules({
+    authors: parsed.authors,
+    dayanaAuthor,
+    messages: parsed.messages,
+    crm: await crmFactsForPhone(phoneE164, teamPhones),
+  });
+  let classification: ExportFilePreview["classification"] = { ...rules, source: "rules" };
+  if (decideExport(rules) === "review") {
+    const ai = await classifyWithModel(parsed, dayanaAuthor);
+    if (ai) classification = ai;
+  }
+  const ignored = phoneE164 ? await isIgnoredNumber(whatsAppDigits(phoneE164)) : false;
+
   return {
     fileName: file.fileName,
     contactName: parsed.contactName,
-    phoneE164: parsed.phoneFromName ?? candidates[0]?.phoneE164 ?? null,
+    phoneE164,
     authors: parsed.authors,
-    dayanaAuthor: detectDayanaAuthor(parsed.authors, { contactName: parsed.contactName }),
+    dayanaAuthor,
     messageCount: parsed.messages.length,
     firstAt: dates.length ? new Date(Math.min(...dates)).toISOString() : null,
     lastAt: dates.length ? new Date(Math.max(...dates)).toISOString() : null,
     candidates,
     isGroup: parsed.authors.length > 2,
+    classification,
+    decision: ignored ? "skip" : decideExport(classification),
+    ignored,
   };
 };
 
 export const previewExportFiles = async (files: ExportTextFile[]): Promise<ExportFilePreview[]> => {
-  const timeZone = await getOperationalTimezone();
+  const [timeZone, teamPhones] = await Promise.all([getOperationalTimezone(), getTeamPhones().catch(() => [])]);
   const out: ExportFilePreview[] = [];
   for (const file of files) {
-    out.push(await previewOf(file, parseExportFile(file.fileName, file.text, timeZone)));
+    out.push(await previewOf(file, parseExportFile(file.fileName, file.text, timeZone), teamPhones));
   }
   return out;
 };
@@ -164,7 +275,7 @@ export type ExportImportResult = {
 };
 
 export class ExportImportError extends Error {
-  constructor(public code: "invalid_phone" | "no_messages" | "group_chat") {
+  constructor(public code: "invalid_phone" | "no_messages" | "group_chat" | "ignored_number") {
     super(code);
   }
 }
@@ -194,6 +305,8 @@ export const importExportChat = async (input: {
   const parsed = parseExportFile(input.fileName, input.text, input.timeZone ?? (await getOperationalTimezone()));
   if (parsed.messages.length === 0) throw new ExportImportError("no_messages");
   if (parsed.authors.length > 2) throw new ExportImportError("group_chat");
+  // Un número personal de Dayana no se sube, aunque alguien lo intente.
+  if (await isIgnoredNumber(whatsAppDigits(phone))) throw new ExportImportError("ignored_number");
 
   const threadId = whatsAppDigits(phone);
   const legacyId = phone.replace(/\D/g, "");

@@ -150,6 +150,9 @@ const LINE =
 const PLACEHOLDER =
   /^(<[^>]*omitid[oa]>|<media omitted>|.*\bomitid[oa]$|se eliminó este mensaje\.?|este mensaje fue eliminado\.?|eliminaste este mensaje\.?|null)$/i;
 
+/** Orden de la fecha en un archivo: día/mes (casi siempre) o mes/día (celular en inglés de EE. UU.). */
+export type DateOrder = "DMY" | "MDY";
+
 const toDate = (
   d: number,
   m: number,
@@ -157,11 +160,12 @@ const toDate = (
   h: number,
   min: number,
   s: number,
-  ampm: string | undefined
+  ampm: string | undefined,
+  order: DateOrder = "DMY"
 ): Date => {
-  let day = d;
-  let month = m;
-  // Casi siempre día/mes; si el «mes» pasa de 12, el orden era mes/día.
+  let day = order === "DMY" ? d : m;
+  let month = order === "DMY" ? m : d;
+  // Una línea que no cuadra con el orden del archivo: se voltea solo esa.
   if (month > 12 && day <= 12) [day, month] = [month, day];
   const year = y < 100 ? 2000 + y : y;
   let hour = h;
@@ -173,6 +177,32 @@ const toDate = (
   return new Date(year, month - 1, day, hour, min, s);
 };
 
+/**
+ * El orden de la fecha se decide UNA vez por archivo, no línea por línea (una
+ * línea «03/04» sola no dice si es 3 de abril o 4 de marzo, y mezclarlas
+ * desordena el chat):
+ * - si algún primer número pasa de 12, es día/mes; si algún segundo, mes/día;
+ * - si no, el orden con el que las fechas avanzan (un chat va hacia adelante);
+ * - empate: día/mes.
+ */
+export const detectDateOrder = (dates: { a: number; b: number; y: number; minutes: number }[]): DateOrder => {
+  if (dates.some((x) => x.a > 12)) return "DMY";
+  if (dates.some((x) => x.b > 12)) return "MDY";
+  const backwards = (order: DateOrder) => {
+    let count = 0;
+    let prev = -Infinity;
+    for (const x of dates) {
+      const day = order === "DMY" ? x.a : x.b;
+      const month = order === "DMY" ? x.b : x.a;
+      const t = ((x.y * 13 + month) * 32 + day) * 1440 + x.minutes;
+      if (t < prev) count++;
+      prev = t;
+    }
+    return count;
+  };
+  return backwards("MDY") < backwards("DMY") ? "MDY" : "DMY";
+};
+
 export const parseWhatsAppExport = (raw: string): ParsedExport => {
   const messages: ExportedMessage[] = [];
   const lines = raw
@@ -182,6 +212,16 @@ export const parseWhatsAppExport = (raw: string): ParsedExport => {
     .replace(/[\u202f\u00a0]/g, " ")
     .split("\n");
 
+  const order = detectDateOrder(
+    lines.flatMap((line) => {
+      const match = LINE.exec(line.trim());
+      if (!match) return [];
+      const [, d, m, y, h, min, , ampm] = match;
+      const hour = ampm ? (+h % 12) + (ampm.toLowerCase() === "p" ? 12 : 0) : +h;
+      return [{ a: +d, b: +m, y: +y < 100 ? 2000 + +y : +y, minutes: hour * 60 + +min }];
+    })
+  );
+
   let current: ExportedMessage | null = null;
   for (const line of lines) {
     const match = LINE.exec(line.trim());
@@ -190,7 +230,7 @@ export const parseWhatsAppExport = (raw: string): ParsedExport => {
       current = {
         sender: sender.trim(),
         text: text.trim(),
-        at: toDate(+d, +m, +y, +h, +min, s ? +s : 0, ampm),
+        at: toDate(+d, +m, +y, +h, +min, s ? +s : 0, ampm, order),
       };
       messages.push(current);
       continue;

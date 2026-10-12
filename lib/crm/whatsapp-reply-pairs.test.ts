@@ -118,3 +118,31 @@ describe("parseWhatsAppExport", () => {
     );
   });
 });
+
+import { detectDateOrder } from "./whatsapp-reply-pairs";
+
+describe("orden de la fecha: una vez por archivo", () => {
+  test("un día mayor que 12 decide día/mes para todo el archivo", () => {
+    const { messages } = parseWhatsAppExport(
+      ["03/04/26, 10:00 - Ana: Hola", "13/04/26, 10:00 - Ana: ¿Sigues ahí?"].join("\n")
+    );
+    expect(messages[0].at.getMonth()).toBe(3); // abril
+    expect(messages[0].at.getDate()).toBe(3);
+  });
+
+  test("un celular en inglés (mes/día): todas las líneas se leen igual", () => {
+    const { messages } = parseWhatsAppExport(
+      ["3/4/26, 10:00 AM - Ana: Hi", "3/25/26, 10:00 AM - Ana: Still there?"].join("\n")
+    );
+    expect(messages[0].at.getMonth()).toBe(2); // marzo
+    expect(messages[0].at.getDate()).toBe(4);
+    expect(messages[1].at.getDate()).toBe(25);
+  });
+
+  test("sin números mayores que 12: el orden con el que el chat avanza", () => {
+    // 1/12 → 2/1: como día/mes retrocede (1 dic → 2 ene); como mes/día avanza (12 ene → 1 feb).
+    expect(detectDateOrder([{ a: 1, b: 12, y: 2026, minutes: 0 }, { a: 2, b: 1, y: 2026, minutes: 0 }])).toBe("MDY");
+    // Avanza de las dos formas: día/mes.
+    expect(detectDateOrder([{ a: 1, b: 2, y: 2026, minutes: 0 }, { a: 1, b: 3, y: 2026, minutes: 0 }])).toBe("DMY");
+  });
+});

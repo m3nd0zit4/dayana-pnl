@@ -2287,6 +2287,18 @@ model WhatsAppKnownContact {
   @@map("whatsapp_known_contacts")
 }
 
+/// Números personales de Dayana (familia, amigos) que la IA nunca atiende y
+/// que no se importan. Solo se guarda una huella (HMAC) del número, nunca el
+/// número ni el nombre: el CRM no guarda nada de su vida personal.
+model WhatsAppIgnoredNumber {
+  phoneHash String   @id @map("phone_hash")
+  /// De dónde salió: `phone_export` (importación) o `manual`.
+  source    String   @default("manual")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("whatsapp_ignored_numbers")
+}
+
 enum WhatsAppAiMode {
   AUTO
   COPILOT

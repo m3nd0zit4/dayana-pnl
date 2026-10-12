@@ -27,13 +27,13 @@ const ANA1 = "+573000008802";
 const ANA2 = "+573000008803";
 const PEDRO = "+573000008804";
 
-const ev = (id: string, summary: string, hoursFromNow: number, extra: Partial<CalendarEvent> = {}): CalendarEvent => {
+const ev = (id: string, summary: string, hoursFromNow: number, extra: Partial<CalendarEvent> = {}, minutes = 60): CalendarEvent => {
   const start = new Date(Date.now() + hoursFromNow * 3600_000);
   return {
     id: `e2e-${run}-${id}`,
     summary,
     start: { dateTime: start.toISOString() },
-    end: { dateTime: new Date(start.getTime() + 60 * 60_000).toISOString() },
+    end: { dateTime: new Date(start.getTime() + minutes * 60_000).toISOString() },
     hangoutLink: "https://meet.google.com/abc-defg-hij",
     ...extra,
   };
@@ -63,7 +63,7 @@ const main = async () => {
   const events = [
     ev("laura", `3/6 Laurita ${surnames}`, 24), // sin número, una sola persona → se completa
     ev("ana", `Anabella ${surnames}`, 48), // dos personas → pregunta a Dayana
-    ev("pedro", `0/0 Pedrito ${surnames} ${PEDRO}`, 24), // ya trae el número
+    ev("pedro", `0/0 Pedrito ${surnames} ${PEDRO}`, 24, {}, 15), // llamada gratis de 15 min; ya trae el número
     ev("disp", "Disponible", 30), // bloque de disponibilidad → no es cita
     ev("libre", "Almuerzo", 26, { transparency: "transparent" }), // libre → no es cita
   ];

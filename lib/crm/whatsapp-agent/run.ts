@@ -31,6 +31,7 @@ import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal
 import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
 import { categoryGate, type CategoryGate } from "./category-gate";
 import { conversationSituation, situationText } from "./situation";
+import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -754,6 +755,8 @@ const gate = async (
       if (hadBusiness === 0) return { skip: true, reason: "known_contact" };
     }
   }
+  // Dayana marcó el número como personal (familia, amigos): nunca contesta.
+  if (await isIgnoredNumber(conversation.externalThreadId)) return { skip: true, reason: "personal_number" };
   if (config.audience.skipCustomers && (conversation.contact?.enrollments.length ?? 0) > 0) {
     return { skip: true, reason: "customer" };
   }

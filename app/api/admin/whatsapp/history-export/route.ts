@@ -3,12 +3,14 @@ import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { normalizePhoneInput } from "@/lib/crm/whatsapp-export-history";
 import {
   ExportImportError,
   exportTextsFromUpload,
   importExportChat,
   previewExportFiles,
 } from "@/lib/crm/whatsapp-export-import";
+import { ignoreNumbers, unignoreNumber } from "@/lib/crm/whatsapp-ignored-numbers";
 
 export const dynamic = "force-dynamic";
 // Un chat de años son miles de mensajes, y al final se aprende de ellos.
@@ -26,10 +28,18 @@ const importSchema = z.object({
   dayanaAuthor: z.string().trim().max(120).nullable(),
 });
 
+const numberSchema = z.object({
+  action: z.enum(["ignore", "unignore"]),
+  phoneE164: z.string().trim().min(6).max(32),
+});
+
+const bodySchema = z.discriminatedUnion("action", [importSchema, numberSchema]);
+
 const ERROR_STATUS: Record<ExportImportError["code"], number> = {
   invalid_phone: 400,
   no_messages: 422,
   group_chat: 422,
+  ignored_number: 409,
 };
 
 /**
@@ -37,9 +47,13 @@ const ERROR_STATUS: Record<ExportImportError["code"], number> = {
  *
  * - multipart con `action=preview` y uno o varios `files` (.txt o .zip):
  *   devuelve, por chat, el contacto, el número, con quién podría ser, quién
- *   escribe y cuántos mensajes trae. No guarda nada.
+ *   escribe, cuántos mensajes trae y si parece de trabajo o personal. No
+ *   guarda nada.
  * - JSON `{ action: "import", fileName, text, phoneE164, dayanaAuthor }`: un
  *   chat por pedido. Guarda los mensajes como historial (idempotente).
+ * - JSON `{ action: "ignore" | "unignore", phoneE164 }`: el número es personal
+ *   (familia, amigos): la IA no le contesta y su chat no se importa. Solo se
+ *   guarda su huella, nunca el número.
  */
 export const POST = withStaff("owner", async ({ req, staff }) => {
   const length = Number(req.headers.get("content-length") ?? 0);
@@ -63,9 +77,27 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
     return NextResponse.json({ files });
   }
 
-  const parsed = importSchema.safeParse(await readJson(req));
+  const parsed = bodySchema.safeParse(await readJson(req));
   if (!parsed.success) return apiError("invalid_request", 400);
-  const { fileName, text, phoneE164, dayanaAuthor } = parsed.data;
+  const body = parsed.data;
+
+  if (body.action !== "import") {
+    const phone = normalizePhoneInput(body.phoneE164);
+    if (!phone) return apiError("invalid_phone", 400);
+    const added = body.action === "ignore" ? await ignoreNumbers([phone], "phone_export") : 0;
+    if (body.action === "unignore") await unignoreNumber(phone);
+    fireAuditLog({
+      staffUserId: staff.id,
+      action: "UPDATE",
+      entityType: "WhatsAppIgnoredNumber",
+      entityId: body.action,
+      // Sin el número: la lista de personales no deja rastro de quién es.
+      changes: { action: body.action, added },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  const { fileName, text, phoneE164, dayanaAuthor } = body;
   try {
     const result = await importExportChat({ fileName, text, phoneE164, dayanaAuthor });
     fireAuditLog({
