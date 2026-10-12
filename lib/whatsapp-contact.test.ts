@@ -32,3 +32,40 @@ describe("usuarios sin número (BSUID)", () => {
     expect(whatsAppRecipient("573107785255")).toEqual({ to: "573107785255" });
   });
 });
+
+import { contactPhoneCandidates, whatsAppIdVariants } from "./whatsapp-contact";
+
+describe("whatsAppIdVariants: el mismo número como id de chat", () => {
+  test("México: 52 ↔ 521, la forma tal cual primero", () => {
+    expect(whatsAppIdVariants("5215512345678")).toEqual(["5215512345678", "525512345678"]);
+    expect(whatsAppIdVariants("525512345678")).toEqual(["525512345678", "5215512345678"]);
+  });
+
+  test("Argentina: 54 ↔ 549", () => {
+    expect(whatsAppIdVariants("5491123456789")).toEqual(["5491123456789", "541123456789"]);
+    expect(whatsAppIdVariants("541123456789")).toEqual(["541123456789", "5491123456789"]);
+  });
+
+  test("Brasil: celular con y sin el 9", () => {
+    expect(whatsAppIdVariants("5511987654321")).toEqual(["5511987654321", "551187654321"]);
+    expect(whatsAppIdVariants("551187654321")).toEqual(["551187654321", "5511987654321"]);
+  });
+
+  test("Brasil: un fijo no gana un 9 (sería otra persona)", () => {
+    expect(whatsAppIdVariants("551133334444")).toEqual(["551133334444"]);
+  });
+
+  test("Colombia y el resto: una sola forma", () => {
+    expect(whatsAppIdVariants("573001234567")).toEqual(["573001234567"]);
+    expect(whatsAppIdVariants("+57 300 123 4567")).toEqual(["573001234567"]);
+  });
+
+  test("id de usuario (BSUID): sin variantes ni teléfono", () => {
+    expect(whatsAppIdVariants("PE.2290670648352185")).toEqual(["PE.2290670648352185"]);
+    expect(contactPhoneCandidates("PE.2290670648352185")).toEqual([]);
+  });
+
+  test("contactPhoneCandidates: E.164 de cada forma", () => {
+    expect(contactPhoneCandidates("5215512345678")).toEqual(["+5215512345678", "+525512345678"]);
+  });
+});

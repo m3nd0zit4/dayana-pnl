@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { authorized } from "@/lib/cron-auth";
 import { kickSweep } from "@/lib/meta/inbox";
 import { classifyFromCron } from "@/lib/crm/chat-category";
-import { sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
+import { areRemindersEnabled, sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
 
 export const runtime = "nodejs";
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
   const started = Date.now();
   const steps = [
     await step("citas", () => syncAppointments()),
-    await step("recordatorios", () => sendDueReminders()),
+    await step("recordatorios", async () => ((await areRemindersEnabled()) ? sendDueReminders() : { off: true })),
     await step("cola", () => kickSweep()),
     await step("plantillas", () => refreshTemplatesIfPending()),
     await step("clasificar", () =>

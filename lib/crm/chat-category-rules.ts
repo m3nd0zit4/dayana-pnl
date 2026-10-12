@@ -20,6 +20,8 @@
  * hay nada, es `otro` (solo le escribimos nosotros).
  */
 
+import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
+
 export const CHAT_CATEGORIES = [
   "cliente",
   "interesada",
@@ -179,16 +181,11 @@ export const parseTeamPhones = (raw: string | null | undefined): string[] => {
 
 /**
  * Las formas en dígitos en que puede llegar un número como id del chat:
- * México 52 ↔ 521 y Argentina 54 ↔ 549 (igual que `contactPhoneCandidates`).
+ * México 52 ↔ 521, Argentina 54 ↔ 549 y Brasil con y sin 9 (`whatsAppIdVariants`).
  */
 export const phoneDigitVariants = (phone: string): string[] => {
   const d = phone.replace(/\D/g, "");
-  const out = [d];
-  if (d.length === 13 && (d.startsWith("521") || d.startsWith("549"))) out.push(`${d.slice(0, 2)}${d.slice(3)}`);
-  if (d.length === 12 && (d.startsWith("52") || d.startsWith("54"))) {
-    out.push(`${d.slice(0, 2)}${d.startsWith("52") ? "1" : "9"}${d.slice(2)}`);
-  }
-  return out;
+  return d ? whatsAppIdVariants(d) : [d];
 };
 
 /** ¿El hilo (`externalThreadId`) es uno de los números del equipo? */

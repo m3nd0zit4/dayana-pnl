@@ -8,6 +8,7 @@ import { resolvePageCredentials } from "./credentials";
 import type { NormalizedEvent, NormalizedMessage } from "./inbound";
 import { rehostAttachment, type StoredAttachment } from "./media";
 import { applyStatus } from "./status";
+import { resolveWhatsAppThreadId } from "./whatsapp-thread";
 
 /**
  * Persistencia de los eventos entrantes de Meta.
@@ -61,7 +62,8 @@ export const claimMetaEvent = async (
  */
 const resolveContactId = async (
   channel: ConversationChannel,
-  threadId: string
+  threadId: string,
+  altThreadIds: string[] = []
 ): Promise<string | null> => {
   const identity = await prisma.contactChannelIdentity.findUnique({
     where: { channel_externalId: { channel, externalId: threadId } },
@@ -74,8 +76,12 @@ const resolveContactId = async (
   // WhatsApp entrega el número sin `+`; los contactos se guardan en E.164.
   // México llega como 521… y Argentina como 549…, pero el contacto puede
   // estar guardado como +52… / +54…: se prueban las dos formas.
+  // Un id de usuario no trae teléfono; si el mensaje trajo el número como
+  // alterno, el contacto se encuentra por él.
+  const phones = [threadId, ...altThreadIds].flatMap((id) => contactPhoneCandidates(id));
+  if (phones.length === 0) return null;
   const contact = await prisma.contact.findFirst({
-    where: { phoneE164: { in: contactPhoneCandidates(threadId) } },
+    where: { phoneE164: { in: phones } },
     select: { id: true },
   });
   return contact?.id ?? null;
@@ -154,8 +160,14 @@ export type IngestResult =
 
 /** Guarda un mensaje entrante (o un eco saliente) y actualiza su hilo. */
 export const ingestMessage = async (
-  message: NormalizedMessage
+  input: NormalizedMessage
 ): Promise<IngestResult> => {
+  // Si la persona ya tiene chat con otra forma de su número (o con su id de
+  // usuario), el mensaje va a ese chat.
+  const message =
+    input.channel === "WHATSAPP"
+      ? { ...input, threadId: await resolveWhatsAppThreadId(input.threadId, input.altThreadIds) }
+      : input;
   const already = await prisma.conversationMessage.findUnique({
     where: { externalMessageId: message.externalMessageId },
     select: { id: true },
@@ -170,7 +182,7 @@ export const ingestMessage = async (
   }
 
   const attachments = await storeAttachments(message);
-  const contactId = await resolveContactId(message.channel, message.threadId);
+  const contactId = await resolveContactId(message.channel, message.threadId, message.altThreadIds);
 
   const where = {
     channel_externalThreadId: {

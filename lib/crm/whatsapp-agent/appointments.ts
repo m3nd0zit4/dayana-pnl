@@ -4,13 +4,14 @@ import { resolveGoogleAccount } from "@/agent/lib/google";
 import { prisma } from "@/lib/db";
 import { listEvents, patchEventText, type CalendarEvent } from "@/lib/google/calendar";
 import { fireNotification } from "@/lib/notifications/platform/emit";
-import { contactPhoneCandidates, whatsAppDigits } from "@/lib/whatsapp-contact";
+import { contactPhoneCandidates, isWhatsAppUserId, whatsAppDigits, whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { getOperationalTimezone } from "../operational-timezone";
+import { getSiteSettingBoolean } from "../site-settings";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { appointmentCoversUntil, appointmentJustLinked } from "../whatsapp-pending-rules";
 import { isAvailabilityBlock } from "./calendar";
-import { foldName, nameMatches, parseEventTitle, withPhone } from "./event-title";
+import { foldName, isFreeCallAppointment, nameMatches, parseEventTitle, withPhone } from "./event-title";
 import { resolveConversations } from "./pending";
 
 /**
@@ -25,6 +26,21 @@ import { resolveConversations } from "./pending";
  */
 
 const DAY = 24 * 3600_000;
+
+/**
+ * Completar el número en el título del evento cambia el Google Calendar de
+ * Dayana: va apagado hasta que ella lo encienda (`true`). Elegir la persona a
+ * mano en Agenda sí lo completa, porque ahí lo pidió ella.
+ */
+export const TITLE_PATCH_KEY = "whatsapp.appointments.title_patch";
+/** Recordatorios de cita 24 h antes desde el reloj. Encendidos salvo `false`. */
+export const REMINDERS_ENABLED_KEY = "whatsapp.cron.reminders_enabled";
+
+export const isTitlePatchEnabled = async (): Promise<boolean> =>
+  (await getSiteSettingBoolean(TITLE_PATCH_KEY).catch(() => null)) === true;
+
+export const areRemindersEnabled = async (): Promise<boolean> =>
+  (await getSiteSettingBoolean(REMINDERS_ENABLED_KEY).catch(() => null)) !== false;
 
 export type Candidate = { name: string; phone: string; contactId: string | null; conversationId: string | null };
 
@@ -78,7 +94,7 @@ const byPhone = async (digits: string): Promise<{ contactId: string | null; conv
   const [contact, conv] = await Promise.all([
     prisma.contact.findFirst({ where: { phoneE164: { in: contactPhoneCandidates(thread) } }, select: { id: true } }),
     prisma.conversation.findFirst({
-      where: { channel: "WHATSAPP", externalThreadId: { in: [thread, digits] } },
+      where: { channel: "WHATSAPP", externalThreadId: { in: [...new Set([thread, digits].flatMap(whatsAppIdVariants))] } },
       select: { id: true, contactId: true },
     }),
   ]);
@@ -120,9 +136,11 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
       timeMax: new Date(now.getTime() + 30 * DAY).toISOString(),
       maxResults: 250,
     });
-    patchTitle = async (eventId, summary) => {
-      await patchEventText(token, eventId, { summary });
-    };
+    if (await isTitlePatchEnabled()) {
+      patchTitle = async (eventId, summary) => {
+        await patchEventText(token, eventId, { summary });
+      };
+    }
   }
 
   const seenIds: string[] = [];
@@ -302,6 +320,9 @@ export const isReminderDue = (startsAt: Date, now: Date): boolean => {
 const fmt = (d: Date, tz: string, opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("es-CO", { timeZone: tz, ...opts }).format(d);
 
+/** La llamada gratis la hace Dayana por WhatsApp al número de la persona. */
+export const FREE_CALL_BY_WHATSAPP = "Dayana te llamará por WhatsApp a este número.";
+
 export type ReminderResult = { sent: number; failed: number; skipped: number };
 
 /** Recordatorio de WhatsApp 24 h antes. Cada cita se reclama antes de enviar: sale una sola vez. */
@@ -339,14 +360,21 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
       ? (await prisma.contact.findUnique({ where: { id: appt.contactId }, select: { timezone: true } }))?.timezone
       : null;
     const zone = contactTz || tz;
+    // La llamada gratis es por WhatsApp: no hay enlace que mandar.
+    const freeCall = !appt.meetUrl && isFreeCallAppointment(appt);
     const vars = {
       nombre: (appt.name ?? recipient.name ?? "").split(" ")[0] || "",
-      servicio: appt.sessionsLabel && appt.sessionsLabel !== "0/0" ? `tu sesión ${appt.sessionsLabel}` : "tu consulta",
+      servicio: freeCall
+        ? "tu llamada gratis con Dayana"
+        : appt.sessionsLabel && appt.sessionsLabel !== "0/0"
+          ? `tu sesión ${appt.sessionsLabel}`
+          : "tu consulta",
       fecha: fmt(appt.startsAt, zone, { weekday: "long", day: "numeric", month: "long" }),
       hora: fmt(appt.startsAt, zone, { hour: "numeric", minute: "2-digit" }),
-      enlace: appt.meetUrl ?? "(te lo mando antes de la cita)",
+      enlace: freeCall ? FREE_CALL_BY_WHATSAPP : (appt.meetUrl ?? "(te lo mando antes de la cita)"),
     };
-    const text = `Hola ${vars.nombre} 💛 Te recuerdo ${vars.servicio === "tu consulta" ? "tu consulta" : vars.servicio} mañana ${vars.fecha} a las ${vars.hora}.${appt.meetUrl ? ` Enlace: ${appt.meetUrl}` : ""} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.`;
+    const link = freeCall ? ` ${FREE_CALL_BY_WHATSAPP}` : appt.meetUrl ? ` Enlace: ${appt.meetUrl}` : "";
+    const text = `Hola ${vars.nombre} 💛 Te recuerdo ${vars.servicio} mañana ${vars.fecha} a las ${vars.hora}.${link} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.`;
 
     const r = await sendWhatsAppToRecipient({
       recipient,
@@ -416,7 +444,11 @@ export const confirmAppointment = async (
 export const appointmentsFor = async (input: { contactId?: string | null; phone?: string | null }) => {
   const or: Prisma.CalendarAppointmentWhereInput[] = [];
   if (input.contactId) or.push({ contactId: input.contactId });
-  if (input.phone) or.push({ phone: { in: [input.phone, whatsAppDigits(`+${input.phone}`)] } });
+  // Las citas guardan el teléfono; un id de usuario (BSUID) no lo trae.
+  if (input.phone && !isWhatsAppUserId(input.phone)) {
+    const phones = [input.phone, whatsAppDigits(`+${input.phone}`)].flatMap(whatsAppIdVariants);
+    if (phones.length) or.push({ phone: { in: [...new Set(phones)] } });
+  }
   if (or.length === 0) return { next: null, last: null };
   const now = new Date();
   const [next, last] = await Promise.all([

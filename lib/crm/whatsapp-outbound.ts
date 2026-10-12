@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { sendMetaMessage, MetaWindowError, type SendAttachment, type WhatsAppImageRef } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
 import { resolveWhatsAppCredentials } from "@/lib/meta/whatsapp-provider";
+import { resolveWhatsAppThreadId } from "@/lib/meta/whatsapp-thread";
 import { writeAuditLog } from "./audit";
 import { recordContactTouch } from "./whatsapp-touches";
 import {
@@ -37,14 +38,14 @@ export const ensureWhatsAppConversation = async (input: {
   contactId?: string | null;
   name?: string | null;
 }): Promise<{ id: string; lastInboundAt: Date | null }> => {
-  const threadId = whatsAppDigits(input.phoneE164);
+  const waId = whatsAppDigits(input.phoneE164);
   const legacyId = digits(input.phoneE164);
   // Chats creados antes con el E.164 tal cual (México/Argentina): se pasan al
   // número de WhatsApp para que la respuesta de la persona caiga en el mismo.
-  if (legacyId !== threadId) {
+  if (legacyId !== waId) {
     const [current, legacy] = await Promise.all([
       prisma.conversation.findUnique({
-        where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: threadId } },
+        where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: waId } },
         select: { id: true },
       }),
       prisma.conversation.findUnique({
@@ -53,9 +54,11 @@ export const ensureWhatsAppConversation = async (input: {
       }),
     ]);
     if (legacy && !current) {
-      await prisma.conversation.update({ where: { id: legacy.id }, data: { externalThreadId: threadId } });
+      await prisma.conversation.update({ where: { id: legacy.id }, data: { externalThreadId: waId } });
     }
   }
+  // Brasil con o sin 9, u otra forma ya guardada: se usa el chat que existe.
+  const threadId = await resolveWhatsAppThreadId(waId);
   const [credentials, { defaultMode }] = await Promise.all([resolveWhatsAppCredentials(), getWhatsAppAiConfig()]);
   return prisma.conversation.upsert({
     where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: threadId } },

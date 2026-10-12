@@ -90,3 +90,26 @@ export const nameMatches = (eventName: string, personName: string): boolean => {
   const person = new Set(foldName(personName).split(" "));
   return ev.length > 0 && ev.every((w) => person.has(w));
 };
+
+/** Una llamada gratis dura esto o menos; lo que pasa de aquí es una sesión. */
+export const FREE_CALL_MAX_MINUTES = 20;
+
+/**
+ * ¿Esta cita es la llamada gratis? `0/0` sola no basta: también se escribe
+ * para una sesión pagada sin paquete. Cuenta como gratis si la agendó la IA
+ * con un servicio gratis, o si no tiene contador de sesiones (o es `0/0`) Y
+ * dura {@link FREE_CALL_MAX_MINUTES} minutos o menos.
+ */
+export const isFreeCallAppointment = (a: {
+  sessionsLabel: string | null;
+  startsAt: Date;
+  endsAt: Date;
+  /** Servicio con el que la agendó la IA (`WhatsAppBooking.service`), si fue ella. */
+  bookingService?: string | null;
+}): boolean => {
+  const minutes = (a.endsAt.getTime() - a.startsAt.getTime()) / 60_000;
+  if (a.bookingService) return isFreeCallService(a.bookingService, minutes);
+  const label = a.sessionsLabel?.trim();
+  if (label && label !== "0/0") return false;
+  return minutes > 0 && minutes <= FREE_CALL_MAX_MINUTES;
+};

@@ -139,3 +139,45 @@ describe("aviso de Meta sobre una plantilla", () => {
     expect(c.kind === "template" && c.newCategory).toBe("MARKETING");
   });
 });
+
+describe("una persona, un chat (ids de usuario)", () => {
+  test("con teléfono e id de usuario: el teléfono es el hilo y el id va de alterno", () => {
+    const [m] = normalizeMetaPayload(
+      wrap({
+        contacts: [{ wa_id: "573001112233", user_id: "CO.1076407405194545", profile: { name: "Ana" } }],
+        messages: [{ id: "w1", from: "573001112233", from_user_id: "CO.1076407405194545", timestamp: "1", type: "text", text: { body: "Hola" } }],
+      })
+    );
+    expect(m.kind === "message" && m.threadId).toBe("573001112233");
+    expect(m.kind === "message" && m.altThreadIds).toEqual(["CO.1076407405194545"]);
+  });
+
+  test("lo que Dayana escribe desde el celular a un id de usuario no abre un chat fantasma", () => {
+    const [m] = normalizeMetaPayload(
+      wrap(
+        { message_echoes: [{ id: "e1", from: "573105833188", to: "PE.2290670648352185", timestamp: "1", type: "text", text: { body: "Hola" } }] },
+        "smb_message_echoes"
+      )
+    );
+    expect(m.kind === "message" && m.threadId).toBe("PE.2290670648352185");
+    expect(m.kind === "message" && m.isEcho).toBe(true);
+  });
+
+  test("eco con teléfono e id de usuario: el id de usuario va de alterno", () => {
+    const [m] = normalizeMetaPayload(
+      wrap(
+        { message_echoes: [{ id: "e2", from: "573105833188", to: "51987654321", to_user_id: "PE.2290670648352185", timestamp: "1", type: "text", text: { body: "Hola" } }] },
+        "smb_message_echoes"
+      )
+    );
+    expect(m.kind === "message" && m.threadId).toBe("51987654321");
+    expect(m.kind === "message" && m.altThreadIds).toEqual(["PE.2290670648352185"]);
+  });
+
+  test("un mensaje normal no trae alternos", () => {
+    const [m] = normalizeMetaPayload(
+      wrap({ messages: [{ id: "w2", from: "573001112233", timestamp: "1", type: "text", text: { body: "Hola" } }] })
+    );
+    expect(m.kind === "message" && m.altThreadIds).toBeUndefined();
+  });
+});

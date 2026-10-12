@@ -75,3 +75,31 @@ describe("leer el título de una cita", () => {
     expect(nameMatches("Ana Gómez", "Ana María López")).toBe(false);
   });
 });
+
+import { isFreeCallAppointment } from "./event-title";
+
+describe("isFreeCallAppointment", () => {
+  const start = Date.parse("2026-10-15T15:00:00Z");
+  const at = (min: number) => ({ startsAt: new Date(start), endsAt: new Date(start + min * 60_000) });
+
+  test("0/0 de 15 min: llamada gratis", () => {
+    expect(isFreeCallAppointment({ sessionsLabel: "0/0", ...at(15) })).toBe(true);
+  });
+
+  test("sin contador y corta: llamada gratis", () => {
+    expect(isFreeCallAppointment({ sessionsLabel: null, ...at(20) })).toBe(true);
+  });
+
+  test("0/0 de una hora: sesión pagada sin paquete, no gratis", () => {
+    expect(isFreeCallAppointment({ sessionsLabel: "0/0", ...at(60) })).toBe(false);
+  });
+
+  test("con paquete: nunca gratis, aunque sea corta", () => {
+    expect(isFreeCallAppointment({ sessionsLabel: "3/10", ...at(15) })).toBe(false);
+  });
+
+  test("agendada por la IA: manda el servicio", () => {
+    expect(isFreeCallAppointment({ sessionsLabel: "0/0", bookingService: "Consulta gratis 15 min", ...at(15) })).toBe(true);
+    expect(isFreeCallAppointment({ sessionsLabel: "0/0", bookingService: "Sesión de terapia", ...at(60) })).toBe(false);
+  });
+});

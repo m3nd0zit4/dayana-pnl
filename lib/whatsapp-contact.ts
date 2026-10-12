@@ -38,11 +38,35 @@ export const whatsAppRecipient = (
 ): { to: string } | { recipient: string } =>
   isWhatsAppUserId(threadId) ? { recipient: threadId } : { to: toDigits(threadId) };
 
-/** +521… ↔ +52…, +549… ↔ +54…: las formas en que puede estar guardado el contacto. */
-export const contactPhoneCandidates = (threadId: string): string[] => {
+/**
+ * Las formas en que el mismo número puede ser el id de un chat (en dígitos,
+ * la tal cual primero). WhatsApp no siempre usa el E.164:
+ * - México: 52 + 10 ↔ 521 + 10.
+ * - Argentina: 54 + 10 ↔ 549 + 10 (el 9 de los celulares).
+ * - Brasil: los celulares viejos pueden tener el id sin el 9 después del DDD
+ *   (55 + DDD + 8 ↔ 55 + DDD + 9 + 8). Solo celulares (empiezan en 6–9): un
+ *   fijo con un 9 delante sería el número de otra persona.
+ * Un id de usuario (BSUID, «PE.2290…») no tiene variantes.
+ *
+ * Sirve para ENCONTRAR el chat que ya existe; para enviar se usa
+ * {@link whatsAppDigits}.
+ */
+export const whatsAppIdVariants = (threadId: string): string[] => {
+  if (isWhatsAppUserId(threadId)) return [threadId];
   const d = threadId.replace(/\D/g, "");
-  const out = [`+${d}`];
-  if (d.length === 13 && (d.startsWith("521") || d.startsWith("549"))) out.push(`+${d.slice(0, 2)}${d.slice(3)}`);
-  if (d.length === 12 && (d.startsWith("52") || d.startsWith("54"))) out.push(`+${d.slice(0, 2)}${d.startsWith("52") ? "1" : "9"}${d.slice(2)}`);
+  if (!d) return [];
+  const out = [d];
+  if (d.length === 13 && (d.startsWith("521") || d.startsWith("549"))) out.push(`${d.slice(0, 2)}${d.slice(3)}`);
+  if (d.length === 12 && (d.startsWith("52") || d.startsWith("54"))) {
+    out.push(`${d.slice(0, 2)}${d.startsWith("52") ? "1" : "9"}${d.slice(2)}`);
+  }
+  if (d.startsWith("55")) {
+    if (d.length === 13 && d[4] === "9" && /[6-9]/.test(d[5])) out.push(`${d.slice(0, 4)}${d.slice(5)}`);
+    if (d.length === 12 && /[6-9]/.test(d[4])) out.push(`${d.slice(0, 4)}9${d.slice(4)}`);
+  }
   return out;
 };
+
+/** +521… ↔ +52…, +549… ↔ +54…, Brasil con y sin 9: las formas en que puede estar guardado el contacto. */
+export const contactPhoneCandidates = (threadId: string): string[] =>
+  isWhatsAppUserId(threadId) ? [] : whatsAppIdVariants(threadId).map((d) => `+${d}`);

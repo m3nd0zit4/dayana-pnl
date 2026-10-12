@@ -3,6 +3,8 @@ import type {
   MessageDeliveryStatus,
 } from "@prisma/client";
 
+import { isWhatsAppUserId } from "@/lib/whatsapp-contact";
+
 /**
  * Normalización de los webhooks de Meta.
  *
@@ -31,6 +33,12 @@ export type NormalizedMessage = {
   metaAccountId: string;
   /** Identidad de la persona: teléfono, PSID o IGSID. Clave del hilo. */
   threadId: string;
+  /**
+   * Otros ids de la misma persona en este mensaje (WhatsApp: el id de usuario
+   * cuando vino el teléfono, o al revés). Si ya hay un chat con uno de ellos,
+   * el mensaje va a ese chat y no se abre otro.
+   */
+  altThreadIds?: string[];
   externalMessageId: string;
   /** Un eco (enviado desde la app de Meta) se guarda como saliente. */
   isEcho: boolean;
@@ -258,6 +266,7 @@ const parseWhatsAppMessage = (
   ctx: {
     metaAccountId: string;
     threadId: string;
+    altThreadIds?: (string | null)[];
     isEcho: boolean;
     participantName: string | null;
     isHistory?: boolean;
@@ -366,6 +375,7 @@ const parseWhatsAppMessage = (
     channel: "WHATSAPP",
     metaAccountId: ctx.metaAccountId,
     threadId: ctx.threadId,
+    ...altIds(ctx.threadId, ctx.altThreadIds),
     externalMessageId: id,
     isEcho: ctx.isEcho,
     body,
@@ -383,6 +393,20 @@ const digits = (value: string | null): string | null =>
   value ? value.replace(/\D/g, "") || null : null;
 
 /**
+ * Id de una persona en WhatsApp: el teléfono en dígitos, o el id de usuario
+ * (BSUID, «PE.2290…») tal cual. Pasarlo por `digits` lo volvía un número que
+ * no existe y abría un chat fantasma.
+ */
+const whatsAppId = (value: string | null): string | null =>
+  value && isWhatsAppUserId(value.trim()) ? value.trim() : digits(value);
+
+/** Los ids alternos, sin repetir el principal ni vacíos. */
+const altIds = (threadId: string, alts: (string | null)[] | undefined): { altThreadIds?: string[] } => {
+  const out = [...new Set((alts ?? []).map((a) => whatsAppId(a)).filter((a): a is string => Boolean(a) && a !== threadId))];
+  return out.length ? { altThreadIds: out } : {};
+};
+
+/**
  * Lo que Dayana escribe desde la app del celular (coexistencia). Va al hilo
  * del destinatario (`to`), como saliente.
  */
@@ -394,11 +418,13 @@ const normalizeWhatsAppEchoes = (
   const events: NormalizedEvent[] = [];
   for (const entry of asArray(value.message_echoes)) {
     const message = asRecord(entry);
-    const to = digits(asString(message?.to));
+    const toUser = asString(message?.to_user_id);
+    const to = whatsAppId(asString(message?.to) ?? toUser);
     if (!message || !to) continue;
     const parsed = parseWhatsAppMessage(message, {
       metaAccountId,
       threadId: to,
+      altThreadIds: [toUser],
       isEcho: true,
       participantName: null,
     });
@@ -423,13 +449,13 @@ const normalizeWhatsAppHistory = (
     const chunk = asRecord(rawChunk);
     for (const rawThread of asArray(chunk?.threads)) {
       const thread = asRecord(rawThread);
-      const threadId = digits(asString(thread?.id));
+      const threadId = whatsAppId(asString(thread?.id));
       if (!thread || !threadId) continue;
 
       for (const rawMessage of asArray(thread.messages)) {
         const message = asRecord(rawMessage);
         if (!message) continue;
-        const from = digits(asString(message.from));
+        const from = whatsAppId(asString(message.from));
         const parsed = parseWhatsAppMessage(message, {
           metaAccountId,
           threadId,
@@ -500,6 +526,7 @@ const normalizeWhatsAppValue = (
     const parsed = parseWhatsAppMessage(message, {
       metaAccountId,
       threadId: from,
+      altThreadIds: [asString(message.from_user_id), asString(contacts[0]?.user_id), asString(contacts[0]?.wa_id)],
       isEcho: false,
       participantName:
         profileNames.get(from) ??
