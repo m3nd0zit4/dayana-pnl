@@ -1,19 +1,23 @@
 import { NextResponse } from "next/server";
 
 import { withStaff } from "@/lib/api/handler";
+import { isStage } from "@/lib/crm/whatsapp-agent/stage";
 import { chatCategoryWhere, isChatCategoryFilter } from "@/lib/crm/whatsapp-agent/workspace";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Personas que escribieron, con lo que la IA recuerda de cada una.
+ * Personas que escribieron, con lo que la IA sabe de cada una (la ficha, o la
+ * memoria si no hay ficha) y en qué estado está con Dayana.
  * `category`: solo una categoría (o `unclassified` / `review`).
+ * `stage`: solo un estado (`stage.ts`).
  */
 export const GET = withStaff("read", async ({ req }) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim();
   const category = url.searchParams.get("category");
+  const stage = url.searchParams.get("stage");
   const chats = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
@@ -27,6 +31,7 @@ export const GET = withStaff("read", async ({ req }) => {
             }
           : {},
         chatCategoryWhere(isChatCategoryFilter(category) ? category : null),
+        isStage(stage) ? { dossier: { stage } } : {},
       ],
     },
     orderBy: { lastMessageAt: "desc" },
@@ -42,6 +47,7 @@ export const GET = withStaff("read", async ({ req }) => {
       categoryReview: true,
       categorySource: true,
       contact: { select: { firstName: true, lastName: true } },
+      dossier: { select: { stage: true, summary: true } },
       _count: { select: { messages: true, aiBookings: true } },
     },
   });
@@ -73,6 +79,8 @@ export const GET = withStaff("read", async ({ req }) => {
       memoryUpdatedAt: memoryBy.get(c.externalThreadId)?.updatedAt.toISOString() ?? null,
       category: c.category,
       categoryReview: c.categoryReview && c.categorySource !== "manual",
+      stage: c.dossier?.stage ?? null,
+      summary: c.dossier?.summary?.trim() || null,
     })),
   });
 });

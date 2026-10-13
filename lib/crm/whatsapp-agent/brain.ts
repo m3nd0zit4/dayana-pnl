@@ -11,7 +11,7 @@ import { BRAND } from "@/lib/contact";
 import { getSiteUrl } from "@/lib/site-url";
 import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
-import { findSimilarExamples, type SimilarExample } from "../whatsapp-learning";
+import { findSimilarExamples, humanReplySql, notLearnableChatSql, type SimilarExample } from "../whatsapp-learning";
 import { lastInboundSeen } from "../whatsapp-pending-rules";
 import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
@@ -23,6 +23,7 @@ import { countryName, describeRequestedTime, MULTI_ZONE_COUNTRIES, resolvePerson
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
+import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
   afterFreeCallBooked,
   bookFreeCall,
@@ -511,11 +512,16 @@ const formatSlot = (iso: string, timezone: string): string => {
 
 /** Búsqueda literal en lo que Dayana ha escrito (complementa los vectores). */
 const searchDayanaReplies = async (query: string): Promise<string[]> => {
+  // Solo lo que Dayana escribió contestando en chats de trabajo: ni la IA, ni
+  // masivos, ni la familia.
   const rows = await prisma.$queryRaw<{ body: string }[]>(Prisma.sql`
-    SELECT body FROM conversation_messages
-    WHERE direction = 'OUTBOUND' AND is_auto_reply = false AND body IS NOT NULL
-      AND to_tsvector('spanish', body) @@ plainto_tsquery('spanish', ${query})
-    ORDER BY sent_at DESC
+    SELECT m.body FROM conversation_messages m
+    JOIN conversations c ON c.id = m.conversation_id
+    LEFT JOIN whatsapp_dossiers d ON d.conversation_id = c.id
+    WHERE ${humanReplySql} AND m.body IS NOT NULL AND c.channel = 'WHATSAPP'
+      AND NOT ${notLearnableChatSql}
+      AND to_tsvector('spanish', m.body) @@ plainto_tsquery('spanish', ${query})
+    ORDER BY m.sent_at DESC
     LIMIT 5`);
   return rows.map((r) => r.body.slice(0, 500));
 };
@@ -540,6 +546,8 @@ export type BrainInput = {
    * ella se deduce de lo que la IA lee (puede quedarse corto).
    */
   situation?: string | null;
+  /** Estado de la persona con Dayana (`stage.ts`). */
+  stage?: Stage | null;
   /** La ficha de la persona, armada con todo su chat (`dossier.ts`). */
   dossier?: string | null;
   /** Mensajes viejos del mismo chat que tocan lo que acaba de escribir (`context.ts`). */
@@ -598,7 +606,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
   const seenOptions = new Map<string, string>();
   // El flujo de venta (persona nueva → llamada gratis) y las horas de la llamada ofrecidas en esta vuelta.
-  const salesOn = config.salesFlow.enabled && config.booking.enabled;
+  // Nunca a quien ya tuvo la llamada, a una clienta (o posible clienta) ni a un chat personal.
+  const salesOn = config.salesFlow.enabled && config.booking.enabled && !(input.stage && NO_FREE_CALL_STAGES.has(input.stage));
   const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
   const offeredNow = new Set<string>();
   const offeredBefore =
@@ -1088,6 +1097,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .join("\n")}`
         : null,
       `SITUACIÓN DEL CHAT: ${input.situation ?? chatSituation(input.transcript, Boolean(input.client))}`,
+      input.stage
+        ? [`ESTADO DE LA PERSONA CON DAYANA: ${STAGE_LABEL[input.stage]}. ${STAGE_HELP[input.stage]}`, STAGE_AI_RULE[input.stage]]
+            .filter(Boolean)
+            .join("\n")
+        : null,
       salesOn
         ? flowStateText(
             flowState(input.transcript, {

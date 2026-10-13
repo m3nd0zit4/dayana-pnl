@@ -19,6 +19,7 @@ const SEGMENT_HELP: Record<Segment, string> = {
   new_lead: "Escribe por primera vez (aunque haya recibido invitaciones).",
   returning_lead: "Ya habló contigo o con la asistente, no consta que haya pagado.",
   free_call_booked: "Tiene agendada la llamada gratis.",
+  after_call: "Ya tuvo la llamada gratis y no ha comprado: tú cierras, la IA no le vuelve a ofrecer la llamada.",
   client: "Ya pagó (en el CRM o por transferencia) o la marcaste como clienta.",
   ignored: "Personal, del equipo o una empresa/app.",
 };

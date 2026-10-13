@@ -303,6 +303,7 @@ const OPENS_ATTENTION = new Set([
   "disabled",
   "owner_hours",
   "customer",
+  "after_call",
   "paused",
   "human_replied",
   "assigned",

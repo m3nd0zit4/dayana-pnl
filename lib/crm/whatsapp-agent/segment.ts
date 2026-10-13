@@ -5,7 +5,11 @@
  *   empresa/app. Nadie le contesta solo.
  * - `client`: ya le pagó a Dayana (en el CRM o por fuera). La atiende ella.
  * - `free_call_booked`: tiene agendada la llamada gratis.
- * - `returning_lead`: ya habló antes con Dayana o la asistente, no es clienta.
+ * - `after_call`: ya tuvo la llamada gratis y no consta que haya comprado.
+ *   Dayana cierra la venta en la llamada: lo que sigue es de ella, la IA no le
+ *   vuelve a ofrecer la llamada.
+ * - `returning_lead`: ya habló antes con Dayana o la asistente, no es clienta
+ *   (también quien no contestó la llamada gratis: se le ofrece otra hora).
  * - `new_lead`: primera vez (aunque haya recibido invitaciones masivas).
  *
  * La regla de oro (pedido de la dueña): tratar a una clienta como si fuera
@@ -16,13 +20,14 @@
  * Puro: lo usan `segment-store.ts` y las pruebas.
  */
 
-export const SEGMENTS = ["new_lead", "returning_lead", "free_call_booked", "client", "ignored"] as const;
+export const SEGMENTS = ["new_lead", "returning_lead", "free_call_booked", "after_call", "client", "ignored"] as const;
 export type Segment = (typeof SEGMENTS)[number];
 
 export const SEGMENT_LABEL: Record<Segment, string> = {
   new_lead: "Nueva",
   returning_lead: "Ya conversó",
   free_call_booked: "Llamada gratis agendada",
+  after_call: "Tuvo la llamada gratis",
   client: "Clienta",
   ignored: "Personal / no atender",
 };
@@ -55,6 +60,11 @@ export type SegmentInput = {
     dossierHadSession?: boolean;
   };
   freeCallUpcoming?: boolean;
+  /**
+   * La última llamada gratis que ya pasó: `done` = se hizo (contestó, o no se
+   * sabe y ya pasó: Dayana sabe), `missed` = no contestó (se le reagenda).
+   */
+  pastFreeCall?: "done" | "missed" | null;
   /** Ya hubo conversación de verdad antes de lo último que escribió. */
   hadConversation?: boolean;
 };
@@ -129,6 +139,17 @@ export const resolveSegment = (input: SegmentInput): SegmentVerdict => {
 
   if (input.freeCallUpcoming) {
     return { segment: "free_call_booked", confidence: 0.95, reason: "Tiene agendada la llamada gratis.", review: false, source: "rules" };
+  }
+  if (input.pastFreeCall === "done") {
+    return { segment: "after_call", confidence: 0.85, reason: "Ya tuvo la llamada gratis; no consta que haya comprado.", review: false, source: "rules" };
+  }
+  if (input.pastFreeCall === "missed") {
+    return { segment: "returning_lead", confidence: 0.9, reason: "No contestó la llamada gratis: se le ofrece otra hora.", review: false, source: "rules" };
+  }
+  // La ficha (que leyó todo el chat, también lo importado) dice que ya habló
+  // con Dayana: si no es clienta, es alguien que ya tuvo la llamada.
+  if (h.dossierHadSession) {
+    return { segment: "after_call", confidence: 0.7, reason: "Según el chat, ya habló con Dayana (llamada o sesión); no consta que haya comprado.", review: false, source: "ai" };
   }
   if (input.hadConversation) {
     return { segment: "returning_lead", confidence: 0.9, reason: "Ya conversó antes, no consta que haya pagado.", review: false, source: "rules" };

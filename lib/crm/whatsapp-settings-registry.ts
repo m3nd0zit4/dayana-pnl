@@ -97,6 +97,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-reset",
+    label: "Empezar limpio (lo que aprendió la IA)",
+    keywords: ["limpiar", "aprendió", "aprendizaje", "ejemplos", "propuestas", "memoria", "reiniciar", "borrar", "empezar de cero"],
+    tab: "ia",
+  },
+  {
     id: "wa-context-v2",
     label: "Leer el historial completo del chat",
     keywords: ["historial", "contexto", "memoria", "primera vez", "saluda", "mensajes anteriores", "lee"],
@@ -116,8 +122,8 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
   },
   {
     id: "wa-segments",
-    label: "Quién es quién (segmentos)",
-    keywords: ["segmento", "clienta", "nueva", "calcular", "quién es", "clientes"],
+    label: "Quién es quién (estados)",
+    keywords: ["segmento", "estado", "clienta", "nueva", "calcular", "quién es", "clientes", "no contestó", "tuvo la llamada", "en proceso"],
     tab: "ia",
   },
   {
@@ -148,6 +154,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     id: "wa-router-free_call_booked",
     label: "Modo para llamada agendada",
     keywords: ["llamada gratis", "agendada", "agendó"],
+    tab: "ia",
+  },
+  {
+    id: "wa-router-after_call",
+    label: "Modo para quien ya tuvo la llamada",
+    keywords: ["llamada gratis", "después de la llamada", "no compró", "cerrar venta"],
     tab: "ia",
   },
   {

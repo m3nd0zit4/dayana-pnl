@@ -6,6 +6,7 @@ import { classifyFromCron } from "@/lib/crm/chat-category";
 import { areRemindersEnabled, sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
 import { refreshStaleDossiers } from "@/lib/crm/whatsapp-agent/dossier";
+import { refreshStages } from "@/lib/crm/whatsapp-agent/segment-store";
 import { sweepWaitingRoom } from "@/lib/crm/whatsapp-agent/waiting-room";
 import { sweepCallOutcomes } from "@/lib/crm/whatsapp-agent/call-outcome";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
@@ -41,6 +42,8 @@ const CLASSIFY_MAX_MS = 40_000;
 const CLASSIFY_DEADLINE_MS = 80_000;
 /** Fichas viejas o que faltan: hasta 25 s por vuelta (solo con la ficha encendida). */
 const DOSSIER_MAX_MS = 25_000;
+/** Estados de las personas (sin modelo, solo consultas): hasta 10 s por vuelta. */
+const STAGES_MAX_MS = 10_000;
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -55,6 +58,10 @@ export async function POST(req: Request) {
     await step("fichas", async () =>
       (await getWhatsAppAiConfig()).dossier.enabled ? refreshStaleDossiers(DOSSIER_MAX_MS, { limit: 15 }) : { off: true }
     ),
+    await step("estados", async () => {
+      const c = await getWhatsAppAiConfig();
+      return c.dossier.enabled || c.router.enabled ? refreshStages(STAGES_MAX_MS, { limit: 60 }) : { off: true };
+    }),
     await step("clasificar", () =>
       classifyFromCron(Math.min(CLASSIFY_MAX_MS, CLASSIFY_DEADLINE_MS - (Date.now() - started)))
     ),

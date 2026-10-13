@@ -2303,8 +2303,12 @@ model WhatsAppDossier {
   conversationId    String    @id @map("conversation_id")
   summary           String    @default("") @db.Text
   facts             Json      @default("{}")
-  /// new_lead | returning_lead | free_call_booked | client | ignored
+  /// new_lead | returning_lead | free_call_booked | after_call | client | ignored
   segment           String?
+  /// Estado de la persona con Dayana (más fino que el segmento): nueva,
+  /// conversando, llamada_agendada, no_contesto, tuvo_llamada, clienta_activa,
+  /// clienta_pasada, por_revisar, personal. Ver whatsapp-agent/stage.ts.
+  stage             String?
   /// rules | ai | manual
   segmentSource     String?   @map("segment_source")
   segmentConfidence Float?    @map("segment_confidence")
@@ -2328,6 +2332,7 @@ model WhatsAppDossier {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([segment])
+  @@index([stage])
   @@map("whatsapp_dossiers")
 }
 

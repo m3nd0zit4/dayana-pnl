@@ -159,7 +159,11 @@ export const proposePlaybookFromCorrection = async (input: {
   dayanaReply: string;
 }): Promise<PlaybookRow | null> => {
   if (!process.env.GEMINI_API_KEY?.trim()) return null;
+  // Solo los procedimientos de verdad (los de Dayana y los aprobados): antes
+  // también entraban las propuestas, y la IA proponía mejoras de propuestas
+  // («Agendar (propuesta) (propuesta) (propuesta)»).
   const existing = await prisma.whatsAppPlaybook.findMany({
+    where: { OR: [{ source: "manual" }, { isEnabled: true }] },
     select: { id: true, name: true, trigger: true, steps: true },
   });
   const { object } = await generateObject({
@@ -192,13 +196,38 @@ export const proposePlaybookFromCorrection = async (input: {
     : undefined;
   // Una mejora a uno existente también nace como propuesta aparte: aprobarla
   // es decisión de Dayana, y el original sigue funcionando mientras tanto.
-  return prisma.whatsAppPlaybook.create({
-    data: {
-      name: base ? `${base.name} (propuesta)` : object.name,
-      trigger: object.trigger,
-      steps: object.steps,
-      isEnabled: false,
-      source: "learned",
-    },
+  // Una sola propuesta pendiente por tema: si ya hay una, se reemplaza.
+  const name = proposalName(base?.name ?? object.name);
+  const pending = await prisma.whatsAppPlaybook.findFirst({
+    where: { source: "learned", isEnabled: false, name },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
   });
+  const row = pending
+    ? await prisma.whatsAppPlaybook.update({
+        where: { id: pending.id },
+        data: { trigger: object.trigger, steps: object.steps, version: { increment: 1 } },
+      })
+    : await prisma.whatsAppPlaybook.create({
+        data: { name, trigger: object.trigger, steps: object.steps, isEnabled: false, source: "learned" },
+      });
+  await trimProposals();
+  return row;
+};
+
+/** «Agendar (propuesta) (propuesta)» → «Agendar (propuesta)». */
+export const proposalName = (name: string): string =>
+  `${name.replace(/(\s*\(propuesta\))+\s*$/i, "").trim().slice(0, 60)} (propuesta)`;
+
+/** Propuestas pendientes como mucho: las más viejas sin revisar se descartan. */
+const MAX_PROPOSALS = 12;
+
+const trimProposals = async () => {
+  const old = await prisma.whatsAppPlaybook.findMany({
+    where: { source: "learned", isEnabled: false },
+    orderBy: { updatedAt: "desc" },
+    skip: MAX_PROPOSALS,
+    select: { id: true },
+  });
+  if (old.length) await prisma.whatsAppPlaybook.deleteMany({ where: { id: { in: old.map((p) => p.id) } } });
 };

@@ -5,6 +5,10 @@ import { Prisma } from "@prisma/client";
 import { embed, embedMany, generateText } from "ai";
 
 import { prisma } from "@/lib/db";
+import { getTeamPhones } from "./chat-category";
+import { isTeamThread } from "./chat-category-rules";
+import { isIgnoredNumber } from "./whatsapp-ignored-numbers";
+import { isHumanReply, isLearnableChat, REPEATED_MIN_CHARS, REPEATED_MIN_CHATS } from "./whatsapp-learning-rules";
 import { extractReplyPairs, type ReplyPair } from "./whatsapp-reply-pairs";
 
 /**
@@ -126,9 +130,66 @@ export const embedPendingExamples = async (limit = 200): Promise<number> => {
   return pending.length;
 };
 
+/**
+ * Mensajes que escribió Dayana contestando, en SQL (mismo criterio que
+ * `isHumanReply`): sin la IA, sin sus borradores aprobados, sin lo que sale
+ * solo y sin los avisos grises. `m` es `conversation_messages`.
+ */
+export const humanReplySql = Prisma.sql`
+  m.direction = 'OUTBOUND' AND m.is_auto_reply = false AND m.kind <> 'system'
+  AND (m.source IS NULL OR (m.source <> 'approval' AND m.source NOT LIKE 'bulk:%' AND m.source NOT LIKE 'recordatorio:%'
+       AND m.source NOT LIKE 'evento:%' AND m.source NOT LIKE 'taller:%'))
+  AND (m.client_key IS NULL OR (m.client_key NOT LIKE 'welcome:%' AND m.client_key NOT LIKE 'reminder:%'
+       AND m.client_key NOT LIKE 'bulk:%' AND m.client_key NOT LIKE 'taller:%'))`;
+
+/**
+ * Chats de los que no se aprende, en SQL (`c` es `conversations`, `d` su
+ * ficha): lo que ya se sabe personal, del equipo o de una empresa.
+ */
+export const notLearnableChatSql = Prisma.sql`(
+  COALESCE(d.segment, '') = 'ignored'
+  OR (c.category IN ('personal', 'negocio', 'equipo')
+      AND (c.category_source = 'manual' OR (COALESCE(c.category_confidence, 0) >= 0.9 AND NOT c.category_review))))`;
+
+/** De estos chats, los que sí enseñan (sin personales, equipo ni empresas). */
+export const learnableConversations = async (ids: string[]): Promise<Set<string>> => {
+  if (ids.length === 0) return new Set();
+  const [rows, teamPhones] = await Promise.all([
+    prisma.conversation.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        channel: true,
+        externalThreadId: true,
+        category: true,
+        categorySource: true,
+        categoryConfidence: true,
+        categoryReview: true,
+        dossier: { select: { segment: true } },
+      },
+    }),
+    getTeamPhones().catch(() => [] as string[]),
+  ]);
+  const ok = new Set<string>();
+  for (const c of rows) {
+    if (c.channel !== "WHATSAPP") continue;
+    const learnable = isLearnableChat({
+      isTeam: isTeamThread(c.externalThreadId, teamPhones),
+      ignoredNumber: await isIgnoredNumber(c.externalThreadId),
+      segment: c.dossier?.segment,
+      category: c.category,
+      categorySource: c.categorySource,
+      categoryConfidence: c.categoryConfidence,
+      categoryReview: c.categoryReview,
+    });
+    if (learnable) ok.add(c.id);
+  }
+  return ok;
+};
+
 const pairsOfConversation = async (conversationId: string, take?: number) => {
   const messages = await prisma.conversationMessage.findMany({
-    where: { conversationId },
+    where: { conversationId, kind: { not: "system" } },
     orderBy: { sentAt: take ? "desc" : "asc" },
     ...(take ? { take } : {}),
     select: {
@@ -137,6 +198,9 @@ const pairsOfConversation = async (conversationId: string, take?: number) => {
       body: true,
       sentAt: true,
       isAutoReply: true,
+      kind: true,
+      source: true,
+      clientKey: true,
     },
   });
   return extractReplyPairs(
@@ -145,7 +209,7 @@ const pairsOfConversation = async (conversationId: string, take?: number) => {
       direction: m.direction,
       body: m.body,
       sentAt: m.sentAt,
-      isHuman: m.direction === "OUTBOUND" && !m.isAutoReply,
+      isHuman: isHumanReply(m),
     }))
   );
 };
@@ -166,11 +230,7 @@ export const learnFromLatestReply = async (
   conversationId: string
 ): Promise<void> => {
   try {
-    const conversation = await prisma.conversation.findUnique({
-      where: { id: conversationId },
-      select: { channel: true },
-    });
-    if (conversation?.channel !== "WHATSAPP") return;
+    if (!(await learnableConversations([conversationId])).has(conversationId)) return;
     const pairs = await pairsOfConversation(conversationId, 30);
     const last = pairs.at(-1);
     if (!last) return;
@@ -186,6 +246,7 @@ export const learnFromConversation = async (
   conversationId: string
 ): Promise<void> => {
   try {
+    if (!(await learnableConversations([conversationId])).has(conversationId)) return;
     const pairs = await pairsOfConversation(conversationId);
     await upsertExamples(
       pairs.map((pair) => inboxExample(conversationId, pair))
@@ -227,7 +288,9 @@ export const learnFromInbox = async (
   });
 
   let written = 0;
+  const learnable = await learnableConversations(conversations.map((c) => c.id));
   for (const { id } of conversations) {
+    if (!learnable.has(id)) continue;
     const pairs = await pairsOfConversation(id);
     written += await upsertExamples(
       pairs.map((pair) => inboxExample(id, pair))
@@ -274,6 +337,33 @@ export type SimilarExample = {
   similarity: number;
 };
 
+/** El texto de la respuesta, normalizado igual que `normalizeReply`. */
+const normalizedReplySql = Prisma.sql`btrim(lower(regexp_replace(reply_text, '[[:space:]]+', ' ', 'g')))`;
+
+/**
+ * Respuestas que son plantillas (el mismo texto largo en muchos chats: la
+ * respuesta rápida de la app, la bienvenida, una difusión). No enseñan.
+ */
+export const repeatedRepliesSql = Prisma.sql`
+  SELECT ${normalizedReplySql} AS t FROM whatsapp_reply_examples
+  WHERE conversation_id IS NOT NULL AND length(${normalizedReplySql}) >= ${REPEATED_MIN_CHARS}
+  GROUP BY 1 HAVING count(DISTINCT conversation_id) >= ${REPEATED_MIN_CHATS}`;
+
+/**
+ * Las plantillas, guardadas un rato: se buscan ejemplos en cada mensaje y
+ * agrupar toda la tabla cada vez sería caro. Una plantilla nueva tarda como
+ * mucho `REPEATED_TTL_MS` en dejar de usarse.
+ */
+const REPEATED_TTL_MS = 10 * 60_000;
+let repeatedCache: { at: number; texts: string[] } | null = null;
+
+export const repeatedReplyTexts = async (): Promise<string[]> => {
+  if (repeatedCache && Date.now() - repeatedCache.at < REPEATED_TTL_MS) return repeatedCache.texts;
+  const rows = await prisma.$queryRaw<{ t: string }[]>`${repeatedRepliesSql}`;
+  repeatedCache = { at: Date.now(), texts: rows.map((r) => r.t) };
+  return repeatedCache.texts;
+};
+
 /** Los ejemplos más parecidos a lo que acaba de escribir la persona. */
 export const findSimilarExamples = async (
   text: string,
@@ -286,6 +376,7 @@ export const findSimilarExamples = async (
     providerOptions: embeddingOptions,
   });
   const vector = toVector(embedding);
+  const repeated = await repeatedReplyTexts();
 
   const rows = await prisma.$queryRaw<
     {
@@ -299,6 +390,7 @@ export const findSimilarExamples = async (
            1 - (embedding <=> ${vector}::vector) AS similarity
     FROM whatsapp_reply_examples
     WHERE is_enabled AND embedding IS NOT NULL
+      AND ${normalizedReplySql} <> ALL(${repeated}::text[])
     ORDER BY embedding <=> ${vector}::vector
     LIMIT ${limit}`;
 
@@ -400,12 +492,15 @@ export const listExamples = async (input: {
  */
 export const draftStyleGuide = async (): Promise<string> => {
   if (!hasModelKey()) throw new Error("no_model_key");
-  const sample = await prisma.whatsAppReplyExample.findMany({
-    where: { isEnabled: true },
-    orderBy: { repliedAt: "desc" },
-    take: 80,
-    select: { clientText: true, replyText: true },
-  });
+  // Al azar entre todo lo aprendido (también el historial importado), no solo
+  // lo último: la guía describe cómo escribe Dayana, no cómo escribió esta
+  // semana. Sin plantillas pegadas en muchos chats.
+  const rows = await prisma.$queryRaw<{ client_text: string; reply_text: string }[]>`
+    SELECT client_text, reply_text FROM whatsapp_reply_examples
+    WHERE is_enabled AND ${normalizedReplySql} <> ALL(${await repeatedReplyTexts()}::text[])
+    ORDER BY random()
+    LIMIT 80`;
+  const sample = rows.map((r) => ({ clientText: r.client_text, replyText: r.reply_text }));
   if (sample.length < 5) throw new Error("not_enough_examples");
 
   const { text } = await generateText({

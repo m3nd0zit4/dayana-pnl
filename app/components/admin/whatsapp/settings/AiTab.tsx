@@ -12,6 +12,7 @@ import WhatsAppPlaybooksCard from "../WhatsAppPlaybooksCard";
 import ChoiceCards from "./ChoiceCards";
 import ClassifySection from "./ClassifySection";
 import ReadingSection from "./ReadingSection";
+import ResetSection from "./ResetSection";
 import ClientReviewSection from "./ClientReviewSection";
 import RouterSection from "./RouterSection";
 import SalesFlowSection from "./SalesFlowSection";
@@ -212,15 +213,18 @@ const AiTab = () => {
         />
       </SettingsGroup>
 
+      {/* En el orden en que se usan: limpiar, leer todo el chat, clasificar, quién es quién, quién atiende. */}
+      <ResetSection />
+
       <ReadingSection />
+
+      <ClassifySection />
 
       <ClientReviewSection />
 
       <RouterSection />
 
       <SalesFlowSection />
-
-      <ClassifySection />
 
       <SettingsGroup title="Cuándo responde">
         <SettingRow

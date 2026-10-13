@@ -193,6 +193,8 @@ export const whatsAppAiConfigSchema = z.object({
       new_lead: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("COPILOT"),
       returning_lead: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("COPILOT"),
       free_call_booked: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("COPILOT"),
+      /** Ya tuvo la llamada gratis: Dayana cierra la venta, la IA no le vuelve a ofrecer la llamada. */
+      after_call: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("MANUAL"),
       client: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("MANUAL"),
       ignored: z.enum(["AUTO", "COPILOT", "MANUAL"]).default("MANUAL"),
     }),
@@ -305,7 +307,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   dossier: { enabled: false },
   router: {
     enabled: false,
-    modes: { new_lead: "COPILOT", returning_lead: "COPILOT", free_call_booked: "COPILOT", client: "MANUAL", ignored: "MANUAL" },
+    modes: { new_lead: "COPILOT", returning_lead: "COPILOT", free_call_booked: "COPILOT", after_call: "MANUAL", client: "MANUAL", ignored: "MANUAL" },
     maxPerDayNewLead: 12,
   },
   salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },

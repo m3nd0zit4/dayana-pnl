@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { isWhatsAppUserId, whatsAppDigits, whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { findClientEvidence } from "../client-evidence";
 import { clearManualCategory, getTeamPhones, isClassifyEnabled, loadFactsBatch, setManualCategory } from "../chat-category";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
@@ -8,6 +9,7 @@ import { appointmentsFor } from "./appointments";
 import type { DossierFacts } from "./dossier";
 import { isFreeCallAppointment, isFreeCallService } from "./event-title";
 import { resolveSegment, type SegmentVerdict } from "./segment";
+import { resolveStage, type Stage } from "./stage";
 import { conversationSituation } from "./situation";
 
 /**
@@ -21,7 +23,34 @@ import { conversationSituation } from "./situation";
 const MAX_MESSAGES = 3000;
 const MAX_EVIDENCE = 10;
 
-export const computeSegment = async (conversationId: string): Promise<SegmentVerdict | null> => {
+/** Lo que se calcula de cada chat: el segmento (quién atiende) y el estado (en qué punto está). */
+export type SegmentResult = SegmentVerdict & { stage: Stage };
+
+/**
+ * La última llamada gratis que ya pasó: `missed` si no contestó, `done` si se
+ * hizo o si no se sabe (ya pasó y nadie dijo que no: Dayana sabe), `null` si
+ * no hubo ninguna. Una sesión pagada no cuenta.
+ */
+const pastFreeCallOf = async (input: { contactId: string | null; phone: string; conversationId: string }) => {
+  const or: Prisma.CalendarAppointmentWhereInput[] = [{ conversationId: input.conversationId }];
+  if (input.contactId) or.push({ contactId: input.contactId });
+  if (!isWhatsAppUserId(input.phone)) {
+    const phones = [input.phone, whatsAppDigits(`+${input.phone}`)].flatMap(whatsAppIdVariants);
+    if (phones.length) or.push({ phone: { in: [...new Set(phones)] } });
+  }
+  const past = await prisma.calendarAppointment.findMany({
+    where: { OR: or, status: "active", endsAt: { lt: new Date() } },
+    orderBy: { startsAt: "desc" },
+    take: 5,
+    select: { startsAt: true, endsAt: true, sessionsLabel: true, callOutcome: true },
+  });
+  // «Se reagendó»: cuenta la llamada nueva, no esta.
+  const free = past.find((a) => a.callOutcome !== "not_free" && a.callOutcome !== "rescheduled" && isFreeCallAppointment(a));
+  if (!free) return null;
+  return free.callOutcome === "no_answer" ? ("missed" as const) : ("done" as const);
+};
+
+export const computeSegment = async (conversationId: string): Promise<SegmentResult | null> => {
   const conversation = await prisma.conversation.findFirst({
     where: { id: conversationId, channel: "WHATSAPP" },
     select: {
@@ -58,6 +87,12 @@ export const computeSegment = async (conversationId: string): Promise<SegmentVer
   const { next } = await appointmentsFor({ contactId: conversation.contactId, phone: conversation.externalThreadId }).catch(() => ({
     next: null,
   }));
+  const [pastFreeCall, activeEnrollment] = await Promise.all([
+    pastFreeCallOf({ contactId: conversation.contactId, phone: conversation.externalThreadId, conversationId }),
+    conversation.contactId
+      ? prisma.enrollment.findFirst({ where: { contactId: conversation.contactId, status: "ACTIVE" }, select: { id: true } })
+      : Promise.resolve(null),
+  ]);
   const upcomingBooking = await prisma.whatsAppBooking.findFirst({
     where: { conversationId, startsAt: { gte: new Date() }, status: { notIn: ["CANCELLED", "cancelled"] } },
     select: { service: true, startsAt: true, endsAt: true },
@@ -98,7 +133,14 @@ export const computeSegment = async (conversationId: string): Promise<SegmentVer
       dossierHadSession: dossierFacts.hadCallOrSession,
     },
     freeCallUpcoming,
+    pastFreeCall,
     hadConversation: !situation.isNew,
+  });
+  const stage = resolveStage({
+    verdict,
+    // En proceso: matrícula activa o una sesión pagada próxima en el calendario.
+    activeProcess: Boolean(activeEnrollment) || Boolean(next && !isFreeCallAppointment(next)),
+    missedFreeCall: pastFreeCall === "missed",
   });
 
   const data = {
@@ -108,6 +150,7 @@ export const computeSegment = async (conversationId: string): Promise<SegmentVer
     segmentReason: verdict.reason,
     segmentReview: verdict.review,
     segmentAt: new Date(),
+    stage,
     clientEvidence: evidence.length
       ? (evidence.slice(-MAX_EVIDENCE) as unknown as Prisma.InputJsonValue)
       : Prisma.DbNull,
@@ -117,15 +160,58 @@ export const computeSegment = async (conversationId: string): Promise<SegmentVer
     create: { conversationId, ...data },
     update: data,
   });
-  return verdict;
+  return { ...verdict, stage };
+};
+
+/**
+ * Chats cuyo estado hay que recalcular: sin estado, con mensajes nuevos desde
+ * el último cálculo, o que tenían la llamada agendada y su hora ya pasó (pasan
+ * a «tuvo la llamada» o «no contestó» sin que nadie escriba).
+ */
+const staleStageRows = (limit: number) => prisma.$queryRaw<{ id: string }[]>`
+  SELECT c.id FROM conversations c
+  LEFT JOIN whatsapp_dossiers d ON d.conversation_id = c.id
+  WHERE c.channel = 'WHATSAPP'
+    AND (
+      d.conversation_id IS NULL OR d.segment IS NULL OR d.stage IS NULL OR d.segment_at IS NULL
+      OR d.segment_at < c.last_message_at
+      OR d.segment_at < d.updated_at - interval '1 second'
+      OR (d.segment = 'free_call_booked' AND d.segment_at < now() - interval '30 minutes')
+      OR EXISTS (
+        SELECT 1 FROM calendar_appointments a
+        WHERE a.conversation_id = c.id AND a.call_outcome_at > d.segment_at
+      )
+    )
+  ORDER BY c.last_message_at DESC NULLS LAST
+  LIMIT ${limit}`;
+
+/** Recalcula estados hasta `budgetMs` (el reloj y el botón «Calcular estados»). */
+export const refreshStages = async (budgetMs: number, opts: { limit?: number } = {}) => {
+  const deadline = Date.now() + budgetMs;
+  const rows = await staleStageRows(opts.limit ?? 400);
+  let computed = 0;
+  let failed = 0;
+  for (const { id } of rows) {
+    if (Date.now() > deadline) break;
+    const ok = await computeSegment(id).then(
+      () => true,
+      (e: unknown) => {
+        console.warn("[estado] no se pudo calcular", id, e);
+        return false;
+      }
+    );
+    if (ok) computed++;
+    else failed++;
+  }
+  return { computed, failed, remaining: rows.length - computed - failed };
 };
 
 /** Para quien no se pueda calcular (error de base), lo seguro: tratarla como clienta. */
-export const segmentOrSafe = async (conversationId: string): Promise<SegmentVerdict> =>
+export const segmentOrSafe = async (conversationId: string): Promise<SegmentResult> =>
   (await computeSegment(conversationId).catch((e: unknown) => {
     console.warn("[segmento] no se pudo calcular", conversationId, e);
     return null;
-  })) ?? { segment: "client", confidence: 0, reason: "No se pudo calcular: se trata como clienta.", review: true, source: "rules" };
+  })) ?? { segment: "client", confidence: 0, reason: "No se pudo calcular: se trata como clienta.", review: true, source: "rules", stage: "por_revisar" };
 
 /** Los chats que la IA trata como clientas por duda: Dayana confirma o descarta. */
 export const listSegmentReview = async (limit = 100) => {

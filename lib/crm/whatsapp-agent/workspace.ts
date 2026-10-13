@@ -568,7 +568,7 @@ export const getChat = async (id: string) => {
       categorizedAt: true,
       categorizedThroughAt: true,
       dossier: {
-        select: { segment: true, segmentReason: true, segmentReview: true, segmentSource: true, clientEvidence: true, summary: true },
+        select: { segment: true, stage: true, segmentReason: true, segmentReview: true, segmentSource: true, clientEvidence: true, summary: true },
       },
       contact: { select: { firstName: true, lastName: true, email: true } },
       messages: {
@@ -678,12 +678,14 @@ export const getChat = async (id: string) => {
       silencing: silencesNow(c, classifyEnabled),
     },
     /**
-     * Segmento (nueva, ya conversó, clienta…) y por qué. `review`: la IA la
-     * trata como clienta por duda; Dayana confirma o descarta.
+     * Segmento (nueva, ya conversó, clienta…), estado (en qué punto está con
+     * Dayana) y por qué. `review`: la IA la trata como clienta por duda; Dayana
+     * confirma o descarta.
      */
     segment: c.dossier?.segment
       ? {
           segment: c.dossier.segment,
+          stage: c.dossier.stage,
           reason: c.dossier.segmentReason,
           review: c.dossier.segmentReview,
           source: c.dossier.segmentSource,

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/app/components/ui/input";
 import { CHAT_CATEGORY_LABEL, isChatCategory } from "@/lib/crm/chat-category-rules";
+import { STAGE_LABEL, STAGES, isStage, type Stage } from "@/lib/crm/whatsapp-agent/stage";
 import { cn } from "@/lib/utils";
 import CrmPageHeader from "../crm/CrmPageHeader";
 import CrmPageShell from "../crm/CrmPageShell";
@@ -26,20 +27,32 @@ type Person = {
   memoryUpdatedAt: string | null;
   category: string | null;
   categoryReview: boolean;
+  stage: string | null;
+  /** Resumen de la ficha (todo el chat). */
+  summary: string | null;
 };
 
-/** Quién escribe y qué recuerda la IA de cada persona. */
+const chipClass = (active: boolean) =>
+  cn(
+    "h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:h-8",
+    active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+  );
+
+/** Quién escribe, en qué estado está con Dayana y qué sabe la IA de cada persona. */
 const WhatsAppPeopleClient = () => {
   const [items, setItems] = useState<Person[] | null>(null);
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage | null>(null);
   const [counts, setCounts] = useState<CategoryCounts | null>(null);
+  const [stageCounts, setStageCounts] = useState<Record<string, number> | null>(null);
   const now = useNow(true, 60_000);
 
-  const load = useCallback(async (query: string, cat: string | null) => {
+  const load = useCallback(async (query: string, cat: string | null, st: Stage | null = null) => {
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (cat) params.set("category", cat);
+    if (st) params.set("stage", st);
     const res = await fetch(`/api/admin/whatsapp/people?${params}`, { cache: "no-store" }).catch(() => null);
     if (res?.ok) setItems(((await res.json()) as { items: Person[] }).items);
   }, []);
@@ -50,25 +63,33 @@ const WhatsAppPeopleClient = () => {
     void fetch("/api/admin/whatsapp/categories", { cache: "no-store" })
       .then((res) => (res.ok ? (res.json() as Promise<CategoryCounts>) : null))
       .then(setCounts, () => null);
+    void fetch("/api/admin/whatsapp/segments", { cache: "no-store" })
+      .then((res) => (res.ok ? (res.json() as Promise<{ stages?: Record<string, number> }>) : null))
+      .then((d) => setStageCounts(d?.stages ?? null), () => null);
   }, [load]);
 
   const pick = (next: string | null) => {
     setCategory(next);
-    void load(q, next);
+    void load(q, next, stage);
   };
+  const pickStage = (next: Stage | null) => {
+    setStage(next);
+    void load(q, category, next);
+  };
+  const stagesShown = STAGES.filter((s) => (stageCounts?.[s] ?? 0) > 0 || stage === s);
 
   return (
     <CrmPageShell>
       <CrmPageHeader
         title="Personas"
-        description="Lo que la IA recuerda de cada persona. Se edita desde su chat."
+        description="En qué punto está cada persona con Dayana y lo que la IA sabe de ella (su ficha). Se edita desde su chat."
       />
       <div className="relative max-w-sm">
         <Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && void load(q, category)}
+          onKeyDown={(e) => e.key === "Enter" && void load(q, category, stage)}
           placeholder="Buscar nombre o número"
           className="pl-7"
         />
@@ -84,10 +105,7 @@ const WhatsAppPeopleClient = () => {
               type="button"
               aria-pressed={active}
               onClick={() => pick(f.id)}
-              className={cn(
-                "h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:h-8",
-                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
+              className={chipClass(active)}
             >
               {f.label}
               {/* Cuántas hay, como en los filtros de «Todos» de los chats. */}
@@ -100,14 +118,28 @@ const WhatsAppPeopleClient = () => {
           );
         })}
       </div>
+      {/* En qué punto está con Dayana (solo los estados que tienen a alguien). */}
+      {stagesShown.length > 0 && (
+        <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Estado">
+          <button type="button" aria-pressed={stage === null} onClick={() => pickStage(null)} className={chipClass(stage === null)}>
+            Todos los estados
+          </button>
+          {stagesShown.map((s) => (
+            <button key={s} type="button" aria-pressed={stage === s} onClick={() => pickStage(s)} className={chipClass(stage === s)}>
+              {STAGE_LABEL[s]}
+              <span className={cn("ml-1 tabular-nums", stage === s ? "opacity-80" : "text-muted-foreground/80")}>{stageCounts?.[s] ?? 0}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {items === null ? (
         <CrmLoadingState variant="card" rows={3} />
       ) : items.length === 0 ? (
         <CrmEmptyState
           icon={Users}
-          title={category || q.trim() ? "Nadie coincide con este filtro" : "Nadie ha escrito todavía"}
+          title={category || stage || q.trim() ? "Nadie coincide con este filtro" : "Nadie ha escrito todavía"}
           description={
-            category || q.trim()
+            category || stage || q.trim()
               ? "Prueba con otra categoría o borra la búsqueda."
               : "Cuando alguien escriba por WhatsApp, aquí verás lo que la IA recuerda de esa persona."
           }
@@ -131,6 +163,7 @@ const WhatsAppPeopleClient = () => {
                 <span className="flex-1" />
                 <span className="text-[11px] text-muted-foreground">{agoLabel(p.lastMessageAt, now)}</span>
               </div>
+              {isStage(p.stage) && <span className="text-xs font-medium text-primary">{STAGE_LABEL[p.stage]}</span>}
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                 <span>+{p.phone}</span>
                 <span>· {MODE_LABEL[p.aiMode]}</span>
@@ -147,7 +180,7 @@ const WhatsAppPeopleClient = () => {
                 {p.contactId && <span className="text-success">· en el CRM</span>}
               </div>
               <p className="line-clamp-5 whitespace-pre-wrap text-xs">
-                {p.memory ?? <span className="text-muted-foreground">La IA aún no guarda nada de esta persona.</span>}
+                {p.summary ?? p.memory ?? <span className="text-muted-foreground">La IA aún no guarda nada de esta persona.</span>}
               </p>
             </Link>
           ))}

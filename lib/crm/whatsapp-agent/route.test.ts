@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { decideRoute, strictest } from "./route";
 import type { SegmentVerdict } from "./segment";
 
-const modes = { new_lead: "AUTO", returning_lead: "COPILOT", free_call_booked: "COPILOT", client: "MANUAL", ignored: "MANUAL" } as const;
+const modes = { new_lead: "AUTO", returning_lead: "COPILOT", free_call_booked: "COPILOT", after_call: "MANUAL", client: "MANUAL", ignored: "MANUAL" } as const;
 const seg = (segment: SegmentVerdict["segment"]): SegmentVerdict => ({ segment, confidence: 1, reason: "", review: false, source: "rules" });
 
 describe("decideRoute", () => {
@@ -37,6 +37,13 @@ describe("decideRoute", () => {
       skip: "manual",
     });
     expect(decideRoute({ routerEnabled: true, generalMode: "COPILOT", chatMode: "AUTO", override: "AUTO", segment: seg("client"), modes }).mode).toBe("COPILOT");
+  });
+
+  test("ya tuvo la llamada: la IA calla y le toca a Dayana", () => {
+    expect(decideRoute({ routerEnabled: true, generalMode: "AUTO", chatMode: "AUTO", override: null, segment: seg("after_call"), modes })).toMatchObject({
+      mode: "MANUAL",
+      skip: "after_call",
+    });
   });
 
   test("strictest", () => {

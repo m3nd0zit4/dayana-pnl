@@ -26,8 +26,8 @@ describe("resolveSegment", () => {
   test("ante la duda sobre si pagó: clienta, pero por revisar", () => {
     expect(resolveSegment({ history: { strongEvidence: 1 } })).toMatchObject({ segment: "client", review: true });
     expect(resolveSegment({ history: { dossierPaidSignals: 1 } })).toMatchObject({ segment: "client", review: true });
-    // Haber tenido la llamada (gratis) no la vuelve clienta.
-    expect(resolveSegment({ history: { dossierHadSession: true }, hadConversation: true }).segment).toBe("returning_lead");
+    // Haber tenido la llamada (gratis) no la vuelve clienta: «tuvo la llamada».
+    expect(resolveSegment({ history: { dossierHadSession: true }, hadConversation: true }).segment).toBe("after_call");
   });
 
   test("Dayana dijo «no es clienta»: las frases del chat no la vuelven clienta", () => {
@@ -49,6 +49,15 @@ describe("resolveSegment", () => {
     expect(resolveSegment({ classifyEnabled: true, category: "negocio", categoryConfidence: 0.95 }).segment).toBe("ignored");
     expect(resolveSegment({ classifyEnabled: false, category: "negocio", categoryConfidence: 0.95 }).segment).toBe("new_lead");
     expect(resolveSegment({ classifyEnabled: true, category: "personal", categoryConfidence: 0.8 }).segment).toBe("new_lead");
+  });
+
+  test("después de la llamada gratis: tuvo la llamada, o no contestó", () => {
+    expect(resolveSegment({ hadConversation: true, pastFreeCall: "done" }).segment).toBe("after_call");
+    expect(resolveSegment({ hadConversation: true, pastFreeCall: "missed" }).segment).toBe("returning_lead");
+    // Ya reagendó: lo que manda es la llamada que viene.
+    expect(resolveSegment({ hadConversation: true, pastFreeCall: "done", freeCallUpcoming: true }).segment).toBe("free_call_booked");
+    // Si pagó, es clienta aunque haya tenido la llamada.
+    expect(resolveSegment({ crm: { hasApprovedPayment: true }, pastFreeCall: "done" }).segment).toBe("client");
   });
 
   test("una clienta con la llamada agendada sigue siendo clienta", () => {

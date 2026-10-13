@@ -22,8 +22,8 @@ const STRICTNESS: Record<AiMode, number> = { AUTO: 0, COPILOT: 1, MANUAL: 2 };
 export const strictest = (...modes: AiMode[]): AiMode =>
   modes.reduce((a, b) => (STRICTNESS[b] > STRICTNESS[a] ? b : a), "AUTO" as AiMode);
 
-/** Por qué no contesta (el mismo texto que el rastro de la IA): `customer` abre «Te toca», `ignored_segment` no. */
-export type RouteSkip = "manual" | "customer" | "ignored_segment";
+/** Por qué no contesta (el mismo texto que el rastro de la IA): `customer` y `after_call` abren «Te toca», `ignored_segment` no. */
+export type RouteSkip = "manual" | "customer" | "after_call" | "ignored_segment";
 
 export type RouteDecision = {
   routerEnabled: boolean;
@@ -57,9 +57,11 @@ export const decideRoute = (input: {
         ? "manual"
         : segment === "client"
           ? "customer"
-          : segment === "ignored"
-            ? "ignored_segment"
-            : "manual";
+          : segment === "after_call"
+            ? "after_call"
+            : segment === "ignored"
+              ? "ignored_segment"
+              : "manual";
   }
   return { routerEnabled: true, mode, segment, skip };
 };

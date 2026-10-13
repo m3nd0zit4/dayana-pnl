@@ -8,6 +8,7 @@
  * 2. Dayana dice «no es clienta»: ya conversó, sin revisar. «Es clienta»: clienta.
  * 3. Solo recibió la invitación masiva y dio las gracias: nueva.
  * 4. Número personal: no se atiende.
+ * 5. Estados después de la llamada gratis: la tuvo (Dayana cierra) o no contestó.
  */
 import { prisma } from "@/lib/db";
 import { ignoreNumbers, unignoreNumber } from "@/lib/crm/whatsapp-ignored-numbers";
@@ -25,7 +26,9 @@ const check = (name: string, ok: boolean, detail?: unknown) => {
 const PAID = "573000006611";
 const INVITED = "573000006612";
 const FAMILY = "573000006613";
-const THREADS = [PAID, INVITED, FAMILY];
+const CALLED = "573000006614";
+const MISSED = "573000006615";
+const THREADS = [PAID, INVITED, FAMILY, CALLED, MISSED];
 
 type Line = { dir: "INBOUND" | "OUTBOUND"; body: string; source?: string };
 
@@ -52,6 +55,8 @@ const chat = async (thread: string, lines: Line[]) =>
 const cleanup = async () => {
   const convs = await prisma.conversation.findMany({ where: { channel: "WHATSAPP", externalThreadId: { in: THREADS } }, select: { id: true } });
   const ids = convs.map((c) => c.id);
+  await prisma.calendarAppointment.deleteMany({ where: { OR: [{ conversationId: { in: ids } }, { eventId: { startsWith: "e2e-stage-" } }] } });
+  await prisma.whatsAppDossier.deleteMany({ where: { conversationId: { in: ids } } });
   await prisma.conversationMessage.deleteMany({ where: { conversationId: { in: ids } } });
   await prisma.conversation.deleteMany({ where: { id: { in: ids } } });
   await unignoreNumber(FAMILY);
@@ -75,8 +80,10 @@ const main = async () => {
     console.log("\n2. La marca de Dayana");
     const v2 = await markClient(paid.id, false, null);
     check("«no es clienta»: ya conversó, sin revisar", v2?.segment === "returning_lead" && !v2.review, v2);
+    check("estado: conversando", v2?.stage === "conversando", v2);
     const v3 = await markClient(paid.id, true, null);
     check("«es clienta»: clienta", v3?.segment === "client" && v3.source === "manual", v3);
+    check("estado: ya fue clienta (nada en curso)", v3?.stage === "clienta_pasada", v3);
 
     console.log("\n3. Solo la invitación masiva");
     const invited = await chat(INVITED, [
@@ -92,6 +99,43 @@ const main = async () => {
     const family = await chat(FAMILY, [{ dir: "INBOUND", body: "Hija, ¿vienes a almorzar?" }]);
     const v5 = await computeSegment(family.id);
     check("no se atiende", v5?.segment === "ignored", v5);
+    check("estado: personal", v5?.stage === "personal", v5);
+
+    console.log("\n5. Después de la llamada gratis");
+    const lead = [
+      { dir: "INBOUND" as const, body: "Hola, tengo mucha ansiedad" },
+      { dir: "OUTBOUND" as const, body: "Te entiendo. ¿Agendamos la llamada gratis?" },
+      { dir: "INBOUND" as const, body: "Sí, el jueves" },
+    ];
+    const pastCall = (thread: string, conversationId: string, callOutcome: string | null) => {
+      const start = new Date(Date.now() - 26 * 3600_000);
+      return prisma.calendarAppointment.create({
+        data: {
+          eventId: `e2e-stage-${thread}`,
+          startsAt: start,
+          endsAt: new Date(start.getTime() + 15 * 60_000),
+          title: `0/0 Lucía +${thread}`,
+          name: "Lucía",
+          phone: thread,
+          sessionsLabel: "0/0",
+          conversationId,
+          status: "active",
+          matchState: "phone",
+          callOutcome,
+          callOutcomeAt: callOutcome ? new Date() : null,
+        },
+      });
+    };
+    const called = await chat(CALLED, lead);
+    await pastCall(CALLED, called.id, "answered");
+    const v6 = await computeSegment(called.id);
+    check("la tuvo: «tuvo la llamada» (Dayana cierra)", v6?.segment === "after_call" && v6.stage === "tuvo_llamada", v6);
+    const missed = await chat(MISSED, lead);
+    await pastCall(MISSED, missed.id, "no_answer");
+    const v7 = await computeSegment(missed.id);
+    check("no contestó: «no contestó» (se le ofrece otra hora)", v7?.segment === "returning_lead" && v7.stage === "no_contesto", v7);
+    const saved = await prisma.whatsAppDossier.findUnique({ where: { conversationId: missed.id }, select: { stage: true } });
+    check("el estado queda guardado en la ficha", saved?.stage === "no_contesto", saved);
   } finally {
     await cleanup();
     await prisma.$disconnect();

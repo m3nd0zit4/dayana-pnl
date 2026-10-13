@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { CHAT_CATEGORY_LABEL, isChatCategory, isSilencingCategory } from "@/lib/crm/chat-category-rules";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import { SEGMENT_LABEL, SEGMENTS, type Segment } from "@/lib/crm/whatsapp-agent/segment";
+import { isStage, STAGE_HELP, STAGE_LABEL } from "@/lib/crm/whatsapp-agent/stage";
 import { CATEGORY_SOURCE_LABEL, RunStatus, agoLabel } from "../status";
 import { wa } from "./chatTheme";
 import { ActionButton } from "./ui";
@@ -90,11 +91,14 @@ const SegmentInfo = ({
     <section className="space-y-1.5">
       <h3 className="text-sm font-semibold text-(--wa-accent)">Quién es</h3>
       <p>
-        <span className="font-medium">{isSegment(s.segment) ? SEGMENT_LABEL[s.segment] : s.segment}</span>
-        {s.review && <span className="text-(--wa-attention)"> · por revisar</span>}
+        <span className="font-medium">
+          {isStage(s.stage) ? STAGE_LABEL[s.stage] : isSegment(s.segment) ? SEGMENT_LABEL[s.segment] : s.segment}
+        </span>
+        {s.review && !isStage(s.stage) && <span className="text-(--wa-attention)"> · por revisar</span>}
       </p>
       {s.reason && <p className="text-xs text-(--wa-icon)">{s.reason}</p>}
-      {s.review && (
+      {isStage(s.stage) && <p className="text-xs text-(--wa-meta)">{STAGE_HELP[s.stage]}</p>}
+      {s.review && !isStage(s.stage) && (
         <p className="text-xs text-(--wa-meta)">
           Mientras no lo confirmes, la IA la trata como clienta: no le contesta y te la pasa a ti.
         </p>

@@ -582,6 +582,15 @@ export const finishHistorySync = async (touched: Set<string>): Promise<void> => 
         data: { coveredThroughAt: null, coveredCount: 0 },
       })
       .catch((e: unknown) => console.warn("[historial WhatsApp] no se pudo reiniciar la ficha", e));
+    // La clasificación (cliente, interesada, personal…) se vuelve a mirar con
+    // el historial nuevo: lo importado es más viejo que el último mensaje y,
+    // sin esto, el chat se daba por ya clasificado.
+    const { markForReclassification } = await import("@/lib/crm/chat-category");
+    for (const conversationId of touched) {
+      await markForReclassification({ conversationId }).catch((e: unknown) =>
+        console.warn("[historial WhatsApp] no se pudo marcar para clasificar", e)
+      );
+    }
   }
   const { learnFromConversation } = await import("@/lib/crm/whatsapp-learning");
   for (const conversationId of touched) {

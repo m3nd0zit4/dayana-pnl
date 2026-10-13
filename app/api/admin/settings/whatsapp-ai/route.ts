@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { applyAiReset, lastAiResetBackup, planAiReset, undoAiReset } from "@/lib/crm/whatsapp-agent/ai-reset";
 import { deepMerge } from "@/lib/crm/whatsapp-agent/config-patch";
 import { prisma } from "@/lib/db";
 import {
@@ -129,6 +130,10 @@ const actionSchema = z.discriminatedUnion("action", [
     isEnabled: z.boolean(),
   }),
   z.object({ action: z.literal("delete"), id: z.string().min(1) }),
+  // «Empezar limpio» (`ai-reset.ts`): ver qué se quitaría, quitarlo, o deshacerlo.
+  z.object({ action: z.literal("reset_plan") }),
+  z.object({ action: z.literal("reset_apply"), memories: z.boolean(), confirm: z.literal("LIMPIAR") }),
+  z.object({ action: z.literal("reset_undo") }),
 ]);
 
 export const POST = withStaff("owner", async ({ req, staff }) => {
@@ -205,5 +210,19 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
     case "delete":
       await prisma.whatsAppReplyExample.delete({ where: { id: input.id } });
       return NextResponse.json({ ok: true });
+
+    case "reset_plan": {
+      const [plan, backup] = await Promise.all([planAiReset(), lastAiResetBackup()]);
+      return NextResponse.json({ plan, lastResetAt: backup?.at ?? null });
+    }
+
+    case "reset_apply":
+      return NextResponse.json(await applyAiReset({ memories: input.memories, staffId: staff.id }));
+
+    case "reset_undo": {
+      const undone = await undoAiReset(staff.id);
+      if (!undone) return apiError("no_backup", 404);
+      return NextResponse.json(undone);
+    }
   }
 });

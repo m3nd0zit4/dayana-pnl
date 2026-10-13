@@ -15,13 +15,18 @@ export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) =
   if (!parsed.success) return apiError("invalid_body", 400);
   const current = await prisma.whatsAppPlaybook.findUnique({ where: { id: params.id } });
   if (!current) return apiError("not_found", 404);
-  const row = await upsertPlaybook({
+  let row = await upsertPlaybook({
     id: params.id,
-    name: (parsed.data.name ?? current.name).replace(/ \(propuesta\)$/, ""),
+    name: (parsed.data.name ?? current.name).replace(/(\s*\(propuesta\))+\s*$/i, ""),
     trigger: parsed.data.trigger ?? current.trigger,
     steps: parsed.data.steps ?? current.steps,
     isEnabled: parsed.data.isEnabled,
   });
+  // Una propuesta que Dayana aprobó, editó o apagó ya es suya: deja de ser
+  // propuesta (la limpieza y el tope de propuestas pendientes no la tocan).
+  if (current.source === "learned") {
+    row = await prisma.whatsAppPlaybook.update({ where: { id: row.id }, data: { source: "manual" } });
+  }
   fireAuditLog({
     staffUserId: staff.id,
     action: "UPDATE",

@@ -36,6 +36,7 @@ import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier"
 import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
 import { segmentOrSafe } from "./segment-store";
+import { isStage } from "./stage";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
 
@@ -239,12 +240,17 @@ export const runWhatsAppAi = async (input: {
     // el modo sale del segmento de la persona (nueva, clienta…) o de lo que
     // Dayana eligió para este chat.
     const routeConfig = await getWhatsAppAiConfig();
+    // El segmento y el estado: para el enrutador, y también con el flujo de
+    // venta (aunque el enrutador esté apagado) para no ofrecerle la llamada
+    // gratis a una clienta o a quien ya la tuvo.
+    const segmentResult =
+      (routeConfig.router.enabled || routeConfig.salesFlow.enabled) && !head.priorityAt ? await segmentOrSafe(conversationId) : null;
     const route: RouteDecision = decideRoute({
       routerEnabled: routeConfig.router.enabled,
       generalMode: routeConfig.defaultMode,
       chatMode: head.aiMode,
       override: head.aiModeOverride,
-      segment: routeConfig.router.enabled && !head.priorityAt ? await segmentOrSafe(conversationId) : null,
+      segment: routeConfig.router.enabled ? segmentResult : null,
       modes: routeConfig.router.modes,
     });
 
@@ -295,7 +301,7 @@ export const runWhatsAppAi = async (input: {
     if (!enabled || route.mode === "MANUAL") {
       // Sin IA, el saludo de bienvenida (si está encendido) sigue funcionando.
       // A una clienta o a un número personal no se le saluda como nueva.
-      if (route.skip !== "customer" && route.skip !== "ignored_segment") await greetIfNeeded(conversationId, silenced);
+      if (route.skip !== "customer" && route.skip !== "after_call" && route.skip !== "ignored_segment") await greetIfNeeded(conversationId, silenced);
       const reason = enabled ? (route.skip ?? "manual") : "disabled";
       await prisma.whatsAppAiRun.create({
         data: {
@@ -469,6 +475,8 @@ export const runWhatsAppAi = async (input: {
       mode: "live",
       images,
       situation,
+      // En qué punto está con Dayana: lo recién calculado (con el enrutador) o lo que dice la ficha.
+      stage: segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null),
       dossier: dossierText(dossier),
       olderSnippets: older,
       // La llamada gratis: agenda sola solo con el enrutador, a una persona que
@@ -676,11 +684,16 @@ export const runWhatsAppAi = async (input: {
       }
     }
 
-    await refreshMemory({
-      phone,
-      contactId: conversation.contactId,
-      transcript: [...history, { direction: "OUTBOUND", body }],
-    }).catch((e) => console.error("[whatsapp-agent] memoria", e));
+    // Con la ficha (que lee TODO el chat), la IA ya no escribe la memoria
+    // (que solo veía los últimos 12 mensajes y podía contradecirla): la
+    // memoria queda para las notas que escriba Dayana.
+    if (!config.dossier.enabled) {
+      await refreshMemory({
+        phone,
+        contactId: conversation.contactId,
+        transcript: [...history, { direction: "OUTBOUND", body }],
+      }).catch((e) => console.error("[whatsapp-agent] memoria", e));
+    }
     if (config.dossier.enabled) {
       await updateDossier(conversationId, { deadline: Date.now() + 30_000 }).catch((e: unknown) =>
         console.warn("[whatsapp-agent] no se pudo poner al día la ficha", e)

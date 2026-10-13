@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { SEGMENT_LABEL, SEGMENTS } from "@/lib/crm/whatsapp-agent/segment";
+import { STAGE_HELP, STAGE_LABEL, STAGES } from "@/lib/crm/whatsapp-agent/stage";
 import { useCrm } from "../../crm/CrmProvider";
 import { useSettings } from "./context";
 import SettingRow, { SettingsGroup } from "./SettingRow";
@@ -18,7 +19,7 @@ type ReviewItem = {
   summary: string;
 };
 
-type Data = { counts: Record<string, number>; review: ReviewItem[] };
+type Data = { counts: Record<string, number>; stages?: Record<string, number>; review: ReviewItem[] };
 
 /**
  * Quién es quién: cuántas nuevas, clientas, etc., y las que la IA trata como
@@ -81,23 +82,43 @@ const ClientReviewSection = () => {
   };
 
   const counts = data?.counts ?? {};
-  const summary = SEGMENTS.filter((s) => counts[s]).map((s) => `${SEGMENT_LABEL[s]}: ${counts[s]}`).join(" · ");
+  const stages = data?.stages ?? {};
+  const hasStages = STAGES.some((s) => stages[s]);
+  const summary = hasStages
+    ? null
+    : SEGMENTS.filter((s) => counts[s]).map((s) => `${SEGMENT_LABEL[s]}: ${counts[s]}`).join(" · ");
 
   return (
     <SettingsGroup
       title="Quién es quién"
-      description="Clienta (la atiendes tú), nueva, ya conversó, llamada agendada o personal. Se calcula con el CRM y con todo el chat."
+      description="En qué punto está cada persona con Dayana: nueva, conversando, llamada agendada, no contestó, tuvo la llamada, clienta en proceso, ya fue clienta o personal. Se calcula con el CRM, la agenda y todo el chat."
     >
       <SettingRow
         id="wa-segments"
         label="Calcular para todos los chats"
-        help={progress ?? (summary || "Aún sin calcular. Hazlo después de importar los chats y construir las fichas.")}
+        help={
+          progress ??
+          (hasStages ? "Se pone al día solo cada 10 minutos." : summary || "Aún sin calcular. Hazlo después de importar los chats y construir las fichas.")
+        }
         layout="row"
       >
         <Button variant="outline" size="sm" onClick={() => void computeAll()} disabled={preview || busy !== null}>
           {busy === "compute" && <Loader2 className="size-4 animate-spin" />} Calcular
         </Button>
       </SettingRow>
+      {hasStages && (
+        <ul className="divide-y divide-border rounded-xl border border-border text-sm">
+          {STAGES.filter((s) => stages[s]).map((s) => (
+            <li key={s} className="flex items-baseline justify-between gap-3 p-3">
+              <span>
+                <span className="font-medium">{STAGE_LABEL[s]}</span>
+                <span className="block text-xs text-muted-foreground">{STAGE_HELP[s]}</span>
+              </span>
+              <span className="tabular-nums">{stages[s]}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <SettingRow
         id="wa-client-review"
         layout="stacked"
