@@ -245,6 +245,18 @@ export const whatsAppAiConfigSchema = z.object({
     enabled: z.boolean().default(false),
     proactive: z.boolean().default(false),
   }),
+  /**
+   * Después de la llamada gratis (`call-outcome.ts`): ¿se hizo? Se deduce del
+   * chat o se le pregunta a la persona; si no contestó, se le manda el mensaje
+   * para reagendar con horas libres.
+   */
+  callFollowUp: z.object({
+    enabled: z.boolean().default(false),
+    /** Minutos después de terminar la llamada para revisar el chat (y preguntar). */
+    askAfterMin: z.number().int().min(5).max(180).default(10),
+    /** Horas sin respuesta a la pregunta para darla por no contestada. */
+    assumeMissedAfterHours: z.number().int().min(2).max(72).default(24),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -299,6 +311,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },
   freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3 },
   waitingRoom: { enabled: false, proactive: false },
+  callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
 });
 
 /**

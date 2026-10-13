@@ -5,6 +5,7 @@ import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { getOperationalTimezone } from "../operational-timezone";
 import { isAutoSend } from "../whatsapp-attention-rules";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
+import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
 import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
@@ -142,7 +143,7 @@ const noticeFor = async (input: {
 
 const SILENCING = new Set(["personal", "negocio", "equipo"]);
 
-const GUARD_SELECT = {
+export const GUARD_SELECT = {
   id: true,
   externalThreadId: true,
   contactId: true,
@@ -157,7 +158,7 @@ const GUARD_SELECT = {
   dossier: { select: { segment: true } },
 } as const;
 
-type GuardedConversation = {
+export type GuardedConversation = {
   externalThreadId: string;
   priorityAt: Date | null;
   aiModeOverride: string | null;
@@ -172,7 +173,7 @@ type GuardedConversation = {
  * Dayana o favorito, escalada esperándola, número personal, categoría
  * personal/negocio/equipo puesta a mano, clienta o «no atender».
  */
-const waitingRoomBlocked = async (conv: GuardedConversation, config: WhatsAppAiConfig): Promise<boolean> =>
+export const waitingRoomBlocked = async (conv: GuardedConversation, config: WhatsAppAiConfig): Promise<boolean> =>
   config.defaultMode === "MANUAL" ||
   Boolean(conv.priorityAt) ||
   conv.aiModeOverride === "MANUAL" ||
@@ -213,7 +214,7 @@ export const handleWaitingRoom = async (input: {
 
 /** El reloj: a quien ya es su hora y Dayana sigue ocupada, aunque no haya escrito (ventana abierta). */
 export const sweepWaitingRoom = async (config: WhatsAppAiConfig, now = new Date()) => {
-  if (!config.waitingRoom.enabled || !config.waitingRoom.proactive) return { off: true };
+  if (!config.waitingRoom.enabled || !config.waitingRoom.proactive || !(await isWhatsAppAutoReplyEnabled())) return { off: true };
   const due = await prisma.calendarAppointment.findMany({
     where: {
       status: "active",

@@ -37,6 +37,7 @@ import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
 import { segmentOrSafe } from "./segment-store";
 import { handleWaitingRoom } from "./waiting-room";
+import { handleCallFollowUpReply } from "./call-outcome";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -268,6 +269,10 @@ export const runWhatsAppAi = async (input: {
         }
         return;
       }
+      // Después de su llamada gratis: «no me llamaron» o la respuesta a
+      // «¿pudiste hablar?» deciden si se hizo; si no, se le manda para reagendar.
+      const followUp = await handleCallFollowUpReply({ config: routeConfig, conversationId, triggerMessageId: input.triggerMessageId });
+      if (followUp.handled) return;
     }
 
     // Favoritos (la estrella): chats importantes para Dayana. La IA no los

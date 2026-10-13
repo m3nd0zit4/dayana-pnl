@@ -104,11 +104,12 @@ export const resolveSegment = (input: SegmentInput): SegmentVerdict => {
     if (strong > 0 && signals > 0) {
       return { segment: "client", confidence: 0.9, reason: "En el chat consta que pagó (frases y ficha coinciden).", review: false, source: "ai" };
     }
-    if (strong > 0 || signals > 0 || h.dossierHadSession) {
+    // «Ya tuvo llamada» sola no la hace clienta: la llamada gratis también cuenta ahí.
+    if (strong > 0 || signals > 0) {
       return {
         segment: "client",
         confidence: 0.6,
-        reason: strong > 0 ? "El chat dice que pagó o tiene sesiones." : "La ficha cree que ya pagó o tuvo sesiones.",
+        reason: strong > 0 ? "El chat dice que pagó o tiene sesiones." : "La ficha cree que ya pagó.",
         review: true,
         source: strong > 0 ? "rules" : "ai",
       };

@@ -2418,6 +2418,17 @@ model CalendarAppointment {
   /// está terminando una reunión» / «ya le aviso» y cuándo (máx. 2 por cita).
   waitNoticeCount Int       @default(0) @map("wait_notice_count")
   waitNoticeAt    DateTime? @map("wait_notice_at")
+  /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).
+  /// WhatsApp no avisa de las llamadas del celular: se deduce del chat o se le pregunta a la persona.
+  callOutcome       String?   @map("call_outcome")
+  /// chat | asked | timeout
+  callOutcomeSource String?   @map("call_outcome_source")
+  callOutcomeReason String?   @map("call_outcome_reason")
+  callOutcomeAt     DateTime? @map("call_outcome_at")
+  /// Cuándo se le preguntó «¿Pudiste hablar con Dayana?».
+  outcomeCheckAt    DateTime? @map("outcome_check_at")
+  /// Cuándo se le mandó el mensaje para reagendar.
+  rescheduleSentAt  DateTime? @map("reschedule_sent_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

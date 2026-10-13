@@ -8,11 +8,11 @@ import { confirmAppointmentPerson, syncAppointments } from "@/lib/crm/whatsapp-a
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-/** Próximas citas (14 días) y las que falta saber quién es. */
+/** Próximas citas (14 días), las de los últimos 2 días (para ver si se hizo la llamada) y las que falta saber quién es. */
 export const GET = withStaff("read", async () => {
   const now = new Date();
   const rows = await prisma.calendarAppointment.findMany({
-    where: { status: "active", startsAt: { gte: new Date(now.getTime() - 2 * 3600_000), lte: new Date(now.getTime() + 14 * 24 * 3600_000) } },
+    where: { status: "active", startsAt: { gte: new Date(now.getTime() - 48 * 3600_000), lte: new Date(now.getTime() + 14 * 24 * 3600_000) } },
     orderBy: { startsAt: "asc" },
     take: 200,
   });
@@ -31,6 +31,11 @@ export const GET = withStaff("read", async () => {
       confirmedAt: a.confirmedAt?.toISOString() ?? null,
       reminderSentAt: a.reminderSentAt?.toISOString() ?? null,
       reminderError: a.reminderError,
+      endsAt: a.endsAt.toISOString(),
+      callOutcome: a.callOutcome,
+      callOutcomeReason: a.callOutcomeReason,
+      outcomeCheckAt: a.outcomeCheckAt?.toISOString() ?? null,
+      rescheduleSentAt: a.rescheduleSentAt?.toISOString() ?? null,
     })),
   });
 });

@@ -208,6 +208,22 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, te recuerdo tu cita de {{servicio}} mañana {{fecha}} a las {{hora}}. Enlace: {{enlace}} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.",
     example: { nombre: "Ana", servicio: "sesión de terapia", fecha: "jueves 2 de octubre", hora: "10:00 a. m.", enlace: "https://meet.google.com/abc-defg-hij" },
   },
+  // Después de la llamada gratis, fuera de las 24 h (dentro de la ventana va
+  // como texto). Las manda a aprobar Dayana desde Plantillas.
+  {
+    key: "cita_seguimiento",
+    title: "Llamada gratis: ¿pudiste hablar?",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, ¿pudiste hablar con Dayana en tu llamada gratis del {{fecha}}? Responde SÍ o NO por aquí.",
+    example: { nombre: "Ana", fecha: "jueves 2 de octubre" },
+  },
+  {
+    key: "cita_no_contestada",
+    title: "Llamada gratis: no contestó",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, Dayana te llamó para tu llamada gratis del {{fecha}} y no logramos comunicarnos. Quedamos atentos para reagendarla. Horarios disponibles: {{horarios}}. Responde con el que te quede mejor.",
+    example: { nombre: "Ana", fecha: "jueves 2 de octubre", horarios: "viernes 3, 10:00 a. m. · lunes 6, 3:00 p. m." },
+  },
   {
     key: "cita_reprogramar",
     title: "Cita: reprogramar",

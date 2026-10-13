@@ -26,7 +26,8 @@ describe("resolveSegment", () => {
   test("ante la duda sobre si pagó: clienta, pero por revisar", () => {
     expect(resolveSegment({ history: { strongEvidence: 1 } })).toMatchObject({ segment: "client", review: true });
     expect(resolveSegment({ history: { dossierPaidSignals: 1 } })).toMatchObject({ segment: "client", review: true });
-    expect(resolveSegment({ history: { dossierHadSession: true } })).toMatchObject({ segment: "client", review: true });
+    // Haber tenido la llamada (gratis) no la vuelve clienta.
+    expect(resolveSegment({ history: { dossierHadSession: true }, hadConversation: true }).segment).toBe("returning_lead");
   });
 
   test("Dayana dijo «no es clienta»: las frases del chat no la vuelven clienta", () => {

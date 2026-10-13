@@ -29,6 +29,8 @@ type Overview = {
     approvedEdited: number;
     waitingNotices: number;
     medianReplyMs: number | null;
+    callsAnswered: number;
+    callsMissed: number;
   } | null;
   health: {
     provider: string;
@@ -125,6 +127,8 @@ const WhatsAppStatusClient = () => {
             {data.week.approvedAsIs + data.week.approvedEdited > 0
               ? `aprobaste tal cual ${data.week.approvedAsIs} de ${data.week.approvedAsIs + data.week.approvedEdited} propuestas`
               : "sin propuestas aprobadas"}
+            {data.week.callsAnswered + data.week.callsMissed > 0 &&
+              ` · llamadas gratis: ${data.week.callsAnswered} contestaron, ${data.week.callsMissed} no contestaron`}
             {data.week.waitingNotices > 0 && ` · ${data.week.waitingNotices} avisos de sala de espera`}
             {data.week.medianReplyMs && ` · responde en ${Math.round(data.week.medianReplyMs / 1000)} s (mediana)`}
           </p>

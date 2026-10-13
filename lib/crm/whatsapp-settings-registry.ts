@@ -199,6 +199,18 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-call-followup",
+    label: "Saber si se hizo la llamada gratis y reagendar si no contestó",
+    keywords: ["no contestó", "reagendar", "llamada perdida", "no asistió", "seguimiento", "llamada gratis"],
+    tab: "ia",
+  },
+  {
+    id: "wa-call-followup-hours",
+    label: "Horas para dar la llamada por no contestada",
+    keywords: ["horas", "no contestó", "sin respuesta", "reagendar"],
+    tab: "ia",
+  },
+  {
     id: "wa-waiting-proactive",
     label: "Avisar de la espera aunque no escriba",
     keywords: ["sala de espera", "reloj", "avisar", "proactivo"],

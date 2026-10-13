@@ -77,6 +77,29 @@ const SalesFlowSection = () => {
         disabled={!config.waitingRoom.enabled}
         onChange={(v) => change("wa-waiting-proactive", "waitingRoom.proactive", v)}
       />
+      <ToggleRow
+        id="wa-call-followup"
+        label="Saber si se hizo la llamada y reagendar si no contestó"
+        help="Al terminar cada llamada gratis se lee el chat; si no queda claro, la asistente le pregunta «¿Pudiste hablar con Dayana?». Si no contestó (o no responde en 24 h), le manda 2–3 horas libres para reagendar."
+        info="WhatsApp no avisa de las llamadas que haces desde el celular: por eso se deduce del chat («no me llamaron», «fue un gusto hablar contigo», un pago…) o de su respuesta. Lo ves en la Agenda. Fuera de las 24 h usa las plantillas «Llamada gratis: ¿pudiste hablar?» y «Llamada gratis: no contestó» (apruébalas en Plantillas)."
+        state={states["wa-call-followup"]}
+        checked={config.callFollowUp.enabled}
+        onChange={(v) => change("wa-call-followup", "callFollowUp.enabled", v)}
+      />
+      <SettingRow
+        id="wa-call-followup-hours"
+        label="Horas sin respuesta para darla por no contestada"
+        state={states["wa-call-followup-hours"]}
+        layout="row"
+      >
+        <NumberField
+          value={config.callFollowUp.assumeMissedAfterHours}
+          min={2}
+          max={72}
+          disabled={!config.callFollowUp.enabled}
+          onChange={(v) => change("wa-call-followup-hours", "callFollowUp.assumeMissedAfterHours", v, 600)}
+        />
+      </SettingRow>
       <SettingRow
         id="wa-sales-buttons"
         layout="stacked"

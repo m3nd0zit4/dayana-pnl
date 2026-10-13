@@ -20,6 +20,22 @@ type Item = {
   confirmedAt: string | null;
   reminderSentAt: string | null;
   reminderError: string | null;
+  endsAt: string;
+  /** ¿Se hizo la llamada gratis? (se deduce del chat o se le pregunta). */
+  callOutcome: string | null;
+  callOutcomeReason: string | null;
+  outcomeCheckAt: string | null;
+  rescheduleSentAt: string | null;
+};
+
+/** Cómo quedó la llamada gratis, si ya pasó. null = aún no ha pasado o no aplica. */
+const outcomeLabel = (a: Item): { text: string; tone: "ok" | "bad" | "muted" } | null => {
+  if (a.callOutcome === "answered") return { text: "Contestó", tone: "ok" };
+  if (a.callOutcome === "no_answer") return { text: a.rescheduleSentAt ? "No contestó · se le mandaron horas" : "No contestó", tone: "bad" };
+  if (a.callOutcome === "rescheduled") return { text: "Se reagendó", tone: "muted" };
+  if (!a.callOutcome && a.outcomeCheckAt) return { text: "Se le preguntó si pudo hablar", tone: "muted" };
+  if (!a.callOutcome && new Date(a.endsAt).getTime() < Date.now() && a.sessionsLabel === "0/0") return { text: "Revisando si se hizo", tone: "muted" };
+  return null;
 };
 
 const when = (iso: string) =>
@@ -147,7 +163,20 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
               </span>
               {a.phone && <span className="text-xs text-muted-foreground">+{a.phone}</span>}
               <span className="inline-flex items-center gap-1 text-xs">
-                {a.confirmedAt ? (
+                {outcomeLabel(a) ? (
+                  <span
+                    title={a.callOutcomeReason ?? undefined}
+                    className={
+                      outcomeLabel(a)!.tone === "ok"
+                        ? "text-[#008069]"
+                        : outcomeLabel(a)!.tone === "bad"
+                          ? "text-[#b42318]"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    {outcomeLabel(a)!.text}
+                  </span>
+                ) : a.confirmedAt ? (
                   <span className="inline-flex items-center gap-1 text-[#008069]"><CheckCircle2 className="size-3.5" /> Confirmó</span>
                 ) : a.reminderError ? (
                   <span className="inline-flex items-center gap-1 text-[#b42318]" title={a.reminderError}><TriangleAlert className="size-3.5" /> Recordatorio no salió</span>
