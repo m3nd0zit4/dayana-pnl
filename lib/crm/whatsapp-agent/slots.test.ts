@@ -71,6 +71,26 @@ describe("findFreeSlots", () => {
     expect(slots[0].dateKey).toBe("2026-10-05");
   });
 
+  test("horario de la dueña: sin martes, jueves desde las 11:00, nada después de las 22:00", () => {
+    const owner = {
+      ...config,
+      horizonDays: 14,
+      hours: [
+        { weekday: 1, from: "08:00", to: "22:00" },
+        { weekday: 3, from: "08:00", to: "22:00" },
+        { weekday: 4, from: "11:00", to: "22:00" },
+        { weekday: 5, from: "08:00", to: "22:00" },
+      ],
+    };
+    const slots = findFreeSlots({ config: owner, durationMin: 15, busy: [], timezone: TZ, now: monday6am, limit: 2000 });
+    const weekdayOf = (dateKey: string) => new Date(`${dateKey}T12:00:00Z`).getUTCDay();
+    expect(slots.length).toBeGreaterThan(0);
+    expect(slots.some((s) => weekdayOf(s.dateKey) === 2)).toBe(false);
+    expect(slots.some((s) => [0, 6].includes(weekdayOf(s.dateKey)))).toBe(false);
+    expect(slots.filter((s) => weekdayOf(s.dateKey) === 4).every((s) => s.time >= "11:00")).toBe(true);
+    expect(slots.every((s) => s.time >= "08:00" && s.time <= "21:45")).toBe(true);
+  });
+
   test("filtra por rango pedido", () => {
     const slots = findFreeSlots({
       config,
@@ -88,6 +108,17 @@ describe("findFreeSlots", () => {
 });
 
 describe("findFreeSlots con bloques Disponible", () => {
+  // The owner's schedule: no Tuesdays, nothing after 22:00 or at dawn, Thursdays from 11:00.
+  const ownerHours = {
+    ...config,
+    hours: [
+      { weekday: 1, from: "08:00", to: "22:00" },
+      { weekday: 3, from: "08:00", to: "22:00" },
+      { weekday: 4, from: "11:00", to: "22:00" },
+      { weekday: 5, from: "08:00", to: "22:00" },
+    ],
+  };
+
   test("solo ofrece horas dentro de los bloques y libres", () => {
     const windows: Busy[] = [
       // miércoles 14:00-17:00 Bogotá
@@ -97,8 +128,28 @@ describe("findFreeSlots con bloques Disponible", () => {
       // 15:00-15:30 ocupado
       { start: at("2026-09-30T20:00:00Z"), end: at("2026-09-30T20:30:00Z") },
     ];
-    const slots = findFreeSlots({ config, durationMin: 60, busy, windows, timezone: TZ, now: monday6am });
+    const slots = findFreeSlots({ config: ownerHours, durationMin: 60, busy, windows, timezone: TZ, now: monday6am });
     expect(slots.map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-09-30 16:00"]);
+  });
+
+  test("un bloque Disponible no abre horas fuera del horario de Ajustes", () => {
+    const windows: Busy[] = [
+      // martes 29: 10:00-12:00 Bogotá (los martes no se agenda)
+      { start: at("2026-09-29T15:00:00Z"), end: at("2026-09-29T17:00:00Z") },
+      // jueves 1: 09:00-12:00 Bogotá (los jueves solo desde las 11:00)
+      { start: at("2026-10-01T14:00:00Z"), end: at("2026-10-01T17:00:00Z") },
+      // viernes 2: 21:00 a sábado 01:00 Bogotá (nada después de las 22:00 ni de madrugada)
+      { start: at("2026-10-03T02:00:00Z"), end: at("2026-10-03T06:00:00Z") },
+    ];
+    const slots = findFreeSlots({ config: ownerHours, durationMin: 15, busy: [], windows, timezone: TZ, now: monday6am });
+    const labels = slots.map((s) => `${s.dateKey} ${s.time}`);
+    expect(labels.some((l) => l.startsWith("2026-09-29"))).toBe(false);
+    expect(labels.filter((l) => l.startsWith("2026-10-01")).every((l) => l.slice(11) >= "11:00")).toBe(true);
+    expect(labels.filter((l) => l.startsWith("2026-10-01")).length).toBeGreaterThan(0);
+    const friday = labels.filter((l) => l.startsWith("2026-10-02"));
+    expect(friday.length).toBeGreaterThan(0);
+    expect(friday.every((l) => l.slice(11) <= "21:45")).toBe(true);
+    expect(labels.some((l) => l.startsWith("2026-10-03"))).toBe(false);
   });
 });
 

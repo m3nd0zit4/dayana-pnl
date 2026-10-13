@@ -146,11 +146,13 @@ export const bookOnCalendar = async (input: {
     input.timezone
   );
   // Con bloques «Disponible» en el calendario, la cita tiene que caber en uno;
-  // sin ellos, en el horario base.
-  const fits =
-    windows.length > 0
-      ? windows.some((w) => input.start.getTime() >= w.start && end.getTime() <= w.end)
-      : isWithinBookingHours(input.config, input.start, input.durationMin, input.timezone);
+  // y siempre dentro del horario de Ajustes, que es un límite duro.
+  const inWindow =
+    windows.length === 0 || windows.some((w) => input.start.getTime() >= w.start && end.getTime() <= w.end);
+  const inHours =
+    (windows.length > 0 && input.config.hours.length === 0) ||
+    isWithinBookingHours(input.config, input.start, input.durationMin, input.timezone);
+  const fits = inWindow && inHours;
   if (!fits) {
     throw new SlotUnavailableError("Esa hora está fuera del horario en que Dayana atiende.");
   }

@@ -98,6 +98,9 @@ export const findFreeSlots = (input: {
         if (t < earliest || endMs > latest) continue;
         if (overlapsBusy(t, endMs, busy, config.bufferMin)) continue;
         const start = new Date(t);
+        // The schedule in Ajustes is a hard limit (no Tuesdays, nothing late…):
+        // a «Disponible» block outside it doesn't open those hours.
+        if (config.hours.length > 0 && !isWithinBookingHours(config, start, durationMin, timezone)) continue;
         if (slots.some((x) => x.startIso === start.toISOString())) continue;
         slots.push({
           startIso: start.toISOString(),
