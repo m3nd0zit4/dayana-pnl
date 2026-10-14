@@ -7,6 +7,7 @@ import { windowNotice } from "@/lib/crm/whatsapp-outbound-plan";
 import { quotePreview } from "@/lib/crm/whatsapp-chat-format";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import ApprovalBar from "../ApprovalBar";
+import ReceiptBar from "../ReceiptBar";
 import VoiceRecorder from "../VoiceRecorder";
 import { wa } from "./chatTheme";
 import { ActionButton } from "./ui";
@@ -35,11 +36,14 @@ const Composer = forwardRef<
     onSendFile: (file: File, caption?: string) => Promise<void>;
     onSticker: (url: string) => void;
     onDecide: React.ComponentProps<typeof ApprovalBar>["onDecide"];
+    /** Algo cambió (p. ej. se confirmó un comprobante): recargar el chat. */
+    onChanged: () => void;
+    onOpenImage?: (image: { src: string; alt: string }) => void;
     replyTo: ChatMessage | null;
     onCancelReply: () => void;
   }
 >(function Composer(
-  { chat, canWrite, busy, text, onText, onSend, onSuggest, onSlots, onSendFile, onSticker, onDecide, replyTo, onCancelReply },
+  { chat, canWrite, busy, text, onText, onSend, onSuggest, onSlots, onSendFile, onSticker, onDecide, onChanged, onOpenImage, replyTo, onCancelReply },
   textareaRef
 ) {
   const fileInput = useRef<HTMLInputElement>(null);
@@ -61,6 +65,7 @@ const Composer = forwardRef<
           <span className="flex-1">{windowNotice(chat.windowState)}</span>
         </p>
       )}
+      <ReceiptBar receipts={chat.receipts} chatName={chat.name} canWrite={canWrite} onChanged={onChanged} onOpenImage={onOpenImage} />
       <ApprovalBar approvals={chat.approvals} canWrite={canWrite} onDecide={onDecide} />
       {chat.draft?.source === "AI" && text === chat.draft.body && (
         <p className="flex items-center gap-1 text-xs font-medium text-(--wa-accent)">

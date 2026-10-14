@@ -181,6 +181,24 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-pay-receipts",
+    label: "Recibir comprobantes de pago",
+    keywords: ["comprobante", "pago", "transferencia", "recibo", "confirmar pago", "cliente"],
+    tab: "ia",
+  },
+  {
+    id: "wa-pay-links",
+    label: "Reenviar el enlace de pago",
+    keywords: ["enlace de pago", "link", "pagar", "reenviar"],
+    tab: "ia",
+  },
+  {
+    id: "wa-pay-methods",
+    label: "Formas de pago (cuentas)",
+    keywords: ["cuenta", "bancolombia", "western union", "global66", "remitly", "datos de pago", "transferencia", "pagar"],
+    tab: "ia",
+  },
+  {
     id: "wa-sales-flow",
     label: "Flujo de primera vez (llevar a la llamada gratis)",
     keywords: ["primera vez", "flujo", "venta", "llamada gratis", "invitar", "nuevas", "agendar"],

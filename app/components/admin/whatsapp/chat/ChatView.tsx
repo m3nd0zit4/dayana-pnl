@@ -444,6 +444,8 @@ const ChatView = ({
             onSendFile={sendFile}
             onSticker={(url) => void act("sticker", { action: "sticker", url })}
             onDecide={decide}
+            onChanged={onChanged}
+            onOpenImage={setLightbox}
             replyTo={replyTo}
             onCancelReply={() => setReplyTo(null)}
           />

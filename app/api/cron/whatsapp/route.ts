@@ -9,6 +9,7 @@ import { refreshStaleDossiers } from "@/lib/crm/whatsapp-agent/dossier";
 import { refreshStages } from "@/lib/crm/whatsapp-agent/segment-store";
 import { sweepWaitingRoom } from "@/lib/crm/whatsapp-agent/waiting-room";
 import { sweepCallOutcomes } from "@/lib/crm/whatsapp-agent/call-outcome";
+import { answerUnansweredChats } from "@/lib/crm/whatsapp-agent/catch-up";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 
 export const runtime = "nodejs";
@@ -48,6 +49,9 @@ const STAGES_MAX_MS = 10_000;
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const started = Date.now();
+  // Chats que llevan más de 10 min sin respuesta (pausas, fallos): corre a la
+  // par del resto de pasos, con lo que dé el reloj.
+  const pending = step("pendientes", () => answerUnansweredChats({ budgetMs: 100_000, minAgeMin: 10, limit: 8, concurrency: 4 }));
   const steps = [
     await step("citas", () => syncAppointments()),
     await step("recordatorios", async () => ((await areRemindersEnabled()) ? sendDueReminders() : { off: true })),
@@ -66,6 +70,7 @@ export async function POST(req: Request) {
       classifyFromCron(Math.min(CLASSIFY_MAX_MS, CLASSIFY_DEADLINE_MS - (Date.now() - started)))
     ),
   ];
-  console.info(`[reloj WhatsApp] ${JSON.stringify(steps)}`);
-  return NextResponse.json({ ok: steps.every((s) => s.ok), steps });
+  const all = [...steps, await pending];
+  console.info(`[reloj WhatsApp] ${JSON.stringify(all)}`);
+  return NextResponse.json({ ok: all.every((s) => s.ok), steps: all });
 }

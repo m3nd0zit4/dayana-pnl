@@ -10,6 +10,7 @@ import { isManualPause, replyStateOf, type ReplyState } from "../whatsapp-attent
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 import { attentionWhere, seguimientoWhere } from "./attention";
 import { isClassifyEnabled } from "../chat-category";
+import { listReceipts, type ReceiptView } from "./payments";
 import { decideRoute } from "./route";
 import { salesMetrics } from "./metrics";
 import { freeCallService } from "./free-call";
@@ -613,13 +614,14 @@ export const getChat = async (id: string) => {
     })
   );
 
-  const [memory, classifyEnabled, config] = await Promise.all([
+  const [memory, classifyEnabled, config, receipts] = await Promise.all([
     prisma.whatsAppMemory.findUnique({
       where: { phone: c.externalThreadId },
       select: { notes: true, updatedAt: true },
     }),
     isClassifyEnabled(),
     getWhatsAppAiConfig(),
+    listReceipts(c.id).catch(() => [] as ReceiptView[]),
   ]);
   // El modo con el que de verdad trabaja (con el enrutador sale del segmento
   // y del tope general; ya no se guarda en el chat).
@@ -717,6 +719,8 @@ export const getChat = async (id: string) => {
     })),
     memory: memory ? { notes: memory.notes, updatedAt: memory.updatedAt.toISOString() } : null,
     approvals: approvalViews,
+    /** Comprobantes de pago que llegaron y Dayana aún no confirma. */
+    receipts: receipts.filter((r) => r.status === "pending"),
   };
 };
 

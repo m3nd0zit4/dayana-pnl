@@ -37,8 +37,7 @@ const run = async (label: string, phone: string, name: string, transcript: Trans
     timezone: "America/Bogota",
     mode: "preview",
   });
-  const recent = transcript.filter((m) => m.direction === "OUTBOUND" && m.body).map((m) => m.body as string);
-  const text = result.outcome.kind === "reply" ? polishReply(result.outcome.message, recent) : `[escala: ${result.outcome.kind}]`;
+  const text = result.outcome.kind === "reply" ? polishReply(result.outcome.message) : `[escala: ${result.outcome.kind}]`;
   const tools = result.toolCalls.map((t) => t.tool);
   console.log(`\n— ${label}\n  IA: ${text.replace(/\n/g, " / ")}\n  herramientas: ${tools.join(", ") || "ninguna"}`);
   check("sin precios", !mentionsPrice(text), text);
