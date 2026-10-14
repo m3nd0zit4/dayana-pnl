@@ -25,4 +25,15 @@ describe("qué imágenes ve la IA", () => {
       ])
     ).toEqual([]);
   });
+  test("sin copia propia (Blob suspendido), la pide a WhatsApp por su id mientras la guarde (7 días)", () => {
+    const now = Date.parse("2026-10-14T12:00:00Z");
+    const picks = pickImages(
+      [
+        { direction: "INBOUND", sentAt: new Date("2026-10-01T12:00:00Z"), attachments: [{ kind: "image", url: null, mediaId: "111111", mimeType: "image/jpeg" }] },
+        { direction: "INBOUND", sentAt: new Date("2026-10-14T11:00:00Z"), attachments: [{ kind: "image", url: null, mediaId: "222222", mimeType: "image/jpeg", unavailableReason: "upload_failed" }] },
+      ],
+      now
+    );
+    expect(picks).toEqual([{ url: null, mediaId: "222222", mimeType: "image/jpeg" }]);
+  });
 });

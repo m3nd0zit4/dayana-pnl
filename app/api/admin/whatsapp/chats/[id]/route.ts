@@ -42,7 +42,8 @@ export const GET = withStaff<Params>("read", async ({ params, req }) => {
   if (!chat) return apiError("not_found", 404);
   // Audios de este chat que aún no tienen texto: se transcriben en segundo
   // plano; el panel los muestra en la siguiente actualización.
-  if (chat.messages.some((m) => !m.body && m.attachments.some((a) => a.kind === "audio" && a.url))) {
+  // Sin copia en Blob se pide a WhatsApp por su id (la guarda 7 días).
+  if (chat.messages.some((m) => !m.body && m.attachments.some((a) => a.kind === "audio" && (a.url || (a as { mediaId?: string }).mediaId)))) {
     after(async () => {
       const { transcribePendingAudio } = await import("@/lib/crm/whatsapp-agent/transcribe");
       await transcribePendingAudio({ conversationId: params.id, limit: 30 }).catch(() => undefined);

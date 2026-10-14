@@ -419,7 +419,15 @@ export type ChatMessageView = {
   id: string;
   direction: "INBOUND" | "OUTBOUND";
   body: string | null;
-  attachments: { kind: string; url: string | null; mimeType: string | null; caption: string | null }[];
+  attachments: {
+    kind: string;
+    url: string | null;
+    mimeType: string | null;
+    caption: string | null;
+    /** Id en WhatsApp: sin copia propia, el CRM lo pide por aquí (7 días). */
+    mediaId?: string;
+    unavailableReason?: string;
+  }[];
   sentAt: string;
   status: string;
   isAutoReply: boolean;

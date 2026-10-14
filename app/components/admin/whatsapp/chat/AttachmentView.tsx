@@ -1,8 +1,9 @@
 "use client";
 
 import { Download, FileText } from "lucide-react";
+import { useState } from "react";
 import { documentName, documentType } from "@/lib/crm/whatsapp-chat-format";
-import { KIND_LABEL, mediaSrc, shownKind, type Attachment } from "./utils";
+import { attachmentSrc, KIND_LABEL, shownKind, type Attachment } from "./utils";
 
 /** Un adjunto dentro de la burbuja: foto (abre en grande), sticker, audio, video o documento. */
 const AttachmentView = ({
@@ -12,7 +13,10 @@ const AttachmentView = ({
   a: Attachment;
   onOpenImage?: (image: { src: string; alt: string }) => void;
 }) => {
-  const src = mediaSrc(a.url);
+  // Lo que se pide a WhatsApp puede haber vencido (7 días): entonces, el aviso.
+  const [failed, setFailed] = useState(false);
+  const src = failed ? null : attachmentSrc(a);
+  const onError = a.url ? undefined : () => setFailed(true);
   if (!src) {
     return (
       <div className="mb-1 rounded-md bg-(--wa-text)/5 px-2 py-1.5 text-xs text-(--wa-icon)">
@@ -32,16 +36,16 @@ const AttachmentView = ({
           aria-label="Ver la foto en grande"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={src} alt={a.caption ?? "Foto"} className="max-h-80 max-w-full rounded-md" loading="lazy" />
+          <img src={src} alt={a.caption ?? "Foto"} className="max-h-80 max-w-full rounded-md" loading="lazy" onError={onError} />
         </button>
       );
     case "sticker":
       // eslint-disable-next-line @next/next/no-img-element
-      return <img src={src} alt="Sticker" className="size-32 object-contain" loading="lazy" />;
+      return <img src={src} alt="Sticker" className="size-32 object-contain" loading="lazy" onError={onError} />;
     case "audio":
-      return <audio src={src} controls preload="none" className="mb-1 h-10 w-64 max-w-full" />;
+      return <audio src={src} controls preload="none" className="mb-1 h-10 w-64 max-w-full" onError={onError} />;
     case "video":
-      return <video src={src} controls playsInline preload="metadata" className="mb-1 max-h-80 w-full max-w-sm rounded-md" />;
+      return <video src={src} controls playsInline preload="metadata" className="mb-1 max-h-80 w-full max-w-sm rounded-md" onError={onError} />;
     default: {
       const name = documentName(a);
       return (

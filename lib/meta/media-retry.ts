@@ -94,10 +94,13 @@ export const retryFailedMedia = async (opts: { limit?: number } = {}): Promise<{
         if (stored.transcript) transcript = stored.transcript;
         stats.fixed++;
       } else {
+        // Se bajó pero Blob no lo aceptó: el texto de la nota de voz sí queda.
+        if (stored?.transcript) transcript = stored.transcript;
         const retries = (a.retries ?? 0) + 1;
         const delay = RETRY_DELAYS_MIN[Math.min(retries, RETRY_DELAYS_MIN.length - 1)] * 60_000;
         next.push({
           ...a,
+          ...(stored?.transcript ? { transcript: stored.transcript } : {}),
           unavailableReason: stored?.unavailableReason ?? a.unavailableReason ?? "download_failed",
           retries,
           retryAt: new Date(Date.now() + delay).toISOString(),
@@ -112,7 +115,7 @@ export const retryFailedMedia = async (opts: { limit?: number } = {}): Promise<{
       where: { id: row.id, updatedAt: row.updated_at },
       data: {
         attachments: next as unknown as Prisma.InputJsonValue,
-        ...(transcript && !row.body ? { body: `🎤 ${transcript}` } : {}),
+        ...(transcript && !row.body?.trim() ? { body: `🎤 ${transcript}` } : {}),
       },
     });
   }

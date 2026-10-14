@@ -28,6 +28,16 @@ export const timeLabel = (iso: string) => {
     : d.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
 };
 
+/**
+ * De dónde se ve un adjunto: la copia propia (Blob) o, si no se pudo guardar,
+ * directo de WhatsApp por su id (lo guarda 7 días; después ya no se puede).
+ */
+export const attachmentSrc = (a: Attachment): string | null =>
+  mediaSrc(a.url) ??
+  (a.mediaId && /^\d{5,40}$/.test(a.mediaId) && a.unavailableReason !== "expired"
+    ? `/api/admin/whatsapp/media?mediaId=${a.mediaId}`
+    : null);
+
 /** Los archivos viven en el store privado: el navegador los pide por el CRM. */
 export const mediaSrc = (url: string | null): string | null => {
   if (!url) return null;

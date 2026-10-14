@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { generateText } from "ai";
 
 import { prisma } from "@/lib/db";
+import { fetchWhatsAppMedia, WHATSAPP_MEDIA_TTL_MS } from "@/lib/meta/media";
 
 /**
  * Las notas de voz, en texto.
@@ -52,7 +53,7 @@ export const transcribeAudio = async (
 /** Texto que queda como cuerpo de un mensaje de audio. */
 export const transcriptBody = (transcript: string): string => `${TRANSCRIPT_MARK}${transcript}`;
 
-type StoredAtt = { kind?: string; url?: string | null; mimeType?: string | null };
+type StoredAtt = { kind?: string; url?: string | null; mimeType?: string | null; mediaId?: string; unavailableReason?: string };
 
 const readBlob = async (url: string): Promise<ArrayBuffer | null> => {
   const result = await get(url, { access: "private" }).catch(() => null);
@@ -62,42 +63,62 @@ const readBlob = async (url: string): Promise<ArrayBuffer | null> => {
 
 /**
  * Transcribe los audios que quedaron sin texto (los que llegaron antes de que
- * existiera esto). Devuelve cuántos transcribió. Después vuelve a aprender de
- * los chats tocados, para que las respuestas en audio de Dayana cuenten como
- * ejemplos de su forma de hablar.
+ * existiera esto, o cuando Blob no aceptó el archivo: entonces se pide a
+ * WhatsApp por su id, que lo guarda 7 días). Devuelve cuántos transcribió.
+ * Después vuelve a aprender de los chats tocados, para que las respuestas en
+ * audio de Dayana cuenten como ejemplos de su forma de hablar.
+ *
+ * Solo mira audios (antes tomaba cualquier adjunto sin texto y las fotos sin
+ * pie llenaban el cupo: los audios viejos nunca llegaban).
  */
 export const transcribePendingAudio = async (input: {
   conversationId?: string;
   limit?: number;
 }): Promise<number> => {
-  const messages = await prisma.conversationMessage.findMany({
-    where: {
-      ...(input.conversationId ? { conversationId: input.conversationId } : {}),
-      OR: [{ body: null }, { body: "" }],
-      attachments: { not: Prisma.DbNull },
-      conversation: { channel: "WHATSAPP" },
-    },
-    orderBy: { sentAt: "desc" },
-    take: input.limit ?? 40,
-    select: { id: true, conversationId: true, attachments: true },
-  });
+  const limit = input.limit ?? 40;
+  const conversationFilter = input.conversationId ? Prisma.sql`AND m.conversation_id = ${input.conversationId}` : Prisma.empty;
+  const messages = await prisma.$queryRaw<{ id: string; conversation_id: string; attachments: unknown; sent_at: Date }[]>`
+    SELECT m.id, m.conversation_id, m.attachments, m.sent_at
+      FROM conversation_messages m
+      JOIN conversations c ON c.id = m.conversation_id AND c.channel = 'WHATSAPP'
+     WHERE (m.body IS NULL OR m.body = '')
+       AND jsonb_typeof(m.attachments) = 'array'
+       AND EXISTS (
+         SELECT 1 FROM jsonb_array_elements(m.attachments) a
+          WHERE a->>'kind' = 'audio'
+            AND (a->>'url' IS NOT NULL
+                 OR (a->>'mediaId' IS NOT NULL AND m.sent_at > now() - interval '6 days'))
+       )
+       ${conversationFilter}
+     ORDER BY m.sent_at DESC
+     LIMIT ${limit}`;
   const touched = new Set<string>();
   let done = 0;
   for (const m of messages) {
-    const audio = (Array.isArray(m.attachments) ? (m.attachments as StoredAtt[]) : []).find(
-      (a) => a.kind === "audio" && a.url
-    );
-    if (!audio?.url) continue;
+    const audio = (Array.isArray(m.attachments) ? (m.attachments as StoredAtt[]) : []).find((a) => a.kind === "audio");
+    if (!audio) continue;
     try {
-      const bytes = await readBlob(audio.url);
+      let bytes: ArrayBuffer | null = null;
+      let mimeType = audio.mimeType ?? "audio/ogg";
+      if (audio.url) {
+        bytes = await readBlob(audio.url);
+      } else if (audio.mediaId && Date.now() - m.sent_at.getTime() < WHATSAPP_MEDIA_TTL_MS) {
+        const media = await fetchWhatsAppMedia(audio.mediaId);
+        if (media) {
+          bytes = media.buffer;
+          mimeType = audio.mimeType ?? media.contentType;
+        }
+      }
       if (!bytes) continue;
-      const transcript = await transcribeAudio(bytes, audio.mimeType ?? "audio/ogg");
+      const transcript = await transcribeAudio(bytes, mimeType);
       if (!transcript) continue;
-      await prisma.conversationMessage.update({
-        where: { id: m.id },
+      // Solo si sigue sin texto: otra pasada (o el reintento) pudo ganarle.
+      const updated = await prisma.conversationMessage.updateMany({
+        where: { id: m.id, OR: [{ body: null }, { body: "" }] },
         data: { body: transcriptBody(transcript) },
       });
-      touched.add(m.conversationId);
+      if (updated.count === 0) continue;
+      touched.add(m.conversation_id);
       done++;
     } catch (e) {
       console.warn("[transcripción] no se pudo transcribir un audio", e);

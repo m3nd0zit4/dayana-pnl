@@ -67,16 +67,18 @@ export const keepUnparsedPayload = async (payload: unknown): Promise<void> => {
     .catch((e: unknown) => console.warn("[webhook] no se pudo guardar el aviso sin leer", e));
 };
 
-let backfillStarted = false;
+let backfillCheckedAt = 0;
 
 /**
- * Los audios que llegaron antes de que existiera la transcripción se pasan a
- * texto poco a poco, aprovechando los avisos que ya están corriendo (una tanda
- * por instancia y como mucho cada 10 minutos).
+ * Los audios que quedaron sin texto (llegaron antes de que existiera la
+ * transcripción, o Blob no los aceptó) se pasan a texto poco a poco,
+ * aprovechando los avisos que ya están corriendo: como mucho una tanda cada
+ * 10 minutos entre todas las instancias. Antes era una sola vez por instancia,
+ * y una instancia viva días seguidos no volvía a intentarlo.
  */
 const backfillAudioOnce = async () => {
-  if (backfillStarted) return;
-  backfillStarted = true;
+  if (Date.now() - backfillCheckedAt < 60_000) return;
+  backfillCheckedAt = Date.now();
   try {
     const { getSiteSetting, setSiteSetting } = await import("@/lib/crm/site-settings");
     const last = Number(await getSiteSetting("whatsapp.audioBackfillAt")) || 0;

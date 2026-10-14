@@ -2,6 +2,8 @@ import { get } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
 import { resolveAdminStaff } from "@/lib/auth/api-staff";
+import { findRecentWhatsAppMedia } from "@/lib/crm/whatsapp-media";
+import { fetchWhatsAppMedia } from "@/lib/meta/media";
 import { parseRange } from "@/lib/http/range";
 import { blobNotConfiguredResponse, isBlobConfigured } from "@/lib/storage/blob";
 
@@ -18,6 +20,10 @@ export const runtime = "nodejs";
  *
  * Responde por partes (`Range`): Safari en iPhone no reproduce un audio ni un
  * video si el servidor no lo acepta, y en el celular «no cargaban».
+ *
+ * `?mediaId=`: lo que no se pudo guardar en Blob (store suspendido, descarga
+ * fallida) se pide directo a WhatsApp, que lo guarda 7 días. Solo ids de
+ * mensajes guardados en el CRM.
  */
 
 const PATH_RE = /^inbox\/(?:outbound\/)?[A-Za-z0-9-]+\.[a-z0-9]{2,5}$/;
@@ -26,7 +32,18 @@ export const GET = async (req: Request) => {
   const staff = await resolveAdminStaff();
   if (staff instanceof NextResponse) return staff;
 
-  const path = new URL(req.url).searchParams.get("path") ?? "";
+  const params = new URL(req.url).searchParams;
+  const mediaId = params.get("mediaId");
+  if (mediaId) {
+    const known = await findRecentWhatsAppMedia(mediaId);
+    if (!known) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    const media = await fetchWhatsAppMedia(mediaId);
+    if (!media) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    // Un día en el navegador: WhatsApp lo borra a los 7 y no se vuelve a pedir.
+    return respond(req, Buffer.from(media.buffer), known.mimeType ?? media.contentType, "private, max-age=86400");
+  }
+
+  const path = params.get("path") ?? "";
   if (!PATH_RE.test(path)) return NextResponse.json({ error: "not_found" }, { status: 404 });
   if (!isBlobConfigured()) return blobNotConfiguredResponse();
 
@@ -35,15 +52,18 @@ export const GET = async (req: Request) => {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const contentType = result.blob.contentType ?? "application/octet-stream";
   // Los adjuntos de WhatsApp son pequeños (fotos, notas de voz, videos de
   // pocos MB): se leen enteros para poder responder por partes.
   const bytes = Buffer.from(await new Response(result.stream).arrayBuffer());
+  return respond(req, bytes, result.blob.contentType ?? "application/octet-stream", "private, max-age=31536000, immutable");
+};
+
+const respond = (req: Request, bytes: Buffer<ArrayBuffer>, contentType: string, cacheControl: string) => {
   const size = bytes.length;
   const common = {
     "Content-Type": contentType,
     "Accept-Ranges": "bytes",
-    "Cache-Control": "private, max-age=31536000, immutable",
+    "Cache-Control": cacheControl,
   };
 
   const rangeHeader = req.headers.get("range");

@@ -6,6 +6,7 @@ import {
   type MetaCredentials,
 } from "./client";
 import type { NormalizedAttachment } from "./inbound";
+import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 
 export type StoredAttachment = {
   kind: string;
@@ -113,31 +114,57 @@ export const rehostAttachment = async (
 
   const contentType = mimeType ?? downloaded.contentType;
 
+  // Una nota de voz se transcribe ya, ANTES de guardarla: la IA contesta y
+  // aprende del texto, y el texto no depende de que Blob acepte el archivo
+  // (con el store suspendido, ningún audio tenía texto).
+  let transcript: string | undefined;
+  if (attachment.kind === "audio") {
+    const { transcribeAudio } = await import("@/lib/crm/whatsapp-agent/transcribe");
+    transcript =
+      (await transcribeAudio(downloaded.buffer, contentType).catch((e) => {
+        console.warn("[meta] no se pudo transcribir un audio", e);
+        return null;
+      })) ?? undefined;
+  }
+  const digest = await crypto.subtle.digest("SHA-256", downloaded.buffer);
+  const sha256 = Buffer.from(digest).toString("hex");
+
   try {
     // El store de Blob es privado: con `access: "public"` cada adjunto fallaba
     // («upload_failed») y en el CRM no se veía ni una foto ni un audio. Se
     // guarda privado y el CRM lo pide por `/api/admin/whatsapp/media`, con
     // sesión de staff.
-    const digest = await crypto.subtle.digest("SHA-256", downloaded.buffer);
-    const sha256 = Buffer.from(digest).toString("hex");
     const blob = await put(
       `inbox/${crypto.randomUUID()}.${extensionFor(contentType)}`,
       downloaded.buffer,
       { access: "private", contentType, addRandomSuffix: false }
     );
-    // Una nota de voz se transcribe ya: la IA contesta y aprende del texto.
-    let transcript: string | undefined;
-    if (attachment.kind === "audio") {
-      const { transcribeAudio } = await import("@/lib/crm/whatsapp-agent/transcribe");
-      transcript =
-        (await transcribeAudio(downloaded.buffer, contentType).catch((e) => {
-          console.warn("[meta] no se pudo transcribir un audio", e);
-          return null;
-        })) ?? undefined;
-    }
     return { ...base, url: blob.url, mimeType: contentType, sha256, ...(transcript ? { transcript } : {}) };
   } catch (e) {
+    // Sin copia propia, el archivo se sigue viendo 7 días pidiéndolo a
+    // WhatsApp por su id (`/api/admin/whatsapp/media?mediaId=`).
     console.warn("[meta] blob upload failed", e);
-    return { ...base, unavailableReason: "upload_failed" };
+    return { ...base, mimeType: contentType, sha256, unavailableReason: "upload_failed", ...(transcript ? { transcript } : {}) };
   }
+};
+
+/** WhatsApp guarda cada archivo 7 días; un poco menos para no pedir lo vencido. */
+export const WHATSAPP_MEDIA_TTL_MS = 6.5 * 24 * 3600_000;
+
+/**
+ * Baja un archivo directo de WhatsApp por su id, sin pasar por Blob: sirve
+ * para ver, oír y transcribir lo que no se pudo guardar (store suspendido,
+ * descarga fallida) mientras WhatsApp lo conserve. Null si no se pudo.
+ */
+export const fetchWhatsAppMedia = async (
+  mediaId: string
+): Promise<{ buffer: ArrayBuffer; contentType: string } | null> => {
+  if (!/^\d{5,40}$/.test(mediaId)) return null;
+  const credentials = await resolveWhatsAppCredentials().catch(() => null);
+  if (!credentials) return null;
+  const resolved = await resolveWhatsAppMediaUrl(mediaId, credentials);
+  if (!resolved) return null;
+  const downloaded = await graphFetchMedia(resolved.url, credentials);
+  if (!downloaded) return null;
+  return { buffer: downloaded.buffer, contentType: resolved.mimeType ?? downloaded.contentType };
 };

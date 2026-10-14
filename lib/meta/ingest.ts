@@ -90,6 +90,12 @@ const resolveContactId = async (
 export { contactPhoneCandidates } from "@/lib/whatsapp-contact";
 import { contactPhoneCandidates } from "@/lib/whatsapp-contact";
 
+/** El cuerpo de un mensaje con la transcripción de su nota de voz (si la hay). */
+export const withTranscript = (body: string | null | undefined, transcript: string | null | undefined): string | null | undefined => {
+  if (!transcript?.trim()) return body;
+  return body?.trim() ? `${body}\n🎤 ${transcript}` : `🎤 ${transcript}`;
+};
+
 const storeAttachments = async (
   message: NormalizedMessage
 ): Promise<StoredAttachment[]> => {
@@ -289,11 +295,9 @@ export const ingestMessage = async (
         status: message.isEcho ? "SENT" : "RECEIVED",
         externalMessageId: message.externalMessageId,
         replyToExternalId: message.replyToExternalId,
-        body:
-          message.body ||
-          (attachments.find((a) => a.transcript)?.transcript
-            ? `🎤 ${attachments.find((a) => a.transcript)!.transcript}`
-            : message.body),
+        // La nota de voz en texto. Si ya trae texto (p. ej. «Llegó desde un
+        // anuncio»), va debajo: antes el texto del audio se perdía.
+        body: withTranscript(message.body, attachments.find((a) => a.transcript)?.transcript),
         attachments:
           attachments.length > 0
             ? (attachments as unknown as Prisma.InputJsonValue)
