@@ -464,7 +464,7 @@ const paymentRules = (config: WhatsAppAiConfig): string => {
         methods
           ? "usa send_payment_info con la forma de pago que le corresponde (mira a quién va cada una; si no sabes desde qué país paga, pregúntalo primero)"
           : "dile que Dayana le comparte los datos y escala con category=payment"
-      }. Tu mensaje es corto («Claro, te comparto los datos para el pago:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`,
+      }. Tu mensaje es corto y termina pidiéndole el comprobante («Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`,
       "- Si pide una forma de pago que no está en la lista (p. ej. Global66, Remitly, PayPal): dile que Dayana le comparte esos datos y escala con category=payment."
     );
   } else {
@@ -650,7 +650,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     pendingBooking: BrainResult["pendingBooking"];
     pendingPayment: BrainResult["pendingPayment"];
     bookingRequest: BrainResult["bookingRequest"];
-    country: { iso: string; city: string | null; timezone: string } | null;
+    /** `needsCity`: un país con varias horas sin la ciudad (no se le dan horas todavía). */
+    country: { iso: string; city: string | null; timezone: string; needsCity?: boolean } | null;
     pendingSlots: BrainResult["pendingSlots"];
     suggestedReply: string | null;
     holdingReply: string | null;
@@ -861,7 +862,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const iso = args.countryIso.trim().toUpperCase().slice(0, 2);
               const tz = resolvePersonTimezone(iso, args.timezone);
               if (!tz) return log("save_country", args, { error: "País no reconocido. Pregúntale de nuevo." });
-              state.country = { iso, city: args.city?.trim() || null, timezone: tz };
+              const needsCity = MULTI_ZONE_COUNTRIES.has(iso) && !args.city?.trim() && !args.timezone;
+              state.country = { iso, city: args.city?.trim() || null, timezone: tz, needsCity };
               if (input.mode === "live" && input.contactId) {
                 await prisma.contact
                   .update({ where: { id: input.contactId }, data: { countryIso: iso, timezone: tz } })
@@ -957,6 +959,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (!tz) {
                 return log("offer_free_call_slots", {}, {
                   error: "Aún no sabes desde dónde escribe. Pregúntaselo primero («¿Desde qué país me escribes?») y usa save_country.",
+                });
+              }
+              // México, Estados Unidos, Brasil…: sin la ciudad la hora puede
+              // estar mal. Primero la ciudad (un mensaje solo con esa pregunta).
+              if (state.country?.needsCity) {
+                return log("offer_free_call_slots", {}, {
+                  error: "Ese país tiene varias horas: tu mensaje ahora es SOLO preguntarle en qué ciudad está (sin horarios). Cuando la diga, save_country con la ciudad y después offer_free_call_slots.",
                 });
               }
               try {

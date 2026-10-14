@@ -44,6 +44,20 @@ export const deleteFailedMessage = async (input: {
 export const resendSource = (originalId: string) => `resend:${originalId}`;
 
 /**
+ * El mensaje que va dentro de la plantilla, sin lo que la plantilla ya dice
+ * («Hola {nombre}, te bendigo 💛 Gracias por hacer tu autoevaluación… Quedo
+ * atenta a tu respuesta por aquí.»). Antes se metía el mensaje entero y a Yil
+ * le llegó el saludo dos veces.
+ */
+export const templateMessage = (body: string): string =>
+  body
+    .replace(/\s*\n+\s*/g, " ")
+    .replace(/^\s*¡?hola\b[^.!?]{0,40}?,?\s*te bendigo\b[\s💛❤️]*[.!]?\s*/iu, "")
+    .replace(/^\s*gracias por hacer tu autoevaluaci[oó]n\s*[.!]?\s*/i, "")
+    .replace(/\s*quedo atenta a tu respuesta por aqu[ií]\s*[.!]?\s*$/i, "")
+    .trim();
+
+/**
  * Reenvía un mensaje que WhatsApp no entregó, con el mismo texto (y adjunto).
  * Dentro de las 24 h va tal cual; fuera, con una plantilla aprobada; y si no
  * hay, devuelve el enlace para mandarlo desde el WhatsApp de Dayana.
@@ -127,7 +141,7 @@ export const resendFailedMessage = async (input: {
       recipient,
       text: body,
       template,
-      vars: { mensaje: body.replace(/\s*\n+\s*/g, " ").trim() },
+      vars: { mensaje: templateMessage(body) },
       source: resendSource(original.id),
       staffId: input.staffId,
       isAutoReply: original.isAutoReply,

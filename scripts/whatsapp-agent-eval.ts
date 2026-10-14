@@ -1,0 +1,190 @@
+/**
+ * Evaluación de la asistente de WhatsApp con casos reales
+ * (`lib/crm/whatsapp-agent/eval/scenarios.ts`), sin enviar nada: cada caso se
+ * corre k veces en modo prueba, con un calendario de mentira, y cada respuesta
+ * pasa por las reglas de Dayana (código), lo que el caso exige y el juez (un
+ * modelo). El modelo no contesta igual dos veces, así que se mide:
+ *
+ * - pass@k: pasó al menos una de las k veces (lo puede hacer);
+ * - pass^k: pasó las k veces (lo hace siempre). Lo que importa en producción.
+ *
+ *   GEMINI_MODEL=gemini-3.5-flash bun scripts/whatsapp-agent-eval.ts [--k 3] [--only id1,id2] [--out informe.json] [--no-judge]
+ *
+ * Contra `neondb_dev` (lee la configuración, los manuales y los datos del
+ * negocio; no escribe nada). Sale con error si algún caso pasa menos de 2 de 3.
+ */
+import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const arg = (name: string) => {
+  const i = process.argv.indexOf(`--${name}`);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+};
+
+const main = async () => {
+  if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
+  const k = Math.max(1, Number(arg("k") ?? 3));
+  const only = arg("only")?.split(",").map((s) => s.trim());
+  const useJudge = !process.argv.includes("--no-judge");
+  const out = arg("out") ?? path.join(tmpdir(), `whatsapp-agent-eval-${Date.now()}.json`);
+
+  const { prisma } = await import("@/lib/db");
+  const { getWhatsAppAiConfig } = await import("@/lib/crm/whatsapp-ai-config");
+  const { think } = await import("@/lib/crm/whatsapp-agent/brain");
+  const { polishReply } = await import("@/lib/crm/whatsapp-agent/wording");
+  const { withPaymentBlocks } = await import("@/lib/crm/whatsapp-agent/payment-info");
+  const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
+  const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
+  const { SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
+  const { gradeReply } = await import("@/lib/crm/whatsapp-agent/eval/graders");
+  const { judgePasses, judgeReply } = await import("@/lib/crm/whatsapp-agent/eval/judge");
+
+  // Un miércoles a las 2 p. m. de Colombia, con tres horas libres de verdad.
+  const now = new Date("2026-10-14T19:00:00Z");
+  const slot = (iso: string, minutes = 15) => ({
+    startIso: new Date(iso).toISOString(),
+    endIso: new Date(new Date(iso).getTime() + minutes * 60_000).toISOString(),
+    dateKey: iso.slice(0, 10),
+    time: "",
+  });
+  const fakeSlots = [slot("2026-10-15T20:00:00Z"), slot("2026-10-15T23:45:00Z"), slot("2026-10-16T14:15:00Z")];
+  setFreeCallCalendarForTests({ available: async () => fakeSlots });
+
+  // Como producción (2026-10-14): flujo de venta, llamada gratis sola, pagos fuera de la web.
+  const base = await getWhatsAppAiConfig();
+  const config = {
+    ...base,
+    context: { ...base.context, v2: true },
+    salesFlow: { ...base.salesFlow, enabled: true },
+    booking: { ...base.booking, enabled: true },
+    freeCall: { ...base.freeCall, autoBook: true },
+    payments: {
+      sendLinks: true,
+      receipts: true,
+      methods: [
+        { key: "bancolombia", label: "Bancolombia", when: "Pagos desde Colombia", enabled: true, details: "Bancolombia\nNombre: Prueba Uno\nTipo de cuenta: Ahorros\nN° Cuenta: 00000000001" },
+        { key: "western-union", label: "Western Union – Banco Unión", when: "Pagos desde fuera de Colombia", enabled: true, details: "BANCO UNIÓN – WESTERN UNION\nNúmero de cuenta: 00000000002\nTitular: Prueba Dos" },
+      ],
+    },
+  };
+
+  const scenarios = SCENARIOS.filter((s) => !only || only.includes(s.id));
+  type Run = {
+    outcome: string;
+    reply: string;
+    tools: string[];
+    failed: string[];
+    verdict?: Awaited<ReturnType<typeof judgeReply>>;
+    pass: boolean;
+  };
+  const results: { id: string; origin: string; runs: Run[]; passes: number }[] = [];
+
+  const runOnce = async (s: (typeof scenarios)[number]): Promise<Run> => {
+    const result = await think({
+      config,
+      transcript: s.transcript,
+      name: s.name,
+      phone: "573000000000",
+      conversationId: null,
+      contactId: null,
+      client: null,
+      memory: null,
+      timezone: "America/Bogota",
+      mode: "preview",
+      now,
+      situation: situationText(conversationSituation(s.transcript), false),
+      stage: s.stage ?? null,
+      freeCall: { autoBook: !s.clientMode, personTimezone: s.personTimezone ?? null },
+      clientMode: s.clientMode,
+    });
+    const o = result.outcome;
+    // Lo que de verdad recibiría la persona (lo mismo que hace run.ts): a una
+    // clienta, solo pagos; una crisis calla a la IA; otra escalada lleva un
+    // aviso corto.
+    const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
+    const silentClient = Boolean(s.clientMode) && (o?.kind === "escalate" || !paymentAnswer);
+    const crisis = o?.kind === "escalate" && (o.category === "clinical" || o.severity === "urgent");
+    const sent: string | null = silentClient || crisis
+      ? null
+      : o?.kind === "reply"
+        ? withPaymentBlocks(polishReply(o.message), result.paymentBlocks)
+        : polishReply(result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí.");
+    const reply = sent ?? "(no le escribe: se lo pasa a Dayana)";
+    const tools = result.toolCalls.map((c) => c.tool);
+    const failed: string[] = [];
+    if (sent) {
+      for (const g of gradeReply({
+        reply,
+        transcript: s.transcript,
+        tools: result.toolCalls,
+        paymentBlocks: result.paymentBlocks.details,
+      })) {
+        if (!g.pass) failed.push(`regla:${g.id}${g.detail ? ` («${g.detail}»)` : ""}`);
+      }
+    }
+    const e = s.expect;
+    if (e.outcome && o?.kind !== e.outcome) failed.push(`esperaba ${e.outcome}, hizo ${o?.kind ?? "nada"}`);
+    if (e.escalationCategory && !(o?.kind === "escalate" && o.category === e.escalationCategory)) {
+      failed.push(`esperaba escalar como ${e.escalationCategory}`);
+    }
+    if (e.anyTool && !e.anyTool.some((t) => tools.includes(t))) failed.push(`no usó ${e.anyTool.join(" ni ")}`);
+    for (const t of e.noTool ?? []) if (tools.includes(t)) failed.push(`usó ${t}`);
+    for (const re of e.mustMatch ?? []) if (!re.test(reply)) failed.push(`falta ${re}`);
+    for (const re of e.mustNotMatch ?? []) if (re.test(reply)) failed.push(`no debía decir ${re}`);
+
+    let verdict: Run["verdict"];
+    if (useJudge) {
+      verdict = await judgeReply({ transcript: s.transcript, reply, outcome: o?.kind ?? "nada", goal: s.goal, name: s.name }).catch(() => undefined);
+      if (!verdict) failed.push("juez: no respondió");
+      else if (!judgePasses(verdict)) failed.push(`juez: ${verdict.problemas.join(" · ") || "objetivo no cumplido"}`);
+    }
+    return { outcome: o?.kind ?? "nada", reply, tools, failed, verdict, pass: failed.length === 0 };
+  };
+
+  for (const s of scenarios) {
+    const runs: Run[] = [];
+    for (let i = 0; i < k; i++) {
+      runs.push(
+        await runOnce(s).catch((err: unknown) => ({
+          outcome: "error",
+          reply: "",
+          tools: [],
+          failed: [`error: ${err instanceof Error ? err.message : String(err)}`],
+          pass: false,
+        }))
+      );
+    }
+    const passes = runs.filter((r) => r.pass).length;
+    results.push({ id: s.id, origin: s.origin, runs, passes });
+    console.log(`\n${passes === k ? "✅" : passes > 0 ? "🟡" : "❌"} ${s.id}  ${passes}/${k}   (${s.origin})`);
+    for (const [i, r] of runs.entries()) {
+      const v = r.verdict ? ` [R${r.verdict.responde} C${r.verdict.coherente} T${r.verdict.tono} P${r.verdict.paso}]` : "";
+      console.log(`   ${r.pass ? "·" : "✗"} #${i + 1} ${r.outcome}${r.tools.length ? ` (${r.tools.join(", ")})` : ""}${v}: ${r.reply.replace(/\n+/g, " ⏎ ").slice(0, 220)}`);
+      for (const f of r.failed) console.log(`        ↳ ${f}`);
+    }
+  }
+
+  const passAtK = results.filter((r) => r.passes > 0).length;
+  const passHatK = results.filter((r) => r.passes === k).length;
+  const runsOk = results.reduce((n, r) => n + r.passes, 0);
+  const ruleFails = new Map<string, number>();
+  for (const r of results) for (const run of r.runs) for (const f of run.failed) {
+    const key = f.startsWith("regla:") ? f.split(" ")[0] : f.startsWith("juez:") ? "juez" : "lo que pide el caso";
+    ruleFails.set(key, (ruleFails.get(key) ?? 0) + 1);
+  }
+  console.log(`\nCasos: ${results.length} · pass@${k}: ${passAtK}/${results.length} · pass^${k}: ${passHatK}/${results.length} · respuestas buenas: ${runsOk}/${results.length * k}`);
+  if (ruleFails.size) console.log(`Fallos por tipo: ${[...ruleFails].map(([key, n]) => `${key} ${n}`).join(" · ")}`);
+  writeFileSync(out, JSON.stringify({ k, judge: useJudge, results }, null, 2));
+  console.log(`Informe: ${out}`);
+
+  setFreeCallCalendarForTests({});
+  await prisma.$disconnect();
+  const minimum = Math.ceil((k * 2) / 3);
+  if (results.some((r) => r.passes < minimum)) process.exit(1);
+};
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

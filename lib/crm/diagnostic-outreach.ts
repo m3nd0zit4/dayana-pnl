@@ -89,7 +89,7 @@ const fallbackAnalysis = (name: string, signals: DiagnosticSignals): z.infer<typ
   care: signals.lateNight ? "atento" : "normal",
   careReason: signals.lateNight ? "Madrugada." : "",
   gender: "desconocido",
-  message: `Hola${name ? ` ${name}` : ""}, te bendigo 💛 Gracias por hacer tu autoevaluación. Leí lo que compartiste y me gustaría escucharte. ¿Te regalo una consulta gratis de 15 minutos?`,
+  message: `Hola${name ? ` ${name}` : ""}, te bendigo. Gracias por hacer tu autoevaluación. Leí lo que compartiste y me gustaría escucharte. ¿Te regalo una consulta gratis de 15 minutos?`,
   templateMessage: "Leí lo que compartiste y me gustaría escucharte. ¿Te regalo una consulta gratis de 15 minutos?",
   suggestionForDayana: "",
 });
@@ -115,10 +115,10 @@ export const analyzeDiagnostic = async (input: {
       "Eres quien acompaña a Dayana Beltrán, terapeuta y coach de PNL. Una persona acaba de terminar su autoevaluación en la web y le vas a escribir por WhatsApp en este momento, por primera vez.",
       "1) Lee sus respuestas, su perfil, desde dónde lo hizo y a qué hora de SU día. La hora dice mucho del ánimo: de madrugada (0–5 h) alguien que carga un duelo, ansiedad o algo de años probablemente no puede dormir por eso; un domingo en la noche pesa distinto que un martes a mediodía. Si vive fuera de su país (número de un país, conexión desde otro), la distancia puede ser parte de lo que siente.",
       "2) No diagnostiques ni uses etiquetas clínicas. «urgente» solo si las señales juntas hacen pensar en sufrimiento agudo (por ejemplo madrugada + duelo/ansiedad + años + quiere empezar ya); no por una sola señal.",
-      `3) El mensaje: ${voice} Saluda con su nombre y «te bendigo 💛» (una sola vez). Máximo 3–4 frases cortas, como un WhatsApp real, sin listas ni negritas. Muestra que leíste lo que compartió en una frase empática, sin repetir sus respuestas como formulario. Invítala a una consulta gratis de 15 minutos con Dayana o a contarle un poco más; termina con una sola pregunta. Nada de precios ni enlaces. No digas que Dayana ya vio o leyó sus respuestas (todavía no): las leíste tú.`,
+      `3) El mensaje: ${voice} Saluda con su nombre y «te bendigo» (una sola vez, sin corazones ni apodos cariñosos). Máximo 3–4 frases cortas, como un WhatsApp real, sin listas ni negritas. Muestra que leíste lo que compartió en una frase empática, sin repetir sus respuestas como formulario. Invítala a una consulta gratis de 15 minutos con Dayana o a contarle un poco más; termina con una sola pregunta. Nada de precios ni enlaces. No digas que Dayana ya vio o leyó sus respuestas (todavía no): las leíste tú.`,
       "4) Si lo hizo de madrugada o en un momento difícil, puedes reconocerlo con delicadeza («a veces estas cosas pesan más en la noche»), pero NUNCA digas que ves su hora, su país o su ubicación: sería invasivo.",
       "5) Si care es «urgente», el mensaje es solo de cuidado y compañía (sin invitar a comprar nada) y dile que Dayana le escribe muy pronto.",
-      "6) Género: si el nombre es masculino, nada de «mi bella», «querida» ni femeninos; si no es claro, usa formas neutras.",
+      "6) Nunca apodos cariñosos («mi bella», «querida», «hermosa»…) ni corazones. Género: si el nombre es masculino, nada en femenino; si no es claro, formas neutras. Horas siempre con a. m./p. m.",
       input.config.styleGuide ? `Así escribe Dayana:\n${input.config.styleGuide.slice(0, 2500)}` : "",
       input.config.instructions ? `Indicaciones de Dayana:\n${input.config.instructions.slice(0, 1500)}` : "",
     ]
