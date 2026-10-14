@@ -574,79 +574,79 @@ model WorkshopEditionActivity {
 /// When `startsAtHasTime` is false, only the calendar date is shown publicly
 /// (`startsAt` is stored as noon in OPERATIONAL_TZ as a date anchor).
 model FreeWebinar {
-  id                String          @id @default(cuid())
-  slug              String          @unique @default("gratuito")
+  id                    String          @id @default(cuid())
+  slug                  String          @unique @default("gratuito")
   /// Espejo de `status === OPEN`, para el código viejo y las consultas
   /// simples. Lo escribe siempre quien cambia `status`.
-  isActive          Boolean         @default(false) @map("is_active")
-  status            FreeEventStatus @default(DRAFT)
+  isActive              Boolean         @default(false) @map("is_active")
+  status                FreeEventStatus @default(DRAFT)
   /// URLs anteriores: `/eventos-gratuitos/<vieja>` redirige a la actual.
-  previousSlugs     String[]        @default([]) @map("previous_slugs")
+  previousSlugs         String[]        @default([]) @map("previous_slugs")
   /// Primera vez que se publicó. Desde ahí la URL no cambia sola.
-  publishedAt       DateTime?       @map("published_at")
+  publishedAt           DateTime?       @map("published_at")
   /// Confirmación por WhatsApp al inscribirse (`evento_gratis_confirmacion`).
-  waConfirmationEnabled Boolean     @default(true) @map("wa_confirmation_enabled")
-  headline          String
-  subheadline       String?         @db.Text
-  body              String?         @db.Text
-  startsAt          DateTime?       @map("starts_at")
-  startsAtHasTime   Boolean         @default(true) @map("starts_at_has_time")
+  waConfirmationEnabled Boolean         @default(true) @map("wa_confirmation_enabled")
+  headline              String
+  subheadline           String?         @db.Text
+  body                  String?         @db.Text
+  startsAt              DateTime?       @map("starts_at")
+  startsAtHasTime       Boolean         @default(true) @map("starts_at_has_time")
   /// Enlace de la reunión (Google Meet). Al cambiarlo se reenvía por correo a
   /// todas las registradas: `updateFreeWebinar` limpia `linkEmailSentAt`.
-  meetUrl           String?         @map("meet_url") @db.Text
+  meetUrl               String?         @map("meet_url") @db.Text
   /// Legado: URL del blob privado de Vercel. El vídeo promocional se sirve por
   /// Mux (`muxPlaybackId`); se conserva la columna para no perder el objeto.
-  videoUrl          String?         @map("video_url") @db.Text
+  videoUrl              String?         @map("video_url") @db.Text
   /// Vídeo promocional en Mux. A diferencia de las grabaciones del curso, la
   /// política de reproducción es `public` — es una landing de marketing.
-  muxUploadId       String?         @map("mux_upload_id")
-  muxAssetId        String?         @map("mux_asset_id")
-  muxPlaybackId     String?         @map("mux_playback_id")
-  videoStatus       RecordingStatus @default(NONE) @map("video_status")
-  videoDurationSec  Int?            @map("video_duration_sec")
-  videoErrorMessage String?         @map("video_error_message") @db.Text
-  learnSectionTitle String?         @map("learn_section_title")
-  learnItems        Json            @map("learn_items")
-  faq               Json?
-  ctaLabel          String          @default("Registrarme gratis") @map("cta_label")
-  formTitle         String          @default("Reserva tu lugar") @map("form_title")
-  metaTitle         String?         @map("meta_title")
-  metaDescription   String?         @map("meta_description") @db.Text
+  muxUploadId           String?         @map("mux_upload_id")
+  muxAssetId            String?         @map("mux_asset_id")
+  muxPlaybackId         String?         @map("mux_playback_id")
+  videoStatus           RecordingStatus @default(NONE) @map("video_status")
+  videoDurationSec      Int?            @map("video_duration_sec")
+  videoErrorMessage     String?         @map("video_error_message") @db.Text
+  learnSectionTitle     String?         @map("learn_section_title")
+  learnItems            Json            @map("learn_items")
+  faq                   Json?
+  ctaLabel              String          @default("Registrarme gratis") @map("cta_label")
+  formTitle             String          @default("Reserva tu lugar") @map("form_title")
+  metaTitle             String?         @map("meta_title")
+  metaDescription       String?         @map("meta_description") @db.Text
   /// Lo que es el evento, en la etiqueta de la página y en los correos
   /// («Webinar gratuito», «Masterclass gratuita», «Taller en vivo»…).
-  eventLabel        String          @default("Webinar gratuito") @map("event_label")
+  eventLabel            String          @default("Webinar gratuito") @map("event_label")
   /// Chips de la página: dónde y cuánto cuesta.
-  locationLabel     String          @default("Online") @map("location_label")
-  priceLabel        String          @default("Gratis") @map("price_label")
-  faqTitle          String?         @map("faq_title")
-  materialLabel     String?         @map("material_label")
+  locationLabel         String          @default("Online") @map("location_label")
+  priceLabel            String          @default("Gratis") @map("price_label")
+  faqTitle              String?         @map("faq_title")
+  materialLabel         String?         @map("material_label")
   /// Lo que ve quien se acaba de inscribir. Vacío = texto por defecto.
-  successMessage    String?         @map("success_message") @db.Text
+  successMessage        String?         @map("success_message") @db.Text
   /// Botón en /enlaces: si se muestra y con qué texto.
-  linkEnabled       Boolean         @default(true) @map("link_enabled")
-  linkTitle         String?         @map("link_title")
-  linkSubtitle      String?         @map("link_subtitle")
+  linkEnabled           Boolean         @default(true) @map("link_enabled")
+  linkTitle             String?         @map("link_title")
+  linkSubtitle          String?         @map("link_subtitle")
   /// Cupo previsto de la sala. Es informativo, NO un tope: pasado el número
   /// la gente se sigue pudiendo registrar y sigue recibiendo el enlace. Sirve
   /// para fijar la expectativa en la landing y para que el CRM avise cuando se
   /// supera, no para cerrar el formulario.
-  capacity          Int?            @default(100)
+  capacity              Int?            @default(100)
   /// Material descargable opcional (una guía, un PDF de apoyo). Vive en el
   /// blob privado y se sirve por `/api/webinar/material`; nunca se expone la
   /// URL del blob. Opcional a propósito: no bloquea la publicación.
-  materialUrl       String?         @map("material_url") @db.Text
-  materialFileName  String?         @map("material_file_name")
-  materialMimeType  String?         @map("material_mime_type")
-  materialSizeBytes Int?            @map("material_size_bytes")
+  materialUrl           String?         @map("material_url") @db.Text
+  materialFileName      String?         @map("material_file_name")
+  materialMimeType      String?         @map("material_mime_type")
+  materialSizeBytes     Int?            @map("material_size_bytes")
   /// Sellada por el cron cuando la fecha ya pasó más el margen. Corta registros
   /// y recordatorios sin tocar nada destructivo. Null = edición todavía en pie.
   /// No toca `isActive`: ese interruptor es de Dayana y el cron no se lo pisa.
-  endedAt           DateTime?       @map("ended_at")
+  endedAt               DateTime?       @map("ended_at")
   /// Legado: el archivado por renombre (`gratuito-<id>`) que hubo antes de las
   /// ediciones. Solo una fecha para mostrar — nunca un predicado.
-  archivedAt        DateTime?       @map("archived_at")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
+  archivedAt            DateTime?       @map("archived_at")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
 
   registrations WebinarRegistration[]
   activities    FreeEventActivity[]
@@ -687,25 +687,25 @@ model FreeEventActivity {
 /// Cambiar `meetUrl` limpia `linkEmailSentAt`; cambiar `startsAt` limpia los
 /// dos recordatorios — así una reprogramación no deja a nadie sin aviso.
 model WebinarRegistration {
-  id                String    @id @default(cuid())
-  webinarId         String    @map("webinar_id")
-  contactId         String    @map("contact_id")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  linkEmailSentAt   DateTime? @map("link_email_sent_at")
-  reminder24hSentAt DateTime? @map("reminder_24h_sent_at")
-  reminder1hSentAt  DateTime? @map("reminder_1h_sent_at")
+  id                   String    @id @default(cuid())
+  webinarId            String    @map("webinar_id")
+  contactId            String    @map("contact_id")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  linkEmailSentAt      DateTime? @map("link_email_sent_at")
+  reminder24hSentAt    DateTime? @map("reminder_24h_sent_at")
+  reminder1hSentAt     DateTime? @map("reminder_1h_sent_at")
   /// Último motivo de fallo, desnormalizado desde NotificationDelivery para
   /// poder filtrar «solo las fallidas» sin un join a 10k filas. El histórico
   /// completo de intentos (providerId, cuerpo, error) vive allí, no aquí.
-  lastSendError     String?   @map("last_send_error") @db.Text
-  lastSendErrorAt   DateTime? @map("last_send_error_at")
+  lastSendError        String?   @map("last_send_error") @db.Text
+  lastSendErrorAt      DateTime? @map("last_send_error_at")
   /// Recordatorios por WhatsApp (`lib/crm/event-whatsapp-reminders.ts`). Se
   /// sellan al reclamar y NO se sueltan si falla: una plantilla se cobra, así
   /// que reintentar es decisión de Dayana («Reintentar WA»).
-  reminder24hWaSentAt DateTime? @map("reminder_24h_wa_sent_at")
-  reminder1hWaSentAt  DateTime? @map("reminder_1h_wa_sent_at")
-  waReminderError     String?   @map("wa_reminder_error") @db.Text
-  waReminderErrorAt   DateTime? @map("wa_reminder_error_at")
+  reminder24hWaSentAt  DateTime? @map("reminder_24h_wa_sent_at")
+  reminder1hWaSentAt   DateTime? @map("reminder_1h_wa_sent_at")
+  waReminderError      String?   @map("wa_reminder_error") @db.Text
+  waReminderErrorAt    DateTime? @map("wa_reminder_error_at")
   /// Confirmación por WhatsApp al inscribirse. Se sella al reclamar (una sola
   /// vez por persona y evento); si no salió, el motivo queda en el error.
   confirmationWaSentAt DateTime? @map("confirmation_wa_sent_at")
@@ -738,20 +738,20 @@ model WorkshopDocument {
 }
 
 model Enrollment {
-  id                        String              @id @default(cuid())
-  contactId                 String              @map("contact_id")
-  productId                 String              @map("product_id")
-  workshopEditionId         String?             @map("workshop_edition_id")
-  status                    EnrollmentStatus    @default(LEAD)
-  label                     String?
-  isPrimary                 Boolean             @default(false) @map("is_primary")
-  parentEnrollmentId        String?             @map("parent_enrollment_id")
-  sessionsTotal             Int?                @map("sessions_total")
-  sessionsUsed              Int                 @default(0) @map("sessions_used")
-  currency                  String?             @db.Char(3)
-  amountMinor               Int?                @map("amount_minor")
-  externalRef               String?             @map("external_ref")
-  paidUntil                 DateTime?           @map("paid_until")
+  id                          String              @id @default(cuid())
+  contactId                   String              @map("contact_id")
+  productId                   String              @map("product_id")
+  workshopEditionId           String?             @map("workshop_edition_id")
+  status                      EnrollmentStatus    @default(LEAD)
+  label                       String?
+  isPrimary                   Boolean             @default(false) @map("is_primary")
+  parentEnrollmentId          String?             @map("parent_enrollment_id")
+  sessionsTotal               Int?                @map("sessions_total")
+  sessionsUsed                Int                 @default(0) @map("sessions_used")
+  currency                    String?             @db.Char(3)
+  amountMinor                 Int?                @map("amount_minor")
+  externalRef                 String?             @map("external_ref")
+  paidUntil                   DateTime?           @map("paid_until")
   /// Compra suelta de un curso de la biblioteca: el acceso no caduca.
   ///
   /// Es un booleano y no un `paidUntil` lejano porque «no caduca» y «caduca en
@@ -761,41 +761,41 @@ model Enrollment {
   ///
   /// OJO — con esto en true, `paidUntil == null` NO significa «nunca pagó».
   /// Ver `membershipInfoFrom` en lib/lms/membership.ts.
-  lifetimeAccess            Boolean             @default(false) @map("lifetime_access")
+  lifetimeAccess              Boolean             @default(false) @map("lifetime_access")
   /// Suscripción de PayPal que renueva esta matrícula. Es la clave por la que
   /// se resuelve cada cobro recurrente: `PAYMENT.SALE.COMPLETED` trae
   /// `billing_agreement_id` y NO garantiza propagar el `custom_id`.
-  paypalSubscriptionId      String?             @unique @map("paypal_subscription_id")
+  paypalSubscriptionId        String?             @unique @map("paypal_subscription_id")
   /// Último estado reportado por PayPal. Es informativo para el portal: el
   /// acceso lo decide `paidUntil`, no esto — cancelar detiene la renovación,
   /// no el mes ya pagado.
-  subscriptionStatus        SubscriptionStatus? @map("subscription_status")
+  subscriptionStatus          SubscriptionStatus? @map("subscription_status")
   /// Suscripción de Mercado Pago (preapproval) que renueva esta matrícula.
-  mercadoPagoPreapprovalId  String?             @unique @map("mercadopago_preapproval_id")
+  mercadoPagoPreapprovalId    String?             @unique @map("mercadopago_preapproval_id")
   /// Quién cobra la renovación. Lo necesita el portal para saber a qué API
   /// pedir la cancelación.
-  subscriptionProvider      PaymentProvider?    @map("subscription_provider")
-  leadAt                    DateTime?           @map("lead_at")
-  paidAt                    DateTime?           @map("paid_at")
-  completedAt               DateTime?           @map("completed_at")
+  subscriptionProvider        PaymentProvider?    @map("subscription_provider")
+  leadAt                      DateTime?           @map("lead_at")
+  paidAt                      DateTime?           @map("paid_at")
+  completedAt                 DateTime?           @map("completed_at")
   /// Recordatorios de taller ya enviados a esta matricula (24 h y 1 h antes
   /// de la edicion). Se reclaman antes de enviar, igual que en el webinar,
   /// para que un cron repetido no mande dos veces.
-  workshopReminder24hSentAt DateTime?           @map("workshop_reminder_24h_sent_at")
-  workshopReminder1hSentAt  DateTime?           @map("workshop_reminder_1h_sent_at")
+  workshopReminder24hSentAt   DateTime?           @map("workshop_reminder_24h_sent_at")
+  workshopReminder1hSentAt    DateTime?           @map("workshop_reminder_1h_sent_at")
   /// Los mismos recordatorios por WhatsApp (plantilla `taller_recordatorio`).
   /// Como en los eventos, el sello se queda aunque falle y el motivo va a su
   /// columna de error (una por pasada: el de 1 h no borra el fallo del de
   /// 24 h). Una plantilla se cobra: no se reintenta sola.
-  workshopReminder24hWaSentAt DateTime?         @map("workshop_reminder_24h_wa_sent_at")
-  workshopReminder1hWaSentAt  DateTime?         @map("workshop_reminder_1h_wa_sent_at")
+  workshopReminder24hWaSentAt DateTime?           @map("workshop_reminder_24h_wa_sent_at")
+  workshopReminder1hWaSentAt  DateTime?           @map("workshop_reminder_1h_wa_sent_at")
   /// Error del recordatorio de 24 h por WhatsApp.
-  workshopWaReminderError     String?           @map("workshop_wa_reminder_error") @db.Text
-  workshopWaReminderErrorAt   DateTime?         @map("workshop_wa_reminder_error_at")
+  workshopWaReminderError     String?             @map("workshop_wa_reminder_error") @db.Text
+  workshopWaReminderErrorAt   DateTime?           @map("workshop_wa_reminder_error_at")
   /// Error del recordatorio de 1 h por WhatsApp.
-  workshopWaReminder1hError   String?           @map("workshop_wa_reminder_1h_error") @db.Text
-  createdAt                 DateTime            @default(now()) @map("created_at")
-  updatedAt                 DateTime            @updatedAt @map("updated_at")
+  workshopWaReminder1hError   String?             @map("workshop_wa_reminder_1h_error") @db.Text
+  createdAt                   DateTime            @default(now()) @map("created_at")
+  updatedAt                   DateTime            @updatedAt @map("updated_at")
 
   contact                  Contact                   @relation(fields: [contactId], references: [id], onDelete: Cascade)
   product                  Product                   @relation(fields: [productId], references: [id])
@@ -1222,15 +1222,15 @@ model Conversation {
 
   /// Quién lleva el hilo: la IA sola (`AUTO`), la IA deja borradores y Dayana
   /// los envía (`COPILOT`), o solo Dayana (`MANUAL`).
-  aiMode             WhatsAppAiMode @default(AUTO) @map("ai_mode")
+  aiMode             WhatsAppAiMode  @default(AUTO) @map("ai_mode")
   /// Lo que Dayana eligió para ESTE chat. null = lo decide el segmento (`route.ts`).
-  aiModeOverride   WhatsAppAiMode?     @map("ai_mode_override")
+  aiModeOverride     WhatsAppAiMode? @map("ai_mode_override")
   /// Dayana marcó este chat como suyo y prioritario: sube a «Tú atiendes».
-  priorityAt         DateTime?      @map("priority_at")
+  priorityAt         DateTime?       @map("priority_at")
   /// Última escalada de la IA: por qué y cuán urgente. Se borra al reanudar.
-  escalationCategory String?        @map("escalation_category")
-  escalationSeverity String?        @map("escalation_severity")
-  escalationReason   String?        @map("escalation_reason")
+  escalationCategory String?         @map("escalation_category")
+  escalationSeverity String?         @map("escalation_severity")
+  escalationReason   String?         @map("escalation_reason")
 
   /// «Pendiente» = la persona escribió después de `resolvedAt` (o nunca se
   /// resolvió). Responder no lo resuelve: solo «Marcar como atendido» o, solo,
@@ -1244,21 +1244,14 @@ model Conversation {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  contact       Contact?               @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  assignedStaff StaffUser?             @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
-  messages      ConversationMessage[]
-  replyExamples WhatsAppReplyExample[]
-  aiRuns        WhatsAppAiRun[]
-  aiBookings    WhatsAppBooking[]
-  dossier       WhatsAppDossier?
-
-  @@unique([channel, externalThreadId])
-  @@index([channel, lastMessageAt(sort: Desc)])
-  @@index([status, lastMessageAt(sort: Desc)])
-  @@index([contactId, lastMessageAt(sort: Desc)])
-  @@index([assignedStaffId, lastMessageAt(sort: Desc)])
-  @@index([channel, lastInboundAt(sort: Desc)])
-  @@map("conversations")
+  contact         Contact?                 @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  assignedStaff   StaffUser?               @relation(fields: [assignedStaffId], references: [id], onDelete: SetNull)
+  messages        ConversationMessage[]
+  replyExamples   WhatsAppReplyExample[]
+  aiRuns          WhatsAppAiRun[]
+  aiBookings      WhatsAppBooking[]
+  dossier         WhatsAppDossier?
+  paymentReceipts WhatsAppPaymentReceipt[]
 
   /// «Te toca»: desde cuándo este chat necesita a Dayana (el mensaje que lo
   /// abrió). Nulo = no le toca. Lo abren una escalada de la IA o un mensaje que
@@ -1269,8 +1262,6 @@ model Conversation {
   attentionReason  String?   @map("attention_reason")
   /// Última respuesta de una persona (CRM, propuesta aprobada o eco del celular).
   lastHumanReplyAt DateTime? @map("last_human_reply_at")
-
-  @@index([channel, attentionAt])
 
   // Clasificación del chat
   /// cliente | interesada | comunidad | personal | negocio | equipo | otro.
@@ -1287,7 +1278,15 @@ model Conversation {
   /// La IA no estaba segura (confianza < 0,7): la pantalla dice «revisar».
   categoryReview       Boolean   @default(false) @map("category_review")
 
+  @@unique([channel, externalThreadId])
+  @@index([channel, lastMessageAt(sort: Desc)])
+  @@index([status, lastMessageAt(sort: Desc)])
+  @@index([contactId, lastMessageAt(sort: Desc)])
+  @@index([assignedStaffId, lastMessageAt(sort: Desc)])
+  @@index([channel, lastInboundAt(sort: Desc)])
+  @@index([channel, attentionAt])
   @@index([channel, category])
+  @@map("conversations")
 }
 
 model ConversationMessage {
@@ -1328,12 +1327,12 @@ model ConversationMessage {
   /// Orden del estado: 0 en cola/recibido, 1 enviado, 2 entregado, 3 leído,
   /// 4 fallido. Un estado solo avanza (`WHERE status_rank < nuevo`): un
   /// «entregado» que llega tarde nunca tapa un «leído».
-  statusRank Int     @default(0) @map("status_rank")
+  statusRank Int      @default(0) @map("status_rank")
   /// Clave del envío (la pone quien envía): el mismo envío repetido
   /// (doble clic, reintento) no sale dos veces.
-  clientKey  String? @unique @map("client_key")
+  clientKey  String?  @unique @map("client_key")
   /// message | system (aviso gris: tipo no compatible, etc.)
-  kind       String  @default("message")
+  kind       String   @default("message")
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
 
   /// La persona (o Dayana desde el celular) editó el mensaje: el texto nuevo
@@ -1343,8 +1342,8 @@ model ConversationMessage {
   /// Lo eliminó para todos. El texto se conserva para el equipo.
   revokedAt    DateTime? @map("revoked_at")
 
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  staffUser    StaffUser?   @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
+  conversation Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  staffUser    StaffUser?           @relation(fields: [staffUserId], references: [id], onDelete: SetNull)
   statusEvents MessageStatusEvent[]
   reactions    MessageReaction[]
 
@@ -1995,7 +1994,7 @@ model Diagnostic {
   /// Lectura de la IA al completarlo: cómo se siente, contexto de la hora,
   /// nivel de cuidado y el primer mensaje de WhatsApp (ver
   /// lib/crm/diagnostic-outreach.ts).
-  aiAnalysis Json? @map("ai_analysis")
+  aiAnalysis             Json?     @map("ai_analysis")
   /// ANALYZING | SENT | AWAITING_APPROVAL | NEEDS_TEMPLATE | SKIPPED | FAILED
   outreachStatus         String?   @map("outreach_status")
   outreachReason         String?   @map("outreach_reason")
@@ -2394,35 +2393,35 @@ model WhatsAppAiRun {
 /// ligada a la persona. Sirve para que la IA sepa quién tiene cita, para
 /// completar el número en el título y para el recordatorio de 24 h.
 model CalendarAppointment {
-  id              String    @id @default(cuid())
-  eventId         String    @unique @map("event_id")
-  googleAccountId String?   @map("google_account_id")
-  startsAt        DateTime  @map("starts_at")
-  endsAt          DateTime  @map("ends_at")
-  title           String
+  id                String    @id @default(cuid())
+  eventId           String    @unique @map("event_id")
+  googleAccountId   String?   @map("google_account_id")
+  startsAt          DateTime  @map("starts_at")
+  endsAt            DateTime  @map("ends_at")
+  title             String
   /// Lo que se leyó del título.
-  name            String?
-  phone           String?
-  sessionsLabel   String?   @map("sessions_label")
-  meetUrl         String?   @map("meet_url")
-  contactId       String?   @map("contact_id")
-  conversationId  String?   @map("conversation_id")
+  name              String?
+  phone             String?
+  sessionsLabel     String?   @map("sessions_label")
+  meetUrl           String?   @map("meet_url")
+  contactId         String?   @map("contact_id")
+  conversationId    String?   @map("conversation_id")
   /// ai (la agendó la IA) | manual (Dayana en su calendario)
-  source          String    @default("manual")
+  source            String    @default("manual")
   /// active | cancelled
-  status          String    @default("active")
+  status            String    @default("active")
   /// phone (el título traía el número) | auto (se encontró solo y se agregó) |
   /// confirmed (Dayana eligió) | ambiguous (varias personas) | unmatched (nadie)
-  matchState      String    @default("unmatched") @map("match_state")
+  matchState        String    @default("unmatched") @map("match_state")
   /// Posibles personas cuando hay duda: [{ name, phone, contactId }]
-  candidates      Json?
-  confirmedAt     DateTime? @map("confirmed_at")
-  reminderSentAt  DateTime? @map("reminder_sent_at")
-  reminderError   String?   @map("reminder_error")
+  candidates        Json?
+  confirmedAt       DateTime? @map("confirmed_at")
+  reminderSentAt    DateTime? @map("reminder_sent_at")
+  reminderError     String?   @map("reminder_error")
   /// Sala de espera de la llamada gratis: cuántas veces se le dijo «Dayana
   /// está terminando una reunión» / «ya le aviso» y cuándo (máx. 2 por cita).
-  waitNoticeCount Int       @default(0) @map("wait_notice_count")
-  waitNoticeAt    DateTime? @map("wait_notice_at")
+  waitNoticeCount   Int       @default(0) @map("wait_notice_count")
+  waitNoticeAt      DateTime? @map("wait_notice_at")
   /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).
   /// WhatsApp no avisa de las llamadas del celular: se deduce del chat o se le pregunta a la persona.
   callOutcome       String?   @map("call_outcome")
@@ -2434,8 +2433,8 @@ model CalendarAppointment {
   outcomeCheckAt    DateTime? @map("outcome_check_at")
   /// Cuándo se le mandó el mensaje para reagendar.
   rescheduleSentAt  DateTime? @map("reschedule_sent_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   @@index([startsAt])
   @@index([contactId])
@@ -2467,6 +2466,44 @@ model WhatsAppBooking {
   @@index([startsAt])
   @@index([conversationId])
   @@map("whatsapp_bookings")
+}
+
+/// Un comprobante de pago que llegó por WhatsApp (pago por fuera de la web:
+/// transferencia, Western Union, Global66…). La IA lo mira, le contesta a la
+/// persona que Dayana lo revisa y lo deja aquí «por confirmar». Solo cuando
+/// Dayana lo confirma la persona pasa a ser clienta (y queda como contacto en
+/// el CRM, con su nombre y número); el monto se registra con «Registrar pago».
+model WhatsAppPaymentReceipt {
+  id             String    @id @default(cuid())
+  conversationId String    @map("conversation_id")
+  contactId      String?   @map("contact_id")
+  /// El mensaje con la foto o el PDF del comprobante (si lo hay).
+  messageId      String?   @map("message_id")
+  /// pending | confirmed | rejected
+  status         String    @default("pending")
+  /// Lo que leyó la IA en el comprobante (puede faltar o estar mal: Dayana verifica).
+  method         String?
+  amountMinor    Int?      @map("amount_minor")
+  currency       String?   @db.Char(3)
+  reference      String?
+  paidOn         String?   @map("paid_on")
+  payerName      String?   @map("payer_name")
+  /// Para Dayana: qué es, en una línea.
+  summary        String?
+  /// Algo raro que vio la IA (otra cuenta, monto distinto, transferencia rechazada).
+  problem        String?
+  /// El mensaje que la IA dejó listo para cuando Dayana confirme.
+  confirmMessage String?   @map("confirm_message")
+  decidedById    String?   @map("decided_by_id")
+  decidedAt      DateTime? @map("decided_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([conversationId, createdAt])
+  @@map("whatsapp_payment_receipts")
 }
 
 /// Memoria de la IA sobre una persona que escribe por WhatsApp: lo que conviene
@@ -2521,32 +2558,32 @@ model PushSubscription {
 /// Un envío masivo de WhatsApp desde el CRM (enlace de un evento a las
 /// inscritas, recordatorio de un taller, seguimiento de diagnósticos…).
 model WhatsAppSend {
-  id          String    @id @default(cuid())
-  title       String
+  id                String    @id @default(cuid())
+  title             String
   /// evento | taller | diagnostico | pago | libre
-  kind        String
+  kind              String
   /// Texto libre para quien está dentro de las 24 h ({{nombre}} etc.).
-  text        String    @db.Text
+  text              String    @db.Text
   /// Clave de la plantilla para quien está fuera de las 24 h.
-  templateKey String?   @map("template_key")
+  templateKey       String?   @map("template_key")
   /// Valores comunes (evento, fecha, enlace…).
-  vars        Json?
+  vars              Json?
   /// PREPARED | SENDING | DONE | CANCELLED
-  status      String    @default("PREPARED")
-  total       Int       @default(0)
-  sent        Int       @default(0)
-  failed      Int       @default(0)
-  skipped     Int       @default(0)
-  createdById String?   @map("created_by_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  finishedAt  DateTime? @map("finished_at")
+  status            String    @default("PREPARED")
+  total             Int       @default(0)
+  sent              Int       @default(0)
+  failed            Int       @default(0)
+  skipped           Int       @default(0)
+  createdById       String?   @map("created_by_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  finishedAt        DateTime? @map("finished_at")
   /// El evento o el taller del envío, para su historia. Null = suelto.
-  freeWebinarId     String? @map("free_webinar_id")
-  workshopEditionId String? @map("workshop_edition_id")
+  freeWebinarId     String?   @map("free_webinar_id")
+  workshopEditionId String?   @map("workshop_edition_id")
 
   recipients      WhatsAppSendRecipient[]
-  freeWebinar     FreeWebinar?     @relation(fields: [freeWebinarId], references: [id], onDelete: SetNull)
-  workshopEdition WorkshopEdition? @relation(fields: [workshopEditionId], references: [id], onDelete: SetNull)
+  freeWebinar     FreeWebinar?            @relation(fields: [freeWebinarId], references: [id], onDelete: SetNull)
+  workshopEdition WorkshopEdition?        @relation(fields: [workshopEditionId], references: [id], onDelete: SetNull)
 
   @@index([createdAt(sort: Desc)])
   @@index([freeWebinarId])

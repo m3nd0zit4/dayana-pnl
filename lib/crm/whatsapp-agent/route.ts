@@ -66,6 +66,12 @@ export const decideRoute = (input: {
   return { routerEnabled: true, mode, segment, skip };
 };
 
-/** Tope de respuestas automáticas en 24 h: las nuevas necesitan más vueltas hasta agendar. */
+const LEADS = new Set<Segment>(["new_lead", "returning_lead", "free_call_booked", "after_call"]);
+
+/**
+ * Tope de respuestas automáticas en 24 h. Quien no es clienta (nueva, ya
+ * conversó, llamada agendada, tuvo la llamada) necesita más vueltas: con 6, la
+ * IA se callaba a media conversación («Demasiadas respuestas automáticas»).
+ */
 export const maxPerDayFor = (config: WhatsAppAiConfig, segment: Segment | null): number =>
-  config.router.enabled && segment === "new_lead" ? Math.max(config.maxPerDay, config.router.maxPerDayNewLead) : config.maxPerDay;
+  config.router.enabled && segment && LEADS.has(segment) ? Math.max(config.maxPerDay, config.router.maxPerDayNewLead) : config.maxPerDay;

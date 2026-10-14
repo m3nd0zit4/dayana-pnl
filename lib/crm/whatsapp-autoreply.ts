@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
-import type { WhatsAppAiConfig } from "./whatsapp-ai-config";
+import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
+import { isManualPause } from "./whatsapp-attention-rules";
+import { escalationPauses } from "./whatsapp-agent/pause-rules";
 import { getOperationalTimezone } from "./operational-timezone";
 import { isSensitiveEscalation } from "./whatsapp-attention-rules";
 import { clearEscalationAttention } from "./whatsapp-agent/attention";
@@ -40,7 +42,7 @@ export const setWhatsAppAutoReplyEnabled = (enabled: boolean): Promise<void> =>
 export type PauseReason = "human" | "escalation";
 
 /**
- * Pausa el hilo: a partir de aquí contesta una persona.
+ * Pausa el hilo: a partir de aquí contesta una persona. Devuelve si pausó.
  *
  * `human` (Dayana o el equipo escribieron) se renueva con cada mensaje suyo y
  * se levanta sola pasadas las horas de relevo. `escalation` (la IA pidió a una
@@ -48,13 +50,23 @@ export type PauseReason = "human" | "escalation";
  * vuelve a manos del robot solo. Cuando Dayana contesta o pulsa «Listo», la
  * escalada pasa a `human` (`whatsapp-agent/attention.ts`) y desde ahí corre
  * el relevo como con cualquier respuesta suya.
+ *
+ * Con los interruptores de `pauses` apagados (lo normal desde 2026-10-14, la
+ * IA contesta siempre salvo a clientas) no pausa ni por una respuesta de
+ * Dayana ni por una escalada de la IA. Siempre pausa lo que pausó Dayana a
+ * mano (sin escalada o con «Pausar») y lo delicado (crisis, urgente).
  */
 export const pauseAutoReply = async (
   conversationId: string,
   reason: PauseReason = "human",
   escalation?: { category: string; severity: string; reason: string }
-): Promise<void> => {
+): Promise<boolean> => {
   if (reason === "escalation") {
+    const byHand = !escalation || isManualPause({ category: escalation.category, reason: escalation.reason });
+    if (!byHand) {
+      const { pauses } = await getWhatsAppAiConfig();
+      if (!escalationPauses(escalation, pauses)) return false;
+    }
     await prisma.conversation.update({
       where: { id: conversationId },
       data: {
@@ -69,15 +81,30 @@ export const pauseAutoReply = async (
           : {}),
       },
     });
-    return;
+    return true;
   }
+  const { pauses } = await getWhatsAppAiConfig();
+  if (!pauses.onHumanReply) return false;
   // Una respuesta humana no pisa una escalada pendiente.
-  await prisma.conversation.updateMany({
+  const updated = await prisma.conversation.updateMany({
     where: {
       id: conversationId,
       OR: [{ aiPausedReason: null }, { aiPausedReason: { not: "escalation" } }],
     },
     data: { aiPausedAt: new Date(), aiPausedReason: "human" },
+  });
+  return updated.count > 0;
+};
+
+/**
+ * Levanta una pausa que ya no corre (los interruptores de `pauses` se
+ * apagaron después de ponerla) sin cerrar lo que abrió en «Te toca»: Dayana
+ * sigue viendo que algo la necesitaba.
+ */
+export const liftPause = async (conversationId: string): Promise<void> => {
+  await prisma.conversation.updateMany({
+    where: { id: conversationId, aiPausedAt: { not: null } },
+    data: { aiPausedAt: null, aiPausedReason: null, escalationCategory: null, escalationSeverity: null, escalationReason: null },
   });
 };
 

@@ -176,8 +176,8 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
   },
   {
     id: "wa-router-max-new",
-    label: "Respuestas por día a una persona nueva",
-    keywords: ["máximo", "por día", "respuestas", "nueva", "límite"],
+    label: "Respuestas por día a quien no es clienta",
+    keywords: ["máximo", "por día", "respuestas", "nueva", "límite", "tope"],
     tab: "ia",
   },
   {
@@ -262,6 +262,18 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     id: "wa-max-per-day",
     label: "Máximo de respuestas por chat al día",
     keywords: ["límite", "tope", "máximo", "respuestas", "24 horas", "límites"],
+    tab: "ia",
+  },
+  {
+    id: "wa-pause-human",
+    label: "Apartarse cuando contestas tú",
+    keywords: ["pausa", "pausar", "apartarse", "cuando contesto", "relevo", "sigue contestando"],
+    tab: "ia",
+  },
+  {
+    id: "wa-pause-escalation",
+    label: "Callarse al pasarte algo",
+    keywords: ["pausa", "escalar", "callarse", "te toca", "sigue contestando", "escalada"],
     tab: "ia",
   },
   {

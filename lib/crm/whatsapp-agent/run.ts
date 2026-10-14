@@ -15,6 +15,7 @@ import {
 } from "../whatsapp-ai-config";
 import {
   isWhatsAppAutoReplyEnabled,
+  liftPause,
   pauseAutoReply,
   resumeAutoReply,
 } from "../whatsapp-autoreply";
@@ -39,6 +40,9 @@ import { segmentOrSafe } from "./segment-store";
 import { isStage } from "./stage";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
+import { pauseHolds } from "./pause-rules";
+import { wantsPaymentHelp } from "./payment-intent";
+import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payments";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -64,6 +68,15 @@ const HISTORY_MIN = 40;
 const HISTORY_DAYS = 14;
 /** Otra ejecución en curso en el mismo chat se espera hasta esto. */
 const BUSY_WAIT_MS = 60_000;
+/**
+ * Sin pausa por respuesta de Dayana: si ella escribió en el chat hace menos de
+ * esto, la IA espera un poco más antes de contestar, por si Dayana está en
+ * plena conversación y contesta ella.
+ */
+const HUMAN_LIVE_MS = 10 * 60_000;
+const HUMAN_LIVE_WAIT_MS = Number(process.env.WHATSAPP_AI_HUMAN_LIVE_WAIT_MS ?? 45_000);
+/** Lo que la IA le dice a la persona al pasarle algo a Dayana, si no escribió su propio aviso. */
+const DEFAULT_HOLDING = "Déjame consultarlo con Dayana y te confirmo por aquí.";
 
 export type RunStatus =
   | "QUEUED"
@@ -245,7 +258,7 @@ export const runWhatsAppAi = async (input: {
     // gratis a una clienta o a quien ya la tuvo.
     const segmentResult =
       (routeConfig.router.enabled || routeConfig.salesFlow.enabled) && !head.priorityAt ? await segmentOrSafe(conversationId) : null;
-    const route: RouteDecision = decideRoute({
+    let route: RouteDecision = decideRoute({
       routerEnabled: routeConfig.router.enabled,
       generalMode: routeConfig.defaultMode,
       chatMode: head.aiMode,
@@ -253,6 +266,28 @@ export const runWhatsAppAi = async (input: {
       segment: routeConfig.router.enabled ? segmentResult : null,
       modes: routeConfig.router.modes,
     });
+    // Una clienta la atiende Dayana, salvo pagos: si pide los datos de pago o
+    // el enlace, o manda un comprobante, la asistente se encarga (y le avisa a
+    // Dayana). Nunca si Dayana tomó ese chat ni con el modo general en «Tú».
+    let clientMode = false;
+    if (
+      enabled &&
+      route.skip === "customer" &&
+      head.aiModeOverride !== "MANUAL" &&
+      routeConfig.defaultMode !== "MANUAL" &&
+      !head.priorityAt
+    ) {
+      const recent = await prisma.conversationMessage.findMany({
+        where: { conversationId },
+        orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+        take: 12,
+        select: { direction: true, body: true, attachments: true, kind: true },
+      });
+      if (wantsPaymentHelp(recent.reverse())) {
+        clientMode = true;
+        route = { ...route, mode: routeConfig.defaultMode, skip: null };
+      }
+    }
 
     // Sala de espera de la llamada gratis: un aviso corto y a tiempo («Dayana
     // está terminando una reunión»), aunque el chat esté en copiloto o en
@@ -354,6 +389,20 @@ export const runWhatsAppAi = async (input: {
       await sleep(2000);
     }
 
+    // Sin pausa por respuesta de Dayana: si ella está en plena conversación
+    // (escribió hace poco), la IA le da un margen para contestar ella.
+    if (!routeConfig.pauses.onHumanReply) {
+      const live = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { lastHumanReplyAt: true } });
+      if (live?.lastHumanReplyAt && Date.now() - live.lastHumanReplyAt.getTime() < HUMAN_LIVE_MS) {
+        await sleep(HUMAN_LIVE_WAIT_MS);
+        if (newerThan(await latestInbound(conversationId), input.triggerMessageId)) {
+          await prisma.whatsAppAiRun.delete({ where: { id: run.id } });
+          runId = null;
+          return;
+        }
+      }
+    }
+
     // Lo último que escribió la persona es lo que esta vuelta contesta. Si
     // Dayana contestó después mientras la IA esperaba (desde el CRM o el
     // celular), ya está atendido: la IA no hace nada.
@@ -375,7 +424,8 @@ export const runWhatsAppAi = async (input: {
           null,
           {},
           "ESCALATED",
-          since
+          since,
+          { silent: true }
         );
       } else {
         await finish(run.id, "SKIPPED", { reason: verdict.reason });
@@ -496,6 +546,7 @@ export const runWhatsAppAi = async (input: {
           conversation.contact?.timezone ??
           null,
       },
+      clientMode,
     });
 
     const meta = {
@@ -510,9 +561,48 @@ export const runWhatsAppAi = async (input: {
     // después, lo que la IA pensó ya no hace falta.
     const seen = lastInboundSeen(history, since ?? new Date());
 
+    // Llegó un comprobante (o dijo que pagó): queda «por confirmar» y Dayana
+    // recibe el aviso, conteste lo que conteste la IA.
+    if (result.receipt) {
+      const receiptMessage = conversation.messages.find(
+        (m) =>
+          m.direction === "INBOUND" &&
+          Array.isArray(m.attachments) &&
+          (m.attachments as { kind?: string }[]).some((a) => a.kind === "image" || a.kind === "document") &&
+          Date.now() - m.sentAt.getTime() < 60 * 60_000
+      );
+      await saveReceipt({
+        conversationId,
+        contactId: conversation.contactId,
+        messageId: receiptMessage?.id ?? null,
+        ...result.receipt,
+      })
+        .then(async () =>
+          notifyReceipt({
+            conversationId,
+            name: name ?? conversation.participantName ?? `+${phone}`,
+            summary: result.receipt?.summary ?? null,
+            problem: result.receipt?.problem ?? null,
+            since: since ?? new Date(),
+            staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
+          })
+        )
+        .catch((e: unknown) => console.error("[whatsapp-agent] no se pudo guardar el comprobante", e));
+    }
+
+    // Con una clienta, lo que no es de pagos es de Dayana: la IA calla sin
+    // avisar nada a la persona (como cualquier mensaje de una clienta).
+    if (clientMode && result.outcome.kind === "escalate") {
+      await finish(run.id, "SKIPPED", { ...meta, reason: "customer" });
+      await handOffIfNeeded(conversationId, "customer", silenced);
+      return;
+    }
+
     if (result.outcome.kind === "escalate") {
       await setStatus(run.id, "SENDING", meta);
-      const escalated = await escalate(conversationId, run.id, config, result.outcome, name, meta, "ESCALATED", seen);
+      const escalated = await escalate(conversationId, run.id, config, result.outcome, name, meta, "ESCALATED", seen, {
+        holdingReply: result.holdingReply,
+      });
       // Un pago que la persona dice haber hecho: Dayana lo verifica y, con un
       // toque, manda la respuesta que la IA dejó preparada.
       if (
@@ -535,12 +625,12 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
-    // Como lo diría Dayana: sin frases hechas, sin repetir «mi hermosa» ni el
-    // corazón si ya salieron en el chat (lo que la IA lee: 2 semanas).
-    const recentOutbound = history
-      .filter((m) => m.direction === "OUTBOUND" && m.body)
-      .map((m) => m.body as string);
-    const body = polishReply(result.outcome.message, recentOutbound);
+    // Como lo diría Dayana: sin frases hechas, sin apodos cariñosos ni
+    // corazones. Los datos de pago y el enlace van debajo, tal cual (el
+    // detector de precios mira solo lo que escribió la IA: un número de cuenta
+    // no es un precio).
+    const written = polishReply(result.outcome.message);
+    const body = withPaymentBlocks(written, result.paymentBlocks);
     // Mientras pensaba (unos segundos) Dayana contestó: no se envía, no se
     // propone y no se pide la cita. Ya está atendido.
     if (await answeredSince(conversationId, seen)) {
@@ -584,7 +674,9 @@ export const runWhatsAppAi = async (input: {
       modeNow === "MANUAL" ||
       Boolean(now.aiPausedAt) ||
       Boolean(now.priorityAt) ||
-      humanSince > 0;
+      // Sin pausa por respuesta de Dayana, que ella haya escrito antes no
+      // aparta a la IA (lo que ella ya contestó lo cubre `answeredSince`).
+      (config.pauses.onHumanReply && humanSince > 0);
 
     if (tookOver) {
       // Un borrador (lo que ella escribía no se pisa), no una propuesta: una
@@ -606,7 +698,7 @@ export const runWhatsAppAi = async (input: {
     // Dayana; en copiloto, toda respuesta espera. Solo en modo IA una
     // respuesta simple sale sola. Los precios solo los da Dayana: si la
     // respuesta menciona un monto, nunca sale sola, queda como borrador para ella.
-    const saysPrice = mentionsPrice(body);
+    const saysPrice = mentionsPrice(written);
     const copilot = modeNow === "COPILOT" || route.mode === "COPILOT";
     const needsApproval =
       saysPrice ||
@@ -715,7 +807,9 @@ export const runWhatsAppAi = async (input: {
         },
         null,
         {},
-        "ERROR"
+        "ERROR",
+        undefined,
+        { silent: true }
       ).catch(() => undefined);
     }
   }
@@ -741,6 +835,9 @@ const loadConversation = (conversationId: string) =>
       aiMode: true,
       aiPausedAt: true,
       aiPausedReason: true,
+      escalationCategory: true,
+      escalationSeverity: true,
+      escalationReason: true,
       priorityAt: true,
       assignedStaffId: true,
       externalThreadId: true,
@@ -802,28 +899,42 @@ const gate = async (
   if (conversation.priorityAt) return { skip: true, reason: "favorite" };
 
   if (conversation.aiPausedAt) {
-    // Una escalada espera a una persona. Una pausa por respuesta humana se
-    // levanta sola si Dayana lleva las horas de relevo sin escribir aquí.
-    if (conversation.aiPausedReason === "escalation" || config.handoffHours === 0) {
-      return { skip: true, reason: "paused" };
-    }
-    const lastHuman = await prisma.conversationMessage.findFirst({
-      where: {
-        conversationId,
-        direction: "OUTBOUND",
-        isAutoReply: false,
-        status: { not: "FAILED" },
-        kind: "message",
+    const holds = pauseHolds(
+      {
+        reason: conversation.aiPausedReason,
+        escalationCategory: conversation.escalationCategory,
+        escalationSeverity: conversation.escalationSeverity,
+        escalationReason: conversation.escalationReason,
       },
-      orderBy: { sentAt: "desc" },
-      select: { sentAt: true },
-    });
-    // Desde lo último entre su mensaje y la pausa («Listo» la renueva aunque no escriba).
-    const since = Math.max(lastHuman?.sentAt.getTime() ?? 0, conversation.aiPausedAt.getTime());
-    if (Date.now() - since < config.handoffHours * 3600_000) {
+      config.pauses
+    );
+    // Una pausa que ya no corre (la IA contesta siempre salvo a clientas): se
+    // levanta y sigue. Lo de «Te toca» queda para Dayana.
+    if (!holds) {
+      await liftPause(conversationId);
+    } else if (conversation.aiPausedReason === "escalation" || config.handoffHours === 0) {
+      // Una escalada espera a una persona. Una pausa por respuesta humana se
+      // levanta sola si Dayana lleva las horas de relevo sin escribir aquí.
       return { skip: true, reason: "paused" };
+    } else {
+      const lastHuman = await prisma.conversationMessage.findFirst({
+        where: {
+          conversationId,
+          direction: "OUTBOUND",
+          isAutoReply: false,
+          status: { not: "FAILED" },
+          kind: "message",
+        },
+        orderBy: { sentAt: "desc" },
+        select: { sentAt: true },
+      });
+      // Desde lo último entre su mensaje y la pausa («Listo» la renueva aunque no escriba).
+      const since = Math.max(lastHuman?.sentAt.getTime() ?? 0, conversation.aiPausedAt.getTime());
+      if (Date.now() - since < config.handoffHours * 3600_000) {
+        return { skip: true, reason: "paused" };
+      }
+      await resumeAutoReply(conversationId);
     }
-    await resumeAutoReply(conversationId);
   }
   if (conversation.assignedStaffId) return { skip: true, reason: "assigned" };
 
@@ -855,6 +966,7 @@ const gate = async (
     )
     .at(-1)?.sentAt;
   if (
+    config.pauses.onHumanReply &&
     mode === "AUTO" &&
     lastHumanAt &&
     (config.handoffHours === 0 ||
@@ -866,7 +978,9 @@ const gate = async (
 
   // Libreta personal del celular (familia, amigos): si está ahí, no es alguien
   // del CRM y nunca ha tenido un chat de trabajo, no es un cliente escribiendo.
-  if (config.audience.skipKnownContacts && !conversation.contactId) {
+  // Con el enrutador, lo personal ya lo apartan el segmento y la clasificación:
+  // un contacto guardado en el celular puede ser una interesada (no se calla).
+  if (config.audience.skipKnownContacts && !route.routerEnabled && !conversation.contactId) {
     const inAddressBook = await prisma.whatsAppKnownContact.count({
       where: { phone: conversation.externalThreadId, removedAt: null },
     });
@@ -954,7 +1068,13 @@ const escalate = async (
   name?: string | null,
   meta: Prisma.WhatsAppAiRunUpdateInput = {},
   status: RunStatus = "ESCALATED",
-  since?: Date | null
+  since?: Date | null,
+  opts: {
+    /** El aviso corto que escribió la IA para la persona. */
+    holdingReply?: string | null;
+    /** Sin aviso a la persona (tope del día, fallo de la IA). */
+    silent?: boolean;
+  } = {}
 ): Promise<boolean> => {
   const from =
     since ??
@@ -965,7 +1085,15 @@ const escalate = async (
     await finish(runId, "SKIPPED", { ...meta, reason: "replied_meanwhile" });
     return false;
   }
-  await pauseAutoReply(conversationId, "escalation", outcome);
+  // Ya le tocaba por lo mismo (la persona insiste): no vuelve a sonar.
+  const before = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { attentionAt: true, attentionReason: true },
+  });
+  const alreadyOpen = Boolean(before?.attentionAt) && before?.attentionReason === attentionReasonOf(outcome.category);
+  // Con `pauses.onEscalation` apagado, la IA avisa y sigue atendiendo el chat
+  // (salvo lo delicado: una crisis o algo urgente siempre la calla).
+  const paused = await pauseAutoReply(conversationId, "escalation", outcome);
   // Lo que la IA había propuesto antes ya no es la respuesta: ahora le toca a
   // Dayana (y aprobarlo no debe cerrar esta escalada). La respuesta al pago
   // que la IA deja con esta escalada se propone después.
@@ -980,7 +1108,15 @@ const escalate = async (
   if (from && replied?.lastHumanReplyAt && repliedSince(replied.lastHumanReplyAt, from)) {
     await closeAttention(conversationId, { by: "reply", upTo: replied.lastHumanReplyAt });
   }
-  const holding = config?.escalation.holdingMessage.trim();
+  // Callada (lo de antes): solo el mensaje de espera de Ajustes, si lo hay.
+  // Sin callarse: la persona nunca se queda sin respuesta (el aviso de la IA,
+  // el de Ajustes o uno corto por defecto).
+  const configured = config?.escalation.holdingMessage.trim() || null;
+  const holding = opts.silent
+    ? null
+    : paused
+      ? configured
+      : opts.holdingReply?.trim() || configured || DEFAULT_HOLDING;
   if (holding && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>
       console.error("[whatsapp-agent] mensaje de espera", e)
@@ -998,6 +1134,8 @@ const escalate = async (
   });
   // Contestó justo ahora: su respuesta ya cerró «Te toca»; no se avisa.
   if (await answeredSince(conversationId, from)) return true;
+  // Sin pausa y ya le tocaba por lo mismo: ya lo sabe, no vuelve a sonar.
+  if (!paused && alreadyOpen && outcome.severity !== "urgent") return true;
 
   const who =
     name ??

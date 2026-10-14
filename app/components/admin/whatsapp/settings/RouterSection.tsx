@@ -19,8 +19,8 @@ const SEGMENT_HELP: Record<Segment, string> = {
   new_lead: "Escribe por primera vez (aunque haya recibido invitaciones).",
   returning_lead: "Ya habló contigo o con la asistente, no consta que haya pagado.",
   free_call_booked: "Tiene agendada la llamada gratis.",
-  after_call: "Ya tuvo la llamada gratis y no ha comprado: tú cierras, la IA no le vuelve a ofrecer la llamada.",
-  client: "Ya pagó (en el CRM o por transferencia) o la marcaste como clienta.",
+  after_call: "Ya tuvo la llamada gratis y no ha pagado: la IA no le vuelve a ofrecer la llamada; le manda los datos o el enlace de pago si los pide.",
+  client: "Pagó y está confirmado (en el CRM, una sesión de paquete o tú lo confirmaste). Aun en «Tú», la IA le manda los datos de pago si los pide y recibe su comprobante.",
   ignored: "Personal, del equipo o una empresa/app.",
 };
 
@@ -67,15 +67,15 @@ const RouterSection = () => {
       ))}
       <SettingRow
         id="wa-router-max-new"
-        label="Respuestas por día a una persona nueva"
-        help="Hasta agendar la llamada hacen falta varias vueltas: saludo, cómo está, de dónde escribe, lo que le pasa, la invitación y las horas."
+        label="Respuestas por día a quien no es clienta"
+        help="Hasta agendar la llamada (o pagar) hacen falta varias vueltas: saludo, cómo está, de dónde escribe, lo que le pasa, la invitación, las horas, los datos de pago."
         state={states["wa-router-max-new"]}
         layout="row"
       >
         <NumberField
           value={router.maxPerDayNewLead}
           min={1}
-          max={30}
+          max={40}
           disabled={!router.enabled}
           onChange={(v) => change("wa-router-max-new", "router.maxPerDayNewLead", v, 600)}
         />

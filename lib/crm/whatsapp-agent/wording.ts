@@ -4,8 +4,9 @@
  * - «De nada» → «Con gusto».
  * - Frases hechas que no usa: «¿Qué te trae por aquí?», «Qué alegría tenerte
  *   por aquí», «¿Hay algo más en lo que te pueda ayudar?».
- * - «mi hermosa» / «mi bella» y los corazones no se repiten: si ya salieron
- *   en los últimos mensajes del chat, se quitan; y como mucho uno por mensaje.
+ * - Nada de apodos cariñosos («querida», «cariño», «mi amor», «hermosa», «mi
+ *   reina», «linda», «amiga»…) ni corazones: la dueña pidió un tono más serio,
+ *   aunque amable (2026-10-14). Antes se permitía uno por conversación.
  */
 
 export const withDayanaWording = (text: string): string =>
@@ -20,12 +21,33 @@ const BANNED: RegExp[] = [
   /¿?\s*hay\s+algo\s+m[aá]s\s+en\s+(?:lo\s+)?(?:que|qu[eé])\s+(?:te\s+)?(?:pueda|puedo)\s+(?:ayudar|servir)[^?\n]*\??/gi,
 ];
 
-// «Bella» sola puede ser un nombre: solo cuenta «mi bella».
-const ENDEARMENT = /(,\s*)?\b(?:mi\s+(?:hermosa|bella)|hermosa)\b(\s*,)?/gi;
-const HEART = /(?:💛|❤️|❤|🤍|💖|💕|💗|💓|🥰|😍|💙|💜|🧡|💚)/gu;
+// Apodos cariñosos. Los que también son nombres (Bella, Linda, Reina…) solo
+// cuentan en minúscula o con «mi» delante.
+const PET_ANY = "hermos[ao]|precios[ao]|querid[ao]|cariño|amor|coraz[oó]n|corazoncito|nen[ao]|guap[ao]|amig[ao]|mami|mamita|reina|rey|bell[ao]|lind[ao]|vida|cielo|niñ[ao]|bonit[ao]";
+const PET_LOWER_ONLY = new Set(["bella", "bello", "linda", "lindo", "reina", "rey", "vida", "cielo", "niña", "niño", "bonita", "bonito"]);
+// Delante de un nombre («Querida María»): solo los que nunca son otra cosa.
+const PET_BEFORE_NAME_WORDS = "[Qq]uerid[ao]|[Hh]ermos[ao]|[Pp]recios[ao]|[Cc]ariño|[Nn]en[ao]|[Gg]uap[ao]";
+const PET_VOCATIVE = `(?:${PET_ANY})`;
 
-const hasEndearment = (t: string) => /\b(?:mi\s+(?:hermosa|bella)|hermosa)\b/i.test(t);
-const hasHeart = (t: string) => new RegExp(HEART.source, "u").test(t);
+// «mi hermosa», «mi amor», «mi reina» (no «mi amiga»: puede ser literal).
+const MY_PET = new RegExp(String.raw`(,\s*)?\bmi\s+(?:${PET_ANY.replace("|amig[ao]", "")})\b(\s*,)?`, "giu");
+// «Gracias, hermosa.» / «Te bendigo, amiga!»: el apodo al final de la frase.
+const TRAILING_PET = new RegExp(String.raw`,\s*(${PET_VOCATIVE})(?=\s*(?:[.!?…\n]|$))`, "giu");
+// «Hola querida, …» / «Querida, …»: al empezar la frase o después del saludo.
+const LEADING_PET = new RegExp(
+  String.raw`(^|[.!?¡¿\n]\s*|\b(?:hola|buenas|buenos días|buenas tardes|buenas noches|gracias)\s+)(${PET_VOCATIVE})(\s*,\s*|\s+(?=[¿¡]))`,
+  "giu"
+);
+// «Querida María» → «María».
+const PET_BEFORE_NAME = new RegExp(String.raw`\b(?:${PET_BEFORE_NAME_WORDS})\s+(?=\p{Lu}\p{Ll})`, "gu");
+const HEART = /(?:💛|❤️|❤|🤍|💖|💕|💗|💓|🥰|😍|💙|💜|🧡|💚|😘|💞|💝)/gu;
+
+/** ¿Este apodo, tal como está escrito, es un apodo (y no un nombre propio)? */
+const isPet = (word: string): boolean => {
+  const lower = word.toLocaleLowerCase("es");
+  if (!PET_LOWER_ONLY.has(lower)) return true;
+  return word === lower;
+};
 
 /** Espacios, comas sueltas y mayúsculas después de quitar algo. */
 const tidy = (text: string): string =>
@@ -50,25 +72,25 @@ const tidy = (text: string): string =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-/**
- * Quita un apodo cariñoso sin dejar la frase rota: «Te bendigo, mi hermosa.»
- * → «Te bendigo.»; «Mi hermosa, te bendigo» → «Te bendigo».
- */
-const dropEndearment = (
-  _m: string,
-  before: string | undefined,
-  after: string | undefined,
-  offset: number,
-  whole: string
-): string => {
-  if (before && after) return ", ";
-  if (after) {
-    // «Hola mi hermosa, te bendigo» → «Hola, te bendigo»; al empezar, nada.
-    const prev = whole.slice(0, offset).trimEnd();
-    return prev && !/[.!?¡¿\n]$/.test(prev) ? ", " : "";
-  }
-  return "";
-};
+/** Quita los apodos cariñosos sin dejar la frase rota. */
+export const dropEndearments = (text: string): string =>
+  text
+    .replace(MY_PET, (_m: string, before: string | undefined, after: string | undefined, offset: number, whole: string) => {
+      if (before && after) return ", ";
+      if (after) {
+        // «Hola mi hermosa, te bendigo» → «Hola, te bendigo»; al empezar, nada.
+        const prev = whole.slice(0, offset).trimEnd();
+        return prev && !/[.!?¡¿\n]$/.test(prev) ? ", " : "";
+      }
+      return "";
+    })
+    .replace(TRAILING_PET, (m: string, pet: string) => (isPet(pet) ? "" : m))
+    .replace(LEADING_PET, (m: string, lead: string, pet: string) => {
+      if (!isPet(pet)) return m;
+      // Después de «Hola»/«Gracias» queda la coma; al empezar una frase, nada.
+      return /[\p{L}]\s+$/u.test(lead) ? `${lead.trimEnd()}, ` : lead;
+    })
+    .replace(PET_BEFORE_NAME, "");
 
 /** Quita un corazón; si separaba dos frases («… 💛 Me alegra»), deja un punto. */
 const dropHeart = (text: string): string =>
@@ -80,55 +102,19 @@ const dropHeart = (text: string): string =>
     return m.includes("\n") ? "\n" : " ";
   });
 
-/**
- * Deja el mensaje como lo diría Dayana. `recentOutbound`: los últimos
- * mensajes que ya salieron en este chat (de la IA o de Dayana).
- */
-export const polishReply = (text: string, recentOutbound: string[] = []): string => {
+/** Deja el mensaje como lo diría Dayana (con el tono que pidió la dueña). */
+export const polishReply = (text: string): string => {
   const original = withDayanaWording(text);
   let out = original;
   for (const re of BANNED) out = out.replace(re, " ");
-
-  // Apodo: si ya se dijo hace poco, fuera; si no, solo el primero del mensaje.
-  const endearmentUsed = recentOutbound.some(hasEndearment);
-  let keptEndearment = false;
-  out = out.replace(ENDEARMENT, (m: string, before: string | undefined, after: string | undefined, offset: number, whole: string) => {
-    if (!endearmentUsed && !keptEndearment) {
-      keptEndearment = true;
-      return m;
-    }
-    return dropEndearment(m, before, after, offset, whole);
-  });
-
-  // Corazones: ninguno si ya hubo uno hace poco; si no, como mucho uno.
-  if (recentOutbound.some(hasHeart)) {
-    out = dropHeart(out);
-  } else {
-    let seen = false;
-    const parts = out.split(new RegExp(`(${HEART.source})`, "u"));
-    if (parts.length > 3) {
-      out = dropHeart(
-        parts
-          .map((p) => {
-            if (!new RegExp(`^${HEART.source}$`, "u").test(p)) return p;
-            if (seen) return "\u0000";
-            seen = true;
-            return "\u0001";
-          })
-          .join("")
-          .replace(/\u0000/g, "💛")
-      ).replace(/\u0001/g, "💛");
-    }
-  }
-
+  out = dropHeart(dropEndearments(out));
   const result = tidy(out);
-  // Nunca se manda vacío: si todo era frase hecha, queda el original.
-  return result || tidy(original);
+  // Nunca se manda vacío: si todo era frase hecha, queda el original sin apodos.
+  return result || tidy(dropHeart(dropEndearments(original))) || tidy(original);
 };
 
 /**
- * Para lo que la IA LEE (ejemplos reales, guía de estilo): sin «mi hermosa» ni
- * corazones, para que no aprenda a ponerlos en cada mensaje.
+ * Para lo que la IA LEE (ejemplos reales, guía de estilo): sin apodos ni
+ * corazones, para que no aprenda a ponerlos.
  */
-export const softenForPrompt = (text: string): string =>
-  tidy(dropHeart(text.replace(ENDEARMENT, dropEndearment)));
+export const softenForPrompt = (text: string): string => tidy(dropHeart(dropEndearments(text)));

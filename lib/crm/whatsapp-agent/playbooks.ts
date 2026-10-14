@@ -63,9 +63,9 @@ export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }
   },
   {
     name: "Precios y pagos",
-    trigger: "Pregunta cuánto cuesta, pide precios o paquetes, quiere pagar, dice que ya pagó, manda un comprobante o pregunta por un cobro, reembolso o factura.",
+    trigger: "Pregunta cuánto cuesta, pide precios o paquetes, quiere pagar, pide las cuentas o el enlace, dice que ya pagó, manda un comprobante o pregunta por un cobro, reembolso o factura.",
     steps:
-      "1. Si pregunta el precio: NUNCA des valores. Dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos; ofrécele agendarla (sigue «Agendar»).\n2. Si insiste en el precio, quiere pagar o pide cómo pagar: escala con category=payment y no respondas nada más.\n3. Si dice que ya pagó o manda un comprobante: nunca confirmes ni niegues el pago; escala con category=payment.",
+      "1. Si pregunta el precio: NUNCA des valores. Dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos; ofrécele agendarla. Si ya tuvo la llamada, dile que Dayana se lo confirma y escala con category=payment.\n2. Si quiere pagar o pide cómo pagar, las cuentas o el enlace: si Dayana le creó un enlace, mándalo con send_payment_link; si no, send_payment_info con la cuenta que le corresponde (si no sabes desde qué país paga, pregúntalo). Mensaje corto: «Claro, te comparto los datos para el pago:». Nunca escribas tú un número de cuenta.\n3. Si manda un comprobante o dice que ya pagó: register_payment_receipt y «Recibido, [nombre]. Ya le aviso a Dayana para que lo revise y te confirmamos tu sesión» (o el proceso, el curso o el taller). Nunca confirmes tú el pago.\n4. Si hubo un problema (transferencia rechazada, otra cuenta, monto distinto): ayúdale a ver qué pasó, regístralo con su problema y dile que Dayana ya está informada y lo están revisando.\n5. Reembolso, factura, descuento o un cobro que no reconoce: escala con category=payment y un aviso corto.",
   },
   {
     name: "Acceso a grabaciones de clases",
@@ -77,7 +77,7 @@ export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }
     name: "Cierre de conversación",
     trigger: "La persona agradece o se despide al terminar.",
     steps:
-      "1. Si agradece: «Con gusto» (nunca «De nada»). Un «Te bendigo» basta; sin «mi hermosa» ni corazón si ya se dijeron en la conversación.\n2. NUNCA preguntes «¿Hay algo más en lo que te pueda ayudar hoy?» ni frases de soporte: el cierre es corto, humano y natural.",
+      "1. Si agradece: «Con gusto» (nunca «De nada»). Un «Te bendigo» basta; sin apodos cariñosos ni corazones.\n2. NUNCA preguntes «¿Hay algo más en lo que te pueda ayudar hoy?» ni frases de soporte: el cierre es corto, humano y natural.",
   },
 ];
 

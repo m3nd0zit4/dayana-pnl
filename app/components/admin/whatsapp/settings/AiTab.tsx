@@ -290,7 +290,7 @@ const AiTab = () => {
           layout="row"
           htmlFor="wa-max-per-day-input"
           label="Respuestas por chat al día"
-          help="Al llegar al tope, te pasa el chat."
+          help="Al llegar al tope, la IA deja de contestar ese chat por hoy y te aparece en «Te toca». Para quien no es clienta vale el tope de «Quién atiende a quién»."
           state={states["wa-max-per-day"]}
         >
           <NumberField
@@ -302,12 +302,30 @@ const AiTab = () => {
             onChange={(v) => change("wa-max-per-day", "maxPerDay", v, TYPING_DELAY)}
           />
         </SettingRow>
+        <ToggleRow
+          id="wa-pause-human"
+          label="Apartarse cuando contestas tú"
+          help="Apagado: la IA sigue contestando aunque tú escribas; solo no repite lo que tú ya contestaste."
+          info="Encendido, si contestas en un chat (celular o CRM) la IA se aparta las horas de abajo. Para tomar un chat del todo usa «Tú» o «Pausar» en el chat: eso siempre se respeta."
+          state={states["wa-pause-human"]}
+          checked={config.pauses.onHumanReply}
+          onChange={(v) => change("wa-pause-human", "pauses.onHumanReply", v)}
+        />
+        <ToggleRow
+          id="wa-pause-escalation"
+          label="Callarse al pasarte algo"
+          help="Apagado: cuando te pasa algo (un pago, algo que no sabe), te avisa y sigue atendiendo el chat."
+          info="Una crisis o algo urgente siempre te lo pasa y la IA se calla en ese chat, esté como esté esto."
+          state={states["wa-pause-escalation"]}
+          checked={config.pauses.onEscalation}
+          onChange={(v) => change("wa-pause-escalation", "pauses.onEscalation", v)}
+        />
         <SettingRow
           id="wa-handoff-hours"
           layout="row"
           htmlFor="wa-handoff-input"
           label="Si contestas tú, la IA vuelve tras"
-          help="0 = no vuelve sola; la reanudas desde la bandeja."
+          help="Solo con «Apartarse cuando contestas tú» encendido. 0 = no vuelve sola; la reanudas desde la bandeja."
           info="Mientras tanto el chat es tuyo. Si la IA te pasó el chat (una crisis, un pago, una queja), no vuelve sola nunca."
           state={states["wa-handoff-hours"]}
         >
@@ -316,6 +334,7 @@ const AiTab = () => {
             min={0}
             max={168}
             suffix="horas"
+            disabled={!config.pauses.onHumanReply}
             value={config.handoffHours}
             invalid={states["wa-handoff-hours"]?.status === "error"}
             onChange={(v) => change("wa-handoff-hours", "handoffHours", v, TYPING_DELAY)}
@@ -326,7 +345,7 @@ const AiTab = () => {
           htmlFor="wa-holding-input"
           layout="stacked"
           label="Mensaje al pasarte un chat"
-          help="Vacío (recomendado): la IA se calla y respondes tú."
+          help="Vacío (recomendado): la IA escribe un aviso corto a su medida («Déjame consultarlo con Dayana y te confirmo por aquí»)."
           state={states["wa-holding-message"]}
         >
           <Textarea

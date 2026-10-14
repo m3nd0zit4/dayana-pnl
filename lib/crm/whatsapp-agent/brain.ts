@@ -16,6 +16,7 @@ import { lastInboundSeen } from "../whatsapp-pending-rules";
 import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
+import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payments";
 import { spreadSlots } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
@@ -92,6 +93,22 @@ export type BrainResult = {
   pendingSlots: { service: string; options: { startIso: string; label: string }[] } | null;
   /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
   suggestedReply: string | null;
+  /** Al escalar sin callarse: el aviso corto que recibe la persona ahora. */
+  holdingReply: string | null;
+  /** Datos de pago (texto exacto de Ajustes) y enlace que van debajo del mensaje. */
+  paymentBlocks: { details: string[]; link: string | null };
+  /** La persona mandó un comprobante (o dijo que pagó): queda por confirmar para Dayana. */
+  receipt: {
+    summary: string;
+    method: string | null;
+    amount: number | null;
+    currency: string | null;
+    reference: string | null;
+    paidOn: string | null;
+    payerName: string | null;
+    problem: string | null;
+    confirmMessage: string | null;
+  } | null;
   /** La persona quiere agendar: se le avisa a Dayana para que ella agende. */
   bookingRequest: { service: string; when: string | null; note: string } | null;
   model: string;
@@ -434,22 +451,60 @@ const CLINICAL_LEGACY =
 const CLINICAL_SALES =
   "- category=clinical: SOLO una crisis o un riesgo (habla de hacerse daño, de no querer vivir, de violencia): severity=urgent. Lo que siente (tristeza, ansiedad, duelo…) no se escala: es lo que Dayana trabaja.";
 
-const systemPrompt = (config: WhatsAppAiConfig, now: string, opts: { salesFlow: boolean; autoBook: boolean } = { salesFlow: false, autoBook: false }): string => {
+/** Cuándo y cómo se comparten las formas de pago y se reciben los comprobantes. */
+const paymentRules = (config: WhatsAppAiConfig): string => {
+  const methods = paymentMethodsForPrompt(config);
+  const lines = ["PAGOS (pagos por fuera de la web: transferencia, Western Union…):"];
+  if (methods || config.payments.sendLinks) {
+    lines.push(
+      `- Si quiere pagar o pide cómo pagar, las cuentas, los datos o el enlace: ${
+        config.payments.sendLinks ? "si Dayana le creó un enlace de pago, mándalo con send_payment_link; si no hay, " : ""
+      }${
+        methods
+          ? "usa send_payment_info con la forma de pago que le corresponde (mira a quién va cada una; si no sabes desde qué país paga, pregúntalo primero)"
+          : "dile que Dayana le comparte los datos y escala con category=payment"
+      }. Tu mensaje es corto («Claro, te comparto los datos para el pago:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`
+    );
+  } else {
+    lines.push("- Si quiere pagar o pide los datos de pago: dile que Dayana se los comparte y escala con category=payment.");
+  }
+  if (config.payments.receipts) {
+    lines.push(
+      "- Si manda un comprobante, una captura de la transferencia o dice que ya pagó (MIRA las imágenes adjuntas): usa register_payment_receipt con lo que leas en él y contesta corto, por ejemplo «Recibido, [nombre]. Ya le aviso a Dayana para que lo revise y te confirmamos tu sesión.» (di lo que pagó: la sesión, el proceso, el curso o el taller; si no lo sabes, «te confirmamos»). Nunca confirmes tú el pago: lo confirma Dayana.",
+      "- Si ves un problema (transferencia rechazada o pendiente, otra cuenta u otro titular, un monto que no cuadra, la captura no se lee): ayúdale con calma a ver qué pasó con lo que ves (si fue a otra cuenta, compártele los datos correctos con send_payment_info), regístralo igual con register_payment_receipt y su `problem`, y dile que Dayana ya está informada y lo están revisando."
+    );
+  } else {
+    lines.push("- Si dice que ya pagó o manda un comprobante: nunca lo confirmes; escala con category=payment.");
+  }
+  return `${lines.join("\n")}\n`;
+};
+
+/** Con una clienta (la atiende Dayana), la IA solo ayuda con pagos. */
+const CLIENT_PAYMENT_MODE = `ESTA PERSONA YA ES CLIENTA DE DAYANA y la atiende ella. Tú SOLO ayudas con pagos:
+- Si pide datos de pago, las cuentas o el enlace: compártelos (PAGOS) con un mensaje corto.
+- Si manda un comprobante o dice que pagó: register_payment_receipt y el mensaje de recibido.
+- Para CUALQUIER otra cosa: llama a escalate con category=other y SIN holdingReply (Dayana le contesta).`;
+
+const systemPrompt = (
+  config: WhatsAppAiConfig,
+  now: string,
+  opts: { salesFlow: boolean; autoBook: boolean; clientMode?: boolean } = { salesFlow: false, autoBook: false }
+): string => {
   const leadRules = opts.salesFlow ? salesFlowRules(config, { autoBook: opts.autoBook }) : LEGACY_LEAD_RULES;
   const clinicalRule = opts.salesFlow ? CLINICAL_SALES : CLINICAL_LEGACY;
   const parts = [
     `Contestas el WhatsApp de ${BRAND.name}.
 
-REGLA Nº 1 — PRECIOS: NUNCA escribas un precio, valor, monto, tarifa, costo, descuento ni forma de pago, aunque la persona insista, aunque lo veas en la conversación o en un ejemplo. Los valores SOLO los da Dayana, en la llamada. Si pregunta cuánto cuesta: dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos, y ofrécele agendarla. Si insiste o ya quiere pagar: escala con category=payment.
+REGLA Nº 1 — PRECIOS: NUNCA escribas un precio, valor, monto, tarifa, costo ni descuento, aunque la persona insista, aunque lo veas en la conversación o en un ejemplo. Los valores SOLO los da Dayana, en la llamada. Si pregunta cuánto cuesta: dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos, y ofrécele agendarla (si ya tuvo la llamada: Dayana se lo confirma; escala con category=payment). Las FORMAS DE PAGO sí las puedes dar, pero solo con sus herramientas (abajo, PAGOS).
 
-TONO: cálido pero profesional. Cercana, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. «Mi hermosa» o «mi bella» como mucho UNA vez en toda la conversación y solo si queda natural; corazones (💛) como mucho uno en toda la conversación. Nada de exageraciones, jerga ni muchos emojis.
+TONO: amable y profesional: cercana pero seria, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. Llama a la persona por su nombre. NUNCA uses apodos cariñosos («querida», «querido», «cariño», «mi amor», «hermosa», «mi bella», «linda», «mi reina», «corazón», «amiga»…) ni corazones. Nada de exageraciones, jerga ni muchos emojis.
 NUNCA escribas: «¿Qué te trae por aquí?», «Qué alegría tenerte por aquí», «¿Hay algo más en lo que te pueda ayudar?», «De nada» (di «Con gusto»).
 Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
 
 Ahora es ${now}.
 
 Cómo conversas (así trabaja Dayana):
-- Género: antes de usar cualquier palabra con género o apodo cariñoso, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa siempre masculino («querido», «bienvenido», «te bendigo»); JAMÁS «mi bella», «mi hermosa», «querida» ni adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
+- Género: antes de usar cualquier palabra con género, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa masculino («bienvenido»); nunca adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
@@ -457,8 +512,9 @@ ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya 
 - Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
-Llama a escalate (y NO escribas ningún mensaje) cuando:
-- category=payment: insiste en saber el precio, quiere pagar o pide cómo pagar, menciona un pago YA hecho, una transferencia, manda un comprobante (MIRA las imágenes adjuntas: si es un comprobante, transferencia o recibo, es esto), pregunta por un cobro, un reembolso o una factura, o pide un descuento.
+${paymentRules(config)}
+Llama a escalate cuando (la persona nunca se queda sin respuesta: en holdingReply escribe el aviso corto que recibe ahora, p. ej. «Déjame consultarlo con Dayana y te confirmo por aquí»):
+- category=payment: insiste en saber el precio, pide un descuento, un reembolso o una factura, o reclama un cobro que no reconoce.
 - category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen que no sabes interpretar, un audio marcado «(inaudible)»).
 - Las fotos y stickers que mandó la persona van adjuntos como imágenes: míralos y responde a lo que muestran (una captura de un horario, una foto de algo que le pasa, un sticker de cariño…). Nunca digas que no puedes ver imágenes. Las notas de voz llegan transcritas con 🎤 delante: léelas como si te las hubiera escrito.
 - category=reschedule: quiere cambiar o cancelar una cita ya agendada.
@@ -468,10 +524,11 @@ ${clinicalRule}
 
 ${IDENTITY[config.identity]}
 
-Prohibido siempre: dar precios o valores de cualquier tipo, enlaces de pago, dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios o enlaces, confirmar un pago, pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
+Prohibido siempre: dar precios o valores de cualquier tipo, escribir tú un número de cuenta o un enlace de pago (solo con send_payment_info / send_payment_link), dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios o enlaces, confirmar tú un pago (lo confirma Dayana), pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
 
 Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
   ];
+  if (opts.clientMode) parts.unshift(CLIENT_PAYMENT_MODE);
   if (config.styleGuide) {
     parts.push(`CÓMO ESCRIBE DAYANA (imítalo, sin salirte del tono profesional y sin dar precios):\n${softenForPrompt(redactPrices(config.styleGuide))}`);
   }
@@ -557,6 +614,8 @@ export type BrainInput = {
    * zona horaria de la persona, si ya se sabe.
    */
   freeCall?: { autoBook: boolean; personTimezone: string | null };
+  /** Es clienta (la atiende Dayana): la IA solo comparte datos de pago y recibe comprobantes. */
+  clientMode?: boolean;
 };
 
 /** Horas que Dayana ya aprobó para ofrecer en este chat (últimos 14 días). */
@@ -592,6 +651,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     country: { iso: string; city: string | null; timezone: string } | null;
     pendingSlots: BrainResult["pendingSlots"];
     suggestedReply: string | null;
+    holdingReply: string | null;
+    paymentDetails: string[];
+    paymentLink: string | null;
+    receipt: BrainResult["receipt"];
   } = {
     outcome: null,
     booking: null,
@@ -602,6 +665,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     country: null,
     pendingSlots: null,
     suggestedReply: null,
+    holdingReply: null,
+    paymentDetails: [],
+    paymentLink: null,
+    receipt: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
   const seenOptions = new Map<string, string>();
@@ -644,6 +711,91 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     return output;
   };
 
+  // Pagos por fuera de la web: los datos y el enlace los pega el código (nunca el modelo).
+  const methods = enabledMethods(config);
+  const paymentTools = {
+    ...(methods.length > 0
+      ? {
+          send_payment_info: tool({
+            description:
+              "Manda, debajo de tu mensaje, los datos de una forma de pago tal como los tiene Dayana (titular, cuenta…). Úsalo cuando la persona quiere pagar o pide cómo pagar o las cuentas. Elige la que le corresponde según a quién va.",
+            inputSchema: z.object({
+              method: z.enum(methods.map((m) => m.key) as [string, ...string[]]).describe("La clave de la forma de pago."),
+            }),
+            execute: async ({ method }) => {
+              const m = paymentDetails(config, method);
+              if (!m) return log("send_payment_info", { method }, { ok: false, reason: "No existe esa forma de pago." });
+              if (!state.paymentDetails.includes(m.details)) state.paymentDetails.push(m.details);
+              return log("send_payment_info", { method }, { ok: true, label: m.label, note: "Los datos van debajo de tu mensaje: no los repitas." });
+            },
+          }),
+        }
+      : {}),
+    ...(config.payments.sendLinks
+      ? {
+          send_payment_link: tool({
+            description:
+              "Manda, debajo de tu mensaje, el enlace de pago personal que Dayana creó para esta persona (si lo hay). Úsalo cuando pide el enlace o quiere pagar lo que acordó con Dayana.",
+            inputSchema: z.object({}),
+            execute: async () => {
+              const link = await activePaymentLinkFor(input.contactId).catch(() => null);
+              if (!link) {
+                return log("send_payment_link", {}, {
+                  ok: false,
+                  reason: methods.length
+                    ? "Dayana no le ha creado un enlace: ofrécele los datos de pago (send_payment_info)."
+                    : "Dayana no le ha creado un enlace: dile que Dayana se lo envía y escala con category=payment.",
+                });
+              }
+              state.paymentLink = link.url;
+              return log("send_payment_link", {}, { ok: true, product: link.product, note: "El enlace va debajo de tu mensaje: no lo repitas ni digas el precio." });
+            },
+          }),
+        }
+      : {}),
+    ...(config.payments.receipts
+      ? {
+          register_payment_receipt: tool({
+            description:
+              "La persona mandó un comprobante de pago (o dice que ya pagó): queda por confirmar y se le avisa a Dayana. Llena lo que leas en el comprobante; lo que no se vea, déjalo vacío. Después contesta corto que Dayana lo revisa.",
+            inputSchema: z.object({
+              summary: z.string().max(200).describe("Para Dayana, en una línea: qué es (banco, monto, a nombre de quién)."),
+              method: z.string().max(60).optional().describe("Banco o medio: Bancolombia, Western Union, Global66, Remitly, Nequi…"),
+              amount: z.number().positive().optional().describe("El monto que se ve, sin símbolos (150000, 80)."),
+              currency: z.string().max(3).optional().describe("COP, USD, EUR, MXN…"),
+              reference: z.string().max(80).optional().describe("Número de comprobante o referencia, si se ve."),
+              paidOn: z.string().max(40).optional().describe("Fecha del pago tal como se ve."),
+              payerName: z.string().max(100).optional().describe("Quién pagó, si se ve."),
+              problem: z
+                .string()
+                .max(200)
+                .optional()
+                .describe("Solo si ves algo raro: transferencia rechazada o pendiente, otra cuenta u otro titular, monto que no cuadra, no se lee."),
+              confirmMessage: z
+                .string()
+                .max(400)
+                .optional()
+                .describe("El mensaje corto que Dayana puede enviar cuando confirme el pago (agradece y dice el siguiente paso, sin montos)."),
+            }),
+            execute: async (args) => {
+              state.receipt = {
+                summary: args.summary,
+                method: args.method ?? null,
+                amount: args.amount ?? null,
+                currency: args.currency ?? null,
+                reference: args.reference ?? null,
+                paidOn: args.paidOn ?? null,
+                payerName: args.payerName ?? null,
+                problem: args.problem ?? null,
+                confirmMessage: args.confirmMessage ?? null,
+              };
+              return log("register_payment_receipt", args, { ok: true, note: "Dayana recibe el aviso. Contesta corto que lo revisa; nunca confirmes el pago." });
+            },
+          }),
+        }
+      : {}),
+  };
+
   const tools = {
     confirm_appointment: tool({
       description:
@@ -660,7 +812,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     }),
     escalate: tool({
       description:
-        "Pasa el chat a Dayana y no contestes nada. Úsalo en pagos, preguntas que no están en los DATOS, cambios de cita, quejas o temas clínicos.",
+        "Le pasa el tema a Dayana (le avisa y le aparece en «Te toca»). Úsalo en reembolsos, descuentos o cobros que no reconoce, preguntas que no están en los DATOS, cambios de cita, quejas o temas clínicos. A la persona le llega tu holdingReply.",
       inputSchema: z.object({
         category: z.enum(["payment", "unknown", "complaint", "clinical", "reschedule", "other"]),
         severity: z.enum(["normal", "urgent"]),
@@ -672,13 +824,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           .describe(
             "Solo en pagos ya hechos: el mensaje corto y cálido que Dayana puede enviar cuando verifique el pago (agradece y confirma los siguientes pasos, sin inventar montos)."
           ),
+        holdingReply: z
+          .string()
+          .max(300)
+          .optional()
+          .describe(
+            "El aviso corto que recibe la persona AHORA, para que no se quede sin respuesta (p. ej. «Déjame consultarlo con Dayana y te confirmo por aquí»). Sin precios. Vacío solo si te lo piden las reglas."
+          ),
       }),
-      execute: async ({ suggestedReply, ...args }) => {
+      execute: async ({ suggestedReply, holdingReply, ...args }) => {
         state.outcome = { kind: "escalate", ...args };
         if (suggestedReply?.trim()) state.suggestedReply = suggestedReply.trim();
-        return log("escalate", { ...args, suggestedReply }, { ok: true });
+        if (holdingReply?.trim()) state.holdingReply = holdingReply.trim();
+        return log("escalate", { ...args, suggestedReply, holdingReply }, { ok: true });
       },
     }),
+    ...paymentTools,
     // Lo normal: la IA no busca horas; pregunta cuándo le sirve y le avisa a Dayana.
     // Con el flujo de venta, siempre sabe de dónde escribe (para ofrecer horas en su hora).
     ...(!config.booking.aiSchedules || salesOn
@@ -1058,8 +1219,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           }),
         }
       : {}),
-    // Sin payment_link: los enlaces de pago muestran el precio y los precios
-    // solo los da Dayana. Quien quiere pagar se escala (category=payment).
+    // Pagos: solo el enlace que Dayana ya creó (send_payment_link) y las
+    // cuentas de Ajustes (send_payment_info). La IA no crea enlaces nuevos.
     search_past_chats: tool({
       description:
         "Busca cómo contestó Dayana antes sobre un tema (para imitar su forma, no para sacar precios).",
@@ -1121,9 +1282,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       .filter(Boolean)
       .join("\n\n");
 
+  // Con una clienta, solo pagos (y pasarle lo demás a Dayana).
+  const activeTools = input.clientMode ? { escalate: tools.escalate, ...paymentTools } : tools;
+
   const result = await generateText({
     model: google(modelId()),
-    system: systemPrompt(config, nowLabel, { salesFlow: salesOn, autoBook }),
+    system: systemPrompt(config, nowLabel, { salesFlow: salesOn && !input.clientMode, autoBook, clientMode: input.clientMode }),
     ...(input.images?.length
       ? {
           messages: [
@@ -1137,7 +1301,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           ],
         }
       : { prompt: promptText }),
-    tools,
+    tools: activeTools,
     stopWhen: [isStepCount(6), hasToolCall("escalate")],
   });
 
@@ -1163,6 +1327,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     bookingRequest: finalOutcome.kind === "reply" ? state.bookingRequest : null,
     pendingSlots: finalOutcome.kind === "reply" ? state.pendingSlots : null,
     suggestedReply: finalOutcome.kind === "escalate" ? state.suggestedReply : null,
+    holdingReply: finalOutcome.kind === "escalate" ? state.holdingReply : null,
+    paymentBlocks: finalOutcome.kind === "reply" ? { details: state.paymentDetails, link: state.paymentLink } : { details: [], link: null },
+    receipt: state.receipt,
     model: modelId(),
     usage: {
       inputTokens: result.totalUsage?.inputTokens ?? undefined,
