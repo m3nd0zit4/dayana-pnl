@@ -16,10 +16,12 @@
  * 5. El enlace de pago vivo que Dayana creó se encuentra; uno revocado no.
  */
 import { prisma } from "@/lib/db";
+import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { pauseAutoReply } from "@/lib/crm/whatsapp-autoreply";
 import { findUnansweredChats } from "@/lib/crm/whatsapp-agent/catch-up";
-import { activePaymentLinkFor, decideReceipt, listReceipts, saveReceipt } from "@/lib/crm/whatsapp-agent/payments";
+import { activePaymentLinkFor, listReceipts, saveReceipt } from "@/lib/crm/whatsapp-agent/payment-info";
+import { decideReceipt } from "@/lib/crm/whatsapp-agent/receipts";
 import { computeSegment } from "@/lib/crm/whatsapp-agent/segment-store";
 import { getChat } from "@/lib/crm/whatsapp-agent/workspace";
 
@@ -84,6 +86,17 @@ const cleanup = async () => {
 
 const main = async () => {
   await cleanup();
+  // Las pausas como en producción (apagadas); al final se deja como estaba.
+  const previous = await getWhatsAppAiConfig();
+  await setWhatsAppAiConfig({ ...previous, pauses: { onHumanReply: false, onEscalation: false } });
+  try {
+    await cases();
+  } finally {
+    await setWhatsAppAiConfig(previous);
+  }
+};
+
+const cases = async () => {
   const staff = await prisma.staffUser.findFirst({ where: { role: "OWNER", isActive: true }, select: { id: true } });
   if (!staff) throw new Error("Falta un OWNER en la base de desarrollo.");
 

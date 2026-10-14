@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { toMinor, withPaymentBlocks } from "./payments";
+import { toMinor, withPaymentBlocks } from "./payment-info";
 
 describe("withPaymentBlocks", () => {
   test("los datos van debajo, tal cual, con dos puntos en la frase", () => {

@@ -3,7 +3,7 @@ import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
 import { isManualPause } from "./whatsapp-attention-rules";
 import { escalationPauses } from "./whatsapp-agent/pause-rules";
-import { withPaymentBlocks } from "./whatsapp-agent/payments";
+import { withPaymentBlocks } from "./whatsapp-agent/payment-info";
 import { polishReply } from "./whatsapp-agent/wording";
 import { getOperationalTimezone } from "./operational-timezone";
 import { isSensitiveEscalation } from "./whatsapp-attention-rules";

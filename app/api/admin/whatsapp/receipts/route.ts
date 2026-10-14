@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
-import { decideReceipt, listReceipts, ReceiptError } from "@/lib/crm/whatsapp-agent/payments";
+import { listReceipts } from "@/lib/crm/whatsapp-agent/payment-info";
+import { decideReceipt, ReceiptError } from "@/lib/crm/whatsapp-agent/receipts";
 
 export const dynamic = "force-dynamic";
 

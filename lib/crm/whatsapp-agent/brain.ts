@@ -16,7 +16,7 @@ import { lastInboundSeen } from "../whatsapp-pending-rules";
 import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
-import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payments";
+import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
 import { spreadSlots } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";

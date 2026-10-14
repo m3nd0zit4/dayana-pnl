@@ -10,7 +10,7 @@ import { isManualPause, replyStateOf, type ReplyState } from "../whatsapp-attent
 import { phoneUrlFor, resolveApprovalDelivery, type Proposal } from "./approvals";
 import { attentionWhere, seguimientoWhere } from "./attention";
 import { isClassifyEnabled } from "../chat-category";
-import { listReceipts, type ReceiptView } from "./payments";
+import { listReceipts, type ReceiptView } from "./payment-info";
 import { decideRoute } from "./route";
 import { salesMetrics } from "./metrics";
 import { freeCallService } from "./free-call";

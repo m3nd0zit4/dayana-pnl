@@ -42,7 +42,7 @@ import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
 import { pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
-import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payments";
+import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
