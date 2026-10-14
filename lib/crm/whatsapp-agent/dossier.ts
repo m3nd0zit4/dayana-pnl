@@ -161,6 +161,23 @@ export const isDossierStale = (d: Dossier, lastMessageAt: Date | null): boolean 
 
 export type DossierResult = { built: boolean; chunks: number; covered: number; done: boolean };
 
+/** The file has read everything readable: move its coverage to the chat's last message. */
+const markCoveredToEnd = async (conversationId: string, dossier: Dossier): Promise<void> => {
+  const conversation = await prisma.conversation.findUnique({ where: { id: conversationId }, select: { lastMessageAt: true } });
+  const end = conversation?.lastMessageAt;
+  if (!end) return;
+  if (!dossier) {
+    // Only notices so far: an empty file, so the chat isn't picked again until it gets a real message.
+    await prisma.whatsAppDossier.create({ data: { conversationId, coveredThroughAt: end } }).catch(() => null);
+    return;
+  }
+  if (dossier.coveredThroughAt && dossier.coveredThroughAt >= end) return;
+  await prisma.whatsAppDossier.updateMany({
+    where: { conversationId, coveredThroughAt: dossier.coveredThroughAt, version: dossier.version },
+    data: { coveredThroughAt: end },
+  });
+};
+
 /**
  * Pone al día la ficha con los mensajes que aún no leyó, tramo por tramo,
  * hasta `deadline` (epoch ms). Lo leído queda guardado aunque no termine.
@@ -185,6 +202,11 @@ export const updateDossier = async (conversationId: string, opts: { deadline?: n
     });
     const lines = trimSameMinuteTail(fetched, CHUNK);
     if (lines.length === 0) {
+      // Nothing left to read, but the chat can still look newer than the file:
+      // its last messages are notices («📷 Archivo no incluido», calls) or
+      // failed sends. Mark it read up to the last message, or it stays «stale»
+      // forever and keeps the queue's first places.
+      await markCoveredToEnd(conversationId, dossier);
       result.done = true;
       return result;
     }
@@ -230,6 +252,8 @@ export const updateDossier = async (conversationId: string, opts: { deadline?: n
     result.chunks++;
     result.covered += lines.length;
     if (fetched.length < CHUNK) {
+      // That was the last readable stretch; any notices after it are read too.
+      await markCoveredToEnd(conversationId, dossier);
       result.done = true;
       return result;
     }
