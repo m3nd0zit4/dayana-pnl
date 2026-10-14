@@ -13,6 +13,8 @@
     "db:migrate:deploy": "node scripts/migrate-deploy.mjs",
     "db:seed": "prisma db seed",
     "db:seed:curriculum": "bunx tsx scripts/seed-curriculum.ts",
+    "content:guiones": "node scripts/guiones-pendientes.mjs",
+    "content:teleprompter": "node scripts/guiones-teleprompter.mjs",
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "email:sample": "bun run scripts/send-example-email.ts",
