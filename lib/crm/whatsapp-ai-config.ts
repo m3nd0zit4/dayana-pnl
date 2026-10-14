@@ -267,6 +267,17 @@ export const whatsAppAiConfigSchema = z.object({
     /** Recibe comprobantes: los mira, avisa a Dayana y deja el pago por confirmar. */
     receipts: z.boolean().default(true),
   }),
+  /**
+   * Limpieza de fotos, audios y videos que llegan por WhatsApp
+   * (`media-cleanup.ts`): pasados `keepDays` se borra la copia del store de
+   * Blob (el que se llenó y quedó suspendido). El mensaje queda, y la
+   * transcripción del audio también. Nunca toca comprobantes de pago, stickers,
+   * documentos ni lo que manda Dayana.
+   */
+  mediaCleanup: z.object({
+    enabled: z.boolean().default(false),
+    keepDays: z.number().int().min(14).max(365).default(45),
+  }),
   /** La llamada gratis de 15 minutos (Dayana llama por WhatsApp). */
   freeCall: z.object({
     /**
@@ -355,6 +366,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   },
   pauses: { onHumanReply: false, onEscalation: false },
   payments: { methods: [], sendLinks: true, receipts: true },
+  mediaCleanup: { enabled: false, keepDays: 45 },
   salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },
   freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3 },
   waitingRoom: { enabled: false, proactive: false },

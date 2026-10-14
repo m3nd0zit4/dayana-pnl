@@ -1,4 +1,4 @@
-import { get, list, put } from "@vercel/blob";
+import { del, get, list, put } from "@vercel/blob";
 import { strFromU8, unzipSync } from "fflate";
 
 import { normalizeMetaPayload, type NormalizedEvent } from "@/lib/meta/inbound";
@@ -146,6 +146,12 @@ const readParts = async (uploadId: string): Promise<Uint8Array> => {
   return out;
 };
 
+/** Las partes ya no sirven después de procesar (antes se quedaban en el store para siempre). */
+const dropParts = async (uploadId: string) => {
+  const { blobs } = await list({ prefix: `${PART_PREFIX}${uploadId}/`, limit: 1000 }).catch(() => ({ blobs: [] as { url: string }[] }));
+  if (blobs.length > 0) await del(blobs.map((b) => b.url)).catch((e) => console.warn("[historial] no se pudieron borrar las partes", e));
+};
+
 /** Procesa un historial ya subido por partes. Nunca lanza: deja el estado. */
 export const processHistoryUpload = async (uploadId: string, fileName: string): Promise<void> => {
   try {
@@ -172,6 +178,7 @@ export const processHistoryUpload = async (uploadId: string, fileName: string): 
       stored: result.stored,
       conversations: result.conversations,
     });
+    await dropParts(uploadId);
   } catch (e) {
     console.error("[historial 360] no se pudo importar", e);
     await setStatus({

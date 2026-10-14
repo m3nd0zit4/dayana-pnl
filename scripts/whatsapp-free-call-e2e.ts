@@ -83,7 +83,7 @@ const main = async () => {
     handoffHours: 12,
     booking: { ...previous.booking, enabled: true, aiSchedules: false },
     context: { ...previous.context, v2: true },
-    router: { ...previous.router, enabled: true, modes: { ...previous.router.modes, new_lead: "AUTO", returning_lead: "AUTO" } },
+    router: { ...previous.router, enabled: true, modes: { ...previous.router.modes, new_lead: "AUTO", returning_lead: "AUTO", free_call_booked: "AUTO" } },
     salesFlow: { ...previous.salesFlow, enabled: true },
     freeCall: { ...previous.freeCall, autoBook: true },
   });
@@ -148,6 +148,14 @@ const main = async () => {
     console.log("\n4. Segmento");
     const seg = await computeSegment(conv.id);
     check("llamada gratis agendada", seg?.segment === "free_call_booked", seg);
+
+    // Lo que pasó con Rosa (2026-10-14): después de agendar dijo «sí, a esa
+    // hora» y la IA pidió agendar otra vez → «Autoriza la cita» de nuevo.
+    console.log("\n5. Confirma otra vez la misma hora");
+    const t5 = await say("Ahh sí sí, perfecto, a esa hora entonces");
+    check("no queda nada por autorizar", t5.run?.status !== "AWAITING_APPROVAL", t5.run?.status);
+    check("una sola cita", (await prisma.whatsAppBooking.count({ where: { conversationId: conv.id } })) === 1);
+    check("una sola en el calendario", booked.length === 1, booked.length);
   } finally {
     await cleanup();
     await setWhatsAppAiConfig(previous);

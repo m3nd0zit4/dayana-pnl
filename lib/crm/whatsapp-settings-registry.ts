@@ -295,6 +295,18 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-media-cleanup",
+    label: "Limpiar fotos y audios viejos",
+    keywords: ["limpieza", "borrar", "fotos", "imágenes", "audios", "videos", "espacio", "almacenamiento", "blob"],
+    tab: "ia",
+  },
+  {
+    id: "wa-media-keep-days",
+    label: "Cuántos días se guardan fotos y audios",
+    keywords: ["limpieza", "días", "guardar", "fotos", "audios", "borrar", "almacenamiento"],
+    tab: "ia",
+  },
+  {
     id: "wa-handoff-hours",
     label: "Cuándo vuelve la IA después de que contestas",
     keywords: ["volver", "horas", "retomar", "cuando contesto", "pausa", "límites"],

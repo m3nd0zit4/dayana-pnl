@@ -343,6 +343,34 @@ const AiTab = () => {
             onChange={(v) => change("wa-handoff-hours", "handoffHours", v, TYPING_DELAY)}
           />
         </SettingRow>
+        <ToggleRow
+          id="wa-media-cleanup"
+          label="Limpiar fotos y audios viejos"
+          help={`Borra del almacenamiento las fotos, audios y videos que te mandaron hace más de ${config.mediaCleanup.keepDays} días. El mensaje y el texto de los audios se quedan.`}
+          info="Nunca borra comprobantes de pago, stickers, documentos ni lo que mandas tú, ni un audio que aún no tiene texto. Corre sola cada 10 minutos, de a poco."
+          state={states["wa-media-cleanup"]}
+          checked={config.mediaCleanup.enabled}
+          onChange={(v) => change("wa-media-cleanup", "mediaCleanup.enabled", v)}
+        />
+        <SettingRow
+          id="wa-media-keep-days"
+          layout="row"
+          htmlFor="wa-media-keep-input"
+          label="Guardar fotos y audios durante"
+          help="Mínimo 14 días."
+          state={states["wa-media-keep-days"]}
+        >
+          <NumberField
+            id="wa-media-keep-input"
+            min={14}
+            max={365}
+            suffix="días"
+            disabled={!config.mediaCleanup.enabled}
+            value={config.mediaCleanup.keepDays}
+            invalid={states["wa-media-keep-days"]?.status === "error"}
+            onChange={(v) => change("wa-media-keep-days", "mediaCleanup.keepDays", v, TYPING_DELAY)}
+          />
+        </SettingRow>
         <SettingRow
           id="wa-holding-message"
           htmlFor="wa-holding-input"

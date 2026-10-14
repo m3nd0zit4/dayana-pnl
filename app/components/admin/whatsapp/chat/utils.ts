@@ -34,7 +34,7 @@ export const timeLabel = (iso: string) => {
  */
 export const attachmentSrc = (a: Attachment): string | null =>
   mediaSrc(a.url) ??
-  (a.mediaId && /^\d{5,40}$/.test(a.mediaId) && a.unavailableReason !== "expired"
+  (a.mediaId && /^\d{5,40}$/.test(a.mediaId) && a.unavailableReason !== "expired" && a.unavailableReason !== "cleaned"
     ? `/api/admin/whatsapp/media?mediaId=${a.mediaId}`
     : null);
 

@@ -46,7 +46,6 @@ import {
   MODE_SHORT,
   RunStatus,
   agoLabel,
-  attentionLabel,
   isRunLive,
 } from "../status";
 import { useCrm } from "../../crm/CrmProvider";
@@ -85,14 +84,15 @@ const AttentionBar = ({
   const escalation = chat.escalation;
   if (!a && !approval && !escalation) return null;
   const cause = escalation?.cause ?? null;
-  const urgent = Boolean(a?.urgent) || (cause !== "manual" && escalation?.severity === "urgent");
+  // Sin «Te toca» ni «Urgente» en rojo o amarillo (lo pidió el dueño, 2026-10-14):
+  // el motivo y «Listo», en el tono neutro del chat.
   const title = a
-    ? attentionLabel(a)
+    ? (CATEGORY_LABEL[a.reason] ?? CATEGORY_LABEL.other)
     : approval
       ? (APPROVAL_LABEL[approval] ?? APPROVAL_LABEL.reply)
       : cause === "manual"
         ? "IA en pausa (la pausaste tú)"
-        : `${urgent ? "Urgente" : "IA en pausa"} · ${CATEGORY_LABEL[escalation?.category ?? ""] ?? "Revisar"}`;
+        : `IA en pausa · ${CATEGORY_LABEL[escalation?.category ?? ""] ?? "Revisar"}`;
   // Sin «Te toca» ni propuesta: por qué la IA sigue apartada.
   const pausedDetail: Record<string, string> = {
     manual: "Pulsa «Listo» cuando quieras que la IA vuelva a este chat.",
@@ -110,13 +110,8 @@ const AttentionBar = ({
       ? "Acéptalo o cancélalo abajo, o contéstale tú."
       : (pausedDetail[cause ?? "waiting"] ?? pausedDetail.waiting);
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 border-b border-(--wa-divider) px-3 py-2 sm:px-4",
-        urgent ? "bg-(--wa-danger-soft)" : "bg-(--wa-attention-soft)"
-      )}
-    >
-      <ShieldAlert className={cn("size-5 shrink-0", urgent ? "text-(--wa-danger)" : "text-(--wa-attention)")} />
+    <div className="flex items-center gap-2 border-b border-(--wa-divider) bg-(--wa-surface) px-3 py-2 sm:px-4">
+      <ShieldAlert className="size-5 shrink-0 text-(--wa-icon)" />
       <div className="min-w-0 flex-1 leading-snug">
         <div className="truncate text-sm font-medium text-(--wa-text)">{title}</div>
         <div className="line-clamp-2 text-xs text-(--wa-icon)">{detail}</div>

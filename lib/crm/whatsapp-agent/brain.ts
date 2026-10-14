@@ -33,6 +33,7 @@ import {
   freeCallService,
   offeredFreeCallSlots,
   offerFreeCallSlots,
+  upcomingFreeCall,
 } from "./free-call";
 
 /**
@@ -999,6 +1000,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const label = dualZoneLabel(iso, tz, timezone);
               if (input.mode === "preview" || !input.conversationId) {
                 return log("book_free_call", args, { ok: true, simulated: true, label });
+              }
+              // Ya la tiene: «sí, perfecto» después de agendar no es otra cita
+              // (antes caía en «Autoriza la cita» por segunda vez).
+              const upcoming = await upcomingFreeCall(input.conversationId, config, now).catch(() => null);
+              if (upcoming) {
+                return log("book_free_call", args, {
+                  ok: true,
+                  alreadyBooked: true,
+                  label: dualZoneLabel(upcoming.startsAt.toISOString(), tz, timezone),
+                  note: "Ya tiene agendada su llamada gratis (label): confírmale ese día y esa hora con calidez, que Dayana la llama por WhatsApp a este número. No digas que la agendas otra vez. Si pide otra hora, escala con category=reschedule.",
+                });
               }
               if (autoBook) {
                 try {

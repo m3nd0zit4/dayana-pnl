@@ -106,6 +106,25 @@ export class FreeCallError extends Error {
 
 export type FreeCallBooking = { bookingId: string; startsAt: Date; endsAt: Date; title: string; label: string };
 
+/**
+ * La llamada gratis que esta persona ya tiene por delante, si la hay. Con ella
+ * agendada, volver a pedirla («sí, a las 6:15», «perfecto») no es otra cita:
+ * se le recuerda la que tiene.
+ */
+export const upcomingFreeCall = async (
+  conversationId: string,
+  config: WhatsAppAiConfig,
+  now = new Date()
+): Promise<{ startsAt: Date } | null> => {
+  const service = freeCallService(config);
+  const rows = await prisma.whatsAppBooking.findMany({
+    where: { conversationId, startsAt: { gte: now }, status: { notIn: ["CANCELLED", "cancelled"] } },
+    orderBy: { startsAt: "asc" },
+    select: { service: true, startsAt: true },
+  });
+  return rows.find((r) => isFreeCallService(r.service, service.minutes)) ?? null;
+};
+
 /** El día de `d` en la zona de Dayana (de medianoche a medianoche), para el tope diario. */
 const dayBounds = (d: Date, tz: string): { from: Date; to: Date } => {
   const from = zonedDateTimeToUtc(getDateKeyInTz(d, tz), "00:00", tz);

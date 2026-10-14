@@ -22,7 +22,9 @@ const AttachmentView = ({
       <div className="mb-1 rounded-md bg-(--wa-text)/5 px-2 py-1.5 text-xs text-(--wa-icon)">
         {a.kind === "unknown"
           ? "Mensaje que WhatsApp no deja ver aquí (encuesta, ver una vez u otro tipo nuevo): ábrelo en el celular"
-          : `${KIND_LABEL[shownKind(a)] ?? "📎 Archivo"} · WhatsApp no dejó descargarlo: ábrelo en el celular`}
+          : a.unavailableReason === "cleaned"
+            ? `${KIND_LABEL[shownKind(a)] ?? "📎 Archivo"} · se borró en la limpieza automática (era viejo)`
+            : `${KIND_LABEL[shownKind(a)] ?? "📎 Archivo"} · WhatsApp no dejó descargarlo: ábrelo en el celular`}
       </div>
     );
   }

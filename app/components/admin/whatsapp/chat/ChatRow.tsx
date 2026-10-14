@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { deliveryLabel } from "@/lib/crm/whatsapp-delivery-labels";
 import type { ChatListItem } from "@/lib/crm/whatsapp-agent/workspace";
-import { APPROVAL_LABEL, RunStatus, agoLabel, attentionLabel, isRunLive } from "../status";
+import { APPROVAL_LABEL, RunStatus, isRunLive } from "../status";
 import { Avatar, CategoryChip, ModeTag, Ticks } from "./ui";
 import { timeLabel } from "./utils";
 
@@ -17,29 +17,13 @@ const REPLY_LABEL: Partial<Record<NonNullable<ChatListItem["replyState"]>, strin
   auto: "Mensaje automático",
 };
 
-const AttentionState = ({ attention, now }: { attention: NonNullable<ChatListItem["attention"]>; now: number }) => (
-  <span
-    className={cn(
-      "inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium",
-      attention.urgent ? "text-(--wa-danger)" : "text-(--wa-attention)"
-    )}
-  >
-    <ShieldAlert className="size-3.5 shrink-0" />
-    <span className="truncate">
-      {attentionLabel(attention)} · {agoLabel(attention.since, now)}
-    </span>
-  </span>
-);
-
 /**
- * La tercera línea de la fila: UN estado, el más importante. Algo urgente o
- * delicado → autorizar algo → «Te toca» → no le llegó → la IA trabajando →
- * quién contestó → nada.
+ * La tercera línea de la fila: UN estado, el más importante. Autorizar algo →
+ * no le llegó → la IA trabajando → quién contestó → nada. Sin avisos en rojo
+ * ni en amarillo («Te toca», «Urgente»): lo pidió el dueño (2026-10-14); lo
+ * que le toca a Dayana sigue en la pestaña «Te toca».
  */
-const stateLine = (item: ChatListItem, now: number): ReactNode => {
-  if (item.attention && (item.attention.urgent || item.attention.reason === "clinical")) {
-    return <AttentionState attention={item.attention} now={now} />;
-  }
+const stateLine = (item: ChatListItem): ReactNode => {
   if (item.awaitingApproval) {
     return (
       <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs font-medium text-(--wa-violet)">
@@ -48,10 +32,9 @@ const stateLine = (item: ChatListItem, now: number): ReactNode => {
       </span>
     );
   }
-  if (item.attention) return <AttentionState attention={item.attention} now={now} />;
   if (item.lastDirection === "OUTBOUND" && item.lastStatus === "FAILED") {
     return (
-      <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-(--wa-danger)">
+      <span className="inline-flex min-w-0 items-center gap-1 truncate text-xs text-(--wa-meta)">
         <Ticks status="FAILED" />
         <span className="truncate">{deliveryLabel("FAILED", item.lastFailedReason).label}</span>
       </span>
@@ -76,7 +59,6 @@ const stateLine = (item: ChatListItem, now: number): ReactNode => {
 const ChatRow = ({
   item,
   active,
-  now,
   generalMode,
   onOpen,
 }: {
@@ -87,7 +69,7 @@ const ChatRow = ({
   onOpen: () => void;
 }) => {
   const unread = item.unreadCount > 0;
-  const state = stateLine(item, now);
+  const state = stateLine(item);
   const tag = <ModeTag mode={item.aiMode} generalMode={generalMode} />;
   const showMode = Boolean(generalMode && item.aiMode !== generalMode);
   return (

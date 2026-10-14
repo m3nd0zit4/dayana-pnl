@@ -10,6 +10,7 @@ import { refreshStages } from "@/lib/crm/whatsapp-agent/segment-store";
 import { sweepWaitingRoom } from "@/lib/crm/whatsapp-agent/waiting-room";
 import { sweepCallOutcomes } from "@/lib/crm/whatsapp-agent/call-outcome";
 import { answerUnansweredChats } from "@/lib/crm/whatsapp-agent/catch-up";
+import { cleanHistoryParts, cleanOldMedia } from "@/lib/crm/whatsapp-agent/media-cleanup";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 
 export const runtime = "nodejs";
@@ -45,6 +46,8 @@ const CLASSIFY_DEADLINE_MS = 80_000;
 const DOSSIER_MAX_MS = 25_000;
 /** Estados de las personas (sin modelo, solo consultas): hasta 10 s por vuelta. */
 const STAGES_MAX_MS = 10_000;
+/** Fotos y audios viejos fuera de Blob: hasta 8 s por vuelta (solo con la limpieza encendida). */
+const MEDIA_CLEANUP_MAX_MS = 8_000;
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -66,6 +69,11 @@ export async function POST(req: Request) {
       const c = await getWhatsAppAiConfig();
       return c.dossier.enabled || c.router.enabled ? refreshStages(STAGES_MAX_MS, { limit: 60 }) : { off: true };
     }),
+    await step("limpieza", async () =>
+      (await getWhatsAppAiConfig()).mediaCleanup.enabled
+        ? { media: await cleanOldMedia({ budgetMs: MEDIA_CLEANUP_MAX_MS }), historyParts: await cleanHistoryParts({}) }
+        : { off: true }
+    ),
     await step("clasificar", () =>
       classifyFromCron(Math.min(CLASSIFY_MAX_MS, CLASSIFY_DEADLINE_MS - (Date.now() - started)))
     ),

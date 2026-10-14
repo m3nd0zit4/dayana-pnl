@@ -187,9 +187,9 @@ export const RunStatus = ({
       break;
     case "ESCALATED":
       icon = <AlertTriangle className="size-3.5" />;
-      text = `Te toca: ${CATEGORY_LABEL[run.category ?? ""] ?? "revisar"}${compact ? "" : ` · ${ended}`}`;
-      // El mismo ámbar que «Te toca» en la lista (rojo si es urgente).
-      tone = run.severity === "urgent" ? TONE.danger : TONE.attention;
+      text = `Pasó a Dayana: ${CATEGORY_LABEL[run.category ?? ""] ?? "revisar"}${compact ? "" : ` · ${ended}`}`;
+      // Sin ámbar ni rojo (lo pidió el dueño, 2026-10-14): un estado más.
+      tone = TONE.muted;
       break;
     case "ERROR":
       icon = <XCircle className="size-3.5" />;
