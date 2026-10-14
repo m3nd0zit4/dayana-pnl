@@ -35,6 +35,18 @@ describe("resolveSegment", () => {
     expect(v.segment).toBe("returning_lead");
   });
 
+  test("la clasificación dice clienta: clienta por revisar (la IA calla)", () => {
+    expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.9, hadConversation: true })).toMatchObject({
+      segment: "client",
+      review: true,
+    });
+    expect(resolveSegment({ category: "cliente", categorySource: "rule", categoryConfidence: 0.8 })).toMatchObject({ segment: "client", source: "rules" });
+    // Poco segura: no basta.
+    expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.5, hadConversation: true }).segment).toBe("returning_lead");
+    // «No es clienta» a mano manda sobre la clasificación.
+    expect(resolveSegment({ category: "interesada", categorySource: "manual", hadConversation: true }).segment).toBe("returning_lead");
+  });
+
   test("Dayana la marcó clienta: clienta", () => {
     expect(resolveSegment({ category: "cliente", categorySource: "manual" })).toMatchObject({ segment: "client", source: "manual" });
   });

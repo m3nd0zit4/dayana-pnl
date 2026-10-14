@@ -240,6 +240,12 @@ export const updateDossier = async (conversationId: string, opts: { deadline?: n
  * Las fichas viejas o que faltan (las del chat más reciente primero), hasta
  * `budgetMs`. Para el reloj y el botón «Construir fichas».
  */
+/**
+ * Personal, team and business/app chats get no file: the AI never answers
+ * them, and a summary of a private chat is exactly what shouldn't be written.
+ */
+const notWorkChatFilter = Prisma.sql`coalesce(c.category, '') NOT IN ('personal', 'negocio', 'equipo')`;
+
 export const refreshStaleDossiers = async (budgetMs: number, opts: { limit?: number } = {}) => {
   const started = Date.now();
   const deadline = started + budgetMs;
@@ -249,6 +255,7 @@ export const refreshStaleDossiers = async (budgetMs: number, opts: { limit?: num
     WHERE c.channel = 'WHATSAPP'
       AND EXISTS (SELECT 1 FROM conversation_messages m WHERE m.conversation_id = c.id AND m.direction = 'INBOUND')
       AND (d.conversation_id IS NULL OR d.covered_through_at IS NULL OR d.covered_through_at < c.last_message_at)
+      AND ${notWorkChatFilter}
     ORDER BY c.last_message_at DESC
     LIMIT ${opts.limit ?? 40}`;
   let built = 0;
@@ -276,6 +283,7 @@ export const countStaleDossiers = async (): Promise<number> => {
     LEFT JOIN whatsapp_dossiers d ON d.conversation_id = c.id
     WHERE c.channel = 'WHATSAPP'
       AND EXISTS (SELECT 1 FROM conversation_messages m WHERE m.conversation_id = c.id AND m.direction = 'INBOUND')
-      AND (d.conversation_id IS NULL OR d.covered_through_at IS NULL OR d.covered_through_at < c.last_message_at)`;
+      AND (d.conversation_id IS NULL OR d.covered_through_at IS NULL OR d.covered_through_at < c.last_message_at)
+      AND ${notWorkChatFilter}`;
   return Number(row?.n ?? 0);
 };

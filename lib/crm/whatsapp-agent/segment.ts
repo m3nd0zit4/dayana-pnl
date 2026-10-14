@@ -124,6 +124,17 @@ export const resolveSegment = (input: SegmentInput): SegmentVerdict => {
         source: strong > 0 ? "rules" : "ai",
       };
     }
+    // The classifier read the chat and says client (paid, has sessions):
+    // when unsure, client — pitching the free call to a client is the worse error.
+    if (input.category === "cliente" && (input.categoryConfidence ?? 0) >= 0.7) {
+      return {
+        segment: "client",
+        confidence: 0.6,
+        reason: "La clasificación del chat dice que es clienta.",
+        review: true,
+        source: input.categorySource === "rule" ? "rules" : "ai",
+      };
+    }
   }
 
   // La clasificación (si está encendida) puede silenciar lo claramente personal o de empresa.
