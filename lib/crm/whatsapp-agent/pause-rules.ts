@@ -27,9 +27,11 @@ export const isCrisis = (e: { category: string | null; severity: string | null }
   e.category === "clinical" || e.severity === "urgent";
 
 export const pauseHolds = (p: PauseState, switches: PauseSwitches): boolean => {
+  // Una crisis sigue apartando a la IA aunque Dayana ya haya contestado (la
+  // escalada pasó a pausa humana): se suelta a mano («Devolver a la IA»).
+  if (isCrisis({ category: p.escalationCategory, severity: p.escalationSeverity })) return true;
   if (p.reason === "escalation") {
     if (isManualPause({ category: p.escalationCategory, reason: p.escalationReason })) return true;
-    if (isCrisis({ category: p.escalationCategory, severity: p.escalationSeverity })) return true;
     return switches.onEscalation;
   }
   // `human` (o una pausa vieja sin motivo).

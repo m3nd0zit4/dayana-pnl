@@ -25,6 +25,8 @@ describe("pauseHolds", () => {
     expect(pauseHolds(pause("escalation", null, null, null), off)).toBe(true);
     expect(pauseHolds(pause("escalation", "clinical", "normal", "Crisis"), off)).toBe(true);
     expect(pauseHolds(pause("escalation", "payment", "urgent", "Cobro doble"), off)).toBe(true);
+    // Dayana contestó una crisis (pasó a pausa humana): sigue apartada hasta soltarla a mano.
+    expect(pauseHolds(pause("human", "clinical", "urgent", "Crisis"), off)).toBe(true);
   });
 
   test("con los interruptores encendidos, todo pausa como antes", () => {
