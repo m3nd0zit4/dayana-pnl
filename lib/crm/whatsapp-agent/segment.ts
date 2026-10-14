@@ -12,10 +12,14 @@
  *   (también quien no contestó la llamada gratis: se le ofrece otra hora).
  * - `new_lead`: primera vez (aunque haya recibido invitaciones masivas).
  *
- * La regla de oro (pedido de la dueña): tratar a una clienta como si fuera
- * nueva y ofrecerle la llamada gratis es mucho peor que pasarle a Dayana a
- * alguien que no era clienta. Ante la duda sobre si pagó, se trata como
- * clienta (la IA calla) y queda «por revisar» para que Dayana lo confirme.
+ * Clienta es solo quien PAGÓ y Dayana lo confirmó (pedido de la dueña,
+ * 2026-10-14): un pago aprobado en el CRM, una sesión de paquete en el
+ * calendario, la marca de Dayana, o Dayana confirmando el pago en el chat
+ * («recibí tu pago», «bienvenida a tu proceso»). Recibir el enlace o los datos
+ * de pago, decir «ya te transferí» o que la clasificación crea que es clienta
+ * NO la vuelve clienta: la IA la sigue atendiendo y queda «por revisar» para
+ * que Dayana lo confirme. (Antes, ante la duda, se callaba la IA, y quien solo
+ * había pedido los datos de pago se quedaba sin respuesta.)
  *
  * Puro: lo usan `segment-store.ts` y las pruebas.
  */
@@ -52,9 +56,11 @@ export type SegmentInput = {
     hasUnpaidActiveEnrollment?: boolean;
   };
   history?: {
-    /** Frases que dicen que pagó o que tiene sesiones (`client-evidence.ts`). */
-    strongEvidence?: number;
-    /** Lo mismo, según la ficha (lo leyó el modelo en todo el chat). */
+    /** Dayana confirmó el pago o habla de su proceso en el chat (`client-evidence.ts`). */
+    dayanaConfirmed?: number;
+    /** La persona dice que pagó o manda el comprobante: falta que Dayana lo confirme. */
+    personClaims?: number;
+    /** Lo mismo, según la ficha (lo leyó el modelo en todo el chat): solo para revisar. */
     dossierPaidSignals?: number;
     /** La ficha dice que ya tuvo llamada o sesiones con Dayana. */
     dossierHadSession?: boolean;
@@ -108,35 +114,24 @@ export const resolveSegment = (input: SegmentInput): SegmentVerdict => {
   // «No es clienta» puesto a mano: lo que diga el chat no la vuelve clienta.
   const notClientByHand = Boolean(manual);
   const h = input.history ?? {};
+  // Dudas que Dayana revisa sin que la IA deje de contestar.
+  let doubt: string | null = null;
   if (!notClientByHand) {
-    const strong = h.strongEvidence ?? 0;
-    const signals = h.dossierPaidSignals ?? 0;
-    if (strong > 0 && signals > 0) {
-      return { segment: "client", confidence: 0.9, reason: "En el chat consta que pagó (frases y ficha coinciden).", review: false, source: "ai" };
+    // Dayana misma confirmó el pago en el chat: eso es «pagó y lo aprobó».
+    if ((h.dayanaConfirmed ?? 0) > 0) {
+      return { segment: "client", confidence: 0.85, reason: "Dayana confirmó su pago en el chat.", review: false, source: "rules" };
     }
-    // «Ya tuvo llamada» sola no la hace clienta: la llamada gratis también cuenta ahí.
-    if (strong > 0 || signals > 0) {
-      return {
-        segment: "client",
-        confidence: 0.6,
-        reason: strong > 0 ? "El chat dice que pagó o tiene sesiones." : "La ficha cree que ya pagó.",
-        review: true,
-        source: strong > 0 ? "rules" : "ai",
-      };
-    }
-    // The classifier read the chat and says client (paid, has sessions):
-    // when unsure, client — pitching the free call to a client is the worse error.
-    if (input.category === "cliente" && (input.categoryConfidence ?? 0) >= 0.7) {
-      return {
-        segment: "client",
-        confidence: 0.6,
-        reason: "La clasificación del chat dice que es clienta.",
-        review: true,
-        source: input.categorySource === "rule" ? "rules" : "ai",
-      };
-    }
+    if ((h.personClaims ?? 0) > 0) doubt = "dice que pagó o mandó un comprobante, falta que Dayana lo confirme";
+    else if ((h.dossierPaidSignals ?? 0) > 0) doubt = "la ficha cree que ya pagó, falta que Dayana lo confirme";
+    else if (input.category === "cliente" && (input.categoryConfidence ?? 0) >= 0.7) doubt = "la clasificación del chat cree que es clienta";
   }
+  const verdict = leadSegment(input, h);
+  if (!doubt || verdict.segment === "ignored") return verdict;
+  return { ...verdict, review: true, reason: `${verdict.reason} Por revisar: ${doubt}.` };
+};
 
+/** Quien no es clienta: personal, llamada agendada, tuvo la llamada, ya conversó o nueva. */
+const leadSegment = (input: SegmentInput, h: NonNullable<SegmentInput["history"]>): SegmentVerdict => {
   // La clasificación (si está encendida) puede silenciar lo claramente personal o de empresa.
   if (
     input.classifyEnabled &&

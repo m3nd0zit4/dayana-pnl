@@ -60,9 +60,9 @@ const ClassificationInfo = ({ classification: c }: { classification: ChatDetail[
 const isSegment = (v: string): v is Segment => (SEGMENTS as readonly string[]).includes(v);
 
 /**
- * Quién es para la IA (nueva, ya conversó, clienta…). Si la trata como clienta
- * por duda (el chat dice que pagó), Dayana confirma o descarta aquí; la marca
- * es la misma categoría manual que en «⋯».
+ * Quién es para la IA (nueva, ya conversó, clienta…). Si hay una duda sobre si
+ * pagó (dice que transfirió, mandó un comprobante), Dayana confirma o descarta
+ * aquí; la marca es la misma categoría manual que en «⋯».
  */
 const SegmentInfo = ({
   conversationId,
@@ -94,13 +94,13 @@ const SegmentInfo = ({
         <span className="font-medium">
           {isStage(s.stage) ? STAGE_LABEL[s.stage] : isSegment(s.segment) ? SEGMENT_LABEL[s.segment] : s.segment}
         </span>
-        {s.review && !isStage(s.stage) && <span className="text-(--wa-attention)"> · por revisar</span>}
+        {s.review && s.stage !== "por_revisar" && <span className="text-(--wa-attention)"> · por revisar</span>}
       </p>
       {s.reason && <p className="text-xs text-(--wa-icon)">{s.reason}</p>}
       {isStage(s.stage) && <p className="text-xs text-(--wa-meta)">{STAGE_HELP[s.stage]}</p>}
-      {s.review && !isStage(s.stage) && (
+      {s.review && s.segment !== "client" && (
         <p className="text-xs text-(--wa-meta)">
-          Mientras no lo confirmes, la IA la trata como clienta: no le contesta y te la pasa a ti.
+          ¿Ya pagó? Solo es clienta cuando tú lo confirmas («Es clienta»). Mientras tanto la IA la sigue atendiendo.
         </p>
       )}
       {s.evidence.length > 0 && (

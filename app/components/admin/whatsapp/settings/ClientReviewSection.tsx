@@ -123,7 +123,7 @@ const ClientReviewSection = () => {
         id="wa-client-review"
         layout="stacked"
         label={`Clientas por revisar${data?.review.length ? ` (${data.review.length})` : ""}`}
-        help="El chat dice que ya pagó (por transferencia, por ejemplo) pero no está en el CRM. Mientras no lo confirmes, la IA no les contesta."
+        help="El chat sugiere que ya pagó (dice que transfirió, mandó un comprobante o la clasificación lo cree) pero no está en el CRM. Solo es clienta cuando tú lo confirmas: mientras tanto la IA la sigue atendiendo."
       >
         {data && data.review.length === 0 ? (
           <p className="text-sm text-muted-foreground">No hay nada por revisar.</p>

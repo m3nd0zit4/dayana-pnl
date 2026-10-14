@@ -44,10 +44,10 @@ export const STAGE_HELP: Record<Stage, string> = {
   conversando: "Ya habló antes y no ha agendado. La asistente sigue donde quedó, sin saludarla como nueva.",
   llamada_agendada: "Tiene la llamada gratis agendada. La asistente le confirma y la acompaña hasta la hora.",
   no_contesto: "No contestó la llamada gratis. La asistente le ofrece otra hora.",
-  tuvo_llamada: "Ya tuvo la llamada con Dayana y no consta (ni en el CRM ni en el chat) que haya comprado. Lo que sigue es de Dayana.",
+  tuvo_llamada: "Ya tuvo la llamada con Dayana y no consta que haya pagado. La asistente la acompaña: le manda los datos o el enlace de pago si los pide y recibe su comprobante.",
   clienta_activa: "Pagó y tiene un proceso o una sesión en curso. La atiende Dayana.",
   clienta_pasada: "Pagó antes (un proceso, una sesión o un taller) y no tiene nada en curso. La atiende Dayana.",
-  por_revisar: "El chat sugiere que pagó, pero no consta en el CRM. Mientras Dayana no lo confirme, se trata como clienta.",
+  por_revisar: "Tiene una inscripción activa sin pago registrado. Mientras Dayana no lo confirme, se trata como clienta.",
   personal: "Familia, amigos, equipo o una empresa. Nadie le contesta solo.",
 };
 
@@ -59,7 +59,7 @@ export const STAGE_AI_RULE: Partial<Record<Stage, string>> = {
   no_contesto:
     "No alcanzó a hablar con Dayana en su llamada gratis: sin reproches, ofrécele otra hora para la llamada.",
   tuvo_llamada:
-    "Ya habló con Dayana: no le ofrezcas otra llamada gratis ni la saludes como nueva. Si pregunta por los procesos, los valores o cómo empezar, escala con category=payment para que Dayana cierre.",
+    "Ya habló con Dayana: no le ofrezcas otra llamada gratis ni la saludes como nueva. Si quiere empezar o pregunta cómo pagar, dale los datos de pago (send_payment_info) o su enlace (send_payment_link). Si pregunta valores o qué proceso le conviene, eso lo confirma Dayana: díselo y escala con category=payment.",
   clienta_activa: "Es clienta: nunca le ofrezcas la llamada gratis. Da continuidad a su proceso.",
   clienta_pasada: "Ya fue clienta: nunca le ofrezcas la llamada gratis. Si quiere retomar, escala para que Dayana la atienda.",
   por_revisar: "Puede que ya sea clienta: no le ofrezcas la llamada gratis.",

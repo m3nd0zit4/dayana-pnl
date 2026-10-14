@@ -34,7 +34,9 @@ describe("resolveStage", () => {
   test("clienta en proceso, clienta que ya terminó, por revisar", () => {
     expect(stageOf({ crm: { hasPaidEnrollment: true } }, { activeProcess: true })).toBe("clienta_activa");
     expect(stageOf({ crm: { hasApprovedPayment: true } })).toBe("clienta_pasada");
-    expect(stageOf({ history: { strongEvidence: 1 } })).toBe("por_revisar");
+    expect(stageOf({ crm: { hasUnpaidActiveEnrollment: true } })).toBe("por_revisar");
+    // Dice que pagó, sin confirmación de Dayana: sigue conversando (la IA la atiende).
+    expect(stageOf({ hadConversation: true, history: { personClaims: 1 } })).toBe("conversando");
     // Una clienta que también tuvo la llamada sigue siendo clienta.
     expect(stageOf({ crm: { hasApprovedPayment: true }, pastFreeCall: "done" }, { activeProcess: true })).toBe("clienta_activa");
   });

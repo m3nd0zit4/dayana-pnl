@@ -19,30 +19,34 @@ describe("resolveSegment", () => {
     expect(resolveSegment({ crm: { hasUnpaidActiveEnrollment: true }, hadConversation: true })).toMatchObject({ segment: "client", review: true });
   });
 
-  test("pagó por transferencia (frases y ficha coinciden): clienta sin revisar", () => {
-    expect(resolveSegment({ history: { strongEvidence: 2, dossierPaidSignals: 1 } })).toMatchObject({ segment: "client", review: false });
+  test("Dayana confirmó el pago en el chat: clienta", () => {
+    expect(resolveSegment({ history: { dayanaConfirmed: 1 }, hadConversation: true })).toMatchObject({ segment: "client", review: false });
   });
 
-  test("ante la duda sobre si pagó: clienta, pero por revisar", () => {
-    expect(resolveSegment({ history: { strongEvidence: 1 } })).toMatchObject({ segment: "client", review: true });
-    expect(resolveSegment({ history: { dossierPaidSignals: 1 } })).toMatchObject({ segment: "client", review: true });
+  test("dice que pagó o la ficha lo cree, sin confirmación de Dayana: la IA sigue, por revisar", () => {
+    expect(resolveSegment({ history: { personClaims: 1 }, hadConversation: true })).toMatchObject({ segment: "returning_lead", review: true });
+    expect(resolveSegment({ history: { dossierPaidSignals: 1 }, hadConversation: true })).toMatchObject({ segment: "returning_lead", review: true });
+    // Recibió los datos de pago después de la llamada: sigue en «tuvo la llamada».
+    expect(resolveSegment({ history: { personClaims: 1 }, pastFreeCall: "done", hadConversation: true })).toMatchObject({ segment: "after_call", review: true });
     // Haber tenido la llamada (gratis) no la vuelve clienta: «tuvo la llamada».
     expect(resolveSegment({ history: { dossierHadSession: true }, hadConversation: true }).segment).toBe("after_call");
   });
 
-  test("Dayana dijo «no es clienta»: las frases del chat no la vuelven clienta", () => {
-    const v = resolveSegment({ category: "interesada", categorySource: "manual", history: { strongEvidence: 3 }, hadConversation: true });
-    expect(v.segment).toBe("returning_lead");
+  test("Dayana dijo «no es clienta»: las frases del chat no la vuelven clienta ni la ponen a revisar", () => {
+    const v = resolveSegment({ category: "interesada", categorySource: "manual", history: { personClaims: 3, dayanaConfirmed: 1 }, hadConversation: true });
+    expect(v).toMatchObject({ segment: "returning_lead", review: false });
   });
 
-  test("la clasificación dice clienta: clienta por revisar (la IA calla)", () => {
+  test("la clasificación dice clienta: la IA sigue atendiendo, Dayana lo revisa", () => {
     expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.9, hadConversation: true })).toMatchObject({
-      segment: "client",
+      segment: "returning_lead",
       review: true,
     });
-    expect(resolveSegment({ category: "cliente", categorySource: "rule", categoryConfidence: 0.8 })).toMatchObject({ segment: "client", source: "rules" });
-    // Poco segura: no basta.
-    expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.5, hadConversation: true }).segment).toBe("returning_lead");
+    // Poco segura: ni revisar.
+    expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.5, hadConversation: true })).toMatchObject({
+      segment: "returning_lead",
+      review: false,
+    });
     // «No es clienta» a mano manda sobre la clasificación.
     expect(resolveSegment({ category: "interesada", categorySource: "manual", hadConversation: true }).segment).toBe("returning_lead");
   });

@@ -128,7 +128,8 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
       hasUnpaidActiveEnrollment: facts.hasUnpaidActiveEnrollment,
     },
     history: {
-      strongEvidence: evidence.filter((e) => e.strength === "strong").length,
+      dayanaConfirmed: evidence.filter((e) => e.strength === "strong" && e.who === "dayana").length,
+      personClaims: evidence.filter((e) => e.strength === "strong" && e.who === "persona").length,
       dossierPaidSignals: dossierFacts.paidSignals?.length ?? 0,
       dossierHadSession: dossierFacts.hadCallOrSession,
     },
@@ -206,14 +207,25 @@ export const refreshStages = async (budgetMs: number, opts: { limit?: number } =
   return { computed, failed, remaining: rows.length - computed - failed };
 };
 
-/** Para quien no se pueda calcular (error de base), lo seguro: tratarla como clienta. */
+/**
+ * Para quien no se pueda calcular (error de base): la IA contesta como a
+ * alguien que ya conversó (sin ofrecerle la llamada como a una nueva) y Dayana
+ * lo revisa. Antes se trataba como clienta y la persona se quedaba sin respuesta.
+ */
 export const segmentOrSafe = async (conversationId: string): Promise<SegmentResult> =>
   (await computeSegment(conversationId).catch((e: unknown) => {
     console.warn("[segmento] no se pudo calcular", conversationId, e);
     return null;
-  })) ?? { segment: "client", confidence: 0, reason: "No se pudo calcular: se trata como clienta.", review: true, source: "rules", stage: "por_revisar" };
+  })) ?? {
+    segment: "returning_lead",
+    confidence: 0,
+    reason: "No se pudo calcular: se atiende como alguien que ya conversó.",
+    review: true,
+    source: "rules",
+    stage: "conversando",
+  };
 
-/** Los chats que la IA trata como clientas por duda: Dayana confirma o descarta. */
+/** Los chats con una duda sobre si pagó (la IA sigue atendiendo): Dayana confirma o descarta. */
 export const listSegmentReview = async (limit = 100) => {
   const rows = await prisma.whatsAppDossier.findMany({
     where: { segmentReview: true, conversation: { channel: "WHATSAPP" } },
