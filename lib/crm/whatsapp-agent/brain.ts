@@ -463,7 +463,8 @@ const paymentRules = (config: WhatsAppAiConfig): string => {
         methods
           ? "usa send_payment_info con la forma de pago que le corresponde (mira a quién va cada una; si no sabes desde qué país paga, pregúntalo primero)"
           : "dile que Dayana le comparte los datos y escala con category=payment"
-      }. Tu mensaje es corto («Claro, te comparto los datos para el pago:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`
+      }. Tu mensaje es corto («Claro, te comparto los datos para el pago:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`,
+      "- Si pide una forma de pago que no está en la lista (p. ej. Global66, Remitly, PayPal): dile que Dayana le comparte esos datos y escala con category=payment."
     );
   } else {
     lines.push("- Si quiere pagar o pide los datos de pago: dile que Dayana se los comparte y escala con category=payment.");

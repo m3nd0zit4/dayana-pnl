@@ -3,6 +3,8 @@ import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
 import { isManualPause } from "./whatsapp-attention-rules";
 import { escalationPauses } from "./whatsapp-agent/pause-rules";
+import { withPaymentBlocks } from "./whatsapp-agent/payments";
+import { polishReply } from "./whatsapp-agent/wording";
 import { getOperationalTimezone } from "./operational-timezone";
 import { isSensitiveEscalation } from "./whatsapp-attention-rules";
 import { clearEscalationAttention } from "./whatsapp-agent/attention";
@@ -179,9 +181,14 @@ export const draftAutoReply = async (input: {
     mode: "preview",
   });
   const o = result.outcome;
+  // Tal como saldría: sin apodos, con los datos de pago debajo y, al escalar,
+  // el aviso que recibe la persona.
+  const holding = input.config.pauses.onEscalation
+    ? input.config.escalation.holdingMessage
+    : result.holdingReply || input.config.escalation.holdingMessage || "Déjame consultarlo con Dayana y te confirmo por aquí.";
   return {
     action: o.kind,
-    message: o.kind === "reply" ? o.message : input.config.escalation.holdingMessage,
+    message: o.kind === "reply" ? withPaymentBlocks(polishReply(o.message), result.paymentBlocks) : holding,
     reason: o.kind === "escalate" ? `${o.category}: ${o.reason}` : "",
     outcome: o,
     examples: result.examples,

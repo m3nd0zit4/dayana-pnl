@@ -47,10 +47,12 @@ export const withPaymentBlocks = (
   message: string,
   blocks: { details?: string[]; link?: string | null }
 ): string => {
-  const parts = [message.trim()];
-  for (const d of blocks.details ?? []) if (d.trim() && !message.includes(d.trim())) parts.push(d.trim());
-  if (blocks.link && !message.includes(blocks.link)) parts.push(blocks.link);
-  return parts.filter(Boolean).join("\n\n");
+  const extra: string[] = [];
+  for (const d of blocks.details ?? []) if (d.trim() && !message.includes(d.trim())) extra.push(d.trim());
+  if (blocks.link && !message.includes(blocks.link)) extra.push(blocks.link);
+  // «Te comparto los datos para el pago» + datos: con dos puntos, como se escribe.
+  const intro = extra.length && /[\p{L}\d)]$/u.test(message.trim()) ? `${message.trim()}:` : message.trim();
+  return [intro, ...extra].filter(Boolean).join("\n\n");
 };
 
 /** El enlace de pago personal vivo más reciente que Dayana creó para esta persona. */

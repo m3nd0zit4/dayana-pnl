@@ -4,7 +4,8 @@
  *   bun scripts/whatsapp-segment-e2e.ts   (también dentro de `bun run e2e:whatsapp`)
  *
  * Casos:
- * 1. Pagó por transferencia (solo consta en el chat): clienta por revisar, con la cita.
+ * 1. Dice que pagó por transferencia (solo consta en el chat, sin que Dayana lo
+ *    confirme): sigue con la IA y queda por revisar, con la cita.
  * 2. Dayana dice «no es clienta»: ya conversó, sin revisar. «Es clienta»: clienta.
  * 3. Solo recibió la invitación masiva y dio las gracias: nueva.
  * 4. Número personal: no se atiende.
@@ -72,7 +73,7 @@ const main = async () => {
       { dir: "INBOUND", body: "Listo, ya te transferí. Aquí está el comprobante" },
     ]);
     const v1 = await computeSegment(paid.id);
-    check("clienta por revisar", v1?.segment === "client" && v1.review, v1);
+    check("no es clienta todavía (la IA la sigue atendiendo), por revisar", v1?.segment === "returning_lead" && v1.review, v1);
     const review = await listSegmentReview();
     const item = review.find((r) => r.conversationId === paid.id);
     check("aparece en «por revisar» con la cita", Boolean(item?.evidence.some((e) => /transfer/i.test(e.quote))), item);
