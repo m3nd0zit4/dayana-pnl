@@ -245,7 +245,8 @@ export const ingestMessage = async (
           ...(aiMode ? { aiMode } : {}),
         },
         update: {
-          lastMessageAt: message.sentAt,
+          // Las fechas solo avanzan (abajo): dos mensajes casi a la vez pueden
+          // guardarse en desorden y el más viejo dejaba la ventana de 24 h atrás.
           // Un eco no reabre la ventana de 24 h: la ventana la abre el cliente.
           // Un aviso de sistema (reacción, encuesta…) no suma no leídos ni
           // abre la ventana.
@@ -256,7 +257,6 @@ export const ingestMessage = async (
               // no es más viejo que lo último que escribió la persona).
               { status: "PENDING" as const }
             : {
-                lastInboundAt: message.sentAt,
                 unreadCount: { increment: 1 },
                 status: "OPEN" as const,
                 // Un mensaje nuevo reabre el pendiente, aunque Meta lo
@@ -273,6 +273,19 @@ export const ingestMessage = async (
         },
         select: { id: true },
       });
+
+    if (!message.isHistory) {
+      await tx.conversation.updateMany({
+        where: { id: conversation.id, lastMessageAt: { lt: message.sentAt } },
+        data: { lastMessageAt: message.sentAt },
+      });
+      if (!message.isEcho && !message.system) {
+        await tx.conversation.updateMany({
+          where: { id: conversation.id, OR: [{ lastInboundAt: null }, { lastInboundAt: { lt: message.sentAt } }] },
+          data: { lastInboundAt: message.sentAt },
+        });
+      }
+    }
 
     // Dayana contestó desde el celular: lo que la persona escribió hasta ese
     // momento ya lo leyó allí. Los avisos pueden llegar en desorden: un eco más

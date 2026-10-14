@@ -1,9 +1,10 @@
 "use client";
 
-import { CalendarClock, Loader2, Paperclip, Send, Sparkles, Sticker, X } from "lucide-react";
+import { CalendarClock, Loader2, Paperclip, Send, Smartphone, Sparkles, Sticker, X } from "lucide-react";
 import { forwardRef, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { windowNotice } from "@/lib/crm/whatsapp-outbound-plan";
+import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { quotePreview } from "@/lib/crm/whatsapp-chat-format";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import ApprovalBar from "../ApprovalBar";
@@ -63,6 +64,20 @@ const Composer = forwardRef<
       {!chat.windowOpen && windowNotice(chat.windowState) && (
         <p className="flex flex-wrap items-center gap-2 rounded-md bg-(--wa-surface) px-3 py-1.5 text-xs text-(--wa-icon)">
           <span className="flex-1">{windowNotice(chat.windowState)}</span>
+          {/* Coexistencia: el WhatsApp del celular no tiene la regla de las 24 h. */}
+          {(() => {
+            const href = /^\d{8,15}$/.test(chat.phone) ? buildContactWhatsAppUrl(`+${chat.phone}`, text) : null;
+            return href ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-(--wa-divider) px-3 font-medium text-(--wa-text) hover:bg-(--wa-hover)"
+              >
+                <Smartphone className="size-3.5" /> Escribirle desde el celular
+              </a>
+            ) : null;
+          })()}
         </p>
       )}
       <ReceiptBar receipts={chat.receipts} chatName={chat.name} canWrite={canWrite} onChanged={onChanged} onOpenImage={onOpenImage} />
