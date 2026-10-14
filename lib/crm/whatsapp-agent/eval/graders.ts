@@ -32,7 +32,7 @@ const HEARTS = /[💛❤️💕💖💗💓💞💘💝🥰😘😍♥🫶]/u;
 const TWENTY_FOUR_HOUR = /\b(?:[01]?\d|2[0-3]):[0-5]\d\b(?!\s*(?:a|p)\.?\s*m)/i;
 /** La asistente no es Dayana: no llama, no atiende, no «queda agendada» con la persona. */
 const AS_DAYANA =
-  /\b(te llamo|yo te llamo|te llamaré|te atiendo yo|soy dayana|mi consulta|mis sesiones|mis terapias|quedamos (?:totalmente |entonces )?(?:agendad|confirmad)[oa]s|nos vemos (el|mañana|en la llamada))\b/i;
+  /\b(te llamo|yo te llamo|te llamaré|soy dayana|mi consulta|mis sesiones|mis terapias|quedamos (?:totalmente |entonces )?(?:agendad|confirmad)[oa]s|nos vemos (el|mañana|en la llamada))\b/i;
 const GREETING = /^\s*(¡?hola\b|te bendigo\b|buen(os|as) (días|tardes|noches)\b)/i;
 const ASKS_COUNTRY = /(desde|de) (qué|que) (país|ciudad)|(qué|que) ciudad|de d[oó]nde (me )?escribes/i;
 const BOOKED_CLAIM = /\b(queda(s|n)? agendad|quedó agendad|está agendad|quedaste agendad|ya (te )?agend[ée]|cita (quedó )?confirmad|llamada (quedó )?confirmad)/i;
