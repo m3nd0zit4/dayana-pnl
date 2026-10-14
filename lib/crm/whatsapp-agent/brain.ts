@@ -9,7 +9,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { BRAND } from "@/lib/contact";
 import { getSiteUrl } from "@/lib/site-url";
-import { getDateKeyInTz, getTimeHmInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
+import { getDateKeyInTz, getTimeLabelInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { findSimilarExamples, humanReplySql, notLearnableChatSql, type SimilarExample } from "../whatsapp-learning";
 import { lastInboundSeen } from "../whatsapp-pending-rules";
@@ -499,7 +499,7 @@ const systemPrompt = (
 
 REGLA Nº 1 — PRECIOS: NUNCA escribas un precio, valor, monto, tarifa, costo ni descuento, aunque la persona insista, aunque lo veas en la conversación o en un ejemplo. Los valores SOLO los da Dayana, en la llamada. Si pregunta cuánto cuesta: dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos, y ofrécele agendarla (si ya tuvo la llamada: Dayana se lo confirma; escala con category=payment). Las FORMAS DE PAGO sí las puedes dar, pero solo con sus herramientas (abajo, PAGOS).
 
-TONO: amable y profesional: cercana pero seria, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. Llama a la persona por su nombre. NUNCA uses apodos cariñosos («querida», «querido», «cariño», «mi amor», «hermosa», «mi bella», «linda», «mi reina», «corazón», «amiga»…) ni corazones. Nada de exageraciones, jerga ni muchos emojis.
+TONO: amable y profesional: cercana pero seria, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. Llama a la persona por su nombre. NUNCA uses apodos cariñosos («querida», «querido», «cariño», «mi amor», «hermosa», «mi bella», «linda», «mi reina», «corazón», «amiga»…) ni corazones. Nada de exageraciones, jerga ni muchos emojis. Las horas siempre con a. m./p. m. («6:45 p. m.»), nunca en formato de 24 horas («18:45»).
 NUNCA escribas: «¿Qué te trae por aquí?», «Qué alegría tenerte por aquí», «¿Hay algo más en lo que te pueda ayudar?», «De nada» (di «Con gusto»).
 Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
 
@@ -566,7 +566,7 @@ const formatSlot = (iso: string, timezone: string): string => {
     day: "numeric",
     month: "long",
   }).format(d);
-  return `${day}, ${getTimeHmInTz(d, timezone)}`;
+  return `${day}, ${getTimeLabelInTz(d, timezone)}`;
 };
 
 /** Búsqueda literal en lo que Dayana ha escrito (complementa los vectores). */
@@ -1251,7 +1251,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     }),
   };
 
-  const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeHmInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;
+  const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeLabelInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;
 
   const promptText = [
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config)}`,

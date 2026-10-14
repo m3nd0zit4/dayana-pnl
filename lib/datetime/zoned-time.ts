@@ -60,6 +60,15 @@ export const getDateKeyInTz = (
   }).format(date);
 
 /** Hora HH:mm (24h) en la zona indicada. */
+/**
+ * «6:45 p. m.»: la hora como se escribe en un mensaje para una persona (con
+ * a. m./p. m., nunca 18:45). `getTimeHmInTz` sigue siendo la de los cálculos.
+ */
+export const getTimeLabelInTz = (date: Date, timeZone: string = DEFAULT_OPERATIONAL_TZ): string =>
+  new Intl.DateTimeFormat("es-CO", { timeZone, hour: "numeric", minute: "2-digit", hour12: true })
+    .format(date)
+    .replace(/[  ]/g, " ");
+
 export const getTimeHmInTz = (
   date: Date,
   timeZone: string = DEFAULT_OPERATIONAL_TZ

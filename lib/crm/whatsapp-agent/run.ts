@@ -77,6 +77,12 @@ const HUMAN_LIVE_MS = 10 * 60_000;
 const HUMAN_LIVE_WAIT_MS = Number(process.env.WHATSAPP_AI_HUMAN_LIVE_WAIT_MS ?? 45_000);
 /** Lo que la IA le dice a la persona al pasarle algo a Dayana, si no escribió su propio aviso. */
 const DEFAULT_HOLDING = "Déjame consultarlo con Dayana y te confirmo por aquí.";
+/** El aviso que sale enseguida cuando lo que escribió la IA espera la aprobación de Dayana. */
+const APPROVAL_HOLDING: Record<string, string> = {
+  booking: "Déjame confirmar la hora con Dayana y te escribo por aquí en un momento.",
+  slots: "Déjame revisar los horarios con Dayana y te escribo por aquí en un momento.",
+  payment_link: "Déjame pedirle el enlace a Dayana y te lo mando por aquí.",
+};
 
 export type RunStatus =
   | "QUEUED"
@@ -763,6 +769,15 @@ export const runWhatsAppAi = async (input: {
           : {}),
       };
       await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta, important: saysPrice });
+      // En modo IA la persona no se queda esperando la aprobación de Dayana
+      // sin nada (Rosa, 2026-10-14: «Autoriza la cita» y nadie le contestó):
+      // un aviso corto ya; lo aprobado sale cuando Dayana lo acepte.
+      if (!copilot && !(await answeredSince(conversationId, seen))) {
+        const holding = config.escalation.holdingMessage.trim() || APPROVAL_HOLDING[proposal.kind] || DEFAULT_HOLDING;
+        await sendAuto(conversationId, holding).catch((e) =>
+          console.error("[whatsapp-agent] aviso mientras Dayana aprueba", e)
+        );
+      }
     } else {
       await setStatus(run.id, "SENDING", meta);
       await sendAuto(conversationId, body);

@@ -9,7 +9,7 @@ import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { sanitizeAnswers } from "@/lib/diagnostico/questions";
 import { buildDiagnosticSignals, countryName, describeSignals, type DiagnosticSignals } from "./diagnostic-signals";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
-import { isWhatsAppAutoReplyEnabled, pauseAutoReply } from "./whatsapp-autoreply";
+import { isWhatsAppAutoReplyEnabled } from "./whatsapp-autoreply";
 import { ensureWhatsAppConversation, recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
 import { approvedTemplateFor, ensureTemplatesSubmitted, refreshTemplatesIfPending, type WaTemplate } from "./whatsapp-templates";
 import { proposeForApproval } from "./whatsapp-agent/approvals";
@@ -24,7 +24,7 @@ import { effectiveAiMode } from "./whatsapp-agent/mode";
  * qué hora de SU día— y le escribe a la persona por WhatsApp en ese momento,
  * con la voz de Dayana. Si algo indica que la persona está pasándola muy mal
  * (por ejemplo, un duelo de años contestado a las 3 a. m.), además se avisa a
- * Dayana como urgente y la IA se aparta de ese chat para que lo lleve ella.
+ * Dayana como urgente; la IA sigue contestando lo que la persona escriba.
  *
  * Es la primera vez que se le escribe, así que casi siempre va con plantilla
  * (fuera de la ventana de 24 h): `autoevaluacion_bienvenida` lleva el mensaje
@@ -317,13 +317,12 @@ export const runDiagnosticOutreach = async (
     const chatHref = `/admin/whatsapp?conversation=${conversation.id}`;
 
     if (urgent) {
-      // La IA se aparta: lo que conteste la persona lo lleva Dayana.
-      await pauseAutoReply(conversation.id, "escalation", {
-        category: "clinical",
-        severity: "urgent",
-        reason: `Autoevaluación: ${analysis.careReason}`,
-      });
-      // Le toca a Dayana desde ya (aunque la persona aún no haya escrito).
+      // Dayana lo sabe ya (aviso urgente y «Te toca»), pero la IA NO se aparta:
+      // «urgente» aquí es lo que contestó en el formulario (urgencia 9/10,
+      // ansiedad de meses), no una crisis en el chat. Antes la pausa no se
+      // levantaba nunca y a quien después escribía «sí, quiero agendar» nadie
+      // le contestaba (Dayanna, 2026-10-14). Una crisis de verdad en el chat
+      // la escala la IA y esa sí la calla.
       await openAttention(conversation.id, "clinical");
       fireNotification({
         eventType: "WHATSAPP_AI_ESCALATED",

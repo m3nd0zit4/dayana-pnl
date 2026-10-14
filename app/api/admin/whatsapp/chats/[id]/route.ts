@@ -21,7 +21,7 @@ import {
   isWhatsAppWorkspaceAvailable,
   listDayanaStickers,
 } from "@/lib/crm/whatsapp-agent/workspace";
-import { getTimeHmInTz } from "@/lib/datetime/zoned-time";
+import { getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { MetaWindowError } from "@/lib/meta/send";
 
 export const dynamic = "force-dynamic";
@@ -256,7 +256,7 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
             day: "numeric",
             month: "long",
           }).format(d);
-          return `• ${day[0].toUpperCase()}${day.slice(1)}, ${getTimeHmInTz(d, timezone)}`;
+          return `• ${day[0].toUpperCase()}${day.slice(1)}, ${getTimeLabelInTz(d, timezone)}`;
         });
         return NextResponse.json({
           text: `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min, hora de Colombia):\n${lines.join("\n")}\n¿Cuál te queda mejor?`,
