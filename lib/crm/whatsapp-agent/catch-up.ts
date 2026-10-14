@@ -28,6 +28,8 @@ export const findUnansweredChats = async (opts: {
   limit?: number;
   /** También lo que la IA escaló sin contestar (antes la escalada la callaba). */
   includeEscalated?: boolean;
+  /** No lo intenta si hubo una vuelta en estos minutos (el reloj espera una hora entre intentos). */
+  recentRunMin?: number;
 }): Promise<PendingChat[]> => {
   const config = await getWhatsAppAiConfig();
   const retryable = opts.includeEscalated ? Prisma.sql`OR r.status = 'ESCALATED'` : Prisma.empty;
@@ -68,12 +70,12 @@ export const findUnansweredChats = async (opts: {
          SELECT 1 FROM whatsapp_ai_runs r
           WHERE r.conversation_id = c.id
             AND (r.status IN ('AWAITING_APPROVAL', 'QUEUED', 'THINKING', 'SENDING')
-                 OR r.queued_at > now() - interval '10 minutes')
+                 OR r.queued_at > now() - make_interval(mins => ${opts.recentRunMin ?? 10}))
        )
        AND NOT EXISTS (
          SELECT 1 FROM whatsapp_ai_runs r
           WHERE r.conversation_id = c.id AND r.queued_at >= c.last_inbound_at - interval '1 second'
-            AND NOT ((r.status = 'SKIPPED' AND r.reason IN (${Prisma.join(RETRYABLE_SKIPS)})) ${retryable})
+            AND NOT ((r.status = 'SKIPPED' AND r.reason IN (${Prisma.join(RETRYABLE_SKIPS)})) OR r.status = 'ERROR' ${retryable})
        )
      ORDER BY c.last_inbound_at DESC
      LIMIT ${opts.limit ?? 50}`;
@@ -106,6 +108,7 @@ export const answerUnansweredChats = async (opts: {
   minAgeMin?: number;
   limit?: number;
   includeEscalated?: boolean;
+  recentRunMin?: number;
   concurrency?: number;
 }): Promise<{ found: number; started: number; remaining: number; disabled?: boolean }> => {
   if (!(await isWhatsAppAutoReplyEnabled())) return { found: 0, started: 0, remaining: 0, disabled: true };

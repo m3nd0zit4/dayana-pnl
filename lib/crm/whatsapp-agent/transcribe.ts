@@ -17,6 +17,9 @@ import { fetchWhatsAppMedia, WHATSAPP_MEDIA_TTL_MS } from "@/lib/meta/media";
  */
 
 export const TRANSCRIPT_MARK = "🎤 ";
+const TRANSCRIBE_TIMEOUT_MS = 25_000;
+/** Intentos de la tanda pendiente por audio: uno que no se puede bajar o no se entiende no se reintenta siempre. */
+const MAX_TRIES = 3;
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY?.trim(),
@@ -29,6 +32,9 @@ export const transcribeAudio = async (
   if (!process.env.GEMINI_API_KEY?.trim()) return null;
   const { text } = await generateText({
     model: google(process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash"),
+    // Corre dentro del webhook: si el modelo tarda, el audio queda sin texto
+    // (lo recoge la tanda pendiente) antes que hacer reintentar a WhatsApp.
+    abortSignal: AbortSignal.timeout(TRANSCRIBE_TIMEOUT_MS),
     messages: [
       {
         role: "user",
@@ -53,7 +59,14 @@ export const transcribeAudio = async (
 /** Texto que queda como cuerpo de un mensaje de audio. */
 export const transcriptBody = (transcript: string): string => `${TRANSCRIPT_MARK}${transcript}`;
 
-type StoredAtt = { kind?: string; url?: string | null; mimeType?: string | null; mediaId?: string; unavailableReason?: string };
+type StoredAtt = {
+  kind?: string;
+  url?: string | null;
+  mimeType?: string | null;
+  mediaId?: string;
+  unavailableReason?: string;
+  transcriptTries?: number;
+};
 
 const readBlob = async (url: string): Promise<ArrayBuffer | null> => {
   const result = await get(url, { access: "private" }).catch(() => null);
@@ -86,6 +99,7 @@ export const transcribePendingAudio = async (input: {
        AND EXISTS (
          SELECT 1 FROM jsonb_array_elements(m.attachments) a
           WHERE a->>'kind' = 'audio'
+            AND COALESCE((a->>'transcriptTries')::int, 0) < ${MAX_TRIES}
             AND (a->>'url' IS NOT NULL
                  OR (a->>'mediaId' IS NOT NULL AND m.sent_at > now() - interval '6 days'))
        )
@@ -94,8 +108,16 @@ export const transcribePendingAudio = async (input: {
      LIMIT ${limit}`;
   const touched = new Set<string>();
   let done = 0;
+  // Un intento fallido queda anotado en el adjunto; a los 3 no se vuelve a probar.
+  const noteFailure = async (id: string, attachments: StoredAtt[]) => {
+    const next = attachments.map((a) => (a.kind === "audio" ? { ...a, transcriptTries: (a.transcriptTries ?? 0) + 1 } : a));
+    await prisma.conversationMessage
+      .updateMany({ where: { id, OR: [{ body: null }, { body: "" }] }, data: { attachments: next as unknown as Prisma.InputJsonValue } })
+      .catch(() => undefined);
+  };
   for (const m of messages) {
-    const audio = (Array.isArray(m.attachments) ? (m.attachments as StoredAtt[]) : []).find((a) => a.kind === "audio");
+    const list = Array.isArray(m.attachments) ? (m.attachments as StoredAtt[]) : [];
+    const audio = list.find((a) => a.kind === "audio");
     if (!audio) continue;
     try {
       let bytes: ArrayBuffer | null = null;
@@ -109,9 +131,15 @@ export const transcribePendingAudio = async (input: {
           mimeType = audio.mimeType ?? media.contentType;
         }
       }
-      if (!bytes) continue;
+      if (!bytes) {
+        await noteFailure(m.id, list);
+        continue;
+      }
       const transcript = await transcribeAudio(bytes, mimeType);
-      if (!transcript) continue;
+      if (!transcript) {
+        await noteFailure(m.id, list);
+        continue;
+      }
       // Solo si sigue sin texto: otra pasada (o el reintento) pudo ganarle.
       const updated = await prisma.conversationMessage.updateMany({
         where: { id: m.id, OR: [{ body: null }, { body: "" }] },
@@ -122,6 +150,7 @@ export const transcribePendingAudio = async (input: {
       done++;
     } catch (e) {
       console.warn("[transcripción] no se pudo transcribir un audio", e);
+      await noteFailure(m.id, list);
     }
   }
   if (touched.size > 0) {

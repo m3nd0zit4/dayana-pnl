@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   const started = Date.now();
   // Chats que llevan más de 10 min sin respuesta (pausas, fallos): corre a la
   // par del resto de pasos, con lo que dé el reloj.
-  const pending = step("pendientes", () => answerUnansweredChats({ budgetMs: 100_000, minAgeMin: 10, limit: 8, concurrency: 4 }));
+  const pending = step("pendientes", () => answerUnansweredChats({ budgetMs: 100_000, minAgeMin: 10, recentRunMin: 60, limit: 8, concurrency: 4 }));
   const steps = [
     await step("citas", () => syncAppointments()),
     await step("recordatorios", async () => ((await areRemindersEnabled()) ? sendDueReminders() : { off: true })),

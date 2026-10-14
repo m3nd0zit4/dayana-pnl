@@ -241,38 +241,46 @@ export const decideReceipt = async (input: {
   if (!receipt) throw new ReceiptError("not_found");
   if (receipt.status !== "pending") throw new ReceiptError("already_decided");
   const conversation = receipt.conversation;
+  // Se reclama antes de hacer nada: un doble clic o dos personas a la vez no
+  // confirman (ni mandan el mensaje) dos veces.
+  const claimed = await prisma.whatsAppPaymentReceipt.updateMany({
+    where: { id: receipt.id, status: "pending" },
+    data: { status: input.decision === "confirm" ? "confirmed" : "rejected", decidedById: input.staffUserId, decidedAt: new Date() },
+  });
+  if (claimed.count === 0) throw new ReceiptError("already_decided");
+  const release = () =>
+    prisma.whatsAppPaymentReceipt
+      .update({ where: { id: receipt.id }, data: { status: "pending", decidedById: null, decidedAt: null } })
+      .catch(() => undefined);
 
   let contactId = conversation.contactId;
   let contactName: string | null = null;
   if (input.decision === "confirm") {
-    if (!contactId) {
-      if (!/^\d{6,15}$/.test(conversation.externalThreadId)) throw new ReceiptError("no_phone");
-      const { firstName, lastName } = splitName(conversation.participantName || receipt.payerName);
-      const { contact } = await upsertContactByPhone({
-        phone: `+${conversation.externalThreadId}`,
-        firstName,
-        lastName,
-        source: "WHATSAPP_DIRECT",
-        sourceDetail: "Pago confirmado por WhatsApp",
-      });
-      contactId = contact.id;
-      await linkConversationToContact(conversation.id, contact.id, input.staffUserId);
+    try {
+      if (!contactId) {
+        if (!/^\d{6,15}$/.test(conversation.externalThreadId)) throw new ReceiptError("no_phone");
+        const { firstName, lastName } = splitName(conversation.participantName || receipt.payerName);
+        const { contact } = await upsertContactByPhone({
+          phone: `+${conversation.externalThreadId}`,
+          firstName,
+          lastName,
+          source: "WHATSAPP_DIRECT",
+          sourceDetail: "Pago confirmado por WhatsApp",
+        });
+        contactId = contact.id;
+        await linkConversationToContact(conversation.id, contact.id, input.staffUserId);
+      }
+      const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { firstName: true, lastName: true } });
+      contactName = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ") || null;
+      // La persona ya es clienta: la IA deja de atenderla (salvo datos de pago y comprobantes).
+      await setManualCategory(conversation.id, "cliente", input.staffUserId);
+    } catch (e) {
+      // No quedó hecho: vuelve a estar por confirmar.
+      await release();
+      throw e;
     }
-    const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { firstName: true, lastName: true } });
-    contactName = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ") || null;
-    // La persona ya es clienta: la IA deja de atenderla (salvo datos de pago y comprobantes).
-    await setManualCategory(conversation.id, "cliente", input.staffUserId);
   }
-
-  await prisma.whatsAppPaymentReceipt.update({
-    where: { id: receipt.id },
-    data: {
-      status: input.decision === "confirm" ? "confirmed" : "rejected",
-      contactId,
-      decidedById: input.staffUserId,
-      decidedAt: new Date(),
-    },
-  });
+  if (contactId) await prisma.whatsAppPaymentReceipt.update({ where: { id: receipt.id }, data: { contactId } });
   // Si no queda otro comprobante por confirmar, «Te toca: pago» se cierra.
   const stillPending = await prisma.whatsAppPaymentReceipt.count({
     where: { conversationId: conversation.id, status: "pending" },

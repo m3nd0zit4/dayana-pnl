@@ -219,6 +219,9 @@ const main = async () => {
     notify: "OWNERS",
     handoffHours: 12,
     escalation: { holdingMessage: "En un momento te escribe Dayana." },
+    // Esto prueba «Te toca» con las pausas encendidas (la opción de Ajustes):
+    // sin pausas, `whatsapp-payments-e2e.ts`.
+    pauses: { onHumanReply: true, onEscalation: true },
   });
   const config = await getWhatsAppAiConfig();
   const hasKey = Boolean(process.env.GEMINI_API_KEY?.trim());

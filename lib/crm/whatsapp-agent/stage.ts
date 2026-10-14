@@ -47,7 +47,7 @@ export const STAGE_HELP: Record<Stage, string> = {
   tuvo_llamada: "Ya tuvo la llamada con Dayana y no consta que haya pagado. La asistente la acompaña: le manda los datos o el enlace de pago si los pide y recibe su comprobante.",
   clienta_activa: "Pagó y tiene un proceso o una sesión en curso. La atiende Dayana.",
   clienta_pasada: "Pagó antes (un proceso, una sesión o un taller) y no tiene nada en curso. La atiende Dayana.",
-  por_revisar: "Tiene una inscripción activa sin pago registrado. Mientras Dayana no lo confirme, se trata como clienta.",
+  por_revisar: "Puede que ya haya pagado (lo dice el chat o tiene una inscripción sin pago registrado), pero Dayana no lo ha confirmado. No se le ofrece la llamada gratis.",
   personal: "Familia, amigos, equipo o una empresa. Nadie le contesta solo.",
 };
 

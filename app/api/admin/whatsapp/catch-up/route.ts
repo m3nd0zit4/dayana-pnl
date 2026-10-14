@@ -17,11 +17,11 @@ export const GET = withStaff("read", async () => {
 
 const bodySchema = z.object({ includeEscalated: z.boolean().default(true) });
 
-/** «Contestar pendientes»: la IA los mira como si acabaran de llegar (~4 min por tanda). */
+/** «Contestar pendientes»: la IA los mira como si acabaran de llegar (~3 min por tanda; repetir si quedan). */
 export const POST = withStaff("write", async ({ req }) => {
   const parsed = bodySchema.safeParse((await readJson(req)) ?? {});
   if (!parsed.success) return apiError("invalid_request", 400);
   return NextResponse.json(
-    await answerUnansweredChats({ budgetMs: 280_000, minAgeMin: 2, includeEscalated: parsed.data.includeEscalated, limit: 60 })
+    await answerUnansweredChats({ budgetMs: 200_000, minAgeMin: 2, includeEscalated: parsed.data.includeEscalated, limit: 60 })
   );
 });

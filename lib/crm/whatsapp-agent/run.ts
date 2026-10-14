@@ -373,6 +373,26 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
+    // Otra vuelta ya atiende este mismo mensaje (el webhook y «Contestar
+    // pendientes», o dos pasadas del reloj): se queda la primera.
+    const mine = await prisma.whatsAppAiRun.findUnique({ where: { id: run.id }, select: { queuedAt: true } });
+    const earlier = mine
+      ? await prisma.whatsAppAiRun.count({
+          where: {
+            conversationId,
+            triggerMessageId: input.triggerMessageId,
+            id: { not: run.id },
+            status: { in: ["QUEUED", "THINKING", "SENDING", "REPLIED", "DRAFTED", "AWAITING_APPROVAL"] },
+            OR: [{ queuedAt: { lt: mine.queuedAt } }, { queuedAt: mine.queuedAt, id: { lt: run.id } }],
+          },
+        })
+      : 0;
+    if (earlier > 0) {
+      await prisma.whatsAppAiRun.delete({ where: { id: run.id } });
+      runId = null;
+      return;
+    }
+
     // Otra ejecución en curso en este chat (un reintento del webhook, dos
     // avisos casi a la vez): se espera a que termine.
     const waitUntil = Date.now() + BUSY_WAIT_MS;
@@ -526,7 +546,12 @@ export const runWhatsAppAi = async (input: {
       images,
       situation,
       // En qué punto está con Dayana: lo recién calculado (con el enrutador) o lo que dice la ficha.
-      stage: segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null),
+      // Con una duda sobre si ya pagó (dice que transfirió, la clasificación
+      // cree que es clienta), nada de ofrecerle la llamada gratis.
+      stage:
+        segmentResult && segmentResult.review && segmentResult.segment !== "client"
+          ? "por_revisar"
+          : (segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null)),
       dossier: dossierText(dossier),
       olderSnippets: older,
       // La llamada gratis: agenda sola solo con el enrutador, a una persona que
@@ -591,8 +616,10 @@ export const runWhatsAppAi = async (input: {
     }
 
     // Con una clienta, lo que no es de pagos es de Dayana: la IA calla sin
-    // avisar nada a la persona (como cualquier mensaje de una clienta).
-    if (clientMode && result.outcome.kind === "escalate") {
+    // avisar nada a la persona (como cualquier mensaje de una clienta). Solo
+    // sale lo que comparte datos o el enlace, o recibe un comprobante.
+    const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
+    if (clientMode && (result.outcome.kind === "escalate" || !paymentAnswer)) {
       await finish(run.id, "SKIPPED", { ...meta, reason: "customer" });
       await handOffIfNeeded(conversationId, "customer", silenced);
       return;
@@ -752,9 +779,9 @@ export const runWhatsAppAi = async (input: {
       );
     }
 
-    // Quiere agendar: Dayana recibe el aviso (suena) y el chat pasa a ella para
-    // que agende y confirme; la IA no sigue contestando ahí. Si ella ya
-    // contestó mientras tanto, no.
+    // Quiere agendar: Dayana recibe el aviso (suena) para que agende y
+    // confirme. Con `pauses.onEscalation` apagado la IA sigue atendiendo el
+    // chat (sin agendar ella). Si Dayana ya contestó mientras tanto, nada.
     if (result.bookingRequest && !(await answeredSince(conversationId, seen))) {
       const b = result.bookingRequest;
       await pauseAutoReply(conversationId, "escalation", {
@@ -794,7 +821,8 @@ export const runWhatsAppAi = async (input: {
   } catch (e) {
     console.error("[whatsapp-agent] no se pudo responder", e);
     if (runId) {
-      // Ante la duda, una persona: se pausa el hilo y se avisa.
+      // Ante la duda, una persona: se le avisa (y, con las pausas encendidas,
+      // se pausa el hilo). «Contestar pendientes» lo vuelve a intentar.
       const config = await getWhatsAppAiConfig().catch(() => null);
       await escalate(
         input.conversationId,
@@ -838,6 +866,7 @@ const loadConversation = (conversationId: string) =>
       escalationCategory: true,
       escalationSeverity: true,
       escalationReason: true,
+      category: true,
       priorityAt: true,
       assignedStaffId: true,
       externalThreadId: true,
@@ -978,9 +1007,10 @@ const gate = async (
 
   // Libreta personal del celular (familia, amigos): si está ahí, no es alguien
   // del CRM y nunca ha tenido un chat de trabajo, no es un cliente escribiendo.
-  // Con el enrutador, lo personal ya lo apartan el segmento y la clasificación:
-  // un contacto guardado en el celular puede ser una interesada (no se calla).
-  if (config.audience.skipKnownContacts && !route.routerEnabled && !conversation.contactId) {
+  // Un contacto guardado en el celular puede ser una interesada: si el chat ya
+  // es de trabajo (interesada, clienta, comunidad), se le contesta.
+  const workChat = conversation.category === "interesada" || conversation.category === "cliente" || conversation.category === "comunidad";
+  if (config.audience.skipKnownContacts && !workChat && !conversation.contactId) {
     const inAddressBook = await prisma.whatsAppKnownContact.count({
       where: { phone: conversation.externalThreadId, removedAt: null },
     });
@@ -1112,11 +1142,11 @@ const escalate = async (
   // Sin callarse: la persona nunca se queda sin respuesta (el aviso de la IA,
   // el de Ajustes o uno corto por defecto).
   const configured = config?.escalation.holdingMessage.trim() || null;
-  const holding = opts.silent
-    ? null
-    : paused
-      ? configured
-      : opts.holdingReply?.trim() || configured || DEFAULT_HOLDING;
+  // El aviso de la IA pasa por lo mismo que cualquier respuesta: sin apodos y,
+  // si se le escapó un precio, el de Ajustes o el corto por defecto.
+  const written = opts.holdingReply?.trim() ? polishReply(opts.holdingReply) : null;
+  const ownHolding = written && !mentionsPrice(written) ? written : null;
+  const holding = opts.silent ? null : paused ? configured : ownHolding || configured || DEFAULT_HOLDING;
   if (holding && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>
       console.error("[whatsapp-agent] mensaje de espera", e)

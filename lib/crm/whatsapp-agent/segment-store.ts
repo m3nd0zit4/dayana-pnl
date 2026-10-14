@@ -219,10 +219,11 @@ export const segmentOrSafe = async (conversationId: string): Promise<SegmentResu
   })) ?? {
     segment: "returning_lead",
     confidence: 0,
-    reason: "No se pudo calcular: se atiende como alguien que ya conversó.",
+    reason: "No se pudo calcular: se atiende como alguien que ya conversó, sin ofrecerle la llamada.",
     review: true,
     source: "rules",
-    stage: "conversando",
+    // «Por revisar»: la IA contesta pero no ofrece la llamada gratis (podría ser clienta).
+    stage: "por_revisar",
   };
 
 /** Los chats con una duda sobre si pagó (la IA sigue atendiendo): Dayana confirma o descarta. */
