@@ -13,6 +13,7 @@ import { appointmentCoversUntil, appointmentJustLinked } from "../whatsapp-pendi
 import { isAvailabilityBlock } from "./calendar";
 import { foldName, isFreeCallAppointment, nameMatches, parseEventTitle, withPhone } from "./event-title";
 import { resolveConversations } from "./pending";
+import { personFirstName } from "@/lib/person-name";
 
 /**
  * Las citas del Google Calendar de Dayana, ligadas a cada persona.
@@ -363,7 +364,7 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
     // La llamada gratis es por WhatsApp: no hay enlace que mandar.
     const freeCall = !appt.meetUrl && isFreeCallAppointment(appt);
     const vars = {
-      nombre: (appt.name ?? recipient.name ?? "").split(" ")[0] || "",
+      nombre: personFirstName(appt.name ?? recipient.name) ?? "",
       servicio: freeCall
         ? "tu llamada gratis con Dayana"
         : appt.sessionsLabel && appt.sessionsLabel !== "0/0"
@@ -374,7 +375,7 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
       enlace: freeCall ? FREE_CALL_BY_WHATSAPP : (appt.meetUrl ?? "(te lo mando antes de la cita)"),
     };
     const link = freeCall ? ` ${FREE_CALL_BY_WHATSAPP}` : appt.meetUrl ? ` Enlace: ${appt.meetUrl}` : "";
-    const text = `Hola ${vars.nombre} 💛 Te recuerdo ${vars.servicio} mañana ${vars.fecha} a las ${vars.hora}.${link} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.`;
+    const text = `Hola${vars.nombre ? ` ${vars.nombre}` : ""} 💛 Te recuerdo ${vars.servicio} mañana ${vars.fecha} a las ${vars.hora}.${link} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.`;
 
     const r = await sendWhatsAppToRecipient({
       recipient,

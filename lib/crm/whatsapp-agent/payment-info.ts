@@ -41,11 +41,12 @@ export const paymentDetails = (config: WhatsAppAiConfig, key: string): PaymentMe
  */
 export const withPaymentBlocks = (
   message: string,
-  blocks: { details?: string[]; link?: string | null }
+  blocks: { details?: string[]; link?: string | null; /** Comunidad, curso… */ links?: string[] }
 ): string => {
   const extra: string[] = [];
   for (const d of blocks.details ?? []) if (d.trim() && !message.includes(d.trim())) extra.push(d.trim());
   if (blocks.link && !message.includes(blocks.link)) extra.push(blocks.link);
+  for (const l of blocks.links ?? []) if (l.trim() && !message.includes(l.trim()) && !extra.includes(l.trim())) extra.push(l.trim());
   // «Te comparto los datos para el pago» + datos: con dos puntos, como se escribe.
   const intro = extra.length && /[\p{L}\d)]$/u.test(message.trim()) ? `${message.trim()}:` : message.trim();
   return [intro, ...extra].filter(Boolean).join("\n\n");

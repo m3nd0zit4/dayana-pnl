@@ -188,7 +188,7 @@ export const draftAutoReply = async (input: {
     : result.holdingReply || input.config.escalation.holdingMessage || "Déjame consultarlo con Dayana y te confirmo por aquí.";
   return {
     action: o.kind,
-    message: o.kind === "reply" ? withPaymentBlocks(polishReply(o.message), result.paymentBlocks) : holding,
+    message: o.kind === "reply" ? withPaymentBlocks(polishReply(o.message), { ...result.paymentBlocks, links: result.linkBlocks }) : holding,
     reason: o.kind === "escalate" ? `${o.category}: ${o.reason}` : "",
     outcome: o,
     examples: result.examples,

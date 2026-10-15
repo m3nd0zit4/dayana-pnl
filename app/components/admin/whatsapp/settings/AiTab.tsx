@@ -16,6 +16,7 @@ import ResetSection from "./ResetSection";
 import ClientReviewSection from "./ClientReviewSection";
 import RouterSection from "./RouterSection";
 import PaymentsSection from "./PaymentsSection";
+import CommunitySection from "./CommunitySection";
 import SalesFlowSection from "./SalesFlowSection";
 import { TYPING_DELAY, WHATSAPP_AI_API, useSettings } from "./context";
 import { ExpandableText, NumberField } from "./fields";
@@ -228,6 +229,8 @@ const AiTab = () => {
       <SalesFlowSection />
 
       <PaymentsSection />
+
+      <CommunitySection />
 
       <SettingsGroup title="Cuándo responde">
         <SettingRow

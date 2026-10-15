@@ -7,6 +7,8 @@
  * Meta, que se cobra por mensaje.
  */
 
+import { personFirstName } from "@/lib/person-name";
+
 export type SendPlan =
   | { action: "text" }
   | { action: "template" }
@@ -128,9 +130,16 @@ export const headerImageProblem = (input: {
   return null;
 };
 
-/** Reemplaza {{nombre}}, {{evento}}… Lo que no tiene valor se quita. */
+/**
+ * Reemplaza {{nombre}}, {{evento}}… Lo que no tiene valor se quita, con el
+ * espacio de antes: «Hola {{nombre}}, te bendigo» sin nombre queda «Hola, te
+ * bendigo» (no «Hola , te bendigo»).
+ */
 export const fillVars = (text: string, vars: Record<string, string | null | undefined>): string =>
-  text.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (_, key: string) => vars[key]?.toString().trim() ?? "");
+  text.replace(/( ?)\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (_, space: string, key: string) => {
+    const value = vars[key]?.toString().trim();
+    return value ? `${space}${value}` : "";
+  });
 
 /** Los valores de {{1}}, {{2}}… de una plantilla, en el orden que tiene aprobado. */
 export const templateParams = (
@@ -140,9 +149,11 @@ export const templateParams = (
   // WhatsApp rechaza un parámetro vacío: se pone un guion.
   varNames.map((name) => vars[name]?.toString().trim() || "-");
 
-/** Primer nombre, para saludar sin sonar a formulario. */
-export const firstName = (full: string | null | undefined): string =>
-  (full ?? "").trim().split(/\s+/)[0] ?? "";
+/**
+ * Primer nombre, para saludar sin sonar a formulario. Vacío si el perfil no es
+ * un nombre («DIOS ES MI PROVEEDOR 🙏», «SF»): mejor «Hola» a secas.
+ */
+export const firstName = (full: string | null | undefined): string => personFirstName(full) ?? "";
 
 /**
  * Palabras con las que alguien pide que no le escriban más. Se miran solo en

@@ -15,6 +15,7 @@ import { prisma } from "@/lib/db";
 import { importExportChat } from "@/lib/crm/whatsapp-export-import";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { updateDossier } from "@/lib/crm/whatsapp-agent/dossier";
+import { setFreeCallCalendarForTests } from "@/lib/crm/whatsapp-agent/free-call";
 import { processNormalizedEvent } from "@/lib/meta/ingest";
 import type { NormalizedMessage } from "@/lib/meta/inbound";
 import { saveWhatsAppProvider } from "@/lib/meta/whatsapp-provider";
@@ -74,6 +75,13 @@ const main = async () => {
     context: { ...previousConfig.context, v2: true },
     dossier: { enabled: true },
   });
+  // Con el flujo de venta (como producción) «ya estoy lista para agendar» pide
+  // horas: un calendario de mentira, nunca el de Dayana.
+  const slot = (hours: number) => {
+    const start = new Date(Date.now() + hours * 3600_000);
+    return { startIso: start.toISOString(), endIso: new Date(start.getTime() + 15 * 60_000).toISOString(), dateKey: start.toISOString().slice(0, 10), time: "" };
+  };
+  setFreeCallCalendarForTests({ available: async () => [slot(26), slot(30), slot(50)] });
   await cleanup();
   try {
     console.log("\n1. Chat de hace tres meses, importado");
@@ -126,6 +134,7 @@ const main = async () => {
       proposal
     );
   } finally {
+    setFreeCallCalendarForTests({});
     await cleanup();
     await setWhatsAppAiConfig(previousConfig);
     if (previousProvider) await prisma.siteSetting.update({ where: { key: "whatsapp.provider" }, data: { value: previousProvider.value } });

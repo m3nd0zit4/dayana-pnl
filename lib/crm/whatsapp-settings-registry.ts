@@ -193,6 +193,30 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-community",
+    label: "Mandar el enlace de la comunidad",
+    keywords: ["comunidad", "grupo", "enlace", "unirse", "agregar al grupo", "whatsapp"],
+    tab: "ia",
+  },
+  {
+    id: "wa-community-link",
+    label: "Enlace de la comunidad",
+    keywords: ["comunidad", "grupo", "enlace", "invitación", "link"],
+    tab: "ia",
+  },
+  {
+    id: "wa-affordable",
+    label: "Ofrecer algo más económico",
+    keywords: ["económico", "barato", "no le alcanza", "curso", "ahorrar", "comunidad", "dinero"],
+    tab: "ia",
+  },
+  {
+    id: "wa-affordable-options",
+    label: "Opciones más económicas",
+    keywords: ["económico", "curso", "curso en vivo", "opciones", "enlace", "no le alcanza"],
+    tab: "ia",
+  },
+  {
     id: "wa-pay-methods",
     label: "Formas de pago (cuentas)",
     keywords: ["cuenta", "bancolombia", "western union", "global66", "remitly", "datos de pago", "transferencia", "pagar"],

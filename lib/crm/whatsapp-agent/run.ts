@@ -43,6 +43,8 @@ import { handleCallFollowUpReply } from "./call-outcome";
 import { pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
+import { alreadySaid } from "./repeat-guard";
+import { personFirstName } from "@/lib/person-name";
 
 /**
  * El ejecutor de la IA de WhatsApp: decide si toca contestar, espera a que la
@@ -491,8 +493,10 @@ export const runWhatsAppAi = async (input: {
 
     const timezone = await getOperationalTimezone();
     const phone = conversation.externalThreadId;
-    const name =
-      conversation.contact?.firstName?.trim() || conversation.participantName?.trim() || null;
+    // El que sea nombre de persona (el contacto puede llevar la frase del
+    // perfil); si ninguno lo es, el del perfil, para que la IA sepa que no lo use.
+    const candidates = [conversation.contact?.firstName?.trim(), conversation.participantName?.trim()];
+    const name = candidates.find((n) => n && personFirstName(n)) || candidates.find(Boolean) || null;
 
     // Lo que la persona mandó en fotos o stickers, para que la IA lo vea.
     const images = await loadImages(pickImages([...conversation.messages].reverse())).catch(() => []);
@@ -663,7 +667,7 @@ export const runWhatsAppAi = async (input: {
     // detector de precios mira solo lo que escribió la IA: un número de cuenta
     // no es un precio).
     const written = polishReply(result.outcome.message);
-    const body = withPaymentBlocks(written, result.paymentBlocks);
+    const body = withPaymentBlocks(written, { ...result.paymentBlocks, links: result.linkBlocks });
     // Mientras pensaba (unos segundos) Dayana contestó: no se envía, no se
     // propone y no se pide la cita. Ya está atendido.
     if (await answeredSince(conversationId, seen)) {
@@ -1162,7 +1166,23 @@ const escalate = async (
   const written = opts.holdingReply?.trim() ? polishReply(opts.holdingReply) : null;
   const ownHolding = written && !mentionsPrice(written) ? written : null;
   const holding = opts.silent ? null : paused ? configured : ownHolding || configured || DEFAULT_HOLDING;
-  if (holding && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
+  // Si lo último que le mandamos ya es este mismo aviso («Déjame avisarle a
+  // Dayana…» cuatro veces seguidas, 14-oct), no se repite: lo tiene a la vista
+  // y Dayana ya está avisada.
+  const lastSent = holding
+    ? await prisma.conversationMessage.findFirst({
+        where: {
+          conversationId,
+          direction: "OUTBOUND",
+          status: { not: "FAILED" },
+          sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
+        },
+        orderBy: { sentAt: "desc" },
+        select: { body: true },
+      })
+    : null;
+  const repeated = Boolean(holding) && alreadySaid(holding!, [lastSent?.body]);
+  if (holding && !repeated && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>
       console.error("[whatsapp-agent] mensaje de espera", e)
     );

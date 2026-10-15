@@ -1,4 +1,5 @@
 import { isFreeCallAppointment } from "./event-title";
+import { personFirstName } from "@/lib/person-name";
 
 /**
  * La sala de espera de la llamada gratis (pedido de la dueña), en reglas
@@ -83,7 +84,7 @@ export const decideWaiting = (input: {
   return { kind: "none", reason: "todavía no es la hora" };
 };
 
-const firstName = (name: string | null | undefined) => name?.trim().split(/\s+/)[0] ?? "";
+const firstName = (name: string | null | undefined) => personFirstName(name) ?? "";
 
 /** Lo que se le dice a la persona, con la voz de la asistente. */
 export const waitingMessage = (kind: "busy" | "not_started", name: string | null | undefined): string => {

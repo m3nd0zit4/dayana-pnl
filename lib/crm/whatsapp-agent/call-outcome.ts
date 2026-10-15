@@ -10,6 +10,7 @@ import { isFreeCallAppointment } from "./event-title";
 import { offerFreeCallSlots } from "./free-call";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
+import { personFirstName } from "@/lib/person-name";
 
 /**
  * Después de la llamada gratis (pedido de la dueña): saber si se hizo y, si
@@ -101,7 +102,7 @@ const sendReschedule = async (appt: Appt, conv: Conv, config: WhatsAppAiConfig, 
     text: rescheduleMessage(name, options.map((o) => o.label)),
     templateKey: "cita_no_contestada",
     vars: {
-      nombre: name?.split(/\s+/)[0] ?? "",
+      nombre: personFirstName(name) ?? "",
       fecha: fmtDay(appt.startsAt, personTz),
       horarios: options.length ? options.map((o) => o.label).join(" · ") : "escríbenos qué día y hora te quedan bien",
     },
@@ -159,7 +160,7 @@ const sendCheck = async (appt: Appt, conv: Conv) => {
     recipient: await recipientFor(appt, conv),
     text: checkMessage(name),
     templateKey: "cita_seguimiento",
-    vars: { nombre: name?.split(/\s+/)[0] ?? "", fecha: fmtDay(appt.startsAt, conv.dossier?.timezone ?? conv.contact?.timezone ?? dayanaTz) },
+    vars: { nombre: personFirstName(name) ?? "", fecha: fmtDay(appt.startsAt, conv.dossier?.timezone ?? conv.contact?.timezone ?? dayanaTz) },
     source: `recordatorio:seguimiento:${appt.eventId}`,
     isAutoReply: true,
     clientKey: `callcheck:${appt.eventId}`,

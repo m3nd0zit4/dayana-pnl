@@ -235,7 +235,9 @@ const main = async () => {
     } else {
       const c = await store(T.cap, "Hola", { sentAt: new Date(Date.now() - 2 * 3600_000) });
       // Ya respondió hoy todo lo que puede: la siguiente vez pasa el chat a Dayana.
-      for (let i = 0; i < config.maxPerDay; i++) {
+      // Con el enrutador encendido (como producción) el tope de una persona nueva es otro.
+      const cap = config.router.enabled ? Math.max(config.maxPerDay, config.router.maxPerDayNewLead) : config.maxPerDay;
+      for (let i = 0; i < cap; i++) {
         await ours(c, `Respuesta automática ${i + 1}`, 90 - i, { isAutoReply: true });
       }
       // Una propuesta de antes: aprobarla no debe cerrar la escalada que viene.

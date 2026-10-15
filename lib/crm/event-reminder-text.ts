@@ -2,6 +2,7 @@ import { getTimeZones } from "@vvo/tzdb";
 import { getCountries, getCountryCallingCode, parsePhoneNumberFromString } from "libphonenumber-js";
 import { suggestTimezoneForCountryOrNull } from "@/lib/contact-timezone";
 import { DEFAULT_OPERATIONAL_TZ } from "@/lib/datetime/zoned-time";
+import { personFirstName } from "@/lib/person-name";
 import { countryName, isValidTimezone, MULTI_ZONE_COUNTRIES } from "./whatsapp-agent/booking-time";
 
 /**
@@ -168,14 +169,10 @@ export const eventReminderVars = (input: {
 });
 
 /**
- * Primer nombre para saludar. Hay contactos cuyo «nombre» es el teléfono o el
- * correo (formularios sin nombre): mejor no saludar con eso.
+ * Primer nombre para saludar. Hay contactos cuyo «nombre» es el teléfono, el
+ * correo o una frase de su perfil de WhatsApp: mejor no saludar con eso.
  */
-export const greetingName = (full: string | null | undefined): string => {
-  const first = (full ?? "").trim().split(/\s+/)[0] ?? "";
-  if (!first || /[\d@+]/.test(first)) return "";
-  return first.charAt(0).toUpperCase() + first.slice(1);
-};
+export const greetingName = (full: string | null | undefined): string => personFirstName(full) ?? "";
 
 /**
  * El texto libre para quien escribió en las últimas 24 h (gratis). Mismas

@@ -25,7 +25,7 @@ describe("flowState / nextStep", () => {
       out("Si quieres recuperar tu esencia y liberar esa ansiedad, puedes agendar..."),
     ], { keyQuestions: defaultWhatsAppAiConfig().salesFlow.buyButtons.map((b) => b.keyQuestion) });
     expect(s.keyQuestion).toBe(true);
-    expect(nextStep(s)).toContain("invitarla");
+    expect(nextStep(s)).toContain("invitar a la persona");
   });
 
   test("invitada: ofrecer horas; ofrecidas: agendar", () => {

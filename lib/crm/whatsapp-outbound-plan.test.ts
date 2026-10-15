@@ -49,14 +49,17 @@ describe("planSend", () => {
 describe("variables", () => {
   test("rellena y quita lo que falta", () => {
     expect(fillVars("Hola {{nombre}}, el {{evento}} es {{fecha}}.", { nombre: "Ana", evento: "taller" })).toBe(
-      "Hola Ana, el taller es ."
+      "Hola Ana, el taller es."
     );
+    // Sin nombre: «Hola, te bendigo», no «Hola , te bendigo».
+    expect(fillVars("Hola {{nombre}}, te bendigo", { nombre: "" })).toBe("Hola, te bendigo");
   });
   test("parámetros de plantilla en orden, con guion si faltan", () => {
     expect(templateParams(["nombre", "enlace"], { nombre: "Ana" })).toEqual(["Ana", "-"]);
   });
   test("primer nombre", () => {
     expect(firstName("  María José Pérez ")).toBe("María");
+    expect(firstName("DIOS ES MI PROVEEDOR 🙏")).toBe("");
   });
 });
 

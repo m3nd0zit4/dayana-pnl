@@ -108,7 +108,7 @@ const main = async () => {
     const sent: string | null = silentClient || crisis
       ? null
       : o?.kind === "reply"
-        ? withPaymentBlocks(polishReply(o.message), result.paymentBlocks)
+        ? withPaymentBlocks(polishReply(o.message), { ...result.paymentBlocks, links: result.linkBlocks })
         : polishReply(result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí.");
     const reply = sent ?? "(no le escribe: se lo pasa a Dayana)";
     const tools = result.toolCalls.map((c) => c.tool);
@@ -118,7 +118,9 @@ const main = async () => {
         reply,
         transcript: s.transcript,
         tools: result.toolCalls,
-        paymentBlocks: result.paymentBlocks.details,
+        paymentBlocks: [...result.paymentBlocks.details, ...result.linkBlocks],
+        gender: s.gender,
+        profileName: s.name,
       })) {
         if (!g.pass) failed.push(`regla:${g.id}${g.detail ? ` («${g.detail}»)` : ""}`);
       }

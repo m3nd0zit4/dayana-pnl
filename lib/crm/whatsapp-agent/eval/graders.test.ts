@@ -71,6 +71,25 @@ describe("calificadores con casos reales", () => {
     expect(pass("sin_numeros_de_cuenta", ctx("Consigna a la cuenta 15460415745"))).toBe(false);
   });
 
+  test("género sin adivinar (SF, Samy, Fernando)", () => {
+    expect(pass("genero_sin_adivinar", ctx("Vale, perfecto. Cuando estés lista, por aquí estaré.", { gender: "unknown" }))).toBe(false);
+    expect(pass("genero_sin_adivinar", ctx("Te sugiero estar pendiente y lista.", { gender: "unknown" }))).toBe(false);
+    expect(pass("genero_sin_adivinar", ctx("Quedaste agendada para el jueves.", { gender: "m" }))).toBe(false);
+    expect(pass("genero_sin_adivinar", ctx("Cuando quieras retomarlo, me escribes por aquí.", { gender: "unknown" }))).toBe(true);
+    // Habla de la llamada, no de la persona.
+    expect(pass("genero_sin_adivinar", ctx("Tu llamada quedó agendada para el jueves.", { gender: "unknown" }))).toBe(true);
+    expect(pass("genero_sin_adivinar", ctx("Cuando estés lista, me escribes.", { gender: "f" }))).toBe(true);
+  });
+
+  test("no llama a la persona por un perfil que no es un nombre", () => {
+    const profileName = "DIOS ES MI PROVEEDOR 🙏";
+    expect(pass("no_usa_nombre_de_perfil", ctx("Sí, Dios es mi proveedor. Dayana te agrega con gusto.", { profileName }))).toBe(false);
+    expect(pass("no_usa_nombre_de_perfil", ctx("Hola DIOS ES MI PROVEEDOR, te bendigo.", { profileName }))).toBe(false);
+    expect(pass("no_usa_nombre_de_perfil", ctx("Claro, aquí puedes unirte a la comunidad. Dios te bendiga.", { profileName }))).toBe(true);
+    expect(pass("no_usa_nombre_de_perfil", ctx("Hola SF, te bendigo.", { profileName: "SF" }))).toBe(false);
+    expect(pass("no_usa_nombre_de_perfil", ctx("Hola Leidy, te bendigo.", { profileName: "Leidy" }))).toBe(true);
+  });
+
   test("una respuesta buena pasa todo", () => {
     const transcript = [{ direction: "INBOUND" as const, body: "Hola, quiero información" }];
     const grades = gradeReply(ctx("Hola Lucía, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?", { transcript }));

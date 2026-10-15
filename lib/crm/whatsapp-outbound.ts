@@ -164,7 +164,10 @@ export const sendWhatsAppToRecipient = async (input: {
   const plan = await planForRecipient(r, template);
   if (plan.action === "skip") return { status: "skipped", reason: plan.reason };
 
-  const vars = { nombre: firstName(r.name), ...(input.vars ?? {}) };
+  const merged = { nombre: firstName(r.name), ...(input.vars ?? {}) };
+  // Sin nombre de persona, la plantilla dice «Hola 😊,» como los recordatorios
+  // de eventos: WhatsApp no acepta el parámetro vacío y «Hola -,» se ve roto.
+  const vars = plan.action === "template" && !merged.nombre?.toString().trim() ? { ...merged, nombre: "😊" } : merged;
   const conversation = await ensureWhatsAppConversation({
     phoneE164: r.phoneE164!,
     contactId: r.contactId,

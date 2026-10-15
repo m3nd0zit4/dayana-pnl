@@ -24,6 +24,8 @@ import { countryName, describeRequestedTime, MULTI_ZONE_COUNTRIES, resolvePerson
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
+import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
+import { personFullName } from "@/lib/person-name";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
   afterFreeCallBooked,
@@ -98,6 +100,8 @@ export type BrainResult = {
   holdingReply: string | null;
   /** Datos de pago (texto exacto de Ajustes) y enlace que van debajo del mensaje. */
   paymentBlocks: { details: string[]; link: string | null };
+  /** Otros enlaces que van debajo del mensaje: la comunidad, el curso. */
+  linkBlocks: string[];
   /** La persona mandó un comprobante (o dijo que pagó): queda por confirmar para Dayana. */
   receipt: {
     summary: string;
@@ -394,7 +398,7 @@ export const clientContext = async (
   });
 
   const lines: string[] = [];
-  if (contact) lines.push(`Nombre: ${[contact.firstName, contact.lastName].filter(Boolean).join(" ") || "sin nombre"}`);
+  if (contact) lines.push(`Nombre: ${personFullName([contact.firstName, contact.lastName].filter(Boolean).join(" ")) ?? "sin nombre (el del contacto no es un nombre de persona)"}`);
   lines.push(`Etapa: ${stage.label}`);
   if (next) {
     lines.push(
@@ -464,7 +468,7 @@ const paymentRules = (config: WhatsAppAiConfig): string => {
         methods
           ? "usa send_payment_info con la forma de pago que le corresponde (mira a quién va cada una; si no sabes desde qué país paga, pregúntalo primero)"
           : "dile que Dayana le comparte los datos y escala con category=payment"
-      }. Tu mensaje es corto y termina pidiéndole el comprobante («Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`,
+      }. Tu mensaje es corto y termina pidiéndole el comprobante («Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise:»): los datos los pega el sistema debajo, tal cual. Nunca escribas tú un número de cuenta, un titular ni un enlace.`,
       "- Si pide una forma de pago que no está en la lista (p. ej. Global66, Remitly, PayPal): dile que Dayana le comparte esos datos y escala con category=payment."
     );
   } else {
@@ -499,14 +503,14 @@ const systemPrompt = (
 
 REGLA Nº 1 — PRECIOS: NUNCA escribas un precio, valor, monto, tarifa, costo ni descuento, aunque la persona insista, aunque lo veas en la conversación o en un ejemplo. Los valores SOLO los da Dayana, en la llamada. Si pregunta cuánto cuesta: dile con calidez que cada proceso se ajusta a lo que la persona necesita y que Dayana le explica las opciones y los valores en la consulta gratis de 15 minutos, y ofrécele agendarla (si ya tuvo la llamada: Dayana se lo confirma; escala con category=payment). Las FORMAS DE PAGO sí las puedes dar, pero solo con sus herramientas (abajo, PAGOS).
 
-TONO: amable y profesional: cercana pero seria, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. Llama a la persona por su nombre. NUNCA uses apodos cariñosos («querida», «querido», «cariño», «mi amor», «hermosa», «mi bella», «linda», «mi reina», «corazón», «amiga»…) ni corazones. Nada de exageraciones, jerga ni muchos emojis. Las horas siempre con a. m./p. m. («6:45 p. m.»), nunca en formato de 24 horas («18:45»).
+TONO: amable y profesional: cercana pero seria, respetuosa y clara, en español, de tú, mensajes cortos (2 o 3 frases). «Te bendigo» para saludar. Llama a la persona por su nombre si lo sabes (mira NOMBRE, más abajo). NUNCA uses apodos cariñosos («querida», «querido», «cariño», «mi amor», «hermosa», «mi bella», «linda», «mi reina», «corazón», «amiga»…) ni corazones. Nada de exageraciones, jerga ni muchos emojis. Las horas siempre con a. m./p. m. («6:45 p. m.»), nunca en formato de 24 horas («18:45»).
 NUNCA escribas: «¿Qué te trae por aquí?», «Qué alegría tenerte por aquí», «¿Hay algo más en lo que te pueda ayudar?», «De nada» (di «Con gusto»).
 Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
 
 Ahora es ${now}.
 
 Cómo conversas (así trabaja Dayana):
-- Género: antes de usar cualquier palabra con género, decide si hablas con un hombre o una mujer por su nombre y por cómo habla de sí. Con un hombre usa masculino («bienvenido»); nunca adjetivos femeninos. Si no puedes saberlo, usa solo su nombre y frases sin género.
+- Género: NO adivines si es hombre o mujer (ni por el nombre, ni por la foto, ni por el tema). Usa femenino o masculino solo si la persona ya habló de sí con género en la conversación («estoy cansada», «soy muy desconfiado», «estoy atenta») y entonces respétalo siempre. Mientras no lo sepas, escribe sin género: «te doy la bienvenida» (no «bienvenida/o»), «cuando quieras» o «cuando tengas el momento» (no «cuando estés lista/o»), «tu llamada quedó para el jueves» (no «quedaste agendada/o»), «estate pendiente del teléfono» (no «pendiente y lista»), «gracias por tu interés» (no «interesada/o»).
 - Saluda solo en tu primer mensaje de la conversación; después sigue la charla sin volver a decir «Hola» ni repetir el apodo en cada respuesta.
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
@@ -515,6 +519,7 @@ ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya 
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 ${paymentRules(config)}
+${communityRules(config)}
 Llama a escalate cuando (la persona nunca se queda sin respuesta: en holdingReply escribe el aviso corto que recibe ahora, p. ej. «Déjame consultarlo con Dayana y te confirmo por aquí»):
 - category=payment: insiste en saber el precio, pide un descuento, un reembolso o una factura, o reclama un cobro que no reconoce.
 - category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen que no sabes interpretar, un audio marcado «(inaudible)»).
@@ -540,6 +545,29 @@ Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se 
     );
   }
   return parts.join("\n\n");
+};
+
+/**
+ * NOMBRE: el de su perfil o su contacto solo si es el de una persona. Un perfil
+ * como «DIOS ES MI PROVEEDOR 🙏» no se usa (la asistente le contestó «Sí, Dios
+ * es mi proveedor»): se escribe sin nombre y se le pregunta.
+ */
+export const nameLine = (raw: string | null | undefined): string => {
+  const full = personFullName(raw);
+  if (full) {
+    const first = full.split(" ")[0];
+    return `NOMBRE: la persona se llama ${full}${first !== full ? ` (para saludar, su primer nombre: «${first}», salvo que se presente con otro)` : ""}.`;
+  }
+  const profile = raw?.trim();
+  return [
+    "NOMBRE: no sabemos cómo se llama.",
+    profile
+      ? `Su perfil de WhatsApp dice «${profile}», que no es un nombre de persona: NUNCA le llames así ni repitas esa frase.`
+      : null,
+    "Si en la conversación dijo su nombre («soy Samy»), usa ese. Si no, escribe sin nombre y, cuando sea natural (antes de agendar o tras uno o dos mensajes), pregúntale «¿Con quién tengo el gusto?».",
+  ]
+    .filter(Boolean)
+    .join(" ");
 };
 
 const examplesBlock = (examples: SimilarExample[]): string | null =>
@@ -657,6 +685,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     holdingReply: string | null;
     paymentDetails: string[];
     paymentLink: string | null;
+    links: string[];
     receipt: BrainResult["receipt"];
   } = {
     outcome: null,
@@ -671,6 +700,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     holdingReply: null,
     paymentDetails: [],
     paymentLink: null,
+    links: [],
     receipt: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
@@ -799,6 +829,44 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       : {}),
   };
 
+  // La comunidad y lo más económico: el enlace lo pega el código, como los datos de pago.
+  const community = communityLink(config);
+  const options = affordableOptions(config);
+  const addLink = (url: string) => {
+    if (!state.links.includes(url)) state.links.push(url);
+  };
+  const linkTools = {
+    ...(community
+      ? {
+          send_community_link: tool({
+            description: `Manda, debajo de tu mensaje, el enlace para unirse gratis a la comunidad de WhatsApp de Dayana («${config.community.name}»). Úsalo cuando pide entrar a la comunidad o al grupo, o cuando no le alcanza para la terapia.`,
+            inputSchema: z.object({}),
+            execute: async () => {
+              addLink(community);
+              return log("send_community_link", {}, { ok: true, note: "El enlace va debajo de tu mensaje: no lo escribas." });
+            },
+          }),
+        }
+      : {}),
+    ...(options.length > 0
+      ? {
+          send_affordable_option: tool({
+            description:
+              "Manda, debajo de tu mensaje, el enlace de una opción más económica que la terapia (p. ej. el curso en vivo en grupo). Úsalo solo cuando a la persona no le alcanza o pide algo más económico. Nunca digas el precio: lo ve en el enlace.",
+            inputSchema: z.object({
+              option: z.enum(options.map((o) => o.key) as [string, ...string[]]).describe("La clave de la opción."),
+            }),
+            execute: async ({ option }) => {
+              const o = options.find((x) => x.key === option);
+              if (!o) return log("send_affordable_option", { option }, { ok: false, reason: "No existe esa opción." });
+              addLink(absoluteUrl(o.url));
+              return log("send_affordable_option", { option }, { ok: true, label: o.label, note: "El enlace va debajo de tu mensaje: no lo escribas ni digas el precio." });
+            },
+          }),
+        }
+      : {}),
+  };
+
   const tools = {
     confirm_appointment: tool({
       description:
@@ -843,6 +911,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       },
     }),
     ...paymentTools,
+    ...linkTools,
     // Lo normal: la IA no busca horas; pregunta cuándo le sirve y le avisa a Dayana.
     // Con el flujo de venta, siempre sabe de dónde escribe (para ofrecer horas en su hora).
     ...(!config.booking.aiSchedules || salesOn
@@ -1293,7 +1362,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             })
           )
         : null,
-      input.name ? `La persona se llama ${input.name}.` : "No sabemos su nombre.",
+      nameLine(input.name),
       `Su número: +${input.phone}.`,
       countryHint(input.phone),
       `${transcriptHeader(input.transcript, timezone)}. Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
@@ -1351,6 +1420,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     suggestedReply: finalOutcome.kind === "escalate" ? state.suggestedReply : null,
     holdingReply: finalOutcome.kind === "escalate" ? state.holdingReply : null,
     paymentBlocks: finalOutcome.kind === "reply" ? { details: state.paymentDetails, link: state.paymentLink } : { details: [], link: null },
+    linkBlocks: finalOutcome.kind === "reply" ? state.links : [],
     receipt: state.receipt,
     model: modelId(),
     usage: {

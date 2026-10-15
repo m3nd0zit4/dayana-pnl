@@ -10,6 +10,8 @@
  * horas en el mismo mensaje, «quedamos agendadas»…
  */
 
+import { personFirstName } from "@/lib/person-name";
+import { foldForSearch } from "../../search-normalize";
 import { mentionsPrice } from "../price-guard";
 
 export type GradeContext = {
@@ -21,6 +23,13 @@ export type GradeContext = {
   tools: { tool: string; output?: unknown }[];
   /** Los datos de pago que se adjuntaron tal cual (ahí sí hay números largos). */
   paymentBlocks?: string[];
+  /**
+   * Cómo habló la persona de sí («estoy cansada» → f; «soy desconfiado» → m).
+   * «unknown»: no lo dijo, la asistente escribe sin género. Sin dato, no se mira.
+   */
+  gender?: "f" | "m" | "unknown";
+  /** El nombre de su perfil de WhatsApp (puede no ser un nombre: «DIOS ES MI PROVEEDOR 🙏»). */
+  profileName?: string | null;
 };
 
 export type Grade = { id: string; pass: boolean; detail?: string };
@@ -36,6 +45,13 @@ const AS_DAYANA =
 const GREETING = /^\s*(¡?hola\b|te bendigo\b|buen(os|as) (días|tardes|noches)\b)/i;
 const ASKS_COUNTRY = /(desde|de) (qué|que) (país|ciudad)|(qué|que) ciudad|de d[oó]nde (me )?escribes/i;
 const BOOKED_CLAIM = /\b(queda(s|n)? agendad|quedó agendad|está agendad|quedaste agendad|ya (te )?agend[ée]|cita (quedó )?confirmad|llamada (quedó )?confirmad)/i;
+/**
+ * Un adjetivo con género sobre la persona: «cuando estés lista», «quedaste
+ * agendada», «estar pendiente y lista», «bienvenido». «Tu llamada quedó
+ * agendada» no cuenta (habla de la llamada).
+ */
+const PERSON_GENDERED =
+  /\b(?:quedaste|quedas|est[aá]s|est[eé]s|eres|seas|te sientes|te sientas|sentirte|estar|si[eé]ntete)\s+(?:muy\s+|m[aá]s\s+|bien\s+|pendiente y\s+)?(?:list|tranquil|preocupad|interesad|cansad|dispuest|segur|agendad|inscrit|motivad|emocionad|confundid|atent|content|ocupad|agradecid|encantad|preparad|decidid)([oa])s?\b|\bbienvenid([oa])s?\b/gi;
 /** Una lista de horas («• jueves…», «- 9:30 a. m.»). */
 const SLOT_LIST = /(^|\n)\s*[-•*]\s*\S.*\d{1,2}:\d{2}/m;
 
@@ -112,6 +128,30 @@ export const GRADERS: Record<string, (ctx: GradeContext) => Grade> = {
   como_mucho_dos_preguntas: (ctx) => {
     const n = (ownText(ctx).match(/\?/g) ?? []).length;
     return { id: "como_mucho_dos_preguntas", pass: n <= 2, detail: n > 2 ? `${n} preguntas` : undefined };
+  },
+  genero_sin_adivinar: (ctx) => {
+    if (!ctx.gender) return { id: "genero_sin_adivinar", pass: true };
+    for (const m of ownText(ctx).matchAll(PERSON_GENDERED)) {
+      const ending = (m[1] ?? m[2] ?? "").toLowerCase();
+      const wrong = ctx.gender === "unknown" || (ctx.gender === "f" && ending === "o") || (ctx.gender === "m" && ending === "a");
+      if (wrong) return { id: "genero_sin_adivinar", pass: false, detail: m[0] };
+    }
+    return { id: "genero_sin_adivinar", pass: true };
+  },
+  no_usa_nombre_de_perfil: (ctx) => {
+    // Un perfil que no es un nombre no se usa para llamar a la persona.
+    const profile = ctx.profileName?.trim();
+    if (!profile || personFirstName(profile)) return { id: "no_usa_nombre_de_perfil", pass: true };
+    const text = foldForSearch(ownText(ctx));
+    const tokens = foldForSearch(profile)
+      .replace(/[^\p{L}\s]/gu, " ")
+      .split(/\s+/)
+      .filter((w) => w.length >= 2);
+    const phrase = tokens.join(" ");
+    const has = (w: string) => new RegExp(`(^|[^\\p{L}])${w}($|[^\\p{L}])`, "u").test(text);
+    const hits = tokens.filter((w) => w.length >= 4 && has(w));
+    const used = (phrase.length > 0 && text.includes(phrase)) || hits.length >= 2 || (tokens.length === 1 && has(tokens[0]!));
+    return { id: "no_usa_nombre_de_perfil", pass: !used, detail: used ? profile : undefined };
   },
   corto: (ctx) => {
     const words = ownText(ctx).split(/\s+/).filter(Boolean).length;

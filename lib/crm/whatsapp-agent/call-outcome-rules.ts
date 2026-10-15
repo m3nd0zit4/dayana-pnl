@@ -1,5 +1,6 @@
 import { isAutoSend } from "../whatsapp-attention-rules";
 import { foldForSearch } from "../search-normalize";
+import { personFirstName } from "@/lib/person-name";
 
 /**
  * ¿La llamada gratis se hizo? WhatsApp no avisa de las llamadas que Dayana
@@ -108,7 +109,7 @@ export const checkReply = (text: string): CallOutcome | null => {
 
 /** El mensaje para reagendar, con las horas (o sin ellas si no hay libres). */
 export const rescheduleMessage = (name: string | null | undefined, slotLabels: string[]): string => {
-  const first = name?.trim().split(/\s+/)[0];
+  const first = personFirstName(name);
   const hi = first ? `Hola ${first}` : "Hola";
   const head = `${hi} 🙏 Dayana te llamó a la hora de tu llamada gratis y no logramos comunicarnos. Quedamos atentos para reagendarla.`;
   if (slotLabels.length === 0) return `${head} Escríbeme qué día y hora te quedan bien y te la agendo de nuevo.`;
@@ -117,6 +118,6 @@ export const rescheduleMessage = (name: string | null | undefined, slotLabels: s
 
 /** La pregunta cuando el chat no dice nada claro. */
 export const checkMessage = (name: string | null | undefined): string => {
-  const first = name?.trim().split(/\s+/)[0];
+  const first = personFirstName(name);
   return `${first ? `Hola ${first}` : "Hola"} 🙏 ¿Pudiste hablar con Dayana en tu llamada gratis?`;
 };

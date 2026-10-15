@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { WHATSAPP_COMMUNITY_URL } from "@/lib/contact";
+
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 
 /**
@@ -16,6 +18,16 @@ import { getSiteSetting, setSiteSetting } from "./site-settings";
  */
 
 const CONFIG_KEY = "whatsapp.ai";
+
+/** El curso en vivo en grupo: la opción de pago más económica que hay hoy (oct. 2026). */
+export const DEFAULT_AFFORDABLE_OPTIONS = [
+  {
+    key: "curso-en-vivo",
+    label: "Curso en vivo con Dayana: clases en grupo por Google Meet, cupos limitados (más económico que la terapia 1:1)",
+    url: "/pagar/p/course-live",
+    enabled: true,
+  },
+];
 
 /** Lo que mueve a buscar ayuda y la pregunta clave para cada cosa (las de Dayana). */
 export const DEFAULT_BUY_BUTTONS = [
@@ -278,6 +290,36 @@ export const whatsAppAiConfigSchema = z.object({
     enabled: z.boolean().default(false),
     keepDays: z.number().int().min(14).max(365).default(45),
   }),
+  /**
+   * La comunidad gratis de WhatsApp de Dayana: la asistente manda el enlace
+   * cuando la piden («¿me agregas al grupo?») o cuando no les alcanza para la
+   * terapia. El enlace lo pega el código, nunca el modelo.
+   */
+  community: z.object({
+    enabled: z.boolean().default(true),
+    name: z.string().trim().min(2).max(80).default("Dayana Beltrán - PNL"),
+    url: z.string().trim().url().max(300).default(WHATSAPP_COMMUNITY_URL),
+  }),
+  /**
+   * Lo más económico que la asistente ofrece cuando a alguien no le alcanza
+   * para la terapia («eso no me alcanza», «primero ahorraré»), además de la
+   * comunidad. `url` puede ser una ruta del sitio («/pagar/p/course-live»).
+   */
+  affordable: z.object({
+    enabled: z.boolean().default(true),
+    options: z
+      .array(
+        z.object({
+          key: z.string().trim().min(2).max(30),
+          /** Lo que la asistente sabe de la opción (sin precio). */
+          label: z.string().trim().min(2).max(160),
+          url: z.string().trim().min(2).max(300),
+          enabled: z.boolean().default(true),
+        })
+      )
+      .max(4)
+      .default(DEFAULT_AFFORDABLE_OPTIONS),
+  }),
   /** La llamada gratis de 15 minutos (Dayana llama por WhatsApp). */
   freeCall: z.object({
     /**
@@ -367,6 +409,8 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   pauses: { onHumanReply: false, onEscalation: false },
   payments: { methods: [], sendLinks: true, receipts: true },
   mediaCleanup: { enabled: false, keepDays: 45 },
+  community: { enabled: true, name: "Dayana Beltrán - PNL", url: WHATSAPP_COMMUNITY_URL },
+  affordable: { enabled: true, options: DEFAULT_AFFORDABLE_OPTIONS },
   salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },
   freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3 },
   waitingRoom: { enabled: false, proactive: false },
