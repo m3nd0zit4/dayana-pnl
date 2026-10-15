@@ -174,9 +174,12 @@ const CursoDetallePage = async ({
                     }.`
                   : "Todavía no has empezado. Es un buen momento."}
               </p>
+              {/* «Empezar el curso» va sin `?c=`: el reproductor abre por el
+                  principio del temario. Solo «Continuar» salta a la siguiente
+                  lección sin completar. */}
               <Link
                 href={
-                  course.access.nextClassId
+                  course.access.completedLessons > 0 && course.access.nextClassId
                     ? `/miembros/curso/${slug}?c=${course.access.nextClassId}`
                     : `/miembros/curso/${slug}`
                 }

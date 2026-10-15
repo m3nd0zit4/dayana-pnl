@@ -288,6 +288,13 @@ const CoursePlayer = ({
     if (selectedClass.contentType === "QUIZ" || selectedClass.contentType === "EXERCISE") {
       return;
     }
+    // Una clase en video sin video que ver (aún sin grabar, en vivo más
+    // adelante, o vencida) no se da por vista: se marcaba sola a los 45 s
+    // mirando el aviso de «todavía no tiene video», y con eso «Empezar» pasaba
+    // a «Continuar» y la reanudación se saltaba la Presentación del curso.
+    if (selectedClass.contentType === "VIDEO" && !isRecordingVisible(selectedClass)) {
+      return;
+    }
 
     const dwellSec =
       selectedClass.contentType === "TEXT"

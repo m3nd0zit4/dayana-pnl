@@ -9,6 +9,7 @@ import { getCourseOutline, sanitizeQuizForMember } from "@/lib/lms/course-conten
 import { readExercise } from "@/lib/lms/exercise";
 import { getCompletedClassIds, getCourseProgress } from "@/lib/lms/class-progress";
 import { getCompletedModuleIds } from "@/lib/lms/module-progress";
+import { courseEntryId } from "@/lib/lms/course-sequence";
 import CoursePlayer from "@/app/components/miembros/CoursePlayer";
 
 export const dynamic = "force-dynamic";
@@ -49,8 +50,9 @@ const Page = async ({ params, searchParams }: PageProps) => {
     getCourseProgress(productId, member.contact.id),
   ]);
 
-  const selectedClassId =
-    selectedFromUrl ?? progress.nextIncompleteClassId ?? modules[0]?.classes[0]?.id ?? null;
+  // Sin `?c=`: por el principio del temario —la Introducción del módulo 1—
+  // si aún no hay nada completado, y donde lo dejó si ya empezó.
+  const selectedClassId = selectedFromUrl ?? courseEntryId(modules, progress);
 
   return (
     <CoursePlayer

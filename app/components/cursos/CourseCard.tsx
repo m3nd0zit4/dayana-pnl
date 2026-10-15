@@ -50,9 +50,12 @@ const CourseCard = ({
   const complete = hasAccess && access != null && access.percent === 100;
 
   // Con acceso la tarjeta deja de ser escaparate y pasa a ser puerta: lleva a
-  // la lección donde lo dejó, no al temario que ya conoce.
+  // la lección donde lo dejó, no al temario que ya conoce. «Empezar» y
+  // «Repasar» van sin `?c=`: el reproductor abre entonces por el principio del
+  // temario (la Introducción del módulo 1), que `nextClassId` se saltaba
+  // porque solo cuenta lecciones.
   const href = hasAccess
-    ? access?.nextClassId
+    ? started && access?.nextClassId
       ? `/miembros/curso/${course.slug}?c=${access.nextClassId}`
       : `/miembros/curso/${course.slug}`
     : `/cursos/${course.slug}`;
