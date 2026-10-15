@@ -1,0 +1,47 @@
+{
+  "title": "Ejercicio · Reformula tu objetivo",
+  "description": "Un objetivo que llevas tiempo sin cumplir, pasado por las cinco condiciones y por la ecología.",
+  "introMd": "Elige **un objetivo que llevas tiempo sin cumplir**. De esos que aparecen cada enero.",
+  "sections": [
+    {
+      "title": "1 · Como lo dices ahora",
+      "fields": [
+        {
+          "id": "objetivo-original",
+          "label": "Escríbelo tal cual lo piensas",
+          "type": "short",
+          "placeholder": "Quiero dejar de procrastinar"
+        }
+      ]
+    },
+    {
+      "title": "2 · Con las cinco condiciones",
+      "bodyMd": "En positivo · que dependa de ti · dónde y cuándo · cómo lo vas a saber · el primer paso con día.",
+      "fields": [
+        {
+          "id": "objetivo-reformulado",
+          "label": "Reescríbelo cumpliendo las cinco",
+          "help": "Si alguna te cuesta, ahí está el motivo de que no avance.",
+          "placeholder": "Quiero escribir veinte minutos cada mañana antes de abrir el correo, de lunes a viernes. Lo sabré porque el viernes tendré cinco páginas. Empiezo el lunes a las 8"
+        }
+      ]
+    },
+    {
+      "title": "3 · La ecología",
+      "bodyMd": "La parte incómoda, y la que explica los años que llevas con esto.",
+      "fields": [
+        {
+          "id": "que-pierdo",
+          "label": "¿Qué pierdo si lo consigo, y qué me está dando la situación actual?",
+          "help": "Siempre da algo: tranquilidad, evitar un conflicto, una excusa, la compañía de alguien. Siempre."
+        },
+        {
+          "id": "como-conservo",
+          "label": "¿Cómo consigo el objetivo conservando eso?",
+          "help": "Esta es la pregunta que desatasca. Casi nunca hay que elegir entre las dos cosas."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si en el punto 3 apareció algo que no habías mirado nunca, ese es el resultado del ejercicio — más que el objetivo reformulado.\n\n> Un objetivo mal formulado no falla por falta de disciplina. Falla porque nunca le diste a tu mente algo que pudiera ejecutar."
+}

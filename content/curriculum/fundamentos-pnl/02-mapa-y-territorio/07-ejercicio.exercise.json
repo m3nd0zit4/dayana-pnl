@@ -1,0 +1,46 @@
+{
+  "title": "Ejercicio · Desmonta tu frase",
+  "description": "Tomar una frase que te repites y separarla en sus tres filtros.",
+  "introMd": "Elige **una frase que te dices a menudo** y que te deja sin salida. De esas que suenan a verdad y llevan años sonando.",
+  "sections": [
+    {
+      "title": "1 · La frase",
+      "fields": [
+        {
+          "id": "frase",
+          "label": "Escríbela tal cual la piensas",
+          "type": "short",
+          "placeholder": "Nunca me toman en serio en el trabajo"
+        }
+      ]
+    },
+    {
+      "title": "2 · Los tres filtros",
+      "bodyMd": "No la corrijas todavía: solo señala qué hay dentro.",
+      "fields": [
+        {
+          "id": "filtros",
+          "label": "¿Qué información falta, qué estás interpretando como si fuera un hecho y qué palabra la convierte en ley?",
+          "help": "Omisión: ¿quién exactamente, en qué? · Distorsión: ¿qué viste u oíste de verdad? · Generalización: siempre, nunca, todos, nadie."
+        },
+        {
+          "id": "excepcion",
+          "label": "¿Ha habido alguna vez en que no fue así? Descríbela",
+          "help": "Aunque sea una. Aunque haya sido hace años. Con una sola excepción, la ley deja de ser ley."
+        }
+      ]
+    },
+    {
+      "title": "3 · La frase reescrita",
+      "fields": [
+        {
+          "id": "reescrita",
+          "label": "Reescríbela con lo que sí sabes",
+          "help": "Sin generalizaciones, sin lectura de mente, con la información que faltaba.",
+          "placeholder": "En las reuniones de los lunes, cuando propongo algo sin datos, Andrés suele responder con otra idea"
+        }
+      ]
+    }
+  ],
+  "closingMd": "> No respondemos a la realidad. Respondemos a nuestro mapa de la realidad.\n\nAcabas de corregir una parte de tu mapa. No es poca cosa: la frase vieja no tenía salida y la nueva sí."
+}

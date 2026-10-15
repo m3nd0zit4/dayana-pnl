@@ -1,0 +1,47 @@
+{
+  "title": "Ejercicio · Observar sin interpretar",
+  "description": "Probar el cambio de estado en ti y entrenar la calibración con una persona real.",
+  "introMd": "Dos partes: una sobre ti y una sobre otra persona. La segunda es la que más cuesta, porque hay que resistirse a concluir.",
+  "sections": [
+    {
+      "title": "1 · El cambio de 60 segundos",
+      "bodyMd": "Haz ahora el protocolo: pies en el suelo · tres exhalaciones largas · suelta la mandíbula · abre la mirada · una frase corta.",
+      "fields": [
+        {
+          "id": "que-cambio",
+          "label": "¿Qué notaste que cambió, y cuál de las palancas te movió más?",
+          "help": "Aunque sea poco. Sobre todo si fue poco: eso también es información."
+        }
+      ]
+    },
+    {
+      "title": "2 · La línea base de otra persona",
+      "bodyMd": "Elige a alguien con quien hables a menudo. Obsérvala cuando está **en calma**, sin buscar nada.",
+      "fields": [
+        {
+          "id": "linea-base",
+          "label": "¿Quién es y cómo es en calma? Respiración, voz, cara",
+          "placeholder": "Mi hermano: respira lento, en el abdomen; habla despacio; la mandíbula suelta"
+        }
+      ]
+    },
+    {
+      "title": "3 · Un cambio observado",
+      "bodyMd": "En una conversación, busca **un momento** en que algo se movió. Descríbelo **sin concluir nada**.",
+      "fields": [
+        {
+          "id": "que-se-movio",
+          "label": "¿Qué pasó justo antes, y qué cambió exactamente? Solo lo observable",
+          "help": "«Se calló dos segundos y dejó de mirarme cuando mencioné el viaje», no «se molestó»."
+        },
+        {
+          "id": "comprobacion",
+          "label": "¿Lo comprobaste? ¿Qué te respondió?",
+          "help": "«Te noté algo distinto cuando salió ese tema, ¿me equivoco?»",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si en el punto 3 escribiste una conclusión en vez de una observación, vuelve y reescríbela. Ese es todo el ejercicio.\n\n> Calibrar no es saber lo que el otro piensa. Es notar cuándo algo cambió — y tener la humildad de preguntar qué fue."
+}

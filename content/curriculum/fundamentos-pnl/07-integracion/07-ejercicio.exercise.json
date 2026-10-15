@@ -1,0 +1,59 @@
+{
+  "title": "Ejercicio final · Tu plan de aplicación",
+  "description": "Qué te llevas, cuándo vas a practicar y por dónde sigues.",
+  "introMd": "Último ejercicio del curso. Lo que escribas aquí es tu plan para las próximas tres semanas.",
+  "sections": [
+    {
+      "title": "1 · Balance",
+      "fields": [
+        {
+          "id": "pieza-util",
+          "label": "La pieza que más me sirvió, y por qué",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Tu práctica de 10 minutos",
+      "bodyMd": "La rutina es fija; lo que decides es **cuándo**. Engánchala a algo que ya haces.",
+      "fields": [
+        {
+          "id": "momentos",
+          "label": "¿Después de qué harás los minutos de la mañana, y los de la noche?",
+          "type": "short",
+          "placeholder": "Mañana: después de lavarme los dientes. Noche: al meterme en la cama"
+        }
+      ]
+    },
+    {
+      "title": "3 · Un objetivo bien formulado",
+      "bodyMd": "Aplica lo del módulo 6 a algo que quieras para el próximo mes.",
+      "fields": [
+        {
+          "id": "objetivo",
+          "label": "Tu objetivo, con la plantilla completa",
+          "help": "Quiero… en… y lo sabré porque… El primer paso es… Lo que me va a frenar es… Cuando pase, voy a… Podría perder… así que además voy a…"
+        }
+      ]
+    },
+    {
+      "title": "4 · Por dónde sigues",
+      "fields": [
+        {
+          "id": "siguiente-curso",
+          "label": "¿Qué curso haces después?",
+          "type": "choice",
+          "options": [
+            "El poder del lenguaje — discutir menos y que me entiendan",
+            "Creencias limitantes — un techo que se repite",
+            "Emociones y anclajes — nervios, miedo, reactividad",
+            "Hipnosis y PNL — trabajar con el inconsciente",
+            "Los 8 Niveles de Conciencia — desde dónde decido",
+            "PNL para relaciones y pareja"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "> Lo que ves es tu mapa. Detrás de cada conducta hay una intención. El estado se elige. Y lo que quieres se puede formular de manera que tu mente sepa qué hacer con ello.\n\nLo demás son herramientas, y se aprenden cuando hacen falta.\n\nGracias por el recorrido, líderes. Seguimos creciendo juntos. 🤝✨"
+}
