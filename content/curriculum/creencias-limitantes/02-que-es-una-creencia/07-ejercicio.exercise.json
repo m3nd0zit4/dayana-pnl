@@ -1,0 +1,51 @@
+{
+  "title": "Ejercicio · Tu inventario de creencias",
+  "description": "Diez frases sobre ti, la que más pesa y su traducción a capacidad.",
+  "introMd": "Escribe rápido y sin editar. Lo que sale sin pensar es lo que está instalado; lo que sale pensado es lo que te gustaría creer.",
+  "sections": [
+    {
+      "title": "1 · Diez frases",
+      "bodyMd": "Empieza cada una por **«yo soy…»** o **«yo no soy…»**. No las juzgues, no las suavices.",
+      "fields": [
+        {
+          "id": "frases",
+          "label": "Tus diez «yo soy», una por línea",
+          "placeholder": "Yo soy… / Yo no soy…"
+        }
+      ]
+    },
+    {
+      "title": "2 · La que más pesa",
+      "fields": [
+        {
+          "id": "cual-pesa",
+          "label": "De todas, ¿cuál te limita más hoy?",
+          "type": "short"
+        },
+        {
+          "id": "tipo",
+          "label": "¿De qué tipo es?",
+          "type": "choice",
+          "options": [
+            "Sobre el mundo — «la gente / la vida / el dinero es…»",
+            "Sobre mi capacidad — «no sé / no puedo…»",
+            "Sobre mi identidad — «soy / no soy…»"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3 · La traducción",
+      "bodyMd": "Si es de identidad, bájala a capacidad. La palabra que hace el trabajo es **«todavía»**.",
+      "fields": [
+        {
+          "id": "traduccion",
+          "label": "La misma creencia, en versión capacidad",
+          "type": "short",
+          "placeholder": "«Soy un desastre» → «todavía no tengo un sistema para organizarme»"
+        }
+      ]
+    }
+  ],
+  "closingMd": "No crees lo que crees porque sea verdad. Lo crees porque en algún momento algo te lo enseñó y nunca volviste a revisarlo.\n\nAcabas de revisarlo. Eso ya es distinto."
+}

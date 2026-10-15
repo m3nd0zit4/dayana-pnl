@@ -1,0 +1,46 @@
+{
+  "title": "Ejercicio · Rastrea y baja",
+  "description": "Una molestia de tu semana, bajada escalón a escalón hasta la frase exacta.",
+  "introMd": "Elige **una** molestia de tu semana de campo: una reacción desmedida, un techo, una envidia o algo que evitas.\n\nSi al bajar aparece algo que te desborda, para y busca acompañamiento. Este ejercicio no sustituye eso.",
+  "sections": [
+    {
+      "title": "1 · La molestia",
+      "fields": [
+        {
+          "id": "molestia",
+          "label": "Lo que notas, tal cual, sin arreglarlo",
+          "type": "short",
+          "placeholder": "Me molesta muchísimo que mi hermana no me llame"
+        }
+      ]
+    },
+    {
+      "title": "2 · La escalera",
+      "bodyMd": "Baja preguntando **«¿y eso qué significa?»** en cada escalón. Sin irte de lado (explicaciones), sin irte hacia arriba (soluciones) y sin quedarte en una etiqueta.",
+      "fields": [
+        {
+          "id": "escalones",
+          "label": "Tus escalones, uno por línea",
+          "placeholder": "No le importo tanto / Si yo no llamo, nadie llama / …"
+        },
+        {
+          "id": "la-frase",
+          "label": "LA FRASE",
+          "help": "Escríbela tal como suena por dentro, sin suavizarla.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "3 · La comprobación",
+      "fields": [
+        {
+          "id": "comprobacion",
+          "label": "Dila en voz alta. ¿Qué pasó en tu cuerpo?",
+          "help": "Esa es la señal más fiable de que llegaste a la frase correcta. Si no pasó nada, prueba otra rama desde el segundo escalón."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Guarda esa frase. Es con la que vas a trabajar en los módulos siguientes: el reencuadre y la instalación.\n\nLo que no se nombra no se puede cambiar. La mitad del trabajo era encontrar la frase, y ya está hecha."
+}

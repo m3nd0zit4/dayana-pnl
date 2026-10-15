@@ -1,0 +1,44 @@
+{
+  "title": "Ejercicio · Tu circuito completo",
+  "description": "Rastrear una creencia limitante hasta la conclusión que la instaló, y comprobar que había otras lecturas.",
+  "introMd": "Elige **una creencia que reconozcas como limitante**. No la más grande: una que puedas mirar hoy sin que te desborde.\n\nSi en algún momento esto se pone demasiado intenso, para. Este trabajo no sustituye un acompañamiento profesional.",
+  "sections": [
+    {
+      "title": "1 · La creencia y su origen",
+      "fields": [
+        {
+          "id": "creencia",
+          "label": "Escribe la creencia como suena por dentro",
+          "type": "short",
+          "placeholder": "Cuando hablo en público hago el ridículo"
+        },
+        {
+          "id": "interpretacion",
+          "label": "Piensa en la primera vez que recuerdas haber sentido esto. ¿Qué te dijiste de ti en ese momento?",
+          "help": "No hace falta que sea EL momento. Basta con uno temprano."
+        }
+      ]
+    },
+    {
+      "title": "2 · La pregunta que lo cambia todo",
+      "fields": [
+        {
+          "id": "que-edad",
+          "label": "¿Qué edad tenía quien sacó esa conclusión, y qué no sabía entonces que tú sí sabes ahora?"
+        }
+      ]
+    },
+    {
+      "title": "3 · Otras interpretaciones",
+      "bodyMd": "Vuelve a la experiencia. No tienes que creértelas: solo comprobar que existían.",
+      "fields": [
+        {
+          "id": "otras",
+          "label": "Tres interpretaciones distintas que un adulto podría haber hecho de lo mismo",
+          "placeholder": "«Mamá estaba agotada; no tenía que ver conmigo»"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Cuando el circuito está escrito, deja de ser «yo soy así». Se ve como lo que es: **una secuencia que empezó en algún lugar**.\n\nY todo lo que empezó puede modificarse."
+}

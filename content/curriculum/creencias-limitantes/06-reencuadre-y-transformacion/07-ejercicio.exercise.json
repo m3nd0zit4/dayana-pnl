@@ -1,0 +1,50 @@
+{
+  "title": "Ejercicio · Reencuadra tu creencia",
+  "description": "Tu frase del módulo 3, agrietada, mirada desde la raíz y escrita de nuevo.",
+  "introMd": "Trae la frase exacta que encontraste en el módulo 3.\n\nSi la experiencia que la sostiene te desborda, no la uses aquí: elige otra creencia más pequeña y busca acompañamiento.",
+  "sections": [
+    {
+      "title": "1 · La creencia",
+      "fields": [
+        {
+          "id": "creencia",
+          "label": "La frase, tal como la encontraste",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · La grieta",
+      "fields": [
+        {
+          "id": "contraejemplo",
+          "label": "¿Alguna vez, aunque fuera una, no fue así? Cuéntalo con detalle",
+          "help": "Con una excepción, la ley deja de ser ley."
+        }
+      ]
+    },
+    {
+      "title": "3 · La experiencia original",
+      "bodyMd": "Vuelve al momento en que se instaló, mirándolo desde fuera. Sin prisa.",
+      "fields": [
+        {
+          "id": "que-le-dirias",
+          "label": "Si hoy vieras a otra persona de esa edad en esa misma situación, ¿qué le dirías?",
+          "help": "Escríbelo como se lo dirías de verdad. Después léelo en voz alta."
+        }
+      ]
+    },
+    {
+      "title": "4 · Después",
+      "fields": [
+        {
+          "id": "creencia-nueva",
+          "label": "Si tuvieras que escribir tu creencia de nuevo hoy, ¿cómo quedaría?",
+          "type": "short",
+          "help": "Creíble hoy. En proceso. Sobre lo que haces."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Guarda esa última frase: es la que vas a instalar en el módulo 7.\n\nReencuadrar abre la puerta, pero no la mantiene abierta. El marco viejo tiene años de práctica; el nuevo tiene un día. Por eso falta la repetición."
+}

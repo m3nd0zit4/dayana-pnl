@@ -4,39 +4,25 @@
   "introMd": "Último ejercicio del curso. Lo que escribas aquí es tu protocolo para las próximas tres semanas.",
   "sections": [
     {
-      "title": "1 · La frase",
+      "title": "1 · La frase y la escena",
       "bodyMd": "Creíble hoy · en proceso · sobre lo que haces · **corta** (que quepa en una respiración).",
       "fields": [
         {
           "id": "frase",
           "label": "Tu frase nueva",
           "type": "short",
-          "placeholder": "Puedo decir que no"
+          "placeholder": "Puedo decir que no",
+          "help": "Dila en voz alta. Si tu mente responde «mentira», bájala un escalón."
         },
         {
-          "id": "prueba-frase",
-          "label": "Dila en voz alta. ¿Qué responde tu mente?",
-          "help": "Si responde «mentira», bájala un escalón. El punto correcto tiene un poco de tensión, sin rechazo.",
-          "type": "short"
+          "id": "escena",
+          "label": "Un momento real en que esa frase fue verdad: qué ves, qué oyes, qué sientes y dónde",
+          "help": "Aunque fuera pequeño, aunque durara diez minutos."
         }
       ]
     },
     {
-      "title": "2 · La escena de referencia",
-      "bodyMd": "Un momento **real** en que esa frase fue verdad. Aunque fuera pequeño, aunque durara diez minutos.",
-      "fields": [
-        { "id": "escena", "label": "¿Cuándo fue? Descríbelo" },
-        { "id": "escena-veo", "label": "¿Qué ves en esa escena?", "type": "short" },
-        { "id": "escena-oigo", "label": "¿Qué oyes?", "type": "short" },
-        {
-          "id": "escena-siento",
-          "label": "¿Qué sientes, y dónde en el cuerpo?",
-          "type": "short"
-        }
-      ]
-    },
-    {
-      "title": "3 · El ancla",
+      "title": "2 · El ancla",
       "fields": [
         {
           "id": "gesto",
@@ -47,38 +33,12 @@
       ]
     },
     {
-      "title": "4 · El calendario",
-      "fields": [
-        {
-          "id": "hora-manana",
-          "label": "¿A qué hora al despertar, y después de qué acción que ya haces?",
-          "type": "short"
-        },
-        {
-          "id": "hora-noche",
-          "label": "¿A qué hora antes de dormir?",
-          "type": "short"
-        },
-        {
-          "id": "situacion-real",
-          "label": "¿En qué situación real de tu día usarás el gesto?",
-          "help": "Ahí donde la creencia vieja solía activarse. Esto es lo que traslada el trabajo a la vida.",
-          "type": "short"
-        }
-      ]
-    },
-    {
-      "title": "5 · El compromiso",
+      "title": "3 · El compromiso",
       "fields": [
         {
           "id": "compromiso",
-          "label": "Escríbelo completo",
-          "help": "Durante 21 días voy a… a las… después de… Si fallo un día, retomo al siguiente. Nunca dos seguidos."
-        },
-        {
-          "id": "senal",
-          "label": "Voy a saber que está funcionando cuando…",
-          "type": "short"
+          "label": "Escríbelo completo: cuándo, después de qué, dónde usarás el gesto y qué te dirás si fallas un día",
+          "help": "Durante 21 días, después de… hago mi instalación. Usaré el gesto en… Si fallo un día, me digo… y retomo al siguiente. Nunca dos seguidos."
         }
       ]
     }

@@ -1,0 +1,45 @@
+{
+  "title": "Ejercicio · Reescribe tu diálogo interno",
+  "description": "Una frase tuya reescrita hasta que entre, una palabra pesada cambiada y tu frase de la semana.",
+  "introMd": "El objetivo no es que las frases queden bonitas. Es que **te las creas**: si no, el filtro las rechaza y no sirven de nada.",
+  "sections": [
+    {
+      "title": "1 · Lo que te dices",
+      "fields": [
+        {
+          "id": "limitante",
+          "label": "Una frase que te repites y que te limita, tal como suena",
+          "type": "short"
+        },
+        {
+          "id": "reescrita",
+          "label": "La misma frase, reescrita: creíble hoy, en proceso, sobre lo que haces",
+          "help": "Dila en voz alta. Si tu mente responde «mentira», bájala un escalón hasta que solo quede un poco de tensión.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · Una palabra pesada",
+      "fields": [
+        {
+          "id": "palabra",
+          "label": "Un «pero» o un «tengo que» tuyo, dicho con «y» o con «elijo». ¿Qué cambió?",
+          "placeholder": "«Lo hice bien pero me puse nerviosa» → «lo hice bien y me puse nerviosa»"
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu frase de la semana",
+      "fields": [
+        {
+          "id": "frase-semana",
+          "label": "Una sola frase, la que vas a repetir esta semana",
+          "help": "Al despertar y antes de dormir.",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "No se trata de decirte cosas bonitas. Se trata de decirte cosas que tu mente pueda aceptar y con las que se pueda hacer algo.\n\nUna sola frase, dos veces al día, durante una semana. Eso es todo."
+}

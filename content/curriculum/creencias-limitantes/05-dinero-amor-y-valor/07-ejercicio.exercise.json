@@ -1,0 +1,46 @@
+{
+  "title": "Ejercicio · Lo que heredaste sin elegirlo",
+  "description": "La frase heredada del territorio que más te pesa, la pregunta de raíz y una acción con día.",
+  "introMd": "Este ejercicio no busca culpables. Busca que **elijas por primera vez** algo que hasta ahora venía puesto de fábrica.",
+  "sections": [
+    {
+      "title": "1 · Lo heredado",
+      "fields": [
+        {
+          "id": "territorio",
+          "label": "¿Qué territorio te pesa más hoy?",
+          "type": "choice",
+          "options": ["Dinero", "Amor", "Valor personal"]
+        },
+        {
+          "id": "heredada",
+          "label": "¿Qué frase o qué modelo heredaste ahí, y qué de eso repites hoy sin haberlo elegido?",
+          "placeholder": "«De dinero no se habla» → no sé negociar mi sueldo"
+        }
+      ]
+    },
+    {
+      "title": "2 · La raíz",
+      "fields": [
+        {
+          "id": "cuanto-merezco",
+          "label": "¿Cuánto crees que mereces? Contéstalo sin corregirte.",
+          "help": "Esta es la pregunta que atraviesa los tres territorios."
+        }
+      ]
+    },
+    {
+      "title": "3 · Una acción",
+      "bodyMd": "Del territorio que más te pese. Concreta, con día.",
+      "fields": [
+        {
+          "id": "accion",
+          "label": "Mi acción de esta semana",
+          "type": "short",
+          "placeholder": "El jueves le paso el presupuesto a Marta con la tarifa nueva, sin justificarla"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Cobrar bien no es lo contrario de servir. Es la condición para poder seguir sirviendo el año que viene.\n\nY lo mismo vale para el amor y para el descanso: cuidarte no es quitarle nada a nadie."
+}
