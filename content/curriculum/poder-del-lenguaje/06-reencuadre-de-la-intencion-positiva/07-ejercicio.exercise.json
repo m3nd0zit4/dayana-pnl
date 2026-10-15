@@ -1,0 +1,44 @@
+{
+  "title": "Ejercicio · La conducta que no consigues quitarte",
+  "description": "Subir la cadena hasta la intención, reconocerla y buscar tres caminos alternativos.",
+  "introMd": "Elige una conducta tuya que hayas intentado cambiar más de una vez sin conseguirlo. Esa es la buena.",
+  "sections": [
+    {
+      "title": "1 · La conducta y la cadena",
+      "fields": [
+        {
+          "id": "conducta",
+          "label": "¿Qué haces exactamente?",
+          "type": "short",
+          "help": "Lo que grabaría una cámara. No «soy un desastre», sino «gasto de golpe cuando cobro»."
+        },
+        {
+          "id": "cadena",
+          "label": "Sube la cadena: ¿qué consigo con eso? ¿Y eso qué me da? ¿Y eso? Escribe cada escalón y la palabra grande del final",
+          "help": "Seguridad, libertad, pertenencia, valor, calma, control, descanso, que no vuelva a doler. Si sale «nada, es que soy así», insiste una vez más."
+        }
+      ]
+    },
+    {
+      "title": "2 · El reconocimiento",
+      "bodyMd": "Escríbelo y después dilo en voz alta. Si suena raro, es que llevaba tiempo sin decirse.",
+      "fields": [
+        {
+          "id": "reconocimiento",
+          "label": "«Tiene sentido que yo quiera… Es legítimo.»",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "3 · Los otros caminos",
+      "fields": [
+        {
+          "id": "caminos",
+          "label": "Tres caminos concretos que te den lo mismo, y cuál pruebas esta semana (con día)"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si la conducta vuelve, no falló el trabajo: falló el camino alternativo. Vuelve al paso 5 y busca otro."
+}

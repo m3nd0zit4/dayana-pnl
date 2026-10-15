@@ -1,0 +1,39 @@
+{
+  "title": "Ejercicio · Preguntar sin interrogar",
+  "description": "Convertir dos frases en preguntas y llevar una a una conversación real.",
+  "introMd": "La primera parte es de mesa. La segunda hay que llevarla a una conversación de verdad, esta semana.",
+  "sections": [
+    {
+      "title": "1 · De la frase a la pregunta",
+      "bodyMd": "Escribe la pregunta que abrirías en cada caso. Sin explicar, sin aconsejar: solo la pregunta.",
+      "fields": [
+        {
+          "id": "p1",
+          "label": "«Se nota que no le caigo bien.»",
+          "type": "short"
+        },
+        {
+          "id": "p2",
+          "label": "«En esta casa hay un problema de respeto.»",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · La conversación de esta semana",
+      "fields": [
+        {
+          "id": "conv-pregunta",
+          "label": "La pregunta que llevas preparada, con su suavizador, y con quién",
+          "type": "short",
+          "help": "Una. No tres."
+        },
+        {
+          "id": "conv-resultado",
+          "label": "Después: ¿la otra persona siguió hablando o se justificó? ¿Sonó a curiosidad o a interrogatorio?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si la otra persona siguió hablando, la pregunta estuvo bien. Si se justificó, revisa el tono antes que la pregunta."
+}

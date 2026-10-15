@@ -1,0 +1,44 @@
+{
+  "title": "Ejercicio · Siete días, siete preguntas",
+  "description": "El cambio del «por qué», la práctica de la semana y la acción con la que se cierra.",
+  "introMd": "Escribe la **segunda** respuesta, no la primera. La primera ya te la sabes.",
+  "sections": [
+    {
+      "title": "1 · Cambia el «por qué»",
+      "fields": [
+        {
+          "id": "pq-1",
+          "label": "Un «¿por qué…?» que te haces",
+          "type": "short"
+        },
+        {
+          "id": "pq-1-nueva",
+          "label": "Reescrito con qué / cómo / para qué",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · La semana",
+      "bodyMd": "Una pregunta al día, de las siete del material. No las contestes todas hoy: no sirve de nada.",
+      "fields": [
+        {
+          "id": "repetido",
+          "label": "Al terminar los siete días: ¿qué apareció más de una vez?"
+        }
+      ]
+    },
+    {
+      "title": "3 · El cierre",
+      "fields": [
+        {
+          "id": "accion",
+          "label": "La acción de esta semana",
+          "help": "Concreta y con día. Sin esto, la semana fue entretenimiento.",
+          "type": "short"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si al terminar estás dando vueltas a lo mismo, no es un fracaso: es la señal de que ahora toca moverse, no seguir preguntando."
+}

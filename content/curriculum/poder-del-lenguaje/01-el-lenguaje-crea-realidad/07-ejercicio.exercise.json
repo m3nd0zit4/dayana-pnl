@@ -1,0 +1,54 @@
+{
+  "title": "Ejercicio · Las cuatro palabras",
+  "description": "Cazar tus «pero» y tus «tengo que», y afinar el vocabulario emocional.",
+  "introMd": "Todo el ejercicio es de escucha. No hay nada que analizar: hay que oírse.",
+  "sections": [
+    {
+      "title": "1 · El «pero»",
+      "fields": [
+        {
+          "id": "pero",
+          "label": "Una frase tuya con «pero», y debajo la misma con «y». Léelas en voz alta: ¿qué cambia?"
+        }
+      ]
+    },
+    {
+      "title": "2 · El «tengo que»",
+      "fields": [
+        {
+          "id": "elijo",
+          "label": "Un «tengo que» tuyo de esta semana, dicho como «elijo». ¿Qué se rebeló, si algo se rebeló?",
+          "help": "Si algo protesta, ahí hay información: quizá no quieres hacerlo."
+        }
+      ]
+    },
+    {
+      "title": "3 · El vocabulario fino",
+      "bodyMd": "Prohibido «estoy mal» y «estoy bien». La palabra exacta.",
+      "fields": [
+        {
+          "id": "emocion",
+          "label": "Algo que te pasó esta semana, y la palabra exacta para lo que sentiste",
+          "placeholder": "No me contestaron el correo → no era «estoy mal», era «siento que me ignoraron»"
+        }
+      ]
+    },
+    {
+      "title": "4 · Tu cambio de la semana",
+      "fields": [
+        {
+          "id": "cambio",
+          "label": "¿Cuál de las cuatro palabras vas a vigilar estos tres días?",
+          "type": "choice",
+          "options": [
+            "El «pero» — cambiarlo por «y»",
+            "El «tengo que» — cambiarlo por «elijo»",
+            "El «siempre / nunca» — bajarlo a lo específico",
+            "El «es que yo soy…» — pasarlo a lo que hago"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "> Tu diálogo interno está haciendo algo contigo, quieras o no. Ya que está ahí, que trabaje a favor.\n\nUna sola palabra, tres días. Con eso empieza."
+}

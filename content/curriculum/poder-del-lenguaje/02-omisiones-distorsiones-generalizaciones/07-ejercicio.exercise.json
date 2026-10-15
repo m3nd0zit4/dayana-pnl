@@ -1,0 +1,37 @@
+{
+  "title": "Ejercicio · Caza de filtros",
+  "description": "Rastrear los tres filtros en una frase ajena y en una queja tuya completa.",
+  "introMd": "Nada que analizar todavía. Solo escuchar y anotar textual — la frase exacta, no el resumen.",
+  "sections": [
+    {
+      "title": "1 · En lo que oyes",
+      "fields": [
+        {
+          "id": "ajena",
+          "label": "Una frase que oíste hoy, textual, y el filtro que tiene",
+          "help": "Omisión, distorsión o generalización. Si puedes, la forma exacta."
+        }
+      ]
+    },
+    {
+      "title": "2 · Tu queja completa",
+      "bodyMd": "Elige una queja que repitas y escríbela entera, tal como te la dices.",
+      "fields": [
+        {
+          "id": "queja",
+          "label": "La queja, textual"
+        },
+        {
+          "id": "queja-falta",
+          "label": "¿Qué falta, qué das por hecho sin haberlo comprobado y qué caso convertiste en ley?"
+        },
+        {
+          "id": "queja-nueva",
+          "label": "La misma queja, con la información recuperada",
+          "help": "No más amable: más exacta. Fíjate si sigue doliendo igual."
+        }
+      ]
+    }
+  ],
+  "closingMd": "La versión exacta casi nunca es la más dramática. Ese es el efecto: no consuela, precisa."
+}

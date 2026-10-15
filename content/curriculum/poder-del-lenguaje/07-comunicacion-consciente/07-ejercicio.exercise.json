@@ -1,0 +1,49 @@
+{
+  "title": "Ejercicio · Tu conversación pendiente",
+  "description": "Preparar las cuatro partes, tenerla de verdad y revisarla después.",
+  "introMd": "Elige una conversación que lleves aplazando. De tamaño medio: ni una tontería ni la más grande que tengas.",
+  "sections": [
+    {
+      "title": "1 · Observación o evaluación",
+      "fields": [
+        {
+          "id": "oe-mia",
+          "label": "Una evaluación tuya, de las que dices de verdad, reescrita como algo que grabaría una cámara",
+          "type": "short",
+          "help": "Si la otra persona puede discutírtela, todavía es una evaluación."
+        }
+      ]
+    },
+    {
+      "title": "2 · Tus cuatro partes",
+      "fields": [
+        {
+          "id": "cuatro-partes",
+          "label": "¿Con quién es? Escribe la observación, el efecto en ti, tu necesidad y tu petición (concreta, en positivo, con derecho a no)"
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu «no» de esta semana",
+      "fields": [
+        {
+          "id": "no-frase",
+          "label": "¿A qué vas a decir que no? Escríbelo como reconocer + no + alternativa",
+          "type": "short",
+          "help": "Sin excusa larga, sin «déjame ver» y sin disculpa múltiple."
+        }
+      ]
+    },
+    {
+      "title": "4 · Después",
+      "bodyMd": "Rellénalo el mismo día, no una semana después.",
+      "fields": [
+        {
+          "id": "post",
+          "label": "¿Tu parte 1 fue observación o evaluación? ¿Se defendió? ¿En qué momento exacto? ¿Qué harías distinto?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si se torció, busca el segundo exacto. Casi siempre es la frase donde apareció un «siempre» o un «nunca»."
+}
