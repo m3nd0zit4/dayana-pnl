@@ -11,10 +11,12 @@ import {
 } from "@/app/components/ui/accordion";
 import { Badge } from "@/app/components/ui/badge";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
+import { moduleStartId, readingId } from "@/lib/lms/course-sequence";
 import type { OutlineClass, OutlineModule } from "./CoursePlayer";
 
-/** Sentinel id for a module's own overview/reading content, distinct from a class id. */
-export const readingId = (moduleId: string) => `reading:${moduleId}`;
+// Vive en `lib/lms/course-sequence.ts`, que es quien define el orden del
+// temario también para el servidor.
+export { readingId };
 
 /**
  * Quita el «Módulo 3 · » del título: el número ya lo pinta la fila de arriba,
@@ -160,11 +162,26 @@ const CourseOutlineSidebar = ({
     );
   }
 
+  /**
+   * Abrir un módulo es entrar en él: se va a su primera entrada (la
+   * Introducción, o la primera lección si no tiene). Antes solo desplegaba la
+   * lista y la lección de otro módulo seguía en pantalla. Abrir el módulo en el
+   * que ya se está, o cerrar uno, no mueve nada.
+   */
+  const handleOpenChange = (value: string[]) => {
+    const opened = value.filter((id) => !openModules.includes(id));
+    setOpenModules(value);
+    if (opened.length !== 1 || opened[0] === selectedModuleId) return;
+    const mod = modules.find((m) => m.id === opened[0]);
+    const start = mod ? moduleStartId(mod) : null;
+    if (start) onSelect(start);
+  };
+
   return (
     <Accordion
       multiple
       value={openModules}
-      onValueChange={(value) => setOpenModules(value as string[])}
+      onValueChange={(value) => handleOpenChange(value as string[])}
       className="divide-y divide-sidebar-border"
     >
       {modules.map((mod, index) => {
