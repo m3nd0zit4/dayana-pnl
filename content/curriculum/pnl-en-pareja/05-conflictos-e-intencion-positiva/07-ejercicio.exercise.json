@@ -1,0 +1,50 @@
+{
+  "title": "Ejercicio · La discusión que se repite",
+  "description": "Tu jinete, la cadena de las dos conductas y la frase para la pausa.",
+  "introMd": "Se hace a solas. La parte más útil es la que más incomoda: la cadena de **tu** conducta, no la suya. Si tu pareja quiere sumarse, la frase de la pausa se acuerda entre los dos, en frío.",
+  "sections": [
+    {
+      "title": "1 · Tu jinete",
+      "fields": [
+        {
+          "id": "j-mio",
+          "label": "¿Cuál de los cuatro es el tuyo?",
+          "type": "choice",
+          "options": [
+            "Crítica",
+            "Desprecio",
+            "Defensiva",
+            "Evasión"
+          ],
+          "help": "Si hay desprecio sostenido en cualquiera de los dos lados, el siguiente paso es ayuda profesional de pareja."
+        }
+      ]
+    },
+    {
+      "title": "2 · Las dos cadenas",
+      "fields": [
+        {
+          "id": "s-cadena",
+          "label": "La conducta suya que más te molesta, y la cadena hasta la palabra grande",
+          "help": "Conducta como la grabaría una cámara → ¿qué consigue? → ¿y eso? → la intención."
+        },
+        {
+          "id": "m-cadena",
+          "label": "Tu conducta que más le molesta, su cadena, y otra forma de conseguir lo mismo"
+        }
+      ]
+    },
+    {
+      "title": "3 · La pausa",
+      "fields": [
+        {
+          "id": "pausa",
+          "label": "Tu frase para pedir la pausa, y cuándo y cómo se retoma",
+          "type": "short",
+          "help": "Sin la vuelta, la pausa es abandono."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Las parejas que duran no discuten menos. Reparan más, y aceptan la reparación del otro. Si este mes solo practicas una cosa, que sea aceptar sus intentos de reparación."
+}

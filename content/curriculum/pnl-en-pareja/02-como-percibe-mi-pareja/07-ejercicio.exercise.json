@@ -1,0 +1,44 @@
+{
+  "title": "Ejercicio · El mapa del otro",
+  "description": "El canal de tu pareja, el gesto que no llega, la pregunta y la escena contada desde su lado.",
+  "introMd": "Se puede hacer a solas. Si tu pareja quiere sumarse, la última pregunta se responde después de contar la escena por turnos, sin interrumpir.",
+  "sections": [
+    {
+      "title": "1 · Los canales",
+      "fields": [
+        {
+          "id": "canal-suyo",
+          "label": "Por lo que hace cuando quiere demostrar cariño, el canal de tu pareja parece…",
+          "type": "choice",
+          "options": [
+            "Visual: que se vea",
+            "Auditivo: que se diga",
+            "Kinestésico: contacto y presencia",
+            "Una mezcla clara de dos"
+          ]
+        },
+        {
+          "id": "gesto",
+          "label": "Un gesto tuyo de cariño que quizá no le llega, y cómo lo traducirías a su canal sin cambiarlo",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "2 · La pregunta y las dos versiones",
+      "fields": [
+        {
+          "id": "pregunta",
+          "label": "Su respuesta a «¿qué es lo que más te hace sentir que te quiero, de lo que hago?»",
+          "help": "Si todavía no se la hiciste, escribe qué contestarías tú a esa misma pregunta."
+        },
+        {
+          "id": "no-sabia",
+          "label": "En la escena contada desde su lado, ¿qué apareció que no habías considerado?",
+          "help": "A solas: escríbela en primera persona, como si fueras tu pareja. En pareja: después de contarla por turnos."
+        }
+      ]
+    }
+  ],
+  "closingMd": "«No me quiere como yo le quiero» casi siempre es falso. «No me quiere en mi idioma» casi siempre es cierto, y eso sí se traduce."
+}

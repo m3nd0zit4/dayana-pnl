@@ -1,0 +1,43 @@
+{
+  "title": "Ejercicio · El recorrido de las tres posiciones",
+  "description": "Hacer el recorrido completo sobre una situación real y salir con una acción concreta.",
+  "introMd": "Se hace a solas, de pie y moviéndose entre tres puntos del suelo. Rellenar esto sin hacer el recorrido no produce el efecto, y se nota en las respuestas.",
+  "sections": [
+    {
+      "title": "1 · Antes de empezar",
+      "fields": [
+        {
+          "id": "situacion",
+          "label": "La situación",
+          "type": "short",
+          "help": "Concreta y de intensidad media. Sin maltrato, y con la herida no demasiado fresca."
+        }
+      ]
+    },
+    {
+      "title": "2 · Lo que encontraste",
+      "fields": [
+        {
+          "id": "p1-necesitaba",
+          "label": "Desde la primera posición: ¿qué necesitabas tú en ese momento?",
+          "help": "Si no lo sabes, quédate más tiempo en la primera antes de pasar a la segunda."
+        },
+        {
+          "id": "p3-ninguna",
+          "label": "Desde la tercera: ¿qué es lo que ninguna de las dos personas está viendo?"
+        }
+      ]
+    },
+    {
+      "title": "3 · Volver",
+      "fields": [
+        {
+          "id": "v-accion",
+          "label": "¿Qué te sorprendió, y qué vas a hacer distinto la próxima vez?",
+          "help": "Si nada te sorprendió, no cambiaste de posición: cambiaste de silla. La acción tiene que poder verse."
+        }
+      ]
+    }
+  ],
+  "closingMd": "El control de calidad es la sorpresa. Si no apareció ninguna, repite el recorrido otro día con más tiempo en la segunda."
+}

@@ -1,0 +1,37 @@
+{
+  "title": "Ejercicio · Acuerdos, límites y proyecto",
+  "description": "Convertir una promesa en acuerdo, poner un límite propio, responder la pregunta del proyecto que menos se hace y fijar la revisión.",
+  "introMd": "Se puede hacer a solas: un límite depende solo de ti, y la revisión se puede empezar contigo. Si tu pareja quiere sumarse, el acuerdo y la revisión se deciden entre los dos.",
+  "sections": [
+    {
+      "title": "1 · Acuerdo y límite",
+      "fields": [
+        {
+          "id": "acuerdo",
+          "label": "Una promesa que se hacen y no se cumple, convertida en acuerdo: conducta, cuándo, cómo se comprueba el domingo y qué pasa si no se cumple"
+        },
+        {
+          "id": "limite",
+          "label": "Una exigencia que sueles hacer, dicha como límite tuyo",
+          "type": "short",
+          "help": "«Si se grita, salgo de la habitación y volvemos en veinte minutos». Tiene que poder cumplirse sin que la otra persona coopere, se anuncia en frío y se sostiene."
+        }
+      ]
+    },
+    {
+      "title": "2 · Proyecto y revisión",
+      "fields": [
+        {
+          "id": "propia",
+          "label": "¿Qué necesitas para tu vida propia, aparte de la relación?",
+          "help": "La pregunta más importante del proyecto común, y la que menos se hace."
+        },
+        {
+          "id": "revision",
+          "label": "Día y hora de la revisión (con tu pareja o a solas), y qué salió la primera vez"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Una revisión de cinco minutos donde todo está bien es exactamente lo que hace que exista cuando algo vaya mal. Si hay violencia, nada de esto sustituye a un servicio especializado."
+}

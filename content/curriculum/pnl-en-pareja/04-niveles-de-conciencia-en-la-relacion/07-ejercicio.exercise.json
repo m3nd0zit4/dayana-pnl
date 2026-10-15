@@ -1,0 +1,42 @@
+{
+  "title": "Ejercicio · Su choque de nivel",
+  "description": "El área donde más chocan, lo que dices y lo que oye, y una petición traducida a su moneda.",
+  "introMd": "Esto se hace para entender, nunca para etiquetar. Se puede hacer a solas: lo que escribas de tu pareja es una suposición, no un diagnóstico.",
+  "sections": [
+    {
+      "title": "1 · El choque",
+      "fields": [
+        {
+          "id": "ch-cual",
+          "label": "¿Cuál se parece más a lo que les pasa?",
+          "type": "choice",
+          "options": [
+            "2 vs 3: familia / autonomía",
+            "4 vs 5: forma / resultado",
+            "5 vs 6: logro / vínculo",
+            "Otro"
+          ]
+        },
+        {
+          "id": "area",
+          "label": "El área donde más chocan, y qué está protegiendo cada uno desde su nivel"
+        }
+      ]
+    },
+    {
+      "title": "2 · Lo que se dice y lo que se oye",
+      "fields": [
+        {
+          "id": "digo-oye",
+          "label": "Una frase tuya, textual, y lo que probablemente oye tu pareja cuando la dices"
+        },
+        {
+          "id": "moneda",
+          "label": "Algo que quieres pedirle, dicho en su moneda. Después de decirlo así, ¿qué pasó?",
+          "help": "Misma petición, otra palabra. No una petición más pequeña."
+        }
+      ]
+    }
+  ],
+  "closingMd": "El modelo es para entender, nunca para clasificar a la persona que tienes al lado."
+}

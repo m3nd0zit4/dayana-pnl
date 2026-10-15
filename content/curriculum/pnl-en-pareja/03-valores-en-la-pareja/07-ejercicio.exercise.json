@@ -1,0 +1,45 @@
+{
+  "title": "Ejercicio · La jerarquía de los dos",
+  "description": "Tu orden real de valores, el choque que más les pasa, la discusión traducida y un acuerdo que se pueda comprobar.",
+  "introMd": "Se puede hacer a solas: donde se pregunta por tu pareja, anota lo que **supones** y compruébalo cuando puedas. Si tu pareja quiere sumarse, que lo haga por separado y comparen después.",
+  "sections": [
+    {
+      "title": "1 · El orden",
+      "fields": [
+        {
+          "id": "jerarquia",
+          "label": "Tu jerarquía del 1 al 5, ordenada eligiendo de a dos. Y al lado, tu suposición sobre los dos primeros de tu pareja",
+          "help": "Si una situación concreta te hizo elegir distinto de la lista, corrige la lista."
+        },
+        {
+          "id": "choque",
+          "label": "¿Cuál de los cuatro choques les pasa más?",
+          "type": "choice",
+          "options": [
+            "Seguridad / experiencia",
+            "Lealtad / autonomía",
+            "Orden / espontaneidad",
+            "Reconocimiento / discreción",
+            "Otro"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · La discusión y el acuerdo",
+      "fields": [
+        {
+          "id": "traduccion",
+          "label": "Su discusión repetida, traducida: el tema aparente, tu valor debajo y el valor de tu pareja"
+        },
+        {
+          "id": "acuerdo",
+          "label": "Un acuerdo concreto que cuide los dos valores",
+          "type": "short",
+          "help": "«Dos domingos al mes», no «me esforzaré más con tu familia». Tiene que poder comprobarse el domingo."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si el acuerdo no se puede comprobar el domingo, no es un acuerdo. Reescríbelo hasta que se pueda."
+}

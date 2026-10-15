@@ -1,0 +1,50 @@
+{
+  "title": "Ejercicio · Tu sintonía",
+  "description": "El canal donde están más lejos, tu gesto que rompe, una prueba de acompasar y la cuenta de intentos de conexión.",
+  "introMd": "Se hace a solas. Si tu pareja quiere sumarse, que responda por su lado y comparen al final de la semana, sin reproches.",
+  "sections": [
+    {
+      "title": "1 · Lo que observaste",
+      "fields": [
+        {
+          "id": "c-lejos",
+          "label": "¿En qué canal están más lejos tú y tu pareja?",
+          "type": "choice",
+          "options": [
+            "Cuerpo",
+            "Ritmo",
+            "Palabras",
+            "Estado"
+          ]
+        },
+        {
+          "id": "r-cual",
+          "label": "¿Cuál de los seis gestos que rompen es el tuyo?",
+          "type": "choice",
+          "options": [
+            "Mirar el celular",
+            "«Ya, pero…»",
+            "Terminar sus frases",
+            "Contar mi caso parecido",
+            "Corregir datos menores",
+            "Solucionar antes de tiempo"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2 · Lo que probaste",
+      "fields": [
+        {
+          "id": "a-que-paso",
+          "label": "La próxima vez que alguien llegó con la energía arriba: ¿acompasaste antes de bajar? ¿Cuántos turnos tardó y qué pasó?"
+        },
+        {
+          "id": "i-cuenta",
+          "label": "Intentos de conexión en una semana: cuántos notaste, cuántos respondiste y qué te sorprendió de la cuenta"
+        }
+      ]
+    }
+  ],
+  "closingMd": "Si la cuenta de intentos salió baja por los dos lados, ahí hay más trabajo que en cualquier conversación pendiente. Y se empieza mañana, levantando la vista."
+}
