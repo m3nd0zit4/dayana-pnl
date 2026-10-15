@@ -5,51 +5,12 @@
   "sections": [
     {
       "title": "1 · Por áreas",
-      "bodyMd": "¿Qué nivel reconoces más en cada área?",
       "fields": [
         {
-          "id": "nivel-familia",
-          "label": "En mi familia",
-          "type": "choice",
-          "options": [
-            "Nivel 1 · Supervivencia",
-            "Nivel 2 · Tribu",
-            "Nivel 3 · Poder",
-            "Nivel 4 · Orden"
-          ]
-        },
-        {
-          "id": "nivel-trabajo",
-          "label": "En mi trabajo",
-          "type": "choice",
-          "options": [
-            "Nivel 1 · Supervivencia",
-            "Nivel 2 · Tribu",
-            "Nivel 3 · Poder",
-            "Nivel 4 · Orden"
-          ]
-        },
-        {
-          "id": "nivel-pareja",
-          "label": "En mi relación de pareja",
-          "type": "choice",
-          "options": [
-            "Nivel 1 · Supervivencia",
-            "Nivel 2 · Tribu",
-            "Nivel 3 · Poder",
-            "Nivel 4 · Orden"
-          ]
-        },
-        {
-          "id": "nivel-dinero",
-          "label": "En mis decisiones de dinero",
-          "type": "choice",
-          "options": [
-            "Nivel 1 · Supervivencia",
-            "Nivel 2 · Tribu",
-            "Nivel 3 · Poder",
-            "Nivel 4 · Orden"
-          ]
+          "id": "areas",
+          "label": "¿Qué nivel reconozco más en mi familia, mi trabajo, mi pareja y mis decisiones de dinero?",
+          "help": "Nivel 1 · supervivencia, 2 · tribu, 3 · poder, 4 · orden.",
+          "placeholder": "Familia: 2 · Trabajo: 4 · …"
         }
       ]
     },
@@ -57,33 +18,18 @@
       "title": "2 · Por momentos",
       "fields": [
         {
-          "id": "momento-supervivencia",
-          "label": "¿En qué momentos de mi vida he operado desde la supervivencia?"
-        },
-        {
           "id": "momento-rebeldia",
-          "label": "¿En qué momentos he actuado desde la rebeldía o la independencia?"
-        },
-        {
-          "id": "momento-orden",
-          "label": "¿En qué áreas valoro más el orden y la disciplina?",
-          "required": false
+          "label": "¿En qué momentos de mi vida he actuado desde la rebeldía o la independencia? ¿Qué me dio?"
         }
       ]
     },
     {
       "title": "3 · Tu lenguaje interno",
-      "bodyMd": "De las frases del módulo, copia las que reconozcas como tuyas y anota **cuándo la dijiste por última vez**.",
       "fields": [
         {
-          "id": "frase-propia-1",
-          "label": "Frase 1 · y la última vez que la dije",
+          "id": "frase-propia",
+          "label": "Una frase del módulo que reconozco como mía, y la última vez que la dije",
           "placeholder": "«Si no lo hago yo, no lo hace nadie» — el sábado, organizando el cumpleaños de mi mamá"
-        },
-        {
-          "id": "frase-propia-2",
-          "label": "Frase 2 · y la última vez que la dije",
-          "required": false
         }
       ]
     },

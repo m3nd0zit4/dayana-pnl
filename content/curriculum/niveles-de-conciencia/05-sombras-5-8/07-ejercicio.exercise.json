@@ -4,44 +4,12 @@
   "introMd": "Estas cuatro son formas distintas de **no estar presente**: el 5 vive en la meta siguiente, el 6 en las necesidades del otro, el 7 en el análisis y el 8 en lo trascendente.",
   "sections": [
     {
-      "title": "Nivel 5 · Logro",
+      "title": "La pregunta del nivel 5",
       "fields": [
-        { "id": "n5-proceso", "label": "¿Estoy disfrutando el proceso o solo buscando resultados?" },
         {
           "id": "n5-sin-producir",
           "label": "¿Quién soy yo cuando no estoy produciendo?",
           "help": "Si la pregunta da vértigo, ahí está la sombra."
-        }
-      ]
-    },
-    {
-      "title": "Nivel 6 · Servicio",
-      "fields": [
-        {
-          "id": "n6-no",
-          "label": "¿Me cuesta decir que no?",
-          "type": "choice",
-          "options": ["Mucho", "A veces", "Poco"]
-        },
-        { "id": "n6-conversacion", "label": "¿Hay alguna conversación que llevo meses evitando? ¿Cuál?" }
-      ]
-    },
-    {
-      "title": "Nivel 7 · Sistemas",
-      "fields": [
-        {
-          "id": "n7-decision",
-          "label": "¿Qué decisión tengo pendiente esperando «tener más información»?"
-        }
-      ]
-    },
-    {
-      "title": "Nivel 8 · Unidad",
-      "fields": [
-        {
-          "id": "n8-tapando",
-          "label": "¿Hay algo concreto y pendiente que estoy tapando con lenguaje bonito?",
-          "required": false
         }
       ]
     },

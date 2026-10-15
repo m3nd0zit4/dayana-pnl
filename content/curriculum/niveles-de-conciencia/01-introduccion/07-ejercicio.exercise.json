@@ -1,0 +1,41 @@
+{
+  "title": "Ejercicio · Tu punto de partida",
+  "description": "Una foto de dónde estás hoy, antes de conocer el modelo en detalle.",
+  "introMd": "Respóndelo **ahora**, con lo primero que te venga. Quiero tu respuesta espontánea, no la «correcta». En el módulo 6 vuelves aquí.",
+  "sections": [
+    {
+      "title": "1 · Lo que más buscas",
+      "fields": [
+        {
+          "id": "buscando",
+          "label": "En esta etapa de mi vida, lo que más estoy buscando es…",
+          "help": "Una sola línea. No la edites.",
+          "type": "short",
+          "placeholder": "Escribe lo primero que te venga"
+        }
+      ]
+    },
+    {
+      "title": "2 · Área por área",
+      "bodyMd": "Una frase por área: qué buscas **ahí**, hoy.",
+      "fields": [
+        {
+          "id": "areas",
+          "label": "Trabajo, dinero, pareja, familia, salud y crecimiento personal: qué busco hoy en cada una",
+          "placeholder": "Trabajo: …\nDinero: …\nPareja: …"
+        }
+      ]
+    },
+    {
+      "title": "3 · Tu diálogo interno",
+      "fields": [
+        {
+          "id": "frases",
+          "label": "Las tres frases que más me repito por dentro, tal como suenan",
+          "help": "Las que llevan años sonando. Sin arreglarlas."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Esto queda guardado. En el **módulo 6** vas a reconocer desde dónde estabas mirando tu vida cuando empezaste.\n\n> ¿Y si lo que llamo «mi forma de ser» fuera simplemente el nivel desde el que me acostumbré a mirar?"
+}

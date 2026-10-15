@@ -1,0 +1,46 @@
+{
+  "title": "Ejercicio final · Tu mapa personal",
+  "description": "Tu mapa por áreas, tu recurso de evolución y la comparación con lo que escribiste en el módulo 1.",
+  "introMd": "Esta es la hoja que te llevas del curso. Ten a mano lo que escribiste en el diagnóstico guiado.",
+  "sections": [
+    {
+      "title": "Mi mapa por áreas",
+      "bodyMd": "Nivel desde el que operas y recurso que te toca, área por área.",
+      "fields": [
+        {
+          "id": "mapa",
+          "label": "Trabajo, dinero, pareja, familia, salud y crecimiento personal: nivel y recurso en cada una",
+          "placeholder": "Trabajo: 5 · parar sin culpa\nFamilia: 2 · decidir sin pedir permiso\n…"
+        }
+      ]
+    },
+    {
+      "title": "Mi recurso",
+      "fields": [
+        {
+          "id": "paso-5",
+          "label": "El recurso que voy a trabajar los próximos tres meses",
+          "help": "Uno solo: el del área que más te duele ahora.",
+          "type": "short"
+        },
+        {
+          "id": "accion-semana",
+          "label": "La acción concreta que voy a realizar esta semana es…",
+          "help": "Menos de veinte minutos, con día y hora, y que no dependa de que otro cambie.",
+          "type": "short"
+        }
+      ]
+    },
+    {
+      "title": "Vuelve al módulo 1",
+      "bodyMd": "Abre el ejercicio del primer módulo, lo que escribiste cuando todavía no conocías el mapa.",
+      "fields": [
+        {
+          "id": "que-veo-ahora",
+          "label": "¿Qué veo ahora que no podía ver hace unas semanas?"
+        }
+      ]
+    }
+  ],
+  "closingMd": "> La verdadera expansión de conciencia no ocurre cuando rechazamos una parte de nosotros. Ocurre cuando reconocemos quiénes somos hoy, aprovechamos nuestras fortalezas, aprendemos de nuestras sombras y elegimos conscientemente quién queremos llegar a ser."
+}
