@@ -1,0 +1,40 @@
+{
+  "title": "Ejercicio · Siete días de palancas",
+  "description": "Medir tu línea base, elegir tu frase, practicar en calma y usarlo una vez en caliente.",
+  "introMd": "La parte que no se puede saltar es practicar **en calma**. Una técnica que solo se usa en crisis no está disponible en crisis.",
+  "sections": [
+    {
+      "title": "1 · Día 1",
+      "fields": [
+        {
+          "id": "linea-base",
+          "label": "Tensión en el cuerpo del 0 al 10, antes y después de ocho ciclos de 4-4-6",
+          "type": "short",
+          "help": "Hazlo ahora, no de memoria. Por ejemplo: 7 → 4."
+        },
+        {
+          "id": "frase",
+          "label": "Tu frase para el paso 5 del protocolo",
+          "type": "short",
+          "help": "Corta, en primera persona y creíble hoy. Dila en voz alta: si te la crees a medias, hazla más pequeña."
+        }
+      ]
+    },
+    {
+      "title": "2 · La semana",
+      "fields": [
+        {
+          "id": "dias",
+          "label": "¿Cuántos días de los siete practicaste en calma mañana y noche?",
+          "type": "short"
+        },
+        {
+          "id": "en-caliente",
+          "label": "Una vez en caliente: ¿qué situación era, qué palanca usaste y qué pasó?",
+          "help": "Que bajara poco también cuenta. Buscamos que se mueva, no que desaparezca."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Lo que buscas no es un número mejor. Es notar que el número se mueve cuando tú lo mueves."
+}

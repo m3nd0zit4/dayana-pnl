@@ -1,0 +1,40 @@
+{
+  "title": "Ejercicio · Tu primera ancla",
+  "description": "Las decisiones, la intensidad, la prueba en frío y un ancla tuya que juega en contra.",
+  "introMd": "Reserva quince minutos sin interrupciones y haz la instalación con el audio guiado. Esto no se hace leyendo.",
+  "sections": [
+    {
+      "title": "1 · Antes de anclar",
+      "fields": [
+        {
+          "id": "estado-gesto",
+          "label": "El estado que vas a anclar y el gesto, descrito con detalle",
+          "type": "short",
+          "help": "Un solo estado. Un gesto que no hagas por casualidad: si lo hiciste hoy sin querer, cámbialo."
+        },
+        {
+          "id": "intensidad",
+          "label": "Tu recuerdo en una línea y su intensidad del 0 al 10",
+          "type": "short",
+          "help": "Por debajo de 6, no ancles todavía: busca otro recuerdo."
+        }
+      ]
+    },
+    {
+      "title": "2 · Después",
+      "fields": [
+        {
+          "id": "prueba-frio",
+          "label": "La prueba en frío: una hora después, al día siguiente y a los tres días (0-10 y qué apareció)",
+          "help": "Un 3 o un 4 la primera vez ya es señal. Si da cero, revisa primero la intensidad."
+        },
+        {
+          "id": "ancla-en-contra",
+          "label": "Un ancla tuya que juega en contra, y qué vas a cambiar esta semana para quitarla de en medio",
+          "help": "A veces cambiar de sitio la mesa vale más que instalar un ancla nueva."
+        }
+      ]
+    }
+  ],
+  "closingMd": "No buscamos un interruptor. Buscamos que algo se mueva."
+}

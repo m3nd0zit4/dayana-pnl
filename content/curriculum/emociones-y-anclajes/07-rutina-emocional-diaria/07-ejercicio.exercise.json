@@ -1,0 +1,46 @@
+{
+  "title": "Ejercicio · Cuatro semanas de rutina",
+  "description": "Definir los enganches, sostener las cuatro semanas, revisar qué sobrevivió y elegir cómo seguir.",
+  "introMd": "Semana 1, solo la mañana. Empezar por todo es la forma más segura de no llegar a la semana 3.",
+  "sections": [
+    {
+      "title": "1 · Antes de empezar",
+      "fields": [
+        {
+          "id": "enganches",
+          "label": "Tus enganches: la mañana va después de…, las tres paradas del día van con…, y la noche va después de…",
+          "help": "Un enganche es algo que ya haces todos los días. «Por la mañana» no es un enganche."
+        },
+        {
+          "id": "registro-minimo",
+          "label": "¿Dónde vas a pegar el registro, y cuál es tu versión de un minuto para los días malos?",
+          "type": "short",
+          "help": "Tiene que verse. El espejo del baño funciona."
+        }
+      ]
+    },
+    {
+      "title": "2 · Semana 4",
+      "fields": [
+        {
+          "id": "revision",
+          "label": "¿Cuántos días de los 28 hiciste al menos un momento, cuál sobrevivió mejor y qué recortas para que esto siga existiendo dentro de tres meses?",
+          "help": "Una rutina que dura es una rutina que se recortó a tiempo."
+        },
+        {
+          "id": "siguiente",
+          "label": "¿Qué curso sigue?",
+          "type": "choice",
+          "options": [
+            "Creencias limitantes",
+            "El poder del lenguaje",
+            "Hipnosis y PNL",
+            "Los 8 Niveles de Conciencia",
+            "Ninguno por ahora"
+          ]
+        }
+      ]
+    }
+  ],
+  "closingMd": "El resultado del curso no es controlar lo que sientes. Es la distancia entre notarlo a los diez segundos y notarlo a los diez minutos."
+}

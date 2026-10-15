@@ -1,0 +1,44 @@
+{
+  "title": "Ejercicio · Tu ancla apilada",
+  "description": "Elegir el recurso, encontrar las tres escenas, probar el apilado y planificar dónde se usa.",
+  "introMd": "Ocupa dos sesiones: una para apilar con el audio guiado y otra, al día siguiente, para probar.",
+  "sections": [
+    {
+      "title": "1 · Las escenas",
+      "fields": [
+        {
+          "id": "cual",
+          "label": "¿Cuál de los tres necesitas más?",
+          "type": "choice",
+          "options": [
+            "Calma",
+            "Confianza",
+            "Seguridad"
+          ]
+        },
+        {
+          "id": "escenas",
+          "label": "Tus tres escenas (calma, confianza y seguridad), con su intensidad del 0 al 10",
+          "help": "Treinta segundos bastan. Si alguna está por debajo de 6, baja el listón o cambia de área antes de anclar."
+        }
+      ]
+    },
+    {
+      "title": "2 · Después del apilado",
+      "fields": [
+        {
+          "id": "prueba-frio",
+          "label": "Al día siguiente, en frío: ¿qué apareció al hacer el gesto? (0-10 y qué)",
+          "type": "short",
+          "help": "Si aparecen los tres mezclados pero reconocibles, el apilado funcionó."
+        },
+        {
+          "id": "despliegue",
+          "label": "Tres situaciones concretas, con día y hora, y tu «si-entonces» para la primera",
+          "help": "«Cuando me den nervios» es un estado, no una situación."
+        }
+      ]
+    }
+  ],
+  "closingMd": "El ancla es un puente para cruzar. No es la otra orilla."
+}

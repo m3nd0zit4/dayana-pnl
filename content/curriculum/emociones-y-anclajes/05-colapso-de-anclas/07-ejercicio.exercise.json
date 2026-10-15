@@ -1,0 +1,49 @@
+{
+  "title": "Ejercicio · Tu colapso y tu círculo",
+  "description": "La comprobación previa, el balance de fuerzas, el resultado del colapso y el círculo llevado a una situación real.",
+  "introMd": "Empieza por la comprobación. Si te frena, hoy no toca, y eso también es hacer el ejercicio bien.",
+  "sections": [
+    {
+      "title": "1 · Antes",
+      "fields": [
+        {
+          "id": "comprobacion",
+          "label": "¿Alguna de las cuatro te frena? Recuerdo traumático, crisis de esta semana, recurso que no dispara claro, a solas con un tema grande",
+          "type": "choice",
+          "options": [
+            "Ninguna, puedo seguir",
+            "Alguna, hoy no toca"
+          ]
+        },
+        {
+          "id": "balance",
+          "label": "Tu problema en versión concreta, su intensidad (0-10) y la de tu recurso en frío",
+          "type": "short",
+          "help": "Buscamos un problema de 5 o 6 y un recurso que gane con claridad. Si no gana, refuérzalo antes."
+        }
+      ]
+    },
+    {
+      "title": "2 · Después",
+      "fields": [
+        {
+          "id": "resultado",
+          "label": "Si hiciste el colapso: ¿cómo se siente ahora la situación original?",
+          "type": "choice",
+          "options": [
+            "Distinta, más lejos",
+            "Igual: refuerzo el recurso y repito otro día",
+            "Peor: paré y no repito hoy",
+            "Todavía no lo hice"
+          ]
+        },
+        {
+          "id": "circulo",
+          "label": "Tu círculo: el evento, dónde lo vas a poner y qué apareció al entrar sin preparar nada (0-10)",
+          "help": "La puerta de la sala, el borde del escenario, la silla de la entrevista. Concreto."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Parar a tiempo no es fallar el ejercicio: es la parte del ejercicio que más cuesta aprender."
+}

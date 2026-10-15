@@ -1,0 +1,43 @@
+{
+  "title": "Ejercicio · Tu mapa de estados",
+  "description": "Lo básico, un momento visto por sus tres piezas, tus disparadores y los tres recuerdos que vas a necesitar.",
+  "introMd": "Se rellena a lo largo de la semana. Vuelve cuando tengas algo que anotar.",
+  "sections": [
+    {
+      "title": "1 · Lo básico y un momento",
+      "fields": [
+        {
+          "id": "basico-veredicto",
+          "label": "Hoy, ¿cuántas de las cinco revisiones están mal? (sueño, comida, movimiento, salir, cafeína)",
+          "type": "choice",
+          "options": [
+            "Ninguna o una",
+            "Dos",
+            "Tres o más"
+          ]
+        },
+        {
+          "id": "momento",
+          "label": "Un momento de esta semana en que cambió tu estado: qué hacía el cuerpo, a qué atendías, qué te decías y qué nombre le pones",
+          "help": "Lo que se ve, no la interpretación."
+        }
+      ]
+    },
+    {
+      "title": "2 · Disparadores y recursos",
+      "fields": [
+        {
+          "id": "disparadores",
+          "label": "Tus disparadores de la semana: uno externo, uno interno y uno corporal",
+          "type": "short"
+        },
+        {
+          "id": "recuerdos",
+          "label": "Un momento real de calma, uno de confianza y uno de seguridad. ¿Cuál te costó más encontrar?",
+          "help": "Treinta segundos bastan. En el módulo 4 los vas a necesitar."
+        }
+      ]
+    }
+  ],
+  "closingMd": "Guarda esos tres recuerdos. Son la materia prima de todo lo que viene después."
+}

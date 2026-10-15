@@ -1,0 +1,44 @@
+{
+  "title": "Ejercicio · Tu escalera de exposición",
+  "description": "Qué es lo tuyo, tu escalera con su predicción, lo que pasó en el primer escalón y los criterios para buscar ayuda.",
+  "introMd": "Empieza por lo básico: si la cafeína está alta, ese es el primer ejercicio y no hay técnica que lo sustituya.",
+  "sections": [
+    {
+      "title": "1 · Antes",
+      "fields": [
+        {
+          "id": "tipo",
+          "label": "Lo que más te pesa, ¿es miedo, ansiedad o pánico?",
+          "type": "choice",
+          "options": [
+            "Miedo: tiene objeto concreto",
+            "Ansiedad: difusa, sobre el futuro",
+            "Pánico: descargas agudas de minutos",
+            "Una mezcla"
+          ]
+        },
+        {
+          "id": "escalera",
+          "label": "Tus cinco escalones con su ansiedad prevista, cuál haces esta semana y qué temes que pase exactamente",
+          "help": "Empieza por uno de 3 o 4, nunca de 8. Si hay ataques de pánico repetidos o una fobia que te limita, arma la escalera con un profesional."
+        }
+      ]
+    },
+    {
+      "title": "2 · Después",
+      "fields": [
+        {
+          "id": "resultado",
+          "label": "Después del escalón: ansiedad prevista y real, ¿esperaste a que bajara antes de salir?, ¿pasó lo que temías?"
+        },
+        {
+          "id": "criterios",
+          "label": "¿Cuántos de los ocho criterios para buscar ayuda te aplican? Si alguno, ¿cuál es tu siguiente paso y cuándo?",
+          "type": "short",
+          "help": "Con uno solo ya vale la pena consultar. Si hay pensamientos de hacerte daño, el siguiente paso es hoy."
+        }
+      ]
+    }
+  ],
+  "closingMd": "La ansiedad prevista casi siempre es mayor que la real. Ese hueco, anotado varias veces, es lo que empieza a cambiar el fondo."
+}
