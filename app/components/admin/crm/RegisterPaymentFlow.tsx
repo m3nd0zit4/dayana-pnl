@@ -11,7 +11,7 @@ import ContactFormModal from "./ContactFormModal";
 import ContactPickerField from "./ContactPickerField";
 import CrmModal from "./CrmModal";
 import { useCrm } from "./CrmProvider";
-import RegisterPaymentForm, { type RegisteredPayment } from "./RegisterPaymentForm";
+import RegisterPaymentForm, { type PaymentPrefill, type RegisteredPayment } from "./RegisterPaymentForm";
 import SearchableSelect from "./SearchableSelect";
 import { useActiveProducts } from "./hooks/useReferenceData";
 
@@ -34,6 +34,8 @@ type Props = {
   /** Servicio ya elegido (Membresías): se salta hasta el pago. */
   enrollment?: FlowEnrollment;
   onSuccess?: (payment: RegisteredPayment) => void;
+  /** Monto y referencia ya conocidos (un comprobante de WhatsApp). */
+  prefill?: PaymentPrefill;
 };
 
 type ApiEnrollment = {
@@ -68,7 +70,7 @@ const REUSABLE_STATUSES = new Set(["PENDING_PAYMENT", "LEAD"]);
  * verificación, no al elegirlo: cerrar el diálogo antes no deja servicios a
  * medias. Y si ya hay uno pendiente de ese mismo paquete, se reutiliza.
  */
-const RegisterPaymentFlow = ({ open, onClose, contact, enrollment, onSuccess }: Props) => (
+const RegisterPaymentFlow = ({ open, onClose, contact, enrollment, onSuccess, prefill }: Props) => (
   <CrmModal open={open} title="Registrar pago" onClose={onClose}>
     {open ? (
       <FlowBody
@@ -76,6 +78,7 @@ const RegisterPaymentFlow = ({ open, onClose, contact, enrollment, onSuccess }: 
         enrollment={enrollment}
         onClose={onClose}
         onSuccess={onSuccess}
+        prefill={prefill}
       />
     ) : null}
   </CrmModal>
@@ -86,6 +89,7 @@ const FlowBody = ({
   enrollment: givenEnrollment,
   onClose,
   onSuccess,
+  prefill,
 }: Omit<Props, "open">) => {
   const { toast } = useCrm();
   const [contact, setContact] = useState<FlowContact | null>(givenContact ?? null);
@@ -326,10 +330,11 @@ const FlowBody = ({
       productTitle={productTitle}
       contactName={contact?.name ?? ""}
       suggestedAmountMinor={target?.amountMinor ?? null}
-      currency={target?.currency ?? "COP"}
+      currency={target?.currency ?? (prefill?.currency === "USD" ? "USD" : "COP")}
       allowCurrencyChoice={!target?.currency}
       cancelLabel={givenEnrollment ? "Cancelar" : "Atrás"}
       onCancel={() => (givenEnrollment ? onClose() : setStep("service"))}
+      prefill={prefill}
       onSuccess={(payment) => {
         onSuccess?.(payment);
         onClose();

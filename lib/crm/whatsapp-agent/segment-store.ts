@@ -5,6 +5,7 @@ import { isWhatsAppUserId, whatsAppDigits, whatsAppIdVariants } from "@/lib/what
 import { findClientEvidence } from "../client-evidence";
 import { clearManualCategory, getTeamPhones, isClassifyEnabled, loadFactsBatch, setManualCategory } from "../chat-category";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
+import { ensureConversationContact } from "../whatsapp-client-contact";
 import { appointmentsFor } from "./appointments";
 import type { DossierFacts } from "./dossier";
 import { isFreeCallAppointment, isFreeCallService } from "./event-title";
@@ -161,6 +162,12 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
     create: { conversationId, ...data },
     update: data,
   });
+  // Clienta confirmada (pagó y Dayana lo confirmó) sin contacto: queda en el CRM.
+  if (verdict.segment === "client" && !verdict.review && !conversation.contactId) {
+    await ensureConversationContact({ conversationId, staffUserId: null, sourceDetail: "Clienta de WhatsApp" }).catch((e: unknown) =>
+      console.warn("[clienta] no se pudo crear el contacto", conversationId, e instanceof Error ? e.message : e)
+    );
+  }
   return { ...verdict, stage };
 };
 

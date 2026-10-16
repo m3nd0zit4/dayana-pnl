@@ -11,6 +11,17 @@ describe("sameMessage", () => {
     expect(sameMessage("Déjame consultarlo con Dayana y te confirmo por aquí.", "Déjame consultarlo con Dayana y te confirmo por aqui")).toBe(true);
   });
 
+  test("el mismo aviso con otra entrada (Perlita, 15-oct)", () => {
+    expect(
+      sameMessage(
+        "Recibido, Perlita. Ya le aviso a Dayana para que lo revise y te confirmamos.",
+        "No te preocupes, Perlita. Ya le aviso a Dayana para que lo revise y te confirmamos."
+      )
+    ).toBe(true);
+    expect(sameMessage("Hola Ana. Tu llamada queda para el jueves 15 a las 10.", "Hola Ana. Tu llamada queda para el jueves 22 a las 10.")).toBe(false);
+    expect(sameMessage("Recibido, Perlita. Te bendigo.", "Gracias, Perlita. Te bendigo.")).toBe(false);
+  });
+
   test("mensajes distintos", () => {
     expect(sameMessage("Tu llamada queda para el jueves 15 a las 10 de la mañana", "Tu llamada queda para el jueves 22 a las 10 de la mañana")).toBe(false);
     expect(sameMessage("Con gusto. Te bendigo.", "Con gusto, Ana.")).toBe(false);

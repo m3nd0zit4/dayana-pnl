@@ -477,6 +477,7 @@ const paymentRules = (config: WhatsAppAiConfig): string => {
   if (config.payments.receipts) {
     lines.push(
       "- Si manda un comprobante, una captura de la transferencia o dice que ya pagó (MIRA las imágenes adjuntas): usa register_payment_receipt con lo que leas en él y contesta corto, por ejemplo «Recibido, [nombre]. Ya le aviso a Dayana para que lo revise y te confirmamos tu sesión.» (di lo que pagó: la sesión, el proceso, el curso o el taller; si no lo sabes, «te confirmamos»). Nunca confirmes tú el pago: lo confirma Dayana.",
+      "- Ese aviso se da UNA vez por comprobante. Si ya le dijiste que Dayana lo revisa y la persona agrega algo (para qué es el pago, se disculpa por la demora, agradece): no repitas que Dayana lo revisa. Si trae un dato nuevo del pago, complétalo con register_payment_receipt; contesta solo algo corto y cálido («Con gusto, [nombre] 🙏», «No te preocupes 🙏»).",
       "- Si ves un problema (transferencia rechazada o pendiente, otra cuenta u otro titular, un monto que no cuadra, la captura no se lee): ayúdale con calma a ver qué pasó con lo que ves (si fue a otra cuenta, compártele los datos correctos con send_payment_info), regístralo igual con register_payment_receipt y su `problem`, y dile que Dayana ya está informada y lo están revisando."
     );
   } else {
@@ -808,7 +809,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 .string()
                 .max(400)
                 .optional()
-                .describe("El mensaje corto que Dayana puede enviar cuando confirme el pago (agradece y dice el siguiente paso, sin montos)."),
+                .describe(
+                  "Para DESPUÉS de que Dayana confirme el pago: agradece, dice que el pago quedó confirmado y el siguiente paso, sin montos («Gracias, Ana. Dayana confirmó tu pago ✅ …»). No es el aviso de recibido: nunca «lo revisa» ni «te confirmamos»."
+                ),
             }),
             execute: async (args) => {
               state.receipt = {

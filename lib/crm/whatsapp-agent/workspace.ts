@@ -719,8 +719,8 @@ export const getChat = async (id: string) => {
     })),
     memory: memory ? { notes: memory.notes, updatedAt: memory.updatedAt.toISOString() } : null,
     approvals: approvalViews,
-    /** Comprobantes de pago que llegaron y Dayana aún no confirma. */
-    receipts: receipts.filter((r) => r.status === "pending"),
+    /** Comprobantes de pago que Dayana aún no confirma, o confirmados con el pago sin registrar en el CRM. */
+    receipts: receipts.filter((r) => r.status === "pending" || r.needsPayment),
   };
 };
 

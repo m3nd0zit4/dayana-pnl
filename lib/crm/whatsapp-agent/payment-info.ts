@@ -164,8 +164,28 @@ export type ReceiptView = {
   confirmMessage: string | null;
   createdAt: string;
   decidedAt: string | null;
+  /** button | chat (Dayana respondió «recibido» desde el celular). */
+  confirmedVia: string | null;
+  contactId: string | null;
+  contactName: string | null;
+  paymentId: string | null;
+  /** Confirmado, sin pago registrado y sin «no hace falta»: falta registrarlo (con el código). */
+  needsPayment: boolean;
+  /** Dayana ya le escribió algo después del comprobante: no hace falta otro mensaje. */
+  dayanaReplied: boolean;
   /** La foto del comprobante (si llegó como imagen o PDF). */
   attachment: { kind: string; url: string | null; mimeType: string | null; caption: string | null; mediaId?: string } | null;
+};
+
+/**
+ * El mensaje que la IA dejó para cuando Dayana confirme. A veces deja el de
+ * espera («Dayana lo revisa y te confirmamos», 15-oct-2026): ese no sirve
+ * para confirmar y no se ofrece.
+ */
+export const usableConfirmMessage = (text: string | null | undefined): string | null => {
+  const t = text?.trim();
+  if (!t) return null;
+  return /\b(lo|la) revis[ae]\b|\brevisa\b|te confirmamos|le aviso|le avis[eé]|en cuanto lo confirme/i.test(t) ? null : t;
 };
 
 /** Los comprobantes de un chat (los por confirmar primero). */
@@ -182,6 +202,20 @@ export const listReceipts = async (conversationId: string): Promise<ReceiptView[
   const attachmentOf = new Map(
     messages.map((m) => [m.id, (Array.isArray(m.attachments) ? m.attachments : [])[0] as ReceiptView["attachment"] | undefined])
   );
+  const contactIds = [...new Set(rows.map((r) => r.contactId).filter((id): id is string => Boolean(id)))];
+  const contacts = contactIds.length
+    ? await prisma.contact.findMany({ where: { id: { in: contactIds } }, select: { id: true, firstName: true, lastName: true } })
+    : [];
+  const contactNameOf = new Map(contacts.map((c) => [c.id, [c.firstName, c.lastName].filter(Boolean).join(" ") || null]));
+  // Lo último que Dayana escribió ella misma (celular o CRM), no la IA ni los envíos automáticos.
+  const oldest = rows.reduce<Date | null>((min, r) => (!min || r.createdAt < min ? r.createdAt : min), null);
+  const lastHuman = oldest
+    ? await prisma.conversationMessage.findFirst({
+        where: { conversationId, direction: "OUTBOUND", isAutoReply: false, kind: "message", status: { not: "FAILED" }, sentAt: { gt: oldest } },
+        orderBy: { sentAt: "desc" },
+        select: { sentAt: true },
+      })
+    : null;
   return rows
     .sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending"))
     .map((r) => ({
@@ -195,9 +229,15 @@ export const listReceipts = async (conversationId: string): Promise<ReceiptView[
       payerName: r.payerName,
       summary: r.summary,
       problem: r.problem,
-      confirmMessage: r.confirmMessage,
+      confirmMessage: usableConfirmMessage(r.confirmMessage),
       createdAt: r.createdAt.toISOString(),
       decidedAt: r.decidedAt?.toISOString() ?? null,
+      confirmedVia: r.confirmedVia,
+      contactId: r.contactId,
+      contactName: r.contactId ? (contactNameOf.get(r.contactId) ?? null) : null,
+      paymentId: r.paymentId,
+      needsPayment: r.status === "confirmed" && !r.paymentId && !r.paymentDismissedAt,
+      dayanaReplied: Boolean(lastHuman && lastHuman.sentAt > r.createdAt),
       attachment: (r.messageId && attachmentOf.get(r.messageId)) || null,
     }));
 };

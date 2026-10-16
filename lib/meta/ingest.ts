@@ -503,6 +503,12 @@ export const processNormalizedEvent = async (
     await supersedePending(result.conversationId, "Dayana respondió desde el celular.").catch(
       () => undefined
     );
+    // «He recibido, muchas gracias» con un comprobante por confirmar: queda
+    // confirmado (contacto y clienta) sin que tenga que hacerlo otra vez en el CRM.
+    const { confirmReceiptFromChat } = await import("@/lib/crm/whatsapp-agent/receipts");
+    await confirmReceiptFromChat(result.conversationId, event.externalMessageId).catch((e: unknown) =>
+      console.warn("[meta] no se pudo confirmar el comprobante desde el chat", e)
+    );
     const { learnFromLatestReply } =
       await import("@/lib/crm/whatsapp-learning");
     await learnFromLatestReply(result.conversationId);

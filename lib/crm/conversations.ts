@@ -265,7 +265,8 @@ export const assignConversation = async (
 export const linkConversationToContact = async (
   conversationId: string,
   contactId: string,
-  staffUserId: string
+  /** `null`: lo vinculó el sistema (p. ej. una clienta confirmada por WhatsApp). */
+  staffUserId: string | null
 ) => {
   const conversation = await prisma.conversation.findUnique({
     where: { id: conversationId },
@@ -298,7 +299,7 @@ export const linkConversationToContact = async (
   ]);
 
   await writeAuditLog({
-    staffUserId,
+    staffUserId: staffUserId ?? undefined,
     action: "CONVERSATION_LINKED",
     entityType: "Conversation",
     entityId: conversationId,

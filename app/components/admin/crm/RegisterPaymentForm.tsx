@@ -51,6 +51,20 @@ export type RegisterPaymentFormProps = {
   /** Cierra o vuelve atrás, según quién lo pinte. */
   onCancel: () => void;
   cancelLabel?: string;
+  /**
+   * Lo que ya se sabe del pago (un comprobante de WhatsApp que leyó la IA):
+   * el monto y la referencia arrancan llenos. El monto solo si es de la misma
+   * moneda.
+   */
+  prefill?: PaymentPrefill;
+};
+
+export type PaymentPrefill = {
+  amountMinor?: number | null;
+  currency?: string | null;
+  reference?: string | null;
+  /** De dónde sale, para que se vea: «Monto leído del comprobante». */
+  note?: string;
 };
 
 export const formatMajor = (minor: number, currency: string) => {
@@ -78,6 +92,7 @@ const RegisterPaymentForm = ({
   onSuccess,
   onCancel,
   cancelLabel = "Cancelar",
+  prefill,
 }: RegisterPaymentFormProps) => {
   const { toast, role } = useCrm();
   const [enrollmentId, setEnrollmentId] = useState(initialEnrollmentId);
@@ -86,9 +101,13 @@ const RegisterPaymentForm = ({
     suggestedAmountMinor && suggestedAmountMinor > 0
       ? formatMajor(suggestedAmountMinor, currency)
       : null;
-  const [amountInput, setAmountInput] = useState(suggestedDisplay ?? "");
+  const prefillDisplay =
+    prefill?.amountMinor && prefill.amountMinor > 0 && prefill.currency === currency
+      ? formatMajor(prefill.amountMinor, currency)
+      : null;
+  const [amountInput, setAmountInput] = useState(prefillDisplay ?? suggestedDisplay ?? "");
   const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]["id"]>("transfer");
-  const [reference, setReference] = useState("");
+  const [reference, setReference] = useState(prefill?.reference?.trim().slice(0, 120) ?? "");
   const [busy, setBusy] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -220,6 +239,11 @@ const RegisterPaymentForm = ({
         {suggestedDisplay && (
           <p className="mt-2 text-xs text-primary">
             Precio del servicio: ${suggestedDisplay} {currency}
+          </p>
+        )}
+        {prefillDisplay && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {prefill?.note ?? "Monto leído"}: ${prefillDisplay} {currency}
           </p>
         )}
       </div>

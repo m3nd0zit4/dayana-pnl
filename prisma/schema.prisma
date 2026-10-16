@@ -2474,30 +2474,36 @@ model WhatsAppBooking {
 /// Dayana lo confirma la persona pasa a ser clienta (y queda como contacto en
 /// el CRM, con su nombre y número); el monto se registra con «Registrar pago».
 model WhatsAppPaymentReceipt {
-  id             String    @id @default(cuid())
-  conversationId String    @map("conversation_id")
-  contactId      String?   @map("contact_id")
+  id                 String    @id @default(cuid())
+  conversationId     String    @map("conversation_id")
+  contactId          String?   @map("contact_id")
   /// El mensaje con la foto o el PDF del comprobante (si lo hay).
-  messageId      String?   @map("message_id")
+  messageId          String?   @map("message_id")
   /// pending | confirmed | rejected
-  status         String    @default("pending")
+  status             String    @default("pending")
   /// Lo que leyó la IA en el comprobante (puede faltar o estar mal: Dayana verifica).
-  method         String?
-  amountMinor    Int?      @map("amount_minor")
-  currency       String?   @db.Char(3)
-  reference      String?
-  paidOn         String?   @map("paid_on")
-  payerName      String?   @map("payer_name")
+  method             String?
+  amountMinor        Int?      @map("amount_minor")
+  currency           String?   @db.Char(3)
+  reference          String?
+  paidOn             String?   @map("paid_on")
+  payerName          String?   @map("payer_name")
   /// Para Dayana: qué es, en una línea.
-  summary        String?
+  summary            String?
   /// Algo raro que vio la IA (otra cuenta, monto distinto, transferencia rechazada).
-  problem        String?
+  problem            String?
   /// El mensaje que la IA dejó listo para cuando Dayana confirme.
-  confirmMessage String?   @map("confirm_message")
-  decidedById    String?   @map("decided_by_id")
-  decidedAt      DateTime? @map("decided_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  confirmMessage     String?   @map("confirm_message")
+  /// button (el botón del CRM) | chat (Dayana respondió «recibido» desde el celular)
+  confirmedVia       String?   @map("confirmed_via")
+  /// El pago del CRM registrado para este comprobante (con el código de Dayana).
+  paymentId          String?   @map("payment_id")
+  /// Dayana dijo que no hace falta registrarlo (ya estaba, o no aplica).
+  paymentDismissedAt DateTime? @map("payment_dismissed_at")
+  decidedById        String?   @map("decided_by_id")
+  decidedAt          DateTime? @map("decided_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 

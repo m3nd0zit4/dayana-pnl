@@ -4,6 +4,7 @@ import {
   parsePhoneNumberFromString,
   type CountryCode,
 } from "libphonenumber-js";
+import { whatsAppIdVariants } from "./whatsapp-contact";
 
 export type NormalizedPhone = {
   phoneE164: string;
@@ -179,4 +180,21 @@ export const validateLocalPhone = (
     normalized: null,
     hint: `Revisa el número; parece incompleto. Ejemplo: ${placeholder}`,
   };
+};
+
+/**
+ * El número de un chat de WhatsApp (su id en dígitos) en E.164 válido.
+ * WhatsApp no siempre usa el E.164: un chat de México puede llegar como
+ * 521 + 10 dígitos, que ya no es un número válido (el 1 se quitó en 2019), y
+ * crear el contacto con eso fallaba con INVALID_PHONE (el comprobante de una
+ * clienta de México no se podía confirmar, 15-oct-2026). Se prueba cada forma
+ * del mismo número y gana la primera válida. `null` para un id de usuario
+ * (BSUID) o algo que no es un número.
+ */
+export const phoneFromWhatsAppId = (threadId: string): NormalizedPhone | null => {
+  for (const digits of whatsAppIdVariants(threadId)) {
+    const parsed = tryParse(`+${digits}`, "CO");
+    if (parsed) return { phoneE164: parsed.format("E.164"), phoneCountryIso: parsed.country ?? "CO" };
+  }
+  return null;
 };

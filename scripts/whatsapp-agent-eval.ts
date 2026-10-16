@@ -34,6 +34,7 @@ const main = async () => {
   const { think } = await import("@/lib/crm/whatsapp-agent/brain");
   const { polishReply } = await import("@/lib/crm/whatsapp-agent/wording");
   const { withPaymentBlocks } = await import("@/lib/crm/whatsapp-agent/payment-info");
+  const { alreadySaid } = await import("@/lib/crm/whatsapp-agent/repeat-guard");
   const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
   const { SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
@@ -105,7 +106,16 @@ const main = async () => {
     const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
     const silentClient = Boolean(s.clientMode) && (o?.kind === "escalate" || !paymentAnswer);
     const crisis = o?.kind === "escalate" && (o.category === "clinical" || o.severity === "urgent");
-    const sent: string | null = silentClient || crisis
+    // El mismo aviso de recibido por el mismo comprobante no sale dos veces (run.ts).
+    const lastOut = [...s.transcript].reverse().find((l) => l.direction === "OUTBOUND")?.body ?? null;
+    const repeatedReceipt =
+      o?.kind === "reply" &&
+      Boolean(result.receipt) &&
+      !result.paymentBlocks.details.length &&
+      !result.paymentBlocks.link &&
+      !result.linkBlocks.length &&
+      alreadySaid(polishReply(o.message), [lastOut]);
+    const sent: string | null = silentClient || crisis || repeatedReceipt
       ? null
       : o?.kind === "reply"
         ? withPaymentBlocks(polishReply(o.message), { ...result.paymentBlocks, links: result.linkBlocks })

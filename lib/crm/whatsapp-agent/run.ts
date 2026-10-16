@@ -674,6 +674,26 @@ export const runWhatsAppAi = async (input: {
       await finish(run.id, "SKIPPED", { ...meta, reason: "replied_meanwhile" });
       return;
     }
+    // El mismo comprobante otra vez («es lo de octubre, disculpa la tardanza»):
+    // el comprobante se completa, pero un segundo «Ya le aviso a Dayana para
+    // que lo revise» no sale si es lo último que le mandamos (Perlita, 15-oct).
+    if (result.receipt && !result.paymentBlocks.details.length && !result.paymentBlocks.link && !result.linkBlocks.length) {
+      const lastSent = await prisma.conversationMessage.findFirst({
+        where: {
+          conversationId,
+          direction: "OUTBOUND",
+          status: { not: "FAILED" },
+          kind: "message",
+          sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
+        },
+        orderBy: { sentAt: "desc" },
+        select: { body: true },
+      });
+      if (alreadySaid(written, [lastSent?.body])) {
+        await finish(run.id, "SKIPPED", { ...meta, reason: "repeat" });
+        return;
+      }
+    }
     // O tomó el chat (modo Yo, ⭐, pausa) sin contestar todavía: la respuesta
     // queda como borrador para ella, no como propuesta.
     const now = await prisma.conversation.findUnique({

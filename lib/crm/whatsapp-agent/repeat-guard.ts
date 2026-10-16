@@ -6,7 +6,9 @@ import { foldForSearch } from "../search-normalize";
  * persona le llegó «Déjame avisarle a Dayana para que te agregue al grupo…»
  * cuatro veces seguidas (14-oct-2026).
  *
- * Puro. Igual, o uno contiene al otro, o casi las mismas palabras.
+ * Puro. Igual, o uno contiene al otro, o casi las mismas palabras. También
+ * sin la primera frase corta: «Recibido, Perlita. Ya le aviso a Dayana…» y
+ * «No te preocupes, Perlita. Ya le aviso a Dayana…» dicen lo mismo (15-oct).
  */
 
 const normalize = (text: string) =>
@@ -18,11 +20,20 @@ const normalize = (text: string) =>
 // Los números cuentan siempre: «jueves 15» y «jueves 22» no son lo mismo.
 const words = (text: string) => new Set(text.split(" ").filter((w) => w.length > 2 || /\d/.test(w)));
 
-export const sameMessage = (a: string, b: string): boolean => {
+/** Lo que dice sin la entrada corta («Recibido, Perlita.», «Con gusto.»), si hay más después. */
+const withoutOpener = (text: string): string | null => {
+  const parts = text.trim().split(/(?<=[.!?¡¿])\s+/);
+  return parts.length > 1 && parts[0].length <= 40 ? parts.slice(1).join(" ") : null;
+};
+
+const similar = (a: string, b: string): boolean => {
   const x = normalize(a);
   const y = normalize(b);
   if (!x || !y) return false;
   if (x === y) return true;
+  // Otra fecha, otra hora u otro monto es otro mensaje, aunque el resto sea igual.
+  const numbers = (t: string) => [...new Set(t.match(/\d+/g) ?? [])].sort().join(" ");
+  if (numbers(x) !== numbers(y)) return false;
   const [short, long] = x.length <= y.length ? [x, y] : [y, x];
   if (short.length >= 25 && long.includes(short)) return true;
   const wa = words(x);
@@ -30,6 +41,18 @@ export const sameMessage = (a: string, b: string): boolean => {
   if (wa.size < 4 || wb.size < 4) return false;
   const shared = [...wa].filter((w) => wb.has(w)).length;
   return shared / new Set([...wa, ...wb]).size >= 0.8;
+};
+
+export const sameMessage = (a: string, b: string): boolean => {
+  if (similar(a, b)) return true;
+  const coreA = withoutOpener(a);
+  const coreB = withoutOpener(b);
+  if (!coreA && !coreB) return false;
+  const restA = coreA ?? a;
+  const restB = coreB ?? b;
+  // Lo que queda tiene que decir algo (no solo «Te bendigo.»).
+  if (normalize(restA).length < 25 || normalize(restB).length < 25) return false;
+  return similar(restA, restB);
 };
 
 export const alreadySaid = (text: string, previous: (string | null | undefined)[]): boolean =>

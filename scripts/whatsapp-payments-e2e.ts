@@ -14,19 +14,41 @@
  * 4. Pendientes: un chat donde la persona escribió y nadie contestó aparece;
  *    uno contestado o fuera de las 24 h no.
  * 5. El enlace de pago vivo que Dayana creó se encuentra; uno revocado no.
+ * 6. Clienta de México (el chat llega como 521…, 15-oct-2026): al confirmar
+ *    queda con su número válido +52, el chat vinculado y clienta.
+ * 7. Si ya estaba en el CRM como +52…, se vincula ese contacto (no otro).
+ * 8. Dayana confirma desde el celular («he recibido», nota de voz): queda
+ *    confirmado sin usuario del CRM y sin mandarle nada. Otro mensaje, un
+ *    «recibido» de antes del comprobante o de más de 48 h después, no.
+ * 9. Confirmado sin pago en el CRM: lo pide hasta que se enlaza un pago
+ *    aprobado de la misma persona (una vez) o Dayana dice «no hace falta».
+ * 10. Marcarla clienta a mano la deja en el CRM; un chat sin número no falla.
+ * 11. Dos confirmaciones a la vez: una sola gana y queda un solo contacto.
  */
 import { prisma } from "@/lib/db";
+import { setManualCategory } from "@/lib/crm/chat-category";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { pauseAutoReply } from "@/lib/crm/whatsapp-autoreply";
 import { findUnansweredChats } from "@/lib/crm/whatsapp-agent/catch-up";
 import { activePaymentLinkFor, listReceipts, saveReceipt } from "@/lib/crm/whatsapp-agent/payment-info";
-import { decideReceipt } from "@/lib/crm/whatsapp-agent/receipts";
+import {
+  confirmReceiptFromChat,
+  decideReceipt,
+  dismissReceiptPayment,
+  linkReceiptPayment,
+  ReceiptError,
+} from "@/lib/crm/whatsapp-agent/receipts";
 import { computeSegment } from "@/lib/crm/whatsapp-agent/segment-store";
 import { getChat } from "@/lib/crm/whatsapp-agent/workspace";
+import { contactPhoneCandidates } from "@/lib/whatsapp-contact";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
 process.env.NOTIFICATIONS_DRY_RUN = "true";
+// Los avisos quedan en la base de desarrollo: sin clave, Inngest rechaza el
+// evento del correo (si no, saldría a Inngest con la clave del .env).
+delete process.env.INNGEST_EVENT_KEY;
+delete process.env.INNGEST_SIGNING_KEY;
 
 const failures: string[] = [];
 const check = (name: string, ok: boolean, detail?: unknown) => {
@@ -40,7 +62,15 @@ const PAUSE = "573000007713";
 const PENDING = "573000007714";
 const ANSWERED = "573000007715";
 const OLD = "573000007716";
-const THREADS = [PAYER, CLAIMS, PAUSE, PENDING, ANSWERED, OLD];
+// México con el 1 de más (521 + 10, como llega de WhatsApp) y un id de usuario sin número.
+const MX_NEW = "5215500007721";
+const MX_KNOWN = "5215500007722";
+const MX_ACK = "5215500007723";
+const NO_ACK = "573000007724";
+const MARKED = "573000007725";
+const BSUID = "PE.0000000077260";
+const RACE = "5215500007727";
+const THREADS = [PAYER, CLAIMS, PAUSE, PENDING, ANSWERED, OLD, MX_NEW, MX_KNOWN, MX_ACK, NO_ACK, MARKED, BSUID, RACE];
 
 type Line = { dir: "INBOUND" | "OUTBOUND"; body: string | null; minutesAgo: number; attachments?: unknown };
 
@@ -70,18 +100,48 @@ const chat = async (thread: string, name: string, lines: Line[]) => {
   });
 };
 
+const receiptPhoto = (mediaId: string) => [{ kind: "image", url: null, mediaId, mimeType: "image/jpeg", caption: null }];
+
+let echoes = 0;
+/** Lo que Dayana escribe desde el celular: llega como eco (no lo mandó el CRM). */
+const echo = async (conversationId: string, body: string, sentAt: Date) => {
+  const externalMessageId = `wamid.e2e.pay.echo.${conversationId}.${++echoes}`;
+  await prisma.conversationMessage.create({
+    data: { conversationId, direction: "OUTBOUND", status: "DELIVERED", isEcho: true, isAutoReply: false, kind: "message", externalMessageId, body, sentAt },
+  });
+  return externalMessageId;
+};
+
+/** El código de error de un ReceiptError (null si no falló). */
+const errorOf = (p: Promise<unknown>) =>
+  p.then(
+    () => null,
+    (e: unknown) => (e instanceof ReceiptError ? e.message : String(e))
+  );
+
+/** El aviso a Dayana sale en segundo plano: llega en unos instantes. */
+const waitFor = async (ok: () => Promise<boolean>, ms = 8000) => {
+  for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (await ok()) return true;
+  return false;
+};
+
 const cleanup = async () => {
   const convs = await prisma.conversation.findMany({ where: { channel: "WHATSAPP", externalThreadId: { in: THREADS } }, select: { id: true } });
   const ids = convs.map((c) => c.id);
+  await prisma.platformNotification.deleteMany({ where: { entityType: "Conversation", entityId: { in: ids } } });
   await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: { in: ids } } });
   await prisma.whatsAppAiRun.deleteMany({ where: { conversationId: { in: ids } } });
   await prisma.whatsAppDossier.deleteMany({ where: { conversationId: { in: ids } } });
   await prisma.conversationMessage.deleteMany({ where: { conversationId: { in: ids } } });
   await prisma.contactChannelIdentity.deleteMany({ where: { externalId: { in: THREADS } } });
   await prisma.conversation.deleteMany({ where: { id: { in: ids } } });
-  const contacts = await prisma.contact.findMany({ where: { phoneE164: { in: THREADS.map((t) => `+${t}`) } }, select: { id: true } });
-  await prisma.paymentLink.deleteMany({ where: { contactId: { in: contacts.map((c) => c.id) } } });
-  await prisma.contact.deleteMany({ where: { id: { in: contacts.map((c) => c.id) } } });
+  // El contacto de un chat 521… se guarda como +52…: se buscan todas las formas.
+  const contacts = await prisma.contact.findMany({ where: { phoneE164: { in: THREADS.flatMap(contactPhoneCandidates) } }, select: { id: true } });
+  const contactIds = contacts.map((c) => c.id);
+  await prisma.paymentLink.deleteMany({ where: { contactId: { in: contactIds } } });
+  // Los pagos se van con su matrícula.
+  await prisma.enrollment.deleteMany({ where: { contactId: { in: contactIds } } });
+  await prisma.contact.deleteMany({ where: { id: { in: contactIds } } });
 };
 
 const main = async () => {
@@ -171,6 +231,136 @@ const cases = async () => {
     await prisma.paymentLink.create({ data: { token: "e2epay2" + Date.now().toString(16), contactId: decided.contactId, productId: product.id } });
     check("el enlace vivo se encuentra", Boolean((await activePaymentLinkFor(decided.contactId))?.url.includes("/pagar/")));
   }
+
+  console.log("6. Clienta de México (chat 521…): al confirmar queda con su número +52");
+  const mx = await chat(MX_NEW, "Gabriela Ruiz", [{ dir: "INBOUND", body: null, minutesAgo: 3, attachments: receiptPhoto("223456789") }]);
+  const mxReceipt = await saveReceipt({ conversationId: mx.id, contactId: null, messageId: mx.messages[0].id, method: "Transferencia", amount: 80, currency: "USD", summary: "Transferencia desde México" });
+  const mxDecided = await decideReceipt({ receiptId: mxReceipt.id, decision: "confirm", staffUserId: staff.id, message: "" });
+  const mxContact = mxDecided.contactId
+    ? await prisma.contact.findUnique({ where: { id: mxDecided.contactId }, select: { phoneE164: true, phoneCountryIso: true } })
+    : null;
+  check("se crea el contacto con el número válido (+52, sin el 1)", mxContact?.phoneE164 === "+525500007721" && mxContact.phoneCountryIso === "MX", mxContact);
+  const mxChat = await prisma.conversation.findUnique({ where: { id: mx.id }, select: { contactId: true, category: true, categorySource: true } });
+  check("el chat queda vinculado y clienta a mano", mxChat?.contactId === mxDecided.contactId && mxChat?.category === "cliente" && mxChat.categorySource === "manual", mxChat);
+  const mxRow = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: mxReceipt.id } });
+  check(
+    "el comprobante queda confirmado con el botón y con su contacto",
+    mxRow?.status === "confirmed" && mxRow.confirmedVia === "button" && mxRow.decidedById === staff.id && mxRow.contactId === mxDecided.contactId,
+    mxRow
+  );
+
+  console.log("7. Ya estaba en el CRM como +52…: se vincula ese contacto");
+  const known = await prisma.contact.create({
+    data: { phoneE164: "+525500007722", phoneCountryIso: "MX", firstName: "Sofía", lastName: "Herrera", source: "WHATSAPP_DIRECT" },
+    select: { id: true },
+  });
+  const mxKnown = await chat(MX_KNOWN, "Sofi", [{ dir: "INBOUND", body: "Te mando el comprobante", minutesAgo: 4 }]);
+  const knownReceipt = await saveReceipt({ conversationId: mxKnown.id, contactId: null, messageId: mxKnown.messages[0].id, summary: "Depósito OXXO" });
+  const knownDecided = await decideReceipt({ receiptId: knownReceipt.id, decision: "confirm", staffUserId: staff.id });
+  check("se vincula el contacto que ya existía", knownDecided.contactId === known.id, knownDecided);
+  const sameNumber = await prisma.contact.count({ where: { phoneE164: { in: contactPhoneCandidates(MX_KNOWN) } } });
+  check("no se duplica el contacto", sameNumber === 1, sameNumber);
+
+  console.log("8. Dayana confirma desde el celular («he recibido»)");
+  const ack = await chat(MX_ACK, "Paola Méndez", [{ dir: "INBOUND", body: null, minutesAgo: 10, attachments: receiptPhoto("323456789") }]);
+  const ackReceipt = await saveReceipt({
+    conversationId: ack.id,
+    contactId: null,
+    messageId: ack.messages[0].id,
+    summary: "Transferencia desde México",
+    confirmMessage: "Recibido, Dayana lo revisa y te confirmamos",
+  });
+  check("el mensaje de espera no se ofrece para confirmar", (await listReceipts(ack.id))[0]?.confirmMessage === null);
+  const voice = await echo(ack.id, "🎤 Mi hermosa, te bendigo, he recibido, mi bella, muchísimas gracias.", new Date(ackReceipt.createdAt.getTime() + 60_000));
+  check("su nota de voz confirma el comprobante", (await confirmReceiptFromChat(ack.id, voice)) === 1);
+  const ackRow = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: ackReceipt.id } });
+  check(
+    "queda confirmado desde el chat, sin usuario del CRM",
+    ackRow?.status === "confirmed" && ackRow.confirmedVia === "chat" && ackRow.decidedById === null && Boolean(ackRow.contactId),
+    ackRow
+  );
+  const ackChat = await prisma.conversation.findUnique({ where: { id: ack.id }, select: { contactId: true, category: true, contact: { select: { phoneE164: true } } } });
+  check("se crea su contacto (+52) y queda clienta", ackChat?.contact?.phoneE164 === "+525500007723" && ackChat.contactId === ackRow?.contactId && ackChat.category === "cliente", ackChat);
+  const crmSent = await prisma.conversationMessage.count({ where: { conversationId: ack.id, direction: "OUTBOUND", isEcho: false } });
+  check("el CRM no le manda nada", crmSent === 0, crmSent);
+  check(
+    "le llega el aviso a Dayana",
+    await waitFor(async () => (await prisma.platformNotification.count({ where: { eventType: "WHATSAPP_AI_INFO", entityType: "Conversation", entityId: ack.id } })) > 0)
+  );
+  const ackView = (await listReceipts(ack.id)).find((r) => r.id === ackReceipt.id);
+  check("se ve que Dayana ya le respondió", ackView?.dayanaReplied === true && ackView.confirmedVia === "chat", ackView);
+
+  const noAck = await chat(NO_ACK, "Carolina", [{ dir: "INBOUND", body: "Ya te envié el comprobante", minutesAgo: 10 }]);
+  const noAckReceipt = await saveReceipt({ conversationId: noAck.id, contactId: null, messageId: noAck.messages[0].id, summary: "Comprobante" });
+  const afterReceipt = new Date(noAckReceipt.createdAt.getTime() + 60_000);
+  const beforeReceipt = new Date(noAckReceipt.createdAt.getTime() - 60_000);
+  check("«Un abrazo mi bella» no confirma nada", (await confirmReceiptFromChat(noAck.id, await echo(noAck.id, "Un abrazo mi bella", afterReceipt))) === 0);
+  check("un «recibido» de antes del comprobante tampoco", (await confirmReceiptFromChat(noAck.id, await echo(noAck.id, "Recibido, muchas gracias", beforeReceipt))) === 0);
+  await prisma.whatsAppPaymentReceipt.update({ where: { id: noAckReceipt.id }, data: { createdAt: new Date(Date.now() - 50 * 3600_000) } });
+  check("ni uno de más de 48 h después", (await confirmReceiptFromChat(noAck.id, await echo(noAck.id, "Recibido, muchas gracias", new Date()))) === 0);
+  const noAckRow = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: noAckReceipt.id }, select: { status: true, conversation: { select: { contactId: true } } } });
+  check("sigue por confirmar y sin contacto", noAckRow?.status === "pending" && noAckRow.conversation.contactId === null, noAckRow);
+
+  console.log("9. Falta registrar el pago en el CRM");
+  check("confirmado sin pago: pide registrarlo", (await listReceipts(mx.id)).find((r) => r.id === mxReceipt.id)?.needsPayment === true);
+  if (!product) throw new Error("Falta un producto activo en la base de desarrollo.");
+  // Como lo deja «Registrar pago»: matrícula y pago manual (sin pasar por Inngest ni correos).
+  const payment = async (contactId: string, status: "APPROVED" | "PENDING") => {
+    const enrollment = await prisma.enrollment.create({
+      data: { contactId, productId: product.id, status: "ACTIVE", amountMinor: 8000, currency: "USD" },
+      select: { id: true },
+    });
+    return prisma.payment.create({
+      data: {
+        enrollmentId: enrollment.id,
+        provider: "MANUAL",
+        providerPaymentId: `e2e-receipt-${enrollment.id}`,
+        status,
+        currency: "USD",
+        amountMinor: 8000,
+        paidAt: status === "APPROVED" ? new Date() : null,
+      },
+      select: { id: true },
+    });
+  };
+  const mxPayment = await payment(mxDecided.contactId ?? "", "APPROVED");
+  check("un comprobante por confirmar no se enlaza", (await errorOf(linkReceiptPayment({ receiptId: noAckReceipt.id, paymentId: mxPayment.id, staffUserId: staff.id }))) === "not_confirmed");
+  await linkReceiptPayment({ receiptId: mxReceipt.id, paymentId: mxPayment.id, staffUserId: staff.id });
+  const linkedView = (await listReceipts(mx.id)).find((r) => r.id === mxReceipt.id);
+  check("con el pago enlazado ya no lo pide", linkedView?.needsPayment === false && linkedView.paymentId === mxPayment.id, linkedView);
+  check("se enlaza una sola vez", (await errorOf(linkReceiptPayment({ receiptId: mxReceipt.id, paymentId: mxPayment.id, staffUserId: staff.id }))) === "already_linked");
+  check("el pago de otra persona no se enlaza", (await errorOf(linkReceiptPayment({ receiptId: knownReceipt.id, paymentId: mxPayment.id, staffUserId: staff.id }))) === "other_contact");
+  const unpaid = await payment(known.id, "PENDING");
+  check("un pago sin aprobar no se enlaza", (await errorOf(linkReceiptPayment({ receiptId: knownReceipt.id, paymentId: unpaid.id, staffUserId: staff.id }))) === "payment_not_found");
+  check("y ese comprobante lo sigue pidiendo", (await listReceipts(mxKnown.id)).find((r) => r.id === knownReceipt.id)?.needsPayment === true);
+  await dismissReceiptPayment({ receiptId: ackReceipt.id, staffUserId: staff.id });
+  check("«no hace falta» deja de pedirlo", (await listReceipts(ack.id)).find((r) => r.id === ackReceipt.id)?.needsPayment === false);
+
+  console.log("10. Dayana la marca clienta a mano: queda en el CRM");
+  const marked = await chat(MARKED, "Natalia Torres", [{ dir: "INBOUND", body: "Gracias por la sesión de hoy", minutesAgo: 20 }]);
+  await setManualCategory(marked.id, "cliente", null);
+  const markedChat = await prisma.conversation.findUnique({ where: { id: marked.id }, select: { contactId: true, contact: { select: { phoneE164: true, firstName: true } } } });
+  check("se crea el contacto y se vincula", markedChat?.contact?.phoneE164 === `+${MARKED}` && markedChat.contact.firstName === "Natalia", markedChat);
+  const userId = await chat(BSUID, "Usuaria sin número", [{ dir: "INBOUND", body: "Hola", minutesAgo: 20 }]);
+  const userIdError = await setManualCategory(userId.id, "cliente", null).then(
+    () => null,
+    (e: unknown) => String(e)
+  );
+  const userIdChat = await prisma.conversation.findUnique({ where: { id: userId.id }, select: { contactId: true, category: true } });
+  check("un chat sin número (id de usuario) no falla ni inventa un contacto", userIdError === null && userIdChat?.contactId === null && userIdChat.category === "cliente", {
+    userIdError,
+    userIdChat,
+  });
+
+  console.log("11. Dos confirmaciones a la vez");
+  const race = await chat(RACE, "Valeria Soto", [{ dir: "INBOUND", body: null, minutesAgo: 2, attachments: receiptPhoto("423456789") }]);
+  const raceReceipt = await saveReceipt({ conversationId: race.id, contactId: null, messageId: race.messages[0].id, summary: "Transferencia" });
+  const both = await Promise.allSettled([1, 2].map(() => decideReceipt({ receiptId: raceReceipt.id, decision: "confirm", staffUserId: staff.id })));
+  const won = both.filter((r) => r.status === "fulfilled").length;
+  const lost = both.filter((r) => r.status === "rejected" && r.reason instanceof ReceiptError && r.reason.message === "already_decided").length;
+  check("una sola confirma; la otra ya estaba decidida", won === 1 && lost === 1, both.map((r) => (r.status === "fulfilled" ? "ok" : String(r.reason))));
+  const raceContacts = await prisma.contact.count({ where: { phoneE164: { in: contactPhoneCandidates(RACE) } } });
+  check("queda un solo contacto", raceContacts === 1, raceContacts);
 
   await cleanup();
   if (failures.length) {

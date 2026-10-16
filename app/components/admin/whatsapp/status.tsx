@@ -45,6 +45,7 @@ export const SKIP_LABEL: Record<string, string> = {
   human_replied: "Contestaste hace poco",
   replied_meanwhile: "Contestaste mientras la IA esperaba",
   trivial: "No hacía falta responder",
+  repeat: "Ya se lo había dicho: no lo repite",
   known_contact: "Está en tu libreta (familia o amigos)",
   personal_number: "Número personal: la IA no responde",
   ignored_segment: "Personal, equipo o empresa: la IA no responde",
