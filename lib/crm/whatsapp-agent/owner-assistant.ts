@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { generateText, isStepCount, tool, type ModelMessage } from "ai";
 import { z } from "zod";
 
@@ -49,9 +49,7 @@ export type AssistantTurn = {
   steps: { tool: string; input: unknown }[];
 };
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 const SYSTEM = `Eres el asistente de WhatsApp de Dayana Beltrán (terapeuta). Hablas con Dayana, tu jefa, en español, de tú, breve y claro.
 

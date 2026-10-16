@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { appointmentsFor, confirmAppointment } from "./appointments";
 import { contactStage } from "../contact-stage";
 import { getOperationalTimezone } from "../operational-timezone";
@@ -203,9 +203,7 @@ export const toWhatsAppFormat = (text: string): string =>
 
 export const modelId = () => process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 /** Lo único que la IA puede afirmar: sale del CRM en cada respuesta. */
 export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> => {

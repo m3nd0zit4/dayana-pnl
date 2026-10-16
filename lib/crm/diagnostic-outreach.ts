@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { Prisma } from "@prisma/client";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -103,7 +103,7 @@ export const analyzeDiagnostic = async (input: {
 }): Promise<z.infer<typeof analysisSchema> & { model: string | null }> => {
   if (!process.env.GEMINI_API_KEY?.trim()) return { ...fallbackAnalysis(input.name, input.signals), model: null };
   const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash";
-  const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY?.trim() });
+  const google = geminiProvider();
   const voice =
     input.config.identity === "owner"
       ? "Escribes COMO Dayana, en primera persona."

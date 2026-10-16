@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { APICallError, generateObject, JSONParseError, NoObjectGeneratedError, TypeValidationError } from "ai";
 import { z } from "zod";
 
@@ -198,7 +198,7 @@ const thinkingFor = (model: string) =>
   isGemini2(model) ? { thinkingBudget: 0 } : { thinkingLevel: "minimal" as const };
 
 const callModel = async (model: string, prompt: string, timeoutMs: number) => {
-  const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY?.trim() });
+  const google = geminiProvider();
   return generateObject({
     model: google(model),
     schema,

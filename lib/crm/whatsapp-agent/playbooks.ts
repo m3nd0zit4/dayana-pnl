@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -143,9 +143,7 @@ export const seedDefaultPlaybooks = async (): Promise<void> => {
   await prisma.whatsAppPlaybook.createMany({ data: DEFAULT_PLAYBOOKS });
 };
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 /**
  * Dayana corrigió a la IA: ¿hay una regla que aprender?

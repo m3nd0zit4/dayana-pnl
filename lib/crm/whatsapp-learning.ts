@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { Prisma } from "@prisma/client";
 import { embed, embedMany, generateText } from "ai";
 
@@ -30,9 +30,7 @@ const DIMENSIONS = 768;
 /** Por encima de esto, dos mensajes tratan de lo mismo. */
 const MIN_SIMILARITY = 0.55;
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 const embeddingOptions = {
   google: { outputDimensionality: DIMENSIONS, taskType: "SEMANTIC_SIMILARITY" },

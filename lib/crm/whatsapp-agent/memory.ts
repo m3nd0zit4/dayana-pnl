@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { generateText } from "ai";
 
 import { prisma } from "@/lib/db";
@@ -17,9 +17,7 @@ import { prisma } from "@/lib/db";
 
 const MAX_NOTES = 1500;
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 export const getMemory = async (phone: string): Promise<string | null> => {
   const row = await prisma.whatsAppMemory.findUnique({

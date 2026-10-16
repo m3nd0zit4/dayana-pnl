@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { get } from "@vercel/blob";
 import { Prisma } from "@prisma/client";
 import { generateText } from "ai";
@@ -21,9 +21,7 @@ const TRANSCRIBE_TIMEOUT_MS = 25_000;
 /** Intentos de la tanda pendiente por audio: uno que no se puede bajar o no se entiende no se reintenta siempre. */
 const MAX_TRIES = 3;
 
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 export const transcribeAudio = async (
   bytes: ArrayBuffer | Uint8Array,

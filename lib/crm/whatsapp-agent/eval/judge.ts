@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { generateObject } from "ai";
 import { z } from "zod";
 
@@ -34,7 +34,7 @@ export const judgeReply = async (input: {
   /** El nombre de su perfil de WhatsApp (puede no ser un nombre: «DIOS ES MI PROVEEDOR 🙏»). */
   name?: string | null;
 }): Promise<Verdict> => {
-  const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY?.trim() });
+  const google = geminiProvider();
   const chat = input.transcript
     .map((l) => `${l.direction === "INBOUND" ? "PERSONA" : "NOSOTRAS"}: ${l.attachment ? `[${l.attachment}] ` : ""}${l.body ?? ""}`)
     .join("\n");

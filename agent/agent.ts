@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { geminiProvider } from "@/lib/ai/gemini";
 import { defineAgent } from "eve";
 
 /**
@@ -20,9 +20,7 @@ import { defineAgent } from "eve";
  * free-tier despite Google pulling the Pro models off free access on
  * 2026-04-01 — that change didn't touch the Flash line.
  */
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY?.trim(),
-});
+const google = geminiProvider();
 
 export default defineAgent({
   model: google(process.env.GEMINI_MODEL?.trim() || "gemini-3.5-flash"),

@@ -71,6 +71,9 @@ const productionSchema = z
       .refine((v) => v !== "true", "CRM_UI_PREVIEW must not be true in production"),
     CRM_AGENT_ENABLED: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
+    // Respaldo: si una clave falla por créditos o cuota, sale con la siguiente (lib/ai/gemini.ts).
+    GEMINI_API_KEY_2: z.string().optional(),
+    GEMINI_API_KEYS: z.string().optional(),
     // Twilio y WhatsApp son opcionales A PROPÓSITO: el canal se enciende por
     // presencia de credenciales (smsProviderReady / whatsAppApiReady) y un
     // despliegue sin SMS es legítimo. Lo que sí se rechaza es la configuración
