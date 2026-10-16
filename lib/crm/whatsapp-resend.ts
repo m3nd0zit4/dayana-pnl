@@ -7,7 +7,18 @@ import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbou
 import { approvedTemplateFor, refreshTemplatesIfPending } from "./whatsapp-templates";
 
 /** Plantillas con las que se puede reenviar un texto fuera de las 24 h, en orden. */
-const RESEND_TEMPLATE_KEYS = ["autoevaluacion_bienvenida", "retomar_conversacion"];
+/**
+ * Con qué plantilla aprobada sale un mensaje fallido fuera de las 24 h, según
+ * lo que era: el de la autoevaluación con la suya; lo demás con «retomar la
+ * conversación». Antes se usaba la primera aprobada para todo, y una
+ * confirmación del webinar habría salido como mensaje de autoevaluación
+ * (16-oct). `null`: no se reenvía envuelto en otra plantilla.
+ */
+export const resendTemplateKeys = (source: string | null): string[] | null => {
+  if (source?.startsWith("evento:") || source?.startsWith("taller:") || source?.startsWith("recordatorio:")) return null;
+  if (source === "autoevaluacion") return ["autoevaluacion_bienvenida", "retomar_conversacion"];
+  return ["retomar_conversacion"];
+};
 
 export type ResendResult =
   | { status: "sent"; messageId: string; mode: "text" | "template" }
@@ -75,6 +86,7 @@ export const resendFailedMessage = async (input: {
       body: true,
       attachments: true,
       isAutoReply: true,
+      source: true,
       conversation: {
         select: { id: true, channel: true, externalThreadId: true, lastInboundAt: true, contactId: true, participantName: true },
       },
@@ -122,10 +134,18 @@ export const resendFailedMessage = async (input: {
     }
   }
 
-  // Fuera de las 24 h: solo con plantilla aprobada (y solo texto).
+  // Fuera de las 24 h: solo con plantilla aprobada (y solo texto), la que
+  // corresponde a lo que era el mensaje.
+  const keys = resendTemplateKeys(original.source);
+  if (!keys) {
+    return {
+      status: "failed",
+      error: "Este aviso automático (evento, taller o recordatorio) no se reenvía desde aquí: tiene su propia plantilla y su reenvío en su sección.",
+    };
+  }
   await refreshTemplatesIfPending().catch(() => undefined);
   let template = null;
-  for (const key of RESEND_TEMPLATE_KEYS) {
+  for (const key of keys) {
     template = await approvedTemplateFor(key);
     if (template) break;
   }

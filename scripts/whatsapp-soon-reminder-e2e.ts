@@ -31,7 +31,7 @@ const main = async () => {
   const { saveWhatsAppProvider } = await import("@/lib/meta/whatsapp-provider");
   const { resolveDryRun } = await import("@/lib/notifications/platform/resolve");
   const { sendSoonReminders } = await import("@/lib/crm/whatsapp-agent/appointments");
-  const { CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_REMINDERS_KEY, CLOCK_SYNC_KEY, claimClockSlot, runClockTick } = await import("@/lib/crm/whatsapp-agent/tick");
+  const { CLOCK_FOLLOWUP_KEY, CLOCK_EVENTS_KEY, CLOCK_PENDING_KEY, CLOCK_REMINDERS_KEY, CLOCK_SYNC_KEY, claimClockSlot, runClockTick } = await import("@/lib/crm/whatsapp-agent/tick");
   const { getTimeLabelInTz } = await import("@/lib/datetime/zoned-time");
 
   if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
@@ -67,7 +67,7 @@ const main = async () => {
   const previous = await getWhatsAppAiConfig();
   const previousProvider = await prisma.siteSetting.findUnique({ where: { key: "whatsapp.provider" } });
   const previousReminders = await prisma.siteSetting.findUnique({ where: { key: "whatsapp.cron.reminders_enabled" } });
-  const previousClock = await prisma.siteSetting.findMany({ where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY] } } });
+  const previousClock = await prisma.siteSetting.findMany({ where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY] } } });
   // Si la plantilla estuviera aprobada en esta base, se deja pendiente durante la prueba.
   const previousTemplate = await prisma.messageTemplate.findMany({
     where: { key: TEMPLATE_KEY },
@@ -208,7 +208,7 @@ const main = async () => {
     const fresh = await Promise.all([1, 2, 3].map(() => claimClockSlot(`${TEST_CLOCK_KEY}.nuevo`, 5 * 60_000, now)));
     check("con la fila sin crear, también gana uno solo", fresh.filter(Boolean).length === 1, fresh);
 
-    await prisma.siteSetting.deleteMany({ where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY] } } });
+    await prisma.siteSetting.deleteMany({ where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY] } } });
     const calls: string[] = [];
     const deps = (at: Date) => ({
       now: at,
@@ -217,11 +217,12 @@ const main = async () => {
       soon: async () => void calls.push("1h"),
       followUp: async () => void calls.push("seguimiento"),
       pending: async () => void calls.push("pendientes"),
+      events: async () => void calls.push("eventos"),
     });
     const t1 = await runClockTick(deps(now));
     check(
-      "primera pasada: citas, 24 h, 1 h, seguimiento y pendientes",
-      calls.join() === "citas,24h,1h,seguimiento,pendientes" && t1.every((s) => s.ok),
+      "primera pasada: citas, 24 h, 1 h, seguimiento, pendientes y eventos",
+      calls.join() === "citas,24h,1h,seguimiento,pendientes,eventos" && t1.every((s) => s.ok),
       { calls, t1 }
     );
     calls.length = 0;
@@ -231,7 +232,7 @@ const main = async () => {
     check("a los 6 min solo los recordatorios y el seguimiento", calls.join() === "24h,1h,seguimiento" && t3.length === 3, { calls, t3 });
     calls.length = 0;
     const t4 = await runClockTick({ ...deps(inMin(16)), sync: async () => { throw new Error("Google no responde"); } });
-    check("a los 16 min las citas otra vez; si fallan, no lanza y los recordatorios siguen", t4[0]?.name === "citas" && !t4[0].ok && calls.join() === "24h,1h,seguimiento,pendientes", t4);
+    check("a los 16 min las citas otra vez; si fallan, no lanza y los recordatorios siguen", t4[0]?.name === "citas" && !t4[0].ok && calls.join() === "24h,1h,seguimiento,pendientes,eventos", t4);
     await setWhatsAppAiConfig({ ...config, freeCallReminder: { ...config.freeCallReminder, enabled: false } });
     calls.length = 0;
     const t5 = await runClockTick({
@@ -240,6 +241,7 @@ const main = async () => {
       dayBefore: async () => undefined,
       followUp: async () => undefined,
       pending: async () => undefined,
+      events: async () => undefined,
     });
     const soonStep = t5.find((s) => s.name === "recordatorio 1 h");
     check("apagado en Ajustes, el de 1 h no corre", JSON.stringify(soonStep?.result) === JSON.stringify({ off: true }), t5);
@@ -255,7 +257,7 @@ const main = async () => {
         update: { value: previousReminders.value },
       });
     }
-    await prisma.siteSetting.deleteMany({ where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY] } } });
+    await prisma.siteSetting.deleteMany({ where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY] } } });
     for (const row of previousClock) await prisma.siteSetting.create({ data: { key: row.key, value: row.value } });
     for (const t of previousTemplate) await prisma.messageTemplate.update({ where: { id: t.id }, data: { metaApprovalStatus: t.metaApprovalStatus } });
   }

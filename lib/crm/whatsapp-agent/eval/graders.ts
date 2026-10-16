@@ -13,6 +13,7 @@
 import { personFirstName } from "@/lib/person-name";
 import { foldForSearch } from "../../search-normalize";
 import { mentionsPrice } from "../price-guard";
+import { promiseBreach } from "../promise-guard";
 
 export type GradeContext = {
   /** Lo que recibiría la persona. */
@@ -30,6 +31,12 @@ export type GradeContext = {
   gender?: "f" | "m" | "unknown";
   /** El nombre de su perfil de WhatsApp (puede no ser un nombre: «DIOS ES MI PROVEEDOR 🙏»). */
   profileName?: string | null;
+  /** Horas que ya respaldan la respuesta (las que dio la agenda antes, las de su cita). */
+  backing?: string[];
+  /** Ya tiene una cita de verdad. */
+  hasBooking?: boolean;
+  /** Esa cita es hoy. */
+  bookingToday?: boolean;
 };
 
 export type Grade = { id: string; pass: boolean; detail?: string };
@@ -152,6 +159,24 @@ export const GRADERS: Record<string, (ctx: GradeContext) => Grade> = {
     const hits = tokens.filter((w) => w.length >= 4 && has(w));
     const used = (phrase.length > 0 && text.includes(phrase)) || hits.length >= 2 || (tokens.length === 1 && has(tokens[0]!));
     return { id: "no_usa_nombre_de_perfil", pass: !used, detail: used ? profile : undefined };
+  },
+  promesas_con_respaldo: (ctx) => {
+    // El mismo freno que run.ts (16-oct): horas que no dio la agenda, una cita
+    // que no existe, «hoy mismo».
+    const backing = [
+      ...(ctx.backing ?? []),
+      ...ctx.tools.flatMap((t) => {
+        const o = (t.output ?? {}) as { options?: { label?: unknown }[]; label?: unknown };
+        return [...(Array.isArray(o.options) ? o.options.map((x) => (typeof x.label === "string" ? x.label : "")) : []), typeof o.label === "string" ? o.label : ""];
+      }),
+    ].filter(Boolean);
+    const booked =
+      Boolean(ctx.hasBooking) ||
+      usedTool(ctx, "book_free_call", (o) => o.booked === true || o.alreadyBooked === true || o.simulated === true) ||
+      usedTool(ctx, "book_appointment", (o) => o.simulated === true) ||
+      usedTool(ctx, "confirm_appointment", (o) => o.ok === true);
+    const v = promiseBreach({ text: ownText(ctx), backing, hasBooking: booked, bookingToday: Boolean(ctx.bookingToday) });
+    return { id: "promesas_con_respaldo", pass: !v, detail: v ? `${v.breach}: ${v.detail}` : undefined };
   },
   corto: (ctx) => {
     const words = ownText(ctx).split(/\s+/).filter(Boolean).length;

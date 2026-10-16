@@ -3,6 +3,7 @@ import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "../whatsapp-ai-confi
 import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointments } from "./appointments";
 import { sweepCallOutcomes } from "./call-outcome";
 import { answerUnansweredChats } from "./catch-up";
+import { runEventsClock } from "../events-clock";
 
 /**
  * El reloj que va pegado a los avisos de WhatsApp: los recordatorios no
@@ -28,6 +29,11 @@ import { answerUnansweredChats } from "./catch-up";
  *   360dialog con fallas dejaron chats sin respuesta). Cada chat, como mucho
  *   una vez cada 30 min; el general de la IA y las reglas de siempre los mira
  *   el ejecutor.
+ * - cada 10 min: el reloj de los eventos (`runEventsClock`: correos y WhatsApp
+ *   del webinar gratuito y de los talleres, cierres), que también es de la ruta
+ *   `/api/cron/eventos` y nunca corrió sin `CRON_SECRET` (16-oct: los
+ *   recordatorios del webinar del 25 no iban a salir). 90 s por pasada: lo que
+ *   no cabe sale en la siguiente.
  *
  * Los envíos reclaman cada cita antes de mandar, así que este reloj y la ruta
  * del cron nunca mandan el mismo recordatorio dos veces. Nunca lanza.
@@ -37,10 +43,12 @@ export const CLOCK_SYNC_KEY = "whatsapp.clock.sync_at";
 export const CLOCK_REMINDERS_KEY = "whatsapp.clock.reminders_at";
 export const CLOCK_FOLLOWUP_KEY = "whatsapp.clock.followup_at";
 export const CLOCK_PENDING_KEY = "whatsapp.clock.pending_at";
+export const CLOCK_EVENTS_KEY = "whatsapp.clock.events_at";
 export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
 export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
 export const CLOCK_FOLLOWUP_EVERY_MS = 5 * 60_000;
 export const CLOCK_PENDING_EVERY_MS = 10 * 60_000;
+export const CLOCK_EVENTS_EVERY_MS = 10 * 60_000;
 
 /** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
 export const parseClockValue = (raw: string | null | undefined): number => {
@@ -91,6 +99,8 @@ export type ClockTickDeps = {
   followUp?: (config: WhatsAppAiConfig) => Promise<unknown>;
   /** Los chats sin respuesta. */
   pending?: () => Promise<unknown>;
+  /** El reloj de los eventos (webinar gratuito y talleres). */
+  events?: () => Promise<unknown>;
 };
 
 /**
@@ -104,7 +114,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
     // Primero una lectura (lo normal es que no toque nada); el turno solo se
     // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
     const rows = await prisma.siteSetting.findMany({
-      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY] } },
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY] } },
       select: { key: true, value: true },
     });
     const due = (key: string, everyMs: number) =>
@@ -146,6 +156,9 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
           deps.pending ?? (() => answerUnansweredChats({ budgetMs: 90_000, minAgeMin: 5, recentRunMin: 30, limit: 8, concurrency: 4 }))
         )
       );
+    }
+    if (due(CLOCK_EVENTS_KEY, CLOCK_EVENTS_EVERY_MS) && (await claimClockSlot(CLOCK_EVENTS_KEY, CLOCK_EVENTS_EVERY_MS, now))) {
+      steps.push(await step("eventos", deps.events ?? (() => runEventsClock({ totalMs: 90_000, tailMs: 10_000 }))));
     }
   } catch (e) {
     console.warn("[reloj WhatsApp · avisos] no se pudo tomar el turno", e instanceof Error ? e.message : e);

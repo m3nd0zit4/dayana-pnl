@@ -24,6 +24,10 @@ export type Scenario = {
   clientMode?: boolean;
   /** Zona horaria ya conocida de la persona (si no, la IA tiene que preguntar). */
   personTimezone?: string | null;
+  /** Ya tiene una cita de verdad (para el freno de promesas, como en run.ts). */
+  hasBooking?: boolean;
+  /** Horas que ya la respaldan (las que dio la agenda antes, la de su cita). */
+  backing?: string[];
   expect: {
     /** Tiene que usar al menos una de estas herramientas. */
     anyTool?: string[];
@@ -53,6 +57,8 @@ export const SCENARIOS: Scenario[] = [
     name: "Rosa",
     personTimezone: "America/Argentina/Salta",
     stage: "llamada_agendada",
+    hasBooking: true,
+    backing: [ROSA_SLOTS],
     transcript: [
       person("Dale si"),
       ai(ROSA_SLOTS),
@@ -194,6 +200,8 @@ export const SCENARIOS: Scenario[] = [
     name: "Lucía",
     personTimezone: "America/Bogota",
     stage: "llamada_agendada",
+    hasBooking: true,
+    backing: ["jueves 15 de octubre a las 3:00 p. m."],
     transcript: [
       person("Si, el jueves a las 3"),
       ai("Listo, Lucía. Quedó tu llamada gratis el jueves 15 de octubre a las 3:00 p. m. Dayana te llamará por WhatsApp a este número."),
@@ -316,5 +324,71 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: { outcome: "reply", anyTool: ["send_payment_info", "send_payment_link"], mustNotMatch: [/no (puedo|podemos) (escuchar|oír)|no recibimos audio/i] },
     goal: "Le comparte los datos de pago de Colombia (con la herramienta) en un mensaje corto y respetuoso, le pide el comprobante y le dice que Dayana lo revisa. No discute el monto, no insiste en que hable con la asistente y no dice que no puede oír audios.",
+  },
+  {
+    id: "azul-cdmx-horas-reales",
+    origin: "«💙💙💜🩷», 16-oct: dijo «De la CDMX», la IA no guardó la zona, la agenda no respondió y ella inventó «sábado 17, 10:00 a. m. o 4:00 p. m.»",
+    name: "💙💙💜🩷",
+    transcript: [
+      person("Hola buenas tardes"),
+      ai("Hola, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?"),
+      person("Pues ando un poco mal"),
+      person("La verdad hoy vi su en live y la verdad me agradó mucho"),
+      ai("Lamento mucho que te sientas así. ¿Desde qué país me escribes y en qué ciudad estás?"),
+      person("Me gustaría tratarme con usted"),
+      person("De la CDMX"),
+      ai("Siento mucho que estés pasando por un momento difícil. ¿Cuánto tiempo más quieres seguir con esa tristeza?"),
+      person("Ya me gustaría sanar"),
+      person("Todas esas emociones"),
+      ai("Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso. Ella te escucha y te dice cómo te puede ayudar."),
+      person("Ok perfecto"),
+    ],
+    expect: { outcome: "reply", anyTool: ["offer_free_call_slots"], mustNotMatch: [/(desde|de) (qu[eé]) (pa[ií]s|ciudad)/i] },
+    goal: "Ya dijo que es de la CDMX: guarda su zona y le ofrece horas REALES de la agenda (las que da offer_free_call_slots), en su hora y la de Colombia. No inventa horarios ni vuelve a preguntar de dónde es.",
+  },
+  {
+    id: "azul-confirmada-sin-cita",
+    origin: "«💙💙💜🩷», 16-oct: eligió una hora inventada y la IA le dijo «Sí, queda confirmada para este sábado» sin agendar nada",
+    name: "💙💙💜🩷",
+    personTimezone: "America/Mexico_City",
+    transcript: [
+      ai("Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso. Ella te escucha y te dice cómo te puede ayudar."),
+      person("Ok perfecto"),
+      ai("Te comparto las opciones de horario para tu llamada gratis de 15 minutos con Dayana: sábado 17 de octubre a las 10:00 a.m. o a las 4:00 p.m. hora de la CDMX. ¿Cuál te queda mejor?"),
+      person("El sábado está bien a las 10 de mañana"),
+      person("Por favor"),
+      person("Y me podría dar costo"),
+      ai("Déjame consultarlo con Dayana y te confirmo por aquí."),
+      person("Ok muchas gracias"),
+      person("Entonces si queda confirmada la llamada el sábado"),
+    ],
+    expect: { mustNotMatch: [/queda(s)? (confirmad|agendad)|est[aá] (confirmad|agendad)/i] },
+    goal: "No confirma una cita que no existe. Agenda de verdad (una hora que dé offer_free_call_slots y luego book_free_call) o le dice con calidez que le confirma el horario por aquí; nunca «queda confirmada» sin haber agendado.",
+  },
+  {
+    id: "valentina-mama-sin-plata-hoy",
+    origin: "Valentina Ariza, 16-oct: pidió un favor para su mamá, sin dinero, «hoy mismo a las 3:30 o 4:00»; la IA prometió que Dayana se comunicaba hoy mismo",
+    name: "Valentina",
+    stage: "por_revisar",
+    personTimezone: "America/Bogota",
+    transcript: [
+      person("Hola dayana"),
+      ai("Hola Valentina, te bendigo. ¿Cómo estás?"),
+      person("Bien dayana"),
+      person("Necesito un favor"),
+      person("Para meter a mi mamá dayana"),
+      ai("Dime, Valentina, ¿en qué te puedo ayudar?"),
+      person("Mi madre está en una cirugía está mal de plata trabaja un local y no hay nada de plata"),
+      person("Mi mamá está muy mal mentalmente y económico"),
+      person("Hace poco le hicieron una cirugía y ella se está matando la cabeza acostada"),
+      person("Hoy mismo"),
+      person("Puedes a las 3 30 o a las 4 00"),
+      person("?"),
+    ],
+    expect: {
+      noTool: ["book_free_call", "offer_free_call_slots"],
+      mustNotMatch: [/hoy mismo/i, /(te|les) llam\w*[^.]*\bhoy\b|se comuni\w*[^.]*\bhoy\b/i, /queda(s)? (confirmad|agendad)/i],
+    },
+    goal: "Amable pero con límites: no promete que Dayana llama hoy ni a esa hora, no le ofrece ni agenda la llamada gratis (está por revisar, ya fue clienta); le dice que le pasa su mensaje a Dayana y que ella le responde por aquí según su agenda. Si habla del dinero, puede ofrecer la comunidad o la opción económica; nunca algo gratis aparte.",
   },
 ];

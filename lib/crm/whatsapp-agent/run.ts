@@ -45,6 +45,9 @@ import { isCrisis, pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
+import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
+import { offeredFreeCallSlots } from "./free-call";
+import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { personFirstName } from "@/lib/person-name";
 
 /**
@@ -549,6 +552,15 @@ export const runWhatsAppAi = async (input: {
       dossier: dossier ? { version: dossier.version, covered: dossier.coveredCount } : null,
     };
 
+    // La zona de la persona: la que dijo en el chat (ficha) o la del contacto.
+    const personTz =
+      dossier?.timezone ??
+      (config.salesFlow.enabled
+        ? (await prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { timezone: true } }).catch(() => null))?.timezone
+        : null) ??
+      conversation.contact?.timezone ??
+      null;
+
     const result = await think({
       config,
       transcript: history,
@@ -579,14 +591,7 @@ export const runWhatsAppAi = async (input: {
           route.routerEnabled &&
           route.mode === "AUTO" &&
           (route.segment === "new_lead" || route.segment === "returning_lead"),
-        personTimezone:
-          dossier?.timezone ??
-          (config.salesFlow.enabled
-            ? (await prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { timezone: true } }).catch(() => null))
-                ?.timezone
-            : null) ??
-          conversation.contact?.timezone ??
-          null,
+        personTimezone: personTz,
       },
       clientMode,
     });
@@ -642,10 +647,21 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
+    // Lo que respalda horas y citas (la agenda de verdad, sus citas): para no
+    // dejar salir promesas sin respaldo, ni en el aviso de espera.
+    const backing = await promiseBacking({
+      conversationId,
+      toolCalls: result.toolCalls,
+      booking: result.booking,
+      personTz: personTz ?? timezone,
+      timezone,
+    });
+
     if (result.outcome.kind === "escalate") {
       await setStatus(run.id, "SENDING", meta);
+      const holdingBreach = result.holdingReply ? promiseBreach({ text: result.holdingReply, ...backing }) : null;
       const escalated = await escalate(conversationId, run.id, config, result.outcome, name, meta, "ESCALATED", seen, {
-        holdingReply: result.holdingReply,
+        holdingReply: holdingBreach ? BREACH_HOLDING[holdingBreach.breach] : result.holdingReply,
       });
       // Un pago que la persona dice haber hecho: Dayana lo verifica y, con un
       // toque, manda la respuesta que la IA dejó preparada.
@@ -700,6 +716,25 @@ export const runWhatsAppAi = async (input: {
         await finish(run.id, "SKIPPED", { ...meta, reason: "repeat" });
         return;
       }
+    }
+    // Lo que no puede prometer sin respaldo (16-oct: horas inventadas y una
+    // cita «confirmada» que no existía a «💙💙💜🩷»; «hoy mismo» a Valentina).
+    // No sale: la persona recibe un aviso corto y el chat pasa a Dayana.
+    const breach = promiseBreach({ text: written, ...backing });
+    if (breach) {
+      await setStatus(run.id, "SENDING", meta);
+      await escalate(
+        conversationId,
+        run.id,
+        config,
+        { category: "booking", severity: "normal", reason: `${BREACH_REASON[breach.breach]} («${breach.detail}»)` },
+        name,
+        meta,
+        "ESCALATED",
+        seen,
+        { holdingReply: BREACH_HOLDING[breach.breach] }
+      );
+      return;
     }
     // O tomó el chat (modo Yo, ⭐, pausa) sin contestar todavía: la respuesta
     // queda como borrador para ella, no como propuesta.
@@ -896,6 +931,72 @@ export const runWhatsAppAi = async (input: {
       ).catch(() => undefined);
     }
   }
+};
+
+/**
+ * Lo que respalda las horas y las citas de una respuesta (`promiseBreach`):
+ * las horas que dio la agenda en esta vuelta o hace poco (quedan como
+ * ofrecidas), las de sus citas activas y la que se agendó ahora, en su hora y
+ * en la de Dayana.
+ */
+const promiseBacking = async (input: {
+  conversationId: string;
+  toolCalls: { tool: string; input: unknown; output: unknown }[];
+  booking: { startsAt: Date } | null;
+  personTz: string;
+  timezone: string;
+  now?: Date;
+}): Promise<{ backing: string[]; hasBooking: boolean; bookingToday: boolean }> => {
+  const now = input.now ?? new Date();
+  const labels: string[] = [];
+  let bookedNow = Boolean(input.booking);
+  for (const t of input.toolCalls) {
+    const out = (t.output ?? {}) as { options?: { label?: unknown }[]; label?: unknown; booked?: unknown; alreadyBooked?: unknown };
+    if (t.tool === "offer_free_call_slots" && Array.isArray(out.options)) {
+      for (const o of out.options) if (typeof o.label === "string") labels.push(o.label);
+    }
+    if (typeof out.label === "string") labels.push(out.label);
+    if (t.tool === "book_free_call" && (out.booked === true || out.alreadyBooked === true)) bookedNow = true;
+  }
+  const [offered, dayanaLines, appts] = await Promise.all([
+    offeredFreeCallSlots(input.conversationId, now).catch(() => [] as string[]),
+    // Las horas que Dayana misma escribió (el botón «Horas libres», su celular) también valen.
+    prisma.conversationMessage
+      .findMany({
+        where: {
+          conversationId: input.conversationId,
+          direction: "OUTBOUND",
+          isAutoReply: false,
+          kind: "message",
+          status: { not: "FAILED" },
+          sentAt: { gte: new Date(now.getTime() - 72 * 3600_000) },
+        },
+        select: { body: true },
+        take: 30,
+      })
+      .catch(() => [] as { body: string | null }[]),
+    prisma.calendarAppointment
+      .findMany({
+        where: { conversationId: input.conversationId, status: "active", endsAt: { gte: now } },
+        select: { startsAt: true },
+        take: 10,
+      })
+      .catch(() => [] as { startsAt: Date }[]),
+  ]);
+  for (const l of dayanaLines) if (l.body) labels.push(l.body);
+  const booked = [...appts.map((a) => a.startsAt), ...(input.booking ? [input.booking.startsAt] : [])];
+  for (const d of [...offered.map((iso) => new Date(iso)), ...booked]) {
+    if (Number.isNaN(d.getTime())) continue;
+    labels.push(getTimeLabelInTz(d, input.personTz), getTimeLabelInTz(d, input.timezone));
+  }
+  const today = (tz: string) => getDateKeyInTz(now, tz);
+  return {
+    backing: labels,
+    hasBooking: bookedNow || booked.length > 0,
+    bookingToday: booked.some(
+      (d) => getDateKeyInTz(d, input.timezone) === today(input.timezone) || getDateKeyInTz(d, input.personTz) === today(input.personTz)
+    ),
+  };
 };
 
 type GateResult =

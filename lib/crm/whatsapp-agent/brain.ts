@@ -206,7 +206,16 @@ export const modelId = () => process.env.GEMINI_MODEL?.trim() || "gemini-3.5-fla
 const google = geminiProvider();
 
 /** Lo único que la IA puede afirmar: sale del CRM en cada respuesta. */
-export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> => {
+/** «Llamada gratis de 15 minutos», «la llamada gratis», «consulta gratuita». */
+const FREE_CALL_SERVICE = /gratis|gratuit|15\s*min/i;
+/** Lo que pide para ya: «hoy», «hoy mismo», «ahora», «esta tarde». */
+const SOON_WORDS = /\bhoy\b|\bahora\b|ya mismo|en un rato|esta (tarde|noche|mañana)/i;
+
+export const businessFacts = async (
+  config: WhatsAppAiConfig,
+  /** Ya fue clienta, ya tuvo la llamada o está por revisar: no agenda la llamada gratis. */
+  opts: { noFreeCall?: boolean } = {}
+): Promise<string> => {
   const site = getSiteUrl();
   const [products, workshops, events, magnets] = await Promise.all([
     prisma.product.findMany({
@@ -272,7 +281,14 @@ export const businessFacts = async (config: WhatsAppAiConfig): Promise<string> =
     `Cuestionario gratis (3 min, dice qué proceso le sirve): ${site}/terapias/empezar`,
   ];
 
-  if (config.salesFlow.enabled && config.booking.enabled) {
+  if (config.salesFlow.enabled && config.booking.enabled && opts.noFreeCall) {
+    // Sin las herramientas de la llamada gratis (16-oct: Valentina, «por
+    // revisar», terminó «agendando» con request_booking para «hoy mismo»).
+    lines.push(
+      "",
+      "AGENDAR: esta persona no agenda la llamada gratis (ya fue clienta, ya la tuvo o está por revisar): no se la ofrezcas. Si quiere una sesión o retomar su proceso, usa request_booking: Dayana revisa su agenda y le confirma por aquí, sin que tú prometas día ni hora."
+    );
+  } else if (config.salesFlow.enabled && config.booking.enabled) {
     lines.push(
       "",
       "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia) y, cuando elija, book_free_call. Nunca envíes enlaces de agenda.",
@@ -530,6 +546,8 @@ ${clinicalRule}
 
 ${IDENTITY[config.identity]}
 
+LÍMITES (amable, pero con límites): nunca prometas que Dayana llama, escribe o atiende «hoy», «ya» o a una hora que no salió de la agenda; nunca digas que una cita quedó confirmada o agendada si no la agendaste con la herramienta; nunca ofrezcas espacios, sesiones ni ayuda gratis aparte de la llamada gratis de 15 minutos (una por persona), ni favores. Si piden algo urgente o «para hoy», dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí según su agenda. Si una herramienta de agenda falla o no te da horas, no escribas horarios.
+
 Prohibido siempre: dar precios o valores de cualquier tipo, escribir tú un número de cuenta o un enlace de pago (solo con send_payment_info / send_payment_link), dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios o enlaces, confirmar tú un pago (lo confirma Dayana), pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
 
 Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
@@ -706,7 +724,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const seenOptions = new Map<string, string>();
   // El flujo de venta (persona nueva → llamada gratis) y las horas de la llamada ofrecidas en esta vuelta.
   // Nunca a quien ya tuvo la llamada, a una clienta (o posible clienta) ni a un chat personal.
-  const salesOn = config.salesFlow.enabled && config.booking.enabled && !(input.stage && NO_FREE_CALL_STAGES.has(input.stage));
+  // Ya fue clienta, ya tuvo la llamada o está por revisar: sin llamada gratis.
+  const noFreeCall = Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage));
+  const salesOn = config.salesFlow.enabled && config.booking.enabled && !noFreeCall;
   const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
   const offeredNow = new Set<string>();
   const offeredBefore =
@@ -975,7 +995,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           } : {
           request_booking: tool({
             description:
-              "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella agende y confirme. Antes tienes que saber desde qué país escribe. Úsalo UNA vez; tu respuesta dice que Dayana le confirma la hora.",
+              "La persona quiere agendar (la llamada gratis o una sesión) o ya dijo qué día u hora le sirve. Le avisa a Dayana para que ella revise su agenda, agende y confirme. Antes tienes que saber desde qué país escribe. Úsalo UNA vez; tu respuesta dice que Dayana revisa su agenda y le confirma por aquí (nunca prometas esa hora ni que será hoy).",
             inputSchema: z.object({
               service: z.string().describe("«Llamada gratis de 15 minutos» o la sesión que pide."),
               countryIso: z.string().optional().describe("País de la persona (2 letras), el que dijo en la conversación."),
@@ -989,6 +1009,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               note: z.string().describe("Para Dayana, en una línea: qué quiere trabajar la persona y lo importante."),
             }),
             execute: async (args) => {
+              // La llamada gratis no es para quien ya fue clienta, ya la tuvo o está por revisar.
+              if (noFreeCall && FREE_CALL_SERVICE.test(args.service)) {
+                return log("request_booking", args, {
+                  error:
+                    "Esta persona no agenda la llamada gratis (ya fue clienta, ya la tuvo o está por revisar): no se la ofrezcas. Si pide ayuda o quiere retomar, dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí, sin prometer día ni hora, y escala con category=booking.",
+                });
+              }
               const iso = (args.countryIso ?? state.country?.iso ?? "").trim().toUpperCase().slice(0, 2);
               if (!iso) {
                 return log("request_booking", args, {
@@ -1006,11 +1033,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 when: time?.text ?? (args.when?.trim() ? `${args.when.trim()} (hora de ${place})` : null),
                 note: `${args.note.trim()} · Desde ${place}`,
               };
+              // Lo que pidió para hoy o para dentro de pocas horas no se promete
+              // (Valentina, 16-oct: «Dayana se comunica con ustedes hoy mismo»).
+              const soon =
+                (time && time.utc.getTime() - now.getTime() < 12 * 3600_000) || SOON_WORDS.test(args.when ?? "");
               return log("request_booking", args, {
                 ok: true,
                 note: time || args.when
-                  ? "Dayana recibe el aviso. Responde corto y cálido: que ya le pasas su horario (en su hora) a Dayana y ella le confirma por aquí."
-                  : "Dayana recibe el aviso. Pregúntale qué día y hora le quedan bien (en su hora), y dile que Dayana le confirma por aquí.",
+                  ? `Dayana recibe el aviso. Responde corto y cálido: que le pasas su horario a Dayana y que ella revisa su agenda y le confirma por aquí. No prometas ese horario${soon ? " ni que será hoy: nunca digas «hoy mismo» ni que Dayana la llama hoy" : ""}.`
+                  : "Dayana recibe el aviso. Pregúntale qué día y hora le quedan bien (en su hora), y dile que Dayana revisa su agenda y le confirma por aquí.",
               });
             },
           }),
@@ -1028,7 +1059,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const tz = personTz();
               if (!tz) {
                 return log("offer_free_call_slots", {}, {
-                  error: "Aún no sabes desde dónde escribe. Pregúntaselo primero («¿Desde qué país me escribes?») y usa save_country.",
+                  error:
+                    "Aún no tienes su zona horaria. Si ya dijo su país o su ciudad en la conversación («De la CDMX», «soy de Medellín»), usa save_country con eso y vuelve a llamar esta herramienta; si no lo dijo, pregúntaselo («¿Desde qué país me escribes?»). Mientras esta herramienta no te dé horas, NO escribas ningún horario.",
                 });
               }
               // México, Estados Unidos, Brasil…: sin la ciudad la hora puede
@@ -1333,7 +1365,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeLabelInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;
 
   const promptText = [
-      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config)}`,
+      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall: Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)) })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       input.dossier

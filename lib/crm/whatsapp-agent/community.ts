@@ -43,7 +43,7 @@ export const communityRules = (config: WhatsAppAiConfig): string => {
     .filter(Boolean)
     .join(" y, ");
   lines.push(
-    `- Si dice que no le alcanza, que está caro, que no tiene cómo pagar o que primero va a ahorrar («eso no me alcanza», «no tengo para eso ahora», «primero ahorraré y luego me inscribo»): no insistas con la terapia ni hables de valores. Reconócelo con empatía en una frase y ofrécele lo que sí puede hacer ya: ${offer}. Si todavía no tuvo la llamada gratis con Dayana, recuérdale que esa llamada no tiene costo. Deja la puerta abierta para cuando pueda.`,
+    `- Si dice que no le alcanza, que está caro, que no tiene cómo pagar, que está mal de plata o que primero va a ahorrar («eso no me alcanza», «no tengo para eso ahora», «estoy mal de plata», «primero ahorraré y luego me inscribo»), también si lo dice de un familiar al que quiere ayudar («mi mamá está mal de plata»): no le ofrezcas espacios gratis aparte de la llamada gratis ni prometas que Dayana la atiende hoy; no insistas con la terapia ni hables de valores. Reconócelo con empatía en una frase y ofrécele lo que sí puede hacer ya: ${offer}. Si todavía no tuvo la llamada gratis con Dayana, recuérdale que esa llamada no tiene costo. Deja la puerta abierta para cuando pueda.`,
     "- Esos enlaces los pega el sistema debajo de tu mensaje: no los escribas tú."
   );
   return `${lines.join("\n")}\n`;

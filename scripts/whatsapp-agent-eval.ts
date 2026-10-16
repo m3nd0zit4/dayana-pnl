@@ -35,6 +35,7 @@ const main = async () => {
   const { polishReply } = await import("@/lib/crm/whatsapp-agent/wording");
   const { withPaymentBlocks } = await import("@/lib/crm/whatsapp-agent/payment-info");
   const { alreadySaid } = await import("@/lib/crm/whatsapp-agent/repeat-guard");
+  const { BREACH_HOLDING, promiseBreach } = await import("@/lib/crm/whatsapp-agent/promise-guard");
   const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
   const { SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
@@ -115,11 +116,29 @@ const main = async () => {
       !result.paymentBlocks.link &&
       !result.linkBlocks.length &&
       alreadySaid(polishReply(o.message), [lastOut]);
+    // El freno de promesas de run.ts: horas que no dio la agenda, una cita que
+    // no existe, «hoy mismo». Si salta, la persona recibe el aviso corto.
+    const backing = [
+      ...(s.backing ?? []),
+      // Lo que Dayana misma escribió (sus horas también valen).
+      ...s.transcript.filter((l) => l.direction === "OUTBOUND" && !l.isAutoReply && l.body).map((l) => l.body as string),
+      ...result.toolCalls.flatMap((t) => {
+        const out = (t.output ?? {}) as { options?: { label?: unknown }[]; label?: unknown };
+        return [...(Array.isArray(out.options) ? out.options.map((x) => (typeof x.label === "string" ? x.label : "")) : []), typeof out.label === "string" ? out.label : ""];
+      }),
+    ].filter(Boolean);
+    const booked =
+      Boolean(s.hasBooking) ||
+      result.toolCalls.some((t) => t.tool === "book_free_call" && ["booked", "alreadyBooked", "simulated"].some((k) => (t.output as Record<string, unknown> | undefined)?.[k] === true));
+    const draft = o?.kind === "reply" ? polishReply(o.message) : polishReply(result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí.");
+    const breach = promiseBreach({ text: draft, backing, hasBooking: booked, bookingToday: false });
     const sent: string | null = silentClient || crisis || repeatedReceipt
       ? null
-      : o?.kind === "reply"
-        ? withPaymentBlocks(polishReply(o.message), { ...result.paymentBlocks, links: result.linkBlocks })
-        : polishReply(result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí.");
+      : breach
+        ? BREACH_HOLDING[breach.breach]
+        : o?.kind === "reply"
+          ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks })
+          : draft;
     const reply = sent ?? "(no le escribe: se lo pasa a Dayana)";
     const tools = result.toolCalls.map((c) => c.tool);
     const failed: string[] = [];
@@ -131,6 +150,8 @@ const main = async () => {
         paymentBlocks: [...result.paymentBlocks.details, ...result.linkBlocks],
         gender: s.gender,
         profileName: s.name,
+        backing,
+        hasBooking: booked,
       })) {
         if (!g.pass) failed.push(`regla:${g.id}${g.detail ? ` («${g.detail}»)` : ""}`);
       }
