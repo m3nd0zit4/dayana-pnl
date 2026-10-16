@@ -8,6 +8,7 @@ import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
 import { quotePreview } from "@/lib/crm/whatsapp-chat-format";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import ApprovalBar from "../ApprovalBar";
+import CallOutcomeBar from "../CallOutcomeBar";
 import ReceiptBar from "../ReceiptBar";
 import VoiceRecorder from "../VoiceRecorder";
 import { wa } from "./chatTheme";
@@ -80,6 +81,7 @@ const Composer = forwardRef<
           })()}
         </p>
       )}
+      <CallOutcomeBar chatId={chat.id} call={chat.callFollowUp} phone={chat.phone} canWrite={canWrite} onChanged={onChanged} />
       <ReceiptBar receipts={chat.receipts} chatName={chat.name} canWrite={canWrite} onChanged={onChanged} onOpenImage={onOpenImage} />
       <ApprovalBar approvals={chat.approvals} canWrite={canWrite} onDecide={onDecide} />
       {chat.draft?.source === "AI" && text === chat.draft.body && (

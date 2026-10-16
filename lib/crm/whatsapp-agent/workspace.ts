@@ -14,6 +14,9 @@ import { listReceipts, type ReceiptView } from "./payment-info";
 import { decideRoute } from "./route";
 import { salesMetrics } from "./metrics";
 import { freeCallService } from "./free-call";
+import { findCallToMark } from "./call-outcome";
+import { callWhenLabel } from "./call-outcome-rules";
+import { getOperationalTimezone } from "../operational-timezone";
 import { SEGMENTS, type Segment } from "./segment";
 import {
   attentionSurvivesSilence,
@@ -614,7 +617,8 @@ export const getChat = async (id: string) => {
     })
   );
 
-  const [memory, classifyEnabled, config, receipts] = await Promise.all([
+  const now = new Date();
+  const [memory, classifyEnabled, config, receipts, callToMark, timezone] = await Promise.all([
     prisma.whatsAppMemory.findUnique({
       where: { phone: c.externalThreadId },
       select: { notes: true, updatedAt: true },
@@ -622,6 +626,8 @@ export const getChat = async (id: string) => {
     isClassifyEnabled(),
     getWhatsAppAiConfig(),
     listReceipts(c.id).catch(() => [] as ReceiptView[]),
+    findCallToMark(c.id, now).catch(() => null),
+    getOperationalTimezone(),
   ]);
   // El modo con el que de verdad trabaja (con el enrutador sale del segmento
   // y del tope general; ya no se guarda en el chat).
@@ -721,6 +727,20 @@ export const getChat = async (id: string) => {
     approvals: approvalViews,
     /** Comprobantes de pago que Dayana aún no confirma, o confirmados con el pago sin registrar en el CRM. */
     receipts: receipts.filter((r) => r.status === "pending" || r.needsPayment),
+    /**
+     * La llamada gratis que ya pasó y no se sabe cómo terminó (WhatsApp no avisa
+     * de las llamadas del celular): la barra «¿Cómo terminó…?» con «Hablaron» /
+     * «No contestó». `when`: «de hoy, 7:15 p. m.» en la zona de Dayana.
+     * `asked`: la asistente ya le preguntó «¿Pudiste hablar con Dayana?».
+     */
+    callFollowUp: callToMark
+      ? {
+          appointmentId: callToMark.appointmentId,
+          startsAt: callToMark.startsAt.toISOString(),
+          when: callWhenLabel(callToMark.startsAt, now, timezone),
+          asked: callToMark.asked,
+        }
+      : null,
   };
 };
 
