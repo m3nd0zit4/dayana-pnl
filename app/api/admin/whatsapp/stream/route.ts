@@ -34,7 +34,8 @@ export const GET = async (req: Request) => {
       if (Date.now() - lastSweep > 30_000) {
         lastSweep = Date.now();
         void kickSweep().catch((e) => console.warn("[cola WhatsApp] barrido", e));
-        void piggybackClockTick();
+        // Solo los pasos cortos: este stream puede cortarse a mitad de una pasada.
+        void piggybackClockTick({ light: true });
       }
       return workspaceSnapshot();
     },

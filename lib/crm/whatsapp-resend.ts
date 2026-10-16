@@ -138,9 +138,11 @@ export const resendFailedMessage = async (input: {
   // corresponde a lo que era el mensaje.
   const keys = resendTemplateKeys(original.source);
   if (!keys) {
+    const own = /^\d+$/.test(conv.externalThreadId) ? `+${conv.externalThreadId}` : null;
     return {
-      status: "failed",
-      error: "Este aviso automático (evento, taller o recordatorio) no se reenvía desde aquí: tiene su propia plantilla y su reenvío en su sección.",
+      status: "phone",
+      url: own ? buildContactWhatsAppUrl(own, body) : null,
+      reason: "Este aviso automático (evento, taller o recordatorio) no se reenvía envuelto en otra plantilla: si quieres, mándalo desde tu WhatsApp.",
     };
   }
   await refreshTemplatesIfPending().catch(() => undefined);

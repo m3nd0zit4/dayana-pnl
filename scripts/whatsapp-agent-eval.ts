@@ -122,9 +122,14 @@ const main = async () => {
       ...(s.backing ?? []),
       // Lo que Dayana misma escribió (sus horas también valen).
       ...s.transcript.filter((l) => l.direction === "OUTBOUND" && !l.isAutoReply && l.body).map((l) => l.body as string),
+      // Como run.ts: las horas de la agenda (offer_free_call_slots / check_availability).
       ...result.toolCalls.flatMap((t) => {
         const out = (t.output ?? {}) as { options?: { label?: unknown }[]; label?: unknown };
-        return [...(Array.isArray(out.options) ? out.options.map((x) => (typeof x.label === "string" ? x.label : "")) : []), typeof out.label === "string" ? out.label : ""];
+        const fromAgenda = t.tool === "offer_free_call_slots" || t.tool === "check_availability";
+        return [
+          ...(fromAgenda && Array.isArray(out.options) ? out.options.map((x) => (typeof x.label === "string" ? x.label : "")) : []),
+          typeof out.label === "string" ? out.label : "",
+        ];
       }),
     ].filter(Boolean);
     const booked =
@@ -140,11 +145,14 @@ const main = async () => {
           ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks })
           : draft;
     const reply = sent ?? "(no le escribe: se lo pasa a Dayana)";
+    // Las reglas se miran sobre lo que escribió el modelo (antes del freno): si
+    // el freno lo tapa, el prompt igual falló y tiene que verse.
+    const written = silentClient || crisis || repeatedReceipt ? null : o?.kind === "reply" ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks }) : draft;
     const tools = result.toolCalls.map((c) => c.tool);
     const failed: string[] = [];
-    if (sent) {
+    if (written) {
       for (const g of gradeReply({
-        reply,
+        reply: written,
         transcript: s.transcript,
         tools: result.toolCalls,
         paymentBlocks: [...result.paymentBlocks.details, ...result.linkBlocks],
@@ -164,7 +172,8 @@ const main = async () => {
     if (e.anyTool && !e.anyTool.some((t) => tools.includes(t))) failed.push(`no usó ${e.anyTool.join(" ni ")}`);
     for (const t of e.noTool ?? []) if (tools.includes(t)) failed.push(`usó ${t}`);
     for (const re of e.mustMatch ?? []) if (!re.test(reply)) failed.push(`falta ${re}`);
-    for (const re of e.mustNotMatch ?? []) if (re.test(reply)) failed.push(`no debía decir ${re}`);
+    for (const re of e.mustNotMatch ?? []) if (re.test(written ?? reply)) failed.push(`no debía decir ${re}`);
+    if (breach && sent) failed.push(`freno: ${breach.breach} («${breach.detail}»)`);
 
     let verdict: Run["verdict"];
     if (useJudge) {

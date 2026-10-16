@@ -221,18 +221,19 @@ const main = async () => {
     });
     const t1 = await runClockTick(deps(now));
     check(
-      "primera pasada: citas, 24 h, 1 h, seguimiento, pendientes y eventos",
-      calls.join() === "citas,24h,1h,seguimiento,pendientes,eventos" && t1.every((s) => s.ok),
+      "primera pasada: citas, 24 h, 1 h, seguimiento y pendientes (un paso pesado por pasada)",
+      calls.join() === "citas,24h,1h,seguimiento,pendientes" && t1.every((s) => s.ok),
       { calls, t1 }
     );
     calls.length = 0;
     const t2 = await runClockTick(deps(inMin(2)));
-    check("a los 2 min no le toca nada", t2.length === 0 && calls.length === 0, { calls, t2 });
+    check("a los 2 min solo los eventos (esperaron a que pasara «pendientes»)", calls.join() === "eventos" && t2.length === 1, { calls, t2 });
+    calls.length = 0;
     const t3 = await runClockTick(deps(inMin(6)));
     check("a los 6 min solo los recordatorios y el seguimiento", calls.join() === "24h,1h,seguimiento" && t3.length === 3, { calls, t3 });
     calls.length = 0;
     const t4 = await runClockTick({ ...deps(inMin(16)), sync: async () => { throw new Error("Google no responde"); } });
-    check("a los 16 min las citas otra vez; si fallan, no lanza y los recordatorios siguen", t4[0]?.name === "citas" && !t4[0].ok && calls.join() === "24h,1h,seguimiento,pendientes,eventos", t4);
+    check("a los 16 min las citas otra vez; si fallan, no lanza y los recordatorios siguen", t4[0]?.name === "citas" && !t4[0].ok && calls.join() === "24h,1h,seguimiento,pendientes", t4);
     await setWhatsAppAiConfig({ ...config, freeCallReminder: { ...config.freeCallReminder, enabled: false } });
     calls.length = 0;
     const t5 = await runClockTick({

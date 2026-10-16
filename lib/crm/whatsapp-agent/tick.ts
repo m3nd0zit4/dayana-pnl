@@ -101,6 +101,12 @@ export type ClockTickDeps = {
   pending?: () => Promise<unknown>;
   /** El reloj de los eventos (webinar gratuito y talleres). */
   events?: () => Promise<unknown>;
+  /**
+   * Solo los pasos cortos (citas, recordatorios, seguimiento): el stream del
+   * CRM puede cortarse en cualquier momento, y «pendientes» y «eventos»
+   * reclaman filas que, cortadas a medias, no se vuelven a intentar.
+   */
+  light?: boolean;
 };
 
 /**
@@ -149,7 +155,10 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
         })
       );
     }
-    if (due(CLOCK_PENDING_KEY, CLOCK_PENDING_EVERY_MS) && (await claimClockSlot(CLOCK_PENDING_KEY, CLOCK_PENDING_EVERY_MS, now))) {
+    // Los pesados: solo desde los webhooks (con `after()`), y uno por pasada.
+    let heavy = false;
+    if (!deps.light && due(CLOCK_PENDING_KEY, CLOCK_PENDING_EVERY_MS) && (await claimClockSlot(CLOCK_PENDING_KEY, CLOCK_PENDING_EVERY_MS, now))) {
+      heavy = true;
       steps.push(
         await step(
           "pendientes",
@@ -157,7 +166,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
         )
       );
     }
-    if (due(CLOCK_EVENTS_KEY, CLOCK_EVENTS_EVERY_MS) && (await claimClockSlot(CLOCK_EVENTS_KEY, CLOCK_EVENTS_EVERY_MS, now))) {
+    if (!deps.light && !heavy && due(CLOCK_EVENTS_KEY, CLOCK_EVENTS_EVERY_MS) && (await claimClockSlot(CLOCK_EVENTS_KEY, CLOCK_EVENTS_EVERY_MS, now))) {
       steps.push(await step("eventos", deps.events ?? (() => runEventsClock({ totalMs: 90_000, tailMs: 10_000 }))));
     }
   } catch (e) {
@@ -175,7 +184,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
 export const isClockHost = (): boolean => process.env.VERCEL_ENV === "production";
 
 /** Para las rutas (con `after()` o sin esperar): no hace nada fuera de producción y nunca lanza. */
-export const piggybackClockTick = async (): Promise<void> => {
+export const piggybackClockTick = async (opts: { light?: boolean } = {}): Promise<void> => {
   if (!isClockHost()) return;
-  await runClockTick().catch(() => undefined);
+  await runClockTick({ light: opts.light === true }).catch(() => undefined);
 };

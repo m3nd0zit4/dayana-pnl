@@ -47,6 +47,24 @@ describe("lo que pasó el 16-oct (no sale)", () => {
     expect(promiseBreach({ ...none, text: "Perfecto, a las 6:30 p. m. te queda bien. ¿Qué día te sirve?" })?.breach).toBe("invented_slots");
   });
 
+  test("Sophie: horas inventadas y «queda agendada» sin cita", () => {
+    expect(
+      promiseBreach({ ...none, text: "Perfecto, Sophie. Si te parece bien, tengo disponible este sábado a las 10:00 a. m. o a las 3:00 p. m. de Colombia. Dime cuál te queda mejor y te agendo." })?.breach
+    ).toBe("invented_slots");
+    expect(promiseBreach({ ...none, text: "Perfecto, Sophie. Tu llamada queda agendada para este sábado a las 3:00 p. m. de Colombia." })?.breach).toBe("false_booking");
+  });
+
+  test("lo que el revisor vio que se escapaba", () => {
+    expect(promiseBreach({ ...none, text: "Listo, Lucía. Quedó tu llamada gratis el jueves 15 de octubre a las 3:00 p. m." })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...none, text: "Dayana te va a llamar en unos minutos." })?.breach).toBe("same_day_promise");
+    expect(promiseBreach({ ...none, text: "Dayana te llama más tarde, tranquila." })?.breach).toBe("same_day_promise");
+    expect(promiseBreach({ ...none, text: "Dayana se pondrá en contacto hoy contigo." })?.breach).toBe("same_day_promise");
+    expect(promiseBreach({ ...none, text: "Para la llamada tengo a las 10 o a las 4, ¿cuál te sirve?" })?.breach).toBe("invented_slots");
+    expect(promiseBreach({ ...none, text: "Te puedo agendar la llamada a las 18:45." })?.breach).toBe("invented_slots");
+    // Mencionar el live no apaga el freno en la frase de las horas.
+    expect(promiseBreach({ ...none, text: "Qué bueno que te gustó el live. Para tu llamada tengo el sábado a las 10:00 a. m." })?.breach).toBe("invented_slots");
+  });
+
   test("otras formas de prometer", () => {
     expect(promiseBreach({ ...none, text: "Listo, ya te agendé con Dayana." })?.breach).toBe("false_booking");
     expect(promiseBreach({ ...none, text: "Tu llamada está agendada." })?.breach).toBe("false_booking");
@@ -74,6 +92,17 @@ describe("lo que sí sale", () => {
   test("las horas de un evento o del curso vienen de los datos", () => {
     expect(promiseBreach({ ...none, text: "El webinar gratuito es el domingo 25 de octubre a las 9:30 a. m. (hora de Colombia)." })).toBeNull();
     expect(promiseBreach({ ...none, text: "El curso en vivo es los miércoles a las 6:00 p. m.; si quieres, te comparto el enlace." })).toBeNull();
+  });
+
+  test("lo que el revisor vio que se bloqueaba sin razón", () => {
+    expect(promiseBreach({ ...none, text: "¿Quieres que te agende la llamada gratis de 15 minutos?" })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Dayana te llama el día que elijas, por WhatsApp." })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Tu llamada queda para cuando tú elijas." })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Tu cupo para el webinar quedó reservado." })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Tu inscripción al taller quedó confirmada." })).toBeNull();
+    // Las horas de Dayana sin a. m./p. m. valen si coinciden con lo que ella dio.
+    expect(promiseBreach({ ...none, backing: ["• Jueves, 15 de octubre, 6:45 p. m."], text: "Perfecto, el jueves a las 6:45 queda tu llamada." })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...none, backing: ["• Jueves, 15 de octubre, 6:45 p. m."], text: "¿Te sirve el jueves a las 6:45 para la llamada?" })).toBeNull();
   });
 
   test("frases sin promesa", () => {

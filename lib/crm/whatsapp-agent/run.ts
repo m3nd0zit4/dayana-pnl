@@ -48,6 +48,7 @@ import { alreadySaid } from "./repeat-guard";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
 import { offeredFreeCallSlots } from "./free-call";
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
+import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { personFirstName } from "@/lib/person-name";
 
 /**
@@ -651,6 +652,8 @@ export const runWhatsAppAi = async (input: {
     // dejar salir promesas sin respaldo, ni en el aviso de espera.
     const backing = await promiseBacking({
       conversationId,
+      contactId: conversation.contactId,
+      phone,
       toolCalls: result.toolCalls,
       booking: result.booking,
       personTz: personTz ?? timezone,
@@ -716,25 +719,6 @@ export const runWhatsAppAi = async (input: {
         await finish(run.id, "SKIPPED", { ...meta, reason: "repeat" });
         return;
       }
-    }
-    // Lo que no puede prometer sin respaldo (16-oct: horas inventadas y una
-    // cita «confirmada» que no existía a «💙💙💜🩷»; «hoy mismo» a Valentina).
-    // No sale: la persona recibe un aviso corto y el chat pasa a Dayana.
-    const breach = promiseBreach({ text: written, ...backing });
-    if (breach) {
-      await setStatus(run.id, "SENDING", meta);
-      await escalate(
-        conversationId,
-        run.id,
-        config,
-        { category: "booking", severity: "normal", reason: `${BREACH_REASON[breach.breach]} («${breach.detail}»)` },
-        name,
-        meta,
-        "ESCALATED",
-        seen,
-        { holdingReply: BREACH_HOLDING[breach.breach] }
-      );
-      return;
     }
     // O tomó el chat (modo Yo, ⭐, pausa) sin contestar todavía: la respuesta
     // queda como borrador para ella, no como propuesta.
@@ -854,6 +838,33 @@ export const runWhatsAppAi = async (input: {
         );
       }
     } else {
+      // Lo que no puede prometer sin respaldo (16-oct: horas inventadas y una
+      // cita «confirmada» que no existía a «💙💙💜🩷» y a Sophie; «hoy mismo» a
+      // Valentina). Solo lo que sale solo: una propuesta la revisa Dayana. No
+      // sale: la persona recibe un aviso corto y el chat pasa a Dayana. Con
+      // request_booking, la hora que pidió la persona vale (se la pasa a Dayana).
+      const requested = result.bookingRequest;
+      const breach = promiseBreach({
+        text: written,
+        ...backing,
+        backing: [...backing.backing, ...(requested?.when ? [requested.when] : [])],
+      });
+      if (breach) {
+        const asked = requested ? ` Pidió: ${requested.service}${requested.when ? ` · ${requested.when}` : ""}.` : "";
+        await setStatus(run.id, "SENDING", meta);
+        await escalate(
+          conversationId,
+          run.id,
+          config,
+          { category: "booking", severity: "normal", reason: `${BREACH_REASON[breach.breach]} («${breach.detail}»)${asked}` },
+          name,
+          meta,
+          "ESCALATED",
+          seen,
+          { holdingReply: BREACH_HOLDING[breach.breach] }
+        );
+        return;
+      }
       await setStatus(run.id, "SENDING", meta);
       await sendAuto(conversationId, body);
       if (result.stickerUrl) {
@@ -941,6 +952,8 @@ export const runWhatsAppAi = async (input: {
  */
 const promiseBacking = async (input: {
   conversationId: string;
+  contactId: string | null;
+  phone: string;
   toolCalls: { tool: string; input: unknown; output: unknown }[];
   booking: { startsAt: Date } | null;
   personTz: string;
@@ -952,11 +965,13 @@ const promiseBacking = async (input: {
   let bookedNow = Boolean(input.booking);
   for (const t of input.toolCalls) {
     const out = (t.output ?? {}) as { options?: { label?: unknown }[]; label?: unknown; booked?: unknown; alreadyBooked?: unknown };
-    if (t.tool === "offer_free_call_slots" && Array.isArray(out.options)) {
+    // Las horas que dio la agenda (la llamada gratis o, con «agendar sola», check_availability).
+    if ((t.tool === "offer_free_call_slots" || t.tool === "check_availability") && Array.isArray(out.options)) {
       for (const o of out.options) if (typeof o.label === "string") labels.push(o.label);
     }
     if (typeof out.label === "string") labels.push(out.label);
     if (t.tool === "book_free_call" && (out.booked === true || out.alreadyBooked === true)) bookedNow = true;
+    if ((t.tool === "book_appointment" || t.tool === "confirm_appointment") && (out as { ok?: unknown }).ok === true) bookedNow = true;
   }
   const [offered, dayanaLines, appts] = await Promise.all([
     offeredFreeCallSlots(input.conversationId, now).catch(() => [] as string[]),
@@ -971,13 +986,23 @@ const promiseBacking = async (input: {
           status: { not: "FAILED" },
           sentAt: { gte: new Date(now.getTime() - 72 * 3600_000) },
         },
+        orderBy: { sentAt: "desc" },
         select: { body: true },
         take: 30,
       })
       .catch(() => [] as { body: string | null }[]),
+    // Sus citas: por el chat, por el contacto o por el número (una cita sincronizada puede no tener chat).
     prisma.calendarAppointment
       .findMany({
-        where: { conversationId: input.conversationId, status: "active", endsAt: { gte: now } },
+        where: {
+          status: "active",
+          endsAt: { gte: now },
+          OR: [
+            { conversationId: input.conversationId },
+            ...(input.contactId ? [{ contactId: input.contactId }] : []),
+            ...(/^\d+$/.test(input.phone) ? [{ phone: { in: whatsAppIdVariants(input.phone) } }] : []),
+          ],
+        },
         select: { startsAt: true },
         take: 10,
       })

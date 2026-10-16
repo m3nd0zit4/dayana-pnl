@@ -7,59 +7,106 @@ import { foldForSearch } from "../search-normalize";
  *
  * - **Horas inventadas**: a «💙💙💜🩷» le ofreció «sábado 17, 10:00 a. m. o
  *   4:00 p. m.» cuando la agenda no había respondido (no sabía su país). Las
- *   horas de una llamada solo salen de `offer_free_call_slots` (o de una cita
- *   que ya existe).
+ *   horas de una llamada solo salen de la agenda (o de una cita que ya existe,
+ *   o de lo que escribió Dayana).
  * - **Citas que no existen**: luego le dijo «Sí, queda confirmada para este
  *   sábado» sin haber agendado nada.
- * - **«Hoy mismo»**: a Valentina, «Ya le aviso a Dayana para que se comunique
- *   con ustedes hoy mismo», sin cita y sin mirar la agenda.
+ * - **«Hoy mismo» / «en un momento»**: a Valentina, «Ya le aviso a Dayana para
+ *   que se comunique con ustedes hoy mismo»; a Samy, «Dayana te estará
+ *   llamando en unos momentos»; a «la negra bella», «intentamos de nuevo en un
+ *   momento». Nadie las llamó.
  *
- * Pura: `run.ts` le da lo que respalda la respuesta (las horas ofrecidas de
- * verdad y si hay una cita) y no envía si hay una falta. La usan también los
- * calificadores de la evaluación.
+ * Pura: `run.ts` le da lo que respalda la respuesta (las horas de verdad y si
+ * hay una cita) y no envía si hay una falta. La usan también los
+ * calificadores de la evaluación. Se mira frase por frase: una frase sobre el
+ * webinar, el curso o un pago no cuenta como promesa de una llamada.
  */
 
 export type PromiseBreach = "invented_slots" | "false_booking" | "same_day_promise";
 
 /** «10:00 a. m.», «4 p.m.», «8:45 pm», «10 de la mañana» → «10:00a». */
-const TIME = /\b(\d{1,2})(?::([0-5]\d))?\s*(?:([ap])\.?\s?m\b\.?|de la (manana|tarde|noche))/g;
+const TIME_AMPM = /\b(\d{1,2})(?::([0-5]\d))?\s*(?:([ap])\.?\s?m\b\.?|de la (manana|tarde|noche))/g;
+/** «18:45» (24 h) → «6:45p». */
+const TIME_24H = /\b(1[3-9]|2[0-3]):([0-5]\d)\b/g;
+/** «a las 10», «a las 4:30» sin a. m./p. m.: la hora sin mañana ni tarde («10:00»). */
+const TIME_BARE = /\ba las (\d{1,2})(?::([0-5]\d))?(?![\d:])(?!\s*(?:[ap]\.?\s?m\b|de la\b|hora))/g;
 
-/** Las horas que menciona un texto, normalizadas («10:00a», «4:00p»). */
+/**
+ * Las horas que menciona un texto, normalizadas: «10:00a», «4:00p»; las que no
+ * dicen mañana o tarde quedan sin letra («10:00»).
+ */
 export const timesIn = (text: string): string[] => {
+  const folded = foldForSearch(text);
   const out = new Set<string>();
-  for (const m of foldForSearch(text).matchAll(TIME)) {
+  for (const m of folded.matchAll(TIME_AMPM)) {
     const hour = Number(m[1]);
     if (!hour || hour > 12) continue;
     const ap = m[3] ?? (m[4] === "manana" ? "a" : "p");
     out.add(`${hour}:${m[2] ?? "00"}${ap}`);
   }
+  for (const m of folded.matchAll(TIME_24H)) out.add(`${Number(m[1]) - 12}:${m[2]}p`);
+  for (const m of folded.matchAll(TIME_BARE)) {
+    const hour = Number(m[1]);
+    if (!hour || hour > 12) continue;
+    const key = `${hour}:${m[2] ?? "00"}`;
+    if (!out.has(`${key}a`) && !out.has(`${key}p`)) out.add(key);
+  }
   return [...out];
 };
 
-/** Habla de agendar o de horas para una llamada o una cita («a las 6:30 p. m. te queda bien»). */
-const SCHEDULING = /(llamad|cita|agend|horari|disponib|espacio|opcion|reserv|te queda bien|te sirve|que dia)/;
-/** Habla de un evento, un taller o una clase: esas horas vienen de los datos, no de la agenda. */
-const EVENT_CONTEXT = /(webinar|evento|taller|curso|clase|en vivo|\blive\b|grupo|sesion grupal|reprogramacion grupal)/;
+/** ¿Esta hora está respaldada? Una hora sin a. m./p. m. vale si coincide con cualquiera de las dos. */
+const backed = (time: string, allowed: Set<string>) =>
+  allowed.has(time) || (!/[ap]$/.test(time) && (allowed.has(`${time}a`) || allowed.has(`${time}p`)));
 
-/** «queda confirmada», «ya te agendé», «tu llamada está agendada», «Dayana te llama el sábado». */
-const BOOKING_CLAIM =
-  /(queda(s|n|ste)?|quedo|quedaria)\s+(totalmente\s+|entonces\s+)?(confirmad|agendad|reservad)|esta(s)?\s+(confirmad|agendad|reservad)|ya\s+(te\s+)?(agende|reserve|confirme)\b|\bte\s+(agende|reserve)\b|tu\s+(cita|llamada)\s+(queda|esta|quedo)\s+(confirmad|agendad|reservad|para)|dayana\s+te\s+llama(ra)?\s+(el|este|esta|manana|hoy|a\s+las|en\s+la\s+manana)/;
+/** Habla de agendar o de horas para una llamada o una cita («a las 6:30 p. m. te queda bien»). */
+const SCHEDULING = /(llam|cita|agend|horari|disponib|espacio|opcion|reserv|te queda bien|te sirve|que dia)/;
+/** Una frase sobre un evento, el curso o un pago: esas horas y esas «confirmaciones» no son de una llamada. */
+const NOT_A_CALL = /(webinar|evento|taller|curso|clase|en vivo|\blive\b|grupo|sesion grupal|inscripci|inscrit|cupo|pago|comprobante|transferencia|deposito|consignacion)/;
+
+const DAY = "(lunes|martes|miercoles|jueves|viernes|sabado|domingo|manana|hoy)";
 
 /**
- * «hoy mismo», «Dayana se comunica con ustedes hoy», «hoy te llama», «te
- * estará llamando en unos momentos», «te contactará en breve», «intentamos de
- * nuevo en un momento» (Samy y «la negra bella», 14-oct: nadie las llamó).
+ * «queda confirmada», «quedó tu llamada el jueves», «ya te agendé», «tu llamada
+ * está agendada», «Dayana te llama el sábado». No: «¿quieres que te agende?»,
+ * «tu llamada queda para cuando elijas», «Dayana te llama por WhatsApp».
  */
-const SAME_DAY =
-  /hoy mismo|(se comuni\w*|te llam\w*|les llam\w*|te contact\w*|les contact\w*|te atiend\w*|los atiend\w*|te estar[a-z]* llamando)[^.?!\n]{0,40}(\bhoy\b|en unos (momentos|minutos)|en breve|en un momento|ahorita|enseguida|en seguida)|(\bhoy\b|en unos (momentos|minutos)|en breve|en un momento|ahorita)[^.?!\n]{0,30}(se comuni|te llam|les llam|te contact|te atiend)|(intentamos|lo intentamos|volvemos a intentar|te volvemos a llamar) (de nuevo|otra vez|en un momento|mas tarde|ahorita)/;
+const BOOKING_CLAIM = new RegExp(
+  [
+    "(queda(s|n|ste)?|quedo|quedaria)\\s+(totalmente\\s+|entonces\\s+)?(confirmad|agendad|reservad)",
+    "(queda|quedo)\\s+(tu|la)\\s+(cita|llamada)\\b",
+    "esta(s)?\\s+(confirmad|agendad|reservad)",
+    "ya\\s+(te\\s+)?(agende|reserve|confirme)\\b",
+    "(?<!que\\s)\\bte\\s+(agende|reserve)\\s+(para|el|la|tu)\\b",
+    `tu\\s+(cita|llamada)\\s+(queda|esta|quedo)\\s+(confirmad|agendad|reservad|para\\s+(el\\s+|este\\s+|esta\\s+)?(${DAY}|las\\s+\\d|\\d))`,
+    `dayana\\s+te\\s+(llama|llamara|va\\s+a\\s+llamar)\\s+(el\\s+${DAY}|este\\s+${DAY}|esta\\s+(tarde|noche)|${DAY}|a\\s+las\\s+\\d)`,
+  ].join("|")
+);
+
+/** Cuándo, si es ya: hoy, en un momento, más tarde, esta noche. */
+const SOON = "(hoy|hoy mismo|en unos (momentos|minutos)|en breve|en un (momento|ratito|rato)|mas tarde|esta (tarde|noche)|ahorita|enseguida|en seguida)";
+/** Que Dayana la llama o la contacta. */
+const CONTACT =
+  "(se comuni\\w*|se (pondra|pone|va a poner) en contacto|te llam\\w*|les llam\\w*|te va a llamar|te contact\\w*|les contact\\w*|te atiend\\w*|los atiend\\w*|te estar[a-z]* llamando|te escrib\\w*)";
+
+/**
+ * «hoy mismo», «Dayana se comunica con ustedes hoy», «te va a llamar en unos
+ * minutos», «te contactará en breve», «intentamos de nuevo en un momento».
+ */
+const SAME_DAY = new RegExp(
+  [
+    "hoy mismo",
+    `${CONTACT}[^.?!\\n]{0,40}\\b${SOON}`,
+    `\\b${SOON}[^.?!\\n]{0,30}${CONTACT}`,
+    "(intentamos|lo intentamos|volvemos a intentar|te volvemos a llamar) (de nuevo|otra vez|en un momento|mas tarde|ahorita)",
+  ].join("|")
+);
 
 export type PromiseCheck = {
   /** Lo que recibiría la persona. */
   text: string;
   /**
-   * Lo que respalda las horas: las etiquetas que devolvió la agenda
-   * (`offer_free_call_slots`, en esta vuelta o hace poco) y las horas de sus
-   * citas, como texto («viernes, 16 de octubre, 8:45 p. m. (tu hora) · …»).
+   * Lo que respalda las horas: las etiquetas que devolvió la agenda (en esta
+   * vuelta o hace poco), las horas de sus citas y lo que escribió Dayana.
    */
   backing: string[];
   /** Hay una cita de verdad: agendada en esta vuelta o activa en el calendario. */
@@ -70,27 +117,37 @@ export type PromiseCheck = {
 
 export type PromiseVerdict = { breach: PromiseBreach; detail: string } | null;
 
+const sentencesOf = (folded: string) =>
+  folded
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 /** ¿La respuesta promete algo que nada respalda? `null` si está bien. */
 export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
-  const text = foldForSearch(input.text);
-  if (!text.trim()) return null;
+  // «6:30 p. m.» → «6:30 pm»: si no, el punto de «p.» corta la frase y la hora se pierde.
+  const folded = foldForSearch(input.text).replace(/\b([ap])\.\s?m\b\.?/g, "$1m");
+  if (!folded.trim()) return null;
+  const sentences = sentencesOf(folded).filter((s) => !NOT_A_CALL.test(s));
 
-  // Por frase: «tu pago quedó confirmado» no es una cita (eso lo cuidan los pagos).
-  const claim = text
-    .split(/(?<=[.!?])\s+|\n+/)
-    .filter((s) => !/(pago|comprobante|transferencia|deposito|consignacion)/.test(s))
-    .map((s) => s.match(BOOKING_CLAIM))
-    .find(Boolean);
-  if (claim && !input.hasBooking) return { breach: "false_booking", detail: claim[0] };
-
-  const today = text.match(SAME_DAY);
-  if (today && !input.bookingToday) return { breach: "same_day_promise", detail: today[0] };
-
-  if (SCHEDULING.test(text) && !EVENT_CONTEXT.test(text)) {
-    const allowed = new Set(input.backing.flatMap(timesIn));
-    const invented = timesIn(input.text).filter((t) => !allowed.has(t));
-    if (invented.length) return { breach: "invented_slots", detail: invented.join(", ") };
+  if (!input.hasBooking) {
+    for (const s of sentences) {
+      const claim = s.match(BOOKING_CLAIM);
+      if (claim) return { breach: "false_booking", detail: claim[0] };
+    }
   }
+  if (!input.bookingToday) {
+    for (const s of sentences) {
+      const soon = s.match(SAME_DAY);
+      if (soon) return { breach: "same_day_promise", detail: soon[0] };
+    }
+  }
+  const allowed = new Set(input.backing.flatMap(timesIn));
+  const invented = sentences
+    .filter((s) => SCHEDULING.test(s))
+    .flatMap((s) => timesIn(s))
+    .filter((t) => !backed(t, allowed));
+  if (invented.length) return { breach: "invented_slots", detail: [...new Set(invented)].join(", ") };
   return null;
 };
 
@@ -105,5 +162,5 @@ export const BREACH_HOLDING: Record<PromiseBreach, string> = {
 export const BREACH_REASON: Record<PromiseBreach, string> = {
   invented_slots: "La IA iba a ofrecer horas que no salieron de tu agenda: no se enviaron. Revisa y ofrécele horas tú.",
   false_booking: "La IA iba a confirmar una cita que no existe: no se envió. Revisa si quieres agendarla.",
-  same_day_promise: "La IA iba a prometer que la llamas hoy, sin cita: no se envió. Contéstale tú.",
+  same_day_promise: "La IA iba a prometer que la llamas hoy o en un momento, sin cita: no se envió. Contéstale tú.",
 };

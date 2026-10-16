@@ -20,7 +20,7 @@ import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsFor
 import { spreadSlots } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
-import { countryName, describeRequestedTime, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
+import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
@@ -1013,7 +1013,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (noFreeCall && FREE_CALL_SERVICE.test(args.service)) {
                 return log("request_booking", args, {
                   error:
-                    "Esta persona no agenda la llamada gratis (ya fue clienta, ya la tuvo o está por revisar): no se la ofrezcas. Si pide ayuda o quiere retomar, dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí, sin prometer día ni hora, y escala con category=booking.",
+                    "Esta persona no agenda la llamada gratis (ya fue clienta, ya la tuvo o está por revisar): no se la ofrezcas. Si pide ayuda o quiere retomar, dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí, sin prometer día ni hora, y escala con category=other.",
                 });
               }
               const iso = (args.countryIso ?? state.country?.iso ?? "").trim().toUpperCase().slice(0, 2);
@@ -1056,6 +1056,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia. Úsalo cuando acepte la llamada o pida otras horas. Escribe en tu mensaje las horas tal cual (label).",
             inputSchema: z.object({}),
             execute: async () => {
+              // Sin zona guardada: la que se deduce del chat y del número (Sophie y
+              // «💙💙💜🩷», 16-oct: dijeron «Desde colombia» / «De la CDMX», la IA no
+              // guardó el país, la agenda falló y ella inventó horas).
+              const inferred = personTz() ? null : inferPersonZone(input.phone, input.transcript);
+              if (inferred) state.country = { iso: inferred.iso, city: inferred.city, timezone: inferred.timezone, needsCity: false };
               const tz = personTz();
               if (!tz) {
                 return log("offer_free_call_slots", {}, {
