@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
-import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
+import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointments } from "./appointments";
+import { sweepCallOutcomes } from "./call-outcome";
 
 /**
  * El reloj que va pegado a los avisos de WhatsApp: los recordatorios no
@@ -14,7 +15,11 @@ import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointme
  * vez, solo uno gana):
  * - cada 15 min: leer el calendario (`syncAppointments`, solo lectura salvo el
  *   interruptor de completar títulos);
- * - cada 5 min: el recordatorio de 24 h y el de la llamada gratis de 1 h.
+ * - cada 5 min: el recordatorio de 24 h y el de la llamada gratis de 1 h;
+ * - cada 5 min: el seguimiento de la llamada gratis (`sweepCallOutcomes`: ¿se
+ *   hizo?, «¿Pudiste hablar con Dayana?», horas para reagendar). Solo con su
+ *   interruptor de Ajustes (`callFollowUp.enabled`); el general de la IA lo
+ *   mira el barrido, igual que en la ruta del cron.
  *
  * Los envíos reclaman cada cita antes de mandar, así que este reloj y la ruta
  * del cron nunca mandan el mismo recordatorio dos veces. Nunca lanza.
@@ -22,8 +27,10 @@ import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointme
 
 export const CLOCK_SYNC_KEY = "whatsapp.clock.sync_at";
 export const CLOCK_REMINDERS_KEY = "whatsapp.clock.reminders_at";
+export const CLOCK_FOLLOWUP_KEY = "whatsapp.clock.followup_at";
 export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
 export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
+export const CLOCK_FOLLOWUP_EVERY_MS = 5 * 60_000;
 
 /** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
 export const parseClockValue = (raw: string | null | undefined): number => {
@@ -70,6 +77,8 @@ export type ClockTickDeps = {
   sync?: () => Promise<unknown>;
   dayBefore?: () => Promise<unknown>;
   soon?: () => Promise<unknown>;
+  /** El seguimiento de la llamada gratis (solo se llama con `callFollowUp.enabled`). */
+  followUp?: (config: WhatsAppAiConfig) => Promise<unknown>;
 };
 
 /**
@@ -83,7 +92,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
     // Primero una lectura (lo normal es que no toque nada); el turno solo se
     // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
     const rows = await prisma.siteSetting.findMany({
-      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY] } },
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY] } },
       select: { key: true, value: true },
     });
     const due = (key: string, everyMs: number) =>
@@ -106,6 +115,15 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
           if (deps.soon) return deps.soon();
           const config = await getWhatsAppAiConfig();
           return config.freeCallReminder.enabled ? sendSoonReminders({ config }) : { off: true };
+        })
+      );
+    }
+    if (due(CLOCK_FOLLOWUP_KEY, CLOCK_FOLLOWUP_EVERY_MS) && (await claimClockSlot(CLOCK_FOLLOWUP_KEY, CLOCK_FOLLOWUP_EVERY_MS, now))) {
+      steps.push(
+        await step("seguimiento llamadas", async () => {
+          const config = await getWhatsAppAiConfig();
+          if (!config.callFollowUp.enabled) return { off: true };
+          return (deps.followUp ?? ((c: WhatsAppAiConfig) => sweepCallOutcomes(c, now)))(config);
         })
       );
     }

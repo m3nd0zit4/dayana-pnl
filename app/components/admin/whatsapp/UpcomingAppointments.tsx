@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, CheckCircle2, Loader2, MessageCircle, RefreshCw, TriangleAlert, UserSearch } from "lucide-react";
+import { BellRing, Check, CheckCircle2, Loader2, MessageCircle, PhoneMissed, RefreshCw, TriangleAlert, UserSearch } from "lucide-react";
 
 import { useCrm } from "../crm/CrmProvider";
 
@@ -30,7 +30,13 @@ type Item = {
   callOutcomeReason: string | null;
   outcomeCheckAt: string | null;
   rescheduleSentAt: string | null;
+  /** Es la llamada gratis (por la reserva de la IA o por el título 0/0 de 15 min). */
+  freeCall: boolean;
+  /** Ya pasó y no se sabe cómo terminó: Dayana lo marca («Hablaron» / «No contestó»). */
+  canMarkOutcome: boolean;
 };
+
+type MarkResult = { sent?: boolean; reason?: "needs_template" | "silenced" | "failed"; error?: string };
 
 /** Cómo quedó la llamada gratis, si ya pasó. null = aún no ha pasado o no aplica. */
 const outcomeLabel = (a: Item): { text: string; tone: "ok" | "bad" | "muted" } | null => {
@@ -38,8 +44,16 @@ const outcomeLabel = (a: Item): { text: string; tone: "ok" | "bad" | "muted" } |
   if (a.callOutcome === "no_answer") return { text: a.rescheduleSentAt ? "No contestó · se le mandaron horas" : "No contestó", tone: "bad" };
   if (a.callOutcome === "rescheduled") return { text: "Se reagendó", tone: "muted" };
   if (!a.callOutcome && a.outcomeCheckAt) return { text: "Se le preguntó si pudo hablar", tone: "muted" };
-  if (!a.callOutcome && new Date(a.endsAt).getTime() < Date.now() && a.sessionsLabel === "0/0") return { text: "Revisando si se hizo", tone: "muted" };
+  if (!a.callOutcome && new Date(a.endsAt).getTime() < Date.now() && a.freeCall) return { text: "Revisando si se hizo", tone: "muted" };
   return null;
+};
+
+/** Lo que pasó al marcar «No contestó» cuando el mensaje para reagendar no salió. */
+const NOT_SENT: Record<NonNullable<MarkResult["reason"]>, string> = {
+  needs_template:
+    "No se le pudo escribir: su último mensaje fue hace más de 24 h y falta aprobar la plantilla «Llamada gratis: no contestó». Apruébala en Plantillas o escríbele desde tu celular.",
+  silenced: "No se le escribió: la asistente no escribe en ese chat (manual, tomado por ti, clienta o número personal). Escríbele tú para reagendar.",
+  failed: "El mensaje para reagendar no salió. Escríbele desde el chat o desde tu celular.",
 };
 
 /** El recordatorio de hoy de la llamada gratis, si ya se decidió algo. */
@@ -85,6 +99,39 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
       await load();
     } catch (e) {
       toast(`No se pudo: ${e instanceof Error ? e.message : ""}`, "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** «Hablaron» / «No contestó»: WhatsApp no avisa de las llamadas del celular. */
+  const markOutcome = async (a: Item, outcome: "answered" | "no_answer") => {
+    setBusy(`${a.id}:${outcome}`);
+    try {
+      const res = await fetch("/api/admin/whatsapp/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "outcome", appointmentId: a.id, outcome }),
+      });
+      const d = (await res.json().catch(() => ({}))) as MarkResult;
+      if (!res.ok) {
+        toast(d.error === "already_decided" ? "Esa llamada ya estaba marcada." : "No se pudo guardar. Intenta de nuevo.", "error");
+      } else if (outcome === "answered") {
+        toast("Listo: quedó que hablaron.", "success");
+      } else if (d.sent) {
+        toast("Le mandamos horas para reagendar.", "success");
+      } else {
+        toast({
+          title: "Quedó como no contestada",
+          message: NOT_SENT[d.reason ?? "failed"],
+          variant: "info",
+          duration: 15_000,
+          action: d.reason === "needs_template" ? { label: "Plantillas", href: "/admin/whatsapp/plantillas" } : undefined,
+        });
+      }
+      await load();
+    } catch {
+      toast("No se pudo guardar. Intenta de nuevo.", "error");
     } finally {
       setBusy(null);
     }
@@ -198,6 +245,26 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
                   <span className="text-muted-foreground">Recordatorio 24 h antes</span>
                 )}
               </span>
+              {canEdit && a.canMarkOutcome && (
+                <span className="inline-flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => void markOutcome(a, "answered")}
+                    className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                  >
+                    {busy === `${a.id}:answered` ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5 text-success" />} Hablaron
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => void markOutcome(a, "no_answer")}
+                    className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                  >
+                    {busy === `${a.id}:no_answer` ? <Loader2 className="size-3.5 animate-spin" /> : <PhoneMissed className="size-3.5 text-destructive" />} No contestó
+                  </button>
+                </span>
+              )}
               {soonLabel(a) && (
                 <span
                   title={soonLabel(a)!.detail}

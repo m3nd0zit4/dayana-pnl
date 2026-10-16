@@ -2432,7 +2432,7 @@ model CalendarAppointment {
   /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).
   /// WhatsApp no avisa de las llamadas del celular: se deduce del chat o se le pregunta a la persona.
   callOutcome       String?   @map("call_outcome")
-  /// chat | asked | timeout
+  /// chat | asked | timeout | manual (Dayana con «Hablaron»/«No contestó») | rules
   callOutcomeSource String?   @map("call_outcome_source")
   callOutcomeReason String?   @map("call_outcome_reason")
   callOutcomeAt     DateTime? @map("call_outcome_at")
