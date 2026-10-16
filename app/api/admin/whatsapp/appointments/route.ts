@@ -4,8 +4,9 @@ import { z } from "zod";
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
 import { prisma } from "@/lib/db";
 import { confirmAppointmentPerson, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
-import { markCallOutcome } from "@/lib/crm/whatsapp-agent/call-outcome";
-import { needsOutcomeMark } from "@/lib/crm/whatsapp-agent/call-outcome-rules";
+import { changeCallOutcome, markCallOutcome } from "@/lib/crm/whatsapp-agent/call-outcome";
+import { canChangeOutcome, needsOutcomeMark } from "@/lib/crm/whatsapp-agent/call-outcome-rules";
+import { computeSegment } from "@/lib/crm/whatsapp-agent/segment-store";
 import { isFreeCallAppointment } from "@/lib/crm/whatsapp-agent/event-title";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,8 @@ export const GET = withStaff("read", async () => {
         freeCall,
         /** Llamada gratis que ya pasó sin saber cómo terminó: «Hablaron» / «No contestó». */
         canMarkOutcome: freeCall && Boolean(a.conversationId) && needsOutcomeMark(a, now),
+        /** Ya marcada («Hablaron» / «No contestó»): Dayana la puede corregir. */
+        canChangeOutcome: freeCall && Boolean(a.conversationId) && canChangeOutcome(a, now),
       };
     }),
   });
@@ -67,10 +70,41 @@ const schema = z.discriminatedUnion("action", [
    * WhatsApp no avisa de las llamadas del celular. «No contestó» le manda
    * horas para reagendar.
    */
-  z.object({ action: z.literal("outcome"), appointmentId: z.string().min(1), outcome: z.enum(["answered", "no_answer"]) }),
+  z.object({
+    action: z.literal("outcome"),
+    appointmentId: z.string().min(1),
+    outcome: z.enum(["answered", "no_answer"]),
+    /** «No contestó» sin mensaje (ya le escribió ella). Por defecto, sí. */
+    sendHours: z.boolean().optional(),
+  }),
+  /**
+   * Corregir una llamada ya marcada (tocó el botón equivocado o el chat lo
+   * dedujo mal). A «No contestó», con `sendHours` le manda horas si no se le
+   * mandaron ya.
+   */
+  z.object({
+    action: z.literal("change_outcome"),
+    appointmentId: z.string().min(1),
+    outcome: z.enum(["answered", "no_answer"]),
+    sendHours: z.boolean(),
+  }),
 ]);
 
-const OUTCOME_STATUS: Record<string, number> = { not_found: 404, not_free: 409, not_yet: 409, already_decided: 409 };
+const OUTCOME_STATUS: Record<string, number> = {
+  not_found: 404,
+  not_free: 409,
+  not_yet: 409,
+  already_decided: 409,
+  not_changeable: 409,
+  same: 409,
+  changed_meanwhile: 409,
+};
+
+/** Con el resultado nuevo, el estado de la persona (tuvo la llamada / no contestó) se recalcula ya. */
+const refreshSegmentOf = async (appointmentId: string) => {
+  const appt = await prisma.calendarAppointment.findUnique({ where: { id: appointmentId }, select: { conversationId: true } });
+  if (appt?.conversationId) await computeSegment(appt.conversationId).catch(() => null);
+};
 
 export const POST = withStaff("write", async ({ req, staff }) => {
   const parsed = schema.safeParse(await readJson(req));
@@ -78,7 +112,23 @@ export const POST = withStaff("write", async ({ req, staff }) => {
   try {
     if (parsed.data.action === "sync") return NextResponse.json(await syncAppointments());
     if (parsed.data.action === "outcome") {
-      const r = await markCallOutcome({ appointmentId: parsed.data.appointmentId, outcome: parsed.data.outcome, staffUserId: staff.id });
+      const r = await markCallOutcome({
+        appointmentId: parsed.data.appointmentId,
+        outcome: parsed.data.outcome,
+        sendHours: parsed.data.sendHours,
+        staffUserId: staff.id,
+      });
+      if (r.ok) await refreshSegmentOf(parsed.data.appointmentId);
+      return r.ok ? NextResponse.json(r) : apiError(r.error, OUTCOME_STATUS[r.error] ?? 400);
+    }
+    if (parsed.data.action === "change_outcome") {
+      const r = await changeCallOutcome({
+        appointmentId: parsed.data.appointmentId,
+        outcome: parsed.data.outcome,
+        sendHours: parsed.data.sendHours,
+        staffUserId: staff.id,
+      });
+      if (r.ok) await refreshSegmentOf(parsed.data.appointmentId);
       return r.ok ? NextResponse.json(r) : apiError(r.error, OUTCOME_STATUS[r.error] ?? 400);
     }
     const digits = parsed.data.phone.replace(/\D/g, "");

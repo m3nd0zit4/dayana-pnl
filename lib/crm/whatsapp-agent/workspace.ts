@@ -14,7 +14,7 @@ import { listReceipts, type ReceiptView } from "./payment-info";
 import { decideRoute } from "./route";
 import { salesMetrics } from "./metrics";
 import { freeCallService } from "./free-call";
-import { findCallToMark } from "./call-outcome";
+import { findCallToMark, findDecidedCall } from "./call-outcome";
 import { callWhenLabel } from "./call-outcome-rules";
 import { getOperationalTimezone } from "../operational-timezone";
 import { SEGMENTS, type Segment } from "./segment";
@@ -270,6 +270,7 @@ export const listChats = async (input: {
       unreadCount: true,
       aiMode: true,
       aiModeOverride: true,
+      aiAlwaysAt: true,
       dossier: { select: { segment: true } },
       aiPausedAt: true,
       aiPausedReason: true,
@@ -326,6 +327,7 @@ export const listChats = async (input: {
       generalMode: aiConfig.defaultMode,
       chatMode: c.aiMode,
       override: c.aiModeOverride,
+      always: Boolean(c.aiAlwaysAt),
       segment:
         c.dossier?.segment && (SEGMENTS as readonly string[]).includes(c.dossier.segment)
           ? { segment: c.dossier.segment as Segment, confidence: 1, reason: "", review: false, source: "rules" }
@@ -559,6 +561,7 @@ export const getChat = async (id: string) => {
       lastInboundAt: true,
       aiMode: true,
       aiModeOverride: true,
+      aiAlwaysAt: true,
       aiPausedAt: true,
       aiPausedReason: true,
       escalationCategory: true,
@@ -618,7 +621,7 @@ export const getChat = async (id: string) => {
   );
 
   const now = new Date();
-  const [memory, classifyEnabled, config, receipts, callToMark, timezone] = await Promise.all([
+  const [memory, classifyEnabled, config, receipts, callToMark, callDecided, timezone] = await Promise.all([
     prisma.whatsAppMemory.findUnique({
       where: { phone: c.externalThreadId },
       select: { notes: true, updatedAt: true },
@@ -627,6 +630,7 @@ export const getChat = async (id: string) => {
     getWhatsAppAiConfig(),
     listReceipts(c.id).catch(() => [] as ReceiptView[]),
     findCallToMark(c.id, now).catch(() => null),
+    findDecidedCall(c.id, now).catch(() => null),
     getOperationalTimezone(),
   ]);
   // El modo con el que de verdad trabaja (con el enrutador sale del segmento
@@ -637,6 +641,7 @@ export const getChat = async (id: string) => {
     generalMode: config.defaultMode,
     chatMode: c.aiMode,
     override: c.aiModeOverride,
+    always: Boolean(c.aiAlwaysAt),
     segment:
       savedSegment && (SEGMENTS as readonly string[]).includes(savedSegment)
         ? { segment: savedSegment as Segment, confidence: 1, reason: "", review: false, source: "rules" }
@@ -662,6 +667,8 @@ export const getChat = async (id: string) => {
     aiMode: route.mode,
     /** Lo eligió Dayana para este chat (si no, lo decide el segmento). */
     aiModeOverride: c.aiModeOverride,
+    /** «La IA responde siempre» aquí (aunque sea clienta, favorito o número personal). */
+    aiAlways: Boolean(c.aiAlwaysAt),
     paused: Boolean(c.aiPausedAt),
     pausedReason: c.aiPausedReason,
     escalation:
@@ -741,6 +748,21 @@ export const getChat = async (id: string) => {
           asked: callToMark.asked,
         }
       : null,
+    /**
+     * La llamada gratis que se marcó en las últimas 24 h («Hablaron» / «No
+     * contestó»): una línea encima de la caja de escribir con «Cambiar», para
+     * corregir un toque equivocado. `source`: manual | chat | asked | timeout.
+     */
+    callDecided:
+      callDecided && !callToMark
+        ? {
+            appointmentId: callDecided.appointmentId,
+            when: callWhenLabel(callDecided.startsAt, now, timezone),
+            outcome: callDecided.outcome,
+            source: callDecided.source,
+            rescheduleSent: callDecided.rescheduleSent,
+          }
+        : null,
   };
 };
 

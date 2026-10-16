@@ -21,6 +21,7 @@ import {
 } from "../whatsapp-autoreply";
 import {
   burstState,
+  isManualPause,
   lastInboundSeen,
   opensAttention,
   repliedSince,
@@ -40,7 +41,7 @@ import { segmentOrSafe } from "./segment-store";
 import { isStage } from "./stage";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
-import { pauseHolds } from "./pause-rules";
+import { isCrisis, pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
@@ -250,10 +251,15 @@ export const runWhatsAppAi = async (input: {
         aiMode: true,
         aiModeOverride: true,
         priorityAt: true,
+        aiAlwaysAt: true,
         _count: { select: { messages: true } },
       },
     });
     if (!head || head.channel !== "WHATSAPP") return;
+    // «La IA responde siempre» (Dayana lo encendió en este chat difícil): gana
+    // al segmento, al modo, al favorito, a la categoría y al número personal.
+    // Solo la paran el interruptor general y una crisis.
+    const always = Boolean(head.aiAlwaysAt);
 
     // Quién atiende este chat. El modo general (Ajustes) es el tope: ningún
     // chat es más suelto que él. Ya no se guarda el modo más estricto en el
@@ -265,7 +271,7 @@ export const runWhatsAppAi = async (input: {
     // venta (aunque el enrutador esté apagado) para no ofrecerle la llamada
     // gratis a una clienta o a quien ya la tuvo.
     const segmentResult =
-      (routeConfig.router.enabled || routeConfig.salesFlow.enabled) && !head.priorityAt ? await segmentOrSafe(conversationId) : null;
+      (routeConfig.router.enabled || routeConfig.salesFlow.enabled) && (!head.priorityAt || always) ? await segmentOrSafe(conversationId) : null;
     let route: RouteDecision = decideRoute({
       routerEnabled: routeConfig.router.enabled,
       generalMode: routeConfig.defaultMode,
@@ -273,6 +279,7 @@ export const runWhatsAppAi = async (input: {
       override: head.aiModeOverride,
       segment: routeConfig.router.enabled ? segmentResult : null,
       modes: routeConfig.router.modes,
+      always,
     });
     // Una clienta la atiende Dayana, salvo pagos: si pide los datos de pago o
     // el enlace, o manda un comprobante, la asistente se encarga (y le avisa a
@@ -301,7 +308,7 @@ export const runWhatsAppAi = async (input: {
     // está terminando una reunión»), aunque el chat esté en copiloto o en
     // pausa. A la hora de su llamada, la IA no se pone a conversar.
     // Si Dayana tomó el chat, lo atiende ella.
-    if (enabled && head.aiModeOverride !== "MANUAL") {
+    if (enabled && (head.aiModeOverride !== "MANUAL" || always)) {
       const waiting = await handleWaitingRoom({ config: routeConfig, conversationId, triggerMessageId: input.triggerMessageId });
       if (waiting.quiet) {
         if (!waiting.sent) {
@@ -326,7 +333,7 @@ export const runWhatsAppAi = async (input: {
 
     // Favoritos (la estrella): chats importantes para Dayana. La IA no los
     // lee, no los contesta y no los saluda.
-    if (enabled && head.priorityAt) {
+    if (enabled && head.priorityAt && !always) {
       await prisma.whatsAppAiRun.create({
         data: {
           conversationId,
@@ -698,8 +705,10 @@ export const runWhatsAppAi = async (input: {
     // queda como borrador para ella, no como propuesta.
     const now = await prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: { aiMode: true, aiModeOverride: true, aiPausedAt: true, priorityAt: true },
+      select: { aiMode: true, aiModeOverride: true, aiPausedAt: true, priorityAt: true, aiAlwaysAt: true },
     });
+    // «La IA responde siempre» sigue encendido: sale sola. (Tomar el chat lo apaga.)
+    const stillAlways = route.always && Boolean(now?.aiAlwaysAt);
     const recentSince = new Date(Date.now() - DEBOUNCE_MS - 5 * 60_000);
     const [recentHuman, recentApproved] = await Promise.all([
       prisma.conversationMessage.findMany({
@@ -723,17 +732,22 @@ export const runWhatsAppAi = async (input: {
     const generalMode = (await getWhatsAppAiConfig()).defaultMode;
     // Con el enrutador, lo que Dayana eligió AHORA para el chat (p. ej. lo tomó)
     // pesa sobre el modo de la vuelta; sin él, como siempre.
-    const modeNow = route.routerEnabled
-      ? strictest(generalMode, route.mode, now?.aiModeOverride ?? "AUTO")
-      : effectiveAiMode(now?.aiMode ?? conversation.aiMode, generalMode);
+    const modeNow = stillAlways
+      ? "AUTO"
+      : route.routerEnabled
+        ? strictest(generalMode, route.mode, now?.aiModeOverride ?? "AUTO")
+        : effectiveAiMode(now?.aiMode ?? conversation.aiMode, generalMode);
     const tookOver =
       !now ||
-      modeNow === "MANUAL" ||
-      Boolean(now.aiPausedAt) ||
-      Boolean(now.priorityAt) ||
-      // Sin pausa por respuesta de Dayana, que ella haya escrito antes no
-      // aparta a la IA (lo que ella ya contestó lo cubre `answeredSince`).
-      (config.pauses.onHumanReply && humanSince > 0);
+      (!stillAlways &&
+        (modeNow === "MANUAL" ||
+          Boolean(now.aiPausedAt) ||
+          Boolean(now.priorityAt) ||
+          // Sin pausa por respuesta de Dayana, que ella haya escrito antes no
+          // aparta a la IA (lo que ella ya contestó lo cubre `answeredSince`).
+          (config.pauses.onHumanReply && humanSince > 0))) ||
+      // Una crisis que se abrió mientras pensaba la calla aunque responda siempre.
+      (stillAlways && Boolean(now.aiPausedAt));
 
     if (tookOver) {
       // Un borrador (lo que ella escribía no se pisa), no una propuesta: una
@@ -951,9 +965,12 @@ const gate = async (
   silencedBy: CategoryGate,
   route: RouteDecision
 ): Promise<GateResult> => {
-  if (!process.env.GEMINI_API_KEY?.trim()) return { skip: true, reason: "no_model_key" };
-
+  // «La IA responde siempre» en este chat: no la apartan el horario, el
+  // favorito, la categoría, la libreta ni el número personal. Sí una crisis
+  // (o una pausa que Dayana puso a mano) y lo que Dayana ya contestó.
+  const always = route.always;
   if (
+    !always &&
     config.schedule.mode === "outside_hours" &&
     isWithinOwnerHours(config.schedule, new Date(), await getOperationalTimezone())
   ) {
@@ -964,9 +981,18 @@ const gate = async (
   if (!conversation) return { skip: true, reason: "not_found" };
   const mode = route.mode;
   if (mode === "MANUAL") return { skip: true, reason: route.skip ?? "manual" };
-  if (conversation.priorityAt) return { skip: true, reason: "favorite" };
+  if (conversation.priorityAt && !always) return { skip: true, reason: "favorite" };
 
-  if (conversation.aiPausedAt) {
+  if (conversation.aiPausedAt && always) {
+    const crisis = isCrisis({ category: conversation.escalationCategory, severity: conversation.escalationSeverity });
+    const byHand =
+      conversation.aiPausedReason === "escalation" &&
+      isManualPause({ category: conversation.escalationCategory, reason: conversation.escalationReason });
+    if (crisis || byHand) return { skip: true, reason: "paused" };
+    // Cualquier otra pausa (respuesta de Dayana, una escalada normal) se
+    // levanta: «Te toca» queda para ella.
+    await liftPause(conversationId);
+  } else if (conversation.aiPausedAt) {
     const holds = pauseHolds(
       {
         reason: conversation.aiPausedReason,
@@ -1004,13 +1030,13 @@ const gate = async (
       await resumeAutoReply(conversationId);
     }
   }
-  if (conversation.assignedStaffId) return { skip: true, reason: "assigned" };
+  if (conversation.assignedStaffId && !always) return { skip: true, reason: "assigned" };
 
   // Personal, negocio/app o equipo (con la clasificación encendida y una
   // etiqueta segura): la IA no contesta y no le toca a Dayana. Aquí solo las
   // reglas y lo guardado; una etiqueta vieja de la IA se vuelve a mirar al
   // final, cuando ya pasó todo lo que no cuesta nada.
-  const silenced = await silencedBy({ allowAi: false });
+  const silenced = always ? null : await silencedBy({ allowAi: false });
   if (silenced) return { skip: true, reason: `category_${silenced}` };
 
   const ordered = [...conversation.messages].reverse();
@@ -1036,6 +1062,7 @@ const gate = async (
   if (
     config.pauses.onHumanReply &&
     mode === "AUTO" &&
+    !always &&
     lastHumanAt &&
     (config.handoffHours === 0 ||
       Date.now() - lastHumanAt.getTime() < config.handoffHours * 3600_000)
@@ -1049,7 +1076,7 @@ const gate = async (
   // Un contacto guardado en el celular puede ser una interesada: si el chat ya
   // es de trabajo (interesada, clienta, comunidad), se le contesta.
   const workChat = conversation.category === "interesada" || conversation.category === "cliente" || conversation.category === "comunidad";
-  if (config.audience.skipKnownContacts && !workChat && !conversation.contactId) {
+  if (config.audience.skipKnownContacts && !always && !workChat && !conversation.contactId) {
     const inAddressBook = await prisma.whatsAppKnownContact.count({
       where: { phone: conversation.externalThreadId, removedAt: null },
     });
@@ -1061,10 +1088,10 @@ const gate = async (
     }
   }
   // Dayana marcó el número como personal (familia, amigos): nunca contesta.
-  if (await isIgnoredNumber(conversation.externalThreadId)) return { skip: true, reason: "personal_number" };
+  if (!always && (await isIgnoredNumber(conversation.externalThreadId))) return { skip: true, reason: "personal_number" };
   // Con el enrutador, las clientas (también las que pagaron por fuera) ya se
   // apartaron arriba por su segmento.
-  if (!route.routerEnabled && config.audience.skipCustomers && (conversation.contact?.enrollments.length ?? 0) > 0) {
+  if (!always && !route.routerEnabled && config.audience.skipCustomers && (conversation.contact?.enrollments.length ?? 0) > 0) {
     return { skip: true, reason: "customer" };
   }
 
@@ -1075,15 +1102,19 @@ const gate = async (
       sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
     },
   });
-  if (autoToday >= maxPerDayFor(config, route.segment)) {
+  if (autoToday >= maxPerDayFor(config, route.segment, always)) {
     return { skip: true, escalate: true, reason: "Demasiadas respuestas automáticas hoy en este chat." };
   }
 
   // La etiqueta de la IA callaría pero quedó vieja (escribió después): la IA
   // la vuelve a mirar ahora, una llamada corta. Al final, para no gastarla en
   // un chat que igual se iba a saltar. Si falla o tarda, no calla.
-  const refreshed = await silencedBy({ allowAi: true });
+  const refreshed = always ? null : await silencedBy({ allowAi: true });
   if (refreshed) return { skip: true, reason: `category_${refreshed}` };
+
+  // Sin clave del modelo no hay respuesta. Al final (antes iba primero) para
+  // que las pruebas sin clave vean que todo lo de arriba dejó pasar el chat.
+  if (!process.env.GEMINI_API_KEY?.trim()) return { skip: true, reason: "no_model_key" };
 
   // v2: los últimos N mensajes, sean de cuando sean. Antes: 2 semanas o los
   // últimos 40, y quien volvía tras un mes leía un hilo casi vacío.

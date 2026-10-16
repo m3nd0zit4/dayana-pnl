@@ -62,6 +62,9 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
         data: {
           aiMode: p.mode,
           aiModeOverride: p.mode,
+          // Elegir un modo a mano apaga «La IA responde siempre» (como en el chat).
+          aiAlwaysAt: null,
+          aiAlwaysById: null,
           ...(p.priority === undefined ? {} : { priorityAt: p.priority ? new Date() : null }),
         },
       });

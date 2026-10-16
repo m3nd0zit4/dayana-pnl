@@ -8,7 +8,7 @@ import { prisma } from "@/lib/db";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { effectiveAiMode } from "@/lib/crm/whatsapp-agent/mode";
-import { draftAutoReply, pauseAutoReply, resumeAutoReply } from "@/lib/crm/whatsapp-autoreply";
+import { draftAutoReply, pauseAutoReply, resumeAutoReply, setAiAlways } from "@/lib/crm/whatsapp-autoreply";
 import { clientContext } from "@/lib/crm/whatsapp-agent/brain";
 import { availableSlots } from "@/lib/crm/whatsapp-agent/calendar";
 import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
@@ -69,6 +69,8 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("resume") }),
   z.object({ action: z.literal("pause") }),
   z.object({ action: z.literal("priority"), on: z.boolean() }),
+  /** «La IA responde siempre» en este chat (aunque sea clienta, favorito o número personal). */
+  z.object({ action: z.literal("always"), on: z.boolean() }),
   /** Borrador de la IA para lo que hay ahora en el chat. */
   z.object({ action: z.literal("suggest") }),
   /** Texto listo con horas libres del servicio elegido. */
@@ -162,7 +164,11 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
       const { defaultMode } = await getWhatsAppAiConfig();
       if (effectiveAiMode(input.mode, defaultMode) !== input.mode) return apiError("general_mode", 409);
       // `aiModeOverride`: lo eligió Dayana para este chat (gana al segmento).
-      await prisma.conversation.update({ where: { id }, data: { aiMode: input.mode, aiModeOverride: input.mode } });
+      // Elegir un modo a mano apaga «La IA responde siempre».
+      await prisma.conversation.update({
+        where: { id },
+        data: { aiMode: input.mode, aiModeOverride: input.mode, aiAlwaysAt: null, aiAlwaysById: null },
+      });
       // Una escalada delicada sigue en pausa hasta «Listo» (`stillPaused`).
       const resumed = input.mode !== "MANUAL" ? await resumeAutoReply(id) : true;
       audit({ aiMode: input.mode });
@@ -171,7 +177,7 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "take": {
       await prisma.conversation.update({
         where: { id },
-        data: { aiMode: "MANUAL", aiModeOverride: "MANUAL", priorityAt: new Date() },
+        data: { aiMode: "MANUAL", aiModeOverride: "MANUAL", priorityAt: new Date(), aiAlwaysAt: null, aiAlwaysById: null },
       });
       audit({ taken: true });
       return NextResponse.json({ ok: true });
@@ -193,6 +199,8 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
       return NextResponse.json({ ok: true, ...(resumed ? {} : { stillPaused: true }) });
     }
     case "pause":
+      // Pausar a mano apaga «La IA responde siempre» (si no, la pausa no callaría nada).
+      await setAiAlways(id, false, staff.id);
       await pauseAutoReply(id, "escalation", {
         category: "other",
         severity: "normal",
@@ -203,9 +211,22 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
     case "priority":
       await prisma.conversation.update({
         where: { id },
-        data: { priorityAt: input.on ? new Date() : null },
+        // Favorito = la IA no lo toca: apaga «La IA responde siempre».
+        data: input.on ? { priorityAt: new Date(), aiAlwaysAt: null, aiAlwaysById: null } : { priorityAt: null },
       });
       return NextResponse.json({ ok: true });
+    case "always": {
+      const r = await setAiAlways(id, input.on, staff.id);
+      audit({ aiAlways: input.on });
+      // Si quedó un mensaje suyo sin contestar, la IA lo contesta ya.
+      if (input.on && !r.stillPaused) {
+        after(async () => {
+          const { answerIfPending } = await import("@/lib/crm/whatsapp-agent/catch-up");
+          await answerIfPending(id).catch((e: unknown) => console.warn("[whatsapp] no se pudo contestar al encender «responde siempre»", e));
+        });
+      }
+      return NextResponse.json({ ok: true, ...(r.stillPaused ? { stillPaused: true } : {}) });
+    }
     case "suggest": {
       const config = await getWhatsAppAiConfig();
       const messages = await prisma.conversationMessage.findMany({

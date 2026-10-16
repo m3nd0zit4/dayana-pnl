@@ -152,6 +152,7 @@ export const GUARD_SELECT = {
   lastInboundAt: true,
   aiModeOverride: true,
   aiPausedReason: true,
+  aiAlwaysAt: true,
   category: true,
   categorySource: true,
   contact: { select: { firstName: true } },
@@ -163,6 +164,8 @@ export type GuardedConversation = {
   priorityAt: Date | null;
   aiModeOverride: string | null;
   aiPausedReason: string | null;
+  /** «La IA responde siempre» en este chat. */
+  aiAlwaysAt?: Date | null;
   category: string | null;
   categorySource: string | null;
   dossier: { segment: string | null } | null;
@@ -174,14 +177,17 @@ export type GuardedConversation = {
  * personal/negocio/equipo puesta a mano, clienta o «no atender».
  */
 export const waitingRoomBlocked = async (conv: GuardedConversation, config: WhatsAppAiConfig): Promise<boolean> =>
-  config.defaultMode === "MANUAL" ||
-  Boolean(conv.priorityAt) ||
-  conv.aiModeOverride === "MANUAL" ||
-  conv.aiPausedReason === "escalation" ||
-  (conv.categorySource === "manual" && SILENCING.has(conv.category ?? "")) ||
-  conv.dossier?.segment === "client" ||
-  conv.dossier?.segment === "ignored" ||
-  (await isIgnoredNumber(conv.externalThreadId));
+  // «La IA responde siempre»: solo la calla una escalada que espera a Dayana (una crisis).
+  conv.aiAlwaysAt
+    ? conv.aiPausedReason === "escalation"
+    : config.defaultMode === "MANUAL" ||
+      Boolean(conv.priorityAt) ||
+      conv.aiModeOverride === "MANUAL" ||
+      conv.aiPausedReason === "escalation" ||
+      (conv.categorySource === "manual" && SILENCING.has(conv.category ?? "")) ||
+      conv.dossier?.segment === "client" ||
+      conv.dossier?.segment === "ignored" ||
+      (await isIgnoredNumber(conv.externalThreadId));
 
 /**
  * Cuando la persona escribe. `sent`: se le mandó el aviso. `quiet`: es la hora

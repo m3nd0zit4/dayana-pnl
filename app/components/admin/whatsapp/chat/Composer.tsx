@@ -81,7 +81,7 @@ const Composer = forwardRef<
           })()}
         </p>
       )}
-      <CallOutcomeBar chatId={chat.id} call={chat.callFollowUp} phone={chat.phone} canWrite={canWrite} onChanged={onChanged} />
+      <CallOutcomeBar chatId={chat.id} call={chat.callFollowUp} decided={chat.callDecided} phone={chat.phone} canWrite={canWrite} onChanged={onChanged} />
       <ReceiptBar receipts={chat.receipts} chatName={chat.name} canWrite={canWrite} onChanged={onChanged} onOpenImage={onOpenImage} />
       <ApprovalBar approvals={chat.approvals} canWrite={canWrite} onDecide={onDecide} />
       {chat.draft?.source === "AI" && text === chat.draft.body && (

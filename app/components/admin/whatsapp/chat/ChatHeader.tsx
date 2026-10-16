@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Search,
   ShieldAlert,
+  Sparkles,
   Star,
   Tags,
   Undo2,
@@ -251,6 +252,27 @@ const ChatMenu = ({
           </DropdownMenuRadioGroup>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {/* Para un chat difícil que Dayana no quiere contestar: la IA contesta
+            aunque sea clienta, favorito, número personal o esté tomado. */}
+        <DropdownMenuItem
+          className={ITEM}
+          disabled={disabled}
+          onClick={() =>
+            act(
+              "always",
+              { action: "always", on: !chat.aiAlways },
+              chat.aiAlways ? "Listo: este chat vuelve a lo normal" : "Listo: la IA responde siempre en este chat"
+            )
+          }
+        >
+          <Sparkles />
+          <span className="flex flex-col py-1">
+            <span>{chat.aiAlways ? "Quitar «La IA responde siempre»" : "La IA responde siempre"}</span>
+            <span className="text-xs text-muted-foreground">
+              {chat.aiAlways ? "Vuelve a lo normal (clientas y personales, contigo)" : "Aunque sea clienta, favorito o número personal"}
+            </span>
+          </span>
+        </DropdownMenuItem>
         {mine ? (
           <DropdownMenuItem
             className={ITEM}
@@ -451,10 +473,28 @@ const ChatHeader = ({
           ) : (
             <span className="text-xs text-(--wa-meta)">La IA aún no ha mirado este chat.</span>
           )}
-          <span className="ml-auto shrink-0 text-xs text-(--wa-meta)">
-            {chat.priority ? "Favorito: la IA no lo toca" : `Modo ${MODE_SHORT[chat.aiMode]}`}
-            {chat.paused && !chat.priority ? " · en pausa" : ""}
-          </span>
+          {chat.aiAlways ? (
+            <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 text-xs text-(--wa-meta)">
+              <Sparkles className="size-3.5 text-(--wa-accent)" />
+              <span className="font-medium text-(--wa-text)">La IA responde siempre</span>
+              {chat.paused ? " · en pausa (crisis)" : ""}
+              {canWrite && (
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => act("always", { action: "always", on: false }, "Listo: este chat vuelve a lo normal")}
+                  className="rounded-full px-1.5 py-0.5 font-medium text-(--wa-accent) hover:bg-(--wa-text)/5 disabled:opacity-50"
+                >
+                  Quitar
+                </button>
+              )}
+            </span>
+          ) : (
+            <span className="ml-auto shrink-0 text-xs text-(--wa-meta)">
+              {chat.priority ? "Favorito: la IA no lo toca" : `Modo ${MODE_SHORT[chat.aiMode]}`}
+              {chat.paused && !chat.priority ? " · en pausa" : ""}
+            </span>
+          )}
         </div>
       )}
     </>

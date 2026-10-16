@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
-import { pauseHolds } from "./pause-rules";
+import { isManualPause } from "../whatsapp-attention-rules";
+import { isCrisis, pauseHolds } from "./pause-rules";
 import { runWhatsAppAi } from "./run";
 
 /**
@@ -45,10 +46,12 @@ export const findUnansweredChats = async (opts: {
       escalation_category: string | null;
       escalation_severity: string | null;
       escalation_reason: string | null;
+      ai_always_at: Date | null;
     }[]
   >`
     SELECT c.id, c.participant_name AS name, c.external_thread_id AS phone, c.last_inbound_at,
            c.ai_paused_at, c.ai_paused_reason, c.escalation_category, c.escalation_severity, c.escalation_reason,
+           c.ai_always_at,
            (SELECT m.external_message_id FROM conversation_messages m
              WHERE m.conversation_id = c.id AND m.direction = 'INBOUND'
              ORDER BY m.sent_at DESC, m.id DESC LIMIT 1) AS trigger_id
@@ -57,10 +60,11 @@ export const findUnansweredChats = async (opts: {
      WHERE c.channel = 'WHATSAPP'
        AND c.last_inbound_at > now() - interval '23 hours'
        AND c.last_inbound_at < now() - make_interval(mins => ${opts.minAgeMin ?? 10})
-       AND c.priority_at IS NULL
-       AND (c.ai_mode_override IS NULL OR c.ai_mode_override <> 'MANUAL')
-       AND c.assigned_staff_id IS NULL
-       AND (d.segment IS NULL OR d.segment <> 'ignored')
+       -- «La IA responde siempre» entra aunque sea favorito, esté tomado o sea personal.
+       AND (c.priority_at IS NULL OR c.ai_always_at IS NOT NULL)
+       AND (c.ai_mode_override IS NULL OR c.ai_mode_override <> 'MANUAL' OR c.ai_always_at IS NOT NULL)
+       AND (c.assigned_staff_id IS NULL OR c.ai_always_at IS NOT NULL)
+       AND (d.segment IS NULL OR d.segment <> 'ignored' OR c.ai_always_at IS NOT NULL)
        AND NOT EXISTS (
          SELECT 1 FROM conversation_messages o
           WHERE o.conversation_id = c.id AND o.direction = 'OUTBOUND'
@@ -84,15 +88,19 @@ export const findUnansweredChats = async (opts: {
     .filter(
       (r) =>
         !r.ai_paused_at ||
-        !pauseHolds(
-          {
-            reason: r.ai_paused_reason,
-            escalationCategory: r.escalation_category,
-            escalationSeverity: r.escalation_severity,
-            escalationReason: r.escalation_reason,
-          },
-          config.pauses
-        )
+        // Con «responde siempre» solo calla una crisis o la pausa que puso Dayana a mano.
+        (r.ai_always_at
+          ? !isCrisis({ category: r.escalation_category, severity: r.escalation_severity }) &&
+            !(r.ai_paused_reason === "escalation" && isManualPause({ category: r.escalation_category, reason: r.escalation_reason }))
+          : !pauseHolds(
+              {
+                reason: r.ai_paused_reason,
+                escalationCategory: r.escalation_category,
+                escalationSeverity: r.escalation_severity,
+                escalationReason: r.escalation_reason,
+              },
+              config.pauses
+            ))
     )
     .map((r) => ({
       conversationId: r.id,
@@ -129,4 +137,23 @@ export const answerUnansweredChats = async (opts: {
   };
   await Promise.all(Array.from({ length: Math.max(1, opts.concurrency ?? 4) }, worker));
   return { found: chats.length, started, remaining: queue.length };
+};
+
+/**
+ * Al encender «La IA responde siempre» en un chat: si lo último es de la
+ * persona (dentro de las 23 h, la ventana de WhatsApp) y nadie le contestó, la
+ * IA lo contesta ya, sin esperar a que vuelva a escribir. El ejecutor decide
+ * igual que siempre (no repite lo que Dayana ya contestó). Devuelve si lo intentó.
+ */
+export const answerIfPending = async (conversationId: string): Promise<boolean> => {
+  if (!(await isWhatsAppAutoReplyEnabled())) return false;
+  const last = await prisma.conversationMessage.findFirst({
+    where: { conversationId, kind: "message", status: { not: "FAILED" } },
+    orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+    select: { direction: true, externalMessageId: true, sentAt: true },
+  });
+  if (!last || last.direction !== "INBOUND" || !last.externalMessageId) return false;
+  if (Date.now() - last.sentAt.getTime() > 23 * 3600_000) return false;
+  await runWhatsAppAi({ conversationId, triggerMessageId: last.externalMessageId });
+  return true;
 };

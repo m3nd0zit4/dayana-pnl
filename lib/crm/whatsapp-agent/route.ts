@@ -15,6 +15,11 @@ import type { Segment, SegmentVerdict } from "./segment";
  * Copiloto para siempre. Ahora no se guarda nada: se calcula cada vez.
  *
  * Con el enrutador apagado, todo sigue como antes (`effectiveAiMode`).
+ *
+ * «La IA responde siempre» (`always`, `conversations.ai_always_at`): Dayana lo
+ * enciende en un chat difícil que no quiere contestar ella. Gana a todo lo de
+ * aquí (segmento, modo del chat y modo general): la IA contesta sola. Lo que
+ * sigue parando a la IA está fuera: el interruptor general y una crisis.
  */
 
 const STRICTNESS: Record<AiMode, number> = { AUTO: 0, COPILOT: 1, MANUAL: 2 };
@@ -31,6 +36,8 @@ export type RouteDecision = {
   segment: Segment | null;
   /** Si `mode` es MANUAL, la razón del rastro. */
   skip: RouteSkip | null;
+  /** «La IA responde siempre» en este chat: `gate()` tampoco la aparta (favorito, categoría, número personal…). */
+  always: boolean;
 };
 
 export const decideRoute = (input: {
@@ -42,10 +49,21 @@ export const decideRoute = (input: {
   override: AiMode | null;
   segment: SegmentVerdict | null;
   modes: Record<Segment, AiMode>;
+  /** «La IA responde siempre» en este chat. */
+  always?: boolean;
 }): RouteDecision => {
+  if (input.always) {
+    return {
+      routerEnabled: input.routerEnabled,
+      mode: "AUTO",
+      segment: input.routerEnabled ? (input.segment?.segment ?? null) : null,
+      skip: null,
+      always: true,
+    };
+  }
   if (!input.routerEnabled) {
     const mode = effectiveAiMode(input.chatMode, input.generalMode);
-    return { routerEnabled: false, mode, segment: null, skip: mode === "MANUAL" ? "manual" : null };
+    return { routerEnabled: false, mode, segment: null, skip: mode === "MANUAL" ? "manual" : null, always: false };
   }
   const segment = input.segment?.segment ?? null;
   const base = input.override ?? (segment ? input.modes[segment] : input.generalMode);
@@ -63,7 +81,7 @@ export const decideRoute = (input: {
               ? "ignored_segment"
               : "manual";
   }
-  return { routerEnabled: true, mode, segment, skip };
+  return { routerEnabled: true, mode, segment, skip, always: false };
 };
 
 const LEADS = new Set<Segment>(["new_lead", "returning_lead", "free_call_booked", "after_call"]);
@@ -73,5 +91,7 @@ const LEADS = new Set<Segment>(["new_lead", "returning_lead", "free_call_booked"
  * conversó, llamada agendada, tuvo la llamada) necesita más vueltas: con 6, la
  * IA se callaba a media conversación («Demasiadas respuestas automáticas»).
  */
-export const maxPerDayFor = (config: WhatsAppAiConfig, segment: Segment | null): number =>
-  config.router.enabled && segment && LEADS.has(segment) ? Math.max(config.maxPerDay, config.router.maxPerDayNewLead) : config.maxPerDay;
+export const maxPerDayFor = (config: WhatsAppAiConfig, segment: Segment | null, always = false): number =>
+  always || (config.router.enabled && segment && LEADS.has(segment))
+    ? Math.max(config.maxPerDay, config.router.maxPerDayNewLead)
+    : config.maxPerDay;

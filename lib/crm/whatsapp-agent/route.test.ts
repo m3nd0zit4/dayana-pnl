@@ -46,6 +46,35 @@ describe("decideRoute", () => {
     });
   });
 
+  test("«La IA responde siempre»: contesta sola aunque sea clienta, ya tuvo la llamada, sea personal o el chat esté en Tú", () => {
+    for (const segment of ["client", "after_call", "ignored", "new_lead"] as const) {
+      expect(
+        decideRoute({ routerEnabled: true, generalMode: "AUTO", chatMode: "MANUAL", override: "MANUAL", segment: seg(segment), modes, always: true })
+      ).toEqual({ routerEnabled: true, mode: "AUTO", segment, skip: null, always: true });
+    }
+  });
+
+  test("«La IA responde siempre» también pasa por encima del modo general (Copiloto o Tú)", () => {
+    expect(decideRoute({ routerEnabled: true, generalMode: "COPILOT", chatMode: "AUTO", override: null, segment: seg("client"), modes, always: true }).mode).toBe(
+      "AUTO"
+    );
+    expect(decideRoute({ routerEnabled: false, generalMode: "MANUAL", chatMode: "MANUAL", override: null, segment: null, modes, always: true })).toEqual({
+      routerEnabled: false,
+      mode: "AUTO",
+      segment: null,
+      skip: null,
+      always: true,
+    });
+  });
+
+  test("apagado («always» falso): todo como siempre", () => {
+    expect(decideRoute({ routerEnabled: true, generalMode: "AUTO", chatMode: "AUTO", override: null, segment: seg("client"), modes, always: false })).toMatchObject({
+      mode: "MANUAL",
+      skip: "customer",
+      always: false,
+    });
+  });
+
   test("strictest", () => {
     expect(strictest("AUTO", "COPILOT", "AUTO")).toBe("COPILOT");
     expect(strictest("MANUAL", "AUTO")).toBe("MANUAL");

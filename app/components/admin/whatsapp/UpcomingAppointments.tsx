@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { BellRing, Check, CheckCircle2, Loader2, MessageCircle, PhoneMissed, RefreshCw, TriangleAlert, UserSearch } from "lucide-react";
+import { BellRing, Check, CheckCircle2, Loader2, MessageCircle, PencilLine, PhoneMissed, RefreshCw, TriangleAlert, UserSearch } from "lucide-react";
 
 import { useCrm } from "../crm/CrmProvider";
 
@@ -34,6 +34,8 @@ type Item = {
   freeCall: boolean;
   /** Ya pasó y no se sabe cómo terminó: Dayana lo marca («Hablaron» / «No contestó»). */
   canMarkOutcome: boolean;
+  /** Ya marcada: Dayana la puede corregir («Cambiar»). */
+  canChangeOutcome: boolean;
 };
 
 type MarkResult = { sent?: boolean; reason?: "needs_template" | "silenced" | "failed"; error?: string };
@@ -76,6 +78,8 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
   const [items, setItems] = useState<Item[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [typed, setTyped] = useState<Record<string, string>>({});
+  /** La cita con «Cambiar» abierto. */
+  const [changing, setChanging] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/whatsapp/appointments", { cache: "no-store" }).catch(() => null);
@@ -132,6 +136,36 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
       await load();
     } catch {
       toast("No se pudo guardar. Intenta de nuevo.", "error");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  /** Corregir una llamada ya marcada (tocó el botón equivocado). */
+  const changeOutcome = async (a: Item, outcome: "answered" | "no_answer", sendHours: boolean) => {
+    setBusy(`${a.id}:change:${outcome}:${sendHours}`);
+    try {
+      const res = await fetch("/api/admin/whatsapp/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "change_outcome", appointmentId: a.id, outcome, sendHours }),
+      });
+      const d = (await res.json().catch(() => ({}))) as MarkResult;
+      if (!res.ok) {
+        toast(d.error === "changed_meanwhile" ? "Alguien la cambió justo ahora." : "No se pudo cambiar. Intenta de nuevo.", "error");
+      } else if (outcome === "answered") {
+        toast("Listo: ahora dice que hablaron.", "success");
+      } else if (d.sent) {
+        toast("Listo: no contestó. Le mandamos horas para reagendar.", "success");
+      } else if (sendHours && d.reason) {
+        toast({ title: "Quedó como no contestada", message: NOT_SENT[d.reason], variant: "info", duration: 15_000 });
+      } else {
+        toast("Listo: ahora dice que no contestó (sin mensaje).", "success");
+      }
+      setChanging(null);
+      await load();
+    } catch {
+      toast("No se pudo cambiar. Intenta de nuevo.", "error");
     } finally {
       setBusy(null);
     }
@@ -262,6 +296,45 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
                     className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                   >
                     {busy === `${a.id}:no_answer` ? <Loader2 className="size-3.5 animate-spin" /> : <PhoneMissed className="size-3.5 text-destructive" />} No contestó
+                  </button>
+                </span>
+              )}
+              {canEdit && a.canChangeOutcome && changing !== a.id && (
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => setChanging(a.id)}
+                  title="Corregir cómo terminó la llamada"
+                  className="inline-flex h-8 items-center gap-1 rounded-full px-2 text-xs font-medium text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                >
+                  <PencilLine className="size-3.5" /> Cambiar
+                </button>
+              )}
+              {canEdit && a.canChangeOutcome && changing === a.id && (
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  {a.callOutcome === "answered" ? (
+                    <>
+                      {!a.rescheduleSentAt && (
+                        <button type="button" disabled={busy !== null} onClick={() => void changeOutcome(a, "no_answer", true)} className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50">
+                          {busy === `${a.id}:change:no_answer:true` ? <Loader2 className="size-3.5 animate-spin" /> : <PhoneMissed className="size-3.5 text-destructive" />} No contestó · mandarle horas
+                        </button>
+                      )}
+                      <button type="button" disabled={busy !== null} onClick={() => void changeOutcome(a, "no_answer", false)} className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50">
+                        {busy === `${a.id}:change:no_answer:false` ? <Loader2 className="size-3.5 animate-spin" /> : <PhoneMissed className="size-3.5 text-destructive" />} No contestó · sin mensaje
+                      </button>
+                    </>
+                  ) : (
+                    <button type="button" disabled={busy !== null} onClick={() => void changeOutcome(a, "answered", false)} className="inline-flex h-8 items-center gap-1 rounded-full border border-border px-3 text-xs font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50">
+                      {busy === `${a.id}:change:answered:false` ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5 text-success" />} Sí hablaron
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => setChanging(null)}
+                    className="px-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    Cancelar
                   </button>
                 </span>
               )}

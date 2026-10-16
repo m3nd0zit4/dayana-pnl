@@ -12,9 +12,14 @@
  *    nueva trabaja en el modo de su grupo (IA), y así lo muestra el chat.
  * 4. Dayana toma el chat: queda en «Tú» aunque el grupo diga IA; al soltarlo
  *    vuelve a decidir el grupo.
+ * 5. «La IA responde siempre»: la clienta, el número personal y un favorito
+ *    pasan todas las reglas (la vuelta llega hasta el modelo: aquí, sin clave,
+ *    `no_model_key`); una crisis la sigue callando; apagado, la clienta vuelve
+ *    a ser de Dayana.
  */
 import { prisma } from "@/lib/db";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
+import { setAiAlways } from "@/lib/crm/whatsapp-autoreply";
 import { ignoreNumbers, unignoreNumber } from "@/lib/crm/whatsapp-ignored-numbers";
 import { runWhatsAppAi } from "@/lib/crm/whatsapp-agent/run";
 import { getChat } from "@/lib/crm/whatsapp-agent/workspace";
@@ -22,6 +27,9 @@ import { computeSegment } from "@/lib/crm/whatsapp-agent/segment-store";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
 process.env.NOTIFICATIONS_DRY_RUN = "true";
+// Sin clave del modelo: una vuelta que pasa todas las reglas termina en
+// `no_model_key` (no se llama a Gemini ni se envía nada).
+delete process.env.GEMINI_API_KEY;
 
 const failures: string[] = [];
 const check = (name: string, ok: boolean, detail?: unknown) => {
@@ -116,6 +124,44 @@ const main = async () => {
     check("tomado: «Tú»", (await getChat(sticky.id))?.aiMode === "MANUAL");
     await prisma.conversation.update({ where: { id: sticky.id }, data: { aiMode: "AUTO", aiModeOverride: null } });
     check("soltado: vuelve a decidir el grupo", (await getChat(sticky.id))?.aiMode === "AUTO");
+
+    console.log("\n5. «La IA responde siempre»");
+    const reached = (r: Awaited<ReturnType<typeof lastRun>>) => r?.status === "SKIPPED" && r.reason === "no_model_key";
+    await setAiAlways(client.id, true, null);
+    const cv = await getChat(client.id);
+    check("el chat lo muestra, en modo IA", cv?.aiAlways === true && cv.aiMode === "AUTO", { aiAlways: cv?.aiAlways, aiMode: cv?.aiMode });
+    await runWhatsAppAi({ conversationId: client.id, triggerMessageId: client.messages[0].externalMessageId! });
+    const r5 = await lastRun(client.id);
+    check("la clienta pasa todas las reglas (llega al modelo)", reached(r5), r5 && { status: r5.status, reason: r5.reason });
+
+    await setAiAlways(family.id, true, null);
+    await runWhatsAppAi({ conversationId: family.id, triggerMessageId: family.messages[0].externalMessageId! });
+    const r6 = await lastRun(family.id);
+    check("el número personal también", reached(r6), r6 && { status: r6.status, reason: r6.reason });
+
+    await prisma.conversation.update({ where: { id: sticky.id }, data: { priorityAt: new Date() } });
+    await setAiAlways(sticky.id, true, null);
+    const sv = await prisma.conversation.findUniqueOrThrow({ where: { id: sticky.id }, select: { priorityAt: true, aiModeOverride: true } });
+    check("encenderlo quita el favorito y el modo elegido a mano", !sv.priorityAt && sv.aiModeOverride === null, sv);
+    await prisma.conversation.update({ where: { id: sticky.id }, data: { priorityAt: new Date() } });
+    await runWhatsAppAi({ conversationId: sticky.id, triggerMessageId: sticky.messages[0].externalMessageId! });
+    const r7 = await lastRun(sticky.id);
+    check("un favorito con «responde siempre» pasa", reached(r7), r7 && { status: r7.status, reason: r7.reason });
+
+    await prisma.conversation.update({
+      where: { id: family.id },
+      data: { aiPausedAt: new Date(), aiPausedReason: "escalation", escalationCategory: "clinical", escalationSeverity: "urgent", escalationReason: "crisis" },
+    });
+    await runWhatsAppAi({ conversationId: family.id, triggerMessageId: family.messages[0].externalMessageId! });
+    const r8 = await lastRun(family.id);
+    check("una crisis la sigue callando", r8?.status === "SKIPPED" && r8.reason === "paused", r8 && { status: r8.status, reason: r8.reason });
+    check("…y encenderlo no levanta la crisis", (await setAiAlways(family.id, true, null)).stillPaused);
+
+    await setAiAlways(client.id, false, null);
+    check("apagado: el chat ya no lo muestra", (await getChat(client.id))?.aiAlways === false);
+    await runWhatsAppAi({ conversationId: client.id, triggerMessageId: client.messages[0].externalMessageId! });
+    const r9 = await lastRun(client.id);
+    check("apagado: la clienta vuelve a ser de Dayana", r9?.status === "SKIPPED" && r9.reason === "customer", r9 && { status: r9.status, reason: r9.reason });
   } finally {
     await cleanup();
     await setWhatsAppAiConfig(previous);

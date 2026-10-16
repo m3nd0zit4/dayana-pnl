@@ -1225,6 +1225,12 @@ model Conversation {
   aiMode             WhatsAppAiMode  @default(AUTO) @map("ai_mode")
   /// Lo que Dayana eligió para ESTE chat. null = lo decide el segmento (`route.ts`).
   aiModeOverride     WhatsAppAiMode? @map("ai_mode_override")
+  /// «La IA responde siempre» en este chat (lo pidió Dayana): contesta aunque
+  /// sea clienta, favorito, número personal o modo Tú. Solo la paran el
+  /// interruptor general y una crisis. Nulo = como siempre (`route.ts`).
+  aiAlwaysAt         DateTime?       @map("ai_always_at")
+  /// Quién lo encendió (sin relación: es solo para el rastro).
+  aiAlwaysById       String?         @map("ai_always_by_id")
   /// Dayana marcó este chat como suyo y prioritario: sube a «Tú atiendes».
   priorityAt         DateTime?       @map("priority_at")
   /// Última escalada de la IA: por qué y cuán urgente. Se borra al reanudar.

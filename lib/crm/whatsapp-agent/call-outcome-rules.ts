@@ -241,12 +241,58 @@ export const planManualMark = (input: {
   now: Date;
   outcome: CallOutcome;
   blocked: boolean;
+  /** «No contestó» sin mensaje (Dayana ya le escribió ella). Por defecto se le mandan horas. */
+  sendHours?: boolean;
 }): ManualMarkPlan => {
   if (input.callOutcome !== null) return { kind: "already_decided" };
   if (input.startsAt.getTime() > input.now.getTime()) return { kind: "not_yet" };
   if (input.outcome === "answered") return { kind: "settle", outcome: "answered", reason: "Dayana marcó en el CRM que hablaron.", send: "none" };
-  return { kind: "settle", outcome: "no_answer", reason: "Dayana marcó en el CRM que no contestó.", send: input.blocked ? "silenced" : "reschedule" };
+  const send = input.sendHours === false ? "none" : input.blocked ? "silenced" : "reschedule";
+  return { kind: "settle", outcome: "no_answer", reason: "Dayana marcó en el CRM que no contestó.", send };
 };
+
+export type OutcomeChangePlan =
+  /** Sin resultado, o lo decidió el reloj («se reagendó», «no era la gratis»): no se cambia desde aquí. */
+  | { kind: "not_changeable" }
+  /** Ya dice eso. */
+  | { kind: "same" }
+  | { kind: "change"; outcome: CallOutcome; reason: string; send: "reschedule" | "none" | "silenced" };
+
+/**
+ * Dayana corrige cómo terminó la llamada gratis: tocó el botón equivocado
+ * (Leidy, 16-oct: «Hablaron» por «No contestó») o lo que dedujo el chat no
+ * era. Solo entre «Hablaron» y «No contestó», venga de donde venga lo que
+ * había (ella, el chat, la respuesta, el tiempo).
+ *
+ * Pasar a «No contestó» le manda horas para reagendar solo si Dayana lo pide
+ * (`sendHours`) y no se le mandaron ya; pasar a «Hablaron» no manda nada (lo
+ * que ya salió no se puede borrar).
+ */
+export const planOutcomeChange = (input: {
+  current: string | null;
+  outcome: CallOutcome;
+  sendHours: boolean;
+  /** Ya se le mandaron horas para reagendar por esta llamada. */
+  rescheduleSent: boolean;
+  blocked: boolean;
+}): OutcomeChangePlan => {
+  if (input.current !== "answered" && input.current !== "no_answer") return { kind: "not_changeable" };
+  if (input.current === input.outcome) return { kind: "same" };
+  if (input.outcome === "answered") {
+    return { kind: "change", outcome: "answered", reason: "Dayana lo corrigió en el CRM: sí hablaron.", send: "none" };
+  }
+  const send = !input.sendHours || input.rescheduleSent ? "none" : input.blocked ? "silenced" : "reschedule";
+  return { kind: "change", outcome: "no_answer", reason: "Dayana lo corrigió en el CRM: no contestó.", send };
+};
+
+/**
+ * ¿Se puede cambiar ya marcada? Las de «Hablaron» / «No contestó» de los
+ * últimos {@link FOLLOW_UP_LOOKBACK_DAYS} días (desde que terminó).
+ */
+export const canChangeOutcome = (a: { status: string; callOutcome: string | null; endsAt: Date }, now: Date): boolean =>
+  a.status === "active" &&
+  (a.callOutcome === "answered" || a.callOutcome === "no_answer") &&
+  a.endsAt.getTime() >= now.getTime() - FOLLOW_UP_LOOKBACK_DAYS * 24 * HOUR;
 
 export type RescheduleSend = { sent: true } | { sent: false; reason: "needs_template" | "failed" };
 

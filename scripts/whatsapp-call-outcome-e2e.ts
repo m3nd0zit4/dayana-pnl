@@ -25,6 +25,11 @@
  * 13. El reloj pegado a los avisos corre el seguimiento una vez por turno, no
  *     con el interruptor apagado, y sin la dependencia de prueba corre el
  *     barrido de verdad.
+ * 14. Dayana tocó «Hablaron» por error (Leidy, 16-oct): la línea «Cambiar» del
+ *     chat lo muestra; pasa a «No contestó» sin mensaje, queda en la auditoría
+ *     y se puede volver a cambiar. 15. A «No contestó» con horas: salen una
+ *     sola vez. 16. «No contestó · sin mensaje» al marcar. 17. Con «La IA
+ *     responde siempre», un chat en manual sí recibe las horas.
  */
 export {};
 
@@ -40,7 +45,7 @@ const main = async () => {
   const { saveWhatsAppProvider } = await import("@/lib/meta/whatsapp-provider");
   const { resolveDryRun } = await import("@/lib/notifications/platform/resolve");
   const { setFreeCallCalendarForTests, offeredFreeCallSlots } = await import("@/lib/crm/whatsapp-agent/free-call");
-  const { sweepCallOutcomes, handleCallFollowUpReply, markCallOutcome } = await import("@/lib/crm/whatsapp-agent/call-outcome");
+  const { sweepCallOutcomes, handleCallFollowUpReply, markCallOutcome, changeCallOutcome } = await import("@/lib/crm/whatsapp-agent/call-outcome");
   const { getChat } = await import("@/lib/crm/whatsapp-agent/workspace");
   const { CLOCK_FOLLOWUP_KEY, CLOCK_REMINDERS_KEY, CLOCK_SYNC_KEY, runClockTick } = await import("@/lib/crm/whatsapp-agent/tick");
 
@@ -76,6 +81,8 @@ const main = async () => {
     MAN_NO: "573000003321",
     MAN_NOWIN: "573000003322",
     MAN_MANUAL: "573000003323",
+    MAN_NOMSG: "573000003324",
+    ALWAYS: "573000003325",
   };
   const THREADS = Object.values(T);
   const TEMPLATE_KEYS = ["cita_no_contestada", "cita_seguimiento"];
@@ -109,7 +116,7 @@ const main = async () => {
   let n = 0;
   const setup = async (
     thread: string,
-    opts: { minutesAgo?: number; label?: string; length?: number; lastInboundHoursAgo?: number; aiModeOverride?: "MANUAL" } = {}
+    opts: { minutesAgo?: number; label?: string; length?: number; lastInboundHoursAgo?: number; aiModeOverride?: "MANUAL"; always?: boolean } = {}
   ) => {
     const lastInboundAt = new Date(now.getTime() - (opts.lastInboundHoursAgo ?? 1) * 3600_000);
     const conv = await prisma.conversation.create({
@@ -122,6 +129,7 @@ const main = async () => {
         lastMessageAt: lastInboundAt,
         lastInboundAt,
         aiModeOverride: opts.aiModeOverride ?? null,
+        aiAlwaysAt: opts.always ? new Date() : null,
       },
     });
     // Escribió antes de la llamada (con la ventana de 24 h abierta, salvo que se diga otra cosa).
@@ -292,6 +300,55 @@ const main = async () => {
     const paidMark = await markCallOutcome({ appointmentId: e.appt.id, outcome: "answered" });
     check("una sesión pagada (ya «not_free») tampoco", !paidMark.ok && paidMark.error === "already_decided", paidMark);
     check("una cita que no existe: not_found", (await markCallOutcome({ appointmentId: "no-existe", outcome: "answered" })).ok === false);
+
+    console.log("\n14. Tocó «Hablaron» por error y lo corrige");
+    const mView = await getChat(m.conv.id);
+    check(
+      "el chat muestra la llamada marcada con «Cambiar» (Hablaron, a mano)",
+      mView?.callDecided?.appointmentId === m.appt.id && mView.callDecided.outcome === "answered" && mView.callDecided.source === "manual",
+      mView?.callDecided
+    );
+    const fix = await changeCallOutcome({ appointmentId: m.appt.id, outcome: "no_answer", sendHours: false, staffUserId: staff?.id });
+    const m2 = await apptOf(m.appt.id);
+    check(
+      "pasa a «No contestó», a mano, sin mensaje",
+      fix.ok && !fix.sent && m2.callOutcome === "no_answer" && m2.callOutcomeSource === "manual" && (await outbound(m.conv.id)).length === 0,
+      { fix, m2 }
+    );
+    check(
+      "queda en la auditoría como cambio",
+      (await prisma.auditLog.count({ where: { entityType: "CalendarAppointment", entityId: m.appt.id, action: "whatsapp.call_outcome.change" } })) === 1
+    );
+    check("la línea del chat ya dice «No contestó»", (await getChat(m.conv.id))?.callDecided?.outcome === "no_answer");
+    const same = await changeCallOutcome({ appointmentId: m.appt.id, outcome: "no_answer", sendHours: false });
+    check("cambiar a lo mismo: same", !same.ok && same.error === "same", same);
+    const back = await changeCallOutcome({ appointmentId: m.appt.id, outcome: "answered", sendHours: false });
+    check("y se puede volver a «Hablaron»", back.ok && (await apptOf(m.appt.id)).callOutcome === "answered", back);
+    const resched = await changeCallOutcome({ appointmentId: f.appt.id, outcome: "answered", sendHours: false });
+    check("«se reagendó» (lo decidió el reloj) no se cambia desde aquí", !resched.ok && resched.error === "not_changeable", resched);
+
+    console.log("\n15. A «No contestó» con horas: una sola vez");
+    const toNo = await changeCallOutcome({ appointmentId: b.appt.id, outcome: "no_answer", sendHours: true, staffUserId: staff?.id });
+    const b3 = await apptOf(b.appt.id);
+    check("salen las horas para reagendar", toNo.ok && toNo.sent && Boolean(b3.rescheduleSentAt), { toNo, b3 });
+    await changeCallOutcome({ appointmentId: b.appt.id, outcome: "answered", sendHours: false });
+    const before = (await outbound(b.conv.id)).length;
+    const toNoAgain = await changeCallOutcome({ appointmentId: b.appt.id, outcome: "no_answer", sendHours: true });
+    check("si ya se le mandaron, no salen otra vez", toNoAgain.ok && !toNoAgain.sent && (await outbound(b.conv.id)).length === before, toNoAgain);
+
+    console.log("\n16. «No contestó · sin mensaje» al marcar");
+    const s16 = await setup(T.MAN_NOMSG);
+    const quiet = await markCallOutcome({ appointmentId: s16.appt.id, outcome: "no_answer", sendHours: false, staffUserId: staff?.id });
+    check(
+      "no contestó y no sale nada",
+      quiet.ok && !quiet.sent && !quiet.reason && (await outbound(s16.conv.id)).length === 0 && (await apptOf(s16.appt.id)).callOutcome === "no_answer",
+      quiet
+    );
+
+    console.log("\n17. «La IA responde siempre» en un chat en manual");
+    const s17 = await setup(T.ALWAYS, { aiModeOverride: "MANUAL", always: true });
+    const loud = await markCallOutcome({ appointmentId: s17.appt.id, outcome: "no_answer", staffUserId: staff?.id });
+    check("no está en silencio: le llegan las horas", loud.ok && loud.sent && (await outbound(s17.conv.id)).length === 1, loud);
 
     console.log("\n13. El reloj pegado a los avisos");
     await prisma.siteSetting.deleteMany({ where: { key: { in: CLOCK_KEYS } } });

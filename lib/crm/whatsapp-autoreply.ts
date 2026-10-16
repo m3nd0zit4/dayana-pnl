@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
 import { isManualPause } from "./whatsapp-attention-rules";
-import { escalationPauses } from "./whatsapp-agent/pause-rules";
+import { escalationPauses, isCrisis } from "./whatsapp-agent/pause-rules";
 import { withPaymentBlocks } from "./whatsapp-agent/payment-info";
 import { polishReply } from "./whatsapp-agent/wording";
 import { getOperationalTimezone } from "./operational-timezone";
@@ -108,6 +108,40 @@ export const liftPause = async (conversationId: string): Promise<void> => {
     where: { id: conversationId, aiPausedAt: { not: null } },
     data: { aiPausedAt: null, aiPausedReason: null, escalationCategory: null, escalationSeverity: null, escalationReason: null },
   });
+};
+
+/**
+ * «La IA responde siempre» en un chat: Dayana lo enciende en un chat difícil
+ * que no quiere contestar ella, y la IA contesta aunque sea clienta, favorito,
+ * número personal o esté en modo Tú (`route.ts`, `gate()` en `run.ts`).
+ *
+ * Encenderlo deja el chat en manos de la IA: quita el favorito ⭐ y el modo
+ * elegido a mano, y levanta la pausa (sin cerrar «Te toca»), salvo una crisis:
+ * esa sigue hasta que Dayana pulse «Listo». Apagarlo vuelve a lo normal (lo
+ * decide el segmento). Tomar el chat, elegir un modo, pausar o marcarlo
+ * favorito también lo apagan (`chats/[id]` route). Devuelve si sigue en pausa
+ * por una crisis.
+ */
+export const setAiAlways = async (
+  conversationId: string,
+  on: boolean,
+  staffUserId: string | null
+): Promise<{ stillPaused: boolean }> => {
+  if (!on) {
+    await prisma.conversation.update({ where: { id: conversationId }, data: { aiAlwaysAt: null, aiAlwaysById: null } });
+    return { stillPaused: false };
+  }
+  const before = await prisma.conversation.findUniqueOrThrow({
+    where: { id: conversationId },
+    select: { aiPausedAt: true, escalationCategory: true, escalationSeverity: true },
+  });
+  const crisis = Boolean(before.aiPausedAt) && isCrisis({ category: before.escalationCategory, severity: before.escalationSeverity });
+  await prisma.conversation.update({
+    where: { id: conversationId },
+    data: { aiAlwaysAt: new Date(), aiAlwaysById: staffUserId, priorityAt: null, aiModeOverride: null, aiMode: "AUTO" },
+  });
+  if (before.aiPausedAt && !crisis) await liftPause(conversationId);
+  return { stillPaused: crisis };
 };
 
 /**

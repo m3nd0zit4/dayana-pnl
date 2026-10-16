@@ -12,8 +12,10 @@ import {
   FOLLOW_UP_LOOKBACK_DAYS,
   followUpStep,
   MARK_AFTER_START_MIN,
+  canChangeOutcome,
   outcomeFromChat,
   planManualMark,
+  planOutcomeChange,
   rescheduleMessage,
   rescheduleSendOf,
   type CallOutcome,
@@ -424,6 +426,8 @@ export const markCallOutcome = async (input: {
   appointmentId: string;
   outcome: CallOutcome;
   staffUserId?: string | null;
+  /** «No contestó» sin mensaje (Dayana ya le escribió). Por defecto se le mandan horas. */
+  sendHours?: boolean;
   now?: Date;
 }): Promise<MarkCallOutcomeResult> => {
   const now = input.now ?? new Date();
@@ -442,6 +446,7 @@ export const markCallOutcome = async (input: {
     now,
     outcome: input.outcome,
     blocked: conv ? await waitingRoomBlocked(conv, config) : false,
+    sendHours: input.sendHours,
   });
   if (plan.kind !== "settle") return { ok: false, error: plan.kind };
   if (!(await settle(appt.id, plan.outcome, "manual", plan.reason))) return { ok: false, error: "already_decided" };
@@ -462,4 +467,105 @@ export const markCallOutcome = async (input: {
     changes: { outcome: plan.outcome, conversationId: appt.conversationId, sent: result.sent, reason: result.reason ?? null },
   }).catch(() => undefined);
   return result;
+};
+
+export type ChangeCallOutcomeResult =
+  | { ok: true; outcome: CallOutcome; sent: boolean; reason?: "needs_template" | "silenced" | "failed" }
+  | { ok: false; error: "not_found" | "not_changeable" | "same" | "changed_meanwhile" };
+
+/**
+ * Dayana corrige cómo terminó una llamada gratis ya marcada («Hablaron» ↔ «No
+ * contestó»; reglas en `planOutcomeChange`). Queda con origen `manual` y la
+ * hora del cambio (así el estado de la persona se recalcula). Solo cambia si
+ * nadie lo cambió entre medio. A «No contestó» con `sendHours` le manda horas
+ * para reagendar si no se le mandaron ya.
+ */
+export const changeCallOutcome = async (input: {
+  appointmentId: string;
+  outcome: CallOutcome;
+  sendHours: boolean;
+  staffUserId?: string | null;
+  now?: Date;
+}): Promise<ChangeCallOutcomeResult> => {
+  const now = input.now ?? new Date();
+  const appt = await prisma.calendarAppointment.findUnique({ where: { id: input.appointmentId } });
+  if (!appt || !canChangeOutcome(appt, now)) {
+    return { ok: false, error: appt && appt.status === "active" ? "not_changeable" : "not_found" };
+  }
+  const [conv, config] = await Promise.all([
+    appt.conversationId ? loadConversation(appt.conversationId) : Promise.resolve(null),
+    getWhatsAppAiConfig(),
+  ]);
+  const plan = planOutcomeChange({
+    current: appt.callOutcome,
+    outcome: input.outcome,
+    sendHours: input.sendHours,
+    rescheduleSent: Boolean(appt.rescheduleSentAt),
+    blocked: conv ? await waitingRoomBlocked(conv, config) : false,
+  });
+  if (plan.kind !== "change") return { ok: false, error: plan.kind };
+  const updated = await prisma.calendarAppointment.updateMany({
+    where: { id: appt.id, callOutcome: appt.callOutcome },
+    data: { callOutcome: plan.outcome, callOutcomeSource: "manual", callOutcomeReason: plan.reason, callOutcomeAt: now },
+  });
+  if (updated.count === 0) return { ok: false, error: "changed_meanwhile" };
+
+  let result: Extract<ChangeCallOutcomeResult, { ok: true }> = { ok: true, outcome: plan.outcome, sent: false };
+  if (plan.send === "silenced") result = { ...result, reason: "silenced" };
+  else if (plan.send === "reschedule") {
+    const r: RescheduleSend = conv ? await sendReschedule(appt, conv, config, { notify: false }) : { sent: false, reason: "failed" };
+    result = r.sent ? { ...result, sent: true } : { ...result, reason: r.reason };
+  }
+  await writeAuditLog({
+    staffUserId: input.staffUserId ?? undefined,
+    action: "whatsapp.call_outcome.change",
+    entityType: "CalendarAppointment",
+    entityId: appt.id,
+    changes: {
+      from: appt.callOutcome,
+      fromSource: appt.callOutcomeSource,
+      to: plan.outcome,
+      conversationId: appt.conversationId,
+      sent: result.sent,
+      reason: result.reason ?? null,
+    },
+  }).catch(() => undefined);
+  return result;
+};
+
+/**
+ * La llamada gratis de este chat que ya tiene resultado y se marcó hace poco
+ * (en las últimas `withinHours`): encima de la caja de escribir sale «Llamada
+ * gratis de ayer, 7:15 p. m.: Hablaron · Cambiar», para corregir un toque
+ * equivocado sin ir a Agenda.
+ */
+export const findDecidedCall = async (
+  conversationId: string,
+  now = new Date(),
+  withinHours = 24
+): Promise<{
+  appointmentId: string;
+  startsAt: Date;
+  outcome: CallOutcome;
+  source: string | null;
+  rescheduleSent: boolean;
+} | null> => {
+  const appt = await prisma.calendarAppointment.findFirst({
+    where: {
+      conversationId,
+      status: "active",
+      callOutcome: { in: ["answered", "no_answer"] },
+      callOutcomeAt: { gte: new Date(now.getTime() - withinHours * 3600_000) },
+      endsAt: { gte: new Date(now.getTime() - FOLLOW_UP_LOOKBACK_DAYS * DAY) },
+    },
+    orderBy: { startsAt: "desc" },
+  });
+  if (!appt || !(await isFreeCall(appt))) return null;
+  return {
+    appointmentId: appt.id,
+    startsAt: appt.startsAt,
+    outcome: appt.callOutcome as CallOutcome,
+    source: appt.callOutcomeSource,
+    rescheduleSent: Boolean(appt.rescheduleSentAt),
+  };
 };

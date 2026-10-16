@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import {
   callWhenLabel,
+  canChangeOutcome,
   CHECK_MAX_AGE_HOURS,
   checkMessage,
   checkReply,
@@ -9,6 +10,7 @@ import {
   needsOutcomeMark,
   outcomeFromChat,
   planManualMark,
+  planOutcomeChange,
   RESCHEDULE_FROM_CHAT_MAX_AGE_HOURS,
   rescheduleMessage,
   rescheduleSendOf,
@@ -182,6 +184,10 @@ describe("Dayana lo marca con un toque", () => {
     expect(planManualMark({ ...base, outcome: "no_answer", blocked: true })).toMatchObject({ kind: "settle", send: "silenced" });
   });
 
+  test("«No contestó · sin mensaje»: ya le escribió ella, no sale nada", () => {
+    expect(planManualMark({ ...base, outcome: "no_answer", sendHours: false })).toMatchObject({ kind: "settle", outcome: "no_answer", send: "none" });
+  });
+
   test("ya decidida (por el chat, la respuesta, el tiempo o ella): no se cambia", () => {
     for (const callOutcome of ["answered", "no_answer", "rescheduled", "not_free"]) {
       expect(planManualMark({ ...base, callOutcome, outcome: "no_answer" })).toEqual({ kind: "already_decided" });
@@ -216,5 +222,50 @@ describe("Dayana lo marca con un toque", () => {
     expect(callWhenLabel(start, new Date("2026-10-16T15:00:00Z"), tz)).toBe("de ayer, 7:15 p. m.");
     expect(callWhenLabel(start, new Date("2026-10-18T15:00:00Z"), tz)).toBe("del jueves 15 de octubre, 7:15 p. m.");
     expect(callWhenLabel(new Date("2026-10-15T14:05:00Z"), new Date("2026-10-15T20:00:00Z"), tz)).toBe("de hoy, 9:05 a. m.");
+  });
+});
+
+describe("Dayana corrige cómo terminó (tocó el botón equivocado)", () => {
+  const base = { sendHours: true, rescheduleSent: false, blocked: false };
+
+  test("Leidy: «Hablaron» por error → «No contestó» sin mensaje (ya se le escribió para reagendar)", () => {
+    expect(planOutcomeChange({ ...base, current: "answered", outcome: "no_answer", sendHours: false })).toEqual({
+      kind: "change",
+      outcome: "no_answer",
+      reason: "Dayana lo corrigió en el CRM: no contestó.",
+      send: "none",
+    });
+  });
+
+  test("a «No contestó» con horas: salen si no se le mandaron ya y el chat no está en silencio", () => {
+    expect(planOutcomeChange({ ...base, current: "answered", outcome: "no_answer" })).toMatchObject({ kind: "change", send: "reschedule" });
+    expect(planOutcomeChange({ ...base, current: "answered", outcome: "no_answer", rescheduleSent: true })).toMatchObject({ send: "none" });
+    expect(planOutcomeChange({ ...base, current: "answered", outcome: "no_answer", blocked: true })).toMatchObject({ send: "silenced" });
+  });
+
+  test("a «Hablaron»: nunca manda nada", () => {
+    expect(planOutcomeChange({ ...base, current: "no_answer", outcome: "answered" })).toEqual({
+      kind: "change",
+      outcome: "answered",
+      reason: "Dayana lo corrigió en el CRM: sí hablaron.",
+      send: "none",
+    });
+  });
+
+  test("lo mismo que ya dice, sin decidir o decidido por el reloj: no se cambia", () => {
+    expect(planOutcomeChange({ ...base, current: "answered", outcome: "answered" })).toEqual({ kind: "same" });
+    for (const current of [null, "rescheduled", "not_free"]) {
+      expect(planOutcomeChange({ ...base, current, outcome: "no_answer" })).toEqual({ kind: "not_changeable" });
+    }
+  });
+
+  test("se puede cambiar hasta 7 días después de terminar", () => {
+    const endsAt = new Date("2026-10-16T00:30:00Z");
+    const a = { status: "active", callOutcome: "answered", endsAt };
+    expect(canChangeOutcome(a, new Date(endsAt.getTime() + 7 * 24 * H))).toBe(true);
+    expect(canChangeOutcome(a, new Date(endsAt.getTime() + 7 * 24 * H + 60_000))).toBe(false);
+    expect(canChangeOutcome({ ...a, callOutcome: null }, endsAt)).toBe(false);
+    expect(canChangeOutcome({ ...a, callOutcome: "rescheduled" }, endsAt)).toBe(false);
+    expect(canChangeOutcome({ ...a, status: "cancelled" }, endsAt)).toBe(false);
   });
 });
