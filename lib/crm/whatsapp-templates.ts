@@ -208,6 +208,16 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, te recuerdo tu cita de {{servicio}} mañana {{fecha}} a las {{hora}}. Enlace: {{enlace}} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.",
     example: { nombre: "Ana", servicio: "sesión de terapia", fecha: "jueves 2 de octubre", hora: "10:00 a. m.", enlace: "https://meet.google.com/abc-defg-hij" },
   },
+  // El recordatorio de la llamada gratis una hora antes, fuera de las 24 h
+  // (dentro va como texto, el de Ajustes). Sin «gratis»: con palabras de venta
+  // Meta la pasaría a Marketing.
+  {
+    key: "cita_recordatorio_hoy",
+    title: "Llamada gratis: recordatorio de hoy",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, te recuerdo que hoy a las {{hora}} Dayana te llamará por WhatsApp a este número para tu llamada. Por favor ten a mano un espacio tranquilo para que puedan hablar con calma.",
+    example: { nombre: "Ana", hora: "10:00 a. m." },
+  },
   // Después de la llamada gratis, fuera de las 24 h (dentro de la ventana va
   // como texto). Las manda a aprobar Dayana desde Plantillas.
   {

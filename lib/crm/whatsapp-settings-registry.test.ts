@@ -50,6 +50,16 @@ describe("searchWhatsAppSettings", () => {
     expect(ids("xyzzy")).toEqual([]);
   });
 
+  test("«recordatorio» encuentra el de la llamada gratis, en Horarios y citas", () => {
+    const found = searchWhatsAppSettings("recordatorio");
+    expect(found.map((e) => e.id)).toEqual(
+      expect.arrayContaining(["wa-free-reminder", "wa-free-reminder-minutes", "wa-free-reminder-message"])
+    );
+    expect(found.every((e) => e.tab === "citas")).toBe(true);
+    expect(ids("1 hora antes")).toContain("wa-free-reminder");
+    expect(ids("recordar llamada gratis")[0]).toBe("wa-free-reminder");
+  });
+
   test("las coincidencias en la etiqueta van primero", () => {
     expect(ids("bienvenida")[0]).toBe("wa-welcome");
     expect(ids("plantillas")[0]).toBe("wa-templates");

@@ -29,6 +29,40 @@ describe("parseWhatsAppAiConfig", () => {
   });
 });
 
+describe("recordatorio de la llamada gratis (freeCallReminder)", () => {
+  test("encendido por defecto (lo pidió la dueña), 60 min antes, con {{nombre}} y {{hora}}", () => {
+    const r = parseWhatsAppAiConfig(null).freeCallReminder;
+    expect(r.enabled).toBe(true);
+    expect(r.minutesBefore).toBe(60);
+    expect(r.message).toContain("{{nombre}}");
+    expect(r.message).toContain("{{hora}}");
+    // Una configuración guardada antes de existir la clave también lo trae encendido.
+    expect(parseWhatsAppAiConfig(JSON.stringify({ instructions: "x" })).freeCallReminder).toEqual(r);
+  });
+
+  test("los minutos fuera de 30–180 se ajustan sin perder el mensaje", () => {
+    const parse = (minutesBefore: number) =>
+      parseWhatsAppAiConfig(JSON.stringify({ freeCallReminder: { enabled: false, minutesBefore, message: "Hola {{nombre}}, a las {{hora}}." } }))
+        .freeCallReminder;
+    expect(parse(5)).toEqual({ enabled: false, minutesBefore: 30, message: "Hola {{nombre}}, a las {{hora}}." });
+    expect(parse(500).minutesBefore).toBe(180);
+    expect(parse(90.6).minutesBefore).toBe(91);
+  });
+
+  test("un campo roto vuelve el bloque a su defecto sin tocar el resto", () => {
+    const config = parseWhatsAppAiConfig(
+      JSON.stringify({ freeCallReminder: { enabled: false, message: 42 }, instructions: "No hables de política" })
+    );
+    expect(config.freeCallReminder).toEqual(defaultWhatsAppAiConfig().freeCallReminder);
+    expect(config.instructions).toBe("No hables de política");
+    // Campos que faltan toman su defecto.
+    expect(parseWhatsAppAiConfig(JSON.stringify({ freeCallReminder: { enabled: false } })).freeCallReminder).toEqual({
+      ...defaultWhatsAppAiConfig().freeCallReminder,
+      enabled: false,
+    });
+  });
+});
+
 describe("isWithinOwnerHours", () => {
   const office = {
     mode: "outside_hours" as const,

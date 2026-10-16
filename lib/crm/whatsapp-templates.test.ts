@@ -73,7 +73,7 @@ describe("categoría de utilidad", () => {
 describe("plantillas de citas", () => {
   test("son de utilidad y cumplen las reglas de Meta sin palabras de venta", async () => {
     const { utilityCategoryWarning } = await import("./whatsapp-template-rules");
-    for (const key of ["cita_confirmacion", "cita_recordatorio", "cita_reprogramar"]) {
+    for (const key of ["cita_confirmacion", "cita_recordatorio", "cita_recordatorio_hoy", "cita_reprogramar"]) {
       const t = STARTER_TEMPLATES.find((x) => x.key === key)!;
       expect(t.category).toBe("UTILITY");
       expect(templateBodyProblem(t.body)).toBeNull();

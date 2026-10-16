@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { authorized } from "@/lib/cron-auth";
 import { kickSweep } from "@/lib/meta/inbox";
 import { classifyFromCron } from "@/lib/crm/chat-category";
-import { areRemindersEnabled, sendDueReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
+import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointments } from "@/lib/crm/whatsapp-agent/appointments";
 import { refreshTemplatesIfPending } from "@/lib/crm/whatsapp-templates";
 import { refreshStaleDossiers } from "@/lib/crm/whatsapp-agent/dossier";
 import { refreshStages } from "@/lib/crm/whatsapp-agent/segment-store";
@@ -21,7 +21,10 @@ export const maxDuration = 120;
  * El reloj de WhatsApp: lo llama GitHub Actions cada 10 minutos
  * (`.github/workflows/whatsapp-cron.yml`). No hay cron en Vercel ni Inngest
  * que funcione, y los recordatorios no pueden depender de que alguien tenga el
- * CRM abierto.
+ * CRM abierto. Sin el secreto en GitHub no llama a nada: por eso las citas y
+ * los recordatorios también van pegados a los avisos de WhatsApp
+ * (`lib/crm/whatsapp-agent/tick.ts`); los dos relojes reclaman cada cita antes
+ * de enviar y nunca la mandan dos veces.
  *
  * Cada paso va aparte: si el calendario falla, la cola y los recordatorios
  * siguen.
@@ -58,6 +61,11 @@ export async function POST(req: Request) {
   const steps = [
     await step("citas", () => syncAppointments()),
     await step("recordatorios", async () => ((await areRemindersEnabled()) ? sendDueReminders() : { off: true })),
+    // La llamada gratis, una hora antes («hoy a las…»): mismo interruptor del reloj y el suyo en Ajustes.
+    await step("recordatorio 1 h", async () => {
+      const config = await getWhatsAppAiConfig();
+      return (await areRemindersEnabled()) && config.freeCallReminder.enabled ? sendSoonReminders({ config }) : { off: true };
+    }),
     await step("cola", () => kickSweep()),
     await step("sala de espera", async () => sweepWaitingRoom(await getWhatsAppAiConfig())),
     await step("seguimiento llamadas", async () => sweepCallOutcomes(await getWhatsAppAiConfig())),
