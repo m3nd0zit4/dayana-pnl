@@ -428,6 +428,24 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     keywords: ["meet", "videollamada", "google meet", "enlace", "citas"],
     tab: "citas",
   },
+  {
+    id: "wa-free-reminder",
+    label: "Recordarle la llamada gratis antes de la hora",
+    keywords: ["recordatorio", "recordar", "1 hora antes", "hoy", "llamada gratis", "aviso", "citas", "espacio tranquilo"],
+    tab: "citas",
+  },
+  {
+    id: "wa-free-reminder-minutes",
+    label: "Cuánto antes se recuerda la llamada gratis",
+    keywords: ["recordatorio", "minutos", "antes", "1 hora", "llamada gratis", "citas"],
+    tab: "citas",
+  },
+  {
+    id: "wa-free-reminder-message",
+    label: "Mensaje del recordatorio de la llamada gratis",
+    keywords: ["recordatorio", "mensaje", "texto", "llamada gratis", "citas"],
+    tab: "citas",
+  },
 
   // ── Avisos ─────────────────────────────────────────────────────────────
   {

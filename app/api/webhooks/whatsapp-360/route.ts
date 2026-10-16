@@ -10,6 +10,7 @@ import {
 } from "@/lib/meta/dispatch";
 import { normalizeMetaPayload } from "@/lib/meta/inbound";
 import { getDialog360WebhookSecrets } from "@/lib/meta/whatsapp-provider";
+import { piggybackClockTick } from "@/lib/crm/whatsapp-agent/tick";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +52,10 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ error: "invalid_secret" }, { status: 401 });
   }
+
+  // El reloj de citas y recordatorios va pegado a los avisos (después de
+  // responder: no retrasa a 360dialog). Casi siempre no le toca nada.
+  after(piggybackClockTick);
 
   let payload: unknown;
   try {

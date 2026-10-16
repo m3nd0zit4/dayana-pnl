@@ -3,6 +3,7 @@ import { z } from "zod";
 import { WHATSAPP_COMMUNITY_URL } from "@/lib/contact";
 
 import { getSiteSetting, setSiteSetting } from "./site-settings";
+import { clampReminderMinutes, DEFAULT_FREE_CALL_REMINDER } from "./whatsapp-agent/free-call-reminder-rules";
 
 /**
  * Cómo se comporta la respuesta automática de WhatsApp. Todo se cambia desde
@@ -355,6 +356,19 @@ export const whatsAppAiConfigSchema = z.object({
     /** Horas sin respuesta a la pregunta para darla por no contestada. */
     assumeMissedAfterHours: z.number().int().min(2).max(72).default(24),
   }),
+  /**
+   * Recordatorio de la llamada gratis antes de la hora (`free-call-reminder-rules.ts`):
+   * «hoy a las … Dayana te llamará por WhatsApp, ten a mano un espacio
+   * tranquilo». Encendido por defecto: lo pidió la dueña. Fuera de las 24 h
+   * usa la plantilla «Llamada gratis: recordatorio de hoy».
+   */
+  freeCallReminder: z.object({
+    enabled: z.boolean().default(true),
+    /** Minutos antes de la llamada. Fuera de 30–180 se ajusta (no tira el bloque). */
+    minutesBefore: z.number().transform(clampReminderMinutes).default(60),
+    /** Con {{nombre}} y {{hora}}. Vacío = el texto de siempre. */
+    message: z.string().trim().max(600).default(DEFAULT_FREE_CALL_REMINDER),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -415,6 +429,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3 },
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
+  freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
 });
 
 /**

@@ -20,6 +20,10 @@ type Item = {
   confirmedAt: string | null;
   reminderSentAt: string | null;
   reminderError: string | null;
+  /** El recordatorio de la llamada gratis de 1 h antes («hoy a las…»). */
+  reminderSoonSentAt: string | null;
+  reminderSoonError: string | null;
+  reminderSoonSkipped: string | null;
   endsAt: string;
   /** ¿Se hizo la llamada gratis? (se deduce del chat o se le pregunta). */
   callOutcome: string | null;
@@ -35,6 +39,14 @@ const outcomeLabel = (a: Item): { text: string; tone: "ok" | "bad" | "muted" } |
   if (a.callOutcome === "rescheduled") return { text: "Se reagendó", tone: "muted" };
   if (!a.callOutcome && a.outcomeCheckAt) return { text: "Se le preguntó si pudo hablar", tone: "muted" };
   if (!a.callOutcome && new Date(a.endsAt).getTime() < Date.now() && a.sessionsLabel === "0/0") return { text: "Revisando si se hizo", tone: "muted" };
+  return null;
+};
+
+/** El recordatorio de hoy de la llamada gratis, si ya se decidió algo. */
+const soonLabel = (a: Item): { text: string; detail?: string; tone: "bad" | "muted" } | null => {
+  if (a.reminderSoonError) return { text: "Recordatorio de hoy no salió", detail: a.reminderSoonError, tone: "bad" };
+  if (a.reminderSoonSkipped) return { text: "Sin recordatorio de hoy", detail: a.reminderSoonSkipped, tone: "muted" };
+  if (a.reminderSoonSentAt) return { text: "Recordada hoy", tone: "muted" };
   return null;
 };
 
@@ -186,6 +198,14 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
                   <span className="text-muted-foreground">Recordatorio 24 h antes</span>
                 )}
               </span>
+              {soonLabel(a) && (
+                <span
+                  title={soonLabel(a)!.detail}
+                  className={`inline-flex items-center gap-1 text-xs ${soonLabel(a)!.tone === "bad" ? "text-destructive" : "text-muted-foreground"}`}
+                >
+                  {soonLabel(a)!.tone === "bad" ? <TriangleAlert className="size-3.5" /> : <BellRing className="size-3.5" />} {soonLabel(a)!.text}
+                </span>
+              )}
               {a.conversationId && (
                 <Link href={`/admin/whatsapp?conversation=${a.conversationId}`} className="inline-flex items-center gap-1 text-xs font-medium text-[#008069] hover:underline">
                   <MessageCircle className="size-3.5" /> Chat

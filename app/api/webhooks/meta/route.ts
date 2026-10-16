@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { piggybackClockTick } from "@/lib/crm/whatsapp-agent/tick";
 import { acceptMetaEvents, describeWebhook } from "@/lib/meta/dispatch";
 import { normalizeMetaPayload } from "@/lib/meta/inbound";
 import {
@@ -47,6 +48,10 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
   }
+
+  // El reloj de citas y recordatorios de WhatsApp va pegado a los avisos
+  // (después de responder: no retrasa a Meta). Casi siempre no le toca nada.
+  after(piggybackClockTick);
 
   let payload: unknown;
   try {

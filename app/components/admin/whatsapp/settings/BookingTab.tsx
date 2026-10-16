@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import { Textarea } from "@/app/components/ui/textarea";
 import type { WhatsAppBookingConfig } from "@/lib/crm/whatsapp-ai-config";
 import { TYPING_DELAY, useSettings } from "./context";
 import { NumberField } from "./fields";
@@ -305,6 +306,57 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
           checked={b.addMeet}
           onChange={(v) => change("wa-booking-meet", "booking.addMeet", v)}
         />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Recordatorio de la llamada gratis"
+        description="El mismo día, antes de la hora: que esté pendiente de tu llamada y tenga un espacio para hablar."
+      >
+        <ToggleRow
+          id="wa-free-reminder"
+          label="Recordarle la llamada antes de la hora"
+          help="La asistente le escribe «hoy a las 6:15 p. m. Dayana te llamará por WhatsApp a este número…», en su hora. Solo a la llamada gratis, una vez por cita."
+          info="Si la llamada se agendó poco antes, no se manda: la confirmación ya le dijo la hora. Fuera de las 24 h desde su último mensaje usa la plantilla «Llamada gratis: recordatorio de hoy» (apruébala en Plantillas). En la Agenda ves si salió."
+          state={states["wa-free-reminder"]}
+          checked={config.freeCallReminder.enabled}
+          onChange={(v) => change("wa-free-reminder", "freeCallReminder.enabled", v)}
+        />
+        <SettingRow
+          id="wa-free-reminder-minutes"
+          layout="row"
+          label="Cuánto antes"
+          help="Entre 30 y 180 minutos."
+          state={states["wa-free-reminder-minutes"]}
+        >
+          <NumberField
+            min={30}
+            max={180}
+            suffix="min"
+            value={config.freeCallReminder.minutesBefore}
+            disabled={!config.freeCallReminder.enabled}
+            invalid={states["wa-free-reminder-minutes"]?.status === "error"}
+            onChange={(v) => change("wa-free-reminder-minutes", "freeCallReminder.minutesBefore", v, TYPING_DELAY)}
+          />
+        </SettingRow>
+        <SettingRow
+          id="wa-free-reminder-message"
+          layout="stacked"
+          label="El mensaje"
+          help="{{nombre}} es su nombre (si no se sabe, se quita) y {{hora}} la hora de la llamada en su zona, con a. m./p. m. Apodos y corazones se quitan solos."
+          state={states["wa-free-reminder-message"]}
+        >
+          <Textarea
+            aria-label="Mensaje del recordatorio de la llamada gratis"
+            defaultValue={config.freeCallReminder.message}
+            rows={3}
+            maxLength={600}
+            disabled={!config.freeCallReminder.enabled}
+            onChange={(e) => {
+              const message = e.target.value.trim();
+              if (message.length >= 10) change("wa-free-reminder-message", "freeCallReminder.message", message, TYPING_DELAY);
+            }}
+          />
+        </SettingRow>
       </SettingsGroup>
     </div>
   );

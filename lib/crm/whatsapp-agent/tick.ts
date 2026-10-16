@@ -1,0 +1,130 @@
+import { prisma } from "@/lib/db";
+import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
+import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointments } from "./appointments";
+
+/**
+ * El reloj que va pegado a los avisos de WhatsApp: los recordatorios no
+ * pueden depender del cron de GitHub (sin el secreto `CRON_SECRET` no llama a
+ * nada, y el cron de Vercel Hobby solo corre una vez al día).
+ *
+ * Cada aviso que llega por el webhook (mensajes, entregados, leídos) y el
+ * stream de la sección de WhatsApp lo despiertan sin esperar; casi siempre no
+ * le toca nada y sale con una sola lectura. Cada paso tiene su turno en
+ * `site_settings` (un `UPDATE` condicional: aunque lleguen diez avisos a la
+ * vez, solo uno gana):
+ * - cada 15 min: leer el calendario (`syncAppointments`, solo lectura salvo el
+ *   interruptor de completar títulos);
+ * - cada 5 min: el recordatorio de 24 h y el de la llamada gratis de 1 h.
+ *
+ * Los envíos reclaman cada cita antes de mandar, así que este reloj y la ruta
+ * del cron nunca mandan el mismo recordatorio dos veces. Nunca lanza.
+ */
+
+export const CLOCK_SYNC_KEY = "whatsapp.clock.sync_at";
+export const CLOCK_REMINDERS_KEY = "whatsapp.clock.reminders_at";
+export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
+export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
+
+/** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
+export const parseClockValue = (raw: string | null | undefined): number => {
+  const ms = /^\d{1,15}$/.test(raw?.trim() ?? "") ? Number(raw) : 0;
+  return Number.isSafeInteger(ms) ? ms : 0;
+};
+
+/** ¿Ya le toca? (La misma cuenta que hace el `UPDATE` de `claimClockSlot`.) */
+export const clockSlotDue = (lastMs: number, nowMs: number, everyMs: number): boolean => nowMs - lastMs >= everyMs;
+
+/**
+ * Toma el turno de `key` si el último fue hace `everyMs` o más. Una sola
+ * sentencia: crea la fila si falta y si no, la actualiza solo si el turno
+ * guardado ya venció. Con invocaciones a la vez, Postgres bloquea la fila y la
+ * segunda vuelve a evaluar la condición sobre el turno recién escrito: gana
+ * una sola. Devuelve si este proceso ganó.
+ */
+export const claimClockSlot = async (key: string, everyMs: number, now: Date = new Date()): Promise<boolean> => {
+  const nowMs = Math.floor(now.getTime());
+  const dueBefore = String(nowMs - everyMs);
+  const updated = await prisma.$executeRaw`
+    INSERT INTO "site_settings" ("key", "value", "updated_at")
+    VALUES (${key}, ${String(nowMs)}, CURRENT_TIMESTAMP)
+    ON CONFLICT ("key") DO UPDATE SET "value" = EXCLUDED."value", "updated_at" = EXCLUDED."updated_at"
+    WHERE (CASE WHEN "site_settings"."value" ~ '^[0-9]{1,15}$' THEN "site_settings"."value"::bigint ELSE 0 END) <= ${dueBefore}::bigint
+  `;
+  return updated > 0;
+};
+
+type StepResult = { name: string; ok: boolean; result?: unknown; error?: string };
+
+const step = async (name: string, fn: () => Promise<unknown>): Promise<StepResult> => {
+  try {
+    return { name, ok: true, result: await fn() };
+  } catch (e) {
+    console.warn(`[reloj WhatsApp · avisos] ${name}`, e instanceof Error ? e.message : e);
+    return { name, ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+};
+
+export type ClockTickDeps = {
+  now?: Date;
+  /** Para pruebas: qué hacer en cada paso, sin calendario ni envíos de verdad. */
+  sync?: () => Promise<unknown>;
+  dayBefore?: () => Promise<unknown>;
+  soon?: () => Promise<unknown>;
+};
+
+/**
+ * Una pasada: lo que toque según los turnos. `[]` casi siempre (no le tocaba
+ * nada). Nunca lanza: un fallo de un paso queda en el log y en su resultado.
+ */
+export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult[]> => {
+  const now = deps.now ?? new Date();
+  const steps: StepResult[] = [];
+  try {
+    // Primero una lectura (lo normal es que no toque nada); el turno solo se
+    // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
+    const rows = await prisma.siteSetting.findMany({
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY] } },
+      select: { key: true, value: true },
+    });
+    const due = (key: string, everyMs: number) =>
+      clockSlotDue(parseClockValue(rows.find((r) => r.key === key)?.value), now.getTime(), everyMs);
+
+    if (due(CLOCK_SYNC_KEY, CLOCK_SYNC_EVERY_MS) && (await claimClockSlot(CLOCK_SYNC_KEY, CLOCK_SYNC_EVERY_MS, now))) {
+      steps.push(await step("citas", deps.sync ?? (() => syncAppointments())));
+    }
+    if (
+      due(CLOCK_REMINDERS_KEY, CLOCK_REMINDERS_EVERY_MS) &&
+      (await claimClockSlot(CLOCK_REMINDERS_KEY, CLOCK_REMINDERS_EVERY_MS, now))
+    ) {
+      const on = await areRemindersEnabled();
+      steps.push(
+        await step("recordatorios", async () => (on ? (deps.dayBefore ?? (() => sendDueReminders()))() : { off: true }))
+      );
+      steps.push(
+        await step("recordatorio 1 h", async () => {
+          if (!on) return { off: true };
+          if (deps.soon) return deps.soon();
+          const config = await getWhatsAppAiConfig();
+          return config.freeCallReminder.enabled ? sendSoonReminders({ config }) : { off: true };
+        })
+      );
+    }
+  } catch (e) {
+    console.warn("[reloj WhatsApp · avisos] no se pudo tomar el turno", e instanceof Error ? e.message : e);
+  }
+  if (steps.length) console.info(`[reloj WhatsApp · avisos] ${JSON.stringify(steps)}`);
+  return steps;
+};
+
+/**
+ * Solo la app de producción hace de reloj: una Preview o el `bun dev` local
+ * comparten base con alguien más y no deben mandar recordatorios por su
+ * cuenta (ahí se usa la ruta del cron a mano).
+ */
+export const isClockHost = (): boolean => process.env.VERCEL_ENV === "production";
+
+/** Para las rutas (con `after()` o sin esperar): no hace nada fuera de producción y nunca lanza. */
+export const piggybackClockTick = async (): Promise<void> => {
+  if (!isClockHost()) return;
+  await runClockTick().catch(() => undefined);
+};

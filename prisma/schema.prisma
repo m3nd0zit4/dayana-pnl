@@ -2418,6 +2418,13 @@ model CalendarAppointment {
   confirmedAt       DateTime? @map("confirmed_at")
   reminderSentAt    DateTime? @map("reminder_sent_at")
   reminderError     String?   @map("reminder_error")
+  /// Recordatorio de la llamada gratis 1 h antes («hoy a las…»): cuándo se
+  /// mandó (o se decidió que no hacía falta). Se reclama antes de enviar.
+  reminderSoonSentAt  DateTime? @map("reminder_soon_sent_at")
+  /// Por qué no salió (falta la plantilla, pidió no recibir, falló el envío).
+  reminderSoonError   String?   @map("reminder_soon_error")
+  /// Por qué no hizo falta (se agendó poco antes: la confirmación ya le dijo la hora).
+  reminderSoonSkipped String?   @map("reminder_soon_skipped")
   /// Sala de espera de la llamada gratis: cuántas veces se le dijo «Dayana
   /// está terminando una reunión» / «ya le aviso» y cuándo (máx. 2 por cita).
   waitNoticeCount   Int       @default(0) @map("wait_notice_count")
