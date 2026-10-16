@@ -23,7 +23,7 @@ const Page = () => (
   >
     <Suspense
       fallback={
-        <p className="animate-pulse font-[font1] text-sm text-white/50">
+        <p className="animate-pulse font-[font1] text-sm text-foreground/50">
           Cargando acceso…
         </p>
       }

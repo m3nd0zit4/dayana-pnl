@@ -6,11 +6,14 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import GoogleAuthButton from "./GoogleAuthButton";
 
+/* Mismos campos que el alta (`OnboardingWizard`), con tokens: con el negro
+ * escrito a mano, el modo oscuro dejaba las etiquetas y lo que se escribe en
+ * negro sobre la tarjeta oscura — el formulario no se leía. */
 const inputClass =
-  "w-full rounded-xl border border-black/15 bg-black/[0.03] px-4 py-3.5 font-[font1] text-sm text-[#141118] placeholder-black/35 transition-colors focus:border-terracotta focus:outline-none";
+  "w-full rounded-xl border border-input bg-muted/60 px-4 py-3.5 font-[font1] text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-terracotta focus:bg-background focus:outline-none";
 
 const labelClass =
-  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-black/55";
+  "mb-2 block font-[font2] uppercase text-[10px] tracking-[0.22em] text-foreground/65";
 
 type MemberSignInFormProps = {
   googleEnabled: boolean;
@@ -92,9 +95,9 @@ const MemberSignInForm = ({
           <GoogleAuthButton callbackUrl={callbackUrl} />
 
           <div className="flex items-center gap-3" aria-hidden>
-            <span className="h-px flex-1 bg-linen/15" />
-            <span className="font-[font1] text-[11px] text-black/40">o</span>
-            <span className="h-px flex-1 bg-linen/15" />
+            <span className="h-px flex-1 bg-input" />
+            <span className="font-[font1] text-[11px] text-foreground/45">o</span>
+            <span className="h-px flex-1 bg-input" />
           </div>
         </>
       ) : null}
@@ -126,7 +129,7 @@ const MemberSignInForm = ({
           <div className="mt-2 text-right">
             <Link
               href="/miembros/recuperar"
-              className="font-[font1] text-[12px] text-black/45 transition-colors hover:text-terracotta"
+              className="font-[font1] text-[12px] text-foreground/50 transition-colors hover:text-terracotta"
             >
               Olvidé mi contraseña
             </Link>
@@ -134,7 +137,7 @@ const MemberSignInForm = ({
         </label>
 
         {error && (
-          <p className="font-[font1] text-[13px] text-blush" role="alert">
+          <p className="font-[font1] text-[13px] text-destructive" role="alert">
             {error}
           </p>
         )}
@@ -148,13 +151,13 @@ const MemberSignInForm = ({
         </button>
       </form>
 
-      <p className="pt-1 text-center font-[font1] text-[13px] text-black/50">
+      <p className="pt-1 text-center font-[font1] text-[13px] text-foreground/55">
         ¿Primera vez aquí?{" "}
         {onSwitchToSignup ? (
           <button
             type="button"
             onClick={onSwitchToSignup}
-            className="text-[#141118] underline-offset-4 hover:underline"
+            className="text-foreground underline-offset-4 hover:underline"
           >
             Crea tu cuenta
           </button>
@@ -165,7 +168,7 @@ const MemberSignInForm = ({
                 ? `/miembros/crear-cuenta?callbackUrl=${encodeURIComponent(callbackUrl)}`
                 : "/miembros/crear-cuenta"
             }
-            className="text-[#141118] underline-offset-4 hover:underline"
+            className="text-foreground underline-offset-4 hover:underline"
           >
             Crea tu cuenta
           </Link>
