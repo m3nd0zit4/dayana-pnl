@@ -25,7 +25,8 @@ import { getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { MetaWindowError } from "@/lib/meta/send";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+// 300 (como los webhooks): al encender «La IA responde siempre» la IA contesta en `after()` (espera, modelo, envío).
+export const maxDuration = 300;
 
 type Params = { id: string };
 

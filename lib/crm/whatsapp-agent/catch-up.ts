@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
+import { markReadByEntity } from "@/lib/notifications/platform/feed";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { isManualPause } from "../whatsapp-attention-rules";
@@ -154,6 +155,31 @@ export const answerIfPending = async (conversationId: string): Promise<boolean> 
   });
   if (!last || last.direction !== "INBOUND" || !last.externalMessageId) return false;
   if (Date.now() - last.sentAt.getTime() > 23 * 3600_000) return false;
+  // Lo que la IA dejó para ese mensaje cuando no podía contestar sola (una
+  // respuesta por autorizar en copiloto, un borrador porque el chat era de
+  // Dayana) queda atrás: ahora contesta ella. Si no, la vuelta nueva se
+  // retira al verla. Lo que pide una cita o un pago sigue esperando a Dayana.
+  const earlier = await prisma.whatsAppAiRun.findMany({
+    where: { conversationId, triggerMessageId: last.externalMessageId, status: { in: ["AWAITING_APPROVAL", "DRAFTED"] } },
+    select: { id: true, status: true, proposal: true },
+  });
+  const kindOf = (p: unknown) => (p as { kind?: string } | null)?.kind ?? "reply";
+  if (earlier.some((r) => r.status === "AWAITING_APPROVAL" && kindOf(r.proposal) !== "reply")) return false;
+  if (earlier.length) {
+    await prisma.whatsAppAiRun.updateMany({
+      where: { id: { in: earlier.map((r) => r.id) }, status: { in: ["AWAITING_APPROVAL", "DRAFTED"] } },
+      data: { status: "CANCELLED", reason: "«La IA responde siempre»: la IA contesta sola.", decidedAt: new Date() },
+    });
+    // El borrador de la IA en la caja de escribir (lo que escribía Dayana no se toca).
+    await prisma.conversation.updateMany({
+      where: { id: conversationId, draftSource: "AI" },
+      data: { draftBody: null, draftSource: null, draftUpdatedAt: null },
+    });
+    const left = await prisma.whatsAppAiRun.count({ where: { conversationId, status: "AWAITING_APPROVAL" } });
+    if (left === 0) {
+      await markReadByEntity({ entityType: "Conversation", entityId: conversationId, eventTypes: ["WHATSAPP_AI_APPROVAL"] }).catch(() => 0);
+    }
+  }
   await runWhatsAppAi({ conversationId, triggerMessageId: last.externalMessageId });
   return true;
 };

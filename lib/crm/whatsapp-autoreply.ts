@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
@@ -103,9 +105,29 @@ export const pauseAutoReply = async (
  * apagaron después de ponerla) sin cerrar lo que abrió en «Te toca»: Dayana
  * sigue viendo que algo la necesitaba.
  */
-export const liftPause = async (conversationId: string): Promise<void> => {
+export const liftPause = async (
+  conversationId: string,
+  /**
+   * Nunca levantar una crisis (clínica o urgente) que se haya escrito entre
+   * medio: `while_escalated` solo mientras espera a Dayana (antes de «Listo»),
+   * `any` siempre.
+   */
+  opts: { keepCrisis?: "while_escalated" | "any" } = {}
+): Promise<void> => {
+  const notCrisis: Prisma.ConversationWhereInput = {
+    AND: [
+      { OR: [{ escalationCategory: null }, { escalationCategory: { not: "clinical" } }] },
+      { OR: [{ escalationSeverity: null }, { escalationSeverity: { not: "urgent" } }] },
+    ],
+  };
+  const guard: Prisma.ConversationWhereInput =
+    opts.keepCrisis === "any"
+      ? notCrisis
+      : opts.keepCrisis === "while_escalated"
+        ? { OR: [{ aiPausedReason: null }, { aiPausedReason: { not: "escalation" } }, notCrisis] }
+        : {};
   await prisma.conversation.updateMany({
-    where: { id: conversationId, aiPausedAt: { not: null } },
+    where: { id: conversationId, aiPausedAt: { not: null }, ...guard },
     data: { aiPausedAt: null, aiPausedReason: null, escalationCategory: null, escalationSeverity: null, escalationReason: null },
   });
 };
@@ -116,11 +138,12 @@ export const liftPause = async (conversationId: string): Promise<void> => {
  * número personal o esté en modo Tú (`route.ts`, `gate()` en `run.ts`).
  *
  * Encenderlo deja el chat en manos de la IA: quita el favorito ⭐ y el modo
- * elegido a mano, y levanta la pausa (sin cerrar «Te toca»), salvo una crisis:
- * esa sigue hasta que Dayana pulse «Listo». Apagarlo vuelve a lo normal (lo
- * decide el segmento). Tomar el chat, elegir un modo, pausar o marcarlo
- * favorito también lo apagan (`chats/[id]` route). Devuelve si sigue en pausa
- * por una crisis.
+ * elegido a mano, y levanta la pausa (sin cerrar «Te toca»), salvo una crisis
+ * que aún espera a Dayana: esa sigue hasta que pulse «Listo» (una crisis que
+ * ya atendió con «Listo» sí se levanta: encenderlo es decir que la IA vuelva).
+ * Apagarlo vuelve a lo normal (lo decide el segmento). Tomar el chat, elegir
+ * un modo, pausar o marcarlo favorito también lo apagan (`chats/[id]` route,
+ * herramienta `whatsapp_set_chat`). Devuelve si sigue en pausa por una crisis.
  */
 export const setAiAlways = async (
   conversationId: string,
@@ -133,15 +156,18 @@ export const setAiAlways = async (
   }
   const before = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },
-    select: { aiPausedAt: true, escalationCategory: true, escalationSeverity: true },
+    select: { aiPausedAt: true, aiPausedReason: true, escalationCategory: true, escalationSeverity: true },
   });
-  const crisis = Boolean(before.aiPausedAt) && isCrisis({ category: before.escalationCategory, severity: before.escalationSeverity });
+  const waitingCrisis =
+    Boolean(before.aiPausedAt) &&
+    before.aiPausedReason === "escalation" &&
+    isCrisis({ category: before.escalationCategory, severity: before.escalationSeverity });
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { aiAlwaysAt: new Date(), aiAlwaysById: staffUserId, priorityAt: null, aiModeOverride: null, aiMode: "AUTO" },
   });
-  if (before.aiPausedAt && !crisis) await liftPause(conversationId);
-  return { stillPaused: crisis };
+  if (before.aiPausedAt && !waitingCrisis) await liftPause(conversationId, { keepCrisis: "while_escalated" });
+  return { stillPaused: waitingCrisis };
 };
 
 /**

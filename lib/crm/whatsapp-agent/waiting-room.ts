@@ -3,11 +3,12 @@ import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { getOperationalTimezone } from "../operational-timezone";
-import { isAutoSend } from "../whatsapp-attention-rules";
+import { isAutoSend, isManualPause } from "../whatsapp-attention-rules";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
+import { isCrisis } from "./pause-rules";
 import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
 
 /**
@@ -152,6 +153,9 @@ export const GUARD_SELECT = {
   lastInboundAt: true,
   aiModeOverride: true,
   aiPausedReason: true,
+  escalationCategory: true,
+  escalationSeverity: true,
+  escalationReason: true,
   aiAlwaysAt: true,
   category: true,
   categorySource: true,
@@ -166,6 +170,9 @@ export type GuardedConversation = {
   aiPausedReason: string | null;
   /** «La IA responde siempre» en este chat. */
   aiAlwaysAt?: Date | null;
+  escalationCategory?: string | null;
+  escalationSeverity?: string | null;
+  escalationReason?: string | null;
   category: string | null;
   categorySource: string | null;
   dossier: { segment: string | null } | null;
@@ -177,9 +184,12 @@ export type GuardedConversation = {
  * personal/negocio/equipo puesta a mano, clienta o «no atender».
  */
 export const waitingRoomBlocked = async (conv: GuardedConversation, config: WhatsAppAiConfig): Promise<boolean> =>
-  // «La IA responde siempre»: solo la calla una escalada que espera a Dayana (una crisis).
+  // «La IA responde siempre»: solo la calla lo que también calla a la IA en
+  // ese chat: una crisis que espera a Dayana o la pausa que puso ella a mano.
   conv.aiAlwaysAt
-    ? conv.aiPausedReason === "escalation"
+    ? conv.aiPausedReason === "escalation" &&
+      (isCrisis({ category: conv.escalationCategory ?? null, severity: conv.escalationSeverity ?? null }) ||
+        isManualPause({ category: conv.escalationCategory ?? null, reason: conv.escalationReason ?? null }))
     : config.defaultMode === "MANUAL" ||
       Boolean(conv.priorityAt) ||
       conv.aiModeOverride === "MANUAL" ||

@@ -739,6 +739,8 @@ export const runWhatsAppAi = async (input: {
         : effectiveAiMode(now?.aiMode ?? conversation.aiMode, generalMode);
     const tookOver =
       !now ||
+      // Apagó «responde siempre» mientras pensaba: queda de borrador (el modo de esta vuelta era el del interruptor).
+      (route.always && !now.aiAlwaysAt) ||
       (!stillAlways &&
         (modeNow === "MANUAL" ||
           Boolean(now.aiPausedAt) ||
@@ -983,16 +985,21 @@ const gate = async (
   if (mode === "MANUAL") return { skip: true, reason: route.skip ?? "manual" };
   if (conversation.priorityAt && !always) return { skip: true, reason: "favorite" };
 
-  if (conversation.aiPausedAt && always) {
-    const crisis = isCrisis({ category: conversation.escalationCategory, severity: conversation.escalationSeverity });
+  const crisis = isCrisis({ category: conversation.escalationCategory, severity: conversation.escalationSeverity });
+  if (conversation.aiPausedAt && always && !crisis) {
+    // Con «responde siempre» solo calla la pausa que Dayana puso a mano;
+    // cualquier otra (su respuesta, una escalada normal) se levanta. «Te toca»
+    // queda para ella. Una crisis nunca se levanta aquí (ni una escrita entre medio).
     const byHand =
       conversation.aiPausedReason === "escalation" &&
       isManualPause({ category: conversation.escalationCategory, reason: conversation.escalationReason });
-    if (crisis || byHand) return { skip: true, reason: "paused" };
-    // Cualquier otra pausa (respuesta de Dayana, una escalada normal) se
-    // levanta: «Te toca» queda para ella.
-    await liftPause(conversationId);
+    if (byHand) return { skip: true, reason: "paused" };
+    await liftPause(conversationId, { keepCrisis: "any" });
+  } else if (conversation.aiPausedAt && always && conversation.aiPausedReason === "escalation") {
+    // Una crisis que espera a Dayana: callada hasta «Listo».
+    return { skip: true, reason: "paused" };
   } else if (conversation.aiPausedAt) {
+    // (Una crisis que Dayana ya atendió con «Listo» sigue el relevo normal, también con «responde siempre».)
     const holds = pauseHolds(
       {
         reason: conversation.aiPausedReason,

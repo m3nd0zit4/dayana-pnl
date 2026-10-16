@@ -20,6 +20,7 @@
 import { prisma } from "@/lib/db";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { setAiAlways } from "@/lib/crm/whatsapp-autoreply";
+import { answerIfPending } from "@/lib/crm/whatsapp-agent/catch-up";
 import { ignoreNumbers, unignoreNumber } from "@/lib/crm/whatsapp-ignored-numbers";
 import { runWhatsAppAi } from "@/lib/crm/whatsapp-agent/run";
 import { getChat } from "@/lib/crm/whatsapp-agent/workspace";
@@ -162,6 +163,22 @@ const main = async () => {
     await runWhatsAppAi({ conversationId: client.id, triggerMessageId: client.messages[0].externalMessageId! });
     const r9 = await lastRun(client.id);
     check("apagado: la clienta vuelve a ser de Dayana", r9?.status === "SKIPPED" && r9.reason === "customer", r9 && { status: r9.status, reason: r9.reason });
+
+    // Quedó una respuesta por autorizar (copiloto) para su último mensaje: al
+    // encenderlo, esa se cancela y la IA contesta ella.
+    const old = await prisma.whatsAppAiRun.create({
+      data: {
+        conversationId: client.id,
+        status: "AWAITING_APPROVAL",
+        triggerMessageId: client.messages[0].externalMessageId!,
+        proposal: { kind: "reply", message: "Hola, ya le aviso a Dayana." },
+      },
+    });
+    await setAiAlways(client.id, true, null);
+    const tried = await answerIfPending(client.id);
+    check("al encenderlo, la respuesta por autorizar se cancela", (await prisma.whatsAppAiRun.findUnique({ where: { id: old.id } }))?.status === "CANCELLED");
+    const r10 = await lastRun(client.id);
+    check("…y la IA contesta ella el mensaje pendiente (llega al modelo)", tried && r10?.id !== old.id && reached(r10), r10 && { status: r10.status, reason: r10.reason });
   } finally {
     await cleanup();
     await setWhatsAppAiConfig(previous);

@@ -31,8 +31,11 @@ export default defineTool({
       await prisma.conversation.update({
         where: { id: conversationId },
         data: {
-          ...(mode ? { aiMode: mode } : {}),
+          // `aiModeOverride` es lo que lee el enrutador (como en el chat); `aiMode` solo se muestra.
+          ...(mode ? { aiMode: mode, aiModeOverride: mode } : {}),
           ...(priority === undefined ? {} : { priorityAt: priority ? new Date() : null }),
+          // Elegir un modo o marcarlo favorito apaga «La IA responde siempre» (como en el chat).
+          ...(mode || priority ? { aiAlwaysAt: null, aiAlwaysById: null } : {}),
         },
       });
     }
