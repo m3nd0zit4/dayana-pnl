@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointments } from "./appointments";
 import { sweepCallOutcomes } from "./call-outcome";
+import { answerUnansweredChats } from "./catch-up";
 
 /**
  * El reloj que va pegado a los avisos de WhatsApp: los recordatorios no
@@ -20,6 +21,13 @@ import { sweepCallOutcomes } from "./call-outcome";
  *   hizo?, «¿Pudiste hablar con Dayana?», horas para reagendar). Solo con su
  *   interruptor de Ajustes (`callFollowUp.enabled`); el general de la IA lo
  *   mira el barrido, igual que en la ruta del cron.
+ * - cada 10 min: los chats sin respuesta («pendientes», `answerUnansweredChats`):
+ *   la persona escribió en las últimas 23 h y nadie le contestó porque la IA
+ *   falló (sin créditos de Gemini, WhatsApp rechazó el envío…). Se vuelve a
+ *   intentar sola cuando todo vuelve (2026-10-16: Gemini sin créditos y
+ *   360dialog con fallas dejaron chats sin respuesta). Cada chat, como mucho
+ *   una vez cada 30 min; el general de la IA y las reglas de siempre los mira
+ *   el ejecutor.
  *
  * Los envíos reclaman cada cita antes de mandar, así que este reloj y la ruta
  * del cron nunca mandan el mismo recordatorio dos veces. Nunca lanza.
@@ -28,9 +36,11 @@ import { sweepCallOutcomes } from "./call-outcome";
 export const CLOCK_SYNC_KEY = "whatsapp.clock.sync_at";
 export const CLOCK_REMINDERS_KEY = "whatsapp.clock.reminders_at";
 export const CLOCK_FOLLOWUP_KEY = "whatsapp.clock.followup_at";
+export const CLOCK_PENDING_KEY = "whatsapp.clock.pending_at";
 export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
 export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
 export const CLOCK_FOLLOWUP_EVERY_MS = 5 * 60_000;
+export const CLOCK_PENDING_EVERY_MS = 10 * 60_000;
 
 /** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
 export const parseClockValue = (raw: string | null | undefined): number => {
@@ -79,6 +89,8 @@ export type ClockTickDeps = {
   soon?: () => Promise<unknown>;
   /** El seguimiento de la llamada gratis (solo se llama con `callFollowUp.enabled`). */
   followUp?: (config: WhatsAppAiConfig) => Promise<unknown>;
+  /** Los chats sin respuesta. */
+  pending?: () => Promise<unknown>;
 };
 
 /**
@@ -92,7 +104,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
     // Primero una lectura (lo normal es que no toque nada); el turno solo se
     // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
     const rows = await prisma.siteSetting.findMany({
-      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY] } },
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY] } },
       select: { key: true, value: true },
     });
     const due = (key: string, everyMs: number) =>
@@ -125,6 +137,14 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
           if (!config.callFollowUp.enabled) return { off: true };
           return (deps.followUp ?? ((c: WhatsAppAiConfig) => sweepCallOutcomes(c, now)))(config);
         })
+      );
+    }
+    if (due(CLOCK_PENDING_KEY, CLOCK_PENDING_EVERY_MS) && (await claimClockSlot(CLOCK_PENDING_KEY, CLOCK_PENDING_EVERY_MS, now))) {
+      steps.push(
+        await step(
+          "pendientes",
+          deps.pending ?? (() => answerUnansweredChats({ budgetMs: 90_000, minAgeMin: 5, recentRunMin: 30, limit: 8, concurrency: 4 }))
+        )
       );
     }
   } catch (e) {

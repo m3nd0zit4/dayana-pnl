@@ -47,7 +47,7 @@ const main = async () => {
   const { setFreeCallCalendarForTests, offeredFreeCallSlots } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { sweepCallOutcomes, handleCallFollowUpReply, markCallOutcome, changeCallOutcome } = await import("@/lib/crm/whatsapp-agent/call-outcome");
   const { getChat } = await import("@/lib/crm/whatsapp-agent/workspace");
-  const { CLOCK_FOLLOWUP_KEY, CLOCK_REMINDERS_KEY, CLOCK_SYNC_KEY, runClockTick } = await import("@/lib/crm/whatsapp-agent/tick");
+  const { CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_REMINDERS_KEY, CLOCK_SYNC_KEY, runClockTick } = await import("@/lib/crm/whatsapp-agent/tick");
 
   if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
   if (!(await resolveDryRun())) throw new Error("WhatsApp no está en modo prueba (NOTIFICATIONS_DRY_RUN): no sigo.");
@@ -86,7 +86,7 @@ const main = async () => {
   };
   const THREADS = Object.values(T);
   const TEMPLATE_KEYS = ["cita_no_contestada", "cita_seguimiento"];
-  const CLOCK_KEYS = [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY];
+  const CLOCK_KEYS = [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY];
 
   const previous = await getWhatsAppAiConfig();
   const previousProvider = await prisma.siteSetting.findUnique({ where: { key: "whatsapp.provider" } });
@@ -353,8 +353,16 @@ const main = async () => {
     console.log("\n13. El reloj pegado a los avisos");
     await prisma.siteSetting.deleteMany({ where: { key: { in: CLOCK_KEYS } } });
     let sweeps = 0;
+    let pendings = 0;
     const noop = async () => undefined;
-    const deps = (at: Date) => ({ now: at, sync: noop, dayBefore: noop, soon: noop, followUp: async () => ({ sweep: ++sweeps }) });
+    const deps = (at: Date) => ({
+      now: at,
+      sync: noop,
+      dayBefore: noop,
+      soon: noop,
+      followUp: async () => ({ sweep: ++sweeps }),
+      pending: async () => ({ pending: ++pendings }),
+    });
     const inMin = (min: number) => new Date(now.getTime() + min * 60_000);
     const t1 = await runClockTick(deps(now));
     check("primera pasada: corre el seguimiento", sweeps === 1 && t1.some((s) => s.name === "seguimiento llamadas" && s.ok), t1);
@@ -362,12 +370,14 @@ const main = async () => {
     check("a los 2 min no le toca", sweeps === 1 && !t2.some((s) => s.name === "seguimiento llamadas"), t2);
     await Promise.all([runClockTick(deps(inMin(6))), runClockTick(deps(inMin(6))), runClockTick(deps(inMin(6)))]);
     check("a los 6 min, aunque lleguen tres avisos a la vez, corre una sola vez", sweeps === 2, { sweeps });
+    check("«pendientes» (chats sin respuesta): en la primera pasada y no otra vez antes de 10 min", pendings === 1, { pendings });
     await setWhatsAppAiConfig({ ...config, callFollowUp: { ...config.callFollowUp, enabled: false } });
     const t4 = await runClockTick(deps(inMin(12)));
     const off = t4.find((s) => s.name === "seguimiento llamadas");
     check("con el interruptor apagado no corre", sweeps === 2 && JSON.stringify(off?.result) === JSON.stringify({ off: true }), t4);
     await setWhatsAppAiConfig(config);
-    const t5 = await runClockTick({ now: inMin(18), sync: noop, dayBefore: noop, soon: noop });
+    check("«pendientes» vuelve a los 10 min", pendings === 2, { pendings });
+    const t5 = await runClockTick({ now: inMin(18), sync: noop, dayBefore: noop, soon: noop, pending: noop });
     const real = t5.find((s) => s.name === "seguimiento llamadas");
     check(
       "sin la dependencia de prueba corre el barrido de verdad",
