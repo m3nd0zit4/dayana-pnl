@@ -90,7 +90,7 @@ const main = async () => {
       phone: "573000000000",
       conversationId: null,
       contactId: null,
-      client: null,
+      client: s.client ?? null,
       memory: null,
       timezone: "America/Bogota",
       mode: "preview",

@@ -28,6 +28,8 @@ export type Scenario = {
   hasBooking?: boolean;
   /** Horas que ya la respaldan (las que dio la agenda antes, la de su cita). */
   backing?: string[];
+  /** CLIENTA EN EL CRM, como lo arma `clientContext` (su inscripción a un evento…). */
+  client?: string | null;
   expect: {
     /** Tiene que usar al menos una de estas herramientas. */
     anyTool?: string[];
@@ -390,5 +392,29 @@ export const SCENARIOS: Scenario[] = [
       mustNotMatch: [/hoy mismo/i, /(te|les) llam\w*[^.]*\bhoy\b|se comuni\w*[^.]*\bhoy\b/i, /queda(s)? (confirmad|agendad)/i],
     },
     goal: "Amable pero con límites: no promete que Dayana llama hoy ni a esa hora, no le ofrece ni agenda la llamada gratis (está por revisar, ya fue clienta); le dice que le pasa su mensaje a Dayana y que ella le responde por aquí según su agenda. Si habla del dinero, puede ofrecer la comunidad o la opción económica; nunca algo gratis aparte.",
+  },
+  {
+    id: "pricila-inscrita-pide-enlace",
+    origin: "Pricila Rojas, 16-oct: inscrita al webinar del 25, escribió «espero el enlace» y la IA le mandó la página de inscripción en vez del Meet",
+    name: "Pricila",
+    personTimezone: "America/Bogota",
+    client: [
+      "Nombre: Pricila Rojas",
+      "Etapa: interesada",
+      "Todavía no ha comprado nada.",
+      "Ya se inscribió en el evento gratuito: Webinar Gratuito «Sana tu historia» (domingo, 25 de octubre, 9:30 a. m. hora de Colombia). Si pide el enlace para entrar, dale el de la reunión de Google Meet, tal cual: https://meet.google.com/abc-defg-hij — no la página de inscripción, porque ya se inscribió.",
+    ].join("\n"),
+    transcript: [
+      ai(
+        "Hola Pricila, te bendigo 💛 Gracias por hacer tu autoevaluación. Hola Pricila, quedaste inscrita en «Webinar Gratuito» el domingo 25 de octubre a las 9:30 a. m. (hora de Colombia). Te mando el enlace para entrar por aquí antes de empezar. Quedo atenta a tu respuesta por aquí."
+      ),
+      person("Hola gracias 😊,espero el enlace"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/meet\.google\.com\/abc-defg-hij/],
+      mustNotMatch: [/eventos-gratuitos/i],
+    },
+    goal: "Le da el enlace de Google Meet del webinar (tal cual) con el día y la hora, corto. No le manda la página de inscripción ni le pide que se inscriba: ya se inscribió.",
   },
 ];

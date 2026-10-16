@@ -26,6 +26,8 @@ import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { personFullName } from "@/lib/person-name";
+import { phoneFromWhatsAppId } from "@/lib/phone";
+import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
   afterFreeCallBooked,
@@ -397,7 +399,8 @@ export const clientContext = async (
       })
     : null;
   const { next, last } = await appointmentsFor({ contactId, phone }).catch(() => ({ next: null, last: null }));
-  if (!contact && !next && !last) return null;
+  const events = await registeredFreeEvents(contactId, phone).catch(() => []);
+  if (!contact && !next && !last && events.length === 0) return null;
 
   const tz = await getOperationalTimezone().catch(() => "America/Bogota");
   const when = (d: Date) =>
@@ -436,7 +439,34 @@ export const clientContext = async (
       lines.push(`- ${e.product.title}: ${STATUS[e.status] ?? e.status}${sessions}${until} (desde ${e.createdAt.toLocaleDateString("es-CO")})`);
     }
   }
+  lines.push(...registeredEventLines(events));
   return lines.join("\n");
+};
+
+/**
+ * Sus inscripciones a eventos gratuitos en pie (abiertos o cerrados, sin
+ * terminar). Si el chat no está ligado a un contacto, se busca por su número:
+ * quien se inscribe en la web queda como contacto aunque el chat no lo sepa.
+ */
+const registeredFreeEvents = async (contactId: string | null, phone?: string | null): Promise<RegisteredFreeEvent[]> => {
+  const id =
+    contactId ??
+    (await (async () => {
+      const phoneE164 = phone ? phoneFromWhatsAppId(phone)?.phoneE164 : null;
+      if (!phoneE164) return null;
+      const found = await prisma.contact.findUnique({ where: { phoneE164 }, select: { id: true } });
+      return found?.id ?? null;
+    })());
+  if (!id) return [];
+  const rows = await prisma.webinarRegistration.findMany({
+    where: { contactId: id, webinar: { status: { in: ["OPEN", "CLOSED"] }, endedAt: null } },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    select: {
+      webinar: { select: { eventLabel: true, headline: true, startsAt: true, startsAtHasTime: true, meetUrl: true } },
+    },
+  });
+  return rows.map((r) => r.webinar);
 };
 
 const IDENTITY: Record<WhatsAppAiConfig["identity"], string> = {
@@ -530,7 +560,7 @@ Cómo conversas (así trabaja Dayana):
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
-- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 ${paymentRules(config)}
