@@ -231,7 +231,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     key: "cita_no_contestada",
     title: "Llamada gratis: no contestó",
     category: "UTILITY",
-    body: "Hola {{nombre}}, Dayana te llamó para tu llamada gratis del {{fecha}} y no logramos comunicarnos. Quedamos atentos para reagendarla. Horarios disponibles: {{horarios}}. Responde con el que te quede mejor.",
+    body: "Hola {{nombre}}, Dayana te llamó para tu llamada gratis del {{fecha}} y no lograron comunicarse. Con gusto la reagendamos. Horarios disponibles: {{horarios}}. Responde con el que te quede mejor.",
     example: { nombre: "Ana", fecha: "jueves 2 de octubre", horarios: "viernes 3, 10:00 a. m. · lunes 6, 3:00 p. m." },
   },
   {
