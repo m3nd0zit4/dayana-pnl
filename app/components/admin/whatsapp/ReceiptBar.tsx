@@ -20,6 +20,7 @@ const ERRORS: Record<string, string> = {
   already_decided: "Ese comprobante ya estaba decidido.",
   already_linked: "Ese comprobante ya tiene su pago registrado.",
   other_contact: "Ese pago es de otro contacto: no se enlazó al comprobante.",
+  payment_taken: "Ese pago ya está enlazado a otro comprobante.",
 };
 
 const prefillOf = (r: PendingReceipt): PaymentPrefill => ({

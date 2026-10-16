@@ -124,19 +124,36 @@ const CHAT_ACK_WINDOW_MS = 48 * 3600_000;
 export const confirmReceiptFromChat = async (conversationId: string, externalMessageId: string): Promise<number> => {
   const message = await prisma.conversationMessage.findUnique({
     where: { externalMessageId },
-    select: { conversationId: true, direction: true, isEcho: true, isAutoReply: true, kind: true, body: true, sentAt: true },
+    select: {
+      conversationId: true,
+      direction: true,
+      isEcho: true,
+      isAutoReply: true,
+      kind: true,
+      body: true,
+      sentAt: true,
+      source: true,
+      clientKey: true,
+    },
   });
   if (!message || message.conversationId !== conversationId) return 0;
+  // Solo lo que Dayana escribe en el celular: nunca un mensaje de la persona,
+  // de la IA ni un envío del CRM (esos llevan `source` o `clientKey`).
   if (message.direction !== "OUTBOUND" || !message.isEcho || message.isAutoReply || message.kind === "system") return 0;
+  if (message.source || message.clientKey) return 0;
   if (!isPaymentAck(message.body)) return 0;
-  const pending = await prisma.whatsAppPaymentReceipt.findMany({
+  // El último comprobante, y solo si la IA no vio nada raro (otra cuenta,
+  // transferencia rechazada): ese lo confirma Dayana con el botón.
+  const latest = await prisma.whatsAppPaymentReceipt.findFirst({
     where: {
       conversationId,
       status: "pending",
       createdAt: { lte: message.sentAt, gte: new Date(message.sentAt.getTime() - CHAT_ACK_WINDOW_MS) },
     },
-    select: { id: true, summary: true },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, summary: true, problem: true },
   });
+  const pending = latest && !latest.problem ? [latest] : [];
   let confirmed = 0;
   for (const r of pending) {
     const result = await decideReceipt({ receiptId: r.id, decision: "confirm", staffUserId: null, message: null, via: "chat" }).catch(
@@ -179,6 +196,9 @@ export const linkReceiptPayment = async (input: { receiptId: string; paymentId: 
   });
   if (!payment || payment.status !== "APPROVED") throw new ReceiptError("payment_not_found");
   if (receipt.contactId && payment.enrollment.contactId !== receipt.contactId) throw new ReceiptError("other_contact");
+  // Un pago cuenta para un solo comprobante.
+  const taken = await prisma.whatsAppPaymentReceipt.count({ where: { paymentId: payment.id, id: { not: receipt.id } } });
+  if (taken > 0) throw new ReceiptError("payment_taken");
   const updated = await prisma.whatsAppPaymentReceipt.updateMany({
     where: { id: receipt.id, paymentId: null },
     data: { paymentId: payment.id },
