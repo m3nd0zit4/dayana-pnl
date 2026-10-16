@@ -2,6 +2,7 @@ import { Prisma, type ConversationChannel } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isPending } from "@/lib/crm/whatsapp-attention-rules";
 import { noteHumanReply } from "@/lib/crm/whatsapp-agent/attention";
+import { confirmReceiptFromChat } from "@/lib/crm/whatsapp-agent/receipts";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { resolvePageCredentials } from "./credentials";
@@ -505,7 +506,6 @@ export const processNormalizedEvent = async (
     );
     // «He recibido, muchas gracias» con un comprobante por confirmar: queda
     // confirmado (contacto y clienta) sin que tenga que hacerlo otra vez en el CRM.
-    const { confirmReceiptFromChat } = await import("@/lib/crm/whatsapp-agent/receipts");
     await confirmReceiptFromChat(result.conversationId, event.externalMessageId).catch((e: unknown) =>
       console.warn("[meta] no se pudo confirmar el comprobante desde el chat", e)
     );

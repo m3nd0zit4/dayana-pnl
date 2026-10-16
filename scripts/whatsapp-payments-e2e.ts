@@ -26,7 +26,7 @@
  * 11. Dos confirmaciones a la vez: una sola gana y queda un solo contacto.
  */
 import { prisma } from "@/lib/db";
-import { setManualCategory } from "@/lib/crm/chat-category";
+import { markClient } from "@/lib/crm/whatsapp-agent/segment-store";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { pauseAutoReply } from "@/lib/crm/whatsapp-autoreply";
@@ -338,11 +338,11 @@ const cases = async () => {
 
   console.log("10. Dayana la marca clienta a mano: queda en el CRM");
   const marked = await chat(MARKED, "Natalia Torres", [{ dir: "INBOUND", body: "Gracias por la sesión de hoy", minutesAgo: 20 }]);
-  await setManualCategory(marked.id, "cliente", null);
+  await markClient(marked.id, true, null);
   const markedChat = await prisma.conversation.findUnique({ where: { id: marked.id }, select: { contactId: true, contact: { select: { phoneE164: true, firstName: true } } } });
   check("se crea el contacto y se vincula", markedChat?.contact?.phoneE164 === `+${MARKED}` && markedChat.contact.firstName === "Natalia", markedChat);
   const userId = await chat(BSUID, "Usuaria sin número", [{ dir: "INBOUND", body: "Hola", minutesAgo: 20 }]);
-  const userIdError = await setManualCategory(userId.id, "cliente", null).then(
+  const userIdError = await markClient(userId.id, true, null).then(
     () => null,
     (e: unknown) => String(e)
   );

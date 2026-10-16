@@ -5,7 +5,7 @@ import { isWhatsAppUserId, whatsAppDigits, whatsAppIdVariants } from "@/lib/what
 import { findClientEvidence } from "../client-evidence";
 import { clearManualCategory, getTeamPhones, isClassifyEnabled, loadFactsBatch, setManualCategory } from "../chat-category";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
-import { ensureConversationContact } from "../whatsapp-client-contact";
+import { contactForMarkedClient, ensureConversationContact } from "../whatsapp-client-contact";
 import { appointmentsFor } from "./appointments";
 import type { DossierFacts } from "./dossier";
 import { isFreeCallAppointment, isFreeCallService } from "./event-title";
@@ -269,5 +269,6 @@ export const listSegmentReview = async (limit = 100) => {
 export const markClient = async (conversationId: string, isClient: boolean | null, staffId: string | null) => {
   if (isClient === null) await clearManualCategory(conversationId, staffId);
   else await setManualCategory(conversationId, isClient ? "cliente" : "interesada", staffId);
+  if (isClient) await contactForMarkedClient(conversationId, staffId);
   return computeSegment(conversationId);
 };

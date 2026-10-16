@@ -15,6 +15,7 @@ import {
 import { CHAT_CATEGORIES } from "@/lib/crm/chat-category-rules";
 import { categoryChangeNeedsOwner } from "@/lib/crm/whatsapp-category-filter";
 import { prisma } from "@/lib/db";
+import { contactForMarkedClient } from "@/lib/crm/whatsapp-client-contact";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
@@ -102,6 +103,8 @@ export const POST = withStaff("write", async ({ req, staff }) => {
     }
     const updated = await setManualCategory(body.conversationId, body.category, staff.id);
     if (!updated) return apiError("not_found", 404);
+    // Una clienta queda en el CRM: si el chat no tiene contacto, se crea con su número.
+    if (body.category === "cliente") await contactForMarkedClient(body.conversationId, staff.id);
     return NextResponse.json({ ok: true, conversation: updated });
   }
 

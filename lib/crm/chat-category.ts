@@ -27,7 +27,6 @@ import { getSiteSetting, getSiteSettingBoolean, setSiteSetting, setSiteSettingBo
 import { isFreeCallAppointment } from "./whatsapp-agent/event-title";
 import { effectiveAiMode, type AiMode } from "./whatsapp-agent/mode";
 import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
-import { ensureConversationContact } from "./whatsapp-client-contact";
 
 /**
  * Clasificación de los chats de WhatsApp: carga lo que sabe el CRM de cada
@@ -893,12 +892,6 @@ export const setManualCategory = async (id: string, category: ChatCategory, staf
     entityId: id,
     changes: { from: { category: before.category, source: before.categorySource }, to: { category, source: "manual" } },
   });
-  // Una clienta queda en el CRM: si el chat no tiene contacto, se crea con su número.
-  if (category === "cliente") {
-    await ensureConversationContact({ conversationId: id, staffUserId: staffId, sourceDetail: "Clienta de WhatsApp" }).catch((e: unknown) =>
-      console.warn("[clienta] no se pudo crear el contacto", id, e instanceof Error ? e.message : e)
-    );
-  }
   return updated;
 };
 

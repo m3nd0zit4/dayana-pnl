@@ -79,3 +79,16 @@ export const ensureConversationContact = async (input: {
   await linkConversationToContact(conversation.id, contactId, input.staffUserId);
   return { contactId, created };
 };
+
+/**
+ * Dayana marcó el chat como clienta (a mano o con «Es clienta»): queda en el
+ * CRM. Nunca lanza: la marca ya quedó; sin número (BSUID) solo se avisa en el log.
+ * Va aparte de `setManualCategory` para no meter contactos y conversaciones
+ * en todo lo que importa la categoría (el agente del panel se arma con cada
+ * módulo que alcanza).
+ */
+export const contactForMarkedClient = async (conversationId: string, staffUserId: string | null) => {
+  await ensureConversationContact({ conversationId, staffUserId, sourceDetail: "Clienta de WhatsApp" }).catch((e: unknown) =>
+    console.warn("[clienta] no se pudo crear el contacto", conversationId, e instanceof Error ? e.message : e)
+  );
+};
