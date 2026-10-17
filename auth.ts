@@ -149,7 +149,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
-    ...(isGoogleAuthEnabled() ? [Google] : []),
+    ...(isGoogleAuthEnabled()
+      ? [
+          Google({
+            // Google anuncia en su discovery
+            // `authorization_response_iss_parameter_supported: true`, pero no
+            // manda `iss` al volver al callback. oauth4webapi se fía del
+            // discovery y rechaza la vuelta («response parameter "iss"
+            // (issuer) missing» → /api/auth/error?error=Configuration), así
+            // que ningún acceso con Google llegaba a completarse. Con los
+            // endpoints fijados, Auth.js no lee el discovery en el callback:
+            // si `iss` viene se sigue comprobando, si no viene ya no se exige.
+            // Son los de https://accounts.google.com/.well-known/openid-configuration.
+            token: "https://oauth2.googleapis.com/token",
+            userinfo: "https://openidconnect.googleapis.com/v1/userinfo",
+          }),
+        ]
+      : []),
   ],
   callbacks: {
     async signIn({ user, account, profile }) {
