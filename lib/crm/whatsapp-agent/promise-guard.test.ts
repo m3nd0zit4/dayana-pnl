@@ -105,6 +105,16 @@ describe("lo que sí sale", () => {
     expect(promiseBreach({ ...none, backing: ["• Jueves, 15 de octubre, 6:45 p. m."], text: "¿Te sirve el jueves a las 6:45 para la llamada?" })).toBeNull();
   });
 
+  test("ofrecer una hora de hoy que dio la agenda (17-oct: hoy y mañana van primero)", () => {
+    const backing = ["lunes, 19 de octubre, 4:00 p. m.", "martes, 20 de octubre, 9:00 a. m."];
+    expect(promiseBreach({ ...none, backing, text: "¿Te sirve que Dayana te llame hoy a las 4:00 p. m. o mañana a las 9:00 a. m.?" })).toBeNull();
+    expect(promiseBreach({ ...none, backing, text: "¿Te parece si Dayana te llama hoy a las 4:00 p. m.?" })).toBeNull();
+    // Con una hora que la agenda no dio, o afirmándolo sin cita, sigue frenado.
+    expect(promiseBreach({ ...none, backing, text: "¿Te sirve que Dayana te llame hoy a las 6:00 p. m.?" })?.breach).toBe("same_day_promise");
+    expect(promiseBreach({ ...none, backing, text: "Listo, Dayana te llama hoy a las 4:00 p. m." })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...none, backing, text: "Dayana te llama hoy mismo." })?.breach).toBe("false_booking");
+  });
+
   test("frases sin promesa", () => {
     expect(promiseBreach({ ...none, text: "Hola, te bendigo. ¿Cómo estás hoy?" })).toBeNull();
     expect(promiseBreach({ ...none, text: "Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso." })).toBeNull();

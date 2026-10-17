@@ -17,7 +17,7 @@ import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
-import { spreadSlots } from "./slots";
+import { spreadSlots, wishFromWords } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -36,7 +36,7 @@ import {
   FreeCallError,
   freeCallService,
   offeredFreeCallSlots,
-  offerFreeCallSlots,
+  offerFreeCallSlotsFor,
   upcomingFreeCall,
 } from "./free-call";
 
@@ -293,7 +293,7 @@ export const businessFacts = async (
   } else if (config.salesFlow.enabled && config.booking.enabled) {
     lines.push(
       "",
-      "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia) y, cuando elija, book_free_call. Nunca envíes enlaces de agenda.",
+      "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere) y, cuando elija, book_free_call. Si la persona dice cuándo puede o que no puede esos días, vuelve a buscar con eso (dias / noPuede / franja / desde). Nunca envíes enlaces de agenda.",
       "La llamada gratis dura 15 minutos, no tiene costo ni compromiso, y Dayana llama por WhatsApp a este número."
     );
   } else if (!config.booking.aiSchedules) {
@@ -1083,9 +1083,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? {
           offer_free_call_slots: tool({
             description:
-              "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia. Úsalo cuando acepte la llamada o pida otras horas. Escribe en tu mensaje las horas tal cual (label).",
-            inputSchema: z.object({}),
-            execute: async () => {
+              "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere. Úsalo cuando acepte la llamada o pida otras horas. Si la persona dijo cuándo puede o cuándo no («solo los martes», «el jueves en la tarde», «el lunes no puedo», «la otra semana»), pásalo en dias / noPuede / franja / desde. Escribe en tu mensaje las horas tal cual (label).",
+            inputSchema: z.object({
+              dias: z
+                .array(z.string())
+                .optional()
+                .describe("Días que la persona PUEDE, en su hora: «lunes»…«domingo», «hoy», «mañana» o una fecha AAAA-MM-DD."),
+              noPuede: z.array(z.string()).optional().describe("Días que dijo que NO puede (mismo formato)."),
+              franja: z.enum(["mañana", "tarde", "noche"]).optional().describe("Si dijo en la mañana, en la tarde o en la noche."),
+              desde: z.string().optional().describe("AAAA-MM-DD si dijo «desde el…», «la otra semana» (el lunes que viene)."),
+            }),
+            execute: async (args) => {
               // Sin zona guardada: la que se deduce del chat y del número (Sophie y
               // «💙💙💜🩷», 16-oct: dijeron «Desde colombia» / «De la CDMX», la IA no
               // guardó el país, la agenda falló y ella inventó horas).
@@ -1106,20 +1114,24 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 });
               }
               try {
-                const options = await offerFreeCallSlots({ config, personTz: tz, dayanaTz: timezone, now });
+                const wish = wishFromWords(args, tz, now);
+                const { options, matchedWish } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
                 if (options.length === 0) {
-                  return log("offer_free_call_slots", {}, {
+                  return log("offer_free_call_slots", args, {
                     error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
                   });
                 }
                 options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
-                return log("offer_free_call_slots", {}, {
+                return log("offer_free_call_slots", args, {
                   ok: true,
                   options,
-                  note: "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
+                  note:
+                    matchedWish === false
+                      ? "En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Díselo con calidez y ofrécele estas horas, las más cercanas, tal cual; si ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other. No inventes otras."
+                      : "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
                 });
               } catch (e) {
-                return log("offer_free_call_slots", {}, {
+                return log("offer_free_call_slots", args, {
                   error: "No pude leer la agenda de Dayana. Escala con category=unknown.",
                   detail: e instanceof Error ? e.message : String(e),
                 });

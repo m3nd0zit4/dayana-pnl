@@ -17,6 +17,24 @@ export const isValidTimezone = (tz: string | null | undefined): tz is string => 
   }
 };
 
+/**
+ * La zona del contacto, solo si de verdad se sabe. `contacts.timezone` vale
+ * «America/Bogota» por defecto en todo contacto creado sin zona: Valerya (17-oct,
+ * «Soy de México», inscrita al webinar) recibió las horas de Colombia como si
+ * fueran las suyas y la asistente le ofreció «10:30 a. m. de México», que eran
+ * las 10:30 de Colombia. Ese valor solo cuenta si el contacto es de Colombia
+ * (o no se sabe su país).
+ */
+export const trustedContactTimezone = (
+  c: { timezone?: string | null; countryIso?: string | null; phoneCountryIso?: string | null } | null | undefined
+): string | null => {
+  const tz = c?.timezone?.trim();
+  if (!tz || !isValidTimezone(tz)) return null;
+  const country = (c?.countryIso || c?.phoneCountryIso || "").trim().toUpperCase();
+  if (tz === "America/Bogota" && country && country !== "CO") return null;
+  return tz;
+};
+
 /** La zona de la persona: la que dijo la IA (ciudad) o la principal del país. */
 export const resolvePersonTimezone = (countryIso: string, timezone?: string | null): string | null =>
   isValidTimezone(timezone) ? timezone : suggestTimezoneForCountryOrNull(countryIso);

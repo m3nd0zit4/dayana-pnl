@@ -5,7 +5,7 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { availableSlots, bookOnCalendar, SlotUnavailableError } from "./calendar";
 import { isFreeCallService } from "./event-title";
 import { resolveConversations } from "./pending";
-import { spreadSlots } from "./slots";
+import { hasWish, matchesWish, pickFreeCallSlots, type SlotWish } from "./slots";
 
 /**
  * La llamada gratis de 15 minutos: el único objetivo de la asistente con una
@@ -60,24 +60,76 @@ export const dualZoneLabel = (iso: string, personTz: string, dayanaTz: string): 
 
 export type FreeCallOption = { startIso: string; label: string };
 
+/** Los días (zona de Dayana) que ya tienen el tope de llamadas gratis. */
+const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now: Date): Promise<Set<string>> => {
+  const service = freeCallService(config);
+  const rows = await prisma.whatsAppBooking.findMany({
+    where: {
+      startsAt: { gte: now, lt: new Date(now.getTime() + (config.booking.horizonDays + 1) * 86_400_000) },
+      service: service.name,
+      status: { notIn: ["CANCELLED", "cancelled"] },
+    },
+    select: { startsAt: true },
+  });
+  const perDay = new Map<string, number>();
+  for (const r of rows) {
+    const key = getDateKeyInTz(r.startsAt, dayanaTz);
+    perDay.set(key, (perDay.get(key) ?? 0) + 1);
+  }
+  return new Set([...perDay].filter(([, n]) => n >= config.freeCall.maxPerDay).map(([k]) => k));
+};
+
+/**
+ * Las horas para ofrecer: hoy o mañana primero, luego los días preferidos de
+ * Dayana, luego el resto (`pickFreeCallSlots`). Con `wish` (lo que la persona
+ * dijo que puede) solo las que le sirven; si ninguna le sirve, las de siempre
+ * y `matchedWish: false` para que la asistente se lo diga.
+ */
+export const offerFreeCallSlotsFor = async (input: {
+  config: WhatsAppAiConfig;
+  personTz: string;
+  dayanaTz: string;
+  now?: Date;
+  wish?: SlotWish | null;
+}): Promise<{ options: FreeCallOption[]; matchedWish: boolean | null }> => {
+  const now = input.now ?? new Date();
+  const service = freeCallService(input.config);
+  const [slots, fullDays] = await Promise.all([
+    (calendarDeps.available ?? availableSlots)({
+      config: input.config.booking,
+      durationMin: service.minutes,
+      timezone: input.dayanaTz,
+      now,
+      // Todo el horizonte: con 40 se quedaba en los primeros días y los
+      // preferidos de la otra semana nunca salían.
+      limit: 2000,
+    }),
+    fullFreeCallDays(input.config, input.dayanaTz, now).catch(() => new Set<string>()),
+  ]);
+  const pick = (from: typeof slots) =>
+    pickFreeCallSlots(from, {
+      count: input.config.freeCall.offer,
+      timezone: input.dayanaTz,
+      now,
+      soonFirst: input.config.freeCall.soonFirst,
+      preferredWeekdays: input.config.freeCall.preferredWeekdays,
+      fullDays,
+    });
+  const label = (s: (typeof slots)[number]) => ({ startIso: s.startIso, label: dualZoneLabel(s.startIso, input.personTz, input.dayanaTz) });
+  if (hasWish(input.wish)) {
+    const wanted = pick(slots.filter((s) => matchesWish(s, input.wish!, input.personTz)));
+    if (wanted.length > 0) return { options: wanted.map(label), matchedWish: true };
+    return { options: pick(slots).map(label), matchedWish: false };
+  }
+  return { options: pick(slots).map(label), matchedWish: null };
+};
+
 export const offerFreeCallSlots = async (input: {
   config: WhatsAppAiConfig;
   personTz: string;
   dayanaTz: string;
   now?: Date;
-}): Promise<FreeCallOption[]> => {
-  const service = freeCallService(input.config);
-  const slots = await (calendarDeps.available ?? availableSlots)({
-    config: input.config.booking,
-    durationMin: service.minutes,
-    timezone: input.dayanaTz,
-    now: input.now,
-  });
-  return spreadSlots(slots, input.config.freeCall.offer).map((s) => ({
-    startIso: s.startIso,
-    label: dualZoneLabel(s.startIso, input.personTz, input.dayanaTz),
-  }));
-};
+}): Promise<FreeCallOption[]> => (await offerFreeCallSlotsFor(input)).options;
 
 /** Las horas que la asistente ya le ofreció a esta persona (últimas 72 h): solo esas se agendan. */
 export const offeredFreeCallSlots = async (conversationId: string, now = new Date()): Promise<string[]> => {

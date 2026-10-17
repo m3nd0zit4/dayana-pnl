@@ -91,6 +91,8 @@ export const availableSlots = async (input: {
   from?: Date;
   to?: Date;
   now?: Date;
+  /** Cuántas horas libres como mucho (por defecto 40: las primeras). */
+  limit?: number;
 }): Promise<Slot[]> => {
   const now = input.now ?? new Date();
   const until = new Date(now.getTime() + input.config.horizonDays * DAY);
@@ -104,6 +106,7 @@ export const availableSlots = async (input: {
     now,
     from: input.from,
     to: input.to,
+    limit: input.limit,
   });
 };
 

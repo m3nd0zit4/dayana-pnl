@@ -47,6 +47,7 @@ import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
 import { offeredFreeCallSlots } from "./free-call";
+import { trustedContactTimezone } from "./booking-time";
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { personFirstName } from "@/lib/person-name";
@@ -559,7 +560,7 @@ export const runWhatsAppAi = async (input: {
       (config.salesFlow.enabled
         ? (await prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { timezone: true } }).catch(() => null))?.timezone
         : null) ??
-      conversation.contact?.timezone ??
+      trustedContactTimezone(conversation.contact) ??
       null;
 
     const result = await think({
@@ -1058,6 +1059,8 @@ const loadConversation = (conversationId: string) =>
         select: {
           firstName: true,
           timezone: true,
+          countryIso: true,
+          phoneCountryIso: true,
           enrollments: {
             where: { status: { in: ["ACTIVE", "COMPLETED"] } },
             select: { id: true },

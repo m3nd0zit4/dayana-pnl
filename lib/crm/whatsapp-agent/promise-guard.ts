@@ -101,6 +101,9 @@ const SAME_DAY = new RegExp(
   ].join("|")
 );
 
+/** Una frase que ofrece o pregunta («¿te sirve…?», «¿cuál prefieres?»), no una que afirma. */
+const OFFER = /\?|te (queda|sirve|parece|conviene|funciona)|prefieres|cual (te|de|prefieres)|elige|escoge/;
+
 export type PromiseCheck = {
   /** Lo que recibiría la persona. */
   text: string;
@@ -130,19 +133,30 @@ export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
   if (!folded.trim()) return null;
   const sentences = sentencesOf(folded).filter((s) => !NOT_A_CALL.test(s));
 
+  const allowed = new Set(input.backing.flatMap(timesIn));
+  /** Pregunta con horas que dio la agenda: ofrece, no afirma. */
+  const backedQuestion = (s: string) => {
+    const times = timesIn(s);
+    return times.length > 0 && times.every((t) => backed(t, allowed)) && OFFER.test(s);
+  };
   if (!input.hasBooking) {
     for (const s of sentences) {
       const claim = s.match(BOOKING_CLAIM);
-      if (claim) return { breach: "false_booking", detail: claim[0] };
+      // «¿Te parece si Dayana te llama hoy a las 4:00 p. m.?» con esa hora de la agenda: es una oferta.
+      if (claim && !(s.includes("?") && backedQuestion(s))) return { breach: "false_booking", detail: claim[0] };
     }
   }
   if (!input.bookingToday) {
     for (const s of sentences) {
       const soon = s.match(SAME_DAY);
-      if (soon) return { breach: "same_day_promise", detail: soon[0] };
+      if (!soon) continue;
+      // Ofrecer una hora de hoy que dio la agenda («¿te sirve que Dayana te
+      // llame hoy a las 4:00 p. m.?») no es prometer: hoy y mañana van primero
+      // (pedido de la dueña, 17-oct).
+      if (backedQuestion(s)) continue;
+      return { breach: "same_day_promise", detail: soon[0] };
     }
   }
-  const allowed = new Set(input.backing.flatMap(timesIn));
   const invented = sentences
     .filter((s) => SCHEDULING.test(s))
     .flatMap((s) => timesIn(s))

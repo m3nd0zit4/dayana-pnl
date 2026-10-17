@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/app/components/ui/select";
 import { Textarea } from "@/app/components/ui/textarea";
+import { Toggle } from "@/app/components/ui/toggle";
 import type { WhatsAppBookingConfig } from "@/lib/crm/whatsapp-ai-config";
 import { TYPING_DELAY, useSettings } from "./context";
 import { NumberField } from "./fields";
@@ -306,6 +307,62 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
           checked={b.addMeet}
           onChange={(v) => change("wa-booking-meet", "booking.addMeet", v)}
         />
+      </SettingsGroup>
+
+      <SettingsGroup
+        title="Qué horas ofrece primero para la llamada gratis"
+        description="Siempre horas libres de verdad en tu calendario. Si la persona dice que no puede o cuándo sí puede, la IA vuelve a buscar con eso."
+        className={off ? "opacity-60" : undefined}
+      >
+        <ToggleRow
+          id="wa-free-soon"
+          label="Hoy o mañana primero"
+          help="Si hay espacio hoy o mañana (respetando la antelación mínima), ofrece esas horas antes que las de otros días."
+          state={states["wa-free-soon"]}
+          checked={config.freeCall.soonFirst}
+          onChange={(v) => change("wa-free-soon", "freeCall.soonFirst", v)}
+        />
+        <SettingRow
+          id="wa-free-days"
+          layout="stacked"
+          label="Días preferidos"
+          help={
+            config.freeCall.preferredWeekdays.length === 0
+              ? "Sin elegir: ofrece el día más cercano con espacio."
+              : "Después de hoy y mañana, ofrece primero estos días. Si no hay espacio o la persona no puede, ofrece los otros días de tu horario."
+          }
+          state={states["wa-free-days"]}
+        >
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Días preferidos para la llamada gratis">
+            {WEEKDAYS.map(({ id: weekday, name }) => {
+              const pressed = config.freeCall.preferredWeekdays.includes(weekday);
+              // Un día fuera del horario no se agenda: no tiene sentido preferirlo.
+              const inSchedule = b.hours.length === 0 || b.hours.some((h) => h.weekday === weekday);
+              return (
+                <Toggle
+                  key={weekday}
+                  variant="outline"
+                  size="sm"
+                  pressed={pressed}
+                  disabled={!inSchedule && !pressed}
+                  title={inSchedule ? undefined : "No está en tu horario de citas"}
+                  onPressedChange={(on) =>
+                    change(
+                      "wa-free-days",
+                      "freeCall.preferredWeekdays",
+                      on
+                        ? [...config.freeCall.preferredWeekdays, weekday].sort((x, y) => x - y)
+                        : config.freeCall.preferredWeekdays.filter((d) => d !== weekday)
+                    )
+                  }
+                  className="aria-pressed:border-[#00a884] aria-pressed:bg-[#00a884]/10 aria-pressed:text-[#008069] dark:aria-pressed:text-[#00a884]"
+                >
+                  {name}
+                </Toggle>
+              );
+            })}
+          </div>
+        </SettingRow>
       </SettingsGroup>
 
       <SettingsGroup

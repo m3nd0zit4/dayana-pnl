@@ -1,6 +1,20 @@
 import { describe, expect, test } from "bun:test";
 
-import { inferPersonZone } from "./booking-time";
+import { inferPersonZone, trustedContactTimezone } from "./booking-time";
+
+describe("trustedContactTimezone (Valerya, 17-oct: México con la zona por defecto de Colombia)", () => {
+  test("la zona por defecto no vale para alguien de otro país", () => {
+    expect(trustedContactTimezone({ timezone: "America/Bogota", countryIso: "MX", phoneCountryIso: "MX" })).toBeNull();
+    expect(trustedContactTimezone({ timezone: "America/Bogota", countryIso: null, phoneCountryIso: "EC" })).toBeNull();
+  });
+  test("vale si es de Colombia, si no se sabe el país o si la zona no es la de por defecto", () => {
+    expect(trustedContactTimezone({ timezone: "America/Bogota", countryIso: "CO" })).toBe("America/Bogota");
+    expect(trustedContactTimezone({ timezone: "America/Bogota" })).toBe("America/Bogota");
+    expect(trustedContactTimezone({ timezone: "America/Mexico_City", countryIso: "MX" })).toBe("America/Mexico_City");
+    expect(trustedContactTimezone({ timezone: "No/Existe" })).toBeNull();
+    expect(trustedContactTimezone(null)).toBeNull();
+  });
+});
 
 const said = (...bodies: string[]) => bodies.map((body) => ({ direction: "INBOUND" as const, body }));
 

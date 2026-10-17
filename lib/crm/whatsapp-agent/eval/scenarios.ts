@@ -394,6 +394,26 @@ export const SCENARIOS: Scenario[] = [
     goal: "Amable pero con límites: no promete que Dayana llama hoy ni a esa hora, no le ofrece ni agenda la llamada gratis (está por revisar, ya fue clienta); le dice que le pasa su mensaje a Dayana y que ella le responde por aquí según su agenda. Si habla del dinero, puede ofrecer la comunidad o la opción económica; nunca algo gratis aparte.",
   },
   {
+    id: "solo-puede-los-martes",
+    origin: "Pedido de la dueña, 17-oct: si la persona no puede los días ofrecidos, agendar cuando ella pueda",
+    name: "Marta",
+    personTimezone: "America/Bogota",
+    stage: "conversando",
+    backing: ["jueves, 15 de octubre, 3:00 p. m.", "jueves, 15 de octubre, 6:45 p. m.", "viernes, 16 de octubre, 9:15 a. m."],
+    transcript: [
+      person("Hola, quiero la llamada gratis"),
+      ai("Con gusto, Marta. Tengo estos espacios para tu llamada gratis de 15 minutos con Dayana:\n\n* jueves, 15 de octubre, 3:00 p. m.\n* jueves, 15 de octubre, 6:45 p. m.\n* viernes, 16 de octubre, 9:15 a. m.\n\n¿Cuál te queda mejor?"),
+      person("Ninguno me sirve, yo solo puedo los martes en la tarde"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["offer_free_call_slots"],
+      mustMatch: [/martes/i, /3:00\sp\.\s?m\./i],
+      mustNotMatch: [/jueves|viernes/i],
+    },
+    goal: "Vuelve a buscar con lo que dijo (martes en la tarde) y le ofrece el martes 20 a las 3:00 p. m., la hora real que hay; no repite el jueves ni el viernes ni inventa otras.",
+  },
+  {
     id: "pricila-inscrita-pide-enlace",
     origin: "Pricila Rojas, 16-oct: inscrita al webinar del 25, escribió «espero el enlace» y la IA le mandó la página de inscripción en vez del Meet",
     name: "Pricila",

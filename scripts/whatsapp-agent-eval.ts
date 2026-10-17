@@ -37,6 +37,7 @@ const main = async () => {
   const { alreadySaid } = await import("@/lib/crm/whatsapp-agent/repeat-guard");
   const { BREACH_HOLDING, promiseBreach } = await import("@/lib/crm/whatsapp-agent/promise-guard");
   const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
+  const { getDateKeyInTz, getTimeHmInTz } = await import("@/lib/datetime/zoned-time");
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
   const { SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
   const { gradeReply } = await import("@/lib/crm/whatsapp-agent/eval/graders");
@@ -47,10 +48,18 @@ const main = async () => {
   const slot = (iso: string, minutes = 15) => ({
     startIso: new Date(iso).toISOString(),
     endIso: new Date(new Date(iso).getTime() + minutes * 60_000).toISOString(),
-    dateKey: iso.slice(0, 10),
-    time: "",
+    dateKey: getDateKeyInTz(new Date(iso), "America/Bogota"),
+    time: getTimeHmInTz(new Date(iso), "America/Bogota"),
   });
-  const fakeSlots = [slot("2026-10-15T20:00:00Z"), slot("2026-10-15T23:45:00Z"), slot("2026-10-16T14:15:00Z")];
+  // Jueves 15 (3:00 y 6:45 p. m.), viernes 16 (9:15 a. m.) y el martes 20
+  // (9:00 a. m. y 3:00 p. m.) para quien solo puede los martes.
+  const fakeSlots = [
+    slot("2026-10-15T20:00:00Z"),
+    slot("2026-10-15T23:45:00Z"),
+    slot("2026-10-16T14:15:00Z"),
+    slot("2026-10-20T14:00:00Z"),
+    slot("2026-10-20T20:00:00Z"),
+  ];
   setFreeCallCalendarForTests({ available: async () => fakeSlots });
 
   // Como producción (2026-10-14): flujo de venta, llamada gratis sola, pagos fuera de la web.
