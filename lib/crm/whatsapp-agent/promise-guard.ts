@@ -22,7 +22,7 @@ import { foldForSearch } from "../search-normalize";
  * webinar, el curso o un pago no cuenta como promesa de una llamada.
  */
 
-export type PromiseBreach = "invented_slots" | "false_booking" | "same_day_promise";
+export type PromiseBreach = "invented_slots" | "false_booking" | "same_day_promise" | "recordings";
 
 /** «10:00 a. m.», «4 p.m.», «8:45 pm», «10 de la mañana» → «10:00a». */
 const TIME_AMPM = /\b(\d{1,2})(?::([0-5]\d))?\s*(?:([ap])\.?\s?m\b\.?|de la (manana|tarde|noche))/g;
@@ -101,6 +101,15 @@ const SAME_DAY = new RegExp(
   ].join("|")
 );
 
+/**
+ * Grabaciones (Fely Mateo, 18-oct: «Las grabaciones de las clases y webinars
+ * están en el grupo»). Los eventos gratuitos no se graban y quien no pagó no
+ * tiene grabaciones de nada (la dueña): la asistente no afirma que haya una.
+ * Decir que NO hay («el webinar no queda grabado») sí puede.
+ */
+const RECORDING = /\b(grabacion(es)?|grabad[oa]s?|se graba(n|ra|ran)?|lo graba(n|mos|ran)?|queda(ra)? grabad[oa])\b/;
+const NEGATED = /\b(no|ni|nunca|tampoco|sin)\b/;
+
 /** Una frase que ofrece o pregunta («¿te sirve…?», «¿cuál prefieres?»), no una que afirma. */
 const OFFER = /\?|te (queda|sirve|parece|conviene|funciona)|prefieres|cual (te|de|prefieres)|elige|escoge/;
 
@@ -133,12 +142,16 @@ export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
   if (!folded.trim()) return null;
   const sentences = sentencesOf(folded).filter((s) => !NOT_A_CALL.test(s));
 
+  const recorded = sentencesOf(folded).find((s) => RECORDING.test(s) && !NEGATED.test(s));
+  if (recorded) return { breach: "recordings", detail: recorded.match(RECORDING)![0] };
+
   const allowed = new Set(input.backing.flatMap(timesIn));
-  /** Pregunta con horas que dio la agenda: ofrece, no afirma. */
-  const backedQuestion = (s: string) => {
+  const allBacked = (s: string) => {
     const times = timesIn(s);
-    return times.length > 0 && times.every((t) => backed(t, allowed)) && OFFER.test(s);
+    return times.length > 0 && times.every((t) => backed(t, allowed));
   };
+  /** Pregunta con horas que dio la agenda: ofrece, no afirma. */
+  const backedQuestion = (s: string) => allBacked(s) && OFFER.test(s);
   if (!input.hasBooking) {
     for (const s of sentences) {
       const claim = s.match(BOOKING_CLAIM);
@@ -147,13 +160,15 @@ export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
     }
   }
   if (!input.bookingToday) {
-    for (const s of sentences) {
+    for (const [i, s] of sentences.entries()) {
       const soon = s.match(SAME_DAY);
       if (!soon) continue;
       // Ofrecer una hora de hoy que dio la agenda («¿te sirve que Dayana te
       // llame hoy a las 4:00 p. m.?») no es prometer: hoy y mañana van primero
-      // (pedido de la dueña, 17-oct).
-      if (backedQuestion(s)) continue;
+      // (pedido de la dueña, 17-oct). La pregunta puede ir en la frase
+      // siguiente: «hoy mismo hay 4:30 p. m. y 5:00 p. m. ¿Te sirve alguna?»
+      // (Danilo, 18-oct: no salió y se quedó sin horas).
+      if (backedQuestion(s) || (allBacked(s) && sentences.slice(i + 1).some((next) => OFFER.test(next)))) continue;
       return { breach: "same_day_promise", detail: soon[0] };
     }
   }
@@ -170,6 +185,7 @@ export const BREACH_HOLDING: Record<PromiseBreach, string> = {
   invented_slots: "Déjame revisar la agenda de Dayana y te comparto por aquí los horarios disponibles.",
   false_booking: "Déjame confirmarlo con Dayana y te escribo por aquí.",
   same_day_promise: "Ya le paso tu mensaje a Dayana; ella revisa su agenda y te confirma por aquí.",
+  recordings: "Déjame confirmarlo con Dayana y te escribo por aquí.",
 };
 
 /** Por qué no salió, para Dayana («Te toca» y el rastro de la IA). */
@@ -177,4 +193,5 @@ export const BREACH_REASON: Record<PromiseBreach, string> = {
   invented_slots: "La IA iba a ofrecer horas que no salieron de tu agenda: no se enviaron. Revisa y ofrécele horas tú.",
   false_booking: "La IA iba a confirmar una cita que no existe: no se envió. Revisa si quieres agendarla.",
   same_day_promise: "La IA iba a prometer que la llamas hoy o en un momento, sin cita: no se envió. Contéstale tú.",
+  recordings: "La IA iba a hablar de grabaciones (los eventos gratuitos no se graban): no se envió. Contéstale tú.",
 };

@@ -69,9 +69,9 @@ export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }
   },
   {
     name: "Acceso a grabaciones de clases",
-    trigger: "La persona pregunta por las grabaciones de las clases o dónde encontrarlas.",
+    trigger: "La persona pregunta por las grabaciones de unas clases o de un evento, o dónde encontrarlas.",
     steps:
-      "1. Responde con calidez y de forma breve.\n2. Indícale que las grabaciones están en el grupo.\n3. Invítala a revisarlo allí; si no las encuentra, escala con category=unknown.",
+      "1. Responde con calidez y de forma breve.\n2. Si es de un evento gratuito (webinar, masterclass): no se graban. Díselo con calidez: «te esperamos en vivo» (o en el próximo).\n3. Si es de clases de un curso o taller: escala con category=unknown; Dayana sabe si pagó y dónde están. Quien no ha pagado no tiene grabaciones de nada.\n4. Nunca le digas que está en un grupo ni que las grabaciones están en el grupo.",
   },
   {
     name: "Cierre de conversación",

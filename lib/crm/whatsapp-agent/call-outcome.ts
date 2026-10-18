@@ -26,6 +26,7 @@ import { offerFreeCallSlots } from "./free-call";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { personFirstName } from "@/lib/person-name";
+import { appointmentGreetingName } from "./chat-name";
 
 /**
  * Después de la llamada gratis (pedido de la dueña): saber si se hizo y, si
@@ -79,7 +80,8 @@ const recipientFor = async (appt: Appt, conv: Conv) =>
     optedOut: false,
   };
 
-const nameOf = (appt: Appt, conv: Conv) => appt.name ?? conv.contact?.firstName ?? conv.participantName;
+/** Solo un nombre seguro (`appointmentGreetingName`): el del chat o el que Dayana escribió en su calendario. */
+const nameOf = (appt: Appt, conv: Conv) => appointmentGreetingName({ ...appt, conversationId: appt.conversationId ?? conv.id });
 
 /** ¿Pagó o se inscribió después de la llamada? Entonces sí hablaron. */
 const paidAfter = async (appt: Appt, conv: Conv): Promise<boolean> => {
@@ -137,7 +139,7 @@ const sendReschedule = async (
         return [];
       })
     : [];
-  const name = nameOf(appt, conv);
+  const name = await nameOf(appt, conv);
   const r = await sendWhatsAppToRecipient({
     recipient: await recipientFor(appt, conv),
     text: rescheduleMessage(name, options.map((o) => o.label)),
@@ -204,7 +206,7 @@ const sendCheck = async (appt: Appt, conv: Conv) => {
   });
   if (claimed.count === 0) return false;
   const dayanaTz = await getOperationalTimezone();
-  const name = nameOf(appt, conv);
+  const name = await nameOf(appt, conv);
   const r = await sendWhatsAppToRecipient({
     recipient: await recipientFor(appt, conv),
     text: checkMessage(name),

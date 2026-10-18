@@ -5,7 +5,7 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { availableSlots, bookOnCalendar, SlotUnavailableError } from "./calendar";
 import { isFreeCallService } from "./event-title";
 import { resolveConversations } from "./pending";
-import { hasWish, matchesWish, pickFreeCallSlots, type SlotWish } from "./slots";
+import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
 
 /**
  * La llamada gratis de 15 minutos: el único objetivo de la asistente con una
@@ -91,7 +91,7 @@ export const offerFreeCallSlotsFor = async (input: {
   dayanaTz: string;
   now?: Date;
   wish?: SlotWish | null;
-}): Promise<{ options: FreeCallOption[]; matchedWish: boolean | null }> => {
+}): Promise<{ options: FreeCallOption[]; matchedWish: boolean | null; closest?: WishStep }> => {
   const now = input.now ?? new Date();
   const service = freeCallService(input.config);
   const [slots, fullDays] = await Promise.all([
@@ -117,9 +117,11 @@ export const offerFreeCallSlotsFor = async (input: {
     });
   const label = (s: (typeof slots)[number]) => ({ startIso: s.startIso, label: dualZoneLabel(s.startIso, input.personTz, input.dayanaTz) });
   if (hasWish(input.wish)) {
-    const wanted = pick(slots.filter((s) => matchesWish(s, input.wish!, input.personTz)));
-    if (wanted.length > 0) return { options: wanted.map(label), matchedWish: true };
-    return { options: pick(slots).map(label), matchedWish: false };
+    for (const { step, wish } of relaxedWishes(input.wish)) {
+      const found = pick(slots.filter((s) => matchesWish(s, wish, input.personTz)));
+      if (found.length > 0) return { options: found.map(label), matchedWish: step === "exact", ...(step === "exact" ? {} : { closest: step }) };
+    }
+    return { options: [], matchedWish: false, closest: "any" };
   }
   return { options: pick(slots).map(label), matchedWish: null };
 };

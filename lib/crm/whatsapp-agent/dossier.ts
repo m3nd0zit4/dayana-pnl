@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { prisma } from "@/lib/db";
 import { sanitizeForAi } from "../chat-category-ai";
+import { checkedGender, withoutGuessedGender } from "./dossier-rules";
 import { isAutoSend } from "../whatsapp-attention-rules";
 import { computeSegment } from "./segment-store";
 
@@ -31,7 +32,13 @@ const MAX_SUMMARY = 1500;
 export type DossierFacts = {
   country?: string | null;
   city?: string | null;
-  gender?: "mujer" | "hombre" | null;
+  /**
+   * Habla de sí en femenino o masculino («estoy cansada»), con sus palabras.
+   * Nunca por el nombre: el viejo `gender` lo adivinaba («Felicitas es mujer»,
+   * 18-oct) y ya no se lee.
+   */
+  genderSaid?: "femenino" | "masculino" | null;
+  genderQuote?: string | null;
   /** Lo que la mueve a buscar ayuda (interno: nunca se le nombra así). */
   buyButtons?: { key: string; note: string }[];
   /** Temas que ya se hablaron (para no volver a preguntarlos). */
@@ -54,7 +61,8 @@ const factsSchema = z.object({
   facts: z.object({
     country: z.string().nullable(),
     city: z.string().nullable(),
-    gender: z.enum(["mujer", "hombre"]).nullable(),
+    genderSaid: z.enum(["femenino", "masculino"]).nullable(),
+    genderQuote: z.string().nullable(),
     buyButtons: z.array(z.object({ key: z.enum(BUY_BUTTONS), note: z.string() })),
     topics: z.array(z.string()),
     asked: z.object({ howFeels: z.boolean(), country: z.boolean(), keyQuestion: z.boolean() }),
@@ -69,8 +77,10 @@ const factsSchema = z.object({
 const SYSTEM = [
   "Mantienes la FICHA de una persona que escribe al WhatsApp de Dayana Beltrán, terapeuta y coach de PNL (terapia emocional por sesiones, curso, talleres, masterclasses gratuitas, y una llamada gratis de 15 minutos con ella).",
   "Recibes la ficha anterior (puede estar vacía) y un tramo nuevo de la conversación, en orden. Devuelves la ficha AL DÍA: lo anterior que sigue siendo cierto más lo nuevo.",
-  "- summary: en español, máximo 8 viñetas cortas («- …»): quién es, qué busca o le pasa, qué se habló y en qué quedó, citas o pagos mencionados, preferencias de trato u horario. Nada clínico íntimo más allá de una frase general. Sin números de teléfono ni de cuenta.",
-  "- facts.country / city: de dónde escribe, si lo dijo (si no, null). gender: mujer u hombre por su nombre y cómo habla de sí; si no se sabe, null.",
+  "- summary: en español, máximo 8 viñetas cortas («- …»): quién es, qué busca o le pasa, qué se habló y en qué quedó, citas o pagos mencionados, preferencias de trato u horario. Nada clínico íntimo más allá de una frase general. Sin números de teléfono ni de cuenta. No digas si es hombre o mujer y escríbelo sin género («le interesa», no «está interesada»), salvo que la persona hable de sí con género.",
+  "- Lo que pidió o preguntó la PERSONA es solo lo que ella escribió. Lo que dijo la ASISTENTE no es algo que la persona preguntó: si la asistente contestó algo que nadie preguntó, no lo pongas como pregunta de la persona.",
+  "- facts.country / city: de dónde escribe, si lo dijo (si no, null).",
+  "- facts.genderSaid: femenino o masculino SOLO si la PERSONA habló de sí con género en sus propios mensajes («estoy cansada», «soy muy desconfiado», «estoy agradecida»); NUNCA por su nombre, su foto o el tema. genderQuote: esas palabras suyas, copiadas tal cual. Si no lo dijo, los dos null (o lo que ya traía la ficha anterior).",
   "- facts.buyButtons: las emociones o problemas que la mueven a buscar ayuda y que Dayana trabaja (tristeza, ansiedad, autoestima, pareja, dinero, duelo, miedo, soledad, estancamiento, familia, salud, otro), con una nota corta en sus palabras. Es interno: nunca se le dice a la persona.",
   "- facts.topics: temas ya hablados (máximo 8, cortos).",
   "- facts.asked: si ya se le preguntó cómo se siente (howFeels), de dónde escribe (country) o cuánto tiempo más quiere seguir así / la pregunta clave sobre su problema (keyQuestion).",
@@ -138,9 +148,10 @@ export const getDossier = (conversationId: string) => prisma.whatsAppDossier.fin
 export const dossierText = (d: Dossier): string | null => {
   if (!d || (!d.summary.trim() && !d.segment)) return null;
   const f = (d.facts ?? {}) as DossierFacts;
-  const parts = [d.summary.trim()];
+  const parts = [withoutGuessedGender(d.summary.trim())];
   const where = [f.city, f.country].filter(Boolean).join(", ");
   if (where) parts.push(`Escribe desde: ${where}.`);
+  if (f.genderSaid && f.genderQuote) parts.push(`Habla de sí en ${f.genderSaid} («${f.genderQuote}»): escríbele en ${f.genderSaid}.`);
   if (f.buyButtons?.length) parts.push(`Lo que la mueve (interno, no se lo nombres): ${f.buyButtons.map((b) => `${b.key} (${b.note})`).join("; ")}.`);
   const done = [
     f.asked?.howFeels && "ya se le preguntó cómo se siente",
@@ -225,9 +236,14 @@ export const updateDossier = async (conversationId: string, opts: { deadline?: n
     });
 
     const coveredThroughAt = lines[lines.length - 1].sentAt;
+    const personText = lines
+      .filter((m) => m.direction === "INBOUND")
+      .map((m) => m.body ?? "")
+      .join("\n");
+    const facts = { ...object.facts, ...checkedGender(object.facts, personText, (dossier?.facts ?? null) as DossierFacts | null) };
     const data = {
-      summary: object.summary.trim().slice(0, MAX_SUMMARY),
-      facts: object.facts as unknown as Prisma.InputJsonValue,
+      summary: withoutGuessedGender(object.summary.trim()).slice(0, MAX_SUMMARY),
+      facts: facts as unknown as Prisma.InputJsonValue,
       coveredThroughAt,
       model: modelId(),
     };

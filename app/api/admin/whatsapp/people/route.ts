@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { withStaff } from "@/lib/api/handler";
+import { withoutGuessedGender } from "@/lib/crm/whatsapp-agent/dossier-rules";
 import { isStage } from "@/lib/crm/whatsapp-agent/stage";
 import { chatCategoryWhere, isChatCategoryFilter } from "@/lib/crm/whatsapp-agent/workspace";
 import { prisma } from "@/lib/db";
@@ -80,7 +81,7 @@ export const GET = withStaff("read", async ({ req }) => {
       category: c.category,
       categoryReview: c.categoryReview && c.categorySource !== "manual",
       stage: c.dossier?.stage ?? null,
-      summary: c.dossier?.summary?.trim() || null,
+      summary: withoutGuessedGender(c.dossier?.summary?.trim() ?? "") || null,
     })),
   });
 });

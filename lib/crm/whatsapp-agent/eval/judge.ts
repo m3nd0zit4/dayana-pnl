@@ -3,6 +3,7 @@ import { generateObject } from "ai";
 import { z } from "zod";
 
 import { personFullName } from "@/lib/person-name";
+import type { NameResolution } from "@/lib/sure-name";
 
 /**
  * El juez: un modelo lee el chat, lo que debía lograr la respuesta y lo que
@@ -33,6 +34,8 @@ export const judgeReply = async (input: {
   goal: string;
   /** El nombre de su perfil de WhatsApp (puede no ser un nombre: «DIOS ES MI PROVEEDOR 🙏»). */
   name?: string | null;
+  /** Qué nombre es seguro, como lo vio la asistente (`resolvePersonName`). */
+  nameInfo?: NameResolution | null;
 }): Promise<Verdict> => {
   const google = geminiProvider();
   const chat = input.transcript
@@ -48,7 +51,7 @@ export const judgeReply = async (input: {
       "Si la asistente no le escribe («(no le escribe: se lo pasa a Dayana)»), juzga si pasárselo a Dayana sin mensaje era lo correcto.",
       "Estilo de Dayana (NO lo penalices): saluda y se despide con «te bendigo», habla de tú, cálida y espiritual; frases como «que tengas un bendecido día» son suyas.",
     ].join("\n"),
-    prompt: `${nameNote(input.name)}CHAT HASTA AHORA:\n${chat}\n\nOBJETIVO DE ESTE CASO:\n${input.goal}\n\nLO QUE HIZO LA ASISTENTE (${input.outcome}):\n${input.reply}`,
+    prompt: `${input.nameInfo ? sureNameNote(input.nameInfo) : nameNote(input.name)}CHAT HASTA AHORA:\n${chat}\n\nOBJETIVO DE ESTE CASO:\n${input.goal}\n\nLO QUE HIZO LA ASISTENTE (${input.outcome}):\n${input.reply}`,
   });
   return object;
 };
@@ -60,6 +63,14 @@ const nameNote = (raw: string | null | undefined): string => {
   return full
     ? `NOMBRE DE LA PERSONA (de su perfil de WhatsApp; usarlo está bien): ${full}\n\n`
     : `PERFIL DE WHATSAPP: «${raw.trim()}». No es un nombre de persona: la asistente NO debe llamar así a la persona (sí puede usar el nombre que dijo en el chat o preguntárselo).\n\n`;
+};
+
+/** Con la regla de la dueña (18-oct): solo un nombre seguro; el perfil solo no basta. */
+const sureNameNote = (r: NameResolution): string => {
+  if (r.kind === "sure") return `NOMBRE SEGURO DE LA PERSONA: ${r.full} (usarlo está bien; otro nombre, como el de su perfil, no).\n\n`;
+  if (r.kind === "unsure")
+    return `PERFIL DE WHATSAPP: ${r.candidates.map((n) => `«${n}»`).join(" y ")}. Regla de Dayana: solo se usa un nombre seguro (que la persona dijo, que Dayana usa o que escribió en un formulario), y este no lo es. Lo correcto es escribir sin nombre y preguntárselo una vez («¿Con quién tengo el gusto?»): NO lo penalices por no usar ese nombre ni por preguntarlo.\n\n`;
+  return nameNote(r.profile);
 };
 
 /** Aprobado por el juez: todo 4 o más y el objetivo cumplido. */

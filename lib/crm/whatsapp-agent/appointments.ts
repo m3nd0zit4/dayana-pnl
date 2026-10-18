@@ -17,6 +17,7 @@ import { freeCallReminderText, soonReminderDecision, soonReminderWindow } from "
 import { resolveConversations } from "./pending";
 import { getTimeLabelInTz, isValidIanaTimeZone } from "@/lib/datetime/zoned-time";
 import { personFirstName } from "@/lib/person-name";
+import { appointmentGreetingName } from "./chat-name";
 
 /**
  * Las citas del Google Calendar de Dayana, ligadas a cada persona.
@@ -451,7 +452,8 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
     // La llamada gratis es por WhatsApp: no hay enlace que mandar.
     const freeCall = !appt.meetUrl && isFreeCallAppointment(appt);
     const vars = {
-      nombre: personFirstName(appt.name ?? recipient.name) ?? "",
+      // Solo un nombre seguro (el del chat o el que Dayana escribió en su calendario).
+      nombre: (await appointmentGreetingName(appt)) ?? "",
       servicio: freeCall
         ? "tu llamada gratis con Dayana"
         : appt.sessionsLabel && appt.sessionsLabel !== "0/0"
@@ -593,8 +595,8 @@ export const sendSoonReminders = async (
     const recipient: RecipientInfo = fromContact?.phoneE164
       ? fromContact
       : { contactId: appt.contactId, phoneE164: `+${appt.phone}`, name: fromContact?.name ?? appt.name, optedOut: fromContact?.optedOut ?? false };
-    // El nombre del título si es un nombre de persona; si no, el del contacto; si no, ninguno.
-    const name = [appt.name, recipient.name].find((n) => personFirstName(n)) ?? null;
+    // Solo un nombre seguro (el del chat o el que Dayana escribió en su calendario); si no, ninguno.
+    const name = await appointmentGreetingName(appt);
     const zone = await personZone(appt, tz);
     const r = await sendWhatsAppToRecipient({
       recipient,

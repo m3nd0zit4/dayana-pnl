@@ -309,6 +309,27 @@ export const matchesWish = (slot: Slot, wish: SlotWish, personTz: string): boole
   return true;
 };
 
+/**
+ * Si en lo que pidió no hay espacio, lo más parecido, en orden: los mismos días
+ * a otra hora, la misma parte del día otro día, y cualquier hora. Lo que dijo
+ * que NO puede (días, desde cuándo) se respeta siempre. Danilo (18-oct) pidió
+ * «mañana en la tarde», la tarde del lunes estaba llena y le salieron horas de
+ * ese mismo domingo en vez de otras horas del lunes o la tarde del miércoles.
+ */
+export type WishStep = "exact" | "same_days" | "same_time" | "any";
+
+export const relaxedWishes = (wish: SlotWish): { step: WishStep; wish: SlotWish }[] => {
+  const keep: SlotWish = { notWeekdays: wish.notWeekdays, notDates: wish.notDates, fromDate: wish.fromDate };
+  const byDay = Boolean(wish.dates?.length || wish.weekdays?.length);
+  const steps: { step: WishStep; wish: SlotWish }[] = [{ step: "exact", wish }];
+  if (byDay && wish.partOfDay) {
+    steps.push({ step: "same_days", wish: { ...keep, weekdays: wish.weekdays, dates: wish.dates } });
+    steps.push({ step: "same_time", wish: { ...keep, partOfDay: wish.partOfDay } });
+  }
+  steps.push({ step: "any", wish: keep });
+  return steps;
+};
+
 /** ¿Encaja este inicio en el horario configurado? */
 export const isWithinBookingHours = (
   config: Pick<WhatsAppBookingConfig, "hours">,

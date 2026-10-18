@@ -10,6 +10,7 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
 import { isCrisis } from "./pause-rules";
 import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
+import { appointmentGreetingName } from "./chat-name";
 
 /**
  * La sala de espera de la llamada gratis, con la base y el calendario. Las
@@ -115,7 +116,8 @@ const noticeFor = async (input: {
   });
   if (claimed.count === 0) return { sent: false, decision: { kind: "none", reason: "otro proceso ya avisó" }, holdAi: true };
 
-  const body = waitingMessage(decision.kind, appt.name ?? input.name);
+  // Solo un nombre seguro (el del chat o el que Dayana escribió en su calendario).
+  const body = waitingMessage(decision.kind, await appointmentGreetingName({ ...appt, conversationId: input.conversationId }));
   await sendMetaMessage({ conversationId: input.conversationId, body, isAutoReply: true });
   await prisma.whatsAppAiRun.create({
     data: {

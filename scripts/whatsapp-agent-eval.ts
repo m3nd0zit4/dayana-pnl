@@ -32,6 +32,7 @@ const main = async () => {
   const { prisma } = await import("@/lib/db");
   const { getWhatsAppAiConfig } = await import("@/lib/crm/whatsapp-ai-config");
   const { think } = await import("@/lib/crm/whatsapp-agent/brain");
+  const { resolvePersonName } = await import("@/lib/sure-name");
   const { polishReply } = await import("@/lib/crm/whatsapp-agent/wording");
   const { withPaymentBlocks } = await import("@/lib/crm/whatsapp-agent/payment-info");
   const { alreadySaid } = await import("@/lib/crm/whatsapp-agent/repeat-guard");
@@ -92,10 +93,17 @@ const main = async () => {
   const results: { id: string; origin: string; runs: Run[]; passes: number }[] = [];
 
   const runOnce = async (s: (typeof scenarios)[number]): Promise<Run> => {
+    // Como `chatNameInfo` en run.ts: el perfil, el contacto (si lo escribió ella) y la conversación.
+    const nameInfo = resolvePersonName({
+      profile: s.name,
+      contact: s.contactName ? { name: s.contactName, typed: true } : null,
+      messages: s.transcript.map((l) => ({ from: l.direction === "INBOUND" ? "person" : l.isAutoReply ? "assistant" : "dayana", text: l.body ?? "" })),
+    });
     const result = await think({
       config,
       transcript: s.transcript,
       name: s.name,
+      nameInfo,
       phone: "573000000000",
       conversationId: null,
       contactId: null,
@@ -186,7 +194,7 @@ const main = async () => {
 
     let verdict: Run["verdict"];
     if (useJudge) {
-      verdict = await judgeReply({ transcript: s.transcript, reply, outcome: o?.kind ?? "nada", goal: s.goal, name: s.name }).catch(() => undefined);
+      verdict = await judgeReply({ transcript: s.transcript, reply, outcome: o?.kind ?? "nada", goal: s.goal, name: s.name, nameInfo }).catch(() => undefined);
       if (!verdict) failed.push("juez: no respondió");
       else if (!judgePasses(verdict)) failed.push(`juez: ${verdict.problemas.join(" · ") || "objetivo no cumplido"}`);
     }

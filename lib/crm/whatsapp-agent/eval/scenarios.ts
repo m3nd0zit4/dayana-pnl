@@ -14,8 +14,10 @@ export type Scenario = {
   id: string;
   /** De dónde sale el caso. */
   origin: string;
-  /** El nombre como llega (perfil de WhatsApp o contacto): puede no ser un nombre. */
+  /** El nombre del perfil de WhatsApp: puede no ser un nombre. */
   name: string;
+  /** El nombre que escribió ella en un formulario (contacto del CRM): ese sí es seguro. */
+  contactName?: string;
   /** Cómo habló de sí la persona; «unknown»: no lo dijo (la asistente escribe sin género). */
   gender?: "f" | "m" | "unknown";
   transcript: Line[];
@@ -417,6 +419,7 @@ export const SCENARIOS: Scenario[] = [
     id: "pricila-inscrita-pide-enlace",
     origin: "Pricila Rojas, 16-oct: inscrita al webinar del 25, escribió «espero el enlace» y la IA le mandó la página de inscripción en vez del Meet",
     name: "Pricila",
+    contactName: "Pricila Rojas",
     personTimezone: "America/Bogota",
     client: [
       "Nombre: Pricila Rojas",
@@ -436,5 +439,60 @@ export const SCENARIOS: Scenario[] = [
       mustNotMatch: [/eventos-gratuitos/i],
     },
     goal: "Le da el enlace de Google Meet del webinar (tal cual) con el día y la hora, corto. No le manda la página de inscripción ni le pide que se inscriba: ya se inscribió.",
+  },
+  {
+    id: "fely-gracias-en-su-grupo",
+    origin: "Fely Mateo, 18-oct: inscrita al webinar, agradeció «por aceptarme… en su grupo» y la IA le dijo que las grabaciones de las clases y webinars están en el grupo (no hay grabaciones ni está en ningún grupo); la ficha la dio por mujer por el nombre; la saludó «Fely» y luego «Felicitas»",
+    name: "Fely Mateo",
+    contactName: "Felicitas Mateo",
+    gender: "unknown",
+    personTimezone: "America/Lima",
+    stage: "conversando",
+    client: [
+      "Nombre en el CRM: Felicitas Mateo (cómo llamarla: mira NOMBRE)",
+      "Etapa: interesada",
+      "Ya se inscribió en el evento gratuito: Webinar Gratuito «Sana tu historia» (domingo, 25 de octubre, 9:30 a. m. hora de Colombia). Si pide el enlace para entrar, dale el de la reunión de Google Meet, tal cual: https://meet.google.com/abc-defg-hij — no la página de inscripción, porque ya se inscribió.",
+    ].join("\n"),
+    transcript: [
+      person("Hola Dayana, te escribo desde tu página de enlaces."),
+      ai("Hola Fely, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?"),
+      ai("Hola Felicitas, te escribimos porque te inscribiste en «Webinar Gratuito».\n\nFecha: domingo 25 de octubre\nEnlace para ingresar: https://meet.google.com/abc-defg-hij"),
+      person("Buenas tardes  muchas gracias"),
+      person("Por aceptarme"),
+      ai("Con gusto, Felicitas 🙏"),
+      person("En su grupo"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustNotMatch: [/grabaci|grabad/i, /est[aá]s? en (el|su|nuestro) grupo|en el grupo|ning[uú]n grupo|no (tenemos|hay) (un |ning[uú]n )?grupo/i, /\bFely\b/],
+    },
+    goal: "Le agradece corto y con calidez: basta «Con gusto 🙏» (el nombre es opcional; si lo usa, «Felicitas», que escribió al inscribirse, nunca «Fely»; no hace falta «te bendigo» en un agradecimiento). No dice nada de grabaciones (los eventos gratuitos no se graban) ni de grupos. Sin género.",
+  },
+  {
+    id: "danilo-manana-en-la-tarde",
+    origin: "Danilo Calderón, 18-oct: aceptó la llamada gratis y pidió «mañana en la tarde»; la tarde estaba llena, la IA le ofreció horas de hoy con «hoy mismo» en una frase y la pregunta en otra, el freno lo tomó por promesa y solo recibió «Ya le paso tu mensaje a Dayana»",
+    name: "Danilo Calderon",
+    contactName: "Danilo Calderón",
+    gender: "m",
+    personTimezone: "America/Guayaquil",
+    stage: "conversando",
+    transcript: [
+      person("👍👍muchas gracias"),
+      ai("Con gusto. ¿Desde qué país me escribes?"),
+      person("Ecuador"),
+      ai("¿Qué es lo que más te gustaría transformar o en qué área sientes que estás estancado en este momento, Danilo?"),
+      person("Pues tengo sueños aun que cumplir pero miedo a que nada salga como quiero y miedo a las críticas, siempre me ha importado el que dirán"),
+      ai("Eso que sientes frena mucho el camino, Danilo. ¿Cuánto tiempo más quieres que ese miedo decida por ti?"),
+      person("No más, tengo 48 años, aun creo tener mucho que aportar."),
+      ai("Tienes toda la razón, Danilo, a los 48 años hay mucho camino por delante y mucho por aportar. Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso; ella te escucha y te dice cómo te puede ayudar."),
+      person("Me encantaría pero puede ser para mañana en la tarde?"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["offer_free_call_slots"],
+      mustMatch: [/\d{1,2}:\d{2}\s[ap]\.\s?m\./i],
+      mustNotMatch: [/ya le paso tu mensaje/i],
+    },
+    goal: "Busca horas con lo que pidió (mañana en la tarde) y le ofrece las que da la agenda, tal cual, preguntándole cuál le sirve. No lo deja sin horas ni inventa otras.",
   },
 ];

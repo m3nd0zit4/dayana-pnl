@@ -46,6 +46,7 @@ import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
+import { chatNameInfo } from "./chat-name";
 import { offeredFreeCallSlots } from "./free-call";
 import { trustedContactTimezone } from "./booking-time";
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
@@ -567,6 +568,8 @@ export const runWhatsAppAi = async (input: {
       config,
       transcript: history,
       name,
+      // Solo un nombre seguro (lo dijo, Dayana le dice así o lo escribió en un formulario).
+      nameInfo: await chatNameInfo(conversationId),
       phone,
       conversationId,
       contactId: conversation.contactId,
@@ -857,7 +860,11 @@ export const runWhatsAppAi = async (input: {
           conversationId,
           run.id,
           config,
-          { category: "booking", severity: "normal", reason: `${BREACH_REASON[breach.breach]} («${breach.detail}»)${asked}` },
+          {
+            category: breach.breach === "recordings" ? "unknown" : "booking",
+            severity: "normal",
+            reason: `${BREACH_REASON[breach.breach]} («${breach.detail}»)${asked}`,
+          },
           name,
           meta,
           "ESCALATED",

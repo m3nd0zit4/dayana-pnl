@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { findFreeSlots, matchesWish, pickFreeCallSlots, wishFromWords } from "./slots";
+import { findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, wishFromWords } from "./slots";
 
 const TZ = "America/Bogota";
 // Lunes 8:00 a 6:00 p. m., todos los días de la semana.
@@ -75,5 +75,23 @@ describe("cuando puede la persona (wishFromWords + matchesWish)", () => {
     // 12:00 en Bogotá = 11:00 en CDMX: mañana para ella.
     expect(ok.some((s) => s.dateKey === "2026-10-19" && s.time === "12:00")).toBe(true);
     expect(ok.some((s) => s.time === "13:00")).toBe(false);
+  });
+});
+
+describe("sin espacio en lo que pidió: lo más parecido (Danilo, 18-oct)", () => {
+  test("los mismos días a otra hora, luego la misma hora otro día, luego cualquiera", () => {
+    const wish = wishFromWords({ dias: ["mañana"], franja: "tarde" }, TZ, monday9)!;
+    expect(relaxedWishes(wish).map((s) => s.step)).toEqual(["exact", "same_days", "same_time", "any"]);
+    const [, sameDays, sameTime, any] = relaxedWishes(wish);
+    expect(sameDays!.wish.partOfDay).toBeUndefined();
+    expect(sameDays!.wish.dates).toEqual(wish.dates);
+    expect(sameTime!.wish.dates).toBeUndefined();
+    expect(sameTime!.wish.partOfDay).toBe("tarde");
+    expect(any!.wish).toEqual({ notWeekdays: undefined, notDates: undefined, fromDate: undefined });
+  });
+
+  test("lo que no puede se respeta siempre", () => {
+    const wish = wishFromWords({ dias: ["martes"], noPuede: ["lunes"], franja: "tarde" }, TZ, monday9)!;
+    for (const { wish: w } of relaxedWishes(wish)) expect(w.notWeekdays).toEqual([1]);
   });
 });

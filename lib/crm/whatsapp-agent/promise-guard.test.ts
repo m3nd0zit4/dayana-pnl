@@ -122,3 +122,26 @@ describe("lo que sí sale", () => {
     expect(promiseBreach({ ...none, text: "Por favor dime qué día y hora te quedan bien y Dayana te confirma por aquí." })).toBeNull();
   });
 });
+
+describe("lo que pasó el 18-oct", () => {
+  // La agenda le dio horas de ese mismo domingo a Danilo (pidió «mañana en la tarde», la tarde del lunes estaba llena).
+  const DANILO = ["domingo, 18 de octubre, 4:30 p. m.", "domingo, 18 de octubre, 4:45 p. m.", "domingo, 18 de octubre, 5:00 p. m."];
+
+  test("Danilo: horas de hoy que dio la agenda, con la pregunta en la frase siguiente, sí salen", () => {
+    const text =
+      "Para mañana en la tarde Dayana ya no tiene espacio, Danilo, pero hoy mismo hay estos horarios: 4:30 p. m., 4:45 p. m. o 5:00 p. m. ¿Alguno te sirve?";
+    expect(promiseBreach({ ...none, backing: DANILO, text })).toBeNull();
+    // Sin horas de la agenda sigue siendo una promesa.
+    expect(promiseBreach({ ...none, text: "Ya le aviso a Dayana para que te escriba hoy mismo. ¿Te parece?" })?.breach).toBe("same_day_promise");
+    // Y con horas que no dio la agenda, también.
+    expect(promiseBreach({ ...none, backing: DANILO, text: "Hoy mismo a las 7:00 p. m. ¿Te sirve?" })).not.toBeNull();
+  });
+
+  test("Fely: «las grabaciones están en el grupo» no sale (no hay grabaciones)", () => {
+    expect(promiseBreach({ ...none, text: "Las grabaciones de las clases y webinars están en el grupo. Puedes revisarlas allí 🙏" })?.breach).toBe("recordings");
+    expect(promiseBreach({ ...none, text: "Sí, el webinar queda grabado y te lo mando." })?.breach).toBe("recordings");
+    // Decir que no hay sí puede.
+    expect(promiseBreach({ ...none, text: "El webinar gratuito no queda grabado; te esperamos en vivo el domingo 🙏" })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Con gusto 🙏" })).toBeNull();
+  });
+});

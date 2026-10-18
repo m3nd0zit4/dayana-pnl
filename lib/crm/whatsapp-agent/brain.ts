@@ -17,7 +17,7 @@ import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
-import { spreadSlots, wishFromWords } from "./slots";
+import { spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -26,6 +26,7 @@ import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { personFullName } from "@/lib/person-name";
+import { fixNameInReply, resolvePersonName, type NameMessage, type NameResolution } from "@/lib/sure-name";
 import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
@@ -415,7 +416,7 @@ export const clientContext = async (
   });
 
   const lines: string[] = [];
-  if (contact) lines.push(`Nombre: ${personFullName([contact.firstName, contact.lastName].filter(Boolean).join(" ")) ?? "sin nombre (el del contacto no es un nombre de persona)"}`);
+  if (contact) lines.push(`Nombre en el CRM: ${personFullName([contact.firstName, contact.lastName].filter(Boolean).join(" ")) ?? "sin nombre (el del contacto no es un nombre de persona)"} (cómo llamarla: mira NOMBRE)`);
   lines.push(`Etapa: ${stage.label}`);
   if (next) {
     lines.push(
@@ -561,6 +562,7 @@ ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla d
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
 - Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Grabaciones y grupos: los eventos gratuitos (webinars, masterclasses) NO se graban: si preguntan por la grabación de uno, dile con calidez que no queda grabado: «te esperamos en vivo» (o en el próximo). Nunca digas que hay o habrá una grabación, que se la mandas, que algo está «en el grupo» ni que la persona está en un grupo: quien no ha pagado no tiene grabaciones ni grupo de clases. Si pregunta por grabaciones de clases de un curso o taller, escala con category=unknown (Dayana sabe si pagó y dónde están). Si agradece «por aceptarme» o «en su grupo», contesta solo algo corto como «Con gusto 🙏», sin hablar de grupos (ni que está ni que no está, ni que no hay) y sin ofrecerle nada más en ese mensaje.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 ${paymentRules(config)}
@@ -578,7 +580,7 @@ ${IDENTITY[config.identity]}
 
 LÍMITES (amable, pero con límites): nunca prometas que Dayana llama, escribe o atiende «hoy», «ya» o a una hora que no salió de la agenda; nunca digas que una cita quedó confirmada o agendada si no la agendaste con la herramienta; nunca ofrezcas espacios, sesiones ni ayuda gratis aparte de la llamada gratis de 15 minutos (una por persona), ni favores. Si piden algo urgente o «para hoy», dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí según su agenda. Si una herramienta de agenda falla o no te da horas, no escribas horarios.
 
-Prohibido siempre: dar precios o valores de cualquier tipo, escribir tú un número de cuenta o un enlace de pago (solo con send_payment_info / send_payment_link), dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios o enlaces, confirmar tú un pago (lo confirma Dayana), pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
+Prohibido siempre: dar precios o valores de cualquier tipo, escribir tú un número de cuenta o un enlace de pago (solo con send_payment_info / send_payment_link), dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios, enlaces, grabaciones o grupos, confirmar tú un pago (lo confirma Dayana), pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
 
 Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
   ];
@@ -594,28 +596,42 @@ Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se 
   return parts.join("\n\n");
 };
 
+const ASK_NAME =
+  "Si en la conversación dijo su nombre («soy Samy»), usa ese. Si no, escribe sin nombre y pregúntale una sola vez, con naturalidad, «¿Con quién tengo el gusto?» (en tu primer o segundo mensaje, o antes de agendar). Si ya se lo preguntaste y no lo dijo, no insistas.";
+
+const NAME_HOW = { said: "lo dijo en el chat", dayana: "así le dice Dayana", form: "lo escribió en su inscripción o en sus datos" } as const;
+
 /**
- * NOMBRE: el de su perfil o su contacto solo si es el de una persona. Un perfil
- * como «DIOS ES MI PROVEEDOR 🙏» no se usa (la asistente le contestó «Sí, Dios
- * es mi proveedor»): se escribe sin nombre y se le pregunta.
+ * NOMBRE: solo uno seguro (`resolvePersonName`): lo dijo, Dayana le dice así o
+ * lo escribió en un formulario. El perfil de WhatsApp solo no basta (Fely
+ * Mateo, 18-oct: «Hola Fely» y luego «Felicitas»). Un perfil como «DIOS ES MI
+ * PROVEEDOR 🙏» no se usa nunca (la asistente le contestó «Sí, Dios es mi
+ * proveedor»). Sin nombre seguro: sin nombre, y se le pregunta.
  */
-export const nameLine = (raw: string | null | undefined): string => {
-  const full = personFullName(raw);
-  if (full) {
-    const first = full.split(" ")[0];
-    return `NOMBRE: la persona se llama ${full}${first !== full ? ` (para saludar, su primer nombre: «${first}», salvo que se presente con otro)` : ""}.`;
+export const nameLine = (r: NameResolution): string => {
+  if (r.kind === "sure") {
+    const avoid = r.avoid.length ? ` Nunca la llames ${r.avoid.map((n) => `«${n}»`).join(" ni ")} (otros nombres de su perfil o sus datos).` : "";
+    const first = r.first !== r.full ? ` Para saludar, su primer nombre: «${r.first}».` : "";
+    return `NOMBRE: se llama ${r.full} (seguro: ${NAME_HOW[r.how]}).${first} Usa SOLO ese nombre.${avoid}`;
   }
-  const profile = raw?.trim();
+  if (r.kind === "unsure") {
+    return [
+      `NOMBRE: no sabemos con seguridad cómo se llama: su perfil de WhatsApp o sus datos dicen ${r.candidates.map((n) => `«${n}»`).join(" y ")}, pero eso no lo confirma (puede ser un apodo u otra persona). No uses ningún nombre, tampoco ese.`,
+      ASK_NAME,
+    ].join(" ");
+  }
   return [
     "NOMBRE: no sabemos cómo se llama.",
-    profile
-      ? `Su perfil de WhatsApp dice «${profile}», que no es un nombre de persona: NUNCA le llames así ni repitas esa frase.`
-      : null,
-    "Si en la conversación dijo su nombre («soy Samy»), usa ese. Si no, escribe sin nombre y, cuando sea natural (antes de agendar o tras uno o dos mensajes), pregúntale «¿Con quién tengo el gusto?».",
+    r.profile ? `Su perfil de WhatsApp dice «${r.profile}», que no es un nombre de persona: NUNCA le llames así ni repitas esa frase.` : null,
+    ASK_NAME,
   ]
     .filter(Boolean)
     .join(" ");
 };
+
+/** Sin quién escribió cada mensaje de Dayana (vista previa, evaluación): lo que hay en la conversación. */
+const nameMessages = (transcript: TranscriptLine[]): NameMessage[] =>
+  transcript.map((l) => ({ from: l.direction === "INBOUND" ? "person" : l.isAutoReply ? "assistant" : "dayana", text: l.body ?? "" }));
 
 const examplesBlock = (examples: SimilarExample[]): string | null =>
   examples.length === 0
@@ -664,6 +680,11 @@ export type BrainInput = {
   config: WhatsAppAiConfig;
   transcript: TranscriptLine[];
   name: string | null;
+  /**
+   * Qué nombre es seguro (`resolvePersonName` con el perfil, el contacto y
+   * todo el chat). Sin él se deduce de `name` (el perfil) y lo que la IA lee.
+   */
+  nameInfo?: NameResolution;
   phone: string;
   conversationId: string | null;
   contactId: string | null;
@@ -695,6 +716,14 @@ export type BrainInput = {
   clientMode?: boolean;
 };
 
+/** Qué tan cerca de lo que pidió quedan las horas que se le ofrecen (`relaxedWishes`). */
+const CLOSEST_NOTE: Record<WishStep, string> = {
+  exact: "las que pidió",
+  same_days: "el mismo día que pidió, a otra hora",
+  same_time: "a la hora que pidió, otro día",
+  any: "las más cercanas",
+};
+
 /** Horas que Dayana ya aprobó para ofrecer en este chat (últimos 14 días). */
 export const approvedSlotsFor = async (conversationId: string | null): Promise<string[]> => {
   if (!conversationId) return [];
@@ -715,6 +744,7 @@ export const approvedSlotsFor = async (conversationId: string | null): Promise<s
 export const think = async (input: BrainInput): Promise<BrainResult> => {
   const now = input.now ?? new Date();
   const { config, timezone } = input;
+  const nameInfo = input.nameInfo ?? resolvePersonName({ profile: input.name, messages: nameMessages(input.transcript) });
   const toolCalls: BrainResult["toolCalls"] = [];
   // En un objeto y no en `let`: las tools lo escriben desde closures y TS no
   // ensancharía el tipo de una variable ya estrechada a null.
@@ -1115,7 +1145,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               }
               try {
                 const wish = wishFromWords(args, tz, now);
-                const { options, matchedWish } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
+                const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
                 if (options.length === 0) {
                   return log("offer_free_call_slots", args, {
                     error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
@@ -1127,7 +1157,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   options,
                   note:
                     matchedWish === false
-                      ? "En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Díselo con calidez y ofrécele estas horas, las más cercanas, tal cual; si ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other. No inventes otras."
+                      ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Díselo con calidez y ofrécele estas horas, ${CLOSEST_NOTE[closest ?? "any"]}, tal cual, en la misma frase que la pregunta («… ¿te sirve alguna?»); si ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other. No inventes otras.`
                       : "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
                 });
               } catch (e) {
@@ -1416,7 +1446,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       input.dossier
-        ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona):\n${input.dossier}`
+        ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona). Si la ficha escribe en femenino o masculino, eso NO dice su género: guíate solo por «Habla de sí en…». Lo que la ficha dice que «se le indicó» lo dijo la asistente y puede estar mal: los DATOS mandan:\n${input.dossier}`
         : null,
       input.memory ? `MEMORIA (lo que sabemos de esta persona):\n${input.memory}` : null,
       input.olderSnippets?.length
@@ -1442,7 +1472,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             })
           )
         : null,
-      nameLine(input.name),
+      nameLine(nameInfo),
       `Su número: +${input.phone}.`,
       countryHint(input.phone),
       `${transcriptHeader(input.transcript, timezone)}. Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
@@ -1476,7 +1506,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stopWhen: [isStepCount(6), hasToolCall("escalate")],
   });
 
-  const finalOutcome: BrainOutcome =
+  const outcome: BrainOutcome =
     state.outcome ??
     (result.text.trim()
       ? { kind: "reply", message: toWhatsAppFormat(result.text).slice(0, 1500) }
@@ -1486,6 +1516,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           severity: "normal",
           reason: "El asistente no supo qué contestar.",
         });
+  // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
+  const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
+  const finalOutcome: BrainOutcome = outcome.kind === "reply" ? { ...outcome, message: named(outcome.message)! } : outcome;
 
   return {
     outcome: finalOutcome,
@@ -1497,8 +1530,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     pendingPayment: finalOutcome.kind === "reply" ? state.pendingPayment : null,
     bookingRequest: finalOutcome.kind === "reply" ? state.bookingRequest : null,
     pendingSlots: finalOutcome.kind === "reply" ? state.pendingSlots : null,
-    suggestedReply: finalOutcome.kind === "escalate" ? state.suggestedReply : null,
-    holdingReply: finalOutcome.kind === "escalate" ? state.holdingReply : null,
+    suggestedReply: finalOutcome.kind === "escalate" ? named(state.suggestedReply) : null,
+    holdingReply: finalOutcome.kind === "escalate" ? named(state.holdingReply) : null,
     paymentBlocks: finalOutcome.kind === "reply" ? { details: state.paymentDetails, link: state.paymentLink } : { details: [], link: null },
     linkBlocks: finalOutcome.kind === "reply" ? state.links : [],
     receipt: state.receipt,

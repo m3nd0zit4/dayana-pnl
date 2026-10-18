@@ -4,6 +4,7 @@ import { getOperationalTimezone } from "../operational-timezone";
 import { meetConferenceFor, googleUserId, type MeetConference } from "@/lib/google/meet";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { personFirstName } from "@/lib/person-name";
+import { appointmentGreetingName } from "./chat-name";
 import { getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { getSiteSetting, setSiteSetting } from "../site-settings";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "../whatsapp-ai-config";
@@ -170,7 +171,8 @@ export const sweepSessionNoShows = async (config: WhatsAppAiConfig, now = new Da
       name: appt.name,
       optedOut: false,
     };
-    const name = recipient.name ?? appt.name;
+    // Solo un nombre seguro (el del chat o el que Dayana escribió en su calendario).
+    const name = await appointmentGreetingName(appt);
     const text = noShowText({ template: config.noShow.message, name, startsAt: appt.startsAt, timeZone: zone });
     const r = await send({
       recipient,
@@ -182,7 +184,7 @@ export const sweepSessionNoShows = async (config: WhatsAppAiConfig, now = new Da
       clientKey: `noshow:${appt.eventId}:${appt.startsAt.getTime()}`,
     }).catch((e: unknown) => ({ status: "failed" as const, error: e instanceof Error ? e.message : String(e) }));
 
-    const who = personFirstName(name) ?? appt.name ?? `+${appt.phone}`;
+    const who = personFirstName(name) ?? personFirstName(recipient.name) ?? appt.name ?? `+${appt.phone}`;
     const hour = getTimeLabelInTz(appt.startsAt, dayanaTz);
     if (r.status === "sent") {
       result.sent++;
