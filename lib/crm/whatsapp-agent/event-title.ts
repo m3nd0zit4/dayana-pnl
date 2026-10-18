@@ -45,9 +45,11 @@ export type ParsedEventTitle = {
 export const parseEventTitle = (title: string | null | undefined): ParsedEventTitle => {
   let rest = (title ?? "").replace(/\s+/g, " ").trim();
   let counter: string | null = null;
-  const c = rest.match(/^(\d{1,3})\s*\/\s*(\d{1,3})\b\s*/);
-  if (c) {
-    counter = `${c[1]}/${c[2]}`;
+  // «3/6» o, como los escribe Dayana a mano, «3.6» (17-oct: «3.6 jesus terapia…»).
+  // Con punto solo si parece un contador (la sesión no pasa del total): «1.5 horas» no.
+  const c = rest.match(/^(\d{1,3})\s*([/.])\s*(\d{1,3})\b\s*/);
+  if (c && (c[2] === "/" || (Number(c[1]) >= 1 && Number(c[1]) <= Number(c[3]) && Number(c[3]) <= 60 && !/^\s*(h|hrs?|horas?|min|minutos?)\b/i.test(rest.slice(c[0].length))))) {
+    counter = `${c[1]}/${c[3]}`;
     rest = rest.slice(c[0].length);
   }
   let phone: string | null = null;
@@ -90,6 +92,16 @@ export const nameMatches = (eventName: string, personName: string): boolean => {
   const person = new Set(foldName(personName).split(" "));
   return ev.length > 0 && ev.every((w) => person.has(w));
 };
+
+/** «3/6»: una sesión de paquete. «0/0» o sin contador, no. */
+export const isPackageCounter = (label: string | null | undefined): boolean => {
+  const m = label?.match(/^\s*(\d+)\s*\/\s*(\d+)\s*$/);
+  return Boolean(m && Number(m[2]) > 0);
+};
+
+/** El código de una reunión de Meet («abc-defg-hij») de su enlace, o null. */
+export const meetCode = (url: string | null | undefined): string | null =>
+  url?.match(/meet\.google\.com\/([a-z]{3}-[a-z]{4}-[a-z]{3})\b/i)?.[1]?.toLowerCase() ?? null;
 
 /** Una llamada gratis dura esto o menos; lo que pasa de aquí es una sesión. */
 export const FREE_CALL_MAX_MINUTES = 20;

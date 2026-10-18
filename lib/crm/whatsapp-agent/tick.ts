@@ -4,6 +4,8 @@ import { areRemindersEnabled, sendDueReminders, sendSoonReminders, syncAppointme
 import { sweepCallOutcomes } from "./call-outcome";
 import { answerUnansweredChats } from "./catch-up";
 import { runEventsClock } from "../events-clock";
+import { sweepSessionNoShows } from "./no-show";
+import { computeSegment } from "./segment-store";
 
 /**
  * El reloj que va pegado a los avisos de WhatsApp: los recordatorios no
@@ -34,6 +36,9 @@ import { runEventsClock } from "../events-clock";
  *   `/api/cron/eventos` y nunca corrió sin `CRON_SECRET` (16-oct: los
  *   recordatorios del webinar del 25 no iban a salir). 90 s por pasada: lo que
  *   no cabe sale en la siguiente.
+ * - cada 3 min: las sesiones pagadas sin asistir (`sweepSessionNoShows`: a los
+ *   12 min, si en Meet solo está Dayana, el mensaje para reagendar). Corto:
+ *   también en el stream.
  *
  * Los envíos reclaman cada cita antes de mandar, así que este reloj y la ruta
  * del cron nunca mandan el mismo recordatorio dos veces. Nunca lanza.
@@ -44,11 +49,13 @@ export const CLOCK_REMINDERS_KEY = "whatsapp.clock.reminders_at";
 export const CLOCK_FOLLOWUP_KEY = "whatsapp.clock.followup_at";
 export const CLOCK_PENDING_KEY = "whatsapp.clock.pending_at";
 export const CLOCK_EVENTS_KEY = "whatsapp.clock.events_at";
+export const CLOCK_NOSHOW_KEY = "whatsapp.clock.noshow_at";
 export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
 export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
 export const CLOCK_FOLLOWUP_EVERY_MS = 5 * 60_000;
 export const CLOCK_PENDING_EVERY_MS = 10 * 60_000;
 export const CLOCK_EVENTS_EVERY_MS = 10 * 60_000;
+export const CLOCK_NOSHOW_EVERY_MS = 3 * 60_000;
 
 /** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
 export const parseClockValue = (raw: string | null | undefined): number => {
@@ -101,6 +108,8 @@ export type ClockTickDeps = {
   pending?: () => Promise<unknown>;
   /** El reloj de los eventos (webinar gratuito y talleres). */
   events?: () => Promise<unknown>;
+  /** Las sesiones pagadas sin asistir (Meet). */
+  noShow?: (config: WhatsAppAiConfig) => Promise<unknown>;
   /**
    * Solo los pasos cortos (citas, recordatorios, seguimiento): el stream del
    * CRM puede cortarse en cualquier momento, y «pendientes» y «eventos»
@@ -120,14 +129,25 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
     // Primero una lectura (lo normal es que no toque nada); el turno solo se
     // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
     const rows = await prisma.siteSetting.findMany({
-      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY] } },
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY, CLOCK_NOSHOW_KEY] } },
       select: { key: true, value: true },
     });
     const due = (key: string, everyMs: number) =>
       clockSlotDue(parseClockValue(rows.find((r) => r.key === key)?.value), now.getTime(), everyMs);
 
     if (due(CLOCK_SYNC_KEY, CLOCK_SYNC_EVERY_MS) && (await claimClockSlot(CLOCK_SYNC_KEY, CLOCK_SYNC_EVERY_MS, now))) {
-      steps.push(await step("citas", deps.sync ?? (() => syncAppointments())));
+      steps.push(
+        await step(
+          "citas",
+          deps.sync ??
+            (async () => {
+              const r = await syncAppointments();
+              // Una sesión recién ligada por Meet la vuelve clienta: su estado al día ya.
+              for (const id of r.meetLinkedChats) await computeSegment(id).catch(() => null);
+              return r;
+            })
+        )
+      );
     }
     if (
       due(CLOCK_REMINDERS_KEY, CLOCK_REMINDERS_EVERY_MS) &&
@@ -152,6 +172,15 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
           const config = await getWhatsAppAiConfig();
           if (!config.callFollowUp.enabled) return { off: true };
           return (deps.followUp ?? ((c: WhatsAppAiConfig) => sweepCallOutcomes(c, now)))(config);
+        })
+      );
+    }
+    if (due(CLOCK_NOSHOW_KEY, CLOCK_NOSHOW_EVERY_MS) && (await claimClockSlot(CLOCK_NOSHOW_KEY, CLOCK_NOSHOW_EVERY_MS, now))) {
+      steps.push(
+        await step("sesiones sin asistir", async () => {
+          const config = await getWhatsAppAiConfig();
+          if (!config.noShow.enabled) return { off: true };
+          return (deps.noShow ?? ((c: WhatsAppAiConfig) => sweepSessionNoShows(c, now)))(config);
         })
       );
     }

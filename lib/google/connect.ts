@@ -52,7 +52,16 @@ export const SERVICE_SCOPES: Record<GoogleService, string[]> = {
   CALENDAR: ["https://www.googleapis.com/auth/calendar.events"],
   CONTACTS: ["https://www.googleapis.com/auth/contacts.readonly"],
   DRIVE: ["https://www.googleapis.com/auth/drive.file"],
+  // Quién entró a una reunión (el aviso de sesión sin asistir). Sensible.
+  MEET: ["https://www.googleapis.com/auth/meetings.space.readonly"],
 };
+
+/**
+ * Servicios que el token no pide salvo que se nombren: Meet llegó después y un
+ * permiso viejo no lo tiene, así que pedirlo por defecto dejaría sin token
+ * (y daría por caída) la cuenta del calendario hasta que se reconecte.
+ */
+const ON_REQUEST_ONLY: readonly GoogleService[] = ["MEET"];
 
 export const scopesForServices = (services: readonly GoogleService[]): string[] => [
   ...IDENTITY_SCOPES,
@@ -64,6 +73,7 @@ export const SERVICE_LABELS: Record<GoogleService, string> = {
   CALENDAR: "Calendario",
   CONTACTS: "Contactos",
   DRIVE: "Drive",
+  MEET: "Meet",
 };
 
 export class GoogleNotConfiguredError extends Error {
@@ -140,19 +150,28 @@ const needsReauthorization = (error: unknown): boolean =>
  * Pide solo los scopes de los servicios que esa cuenta tiene activados, no
  * todos: un token de Calendario no debería poder tocar Contactos.
  */
-export const getAccountToken = async (accountId: string): Promise<string> => {
+export const getAccountToken = async (
+  accountId: string,
+  /** Solo estos servicios (p. ej. `["MEET"]`); por defecto los de la cuenta menos Meet. */
+  only?: readonly GoogleService[]
+): Promise<string> => {
   const account = await prisma.googleAccount.findUnique({
     where: { id: accountId },
   });
   if (!account) throw new Error("La cuenta de Google no existe.");
   if (!account.isActive) throw new GoogleReauthorizationRequiredError(accountId);
 
+  const services = only
+    ? only.filter((s) => account.services.includes(s))
+    : account.services.filter((s) => !ON_REQUEST_ONLY.includes(s));
   try {
     return await getToken(requireConnector(), {
       subject: { type: "user", id: account.connectSubject },
-      scopes: scopesForServices(account.services),
+      scopes: scopesForServices(services),
     });
   } catch (error) {
+    // Sin el permiso de Meet la cuenta sigue sirviendo para lo demás: no se apaga.
+    if (needsReauthorization(error) && only?.every((s) => ON_REQUEST_ONLY.includes(s))) throw error;
     if (needsReauthorization(error)) {
       throw await markNeedsReauthorization(
         accountId,

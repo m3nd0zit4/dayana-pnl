@@ -11,7 +11,8 @@ import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "../whatsapp-ai-confi
 import { recipientFromContact, sendWhatsAppToRecipient, type RecipientInfo } from "../whatsapp-outbound";
 import { appointmentCoversUntil, appointmentJustLinked } from "../whatsapp-pending-rules";
 import { isAvailabilityBlock } from "./calendar";
-import { foldName, isFreeCallAppointment, nameMatches, parseEventTitle, withPhone } from "./event-title";
+import { trustedContactTimezone } from "./booking-time";
+import { foldName, isFreeCallAppointment, isPackageCounter, meetCode, nameMatches, parseEventTitle, withPhone } from "./event-title";
 import { freeCallReminderText, soonReminderDecision, soonReminderWindow } from "./free-call-reminder-rules";
 import { resolveConversations } from "./pending";
 import { getTimeLabelInTz, isValidIanaTimeZone } from "@/lib/datetime/zoned-time";
@@ -121,12 +122,58 @@ export type SyncResult = {
   cancelled: number;
   /** Chats pendientes que quedaron atendidos por una cita nueva o movida. */
   resolved: number;
+  /** Chats a los que se ligó una sesión por el enlace de Meet (su estado cambia). */
+  meetLinkedChats: string[];
+};
+
+/**
+ * Liga al chat las sesiones sin número cuyo enlace de Meet Dayana mandó a UNA
+ * sola persona en los últimos 60 días. Solo las que llevan contador de sesiones
+ * («3/6», «3.6»): una clase en grupo comparte enlace con muchos y no es de nadie.
+ */
+const linkSessionsByMeet = async (
+  eventIds: string[],
+  now: Date
+): Promise<{ conversationId: string; phone: string | null; contactId: string | null; startsAt: Date }[]> => {
+  if (eventIds.length === 0) return [];
+  const rows = await prisma.calendarAppointment.findMany({
+    where: { eventId: { in: eventIds }, status: "active", conversationId: null, meetUrl: { not: null }, phone: null },
+    select: { id: true, meetUrl: true, sessionsLabel: true, startsAt: true },
+  });
+  const byCode = new Map<string, typeof rows>();
+  for (const r of rows) {
+    if (!isPackageCounter(r.sessionsLabel)) continue;
+    const code = meetCode(r.meetUrl);
+    if (code) byCode.set(code, [...(byCode.get(code) ?? []), r]);
+  }
+  if (byCode.size === 0) return [];
+  const since = new Date(now.getTime() - 60 * DAY);
+  const hits = await prisma.$queryRaw<{ code: string; conversation_id: string; external_thread_id: string; contact_id: string | null }[]>`
+    SELECT k.code, MIN(c.id) AS conversation_id, MIN(c.external_thread_id) AS external_thread_id, MIN(c.contact_id) AS contact_id
+    FROM unnest(${[...byCode.keys()]}::text[]) AS k(code)
+    JOIN conversation_messages m
+      ON m.direction = 'OUTBOUND' AND m.sent_at > ${since} AND strpos(lower(m.body), k.code) > 0
+    JOIN conversations c ON c.id = m.conversation_id AND c.channel = 'WHATSAPP'
+    GROUP BY k.code
+    HAVING COUNT(DISTINCT c.id) = 1`;
+  const linked: { conversationId: string; phone: string | null; contactId: string | null; startsAt: Date }[] = [];
+  for (const h of hits) {
+    const phone = /^\d+$/.test(h.external_thread_id) ? h.external_thread_id : null;
+    for (const appt of byCode.get(h.code) ?? []) {
+      const done = await prisma.calendarAppointment.updateMany({
+        where: { id: appt.id, conversationId: null },
+        data: { conversationId: h.conversation_id, contactId: h.contact_id, phone, matchState: "meet", candidates: Prisma.DbNull },
+      });
+      if (done.count) linked.push({ conversationId: h.conversation_id, phone, contactId: h.contact_id, startsAt: appt.startsAt });
+    }
+  }
+  return linked;
 };
 
 export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult> => {
   const now = deps.now ?? new Date();
   const startedAt = new Date();
-  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0, resolved: 0 };
+  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0, resolved: 0, meetLinkedChats: [] };
   const toResolve: { conversationId: string | null; phone: string | null; contactId: string | null; until: Date }[] = [];
   let events = deps.events;
   let patchTitle = deps.patchTitle;
@@ -180,6 +227,12 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
       contactId = contactId ?? who.contactId;
       conversationId = conversationId ?? who.conversationId;
       matchState = parsed.phone ? "phone" : "auto";
+    } else if (existing?.matchState === "meet" && existing.conversationId) {
+      // Ligada por el enlace de Meet que Dayana le mandó (abajo): se queda así.
+      phone = existing.phone;
+      contactId = existing.contactId;
+      conversationId = existing.conversationId;
+      matchState = "meet";
     } else if (parsed.name) {
       const found = await findCandidatesByName(parsed.name);
       if (found.length === 1) {
@@ -250,6 +303,23 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
       toResolve.push({ conversationId, phone, contactId, until: appointmentCoversUntil(ev.updated, startedAt) });
     }
   }
+
+  // Sesiones de paquete escritas a mano, sin número («3.6 jesus terapia…»,
+  // 17-oct): se ligan al chat al que Dayana mandó la invitación con ese enlace
+  // de Meet. Sin eso Jesús, con 6 sesiones, figuraba como «no consta que haya
+  // comprado» y la IA le contestaba como a un interesado.
+  const meetLinked = await linkSessionsByMeet(seenIds, now).catch((e: unknown) => {
+    console.warn("[citas] no se pudo ligar por el enlace de Meet", e);
+    return [] as { conversationId: string; phone: string | null; contactId: string | null; startsAt: Date }[];
+  });
+  for (const m of meetLinked) {
+    result.linked++;
+    if (m.startsAt.getTime() > now.getTime()) {
+      toResolve.push({ conversationId: m.conversationId, phone: m.phone, contactId: m.contactId, until: startedAt });
+    }
+  }
+  // Su estado (clienta) lo recalcula quien llamó (`tick.ts`): segment-store usa este módulo.
+  result.meetLinkedChats = [...new Set(meetLinked.map((m) => m.conversationId))];
 
   // Lo que ya no está en el calendario (dentro de la ventana leída) se cancela.
   const gone = await prisma.calendarAppointment.updateMany({
@@ -356,6 +426,9 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
   const tz = await getOperationalTimezone();
 
   for (const appt of due) {
+    // Solo la llamada gratis (la dueña, 17-oct: «el recordatorio no es para
+    // los clientes»). Las sesiones las coordina Dayana con cada persona.
+    if (!isFreeCallAppointment(appt)) continue;
     // Reclamo: si otro proceso ya lo tomó, no se manda dos veces.
     const claimed = await prisma.calendarAppointment.updateMany({
       where: { id: appt.id, reminderSentAt: null },
@@ -370,7 +443,9 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
       optedOut: false,
     };
     const contactTz = appt.contactId
-      ? (await prisma.contact.findUnique({ where: { id: appt.contactId }, select: { timezone: true } }))?.timezone
+      ? trustedContactTimezone(
+          await prisma.contact.findUnique({ where: { id: appt.contactId }, select: { timezone: true, countryIso: true, phoneCountryIso: true } })
+        )
       : null;
     const zone = contactTz || tz;
     // La llamada gratis es por WhatsApp: no hay enlace que mandar.
@@ -436,9 +511,11 @@ const personZone = async (
     appt.conversationId
       ? prisma.whatsAppDossier.findUnique({ where: { conversationId: appt.conversationId }, select: { timezone: true } })
       : null,
-    appt.contactId ? prisma.contact.findUnique({ where: { id: appt.contactId }, select: { timezone: true } }) : null,
+    appt.contactId
+      ? prisma.contact.findUnique({ where: { id: appt.contactId }, select: { timezone: true, countryIso: true, phoneCountryIso: true } })
+      : null,
   ]);
-  return [dossier?.timezone, contact?.timezone].find((tz): tz is string => Boolean(tz && isValidIanaTimeZone(tz))) ?? fallback;
+  return [dossier?.timezone, trustedContactTimezone(contact)].find((tz): tz is string => Boolean(tz && isValidIanaTimeZone(tz))) ?? fallback;
 };
 
 export type SoonReminderResult = ReminderResult & {

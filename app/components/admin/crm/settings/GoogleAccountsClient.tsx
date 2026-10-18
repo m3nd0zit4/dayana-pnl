@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GoogleService } from "@prisma/client";
-import { CalendarDays, FolderOpen, Plus, Trash2, TriangleAlert, UsersRound } from "lucide-react";
+import { CalendarDays, FolderOpen, Plus, Trash2, TriangleAlert, UsersRound, Video } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/app/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
@@ -53,6 +53,12 @@ const SERVICES: {
     label: "Drive",
     description: "Subir archivos y compartirlos por enlace. No ve el Drive que ya existe.",
     Icon: FolderOpen,
+  },
+  {
+    id: "MEET",
+    label: "Meet",
+    description: "Ver quién entró a tus reuniones, para avisar a quien no llegó a su sesión. Solo lectura.",
+    Icon: Video,
   },
 ];
 

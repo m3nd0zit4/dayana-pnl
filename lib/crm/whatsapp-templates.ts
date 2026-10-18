@@ -242,6 +242,13 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     example: { nombre: "Ana", servicio: "sesión de terapia", fecha: "jueves 2 de octubre" },
   },
   {
+    key: "sesion_no_asistio",
+    title: "Sesión: no se conectó",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, Dayana te esperó en la sala para tu sesión de hoy a las {{hora}} y no alcanzaste a conectarte. Escríbele por aquí para reagendarla.",
+    example: { nombre: "Ana", hora: "7:00 p. m." },
+  },
+  {
     key: "comunidad_invitacion",
     title: "Comunidad: invitación",
     category: "MARKETING",

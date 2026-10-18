@@ -366,6 +366,65 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
       </SettingsGroup>
 
       <SettingsGroup
+        title="Si no entra a su sesión"
+        description="Sesiones pagadas con Meet: si a los minutos de empezar tú estás en la reunión y la persona no entró, le llega un mensaje para reagendar. Tú le confirmas la nueva hora."
+      >
+        <ToggleRow
+          id="wa-no-show"
+          label="Mandarle el mensaje para reagendar"
+          help={
+            <>
+              Se mira en Meet quién entró (nunca por lo que diga el chat). Necesita Meet activado en{" "}
+              <Link href="/admin/ajustes/google" className="font-medium underline">
+                Ajustes → Google
+              </Link>
+              ; sin eso no se manda nada.
+            </>
+          }
+          info="Una sola vez por sesión. Nunca para la llamada gratis. Si tú no estás en la reunión, no se manda. Fuera de las 24 h desde su último mensaje usa la plantilla «Sesión: no se conectó» (apruébala en Plantillas)."
+          state={states["wa-no-show"]}
+          checked={config.noShow.enabled}
+          onChange={(v) => change("wa-no-show", "noShow.enabled", v)}
+        />
+        <SettingRow
+          id="wa-no-show-minutes"
+          layout="row"
+          label="A los cuántos minutos"
+          help="Desde la hora de la sesión. Entre 5 y 30."
+          state={states["wa-no-show-minutes"]}
+        >
+          <NumberField
+            min={5}
+            max={30}
+            suffix="min"
+            value={config.noShow.afterMin}
+            disabled={!config.noShow.enabled}
+            invalid={states["wa-no-show-minutes"]?.status === "error"}
+            onChange={(v) => change("wa-no-show-minutes", "noShow.afterMin", v, TYPING_DELAY)}
+          />
+        </SettingRow>
+        <SettingRow
+          id="wa-no-show-message"
+          layout="stacked"
+          label="El mensaje"
+          help="{{nombre}} es su nombre (si no se sabe, se quita) y {{hora}} la hora de la sesión en su zona."
+          state={states["wa-no-show-message"]}
+        >
+          <Textarea
+            aria-label="Mensaje para quien no entró a su sesión"
+            defaultValue={config.noShow.message}
+            rows={3}
+            maxLength={600}
+            disabled={!config.noShow.enabled}
+            onChange={(e) => {
+              const message = e.target.value.trim();
+              if (message.length >= 10) change("wa-no-show-message", "noShow.message", message, TYPING_DELAY);
+            }}
+          />
+        </SettingRow>
+      </SettingsGroup>
+
+      <SettingsGroup
         title="Recordatorio de la llamada gratis"
         description="El mismo día, antes de la hora: que esté pendiente de tu llamada y tenga un espacio para hablar."
       >

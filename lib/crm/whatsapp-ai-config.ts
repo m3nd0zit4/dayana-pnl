@@ -4,6 +4,7 @@ import { WHATSAPP_COMMUNITY_URL } from "@/lib/contact";
 
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { clampReminderMinutes, DEFAULT_FREE_CALL_REMINDER } from "./whatsapp-agent/free-call-reminder-rules";
+import { DEFAULT_NO_SHOW_MESSAGE } from "./whatsapp-agent/no-show-rules";
 
 /**
  * Cómo se comporta la respuesta automática de WhatsApp. Todo se cambia desde
@@ -381,6 +382,18 @@ export const whatsAppAiConfigSchema = z.object({
     /** Con {{nombre}} y {{hora}}. Vacío = el texto de siempre. */
     message: z.string().trim().max(600).default(DEFAULT_FREE_CALL_REMINDER),
   }),
+  /**
+   * Sesión pagada sin asistir (`no-show.ts`, pedido de la dueña 17-oct): a los
+   * `afterMin` minutos de empezar, si Dayana está en la reunión de Meet y la
+   * persona no entró, un mensaje para reagendar. Solo con la API de Meet
+   * (Meet activado en la cuenta de Google del calendario): sin ella no sale.
+   */
+  noShow: z.object({
+    enabled: z.boolean().default(true),
+    afterMin: z.number().int().min(5).max(30).default(12),
+    /** Con {{nombre}} y {{hora}}. */
+    message: z.string().trim().max(600).default(DEFAULT_NO_SHOW_MESSAGE),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -442,6 +455,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
+  noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },
 });
 
 /**

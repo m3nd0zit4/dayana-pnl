@@ -8,12 +8,13 @@
  * reescriben los casos que tienen una salida concreta.
  */
 
-export type GoogleApiId = "calendar" | "people" | "drive";
+export type GoogleApiId = "calendar" | "people" | "drive" | "meet";
 
 const API_META: Record<GoogleApiId, { label: string; service: string }> = {
   calendar: { label: "Google Calendar", service: "calendar-json.googleapis.com" },
   people: { label: "Google People (Contactos)", service: "people.googleapis.com" },
   drive: { label: "Google Drive", service: "drive.googleapis.com" },
+  meet: { label: "Google Meet", service: "meet.googleapis.com" },
 };
 
 export class GoogleApiError extends Error {

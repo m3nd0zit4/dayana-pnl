@@ -155,6 +155,8 @@ enum GoogleService {
   CALENDAR
   CONTACTS
   DRIVE
+  /// Solo lectura de las reuniones (quién entró): el aviso de sesión sin asistir.
+  MEET
 }
 
 /// Red social conectada para publicar contenido.
@@ -2435,6 +2437,10 @@ model CalendarAppointment {
   /// está terminando una reunión» / «ya le aviso» y cuándo (máx. 2 por cita).
   waitNoticeCount   Int       @default(0) @map("wait_notice_count")
   waitNoticeAt      DateTime? @map("wait_notice_at")
+  /// Sesión pagada con Meet a la que la persona no entró (`no-show.ts`, la API
+  /// de Meet): joined | sent | dayana_absent | failed | error. Nulo = sin decidir.
+  noShowState       String?   @map("no_show_state")
+  noShowAt          DateTime? @map("no_show_at")
   /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).
   /// WhatsApp no avisa de las llamadas del celular: se deduce del chat o se le pregunta a la persona.
   callOutcome       String?   @map("call_outcome")

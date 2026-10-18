@@ -109,13 +109,14 @@ const main = async () => {
     update: { metaApprovalStatus: "APPROVED" },
   });
   const r2 = await sendDueReminders();
-  check("salen 2 recordatorios (Laura y Pedro; Ana es en 48 h)", r2.sent === 2, r2);
+  // Solo la llamada gratis (la dueña, 17-oct: «el recordatorio no es para los clientes»).
+  check("sale 1 recordatorio: Pedro (llamada gratis); Laura es una sesión 3/6 y Ana es en 48 h", r2.sent === 1, r2);
   const r3 = await sendDueReminders();
   check("una segunda pasada no manda nada", r3.sent === 0 && r3.failed === 0, r3);
   const pedroMsg = await prisma.conversationMessage.findFirst({ where: { source: `recordatorio:${events[2].id}` } });
   check("Pedro (escribió hace poco) lo recibe como texto", Boolean(pedroMsg?.body?.includes("Te recuerdo")), pedroMsg?.body);
   const lauraMsg = await prisma.conversationMessage.findFirst({ where: { source: `recordatorio:${events[0].id}` } });
-  check("Laura (nunca escribió) lo recibe con la plantilla", Boolean(lauraMsg?.body?.startsWith("Hola Laurita, te recuerdo tu cita")), lauraMsg?.body);
+  check("Laura (sesión de paquete) no recibe recordatorio", !lauraMsg, lauraMsg?.body);
 
   console.log("\n4. Si la cita desaparece del calendario, se cancela");
   const r4 = await syncAppointments({ events: [events[2]], patchTitle });
