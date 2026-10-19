@@ -21,6 +21,13 @@ describe("decideWaiting", () => {
     expect(decideWaiting({ ...base, now: min(1) }).kind).toBe("not_started");
   });
 
+  test("Fernanda (19-oct): la llamada ya se marcó «No contestó» y se le mandaron horas: nada, la IA contesta (agenda)", () => {
+    const decided = { ...free, callOutcome: "no_answer", rescheduleSentAt: min(19) };
+    const d = decideWaiting({ ...base, appointment: decided, now: min(25) });
+    expect(d).toEqual({ kind: "none", reason: "la llamada ya se decidió" });
+    expect(decideWaiting({ ...base, appointment: { ...free, callOutcome: "answered" }, now: min(5) }).kind).toBe("none");
+  });
+
   test("Dayana ya le escribió: está con ella, nada", () => {
     expect(decideWaiting({ ...base, now: min(2), busy: [{ start: min(-60), end: min(10) }], lastDayanaAt: min(-1) }).kind).toBe("none");
   });

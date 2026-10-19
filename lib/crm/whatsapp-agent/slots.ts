@@ -41,6 +41,9 @@ const minutesToHm = (total: number): string =>
 /** Paso entre inicios posibles: cada media hora, o cada cita si es más corta. */
 const stepMinutes = (duration: number): number => Math.min(30, duration);
 
+/** Lo primero que se puede ofrecer después de algo ocupado: fin + respiro, redondeado a 5 minutos. */
+const afterBusyStart = (endMs: number, bufferMin: number): number => Math.ceil((endMs + bufferMin * MINUTE) / (5 * MINUTE)) * 5 * MINUTE;
+
 export const overlapsBusy = (
   startMs: number,
   endMs: number,
@@ -94,7 +97,11 @@ export const findFreeSlots = (input: {
   if (input.windows && input.windows.length > 0) {
     const sorted = [...input.windows].sort((a, b) => a.start - b.start);
     for (const w of sorted) {
-      for (let t = w.start; t + durationMin * MINUTE <= w.end && slots.length < limit; t += step * MINUTE) {
+      const grid: number[] = [];
+      for (let t = w.start; t + durationMin * MINUTE <= w.end; t += step * MINUTE) grid.push(t);
+      const extra = busy.map((b) => afterBusyStart(b.end, config.bufferMin)).filter((t) => t > w.start && t + durationMin * MINUTE <= w.end);
+      for (const t of [...new Set([...grid, ...extra])].sort((a, b) => a - b)) {
+        if (slots.length >= limit) break;
         const endMs = t + durationMin * MINUTE;
         if (t < earliest || endMs > latest) continue;
         if (overlapsBusy(t, endMs, busy, config.bufferMin)) continue;
@@ -121,8 +128,18 @@ export const findFreeSlots = (input: {
     const ranges = [...(byWeekday.get(weekday) ?? [])].sort(
       (a, b) => a.from - b.from
     );
+    // Además de la cuadrícula, justo después de cada cita + el respiro (19-oct:
+    // Dayana bajó «Respiro entre citas» a 7 min y se seguían ofreciendo las de
+    // cada 15: tras una llamada de 12:00 a 12:15, las 12:30 y no las 12:25).
+    const afterBusy = busy
+      .map((b) => new Date(afterBusyStart(b.end, config.bufferMin)))
+      .filter((d) => getDateKeyInTz(d, timezone) === dateKey)
+      .map((d) => hmToMinutes(getTimeHmInTz(d, timezone)));
     for (const range of ranges) {
-      for (let m = range.from; m + durationMin <= range.to; m += step) {
+      const grid: number[] = [];
+      for (let m = range.from; m + durationMin <= range.to; m += step) grid.push(m);
+      const starts = [...new Set([...grid, ...afterBusy.filter((m) => m > range.from && m + durationMin <= range.to)])].sort((a, b) => a - b);
+      for (const m of starts) {
         let start: Date;
         try {
           start = zonedDateTimeToUtc(dateKey, minutesToHm(m), timezone);

@@ -97,7 +97,14 @@ const noticeFor = async (input: {
   const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true } });
   const decision = decideWaiting({
     now: input.now,
-    appointment: { startsAt: appt.startsAt, endsAt: appt.endsAt, sessionsLabel: appt.sessionsLabel, bookingService: booking?.service ?? null },
+    appointment: {
+      startsAt: appt.startsAt,
+      endsAt: appt.endsAt,
+      sessionsLabel: appt.sessionsLabel,
+      bookingService: booking?.service ?? null,
+      callOutcome: appt.callOutcome,
+      rescheduleSentAt: appt.rescheduleSentAt,
+    },
     busy: (await busyAround(input.config, input.now, appt.id)).filter((b) => b.start.getTime() !== appt.startsAt.getTime()),
     lastDayanaAt: await lastDayanaMessage(input.conversationId),
     notices: { count: appt.waitNoticeCount, lastAt: appt.waitNoticeAt },

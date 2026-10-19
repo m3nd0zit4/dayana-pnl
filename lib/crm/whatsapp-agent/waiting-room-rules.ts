@@ -36,6 +36,10 @@ export type WaitingAppointment = {
   endsAt: Date;
   sessionsLabel: string | null;
   bookingService?: string | null;
+  /** Ya se sabe cómo terminó (Dayana marcó «Hablaron» / «No contestó», o el chat lo dijo). */
+  callOutcome?: string | null;
+  /** Ya se le mandó el mensaje para reagendar. */
+  rescheduleSentAt?: Date | null;
 };
 
 export type WaitingDecision =
@@ -58,6 +62,10 @@ export const decideWaiting = (input: {
   const a = input.appointment;
   if (!a) return { kind: "none", reason: "sin cita cerca" };
   if (!isFreeCallAppointment(a)) return { kind: "none", reason: "no es la llamada gratis" };
+  // La llamada ya pasó (Fernanda, 19-oct: Dayana marcó «No contestó», le
+  // llegaron horas para reagendar, eligió «22 de octubre» y recibió «ya le
+  // aviso a Dayana. En un momento te llama»): la IA contesta como siempre.
+  if (a.callOutcome || a.rescheduleSentAt) return { kind: "none", reason: "la llamada ya se decidió" };
 
   const now = input.now.getTime();
   const start = a.startsAt.getTime();

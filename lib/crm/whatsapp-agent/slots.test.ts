@@ -54,9 +54,18 @@ describe("findFreeSlots", () => {
     })
       .filter((s) => s.dateKey === "2026-09-28")
       .map((s) => s.time);
-    // 09:00–10:00 + 15 min de respiro choca con las 10:00; 10:30 termina a
-    // las 11:30, pero el respiro de antes pisa el ocupado; 11:00 es la primera.
-    expect(times).toEqual(["11:00"]);
+    // 09:00–10:00 + 15 min de respiro choca con las 10:00; 10:30 + 15 min de
+    // respiro = 10:45, la primera (19-oct: también justo después de lo ocupado).
+    expect(times).toEqual(["10:45", "11:00"]);
+  });
+
+  test("respiro de 7 min (Dayana, 19-oct): después de una llamada de 12:00 a 12:15, las 12:25", () => {
+    const busy: Busy[] = [{ start: at("2026-09-28T17:00:00Z"), end: at("2026-09-28T17:15:00Z") }];
+    const times = findFreeSlots({ config: { ...config, bufferMin: 7, hours: [{ weekday: 1, from: "08:00", to: "18:00" }] }, durationMin: 15, busy, timezone: TZ, now: monday6am, limit: 200 })
+      .filter((s) => s.dateKey === "2026-09-28" && s.time >= "11:30" && s.time <= "12:45")
+      .map((s) => s.time);
+    // 11:45 + 15 + 7 > 12:00 choca; 12:00 ocupado; 12:15 + 7 = 12:22 → 12:25.
+    expect(times).toEqual(["11:30", "12:25", "12:30", "12:45"]);
   });
 
   test("salta los fines de semana", () => {
@@ -129,7 +138,8 @@ describe("findFreeSlots con bloques Disponible", () => {
       { start: at("2026-09-30T20:00:00Z"), end: at("2026-09-30T20:30:00Z") },
     ];
     const slots = findFreeSlots({ config: ownerHours, durationMin: 60, busy, windows, timezone: TZ, now: monday6am });
-    expect(slots.map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-09-30 16:00"]);
+    // 15:30 + 15 min de respiro = 15:45 (justo después de lo ocupado) y 16:00.
+    expect(slots.map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-09-30 15:45", "2026-09-30 16:00"]);
   });
 
   test("un bloque Disponible no abre horas fuera del horario de Ajustes", () => {
