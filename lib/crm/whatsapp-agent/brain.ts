@@ -25,6 +25,16 @@ import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
+import {
+  URGENT_SESSION_REPLY,
+  offersUrgentSession,
+  urgencyInsisted,
+  urgentLinkSent,
+  urgentSessionAfter,
+  urgentSessionPath,
+  urgentSessionRules,
+  withoutFakeLinks,
+} from "./urgent-session";
 import { personFullName } from "@/lib/person-name";
 import { fixNameInReply, resolvePersonName, type NameMessage, type NameResolution } from "@/lib/sure-name";
 import { phoneFromWhatsAppId } from "@/lib/phone";
@@ -105,6 +115,8 @@ export type BrainResult = {
   paymentBlocks: { details: string[]; link: string | null };
   /** Otros enlaces que van debajo del mensaje: la comunidad, el curso. */
   linkBlocks: string[];
+  /** Mandó el enlace de la sesión urgente (`urgent-session.ts`): Dayana recibe el aviso para agendarla. */
+  urgentSession: { reason: string; asks: string[] } | null;
   /** La persona mandó un comprobante (o dijo que pagó): queda por confirmar para Dayana. */
   receipt: {
     summary: string;
@@ -566,7 +578,7 @@ ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya 
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 ${paymentRules(config)}
-${communityRules(config)}
+${communityRules(config)}${opts.clientMode ? "" : urgentSessionRules(config)}
 Llama a escalate cuando (la persona nunca se queda sin respuesta: en holdingReply escribe el aviso corto que recibe ahora, p. ej. «Déjame consultarlo con Dayana y te confirmo por aquí»):
 - category=payment: insiste en saber el precio, pide un descuento, un reembolso o una factura, o reclama un cobro que no reconoce.
 - category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen que no sabes interpretar, un audio marcado «(inaudible)»).
@@ -578,9 +590,13 @@ ${clinicalRule}
 
 ${IDENTITY[config.identity]}
 
-LÍMITES (amable, pero con límites): nunca prometas que Dayana llama, escribe o atiende «hoy», «ya» o a una hora que no salió de la agenda; nunca digas que una cita quedó confirmada o agendada si no la agendaste con la herramienta; nunca ofrezcas espacios, sesiones ni ayuda gratis aparte de la llamada gratis de 15 minutos (una por persona), ni favores. Si piden algo urgente o «para hoy», dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí según su agenda. Si una herramienta de agenda falla o no te da horas, no escribas horarios.
+LÍMITES (amable, pero con límites): nunca prometas que Dayana llama, escribe o atiende «hoy», «ya» o a una hora que no salió de la agenda; nunca digas que una cita quedó confirmada o agendada si no la agendaste con la herramienta; nunca ofrezcas espacios, sesiones ni ayuda gratis aparte de la llamada gratis de 15 minutos (una por persona), ni favores. ${
+      !opts.clientMode && urgentSessionPath(config)
+        ? "Si piden algo urgente o «para hoy», ofrécele las horas que dé la agenda; si insiste después de eso, sigue SESIÓN URGENTE."
+        : "Si piden algo urgente o «para hoy», dile con calidez que le pasas su mensaje a Dayana y que ella le responde por aquí según su agenda."
+    } Si una herramienta de agenda falla o no te da horas, no escribas horarios.
 
-Prohibido siempre: dar precios o valores de cualquier tipo, escribir tú un número de cuenta o un enlace de pago (solo con send_payment_info / send_payment_link), dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios, enlaces, grabaciones o grupos, confirmar tú un pago (lo confirma Dayana), pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
+Prohibido siempre: dar precios o valores de cualquier tipo, escribir tú un número de cuenta o un enlace de pago (solo con send_payment_info / send_payment_link / send_urgent_session_link), dar consejo clínico o diagnóstico, prometer resultados, inventar fechas, horarios, enlaces, grabaciones o grupos, confirmar tú un pago (lo confirma Dayana), pedir datos de tarjeta o contraseñas, hablar de otra cosa que no sea este negocio.
 
 Tu respuesta final (si no escalas) es EXACTAMENTE el mensaje de WhatsApp que se envía, sin comillas ni explicaciones. Formato de WhatsApp: negrita con *un asterisco*, nunca **dos**, ni títulos con #, ni tablas.`,
   ];
@@ -763,6 +779,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     paymentDetails: string[];
     paymentLink: string | null;
     links: string[];
+    urgentSession: BrainResult["urgentSession"];
     receipt: BrainResult["receipt"];
   } = {
     outcome: null,
@@ -778,6 +795,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     paymentDetails: [],
     paymentLink: null,
     links: [],
+    urgentSession: null,
     receipt: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
@@ -913,6 +931,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // La comunidad y lo más económico: el enlace lo pega el código, como los datos de pago.
   const community = communityLink(config);
   const options = affordableOptions(config);
+  const urgentPath = input.clientMode ? null : urgentSessionPath(config);
   const addLink = (url: string) => {
     if (!state.links.includes(url)) state.links.push(url);
   };
@@ -942,6 +961,40 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (!o) return log("send_affordable_option", { option }, { ok: false, reason: "No existe esa opción." });
               addLink(absoluteUrl(o.url));
               return log("send_affordable_option", { option }, { ok: true, label: o.label, note: "El enlace va debajo de tu mensaje: no lo escribas ni digas el precio." });
+            },
+          }),
+        }
+      : {}),
+    ...(urgentPath
+      ? {
+          send_urgent_session_link: tool({
+            description:
+              "Manda, debajo de tu mensaje, el enlace de pago de la sesión privada de 1 hora con Dayana por Google Meet y que, en cuanto pague, Dayana la agenda para hoy o mañana. Solo si insiste en hablar con Dayana hoy o ya: lo pidió, le dijiste que hoy no hay espacio o le ofreciste otros días, y vuelve a pedirlo. Nunca digas el precio.",
+            inputSchema: z.object({
+              motivo: z.string().max(200).describe("Para Dayana, en una línea: por qué es urgente, con sus palabras."),
+            }),
+            execute: async ({ motivo }) => {
+              const url = absoluteUrl(urgentPath);
+              if (urgentLinkSent(input.transcript, url)) {
+                return log("send_urgent_session_link", { motivo }, {
+                  ok: false,
+                  reason: "Ya se lo mandaste: no lo repitas. Recuérdale con calidez que en cuanto pague, Dayana se la agenda.",
+                });
+              }
+              const check = urgencyInsisted(input.transcript);
+              if (!check.insisted) {
+                return log("send_urgent_session_link", { motivo }, {
+                  ok: false,
+                  reason: "Todavía no insistió: ofrécele las horas de la llamada gratis (offer_free_call_slots) o pregúntale qué le pasa. La sesión urgente es solo si vuelve a pedir hablar hoy después de eso.",
+                });
+              }
+              addLink(url);
+              addLink(urgentSessionAfter(config));
+              state.urgentSession = { reason: motivo, asks: check.asks };
+              return log("send_urgent_session_link", { motivo }, {
+                ok: true,
+                note: "El enlace y el siguiente paso van debajo de tu mensaje y Dayana ya recibe el aviso: no escales. Contesta corto, sin escribir el enlace, el precio ni «hoy mismo».",
+              });
             },
           }),
         }
@@ -1506,7 +1559,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stopWhen: [isStepCount(6), hasToolCall("escalate")],
   });
 
-  const outcome: BrainOutcome =
+  const modelOutcome: BrainOutcome =
     state.outcome ??
     (result.text.trim()
       ? { kind: "reply", message: toWhatsAppFormat(result.text).slice(0, 1500) }
@@ -1516,9 +1569,31 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           severity: "normal",
           reason: "El asistente no supo qué contestar.",
         });
+  // Mandó el enlace de la sesión urgente y aun así escaló («para que Dayana
+  // agende»): Dayana ya recibe el aviso, la persona recibe la oferta. Una
+  // crisis sí se escala.
+  const outcome: BrainOutcome =
+    modelOutcome.kind === "escalate" && state.urgentSession && modelOutcome.category !== "clinical" && modelOutcome.severity !== "urgent"
+      ? { kind: "reply", message: URGENT_SESSION_REPLY }
+      : modelOutcome;
+  // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
+  // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
+  // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
+  // inventado junto al de verdad.
+  if (outcome.kind === "reply" && urgentPath && !state.urgentSession && offersUrgentSession(outcome.message)) {
+    const url = absoluteUrl(urgentPath);
+    const check = urgencyInsisted(input.transcript);
+    if (check.insisted && !urgentLinkSent(input.transcript, url)) {
+      addLink(url);
+      addLink(urgentSessionAfter(config));
+      state.urgentSession = { reason: "Insistió en hablar contigo hoy.", asks: check.asks };
+      log("send_urgent_session_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta ofrecía la sesión sin la herramienta." });
+    }
+  }
+  const replyText = (message: string) => (state.urgentSession ? withoutFakeLinks(message) || message : message);
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
-  const finalOutcome: BrainOutcome = outcome.kind === "reply" ? { ...outcome, message: named(outcome.message)! } : outcome;
+  const finalOutcome: BrainOutcome = outcome.kind === "reply" ? { ...outcome, message: named(replyText(outcome.message))! } : outcome;
 
   return {
     outcome: finalOutcome,
@@ -1534,6 +1609,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     holdingReply: finalOutcome.kind === "escalate" ? named(state.holdingReply) : null,
     paymentBlocks: finalOutcome.kind === "reply" ? { details: state.paymentDetails, link: state.paymentLink } : { details: [], link: null },
     linkBlocks: finalOutcome.kind === "reply" ? state.links : [],
+    urgentSession: finalOutcome.kind === "reply" ? state.urgentSession : null,
     receipt: state.receipt,
     model: modelId(),
     usage: {

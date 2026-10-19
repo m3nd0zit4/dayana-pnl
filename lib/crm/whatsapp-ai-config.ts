@@ -5,6 +5,7 @@ import { WHATSAPP_COMMUNITY_URL } from "@/lib/contact";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { clampReminderMinutes, DEFAULT_FREE_CALL_REMINDER } from "./whatsapp-agent/free-call-reminder-rules";
 import { DEFAULT_NO_SHOW_MESSAGE } from "./whatsapp-agent/no-show-rules";
+import { DEFAULT_URGENT_SESSION_AFTER, DEFAULT_URGENT_SESSION_URL } from "./whatsapp-agent/urgent-session";
 
 /**
  * Cómo se comporta la respuesta automática de WhatsApp. Todo se cambia desde
@@ -394,6 +395,28 @@ export const whatsAppAiConfigSchema = z.object({
     /** Con {{nombre}} y {{hora}}. */
     message: z.string().trim().max(600).default(DEFAULT_NO_SHOW_MESSAGE),
   }),
+  /**
+   * Te esperan en la sala (`session-arrival.ts`, pedido de la dueña 19-oct):
+   * a la hora de una sesión pagada con Meet, un aviso al celular de Dayana
+   * cuando la persona ya entró a la reunión (API de Meet) o escribe que está
+   * esperando («ya estoy en la sala», «no me deja entrar»). No le escribe nada
+   * a la persona.
+   */
+  sessionArrival: z.object({
+    enabled: z.boolean().default(true),
+  }),
+  /**
+   * La sesión urgente (`urgent-session.ts`, pedido de la dueña 19-oct): a quien
+   * insiste en hablar con Dayana hoy, el enlace de pago de la sesión privada de
+   * 1 hora; Dayana la agenda para hoy o mañana en cuanto pague. `url` puede ser
+   * una ruta del sitio.
+   */
+  urgentSession: z.object({
+    enabled: z.boolean().default(true),
+    url: z.string().trim().min(2).max(300).default(DEFAULT_URGENT_SESSION_URL),
+    /** Lo que va debajo del enlace. */
+    afterPayment: z.string().trim().max(300).default(DEFAULT_URGENT_SESSION_AFTER),
+  }),
 });
 
 export type WhatsAppAiConfig = z.infer<typeof whatsAppAiConfigSchema>;
@@ -456,6 +479,8 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
   noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },
+  sessionArrival: { enabled: true },
+  urgentSession: { enabled: true, url: DEFAULT_URGENT_SESSION_URL, afterPayment: DEFAULT_URGENT_SESSION_AFTER },
 });
 
 /**

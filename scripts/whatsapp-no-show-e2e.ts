@@ -116,7 +116,7 @@ const main = async () => {
     const cfg = { ...config, noShow: { ...config.noShow, enabled: true, afterMin: 12 } };
     const r1 = await sweepSessionNoShows(cfg);
     check("sale un mensaje (Jesús) y la otra persona sí entró", r1.sent === 1 && r1.joined === 1 && sent.length === 1, { r1, sent });
-    check("es para reagendar, con la hora", /reagendar/i.test(sent[0]?.text ?? "") && /p\.\sm\./.test(sent[0]?.text ?? ""), sent[0]);
+    check("es para reagendar, con la hora", /reagendar/i.test(sent[0]?.text ?? "") && /[ap]\.\sm\./.test(sent[0]?.text ?? ""), sent[0]);
     check("queda marcado una sola vez", (await row("now")).noShowState === "sent" && (await row("joined")).noShowState === "joined");
     check("el del grupo (sin chat) no se mira", (await row("group")).noShowState === null);
     const r2 = await sweepSessionNoShows(cfg);

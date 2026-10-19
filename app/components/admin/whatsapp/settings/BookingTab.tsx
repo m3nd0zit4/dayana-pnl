@@ -366,6 +366,29 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
       </SettingsGroup>
 
       <SettingsGroup
+        title="Te esperan en la sala"
+        description="Sesiones pagadas con Meet: un aviso a tu celular, con su nombre, cuando la persona ya entró a la reunión y tú todavía no, o cuando escribe que está esperando o que no la dejan entrar."
+      >
+        <ToggleRow
+          id="wa-session-arrival"
+          label="Avisarme cuando me esperan"
+          help={
+            <>
+              Lo de Meet necesita Meet activado en{" "}
+              <Link href="/admin/ajustes/google" className="font-medium underline">
+                Ajustes → Google
+              </Link>
+              ; lo que escriba por el chat («ya estoy en la sala», «no me deja entrar») avisa siempre.
+            </>
+          }
+          info="Desde 15 minutos antes hasta 45 minutos después de la hora. Google no avisa de quien pide permiso para entrar: eso solo se sabe si lo escribe. A la persona no se le manda nada. Para que suene en tu celular, activa los avisos desde ese celular en la pestaña «Avisos»."
+          state={states["wa-session-arrival"]}
+          checked={config.sessionArrival.enabled}
+          onChange={(v) => change("wa-session-arrival", "sessionArrival.enabled", v)}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup
         title="Si no entra a su sesión"
         description="Sesiones pagadas con Meet: si a los minutos de empezar tú estás en la reunión y la persona no entró, le llega un mensaje para reagendar. Tú le confirmas la nueva hora."
       >

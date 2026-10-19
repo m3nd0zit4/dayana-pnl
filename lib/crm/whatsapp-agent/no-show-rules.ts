@@ -33,7 +33,8 @@ export type NoShowStep =
 
 export type DayanaIdentity = { id: string | null; name: string | null };
 
-const isDayana = (p: MeetConference["participants"][number], me: DayanaIdentity) =>
+/** ¿Ese participante de Meet es Dayana (su cuenta, o su nombre si no hay cuenta)? */
+export const isDayana = (p: MeetConference["participants"][number], me: DayanaIdentity) =>
   (me.id != null && p.user === `users/${me.id}`) || (me.name != null && p.displayName != null && foldName(p.displayName) === foldName(me.name));
 
 export const noShowStep = (input: {

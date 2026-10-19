@@ -886,6 +886,24 @@ export const runWhatsAppAi = async (input: {
       await closeAttention(conversationId, { by: "ai" }).catch((e: unknown) =>
         console.warn("[whatsapp-agent] no se pudo cerrar «Te toca»", e)
       );
+      // Le mandó el enlace de la sesión urgente: Dayana la agenda en cuanto pague.
+      if (result.urgentSession) {
+        const u = result.urgentSession;
+        fireNotification({
+          eventType: "WHATSAPP_AI_ESCALATED",
+          title: `Sesión urgente: ${name ?? conversation.participantName ?? `+${phone}`} quiere hablar contigo hoy`,
+          body: [
+            u.asks.length ? `Insistió: «${u.asks.join(" · ")}».` : u.reason,
+            "Le mandé el enlace de pago de la sesión de 1 hora; cuando pague, agéndala para hoy o mañana.",
+          ]
+            .join(" ")
+            .slice(0, 300),
+          href: `/admin/whatsapp?conversation=${conversationId}`,
+          entityType: "Conversation",
+          entityId: conversationId,
+          staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
+        });
+      }
     }
 
     // Quiere agendar: Dayana recibe el aviso (suena) para que agende y

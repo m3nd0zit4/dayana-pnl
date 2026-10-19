@@ -550,6 +550,19 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: WRITE_ROLES,
   },
+  // Alguien espera en la sala de Meet ahora: suena en el celular. Sin correo:
+  // cuando se lea, la sesión ya empezó.
+  WHATSAPP_SESSION_WAITING: {
+    label: "WhatsApp: te esperan en tu sesión",
+    description: "A la hora de una sesión con Meet: la persona ya entró a la sala o escribió que está esperando.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: WRITE_ROLES,
+    immediate: true,
+  },
 };
 
 const ALL_EVENT_TYPES = Object.keys(

@@ -526,6 +526,17 @@ export const processNormalizedEvent = async (
     // el catálogo del CRM, y la mayoría de los eventos de Meta (acuses, ecos,
     // Instagram) no lo necesitan. Nunca lanza hacia fuera.
     if (event.channel === "WHATSAPP") {
+      // «Ya estoy en la sala», «no me deja entrar» a la hora de su sesión con
+      // Meet: Dayana recibe el aviso ya (Google no avisa de quien pide entrar).
+      if (event.body) {
+        const { saysWaitingInRoom } = await import("@/lib/crm/whatsapp-agent/session-arrival-rules");
+        if (saysWaitingInRoom(event.body)) {
+          const { notifyWaitingFromChat } = await import("@/lib/crm/whatsapp-agent/session-arrival");
+          await notifyWaitingFromChat({ conversationId: result.conversationId, text: event.body, sentAt: event.sentAt }).catch((e: unknown) =>
+            console.warn("[meta] no se pudo avisar que la esperan en la sala", e)
+          );
+        }
+      }
       // «Stop», «no me escribas más»: no vuelve a recibir envíos del CRM.
       const { isOptOutMessage } = await import("@/lib/crm/whatsapp-outbound-plan");
       if (isOptOutMessage(event.body)) {

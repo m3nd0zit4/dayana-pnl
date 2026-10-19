@@ -254,6 +254,7 @@ enum NotificationEventType {
   WHATSAPP_AI_BOOKED
   WHATSAPP_AI_APPROVAL
   WHATSAPP_AI_INFO
+  WHATSAPP_SESSION_WAITING
   CAMPAIGN_COMPLETED
   NOTIFICATION_DELIVERY_FAILED
   SYSTEM_ALERT
@@ -2441,6 +2442,11 @@ model CalendarAppointment {
   /// de Meet): joined | sent | dayana_absent | failed | error. Nulo = sin decidir.
   noShowState       String?   @map("no_show_state")
   noShowAt          DateTime? @map("no_show_at")
+  /// Te esperan en la sala (`session-arrival.ts`): cuándo se le avisó a Dayana
+  /// y por qué: meet (la persona entró y Dayana no) | chat (escribió que está
+  /// esperando) | dayana_in (Dayana ya estaba: no hizo falta).
+  arrivalNotifiedAt DateTime? @map("arrival_notified_at")
+  arrivalSource     String?   @map("arrival_source")
   /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).
   /// WhatsApp no avisa de las llamadas del celular: se deduce del chat o se le pregunta a la persona.
   callOutcome       String?   @map("call_outcome")

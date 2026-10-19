@@ -5,6 +5,7 @@ import { sweepCallOutcomes } from "./call-outcome";
 import { answerUnansweredChats } from "./catch-up";
 import { runEventsClock } from "../events-clock";
 import { sweepSessionNoShows } from "./no-show";
+import { sweepSessionArrivals } from "./session-arrival";
 import { computeSegment } from "./segment-store";
 
 /**
@@ -39,6 +40,10 @@ import { computeSegment } from "./segment-store";
  * - cada 3 min: las sesiones pagadas sin asistir (`sweepSessionNoShows`: a los
  *   12 min, si en Meet solo está Dayana, el mensaje para reagendar). Corto:
  *   también en el stream.
+ * - cada minuto: te esperan en la sala (`sweepSessionArrivals`: a la hora de
+ *   una sesión con Meet, si la persona entró y Dayana no, un aviso a su
+ *   celular). Solo consulta Meet si hay una sesión en su hora. Corto: también
+ *   en el stream.
  *
  * Los envíos reclaman cada cita antes de mandar, así que este reloj y la ruta
  * del cron nunca mandan el mismo recordatorio dos veces. Nunca lanza.
@@ -50,12 +55,14 @@ export const CLOCK_FOLLOWUP_KEY = "whatsapp.clock.followup_at";
 export const CLOCK_PENDING_KEY = "whatsapp.clock.pending_at";
 export const CLOCK_EVENTS_KEY = "whatsapp.clock.events_at";
 export const CLOCK_NOSHOW_KEY = "whatsapp.clock.noshow_at";
+export const CLOCK_ARRIVAL_KEY = "whatsapp.clock.arrival_at";
 export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
 export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
 export const CLOCK_FOLLOWUP_EVERY_MS = 5 * 60_000;
 export const CLOCK_PENDING_EVERY_MS = 10 * 60_000;
 export const CLOCK_EVENTS_EVERY_MS = 10 * 60_000;
 export const CLOCK_NOSHOW_EVERY_MS = 3 * 60_000;
+export const CLOCK_ARRIVAL_EVERY_MS = 60_000;
 
 /** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
 export const parseClockValue = (raw: string | null | undefined): number => {
@@ -110,6 +117,8 @@ export type ClockTickDeps = {
   events?: () => Promise<unknown>;
   /** Las sesiones pagadas sin asistir (Meet). */
   noShow?: (config: WhatsAppAiConfig) => Promise<unknown>;
+  /** Te esperan en la sala (Meet). */
+  arrival?: (config: WhatsAppAiConfig) => Promise<unknown>;
   /**
    * Solo los pasos cortos (citas, recordatorios, seguimiento): el stream del
    * CRM puede cortarse en cualquier momento, y «pendientes» y «eventos»
@@ -129,7 +138,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
     // Primero una lectura (lo normal es que no toque nada); el turno solo se
     // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
     const rows = await prisma.siteSetting.findMany({
-      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY, CLOCK_NOSHOW_KEY] } },
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY, CLOCK_NOSHOW_KEY, CLOCK_ARRIVAL_KEY] } },
       select: { key: true, value: true },
     });
     const due = (key: string, everyMs: number) =>
@@ -181,6 +190,15 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
           const config = await getWhatsAppAiConfig();
           if (!config.noShow.enabled) return { off: true };
           return (deps.noShow ?? ((c: WhatsAppAiConfig) => sweepSessionNoShows(c, now)))(config);
+        })
+      );
+    }
+    if (due(CLOCK_ARRIVAL_KEY, CLOCK_ARRIVAL_EVERY_MS) && (await claimClockSlot(CLOCK_ARRIVAL_KEY, CLOCK_ARRIVAL_EVERY_MS, now))) {
+      steps.push(
+        await step("te esperan en la sala", async () => {
+          const config = await getWhatsAppAiConfig();
+          if (!config.sessionArrival.enabled) return { off: true };
+          return (deps.arrival ?? ((c: WhatsAppAiConfig) => sweepSessionArrivals(c, now)))(config);
         })
       );
     }
