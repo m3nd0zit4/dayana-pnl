@@ -2444,7 +2444,7 @@ model CalendarAppointment {
   noShowAt          DateTime? @map("no_show_at")
   /// Te esperan en la sala (`session-arrival.ts`): cuándo se le avisó a Dayana
   /// y por qué: meet (la persona entró y Dayana no) | chat (escribió que está
-  /// esperando) | dayana_in (Dayana ya estaba: no hizo falta).
+  /// esperando).
   arrivalNotifiedAt DateTime? @map("arrival_notified_at")
   arrivalSource     String?   @map("arrival_source")
   /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).

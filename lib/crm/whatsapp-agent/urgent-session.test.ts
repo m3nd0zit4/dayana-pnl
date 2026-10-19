@@ -9,6 +9,7 @@ import {
   urgentSessionPath,
   urgentSessionRules,
   withoutFakeLinks,
+  withoutHoyMismo,
 } from "./urgent-session";
 
 type L = { direction: "INBOUND" | "OUTBOUND"; body: string; sentAt?: Date };
@@ -50,6 +51,16 @@ describe("asksForNow", () => {
     expect(asksForNow("Hoy no puedo")).toBe(false);
     expect(asksForNow("ahora no")).toBe(false);
     expect(asksForNow("Muy bien y tu")).toBe(false);
+  });
+  test("aceptar lo que le ofrecieron no es insistir", () => {
+    expect(asksForNow("ahora sí")).toBe(false);
+    expect(asksForNow("dale, el jueves entonces")).toBe(false);
+    expect(asksForNow("necesito hablar con ella del jueves")).toBe(false);
+    expect(asksForNow("hoy mismo no, mejor el jueves a las 7:00 pm")).toBe(false);
+  });
+  test("pero rechazar la otra hora e insistir sí", () => {
+    expect(asksForNow("no me sirve el jueves, es urgente")).toBe(true);
+    expect(asksForNow("¿me puede llamar ahora?")).toBe(true);
   });
 });
 
@@ -114,5 +125,14 @@ describe("lo que escribe el modelo", () => {
   test("y el título en negrita que repite el enlace", () => {
     expect(withoutFakeLinks("Aquí puedes hacer el pago\n\n*Sesión urgente de 1 hora por Google Meet con Dayana Beltrán*")).toBe("Aquí puedes hacer el pago");
     expect(withoutFakeLinks("Es *muy* importante")).toBe("Es *muy* importante");
+  });
+  test("«hoy mismo» pasa a «hoy» (el freno lo frenaba entero)", () => {
+    expect(withoutHoyMismo("Si necesitas hablar con Dayana hoy mismo, puedes tomar una sesión. Hoy mismo puedes pagar.")).toBe(
+      "Si necesitas hablar con Dayana hoy, puedes tomar una sesión. Hoy puedes pagar."
+    );
+  });
+  test("lo demás queda igual", () => {
+    expect(withoutFakeLinks("Te ofrezco:\n*Jueves 3:00 p. m.*\n[1] la primera")).toBe("Te ofrezco:\n*Jueves 3:00 p. m.*\n[1] la primera");
+    expect(withoutFakeLinks("Aquí puedes hacer el pago\n* *Sesión urgente*: [Enlace de pago]")).toBe("Aquí puedes hacer el pago");
   });
 });

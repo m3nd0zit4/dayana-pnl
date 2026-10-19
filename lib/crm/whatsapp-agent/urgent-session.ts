@@ -32,10 +32,14 @@ type Line = { direction: "INBOUND" | "OUTBOUND"; body: string | null; sentAt?: D
 
 /** Urgencia que se entiende sola. */
 const STRONG =
-  /\b(hoy mismo|ahora mismo|ya mismo|urgente|urge|urgencia|emergencia|es rapido|es algo rapido|rapidito|cuanto antes|lo antes posible|lo mas pronto posible|de inmediato|inmediatamente|no puedo esperar|(necesito|necesitaba|tengo que) hablar con (ella|dayana|usted|la doctora))\b/;
-/** «Hoy», «ahora»: solo cuentan en un mensaje corto o junto a llamar o hablar. */
-const TODAY = /\b(hoy|ahora|ahorita)\b/;
+  /\b(hoy mismo|ahora mismo|ya mismo|urgente|urge|urgencia|emergencia|es rapido|es algo rapido|rapidito|cuanto antes|lo antes posible|lo mas pronto posible|de inmediato|inmediatamente|no puedo esperar|(necesito|necesitaba|tengo que) hablar con (ella|dayana|usted|la doctora)(?! (del|de la|de lo|sobre|acerca|para el|para la|el (lunes|martes|miercoles|jueves|viernes|sabado|domingo))))\b/;
+/** «Hoy» solo cuenta en un mensaje corto o junto a llamar o hablar; «ahora» solo junto a llamar o hablar («ahora sí» es aceptar). */
+const TODAY = /\bhoy\b/;
+const NOW = /\b(ahora|ahorita)\b/;
 const TALK = /\b(llam\w*|habl\w*|cita|agend\w*|atend\w*|atiend\w*|sesion|consulta)\b/;
+/** Acepta lo que le ofrecieron («me sirve», «el jueves entonces»): ya no está insistiendo. */
+const ACCEPTS =
+  /((?<!no )\b(me sirve|me queda bien|esta bien|perfecto|de acuerdo|dale|listo)\b|\b(el|para el) (lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b|\b\d{1,2}(:\d{2})?\s*(am|pm|a m|p m)\b)/;
 /**
  * Lo que la asistente (o Dayana) le contestó en el medio: que hoy no hay
  * espacio, otras horas u otros días.
@@ -52,9 +56,15 @@ const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 export const asksForNow = (text: string): boolean => {
   const t = foldForSearch(text).replace(/[¿?¡!.,;:]+/g, " ").replace(/\s+/g, " ").trim();
   if (!t) return false;
+  // «Hoy mismo no, mejor el jueves»: eligió otro día.
+  if (/\bmejor (el |para el )?(lunes|martes|miercoles|jueves|viernes|sabado|domingo|manana|otro dia)\b/.test(t)) return false;
+  const negated = /\bno\b/.test(t);
+  // «No me sirve el jueves, es urgente» sí insiste.
+  if (!negated && ACCEPTS.test(t)) return false;
   if (STRONG.test(t)) return true;
   // «Hoy no puedo», «ahora no»: es lo contrario.
-  return TODAY.test(t) && !/\bno\b/.test(t) && (words(t) <= 3 || TALK.test(t));
+  if (negated) return false;
+  return (TODAY.test(t) && (words(t) <= 3 || TALK.test(t))) || (NOW.test(t) && TALK.test(t));
 };
 
 export type UrgencyCheck = {
@@ -137,16 +147,24 @@ export const offersUrgentSession = (text: string): boolean => OFFERS.test(foldFo
  * «* *Sesión urgente*: [Enlace de pago]», «[Pagar aquí](https://api.whatsapp…)», un
  * título en negrita solo). El enlace de verdad lo pega el código debajo.
  */
+/**
+ * «Si necesitas hablar con Dayana hoy mismo»: con la sesión urgente es «hoy».
+ * El freno de promesas frena cualquier «hoy mismo» (y así la persona se
+ * quedaba con «Ya le paso tu mensaje»); «Dayana te llama hoy» lo sigue frenando.
+ */
+export const withoutHoyMismo = (text: string): string => text.replace(/\b(h)oy mismo\b/gi, "$1oy");
+
+const FAKE_LINK =/\]\(https?:|\[[^\]\n]*\b(enlace|link|pag\w*|clic|click|aqui|sesion)\b[^\]\n]*\]/;
+/** Un título en negrita solo que repite el enlace («*Sesión urgente de 1 hora por Google Meet*»). */
+const LINK_TITLE = /^\s*\*[^*\n]*\b(sesion|pago|enlace|link)\b[^*\n]*\*\s*$/;
+
 export const withoutFakeLinks = (text: string): string =>
   text
     .split("\n")
-    .filter(
-      (line) =>
-        !/\[[^\]\n]{2,80}\](\([^)\n]*\))?/.test(line) &&
-        !/^\s*([*_-]\s*){3,}$/.test(line) &&
-        // «*Sesión urgente de 1 hora por Google Meet*» solo en su línea: el enlace ya lo dice.
-        !/^\s*\*[^*\n]{3,100}\*\s*$/.test(line)
-    )
+    .filter((line) => {
+      const folded = foldForSearch(line);
+      return !FAKE_LINK.test(folded) && !/^\s*([*_-]\s*){3,}$/.test(line) && !LINK_TITLE.test(folded);
+    })
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

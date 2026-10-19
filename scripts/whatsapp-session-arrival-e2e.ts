@@ -91,7 +91,7 @@ const main = async () => {
     const r1 = await sweepSessionArrivals(cfg);
     check("mira solo las sesiones de ahora con Meet (no la de dentro de 2 h ni la llamada gratis)", r1.checked === 2 && called.length === 2, { r1, called });
     check("avisa una (Jesús esperando) y la otra ya tiene a Dayana", r1.notified === 1 && r1.dayanaIn === 1, r1);
-    check("queda marcada", (await row(waiting.id)).arrivalSource === "meet" && (await row(withDayana.id)).arrivalSource === "dayana_in");
+    check("queda marcada la avisada; la de Dayana no (se sigue mirando)", (await row(waiting.id)).arrivalSource === "meet" && (await row(withDayana.id)).arrivalNotifiedAt === null);
     await sleep(1500);
     const n1 = await notices();
     check(
@@ -100,7 +100,7 @@ const main = async () => {
       n1
     );
     const r2 = await sweepSessionArrivals(cfg);
-    check("la siguiente pasada no vuelve a avisar ni consulta Meet", r2.checked === 0 && called.length === 2, r2);
+    check("la siguiente pasada no vuelve a avisar y solo mira la de Dayana", r2.checked === 1 && r2.notified === 0 && called.length === 3, { r2, called });
 
     console.log("\n2. El chat: «no me deja entrar»");
     check("«hola» no avisa", !(await notifyWaitingFromChat({ conversationId: conv.id, text: "Hola" })));

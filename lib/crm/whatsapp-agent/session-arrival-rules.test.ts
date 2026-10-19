@@ -29,7 +29,20 @@ describe("saysWaitingInRoom", () => {
     }
   });
   test("lo de siempre no", () => {
-    for (const s of ["Hola", "ya", "Ya te transferí", "gracias", "voy en camino", "ya voy", "¿a qué hora es?", "estoy bien"]) {
+    for (const s of [
+      "Hola",
+      "ya",
+      "Ya te transferí",
+      "gracias",
+      "voy en camino",
+      "ya voy",
+      "¿a qué hora es?",
+      "estoy bien",
+      "estoy esperando tu respuesta",
+      "sigo esperando el link",
+      "no me acepta la tarjeta",
+      "no puedo ingresar al link de pago",
+    ]) {
       expect(saysWaitingInRoom(s)).toBe(false);
     }
   });

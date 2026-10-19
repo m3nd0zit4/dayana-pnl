@@ -895,7 +895,9 @@ export const runWhatsAppAi = async (input: {
           body: [
             u.asks.length ? `Insistió: «${u.asks.join(" · ")}».` : u.reason,
             "Le mandé el enlace de pago de la sesión de 1 hora; cuando pague, agéndala para hoy o mañana.",
+            u.note ? `La IA también anotó: ${u.note}` : "",
           ]
+            .filter(Boolean)
             .join(" ")
             .slice(0, 300),
           href: `/admin/whatsapp?conversation=${conversationId}`,

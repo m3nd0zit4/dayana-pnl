@@ -31,13 +31,17 @@ export const inArrivalWindow = (startsAt: Date, now: Date): boolean => {
   return diff >= -ARRIVAL_BEFORE_MIN * 60_000 && diff <= ARRIVAL_AFTER_MIN * 60_000;
 };
 
+/** «Estoy esperando tu respuesta / el link de pago»: espera otra cosa, no a Dayana en la sala. */
+const NOT_THE_ROOM = "(?! (tu|su|el|la|los|las|un|una|que me (respondas|contestes|escribas|mandes)) (respuesta|link|enlace|pago|mensaje|confirmacion|correo|informacion|datos|numero|cuenta|comprobante|factura|audio))";
+
 const WAITING = new RegExp(
   [
     "ya (entre|ingrese|me (conecte|uni|meti))",
     "ya estoy (aqui|lista|listo|conectad[oa]|adentro|en (la )?(sala|reunion|llamada|videollamada|meet))",
-    "estoy (en (la )?(sala|reunion|llamada|videollamada|meet)|conectad[oa]|adentro|esperando|en espera)",
-    "(te|la) (estoy )?esperando",
-    "esperandote|esperandola|sigo esperando",
+    "estoy (en (la )?(sala|reunion|llamada|videollamada|meet)|conectad[oa]|adentro)",
+    `(estoy|sigo) (esperando|en espera)${NOT_THE_ROOM}`,
+    `(te|la) (estoy )?esperando${NOT_THE_ROOM}`,
+    "esperandote|esperandola",
     "no me (deja[n]?|acepta[n]?|admite[n]?|da[n]? acceso)",
     "no (puedo|logro|me deja) (entrar|ingresar|conectarme|unirme)",
     "aceptame|admiteme|dejame entrar|me (aceptas|admites|dejas entrar)",
@@ -48,10 +52,13 @@ const WAITING = new RegExp(
     .join("|")
 );
 
+/** «No me acepta la tarjeta», «no puedo entrar al link de pago»: es del pago, no de la sala. */
+const PAYMENT = /\b(pago|pagar|tarjeta|banco|transferencia|transferir|nequi|daviplata|cuenta|comprobante|factura|cobro|paypal|mercado pago|pse)\b/;
+
 /** ¿Dice que ya está en la sala o esperando que la dejen entrar? */
 export const saysWaitingInRoom = (text: string | null | undefined): boolean => {
   const t = foldForSearch(text ?? "").replace(/[¿?¡!.,;:]+/g, " ").replace(/\s+/g, " ").trim();
-  if (!t) return false;
+  if (!t || PAYMENT.test(t)) return false;
   // «Ya estoy» solo, en un mensaje corto.
   return /^(ya estoy|aqui estoy)$/.test(t) || WAITING.test(t);
 };

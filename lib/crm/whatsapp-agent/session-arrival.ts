@@ -124,19 +124,19 @@ export const sweepSessionArrivals = async (config: WhatsAppAiConfig, now = new D
       continue;
     }
     const step = arrivalStep(meeting, dayana!);
-    if (step.kind === "nobody") continue;
+    // Dayana ya está (o nadie todavía): no se marca nada y la próxima pasada
+    // vuelve a mirar, por si sale o la persona llega antes que ella.
+    if (step.kind === "dayana_in") result.dayanaIn++;
+    if (step.kind !== "notify") continue;
+    const who = await whoOf(appt).catch(() => (appt.phone ? `+${appt.phone}` : "Tu clienta o cliente"));
     // Se reclama antes de avisar: suena una sola vez.
     const claimed = await prisma.calendarAppointment.updateMany({
       where: { id: appt.id, arrivalNotifiedAt: null },
-      data: { arrivalNotifiedAt: now, arrivalSource: step.kind === "notify" ? "meet" : "dayana_in" },
+      data: { arrivalNotifiedAt: now, arrivalSource: "meet" },
     });
     if (claimed.count === 0) continue;
-    if (step.kind === "dayana_in") {
-      result.dayanaIn++;
-      continue;
-    }
     result.notified++;
-    await notify(appt, arrivalNotice({ who: await whoOf(appt), hour: getTimeLabelInTz(appt.startsAt, tz), source: "meet", meetName: step.meetName }));
+    await notify(appt, arrivalNotice({ who, hour: getTimeLabelInTz(appt.startsAt, tz), source: "meet", meetName: step.meetName }));
   }
   return result;
 };
@@ -156,16 +156,14 @@ export const notifyWaitingFromChat = async (input: { conversationId: string; tex
   if (!config.sessionArrival.enabled) return false;
   const [appt] = await sessionsNow(now, { conversationId: input.conversationId });
   if (!appt) return false;
+  const who = await whoOf(appt).catch(() => (appt.phone ? `+${appt.phone}` : "Tu clienta o cliente"));
   const repeatBefore = new Date(now.getTime() - ARRIVAL_REPEAT_MIN * 60_000);
   const claimed = await prisma.calendarAppointment.updateMany({
-    where: {
-      id: appt.id,
-      OR: [{ arrivalNotifiedAt: null }, { arrivalNotifiedAt: { lt: repeatBefore } }, { arrivalSource: "dayana_in" }],
-    },
+    where: { id: appt.id, OR: [{ arrivalNotifiedAt: null }, { arrivalNotifiedAt: { lt: repeatBefore } }] },
     data: { arrivalNotifiedAt: now, arrivalSource: "chat" },
   });
   if (claimed.count === 0) return false;
   const tz = await getOperationalTimezone();
-  await notify(appt, arrivalNotice({ who: await whoOf(appt), hour: getTimeLabelInTz(appt.startsAt, tz), source: "chat", quote: input.text }));
+  await notify(appt, arrivalNotice({ who, hour: getTimeLabelInTz(appt.startsAt, tz), source: "chat", quote: input.text }));
   return true;
 };

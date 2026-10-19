@@ -34,6 +34,7 @@ import {
   urgentSessionPath,
   urgentSessionRules,
   withoutFakeLinks,
+  withoutHoyMismo,
 } from "./urgent-session";
 import { personFullName } from "@/lib/person-name";
 import { fixNameInReply, resolvePersonName, type NameMessage, type NameResolution } from "@/lib/sure-name";
@@ -116,7 +117,7 @@ export type BrainResult = {
   /** Otros enlaces que van debajo del mensaje: la comunidad, el curso. */
   linkBlocks: string[];
   /** Mandó el enlace de la sesión urgente (`urgent-session.ts`): Dayana recibe el aviso para agendarla. */
-  urgentSession: { reason: string; asks: string[] } | null;
+  urgentSession: { reason: string; asks: string[]; /** Lo que la IA quería escalar además. */ note?: string } | null;
   /** La persona mandó un comprobante (o dijo que pagó): queda por confirmar para Dayana. */
   receipt: {
     summary: string;
@@ -1570,12 +1571,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           reason: "El asistente no supo qué contestar.",
         });
   // Mandó el enlace de la sesión urgente y aun así escaló («para que Dayana
-  // agende»): Dayana ya recibe el aviso, la persona recibe la oferta. Una
-  // crisis sí se escala.
-  const outcome: BrainOutcome =
-    modelOutcome.kind === "escalate" && state.urgentSession && modelOutcome.category !== "clinical" && modelOutcome.severity !== "urgent"
-      ? { kind: "reply", message: URGENT_SESSION_REPLY }
-      : modelOutcome;
+  // agende»): Dayana ya recibe el aviso (con el motivo), la persona recibe la
+  // oferta. Una crisis, un pago o una queja sí se escalan.
+  const agendaOnly =
+    modelOutcome.kind === "escalate" &&
+    state.urgentSession &&
+    ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
+    modelOutcome.severity !== "urgent";
+  if (agendaOnly && modelOutcome.kind === "escalate" && state.urgentSession) state.urgentSession.note = modelOutcome.reason;
+  const outcome: BrainOutcome = agendaOnly ? { kind: "reply", message: URGENT_SESSION_REPLY } : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
@@ -1590,7 +1594,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       log("send_urgent_session_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta ofrecía la sesión sin la herramienta." });
     }
   }
-  const replyText = (message: string) => (state.urgentSession ? withoutFakeLinks(message) || message : message);
+  const replyText = (message: string) => (state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message);
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
   const finalOutcome: BrainOutcome = outcome.kind === "reply" ? { ...outcome, message: named(replyText(outcome.message))! } : outcome;
