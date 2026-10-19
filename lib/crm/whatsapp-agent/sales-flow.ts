@@ -31,7 +31,15 @@ const COUNTRY = /\b(desde que (pais|ciudad)|de donde (me )?escribes|en que (pais
 const KEY_QUESTION = /\bcuanto tiempo mas\b/;
 const INVITE = /\bllamada (gratis|gratuita)|\bconsulta (gratis|gratuita)|\b15 minutos\b/;
 const SLOTS = /\b(tu hora|en colombia)\b/;
-const DECLINE = /\b(no (puedo|quiero|me interesa|gracias|por ahora)|despues te (digo|escribo|aviso)|mas adelante|ahorita no|otro dia)\b/;
+// «Ya no quiero sentirme así», «no puedo seguir con esto» hablan de lo que le
+// pasa, no de la llamada (Naty, 18-oct: dijo eso y la IA se despidió con
+// «Quedamos en contacto»; después dijo «Si» y se despidió otra vez).
+const PROBLEM_VERB = "(seguir|sentir\\w*|vivir|estar|cargar|tener|continuar|volver|pasar|sufrir|avanzar|dormir|aguantar|soportar|que (me|siga|sigan))";
+const DECLINE = new RegExp(
+  `\\b(no (puedo|quiero)(?! ${PROBLEM_VERB})|no me interesa|no gracias|no por ahora|despues te (digo|escribo|aviso)|mas adelante|ahorita no|otro dia)\\b`
+);
+/** Después de decir que no (o de que se leyera así), un «sí» a la llamada lo deshace. */
+const ACCEPT = /^(si|sii+|claro|dale|de una|ok|okay|bueno|listo)\b|\b(si (quiero|deseo|me gustaria)|(quiero|deseo|me gustaria) (la llamada|agendar|que me llame)|si,? (por favor|claro))\b/;
 
 export const flowState = (lines: FlowLine[], opts: { keyQuestions?: string[]; offeredSlots?: boolean } = {}): FlowState => {
   const keys = (opts.keyQuestions ?? []).map((q) => foldForSearch(q).slice(0, 30)).filter((q) => q.length >= 12);
@@ -56,6 +64,8 @@ export const flowState = (lines: FlowLine[], opts: { keyQuestions?: string[]; of
       if (SLOTS.test(text)) state.offeredSlots = true;
     } else if (state.invited && DECLINE.test(text)) {
       state.declined = true;
+    } else if (state.declined && ACCEPT.test(text.replace(/[,.!¡¿?]+/g, " ").trim())) {
+      state.declined = false;
     }
   }
   return state;

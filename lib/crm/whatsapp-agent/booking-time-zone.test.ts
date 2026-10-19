@@ -19,6 +19,9 @@ describe("trustedContactTimezone (Valerya, 17-oct: México con la zona por defec
 const said = (...bodies: string[]) => bodies.map((body) => ({ direction: "INBOUND" as const, body }));
 
 describe("inferPersonZone (la zona cuando la IA no la guardó)", () => {
+  test("Raquel (19-oct): +34 y «España» → Madrid (las 7:00 p. m. que le ofreció la agenda eran de ahí)", () => {
+    expect(inferPersonZone("34697103297", said("Hola guapa te vi por Tiktok", "España"))).toMatchObject({ iso: "ES", timezone: "Europe/Madrid" });
+  });
   test("Sophie: «Desde colombia» → Bogotá", () => {
     expect(inferPersonZone("573104673159", said("La verdad no muy bien", "Desde colombia"))).toMatchObject({ iso: "CO", timezone: "America/Bogota" });
   });

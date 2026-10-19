@@ -50,7 +50,7 @@ import { alreadySaid } from "./repeat-guard";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
 import { chatNameInfo } from "./chat-name";
 import { offeredFreeCallSlots } from "./free-call";
-import { trustedContactTimezone } from "./booking-time";
+import { inferPersonZone, trustedContactTimezone } from "./booking-time";
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { personFirstName } from "@/lib/person-name";
@@ -665,6 +665,10 @@ export const runWhatsAppAi = async (input: {
       toolCalls: result.toolCalls,
       booking: result.booking,
       personTz: personTz ?? timezone,
+      // La zona que se deduce del chat («España»): sin ficha ni contacto con
+      // zona, las horas en su hora no estaban respaldadas (Raquel, 19-oct:
+      // «7:00 p. m.» de Madrid se tomó por inventada y no le llegó la cita).
+      inferredTz: inferPersonZone(phone, history)?.timezone ?? null,
       timezone,
     });
 
@@ -989,6 +993,8 @@ const promiseBacking = async (input: {
   toolCalls: { tool: string; input: unknown; output: unknown }[];
   booking: { startsAt: Date } | null;
   personTz: string;
+  /** La zona que se deduce del chat, si la hay. */
+  inferredTz?: string | null;
   timezone: string;
   now?: Date;
 }): Promise<{ backing: string[]; hasBooking: boolean; bookingToday: boolean }> => {
@@ -1042,9 +1048,10 @@ const promiseBacking = async (input: {
   ]);
   for (const l of dayanaLines) if (l.body) labels.push(l.body);
   const booked = [...appts.map((a) => a.startsAt), ...(input.booking ? [input.booking.startsAt] : [])];
+  const zones = [...new Set([input.personTz, input.inferredTz, input.timezone].filter((z): z is string => Boolean(z)))];
   for (const d of [...offered.map((iso) => new Date(iso)), ...booked]) {
     if (Number.isNaN(d.getTime())) continue;
-    labels.push(getTimeLabelInTz(d, input.personTz), getTimeLabelInTz(d, input.timezone));
+    for (const z of zones) labels.push(getTimeLabelInTz(d, z));
   }
   const today = (tz: string) => getDateKeyInTz(now, tz);
   return {

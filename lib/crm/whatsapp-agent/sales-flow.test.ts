@@ -39,6 +39,23 @@ describe("flowState / nextStep", () => {
     expect(s.declined).toBe(true);
     expect(flowStateText(s)).toContain("no insistas");
   });
+
+  test("Naty (18-oct): «Ya no quiero sentirme así» habla de lo que le pasa, no dice que no", () => {
+    const invited = [out("Hola"), out("¿Desde qué país me escribes?"), out("Si quieres, te agendo una llamada gratis de 15 minutos con Dayana")];
+    for (const s of ["Ya no quiero sentirme así", "no quiero seguir así", "No puedo seguir con esto", "no puedo dormir"]) {
+      expect(flowState([...invited, inb(s)]).declined).toBe(false);
+    }
+    for (const s of ["no quiero, gracias", "No me interesa", "no puedo ahora, después te escribo"]) {
+      expect(flowState([...invited, inb(s)]).declined).toBe(true);
+    }
+  });
+
+  test("un «sí» después del no lo deshace", () => {
+    const declined = [out("Hola"), out("¿Desde qué país me escribes?"), out("¿Te agendo la llamada gratis de 15 minutos?"), inb("Ahorita no")];
+    expect(flowState([...declined, inb("Si")]).declined).toBe(false);
+    expect(flowState([...declined, inb("S,i deseo la llamada")]).declined).toBe(false);
+    expect(flowState([...declined, inb("gracias")]).declined).toBe(true);
+  });
 });
 
 describe("salesFlowRules", () => {

@@ -17,7 +17,7 @@ import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
-import { saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
+import { dayanaOfferedSlot, saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -1186,7 +1186,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // «💙💙💜🩷», 16-oct: dijeron «Desde colombia» / «De la CDMX», la IA no
               // guardó el país, la agenda falló y ella inventó horas).
               const inferred = personTz() ? null : inferPersonZone(input.phone, input.transcript);
-              if (inferred) state.country = { iso: inferred.iso, city: inferred.city, timezone: inferred.timezone, needsCity: false };
+              if (inferred) {
+                state.country = { iso: inferred.iso, city: inferred.city, timezone: inferred.timezone, needsCity: false };
+                // En la ficha, como save_country: la próxima vuelta (y el freno de
+                // promesas) ya sabe su hora (Raquel, 19-oct, «España» sin guardar).
+                if (input.mode === "live" && input.conversationId) {
+                  await prisma.whatsAppDossier
+                    .upsert({
+                      where: { conversationId: input.conversationId },
+                      create: { conversationId: input.conversationId, countryIso: inferred.iso, timezone: inferred.timezone },
+                      update: { countryIso: inferred.iso, timezone: inferred.timezone },
+                    })
+                    .catch(() => undefined);
+                }
+              }
               const tz = personTz();
               if (!tz) {
                 return log("offer_free_call_slots", {}, {
@@ -1239,7 +1252,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const start = new Date(args.startIso);
               if (Number.isNaN(start.getTime())) return log("book_free_call", args, { error: "Hora inválida." });
               const iso = start.toISOString();
-              if (!offeredNow.has(iso) && !offeredBefore.includes(iso)) {
+              // Las que Dayana misma le escribió («Horas libres» o a mano) también valen.
+              const dayanaTexts = input.transcript
+                .filter((l) => l.direction === "OUTBOUND" && !l.isAutoReply && (!l.sentAt || now.getTime() - l.sentAt.getTime() < 72 * 3600_000))
+                .map((l) => l.body);
+              if (!offeredNow.has(iso) && !offeredBefore.includes(iso) && !dayanaOfferedSlot(dayanaTexts, iso, timezone)) {
                 return log("book_free_call", args, { error: "Esa hora no se la ofreciste. Usa offer_free_call_slots primero." });
               }
               const tz = personTz() ?? timezone;

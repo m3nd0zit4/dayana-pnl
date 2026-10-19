@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
+import { dayanaOfferedSlot, findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
 
 const TZ = "America/Bogota";
 // Lunes 8:00 a 6:00 p. m., todos los días de la semana.
@@ -106,5 +106,23 @@ describe("saidPartOfDay (una franja que la persona no dijo no cuenta)", () => {
     for (const s of ["¿Qué horarios tienes?", "mañana puedo", "Buenas tardes", "buenas noches, quiero la llamada", "La primera opción me queda perfecta"]) {
       expect(saidPartOfDay([s])).toBe(false);
     }
+  });
+});
+
+describe("dayanaOfferedSlot (horas que Dayana escribió: «Horas libres» o a mano)", () => {
+  const horasLibres =
+    "Tengo estos espacios para consulta gratis 15 min (15 min, hora de Colombia):\n• Jueves, 15 de octubre, 6:45 p. m.\n• Viernes, 16 de octubre, 9:15 a. m.\n¿Cuál te queda mejor?";
+  // Jueves 15-oct-2026, 6:45 p. m. en Bogotá = 23:45 UTC.
+  test("la del botón «Horas libres»", () => {
+    expect(dayanaOfferedSlot([horasLibres], "2026-10-15T23:45:00Z", "America/Bogota")).toBe(true);
+    expect(dayanaOfferedSlot([horasLibres], "2026-10-16T14:15:00Z", "America/Bogota")).toBe(true);
+  });
+  test("a mano, con el día de la semana", () => {
+    expect(dayanaOfferedSlot(["Te puedo llamar el jueves a las 6:45 pm"], "2026-10-15T23:45:00Z", "America/Bogota")).toBe(true);
+  });
+  test("otra hora, otro día o una hora parecida no", () => {
+    expect(dayanaOfferedSlot([horasLibres], "2026-10-15T23:00:00Z", "America/Bogota")).toBe(false);
+    expect(dayanaOfferedSlot([horasLibres], "2026-10-22T23:45:00Z", "America/Bogota")).toBe(false);
+    expect(dayanaOfferedSlot(["el jueves a las 16:45 pm"], "2026-10-15T23:45:00Z", "America/Bogota")).toBe(false);
   });
 });

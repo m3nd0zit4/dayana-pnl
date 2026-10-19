@@ -530,6 +530,33 @@ export const SCENARIOS: Scenario[] = [
     goal: "Insistió en hablar con Dayana hoy después de que le ofrecieron jueves y viernes: reconoce con calidez que es urgente y le ofrece la sesión privada de 1 hora por Google Meet (el enlace de pago y que Dayana la agenda para hoy o mañana en cuanto pague los pega el sistema debajo). Sin precio, sin repetir las horas del jueves y el viernes, sin prometer que Dayana la llama hoy.",
   },
   {
+    id: "naty-ya-no-quiero-sentirme-asi",
+    origin:
+      "Naty (Perú), 18-oct: la IA le ofreció la llamada gratis, ella contestó «Ya no quiero sentirme así» y la IA se despidió con «Quedamos en contacto»; dijo «Si» y se despidió otra vez (el flujo leyó «no quiero» como un no)",
+    name: "Naty  Rodríguez 💕💕🖤🖤🐾🐾",
+    gender: "unknown",
+    personTimezone: "America/Lima",
+    stage: "conversando",
+    transcript: [
+      person("Hola"),
+      ai("Hola, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?"),
+      person("Mal"),
+      ai("Siento que estés así. ¿Desde qué país me escribes?"),
+      person("Perú"),
+      ai("Gracias. Cuéntame qué situación te trae hoy a buscar este espacio con Dayana."),
+      person("No puedo avanzar"),
+      ai("Entiendo lo frustrante que es sentir que no puedes avanzar. ¿Cuánto tiempo más quieres seguir sintiéndote así?"),
+      person("Siento mucho dolor y miedo"),
+      ai("Siento mucho que lleves ese dolor y ese miedo contigo. Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso, para que ella te escuche y te diga cómo te puede ayudar."),
+      person("Ya no quiero sentirme así"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustNotMatch: [/quedamos en contacto/i, /si en alg[uú]n momento/i],
+    },
+    goal: "«Ya no quiero sentirme así» es que quiere cambiar, no un no: lo reconoce con calidez y avanza hacia la llamada gratis (le pregunta si la agenda o le ofrece horas). No se despide ni le deja «la puerta abierta».",
+  },
+  {
     id: "pide-hoy-una-vez",
     origin: "Contraparte de «CM7 ⚽🥅»: pedir «hoy» una sola vez no es insistir (la dueña: «no va a pasar con todos»)",
     name: "CM7 ⚽🥅",

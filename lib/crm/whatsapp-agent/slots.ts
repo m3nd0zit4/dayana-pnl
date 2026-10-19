@@ -1,6 +1,7 @@
 import {
   getDateKeyInTz,
   getTimeHmInTz,
+  getTimeLabelInTz,
   zonedDateTimeToUtc,
 } from "@/lib/datetime/zoned-time";
 import type { WhatsAppBookingConfig } from "../whatsapp-ai-config";
@@ -255,6 +256,32 @@ export const hasWish = (w: SlotWish | null | undefined): w is SlotWish =>
 
 const WEEKDAY_WORDS: Record<string, number> = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
 const fold = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
+
+/**
+ * ¿Dayana le escribió esa hora en el chat? Con el botón «Horas libres» del CRM
+ * («• Jueves, 15 de octubre, 6:45 p. m.») o a mano («el jueves a las 6:45 pm»).
+ * Esas horas no pasan por `offer_free_call_slots` y `book_free_call` las
+ * rechazaba (Dayanna, 14-oct: eligió «Jueves» y nadie le contestó). Mismo
+ * día (fecha o día de la semana) y misma hora en la misma línea, en la zona
+ * de Dayana.
+ */
+export const dayanaOfferedSlot = (texts: (string | null | undefined)[], startIso: string, timeZone: string): boolean => {
+  const d = new Date(startIso);
+  if (Number.isNaN(d.getTime())) return false;
+  const norm = (s: string) => fold(s).replace(/\b([ap])\.?\s?m\b\.?/g, "$1m").replace(/[ \t]+/g, " ");
+  const time = norm(getTimeLabelInTz(d, timeZone));
+  const weekday = fold(new Intl.DateTimeFormat("es-CO", { timeZone, weekday: "long" }).format(d));
+  const dayMonth = fold(new Intl.DateTimeFormat("es-CO", { timeZone, day: "numeric", month: "long" }).format(d));
+  const hasTime = (line: string) => new RegExp(`(^|[^\\d:])${time.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(line);
+  return texts.some((raw) =>
+    norm(raw ?? "")
+      .split("\n")
+      // Con fecha escrita, la fecha manda (otro jueves no vale); sin fecha, el día de la semana.
+      .some((line) =>
+        hasTime(line) && (/\b\d{1,2} de [a-z]+/.test(line) ? new RegExp(`(^|[^\\d])${dayMonth}\\b`).test(line) : new RegExp(`\\b${weekday}\\b`).test(line))
+      )
+  );
+};
 
 /**
  * ¿La persona habló de una parte del día («en la tarde», «por la mañana»,

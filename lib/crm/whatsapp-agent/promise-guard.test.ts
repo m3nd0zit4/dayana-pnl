@@ -145,3 +145,14 @@ describe("lo que pasó el 18-oct", () => {
     expect(promiseBreach({ ...none, text: "Con gusto 🙏" })).toBeNull();
   });
 });
+
+describe("lo que pasó el 19-oct", () => {
+  // Raquel (+34, «España»): la agenda le dio «jueves, 22 de octubre, 7:00 p. m. (tu hora) · 12:00 p. m. en Colombia».
+  const raquel = "Tu llamada queda para el jueves, 22 de octubre, a las 7:00 p. m. (tu hora). Dayana te llama por WhatsApp a este número.";
+  test("con la hora de su zona en el respaldo, su cita sale", () => {
+    expect(promiseBreach({ text: raquel, backing: ["12:00 p. m.", "7:00 p. m."], hasBooking: true, bookingToday: false })).toBeNull();
+  });
+  test("solo con la hora de Colombia se frenaba (lo que pasó)", () => {
+    expect(promiseBreach({ text: raquel, backing: ["12:00 p. m."], hasBooking: true, bookingToday: false })?.breach).toBe("invented_slots");
+  });
+});
