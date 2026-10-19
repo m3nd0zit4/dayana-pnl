@@ -189,7 +189,8 @@ export const sweepSessionNoShows = async (config: WhatsAppAiConfig, now = new Da
     if (r.status === "sent") {
       result.sent++;
       fireNotification({
-        eventType: "WHATSAPP_AI_INFO",
+        // Suena en el celular (pedido de la dueña, 19-oct): igual que «te esperan en la sala».
+        eventType: "WHATSAPP_SESSION_WAITING",
         title: `${who} no entró a su sesión de las ${hour}`,
         body: "Le mandé el mensaje para reagendar. Tú le confirmas la nueva hora.",
         href: "/admin/whatsapp/agenda",
@@ -210,7 +211,7 @@ export const sweepSessionNoShows = async (config: WhatsAppAiConfig, now = new Da
         : r.error;
     await prisma.calendarAppointment.update({ where: { id: appt.id }, data: { noShowState: "failed" } });
     fireNotification({
-      eventType: "WHATSAPP_AI_INFO",
+      eventType: "WHATSAPP_SESSION_WAITING",
       title: `${who} no entró a su sesión de las ${hour}`,
       body: `No le pude mandar el mensaje para reagendar: ${reason.slice(0, 160)}`,
       href: "/admin/whatsapp/agenda",
