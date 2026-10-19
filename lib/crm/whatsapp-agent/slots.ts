@@ -247,6 +247,33 @@ const spreadVaried = (slots: Slot[], count: number, already: Slot[] = []): Slot[
   return picked;
 };
 
+/**
+ * Juntando (19-oct, Dayana: «las más juntas, que pueda hacer cuatro llamadas
+ * en una hora»): la primera es la más pegada a una cita (un hueco entre dos
+ * antes que una al lado de una sola) y cada siguiente la más cercana a las ya
+ * elegidas, sin cruzarse con ellas. Con el live hasta las 7:00 p. m., una
+ * llamada a las 7:15 y otra a las 8:00 salen 7:00, 7:30 y 7:45 (no 3:00, 3:45
+ * y 7:00, repartidas en la tarde).
+ */
+const clustered = (slots: Slot[], count: number, already: Slot[]): Slot[] => {
+  const ms = (iso: string) => new Date(iso).getTime();
+  const gap = (a: Slot, b: Slot) => Math.max(0, ms(a.startIso) - ms(b.endIso), ms(b.startIso) - ms(a.endIso));
+  const crosses = (a: Slot, b: Slot) => ms(a.startIso) < ms(b.endIso) && ms(b.startIso) < ms(a.endIso);
+  const byTime = [...slots].sort((a, b) => a.startIso.localeCompare(b.startIso));
+  const picked: Slot[] = [];
+  while (picked.length < count) {
+    const chosen = [...already, ...picked];
+    const near = (s: Slot) => (chosen.length ? Math.min(...chosen.map((c) => gap(s, c))) : 0);
+    // En empate, la más pegada a una cita y después la más temprana.
+    const best = byTime
+      .filter((s) => !chosen.some((c) => crosses(s, c)))
+      .reduce<Slot | null>((a, s) => (!a || near(s) < near(a) || (near(s) === near(a) && (s.snug ?? 0) > (a.snug ?? 0)) ? s : a), null);
+    if (!best) break;
+    picked.push(best);
+  }
+  return picked;
+};
+
 const weekdayOfKey = (dateKey: string) => new Date(`${dateKey}T12:00:00Z`).getUTCDay();
 
 /**
@@ -270,7 +297,8 @@ export const pickFreeCallSlots = (
     /**
      * Juntar las llamadas (19-oct, Dayana: «que se agenden lo más que se pueda
      * en una hora»): en cada grupo van primero los huecos entre dos citas y
-     * luego las horas pegadas a una, así la agenda se llena sin ratos muertos.
+     * las horas pegadas a una, todas juntas (`clustered`), así la agenda se
+     * llena sin ratos muertos.
      */
     compact?: boolean;
   }
@@ -283,14 +311,13 @@ export const pickFreeCallSlots = (
   const soon = open.filter((s) => soonKeys.has(s.dateKey));
   const liked = open.filter((s) => !soonKeys.has(s.dateKey) && preferred.has(weekdayOfKey(s.dateKey)));
   const rest = open.filter((s) => !soonKeys.has(s.dateKey) && !preferred.has(weekdayOfKey(s.dateKey)));
-  // Juntando: dentro de cada grupo, primero las pegadas a una cita (las de un
-  // hueco entre dos antes; `sort` es estable y sigue la hora) y luego el resto.
-  const tiers = (group: Slot[]): Slot[][] =>
-    p.compact
-      ? [group.filter((s) => (s.snug ?? 0) > 0).sort((a, b) => (b.snug ?? 0) - (a.snug ?? 0)), group.filter((s) => !s.snug)]
-      : [group];
+  // Juntando: dentro de cada grupo, primero las pegadas a una cita y luego el
+  // resto, todas lo más juntas posible (`clustered`).
   const picked: Slot[] = [];
-  for (const group of [soon, liked, rest]) for (const tier of tiers(group)) picked.push(...spreadVaried(tier, p.count - picked.length, picked));
+  for (const group of [soon, liked, rest]) {
+    if (!p.compact) picked.push(...spreadVaried(group, p.count - picked.length, picked));
+    else for (const tier of [group.filter((s) => (s.snug ?? 0) > 0), group.filter((s) => !s.snug)]) picked.push(...clustered(tier, p.count - picked.length, picked));
+  }
   return picked.sort((a, b) => a.startIso.localeCompare(b.startIso));
 };
 

@@ -139,11 +139,33 @@ describe("juntar las llamadas (Dayana, 19-oct: respiro 0, antelación 0, «lo m�
     expect(new Set(spread.map((s) => s.dateKey)).size).toBe(3);
   });
 
-  test("hoy o mañana sigue primero; dentro de hoy, las pegadas a una cita", () => {
+  test("hoy o mañana sigue primero; dentro de hoy, las pegadas a una cita y junto a ellas", () => {
     const today = [{ start: new Date("2026-10-19T15:00:00-05:00").getTime(), end: new Date("2026-10-19T15:15:00-05:00").getTime() }];
     const s = findFreeSlots({ config: packed, durationMin: 15, busy: [...busy, ...today], timezone: TZ, now: monday9, limit: 2000 });
     const picked = pickFreeCallSlots(s, { ...base, compact: true });
-    expect(picked.map((x) => `${x.dateKey} ${x.time}`)).toEqual(["2026-10-19 14:45", "2026-10-19 15:15", "2026-10-20 08:00"]);
+    expect(picked.map((x) => `${x.dateKey} ${x.time}`)).toEqual(["2026-10-19 14:30", "2026-10-19 14:45", "2026-10-19 15:15"]);
+  });
+
+  test("las más juntas: hasta cuatro llamadas en una hora (agenda del lunes 19)", () => {
+    const mon = (hm: string) => new Date(`2026-10-19T${hm}:00-05:00`).getTime();
+    // Sesiones hasta las 3:00 y desde las 4:00, el live hasta las 7:00, Diego a las 7:15, otra a las 8:00.
+    const day = [
+      { start: mon("13:00"), end: mon("15:00") },
+      { start: mon("16:00"), end: mon("19:00") },
+      { start: mon("19:15"), end: mon("19:30") },
+      { start: mon("20:00"), end: mon("21:00") },
+    ];
+    const late = { ...packed, hours: [{ weekday: 1, from: "13:00", to: "21:00" }] };
+    const s = findFreeSlots({ config: late, durationMin: 15, busy: day, timezone: TZ, now: new Date("2026-10-19T17:10:00Z"), limit: 2000 });
+    const picked = pickFreeCallSlots(s, { ...base, now: new Date("2026-10-19T17:10:00Z"), compact: true });
+    expect(picked.map((x) => x.time)).toEqual(["19:00", "19:30", "19:45"]);
+  });
+
+  test("las opciones no se cruzan entre ellas (10:45 y 10:55 antes de una sesión a las 11:10)", () => {
+    const session = [{ start: wed("11:10"), end: wed("12:10") }];
+    const s = findFreeSlots({ config: packed, durationMin: 15, busy: session, timezone: TZ, now: monday9, limit: 2000 });
+    const picked = pickFreeCallSlots(s, { ...base, soonFirst: false, compact: true });
+    expect(picked.map((x) => `${x.dateKey} ${x.time}`)).toEqual(["2026-10-21 10:55", "2026-10-21 12:10", "2026-10-21 12:30"]);
   });
 
   test("un día con el tope de llamadas no se ofrece aunque tenga huecos", () => {

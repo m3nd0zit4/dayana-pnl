@@ -309,7 +309,7 @@ export const businessFacts = async (
   } else if (config.salesFlow.enabled && config.booking.enabled) {
     lines.push(
       "",
-      "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere) y, cuando elija, book_free_call. Si la persona dice cuándo puede o que no puede esos días, vuelve a buscar con eso (dias / noPuede / franja / desde). Si propone una hora exacta («¿puede ser a las 3:15?», «mejor a las 10»), verifícala con offer_free_call_slots pasando hora y el día en dias: nunca digas que una hora está libre u ocupada sin mirarlo ahí. Nunca envíes enlaces de agenda.",
+      `AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere) y, cuando elija, book_free_call.${config.freeCall.compact ? " Esas horas ya son las más juntas, pegadas a las otras llamadas de Dayana, para que ella pueda atender hasta cuatro llamadas seguidas en una hora: ofrécele todas, tal cual, sin cambiarlas por otras más separadas y sin preguntarle antes a qué hora puede." : ""} Si la persona dice cuándo puede o que no puede esos días, vuelve a buscar con eso (dias / noPuede / franja / desde). Si propone una hora exacta («¿puede ser a las 3:15?», «mejor a las 10»), verifícala con offer_free_call_slots pasando hora y el día en dias: nunca digas que una hora está libre u ocupada sin mirarlo ahí. Nunca envíes enlaces de agenda.`,
       "La llamada gratis dura 15 minutos, no tiene costo ni compromiso, y Dayana llama por WhatsApp a este número."
     );
   } else if (!config.booking.aiSchedules) {
@@ -1171,7 +1171,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? {
           offer_free_call_slots: tool({
             description:
-              "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere. Úsalo cuando acepte la llamada o pida otras horas. Si la persona dijo cuándo puede o cuándo no («solo los martes», «el jueves en la tarde», «el lunes no puedo», «la otra semana»), pásalo en dias / noPuede / franja / desde. Si propuso una hora exacta, pásala en hora (con el día en dias) para verificar ese hueco. Escribe en tu mensaje las horas tal cual (label).",
+              `Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere.${config.freeCall.compact ? " Salen las más juntas, pegadas a otras llamadas de Dayana, para que atienda hasta cuatro seguidas en una hora." : ""} Úsalo cuando acepte la llamada o pida otras horas. Si la persona dijo cuándo puede o cuándo no («solo los martes», «el jueves en la tarde», «el lunes no puedo», «la otra semana»), pásalo en dias / noPuede / franja / desde. Si propuso una hora exacta, pásala en hora (con el día en dias) para verificar ese hueco. Escribe en tu mensaje las horas tal cual (label).`,
             inputSchema: z.object({
               dias: z
                 .array(z.string())
@@ -1248,7 +1248,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                       ? "La hora que propuso no está libre (ya está ocupada o fuera del horario de Dayana). Díselo con calidez y ofrécele estas, las más cercanas, tal cual, en la misma frase que la pregunta («… ¿te sirve alguna?»). No inventes otras."
                       : matchedWish === false
                       ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Díselo con calidez y ofrécele estas horas, ${CLOSEST_NOTE[closest ?? "any"]}, tal cual, en la misma frase que la pregunta («… ¿te sirve alguna?»); si ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other. No inventes otras.`
-                      : "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
+                      : config.freeCall.compact
+                        ? "Escríbele estas horas tal cual, todas, y pregúntale cuál le queda mejor: son las más juntas a las otras llamadas de Dayana. No las cambies ni inventes otras."
+                        : "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
                 });
               } catch (e) {
                 return log("offer_free_call_slots", args, {
