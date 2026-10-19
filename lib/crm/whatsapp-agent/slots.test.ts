@@ -64,8 +64,9 @@ describe("findFreeSlots", () => {
     const times = findFreeSlots({ config: { ...config, bufferMin: 7, hours: [{ weekday: 1, from: "08:00", to: "18:00" }] }, durationMin: 15, busy, timezone: TZ, now: monday6am, limit: 200 })
       .filter((s) => s.dateKey === "2026-09-28" && s.time >= "11:30" && s.time <= "12:45")
       .map((s) => s.time);
-    // 11:45 + 15 + 7 > 12:00 choca; 12:00 ocupado; 12:15 + 7 = 12:22 → 12:25.
-    expect(times).toEqual(["11:30", "12:25", "12:30", "12:45"]);
+    // 11:45 + 15 + 7 > 12:00 choca, pero cabe 11:35 (12:00 − 7 − 15 = 11:38 → 11:35);
+    // 12:00 ocupado; 12:15 + 7 = 12:22 → 12:25.
+    expect(times).toEqual(["11:30", "11:35", "12:25", "12:30", "12:45"]);
   });
 
   test("salta los fines de semana", () => {

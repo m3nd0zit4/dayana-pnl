@@ -1,5 +1,6 @@
 import { mentionsPrice } from "./price-guard";
 import { polishReply } from "./wording";
+import { clockLabel, readClock } from "./slots";
 import { effectiveAiMode } from "./mode";
 import { Prisma } from "@prisma/client";
 
@@ -1008,6 +1009,15 @@ const promiseBacking = async (input: {
       for (const o of out.options) if (typeof o.label === "string") labels.push(o.label);
     }
     if (typeof out.label === "string") labels.push(out.label);
+    // La hora que ella propuso y la agenda revisó («¿y a las 10:30?»): decirle «a
+    // las 10:30 no hay» no es inventar una hora (e2e 19-oct: se frenaba la
+    // respuesta y el chat pasaba a Dayana). Decir que quedó agendada sigue
+    // frenado aparte (`hasBooking`).
+    if (t.tool === "offer_free_call_slots") {
+      const asked = (t.input ?? {}) as { hora?: unknown; horaFromText?: unknown };
+      const clock = typeof asked.hora === "string" ? asked.hora : typeof asked.horaFromText === "string" ? asked.horaFromText : undefined;
+      for (const hm of readClock(clock)) labels.push(clockLabel(hm));
+    }
     if (t.tool === "book_free_call" && (out.booked === true || out.alreadyBooked === true)) bookedNow = true;
     if ((t.tool === "book_appointment" || t.tool === "confirm_appointment") && (out as { ok?: unknown }).ok === true) bookedNow = true;
   }

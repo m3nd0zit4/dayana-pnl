@@ -272,7 +272,7 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
           id="wa-booking-notice"
           layout="row"
           label="Antelación mínima"
-          help="No ofrece horas más cerca que esto."
+          help="No ofrece horas más cerca que esto. En 0: desde 15 minutos."
           state={states["wa-booking-notice"]}
         >
           <NumberField
@@ -321,6 +321,15 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
           state={states["wa-free-soon"]}
           checked={config.freeCall.soonFirst}
           onChange={(v) => change("wa-free-soon", "freeCall.soonFirst", v)}
+        />
+        <ToggleRow
+          id="wa-free-compact"
+          label="Juntar las llamadas"
+          help="Ofrece primero los huecos entre dos citas y las horas pegadas a otra, para atender más llamadas seguidas y sin ratos muertos."
+          info="Con «Respiro entre citas» en 0 quedan una detrás de otra. Igual reparte las opciones entre días y franjas para que la persona pueda elegir."
+          state={states["wa-free-compact"]}
+          checked={config.freeCall.compact}
+          onChange={(v) => change("wa-free-compact", "freeCall.compact", v)}
         />
         <SettingRow
           id="wa-free-days"

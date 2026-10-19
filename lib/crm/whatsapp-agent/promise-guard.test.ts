@@ -156,3 +156,12 @@ describe("lo que pasó el 19-oct", () => {
     expect(promiseBreach({ text: raquel, backing: ["12:00 p. m."], hasBooking: true, bookingToday: false })?.breach).toBe("invented_slots");
   });
 });
+
+describe("una hora que pidió y la agenda revisó (19-oct)", () => {
+  test("«a las 10:30 no tengo espacio, tengo 10:15 o 10:45» con 10:30 respaldada pasa; sin respaldo, no", () => {
+    const text = "A las 10:30 a. m. no tengo espacio, pero mañana tengo a las 10:15 a. m. o a las 10:45 a. m. ¿Te sirve alguna?";
+    const base = { text, hasBooking: false, bookingToday: false };
+    expect(promiseBreach({ ...base, backing: ["martes, 20 de octubre, 10:15 a. m.", "martes, 20 de octubre, 10:45 a. m.", "10:30 a. m."] })).toBeNull();
+    expect(promiseBreach({ ...base, backing: ["martes, 20 de octubre, 10:15 a. m.", "martes, 20 de octubre, 10:45 a. m."] })?.breach).toBe("invented_slots");
+  });
+});

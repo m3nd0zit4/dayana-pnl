@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import type { WhatsAppBookingConfig } from "../whatsapp-ai-config";
 import { buildEventTitle, isFreeCallService } from "./event-title";
 import {
+  BOOK_SOONEST_MIN,
   findFreeSlots,
   isWithinBookingHours,
   overlapsBusy,
@@ -136,8 +137,10 @@ export const bookOnCalendar = async (input: {
   end: Date;
 }> => {
   const end = new Date(input.start.getTime() + input.durationMin * 60_000);
+  // Con antelación 0, al menos `BOOK_SOONEST_MIN`: una hora que ya empezó o
+  // empieza ya no se agenda.
   const minStart =
-    Date.now() + input.config.minNoticeHours * 60 * 60_000 - 60_000;
+    Date.now() + Math.max(input.config.minNoticeHours * 60, BOOK_SOONEST_MIN) * 60_000 - 60_000;
   if (input.start.getTime() < minStart) {
     throw new SlotUnavailableError("Esa hora está demasiado cerca.");
   }

@@ -5,7 +5,7 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { availableSlots, bookOnCalendar, SlotUnavailableError } from "./calendar";
 import { isFreeCallService } from "./event-title";
 import { resolveConversations } from "./pending";
-import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
+import { hasWish, matchesWish, minutesFromClock, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
 
 /**
  * La llamada gratis de 15 minutos: el único objetivo de la asistente con una
@@ -91,7 +91,7 @@ export const offerFreeCallSlotsFor = async (input: {
   dayanaTz: string;
   now?: Date;
   wish?: SlotWish | null;
-}): Promise<{ options: FreeCallOption[]; matchedWish: boolean | null; closest?: WishStep }> => {
+}): Promise<{ options: FreeCallOption[]; matchedWish: boolean | null; closest?: WishStep | "near_time"; exactTime?: boolean }> => {
   const now = input.now ?? new Date();
   const service = freeCallService(input.config);
   const [slots, fullDays] = await Promise.all([
@@ -114,11 +114,30 @@ export const offerFreeCallSlotsFor = async (input: {
       soonFirst: input.config.freeCall.soonFirst,
       preferredWeekdays: input.config.freeCall.preferredWeekdays,
       fullDays,
+      compact: input.config.freeCall.compact,
     });
   const label = (s: (typeof slots)[number]) => ({ startIso: s.startIso, label: dualZoneLabel(s.startIso, input.personTz, input.dayanaTz) });
-  if (hasWish(input.wish)) {
-    for (const { step, wish } of relaxedWishes(input.wish)) {
-      const found = pick(slots.filter((s) => matchesWish(s, wish, input.personTz)));
+  let wish = input.wish ?? null;
+  if (hasWish(wish) && wish.times?.length) {
+    // Propuso una hora exacta («¿puede ser a las 3:15?»): se verifica ese hueco.
+    // Libre → solo esa (la primera fecha que cumpla). Ocupada o fuera del
+    // horario → las más cercanas a esa hora en los días que dijo (sin día, en
+    // cualquiera); sin nada esos días, se sigue sin la hora.
+    const { times, ...days } = wish;
+    const open = slots.filter((s) => !fullDays.has(s.dateKey));
+    const exact = open.find((s) => matchesWish(s, wish!, input.personTz));
+    if (exact) return { options: [label(exact)], matchedWish: true, exactTime: true };
+    const near = open
+      .filter((s) => matchesWish(s, days, input.personTz))
+      .sort((a, b) => minutesFromClock(a, times, input.personTz) - minutesFromClock(b, times, input.personTz) || a.startIso.localeCompare(b.startIso))
+      .slice(0, input.config.freeCall.offer)
+      .sort((a, b) => a.startIso.localeCompare(b.startIso));
+    if (near.length > 0) return { options: near.map(label), matchedWish: false, closest: "near_time" };
+    wish = hasWish(days) ? days : null;
+  }
+  if (hasWish(wish)) {
+    for (const { step, wish: w } of relaxedWishes(wish)) {
+      const found = pick(slots.filter((s) => matchesWish(s, w, input.personTz)));
       if (found.length > 0) return { options: found.map(label), matchedWish: step === "exact", ...(step === "exact" ? {} : { closest: step }) };
     }
     return { options: [], matchedWish: false, closest: "any" };

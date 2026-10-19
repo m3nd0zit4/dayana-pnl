@@ -17,7 +17,7 @@ import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
-import { dayanaOfferedSlot, saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
+import { clockInText, dayanaOfferedSlot, saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -309,7 +309,7 @@ export const businessFacts = async (
   } else if (config.salesFlow.enabled && config.booking.enabled) {
     lines.push(
       "",
-      "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere) y, cuando elija, book_free_call. Si la persona dice cuándo puede o que no puede esos días, vuelve a buscar con eso (dias / noPuede / franja / desde). Nunca envíes enlaces de agenda.",
+      "AGENDAR LA LLAMADA GRATIS: usa offer_free_call_slots (horas reales del calendario de Dayana, en la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere) y, cuando elija, book_free_call. Si la persona dice cuándo puede o que no puede esos días, vuelve a buscar con eso (dias / noPuede / franja / desde). Si propone una hora exacta («¿puede ser a las 3:15?», «mejor a las 10»), verifícala con offer_free_call_slots pasando hora y el día en dias: nunca digas que una hora está libre u ocupada sin mirarlo ahí. Nunca envíes enlaces de agenda.",
       "La llamada gratis dura 15 minutos, no tiene costo ni compromiso, y Dayana llama por WhatsApp a este número."
     );
   } else if (!config.booking.aiSchedules) {
@@ -1171,7 +1171,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? {
           offer_free_call_slots: tool({
             description:
-              "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere. Úsalo cuando acepte la llamada o pida otras horas. Si la persona dijo cuándo puede o cuándo no («solo los martes», «el jueves en la tarde», «el lunes no puedo», «la otra semana»), pásalo en dias / noPuede / franja / desde. Escribe en tu mensaje las horas tal cual (label).",
+              "Busca 2 o 3 horas libres de verdad en el calendario de Dayana para la llamada gratis de 15 minutos, con la hora de la persona y la de Colombia: primero hoy o mañana si hay espacio, luego los días que Dayana prefiere. Úsalo cuando acepte la llamada o pida otras horas. Si la persona dijo cuándo puede o cuándo no («solo los martes», «el jueves en la tarde», «el lunes no puedo», «la otra semana»), pásalo en dias / noPuede / franja / desde. Si propuso una hora exacta, pásala en hora (con el día en dias) para verificar ese hueco. Escribe en tu mensaje las horas tal cual (label).",
             inputSchema: z.object({
               dias: z
                 .array(z.string())
@@ -1180,6 +1180,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               noPuede: z.array(z.string()).optional().describe("Días que dijo que NO puede (mismo formato)."),
               franja: z.enum(["mañana", "tarde", "noche"]).optional().describe("Si dijo en la mañana, en la tarde o en la noche."),
               desde: z.string().optional().describe("AAAA-MM-DD si dijo «desde el…», «la otra semana» (el lunes que viene)."),
+              hora: z
+                .string()
+                .optional()
+                .describe("Si propuso una hora exacta: HH:MM en 24 h, en su hora («a las 3:15 de la tarde» → 15:15). Pon el día en dias."),
             }),
             execute: async (args) => {
               // Sin zona guardada: la que se deduce del chat y del número (Sophie y
@@ -1217,19 +1221,32 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               try {
                 // Una franja que la persona nunca dijo no limita las horas.
                 const said = saidPartOfDay(input.transcript.filter((l) => l.direction === "INBOUND").map((l) => l.body));
-                const wish = wishFromWords(said ? args : { ...args, franja: undefined }, tz, now);
-                const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
+                // Una hora que escribió en este turno y el modelo no pasó («mañana a
+                // las 4 de la tarde» → solo franja «tarde»; e2e 19-oct: «a esa hora no
+                // tengo espacio» con las 4:00 libres). Se verifica ese hueco igual.
+                const lastOut = input.transcript.map((l) => l.direction).lastIndexOf("OUTBOUND");
+                const turn = input.transcript.slice(lastOut + 1).filter((l) => l.direction === "INBOUND").map((l) => l.body);
+                const horaFromText = args.hora ? null : clockInText(turn);
+                const hora = args.hora ?? horaFromText ?? undefined;
+                const wish = wishFromWords(said ? { ...args, hora } : { ...args, franja: undefined, hora }, tz, now);
+                const logged = horaFromText ? { ...args, horaFromText } : args;
+                const { options, matchedWish, closest, exactTime } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
                 if (options.length === 0) {
-                  return log("offer_free_call_slots", args, {
+                  return log("offer_free_call_slots", logged, {
                     error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
                   });
                 }
                 options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
-                return log("offer_free_call_slots", args, {
+                return log("offer_free_call_slots", logged, {
                   ok: true,
                   options,
-                  note:
-                    matchedWish === false
+                  note: exactTime
+                    ? horaFromText
+                      ? "La hora que mencionó está libre en la agenda de Dayana (label). Dile que está libre y pregúntale si se la agendas; agéndala con book_free_call solo cuando diga que sí. No ofrezcas otras."
+                      : "Esa hora está libre en la agenda de Dayana (label). Si la persona la propuso como su elección, agéndala ya con book_free_call y este startIso; si solo preguntaba, dile que está libre y pregúntale si se la agendas. No ofrezcas otras."
+                    : closest === "near_time"
+                      ? "La hora que propuso no está libre (ya está ocupada o fuera del horario de Dayana). Díselo con calidez y ofrécele estas, las más cercanas, tal cual, en la misma frase que la pregunta («… ¿te sirve alguna?»). No inventes otras."
+                      : matchedWish === false
                       ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Díselo con calidez y ofrécele estas horas, ${CLOSEST_NOTE[closest ?? "any"]}, tal cual, en la misma frase que la pregunta («… ¿te sirve alguna?»); si ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other. No inventes otras.`
                       : "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
                 });
@@ -1257,7 +1274,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 .filter((l) => l.direction === "OUTBOUND" && !l.isAutoReply && (!l.sentAt || now.getTime() - l.sentAt.getTime() < 72 * 3600_000))
                 .map((l) => l.body);
               if (!offeredNow.has(iso) && !offeredBefore.includes(iso) && !dayanaOfferedSlot(dayanaTexts, iso, timezone)) {
-                return log("book_free_call", args, { error: "Esa hora no se la ofreciste. Usa offer_free_call_slots primero." });
+                return log("book_free_call", args, {
+                  error: "Esa hora no se la ofreciste. Si ella la propuso, verifícala con offer_free_call_slots (hora y dias); si no, ofrécele horas con offer_free_call_slots.",
+                });
               }
               const tz = personTz() ?? timezone;
               const service = freeCallService(config);

@@ -28,6 +28,11 @@ export type Slot = {
   dateKey: string;
   /** "15:30" en la zona operativa. */
   time: string;
+  /**
+   * Por cuántos lados queda pegada a algo ocupado (0, 1 o 2): 2 es un hueco
+   * justo entre dos citas. Sirve para juntar las llamadas (`compact`).
+   */
+  snug?: number;
 };
 
 const hmToMinutes = (hm: string): number => {
@@ -43,6 +48,27 @@ const stepMinutes = (duration: number): number => Math.min(30, duration);
 
 /** Lo primero que se puede ofrecer después de algo ocupado: fin + respiro, redondeado a 5 minutos. */
 const afterBusyStart = (endMs: number, bufferMin: number): number => Math.ceil((endMs + bufferMin * MINUTE) / (5 * MINUTE)) * 5 * MINUTE;
+
+/** Lo último que cabe antes de algo ocupado: su inicio − respiro − la cita, redondeado hacia atrás a 5 minutos. */
+const beforeBusyStart = (startMs: number, bufferMin: number, durationMin: number): number =>
+  Math.floor((startMs - (bufferMin + durationMin) * MINUTE) / (5 * MINUTE)) * 5 * MINUTE;
+
+/**
+ * Con «Antelación mínima» en 0 (19-oct, Dayana: «lo más que se pueda»), igual
+ * no se ofrece una hora que empieza en 2 minutos: la persona no alcanza a
+ * leerla. Para ofrecer, al menos esto; para agendar, `BOOK_SOONEST_MIN`.
+ */
+export const OFFER_SOONEST_MIN = 15;
+export const BOOK_SOONEST_MIN = 5;
+
+/** ¿Por cuántos lados (0–2) queda pegada a algo ocupado, contando el respiro? */
+const snugness = (startMs: number, endMs: number, busy: Busy[], bufferMin: number): number => {
+  const guard = bufferMin * MINUTE;
+  const close = 5 * MINUTE;
+  const after = busy.some((b) => startMs - (b.end + guard) >= 0 && startMs - (b.end + guard) < close);
+  const before = busy.some((b) => b.start - guard - endMs >= 0 && b.start - guard - endMs < close);
+  return Number(after) + Number(before);
+};
 
 export const overlapsBusy = (
   startMs: number,
@@ -76,7 +102,7 @@ export const findFreeSlots = (input: {
 }): Slot[] => {
   const { config, durationMin, busy, timezone, now } = input;
   const earliest = Math.max(
-    now.getTime() + config.minNoticeHours * 60 * MINUTE,
+    now.getTime() + Math.max(config.minNoticeHours * 60, OFFER_SOONEST_MIN) * MINUTE,
     input.from?.getTime() ?? 0
   );
   const horizon = now.getTime() + config.horizonDays * DAY;
@@ -99,7 +125,9 @@ export const findFreeSlots = (input: {
     for (const w of sorted) {
       const grid: number[] = [];
       for (let t = w.start; t + durationMin * MINUTE <= w.end; t += step * MINUTE) grid.push(t);
-      const extra = busy.map((b) => afterBusyStart(b.end, config.bufferMin)).filter((t) => t > w.start && t + durationMin * MINUTE <= w.end);
+      const extra = busy
+        .flatMap((b) => [afterBusyStart(b.end, config.bufferMin), beforeBusyStart(b.start, config.bufferMin, durationMin)])
+        .filter((t) => t > w.start && t + durationMin * MINUTE <= w.end);
       for (const t of [...new Set([...grid, ...extra])].sort((a, b) => a - b)) {
         if (slots.length >= limit) break;
         const endMs = t + durationMin * MINUTE;
@@ -115,6 +143,7 @@ export const findFreeSlots = (input: {
           endIso: new Date(endMs).toISOString(),
           dateKey: getDateKeyInTz(start, timezone),
           time: getTimeHmInTz(start, timezone),
+          snug: snugness(t, endMs, busy, config.bufferMin),
         });
       }
     }
@@ -130,9 +159,11 @@ export const findFreeSlots = (input: {
     );
     // Además de la cuadrícula, justo después de cada cita + el respiro (19-oct:
     // Dayana bajó «Respiro entre citas» a 7 min y se seguían ofreciendo las de
-    // cada 15: tras una llamada de 12:00 a 12:15, las 12:30 y no las 12:25).
+    // cada 15: tras una llamada de 12:00 a 12:15, las 12:30 y no las 12:25), y
+    // lo último que cabe antes de cada una (una sesión a las 11:10 → 10:55).
     const afterBusy = busy
-      .map((b) => new Date(afterBusyStart(b.end, config.bufferMin)))
+      .flatMap((b) => [afterBusyStart(b.end, config.bufferMin), beforeBusyStart(b.start, config.bufferMin, durationMin)])
+      .map((t) => new Date(t))
       .filter((d) => getDateKeyInTz(d, timezone) === dateKey)
       .map((d) => hmToMinutes(getTimeHmInTz(d, timezone)));
     for (const range of ranges) {
@@ -156,6 +187,7 @@ export const findFreeSlots = (input: {
           endIso: new Date(endMs).toISOString(),
           dateKey,
           time: getTimeHmInTz(start, timezone),
+          snug: snugness(startMs, endMs, busy, config.bufferMin),
         });
         if (slots.length >= limit) break;
       }
@@ -197,12 +229,13 @@ export const partOfDay = (hm: string): PartOfDay => {
  * mañana libres sale una de hoy, una de mañana y otra de hoy en la tarde (no
  * 8:00 y 8:15 seguidas).
  */
-const spreadVaried = (slots: Slot[], count: number): Slot[] => {
+const spreadVaried = (slots: Slot[], count: number, already: Slot[] = []): Slot[] => {
   if (count <= 0) return [];
   if (slots.length <= count) return slots;
   const picked: Slot[] = [];
-  const usedDays = new Set<string>();
-  const usedParts = new Set<string>();
+  // Lo ya elegido en otro grupo cuenta para variar (día y franja).
+  const usedDays = new Set<string>(already.map((s) => s.dateKey));
+  const usedParts = new Set<string>(already.map((s) => `${s.dateKey}|${partOfDay(s.time)}`));
   const take = (s: Slot) => {
     picked.push(s);
     usedDays.add(s.dateKey);
@@ -234,6 +267,12 @@ export const pickFreeCallSlots = (
     preferredWeekdays: number[];
     /** Días («YYYY-MM-DD», zona de Dayana) sin cupo de llamada gratis. */
     fullDays?: Set<string>;
+    /**
+     * Juntar las llamadas (19-oct, Dayana: «que se agenden lo más que se pueda
+     * en una hora»): en cada grupo van primero los huecos entre dos citas y
+     * luego las horas pegadas a una, así la agenda se llena sin ratos muertos.
+     */
+    compact?: boolean;
   }
 ): Slot[] => {
   const open = p.fullDays?.size ? slots.filter((s) => !p.fullDays!.has(s.dateKey)) : slots;
@@ -244,8 +283,14 @@ export const pickFreeCallSlots = (
   const soon = open.filter((s) => soonKeys.has(s.dateKey));
   const liked = open.filter((s) => !soonKeys.has(s.dateKey) && preferred.has(weekdayOfKey(s.dateKey)));
   const rest = open.filter((s) => !soonKeys.has(s.dateKey) && !preferred.has(weekdayOfKey(s.dateKey)));
+  // Juntando: dentro de cada grupo, primero las pegadas a una cita (las de un
+  // hueco entre dos antes; `sort` es estable y sigue la hora) y luego el resto.
+  const tiers = (group: Slot[]): Slot[][] =>
+    p.compact
+      ? [group.filter((s) => (s.snug ?? 0) > 0).sort((a, b) => (b.snug ?? 0) - (a.snug ?? 0)), group.filter((s) => !s.snug)]
+      : [group];
   const picked: Slot[] = [];
-  for (const group of [soon, liked, rest]) picked.push(...spreadVaried(group, p.count - picked.length));
+  for (const group of [soon, liked, rest]) for (const tier of tiers(group)) picked.push(...spreadVaried(tier, p.count - picked.length, picked));
   return picked.sort((a, b) => a.startIso.localeCompare(b.startIso));
 };
 
@@ -263,13 +308,83 @@ export type SlotWish = {
   partOfDay?: PartOfDay;
   /** Desde esta fecha («YYYY-MM-DD»). */
   fromDate?: string;
+  /**
+   * Una hora exacta que propuso («¿puede ser a las 3:15?»), en su hora: "15:15",
+   * o "03:15" y "15:15" si no dijo a. m./p. m.
+   */
+  times?: string[];
 };
 
 export const hasWish = (w: SlotWish | null | undefined): w is SlotWish =>
   Boolean(
     w &&
-      (w.weekdays?.length || w.dates?.length || w.notWeekdays?.length || w.notDates?.length || w.partOfDay || w.fromDate)
+      (w.weekdays?.length || w.dates?.length || w.notWeekdays?.length || w.notDates?.length || w.partOfDay || w.fromDate || w.times?.length)
   );
+
+/**
+ * «15:15», «3:15 pm», «3:15 p. m.», «9 am» → ["15:15"]… Sin a. m./p. m. y antes
+ * de las 12 valen las dos («3:15» → ["03:15", "15:15"]). Si no se entiende, [].
+ */
+export const readClock = (raw: string | undefined): string[] => {
+  const m = fold(raw ?? "").match(/^(\d{1,2})(?:[:.h](\d{2}))?\s*(?:([ap])\.?\s?m\.?)?$/);
+  if (!m) return [];
+  let h = Number(m[1]);
+  const min = Number(m[2] ?? 0);
+  if (h > 23 || min > 59) return [];
+  if (m[3] === "p" && h < 12) h += 12;
+  if (m[3] === "a" && h === 12) h = 0;
+  const hm = (x: number) => `${String(x).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+  return !m[3] && h >= 1 && h < 12 ? [hm(h), hm(h + 12)] : [hm(h)];
+};
+
+// «No puedo a las 10», «a las 10 no me sirve».
+const NOT_ABLE = /\b(no|tampoco) (puedo|podre|podria|me (sirve|queda|da|funciona)|alcanzo|estoy|estare)\b/;
+const NOT_ABLE_AFTER = /^\W*(no|tampoco) (puedo|podre|podria|me (sirve|queda|da|funciona)|alcanzo|estoy|estare)\b/;
+
+/**
+ * La hora exacta que propone en su mensaje («mañana a las 4 de la tarde», «¿a
+ * las 10:30?», «tipo 3pm»), lista para `readClock`. flash-lite a veces pasa solo
+ * `franja: "tarde"` y contestó «a esa hora no tengo espacio» con las 4:00 libres
+ * (e2e, 19-oct). No cuentan «después de / desde / antes de / hasta las 4» (no
+ * es una hora exacta) ni una con «no» cerca («a las 10 no puedo»). Del último
+ * mensaje que tenga una, la última.
+ */
+export const clockInText = (texts: (string | null | undefined)[]): string | null => {
+  const re =
+    /\b(?:a las?|las) (\d{1,2})(?::(\d{2}))?(?:\s*([ap])\.?\s?m\b\.?|\s+(?:de|en|por) la (manana|tarde|noche))?|\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s?m\b/g;
+  for (const raw of [...texts].reverse()) {
+    const t = fold(raw ?? "");
+    let found: string | null = null;
+    for (const m of t.matchAll(re)) {
+      // Solo la misma frase: en «a las 10 no puedo, mejor a las 4» las 4 valen.
+      const before = t.slice(Math.max(0, m.index - 22), m.index).split(/[,.;!?]/).pop() ?? "";
+      const after = t.slice(m.index + m[0].length, m.index + m[0].length + 14).split(/[,.;!?]/)[0] ?? "";
+      if (/(despues de|desde|antes de|hasta)\s*$/.test(before) || NOT_ABLE.test(before) || NOT_ABLE_AFTER.test(after)) continue;
+      const bare = m[1] === undefined;
+      // «las 3» sin «a» ni minutos ni a. m./p. m./tarde puede ser cualquier cosa («me sirven las 2»).
+      if (!bare && !m[0].startsWith("a ") && !m[2] && !m[3] && !m[4]) continue;
+      const h = Number(bare ? m[5] : m[1]);
+      const min = (bare ? m[6] : m[2]) ?? "00";
+      if (h > 23 || Number(min) > 59) continue;
+      const ampm = bare ? m[7] : m[3];
+      found = ampm ? `${h}:${min} ${ampm}m` : m[4] === "manana" ? `${h}:${min} am` : m[4] ? `${h}:${min} pm` : `${h}:${min}`;
+    }
+    if (found) return found;
+  }
+  return null;
+};
+
+/** "16:00" → «4:00 p. m.», "00:30" → «12:30 a. m.» (como las escribe la asistente). */
+export const clockLabel = (hm: string): string => {
+  const [h, m] = hm.split(":").map(Number);
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h < 12 ? "a. m." : "p. m."}`;
+};
+
+/** Minutos entre la hora de la cita (en la zona de la persona) y "HH:MM". */
+export const minutesFromClock = (slot: Slot, clocks: string[], personTz: string): number => {
+  const at = hmToMinutes(getTimeHmInTz(new Date(slot.startIso), personTz));
+  return Math.min(...clocks.map((c) => Math.abs(at - hmToMinutes(c))));
+};
 
 const WEEKDAY_WORDS: Record<string, number> = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
 const fold = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
@@ -319,7 +434,7 @@ export const saidPartOfDay = (texts: (string | null | undefined)[]): boolean =>
  * `SlotWish` en la hora de la persona. Lo que no entiende se ignora.
  */
 export const wishFromWords = (
-  input: { dias?: string[]; noPuede?: string[]; franja?: string; desde?: string },
+  input: { dias?: string[]; noPuede?: string[]; franja?: string; desde?: string; hora?: string },
   personTz: string,
   now: Date
 ): SlotWish => {
@@ -343,13 +458,16 @@ export const wishFromWords = (
   const part: PartOfDay | undefined =
     franja === "manana" ? "manana" : franja === "tarde" ? "tarde" : franja === "noche" ? "noche" : undefined;
   const desde = input.desde ? fold(input.desde) : "";
+  const times = readClock(input.hora);
   return {
     ...(yes.weekdays.length ? { weekdays: yes.weekdays } : {}),
     ...(yes.dates.length ? { dates: yes.dates } : {}),
     ...(no.weekdays.length ? { notWeekdays: no.weekdays } : {}),
     ...(no.dates.length ? { notDates: no.dates } : {}),
-    ...(part ? { partOfDay: part } : {}),
+    // Con una hora exacta, la franja sobra (y flash-lite a veces la pone mal).
+    ...(part && !times.length ? { partOfDay: part } : {}),
     ...(/^\d{4}-\d{2}-\d{2}$/.test(desde) ? { fromDate: desde } : {}),
+    ...(times.length ? { times } : {}),
   };
 };
 
@@ -363,6 +481,7 @@ export const matchesWish = (slot: Slot, wish: SlotWish, personTz: string): boole
   const byDay = Boolean(wish.dates?.length || wish.weekdays?.length);
   if (byDay && !(wish.dates?.includes(key) || wish.weekdays?.includes(weekday))) return false;
   if (wish.partOfDay && partOfDay(getTimeHmInTz(start, personTz)) !== wish.partOfDay) return false;
+  if (wish.times?.length && !wish.times.includes(getTimeHmInTz(start, personTz))) return false;
   return true;
 };
 
