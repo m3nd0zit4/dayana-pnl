@@ -257,6 +257,19 @@ const WEEKDAY_WORDS: Record<string, number> = { domingo: 0, lunes: 1, martes: 2,
 const fold = (s: string) => s.normalize("NFD").replace(/\p{Diacritic}/gu, "").trim().toLowerCase();
 
 /**
+ * ¿La persona habló de una parte del día («en la tarde», «por la mañana»,
+ * «después de las 5», «6 pm»)? flash-lite pasa `franja: "tarde"` sin que lo
+ * haya dicho (19-oct, e2e de la llamada gratis: preguntó «¿Qué horarios
+ * tienes?» y solo le salió la hora de la tarde). «Mañana» solo es «mañana»;
+ * «buenas tardes / noches» es un saludo.
+ */
+export const saidPartOfDay = (texts: (string | null | undefined)[]): boolean =>
+  texts.some((raw) => {
+    const t = fold(raw ?? "").replace(/\bbuen[oa]s (tardes|noches|dias)\b/g, " ");
+    return /\b((en|por|de|a) la (manana|tarde|noche)|temprano|(en|por|de|a) las? (tardes|noches|mananas)|tarde|noche|mediodia|medio dia|(despues|antes) de las|\d{1,2}(:\d{2})?\s*(am|pm|a\s?m|p\s?m)\b)/.test(t);
+  });
+
+/**
  * Lo que la asistente le pasa a `offer_free_call_slots` («martes», «hoy»,
  * «mañana», «2026-10-22»; franja «mañana» / «tarde» / «noche»; «desde») a un
  * `SlotWish` en la hora de la persona. Lo que no entiende se ignora.

@@ -411,6 +411,18 @@ export const whatsAppAiConfigSchema = z.object({
    * 1 hora; Dayana la agenda para hoy o mañana en cuanto pague. `url` puede ser
    * una ruta del sitio.
    */
+  /**
+   * Nivel de gasto de la IA (`spend.ts`, pedido de la dueña 19-oct): cuánto
+   * del chat lee y cuántas vueltas da con las herramientas. «personalizado»
+   * usa `context.recentMessages`, `context.snippets`, `learning.examples` y
+   * `maxSteps`. Con `dailyBudgetUsd` (> 0), pasado el tope del día contesta en
+   * «ahorro» (nunca se calla).
+   */
+  spend: z.object({
+    level: z.enum(["ahorro", "equilibrado", "completo", "personalizado"]).default("completo"),
+    maxSteps: z.number().int().min(3).max(8).default(6),
+    dailyBudgetUsd: z.number().min(0).max(100).default(0),
+  }),
   urgentSession: z.object({
     enabled: z.boolean().default(true),
     url: z.string().trim().min(2).max(300).default(DEFAULT_URGENT_SESSION_URL),
@@ -480,6 +492,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
   noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },
   sessionArrival: { enabled: true },
+  spend: { level: "completo", maxSteps: 6, dailyBudgetUsd: 0 },
   urgentSession: { enabled: true, url: DEFAULT_URGENT_SESSION_URL, afterPayment: DEFAULT_URGENT_SESSION_AFTER },
 });
 

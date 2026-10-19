@@ -17,7 +17,7 @@ import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
-import { spreadSlots, wishFromWords, type WishStep } from "./slots";
+import { saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -25,6 +25,7 @@ import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
+import { spendLimits } from "./spend";
 import {
   URGENT_SESSION_REPLY,
   offersUrgentSession,
@@ -133,7 +134,8 @@ export type BrainResult = {
   /** La persona quiere agendar: se le avisa a Dayana para que ella agende. */
   bookingRequest: { service: string; when: string | null; note: string } | null;
   model: string;
-  usage: { inputTokens?: number; outputTokens?: number };
+  /** `cachedTokens`: de la entrada, lo que Gemini ya tenía en su caché (cobra el 10 %). */
+  usage: { inputTokens?: number; outputTokens?: number; cachedTokens?: number };
 };
 
 export type TranscriptLine = {
@@ -550,9 +552,11 @@ const CLIENT_PAYMENT_MODE = `ESTA PERSONA YA ES CLIENTA DE DAYANA y la atiende e
 - Si manda un comprobante o dice que pagó: register_payment_receipt y el mensaje de recibido.
 - Para CUALQUIER otra cosa: llama a escalate con category=other y SIN holdingReply (Dayana le contesta).`;
 
+// Sin la hora: va en el prompt (AHORA). Así las reglas son iguales en cada
+// llamada y Gemini las cobra al 10 % desde su caché (19-oct: con la hora aquí
+// solo reutilizaba las llamadas del mismo minuto).
 const systemPrompt = (
   config: WhatsAppAiConfig,
-  now: string,
   opts: { salesFlow: boolean; autoBook: boolean; clientMode?: boolean } = { salesFlow: false, autoBook: false }
 ): string => {
   const leadRules = opts.salesFlow ? salesFlowRules(config, { autoBook: opts.autoBook }) : LEGACY_LEAD_RULES;
@@ -566,7 +570,7 @@ TONO: amable y profesional: cercana pero seria, respetuosa y clara, en español,
 NUNCA escribas: «¿Qué te trae por aquí?», «Qué alegría tenerte por aquí», «¿Hay algo más en lo que te pueda ayudar?», «De nada» (di «Con gusto»).
 Imita la forma de escribir de Dayana (sus ejemplos y su guía de estilo, más abajo) sin salirte de este tono.
 
-Ahora es ${now}.
+La fecha y la hora de ahora están en AHORA (al principio de los datos, abajo).
 
 Cómo conversas (así trabaja Dayana):
 - Género: NO adivines si es hombre o mujer (ni por el nombre, ni por la foto, ni por el tema). Usa femenino o masculino solo si la persona ya habló de sí con género en la conversación («estoy cansada», «soy muy desconfiado», «estoy atenta») y entonces respétalo siempre. Mientras no lo sepas, escribe sin género: «te doy la bienvenida» (no «bienvenida/o»), «cuando quieras» o «cuando tengas el momento» (no «cuando estés lista/o»), «tu llamada quedó para el jueves» (no «quedaste agendada/o»), «estate pendiente del teléfono» (no «pendiente y lista»), «gracias por tu interés» (no «interesada/o»).
@@ -823,7 +827,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (m.body?.trim()) lastInbound.unshift(m.body.trim());
   }
   const examples = config.learning.enabled
-    ? await findSimilarExamples(lastInbound.join("\n"), config.learning.examples).catch(
+    ? await findSimilarExamples(lastInbound.join("\n"), spendLimits(config).examples).catch(
         (e) => {
           console.error("[whatsapp-agent] sin ejemplos", e);
           return [] as SimilarExample[];
@@ -1198,7 +1202,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 });
               }
               try {
-                const wish = wishFromWords(args, tz, now);
+                // Una franja que la persona nunca dijo no limita las horas.
+                const said = saidPartOfDay(input.transcript.filter((l) => l.direction === "INBOUND").map((l) => l.body));
+                const wish = wishFromWords(said ? args : { ...args, franja: undefined }, tz, now);
                 const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
                 if (options.length === 0) {
                   return log("offer_free_call_slots", args, {
@@ -1496,6 +1502,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeLabelInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;
 
   const promptText = [
+      // Primero la hora (como cuando iba en las reglas): fuera de las reglas
+      // para que la caché de Gemini cubra reglas y herramientas.
+      `AHORA: ${nowLabel}.`,
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall: Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)) })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
@@ -1542,7 +1551,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
 
   const result = await generateText({
     model: google(modelId()),
-    system: systemPrompt(config, nowLabel, { salesFlow: salesOn && !input.clientMode, autoBook, clientMode: input.clientMode }),
+    system: systemPrompt(config, { salesFlow: salesOn && !input.clientMode, autoBook, clientMode: input.clientMode }),
     ...(input.images?.length
       ? {
           messages: [
@@ -1557,7 +1566,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         }
       : { prompt: promptText }),
     tools: activeTools,
-    stopWhen: [isStepCount(6), hasToolCall("escalate")],
+    stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate")],
   });
 
   const modelOutcome: BrainOutcome =
@@ -1618,6 +1627,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     model: modelId(),
     usage: {
       inputTokens: result.totalUsage?.inputTokens ?? undefined,
+      cachedTokens: result.totalUsage?.inputTokenDetails?.cacheReadTokens ?? undefined,
       outputTokens: result.totalUsage?.outputTokens ?? undefined,
     },
   };

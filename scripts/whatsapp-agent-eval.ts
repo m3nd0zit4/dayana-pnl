@@ -8,7 +8,9 @@
  * - pass@k: pasó al menos una de las k veces (lo puede hacer);
  * - pass^k: pasó las k veces (lo hace siempre). Lo que importa en producción.
  *
- *   GEMINI_MODEL=gemini-3.5-flash bun scripts/whatsapp-agent-eval.ts [--k 3] [--only id1,id2] [--out informe.json] [--no-judge]
+ *   GEMINI_MODEL=gemini-3.5-flash bun scripts/whatsapp-agent-eval.ts [--k 3] [--only id1,id2] [--out informe.json] [--no-judge] [--level ahorro]
+ *
+ * `--level`: el nivel de gasto (`spend.ts`) con el que contesta: ahorro, equilibrado, completo.
  *
  * Contra `neondb_dev` (lee la configuración, los manuales y los datos del
  * negocio; no escribe nada). Sale con error si algún caso pasa menos de 2 de 3.
@@ -68,6 +70,7 @@ const main = async () => {
   const config = {
     ...base,
     context: { ...base.context, v2: true },
+    ...(arg("level") ? { spend: { ...base.spend, level: arg("level") as typeof base.spend.level } } : {}),
     salesFlow: { ...base.salesFlow, enabled: true },
     booking: { ...base.booking, enabled: true },
     freeCall: { ...base.freeCall, autoBook: true },

@@ -39,6 +39,8 @@ import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
 import { segmentOrSafe } from "./segment-store";
 import { isStage } from "./stage";
+import { spendLimits } from "./spend";
+import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
 import { isCrisis, pauseHolds } from "./pause-rules";
@@ -453,7 +455,8 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
-    const config = await getWhatsAppAiConfig();
+    // Con el nivel de gasto (y «Ahorro» si ya pasó el tope del día).
+    const config = await configWithSpendLevel(await getWhatsAppAiConfig());
     const verdict = await gate(conversationId, config, silenced, route);
     if (verdict.skip) {
       if (verdict.escalate) {
@@ -535,12 +538,12 @@ export const runWhatsAppAi = async (input: {
       .map((m) => m.body ?? "")
       .join(" ");
     const older =
-      config.context.v2 && config.context.snippets > 0 && history[0]?.sentAt
+      config.context.v2 && spendLimits(config).snippets > 0 && history[0]?.sentAt
         ? await olderSnippets({
             conversationId,
             before: history[0].sentAt,
             query: lastBurst,
-            limit: config.context.snippets,
+            limit: spendLimits(config).snippets,
           }).catch(() => [])
         : [];
     // Lo que leyó la IA, para poder comprobarlo después en el rastro.
@@ -605,6 +608,7 @@ export const runWhatsAppAi = async (input: {
       model: result.model,
       inputTokens: result.usage.inputTokens ?? null,
       outputTokens: result.usage.outputTokens ?? null,
+      cachedTokens: result.usage.cachedTokens ?? null,
       toolCalls: result.toolCalls as unknown as Prisma.InputJsonValue,
       context: context as unknown as Prisma.InputJsonValue,
     };
@@ -1283,7 +1287,7 @@ const gate = async (
   // últimos 40, y quien volvía tras un mes leía un hilo casi vacío.
   const since = Date.now() - HISTORY_DAYS * 24 * 3600_000;
   const recent = config.context.v2
-    ? ordered.slice(-config.context.recentMessages)
+    ? ordered.slice(-spendLimits(config).recentMessages)
     : ordered.filter((m, i) => i >= ordered.length - HISTORY_MIN || m.sentAt.getTime() >= since);
   const history: TranscriptLine[] = recent
     .filter((m) => m.status !== "FAILED")

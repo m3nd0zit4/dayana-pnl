@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, wishFromWords } from "./slots";
+import { findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
 
 const TZ = "America/Bogota";
 // Lunes 8:00 a 6:00 p. m., todos los días de la semana.
@@ -93,5 +93,18 @@ describe("sin espacio en lo que pidió: lo más parecido (Danilo, 18-oct)", () =
   test("lo que no puede se respeta siempre", () => {
     const wish = wishFromWords({ dias: ["martes"], noPuede: ["lunes"], franja: "tarde" }, TZ, monday9)!;
     for (const { wish: w } of relaxedWishes(wish)) expect(w.notWeekdays).toEqual([1]);
+  });
+});
+
+describe("saidPartOfDay (una franja que la persona no dijo no cuenta)", () => {
+  test("lo dijo", () => {
+    for (const s of ["mejor en la tarde", "por la mañana", "temprano", "después de las 5", "a las 6 pm", "en las noches", "solo tarde"]) {
+      expect(saidPartOfDay([s])).toBe(true);
+    }
+  });
+  test("no lo dijo", () => {
+    for (const s of ["¿Qué horarios tienes?", "mañana puedo", "Buenas tardes", "buenas noches, quiero la llamada", "La primera opción me queda perfecta"]) {
+      expect(saidPartOfDay([s])).toBe(false);
+    }
   });
 });

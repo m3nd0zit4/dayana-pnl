@@ -3,6 +3,7 @@
 import { Loader2, Square } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/app/components/ui/button";
+import { spendLimits } from "@/lib/crm/whatsapp-agent/spend";
 import { useCrm } from "../../crm/CrmProvider";
 import { useSettings } from "./context";
 import SettingRow, { SettingsGroup } from "./SettingRow";
@@ -70,7 +71,7 @@ const ReadingSection = () => {
       <ToggleRow
         id="wa-context-v2"
         label="Leer el historial completo del chat"
-        help={`Lee los últimos ${config.context.recentMessages} mensajes, sean de cuando sean, y no saluda como nueva a quien ya habló contigo.`}
+        help={`Lee los últimos ${spendLimits(config).recentMessages} mensajes (lo decide el nivel de gasto), sean de cuando sean, y no saluda como nueva a quien ya habló contigo.`}
         info="Apagado, lee solo las últimas 2 semanas (o los últimos 40 mensajes). Encendido, también busca en lo más viejo del chat lo que toca el tema que la persona trae."
         state={states["wa-context-v2"]}
         checked={config.context.v2}

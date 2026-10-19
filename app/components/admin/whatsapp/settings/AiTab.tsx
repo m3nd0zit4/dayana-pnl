@@ -9,9 +9,11 @@ import { Textarea } from "@/app/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useCrm } from "../../crm/CrmProvider";
 import WhatsAppPlaybooksCard from "../WhatsAppPlaybooksCard";
+import { spendLimits } from "@/lib/crm/whatsapp-agent/spend";
 import ChoiceCards from "./ChoiceCards";
 import ClassifySection from "./ClassifySection";
 import ReadingSection from "./ReadingSection";
+import SpendSection from "./SpendSection";
 import ResetSection from "./ResetSection";
 import ClientReviewSection from "./ClientReviewSection";
 import RouterSection from "./RouterSection";
@@ -220,6 +222,8 @@ const AiTab = () => {
       <ResetSection />
 
       <ReadingSection />
+
+      <SpendSection />
 
       <ClassifySection />
 
@@ -452,14 +456,19 @@ const AiTab = () => {
           layout="row"
             htmlFor="wa-learning-examples-input"
             label="Ejemplos por respuesta"
-            help="Cuántas respuestas parecidas mira antes de contestar."
+            help={
+              config.spend.level === "personalizado"
+                ? "Cuántas respuestas parecidas mira antes de contestar."
+                : `Lo decide el nivel de gasto: ahora ${spendLimits(config).examples}. Para elegirlo tú, usa «Personalizado».`
+            }
             state={states["wa-learning-examples"]}
           >
             <NumberField
               id="wa-learning-examples-input"
               min={1}
               max={12}
-              value={config.learning.examples}
+              value={config.spend.level === "personalizado" ? config.learning.examples : spendLimits(config).examples}
+              disabled={config.spend.level !== "personalizado"}
               invalid={states["wa-learning-examples"]?.status === "error"}
               onChange={(v) => change("wa-learning-examples", "learning.examples", v, TYPING_DELAY)}
             />

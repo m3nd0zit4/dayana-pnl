@@ -2386,6 +2386,8 @@ model WhatsAppAiRun {
   model            String?
   inputTokens      Int?      @map("input_tokens")
   outputTokens     Int?      @map("output_tokens")
+  /// De la entrada, lo que Gemini ya tenía en caché (lo cobra al 10 %): para la cuenta del gasto (`spend.ts`).
+  cachedTokens     Int?      @map("cached_tokens")
   queuedAt         DateTime  @default(now()) @map("queued_at")
   startedAt        DateTime? @map("started_at")
   finishedAt       DateTime? @map("finished_at")
