@@ -5,9 +5,7 @@ import {
 } from "@prisma/client";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
-import {
-  isPlaceholderContactPhone,
-} from "./checkout-placeholder";
+import { assignEnrollmentContact } from "./checkout-placeholder";
 import { ENROLLMENT_STATUS_LABEL } from "./enrollment-labels";
 import { formatMoneyMinor } from "./money";
 import { getProduct, productSessionsTotal } from "./products";
@@ -274,23 +272,32 @@ export const markEnrollmentPaid = async (enrollmentId: string) => {
   return updated;
 };
 
+/**
+ * El formulario de `/pago/exito` le pone su ficha real a una compra hecha con
+ * contacto temporal.
+ *
+ * Se MUEVE la matrícula y sólo después se borra el temporal, y sólo si se
+ * quedó sin nada (`assignEnrollmentContact`). Antes se borraba primero:
+ * `Enrollment.contact` y `Payment.enrollment` cascadean, así que el borrado se
+ * llevaba la matrícula y el pago recién cobrado, y el `update` de después
+ * reventaba con P2025. Así se perdieron cinco cobros de PayPal (1.338,79 USD)
+ * entre el 5-sep y el 17-oct-2026: cada persona que dejó su teléfono tras
+ * pagar.
+ */
 export const attachContactToEnrollment = async (
   enrollmentId: string,
   contactId: string
 ) => {
   const enrollment = await prisma.enrollment.findUnique({
     where: { id: enrollmentId },
-    include: { contact: true },
+    select: { id: true },
   });
   if (!enrollment) return null;
 
-  if (isPlaceholderContactPhone(enrollment.contact.phoneE164)) {
-    await prisma.contact.delete({ where: { id: enrollment.contactId } }).catch(() => {});
-  }
+  await assignEnrollmentContact(enrollmentId, contactId);
 
-  return prisma.enrollment.update({
+  return prisma.enrollment.findUnique({
     where: { id: enrollmentId },
-    data: { contactId },
     include: { product: true, contact: true },
   });
 };
