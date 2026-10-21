@@ -193,3 +193,130 @@ describe("21-oct: «queda para…» sin cita, o a otra hora de la que tiene (no 
     expect(promiseBreach({ ...none, backing: OFFERED, text: "¿Te queda bien el viernes a las 8:45 p. m.?" })).toBeNull();
   });
 });
+
+describe("21-oct, auditoría después de Natalia: lo que todavía se escapaba", () => {
+  // La agenda dio el jueves 22 a las 3:00 p. m. y nada quedó agendado (como a
+  // Natalia: book_free_call falló y la IA le confirmó la llamada igual).
+  const JUEVES = ["jueves, 22 de octubre, 3:00 p. m."];
+  const VIERNES = ["viernes, 23 de octubre, 3:00 p. m."];
+  const verdict = (text: string, backing = JUEVES) => ({ text, breach: promiseBreach({ ...none, backing, text })?.breach ?? null });
+
+  test("confirmar sin «ya» ni «te», o con otras palabras (no sale)", () => {
+    for (const text of [
+      "Listo, agendé tu llamada para el jueves 22 de octubre a las 3:00 p. m.",
+      "Agendé tu llamada gratis con Dayana.",
+      "Jueves 22 a las 3:00 p. m., Dayana te llama por WhatsApp.",
+      "Perfecto, Dayana te llama por WhatsApp el jueves 22 a las 3:00 p. m.",
+      "Ya quedó: jueves 22 de octubre, 3:00 p. m.",
+      "Quedó para el jueves a las 3:00 p. m.",
+      "Quedó para el próximo jueves a las 3:00 p. m.",
+      "Tu llamada será el jueves a las 3:00 p. m.",
+      "Tu llamada con Dayana es el jueves a las 3:00 p. m.",
+      "Listo, te separé el espacio del jueves a las 3:00 p. m.",
+      "Te anoté para el jueves a las 3:00 p. m.",
+      "Listo, te dejé agendada para el jueves.",
+      "Quedaste agendada para el jueves.",
+      "Tu llamada quedó programada para el jueves.",
+    ]) {
+      expect(verdict(text)).toEqual({ text, breach: "false_booking" });
+    }
+  });
+
+  test("ofrecer, preguntar o explicar no es confirmar (sale)", () => {
+    for (const text of [
+      "¿Quieres que te agende la llamada gratis?",
+      "¿Te agendo el jueves a las 3:00 p. m.?",
+      "¿Quieres que agende tu llamada para el jueves a las 3:00 p. m.?",
+      "¿Quieres que te separe el espacio del jueves a las 3:00 p. m.?",
+      "Tu llamada queda para cuando elijas.",
+      "Dayana te llama por WhatsApp a este número.",
+      "Cuando la agendes, Dayana te llama por WhatsApp.",
+      "Si te sirve el jueves a las 3:00 p. m., Dayana te llama por WhatsApp a este número.",
+      "¿Te sirve el jueves a las 3:00 p. m.? Dayana te llama por WhatsApp a este número.",
+      "No agendé tu llamada: esa hora ya no estaba libre. ¿Te sirve el jueves a las 3:00 p. m.?",
+      "Tu llamada es de 15 minutos, por WhatsApp.",
+      "Tu llamada será por WhatsApp, a este número.",
+      "Ya quedó claro, gracias 🙏",
+      "Ya quedó tu registro al webinar del domingo.",
+    ]) {
+      expect(verdict(text)).toEqual({ text, breach: null });
+    }
+  });
+
+  test("una frase con «pago», «cupo» o «grupo» que confirma la llamada sigue contando", () => {
+    expect(verdict("Tu llamada queda para el viernes a las 3:00 p. m.; ahí Dayana te cuenta lo del pago.", VIERNES).breach).toBe("false_booking");
+    expect(verdict("Listo, tu cita quedó agendada para el viernes y después te paso los datos del pago.", VIERNES).breach).toBe("false_booking");
+    // Con cita, la del pago también tiene que ser la que tiene (Alexandra tenía el jueves).
+    const alexandra = { backing: VIERNES, hasBooking: true, bookingToday: false, bookedLabels: ["jueves 12:30 p. m."] };
+    expect(promiseBreach({ ...alexandra, text: "Tu llamada queda para el viernes a las 3:00 p. m.; ahí Dayana te cuenta lo del pago." })?.breach).toBe("false_booking");
+    // Lo que se confirma del pago, del cupo o del grupo no es una cita.
+    expect(verdict("Tu pago quedó confirmado; en la llamada Dayana te explica el siguiente paso.").breach).toBeNull();
+    expect(verdict("Tu cupo en el grupo quedó reservado para el viernes.").breach).toBeNull();
+    // Y las horas del evento siguen saliendo de sus datos.
+    expect(verdict("El webinar es el domingo 25 a las 9:30 a. m.; si quieres, después te agendo una llamada.").breach).toBeNull();
+  });
+
+  test("una confirmación con «¿te parece?» al final sigue siendo una confirmación", () => {
+    expect(verdict("Tu llamada queda para el jueves a las 3:00 p. m., ¿te parece?").breach).toBe("false_booking");
+    expect(verdict("Listo, quedó agendada para el jueves a las 3:00 p. m., ¿te sirve?").breach).toBe("false_booking");
+    // La pregunta que ofrece una hora de la agenda sí sale, con «¿» o sin él.
+    expect(verdict("¿Te parece si Dayana te llama el jueves a las 3:00 p. m.?").breach).toBeNull();
+    expect(verdict("Te parece si Dayana te llama el jueves a las 3:00 p. m.?").breach).toBeNull();
+  });
+
+  test("listas: cada línea con hora se mira cuando el mensaje es para agendar", () => {
+    const text = "Dayana tiene estos espacios para tu llamada:\n• jueves 22, 5:00 p. m.\n• viernes 23, 4:00 p. m.\n¿Cuál prefieres?";
+    expect(verdict(text).breach).toBe("invented_slots");
+    expect(verdict("Para tu llamada:\n1. viernes 23 de octubre, 4:00 p. m.\n2. jueves 22 de octubre, 3:00 p. m.").breach).toBe("invented_slots");
+    // Las de la agenda, tal cual, salen.
+    expect(verdict(text, ["jueves, 22 de octubre, 5:00 p. m.", "viernes, 23 de octubre, 4:00 p. m."]).breach).toBeNull();
+    // Las fechas del webinar en lista no son de la llamada, aunque al final se ofrezca una.
+    const webinar =
+      "Las próximas fechas del webinar gratuito:\n• domingo 25 de octubre, 9:30 a. m.\n• domingo 1 de noviembre, 9:30 a. m.\nSi quieres, también te agendo una llamada con Dayana.";
+    expect(verdict(webinar).breach).toBeNull();
+    // Un mensaje que no habla de agendar no se mira.
+    expect(verdict("En Colombia ahora son las 5:00 p. m., Natalia. Con gusto te comparto la información.").breach).toBeNull();
+    // Repetir lo que dijo la persona no es una línea de horarios.
+    expect(verdict("Entiendo, el jueves sales del trabajo a las 5:00 p. m., así que miro otros días. ¿Cuál te queda mejor para la llamada?").breach).toBeNull();
+    // Una línea sin viñeta que empieza por el día o por la hora, sí.
+    expect(verdict("Para tu llamada Dayana tiene:\nViernes 23 de octubre, 4:00 p. m.").breach).toBe("invented_slots");
+    expect(verdict("Para tu llamada, el jueves Dayana tiene:\n3:00 p. m.\n5:00 p. m.").breach).toBe("invented_slots");
+    expect(verdict("Para tu llamada, el jueves Dayana tiene:\n3:00 p. m.").breach).toBeNull();
+  });
+
+  test("el día también cuenta: el viernes a la hora que la agenda dio para el jueves no sale", () => {
+    expect(verdict("Para tu llamada tengo el viernes 23 a las 3:00 p. m. ¿Te sirve?").breach).toBe("invented_slots");
+    expect(verdict("¿Te sirve el viernes a las 3:00 p. m. para la llamada?").breach).toBe("invented_slots");
+    expect(verdict("Para tu llamada tengo el jueves 22 a las 3:00 p. m. o el viernes 23 a las 3:00 p. m. ¿Cuál prefieres?").breach).toBe("invented_slots");
+    // El mismo día y hora, en sus dos zonas, sale.
+    const raquel = ["jueves, 22 de octubre, 7:00 p. m. (tu hora) · 12:00 p. m. en Colombia"];
+    expect(verdict("Para tu llamada tengo el jueves 22 a las 7:00 p. m. de tu hora (12:00 p. m. en Colombia). ¿Te sirve?", raquel).breach).toBeNull();
+    // Pasada la medianoche, la hora de Colombia es del día anterior.
+    const madrugada = ["viernes, 23 de octubre, 4:45 a. m. (tu hora) · 9:45 p. m. en Colombia"];
+    expect(
+      verdict("Para tu llamada tengo el viernes 23 a las 4:45 a. m. de tu hora (el jueves 22 a las 9:45 p. m. en Colombia). ¿Te sirve?", madrugada).breach
+    ).toBeNull();
+    // «a las 3:00 p. m. del viernes»: el día va después.
+    expect(verdict("El jueves ya no hay espacio; ¿te sirve a las 3:00 p. m. del viernes para la llamada?", VIERNES).breach).toBeNull();
+    // Una hora sin día (las de una oferta anterior, las de su cita) vale para cualquier día.
+    expect(verdict("¿Te sirve el viernes a las 3:00 p. m. para la llamada?", ["3:00 p. m."]).breach).toBeNull();
+    // «hoy» o «mañana» no se traducen a un día: cuenta solo la hora.
+    expect(verdict("¿Te sirve mañana a las 3:00 p. m. para la llamada?").breach).toBeNull();
+    expect(verdict("El jueves no se pudo, pero hoy mismo hay espacio a las 3:00 p. m. ¿Te sirve para la llamada?").breach).toBeNull();
+  });
+
+  test("con cita, el día y la hora que se confirman van juntos", () => {
+    const booked = ["jueves 12:30 p. m.", "viernes 9:00 a. m."];
+    const base = { backing: booked, hasBooking: true, bookingToday: false, bookedLabels: booked };
+    expect(promiseBreach({ ...base, text: "Tu llamada queda para el viernes a las 12:30 p. m." })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...base, text: "Tu llamada queda para el viernes a las 9:00 a. m." })).toBeNull();
+  });
+
+  test("horas escritas de otra forma: «15 h», «a las tres de la tarde»", () => {
+    expect(timesIn("a las 15 h o a las 16h")).toEqual(["3:00p", "4:00p"]);
+    expect(timesIn("a las tres de la tarde o a las diez y media de la mañana, o a la una de la tarde")).toEqual(["3:00p", "10:30a", "1:00p"]);
+    expect(timesIn("la llamada dura 2 h; atención 24h; 15 horas; un día de 23 h; a las dos les escribo; las tres opciones")).toEqual([]);
+    expect(verdict("Para tu llamada tengo el jueves a las cuatro de la tarde. ¿Te sirve?").breach).toBe("invented_slots");
+    expect(verdict("Para tu llamada tengo el jueves a las 15 h. ¿Te sirve?").breach).toBeNull();
+  });
+});
