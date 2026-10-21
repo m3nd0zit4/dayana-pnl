@@ -3,9 +3,19 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getDateKeyInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import { fireNotification } from "@/lib/notifications/platform/emit";
+import { isWhatsAppUserId, whatsAppDigits, whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { availableSlots, bookOnCalendar, moveOnCalendar, SlotUnavailableError } from "./calendar";
 import { isFreeCallService } from "./event-title";
+import {
+  CANCELLED_BOOKING,
+  countedFreeCalls,
+  dualZoneLabel,
+  freeCallsPerDay,
+  pickUpcomingFreeCall,
+  respiroRange,
+  type UpcomingFreeCall,
+} from "./free-call-rules";
 import { resolveConversations } from "./pending";
 import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
 
@@ -17,9 +27,13 @@ import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, 
  *   (los bloques «Disponible», o su horario base), repartidas en días, con la
  *   hora de la persona y la de Colombia.
  * - `bookFreeCall`: agenda una de esas horas. Con un candado de base de datos
- *   para que dos personas no se queden con la misma hora, vuelve a mirar el
- *   calendario, no agenda dos llamadas gratis a la misma persona y respeta el
- *   tope diario. Deja la cita en el calendario y en el CRM al instante.
+ *   para que dos personas no se queden con la misma hora (ni pegadas, sin el
+ *   respiro), vuelve a mirar el calendario, no agenda dos llamadas gratis a la
+ *   misma persona y respeta el tope diario. Deja la cita en el calendario y en
+ *   el CRM al instante.
+ *
+ * Qué cuenta como llamada gratis (la reserva de la IA o la que Dayana puso a
+ * mano en su calendario) está en `free-call-rules.ts`.
  */
 
 export type FreeCallService = { name: string; minutes: number };
@@ -42,23 +56,8 @@ export const freeCallService = (config: WhatsAppAiConfig): FreeCallService => {
   return free ? { name: free.name, minutes: free.minutes } : { name: config.freeCall.serviceName, minutes: 15 };
 };
 
-const fmt = (iso: string, tz: string, withDay: boolean) =>
-  new Intl.DateTimeFormat("es-CO", {
-    timeZone: tz,
-    ...(withDay ? { weekday: "long", day: "numeric", month: "long" } : {}),
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
-
-/**
- * «jueves 16 de octubre, 3:00 p. m. (tu hora) · 4:00 p. m. en Colombia».
- * Si la persona está en la hora de Colombia, una sola.
- */
-export const dualZoneLabel = (iso: string, personTz: string, dayanaTz: string): string => {
-  const mine = fmt(iso, personTz, true);
-  const sameClock = fmt(iso, personTz, true) === fmt(iso, dayanaTz, true);
-  return sameClock ? mine : `${mine} (tu hora) · ${fmt(iso, dayanaTz, false)} en Colombia`;
-};
+// Vive en las reglas (es pura); se sigue importando de aquí.
+export { dualZoneLabel };
 
 export type FreeCallOption = { startIso: string; label: string };
 
@@ -69,26 +68,59 @@ const dayBounds = (d: Date, tz: string): { from: Date; to: Date } => {
 };
 
 
+/** La base o la transacción del candado: las reservas se cuentan dentro de él. */
+type Db = Pick<typeof prisma, "whatsAppBooking" | "calendarAppointment">;
+
+const BOOKING_ROW = { id: true, service: true, startsAt: true, endsAt: true, meetUrl: true, status: true, calendarEventId: true } as const;
+const CALENDAR_ROW = {
+  id: true,
+  eventId: true,
+  title: true,
+  sessionsLabel: true,
+  meetUrl: true,
+  startsAt: true,
+  endsAt: true,
+  phone: true,
+  contactId: true,
+  conversationId: true,
+} as const;
+
+/**
+ * Las llamadas gratis entre dos instantes, una por evento: las reservas de la
+ * IA y las que Dayana puso a mano en su calendario (auditoría 21-oct: esas no
+ * contaban en el tope del día). `except`: la llamada que se está moviendo.
+ * Una consulta tras otra: dentro de la transacción no van en paralelo.
+ */
+const freeCallsBetween = async (
+  db: Db,
+  service: FreeCallService,
+  from: Date,
+  to: Date,
+  except?: { bookingId: string; eventId: string }
+) => {
+  const bookings = await db.whatsAppBooking.findMany({
+    where: { startsAt: { gte: from, lt: to }, status: { notIn: CANCELLED_BOOKING }, ...(except ? { id: { not: except.bookingId } } : {}) },
+    select: BOOKING_ROW,
+  });
+  const appointments = await db.calendarAppointment.findMany({
+    where: { startsAt: { gte: from, lt: to }, status: "active", ...(except ? { eventId: { not: except.eventId } } : {}) },
+    select: CALENDAR_ROW,
+  });
+  return countedFreeCalls({ bookings, appointments, service });
+};
+
 /** Los días (zona de Dayana) que ya tienen el tope de llamadas gratis. */
 const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now: Date): Promise<Set<string>> => {
-  const service = freeCallService(config);
   // Desde la medianoche de hoy, como cuenta `bookFreeCall`: con «desde ahora»
   // las llamadas de esta mañana no contaban, se ofrecían horas de hoy y al
   // agendar salía «Ese día ya no hay cupos» (Natalia, Barbara, Alexandra, 21-oct).
-  const rows = await prisma.whatsAppBooking.findMany({
-    where: {
-      startsAt: { gte: dayBounds(now, dayanaTz).from, lt: new Date(now.getTime() + (config.booking.horizonDays + 1) * 86_400_000) },
-      service: service.name,
-      status: { notIn: ["CANCELLED", "cancelled"] },
-    },
-    select: { startsAt: true },
-  });
-  const perDay = new Map<string, number>();
-  for (const r of rows) {
-    const key = getDateKeyInTz(r.startsAt, dayanaTz);
-    perDay.set(key, (perDay.get(key) ?? 0) + 1);
-  }
-  return new Set([...perDay].filter(([, n]) => n >= config.freeCall.maxPerDay).map(([k]) => k));
+  const calls = await freeCallsBetween(
+    prisma,
+    freeCallService(config),
+    dayBounds(now, dayanaTz).from,
+    new Date(now.getTime() + (config.booking.horizonDays + 1) * 86_400_000)
+  );
+  return new Set([...freeCallsPerDay(calls, dayanaTz)].filter(([, n]) => n >= config.freeCall.maxPerDay).map(([k]) => k));
 };
 
 /**
@@ -165,7 +197,7 @@ export const offeredFreeCallSlots = async (conversationId: string, now = new Dat
 };
 
 export class FreeCallError extends Error {
-  constructor(public code: "already_booked" | "daily_cap" | "unavailable", message: string) {
+  constructor(public code: "already_booked" | "daily_cap" | "unavailable" | "not_movable", message: string) {
     super(message);
   }
 }
@@ -173,22 +205,57 @@ export class FreeCallError extends Error {
 export type FreeCallBooking = { bookingId: string; startsAt: Date; endsAt: Date; title: string; label: string };
 
 /**
+ * La próxima llamada gratis de la persona del chat: su reserva de la IA o una
+ * cita de su calendario que lo es (por el chat, el contacto o el número).
+ */
+const findUpcomingFreeCall = async (
+  db: Db,
+  input: { conversationId: string; contactId: string | null; phone: string | null; service: FreeCallService; now: Date }
+): Promise<UpcomingFreeCall | null> => {
+  const who: Prisma.CalendarAppointmentWhereInput[] = [{ conversationId: input.conversationId }];
+  if (input.contactId) who.push({ contactId: input.contactId });
+  // Las citas guardan el teléfono; un id de usuario (BSUID) no lo trae.
+  if (input.phone && !isWhatsAppUserId(input.phone)) {
+    const phones = [input.phone, whatsAppDigits(`+${input.phone}`)].flatMap(whatsAppIdVariants);
+    if (phones.length) who.push({ phone: { in: [...new Set(phones)] } });
+  }
+  const bookings = await db.whatsAppBooking.findMany({
+    where: { conversationId: input.conversationId, startsAt: { gte: input.now }, status: { notIn: CANCELLED_BOOKING } },
+    orderBy: { startsAt: "asc" },
+    select: BOOKING_ROW,
+  });
+  const appointments = await db.calendarAppointment.findMany({
+    where: { OR: who, status: "active", startsAt: { gte: input.now } },
+    orderBy: { startsAt: "asc" },
+    take: 20,
+    select: CALENDAR_ROW,
+  });
+  return pickUpcomingFreeCall({ bookings, appointments, service: input.service, now: input.now });
+};
+
+/**
  * La llamada gratis que esta persona ya tiene por delante, si la hay. Con ella
  * agendada, volver a pedirla («sí, a las 6:15», «perfecto») no es otra cita:
- * se le recuerda la que tiene.
+ * se le recuerda la que tiene. También la que Dayana le puso a mano en su
+ * calendario (`source = calendar`; auditoría 21-oct: no se veía y se agendaba
+ * otra), y nunca una sesión pagada (antes cualquier reserva «era» gratis).
  */
 export const upcomingFreeCall = async (
   conversationId: string,
   config: WhatsAppAiConfig,
   now = new Date()
-): Promise<{ id: string; startsAt: Date; calendarEventId: string } | null> => {
-  const service = freeCallService(config);
-  const rows = await prisma.whatsAppBooking.findMany({
-    where: { conversationId, startsAt: { gte: now }, status: { notIn: ["CANCELLED", "cancelled"] } },
-    orderBy: { startsAt: "asc" },
-    select: { id: true, service: true, startsAt: true, calendarEventId: true },
+): Promise<UpcomingFreeCall | null> => {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { contactId: true, externalThreadId: true },
   });
-  return rows.find((r) => isFreeCallService(r.service, service.minutes)) ?? null;
+  return findUpcomingFreeCall(prisma, {
+    conversationId,
+    contactId: conversation?.contactId ?? null,
+    phone: conversation?.externalThreadId ?? null,
+    service: freeCallService(config),
+    now,
+  });
 };
 
 export const bookFreeCall = async (input: {
@@ -203,7 +270,7 @@ export const bookFreeCall = async (input: {
 }): Promise<FreeCallBooking> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
-  const active = { notIn: ["CANCELLED", "cancelled"] };
+  const active = { notIn: CANCELLED_BOOKING };
 
   // 1. Reservar en la base, con candado: las comprobaciones y la reserva van
   //    juntas, así dos personas no se quedan con la misma hora. Google no se
@@ -212,22 +279,29 @@ export const bookFreeCall = async (input: {
   const pending = await prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('whatsapp-free-call'))`;
-      const existing = await tx.whatsAppBooking.findFirst({
-        where: { conversationId: input.conversationId, startsAt: { gte: new Date() }, status: active },
-        select: { service: true },
+      // Solo la llamada gratis: una sesión pagada ni la bloquea ni la tapa
+      // (auditoría 21-oct: `findFirst` sin servicio y `isFreeCallService` con
+      // 15 min daban «ya tiene» por cualquier reserva). La que Dayana puso a
+      // mano también cuenta.
+      const existing = await findUpcomingFreeCall(tx, {
+        conversationId: input.conversationId,
+        contactId: input.contactId,
+        phone: input.phone,
+        service,
+        now: new Date(),
       });
-      if (existing && isFreeCallService(existing.service, service.minutes)) {
-        throw new FreeCallError("already_booked", "Ya tiene agendada su llamada gratis.");
-      }
+      if (existing) throw new FreeCallError("already_booked", "Ya tiene agendada su llamada gratis.");
+      // Con el respiro de Ajustes, como mira el calendario `bookOnCalendar`: el
+      // evento se crea fuera del candado y dos reservas casi a la vez quedaban
+      // pegadas, sin respiro (auditoría 21-oct).
+      const busy = respiroRange(input.start, end, input.config.booking.bufferMin);
       const taken = await tx.whatsAppBooking.findFirst({
-        where: { startsAt: { lt: end }, endsAt: { gt: input.start }, status: active },
+        where: { startsAt: { lt: busy.to }, endsAt: { gt: busy.from }, status: active },
         select: { id: true },
       });
       if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
       const { from, to } = dayBounds(input.start, input.dayanaTz);
-      const sameDay = await tx.whatsAppBooking.count({
-        where: { startsAt: { gte: from, lt: to }, service: service.name, status: active },
-      });
+      const sameDay = (await freeCallsBetween(tx, service, from, to)).length;
       if (sameDay >= input.config.freeCall.maxPerDay) {
         throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
@@ -344,23 +418,32 @@ export const moveFreeCall = async (input: {
 }): Promise<FreeCallBooking & { from: Date }> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
-  const active = { notIn: ["CANCELLED", "cancelled"] };
-  const current = await prisma.whatsAppBooking.findUniqueOrThrow({
+  const active = { notIn: CANCELLED_BOOKING };
+  const current = await prisma.whatsAppBooking.findUnique({
     where: { id: input.bookingId },
     select: { id: true, startsAt: true, endsAt: true, calendarEventId: true, name: true },
   });
+  // `upcomingFreeCall` también da la llamada que Dayana puso a mano en su
+  // calendario (sin reserva de este chat): esa no la mueve la IA, como no le
+  // cambia el título sin permiso (`TITLE_PATCH_KEY`). La cambia ella.
+  if (!current) {
+    throw new FreeCallError(
+      "not_movable",
+      "Esa llamada la puso Dayana en su calendario: no la puedo mover. Dile que le pasas su pedido a Dayana y escala con category=reschedule."
+    );
+  }
   await prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('whatsapp-free-call'))`;
+      // Con el respiro, como al agendar.
+      const busy = respiroRange(input.start, end, input.config.booking.bufferMin);
       const taken = await tx.whatsAppBooking.findFirst({
-        where: { id: { not: current.id }, startsAt: { lt: end }, endsAt: { gt: input.start }, status: active },
+        where: { id: { not: current.id }, startsAt: { lt: busy.to }, endsAt: { gt: busy.from }, status: active },
         select: { id: true },
       });
       if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
       const { from, to } = dayBounds(input.start, input.dayanaTz);
-      const sameDay = await tx.whatsAppBooking.count({
-        where: { id: { not: current.id }, startsAt: { gte: from, lt: to }, service: service.name, status: active },
-      });
+      const sameDay = (await freeCallsBetween(tx, service, from, to, { bookingId: current.id, eventId: current.calendarEventId })).length;
       if (sameDay >= input.config.freeCall.maxPerDay) {
         throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }

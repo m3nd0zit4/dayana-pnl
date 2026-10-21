@@ -153,6 +153,8 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
               const r = await syncAppointments();
               // Una sesión recién ligada por Meet la vuelve clienta: su estado al día ya.
               for (const id of r.meetLinkedChats) await computeSegment(id).catch(() => null);
+              // Una llamada gratis que Dayana movió o borró en Google: ya no es «llamada agendada» (o es otro día).
+              for (const id of r.bookingChats) await computeSegment(id).catch(() => null);
               return r;
             })
         )
