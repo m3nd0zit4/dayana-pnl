@@ -68,9 +68,155 @@ export const answeringDayana = (
  * llegó «Save_country(city="New York", countryIso="US", …)»). Se quita la
  * línea; `had`: había alguna.
  */
-const TOOL_TEXT = /^[^\n]*\b[a-z]+_[a-z_]+\s*\([^)\n]*\)[^\n]*$/gim;
+/** Las herramientas de la asistente, sin guiones bajos ni mayúsculas («Escalate», «save_country», «SendPaymentInfo»). */
+const TOOL_NAMES = new Set(
+  [
+    "book_appointment",
+    "book_free_call",
+    "check_availability",
+    "confirm_appointment",
+    "escalate",
+    "no_reply",
+    "offer_free_call_slots",
+    "offer_times",
+    "register_payment_receipt",
+    "request_booking",
+    "save_country",
+    "search_past_chats",
+    "send_affordable_option",
+    "send_community_link",
+    "send_payment_info",
+    "send_payment_link",
+    "send_sticker",
+    "send_urgent_session_link",
+  ].map((n) => n.replace(/_/g, ""))
+);
+const toolKey = (name: string) => name.toLowerCase().replace(/^default_api\./, "").replace(/_/g, "");
+
+/**
+ * Una línea que es una llamada a herramienta escrita como texto: el nombre de
+ * una herramienta (con o sin guiones, mayúsculas, `default_api.`) seguido de
+ * «(…)», o cualquier nombre con argumentos `clave=valor`. Natalia, 21-oct:
+ * «Escalate(category=other,holdingReply=Déjame consultarlo…,reason=…)» — sin
+ * guion bajo no lo veía la regla anterior.
+ */
+const CALL_LINE = /^\s*[*_`]*\s*((?:default_api\.)?[A-Za-z][A-Za-z_]*)\s*\(([\s\S]*)\)\s*[*_`.]*\s*$/;
+
+/** Los argumentos `clave=valor` (los valores pueden llevar comas y paréntesis). */
+const parseArgs = (raw: string): Record<string, string> => {
+  const out: Record<string, string> = {};
+  const re = /([A-Za-z_][A-Za-z0-9_]*)\s*[=:]\s*([\s\S]*?)(?=,\s*[A-Za-z_][A-Za-z0-9_]*\s*[=:]|$)/g;
+  for (const m of raw.matchAll(re)) out[m[1]] = m[2].trim().replace(/^["'«]|["'»]$/g, "").trim();
+  return out;
+};
+
+export const pseudoToolCall = (line: string): { name: string; args: Record<string, string> } | null => {
+  const m = line.match(CALL_LINE);
+  if (!m) return null;
+  const known = TOOL_NAMES.has(toolKey(m[1]));
+  const args = parseArgs(m[2]);
+  if (!known && Object.keys(args).length === 0) return null;
+  return { name: toolKey(m[1]), args };
+};
+
+/**
+ * Las otras formas en que Gemini escribe una llamada en el texto (error
+ * conocido de flash-lite): pseudo-XML con `default_api`, un bloque
+ * `tool_code` con `print(default_api.x(…))`, `<function=x>{…}</function>`.
+ * Con una de estas no se rescata nada del mensaje: no sale.
+ */
+const CALL_MARKER = /\bdefault_api\b|\btool_code\b|<\/?\s*(function|tool_call)\b/i;
+const MARKED_NAME = /default_api\s*[.:]\s*([A-Za-z][A-Za-z_]*)|<\s*function\s*=\s*([A-Za-z][A-Za-z_]*)|"name"\s*:\s*"([A-Za-z][A-Za-z_]*)"/;
+
+/** Lo de dentro del paréntesis que abre en `open`, contando los anidados y sin mirar dentro de comillas. */
+const insideParens = (text: string, open: number): string => {
+  let depth = 0;
+  let quote = "";
+  for (let i = open; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === quote) quote = "";
+    } else if (ch === '"' || ch === "'") quote = ch;
+    else if (ch === "(") depth++;
+    else if (ch === ")" && --depth === 0) return text.slice(open + 1, i);
+  }
+  return text.slice(open + 1);
+};
+
+const markedArgs = (rest: string): Record<string, string> => {
+  const paren = rest.match(/^\s*\(/);
+  if (paren) return parseArgs(insideParens(rest, rest.indexOf("(")));
+  const out: Record<string, string> = {};
+  for (const m of rest.matchAll(/([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) out[m[1]] = m[2] ?? m[3];
+  const json = rest.match(/\{[\s\S]*\}/);
+  if (json) {
+    try {
+      for (const [k, v] of Object.entries(JSON.parse(json[0]) as Record<string, unknown>)) if (typeof v === "string") out[k] = v;
+    } catch {
+      /* no es JSON: quedan los atributos */
+    }
+  }
+  return out;
+};
+
+/** La primera llamada a herramienta escrita como texto en la respuesta (o null). */
+export const findPseudoToolCall = (text: string): { name: string; args: Record<string, string> } | null => {
+  // Primero la forma marcada: en «print(default_api.escalate(…))» la herramienta es escalate, no print.
+  if (CALL_MARKER.test(text)) {
+    const m = text.match(MARKED_NAME);
+    if (m && m.index !== undefined) return { name: toolKey(m[1] ?? m[2] ?? m[3]), args: markedArgs(text.slice(m.index + m[0].length)) };
+  }
+  const whole = pseudoToolCall(text.trim());
+  if (whole) return whole;
+  for (const line of text.split("\n")) {
+    const call = pseudoToolCall(line);
+    if (call) return call;
+  }
+  return CALL_MARKER.test(text) ? { name: "", args: {} } : null;
+};
+
+const ESCALATE_CATEGORIES = ["payment", "unknown", "complaint", "clinical", "reschedule", "other"] as const;
+export const PSEUDO_HOLDING = "Déjame consultarlo con Dayana y te confirmo por aquí.";
+
+/**
+ * ¿Hay que escalar de verdad por una herramienta escrita como texto? Una
+ * escalada siempre (Natalia, 21-oct), con sus argumentos; cualquier otra solo
+ * si no queda nada que enviar (`nothingLeft`): la persona recibe la espera y
+ * Dayana el aviso, en vez de silencio.
+ */
+export const pseudoEscalation = (
+  message: string,
+  nothingLeft: boolean
+): {
+  category: (typeof ESCALATE_CATEGORIES)[number];
+  severity: "urgent" | "normal";
+  reason: string;
+  holdingReply: string;
+} | null => {
+  if (!withoutToolText(message).had) return null;
+  const call = findPseudoToolCall(message);
+  if (!call) return null;
+  if (call.name !== "escalate") {
+    if (!nothingLeft) return null;
+    return {
+      category: "other",
+      severity: "normal",
+      reason: `La IA escribió «${call.name || "una herramienta"}» como texto en vez de usarla: no se envió. Contéstale tú.`,
+      holdingReply: PSEUDO_HOLDING,
+    };
+  }
+  return {
+    category: ESCALATE_CATEGORIES.find((c) => c === call.args.category) ?? "other",
+    severity: call.args.severity === "urgent" ? "urgent" : "normal",
+    reason: (call.args.reason || "La IA escribió la escalada como texto.").slice(0, 200),
+    holdingReply: withoutToolText(call.args.holdingReply ?? "").text || PSEUDO_HOLDING,
+  };
+};
+
 export const withoutToolText = (text: string): { text: string; had: boolean } => {
-  const cleaned = text.replace(TOOL_TEXT, "").replace(/\n{3,}/g, "\n\n").trim();
+  if (pseudoToolCall(text.trim()) || CALL_MARKER.test(text)) return { text: "", had: true };
+  const kept = text.split("\n").filter((line) => !pseudoToolCall(line));
+  const cleaned = kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return { text: cleaned, had: cleaned !== text.trim() };
 };
 

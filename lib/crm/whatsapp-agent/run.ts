@@ -47,7 +47,7 @@ import { isCrisis, pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
-import { closingNotNeeded, promisesHandoff, withoutToolText, writesAccountNumber } from "./reply-guards";
+import { closingNotNeeded, promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
 import { chatNameInfo } from "./chat-name";
 import { offeredFreeCallSlots } from "./free-call";
@@ -734,6 +734,27 @@ export const runWhatsAppAi = async (input: {
     const toolText = withoutToolText(result.outcome.message);
     const written = polishReply(toolText.text);
     const body = withPaymentBlocks(written, { ...result.paymentBlocks, links: result.linkBlocks });
+    // Una escalada escrita como texto («Escalate(category=other,holdingReply=…)»,
+    // Natalia, 21-oct: le llegó tal cual) se hace de verdad, y cualquier otra
+    // herramienta escrita como texto que deja el mensaje vacío también: Dayana
+    // recibe el aviso y la persona el mensaje corto, no el silencio.
+    const pseudo = pseudoEscalation(result.outcome.message, !body.trim());
+    if (pseudo) {
+      const pseudoBreach = promiseBreach({ text: pseudo.holdingReply, ...backing });
+      await setStatus(run.id, "SENDING", meta);
+      await escalate(
+        conversationId,
+        run.id,
+        config,
+        { category: pseudo.category, severity: pseudo.severity, reason: pseudo.reason },
+        name,
+        meta,
+        "ESCALATED",
+        seen,
+        { holdingReply: pseudoBreach ? BREACH_HOLDING[pseudoBreach.breach] : pseudo.holdingReply }
+      );
+      return;
+    }
     if (!body.trim()) {
       await finish(run.id, "SKIPPED", { ...meta, reason: toolText.had ? "tool_text" : "empty" });
       await openAttentionIfNeedsReply(conversationId).catch(() => undefined);
