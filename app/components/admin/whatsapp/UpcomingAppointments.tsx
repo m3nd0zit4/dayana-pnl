@@ -280,6 +280,8 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
                   </span>
                 ) : a.confirmedAt ? (
                   <span className="inline-flex items-center gap-1 text-[#008069]"><CheckCircle2 className="size-3.5" /> Confirmó</span>
+                ) : a.reminderError?.startsWith("Dayana ya le mandó cómo pagar") ? (
+                  <span className="text-muted-foreground" title={a.reminderError}>Sin recordatorio: ya hablaron</span>
                 ) : a.reminderError ? (
                   <span className="inline-flex items-center gap-1 text-[#b42318]" title={a.reminderError}><TriangleAlert className="size-3.5" /> Recordatorio no salió</span>
                 ) : a.reminderSentAt ? (

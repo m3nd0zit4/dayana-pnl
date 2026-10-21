@@ -1,8 +1,10 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/db";
 import { getDateKeyInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
-import { availableSlots, bookOnCalendar, SlotUnavailableError } from "./calendar";
+import { availableSlots, bookOnCalendar, moveOnCalendar, SlotUnavailableError } from "./calendar";
 import { isFreeCallService } from "./event-title";
 import { resolveConversations } from "./pending";
 import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
@@ -26,7 +28,7 @@ export type FreeCallService = { name: string; minutes: number };
  * Para las pruebas: un calendario de mentira (las pruebas nunca deben crear
  * eventos en el calendario real de Dayana).
  */
-type CalendarDeps = { available?: typeof availableSlots; book?: typeof bookOnCalendar };
+type CalendarDeps = { available?: typeof availableSlots; book?: typeof bookOnCalendar; move?: typeof moveOnCalendar };
 let calendarDeps: CalendarDeps = {};
 export const setFreeCallCalendarForTests = (deps: CalendarDeps) => {
   calendarDeps = deps;
@@ -60,12 +62,22 @@ export const dualZoneLabel = (iso: string, personTz: string, dayanaTz: string): 
 
 export type FreeCallOption = { startIso: string; label: string };
 
+/** El día de `d` en la zona de Dayana (de medianoche a medianoche), para el tope diario. */
+const dayBounds = (d: Date, tz: string): { from: Date; to: Date } => {
+  const from = zonedDateTimeToUtc(getDateKeyInTz(d, tz), "00:00", tz);
+  return { from, to: new Date(from.getTime() + 24 * 3600_000) };
+};
+
+
 /** Los días (zona de Dayana) que ya tienen el tope de llamadas gratis. */
 const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now: Date): Promise<Set<string>> => {
   const service = freeCallService(config);
+  // Desde la medianoche de hoy, como cuenta `bookFreeCall`: con «desde ahora»
+  // las llamadas de esta mañana no contaban, se ofrecían horas de hoy y al
+  // agendar salía «Ese día ya no hay cupos» (Natalia, Barbara, Alexandra, 21-oct).
   const rows = await prisma.whatsAppBooking.findMany({
     where: {
-      startsAt: { gte: now, lt: new Date(now.getTime() + (config.booking.horizonDays + 1) * 86_400_000) },
+      startsAt: { gte: dayBounds(now, dayanaTz).from, lt: new Date(now.getTime() + (config.booking.horizonDays + 1) * 86_400_000) },
       service: service.name,
       status: { notIn: ["CANCELLED", "cancelled"] },
     },
@@ -169,20 +181,14 @@ export const upcomingFreeCall = async (
   conversationId: string,
   config: WhatsAppAiConfig,
   now = new Date()
-): Promise<{ startsAt: Date } | null> => {
+): Promise<{ id: string; startsAt: Date; calendarEventId: string } | null> => {
   const service = freeCallService(config);
   const rows = await prisma.whatsAppBooking.findMany({
     where: { conversationId, startsAt: { gte: now }, status: { notIn: ["CANCELLED", "cancelled"] } },
     orderBy: { startsAt: "asc" },
-    select: { service: true, startsAt: true },
+    select: { id: true, service: true, startsAt: true, calendarEventId: true },
   });
   return rows.find((r) => isFreeCallService(r.service, service.minutes)) ?? null;
-};
-
-/** El día de `d` en la zona de Dayana (de medianoche a medianoche), para el tope diario. */
-const dayBounds = (d: Date, tz: string): { from: Date; to: Date } => {
-  const from = zonedDateTimeToUtc(getDateKeyInTz(d, tz), "00:00", tz);
-  return { from, to: new Date(from.getTime() + 24 * 3600_000) };
 };
 
 export const bookFreeCall = async (input: {
@@ -314,6 +320,117 @@ export const afterFreeCallBooked = async (input: { conversationId: string; conta
     eventType: "WHATSAPP_AI_BOOKED",
     title: `Llamada gratis agendada: ${input.booking.title}`,
     body: `${input.booking.label} · la asistente la agendó sola. La llamas por WhatsApp.`,
+    href: `/admin/whatsapp?conversation=${input.conversationId}`,
+    entityType: "Conversation",
+    entityId: input.conversationId,
+    staff: "ALL",
+  });
+};
+
+/**
+ * Mueve la llamada gratis que ya tiene a otra hora que se le ofreció
+ * (Alexandra, 21-oct: pidió el viernes y `book_free_call` le dejaba el jueves
+ * con «ya tiene agendada»; la IA le confirmó el viernes sin cita). El mismo
+ * evento cambia de hora: no quedan dos en el calendario de Dayana. Con el
+ * candado y las mismas reglas que al agendar (hora libre, tope del día), sin
+ * contarse a sí misma.
+ */
+export const moveFreeCall = async (input: {
+  config: WhatsAppAiConfig;
+  dayanaTz: string;
+  personTz: string;
+  bookingId: string;
+  start: Date;
+}): Promise<FreeCallBooking & { from: Date }> => {
+  const service = freeCallService(input.config);
+  const end = new Date(input.start.getTime() + service.minutes * 60_000);
+  const active = { notIn: ["CANCELLED", "cancelled"] };
+  const current = await prisma.whatsAppBooking.findUniqueOrThrow({
+    where: { id: input.bookingId },
+    select: { id: true, startsAt: true, calendarEventId: true, name: true },
+  });
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('whatsapp-free-call'))`;
+      const taken = await tx.whatsAppBooking.findFirst({
+        where: { id: { not: current.id }, startsAt: { lt: end }, endsAt: { gt: input.start }, status: active },
+        select: { id: true },
+      });
+      if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
+      const { from, to } = dayBounds(input.start, input.dayanaTz);
+      const sameDay = await tx.whatsAppBooking.count({
+        where: { id: { not: current.id }, startsAt: { gte: from, lt: to }, service: service.name, status: active },
+      });
+      if (sameDay >= input.config.freeCall.maxPerDay) {
+        throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
+      }
+    },
+    { timeout: 15_000, maxWait: 15_000 }
+  );
+  let moved: { end: Date };
+  try {
+    moved = await (calendarDeps.move ?? moveOnCalendar)({
+      config: { ...input.config.booking, addMeet: false },
+      timezone: input.dayanaTz,
+      eventId: current.calendarEventId,
+      start: input.start,
+      durationMin: service.minutes,
+    });
+  } catch (e) {
+    if (e instanceof SlotUnavailableError) throw new FreeCallError("unavailable", e.message);
+    throw e;
+  }
+  await prisma.whatsAppBooking.update({
+    where: { id: current.id },
+    data: { startsAt: input.start, endsAt: moved.end },
+  });
+  // La cita del CRM a la hora nueva, con los recordatorios y el resultado de la llamada en cero.
+  const appt = await prisma.calendarAppointment
+    .update({
+      where: { eventId: current.calendarEventId },
+      data: {
+        startsAt: input.start,
+        endsAt: moved.end,
+        reminderSentAt: null,
+        reminderError: null,
+        confirmedAt: null,
+        reminderSoonSentAt: null,
+        reminderSoonError: null,
+        reminderSoonSkipped: null,
+        waitNoticeCount: 0,
+        waitNoticeAt: null,
+        callOutcome: null,
+        callOutcomeSource: null,
+        callOutcomeReason: null,
+        callOutcomeAt: null,
+        outcomeCheckAt: null,
+        clashEventId: null,
+        clashWith: Prisma.DbNull,
+        clashNotifiedAt: null,
+      },
+      select: { title: true },
+    })
+    .catch((e: unknown) => {
+      console.warn("[llamada gratis] la cita movida no se actualizó en el CRM (el reloj la leerá)", e);
+      return null;
+    });
+  return {
+    bookingId: current.id,
+    startsAt: input.start,
+    endsAt: moved.end,
+    title: appt?.title ?? current.name ?? "Llamada gratis",
+    label: dualZoneLabel(input.start.toISOString(), input.personTz, input.dayanaTz),
+    from: current.startsAt,
+  };
+};
+
+/** Movida: Dayana se entera (con sonido), con la hora de antes y la nueva. */
+export const afterFreeCallMoved = (input: { conversationId: string; booking: FreeCallBooking & { from: Date }; dayanaTz: string }) => {
+  const before = dualZoneLabel(input.booking.from.toISOString(), input.dayanaTz, input.dayanaTz);
+  fireNotification({
+    eventType: "WHATSAPP_AI_BOOKED",
+    title: `Llamada gratis movida: ${input.booking.title}`,
+    body: `De ${before} a ${dualZoneLabel(input.booking.startsAt.toISOString(), input.dayanaTz, input.dayanaTz)}. La persona lo pidió; ya está en tu calendario.`,
     href: `/admin/whatsapp?conversation=${input.conversationId}`,
     entityType: "Conversation",
     entityId: input.conversationId,

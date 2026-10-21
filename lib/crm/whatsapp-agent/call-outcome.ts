@@ -27,6 +27,7 @@ import { offerFreeCallSlots } from "./free-call";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { personFirstName } from "@/lib/person-name";
+import { dayanaPaymentInfoAt } from "./dayana-messages";
 import { appointmentGreetingName } from "./chat-name";
 
 /**
@@ -93,6 +94,8 @@ const paidAfter = async (appt: Appt, conv: Conv): Promise<boolean> => {
   ]);
   return payments + enrollments > 0;
 };
+
+const PAID_INFO_REASON = "Dayana le mandó cómo pagar: ya hablaron.";
 
 const messagesSince = (conversationId: string, since: Date) =>
   prisma.conversationMessage.findMany({
@@ -228,10 +231,17 @@ const sendCheck = async (appt: Appt, conv: Conv) => {
 const advance = async (appt: Appt, config: WhatsAppAiConfig, now: Date, aiEnabled: boolean) => {
   const conv = appt.conversationId ? await loadConversation(appt.conversationId) : null;
   if (!conv) return "sin_chat";
-  const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true } });
+  const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true, createdAt: true } });
   if (!isFreeCallAppointment({ ...appt, bookingService: booking?.service ?? null })) {
     await settle(appt.id, "not_free", "rules", "No es la llamada gratis.");
     return "no_gratis";
+  }
+  // Dayana le mandó cómo pagar después de agendar: ya hablaron (antes de la
+  // hora o por otro lado). Sin «¿pudiste hablar?» ni horas para reagendar
+  // (Carmen, Alejandra, Paola, Raquel, 18–21 oct).
+  if (await dayanaPaymentInfoAt(conv.id, booking?.createdAt ?? appt.createdAt)) {
+    await settle(appt.id, "answered", "rules", PAID_INFO_REASON);
+    return "answered";
   }
   // Ya tiene otra llamada gratis agendada después: se reagendó.
   const later = await prisma.calendarAppointment.findFirst({
@@ -330,8 +340,12 @@ export const handleCallFollowUpReply = async (input: {
   if (!appt) return none;
   const conv = await loadConversation(input.conversationId);
   if (!conv) return none;
-  const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true } });
+  const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true, createdAt: true } });
   if (!isFreeCallAppointment({ ...appt, bookingService: booking?.service ?? null })) return none;
+  if (await dayanaPaymentInfoAt(conv.id, booking?.createdAt ?? appt.createdAt)) {
+    await settle(appt.id, "answered", "rules", PAID_INFO_REASON);
+    return none;
+  }
 
   const messages = await messagesSince(conv.id, appt.startsAt);
   let decided = outcomeFromChat(messages, { startsAt: appt.startsAt, paidAfter: await paidAfter(appt, conv) });

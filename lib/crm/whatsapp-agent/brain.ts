@@ -26,7 +26,9 @@ import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
-import { asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { answeringDayana } from "./reply-guards";
+import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
   offersUrgentSession,
@@ -45,10 +47,12 @@ import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-reg
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
   afterFreeCallBooked,
+  afterFreeCallMoved,
   bookFreeCall,
   dualZoneLabel,
   FreeCallError,
   freeCallService,
+  moveFreeCall,
   offeredFreeCallSlots,
   offerFreeCallSlotsFor,
   upcomingFreeCall,
@@ -134,6 +138,8 @@ export type BrainResult = {
   } | null;
   /** La persona quiere agendar: se le avisa a Dayana para que ella agende. */
   bookingRequest: { service: string; when: string | null; note: string } | null;
+  /** No hace falta contestar (le está respondiendo a Dayana, solo agradece): por qué. */
+  noReply: string | null;
   model: string;
   /** `cachedTokens`: de la entrada, lo que Gemini ya tenía en su caché (cobra el 10 %). */
   usage: { inputTokens?: number; outputTokens?: number; cachedTokens?: number };
@@ -787,6 +793,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     links: string[];
     urgentSession: BrainResult["urgentSession"];
     receipt: BrainResult["receipt"];
+    noReply: string | null;
   } = {
     outcome: null,
     booking: null,
@@ -803,6 +810,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     links: [],
     urgentSession: null,
     receipt: null,
+    noReply: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
   const seenOptions = new Map<string, string>();
@@ -851,8 +859,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
 
   // Pagos por fuera de la web: los datos y el enlace los pega el código (nunca el modelo).
   const methods = enabledMethods(config);
+  // Lo último antes de lo que escribió la persona lo escribió Dayana: le está respondiendo a ella.
+  const toDayana = answeringDayana(input.transcript);
   // El enlace de pago que Dayana ya le mandó en el chat (Paola, 21-oct).
   const chatLink = config.payments.sendLinks ? dayanaPaymentLink(input.transcript, now) : null;
+  // Y si no fue un enlace: la cuenta, el Nequi o el valor que Dayana le escribió (Carmen, Raquel, 21-oct).
+  const chatPayInfo = chatLink ? null : dayanaPaymentInfo(input.transcript, now);
   const paymentTools = {
     ...(methods.length > 0
       ? {
@@ -869,6 +881,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // Un comprobante (a otra cuenta, rechazado…) sí puede necesitar los datos correctos.
               if (config.payments.sendLinks && !state.receipt && !lastInboundMedia && !asksForBankDetails(lastInbound)) {
                 const link = chatLink?.url ?? (await activePaymentLinkFor(input.contactId).catch(() => null))?.url ?? null;
+                if (!link && chatPayInfo) {
+                  return log("send_payment_info", { method }, {
+                    ok: false,
+                    reason:
+                      "Dayana ya le mandó por aquí cómo pagar: no le mandes otras cuentas. Dile que puede hacer el pago con los datos que le envió Dayana y que, cuando lo haga, te mande el comprobante por aquí para que Dayana lo verifique. Otras cuentas solo si las pide (la cuenta, transferir, Western Union…) o si no puede pagar así.",
+                  });
+                }
                 if (link) {
                   return log("send_payment_info", { method }, {
                     ok: false,
@@ -1293,12 +1312,34 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // Ya la tiene: «sí, perfecto» después de agendar no es otra cita
               // (antes caía en «Autoriza la cita» por segunda vez).
               const upcoming = await upcomingFreeCall(input.conversationId, config, now).catch(() => null);
+              // Pidió otra hora de las que se le ofrecieron: se mueve la que tiene
+              // (Alexandra, 21-oct: le dejaba el jueves y la IA le confirmó el viernes sin cita).
+              if (upcoming && upcoming.startsAt.getTime() !== start.getTime() && autoBook) {
+                try {
+                  const moved = await moveFreeCall({ config, dayanaTz: timezone, personTz: tz, bookingId: upcoming.id, start });
+                  afterFreeCallMoved({ conversationId: input.conversationId, booking: moved, dayanaTz: timezone });
+                  state.booking = { id: moved.bookingId, startsAt: moved.startsAt, service: service.name, meetUrl: null };
+                  return log("book_free_call", args, {
+                    ok: true,
+                    booked: true,
+                    moved: true,
+                    label: moved.label,
+                    note: "Listo: su llamada se movió a esta hora (la anterior ya no está). Confírmale el nuevo día y la hora (en su hora) y que Dayana la llama por WhatsApp a este número. No escribas enlaces.",
+                  });
+                } catch (e) {
+                  return log("book_free_call", args, {
+                    error: e instanceof FreeCallError ? e.message : "No se pudo mover la llamada.",
+                    keeps: dualZoneLabel(upcoming.startsAt.toISOString(), tz, timezone),
+                    note: "No se movió: sigue la que tenía (keeps). Ofrécele otras horas con offer_free_call_slots o dile que sigue en pie la que tiene. Nunca digas que quedó a la hora nueva.",
+                  });
+                }
+              }
               if (upcoming) {
                 return log("book_free_call", args, {
                   ok: true,
                   alreadyBooked: true,
                   label: dualZoneLabel(upcoming.startsAt.toISOString(), tz, timezone),
-                  note: "Ya tiene agendada su llamada gratis (label): confírmale ese día y esa hora con calidez, que Dayana la llama por WhatsApp a este número. No digas que la agendas otra vez. Si pide otra hora, escala con category=reschedule.",
+                  note: "Ya tiene agendada su llamada gratis (label): confírmale ese día y esa hora con calidez, que Dayana la llama por WhatsApp a este número. No digas que la agendas otra vez. Si pide otra hora, ofrécele horas con offer_free_call_slots y usa book_free_call con la que elija (se mueve la que tiene).",
                 });
               }
               if (autoBook) {
@@ -1551,6 +1592,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       chatLink
         ? `ENLACE DE PAGO QUE DAYANA YA LE MANDÓ${chatLink.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatLink.sentAt)})` : ""}. Dayana ya le dijo cómo pagar: si te confirma que habló con Dayana (un «sí» a «¿pudiste hablar con Dayana?» no confirma ninguna cita), quiere pagar o empezar, o pregunta cómo pagar, tu respuesta es que puede hacer el pago por el enlace que le envió Dayana (usa send_payment_link: lo vuelve a poner debajo) y que te mande el comprobante por aquí cuando lo haga. No le mandes las cuentas salvo que las pida.`
+        : chatPayInfo
+          ? `DAYANA YA LE MANDÓ CÓMO PAGAR${chatPayInfo.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatPayInfo.sentAt)})` : ""}: ya hablaron de la sesión y los valores. Si quiere pagar o empezar, dile que puede hacer el pago con los datos que le envió Dayana y que te mande el comprobante por aquí para que Dayana lo verifique; pregúntale si tiene alguna dificultad para pagar. No le mandes otras cuentas salvo que las pida.`
+          : null,
+      toDayana && !input.clientMode
+        ? "LA PERSONA LE ESTÁ RESPONDIENDO A DAYANA (lo último antes de sus mensajes lo escribió Dayana): no te metas en esa conversación. Si solo agradece, saluda, comenta o le contesta algo a Dayana, usa no_reply y no escribas nada. Contesta solo si pregunta algo que puedes responder con los DATOS o si quedó algo pendiente que tú resuelves (cómo pagar, recibir su comprobante, las horas de la llamada gratis)."
         : null,
       input.dossier
         ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona). Si la ficha escribe en femenino o masculino, eso NO dice su género: guíate solo por «Habla de sí en…». Lo que la ficha dice que «se le indicó» lo dijo la asistente y puede estar mal: los DATOS mandan:\n${input.dossier}`
@@ -1591,7 +1637,21 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       .join("\n\n");
 
   // Con una clienta, solo pagos (y pasarle lo demás a Dayana).
-  const activeTools = input.clientMode ? { escalate: tools.escalate, ...paymentTools } : tools;
+  // Le está respondiendo a Dayana: puede no hacer falta escribir nada (dueño, 21-oct).
+  const noReplyTool = tool({
+    description:
+      "No escribirle nada: la persona le está respondiendo a Dayana (lo último lo escribió ella) y solo agradece, saluda, comenta o le contesta algo que no necesita respuesta tuya. No lo uses si pregunta algo que puedes responder con los DATOS o si quedó algo pendiente que tú resuelves.",
+    inputSchema: z.object({ motivo: z.string().max(160).describe("Para Dayana, en una línea: por qué no hace falta contestar.") }),
+    execute: async ({ motivo }) => {
+      state.noReply = motivo;
+      return log("no_reply", { motivo }, { ok: true, note: "No escribas nada más." });
+    },
+  });
+  const activeTools = input.clientMode
+    ? { escalate: tools.escalate, ...paymentTools }
+    : toDayana
+      ? { ...tools, no_reply: noReplyTool }
+      : tools;
 
   const result = await generateText({
     model: google(modelId()),
@@ -1610,11 +1670,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         }
       : { prompt: promptText }),
     tools: activeTools,
-    stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate")],
+    stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate"), hasToolCall("no_reply")],
   });
 
   const modelOutcome: BrainOutcome =
     state.outcome ??
+    (state.noReply && !result.text.trim() ? { kind: "reply", message: "" } : null) ??
     (result.text.trim()
       ? { kind: "reply", message: toWhatsAppFormat(result.text).slice(0, 1500) }
       : {
@@ -1661,7 +1722,34 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     }
   }
   const replyText = (message: string) => {
-    const text = state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message;
+    let text = state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message;
+    // La comunidad o el curso ofrecidos sin su herramienta (eval 21-oct: «aquí puedes
+    // unirte a la comunidad», «[Enlace a la comunidad]»): si pidió entrar al grupo o
+    // dijo que no le alcanza, el código pega el enlace de verdad y quita el inventado.
+    const asked = foldForSearch(
+      [...lastInbound, ...input.transcript.filter((l) => l.direction === "INBOUND").slice(-4).map((l) => l.body ?? "")].join(" ")
+    );
+    const wantsGroup = /\b(comunidad|grupo)\b/.test(asked);
+    const cantAfford = /(no me alcanza|no tengo (como|con que|para|plata|dinero)|mal de plata|ahorr|esta caro|muy caro|econom|sin (plata|dinero))/.test(asked);
+    // Un enlace de grupo escrito por el modelo («Https://chat.whatsapp.com/invitation»)
+    // nunca sale: el de verdad lo pega el código.
+    const typedGroup = /https?:\/\/chat\.whatsapp\.com\/[^\s)]*/gi;
+    if (typedGroup.test(text)) {
+      text = text.replace(typedGroup, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+      if (community) addLink(community);
+    }
+    const offers = foldForSearch(text);
+    if (community && !state.links.includes(community) && /\bcomunidad\b/.test(offers) && (wantsGroup || cantAfford)) {
+      addLink(community);
+      log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta ofrecía la comunidad sin la herramienta." });
+      text = withoutFakeLinks(text) || text;
+    }
+    const cheaper = options[0];
+    if (cheaper && cantAfford && /\bcurso\b/.test(offers) && !state.links.includes(absoluteUrl(cheaper.url))) {
+      addLink(absoluteUrl(cheaper.url));
+      log("send_affordable_option", { option: cheaper.key, auto: true }, { ok: true, label: cheaper.label, note: "Lo pegó el código: la respuesta ofrecía el curso sin la herramienta." });
+      text = withoutFakeLinks(text) || text;
+    }
     // El enlace de Dayana copiado a mano: lo pega el código debajo, como send_payment_link.
     if (!chatLink) return text;
     const copied = withoutPayUrls(text);
@@ -1692,6 +1780,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     linkBlocks: finalOutcome.kind === "reply" ? state.links : [],
     urgentSession: finalOutcome.kind === "reply" ? state.urgentSession : null,
     receipt: state.receipt,
+    noReply: state.noReply,
     model: modelId(),
     usage: {
       inputTokens: result.totalUsage?.inputTokens ?? undefined,

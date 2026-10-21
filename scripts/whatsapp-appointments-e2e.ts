@@ -183,6 +183,17 @@ const main = async () => {
   const c4 = await syncAppointments({ events: [events[2], touching], patchTitle });
   check("lo que solo toca el borde no es choque", c4.clashes === 0, c4);
 
+  console.log("\n7. Dayana ya le mandó cómo pagar: no se le recuerda la llamada gratis (Raquel, 21-oct)");
+  const paid = ev("paid", `0/0 Pedrito ${surnames} ${PEDRO}`, 24.1, { hangoutLink: undefined }, 15);
+  await syncAppointments({ events: [paid], patchTitle });
+  await prisma.conversationMessage.create({
+    data: { conversationId: pedroConv.id, direction: "OUTBOUND", body: "OK, mi número de Nequi es 3105833188 a nombre de Diana Bel", isAutoReply: false, status: "DELIVERED" },
+  });
+  const r7 = await sendDueReminders();
+  const paidAppt = await prisma.calendarAppointment.findUniqueOrThrow({ where: { eventId: paid.id } });
+  const paidMsg = await prisma.conversationMessage.findFirst({ where: { source: `recordatorio:${paid.id}` } });
+  check("no sale el recordatorio y la Agenda dice por qué", !paidMsg && Boolean(paidAppt.reminderSentAt) && Boolean(paidAppt.reminderError?.includes("cómo pagar")), { r7, error: paidAppt.reminderError });
+
   await prisma.whatsAppAiRun.deleteMany({ where: { id: aiRun.id } });
   await prisma.calendarAppointment.deleteMany({ where: { eventId: { startsWith: `e2e-${run}` } } });
   console.log(failures.length ? `\n❌ ${failures.length} fallaron:\n- ${failures.join("\n- ")}` : "\n✅ Citas OK");

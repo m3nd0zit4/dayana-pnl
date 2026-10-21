@@ -156,3 +156,34 @@ describe("lo que pasó el 19-oct", () => {
     expect(promiseBreach({ text: raquel, backing: ["12:00 p. m."], hasBooking: true, bookingToday: false })?.breach).toBe("invented_slots");
   });
 });
+
+describe("21-oct: «queda para…» sin cita, o a otra hora de la que tiene (no sale)", () => {
+  test("Natalia: «tu llamada con Dayana queda para hoy» y book_free_call falló", () => {
+    const text = "Tu llamada con Dayana queda para hoy, miércoles 21 de octubre, a las 12:45 p. m. de tu hora (y de Colombia). Dayana te llama por WhatsApp a este número.";
+    expect(promiseBreach({ ...none, backing: ["miércoles, 21 de octubre, 12:45 p. m."], text })?.breach).toBe("false_booking");
+  });
+
+  test("Caicedo / Barbara: «queda para el jueves / viernes» sin ninguna cita", () => {
+    expect(promiseBreach({ ...none, text: "Perfecto, tu llamada con Dayana queda para el jueves 22 de octubre, a las 12:15 p. m. de Ecuador." })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...none, text: "Listo, queda para el viernes a las 9:00 a. m." })?.breach).toBe("false_booking");
+  });
+
+  test("Alexandra: tiene el jueves 12:30 y le confirman el viernes 9:00", () => {
+    const base = { backing: ["viernes, 23 de octubre, 9:00 a. m."], hasBooking: true, bookingToday: false, bookedLabels: ["jueves 12:30 p. m."] };
+    const text = "Tu llamada con Dayana queda para el viernes, 23 de octubre, a las 9:00 a. m. de tu hora. Ella te llama por WhatsApp a este número, Alexandra.";
+    expect(promiseBreach({ ...base, text })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...base, text: "Así es, Alexandra. Tu llamada con Dayana queda confirmada para el viernes, 23 de octubre, a las 9:00 a. m." })?.breach).toBe("false_booking");
+  });
+
+  test("la cita que sí tiene (o la que se acaba de mover) sale", () => {
+    const booked = ["viernes 9:00 a. m.", "viernes 10:00 a. m."];
+    // Como en run.ts: las horas de sus citas también respaldan.
+    const base = { backing: booked, hasBooking: true, bookingToday: false, bookedLabels: booked };
+    expect(promiseBreach({ ...base, text: "Tu llamada con Dayana queda para el viernes, 23 de octubre, a las 9:00 a. m. de tu hora (10:00 a. m. en Colombia)." })).toBeNull();
+    expect(promiseBreach({ ...base, text: "Tu llamada queda agendada. Dayana te llama por WhatsApp a este número." })).toBeNull();
+  });
+
+  test("ofrecer no es confirmar", () => {
+    expect(promiseBreach({ ...none, backing: OFFERED, text: "¿Te queda bien el viernes a las 8:45 p. m.?" })).toBeNull();
+  });
+});

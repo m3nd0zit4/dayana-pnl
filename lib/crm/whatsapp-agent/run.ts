@@ -47,6 +47,7 @@ import { isCrisis, pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
+import { closingNotNeeded, promisesHandoff, withoutToolText, writesAccountNumber } from "./reply-guards";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
 import { chatNameInfo } from "./chat-name";
 import { offeredFreeCallSlots } from "./free-call";
@@ -494,6 +495,13 @@ export const runWhatsAppAi = async (input: {
       await finish(run.id, "SKIPPED", { reason: "trivial" });
       return;
     }
+    // En modo IA, a un «gracias» / «amén» / emoji tampoco, si lo último nuestro
+    // ya fue un cierre o si le está contestando a Dayana (21-oct: «Con gusto 🙏»
+    // en cadena con Carmen y Patricia).
+    if (!burst.needsReply && closingNotNeeded(conversation.messages)) {
+      await finish(run.id, "SKIPPED", { reason: "trivial" });
+      return;
+    }
 
     // La puerta pudo tardar (la IA volvió a mirar la categoría) y esta vuelta
     // sigue en cola: la espera de arriba no la ve. Si mientras tanto escribió
@@ -646,6 +654,20 @@ export const runWhatsAppAi = async (input: {
         .catch((e: unknown) => console.error("[whatsapp-agent] no se pudo guardar el comprobante", e));
     }
 
+    // Le está respondiendo a Dayana y no hace falta contestar (la IA lo decidió
+    // con no_reply). Si además mandó un comprobante, eso sí se contesta.
+    if (
+      result.noReply &&
+      !result.receipt &&
+      !result.booking &&
+      !result.paymentBlocks.details.length &&
+      !result.paymentBlocks.link &&
+      !(result.outcome.kind === "reply" && result.outcome.message.trim())
+    ) {
+      await finish(run.id, "SKIPPED", { ...meta, reason: `no_reply: ${result.noReply}`.slice(0, 300) });
+      return;
+    }
+
     // Con una clienta, lo que no es de pagos es de Dayana: la IA calla sin
     // avisar nada a la persona (como cualquier mensaje de una clienta). Solo
     // sale lo que comparte datos o el enlace, o recibe un comprobante.
@@ -704,13 +726,57 @@ export const runWhatsAppAi = async (input: {
     // corazones. Los datos de pago y el enlace van debajo, tal cual (el
     // detector de precios mira solo lo que escribió la IA: un número de cuenta
     // no es un precio).
-    const written = polishReply(result.outcome.message);
+    // Una herramienta escrita como texto («Save_country(city=…)», Ruben, 19-oct) no sale.
+    const toolText = withoutToolText(result.outcome.message);
+    const written = polishReply(toolText.text);
     const body = withPaymentBlocks(written, { ...result.paymentBlocks, links: result.linkBlocks });
+    if (!body.trim()) {
+      await finish(run.id, "SKIPPED", { ...meta, reason: toolText.had ? "tool_text" : "empty" });
+      await openAttentionIfNeedsReply(conversationId).catch(() => undefined);
+      return;
+    }
+    // Un número de cuenta escrito a mano (puede ser inventado) nunca sale: Dayana lo ve.
+    if (writesAccountNumber(written)) {
+      await setStatus(run.id, "SENDING", meta);
+      await escalate(
+        conversationId,
+        run.id,
+        config,
+        { category: "payment", severity: "normal", reason: "La IA escribió un número de cuenta a mano (sin los datos de Ajustes): no se envió. Compártele tú los datos." },
+        name,
+        meta,
+        "ESCALATED",
+        seen,
+        { holdingReply: "Déjame confirmarlo con Dayana y te escribo por aquí." }
+      );
+      return;
+    }
     // Mientras pensaba (unos segundos) Dayana contestó: no se envía, no se
     // propone y no se pide la cita. Ya está atendido.
     if (await answeredSince(conversationId, seen)) {
       await finish(run.id, "SKIPPED", { ...meta, reason: "replied_meanwhile" });
       return;
+    }
+    // Lo mismo que ya le dijimos hace poco no sale otra vez (Carmen, 21-oct: la IA
+    // le repitió «¿Pudiste hablar con Dayana…?» como respuesta a «Hola buenos días»).
+    if (!result.paymentBlocks.details.length && !result.paymentBlocks.link && !result.linkBlocks.length && !result.receipt && !result.booking) {
+      const recentOut = await prisma.conversationMessage.findMany({
+        where: {
+          conversationId,
+          direction: "OUTBOUND",
+          status: { not: "FAILED" },
+          kind: "message",
+          sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
+        },
+        orderBy: { sentAt: "desc" },
+        take: 3,
+        select: { body: true },
+      });
+      if (alreadySaid(written, recentOut.map((m) => m.body))) {
+        await finish(run.id, "SKIPPED", { ...meta, reason: "repeat" });
+        await openAttentionIfNeedsReply(conversationId).catch(() => undefined);
+        return;
+      }
     }
     // El mismo comprobante otra vez («es lo de octubre, disculpa la tardanza»):
     // el comprobante se completa, pero un segundo «Ya le aviso a Dayana para
@@ -889,11 +955,27 @@ export const runWhatsAppAi = async (input: {
         );
       }
       await finish(run.id, "REPLIED");
-      // La persona ya tiene respuesta: un «sin responder» que quedara abierto
-      // se cierra (una escalada no: esa es de Dayana).
-      await closeAttention(conversationId, { by: "ai" }).catch((e: unknown) =>
-        console.warn("[whatsapp-agent] no se pudo cerrar «Te toca»", e)
-      );
+      // Le dijo «le paso tu mensaje a Dayana» sin escalar: Dayana se entera igual
+      // (Ricky, 17-oct: nunca le llegó nada). Si no, se cierra el «sin responder».
+      if (promisesHandoff(written) && !result.bookingRequest) {
+        await openAttention(conversationId, "other", seen).catch((e: unknown) =>
+          console.warn("[whatsapp-agent] no se pudo abrir «Te toca»", e)
+        );
+        const said = history.filter((l) => l.direction === "INBOUND").slice(-2).map((l) => l.body ?? "").join(" · ");
+        fireNotification({
+          eventType: "WHATSAPP_AI_ESCALATED",
+          title: `Le dije que te pasaba su mensaje: ${name ?? conversation.participantName ?? `+${phone}`}`,
+          body: (said ? `«${said}»` : "Revisa el chat.").slice(0, 200),
+          href: `/admin/whatsapp?conversation=${conversationId}`,
+          entityType: "Conversation",
+          entityId: conversationId,
+          staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
+        });
+      } else {
+        await closeAttention(conversationId, { by: "ai" }).catch((e: unknown) =>
+          console.warn("[whatsapp-agent] no se pudo cerrar «Te toca»", e)
+        );
+      }
       // Le mandó el enlace de la sesión urgente: Dayana la agenda en cuanto pague.
       if (result.urgentSession) {
         const u = result.urgentSession;
@@ -997,7 +1079,7 @@ const promiseBacking = async (input: {
   inferredTz?: string | null;
   timezone: string;
   now?: Date;
-}): Promise<{ backing: string[]; hasBooking: boolean; bookingToday: boolean }> => {
+}): Promise<{ backing: string[]; bookedLabels: string[]; hasBooking: boolean; bookingToday: boolean }> => {
   const now = input.now ?? new Date();
   const labels: string[] = [];
   let bookedNow = Boolean(input.booking);
@@ -1054,8 +1136,15 @@ const promiseBacking = async (input: {
     for (const z of zones) labels.push(getTimeLabelInTz(d, z));
   }
   const today = (tz: string) => getDateKeyInTz(now, tz);
+  // El día y la hora de sus citas de verdad, en cada zona: lo que se confirma tiene que ser eso.
+  const bookedLabels = booked
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .flatMap((d) =>
+      zones.map((z) => `${new Intl.DateTimeFormat("es-CO", { timeZone: z, weekday: "long" }).format(d)} ${getTimeLabelInTz(d, z)}`)
+    );
   return {
     backing: labels,
+    bookedLabels,
     hasBooking: bookedNow || booked.length > 0,
     bookingToday: booked.some(
       (d) => getDateKeyInTz(d, input.timezone) === today(input.timezone) || getDateKeyInTz(d, input.personTz) === today(input.personTz)

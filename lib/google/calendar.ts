@@ -218,3 +218,25 @@ export const patchEventText = (
       }),
     }
   );
+
+/**
+ * Cambia solo la hora de un evento (PATCH parcial): el título, la descripción
+ * y los invitados quedan como estaban. Para mover una llamada ya agendada sin
+ * dejar la vieja en el calendario.
+ */
+export const patchEventTime = (
+  token: string,
+  eventId: string,
+  input: { startIso: string; endIso: string; timeZone?: string; calendarId?: string }
+): Promise<CalendarEvent> =>
+  request(
+    token,
+    `/calendars/${encodeURIComponent(input.calendarId ?? "primary")}/events/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        start: { dateTime: input.startIso, timeZone: input.timeZone ?? "America/Bogota" },
+        end: { dateTime: input.endIso, timeZone: input.timeZone ?? "America/Bogota" },
+      }),
+    }
+  );

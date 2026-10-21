@@ -208,6 +208,17 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, te recuerdo tu cita de {{servicio}} mañana {{fecha}} a las {{hora}}. Enlace: {{enlace}} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.",
     example: { nombre: "Ana", servicio: "sesión de terapia", fecha: "jueves 2 de octubre", hora: "10:00 a. m.", enlace: "https://meet.google.com/abc-defg-hij" },
   },
+  // El recordatorio de 24 h de la llamada gratis (21-oct): la de arriba dice
+  // «Enlace: {{enlace}}» y la llamada gratis no tiene enlace («Enlace: Dayana
+  // te llamará…»). La hora va en medio de la frase para que no quede «a. m..».
+  // Sin «gratis», como la de hoy: con palabras de venta Meta la pasaría a Marketing.
+  {
+    key: "cita_recordatorio_llamada",
+    title: "Llamada: recordatorio 24 h",
+    category: "UTILITY",
+    body: "Hola {{nombre}}, te recuerdo que mañana {{fecha}} a las {{hora}} Dayana te llamará por WhatsApp a este número para tu llamada. Responde SÍ para confirmar o escríbeme si necesitas cambiarla.",
+    example: { nombre: "Ana", fecha: "jueves 2 de octubre", hora: "10:00 a. m." },
+  },
   // El recordatorio de la llamada gratis una hora antes, fuera de las 24 h
   // (dentro va como texto, el de Ajustes). Sin «gratis»: con palabras de venta
   // Meta la pasaría a Marketing.

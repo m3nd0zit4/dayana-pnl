@@ -37,8 +37,8 @@ export type Scenario = {
     anyTool?: string[];
     /** Ninguna de estas. */
     noTool?: string[];
-    /** «reply»: contesta; «escalate»: se lo pasa a Dayana. */
-    outcome?: "reply" | "escalate";
+    /** «reply»: contesta; «escalate»: se lo pasa a Dayana; «silent»: no escribe (no_reply). */
+    outcome?: "reply" | "escalate" | "silent";
     escalationCategory?: string;
     mustMatch?: RegExp[];
     mustNotMatch?: RegExp[];
@@ -619,5 +619,86 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: { outcome: "reply", anyTool: ["send_payment_info"] },
     goal: "Pidió la cuenta para transferir: le comparte los datos de pago de Colombia con la herramienta (no escritos a mano), en un mensaje corto, y le pide el comprobante.",
+  },
+  {
+    id: "raquel-ya-hablo-pide-reagendar",
+    origin: "Raquel (+34), 19–21 oct: Dayana le mandó Western Union y el valor del paquete; seguía con «llamada gratis» y recordatorios",
+    name: "Raquel Torres",
+    gender: "f",
+    personTimezone: "Europe/Madrid",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("OK hermosa, aquí te envío la información de Western Union"),
+      person("si gracias"),
+      dayana("NOMBRE DE BANCO: BANCO UNIÓN – WESTERN UNION\nEnvío directo a cuenta en Colombia\nNúmero de cuenta: 0000000000\nTitular: Diana Beltrán"),
+      dayana("175 USD\n580.000 COP"),
+      dayana("PAQUETE DE TRES SESIONES PERSONALIZADAS 1.1"),
+      dayana("Un abrazo, pronto me envíes el comprobante iniciamos"),
+      person("Gracias bella, si te envío el Western"),
+      person("Hola, ¿podemos cambiar la llamada del jueves para otro día? Ese día no puedo"),
+    ],
+    // Contestar (pagar + comprobante) o pasárselo a Dayana: las dos valen (dueño, 21-oct).
+    expect: {
+      noTool: ["offer_free_call_slots", "book_free_call", "send_payment_info"],
+      mustNotMatch: [/N° Cuenta|Número de cuenta/i],
+    },
+    goal: "Ya habló de la sesión y los valores con Dayana (Dayana le mandó cómo pagar): no le ofrece ni le reagenda la llamada gratis. Le explica con amabilidad que ya tuvo su llamada con Dayana y que, para empezar sus sesiones, haga el pago con los datos que le mandó Dayana y mande el comprobante por aquí para que Dayana lo verifique y le agende; o le pregunta si tiene alguna dificultad para pagar; o le dice que le avisa a Dayana.",
+  },
+  {
+    id: "carmen-buenos-dias-tras-pago",
+    origin: "Carmen, 21-oct: Dayana le mandó su Nequi y el valor; la IA le preguntó «¿Pudiste hablar con Dayana?» y a su «Hola buenos día» le repitió la misma pregunta",
+    name: "Carmen Galindo",
+    gender: "unknown",
+    personTimezone: "America/Bogota",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("Hola Carmen, te bendigo buenos días"),
+      dayana("Te habla Dayana Beltrán"),
+      dayana("OK, mi número de Nequi es 3105833188 a nombre de Diana Bel\n\nPaquete de 6 sesiones"),
+      dayana("Quedo atenta, tan pronto me envíes el comprobante de pago, agendamos día y hora que me digas"),
+      person("Mil gracias🙏💕"),
+      person("Hola buenos dia"),
+    ],
+    expect: {
+      noTool: ["offer_free_call_slots", "book_free_call"],
+      mustNotMatch: [/pudiste hablar/i, /llamada gratis/i],
+    },
+    goal: "Ya habló con Dayana y Dayana le mandó cómo pagar. La saluda corto y, si hace falta, le recuerda que cuando haga el pago mande el comprobante por aquí; o no escribe nada porque le está respondiendo a Dayana. Nunca le pregunta si pudo hablar con Dayana ni le ofrece la llamada gratis.",
+  },
+  {
+    id: "patricia-le-responde-a-dayana",
+    origin: "Patricia (Perú), 20-oct: le respondía a una nota de voz de Dayana y la IA contestó «Con gusto, Patricia 🙏» cinco veces",
+    name: "Patricia Vergara",
+    gender: "f",
+    personTimezone: "America/Lima",
+    stage: "conversando",
+    transcript: [
+      ai("Entiendo, Patricia. Los eventos gratuitos con Dayana son en vivo y no quedan grabados, así que te esperamos con mucho gusto si puedes acompañarnos."),
+      dayana("🎤 Hola, te bendigo. Bueno, tenemos este evento el día domingo de 9:30 de la mañana a 12:30 del mediodía, pero también vamos a tener otra actividad si quieres seguir aprendiendo: tenemos un curso los días martes."),
+      person("Que gusto escucharte Dayana, me encantó escucharte"),
+      person("gracias Dayana, lo voy a tener en consideración"),
+    ],
+    expect: { outcome: "silent" },
+    goal: "Le está respondiendo a Dayana (agradece y comenta, sin preguntar nada): la asistente no se mete en esa conversación y no escribe nada.",
+  },
+  {
+    id: "alexandra-en-cita-medica",
+    origin: "Alexandra, 21-oct: Dayana le escribió para llamarla, ella contestó que estaba en una cita médica y la IA se metió",
+    name: "Alexandra Rivero",
+    gender: "f",
+    personTimezone: "America/Bogota",
+    stage: "llamada_agendada",
+    hasBooking: true,
+    transcript: [
+      ai("Tu llamada con Dayana quedó agendada para el miércoles, 21 de octubre, a las 10:00 a. m. hora de Colombia. Ella te llama por WhatsApp a este número, Alexandra."),
+      person("Gracias 🙏"),
+      dayana("Hola Alexandra, te bendigo"),
+      dayana("Buenos días, te habla Dayana Beltrán"),
+      person("Hola doc"),
+      person("Estoy en cita de medicina general"),
+      person("Ya casi salgo"),
+    ],
+    expect: { outcome: "silent" },
+    goal: "Le está contestando a Dayana, que está en contacto con ella para la llamada: la asistente no se mete ni promete nada; no escribe nada.",
   },
 ];

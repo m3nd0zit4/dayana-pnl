@@ -54,6 +54,10 @@ export const timesIn = (text: string): string[] => {
   return [...out];
 };
 
+const WEEKDAY = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/g;
+/** Los días de la semana que nombra un texto («viernes»). */
+export const weekdaysIn = (text: string): string[] => [...new Set(foldForSearch(text).match(WEEKDAY) ?? [])];
+
 /** ¿Esta hora está respaldada? Una hora sin a. m./p. m. vale si coincide con cualquiera de las dos. */
 const backed = (time: string, allowed: Set<string>) =>
   allowed.has(time) || (!/[ap]$/.test(time) && (allowed.has(`${time}a`) || allowed.has(`${time}p`)));
@@ -77,7 +81,10 @@ const BOOKING_CLAIM = new RegExp(
     "esta(s)?\\s+(confirmad|agendad|reservad)",
     "ya\\s+(te\\s+)?(agende|reserve|confirme)\\b",
     "(?<!que\\s)\\bte\\s+(agende|reserve)\\s+(para|el|la|tu)\\b",
-    `tu\\s+(cita|llamada)\\s+(queda|esta|quedo)\\s+(confirmad|agendad|reservad|para\\s+(el\\s+|este\\s+|esta\\s+)?(${DAY}|las\\s+\\d|\\d))`,
+    // «tu llamada con Dayana queda para hoy», «tu llamada gratis quedó para el viernes»
+    // (Natalia, Barbara, Alexandra, Caicedo, 21-oct: el «con Dayana» la dejaba pasar).
+    `tu\\s+(cita|llamada)(\\s+gratis|\\s+gratuita|\\s+con\\s+dayana|\\s+de\\s+15\\s+minutos)*\\s+(queda|esta|quedo)\\s+(confirmad|agendad|reservad|para\\s+(el\\s+|este\\s+|esta\\s+)?(${DAY}|las\\s+\\d|\\d))`,
+    `(queda|quedo)\\s+para\\s+(el\\s+|este\\s+|esta\\s+)?(${DAY}|las\\s+\\d)`,
     `dayana\\s+te\\s+(llama|llamara|va\\s+a\\s+llamar)\\s+(el\\s+${DAY}|este\\s+${DAY}|esta\\s+(tarde|noche)|${DAY}|a\\s+las\\s+\\d)`,
   ].join("|")
 );
@@ -123,6 +130,12 @@ export type PromiseCheck = {
   backing: string[];
   /** Hay una cita de verdad: agendada en esta vuelta o activa en el calendario. */
   hasBooking: boolean;
+  /**
+   * El día y la hora de esas citas («viernes 9:00 a. m.», en cada zona). Con
+   * cita, lo que se confirma tiene que ser eso: a Alexandra (21-oct) le
+   * confirmaron el viernes cuando la que tenía era el jueves.
+   */
+  bookedLabels?: string[];
   /** Esa cita es hoy. */
   bookingToday: boolean;
 };
@@ -152,11 +165,18 @@ export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
   };
   /** Pregunta con horas que dio la agenda: ofrece, no afirma. */
   const backedQuestion = (s: string) => allBacked(s) && OFFER.test(s);
-  if (!input.hasBooking) {
-    for (const s of sentences) {
-      const claim = s.match(BOOKING_CLAIM);
-      // «¿Te parece si Dayana te llama hoy a las 4:00 p. m.?» con esa hora de la agenda: es una oferta.
-      if (claim && !(s.includes("?") && backedQuestion(s))) return { breach: "false_booking", detail: claim[0] };
+  const bookedTimes = new Set((input.bookedLabels ?? []).flatMap(timesIn));
+  const bookedDays = new Set((input.bookedLabels ?? []).flatMap(weekdaysIn));
+  for (const s of sentences) {
+    const claim = s.match(BOOKING_CLAIM);
+    // «¿Te parece si Dayana te llama hoy a las 4:00 p. m.?» con esa hora de la agenda: es una oferta.
+    if (!claim || (s.includes("?") && backedQuestion(s))) continue;
+    if (!input.hasBooking) return { breach: "false_booking", detail: claim[0] };
+    // Hay cita, pero lo que confirma es otro día u otra hora.
+    if (input.bookedLabels?.length) {
+      const otherTime = timesIn(s).some((t) => !backed(t, bookedTimes));
+      const otherDay = weekdaysIn(s).some((d) => !bookedDays.has(d));
+      if (otherTime || otherDay) return { breach: "false_booking", detail: claim[0] };
     }
   }
   if (!input.bookingToday) {

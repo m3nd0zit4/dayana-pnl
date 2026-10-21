@@ -64,8 +64,12 @@ export type SegmentInput = {
     dossierPaidSignals?: number;
     /** La ficha dice que ya tuvo llamada o sesiones con Dayana. */
     dossierHadSession?: boolean;
+    /** Cuándo Dayana le escribió ella misma cómo pagar (enlace, cuenta, Nequi, valor): `isPaymentInfo`. */
+    dayanaPaymentInfoAt?: Date | null;
   };
   freeCallUpcoming?: boolean;
+  /** Cuándo se agendó la próxima llamada gratis (si la hay). */
+  freeCallBookedAt?: Date | null;
   /**
    * La última llamada gratis que ya pasó: `done` = se hizo (contestó, o no se
    * sabe y ya pasó: Dayana sabe), `missed` = no contestó (se le reagenda).
@@ -143,6 +147,19 @@ const leadSegment = (input: SegmentInput, h: NonNullable<SegmentInput["history"]
     return { segment: "ignored", confidence: input.categoryConfidence ?? 0.9, reason: `Clasificado como ${input.category}.`, review: false, source: "ai" };
   }
 
+  // Dayana ya le dijo cómo pagar (después de agendar la llamada, si tiene una):
+  // ya hablaron de la sesión y los valores (dueña, 21-oct). No se le ofrece ni
+  // se le reagenda la llamada gratis.
+  const payInfo = h.dayanaPaymentInfoAt?.getTime();
+  if (payInfo && !(input.freeCallUpcoming && input.freeCallBookedAt && input.freeCallBookedAt.getTime() > payInfo)) {
+    return {
+      segment: "after_call",
+      confidence: 0.85,
+      reason: "Dayana ya le mandó cómo pagar: ya hablaron de la sesión y los valores; no consta que haya pagado.",
+      review: false,
+      source: "rules",
+    };
+  }
   if (input.freeCallUpcoming) {
     return { segment: "free_call_booked", confidence: 0.95, reason: "Tiene agendada la llamada gratis.", review: false, source: "rules" };
   }

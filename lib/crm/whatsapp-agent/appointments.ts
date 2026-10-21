@@ -14,7 +14,8 @@ import { isAvailabilityBlock } from "./calendar";
 import { trustedContactTimezone } from "./booking-time";
 import { foldName, isFreeCallAppointment, isPackageCounter, meetCode, nameMatches, parseEventTitle, withPhone } from "./event-title";
 import { DAYANA_WROTE_BEFORE_MIN, freeCallReminderText, soonReminderDecision, soonReminderWindow } from "./free-call-reminder-rules";
-import { isAutoSend } from "../whatsapp-attention-rules";
+import { dayanaPaymentInfoAt, dayanaWroteAt } from "./dayana-messages";
+import { approvedTemplateFor, ensureTemplatesSubmitted } from "../whatsapp-templates";
 import { resolveConversations } from "./pending";
 import { openAttention } from "./attention";
 import { clashNotice, clashStep, findClash, type ClashEvent } from "./calendar-clash-rules";
@@ -494,6 +495,12 @@ export const isReminderDue = (startsAt: Date, now: Date): boolean => {
 const fmt = (d: Date, tz: string, opts: Intl.DateTimeFormatOptions) =>
   new Intl.DateTimeFormat("es-CO", { timeZone: tz, ...opts }).format(d);
 
+/** Por qué no salen los recordatorios de la llamada gratis: Dayana ya le dijo cómo pagar. */
+export const PAYMENT_INFO_SKIP = "Dayana ya le mandó cómo pagar: ya hablaron, no hace falta recordarle la llamada gratis.";
+
+/** Plantilla del recordatorio de 24 h de la llamada gratis (sin «Enlace:»). */
+export const FREE_CALL_TEMPLATE_KEY = "cita_recordatorio_llamada";
+
 /** La llamada gratis la hace Dayana por WhatsApp al número de la persona. */
 export const FREE_CALL_BY_WHATSAPP = "Dayana te llamará por WhatsApp a este número.";
 
@@ -520,6 +527,21 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
     // Solo la llamada gratis (la dueña, 17-oct: «el recordatorio no es para
     // los clientes»). Las sesiones las coordina Dayana con cada persona.
     if (!isFreeCallAppointment(appt)) continue;
+    const booking = await prisma.whatsAppBooking.findFirst({
+      where: { calendarEventId: appt.eventId },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    // Dayana ya le dijo cómo pagar después de agendar: ya hablaron de la sesión
+    // y los valores, no se le recuerda la llamada gratis (Raquel, 21-oct).
+    if (await dayanaPaymentInfoAt(appt.conversationId, booking?.createdAt ?? appt.createdAt)) {
+      await prisma.calendarAppointment.updateMany({
+        where: { id: appt.id, reminderSentAt: null },
+        data: { reminderSentAt: now, reminderError: PAYMENT_INFO_SKIP },
+      });
+      result.skipped++;
+      continue;
+    }
     // Reclamo: si otro proceso ya lo tomó, no se manda dos veces.
     const claimed = await prisma.calendarAppointment.updateMany({
       where: { id: appt.id, reminderSentAt: null },
@@ -533,12 +555,9 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
       name: appt.name,
       optedOut: false,
     };
-    const contactTz = appt.contactId
-      ? trustedContactTimezone(
-          await prisma.contact.findUnique({ where: { id: appt.contactId }, select: { timezone: true, countryIso: true, phoneCountryIso: true } })
-        )
-      : null;
-    const zone = contactTz || tz;
+    // En la zona de la persona (su ficha, su contacto; si no, la de Dayana), como
+    // el de 1 h: a Xime (Cuernavaca, 21-oct) le llegó la hora de Colombia.
+    const zone = await personZone(appt, tz);
     // La llamada gratis es por WhatsApp: no hay enlace que mandar.
     const freeCall = !appt.meetUrl && isFreeCallAppointment(appt);
     const vars = {
@@ -555,14 +574,20 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
     };
     const link = freeCall ? ` ${FREE_CALL_BY_WHATSAPP}` : appt.meetUrl ? ` Enlace: ${appt.meetUrl}` : "";
     const text = `Hola${vars.nombre ? ` ${vars.nombre}` : ""} 🙏 Te recuerdo ${vars.servicio} mañana ${vars.fecha} a las ${vars.hora}.${link} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.`;
-    // La plantilla ya dice «tu cita de {{2}} … a las {{4}}.»: sin «tu» repetido ni «a. m..»
-    // (Estefania, 20-oct: «tu cita de tu llamada gratis … 10:30 a. m..»).
-    const templateVars = { ...vars, servicio: vars.servicio.replace(/^tu /, ""), hora: vars.hora.replace(/\.$/, "") };
-
+    // Fuera de las 24 h, la llamada gratis va con su plantilla (sin «Enlace:»,
+    // que no tiene: 21-oct) si Meta ya la aprobó; mientras tanto, la de siempre.
+    if (freeCall) await ensureTemplatesSubmitted([FREE_CALL_TEMPLATE_KEY]).catch(() => undefined);
+    const freeCallTemplate = freeCall ? await approvedTemplateFor(FREE_CALL_TEMPLATE_KEY).catch(() => null) : null;
+    // La de siempre dice «tu cita de {{2}} … a las {{4}}.»: sin «tu» repetido ni «a. m..»
+    // (Estefania, 20-oct: «tu cita de tu llamada gratis … 10:30 a. m..»). La nueva lleva la hora en medio.
+    const templateVars = freeCallTemplate
+      ? vars
+      : { ...vars, servicio: vars.servicio.replace(/^tu /, ""), hora: vars.hora.replace(/\.$/, "") };
     const r = await sendWhatsAppToRecipient({
       recipient,
       text,
       templateKey: "cita_recordatorio",
+      ...(freeCallTemplate ? { template: freeCallTemplate } : {}),
       vars: templateVars,
       source: `recordatorio:${appt.eventId}`,
       isAutoReply: true,
@@ -626,18 +651,6 @@ export type SoonReminderResult = ReminderResult & {
  * (`tick.ts`) nunca lo mandan dos veces. Lo que falla no se reintenta solo
  * (fuera de las 24 h es una plantilla y se cobra).
  */
-/** Lo último que Dayana escribió ella misma en el chat desde `since` (celular o CRM; no la IA ni lo automático). */
-const dayanaWroteAt = async (conversationId: string | null, since: Date): Promise<Date | null> => {
-  if (!conversationId) return null;
-  const rows = await prisma.conversationMessage.findMany({
-    where: { conversationId, direction: "OUTBOUND", isAutoReply: false, kind: "message", status: { not: "FAILED" }, sentAt: { gte: since } },
-    orderBy: { sentAt: "desc" },
-    take: 10,
-    select: { sentAt: true, source: true, clientKey: true },
-  });
-  return rows.find((m) => !isAutoSend(m))?.sentAt ?? null;
-};
-
 export const sendSoonReminders = async (
   opts: { now?: Date; config?: WhatsAppAiConfig } = {}
 ): Promise<SoonReminderResult> => {
@@ -680,11 +693,14 @@ export const sendSoonReminders = async (
       dayanaWroteAt: await dayanaWroteAt(appt.conversationId, new Date(appt.startsAt.getTime() - DAYANA_WROTE_BEFORE_MIN * 60_000)),
     });
     if (decision.kind === "not_yet" || decision.kind === "too_late") continue;
-    if (decision.kind === "skip") {
+    // Dayana ya le dijo cómo pagar después de agendar: ya hablaron (Raquel, 21-oct).
+    const paidInfo = await dayanaPaymentInfoAt(appt.conversationId, booking?.createdAt ?? appt.createdAt);
+    if (decision.kind === "skip" || paidInfo) {
+      const reason = decision.kind === "skip" ? decision.reason : PAYMENT_INFO_SKIP;
       // Se marca para no volver a revisarla (y para que la Agenda diga por qué).
       const marked = await prisma.calendarAppointment.updateMany({
         where: { id: appt.id, reminderSoonSentAt: null },
-        data: { reminderSoonSentAt: now, reminderSoonSkipped: decision.reason.slice(0, 300) },
+        data: { reminderSoonSentAt: now, reminderSoonSkipped: reason.slice(0, 300) },
       });
       result.notNeeded += marked.count;
       continue;

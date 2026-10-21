@@ -127,6 +127,8 @@ const main = async () => {
     const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
     const silentClient = Boolean(s.clientMode) && (o?.kind === "escalate" || !paymentAnswer);
     const crisis = o?.kind === "escalate" && (o.category === "clinical" || o.severity === "urgent");
+    // Le respondía a Dayana y la IA decidió no escribir nada (no_reply, como run.ts).
+    const quiet = Boolean(result.noReply) && !(o?.kind === "reply" && o.message.trim()) && !paymentAnswer;
     // El mismo aviso de recibido por el mismo comprobante no sale dos veces (run.ts).
     const lastOut = [...s.transcript].reverse().find((l) => l.direction === "OUTBOUND")?.body ?? null;
     const repeatedReceipt =
@@ -157,17 +159,17 @@ const main = async () => {
       result.toolCalls.some((t) => t.tool === "book_free_call" && ["booked", "alreadyBooked", "simulated"].some((k) => (t.output as Record<string, unknown> | undefined)?.[k] === true));
     const draft = o?.kind === "reply" ? polishReply(o.message) : polishReply(result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí.");
     const breach = promiseBreach({ text: draft, backing, hasBooking: booked, bookingToday: false });
-    const sent: string | null = silentClient || crisis || repeatedReceipt
+    const sent: string | null = silentClient || crisis || repeatedReceipt || quiet
       ? null
       : breach
         ? BREACH_HOLDING[breach.breach]
         : o?.kind === "reply"
           ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks })
           : draft;
-    const reply = sent ?? "(no le escribe: se lo pasa a Dayana)";
+    const reply = sent ?? (quiet ? "(no le escribe: le está respondiendo a Dayana y no hace falta contestar)" : "(no le escribe: se lo pasa a Dayana)");
     // Las reglas se miran sobre lo que escribió el modelo (antes del freno): si
     // el freno lo tapa, el prompt igual falló y tiene que verse.
-    const written = silentClient || crisis || repeatedReceipt ? null : o?.kind === "reply" ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks }) : draft;
+    const written = silentClient || crisis || repeatedReceipt || quiet ? null : o?.kind === "reply" ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks }) : draft;
     const tools = result.toolCalls.map((c) => c.tool);
     const failed: string[] = [];
     if (written) {
@@ -185,7 +187,8 @@ const main = async () => {
       }
     }
     const e = s.expect;
-    if (e.outcome && o?.kind !== e.outcome) failed.push(`esperaba ${e.outcome}, hizo ${o?.kind ?? "nada"}`);
+    const did = quiet ? "silent" : (o?.kind ?? "nada");
+    if (e.outcome && did !== e.outcome) failed.push(`esperaba ${e.outcome}, hizo ${did}`);
     if (e.escalationCategory && !(o?.kind === "escalate" && o.category === e.escalationCategory)) {
       failed.push(`esperaba escalar como ${e.escalationCategory}`);
     }
@@ -197,11 +200,11 @@ const main = async () => {
 
     let verdict: Run["verdict"];
     if (useJudge) {
-      verdict = await judgeReply({ transcript: s.transcript, reply, outcome: o?.kind ?? "nada", goal: s.goal, name: s.name, nameInfo }).catch(() => undefined);
+      verdict = await judgeReply({ transcript: s.transcript, reply, outcome: did, goal: s.goal, name: s.name, nameInfo }).catch(() => undefined);
       if (!verdict) failed.push("juez: no respondió");
       else if (!judgePasses(verdict)) failed.push(`juez: ${verdict.problemas.join(" · ") || "objetivo no cumplido"}`);
     }
-    return { outcome: o?.kind ?? "nada", reply, tools, failed, verdict, pass: failed.length === 0 };
+    return { outcome: did, reply, tools, failed, verdict, pass: failed.length === 0 };
   };
 
   for (const s of scenarios) {

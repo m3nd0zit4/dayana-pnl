@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { asksForBankDetails, dayanaPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, isPaymentInfo, withoutPayUrls } from "./chat-payment-link";
 
 const now = new Date("2026-10-21T15:20:00Z");
 const at = (iso: string) => new Date(iso);
@@ -35,6 +35,33 @@ describe("dayanaPaymentLink", () => {
 
   test("sin enlace", () => {
     expect(dayanaPaymentLink([dayana("Hola Paola, te bendigo"), inb("Si")], now)).toBeNull();
+  });
+});
+
+describe("isPaymentInfo / dayanaPaymentInfo", () => {
+  test("lo que Dayana manda para pagar (Carmen, Raquel, Claudia)", () => {
+    expect(isPaymentInfo("OK hermosa, mi número de Nequi es 3105833188 \na nombre de Diana Bel\n\nPaquete de 6 sesiones\n\n960.000 mil")).toBe(true);
+    expect(isPaymentInfo("NOMBRE DE BANCO:BANCO UNIÓN – WESTERN UNION\nEnvío directo a cuenta en Colombia\nNúmero de cuenta: 0173")).toBe(true);
+    expect(isPaymentInfo("175 USD \n580.000 COP")).toBe(true);
+    expect(isPaymentInfo("Aquí te envío el link de pago para el paquete de 12 sesiones")).toBe(true);
+    expect(isPaymentInfo("Tan pronto me envíes el comprobante agendamos día y hora que me digas")).toBe(true);
+    expect(isPaymentInfo("https://www.dayanabeltran.com/pagar/p/therapy-12")).toBe(true);
+  });
+
+  test("un saludo o una hora no es cómo pagar", () => {
+    expect(isPaymentInfo("Hola Carmen, te bendigo buenos días")).toBe(false);
+    expect(isPaymentInfo("Te llamo a las 10:30 a. m.")).toBe(false);
+    expect(isPaymentInfo("El domingo de 9:30 a 12:30")).toBe(false);
+  });
+
+  test("el último de Dayana, no lo de la asistente", () => {
+    const lines = [
+      dayana("OK hermosa, mi número de Nequi es 3105833188", at("2026-10-21T13:23:00Z")),
+      ai("Hola Carmen 🙏 ¿Pudiste hablar con Dayana en tu llamada gratis?"),
+      inb("Si señora mil gracias"),
+    ];
+    expect(dayanaPaymentInfo(lines, now)).toEqual({ sentAt: at("2026-10-21T13:23:00Z"), link: null });
+    expect(dayanaPaymentInfo([ai("Te comparto los datos: N° Cuenta: 123")], now)).toBeNull();
   });
 });
 

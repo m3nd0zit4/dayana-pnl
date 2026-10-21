@@ -1,5 +1,5 @@
 import { resolveGoogleAccount } from "@/agent/lib/google";
-import { createEvent, listEvents } from "@/lib/google/calendar";
+import { createEvent, listEvents, patchEventTime } from "@/lib/google/calendar";
 import { getSiteUrl } from "@/lib/site-url";
 import { zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import { prisma } from "@/lib/db";
@@ -52,7 +52,9 @@ export const readCalendar = async (
   config: WhatsAppBookingConfig,
   from: Date,
   to: Date,
-  timezone: string
+  timezone: string,
+  /** Un evento que no cuenta como ocupado (la llamada que se está moviendo). */
+  ignoreEventId?: string
 ): Promise<CalendarView> => {
   const { token } = await account(config);
   const events = await listEvents(token, {
@@ -63,7 +65,7 @@ export const readCalendar = async (
   const busy: Busy[] = [];
   const windows: Busy[] = [];
   for (const event of events) {
-    if (event.status === "cancelled") continue;
+    if (event.status === "cancelled" || (ignoreEventId && event.id === ignoreEventId)) continue;
     const start = toMs(event.start, timezone);
     const end = toMs(event.end, timezone);
     if (start == null || end == null || end <= start) continue;
@@ -207,4 +209,43 @@ export const bookOnCalendar = async (input: {
     title,
     end,
   };
+};
+
+/**
+ * Mueve una cita que ya existe a otra hora (la persona pidió otra hora para su
+ * llamada gratis: Alexandra, 21-oct, quedó con el jueves cuando pidió el
+ * viernes). Las mismas comprobaciones que al crearla, sin contar la propia
+ * cita como ocupada. Solo cambia la hora del evento: título y descripción
+ * quedan.
+ */
+export const moveOnCalendar = async (input: {
+  config: WhatsAppBookingConfig;
+  timezone: string;
+  eventId: string;
+  start: Date;
+  durationMin: number;
+}): Promise<{ end: Date }> => {
+  const end = new Date(input.start.getTime() + input.durationMin * 60_000);
+  if (input.start.getTime() < Date.now() + input.config.minNoticeHours * 60 * 60_000 - 60_000) {
+    throw new SlotUnavailableError("Esa hora está demasiado cerca.");
+  }
+  const { token } = await account(input.config);
+  const { busy, windows } = await readCalendar(
+    input.config,
+    new Date(input.start.getTime() - DAY),
+    new Date(end.getTime() + DAY),
+    input.timezone,
+    input.eventId
+  );
+  const inWindow =
+    windows.length === 0 || windows.some((w) => input.start.getTime() >= w.start && end.getTime() <= w.end);
+  const inHours =
+    (windows.length > 0 && input.config.hours.length === 0) ||
+    isWithinBookingHours(input.config, input.start, input.durationMin, input.timezone);
+  if (!(inWindow && inHours)) throw new SlotUnavailableError("Esa hora está fuera del horario en que Dayana atiende.");
+  if (overlapsBusy(input.start.getTime(), end.getTime(), busy, input.config.bufferMin)) {
+    throw new SlotUnavailableError("Esa hora ya se ocupó.");
+  }
+  await patchEventTime(token, input.eventId, { startIso: input.start.toISOString(), endIso: end.toISOString(), timeZone: input.timezone });
+  return { end };
 };

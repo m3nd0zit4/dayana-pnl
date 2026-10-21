@@ -76,6 +76,32 @@ describe("resolveSegment", () => {
     expect(resolveSegment({ crm: { hasApprovedPayment: true }, pastFreeCall: "done" }).segment).toBe("client");
   });
 
+  test("Dayana ya le mandó cómo pagar: tuvo la llamada (Raquel, Carmen, 21-oct)", () => {
+    const at = (iso: string) => new Date(iso);
+    // Raquel: llamada gratis agendada el 19 a las 5:36; Dayana le mandó Western Union y el valor a las 10:35.
+    const raquel = resolveSegment({
+      hadConversation: true,
+      freeCallUpcoming: true,
+      freeCallBookedAt: at("2026-10-19T10:36:00Z"),
+      history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") },
+    });
+    expect(raquel.segment).toBe("after_call");
+    expect(raquel.reason).toContain("Dayana ya le mandó cómo pagar");
+    // Sin llamada próxima, o con la llamada que no contestó: igual.
+    expect(resolveSegment({ hadConversation: true, history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") } }).segment).toBe("after_call");
+    expect(resolveSegment({ pastFreeCall: "missed", history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") } }).segment).toBe("after_call");
+    // Agendó una llamada nueva DESPUÉS de los datos: manda la llamada.
+    expect(
+      resolveSegment({
+        freeCallUpcoming: true,
+        freeCallBookedAt: at("2026-10-20T10:00:00Z"),
+        history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") },
+      }).segment
+    ).toBe("free_call_booked");
+    // Si ya pagó y Dayana lo confirmó, es clienta.
+    expect(resolveSegment({ crm: { hasApprovedPayment: true }, history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") } }).segment).toBe("client");
+  });
+
   test("una clienta con la llamada agendada sigue siendo clienta", () => {
     expect(resolveSegment({ crm: { hasPaidEnrollment: true }, freeCallUpcoming: true }).segment).toBe("client");
     expect(resolveSegment({ freeCallUpcoming: true, hadConversation: true }).segment).toBe("free_call_booked");

@@ -12,6 +12,8 @@ import { isFreeCallAppointment, isFreeCallService } from "./event-title";
 import { resolveSegment, type SegmentVerdict } from "./segment";
 import { resolveStage, type Stage } from "./stage";
 import { conversationSituation } from "./situation";
+import { CHAT_LINK_MAX_AGE_DAYS, isPaymentInfo } from "./chat-payment-link";
+import { isAutoSend } from "../whatsapp-attention-rules";
 
 /**
  * Calcula el segmento de un chat con todo lo que se sabe (CRM, todo el chat,
@@ -96,7 +98,7 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
   ]);
   const upcomingBooking = await prisma.whatsAppBooking.findFirst({
     where: { conversationId, startsAt: { gte: new Date() }, status: { notIn: ["CANCELLED", "cancelled"] } },
-    select: { service: true, startsAt: true, endsAt: true },
+    select: { service: true, startsAt: true, endsAt: true, createdAt: true },
   });
   const freeCallUpcoming =
     Boolean(next && isFreeCallAppointment(next)) ||
@@ -104,6 +106,21 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
       upcomingBooking &&
         isFreeCallService(upcomingBooking.service, (upcomingBooking.endsAt.getTime() - upcomingBooking.startsAt.getTime()) / 60_000)
     );
+
+  // Lo último que Dayana escribió ella misma con cómo pagar (no la IA, ni lo
+  // automático, ni una propuesta de la IA que ella aprobó).
+  const payInfoSince = Date.now() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
+  const dayanaPaymentInfoAt =
+    messages.find(
+      (m) =>
+        m.direction === "OUTBOUND" &&
+        !m.isAutoReply &&
+        m.source !== "approval" &&
+        !isAutoSend(m) &&
+        m.status !== "FAILED" &&
+        m.sentAt.getTime() >= payInfoSince &&
+        isPaymentInfo(m.body)
+    )?.sentAt ?? null;
 
   const situation = conversationSituation(
     chronological.map((m) => ({
@@ -133,8 +150,10 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
       personClaims: evidence.filter((e) => e.strength === "strong" && e.who === "persona").length,
       dossierPaidSignals: dossierFacts.paidSignals?.length ?? 0,
       dossierHadSession: dossierFacts.hadCallOrSession,
+      dayanaPaymentInfoAt,
     },
     freeCallUpcoming,
+    freeCallBookedAt: upcomingBooking?.createdAt ?? (next && isFreeCallAppointment(next) ? next.createdAt : null),
     pastFreeCall,
     hadConversation: !situation.isNew,
   });

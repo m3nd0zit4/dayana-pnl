@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { dayanaPaymentInfoAt } from "./dayana-messages";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
@@ -94,7 +95,11 @@ const noticeFor = async (input: {
 }): Promise<{ sent: boolean; decision: WaitingDecision; holdAi: boolean }> => {
   const appt = await appointmentNear(input, input.now);
   if (!appt) return { sent: false, decision: { kind: "none", reason: "sin cita cerca" }, holdAi: false };
-  const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true } });
+  const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true, createdAt: true } });
+  // Dayana ya le mandó cómo pagar: ya hablaron, no hay sala de espera de la llamada gratis.
+  if (await dayanaPaymentInfoAt(input.conversationId, booking?.createdAt ?? appt.createdAt)) {
+    return { sent: false, decision: { kind: "none", reason: "Dayana ya le mandó cómo pagar" }, holdAi: false };
+  }
   const decision = decideWaiting({
     now: input.now,
     appointment: {

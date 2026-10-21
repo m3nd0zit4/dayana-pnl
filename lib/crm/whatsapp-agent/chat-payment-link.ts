@@ -45,6 +45,48 @@ export const dayanaPaymentLink = (lines: Line[], now: Date = new Date()): { url:
 };
 
 /**
+ * Cómo pagar, escrito por Dayana (dueña, 21-oct-2026): «una vez Dayana manda
+ * la información de pago, ya hubo llamada o conversación de precios». Raquel
+ * (19-oct) recibió de Dayana los datos de Western Union y el valor del paquete
+ * y aun así le llegó el recordatorio de su llamada gratis del jueves; Carmen
+ * (21-oct) recibió su Nequi y el valor, y la asistente le preguntó «¿Pudiste
+ * hablar con Dayana?» dos veces.
+ */
+const PAYMENT_INFO = [
+  /\/pagar\//,
+  /\bnequi\b/,
+  /\bdaviplata\b/,
+  /\b(numero de cuenta|n° cuenta|cuenta de ahorros|cuenta corriente|tipo de cuenta|a nombre de)\b/,
+  /\bwestern union\b/,
+  /\b(link|enlace) de pago\b/,
+  /\bcomprobante\b/,
+  /\$\s?\d/,
+  /\b\d{2,3}(\.\d{3})+\b/,
+  /\b\d+(\.\d+)?\s?(usd|cop|mxn|dolares|pesos)\b/,
+];
+
+/** ¿Este mensaje de Dayana le dice cómo pagar (enlace, cuenta, Nequi, valor, «mándame el comprobante»)? */
+export const isPaymentInfo = (text: string | null | undefined): boolean => {
+  const t = foldForSearch(text ?? "");
+  return Boolean(t) && PAYMENT_INFO.some((re) => re.test(t));
+};
+
+/**
+ * Lo último que Dayana escribió ella misma con cómo pagar (30 días), con el
+ * enlace si lo había. Lo que mandó la asistente no cuenta.
+ */
+export const dayanaPaymentInfo = (lines: Line[], now: Date = new Date()): { sentAt: Date | null; link: string | null } | null => {
+  const oldest = now.getTime() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i];
+    if (l.direction !== "OUTBOUND" || l.isAutoReply || !l.body) continue;
+    if (l.sentAt && l.sentAt.getTime() < oldest) break;
+    if (isPaymentInfo(l.body)) return { sentAt: l.sentAt ?? null, link: dayanaPaymentLink(lines, now)?.url ?? null };
+  }
+  return null;
+};
+
+/**
  * El modelo a veces copia el enlace de la conversación en su mensaje (y el
  * arreglo de mayúsculas lo deja «Https://…»). Se quita de su texto y el código
  * lo pega debajo, como con `send_payment_link`. `had`: había alguno.
