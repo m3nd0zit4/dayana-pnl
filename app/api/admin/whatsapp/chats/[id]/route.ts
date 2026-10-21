@@ -15,6 +15,8 @@ import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
 import { markAttended } from "@/lib/crm/whatsapp-agent/attention";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
+import { offerFreeCallSlots } from "@/lib/crm/whatsapp-agent/free-call";
+import { isFreeCallService } from "@/lib/crm/whatsapp-agent/event-title";
 import {
   getChat,
   getOlderMessages,
@@ -263,10 +265,12 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         ) ?? config.booking.services[0];
       const timezone = await getOperationalTimezone();
       try {
-        const slots = spreadSlots(
-          await availableSlots({ config: config.booking, durationMin: service.minutes, timezone }),
-          3
-        );
+        // La llamada gratis con las mismas reglas que la IA (tope del día, hoy y
+        // mañana primero, días preferidos): el botón ofrecía días ya llenos y la
+        // persona elegía una hora que no se podía agendar (Carolina, 21-oct).
+        const slots = isFreeCallService(service.name, service.minutes)
+          ? await offerFreeCallSlots({ config, personTz: timezone, dayanaTz: timezone })
+          : spreadSlots(await availableSlots({ config: config.booking, durationMin: service.minutes, timezone }), 3);
         if (slots.length === 0) {
           return NextResponse.json({ text: "", slots: [] });
         }
