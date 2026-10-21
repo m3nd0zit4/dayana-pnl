@@ -524,9 +524,7 @@ const paymentRules = (config: WhatsAppAiConfig): string => {
   if (methods || config.payments.sendLinks) {
     lines.push(
       `- Si quiere pagar o pide cómo pagar, las cuentas, los datos o el enlace: ${
-        config.payments.sendLinks
-          ? "si Dayana le creó o ya le mandó un enlace de pago, dile que puede pagar por ese enlace y mándalo con send_payment_link (los datos de la cuenta solo si los pide: la cuenta, transferir, Nequi, Western Union…, o si el enlace no le sirve); si no hay enlace, "
-          : ""
+        config.payments.sendLinks ? "si Dayana le creó un enlace de pago, mándalo con send_payment_link; si no hay, " : ""
       }${
         methods
           ? "usa send_payment_info con la forma de pago que le corresponde (mira a quién va cada una; si no sabes desde qué país paga, pregúntalo primero)"
