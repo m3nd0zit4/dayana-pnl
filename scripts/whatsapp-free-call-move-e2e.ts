@@ -89,6 +89,23 @@ const main = async () => {
     check("el recordatorio vuelve a salir para la hora nueva", appts[0]?.reminderSentAt === null, appts[0]);
     check("la etiqueta es la del viernes", moved.label.includes("9:00"), moved.label);
 
+    // Si el calendario no la deja mover, la reserva vuelve a su hora (no queda a medias).
+    const { SlotUnavailableError } = await import("@/lib/crm/whatsapp-agent/calendar");
+    setFreeCallCalendarForTests({
+      available: async () => [slot(thu), slot(fri)],
+      move: async () => {
+        throw new SlotUnavailableError("Esa hora ya se ocupó.");
+      },
+    });
+    let failed = "";
+    try {
+      await moveFreeCall({ config, dayanaTz: TZ, personTz: TZ, bookingId: booking.bookingId, start: thu });
+    } catch (e) {
+      failed = e instanceof FreeCallError ? e.code : String(e);
+    }
+    const after = await prisma.whatsAppBooking.findUniqueOrThrow({ where: { id: booking.bookingId }, select: { startsAt: true } });
+    check("el calendario no la movió: sigue el viernes", failed === "unavailable" && after.startsAt.getTime() === fri.getTime(), { failed, at: after.startsAt });
+
     console.log("\n2. El tope del día cuenta todo el día (Natalia, Barbara)");
     const today = getDateKeyInTz(new Date(), TZ);
     const earlier = new Date(Date.now() - 60 * 60_000);

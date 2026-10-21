@@ -38,20 +38,29 @@ export const closingNotNeeded = (messagesNewestFirst: Msg[]): boolean => {
     (m) => m.direction === "OUTBOUND" && m.kind !== "system" && m.status !== "FAILED" && !isAutoSend(m)
   );
   if (!prev) return false;
-  if (!prev.isAutoReply && prev.source !== "approval") return true;
+  if (isDayanaOwn(prev)) return true;
   return isClosingLine(prev.body);
 };
 
 /**
- * ¿Lo último antes de lo que escribió la persona lo escribió Dayana (no la IA,
- * ni un recordatorio)? Entonces le está respondiendo a ella. Mensajes en orden.
+ * Lo escribió Dayana ella misma (celular o CRM): no la IA, ni un envío
+ * automático o masivo (`bulk:` sale sin `isAutoReply`), ni una propuesta de la
+ * IA que ella aprobó (`approval`).
  */
-export const answeringDayana = (lines: { direction: string; isAutoReply?: boolean; body?: string | null }[]): boolean => {
+export const isDayanaOwn = (m: { direction: string; isAutoReply?: boolean; source?: string | null; clientKey?: string | null }): boolean =>
+  m.direction === "OUTBOUND" && !m.isAutoReply && m.source !== "approval" && !isAutoSend(m);
+
+/**
+ * ¿Lo último antes de lo que escribió la persona lo escribió Dayana ella
+ * misma? Entonces le está respondiendo a ella. Mensajes en orden.
+ */
+export const answeringDayana = (
+  lines: { direction: string; isAutoReply?: boolean; source?: string | null; clientKey?: string | null; body?: string | null }[]
+): boolean => {
   let i = lines.length;
   while (i > 0 && lines[i - 1].direction === "INBOUND") i--;
   if (i === lines.length || i === 0) return false;
-  const prev = lines[i - 1];
-  return prev.direction === "OUTBOUND" && !prev.isAutoReply;
+  return isDayanaOwn(lines[i - 1]);
 };
 
 /**

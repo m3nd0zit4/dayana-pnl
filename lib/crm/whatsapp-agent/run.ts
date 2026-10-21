@@ -606,7 +606,8 @@ export const runWhatsAppAi = async (input: {
           config.freeCall.autoBook &&
           route.routerEnabled &&
           route.mode === "AUTO" &&
-          (route.segment === "new_lead" || route.segment === "returning_lead"),
+          // Con la llamada ya agendada, solo para moverla a otra hora que se le ofreció.
+          (route.segment === "new_lead" || route.segment === "returning_lead" || route.segment === "free_call_booked"),
         personTimezone: personTz,
       },
       clientMode,
@@ -658,13 +659,16 @@ export const runWhatsAppAi = async (input: {
     // con no_reply). Si además mandó un comprobante, eso sí se contesta.
     if (
       result.noReply &&
+      result.outcome.kind === "reply" &&
+      !result.outcome.message.trim() &&
       !result.receipt &&
       !result.booking &&
       !result.paymentBlocks.details.length &&
-      !result.paymentBlocks.link &&
-      !(result.outcome.kind === "reply" && result.outcome.message.trim())
+      !result.paymentBlocks.link
     ) {
       await finish(run.id, "SKIPPED", { ...meta, reason: `no_reply: ${result.noReply}`.slice(0, 300) });
+      // Si lo que escribió pide respuesta, a Dayana le toca (se lo decía a ella).
+      await openAttentionIfNeedsReply(conversationId).catch(() => undefined);
       return;
     }
 
@@ -759,11 +763,22 @@ export const runWhatsAppAi = async (input: {
     }
     // Lo mismo que ya le dijimos hace poco no sale otra vez (Carmen, 21-oct: la IA
     // le repitió «¿Pudiste hablar con Dayana…?» como respuesta a «Hola buenos días»).
-    if (!result.paymentBlocks.details.length && !result.paymentBlocks.link && !result.linkBlocks.length && !result.receipt && !result.booking) {
+    if (
+      !result.paymentBlocks.details.length &&
+      !result.paymentBlocks.link &&
+      !result.linkBlocks.length &&
+      !result.receipt &&
+      !result.booking &&
+      !result.bookingRequest &&
+      !result.pendingBooking &&
+      !result.pendingSlots &&
+      !result.pendingPayment
+    ) {
       const recentOut = await prisma.conversationMessage.findMany({
         where: {
           conversationId,
           direction: "OUTBOUND",
+          isAutoReply: true,
           status: { not: "FAILED" },
           kind: "message",
           sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
@@ -957,7 +972,11 @@ export const runWhatsAppAi = async (input: {
       await finish(run.id, "REPLIED");
       // Le dijo «le paso tu mensaje a Dayana» sin escalar: Dayana se entera igual
       // (Ricky, 17-oct: nunca le llegó nada). Si no, se cierra el «sin responder».
-      if (promisesHandoff(written) && !result.bookingRequest) {
+      const alreadyTold = Boolean(result.receipt || result.urgentSession || result.bookingRequest);
+      const openNow = alreadyTold
+        ? null
+        : await prisma.conversation.findUnique({ where: { id: conversationId }, select: { attentionAt: true } });
+      if (!alreadyTold && promisesHandoff(written) && !openNow?.attentionAt) {
         await openAttention(conversationId, "other", seen).catch((e: unknown) =>
           console.warn("[whatsapp-agent] no se pudo abrir «Te toca»", e)
         );
@@ -971,7 +990,7 @@ export const runWhatsAppAi = async (input: {
           entityId: conversationId,
           staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",
         });
-      } else {
+      } else if (!(promisesHandoff(written) && openNow?.attentionAt)) {
         await closeAttention(conversationId, { by: "ai" }).catch((e: unknown) =>
           console.warn("[whatsapp-agent] no se pudo cerrar «Te toca»", e)
         );
@@ -1394,6 +1413,8 @@ const gate = async (
       body: m.kind === "system" ? `(aviso de WhatsApp: ${m.body ?? ""})` : m.body,
       attachment: attachmentLabel(m.attachments),
       isAutoReply: m.isAutoReply,
+      source: m.source,
+      clientKey: m.clientKey,
       // Los chats exportados del celular se guardan con id `export:…`.
       imported: m.externalMessageId?.startsWith("export:") || undefined,
     }));

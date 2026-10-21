@@ -1,5 +1,6 @@
 import { isAutoSend } from "../whatsapp-attention-rules";
 import { foldForSearch } from "../search-normalize";
+import { isPaymentInfo } from "./chat-payment-link";
 import { personFirstName } from "@/lib/person-name";
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 
@@ -66,12 +67,6 @@ const DAYANA_YES = [
   /\bte (comparto|envio|mando) (los |las )?(paquetes|opciones|informacion|valores)\b/,
   /\/pagar\//,
   /\bbienvenid[ao]\b/,
-  // Los datos para pagar (Alejandra, Carmen, Paola, 18–21 oct): solo después de hablar.
-  /\b(link|enlace) de pago\b/,
-  /\bnequi\b/,
-  /\b(numero de cuenta|cuenta de ahorros|a nombre de)\b/,
-  /\bcomprobante\b/,
-  /\$\s?\d/,
 ];
 
 /**
@@ -105,13 +100,18 @@ export const outcomeFromChat = (
     const text = foldForSearch(m.body ?? "");
     if (!text) continue;
     if (m.direction === "INBOUND") {
-      if (!no && near && match(PERSON_NO, text)) no = "Ella escribió que no recibió la llamada o no pudo contestar.";
+      // Lo de ella cuenta desde poco antes de la hora: un «gracias por tu tiempo»
+      // al agendar (2 h antes) no dice que la llamada se hizo.
+      if (!near) continue;
+      if (!no && match(PERSON_NO, text)) no = "Ella escribió que no recibió la llamada o no pudo contestar.";
       if (!yes && match(PERSON_YES, text)) yes = "Ella agradeció la llamada.";
     } else {
-      // Lo que salió solo (la IA, recordatorios, masivos) no dice si Dayana llamó.
-      if (m.isAutoReply || isAutoSend(m)) continue;
+      // Lo que salió solo (la IA, recordatorios, masivos) o una propuesta de la
+      // IA que Dayana aprobó no dice si Dayana llamó.
+      if (m.isAutoReply || isAutoSend(m) || m.source === "approval") continue;
       if (!no && near && match(DAYANA_NO, text)) no = "Dayana escribió que no le contestó.";
-      if (!yes && match(DAYANA_YES, text)) yes = "Dayana escribió después de hablar con ella.";
+      // Antes de la hora, solo lo de Dayana cuenta: lo que dice después de hablar o cómo pagar.
+      if (!yes && (match(DAYANA_YES, text) || isPaymentInfo(m.body))) yes = "Dayana escribió después de hablar con ella.";
     }
   }
   if (yes && !no) return { outcome: "answered", reason: yes };

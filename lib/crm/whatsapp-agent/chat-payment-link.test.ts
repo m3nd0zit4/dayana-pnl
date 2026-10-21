@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, isPaymentInfo, withoutPayUrls } from "./chat-payment-link";
+import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, isPaymentData, isPaymentInfo, withoutPayUrls } from "./chat-payment-link";
 
 const now = new Date("2026-10-21T15:20:00Z");
 const at = (iso: string) => new Date(iso);
@@ -43,9 +43,32 @@ describe("isPaymentInfo / dayanaPaymentInfo", () => {
     expect(isPaymentInfo("OK hermosa, mi número de Nequi es 3105833188 \na nombre de Diana Bel\n\nPaquete de 6 sesiones\n\n960.000 mil")).toBe(true);
     expect(isPaymentInfo("NOMBRE DE BANCO:BANCO UNIÓN – WESTERN UNION\nEnvío directo a cuenta en Colombia\nNúmero de cuenta: 0173")).toBe(true);
     expect(isPaymentInfo("175 USD \n580.000 COP")).toBe(true);
-    expect(isPaymentInfo("Aquí te envío el link de pago para el paquete de 12 sesiones")).toBe(true);
+    // «te envío el link de pago» sin el enlace no basta (puede ser «después te mando…»): el enlace sí.
+    expect(isPaymentInfo("Aquí te envío el link de pago para el paquete de 12 sesiones")).toBe(false);
     expect(isPaymentInfo("Tan pronto me envíes el comprobante agendamos día y hora que me digas")).toBe(true);
     expect(isPaymentInfo("https://www.dayanabeltran.com/pagar/p/therapy-12")).toBe(true);
+  });
+
+  test("lo que se le parece y no es (revisión 21-oct)", () => {
+    expect(isPaymentInfo("¿A nombre de quién agendo la llamada?")).toBe(false);
+    expect(isPaymentInfo("Después de la llamada te mando el link de pago")).toBe(false);
+    expect(isPaymentInfo("Te mando el comprobante de inscripción al webinar")).toBe(false);
+  });
+
+  test("solo un valor dice que hablaron de precios, pero no son datos para pagar", () => {
+    expect(isPaymentInfo("La sesión vale $150.000")).toBe(true);
+    expect(isPaymentInfo("Mándame el comprobante y agendamos")).toBe(true);
+    expect(isPaymentData("La sesión vale $150.000")).toBe(false);
+    expect(isPaymentData("Mi Nequi es 3105833188")).toBe(true);
+    expect(isPaymentData("Titular de la cuenta: Diana Beltrán")).toBe(true);
+  });
+
+  test("un masivo o una propuesta aprobada no es Dayana", () => {
+    const bulk = { direction: "OUTBOUND" as const, body: "Taller $80.000 https://www.dayanabeltran.com/pagar/p/taller-x", source: "bulk:abc", sentAt: at("2026-10-21T13:00:00Z") };
+    const approved = { direction: "OUTBOUND" as const, body: "N° Cuenta: 123", source: "approval", sentAt: at("2026-10-21T13:00:00Z") };
+    expect(dayanaPaymentInfo([bulk], now)).toBeNull();
+    expect(dayanaPaymentLink([bulk], now)).toBeNull();
+    expect(dayanaPaymentInfo([approved], now)).toBeNull();
   });
 
   test("un saludo o una hora no es cómo pagar", () => {

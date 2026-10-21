@@ -1,4 +1,5 @@
 import { foldForSearch } from "../search-normalize";
+import { isAutoSend } from "../whatsapp-attention-rules";
 
 /**
  * El enlace de pago que Dayana ya mandó en el chat (Paola, 21-oct-2026):
@@ -15,7 +16,17 @@ import { foldForSearch } from "../search-normalize";
  * Puro: qué enlace mandó Dayana y si la persona pide los datos de la cuenta.
  */
 
-type Line = { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean; sentAt?: Date };
+type Line = {
+  direction: "INBOUND" | "OUTBOUND";
+  body: string | null;
+  isAutoReply?: boolean;
+  source?: string | null;
+  clientKey?: string | null;
+  sentAt?: Date;
+};
+
+/** Lo escribió Dayana ella misma: no la IA, ni un masivo (`bulk:`), ni una propuesta aprobada. */
+const byDayana = (l: Line) => l.direction === "OUTBOUND" && !l.isAutoReply && l.source !== "approval" && !isAutoSend(l);
 
 /** `https://www.dayanabeltran.com/pagar/p/therapy-24`, `…/pagar/<token>`. */
 const PAY_URL = /https?:\/\/[^\s<>"')\]]+\/pagar\/[^\s<>"')\]]+/gi;
@@ -36,7 +47,7 @@ export const dayanaPaymentLink = (lines: Line[], now: Date = new Date()): { url:
   const oldest = now.getTime() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
   for (let i = lines.length - 1; i >= 0; i--) {
     const l = lines[i];
-    if (l.direction !== "OUTBOUND" || l.isAutoReply || !l.body) continue;
+    if (!byDayana(l) || !l.body) continue;
     if (l.sentAt && l.sentAt.getTime() < oldest) break;
     const urls = l.body.match(PAY_URL);
     if (urls?.length) return { url: urls[urls.length - 1].replace(/[.,;:!?]+$/, ""), sentAt: l.sentAt ?? null };
@@ -52,36 +63,47 @@ export const dayanaPaymentLink = (lines: Line[], now: Date = new Date()): { url:
  * (21-oct) recibió su Nequi y el valor, y la asistente le preguntó «¿Pudiste
  * hablar con Dayana?» dos veces.
  */
-const PAYMENT_INFO = [
+/** Datos para pagar de verdad: un enlace de pago, una cuenta, Nequi, Western Union. */
+const PAYMENT_DATA = [
   /\/pagar\//,
   /\bnequi\b/,
   /\bdaviplata\b/,
-  /\b(numero de cuenta|n° cuenta|cuenta de ahorros|cuenta corriente|tipo de cuenta|a nombre de)\b/,
+  /\b(numero de cuenta|n° cuenta|cuenta de ahorros|cuenta corriente|tipo de cuenta)\b/,
+  /\b(titular|a nombre de)\b[^\n]{0,40}\b(cuenta|nequi|banco|daviplata)\b|\b(cuenta|nequi|banco|daviplata)\b[^\n]{0,60}\b(titular|a nombre de)\b/,
   /\bwestern union\b/,
-  /\b(link|enlace) de pago\b/,
-  /\bcomprobante\b/,
+];
+/** Además, lo que dice que ya hablaron de la sesión y el valor: un monto, «envíame el comprobante». */
+const PRICE_TALK = [
+  /\bcomprobante\b[^\n]{0,40}\b(pago|pagar|transferencia)\b|\b(envies|envias|enviame|envia|mandes|mandas|mandame|manda)\b[^\n]{0,20}\bcomprobante\b/,
   /\$\s?\d/,
   /\b\d{2,3}(\.\d{3})+\b/,
   /\b\d+(\.\d+)?\s?(usd|cop|mxn|dolares|pesos)\b/,
 ];
 
-/** ¿Este mensaje de Dayana le dice cómo pagar (enlace, cuenta, Nequi, valor, «mándame el comprobante»)? */
+/** ¿Este mensaje de Dayana trae datos para pagar (enlace, cuenta, Nequi, Western Union)? */
+export const isPaymentData = (text: string | null | undefined): boolean => {
+  const t = foldForSearch(text ?? "");
+  return Boolean(t) && PAYMENT_DATA.some((re) => re.test(t));
+};
+
+/** ¿Este mensaje de Dayana dice que ya hablaron de pagar (datos, un valor, «mándame el comprobante»)? */
 export const isPaymentInfo = (text: string | null | undefined): boolean => {
   const t = foldForSearch(text ?? "");
-  return Boolean(t) && PAYMENT_INFO.some((re) => re.test(t));
+  return Boolean(t) && (PAYMENT_DATA.some((re) => re.test(t)) || PRICE_TALK.some((re) => re.test(t)));
 };
 
 /**
- * Lo último que Dayana escribió ella misma con cómo pagar (30 días), con el
- * enlace si lo había. Lo que mandó la asistente no cuenta.
+ * Lo último que Dayana escribió ella misma con datos para pagar (30 días): un
+ * enlace, una cuenta, Nequi, Western Union. Solo un valor o «mándame el
+ * comprobante» no cuenta aquí: sin datos, la asistente sí se los da.
  */
 export const dayanaPaymentInfo = (lines: Line[], now: Date = new Date()): { sentAt: Date | null; link: string | null } | null => {
   const oldest = now.getTime() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
   for (let i = lines.length - 1; i >= 0; i--) {
     const l = lines[i];
-    if (l.direction !== "OUTBOUND" || l.isAutoReply || !l.body) continue;
+    if (!byDayana(l) || !l.body) continue;
     if (l.sentAt && l.sentAt.getTime() < oldest) break;
-    if (isPaymentInfo(l.body)) return { sentAt: l.sentAt ?? null, link: dayanaPaymentLink(lines, now)?.url ?? null };
+    if (isPaymentData(l.body)) return { sentAt: l.sentAt ?? null, link: dayanaPaymentLink(lines, now)?.url ?? null };
   }
   return null;
 };

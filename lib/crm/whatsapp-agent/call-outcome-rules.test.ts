@@ -71,6 +71,12 @@ describe("outcomeFromChat", () => {
     expect(outcomeFromChat([dayana("Quedo atenta, tan pronto me envíes el comprobante agendamos", 25)], { startsAt: start })?.outcome).toBe("answered");
   });
 
+  test("un «gracias por tu tiempo» al agendar (2 h antes) no dice que hablaron", () => {
+    expect(outcomeFromChat([inb("Gracias por tu tiempo, quedo atenta", -120)], { startsAt: start })).toBeNull();
+    // Una propuesta de la IA que Dayana aprobó tampoco.
+    expect(outcomeFromChat([dayana("Te comparto el enlace: https://www.dayanabeltran.com/pagar/p/therapy-1", -60, { source: "approval" })], { startsAt: start })).toBeNull();
+  });
+
   test("un «no» de antes de la hora no decide (puede que la llamen a la hora)", () => {
     expect(outcomeFromChat([inb("¿A qué hora me llaman?", -60)], { startsAt: start })).toBeNull();
     expect(outcomeFromChat([dayana("Te llamé y no contestas", -60)], { startsAt: start })).toBeNull();

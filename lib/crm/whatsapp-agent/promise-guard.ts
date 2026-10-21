@@ -172,10 +172,12 @@ export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
     // «¿Te parece si Dayana te llama hoy a las 4:00 p. m.?» con esa hora de la agenda: es una oferta.
     if (!claim || (s.includes("?") && backedQuestion(s))) continue;
     if (!input.hasBooking) return { breach: "false_booking", detail: claim[0] };
-    // Hay cita, pero lo que confirma es otro día u otra hora.
+    // Hay cita, pero lo que confirma es otro día u otra hora. Se mira desde la
+    // confirmación: «ya no es el jueves: tu llamada queda para el viernes…» vale.
     if (input.bookedLabels?.length) {
-      const otherTime = timesIn(s).some((t) => !backed(t, bookedTimes));
-      const otherDay = weekdaysIn(s).some((d) => !bookedDays.has(d));
+      const claimed = s.slice(claim.index ?? 0);
+      const otherTime = timesIn(claimed).some((t) => !backed(t, bookedTimes));
+      const otherDay = weekdaysIn(claimed).some((d) => !bookedDays.has(d));
       if (otherTime || otherDay) return { breach: "false_booking", detail: claim[0] };
     }
   }

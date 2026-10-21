@@ -68,7 +68,7 @@ export type SegmentInput = {
     dayanaPaymentInfoAt?: Date | null;
   };
   freeCallUpcoming?: boolean;
-  /** Cuándo se agendó la próxima llamada gratis (si la hay). */
+  /** Cuándo se agendó su última llamada gratis (la próxima o una que ya pasó), si la hay. */
   freeCallBookedAt?: Date | null;
   /**
    * La última llamada gratis que ya pasó: `done` = se hizo (contestó, o no se
@@ -150,8 +150,11 @@ const leadSegment = (input: SegmentInput, h: NonNullable<SegmentInput["history"]
   // Dayana ya le dijo cómo pagar (después de agendar la llamada, si tiene una):
   // ya hablaron de la sesión y los valores (dueña, 21-oct). No se le ofrece ni
   // se le reagenda la llamada gratis.
+  // Solo si fue después de agendar su última llamada: un valor de antes y una
+  // llamada que no contestó sigue siendo «no contestó» (se le reagenda).
   const payInfo = h.dayanaPaymentInfoAt?.getTime();
-  if (payInfo && !(input.freeCallUpcoming && input.freeCallBookedAt && input.freeCallBookedAt.getTime() > payInfo)) {
+  const bookedAt = input.freeCallBookedAt?.getTime();
+  if (payInfo && (!bookedAt || payInfo > bookedAt)) {
     return {
       segment: "after_call",
       confidence: 0.85,

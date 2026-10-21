@@ -98,6 +98,14 @@ describe("resolveSegment", () => {
         history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") },
       }).segment
     ).toBe("free_call_booked");
+    // Un valor de ANTES de agendar y la llamada que no contestó: se le reagenda (revisión 21-oct).
+    expect(
+      resolveSegment({
+        pastFreeCall: "missed",
+        freeCallBookedAt: at("2026-10-20T10:00:00Z"),
+        history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") },
+      }).segment
+    ).toBe("returning_lead");
     // Si ya pagó y Dayana lo confirmó, es clienta.
     expect(resolveSegment({ crm: { hasApprovedPayment: true }, history: { dayanaPaymentInfoAt: at("2026-10-19T15:35:00Z") } }).segment).toBe("client");
   });

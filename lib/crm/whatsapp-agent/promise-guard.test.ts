@@ -183,6 +183,12 @@ describe("21-oct: «queda para…» sin cita, o a otra hora de la que tiene (no 
     expect(promiseBreach({ ...base, text: "Tu llamada queda agendada. Dayana te llama por WhatsApp a este número." })).toBeNull();
   });
 
+  test("después de moverla: «ya no es el jueves: queda para el viernes…» sale", () => {
+    const booked = ["viernes 10:00 a. m."];
+    const base = { backing: booked, hasBooking: true, bookingToday: false, bookedLabels: booked };
+    expect(promiseBreach({ ...base, text: "Listo, ya no es el jueves: tu llamada queda para el viernes a las 10:00 a. m." })).toBeNull();
+  });
+
   test("ofrecer no es confirmar", () => {
     expect(promiseBreach({ ...none, backing: OFFERED, text: "¿Te queda bien el viernes a las 8:45 p. m.?" })).toBeNull();
   });

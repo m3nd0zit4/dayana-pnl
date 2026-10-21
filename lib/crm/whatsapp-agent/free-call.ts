@@ -347,7 +347,7 @@ export const moveFreeCall = async (input: {
   const active = { notIn: ["CANCELLED", "cancelled"] };
   const current = await prisma.whatsAppBooking.findUniqueOrThrow({
     where: { id: input.bookingId },
-    select: { id: true, startsAt: true, calendarEventId: true, name: true },
+    select: { id: true, startsAt: true, endsAt: true, calendarEventId: true, name: true },
   });
   await prisma.$transaction(
     async (tx) => {
@@ -364,6 +364,9 @@ export const moveFreeCall = async (input: {
       if (sameDay >= input.config.freeCall.maxPerDay) {
         throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
+      // La hora nueva queda reservada dentro del candado (como en `bookFreeCall`):
+      // nadie más la toma mientras se mueve el evento.
+      await tx.whatsAppBooking.update({ where: { id: current.id }, data: { startsAt: input.start, endsAt: end } });
     },
     { timeout: 15_000, maxWait: 15_000 }
   );
@@ -377,13 +380,16 @@ export const moveFreeCall = async (input: {
       durationMin: service.minutes,
     });
   } catch (e) {
+    // El calendario no la movió: la reserva vuelve a su hora.
+    await prisma.whatsAppBooking
+      .update({ where: { id: current.id }, data: { startsAt: current.startsAt, endsAt: current.endsAt } })
+      .catch((err: unknown) => console.warn("[llamada gratis] no se pudo devolver la reserva a su hora", err));
     if (e instanceof SlotUnavailableError) throw new FreeCallError("unavailable", e.message);
     throw e;
   }
-  await prisma.whatsAppBooking.update({
-    where: { id: current.id },
-    data: { startsAt: input.start, endsAt: moved.end },
-  });
+  if (moved.end.getTime() !== end.getTime()) {
+    await prisma.whatsAppBooking.update({ where: { id: current.id }, data: { endsAt: moved.end } });
+  }
   // La cita del CRM a la hora nueva, con los recordatorios y el resultado de la llamada en cero.
   const appt = await prisma.calendarAppointment
     .update({

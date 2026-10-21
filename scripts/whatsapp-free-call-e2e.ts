@@ -51,7 +51,12 @@ const main = async () => {
     time: "10:00",
   }));
   const booked: { start: Date; addMeet: boolean }[] = [];
+  const moved: { eventId: string; start: Date }[] = [];
   setFreeCallCalendarForTests({
+    move: async (input) => {
+      moved.push({ eventId: input.eventId, start: input.start });
+      return { end: new Date(input.start.getTime() + input.durationMin * 60_000) };
+    },
     available: async () => fakeSlots,
     book: async (input) => {
       booked.push({ start: input.start, addMeet: input.config.addMeet });
@@ -156,6 +161,17 @@ const main = async () => {
     check("no queda nada por autorizar", t5.run?.status !== "AWAITING_APPROVAL", t5.run?.status);
     check("una sola cita", (await prisma.whatsAppBooking.count({ where: { conversationId: conv.id } })) === 1);
     check("una sola en el calendario", booked.length === 1, booked.length);
+
+    // Alexandra (21-oct): tenía el jueves, pidió el viernes y la IA le confirmó
+    // el viernes sin cita. Ahora la llamada que tiene se mueve.
+    console.log("\n6. Pide otro día: se mueve la que tiene");
+    const t6 = await say("Ay, perdón, a esa hora ya no puedo. ¿Tienes otro día?");
+    check("le ofrece otras horas", t6.tools.includes("offer_free_call_slots"), t6.tools);
+    const t7 = await say("La última opción que me diste me sirve");
+    const after = await prisma.whatsAppBooking.findMany({ where: { conversationId: conv.id }, select: { startsAt: true } });
+    check("se movió en el calendario (el mismo evento)", moved.length === 1, { moved, tools: t7.tools });
+    check("sigue habiendo una sola cita, a la hora nueva", after.length === 1 && after[0].startsAt.toISOString() !== fakeSlots[0].startIso, after);
+    check("no crea otra en el calendario", booked.length === 1, booked.length);
   } finally {
     await cleanup();
     await setWhatsAppAiConfig(previous);

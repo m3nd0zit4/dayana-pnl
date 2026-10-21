@@ -151,6 +151,9 @@ export type TranscriptLine = {
   /** «imagen», «audio»… si trae adjunto. */
   attachment?: string | null;
   isAutoReply?: boolean;
+  /** De dónde salió un mensaje nuestro (`bulk:…`, `approval`, `recordatorio:…`): Dayana a mano no lleva. */
+  source?: string | null;
+  clientKey?: string | null;
   /** Cuándo se escribió: marca los días en la conversación. */
   sentAt?: Date;
   /** Viene del historial importado del celular (no llegó en vivo). */
@@ -824,6 +827,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const offeredBefore =
     salesOn && input.conversationId ? await offeredFreeCallSlots(input.conversationId, now).catch(() => [] as string[]) : [];
   const personTz = () => state.country?.timezone ?? input.freeCall?.personTimezone ?? null;
+  // Ya tiene la llamada gratis: si pide otra hora, se mueve (no se escala).
+  const upcomingCall = autoBook && input.conversationId ? await upcomingFreeCall(input.conversationId, config, now).catch(() => null) : null;
 
   // Los stickers que Dayana usa de verdad (al menos dos veces), con lo que
   // suele escribir antes de mandarlos.
@@ -1339,7 +1344,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   ok: true,
                   alreadyBooked: true,
                   label: dualZoneLabel(upcoming.startsAt.toISOString(), tz, timezone),
-                  note: "Ya tiene agendada su llamada gratis (label): confírmale ese día y esa hora con calidez, que Dayana la llama por WhatsApp a este número. No digas que la agendas otra vez. Si pide otra hora, ofrécele horas con offer_free_call_slots y usa book_free_call con la que elija (se mueve la que tiene).",
+                  note: `Ya tiene agendada su llamada gratis (label): confírmale ese día y esa hora con calidez, que Dayana la llama por WhatsApp a este número. No digas que la agendas otra vez. ${autoBook ? "Si pide otra hora, ofrécele horas con offer_free_call_slots y usa book_free_call con la que elija (se mueve la que tiene)." : "Si pide otra hora, escala con category=reschedule."}`,
                 });
               }
               if (autoBook) {
@@ -1595,6 +1600,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         : chatPayInfo
           ? `DAYANA YA LE MANDÓ CÓMO PAGAR${chatPayInfo.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatPayInfo.sentAt)})` : ""}: ya hablaron de la sesión y los valores. Si quiere pagar o empezar, dile que puede hacer el pago con los datos que le envió Dayana y que te mande el comprobante por aquí para que Dayana lo verifique; pregúntale si tiene alguna dificultad para pagar. No le mandes otras cuentas salvo que las pida.`
           : null,
+      upcomingCall
+        ? `SU LLAMADA GRATIS YA ESTÁ AGENDADA: ${dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone)}. Si pide cambiarla a otro día u hora, no escales: ofrécele horas con offer_free_call_slots y, cuando elija una, usa book_free_call (mueve la que tiene; nunca le digas la hora nueva hasta que book_free_call diga que se movió). Si quiere cancelarla, escala con category=reschedule.`
+        : null,
       toDayana && !input.clientMode
         ? "LA PERSONA LE ESTÁ RESPONDIENDO A DAYANA (lo último antes de sus mensajes lo escribió Dayana): no te metas en esa conversación. Si solo agradece, saluda, comenta o le contesta algo a Dayana, usa no_reply y no escribas nada. Contesta solo si pregunta algo que puedes responder con los DATOS o si quedó algo pendiente que tú resuelves (cómo pagar, recibir su comprobante, las horas de la llamada gratis)."
         : null,
@@ -1702,11 +1710,23 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.paymentLink === chatLink?.url &&
     ["other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
+  // Pidió la cuenta, la herramienta pegó los datos y aun así escaló («Déjame
+  // consultarlo con Dayana», eval ENNY 21-oct): la persona recibe los datos.
+  const paymentDataOnly =
+    !agendaOnly &&
+    !chatLinkOnly &&
+    modelOutcome.kind === "escalate" &&
+    state.paymentDetails.length > 0 &&
+    asksForBankDetails(lastInbound) &&
+    ["payment", "other", "unknown"].includes(modelOutcome.category) &&
+    modelOutcome.severity !== "urgent";
   const outcome: BrainOutcome = agendaOnly
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
     : chatLinkOnly
       ? { kind: "reply", message: CHAT_LINK_REPLY }
-      : modelOutcome;
+      : paymentDataOnly
+        ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
+        : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
@@ -1750,11 +1770,29 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       log("send_affordable_option", { option: cheaper.key, auto: true }, { ok: true, label: cheaper.label, note: "Lo pegó el código: la respuesta ofrecía el curso sin la herramienta." });
       text = withoutFakeLinks(text) || text;
     }
+    // «Te comparto los datos de Bancolombia…» sin send_payment_info (eval ENNY, 21-oct):
+    // le llegaba la promesa sin los datos. Con las mismas reglas que la herramienta,
+    // el código pega la forma de pago que nombra (o la única que hay).
+    if (
+      methods.length > 0 &&
+      state.paymentDetails.length === 0 &&
+      !state.paymentLink &&
+      !chatLink &&
+      !chatPayInfo &&
+      /\b(te comparto|aqui (tienes|van|te dejo)|te paso|te envio) (los |las )?(datos|cuenta|cuentas)\b/.test(foldForSearch(text))
+    ) {
+      const named = methods.find((m) => foldForSearch(text).includes(foldForSearch(m.label))) ?? (methods.length === 1 ? methods[0] : null);
+      if (named) {
+        state.paymentDetails.push(named.details);
+        log("send_payment_info", { method: named.key, auto: true }, { ok: true, label: named.label, note: "Lo pegó el código: la respuesta prometía los datos sin la herramienta." });
+      }
+    }
     // El enlace de Dayana copiado a mano: lo pega el código debajo, como send_payment_link.
-    if (!chatLink) return text;
+    if (!chatLink || state.urgentSession) return text;
     const copied = withoutPayUrls(text);
     // «Puedes pagar por el enlace que te envió Dayana» sin la herramienta: se le vuelve a poner.
-    if (!copied.had && !(/\b(enlace|link)\b/i.test(text) && /\bpag/i.test(text))) return text;
+    // Con otro enlace ya pegado (el curso, la comunidad) no se agrega el de Dayana.
+    if (!copied.had && (state.links.length > 0 || !(/\b(enlace|link)\b/i.test(text) && /\bpag/i.test(text)))) return text;
     state.paymentLink ??= chatLink.url;
     // Y sin «*(El enlace de pago aparecerá aquí)*» ni «[Enlace]» inventados al lado del de verdad.
     const clean = copied.had ? copied.text || text : text;

@@ -53,6 +53,29 @@ const pastFreeCallOf = async (input: { contactId: string | null; phone: string; 
   return free.callOutcome === "no_answer" ? ("missed" as const) : ("done" as const);
 };
 
+/** Cuándo se agendó su última llamada gratis (la próxima o una pasada): la reserva de la IA o, si la puso Dayana, cuando el reloj la vio. */
+const lastFreeCallBookedAt = async (conversationId: string, contactId: string | null): Promise<Date | null> => {
+  const [bookings, appts] = await Promise.all([
+    prisma.whatsAppBooking.findMany({
+      where: { conversationId, status: { notIn: ["CANCELLED", "cancelled"] } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { service: true, startsAt: true, endsAt: true, createdAt: true },
+    }),
+    prisma.calendarAppointment.findMany({
+      where: { OR: [{ conversationId }, ...(contactId ? [{ contactId }] : [])], status: "active" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { startsAt: true, endsAt: true, sessionsLabel: true, createdAt: true },
+    }),
+  ]);
+  const times = [
+    ...bookings.filter((b) => isFreeCallService(b.service, (b.endsAt.getTime() - b.startsAt.getTime()) / 60_000)).map((b) => b.createdAt.getTime()),
+    ...appts.filter((a) => isFreeCallAppointment(a)).map((a) => a.createdAt.getTime()),
+  ];
+  return times.length ? new Date(Math.max(...times)) : null;
+};
+
 export const computeSegment = async (conversationId: string): Promise<SegmentResult | null> => {
   const conversation = await prisma.conversation.findFirst({
     where: { id: conversationId, channel: "WHATSAPP" },
@@ -153,7 +176,7 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
       dayanaPaymentInfoAt,
     },
     freeCallUpcoming,
-    freeCallBookedAt: upcomingBooking?.createdAt ?? (next && isFreeCallAppointment(next) ? next.createdAt : null),
+    freeCallBookedAt: await lastFreeCallBookedAt(conversationId, conversation.contactId),
     pastFreeCall,
     hadConversation: !situation.isNew,
   });
