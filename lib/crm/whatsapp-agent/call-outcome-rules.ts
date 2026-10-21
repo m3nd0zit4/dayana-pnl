@@ -66,13 +66,29 @@ const DAYANA_YES = [
   /\bte (comparto|envio|mando) (los |las )?(paquetes|opciones|informacion|valores)\b/,
   /\/pagar\//,
   /\bbienvenid[ao]\b/,
+  // Los datos para pagar (Alejandra, Carmen, Paola, 18–21 oct): solo después de hablar.
+  /\b(link|enlace) de pago\b/,
+  /\bnequi\b/,
+  /\b(numero de cuenta|cuenta de ahorros|a nombre de)\b/,
+  /\bcomprobante\b/,
+  /\$\s?\d/,
 ];
+
+/**
+ * Dayana a veces llama antes de la hora (Paola, 21-oct: cita 9:30, le escribió
+ * 8:40 y le mandó el enlace de pago 8:56; Alexandra, cita 10:00, 8:53). Lo que
+ * dice que SÍ hablaron cuenta desde este rato antes; lo que dice que no, solo
+ * desde 15 min antes («¿a qué hora me llaman?» antes de la hora no es que no
+ * la llamaran).
+ */
+export const EARLY_CALL_MIN = 180;
+const NO_SIGNAL_BEFORE_MIN = 15;
 
 const match = (res: RegExp[], text: string) => res.some((re) => re.test(text));
 
 /**
- * Lo que dice el chat desde que empezó la llamada. `null` si no hay nada
- * claro (o hay señales de las dos): entonces se pregunta.
+ * Lo que dice el chat alrededor de la llamada (ver {@link EARLY_CALL_MIN}).
+ * `null` si no hay nada claro (o hay señales de las dos): entonces se pregunta.
  */
 export const outcomeFromChat = (
   messages: OutcomeMessage[],
@@ -81,17 +97,20 @@ export const outcomeFromChat = (
   if (opts.paidAfter) return { outcome: "answered", reason: "Pagó después de la llamada." };
   let yes: string | null = null;
   let no: string | null = null;
+  const start = opts.startsAt.getTime();
   for (const m of messages) {
-    if (m.sentAt.getTime() < opts.startsAt.getTime() - 15 * 60_000) continue;
+    const sent = m.sentAt.getTime();
+    if (sent < start - EARLY_CALL_MIN * 60_000) continue;
+    const near = sent >= start - NO_SIGNAL_BEFORE_MIN * 60_000;
     const text = foldForSearch(m.body ?? "");
     if (!text) continue;
     if (m.direction === "INBOUND") {
-      if (!no && match(PERSON_NO, text)) no = "Ella escribió que no recibió la llamada o no pudo contestar.";
+      if (!no && near && match(PERSON_NO, text)) no = "Ella escribió que no recibió la llamada o no pudo contestar.";
       if (!yes && match(PERSON_YES, text)) yes = "Ella agradeció la llamada.";
     } else {
       // Lo que salió solo (la IA, recordatorios, masivos) no dice si Dayana llamó.
       if (m.isAutoReply || isAutoSend(m)) continue;
-      if (!no && match(DAYANA_NO, text)) no = "Dayana escribió que no le contestó.";
+      if (!no && near && match(DAYANA_NO, text)) no = "Dayana escribió que no le contestó.";
       if (!yes && match(DAYANA_YES, text)) yes = "Dayana escribió después de hablar con ella.";
     }
   }

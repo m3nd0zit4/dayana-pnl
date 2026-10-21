@@ -55,6 +55,25 @@ describe("outcomeFromChat", () => {
 
   test("lo de mucho antes de la llamada no cuenta", () => {
     expect(outcomeFromChat([inb("Sigo esperando tu respuesta", -120)], { startsAt: start })).toBeNull();
+    expect(outcomeFromChat([dayana("https://www.dayanabeltran.com/pagar/p/therapy-24", -200)], { startsAt: start })).toBeNull();
+  });
+
+  test("Dayana llamó antes de la hora y le mandó cómo pagar (Paola, Carmen, Alejandra): contestada", () => {
+    // Paola, cita 9:30: «Te habla Dayana» 8:40, nota de voz y enlace 8:55–8:56.
+    const paola = [
+      dayana("Hola Paola, te bendigo buenos días. Te habla Dayana Beltrán,", -50),
+      dayana("🎤 Hermosa, te voy a enviar el link de pago y mi website para que puedas mirar.", -35),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-24", -34),
+    ];
+    expect(outcomeFromChat(paola, { startsAt: start })?.outcome).toBe("answered");
+    expect(outcomeFromChat([dayana("OK hermosa, mi número de Nequi es 3105833188", -7)], { startsAt: start })?.outcome).toBe("answered");
+    expect(outcomeFromChat([dayana("$190.000 mil", 16)], { startsAt: start })?.outcome).toBe("answered");
+    expect(outcomeFromChat([dayana("Quedo atenta, tan pronto me envíes el comprobante agendamos", 25)], { startsAt: start })?.outcome).toBe("answered");
+  });
+
+  test("un «no» de antes de la hora no decide (puede que la llamen a la hora)", () => {
+    expect(outcomeFromChat([inb("¿A qué hora me llaman?", -60)], { startsAt: start })).toBeNull();
+    expect(outcomeFromChat([dayana("Te llamé y no contestas", -60)], { startsAt: start })).toBeNull();
   });
 });
 

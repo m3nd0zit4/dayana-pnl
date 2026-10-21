@@ -13,8 +13,11 @@ import { appointmentCoversUntil, appointmentJustLinked } from "../whatsapp-pendi
 import { isAvailabilityBlock } from "./calendar";
 import { trustedContactTimezone } from "./booking-time";
 import { foldName, isFreeCallAppointment, isPackageCounter, meetCode, nameMatches, parseEventTitle, withPhone } from "./event-title";
-import { freeCallReminderText, soonReminderDecision, soonReminderWindow } from "./free-call-reminder-rules";
+import { DAYANA_WROTE_BEFORE_MIN, freeCallReminderText, soonReminderDecision, soonReminderWindow } from "./free-call-reminder-rules";
+import { isAutoSend } from "../whatsapp-attention-rules";
 import { resolveConversations } from "./pending";
+import { openAttention } from "./attention";
+import { clashNotice, clashStep, findClash, type ClashEvent } from "./calendar-clash-rules";
 import { getTimeLabelInTz, isValidIanaTimeZone } from "@/lib/datetime/zoned-time";
 import { personFirstName } from "@/lib/person-name";
 import { appointmentGreetingName } from "./chat-name";
@@ -107,6 +110,71 @@ const byPhone = async (digits: string): Promise<{ contactId: string | null; conv
   return { contactId: contact?.id ?? conv?.contactId ?? null, conversationId: conv?.id ?? null };
 };
 
+type ClashCall = {
+  id: string;
+  eventId: string;
+  start: number;
+  end: number;
+  name: string | null;
+  conversationId: string | null;
+  /** El evento del que ya se avisó (null = ninguno). */
+  notifiedEventId: string | null;
+};
+
+/**
+ * Otro evento cae encima de una llamada gratis que ya estaba agendada: se le
+ * avisa a Dayana una vez por choque (suena + «Te toca») y la Agenda lo muestra.
+ * Si ya no choca, se borra.
+ */
+const warnClashes = async (calls: ClashCall[], busy: ClashEvent[], now: Date): Promise<number> => {
+  let warned = 0;
+  let tz: string | null = null;
+  for (const c of calls) {
+    const step = clashStep({ clash: findClash(c, busy), notifiedEventId: c.notifiedEventId });
+    if (step.kind === "clear") {
+      await prisma.calendarAppointment.updateMany({
+        where: { id: c.id, clashEventId: c.notifiedEventId },
+        data: { clashEventId: null, clashWith: Prisma.DbNull, clashNotifiedAt: null },
+      });
+      continue;
+    }
+    if (step.kind !== "notify") continue;
+    const { clash } = step;
+    // Reclamo: dos pasadas a la vez no avisan dos veces del mismo choque.
+    const claimed = await prisma.calendarAppointment.updateMany({
+      where: { id: c.id, OR: [{ clashEventId: null }, { clashEventId: { not: clash.eventId } }] },
+      data: {
+        clashEventId: clash.eventId,
+        clashWith: { title: clash.title, startsAt: new Date(clash.start).toISOString(), endsAt: new Date(clash.end).toISOString() },
+        clashNotifiedAt: now,
+      },
+    });
+    if (claimed.count === 0) continue;
+    warned++;
+    tz ??= await getOperationalTimezone();
+    const notice = clashNotice({
+      name: c.name,
+      callStart: new Date(c.start),
+      clash: { title: clash.title, start: new Date(clash.start), end: new Date(clash.end) },
+      timeZone: tz,
+    });
+    if (c.conversationId) {
+      await openAttention(c.conversationId, "reschedule", now).catch((e: unknown) => console.warn("[citas] no se pudo abrir «Te toca»", e));
+    }
+    fireNotification({
+      eventType: "WHATSAPP_AI_ESCALATED",
+      severity: "WARNING",
+      title: notice.title,
+      body: notice.body,
+      href: c.conversationId ? `/admin/whatsapp?conversation=${c.conversationId}` : "/admin/whatsapp/agenda",
+      entityType: "CalendarAppointment",
+      entityId: c.id,
+      staff: "ALL",
+    });
+  }
+  return warned;
+};
+
 export type SyncDeps = {
   /** Para pruebas: eventos del calendario sin llamar a Google. */
   events?: CalendarEvent[];
@@ -125,6 +193,8 @@ export type SyncResult = {
   resolved: number;
   /** Chats a los que se ligó una sesión por el enlace de Meet (su estado cambia). */
   meetLinkedChats: string[];
+  /** Llamadas gratis con otro evento encima, avisadas a Dayana en esta pasada. */
+  clashes: number;
 };
 
 /**
@@ -174,7 +244,7 @@ const linkSessionsByMeet = async (
 export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult> => {
   const now = deps.now ?? new Date();
   const startedAt = new Date();
-  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0, resolved: 0, meetLinkedChats: [] };
+  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0, resolved: 0, meetLinkedChats: [], clashes: 0 };
   const toResolve: { conversationId: string | null; phone: string | null; contactId: string | null; until: Date }[] = [];
   let events = deps.events;
   let patchTitle = deps.patchTitle;
@@ -197,6 +267,9 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
 
   const seenIds: string[] = [];
   const newlyAmbiguous: string[] = [];
+  // Para ver si algo cae encima de una llamada gratis (`calendar-clash-rules.ts`).
+  const busy: ClashEvent[] = [];
+  const calls: ClashCall[] = [];
   for (const ev of events) {
     if (ev.status === "cancelled" || ev.transparency === "transparent" || isAvailabilityBlock(ev.summary)) continue;
     const start = eventTime(ev.start);
@@ -205,11 +278,12 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
     result.seen++;
     seenIds.push(ev.id);
     const title = (ev.summary ?? "").trim();
+    busy.push({ eventId: ev.id, title, start: start.getTime(), end: end.getTime() });
     const parsed = parseEventTitle(title);
     const existing = await prisma.calendarAppointment.findUnique({ where: { eventId: ev.id } });
     const booking = await prisma.whatsAppBooking.findFirst({
       where: { calendarEventId: ev.id },
-      select: { contactId: true, conversationId: true, phone: true },
+      select: { contactId: true, conversationId: true, phone: true, service: true },
     });
 
     let phone = parsed.phone ? whatsAppDigits(`+${parsed.phone}`) : (booking?.phone ?? null);
@@ -281,7 +355,7 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
       matchState,
       candidates: candidates ? (candidates as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
     };
-    await prisma.calendarAppointment.upsert({
+    const saved = await prisma.calendarAppointment.upsert({
       where: { eventId: ev.id },
       create: { eventId: ev.id, ...data },
       // Si la hora cambió, el recordatorio se vuelve a mandar para la hora nueva.
@@ -299,6 +373,17 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
           : {}),
       },
     });
+    if (start.getTime() > now.getTime() && isFreeCallAppointment({ ...saved, bookingService: booking?.service ?? null })) {
+      calls.push({
+        id: saved.id,
+        eventId: ev.id,
+        start: start.getTime(),
+        end: end.getTime(),
+        name: saved.name,
+        conversationId: saved.conversationId,
+        notifiedEventId: saved.clashEventId,
+      });
+    }
     // Cita recién ligada (o movida): lo que la persona pidió antes ya quedó atendido.
     if (appointmentJustLinked({ before: existing, phone, contactId, startsAt: start, now })) {
       toResolve.push({ conversationId, phone, contactId, until: appointmentCoversUntil(ev.updated, startedAt) });
@@ -332,6 +417,11 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
     data: { status: "cancelled" },
   });
   result.cancelled = gone.count;
+
+  result.clashes = await warnClashes(calls, busy, now).catch((e: unknown) => {
+    console.warn("[citas] no se pudo revisar los choques de la agenda", e);
+    return 0;
+  });
 
   for (const r of toResolve) {
     const ids = await resolveConversations(
@@ -465,12 +555,15 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
     };
     const link = freeCall ? ` ${FREE_CALL_BY_WHATSAPP}` : appt.meetUrl ? ` Enlace: ${appt.meetUrl}` : "";
     const text = `Hola${vars.nombre ? ` ${vars.nombre}` : ""} 🙏 Te recuerdo ${vars.servicio} mañana ${vars.fecha} a las ${vars.hora}.${link} Responde SÍ para confirmar o escríbeme si necesitas cambiarla.`;
+    // La plantilla ya dice «tu cita de {{2}} … a las {{4}}.»: sin «tu» repetido ni «a. m..»
+    // (Estefania, 20-oct: «tu cita de tu llamada gratis … 10:30 a. m..»).
+    const templateVars = { ...vars, servicio: vars.servicio.replace(/^tu /, ""), hora: vars.hora.replace(/\.$/, "") };
 
     const r = await sendWhatsAppToRecipient({
       recipient,
       text,
       templateKey: "cita_recordatorio",
-      vars,
+      vars: templateVars,
       source: `recordatorio:${appt.eventId}`,
       isAutoReply: true,
       clientKey: `reminder:${appt.eventId}:${appt.startsAt.getTime()}`,
@@ -533,6 +626,18 @@ export type SoonReminderResult = ReminderResult & {
  * (`tick.ts`) nunca lo mandan dos veces. Lo que falla no se reintenta solo
  * (fuera de las 24 h es una plantilla y se cobra).
  */
+/** Lo último que Dayana escribió ella misma en el chat desde `since` (celular o CRM; no la IA ni lo automático). */
+const dayanaWroteAt = async (conversationId: string | null, since: Date): Promise<Date | null> => {
+  if (!conversationId) return null;
+  const rows = await prisma.conversationMessage.findMany({
+    where: { conversationId, direction: "OUTBOUND", isAutoReply: false, kind: "message", status: { not: "FAILED" }, sentAt: { gte: since } },
+    orderBy: { sentAt: "desc" },
+    take: 10,
+    select: { sentAt: true, source: true, clientKey: true },
+  });
+  return rows.find((m) => !isAutoSend(m))?.sentAt ?? null;
+};
+
 export const sendSoonReminders = async (
   opts: { now?: Date; config?: WhatsAppAiConfig } = {}
 ): Promise<SoonReminderResult> => {
@@ -572,6 +677,7 @@ export const sendSoonReminders = async (
       bookedAt: booking?.createdAt ?? appt.createdAt,
       now,
       minutesBefore: settings.minutesBefore,
+      dayanaWroteAt: await dayanaWroteAt(appt.conversationId, new Date(appt.startsAt.getTime() - DAYANA_WROTE_BEFORE_MIN * 60_000)),
     });
     if (decision.kind === "not_yet" || decision.kind === "too_late") continue;
     if (decision.kind === "skip") {

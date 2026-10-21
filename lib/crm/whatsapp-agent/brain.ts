@@ -26,6 +26,7 @@ import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
+import { asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentLink, withoutPayUrls } from "./chat-payment-link";
 import {
   URGENT_SESSION_REPLY,
   offersUrgentSession,
@@ -523,7 +524,9 @@ const paymentRules = (config: WhatsAppAiConfig): string => {
   if (methods || config.payments.sendLinks) {
     lines.push(
       `- Si quiere pagar o pide cómo pagar, las cuentas, los datos o el enlace: ${
-        config.payments.sendLinks ? "si Dayana le creó un enlace de pago, mándalo con send_payment_link; si no hay, " : ""
+        config.payments.sendLinks
+          ? "si Dayana le creó o ya le mandó un enlace de pago, dile que puede pagar por ese enlace y mándalo con send_payment_link (los datos de la cuenta solo si los pide: la cuenta, transferir, Nequi, Western Union…, o si el enlace no le sirve); si no hay enlace, "
+          : ""
       }${
         methods
           ? "usa send_payment_info con la forma de pago que le corresponde (mira a quién va cada una; si no sabes desde qué país paga, pregúntalo primero)"
@@ -822,9 +825,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const stickers = (await listDayanaStickers(20).catch(() => [])).filter((s) => s.uses >= 2).slice(0, 12);
 
   const lastInbound: string[] = [];
+  let lastInboundMedia = false;
   for (const m of [...input.transcript].reverse()) {
     if (m.direction !== "INBOUND") break;
     if (m.body?.trim()) lastInbound.unshift(m.body.trim());
+    if (m.attachment) lastInboundMedia = true;
   }
   const examples = config.learning.enabled
     ? await findSimilarExamples(lastInbound.join("\n"), spendLimits(config).examples).catch(
@@ -848,6 +853,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
 
   // Pagos por fuera de la web: los datos y el enlace los pega el código (nunca el modelo).
   const methods = enabledMethods(config);
+  // El enlace de pago que Dayana ya le mandó en el chat (Paola, 21-oct).
+  const chatLink = config.payments.sendLinks ? dayanaPaymentLink(input.transcript, now) : null;
   const paymentTools = {
     ...(methods.length > 0
       ? {
@@ -860,6 +867,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             execute: async ({ method }) => {
               const m = paymentDetails(config, method);
               if (!m) return log("send_payment_info", { method }, { ok: false, reason: "No existe esa forma de pago." });
+              // Con un enlace de Dayana (en el chat o creado en el CRM), las cuentas solo si las pide.
+              // Un comprobante (a otra cuenta, rechazado…) sí puede necesitar los datos correctos.
+              if (config.payments.sendLinks && !state.receipt && !lastInboundMedia && !asksForBankDetails(lastInbound)) {
+                const link = chatLink?.url ?? (await activePaymentLinkFor(input.contactId).catch(() => null))?.url ?? null;
+                if (link) {
+                  return log("send_payment_info", { method }, {
+                    ok: false,
+                    reason:
+                      "Dayana ya le mandó su enlace de pago: no le mandes las cuentas. Usa send_payment_link y dile que puede hacer el pago por el enlace que le envió Dayana y que, cuando lo haga, te mande el comprobante por aquí. Las cuentas solo si las pide (la cuenta, transferir, Nequi, Western Union…) o si el enlace no le sirve.",
+                  });
+                }
+              }
               if (!state.paymentDetails.includes(m.details)) state.paymentDetails.push(m.details);
               return log("send_payment_info", { method }, { ok: true, label: m.label, note: "Los datos van debajo de tu mensaje: no los repitas." });
             },
@@ -874,6 +893,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             inputSchema: z.object({}),
             execute: async () => {
               const link = await activePaymentLinkFor(input.contactId).catch(() => null);
+              if (!link && chatLink) {
+                state.paymentLink = chatLink.url;
+                return log("send_payment_link", {}, {
+                  ok: true,
+                  note: "Es el enlace que Dayana le mandó por aquí: dile que puede hacer el pago por ese enlace y que, cuando lo haga, te mande el comprobante por aquí. El enlace va debajo de tu mensaje: no lo repitas ni digas el precio.",
+                });
+              }
               if (!link) {
                 return log("send_payment_link", {}, {
                   ok: false,
@@ -1525,6 +1551,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall: Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)) })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
+      chatLink
+        ? `ENLACE DE PAGO QUE DAYANA YA LE MANDÓ${chatLink.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatLink.sentAt)})` : ""}. Dayana ya le dijo cómo pagar: si te confirma que habló con Dayana (un «sí» a «¿pudiste hablar con Dayana?» no confirma ninguna cita), quiere pagar o empezar, o pregunta cómo pagar, tu respuesta es que puede hacer el pago por el enlace que le envió Dayana (usa send_payment_link: lo vuelve a poner debajo) y que te mande el comprobante por aquí cuando lo haga. No le mandes las cuentas salvo que las pida.`
+        : null,
       input.dossier
         ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona). Si la ficha escribe en femenino o masculino, eso NO dice su género: guíate solo por «Habla de sí en…». Lo que la ficha dice que «se le indicó» lo dijo la asistente y puede estar mal: los DATOS mandan:\n${input.dossier}`
         : null,
@@ -1605,7 +1634,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
   if (agendaOnly && modelOutcome.kind === "escalate" && state.urgentSession) state.urgentSession.note = modelOutcome.reason;
-  const outcome: BrainOutcome = agendaOnly ? { kind: "reply", message: URGENT_SESSION_REPLY } : modelOutcome;
+  // Volvió a poner el enlace de pago de Dayana y aun así escaló sin motivo
+  // claro («Déjame consultarlo con Dayana»): la persona recibe el enlace.
+  const chatLinkOnly =
+    !agendaOnly &&
+    modelOutcome.kind === "escalate" &&
+    Boolean(chatLink) &&
+    state.paymentLink === chatLink?.url &&
+    ["other", "unknown"].includes(modelOutcome.category) &&
+    modelOutcome.severity !== "urgent";
+  const outcome: BrainOutcome = agendaOnly
+    ? { kind: "reply", message: URGENT_SESSION_REPLY }
+    : chatLinkOnly
+      ? { kind: "reply", message: CHAT_LINK_REPLY }
+      : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
@@ -1620,7 +1662,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       log("send_urgent_session_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta ofrecía la sesión sin la herramienta." });
     }
   }
-  const replyText = (message: string) => (state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message);
+  const replyText = (message: string) => {
+    const text = state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message;
+    // El enlace de Dayana copiado a mano: lo pega el código debajo, como send_payment_link.
+    if (!chatLink) return text;
+    const copied = withoutPayUrls(text);
+    // «Puedes pagar por el enlace que te envió Dayana» sin la herramienta: se le vuelve a poner.
+    if (!copied.had && !(/\b(enlace|link)\b/i.test(text) && /\bpag/i.test(text))) return text;
+    state.paymentLink ??= chatLink.url;
+    // Y sin «*(El enlace de pago aparecerá aquí)*» ni «[Enlace]» inventados al lado del de verdad.
+    const clean = copied.had ? copied.text || text : text;
+    return withoutFakeLinks(clean) || clean;
+  };
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
   const finalOutcome: BrainOutcome = outcome.kind === "reply" ? { ...outcome, message: named(replyText(outcome.message))! } : outcome;

@@ -59,7 +59,7 @@ export const STAGE_AI_RULE: Partial<Record<Stage, string>> = {
   no_contesto:
     "No alcanzó a hablar con Dayana en su llamada gratis: sin reproches, ofrécele otra hora para la llamada.",
   tuvo_llamada:
-    "Ya habló con Dayana: no le ofrezcas otra llamada gratis ni la saludes como nueva. Si quiere empezar o pregunta cómo pagar, dale los datos de pago (send_payment_info) o su enlace (send_payment_link). Si pregunta valores o qué proceso le conviene, eso lo confirma Dayana: díselo y escala con category=payment.",
+    "Ya habló con Dayana: no le ofrezcas otra llamada gratis ni la saludes como nueva. Si quiere empezar o pregunta cómo pagar: si Dayana le mandó un enlace de pago, que pague por ese enlace (send_payment_link); si no, los datos de pago (send_payment_info). Si pregunta valores o qué proceso le conviene, eso lo confirma Dayana: díselo y escala con category=payment.",
   clienta_activa: "Es clienta: nunca le ofrezcas la llamada gratis. Da continuidad a su proceso.",
   clienta_pasada: "Ya fue clienta: nunca le ofrezcas la llamada gratis. Si quiere retomar, escala para que Dayana la atienda.",
   por_revisar: "Puede que ya sea clienta: no le ofrezcas la llamada gratis.",

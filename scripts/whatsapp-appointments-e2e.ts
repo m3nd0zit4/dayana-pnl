@@ -165,6 +165,24 @@ const main = async () => {
     approvedNow
   );
 
+  console.log("\n6. Algo cae encima de una llamada gratis ya agendada (Estefania, 21-oct): se le avisa a Dayana una vez");
+  // Pedro: llamada gratis en 24 h, 15 min. Dayana pone un «live» de 2 h que la cubre.
+  const live = ev("live", "live", 23.75, { hangoutLink: undefined }, 120);
+  const c1 = await syncAppointments({ events: [events[2], live], patchTitle });
+  const pedroClash = await prisma.calendarAppointment.findUniqueOrThrow({ where: { eventId: events[2].id } });
+  const pedroConv = await prisma.conversation.findFirstOrThrow({ where: { channel: "WHATSAPP", externalThreadId: PEDRO.slice(1) } });
+  check("se detecta el choque y se avisa", c1.clashes === 1 && pedroClash.clashEventId === live.id && Boolean(pedroClash.clashNotifiedAt), { c1, clash: pedroClash.clashEventId });
+  check("el chat de Pedro queda en «Te toca» (reagendar)", Boolean(pedroConv.attentionAt) && pedroConv.attentionReason === "reschedule", { at: pedroConv.attentionAt, reason: pedroConv.attentionReason });
+  check("el «live» no choca consigo mismo ni se avisa por él", (await prisma.calendarAppointment.findUniqueOrThrow({ where: { eventId: live.id } })).clashEventId === null);
+  const c2 = await syncAppointments({ events: [events[2], live], patchTitle });
+  check("la siguiente pasada no avisa otra vez", c2.clashes === 0, c2);
+  const c3 = await syncAppointments({ events: [events[2]], patchTitle });
+  const pedroFixed = await prisma.calendarAppointment.findUniqueOrThrow({ where: { eventId: events[2].id } });
+  check("Dayana quitó el live: se borra el choque sin aviso", c3.clashes === 0 && pedroFixed.clashEventId === null && pedroFixed.clashWith === null, pedroFixed.clashEventId);
+  const touching = ev("touch", "videos", 24.25, { hangoutLink: undefined }, 60); // empieza justo cuando termina la llamada
+  const c4 = await syncAppointments({ events: [events[2], touching], patchTitle });
+  check("lo que solo toca el borde no es choque", c4.clashes === 0, c4);
+
   await prisma.whatsAppAiRun.deleteMany({ where: { id: aiRun.id } });
   await prisma.calendarAppointment.deleteMany({ where: { eventId: { startsWith: `e2e-${run}` } } });
   console.log(failures.length ? `\n❌ ${failures.length} fallaron:\n- ${failures.join("\n- ")}` : "\n✅ Citas OK");

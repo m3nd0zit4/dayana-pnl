@@ -50,6 +50,8 @@ export const GET = withStaff("read", async () => {
         callOutcomeReason: a.callOutcomeReason,
         outcomeCheckAt: a.outcomeCheckAt?.toISOString() ?? null,
         rescheduleSentAt: a.rescheduleSentAt?.toISOString() ?? null,
+        /** Otro evento del calendario cae encima (solo llamadas gratis que no han pasado). */
+        clashWith: a.clashEventId && a.startsAt.getTime() > now.getTime() ? (a.clashWith as { title: string; startsAt: string; endsAt: string } | null) : null,
         freeCall,
         /** Llamada gratis que ya pasó sin saber cómo terminó: «Hablaron» / «No contestó». */
         canMarkOutcome: freeCall && Boolean(a.conversationId) && needsOutcomeMark(a, now),

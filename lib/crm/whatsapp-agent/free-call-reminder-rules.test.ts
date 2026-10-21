@@ -44,6 +44,16 @@ describe("cuándo sale el recordatorio de 1 h", () => {
     expect(decide(55, null)).toBe("send"); // sin dato de cuándo se agendó, se manda
   });
 
+  test("Dayana ya le escribió antes de la llamada (Paola: 8:40 para la de 9:30): no se manda", () => {
+    const base = { startsAt: inMin(50), bookedAt: inMin(-3 * 24 * 60), now: NOW, minutesBefore: 60 };
+    const d = soonReminderDecision({ ...base, dayanaWroteAt: inMin(-3) });
+    expect(d.kind).toBe("skip");
+    expect(d.kind === "skip" && d.reason).toContain("Dayana ya le escribió");
+    // Lo de ayer (o de más de 3 h antes de la llamada) no cuenta.
+    expect(soonReminderDecision({ ...base, dayanaWroteAt: inMin(50 - 181) }).kind).toBe("send");
+    expect(soonReminderDecision({ ...base, dayanaWroteAt: null }).kind).toBe("send");
+  });
+
   test("con otros minutos la ventana se mueve; fuera de 30–180 se ajusta", () => {
     expect(decide(120, 3 * 24 * 60, 120)).toBe("send");
     expect(decide(131, 3 * 24 * 60, 120)).toBe("not_yet");

@@ -56,17 +56,30 @@ export type SoonReminderDecision =
   /** No hace falta y se marca para no revisarla más. */
   | { kind: "skip"; reason: string };
 
+/**
+ * Dayana ya le escribió ella misma en este rato antes de la llamada: está con
+ * ella. Paola, 21-oct: Dayana le escribió 8:40 «Te habla Dayana Beltrán» y a
+ * las 8:43 le llegó «hoy a las 9:30 a. m. Dayana te llamará».
+ */
+export const DAYANA_WROTE_BEFORE_MIN = 180;
+
 export const soonReminderDecision = (input: {
   startsAt: Date;
   /** Cuándo se agendó (la reserva de la IA o, si no, cuando el reloj la vio por primera vez). */
   bookedAt: Date | null;
   now: Date;
   minutesBefore: number;
+  /** Lo último que Dayana le escribió ella misma (no la IA ni lo automático). */
+  dayanaWroteAt?: Date | null;
 }): SoonReminderDecision => {
   const { from, to } = soonReminderWindow(input.now, input.minutesBefore);
   const start = input.startsAt.getTime();
   if (start > to.getTime()) return { kind: "not_yet" };
   if (start < from.getTime()) return { kind: "too_late" };
+  const wrote = input.dayanaWroteAt?.getTime();
+  if (wrote != null && wrote >= start - DAYANA_WROTE_BEFORE_MIN * 60_000 && wrote <= input.now.getTime()) {
+    return { kind: "skip", reason: "Dayana ya le escribió antes de la llamada: está con ella." };
+  }
   const minutes = clampReminderMinutes(input.minutesBefore);
   if (input.bookedAt) {
     const notice = (start - input.bookedAt.getTime()) / 60_000;

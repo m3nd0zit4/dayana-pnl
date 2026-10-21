@@ -30,6 +30,8 @@ type Item = {
   callOutcomeReason: string | null;
   outcomeCheckAt: string | null;
   rescheduleSentAt: string | null;
+  /** Otro evento del calendario cae encima de esta llamada gratis. */
+  clashWith: { title: string; startsAt: string; endsAt: string } | null;
   /** Es la llamada gratis (por la reserva de la IA o por el título 0/0 de 15 min). */
   freeCall: boolean;
   /** Ya pasó y no se sabe cómo terminó: Dayana lo marca («Hablaron» / «No contestó»). */
@@ -68,6 +70,8 @@ const soonLabel = (a: Item): { text: string; detail?: string; tone: "bad" | "mut
 
 const when = (iso: string) =>
   new Date(iso).toLocaleString("es-CO", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+const clock = (iso: string) => new Date(iso).toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
 
 /**
  * Las citas del Google Calendar con su persona: número, sesiones, si se le
@@ -255,6 +259,11 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
                 {a.sessionsLabel === "0/0" ? <span className="ml-1.5 text-xs text-muted-foreground">llamada gratis</span> : null}
               </span>
               {a.phone && <span className="text-xs text-muted-foreground">+{a.phone}</span>}
+              {a.clashWith && (
+                <span className="inline-flex items-center gap-1 text-xs text-destructive" title="Mueve una de las dos en tu calendario o reagéndala desde el chat.">
+                  <TriangleAlert className="size-3.5" /> Choca con «{a.clashWith.title || "otro evento"}» ({clock(a.clashWith.startsAt)}–{clock(a.clashWith.endsAt)})
+                </span>
+              )}
               <span className="inline-flex items-center gap-1 text-xs">
                 {outcomeLabel(a) ? (
                   <span

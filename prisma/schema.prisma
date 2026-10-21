@@ -2449,6 +2449,13 @@ model CalendarAppointment {
   /// esperando).
   arrivalNotifiedAt DateTime? @map("arrival_notified_at")
   arrivalSource     String?   @map("arrival_source")
+  /// Choque en la agenda (`calendar-clash-rules.ts`): otro evento del calendario
+  /// cae encima de esta llamada gratis (Estefania, 21-oct: «live» puesto después
+  /// de agendarla). El evento con el que choca, para avisar una sola vez.
+  clashEventId      String?   @map("clash_event_id")
+  /// { title, startsAt, endsAt } del evento con el que choca (para la Agenda).
+  clashWith         Json?     @map("clash_with")
+  clashNotifiedAt   DateTime? @map("clash_notified_at")
   /// ¿Se hizo la llamada gratis? answered | no_answer | rescheduled (null = aún no se sabe).
   /// WhatsApp no avisa de las llamadas del celular: se deduce del chat o se le pregunta a la persona.
   callOutcome       String?   @map("call_outcome")

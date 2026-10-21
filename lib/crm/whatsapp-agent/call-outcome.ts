@@ -13,6 +13,7 @@ import {
   followUpStep,
   MARK_AFTER_START_MIN,
   canChangeOutcome,
+  EARLY_CALL_MIN,
   outcomeFromChat,
   planManualMark,
   planOutcomeChange,
@@ -95,7 +96,7 @@ const paidAfter = async (appt: Appt, conv: Conv): Promise<boolean> => {
 
 const messagesSince = (conversationId: string, since: Date) =>
   prisma.conversationMessage.findMany({
-    where: { conversationId, sentAt: { gte: new Date(since.getTime() - 15 * 60_000) }, kind: "message", status: { not: "FAILED" } },
+    where: { conversationId, sentAt: { gte: new Date(since.getTime() - EARLY_CALL_MIN * 60_000) }, kind: "message", status: { not: "FAILED" } },
     orderBy: { sentAt: "asc" },
     take: 200,
     select: { direction: true, body: true, sentAt: true, isAutoReply: true, source: true, clientKey: true },
