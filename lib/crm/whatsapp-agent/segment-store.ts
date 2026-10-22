@@ -134,7 +134,9 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
   // automático, ni una propuesta de la IA que ella aprobó). Sin límite de
   // tiempo: si alguna vez le mandó cómo pagar, ya tuvo su llamada (dueña,
   // 21-oct, Natalia: datos de pago el 5-sep, y el 21-oct la IA le ofreció otra
-  // llamada gratis porque pasaban de 30 días).
+  // llamada gratis porque pasaban de 30 días). De más de 30 días, un monto
+  // suelto no cuenta (un precio de un taller): solo datos o el comprobante.
+  const recentFrom = Date.now() - 30 * 24 * 3600_000;
   const dayanaPaymentInfoAt =
     messages.find(
       (m) =>
@@ -143,7 +145,7 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
         m.source !== "approval" &&
         !isAutoSend(m) &&
         m.status !== "FAILED" &&
-        isPaymentInfo(m.body)
+        isPaymentInfo(m.body, { amounts: m.sentAt.getTime() >= recentFrom })
     )?.sentAt ?? null;
 
   const situation = conversationSituation(

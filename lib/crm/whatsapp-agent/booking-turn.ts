@@ -61,6 +61,8 @@ const result = (message: string, toolCalls: BrainResult["toolCalls"], extra: Par
   pendingSlots: null,
   slotOffer: null,
   bookingNotice: null,
+  silentEscalation: null,
+  serious: false,
   bookingRequest: null,
   suggestedReply: null,
   holdingReply: null,
@@ -84,7 +86,10 @@ export const bookingTurn = async (input: BookingTurnInput): Promise<BrainResult 
   const said = replyToOffer(input.messages, offer);
   if (!said) return null;
   const personTz = input.personTz ?? input.dayanaTz;
-  const choice = resolveChoice(said, offer.options, { personTz, dayanaTz: input.dayanaTz, now });
+  // «hoy» y «mañana» desde cuando lo escribió, no desde cuando se procesa
+  // (un «mañana» de las 11:59 p. m. visto pasada la medianoche).
+  const wroteAt = input.messages.find((m) => m.direction === "INBOUND")?.sentAt ?? now;
+  const choice = resolveChoice(said, offer.options, { personTz, dayanaTz: input.dayanaTz, now: wroteAt });
   if (choice.kind === "none") return null;
   // Cuadran varias («el viernes»): se pregunta solo entre esas, numeradas otra vez.
   if (choice.kind === "many") {

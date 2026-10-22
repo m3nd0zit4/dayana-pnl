@@ -3,8 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { getWhatsAppAiConfig, type WhatsAppAiConfig } from "./whatsapp-ai-config";
-import { isManualPause } from "./whatsapp-attention-rules";
-import { escalationPauses, isCrisis } from "./whatsapp-agent/pause-rules";
+import { isManualPause, MANUAL_PAUSE_REASON } from "./whatsapp-attention-rules";
+import { escalationPauses } from "./whatsapp-agent/pause-rules";
 import { withPaymentBlocks } from "./whatsapp-agent/payment-info";
 import { polishReply } from "./whatsapp-agent/wording";
 import { getOperationalTimezone } from "./operational-timezone";
@@ -105,44 +105,19 @@ export const pauseAutoReply = async (
  * apagaron después de ponerla) sin cerrar lo que abrió en «Te toca»: Dayana
  * sigue viendo que algo la necesitaba.
  */
-export const liftPause = async (
-  conversationId: string,
-  /**
-   * Nunca levantar una crisis (clínica o urgente) que se haya escrito entre
-   * medio: `while_escalated` solo mientras espera a Dayana (antes de «Listo»),
-   * `any` siempre.
-   */
-  opts: {
-    keepCrisis?: "while_escalated" | "any";
-    /**
-     * La escalada que leyó quien decide y que no es crisis (`isCrisis` mira el
-     * motivo, que la base no sabe leer): si sigue igual, se levanta. Sin esto,
-     * «clinical» por angustia (Joselyn, 21-oct) nunca se levantaba.
-     */
-    seen?: { category: string | null; severity: string | null; reason: string | null };
-  } = {}
-): Promise<void> => {
-  const notCrisis: Prisma.ConversationWhereInput = {
+export const liftPause = async (conversationId: string): Promise<void> => {
+  // Nunca la que Dayana puso a mano («Pausar»: escalada sin categoría o con el
+  // motivo de la pausa manual), aunque la haya puesto entre medio. Lo demás,
+  // también una crisis, ya no calla a la IA (dueño, 21-oct).
+  const notManual: Prisma.ConversationWhereInput = {
     OR: [
-      {
-        AND: [
-          { OR: [{ escalationCategory: null }, { escalationCategory: { not: "clinical" } }] },
-          { OR: [{ escalationSeverity: null }, { escalationSeverity: { not: "urgent" } }] },
-        ],
-      },
-      ...(opts.seen && !isCrisis(opts.seen)
-        ? [{ escalationCategory: opts.seen.category, escalationSeverity: opts.seen.severity, escalationReason: opts.seen.reason }]
-        : []),
+      { aiPausedReason: null },
+      { aiPausedReason: { not: "escalation" } },
+      { AND: [{ escalationCategory: { not: null } }, { OR: [{ escalationReason: null }, { escalationReason: { not: MANUAL_PAUSE_REASON } }] }] },
     ],
   };
-  const guard: Prisma.ConversationWhereInput =
-    opts.keepCrisis === "any"
-      ? notCrisis
-      : opts.keepCrisis === "while_escalated"
-        ? { OR: [{ aiPausedReason: null }, { aiPausedReason: { not: "escalation" } }, notCrisis] }
-        : {};
   await prisma.conversation.updateMany({
-    where: { id: conversationId, aiPausedAt: { not: null }, ...guard },
+    where: { id: conversationId, aiPausedAt: { not: null }, ...notManual },
     data: { aiPausedAt: null, aiPausedReason: null, escalationCategory: null, escalationSeverity: null, escalationReason: null },
   });
 };
@@ -173,21 +148,17 @@ export const setAiAlways = async (
     where: { id: conversationId },
     select: { aiPausedAt: true, aiPausedReason: true, escalationCategory: true, escalationSeverity: true, escalationReason: true },
   });
-  const waitingCrisis =
+  // Solo la pausa que ella puso a mano sigue: lo demás (también una crisis) se levanta.
+  const byHand =
     Boolean(before.aiPausedAt) &&
     before.aiPausedReason === "escalation" &&
-    isCrisis({ category: before.escalationCategory, severity: before.escalationSeverity, reason: before.escalationReason });
+    isManualPause({ category: before.escalationCategory, reason: before.escalationReason });
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { aiAlwaysAt: new Date(), aiAlwaysById: staffUserId, priorityAt: null, aiModeOverride: null, aiMode: "AUTO" },
   });
-  if (before.aiPausedAt && !waitingCrisis) {
-    await liftPause(conversationId, {
-      keepCrisis: "while_escalated",
-      seen: { category: before.escalationCategory, severity: before.escalationSeverity, reason: before.escalationReason },
-    });
-  }
-  return { stillPaused: waitingCrisis };
+  if (before.aiPausedAt && !byHand) await liftPause(conversationId);
+  return { stillPaused: byHand };
 };
 
 /**

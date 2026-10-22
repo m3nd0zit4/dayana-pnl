@@ -43,7 +43,7 @@ import { spendLimits } from "./spend";
 import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
-import { isCrisis, pauseHolds } from "./pause-rules";
+import { pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
@@ -597,8 +597,23 @@ export const runWhatsAppAi = async (input: {
     const freeCallOn = config.salesFlow.enabled && config.booking.enabled && !(stage && NO_FREE_CALL_STAGES.has(stage));
     // Contesta la lista de horas con una opción clara («2», «hoy a las 12:45»):
     // la agenda el código, sin el modelo (`booking-turn.ts`). Si no, el modelo.
-    const agendaTurn =
+    // Antes de agendar sin el modelo, que el chat siga siendo de la IA: Dayana
+    // pudo contestar, tomarlo o pausarlo durante la espera (revisión 21-oct).
+    const chatNow =
       freeCallOn && autoBook && config.freeCall.controller
+        ? await prisma.conversation.findUnique({
+            where: { id: conversationId },
+            select: { aiPausedAt: true, priorityAt: true, aiModeOverride: true },
+          })
+        : null;
+    const stillOurs =
+      Boolean(chatNow) &&
+      !chatNow!.aiPausedAt &&
+      !chatNow!.priorityAt &&
+      chatNow!.aiModeOverride !== "MANUAL" &&
+      !(await answeredSince(conversationId, since));
+    const agendaTurn =
+      stillOurs
         ? await bookingTurn({
             config,
             conversationId,
@@ -653,6 +668,14 @@ export const runWhatsAppAi = async (input: {
     // El último mensaje de la persona que la IA leyó. Si Dayana contestó
     // después, lo que la IA pensó ya no hace falta.
     const seen = lastInboundSeen(history, since ?? new Date());
+
+    // Algo delicado: la persona recibe la respuesta (apoyo o el paso del pago) y
+    // Dayana el aviso ya, salga o no la respuesta (`serious-reply.ts`).
+    if (result.silentEscalation) {
+      await alertSilently(conversationId, result.silentEscalation, name, config, seen).catch((e: unknown) =>
+        console.error("[whatsapp-agent] aviso a Dayana", e)
+      );
+    }
 
     // Llegó un comprobante (o dijo que pagó): queda «por confirmar» y Dayana
     // recibe el aviso, conteste lo que conteste la IA.
@@ -827,7 +850,11 @@ export const runWhatsAppAi = async (input: {
       !result.bookingRequest &&
       !result.pendingBooking &&
       !result.pendingSlots &&
-      !result.pendingPayment
+      !result.pendingPayment &&
+      // Una lista de horas o lo delicado (apoyo, el paso del pago) salen aunque
+      // se parezcan a lo de antes: nunca deja de responder (dueño, 21-oct).
+      !result.slotOffer &&
+      !result.serious
     ) {
       const recentOut = await prisma.conversationMessage.findMany({
         where: {
@@ -1316,24 +1343,16 @@ const gate = async (
   if (mode === "MANUAL") return { skip: true, reason: route.skip ?? "manual" };
   if (conversation.priorityAt && !always) return { skip: true, reason: "favorite" };
 
-  const crisis = isCrisis({ category: conversation.escalationCategory, severity: conversation.escalationSeverity, reason: conversation.escalationReason });
-  if (conversation.aiPausedAt && always && !crisis) {
+  if (conversation.aiPausedAt && always) {
     // Con «responde siempre» solo calla la pausa que Dayana puso a mano;
-    // cualquier otra (su respuesta, una escalada normal) se levanta. «Te toca»
-    // queda para ella. Una crisis nunca se levanta aquí (ni una escrita entre medio).
+    // cualquier otra (su respuesta, una escalada, también una crisis: la IA
+    // nunca deja de responder, dueño 21-oct) se levanta. «Te toca» queda para ella.
     const byHand =
       conversation.aiPausedReason === "escalation" &&
       isManualPause({ category: conversation.escalationCategory, reason: conversation.escalationReason });
     if (byHand) return { skip: true, reason: "paused" };
-    await liftPause(conversationId, {
-      keepCrisis: "any",
-      seen: { category: conversation.escalationCategory, severity: conversation.escalationSeverity, reason: conversation.escalationReason },
-    });
-  } else if (conversation.aiPausedAt && always && conversation.aiPausedReason === "escalation") {
-    // Una crisis que espera a Dayana: callada hasta «Listo».
-    return { skip: true, reason: "paused" };
+    await liftPause(conversationId);
   } else if (conversation.aiPausedAt) {
-    // (Una crisis que Dayana ya atendió con «Listo» sigue el relevo normal, también con «responde siempre».)
     const holds = pauseHolds(
       {
         reason: conversation.aiPausedReason,
@@ -1596,6 +1615,17 @@ const escalate = async (
   // Sin pausa y ya le tocaba por lo mismo: ya lo sabe, no vuelve a sonar.
   if (!paused && alreadyOpen && outcome.severity !== "urgent") return true;
 
+  await notifyEscalation(conversationId, outcome, name ?? null, config);
+  return true;
+};
+
+/** El aviso a Dayana de una escalada (push, campana, correo según la categoría). */
+const notifyEscalation = async (
+  conversationId: string,
+  outcome: { category: string; severity: string; reason: string },
+  name: string | null,
+  config: WhatsAppAiConfig | null
+) => {
   const who =
     name ??
     (
@@ -1619,7 +1649,30 @@ const escalate = async (
     entityId: conversationId,
     staff: config?.notify === "OWNERS" ? await ownerIds() : "ALL",
   });
-  return true;
+};
+
+/**
+ * Lo delicado que la persona no ve (dueño, 21-oct: «le avisa a Dayana pero no
+ * le dice a la persona que Dayana recibió un aviso»): «Te toca» y el aviso,
+ * sin mensaje de espera, sin pausa. Lo mismo dos veces no vuelve a sonar,
+ * salvo lo urgente.
+ */
+const alertSilently = async (
+  conversationId: string,
+  outcome: { category: string; severity: string; reason: string },
+  name: string | null,
+  config: WhatsAppAiConfig | null,
+  from: Date | null
+) => {
+  const before = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { attentionAt: true, attentionReason: true },
+  });
+  const reason = attentionReasonOf(outcome.category);
+  const alreadyOpen = Boolean(before?.attentionAt) && before?.attentionReason === reason;
+  await openAttention(conversationId, reason, from ?? new Date());
+  if (alreadyOpen && outcome.severity !== "urgent") return;
+  await notifyEscalation(conversationId, outcome, name, config);
 };
 
 // `isAutoReply` va en la misma fila que se crea: si se marcaba después, el

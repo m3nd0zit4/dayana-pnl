@@ -5,7 +5,7 @@ import { markReadByEntity } from "@/lib/notifications/platform/feed";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { isManualPause } from "../whatsapp-attention-rules";
-import { isCrisis, pauseHolds } from "./pause-rules";
+import { pauseHolds } from "./pause-rules";
 import { runWhatsAppAi } from "./run";
 
 /**
@@ -89,10 +89,10 @@ export const findUnansweredChats = async (opts: {
     .filter(
       (r) =>
         !r.ai_paused_at ||
-        // Con «responde siempre» solo calla una crisis o la pausa que puso Dayana a mano.
+        // Con «responde siempre» solo calla la pausa que puso Dayana a mano (ni una
+        // crisis: la IA nunca deja de responder, dueño 21-oct).
         (r.ai_always_at
-          ? !isCrisis({ category: r.escalation_category, severity: r.escalation_severity, reason: r.escalation_reason }) &&
-            !(r.ai_paused_reason === "escalation" && isManualPause({ category: r.escalation_category, reason: r.escalation_reason }))
+          ? !(r.ai_paused_reason === "escalation" && isManualPause({ category: r.escalation_category, reason: r.escalation_reason }))
           : !pauseHolds(
               {
                 reason: r.ai_paused_reason,

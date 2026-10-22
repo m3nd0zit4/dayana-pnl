@@ -35,17 +35,6 @@ const PAY_URL = /https?:\/\/[^\s<>"')\]]+\/pagar\/[^\s<>"')\]]+/gi;
 export const CHAT_LINK_REPLY =
   "Puedes hacer el pago por el enlace que te envió Dayana. Cuando lo hagas, me mandas el comprobante por aquí para que ella lo revise";
 
-/**
- * Ya tuvo su llamada gratis y pide otra, una consulta, una sesión o que la
- * ayuden: lo siguiente con Dayana es después del pago (dueño, 21-oct: «directo
- * a cerrar la venta»). Joselyn llevaba días pidiendo «quítame la angustia» y
- * la IA escalaba o callaba.
- */
-export const afterCallCloseReply = (link: ChatPaymentLink): string =>
-  `Te entiendo. Tu llamada gratis con Dayana ya la tuviste: para trabajarlo con ella (otra llamada, una consulta o tu proceso), el siguiente paso es el pago${
-    link.label === "enlace de pago" ? "" : ` del ${link.label}`
-  } por el enlace que te envió Dayana. Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda`;
-
 /** Un enlace de pago de más de esto ya no cuenta como «el que te mandó Dayana». */
 export const CHAT_LINK_MAX_AGE_DAYS = 30;
 
@@ -110,9 +99,12 @@ export const pickPaymentLink = (links: ChatPaymentLink[], which: string | null |
   // «paquete de 3 sesiones» (también «seciones», como lo escribe la nota); en
   // algo corto («3», «tres», «therapy-3») el número solo. Una fecha de una
   // nota larga («el 6 de octubre») no elige paquete.
-  const sessions = w.match(new RegExp(`\\b(\\d{1,2}|${words})\\s+(sesion|sesiones|seciones|secciones)\\b`));
+  const sessionsWord = "(sesion|sesiones|seciones|secciones)";
+  // «paquete de 3 sesiones» manda sobre «ya tuvo 1 sesión» en la misma nota.
+  const pack = w.match(new RegExp(`\\bpaquete\\s+de\\s+(\\d{1,2}|${words})\\s+${sessionsWord}\\b`));
+  const sessions = w.match(new RegExp(`\\b(\\d{1,2}|${words})\\s+${sessionsWord}\\b`));
   const bare = w.length <= 30 ? w.match(new RegExp(`\\b(\\d{1,2}|${words})\\b`)) : null;
-  const n = num(sessions?.[1] ?? bare?.[1]);
+  const n = num(pack?.[1] ?? sessions?.[1] ?? bare?.[1]);
   const byNumber = Number.isNaN(n) ? null : links.find((l) => new RegExp(`/therapy-${n}\\b`, "i").test(l.url));
   return byNumber ?? links[0];
 };
@@ -149,9 +141,12 @@ export const isPaymentData = (text: string | null | undefined): boolean => {
 };
 
 /** ¿Este mensaje de Dayana dice que ya hablaron de pagar (datos, un valor, «mándame el comprobante»)? */
-export const isPaymentInfo = (text: string | null | undefined): boolean => {
+export const isPaymentInfo = (text: string | null | undefined, opts: { amounts?: boolean } = {}): boolean => {
   const t = foldForSearch(text ?? "");
-  return Boolean(t) && (PAYMENT_DATA.some((re) => re.test(t)) || PRICE_TALK.some((re) => re.test(t)));
+  // Sin `amounts`, un monto suelto no cuenta (un precio de un taller de hace
+  // meses no dice que tuvo su llamada): solo datos o «mándame el comprobante».
+  const talk = opts.amounts === false ? PRICE_TALK.slice(0, 1) : PRICE_TALK;
+  return Boolean(t) && (PAYMENT_DATA.some((re) => re.test(t)) || talk.some((re) => re.test(t)));
 };
 
 /**

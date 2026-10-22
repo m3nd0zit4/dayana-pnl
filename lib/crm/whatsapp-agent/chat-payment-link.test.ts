@@ -42,6 +42,11 @@ describe("dayanaPaymentLinks: todos los que mandó (Joselyn, 21-oct)", () => {
     const note =
       "Ya se le ha llamado el 6 de octubre y ha tenido conversacion pero solo quiere cosas gratis, no se le agendan mas llamadas hasta que pague el paquete de 3 seciones.";
     expect(pickPaymentLink(links, note)?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
+    // «paquete de N» manda sobre otro número de sesiones en la nota (revisión 21-oct).
+    const withOne = [...links, { url: "https://www.dayanabeltran.com/pagar/p/therapy-1", sentAt: null, label: "1 sesión" }];
+    expect(pickPaymentLink(withOne, "Ya tuvo 1 sesión hace meses; que pague el paquete de 3 sesiones")?.url).toBe(
+      "https://www.dayanabeltran.com/pagar/p/therapy-3"
+    );
     expect(pickPaymentLink(links, "Le llamé el 6 de octubre, quiere cosas gratis y no paga nunca nada de lo que se le manda")?.url).toBe(
       "https://www.dayanabeltran.com/pagar/p/therapy-6"
     );
@@ -75,6 +80,21 @@ describe("dayanaPaymentLink", () => {
 
   test("sin enlace", () => {
     expect(dayanaPaymentLink([dayana("Hola Paola, te bendigo"), inb("Si")], now)).toBeNull();
+  });
+});
+
+describe("isPaymentInfo con { amounts: false } (lo viejo, de más de 30 días)", () => {
+  test("Natalia (5-sep): «quedo atenta al comprobante de pago» sí cuenta", () => {
+    expect(
+      isPaymentInfo("OK hermosa, quedo atenta al comprobante de pago para iniciar con tu Terapia de reprogramación neuronal lo mereces. Te bendigo", {
+        amounts: false,
+      })
+    ).toBe(true);
+    expect(isPaymentInfo("https://www.dayanabeltran.com/pagar/p/therapy-3", { amounts: false })).toBe(true);
+  });
+  test("un precio suelto de hace meses (un taller) no", () => {
+    expect(isPaymentInfo("El taller del sábado cuesta $50.000", { amounts: false })).toBe(false);
+    expect(isPaymentInfo("El taller del sábado cuesta $50.000")).toBe(true);
   });
 });
 

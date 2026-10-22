@@ -39,7 +39,6 @@ const main = async () => {
   const { withPaymentBlocks } = await import("@/lib/crm/whatsapp-agent/payment-info");
   const { alreadySaid } = await import("@/lib/crm/whatsapp-agent/repeat-guard");
   const { BREACH_HOLDING, promiseBreach } = await import("@/lib/crm/whatsapp-agent/promise-guard");
-  const { isCrisis } = await import("@/lib/crm/whatsapp-agent/pause-rules");
   const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { getDateKeyInTz, getTimeHmInTz } = await import("@/lib/datetime/zoned-time");
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
@@ -123,11 +122,10 @@ const main = async () => {
     });
     const o = result.outcome;
     // Lo que de verdad recibiría la persona (lo mismo que hace run.ts): a una
-    // clienta, solo pagos; una crisis calla a la IA; otra escalada lleva un
+    // clienta, solo pagos; nada más la calla (ni una crisis: recibe apoyo); una escalada lleva un
     // aviso corto.
     const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
     const silentClient = Boolean(s.clientMode) && (o?.kind === "escalate" || !paymentAnswer);
-    const crisis = o?.kind === "escalate" && isCrisis({ category: o.category, severity: o.severity, reason: o.reason });
     // Le respondía a Dayana y la IA decidió no escribir nada (no_reply, como run.ts).
     const quiet = Boolean(result.noReply) && !(o?.kind === "reply" && o.message.trim()) && !paymentAnswer;
     // El mismo aviso de recibido por el mismo comprobante no sale dos veces (run.ts).
@@ -158,9 +156,10 @@ const main = async () => {
     const booked =
       Boolean(s.hasBooking) ||
       result.toolCalls.some((t) => t.tool === "book_free_call" && ["booked", "alreadyBooked", "simulated"].some((k) => (t.output as Record<string, unknown> | undefined)?.[k] === true));
-    const draft = o?.kind === "reply" ? polishReply(o.message) : polishReply(result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí.");
+    // Agendó y después escaló: run.ts le manda la confirmación del código (sin aviso de espera).
+    const draft = o?.kind === "reply" ? polishReply(o.message) : polishReply(result.bookingNotice?.text ?? (result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí."));
     const breach = promiseBreach({ text: draft, backing, hasBooking: booked, bookingToday: false });
-    const sent: string | null = silentClient || crisis || repeatedReceipt || quiet
+    const sent: string | null = silentClient || repeatedReceipt || quiet
       ? null
       : breach
         ? BREACH_HOLDING[breach.breach]
@@ -170,7 +169,7 @@ const main = async () => {
     const reply = sent ?? (quiet ? "(no le escribe: le está respondiendo a Dayana y no hace falta contestar)" : "(no le escribe: se lo pasa a Dayana)");
     // Las reglas se miran sobre lo que escribió el modelo (antes del freno): si
     // el freno lo tapa, el prompt igual falló y tiene que verse.
-    const written = silentClient || crisis || repeatedReceipt || quiet ? null : o?.kind === "reply" ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks }) : draft;
+    const written = silentClient || repeatedReceipt || quiet ? null : o?.kind === "reply" ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks }) : draft;
     const tools = result.toolCalls.map((c) => c.tool);
     const failed: string[] = [];
     if (written) {
@@ -190,6 +189,7 @@ const main = async () => {
     const e = s.expect;
     const did = quiet ? "silent" : (o?.kind ?? "nada");
     if (e.outcome && did !== e.outcome) failed.push(`esperaba ${e.outcome}, hizo ${did}`);
+    if (e.silentAlert && result.silentEscalation?.severity !== e.silentAlert) failed.push(`esperaba un aviso ${e.silentAlert} a Dayana que la persona no ve`);
     if (e.escalationCategory && !(o?.kind === "escalate" && o.category === e.escalationCategory)) {
       failed.push(`esperaba escalar como ${e.escalationCategory}`);
     }

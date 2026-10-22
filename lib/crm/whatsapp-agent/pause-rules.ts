@@ -11,9 +11,12 @@ import { isManualPause } from "../whatsapp-attention-rules";
  * - Que la IA le pase algo a Dayana (un pago, una pregunta que no sabe) ya no
  *   la calla en ese chat: avisa, abre «Te toca» y sigue contestando.
  *
- * Siempre pausan, se apague lo que se apague: lo que pausó Dayana a mano
- * («Pausar», bandeja) y lo delicado (una crisis, algo urgente): un robot
- * charlando con alguien en crisis es peor que el silencio.
+ * Siempre pausa, se apague lo que se apague, solo lo que pausó Dayana a mano
+ * («Pausar», bandeja). Lo delicado ya no calla a la IA (dueño, 21-oct: «nunca
+ * deja de responder»): la persona recibe una respuesta (el paso del pago, o un
+ * mensaje de apoyo si hay un riesgo de verdad) y Dayana un aviso que la
+ * persona no ve (`serious-reply.ts`). Joselyn quedó 6 días sin respuesta por
+ * una escalada «clinical» de su angustia.
  */
 export type PauseState = {
   reason: string | null;
@@ -36,8 +39,24 @@ const RISK = new RegExp(
     "ganas\\s+de\\s+morir",
     "(quiero|quiere|quisiera)\\s+morir",
     "morirme",
+    "morirse",
+    "deseos?\\s+de\\s+morir",
+    "(pensamientos?|ideas?)\\s+de\\s+muerte",
     "matarme",
     "matarse",
+    "(me|la|lo|te)\\s+(va|quiere|vaya)\\s+a\\s+matar",
+    "que\\s+me\\s+mate\\b",
+    "(terminar|acabar)\\s+con\\s+(mi|su|tu)\\s+vida",
+    "no\\s+(quiero|quiere)\\s+estar\\s+viv[oa]",
+    "ya\\s+no\\s+(puedo|puede)\\s+mas",
+    "no\\s+despertar",
+    "ya\\s+no\\s+aguanta",
+    "me\\s+(corte|estoy\\s+cortando|hice\\s+dano|lastime)",
+    "se\\s+(corto|hizo\\s+dano|lastimo)",
+    // Sin «la pega» (en Chile, «el trabajo»).
+    "(me|le|lo|te)\\s+(pega|pego|pegaba|golpea|golpeo|golpeaba|viola|violo)",
+    "violad[oa]",
+    "sobredosis",
     "mejor\\s+muert[oa]",
     "ir(me|se)?\\s+de\\s+este\\s+mundo",
     "desaparecer",
@@ -81,9 +100,6 @@ export const isCrisis = (e: { category: string | null; severity: string | null; 
   e.severity === "urgent" || (e.category === "clinical" && (!e.reason?.trim() || RISK.test(foldForSearch(e.reason))));
 
 export const pauseHolds = (p: PauseState, switches: PauseSwitches): boolean => {
-  // Una crisis sigue apartando a la IA aunque Dayana ya haya contestado (la
-  // escalada pasó a pausa humana): se suelta a mano («Devolver a la IA»).
-  if (isCrisis({ category: p.escalationCategory, severity: p.escalationSeverity, reason: p.escalationReason })) return true;
   if (p.reason === "escalation") {
     if (isManualPause({ category: p.escalationCategory, reason: p.escalationReason })) return true;
     return switches.onEscalation;
@@ -92,6 +108,6 @@ export const pauseHolds = (p: PauseState, switches: PauseSwitches): boolean => {
   return switches.onHumanReply;
 };
 
-/** ¿Escalar esto calla a la IA en el chat? Lo delicado siempre; lo demás, según el interruptor. */
-export const escalationPauses = (e: { category: string; severity: string; reason: string | null | undefined }, switches: PauseSwitches): boolean =>
-  isCrisis(e) || switches.onEscalation;
+/** ¿Escalar esto calla a la IA en el chat? Solo con el interruptor (lo delicado tampoco: nunca deja de responder). */
+export const escalationPauses = (_e: { category: string; severity: string; reason: string | null | undefined }, switches: PauseSwitches): boolean =>
+  switches.onEscalation;

@@ -30,38 +30,61 @@ const NOT_A_CHOICE =
 /** Una respuesta de verdad corta: lo largo trae más cosas que contestar. */
 const MAX_CHOICE_CHARS = 80;
 
+// Solo en femenino («la primera», «la segunda»): «un segundo», «primero quiero
+// saber» no eligen nada (revisión 21-oct).
 const ORDINAL: Record<string, number> = {
   primera: 1,
-  primer: 1,
-  primero: 1,
   "1ra": 1,
   "1era": 1,
   segunda: 2,
-  segundo: 2,
   "2da": 2,
   tercera: 3,
-  tercer: 3,
-  tercero: 3,
   "3ra": 3,
   "3era": 3,
   cuarta: 4,
   "4ta": 4,
 };
-const ORDINAL_WORD = new RegExp(`\\b(${[...Object.keys(ORDINAL), "ultima", "ultimo"].join("|")})\\b`, "g");
+const ORDINAL_WORD = new RegExp(`\\b(${[...Object.keys(ORDINAL), "ultima"].join("|")})\\b`, "g");
 
 /** Palabras que acompañan un «2» sin cambiarlo («sí, la 2 por favor», «me queda mejor la 2»). */
 const FILLER = new Set(
-  "si ok okey okay vale perfecto listo dale bueno la el opcion numero num nro por favor porfa gracias me te queda sirve mejor esa ese esta este de que quiero prefiero elijo escojo y bien genial excelente super ya entonces pues hola claro seria sera va".split(
+  "si ok okey okay vale perfecto listo dale bueno la el opcion numero num nro por favor porfa porfavor gracias me te queda sirve mejor esa ese esta este de que quiero prefiero elijo escojo y bien genial excelente super ya entonces pues hola claro seria sera va".split(
     " "
   )
 );
+
+/**
+ * Las únicas palabras que puede traer una elección: las de arriba, días,
+ * meses, horas y franjas, ordinales, «hora de Colombia», «agéndame», un
+ * saludo. Cualquier otra («confirmo», «salgo», «tengo», «déjame ver», «vez»,
+ * «también») y no es elegir: lo ve el modelo (revisión 21-oct: «Mañana te
+ * confirmo», «Salgo a las 3», «Es la primera vez» agendaban).
+ */
+const CHOICE_WORDS = new Set([
+  ...FILLER,
+  ..."a las los lo del en para con mi tu su al hoy manana pasado tarde noche mediodia am pm m p h hrs hora horas horario colombia mexico peru espana dayana agendame agenda agendala puede ser te bendigo bendiciones amen dios".split(" "),
+  ..."lunes martes miercoles jueves viernes sabado domingo".split(" "),
+  ..."enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split(" "),
+  ...Object.keys(ORDINAL),
+  "ultima",
+]);
+/** «sii», «siii», «okk» → «si», «ok». */
+const squeeze = (w: string) => w.replace(/(\p{L})\1+/gu, "$1");
+const onlyChoiceWords = (folded: string): boolean =>
+  folded
+    .replace(/[^\p{L}\p{N}#\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((w) => /^\d+(ra|era|da|ta)?$/.test(w) || CHOICE_WORDS.has(w) || CHOICE_WORDS.has(squeeze(w)));
 
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 const DAY_OF_MONTH = new RegExp(`\\b(\\d{1,2})\\s+de\\s+(${MONTHS.join("|")})\\b`, "g");
 const WEEKDAY_AND_DAY = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\s+(\d{1,2})\b(?!\s*(?::|[ap]\.?\s?m\b|de la\b|h\b))/g;
 /** «la 2», «opción 1», «#3», no «las 2» ni «el 2 de noviembre». */
+// Sin «el» («el 3» puede ser el día 3) ni «a la 1» (la una de la tarde).
 const NUMBER_REF = new RegExp(
-  `(?:\\b(?:la|el|opcion|numero|nro)\\s*|#\\s*)([1-9])\\b(?!\\s*(?::|[ap]\\.?\\s?m\\b|de la\\b|h\\b|de\\s+(?:${MONTHS.join("|")})))`
+  `(?:(?<!\\ba\\s)\\b(?:la|opcion|numero|nro)\\s*|#\\s*)([1-9])\\b(?!\\s*(?::|[ap]\\.?\\s?m\\b|de la\\b|h\\b|de\\s+(?:${MONTHS.join("|")})))`,
+  "g"
 );
 /** «12:45» sin a. m./p. m. ni «a las». */
 const CLOCK = /\b(\d{1,2}):([0-5]\d)\b/g;
@@ -132,22 +155,28 @@ const pickedNumber = (folded: string, count: number): number | null => {
     .replace(/[^\p{L}\p{N}#\s]/gu, " ")
     .split(/\s+/)
     .filter(Boolean);
-  const rest = words.filter((w) => !FILLER.has(w));
-  if (rest.length === 1 && /^[1-9]$/.test(rest[0])) return Number(rest[0]);
-  const ref = folded.match(NUMBER_REF);
-  if (ref) return Number(ref[1]);
-  const ordinals = [...folded.matchAll(ORDINAL_WORD)].map((m) => m[1]);
+  const rest = words.filter((w) => !FILLER.has(w) && !FILLER.has(squeeze(w)));
+  // «2», «sí, la 2 por favor»; no «el 3» (puede ser el día).
+  if (rest.length === 1 && /^[1-9]$/.test(rest[0]) && !words.includes("el")) return Number(rest[0]);
+  // «la 2 … mejor la 3», «la 1, perdón la 2»: se corrigió; no se adivina.
+  const refs = [...new Set([...folded.matchAll(NUMBER_REF)].map((m) => Number(m[1])))];
+  if (refs.length > 1) return -1;
+  if (refs.length === 1) return refs[0];
+  const ordinals = [...new Set([...folded.matchAll(ORDINAL_WORD)].map((m) => m[1]))];
+  if (ordinals.length > 1) return -1;
   if (ordinals.length === 1) return ordinals[0].startsWith("ultim") ? count : ORDINAL[ordinals[0]];
   return null;
 };
 
 export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceContext): Choice => {
   const folded = foldForSearch(text).replace(/\s+/g, " ").trim();
-  if (!options.length || !folded || folded.length > MAX_CHOICE_CHARS || NOT_A_CHOICE.test(folded)) return { kind: "none" };
+  if (!options.length || !folded || folded.length > MAX_CHOICE_CHARS || NOT_A_CHOICE.test(folded) || !onlyChoiceWords(folded)) {
+    return { kind: "none" };
+  }
   const filters = filtersOf(folded);
   const n = pickedNumber(folded, options.length);
   if (n !== null) {
-    const option = options[n - 1];
+    const option = n > 0 ? options[n - 1] : undefined;
     if (!option) return { kind: "none" };
     // «la 1 a las 9» y la 1 no es a las 9: no se adivina cuál quiso.
     if (hasFilters(filters) && !matches(option, filters, ctx)) return { kind: "none" };
@@ -170,6 +199,7 @@ type ChatLine = {
 
 /** Hasta cuántos mensajes seguidos de la persona se leen como una respuesta a la lista. */
 const MAX_BURST = 3;
+const OFFER_SLACK_MS = 2 * 60_000;
 
 /**
  * ¿Lo que escribió la persona contesta la lista de horas? Solo si lo último que
@@ -186,12 +216,14 @@ export const replyToOffer = (messagesNewestFirst: ChatLine[], offer: { at: Date;
   const before = lines[i];
   if (!burst.length || burst.length > MAX_BURST || !before || before.direction !== "OUTBOUND") return null;
   if (burst.some((m) => Array.isArray(m.attachments) && m.attachments.length > 0)) return null;
-  if (before.sentAt.getTime() < offer.at.getTime()) return null;
+  // El mensaje de reagendar se envía y luego se guarda la oferta: un instante de margen.
+  if (before.sentAt.getTime() < offer.at.getTime() - OFFER_SLACK_MS) return null;
   // Es la lista: trae TODAS sus horas y pregunta. La confirmación trae una sola
   // hora (la agendada) y no pregunta: «la 2» después no movía la llamada recién
-  // agendada por poco (e2e, 21-oct).
-  const body = before.body ?? "";
-  if (!offer.options.every((o) => body.includes(o.label)) || !body.includes("?")) return null;
+  // agendada por poco (e2e, 21-oct). Sin mayúsculas ni tildes: `polishReply`
+  // deja «1. Jueves…» y así nunca cuadraba (revisión 21-oct).
+  const body = foldForSearch(before.body ?? "");
+  if (!offer.options.every((o) => body.includes(foldForSearch(o.label))) || !body.includes("?")) return null;
   const text = burst
     .map((m) => (m.body ?? "").trim())
     .filter(Boolean)
@@ -263,6 +295,7 @@ export const offerList = (options: OfferedSlot[]): string =>
  * una hora se va entera.
  */
 const SENTENCE_END = /(?<=[.!?])(?<!\b[ap]\.)(?<!\b[ap]\.\s?m\.)\s+/;
+const WHEN = /\b(hoy|manana|ahorita|enseguida|en un (momento|rato|ratito)|mas tarde|esta (tarde|noche))\b/;
 const BULLET = /^\s*(?:[•\-*]|\d+[.)])\s+/;
 export const withoutSlotLines = (text: string): string =>
   text
@@ -274,7 +307,9 @@ export const withoutSlotLines = (text: string): string =>
             .split(SENTENCE_END)
             .filter((s) => {
               const f = foldForSearch(s);
-              return !/[?¿]/.test(s) && timesIn(f).length === 0 && !f.match(DAY_OF_MONTH) && !/\b\d{1,2}:[0-5]\d\b/.test(f);
+              // Tampoco «hoy mismo hay espacio» sin la hora: la lista la dice, y
+              // suelto el freno lo toma por promesa (revisión 21-oct).
+              return !/[?¿]/.test(s) && timesIn(f).length === 0 && !f.match(DAY_OF_MONTH) && !/\b\d{1,2}:[0-5]\d\b/.test(f) && !WHEN.test(f);
             })
             .join(" ")
             .trim()

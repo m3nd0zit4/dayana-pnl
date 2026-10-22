@@ -88,6 +88,36 @@ describe("resolveChoice: lo que la persona eligió de la última lista", () => {
       expect([t, resolveChoice(t, week, col).kind]).toEqual([t, "none"]);
     }
   });
+  test("revisión 21-oct: lo que no es elegir no agenda nada", () => {
+    for (const t of [
+      "Mañana te confirmo",
+      "Lo pienso y mañana te escribo",
+      "dame chance hasta mañana",
+      "Dame un segundo",
+      "Un segundo y te digo",
+      "Primero quiero saber de qué se trata",
+      "Primero ahorraré",
+      "Es la primera vez que hago esto",
+      "La última vez me fue mal",
+      "Salgo a las 3",
+      "Llego a las 9",
+      "a la 1",
+      "el 3",
+      "la 2 mejor la 3",
+      "la 1, perdón la 2",
+      "Déjame ver el martes",
+      "Lo reviso con mi esposo el jueves",
+      "la 2. también quiero info del taller",
+    ]) {
+      expect([t, resolveChoice(t, week, col).kind]).toEqual([t, "none"]);
+    }
+  });
+  test("lo que sí es elegir sigue funcionando con el texto pulido («1. Jueves», «Sii»)", () => {
+    expect(one(resolveChoice("Sii, la 1", week, col))).toBe(week[0].startIso);
+    expect(one(resolveChoice("la primera opción", week, col))).toBe(week[0].startIso);
+    expect(one(resolveChoice("el jueves a las 3 hora de Colombia", week, col))).toBe(week[0].startIso);
+    expect(one(resolveChoice("Perfecto, el viernes a las 9 por favor", week, col))).toBe(week[1].startIso);
+  });
   test("número y hora que no cuadran: nada", () => {
     expect(resolveChoice("la 1 a las 9", week, col).kind).toBe("none");
   });
@@ -161,7 +191,7 @@ describe("replyToOffer: la persona le contesta a la lista", () => {
     expect(replyToOffer([inb("el jueves", t(300)), out("Claro, la llamada dura 15 minutos.", t(200)), inb("¿cuánto dura?", t(100)), out(list, t(12))], offer)).toBeNull();
   });
   test("la lista es de antes de esa oferta, o no trae sus horas: no", () => {
-    expect(replyToOffer([inb("la 2", t(50)), out(list, t(-60))], offer)).toBeNull();
+    expect(replyToOffer([inb("la 2", t(50)), out(list, t(-600))], offer)).toBeNull();
     expect(replyToOffer([inb("la 2", t(50)), out("¿Qué día te queda bien?", t(12))], offer)).toBeNull();
   });
   test("la confirmación trae la hora agendada pero no es la lista: «la 2» después no mueve nada (e2e 21-oct)", () => {
@@ -171,6 +201,15 @@ describe("replyToOffer: la persona le contesta a la lista", () => {
   test("con foto, o muchos mensajes: no", () => {
     expect(replyToOffer([inb("la 2", t(50), { attachments: [{ kind: "image" }] }), out(list, t(12))], offer)).toBeNull();
     expect(replyToOffer([inb("a", t(54)), inb("b", t(53)), inb("c", t(52)), inb("la 2", t(51)), out(list, t(12))], offer)).toBeNull();
+  });
+  test("revisión 21-oct: la lista llega pulida («1. Miércoles…»): se reconoce igual", () => {
+    const polished = list.replace(/(\d\. )([a-z])/g, (_m, a: string, b: string) => a + b.toUpperCase());
+    expect(polished).not.toBe(list);
+    expect(replyToOffer([inb("la 2", t(50)), out(polished, t(12))], offer)).toBe("la 2");
+  });
+  test("el mensaje de reagendar se guarda un instante después de enviarse: cuenta", () => {
+    expect(replyToOffer([inb("la 2", t(50)), out(list, t(-1))], offer)).toBe("la 2");
+    expect(replyToOffer([inb("la 2", t(50)), out(list, t(-600))], offer)).toBeNull();
   });
   test("un aviso del sistema o un envío fallido en medio no cuenta", () => {
     expect(replyToOffer([inb("la 2", t(50)), out("x", t(40), { kind: "system" }), out("y", t(30), { status: "FAILED" }), out(list, t(12))], offer)).toBe("la 2");
@@ -193,5 +232,8 @@ describe("offerList y withoutSlotLines", () => {
     expect(withoutSlotLines("En la tarde que pediste no hay espacio, pero estas horas sí.")).toBe(
       "En la tarde que pediste no hay espacio, pero estas horas sí."
     );
+    // Revisión 21-oct: «hoy mismo» sin la hora (la lista la trae) hacía saltar el freno.
+    expect(withoutSlotLines("Claro. Hoy mismo Dayana tiene espacio.")).toBe("Claro.");
+    expect(withoutSlotLines("Con gusto, mañana en la tarde hay espacio.")).toBe("");
   });
 });

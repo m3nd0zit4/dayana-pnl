@@ -26,6 +26,7 @@ const main = async () => {
   const { bookFreeCall, setFreeCallCalendarForTests, dualZoneLabel } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { bookingTurn } = await import("@/lib/crm/whatsapp-agent/booking-turn");
   const { offerMessage, bookedMessage } = await import("@/lib/crm/whatsapp-agent/slot-choice");
+  const { polishReply } = await import("@/lib/crm/whatsapp-agent/wording");
   const { zonedDateTimeToUtc, getDateKeyInTz } = await import("@/lib/datetime/zoned-time");
 
   const [{ db }] = await prisma.$queryRaw<{ db: string }[]>`SELECT current_database()::text AS db`;
@@ -93,7 +94,8 @@ const main = async () => {
         finishedAt: new Date(),
       },
     });
-    await say(conversationId, "OUTBOUND", offerMessage("Con gusto.", options, true));
+    // Lo que de verdad sale (pulido: «1. Jueves…»; revisión 21-oct: así nunca cuadraba).
+    await say(conversationId, "OUTBOUND", polishReply(offerMessage("Con gusto.", options, true)));
     return options;
   };
   const say = (conversationId: string, direction: "INBOUND" | "OUTBOUND", body: string) =>

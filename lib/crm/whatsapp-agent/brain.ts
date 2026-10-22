@@ -26,8 +26,9 @@ import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
-import { afterCallCloseReply, asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLinks, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
-import { hasRiskSigns, isCrisis } from "./pause-rules";
+import { asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLinks, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { hasRiskSigns } from "./pause-rules";
+import { asksForMoreHelp, seriousReply } from "./serious-reply";
 import { answeringDayana } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
@@ -127,6 +128,14 @@ export type BrainResult = {
    * confirmación, también cuando la vuelta termina escalando.
    */
   bookingNotice: { kind: "booked" | "moved"; label: string; text: string } | null;
+  /**
+   * Algo delicado que Dayana tiene que saber sin que la persona lo sepa: la
+   * persona recibió una respuesta (apoyo o el paso del pago) y run.ts le avisa
+   * a Dayana sin mensaje de espera (`serious-reply.ts`).
+   */
+  silentEscalation: { category: EscalationCategory; severity: "normal" | "urgent"; reason: string } | null;
+  /** La respuesta es de lo delicado (apoyo o el paso del pago tras la llamada): sale siempre. */
+  serious: boolean;
   /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
   suggestedReply: string | null;
   /** Al escalar sin callarse: el aviso corto que recibe la persona ahora. */
@@ -817,6 +826,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     noReply: string | null;
     slotOffer: BrainResult["slotOffer"];
     bookingNotice: BrainResult["bookingNotice"];
+    /** Agendar dijo que ya tiene su llamada o no la pudo mover: no se listan horas. */
+    keepsCall: "booked" | "moveFailed" | null;
+    silentEscalation: BrainResult["silentEscalation"];
   } = {
     outcome: null,
     booking: null,
@@ -836,6 +848,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     noReply: null,
     slotOffer: null,
     bookingNotice: null,
+    keepsCall: null,
+    silentEscalation: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
   const seenOptions = new Map<string, string>();
@@ -1306,6 +1320,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
                 // La lista la pega el código (numerada, en este orden): «la 2» es esta 2.
                 state.slotOffer = { options, matchedWish: matchedWish ?? null };
+                // No se pudo mover y le ofrece otras: esas sí van.
+                if (state.keepsCall === "moveFailed") state.keepsCall = null;
                 return log("offer_free_call_slots", args, {
                   ok: true,
                   options,
@@ -1331,9 +1347,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               name: z.string().optional().describe("Nombre de la persona si lo dijo."),
             }),
             execute: async (args) => {
-              // «la 2» es la 2 de la lista numerada que vio: la de esta vuelta o la
-              // última que recibió. Si no cuadra (la lista fue de Dayana), el startIso.
-              const list = state.slotOffer?.options ?? input.latestOffer ?? [];
+              // «la 2» es la 2 de la última lista numerada que RECIBIÓ (no una que
+              // el modelo pidió en esta vuelta y ella no vio: revisión 21-oct). Si no
+              // cuadra (la lista fue de Dayana), el startIso.
+              const list = input.latestOffer ?? [];
               const picked = args.option ? list[args.option - 1] : undefined;
               const start = new Date(picked?.startIso ?? args.startIso ?? "");
               if (Number.isNaN(start.getTime())) {
@@ -1355,8 +1372,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const name = args.name?.trim() || input.name;
               const label = dualZoneLabel(iso, tz, timezone);
               if (input.mode === "preview" || !input.conversationId) {
-                // Lo que recibiría: la confirmación del código (la evaluación la califica igual).
-                state.bookingNotice = { kind: "booked", label, text: bookedMessage("booked", label, sureFirstName(nameInfo)) };
+                // Lo que recibiría: la confirmación del código (la evaluación la
+                // califica igual). Sin «agendar sola» en vivo queda por aprobar: no se confirma.
+                if (autoBook) state.bookingNotice = { kind: "booked", label, text: bookedMessage("booked", label, sureFirstName(nameInfo)) };
                 return log("book_free_call", args, { ok: true, simulated: true, label });
               }
               // Ya la tiene: «sí, perfecto» después de agendar no es otra cita
@@ -1366,6 +1384,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // (auditoría 21-oct: `moveFreeCall` la rechaza y la nota de «ofrécele
               // otras horas» la dejaba en un ciclo de horas que nunca se agendan).
               if (upcoming && upcoming.source === "calendar" && upcoming.startsAt.getTime() !== start.getTime()) {
+                state.keepsCall = "booked";
                 return log("book_free_call", args, {
                   ok: true,
                   alreadyBooked: true,
@@ -1389,6 +1408,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                     note: "Listo: su llamada se movió a esta hora (la anterior ya no está). Confírmale el nuevo día y la hora (en su hora) y que Dayana la llama por WhatsApp a este número. No escribas enlaces.",
                   });
                 } catch (e) {
+                  state.keepsCall = "moveFailed";
                   return log("book_free_call", args, {
                     error: e instanceof FreeCallError ? e.message : "No se pudo mover la llamada.",
                     keeps: dualZoneLabel(upcoming.startsAt.toISOString(), tz, timezone),
@@ -1397,6 +1417,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 }
               }
               if (upcoming) {
+                state.keepsCall = "booked";
                 return log("book_free_call", args, {
                   ok: true,
                   alreadyBooked: true,
@@ -1792,25 +1813,56 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     asksForBankDetails(lastInbound) &&
     ["payment", "other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
-  // Ya tuvo su llamada y Dayana le mandó el enlace: lo que escale (otra
-  // llamada, una consulta, «quítame la angustia», reagendar) se contesta
-  // directo con el pago (dueño, 21-oct, Joselyn). No una crisis de verdad, ni un
-  // comprobante, ni una queja ni un precio: eso sigue siendo de Dayana.
-  const afterCallClose =
-    !agendaOnly &&
-    !chatLinkOnly &&
-    !paymentDataOnly &&
-    !input.clientMode &&
+  // Nunca deja de responder (dueño, 21-oct; `serious-reply.ts`): lo delicado
+  // recibe una respuesta y Dayana un aviso que la persona no ve.
+  // - Un riesgo en lo que escribió ahora (aunque el modelo haya contestado otra
+  //   cosa) o en lo que escaló: apoyo, sin pago.
+  // - Algo clínico (angustia, miedos): ya tuvo la llamada → el paso del pago,
+  //   cada vez más directo; antes de la llamada → la llamada gratis.
+  // - Ya tuvo la llamada y escala porque pide otra llamada, una consulta o una
+  //   sesión: el paso del pago (sin aviso: no es delicado).
+  // Un enlace que no abre, una factura, un precio, una queja: siguen escalando.
+  const escalated =
+    modelOutcome.kind === "escalate" && !agendaOnly && !chatLinkOnly && !paymentDataOnly && !input.clientMode && !state.receipt;
+  const riskNow = !input.clientMode && hasRiskSigns(lastInbound);
+  const risk = riskNow || (escalated && hasRiskSigns([modelOutcome.reason, ...recentInbound]));
+  const clinical = escalated && modelOutcome.category === "clinical";
+  const afterCallAsk =
+    escalated &&
     input.stage === "tuvo_llamada" &&
-    modelOutcome.kind === "escalate" &&
-    chatLinks.length > 0 &&
-    !state.receipt &&
-    ["other", "unknown", "clinical", "reschedule"].includes(modelOutcome.category) &&
-    !isCrisis({ category: modelOutcome.category, severity: modelOutcome.severity, reason: modelOutcome.reason });
-  const closeLink = afterCallClose ? pickPaymentLink(chatLinks, input.memory) : null;
-  if (closeLink) {
-    state.paymentLink = closeLink.url;
-    log("send_payment_link", { auto: true, cual: closeLink.label }, { ok: true, note: "Lo pegó el código: ya tuvo su llamada; lo siguiente con Dayana es después del pago." });
+    ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
+    asksForMoreHelp(lastInbound);
+  const modelUrgent = rawOutcome.kind === "escalate" && rawOutcome.severity === "urgent";
+  const serious =
+    risk || clinical || afterCallAsk
+      ? (() => {
+          const link = pickPaymentLink(chatLinks, input.memory);
+          const reply = seriousReply({
+            risk,
+            modelUrgent: modelUrgent && !risk,
+            stage: input.stage ?? null,
+            link,
+            priorAi: input.transcript.filter((l) => l.direction === "OUTBOUND" && l.isAutoReply && l.body).slice(-20).map((l) => l.body as string),
+            canOfferFreeCall: salesOn && !upcomingCall,
+            upcomingLabel: upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null,
+          });
+          if (reply.attachLink && link) {
+            state.paymentLink = link.url;
+            log("send_payment_link", { auto: true, cual: link.label }, { ok: true, note: "Lo pegó el código: ya tuvo su llamada; lo siguiente con Dayana es después del pago." });
+          }
+          return reply.text;
+        })()
+      : null;
+  // Dayana se entera de lo delicado; la persona no recibe «le aviso a Dayana».
+  if (serious && (risk || clinical)) {
+    state.silentEscalation = {
+      category: "clinical",
+      severity: risk || modelUrgent ? "urgent" : "normal",
+      reason:
+        modelOutcome.kind === "escalate"
+          ? modelOutcome.reason
+          : `Escribió algo delicado: «${lastInbound.join(" ").slice(0, 150)}». La IA le contestó con apoyo.`,
+    };
   }
   const outcome: BrainOutcome = agendaOnly
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
@@ -1818,8 +1870,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? { kind: "reply", message: CHAT_LINK_REPLY }
       : paymentDataOnly
         ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
-        : closeLink
-          ? { kind: "reply", message: afterCallCloseReply(closeLink) }
+        : serious
+          ? { kind: "reply", message: serious }
           : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
@@ -1896,14 +1948,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
   // Agendada o movida: la confirmación del código, con la hora de la reserva.
   // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
+  // (No se vuelve a listar horas si en esta vuelta agendar dijo que ya tiene
+  // su llamada o no la pudo mover: revisión 21-oct.)
   const withAgenda = (text: string) =>
     state.bookingNotice
       ? state.bookingNotice.text
-      : state.slotOffer && !state.booking && !state.pendingBooking
+      : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
         ? offerMessage(text, state.slotOffer.options, state.slotOffer.matchedWish)
         : text;
+  // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
   const finalOutcome: BrainOutcome =
-    outcome.kind === "reply" ? { ...outcome, message: withAgenda(named(replyText(outcome.message))!) } : outcome;
+    outcome.kind === "reply"
+      ? { ...outcome, message: serious ? outcome.message : withAgenda(named(replyText(outcome.message))!) }
+      : outcome;
 
   return {
     outcome: finalOutcome,
@@ -1924,6 +1981,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     noReply: state.noReply,
     slotOffer: finalOutcome.kind === "reply" ? state.slotOffer : null,
     bookingNotice: state.bookingNotice,
+    silentEscalation: state.silentEscalation,
+    serious: Boolean(serious),
     model: modelId(),
     usage: {
       inputTokens: result.totalUsage?.inputTokens ?? undefined,

@@ -9,7 +9,6 @@ import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
-import { isCrisis } from "./pause-rules";
 import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
 import { appointmentGreetingName } from "./chat-name";
 
@@ -199,11 +198,9 @@ export type GuardedConversation = {
  */
 export const waitingRoomBlocked = async (conv: GuardedConversation, config: WhatsAppAiConfig): Promise<boolean> =>
   // «La IA responde siempre»: solo la calla lo que también calla a la IA en
-  // ese chat: una crisis que espera a Dayana o la pausa que puso ella a mano.
+  // ese chat: la pausa que puso Dayana a mano (una crisis ya no: dueño, 21-oct).
   conv.aiAlwaysAt
-    ? conv.aiPausedReason === "escalation" &&
-      (isCrisis({ category: conv.escalationCategory ?? null, severity: conv.escalationSeverity ?? null, reason: conv.escalationReason ?? null }) ||
-        isManualPause({ category: conv.escalationCategory ?? null, reason: conv.escalationReason ?? null }))
+    ? conv.aiPausedReason === "escalation" && isManualPause({ category: conv.escalationCategory ?? null, reason: conv.escalationReason ?? null })
     : config.defaultMode === "MANUAL" ||
       Boolean(conv.priorityAt) ||
       conv.aiModeOverride === "MANUAL" ||

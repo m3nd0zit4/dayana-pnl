@@ -204,14 +204,16 @@ export const latestFreeCallOffer = async (
   conversationId: string,
   now = new Date()
 ): Promise<{ at: Date; options: FreeCallOption[] } | null> => {
+  // Solo una lista que de verdad salió (la IA la envió o Dayana aprobó la
+  // propuesta): una frenada, repetida, en borrador o por aprobar nunca la vio
+  // (revisión 21-oct: «la 2» se resolvía contra una lista que no le llegó).
   const runs = await prisma.whatsAppAiRun.findMany({
-    where: { conversationId, queuedAt: { gte: new Date(now.getTime() - 72 * 3600_000) } },
+    where: { conversationId, status: { in: ["REPLIED", "APPROVED"] }, queuedAt: { gte: new Date(now.getTime() - 72 * 3600_000) } },
     orderBy: { queuedAt: "desc" },
     take: 30,
     select: { toolCalls: true, status: true, queuedAt: true },
   });
   for (const r of runs) {
-    if (r.status === "CANCELLED") continue;
     const calls = (Array.isArray(r.toolCalls) ? r.toolCalls : []) as { tool?: string; output?: { ok?: boolean; options?: FreeCallOption[] } }[];
     const offer = calls.findLast((c) => c.tool === "offer_free_call_slots" && c.output?.options?.length);
     if (offer?.output?.options) return { at: r.queuedAt, options: offer.output.options };

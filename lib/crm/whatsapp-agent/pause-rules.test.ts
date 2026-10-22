@@ -20,13 +20,17 @@ describe("pauseHolds", () => {
     expect(pauseHolds(pause("escalation", "unknown", "normal", "No sé qué decir"), off)).toBe(false);
   });
 
-  test("lo que pausó Dayana a mano y lo delicado siempre pausan", () => {
+  test("solo lo que pausó Dayana a mano pausa siempre", () => {
     expect(pauseHolds(pause("escalation", "other", "normal", MANUAL_PAUSE_REASON), off)).toBe(true);
     expect(pauseHolds(pause("escalation", null, null, null), off)).toBe(true);
-    expect(pauseHolds(pause("escalation", "clinical", "normal", "Crisis"), off)).toBe(true);
-    expect(pauseHolds(pause("escalation", "payment", "urgent", "Cobro doble"), off)).toBe(true);
-    // Dayana contestó una crisis (pasó a pausa humana): sigue apartada hasta soltarla a mano.
-    expect(pauseHolds(pause("human", "clinical", "urgent", "Crisis"), off)).toBe(true);
+  });
+
+  test("lo delicado ya no calla a la IA (dueño, 21-oct: nunca deja de responder)", () => {
+    expect(pauseHolds(pause("escalation", "clinical", "normal", "Crisis"), off)).toBe(false);
+    expect(pauseHolds(pause("escalation", "clinical", "urgent", "Dice que no quiere vivir."), off)).toBe(false);
+    expect(pauseHolds(pause("escalation", "payment", "urgent", "Cobro doble"), off)).toBe(false);
+    expect(pauseHolds(pause("human", "clinical", "urgent", "Crisis"), off)).toBe(false);
+    expect(escalationPauses({ category: "clinical", severity: "urgent", reason: "no quiere vivir" }, off)).toBe(false);
   });
 
   test("con los interruptores encendidos, todo pausa como antes", () => {
@@ -69,6 +73,27 @@ describe("isCrisis: solo un riesgo de verdad (Joselyn, 21-oct)", () => {
       "me quiero ir de este mundo",
       "estaría mejor muerta",
       "me tomé unas pastillas",
+      // Revisión 21-oct: lo que se escapaba.
+      "me corté otra vez",
+      "me hice daño",
+      "me lastimé los brazos",
+      "me estoy cortando",
+      "mi esposo me pegó",
+      "me violó",
+      "quiero terminar con mi vida",
+      "no quiero estar viva",
+      "ya no puedo más",
+      "quiero dormir y no despertar",
+      "tengo miedo de que me mate",
+      "Habla de acabar con su vida",
+      "Quiere terminar con su vida",
+      "Tiene pensamientos de muerte",
+      "Expresa ideas de muerte",
+      "Expresa deseos de morir",
+      "Piensa en morirse",
+      "Dice que ya no aguanta más",
+      "Su esposo le pega",
+      "Habla de una sobredosis",
     ]) {
       expect([t, hasRiskSigns([t])]).toEqual([t, true]);
     }
@@ -84,9 +109,9 @@ describe("isCrisis: solo un riesgo de verdad (Joselyn, 21-oct)", () => {
 });
 
 describe("escalationPauses", () => {
-  test("solo lo delicado calla a la IA con el interruptor apagado", () => {
+  test("con el interruptor apagado nada calla a la IA; encendido, todo", () => {
     expect(escalationPauses({ category: "payment", severity: "normal", reason: "x" }, off)).toBe(false);
-    expect(escalationPauses({ category: "clinical", severity: "urgent", reason: "x" }, off)).toBe(true);
+    expect(escalationPauses({ category: "clinical", severity: "urgent", reason: "x" }, off)).toBe(false);
     expect(escalationPauses({ category: "unknown", severity: "normal", reason: "x" }, on)).toBe(true);
   });
 });
