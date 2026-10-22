@@ -1,10 +1,10 @@
 /**
  * Exporta los guiones de `content/guiones/` a PDF para mandarlos por WhatsApp.
  *
- * Un PDF por guion y otro por módulo con los cinco seguidos. Por WhatsApp el
- * archivo llega suelto, sin la carpeta, así que el nombre lo dice todo: curso,
- * módulo, orden dentro del módulo y título («Fundamentos M1.2 · Clase 1 · Qué
- * es la PNL.pdf»). El completo del módulo es el `.0`, para que salga primero.
+ * Un PDF por módulo, con portada, índice y los cinco guiones seguidos, cada
+ * uno empezando en página nueva. Por WhatsApp el archivo llega suelto, sin la
+ * carpeta, así que el nombre lo dice todo: curso, módulo y título
+ * («Fundamentos M1 · Qué es la PNL.pdf»).
  *
  * La página es A5 con letra grande: en el celular el PDF se ajusta al ancho y
  * un A4 a 11 pt queda ilegible sin hacer zoom.
@@ -236,24 +236,17 @@ for (const id of dirsIn(GUIONES)) {
 const TEMP = mkdtempSync(join(tmpdir(), "guiones-pdf-"));
 const trabajos = [];
 for (const curso of cursos) {
+  const carpeta = join(OUT, nombreArchivo(curso.titulo));
+  mkdirSync(carpeta, { recursive: true });
   for (const modulo of curso.modulos) {
-    const carpeta = join(OUT, nombreArchivo(curso.titulo), nombreArchivo(`M${modulo.numero} · ${modulo.titulo}`));
-    mkdirSync(carpeta, { recursive: true });
-    const prefijo = `${curso.corto} M${modulo.numero}`;
     trabajos.push({
       html: documento(
-        `${curso.corto} · Módulo ${modulo.numero}`,
+        `${curso.corto} · Módulo ${modulo.numero} · ${modulo.titulo}`,
         portadaHtml({ curso, modulo }) + modulo.piezas.map((pieza) => piezaHtml({ curso, modulo, pieza })).join(""),
         { portada: true },
       ),
-      pdf: join(carpeta, nombreArchivo(`${prefijo}.0 · Módulo completo · ${modulo.titulo}.pdf`)),
+      pdf: join(carpeta, nombreArchivo(`${curso.corto} M${modulo.numero} · ${modulo.titulo}.pdf`)),
     });
-    for (const pieza of modulo.piezas) {
-      trabajos.push({
-        html: documento(`${prefijo}.${pieza.orden} · ${pieza.titulo}`, piezaHtml({ curso, modulo, pieza })),
-        pdf: join(carpeta, nombreArchivo(`${prefijo}.${pieza.orden} · ${pieza.titulo}.pdf`)),
-      });
-    }
   }
 }
 
