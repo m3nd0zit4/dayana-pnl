@@ -40,6 +40,11 @@ describe("asksForProcess", () => {
     "¿Cuánto cobras por sesión?",
     "Quiero algo personalizado",
     "Me gustaría una cita con Dayana",
+    // Revisión 22-oct.
+    "Quisiera hablar con Dayana sobre mi ansiedad",
+    "Quisiera info del acompañamiento",
+    "¿Cuánto cuesta una sesión?",
+    "¿Me puedes atender?",
   ])("pide algo personal: %s", (text) => {
     expect(asksForProcess(text)).toBe(true);
   });
@@ -60,6 +65,11 @@ describe("asksForProcess", () => {
     "¿Tiene algún costo?",
     "Ya lo agendé en mi calendario",
     "Gracias por comunicarte con Candy's Pet Shop Boutique. ¿Cómo podemos ayudarte?", // respuesta automática de una empresa
+    // Revisión 22-oct.
+    "¿Podré tener las sesiones grabadas?",
+    "¿Cómo puedo seguir el proceso del webinar?",
+    "No me llega el enlace, necesito ayuda",
+    "Vengo de la página del webinar, me inscribí",
   ])("no pide nada personal: %s", (text) => {
     expect(asksForProcess(text)).toBe(false);
   });
@@ -105,6 +115,23 @@ describe("wantsProcess", () => {
     expect(wantsProcess(lines, NOW)).toBe(true);
   });
 
+  test("la asistente pregunta con sus palabras si quiere trabajarlo con Dayana: un «sí» la abre (revisión 22-oct)", () => {
+    const lines = [
+      out(CONFIRMATION),
+      inb("Tengo mucha ansiedad y quiero sanar"),
+      out("Te entiendo. ¿Te gustaría trabajarlo con Dayana?"),
+      inb("Sí"),
+    ];
+    expect(wantsProcess(lines, NOW)).toBe(true);
+    const own = [out(CONFIRMATION), inb("Tengo mucha ansiedad"), out("Eso es justo lo que se trabaja. ¿Te gustaría sanarlo?"), inb("Sí quiero")];
+    expect(wantsProcess(own, NOW)).toBe(true);
+  });
+
+  test("un «sí quiero» a una pregunta del evento no es un proceso", () => {
+    expect(wantsProcess([out(CONFIRMATION), inb("No encuentro el enlace"), out("¿Quieres que te reenvíe el enlace?"), inb("Sí quiero")], NOW)).toBe(false);
+    expect(wantsProcess([out(CONFIRMATION), inb("Gracias"), out("¿Te esperamos el domingo en la sesión?"), inb("Sí")], NOW)).toBe(false);
+  });
+
   test("lo que pidió hace más de un mes ya no cuenta", () => {
     const old = new Date(NOW - 45 * 24 * 3600_000);
     expect(wantsProcess([inb("Quiero información de la terapia", old), out(CONFIRMATION), inb("Gracias")], NOW)).toBe(false);
@@ -140,6 +167,8 @@ describe("funnelsGuest", () => {
     "Amén Erika, te esperamos el domingo con todo el corazón. 🙏",
     "Con gusto, Guada 🙏 Nos vemos el domingo.",
     "Es el domingo 25 de octubre a las 9:30 a. m. hora de Colombia (8:30 a. m. en México).",
+    "Es en vivo por Meet, no es una llamada.",
+    "Dayana tiene la agenda muy llena esta semana, pero te esperamos el domingo.",
   ])("no la mete: %s", (reply) => {
     expect(funnelsGuest(reply, ["Gracias"])).toBe(false);
   });
@@ -156,7 +185,16 @@ describe("acknowledgesOnly", () => {
     });
   }
 
-  for (const msgs of [["Para que fecha sería"], ["¿A qué hora es?"], ["Si, pero no sé si pueda conectarme por el trabajo"], ["Gracias, quiero información de la terapia"]]) {
+  for (const msgs of [
+    ["Para que fecha sería"],
+    ["¿A qué hora es?"],
+    ["Si, pero no sé si pueda conectarme por el trabajo"],
+    ["Gracias, quiero información de la terapia"],
+    // Revisión 22-oct.
+    ["quiero saber si es en vivo"],
+    ["ok y el enlace"],
+    ["¿sí es en vivo"],
+  ]) {
     test(`pide algo: ${msgs.join(" / ")}`, () => {
       expect(acknowledgesOnly(msgs)).toBe(false);
     });

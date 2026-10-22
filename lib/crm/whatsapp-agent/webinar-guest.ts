@@ -47,15 +47,18 @@ const STILL_ON_MS = 3 * 3600_000;
  *
  * Sueltos no cuentan: «consulta» («quería hacerle una consulta» es una
  * pregunta), «me interesa» (el webinar), «información» (la del evento),
- * «¿cuánto cuesta?» (el evento es gratis), «sesión» (la del domingo).
+ * «¿cuánto cuesta?» (el evento es gratis), «sesión» (la del domingo, «¿las
+ * sesiones quedan grabadas?»), «el proceso» («el proceso del webinar»).
  */
 const ASKS_FOR_PROCESS = new RegExp(
   [
     "\\bterapia",
     "\\btratamiento",
+    "\\bacompanamiento",
+    "\\basesoria (personal|personalizada|individual|privada|contigo|con (dayana|usted|ella))",
     "\\bsesion(es)? (personal|personalizada|individual|privada|contigo|con (dayana|usted|ella))",
-    "\\b(agendar|tomar|empezar|iniciar|comenzar|tener|hacer|reservar|quiero|quisiera|necesito|me gustaria|deseo|continuar en|seguir con|seguir en) (una |unas |las |mis |otra )?sesion",
-    "\\b(empezar|iniciar|comenzar|hacer|tomar|retomar|seguir|continuar) (con )?(mi|un|el|tu|su|este|ese) proceso",
+    "\\b(agendar|tomar|empezar|iniciar|comenzar|reservar|quiero|quisiera|necesito|me gustaria|deseo|continuar en|seguir con|seguir en) (una |unas |mis |otra )?sesion(?!es grabad| grabad)",
+    "\\b(empezar|iniciar|comenzar|hacer|tomar|retomar|seguir|continuar) (con )?(mi|un|el|tu|su|este|ese) proceso(?! (del|de la|de) (webinar|evento|masterclass|clase|inscripcion|registro))",
     "\\bproceso (personal|personalizado|individual|contigo|con (dayana|usted|ella|ustedes))",
     "\\bmas sobre el proceso",
     "\\bpersonalizad[oa]s?\\b",
@@ -63,23 +66,40 @@ const ASKS_FOR_PROCESS = new RegExp(
     "\\b(consulta|cita|llamada) (gratis|gratuita|personal|privada|individual|contigo|con (dayana|usted|ella))",
     "\\b(agendar|sacar|pedir|tener|reservar|quiero|quisiera|me gustaria|necesito|deseo) (una |la |otra )?(consulta|cita|llamada)\\b",
     "\\bagend(ar|arme|arte|ame|amos)\\b",
-    "\\b(tratarme|atenderme|me atienda|me atiendas|trabajar contigo|trabajar con (dayana|usted|ella))\\b",
-    "\\b(necesito|quiero|busco|pido|requiero|quisiera) (de )?(tu |su )?ayuda\\b",
-    "\\b(tus|sus) servicios\\b",
+    "\\bhablar (con (dayana|usted|ella)|contigo)\\b",
+    "\\b(tratarme|atenderme|me atienda|me atiendas|me (puedes|puede|podrias|podria) atender|trabajar contigo|trabajar con (dayana|usted|ella))\\b",
     "\\bcuanto (cobra|cobras|cobran)\\b",
+    "\\bcuanto (cuesta|vale|sale|es|cobras por) (una|la|el|cada|tu|su|tus|sus) (sesion|consulta|terapia|proceso|paquete)",
     "\\b(precio|costo|valor|tarifa)s? de (la|las|tu|tus|su|sus|una|el|los|un) (sesion|proceso|consulta|paquete|servicio)",
-    "\\bvengo (desde|de) (la|tu|su) (web|pagina)",
-    "\\bte escribo desde tu pagina",
+    "\\b(tus|sus) servicios\\b",
+    // Los textos de los botones de WhatsApp del sitio (`FloatingWhatsApp`, `Footer`, `/enlaces`).
+    "\\bvengo desde la web\\b",
+    "\\bte escribo desde tu pagina de enlaces",
   ].join("|")
 );
+/** «Necesito ayuda» sí, salvo que sea con el enlace o la inscripción («no me llega el enlace, necesito ayuda»). */
+const ASKS_FOR_HELP = /\b(necesito|quiero|busco|pido|requiero|quisiera) (de )?(tu |su )?ayuda\b/;
+const TECH_HELP = /\b(enlace|link|meet|zoom|inscri\w*|registr\w*|entrar|conectar\w*|correo|pagina|formulario|clave)\b/;
 
-export const asksForProcess = (text: string): boolean => ASKS_FOR_PROCESS.test(foldForSearch(text));
+export const asksForProcess = (text: string): boolean => {
+  const t = foldForSearch(text);
+  return ASKS_FOR_PROCESS.test(t) || (ASKS_FOR_HELP.test(t) && !TECH_HELP.test(t));
+};
 
 /** Lo nuestro que la invita: la llamada gratis o «te agendo con Dayana». Un «sí» después es un sí. */
 const INVITES = /\bllamada (gratis|gratuita)|\bconsulta (gratis|gratuita)|\b15 minutos\b|\bte agend(o|e|amos)\b/;
 const YES = /^(si|sii+|claro|dale|de una|ok|okay|bueno|listo|por favor|porfa|me encantaria)\b/;
-/** La puerta de la bienvenida («si quieres un proceso personalizado, me escribes»): no es pregunta, un «sí, gracias» no la abre. */
+/**
+ * La puerta de la bienvenida («si quieres un proceso personalizado, me
+ * escribes»): no es pregunta, un «sí, gracias» no la abre. Si la asistente la
+ * dice como pregunta, con sus palabras («¿te gustaría trabajarlo con
+ * Dayana?», «¿quieres que Dayana te acompañe?»), un «sí» la abre.
+ */
 const DOOR = /\bpersonalizad/;
+const DOOR_QUESTION = (text: string) =>
+  /\bpersonalizad|\bproceso\b|\bacompan\w*|\btrabaj(ar|arlo|arla|emos)\b|\bterapia/.test(text) && /\b(dayana|personalizad\w*)\b/.test(text);
+/** Una pregunta nuestra sobre el evento («¿quieres el enlace?»): un «quiero» ahí no es un proceso. */
+const EVENT_TALK = /\b(webinar|masterclass|evento|enlace|link|meet|hora|fecha|domingo|grabad\w*|inscri\w*)\b/;
 const WANTS = /\b(me gustaria|quiero|quisiera|me interesa|me encantaria|deseo|acepto)\b(?! (ir|asistir|estar|participar|conectarme|entrar|verla|verte|escucharla|escucharte|el webinar|la masterclass|el evento))/;
 
 const clean = (text: string) => foldForSearch(text).replace(/[,.!¡¿?]+/g, " ").replace(/\s+/g, " ").trim();
@@ -102,7 +122,9 @@ export const wantsProcess = (lines: Line[], now = Date.now()): boolean => {
     if (line.sentAt && line.sentAt.getTime() < now - INTENT_WINDOW_MS) continue;
     if (asksForProcess(text)) return true;
     if (lastOut && INVITES.test(lastOut.text) && (YES.test(text) || WANTS.test(text))) return true;
-    if (lastOut && DOOR.test(lastOut.text) && (WANTS.test(text) || (lastOut.asks && YES.test(text)))) return true;
+    if (lastOut && DOOR.test(lastOut.text) && WANTS.test(text)) return true;
+    if (lastOut && lastOut.asks && DOOR_QUESTION(lastOut.text) && YES.test(text)) return true;
+    if (lastOut && lastOut.asks && !EVENT_TALK.test(lastOut.text) && WANTS.test(text)) return true;
   }
   return false;
 };
@@ -158,8 +180,10 @@ export const guestLine = (event: GuestEvent, lines: Line[], opts: { timezone: st
  * Preguntar el país sí vale si preguntó la hora (para decírsela en la suya).
  */
 const FUNNEL = [
-  // El evento no es una llamada: cualquier «llamada» es la gratis («¿revisemos una fecha para esa llamada?», eval 22-oct).
-  /\bllamada|\bconsulta (gratis|gratuita)|\b15 minutos\b|\bagend/,
+  // El evento no es una llamada: «una / la / esa llamada» es la gratis («¿revisemos una
+  // fecha para esa llamada?», eval 22-oct); «no es una llamada» habla del evento.
+  /(?<!\bno es )\b(una|la|tu|esa|otra|tus|las) llamadas?\b|\bllamada (gratis|gratuita)|\b(consulta|sesion) (gratis|gratuita)|\b15 minutos\b/,
+  /\b(te |la |lo )?agend(o|e|amos|emos|ar|arte|arla|arlo)\b|\bun espacio (con|para hablar)\b/,
   /\bcomo (estas|te sientes|te has sentido|te encuentras|vas)\b/,
   /\bque te (motiva|motivo|llevo|trae|trajo|impulso|animo|gustaria (trabajar|sanar|transformar|cambiar|mejorar))\b/,
   /\bque (situacion|emocion)\b|\bque (es lo que )?(estas buscando|buscas)\b|\bcuanto tiempo mas\b|\bcuentame (que|como|un poco|mas)\b/,
@@ -176,15 +200,19 @@ export const funnelsGuest = (reply: string, lastInbound: string[]): boolean => {
 /** Solo agradece o confirma que va («Gracias», «Si asistire», «Ok, ahí estaré», un emoji), sin preguntar nada. */
 const ACK = /\b(gracias|ok|okey|okay|listo|perfecto|super|genial|excelente|amen|bendicion\w*|dios (te|la|le|los) bendiga|asistire|asistir|estare|estaremos|ire|alli|ahi|me conecto|me apunto|confirmo|claro|si puedo|si)\b/;
 
-/** «Sí, pero no sé si pueda por el trabajo»: eso pide una respuesta, no la bienvenida. */
-const BUT = /\b(pero|aunque|no (puedo|podre|pueda|se)|problema|duda)\b/;
+/**
+ * Eso pide una respuesta, no la bienvenida: «Sí, pero no sé si pueda por el
+ * trabajo», «quiero saber si es en vivo», «ok y el enlace» (revisión 22-oct).
+ */
+const NOT_ACK =
+  /\b(pero|aunque|no (puedo|podre|pueda|se)|problema|duda|que|como|cuando|donde|cual|quien|saber|si es|enlace|link|meet|zoom|hora|fecha|grabad\w*|precio|costo|cuanto|vivo|puedo|puede|hay|tiene)\b/;
 
 export const acknowledgesOnly = (lastInbound: string[]): boolean => {
   const raw = lastInbound.join(" ");
-  if (raw.includes("?")) return false;
+  if (/[?¿]/.test(raw)) return false;
   const text = clean(raw).replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
   if (!text) return lastInbound.length > 0;
-  return text.split(" ").length <= 8 && ACK.test(text) && !BUT.test(text) && !asksForProcess(text);
+  return text.split(" ").length <= 8 && ACK.test(text) && !NOT_ACK.test(text.replace(/\bsi puedo\b/g, "")) && !asksForProcess(text);
 };
 
 const SENTENCES = /(?<=[.!?…])\s+|\n+/;

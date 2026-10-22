@@ -520,6 +520,10 @@ const registeredFreeEvents = async (contactId: string | null, phone?: string | n
   return rows.map((r) => r.webinar);
 };
 
+/** Lo que contestan las herramientas de la llamada gratis a quien solo se inscribió al evento. */
+const GUEST_NO_FREE_CALL =
+  "Esta persona solo se inscribió al evento gratuito y no ha pedido nada personal: no le agendes nada ni le ofrezcas horas. Mira INSCRITA EN UN EVENTO GRATUITO.";
+
 /** El contacto del chat, o el que tiene su número (quien se inscribe en la web queda como contacto). */
 const registrantId = async (contactId: string | null, phone?: string | null): Promise<string | null> => {
   if (contactId) return contactId;
@@ -542,6 +546,9 @@ export const guestFreeEvent = async (contactId: string | null, phone?: string | 
   const id = await registrantId(contactId, phone);
   if (!id) return null;
   if ((await prisma.diagnostic.count({ where: { contactId: id, completedAt: { not: null } } })) > 0) return null;
+  // Sin `endedAt: null` (a diferencia de `registeredFreeEvents`): el evento
+  // se cierra ~3 h después de empezar y la semana siguiente sigue contando
+  // (agradecer, sin la llamada).
   const rows = await prisma.webinarRegistration.findMany({
     where: {
       contactId: id,
@@ -550,6 +557,7 @@ export const guestFreeEvent = async (contactId: string | null, phone?: string | 
         OR: [{ startsAt: { gte: new Date(now.getTime() - 7 * 24 * 3600_000) } }, { startsAt: null, endedAt: null }],
       },
     },
+    orderBy: { webinar: { startsAt: "desc" } },
     take: 5,
     select: { webinar: { select: { eventLabel: true, headline: true, startsAt: true, startsAtHasTime: true } } },
   });
@@ -907,19 +915,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Ya fue clienta, ya tuvo la llamada o está por revisar: sin llamada gratis.
   const noFreeCall = Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage));
   const salesOn = config.salesFlow.enabled && config.booking.enabled && !noFreeCall;
-  // Solo se inscribió a un evento gratuito y no ha pedido nada personal
-  // (dueña, 22-oct): bienvenida al evento, sin las herramientas de la llamada
-  // gratis. Las reglas del sistema no cambian (caché de Gemini): manda la
-  // línea del prompt y el freno de abajo.
-  const guestEvent =
-    salesOn &&
-    !input.clientMode &&
-    input.freeEvent &&
-    guestEventCounts(input.freeEvent, now.getTime()) &&
-    !wantsProcess(input.transcript, now.getTime())
-      ? input.freeEvent
-      : null;
-  const freeCallTools = salesOn && !guestEvent;
   const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
   const offeredNow = new Set<string>();
   const offeredBefore =
@@ -927,6 +922,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const personTz = () => state.country?.timezone ?? input.freeCall?.personTimezone ?? null;
   // Ya tiene la llamada gratis: si pide otra hora, se mueve (no se escala).
   const upcomingCall = autoBook && input.conversationId ? await upcomingFreeCall(input.conversationId, config, now).catch(() => null) : null;
+  // Solo se inscribió a un evento gratuito y no ha pedido nada personal
+  // (dueña, 22-oct): bienvenida al evento, y las herramientas de la llamada
+  // gratis contestan que no se agenda. Las reglas del sistema y la lista de
+  // herramientas no cambian (caché de Gemini): mandan la línea del prompt y
+  // el freno de abajo. Con una llamada ya agendada, no (se la puede mover).
+  const guestEvent =
+    salesOn &&
+    !input.clientMode &&
+    !upcomingCall &&
+    input.freeEvent &&
+    guestEventCounts(input.freeEvent, now.getTime()) &&
+    !wantsProcess(input.transcript, now.getTime())
+      ? input.freeEvent
+      : null;
 
   // Los stickers que Dayana usa de verdad (al menos dos veces), con lo que
   // suele escribir antes de mandarlos.
@@ -1263,7 +1272,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             execute: async (args) =>
               log("request_booking", args, {
                 error: guestEvent
-                  ? "Esta persona solo se inscribió al evento gratuito y no ha pedido nada personal: no le agendes nada. Mira INSCRITA EN UN EVENTO GRATUITO."
+                  ? GUEST_NO_FREE_CALL
                   : "En este flujo agendas tú: usa offer_free_call_slots para ofrecer horas y book_free_call cuando elija una.",
               }),
           }),
@@ -1324,8 +1333,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         }
       : {}),
     // La llamada gratis con horas reales del calendario (flujo de venta).
-    // A quien solo se inscribió al evento, no (ni horas ni agendar).
-    ...(freeCallTools
+    // A quien solo se inscribió al evento, no: las herramientas siguen (las
+    // mismas para todos, por la caché) pero contestan que no se agenda.
+    ...(salesOn
       ? {
           offer_free_call_slots: tool({
             description:
@@ -1340,6 +1350,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               desde: z.string().optional().describe("AAAA-MM-DD si dijo «desde el…», «la otra semana» (el lunes que viene)."),
             }),
             execute: async (args) => {
+              if (guestEvent) return log("offer_free_call_slots", args, { error: GUEST_NO_FREE_CALL });
               // Sin zona guardada: la que se deduce del chat y del número (Sophie y
               // «💙💙💜🩷», 16-oct: dijeron «Desde colombia» / «De la CDMX», la IA no
               // guardó el país, la agenda falló y ella inventó horas).
@@ -1412,6 +1423,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               name: z.string().optional().describe("Nombre de la persona si lo dijo."),
             }),
             execute: async (args) => {
+              if (guestEvent) return log("book_free_call", args, { error: GUEST_NO_FREE_CALL });
               // «la 2» es la 2 de la última lista numerada que RECIBIÓ (no una que
               // el modelo pidió en esta vuelta y ella no vio: revisión 21-oct). Si no
               // cuadra (la lista fue de Dayana), el startIso.
