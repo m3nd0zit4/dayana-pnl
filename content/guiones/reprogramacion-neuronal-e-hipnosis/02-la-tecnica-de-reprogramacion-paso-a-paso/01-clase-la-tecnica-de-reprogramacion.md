@@ -1,6 +1,6 @@
 # Clase · La técnica de reprogramación
 
-Reprogramación neuronal e hipnosis · Módulo 2 · 9-11 min
+Reprogramación neuronal e hipnosis · Módulo 2 · 12-14 min
 
 Hola, chicos, súper bienvenidos. Hoy vamos a aprender la técnica de reprogramación. Esta técnica se fue creando porque Dios, la vida, el universo me fue dando herramientas. Y es un proceso que nos permite expresar experiencias del pasado, identificando las emociones negativas, y transformarlas en nuestro cerebro.
 
@@ -11,6 +11,12 @@ Primero lo que quiero que entiendas. Muchas veces nosotros no reaccionamos al pr
 ¿Cómo se forma esa programación? Mira. Todo lo que tú ves, escuchas y sientes entra a tu mente subconsciente como neuronas de información. Esas neuronas forman tejidos neuronales, los tejidos forman una sinapsis, y la sinapsis forma una representación interna. La representación interna, la RI, es una imagen, es una experiencia, es una memoria. Y esa experiencia forma un pensamiento, el pensamiento forma una emoción y la emoción forma un comportamiento.
 
 Un ejemplo. Un niño escucha «hoy no hable», «es bruto». Esas frases dejan una carga emocional, y esa carga emocional deja un anclaje neuronal inconsciente. O si a todos en la mesa les sirven comida y a ti no, aunque nadie te diga nada, te sientes insuficiente. Eso es programación. Y si no se reprograma, Pepita, que viene con rechazo de su mamá, va a traer personas que la rechacen.
+
+Antes de la técnica, necesitas tu lista de eventos. Por cada evento escribe cuándo, dónde, qué edad tenías y qué viste, qué escuchaste y qué sentiste. Anótalos todos, no los resumas. Si tienes cien eventos, anótalos, no importa. Lo importante es que seas honesto y sepas qué tienes que sanar.
+
+Y atención a esto: de esa lista, un evento a la vez, cada uno separado. No los vas a ver juntos para quitarlos de raíz. Empieza por la raíz, por lo más chiquito, los cinco, seis años, con mamá y con papá. Y los eventos leves también cuentan. Este no necesita ser fuerte: esto ya es un anclaje. En una sesión reprogramamos de cuatro a cinco eventos, aunque falta mucho más por sanar.
+
+Y cada evento es una imagen, no una película. Debemos tener un evento en específico. Si tenemos una película, van a quedar anclajes. Por ejemplo, cuando papá y mamá pelearon en la cocina y mamá rompió los platos: ese es un evento. Que luego él salió y se fueron de viaje y se pelearon: esos son otros eventos.
 
 Ahora, la técnica. Tiene pasos, y te los voy a decir en orden.
 
@@ -35,6 +41,10 @@ Paso ocho: luz y soplar la imagen. Das un paso atrás y sales de la imagen. Resp
 ¿Qué pasa neuronalmente? Esto es energía. Al aplicar la técnica recuperamos energía, seguridad, confianza, paz, tranquilidad. Y creamos nuevas redes neuronales, nuevas rutas, nuevos grupos neuronales. Por eso cambia la emoción y cambia el comportamiento.
 
 Algunas cosas importantes. Se trabaja un solo evento, una imagen específica. Un evento no soluciona todo, son varios. Si alguien te dice «yo no veo imagen», está en beta, pensando. Respira. Y si el sistema nervioso no deja entrar, esa persona necesita acompañamiento personalizado. Por eso, a veces sí o sí nos toca tener un reprogramador: uno cree que ya trabajó un evento y sigue vivo. Y esta técnica es un trabajo complementario: no es para personas con psicosis, disociación severa, estrés postraumático o crisis de salud mental. Los traumas, los ataques de pánico y las crisis se trabajan con un profesional o en terapia personalizada, no solo con el curso.
+
+Después de reprogramar, verifica con los ojos abiertos. Vuelve a cada imagen que trabajaste y pregunta: ¿dónde están las emociones negativas? ¿Están ahí o ya se fueron todas? Si quedan, se repite el ciclo. Y no confundas esto con una terapia de perdón y de soltar: si ya lo quitamos de raíz con la reprogramación es porque lo trabajamos, pero el perdón y el soltar no lo quitan del subconsciente. Si un recuerdo vuelve, quedó pendiente.
+
+Y cuando termines, descansa. Estamos quitando anclajes de años. Lo recomendable es quedarte tranquilo en casa, y no cargarte de cosas. Y si en medio del trabajo te distraes, recuerda que el sistema nervioso nos quiere proteger, y no quiere que quitemos esto de raíz. Por eso a veces nos distraemos.
 
 Te cuento por qué importa el observador. Cuando estás dentro de la imagen, estás en la arena, en medio del conflicto. Cuando subes, estás mirando. Y no es lo mismo estar en la arena que estar mirando. Desde ahí empiezas a ver a tu familia diferente, con más calma, con más empatía. Por eso salimos hacia arriba.
 

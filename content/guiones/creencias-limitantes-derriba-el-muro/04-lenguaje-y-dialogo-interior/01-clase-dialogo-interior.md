@@ -1,6 +1,6 @@
 # Clase · Lenguaje y diálogo interior
 
-Creencias limitantes: derriba el muro · Módulo 4 · 10-12 min
+Creencias limitantes: derriba el muro · Módulo 4 · 12-14 min
 
 Chicos, súper bienvenidos, muchísimas gracias por estar acá. Seguimos avanzando en este proceso de autoconocimiento y transformación a través de la programación neurolingüística. El tema de hoy es el lenguaje y el diálogo interior.
 
@@ -19,6 +19,10 @@ Por eso el paso número uno de hoy es identificar tu diálogo interno. Pero ojo:
 Te hago tres preguntas. Respóndelas muy real, muy honesto contigo, y escribe exactamente las palabras que te dices. Primera: ¿qué te dices cuando cometes un error? Segunda: ¿qué te dices cuando enfrentas un reto difícil? Tercera: ¿qué te dices a ti mismo cuando algo no sale como esperabas? Escribe lo que de verdad te dices.
 
 En clase, las respuestas son muy parecidas: «siempre me salen las cosas mal», «soy bruta, incapaz», «soy tonto, descuidado», «me merezco eso, me siento culpable», «no voy a ser capaz», «eso no está hecho para mí». Si las tuyas se parecen, no estás solo. Esto nos ayuda a salir de la zona de confort.
+
+Ahora toma una hoja y responde cuatro preguntas. Primera: ¿qué resultado no estás logrando? Por ejemplo: no estoy teniendo las ventas que quiero, no estoy logrando seguridad, confianza, no me estoy respetando. Segunda: ¿cuánto tiempo llevas intentándolo? Tercera: ¿qué haces cuando lo intentas? Si intentas vender y no se vende, ¿te quejas? ¿Te pones bravo? ¿Te acuestas a dormir? Escribe lo que haces. Y cuarta: ¿qué te dices y qué sientes? «Es que yo soy un fracasado, es que yo soy torpe, es que yo ya no sirvo para nada.»
+
+Sé muy auténtico. Lo que respondas va a ser parte de tu proceso para hacer la reprogramación. Porque los resultados que no estás logrando vienen de tu programación.
 
 Ahora, segundo paso: cómo te hace sentir esa frase. Para cada una, responde. ¿Cómo te hace sentir? ¿Te acerca a tus objetivos o te aleja? ¿Qué emoción genera en ti? ¿Qué reacciones y qué acciones realizas cuando te hablas de esa manera? Y reflexiona cómo ese lenguaje influye en tus resultados.
 
@@ -48,7 +52,9 @@ Ahora, una duda muy común: «Dayana, cuando me hablo positivo, no me lo creo».
 
 Posiblemente tienes muchos anclajes de que no eres capaz. Familia, personas te han dicho o te han etiquetado. Es tu mente la que te está incapacitando, y tu diálogo interno. Y el sistema nervioso quiere hacer todo lo que ya está en la programación. Por eso te dice: diga lo que quiera, que usted no se lo va a creer. La mente puede ser nuestra amiga o nuestra enemiga.
 
-¿Qué hacer? Evidencias. Pregúntate: ¿cuántas veces he hecho cosas que me creía incapaz y las logré? Anótalas. Es importante reprogramarnos, invertir en nosotros, pero el diálogo interno sí o sí influye mucho en que mejores y salgas de ahí.
+¿Qué hacer? Evidencias. Pregúntate: ¿cuántas veces he hecho cosas que me creía incapaz y las logré? Anótalas.
+
+Ahora, una pregunta más: ¿tu realidad confirma lo que te dices? Si dices «soy millonaria» o «soy disciplinada», ¿en realidad tu cuenta está facturando? ¿En realidad tu meta está con una disciplina full? Puede haber incongruencia. Y la incongruencia es la programación. La mente puede decir «hagamos las afirmaciones, súper positivo», pero acá tenemos que ir más allá. Si hay días en que te sientes de caída, enfócate en los programas que tienes pendientes por sanar, en lo que tienes pendiente por reprogramar. ¿Qué está impidiendo que seas tu mejor versión? Es importante reprogramarnos, invertir en nosotros, pero el diálogo interno sí o sí influye mucho en que mejores y salgas de ahí.
 
 Un paso más. Esas frases, grábalas en tu voz como audio: yo soy capaz, yo soy fuerte, yo soy valiente. Y escúchalas todas las noches. Yo recomiendo hacer primero la reprogramación, y después el audio, porque eso te va a potencializar.
 

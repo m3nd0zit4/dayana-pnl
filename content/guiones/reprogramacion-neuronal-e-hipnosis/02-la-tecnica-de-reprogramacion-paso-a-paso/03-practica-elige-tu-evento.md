@@ -1,6 +1,6 @@
 # Práctica · Elige tu evento
 
-Reprogramación neuronal e hipnosis · Módulo 2 · 6-8 min
+Reprogramación neuronal e hipnosis · Módulo 2 · 7-9 min
 
 Hola, chicos. Antes de hacer una reprogramación necesitamos tener claro algo: ¿qué evento voy a reprogramar? Y hoy vamos a practicar eso, solo eso. Ubicar tu línea del pasado y escoger una sola imagen.
 
@@ -42,6 +42,12 @@ Y fíjate cómo te hablas. Si tu diálogo interno dice «no puedo, no soy capaz,
 
 Y si hoy no se te da, no te frustres. Vas a tener varios eventos. Un evento no soluciona todo. Son varios los que tenemos que reprogramar. Empieza por uno. Y si tienes de niño y de adulto, empieza por el de niño, porque lo que pasa en la niñez deja una programación que hoy está activa.
 
-Cuando tengas tu evento elegido, ya estás listo para escuchar el audio guiado. Nos vemos allá.
+Ahora, arma tu lista. En tu cuaderno, anota todos los eventos que recuerdes, uno por uno, sin resumir. Si tienes cien, anótalos. Por cada uno escribe cuándo fue, dónde, qué edad tenías, y qué viste, qué escuchaste y qué sentiste. Empieza por los más chiquitos, la raíz: los cinco, seis años, con mamá y con papá. Y no descartes los leves. Un evento no necesita ser fuerte para dejar un anclaje. Para una sesión escoge de cuatro a cinco.
+
+Y recuerda la regla: cada evento es una imagen, no una película. Si en tu mente aparece toda la historia, quédate con una escena, en un solo lugar. Si tenemos una película, van a quedar anclajes. Los demás eventos los trabajas por separado, uno a la vez.
+
+Y una aclaración. Perdonar y soltar no es lo mismo que reprogramar. Si un recuerdo te vuelve con la misma carga, es que quedó pendiente. Anótalo en tu lista.
+
+Cuando tengas tu evento elegido, ya estás listo para escuchar el audio guiado. Y después de escucharlo, descansa: quédate tranquilo en casa. Nos vemos allá.
 
 Sigamos creciendo juntos. Bendiciones.

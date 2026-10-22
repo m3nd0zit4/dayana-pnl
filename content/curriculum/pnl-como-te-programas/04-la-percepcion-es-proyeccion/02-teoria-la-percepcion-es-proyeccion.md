@@ -103,6 +103,26 @@ Dayana responde que **depende**. A veces la persona es un reflejo directo, como 
 ### Cómo se aplica
 Despierta más el observador y escucha tu diálogo interno. Dayana lo resume: salir del piloto automático del corre-corre del día a día y tener más presencia, más tranquilidad y más respiración.
 
+## Lo que atraes repite tu programación
+
+### Qué significa
+**Atraer** es que las personas y las situaciones que llegan a tu vida repiten lo que ya hay en tu información neuronal. **Patrón** es lo que se repite una y otra vez. **Maestro o maestra** es la persona que te incomoda y viene a mostrarte lo que tienes por sanar.
+
+### El soporte teórico
+Dayana lo dice así: toda la programación que tenemos en la mente subconsciente es la que la vida va a mostrar una y otra vez. Cuando te preguntas «¿por qué se parece a mi mamá?», «¿por qué se parece a mi papá?», «¿por qué siempre me pasa lo mismo con las personas?», la respuesta es: *me pasa esto porque la vida viene a mostrar lo que tienes que sanar.* Tus filtros de información traen más de lo mismo; si no sanas lo que hay adentro, lo vas a atraer, atraer y atraer.
+
+Por eso la persona que te hace rabiar o te incomoda es tu maestro o tu maestra: viene a mostrarte lo que tienes por sanar con tus hermanos, con tu mamá, con tu papá o con lo que tengas de tu familia. No viene a hacerte daño: viene a que sanes y construyas tu mejor versión.
+
+### Ejemplos que lo desglosan
+- **El patrón que se repite.** Imagina a alguien que te trata súper bien y después te humilla o te engaña. Decides dejarlo y buscas a otra persona, pero se va a repetir el patrón, porque es tu programación la que hace que atraigas a ese tipo de persona. Y si miras tu pasado, quizá encuentres quién te trató así por primera vez.
+- **Alejarse.** «Yo mejor no les hablo, yo mejor me alejo.» Te puedes alejar, pero tu energía, tu frecuencia y tu vibración son las que atraen. Si solo te alejas, te tocaría empezar de cero con cada persona nueva, porque van a llegar otras que te van a mostrar lo que tienes que sanar.
+
+### Cómo se aplica
+- Alejarte o poner un recuadro está bien, pero Dayana lo dice claro: **el deber ser es sanar.**
+- Identifica qué hace que traigas este tipo de personas y qué anclajes te están mostrando.
+- Anota todos los momentos en que, con esa persona o con tu familia, te sentiste criticada, minimizada o no suficiente: *cuándo, dónde y en qué momento.* Empieza por los más de raíz, los primeros.
+- Si no puedes con todo a la vez, ve por partes: hay terapias y otros espacios para seguir con el resto.
+
 ## Qué pasa cuando lo entiendes
 
 ### Qué significa
@@ -128,3 +148,5 @@ Dos personas se enfrentan con ego: ese choque es una vibración baja, e impide e
 4. ¿Qué admiro de otros y todavía no he desarrollado en mí?
 5. ¿Qué enseñanza y qué aprendizaje me trae esta situación?
 6. ¿Cómo puedo decir lo que no me gusta hablando de lo que siento?
+7. ¿Qué patrón se me repite con las personas, y qué me viene a mostrar para sanar?
+8. ¿A quién tengo como maestro o maestra sin haberlo visto así hasta hoy?

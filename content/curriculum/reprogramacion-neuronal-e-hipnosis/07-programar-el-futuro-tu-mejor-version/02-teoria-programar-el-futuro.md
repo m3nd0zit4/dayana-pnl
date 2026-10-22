@@ -90,7 +90,7 @@ Dayana usa tu meta escrita con SMART para programarla como ya lograda. Pasos de 
 3. Flotar hacia arriba y bajar a la fecha final de tu meta. Mirar abajo la imagen: tú, con todos esos clientes realizados.
 4. Ponerle color, luz, brillo y sonido. Entrar como si fuese ahora.
 5. Sentir que la meta ya es realidad, a totalidad: mirar a los clientes, ver cómo llega el dinero, cómo te agradecen, cómo te admiran, cómo te respetan.
-6. Salir y mirar todo lo que tienes que hacer para que esa meta se haga realidad: llamadas, publicidad, videos. Compromiso, disciplina, enfoque.
+6. Salir de la imagen, tomarla como un cuadro con las dos manos y traerla flotando al presente. Ponerla en tu regazo y darle los cuatro soplos de vida, con fe, enfoque y energía. Volver a la fecha de tu meta cumplida, soltar la imagen y dar un «yes» o un aplauso: eso deja un anclaje. Y al regresar, mirar abajo todo lo que tienes que hacer para que la meta se haga realidad: llamadas, publicidad, videos. Compromiso, disciplina, enfoque.
 7. Bajar y visualizarte con la mejor prenda, en una playa, caminando, entrando al mar. O subirte a tu vehículo, manejando por la playa, sintiendo libertad.
 8. Sentarte en un restaurante muy fino y sentir cómo te atienden, como un merecedor de abundancia, de plenitud.
 9. Contar tres y abrir los ojos.

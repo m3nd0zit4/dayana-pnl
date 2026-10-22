@@ -1,6 +1,6 @@
 # Clase · Qué es una creencia y de dónde nace
 
-Creencias limitantes: derriba el muro · Módulo 1 · 10-12 min
+Creencias limitantes: derriba el muro · Módulo 1 · 12-14 min
 
 Chicos, súper bienvenidos, muchísimas gracias por estar aquí. Hoy empezamos un curso muy especial, y empezamos por lo primero: entender qué es una creencia limitante y de dónde nace.
 
@@ -37,6 +37,10 @@ Auditivo: si yo vengo escuchando «wow, qué inteligente eres, qué capaz, qué 
 Kinestésico: si recibí abrazos, tengo una programación de ser especial. Pero si papá no me abrazó, si mamá no me abrazó, si las parejas que tuve me rechazaron, eso genera una programación kinestésica de rechazo.
 
 Cuando eso entra y se repite, las neuronas se juntan. Eso es la sinapsis. Se forma un patrón neuronal, y cada experiencia con mucha emoción queda como un anclaje. Por eso, cuando miras la historia de tu vida y te vas a la línea del pasado, puedes encontrar anclajes de dolor, de abandono, de maltrato, de queja.
+
+Y fíjate cómo se forma la repetición, que es la clave. Ese hábito que tienes de tomarte el tintico en la mañana, fue programado. ¿De dónde sacaste que te tienes que tomar un tintico en la mañana? Yo vengo de una familia de pueblo, del campo, donde mi tía nos sentaba junto a la leña a tomar tintico. Después, en la ciudad, mi mamá siempre con tintico. A mí me gusta el tinto porque fui programada para tomar tinto en la mañana. Eso es un hábito.
+
+¿Y qué es un patrón? Repetir, repetir, repetir, repetir. Los hábitos nacen en tu mente subconsciente por medio de los patrones. Si llevas años hablando de lo mismo, quejándote de lo mismo, eso es un patrón. Y cuando repites una emoción por años, se convierte en un anclaje neuronal. La buena noticia es que lo que se repitió, se puede reprogramar.
 
 Te cuento un ejemplo mío. Yo tenía la creencia de que era bruta, porque mis hermanos me decían: usted es bruta. Un día, yo tenía como diez u once años, mi papá me pidió que hiciera maíz. Yo no sabía cocinar, porque no me había criado mi mamá, me criaron mi tía y mi abuelo. Cogí la olla temblando, la prendí, y la cocina se llenó de humo. No sabía que había que echarle aceite.
 

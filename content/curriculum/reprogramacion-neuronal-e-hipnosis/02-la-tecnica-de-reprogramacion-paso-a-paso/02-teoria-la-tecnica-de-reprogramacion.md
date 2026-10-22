@@ -77,6 +77,42 @@ La especificidad. Dayana pide que la persona diga qué siente, porque la mente g
 ### Cómo se aplica
 Al comienzo, reprograma estas emociones «cabeceras». Son la fórmula: abarcan la ira, la rabia, el enojo. Si no, tocaría reprogramar cada una. Esas son como la raíz.
 
+## Armar tu lista de eventos
+
+### Qué significa
+- **Lista de eventos:** la hoja donde escribes los eventos de tu pasado con dolor, abandono, rechazo, maltrato o etiqueta. Es lo que vas a reprogramar.
+- **Raíz:** el evento más chiquito, el primero: los 5 o 6 años, con mamá y con papá.
+
+### El soporte teórico
+Dayana pide hacer una introspección: tú sabes tu vida, tú sabes cuándo empezaste a sentir ese vacío. Cada evento es una imagen, una representación interna, y entró por lo que viste, escuchaste y sentiste. Por eso, por cada evento se escribe cuándo, dónde, qué edad tenías y qué viste, qué escuchaste y qué sentiste.
+
+Las reglas que ella da:
+1. **Anótalos todos, sin resumir.** «No se pueden quedar solo con tres eventos, enumeren lo más que se pueda.» «Si tienen 100 eventos, anótenlos, no importa.» Lo importante es ser honestos y saber qué hay que sanar.
+2. **Uno a la vez, separados.** Cada evento es una imagen distinta. «No los vas a ver al tiempo para quitarlo de raíz.»
+3. **La raíz primero.** Empieza por los más chiquitos, los de la niñez, con mamá y con papá: ellos programaron neuronalmente el rechazo o el abandono que se repite después.
+4. **Los eventos leves también cuentan.** «Este no necesita ser fuerte. Esto ya es un anclaje.» No tiene que ser traumático: sentirte rechazada, triste o sola ya deja un anclaje.
+5. **De cuatro a cinco por sesión.** No quiere decir que solo tengas cuatro o cinco: falta mucho más por sanar.
+
+### Ejemplos que lo desglosan
+- Una pregunta para encontrar el primero: «¿Cuándo y dónde fue la primera vez que sentiste este abandono en tu interior? ¿Qué viste, qué escuchaste?»
+
+### Cómo se aplica
+En tu cuaderno haz una lista numerada. Al lado de cada evento: cuándo, dónde, con quién, qué edad tenías, qué viste, qué escuchaste, qué sentiste. No la resumas.
+
+## Un solo evento: una imagen, no una película
+
+### Qué significa
+**Evento único:** una escena, en un solo lugar. Una imagen, no una película.
+
+### El soporte teórico
+Dayana lo repite en cada reprogramación: «debemos de tener un evento en específico. No podemos ver una película». Y la razón: «si tenemos una película, van a quedar anclajes». Si varios recuerdos apuntan a lo mismo, se escoge uno y los demás se trabajan después, uno por uno, en orden.
+
+### Ejemplos que lo desglosan
+Cuando papá y mamá pelearon en la cocina y mamá rompió los platos: ese es un evento. Que luego él salió y ella lo siguió, que después se pelearon de viaje: son otros eventos, cada uno con su imagen.
+
+### Cómo se aplica
+Antes de cerrar los ojos pregúntate: ¿esta imagen es una sola escena y un solo lugar?
+
 ## Paso 1 · Respirar
 
 ### Qué significa
@@ -183,6 +219,8 @@ Bajas y entras a la imagen. Debes verificar que las emociones negativas ya no es
 ### Ejemplos que lo desglosan
 Dayana pregunta, con las cámaras prendidas: «¿sientes emociones negativas dentro de esta imagen? Mueve la cabecita si no».
 
+**Verificación al final, con los ojos abiertos.** Cuando terminas varios eventos, vuelves a cada imagen con los ojos abiertos y preguntas: «¿dónde están las emociones negativas? ¿Están ahí o ya se fueron todas?». Se hace imagen por imagen. Si quedan emociones, se repite el ciclo.
+
 ### Cómo se aplica
 Repite hasta que no quede ninguna. Y no cortes por tiempo: sigue hasta que quede bien.
 
@@ -201,6 +239,25 @@ Hay una variante que ella también usa: poner la imagen al frente en blanco y ne
 
 ### Cómo se aplica
 Termina con la pregunta de cómo te sientes. Y recuerda: neuronalmente recuperamos energía, seguridad, confianza, paz, tranquilidad.
+
+## Perdón y soltar frente a reprogramar
+
+### Qué significa
+- **Reprogramar** quita la emoción de raíz; **perdonar y soltar** es otra terapia, que no quita el anclaje del subconsciente.
+
+### El soporte teórico
+Dayana lo dice así: «Si ya lo hemos quitado de raíz con la reprogramación es porque lo trabajamos. Pero si es una terapia de perdón y de soltar, esto no está quitado del subconsciente.» Por eso, si un recuerdo vuelve y sigue doliendo, es señal de que quedó pendiente.
+
+### Cómo se aplica
+Si un recuerdo vuelve con la misma carga, anótalo otra vez y reprográmalo con la técnica.
+
+## Después de reprogramar
+
+### El soporte teórico
+Estamos quitando anclajes de emociones de años, algo fuerte. Por eso, después de reprogramar lo recomendable es descansar, quedarte tranquilo en casa. Y si en medio del trabajo notas que te distraes, recuerda lo que dice ella: «el sistema nervioso nos quiere proteger y él no quiere que quitemos esto de raíz. Por eso es que a veces nos distraemos».
+
+### Cómo se aplica
+Después, date un rato tranquilo en casa. Si algo quedó muy fuerte, busca acompañamiento profesional.
 
 ## Lo que pasa en el cerebro y cuándo pedir ayuda
 

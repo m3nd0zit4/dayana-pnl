@@ -1,6 +1,6 @@
 # Clase · Mente, cerebro y el observador
 
-Programación Neurolingüística: cómo te programas · Módulo 2 · 10-12 min
+Programación Neurolingüística: cómo te programas · Módulo 2 · 11-13 min
 
 Hola, chicos, bienvenidos. Hoy vamos a distinguir cuatro cosas que muchas veces se mezclan: la mente, el cerebro, la mente consciente y la conciencia. Y vamos a conocer a alguien muy importante: el observador.
 
@@ -18,6 +18,8 @@ Sigamos con la mente consciente. La mente consciente es la parte lógica, analí
 
 Pero ojo, que la mente consciente es solo una parte de tu mente. Por debajo está la mente subconsciente, donde viven tus hábitos, tus creencias, tus valores y tus emociones. Y por encima de todo, hay algo más.
 
+A la mente consciente yo la llamo la guardiana de la mente subconsciente. Es la mejor amiga del sistema nervioso, y su función es que no entremos al subconsciente, que no veamos lo que hay ahí. Por eso, cuando miras adentro, ella analiza, razona y distorsiona la información: «lógicamente, analizo y no veo nada». Para reprogramar, hay que silenciar el análisis y el razonar, y despertar al observador. Relájate, maneja tu respiración y baja tu sistema nervioso.
+
 Vamos a la conciencia. Existen dos. La primera es la conciencia interna local. Es la que te muestra que estás aquí, presente. Yo sé cómo estoy, dónde estoy y qué estoy haciendo. Yo soy consciente de que tengo una blusa y un saco, porque estoy aquí conscientemente. Con esta conciencia sabes qué pensamiento tienes, qué emoción sientes y cuál es tu expresión fisiológica.
 
 La segunda es la conciencia externa, o no local. Es el observador. El omnisciente, el omnipotente, el omnipresente, el todo. Es ilimitado. Está como el aire: está allá y está acá.
@@ -30,7 +32,9 @@ Ahora, ¿por qué hay que despertarlo? Porque nuestra mente es limitada. Mira: c
 
 La conciencia interna es la que se conecta con la externa. Y ahí se desarrolla la fe, la esperanza, la certeza y el amor. Por eso la idea de este curso es que tengas un despertar de conciencia. Y despertar es dejar de mirar afuera para mirar adentro.
 
-Aquí entra el ego. El ego quiere tener el control, quiere ganar, quiere tener la razón. Y el ego es el enemigo de la conciencia externa. Está bien usar la mente consciente para los números o para escoger una ruta. Pero las respuestas están adentro. Lo importante es que dejes de mirar afuera, sueltes el control y te permitas entrar a tu interior.
+Aquí entra el ego. El ego quiere tener el control, quiere ganar, quiere tener la razón. Y el ego es el enemigo de la conciencia externa.
+
+Pero el ego no es malo en todo. Hay un ego bueno: logras una meta, el ego te dice «mira, lo lograste», y tú reconoces con autenticidad que no sabes más que los demás, que sigues aprendiendo y que esto es un proceso. Ese ego está conectado con el todo: avanza, ayuda, sostiene. Y hay un ego malo: el que quiere ser mejor que el otro, competir, ganar, humillar, opacar. Ese viene de la envidia, de lo que nos dijeron papá y mamá. Si te pasa, no está mal, es parte de tu aprendizaje. Y recuerda: tú no eres tu resultado, tú no eres tu dinero y tú no eres tu meta. Eres parte del todo. Está bien usar la mente consciente para los números o para escoger una ruta. Pero las respuestas están adentro. Lo importante es que dejes de mirar afuera, sueltes el control y te permitas entrar a tu interior.
 
 Y entender también las polaridades. No necesariamente lo malo es malo, ni lo bueno es bueno. Las polaridades tienen que existir. Imagínate comiendo banquete todos los días: la necesidad es la que genera el impulso. Lo que estás pasando tiene que pasar para que tengas una enseñanza y un aprendizaje. Tú y yo somos creadores y cocreadores de nuestra propia realidad.
 

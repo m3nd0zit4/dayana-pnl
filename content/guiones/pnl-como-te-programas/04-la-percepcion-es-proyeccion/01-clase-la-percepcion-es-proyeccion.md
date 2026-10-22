@@ -1,6 +1,6 @@
 # Clase · La percepción es proyección
 
-Programación Neurolingüística: cómo te programas · Módulo 4 · 10-12 min
+Programación Neurolingüística: cómo te programas · Módulo 4 · 11-13 min
 
 Hola, chicos, bienvenidos. Hoy vamos a ver la ley de la percepción es proyección. Es una clase muy poderosa, porque hace que quitemos mucha chatarra mental. Ten tu cuadernito a la mano.
 
@@ -41,6 +41,12 @@ Y quiero contarte lo que me pasó a mí, para que veas que esto es de verdad. Fu
 Ahora, ¿es lo mismo que la ley del espejo? Depende. Si la persona es un reflejo directo, como la cajera, es un espejo. Pero si otra persona llega y te utiliza o te maltrata, y tú no eres así, te está mostrando un elemento de alguien que te hizo eso antes: tu papá, tu mamá, tus primas, tus tíos. Ahí es despertar más el observador, ese diálogo interno.
 
 Y esto aplica a todas las personas: pareja, familia, jefes, amigos, vecinos, el supermercado.
+
+Fíjate algo más. Lo que atraes repite tu programación. Toda la programación que tienes en tu mente subconsciente es la que la vida va a mostrar una y otra vez. Y cuando te preguntas: ¿por qué se parece a mi mamá? ¿Por qué se parece a mi papá? ¿Por qué siempre me pasa lo mismo? La respuesta es esta: me pasa esto porque la vida viene a mostrar lo que tengo que sanar.
+
+Imagina a alguien que te trata súper bien y después te humilla, te engaña. Dices: lo voy a dejar y voy a conseguir otro. Pero se va a repetir el patrón. Porque es tu programación la que hace que atraigas a esa persona.
+
+Por eso, la persona que te hace rabiar, la que te incomoda, es tu maestro o tu maestra. Viene a mostrarte lo que tienes por sanar. Alejarte está bien, puedes hacerlo. Pero el deber ser es sanar: identificar qué hace que traigas este tipo de personas y qué anclajes te están mostrando. Si solo te alejas, van a llegar otras personas que te van a mostrar lo mismo. Y ellos vienen a que sanes, a que construyas tu mejor versión.
 
 Ahora te enseño cómo decirlo sin pelear. Habla de lo que sientes, no de la culpa del otro. Por ejemplo: no me gusta cómo me hablas porque me haces sentir rabia. Y no: tú siempre me quieres culpar. Mira la diferencia. O: tus comportamientos de tirar las puertas duro me hacen sentir miedo. Eso nos evita problemas en redes y discusiones.
 

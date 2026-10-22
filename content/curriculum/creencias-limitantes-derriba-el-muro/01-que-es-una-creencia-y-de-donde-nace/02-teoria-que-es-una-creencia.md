@@ -76,6 +76,25 @@ Y cuando una creencia se repite mucho, Dayana explica que el patrón neuronal se
 ### Cómo se aplica
 Observa cómo te programaron: ¿qué viste, qué escuchaste y qué sentiste? Haz tres columnas en tu cuaderno, una por cada filtro, y escribe lo que recuerdes de tu historia. Dayana lo resume: lo que tú ves, escuchas y sientes por medio de estos filtros se programa.
 
+## Hábitos y patrones: cómo la repetición se vuelve anclaje
+
+### Qué significa
+- **Hábito:** lo que haces o piensas de forma automática; vive en tu mente subconsciente, junto con tus creencias, tus emociones y tus valores.
+- **Patrón:** Dayana lo define con una pregunta: *¿qué es un patrón? Repetir, repetir, repetir, repetir.*
+- **Anclaje neuronal:** lo que queda cuando una emoción se repite una y otra vez.
+
+### El soporte teórico
+Los hábitos nacen en tu mente subconsciente por medio de los patrones, y un hábito **se programa**: nadie nace con él, se aprende por lo que ves, escuchas y sientes en tu entorno. Por eso Dayana pregunta de dónde sacaste ese hábito. Y cuando lo que repites es una emoción, esa repetición deja un anclaje neuronal. Los grupos neuronales que se forman sostienen emociones como la cólera, la tristeza, el miedo, el dolor, la culpa y la ansiedad.
+
+### Ejemplos que lo desglosan
+- **El tintico de la mañana.** «Ese hábito que usted tiene de tomarse el tintico en la mañana fue programado.» ¿De dónde sacaste que te tienes que tomar un tintico en la mañana? Quizá de la abuelita. Dayana viene de una familia de pueblo, del campo, donde su tía los sentaba junto a la leña a tomar tintico; después, en la ciudad, su mamá siempre con tintico, y su papá con un espresso. Le gusta el tinto porque fue programada para tomar tinto en la mañana.
+- **Otros hábitos.** Si te dijeron «mi hijita, está cansada, acuéstese a dormir», te programan el hábito de estar durmiendo o de estar quieto. Y también el hábito de esperar, de quejarse, de llorar.
+- **Hablar de lo mismo.** Si llevas años hablando de lo mismo y quejándote de lo mismo, eso es un patrón: repetir. Repetir una emoción negativa por años se convierte en un anclaje neuronal.
+- **Del patrón a la generalización.** Alguien con un anclaje emocional negativo de un divorcio puede generalizar: «no quiero saber nada de matrimonios». Con una mala inversión, elimina: «no quiero saber nada de eso», aunque le expliquen que esto es diferente. Ahí se ve lo que generalizamos y lo que eliminamos, basado en los anclajes.
+
+### Cómo se aplica
+Escoge un hábito tuyo, bueno o no, y pregúntate: ¿de dónde lo saqué? ¿Quién lo hacía? ¿Qué vi, qué escuché y qué sentí cuando lo aprendí? Después revisa qué llevas años repitiendo: ¿de qué hablas siempre?, ¿de qué te quejas siempre? Eso es un patrón, y lo que se repitió se puede reprogramar.
+
 ## Los contextos de las creencias limitantes
 
 ### Qué significa
@@ -141,3 +160,4 @@ Una nota de seguridad: este curso es de aprendizaje y autoconocimiento. Si lo qu
 4. ¿Esa decisión fue consciente? ¿Sigue siendo válida hoy?
 5. ¿Me está ayudando o me está limitando?
 6. ¿Qué necesito transformar y qué necesito cerrar?
+7. ¿Qué hábito tengo que fue programado, y qué llevo años repitiendo?

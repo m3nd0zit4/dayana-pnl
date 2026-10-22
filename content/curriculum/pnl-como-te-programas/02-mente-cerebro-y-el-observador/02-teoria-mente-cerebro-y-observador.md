@@ -48,13 +48,16 @@ Distingue: lo que tocas es el cerebro; lo que piensas y sientes es la mente. Tu 
 ### El soporte teórico
 Es solo una parte de la mente; la mente subconsciente guarda los hábitos, las creencias, los valores y las emociones. La mente consciente sirve para los números, las estadísticas, las reglas y para organizarte. Dayana aclara: es buena para analizar y progresar, pero no para comparar. Para reprogramar hay que entrar sin ponerle lógica.
 
+Dayana la llama la **guardiana** de la mente subconsciente. Es la mente lógica, analítica, racional y pensante, y es la mejor amiga del sistema nervioso: ella no quiere que entremos al subconsciente, donde está el programa. Por eso, cuando alguien intenta mirar adentro, la guardiana analiza, razona y distorsiona la información, y la persona dice «no veo nada» o «no recuerdo». Lo que hay que hacer es silenciar el análisis y el razonar, dormir esa mente, y despertar al observador. Escuchar en forma solo lógica, analítica y razonada no enseña cómo entrar al subconsciente.
+
 ### Ejemplos que lo desglosan
 - «Lógicamente, si me hacen daño, ¿cómo no me voy a poner bravo?»: lógica con ego.
 - No pasarse el semáforo en rojo, llegar puntual a clase, grabar la clase.
 - Ahorita, mientras lees, estás con la parte consciente: analizando.
+- «Lógicamente, analizo y no veo nada. Lógicamente, razono y no encuentro nada»: así suena la guardiana cuando no deja entrar.
 
 ### Cómo se aplica
-Usa la lógica para organizar y la conciencia para sanar. Cuando una persona dice «no veo nada» al visualizar, Dayana dice que está en la mente lógica.
+Usa la lógica para organizar y la conciencia para sanar. Cuando una persona dice «no veo nada» al visualizar, Dayana dice que está en la mente lógica. Para entrar, relájate, maneja la respiración, baja el sistema nervioso y deja que la guardiana descanse: silencia el análisis y despierta al observador.
 
 ## Conciencia interna local y conciencia externa
 
@@ -76,17 +79,20 @@ Para sentirlo, sal de la mente y sube a ver el evento desde arriba: observa y mi
 ## Mente limitada, ego y despertar de conciencia
 
 ### Qué significa
-**Mente limitada:** tu mente solo alcanza un pedacito. **Despertar de conciencia:** dejar de mirar afuera y mirar adentro. **Ego:** quiere el control, ganar y tener la razón.
+**Mente limitada:** tu mente solo alcanza un pedacito. **Despertar de conciencia:** dejar de mirar afuera y mirar adentro. **Ego:** quiere el control, ganar y tener la razón. Dayana distingue un **ego bueno** y un **ego malo**.
 
 ### El soporte teórico
 La mente puede imaginarte comiendo palomitas en el cine y sentir la emoción, pero no estás ahí. La conciencia no local abarca el mundo entero. El ego es el enemigo de la conciencia externa. La mente consciente sirve para los números o para escoger una ruta, pero las respuestas están adentro: *el poder de Dios está dentro de ti.* El despertar suele llegar cuando ya no te sientes cómodo o hay mucho dolor. Soltar el control permite que la mente se calme y puedas observar tu interior.
 
+Pero el ego no es malo en todo. El **ego bueno** es el que, cuando logras un propósito o una meta, te hace sentir bien y reconoce, con autenticidad y transparencia, que no sabes más que los demás, que sigues aprendiendo y que esto es un proceso. Es el ego conectado con el todo: avanza, ayuda y sostiene. El **ego malo** es el que quiere ser mejor que el otro, competir, ganar, humillar u opacar; viene de la envidia y de voces como «usted tiene que ser mejor que el de allá» o «usted es un fracasado», que vienen de lo que nos dijeron papá y mamá. Si te pasa, no está mal: es parte de tu aprendizaje y de tu programación. Y recuerda: tú no eres tu resultado, tú no eres tu dinero y tú no eres tu meta; eres parte del todo.
+
 ### Ejemplos que lo desglosan
 - **Polaridades:** lo malo no es necesariamente malo ni lo bueno necesariamente bueno. Si comieras banquete todos los días, la necesidad no generaría impulso. *Lo que estás pasando tiene que pasar para que tengas una enseñanza y un aprendizaje.*
 - Tú y yo somos creadores y cocreadores de nuestra propia realidad.
+- *Dos egos:* logras una meta y te sientes bien, pero sabes que debes seguir aprendiendo (ego bueno); o sientes que tienes que ser mejor que el de allá y superarlo (ego malo).
 
 ### Cómo se aplica
-Pregúntate: ¿en qué quiero tener el control? ¿Dónde estoy mirando afuera? Entra a tus emociones para encontrar la raíz.
+Pregúntate: ¿en qué quiero tener el control? ¿Dónde estoy mirando afuera? ¿Mi ego de hoy está conectado con el todo y me hace avanzar y ayudar, o quiere competir y tener la razón? Entra a tus emociones para encontrar la raíz.
 
 ## La fórmula del empoderamiento: causa y efecto
 
@@ -129,3 +135,4 @@ Haz el audio por partes: por ejemplo, cuatro años por semana. Anota los eventos
 4. ¿Qué hay que reprogramar en mi vida? ¿Qué hay que sanar? ¿Qué hay que cambiar?
 5. ¿Estoy en causa o en efecto? ¿Qué acción puedo tomar hoy?
 6. ¿Cuánto tiempo llevo con la misma excusa?
+7. ¿Cuándo mi ego me ayuda a avanzar y cuándo me hace competir o querer tener la razón?

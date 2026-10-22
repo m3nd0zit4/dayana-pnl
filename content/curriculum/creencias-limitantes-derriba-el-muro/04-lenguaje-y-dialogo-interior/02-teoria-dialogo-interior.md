@@ -56,6 +56,29 @@ Frases que aparecieron: «siempre me salen las cosas mal», «soy bruta, incapaz
 ### Cómo se aplica
 Escribe tus tres respuestas, textuales.
 
+## La hoja de cuatro preguntas
+
+### Qué significa
+Es una **hoja** con cuatro preguntas para entrar a tu interior y ver qué te impide lograr lo que quieres. Dayana la pide con un propósito: despertar de conciencia, mirar adentro y responderte a ti, no al vecino.
+
+### El soporte teórico
+Dayana explica que los resultados que no estás logrando vienen de tu programación. Por eso la hoja pregunta, en este orden:
+
+1. **¿Qué resultado no estás logrando?**
+2. **¿Cuánto tiempo llevas intentándolo?**
+3. **¿Qué haces cuando lo intentas?**
+4. **¿Qué te dices y qué sientes?**
+
+Dayana pide algo importante: **sé muy auténtico**, porque lo que respondas va a ser parte de tu proceso para hacer la reprogramación. Y es muy importante saber qué sientes.
+
+### Ejemplos que lo desglosan
+- *Resultado que no logras:* «no estoy teniendo las ventas que quiero», «no estoy logrando seguridad, confianza, empatía, no me estoy respetando», «siempre me estoy hablando mal, constantemente estoy muy negativa». Puede ser también una meta: ¿cuánto llevas intentando tener autoestima?
+- *Qué haces cuando lo intentas:* si intentas vender y no se vende, ¿qué haces? ¿Te quejas? ¿Te pones bravo? ¿Te acuestas a dormir? ¿Gastas la plata tomando? Escribe lo que haces.
+- *Qué te dices:* «es que yo soy un fracasado», «es que yo soy torpe», «es que yo ya no sirvo para nada». Y qué sientes mientras te lo dices.
+
+### Cómo se aplica
+Toma una hoja y responde las cuatro preguntas con las mismas palabras que usas por dentro, sin adornarlas. Lo que escribas en la tercera y la cuarta es tu diálogo interno en acción: ya sabes qué te dices y qué haces, y desde ahí se sigue con la cadena de frase, emoción, acción y resultado.
+
 ## De la frase al resultado
 
 ### Qué significa
@@ -140,6 +163,22 @@ Dayana pregunta: ¿cuántas veces ha hecho cosas que se creía incapaz y las log
 ### Cómo se aplica
 Escribe tres evidencias de que sí eres capaz. Sigue repitiendo tus frases. Y recuerda: es importante reprogramarte e invertir en ti. Si lo que aparece son traumas, ataques de pánico o una crisis, eso se trabaja con un profesional o en terapia personalizada, no solo con el curso.
 
+## Congruencia: ¿la realidad confirma tu frase?
+
+### Qué significa
+**Congruencia** es que lo que dices de ti coincide con lo que vive tu realidad. **Incongruencia** es que no coincide.
+
+### El soporte teórico
+Dayana lo plantea como una pregunta: si dices «soy millonaria» o «soy disciplinada», ¿la realidad lo confirma? Puede haber incongruencia, y *la incongruencia es la programación.* La mente puede decir «hagamos las afirmaciones, súper positivo», pero hay que ir más allá: no basta con decirte una frase si debajo hay programas pendientes por sanar. Esto se une con lo que viste en «cuando me hablo positivo y no me lo creo»: la frase potenciadora necesita evidencias y el evento donde sentiste lo contrario, para que no quede solo en una afirmación.
+
+### Ejemplos que lo desglosan
+- «Soy millonaria»: ¿en realidad mi cuenta está facturando, o solo quiero serlo?
+- «Soy disciplinada»: ¿en realidad tu meta está con una disciplina full?
+- Si hay días en que te sientes de caída, no es para juzgarte: es una señal de que hay programas pendientes por reprogramar.
+
+### Cómo se aplica
+Después de escribir una frase potenciadora, pregúntate: ¿mi realidad de hoy lo confirma? Si no, no la abandones ni te pelees contigo: enfócate en los programas que tienes pendientes por sanar. ¿Qué está impidiendo que seas tu mejor persona? ¿Cómo te sientes en términos de emociones? Escribe ese evento y llévalo a reprogramar.
+
 ## Del diálogo interno a la creencia
 
 ### Qué significa
@@ -162,3 +201,5 @@ Elige una frase limitante, escribe su contraria, y define una acción pequeña q
 4. ¿Cómo me hace sentir esa frase? ¿Me acerca o me aleja de mis objetivos?
 5. ¿Qué consejo le daría a otra persona que se dijera lo mismo?
 6. ¿Cómo se siente leer mi diálogo potenciador?
+7. ¿Qué resultado no estoy logrando, cuánto llevo intentándolo y qué hago cuando lo intento?
+8. Si me digo una frase potenciadora, ¿mi realidad la confirma o hay incongruencia?
