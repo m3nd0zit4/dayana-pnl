@@ -35,6 +35,8 @@ export type SeriousInput = {
   stage: string | null;
   /** El enlace de pago que le mandó Dayana (el que dice su nota), si hay. */
   link: ChatPaymentLink | null;
+  /** Dayana le mandó los datos para pagar (cuenta, Nequi, Western Union) y no un enlace (Raquel). */
+  hasPaymentData: boolean;
   /** Lo que la asistente le escribió antes (del más viejo al más nuevo). */
   priorAi: string[];
   /** Se le puede ofrecer la llamada gratis (flujo de venta, aún no la tuvo). */
@@ -47,7 +49,12 @@ const said = (prior: string[], marker: string) => prior.filter((t) => foldForSea
 
 const payLadder = (input: SeriousInput): string => {
   const what = input.link && input.link.label !== "enlace de pago" ? ` del ${input.link.label}` : "";
-  const how = input.link ? ` por el enlace que te envió Dayana. Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda.` : `. ${ASK_HOW}`;
+  const done = " Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda.";
+  const how = input.link
+    ? ` por el enlace que te envió Dayana.${done}`
+    : input.hasPaymentData
+      ? ` con los datos que te envió Dayana.${done}`
+      : `. ${ASK_HOW}`;
   const times = said(input.priorAi, PAY_MARKER);
   if (times === 0) {
     return `Te entiendo. Tu llamada gratis con Dayana ya la tuviste: para trabajarlo con ella (otra llamada, una consulta o tu proceso), ${PAY_MARKER}${what}${how}`;

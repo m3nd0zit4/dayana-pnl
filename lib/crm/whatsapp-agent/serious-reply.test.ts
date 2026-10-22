@@ -4,7 +4,7 @@ import type { ChatPaymentLink } from "./chat-payment-link";
 import { asksForMoreHelp, PAY_MARKER, seriousReply, SUPPORT_FIRST } from "./serious-reply";
 
 const link: ChatPaymentLink = { url: "https://www.dayanabeltran.com/pagar/p/therapy-3", sentAt: null, label: "paquete de 3 sesiones" };
-const base = { risk: false, modelUrgent: false, stage: "tuvo_llamada", link, priorAi: [] as string[], canOfferFreeCall: false, upcomingLabel: null };
+const base = { risk: false, modelUrgent: false, stage: "tuvo_llamada", link, hasPaymentData: false, priorAi: [] as string[], canOfferFreeCall: false, upcomingLabel: null };
 
 describe("seriousReply: nunca deja de responder (dueño, 21-oct)", () => {
   test("riesgo de verdad: apoyo, sin pago y sin decir que Dayana se enteró", () => {
@@ -32,6 +32,12 @@ describe("seriousReply: nunca deja de responder (dueño, 21-oct)", () => {
     for (const r of [one, two, three]) expect(r.text).not.toMatch(/le aviso|le paso|consultarlo/i);
   });
 
+  test("Raquel: Dayana le mandó los datos (Western Union), no un enlace: «con los datos que te envió Dayana»", () => {
+    const r = seriousReply({ ...base, link: null, hasPaymentData: true });
+    expect(r.attachLink).toBe(false);
+    expect(r.text).toMatch(/con los datos que te envió Dayana\. Cuando lo hagas, me mandas el comprobante/);
+    expect(r.text).not.toMatch(/Prefieres/);
+  });
   test("sin enlace de Dayana: le pregunta cómo quiere pagar", () => {
     const r = seriousReply({ ...base, link: null });
     expect(r.attachLink).toBe(false);

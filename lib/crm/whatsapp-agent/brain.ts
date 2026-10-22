@@ -1842,6 +1842,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             modelUrgent: modelUrgent && !risk,
             stage: input.stage ?? null,
             link,
+            hasPaymentData: Boolean(chatPayInfo),
             priorAi: input.transcript.filter((l) => l.direction === "OUTBOUND" && l.isAutoReply && l.body).slice(-20).map((l) => l.body as string),
             canOfferFreeCall: salesOn && !upcomingCall,
             upcomingLabel: upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null,
