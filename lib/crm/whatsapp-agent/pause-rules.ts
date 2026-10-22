@@ -28,8 +28,45 @@ export type PauseSwitches = { onHumanReply: boolean; onEscalation: boolean };
  * Un riesgo de verdad en el motivo de la escalada: hacerse daño, no querer
  * vivir, violencia, abuso, o el modelo mismo dice «crisis».
  */
-const RISK =
-  /suicid|quitar(me|se|le)?\s+la\s+vida|no\s+(quiero|quiere|quisiera|queria)\s+(vivir|seguir)|ganas\s+de\s+morir|(quiero|quiere)\s+morir|morirme|matarme|matarse|(hacer|hacerme|hacerse|haga|hace)\s+dano|autolesi|cortarme|cortarse|lastimarme|lastimarse|violen|abus[oa]|maltrat|golpe|amenaz|\bcrisis\b|emergencia|peligro/;
+const RISK = new RegExp(
+  [
+    "suicid",
+    "quitar(me|se|le)?\\s+la\\s+vida",
+    "no\\s+(quiero|quiere|quisiera|queria)\\s+(vivir|seguir|existir|estar\\s+aqui)",
+    "ganas\\s+de\\s+morir",
+    "(quiero|quiere|quisiera)\\s+morir",
+    "morirme",
+    "matarme",
+    "matarse",
+    "mejor\\s+muert[oa]",
+    "ir(me|se)?\\s+de\\s+este\\s+mundo",
+    "desaparecer",
+    "acabar\\s+con\\s+(todo|mi\\s+vida|esto)",
+    "que\\s+todo\\s+(termine|se\\s+acabe)",
+    "ya\\s+no\\s+aguanto",
+    "no\\s+aguanto\\s+mas",
+    "(hacer|hacerme|hacerse|haga|hace)\\s+dano",
+    "autolesi",
+    "cortarme",
+    "cortarse",
+    "lastimarme",
+    "lastimarse",
+    "pastillas",
+    "violen",
+    "violaci",
+    "abus[oa]",
+    "maltrat",
+    "golpe",
+    "me\\s+pega",
+    "amenaz",
+    "\\bcrisis\\b",
+    "emergencia",
+    "peligro",
+  ].join("|")
+);
+
+/** ¿Algún texto (lo que escribió ella, el motivo de la escalada) trae un riesgo de verdad? */
+export const hasRiskSigns = (texts: (string | null | undefined)[]): boolean => texts.some((t) => Boolean(t) && RISK.test(foldForSearch(t!)));
 
 /**
  * ¿Es una crisis (la IA se calla hasta que Dayana la suelte)? Algo urgente, o

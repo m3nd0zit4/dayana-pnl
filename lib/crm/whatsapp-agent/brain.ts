@@ -27,7 +27,7 @@ import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
 import { afterCallCloseReply, asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLinks, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
-import { isCrisis } from "./pause-rules";
+import { hasRiskSigns, isCrisis } from "./pause-rules";
 import { answeringDayana } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
@@ -1741,7 +1741,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate"), hasToolCall("no_reply")],
   });
 
-  const modelOutcome: BrainOutcome =
+  const rawOutcome: BrainOutcome =
     state.outcome ??
     (state.noReply && !result.text.trim() ? { kind: "reply", message: "" } : null) ??
     (result.text.trim()
@@ -1752,6 +1752,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           severity: "normal",
           reason: "El asistente no supo qué contestar.",
         });
+  // «clinical» urgente sin una señal de riesgo ni en el motivo ni en lo que
+  // ella escribió: es lo que siente, no una crisis (Joselyn, 21-oct: el modelo
+  // puso urgente a «quítame la angustia y los miedos» y la IA quedaba callada).
+  // Una crisis de verdad (hacerse daño, no querer vivir, violencia) sigue urgente.
+  const recentInbound = input.transcript.filter((l) => l.direction === "INBOUND").slice(-10).map((l) => l.body);
+  const modelOutcome: BrainOutcome =
+    rawOutcome.kind === "escalate" &&
+    rawOutcome.category === "clinical" &&
+    rawOutcome.severity === "urgent" &&
+    !hasRiskSigns([rawOutcome.reason, ...recentInbound])
+      ? { ...rawOutcome, severity: "normal" }
+      : rawOutcome;
   // Mandó el enlace de la sesión urgente y aun así escaló («para que Dayana
   // agende»): Dayana ya recibe el aviso (con el motivo), la persona recibe la
   // oferta. Una crisis, un pago o una queja sí se escalan.

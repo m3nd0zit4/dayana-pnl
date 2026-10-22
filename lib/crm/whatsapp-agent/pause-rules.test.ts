@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { MANUAL_PAUSE_REASON } from "../whatsapp-attention-rules";
-import { escalationPauses, isCrisis, pauseHolds } from "./pause-rules";
+import { escalationPauses, hasRiskSigns, isCrisis, pauseHolds } from "./pause-rules";
 
 const off = { onHumanReply: false, onEscalation: false };
 const on = { onHumanReply: true, onEscalation: true };
@@ -57,6 +57,23 @@ describe("isCrisis: solo un riesgo de verdad (Joselyn, 21-oct)", () => {
       "Crisis",
     ]) {
       expect([reason, isCrisis({ category: "clinical", severity: "normal", reason })]).toEqual([reason, true]);
+    }
+  });
+  test("hasRiskSigns: lo que ella escribe (más frases de riesgo) y no lo que siente", () => {
+    for (const t of [
+      "ya no aguanto más",
+      "quiero desaparecer",
+      "quiero acabar con todo",
+      "quisiera que todo termine",
+      "mi esposo me golpea",
+      "me quiero ir de este mundo",
+      "estaría mejor muerta",
+      "me tomé unas pastillas",
+    ]) {
+      expect([t, hasRiskSigns([t])]).toEqual([t, true]);
+    }
+    for (const t of ["Hola llevate", "Todo los miedos que tengo", "Por favor", "Quítame la angustia de mi hermana", "tengo insomnio y ansiedad", "mi hermana tiene cáncer"]) {
+      expect([t, hasRiskSigns([t])]).toEqual([t, false]);
     }
   });
   test("urgente siempre; clínico sin motivo (no se sabe): sí", () => {

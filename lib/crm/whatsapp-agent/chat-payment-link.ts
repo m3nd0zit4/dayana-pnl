@@ -42,7 +42,7 @@ export const CHAT_LINK_REPLY =
  * la IA escalaba o callaba.
  */
 export const afterCallCloseReply = (link: ChatPaymentLink): string =>
-  `Tu llamada gratis con Dayana ya la tuviste. Para otra llamada, una consulta o empezar tu proceso con ella, el siguiente paso es el pago${
+  `Te entiendo. Tu llamada gratis con Dayana ya la tuviste: para trabajarlo con ella (otra llamada, una consulta o tu proceso), el siguiente paso es el pago${
     link.label === "enlace de pago" ? "" : ` del ${link.label}`
   } por el enlace que te envió Dayana. Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda`;
 
