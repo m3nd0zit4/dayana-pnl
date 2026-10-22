@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, paymentInfoKind, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
 
 const now = new Date("2026-10-21T15:20:00Z");
 const at = (iso: string) => new Date(iso);
@@ -121,6 +121,47 @@ describe("isPaymentInfo / dayanaPaymentInfo", () => {
     expect(isPaymentData("La sesión vale $150.000")).toBe(false);
     expect(isPaymentData("Mi Nequi es 3105833188")).toBe(true);
     expect(isPaymentData("Titular de la cuenta: Diana Beltrán")).toBe(true);
+  });
+
+  test("cualquier otro banco o medio cuenta como datos para pagar (dueña, 22-oct)", () => {
+    for (const text of [
+      "Bancolombia ahorros 15460415745",
+      "Te paso mi Davivienda",
+      "Mi Zelle es pagos@ejemplo.com",
+      "PayPal: dayana.beltran@gmail.com",
+      "https://www.paypal.me/JuliannMB",
+      "Yape 987 654 321",
+      "Ahorros 1546041574 a mi nombre",
+      "IBAN ES12 3456 7890 1234 5678",
+      "CLABE 012180001234567891",
+      "Banco Santander, a tu nombre",
+      "Cuenta 4567-8901-23 Banco Pichincha",
+    ]) {
+      expect(isPaymentData(text)).toBe(true);
+    }
+  });
+
+  test("lo que se le parece y no es: un lugar, «me di cuenta», «fui al banco»", () => {
+    for (const text of [
+      "Soy de Santander",
+      "Me di cuenta de algo importante",
+      "Fui al banco esta mañana",
+      "Ten en cuenta que dura una hora",
+      // Revisión 22-oct: horas, teléfonos y fechas después de «en cuenta».
+      "Hola hermosa, ten en cuenta que la llamada es de 10:00 - 10:15",
+      "Tenlo en cuenta: 10:30 - 10:45",
+      "Ten en cuenta que te llamo del 300 456 7890",
+      "Ten en cuenta que es el 22 - 23 de octubre",
+      // PayPal y Mercado Pago son los rieles de la web: nombrarlos no son datos.
+      "Puedes pagar con tarjeta o PayPal en la página",
+      "El curso lo pagas por Mercado Pago en la web",
+    ]) {
+      expect(isPaymentData(text)).toBe(false);
+    }
+    expect(paymentInfoKind("La sesión vale $150.000")).toBe("amount");
+    expect(paymentInfoKind("Mándame el comprobante y agendamos")).toBe("receipt");
+    expect(paymentInfoKind("Mi Nequi es 3105833188")).toBe("data");
+    expect(paymentInfoKind("Hola, te bendigo")).toBeNull();
   });
 
   test("un masivo o una propuesta aprobada no es Dayana", () => {

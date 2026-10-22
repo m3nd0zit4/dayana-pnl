@@ -138,6 +138,9 @@ const QuoteFollowUpInfo = ({ quote }: { quote: ChatDetail["quoteFollowUp"] }) =>
     <section className="space-y-1.5">
       <h3 className="text-sm font-semibold text-(--wa-accent)">Seguimiento del cierre</h3>
       <p className="font-medium">{quote.state}</p>
+      <p className="text-xs text-(--wa-icon)">
+        Cotización del {new Date(quote.quoteAt).toLocaleDateString("es-CO", { day: "numeric", month: "long" })}: {quote.how}
+      </p>
       {quote.said && <p className="text-xs text-(--wa-icon)">«{quote.said}»</p>}
       <p className="text-xs text-(--wa-meta)">
         Seguimientos de la asistente: {quote.sent} de {quote.max}

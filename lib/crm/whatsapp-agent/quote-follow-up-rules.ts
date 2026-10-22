@@ -2,7 +2,7 @@ import { getDateKeyInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 
 import { foldForSearch } from "../search-normalize";
 import { isAutoSend } from "../whatsapp-attention-rules";
-import { isPaymentInfo } from "./chat-payment-link";
+import { isPaymentInfo, paymentInfoKind } from "./chat-payment-link";
 
 /**
  * El seguimiento del cierre (pedido de la dueña, 22-oct): después de la
@@ -69,9 +69,38 @@ export type QuoteFollowUpConfig = {
   lookbackDays: number;
 };
 
+/**
+ * Cómo le cotizó Dayana (dueña, 22-oct: «no solo el link: también los datos de
+ * Western Union, Bancolombia o cualquier otro»). Todos van al mismo
+ * seguimiento; el tipo es para que Dayana y la IA sepan qué tiene en la mano.
+ */
+export type QuoteKind = "enlace" | "datos" | "enlace_y_datos" | "valor" | "comprobante";
+
+export const QUOTE_KIND_LABEL: Record<QuoteKind, string> = {
+  enlace: "Enlace de pago",
+  datos: "Datos del banco",
+  enlace_y_datos: "Enlace y datos del banco",
+  valor: "Solo el valor",
+  comprobante: "Le pidió el comprobante",
+};
+
+export type QuoteHow = {
+  kind: QuoteKind;
+  /** «Western Union», «Bancolombia», «Nequi»…; «Cuenta bancaria» si no dice cuál. */
+  methods: string[];
+  /** «paquete de 6 sesiones», del enlace o del texto. */
+  pack: string | null;
+  /** El valor tal cual lo escribió («175 USD», «$970.000 COP»). */
+  amount: string | null;
+};
+
 export type QuoteSituation = {
   /** El último mensaje de Dayana con cómo pagar. */
   quoteAt: Date;
+  /** Quién mandó ese último mensaje: Dayana o la asistente (los datos de `send_payment_info`). */
+  quoteBy: "dayana" | "asistente";
+  /** Cómo le cotizó (todos los mensajes de pago de los últimos días). */
+  how: QuoteHow;
   state: QuoteState;
   /** Cuándo dijo que paga (medianoche de ese día en su zona), si lo dijo. */
   payBy: Date | null;
@@ -95,6 +124,122 @@ const DAY = 24 * 3600_000;
 /** Lo escribió Dayana ella misma: no la IA, ni un envío automático, ni una propuesta aprobada. */
 const byDayana = (l: QuoteLine) => l.direction === "OUTBOUND" && !l.isAutoReply && l.source !== "approval" && !isAutoSend(l);
 const isFollowUp = (l: QuoteLine) => l.direction === "OUTBOUND" && Boolean(l.source?.startsWith(QUOTE_FOLLOW_UP_SOURCE));
+/** Lo mandó la asistente (o una propuesta suya que Dayana aprobó): no un envío automático ni un seguimiento. */
+const byAssistant = (l: QuoteLine) => l.direction === "OUTBOUND" && (Boolean(l.isAutoReply) || l.source === "approval") && !isAutoSend(l) && !isFollowUp(l);
+
+// --- Qué es una cotización y de qué tipo -----------------------------------
+
+/**
+ * Un valor suelto que no es la cotización de su proceso: el precio de un curso
+ * o un evento (Patricia, 20-oct: «el curso… está en $60»), o lo que cuesta una
+ * sesión dicho antes de la llamada («la llamada es para eso…», Montoya, 9-oct).
+ */
+const NOT_THERAPY = /\b(curso|cursos|taller|talleres|evento|webinar|clase|clases|diplomado|formacion|certificacion|capacitacion|entrenamiento|membresia|mensualidad)\b/;
+const THERAPY = /\b(sesion|sesiones|terapia|terapias|reprogramacion|proceso personalizado|paquete)\b/;
+const BEFORE_CALL =
+  /\bla llamada es\b[^.\n]{0,25}\bpara\b|\bpara eso es la llamada\b|\ben la llamada (te|se te) (digo|explico|cuento|doy|da)\b|\bagendar (la|una|tu) llamada\b/;
+
+/** ¿Este mensaje de Dayana es una cotización (cómo pagar su proceso)? */
+export const isQuote = (text: string | null | undefined): boolean => {
+  if (!isPaymentInfo(text)) return false;
+  if (paymentInfoKind(text) !== "amount") return true;
+  const t = foldForSearch(text ?? "");
+  return !BEFORE_CALL.test(t) && !(NOT_THERAPY.test(t) && !THERAPY.test(t));
+};
+
+/**
+ * Un mensaje con la cotización: de Dayana (`isQuote`) o los datos para pagar
+ * que mandó la asistente (`send_payment_info`, `send_payment_link`: dueña,
+ * 22-oct, «cuando se envían datos de bancos»). De la asistente solo datos de
+ * verdad: no «mándame el comprobante», ni el curso o la comunidad (no es su
+ * proceso), ni sus seguimientos (sin datos: no se reinicia solo).
+ */
+export const isQuoteLine = (l: QuoteLine): boolean => (byDayana(l) && isQuote(l.body)) || (byAssistant(l) && assistantSentData(l.body));
+
+/**
+ * La asistente solo cuenta si va el bloque que pega el código: el enlace
+ * (`send_payment_link`) o los datos de Ajustes con su número (`send_payment_info`;
+ * el modelo nunca escribe un número de cuenta). «Cuando pagues por Nequi, me
+ * mandas el comprobante» o «¿prefieres PayPal o Bancolombia?» no (revisión 22-oct).
+ */
+const assistantSentData = (body: string | null | undefined): boolean => {
+  const text = body ?? "";
+  if (paymentInfoKind(text) !== "data" || /\/pagar\/p\/course-|chat\.whatsapp\.com/i.test(text)) return false;
+  return /\/pagar\//i.test(text) || /\d(?:[ .-]?\d){6,}/.test(text);
+};
+
+const METHODS: [string, RegExp][] = [
+  ["Western Union", /\bwestern\b/],
+  ["Bancolombia", /\bbancolombia\b/],
+  ["Nequi", /\bnequi\b/],
+  ["Daviplata", /\bdaviplata\b/],
+  ["Davivienda", /\bdavivienda\b/],
+  ["BBVA", /\bbbva\b/],
+  ["Zelle", /\bzelle\b/],
+  ["PayPal", /\bpaypal\b/],
+  ["Yape", /\byape\b/],
+  ["Plin", /\bplin\b/],
+  ["Mercado Pago", /\bmercado ?pago\b/],
+  ["CLABE / SPEI", /\b(clabe|spei)\b/],
+  ["OXXO", /\boxxo\b/],
+  ["Binance", /\bbinance\b/],
+  ["Remitly", /\bremitly\b/],
+  ["Global66", /\bglobal ?66\b/],
+  ["MoneyGram", /\bmoneygram\b/],
+];
+const SMALL_PACK: Record<string, number> = { una: 1, un: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, doce: 12 };
+// «310.583.3188» no es «310.583»: un grupo de miles no sigue con más cifras.
+const AMOUNT =
+  /\$\s?\d[\d.,]*(\s?(mil|cop|usd|mxn))?|\b\d{1,3}([.,]\d{3})+(?![.,]?\d)(\s?(mil|cop|usd|mxn|pesos|dolares|dólares))?|\b\d+([.,]\d+)?\s?(usd|cop|mxn|dolares|dólares|pesos)\b/gi;
+/** Justo antes: una cédula, un teléfono, una cuenta (no el valor). */
+const NOT_AMOUNT = /\b(cuenta|nequi|daviplata|clabe|telefono|celular|contacto|whatsapp|numero|id|c\.?c|nit|cedula|documento|identificacion)\b[^$\d]{0,12}$/;
+const CURRENCY = /\$|\b(cop|usd|mxn|pesos|dolares|dólares|mil)\b/i;
+
+/** El valor de un mensaje: el primero con moneda o $, si no el primero que no es una cédula o un teléfono. */
+const amountIn = (body: string): string | null => {
+  const flat = body.replace(/\s+/g, " ");
+  const found = [...flat.matchAll(AMOUNT)].filter((m) => !NOT_AMOUNT.test(foldForSearch(flat.slice(0, m.index))));
+  return (found.find((m) => CURRENCY.test(m[0])) ?? found[0])?.[0].trim() ?? null;
+};
+
+/** Cómo le cotizó, de sus mensajes de pago (en orden; lo más nuevo manda en el paquete y el valor). */
+export const quoteHow = (bodies: string[]): QuoteHow => {
+  let link = false;
+  let data = false;
+  const methods: string[] = [];
+  let pack: string | null = null;
+  let amount: string | null = null;
+  for (const body of bodies) {
+    const t = foldForSearch(body);
+    const isLink = /\/pagar\//.test(t);
+    link ||= isLink;
+    if (paymentInfoKind(body) === "data") {
+      // Un banco nombrado en un mensaje sin datos («la sesión vale 90 USD, por PayPal en la página») no es el medio.
+      const named = METHODS.filter(([, re]) => re.test(t)).map(([name]) => name);
+      if (!isLink || named.length) data = true;
+      for (const name of named) if (!methods.includes(name)) methods.push(name);
+    }
+    const n = t.match(/\/pagar\/p\/therapy-(\d+)/)?.[1] ?? t.match(/\bpaquete de (\d{1,2}|una|un|dos|tres|cuatro|cinco|seis|doce) (sesion|sesiones)\b/)?.[1];
+    const sessions = n ? (SMALL_PACK[n] ?? Number(n)) : NaN;
+    if (sessions > 0) pack = sessions === 1 ? "1 sesión" : `paquete de ${sessions} sesiones`;
+    amount = amountIn(body) ?? amount;
+  }
+  if (data && !methods.length) methods.push("Cuenta bancaria");
+  const kind: QuoteKind = link && data ? "enlace_y_datos" : link ? "enlace" : data ? "datos" : amount ? "valor" : "comprobante";
+  return { kind, methods: link ? ["Enlace de pago", ...methods] : methods, pack, amount };
+};
+
+/**
+ * «Datos del banco: Western Union · paquete de 3 sesiones · 175 USD», para
+ * Dayana (chat, campana). No va en el prompt: con «(Enlace de pago · 1 sesión)»
+ * la IA escaló 3 de 3 a ENNY, que pedía la cuenta (eval 22-oct).
+ */
+export const quoteHowText = (how: QuoteHow): string => {
+  const banks = how.methods.filter((m) => m !== "Enlace de pago");
+  return [`${QUOTE_KIND_LABEL[how.kind]}${banks.length ? `: ${banks.join(", ")}` : ""}`, how.pack, how.amount]
+    .filter(Boolean)
+    .join(" · ");
+};
 
 // --- Lo que dijo después de la cotización ---------------------------------
 
@@ -157,7 +302,7 @@ export const payDateFrom = (text: string, at: Date, tz: string): Date | null => 
     found.push(addDays(today, ahead));
   }
   const nextMonday = addDays(today, ((1 - weekdayOf(today) + 7) % 7) || 7);
-  if (/\b(la )?(otra|proxima|siguiente) semana\b|\bsemana que viene\b/.test(t)) found.push(addDays(nextMonday, 4));
+  if (/\b(la )?(otra|proxima|siguiente) seman(a|ita)\b|\bseman(a|ita) que viene\b/.test(t)) found.push(addDays(nextMonday, 4));
   if (/\besta semana\b/.test(t)) found.push(weekdayOf(today) >= 5 || weekdayOf(today) === 0 ? today : addDays(nextMonday, -3));
   if (/\b(a )?(fin|final|finales) de(l)? mes\b/.test(t)) {
     const last = lastDayOf(y, m);
@@ -166,6 +311,39 @@ export const payDateFrom = (text: string, at: Date, tz: string): Date | null => 
   if (/\bquincena\b/.test(t)) found.push(d < 15 ? keyOf({ y, m, d: 15 }) : keyOf({ y, m, d: lastDayOf(y, m) }));
   // Solo el mes que viene: «si me hubiera coincidido inicios de mes» (Raquel) no es una fecha.
   if (/\b(el |del )?(proximo|otro|siguiente) mes\b|\bmes que viene\b/.test(t)) found.push(keyOf({ y, m: m + 1, d: 5 }));
+  // «La primera semana de noviembre» (Carmen, 21-oct): el viernes de esa semana;
+  // «a principios / mediados / finales de noviembre»: el 5, el 15, el último;
+  // «en noviembre»: el 5. Un mes que ya pasó es el del año que viene.
+  const REF = `(${MONTHS.join("|")}|(?:el |del )?(?:proximo|otro|siguiente) mes|mes que viene|mes)`;
+  const monthRef = (w: string, next = false) => {
+    const i = MONTHS.indexOf(w);
+    if (i >= 0) return i + 1 < m ? { y: y + 1, m: i + 1 } : { y, m: i + 1 };
+    return /proximo|otro|siguiente|que viene/.test(w) || next ? { y, m: m + 1 } : { y, m };
+  };
+  const dayOf = (r: { y: number; m: number }, day: number) => keyOf({ y: r.y, m: r.m, d: Math.min(day, lastDayOf(r.y, r.m)) });
+  /** Ese día del mes que dice; «del mes» suelto, si ya pasó este mes, el del que viene. */
+  const inMonth = (w: string, day: (r: { y: number; m: number }) => string) => {
+    const k = day(monthRef(w));
+    return w === "mes" && k < today ? day(monthRef(w, true)) : k;
+  };
+  for (const r of t.matchAll(new RegExp(`\\b(primera|primer|1ra|1era|segunda|2da) semana de(?:l)? ${REF}\\b`, "g"))) {
+    const n = r[1] === "segunda" || r[1] === "2da" ? 2 : 1;
+    found.push(
+      inMonth(r[2], (ref) => {
+        const first = dayOf(ref, 1);
+        return addDays(first, ((5 - weekdayOf(first) + 7) % 7) + 7 * (n - 1));
+      })
+    );
+  }
+  for (const r of t.matchAll(new RegExp(`\\b(principios|inicios|comienzos|inicio|comienzo|mediados|finales|final|fin) de(?:l)? ${REF}\\b`, "g"))) {
+    // «Inicios de mes» suelto no es una fecha (Raquel: «si me hubiera coincidido inicios de mes»); «fin de mes» va arriba.
+    if (r[2] === "mes" && r[1] !== "mediados") continue;
+    found.push(inMonth(r[2], (ref) => dayOf(ref, r[1] === "mediados" ? 15 : /^fin/.test(r[1]) ? lastDayOf(ref.y, ref.m) : 5)));
+  }
+  // Sin «desde»: «desde enero estoy sin trabajo» habla de lo que pasó.
+  for (const r of t.matchAll(new RegExp(`\\b(en|para|hasta|a partir de) (?:el mes de )?(${MONTHS.join("|")})\\b`, "g"))) {
+    found.push(dayOf(monthRef(r[2]), 5));
+  }
   for (const r of t.matchAll(/\ben (\d{1,2}|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|diez|quince) (dias?|semanas?)\b/g)) {
     const n = SMALL[r[1]] ?? Number(r[1]);
     found.push(addDays(today, r[2].startsWith("semana") ? n * 7 : n));
@@ -188,6 +366,12 @@ export const payDateFrom = (text: string, at: Date, tz: string): Date | null => 
 const FUTURE = /\b(cuando|apenas|en cuanto|tan pronto|despues que|luego que)\b/;
 /** Habla de pagar o de mandar el pago («pago el viernes», «lo transfiero»). */
 const PAY_WORD = /\b(pag|envi|mand|transfer|deposit|consign)\w*/;
+/**
+ * Queda en una fecha para empezar, en primera persona: «ya quedamos para la
+ * primer semana de noviembre» (Carmen). No «quedamos así», «empiezo a
+ * trabajar», «mi hija empieza el colegio» (revisión 22-oct).
+ */
+const START_ON = /\b(quedamos (para|en) (el|la|los|las|esta|este|\d)|(empiezo|inicio|comienzo|arranco|empezamos|iniciamos|comenzamos) (el|la|esta|este|en (el|la|\d|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)|a partir del?))\b/;
 
 /**
  * El estado que dice un mensaje suyo (null: no dice nada de pagar, «gracias»,
@@ -201,8 +385,11 @@ export const stateFromReply = (text: string, at: Date, tz: string): { state: Quo
   if (PAID.test(t) && !FUTURE.test(t)) return { state: "pago_enviado", payBy: null };
   const payBy = payDateFrom(t, at, tz);
   const inDays = payBy ? Math.round((payBy.getTime() - zonedDateTimeToUtc(getDateKeyInTz(at, tz), "00:00", tz).getTime()) / DAY) : null;
+  // Un «no» sin hablar de pagar es un no, aunque traiga una fecha («ya no quiero
+  // iniciar, quizás en diciembre», «no me interesa, el lunes empiezo a trabajar»).
+  if (NO.test(t) && !PAY_WORD.test(t)) return { state: "no_quiere", payBy: null };
   // «No gracias por el recordatorio, pago el viernes»: una fecha para pagar gana al «no gracias».
-  if (payBy && (PAY.test(t) || PAY_WORD.test(t))) return { state: "pagara", payBy };
+  if (payBy && (PAY.test(t) || PAY_WORD.test(t) || START_ON.test(t))) return { state: "pagara", payBy };
   if (NO.test(t)) return { state: "no_quiere", payBy: null };
   // «No me alcanza ahora, pero a fin de mes sí»: con una fecha (2 días o más), va a pagar.
   if (payBy && inDays !== null && inDays >= 2 && (MONEY.test(t) || THINK.test(t))) return { state: "pagara", payBy };
@@ -222,16 +409,25 @@ export const quoteSituation = (
   opts: { now: Date; tz: string; lookbackDays: number }
 ): QuoteSituation | null => {
   const real = lines.filter((l) => l.kind !== "system");
+  const since = opts.now.getTime() - opts.lookbackDays * DAY;
+  // La última cotización de Dayana manda: si vuelve a mandar cómo pagar, empieza de nuevo.
   let qi = -1;
   for (let i = real.length - 1; i >= 0; i--) {
-    if (byDayana(real[i]) && isPaymentInfo(real[i].body)) {
+    if (byDayana(real[i]) && isQuote(real[i].body)) {
       qi = i;
       break;
     }
   }
+  // Sin ninguna de Dayana: la PRIMERA de la asistente. Lo que la asistente manda
+  // después (reenviar el enlace, los datos) no reinicia nada: ni borra lo que
+  // ella dijo ni los seguimientos ya enviados, ni revive una cotización de
+  // Dayana que ya pasó los `lookbackDays` (revisión 22-oct).
+  if (qi < 0) qi = real.findIndex((l) => l.sentAt.getTime() >= since && isQuoteLine(l));
   if (qi < 0) return null;
   const quoteAt = real[qi].sentAt;
-  if (quoteAt.getTime() < opts.now.getTime() - opts.lookbackDays * DAY) return null;
+  if (quoteAt.getTime() < since) return null;
+  // El tipo, de todo lo que le mandaron estos días (también lo que la asistente mandó después).
+  const how = quoteHow(real.filter((l) => l.sentAt.getTime() >= since && isQuoteLine(l)).map((l) => l.body!));
   const after = real.slice(qi + 1);
   let state: QuoteState = "cotizada";
   let payBy: Date | null = null;
@@ -265,6 +461,8 @@ export const quoteSituation = (
   const ackOnly = Boolean(lastText) && !/[?¿]/.test(lastText) && lastText.split(/\s+/).length <= 6;
   return {
     quoteAt,
+    quoteBy: byDayana(real[qi]) ? "dayana" : "asistente",
+    how,
     state,
     payBy,
     said,
@@ -385,7 +583,7 @@ export const quoteStateText = (s: QuoteSituation, tz: string): string =>
  */
 export const quotePromptLine = (s: QuoteSituation, tz: string): string =>
   [
-    `SEGUIMIENTO DEL CIERRE: Dayana le mandó cómo pagar el ${dayLabel(s.quoteAt, tz)}. Ahora: ${quoteStateText(s, tz)}${s.said ? `; dijo: «${s.said.slice(0, 160)}»` : ""}.`,
+    `SEGUIMIENTO DEL CIERRE: ${s.quoteBy === "dayana" ? "Dayana le mandó" : "Ya le mandaste"} cómo pagar el ${dayLabel(s.quoteAt, tz)}. Ahora: ${quoteStateText(s, tz)}${s.said ? `; dijo: «${s.said.slice(0, 160)}»` : ""}.`,
     "- Si dice cuándo va a pagar, que está decidida o que espera un dinero: no escales. Dile con calidez que Dayana queda muy atenta y que, cuando haga el pago, te mande el comprobante por aquí para que Dayana le agende el inicio.",
     "- Si dice que lo está pensando: respétalo y ofrécele resolver dudas, sin presionar.",
     "- Si dice que no le alcanza: mira COMUNIDAD Y OPCIONES MÁS ECONÓMICAS. Si dice que ya pagó o manda el comprobante: register_payment_receipt.",

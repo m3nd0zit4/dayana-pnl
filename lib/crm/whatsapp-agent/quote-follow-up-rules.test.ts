@@ -3,9 +3,13 @@ import { describe, expect, test } from "bun:test";
 import {
   followUpDue,
   followUpText,
+  isQuote,
+  isQuoteLine,
   nextFollowUp,
   payDateFrom,
   QUOTE_FOLLOW_UP_SOURCE,
+  quoteHow,
+  quoteHowText,
   quotePromptLine,
   quoteSituation,
   stateFromReply,
@@ -64,12 +68,30 @@ describe("payDateFrom", () => {
     ["el 30", "2026-10-30"],
     ["el 2 de noviembre", "2026-11-02"],
     ["hoy en la tarde", "2026-10-22"],
+    // Revisión 22-oct (Carmen: «ya quedamos para la primer semana de noviembre»).
+    ["ya quedamos para la primer semana de noviembre", "2026-11-06"],
+    ["la primera semana del próximo mes", "2026-11-06"],
+    ["la primera semana del mes", "2026-11-06"],
+    ["la segunda semana de noviembre", "2026-11-13"],
+    ["a mediados de noviembre", "2026-11-15"],
+    ["a finales de noviembre", "2026-11-30"],
+    ["a principios de diciembre", "2026-12-05"],
+    ["en noviembre te pago", "2026-11-05"],
+    ["la semanita que viene", "2026-10-30"],
+    ["a mediados de mes", "2026-11-15"],
   ])("«%s» → %s", (text, expected) => {
     expect(ymd(payDateFrom(text, WED, BOG), BOG)).toBe(expected);
   });
 
   test("varias: la más lejana; «hoy» e «inicios de mes» de un «si hubiera» no cuentan (Raquel)", () => {
     expect(ymd(payDateFrom(RAQUEL[5].body!, RAQUEL[5].sentAt, TZ), TZ)).toBe("2026-10-31");
+  });
+
+  test("«del mes» ya pasado es el del mes que viene; «desde enero» habla de lo que pasó (revisión 22-oct)", () => {
+    const NOV7 = at("2026-11-07T15:00:00Z");
+    expect(ymd(payDateFrom("la primera semana del mes te pago", NOV7, BOG), BOG)).toBe("2026-12-04");
+    expect(ymd(payDateFrom("te pago la segunda semana del mes", at("2026-11-14T15:00:00Z"), BOG), BOG)).toBe("2026-12-11");
+    expect(payDateFrom("desde enero estoy sin trabajo", at("2026-11-25T15:00:00Z"), BOG)).toBeNull();
   });
 
   test("«en la mañana» no es mañana; sin fecha, null", () => {
@@ -100,16 +122,170 @@ describe("stateFromReply", () => {
     ["Lo pienso y te aviso mañana", "lo_piensa"],
     ["Te mande el comprobante cuando pague", "pagara"],
     ["No gracias por el recordatorio, pago el viernes", "pagara"],
+    ["Si ella me lo y ya quedamos para la primer semana de noviembre", "pagara"],
+    // Revisión 22-oct: un «no» o «lo pienso» con una fecha que no es para pagar.
+    ["No me interesa, gracias. El lunes empiezo a trabajar", "no_quiere"],
+    ["Ya no quiero iniciar el proceso, gracias. Quizás en diciembre", "no_quiere"],
+    ["No me interesa, mi hija empieza el colegio en enero", "no_quiere"],
+    ["Quedamos así, mañana te confirmo", "lo_piensa"],
+    ["Desde enero estoy sin trabajo, no me alcanza", "sin_dinero"],
   ])("«%s» → %s (no una promesa de hoy o mañana, ni un pago que aún no hizo)", (text, state) => {
     expect(stateFromReply(text, WED, BOG)?.state).toBe(state as never);
   });
 
-  test.each(["Gracias 😊", "Igualmente", "Si gracias", "ok"])("«%s» no dice nada de pagar", (text) => {
+  test.each(["Gracias 😊", "Igualmente", "Si gracias", "ok", "Mañana inicio un trabajo nuevo, ahí te cuento"])("«%s» no dice nada de pagar", (text) => {
     expect(stateFromReply(text, WED, BOG)).toBeNull();
   });
 });
 
+describe("isQuote: qué cuenta como cotización", () => {
+  test("enlace, datos de cualquier banco, valor de una sesión o «mándame el comprobante»", () => {
+    expect(isQuote("https://www.dayanabeltran.com/pagar/p/therapy-6")).toBe(true);
+    expect(isQuote("NOMBRE DE BANCO:BANCO UNIÓN – WESTERN UNION\nNúmero de cuenta: 0173")).toBe(true);
+    expect(isQuote("Bancolombia ahorros 15460415745 a nombre de Diana")).toBe(true);
+    expect(isQuote("Mi Zelle es pagos@ejemplo.com")).toBe(true);
+    expect(isQuote("Yape 987 654 321")).toBe(true);
+    expect(isQuote("🎤 Hola mi hermosa, si deseas pagar una sesión por aparte está en $90. Si deseas paquete de tres te quedan 175.")).toBe(true);
+    expect(isQuote("Tan pronto me envíes el comprobante agendamos")).toBe(true);
+    // Mariantonia (10-oct): el valor de su proceso, aunque nombre la llamada.
+    expect(
+      isQuote("Mi hermosa en la llamada. Te digo cómo es el proceso personalizado de Reprogramacion 1.1 de una hora virtual tiene la inversión de 190,000 pesos")
+    ).toBe(true);
+  });
+
+  test("el precio de un curso o un evento, o lo que cuesta antes de la llamada, no (Patricia, Montoya)", () => {
+    expect(
+      isQuote("🎤 Tenemos un curso los días miércoles y viernes, acá vas a tener capacitación y entrenamiento en horas de la noche, esa está en $60 si quisieses aprender")
+    ).toBe(false);
+    expect(isQuote("El taller del sábado cuesta $50.000")).toBe(false);
+    expect(isQuote("🎤 Bueno, la llamada es básicamente para poder sacar un diagnóstico. Una sola sesión está en 190.000 pesos, dura una hora. La llamada es para eso.")).toBe(
+      false
+    );
+    // Con los datos para pagar sí es cómo pagar.
+    expect(isQuote("Mi Nequi es 3105833188 para el curso")).toBe(true);
+    // Nombrar PayPal no salta el filtro del curso (revisión 22-oct).
+    expect(isQuote("🎤 El curso está en $60, lo puedes pagar por PayPal desde la página")).toBe(false);
+  });
+
+  test("de la asistente, solo el bloque que pega el código (enlace o datos con su número)", () => {
+    const ai2 = (body: string): QuoteLine => ({ direction: "OUTBOUND", body, sentAt: at("2026-10-20T15:00:00Z"), isAutoReply: true });
+    expect(isQuoteLine(ai2("Claro, te comparto los datos para el pago:\n\nNequi 3001234567 a nombre de Prueba Uno"))).toBe(true);
+    expect(isQuoteLine(ai2("Puedes hacer el pago por el enlace que te envió Dayana.\n\nhttps://www.dayanabeltran.com/pagar/p/therapy-3"))).toBe(true);
+    expect(isQuoteLine(ai2("Cuando hagas el pago por Nequi, me mandas el comprobante por aquí"))).toBe(false);
+    expect(isQuoteLine(ai2("¿Prefieres pagar por enlace con tarjeta o PayPal, o por transferencia a Bancolombia o Nequi?"))).toBe(false);
+  });
+});
+
+describe("quoteHow: de qué tipo es la cotización", () => {
+  test.each([
+    [["Aquí te envío el link de pago", "https://www.dayanabeltran.com/pagar/p/therapy-6"], "Enlace de pago · paquete de 6 sesiones"],
+    [
+      ["NOMBRE DE BANCO:BANCO UNIÓN – WESTERN UNION\nNúmero de cuenta: 01735600000719409\nTeléfono celular :+57 3105833188", "175 USD \n580.000 COP"],
+      "Datos del banco: Western Union · 175 USD",
+    ],
+    [
+      ["Claro, Enny, te comparto los datos para el pago:\n\nBancolombia\nTipo de cuenta: Ahorros\nN° Cuenta: 15460415745\nDocumento CC: 1029145651"],
+      "Datos del banco: Bancolombia",
+    ],
+    [["Aquí te envío mi número nequi 310-583-3188 a nombre de Diana Bel", "1 sesión  personalizada virtual 1.1 $190.000"], "Datos del banco: Nequi · $190.000"],
+    [
+      ["https://www.dayanabeltran.com/pagar/p/therapy-12", "NOMBRE DE BANCO:BANCO UNIÓN – WESTERN UNION\nNúmero de cuenta: 0173", "$2.227.000COP"],
+      "Enlace y datos del banco: Western Union · paquete de 12 sesiones · $2.227.000COP",
+    ],
+    [["Titular: Diana Beltrán, cuenta corriente 123456789"], "Datos del banco: Cuenta bancaria"],
+    [["Paquete de 6 sesiones \n\nValor con descuento \n\n$970.000 COP"], "Solo el valor · paquete de 6 sesiones · $970.000 COP"],
+    // Revisión 22-oct: una cédula o un teléfono no son el valor.
+    [["Western Union\nNombre: Diana Beltrán\nC.C. 52.123.456\nCiudad: Bogotá\nValor: 175 USD"], "Datos del banco: Western Union · 175 USD"],
+    [["Número de contacto 310.583.3188, Nequi a nombre de Diana. Paquete de 6 sesiones 960.000"], "Datos del banco: Nequi · paquete de 6 sesiones · 960.000"],
+    [["Nequi 3105833188, valor 175 USD"], "Datos del banco: Nequi · 175 USD"],
+    [["Cédula 1.020.345.678 — el valor es 580.000 COP"], "Solo el valor · 580.000 COP"],
+    [["Mándame el comprobante y agendamos"], "Le pidió el comprobante"],
+  ])("%j → %s", (bodies, text) => {
+    expect(quoteHowText(quoteHow(bodies))).toBe(text);
+  });
+
+  test("todos van al mismo seguimiento; la situación trae el tipo", () => {
+    const s = quoteSituation(RAQUEL, { now: at("2026-10-22T17:00:00Z"), tz: TZ, lookbackDays: 14 })!;
+    expect(s.how.kind).toBe("datos");
+    expect(s.how.methods).toEqual(["Western Union"]);
+  });
+});
+
 describe("quoteSituation", () => {
+  test("Carmen: «ya quedamos para la primer semana de noviembre» → va a pagar ≈ 6 nov; el 1º el 7 a las 10 a. m. (no mañana)", () => {
+    const lines = [
+      dayana("OK hermosa, mi número de Nequi es 3105833188 \na nombre de Diana Bel \n\nPaquete de 6 sesiones \n\n960.000 mil", "2026-10-21T13:23:48Z"),
+      dayana("Quedo atenta mi bella, tan pronto me envíes el comprobante de pago, agendamos día y hora que me digas", "2026-10-21T13:23:58Z"),
+      person("Mil gracias🙏💕", "2026-10-21T13:25:30Z"),
+      ai("Hola Carmen 🙏 ¿Pudiste hablar con Dayana en tu llamada gratis?", "2026-10-21T14:12:20Z"),
+      person("Si señora mil gracias", "2026-10-21T14:12:30Z"),
+      person("Si ella me lo y ya quedamos para la primer semana de noviembre", "2026-10-21T14:14:10Z"),
+      ai("Te bendigo, Carmen 🙏 Muy bien. Entonces quedamos atentas para la primera semana de noviembre.", "2026-10-21T14:14:30Z"),
+      person("Vale mil gracias🙏💕", "2026-10-21T14:15:10Z"),
+    ];
+    const s = quoteSituation(lines, { now: at("2026-10-22T20:00:00Z"), tz: BOG, lookbackDays: 14 })!;
+    expect(s.state).toBe("pagara");
+    expect(ymd(s.payBy, BOG)).toBe("2026-11-06");
+    expect(quoteHowText(s.how)).toBe("Datos del banco: Nequi · paquete de 6 sesiones · 960.000 mil");
+    expect(nextFollowUp(s, CONFIG, BOG)?.at.toISOString()).toBe("2026-11-07T15:00:00.000Z");
+  });
+
+  test("lo que la asistente manda después no reinicia la cotización (revisión 22-oct)", () => {
+    const opts = { now: at("2026-10-22T20:00:00Z"), tz: BOG, lookbackDays: 14 };
+    // S1: «pago el viernes» y la asistente contesta nombrando Nequi: sigue «va a pagar».
+    const s1 = quoteSituation(
+      [
+        dayana("Mi Nequi es 3105833188 a nombre de Diana Bel", "2026-10-20T15:00:00Z"),
+        person("Listo, pago el viernes", "2026-10-21T15:00:00Z"),
+        ai("Cuando hagas el pago por Nequi, me mandas el comprobante por aquí", "2026-10-21T15:01:00Z"),
+      ],
+      opts
+    )!;
+    expect(s1.state).toBe("pagara");
+    expect(ymd(s1.payBy, BOG)).toBe("2026-10-23");
+    // S2: la asistente le reenvía el enlace después de «la primer semana de noviembre»: la fecha queda.
+    const s2 = quoteSituation(
+      [
+        dayana("https://www.dayanabeltran.com/pagar/p/therapy-6", "2026-10-21T13:00:00Z"),
+        person("Ya quedamos para la primera semana de noviembre", "2026-10-21T14:00:00Z"),
+        ai("Puedes hacer el pago por el enlace que te envió Dayana.\n\nhttps://www.dayanabeltran.com/pagar/p/therapy-6", "2026-10-21T14:01:00Z"),
+      ],
+      opts
+    )!;
+    expect(s2).toMatchObject({ state: "pagara", quoteBy: "dayana" });
+    expect(s2.quoteAt.toISOString()).toBe("2026-10-21T13:00:00.000Z");
+    // S3: con los 2 seguimientos enviados, una respuesta de la asistente con datos no abre un 3º.
+    const s3 = quoteSituation(
+      [
+        dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", "2026-10-09T15:00:00Z"),
+        followUp("2026-10-10T15:00:00Z", 1),
+        followUp("2026-10-14T15:00:00Z", 2),
+        person("Ok gracias", "2026-10-15T15:00:00Z"),
+        ai("Con gusto. Cuando quieras, aquí están los datos:\n\nNequi 3001234567 a nombre de Prueba Uno", "2026-10-15T15:01:00Z"),
+      ],
+      opts
+    )!;
+    expect(s3.sent).toBe(2);
+    expect(nextFollowUp(s3, CONFIG, BOG)).toBeNull();
+    // Y una cotización de Dayana ya vencida no revive con los datos que la asistente mandó después.
+    const old = quoteSituation(
+      [
+        dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", "2026-10-01T15:00:00Z"),
+        ai("Aquí están los datos:\n\nNequi 3001234567 a nombre de Prueba Uno", "2026-10-20T15:01:00Z"),
+      ],
+      opts
+    );
+    expect(old).toBeNull();
+  });
+
+  test("Patricia: el precio del curso no es una cotización: no hay seguimiento", () => {
+    const lines = [
+      dayana("🎤 Tenemos este evento el día domingo. Tenemos un curso los días miércoles y viernes, esa está en $60 si quisieses aprender.", "2026-10-20T14:18:36Z"),
+      person("gracias Dayana, lo voy a tener en consideración", "2026-10-20T18:27:30Z"),
+    ];
+    expect(quoteSituation(lines, { now: at("2026-10-22T20:00:00Z"), tz: "America/Lima", lookbackDays: 14 })).toBeNull();
+  });
+
   test("Raquel: la cotización es el último mensaje de Dayana con cómo pagar (su audio); va a pagar ≈ 31 oct", () => {
     const s = quoteSituation(RAQUEL, { now: at("2026-10-22T17:00:00Z"), tz: TZ, lookbackDays: 14 })!;
     expect(s.quoteAt.toISOString()).toBe("2026-10-22T16:20:00.000Z");
@@ -119,8 +295,25 @@ describe("quoteSituation", () => {
     expect(s.awaitingReply).toBe(false);
   });
 
-  test("sin cotización de Dayana (solo la IA), o de hace más de 14 días: null", () => {
-    expect(quoteSituation([ai("Te comparto los datos de Bancolombia: Número de cuenta 123", "2026-10-20T15:00:00Z")], { now: at("2026-10-22T15:00:00Z"), tz: BOG, lookbackDays: 14 })).toBeNull();
+  test("la asistente: sus datos para pagar sí cuentan (dueña, 22-oct); «mándame el comprobante», el curso o un seguimiento no", () => {
+    const opts = { now: at("2026-10-22T15:00:00Z"), tz: BOG, lookbackDays: 14 };
+    const s = quoteSituation([ai("Te comparto los datos de Bancolombia: Número de cuenta 15460415745", "2026-10-20T15:00:00Z")], opts)!;
+    expect(s).toMatchObject({ quoteBy: "asistente", state: "cotizada" });
+    expect(quoteHowText(s.how)).toBe("Datos del banco: Bancolombia");
+    expect(quotePromptLine(s, BOG)).toContain("Ya le mandaste cómo pagar");
+    expect(quoteSituation([ai("Cuando hagas el pago, me mandas el comprobante por aquí", "2026-10-20T15:00:00Z")], opts)).toBeNull();
+    expect(quoteSituation([ai("Aquí puedes tomar el curso: https://www.dayanabeltran.com/pagar/p/course-live", "2026-10-20T15:00:00Z")], opts)).toBeNull();
+    // Un seguimiento ya enviado tras la cotización de Dayana no la reemplaza.
+    const withFollowUp = quoteSituation(
+      [dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", "2026-10-15T15:00:00Z"), followUp("2026-10-17T15:00:00Z", 1)],
+      opts
+    )!;
+    expect(withFollowUp.quoteAt.toISOString()).toBe("2026-10-15T15:00:00.000Z");
+    expect(withFollowUp.sent).toBe(1);
+  });
+
+  test("sin cotización, o de hace más de 14 días: null", () => {
+    expect(quoteSituation([person("Hola, ¿cuánto cuesta?", "2026-10-20T15:00:00Z")], { now: at("2026-10-22T15:00:00Z"), tz: BOG, lookbackDays: 14 })).toBeNull();
     expect(quoteSituation([dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", "2026-10-01T15:00:00Z")], { now: at("2026-10-22T15:00:00Z"), tz: BOG, lookbackDays: 14 })).toBeNull();
   });
 
@@ -232,6 +425,9 @@ describe("followUpText / quotePromptLine", () => {
     const line = quotePromptLine(s, TZ);
     expect(line).toContain("SEGUIMIENTO DEL CIERRE");
     expect(line).toContain("Va a pagar (≈ sábado, 31 de octubre)");
+    // El tipo es para Dayana: en el prompt hizo escalar a ENNY (eval 22-oct).
+    expect(line).not.toContain("Datos del banco");
+    expect(line).not.toContain("175 USD");
     expect(line).toContain("no escales");
   });
 });

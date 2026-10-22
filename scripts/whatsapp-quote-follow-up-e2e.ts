@@ -11,6 +11,9 @@
  * 3. Dijo «la otra semana te pago»: no le toca hasta el día siguiente.
  * 4. En favoritos (Dayana lo está llevando): nada.
  * 5. Un comprobante sin revisar: nada.
+ * 6. Solo los datos de Bancolombia (sin enlace): cuenta igual, el 1º.
+ * 7. Dijo «la primera semana del próximo mes» y la asistente le reenvió el
+ *    enlace: sigue esperando esa fecha (lo de la asistente no reinicia nada).
  */
 export {};
 
@@ -124,6 +127,30 @@ const main = async () => {
     await prisma.whatsAppPaymentReceipt.create({ data: { conversationId: c5, status: "pending", summary: "e2e" } as never });
     const r5 = await sweep(c5);
     check("no salió nada: comprobante por revisar", sent.length === 0 && ("blocked" in r5 || "not_after_call" in r5), { r5, sent });
+
+    console.log("\n6. Solo los datos de Bancolombia, sin enlace (dueña, 22-oct): el 1º");
+    const c6 = await chat("6", [
+      { dir: "OUT", body: "Bancolombia ahorros 15460415745 a nombre de Prueba Uno", at: ago(3) },
+      { dir: "OUT", body: "Paquete de 3 sesiones $510.000", at: new Date(ago(3).getTime() + 20_000) },
+      { dir: "IN", body: "Gracias", at: new Date(ago(3).getTime() + 60_000) },
+    ]);
+    const r6 = await sweep(c6);
+    check("salió uno", sent.length === 1, { r6, sent });
+
+    console.log("\n7. Dijo cuándo empieza y la asistente le reenvió el enlace: sigue la fecha (no se reinicia)");
+    const quoteAt = ago(3);
+    const c7 = await chat("7", [
+      { dir: "OUT", body: "https://www.dayanabeltran.com/pagar/p/therapy-6", at: quoteAt },
+      { dir: "IN", body: "Ya quedamos para la primera semana del próximo mes", at: new Date(quoteAt.getTime() + 60_000) },
+      {
+        dir: "OUT",
+        body: "Puedes hacer el pago por el enlace que te envió Dayana.\n\nhttps://www.dayanabeltran.com/pagar/p/therapy-6",
+        at: new Date(quoteAt.getTime() + 90_000),
+        ai: true,
+      },
+    ]);
+    const r7 = await sweep(c7);
+    check("no salió nada: todavía no le toca", sent.length === 0 && "not_due" in r7, { r7, sent });
   } finally {
     await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: { in: ids } } });
     await prisma.whatsAppDossier.deleteMany({ where: { conversationId: { in: ids } } });

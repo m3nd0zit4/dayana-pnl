@@ -125,14 +125,23 @@ const PAYMENT_DATA = [
   /\b(numero de cuenta|n° cuenta|cuenta de ahorros|cuenta corriente|tipo de cuenta)\b/,
   /\b(titular|a nombre de)\b[^\n]{0,40}\b(cuenta|nequi|banco|daviplata)\b|\b(cuenta|nequi|banco|daviplata)\b[^\n]{0,60}\b(titular|a nombre de)\b/,
   /\bwestern union\b/,
+  // Cualquier otro banco o medio (dueña, 22-oct: «Western Union, Bancolombia o
+  // cualquier otro»): «Bancolombia ahorros 1234…» no dice «tipo de cuenta».
+  // Santander, Azteca, Mercantil solos son lugares o palabras: con «banco».
+  /\b(bancolombia|davivienda|bbva|banco (de bogota|popular|de occidente|caja social|santander|azteca|mercantil|pichincha|guayaquil)|av villas|colpatria|scotiabank|itau|banorte|banamex|citibanamex|bancoppel|hsbc|bcp|interbank|produbanco|banreservas|banesco|bancamia)\b/,
+  /\b(zelle|yape|plin|clabe|spei|oxxo|binance|remitly|global ?66|moneygram|bre-?b)\b/,
+  // PayPal y Mercado Pago son los rieles de la web: nombrarlos («págalo por
+  // PayPal en la página») no son datos; su enlace o un correo sí (revisión 22-oct).
+  /\bpaypal\.me\b|\bpaypal\b[^\n]{0,30}\b[\w.+-]+@[\w-]+\.[\w.]+|\bmpago\.la\b|\blink\.mercadopago\b/,
+  // El número justo después de «cuenta», «ahorros», «CLABE»… No «ten en cuenta
+  // que es de 10:00 - 10:15» (revisión 22-oct): ni «en/de cuenta», ni guiones con espacios.
+  /(?<!\b(?:en|de|di|doy|da|das|dio|dar|darme|darte)\s)\b(cuenta( de ahorros| corriente| bancaria)?|ahorros|corriente|clabe|cbu|cvu|cci|iban)\b\s*(no\.?|nro\.?|n°|#|:)?\s*[a-z]{0,2}\d(?:[ .-]?\d){6,}/,
 ];
+/** «Envíame el comprobante»: ya hablaron de pagar. */
+const RECEIPT_TALK =
+  /\bcomprobante\b[^\n]{0,40}\b(pago|pagar|transferencia)\b|\b(envies|envias|enviame|envia|mandes|mandas|mandame|manda)\b[^\n]{0,20}\bcomprobante\b/;
 /** Además, lo que dice que ya hablaron de la sesión y el valor: un monto, «envíame el comprobante». */
-const PRICE_TALK = [
-  /\bcomprobante\b[^\n]{0,40}\b(pago|pagar|transferencia)\b|\b(envies|envias|enviame|envia|mandes|mandas|mandame|manda)\b[^\n]{0,20}\bcomprobante\b/,
-  /\$\s?\d/,
-  /\b\d{2,3}(\.\d{3})+\b/,
-  /\b\d+(\.\d+)?\s?(usd|cop|mxn|dolares|pesos)\b/,
-];
+const PRICE_TALK = [RECEIPT_TALK, /\$\s?\d/, /\b\d{2,3}(\.\d{3})+\b/, /\b\d+(\.\d+)?\s?(usd|cop|mxn|dolares|pesos)\b/];
 
 /** ¿Este mensaje de Dayana trae datos para pagar (enlace, cuenta, Nequi, Western Union)? */
 export const isPaymentData = (text: string | null | undefined): boolean => {
@@ -147,6 +156,15 @@ export const isPaymentInfo = (text: string | null | undefined, opts: { amounts?:
   // meses no dice que tuvo su llamada): solo datos o «mándame el comprobante».
   const talk = opts.amounts === false ? PRICE_TALK.slice(0, 1) : PRICE_TALK;
   return Boolean(t) && (PAYMENT_DATA.some((re) => re.test(t)) || talk.some((re) => re.test(t)));
+};
+
+/** Qué trae un mensaje de pago: datos (enlace, cuenta, Nequi…), «mándame el comprobante» o solo un valor. */
+export const paymentInfoKind = (text: string | null | undefined): "data" | "receipt" | "amount" | null => {
+  const t = foldForSearch(text ?? "");
+  if (!t) return null;
+  if (PAYMENT_DATA.some((re) => re.test(t))) return "data";
+  if (RECEIPT_TALK.test(t)) return "receipt";
+  return PRICE_TALK.slice(1).some((re) => re.test(t)) ? "amount" : null;
 };
 
 /**

@@ -5,10 +5,8 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { ensureTemplatesSubmitted } from "../whatsapp-templates";
-import { isAutoSend } from "../whatsapp-attention-rules";
 import { chatNameInfo } from "./chat-name";
-import { isPaymentInfo } from "./chat-payment-link";
-import { followUpDue, followUpText, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteSituation } from "./quote-follow-up-rules";
+import { followUpDue, followUpText, isQuoteLine, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteHowText, quoteSituation } from "./quote-follow-up-rules";
 import { quoteLinesFor, quoteZoneFor } from "./quote-follow-up-view";
 import { computeSegment } from "./segment-store";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
@@ -32,10 +30,22 @@ export const QUOTE_TEMPLATE_KEY = "seguimiento_proceso";
 
 /**
  * Pistas de un mensaje de Dayana con cómo pagar, para buscar los chats (el
- * detalle lo decide `isPaymentInfo` en `quoteSituation`): «pag» cubre el
+ * detalle lo decide `isQuote` en `quoteSituation`): «pag» cubre el
  * enlace, «pago», «pagas»; también cuentas, Nequi, Daviplata, montos.
  */
-const PAYMENT_HINTS = ["pag", "comprobante", "western", "nequi", "daviplata", "bancolombia", "cuenta", "usd", "cop", "pesos", "dolares", "dólares", "$"];
+const PAYMENT_HINTS = [
+  "pag", "comprobante", "western", "nequi", "daviplata", "bancolombia", "cuenta", "usd", "cop", "pesos", "dolares", "dólares", "$",
+  // Cualquier otro banco o medio (dueña, 22-oct): los que no dicen «cuenta» ni «pag».
+  "banco", "davivienda", "bbva", "colpatria", "scotiabank", "itau", "itaú", "banorte", "banamex", "bancoppel", "hsbc", "bcp", "interbank",
+  "produbanco", "banreservas", "banesco", "bancam", "villas", "ahorros", "corriente", "iban", "cbu", "cvu", "zelle", "paypal", "yape", "plin",
+  "clabe", "spei", "oxxo", "mpago", "binance", "remitly", "global", "moneygram", "bre-b", "breb", "mxn",
+];
+/**
+ * De la asistente solo cuentan el enlace o los datos de Ajustes que pega el
+ * código (`isQuoteLine`): pistas angostas y en su propia consulta, para que sus
+ * respuestas (casi todas dicen «pago») no ocupen el cupo de las de Dayana.
+ */
+const ASSISTANT_HINTS = ["/pagar/", "cuenta", "nequi", "daviplata", "western", "clabe", "iban", "zelle", "yape", "plin", "paypal.me"];
 
 type Outcome = "sent" | "not_due" | "blocked" | "not_after_call" | "no_quote" | "no_phone" | "needs_template" | "failed";
 
@@ -99,7 +109,7 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   fireNotification({
     eventType: "WHATSAPP_AI_INFO",
     title: `Seguimiento a ${name ?? conv.participantName ?? `+${conv.externalThreadId}`} (${n}º)`,
-    body: `${QUOTE_STATE_LABEL[s.state]}. Le escribí para iniciar su proceso.`,
+    body: `${QUOTE_STATE_LABEL[s.state]} · ${quoteHowText(s.how)}. Le escribí para iniciar su proceso.`,
     href: `/admin/whatsapp?conversation=${conversationId}`,
     entityType: "Conversation",
     entityId: conversationId,
@@ -126,25 +136,28 @@ export const sweepQuoteFollowUps = async (
     await ensureTemplatesSubmitted([QUOTE_TEMPLATE_KEY]).catch(() => undefined);
   }
   const since = new Date(now.getTime() - config.quoteFollowUp.lookbackDays * DAY);
-  // Los mensajes de Dayana con alguna pista (los más nuevos primero) y, de esos,
-  // los que de verdad dicen cómo pagar: así solo se abren los chats cotizados
-  // (unos pocos), no cada chat donde Dayana escribió «pagina» (transferencia de Neon).
-  const hints = await prisma.conversationMessage.findMany({
-    where: {
-      direction: "OUTBOUND",
-      isAutoReply: false,
-      kind: "message",
-      sentAt: { gte: since },
-      OR: PAYMENT_HINTS.map((h) => ({ body: { contains: h, mode: "insensitive" as const } })),
-      conversation: { channel: "WHATSAPP" },
-      ...(opts.conversationIds ? { conversationId: { in: opts.conversationIds } } : {}),
-    },
-    orderBy: { sentAt: "desc" },
-    select: { conversationId: true, body: true, source: true, clientKey: true },
-    take: 1500,
-  });
+  // Los mensajes con alguna pista (los más nuevos primero) y, de esos, los que
+  // de verdad son una cotización (de Dayana, o los datos que mandó la
+  // asistente): así solo se abren los chats cotizados (unos pocos), no cada
+  // chat donde se escribió «pagina» (transferencia de Neon).
+  const find = (byAssistant: boolean, words: string[], take: number) =>
+    prisma.conversationMessage.findMany({
+      where: {
+        direction: "OUTBOUND",
+        kind: "message",
+        sentAt: { gte: since },
+        ...(byAssistant ? { OR: [{ isAutoReply: true }, { source: "approval" }] } : { isAutoReply: false }),
+        AND: [{ OR: words.map((h) => ({ body: { contains: h, mode: "insensitive" as const } })) }],
+        conversation: { channel: "WHATSAPP" },
+        ...(opts.conversationIds ? { conversationId: { in: opts.conversationIds } } : {}),
+      },
+      orderBy: { sentAt: "desc" },
+      select: { conversationId: true, body: true, source: true, clientKey: true, isAutoReply: true, sentAt: true },
+      take,
+    });
+  const [byDayana, byAssistant] = await Promise.all([find(false, PAYMENT_HINTS, 1500), find(true, ASSISTANT_HINTS, 500)]);
   const rows = [
-    ...new Set(hints.filter((m) => m.source !== "approval" && !isAutoSend(m) && isPaymentInfo(m.body)).map((m) => m.conversationId)),
+    ...new Set([...byDayana, ...byAssistant].filter((m) => isQuoteLine({ ...m, direction: "OUTBOUND" })).map((m) => m.conversationId)),
   ].map((conversationId) => ({ conversationId }));
   const out: Record<string, number> = {};
   let sent = 0;

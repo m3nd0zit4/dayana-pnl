@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
 import { quoteFollowUpFor } from "./quote-follow-up-view";
-import { nextFollowUp, quoteStateText } from "./quote-follow-up-rules";
+import { nextFollowUp, quoteHowText, quoteStateText } from "./quote-follow-up-rules";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
 import { windowStateOf } from "../whatsapp-outbound-plan";
@@ -730,6 +730,8 @@ export const getChat = async (id: string) => {
       ? {
           state: quoteStateText(quote.situation, quote.tz),
           said: quote.situation.said,
+          /** Cómo le cotizó: «Datos del banco: Western Union · paquete de 3 sesiones · 175 USD». */
+          how: quoteHowText(quote.situation.how),
           quoteAt: quote.situation.quoteAt.toISOString(),
           sent: quote.situation.sent,
           max: config.quoteFollowUp.max,
