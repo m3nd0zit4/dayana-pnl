@@ -3,6 +3,8 @@ import { Prisma, type WhatsAppAiMode } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
+import { quoteFollowUpFor } from "./quote-follow-up";
+import { nextFollowUp, quoteStateText } from "./quote-follow-up-rules";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
 import { windowStateOf } from "../whatsapp-outbound-plan";
@@ -633,6 +635,10 @@ export const getChat = async (id: string) => {
     findDecidedCall(c.id, now).catch(() => null),
     getOperationalTimezone(),
   ]);
+  // En qué va su cierre después de que Dayana le mandó cómo pagar (solo «tuvo la llamada»).
+  const quote =
+    config.quoteFollowUp.enabled && c.dossier?.stage === "tuvo_llamada" ? await quoteFollowUpFor(c.id, config, now).catch(() => null) : null;
+  const quoteNext = quote ? nextFollowUp(quote.situation, config.quoteFollowUp, quote.tz) : null;
   // El modo con el que de verdad trabaja (con el enrutador sale del segmento
   // y del tope general; ya no se guarda en el chat).
   const savedSegment = c.dossier?.segment;
@@ -713,6 +719,23 @@ export const getChat = async (id: string) => {
           review: c.dossier.segmentReview,
           source: c.dossier.segmentSource,
           evidence: ((c.dossier.clientEvidence ?? []) as { who: string; quote: string; at: string }[]).slice(-3),
+        }
+      : null,
+    /**
+     * El seguimiento del cierre (`quote-follow-up-rules.ts`): en qué va después
+     * de que Dayana le mandó cómo pagar, lo que dijo y cuándo le escribe la
+     * asistente (`next`: «domingo, 1 de noviembre», en la zona de Dayana).
+     */
+    quoteFollowUp: quote
+      ? {
+          state: quoteStateText(quote.situation, quote.tz),
+          said: quote.situation.said,
+          quoteAt: quote.situation.quoteAt.toISOString(),
+          sent: quote.situation.sent,
+          max: config.quoteFollowUp.max,
+          next: quoteNext
+            ? new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(quoteNext.at)
+            : null,
         }
       : null,
     /** Último mensaje de la persona: «Listo» solo cubre hasta aquí. */

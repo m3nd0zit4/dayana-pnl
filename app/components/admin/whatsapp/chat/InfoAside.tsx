@@ -127,6 +127,26 @@ const SegmentInfo = ({
   );
 };
 
+/**
+ * El seguimiento del cierre: en qué va después de que Dayana le mandó cómo
+ * pagar (cotizada, va a pagar y cuándo, lo está pensando…) y cuándo le
+ * escribe la asistente.
+ */
+const QuoteFollowUpInfo = ({ quote }: { quote: ChatDetail["quoteFollowUp"] }) => {
+  if (!quote) return null;
+  return (
+    <section className="space-y-1.5">
+      <h3 className="text-sm font-semibold text-(--wa-accent)">Seguimiento del cierre</h3>
+      <p className="font-medium">{quote.state}</p>
+      {quote.said && <p className="text-xs text-(--wa-icon)">«{quote.said}»</p>}
+      <p className="text-xs text-(--wa-meta)">
+        Seguimientos de la asistente: {quote.sent} de {quote.max}
+        {quote.next ? ` · el próximo: ${quote.next}` : quote.sent >= quote.max ? " · ya no le escribe más: te toca a ti" : ""}
+      </p>
+    </section>
+  );
+};
+
 /** Panel de la derecha: lo que la IA recuerda, la categoría, citas, enlaces de pago y lo que hizo. */
 const InfoAside = ({
   chat,
@@ -209,6 +229,8 @@ const InfoAside = ({
       </section>
 
       <SegmentInfo conversationId={chat.id} segment={chat.segment} canWrite={canWrite} />
+
+      <QuoteFollowUpInfo quote={chat.quoteFollowUp} />
 
       <ClassificationInfo classification={chat.classification} />
 

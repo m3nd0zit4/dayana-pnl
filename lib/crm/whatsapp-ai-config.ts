@@ -377,6 +377,22 @@ export const whatsAppAiConfigSchema = z.object({
     assumeMissedAfterHours: z.number().int().min(2).max(72).default(24),
   }),
   /**
+   * El seguimiento del cierre (`quote-follow-up.ts`, pedido de la dueña
+   * 22-oct): a quien Dayana ya le mandó cómo pagar y no ha pagado, la
+   * asistente le escribe a los `firstAfterDays` (o el día siguiente a la
+   * fecha que dijo) y otra vez a los `secondAfterDays`; `max` por cotización,
+   * solo cotizaciones de los últimos `lookbackDays`. Encendido: lo pidió la
+   * dueña («2 seguimientos», «últimos 14 días»). Fuera de las 24 h usa la
+   * plantilla «Seguimiento: iniciar el proceso».
+   */
+  quoteFollowUp: z.object({
+    enabled: z.boolean().default(true),
+    firstAfterDays: z.number().int().min(1).max(14).default(2),
+    secondAfterDays: z.number().int().min(1).max(14).default(4),
+    max: z.number().int().min(0).max(3).default(2),
+    lookbackDays: z.number().int().min(1).max(30).default(14),
+  }),
+  /**
    * Recordatorio de la llamada gratis antes de la hora (`free-call-reminder-rules.ts`):
    * «hoy a las … Dayana te llamará por WhatsApp, ten a mano un espacio
    * tranquilo». Encendido por defecto: lo pidió la dueña. Fuera de las 24 h
@@ -495,6 +511,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3, soonFirst: true, preferredWeekdays: [], controller: true },
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
+  quoteFollowUp: { enabled: true, firstAfterDays: 2, secondAfterDays: 4, max: 2, lookbackDays: 14 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
   noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },
   sessionArrival: { enabled: true },

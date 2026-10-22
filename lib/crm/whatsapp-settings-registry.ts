@@ -259,6 +259,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-quote-followup",
+    label: "Seguimiento a quien ya recibió cómo pagar",
+    keywords: ["seguimiento", "cotización", "cierre", "enlace de pago", "no ha pagado", "comprobante", "iniciar proceso"],
+    tab: "ia",
+  },
+  {
     id: "wa-call-followup-hours",
     label: "Horas para dar la llamada por no contestada",
     keywords: ["horas", "no contestó", "sin respuesta", "reagendar"],

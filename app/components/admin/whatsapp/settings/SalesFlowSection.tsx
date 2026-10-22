@@ -86,6 +86,15 @@ const SalesFlowSection = () => {
         checked={config.callFollowUp.enabled}
         onChange={(v) => change("wa-call-followup", "callFollowUp.enabled", v)}
       />
+      <ToggleRow
+        id="wa-quote-followup"
+        label="Seguimiento a quien ya recibió cómo pagar"
+        help={`Cuando le mandas a alguien el enlace, la cuenta o el valor y no paga, la asistente le escribe para iniciar su proceso: a los ${config.quoteFollowUp.firstAfterDays} días (o el día después de la fecha que dijo, «la otra semana», «fin de mes») y otra vez a los ${config.quoteFollowUp.secondAfterDays} días. Como mucho ${config.quoteFollowUp.max}; si le escribes tú, espera.`}
+        info="Lo ves en el chat, en «Seguimiento del cierre». No le escribe si la tienes en favoritos, tomaste el chat, está en pausa, mandó un comprobante o dice que ya pagó o que no quiere. Fuera de las 24 h usa la plantilla «Seguimiento: iniciar el proceso» (se manda sola a aprobar)."
+        state={states["wa-quote-followup"]}
+        checked={config.quoteFollowUp.enabled}
+        onChange={(v) => change("wa-quote-followup", "quoteFollowUp.enabled", v)}
+      />
       <SettingRow
         id="wa-call-followup-hours"
         label="Horas sin respuesta para darla por no contestada"

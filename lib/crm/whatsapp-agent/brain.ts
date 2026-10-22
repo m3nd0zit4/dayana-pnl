@@ -47,6 +47,7 @@ import { fixNameInReply, resolvePersonName, sureFirstName, type NameMessage, typ
 import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
 import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
+import { quotePromptLine, quoteSituation } from "./quote-follow-up-rules";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
@@ -979,6 +980,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const chatLink = chatLinks[0] ?? null;
   // Y si no fue un enlace: la cuenta, el Nequi o el valor que Dayana le escribió (Carmen, Raquel, 21-oct).
   const chatPayInfo = chatLink ? null : dayanaPaymentInfo(input.transcript, now);
+  // En qué va su cierre después de la cotización (`quote-follow-up-rules.ts`): solo en «tuvo la llamada».
+  const quoteSit =
+    input.stage === "tuvo_llamada" && config.quoteFollowUp.enabled
+      ? quoteSituation(
+          input.transcript.map((l) => ({ ...l, sentAt: l.sentAt ?? now })),
+          { now, tz: input.freeCall?.personTimezone ?? timezone, lookbackDays: 30 }
+        )
+      : null;
   const paymentTools = {
     ...(methods.length > 0
       ? {
@@ -1784,6 +1793,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .filter(Boolean)
             .join("\n")
         : null,
+      quoteSit ? quotePromptLine(quoteSit, input.freeCall?.personTimezone ?? timezone) : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
         : salesOn
@@ -1842,6 +1852,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate"), hasToolCall("no_reply")],
   });
 
+  // Le respondía a Dayana y el modelo no escribió nada ni usó herramientas: es
+  // un «no hace falta contestar», no «no supo qué contestar» (Raquel, 22-oct:
+  // a su audio para Dayana le llegó «Déjame consultarlo con Dayana»).
+  if (toDayana && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
+    state.noReply = "Le estaba respondiendo a Dayana; no hacía falta que la asistente escribiera.";
+  }
   const rawOutcome: BrainOutcome =
     state.outcome ??
     (state.noReply && !result.text.trim() ? { kind: "reply", message: "" } : null) ??
@@ -2055,10 +2071,39 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         ? offerMessage(text, state.slotOffer.options, state.slotOffer.matchedWish)
         : text;
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
-  const finalOutcome: BrainOutcome =
+  const shaped: BrainOutcome =
     outcome.kind === "reply"
       ? { ...outcome, message: serious ? outcome.message : withAgenda(named(replyText(outcome.message))!) }
       : outcome;
+  // Dayana le escribió hace un momento y la persona le contesta a ella: esa
+  // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de
+  // Dayana la IA metió «Quedamos listas…» encima). La IA no se mete, salvo con
+  // lo que ella resuelve: datos o enlace de pago, el comprobante, la agenda.
+  const dayanaAt = (() => {
+    let i = input.transcript.length;
+    while (i > 0 && input.transcript[i - 1].direction === "INBOUND") i--;
+    return i > 0 ? input.transcript[i - 1].sentAt : undefined;
+  })();
+  const stepAside =
+    toDayana &&
+    !input.clientMode &&
+    Boolean(dayanaAt && now.getTime() - dayanaAt.getTime() < 30 * 60_000) &&
+    shaped.kind === "reply" &&
+    Boolean(shaped.message.trim()) &&
+    !serious &&
+    !state.receipt &&
+    !state.booking &&
+    !state.pendingBooking &&
+    !state.bookingNotice &&
+    !state.urgentSession &&
+    state.paymentDetails.length === 0 &&
+    !state.paymentLink &&
+    state.links.length === 0;
+  if (stepAside && shaped.kind === "reply") {
+    state.noReply = "Dayana le escribió hace un momento y le está contestando a ella.";
+    log("no_reply", { auto: true }, { ok: true, replaced: shaped.message, note: "Lo decidió el código: Dayana está en la conversación." });
+  }
+  const finalOutcome: BrainOutcome = stepAside ? { kind: "reply", message: "" } : shaped;
 
   return {
     outcome: finalOutcome,

@@ -9,8 +9,8 @@
 import type { Stage } from "../stage";
 import type { GuestEvent } from "../webinar-guest";
 
-/** `source`: de dónde salió un envío automático (`evento:…:confirmacion`), como en el chat. */
-type Line = { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean; attachment?: string | null; source?: string | null };
+/** `source`: de dónde salió un envío automático (`evento:…:confirmacion`), como en el chat. `sentAt`: si importa cuándo (la evaluación corre el 14-oct a las 2 p. m. de Colombia). */
+type Line = { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean; attachment?: string | null; source?: string | null; sentAt?: Date };
 
 export type Scenario = {
   id: string;
@@ -837,5 +837,63 @@ export const SCENARIOS: Scenario[] = [
       mustNotMatch: [/te esperamos/i],
     },
     goal: "Ella pide información de la terapia (no del webinar): la asistente la saluda como asistente de Dayana, le dice que con gusto le da la información de las terapias y sigue el flujo de la llamada gratis (le pregunta cómo está o desde qué país/ciudad escribe; en España, la ciudad no hace falta). No le da la bienvenida al webinar como si eso fuera todo, ni precios.",
+  },
+  {
+    id: "raquel-decidida-le-responde-a-dayana",
+    origin: "Raquel Torres (+34), 22-oct: Dayana le mandó un audio de seguimiento («quedo súper atenta para iniciar… tan pronto me envíes el comprobante iniciamos»); Raquel le contestó que está decidida y paga la otra semana, a fin de mes, y la IA metió «Déjame consultarlo con Dayana» (el modelo no escribió nada y salió la espera de «no supo qué contestar»)",
+    name: "Raquel Torres",
+    gender: "f",
+    personTimezone: "Europe/Madrid",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("NOMBRE DE BANCO: BANCO UNIÓN – WESTERN UNION\nEnvío directo a cuenta en Colombia\nNúmero de cuenta: 0000000000\nTitular: Diana Beltrán"),
+      dayana("175 USD\n580.000 COP"),
+      dayana("PAQUETE DE TRES SESIONES PERSONALIZADAS 1.1"),
+      person("Gracias bella, si te envío el Western"),
+      // Hace 10 y 6 minutos: Dayana está en la conversación.
+      {
+        ...dayana("🎤 Hola, mi hermosa, te bendigo, quedo súper atenta para iniciar con tu proceso de reprogramación personalizado, tan pronto me envíes el comprobante de pago iniciamos, ¿okay, mi bella? Estoy para servirte y te envío un abrazo."),
+        sentAt: new Date("2026-10-14T18:50:00Z"),
+      },
+      {
+        ...person(
+          "🎤 Hola, Dayana, buenas tardes, qué alegría escucharte. Sí, estoy decidida a hacer este proceso contigo. Yo ya pedí que de Ecuador me envíen un Western. Estoy esperando que me llegue ese ingreso, la otra semana que es fin de mes, y apenas me lo hagan te enviaré el comprobante y empezamos."
+        ),
+        sentAt: new Date("2026-10-14T18:54:00Z"),
+      },
+    ],
+    expect: {
+      outcome: "silent",
+      noTool: ["offer_free_call_slots", "book_free_call", "send_payment_info", "escalate"],
+    },
+    goal: "Le está contestando a Dayana, que le escribió hace unos minutos: la asistente no se mete (no escribe nada). Nunca «déjame consultarlo con Dayana».",
+  },
+  {
+    id: "contesta-al-seguimiento-paga-la-otra-semana",
+    origin: "Seguimiento del cierre (dueña, 22-oct): Dayana le mandó el enlace después de la llamada, la asistente le hizo el 1º seguimiento y la persona contesta cuándo paga",
+    name: "Cristian",
+    contactName: "Cristian",
+    gender: "unknown",
+    personTimezone: "America/Lima",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      dayana("Tan pronto me envíes el comprobante de pago, agendamos día y hora que me digas"),
+      person("Gracias"),
+      {
+        direction: "OUTBOUND",
+        isAutoReply: true,
+        source: "recordatorio:cotizacion:1:1",
+        body: "Hola Cristian, te bendigo 🙏 Dayana queda muy atenta para iniciar tu proceso personalizado. ¿Cuándo te gustaría empezar? Tan pronto envíes el comprobante de pago por aquí, Dayana te agenda.",
+      },
+      person("Hola, sí quiero empezar, la otra semana me pagan y hago el pago"),
+    ],
+    expect: {
+      outcome: "reply",
+      noTool: ["offer_free_call_slots", "book_free_call", "escalate"],
+      mustMatch: [/comprobante/i],
+      mustNotMatch: [/consult|le paso|le aviso/i, /\$|usd|cop\b/i],
+    },
+    goal: "Contesta con calidez que qué bien, que Dayana queda muy atenta y que cuando haga el pago (por el enlace que le mandó Dayana) le mande el comprobante por aquí para que Dayana le agende. Corto. No escala ni dice que lo consulta con Dayana, no ofrece otra llamada gratis ni da precios. Sin género.",
   },
 ];

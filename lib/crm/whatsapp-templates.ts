@@ -245,6 +245,15 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     body: "Hola {{nombre}}, Dayana te llamó para tu llamada gratis del {{fecha}} y no lograron comunicarse. Con gusto la reagendamos. Horarios disponibles: {{horarios}}. Responde con el que te quede mejor.",
     example: { nombre: "Ana", fecha: "jueves 2 de octubre", horarios: "viernes 3, 10:00 a. m. · lunes 6, 3:00 p. m." },
   },
+  // El seguimiento del cierre fuera de las 24 h (`quote-follow-up.ts`): a quien
+  // Dayana ya le mandó cómo pagar. Habla de iniciar el proceso: es de Marketing.
+  {
+    key: "seguimiento_proceso",
+    title: "Seguimiento: iniciar el proceso",
+    category: "MARKETING",
+    body: "Hola {{nombre}}, te escribo de parte de Dayana. Ella queda muy atenta para iniciar tu proceso personalizado. ¿Cuándo te gustaría empezar? Si tienes alguna duda o dificultad con el pago, me cuentas por aquí.",
+    example: { nombre: "Ana" },
+  },
   {
     key: "cita_reprogramar",
     title: "Cita: reprogramar",
