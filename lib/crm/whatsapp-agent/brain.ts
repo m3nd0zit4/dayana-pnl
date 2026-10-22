@@ -533,10 +533,15 @@ const registrantId = async (contactId: string | null, phone?: string | null): Pr
  * El evento gratuito en el que se inscribió y que todavía cuenta (no ha
  * empezado o empezó hace menos de una semana: `guestEventCounts`), el más
  * cercano. Para `BrainInput.freeEvent`.
+ *
+ * Quien hizo la autoevaluación (el cuestionario de qué proceso le sirve) no:
+ * buscó un proceso, y el mensaje de la autoevaluación le dijo que Dayana le
+ * escribe (Guada, Magali: autoevaluación y luego el webinar).
  */
 export const guestFreeEvent = async (contactId: string | null, phone?: string | null, now = new Date()): Promise<GuestEvent | null> => {
   const id = await registrantId(contactId, phone);
   if (!id) return null;
+  if ((await prisma.diagnostic.count({ where: { contactId: id, completedAt: { not: null } } })) > 0) return null;
   const rows = await prisma.webinarRegistration.findMany({
     where: {
       contactId: id,
