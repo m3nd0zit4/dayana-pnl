@@ -94,6 +94,16 @@ describe("stateFromReply", () => {
     expect(stateFromReply(text, WED, BOG)?.state).toBe(state as never);
   });
 
+  // Revisión 22-oct.
+  test.each([
+    ["Hoy no tengo plata", "sin_dinero"],
+    ["Lo pienso y te aviso mañana", "lo_piensa"],
+    ["Te mande el comprobante cuando pague", "pagara"],
+    ["No gracias por el recordatorio, pago el viernes", "pagara"],
+  ])("«%s» → %s (no una promesa de hoy o mañana, ni un pago que aún no hizo)", (text, state) => {
+    expect(stateFromReply(text, WED, BOG)?.state).toBe(state as never);
+  });
+
   test.each(["Gracias 😊", "Igualmente", "Si gracias", "ok"])("«%s» no dice nada de pagar", (text) => {
     expect(stateFromReply(text, WED, BOG)).toBeNull();
   });
@@ -149,6 +159,27 @@ describe("nextFollowUp / followUpDue", () => {
     expect(nextFollowUp(s, CONFIG, BOG)).toEqual({ at: at("2026-10-25T15:00:00Z"), kind: "second" });
     const done = quoteSituation([...lines, followUp("2026-10-25T15:00:00Z", 2)], { now: at("2026-10-30T15:00:00Z"), tz: BOG, lookbackDays: 14 })!;
     expect(nextFollowUp(done, CONFIG, BOG)).toBeNull();
+  });
+
+  test("contestó al 1º con «Gracias»: el 2º igual espera 4 días desde el 1º (revisión 22-oct)", () => {
+    const lines = [quote, followUp("2026-10-21T15:00:00Z", 1), person("Gracias", "2026-10-21T16:00:00Z")];
+    const s = quoteSituation(lines, { now: at("2026-10-24T15:00:00Z"), tz: BOG, lookbackDays: 14 })!;
+    expect(nextFollowUp(s, CONFIG, BOG)).toEqual({ at: at("2026-10-25T15:00:00Z"), kind: "second" });
+    const think = quoteSituation([quote, person("Lo voy a pensar", "2026-10-20T15:00:00Z"), followUp("2026-10-23T15:00:00Z", 1), person("Sí, todavía lo pienso", "2026-10-23T16:00:00Z")], {
+      now: at("2026-10-24T15:00:00Z"),
+      tz: BOG,
+      lookbackDays: 14,
+    })!;
+    expect(nextFollowUp(think, CONFIG, BOG)?.at.getTime()).toBeGreaterThanOrEqual(at("2026-10-27T15:00:00Z").getTime());
+  });
+
+  test("una foto sin texto al final (puede ser el comprobante): espera; escribió hace 1 h: espera", () => {
+    const photo: QuoteLine = { direction: "INBOUND", body: null, sentAt: at("2026-10-22T13:00:00Z"), media: true };
+    const s = quoteSituation([quote, person("Gracias", "2026-10-19T20:05:00Z"), photo], { now: at("2026-10-24T15:00:00Z"), tz: BOG, lookbackDays: 14 })!;
+    expect(s.awaitingReply).toBe(true);
+    expect(followUpDue(s, CONFIG, { now: at("2026-10-24T15:00:00Z"), tz: BOG, lastOutboundAt: quote.sentAt })).toBeNull();
+    const recent = quoteSituation([quote, person("Gracias", "2026-10-22T14:00:00Z")], { now: at("2026-10-22T15:00:00Z"), tz: BOG, lookbackDays: 14 })!;
+    expect(followUpDue(recent, { ...CONFIG, firstAfterDays: 0 } as never, { now: at("2026-10-22T15:00:00Z"), tz: BOG, lastOutboundAt: quote.sentAt })).toBeNull();
   });
 
   test("no quiere o dice que ya pagó: ninguno", () => {

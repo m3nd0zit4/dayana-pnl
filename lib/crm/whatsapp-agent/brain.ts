@@ -981,10 +981,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Y si no fue un enlace: la cuenta, el Nequi o el valor que Dayana le escribió (Carmen, Raquel, 21-oct).
   const chatPayInfo = chatLink ? null : dayanaPaymentInfo(input.transcript, now);
   // En qué va su cierre después de la cotización (`quote-follow-up-rules.ts`): solo en «tuvo la llamada».
+  // 30 días y no los del envío (14): la línea no promete seguimientos, le dice
+  // a la IA qué contestar a «pago la otra semana» aunque la cotización sea vieja.
   const quoteSit =
     input.stage === "tuvo_llamada" && config.quoteFollowUp.enabled
       ? quoteSituation(
-          input.transcript.map((l) => ({ ...l, sentAt: l.sentAt ?? now })),
+          input.transcript.map((l) => ({ ...l, sentAt: l.sentAt ?? now, media: Boolean(l.attachment) })),
           { now, tz: input.freeCall?.personTimezone ?? timezone, lookbackDays: 30 }
         )
       : null;
@@ -1855,7 +1857,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Le respondía a Dayana y el modelo no escribió nada ni usó herramientas: es
   // un «no hace falta contestar», no «no supo qué contestar» (Raquel, 22-oct:
   // a su audio para Dayana le llegó «Déjame consultarlo con Dayana»).
-  if (toDayana && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
+  // Una pregunta («¿cuánto cuesta?») sigue el camino de siempre (revisión 22-oct).
+  const askedSomething = lastInbound.some((t) => /[?¿]/.test(t));
+  if (toDayana && !askedSomething && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
     state.noReply = "Le estaba respondiendo a Dayana; no hacía falta que la asistente escribiera.";
   }
   const rawOutcome: BrainOutcome =
@@ -2079,6 +2083,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de
   // Dayana la IA metió «Quedamos listas…» encima). La IA no se mete, salvo con
   // lo que ella resuelve: datos o enlace de pago, el comprobante, la agenda.
+  // Si pregunta algo, contesta (puede ser que Dayana no esté mirando).
   const dayanaAt = (() => {
     let i = input.transcript.length;
     while (i > 0 && input.transcript[i - 1].direction === "INBOUND") i--;
@@ -2086,6 +2091,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   })();
   const stepAside =
     toDayana &&
+    !askedSomething &&
     !input.clientMode &&
     Boolean(dayanaAt && now.getTime() - dayanaAt.getTime() < 30 * 60_000) &&
     shaped.kind === "reply" &&

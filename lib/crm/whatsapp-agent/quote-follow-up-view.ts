@@ -14,16 +14,18 @@ import { quoteSituation, type QuoteLine, type QuoteSituation } from "./quote-fol
 
 const DAY = 24 * 3600_000;
 
-/** Las líneas del chat de los últimos días, para las reglas (`QuoteLine`). */
+/** Las líneas del chat de los últimos días (las 250 más nuevas, en orden), para las reglas (`QuoteLine`). */
 export const quoteLinesFor = async (conversationId: string, lookbackDays: number, now = new Date()): Promise<QuoteLine[]> =>
   (
     await prisma.conversationMessage.findMany({
       where: { conversationId, sentAt: { gte: new Date(now.getTime() - (lookbackDays + 1) * DAY) }, status: { not: "FAILED" } },
-      orderBy: { sentAt: "asc" },
-      take: 400,
-      select: { direction: true, body: true, sentAt: true, isAutoReply: true, source: true, clientKey: true, kind: true },
+      orderBy: { sentAt: "desc" },
+      take: 250,
+      select: { direction: true, body: true, sentAt: true, isAutoReply: true, source: true, clientKey: true, kind: true, attachments: true },
     })
-  ).map((m) => ({
+  )
+    .reverse()
+    .map((m) => ({
     direction: m.direction === "INBOUND" ? "INBOUND" : "OUTBOUND",
     body: m.body,
     sentAt: m.sentAt,
@@ -31,6 +33,7 @@ export const quoteLinesFor = async (conversationId: string, lookbackDays: number
     source: m.source,
     clientKey: m.clientKey,
     kind: m.kind,
+    media: Array.isArray(m.attachments) && m.attachments.length > 0,
   }));
 
 /** La zona de la persona (ficha, contacto de fiar o el país del número); si no, la de Dayana. */

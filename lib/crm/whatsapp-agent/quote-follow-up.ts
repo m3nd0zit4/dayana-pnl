@@ -5,7 +5,9 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { ensureTemplatesSubmitted } from "../whatsapp-templates";
+import { isAutoSend } from "../whatsapp-attention-rules";
 import { chatNameInfo } from "./chat-name";
+import { isPaymentInfo } from "./chat-payment-link";
 import { followUpDue, followUpText, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteSituation } from "./quote-follow-up-rules";
 import { quoteLinesFor, quoteZoneFor } from "./quote-follow-up-view";
 import { computeSegment } from "./segment-store";
@@ -28,17 +30,18 @@ import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
 const DAY = 24 * 3600_000;
 export const QUOTE_TEMPLATE_KEY = "seguimiento_proceso";
 
-/** Un mensaje de Dayana ella misma con cómo pagar, para buscar los chats (el detalle lo decide `quoteSituation`). */
-const PAYMENT_HINTS = ["/pagar/", "comprobante", "western", "nequi", "bancolombia", "cuenta", "usd", "cop", "$"];
+/**
+ * Pistas de un mensaje de Dayana con cómo pagar, para buscar los chats (el
+ * detalle lo decide `isPaymentInfo` en `quoteSituation`): «pag» cubre el
+ * enlace, «pago», «pagas»; también cuentas, Nequi, Daviplata, montos.
+ */
+const PAYMENT_HINTS = ["pag", "comprobante", "western", "nequi", "daviplata", "bancolombia", "cuenta", "usd", "cop", "pesos", "dolares", "dólares", "$"];
 
 type Outcome = "sent" | "not_due" | "blocked" | "not_after_call" | "no_quote" | "no_phone" | "needs_template" | "failed";
 
 type Send = typeof sendWhatsAppToRecipient;
 
 const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Date, send: Send): Promise<Outcome> => {
-  const seg = await computeSegment(conversationId).catch(() => null);
-  // Solo «tuvo la llamada», sin dudas de pago (comprobante por revisar, dice que pagó).
-  if (!seg || seg.stage !== "tuvo_llamada" || seg.review) return "not_after_call";
   const conv = await prisma.conversation.findUnique({
     where: { id: conversationId },
     select: {
@@ -48,11 +51,14 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
     },
   });
   if (!conv) return "no_quote";
-  if (await waitingRoomBlocked(conv, config)) return "blocked";
-  if (config.router.enabled && config.router.modes.after_call === "MANUAL" && !conv.aiAlwaysAt) return "blocked";
-  // Un comprobante sin revisar: Dayana lo tiene que ver, no se le pide el pago otra vez.
-  if (await prisma.whatsAppPaymentReceipt.count({ where: { conversationId, status: "pending" } })) return "blocked";
+  // Un mensaje que nadie pidió: los silencios de siempre, también en un chat
+  // con «La IA responde siempre» (eso es para contestarle, no para escribirle
+  // sola a un favorito o a una clienta: revisión 22-oct).
+  if (await waitingRoomBlocked({ ...conv, aiAlwaysAt: null }, config)) return "blocked";
+  if (config.router.enabled && config.router.modes.after_call === "MANUAL") return "blocked";
+  if (!/^\d{8,15}$/.test(conv.externalThreadId)) return "no_phone";
 
+  // ¿Le toca? (Barato: un solo query del chat.) El estado se recalcula solo si sí.
   const tz = await quoteZoneFor(conv);
   const lines = await quoteLinesFor(conversationId, config.quoteFollowUp.lookbackDays, now);
   const s = quoteSituation(lines, { now, tz, lookbackDays: config.quoteFollowUp.lookbackDays });
@@ -61,7 +67,12 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   const due = followUpDue(s, config.quoteFollowUp, { now, tz, lastOutboundAt });
   if (!due) return "not_due";
 
-  if (!/^\d{8,15}$/.test(conv.externalThreadId)) return "no_phone";
+  // Solo «tuvo la llamada», sin dudas de pago (comprobante por revisar, dice que pagó).
+  const seg = await computeSegment(conversationId).catch(() => null);
+  if (!seg || seg.stage !== "tuvo_llamada" || seg.review) return "not_after_call";
+  // Un comprobante sin revisar: Dayana lo tiene que ver, no se le pide el pago otra vez.
+  if (await prisma.whatsAppPaymentReceipt.count({ where: { conversationId, status: "pending" } })) return "blocked";
+
   const name = sureFirstName(await chatNameInfo(conversationId));
   const n = s.sent + 1;
   const r = await send({
@@ -115,7 +126,10 @@ export const sweepQuoteFollowUps = async (
     await ensureTemplatesSubmitted([QUOTE_TEMPLATE_KEY]).catch(() => undefined);
   }
   const since = new Date(now.getTime() - config.quoteFollowUp.lookbackDays * DAY);
-  const rows = await prisma.conversationMessage.findMany({
+  // Los mensajes de Dayana con alguna pista (los más nuevos primero) y, de esos,
+  // los que de verdad dicen cómo pagar: así solo se abren los chats cotizados
+  // (unos pocos), no cada chat donde Dayana escribió «pagina» (transferencia de Neon).
+  const hints = await prisma.conversationMessage.findMany({
     where: {
       direction: "OUTBOUND",
       isAutoReply: false,
@@ -125,10 +139,13 @@ export const sweepQuoteFollowUps = async (
       conversation: { channel: "WHATSAPP" },
       ...(opts.conversationIds ? { conversationId: { in: opts.conversationIds } } : {}),
     },
-    distinct: ["conversationId"],
-    select: { conversationId: true },
-    take: 200,
+    orderBy: { sentAt: "desc" },
+    select: { conversationId: true, body: true, source: true, clientKey: true },
+    take: 1500,
   });
+  const rows = [
+    ...new Set(hints.filter((m) => m.source !== "approval" && !isAutoSend(m) && isPaymentInfo(m.body)).map((m) => m.conversationId)),
+  ].map((conversationId) => ({ conversationId }));
   const out: Record<string, number> = {};
   let sent = 0;
   for (const { conversationId } of rows) {

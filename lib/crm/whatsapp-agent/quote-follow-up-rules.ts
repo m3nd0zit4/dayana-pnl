@@ -40,6 +40,8 @@ export type QuoteLine = {
   source?: string | null;
   clientKey?: string | null;
   kind?: string | null;
+  /** Trae una foto, un audio o un documento. */
+  media?: boolean;
 };
 
 export type QuoteState = "cotizada" | "pagara" | "lo_piensa" | "sin_dinero" | "no_quiere" | "pago_enviado";
@@ -107,7 +109,7 @@ const MONEY =
   /\b(no me alcanza|no tengo (el |la |los |con que |como |para )?(dinero|plata|recursos|pagar|platica)|no cuento con (el )?(dinero|plata|recursos)|estoy (corta|corto|apretad[oa]|sin (dinero|plata|trabajo))|ahorr\w+|no (puedo|podre|voy a poder) pagar|mal de (plata|dinero)|economicamente)\b/;
 /** «Voy a pagar», «te envío», «estoy decidida», «apenas me paguen». */
 const PAY =
-  /\b(voy a (pagar|hacer el pago|transferir|enviar|mandar|depositar|empezar|iniciar|comenzar)|te (pago|transfiero|envio|mando|deposito|consigno|enviare|mandare|pagare|transferire)|(estoy|me siento) (muy )?decidid[oa]|si quiero (empezar|iniciar|comenzar|el proceso|hacerlo)|quiero (empezar|iniciar|comenzar)|apenas (me|tenga|reciba|cobre|llegue)|cuando (me paguen|cobre|me llegue|reciba|me depositen)|enviare el comprobante|empezamos|lo hago (el|la|este|esta|en)|hago el pago)\b/;
+  /\b(voy a (pagar|hacer el pago|transferir|enviar|mandar|depositar|empezar|iniciar|comenzar)|te (pago|transfiero|envio|mando|deposito|consigno|enviare|mandare|pagare|transferire)|(estoy|me siento) (muy )?decidid[oa]|si quiero (empezar|iniciar|comenzar|el proceso|hacerlo)|quiero (empezar|iniciar|comenzar)|apenas (me|tenga|reciba|cobre|llegue)|cuando (me paguen|cobre|me llegue|reciba|me depositen|pague|haga el pago|tenga el dinero|tenga la plata)|enviare el comprobante|empezamos|lo hago (el|la|este|esta|en)|hago el pago)\b/;
 /** «Lo voy a pensar», «te aviso», «lo hablo con mi esposo». */
 const THINK =
   /\b(lo (voy a )?pens\w+|(te|le) (aviso|confirmo)\b|lo (consulto|hablo|comento|converso)|(dejame|dame) (ver|pensar\w*|unos dias|un tiempo)|tengo que (ver|pensarlo|hablarlo|consultarlo|organizarme)|estamos en contacto|despues te (digo|escribo|aviso|confirmo))/;
@@ -182,15 +184,28 @@ export const payDateFrom = (text: string, at: Date, tz: string): Date | null => 
   return best ? zonedDateTimeToUtc(best, "00:00", tz) : null;
 };
 
-/** El estado que dice un mensaje suyo (null: no dice nada de pagar, «gracias», «ok»). */
+/** «Te mande el comprobante cuando pague»: habla de lo que va a hacer, no de lo que hizo. */
+const FUTURE = /\b(cuando|apenas|en cuanto|tan pronto|despues que|luego que)\b/;
+/** Habla de pagar o de mandar el pago («pago el viernes», «lo transfiero»). */
+const PAY_WORD = /\b(pag|envi|mand|transfer|deposit|consign)\w*/;
+
+/**
+ * El estado que dice un mensaje suyo (null: no dice nada de pagar, «gracias»,
+ * «ok»). Con «no me alcanza» o «lo pienso», solo una fecha de dentro de 2
+ * días o más la vuelve «va a pagar»: «hoy no tengo plata» y «te aviso mañana»
+ * no son una promesa de pago (revisión 22-oct).
+ */
 export const stateFromReply = (text: string, at: Date, tz: string): { state: QuoteState; payBy: Date | null } | null => {
   const t = foldForSearch(text);
   if (!t.trim()) return null;
-  if (PAID.test(t)) return { state: "pago_enviado", payBy: null };
-  if (NO.test(t)) return { state: "no_quiere", payBy: null };
+  if (PAID.test(t) && !FUTURE.test(t)) return { state: "pago_enviado", payBy: null };
   const payBy = payDateFrom(t, at, tz);
-  // «No me alcanza ahora, pero a fin de mes sí»: con una fecha, va a pagar.
-  if (payBy && (PAY.test(t) || MONEY.test(t) || THINK.test(t))) return { state: "pagara", payBy };
+  const inDays = payBy ? Math.round((payBy.getTime() - zonedDateTimeToUtc(getDateKeyInTz(at, tz), "00:00", tz).getTime()) / DAY) : null;
+  // «No gracias por el recordatorio, pago el viernes»: una fecha para pagar gana al «no gracias».
+  if (payBy && (PAY.test(t) || PAY_WORD.test(t))) return { state: "pagara", payBy };
+  if (NO.test(t)) return { state: "no_quiere", payBy: null };
+  // «No me alcanza ahora, pero a fin de mes sí»: con una fecha (2 días o más), va a pagar.
+  if (payBy && inDays !== null && inDays >= 2 && (MONEY.test(t) || THINK.test(t))) return { state: "pagara", payBy };
   if (MONEY.test(t)) return { state: "sin_dinero", payBy: null };
   if (PAY.test(t)) return { state: "pagara", payBy };
   if (THINK.test(t)) return { state: "lo_piensa", payBy: null };
@@ -227,7 +242,11 @@ export const quoteSituation = (
   const followUps = after.filter(isFollowUp);
   for (const l of after) {
     if (l.direction === "INBOUND") {
-      if (!l.body?.trim()) continue;
+      // Una foto o un PDF sin texto (puede ser el comprobante) también es una respuesta.
+      if (!l.body?.trim()) {
+        if (l.media) lastPersonAt = l.sentAt;
+        continue;
+      }
       lastPersonAt = l.sentAt;
       const s = stateFromReply(l.body, l.sentAt, opts.tz);
       if (s) {
@@ -240,10 +259,10 @@ export const quoteSituation = (
       dayanaLastAt = l.sentAt;
     }
   }
-  const last = [...real].reverse().find((l) => l.body?.trim());
-  // Un «Gracias 😊» o «Igualmente» al final no espera respuesta; una pregunta o algo largo sí.
+  const last = [...real].reverse().find((l) => l.body?.trim() || l.media);
+  // Un «Gracias 😊» o «Igualmente» al final no espera respuesta; una pregunta, algo largo o una foto sí.
   const lastText = last?.body?.replace(/^🎤\s*/, "").trim() ?? "";
-  const ackOnly = !/[?¿]/.test(lastText) && lastText.split(/\s+/).length <= 6;
+  const ackOnly = Boolean(lastText) && !/[?¿]/.test(lastText) && lastText.split(/\s+/).length <= 6;
   return {
     quoteAt,
     state,
@@ -295,6 +314,8 @@ export const nextFollowUp = (
         at = new Date(s.saidAt.getTime() + 7 * DAY);
         break;
     }
+    // Contestó después del 1º: el 2º igual espera `secondAfterDays` desde el 1º (revisión 22-oct).
+    if (s.lastSentAt) at = new Date(Math.max(at.getTime(), s.lastSentAt.getTime() + config.secondAfterDays * DAY));
   }
   // Dayana le escribió ella misma: le da dos días.
   if (s.dayanaLastAt > s.quoteAt) at = new Date(Math.max(at.getTime(), s.dayanaLastAt.getTime() + 2 * DAY));
@@ -309,8 +330,9 @@ export const inSendingHours = (now: Date, tz: string): boolean => {
 
 /**
  * ¿Sale ahora? Le toca, es de día en su zona, lo último del chat no es un
- * mensaje suyo sin contestar (eso lo contesta la IA) y nadie le escribió en
- * las últimas 24 h.
+ * mensaje suyo sin contestar (eso lo contesta la IA), ella no escribió en las
+ * últimas 2 h (la IA puede estar contestándole) y nadie le escribió en las
+ * últimas 24 h.
  */
 export const followUpDue = (
   s: QuoteSituation,
@@ -320,6 +342,7 @@ export const followUpDue = (
   const next = nextFollowUp(s, config, opts.tz);
   if (!next || next.at > opts.now) return null;
   if (s.awaitingReply) return null;
+  if (s.lastPersonAt && opts.now.getTime() - s.lastPersonAt.getTime() < 2 * 3600_000) return null;
   if (opts.lastOutboundAt && opts.now.getTime() - opts.lastOutboundAt.getTime() < DAY) return null;
   if (!inSendingHours(opts.now, opts.tz)) return null;
   return { kind: next.kind };
