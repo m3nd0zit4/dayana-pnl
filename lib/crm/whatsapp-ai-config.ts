@@ -347,6 +347,12 @@ export const whatsAppAiConfigSchema = z.object({
      * los otros días.
      */
     preferredWeekdays: z.array(z.number().int().min(0).max(6)).max(7).default([]),
+    /**
+     * La hora que elige de la lista la agenda el código, sin el modelo («2»,
+     * «la primera», «hoy a las 12:45»; `slot-choice.ts`, pedido del dueño
+     * 21-oct). Ante la duda sigue el modelo. Solo con «agendar sola».
+     */
+    controller: z.boolean().default(true),
   }),
   /**
    * Sala de espera de la llamada gratis (`waiting-room.ts`): si la persona
@@ -486,7 +492,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   community: { enabled: true, name: "Dayana Beltrán - PNL", url: WHATSAPP_COMMUNITY_URL },
   affordable: { enabled: true, options: DEFAULT_AFFORDABLE_OPTIONS },
   salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },
-  freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3, soonFirst: true, preferredWeekdays: [] },
+  freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3, soonFirst: true, preferredWeekdays: [], controller: true },
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },

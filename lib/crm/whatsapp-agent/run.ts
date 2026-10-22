@@ -38,7 +38,7 @@ import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier"
 import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
 import { segmentOrSafe } from "./segment-store";
-import { isStage } from "./stage";
+import { isStage, NO_FREE_CALL_STAGES } from "./stage";
 import { spendLimits } from "./spend";
 import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
@@ -50,7 +50,10 @@ import { alreadySaid } from "./repeat-guard";
 import { closingNotNeeded, promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
 import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
 import { chatNameInfo } from "./chat-name";
-import { offeredFreeCallSlots } from "./free-call";
+import { latestFreeCallOffer, offeredFreeCallSlots } from "./free-call";
+import { bookingTurn } from "./booking-turn";
+import { bookedLabelsFor } from "./slot-choice";
+import { sureFirstName } from "@/lib/sure-name";
 import { inferPersonZone, trustedContactTimezone } from "./booking-time";
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 import { whatsAppIdVariants } from "@/lib/whatsapp-contact";
@@ -575,43 +578,68 @@ export const runWhatsAppAi = async (input: {
       trustedContactTimezone(conversation.contact) ??
       null;
 
-    const result = await think({
-      config,
-      transcript: history,
-      name,
-      // Solo un nombre seguro (lo dijo, Dayana le dice así o lo escribió en un formulario).
-      nameInfo: await chatNameInfo(conversationId),
-      phone,
-      conversationId,
-      contactId: conversation.contactId,
-      client: await clientContext(conversation.contactId, conversation.externalThreadId, { messages: messageCount }),
-      memory: await getMemory(phone),
-      timezone,
-      mode: "live",
-      images,
-      situation,
-      // En qué punto está con Dayana: lo recién calculado (con el enrutador) o lo que dice la ficha.
-      // Con una duda sobre si ya pagó (dice que transfirió, la clasificación
-      // cree que es clienta), nada de ofrecerle la llamada gratis.
-      stage:
-        segmentResult && segmentResult.review && segmentResult.segment !== "client"
-          ? "por_revisar"
-          : (segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null)),
-      dossier: dossierText(dossier),
-      olderSnippets: older,
-      // La llamada gratis: agenda sola solo con el enrutador, a una persona que
-      // aún no es clienta, en modo IA. La zona horaria: la que dijo en el chat.
-      freeCall: {
-        autoBook:
-          config.freeCall.autoBook &&
-          route.routerEnabled &&
-          route.mode === "AUTO" &&
-          // Con la llamada ya agendada, solo para moverla a otra hora que se le ofreció.
-          (route.segment === "new_lead" || route.segment === "returning_lead" || route.segment === "free_call_booked"),
-        personTimezone: personTz,
-      },
-      clientMode,
-    });
+    // En qué punto está con Dayana: lo recién calculado (con el enrutador) o lo que dice la ficha.
+    // Con una duda sobre si ya pagó (dice que transfirió, la clasificación
+    // cree que es clienta), nada de ofrecerle la llamada gratis.
+    const stage =
+      segmentResult && segmentResult.review && segmentResult.segment !== "client"
+        ? "por_revisar"
+        : (segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null));
+    // La llamada gratis: agenda sola solo con el enrutador, a una persona que
+    // aún no es clienta, en modo IA. La zona horaria: la que dijo en el chat.
+    const autoBook =
+      config.freeCall.autoBook &&
+      route.routerEnabled &&
+      route.mode === "AUTO" &&
+      // Con la llamada ya agendada, solo para moverla a otra hora que se le ofreció.
+      (route.segment === "new_lead" || route.segment === "returning_lead" || route.segment === "free_call_booked");
+    const nameInfo = await chatNameInfo(conversationId);
+    const freeCallOn = config.salesFlow.enabled && config.booking.enabled && !(stage && NO_FREE_CALL_STAGES.has(stage));
+    // Contesta la lista de horas con una opción clara («2», «hoy a las 12:45»):
+    // la agenda el código, sin el modelo (`booking-turn.ts`). Si no, el modelo.
+    const agendaTurn =
+      freeCallOn && autoBook && config.freeCall.controller
+        ? await bookingTurn({
+            config,
+            conversationId,
+            contactId: conversation.contactId,
+            phone,
+            firstName: sureFirstName(nameInfo),
+            name: sureFirstName(nameInfo) ?? name,
+            personTz,
+            dayanaTz: timezone,
+            messages: conversation.messages,
+          }).catch((e: unknown) => {
+            console.warn("[whatsapp-agent] agenda sin el modelo", e);
+            return null;
+          })
+        : null;
+    const latestOffer = freeCallOn ? ((await latestFreeCallOffer(conversationId).catch(() => null))?.options ?? null) : null;
+
+    const result =
+      agendaTurn ??
+      (await think({
+        config,
+        transcript: history,
+        name,
+        // Solo un nombre seguro (lo dijo, Dayana le dice así o lo escribió en un formulario).
+        nameInfo,
+        phone,
+        conversationId,
+        contactId: conversation.contactId,
+        client: await clientContext(conversation.contactId, conversation.externalThreadId, { messages: messageCount }),
+        memory: await getMemory(phone),
+        timezone,
+        mode: "live",
+        images,
+        situation,
+        stage,
+        dossier: dossierText(dossier),
+        olderSnippets: older,
+        latestOffer,
+        freeCall: { autoBook, personTimezone: personTz },
+        clientMode,
+      }));
 
     const meta = {
       model: result.model,
@@ -700,9 +728,15 @@ export const runWhatsAppAi = async (input: {
 
     if (result.outcome.kind === "escalate") {
       await setStatus(run.id, "SENDING", meta);
+      // Agendó (o movió) y después escaló: la cita existe, la persona la sabe
+      // igual, y Dayana recibe el aviso sin otro mensaje de espera (auditoría
+      // 21-oct: «agendada pero nunca se le dijo»).
+      const told = Boolean(result.bookingNotice) && !(await answeredSince(conversationId, seen));
+      if (told) await sendAuto(conversationId, result.bookingNotice!.text).catch((e) => console.error("[whatsapp-agent] confirmación de la llamada", e));
       const holdingBreach = result.holdingReply ? promiseBreach({ text: result.holdingReply, ...backing }) : null;
       const escalated = await escalate(conversationId, run.id, config, result.outcome, name, meta, "ESCALATED", seen, {
         holdingReply: holdingBreach ? BREACH_HOLDING[holdingBreach.breach] : result.holdingReply,
+        silent: told,
       });
       // Un pago que la persona dice haber hecho: Dayana lo verifica y, con un
       // toque, manda la respuesta que la IA dejó preparada.
@@ -958,11 +992,15 @@ export const runWhatsAppAi = async (input: {
       // sale: la persona recibe un aviso corto y el chat pasa a Dayana. Con
       // request_booking, la hora que pidió la persona vale (se la pasa a Dayana).
       const requested = result.bookingRequest;
-      const breach = promiseBreach({
-        text: written,
-        ...backing,
-        backing: [...backing.backing, ...(requested?.when ? [requested.when] : [])],
-      });
+      // La confirmación del código sale de la reserva de verdad: no se frena.
+      const breach =
+        result.bookingNotice && result.outcome.message === result.bookingNotice.text
+          ? null
+          : promiseBreach({
+              text: written,
+              ...backing,
+              backing: [...backing.backing, ...(requested?.when ? [requested.when] : [])],
+            });
       if (breach) {
         const asked = requested ? ` Pidió: ${requested.service}${requested.when ? ` · ${requested.when}` : ""}.` : "";
         await setStatus(run.id, "SENDING", meta);
@@ -1176,12 +1214,9 @@ const promiseBacking = async (input: {
     for (const z of zones) labels.push(getTimeLabelInTz(d, z));
   }
   const today = (tz: string) => getDateKeyInTz(now, tz);
-  // El día y la hora de sus citas de verdad, en cada zona: lo que se confirma tiene que ser eso.
-  const bookedLabels = booked
-    .filter((d) => !Number.isNaN(d.getTime()))
-    .flatMap((d) =>
-      zones.map((z) => `${new Intl.DateTimeFormat("es-CO", { timeZone: z, weekday: "long" }).format(d)} ${getTimeLabelInTz(d, z)}`)
-    );
+  // El día y la hora de sus citas de verdad, en cada zona y con las dos horas
+  // juntas (la confirmación del código): lo que se confirma tiene que ser eso.
+  const bookedLabels = bookedLabelsFor(booked, zones, input.timezone);
   return {
     backing: labels,
     bookedLabels,
@@ -1281,7 +1316,7 @@ const gate = async (
   if (mode === "MANUAL") return { skip: true, reason: route.skip ?? "manual" };
   if (conversation.priorityAt && !always) return { skip: true, reason: "favorite" };
 
-  const crisis = isCrisis({ category: conversation.escalationCategory, severity: conversation.escalationSeverity });
+  const crisis = isCrisis({ category: conversation.escalationCategory, severity: conversation.escalationSeverity, reason: conversation.escalationReason });
   if (conversation.aiPausedAt && always && !crisis) {
     // Con «responde siempre» solo calla la pausa que Dayana puso a mano;
     // cualquier otra (su respuesta, una escalada normal) se levanta. «Te toca»
@@ -1290,7 +1325,10 @@ const gate = async (
       conversation.aiPausedReason === "escalation" &&
       isManualPause({ category: conversation.escalationCategory, reason: conversation.escalationReason });
     if (byHand) return { skip: true, reason: "paused" };
-    await liftPause(conversationId, { keepCrisis: "any" });
+    await liftPause(conversationId, {
+      keepCrisis: "any",
+      seen: { category: conversation.escalationCategory, severity: conversation.escalationSeverity, reason: conversation.escalationReason },
+    });
   } else if (conversation.aiPausedAt && always && conversation.aiPausedReason === "escalation") {
     // Una crisis que espera a Dayana: callada hasta «Listo».
     return { skip: true, reason: "paused" };

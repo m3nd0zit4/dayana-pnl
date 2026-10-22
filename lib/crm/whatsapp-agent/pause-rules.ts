@@ -1,3 +1,4 @@
+import { foldForSearch } from "../search-normalize";
 import { isManualPause } from "../whatsapp-attention-rules";
 
 /**
@@ -23,13 +24,29 @@ export type PauseState = {
 
 export type PauseSwitches = { onHumanReply: boolean; onEscalation: boolean };
 
-export const isCrisis = (e: { category: string | null; severity: string | null }): boolean =>
-  e.category === "clinical" || e.severity === "urgent";
+/**
+ * Un riesgo de verdad en el motivo de la escalada: hacerse daño, no querer
+ * vivir, violencia, abuso, o el modelo mismo dice «crisis».
+ */
+const RISK =
+  /suicid|quitar(me|se|le)?\s+la\s+vida|no\s+(quiero|quiere|quisiera|queria)\s+(vivir|seguir)|ganas\s+de\s+morir|(quiero|quiere)\s+morir|morirme|matarme|matarse|(hacer|hacerme|hacerse|haga|hace)\s+dano|autolesi|cortarme|cortarse|lastimarme|lastimarse|violen|abus[oa]|maltrat|golpe|amenaz|\bcrisis\b|emergencia|peligro/;
+
+/**
+ * ¿Es una crisis (la IA se calla hasta que Dayana la suelte)? Algo urgente, o
+ * algo clínico con un riesgo en el motivo. Lo que la persona siente
+ * (angustia, ansiedad, duelo, insomnio) es lo que Dayana trabaja y no calla a
+ * la IA: Joselyn (21-oct) contó su angustia por su hermana enferma, la IA lo
+ * escaló como «clinical» (el prompt dice que no) y quedó callada 6 días,
+ * aunque Dayana encendió «La IA responde siempre». Sin motivo, clínico sigue
+ * siendo crisis: no se sabe.
+ */
+export const isCrisis = (e: { category: string | null; severity: string | null; reason: string | null | undefined }): boolean =>
+  e.severity === "urgent" || (e.category === "clinical" && (!e.reason?.trim() || RISK.test(foldForSearch(e.reason))));
 
 export const pauseHolds = (p: PauseState, switches: PauseSwitches): boolean => {
   // Una crisis sigue apartando a la IA aunque Dayana ya haya contestado (la
   // escalada pasó a pausa humana): se suelta a mano («Devolver a la IA»).
-  if (isCrisis({ category: p.escalationCategory, severity: p.escalationSeverity })) return true;
+  if (isCrisis({ category: p.escalationCategory, severity: p.escalationSeverity, reason: p.escalationReason })) return true;
   if (p.reason === "escalation") {
     if (isManualPause({ category: p.escalationCategory, reason: p.escalationReason })) return true;
     return switches.onEscalation;
@@ -39,5 +56,5 @@ export const pauseHolds = (p: PauseState, switches: PauseSwitches): boolean => {
 };
 
 /** ¿Escalar esto calla a la IA en el chat? Lo delicado siempre; lo demás, según el interruptor. */
-export const escalationPauses = (e: { category: string; severity: string }, switches: PauseSwitches): boolean =>
+export const escalationPauses = (e: { category: string; severity: string; reason: string | null | undefined }, switches: PauseSwitches): boolean =>
   isCrisis(e) || switches.onEscalation;

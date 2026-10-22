@@ -26,7 +26,8 @@ import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
-import { asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { afterCallCloseReply, asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLinks, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { isCrisis } from "./pause-rules";
 import { answeringDayana } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
@@ -41,9 +42,10 @@ import {
   withoutHoyMismo,
 } from "./urgent-session";
 import { personFullName } from "@/lib/person-name";
-import { fixNameInReply, resolvePersonName, type NameMessage, type NameResolution } from "@/lib/sure-name";
+import { fixNameInReply, resolvePersonName, sureFirstName, type NameMessage, type NameResolution } from "@/lib/sure-name";
 import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
+import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
   afterFreeCallBooked,
@@ -114,6 +116,17 @@ export type BrainResult = {
   pendingPayment: { productId: string; product: string } | null;
   /** Horas que la IA quiere ofrecer: Dayana las aprueba (o cambia) antes de que salgan. */
   pendingSlots: { service: string; options: { startIso: string; label: string }[] } | null;
+  /**
+   * Las horas de la llamada gratis ofrecidas en esta vuelta, en orden: van
+   * debajo del mensaje, numeradas, pegadas por el código (`slot-choice.ts`).
+   */
+  slotOffer: { options: OfferedSlot[]; matchedWish: boolean | null } | null;
+  /**
+   * La llamada gratis se agendó o se movió en esta vuelta: la confirmación sale
+   * del código con esta hora (`bookedMessage`), no del modelo. `text` es esa
+   * confirmación, también cuando la vuelta termina escalando.
+   */
+  bookingNotice: { kind: "booked" | "moved"; label: string; text: string } | null;
   /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
   suggestedReply: string | null;
   /** Al escalar sin callarse: el aviso corto que recibe la persona ahora. */
@@ -732,6 +745,11 @@ export type BrainInput = {
    * ella se deduce de lo que la IA lee (puede quedarse corto).
    */
   situation?: string | null;
+  /**
+   * La última lista de horas de la llamada gratis que recibió (de vueltas
+   * anteriores, en orden): `book_free_call({ option })` elige de aquí.
+   */
+  latestOffer?: OfferedSlot[] | null;
   /** Estado de la persona con Dayana (`stage.ts`). */
   stage?: Stage | null;
   /** La ficha de la persona, armada con todo su chat (`dossier.ts`). */
@@ -797,6 +815,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     urgentSession: BrainResult["urgentSession"];
     receipt: BrainResult["receipt"];
     noReply: string | null;
+    slotOffer: BrainResult["slotOffer"];
+    bookingNotice: BrainResult["bookingNotice"];
   } = {
     outcome: null,
     booking: null,
@@ -814,6 +834,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     urgentSession: null,
     receipt: null,
     noReply: null,
+    slotOffer: null,
+    bookingNotice: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
   const seenOptions = new Map<string, string>();
@@ -866,8 +888,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const methods = enabledMethods(config);
   // Lo último antes de lo que escribió la persona lo escribió Dayana: le está respondiendo a ella.
   const toDayana = answeringDayana(input.transcript);
-  // El enlace de pago que Dayana ya le mandó en el chat (Paola, 21-oct).
-  const chatLink = config.payments.sendLinks ? dayanaPaymentLink(input.transcript, now) : null;
+  // Los enlaces de pago que Dayana ya le mandó en el chat (Paola, 21-oct); el
+  // último primero. Con varios (Joselyn: 3 y 6 sesiones) se elige con `cual`.
+  const chatLinks = config.payments.sendLinks ? dayanaPaymentLinks(input.transcript, now) : [];
+  const chatLink = chatLinks[0] ?? null;
   // Y si no fue un enlace: la cuenta, el Nequi o el valor que Dayana le escribió (Carmen, Raquel, 21-oct).
   const chatPayInfo = chatLink ? null : dayanaPaymentInfo(input.transcript, now);
   const paymentTools = {
@@ -912,13 +936,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           send_payment_link: tool({
             description:
               "Manda, debajo de tu mensaje, el enlace de pago personal que Dayana creó para esta persona (si lo hay). Úsalo cuando pide el enlace o quiere pagar lo que acordó con Dayana.",
-            inputSchema: z.object({}),
-            execute: async () => {
+            inputSchema: z.object({
+              cual: z
+                .string()
+                .optional()
+                .describe("Si Dayana le mandó varios enlaces: cuál («paquete de 3 sesiones»), según las notas de Dayana o el chat."),
+            }),
+            execute: async ({ cual }) => {
               const link = await activePaymentLinkFor(input.contactId).catch(() => null);
-              if (!link && chatLink) {
-                state.paymentLink = chatLink.url;
-                return log("send_payment_link", {}, {
+              const fromChat = pickPaymentLink(chatLinks, cual);
+              if (!link && fromChat) {
+                state.paymentLink = fromChat.url;
+                return log("send_payment_link", { cual }, {
                   ok: true,
+                  product: fromChat.label,
                   note: "Es el enlace que Dayana le mandó por aquí: dile que puede hacer el pago por ese enlace y que, cuando lo haga, te mande el comprobante por aquí. El enlace va debajo de tu mensaje: no lo repitas ni digas el precio.",
                 });
               }
@@ -1273,13 +1304,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   });
                 }
                 options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
+                // La lista la pega el código (numerada, en este orden): «la 2» es esta 2.
+                state.slotOffer = { options, matchedWish: matchedWish ?? null };
                 return log("offer_free_call_slots", args, {
                   ok: true,
                   options,
                   note:
                     matchedWish === false
-                      ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Díselo con calidez y ofrécele estas horas, ${CLOSEST_NOTE[closest ?? "any"]}, tal cual, en la misma frase que la pregunta («… ¿te sirve alguna?»); si ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other. No inventes otras.`
-                      : "Escríbele estas horas tal cual y pregúntale cuál le queda mejor. No inventes otras.",
+                      ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Estas horas (${CLOSEST_NOTE[closest ?? "any"]}) las pega el código debajo de tu mensaje, numeradas, con la pregunta: tú escribe solo una frase corta y cálida diciéndole que en lo que pidió no hay espacio, SIN horas, días ni pregunta. Si después ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other.`
+                      : "Estas horas las pega el código debajo de tu mensaje, numeradas, con la pregunta. Tú escribe solo una frase corta antes (p. ej. «Con gusto, estas son las horas libres de Dayana:»), SIN horas, días ni pregunta. Cuando elija, usa book_free_call con el startIso de esa hora (o option = su número en la lista).",
                 });
               } catch (e) {
                 return log("offer_free_call_slots", args, {
@@ -1293,18 +1326,28 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             description:
               "Agenda la llamada gratis en una de las horas que ya le ofreciste con offer_free_call_slots y que la persona eligió. Usa el startIso exacto de esa hora.",
             inputSchema: z.object({
-              startIso: z.string().describe("El startIso exacto de offer_free_call_slots."),
+              startIso: z.string().optional().describe("El startIso exacto de offer_free_call_slots."),
+              option: z.number().int().min(1).max(10).optional().describe("O el número que eligió en la lista numerada que recibió (1, 2, 3…)."),
               name: z.string().optional().describe("Nombre de la persona si lo dijo."),
             }),
             execute: async (args) => {
-              const start = new Date(args.startIso);
-              if (Number.isNaN(start.getTime())) return log("book_free_call", args, { error: "Hora inválida." });
+              // «la 2» es la 2 de la lista numerada que vio: la de esta vuelta o la
+              // última que recibió. Si no cuadra (la lista fue de Dayana), el startIso.
+              const list = state.slotOffer?.options ?? input.latestOffer ?? [];
+              const picked = args.option ? list[args.option - 1] : undefined;
+              const start = new Date(picked?.startIso ?? args.startIso ?? "");
+              if (Number.isNaN(start.getTime())) {
+                return log("book_free_call", args, {
+                  error: args.option ? `No hay una opción ${args.option} en la lista: pasa el startIso exacto de la hora que eligió.` : "Hora inválida.",
+                });
+              }
               const iso = start.toISOString();
               // Las que Dayana misma le escribió («Horas libres» o a mano) también valen.
               const dayanaTexts = input.transcript
                 .filter((l) => l.direction === "OUTBOUND" && !l.isAutoReply && (!l.sentAt || now.getTime() - l.sentAt.getTime() < 72 * 3600_000))
                 .map((l) => l.body);
-              if (!offeredNow.has(iso) && !offeredBefore.includes(iso) && !dayanaOfferedSlot(dayanaTexts, iso, timezone)) {
+              const inLatest = (input.latestOffer ?? []).some((o) => new Date(o.startIso).toISOString() === iso);
+              if (!offeredNow.has(iso) && !offeredBefore.includes(iso) && !inLatest && !dayanaOfferedSlot(dayanaTexts, iso, timezone)) {
                 return log("book_free_call", args, { error: "Esa hora no se la ofreciste. Usa offer_free_call_slots primero." });
               }
               const tz = personTz() ?? timezone;
@@ -1312,11 +1355,24 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const name = args.name?.trim() || input.name;
               const label = dualZoneLabel(iso, tz, timezone);
               if (input.mode === "preview" || !input.conversationId) {
+                // Lo que recibiría: la confirmación del código (la evaluación la califica igual).
+                state.bookingNotice = { kind: "booked", label, text: bookedMessage("booked", label, sureFirstName(nameInfo)) };
                 return log("book_free_call", args, { ok: true, simulated: true, label });
               }
               // Ya la tiene: «sí, perfecto» después de agendar no es otra cita
               // (antes caía en «Autoriza la cita» por segunda vez).
               const upcoming = await upcomingFreeCall(input.conversationId, config, now).catch(() => null);
+              // La puso Dayana en su calendario: la IA no mueve eventos de Dayana
+              // (auditoría 21-oct: `moveFreeCall` la rechaza y la nota de «ofrécele
+              // otras horas» la dejaba en un ciclo de horas que nunca se agendan).
+              if (upcoming && upcoming.source === "calendar" && upcoming.startsAt.getTime() !== start.getTime()) {
+                return log("book_free_call", args, {
+                  ok: true,
+                  alreadyBooked: true,
+                  label: dualZoneLabel(upcoming.startsAt.toISOString(), tz, timezone),
+                  note: "Esa llamada la agendó Dayana y no la puedes mover. Dile que le pasas su pedido a Dayana para cambiarla y escala con category=reschedule. No le ofrezcas más horas.",
+                });
+              }
               // Pidió otra hora de las que se le ofrecieron: se mueve la que tiene
               // (Alexandra, 21-oct: le dejaba el jueves y la IA le confirmó el viernes sin cita).
               if (upcoming && upcoming.startsAt.getTime() !== start.getTime() && autoBook) {
@@ -1324,6 +1380,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   const moved = await moveFreeCall({ config, dayanaTz: timezone, personTz: tz, bookingId: upcoming.id, start });
                   afterFreeCallMoved({ conversationId: input.conversationId, booking: moved, dayanaTz: timezone });
                   state.booking = { id: moved.bookingId, startsAt: moved.startsAt, service: service.name, meetUrl: null };
+                  state.bookingNotice = { kind: "moved", label: moved.label, text: bookedMessage("moved", moved.label, sureFirstName(nameInfo)) };
                   return log("book_free_call", args, {
                     ok: true,
                     booked: true,
@@ -1361,6 +1418,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   });
                   await afterFreeCallBooked({ conversationId: input.conversationId, contactId: input.contactId, phone: input.phone, booking });
                   state.booking = { id: booking.bookingId, startsAt: booking.startsAt, service: service.name, meetUrl: null };
+                  state.bookingNotice = { kind: "booked", label: booking.label, text: bookedMessage("booked", booking.label, sureFirstName(nameInfo)) };
                   return log("book_free_call", args, {
                     ok: true,
                     booked: true,
@@ -1596,12 +1654,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       chatLink
-        ? `ENLACE DE PAGO QUE DAYANA YA LE MANDÓ${chatLink.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatLink.sentAt)})` : ""}. Dayana ya le dijo cómo pagar: si te confirma que habló con Dayana (un «sí» a «¿pudiste hablar con Dayana?» no confirma ninguna cita), quiere pagar o empezar, o pregunta cómo pagar, tu respuesta es que puede hacer el pago por el enlace que le envió Dayana (usa send_payment_link: lo vuelve a poner debajo) y que te mande el comprobante por aquí cuando lo haga. No le mandes las cuentas salvo que las pida.`
+        ? `ENLACE DE PAGO QUE DAYANA YA LE MANDÓ${chatLink.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatLink.sentAt)})` : ""}. Dayana ya le dijo cómo pagar: si te confirma que habló con Dayana (un «sí» a «¿pudiste hablar con Dayana?» no confirma ninguna cita), quiere pagar o empezar, o pregunta cómo pagar, tu respuesta es que puede hacer el pago por el enlace que le envió Dayana (usa send_payment_link: lo vuelve a poner debajo) y que te mande el comprobante por aquí cuando lo haga. No le mandes las cuentas salvo que las pida.${chatLinks.length > 1 ? ` Le mandó varios: ${chatLinks.map((l) => `«${l.label}»`).join(", ")}. Si las notas de Dayana o el chat dicen cuál le corresponde, pásalo en send_payment_link (cual); si no, el último.` : ""}`
         : chatPayInfo
           ? `DAYANA YA LE MANDÓ CÓMO PAGAR${chatPayInfo.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatPayInfo.sentAt)})` : ""}: ya hablaron de la sesión y los valores. Si quiere pagar o empezar, dile que puede hacer el pago con los datos que le envió Dayana y que te mande el comprobante por aquí para que Dayana lo verifique; pregúntale si tiene alguna dificultad para pagar. No le mandes otras cuentas salvo que las pida.`
           : null,
       upcomingCall
-        ? `SU LLAMADA GRATIS YA ESTÁ AGENDADA: ${dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone)}. Si pide cambiarla a otro día u hora, no escales: ofrécele horas con offer_free_call_slots y, cuando elija una, usa book_free_call (mueve la que tiene; nunca le digas la hora nueva hasta que book_free_call diga que se movió). Si quiere cancelarla, escala con category=reschedule.`
+        ? upcomingCall.source === "calendar"
+          ? `SU LLAMADA GRATIS YA ESTÁ AGENDADA (la puso Dayana en su calendario): ${dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone)}. Si pide cambiarla o cancelarla, dile que le pasas su pedido a Dayana y escala con category=reschedule (tú no la mueves).`
+          : `SU LLAMADA GRATIS YA ESTÁ AGENDADA: ${dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone)}. Si pide cambiarla a otro día u hora, no escales: ofrécele horas con offer_free_call_slots y, cuando elija una, usa book_free_call (mueve la que tiene; nunca le digas la hora nueva hasta que book_free_call diga que se movió). Si quiere cancelarla, escala con category=reschedule.`
         : null,
       toDayana && !input.clientMode
         ? "LA PERSONA LE ESTÁ RESPONDIENDO A DAYANA (lo último antes de sus mensajes lo escribió Dayana): no te metas en esa conversación. Si solo agradece, saluda, comenta o le contesta algo a Dayana, usa no_reply y no escribas nada. Contesta solo si pregunta algo que puedes responder con los DATOS o si quedó algo pendiente que tú resuelves (cómo pagar, recibir su comprobante, las horas de la llamada gratis)."
@@ -1707,7 +1767,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !agendaOnly &&
     modelOutcome.kind === "escalate" &&
     Boolean(chatLink) &&
-    state.paymentLink === chatLink?.url &&
+    chatLinks.some((l) => l.url === state.paymentLink) &&
     ["other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
   // Pidió la cuenta, la herramienta pegó los datos y aun así escaló («Déjame
@@ -1720,13 +1780,35 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     asksForBankDetails(lastInbound) &&
     ["payment", "other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
+  // Ya tuvo su llamada y Dayana le mandó el enlace: lo que escale (otra
+  // llamada, una consulta, «quítame la angustia», reagendar) se contesta
+  // directo con el pago (dueño, 21-oct, Joselyn). No una crisis de verdad, ni un
+  // comprobante, ni una queja ni un precio: eso sigue siendo de Dayana.
+  const afterCallClose =
+    !agendaOnly &&
+    !chatLinkOnly &&
+    !paymentDataOnly &&
+    !input.clientMode &&
+    input.stage === "tuvo_llamada" &&
+    modelOutcome.kind === "escalate" &&
+    chatLinks.length > 0 &&
+    !state.receipt &&
+    ["other", "unknown", "clinical", "reschedule"].includes(modelOutcome.category) &&
+    !isCrisis({ category: modelOutcome.category, severity: modelOutcome.severity, reason: modelOutcome.reason });
+  const closeLink = afterCallClose ? pickPaymentLink(chatLinks, input.memory) : null;
+  if (closeLink) {
+    state.paymentLink = closeLink.url;
+    log("send_payment_link", { auto: true, cual: closeLink.label }, { ok: true, note: "Lo pegó el código: ya tuvo su llamada; lo siguiente con Dayana es después del pago." });
+  }
   const outcome: BrainOutcome = agendaOnly
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
     : chatLinkOnly
       ? { kind: "reply", message: CHAT_LINK_REPLY }
       : paymentDataOnly
         ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
-        : modelOutcome;
+        : closeLink
+          ? { kind: "reply", message: afterCallCloseReply(closeLink) }
+          : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
@@ -1800,7 +1882,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   };
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
-  const finalOutcome: BrainOutcome = outcome.kind === "reply" ? { ...outcome, message: named(replyText(outcome.message))! } : outcome;
+  // Agendada o movida: la confirmación del código, con la hora de la reserva.
+  // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
+  const withAgenda = (text: string) =>
+    state.bookingNotice
+      ? state.bookingNotice.text
+      : state.slotOffer && !state.booking && !state.pendingBooking
+        ? offerMessage(text, state.slotOffer.options, state.slotOffer.matchedWish)
+        : text;
+  const finalOutcome: BrainOutcome =
+    outcome.kind === "reply" ? { ...outcome, message: withAgenda(named(replyText(outcome.message))!) } : outcome;
 
   return {
     outcome: finalOutcome,
@@ -1819,6 +1910,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     urgentSession: finalOutcome.kind === "reply" ? state.urgentSession : null,
     receipt: state.receipt,
     noReply: state.noReply,
+    slotOffer: finalOutcome.kind === "reply" ? state.slotOffer : null,
+    bookingNotice: state.bookingNotice,
     model: modelId(),
     usage: {
       inputTokens: result.totalUsage?.inputTokens ?? undefined,

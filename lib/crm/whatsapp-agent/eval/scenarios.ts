@@ -32,6 +32,8 @@ export type Scenario = {
   backing?: string[];
   /** CLIENTA EN EL CRM, como lo arma `clientContext` (su inscripción a un evento…). */
   client?: string | null;
+  /** Las notas de Dayana sobre la persona (`getMemory`). */
+  memory?: string | null;
   expect: {
     /** Tiene que usar al menos una de estas herramientas. */
     anyTool?: string[];
@@ -603,6 +605,37 @@ export const SCENARIOS: Scenario[] = [
       mustNotMatch: [/N° Cuenta|Tipo de cuenta|Documento CC|Western Union/i],
     },
     goal: "Ya habló con Dayana y Dayana le mandó el enlace de pago: le dice que puede hacer el pago por el enlace que le envió Dayana y que mande el comprobante por aquí cuando lo haga. No le manda las cuentas del banco ni le ofrece otra llamada.",
+  },
+  {
+    id: "joselyn-solo-el-enlace",
+    origin:
+      "Joselyn Jiménez (+503), 21-oct: ya habló con Dayana y recibió los enlaces de 3 y de 6 sesiones; la nota de Dayana dice que no se le agenda nada hasta que pague el paquete de 3. Escribió «Todo los miedos que tengo» / «Por favor» y la IA llevaba 6 días callada (una escalada «clinical» por su angustia la había pausado)",
+    name: "Joselyn Jiménez 🪷💞🔧⚙️🔩",
+    gender: "f",
+    personTimezone: "America/El_Salvador",
+    stage: "tuvo_llamada",
+    memory:
+      "Ya se le ha llamado y ha tenido conversacion pero solo quiere cosas gratis, ya se le envia el link de pago pero nunca paga, es intenza por lo tanto no se le agendan mas llamadas, ni tampoco acompañamiento, hasta que pague el paquete de 3 seciones.",
+    transcript: [
+      dayana("Te llamaré a esta hora para darte un diagnóstico y darte información de qué paquetes de Terapia necesitas?"),
+      dayana("Ya te envío el link de pago el paquete de tres sesiones"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      dayana("Y ese es el link de pago para el paquete de seis sesiones"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-6"),
+      person("Como la expresó y no me puede dar una sesión gratis"),
+      person("Quítame la angustia de mi hermana"),
+      person("Hola llevate"),
+      person("Todo los miedos que tengo"),
+      person("Por favor"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["send_payment_link"],
+      noTool: ["offer_free_call_slots", "book_free_call", "send_payment_info"],
+      mustMatch: [/pagar\/p\/therapy-3/],
+      mustNotMatch: [/therapy-6/, /N° Cuenta|Tipo de cuenta|Western Union/i],
+    },
+    goal: "Ya tuvo la llamada y la nota de Dayana dice que primero pague el paquete de 3 sesiones: con calidez y en corto, le dice que para empezar a trabajar eso con Dayana el paso es el pago del paquete de 3 sesiones por el enlace (el de 3, debajo) y que mande el comprobante por aquí. No le ofrece otra llamada ni sesión gratis, no le da acompañamiento terapéutico por chat, no le manda las cuentas.",
   },
   {
     id: "paola-pide-la-cuenta",

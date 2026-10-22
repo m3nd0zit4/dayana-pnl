@@ -91,7 +91,7 @@ export const findUnansweredChats = async (opts: {
         !r.ai_paused_at ||
         // Con «responde siempre» solo calla una crisis o la pausa que puso Dayana a mano.
         (r.ai_always_at
-          ? !isCrisis({ category: r.escalation_category, severity: r.escalation_severity }) &&
+          ? !isCrisis({ category: r.escalation_category, severity: r.escalation_severity, reason: r.escalation_reason }) &&
             !(r.ai_paused_reason === "escalation" && isManualPause({ category: r.escalation_category, reason: r.escalation_reason }))
           : !pauseHolds(
               {

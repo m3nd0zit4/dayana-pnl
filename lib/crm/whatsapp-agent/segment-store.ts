@@ -12,7 +12,7 @@ import { isFreeCallAppointment, isFreeCallService } from "./event-title";
 import { resolveSegment, type SegmentVerdict } from "./segment";
 import { resolveStage, type Stage } from "./stage";
 import { conversationSituation } from "./situation";
-import { CHAT_LINK_MAX_AGE_DAYS, isPaymentInfo } from "./chat-payment-link";
+import { isPaymentInfo } from "./chat-payment-link";
 import { isAutoSend } from "../whatsapp-attention-rules";
 
 /**
@@ -131,8 +131,10 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
     upcomingBookings.some((b) => isFreeCallService(b.service, (b.endsAt.getTime() - b.startsAt.getTime()) / 60_000));
 
   // Lo último que Dayana escribió ella misma con cómo pagar (no la IA, ni lo
-  // automático, ni una propuesta de la IA que ella aprobó).
-  const payInfoSince = Date.now() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
+  // automático, ni una propuesta de la IA que ella aprobó). Sin límite de
+  // tiempo: si alguna vez le mandó cómo pagar, ya tuvo su llamada (dueña,
+  // 21-oct, Natalia: datos de pago el 5-sep, y el 21-oct la IA le ofreció otra
+  // llamada gratis porque pasaban de 30 días).
   const dayanaPaymentInfoAt =
     messages.find(
       (m) =>
@@ -141,7 +143,6 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
         m.source !== "approval" &&
         !isAutoSend(m) &&
         m.status !== "FAILED" &&
-        m.sentAt.getTime() >= payInfoSince &&
         isPaymentInfo(m.body)
     )?.sentAt ?? null;
 

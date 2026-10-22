@@ -202,7 +202,7 @@ export const waitingRoomBlocked = async (conv: GuardedConversation, config: What
   // ese chat: una crisis que espera a Dayana o la pausa que puso ella a mano.
   conv.aiAlwaysAt
     ? conv.aiPausedReason === "escalation" &&
-      (isCrisis({ category: conv.escalationCategory ?? null, severity: conv.escalationSeverity ?? null }) ||
+      (isCrisis({ category: conv.escalationCategory ?? null, severity: conv.escalationSeverity ?? null, reason: conv.escalationReason ?? null }) ||
         isManualPause({ category: conv.escalationCategory ?? null, reason: conv.escalationReason ?? null }))
     : config.defaultMode === "MANUAL" ||
       Boolean(conv.priorityAt) ||

@@ -35,6 +35,17 @@ const PAY_URL = /https?:\/\/[^\s<>"')\]]+\/pagar\/[^\s<>"')\]]+/gi;
 export const CHAT_LINK_REPLY =
   "Puedes hacer el pago por el enlace que te envió Dayana. Cuando lo hagas, me mandas el comprobante por aquí para que ella lo revise";
 
+/**
+ * Ya tuvo su llamada gratis y pide otra, una consulta, una sesión o que la
+ * ayuden: lo siguiente con Dayana es después del pago (dueño, 21-oct: «directo
+ * a cerrar la venta»). Joselyn llevaba días pidiendo «quítame la angustia» y
+ * la IA escalaba o callaba.
+ */
+export const afterCallCloseReply = (link: ChatPaymentLink): string =>
+  `Tu llamada gratis con Dayana ya la tuviste. Para otra llamada, una consulta o empezar tu proceso con ella, el siguiente paso es el pago${
+    link.label === "enlace de pago" ? "" : ` del ${link.label}`
+  } por el enlace que te envió Dayana. Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda`;
+
 /** Un enlace de pago de más de esto ya no cuenta como «el que te mandó Dayana». */
 export const CHAT_LINK_MAX_AGE_DAYS = 30;
 
@@ -53,6 +64,57 @@ export const dayanaPaymentLink = (lines: Line[], now: Date = new Date()): { url:
     if (urls?.length) return { url: urls[urls.length - 1].replace(/[.,;:!?]+$/, ""), sentAt: l.sentAt ?? null };
   }
   return null;
+};
+
+const NUMBER_WORDS: Record<string, number> = { una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, ocho: 8, diez: 10, doce: 12 };
+
+/** «/pagar/p/therapy-3» → «paquete de 3 sesiones»; otro enlace, «enlace de pago». */
+const linkLabel = (url: string): string => {
+  const n = url.match(/\/pagar\/p\/therapy-(\d+)\b/i)?.[1];
+  if (!n) return "enlace de pago";
+  return Number(n) === 1 ? "1 sesión" : `paquete de ${n} sesiones`;
+};
+
+export type ChatPaymentLink = { url: string; sentAt: Date | null; label: string };
+
+/**
+ * Todos los enlaces de pago que Dayana escribió ella misma (30 días), el más
+ * nuevo primero y sin repetir. Joselyn (21-oct) recibió el del paquete de 3 y
+ * el de 6 sesiones, y la nota de Dayana dice que primero pague el de 3: con
+ * solo «el último» se le mandaba el de 6.
+ */
+export const dayanaPaymentLinks = (lines: Line[], now: Date = new Date()): ChatPaymentLink[] => {
+  const oldest = now.getTime() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
+  const out: ChatPaymentLink[] = [];
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i];
+    if (!byDayana(l) || !l.body) continue;
+    if (l.sentAt && l.sentAt.getTime() < oldest) break;
+    for (const raw of [...(l.body.match(PAY_URL) ?? [])].reverse()) {
+      const url = raw.replace(/[.,;:!?]+$/, "");
+      if (!out.some((o) => o.url === url)) out.push({ url, sentAt: l.sentAt ?? null, label: linkLabel(url) });
+    }
+  }
+  return out;
+};
+
+/**
+ * El enlace que se pide («paquete de 3 sesiones», «tres», «therapy-3»); si no
+ * se dice cuál o no cuadra con ninguno, el último que mandó Dayana.
+ */
+export const pickPaymentLink = (links: ChatPaymentLink[], which: string | null | undefined): ChatPaymentLink | null => {
+  if (!links.length) return null;
+  const w = foldForSearch(which ?? "");
+  const num = (s: string | undefined) => (s === undefined ? NaN : /^\d+$/.test(s) ? Number(s) : (NUMBER_WORDS[s] ?? NaN));
+  const words = Object.keys(NUMBER_WORDS).join("|");
+  // «paquete de 3 sesiones» (también «seciones», como lo escribe la nota); en
+  // algo corto («3», «tres», «therapy-3») el número solo. Una fecha de una
+  // nota larga («el 6 de octubre») no elige paquete.
+  const sessions = w.match(new RegExp(`\\b(\\d{1,2}|${words})\\s+(sesion|sesiones|seciones|secciones)\\b`));
+  const bare = w.length <= 30 ? w.match(new RegExp(`\\b(\\d{1,2}|${words})\\b`)) : null;
+  const n = num(sessions?.[1] ?? bare?.[1]);
+  const byNumber = Number.isNaN(n) ? null : links.find((l) => new RegExp(`/therapy-${n}\\b`, "i").test(l.url));
+  return byNumber ?? links[0];
 };
 
 /**

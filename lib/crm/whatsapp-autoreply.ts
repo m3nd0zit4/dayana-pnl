@@ -112,12 +112,27 @@ export const liftPause = async (
    * medio: `while_escalated` solo mientras espera a Dayana (antes de «Listo»),
    * `any` siempre.
    */
-  opts: { keepCrisis?: "while_escalated" | "any" } = {}
+  opts: {
+    keepCrisis?: "while_escalated" | "any";
+    /**
+     * La escalada que leyó quien decide y que no es crisis (`isCrisis` mira el
+     * motivo, que la base no sabe leer): si sigue igual, se levanta. Sin esto,
+     * «clinical» por angustia (Joselyn, 21-oct) nunca se levantaba.
+     */
+    seen?: { category: string | null; severity: string | null; reason: string | null };
+  } = {}
 ): Promise<void> => {
   const notCrisis: Prisma.ConversationWhereInput = {
-    AND: [
-      { OR: [{ escalationCategory: null }, { escalationCategory: { not: "clinical" } }] },
-      { OR: [{ escalationSeverity: null }, { escalationSeverity: { not: "urgent" } }] },
+    OR: [
+      {
+        AND: [
+          { OR: [{ escalationCategory: null }, { escalationCategory: { not: "clinical" } }] },
+          { OR: [{ escalationSeverity: null }, { escalationSeverity: { not: "urgent" } }] },
+        ],
+      },
+      ...(opts.seen && !isCrisis(opts.seen)
+        ? [{ escalationCategory: opts.seen.category, escalationSeverity: opts.seen.severity, escalationReason: opts.seen.reason }]
+        : []),
     ],
   };
   const guard: Prisma.ConversationWhereInput =
@@ -156,17 +171,22 @@ export const setAiAlways = async (
   }
   const before = await prisma.conversation.findUniqueOrThrow({
     where: { id: conversationId },
-    select: { aiPausedAt: true, aiPausedReason: true, escalationCategory: true, escalationSeverity: true },
+    select: { aiPausedAt: true, aiPausedReason: true, escalationCategory: true, escalationSeverity: true, escalationReason: true },
   });
   const waitingCrisis =
     Boolean(before.aiPausedAt) &&
     before.aiPausedReason === "escalation" &&
-    isCrisis({ category: before.escalationCategory, severity: before.escalationSeverity });
+    isCrisis({ category: before.escalationCategory, severity: before.escalationSeverity, reason: before.escalationReason });
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { aiAlwaysAt: new Date(), aiAlwaysById: staffUserId, priorityAt: null, aiModeOverride: null, aiMode: "AUTO" },
   });
-  if (before.aiPausedAt && !waitingCrisis) await liftPause(conversationId, { keepCrisis: "while_escalated" });
+  if (before.aiPausedAt && !waitingCrisis) {
+    await liftPause(conversationId, {
+      keepCrisis: "while_escalated",
+      seen: { category: before.escalationCategory, severity: before.escalationSeverity, reason: before.escalationReason },
+    });
+  }
   return { stillPaused: waitingCrisis };
 };
 

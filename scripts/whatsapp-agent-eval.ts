@@ -39,6 +39,7 @@ const main = async () => {
   const { withPaymentBlocks } = await import("@/lib/crm/whatsapp-agent/payment-info");
   const { alreadySaid } = await import("@/lib/crm/whatsapp-agent/repeat-guard");
   const { BREACH_HOLDING, promiseBreach } = await import("@/lib/crm/whatsapp-agent/promise-guard");
+  const { isCrisis } = await import("@/lib/crm/whatsapp-agent/pause-rules");
   const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { getDateKeyInTz, getTimeHmInTz } = await import("@/lib/datetime/zoned-time");
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
@@ -111,7 +112,7 @@ const main = async () => {
       conversationId: null,
       contactId: null,
       client: s.client ?? null,
-      memory: null,
+      memory: s.memory ?? null,
       timezone: "America/Bogota",
       mode: "preview",
       now,
@@ -126,7 +127,7 @@ const main = async () => {
     // aviso corto.
     const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
     const silentClient = Boolean(s.clientMode) && (o?.kind === "escalate" || !paymentAnswer);
-    const crisis = o?.kind === "escalate" && (o.category === "clinical" || o.severity === "urgent");
+    const crisis = o?.kind === "escalate" && isCrisis({ category: o.category, severity: o.severity, reason: o.reason });
     // Le respondía a Dayana y la IA decidió no escribir nada (no_reply, como run.ts).
     const quiet = Boolean(result.noReply) && !(o?.kind === "reply" && o.message.trim()) && !paymentAnswer;
     // El mismo aviso de recibido por el mismo comprobante no sale dos veces (run.ts).

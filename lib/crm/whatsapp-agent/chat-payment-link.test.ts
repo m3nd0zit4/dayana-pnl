@@ -1,12 +1,52 @@
 import { describe, expect, test } from "bun:test";
 
-import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, isPaymentData, isPaymentInfo, withoutPayUrls } from "./chat-payment-link";
+import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
 
 const now = new Date("2026-10-21T15:20:00Z");
 const at = (iso: string) => new Date(iso);
 const dayana = (body: string, sentAt = at("2026-10-21T13:56:19Z")) => ({ direction: "OUTBOUND" as const, body, sentAt });
 const ai = (body: string, sentAt = at("2026-10-21T14:58:01Z")) => ({ direction: "OUTBOUND" as const, body, isAutoReply: true, sentAt });
 const inb = (body: string, sentAt = at("2026-10-21T15:14:08Z")) => ({ direction: "INBOUND" as const, body, sentAt });
+
+describe("dayanaPaymentLinks: todos los que mandó (Joselyn, 21-oct)", () => {
+  const joselyn = [
+    dayana("Ya te envío el link de pago el paquete de tres sesiones", at("2026-10-05T21:49:21Z")),
+    dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", at("2026-10-05T21:50:22Z")),
+    dayana("Y ese es el link de pago para el paquete de seis sesiones", at("2026-10-05T21:50:29Z")),
+    dayana("https://www.dayanabeltran.com/pagar/p/therapy-6", at("2026-10-05T21:50:37Z")),
+    inb("Todo los miedos que tengo"),
+  ];
+  test("el más nuevo primero, cada uno con su paquete", () => {
+    expect(dayanaPaymentLinks(joselyn, now).map((l) => [l.url, l.label])).toEqual([
+      ["https://www.dayanabeltran.com/pagar/p/therapy-6", "paquete de 6 sesiones"],
+      ["https://www.dayanabeltran.com/pagar/p/therapy-3", "paquete de 3 sesiones"],
+    ]);
+  });
+  test("el mismo enlace dos veces cuenta una; uno de 1 sesión; uno sin producto", () => {
+    const lines = [
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-1", at("2026-10-20T10:00:00Z")),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-1", at("2026-10-20T11:00:00Z")),
+      dayana("https://www.dayanabeltran.com/pagar/abc123", at("2026-10-20T12:00:00Z")),
+    ];
+    expect(dayanaPaymentLinks(lines, now).map((l) => l.label)).toEqual(["enlace de pago", "1 sesión"]);
+  });
+  test("pickPaymentLink: el que dice la nota («paquete de 3 sesiones», «3», «tres»); si no, el último", () => {
+    const links = dayanaPaymentLinks(joselyn, now);
+    expect(pickPaymentLink(links, "paquete de 3 sesiones")?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
+    expect(pickPaymentLink(links, "el de tres sesiones")?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
+    expect(pickPaymentLink(links, "therapy-3")?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
+    expect(pickPaymentLink(links, undefined)?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-6");
+    expect(pickPaymentLink(links, "el de 24")?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-6");
+    expect(pickPaymentLink([], "3")).toBeNull();
+    // La nota de Dayana, larga: cuenta «N sesiones», no una fecha («el 6 de octubre»).
+    const note =
+      "Ya se le ha llamado el 6 de octubre y ha tenido conversacion pero solo quiere cosas gratis, no se le agendan mas llamadas hasta que pague el paquete de 3 seciones.";
+    expect(pickPaymentLink(links, note)?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
+    expect(pickPaymentLink(links, "Le llamé el 6 de octubre, quiere cosas gratis y no paga nunca nada de lo que se le manda")?.url).toBe(
+      "https://www.dayanabeltran.com/pagar/p/therapy-6"
+    );
+  });
+});
 
 describe("dayanaPaymentLink", () => {
   test("Paola: el enlace que Dayana mandó desde el celular", () => {
