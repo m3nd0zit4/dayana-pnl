@@ -35,6 +35,23 @@ export const trustedContactTimezone = (
   return tz;
 };
 
+/**
+ * La zona de la persona para un mensaje que sale solo (reagendar la llamada,
+ * «¿pudiste hablar?»): la de su ficha, la de su contacto si es de fiar
+ * (`trustedContactTimezone`) o la del país de su número si tiene una sola.
+ * `null` si no se sabe: entonces la hora se dice como de Colombia (auditoría
+ * 21-oct: `sendReschedule` usaba `contacts.timezone` tal cual y a alguien de
+ * México le llegaban las horas de Colombia como si fueran las suyas).
+ */
+export const personZoneFor = (input: {
+  dossierTz?: string | null;
+  contact?: { timezone?: string | null; countryIso?: string | null; phoneCountryIso?: string | null } | null;
+  phone?: string | null;
+}): string | null =>
+  [input.dossierTz, trustedContactTimezone(input.contact), input.phone ? inferPersonZone(input.phone, [])?.timezone : null].find(
+    (tz): tz is string => isValidTimezone(tz)
+  ) ?? null;
+
 /** La zona de la persona: la que dijo la IA (ciudad) o la principal del país. */
 export const resolvePersonTimezone = (countryIso: string, timezone?: string | null): string | null =>
   isValidTimezone(timezone) ? timezone : suggestTimezoneForCountryOrNull(countryIso);

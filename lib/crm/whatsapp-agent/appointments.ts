@@ -19,6 +19,7 @@ import { approvedTemplateFor, ensureTemplatesSubmitted } from "../whatsapp-templ
 import { resolveConversations } from "./pending";
 import { openAttention } from "./attention";
 import { clashNotice, clashStep, findClash, type ClashEvent } from "./calendar-clash-rules";
+import { bookingFollowsEvent, CANCELLED_BOOKING, listedUntil } from "./free-call-rules";
 import { getTimeLabelInTz, isValidIanaTimeZone } from "@/lib/datetime/zoned-time";
 import { personFirstName } from "@/lib/person-name";
 import { appointmentGreetingName } from "./chat-name";
@@ -33,9 +34,13 @@ import { appointmentGreetingName } from "./chat-name";
  *   título, para que Dayana sepa quién es). Si hay dudas, le pregunta.
  * - Manda el recordatorio de WhatsApp 24 h antes, una sola vez; y a la llamada
  *   gratis, otro una hora antes («hoy a las…», `sendSoonReminders`).
+ * - La reserva de la IA (`WhatsAppBooking`) sigue a su evento: si Dayana lo
+ *   mueve o lo borra en Google, la reserva cambia de hora o queda cancelada.
  */
 
 const DAY = 24 * 3600_000;
+/** Cuántos eventos pide al calendario por pasada (Google no da más de una vez sin paginar). */
+const SYNC_MAX_EVENTS = 250;
 
 /**
  * Completar el número en el título del evento cambia el Google Calendar de
@@ -196,6 +201,12 @@ export type SyncResult = {
   meetLinkedChats: string[];
   /** Llamadas gratis con otro evento encima, avisadas a Dayana en esta pasada. */
   clashes: number;
+  /** Reservas de la IA que siguieron a su evento (Dayana lo movió, o volvió a estar). */
+  bookingsUpdated: number;
+  /** Reservas de la IA canceladas porque su evento ya no está en el calendario. */
+  bookingsCancelled: number;
+  /** Chats con una reserva que cambió (su estado cambia: ya no tiene la llamada, o es otro día). */
+  bookingChats: string[];
 };
 
 /**
@@ -245,8 +256,23 @@ const linkSessionsByMeet = async (
 export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult> => {
   const now = deps.now ?? new Date();
   const startedAt = new Date();
-  const result: SyncResult = { seen: 0, linked: 0, titled: 0, ambiguous: 0, cancelled: 0, resolved: 0, meetLinkedChats: [], clashes: 0 };
+  const result: SyncResult = {
+    seen: 0,
+    linked: 0,
+    titled: 0,
+    ambiguous: 0,
+    cancelled: 0,
+    resolved: 0,
+    meetLinkedChats: [],
+    clashes: 0,
+    bookingsUpdated: 0,
+    bookingsCancelled: 0,
+    bookingChats: [],
+  };
   const toResolve: { conversationId: string | null; phone: string | null; contactId: string | null; until: Date }[] = [];
+  const bookingChats = new Set<string>();
+  const windowFrom = new Date(now.getTime() - 30 * DAY);
+  const windowTo = new Date(now.getTime() + 30 * DAY);
   let events = deps.events;
   let patchTitle = deps.patchTitle;
   let googleAccountId: string | null = null;
@@ -255,9 +281,9 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
     const { account, token } = await resolveGoogleAccount("CALENDAR", config.booking.accountId || undefined);
     googleAccountId = account.id;
     events = await listEvents(token, {
-      timeMin: new Date(now.getTime() - 30 * DAY).toISOString(),
-      timeMax: new Date(now.getTime() + 30 * DAY).toISOString(),
-      maxResults: 250,
+      timeMin: windowFrom.toISOString(),
+      timeMax: windowTo.toISOString(),
+      maxResults: SYNC_MAX_EVENTS,
     });
     if (await isTitlePatchEnabled()) {
       patchTitle = async (eventId, summary) => {
@@ -282,9 +308,13 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
     busy.push({ eventId: ev.id, title, start: start.getTime(), end: end.getTime() });
     const parsed = parseEventTitle(title);
     const existing = await prisma.calendarAppointment.findUnique({ where: { eventId: ev.id } });
+    // La cita cambió después de leer el calendario (la IA la acaba de mover):
+    // esta lectura ya es vieja para ella y devolvería la hora de antes. La
+    // próxima pasada la ve bien.
+    if (existing && existing.updatedAt.getTime() > startedAt.getTime()) continue;
     const booking = await prisma.whatsAppBooking.findFirst({
       where: { calendarEventId: ev.id },
-      select: { contactId: true, conversationId: true, phone: true, service: true },
+      select: { contactId: true, conversationId: true, phone: true, service: true, startsAt: true, endsAt: true, status: true },
     });
 
     let phone = parsed.phone ? whatsAppDigits(`+${parsed.phone}`) : (booking?.phone ?? null);
@@ -374,6 +404,17 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
           : {}),
       },
     });
+    // La reserva de la IA sigue al evento (auditoría 21-oct: si Dayana lo movía
+    // en Google, la IA le seguía diciendo la hora vieja y contaba en el tope
+    // de ese día). Reglas en `bookingFollowsEvent`.
+    if (booking) {
+      const follow = bookingFollowsEvent({ booking, event: { start, end }, seenBefore: existing });
+      if (follow.kind === "update") {
+        const updated = await prisma.whatsAppBooking.updateMany({ where: { calendarEventId: ev.id }, data: follow.data });
+        result.bookingsUpdated += updated.count;
+        if (updated.count) bookingChats.add(booking.conversationId);
+      }
+    }
     if (start.getTime() > now.getTime() && isFreeCallAppointment({ ...saved, bookingService: booking?.service ?? null })) {
       calls.push({
         id: saved.id,
@@ -409,15 +450,41 @@ export const syncAppointments = async (deps: SyncDeps = {}): Promise<SyncResult>
   result.meetLinkedChats = [...new Set(meetLinked.map((m) => m.conversationId))];
 
   // Lo que ya no está en el calendario (dentro de la ventana leída) se cancela.
+  // Si Google cortó la lista, solo hasta el último evento leído: lo de después
+  // no se vio, no se borró (`listedUntil`). Lo que cambió después de leer
+  // (una llamada que la IA acaba de agendar) tampoco: esta lectura no lo ve.
+  const until = listedUntil({ events, maxResults: SYNC_MAX_EVENTS, windowEnd: windowTo });
+  const notSeen = { notIn: seenIds.length ? seenIds : ["-"] };
   const gone = await prisma.calendarAppointment.updateMany({
-    where: {
-      status: "active",
-      eventId: { notIn: seenIds.length ? seenIds : ["-"] },
-      startsAt: { gte: new Date(now.getTime() - 30 * DAY), lte: new Date(now.getTime() + 30 * DAY) },
-    },
+    where: { status: "active", eventId: notSeen, startsAt: { gte: windowFrom, lte: until }, updatedAt: { lt: startedAt } },
     data: { status: "cancelled" },
   });
   result.cancelled = gone.count;
+
+  // Y su reserva de la IA también (auditoría 21-oct: Dayana borraba la llamada
+  // en Google y la reserva seguía en pie: la IA le decía que ya tenía llamada,
+  // seguía en «llamada agendada» y ocupaba un cupo del día). También las que
+  // quedaron así de antes.
+  const cancelledEvents = await prisma.calendarAppointment.findMany({
+    where: { status: "cancelled", eventId: notSeen, startsAt: { gte: windowFrom, lte: until } },
+    select: { eventId: true },
+  });
+  if (cancelledEvents.length) {
+    const stale = await prisma.whatsAppBooking.findMany({
+      where: { calendarEventId: { in: cancelledEvents.map((a) => a.eventId) }, status: { notIn: CANCELLED_BOOKING } },
+      select: { id: true, conversationId: true },
+    });
+    if (stale.length) {
+      const done = await prisma.whatsAppBooking.updateMany({
+        where: { id: { in: stale.map((b) => b.id) }, status: { notIn: CANCELLED_BOOKING } },
+        data: { status: "CANCELLED" },
+      });
+      result.bookingsCancelled = done.count;
+      for (const b of stale) bookingChats.add(b.conversationId);
+    }
+  }
+  // Su estado lo recalcula quien llamó (`tick.ts`), como el de los ligados por Meet.
+  result.bookingChats = [...bookingChats];
 
   result.clashes = await warnClashes(calls, busy, now).catch((e: unknown) => {
     console.warn("[citas] no se pudo revisar los choques de la agenda", e);

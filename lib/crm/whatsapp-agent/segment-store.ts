@@ -119,16 +119,16 @@ export const computeSegment = async (conversationId: string): Promise<SegmentRes
       ? prisma.enrollment.findFirst({ where: { contactId: conversation.contactId, status: "ACTIVE" }, select: { id: true } })
       : Promise.resolve(null),
   ]);
-  const upcomingBooking = await prisma.whatsAppBooking.findFirst({
+  // Todas sus reservas por delante, no la primera: con una sesión pagada antes,
+  // la llamada gratis de después no se veía (auditoría 21-oct). Las que Dayana
+  // movió o borró en Google ya están al día (`syncAppointments`).
+  const upcomingBookings = await prisma.whatsAppBooking.findMany({
     where: { conversationId, startsAt: { gte: new Date() }, status: { notIn: ["CANCELLED", "cancelled"] } },
-    select: { service: true, startsAt: true, endsAt: true, createdAt: true },
+    select: { service: true, startsAt: true, endsAt: true },
   });
   const freeCallUpcoming =
     Boolean(next && isFreeCallAppointment(next)) ||
-    Boolean(
-      upcomingBooking &&
-        isFreeCallService(upcomingBooking.service, (upcomingBooking.endsAt.getTime() - upcomingBooking.startsAt.getTime()) / 60_000)
-    );
+    upcomingBookings.some((b) => isFreeCallService(b.service, (b.endsAt.getTime() - b.startsAt.getTime()) / 60_000));
 
   // Lo último que Dayana escribió ella misma con cómo pagar (no la IA, ni lo
   // automático, ni una propuesta de la IA que ella aprobó).

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { inferPersonZone, trustedContactTimezone } from "./booking-time";
+import { inferPersonZone, personZoneFor, trustedContactTimezone } from "./booking-time";
 
 describe("trustedContactTimezone (Valerya, 17-oct: México con la zona por defecto de Colombia)", () => {
   test("la zona por defecto no vale para alguien de otro país", () => {
@@ -46,5 +46,34 @@ describe("inferPersonZone (la zona cuando la IA no la guardó)", () => {
 
   test("lo que escribió la asistente no cuenta (solo lo que dijo la persona)", () => {
     expect(inferPersonZone("5215638169172", [{ direction: "OUTBOUND", body: "¿Estás en CDMX?" }])).toBeNull();
+  });
+});
+
+describe("personZoneFor (las horas que se le mandan solas: reagendar, «¿pudiste hablar?»)", () => {
+  // Auditoría 21-oct: `sendReschedule` usaba `contacts.timezone` tal cual; a alguien
+  // de México le llegaban las horas de Colombia como si fueran las suyas.
+  const mexican = { timezone: "America/Bogota", countryIso: "MX", phoneCountryIso: "MX" };
+
+  test("la de su ficha gana", () => {
+    expect(personZoneFor({ dossierTz: "America/Mexico_City", contact: mexican, phone: "5215638169172" })).toBe("America/Mexico_City");
+  });
+
+  test("la zona por defecto de un contacto de México no es la suya: no se sabe", () => {
+    expect(personZoneFor({ dossierTz: null, contact: mexican, phone: "5215638169172" })).toBeNull();
+  });
+
+  test("sin ficha ni contacto: el país del número si tiene una sola zona", () => {
+    expect(personZoneFor({ phone: "573104673159" })).toBe("America/Bogota");
+    expect(personZoneFor({ phone: "51905627097" })).toBe("America/Lima");
+    expect(personZoneFor({ phone: "5215638169172" })).toBeNull();
+  });
+
+  test("un contacto de Colombia (o con su zona puesta) vale", () => {
+    expect(personZoneFor({ contact: { timezone: "America/Bogota", countryIso: "CO" }, phone: "5215638169172" })).toBe("America/Bogota");
+    expect(personZoneFor({ contact: { timezone: "Europe/Madrid", countryIso: "ES" } })).toBe("Europe/Madrid");
+  });
+
+  test("una zona que no existe no se usa", () => {
+    expect(personZoneFor({ dossierTz: "No/Existe", phone: "573104673159" })).toBe("America/Bogota");
   });
 });

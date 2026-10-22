@@ -22,8 +22,10 @@ import {
   type CallOutcome,
   type RescheduleSend,
 } from "./call-outcome-rules";
+import { personZoneFor } from "./booking-time";
 import { isFreeCallAppointment } from "./event-title";
 import { offerFreeCallSlots } from "./free-call";
+import { slotLabel } from "./free-call-rules";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { personFirstName } from "@/lib/person-name";
@@ -69,10 +71,23 @@ const fmtDay = (d: Date, tz: string) =>
 const loadConversation = (id: string) =>
   prisma.conversation.findUnique({
     where: { id },
-    select: { ...GUARD_SELECT, contact: { select: { firstName: true, timezone: true } }, dossier: { select: { segment: true, timezone: true } } },
+    select: {
+      ...GUARD_SELECT,
+      contact: { select: { firstName: true, timezone: true, countryIso: true, phoneCountryIso: true } },
+      dossier: { select: { segment: true, timezone: true } },
+    },
   });
 
 type Conv = NonNullable<Awaited<ReturnType<typeof loadConversation>>>;
+
+/**
+ * Su zona de verdad: la ficha, el contacto si es de fiar o el país del número
+ * (`personZoneFor`). `contacts.timezone` vale Bogotá por defecto: a alguien de
+ * México le llegaban las horas de Colombia como si fueran las suyas, con una
+ * sola etiqueta (auditoría 21-oct). `null` = no se sabe.
+ */
+const personZoneOf = (conv: Conv) =>
+  personZoneFor({ dossierTz: conv.dossier?.timezone, contact: conv.contact, phone: conv.externalThreadId });
 
 const recipientFor = async (appt: Appt, conv: Conv) =>
   (conv.contactId ? await recipientFromContact(conv.contactId) : null) ?? {
@@ -136,13 +151,17 @@ const sendReschedule = async (
 ): Promise<RescheduleSend> => {
   const triggerMessageId = opts.triggerMessageId;
   const dayanaTz = await getOperationalTimezone();
-  const personTz = conv.dossier?.timezone ?? conv.contact?.timezone ?? dayanaTz;
-  const options = config.booking.enabled
-    ? await offerFreeCallSlots({ config, personTz, dayanaTz }).catch((e: unknown) => {
-        console.warn("[seguimiento llamada] no se pudo leer la agenda", e instanceof Error ? e.message : e);
-        return [];
-      })
-    : [];
+  const personTz = personZoneOf(conv);
+  // Con su zona, las dos horas (la suya y la de Colombia); sin saberla, la de
+  // Colombia dicha como tal (`slotLabel`). Así quedan también como ofrecidas.
+  const options = (
+    config.booking.enabled
+      ? await offerFreeCallSlots({ config, personTz: personTz ?? dayanaTz, dayanaTz }).catch((e: unknown) => {
+          console.warn("[seguimiento llamada] no se pudo leer la agenda", e instanceof Error ? e.message : e);
+          return [];
+        })
+      : []
+  ).map((o) => ({ ...o, label: slotLabel(o.startIso, personTz, dayanaTz) }));
   const name = await nameOf(appt, conv);
   const r = await sendWhatsAppToRecipient({
     recipient: await recipientFor(appt, conv),
@@ -150,7 +169,7 @@ const sendReschedule = async (
     templateKey: "cita_no_contestada",
     vars: {
       nombre: personFirstName(name) ?? "",
-      fecha: fmtDay(appt.startsAt, personTz),
+      fecha: fmtDay(appt.startsAt, personTz ?? dayanaTz),
       horarios: options.length ? options.map((o) => o.label).join(" · ") : "escríbenos qué día y hora te quedan bien",
     },
     // `recordatorio:`: sale solo, no cuenta como que Dayana contestó.
@@ -215,7 +234,7 @@ const sendCheck = async (appt: Appt, conv: Conv) => {
     recipient: await recipientFor(appt, conv),
     text: checkMessage(name),
     templateKey: "cita_seguimiento",
-    vars: { nombre: personFirstName(name) ?? "", fecha: fmtDay(appt.startsAt, conv.dossier?.timezone ?? conv.contact?.timezone ?? dayanaTz) },
+    vars: { nombre: personFirstName(name) ?? "", fecha: fmtDay(appt.startsAt, personZoneOf(conv) ?? dayanaTz) },
     source: `recordatorio:seguimiento:${appt.eventId}`,
     isAutoReply: true,
     clientKey: `callcheck:${appt.eventId}`,
