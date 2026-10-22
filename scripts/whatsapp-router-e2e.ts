@@ -14,10 +14,12 @@
  *    vuelve a decidir el grupo.
  * 5. «La IA responde siempre»: la clienta, el número personal y un favorito
  *    pasan todas las reglas (la vuelta llega hasta el modelo: aquí, sin clave,
- *    `no_model_key`); una crisis la sigue callando; apagado, la clienta vuelve
- *    a ser de Dayana.
+ *    `no_model_key`); una crisis ya no la calla (dueño, 21-oct: nunca deja de
+ *    responder; recibe apoyo y Dayana un aviso), solo «Pausar»; apagado, la
+ *    clienta vuelve a ser de Dayana.
  */
 import { prisma } from "@/lib/db";
+import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { getWhatsAppAiConfig, setWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";
 import { setAiAlways } from "@/lib/crm/whatsapp-autoreply";
 import { answerIfPending } from "@/lib/crm/whatsapp-agent/catch-up";
@@ -155,8 +157,15 @@ const main = async () => {
     });
     await runWhatsAppAi({ conversationId: family.id, triggerMessageId: family.messages[0].externalMessageId! });
     const r8 = await lastRun(family.id);
-    check("una crisis la sigue callando", r8?.status === "SKIPPED" && r8.reason === "paused", r8 && { status: r8.status, reason: r8.reason });
-    check("…y encenderlo no levanta la crisis", (await setAiAlways(family.id, true, null)).stillPaused);
+    check("una crisis ya no la calla (llega al modelo)", reached(r8), r8 && { status: r8.status, reason: r8.reason });
+    await prisma.conversation.update({
+      where: { id: family.id },
+      data: { aiPausedAt: new Date(), aiPausedReason: "escalation", escalationCategory: "other", escalationSeverity: "normal", escalationReason: MANUAL_PAUSE_REASON },
+    });
+    await runWhatsAppAi({ conversationId: family.id, triggerMessageId: family.messages[0].externalMessageId! });
+    const r8b = await lastRun(family.id);
+    check("«Pausar» a mano sí la calla", r8b?.status === "SKIPPED" && r8b.reason === "paused", r8b && { status: r8b.status, reason: r8b.reason });
+    check("…y encenderlo no levanta «Pausar»", (await setAiAlways(family.id, true, null)).stillPaused);
 
     await setAiAlways(client.id, false, null);
     check("apagado: el chat ya no lo muestra", (await getChat(client.id))?.aiAlways === false);
