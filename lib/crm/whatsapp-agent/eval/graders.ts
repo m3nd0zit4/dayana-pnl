@@ -12,6 +12,7 @@
 
 import { personFirstName } from "@/lib/person-name";
 import { foldForSearch } from "../../search-normalize";
+import { isAutoSend } from "../../whatsapp-attention-rules";
 import { mentionsPrice } from "../price-guard";
 import { promiseBreach } from "../promise-guard";
 
@@ -19,7 +20,7 @@ export type GradeContext = {
   /** Lo que recibiría la persona. */
   reply: string;
   /** El chat ANTES de esta respuesta. */
-  transcript: { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean }[];
+  transcript: { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean; source?: string | null }[];
   /** Herramientas que usó en esta vuelta, con su salida. */
   tools: { tool: string; output?: unknown }[];
   /** Los datos de pago que se adjuntaron tal cual (ahí sí hay números largos). */
@@ -55,10 +56,11 @@ const BOOKED_CLAIM = /\b(queda(s|n)? agendad|quedó agendad|está agendad|quedas
 /**
  * Un adjetivo con género sobre la persona: «cuando estés lista», «quedaste
  * agendada», «estar pendiente y lista», «bienvenido». «Tu llamada quedó
- * agendada» no cuenta (habla de la llamada).
+ * agendada» no cuenta (habla de la llamada), ni «te damos la bienvenida»
+ * (el sustantivo).
  */
 const PERSON_GENDERED =
-  /\b(?:quedaste|quedas|est[aá]s|est[eé]s|eres|seas|te sientes|te sientas|sentirte|estar|si[eé]ntete)\s+(?:muy\s+|m[aá]s\s+|bien\s+|pendiente y\s+)?(?:list|tranquil|preocupad|interesad|cansad|dispuest|segur|agendad|inscrit|motivad|emocionad|confundid|atent|content|ocupad|agradecid|encantad|preparad|decidid)([oa])s?\b|\bbienvenid([oa])s?\b/gi;
+  /\b(?:quedaste|quedas|est[aá]s|est[eé]s|eres|seas|te sientes|te sientas|sentirte|estar|si[eé]ntete)\s+(?:muy\s+|m[aá]s\s+|bien\s+|pendiente y\s+)?(?:list|tranquil|preocupad|interesad|cansad|dispuest|segur|agendad|inscrit|motivad|emocionad|confundid|atent|content|ocupad|agradecid|encantad|preparad|decidid)([oa])s?\b|(?<!\bla\s)\bbienvenid([oa])s?\b/gi;
 /** Una lista de horas («• jueves…», «- 9:30 a. m.»). */
 const SLOT_LIST = /(^|\n)\s*[-•*]\s*\S.*\d{1,2}:\d{2}/m;
 
@@ -106,7 +108,9 @@ export const GRADERS: Record<string, (ctx: GradeContext) => Grade> = {
     return { id: "sin_frases_repetidas", pass: !dup, detail: dup };
   },
   no_vuelve_a_saludar: (ctx) => {
-    const greeted = priorAi(ctx).some((l) => GREETING.test(l.body ?? ""));
+    // La confirmación del evento o un recordatorio («Hola Raquel, te escribimos
+    // porque te inscribiste…») no es un saludo de la asistente.
+    const greeted = priorAi(ctx).some((l) => !isAutoSend(l) && GREETING.test(l.body ?? ""));
     const again = greeted && GREETING.test(ownText(ctx));
     return { id: "no_vuelve_a_saludar", pass: !again };
   },

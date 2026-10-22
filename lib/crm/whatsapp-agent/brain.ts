@@ -46,6 +46,7 @@ import { personFullName } from "@/lib/person-name";
 import { fixNameInReply, resolvePersonName, sureFirstName, type NameMessage, type NameResolution } from "@/lib/sure-name";
 import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
+import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
@@ -263,8 +264,12 @@ const SOON_WORDS = /\bhoy\b|\bahora\b|ya mismo|en un rato|esta (tarde|noche|mañ
 
 export const businessFacts = async (
   config: WhatsAppAiConfig,
-  /** Ya fue clienta, ya tuvo la llamada o está por revisar: no agenda la llamada gratis. */
-  opts: { noFreeCall?: boolean } = {}
+  /**
+   * `noFreeCall`: ya fue clienta, ya tuvo la llamada o está por revisar: no
+   * agenda la llamada gratis. `guest`: solo se inscribió al evento gratuito y
+   * no ha pedido nada personal: tampoco (`webinar-guest.ts`).
+   */
+  opts: { noFreeCall?: boolean; guest?: boolean } = {}
 ): Promise<string> => {
   const site = getSiteUrl();
   const [products, workshops, events, magnets] = await Promise.all([
@@ -331,7 +336,12 @@ export const businessFacts = async (
     `Cuestionario gratis (3 min, dice qué proceso le sirve): ${site}/terapias/empezar`,
   ];
 
-  if (config.salesFlow.enabled && config.booking.enabled && opts.noFreeCall) {
+  if (config.salesFlow.enabled && config.booking.enabled && opts.guest && !opts.noFreeCall) {
+    lines.push(
+      "",
+      "AGENDAR: esta persona solo se inscribió al evento gratuito y no ha pedido nada personal: no le ofrezcas la llamada gratis ni horas (mira INSCRITA EN UN EVENTO GRATUITO)."
+    );
+  } else if (config.salesFlow.enabled && config.booking.enabled && opts.noFreeCall) {
     // Sin las herramientas de la llamada gratis (16-oct: Valentina, «por
     // revisar», terminó «agendando» con request_booking para «hoy mismo»).
     lines.push(
@@ -497,14 +507,7 @@ export const clientContext = async (
  * quien se inscribe en la web queda como contacto aunque el chat no lo sepa.
  */
 const registeredFreeEvents = async (contactId: string | null, phone?: string | null): Promise<RegisteredFreeEvent[]> => {
-  const id =
-    contactId ??
-    (await (async () => {
-      const phoneE164 = phone ? phoneFromWhatsAppId(phone)?.phoneE164 : null;
-      if (!phoneE164) return null;
-      const found = await prisma.contact.findUnique({ where: { phoneE164 }, select: { id: true } });
-      return found?.id ?? null;
-    })());
+  const id = await registrantId(contactId, phone);
   if (!id) return [];
   const rows = await prisma.webinarRegistration.findMany({
     where: { contactId: id, webinar: { status: { in: ["OPEN", "CLOSED"] }, endedAt: null } },
@@ -515,6 +518,41 @@ const registeredFreeEvents = async (contactId: string | null, phone?: string | n
     },
   });
   return rows.map((r) => r.webinar);
+};
+
+/** El contacto del chat, o el que tiene su número (quien se inscribe en la web queda como contacto). */
+const registrantId = async (contactId: string | null, phone?: string | null): Promise<string | null> => {
+  if (contactId) return contactId;
+  const phoneE164 = phone ? phoneFromWhatsAppId(phone)?.phoneE164 : null;
+  if (!phoneE164) return null;
+  const found = await prisma.contact.findUnique({ where: { phoneE164 }, select: { id: true } });
+  return found?.id ?? null;
+};
+
+/**
+ * El evento gratuito en el que se inscribió y que todavía cuenta (no ha
+ * empezado o empezó hace menos de una semana: `guestEventCounts`), el más
+ * cercano. Para `BrainInput.freeEvent`.
+ */
+export const guestFreeEvent = async (contactId: string | null, phone?: string | null, now = new Date()): Promise<GuestEvent | null> => {
+  const id = await registrantId(contactId, phone);
+  if (!id) return null;
+  const rows = await prisma.webinarRegistration.findMany({
+    where: {
+      contactId: id,
+      webinar: {
+        status: { in: ["OPEN", "CLOSED", "COMPLETED"] },
+        OR: [{ startsAt: { gte: new Date(now.getTime() - 7 * 24 * 3600_000) } }, { startsAt: null, endedAt: null }],
+      },
+    },
+    take: 5,
+    select: { webinar: { select: { eventLabel: true, headline: true, startsAt: true, startsAtHasTime: true } } },
+  });
+  const events = rows.map((r) => r.webinar).filter((e) => guestEventCounts(e, now.getTime()));
+  // El que viene primero; si ya pasaron todos, el último.
+  const upcoming = events.filter((e) => !e.startsAt || e.startsAt > now).sort((a, b) => (a.startsAt?.getTime() ?? Infinity) - (b.startsAt?.getTime() ?? Infinity));
+  const past = events.filter((e) => e.startsAt && e.startsAt <= now).sort((a, b) => b.startsAt!.getTime() - a.startsAt!.getTime());
+  return upcoming[0] ?? past[0] ?? null;
 };
 
 const IDENTITY: Record<WhatsAppAiConfig["identity"], string> = {
@@ -772,6 +810,12 @@ export type BrainInput = {
   freeCall?: { autoBook: boolean; personTimezone: string | null };
   /** Es clienta (la atiende Dayana): la IA solo comparte datos de pago y recibe comprobantes. */
   clientMode?: boolean;
+  /**
+   * El evento gratuito en el que está inscrita (`guestFreeEvent`), si todavía
+   * no tiene llamada ni es clienta: mientras no pida nada personal, bienvenida
+   * al evento y nada de la llamada gratis (`webinar-guest.ts`).
+   */
+  freeEvent?: GuestEvent | null;
 };
 
 /** Qué tan cerca de lo que pidió quedan las horas que se le ofrecen (`relaxedWishes`). */
@@ -858,6 +902,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Ya fue clienta, ya tuvo la llamada o está por revisar: sin llamada gratis.
   const noFreeCall = Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage));
   const salesOn = config.salesFlow.enabled && config.booking.enabled && !noFreeCall;
+  // Solo se inscribió a un evento gratuito y no ha pedido nada personal
+  // (dueña, 22-oct): bienvenida al evento, sin las herramientas de la llamada
+  // gratis. Las reglas del sistema no cambian (caché de Gemini): manda la
+  // línea del prompt y el freno de abajo.
+  const guestEvent =
+    salesOn &&
+    !input.clientMode &&
+    input.freeEvent &&
+    guestEventCounts(input.freeEvent, now.getTime()) &&
+    !wantsProcess(input.transcript, now.getTime())
+      ? input.freeEvent
+      : null;
+  const freeCallTools = salesOn && !guestEvent;
   const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
   const offeredNow = new Set<string>();
   const offeredBefore =
@@ -1200,7 +1257,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             inputSchema: z.object({}).passthrough(),
             execute: async (args) =>
               log("request_booking", args, {
-                error: "En este flujo agendas tú: usa offer_free_call_slots para ofrecer horas y book_free_call cuando elija una.",
+                error: guestEvent
+                  ? "Esta persona solo se inscribió al evento gratuito y no ha pedido nada personal: no le agendes nada. Mira INSCRITA EN UN EVENTO GRATUITO."
+                  : "En este flujo agendas tú: usa offer_free_call_slots para ofrecer horas y book_free_call cuando elija una.",
               }),
           }),
           } : {
@@ -1260,7 +1319,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         }
       : {}),
     // La llamada gratis con horas reales del calendario (flujo de venta).
-    ...(salesOn
+    // A quien solo se inscribió al evento, no (ni horas ni agendar).
+    ...(freeCallTools
       ? {
           offer_free_call_slots: tool({
             description:
@@ -1671,7 +1731,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       // Primero la hora (como cuando iba en las reglas): fuera de las reglas
       // para que la caché de Gemini cubra reglas y herramientas.
       `AHORA: ${nowLabel}.`,
-      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall: Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)) })}`,
+      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall: Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)), guest: Boolean(guestEvent) })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       chatLink
@@ -1702,11 +1762,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         : null,
       `SITUACIÓN DEL CHAT: ${input.situation ?? chatSituation(input.transcript, Boolean(input.client))}`,
       input.stage
-        ? [`ESTADO DE LA PERSONA CON DAYANA: ${STAGE_LABEL[input.stage]}. ${STAGE_HELP[input.stage]}`, STAGE_AI_RULE[input.stage]]
+        ? // A quien solo se inscribió al evento, sin «la lleva a la llamada gratis» de «Nueva».
+          [`ESTADO DE LA PERSONA CON DAYANA: ${STAGE_LABEL[input.stage]}.${guestEvent ? "" : ` ${STAGE_HELP[input.stage]}`}`, STAGE_AI_RULE[input.stage]]
             .filter(Boolean)
             .join("\n")
         : null,
-      salesOn
+      guestEvent
+        ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
+        : salesOn
         ? flowStateText(
             flowState(input.transcript, {
               keyQuestions: config.salesFlow.buyButtons.map((b) => b.keyQuestion),
@@ -1865,6 +1928,21 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           : `Escribió algo delicado: «${lastInbound.join(" ").slice(0, 150)}». La IA le contestó con apoyo.`,
     };
   }
+  // Solo se inscribió al evento y aun así el modelo la mete en el embudo (la
+  // llamada gratis, ¿cómo estás?, ¿de qué país?, ¿qué te motiva?) o no le da
+  // la bienvenida a su «gracias»: sale la bienvenida al evento (Miroslava,
+  // Ana, Caicedo, 22-oct).
+  const guestFix =
+    guestEvent && !serious && modelOutcome.kind === "reply" && modelOutcome.message.trim()
+      ? guestReply(guestEvent, modelOutcome.message, lastInbound, input.transcript, {
+          firstName: sureFirstName(nameInfo),
+          timezone,
+          now: now.getTime(),
+        })
+      : null;
+  if (guestFix && modelOutcome.kind === "reply") {
+    log("guest_reply", { auto: true }, { ok: true, replaced: modelOutcome.message, note: "Lo puso el código: solo se inscribió al evento y no pidió la llamada." });
+  }
   const outcome: BrainOutcome = agendaOnly
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
     : chatLinkOnly
@@ -1873,7 +1951,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
         : serious
           ? { kind: "reply", message: serious }
-          : modelOutcome;
+          : guestFix
+            ? { kind: "reply", message: guestFix }
+            : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace

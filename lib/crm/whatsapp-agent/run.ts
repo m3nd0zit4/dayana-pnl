@@ -27,7 +27,7 @@ import {
   repliedSince,
   type AttentionReason,
 } from "../whatsapp-attention-rules";
-import { clientContext, think, type TranscriptLine } from "./brain";
+import { clientContext, guestFreeEvent, think, type TranscriptLine } from "./brain";
 import { getMemory, refreshMemory } from "./memory";
 import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal } from "./approvals";
 import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
@@ -630,6 +630,12 @@ export const runWhatsAppAi = async (input: {
           })
         : null;
     const latestOffer = freeCallOn ? ((await latestFreeCallOffer(conversationId).catch(() => null))?.options ?? null) : null;
+    // Inscrita a un evento gratuito, sin llamada ni compra: si no pidió nada
+    // personal, la IA le da la bienvenida al evento (`webinar-guest.ts`).
+    const freeEvent =
+      freeCallOn && !clientMode && (!stage || stage === "nueva" || stage === "conversando")
+        ? await guestFreeEvent(conversation.contactId, phone).catch(() => null)
+        : null;
 
     const result =
       agendaTurn ??
@@ -654,6 +660,7 @@ export const runWhatsAppAi = async (input: {
         latestOffer,
         freeCall: { autoBook, personTimezone: personTz },
         clientMode,
+        freeEvent,
       }));
 
     const meta = {

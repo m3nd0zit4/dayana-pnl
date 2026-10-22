@@ -7,8 +7,10 @@
  * `expect` lo revisa el código; `goal` lo revisa el juez (un modelo).
  */
 import type { Stage } from "../stage";
+import type { GuestEvent } from "../webinar-guest";
 
-type Line = { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean; attachment?: string | null };
+/** `source`: de dónde salió un envío automático (`evento:…:confirmacion`), como en el chat. */
+type Line = { direction: "INBOUND" | "OUTBOUND"; body: string | null; isAutoReply?: boolean; attachment?: string | null; source?: string | null };
 
 export type Scenario = {
   id: string;
@@ -34,6 +36,8 @@ export type Scenario = {
   client?: string | null;
   /** Las notas de Dayana sobre la persona (`getMemory`). */
   memory?: string | null;
+  /** El evento gratuito en el que está inscrita (`guestFreeEvent` en run.ts). */
+  freeEvent?: GuestEvent | null;
   expect: {
     /** Tiene que usar al menos una de estas herramientas. */
     anyTool?: string[];
@@ -54,6 +58,28 @@ export type Scenario = {
 const ai = (body: string): Line => ({ direction: "OUTBOUND", body, isAutoReply: true });
 const dayana = (body: string): Line => ({ direction: "OUTBOUND", body });
 const person = (body: string, attachment?: string): Line => ({ direction: "INBOUND", body, attachment: attachment ?? null });
+
+// El webinar del domingo 18 (la evaluación corre el miércoles 14), como el del 25 en producción.
+const WEBINAR: GuestEvent = {
+  eventLabel: "Webinar Gratuito",
+  headline: "Webinar Gratuito",
+  startsAt: new Date("2026-10-18T14:30:00Z"),
+  startsAtHasTime: true,
+};
+const WEBINAR_CLIENT = (name: string) =>
+  [
+    `Nombre en el CRM: ${name} (cómo llamarla: mira NOMBRE)`,
+    "Etapa: interesada",
+    "Todavía no ha comprado nada.",
+    "Ya se inscribió en el evento gratuito: Webinar Gratuito «Webinar Gratuito» (domingo, 18 de octubre, 9:30 a. m. hora de Colombia). Si pide el enlace para entrar, dale el de la reunión de Google Meet, tal cual: https://meet.google.com/mwy-ootz-hge — no la página de inscripción, porque ya se inscribió.",
+  ].join("\n");
+const webinarConfirmation = (name: string): Line => ({
+  direction: "OUTBOUND",
+  isAutoReply: true,
+  source: "evento:fw1:confirmacion",
+  body: `Hola ${name}, te escribimos porque te inscribiste en «Webinar Gratuito».\n\nFecha: domingo 18 de octubre\nEnlace para ingresar: https://meet.google.com/mwy-ootz-hge\n\nHora según tu país:\n🇨🇴 🇵🇪 🇪🇨 🇵🇦 ➜ 9:30 a. m.\n🇲🇽 🇨🇷 🇬🇹 🇸🇻 🇭🇳 🇳🇮 ➜ 8:30 a. m.`,
+});
+const NO_FUNNEL = [/llamada (gratis|gratuita)|15 minutos/i, /(desde|de) qu[eé] (pa[ií]s|ciudad)/i, /c[oó]mo est[aá]s/i, /qu[eé] te (motiv|llev)/i, /cu[aá]nto tiempo m[aá]s/i];
 
 const ROSA_SLOTS =
   "Perfecto, Rosa. ¿Cuál de estos horarios te queda mejor para llamarte?\n\n*jueves, 15 de octubre, 8:15 p. m. (tu hora) · 6:15 p. m. en Colombia*\n*viernes, 16 de octubre, 11:15 a. m. (tu hora) · 9:15 a. m. en Colombia*";
@@ -735,5 +761,81 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: { outcome: "silent" },
     goal: "Le está contestando a Dayana, que está en contacto con ella para la llamada: la asistente no se mete ni promete nada; no escribe nada.",
+  },
+  {
+    id: "miroslava-gracias-al-webinar",
+    origin: "Miroslava Aguilar (+52), 18-oct: se inscribió al webinar, contestó «Buen día, muchas gracias» a la confirmación y la IA le preguntó el país, qué la motivaba, la invitó a la llamada gratis y se la agendó; Dayana tuvo que decirle que la agenda estaba llena y que la esperaba en el webinar (dueña, 22-oct)",
+    name: "Miroslava Aguilar",
+    contactName: "Miroslava Aguilar",
+    gender: "unknown",
+    stage: "nueva",
+    client: WEBINAR_CLIENT("Miroslava Aguilar"),
+    freeEvent: WEBINAR,
+    transcript: [webinarConfirmation("Miroslava"), person("Buen día, muchas gracias")],
+    expect: {
+      outcome: "reply",
+      noTool: ["offer_free_call_slots", "book_free_call", "save_country"],
+      mustMatch: [/esperamos|bienvenid/i],
+      mustNotMatch: NO_FUNNEL,
+    },
+    goal: "Solo se inscribió al webinar y agradece: le da la bienvenida y le dice que la esperan el domingo, corto. NO le pregunta cómo está, de qué país escribe ni qué la motiva, y NO le ofrece la llamada gratis. Puede cerrar con que si quiere algo personalizado con Dayana, escribe por aquí.",
+  },
+  {
+    id: "ana-si-asistire",
+    origin: "Ana (+591), 21-oct: «Gracias» + «Si asistire» a la confirmación del webinar; la IA contestó «¿Desde qué país me escribes?» y Dayana escribió ella misma «Te bendigo súper bienvenida»",
+    name: "Anaelfy❤‍🔥",
+    contactName: "Ana",
+    gender: "unknown",
+    stage: "nueva",
+    client: WEBINAR_CLIENT("Ana"),
+    freeEvent: WEBINAR,
+    transcript: [webinarConfirmation("Ana"), person("Gracias"), person("Si asistire")],
+    expect: {
+      outcome: "reply",
+      noTool: ["offer_free_call_slots", "book_free_call", "save_country"],
+      mustMatch: [/esperamos|bienvenid/i],
+      mustNotMatch: NO_FUNNEL,
+    },
+    goal: "Le da la bienvenida al webinar y le dice que la esperan, corto (como Dayana: «súper bienvenida»), sin preguntarle nada ni ofrecerle la llamada gratis. Puede cerrar con «si en algún momento quieres un proceso personalizado con Dayana, me escribes por aquí» (eso no es ofrecerle la llamada: es lo que dijo Dayana). Sin género.",
+  },
+  {
+    id: "caicedo-para-que-fecha",
+    origin: "Caicedo (+593), 19-oct: «Si puedo» a la confirmación, la IA preguntó el país, él preguntó «Para que fecha sería» (el webinar) y la IA le ofreció la llamada gratis y se la agendó sin que la pidiera",
+    name: "CTSE",
+    contactName: "Caicedo",
+    gender: "unknown",
+    stage: "nueva",
+    personTimezone: "America/Guayaquil",
+    client: WEBINAR_CLIENT("Caicedo"),
+    freeEvent: WEBINAR,
+    transcript: [
+      webinarConfirmation("Caicedo"),
+      person("Si puedo"),
+      ai("Con gusto, Caicedo. Te damos la bienvenida: te esperamos en «Webinar Gratuito» el domingo, 18 de octubre. Si en algún momento quieres un proceso personalizado con Dayana, me escribes por aquí. Te bendigo 🙏"),
+      person("Para que fecha sería"),
+    ],
+    expect: {
+      outcome: "reply",
+      noTool: ["offer_free_call_slots", "book_free_call"],
+      mustMatch: [/domingo|18 de octubre/i],
+      mustNotMatch: [/llamada (gratis|gratuita)|15 minutos/i, /agend/i],
+    },
+    goal: "Pregunta la fecha del webinar: le dice que es el domingo 18 de octubre a las 9:30 a. m. (Ecuador tiene la misma hora que Colombia), corto. No le ofrece la llamada gratis ni le pregunta si quiere agendar.",
+  },
+  {
+    id: "raquel-webinar-pide-terapia",
+    origin: "Raquel Torres (+34), 18–19-oct: inscrita al webinar, después escribió desde cero «quería información de tú terapia»: ella sí busca un proceso (dueña, 22-oct: caso intermedio)",
+    name: "Raquel Torres",
+    contactName: "Raquel Torres",
+    gender: "unknown",
+    stage: "nueva",
+    client: WEBINAR_CLIENT("Raquel Torres"),
+    freeEvent: WEBINAR,
+    transcript: [webinarConfirmation("Raquel"), person("Hola guapa te vi por Tiktok y quería información de tú terapia gracias")],
+    expect: {
+      outcome: "reply",
+      mustNotMatch: [/te esperamos/i],
+    },
+    goal: "Ella pide información de la terapia (no del webinar): la asistente la saluda como asistente de Dayana, le dice que con gusto le da la información de las terapias y sigue el flujo de la llamada gratis (le pregunta cómo está o desde qué país/ciudad escribe; en España, la ciudad no hace falta). No le da la bienvenida al webinar como si eso fuera todo, ni precios.",
   },
 ];

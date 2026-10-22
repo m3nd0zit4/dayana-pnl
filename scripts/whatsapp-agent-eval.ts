@@ -119,6 +119,7 @@ const main = async () => {
       stage: s.stage ?? null,
       freeCall: { autoBook: !s.clientMode, personTimezone: s.personTimezone ?? null },
       clientMode: s.clientMode,
+      freeEvent: s.freeEvent ?? null,
     });
     const o = result.outcome;
     // Lo que de verdad recibiría la persona (lo mismo que hace run.ts): a una
