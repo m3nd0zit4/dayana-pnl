@@ -1,257 +1,135 @@
 # Audio guiado · Desde dónde estoy mirando
 
-**Los 8 Niveles de Conciencia · Módulo 1 · 9-12 min · Audio guiado**
-Solo voz. Tono bajo y ritmo lento, sin música o con un fondo muy suave. Las
-pausas se respetan en la edición: son la mitad del audio.
+Los 8 Niveles de Conciencia · Módulo 1 · 12-15 min
 
----
-
-Antes de empezar: no escuches este audio mientras conduces
-
-ni mientras operas maquinaria.
-
-[PAUSA]
-
-Busca un lugar donde nadie te interrumpa durante unos diez minutos.
-
-[PAUSA]
-
-Siéntate de forma cómoda, con la espalda apoyada y los pies en el suelo.
-
-Si prefieres acostarte, también está bien.
-
-[PAUSA]
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
 Deja el cuaderno cerca. Lo vas a usar al final, no ahora.
 
-[PAUSA LARGA]
+Siéntate de forma cómoda, con la espalda apoyada y los pies en el suelo. Si prefieres acostarte, también está bien.
 
-Cuando quieras, cierra los ojos.
+Cuando quieras, cierra los ojos. O, si te resulta más cómodo, deja la mirada baja, apoyada en un punto del suelo.
 
-O, si te resulta más cómodo, deja la mirada baja,
+Toma aire por la nariz, sin forzar. Y suéltalo despacio, un poco más largo de lo que entró.
 
-apoyada en un punto del suelo.
-
-[PAUSA]
-
-Toma aire por la nariz, sin forzar.
-
-Y suéltalo despacio, un poco más largo de lo que entró.
-
-[PAUSA]
-
-Otra vez. Entra el aire…
-
-y sale, despacio.
-
-[PAUSA]
+Otra vez. Entra el aire… y sale, despacio.
 
 Una vez más, a tu ritmo.
 
-[PAUSA LARGA]
+Ahora deja que la respiración vaya sola. No tienes que hacer nada con ella. Solo notarla.
 
-Ahora deja que la respiración vaya sola.
-
-No tienes que hacer nada con ella. Solo notarla.
-
-[PAUSA]
-
-Nota el peso de tu cuerpo apoyado.
-
-Los pies en el suelo.
-
-Las manos, donde estén.
-
-[PAUSA LARGA]
+Nota el peso de tu cuerpo apoyado. Los pies en el suelo. Las manos, donde estén.
 
 Nota los hombros. Si están un poco arriba, deja que bajen.
 
-[PAUSA]
-
 Nota la mandíbula. Si está apretada, deja que se suelte un poco.
 
-[PAUSA LARGA]
+Nota la frente, el espacio entre las cejas. Deja que se alise.
 
-Ahora trae a la mente una decisión que hayas tomado en estos días.
+Quédate así unos momentos, solo respirando.
 
-Puede ser la que escribiste en la clase, o cualquier otra.
+Con cada exhalación, deja que el cuerpo pese un poco más. No tienes que llegar a ningún lado. Solo estar aquí.
 
-Algo pequeño o algo grande. La primera que aparezca.
+Ahora trae a la mente una decisión que hayas tomado en estos días. Puede ser la que escribiste en la clase, o cualquier otra. Algo pequeño o algo grande. La primera que aparezca.
 
-[PAUSA REAL · 15 s — deja que aparezca una decisión]
+Tómate el tiempo que necesites para que aparezca.
 
-Mira la escena.
+Mira la escena. Dónde estabas. Qué hora era. Quién más estaba ahí.
 
-Dónde estabas. Qué hora era. Quién más estaba ahí.
+Escucha los sonidos de ese momento, si los recuerdas. Una voz, un ruido de fondo, el silencio.
 
-[PAUSA LARGA]
+Y fíjate qué sientes en el cuerpo al recordarla. Puede ser algo en el pecho, en el estómago, en la garganta, en las manos.
 
-Y fíjate qué sientes en el cuerpo al recordarla.
+Puede que no sientas nada especial. También está bien. Quédate unos momentos notando.
 
-Puede ser algo en el pecho, en el estómago, en la garganta, en las manos.
+Si en algún momento te distraes, no pasa nada. Vuelve a la escena con suavidad, cuando lo notes.
 
-Puede que no sientas nada especial. También está bien.
+Ahora te voy a hacer ocho preguntas, despacio. No tienes que contestarlas con palabras. Solo nota cuál de ellas mueve algo por dentro cuando la escuchas.
 
-[PAUSA REAL · 15 s — nota dónde se siente la decisión en el cuerpo]
+La primera. ¿Estaba a salvo?
 
-Ahora te voy a hacer ocho preguntas, despacio.
+Respira… y quédate ahí unos momentos.
 
-No tienes que contestarlas con palabras.
+La segunda. ¿Con quiénes estaba? ¿Qué iban a pensar los míos?
 
-Solo nota cuál de ellas mueve algo por dentro cuando la escuchas.
+Respira… y nota si algo se mueve.
 
-[PAUSA LARGA]
+La tercera. ¿Qué quería yo? ¿Quién decide aquí?
 
-La primera.
+Quédate un momento con esa pregunta.
 
-¿Estaba a salvo?
+La cuarta. ¿Qué es lo correcto? ¿Cómo se debe hacer?
 
-[PAUSA LARGA]
+Respira.
 
-La segunda.
+La quinta. ¿Qué quería conseguir? ¿Cómo sale mejor?
 
-¿Con quiénes estaba? ¿Qué iban a pensar los míos?
+Quédate un momento.
 
-[PAUSA LARGA]
+La sexta. ¿Cómo estamos todos? ¿Alguien sale lastimado?
 
-La tercera.
+Respira… y nota.
 
-¿Qué quería yo? ¿Quién decide aquí?
+La séptima. ¿Qué está pasando en el conjunto? ¿Qué pide esta situación?
 
-[PAUSA LARGA]
+Quédate un momento.
 
-La cuarta.
+Y la octava. ¿A qué sirve esto? ¿Hay algo más grande que yo aquí?
 
-¿Qué es lo correcto? ¿Cómo se debe hacer?
+Respira… y quédate ahí unos momentos.
 
-[PAUSA LARGA]
+Ahora vuelve a la pregunta que más se movió. Puede que haya sido una. Puede que hayan sido dos.
 
-La quinta.
+Si dudas entre varias, quédate con la primera que vuelva a tu mente.
 
-¿Qué quería conseguir? ¿Cómo sale mejor?
+No le pongas nota. No es buena ni mala. Es solo el lugar desde donde estabas mirando ese día.
 
-[PAUSA LARGA]
+Y dite por dentro, con calma: «Desde aquí estaba mirando».
 
-La sexta.
+Repítelo una vez más, despacio.
 
-¿Cómo estamos todos? ¿Alguien sale lastimado?
+Fíjate si algo cambia en el cuerpo al decirlo. A veces se afloja algo. A veces no pasa nada. Las dos cosas están bien.
 
-[PAUSA LARGA]
+Ahora imagina que tienes esa misma decisión delante otra vez. Y que, por un momento, puedes mirarla también desde otra de las preguntas. Una que ese día no usaste.
 
-La séptima.
+No para cambiar lo que hiciste. Solo para ver qué más aparece desde ahí.
 
-¿Qué está pasando en el conjunto? ¿Qué pide esta situación?
+Puede ser cualquiera. ¿Con quiénes estaba? ¿Qué pide esta situación? ¿Alguien sale lastimado? La que te llame.
 
-[PAUSA LARGA]
+Tómate el tiempo que necesites para mirar la escena desde ahí.
 
-Y la octava.
+Quizás aparece una persona que no habías tenido en cuenta. Quizás un riesgo. Quizás una posibilidad que no viste.
 
-¿A qué sirve esto? ¿Para qué algo más grande que yo?
+Quizás no aparece nada nuevo, y eso también te dice algo.
 
-[PAUSA REAL · 20 s — quédate con la pregunta que más se movió]
+Nota cómo se siente el cuerpo ahora, mirando desde ese otro lugar. ¿Igual que antes, o distinto?
 
-Ahora vuelve a la pregunta que más se movió.
+Respira… y quédate ahí unos momentos.
 
-Puede que haya sido una. Puede que hayan sido dos.
+Eso es lo que te va a dar este curso. No una respuesta correcta. Más lugares desde donde mirar.
 
-[PAUSA]
-
-No le pongas nota. No es buena ni mala.
-
-Es solo el lugar desde donde estabas mirando ese día.
-
-[PAUSA LARGA]
-
-Y dite por dentro, con calma:
-
-«Desde aquí estaba mirando.»
-
-[PAUSA REAL · 10 s — repite la frase por dentro]
-
-Fíjate si algo cambia en el cuerpo al decirlo.
-
-A veces se afloja algo. A veces no pasa nada.
-
-Las dos cosas están bien.
-
-[PAUSA LARGA]
-
-Ahora imagina que tienes esa misma decisión delante otra vez.
-
-Y que, por un momento, puedes mirarla también desde otra de las preguntas.
-
-Una que ese día no usaste.
-
-[PAUSA]
-
-No para cambiar lo que hiciste.
-
-Solo para ver qué más aparece desde ahí.
-
-[PAUSA REAL · 20 s — mira la decisión desde otra pregunta]
-
-Quizás aparece una persona que no habías tenido en cuenta.
-
-Quizás un riesgo. Quizás una posibilidad.
-
-[PAUSA LARGA]
-
-Eso es lo que te va a dar este curso.
-
-No una respuesta correcta.
-
-Más lugares desde donde mirar.
-
-[PAUSA LARGA]
-
-Vamos a volver.
-
-Voy a contar del uno al cinco.
-
-Con cada número vas a ir trayendo tu atención a este lugar.
-
-Al cinco abres los ojos, con calma y con la mente clara.
-
-[PAUSA]
+Ahora vamos a volver. Voy a contar del uno al cinco. Con cada número vas a ir trayendo tu atención a este lugar. Al cinco abres los ojos, con calma y con la mente clara.
 
 Uno. Nota otra vez el peso de tu cuerpo.
 
-[PAUSA]
-
 Dos. Nota los pies en el suelo.
-
-[PAUSA]
 
 Tres. Mueve un poco los dedos de las manos y de los pies.
 
-[PAUSA]
-
 Cuatro. Toma una respiración más profunda.
-
-[PAUSA]
 
 Cinco. Abre los ojos y mira a tu alrededor.
 
-[PAUSA LARGA]
+Toma el cuaderno. Escribe una sola línea: la decisión, y la pregunta que más se movió.
 
-Toma el cuaderno.
+Tómate el tiempo que necesites.
 
-Escribe una sola línea: la decisión, y la pregunta que más se movió.
+Y debajo, si quieres, escribe qué viste cuando la miraste desde otra pregunta.
 
-[PAUSA REAL · 30 s — escribe una línea en el cuaderno]
+Fíjate en lo que escribiste. La decisión ya está tomada, y no hace falta cambiarla. Lo que cambió es que ahora sabes desde dónde la tomaste. Y la próxima vez, antes de decidir, puedes hacerte a propósito una de estas preguntas.
 
-Y debajo, si quieres, escribe qué viste
+Puedes volver a este audio cada vez que tengas una decisión difícil por delante. No te va a decir qué hacer. Te va a mostrar desde dónde la estás mirando.
 
-cuando la miraste desde otra pregunta.
+Para cerrar el módulo, tienes el material de lectura en PDF, con la hoja de observación que vas a usar durante todo el curso. Y tienes el ejercicio opcional, Tu punto de partida, para dejar escrita una foto de dónde estás hoy. En el módulo seis vas a volver a él.
 
-[PAUSA REAL · 30 s — escribe lo que apareció desde la otra pregunta]
-
-Puedes volver a este audio cada vez que tengas una decisión difícil por delante.
-
-No te va a decir qué hacer.
-
-Te va a mostrar desde dónde la estás mirando.
-
-[PAUSA]
-
-Seguimos creciendo juntos.
+Cuando lo tengas, te espero en el módulo dos: Niveles uno a cuatro, supervivencia, tribu, poder y orden.

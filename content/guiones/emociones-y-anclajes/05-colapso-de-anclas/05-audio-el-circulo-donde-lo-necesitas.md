@@ -1,193 +1,157 @@
 # Audio guiado · El círculo en el lugar donde lo vas a necesitar
 
-**Emociones, anclajes y estados de recurso · Módulo 5 · 9-11 min · Audio guiado**
-Solo voz. Lenta y concreta: es un ensayo, no una relajación. En la parte del evento, la voz va en presente, como si estuviera pasando.
-No incluye colapso de anclas; no añadirlo en edición.
+Emociones, anclajes y estados de recurso · Módulo 5 · 11-13 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni mientras manejas maquinaria.
-
-[PAUSA]
-
-Este audio es un ensayo. Vas a llevar tu círculo de excelencia al lugar donde lo vas a necesitar, y vas a recorrer esa situación desde dentro de tu mejor estado.
+Este audio es un ensayo. Vas a llevar tu círculo de excelencia al lugar donde lo vas a necesitar, y vas a recorrer esa situación desde dentro de tu mejor estado. Con tropiezo incluido.
 
 Una aclaración: aquí no hacemos un colapso de anclas. El colapso no se hace con un audio.
 
-[PAUSA]
-
 Ten en mente tu evento. Una presentación, una entrevista, una conversación importante. Algo concreto, que va a pasar pronto.
 
-[PAUSA REAL · 10 s — traer a la mente tu evento]
+Tómate unos segundos para traerlo.
 
-Siéntate con la espalda apoyada y los pies en el piso. Cierra los ojos.
+Siéntate con la espalda apoyada y los pies en el piso. Deja las manos sobre las piernas.
 
-[PAUSA]
+Cuando quieras, cierra los ojos.
 
-Deja salir el aire despacio, más largo de lo que entró. Tres veces.
+Deja salir el aire despacio, más largo de lo que entró.
 
-[PAUSA REAL · 15 s — tres exhalaciones largas]
+Otra vez… despacio.
 
-[PAUSA LARGA]
+Y una tercera.
+
+Nota dónde se apoya tu cuerpo. La espalda en el respaldo. Los pies en el piso. Las manos sobre las piernas.
+
+Deja que la silla te sostenga. No tienes que hacer nada para quedarte ahí.
+
+Suelta la mandíbula. Deja caer los hombros. Y deja que la respiración encuentre su ritmo, sin hacer nada con ella.
 
 Primero, vuelve un momento a tu mejor estado.
 
-Un recuerdo pequeño y real en que estuviste en tu mejor versión. El mismo que usaste en la práctica, o otro.
+Un recuerdo pequeño y real, en que estuviste en tu mejor versión. El mismo que usaste en la práctica, u otro.
 
-[PAUSA REAL · 10 s — traer el recuerdo de tu mejor estado]
+Tómate el tiempo que necesites para encontrarlo.
 
-¿Dónde estás? ¿Qué ves?
+¿Dónde estás? ¿Qué ves a tu alrededor?
 
-[PAUSA REAL · 10 s — ver el recuerdo]
+Quédate ahí unos momentos.
 
-¿Qué se oye?
+¿Qué se oye? ¿Qué te dices, o qué te dicen?
 
-[PAUSA REAL · 8 s — escuchar el recuerdo]
+¿Cómo está tu cuerpo? ¿Cómo respiras en ese momento?
 
-¿Cómo está tu cuerpo? ¿Cómo respiras?
-
-[PAUSA REAL · 12 s — sentir el cuerpo del recuerdo]
+Si hay colores, deja que se vean un poco más vivos. Si hay sonidos, un poco más cerca.
 
 Deja que el recuerdo se quede de fondo, como una música baja.
 
-[PAUSA]
-
-Ahora mira el suelo, delante de ti, con la imaginación.
+Ahora mira el suelo delante de ti, con la imaginación.
 
 Ahí está tu círculo. Con su color. Con su borde.
 
-[PAUSA REAL · 10 s — ver tu círculo]
+Míralo unos momentos. Deja que se vuelva nítido.
 
 Imagina que te levantas y das un paso hacia adentro.
 
-[PAUSA]
+Y al entrar, el estado sube. La postura de ese momento. La respiración de ese momento. La frase.
 
-Y al entrar, el estado sube. La postura de ese momento. La respiración. La frase.
+Siéntelo… y quédate ahí unos momentos.
 
-[PAUSA REAL · 15 s — sentir el estado dentro del círculo imaginado]
+Conoce cómo se siente estar adentro. Dónde lo notas primero en el cuerpo.
 
-Quédate un momento adentro. Conoce cómo se siente estar ahí.
-
-[PAUSA REAL · 10 s — quedarse dentro del círculo]
-
-Ahora sal del círculo, también con la imaginación, y deja que se quede esperándote en el suelo.
-
-[PAUSA LARGA]
+Ahora sal del círculo, también con la imaginación. Y deja que se quede esperándote en el suelo.
 
 Vamos a llevarlo a tu evento.
 
 Imagina el lugar donde va a pasar. El edificio, la sala, la calle.
 
-¿Qué hora es? ¿Cómo está la luz?
+¿Qué hora es? ¿Cómo está la luz? ¿Hace frío o calor?
 
-[PAUSA REAL · 12 s — ver el lugar del evento]
+Tómate unos segundos para verlo.
 
 Mira la entrada. La puerta, el borde del escenario, la silla donde te vas a sentar.
 
 Ahora toma tu círculo y llévalo hasta ahí. Déjalo justo en la entrada.
 
-[PAUSA REAL · 10 s — poner el círculo en la entrada del evento]
-
 Es el día. Estás llegando.
+
+Mira cómo llegas. Qué ropa llevas puesta. Qué tienes en las manos.
 
 Quizás notas un poco de nervios. Está bien. Los nervios también vienen.
 
 No hace falta que se vayan para entrar. Los nervios y el círculo pueden estar al mismo tiempo. El círculo no te quita los nervios: te da desde dónde moverte con ellos.
 
-[PAUSA]
-
 Ves tu círculo en la entrada, con su color.
 
 Y das el paso. Entras.
 
-[PAUSA]
-
-Postura. La espalda, los hombros, los pies.
-
-[PAUSA REAL · 8 s — tomar la postura dentro del círculo]
+La postura. La espalda, los hombros, los pies.
 
 Una exhalación larga.
 
-[PAUSA REAL · 8 s — una exhalación larga]
-
 Y tu frase, por dentro.
-
-[PAUSA REAL · 8 s — decir la frase por dentro]
 
 Ahora entras a la situación. Desde ese estado.
 
-Mira a las personas que están. Escucha cómo suena el lugar.
+Mira a las personas que están. Escucha cómo suena el lugar. Nota el suelo bajo tus pies.
 
-[PAUSA REAL · 15 s — entrar a la situación y mirar alrededor]
+Tómate el tiempo que necesites.
 
 Empieza. Te ves hablando, escuchando, respondiendo.
 
 No perfecto. Razonablemente bien. Con tu voz, a tu ritmo.
 
-[PAUSA REAL · 20 s — ver la situación avanzar]
+Deja que la situación avance unos momentos.
 
 Y en algún momento llega un tropiezo.
 
 Una pregunta que no esperabas. Un silencio incómodo. Un gesto de alguien que te descoloca.
 
-[PAUSA]
-
-Fíjate qué pasa en tu cuerpo.
-
-[PAUSA REAL · 8 s — notar el cuerpo en el tropiezo]
+Fíjate qué pasa en tu cuerpo. Dónde se aprieta. Qué hace la respiración. Quizás la voz se acelera. Quizás quieres terminar rápido. Solo nótalo.
 
 Ahí, imagina que vuelves a pisar tu círculo. Sigue debajo de tus pies.
 
 Una exhalación larga. La postura. La frase.
 
-[PAUSA REAL · 15 s — volver al estado en medio del tropiezo]
+Respira… y quédate ahí unos momentos.
 
 Y sigues. Desde ahí. Contestas lo que puedes, preguntas lo que no sabes, retomas el hilo.
 
-[PAUSA REAL · 20 s — ver cómo sigues después del tropiezo]
+Mira cómo sigues después del tropiezo. Tómate el tiempo que necesites.
 
 La situación va llegando a su final.
 
 Mira cómo termina. Las caras. Lo que dices al irte.
 
-[PAUSA REAL · 15 s — ver el final de la situación]
-
 Y sal del lugar. Afuera, nota cómo está tu cuerpo.
-
-[PAUSA REAL · 10 s — notar el cuerpo al salir]
-
-[PAUSA LARGA]
 
 Acabas de ensayarlo. Con tropiezo incluido.
 
 El día real puede ser distinto en mil detalles. Lo que ya está ensayado es el camino de vuelta a tu estado.
 
-[PAUSA]
+Quédate un momento con esta idea: no necesitas que todo salga perfecto. Necesitas saber volver a tu estado. Y eso ya lo practicaste.
 
 Vamos a volver. Voy a contar del uno al cinco.
 
 Uno. Nota la silla debajo de ti.
 
-[PAUSA]
-
 Dos. Nota los sonidos de la habitación.
-
-[PAUSA]
 
 Tres. Mueve los dedos de las manos y de los pies.
 
-[PAUSA]
-
 Cuatro. Respira más profundo y estírate.
 
-[PAUSA]
-
 Cinco. Abre los ojos y mira a tu alrededor.
-
-[PAUSA LARGA]
 
 Una última cosa. ¿Qué tropiezo imaginaste?
 
 Si ese tropiezo pasa de verdad, ya sabes qué hacer: pisar el círculo, exhalar largo y seguir.
 
+Si quieres, escribe en una línea cuál fue tu tropiezo y cómo volviste al círculo.
+
 Puedes escuchar este audio cada día hasta tu evento. Y la mañana del evento, una vez más.
+
+Con este audio cierras el módulo. En el material en PDF tienes por escrito los límites, los siete pasos del colapso, el círculo de excelencia y las señales para parar. Y en el ejercicio opcional puedes dejar anotada tu comprobación previa, tus números y tu círculo.
+
+El próximo módulo es Gestionar el miedo y la ansiedad con PNL.

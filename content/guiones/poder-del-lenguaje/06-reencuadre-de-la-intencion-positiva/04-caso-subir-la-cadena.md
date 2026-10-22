@@ -1,112 +1,48 @@
 # Caso · Subir la cadena con una persona real
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 12-15 min · Caso**
-Necesita una segunda persona en cámara, con una conducta cotidiana suya que no consigue quitarse. Plano a dos y plano cerrado de la invitada. Pizarra para escribir la cadena. Los silencios largos no se cortan en montaje.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 12-15 min
 
 Líderes, bendiciones.
 
-En la clase uno subí la cadena en una pizarra, con un ejemplo. Hoy la vas a ver con una persona real, sin guion.
+En la primera clase subimos la cadena con un ejemplo. Hoy la vas a ver con una persona real, sin guion. Conmigo está alguien que se ofreció a hacer este ejercicio conmigo. Trae una conducta cotidiana suya, algo que ha intentado cambiar muchas veces sin conseguirlo. Elegimos a propósito algo del día a día, nada que le esté haciendo daño serio.
 
-Conmigo está alguien que trae una conducta suya que ha intentado cambiar muchas veces.
+Fíjate en tres momentos. El primero, cuando conteste «nada, es que soy así», o algo parecido. Casi todo el mundo lo dice, y vas a ver qué pasa cuando no nos quedamos ahí. El segundo, cuando aparezca la palabra grande, y lo lejos que está de la conducta del principio. Y el tercero, su cara cuando diga en voz alta el reconocimiento.
 
-Vas a ver los silencios. Vas a ver el momento en que dice «nada, es que soy así». Y vas a ver qué pasa cuando no nos quedamos ahí.
+Vas a oír silencios largos. No los voy a llenar, porque es en el silencio donde aparece la respuesta de verdad. Y vas a oír que repito varias veces la misma pregunta: ¿y eso qué te da? Así se sube la cadena, un escalón cada vez, hasta que aparece una palabra grande.
 
-[A CÁMARA]
+Tú trabajas en paralelo, con la conducta que usaste en la primera clase o con otra. Escríbela ahora arriba de una hoja, como la grabaría una cámara. Pausa el video si lo necesitas. Cada pregunta que yo le haga, contéstala tú también por escrito. Y cuando lleguemos al reconocimiento, dilo tú también en voz alta.
 
-Tú trabajas en paralelo, con la conducta que usaste en la clase uno o con otra.
+## Conversación
 
-Escríbela ahora arriba de una hoja, como la grabaría una cámara.
+1. ¿Qué haces exactamente, como lo grabaría una cámara?
+2. ¿Cuándo aparece? ¿Qué pasa justo antes?
+3. ¿Qué consigues con eso?
+4. Y si sirviera para algo, ¿para qué sería?
+5. ¿Y qué te evita?
+6. ¿Y eso qué te da?
+7. ¿Y eso?
+8. ¿Puedes decirlo en voz alta: «tiene sentido que quiera», tu palabra, «es legítimo»?
+9. ¿Qué pasó al decirlo?
+10. ¿De qué otras tres formas podrías conseguir eso mismo, que te sirvan mejor?
+11. ¿Cuál pruebas esta semana? ¿Qué día?
+12. ¿Qué fue lo más sorprendente de la cadena?
+13. ¿Cómo ves ahora la conducta del principio?
+14. ¿Qué cambió entre el «nada, es que soy así» y esa palabra?
 
-[PAUSA REAL · 20 s — escribir tu conducta sin juicio]
+## Cierre
 
-Cada vez que ella suba un escalón, vas a tener una pausa para subir el tuyo.
+Vamos a mirar lo que acabamos de ver. Primero, el momento del «nada, es que soy así». Fíjate en lo que hizo falta para pasar de ahí. No hizo falta un argumento. Hizo falta silencio y una segunda pregunta, hecha con calma. La primera respuesta casi nunca es la verdadera. Es la de portada.
 
-## Guion de conducción
+Segundo, la palabra grande que apareció. Mira qué lejos estaba de la conducta del principio. Nadie habría adivinado esa palabra mirando solo la conducta. Por eso no se adivina: se pregunta.
 
-### Antes de grabar
+Tercero, el reconocimiento. Cuando lo dijo en voz alta, algo cambió en su cara. Eso es lo que hace el paso cuatro: la parte que estaba a la defensiva deja de estarlo. Y cuarto, los tres caminos. Ninguno dice «dejar de hacerlo». Todos dicen cómo conseguir lo mismo de otra forma.
 
-- La conducta tiene que ser cotidiana: llegar tarde, revisar el celular, comer a deshoras, dejar todo para el final, no pedir ayuda, callar en reuniones.
-- Descartar adicciones, trastornos de la alimentación, autolesiones o cualquier conducta que esté causando un daño serio. Eso requiere acompañamiento profesional, no un caso en video.
-- Explicarle a la invitada que habrá silencios largos y que no tiene que llenarlos. Que puede decir «no sé» todas las veces que quiera.
-- Acordar una señal para parar. Puede pedir que se corte cualquier parte.
+Ahora mira tu hoja. La conducta abajo, la palabra grande arriba, y tres caminos al lado. Tómate unos segundos para mirarla completa. Esa hoja es más útil que cualquier promesa de «esta vez sí lo dejo».
 
-### Paso 1 · La conducta, sin juicio (1 a 2 minutos)
+Cuando lo hagas a solas, la clave es la misma que viste aquí. No te conformes con la primera respuesta. Haz silencio, pregunta otra vez y sigue subiendo hasta la palabra grande. Si aparece emoción, para y respira. Y si la conducta con la que trabajas te está haciendo daño serio, busca acompañamiento profesional.
 
-- «¿Qué haces exactamente? Como lo grabaría una cámara.»
-- Si aparece un juicio («soy un desastre»), preguntar: «¿qué hiciste la última vez, exactamente?».
-- Escribir la conducta abajo de la pizarra.
-- «¿Cuándo aparece? ¿Qué pasa justo antes?»
+Tu tarea para las próximas veinticuatro horas: prueba el camino que elegiste. Solo ese, el día que le pusiste. Y si la conducta vuelve, no te castigues. Pregúntate qué camino le falta.
 
-### Paso 2 · Para qué (2 minutos)
-
-- «¿Qué consigues con eso?» o «¿para qué te sirve?».
-- Si contesta «nada, es que soy así», **no cortar**. Es el momento que el video necesita mostrar. Esperar en silencio. Después, con suavidad: «ya, y si sirviera para algo, ¿para qué sería?».
-- Si contesta otra vez «nada», probar con «¿qué te evita?».
-
-### Paso 3 · La cadena (3 a 4 minutos)
-
-- Encadenar con la misma pregunta: «¿y eso qué te da?», «¿y eso?».
-- Escribir cada escalón en la pizarra, de abajo arriba.
-- Silencio después de cada pregunta. No sugerir respuestas ni completar frases.
-- Detenerse cuando aparezca una palabra grande: seguridad, libertad, pertenencia, valor, calma, control, descanso, que no vuelva a doler.
-- Si aparece emoción, parar, dejar espacio y preguntar si quiere seguir.
-
-Corte a cámara para el alumno, cuando aparezca la palabra grande:
-
-[PAUSA REAL · 60 s — subir tu propia cadena hasta una palabra grande]
-
-### Paso 4 · El reconocimiento (1 minuto)
-
-- Pedirle que diga en voz alta: «Tiene sentido que quiera… Es legítimo», con su palabra.
-- Después, silencio. Plano cerrado de su cara.
-- Preguntar: «¿qué pasó al decirlo?».
-
-Corte a cámara para el alumno:
-
-[PAUSA REAL · 15 s — decir en voz alta tu frase de reconocimiento]
-
-### Paso 5 · Los tres caminos (2 a 3 minutos)
-
-- «¿De qué otras tres formas podrías conseguir eso mismo, que te sirvan mejor?»
-- Pedir que sean concretas: qué, cuándo, con quién. «Ser más ordenada» no es un camino.
-- Escribir los tres en la pizarra.
-- «¿Cuál pruebas esta semana? ¿Qué día?»
-
-Corte a cámara para el alumno:
-
-[PAUSA REAL · 45 s — escribir tus tres caminos y elegir uno con día]
-
-### Cierre con la invitada (1 a 2 minutos)
-
-- ¿Qué fue lo más sorprendente de la cadena?
-- ¿Cómo ves ahora la conducta del principio?
-- ¿Qué cambió entre el «nada, es que soy así» y la palabra grande?
-
-### Qué señalar después, a cámara
-
-- El momento del «nada, es que soy así» y qué hizo falta para pasar de ahí: silencio y una segunda pregunta, no un argumento.
-- La palabra grande que apareció, y lo lejos que estaba de la conducta del principio.
-- El cambio de cara en el reconocimiento. Si se puede, repetirlo en pantalla.
-- Que ninguno de los tres caminos dice «dejar de hacerlo». Todos dicen cómo conseguir lo mismo de otra forma.
-
-## Cierre a cámara
-
-[A CÁMARA. Cierre.]
-
-Mira tu hoja. La conducta abajo, la palabra grande arriba, y tres caminos al lado.
-
-[PAUSA REAL · 10 s — mirar tu cadena completa]
-
-Esa hoja es más útil que cualquier promesa de «esta vez sí lo dejo».
-
-Tu tarea para las próximas veinticuatro horas: prueba el camino que elegiste. Solo ese, el día que le pusiste.
-
-Y si la conducta vuelve, no te castigues. Pregúntate qué camino le falta.
-
-Después viene el audio guiado. Vas a recorrer estos cinco pasos con calma, hablando con la parte de ti que lo hace.
+Después viene el audio guiado de este módulo, Hablar con la parte que lo hace. Vas a recorrer estos cinco pasos con calma, con los ojos cerrados, escuchando a la parte de ti que hace esa conducta.
 
 Seguimos creciendo juntos.

@@ -1,193 +1,49 @@
 # Clase 2 · Antes, durante y después de un colapso
 
-**Emociones, anclajes y estados de recurso · Módulo 5 · 9-11 min · Clase**
-Taller. El alumno necesita papel y lápiz: se pide al empezar. La comprobación previa, la tabla de resultados y la rutina del círculo van en pantalla.
-Cámara fija.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 5 · 10-12 min
 
 Líderes, bendiciones.
 
-El colapso de anclas dura un par de minutos. Lo que decide si sirve pasa antes y después.
+El colapso de anclas dura un par de minutos. Lo que decide si sirve pasa antes y después. En esta clase vamos a trabajar eso con tu tema real. Al terminar vas a tener elegido y comprobado tu problema, vas a saber si tu recurso le gana, qué esperar durante el colapso y qué hacer con cada resultado posible. Y al final vas a diseñar tu rutina de círculo para un evento concreto. Ten papel y lápiz. Pausa el video si necesitas ir a buscarlos.
 
-Hoy trabajamos eso, con tu tema real. Ten papel y lápiz.
+Empecemos por el problema, con un juego: concreto o vago. Te digo una frase y tú dices en voz alta si es concreta o vaga, antes de que yo conteste. Primera: «mi infancia». ¿Concreta o vaga? Vaga, y además demasiado grande para trabajarla así. Segunda: «cuando mi jefe me habla en ese tono delante de otros». ¿Concreta o vaga? Concreta: tiene una persona, un tono y una escena. Tercera: «mi inseguridad». ¿Concreta o vaga? Vaga. Un rasgo no se colapsa. Una situación, sí.
 
-[PAUSA REAL · 10 s — buscar papel y lápiz]
+Ahora escribe tu problema candidato, en versión concreta. Que diga quién, dónde y qué pasa. Por ejemplo: «cuando mi hermana me pregunta delante de todos por qué sigo sin pareja». Tómate tu tiempo, y pausa el video si lo necesitas.
 
-[A CÁMARA]
+¿Lo escribiste? Ahora ponle un número. Si piensas en esa situación, ¿cuánto se activa, del cero al diez? Lo que buscamos es un cinco o un seis. Si te dio un ocho o un nueve, no es este. Elige otra situación más pequeña de la misma familia. Si tu jefe te desarma en la reunión del lunes delante de toda la gerencia, quizás empieces por cuando te corrige a solas en su oficina.
 
-Primero, el problema. Y te propongo un juego: concreto o vago. Dilo en voz alta.
+Con el problema elegido, vamos a la comprobación previa. La hiciste por dentro en la primera clase; ahora va por escrito. Son cuatro preguntas para el problema que escribiste. ¿Es un recuerdo traumático? ¿Es una crisis de esta semana? ¿Mi recurso dispara claro en frío? ¿Estaría a solas con un tema grande? Escribe sí o no al lado de cada una.
 
-[RÓTULO: «Mi infancia»]
+¿Ya está? Si alguna te frena, hoy no toca. Y eso también es hacer el ejercicio bien. Parar a tiempo no es fallar: es la parte del ejercicio que más cuesta aprender.
 
-«Mi infancia.»
+Ahora, el balance. Escribe el número de tu recurso en la prueba en frío, y al lado el número del problema. Si el recurso gana con claridad, puedes seguir. Si empatan, o gana el problema, todavía no. Esa semana te dedicas a reforzar el recurso. Escuchas dos o tres días el audio del módulo cuatro, Apilar calma, confianza y seguridad. Y usas el gesto cuando el estado ya está presente: cuando te ríes con alguien, cuando terminas algo bien. No es retroceder. Es preparar el terreno para que el colapso funcione la primera vez.
 
-[PAUSA REAL · 5 s — decir concreto o vago]
+Pasemos a lo que se siente durante. Cuando disparas las dos anclas a la vez, vas a notar cosas raras. Confusión. La respiración se vuelve irregular. La cara se mueve sola. A veces sale una risa nerviosa, o unas ganas fuertes de abrir los ojos. Todo eso es lo esperado, y no significa que lo estés haciendo mal. Y hay algo que no se hace: meterse a fondo en el recuerdo del problema. En el paso cuatro se entra lo justo para que aparezca. No hace falta revivir la escena entera para anclarla, y revivirla a fondo solo le da más fuerza al problema.
 
-Vago. Y además, demasiado grande para trabajarlo así.
+Ahora, el después. Hay tres resultados posibles, y cada uno pide algo distinto. El primero: piensas en la situación y se siente distinta, más lejos, más neutra. Funcionó. Lo que haces es comprobarla en los lugares reales donde aparece el problema. El segundo: se siente igual que antes. Significa que el recurso no bastaba. Lo que haces es reforzarlo durante una semana y repetir otro día, no en la misma sesión. El tercero: se siente peor. Significa que algo se reactivó. Lo que haces es parar, usar el protocolo de las cinco cosas de la habitación, no repetir hoy y valorar hacerlo con acompañamiento profesional. Fíjate en este último: si queda peor, no se insiste en la misma sesión para arreglarlo.
 
-[RÓTULO: «Cuando mi jefe me habla en ese tono delante de otros»]
+Te cuento un caso muy típico, para que veas el segundo resultado en acción. Imagina a Lucía. Su problema es cuando su jefe le habla en ese tono delante de otros, con una intensidad de seis. Su recurso en frío daba un cinco. Ella pensó «casi llega» y siguió igual. Hizo el colapso, y al final pensó en la escena del jefe. Se sentía igual.
 
-«Cuando mi jefe me habla en ese tono delante de otros.»
+¿Qué hizo bien después? No insistió esa misma tarde. Dedicó una semana a reforzar el recurso: escuchó el audio de apilado tres días y usó el gesto cada vez que estaba bien. La prueba en frío subió a ocho. Y ahí sí repitió. La escena del jefe quedó más lejos, más pequeña. El colapso no había fallado. Le faltaba recurso.
 
-[PAUSA REAL · 5 s — decir concreto o vago]
+Ahora quiero explicarte por qué digo «pierde fuerza» y no «desaparece». En la psicología del aprendizaje esto está bien estudiado. Una respuesta aprendida no se borra: se inhibe, queda debajo. Por eso puede volver un poco después de un tiempo, o en un lugar distinto de donde la trabajaste. En la práctica, esto significa dos cosas. Si trabajaste la situación de tu jefe en tu habitación, también la vas a comprobar en la oficina. Y si vuelve un poco, es normal: se repite otro día, y cada vez pierde algo más de fuerza.
 
-Concreto. Tiene persona, tono y escena.
+Escribe ahora dos lugares o momentos reales donde aparece tu problema. Ahí es donde vas a comprobar, después del colapso, si de verdad perdió fuerza. Pausa el video si lo necesitas.
 
-[RÓTULO: «Mi inseguridad»]
+¿Los tienes? Bien. Y te cuento de dónde viene esto, para que sepas en qué se apoya. El colapso tiene un pariente clínico con buen respaldo: la desensibilización sistemática, que desarrolló el psiquiatra Joseph Wolpe a finales de los años cincuenta. Consiste en emparejar la relajación, paso a paso, con lo que se teme. Además hay investigación en animales sobre la memoria, llamada reconsolidación, que sugiere que un recuerdo, cuando se reactiva, queda un tiempo abierto a cambios. Es una explicación posible de por qué estas técnicas a veces dejan cambios duraderos, y también de por qué hacerlas mal deja huella. Por eso tantos límites. El colapso como tal no tiene estudios clínicos propios: se apoya en esos mecanismos.
 
-«Mi inseguridad.»
+Con esto claro, pasemos a tu círculo. El círculo de excelencia, en la práctica, es lo que en el deporte se llama una rutina previa. Un tenista antes de sacar, un golfista antes de golpear: siempre la misma secuencia corta. Vamos a diseñar la tuya. Primero, escribe el evento concreto: una presentación, una entrevista, una reunión, una competencia.
 
-[PAUSA REAL · 5 s — decir concreto o vago]
+Ahora escribe dónde vas a imaginar el círculo: la puerta de la sala, el borde del escenario, la silla de la entrevista. Y lo que haces al entrar: la postura, una exhalación larga y tu frase. Tómate un minuto para escribir las tres cosas.
 
-Vago. Un rasgo no se colapsa. Una situación, sí.
+¿Ya está? Veinte segundos, siempre iguales: postura, exhalación y frase. Eso es tu rutina.
 
-[PAUSA]
+Antes de cerrar, ensayamos el protocolo de parada una vez más, para que tu cuerpo lo tenga. Mira alrededor y nombra en voz alta cinco cosas que veas, de colores distintos.
 
-Escribe tu problema candidato, en versión concreta.
-
-[PAUSA REAL · 20 s — escribir tu problema en versión concreta]
-
-Ahora ponle un número. Si piensas en esa situación, ¿cuánto se activa, del cero al diez?
-
-[PAUSA REAL · 5 s — escribir la intensidad del problema]
-
-Lo que buscamos es un cinco o un seis.
-
-Si te dio un ocho o un nueve, no es este. Elige otra situación más pequeña de la misma familia. Primero se aprende con lo mediano.
-
-[A CÁMARA]
-
-Ahora la comprobación previa. La hiciste por dentro en la clase uno. Ahora por escrito.
-
-[EN PANTALLA: ¿Recuerdo traumático? · ¿Crisis de esta semana? · ¿Mi recurso dispara claro en frío? · ¿A solas con un tema grande?]
-
-Contesta las cuatro para el problema que escribiste.
-
-[PAUSA REAL · 20 s — contestar por escrito las cuatro preguntas]
-
-Si alguna te frena, hoy no toca. Y eso también es hacer el ejercicio bien.
-
-[A CÁMARA]
-
-Segundo, el balance.
-
-Escribe el número de tu recurso en la prueba en frío. Y al lado, el del problema.
-
-[PAUSA REAL · 10 s — escribir los dos números, uno al lado del otro]
-
-Si el recurso gana con claridad, puedes seguir.
-
-Si empatan, o gana el problema, todavía no. Esta semana refuerzas el recurso: el audio de apilado del módulo cuatro, dos o tres días, y usar el gesto cuando el estado ya está presente.
-
-No es retroceder. Es preparar el terreno para que el colapso funcione la primera vez.
-
-[A CÁMARA]
-
-Tercero: qué se siente durante.
-
-Cuando disparas las dos anclas a la vez, vas a notar cosas raras. Confusión. La respiración se vuelve irregular. La cara se mueve sola. A veces una risa nerviosa.
-
-Es lo esperado. No es que lo estés haciendo mal.
-
-Y una cosa que no se hace: meterse a fondo en el recuerdo del problema. En el paso cuatro se entra lo justo para que aparezca. No hace falta revivir la escena entera para anclarla.
-
-[A CÁMARA]
-
-Cuarto: el resultado. Hay tres posibles.
-
-[TABLA EN PANTALLA]
-
-| Cómo se siente ahora la situación | Qué significa | Qué hacer |
-|---|---|---|
-| Distinta, más lejos, más neutra | Funcionó | Probarla en otros contextos esta semana |
-| Igual que antes | El recurso no bastaba | Reforzar el recurso y repetir otro día |
-| Peor | Algo se reactivó | Parar, no repetir hoy, y valorar hacerlo con acompañamiento |
-
-Fíjate en la tercera fila. Si queda peor, no se insiste en la misma sesión para arreglarlo.
-
-Se para. Se usa el protocolo de las cinco cosas. Y otro día, con más recurso, o con alguien que acompañe.
-
-[PAUSA]
-
-Te cuento un caso muy típico, para que veas la segunda fila en acción.
-
-Imagina a Lucía. Su problema: cuando su jefe le habla en ese tono delante de otros. Intensidad seis.
-
-Su recurso en frío daba un cinco. Ella pensó «casi, casi» y siguió igual.
-
-Hizo el colapso. Al final, pensó en la escena del jefe… y se sentía igual.
-
-[PAUSA]
-
-¿Qué hizo bien? No insistió esa misma tarde.
-
-Dedicó una semana a reforzar el recurso: el audio de apilado tres días y el gesto cada vez que estaba bien. La prueba en frío subió a ocho.
-
-Y ahí sí, repitió. La escena del jefe quedó más lejos, más chica.
-
-El colapso no falló la primera vez. Le faltaba recurso.
-
-[A CÁMARA]
-
-Y ahora, por qué digo «pierde fuerza» y no «desaparece».
-
-En la psicología del aprendizaje esto está muy estudiado. Una respuesta aprendida no se borra: se inhibe. Queda debajo.
-
-Por eso puede volver un poco después de un tiempo, o en un lugar distinto de donde la trabajaste. Tiene nombre: recuperación espontánea, y renovación por contexto.
-
-¿Qué significa en la práctica?
-
-Que si trabajaste la situación de tu jefe en tu habitación, la vas a probar también en la oficina. Y si vuelve un poco, es normal. Se repite otro día, y cada vez pierde un poco más de fuerza.
-
-Escribe dos lugares o momentos reales donde aparece tu problema. Ahí es donde vas a comprobar, después del colapso, si de verdad perdió fuerza.
-
-[PAUSA REAL · 15 s — escribir dos lugares donde aparece tu problema]
-
-[PAUSA]
-
-Y un dato que te da confianza en el método.
-
-El colapso tiene un pariente clínico con mucha evidencia: la desensibilización sistemática de Joseph Wolpe, de los años cincuenta. Relajación emparejada, paso a paso, con lo que se teme.
-
-Y hay investigación sobre la memoria, la reconsolidación, que sugiere que un recuerdo reactivado queda unas horas abierto a cambios.
-
-Eso explica por qué estas técnicas a veces dejan cambios duraderos. Y también por qué hacerlo mal deja huella. Por eso tantos límites.
-
-[A CÁMARA]
-
-Quinto: tu círculo.
-
-El círculo de excelencia es, en la práctica, lo que en el deporte se llama una rutina previa. Los tenistas antes de sacar, los golfistas antes de golpear: siempre la misma secuencia corta.
-
-Vamos a diseñar la tuya.
-
-[EN PANTALLA: Mi evento · Dónde pongo el círculo · Postura · Respiración · Frase]
-
-Escribe el evento concreto. Una presentación, una entrevista, una reunión, una competencia.
-
-[PAUSA REAL · 10 s — escribir tu evento]
-
-Dónde vas a imaginar el círculo. La puerta de la sala, el borde del escenario, la silla de la entrevista.
-
-[PAUSA REAL · 10 s — escribir dónde va tu círculo]
-
-Y lo que haces al entrar: la postura, una exhalación larga y tu frase.
-
-[PAUSA REAL · 20 s — escribir postura, respiración y frase]
-
-Veinte segundos. Siempre igual. Eso es tu rutina.
-
-[A CÁMARA. Cierre.]
-
-Antes de cerrar, ensayamos el protocolo de parada una vez más. Mira alrededor y nombra en voz alta cinco cosas que veas, de colores distintos.
-
-[PAUSA REAL · 15 s — nombrar cinco cosas de colores distintos]
+Muy bien. Hagamos un resumen. Antes del colapso, eliges un problema concreto de cinco o seis, haces la comprobación previa y comparas los números. Durante, la confusión es lo esperado y el problema se toca lo justo. Después, lees el resultado y actúas según cuál sea. El disparador pierde fuerza pero no desaparece, y se comprueba en los lugares reales. Y tu círculo ya tiene evento, lugar, postura, respiración y frase.
 
 Tu tarea para las próximas veinticuatro horas: deja escritos tu problema, sus números y tu comprobación previa. Si el recurso no gana, dedica la semana a reforzarlo.
 
-En la práctica que sigue hacemos el círculo de excelencia completo, de pie, con tu evento.
+En la práctica que sigue, El círculo de excelencia, guiado, hacemos el círculo completo, de pie, con tu evento. Vas a necesitar una habitación y un rato a solas.
 
 Seguimos creciendo juntos.

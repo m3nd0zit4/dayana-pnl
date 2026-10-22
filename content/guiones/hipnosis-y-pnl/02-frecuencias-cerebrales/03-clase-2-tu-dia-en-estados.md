@@ -1,246 +1,69 @@
 # Clase 2 · Tu día en estados y la ventana Theta
 
-**Hipnosis y PNL: reprogramación mental · Módulo 2 · 9-12 min · Clase**
-Taller: el alumno necesita una hoja y un bolígrafo. En pantalla, una línea del
-día que se va marcando con B, A y T a medida que Dayana la recorre. No acortar
-las pausas de escritura.
-
----
-
-[A CÁMARA]
+Hipnosis y PNL: reprogramación mental · Módulo 2 · 10-12 min
 
 Líderes, bendiciones.
 
-Antes de empezar, una pregunta honesta.
+Antes de empezar, una pregunta honesta. Esta mañana, al despertar, ¿qué fue lo primero que hiciste? Contesta por dentro y guarda la respuesta, porque vamos a volver a ella.
 
-Esta mañana, al despertar, ¿qué fue lo primero que hiciste?
+Esta clase es un taller, así que ten a mano una hoja y un lápiz. Al terminar vas a tener tres cosas. Tu día de ayer dibujado en estados. Un rato de calma a propósito, enganchado a tu rutina. Y dos rituales cortos para el principio y el final del día.
 
-[PAUSA REAL · 5 s — contestar por dentro]
-
-Guarda la respuesta. Vamos a volver a ella.
-
-[A CÁMARA]
-
-En la clase anterior te dije que Beta no es malo. Y lo sostengo.
-
-Beta es el estado donde se trabaja, se decide, se resuelve.
-
-El problema es otro.
-
-[RÓTULO: El problema no es Beta. Es vivir en Beta alto.]
-
-El problema es vivir en Beta alto todo el día.
-
-Ahí es donde mucha gente siente que no puede apagar la cabeza. Que se acuesta y la mente sigue trabajando.
-
-[PAUSA]
+En la clase anterior te dije que Beta no es malo, y lo sostengo. Beta es el estado donde se trabaja, se decide y se resuelve. El problema es otro: vivir en Beta alto todo el día. Ahí es donde mucha gente siente que no puede apagar la cabeza. Se acuesta y la mente sigue trabajando, repasando la reunión, la cuenta o el mensaje que no contestó.
 
 ¿Cuánto de tu día pasas ahí? No lo adivines. Vamos a dibujarlo.
 
-[A CÁMARA]
+Toma tu hoja y traza una línea horizontal, de lado a lado. A la izquierda escribe la hora a la que te despertaste ayer. A la derecha, la hora a la que te dormiste. Pausa el video si lo necesitas.
 
-Toma tu hoja y traza una línea horizontal, de lado a lado.
+¿La tienes? Ahora vamos a recorrer tu día de ayer por tramos. En cada tramo vas a escribir una letra: B, A o T. Beta, Alfa o Theta. No pienses mucho. Escribe la primera que salga.
 
-A la izquierda escribe la hora a la que te despertaste ayer. A la derecha, la hora a la que te dormiste.
+La primera hora después de despertar, ¿cómo fue? Marca la letra. La mañana, hasta el almuerzo.
 
-[PAUSA REAL · 15 s — trazar la línea y escribir las dos horas]
+El almuerzo: ¿comiste con calma o comiste mirando la pantalla? La tarde. La llegada a casa y la noche. Y la última media hora antes de dormir. Tómate el tiempo que necesites para marcar cada tramo.
 
-[EN PANTALLA: una línea del día que se va marcando con B, A y T]
+Ahora mira tu línea entera. Cuando alguien hace este ejercicio, casi siempre descubre dos cosas. La primera: que pasa mucho más tiempo en Beta del que creía. La segunda: que su único rato de Alfa llega por la noche, en el sofá, cuando ya no le queda energía para nada. ¿Te pasó a ti?
 
-Ahora vamos a recorrer tu día de ayer. En cada tramo vas a escribir una letra: B, A o T.
+Si tu Alfa llegó solo por agotamiento, no lo elegiste. Te alcanzó. Y lo que te alcanza no lo puedes usar. Un rato de calma elegido, en cambio, te sirve para cortar el día, para pensar mejor y para llegar a la noche con algo de energía.
 
-Beta, Alfa o Theta. No pienses mucho: la primera que salga.
+Antes de elegirlo, una cosa más con tu línea. Busca el tramo donde Beta estuvo más alto, donde más se te aceleró todo. Y pregúntate qué pasó justo antes.
 
-[PAUSA]
+Casi nunca es el día entero. Casi siempre es algo concreto. Una notificación. Un correo con cierto nombre. Una llamada de alguien de tu familia. Una reunión con una persona en particular.
 
-La primera hora después de despertar. ¿Cómo fue?
+Escríbelo al lado de ese tramo. Una palabra basta. Eso que escribiste es tu disparador. Y es justo el momento en que, en la práctica de este módulo, vas a usar la respiración. No después, cuando ya pasó. Justo ahí.
 
-[PAUSA REAL · 10 s — marcar la letra]
+Ahora sí, vamos a elegir tu rato de Alfa a propósito: tres minutos al día, con la respiración que aprendiste. La pregunta no es si tienes tiempo, porque tres minutos los tiene casi todo el mundo. La pregunta es dónde los enganchas.
 
-La mañana, hasta el almuerzo.
+Mira tu línea y busca un hueco entre dos tramos de Beta. Puede ser antes de entrar a casa, en el carro o en la puerta. Después del almuerzo. Entre dos reuniones. Escribe tres cosas: a qué hora, dónde y después de qué. Pausa el video y escríbelo.
 
-[PAUSA REAL · 10 s — marcar la letra]
+«Después de qué» es lo más importante. Engancharlo a algo que ya haces sin falta es lo que hace que no se te olvide. Por ejemplo: «después de apagar el carro, antes de bajarme, tres minutos de respiración». El carro apagado se vuelve tu recordatorio.
 
-El almuerzo. ¿Comiste con calma o comiste mirando la pantalla?
+Con esto claro, pasemos a los dos momentos más especiales del día: justo antes de dormir y justo al despertar. Son los dos momentos en que pasas, sin proponértelo, por ese estado intermedio que en este curso llamamos Theta. Por eso a esos dos momentos les llamamos la ventana Theta.
 
-[PAUSA REAL · 10 s — marcar la letra]
+Te digo con honestidad qué es y qué no es esa ventana. No es una puerta mágica para programar la mente. Esa idea circula mucho y no está demostrada. Lo que sí es: un momento en que tu atención está más hacia adentro, en calma, sin la prisa del día. Y lo que haces ahí marca el tono con el que empiezas la mañana y con el que te duermes.
 
-La tarde.
+Ahora vuelve a la pregunta del principio. ¿Qué fue lo primero que hiciste al despertar? Si fue tomar el celular, no te castigues, porque es lo que hace casi todo el mundo. Pero piensa en lo que significa. En el momento más tranquilo de tu día estás metiendo noticias, mensajes de trabajo y la vida de otras personas.
 
-[PAUSA REAL · 10 s — marcar la letra]
+Y por la noche pasa lo mismo. Lo último que entra antes de dormir es una pantalla, que te activa justo cuando quieres bajar. Le estás regalando tus dos mejores momentos al algoritmo de una red social.
 
-La llegada a casa y la noche.
+Vamos a diseñar esos dos momentos, y los vamos a ensayar aquí mismo. Empecemos por la mañana. Antes de tocar el celular, dos minutos con los ojos cerrados, repitiendo por dentro tu mensaje nuevo, el que escribiste en el módulo uno.
 
-[PAUSA REAL · 10 s — marcar la letra]
+Ensayémoslo. Cierra los ojos y di tu mensaje por dentro tres veces, despacio. Tómate el tiempo que necesites.
 
-Y la última media hora antes de dormir.
+Abre los ojos. ¿Cómo te quedó el cuerpo? Mañana, en el primer minuto del día, esa frase va a sonar distinto: sin ruido, sin nada compitiendo con ella.
 
-[PAUSA REAL · 10 s — marcar la letra]
+Ahora la noche. Los últimos cinco minutos antes de dormir, sin pantallas, imaginando con detalle algo que quieras que ocurra. Con imagen, con sonido y con sensación.
 
-[A CÁMARA]
+Ensayémoslo con algo pequeño. Imagina el mejor momento que podría tener tu día de mañana. Uno sencillo: un café con calma, una conversación que sale bien, un rato con alguien que quieres. ¿Qué ves? ¿Qué oyes? ¿Qué sientes en el cuerpo? Tómate unos segundos para vivirlo.
 
-Ahora mírala entera.
+¿Lo tienes? Esto no es magia. Es aprovechar un momento tranquilo para elegir en qué piensas, en lugar de dejar que lo elija una pantalla.
 
-[PAUSA]
+Un consejo práctico, porque el plan más bonito se cae por un detalle. Si el celular es tu despertador, ponlo lejos de la cama o boca abajo. Que para tomarlo tengas que levantarte. Esos segundos son tu ventana.
 
-Casi todo el mundo descubre dos cosas cuando hace esto.
+Y para esta semana, un registro. Tres veces al día, en la mañana, en la tarde y en la noche, para un minuto y anota en qué estado estás y cómo respiras. Lo tienes preparado en el material en PDF. Al final de la semana vas a tener tu patrón real, no el que crees tener.
 
-La primera: que pasa mucho más tiempo en Beta del que creía.
+Hagamos un resumen. Beta no es el problema; vivir en Beta alto todo el día sí lo es. Tu línea del día te muestra dónde estás y qué te dispara. Un rato de Alfa enganchado a algo que ya haces te da un respiro elegido. Y los dos momentos de la ventana, al despertar y al dormir, merecen algo mejor que una pantalla.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas tiene dos partes. Esta noche, los últimos cinco minutos sin pantalla, imaginando el día de mañana. Y mañana, dos minutos con los ojos cerrados y tu mensaje, antes de tocar el celular.
 
-Y la segunda: que su único rato de Alfa del día llega por la noche, en el sofá, cuando ya no le queda energía para nada.
-
-[PAUSA]
-
-¿Te pasó a ti?
-
-[PAUSA REAL · 5 s — mirar tu línea]
-
-Si tu Alfa llegó solo por agotamiento, no lo elegiste. Te alcanzó.
-
-Y lo que te alcanza no lo puedes usar.
-
-[A CÁMARA]
-
-Una cosa más con tu línea, antes de seguir.
-
-Busca el tramo donde Beta estuvo más alto. Donde más se te aceleró todo.
-
-Y pregúntate: ¿qué pasó justo antes?
-
-[PAUSA]
-
-Casi nunca es el día entero. Casi siempre es algo concreto.
-
-Una notificación. Un correo con cierto nombre. Una llamada de alguien de tu familia. Entrar a una reunión con una persona en particular.
-
-[PAUSA]
-
-Escríbelo al lado de ese tramo. Una palabra basta.
-
-[PAUSA REAL · 20 s — escribir qué te subió a Beta alto]
-
-Eso que escribiste es tu disparador.
-
-Y es justo el momento donde, en la práctica de este módulo, vas a usar la respiración. No después, cuando ya pasó. Justo ahí.
-
-[A CÁMARA]
-
-Así que vamos a elegir uno.
-
-Un rato de Alfa a propósito. Tres minutos al día, con la respiración que aprendiste.
-
-La pregunta no es si tienes tiempo. Tres minutos los tiene todo el mundo.
-
-La pregunta es dónde lo enganchas.
-
-[PAUSA]
-
-Mira tu línea y busca un hueco entre dos tramos de Beta.
-
-Antes de entrar a casa, en el carro o en la puerta. Después del almuerzo. Entre dos reuniones.
-
-[PAUSA]
-
-Escribe tres cosas: a qué hora, dónde, y después de qué.
-
-[PAUSA REAL · 30 s — escribir hora, lugar y después de qué]
-
-«Después de qué» es lo más importante. Engancharlo a algo que ya haces sin falta es lo que hace que no se te olvide.
-
-[A CÁMARA]
-
-Ahora vamos a lo más interesante de este módulo.
-
-[RÓTULO: La ventana Theta]
-
-Hay dos momentos del día que ya son Theta natural.
-
-Justo antes de dormir. Y justo al despertar.
-
-En esos dos momentos la mente está más receptiva que en cualquier otro. Lo que piensas ahí pesa más de lo que crees.
-
-[PAUSA]
-
-Ahora vuelve a la pregunta del principio. ¿Qué fue lo primero que hiciste al despertar?
-
-[PAUSA]
-
-Si fue tomar el celular, no te castigues. Es lo que hace casi todo el mundo.
-
-Pero piensa en lo que significa.
-
-En la ventana más receptiva de tu día estás metiendo noticias, mensajes de trabajo y la vida de otras personas.
-
-[SUBRAYAR: lo primero y lo último que entra, entra con más fuerza]
-
-Y por la noche, lo mismo. Lo último que entra antes de dormir es una pantalla.
-
-Le estás regalando tu mejor ventana al algoritmo de una red social.
-
-[A CÁMARA]
-
-Vamos a diseñar las dos ventanas. Y las vamos a ensayar aquí mismo.
-
-La de la mañana.
-
-Antes de tocar el celular, dos minutos con los ojos cerrados repitiendo por dentro tu mensaje nuevo. El que escribiste en el módulo uno.
-
-Ensayémoslo. Cierra los ojos y dilo por dentro tres veces, despacio.
-
-[PAUSA REAL · 20 s — ojos cerrados, el mensaje tres veces]
-
-Abre los ojos.
-
-[PAUSA]
-
-Mañana, con el cuerpo recién despierto, eso entra distinto.
-
-[A CÁMARA]
-
-La de la noche.
-
-Los últimos cinco minutos antes de dormir, sin pantallas. Imaginando con detalle algo que quieras que ocurra.
-
-Con imagen. Con sonido. Con sensación.
-
-Ensayémoslo con algo pequeño. Imagina el mejor momento que podría tener tu día de mañana. Uno sencillo.
-
-¿Qué ves? ¿Qué oyes? ¿Qué sientes en el cuerpo?
-
-[PAUSA REAL · 30 s — imaginar el mejor momento de mañana]
-
-[PAUSA]
-
-Esto no es magia. Es aprovechar la ventana en la que la mente está más abierta, en lugar de regalarla.
-
-[A CÁMARA]
-
-Un consejo práctico, porque el plan más bonito se cae por un detalle.
-
-Si el celular es tu despertador, ponlo lejos de la cama o boca abajo.
-
-Que para tomarlo tengas que levantarte. Esos segundos son tu ventana.
-
-[PAUSA]
-
-Y para esta semana, un registro.
-
-Tres veces al día, mañana, tarde y noche, anota en qué estado estás y cómo respiras.
-
-Al final de la semana vas a tener tu patrón real. No el que crees tener.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Esta noche, los últimos cinco minutos sin pantalla, imaginando el día de mañana.
-
-Y mañana, dos minutos con los ojos cerrados y tu mensaje, antes de tocar el celular.
-
-[PAUSA]
-
-En la práctica de este módulo vamos a hacer lo contrario: bajar de Beta en mitad del día, con los ojos abiertos y sin que nadie lo note.
+Después viene la práctica de este módulo, Bajar de Beta con los ojos abiertos. Ahí vamos a hacer lo contrario: bajar de Beta en mitad del día, sin cerrar los ojos y sin que nadie lo note.
 
 Seguimos creciendo juntos.

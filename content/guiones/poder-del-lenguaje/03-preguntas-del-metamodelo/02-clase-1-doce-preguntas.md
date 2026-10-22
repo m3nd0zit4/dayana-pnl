@@ -1,331 +1,67 @@
 # Clase 1 · Las doce preguntas
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 3 · 12-15 min · Clase**
-Cámara fija. Cada frase de ejemplo va en pantalla durante la pausa; la pregunta aparece después. El bloque del tono se hace a cámara, las dos versiones seguidas. Al final, la tabla de las doce en pantalla. Sin invitado.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 3 · 12-14 min
 
 Líderes, bendiciones.
 
-Empezamos con una situación. Una amiga te dice esto:
+En esta clase vas a conocer las doce preguntas del metamodelo. Primero vas a ver para qué sirve preguntar y de dónde salió este modelo. Después vamos a recorrer las preguntas en tres grupos, uno por cada filtro del módulo anterior, y vas a practicar varias de cada grupo. Luego vamos a trabajar el tono, que es lo más importante. Y al final te dejo las tres preguntas con las que conviene empezar, y los momentos en los que no se usa nada de esto.
 
-[EN PANTALLA: «Mi jefe me trata mal.»]
+Empezamos con una situación. Una amiga te dice: «mi jefe me trata mal». ¿Qué le contestas? Lo primero que te salga, en voz alta.
 
-«Mi jefe me trata mal.»
+Si dijiste «renuncia», «denúncialo» o «uy, el mío también», no pasa nada. Es lo que contesta casi todo el mundo. Pero fíjate en una cosa: todavía no sabes qué pasó. «Me trata mal» puede ser que le grita delante de todos. Puede ser que no la saluda. Puede ser que le cambió el horario sin avisar. Son tres problemas distintos, con tres soluciones distintas. Y le diste una solución sin saber cuál era el problema.
 
-¿Qué le contestas? Lo primero que te salga, en voz alta.
+Ahora prueba con esta pregunta. Dila en voz alta, con curiosidad: «¿cómo te trata mal, exactamente?». Esa pregunta no le da nada. Le pide que vuelva al hecho. Y aquí está el detalle que cambia todo: no se pregunta para saber tú. Se pregunta para que la otra persona se oiga completar la frase. Muchas veces, al contestarla, la persona descubre algo que no había dicho ni para sí misma. Eso es el metamodelo.
 
-[PAUSA REAL · 8 s — contestar en voz alta lo primero que salga]
+¿De dónde salió? Richard Bandler y John Grinder se pusieron a observar a dos terapeutas muy distintos. Una era Virginia Satir, de la terapia familiar. El otro, Fritz Perls, de la terapia Gestalt. Y se preguntaron qué preguntaban justo antes de que algo se moviera en la sesión. Lo que encontraron lo publicaron en mil novecientos setenta y cinco, en el libro «La estructura de la magia». Tomaron palabras de la lingüística de Noam Chomsky, como estructura profunda y estructura superficial. Pero conviene saberlo: Chomsky nunca respaldó ese uso. La deuda es de vocabulario, no de respaldo.
 
-Si dijiste «renuncia», «denúncialo» o «uy, el mío también», no pasa nada. Es lo que contesta casi todo el mundo.
+Ahora vamos a las preguntas. Se ordenan en tres grupos, uno por cada filtro del módulo anterior. En cada grupo te doy una frase, tú dices la pregunta en voz alta, y después te digo la mía. Si necesitas más tiempo, pausa el video.
 
-Pero fíjate en una cosa: todavía no sabes qué pasó.
+El primer grupo recupera lo que se dejó fuera. Son cuatro preguntas: ¿por qué, exactamente?, ¿mejor que qué?, ¿quién, en concreto?, y ¿cómo, exactamente? Primera frase: «nadie me apoya». ¿Qué preguntas tú? Una posible: «¿quién, en concreto, no te apoya?». Cuando la persona contesta, «nadie» suele convertirse en un nombre. Y con un nombre ya se puede hablar.
 
-«Me trata mal» puede ser que le grita delante de todos. Puede ser que no la saluda. Puede ser que le cambió el horario sin avisar.
+Segunda frase: «me tratan mal en esa casa». ¿Qué preguntas? La pregunta es «¿cómo, exactamente?». Es la más útil de las doce y la que menos se hace, porque baja de la conclusión al hecho. Imagina este diálogo. Alguien dice: «me tratan mal en esa casa». Tú preguntas: «¿cómo, exactamente?». Y contesta: «bueno, mi cuñada no me saluda cuando llego». Tú preguntas: «¿y qué más?». Y contesta: «en la cena hablan entre ellos y a mí no me preguntan nada».
 
-Son tres problemas distintos, con tres soluciones distintas. Y tú le diste una solución sin saber cuál era.
+¿Ves lo que pasó? «Me tratan mal» era una conclusión enorme. Debajo había dos hechos concretos. Con la conclusión no se puede hacer nada. Con los hechos, sí: saludar primero, o preguntar algo en la cena.
 
-[A CÁMARA]
+Una más de este grupo: «es mejor no meterse». ¿Qué preguntas? «¿Mejor que qué?», o «¿mejor para quién?». A veces la respuesta es «mejor que pelear». Y entonces aparece que había más opciones que meterse o pelear.
 
-Ahora prueba con esta pregunta. Dísela en voz alta, con curiosidad:
+Con esto claro, pasemos al segundo grupo, que deshace lo que cambió de significado. Son cinco preguntas. ¿Cómo lo sabes? ¿Cómo hace que te sientas así? ¿Desde cuándo una cosa significa la otra? ¿Quién no le está diciendo qué a quién? Y ¿según quién? Esta última es para los juicios que no tienen dueño. «Está mal hecho.» «Eso no se hace.» ¿Según quién?
 
-«¿Cómo te trata mal, exactamente?»
+Practiquemos. «Sé que le molestó lo que dije.» ¿Qué preguntas? «¿Cómo lo sabes?» O mejor todavía: «¿qué viste que te hizo pensarlo?».
 
-[PAUSA REAL · 5 s — decir la pregunta en voz alta]
+Otra: «mi hermano me hace sentir culpable». ¿Qué preguntas? Una posible: «¿qué hace tu hermano, exactamente, y qué haces tú con eso?». La primera parte trae el hecho. La segunda le devuelve a la persona su parte, la que sí puede mover.
 
-Esa pregunta no le da nada. Le pide que vuelva al hecho.
+Y otra: «en mi equipo hay un problema de comunicación». ¿Qué preguntas? «¿Quién no le está diciendo qué a quién?» Esta desarma las nominalizaciones del módulo anterior. Convierte una cosa, «la comunicación», en una acción con dueño. Y una acción con dueño se puede cambiar.
 
-Y aquí está el detalle que cambia todo: no se pregunta para saber tú. Se pregunta para que la otra persona se oiga completar la frase.
+Vamos ahora al tercer grupo, que rompe las leyes. Son tres preguntas. Para el «siempre» y el «nunca»: ¿siempre?, ¿alguna vez fue distinto? Para el «no puedo»: ¿qué te lo impide? Y para el «tengo que»: ¿qué pasaría si no?
 
-Muchas veces, al contestarla, la persona descubre algo que no había dicho ni para sí misma.
+Primera frase: «siempre llego tarde a todo». ¿Qué preguntas? «¿Siempre? ¿Cuándo fue la última vez que llegaste a tiempo?» Y si aparece una vez, viene la pregunta de oro: «¿qué fue distinto ese día?». Ahí está el recurso. Lo que la persona ya hizo una vez, lo puede volver a hacer.
 
-Eso es el metamodelo.
+Segunda: «no puedo decirle que no a mi mamá». ¿Qué preguntas? «¿Qué te lo impide?», o «¿qué pasaría si se lo dijeras?». Y tercera: «tengo que quedarme hasta tarde todos los días». ¿Qué preguntas? «¿Qué pasaría si un día no te quedaras?»
 
-[RÓTULO: Satir · Perls · Bandler y Grinder]
+Estas últimas son las que más rápido mueven algo. La respuesta suele ser un miedo: «se enojaría», «me echarían». Y un miedo dicho en voz alta casi siempre resulta menos catastrófico que mientras estaba callado. A veces sigue siendo real, pero ya tiene tamaño. Y con algo que tiene tamaño se puede trabajar.
 
-¿De dónde salió?
+Ahora vamos a lo más importante de la clase: el tono. Te voy a decir la misma pregunta dos veces. Escucha. «¿Siempre? ¿De verdad siempre?» Y ahora: «¿siempre… o hubo alguna vez que fuera distinto?». La primera te dice que exageras. La segunda te invita a buscar.
 
-Richard Bandler y John Grinder se pusieron a observar a dos terapeutas muy distintos: Virginia Satir, de terapia familiar, y Fritz Perls, de la Gestalt.
+Una más. «¿Y qué pasaría si no te quedaras, eh?» Y ahora: «tengo curiosidad, ¿qué pasaría si un día no te quedaras?». Las palabras casi no cambian. Lo que cambia es todo lo demás.
 
-Y se preguntaron: ¿qué preguntan justo antes de que algo se mueva en la sesión?
+Ahora tú. Toma la pregunta «¿cómo lo sabes?» y dila dos veces en voz alta: primero como un fiscal, después con curiosidad. Exagera la primera, así se nota más. Tómate unos segundos.
 
-Lo que encontraron lo publicaron en 1975, en «La estructura de la magia».
+¿Qué cambió en tu voz? ¿Y en tu cara? Casi siempre cambia el volumen, la velocidad y la última sílaba. Con curiosidad, la voz baja un poco, va más lenta y no remata el final. Y la cara se abre. La otra persona lee todo eso antes de entender una sola palabra. La pregunta es la misma, pero lo que recibe es completamente distinto.
 
-Tomaron palabras de la lingüística de Noam Chomsky, como estructura profunda y estructura superficial.
+Doce preguntas no se aprenden de golpe. Así que te dejo tres, que cubren la mayor parte de los casos. ¿Cómo, exactamente?, que baja de la conclusión al hecho. ¿Quién, en concreto?, que desinfla el «todos» y el «nadie». Y ¿qué pasaría si…?, que abre la puerta que el «tengo que» había cerrado. Dilas conmigo en voz alta, las tres, dos veces.
 
-Pero conviene saberlo: Chomsky nunca avaló ese uso. La deuda es de vocabulario, no de respaldo.
+¿Ya las tienes? Si te llevas solo esto del módulo, ya vale la pena. Vamos a usarlas con una sola frase: «en mi familia todos esperan que yo resuelva todo, y yo tengo que estar siempre disponible». Hazle una de las tres. Solo una, en voz alta.
 
-[A CÁMARA]
+¿Cuál elegiste? Las tres sirven. «¿Quién, en concreto, espera eso?» trae nombres. «¿Cómo, exactamente, te lo piden?» trae hechos. «¿Qué pasaría si un día no estuvieras disponible?» trae el miedo que sostiene todo. No hace falta hacer las tres. Una, bien hecha y seguida de silencio, abre lo suficiente. La lista completa de las doce la tienes en el material del módulo, para imprimir.
 
-Las doce preguntas se ordenan en tres grupos. Uno por cada filtro del módulo anterior.
+Y antes de terminar, cuándo no se usa nada de esto. No en un duelo reciente. No en una crisis. No cuando alguien está llorando. Ahí la persona no necesita precisión, necesita compañía. Una pregunta del metamodelo en ese momento se siente exactamente como lo que es: una corrección. Y con la pareja y con los hijos, con cuidado. Tener la herramienta no te da permiso para usarla en cada frase.
 
-[RÓTULO: Grupo 1 · Recuperar lo omitido]
+Piensa ahora en una persona con la que no la usarías esta semana, y por qué. Tómate unos segundos. Ese criterio también es parte de la técnica.
 
-El primer grupo recupera lo que se dejó fuera. Son cuatro preguntas.
+Hagamos un resumen. Preguntar no es para saber tú: es para que la otra persona vuelva al hecho. Las doce preguntas se agrupan en tres: recuperar lo omitido, deshacer la distorsión y romper la generalización. El tono pesa tanto como la pregunta. Y si recuerdas solo tres, que sean «¿cómo, exactamente?», «¿quién, en concreto?» y «¿qué pasaría si…?».
 
-¿Por qué, exactamente? ¿Mejor que qué? ¿Quién, en concreto? ¿Cómo, exactamente?
+Tu tarea para las próximas veinticuatro horas: elige una de las tres preguntas de arranque, solo una. Úsala una vez con alguien de confianza, cuando te cuente algo pequeño, y con curiosidad. Después fíjate: ¿siguió hablando, o se defendió?
 
-Vamos a practicar dos. Te doy la frase y tú dices la pregunta en voz alta.
-
-[EN PANTALLA: «Nadie me apoya.»]
-
-«Nadie me apoya.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Quién, en concreto, no te apoya?»
-
-Cuando la persona contesta, «nadie» suele convertirse en un nombre. Y con un nombre ya se puede hablar.
-
-[EN PANTALLA: «Me tratan mal en esa casa.»]
-
-«Me tratan mal en esa casa.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Quién te trata mal, y cómo, exactamente?»
-
-Esa es la más útil de las doce y la que menos se hace. Baja de la conclusión al hecho.
-
-Mira lo que suele pasar cuando se hace con calma. Imagina este diálogo.
-
-[EN PANTALLA: —Me tratan mal en esa casa. —¿Cómo, exactamente? —Bueno… mi cuñada no me saluda cuando llego. —¿Y qué más? —En la cena hablan entre ellos y a mí no me preguntan nada.]
-
-«Me tratan mal en esa casa.» «¿Cómo, exactamente?» «Bueno… mi cuñada no me saluda cuando llego.» «¿Y qué más?» «En la cena hablan entre ellos y a mí no me preguntan nada.»
-
-¿Ves lo que pasó? «Me tratan mal» era una conclusión enorme. Debajo había dos hechos concretos.
-
-Con la conclusión no se puede hacer nada. Con los hechos, sí: saludar primero, o preguntar algo en la cena.
-
-[EN PANTALLA: «Es mejor no meterse.»]
-
-Una más de este grupo. «Es mejor no meterse.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Mejor que qué?» O «¿mejor para quién?».
-
-A veces la respuesta es «mejor que pelear». Y entonces aparece que había más opciones que meterse o pelear.
-
-[A CÁMARA]
-
-[RÓTULO: Grupo 2 · Deshacer la distorsión]
-
-El segundo grupo deshace lo que cambió de significado.
-
-¿Cómo lo sabes? ¿Cómo hace que te sientas así? ¿Desde cuándo una cosa significa la otra? ¿Quién no le está diciendo qué a quién? Y una más: ¿según quién?
-
-Esa última es para los juicios que no tienen dueño. «Está mal hecho.» «Eso no se hace.» ¿Según quién?
-
-Practiquemos.
-
-[EN PANTALLA: «Sé que le molestó lo que dije.»]
-
-«Sé que le molestó lo que dije.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Cómo lo sabes?» O mejor todavía: «¿qué viste que te hizo pensarlo?».
-
-[EN PANTALLA: «Mi hermano me hace sentir culpable.»]
-
-«Mi hermano me hace sentir culpable.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Qué hace tu hermano, exactamente? ¿Y qué haces tú con eso?»
-
-La primera parte trae el hecho. La segunda devuelve a la persona su parte, la que sí puede mover.
-
-[EN PANTALLA: «En mi equipo hay un problema de comunicación.»]
-
-«En mi equipo hay un problema de comunicación.»
-
-[PAUSA REAL · 10 s — decir la pregunta en voz alta]
-
-«¿Quién no le está diciendo qué a quién?»
-
-Esa desarma las nominalizaciones de la clase pasada. Convierte una cosa, «la comunicación», en una acción con dueño. Y una acción con dueño se puede cambiar.
-
-[A CÁMARA]
-
-[RÓTULO: Grupo 3 · Romper la generalización]
-
-El tercer grupo rompe las leyes.
-
-¿Siempre? ¿Todos? ¿Alguna excepción? ¿Qué te lo impide? ¿Qué pasaría si lo hicieras? ¿Qué pasaría si no?
-
-[EN PANTALLA: «Siempre llego tarde a todo.»]
-
-«Siempre llego tarde a todo.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Siempre? ¿Cuándo fue la última vez que llegaste a tiempo?»
-
-Y si aparece una vez, la pregunta de oro: «¿qué fue distinto ese día?».
-
-Ahí está el recurso. Lo que la persona ya hizo una vez, se puede volver a hacer.
-
-[EN PANTALLA: «No puedo decirle que no a mi mamá.»]
-
-«No puedo decirle que no a mi mamá.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Qué pasaría si se lo dijeras?»
-
-[EN PANTALLA: «Tengo que quedarme hasta tarde todos los días.»]
-
-«Tengo que quedarme hasta tarde todos los días.»
-
-[PAUSA REAL · 8 s — decir la pregunta en voz alta]
-
-«¿Qué pasaría si un día no te quedaras?»
-
-Estas dos son las que más rápido mueven algo.
-
-La respuesta suele ser un miedo. «Se enojaría.» «Me echarían.»
-
-Y un miedo dicho en voz alta casi siempre resulta menos catastrófico que mientras estaba callado. A veces sigue siendo real. Pero ya tiene tamaño.
-
-[A CÁMARA]
-
-Ahora lo más importante de la clase. El tono.
-
-Te voy a decir la misma pregunta dos veces. Escucha.
-
-[HACERLO]
-
-«¿Siempre? ¿De verdad siempre?»
-
-[PAUSA]
-
-[HACERLO]
-
-«¿Siempre…? ¿Hubo alguna vez que fuera distinto?»
-
-[PAUSA]
-
-La primera te dice que exageras. La segunda te invita a buscar.
-
-Una más.
-
-[HACERLO]
-
-«¿Y qué pasaría si no te quedaras, eh?»
-
-[PAUSA]
-
-[HACERLO]
-
-«Tengo curiosidad. ¿Qué pasaría si un día no te quedaras?»
-
-[PAUSA]
-
-Ahora tú. Toma la pregunta «¿cómo lo sabes?» y dila dos veces: primero como fiscal, después con curiosidad.
-
-Exagera la primera. Así se nota más.
-
-[PAUSA REAL · 15 s — decir «¿cómo lo sabes?» como fiscal y con curiosidad]
-
-¿Qué cambió en tu cara? ¿En tu voz? ¿En tus cejas?
-
-Casi siempre cambia el volumen, la velocidad y la última sílaba. Con curiosidad, la voz baja un poco y va más lenta.
-
-Y cambia el cuerpo. Como fiscal, las cejas bajan y la cabeza se echa hacia atrás. Con curiosidad, las cejas suben un poco y el cuerpo se acerca.
-
-La otra persona lee eso antes de entender una sola palabra.
-
-La pregunta es la misma. Lo que la otra persona recibe es completamente distinto.
-
-[A CÁMARA]
-
-Doce preguntas no se aprenden de golpe. Así que te dejo tres, que cubren la mayor parte de los casos.
-
-[RÓTULO: ¿Cómo, exactamente? · ¿Quién, en concreto? · ¿Qué pasaría si…?]
-
-¿Cómo, exactamente? Baja de la conclusión al hecho.
-
-¿Quién, en concreto? Desinfla el «todos» y el «nadie».
-
-¿Qué pasaría si…? Abre la puerta que el «tengo que» había cerrado.
-
-Dilas conmigo en voz alta. Las tres, dos veces.
-
-[PAUSA REAL · 15 s — decir las tres preguntas en voz alta, dos veces]
-
-Si te llevas solo esto del módulo, ya vale la pena.
-
-Vamos a usarlas con una sola frase. Escucha:
-
-[EN PANTALLA: «En mi familia todos esperan que yo resuelva todo, y yo tengo que estar siempre disponible.»]
-
-«En mi familia todos esperan que yo resuelva todo, y yo tengo que estar siempre disponible.»
-
-Hazle la primera de las tres. Solo una.
-
-[PAUSA REAL · 8 s — hacer una pregunta en voz alta]
-
-¿Cuál elegiste? Las tres sirven.
-
-«¿Quién, en concreto, espera eso?» trae nombres.
-
-«¿Cómo, exactamente, te lo piden?» trae hechos.
-
-«¿Qué pasaría si un día no estuvieras disponible?» trae el miedo que sostiene todo.
-
-No hace falta hacer las tres. Una, bien hecha, abre lo suficiente.
-
-[TABLA EN PANTALLA]
-
-| Lo que oyes | Lo que preguntas |
-|---|---|
-| «Estoy preocupada» | ¿Por qué, exactamente? |
-| «Es mejor así» | ¿Mejor que qué? |
-| «Nadie me apoya» | ¿Quién, en concreto? |
-| «Me trata mal» | ¿Cómo, exactamente? |
-| «Sé que le molestó» | ¿Cómo lo sabes? |
-| «Me hace sentir mal» | ¿Cómo, y qué hiciste tú con eso? |
-| «No llamó, no le importo» | ¿Desde cuándo una cosa es la otra? |
-| «Hay mala comunicación» | ¿Quién no comunica qué a quién? |
-| «Está mal hecho» | ¿Según quién? |
-| «Siempre / nunca / todos» | ¿Siempre? ¿Alguna excepción? |
-| «No puedo» | ¿Qué te lo impide? |
-| «Tengo que» | ¿Qué pasaría si no? |
-
-La tabla completa la tienes en el material del módulo, para imprimir.
-
-[A CÁMARA]
-
-Y antes de terminar, cuándo no se usa nada de esto.
-
-No en un duelo reciente. No en una crisis. No cuando alguien está llorando.
-
-Ahí la persona no necesita precisión. Necesita compañía.
-
-Una pregunta del metamodelo en ese momento se siente exactamente como lo que es: una corrección.
-
-Y con la pareja y con los hijos, con cuidado. Tener la herramienta no te da permiso para usarla en cada frase.
-
-Piensa ahora en una persona con la que no la usarías esta semana, y por qué.
-
-[PAUSA REAL · 10 s — pensar con quién no la usarías y por qué]
-
-Ese criterio es parte de la técnica.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Elige una de las tres preguntas de arranque. Solo una.
-
-Y úsala una vez con alguien de confianza, cuando te cuente algo pequeño. Con curiosidad.
-
-Después fíjate: ¿siguió hablando, o se defendió?
-
-En la clase dos vamos a ver las reglas para que suene a curiosidad y no a interrogatorio, y cómo hacerte estas preguntas a ti.
+Nos vemos en la próxima clase, Preguntar sin interrogar. Ahí vamos a ver las reglas para que suene a curiosidad y no a interrogatorio, y cómo hacerte estas preguntas a ti.
 
 Seguimos creciendo juntos.

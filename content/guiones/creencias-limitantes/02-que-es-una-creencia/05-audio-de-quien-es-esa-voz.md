@@ -1,203 +1,117 @@
 # Audio guiado · De quién es esa voz
 
-**Creencias limitantes y potenciadoras · Módulo 2 · 9-12 min · Audio guiado**
-Solo voz, grabada en silencio, cálida y lenta. Fondo musical suave opcional,
-sin letra. Los silencios son parte del ejercicio: no acortarlos.
+Creencias limitantes y potenciadoras · Módulo 2 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
+Ten cerca la frase que tradujiste en la práctica. La vieja, la que empieza por «soy» o «no soy». Y la nueva, la que lleva «todavía».
 
-Ten cerca la frase que tradujiste en la práctica: la vieja, y la nueva con «todavía».
-
-[PAUSA]
-
-Busca una postura cómoda. La espalda apoyada, los pies en el suelo.
-
-Las manos donde descansen solas.
-
-[PAUSA]
+Busca una postura cómoda. La espalda apoyada, los pies en el suelo. Las manos donde descansen solas.
 
 Cierra los ojos, si te resulta cómodo. Si no, deja la mirada suelta en un punto delante de ti.
 
-[PAUSA]
+Si a tu alrededor hay ruidos, no importa. Deja que estén ahí, de fondo, como parte del lugar.
 
 Vamos a respirar tres veces, un poco más despacio de lo normal.
 
-Entra el aire por la nariz.
+Entra el aire por la nariz… y sale por la boca, largo, como si apagaras una vela sin prisa.
 
-[PAUSA]
+Otra vez. Entra… y sale.
 
-Y sale por la boca, largo, como si apagaras una vela sin prisa.
+Y una tercera, a tu ritmo. Quédate ahí unos momentos.
 
-[PAUSA]
-
-Otra vez.
-
-[PAUSA]
-
-Y una tercera, a tu ritmo.
-
-[PAUSA LARGA]
-
-Nota dónde está apoyado tu cuerpo.
-
-La espalda. Los muslos sobre el asiento. Los pies.
-
-[PAUSA]
+Nota dónde está apoyado tu cuerpo. La espalda. Los muslos sobre el asiento. Los pies en el suelo.
 
 Nota la cara. La frente. La mandíbula. Deja que la lengua descanse.
 
-[PAUSA]
+Y los hombros, que pueden bajar un poco más.
 
-Y los hombros, que pueden bajar un centímetro más.
+Nota el aire que entra, un poco más fresco. Y el aire que sale, un poco más tibio. Deja que la respiración vaya sola, sin dirigirla.
 
-[PAUSA LARGA]
+No tienes que hacer nada bien. Solo escuchar.
 
-Ahora trae la frase vieja. La que empieza por «soy» o «no soy».
+Ahora trae la frase vieja. No la digas en voz alta. Deja que suene por dentro, como suena cuando aparece sola durante el día. En el trabajo, frente al espejo, en medio de una conversación.
 
-No la digas en voz alta. Deja que suene por dentro, como suena cuando aparece sola durante el día.
+Escúchala una vez.
 
-[PAUSA REAL · 10 s — el alumno deja sonar la frase vieja por dentro]
+Escúchala otra vez. Y esta vez no te fijes en lo que dice. Fíjate en cómo lo dice.
 
-Escúchala otra vez.
+¿Qué tono tiene? ¿Es una voz dura, cansada, burlona, preocupada? Tómate unos momentos.
 
-Y esta vez no te fijes en lo que dice. Fíjate en cómo lo dice.
-
-[PAUSA]
-
-¿Qué tono tiene? ¿Es una voz dura, cansada, burlona, preocupada?
-
-[PAUSA REAL · 10 s — el alumno nota el tono]
-
-¿Desde dónde llega? ¿De cerca, de lejos, de dentro de la cabeza, de un lado?
-
-[PAUSA REAL · 10 s — el alumno nota la distancia y la dirección]
+¿Desde dónde llega? ¿De cerca, de lejos? ¿De dentro de la cabeza, de un lado, de atrás?
 
 ¿Qué volumen tiene? ¿Habla bajo, o grita?
 
-[PAUSA REAL · 10 s — el alumno nota el volumen]
+¿Habla rápido o despacio? ¿Usa siempre las mismas palabras?
 
-[PAUSA]
+Respira… y sigue escuchando unos momentos, sin hacer nada.
 
-Y ahora una pregunta, que puedes contestar o no.
+Ahora una pregunta, que puedes contestar o no. ¿Esa voz suena a ti? ¿O suena un poco a alguien?
 
-¿Esa voz suena a ti?
+Tómate el tiempo que necesites.
 
-¿O suena un poco a alguien?
+No hace falta ponerle cara. Ni nombre. Si aparece alguien, no le discutas. Solo nota que esta frase llegó con esa voz.
 
-[PAUSA LARGA]
-
-No hace falta ponerle cara. Ni nombre.
-
-Si aparece alguien, no le discutas. Solo nota que esta frase llegó con esa voz.
-
-Y que quizá, en su momento, esa voz creía que te estaba ayudando.
-
-[PAUSA LARGA]
+Y que quizá, en su momento, esa voz creía que te estaba ayudando. Que te estaba protegiendo, o preparando para algo.
 
 Nota también qué edad tiene la voz. Y qué edad tenías tú cuando empezaste a escucharla.
 
-[PAUSA REAL · 15 s — el alumno nota las edades]
+Quédate con eso unos momentos.
 
-[PAUSA]
+Ahora, con suavidad, deja que esa voz se aleje un poco. Como si alguien bajara el volumen de una radio en otra habitación. Sigue ahí. Pero más lejos. Más bajo.
 
-Ahora, con suavidad, deja que esa voz se aleje un poco.
-
-Como si alguien bajara el volumen de una radio en otra habitación.
-
-Sigue ahí. Pero más lejos. Más bajo.
-
-[PAUSA LARGA]
+Un poco más lejos todavía. Hasta que casi no se oye.
 
 Y vuelve a tu respiración. A tu peso en el asiento.
 
 Esta es tu voz de hoy. La de una persona adulta que ha vivido bastante y sabe más que entonces.
 
-[PAUSA]
+Piensa en cómo suena cuando hablas con alguien a quien quieres. Con un amigo que está pasando un mal momento. Con un niño que se asustó. Ese tono también es tuyo.
 
-Con esa voz, la tuya, vas a decir por dentro la frase nueva. La de «todavía».
+Con esa voz, la tuya, vas a decir por dentro la frase nueva. La de «todavía». Despacio. Con el tono con el que le hablarías a alguien a quien aprecias.
 
-Despacio. Con el tono con el que le hablarías a alguien a quien aprecias.
-
-[PAUSA REAL · 10 s — el alumno dice por dentro la frase nueva]
+Dila ahora, por dentro. Tómate unos momentos.
 
 Otra vez. Un poco más despacio.
 
-[PAUSA REAL · 10 s — el alumno la repite]
-
 Y una tercera vez. Si quieres, en voz baja, moviendo los labios.
 
-[PAUSA REAL · 10 s — el alumno la dice en voz baja]
+Nota qué hace tu cuerpo con esta frase. Dónde se nota. Si algo se afloja, aunque sea un poco. El pecho. Los hombros. La respiración.
 
-[PAUSA]
+Respira… y quédate ahí unos momentos.
 
-Nota qué hace tu cuerpo con esta frase.
+Si dentro aparece un «sí, claro», no pasa nada. Haz la frase un poco más pequeña. «Estoy aprendiendo a…». Y dila otra vez, con calma, hasta que suene posible.
 
-Dónde se nota. Si algo se afloja, aunque sea un poco.
+Ahora imagina mañana. Un momento concreto del día en que la frase vieja suele aparecer. Mira dónde estás. Qué estás haciendo. Quién está cerca.
 
-[PAUSA REAL · 15 s — el alumno nota el cuerpo con la frase nueva]
+En ese momento, imagina que la frase vieja empieza a sonar, con su voz de siempre.
 
-Si dentro aparece un «sí, claro», no pasa nada.
+Y que tú, sin pelear, le contestas con la tuya. Con la frase nueva. Tómate el tiempo que necesites para verlo.
 
-Haz la frase un poco más pequeña. «Estoy aprendiendo a…». Y dila otra vez.
+Nota cómo sigue ese momento cuando la última palabra la tiene tu voz. Qué haces distinto. Cómo está tu cuerpo.
 
-[PAUSA REAL · 10 s — el alumno ajusta la frase si hace falta]
+Y si mañana, alguna vez, la frase vieja gana, no pasa nada. Lleva años practicando. La tuya acaba de empezar.
 
-[PAUSA LARGA]
+Quédate ahí unos momentos.
 
-Ahora imagina mañana.
+Si quieres, di la frase nueva una última vez, por dentro, con calma. Como quien se despide de alguien con cariño hasta mañana.
 
-Un momento concreto del día en que la frase vieja suele aparecer.
-
-Mira dónde estás. Qué estás haciendo.
-
-[PAUSA]
-
-Y en ese momento, imagina que la frase vieja empieza a sonar con su voz de siempre.
-
-Y que tú, sin pelear, le contestas con la tuya. Con la frase nueva.
-
-[PAUSA REAL · 15 s — el alumno ensaya el momento de mañana]
-
-Nota cómo sigue ese momento cuando la última palabra la tiene tu voz.
-
-[PAUSA LARGA]
-
-Bien. Vamos a volver. Voy a contar del uno al cinco.
-
-[PAUSA]
+Bien. Vamos a volver. Voy a contar del uno al cinco. Con cada número, vas a estar un poco más aquí.
 
 Uno. Vuelve a notar tu respiración.
 
-[PAUSA]
-
 Dos. Nota las manos, el peso de los brazos.
-
-[PAUSA]
 
 Tres. Mueve un poco los pies y los dedos.
 
-[PAUSA]
-
 Cuatro. Toma una respiración más honda, como al despertar.
-
-[PAUSA]
 
 Cinco. Abre los ojos. Mira la habitación.
 
-[PAUSA]
-
 Estás aquí.
 
-[PAUSA LARGA]
+Antes de seguir con tu día, escribe una línea en tu cuaderno. Cómo era la voz de la frase vieja. Y cómo sonó la tuya. Tómate el tiempo que necesites.
 
-Antes de seguir con tu día, escribe una línea.
+Las frases que entraron con la voz de otros se pueden volver a decir con la propia. Eso es elegir a qué autoridad le haces caso. Y la tuya cuenta.
 
-Cómo era la voz de la frase vieja. Y cómo sonó la tuya.
-
-[PAUSA REAL · 30 s — el alumno escribe una línea sobre las dos voces]
-
-Las frases que entraron con la voz de otros se pueden volver a decir con la propia.
-
-Eso es elegir a qué autoridad le haces caso. Y la tuya cuenta.
+Con este audio cierras el módulo. En el material en PDF tienes los tres tipos de creencia, el traductor y la guía para tu inventario. Y si quieres dejarlo por escrito, tienes el ejercicio opcional, Tu inventario de creencias. El próximo módulo se llama Detectar mis creencias limitantes. Ahí vas a aprender a rastrear las creencias que no se anuncian, por las huellas que dejan en tu día a día.

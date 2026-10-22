@@ -1,103 +1,29 @@
 # Presentación · Cómo percibe mi pareja
 
-**PNL para relaciones y pareja · Módulo 2 · 3-4 min · Presentación**
-Cámara fija, plano medio, misma sesión que las demás presentaciones. Las dos
-versiones de la escena van en rótulo, una a cada lado de la pantalla.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 2 · 4-5 min
 
 Líderes, bendiciones.
 
-Te voy a contar una escena. Es un caso muy típico, de los que se repiten en todas las casas.
+Te voy a contar una escena. Es un caso muy típico, de los que se repiten en muchas casas. Imagina a Sofía y a Mar, que discutieron el sábado. Sofía dice: «Llegaste una hora tarde y ni siquiera avisaste». Mar responde: «Te escribí a las siete. Y llegué media hora tarde, no una».
 
-Imagina a Sofía y a Mar. Discutieron el sábado.
+Las dos están convencidas. Las dos se acuerdan perfectamente. Y las dos versiones no pueden ser ciertas a la vez.
 
-[RÓTULO: Sofía · «Llegaste una hora tarde y ni avisaste.»]
+Ahora piensa en tu última discusión con tu pareja. Si la contara tu pareja, ¿la contaría igual que tú? Casi seguro que no. Y aquí viene lo importante: probablemente nadie está mintiendo.
 
-Sofía dice: «Llegaste una hora tarde y ni siquiera avisaste».
+En la PNL hay una idea que dice que el mapa no es el territorio. Cada persona vive lo que pasa a través de su propio mapa: lo que su cuerpo captó, lo que su historia filtró y las palabras que tiene para contarlo. Este módulo es esa idea traída a la cocina de tu casa. Y su conclusión cambia muchas discusiones: el mapa de tu pareja no es un error de tu pareja.
 
-[RÓTULO: Mar · «Te escribí a las siete. Llegué media hora tarde.»]
+Al terminar el módulo vas a poder hacer cuatro cosas. Dejar de pelear por «qué pasó de verdad», que es la discusión que nunca se gana. Descubrir por qué canal le llega el cariño a tu pareja, con tres observaciones sencillas. Encontrar ese gesto tuyo de amor que se envía y no llega, y traducirlo sin cambiarlo. Y preguntar por el mapa de tu pareja sin que suene a interrogatorio.
 
-Mar dice: «Te escribí a las siete. Y llegué media hora tarde, no una».
+También vamos a hablar de los cinco lenguajes del amor, que seguro has escuchado. Te adelanto lo que pienso: son una conversación buenísima y un test muy flojo. Te voy a explicar por qué, y qué pregunta puede reemplazarlos.
 
-[PAUSA]
+Así funciona el módulo. Hay dos clases en video. Hay un video de práctica, donde vas a ver a dos personas contar la misma escena por turnos, y después vas a contar la tuya. Hay un audio guiado para descubrir por qué canal te llega a ti el cariño. Tienes el material en PDF para leer con calma y un ejercicio opcional. Todo se puede hacer a solas. Y si tu pareja quiere sumarse, hay ejercicios que con dos personas se vuelven muy reveladores.
 
-Las dos están convencidas. Las dos se acuerdan perfectamente.
+Hagamos una primera prueba, ahora mismo. Piensa en algo que hiciste esta semana para demostrarle cariño a tu pareja. Algo concreto. Tómate unos segundos para elegirlo.
 
-Y las dos versiones no pueden ser ciertas a la vez.
+¿Lo tienes? Ahora pregúntate con honestidad: ¿tu pareja lo recibió como cariño? ¿O pasó sin que nadie lo notara? Y si crees que sí lo recibió, ¿cómo lo sabes? ¿Te lo dijo, lo viste en su cara, o lo supones? Si dudaste aunque sea un poco, este módulo es para ti.
 
-[A CÁMARA]
+Tu tarea para hoy. Escucha qué verbos usa tu pareja cuando algo le importa. Si dice «lo veo», si dice «me dijo» o si dice «lo siento así». Solo escuchar, sin sacar conclusiones todavía.
 
-Ahora piensa en tu última discusión con tu pareja.
-
-Si la contara tu pareja, ¿la contaría igual que tú?
-
-[PAUSA REAL · 10 s — el alumno lo piensa con honestidad]
-
-Casi seguro que no.
-
-Y aquí viene lo importante: probablemente nadie está mintiendo.
-
-[PAUSA]
-
-En la PNL hay una idea que dice que el mapa no es el territorio.
-
-Cada persona vive lo que pasa con su propio mapa: con lo que su cuerpo captó, con lo que su historia filtró, con las palabras que tiene.
-
-Este módulo es esa idea, traída a la cocina de tu casa.
-
-[A CÁMARA]
-
-Al terminar el módulo vas a poder hacer cuatro cosas.
-
-Dejar de pelear por «qué pasó de verdad», que es la discusión que nunca se gana.
-
-Descubrir por qué canal recibe cariño tu pareja, con tres observaciones sencillas.
-
-Encontrar ese gesto tuyo de amor que se envía… y no llega.
-
-Y preguntar por el mapa de tu pareja sin que suene a interrogatorio.
-
-[PAUSA]
-
-También vamos a hablar de los cinco lenguajes del amor, que seguro has escuchado.
-
-Te adelanto lo que pienso: son una conversación buenísima. Y son muy flojos como test.
-
-[A CÁMARA]
-
-Hagamos una primera prueba, ahora mismo.
-
-Piensa en algo que hiciste esta semana para demostrarle cariño a tu pareja.
-
-[PAUSA REAL · 10 s — el alumno elige un gesto suyo]
-
-¿Crees que tu pareja lo recibió como cariño?
-
-¿O pasó sin que nadie lo notara?
-
-[PAUSA REAL · 10 s — el alumno responde para sí]
-
-Si dudaste, este módulo es para ti.
-
-[A CÁMARA]
-
-Como siempre: dos clases, una práctica donde lo vas a ver con dos personas reales, un audio guiado, el material en PDF y un ejercicio corto.
-
-Todo se puede hacer a solas. Y si tu pareja quiere sumarse, hay ejercicios que con dos personas se vuelven muy reveladores.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para hoy.
-
-Escucha qué verbos usa tu pareja cuando algo le importa.
-
-Si dice «lo veo», «me dijo», o «lo siento así».
-
-Solo escuchar. Sin sacar conclusiones todavía.
-
-En la primera clase te explico qué significa lo que oigas.
+En la primera clase, «Dos mapas en la misma casa», te explico qué significa lo que escuches.
 
 Seguimos creciendo juntos.

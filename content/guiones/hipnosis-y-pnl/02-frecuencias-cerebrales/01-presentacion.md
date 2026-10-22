@@ -1,113 +1,33 @@
 # Presentación · Frecuencias cerebrales
 
-**Hipnosis y PNL: reprogramación mental · Módulo 2 · 3-4 min · Presentación**
-Plano medio. Los cuatro nombres aparecen en rótulo con su ejemplo cotidiano.
-Dayana respira en cámara durante la experiencia de 30 segundos.
-
----
-
-[A CÁMARA]
+Hipnosis y PNL: reprogramación mental · Módulo 2 · 4-5 min
 
 Líderes, bendiciones.
 
-Una pregunta rápida.
+Una pregunta rápida. Anoche, justo antes de dormirte, ¿qué pasó en tu cabeza? Tómate unos segundos para recordarlo.
 
-Anoche, justo antes de dormirte, ¿qué pasó en tu cabeza?
+Si eres como casi todo el mundo, aparecieron imágenes sueltas. Una cara. Una escena que no tenía mucho sentido. Una frase que se repetía. Ya no era vigilia, pero tampoco era sueño todavía. Era un estado intermedio.
 
-[PAUSA REAL · 5 s — recordar el momento antes de dormir]
+En este curso le damos un nombre a ese estado: Theta. Y se parece mucho al estado hacia adentro que buscamos en la hipnosis. O sea que ya lo conoces, porque lo visitas todas las noches. Lo que falta es acercarte a él a propósito.
 
-Si eres como casi todo el mundo, aparecieron imágenes sueltas.
+Tu cerebro cambia de ritmo a lo largo del día. Cuando se mide su actividad eléctrica, se ven ondas más rápidas o más lentas según lo que estás haciendo. Vamos a trabajar con cuatro nombres. Beta es la alerta: tú, respondiendo un correo urgente. Alfa es la calma con la mente despierta: esos minutos después de una ducha caliente.
 
-Una cara. Una escena que no tenía mucho sentido. Una frase que se repetía.
+Theta es ese momento de antes de dormir o de recién despertar, con imágenes sueltas y el cuerpo pesado. Y Delta es el sueño profundo, donde el cuerpo descansa y se recupera.
 
-Ya no era vigilia, pero tampoco era sueño todavía. Un estado intermedio.
+Al terminar este módulo vas a poder hacer dos cosas. Reconocer en qué estado estás con solo mirar cómo respiras. Y bajar de la alerta a la calma en unos minutos, cuando lo necesites. Porque cada estado tiene su forma de respirar, y la respiración es lo único de ese sistema que puedes mover a voluntad.
 
-[PAUSA]
+El módulo funciona así. En la primera clase vemos los cuatro estados, y los visitas mientras te los explico. En la segunda dibujas tu propio día en estados y diseñas dos rituales cortos. En la práctica aprendes a bajar de Beta con los ojos abiertos, en medio de la vida real. Después tienes un audio de respiración para usar cuando quieras. Y el material en PDF, con un registro para la semana y otros ejercicios opcionales.
 
-Ese estado tiene nombre: Theta.
+Y una advertencia, porque en este tema hay mucho humo. Vas a encontrar audios que prometen reprogramar tu ADN o atraer dinero con una frecuencia mágica. Eso no tiene respaldo. Aquí no vamos a vender milagros. Vamos a respirar, que es más sencillo y sí está bien estudiado.
 
-Y es exactamente el estado donde ocurre el trabajo hipnótico.
+Hagámoslo ahora, en treinta segundos. Pon una mano en el pecho y otra en el abdomen. Respira como estás respirando ahora mismo, sin cambiar nada. ¿Cuál de las dos manos se mueve más? Tómate unos segundos para notarlo.
 
-O sea que ya lo conoces. Lo visitas todas las noches.
+¿Lo notaste? Ahora deja que el aire baje hasta la mano de abajo. Lento. Y suéltalo más largo de lo que entró. Hazlo dos veces, a tu ritmo.
 
-Lo que falta es llegar ahí a propósito.
+Eso que notaste, ese pequeño cambio en el cuerpo, es la puerta de entrada de todo el módulo.
 
-[A CÁMARA]
+Tu tarea para las próximas veinticuatro horas: tres veces en el día, pon la mano en el pecho y pregúntate cómo estás respirando. Solo eso.
 
-Tu cerebro cambia de ritmo a lo largo del día. Vamos a trabajar con cuatro estados.
-
-[RÓTULO: Beta · el correo urgente]
-
-Beta. Alerta, análisis, resolver. Tú respondiendo un correo urgente.
-
-[RÓTULO: Alfa · después de la ducha]
-
-Alfa. Relajación consciente. Esos minutos después de una ducha caliente.
-
-[RÓTULO: Theta · antes de dormir]
-
-Theta. El que acabas de recordar. Antes de dormir, al despertar, en hipnosis.
-
-[RÓTULO: Delta · el sueño profundo]
-
-Y Delta. El sueño profundo, donde el cuerpo se repara.
-
-[PAUSA]
-
-Al terminar este módulo vas a saber en qué estado estás con solo mirar cómo respiras.
-
-Y vas a poder bajar de Beta a Alfa en tres minutos, cuando lo necesites.
-
-Porque cada estado tiene su respiración. Y la respiración es lo único de ese sistema que puedes mover a voluntad.
-
-[A CÁMARA]
-
-El módulo funciona así.
-
-Dos clases: una con los cuatro estados, y otra donde dibujas tu propio día.
-
-Una práctica para bajar de Beta con los ojos abiertos, en medio de la vida real.
-
-Un audio de respiración para usar cuando quieras.
-
-Y el material en PDF, con la tabla y el registro de la semana.
-
-[A CÁMARA]
-
-Y una advertencia, porque en este tema hay mucho humo.
-
-Vas a encontrar audios que prometen reprogramar tu ADN o atraer dinero con una frecuencia mágica.
-
-Eso no tiene respaldo. Aquí no vamos a vender milagros. Vamos a respirar.
-
-[A CÁMARA]
-
-Hagámoslo ahora. Treinta segundos.
-
-Pon una mano en el pecho y otra en el abdomen.
-
-Respira como estás respirando ahora mismo. Sin cambiar nada.
-
-¿Cuál de las dos manos se mueve más?
-
-[PAUSA REAL · 10 s — notar qué mano se mueve]
-
-Ahora deja que el aire baje hasta la mano de abajo. Lento. Y suéltalo más largo de lo que entró.
-
-[HACERLO]
-
-[PAUSA REAL · 20 s — dos respiraciones lentas hacia el abdomen]
-
-Eso que notaste, ese pequeño cambio, es la puerta de entrada.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Tres veces en el día, pon la mano en el pecho y pregúntate: ¿cómo estoy respirando?
-
-[PAUSA]
-
-En la primera clase te enseño a leer esa respuesta.
+En la primera clase, Los cuatro estados, te enseño a leer esa respuesta.
 
 Seguimos creciendo juntos.

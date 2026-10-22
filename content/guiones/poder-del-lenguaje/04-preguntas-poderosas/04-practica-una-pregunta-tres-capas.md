@@ -1,206 +1,53 @@
 # Práctica · Una pregunta, tres capas
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 4 · 11-13 min · Práctica**
-Sin invitado. Voz pausada, plano fijo y cercano. Dayana hace la pregunta y espera: las pausas reales son el ejercicio y no se recortan en montaje. La pregunta queda en pantalla durante cada pausa.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 4 · 8-10 min
 
 Líderes, bendiciones.
 
-Esto es una práctica. Vas a escribir más de lo que yo voy a hablar.
+Esto es una práctica, y vas a escribir más de lo que yo voy a hablar. Te voy a hacer una sola pregunta y la vas a contestar tres veces, por escrito. Al terminar vas a ver cuánto cambia una respuesta cuando no te conformas con la primera. Y vas a salir con una acción concreta para esta semana.
 
 Necesitas papel y algo con qué escribir. Si no lo tienes a mano, pausa el video y ve a buscarlo.
 
-[PAUSA REAL · 10 s — buscar papel y lápiz]
+¿Ya lo tienes? Te explico cómo va. La primera respuesta casi siempre es la de portada: la que ya te sabías, la que le darías a cualquiera. La segunda suele ser más honesta. Y la tercera, muchas veces, es la que importa. ¿Por qué pasa eso? Porque la primera respuesta la da la parte de ti que está acostumbrada a contestar rápido, la que quiere quedar bien, incluso contigo. Cuando la pregunta se repite y nadie se va, esa parte se cansa un poco. Y lo que está debajo encuentra sitio para salir.
 
-Te explico cómo va.
+Yo no voy a interpretar nada de lo que escribas. No voy a decirte qué significa. Ni siquiera lo voy a saber. Lo único que voy a hacer es esperar contigo y preguntarte «¿y qué más?». Nancy Kline es una autora que ha trabajado mucho sobre el pensamiento y la escucha. Ella insiste en que el silencio después de una pregunta es parte de la pregunta. Hoy vamos a usar ese silencio.
 
-Te voy a hacer una sola pregunta. Una. Y la vas a contestar tres veces.
+Antes de empezar, tres respiraciones. Toma aire por la nariz… y suéltalo despacio. Otra… y suéltalo. Y una más, a tu ritmo.
 
-La primera respuesta casi siempre es la de portada. La que ya te sabías, la que le darías a cualquiera.
+Ahora escribe arriba de la hoja un número uno.
 
-La segunda suele ser más honesta.
+La pregunta es esta: ¿qué estás evitando mirar? En tu trabajo, en tu casa, en tu cuerpo, en una relación, en tu dinero. Donde sea. Escribe lo primero que aparezca, sin pensarlo mucho y sin editar. Pausa el video si necesitas más tiempo, y vuelve cuando termines.
 
-Y la tercera, muchas veces, es la que importa.
+Muy bien. Esa es la primera capa. No la taches. Déjala ahí. Ahora escribe un número dos.
 
-¿Por qué pasa eso? Porque la primera respuesta la da la parte de ti que está acostumbrada a contestar rápido, la que quiere quedar bien, incluso contigo.
-
-Cuando la pregunta se repite y nadie se va, esa parte se cansa un poco. Y lo que está debajo tiene sitio para salir.
-
-[PAUSA]
-
-Yo no voy a interpretar nada de lo que escribas. No voy a decirte qué significa. Ni siquiera lo voy a saber.
-
-Lo único que voy a hacer es esperar y preguntarte «¿y qué más?».
-
-Nancy Kline, una autora que ha trabajado mucho sobre el pensamiento y la escucha, dice que el silencio después de una pregunta es parte de la pregunta. Hoy vamos a usar ese silencio.
-
-[A CÁMARA]
-
-Antes de empezar, tres respiraciones.
-
-Toma aire por la nariz.
-
-[PAUSA]
-
-Suéltalo despacio.
-
-[PAUSA]
-
-Otra.
-
-[PAUSA]
-
-Y una más.
-
-[PAUSA REAL · 8 s — respirar despacio]
-
-Escribe arriba de la hoja un número uno.
-
-[PAUSA]
-
-[A CÁMARA]
-
-La pregunta es esta.
-
-[EN PANTALLA: ¿Qué estás evitando mirar?]
-
-¿Qué estás evitando mirar?
-
-[PAUSA]
-
-En tu trabajo, en tu casa, en tu cuerpo, en una relación, en tu dinero. Donde sea.
-
-Escribe lo primero que aparezca. Sin pensarlo mucho. Sin editar.
-
-[PAUSA REAL · 45 s — escribir la primera respuesta]
-
-[PAUSA]
-
-Bien. Esa es la primera capa. No la tachas. La dejas ahí.
-
-Escribe un número dos.
-
-[A CÁMARA]
-
-¿Y qué más?
-
-[PAUSA]
-
-¿Qué más estás evitando mirar?
-
-Puede ser algo nuevo. Puede ser lo mismo, pero más adentro. Puede ser algo que está detrás de lo primero.
-
-[PAUSA REAL · 60 s — escribir la segunda respuesta]
-
-[PAUSA]
+¿Y qué más? ¿Qué más estás evitando mirar? Puede ser algo nuevo. Puede ser lo mismo, pero más adentro. Puede ser algo que está detrás de lo primero. Escríbelo. Tómate el tiempo que necesites.
 
 Si te quedaste en blanco, está bien. Escribe «no sé», y sigue escribiendo después de eso. A veces lo que sale después del «no sé» es lo más interesante.
 
-[PAUSA REAL · 20 s — seguir escribiendo si hace falta]
+Ahora escribe un número tres.
 
-Escribe un número tres.
+¿Y qué más? Esta es la tercera vez. Antes de escribir, quédate un poco más con la pregunta. Cierra los ojos un momento si te ayuda. ¿Qué estás evitando mirar? Cuando aparezca algo, escríbelo. Pausa el video y date todo el tiempo que necesites.
 
-[A CÁMARA]
+Muy bien. Ahora vamos a leer. Lee solo la primera respuesta, en voz alta, o en voz baja si hay gente cerca. Y ahora lee la tercera.
 
-¿Y qué más?
+¿Notas la diferencia? A veces es enorme. La primera era un tema general, como «el ejercicio» o «la casa», y la tercera es algo muy concreto, con nombre propio. A veces la tercera trae una emoción que no estaba en la primera. Y a veces no cambia casi nada. Eso también pasa, y también es un dato: quizás la primera ya era la de verdad, o quizás hoy no era el día.
 
-[PAUSA]
+Al lado de la tercera respuesta, escribe una sola línea: ¿qué te dice esto? No una interpretación larga. Una línea. Y al margen, una sola palabra: la emoción que acompaña a esa tercera respuesta. La palabra exacta, como en el módulo uno. No «mal», sino miedo, cansancio, tristeza, alivio o vergüenza. Tómate unos segundos.
 
-Esta es la tercera vez. Quédate un poco más con la pregunta antes de escribir.
+Si al escribir apareció algo muy pesado, algo que lleva tiempo doliendo, para aquí. No hace falta seguir hoy. Respira, cierra el cuaderno y, si es algo grande, busca a alguien con quien hablarlo. Un profesional, si hace falta. Esa también es una buena respuesta a la pregunta.
 
-¿Qué estás evitando mirar?
+Y ahora, como siempre, la pregunta que cierra: ¿y qué hago con esto, esta semana? Una acción pequeña, concreta y con día. No «voy a dejar de evitarlo», porque eso no se puede hacer un jueves. Algo como «el jueves abro el correo del banco», «el sábado llamo a mi hermana» o «esta noche le digo que necesito hablar». Escríbela ahora. Pausa el video si lo necesitas.
 
-[PAUSA LARGA]
+¿La tienes? Guarda esta hoja. Dentro de una semana, vuelve a leer las tres capas. A veces lo que hoy parece pequeño, con unos días de distancia, se ve muy claro.
 
-[PAUSA REAL · 60 s — escribir la tercera respuesta]
+Fíjate en lo que acabamos de hacer. No te di ninguna respuesta. No te dije qué evitabas. Solo sostuvimos una pregunta, y no nos conformamos con la primera respuesta. Eso lo puedes hacer sin nadie al lado, cualquier día, con cualquier pregunta del repertorio.
 
-[PAUSA]
+Y también lo puedes hacer con otras personas. Cuando alguien te conteste algo, en lugar de comentar, prueba con «¿y qué más?», y espera. Por ejemplo, si tu pareja te dice «estoy harta del trabajo», en lugar de «ya, yo también», prueba con «¿y qué más?». Muchas veces la segunda respuesta ya no es el trabajo. Es otra cosa, que llevaba días queriendo salir.
 
-Muy bien.
+Hagamos un resumen. Una sola pregunta, contestada tres veces. Entre una y otra, «¿y qué más?» y un poco de silencio. Sin editar y sin interpretar. Al final, una línea sobre lo que te dice, la emoción exacta y una acción con día.
 
-[A CÁMARA]
+Tu tarea para las próximas veinticuatro horas: haz esto mismo mañana con otra pregunta, «¿qué necesito y no estoy pidiendo?». Tres capas, por escrito. Y cumple la acción que escribiste hoy, el día que le pusiste.
 
-Ahora vamos a leer.
-
-Lee en voz alta, o en voz baja si hay gente, solo la primera respuesta.
-
-[PAUSA REAL · 15 s — leer la primera respuesta]
-
-Y ahora lee la tercera.
-
-[PAUSA REAL · 15 s — leer la tercera respuesta]
-
-¿Notas la diferencia?
-
-[PAUSA]
-
-A veces la diferencia es enorme. La primera era un tema general, como «el ejercicio» o «la casa», y la tercera es algo muy concreto, con nombre propio.
-
-A veces la tercera es una emoción que no estaba en la primera.
-
-Y a veces no cambia casi nada. Eso también pasa, y también es un dato: quizá la primera ya era la de verdad, o quizá hoy no era el día.
-
-[A CÁMARA]
-
-Escribe al lado de la tercera respuesta una sola línea: ¿qué te dice esto?
-
-No una interpretación larga. Una línea.
-
-[PAUSA REAL · 30 s — escribir una línea sobre lo que te dice la tercera respuesta]
-
-Y al margen, una sola palabra: la emoción que acompaña a esa tercera respuesta. La palabra exacta, como en el módulo uno. No «mal»: miedo, cansancio, tristeza, alivio, vergüenza.
-
-[PAUSA REAL · 10 s — escribir la emoción exacta al margen]
-
-[A CÁMARA]
-
-Si al escribir apareció algo muy pesado, algo que lleva tiempo doliendo, para aquí. No hace falta seguir hoy.
-
-Respira, cierra el cuaderno, y si es algo grande, búscate a alguien con quien hablarlo. Un profesional, si hace falta. Esa también es una buena respuesta a la pregunta.
-
-[PAUSA]
-
-[A CÁMARA]
-
-Y ahora, como siempre, la pregunta que cierra.
-
-[EN PANTALLA: ¿Y qué hago con esto, esta semana?]
-
-¿Y qué hago con esto, esta semana?
-
-Una acción. Pequeña. Concreta. Con día.
-
-No «voy a dejar de evitarlo». Eso no se puede hacer un jueves.
-
-Algo como «el jueves abro el correo del banco», o «el sábado llamo a mi hermana», o «esta noche le digo que necesito hablar».
-
-[PAUSA REAL · 40 s — escribir una acción concreta con día]
-
-[A CÁMARA]
-
-Guarda esta hoja. Dentro de una semana, vuelve a leer las tres capas. A veces lo que hoy parece pequeño, con unos días de distancia, se ve muy claro.
-
-Fíjate en lo que acabamos de hacer.
-
-No te di ninguna respuesta. No te dije qué evitabas. Solo sostuvimos una pregunta, y no nos conformamos con la primera respuesta.
-
-Eso lo puedes hacer sin nadie al lado, cualquier día, con cualquier pregunta del repertorio.
-
-Y lo puedes hacer con otras personas. Cuando alguien te conteste algo, en vez de comentar, prueba con «¿y qué más?». Y espera.
-
-Por ejemplo, si tu pareja te dice «estoy cansada del trabajo», en vez de «ya, yo también», prueba: «¿y qué más?». Muchas veces la segunda respuesta ya no es el trabajo. Es otra cosa, que llevaba días queriendo salir.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Haz esto mismo mañana con otra pregunta: ¿qué necesito y no estoy pidiendo? Tres capas, por escrito.
-
-Y cumple la acción que escribiste hoy, el día que le pusiste.
-
-Después de esta práctica viene el audio guiado. Es para la noche: tres preguntas para cerrar el día.
+Después de esta práctica viene el audio guiado, Cerrar el día con tres preguntas. Es para la noche, antes de dormir.
 
 Seguimos creciendo juntos.

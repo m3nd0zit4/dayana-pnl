@@ -1,82 +1,29 @@
 # Presentación · Objetivos bien formulados y ecología
 
-**Fundamentos de la PNL · Módulo 6 · 3-4 min · Presentación de módulo**
-Sesión de presentaciones.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 6 · 4-5 min
 
 Líderes, bendiciones.
 
-Módulo seis. Y voy a empezar leyéndote tres frases.
+Bienvenidos al módulo seis. Quiero empezar leyéndote tres frases. Escucha si alguna te suena.
 
-[PAUSA]
+«Quiero estar mejor.» «Quiero dejar de procrastinar.» «Quiero que me valoren.»
 
-«Quiero estar mejor.»
+Las tres suenan a objetivos. Y seguro que alguna vez dijiste una parecida, quizás en enero, quizás un domingo por la noche. Pero ninguna de las tres es un objetivo que tu mente pueda ejecutar. Y no es por falta de ganas. Quiero que eso quede claro desde el principio, porque casi todo el mundo se echa la culpa. No te falta disciplina. Esos objetivos están mal formulados.
 
-«Quiero dejar de procrastinar.»
+Mira la primera: «quiero estar mejor». ¿Mejor en qué? ¿Cómo sabrías que llegaste? No hay forma de saberlo, así que nunca aparece una señal de que vas bien. La tercera, «quiero que me valoren», depende de otras personas, y te deja esperando. Y la segunda, «quiero dejar de procrastinar», tiene un problema especial. Vamos a verlo con un experimento muy corto.
 
-«Quiero que me valoren.»
+No pienses en un perro amarillo. No lo pienses. ¿Qué pasó? Lo pensaste. Para no pensar en algo, primero hay que pensarlo. Con los objetivos que empiezan con «dejar de» pasa lo mismo. Cuando te dices «no voy a picar entre comidas», le das a tu mente la imagen exacta de picar entre comidas, varias veces al día. Le dices de qué huir, pero no le dices hacia dónde ir.
 
-[PAUSA]
+Al terminar este módulo vas a poder tomar un objetivo que llevas tiempo arrastrando y reescribirlo para que se pueda cumplir. Vas a conocer las cinco condiciones de un objetivo bien formulado. Vas a saber escribir un plan para el momento en que aparece lo que siempre te frena. Y vas a aprender a hacerte una pregunta que casi nadie se hace, y que explica muchos objetivos que se sabotean solos.
 
-Los tres suenan a objetivos.
+Esa pregunta tiene que ver con lo que en PNL se llama ecología. Y es esta: ¿qué me cuesta conseguir esto? ¿Qué pierdo si lo consigo? Porque hay objetivos que llevas años sin lograr, y no es porque no sepas cómo. Es porque conseguirlos tiene un precio que no has mirado. Y una parte de ti sí lo miró, y está frenando.
 
-Ninguno de los tres es un objetivo que tu mente pueda ejecutar.
+Así funciona el módulo. En la primera clase vamos a ver las cinco condiciones y las preguntas de ecología. En la segunda vas a escribir tu objetivo completo, con su plan. Después vas a ver un caso: una conversación con una persona real sobre un objetivo que lleva años sin moverse. Luego hay un audio guiado para ensayar por dentro tu primer paso. Y tienes el material de lectura en PDF, con la plantilla completa, y un ejercicio opcional para reformular tu objetivo.
 
-[A CÁMARA]
+Antes de seguir, haz esto conmigo. Piensa en un objetivo tuyo que aparece cada enero y nunca se cumple. Dilo por dentro tal como lo dices siempre, con tus palabras. Tómate unos segundos.
 
-Y no es falta de ganas. Quiero que eso quede claro desde el principio,
+¿Lo tienes? Fíjate si empieza con «dejar de», si depende de otra persona, o si no sabrías decir cuándo llegaste. No lo corrijas todavía. Solo guárdalo, porque lo vamos a usar en todo el módulo.
 
-porque casi todo el mundo se echa la culpa.
-
-No te falta disciplina. Están mal formulados.
-
-[PAUSA]
-
-Fíjate en el segundo: «quiero dejar de procrastinar».
-
-Prueba una cosa. No pienses en un perro amarillo.
-
-[PAUSA]
-
-Lo pensaste. No hay forma de no pensar en algo.
-
-Pues «dejar de» funciona igual: le estás dando a tu mente
-
-la imagen exacta de lo que no quieres.
-
-[A CÁMARA]
-
-En este módulo vamos a ver las cinco condiciones
-
-de un objetivo que sí se puede cumplir.
-
-Y vamos a reformular objetivos reales en pantalla, para que veas el cambio.
-
-[PAUSA]
-
-Y hay una sexta cosa, que no es una condición y es la más importante.
-
-Se llama ecología.
-
-[PAUSA]
-
-Es la pregunta que casi nadie se hace:
-
-¿qué me cuesta conseguir esto? ¿Qué pierdo si lo consigo?
-
-[PAUSA]
-
-Porque hay objetivos que llevas años sin lograr
-
-y no es porque no sepas cómo.
-
-Es porque una parte de ti sabe lo que costaría, y está frenando.
-
-[A CÁMARA. Cierre.]
-
-Ese es el módulo. Nos vemos dentro.
+En la primera clase, Objetivos que sí se cumplen, vamos a ver por qué se caen los objetivos y cómo se escribe uno que no se cae. Te espero ahí.
 
 Seguimos creciendo juntos.

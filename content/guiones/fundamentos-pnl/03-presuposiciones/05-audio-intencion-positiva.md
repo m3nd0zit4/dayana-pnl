@@ -1,228 +1,125 @@
 # Audio guiado · La intención detrás de tu conducta
 
-**Fundamentos de la PNL · Módulo 3 · 11-14 min · Audio guiado**
-Solo voz, lenta y cálida. Sin música, o una muy suave. La frase de reconocimiento se dice despacio y se deja un silencio largo después: es el centro del audio.
+Fundamentos de la PNL · Módulo 3 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-No escuches este audio mientras conduces ni operando maquinaria.
+En este audio vamos a escuchar a una parte de ti. La parte que hace algo que tú dices que no quieres hacer. No para regañarla, sino para preguntarle qué intenta conseguir. Ten cerca papel y algo con qué escribir, para el final.
 
-[PAUSA]
-
-Busca un lugar donde puedas estar unos doce minutos sin interrupciones.
-
-Ten cerca papel y algo con qué escribir, para el final.
-
-[PAUSA REAL · 10 s — acomodarse y dejar el papel cerca]
-
-Siéntate con los dos pies en el suelo.
-
-Deja que la espalda se apoye. Que las manos descansen.
-
-[PAUSA]
+Siéntate con los dos pies en el suelo. Deja que la espalda se apoye. Que las manos descansen.
 
 Cierra los ojos, si te resulta cómodo. Si no, deja la mirada baja.
 
-[PAUSA LARGA]
-
 Suelta el aire despacio, más largo de lo que entró.
 
-[PAUSA REAL · 8 s — exhalación larga]
-
-Otra vez.
-
-[PAUSA REAL · 8 s — exhalación larga]
+Otra vez… sin prisa.
 
 Y una tercera, todavía un poco más lenta.
 
-[PAUSA REAL · 10 s — exhalación larga]
-
-Ahora deja que la respiración encuentre su propio ritmo.
-
-[PAUSA LARGA]
+Ahora deja que la respiración encuentre su propio ritmo. Quédate ahí unos momentos.
 
 Nota los hombros. Si están un poco arriba, deja que bajen.
 
 Nota la mandíbula. Si está apretada, deja que los dientes se separen apenas.
 
-[PAUSA LARGA]
+Nota también la frente y la zona alrededor de los ojos. Deja que se suavicen.
 
-En este audio vamos a escuchar a una parte de ti.
+Respira… y deja que el cuerpo se acomode solo.
 
-La parte que hace algo que tú dices que no quieres hacer.
+Ahora piensa en una conducta tuya que se repite y que te complica algo. Dejar las cosas para el final. Comer cuando no tienes hambre. Callarte en las reuniones. Decir que sí a todo. Revisar el teléfono cada dos minutos. Algo cotidiano.
 
-[PAUSA]
+Si lo que aparece tiene que ver con una adicción, con hacerte daño o con algo que te desborda, este audio no es el lugar. Ahí lo que corresponde es hablar con un profesional. Hoy elige algo más pequeño. Tómate unos segundos para elegir.
 
-Piensa en una conducta tuya que se repite y que te complica algo.
+Trae la última vez que lo hiciste. Mira la escena un poco desde fuera, como si la vieras en una pantalla.
 
-Dejar las cosas para el final. Comer cuando no tienes hambre. Callarte en las reuniones.
+¿Dónde estabas? ¿Qué pasó justo antes? ¿Qué hiciste? Deja que la escena aparezca, sin esfuerzo.
 
-Decir que sí a todo. Revisar el teléfono cada dos minutos.
+Mira a la persona de la pantalla con la misma curiosidad con que mirarías a alguien que quieres. No estás ahí para juzgarla. Estás ahí para entenderla.
 
-Algo cotidiano.
+Ahora, sin juzgar a la persona de la pantalla, vas a hacerle una pregunta a esa conducta. Como si pudiera contestarte.
 
-[PAUSA]
+La pregunta es esta: ¿qué estás intentando conseguir para mí?
 
-Si lo que aparece tiene que ver con una adicción, con hacerte daño, o con algo que te desborda, este audio no es el lugar. Ahí lo que corresponde es hablar con un profesional. Elige hoy algo más pequeño.
+Espera la respuesta. No la busques. Deja que llegue. Puede ser una palabra, una imagen o una sensación.
 
-[PAUSA REAL · 15 s — elegir la conducta]
+Tómate el tiempo que necesites.
 
-Trae la última vez que lo hiciste.
+Si lo que llegó fue «nada», o «es que soy así», está bien. Casi siempre llega eso primero. Pregunta otra vez, con otras palabras: si no me sirvieras para nada, no te haría. ¿Qué me das?
 
-Mira la escena un poco desde fuera, como si la vieras en una pantalla.
+Espera otra vez… sin prisa.
 
-¿Dónde estabas? ¿Qué pasó justo antes? ¿Qué hiciste?
+Ahora toma eso que llegó, y pregunta un escalón más arriba: y eso, ¿qué me da?
 
-[PAUSA REAL · 20 s — ver la escena desde fuera]
-
-Ahora, sin juzgar a la persona de la pantalla, hazle una pregunta a esa conducta.
-
-Como si pudiera contestarte.
-
-[PAUSA]
-
-¿Qué estás intentando conseguir para mí?
-
-[PAUSA LARGA]
-
-Espera la respuesta. No la busques. Deja que llegue.
-
-Puede ser una palabra, una imagen, una sensación.
-
-[PAUSA REAL · 20 s — esperar la primera respuesta]
-
-Si lo que llegó fue «nada», o «es que soy así», está bien. Casi siempre llega eso primero.
-
-Pregunta otra vez, con otras palabras:
-
-si no te sirviera para nada, no lo harías. ¿Qué me das?
-
-[PAUSA REAL · 20 s — esperar la respuesta]
-
-Ahora toma eso que llegó, y pregunta un escalón más arriba:
-
-y eso, ¿qué me da?
-
-[PAUSA REAL · 20 s — subir un escalón]
+Deja que llegue la respuesta.
 
 Y una vez más: y eso, ¿qué me da?
 
-[PAUSA REAL · 20 s — subir otro escalón]
+Quédate ahí unos momentos.
 
-Fíjate si apareció una palabra grande.
+Fíjate si apareció una palabra grande. Seguridad. Calma. Libertad. Valor. Pertenencia. Descanso. Que no vuelva a doler.
 
-Seguridad. Calma. Libertad. Valor. Pertenencia. Descanso. Que no vuelva a doler.
-
-Si todavía no apareció, sube un escalón más.
-
-[PAUSA REAL · 20 s — llegar a la palabra grande]
+Si todavía no apareció, sube un escalón más. Tómate el tiempo que necesites.
 
 Quédate con esa palabra.
 
-[PAUSA LARGA]
+Ahora vas a decirla por dentro, despacio, de esta forma: «Tiene sentido que yo quiera…», y la palabra. «Es legítimo.»
 
-Ahora vas a decirla por dentro, despacio, en esta forma:
-
-«Tiene sentido que yo quiera…» y la palabra.
-
-«Es legítimo.»
-
-[PAUSA]
-
-Dilo por dentro, ahora.
-
-[PAUSA REAL · 15 s — decir por dentro la frase de reconocimiento]
+Dilo por dentro, ahora… despacio.
 
 Y deja que haya silencio después.
 
-[PAUSA LARGA]
+Respira… y quédate en ese silencio todo el tiempo que necesites.
 
-[PAUSA LARGA]
+Nota qué pasa en tu cuerpo al decirlo. A veces algo se afloja. A veces no pasa nada. A veces aparece una emoción. Todo eso está bien.
 
-Nota qué pasa en tu cuerpo al decirlo.
+La necesidad es legítima. Lo que no te sirve es el camino que encontró para conseguirla.
 
-A veces algo se afloja. A veces no pasa nada. A veces aparece emoción.
+Ahora imagina tres caminos distintos para conseguir eso mismo. Tres, no uno.
 
-Todo eso está bien.
+Por ejemplo, si tu palabra es descanso, un camino podría ser una pausa de diez minutos a media tarde. Otro, pedir ayuda con una tarea. Otro, decir que no a un compromiso. Los tuyos pueden ser muy distintos.
 
-[PAUSA REAL · 15 s — notar el cuerpo]
+El primero que se te ocurra, aunque sea raro. Deja que aparezca.
 
-La necesidad es legítima.
-
-Lo que no te sirve es el camino que encontró para conseguirla.
-
-[PAUSA LARGA]
-
-Ahora imagina tres caminos distintos para conseguir eso mismo.
-
-Tres. No uno.
-
-El primero que se te ocurra, aunque sea raro.
-
-[PAUSA REAL · 15 s — imaginar el primer camino]
-
-Un segundo.
-
-[PAUSA REAL · 15 s — imaginar el segundo camino]
+Un segundo camino. Tómate unos segundos.
 
 Y un tercero.
 
-[PAUSA REAL · 15 s — imaginar el tercer camino]
-
 De los tres, elige el que te sirve a ti sin costarle a otras partes de tu vida, ni a la gente que te importa.
 
-[PAUSA REAL · 10 s — elegir un camino]
+Ahora llévalo a un momento concreto de los próximos días. Un día, un lugar, una hora.
 
-Ahora llévalo a un momento concreto de los próximos días.
+Y mírate haciéndolo. Solo una vez. Mira cómo lo haces, qué dices, cómo te mueves.
 
-Un día, un lugar, una hora.
+Tómate el tiempo que necesites para verlo completo.
 
-Y mírate haciéndolo. Solo una vez.
+Fíjate cómo está tu cuerpo mientras lo ves. Quédate ahí unos momentos.
 
-[PAUSA REAL · 20 s — verte haciendo el nuevo camino]
+Si algo en ti se resiste a ese camino, no lo fuerces. Pregúntale qué necesita, y ajusta el camino hasta que se sienta posible.
 
-Fíjate cómo está tu cuerpo mientras lo ves.
+Muy bien. Deja que la escena se apague despacio.
 
-[PAUSA LARGA]
+Y agradécele a esa parte de ti lo que estaba intentando hacer. Aunque lo hiciera de una forma cara. Durante mucho tiempo fue la mejor forma que encontró de cuidarte.
 
-Bien.
+Respira… una vez más, largo.
 
-Deja que la escena se apague despacio.
-
-Y agradécele a esa parte de ti lo que estaba intentando hacer.
-
-Aunque lo hiciera de una forma cara.
-
-[PAUSA LARGA]
-
-Vamos a volver. Cuento del uno al cinco.
-
-[PAUSA]
+Ahora vamos a volver. Voy a contar del uno al cinco. Con cada número vuelves un poco más a este lugar.
 
 Uno. Notas el peso del cuerpo donde estás.
 
-[PAUSA]
-
 Dos. Notas los pies en el suelo.
-
-[PAUSA]
 
 Tres. Escuchas los sonidos del lugar.
 
-[PAUSA]
-
 Cuatro. Respiras un poco más hondo, y mueves las manos y los pies.
 
-[PAUSA]
+Cinco. Abres los ojos. Estás aquí.
 
-Cinco. Abres los ojos. Aquí.
+Antes de levantarte, escribe tres líneas. La conducta. La palabra grande que apareció. Y el camino que vas a probar, con día. Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
+Lo que acabas de hacer es el reencuadre de la intención positiva, por dentro. No peleaste con la conducta. La escuchaste. Y eso es lo que le permite cambiar.
 
-Antes de levantarte, escribe tres líneas:
+Esta semana, cuando aparezca la conducta, no te regañes. Recuerda tu palabra grande, y pregúntate si tienes otro camino a mano en ese momento. Aunque no lo uses todavía, ya estás mirando distinto.
 
-la conducta, la palabra grande que apareció, y el camino que vas a probar, con día.
+En el material del módulo, en PDF, tienes el reencuadre completo, paso a paso, para volver a hacerlo por escrito cuando lo necesites.
 
-[PAUSA REAL · 40 s — escribir las tres líneas]
-
-En el material del módulo tienes el reencuadre completo, paso a paso, para volver a hacerlo por escrito.
+Y cuando quieras seguir, te espero en el siguiente módulo, «Sistemas representacionales».

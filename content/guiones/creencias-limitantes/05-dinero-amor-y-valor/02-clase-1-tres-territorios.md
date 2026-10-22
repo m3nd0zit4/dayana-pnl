@@ -1,282 +1,71 @@
 # Clase 1 · Dinero, amor y valor
 
-**Creencias limitantes y potenciadoras · Módulo 5 · 11-13 min · Clase**
-Cámara fija con pantalla al lado. Cada territorio tiene su rótulo y su lista de
-señales en pantalla, para que el alumno marque las suyas. La ecuación «VALGO =
-lo que hago» se escribe en grande en la pizarra.
-
----
-
-[A CÁMARA]
+Creencias limitantes y potenciadoras · Módulo 5 · 12-14 min
 
 Líderes, bendiciones.
 
-Hoy recorremos tres territorios. Y en los tres vamos a hacer lo mismo: escuchar la frase heredada, ver cómo se nota hoy y encontrar la tuya.
+Hoy vamos a recorrer tres territorios: el dinero, el amor y el valor personal. En los tres vamos a hacer lo mismo. Primero vas a escuchar las frases que más se heredan. Después vas a ver cómo se notan hoy en la vida diaria. Y al final vas a encontrar la tuya. Al terminar esta clase vas a poder reconocer qué heredaste en cada territorio, y vas a conocer la pregunta que une a los tres. Ten tu cuaderno abierto, porque vas a ir marcando lo que reconozcas.
 
-Ten el cuaderno abierto. Vas a ir marcando.
+Empezamos por el dinero. Sobre el dinero nadie hereda una cuenta bancaria de creencias. Hereda frases. Frases que se decían en la mesa, en el carro, cuando llegaba una factura.
 
-[RÓTULO: Dinero]
+Te voy a decir algunas de las más frecuentes, y tú fíjate cuál se oía en tu casa. «El dinero no crece en los árboles.» «La gente rica es deshonesta.» «Nosotros no somos de esos.» «Primero la salud, el dinero no da la felicidad.» «De dinero no se habla.»
 
-[A CÁMARA]
+¿Cuál se decía en tu casa? Si era otra distinta, escríbela tal como la recuerdas, con las mismas palabras. Pausa el video si lo necesitas.
 
-Empezamos por el dinero.
+¿La tienes? Ahora algo importante. Ninguna de esas frases se dijo con mala intención. Muchas venían de épocas de verdad difíciles, de padres o abuelos que vivieron crisis, desempleo o mudanzas forzadas. En ese contexto tenían sentido. El problema es que siguen funcionando décadas después, en personas que hoy viven en otra realidad.
 
-Nadie hereda una cuenta bancaria de creencias. Hereda frases.
+¿Y cómo se notan hoy? Te voy a describir cinco señales, y tú marca las que reconozcas. La primera: no subes el precio aunque tu trabajo lo valga. La segunda: regalas horas y después sientes que se aprovechan de ti. La tercera: cuando llega dinero lo gastas de golpe, como si quemara. La cuarta: guardas todo y no disfrutas nada, aunque tengas estabilidad. Y la quinta: te incomoda que te paguen bien, y te sale decir «tampoco fue tanto trabajo».
 
-Te voy a decir algunas. Fíjate cuál se oía en tu casa.
+Fíjate en dos de esas señales que parecen opuestas: gastarlo todo y guardarlo todo. Pueden salir de la misma frase. Si en tu casa se decía «el dinero no dura», puedes terminar quemándolo antes de que se vaya, o apretándolo tanto que ya no te sirve para vivir. La conducta es distinta. La creencia de fondo es la misma.
 
-[EN PANTALLA: «El dinero no crece en los árboles» · «La gente rica es deshonesta» · «Nosotros no somos de esos» · «El dinero no da la felicidad» · «De dinero no se habla»]
+Te pongo un ejemplo muy típico. Imagina a Jorge, un electricista muy bueno. Termina un trabajo impecable, y el cliente le pregunta cuánto le debe. Y Jorge, mirando al suelo, contesta: «Lo que usted vea». El cliente le paga la mitad de lo que valía. Y Jorge se va a su casa molesto con el cliente, cuando en realidad fue él quien no dijo su precio.
 
-«El dinero no crece en los árboles.»
+Piensa ahora en ti. ¿Cuándo fue la última vez que dijiste algo parecido? «No es nada.» «Ya me pagas otro día.» «Lo que tú veas.» Tómate unos segundos para encontrar ese momento.
 
-«La gente rica es deshonesta.»
+¿Lo encontraste? En ese momento era la frase heredada la que hablaba por ti.
 
-«Nosotros no somos de esos.»
+Dentro del dinero hay un caso que merece su propio nombre: la trampa de quien ayuda. Le pasa mucho a terapeutas, docentes, cuidadores y gente que trabaja en salud, en lo social, en acompañar a otros. La creencia suena así: «si cobro bien por ayudar, ya no es tan puro». El resultado es muy predecible. Un trabajo excelente, unos ingresos que no lo reflejan y, a los dos o tres años, resentimiento. Casi siempre ese resentimiento va dirigido a los clientes, que no tienen nada que ver.
 
-«Primero la salud, el dinero no da la felicidad.»
+Te dejo una frase para pensar: cobrar bien no es lo contrario de servir. Es la condición para poder seguir sirviendo el año que viene. Si este es tu caso, el video de práctica de este módulo está hecho para ti.
 
-«De dinero no se habla.»
+Con el dinero claro, pasemos al segundo territorio: el amor. Nadie te enseñó qué es el amor con una definición. Te lo enseñaron con un ejemplo, el que tenías delante en casa. Cómo se hablaban los adultos, cómo se pedían las cosas, quién cedía. Y ese ejemplo se instaló como norma, sin que nadie te preguntara si te servía.
 
-[PAUSA]
+Las creencias más frecuentes sobre el amor suenan así. «El amor cuesta, se sufre.» «Si me conocen de verdad, se van.» «Tengo que ser útil para que me quieran.» «Amar es aguantar.» Y hay una muy de esta época: «si estoy bien sin pareja, es que no necesito a nadie». Con su reverso: «si necesito a alguien, soy dependiente». Escucha cuál se parece a la tuya y anótala.
 
-¿Cuál se decía en tu casa? O si era otra, ¿cuál?
+Te muestro cómo se ve una de ellas en la vida real. «Tengo que ser útil para que me quieran» es la persona que en cada reunión familiar no se sienta a la mesa. Sirve, recoge, lava. Y si un día se sienta y deja que otros recojan, se siente de más, como si ocupara un lugar que no se ganó. En el trabajo es quien dice que sí a todo. En la pareja es quien se encarga de todo y después se siente invisible.
 
-[PAUSA REAL · 15 s — el alumno anota la frase de dinero de su casa]
+Ahora la pregunta que abre este territorio. Tómatela con calma. ¿Qué viste en tu casa, en tu infancia, que hoy repites sin haberlo elegido? Puede ser cómo se pedían las cosas, cómo se peleaba, cómo se hacían las paces o quién cedía siempre. Pausa el video y escribe lo que aparezca.
 
-Ninguna de estas frases se dijo con mala intención. Muchas venían de épocas de verdad difíciles.
+¿Ya lo escribiste? Esto no es para culpar a nadie. Las personas que te criaron también heredaron sus modelos. Es para que elijas, por primera vez, algo que hasta ahora venía puesto de fábrica.
 
-Y todas siguen funcionando, décadas después, en personas que viven en otra realidad.
+Y aquí tengo que decirte algo con mucha claridad. Si en tu casa hubo violencia, o si hoy en tu relación hay violencia, miedo o control, eso no es una creencia que se cambie con un ejercicio. Tampoco es un problema de comunicación. Es una situación para la que hay que buscar ayuda profesional, y pedirla es lo correcto.
 
-[A CÁMARA]
+Ahora vamos con el tercer territorio, el valor personal. Es la raíz de los otros dos, y es el que menos ruido hace. Se instala con una operación muy simple en la infancia: el afecto llega condicionado a algo. A las buenas notas. A portarse bien. A no molestar. A ser quien se encargaba de todo. A hacer reír a los demás.
 
-¿Cómo se nota hoy? Te leo cinco señales. Marca las que reconozcas.
+Hagamos algo rápido. ¿Por qué te reconocían a ti en tu infancia? Escribe una sola palabra, la primera que salga.
 
-[EN PANTALLA: No subo el precio aunque mi trabajo lo valga · Regalo horas y después siento que se aprovechan de mí · Gasto de golpe cuando llega, como si quemara · Guardo todo y no disfruto nada · Me incomoda que me paguen bien]
+¿La tienes? De ahí sale una ecuación que mucha gente lleva dentro sin saberlo: valgo igual a lo que hago. Y esa ecuación tiene dos consecuencias muy concretas.
 
-No subes el precio aunque tu trabajo lo valga.
+La primera consecuencia es que los logros nunca alcanzan. Consigues algo grande, un título, un ascenso, un cliente importante, y a la semana ya no cuenta. Porque lo que sostiene tu valor es siempre el siguiente logro. Es como llenar un balde que tiene un agujero en el fondo.
 
-Regalas horas y después sientes que se aprovechan de ti.
+La segunda consecuencia es que descansar da culpa. Si vales por lo que produces, parar es dejar de valer. Por eso hay gente que se siente peor un domingo sin hacer nada que un lunes lleno de trabajo. ¿Te suena alguna de las dos? Tómate un momento para notar cuál es más tuya.
 
-Gastas de golpe cuando llega dinero, como si quemara.
+¿Ya lo notaste? Hay además tres señales que delatan esta ecuación. Escúchalas y marca las que reconozcas. La primera: no sabes recibir. Un elogio te incomoda, y un regalo te obliga a devolver algo enseguida. La segunda: no pides. Pedir se siente como confesar una carencia, y prefieres cargar tú todas las bolsas antes que pedir que alguien te ayude. La tercera: te comparas siempre hacia arriba, con quien va delante de ti, y nunca con quien va detrás.
 
-Guardas todo y no disfrutas nada, aun teniendo estabilidad.
+Ahora te digo la frase que separa lo que esta ecuación juntó: lo que haces y lo que vales son dos cosas distintas. Suena a frase de taza de café. Y sin embargo, la mayoría de la gente vive como si fueran lo mismo. Por eso un buen año de trabajo no cambia nada por dentro. El logro va por un lado y la sensación de valer va por otro.
 
-Te incomoda que te paguen bien: «tampoco fue tanto trabajo».
+Con los tres territorios vistos, vamos a lo que los une. Mira lo que anotaste del dinero, del amor y del valor. Los tres se apoyan en la misma pregunta: ¿cuánto creo que merezco? Cuánto merezco cobrar. Cuánto merezco que me cuiden. Cuánto merezco descansar.
 
-[PAUSA REAL · 15 s — el alumno marca las señales que reconoce]
+Por eso trabajar un territorio mueve los otros dos. Muchas veces, la persona que no sube su tarifa es la misma que acepta migajas en su relación, y la misma que no se permite un domingo libre. Son tres síntomas distintos con una sola respuesta de fondo a esa pregunta. Y por eso, si trabajas solo la superficie, la tarifa o el límite, y no tocas la raíz, el problema vuelve.
 
-[PAUSA]
+Contesta ahora esa pregunta, sin corregirte. Puede ser con un número del uno al diez o con una frase. Lo primero que salga. Dilo en voz alta o escríbelo.
 
-Fíjate que dos de esas señales parecen opuestas: gastar todo y guardar todo.
+¿Ya respondiste? No hace falta que te guste la respuesta. Hace falta que sea honesta. Esa respuesta es tu punto de partida para el resto del módulo.
 
-Pueden venir de la misma frase. «El dinero no dura» puede hacer que lo quemes antes de que se vaya, o que lo aprietes tanto que no te sirva para vivir.
+Hagamos un resumen de lo que vimos hoy. Sobre el dinero se heredan frases, y se notan en cómo cobras, gastas o guardas. Sobre el amor se hereda un ejemplo, que repites hasta que lo miras. Sobre el valor se hereda una ecuación, valgo igual a lo que hago, que hace que los logros nunca alcancen y que descansar dé culpa. Y los tres se apoyan en una sola pregunta: cuánto crees que mereces.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas es pequeña, y cuesta más de lo que parece. La próxima vez que alguien te haga un elogio, contesta solo «gracias». Sin «bah, no es para tanto». Sin devolver el elogio enseguida. Sin explicar. Solo «gracias». Y fíjate qué sientes en el cuerpo cuando lo haces.
 
-Imagina a Jorge, electricista. Muy bueno. Termina un trabajo y el cliente le pregunta cuánto le debe.
-
-Y Jorge, mirando al suelo, dice: «Lo que usted vea».
-
-El cliente le paga la mitad de lo que valía. Y Jorge se va a casa molesto con el cliente.
-
-[PAUSA]
-
-¿Cuándo fue la última vez que dijiste algo parecido? «No es nada.» «Ya me pagas otro día.» «Lo que tú veas.»
-
-[PAUSA REAL · 10 s — el alumno recuerda la última vez que rebajó su precio]
-
-[A CÁMARA]
-
-Hay un caso dentro del dinero que merece su propio nombre.
-
-[RÓTULO: La trampa de quien ayuda]
-
-Terapeutas, docentes, cuidadores, gente que trabaja en salud, en lo social, en acompañar a otros.
-
-La creencia suena así: «si cobro bien por ayudar, ya no es tan puro».
-
-Y el resultado es muy predecible. Trabajo excelente. Ingresos que no lo reflejan.
-
-Y a los dos o tres años, resentimiento. Casi siempre dirigido a los clientes, que no tienen nada que ver.
-
-[SUBRAYAR: cobrar bien no es lo contrario de servir]
-
-Una frase para masticar: cobrar bien no es lo contrario de servir. Es la condición para poder seguir sirviendo el año que viene.
-
-Si este es tu caso, la práctica de este módulo es para ti.
-
-[RÓTULO: Amor]
-
-[A CÁMARA]
-
-Segundo territorio: el amor.
-
-Nadie te enseñó qué es el amor con una definición. Te lo enseñaron con un ejemplo: el que tenías delante en casa.
-
-Y ese ejemplo se instaló como norma, sin que nadie preguntara si te servía.
-
-[EN PANTALLA: «El amor cuesta» · «Si me conocen de verdad, se van» · «Tengo que ser útil para que me quieran» · «Amar es aguantar» · «Si necesito a alguien, soy dependiente»]
-
-Las creencias más frecuentes suenan así.
-
-«El amor cuesta. Se sufre.»
-
-«Si me conocen de verdad, se van.»
-
-«Tengo que ser útil para que me quieran.»
-
-«Amar es aguantar.»
-
-Y una muy de esta época: «si estoy bien sin pareja, es que no necesito a nadie». Con su reverso: «si necesito a alguien, soy dependiente».
-
-[PAUSA]
-
-¿Cuál se parece a la tuya?
-
-[PAUSA REAL · 15 s — el alumno anota la creencia de amor que reconoce]
-
-Fíjate cómo se ve una de ellas en la vida real. «Tengo que ser útil para que me quieran.»
-
-Es la persona que en cada reunión familiar no se sienta a la mesa. Sirve, recoge, lava.
-
-Y si un día se sienta y deja que otros recojan, se siente de más. Como si estuviera ocupando un sitio que no se ganó.
-
-[A CÁMARA]
-
-Ahora la pregunta que abre este territorio. Tómatela con calma.
-
-[EN PANTALLA: ¿Qué viste en tu casa que hoy repites sin haberlo elegido?]
-
-¿Qué viste en tu casa, en tu infancia, que hoy repites sin haberlo elegido?
-
-Cómo se pedían las cosas. Cómo se peleaba. Cómo se hacían las paces. Quién cedía siempre.
-
-[PAUSA REAL · 30 s — el alumno escribe lo que repite del modelo de casa]
-
-No es para culpar a nadie. Es para elegir por primera vez algo que hasta ahora venía puesto de fábrica.
-
-[PAUSA]
-
-Y aquí tengo que decirte algo con mucha claridad.
-
-Si en tu casa hubo violencia, o si hoy en tu relación hay violencia, miedo o control, eso no es una creencia que se reencuadra con un ejercicio.
-
-No es un problema de comunicación. Es algo para lo que hay que buscar ayuda, profesional y real. Y pedirla es lo correcto.
-
-[RÓTULO: Valor personal]
-
-[A CÁMARA]
-
-Tercer territorio. El valor personal.
-
-Es la raíz de los otros dos. Y la que menos ruido hace.
-
-Se instala con una operación muy simple en la infancia: el afecto llega condicionado a algo.
-
-A las buenas notas. A portarse bien. A no molestar. A ser quien se encargaba de todo. A hacer reír a todos.
-
-[PAUSA]
-
-¿Por qué te reconocían a ti en tu infancia? Escribe solo una palabra.
-
-[PAUSA REAL · 10 s — el alumno escribe por qué lo reconocían]
-
-[A CÁMARA]
-
-De ahí sale una ecuación.
-
-[EN PANTALLA: VALGO = lo que hago]
-
-Valgo igual a lo que hago.
-
-Y esa ecuación tiene dos consecuencias.
-
-[RÓTULO: 1 · Los logros nunca alcanzan]
-
-La primera: los logros nunca alcanzan.
-
-Consigues algo grande, y a la semana ya no cuenta. Porque lo que sostiene tu valor es el siguiente logro. Siempre el siguiente.
-
-[RÓTULO: 2 · Descansar da culpa]
-
-La segunda: descansar da culpa.
-
-Si vales por lo que produces, parar es dejar de valer.
-
-Por eso hay gente que un domingo sin hacer nada se siente peor que un lunes lleno de trabajo.
-
-[PAUSA]
-
-¿Te suena alguna de las dos?
-
-[PAUSA REAL · 10 s — el alumno nota cuál de las dos consecuencias reconoce]
-
-[A CÁMARA]
-
-Hay tres señales que delatan esta ecuación. Márcalas si te reconoces.
-
-[RÓTULO: No sabes recibir · No pides · Te comparas hacia arriba]
-
-Una: no sabes recibir. Un elogio te incomoda. Un regalo te obliga.
-
-Dos: no pides. Pedir se siente como confesar una carencia.
-
-Prefieres cargar tú todas las bolsas antes que pedir que alguien te ayude.
-
-Tres: te comparas hacia arriba, siempre. Nunca con quien va detrás de ti.
-
-[PAUSA REAL · 10 s — el alumno marca las señales que reconoce]
-
-[PAUSA]
-
-Y ahora, la frase que separa lo que esta ecuación juntó.
-
-[SUBRAYAR: lo que haces y lo que vales son dos cosas distintas]
-
-Lo que haces y lo que vales son dos cosas distintas.
-
-Suena a frase de taza de café. Y sin embargo, la mayoría de la gente vive como si fueran lo mismo.
-
-Por eso un buen año de trabajo no cambia nada por dentro.
-
-[A CÁMARA]
-
-Mira tus tres páginas, o lo que hayas anotado de cada territorio.
-
-Los tres se apoyan en la misma pregunta.
-
-[EN PANTALLA: ¿Cuánto creo que merezco?]
-
-¿Cuánto creo que merezco?
-
-Cuánto merezco cobrar. Cuánto merezco que me cuiden. Cuánto merezco descansar.
-
-Por eso trabajar un territorio mueve los otros dos.
-
-Muchas veces, la persona que no sube su tarifa es la misma que acepta migajas en su relación y la misma que no se permite un domingo libre.
-
-Tres síntomas distintos. Una sola respuesta a esa pregunta.
-
-Y por eso, si trabajas solo la superficie, la tarifa, el límite, la autoestima, y no la raíz, vuelve.
-
-[PAUSA]
-
-Contéstala ahora, sin corregirte. Con un número del uno al diez, o con una frase. Lo primero que salga.
-
-[PAUSA REAL · 15 s — el alumno contesta cuánto cree que merece]
-
-No hace falta que te guste la respuesta. Hace falta que sea honesta.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas es pequeña, y cuesta más de lo que parece.
-
-La próxima vez que alguien te haga un elogio, contesta solo «gracias».
-
-Sin «bah, no es para tanto». Sin devolver el elogio. Sin explicar. Solo «gracias». Y fíjate qué sientes.
-
-[PAUSA]
-
-En la clase dos vas a escribir tu guion heredado completo, territorio por territorio, y vas a elegir una acción para esta semana.
+En la próxima clase, «Tu guion heredado», vas a escribir lo que aprendiste en casa, territorio por territorio, y vas a elegir una acción concreta para esta semana. Ten tres páginas de tu cuaderno libres.
 
 Seguimos creciendo juntos.

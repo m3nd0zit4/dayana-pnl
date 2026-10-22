@@ -47,7 +47,10 @@ const SEG_PAUSA_LARGA = 6;
  * una estimación que se parece a lo que marca el cronómetro.
  */
 const estimar = (raw) => {
-  const cuerpo = raw.split(/^---$/m).slice(1).join("---");
+  // Los guiones con acotaciones separan la cabecera con `---`; los limpios no,
+  // y ahí el título ya se descarta abajo con el resto de líneas `#`.
+  const partes = raw.split(/^---$/m);
+  const cuerpo = partes.length > 1 ? partes.slice(1).join("---") : raw;
   const pausasLargas = (cuerpo.match(/\[PAUSA (LARGA|REAL)[^\]]*\]/g) ?? []).length;
   const pausas = (cuerpo.match(/\[PAUSA\]/g) ?? []).length;
   const hablado = cuerpo
@@ -80,7 +83,7 @@ for (const courseId of dirsIn(CURRICULUM)) {
       // Los vídeos con invitado no llevan guion palabra por palabra: llevan un
       // guion de conducción con las preguntas y los avisos, porque escribirle
       // los diálogos a una conversación real es justo lo que la estropea.
-      const conduccion = /## Guion de conducción/.test(raw);
+      const conduccion = /^## (Guion de conducción|Conversación)/m.test(raw);
       const min = /(\d+)\s*[-–]\s*(\d+)|(\d+)/.exec(data.video ?? "");
       const target = min ? Number(min[1] ?? min[3]) : 0;
 

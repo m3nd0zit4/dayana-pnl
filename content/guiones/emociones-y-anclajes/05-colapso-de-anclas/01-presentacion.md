@@ -1,83 +1,29 @@
 # Presentación · Colapso de anclas y círculo de excelencia
 
-**Emociones, anclajes y estados de recurso · Módulo 5 · 3-4 min · Presentación**
-Cámara fija, plano medio, tono más serio que en los módulos anteriores al principio y más ligero en la prueba de la cara.
-Rótulo con la advertencia y con la regla del recurso más fuerte.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 5 · 4-5 min
 
 Líderes, bendiciones.
 
-Antes de presentarte nada, una advertencia. Porque en este módulo va primero.
+Piensa en una situación que te desarma siempre de la misma manera. Tu jefe te habla en cierto tono delante de otros y te encoges. Alguien de tu familia hace un comentario sobre tu cuerpo y te vuelves a sentir de doce años. Sabes que no tiene sentido reaccionar así, y aun así el cuerpo reacciona igual. Este módulo trae dos técnicas para eso.
 
-[RÓTULO: Un colapso mal hecho refuerza lo que querías quitar]
+Pero antes de presentarlas, una advertencia, porque en este módulo va primero. Estas dos técnicas son las más exigentes del curso, y se hacen bien o no se hacen. Un colapso hecho a medias no deja las cosas como estaban. Refuerza justo lo que querías desmontar. Por eso vamos a ir despacio, y por eso vas a escuchar muchas veces la palabra «límites».
 
-Las dos técnicas de este módulo se hacen bien o no se hacen.
+Ahora sí, las dos técnicas, en una frase cada una. El colapso de anclas consiste en disparar al mismo tiempo un estado que no quieres y un estado de recurso, hasta que el primero deja de dispararse limpio. El círculo de excelencia consiste en montar tu mejor estado en un lugar del suelo, y entrar en él caminando.
 
-Un colapso a medias no deja las cosas como estaban. Refuerza justo lo que querías desmontar.
+Al terminar el módulo vas a saber hacer las dos y, sobre todo, vas a saber cuándo no hacerlas. Hay temas que no se trabajan a solas con un video: un recuerdo traumático, una crisis de esta misma semana, o un tema muy grande la primera vez. Un recuerdo traumático se trabaja con un profesional formado en trauma.
 
-Por eso vamos despacio, y por eso vas a escuchar muchas veces la palabra «límites».
+Así funciona el módulo. Tienes dos clases. En la primera, las dos técnicas completas y sus límites. En la segunda, un taller para preparar tu caso real: qué revisar antes, qué esperar durante y cómo leer el resultado. Después, una práctica guiada del círculo, de pie y en tiempo real. Un audio guiado para ensayar tu círculo en el lugar donde lo vas a necesitar. El material de lectura en PDF. Y un ejercicio opcional.
 
-[A CÁMARA]
+Ahora te muestro la idea del colapso en treinta segundos, con la cara. Sonríe con toda la cara, como cuando algo te hace mucha gracia. Mantén la sonrisa. Ahora, sin dejar de sonreír, frunce el ceño como cuando algo te molesta. Hazlo de verdad, unos segundos.
 
-Ahora sí, las dos técnicas. Una frase cada una.
+¿Qué te salió? Seguramente una mueca rara, y quizás hasta te dio risa. La cara no puede sostener las dos expresiones completas a la vez, y sale una tercera cosa que no es ninguna de las dos. Eso mismo, con estados completos y no solo con la cara, es un colapso.
 
-El colapso de anclas: disparar al mismo tiempo un estado que no quieres y un estado de recurso, hasta que el primero deja de dispararse limpio.
+Y aquí va la regla que decide todo: el recurso tiene que ser más fuerte que el problema. Si el problema pesa ocho y tu recurso pesa cinco, no colapsas nada. El problema se lleva por delante al recurso. Por eso este módulo viene después del módulo cuatro: necesitas un ancla de recurso que ya funcione.
 
-El círculo de excelencia: montar tu mejor estado en un lugar del suelo, y entrar en él caminando.
+Un aviso práctico para el círculo: se hace de pie y con espacio. Vas a necesitar una habitación y un rato a solas.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas es una prueba. Sin preparar nada, haz el gesto de tu ancla de recurso, la del módulo cuatro, y anota del cero al diez cuánto aparece el estado. Ese número lo vas a necesitar en la próxima clase.
 
-Te muestro en treinta segundos la idea del colapso. Con la cara.
-
-Sonríe con toda la cara, como cuando algo te hace mucha gracia.
-
-[PAUSA REAL · 5 s — sonreír con toda la cara]
-
-Ahora, sin dejar de sonreír, frunce el ceño como cuando algo te molesta.
-
-[HACERLO]
-
-[PAUSA REAL · 5 s — sonreír y fruncir el ceño al mismo tiempo]
-
-¿Qué pasó? Seguramente una mueca rara, y quizás te dio risa.
-
-No se pueden sostener las dos a la vez. Sale una tercera cosa, que no es ninguna de las dos.
-
-Eso, con estados completos y no solo con la cara, es un colapso.
-
-[A CÁMARA]
-
-Y aquí va la regla que decide todo.
-
-[RÓTULO: El recurso tiene que ser más fuerte que el problema]
-
-El recurso tiene que ser más fuerte que el problema.
-
-Si el problema pesa ocho y el recurso cinco, no colapsas nada. El problema se lleva por delante al recurso.
-
-Por eso este módulo viene después de que tu ancla de recurso ya funcione.
-
-[PAUSA]
-
-Y un aviso práctico para el círculo: se hace de pie y con espacio. Vas a necesitar una habitación y un rato a solas.
-
-[A CÁMARA]
-
-Al terminar el módulo vas a saber hacer las dos técnicas y, sobre todo, cuándo no hacerlas.
-
-Y hay cosas que no se intentan sin acompañamiento: un recuerdo traumático, una crisis de esta misma semana, o un tema grande la primera vez.
-
-[RÓTULO: Clase 1 · Clase 2 · Práctica · Audio guiado · Material en PDF]
-
-Tienes dos clases, una práctica guiada del círculo de pie, un audio para ensayar el círculo en el lugar donde lo vas a necesitar, el material en PDF y un ejercicio opcional.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para mañana: haz la prueba en frío de tu ancla de recurso. Sin preparar nada, el gesto, y anota del cero al diez cuánto aparece.
-
-Ese número lo vas a necesitar en la primera clase.
+En la primera clase, Colapso de anclas y círculo de excelencia, empezamos por los límites y después vamos a las dos técnicas, paso a paso.
 
 Seguimos creciendo juntos.

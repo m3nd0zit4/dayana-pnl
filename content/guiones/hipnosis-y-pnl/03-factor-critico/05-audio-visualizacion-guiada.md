@@ -1,244 +1,143 @@
 # Audio guiado · Tu primera visualización
 
-**Hipnosis y PNL: reprogramación mental · Módulo 3 · 12-15 min · Audio guiado**
-Sala silenciosa. Sin música o con un fondo muy suave y constante. Voz lenta, que
-baja de volumen en la relajación y sube un poco en el regreso. Los silencios
-son reales: no se recortan.
+Hipnosis y PNL: reprogramación mental · Módulo 3 · 12-15 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
+Siéntate con la espalda apoyada, o recuéstate. Lo que te resulte más cómodo. Pon el celular en silencio.
 
-Si es tu caso, guárdalo para un momento en que puedas parar.
+En este audio vas a hacer tu primera visualización completa. Vas a relajar el cuerpo y a imaginar un lugar donde te sientes a salvo. Y desde ahí vas a vivir por dentro una meta que te importa, como si ya hubiera ocurrido.
 
-[PAUSA]
+Antes de cerrar los ojos, elige una meta. Algo que de verdad te importe y que todavía no ha ocurrido. Puede ser grande o pequeña. Terminar algo. Hablar con alguien. Llegar a algún lugar.
 
-Busca un lugar donde nadie te interrumpa durante un cuarto de hora.
-
-Siéntate con la espalda apoyada, o recuéstate. Lo que te resulte más cómodo.
-
-Pon el celular en silencio.
-
-[PAUSA LARGA]
-
-Antes de cerrar los ojos, elige una meta.
-
-Algo que de verdad te importe y que todavía no ha ocurrido.
-
-Puede ser grande o pequeña. Terminar algo. Hablar con alguien. Llegar a algún lugar.
-
-[PAUSA REAL · 20 s — elegir la meta]
+Tómate el tiempo que necesites para elegirla.
 
 Ya la tienes. Ahora la dejamos a un lado un momento. Vamos a volver a ella.
 
-[PAUSA]
-
-Y si en algún momento necesitas abrir los ojos o moverte, lo haces. Sigues al mando todo el tiempo.
-
-[PAUSA LARGA]
+Si en algún momento necesitas abrir los ojos o moverte, lo haces. Sigues al mando todo el tiempo.
 
 Cuando quieras, puedes cerrar los ojos.
 
-[PAUSA REAL · 5 s — cerrar los ojos]
-
 Vamos a respirar profundamente tres veces.
 
-Toma aire por la nariz, despacio…
+Toma aire por la nariz, despacio… y suéltalo por la boca, largo.
 
-[PAUSA]
-
-y suéltalo por la boca, largo.
-
-[PAUSA LARGA]
-
-Otra vez. El aire entra…
-
-[PAUSA]
-
-y sale, despacio.
-
-[PAUSA LARGA]
+Otra vez. El aire entra… y sale, despacio.
 
 Y la tercera, a tu ritmo.
 
-[PAUSA REAL · 10 s — tercera respiración]
-
 Ahora deja que la respiración vaya sola.
-
-[PAUSA]
 
 Vamos a recorrer el cuerpo, de arriba hacia abajo. Sin prisa.
 
 Empieza por la frente. Deja que se alise. Que cada pequeño músculo se suelte.
 
-[PAUSA LARGA]
-
-Los ojos. Los párpados, pesados y tranquilos.
-
-[PAUSA LARGA]
+Los ojos. Los párpados, pesados y quietos.
 
 La mandíbula. Deja que los dientes se separen apenas.
 
-[PAUSA LARGA]
-
 El cuello… y los hombros. Deja que bajen. Un poco más.
 
-[PAUSA LARGA]
+Los brazos, pesados.
 
-Los brazos. Pesados.
-
-[PAUSA]
-
-Las manos. Sueltas. Quizá un poco más tibias.
-
-[PAUSA LARGA]
+Las manos, sueltas. Quizá un poco más tibias.
 
 El pecho, que sube y baja solo.
 
-[PAUSA]
-
 El abdomen, blando.
 
-[PAUSA LARGA]
+Las piernas, apoyadas y pesadas.
 
-Las piernas, apoyadas, pesadas.
+Y los pies, hasta la punta de los dedos.
 
-[PAUSA]
+Respira… y siente todo el cuerpo suelto unos momentos.
 
-Y los pies. Hasta la punta de los dedos.
+Si alguna parte sigue tensa, no pasa nada. No tienes que forzarla. Solo llévale la atención, y deja que la próxima exhalación pase por ahí.
 
-[PAUSA REAL · 15 s — sentir todo el cuerpo suelto]
+Con cada respiración, puedes ir un poco más hacia adentro. Sin esfuerzo. A tu ritmo.
 
-Ahora te invito a imaginar un lugar.
+Ahora te invito a imaginar un lugar. Un lugar seguro y tranquilo. Puede ser real, uno que conoces. O inventado, solo tuyo.
 
-Un lugar seguro y tranquilo. Puede ser real, uno que conoces. O inventado, solo tuyo.
+Tómate el tiempo que necesites para que aparezca.
 
-[PAUSA REAL · 15 s — dejar que aparezca el lugar]
-
-Míralo.
-
-¿Qué colores hay?
-
-[PAUSA LARGA]
+Míralo. ¿Qué colores hay?
 
 ¿Hay luz de sol, de tarde, de lámpara?
 
-[PAUSA LARGA]
-
 Escucha. ¿Qué se oye en ese lugar? ¿Agua, viento, silencio?
-
-[PAUSA LARGA]
 
 Siente la temperatura en la piel.
 
-[PAUSA LARGA]
-
 Y si hay algún olor, déjalo llegar.
 
-[PAUSA REAL · 20 s — quedarse en el lugar seguro]
+Fíjate en lo que tienes bajo los pies. ¿Arena, pasto, madera, una alfombra?
+
+Y fíjate en cómo está tu cuerpo en este lugar. Quizá más liviano. Quizá más quieto.
+
+Quédate en ese lugar unos momentos. No tienes que hacer nada. Solo estar.
 
 Este lugar es tuyo. Puedes volver aquí cuando quieras.
 
-[PAUSA LARGA]
-
 Y ahora, desde la calma de este lugar, trae la meta que elegiste al principio.
-
-[PAUSA]
 
 Imagina el momento en que ya ocurrió. El día en que lo lograste.
 
-[PAUSA LARGA]
+No hace falta saber cómo llegaste ahí. Solo deja que aparezca la escena del día en que ya es real.
 
-Y aquí está lo importante. No te mires desde lejos, como en una película.
+Y aquí está lo importante. No te mires desde lejos, como en una película. Entra en la escena. Mira con tus propios ojos.
 
-Entra en la escena. Mira con tus propios ojos.
-
-[PAUSA REAL · 15 s — entrar en la escena]
+Tómate unos momentos para entrar.
 
 ¿Dónde estás?
 
-[PAUSA LARGA]
-
 ¿Qué llevas puesto?
-
-[PAUSA LARGA]
 
 ¿Quién está contigo?
 
-[PAUSA LARGA]
-
 ¿Qué te dicen? Escucha sus palabras. El tono de su voz.
 
-[PAUSA REAL · 15 s — escuchar lo que te dicen]
-
-¿Qué te dices tú, por dentro?
-
-[PAUSA LARGA]
+¿Qué te dices tú, por dentro? Escucha esa voz. Quizá suena distinta a la de todos los días.
 
 Y ahora, ¿qué sientes en el pecho?
 
-[PAUSA LARGA]
-
 ¿En los hombros? ¿En la cara?
 
-[PAUSA REAL · 15 s — notar lo que sientes en el cuerpo]
-
-Si quieres, puedes hacer la imagen un poco más brillante. Los sonidos un poco más cercanos. La sensación un poco más grande.
-
-[PAUSA REAL · 15 s — hacer la escena más intensa]
+Si quieres, puedes hacer la imagen un poco más brillante. Los sonidos, un poco más cercanos. La sensación, un poco más grande.
 
 Y ahora, simplemente, quédate ahí.
 
 No analices nada. No hace falta entender. Solo siente.
 
-[PAUSA REAL · 60 s — sostener la emoción en silencio]
+Deja que esa sensación se acomode en el cuerpo. Que el cuerpo la conozca.
 
-[PAUSA LARGA]
+Respira… y quédate ahí unos momentos, en silencio.
 
-Antes de salir, mira la escena una última vez. Como quien guarda una foto.
+Antes de salir, mira la escena una última vez, como quien guarda una foto.
 
-[PAUSA REAL · 10 s — guardar la escena]
+Y desde ese día en que ya lo lograste, mira hacia atrás, hacia la persona que eres hoy. Si pudieras decirle una sola frase, ¿qué le dirías? Escúchala.
 
-Y si no viste imágenes claras, también está bien. Hay personas que sienten más de lo que ven. O que se hablan por dentro.
+Guarda esa frase. Es tuya.
 
-No hay una forma correcta. Lo que sentiste, cuenta.
+Y si no viste imágenes claras, también está bien. Hay personas que sienten más de lo que ven. Otras se hablan por dentro. No hay una forma correcta. Lo que sentiste, cuenta.
 
-[PAUSA LARGA]
-
-Ahora vamos a regresar. Voy a contar del uno al cinco. Con cada número vas a ir volviendo, trayendo contigo lo que sentiste.
-
-[PAUSA]
+Ahora vamos a regresar. Voy a contar del uno al cinco. Con cada número vas a ir volviendo, y puedes traer contigo lo que sentiste.
 
 Uno. Empiezas a notar otra vez el peso de tu cuerpo.
 
-[PAUSA]
-
 Dos. La respiración se hace un poco más amplia, más despierta.
-
-[PAUSA]
 
 Tres. Vuelves a escuchar los sonidos del lugar donde estás.
 
-[PAUSA]
-
 Cuatro. Mueve despacio los dedos de las manos y de los pies. Estira un poco el cuello, los brazos.
-
-[PAUSA]
 
 Cinco. Abre los ojos. Con la mente clara, el cuerpo descansado y en calma.
 
-[PAUSA LARGA]
-
 No te levantes todavía. Quédate un momento en tu sitio, mirando a tu alrededor.
 
-[PAUSA REAL · 15 s — quedarse un momento antes de moverse]
+Si tienes tu cuaderno cerca, escribe tres líneas. Qué imagen apareció. Qué sentiste en el cuerpo. Y la frase que te dijiste desde ese día. Tómate el tiempo que necesites.
 
-Si tienes tu cuaderno cerca, escribe dos líneas.
+Eso que acabas de hacer, el guardia no lo discutió. No le diste ninguna frase que rechazar. Le diste una experiencia.
 
-Qué imagen apareció. Y qué sentiste en el cuerpo.
+Puedes repetir esta visualización sin audio: el guion completo está en el material en PDF del módulo.
 
-[PAUSA REAL · 30 s — escribir las dos líneas]
-
-Eso que acabas de hacer, el guardia no lo discutió. Porque no le diste ninguna frase que rechazar. Le diste una experiencia.
-
-En el próximo módulo vas a aprender el lenguaje con el que se guían estas experiencias.
+Y te espera el siguiente módulo: Milton Erickson y el lenguaje hipnótico. Ahí vas a aprender el lenguaje con el que se guían estas experiencias.

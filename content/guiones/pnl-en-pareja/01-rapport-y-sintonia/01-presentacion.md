@@ -1,129 +1,29 @@
 # Presentación · Rapport y sintonía
 
-**PNL para relaciones y pareja · Módulo 1 · 3-4 min · Presentación**
-Cámara fija, plano medio. Es la apertura del curso: sin prisa. La frase «¿Todo
-bien?» se dice dos veces en cámara, con dos climas distintos.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 1 · 4-5 min
 
 Líderes, bendiciones.
 
-Bienvenidos al curso de PNL para relaciones y pareja.
+Bienvenidos al curso de PNL para relaciones y pareja. Quiero empezar con algo que seguro te ha pasado. Le dices a tu pareja una frase muy simple, por ejemplo «¿todo bien?». Un día esa frase suena a cariño y la conversación se abre. Otro día, la misma frase suena a interrogatorio y termina en discusión. Las palabras eran las mismas. Lo que cambió fue todo lo demás.
 
-Y antes de explicar nada, escucha esto.
+Ese «todo lo demás» tiene nombre. Se llama rapport, o sintonía, y es la sensación de estar en el mismo sitio que la otra persona. Cuando hay sintonía, se puede decir casi cualquier cosa. Cuando falta, hasta una pregunta amable se recibe como un ataque. De eso trata este primer módulo.
 
-[HACERLO]
+Antes de seguir, te digo lo que este curso no es. No es para cambiar a tu pareja. Es para cambiar lo que haces tú, que es la parte que depende de ti. Y cuando cambia una de las dos partes, la relación entera se mueve.
 
-«¿Todo bien?»
+Al terminar este módulo vas a poder hacer tres cosas. La primera, ver por qué canal se están desencontrando tu pareja y tú: el cuerpo, el ritmo, las palabras o el estado. La segunda, acompañar a alguien que llega con la energía arriba sin subirte a su ola y sin decirle «tranquilízate». Y la tercera, reconocer cuál es tu gesto pequeño que rompe la sintonía, ese que haces sin darte cuenta.
 
-[PAUSA]
+Te aviso desde ya de algo importante: aquí no vamos a imitar gestos. Eso de «tú cruzas las piernas y yo cruzo las piernas» es la caricatura más extendida de la PNL. Con un desconocido quizá pasa desapercibido. Con tu pareja se nota siempre, y cuando se nota, rompe justo lo que querías construir.
 
-Y ahora otra vez.
+Así funciona el módulo. Hay dos clases en video. Hay un video de práctica, donde vas a hacer la técnica conmigo, paso a paso. Hay un audio guiado, para ensayar con los ojos cerrados antes de que la escena pase de verdad. Tienes también un material en PDF para leer con calma, y un ejercicio corto y opcional para dejar por escrito lo que descubras. Si tu pareja quiere hacer el curso contigo, maravilloso. Si no, igual funciona: todo está pensado para hacerse a solas.
 
-[HACERLO]
+Y una cosa que te digo desde el primer día. Puede que en tu relación haya violencia, amenazas o control. Que te revisen el celular, que te aíslen de tu gente o que tengas miedo de cómo va a reaccionar tu pareja. Si es así, eso no es un problema de comunicación. Este curso no es la herramienta para eso. Lo que corresponde es buscar ayuda profesional y, si hay peligro, un servicio especializado de tu país.
 
-«¿Todo bien?»
+Ahora vamos a hacer una primera prueba. Di en voz alta «¿todo bien?», como se lo dirías hoy a tu pareja en un buen momento. Hazlo de verdad, aunque estés a solas. Ahora dilo otra vez, pero como si ya supieras que algo va mal.
 
-[PAUSA]
+¿Notaste la diferencia? No solo en tu voz. También en tu cara, en tus hombros y en tu respiración. Eso que acabas de sentir en tu propio cuerpo es lo que tu pareja recibe antes de escuchar la primera palabra.
 
-La misma frase. Las mismas palabras.
+Tu tarea para hoy es pequeña. La próxima vez que tu pareja te hable, fíjate solo en una cosa: a qué velocidad habla. Nada más. Solo mirar, sin cambiar nada.
 
-Una suena a cariño. La otra suena a interrogatorio.
-
-[A CÁMARA]
-
-Ahora te toca a ti.
-
-Di en voz alta «¿todo bien?», como se lo dirías hoy a tu pareja.
-
-[PAUSA REAL · 10 s — el alumno dice la frase en voz alta]
-
-Y ahora dila como si ya supieras que algo va mal.
-
-[PAUSA REAL · 10 s — el alumno la dice otra vez, con el otro clima]
-
-¿Notaste la diferencia en tu propio cuerpo?
-
-Eso es lo que vamos a trabajar en este módulo.
-
-Que la misma frase, un día se entiende y otro día estalla.
-
-Y la diferencia casi nunca está en las palabras.
-
-[A CÁMARA]
-
-Primero, lo que este curso no es.
-
-No es para cambiar a tu pareja.
-
-Es para cambiar lo que tú haces. Esa es la parte que depende de ti.
-
-Y cuando cambia una parte, la relación se mueve.
-
-[PAUSA]
-
-Al terminar este módulo vas a poder hacer tres cosas.
-
-Ver por qué canal se están desencontrando: cuerpo, ritmo, palabras o estado.
-
-Acompañar a alguien que llega con la energía arriba, sin subirte a su ola y sin decirle «tranquilízate».
-
-Y reconocer cuál es tu gesto pequeño que rompe la sintonía.
-
-[PAUSA]
-
-Te aviso desde ya: aquí no vamos a imitar gestos.
-
-Eso de «tú cruzas las piernas, yo cruzo las piernas» es la caricatura más extendida de la PNL.
-
-Y con tu pareja se nota siempre.
-
-[A CÁMARA]
-
-Cómo funciona cada módulo.
-
-Dos clases en video.
-
-Una práctica, donde lo vas a ver hecho.
-
-Un audio guiado, para ensayar con los ojos cerrados.
-
-Un material en PDF para leer con calma.
-
-Y un ejercicio corto, opcional.
-
-[PAUSA]
-
-Si tu pareja quiere hacer el curso contigo, maravilloso.
-
-Si no, igual funciona. Todos los ejercicios están pensados para hacerlos a solas.
-
-[A CÁMARA]
-
-Y una cosa que te digo desde el primer día.
-
-Si en tu relación hay violencia, amenazas o control,
-
-si te revisan, si te aíslan, si tienes miedo de cómo va a reaccionar,
-
-eso no es un problema de comunicación.
-
-Y este curso no es la herramienta.
-
-Ahí lo que corresponde es ayuda profesional, y si hay peligro, un servicio especializado de tu país.
-
-[PAUSA]
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para hoy es pequeña.
-
-La próxima vez que tu pareja te hable, fíjate solo en una cosa: a qué velocidad habla.
-
-Nada más. Solo mirar.
-
-En la primera clase vamos a ver por qué ese detalle importa tanto.
+En la primera clase, «Los cuatro canales y acompasar», vas a ver por qué ese detalle importa tanto.
 
 Seguimos creciendo juntos.

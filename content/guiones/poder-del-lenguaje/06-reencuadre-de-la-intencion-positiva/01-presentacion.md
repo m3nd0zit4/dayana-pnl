@@ -1,106 +1,35 @@
 # Presentación · La intención positiva
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 3-4 min · Presentación**
-Cámara fija, tono directo. La presuposición va en rótulo y se queda en pantalla mientras Dayana admite que suena mal. Las tres cosas que no significa, en rótulo una a una. Sin invitado.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 4-5 min
 
 Líderes, bendiciones.
 
-¿Hay algo que te hayas prometido dejar más de una vez?
+¿Hay algo que te hayas prometido dejar más de una vez? Revisar el celular en la cama. El dulce de las cuatro de la tarde. Contestar feo cuando llegas sin energía. Dejarlo todo para el último día. Piensa en uno tuyo. Tómate unos segundos para elegirlo.
 
-Revisar el celular en la cama. El dulce de las cuatro de la tarde. Contestar feo cuando llegas sin energía. Dejarlo todo para el último día.
+¿Lo tienes? Seguramente conoces bien la secuencia. Te lo prometes. Aguantas unos días. Y vuelve. La pregunta es por qué vuelve, si tú de verdad querías dejarlo.
 
-Piensa en uno tuyo.
+Este módulo trabaja una idea que responde a esa pregunta. Te la digo tal cual: toda conducta tiene una intención positiva para quien la hace.
 
-[PAUSA REAL · 10 s — elegir una conducta que te has prometido dejar]
+Y lo admito de entrada: suena mal. Suena a justificar lo injustificable. Suena a «pobrecito, lo hacía con buena intención». No es eso. Y para que no se malentienda, te digo primero las tres cosas que no significa.
 
-Te lo prometes. Aguantas unos días. Y vuelve.
+No significa que la conducta sea aceptable. Un grito tiene una intención, que me escuchen, y sigue siendo un grito. Tampoco significa que haya que perdonar a nadie. Entender cómo funciona algo y decidir qué haces con quien te hizo daño son dos cosas distintas, y la segunda es tuya. Y no significa que la persona sepa cuál es su intención. Casi nunca lo sabe.
 
-¿Por qué vuelve?
+Entonces, ¿qué significa? Que «positiva» no quiere decir buena ni sana. Quiere decir que la conducta apunta a conseguir algo o a proteger algo. Descanso. Seguridad. Control. Que no vuelva a doler. Tu celular en la cama, por ejemplo, quizá no es el problema. Quizá es el único rato del día que es solo tuyo. Y por eso vuelve: porque la necesidad que lo sostiene sigue sin atender.
 
-[A CÁMARA]
+Vuelve a tu conducta. ¿Qué podría estar buscando, aunque sea por el peor camino? Tómate unos segundos. No hace falta que lo tengas claro todavía.
 
-Este módulo trabaja una idea que responde a esa pregunta. Te la voy a decir tal cual.
+¿Qué vas a poder hacer al terminar el módulo? Vas a saber subir desde una conducta hasta la intención que la sostiene, en cinco pasos. Y vas a poder buscarle otro camino que te dé lo mismo, sin el costo.
 
-[RÓTULO: Toda conducta tiene una intención positiva para quien la hace.]
+Así funciona el módulo. En la primera clase vemos la idea completa y los cinco pasos, con un ejemplo de principio a fin. En la segunda clase la llevamos a otras personas y a los hábitos de todos los días. Después viene un caso con una persona invitada que sube la cadena en directo, con sus silencios y con su «nada, es que soy así». El audio guiado te lleva a hacerlo con calma, con tu propia conducta. Y tienes el material de lectura en PDF y un ejercicio opcional.
 
-Toda conducta tiene una intención positiva para quien la hace.
+Si hiciste el curso Fundamentos de la PNL, esta idea ya te sonará. Allí la presentamos. Aquí la llevamos hasta el final.
 
-[PAUSA]
+Hagamos una prueba de treinta segundos. Vuelve a la conducta que elegiste al principio. Pregúntale, por dentro: ¿para qué me sirves? Y escucha la primera respuesta que aparezca. Tómate unos segundos.
 
-Y lo admito de entrada: suena mal.
+¿Qué te contestó? Si la respuesta fue «para nada», no es cierta. Solo es la primera respuesta. Debajo casi siempre hay otra.
 
-Suena a justificar lo injustificable. Suena a «pobrecito, lo hacía con buena intención».
+Tu tarea para las próximas veinticuatro horas: cuando esa conducta aparezca, no te pelees con ella. Pregúntale otra vez para qué te sirve, y anota lo que conteste.
 
-No es eso. Y para que no se malentienda, te digo primero las tres cosas que no significa.
-
-[RÓTULO: No significa que la conducta sea aceptable.]
-
-No significa que la conducta sea aceptable. Un grito tiene una intención, que me escuchen, y sigue siendo un grito.
-
-[RÓTULO: No significa que haya que perdonar.]
-
-No significa que haya que perdonar a nadie. Entender cómo funciona algo y decidir qué haces con quien te hizo daño son dos cosas distintas. La segunda es tuya.
-
-[RÓTULO: No significa que la persona sepa cuál es su intención.]
-
-Y no significa que la persona sepa cuál es su intención. Casi nunca lo sabe.
-
-[A CÁMARA]
-
-Entonces, ¿qué significa?
-
-Que «positiva» no quiere decir buena ni sana. Quiere decir que la conducta apunta a conseguir algo, o a proteger algo.
-
-Descanso. Seguridad. Control. Que no vuelva a doler.
-
-Tu celular en la cama quizá no es el problema. Quizá es lo único del día que es solo tuyo.
-
-Vuelve a tu conducta. ¿Qué podría estar buscando, aunque sea por el peor camino?
-
-[PAUSA REAL · 10 s — pensar qué podría estar buscando tu conducta]
-
-Y por eso vuelve: porque la necesidad que la sostiene sigue sin atender.
-
-[A CÁMARA]
-
-¿Qué vas a poder hacer al terminar?
-
-Vas a saber subir desde una conducta hasta la intención que la sostiene, en cinco pasos.
-
-Y vas a poder buscarle otro camino que te dé lo mismo, sin el costo.
-
-En la primera clase vemos la idea completa y los cinco pasos, con una cadena entera en pizarra.
-
-En la segunda, cómo se usa con otras personas y con los hábitos.
-
-En el caso, una persona real sube la cadena en directo, con sus silencios y su «nada, es que soy así».
-
-El audio guiado te lleva a hacerlo con calma, con tu conducta.
-
-Y tienes el PDF y un ejercicio opcional.
-
-Si hiciste el curso de Fundamentos, esta idea ya te sonará. Allí la presentamos. Aquí la llevamos hasta el final.
-
-[A CÁMARA]
-
-Una prueba rápida. Vuelve a la conducta que elegiste al principio.
-
-Pregúntale, por dentro: ¿para qué me sirves?
-
-Y escucha la primera respuesta.
-
-[PAUSA REAL · 15 s — preguntarle a la conducta para qué te sirve]
-
-Si la respuesta fue «para nada», no es cierto. Solo es la primera respuesta.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas: cuando esa conducta aparezca, no te pelees con ella. Solo pregúntale otra vez para qué te sirve, y anota lo que conteste.
-
-En la primera clase vamos a subir esa respuesta hasta donde de verdad está la intención.
+En la primera clase, Toda conducta tiene una intención positiva, vamos a subir esa respuesta hasta donde de verdad está la intención.
 
 Seguimos creciendo juntos.

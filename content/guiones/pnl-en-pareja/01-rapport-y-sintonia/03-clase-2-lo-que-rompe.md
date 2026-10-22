@@ -1,253 +1,63 @@
 # Clase 2 · Lo que rompe la sintonía
 
-**PNL para relaciones y pareja · Módulo 1 · 10-12 min · Clase**
-Taller a cámara. La tabla de los seis gestos que rompen aparece fila a fila. Un
-celular en mano para la demostración del primero.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 1 · 10-12 min
 
 Líderes, bendiciones.
 
-En la clase anterior construimos sintonía. En esta la vamos a romper.
+En la clase anterior construimos sintonía. En esta la vamos a romper, a propósito, para que veas cómo se rompe. Porque la sintonía casi nunca se rompe con una gran ofensa. Se rompe con un gesto pequeño, de dos segundos, que ni siquiera sabes que haces.
 
-Porque la sintonía casi nunca se rompe con una gran ofensa.
+Al terminar esta clase vas a poder hacer tres cosas. Reconocer los seis gestos que rompen el rapport y elegir cuál es el tuyo. Usar una pregunta muy simple que arregla el más frecuente de todos. Y empezar a cuidar la sintonía donde de verdad se juega en una pareja de años. No es en la conversación difícil: es en los pequeños momentos de todos los días.
 
-Se rompe con un gesto pequeño, de dos segundos, que ni siquiera sabes que haces.
+Empecemos por ti. Recuerda la última vez que le contaste algo importante a alguien y te quedaste con la sensación de que no te escuchó. Tómate unos segundos para traer ese momento.
 
-[A CÁMARA]
+¿Lo tienes? Ahora pregúntate qué hizo exactamente esa persona. No lo que sentiste tú: lo que hizo. Lo que vería una cámara si estuviera grabando. Lo más probable es que eso que hizo sea uno de los seis gestos que vamos a ver ahora. Te los voy a decir uno por uno. Mientras los escuchas, anota en un papel los que reconoces en ti. No en tu pareja: en ti.
 
-Empecemos por ti.
+El primero es el más obvio: mirar el celular. Te están contando algo y miras la pantalla, aunque sea un segundo. Lo que dice ese gesto, sin palabras, es: hay algo más importante que tú.
 
-Recuerda la última vez que le contaste algo importante a alguien y te quedaste con la sensación de que no te escuchó.
+El segundo es el «sí, pero», o su primo, el «ya, pero». Tu pareja te dice que le molestó que llegaras tarde y tú respondes: «Sí, pero tú también llegaste tarde el martes». El «pero» borra todo lo que vino antes. La otra persona solo escucha lo que va después.
 
-[PAUSA REAL · 20 s — el alumno trae ese momento]
+El tercero es terminarle las frases. Tu pareja empieza: «Es que hoy en la reunión…». Y tú completas: «…te volvieron a ignorar, ya sé». Le quitas el turno y le quitas el ritmo. Y pasa aunque aciertes.
 
-Ahora, ¿qué hizo exactamente esa persona?
+Haz una pausa aquí y marca los que reconoces hasta ahora. ¿Ya tienes alguno? Sigamos, que faltan tres.
 
-No lo que sentiste. Lo que hizo. Lo que vería una cámara.
+El cuarto es muy traicionero, porque parece empatía: contar tu caso parecido. Tu pareja dice: «Hoy me sentí muy mal con mi hermana». Y tú respondes: «Uy, a mí me pasó lo mismo con la mía, fíjate que…». Crees que estás acompañando. En realidad le quitaste el tema. La conversación pasó de su vida a la tuya.
 
-[PAUSA REAL · 15 s — el alumno identifica el gesto]
+El quinto es corregir un dato menor. Tu pareja cuenta: «Y entonces el lunes…». Y tú interrumpes: «Fue el martes». ¿Qué importa si fue el martes? Pero de repente la conversación ya no es sobre lo que le pasó. Es sobre si tiene buena memoria.
 
-Lo más probable es que lo que hizo esté en esta lista.
+Y el sexto, el más frecuente en pareja: solucionar antes de tiempo. Tu pareja dice: «Ya no aguanto a mi jefe». Y tú, rapidísimo: «Pues renuncia. O habla con recursos humanos. O busca otra cosa». Lo que la otra persona escucha es: «no quiero escuchar esto, dame la versión corta».
 
-[TABLA EN PANTALLA]
+Ahora, de los seis, elige uno. El tuyo, el que más haces. Con honestidad, aunque no te guste. Tómate unos segundos.
 
-Son seis gestos. Te los voy a mostrar uno por uno.
+¿Lo elegiste? Ahora una pregunta más honesta todavía: ¿cuándo aparece? ¿Con cansancio? ¿Con prisa? ¿Cuando el tema te toca a ti? Pausa el video si lo necesitas y escríbelo al lado de tu gesto.
 
-Y mientras te los muestro, ve marcando en un papel los que reconoces en ti. No en tu pareja. En ti.
+Ese «cuándo» vale oro. No vas a dejar de hacer tu gesto para siempre. Vas a empezar a notarlo en ese momento concreto, que ahora ya conoces. Y notarlo es lo que te permite elegir otra cosa.
 
-[RÓTULO: 1 · Mirar el celular]
+Ahora vamos a entrenarlo. Te voy a decir una frase como si fuera tu pareja. Y tú le respondes en voz alta sin usar ninguno de los seis gestos: sin «pero», sin tu caso, sin corregir y sin solucionar. Atención, ahí va: «Hoy mi mamá me volvió a decir que estoy haciendo todo mal con los niños». Responde ahora, en voz alta.
 
-El primero, el más obvio.
+¿Qué te salió? Si te salió algo como «¿otra vez? ¿Qué te dijo?», perfecto: eso es girarte hacia la persona. Si te salió «bueno, es que tu mamá es así», eso es corregir disfrazado: le estás explicando a tu pareja cómo debería ver a su mamá. Y si te salió «tienes que ponerle un límite», eso es solucionar antes de tiempo. No pasa nada. Para eso entrenamos aquí, donde no cuesta nada.
 
-[HACERLO: Dayana escucha a cámara y a mitad de frase mira el celular]
+Vuelvo al sexto gesto, porque tiene una solución muy simple. Solucionar antes de tiempo casi siempre viene de buena intención. Una persona quiere resolver. La otra quería compañía, no soluciones. Y las dos se quedan frustradas: una porque dio buenas ideas y nadie las tomó, la otra porque nadie la escuchó.
 
-Te están contando algo y miras el celular. Aunque sea un segundo.
+La pregunta que lo arregla es esta: «¿Quieres que te ayude a resolverlo, o quieres que te escuche?». Dila en voz alta ahora, como se la dirías a tu pareja.
 
-Lo que dice ese gesto es: hay algo más importante que tú.
+¿Cómo sonó? ¿Sonó a pregunta de verdad, o sonó a «ya vas a empezar»? Porque esta pregunta funciona con dos condiciones. Que se haga en serio. Y que se respete la respuesta.
 
-[RÓTULO: 2 · «Ya, pero…»]
+Si la respuesta es «escúchame», lo que toca es escuchar. Sin soluciones escondidas, sin un «bueno, pero ¿y si…?» al final. Devuelves sus palabras, como vimos en la clase anterior. Y aguantas las ganas de arreglarlo. Esas ganas no se van: se aguantan. Y si la respuesta es «ayúdame», entonces sí, adelante con tus ideas.
 
-El segundo: «ya, pero».
+Ahora vamos a la parte más importante del módulo, y no es una técnica de conversación. Piensa en las últimas veinticuatro horas con tu pareja. ¿Te mostró algo en el celular? ¿Te comentó algo sin importancia? ¿Dijo «mira qué bonito está el cielo»? ¿Suspiró cerca de ti? Cierra los ojos un momento, repasa el día y pregúntate qué hiciste tú en cada uno de esos momentos.
 
-«Ya, pero tú también llegaste tarde el martes.»
+¿Encontraste alguno? John Gottman, un investigador que pasó décadas observando parejas reales, le dio nombre a eso: intentos de conexión. Son los pequeños «mírame» del día a día. Y ante cada uno hay tres respuestas posibles. Puedes girarte hacia la persona: levantas la vista y dices «¿a ver?». Puedes ignorarlo: sigues con lo tuyo. O puedes rechazarlo: «ahora no, ¿no ves que estoy trabajando?».
 
-El «pero» borra todo lo que vino antes. El otro solo escucha lo que va después.
+Lo que encontró Gottman es que las parejas que seguían juntas años después respondían a la gran mayoría de esos intentos. Las que se separaron dejaban pasar muchos más. Lo que marcaba la diferencia no era la gran conversación. Era cuántos de esos pequeños gestos se respondían.
 
-[RÓTULO: 3 · Terminarle las frases]
+Y esto va en las dos direcciones. Piensa ahora en tus propios intentos. ¿Cuántos haces tú en un día? ¿Y cuántos te responden? Tómate unos segundos.
 
-El tercero: terminarle las frases.
+A veces lo que aparece aquí es que una de las dos personas dejó de hacerlos. Que hace meses que ya no le muestras nada a tu pareja, porque las últimas veces nadie levantó la vista. Eso no es un fracaso. Es un dato. Y es de los más útiles de todo el curso, porque se puede cambiar mañana mismo, sin hablar de nada.
 
-«Es que hoy en la reunión…» «…te volvieron a ignorar, ya sé.»
+Hagamos un resumen. La sintonía se rompe con gestos de dos segundos: el celular, el «sí, pero», terminar frases, contar tu caso, corregir datos menores y solucionar antes de tiempo. Ya sabes cuál es el tuyo y cuándo aparece. Para el más frecuente tienes una pregunta: «¿quieres que te ayude a resolverlo, o quieres que te escuche?». Y en una pareja de años, el rapport se juega en los intentos de conexión de cada día. No se construye en la conversación difícil. Ahí se gasta lo que se ahorró antes.
 
-Le quitas el turno y le quitas el ritmo. Aunque aciertes.
+Tu tarea para las próximas veinticuatro horas. Cuenta los intentos de conexión de tu pareja, sin decirle nada. Y responde por lo menos a tres girándote hacia la persona: levantas la vista, contestas, preguntas algo. Si tu pareja quiere sumarse, que cuente los tuyos, y al final de la semana comparan las cuentas, sin reproches.
 
-[PAUSA REAL · 10 s — el alumno marca los que reconoce hasta aquí]
-
-[RÓTULO: 4 · Contar tu caso parecido]
-
-El cuarto es muy traicionero, porque parece empatía.
-
-«Hoy me sentí fatal con mi hermana.» «Uy, a mí me pasó lo mismo con la mía, fíjate que…»
-
-Crees que estás acompañando. En realidad le quitaste el tema.
-
-Parece empatía. Y funciona como un robo de turno: la conversación pasa de su vida a la tuya.
-
-[RÓTULO: 5 · Corregir un dato menor]
-
-El quinto: corregir un dato menor.
-
-«Y entonces el lunes…» «Fue el martes.»
-
-¿Qué importa si fue el martes? Pero de repente la conversación ya no es sobre lo que le pasó. Es sobre si tiene buena memoria.
-
-[RÓTULO: 6 · Solucionar antes de tiempo]
-
-Y el sexto, el más frecuente en pareja.
-
-Solucionar antes de tiempo.
-
-«Ya no aguanto a mi jefe.» «Pues renuncia. O habla con recursos humanos. O busca otra cosa.»
-
-[PAUSA]
-
-Lo que se escucha es: «no quiero escuchar esto, dame la versión corta».
-
-[A CÁMARA]
-
-Ahora, de los seis, elige uno. El tuyo. El que más haces.
-
-[PAUSA REAL · 15 s — el alumno elige su gesto]
-
-Y una pregunta más honesta todavía: ¿cuándo aparece?
-
-¿Con cansancio? ¿Con prisa? ¿Cuando el tema te toca a ti?
-
-[PAUSA REAL · 15 s — el alumno escribe cuándo aparece]
-
-Ese «cuándo» es oro. Porque no vas a dejar de hacerlo siempre. Vas a dejar de hacerlo en ese momento concreto, que ahora ya conoces.
-
-[A CÁMARA]
-
-Vamos a entrenarlo. Te voy a decir una frase, como si fuera tu pareja.
-
-Y tú le respondes en voz alta, sin usar ninguno de los seis.
-
-Sin «pero», sin tu caso, sin corregir, sin solucionar.
-
-[PAUSA]
-
-Atención. Ahí va.
-
-«Hoy mi mamá me volvió a decir que estoy haciendo todo mal con los niños.»
-
-[PAUSA REAL · 15 s — el alumno responde en voz alta]
-
-¿Qué te salió?
-
-Si te salió algo como «¿otra vez? ¿Qué te dijo?», perfecto. Eso es girarse hacia la persona.
-
-Si te salió «bueno, es que tu mamá es así», eso es el número cinco disfrazado: corregir. Y si te salió «tienes que ponerle un límite», eso es el seis.
-
-[PAUSA]
-
-No pasa nada. Para eso entrenamos aquí, donde no cuesta nada.
-
-[A CÁMARA]
-
-Vuelvo al sexto, porque tiene una solución preciosa y muy simple.
-
-Solucionar antes de tiempo casi siempre viene de buena intención.
-
-Uno quiere resolver. El otro quería que le escucharan.
-
-Y los dos se quedan frustrados: uno porque dio buenas ideas y nadie las tomó. El otro porque nadie le escuchó.
-
-[RÓTULO: «¿Quieres que te ayude a resolverlo o quieres que te escuche?»]
-
-La pregunta que lo arregla es esta:
-
-«¿Quieres que te ayude a resolverlo, o quieres que te escuche?»
-
-[PAUSA]
-
-Dila en voz alta. Ahora. Como se la dirías a tu pareja.
-
-[PAUSA REAL · 10 s — el alumno dice la pregunta en voz alta]
-
-¿Cómo sonó? ¿Sonó a pregunta de verdad, o sonó a «ya vas a empezar»?
-
-Porque la pregunta solo funciona si se hace en serio.
-
-Y si se respeta la respuesta.
-
-[PAUSA]
-
-Si te dice «escúchame», lo que toca es escuchar. Sin soluciones escondidas.
-
-Devolverle sus palabras, como vimos en la clase anterior.
-
-Y aguantar las ganas de arreglarlo. Esas ganas no se van. Se aguantan.
-
-[A CÁMARA]
-
-Ahora vamos a la parte más importante del módulo. Y no es una técnica de conversación.
-
-Piensa en las últimas veinticuatro horas con tu pareja.
-
-¿Te mostró algo en el celular? ¿Te comentó algo sin importancia? ¿Dijo «mira qué bonito está el cielo»? ¿Suspiró cerca de ti?
-
-[PAUSA REAL · 20 s — el alumno repasa las últimas 24 horas]
-
-¿Y qué hiciste tú?
-
-[PAUSA]
-
-[RÓTULO: Intentos de conexión]
-
-John Gottman, un investigador que pasó décadas observando parejas reales, le dio un nombre a eso: intentos de conexión.
-
-Son los pequeños «mírame» del día a día.
-
-Y ante cada uno hay tres respuestas posibles.
-
-Girarte hacia la otra persona: «¿a ver?».
-
-Ignorarlo: seguir con lo tuyo.
-
-O rechazarlo: «ahora no, ¿no ves que estoy trabajando?».
-
-[PAUSA]
-
-Lo que encontró Gottman es que lo que distingue a las parejas que siguen juntas años después no es la gran conversación.
-
-Es cuántos de esos pequeños intentos se responden.
-
-Las parejas que duraban respondían a la gran mayoría. Las que se separaron dejaban pasar muchísimos más.
-
-[PAUSA]
-
-Y esto va en las dos direcciones.
-
-Piensa ahora en los tuyos. ¿Cuántos intentos haces tú en un día?
-
-¿Y cuántos te responden?
-
-[PAUSA REAL · 15 s — el alumno piensa en sus propios intentos]
-
-A veces lo que aparece aquí es que uno dejó de hacerlos.
-
-Que hace meses que ya no le muestras nada, porque las últimas veces nadie levantó la vista.
-
-Eso no es un fracaso. Es un dato. Y es de los más útiles de todo el curso, porque se puede cambiar mañana mismo, sin hablar de nada.
-
-[A CÁMARA]
-
-Te dejo la frase que resume el módulo.
-
-[RÓTULO: El rapport no se construye en la conversación difícil. Ahí se gasta lo que se ahorró antes.]
-
-El rapport no se construye en la conversación difícil.
-
-Ahí se gasta lo que se ahorró antes.
-
-Cada «¿a ver?» es un ahorro. Cada «ahora no» es un retiro pequeño.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Cuenta los intentos de conexión de tu pareja. Sin decirle nada.
-
-Y responde por lo menos a tres girándote hacia la otra persona. Levantas la vista, contestas, preguntas algo.
-
-Si tu pareja quiere sumarse al ejercicio, que cuente los tuyos. Y al final de la semana comparan.
-
-[PAUSA]
-
-En el video de práctica vas a ver acompasar en directo: la misma escena resuelta mal y resuelta bien.
+En el video de práctica, «Acompasar a alguien alterado, en directo», vas a vivir conmigo la misma escena resuelta mal y resuelta bien. Y vas a notar en tu cuerpo el momento exacto en que se tuerce.
 
 Seguimos creciendo juntos.

@@ -1,216 +1,57 @@
 # Clase 2 · Diseña tu protocolo
 
-**Hipnosis y PNL: reprogramación mental · Módulo 7 · 10-12 min · Clase**
-Taller: el alumno necesita papel y bolígrafo. Las cinco preguntas del diseño y
-el texto del compromiso aparecen en pantalla. Dayana hace en cámara la técnica
-3-2-1, nombrando en voz alta lo que ve, oye y siente.
-
----
-
-[A CÁMARA]
+Hipnosis y PNL: reprogramación mental · Módulo 7 · 9-11 min
 
 Líderes, bendiciones.
 
-Empecemos con una pregunta rara.
+Esta es una clase de taller, así que ten papel y algo para escribir. Hoy vamos a diseñar tu protocolo de práctica para que no se caiga. Vamos en este orden: cinco preguntas de diseño, un registro de tres líneas, tu versión mínima para los días difíciles y un compromiso escrito y firmado. Al final te enseño una técnica de autohipnosis con los ojos abiertos, para los días en que no puedes cerrarlos. Vas a salir de esta clase con tu protocolo listo y tu compromiso firmado.
 
-¿Por qué casi nadie se olvida de cepillarse los dientes por la noche… pero tanta gente se olvida de tomar agua durante el día?
+Empecemos con una pregunta rara. ¿Por qué casi nadie se olvida de cepillarse los dientes por la noche, y tanta gente se olvida de tomar agua durante el día? Piensa la respuesta unos segundos.
 
-[PAUSA REAL · 5 s — pensar la respuesta]
+No es fuerza de voluntad. Nadie se cepilla los dientes con fuerza de voluntad. Cepillarse los dientes está pegado a algo: al momento de irte a la cama. Una cosa lleva a la otra. Tomar agua, en cambio, flota en el día sin estar pegado a nada. Tu práctica no puede flotar. Hoy la vamos a pegar a tu vida, con cinco preguntas.
 
-No es fuerza de voluntad. Nadie se cepilla los dientes con fuerza de voluntad.
+La primera pregunta: ¿a qué hora exacta vas a practicar? Una hora fija. «Cuando pueda» no es una hora, y «por la noche» tampoco. Escríbela ahora.
 
-Es que cepillarse los dientes está pegado a algo. Al momento de irte a la cama. Una cosa lleva a la otra.
+La segunda pregunta es la más importante: ¿después de qué acción que ya haces sin falta? Se trata de engancharla a algo que ya existe en tu día. «Después de lavarme los dientes por la noche». «Después de acostarme y apagar la luz». «Después de servirme el primer café». Esto se llama apilamiento de hábitos, y es lo que hace que no se te olvide. Escríbelo así: «Después de esto, hago mi práctica». Pausa el video si lo necesitas.
 
-Tomar agua, en cambio, flota en el día sin estar pegado a nada.
+¿Lo tienes? La tercera pregunta: ¿dónde? Un lugar concreto, siempre el mismo. Tu cama, una silla en particular, un rincón de la sala. El lugar también se vuelve parte del enganche. Escríbelo.
 
-[PAUSA]
+La cuarta pregunta: ¿qué valor vas a trabajar estas tres semanas? Uno solo. Trabajar cinco valores a la vez es no trabajar ninguno. Elige el que escribiste en la segunda clase del módulo seis: el que más distancia tiene entre lo que dices y lo que vives. Escríbelo.
 
-Tu práctica no puede flotar. Hoy la vamos a pegar a tu vida. Con cinco preguntas.
+Y la quinta: ¿dónde va a estar tu registro? A la vista. En la mesa de noche, pegado en el espejo del baño. No en una carpeta del computador que no vas a abrir nunca. Decide el lugar y escríbelo.
 
-[A CÁMARA]
+Con las cinco respuestas, pasemos al registro. Es muy corto a propósito: tres líneas por día. En la primera anotas si lo hiciste, sí o no. En la segunda, del uno al diez, qué tan profundo llegaste. Y en la tercera, una cosa que notaste hoy en tu vida relacionada con el valor que estás trabajando.
 
-[RÓTULO: 1 · ¿A qué hora exacta?]
+Esa tercera línea es la importante. Es donde vas a ver el cambio antes de sentirlo. Un día escribes «hoy dije que no a algo, y no me sentí culpable». Otro día, otra cosa pequeña. Y al mirar la columna entera, ves el camino que no se notaba día a día.
 
-Primera. ¿A qué hora exacta la vas a hacer?
+Hagamos una prueba. Escribe tu tercera línea de hoy: algo de hoy, aunque sea mínimo, relacionado con tu valor. Tómate unos segundos.
 
-Una hora fija. «Cuando pueda» no es una hora. «Por la noche» tampoco.
+¿Te costó encontrar algo? Es normal al principio. Con los días empiezas a fijarte. Y fijarte ya es parte del cambio.
 
-Escribe la hora.
+Antes del compromiso, una pieza más del diseño: tu versión mínima. Va a haber días en que el diseño se rompa. Un viaje, una enfermedad, una visita que se queda hasta tarde. Para esos días, decide desde ya una versión de un minuto: tres respiraciones, el gesto del pulgar y el índice, y tu escena unos segundos. No es la práctica completa, pero mantiene el hilo. Y un día con versión mínima cuenta como un día hecho. Escribe cuál va a ser la tuya.
 
-[PAUSA REAL · 10 s — escribir la hora]
+Ahora, el compromiso. Vas a escribirlo completo, con tu letra, y te lo voy a dictar por partes. Escribe: «Durante los próximos veintiún días voy a practicar la instalación del valor», y pon tu valor. Sigue con «a las», y pon tu hora. Después «después de», y pon tu enganche. Y «en», y pon tu lugar.
 
-[RÓTULO: 2 · ¿Después de qué?]
+Ahora escribe la segunda parte: «Si un día fallo, retomo al siguiente. Nunca dos días seguidos». Y la última: «Voy a saber que está funcionando cuando», y aquí pon una señal concreta y observable. No «cuando me sienta mejor». Algo que otra persona podría ver. Por ejemplo: «cuando le diga a mi jefe lo que pienso sin ensayarlo diez veces». Pausa el video y escríbelo entero.
 
-Segunda. Y esta es la más importante. ¿Después de qué acción que ya haces sin falta?
+¿Lo tienes? Ahora léelo en voz alta, entero. Después fírmalo y ponle la fecha de hoy. Sé que suena ceremonioso. Funciona, porque escribir algo con tu letra y decirlo en voz alta lo vuelve tuyo de otra manera.
 
-Engánchala a algo que ya existe en tu día. «Después de lavarme los dientes por la noche.» «Después de acostarme y apagar la luz.» «Después de servirme el primer café.»
+Una meta para el final de tu primera semana: hacer la autoinducción corta sin el audio, de memoria. Después anota dos cosas: qué paso se te olvidó y si llegaste igual de profundo que con el audio. Si lo logras, ya cumpliste el objetivo de este curso: poder hacerlo sin nadie.
 
-Eso se llama apilamiento de hábitos. Y es lo que hace que no se te olvide.
+Y una cosa clara, para que sepas qué tienes en las manos. Esta práctica es una habilidad para relajarte, enfocarte y trabajar con tus valores. No reemplaza ningún tratamiento médico ni psicológico. Si estás en uno, esto acompaña, no sustituye.
 
-Escríbelo así: «Después de…, hago mi práctica».
+Ahora la herramienta que te prometí, para los días en que no puedes cerrar los ojos ni acostarte. Es una técnica muy enseñada que se atribuye a Betty Erickson, la esposa de Milton Erickson. Se llama tres, dos, uno, y es muy simple. Si estás conduciendo u operando una máquina, esta no.
 
-[PAUSA REAL · 20 s — escribir tu enganche]
+Vamos a hacerla juntos. Nombra por dentro tres cosas que ves. Ahora tres cosas que oyes. Y tres cosas que sientes en el cuerpo: el peso de las manos, la ropa sobre la piel, los pies en el suelo. Tómate tu tiempo con cada una.
 
-[RÓTULO: 3 · ¿Dónde?]
+Ahora dos de cada una. Dos que ves. Dos que oyes. Dos que sientes. Y ahora una de cada una. Una que ves. Una que oyes. Una que sientes. Quédate ahí unos segundos.
 
-Tercera. ¿Dónde? Un lugar concreto. Siempre el mismo. Tu cama, una silla en particular.
+¿Cómo estás ahora, comparado con hace un minuto? Esto es acompasarte a ti, como aprendiste en el módulo cuatro, vuelto una rutina. Para los días difíciles, puede ser tu puerta de entrada.
 
-[PAUSA REAL · 10 s — escribir el lugar]
+Hagamos el resumen. Tu práctica se pega a tu vida con cinco respuestas: la hora, el enganche, el lugar, un solo valor y un registro visible. El registro tiene tres líneas, y la tercera es la que muestra el cambio. La versión mínima salva los días difíciles. El compromiso escrito, leído en voz alta y firmado convierte una intención en una decisión. Y la técnica tres, dos, uno te sirve cuando no puedes cerrar los ojos.
 
-[RÓTULO: 4 · ¿Qué valor? Uno solo]
+Tu tarea para las próximas veinticuatro horas: pon tu registro donde dijiste. Y esta noche haz tu día uno, a tu hora, después de tu enganche y en tu lugar.
 
-Cuarta. ¿Qué valor vas a trabajar estas tres semanas?
-
-Uno solo. Trabajar cinco valores a la vez es no trabajar ninguno.
-
-Elige el que escribiste en la segunda clase del módulo seis. El que más distancia tiene entre lo que dices y lo que vives.
-
-[PAUSA REAL · 10 s — escribir el valor]
-
-[RÓTULO: 5 · ¿Dónde va a estar el registro?]
-
-Y quinta. ¿Dónde va a estar tu registro?
-
-Visible. En la mesa de noche. Pegado en el espejo. No en una carpeta del computador que no vas a abrir nunca.
-
-[PAUSA REAL · 10 s — decidir dónde va el registro]
-
-[A CÁMARA]
-
-Ahora, el registro. Es muy corto a propósito. Tres líneas por día.
-
-[EN PANTALLA: Día · ¿Lo hice? · Profundidad del 1 al 10 · Qué noté hoy]
-
-Línea uno: ¿lo hice? Sí o no.
-
-Línea dos: del uno al diez, ¿qué tan profundo llegué?
-
-Y línea tres: una cosa que noté hoy en mi vida, relacionada con el valor que estoy trabajando.
-
-[PAUSA]
-
-Esa tercera línea es la importante.
-
-Es donde vas a ver el cambio antes de sentirlo. Un día escribes «hoy dije que no a algo, y no me sentí culpable». Y otro día, otra cosa pequeña. Y al mirar la columna entera, ves el camino.
-
-Hagamos una prueba. Escribe tu línea tres de hoy. Algo de hoy, aunque sea mínimo, relacionado con tu valor.
-
-[PAUSA REAL · 30 s — escribir la línea tres de hoy]
-
-¿Te costó encontrar algo? Es normal al principio. Con los días, empiezas a fijarte. Y fijarte ya es parte del cambio.
-
-[A CÁMARA]
-
-Antes del compromiso, una pieza más del diseño. Tu versión mínima.
-
-[RÓTULO: La versión mínima · 1 minuto]
-
-Va a haber días en que el diseño se rompa. Un viaje, una enfermedad, una visita que se queda hasta tarde.
-
-Para esos días, decide desde ya tu versión mínima. Un minuto. Tres respiraciones, el gesto del pulgar y el índice, y tu escena unos segundos.
-
-No es la práctica completa. Pero mantiene el hilo. Y un día con versión mínima cuenta como un día hecho.
-
-Escribe cuál va a ser la tuya.
-
-[PAUSA REAL · 15 s — escribir tu versión mínima]
-
-[A CÁMARA]
-
-Ahora, el compromiso. Vas a escribirlo completo, con tu letra.
-
-[EN PANTALLA: el texto del compromiso con los espacios en blanco]
-
-«Durante los próximos veintiún días voy a practicar la instalación del valor…, a las…, después de…, en…
-
-Si un día fallo, retomo al siguiente. Nunca dos días seguidos.
-
-Voy a saber que está funcionando cuando…»
-
-[PAUSA]
-
-En ese último espacio, pon una señal concreta y observable. No «cuando me sienta mejor». Algo que alguien podría ver. «Cuando le diga a mi jefe lo que pienso sin ensayarlo diez veces.»
-
-Escríbelo entero.
-
-[PAUSA REAL · 60 s — escribir el compromiso completo]
-
-Ahora léelo en voz alta. Entero.
-
-[PAUSA REAL · 20 s — leerlo en voz alta]
-
-Y fírmalo. Con fecha.
-
-[PAUSA REAL · 10 s — firmar y poner fecha]
-
-Sé que suena ceremonioso. Funciona.
-
-[A CÁMARA]
-
-Una meta para el final de tu primera semana: hacer la autoinducción corta sin el audio. De memoria.
-
-Después anota dos cosas: qué paso se te olvidó, y si llegaste igual de profundo que con el audio.
-
-Si lo logras, ya cumpliste el objetivo de este curso: poder hacerlo sin nadie.
-
-[PAUSA]
-
-Y una cosa clara, para que sepas qué tienes en las manos. Esta práctica es una habilidad para relajarte y enfocarte. No reemplaza ningún tratamiento médico ni psicológico. Si estás en uno, esto acompaña. No sustituye.
-
-[A CÁMARA]
-
-Y te dejo una herramienta más, para los días en que no puedes cerrar los ojos ni acostarte.
-
-[RÓTULO: La técnica 3-2-1 de Betty Erickson]
-
-Viene de Betty Erickson, la esposa de Milton Erickson, y es de las técnicas de autohipnosis más enseñadas. Es muy simple.
-
-Si estás conduciendo u operando una máquina, esto no.
-
-Vamos a hacerla juntos. Nombra por dentro tres cosas que ves.
-
-[HACERLO]
-
-[PAUSA REAL · 10 s — tres cosas que ves]
-
-Tres cosas que oyes.
-
-[PAUSA REAL · 10 s — tres cosas que oyes]
-
-Tres cosas que sientes en el cuerpo.
-
-[PAUSA REAL · 10 s — tres cosas que sientes]
-
-Ahora dos de cada una. Dos que ves.
-
-[PAUSA REAL · 6 s — dos que ves]
-
-Dos que oyes.
-
-[PAUSA REAL · 6 s — dos que oyes]
-
-Dos que sientes.
-
-[PAUSA REAL · 6 s — dos que sientes]
-
-Y una de cada una. Una que ves. Una que oyes. Una que sientes.
-
-[PAUSA REAL · 10 s — una de cada una]
-
-[PAUSA]
-
-¿Cómo estás ahora, comparado con hace un minuto?
-
-Esto es acompasarte a ti, como en el módulo cuatro, vuelto una rutina. Para los días difíciles, puede ser tu puerta de entrada.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Pon tu registro donde dijiste. Y esta noche haces el día uno, a tu hora, después de tu enganche, en tu lugar.
-
-[PAUSA]
-
-En la práctica de este módulo vemos qué pasa en cada semana, y en qué momento te van a dar ganas de abandonar. Para que, cuando llegue, ya lo estés esperando.
+El video de práctica se llama Qué pasa en cada semana de los veintiún días. Ahí vemos qué esperar en cada semana y en qué momento te van a dar ganas de abandonar. Para que, cuando llegue, ya lo estés esperando.
 
 Seguimos creciendo juntos.

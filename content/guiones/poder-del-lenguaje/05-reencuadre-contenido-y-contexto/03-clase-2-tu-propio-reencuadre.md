@@ -1,174 +1,51 @@
 # Clase 2 · Tu propio reencuadre en cuatro pasos
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 5 · 9-12 min · Clase**
-Taller aplicado: el alumno hace su reencuadre durante la clase. Necesita papel. Cada paso va en rótulo; el ejemplo de la jefa, en pantalla. Las pausas reales no se recortan.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 5 · 9-11 min
 
 Líderes, bendiciones.
 
-Una pregunta antes de empezar.
+Bienvenidos a la segunda clase. En la anterior viste las dos formas de reencuadrar. Hoy vas a hacer un reencuadre tuyo, de principio a fin, en cuatro pasos. Al terminar vas a tener un significado nuevo para algo que te pasó, uno que de verdad te crees. Vas a entender por qué esto funciona mejor que aguantarse. Y vas a saber cómo comprobar, durante una semana, que tu reencuadre aguanta.
 
-Piensa en el último problema que te contó una amiga. ¿Le encontraste otra lectura con facilidad?
+Empiezo con una pregunta. Piensa en el último problema que te contó una amiga o un amigo. ¿Te resultó fácil encontrarle otra lectura? Seguramente sí. Desde fuera se ve clarísimo. Ahora piensa en un problema tuyo. ¿Te resulta igual de fácil? Tómate un momento para comparar.
 
-[PAUSA]
+No, ¿verdad? Contigo cuesta más por una razón muy sencilla: el significado viejo tiene años de pruebas a favor. Te lo has dicho tantas veces que ya suena a hecho. Por eso, para reencuadrarte a ti, no basta con hacerte la pregunta. Hacen falta pasos.
 
-Seguramente sí. Desde fuera se ve clarísimo.
+Hoy los vas a hacer conmigo, en directo. Busca papel y lápiz, y pausa el video si los tienes que ir a buscar. ¿Ya los tienes? Ahora elige algo real para trabajar. De tamaño medio: ni una tontería ni la herida más grande que tengas. Algo que pasó en las últimas semanas y que te sigue dando vueltas. Puede ser el mismo hecho de la clase anterior. Tómate unos segundos para elegirlo.
 
-Ahora piensa en un problema tuyo. ¿Te resulta igual de fácil?
+Paso uno: escribe el hecho pelado. Sin adjetivos. Solo lo que grabaría una cámara. Te muestro la diferencia con un ejemplo. «Mi jefa me humilló delante de todos» no es un hecho, porque «humilló» ya es un significado. El hecho pelado sería: «mi jefa corrigió dos cifras de mi informe en la reunión del martes, delante del equipo». ¿Notas la diferencia? La segunda frase la puede confirmar cualquiera que estuviera ahí. Ahora escribe el tuyo. Pausa el video y tómate el tiempo que necesites.
 
-[PAUSA REAL · 8 s — comparar lo fácil que es con otros y contigo]
+¿Lo tienes? Revísalo. Si quedó alguna palabra que una cámara no podría grabar, como «humilló», «me ignoró» o «se burló», cámbiala por lo que se vio y lo que se oyó. Esa revisión ya es la mitad del trabajo.
 
-No, ¿verdad?
+Paso dos: escribe la frase que te dices hoy sobre ese hecho. La frase exacta, tal cual suena en tu cabeza. En el ejemplo de la jefa sería: «quedé en ridículo, no sirvo para esto». No la suavices. Escríbela como es.
 
-Contigo cuesta más por una razón muy sencilla: el marco viejo tiene años de pruebas a favor. Te lo has dicho tantas veces que ya suena a hecho.
+Paso tres: busca tres significados alternativos que encajen con ese mismo hecho. Tres, no uno. Y te aviso de algo: el primero casi siempre es malo. Suele ser una versión forzada, demasiado positiva. Escríbelo igual, porque hace falta sacarlo para que salgan los otros.
 
-Por eso, para reencuadrarte a ti, no basta con la pregunta. Hacen falta pasos.
+Te doy los tres del ejemplo. Uno: «mi jefa quiere que el informe salga perfecto, porque lo va a presentar a sus superiores». Dos: «me corrigió dos cifras de veinte, el resto estaba bien». Tres: «a ella le cuesta dar comentarios en privado, y lo hace así con todo el equipo». Fíjate que los tres encajan con el hecho. Ninguno inventa nada.
 
-Hoy los vas a hacer en directo. Busca papel.
+Ahora escribe los tuyos. Primero uno, después otro y después el tercero. Pausa el video y date por lo menos un minuto. Si te quedas en blanco, usa la pregunta de la clase anterior: ¿qué otra cosa podría significar esto, que también encaje con los hechos? O piensa qué te diría alguien que te quiere y que estuvo ahí ese día.
 
-[PAUSA REAL · 10 s — buscar papel y lápiz]
+¿Ya tienes los tres? Vamos con el paso cuatro, el más importante: elige el que te resulte creíble, aunque sea el menos bonito. Léelos en voz alta, uno por uno, y fíjate en tu cuerpo mientras lo haces. ¿Con cuál se afloja algo, aunque sea un poco? ¿Cuál acepta tu cuerpo? Hazlo ahora, despacio.
 
-Elige algo real. De tamaño medio. Ni una tontería, ni la herida más grande que tengas.
+Rodea el que elegiste. Este paso es el que casi todo el mundo se salta. La gente elige el más bonito, el que suena mejor, y a los tres días ya no le sirve. Un significado precioso que no te crees no cambia nada. Uno modesto que sí te crees, sí. En el ejemplo de la jefa, el que suele aguantar es el más sencillo: «me corrigió dos cifras de veinte, el resto estaba bien». No es glorioso. Pero es verdad, y se puede sostener.
 
-Algo que pasó en las últimas semanas y que te sigue dando vueltas.
+Hay una prueba sencilla. Si al leerlo en voz alta tienes que convencerte, no es ese. Si lo lees y algo por dentro dice «sí, eso también es verdad», es ese.
 
-[PAUSA REAL · 15 s — elegir el hecho con el que vas a trabajar]
+Antes de darlo por bueno, revísalo con las cuatro señales de la clase anterior. Hazte estas cuatro preguntas. ¿Empieza por «al menos»? ¿Te exige dejar de sentir lo que sientes? ¿El golpe todavía está demasiado fresco? ¿Necesita ignorar algún hecho real? Tómate unos segundos con cada una. Si alguna respuesta es sí, vuelve al paso tres y busca otro.
 
-[A CÁMARA]
+Ahora, ¿por qué sirve todo esto? Porque no es solo una idea bonita. Lo que en PNL se llama reencuadre, en psicología se estudia con el nombre de reevaluación cognitiva, y es uno de los temas más estudiados en regulación emocional. El investigador James Gross, de la Universidad de Stanford, lo comparó con la otra estrategia que usamos todos: aguantarse.
 
-[RÓTULO: Paso 1 · El hecho, pelado]
+Recuerda la última vez que pusiste buena cara mientras por dentro hervías. En una reunión, en una cena familiar. ¿Se te pasó lo que sentías? Probablemente no. Solo no se notó. Eso es lo que encontraron Gross y su equipo: aguantarse reduce lo que se ve por fuera, pero no lo que se siente por dentro. Y tiene costos, en el cuerpo y en las relaciones. Reevaluar, en cambio, cambia el significado antes de que la emoción se dispare del todo. Por eso cuesta menos.
 
-Paso uno. Escribe el hecho pelado. Sin adjetivos. Solo lo que grabaría una cámara.
+Con esto claro, te dejo un reencuadre muy útil para el día a día: el del estrés. Antes de una reunión importante, el corazón se acelera y la frase de siempre es «me están temblando las manos, me va a salir mal». Hay investigación, por ejemplo la de la psicóloga Alia Crum, que sugiere que la forma en que entiendes el estrés influye en cómo responde tu cuerpo. Pruébalo ahora. Pon la mano en el pecho y di en voz alta: «mi cuerpo se está preparando». Mismo corazón, otra lectura. Y fíjate que encaja con los hechos, porque el cuerpo sí se está preparando.
 
-Te doy un ejemplo de la diferencia.
+El último punto de hoy: un buen reencuadre aguanta el uso. Por eso te propongo la prueba de la semana. Durante siete días, cada vez que aparezca esa situación, anota dos cosas. ¿Apareció el significado viejo o el nuevo? Y ¿qué hiciste distinto? Al séptimo día pregúntate: ¿todavía me lo creo? ¿Qué se rebeló contra él? ¿Hace falta ajustarlo?
 
-[EN PANTALLA: Con marco: «Mi jefa me humilló delante de todos.» · Pelado: «Mi jefa corrigió dos cifras de mi informe en la reunión del martes, delante del equipo.»]
+Un buen significado, además, te deja actuar. Con «quedé en ridículo» solo queda esconderse. Con «el resto estaba bien» se puede hacer algo, por ejemplo, pedirle a la jefa que la próxima corrección te la haga a solas. Si eso pasa, tu reencuadre funcionó. En el material de lectura en PDF tienes una tabla para llevar esa semana.
 
-«Mi jefa me humilló delante de todos» no es un hecho. «Humilló» ya es un significado.
+Hagamos un resumen. Contigo cuesta más, porque el significado viejo ya suena a hecho. Por eso usas cuatro pasos: el hecho pelado, la frase de hoy, tres significados alternativos y el que de verdad te crees. Lo revisas con las cuatro señales. Y lo pones a prueba una semana. Esto funciona mejor que aguantarse, porque cambia el significado en lugar de esconder la emoción.
 
-El hecho pelado sería: «mi jefa corrigió dos cifras de mi informe en la reunión del martes, delante del equipo».
+Tu tarea para las próximas veinticuatro horas: lee tu reencuadre mañana por la mañana, y otra vez la próxima vez que aparezca la situación. No lo repitas como un mantra. Solo léelo y fíjate si sigue en pie.
 
-Escribe el tuyo.
-
-[PAUSA REAL · 40 s — escribir el hecho pelado]
-
-Revísalo. Si quedó alguna palabra que una cámara no podría grabar, como «humilló», «ignoró», «se burló», cámbiala por lo que se vio y se oyó.
-
-[PAUSA REAL · 15 s — revisar y quitar adjetivos]
-
-[RÓTULO: Paso 2 · La frase que te dices]
-
-Paso dos. Escribe el marco que tiene hoy. La frase exacta que te dices sobre ese hecho.
-
-En el ejemplo: «quedé en ridículo, no sirvo para esto».
-
-Escribe la tuya, tal cual suena en tu cabeza.
-
-[PAUSA REAL · 20 s — escribir la frase que te dices]
-
-[RÓTULO: Paso 3 · Tres marcos alternativos]
-
-Paso tres. Busca tres marcos alternativos que encajen con ese mismo hecho.
-
-Tres, no uno. Y te aviso: el primero siempre es malo. Casi siempre es una versión forzada, demasiado positiva. Escríbelo igual. Hace falta sacarlo para que salgan los otros.
-
-En el ejemplo, podrían ser: «mi jefa quiere que el informe salga perfecto porque lo va a presentar arriba». «Me corrigió dos cifras de veinte: el resto estaba bien». «Le cuesta dar feedback en privado, y lo hace así con todo el equipo».
-
-Escribe el primero.
-
-[PAUSA REAL · 30 s — escribir el primer marco alternativo]
-
-El segundo.
-
-[PAUSA REAL · 30 s — escribir el segundo marco alternativo]
-
-Y el tercero.
-
-[PAUSA REAL · 30 s — escribir el tercer marco alternativo]
-
-Si te quedaste en blanco, hazte la pregunta de la clase uno: ¿qué otra cosa podría significar esto, que también encaje con los hechos? O piensa qué te diría alguien que te quiere y que estuvo ahí.
-
-[RÓTULO: Paso 4 · El que te crees]
-
-Paso cuatro. Elige el que te resulte creíble. Aunque sea el menos bonito.
-
-Léelos en voz alta, uno por uno, y fíjate en el cuerpo. ¿Cuál acepta? ¿Con cuál se afloja algo, aunque sea un poco?
-
-[PAUSA REAL · 30 s — leer los tres en voz alta y notar cuál acepta el cuerpo]
-
-Rodéalo.
-
-Este paso es el que la gente se salta. Elige el más bonito, el que suena mejor, y a los tres días no le sirve.
-
-Un marco precioso que no te crees no cambia nada. Uno modesto que sí te crees, sí.
-
-Una prueba sencilla. Si al leerlo en voz alta tienes que convencerte, no es ese. Si lo lees y algo por dentro dice «sí, eso también es verdad», es ese.
-
-[A CÁMARA]
-
-Antes de darlo por bueno, revísalo contra las cuatro señales de la clase uno.
-
-[EN PANTALLA: ¿Empieza por «al menos»? · ¿Te exige dejar de sentir lo que sientes? · ¿El golpe todavía está fresco? · ¿Ignora algún hecho real?]
-
-¿Empieza por «al menos»? ¿Te exige dejar de estar triste o con rabia? ¿El golpe todavía está fresco? ¿Necesita ignorar algún hecho real?
-
-[PAUSA REAL · 20 s — revisar tu reencuadre contra las cuatro señales]
-
-Si marcaste alguna, vuelve al paso tres y busca otro.
-
-[A CÁMARA]
-
-Ahora, ¿por qué esto sirve? Porque no es solo una idea bonita. Es de lo mejor estudiado en regulación emocional.
-
-[RÓTULO: Reevaluar o aguantarse · James Gross]
-
-Lo que en PNL se llama reencuadre, en psicología se estudia como reevaluación cognitiva. El investigador James Gross, en Stanford, lo comparó con la otra estrategia que usamos todos: aguantarse.
-
-Recuerda la última vez que pusiste buena cara mientras por dentro hervías. En una reunión, en una cena familiar.
-
-[PAUSA REAL · 10 s — recordar una vez que te aguantaste la cara]
-
-¿Se te pasó lo que sentías? Probablemente no. Solo no se notó.
-
-Eso es lo que encontró Gross: aguantarse reduce lo que se ve, pero no lo que se siente. Y tiene costo, en el cuerpo y en las relaciones.
-
-Reevaluar, en cambio, cambia el significado antes de que la emoción se dispare del todo. Por eso cuesta menos.
-
-[A CÁMARA]
-
-Y un reencuadre muy útil para el día a día: el del estrés.
-
-Cuando el corazón se acelera antes de una reunión importante, la frase de siempre es «me están temblando las manos, me va a salir mal».
-
-Hay investigación, por ejemplo la de Alia Crum en Stanford, que muestra que la forma en que entiendes el estrés cambia cómo responde tu cuerpo a él.
-
-Pruébalo. Pon la mano en el pecho y di en voz alta: «mi cuerpo se está preparando».
-
-[PAUSA REAL · 10 s — decir con la mano en el pecho «mi cuerpo se está preparando»]
-
-Mismo corazón. Otra lectura. Y encaja con los hechos: el cuerpo sí se está preparando.
-
-[A CÁMARA]
-
-Último punto. Un reencuadre bueno aguanta el uso.
-
-Durante una semana, cada vez que aparezca esa situación, anota: ¿apareció el marco viejo o el nuevo? ¿Qué hiciste distinto?
-
-Y al séptimo día te preguntas: ¿todavía me lo creo? ¿Qué se rebeló contra él? ¿Hace falta ajustarlo?
-
-Por ejemplo: si la jefa vuelve a corregir algo en público, y en vez de «quedé en ridículo» piensas «quiere que salga perfecto», y aun así decides pedirle que la próxima vez te lo diga a solas, el marco funcionó. Te dejó actuar.
-
-En el material del módulo tienes la tabla para eso.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas: lee tu reencuadre elegido mañana por la mañana, y otra vez la próxima vez que aparezca la situación.
-
-No lo repitas como un mantra. Solo léelo, y fíjate si sigue en pie.
-
-En el caso de este módulo vas a ver esto con una persona real: primero un reencuadre bonito que se cae, y después uno modesto que aguanta.
+En el siguiente video, Un reencuadre que se cae y uno que aguanta, vas a ver esto con una persona real. Primero un reencuadre bonito que no se sostiene, y después uno modesto que sí.
 
 Seguimos creciendo juntos.

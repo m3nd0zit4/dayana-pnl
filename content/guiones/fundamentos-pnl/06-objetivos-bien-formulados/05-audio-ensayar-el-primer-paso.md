@@ -1,216 +1,131 @@
 # Audio guiado · Ensayar el primer paso
 
-**Fundamentos de la PNL · Módulo 6 · 11-14 min · Audio guiado**
-Solo voz, lenta. Sin música, o una muy suave. El ensayo del obstáculo se hace dos veces: la segunda, con menos palabras y algo más de ritmo.
+Fundamentos de la PNL · Módulo 6 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-No escuches este audio mientras conduces ni operando maquinaria.
+Para este audio te sirve tener presente el objetivo que escribiste en la clase Del deseo al plan. Sobre todo tres cosas: tu primer paso, el obstáculo de adentro y tu plan para ese momento.
 
-[PAUSA]
+Si no lo escribiste, no pasa nada. Piensa ahora en algo que quieres conseguir, en cuál sería el primer paso y en qué es lo que más probablemente te frenaría.
 
-Para este audio te sirve tener a mano el objetivo que escribiste en la clase dos.
-
-Si no lo escribiste, piensa ahora en algo que quieres conseguir y en cuál sería el primer paso.
-
-[PAUSA REAL · 15 s — tener presente el objetivo y el primer paso]
-
-Busca un lugar donde puedas estar unos doce minutos sin interrupciones.
+Tómate unos momentos para tenerlo claro.
 
 Siéntate con los pies en el suelo, la espalda apoyada y las manos sueltas.
 
-[PAUSA]
-
-Cierra los ojos, o deja la mirada baja.
-
-[PAUSA LARGA]
+Cuando quieras, cierra los ojos. O, si lo prefieres, deja la mirada baja.
 
 Suelta el aire despacio, más largo de lo que entró.
 
-[PAUSA REAL · 8 s — exhalación larga]
+Otra vez. Inhala… y suelta, largo.
 
-Otra vez.
+Y deja que la respiración siga sola, a su ritmo.
 
-[PAUSA REAL · 8 s — exhalación larga]
+Nota el peso de tu cuerpo en el asiento. Los pies en el suelo. Los hombros, que pueden bajar un poco más. La mandíbula, suelta.
 
-Y deja que la respiración siga sola.
+Respira… y quédate ahí unos momentos.
 
-[PAUSA LARGA]
+Hoy no vamos a imaginar el objetivo cumplido. Vamos a ensayar el trabajo. El primer paso, y el momento difícil.
 
-No vamos a imaginar el objetivo cumplido. No hoy.
-
-Vamos a ensayar el trabajo. El primer paso, y el momento difícil.
-
-Así se prepara cualquiera que tiene que hacer algo exigente.
-
-No se imagina solo en el podio. Se imagina en el tramo que cuesta, y respondiendo bien.
-
-Eso es lo que vamos a hacer ahora, con calma.
-
-[PAUSA]
+Así se prepara cualquiera que tiene que hacer algo exigente. No se imagina solo celebrando al final. Se imagina en el tramo que cuesta, y respondiendo bien. Eso es lo que vamos a hacer ahora, con calma.
 
 Lleva tu atención al día y a la hora de tu primer paso.
 
 ¿Dónde estás? ¿Qué hay alrededor? ¿Qué luz hay a esa hora?
 
-[PAUSA REAL · 15 s — ubicar el lugar y la hora]
+Tómate el tiempo que necesites para ubicarte.
 
-Entra en la escena. No la mires desde fuera: estás ahí.
+Ahora entra en la escena. No la mires desde fuera, como en una foto. Estás ahí.
 
-Mira lo que verías con tus propios ojos.
+Mira lo que verías con tus propios ojos. Escucha lo que oirías. Nota la temperatura, la ropa que llevas, cómo está tu cuerpo a esa hora del día.
 
-Escucha lo que oirías. Nota la temperatura, la ropa que llevas, el cuerpo a esa hora del día.
+Quédate ahí unos momentos.
 
-[PAUSA REAL · 20 s — estar dentro de la escena]
+Ahora empieza. Haz el primer gesto del primer paso. Despacio, como si lo hicieras de verdad. Abrir el cuaderno. Ponerte los zapatos. Marcar el número. Lo que sea en tu caso.
 
-Ahora empieza. Haz el primer gesto del primer paso.
-
-Despacio, como si lo hicieras de verdad.
-
-[PAUSA REAL · 15 s — hacer el primer gesto en la imaginación]
-
-Y ahora, deja que aparezca el obstáculo.
-
-El que escribiste. El cansancio, el teléfono, la vocecita de «mañana», el miedo a que no salga bien.
+Y ahora deja que aparezca el obstáculo. El que escribiste. El cansancio, el teléfono, la vocecita de «mañana», el miedo a que no salga bien.
 
 Deja que llegue. No pelees con él.
 
-[PAUSA REAL · 15 s — dejar que aparezca el obstáculo]
+El obstáculo no significa que algo esté mal contigo. Es lo que aparece casi siempre que alguien empieza algo nuevo. Lo único distinto hoy es que ya sabes qué vas a hacer cuando llegue.
 
-Nota cómo se siente en el cuerpo cuando llega.
+Nota cómo se siente en el cuerpo cuando llega. Dónde aparece. Qué hace con tu respiración.
 
-[PAUSA REAL · 10 s — notar el obstáculo en el cuerpo]
+Escucha también qué te dice. Esa frase que conoces tan bien. «Hoy no.» «Total, para qué.» «Primero un ratito el teléfono.»
 
-Escucha también qué te dice. Esa frase que conoces tan bien.
+No tienes que discutir con esa frase. Ya decidiste antes qué hacer en este momento.
 
-«Hoy no.» «Total, para qué.» «Primero un ratito el teléfono.»
-
-[PAUSA REAL · 10 s — escuchar la frase del obstáculo]
-
-No tienes que discutir con ella. Ya decidiste antes qué hacer en este momento.
-
-Y ahora, tu plan.
-
-«Cuando pase esto, voy a hacer esto otro.»
+Y ahora, tu plan. «Cuando pase esto, voy a hacer esto otro.»
 
 Mírate haciendo eso otro. Exactamente eso. Con tu cuerpo, en ese lugar.
 
-[PAUSA REAL · 20 s — verte aplicando el plan]
+Tómate el tiempo que necesites.
 
-Sigue un poco más. Mírate continuando con el paso, unos minutos.
+Sigue un poco más. Mírate continuando con el paso durante unos minutos. Sin prisa. Sin perfección. Solo continuando.
 
-[PAUSA REAL · 15 s — continuar con el paso]
+Muy bien.
 
-Bien.
-
-Vamos a hacerlo otra vez, un poco más rápido, para que el camino quede marcado.
-
-[PAUSA]
+Ahora vamos a hacerlo otra vez, un poco más rápido, para que el camino quede marcado.
 
 El lugar. La hora.
 
-[PAUSA]
-
 Empiezas.
-
-[PAUSA]
 
 Aparece el obstáculo.
 
-[PAUSA]
-
 Tu plan.
-
-[PAUSA REAL · 10 s — aplicar el plan otra vez]
 
 Y sigues.
 
-[PAUSA LARGA]
+Respira… y nota cómo está tu cuerpo ahora, después de ensayarlo dos veces.
 
-Nota cómo está tu cuerpo ahora, después de ensayarlo dos veces.
-
-[PAUSA REAL · 10 s — notar el cuerpo]
+Quizás notas algo de cansancio, o algo de energía. Las dos cosas están bien. Tu cuerpo acaba de pasar dos veces por el momento difícil, y las dos veces supo qué hacer.
 
 Ahora vamos un poco más adelante en el tiempo. Unas semanas.
 
 No al día del trofeo. A un día cualquiera, en mitad del camino.
 
-Busca la señal de que está funcionando.
+Busca la señal de que está funcionando. Algo que ves, que oyes o que sientes, y que antes no estaba.
 
-Lo que ves, lo que oyes o lo que sientes que antes no estaba.
+Tómate el tiempo que necesites para encontrarla.
 
-[PAUSA REAL · 20 s — encontrar la señal de que funciona]
-
-Quédate un momento con esa señal.
-
-No es el final. Es la prueba de que vas por buen camino.
-
-Esa es la señal que vas a buscar en la vida real, para saber que no hace falta abandonar.
-
-[PAUSA LARGA]
+Quédate un momento con esa señal. No es el final. Es la prueba de que vas por buen camino. Esa es la señal que vas a buscar en la vida real, para saber que no hace falta abandonar.
 
 Y ahora una última comprobación. La de la ecología.
 
-Recorre tu cuerpo despacio, mientras sostienes ese futuro.
+Mientras sostienes ese futuro, recorre tu cuerpo despacio. ¿Hay algún lugar que se tensa? ¿El estómago, la garganta, los hombros?
 
-¿Hay algún lugar que se tensa? ¿El estómago, la garganta, los hombros?
+Si no hay ninguno, perfecto. Disfruta un momento de esa tranquilidad.
 
-[PAUSA REAL · 15 s — buscar alguna tensión]
+Si hay uno, no lo apartes. Pregúntale, con respeto: ¿qué quieres cuidar?
 
-Si no hay ninguno, perfecto.
-
-Si hay uno, no lo apartes. Pregúntale, con respeto:
-
-¿Qué quieres cuidar?
-
-[PAUSA REAL · 20 s — escuchar qué quiere cuidar]
+Escucha lo que aparezca. Puede ser una palabra, una imagen, una persona.
 
 Lo que aparezca, agradécelo. Es información.
 
 Y pregúntate: ¿cómo puedo conseguir mi objetivo cuidando también eso?
 
-[PAUSA REAL · 20 s — buscar cómo cuidar las dos cosas]
-
-No hace falta que la respuesta llegue ahora. Puede llegar esta semana.
-
-[PAUSA LARGA]
+No hace falta que la respuesta llegue ahora. Puede llegar esta semana, mientras haces otra cosa.
 
 Deja que la escena se vaya despacio.
 
-[PAUSA]
-
-Vamos a volver. Cuento del uno al cinco.
-
-[PAUSA]
+Vamos a volver. Voy a contar del uno al cinco. Con cada número vas a estar un poco más aquí.
 
 Uno. Notas el peso del cuerpo en el asiento.
 
-[PAUSA]
-
 Dos. Notas los pies en el suelo.
-
-[PAUSA]
 
 Tres. Respiras un poco más hondo.
 
-[PAUSA]
-
 Cuatro. Mueves las manos y los pies.
-
-[PAUSA]
 
 Cinco. Abres los ojos.
 
-[PAUSA LARGA]
+Antes de levantarte, escribe dos cosas.
 
-Antes de levantarte, dos cosas por escrito.
+La primera: tu plan de «cuando pase esto, voy a hacer esto otro», en un papel pequeño. Ponlo donde vaya a pasar el obstáculo.
 
-Tu plan de «cuando… voy a…», en un papel pequeño, para ponerlo donde vaya a pasar el obstáculo.
+La segunda: si apareció, lo que esa tensión quería cuidar, y una idea para cuidarlo.
 
-[PAUSA REAL · 30 s — escribir el plan en un papel pequeño]
+En el material en PDF del módulo tienes la plantilla completa de siete líneas y las preguntas de ecología, para revisarlas dentro de un mes. Y en el ejercicio opcional, Reformula tu objetivo, puedes pasar tu objetivo por las cinco condiciones y por la ecología, paso a paso.
 
-Y, si apareció, lo que esa tensión quería cuidar.
-
-[PAUSA REAL · 20 s — escribir lo que quería cuidar]
-
-En el material del módulo tienes la plantilla completa y las preguntas de ecología, para revisarlas dentro de un mes.
+Cuando quieras, sigue con el módulo siete, Integración: tu plan de aplicación. Es el último del curso, y ahí vamos a juntar todas las piezas.

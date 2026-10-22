@@ -1,92 +1,29 @@
 # Presentación · Posiciones perceptuales
 
-**PNL para relaciones y pareja · Módulo 6 · 3-4 min · Presentación**
-Plano abierto. Tres sillas montadas en cámara antes de empezar: dos enfrentadas y
-una tercera a un lado, mirando a las dos. Dayana se sienta en cada una antes de
-explicar nada.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 6 · 4-5 min
 
 Líderes, bendiciones.
 
-Antes de explicarte nada, mira esto.
+Antes de explicarte nada, imagina tres sillas. Dos están frente a frente. La tercera está a un lado, mirando a las otras dos. La primera silla es la tuya. Desde ahí ves la discusión como la viviste tú. La segunda es la de tu pareja. Desde ahí, la misma discusión se ve de otra forma, y la persona que está enfrente eres tú. Y la tercera es la de alguien que mira desde fuera. Alguien que quiere a las dos personas por igual y no toma partido.
 
-[HACERLO: Dayana se sienta en la primera silla y mira hacia la segunda]
+Tres sillas, tres posiciones: la tuya, la de tu pareja y la de quien observa. Ahora piensa en una discusión de estos días. ¿Desde qué silla la has estado mirando? Tómate unos segundos.
 
-Esta es tu silla. Desde aquí ves la discusión como la viviste tú.
+¿Ya? Casi siempre la respuesta es: solo desde la primera. Es lo normal. Cuando algo nos duele, lo miramos desde donde estamos. Este módulo es para aprender a cambiar de silla de verdad, y volver a la tuya con algo nuevo.
 
-[HACERLO: se levanta, se sienta en la segunda silla y mira hacia la primera]
+Al terminar el módulo vas a poder recorrer las tres posiciones sobre una situación real de tu relación, y salir con una acción concreta para la próxima vez. Y hay algo que me parece precioso de esta técnica: es la única del curso que se hace sin la otra persona delante. No necesitas que tu pareja quiera, ni que haga el curso. La haces tú, a solas, y cambia lo que ves.
 
-Esta es la silla de tu pareja. Desde aquí, la misma discusión se ve de otra forma. Y la persona que está enfrente… eres tú.
+Pero con una condición. Esto se hace moviéndose, de pie, cambiando de lugar. No imaginándolo desde el sofá. El cuerpo ayuda a cambiar de punto de vista, y sin moverse no funciona igual.
 
-[HACERLO: se levanta y se sienta en la tercera silla, de lado, mirando a las dos]
+Te cuento cómo funciona el módulo. En la primera clase te explico qué aporta cada posición y el recorrido completo, paso a paso. En la segunda vemos los dos errores clásicos: quedarse en la silla del otro sin volver a la propia, y usar la silla del observador para tener razón. Después viene la práctica, donde hacemos el recorrido juntos en tiempo real, y un audio guiado para volver a tu propio sitio. También tienes el material de lectura en PDF, y un ejercicio opcional para anotar lo que encuentres.
 
-Y esta es la silla de alguien que mira desde fuera. Alguien que les quiere a las dos personas y no toma partido.
+Hagamos una pequeña prueba ahora mismo. Piensa en esa discusión, y descríbela en voz alta en una sola frase, pero hablando de ti en tercera persona, con tu nombre. Por ejemplo: «Carolina está molesta porque siente que nadie la ayuda en la casa». Hazlo ahora.
 
-[PAUSA]
+¿Notaste algo distinto? Quizá un poco de distancia, un poco más de calma. Eso es un adelanto de la tercera posición.
 
-[A CÁMARA]
+Y una advertencia, dicha con claridad desde el principio. Hay situaciones en las que no hay que ponerse en el lugar del otro. La más importante es el maltrato. Si en tu relación hay violencia, amenazas, control o humillaciones, entender a quien te hace daño puede ser justamente lo que te retiene. Eso no se resuelve cambiando de silla, porque no es un problema de perspectiva ni de comunicación. Lo que corresponde es ayuda profesional o un servicio especializado.
 
-Tres sillas. Tres posiciones. La tuya, la de tu pareja y la de quien observa.
+Tu tarea para hoy: elige la situación con la que vas a trabajar en este módulo. Que sea concreta, reciente y de intensidad media. No la peor discusión de tu historia. Escríbela en una línea.
 
-Ahora piensa en una discusión de estos días.
-
-¿Desde qué silla la has estado mirando?
-
-[PAUSA REAL · 10 s — el alumno lo piensa]
-
-Casi siempre, solo desde la primera. Es lo normal.
-
-Este módulo es para aprender a cambiar de silla. De verdad.
-
-[A CÁMARA]
-
-Y te digo algo que me parece precioso de esta técnica.
-
-Es la única del curso que se hace sin la otra persona delante.
-
-No necesitas que tu pareja quiera. No necesitas que haga el curso. La haces tú, a solas, y cambia lo que ves.
-
-[PAUSA]
-
-Al terminar el módulo vas a poder recorrer las tres posiciones sobre una situación real, y salir con una acción concreta.
-
-Pero con una condición.
-
-Esto se hace moviéndose. De pie, cambiando de lugar. No imaginándolo desde el sofá.
-
-El cuerpo ayuda a cambiar de punto de vista. Y sin moverse, no funciona igual.
-
-[A CÁMARA]
-
-Hagamos una probadita, ahora mismo.
-
-Piensa en esa discusión. Y descríbela en voz alta, en una frase, pero hablando de ti en tercera persona, con tu nombre.
-
-Por ejemplo: «Dayana está molesta porque siente que nadie la ayuda».
-
-[PAUSA REAL · 15 s — el alumno dice su frase en tercera persona]
-
-¿Notaste algo distinto? Un poquito de distancia. Un poquito más de calma.
-
-Eso es un aperitivo de la tercera posición.
-
-[A CÁMARA]
-
-También vamos a ver los dos errores clásicos: quedarse en la silla del otro sin volver a la propia, y usar la del observador para tener razón.
-
-Y vamos a ver cuándo no hay que ponerse en el lugar del otro. Te lo adelanto con claridad: si hay maltrato, esta técnica no se usa. Entender a quien te hace daño puede ser justamente lo que te retiene. Ahí lo que corresponde es ayuda profesional.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para hoy.
-
-Elige la situación con la que vas a trabajar este módulo. Concreta, reciente, y de intensidad media. No la peor discusión de tu historia.
-
-Escríbela en una línea.
-
-En la primera clase te enseño las tres posiciones, paso a paso.
+En la primera clase, «Las tres posiciones», te enseño el recorrido paso a paso.
 
 Seguimos creciendo juntos.

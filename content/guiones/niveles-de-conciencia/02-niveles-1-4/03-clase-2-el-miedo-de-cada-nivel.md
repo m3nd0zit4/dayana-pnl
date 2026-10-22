@@ -1,323 +1,57 @@
 # Clase 2 · El miedo que mueve cada nivel
 
-**Los 8 Niveles de Conciencia · Módulo 2 · 9-12 min · Clase**
-Cámara fija, tono cercano. La tabla de los cuatro miedos va en pantalla al
-final del bloque del 3 y el 4. Dayana dice el «no» en voz alta en cámara.
-
----
-
-[A CÁMARA]
+Los 8 Niveles de Conciencia · Módulo 2 · 9-11 min
 
 Líderes, bendiciones.
 
-En la clase anterior vimos los cuatro primeros niveles por fuera:
+En la clase anterior vimos los cuatro primeros niveles por fuera: de dónde vienen, cómo se ven hoy, qué se dicen y cuál es su fuerza. Hoy los vamos a mirar por debajo. Porque debajo de cada uno hay un miedo distinto, y cuando sabes cuál es el miedo, sabes desde dónde estás decidiendo. Al terminar esta clase vas a poder distinguir el miedo del nivel uno del miedo del nivel dos en una decisión de dinero. Vas a reconocer el miedo del tres y del cuatro en recuerdos tuyos. Y vas a tener tus tres frases de lenguaje interno escritas.
 
-de dónde vienen, cómo se ven hoy, qué se dicen, cuál es su fuerza.
+Así que abre el cuaderno y ten algo con qué escribir.
 
-[PAUSA]
+Empezamos con el dinero, que es donde más se nota. Piensa en la última decisión de dinero que te costó. Pagar algo que querías, prestarle a alguien, no gastar, cobrar lo que te debían. Elige una y escríbela en una línea. Tómate unos segundos.
 
-Hoy los vamos a mirar por debajo.
+¿La tienes? Ahora vuelve a ese momento y escucha la frase que sonó por dentro. No la que dirías en voz alta. La de adentro. Escríbela tal como sonó, aunque suene fea.
 
-Porque debajo de cada uno hay un miedo distinto.
+Te doy dos posibilidades, y fíjate a cuál se parece la tuya. La primera suena así: «Me voy a quedar sin nada», o «mejor guardo, por si acaso». La segunda suena así: «¿Qué van a pensar si hago esto?», o «en mi familia eso no se hace». Marca cuál se parece más a la tuya.
 
-Y cuando sabes cuál es el miedo, sabes desde dónde estás decidiendo.
+¿Ya la marcaste? La primera es el nivel uno, y su miedo es no tener. La segunda es el nivel dos, y su miedo es ser rechazado. El uno pregunta «¿cómo sobrevivo?». El dos pregunta «¿con quiénes estoy?». El uno mira al cuerpo y al hoy. El dos mira a los suyos y al siempre. El uno decide por urgencia. El dos decide por pertenencia.
 
-[PAUSA]
+Y fíjate que la decisión pudo ser exactamente la misma: no gastar. Una persona no gasta por miedo a quedarse sin nada. Otra no gasta porque gastar en eso sería traicionar cómo se hacen las cosas en su casa. Es la misma conducta, con un miedo distinto debajo. Y si algún día quieres cambiar esa conducta, necesitas saber cuál de los dos miedos la está moviendo.
 
-Cuaderno abierto.
+Ahora una pregunta que importa mucho para el nivel uno. Mira tu frase otra vez. ¿Corresponde a tu realidad de hoy, o a una realidad de antes? Escribe al lado «de hoy» o «de antes».
 
-[A CÁMARA]
+¿Qué escribiste? Hay algo muy común y muy sutil. Personas que hoy tienen trabajo, casa y comida, y que aun así deciden todo desde el susto. Ahí el nivel uno dejó de ser una respuesta a la realidad y se volvió una costumbre interna. El cuerpo aprendió a vivir alerta en una época difícil, y nadie le avisó que esa época ya pasó.
 
-Empezamos con dinero, que es donde más se nota.
+Imagina a Marta. Ocho años en el mismo trabajo, ahorros, casa propia. Y cada vez que su hija le pide algo, la respuesta es la misma: «No hay dinero». No es que no haya. Es que de niña no hubo, y una parte de ella todavía decide desde allá. Si escribiste «de antes», no te regañes. Tómalo como información. En el módulo cuatro vamos a ver qué se hace con eso.
 
-[PAUSA]
+Con esto claro, pasemos al tres y al cuatro. Otra vez empezamos por ti. Recuerda la última vez que alguien te dijo qué tenías que hacer y algo se te tensó por dentro. Un jefe, tu mamá, tu pareja, un desconocido en la calle. Trae la escena y nota dónde se tensó el cuerpo. Después escribe qué te dijiste.
 
-Piensa en la última decisión de dinero que te costó.
+¿La tienes? Si sonó algo como «a mí nadie me manda», eso es el nivel tres, y su miedo es ser dominado.
 
-Pagar algo que querías. Prestarle a alguien. No gastar. Cobrar.
+Ahora recuerda la última vez que algo se salió del plan. Alguien llegó tarde, cambió algo sin avisar o no hizo lo que dijo. Trae la escena y escribe qué te dijiste.
 
-[PAUSA REAL · 15 s — elige la decisión y escríbela en una línea]
+¿Lo escribiste? Si sonó algo como «así no se hace» o «esto es un desorden», eso es el nivel cuatro, y su miedo es el caos.
 
-[A CÁMARA]
+Cuatro niveles, cuatro miedos. El nivel uno teme no tener. El dos teme ser rechazado. El tres teme ser dominado. Y el cuatro teme el caos. Ninguno de estos miedos es tonto. Cada uno te protegió de algo real en algún momento. El problema no es tenerlos. Es que decidan por ti sin que te des cuenta.
 
-Ahora vuelve a ese momento y escucha la frase que sonó por dentro.
+Me quiero detener en el tres, porque tiene mala fama. Para mucha gente que viene de un nivel dos muy pesado, de años de callarse para no incomodar, llegar al nivel tres es una liberación enorme. Y la primera vez que ponen un límite, se siente casi violento, como si hubieran hecho algo terrible. No lo es. Es un músculo que nunca se había usado. Y los músculos que no se usan, al principio tiemblan.
 
-No la que dirías en voz alta. La de adentro.
+Vamos a usar ese músculo un segundo. Te lo digo yo primero: «No. Esta vez no puedo». Ahora tú. Dilo en voz alta, aunque te dé risa: «No. Esta vez no puedo».
 
-[PAUSA REAL · 15 s — escribe la frase tal como sonó]
+¿Lo dijiste? Fíjate qué pasó en el cuerpo. Si se sintió fácil, tu nivel tres está disponible. Si se sintió raro, o te dio culpa, ahí hay un músculo para entrenar. Y se entrena igual que cualquier otro: con repeticiones pequeñas, en situaciones de poco riesgo.
 
-[A CÁMARA]
+Y ahora el cuatro, para ser justos. Los proyectos brillantes que se caen a los seis meses suelen tener mucho nivel tres y nada de nivel cuatro: mucho arranque y ninguna estructura. Piensa en algo que empezaste con mucha fuerza y se cayó. Un negocio, una rutina de ejercicio, un plan de ahorro. ¿Qué estructura le faltó para durar? Escríbelo.
 
-Te doy dos posibilidades. Fíjate a cuál se parece la tuya.
+¿Lo tienes? Quizás le faltó un horario fijo, una persona a quien rendirle cuentas o una regla sencilla. Eso es nivel cuatro, y también se puede aprender.
 
-[PAUSA]
+Vamos cerrando con lo más útil de la clase. De todas las frases que oíste en este módulo, elige tres que reconozcas como tuyas. Y al lado de cada una, escribe la última vez que la dijiste. Te doy un ejemplo de cómo se ve: «Si no lo hago yo, no lo hace nadie», el sábado, organizando el cumpleaños de mi mamá. Pausa el video y escribe tus tres frases. Tómate el tiempo que necesites.
 
-La primera suena así:
+¿Las tienes? Mira cuál de los cuatro niveles aparece más en esas tres frases. Y hazte la pregunta de cierre del módulo: ¿este nivel me está sirviendo hoy, o me quedé aquí porque es lo que aprendí a hacer? Quédate un momento con la pregunta y escribe lo primero que aparezca.
 
-«Me voy a quedar sin nada.» «Mejor guardo, por si acaso.»
+Hagamos un resumen. Debajo de cada nivel hay un miedo: no tener, ser rechazado, ser dominado y el caos. La misma conducta puede venir de miedos distintos. El miedo del nivel uno a veces sobrevive a la época que lo creó. El tres se entrena con «no» pequeños, y el cuatro con estructuras sencillas.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas: en la próxima decisión de dinero que tomes, escucha la frase de adentro. ¿Suena a no tener, o suena a qué van a decir? No la corrijas. Solo escúchala. Ese es todo el trabajo por ahora.
 
-La segunda suena así:
-
-«¿Qué van a pensar si hago esto?» «En mi familia eso no se hace.»
-
-[PAUSA REAL · 10 s — marca cuál se parece más a la tuya]
-
-[A CÁMARA]
-
-La primera es el nivel uno. Su miedo es no tener.
-
-La segunda es el nivel dos. Su miedo es ser rechazado.
-
-[TABLA EN PANTALLA]
-
-El uno pregunta «¿cómo sobrevivo?».
-
-El dos pregunta «¿con quiénes estoy?».
-
-El uno mira al cuerpo y al hoy.
-
-El dos mira a los suyos y al siempre.
-
-El uno decide por urgencia. El dos decide por pertenencia.
-
-[PAUSA]
-
-Y fíjate que la decisión pudo ser exactamente la misma.
-
-No gastar.
-
-Uno no gasta por miedo a quedarse sin nada.
-
-Otro no gasta porque gastar en eso sería traicionar cómo se hacen las cosas en su casa.
-
-Misma conducta. Distinto miedo.
-
-[A CÁMARA]
-
-Ahora una pregunta que importa mucho para el nivel uno.
-
-[PAUSA]
-
-Mira tu frase otra vez.
-
-¿Corresponde a tu realidad de hoy, o a una realidad de antes?
-
-[PAUSA REAL · 15 s — escribe «de hoy» o «de antes» al lado de tu frase]
-
-[A CÁMARA]
-
-Hay algo muy común y muy sutil.
-
-Personas que hoy tienen trabajo, casa y comida,
-
-y que aun así deciden todo desde el susto.
-
-[PAUSA]
-
-Ahí el nivel uno dejó de ser una respuesta a la realidad
-
-y se volvió una costumbre interna.
-
-El cuerpo aprendió a vivir alerta en una época difícil,
-
-y nadie le avisó que esa época ya pasó.
-
-[PAUSA]
-
-Imagina a Marta. Ocho años en el mismo trabajo, ahorros, casa propia.
-
-Y cada vez que su hija le pide algo, la respuesta es la misma:
-
-«No hay plata.»
-
-[PAUSA]
-
-No es que no haya. Es que de niña no hubo.
-
-Y una parte de ella todavía decide desde allá.
-
-[PAUSA]
-
-Si escribiste «de antes», no te regañes. Solo tómalo como información.
-
-En el módulo cuatro vamos a ver qué se hace con eso.
-
-[A CÁMARA]
-
-Vamos con el tres y el cuatro. Otra vez, empezamos por ti.
-
-[PAUSA]
-
-Recuerda la última vez que alguien te dijo qué tenías que hacer,
-
-y algo se te tensó por dentro.
-
-Un jefe, tu mamá, tu pareja, un desconocido en la calle.
-
-[PAUSA REAL · 15 s — trae la escena y nota dónde se tensó el cuerpo]
-
-¿Qué te dijiste?
-
-[PAUSA REAL · 15 s — escribe la frase]
-
-[A CÁMARA]
-
-Si sonó algo como «a mí nadie me manda»,
-
-eso es el nivel tres. Su miedo es ser dominado.
-
-[PAUSA]
-
-Ahora recuerda la última vez que algo se salió del plan.
-
-Alguien llegó tarde, cambió algo sin avisar, no hizo lo que dijo.
-
-[PAUSA REAL · 15 s — trae la escena y escribe qué te dijiste]
-
-[A CÁMARA]
-
-Si sonó algo como «así no se hace» o «esto es un desorden»,
-
-eso es el nivel cuatro. Su miedo es el caos.
-
-[TABLA EN PANTALLA]
-
-[RÓTULO: Nivel 1 · no tener — Nivel 2 · ser rechazado — Nivel 3 · ser dominado — Nivel 4 · el caos]
-
-Cuatro niveles, cuatro miedos.
-
-No tener. Ser rechazado. Ser dominado. El caos.
-
-[PAUSA]
-
-Ninguno de estos miedos es tonto.
-
-Cada uno te protegió de algo real en algún momento.
-
-[A CÁMARA]
-
-Me quiero detener en el tres, porque tiene mala fama.
-
-[PAUSA]
-
-Para mucha gente que viene de un nivel dos muy pesado,
-
-de años de callarse para no incomodar,
-
-llegar al nivel tres es una liberación enorme.
-
-[PAUSA]
-
-Y la primera vez que ponen un límite, se siente casi violento.
-
-Como si hubieran hecho algo terrible.
-
-[PAUSA]
-
-No lo es. Es un músculo que nunca se había usado.
-
-Y los músculos que no se usan, al principio tiemblan.
-
-[A CÁMARA]
-
-Vamos a usarlo un segundo. Lo hago yo primero.
-
-[HACERLO]
-
-«No. Esta vez no puedo.»
-
-[PAUSA]
-
-Ahora tú. En voz alta, aunque te dé risa.
-
-[PAUSA REAL · 10 s — di en voz alta: «No. Esta vez no puedo.»]
-
-[A CÁMARA]
-
-Fíjate qué pasó en el cuerpo.
-
-Si se sintió fácil, tu nivel tres está disponible.
-
-Si se sintió raro, o te dio culpa, ahí hay un músculo para entrenar.
-
-[PAUSA]
-
-Y ahora el cuatro, para ser justos.
-
-[PAUSA]
-
-Los proyectos brillantes que se caen a los seis meses
-
-suelen tener mucho nivel tres y nada de nivel cuatro.
-
-Mucho arranque. Ninguna estructura.
-
-[PAUSA]
-
-Piensa en algo que empezaste con mucha fuerza y se cayó.
-
-Un negocio, una rutina, un plan de ahorro.
-
-¿Qué estructura le faltó?
-
-[PAUSA REAL · 20 s — escribe qué le faltó para durar]
-
-[A CÁMARA]
-
-Vamos cerrando con lo más útil de la clase.
-
-[PAUSA]
-
-De todas las frases que oíste en este módulo,
-
-elige tres que reconozcas como tuyas.
-
-Y al lado de cada una, escribe la última vez que la dijiste.
-
-[PAUSA]
-
-Te doy un ejemplo de cómo se ve:
-
-«Si no lo hago yo, no lo hace nadie.» El sábado, organizando el cumpleaños de mi mamá.
-
-[PAUSA REAL · 45 s — escribe tus tres frases y cuándo dijiste cada una]
-
-[A CÁMARA]
-
-Mira cuál de los cuatro niveles aparece más en esas tres frases.
-
-[PAUSA]
-
-Y hazte la pregunta de cierre del módulo:
-
-[EN PANTALLA: ¿Este nivel me está sirviendo hoy, o me quedé aquí porque es lo que aprendí a hacer?]
-
-¿Este nivel me está sirviendo hoy,
-
-o me quedé aquí porque es lo que aprendí a hacer?
-
-[PAUSA REAL · 20 s — quédate con la pregunta y escribe lo primero que aparezca]
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas:
-
-en la próxima decisión de dinero que tomes, escucha la frase de adentro.
-
-[PAUSA]
-
-¿Suena a no tener, o suena a qué van a decir?
-
-No la corrijas. Solo escúchala. Ese es todo el trabajo por ahora.
-
-[PAUSA]
-
-En el siguiente video vamos a ver cuatro situaciones, una por nivel,
-
-y lo que conviene no decirle a una persona en cada uno.
-
-[PAUSA]
+En el siguiente video, Qué no decirle a cada nivel, vamos a ver cuatro situaciones, una por nivel, y lo que conviene no decirle a una persona en cada una.
 
 Seguimos creciendo juntos.

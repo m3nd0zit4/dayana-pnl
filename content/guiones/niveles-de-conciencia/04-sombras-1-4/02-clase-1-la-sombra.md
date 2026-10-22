@@ -1,431 +1,73 @@
 # Clase 1 · La sombra es la fortaleza usada de más
 
-**Los 8 Niveles de Conciencia · Módulo 4 · 15-18 min · Clase**
-Ficha por nivel en pantalla: valor, fortaleza, sombra, cómo suena por dentro.
-El bloque del 2 y del 4 es el más largo de la clase.
-
----
-
-[A CÁMARA]
+Los 8 Niveles de Conciencia · Módulo 4 · 12-14 min
 
 Líderes, bendiciones.
 
-Vamos con la definición, y quiero que se quede clavada.
+En esta clase vamos a ver cómo una fortaleza se convierte en sombra, nivel por nivel. De cada uno de los cuatro primeros niveles vas a conocer qué valora, cuál es su fortaleza, cuál es su sombra y, lo más importante, cómo suena esa sombra por dentro. Al final vamos a ver qué se hace con una sombra, que no es lo que la gente cree. Al terminar vas a poder reconocer tu sombra por la frase que te dices, y vas a tener tres pasos para trabajarla.
 
-[RÓTULO: La sombra es la fortaleza usada de más]
+Empecemos por la definición, porque quiero que quede clara. La sombra de un nivel no es lo contrario de su fortaleza. Es su fortaleza usada de más. La prudencia usada de más se vuelve miedo. La lealtad usada de más se vuelve dependencia. La valentía usada de más se vuelve imprudencia. Y la disciplina usada de más se vuelve rigidez.
 
-La sombra de un nivel no es lo contrario de su fortaleza.
+Esto importa por una razón muy práctica. Si la sombra fuera lo contrario de la fortaleza, bastaría con dejar de hacer una cosa. Pero no es así. La sombra usa exactamente el mismo músculo. Por eso no se quita: se regula. Y por eso cuesta tanto verla. Cuando la estás haciendo, se siente igual que cuando haces bien lo que se te da bien.
 
-Es su fortaleza pasada de rosca.
+Piensa en una cualidad tuya que la gente admira. ¿Hubo algún momento en que la usaste de más y te costó caro? Tómate unos segundos.
 
-[PAUSA]
+¿Lo tienes? Guárdalo, porque en un momento vas a ver de qué nivel viene.
 
-Y esto es importante por una razón muy práctica:
+Ahora vamos nivel por nivel. Escucha sobre todo cómo suena cada sombra por dentro, porque así es como la vas a reconocer en ti.
 
-si la sombra fuera lo contrario de la fortaleza,
+Empezamos por el nivel uno, la supervivencia. Valora la seguridad: estar a salvo hoy. Su fortaleza es reducirlo todo a lo esencial y actuar sin dudar. Quien ha vivido mucho nivel uno suele tener una resistencia que los demás no tienen. Aguanta lo que otros no aguantan.
 
-bastaría con dejar de hacer una cosa.
+Su sombra es la alerta que no se apaga. Esto le pasa mucho a quien vivió una época dura de verdad. La época terminó, pero la alerta no. Por dentro suena así: «no me puedo permitir relajarme», «si me confío, pasa algo», «mejor no gasto, por si acaso». Y por fuera se ve en alguien que nunca descansa del todo. Que no puede disfrutar sin estar pendiente de lo que puede salir mal. Que ahorra y ahorra, y nunca es suficiente.
 
-[PAUSA]
+Fíjate en lo que pasó ahí. La fortaleza que le salvó la vida hace quince años es la misma que hoy no le deja dormir.
 
-Pero no es así. La sombra usa exactamente el mismo músculo.
+Vamos con el nivel dos, la tribu. Valora la pertenencia, los suyos. Su fortaleza es la lealtad y el apoyo sin condiciones. Si te pasa algo, esa persona aparece, sin preguntar. Y eso, en un mundo donde casi nadie aparece, vale muchísimo.
 
-Por eso no se quita quitándola. Se regula.
+Su sombra es la fusión: no poder distinguir lo que quiere el grupo de lo que quiere uno. Y aquí viene lo que anuncié en la presentación. Esta sombra se siente como amor. Por eso es tan difícil de mirar. Por dentro suena así: «yo lo hago porque los quiero», «si yo no estoy pendiente, esta familia se cae», «uno no abandona a los suyos».
 
-[PAUSA]
+Por fuera se ve en alguien que no puede tomar una decisión personal sin consultar a cinco personas. Que se enferma cuando alguien de la familia se aleja. Que ayuda tanto que no deja crecer.
 
-Y por eso, además, cuesta tanto verla.
+Y hay una versión más dura, la que más cuesta reconocer: el control disfrazado de cuidado. Decidir por un hijo adulto qué le conviene, y llamarlo preocupación. Poner mala cara si la nuera no viene el domingo, y llamarlo tradición. No es maldad, de verdad que no. Es el miedo a que el grupo se rompa, trabajando a toda máquina.
 
-Porque cuando la estás haciendo, se siente igual que cuando haces bien
+Hagamos una pausa. De estas dos primeras sombras, la alerta que no se apaga y el amor que no deja crecer, ¿alguna te suena? Piensa en una situación de este mes. Tómate unos segundos y anótala.
 
-lo que se te da bien.
+¿La tienes? No te juzgues por ella. Solo nota que detrás hay una fortaleza tuya trabajando de más.
 
-[A CÁMARA]
+Con esto claro, pasemos al nivel tres, el poder. Valora la autonomía y la libertad. Su fortaleza es la iniciativa: se atreve, arranca, no espera permiso. Nadie abre una empresa, sale de una relación destructiva o cambia de país sin una buena dosis de nivel tres.
 
-Vamos nivel por nivel. Cuatro cosas de cada uno:
+Su sombra es el atropello. Y es la única de las cuatro que se ve fácil desde fuera, cuando grita. Lo que no se ve tan fácil es la versión discreta, la que no grita. Por dentro suena así: «yo digo las cosas como son», «a mí nadie me manda», «yo tengo la razón y lo voy a demostrar».
 
-qué valora, cuál es su fortaleza, cuál es su sombra,
+Por fuera, en su versión discreta, se ve en alguien que siempre termina haciendo lo que quería, aunque haya escuchado a todos. Que interrumpe. Que decide primero y avisa después. Que confunde firmeza con no ceder nunca.
 
-y cómo suena esa sombra por dentro.
+Y una cosa importante sobre el tres, porque se juzga mucho. Hay muchísima gente que necesita más nivel tres, no menos. Quien aguanta lo que no debería, quien no sabe decir que no, quien se traga lo que piensa en las reuniones, tiene el nivel tres bajo. Y le toca recuperarlo.
 
-Esa última es la importante, porque es como la vas a reconocer en ti.
+Vamos con el nivel cuatro, el orden. Valora hacer lo correcto. Su fortaleza es la palabra dada, la confiabilidad. Dice que va a estar, y está. Todo lo que dura en la vida, un matrimonio de treinta años, una empresa que sobrevive a las crisis, un cuerpo sano a los sesenta, tiene mucho nivel cuatro detrás.
 
-[RÓTULO: NIVEL 1 · Supervivencia]
+Su sombra es la rigidez y el juicio. Y aquí está la segunda de las difíciles: esta sombra se siente como responsabilidad. Nadie dice «soy una persona rígida». Se dice: «es que si no lo hago yo, no se hace bien». Y esa frase suena a hacerse cargo. Por dentro suena así: «las cosas se hacen bien o no se hacen», «yo cumplo, ¿por qué los demás no?», «así no se hace».
 
----
+Por fuera se ve en alguien que no delega, y cuando delega, corrige. Que se agota haciendo lo que otros deberían hacer, y después se queja de que nadie ayuda. Que juzga todo el tiempo, aunque no lo diga en voz alta. Y hay una señal muy fiable de esta sombra: el cansancio con resentimiento. Agotarse y, además, enojarse con la gente por no hacer lo que nunca se le dejó hacer.
 
-**Nivel uno.**
+Piensa ahora en las otras dos: el atropello discreto y la rigidez que parece responsabilidad. ¿Alguna aparece en tu vida? En el trabajo, en tu casa, con tus hijos. Pausa el video si lo necesitas y anótalo.
 
-[A CÁMARA]
+¿Lo anotaste? Si te reconociste en más de una, es lo normal. Quédate con la que más te incomodó, porque ahí suele estar lo más útil.
 
-Qué valora: seguir. Estar a salvo hoy.
+Ahora vamos con lo que se hace con todo esto. Y no es lo que la gente cree. La sombra no se elimina. Si intentas quitarte la sombra, te quitas también la fortaleza, porque son el mismo músculo. Quítale a alguien del nivel cuatro su exigencia, y le quitas también su capacidad de sostener lo que sostiene. Lo que se hace es otra cosa, en tres pasos.
 
-[PAUSA]
+El primer paso es reconocerla sin castigarte. Y aquí va el aviso otra vez. Hay una trampa muy común: darse cuenta de la propia sombra y usarla como un palo. «Es que soy un desastre, todo lo controlo.» Eso no es reconocer. Es la misma exigencia de siempre, apuntando ahora a otro lado. Reconocer es describir lo que haces, sin justificarte y sin insultarte.
 
-Su fortaleza: reducirlo todo a lo esencial y actuar sin dudar.
+El segundo paso es preguntar qué protege. Porque toda sombra protege algo, y casi siempre algo real. La alerta del uno protege de un peligro que existió. La fusión del dos protege de la soledad. El atropello del tres protege de que te pasen por encima. Y la rigidez del cuatro protege de que se derrumbe lo que costó levantar. Cuando entiendes de qué te está protegiendo, deja de ser un defecto y pasa a ser una estrategia. Y una estrategia se puede cambiar.
 
-En una urgencia real, esa persona salva la situación
+El tercer paso es una frase, dicha en voz alta. Tiene esta forma: «Esto me sirvió. Y ya no lo necesito tanto». Las dos partes hacen falta. La primera reconoce que aquello te salvó, y es verdad, te salvó. Si te saltas esa parte, la sombra se defiende, porque siente que la niegas. La segunda abre la puerta sin prometer un «nunca más» que nadie se cree. Dice «ya no tanto», que es lo único creíble.
 
-mientras los demás siguen debatiendo.
+Pruébala ahora con la sombra que anotaste. Dila en voz alta: «Esto me sirvió. Y ya no lo necesito tanto».
 
-[PAUSA]
+¿La dijiste? Fíjate cómo se siente. A veces suena rara la primera vez. Con la práctica se vuelve tuya.
 
-Su sombra: la alerta que no se apaga.
+Hagamos un resumen. La sombra es la fortaleza usada de más. El uno se vuelve alerta permanente, el dos fusión, el tres atropello y el cuatro rigidez. La sombra del dos se siente como amor y la del cuatro como responsabilidad, y por eso cuestan tanto de ver. Y la sombra no se elimina: se reconoce sin castigarse, se pregunta qué protege y se le dice una frase.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas: cuando te descubras en la sombra que anotaste, no la corrijas todavía. Solo dite por dentro: «ahí está». Y anota cuántas veces apareció.
 
-Esto le pasa mucho a quien pasó una época dura de verdad.
-
-La época terminó. La alerta no.
-
-[PAUSA]
-
-Cómo suena por dentro:
-
-«no me puedo permitir relajarme».
-
-«Si me confío, pasa algo.»
-
-«Mejor no gastar, por si acaso.»
-
-[PAUSA]
-
-Y cómo se ve por fuera: alguien que no descansa nunca del todo.
-
-Que no puede disfrutar sin estar pendiente de lo que puede salir mal.
-
-Que ahorra y ahorra y nunca es suficiente.
-
-[PAUSA]
-
-Fíjate: la fortaleza que le salvó la vida hace quince años
-
-es la que hoy no le deja dormir.
-
-[RÓTULO: NIVEL 2 · La tribu]
-
----
-
-**Nivel dos.**
-
-[A CÁMARA]
-
-Qué valora: la pertenencia. Los suyos.
-
-[PAUSA]
-
-Su fortaleza: la lealtad y el sostén incondicional.
-
-Si te pasa algo, esa persona aparece. Sin preguntar y sin condiciones.
-
-Y eso, en un mundo donde casi nadie aparece, vale muchísimo.
-
-[PAUSA]
-
-Su sombra: la fusión.
-
-No poder distinguir lo que quiere el grupo de lo que quiere uno.
-
-[PAUSA]
-
-Y aquí viene lo que anuncié en la presentación.
-
-[RÓTULO: La sombra del 2 se siente como amor]
-
-Esta sombra se siente como amor.
-
-[PAUSA]
-
-Por eso es tan difícil de mirar.
-
-[PAUSA]
-
-Cómo suena por dentro:
-
-«yo lo hago porque los quiero».
-
-«Si yo no estoy pendiente, esta familia se cae.»
-
-«Uno no abandona a los suyos.»
-
-[PAUSA]
-
-Y cómo se ve por fuera:
-
-alguien que no puede tomar una decisión personal sin consultar a cinco personas.
-
-Que se pone enfermo cuando alguien de la familia se aleja.
-
-Que ayuda tanto que no deja crecer.
-
-[PAUSA]
-
-Y hay una versión más dura, que es la que más cuesta reconocer:
-
-el control disfrazado de cuidado.
-
-[PAUSA]
-
-Cuando alguien decide por su hijo adulto qué le conviene,
-
-y lo llama preocupación.
-
-Cuando alguien pone mala cara si la nuera no viene el domingo,
-
-y lo llama tradición.
-
-[PAUSA]
-
-No es maldad. De verdad que no.
-
-Es el miedo a que el grupo se rompa, trabajando a toda máquina.
-
-[RÓTULO: NIVEL 3 · El poder]
-
----
-
-**Nivel tres.**
-
-[A CÁMARA]
-
-Qué valora: la autonomía. Poder.
-
-[PAUSA]
-
-Su fortaleza: la iniciativa. Se atreve, arranca, no espera permiso.
-
-Sin nivel tres nadie sale de una situación mala.
-
-[PAUSA]
-
-Su sombra: el atropello.
-
-[PAUSA]
-
-Y esta sombra es la única de las cuatro que se ve desde fuera fácilmente.
-
-Todo el mundo identifica a alguien que atropella.
-
-[PAUSA]
-
-Lo que no se ve tan fácil es la versión suave.
-
-La que no grita.
-
-[PAUSA]
-
-Cómo suena por dentro:
-
-«yo digo las cosas como son».
-
-«A mí nadie me manda.»
-
-«Si no lo hago yo, no lo hace nadie.»
-
-[PAUSA]
-
-Y cómo se ve por fuera, en su versión discreta:
-
-alguien que siempre acaba haciendo lo que quería,
-
-aunque haya escuchado a todos.
-
-Que interrumpe. Que decide primero y avisa después.
-
-Que confunde firmeza con no ceder nunca.
-
-[PAUSA]
-
-Y una cosa importante sobre el tres, porque se demoniza mucho:
-
-hay muchísima gente que necesita **más** nivel tres, no menos.
-
-[PAUSA]
-
-Todo el que aguanta lo que no debería,
-
-todo el que no sabe decir que no,
-
-todo el que se traga lo que piensa en las reuniones,
-
-tiene el nivel tres bajo. Y necesita recuperarlo.
-
-[RÓTULO: NIVEL 4 · El orden]
-
----
-
-**Nivel cuatro.**
-
-[A CÁMARA]
-
-Qué valora: hacer lo correcto.
-
-[PAUSA]
-
-Su fortaleza: la palabra dada. La confiabilidad.
-
-Dice que va a estar, y está.
-
-[PAUSA]
-
-Su sombra: la rigidez y el juicio.
-
-[PAUSA]
-
-Y aquí la segunda de las difíciles.
-
-[RÓTULO: La sombra del 4 se siente como responsabilidad]
-
-Esta sombra se siente como responsabilidad.
-
-[PAUSA]
-
-Nadie dice «soy rígida».
-
-Se dice: «es que si no lo hago yo, no se hace bien».
-
-Y esa frase suena a hacerse cargo.
-
-[PAUSA]
-
-Cómo suena por dentro:
-
-«las cosas se hacen bien o no se hacen».
-
-«Yo cumplo, los demás no.»
-
-«Esto no se hace así.»
-
-[PAUSA]
-
-Cómo se ve por fuera:
-
-alguien que no delega, y cuando delega, corrige.
-
-Que se agota haciendo lo que otros deberían hacer,
-
-y después se queja de que nadie ayuda.
-
-Que juzga permanentemente, aunque no lo diga en voz alta.
-
-[PAUSA]
-
-Y una señal muy fiable del nivel cuatro en sombra:
-
-el cansancio con resentimiento.
-
-[PAUSA]
-
-Estar agotada y además enfadada con la gente
-
-por no haber hecho lo que nunca les dejaste hacer.
-
-[A CÁMARA]
-
----
-
-Vamos a cerrar con lo que hay que hacer con esto.
-
-Y no es lo que la gente cree.
-
-[RÓTULO: La sombra no se elimina]
-
-La sombra no se elimina.
-
-[PAUSA]
-
-Si intentas quitarte la sombra, te estás quitando la fortaleza,
-
-porque son el mismo músculo.
-
-[PAUSA]
-
-Quítale a alguien del cuatro su exigencia
-
-y le has quitado también su capacidad de sostener lo que sostiene.
-
-[PAUSA]
-
-Lo que se hace es otra cosa. Tres pasos.
-
-[RÓTULO: 1 · Reconocerla sin castigarse]
-
-Uno: reconocerla. Y aquí va el aviso otra vez.
-
-Sin castigarse.
-
-[PAUSA]
-
-Porque hay una trampa muy común:
-
-darse cuenta de la propia sombra y usarla como un palo.
-
-«Ay, es que soy una controladora, qué horror.»
-
-[PAUSA]
-
-Eso no es reconocer. Eso es la misma exigencia de siempre,
-
-apuntando ahora a otro sitio.
-
-[RÓTULO: 2 · Preguntar qué protege]
-
-Dos: preguntar qué protege.
-
-Porque toda sombra protege algo, y casi siempre algo real.
-
-[PAUSA]
-
-La alerta del uno protege de un peligro que existió.
-
-La fusión del dos protege de la soledad.
-
-El atropello del tres protege de que le pasen por encima.
-
-Y la rigidez del cuatro protege de que se derrumbe lo que costó levantar.
-
-[PAUSA]
-
-Cuando entiendes de qué te está protegiendo,
-
-deja de ser un defecto y pasa a ser una estrategia.
-
-Y una estrategia se puede cambiar. Un defecto no.
-
-[RÓTULO: 3 · Formular la frase de reconocimiento]
-
-Y tres: una frase.
-
-[PAUSA]
-
-Se dice en voz alta y tiene esta forma:
-
-«Esto me sirvió. Y ya no lo necesito tanto.»
-
-[PAUSA]
-
-Fíjate en las dos partes, porque las dos hacen falta.
-
-[PAUSA]
-
-La primera reconoce que aquello te salvó. Y es verdad, te salvó.
-
-Si te saltas esa parte, la sombra se defiende, porque siente que la niegas.
-
-[PAUSA]
-
-Y la segunda abre la puerta. No dice «nunca más».
-
-Dice «ya no tanto». Que es lo único creíble.
-
-[A CÁMARA]
-
-En el video de este módulo vamos a hacer esto guiado, con pausas de verdad.
-
-[PAUSA]
-
-Prepárate un cuaderno antes de ponerlo.
-
-[PAUSA]
+En la próxima clase, Cinco termómetros para tu sombra, te voy a dar cinco preguntas rápidas para reconocer tu sombra en el momento en que aparece. Ten el cuaderno a mano.
 
 Seguimos creciendo juntos.

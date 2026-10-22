@@ -1,256 +1,47 @@
 # Clase 2 · En qué nivel vive tu creencia
 
-**Creencias limitantes y potenciadoras · Módulo 2 · 10-12 min · Clase**
-Taller. Pizarra con cinco pisos, de abajo hacia arriba: entorno, conducta,
-capacidad, creencias, identidad. El ejemplo de las reuniones se escribe piso por
-piso. Al final, la plantilla del plan de cuatro líneas en pantalla.
-
----
-
-[A CÁMARA]
+Creencias limitantes y potenciadoras · Módulo 2 · 10-12 min
 
 Líderes, bendiciones.
 
-Empezamos con algo tuyo, como siempre.
+Hoy es un taller. Vamos a descubrir en qué nivel vive la razón por la que no haces algo que quieres hacer. Y vamos a convertir eso en un plan de cuatro líneas para empezar a moverlo esta misma semana. Al terminar vas a saber en qué piso está tu frase, qué ayuda según el piso, y vas a tener una primera acción pequeña con día y hora.
 
-Piensa en algo que quieres hacer desde hace tiempo y no haces.
+Empezamos con algo tuyo, como siempre. Piensa en algo que quieres hacer desde hace tiempo y no haces. Algo concreto: pedir algo, empezar algo, decir algo. Ahora, sin pensarlo, di en voz alta por qué no lo haces. La primera razón que salga: «No lo hago porque…». Y anótala tal cual salió. Pausa el video si lo necesitas.
 
-Algo concreto. Pedir algo, empezar algo, decir algo.
+¿La tienes? Ahora te voy a mostrar algo que me parece fascinante. Tomo un objetivo cualquiera: hablar en las reuniones del trabajo. Y te doy cinco razones distintas para no hacerlo. «En esa empresa no te dejan hablar.» «Esta semana no hablé.» «No sé cómo meterme en la conversación.» «Hablar ahí no sirve para nada.» «Yo no soy de los que hablan.» El objetivo es el mismo. Pero cada frase vive en un piso distinto.
 
-[PAUSA REAL · 10 s — el alumno elige algo que quiere y no hace]
+Esto lo organizó Robert Dilts, uno de los autores más influyentes de la PNL, en lo que llamó niveles. Imagina un edificio de cinco pisos, y vamos de abajo hacia arriba. El primer piso es el entorno: dónde, cuándo, con quién. «En esa empresa no te dejan hablar.» El segundo piso es la conducta: lo que haces o no haces. «Esta semana no hablé.» El tercer piso es la capacidad: el cómo. «No sé cómo meterme en la conversación.» El cuarto piso son las creencias y los valores: el porqué. «Hablar ahí no sirve para nada.» Y el quinto piso es la identidad: el quién. «Yo no soy de los que hablan.» Dilts añade un piso más arriba, el del propósito, el para qué de todo. Hoy nos quedamos en estos cinco.
 
-Ahora, sin pensarlo, di en voz alta por qué no lo haces.
+Mira tu razón, la que anotaste al principio. ¿En qué piso vive? Tómate unos segundos.
 
-La primera razón que salga. «No lo hago porque…»
+¿Lo tienes? Ahora viene el ejercicio de verdad. Escribe tu misma razón en los cinco pisos, una línea por piso. Cómo sonaría si fuera un problema de entorno. De conducta. De capacidad. De creencia. De identidad. Pausa el video y dale a esto un minuto.
 
-[PAUSA REAL · 10 s — el alumno dice en voz alta su razón]
+¿Ya están las cinco? Léelas despacio, una por una, y fíjate en cuál te pica. Cuál te produce algo en el cuerpo, un pequeño «uf». Muy a menudo, la que pica no es la que escribiste primero. Es la de uno o dos pisos más arriba.
 
-Anótala, tal cual salió.
+Un caso muy típico. Imagina a Martín. Dice que no va al gimnasio porque le queda lejos. Eso es entorno, y parece fácil de resolver. Pero cuando escribe su razón en los cinco pisos, la que le pica es otra: «yo no soy de los que hacen deporte». Y tiene sentido: hace un año se mudó a dos calles de un gimnasio, y tampoco fue. El problema nunca estuvo en la distancia. Estaba tres pisos más arriba.
 
-[PAUSA REAL · 15 s — el alumno anota su razón]
+Y esto importa por una razón muy práctica. Dilts observó que un cambio en un piso alto se propaga hacia abajo. Si cambia lo que crees sobre ti, cambia lo que aprendes, lo que haces y hasta los lugares donde te colocas. Pero también funciona al revés, y eso es lo que nos frena. Si tu problema vive en la identidad, cualquier plan de conducta se estrella contra él. Te organizas, te propones hablar el martes, y el martes aparece «yo no soy de los que hablan». Y gana.
 
-[A CÁMARA]
+Por eso conviene saber dónde vive tu frase antes de hacer planes. Si vive en el entorno, ayuda cambiar algo concreto alrededor: el horario, el lugar, con quién. Si vive en la conducta, ayuda un paso más pequeño. Si vive en la capacidad, ayuda aprender y practicar en pequeño. Si vive en la creencia, te van a servir las herramientas del módulo cuatro, Lenguaje limitante y potenciador, y del módulo seis, Reencuadre y transformación de creencias. Y si vive en la identidad, lo primero es bajarla a capacidad con el «todavía», como hiciste en la clase anterior.
 
-Ahora te voy a mostrar algo que me parece fascinante.
+Con esto claro, pasemos al paso siguiente. Una vez que la frase está en capacidad, ¿cómo se mueve? Aquí nos ayuda un psicólogo muy serio, Albert Bandura. Pasó décadas estudiando lo que llamó autoeficacia: lo que crees sobre tu capacidad de hacer algo concreto. Y describió cuatro fuentes de las que sale esa creencia. Fíjate que se parecen mucho a las puertas de instalación que vimos en la clase anterior. Solo que ahora las usamos a favor.
 
-Tomo un objetivo cualquiera: hablar en las reuniones del trabajo.
+La primera fuente, y la más fuerte, es haberlo hecho tú. No hay argumento que pese más que una experiencia propia, aunque sea pequeña. La segunda es ver hacerlo a alguien parecido a ti. No a una estrella de las redes. A alguien de tu tamaño, con tu tipo de vida. La tercera es que alguien a quien le das credibilidad te diga que puedes. Y la cuarta es cómo interpretas lo que sientes en el cuerpo. Las mismas mariposas en el estómago se pueden leer como «no puedo» o como «me estoy activando para hacerlo».
 
-Y te doy cinco razones distintas para no hacerlo.
+Ahora vamos a convertir esto en un plan de cuatro líneas, una por fuente. Te pongo el ejemplo de las reuniones. Primera línea, lo hago en pequeño: «el martes digo una sola frase en la reunión». Segunda línea, a quién miro: «me fijo en cómo entra Carolina en la conversación». Tercera línea, quién me lo dice: «le pregunto a mi compañera qué le pareció lo que dije». Cuarta línea, cómo leo mi cuerpo: «antes de hablar hago una exhalación larga, y leo los nervios como activación».
 
-[EN PANTALLA: los cinco pisos, vacíos]
+La clave está en la primera línea. Tiene que ser tan pequeña que dé casi vergüenza. Una frase, no una presentación. Si lo que quieres es ahorrar, la primera línea no es «ahorrar la mitad del sueldo». Es «esta semana anoto lo que gasto durante un solo día».
 
-«En esa empresa no te dejan hablar.»
+Ahora el tuyo, con tu objetivo del principio. Cuatro líneas: lo hago en pequeño, a quién miro, quién me lo dice, cómo leo mi cuerpo. Pausa el video y escríbelas.
 
-«Esta semana no hablé.»
+¿Ya las tienes? Revisa la primera línea con dos preguntas. ¿La puedes hacer en las próximas setenta y dos horas? ¿Depende solo de ti? Si alguna respuesta es no, hazla más pequeña, hasta que las dos sean sí. Ajústala ahora.
 
-«No sé cómo meterme en la conversación.»
+Antes de cerrar, un matiz honesto. Lo que hicimos con el «todavía» se parece mucho a una idea muy conocida, la mentalidad de crecimiento, de la psicóloga Carol Dweck. Es una distinción útil, y por eso la usamos. Pero algunos estudios recientes encuentran efectos más pequeños de lo que se prometía al principio. Así que tómalo como lo que es: una forma de colocar la frase donde se puede trabajar. Lo que la mueve de verdad es lo que hagas después. La primera línea de tu plan.
 
-«Hablar ahí no sirve para nada.»
+Hagamos un resumen. La misma razón puede vivir en cinco pisos: entorno, conducta, capacidad, creencia e identidad. Lo que vive arriba se propaga hacia abajo, y por eso conviene saber dónde está tu frase antes de hacer planes. Y una creencia de capacidad se construye con cuatro fuentes: hacerlo en pequeño, ver a alguien parecido, que alguien creíble te lo diga y leer tu cuerpo a tu favor.
 
-«Yo no soy de los que hablan.»
+Tu tarea para las próximas veinticuatro horas: haz la primera línea de tu plan, la pequeña. Y si no se puede hacer mañana, ponle día y hora en el calendario ahora mismo. Cuando la hagas, escribe una sola línea: «lo hice, y pasó esto». Esa línea es evidencia. Y la evidencia propia es la que más pesa.
 
-[PAUSA]
-
-El objetivo es el mismo. Pero cada frase vive en un piso distinto.
-
-[RÓTULO: Los niveles · Robert Dilts]
-
-Esto lo organizó Robert Dilts, uno de los grandes de la PNL, en lo que llamó niveles.
-
-Vamos piso por piso, de abajo hacia arriba.
-
-[RÓTULO: Entorno]
-
-«En esa empresa no te dejan hablar.» Eso es el entorno. Dónde, cuándo, con quién.
-
-[RÓTULO: Conducta]
-
-«Esta semana no hablé.» Eso es la conducta. Lo que haces o no haces.
-
-[RÓTULO: Capacidad]
-
-«No sé cómo meterme en la conversación.» Eso es la capacidad. El cómo.
-
-[RÓTULO: Creencias y valores]
-
-«Hablar ahí no sirve para nada.» Eso es una creencia. El porqué.
-
-[RÓTULO: Identidad]
-
-Y «yo no soy de los que hablan». Eso es identidad. El quién.
-
-[PAUSA]
-
-Dilts añade un piso más arriba, el del propósito, el para qué de todo. Hoy nos quedamos en estos cinco.
-
-[A CÁMARA]
-
-Mira tu razón. La que anotaste al principio.
-
-¿En qué piso vive?
-
-[PAUSA REAL · 15 s — el alumno ubica el piso de su razón]
-
-Ahora el ejercicio de verdad.
-
-Escribe tu misma razón en los cinco pisos. Una línea por piso.
-
-Cómo sonaría si fuera un problema de entorno. De conducta. De capacidad. De creencia. De identidad.
-
-[PAUSA REAL · 60 s — el alumno escribe su razón en los cinco pisos]
-
-[PAUSA]
-
-Ahora léelas despacio, una por una. Y fíjate en cuál te pica.
-
-Cuál te produce algo en el cuerpo. Un pequeño «uf».
-
-[PAUSA REAL · 20 s — el alumno lee las cinco y nota cuál tiene carga]
-
-Muy a menudo, la que pica no es la que escribiste primero.
-
-Es la de uno o dos pisos más arriba.
-
-[PAUSA]
-
-Un caso muy típico. Martín dice que no va al gimnasio porque le queda lejos.
-
-Entorno. Parece fácil de resolver.
-
-Cuando escribe su razón en los cinco pisos, la que le pica es otra: «yo no soy de los que hacen deporte».
-
-Y tiene sentido: hace un año se mudó a dos calles de un gimnasio. Y tampoco fue.
-
-[PAUSA]
-
-El problema nunca estuvo en la distancia. Estaba tres pisos más arriba.
-
-[A CÁMARA]
-
-Y esto importa por una razón muy práctica.
-
-Dilts observó que un cambio en un piso alto se propaga hacia abajo.
-
-Si cambia lo que crees sobre ti, cambia lo que aprendes, lo que haces y hasta dónde te colocas.
-
-Pero también funciona al revés, y eso es lo que nos frena.
-
-[SUBRAYAR: un plan de conducta se estrella contra una frase de identidad]
-
-Si tu problema vive en la identidad, cualquier plan de conducta se estrella contra él.
-
-Te organizas, te propones hablar el martes, y el martes aparece «yo no soy de los que hablan». Y gana.
-
-[PAUSA]
-
-Por eso conviene saber dónde vive tu frase antes de hacer planes.
-
-[TABLA EN PANTALLA]
-
-| Si vive en… | Lo que ayuda |
-|---|---|
-| Entorno | Cambiar algo concreto alrededor |
-| Conducta | Un paso más pequeño |
-| Capacidad | Aprender y practicar en pequeño |
-| Creencia | Las herramientas de los módulos 4 y 6 |
-| Identidad | Bajarla a capacidad, con «todavía» |
-
-[A CÁMARA]
-
-En la clase uno aprendiste a bajar de identidad a capacidad.
-
-Hoy damos el paso siguiente. Una vez que la frase está en capacidad, ¿cómo se mueve?
-
-[RÓTULO: Autoeficacia · Albert Bandura]
-
-Aquí nos ayuda un psicólogo muy serio, Albert Bandura.
-
-Pasó décadas estudiando lo que llamó autoeficacia: lo que crees sobre tu capacidad de hacer algo concreto.
-
-Y describió cuatro fuentes de las que sale esa creencia.
-
-[PAUSA]
-
-Fíjate que se parecen mucho a las tres puertas de instalación que vimos en la clase uno. Solo que ahora las usamos a favor.
-
-[RÓTULO: 1 · Haberlo hecho]
-
-La primera, y la más fuerte: haberlo hecho tú.
-
-No hay argumento que pese más que una experiencia propia, aunque sea pequeña.
-
-[RÓTULO: 2 · Ver a alguien parecido hacerlo]
-
-La segunda: ver hacerlo a alguien parecido a ti.
-
-No a una estrella. A alguien de tu tamaño.
-
-[RÓTULO: 3 · Que alguien creíble te lo diga]
-
-La tercera: que alguien a quien le das credibilidad te diga que puedes.
-
-[RÓTULO: 4 · Cómo lees tu cuerpo]
-
-Y la cuarta: cómo interpretas lo que sientes.
-
-Las mismas mariposas en el estómago se pueden leer como «no puedo» o como «me estoy activando para hacerlo».
-
-[A CÁMARA]
-
-Ahora vamos a convertir esto en un plan. Cuatro líneas. Te pongo el ejemplo de las reuniones.
-
-[EN PANTALLA: 1 · Lo hago en pequeño: «el martes digo una sola frase en la reunión» · 2 · Miro a alguien parecido: «me fijo en cómo entra Carolina en la conversación» · 3 · Alguien creíble: «le pregunto a mi compañera qué le pareció lo que dije» · 4 · Mi cuerpo: «antes de hablar, una exhalación larga, y leo los nervios como activación»]
-
-La clave está en la primera línea. Tiene que ser tan pequeña que dé casi vergüenza.
-
-Una frase. No una presentación.
-
-[PAUSA]
-
-Ahora el tuyo. Con tu objetivo, el del principio.
-
-Cuatro líneas: lo hago en pequeño, a quién miro, quién me lo dice, cómo leo mi cuerpo.
-
-[PAUSA REAL · 60 s — el alumno escribe su plan de cuatro líneas]
-
-Ahora revisa la primera línea con dos preguntas.
-
-¿La puedes hacer en las próximas setenta y dos horas?
-
-¿Depende solo de ti?
-
-Si alguna respuesta es no, hazla más pequeña. Hasta que las dos sean sí.
-
-[PAUSA REAL · 15 s — el alumno ajusta la primera línea]
-
-[A CÁMARA]
-
-Antes de cerrar, un matiz honesto.
-
-Lo que hicimos con el «todavía» tiene un nombre muy conocido: la mentalidad de crecimiento, de Carol Dweck.
-
-Es una distinción útil, y por eso la usamos.
-
-Pero algunos estudios recientes encuentran efectos más pequeños de lo que se prometía al principio.
-
-Así que tómalo como lo que es: una forma de colocar la frase donde se puede trabajar.
-
-Lo que la mueve de verdad es lo que hagas después. La primera línea de tu plan.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Haz la primera línea de tu plan. La pequeña.
-
-Y si no se puede hacer mañana, ponle día y hora en el calendario ahora mismo.
-
-Cuando la hagas, escribe una sola línea: «lo hice, y pasó esto».
-
-Esa línea es evidencia. Y la evidencia propia es la que más pesa.
-
-[PAUSA]
-
-En la práctica de este módulo vamos a hacer tu inventario completo: diez «yo soy», con el reloj corriendo.
+En la práctica de este módulo, El inventario de los «yo soy», vamos a hacer tu inventario completo: diez frases, con el reloj corriendo.
 
 Seguimos creciendo juntos.

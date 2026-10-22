@@ -1,278 +1,61 @@
 # Clase 2 · Calibrar sin adivinar
 
-**Fundamentos de la PNL · Módulo 5 · 9-12 min · Clase**
-Taller. Dayana hace en cámara, sobre sí misma, el cambio entre las dos personas pensadas, para que se vea en su cara. Las frases de «interpretación» aparecen en rótulo y la versión observable solo después de la pausa.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 5 · 10-12 min
 
 Líderes, bendiciones.
 
-En la clase anterior vimos qué es calibrar.
+En la clase anterior viste qué es calibrar: leer el estado de alguien por lo que se ve, no por lo que se supone. En esta clase lo vamos a entrenar, con cinco ejercicios cortos. Primero vas a tomar tu propia línea base. Después vas a provocar un cambio en ti y a notarlo. Luego vas a convertir interpretaciones en observaciones, en voz alta. Después vas a revisar la línea base de alguien cercano. Y al final vas a ensayar la pregunta que convierte una sospecha en un dato. Al terminar, vas a saber calibrar en ti, en una escena y en otra persona.
 
-En esta lo vamos a entrenar. Y vamos a empezar por la persona que tienes más cerca: tú.
+Empezamos por la persona que tienes más cerca: tú. Ahora mismo, sin cambiar nada, fíjate en tres cosas. ¿Dónde está tu respiración, en el pecho o en el abdomen? ¿Cómo está tu mandíbula, apretada o suelta? ¿Y tus hombros, arriba o abajo? Tómate unos segundos para notarlo.
 
-[PAUSA]
+¿Lo tienes? Esa es tu línea base de este momento: cómo estás cuando no está pasando nada en particular. Sin esa referencia no puedes saber si algo cambió. Con ella, cualquier cambio se vuelve visible.
 
-Ahora mismo, sin cambiar nada, fíjate en tres cosas.
+Ahora vamos a provocar un cambio. Piensa en alguien que te saca de quicio. No hace falta decir quién. Tráelo a la mente: su cara, su voz, esa frase que siempre dice. Quédate ahí unos segundos. Y fíjate qué cambió en tu cuerpo. La respiración, la mandíbula, los hombros, las manos.
 
-¿Dónde está tu respiración? ¿En el pecho, en el abdomen?
+Bien. Suéltalo. Mueve un poco los hombros y suelta el aire.
 
-¿Cómo está tu mandíbula? ¿Apretada, suelta?
+Ahora piensa en alguien a quien quieres mucho. Tráelo igual: su cara, su voz, un momento con esa persona. Quédate ahí unos segundos. ¿Qué cambió ahora?
 
-¿Y tus hombros? ¿Arriba, abajo?
+Lo que acabas de hacer es calibrar. Fíjate que no interpretaste nada. No te dijiste «qué rabia» o «qué ternura». Notaste un cambio, y justo después de qué. Eso mismo es lo que vamos a hacer con los demás: no mirar el gesto, sino el cambio, y justo después de qué.
 
-[PAUSA REAL · 15 s — notar respiración, mandíbula y hombros]
+Vamos a probarlo conmigo. Mírame un momento. Voy a pensar en alguien que me saca de quicio. Dame unos segundos. Y ahora voy a pensar en alguien que quiero mucho.
 
-Eso es tu línea base de este momento.
+¿Viste algo? Fíjate en la boca, en los ojos, en el color de la piel, en la respiración. Dilo en voz alta: ¿qué cambió entre la primera vez y la segunda? No sabes en quién pensé. Tampoco sabes qué siento por esas personas. Pero viste que algo cambió. Eso es un dato.
 
-Cómo estás cuando no está pasando nada en particular.
+Con esto claro, pasemos al tercer ejercicio: de la interpretación a la observación. Te voy a decir una frase que es una conclusión. Tú la conviertes, en voz alta, en lo que grabaría una cámara.
 
-Sin ella, no puedes saber si algo cambió.
+Primera frase: «Mi hijo llegó de mal humor.» Conviértela en observación, en voz alta. Una posibilidad sería: «Cerró la puerta fuerte y no saludó.»
 
-[A CÁMARA]
+Segunda: «A mi jefa le encantó la propuesta.» En voz alta, ¿qué se vio? Por ejemplo: «Sonrió, se inclinó hacia adelante y pidió más detalles.»
 
-Ahora vamos a provocar un cambio.
+Tercera: «Se aburrió en la reunión.» ¿Qué grabaría la cámara? Quizás esto: «Miró el teléfono tres veces y dejó de tomar notas.»
 
-Piensa en alguien que te saca de quicio. No hace falta decir quién.
+Fíjate en la tercera. Quizás se aburrió. O quizás le escribieron del colegio de su hija y se quedó con esa preocupación. La observación deja las dos puertas abiertas. La interpretación cierra una. Por eso las técnicas trabajan con observaciones. Si te equivocas con un dato, preguntas y corriges. Si te equivocas con una conclusión, la defiendes, y muchas veces terminas peleando por algo que nunca pasó.
 
-Tráelo a la mente. Su cara, su voz, esa frase que siempre dice.
+Ahora el cuarto ejercicio: la línea base de alguien cercano. Piensa en una persona que ves casi todos los días. Tu pareja, un hijo, tu mamá, un compañero de trabajo. Y responde por dentro tres preguntas. ¿Cómo respira cuando está en calma? ¿Cómo suena su voz cuando está a gusto, rápida o lenta, aguda o grave? ¿Qué hace con las manos cuando te escucha? Tómate unos segundos.
 
-[PAUSA REAL · 10 s — pensar en esa persona]
+¿Te costó responder? Si te costó, no te preocupes. Le pasa a casi todo el mundo. Convivimos años con alguien y no sabemos cómo respira. No es falta de cariño. Es que nunca miramos ahí.
 
-¿Qué cambió en tu cuerpo? Respiración, mandíbula, hombros, manos.
+Y eso tiene una consecuencia práctica. Si no conoces la calma de alguien, cualquier gesto suyo te puede parecer enojo. Hay personas que tienen la mandíbula tensa siempre, y es simplemente su cara. Así que esta semana mira a esa persona tres veces en calma. En el desayuno. Viendo algo que le gusta. Hablando con alguien que quiere. Sin decir nada. Solo para saber cómo es su normal.
 
-[PAUSA REAL · 10 s — notar qué cambió]
+Vamos al quinto ejercicio: la pregunta que lo cierra todo. Calibrar te da una hipótesis. La certeza viene de preguntar. Y la forma de preguntar importa mucho. La pregunta es esta: «Te noté algo distinto cuando salió ese tema. ¿Me equivoco?». Es una pregunta con curiosidad, no con acusación. Fíjate en la diferencia con «¿por qué te pusiste así?». Esa segunda ya trae una conclusión adentro.
 
-Bien. Suéltalo. Mueve un poco los hombros. Suelta el aire.
+Ahora dila tú, en voz alta, con tus palabras y con tu tono. Como se la dirías a alguien de tu casa. Pausa el video si lo necesitas y repítela un par de veces.
 
-[PAUSA REAL · 5 s — sacudir y soltar]
+¿Cómo te sonó? Si te sonó a reproche, baja el ritmo y suaviza el final. La pregunta funciona cuando suena a que de verdad quieres saber. Y si te responden «no, nada», está bien. No insistas. Ya tienes un dato: algo cambió, y todavía no se quiere hablar. Eso también se respeta.
 
-Ahora piensa en alguien a quien quieres mucho.
+Vamos a ensayarlo con una escena. Le cuentas a tu pareja que el sábado viene tu familia a comer. Y notas que deja de masticar, baja la mirada al plato y suelta el aire por la nariz. ¿Qué le dirías? Respóndelo en voz alta.
 
-Tráelo igual. Su cara, su voz, un momento con esa persona.
+Una opción es esta: «Te noté algo cuando dije lo del sábado. ¿Me equivoco?». Lo que no conviene es: «Ya vas a empezar con mi familia». La primera abre una conversación. La segunda abre una pelea. Y la diferencia entre las dos es solo esta: la primera describe, la segunda concluye.
 
-[PAUSA REAL · 10 s — pensar en esa persona]
+Una aclaración, porque esto se presta a malentendidos. Calibrar no es para atrapar a nadie en falta. No es para decir «te vi la cara, sé lo que piensas». Es para darte cuenta antes de que algo crezca, y preguntar a tiempo.
 
-¿Qué cambió ahora?
+¿Y por teléfono? Ahí no hay cara, pero hay voz. El ritmo, el volumen, dónde hace las pausas, si de pronto contesta más corto. En tu próxima llamada, fíjate en un solo momento en que la voz de la otra persona cambie. Solo con eso ya estás calibrando.
 
-[PAUSA REAL · 10 s — notar qué cambió]
+Hagamos un resumen. Tomaste tu línea base y notaste un cambio en ti. Viste un cambio en mí sin saber qué lo causó. Convertiste conclusiones en datos. Revisaste cuánto sabes de la calma de alguien cercano. Y ensayaste la pregunta que convierte una hipótesis en un dato.
 
-[A CÁMARA]
+Tu tarea para las próximas veinticuatro horas es un juego de tres minutos. Pídele a alguien de confianza que piense en una persona que le cae muy bien. Mírale la cara, la respiración, el color de la piel, sin decir nada. Después pídele que piense en alguien que no soporta, y mira otra vez. Luego, que piense en una de las dos sin decirte cuál, y tú intentas adivinar cuál fue. Cuando aciertes, no será por magia. Será porque viste un cambio. Y cuando falles, también aprendes: te dice qué no estabas mirando.
 
-Lo que acabas de hacer es calibrar.
-
-No interpretaste nada. No te dijiste «qué rabia» o «qué ternura».
-
-Notaste un cambio, y justo después de qué.
-
-[RÓTULO: No el gesto: el cambio, y justo después de qué]
-
-Eso mismo se hace con los demás.
-
-Mírame un momento. Voy a hacer yo lo mismo.
-
-Primero pienso en alguien que me saca de quicio.
-
-[HACERLO]
-
-Y ahora en alguien que quiero.
-
-[HACERLO]
-
-¿Viste algo? La boca, los ojos, el color, la respiración.
-
-[PAUSA REAL · 10 s — decir en voz alta qué viste cambiar]
-
-No sabes en quién pensé. Ni qué siento por esas personas.
-
-Pero sí viste que algo cambió. Eso es un dato.
-
-[A CÁMARA]
-
-Segundo ejercicio. De la interpretación a la observación.
-
-Te voy a decir una frase que es una conclusión.
-
-Tú la conviertes, en voz alta, en lo que grabaría una cámara.
-
-[RÓTULO: «Mi hijo llegó de mal humor.»]
-
-Primera. «Mi hijo llegó de mal humor.»
-
-[PAUSA REAL · 10 s — convertirla en observación, en voz alta]
-
-Por ejemplo: «Cerró la puerta fuerte y no saludó.»
-
-[PAUSA]
-
-[RÓTULO: «A mi jefa le encantó la propuesta.»]
-
-Segunda. «A mi jefa le encantó la propuesta.»
-
-[PAUSA REAL · 10 s — convertirla en observación, en voz alta]
-
-Por ejemplo: «Sonrió, se inclinó hacia adelante y pidió más detalles.»
-
-[PAUSA]
-
-[RÓTULO: «Se aburrió en la reunión.»]
-
-Tercera. «Se aburrió en la reunión.»
-
-[PAUSA REAL · 10 s — convertirla en observación, en voz alta]
-
-Por ejemplo: «Miró el teléfono tres veces y dejó de tomar notas.»
-
-[A CÁMARA]
-
-Fíjate en la tercera.
-
-Quizá se aburrió. O quizá le escribieron del colegio de su hija.
-
-La observación deja las dos puertas abiertas. La interpretación cierra una.
-
-[PAUSA]
-
-Y por eso las técnicas trabajan con observaciones.
-
-Porque si te equivocas con un dato, preguntas y corriges.
-
-Si te equivocas con una conclusión, la defiendes.
-
-[A CÁMARA]
-
-Tercer ejercicio. La línea base de alguien cercano.
-
-Piensa en una persona que ves casi todos los días.
-
-Ahora responde por dentro.
-
-¿Cómo respira cuando está en calma?
-
-¿Cómo suena su voz cuando está a gusto? ¿Rápida, lenta, aguda, grave?
-
-¿Qué hace con las manos cuando te escucha?
-
-[PAUSA REAL · 20 s — recordar la línea base de esa persona]
-
-Si te costó responder, no te preocupes. A casi todo el mundo le cuesta.
-
-Convivimos años con alguien y no sabemos cómo respira.
-
-No es falta de cariño. Es que nunca miramos ahí.
-
-[PAUSA]
-
-Y eso tiene una consecuencia práctica.
-
-Si no conoces su calma, cualquier gesto te puede parecer enojo.
-
-Hay gente que tiene la mandíbula tensa siempre. Es su cara.
-
-Así que esta semana, mírala tres veces en calma.
-
-En el desayuno. Viendo algo que le gusta. Hablando con alguien que quiere.
-
-Sin decir nada. Solo para saber cómo es su normal.
-
-[A CÁMARA]
-
-Último ejercicio. La pregunta que lo cierra todo.
-
-Calibrar te da una hipótesis. La certeza viene de preguntar.
-
-Y la forma de preguntar importa mucho.
-
-[RÓTULO: «Te noté algo distinto cuando salió ese tema, ¿me equivoco?»]
-
-Es una pregunta con curiosidad, no con acusación.
-
-No es «¿por qué te pusiste así?». Eso ya es una conclusión.
-
-Es «te noté algo distinto. ¿Me equivoco?».
-
-[PAUSA]
-
-Dila tú en voz alta, con tus palabras y con tu tono.
-
-Como se la dirías a alguien de tu casa.
-
-[PAUSA REAL · 10 s — decir la pregunta en voz alta]
-
-Y si te responden «no, nada», está bien. No insistas.
-
-Ya tienes un dato: algo cambió y todavía no se quiere hablar.
-
-Eso también se respeta.
-
-[A CÁMARA]
-
-Vamos a ensayarlo con una escena.
-
-Le cuentas a tu pareja que el sábado viene tu familia a comer.
-
-Y notas que deja de masticar, baja la mirada al plato y suelta el aire por la nariz.
-
-[PAUSA]
-
-¿Qué le dirías? En voz alta.
-
-[PAUSA REAL · 10 s — responder en voz alta a la escena]
-
-Una opción: «Te noté algo cuando dije lo del sábado. ¿Me equivoco?»
-
-Lo que no conviene: «Ya vas a empezar con mi familia.»
-
-La primera abre una conversación. La segunda abre una pelea.
-
-Y la diferencia entre las dos es solo esta: la primera describe, la segunda concluye.
-
-[PAUSA]
-
-Y una cosa más, porque se presta a malentendidos.
-
-Calibrar no es para atrapar a nadie en falta.
-
-No es para decir «te vi la cara, sé lo que piensas».
-
-Es para darte cuenta antes de que algo crezca, y preguntar a tiempo.
-
-[A CÁMARA]
-
-¿Y por teléfono? Ahí no hay cara. Pero hay voz.
-
-El ritmo, el volumen, dónde hace las pausas, si de pronto contesta más corto.
-
-En tu próxima llamada, fíjate en un solo momento en que la voz del otro cambie.
-
-Solo eso. Ya es calibrar.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas es un juego. Dura tres minutos.
-
-Pídele a alguien de confianza que piense en una persona que le cae muy bien.
-
-Mírale la cara, la respiración, el color de la piel. No digas nada.
-
-Después, que piense en alguien que no soporta. Mira otra vez.
-
-Y luego que piense en una de las dos, sin decirte cuál.
-
-Tú intentas adivinar cuál fue.
-
-[PAUSA]
-
-Cuando aciertes, no será por magia. Será porque viste un cambio.
-
-Y cuando falles, también aprendes: te dice qué no estabas mirando.
-
-[PAUSA]
-
-En el siguiente video hacemos juntos el cambio de estado en sesenta segundos,
-
-para que lo tengas listo antes de una conversación difícil.
+En el próximo video, la práctica Cambiar de estado en sesenta segundos, vamos a hacer juntos un protocolo corto. Así lo vas a tener a mano antes de una conversación difícil.
 
 Seguimos creciendo juntos.

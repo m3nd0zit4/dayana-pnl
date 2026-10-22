@@ -1,251 +1,131 @@
 # Audio guiado · ¿Para qué y con quién?
 
-**Los 8 Niveles de Conciencia · Módulo 3 · 9-12 min · Audio guiado**
-Solo voz, tono bajo. Ritmo lento, sin prisa entre bloques. Las preguntas se
-dicen una sola vez y se deja que el silencio trabaje.
+Los 8 Niveles de Conciencia · Módulo 3 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces
-
-ni mientras operas maquinaria.
-
-[PAUSA]
-
-Busca un lugar tranquilo para los próximos diez minutos.
+Ten el cuaderno cerca. Lo vas a usar al final.
 
 Siéntate con la espalda apoyada y los pies en el suelo.
 
-[PAUSA LARGA]
-
 Cierra los ojos, o deja la mirada baja.
 
-[PAUSA]
+Toma aire por la nariz… y suéltalo despacio, un poco más largo de lo que entró.
 
-Toma aire por la nariz…
-
-y suéltalo despacio, un poco más largo de lo que entró.
-
-[PAUSA]
-
-Otra vez. Entra…
-
-y sale.
-
-[PAUSA]
+Otra vez. Entra… y sale.
 
 Y una más, a tu ritmo.
 
-[PAUSA LARGA]
+Ahora deja que la respiración vaya sola.
 
-Nota el apoyo de la espalda.
+Nota el apoyo de la espalda. Nota los pies en el suelo.
 
 Nota las manos. Si están apretadas, deja que se abran un poco.
 
-[PAUSA LARGA]
+Nota los hombros, y deja que bajen.
 
-Ahora piensa en algo que estás persiguiendo en esta etapa de tu vida.
+Respira… y quédate ahí unos momentos.
 
-Una meta. Un logro. Algo que te propusiste y por lo que estás trabajando.
+Si llegan pensamientos sobre lo que tienes pendiente, déjalos pasar. Ahora no tienes que resolver nada.
 
-Puede ser de trabajo, de dinero, de estudio, de tu cuerpo.
+Ahora piensa en algo que estás persiguiendo en esta etapa de tu vida. Una meta. Un logro. Algo que te propusiste y por lo que estás trabajando. Puede ser de trabajo, de dinero, de estudio, de tu cuerpo.
 
-[PAUSA REAL · 15 s — deja que aparezca la meta]
+Tómate el tiempo que necesites para que aparezca.
 
-Ahora imagina que ya lo conseguiste.
+Ahora imagina que ya lo conseguiste. Que es un día cualquiera, dentro de un tiempo, y eso ya está hecho.
 
-Que es un día cualquiera, dentro de un tiempo, y eso ya está hecho.
+¿Dónde estás ese día? ¿Qué ves alrededor? ¿Qué se escucha?
 
-[PAUSA]
+Nota lo primero que sientes al saber que lo conseguiste. Quizás alivio. Quizás orgullo. Quizás cansancio. Deja que esté ahí.
 
-¿Dónde estás ese día?
+Fíjate dónde lo sientes en el cuerpo. En el pecho, en los hombros, en la cara.
 
-¿Qué ves alrededor?
-
-[PAUSA LARGA]
-
-Nota lo primero que sientes al saber que lo conseguiste.
-
-Quizás alivio. Quizás orgullo. Quizás cansancio.
-
-Deja que esté ahí.
-
-[PAUSA LARGA]
-
-Ahora quédate un poco más en ese día.
-
-Pasa la primera hora. Pasa la tarde.
-
-El alivio del principio ya se fue.
-
-[PAUSA]
+Ahora quédate un poco más en ese día. Pasa la primera hora. Pasa la tarde. El alivio del principio ya se fue.
 
 ¿Qué queda?
 
-[PAUSA REAL · 20 s — nota qué queda cuando pasa el alivio]
+Tómate el tiempo que necesites para notarlo.
 
-Puede que quede una satisfacción tranquila.
-
-Puede que aparezca la siguiente meta, casi de inmediato.
-
-Puede que se sienta un pequeño vacío.
+Puede que quede una satisfacción tranquila. Puede que aparezca la siguiente meta, casi de inmediato. Puede que se sienta un pequeño vacío.
 
 Ninguna respuesta está mal. Solo nota cuál es la tuya.
 
-[PAUSA LARGA]
+Ahora, desde ese día, hazte una pregunta. ¿Para qué?
 
-Ahora, desde ese día, hazte una pregunta.
+¿Para qué quería esto? No la respuesta que darías en una entrevista. La de adentro.
 
-¿Para qué?
+Respira… y deja que aparezca.
 
-[PAUSA LARGA]
+Y una segunda pregunta. ¿Con quién?
 
-¿Para qué quería esto?
+En ese día en que ya lo conseguiste, ¿quién está contigo? ¿Con quién te gustaría compartirlo?
 
-No la respuesta que darías en una entrevista.
+Tómate el tiempo que necesites para mirar quién está, o quién te gustaría que estuviera.
 
-La de adentro.
+Si aparece alguien, mira su cara. Nota qué cambia en el cuerpo al imaginar que lo compartes.
 
-[PAUSA REAL · 20 s — deja que aparezca el para qué]
-
-Y una segunda pregunta.
-
-¿Con quién?
-
-[PAUSA LARGA]
-
-En ese día en que ya lo conseguiste, ¿quién está contigo?
-
-¿Con quién te gustaría compartirlo?
-
-[PAUSA REAL · 15 s — mira quién está, o quién te gustaría que estuviera]
-
-Si aparece alguien, mira su cara.
-
-Nota qué cambia en el cuerpo al imaginar que lo compartes.
-
-[PAUSA LARGA]
-
-Y si no aparece nadie, nota eso también, con suavidad.
-
-Es información valiosa.
-
-[PAUSA LARGA]
+Y si no aparece nadie, nota eso también, con suavidad. Es información valiosa. Quizás te está mostrando a alguien a quien te gustaría volver a acercarte.
 
 Ahora vamos a mirar desde más lejos.
 
-[PAUSA]
+Imagina que puedes ver ese día desde arriba, como si subieras despacio y miraras la escena desde el techo.
 
-Imagina que puedes ver ese día desde arriba,
+Te ves con tu logro. Y alrededor ves a otras personas: tu familia, tu trabajo, tu barrio.
 
-como si subieras despacio y miraras la escena desde el techo.
+Nota cómo tu meta toca a esas personas. A quién le ayuda. A quién le cuesta algo. Qué hilos la conectan con la vida de otros.
 
-[PAUSA]
+Quédate unos momentos observando esos hilos.
 
-Te ves a ti, con tu logro.
+Desde aquí arriba no hay nadie bueno ni malo. Hay una red de personas, cada una haciendo lo que puede desde donde está.
 
-Y alrededor ves a otras personas: tu familia, tu trabajo, tu barrio.
-
-[PAUSA LARGA]
-
-Nota cómo tu meta toca a esas personas.
-
-A quién le ayuda. A quién le cuesta algo.
-
-Qué hilos la conectan con la vida de otros.
-
-[PAUSA REAL · 20 s — observa los hilos que conectan tu meta con otras personas]
-
-Desde aquí arriba no hay nadie bueno ni malo.
-
-Hay una red de personas, cada una haciendo lo que puede desde donde está.
-
-[PAUSA]
-
-Quizás alguien de tu casa sostiene tu meta sin que se note:
-
-cocina, espera, cuida, se encarga de lo que tú no alcanzas.
+Quizás alguien de tu casa sostiene tu meta sin que se note. Cocina, espera, cuida, se encarga de lo que tú no alcanzas.
 
 Quizás alguien de tu trabajo depende de que la consigas.
 
 Quizás alguien la está pagando con tu ausencia.
 
-[PAUSA]
+No es para sentir culpa. Es solo para verlo completo.
 
-No es para sentir culpa.
+Y desde aquí, la pregunta se hace más grande todavía. ¿A qué sirve esto? ¿A qué le aporta mi meta, más allá de mí?
 
-Es solo para verlo completo.
+Respira… y deja que aparezca una respuesta, aunque sea pequeña.
 
-[PAUSA LARGA]
+Si no aparece ninguna, también está bien. A veces la respuesta llega días después.
 
-Y desde aquí, la pregunta se hace más grande todavía.
+Ahora vamos a bajar. Despacio, vuelve a la escena. Vuelve a tu cuerpo, en ese día.
 
-¿A qué sirve esto?
+Y de todo lo que viste, el para qué, el con quién, los hilos, elige una sola cosa pequeña que podrías hacer mañana. Algo que se pueda ver. Que entre en la agenda.
 
-¿A qué le aporta mi meta, más allá de mí?
+Una llamada. Una comida con alguien. Una hora sin trabajar. Una conversación que lleves tiempo aplazando.
 
-[PAUSA REAL · 15 s — deja que aparezca una respuesta, aunque sea pequeña]
+Tómate el tiempo que necesites para elegirla.
 
-Ahora vamos a bajar.
+Ahora imagínate haciéndolo mañana. Dónde. A qué hora. Con quién.
 
-Despacio, vuelve a la escena. Vuelve a tu cuerpo, en ese día.
+Nota cómo se siente el cuerpo al imaginarlo.
 
-[PAUSA]
+Respira… y quédate ahí unos momentos. Ese acto pequeño es la forma en que una meta grande se vuelve vida de verdad.
 
-Y de todo lo que viste —el para qué, el con quién, los hilos—
-
-elige una sola cosa pequeña que podrías hacer mañana.
-
-Algo que se pueda ver. Que entre en la agenda.
-
-[PAUSA]
-
-Una llamada. Una comida con alguien. Una hora sin trabajar.
-
-Una conversación que lleves tiempo aplazando.
-
-[PAUSA REAL · 15 s — elige el acto pequeño de mañana]
-
-Imagínate haciéndolo mañana. Dónde. A qué hora.
-
-[PAUSA LARGA]
-
-Vamos a volver.
-
-Voy a contar del uno al cinco. Al cinco abres los ojos, con calma.
-
-[PAUSA]
+Vamos a volver. Voy a contar del uno al cinco. Al cinco abres los ojos, con calma.
 
 Uno. Nota el apoyo de la espalda.
 
-[PAUSA]
-
 Dos. Nota los pies en el suelo.
-
-[PAUSA]
 
 Tres. Mueve un poco las manos.
 
-[PAUSA]
-
 Cuatro. Toma una respiración más profunda.
-
-[PAUSA]
 
 Cinco. Abre los ojos.
 
-[PAUSA LARGA]
+Toma el cuaderno y escribe tres líneas. Para qué. Con quién. Y el acto de mañana, con hora.
 
-Toma el cuaderno y escribe tres líneas.
+Tómate el tiempo que necesites.
 
-Para qué. Con quién. Y el acto de mañana, con hora.
+Si mañana haces ese acto, fíjate en cómo te sientes después. Esa sensación también te dice algo sobre lo que de verdad te importa.
 
-[PAUSA REAL · 45 s — escribe las tres líneas]
+Las metas no tienen nada de malo. Solo pesan menos cuando sabes para qué son y con quién las vas a vivir.
 
-Las metas no tienen nada de malo.
+Para cerrar el módulo, tienes el material de lectura en PDF y el ejercicio opcional, Autoobservación por contextos. Ahí vas a mirar desde qué nivel operas en tu trabajo, en tus relaciones y en tu crecimiento.
 
-Solo pesan menos cuando sabes para qué son y con quién las vas a vivir.
-
-[PAUSA]
-
-Seguimos creciendo juntos.
+Y cuando lo tengas, te espero en el módulo cuatro: Valores, fortalezas y sombras, niveles uno a cuatro.

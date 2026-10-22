@@ -1,291 +1,75 @@
 # Clase 1 · Las cuatro palancas
 
-**Emociones, anclajes y estados de recurso · Módulo 2 · 11-14 min · Clase**
-Cámara fija, plano medio con las manos a la vista para tomar el pulso y marcar los tiempos de respiración. Los tres patrones van en rótulo con sus números.
-En la parte de la mirada y la mandíbula, plano más cerrado para que se vea la cara.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 2 · 12-14 min
 
 Líderes, bendiciones.
 
-Empezamos con un experimento, y lo haces tú.
+En esta clase vas a entender por qué funciona la respiración lenta, explicado sin misticismo. Vas a practicar tres patrones de respiración y vas a conocer las otras tres palancas del cuerpo: la postura, el ritmo y la mirada. Después vamos a juntar todo en un protocolo de sesenta segundos que vas a poder usar antes de cualquier conversación difícil. Y al final te voy a decir con honestidad qué no funciona, y cuándo tener cuidado.
 
-Pon dos dedos en el costado del cuello, debajo de la mandíbula, o en la muñeca, hasta que encuentres el pulso.
+Empezamos con un experimento, y lo haces tú. Pon dos dedos en el costado del cuello, debajo de la mandíbula, o en la muñeca, hasta que encuentres el pulso. Tómate unos segundos para encontrarlo.
 
-[HACERLO]
+¿Lo tienes? Ahora inhala despacio por la nariz y fíjate en el pulso mientras entra el aire. Después exhala muy despacio y fíjate otra vez. Hazlo dos veces, con calma.
 
-[PAUSA REAL · 10 s — encontrar el pulso]
+Muchas personas notan que el pulso se acelera un poquito al inhalar y se frena un poquito al exhalar. Si no lo notaste, no pasa nada. Es sutil, y con la práctica se nota más.
 
-Ahora inhala despacio, por la nariz, y fíjate en el pulso mientras entra el aire.
+Eso que acabas de buscar tiene nombre: arritmia sinusal respiratoria. El nombre asusta, pero es completamente normal. Es la forma en que el corazón y la respiración se coordinan. Tu sistema nervioso tiene una rama que acelera y otra que frena. Cuando entra el aire, el corazón acelera un poco. Cuando sale, la rama que frena tiene más espacio. Y de ahí sale todo este módulo: si alargas la exhalación, le das más tiempo al freno.
 
-Y después exhala muy despacio, y fíjate otra vez.
+Piensa en lo que eso significa. No puedes bajarte las pulsaciones queriendo. Pero sí puedes exhalar más largo, y las pulsaciones bajan detrás. Es una palanca mecánica sobre un sistema que, por lo demás, no obedece órdenes. Por eso la regla de oro no es una técnica. Es una proporción: exhalar más largo de lo que se inhala. Todo lo demás son variantes.
 
-[PAUSA REAL · 20 s — dos respiraciones lentas sintiendo el pulso]
+Ahora vamos a ver las tres variantes que sirven. Las hacemos una por una, tú y yo al mismo tiempo.
 
-Muchas personas notan que el pulso se acelera un poquito al inhalar y se frena un poquito al exhalar.
+La primera es el cuatro, cuatro, seis. Inhalas contando hasta cuatro, sostienes el aire contando hasta cuatro y exhalas contando hasta seis. Es el patrón de todos los días en este curso. Sirve para los nervios, para antes de algo importante, para una noche en que no te duermes. Si solo te llevas uno, que sea este. Hagamos dos ciclos.
 
-Si no lo notaste, no pasa nada. Es sutil, y con la práctica se nota más.
+Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-[A CÁMARA]
+Otra vez. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Eso que acabas de buscar tiene nombre.
+Ahora vuelve a respirar normal. Lo ideal son ocho ciclos seguidos, que duran menos de dos minutos. En el video de práctica de este módulo los cuento contigo, al ritmo real.
 
-[RÓTULO: Arritmia sinusal respiratoria]
+La segunda variante es el cuatro, siete, ocho. Inhalas en cuatro, sostienes en siete y exhalas en ocho. La popularizó el médico Andrew Weil, y se usa sobre todo para conciliar el sueño. Es más exigente por la retención larga, así que se hacen cuatro ciclos, no más. Y siempre en una silla o acostándote, porque de pie puede marear. Hagamos uno solo, para que lo conozcas.
 
-Se llama arritmia sinusal respiratoria. El nombre asusta, pero es completamente normal.
+Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro… cinco… seis… siete. Exhala… dos… tres… cuatro… cinco… seis… siete… ocho.
 
-El corazón acelera un poco cuando entra el aire y frena cuando sale.
-
-Y de ahí sale todo este módulo, sin misticismo.
-
-Si alargas la exhalación, le das más tiempo al freno.
-
-[PAUSA]
-
-No puedes bajarte las pulsaciones queriendo.
-
-Sí puedes exhalar más largo. Y las pulsaciones bajan detrás.
-
-[RÓTULO: Exhalar más largo de lo que se inhala]
-
-Por eso la regla de oro no es una técnica: es una proporción.
-
-Exhalar más largo de lo que se inhala. Todo lo demás son variantes.
-
-[A CÁMARA]
-
-Te enseño las tres variantes que sirven. Las hacemos una por una, tú y yo al mismo tiempo.
-
-[RÓTULO: 4-4-6 · para bajar]
-
-La primera es el 4-4-6.
-
-Inhalas contando cuatro, sostienes cuatro y exhalas seis.
-
-Es el patrón de este curso. Sirve para los nervios, para antes de algo importante, para una noche en que no te duermes.
-
-Si solo te llevas uno, este.
-
-Hagamos dos ciclos.
-
-[HACERLO]
-
-Inhala… dos… tres… cuatro.
-
-Sostén… dos… tres… cuatro.
-
-Exhala… dos… tres… cuatro… cinco… seis.
-
-[PAUSA]
-
-Otra vez. Inhala… dos… tres… cuatro.
-
-Sostén… dos… tres… cuatro.
-
-Exhala… dos… tres… cuatro… cinco… seis.
-
-[PAUSA REAL · 5 s — volver a respirar normal]
-
-Lo ideal son ocho ciclos. Tienes un video de práctica en este módulo que los cuenta contigo, al ritmo real.
-
-[RÓTULO: 4-7-8 · para dormir]
-
-La segunda es el 4-7-8. Inhalas cuatro, sostienes siete y exhalas ocho.
-
-La popularizó el médico Andrew Weil, y se usa sobre todo para conciliar el sueño.
-
-Es más exigente. Cuatro ciclos, no más. Y siempre en una silla o acostándote: de pie puede marear.
-
-Hagamos uno solo, para que lo conozcas.
-
-[HACERLO]
-
-Inhala… dos… tres… cuatro.
-
-Sostén… dos… tres… cuatro… cinco… seis… siete.
-
-Exhala… dos… tres… cuatro… cinco… seis… siete… ocho.
-
-[PAUSA REAL · 5 s — volver a respirar normal]
-
-[RÓTULO: Suspiro fisiológico · para el pico]
-
-Y la tercera es la más rápida: el suspiro fisiológico.
-
-Dos inhalaciones seguidas por la nariz, la segunda cortita, encima de la primera. Y una exhalación larga por la boca.
-
-Lo vas a reconocer: tu cuerpo lo hace por su cuenta, por ejemplo después de llorar.
-
-Hagamos uno.
-
-[HACERLO]
+Vuelve a respirar normal. La tercera variante es la más rápida: el suspiro fisiológico. Son dos inhalaciones seguidas por la nariz, la segunda cortita, encima de la primera. Y después una exhalación larga por la boca. Lo vas a reconocer, porque tu cuerpo lo hace por su cuenta, por ejemplo después de llorar. Hagamos uno.
 
 Inhala… y un poquito más… y suelta largo por la boca.
 
-[PAUSA REAL · 8 s — un suspiro fisiológico]
+Este es para el pico. Para el momento exacto en que algo se dispara y no tienes ni treinta segundos. Una a tres repeticiones bastan. Y es el que tiene la evidencia más reciente. Un estudio de la Universidad de Stanford, publicado en dos mil veintitrés, lo comparó con la meditación. Practicar estos suspiros cinco minutos al día durante un mes mejoró más el ánimo.
 
-Este es para el pico. El momento exacto en que algo se dispara y no tienes ni treinta segundos.
+Hasta aquí la respiración. Con esto claro, pasemos a las otras tres palancas: la postura, el ritmo y la mirada.
 
-Una a tres repeticiones.
+La postura ya la probaste en el primer módulo: espalda apoyada, pecho abierto, hombros abajo. Pero ojo, abierto no es rígido. Enderezarse con tensión no es abrir el pecho. Es cambiar una tensión por otra. Lo que buscas es apoyo y espacio, no esfuerzo.
 
-Y es el que tiene la evidencia más reciente. En un estudio de Stanford publicado en 2023, cinco minutos diarios de suspiros seguidos mejoraron el ánimo más que la meditación del grupo de comparación.
+El ritmo es más sutil. Tu cuerpo escucha la velocidad de tu propia voz. Escucha la diferencia. Si hablo así de rápido, como cuando voy tarde a todo, mi cuerpo entiende que hay prisa, que hay algo urgente. Y si hablo… así… más despacio… el cuerpo baja con la voz. En unos quince segundos de hablar más lento, la activación suele bajar. Pruébalo la próxima vez que expliques algo con nervios: baja la velocidad a propósito.
 
-[A CÁMARA]
+La mirada es la palanca menos conocida, y para mí la más útil en un momento de nervios. Haz esto conmigo. Clava los ojos en un punto de la pantalla, fijo, casi sin parpadear. Quédate así unos segundos. ¿Notas cómo se tensa algo? La frente, los hombros.
 
-La respiración es la palanca más estudiada. Pero hay otras tres.
+Ahora, sin mover los ojos, empieza a notar los bordes de lo que ves. Las esquinas de la habitación. El techo. Tus manos. Lo que está a los costados. Tómate unos segundos.
 
-[TABLA EN PANTALLA]
+¿Lo notaste? Cuando algo te asusta, los ojos se clavan. La mirada fija y la alerta van juntas. Si sueltas la fijación y abres el campo visual, lo otro tiende a aflojarse. Y lo mejor es que se puede hacer en mitad de una reunión sin que nadie se entere.
 
-| Palanca | Qué hacer | Cuánto tarda |
-|---|---|---|
-| Postura | Espalda apoyada, pecho abierto, hombros abajo, mandíbula suelta | Inmediato |
-| Ritmo | Bajar la velocidad al hablar y al moverte | 15 segundos |
-| Mirada | Soltar el punto de foco y abrir la visión periférica | Inmediato |
+Y una mención aparte: la mandíbula. Ahora mismo, sin cambiar nada, ¿se están tocando tus dientes? Mucha gente descubre aquí que lleva todo el día con la mandíbula apretada. Sepárala apenas: los dientes sin tocarse, la lengua descansando abajo. Quédate así unos segundos. Es la zona donde más tensión se acumula sin saberlo. Al soltarla cambia la voz y baja la activación general.
 
-La postura ya la probaste en el módulo uno. Espalda apoyada, pecho abierto, hombros abajo.
+Ahora vamos a juntar todo en el protocolo de sesenta segundos. Piensa en una conversación difícil que tengas pendiente esta semana. Con tu jefe, con tu pareja, con un cliente. Elige una. Imagina que entras a esa conversación en un minuto. Lo hacemos completo, en tiempo real.
 
-Ojo: abierto, no rígido. Enderezarse con rigidez no es abrir el pecho. Es cambiar una tensión por otra.
+Paso uno: pies en el piso, con el peso repartido en los dos. Paso dos: tres exhalaciones largas, más largas que la inhalación. Hazlas ahora, conmigo.
 
-El ritmo es más sutil. Escucha la diferencia.
+Paso tres: suelta la mandíbula, con los dientes separados y la lengua abajo. Paso cuatro: abre la mirada y nota los bordes de lo que ves, sin mover los ojos. Y paso cinco: una frase corta y creíble, dicha por dentro. Algo como «puedo con esta conversación». Dila ahora.
 
-[HACERLO]
+Eso es todo. Sesenta segundos. Se hace en un ascensor, en el carro estacionado o sentándote frente a la otra persona. En la próxima clase vas a escribir tu propia frase.
 
-[EN PANTALLA: Dayana dice la misma frase dos veces, primero rápido y después lento]
+Ahora vamos con lo que no funciona, porque sobre esto circula mucha información, y no toda es buena. Primero: respirar hondo y rápido. Se dice mucho, y es al revés. Hiperventilar sube la activación. Lo que baja es exhalar largo, no llenar mucho los pulmones. Segundo: aguantar la respiración mucho rato. Marea y añade alarma. Tercero: forzar la postura. Ya lo dijimos, rígido no es abierto. Y cuarto: usar todo esto solo cuando estás mal. Una técnica que solo se usa en crisis no está disponible en crisis. En la próxima clase te explico cómo se practica.
 
-Si hablo así de rápido, mi cuerpo entiende que hay prisa, que hay algo urgente.
+Y una corrección honesta. Quizás viste la charla famosa sobre las posturas de poder, esas de brazos en jarra antes de una entrevista. Se dijo que cambiaban las hormonas. Ese efecto no se sostuvo cuando se repitieron los estudios. Lo que sí quedó es más modesto: la postura cambia cómo se siente uno. Para este curso, eso basta.
 
-Y si hablo… así… más despacio… el cuerpo baja con la voz.
+Dos avisos antes de cerrar, y no son de trámite. El primero es sobre el pánico. En una crisis de pánico, la respiración lenta ayuda a algunas personas y a otras las pone peor, porque atender al aire es justo lo que dispara el miedo a ahogarse. Si es tu caso, no insistas con la respiración. Lleva la atención afuera, a lo que ves, oyes y tocas. En el sexto módulo, «Gestionar el miedo y la ansiedad con PNL», lo trabajamos a fondo. Y si las crisis se repiten, busca a un profesional de la salud mental.
 
-[PAUSA]
+El segundo aviso: si tienes una condición respiratoria o cardíaca, consulta con tu médico antes de practicar los patrones que sostienen el aire, como el cuatro, siete, ocho.
 
-En unos quince segundos de hablar más lento, la activación baja con la voz.
+Hagamos un resumen. La exhalación larga le da más tiempo al freno del corazón, y por eso la regla es exhalar más largo de lo que inhalas. Tienes tres patrones: el cuatro, cuatro, seis para bajar, el cuatro, siete, ocho para dormir y el suspiro fisiológico para el pico. Tienes tres palancas más: la postura, el ritmo y la mirada, y una zona que revisar, la mandíbula. Y tienes un protocolo de sesenta segundos que junta todo.
 
-[A CÁMARA]
+Tu tarea para las próximas veinticuatro horas: ocho ciclos de cuatro, cuatro, seis, dos veces. Una por la mañana y otra por la noche, en calma. Y una vez en el día, revisa si tus dientes se están tocando.
 
-La mirada es la palanca menos conocida, y para mí la más útil en un momento de nervios.
-
-Haz esto conmigo.
-
-Clava los ojos en un punto de la pantalla. Fijo. Sin parpadear mucho.
-
-[PAUSA REAL · 5 s — mirada fija en un punto]
-
-¿Notas cómo se tensa algo? La frente, los hombros.
-
-Ahora, sin mover los ojos, empieza a notar los bordes de lo que ves.
-
-Las esquinas de la habitación. El techo. Tus manos. Lo que está a los costados.
-
-[PAUSA REAL · 15 s — sin mover los ojos, notar los bordes del campo visual]
-
-Cuando algo te asusta, los ojos se clavan. Mirada fija y alerta van juntas.
-
-Si sueltas la fijación y abres el campo visual, lo otro se afloja.
-
-Y se puede hacer en mitad de una reunión sin que nadie se entere.
-
-[A CÁMARA]
-
-Y una mención aparte: la mandíbula.
-
-Ahora mismo, sin cambiar nada: ¿se están tocando tus dientes?
-
-[PAUSA REAL · 5 s — notar si los dientes se tocan]
-
-Mucha gente descubre aquí que lleva todo el día con la mandíbula apretada.
-
-Sepárala apenas. Los dientes sin tocarse. La lengua descansando abajo.
-
-[HACERLO]
-
-[PAUSA REAL · 10 s — mandíbula suelta, lengua abajo]
-
-Cambia la voz y baja la activación general. Es la zona donde más tensión se acumula sin saberlo.
-
-[A CÁMARA]
-
-Ahora juntamos todo en el protocolo de sesenta segundos.
-
-Piensa en una conversación difícil que tengas pendiente esta semana.
-
-[PAUSA REAL · 10 s — elegir una conversación pendiente]
-
-Imagina que entras en un minuto. Lo hacemos completo, en tiempo real.
-
-[RÓTULO: Protocolo de 60 segundos]
-
-Uno. Pies en el piso. El peso repartido en los dos.
-
-[PAUSA]
-
-Dos. Tres exhalaciones largas, más largas que la inhalación.
-
-[PAUSA REAL · 15 s — tres exhalaciones largas]
-
-Tres. Suelta la mandíbula. Los dientes separados, la lengua abajo.
-
-[PAUSA]
-
-Cuatro. Abre la mirada. Nota los bordes sin mover los ojos.
-
-[PAUSA REAL · 8 s — mirada abierta]
-
-Y cinco. Una frase corta y creíble. Algo como «puedo con esta conversación».
-
-Dila por dentro.
-
-[PAUSA REAL · 5 s — decir la frase por dentro]
-
-Eso es todo. Sesenta segundos. Se hace en un ascensor, en el carro estacionado o sentándote frente a la otra persona.
-
-[A CÁMARA]
-
-Ahora lo que no funciona. Porque circula mucho, y mal.
-
-[RÓTULO: Lo que no funciona]
-
-Respirar hondo y rápido. Se dice mucho, y es al revés: hiperventilar sube la activación. Lo que baja es exhalar largo, no llenar mucho.
-
-Aguantar la respiración mucho rato. Marea y añade alarma.
-
-Forzar la postura. Ya lo dijimos: rígido no es abierto.
-
-Y hacerlo solo cuando estás mal. Una técnica que solo se usa en crisis no está disponible en crisis. En la clase dos te explico cómo se practica.
-
-[PAUSA]
-
-Y una corrección honesta.
-
-Quizás viste la charla famosa sobre las posturas de poder, esas de brazos en jarra antes de una entrevista.
-
-Se dijo que cambiaban las hormonas. Ese efecto no se sostuvo cuando se repitieron los estudios.
-
-Lo que sí quedó es más modesto: la postura cambia cómo se siente uno. Para este curso, eso basta.
-
-[A CÁMARA]
-
-Dos avisos antes de cerrar, y no son de trámite.
-
-Primero, el pánico.
-
-En una crisis de pánico, la respiración lenta ayuda a algunas personas y a otras las pone peor.
-
-Porque atender al aire es justo lo que dispara el miedo a ahogarse.
-
-Si es tu caso, no insistas. Lleva la atención afuera, a lo que ves y oyes. En el módulo seis lo trabajamos a fondo.
-
-[PAUSA]
-
-Segundo: si tienes una condición respiratoria o cardíaca, consulta con tu médico antes de practicar los patrones con retención de aire.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas: ocho ciclos de 4-4-6, dos veces. Una por la mañana y otra por la noche. En calma.
-
-Y una vez en el día, revisa si tus dientes se están tocando.
-
-En la clase dos vamos a medir lo que hiciste hoy, del cero al diez, y a escribir tu frase para el protocolo.
+La segunda clase se llama «Medir, practicar en frío y elegir tu frase». Ahí vamos a medir del cero al diez lo que hiciste hoy, a armar tu plan de práctica y a escribir tu frase para el protocolo.
 
 Seguimos creciendo juntos.

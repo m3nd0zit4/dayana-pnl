@@ -1,234 +1,57 @@
 # Clase 2 · Las siete vías de acceso al inconsciente
 
-**Hipnosis y PNL: reprogramación mental · Módulo 3 · 9-11 min · Clase**
-Taller con siete paradas cortas. Cada vía entra con su rótulo numerado y Dayana
-hace la experiencia en cámara. Al final, la cadena de las siete en pantalla.
-Ojos abiertos en toda la clase.
-
----
-
-[A CÁMARA]
+Hipnosis y PNL: reprogramación mental · Módulo 3 · 9-11 min
 
 Líderes, bendiciones.
 
-En la clase anterior viste que el guardia no se convence discutiendo.
+En la clase anterior viste que el guardia no se convence discutiendo. Hoy vamos a ver siete formas de pasar por su lado sin pelear. Y no te las voy a explicar desde lejos: las vas a probar, una por una, con los ojos abiertos. Al terminar vas a saber cuál te resulta más natural y cómo se encadenan en una sesión. Si estás manejando u operando una máquina, deja esta clase para otro momento.
 
-Hoy vamos a ver siete formas de pasar por su lado sin pelear.
+La primera vía ya la conoces: la respiración profunda. Haz dos respiraciones conmigo. Entra el aire por la nariz, y suéltalo largo, por la boca. Otra vez.
 
-Y no te las voy a explicar. Las vas a probar. Una por una. Con los ojos abiertos.
+Es la puerta más simple y la más subestimada. Cambia tu estado en segundos y, con él, baja el ruido de la voz interior. Por eso es siempre el primer paso de cualquier inducción. Y la puedes usar en cualquier parte: en una fila, antes de una llamada, en el carro antes de bajarte.
 
-Si estás conduciendo u operando una máquina, deja esta clase para otro momento.
+La segunda vía es la relajación progresiva. Lleva la atención a tu mandíbula y deja que los dientes se separen apenas. Ahora los hombros: déjalos caer un centímetro. Y las manos: que se abran un poco.
 
-[RÓTULO: 1 · Respiración profunda]
+Eso, hecho de la frente a los pies, es la relajación progresiva. Tiene un efecto doble. Relaja de verdad. Y mantiene tu atención ocupada en el cuerpo, así que la cabeza analiza menos. Mientras estás pendiente de soltar los hombros, no estás discutiendo contigo.
 
-La primera ya la conoces.
+La tercera vía es la visualización guiada. Imagina que entras ahora mismo a la cocina de tu casa. ¿Dónde está la luz? ¿Qué hay sobre la mesa? ¿A qué huele? Abre la nevera y siente el aire frío en la cara. Tómate unos segundos para recorrerla.
 
-Dos respiraciones. Por la nariz, y suelta largo.
+¿Estuviste ahí? No estás en tu cocina, y por un momento tu cuerpo casi lo creyó. Una experiencia imaginada con suficiente detalle produce respuestas muy parecidas a una vivida. Por eso una película te hace llorar aunque sepas que son actores.
 
-[HACERLO]
+Hay un estudio conocido del neurólogo Álvaro Pascual-Leone con personas que aprendían un ejercicio de piano. Las que solo lo practicaron en su mente mostraron cambios en el cerebro parecidos a los de quienes lo practicaron con los dedos. Imagen, sonido y sensación: esa es la vía que vas a recorrer completa en el audio de este módulo.
 
-[PAUSA REAL · 15 s — dos respiraciones lentas]
+La cuarta vía son las metáforas y las historias. Te cuento algo muy corto. Había un niño que aprendía a montar en bicicleta y se caía una y otra vez. Se caía porque miraba la rueda, el piso justo delante, para no equivocarse. Un día, cansado de caerse, levantó la vista hacia la esquina, hacia donde quería llegar. Y la bicicleta lo siguió.
 
-Es la puerta más simple y la más subestimada.
+¿Qué te quedó de esa historia? ¿Pensaste en algo tuyo? Tómate un momento. Yo no te dije nada sobre tu vida, ni te di ningún consejo. Y sin embargo, probablemente tu mente ya hizo una conexión.
 
-Cambia tu estado en segundos, y con él baja el ruido de la voz interior. Por eso es siempre el primer paso de cualquier inducción.
+El guardia no se defiende de un cuento, porque es «solo una historia». Pero por dentro reconoces la forma y la aplicas a lo tuyo. Esa era la especialidad de Milton Erickson.
 
-[RÓTULO: 2 · Relajación progresiva]
+La quinta vía es la repetición emocional. Piensa en una frase que alguien te dijo una sola vez, hace años, y que todavía recuerdas palabra por palabra. Ahora piensa en una frase que has oído mil veces y que no te dice nada, como un eslogan. ¿Cuál de las dos pesa más?
 
-La segunda.
+La que vino con emoción. La repetición sola no basta. La repetición con carga emocional, sí. Por eso un solo momento intenso puede marcar más que mil repeticiones tibias. Y por eso, cuando quieras fijar algo bueno, no basta con repetirlo: hay que repetirlo sintiéndolo.
 
-Lleva la atención a tu mandíbula. Deja que los dientes se separen apenas.
+La sexta vía son los anclajes, y la vamos a hacer de verdad, en pequeño. Recuerda un momento en el que te sentiste en calma. Uno real: una tarde, un lugar, una persona. Entra en ese recuerdo. Mira lo que mirabas. Oye lo que oías. Tómate unos segundos.
 
-[PAUSA REAL · 5 s — soltar la mandíbula]
+Y cuando la calma esté más presente, une suavemente el pulgar y el índice de tu mano. Sostén el gesto unos segundos con esa calma. Ahora suelta los dedos y sacude un poco la mano.
 
-Ahora los hombros. Déjalos caer un centímetro.
+Eso es un anclaje: asociar un estado a un estímulo concreto, para que después el estímulo pueda traer el estado. Es lo mismo que hace una canción que te devuelve a un verano exacto. La diferencia es que aquí se hace a propósito. Hoy fue una vez, y con repetición se vuelve un acceso rápido. En el curso de Emociones y anclajes se trabaja completo.
 
-[PAUSA REAL · 5 s — soltar los hombros]
+La séptima vía es el lenguaje ericksoniano. Escucha la diferencia. «Vas a relajarte.» Y ahora: «Puedes empezar a notar de qué manera tu cuerpo va soltando… a su propio ritmo». ¿Cuál de las dos siguió tu cuerpo?
 
-Y las manos. Que se abran un poco.
+La primera es una orden, y a una orden se le puede decir que no. La segunda es una invitación, y no hay nada contra lo que resistirse. Ese lenguaje es todo el módulo cuatro.
 
-[PAUSA REAL · 5 s — soltar las manos]
+Ahora, lo importante. En una sesión real no se usa una sola vía: se encadenan, una detrás de otra. La respiración baja el estado. La relajación progresiva ocupa la atención en el cuerpo. La profundización lleva hacia adentro.
 
-Eso, hecho de la frente a los pies, es la relajación progresiva.
+Después, la visualización o la metáfora entregan el contenido. La repetición con emoción lo fija. El anclaje deja un acceso rápido. Y la salida gradual te devuelve, con calma, al lugar donde estás.
 
-Tiene un efecto doble. Relaja de verdad. Y mantiene tu atención ocupada en el cuerpo, así que la cabeza analiza menos.
+Esa es exactamente la estructura de la inducción del módulo cinco. Hoy acabas de probar casi todas sus piezas, sueltas. Ahora una pregunta para ti: de las siete, ¿cuál te resultó más natural? ¿Y cuál te costó más? Anótalo, porque te va a servir para elegir por dónde empezar.
 
-[A CÁMARA]
+Y una cosa que ninguna de estas vías hace: no te hacen aceptar algo que va en contra de tus valores profundos. El guardia se relaja, no desaparece. Si una sugerencia choca con algo esencial para ti, la descartas, o simplemente sales del estado. Eso es una protección, y es una buena noticia.
 
-[RÓTULO: 3 · Visualización guiada]
+Hagamos un resumen. Las siete vías son la respiración, la relajación progresiva, la visualización, las metáforas, la repetición emocional, los anclajes y el lenguaje ericksoniano. Ninguna discute con el filtro: todas lo rodean. Y en una sesión se encadenan, una detrás de otra.
 
-La tercera.
+Tu tarea para las próximas veinticuatro horas: usa tu anclaje dos veces. Mañana por la mañana y antes de dormir, vuelve al recuerdo de calma y une el pulgar y el índice. Y en un momento tenso del día, prueba solo el gesto. Nota si trae algo.
 
-Imagina que entras ahora mismo a la cocina de tu casa.
-
-¿Dónde está la luz? ¿Qué hay sobre la mesa? ¿A qué huele?
-
-Abre la nevera. Siente el aire frío en la cara.
-
-[PAUSA REAL · 15 s — recorrer tu cocina por dentro]
-
-No estás en tu cocina. Y por un momento, tu cuerpo casi lo creyó.
-
-[PAUSA]
-
-El inconsciente responde de forma muy parecida a una experiencia vivida y a una imaginada con suficiente detalle.
-
-Por eso una película te hace llorar aunque sepas que son actores.
-
-Hay un estudio conocido del neurólogo Álvaro Pascual-Leone con personas que aprendían un ejercicio de piano. Las que solo lo practicaron mentalmente mostraron cambios en el cerebro parecidos a los de quienes lo practicaron con las manos.
-
-Imagen, sonido y sensación. Esa es la vía que vas a recorrer completa en el audio de este módulo.
-
-[A CÁMARA]
-
-[RÓTULO: 4 · Metáforas e historias]
-
-La cuarta. Te cuento algo muy corto.
-
-[PAUSA]
-
-Había un niño que aprendía a montar en bicicleta. Se caía una y otra vez.
-
-Y se caía porque miraba la rueda. Miraba el piso, justo delante, para no equivocarse.
-
-Un día, cansado de caerse, levantó la vista hacia la esquina. Hacia donde quería llegar.
-
-Y la bicicleta lo siguió.
-
-[PAUSA REAL · 10 s — notar qué te dejó la historia]
-
-¿Qué te quedó de esa historia? ¿Pensaste en algo tuyo?
-
-[PAUSA]
-
-Yo no te dije nada sobre tu vida. No te di ningún consejo.
-
-Y sin embargo, probablemente tu mente ya hizo una conexión.
-
-[SUBRAYAR: el guardia no se defiende de un cuento]
-
-El factor crítico no se defiende de un cuento. Es «solo una historia».
-
-Pero el inconsciente extrae la estructura y la aplica. Esa era la especialidad de Milton Erickson.
-
-[A CÁMARA]
-
-[RÓTULO: 5 · Repetición emocional]
-
-La quinta.
-
-Piensa en una frase que alguien te dijo una sola vez, hace años, y que todavía recuerdas palabra por palabra.
-
-[PAUSA REAL · 10 s — encontrar esa frase]
-
-Ahora piensa en una frase que has oído mil veces y que no te dice nada. Un eslogan, una frase de tu jefe.
-
-¿Cuál de las dos pesa más?
-
-[PAUSA]
-
-La que vino con emoción.
-
-La repetición sola no basta. La repetición con carga emocional, sí.
-
-Lo que se repite sintiendo, se graba. Lo que se repite en automático, se olvida.
-
-Por eso un solo momento intenso puede instalar una creencia para toda la vida, y mil repeticiones tibias no instalan nada.
-
-[A CÁMARA]
-
-[RÓTULO: 6 · Anclajes]
-
-La sexta. Y la vamos a hacer de verdad, en pequeño.
-
-Recuerda un momento en el que te sentiste en calma. Uno real. Una tarde, un lugar, una persona.
-
-Entra en ese recuerdo. Mira lo que mirabas. Oye lo que oías.
-
-[PAUSA REAL · 15 s — entrar en el recuerdo de calma]
-
-Y cuando la calma esté más presente, une suavemente el pulgar y el índice de tu mano.
-
-[HACERLO]
-
-[PAUSA REAL · 10 s — sostener el gesto con la calma presente]
-
-Suelta los dedos. Sacude un poco la mano.
-
-[PAUSA]
-
-Eso es un anclaje. Asociar un estado a un estímulo concreto, para que después el estímulo pueda traer el estado.
-
-Es lo mismo que hace una canción que te devuelve a un verano exacto. La diferencia es que aquí se hace a propósito.
-
-Hoy fue una vez. Con repetición, se vuelve un acceso rápido. En el curso de Emociones y anclajes se trabaja completo.
-
-[A CÁMARA]
-
-[RÓTULO: 7 · Lenguaje ericksoniano]
-
-Y la séptima. Escucha la diferencia.
-
-«Vas a relajarte.»
-
-[PAUSA]
-
-Y ahora: «Puedes empezar a notar de qué manera tu cuerpo va soltando… a su propio ritmo».
-
-[PAUSA REAL · 5 s — notar cuál de las dos sigue tu cuerpo]
-
-La primera es una orden. Y a una orden se le puede decir que no.
-
-La segunda es una invitación. No hay nada contra lo que resistirse.
-
-Ese lenguaje es todo el módulo cuatro.
-
-[A CÁMARA]
-
-Ahora, lo importante. En una sesión real no se usa una sola vía. Se encadenan.
-
-[EN PANTALLA: Respiración → Relajación progresiva → Profundización → Visualización o metáfora → Repetición emocional → Anclaje → Salida gradual]
-
-La respiración baja el estado.
-
-La relajación ocupa la atención en el cuerpo.
-
-La profundización lleva a Theta.
-
-La visualización o la metáfora entregan el contenido.
-
-La repetición con emoción lo fija.
-
-El anclaje deja un acceso rápido.
-
-Y la salida gradual te devuelve.
-
-[PAUSA]
-
-Esa es exactamente la estructura de la inducción del módulo cinco. Hoy acabas de probar casi todas sus piezas, sueltas.
-
-[A CÁMARA]
-
-Y una cosa que ninguna de estas vías hace.
-
-Ninguna instala algo que vaya en contra de tus valores profundos.
-
-El guardia se relaja. No desaparece.
-
-Si una sugerencia choca con algo esencial para ti, tu sistema la descarta, o simplemente sales del estado.
-
-Eso es una protección. Y funciona.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Usa tu anclaje dos veces. Mañana por la mañana y antes de dormir, vuelve al recuerdo de calma y une el pulgar y el índice.
-
-Y en un momento tenso del día, prueba solo el gesto. Nota si trae algo.
-
-[PAUSA]
-
-En la práctica de este módulo volvemos a la frase que el guardia rechazó en la presentación. Y la vamos a reescribir hasta que pase.
+En la práctica de este módulo, Por qué fallan las afirmaciones, volvemos a la frase que el guardia rechazó en la presentación. Y la vamos a reescribir hasta que pase.
 
 Seguimos creciendo juntos.

@@ -1,165 +1,63 @@
 # Práctica · Acompasar a alguien alterado, en directo
 
-**PNL para relaciones y pareja · Módulo 1 · 12-15 min · Práctica**
-Necesita una segunda persona en cámara, que representa a alguien que llega con la
-energía arriba por algo cotidiano. No se le escriben frases: se le da la situación
-y reacciona de verdad. Plano a dos. En el análisis, rótulo con el minuto exacto.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 1 · 8-10 min
 
 Líderes, bendiciones.
 
-Hoy no te lo voy a explicar. Te lo voy a mostrar.
+Hoy no te lo voy a explicar. Lo vamos a hacer. Vamos a vivir la misma escena dos veces, y en las dos vas a ser tú quien llega a casa con la energía arriba. En la primera versión te voy a responder como nos sale a todos: intentando calmarte de entrada. En la segunda voy a acompasar, comprobar y liderar. Después cambiamos de papel y vas a ser tú quien acompaña. Al terminar vas a tener en la boca, no solo en la cabeza, la escalera de tres frases que vas a usar con tu pareja.
 
-Conmigo está [nombre de la persona invitada], que va a hacer de alguien que llega a casa con la energía arriba.
+Tu trabajo mientras lo hacemos es uno solo. En la primera versión, nota el momento exacto en que algo se tuerce dentro de ti. Ten a mano papel o el celular para anotarlo.
 
-Va a ser la misma escena dos veces.
+Vamos a preparar la escena. Imagina que vienes del banco. Te cobraron dos veces lo mismo y nadie te da una solución. Si te ayuda, recuerda una vez real en que te pasó algo parecido con un banco, una compañía de teléfono o una tienda. Trae esa rabia, solo un poco, la suficiente para que se note en la voz.
 
-En la primera voy a hacer lo que nos sale a todos: intentar calmar de entrada.
+Ahora di en voz alta, como si acabaras de entrar por la puerta: «¡Me cobraron dos veces en el banco y nadie me da una solución!». Dilo con energía, como lo dirías de verdad. Hazlo ahora.
 
-En la segunda voy a acompasar, comprobar y liderar.
+Primera versión. Te respondo con calma, despacio, desde arriba: «A ver, tranquilízate». Sigue contándome en voz alta qué te dijeron en el banco. Y yo te digo: «Cuéntame despacio, que así no te entiendo». Sigue un poco más. Y ahora: «Bueno, tampoco es para tanto».
 
-[PAUSA]
+Para aquí un momento. ¿Qué sentiste? ¿Te dieron ganas de calmarte, o de subir el volumen? Y la pregunta importante: ¿en qué frase se torció? Anótala antes de seguir. Tómate unos segundos.
 
-Tu trabajo mientras miras es uno solo.
+¿La tienes? A casi todo el mundo se le tuerce en la primera, en el «tranquilízate», antes de terminar siquiera de contar lo que pasó. Mi intención era buena: quería ayudarte. Pero fui directa a liderar sin haber ido a buscarte. Y eso se vive como «estás mal así». Ahora el enojo ya no es solo con el banco. También es conmigo.
 
-En la primera versión, busca el segundo exacto en el que se tuerce.
+Sacude un poco los hombros y respira. Vamos a empezar de cero.
 
-Ten a mano papel o el celular para anotarlo.
+Segunda versión. Entras igual, con la misma energía. Dilo otra vez en voz alta: «¡Me cobraron dos veces en el banco y nadie me da una solución!».
 
-[PAUSA REAL · 10 s — el alumno prepara dónde anotar]
+Y yo te respondo con una energía parecida a la tuya, un punto por debajo: «¿Qué? ¿Dos veces? ¿Y qué te dijeron?». Contéstame en voz alta. Dime qué te respondieron en el banco.
 
-Vamos.
+Te escucho y te devuelvo tus palabras, todavía con energía: «¿Eso te dijeron? Qué rabia. ¿Y entonces qué hiciste?». Sigue contándome, en voz alta.
 
-## Guion de conducción
+Ahora bajo un poco la velocidad. Solo un poco: «Dos veces… y nadie te resuelve nada». Y me fijo en ti. ¿Tu voz bajó también, aunque sea un poco? Ese es el paso de comprobar.
 
-### Antes de grabar, con la persona invitada (fuera de cámara)
+Y ahora sí, más lento y más bajo: «Y ahora… ¿qué necesitas?». Respóndeme con lo primero que te salga.
 
-- La situación, que elige la persona invitada entre estas tres para que le salga natural: le cobraron dos veces en el banco y nadie le resuelve; le rayaron el carro en el estacionamiento y nadie dejó nota; su jefe le dejó un pendiente urgente a las seis de la tarde.
-- La indicación: «Entra hablando rápido, con energía alta, como llegarías de verdad. No exageres. Reacciona a lo que yo haga como reaccionarías. Si sientes que te corrijo, sube. Si sientes que te acompaño, puedes bajar, pero solo si te sale».
-- Se le avisa de que puede parar en cualquier momento, y de que no tiene que hacerlo bien: tiene que reaccionar.
-- Se acuerda una señal para cortar cada versión (Dayana levanta la mano).
+Para aquí. Te hago tres preguntas. ¿En qué momento notaste que bajabas? Casi nadie lo sabe decir con precisión, y eso es justo lo que quería que vieras: la otra persona baja detrás de ti sin darse cuenta. Segunda pregunta: ¿sentiste en algún momento que te corregía? Y la tercera: ¿qué fue distinto para ti entre las dos versiones?
 
-### Versión 1 · Liderar de entrada
+Fíjate en algo. En la segunda versión nadie habló de calmarse. Al principio parecía que yo me alteraba contigo. No me alteraba: iba a donde estabas. Y desde ahí, poco a poco, bajé, y tú bajaste detrás.
 
-- La persona invitada entra y empieza a contar.
-- Dayana se queda de pie, quieta, con voz baja y lenta desde la primera frase. Sus líneas, en este orden y sin esperar a que la otra persona termine:
-  - «A ver, tranquilízate.»
-  - «Cuéntame despacio, que así no te entiendo.»
-  - «Bueno, tampoco es para tanto.»
-- Dejar correr un minuto, o hasta que se vea la escalada. Cortar con la señal.
+Y si en tu caso no bajaste, no pasa nada. En la vida real a veces hacen falta cinco turnos en lugar de dos. Cuando compruebas y la otra persona no viene detrás, vuelves a acompasar un turno más y vuelves a probar. Volver también es parte de la técnica. Lo que estropea todo es la prisa.
 
-[A CÁMARA]
+Con esto claro, cambiamos de papel. Ahora tu pareja es quien llega con la energía arriba, y tú quien acompaña. Vas a decir en voz alta tres frases, cada una más lenta que la anterior. Esa es la escalera.
 
-Pausa aquí un momento.
+La primera, con energía: «¿Qué? ¿Qué pasó?». Dila ahora.
 
-¿En qué segundo se torció? Anótalo antes de seguir.
+La segunda, un poco más lenta, repitiendo una palabra del otro: «¿Dos veces? Qué rabia». Dila ahora, más despacio.
 
-[PAUSA REAL · 15 s — el alumno anota el momento en que se torció]
+Y la tercera, lenta y baja: «Y ahora… ¿qué necesitas?». Dila ahora.
 
-### Preguntas a la persona invitada después de la versión 1
+¿Notaste cómo bajó tu propia voz de la primera a la tercera? Esa escalera de velocidades es todo el ejercicio. Vamos a hacerla una vez más, ahora con algo de tu casa. Piensa en algo que suele alterar a tu pareja: el tráfico, un compañero de trabajo, un trámite. Y piensa en la palabra que usa cuando le pasa. Pausa el video si lo necesitas.
 
-- «¿Qué sentiste cuando te dije "tranquilízate"?»
-- «¿Qué te dieron ganas de hacer?»
-- «¿En algún momento sentiste que te estaba escuchando?»
-- No se discute lo que responda. Se le da las gracias y se pasa a la segunda.
+¿La tienes? Haz la escalera otra vez, con esa palabra en la segunda frase. La primera, con energía. La segunda, más lenta, con su palabra. La tercera, lenta y baja. Hazlo en voz alta, a tu ritmo.
 
-### Versión 2 · Acompasar, comprobar, liderar
+Muy bien. Y ahora el paso que todo el mundo se salta. Imagina que dices la segunda frase y tu pareja no baja: sigue igual de arriba. ¿Qué haces? Vuelves a la primera frase, con energía, y acompañas un turno más. Dilo en voz alta: la primera frase otra vez, y después la segunda. Así se ve comprobar en la práctica.
 
-- La persona invitada entra igual, con la misma energía.
-- Acompasar: Dayana responde con energía parecida, un punto por debajo, de pie si la otra persona está de pie. Primer turno, algo como: «¿Qué? ¿Qué pasó?».
-- Durante dos turnos, Dayana repite las palabras exactas de la otra persona («¿Dos veces?», «¿Que no es su problema?») y nombra el enojo sin corregirlo («Qué rabia»).
-- Comprobar: en el tercer turno baja un poco la velocidad y el volumen. Se mira si la otra persona baja detrás. Si no baja, se vuelve a acompasar un turno más. No forzar.
-- Liderar: cuando baja, Dayana se sienta o se apoya, habla más lento y pregunta: «¿Y ahora qué necesitas?».
-- Dejar correr hasta que la escena se asiente sola. Cortar con la señal.
+Si tu pareja quiere practicar contigo, háganlo en frío, en un momento tranquilo. Uno entra con la energía arriba por algo inventado y pequeño, y el otro acompasa con la escalera. Tres minutos cada uno, y después cambian. Y si se ríen, mejor, que también sirve.
 
-### Preguntas a la persona invitada después de la versión 2
+Una cosa más, que no es menor. Esto es para el enojo de todos los días. Si la alteración de tu pareja te da miedo, no se acompasa nada. Te pones a salvo y buscas ayuda profesional.
 
-- «¿En qué momento notaste que bajabas?» Casi siempre responde que no lo sabe: eso es lo que se quiere mostrar.
-- «¿Sentiste en algún momento que te corregía?»
-- «¿Qué fue distinto para ti entre las dos?»
+Hagamos un resumen de lo que viviste hoy. Cuando intenté calmarte de entrada, subiste. Cuando fui a donde estabas, bajé poco a poco y tú bajaste detrás. Y la escalera de tres frases, de rápido a lento y de alto a bajo, es la forma práctica de hacerlo. Si el otro no viene detrás, vuelves a la primera frase.
 
-### Lo que se señala después, a cámara
+Tu tarea para las próximas veinticuatro horas. Usa la escalera con la primera persona que llegue con la energía arriba. Puede ser tu pareja o un compañero de trabajo. Y anota cuántos turnos tardó en bajar.
 
-- Se vuelve a poner la versión 1 con [RÓTULO: minuto exacto] en la primera palabra de Dayana. El punto donde se tuerce casi siempre es el primer «tranquilízate», antes de que la otra persona termine su primera frase.
-- En la versión 2, rótulo en el turno donde la otra persona bajó la velocidad. Señalar que pasó después de dos o tres turnos de acompasar, no antes.
-- Señalar que en la segunda versión nadie habló de calmarse.
-- Si en la grabación la versión 2 no bajó, se deja así y se dice: a veces hace falta más tiempo, y volver a acompasar también es la técnica.
-
-[A CÁMARA]
-
-¿Anotaste el segundo?
-
-Compáralo con el que acabo de marcar.
-
-[PAUSA REAL · 10 s — el alumno compara su anotación]
-
-Lo que quiero que te lleves es esto.
-
-En la primera versión, mi intención era buena. Quería ayudar.
-
-Pero fui directa a liderar, sin haber ido a buscar a la otra persona.
-
-Y eso se vive como «estás mal así».
-
-[PAUSA]
-
-En la segunda, al principio parece que me altero.
-
-No me altero. Voy a donde está.
-
-Y desde ahí, poco a poco, bajo. Y la otra persona baja detrás de mí.
-
-[A CÁMARA]
-
-Ahora te toca practicar, aunque no haya nadie contigo.
-
-Vas a decir en voz alta tres frases, cada una más lenta que la anterior.
-
-La primera con energía: «¿Qué? ¿Qué pasó?».
-
-[PAUSA REAL · 10 s — el alumno la dice con energía]
-
-La segunda, un poco más lenta, repitiendo una palabra imaginaria del otro: «¿Dos veces? Qué rabia.»
-
-[PAUSA REAL · 10 s — el alumno la dice más despacio]
-
-Y la tercera, lenta y baja: «Y ahora… ¿qué necesitas?»
-
-[PAUSA REAL · 10 s — el alumno la dice lento y bajo]
-
-Esa escalera de velocidades es todo el ejercicio.
-
-[A CÁMARA]
-
-Si tu pareja quiere practicar contigo, háganlo en frío, en un momento tranquilo.
-
-Uno entra con la energía arriba por algo inventado y pequeño. El otro acompasa.
-
-Tres minutos cada uno, y después cambian.
-
-Y se ríen, que también sirve.
-
-[PAUSA]
-
-Una cosa más, que no es menor.
-
-Esto es para el enojo de todos los días.
-
-Si la alteración de tu pareja te da miedo, no se acompasa. Te pones a salvo y buscas ayuda.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Practica la escalera de tres frases con la primera persona que llegue con la energía arriba. Puede ser tu pareja, puede ser un compañero de trabajo.
-
-Y anota cuántos turnos tardó en bajar.
-
-[PAUSA]
-
-En el audio guiado de este módulo vas a ensayar esta misma escena con los ojos cerrados, con tu pareja, antes de que pase.
+En el audio guiado de este módulo, «Ensayar la sintonía», vas a ensayar esta misma escena con los ojos cerrados, con tu pareja, antes de que pase de verdad.
 
 Seguimos creciendo juntos.

@@ -1,311 +1,63 @@
 # Clase 1 · Toda conducta tiene una intención positiva
 
-**Fundamentos de la PNL · Módulo 3 · 18-22 min · Clase**
-La más larga del curso. La tabla de conductas e intenciones va en pantalla y
-se rellena fila a fila mientras se habla.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 3 · 11-13 min
 
 Líderes, bendiciones.
 
-Vamos a empezar por lo que es una presuposición, porque si no,
+En esta clase vamos a trabajar la presuposición más difícil de aceptar y, para mí, la más útil: toda conducta tiene una intención positiva para quien la hace. Primero vamos a ver qué es una presuposición. Después, qué no significa esta idea, porque se malentiende mucho. Luego, para qué sirve, con casos de todos los días. Y al final la vamos a aplicar en cinco pasos. Al terminar vas a poder tomar una conducta que te complica la vida y encontrar qué intenta conseguir, para cambiar el camino sin pelearte con ella.
 
-lo que viene después se malentiende.
+Empecemos por lo básico. Una presuposición no es algo que se demuestra. Es algo que se asume para poder trabajar. Como cuando entras a una casa asumiendo que el piso aguanta. No lo compruebas. Si lo comprobaras cada vez, no entrarías a ninguna casa. Las presuposiciones de la PNL funcionan igual. Y la pregunta, otra vez, no es si son ciertas. Es qué te dejan hacer.
 
-[RÓTULO: Presuposición]
+Vamos con la difícil: toda conducta tiene una intención positiva para quien la hace. Suena mal, así que vamos a desactivar tres malentendidos antes de seguir.
 
-Una presuposición no es algo que se demuestra.
+Primero: positiva no quiere decir buena. No quiere decir sana, ni acertada, ni aceptable. Quiere decir que apunta a conseguir algo o a proteger algo. Un grito tiene una intención, que me escuchen. Y sigue siendo un grito. Entender no es permitir.
 
-Es algo que se asume para poder trabajar.
+Segundo: esto no te obliga a perdonar a nadie. Comprender cómo funciona una conducta es una cosa. Decidir qué haces con la persona que te la hizo es otra. La segunda es tuya, y no se la debes a nadie.
 
-Como cuando entras a una casa asumiendo que el suelo aguanta.
+Tercero: la persona casi nunca sabe cuál es su intención. Si lo supiera, probablemente habría elegido otro camino para conseguirla.
 
-No lo compruebas. Si lo comprobaras cada vez, no entrarías a ninguna casa.
+Con eso claro, ¿para qué sirve esta idea? Para algo muy concreto: para que la conducta deje de volver. Una conducta que consigue algo no se va mientras eso que consigue no se consiga de otra forma. Puedes prometer, puedes esforzarte, puedes prohibírtelo. Vuelve. Y no vuelve porque seas débil. Vuelve porque servía para algo.
 
-[PAUSA]
+Vamos a ver casos de todos los días. Alguien que llega tarde siempre. La lectura fácil es que es un desconsiderado. La intención de fondo, muchas veces, es no sentirse mandado: decidir uno mismo cuándo llega. Alguien que trabaja de más, hasta enfermarse. La intención suele ser que no le puedan reprochar nada, estar a salvo de la crítica.
 
-Las presuposiciones de la PNL funcionan igual.
+Alguien que nunca pide ayuda. La intención puede ser no quedar en deuda con nadie. Alguien que se enoja por todo. La intención puede ser defenderse, poner un límite o que se le tenga en cuenta. Alguien que se calla en las reuniones. La intención puede ser no exponerse a que lo corrijan delante de otros. Y alguien que deja todo para después, muchas veces está intentando no sentirse insuficiente cuando el resultado no salga perfecto.
 
-Y la pregunta, otra vez, no es si son ciertas.
+Fíjate en algo. Ninguna de esas intenciones es rara. Todas son cosas que cualquiera querría. Lo que falla no es lo que buscan. Es el camino que eligieron.
 
-Es qué te dejan hacer.
+Hagamos una pausa. Piensa en alguien cuya conducta te molesta. Un compañero, un familiar, tu pareja. Ahora pregúntate, sin justificar nada: ¿qué estará intentando conseguir con eso? ¿Qué estará evitando? No tienes que acertar. Tómate unos segundos.
 
-[A CÁMARA]
+¿Cambió algo en cómo lo ves? Ese pequeño movimiento, de la molestia a la curiosidad, es todo el principio de la herramienta. Y ahora la vamos a usar en cinco pasos.
 
-Vamos con la difícil.
+Para verlos, imagina a Laura. Laura cobra a fin de mes y en los primeros días gasta casi todo de golpe. Después pasa el resto del mes contando monedas y prometiéndose que no va a volver a pasar. Y vuelve a pasar.
 
-[RÓTULO: Toda conducta tiene una intención positiva para quien la hace]
+Paso uno: nombrar la conducta sin juicio. No «soy un desastre con el dinero». Sino «gasto de golpe los primeros días después de cobrar». Lo que grabaría una cámara, nada más. Ahora tú. Elige una conducta tuya que se repite y que te complica algo. Nómbrala así, como la describiría una cámara. Dilo por dentro.
 
-Toda conducta tiene una intención positiva para quien la hace.
+Paso dos: preguntar para qué, no por qué. Por qué te lleva a una explicación. Para qué te lleva a la función. ¿Qué consigo con esto? ¿Qué me evita? Y aquí te aviso: la primera respuesta casi siempre es «nada, es que soy así». No es cierta. Se insiste una vez más, con otras palabras: si no te sirviera para nada, no lo harías. ¿Qué te da?
 
-[PAUSA]
+Paso tres: subir la cadena hasta la intención de verdad. Vamos con Laura. Gasto de golpe cuando cobro. ¿Qué consigo? Sentir que sí puedo permitírmelo. ¿Y eso qué me da? No sentirme como en casa de mis padres, contando cada peso. ¿Y eso qué me da? Sentir que no estoy atrapada. Ahí está. Eso ya no es una persona desastrosa con el dinero. Es una persona que necesita sentirse libre, y que encontró una forma cara de conseguirlo.
 
-Suena mal. Vamos a desactivar tres malentendidos ahora mismo,
+¿Cómo sabes que llegaste? Cuando aparece una palabra grande. Seguridad. Libertad. Pertenencia. Valor. Calma. Descanso. Que no vuelva a doler. Si todavía no apareció ninguna, sube un escalón más. Prueba ahora con tu conducta. Pregúntale qué te da, y luego qué te da eso, hasta que aparezca tu palabra grande. Pausa el video y tómate el tiempo que necesites.
 
-antes de seguir.
+¿La tienes? No importa si no es perfecta. Importa que sea tuya.
 
-[RÓTULO: 1 · No significa que la conducta sea buena]
+Paso cuatro: reconocer y separar. Este parece de relleno, y es el que hace el trabajo. Se dice en voz alta y en primera persona. En el caso de Laura: «Tiene sentido que yo quiera sentirme libre. Es legítimo». Y después se separa la necesidad del camino: «Mi necesidad de libertad es legítima. Lo que no me sirve es gastarme todo en tres días».
 
-Uno. Positiva no quiere decir buena.
+Ahora dilo tú en voz alta, con tu palabra: «Tiene sentido que yo quiera…», y tu palabra. «Es legítimo.» Nota qué pasa en el cuerpo cuando lo dices.
 
-No quiere decir sana, ni acertada, ni aceptable.
+¿Por qué importa tanto este paso? Porque mientras esa necesidad esté juzgada, la conducta la defiende. Es lo único que la protege, y no la va a soltar. Cuando la necesidad se reconoce, la conducta deja de ser su única guardiana. Ahí deja de haber una guerra por dentro.
 
-Quiere decir que apunta a conseguir algo o a proteger algo.
+Paso cinco, y solo ahora: buscar otros caminos. ¿De qué otras tres formas podría conseguir lo mismo? Tres, no una. Con una sola opción no hay elección, hay reemplazo, y el reemplazo se abandona a la primera dificultad. Y tienen que ser concretas. Para Laura, la primera podría ser un gasto planificado que sí le dé esa sensación de holgura. La segunda, un ahorro con nombre y con fecha. Y la tercera, una conversación pendiente con su pareja sobre cómo manejan el dinero. De las tres, se elige la más ecológica. Es decir, la que le sirve a ella sin costarle a otras áreas de su vida ni a las personas que le importan.
 
-Un grito tiene una intención: que me escuchen. Y sigue siendo un grito.
+Esto también sirve con otra persona. Y el cambio no está en lo que dices, sino en dejar de discutir con la conducta. En vez de «deja de gritar», puedes preguntar «¿qué necesitas que no estás consiguiendo?». En vez de «eres un vago», puedes preguntar «¿qué te está pesando de esto?». En vez de «nunca me cuentas nada», puedes preguntar «¿qué pasa si me lo cuentas?». Ninguna de esas preguntas aprueba nada. Todas preguntan por lo que hay debajo.
 
-Entender no es permitir.
+Y ahora el límite, que es importante. Esto no se usa con la violencia. Buscar la intención positiva de quien agrede, delante de quien fue agredido, es volver a hacer daño. La herramienta sirve para entender cómo funciona una conducta, no para repartir absoluciones. Y en una situación de maltrato, lo primero no es comprender. Lo primero es ponerse a salvo y pedir ayuda.
 
-[RÓTULO: 2 · No obliga a perdonar]
+Hay más presuposiciones, y en la próxima clase las vas a probar una por una. Te las nombro para que las tengas presentes. El mapa no es el territorio, que ya vimos. La persona no es su conducta. No hay fracaso, solo información sobre lo que no funcionó. Si algo no funciona, haz otra cosa. El significado de lo que comunicas es la respuesta que obtienes. Y ya tienes los recursos que necesitas, aunque estén en otro lugar de tu vida.
 
-Dos. Esto no te obliga a perdonar a nadie.
+Hagamos un resumen. Una presuposición es una forma de mirar, no una verdad. La intención positiva no justifica nada ni obliga a perdonar. Sirve para que una conducta deje de volver, porque busca otro camino para lo mismo que la conducta quería. Y los cinco pasos son: nombrar sin juicio, preguntar para qué, subir hasta la palabra grande, reconocer y separar, y buscar tres caminos. Si te quedas con una sola frase, que sea esta: lo que se combate, se defiende, y lo que se entiende, se puede sustituir.
 
-Comprender cómo funciona una conducta
+Tu tarea para las próximas veinticuatro horas: la próxima vez que aparezca la conducta que elegiste, no te pelees con ella. Hazle una sola pregunta por dentro: ¿qué intentas conseguir para mí?
 
-y decidir qué haces con la persona que te la hizo son cosas distintas.
-
-La segunda es tuya y no se la debes a nadie.
-
-[RÓTULO: 3 · La persona no suele saber cuál es]
-
-Y tres. La persona casi nunca sabe cuál es su intención.
-
-Si lo supiera, probablemente habría elegido otro camino para conseguirlo.
-
-[PAUSA]
-
-Con eso claro, ahora sí.
-
-[A CÁMARA]
-
-¿Para qué sirve esta idea?
-
-Para una cosa muy concreta: para que la conducta deje de volver.
-
-Porque una conducta que consigue algo no se va a ir
-
-mientras eso que consigue no se consiga de otra forma.
-
-Puedes prometer, puedes esforzarte, puedes prohibírtelo.
-
-Vuelve. Y no vuelve porque seas débil: vuelve porque servía para algo.
-
-[PAUSA]
-
-Vamos a ver casos.
-
-[TABLA EN PANTALLA, fila a fila]
-
-Alguien que llega tarde siempre.
-
-La lectura fácil: es un desconsiderado.
-
-La intención debajo, muchas veces: no que le manden. Decidir él cuándo.
-
-[PAUSA]
-
-Alguien que trabaja de más, hasta enfermar.
-
-La intención: que no le puedan reprochar nada. Estar a salvo de la crítica.
-
-[PAUSA]
-
-Alguien que no pide ayuda nunca.
-
-La intención: no deber nada a nadie. No quedar en deuda.
-
-[PAUSA]
-
-Alguien que discute por todo.
-
-La intención: que se le tenga en cuenta.
-
-[PAUSA]
-
-Alguien que se calla en las reuniones.
-
-La intención: no exponerse a que le corrijan delante de gente.
-
-[A CÁMARA]
-
-Fíjate en algo. Ninguna de esas intenciones es rara.
-
-Todas son cosas que cualquiera querría.
-
-Lo que falla no es lo que buscan. Es el camino que eligieron.
-
-[PAUSA]
-
-Y esa distinción es toda la herramienta.
-
-[RÓTULO: La intención es legítima. El medio puede ser pésimo.]
-
-[A CÁMARA]
-
-Vamos con los cinco pasos. Y los vamos a hacer con un caso.
-
-[RÓTULO: Paso 1 — Nombra la conducta sin juicio]
-
-Paso uno: nombra la conducta, sin adjetivos.
-
-No «soy un desastre con el dinero».
-
-Sino «gasto de golpe los primeros días después de cobrar».
-
-Lo que grabaría una cámara. Nada más.
-
-[RÓTULO: Paso 2 — Pregunta para qué, no por qué]
-
-Paso dos: pregunta para qué, no por qué.
-
-¿Qué consigo con esto? ¿Qué me evita esto?
-
-Y aquí te aviso: la primera respuesta va a ser «nada, es que soy así».
-
-No es cierta. Insiste una vez más.
-
-[RÓTULO: Paso 3 — Sube hasta la intención de verdad]
-
-Paso tres: encadena.
-
-Vamos con el caso.
-
-Gasto de golpe cuando cobro. ¿Qué consigo?
-
-Sentir que sí puedo permitírmelo.
-
-¿Y eso qué me da?
-
-No sentirme como me sentía en casa de mis padres, contando todo.
-
-¿Y eso?
-
-[PAUSA]
-
-Sentir que no estoy atrapada.
-
-[PAUSA]
-
-Ahí está. Eso ya no es «soy un desastre con el dinero».
-
-Eso es una persona que necesita no sentirse atrapada,
-
-y que encontró una forma cara de conseguirlo.
-
-[A CÁMARA]
-
-¿Cómo sabes que llegaste?
-
-Cuando aparece una palabra grande.
-
-[RÓTULO: seguridad · libertad · pertenencia · valor · calma · control]
-
-Seguridad. Libertad. Pertenencia. Valor. Calma. Control.
-
-Si todavía no apareció ninguna de esas, sube un nivel más.
-
-[RÓTULO: Paso 4 — Reconoce la intención en voz alta]
-
-Paso cuatro. Y este parece de relleno, y es el que hace el trabajo.
-
-Se dice en voz alta:
-
-«Tiene sentido que yo no quiera sentirme atrapada. Es legítimo.»
-
-[PAUSA]
-
-¿Por qué importa tanto?
-
-Porque mientras esa necesidad esté juzgada, la conducta la defiende.
-
-Es lo único que la sostiene. Y no la va a soltar.
-
-Cuando la necesidad se reconoce, la conducta deja de ser la única guardiana.
-
-[RÓTULO: Paso 5 — Busca otros medios]
-
-Y paso cinco, solo ahora:
-
-¿de qué otras tres formas podría conseguir lo mismo, que me sirvan mejor?
-
-Tres. No una.
-
-Y concretas: un gasto planificado que sí me dé esa sensación de holgura,
-
-un ahorro con nombre y con fecha, una conversación pendiente.
-
-[A CÁMARA]
-
-Esto también sirve con otra persona.
-
-Y el cambio no está en lo que dices, está en dejar de discutir con la conducta.
-
-[TABLA EN PANTALLA]
-
-En vez de «deja de gritar»: ¿qué necesitas que no estás consiguiendo?
-
-En vez de «eres un vago»: ¿qué te está pesando de esto?
-
-En vez de «nunca me cuentas nada»: ¿qué pasa si me lo cuentas?
-
-[PAUSA]
-
-Ninguna de esas aprueba nada. Todas preguntan por lo de debajo.
-
-[A CÁMARA]
-
-Y ahora el límite, que es importante.
-
-[RÓTULO: Dónde no se usa]
-
-Esto no se usa con violencia.
-
-Buscar la intención positiva de quien agrede, delante de quien fue agredido,
-
-es hacer daño otra vez.
-
-La herramienta sirve para entender mecánica, no para repartir absoluciones.
-
-Y en una situación de maltrato, lo primero no es comprender. Es salir.
-
-[PAUSA]
-
-[A CÁMARA]
-
-Te dejo las otras presuposiciones en breve, porque las tienes en la lectura.
-
-El mapa no es el territorio, que ya vimos.
-
-Las personas hacen la mejor elección disponible con los recursos que tienen.
-
-Si lo que haces no funciona, haz otra cosa.
-
-No hay fracaso, hay resultado: información sobre qué no fue.
-
-El significado de tu comunicación es la respuesta que obtienes.
-
-[PAUSA]
-
-Esa última es dura y es útil.
-
-Dice que no importa lo que quisiste decir.
-
-Importa lo que llegó. Y si no llegó lo que querías,
-
-el trabajo es tuyo, no del otro.
-
-[A CÁMARA]
-
-Una última cosa.
-
-Lo que se combate, se defiende.
-
-Lo que se entiende, se puede sustituir.
-
-Esa frase resume el módulo entero.
-
-[PAUSA]
+En la próxima clase, «Las demás presuposiciones», vas a probar varias gafas distintas sobre una situación tuya de esta semana. Ten papel a mano.
 
 Seguimos creciendo juntos.

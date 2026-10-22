@@ -1,149 +1,72 @@
 # Audio guiado · Tu primer trance, a propósito
 
-**Hipnosis y PNL: reprogramación mental · Módulo 1 · 11-13 min · Audio guiado**
-Sala silenciosa, sin música o con un fondo muy suave. Voz lenta y cálida, que
-baja un poco de volumen a medida que avanza. Los silencios marcados son reales:
-no se recortan en edición.
+Hipnosis y PNL: reprogramación mental · Módulo 1 · 12-15 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
+En este audio vas a entrar en un trance ligero, esta vez a propósito. Y dentro de él vas a comprobar cómo responde tu cuerpo a dos frases. La frase vieja que escribiste en la primera clase. Y el mensaje nuevo que escribiste en la segunda. Tráelas a la mente antes de empezar.
 
-Si es tu caso, déjalo para un momento en que puedas parar.
+Puedes sentarte con la espalda apoyada en una silla, o acostarte, como te resulte más cómodo. Los pies apoyados. Las manos sueltas, sobre las piernas o a los lados del cuerpo.
 
-[PAUSA]
-
-Busca un lugar donde nadie te interrumpa durante un cuarto de hora.
-
-Puedes hacerlo con la espalda apoyada en una silla, o acostándote, como te resulte más cómodo.
-
-Los pies apoyados. Las manos sueltas, sobre las piernas o a los lados del cuerpo.
-
-[PAUSA LARGA]
-
-Vas a estar consciente todo el tiempo.
-
-Si en algún momento necesitas abrir los ojos o moverte, lo haces. Y después, si quieres, vuelves.
-
-[PAUSA]
+Vas a estar consciente todo el tiempo. Vas a oír mi voz, vas a oír lo que pasa a tu alrededor y vas a poder decidir en cada momento. Si necesitas abrir los ojos o moverte, lo haces. Y después, si quieres, vuelves.
 
 Vamos a empezar con tres respiraciones.
 
-Toma aire por la nariz, despacio…
+Toma aire por la nariz, despacio… y suéltalo por la boca, más largo de lo que entró.
 
-[PAUSA]
+Otra vez. El aire entra por la nariz… y sale despacio, por la boca.
 
-y suéltalo por la boca, más largo de lo que entró.
+Y una más, a tu ritmo. Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
-
-Otra vez. Entra el aire por la nariz…
-
-[PAUSA]
-
-y sale despacio, por la boca.
-
-[PAUSA LARGA]
-
-Y una más, a tu ritmo.
-
-[PAUSA REAL · 10 s — tercera respiración]
+Con cada exhalación, los hombros pueden bajar un poco. No hace falta que lo intentes. Solo deja que el aire, al salir, se lleve algo de la tensión del día.
 
 Ahora deja que la respiración vaya sola. No tienes que hacer nada con ella.
 
-[PAUSA]
+Elige un punto frente a ti y quédate mirándolo. Sin esfuerzo. Solo mirando.
 
-Elige un punto frente a ti y quédate mirándolo.
+Y en algún momento, cuando tus ojos quieran, pueden cerrarse. No hay prisa. Puede ser ahora o dentro de un rato.
 
-Sin esfuerzo. Solo mirando.
+Mientras escuchas mi voz, puedes empezar a notar los sonidos que hay a tu alrededor. Primero los más lejanos. Un ruido de la calle. Una voz. Algo que zumba.
 
-[PAUSA LARGA]
+Escúchalos un momento, sin ponerles nombre.
 
-Y en algún momento, cuando tus ojos quieran, pueden cerrarse.
+Ahora los más cercanos. Los sonidos del lugar donde estás. Quizá tu propia respiración.
 
-No hay prisa. Ahora o dentro de un rato.
+Quédate ahí unos momentos, solo escuchando.
 
-[PAUSA REAL · 15 s — dejar que los ojos se cierren solos]
-
-Y mientras escuchas mi voz, puedes empezar a notar los sonidos que hay a tu alrededor.
-
-Primero los más lejanos.
-
-Un ruido de la calle. Una voz. Algo que zumba.
-
-[PAUSA REAL · 15 s — escuchar los sonidos lejanos]
-
-Ahora los más cercanos.
-
-Los sonidos del lugar donde estás. Quizá tu propia respiración.
-
-[PAUSA REAL · 15 s — escuchar los sonidos cercanos]
-
-Y ahora, desde los sonidos, tu atención puede ir hacia el cuerpo.
-
-El peso de tu cuerpo, apoyado.
-
-Los puntos donde toca la silla, la cama, el suelo.
-
-[PAUSA LARGA]
+Y ahora, desde los sonidos, tu atención puede ir hacia el cuerpo. El peso de tu cuerpo, apoyado. Los puntos donde toca la silla, la cama o el suelo.
 
 La temperatura de tus manos.
 
-[PAUSA LARGA]
-
 La ropa sobre la piel.
-
-[PAUSA LARGA]
 
 Y el aire que entra… y sale… sin que tú hagas nada.
 
-[PAUSA REAL · 20 s — solo notar la respiración]
+Respira… y quédate ahí unos momentos.
 
-Fíjate en algo.
+Fíjate en algo. Hace un rato tu atención estaba afuera. Ahora está adentro. Eso es todo lo que hace falta. Así empieza un trance.
 
-Hace un rato tu atención estaba afuera. Ahora está adentro.
+Ahora te invito a recordar una canción. Una que, cada vez que suena, te lleva a otro lugar, a otra época. No tiene que ser especial. Solo tuya.
 
-Eso es todo lo que hace falta. Así empieza un trance.
+Tómate el tiempo que necesites para que aparezca.
 
-[PAUSA LARGA]
-
-Ahora te invito a recordar una canción.
-
-Una que, cada vez que suena, te lleva a otro lugar. A otra época.
-
-No tiene que ser especial. Solo tuya.
-
-[PAUSA REAL · 15 s — dejar que aparezca una canción]
-
-Deja que suene por dentro.
-
-No hace falta que la oigas perfecta. Basta con un trozo. La voz. Una frase. El ritmo.
-
-[PAUSA LARGA]
+Deja que suene por dentro. No hace falta que la oigas perfecta. Basta con un trozo. La voz. Una frase. El ritmo.
 
 Y fíjate a dónde te lleva.
 
 ¿Dónde estás?
 
-[PAUSA LARGA]
-
 ¿Quién está contigo?
 
-[PAUSA LARGA]
+¿Qué hay en el aire? ¿Qué temperatura hace? ¿Es de día o de noche?
 
-¿Qué hay en el aire? ¿Qué temperatura hace?
+¿Hay algún olor? ¿Alguna luz en especial?
 
-[PAUSA REAL · 30 s — quedarse en ese lugar]
+Quédate en ese lugar unos momentos. No tienes que hacer nada más que estar ahí. Si aparece algún pensamiento del día, déjalo pasar, como pasa un carro por la calle, y vuelve a la canción.
 
-Esto que acabas de hacer, lo haces muchas veces sin darte cuenta.
+Esto que acabas de hacer lo haces muchas veces sin darte cuenta. Hoy lo hiciste a propósito.
 
-Hoy lo hiciste a propósito.
-
-[PAUSA LARGA]
-
-Deja que la canción se vaya apagando, despacio… y vuelve a tu respiración.
-
-[PAUSA LARGA]
+Deja que la canción se vaya apagando, despacio… y vuelve a tu respiración. El aire que entra. El aire que sale.
 
 Ahora vamos a hacer una prueba pequeña.
 
@@ -151,80 +74,48 @@ Trae a tu mente la frase vieja. Esa que escribiste en la primera clase, la que t
 
 Dila por dentro, despacio. Tres veces.
 
-[PAUSA REAL · 15 s — decir la frase vieja tres veces por dentro]
+Y fíjate qué hace tu cuerpo. El pecho. Los hombros. El estómago. La mandíbula.
 
-Y fíjate qué hace tu cuerpo.
-
-El pecho. Los hombros. El estómago. La mandíbula.
-
-No cambies nada. Solo nota.
-
-[PAUSA REAL · 15 s — notar el cuerpo]
+No cambies nada. Solo nota. Tómate unos momentos.
 
 Ahora suelta esa frase con la próxima exhalación. Déjala ir con el aire.
 
-[PAUSA LARGA]
+Respira una vez más, despacio, como quien se limpia por dentro.
 
-Y trae la frase nueva. La que escribiste en la segunda clase. La que tu cabeza sí acepta.
+Y trae la frase nueva. El mensaje que escribiste en la segunda clase, el que tu cabeza sí acepta.
 
 Dila por dentro, despacio. Tres veces.
 
-[PAUSA REAL · 15 s — decir la frase nueva tres veces por dentro]
+Y fíjate otra vez. El pecho. Los hombros. El estómago. La mandíbula.
 
-Y fíjate otra vez.
+Quédate ahí unos momentos, notando.
 
-El pecho. Los hombros. El estómago. La mandíbula.
+Quizá notaste una diferencia grande. Quizá una muy pequeña. Las dos cosas están bien.
 
-[PAUSA REAL · 20 s — notar el cuerpo]
-
-Quizá notaste una diferencia grande. Quizá una muy pequeña.
-
-Las dos cosas están bien.
-
-Tu cuerpo te acaba de mostrar que las palabras que usas contigo no son neutras.
-
-[PAUSA LARGA]
+Tu cuerpo te acaba de mostrar que las palabras que usas contigo no son neutras. Unas te cierran y otras te dejan espacio.
 
 Quédate un momento con la frase nueva. Sin repetirla. Solo dejándola estar.
 
-[PAUSA REAL · 20 s — quedarse con la frase nueva]
+Respira… y quédate ahí.
 
-Ahora vamos a regresar.
-
-Voy a contar del uno al cinco. Con cada número vas a ir volviendo, trayendo contigo esta calma.
-
-[PAUSA]
+Ahora vamos a regresar. Voy a contar del uno al cinco. Con cada número vas a ir volviendo, y puedes traer contigo esta calma.
 
 Uno. Empiezas a notar otra vez el peso de tu cuerpo.
 
-[PAUSA]
-
 Dos. La respiración se hace un poco más amplia.
-
-[PAUSA]
 
 Tres. Vuelves a escuchar los sonidos del lugar donde estás.
 
-[PAUSA]
-
 Cuatro. Mueve despacio los dedos de las manos y de los pies. Estira un poco el cuello.
-
-[PAUSA]
 
 Cinco. Abre los ojos. Con la mente clara, el cuerpo descansado y en calma.
 
-[PAUSA LARGA]
+Quédate un momento sin moverte antes de levantarte. Mira a tu alrededor. Nota los colores, la luz, los objetos.
 
-Quédate un momento sin moverte antes de levantarte. Mira a tu alrededor.
+Y si tienes tu cuaderno cerca, escribe dos líneas. Qué notaste en el cuerpo con la frase vieja. Y qué notaste con la nueva. Tómate el tiempo que necesites.
 
-[PAUSA]
+Eso fue un trance natural, elegido por ti. Entrar y salir a propósito, sin perder el control en ningún momento, es la base de todo este curso.
 
-Y si tienes tu cuaderno cerca, escribe dos líneas.
+Si quieres repasar las ideas de este módulo, tienes el material en PDF, con los ejercicios para tu cuaderno.
 
-Qué notaste en el cuerpo con la frase vieja. Y qué notaste con la nueva.
-
-[PAUSA REAL · 30 s — escribir las dos líneas]
-
-Eso fue un trance natural, elegido por ti.
-
-En el próximo módulo vas a ver en qué estado del cerebro ocurre, y cómo llegar ahí con la respiración.
+Y te espera el siguiente módulo: Frecuencias cerebrales: Beta, Alfa, Theta y Delta. Ahí vas a ver qué estados atraviesas a lo largo del día, y cómo acercarte a la calma con la respiración.

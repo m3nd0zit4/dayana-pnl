@@ -1,329 +1,51 @@
 # Caso · Cómo leer tu diagnóstico
 
-**Los 8 Niveles de Conciencia · Módulo 6 · 12-15 min · Caso**
-Las combinaciones van en pantalla como fichas. Se puede grabar con la hoja de
-diagnóstico en la mano, como si se leyera una de verdad.
+Los 8 Niveles de Conciencia · Módulo 6 · 9-11 min
 
----
+Líderes, bendiciones.
 
-[A CÁMARA]
+Ya tienes tus respuestas del diagnóstico, y lo más probable es que no coincidan entre sí. Este video es para leerlas. Vamos a ver las cinco combinaciones más frecuentes, con un caso para cada una. Y al final vas a elegir el único recurso que vas a trabajar durante los próximos tres meses. Pon tu hoja delante, y mientras escuchas cada combinación, fíjate si es la tuya.
 
-Ya tienes tus números.
+Empecemos por la primera combinación: todo coincide. Tus valores dicen cuatro, tu fortaleza dice cuatro y tu sombra dice cuatro. Imagina a Roberto. Valora el orden, todos le dicen que es muy responsable y su familia se queja de que no suelta el control. Todo apunta al mismo lugar.
 
-Y lo más probable es que no coincidan.
+Esto significa que Roberto funciona de forma estable desde ese nivel. Y es una buena noticia y una mala a la vez. La buena: hay coherencia. No hay guerra interna. Sabe quién es y lo que hace le sale. La mala: no hay tensión, y sin tensión no hay movimiento. Si además lleva años así y nada le incomoda, es probable que esté en un lugar cómodo y quieto a la vez. ¿Qué se hace? Trabajar el recurso de ese nivel, sin excusas. Para Roberto, la flexibilidad: preguntarse si una regla todavía sirve y probar a hacer algo de otra manera.
 
-[PAUSA]
+Pasemos a la segunda combinación: tus valores dicen un nivel y tu sombra dice otro. Es la más frecuente de todas. Imagina a Camila. Sus valores dicen seis: le importa el vínculo, que todos estén bien. Pero su sombra dice cuatro: no suelta el control y juzga mucho.
 
-Este video es para leerlos.
+¿Qué significa? Que Camila ya llegó con la cabeza a un lugar al que todavía no llegó con el cuerpo. Sus valores se movieron. Sus reflejos, no. Y eso produce una sensación muy concreta: sentir que se traiciona sin saber por qué. Dice que lo importante son las personas, y después está corrigiendo a todo el mundo. Y se siente incoherente.
 
-[PAUSA]
+No es incoherencia. Es tránsito. ¿Qué se hace? Trabajar la sombra del nivel de abajo, no el recurso del de arriba. Porque lo que la frena no es que le falte lo nuevo. Es que lo viejo todavía manda cuando se cansa. Para Camila, eso significa trabajar la rigidez del cuatro antes de intentar ser más empática.
 
-Vamos a ver las combinaciones más frecuentes,
+Hagamos una pausa aquí. Mira tu hoja. ¿Tu valor y tu sombra están en el mismo nivel o en niveles distintos? Escribe cuál de estas dos primeras combinaciones se parece más a la tuya, si alguna se parece.
 
-y qué significa cada una.
+¿Lo tienes? Sigamos con la tercera: tu fortaleza señala un nivel alto y tu sombra uno bajo. Imagina a Andrés. Su fortaleza está en el siete: lo ve todo, entiende contextos, todo el mundo le pide consejo. Y su sombra está en el tres: cuando se cansa, atropella, levanta la voz y decide sin escuchar.
 
-[RÓTULO: Combinación 1 — Todo coincide]
+Esto es muy común en personas que estudiaron mucho y trabajaron su cabeza más que su historia. Significa que tienen acceso a mucha comprensión, y que bajo presión se van a un lugar mucho más antiguo. Y suele venir con mucha culpa después: «No entiendo cómo reaccioné así, si yo sé perfectamente cómo se hace.» Claro que lo sabe. Pero saber algo no es lo mismo que tenerlo disponible en el momento.
 
----
+¿Qué se hace? Trabajo de estado y de cuerpo, no más información. Andrés no necesita otro libro. Necesita aprender a cambiar su estado cuando se activa. Si esta es tu combinación, en la academia tienes el curso «Emociones, anclajes y estados de recurso», que trabaja justamente eso.
 
-**Primera combinación. Todo coincide.**
+La cuarta combinación: áreas muy separadas. En el trabajo, un cinco. En la familia, un dos. Imagina a Valentina. En la oficina dirige un equipo, negocia y decide con seguridad. Pero los domingos, en la casa de sus papás, se siente como si tuviera quince años. Y el lunes vuelve a ser la persona que decide. Esa distancia se paga, porque es agotador ser alguien distinto según con quién estés.
 
-[A CÁMARA]
+Eso no significa que esté fingiendo en algún lugar. Significa que en cada contexto se activa lo que aprendió ahí. ¿Qué se hace? Se empieza por el área más baja, pero no intentando cambiarla de golpe. Se empieza por lo más pequeño posible: una decisión mínima, tomada desde el nivel de arriba, en el área de abajo. Valentina no necesita anunciarle a su familia que ahora es independiente. Le basta con decir que este domingo no va al almuerzo, y sostenerlo.
 
-Tus valores dicen cuatro, tu fortaleza dice cuatro,
+Y la quinta: no te salió nada claro. También pasa, y no significa que lo hayas hecho mal. Suele significar una de dos cosas. La primera: que estás en pleno tránsito, en medio de dos niveles, y por eso nada encaja del todo. Suele coincidir con una época confusa en la vida real, no solo en el diagnóstico. La segunda, más incómoda: que contestaste lo que crees que deberías contestar. Si sospechas que fue eso, vuelve a hacer el diagnóstico contestando solo con hechos. No con lo que valoras, sino con lo que hiciste la última vez que algo te costó.
 
-tu sombra dice cuatro.
+Ahora mira tu hoja otra vez. De las cinco combinaciones, ¿cuál es la tuya? Escríbela. Y si te reconoces en dos, escribe las dos. Pausa el video si lo necesitas.
 
-[PAUSA]
+¿Ya la tienes? Entonces vamos a la pregunta práctica. Si te salieron varios recursos, ¿cuál trabajas primero? Hay tres reglas, y se aplican en orden.
 
-Esto significa que estás **asentada** en ese nivel.
+Regla uno: el recurso del área que más te esté doliendo ahora. No el más interesante, el que duele. Regla dos: si dudas, el de la sombra y no el del valor. Porque la sombra es lo que ya está pasando, y el valor es hacia dónde quieres ir. Y no se puede llegar a ningún lado arrastrando lo que no has mirado. Regla tres: uno solo. Esta es la que más se incumple. La gente sale del diagnóstico con cinco propósitos y a las dos semanas no cumple ninguno.
 
-[PAUSA]
+Veamos cómo se aplican con Camila. Le salieron dos recursos: la flexibilidad del cuatro y los límites del seis. El área que más le duele es la familia, donde corrige a todo el mundo. Y su sombra está en el cuatro. Así que elige la flexibilidad. Solo esa. Su primer paso es dejar que su hijo organice el paseo de vacaciones a su manera, sin corregirlo.
 
-Y es una buena noticia y una mala a la vez.
+Ahora te toca a ti. Aplica las tres reglas a tu hoja y escribe tu único recurso para los próximos tres meses. Debajo, su primer paso concreto. Tómate el tiempo que necesites.
 
-[PAUSA]
+¿Lo escribiste? Un recurso, tres meses, y después se vuelve a mirar.
 
-La buena: funcionas de forma coherente. No hay guerra interna.
+Hagamos un resumen. Si todo coincide, trabajas el recurso de tu nivel. Si tu valor y tu sombra están en niveles distintos, trabajas la sombra del nivel de abajo. Si tu fortaleza es alta y tu sombra baja, trabajas tu estado, no tu información. Si tus áreas están muy separadas, empiezas por la más baja, con la decisión más pequeña. Y si no salió nada claro, repites el diagnóstico contestando con hechos. Ninguna combinación está mal. Todas dicen algo.
 
-Sabes quién eres y lo que haces te sale.
+Tu tarea para las próximas veinticuatro horas: pon tu único recurso en un lugar donde lo veas todos los días. En un papel pegado al espejo, o como fondo de pantalla del celular. Y anota en tu calendario la fecha para repetir el diagnóstico dentro de seis meses.
 
-[PAUSA]
-
-La mala: no hay tensión, y sin tensión no hay movimiento.
-
-[PAUSA]
-
-Si además llevas años así y nada te incomoda,
-
-es probable que estés cómoda y estancada a la vez.
-
-[PAUSA]
-
-¿Qué se hace? El recurso de evolución de tu nivel, sin excusas.
-
-Es exactamente para ti.
-
-[RÓTULO: Combinación 2 — Valor y sombra en niveles distintos]
-
----
-
-**Segunda. Tus valores dicen un nivel y tu sombra otro.**
-
-[A CÁMARA]
-
-Esta es la más frecuente de todas.
-
-[PAUSA]
-
-Y suele verse así: tus valores dicen seis
-
-—te importa el vínculo, que todos estén bien—
-
-y tu sombra dice cuatro —no sueltas el control, juzgas mucho—.
-
-[PAUSA]
-
-¿Qué significa?
-
-[PAUSA]
-
-Que ya llegaste con la cabeza a un sitio
-
-al que todavía no llegaste con el cuerpo.
-
-[PAUSA]
-
-Tus valores se movieron. Tus reflejos, no.
-
-[PAUSA]
-
-Y esto es lo que produce esa sensación tan concreta
-
-de estar traicionándote a ti misma sin saber por qué.
-
-[PAUSA]
-
-Dices que lo importante son las personas,
-
-y después estás corrigiendo a todo el mundo.
-
-Y te sientes incoherente.
-
-[PAUSA]
-
-No eres incoherente. Estás en tránsito.
-
-[PAUSA]
-
-¿Qué se hace? Trabajar la sombra del nivel de abajo,
-
-no el recurso del de arriba.
-
-[PAUSA]
-
-Porque lo que te frena no es que te falte lo nuevo.
-
-Es que lo viejo todavía manda cuando te cansas.
-
-[RÓTULO: Combinación 3 — Fortaleza alta, sombra baja]
-
----
-
-**Tercera. Tu fortaleza señala un nivel alto y tu sombra uno bajo.**
-
-[A CÁMARA]
-
-Por ejemplo: fortaleza en el siete —lo ves todo, entiendes contextos—
-
-y sombra en el tres —atropellas cuando te cansas—.
-
-[PAUSA]
-
-Esto es muy común en gente que estudió mucho
-
-y trabajó su cabeza más que su historia.
-
-[PAUSA]
-
-Significa que tienes acceso a mucha comprensión,
-
-y que bajo presión te vas a un sitio mucho más antiguo.
-
-[PAUSA]
-
-Y suele ir acompañado de mucha culpa después.
-
-Del «no entiendo cómo reaccioné así, si yo sé perfectamente cómo se hace».
-
-[PAUSA]
-
-Claro que lo sabes. Saber no es lo mismo que tener disponible.
-
-[PAUSA]
-
-¿Qué se hace? Trabajo de estado, no de comprensión.
-
-Y ahí el curso que te toca es **Emociones y anclajes**,
-
-porque tu problema no es de información.
-
-[RÓTULO: Combinación 4 — Áreas muy separadas]
-
----
-
-**Cuarta. Áreas muy separadas.**
-
-[A CÁMARA]
-
-En el trabajo, un cinco. En la familia, un dos.
-
-[PAUSA]
-
-Y esa distancia de tres niveles se paga.
-
-[PAUSA]
-
-Suele notarse así: eres una persona distinta
-
-según con quién estés, y te agota.
-
-[PAUSA]
-
-Los domingos en casa de tus padres te sientes con quince años.
-
-Y el lunes vuelves a ser quien decides cosas.
-
-[PAUSA]
-
-Eso no significa que estés fingiendo en algún sitio.
-
-Significa que en cada contexto se activa lo que aprendiste allí.
-
-[PAUSA]
-
-¿Qué se hace? Se empieza por el área más baja,
-
-pero **no** intentando cambiarla de golpe.
-
-[PAUSA]
-
-Se empieza por lo más pequeño posible:
-
-una decisión mínima tomada desde el nivel de arriba,
-
-en el área de abajo.
-
-[PAUSA]
-
-No anunciarle a tu familia que ahora eres autónoma.
-
-Decir que este año no vas el sábado, y ya.
-
-[RÓTULO: Combinación 5 — No sale nada claro]
-
----
-
-**Y quinta. No te salió nada claro.**
-
-[A CÁMARA]
-
-También pasa. Y no significa que lo hicieras mal.
-
-[PAUSA]
-
-Suele significar una de dos cosas.
-
-[PAUSA]
-
-Una: que estás en pleno tránsito, en medio de dos niveles,
-
-y por eso nada encaja del todo. Suele ir con una época confusa
-
-en la vida real, no solo en el test.
-
-[PAUSA]
-
-Y dos, más incómoda: que contestaste lo que crees que deberías contestar.
-
-[PAUSA]
-
-Si sospechas que fue eso, vuelve a hacerlo,
-
-pero contestando solo con hechos.
-
-No con lo que valoras: con lo que hiciste la última vez que costó.
-
-[A CÁMARA]
-
----
-
-Y ahora la pregunta práctica.
-
-[RÓTULO: ¿Qué recurso trabajo primero?]
-
-[PAUSA]
-
-Si te salieron varios números, ¿cuál trabajas?
-
-[PAUSA]
-
-Tres reglas, por orden.
-
-[PAUSA]
-
-**Uno: el del área que más te esté doliendo ahora.**
-
-No el más interesante. El que duele.
-
-[PAUSA]
-
-**Dos: si dudas, el de la sombra, no el del valor.**
-
-Porque la sombra es lo que ya está pasando,
-
-y el valor es hacia dónde quieres ir.
-
-Y no se puede ir a ningún sitio arrastrando lo que no has mirado.
-
-[PAUSA]
-
-**Y tres: uno solo.**
-
-[PAUSA]
-
-Esto es lo que más se incumple.
-
-La gente sale del diagnóstico con cinco propósitos
-
-y a las dos semanas no hace ninguno.
-
-[PAUSA]
-
-Un recurso. Tres meses. Y después se vuelve a mirar.
-
-[A CÁMARA]
-
----
-
-Cierro con lo mismo que dije en el diagnóstico.
-
-[PAUSA]
-
-Ponle fecha a tu hoja y guárdala.
-
-[PAUSA]
-
-Dentro de seis meses lo repites sin mirar la anterior,
-
-y después las comparas.
-
-[PAUSA]
-
-Ahí es donde vas a ver lo que ninguna teoría te puede enseñar:
-
-qué se movió de verdad.
-
-[PAUSA]
+Para cerrar el módulo te espera el audio guiado «Ensayar tu recurso de evolución». Vas a ensayar, con la imaginación, el momento de esta semana en que tu sombra suele aparecer, esta vez usando tu recurso. Escúchalo cuando ya tengas claro cuál es.
 
 Seguimos creciendo juntos.

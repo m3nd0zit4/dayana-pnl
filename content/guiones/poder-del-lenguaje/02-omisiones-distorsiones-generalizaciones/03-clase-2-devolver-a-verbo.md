@@ -1,231 +1,51 @@
 # Clase 2 · Devolver las cosas a verbo
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 2 · 9-12 min · Clase**
-Taller aplicado. Cada frase va en pantalla mientras el alumno la transforma en voz alta; la versión de Dayana aparece después de la pausa. La tabla de PNL y terapia cognitiva va en pantalla. Sin invitado.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 2 · 9-11 min
 
 Líderes, bendiciones.
 
-Completa esta frase en voz alta. Rápido, lo primero que salga:
+En esta clase vamos a ir a fondo con el filtro que más rinde: la nominalización, cuando un proceso se convierte en cosa. Primero vas a aprender a reconocerla con una prueba muy sencilla. Después vamos a practicar con siete frases, devolviéndolas a verbo en voz alta. Luego vas a ver cómo la terapia cognitiva encontró filtros muy parecidos. Y al final te voy a dar la práctica de escucha de una semana, con una regla importante. Al terminar vas a poder tomar un problema que suena a cosa y convertirlo en algo que alguien hace.
 
-«Mi problema es el…» o «mi problema es la…».
+Empecemos. Completa esta frase en voz alta, rápido, con lo primero que salga: «mi problema es el…» o «mi problema es la…». Mucha gente dice cosas como el estrés, la ansiedad, la relación, la economía, la falta de tiempo.
 
-[PAUSA REAL · 8 s — completar en voz alta «Mi problema es…»]
+Ahora te hago una pregunta rara: ¿puedes meter eso en una carretilla? En la PNL se usa esta prueba, medio en broma. Si lo puedes meter en una carretilla, es una cosa: una silla, un libro, una piedra. Si no se puede, y aun así lo dices como si fuera una cosa, es un proceso disfrazado. El estrés no se mete en una carretilla. Lo que existe es alguien que se está exigiendo algo. Mira tu frase del principio. ¿Cabe en una carretilla?
 
-Mucha gente dice cosas como: el estrés. La ansiedad. La relación. La economía. La falta de tiempo.
+A eso se le llama nominalización: un verbo convertido en sustantivo. Y tiene un efecto muy concreto: le quita el dueño a la acción. «Hay mala comunicación» no dice quién no le está diciendo qué a quién. Una cosa sin dueño se queda ahí, como un mueble, y nadie la puede mover. Cuando la devuelves a verbo, vuelve a aparecer alguien que hace algo. Y lo que alguien hace se puede hacer distinto. La pregunta que la desarma es siempre la misma: ¿quién está haciendo qué?
 
-Ahora te hago una pregunta rara.
+Ahora vamos a practicar. Te doy una frase y tú la devuelves a verbo, en voz alta. Después te digo una versión posible. No hay una única respuesta correcta. Hay versiones que se pueden mover y versiones que no. Si necesitas más tiempo en alguna, pausa el video.
 
-¿Puedes meter eso en una carretilla?
+Uno: «tengo estrés». ¿Qué está haciendo alguien ahí? Dilo tú primero. Una versión: «me estoy exigiendo más de lo que puedo hacer esta semana». O más concreta todavía: «me comprometí con tres entregas para el mismo viernes».
 
-[PAUSA]
+Dos: «nuestra relación está mal». Devuélvela a verbo. Una versión: «desde hace un mes nos hablamos solo para organizar cosas». Fíjate que ahora sí se sabe por dónde empezar.
 
-[RÓTULO: La prueba de la carretilla]
+Tres: «falta motivación en el equipo». Una versión: «nadie sabe para qué estamos haciendo este proyecto». Con la primera frase, el jefe contrata un taller de motivación. Con la segunda, el jefe explica para qué.
 
-En la PNL se usa esta prueba, medio en broma. Si lo puedes meter en una carretilla, es una cosa: una silla, un libro, una piedra.
+Cuatro: «hay una falta de respeto en esta casa». Una versión: «mis hijos me interrumpen cuando hablo en la cena». Esa frase la puedes llevar a la cena de mañana. La otra, no.
 
-Si no se puede, y aun así lo dices como si fuera una cosa, es un proceso disfrazado.
+Cinco: «tengo ansiedad por la entrevista». Una versión: «estoy anticipando que me van a preguntar lo que no sé». Y ahí aparece algo que hacer: preparar esas preguntas. Un aviso importante. Si lo que vives es una ansiedad que no te deja dormir o trabajar durante semanas, eso no se arregla cambiando una palabra. Ahí corresponde buscar a un profesional.
 
-El estrés no se mete en una carretilla. Lo que existe es alguien que se está exigiendo algo.
+Seis: «no tengo compromiso con nada». Una versión: «dejo lo que empiezo a las dos semanas». Ya no es un defecto de fábrica. Es algo que pasa a las dos semanas, y se puede mirar qué ocurre justo ahí.
 
-Mira tu frase del principio. ¿Cabe en una carretilla?
+Y una última, de pareja: «siento que hay distancia entre nosotros». Una versión: «hace dos semanas que no nos sentamos a hablar sin el celular en la mano». La distancia no se puede arreglar. Sentarse a hablar sin el celular, sí. Esta misma noche.
 
-[PAUSA REAL · 5 s — comprobar si tu problema cabe en una carretilla]
+Ahora la tuya. Vuelve a lo que dijiste al principio, tu «mi problema es…». Devuélvelo a verbo: ¿quién está haciendo qué? Tómate el tiempo que necesites. ¿Lo tienes? Si te costó, es normal. La propia siempre cuesta más, porque llevas tiempo tratándola como una cosa.
 
-[A CÁMARA]
+Con esto claro, te cuento algo que me parece muy bonito de estos filtros: la PNL no es la única que los encontró. La terapia cognitiva, que empezó con el psiquiatra Aaron Beck, habla de distorsiones cognitivas. Y el psiquiatra David Burns las hizo muy conocidas con su libro «Sentirse bien». Las listas se parecen mucho. Lo que la PNL llama lectura de mente, allí se llama lectura del pensamiento. Lo que aquí es el «siempre» y el «nunca», allí es la sobregeneralización. Nuestros «tengo que» y «debo», allí son los «debería». Y el «no me llamó, así que no le importo» se parece a lo que Beck llamó inferencia arbitraria: sacar una conclusión sin pruebas suficientes.
 
-[RÓTULO: Nominalización]
+Dos escuelas distintas, mirando desde lugares distintos, llegaron a listas parecidas. Para mí, eso es una buena señal de que describen algo real. Piensa un momento: de todas estas, ¿cuál haces tú más a menudo? La lectura de mente, el «siempre», el «debería» o sacar conclusiones sin pruebas. Elige una. Esa es la que vas a vigilar esta semana.
 
-A eso se le llama nominalización. Un verbo convertido en sustantivo.
+Ahora veamos cómo se practica todo esto. No hace falta analizar a nadie. Solo oír. Durante una semana, en cada conversación, quédate con una sola pregunta: ¿qué falta en lo que acaba de decir? Si quieres un gimnasio, pon una entrevista o un debate en la televisión. En el primer minuto vas a encontrar los tres filtros. Y anótalo, aunque sea en el celular: el día, la frase textual, el filtro y qué faltaba. En el material del módulo tienes una tabla lista para eso.
 
-Y tiene un efecto muy concreto: le quita el dueño a la acción.
+Al quinto día pasa algo curioso: empiezas a oírlo sin buscarlo. Pruébalo ahora. Piensa en la última frase que alguien te dijo hoy. ¿Qué faltaba? Tómate unos segundos.
 
-«Hay mala comunicación» no dice quién no le está diciendo qué a quién.
+Y una regla que va en serio: oír lo que falta no es corregir a la gente. Imagina a Andrés, que acaba de aprender esto. En la cena, su pareja le dice: «nunca hacemos nada juntos». Y Andrés contesta: «eso es una generalización». ¿Cómo crees que termina esa cena? Exacto. Señalarle a alguien sus omisiones en mitad de una conversación es la forma más rápida de que no quiera volver a hablar contigo.
 
-Y una cosa sin dueño se queda ahí, como un mueble. Nadie la puede mover.
+¿Qué podía hacer Andrés? Oírlo por dentro: ahí hay un «nunca». Y en lugar de corregirlo, quedarse con lo que su pareja estaba pidiendo debajo. Porque «nunca hacemos nada juntos» muchas veces quiere decir «te extraño». Oír el filtro te sirve para eso: para escuchar mejor lo que la otra persona quiso decir. No para ganarle. Cómo preguntar sin volverse insoportable lo vemos en el módulo tres.
 
-Cuando la devuelves a verbo, vuelve a aparecer alguien que hace algo. Y lo que alguien hace, se puede hacer distinto.
+Hagamos un resumen. Una nominalización es un proceso disfrazado de cosa: no cabe en una carretilla. Le quita el dueño a la acción, y por eso no se puede resolver. Se desarma con una pregunta: ¿quién está haciendo qué? La terapia cognitiva encontró filtros muy parecidos. Y todo esto sirve para oír mejor, nunca para corregir a nadie.
 
-La pregunta que la desarma es siempre la misma: ¿quién está haciendo qué?
+Tu tarea para las próximas veinticuatro horas: caza una nominalización tuya. Una sola, como «el cansancio», «el desorden» o «la situación». Escríbela, y debajo escríbela otra vez, con un verbo y con alguien que hace algo.
 
-[A CÁMARA]
-
-Vamos a practicar. Te doy una frase y tú la devuelves a verbo, en voz alta. Después te digo una versión posible.
-
-No hay una respuesta correcta. Hay versiones que se pueden mover y versiones que no.
-
-[EN PANTALLA: «Tengo estrés.»]
-
-Uno. «Tengo estrés.»
-
-¿Qué está haciendo alguien ahí?
-
-[PAUSA REAL · 15 s — decir la frase con un verbo y alguien que hace algo]
-
-Una versión: «me estoy exigiendo más de lo que puedo hacer esta semana».
-
-O más concreta todavía: «me comprometí con tres entregas para el mismo viernes».
-
-[EN PANTALLA: «Nuestra relación está mal.»]
-
-Dos. «Nuestra relación está mal.»
-
-[PAUSA REAL · 15 s — devolverla a verbo en voz alta]
-
-Una versión: «desde hace un mes nos hablamos solo para organizar cosas».
-
-Fíjate que ahora sí se sabe por dónde empezar.
-
-[EN PANTALLA: «Falta motivación en el equipo.»]
-
-Tres. «Falta motivación en el equipo.»
-
-[PAUSA REAL · 15 s — devolverla a verbo en voz alta]
-
-Una versión: «nadie sabe para qué estamos haciendo este proyecto».
-
-Con la primera, el jefe compra un taller de motivación. Con la segunda, el jefe explica para qué.
-
-[EN PANTALLA: «Hay una falta de respeto en esta casa.»]
-
-Cuatro. «Hay una falta de respeto en esta casa.»
-
-[PAUSA REAL · 15 s — devolverla a verbo en voz alta]
-
-Una versión: «mis hijos me interrumpen cuando hablo en la cena».
-
-Esa frase la puedes llevar a la cena de mañana. La otra, no.
-
-[EN PANTALLA: «Tengo ansiedad por la entrevista.»]
-
-Cinco. «Tengo ansiedad por la entrevista.»
-
-[PAUSA REAL · 15 s — devolverla a verbo en voz alta]
-
-Una versión: «estoy anticipando que me van a preguntar lo que no sé».
-
-Y ahí aparece algo que hacer: preparar esas preguntas.
-
-Un aviso: si lo que vives es una ansiedad que no te deja dormir o trabajar durante semanas, eso no se arregla cambiando una palabra. Ahí toca un profesional.
-
-[EN PANTALLA: «No tengo compromiso con nada.»]
-
-Seis. «No tengo compromiso con nada.»
-
-[PAUSA REAL · 15 s — devolverla a verbo en voz alta]
-
-Una versión: «dejo lo que empiezo a las dos semanas».
-
-Ya no es un defecto de fábrica. Es algo que pasa a las dos semanas, y se puede mirar qué pasa a las dos semanas.
-
-[EN PANTALLA: «Siento que hay distancia entre nosotros.»]
-
-Y una última, de pareja. «Siento que hay distancia entre nosotros.»
-
-[PAUSA REAL · 15 s — devolverla a verbo en voz alta]
-
-Una versión: «hace dos semanas que no nos sentamos a hablar sin el celular en la mano».
-
-La distancia no se puede arreglar. Sentarse a hablar sin el celular, sí. Esta noche.
-
-[A CÁMARA]
-
-Ahora la tuya. Vuelve a lo que dijiste al principio: «mi problema es…».
-
-Devuélvelo a verbo. ¿Quién está haciendo qué?
-
-[PAUSA REAL · 20 s — devolver tu propia frase a verbo, en voz alta]
-
-Si te costó, es normal. La propia siempre cuesta más, porque llevas tiempo tratándola como una cosa.
-
-[A CÁMARA]
-
-Te cuento algo que me parece muy bonito de estos filtros.
-
-La PNL no es la única que los encontró.
-
-[RÓTULO: Distorsiones cognitivas · Aaron Beck · David Burns]
-
-La terapia cognitiva, que empezó con Aaron Beck, habla de distorsiones cognitivas. Y David Burns las hizo muy conocidas en su libro «Sentirse bien».
-
-La lista se parece muchísimo.
-
-[TABLA EN PANTALLA]
-
-| PNL | Terapia cognitiva |
-|---|---|
-| Lectura de mente | Lectura del pensamiento |
-| Cuantificador universal | Sobregeneralización |
-| Equivalencia compleja | Inferencia arbitraria |
-| Causa-efecto | Personalización |
-
-Lo que la PNL llama lectura de mente, allí se llama lectura del pensamiento.
-
-Lo que aquí es el cuantificador universal, allí es sobregeneralización.
-
-Dos escuelas distintas, mirando cosas distintas, llegaron a una lista parecida. Para mí, eso es buena señal de que describen algo real.
-
-Mira la tabla. ¿Cuál de estas haces tú más a menudo?
-
-[PAUSA REAL · 10 s — elegir la que más haces]
-
-Esa es la que vas a vigilar esta semana.
-
-[A CÁMARA]
-
-Ahora, cómo se practica todo esto.
-
-No hace falta analizar a nadie. Solo oír.
-
-Durante una semana, en cada conversación, quédate con una sola pregunta: ¿qué falta en lo que acaba de decir?
-
-Si quieres un gimnasio, pon una entrevista en la tele o un debate. En el primer minuto vas a encontrar los tres filtros.
-
-Y anótalo, aunque sea en el celular. Cuatro cosas: el día, la frase textual, el filtro, y qué faltaba.
-
-En el material del módulo tienes la tabla lista para eso.
-
-Al quinto día pasa algo curioso: empiezas a oírlo sin buscarlo. Y ahí es cuando el módulo siguiente se vuelve fácil.
-
-Pruébalo ahora: piensa en la última frase que alguien te dijo hoy. ¿Qué faltaba?
-
-[PAUSA REAL · 15 s — encontrar qué faltaba en la última frase que oíste]
-
-[A CÁMARA]
-
-Y una regla, que va en serio.
-
-Oír lo que falta no es corregir a la gente.
-
-Imagina a Andrés, que acaba de aprender esto. En la cena, su pareja dice: «nunca hacemos nada juntos». Y Andrés contesta: «eso es una generalización».
-
-¿Cómo crees que termina esa cena?
-
-[PAUSA]
-
-Exacto.
-
-Señalarle a alguien sus omisiones en mitad de una conversación es la forma más rápida de que no quiera volver a hablar contigo.
-
-¿Qué podía hacer Andrés? Oírlo por dentro: ahí hay un «nunca». Y en vez de corregirlo, quedarse con lo que su pareja estaba pidiendo debajo.
-
-Porque «nunca hacemos nada juntos» casi siempre quiere decir «te extraño».
-
-Oír el filtro te sirve para eso: para escuchar mejor lo que el otro quiso decir. No para ganarle.
-
-Este módulo es para oír. Cómo preguntar sin volverse insoportable, eso lo vemos en el módulo tres.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Caza una nominalización tuya. Una sola. «El cansancio», «el desorden», «la situación».
-
-Escríbela, y debajo escríbela con un verbo y con alguien que hace algo.
-
-En la práctica de este módulo vamos a desarmar juntos una queja larga, pieza por pieza, hasta ver los tres filtros dentro.
+Nos vemos en el video de práctica, Desarmar una frase en directo. Ahí vamos a tomar juntos una queja larga y la vamos a abrir pieza por pieza, hasta ver los tres filtros dentro.
 
 Seguimos creciendo juntos.

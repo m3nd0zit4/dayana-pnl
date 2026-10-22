@@ -1,244 +1,61 @@
 # Clase 2 · Tu plan de aplicación
 
-**Fundamentos de la PNL · Módulo 7 · 10-13 min · Clase**
-Taller de cierre. Las seis preguntas aparecen en pantalla una a una y al final quedan juntas, como una tarjeta. El alumno necesita la hoja que escribió en la clase dos del módulo uno, si la guardó.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 7 · 10-13 min
 
 Líderes, bendiciones.
 
-En la clase anterior juntamos las seis piezas y te di las gracias.
+En esta clase vas a salir con un plan escrito. Vamos a hacer cinco cosas. Releer tu punto de partida. Hacer un balance de las seis piezas. Preparar con ellas una conversación que tienes pendiente, y ensayar en voz alta su momento más difícil. Decidir cuándo vas a practicar cada día. Y elegir por dónde sigues. Ten a mano la hoja del módulo uno, si la guardaste, y una hoja nueva.
 
-Las gracias siguen en pie. Pero todavía no terminamos.
+Empecemos por el punto de partida. ¿Te acuerdas de la hoja que escribiste en la clase Tu punto de partida, en el módulo uno? Ahí anotaste un patrón tuyo y tres respuestas: qué te trajo al curso, qué esperabas conseguir y qué sospechabas que no era cierto de la PNL. Si la guardaste, búscala ahora. Pausa el video si lo necesitas, y léela en silencio.
 
-Falta lo más importante: que salgas de aquí con un plan escrito.
+Ahora escribe debajo una sola línea: ¿qué se movió desde entonces? Si no tienes la hoja, no pasa nada. Escribe qué es distinto hoy respecto al día en que empezaste. Tómate el tiempo que necesites.
 
-[PAUSA]
+¿Lo tienes? Aunque sea pequeño. Sobre todo si es pequeño. Una frase que ya no te dices. Una conversación que ya no evitas. Una discusión que esta vez no escaló. Los cambios pequeños son los que se quedan.
 
-¿Te acuerdas de la hoja del módulo uno?
+Ahora, el balance. Dos líneas. En la primera, la pieza que más te sirvió y por qué. En la segunda, la que más te cuesta y por qué. Escríbelas.
 
-La del punto de partida. Qué te trajo, qué esperabas, qué sospechabas que no era cierto.
+Fíjate en la segunda. La pieza que más te cuesta no es la que peor aprendiste. Muchas veces es la que más tiene que ver con tu patrón, con eso que escribiste en la hoja del módulo uno. Vuelve a esa pieza dentro de un mes.
 
-Si la guardaste, búscala ahora. Te espero.
+Con esto claro, pasemos a lo central de esta clase: usar las seis piezas en algo real, tuyo, de esta semana. Piensa en una conversación que tienes pendiente. Algo que tienes que hablar con alguien y que vienes aplazando. No la más grave de tu vida. Una de esta semana. Escríbela arriba de la hoja nueva.
 
-[PAUSA REAL · 15 s — buscar la hoja del módulo uno]
+Una aclaración importante antes de seguir. Si esa conversación es con alguien que te da miedo, o si en esa relación hay violencia o control, eso no es un problema de comunicación. Y este ejercicio no es la herramienta. Ahí lo que corresponde es buscar ayuda profesional, y pedirla no es un fracaso. Para este ejercicio, elige otra conversación.
 
-Léela en silencio. Las tres respuestas.
+Te voy a hacer seis preguntas, una por pieza. Responde cada una en una línea, sin pensarlo demasiado. Después de cada pregunta, pausa el video si necesitas más tiempo.
 
-[PAUSA REAL · 20 s — leer las respuestas del módulo uno]
+Uno, modelar. ¿Quién conoces que hace bien este tipo de conversación? ¿Qué es lo primero que hace esa persona? Escríbelo.
 
-Y ahora escribe debajo una sola línea: ¿qué se movió desde entonces?
+Dos, el mapa. ¿Qué te estás inventando de lo que pasó? Escribe tu conclusión, y debajo conviértela en un dato. No «nunca cumple», sino «las últimas tres veces me avisó el mismo día».
 
-Si no tienes la hoja, no pasa nada. Escribe qué es distinto hoy respecto al día en que empezaste.
+Tres, la intención. ¿Qué podría estar consiguiendo la otra persona con lo que hace? Quizás evitar un conflicto, ganar tiempo o proteger algo. No es para justificarla. Es para poder preguntar en vez de acusar.
 
-[PAUSA REAL · 30 s — escribir qué se movió]
+Cuatro, los canales. ¿Cómo le llegan mejor las cosas a esa persona? ¿Le llevas algo escrito, se lo cuentas, o le propones probar algo juntos?
 
-Aunque sea pequeño. Sobre todo si es pequeño. Una frase que ya no te dices, una conversación que ya no evitas.
+Cinco, el estado. ¿Desde dónde vas a entrar a esa conversación? ¿Qué vas a hacer en los sesenta segundos de antes, y dónde?
 
-Los cambios pequeños son los que se quedan.
+Y seis, el objetivo. ¿Con qué acuerdo concreto quieres salir? En positivo, comprobable y con día. Y la pregunta de ecología: ¿qué le podría costar a la otra persona ese acuerdo? ¿Y a ti?
 
-[A CÁMARA]
+Mira tu hoja. Tienes la conversación preparada en seis líneas. No es un guion para repetir de memoria. Es un mapa para no perderte cuando la conversación se mueva.
 
-Ahora, balance. Dos líneas.
+Ahora vamos a ensayar el segundo que decide, el que vimos en la clase anterior. Cuando la otra persona se defienda, no contraatacas. Respiras, reconoces lo que dijo y vuelves al dato. Te recuerdo cómo suena. Te dicen: «¡Pues tú también llegas tarde a las reuniones!». Y tú, en lugar de defenderte: «Puede ser, y si quieres lo hablamos también. Ahora quiero hablar de las entregas: las últimas tres llegaron el mismo día».
 
-La pieza que más te sirvió. Y por qué.
+Pruébalo tú, en voz alta, con tu conversación. Imagina lo que te va a contestar esa persona para defenderse. Escúchalo por dentro. Y respóndele así: reconoces y vuelves al dato. Dilo en voz alta, aunque te dé vergüenza.
 
-[PAUSA REAL · 20 s — escribir la pieza que más sirvió]
+¿Cómo te salió? Si te salió un contraataque, es normal. Es lo que el cuerpo hace solo. Repítelo una vez más, y esta vez suelta el aire antes de responder. En todo lo demás hay margen. En ese segundo, no.
 
-La que más te cuesta. Y por qué.
+Ahora, la rutina diaria. Ya la conoces, y hoy decides cuándo. Por la mañana, el protocolo corto y la pregunta: ¿qué estado necesito hoy, y para qué momento? Durante el día, tres paradas de un minuto. Por la noche, tres preguntas cortas. Una rutina pegada a algo que ya haces sobrevive. Una que depende de que te acuerdes, no.
 
-[PAUSA REAL · 20 s — escribir la pieza que más cuesta]
+Así que escribe dos cosas. ¿Después de qué cosa que ya haces cada mañana vas a hacer tus minutos de la mañana? Después de lavarte los dientes, antes del primer café, algo que ya exista. ¿Y pegados a qué vas a hacer los de la noche? Escríbelo. Y debajo, la regla: nunca dos días seguidos sin hacerla.
 
-La que más te cuesta no es la que peor aprendiste.
+Ahora la última decisión: por dónde sigues. En la clase anterior viste los caminos posibles. Escribe qué curso vas a hacer después de este, y por qué ese. No por orden. Por lo que te esté doliendo. Si te sirve, mira la capa que marcaste con un círculo en la hoja del módulo uno. Es una pista.
 
-Muchas veces es la que más tiene que ver con tu patrón. Vuelve a ella dentro de un mes.
+Y si esto te interesó tanto que quieres formarte en serio, te doy un consejo honesto. Hay muchas escuelas y muchos niveles de formación en PNL. Antes de pagar cualquier formación, haz tres preguntas. ¿Cuántas horas son de práctica supervisada, con personas de verdad? ¿Quién certifica, y qué vale esa certificación fuera de esa escuela? ¿Se habla también de los límites de la PNL, o solo de sus milagros? La tercera respuesta te dice casi todo. Y lee también a los críticos. Quien solo lee a favor de lo que practica termina repitiendo cosas que no se sostienen.
 
-[A CÁMARA]
+Hay una pregunta que vengo repitiendo desde el módulo uno, y quiero que te la quedes. Cuando te descubras pensando algo sobre ti o sobre otra persona, pregúntate: esto que estoy pensando, ¿me deja hacer algo o me deja sin salida? Si te deja sin salida, ya sabes qué hacer. Revisar el mapa. Buscar la intención. Mover el cuerpo. Formular lo que quieres. No hace falta hacerlo perfecto. Hace falta hacerlo.
 
-Ahora vamos a usar las seis piezas sobre algo real. Tuyo. De esta semana.
+Hagamos un resumen. Releíste tu punto de partida. Elegiste la pieza que más te sirve y la que más te cuesta. Preparaste una conversación real con seis preguntas y ensayaste el segundo que decide. Y decidiste cuándo practicas y por dónde sigues.
 
-Piensa en una conversación que tienes pendiente.
+Tu tarea para las próximas veinticuatro horas: mañana haz los minutos de la rutina en el momento que elegiste. Y pon las seis preguntas donde las veas: en el espejo, en el celular, en la puerta de la nevera.
 
-Algo que tienes que hablar con alguien y que vienes aplazando.
-
-No la más grave de tu vida. Una de esta semana.
-
-Escríbela arriba de una hoja nueva.
-
-[PAUSA REAL · 20 s — escribir la conversación pendiente]
-
-Te voy a hacer seis preguntas. Una por pieza.
-
-Responde cada una en una línea. No pienses demasiado.
-
-[RÓTULO: 1 · Modelar — ¿Quién hace esto bien?]
-
-Una. ¿Quién conoces que hace bien este tipo de conversación?
-
-¿Qué es lo primero que hace esa persona?
-
-[PAUSA REAL · 20 s — escribir quién y qué hace primero]
-
-[RÓTULO: 2 · El mapa — ¿Qué me estoy inventando?]
-
-Dos. ¿Qué te estás inventando de lo que pasó?
-
-Escribe tu conclusión, y debajo conviértela en un dato.
-
-No «nunca cumple». «Las últimas tres veces me avisó el mismo día.»
-
-[PAUSA REAL · 30 s — convertir la conclusión en un dato]
-
-[RÓTULO: 3 · La intención — ¿Qué está consiguiendo con eso?]
-
-Tres. ¿Qué podría estar consiguiendo la otra persona con lo que hace?
-
-No para justificarla. Para poder preguntar en vez de acusar.
-
-[PAUSA REAL · 20 s — escribir una posible intención]
-
-[RÓTULO: 4 · Los canales — ¿En qué idioma me habla?]
-
-Cuatro. ¿En qué idioma te habla esa persona?
-
-¿Le llevas algo escrito, se lo cuentas, o le propones probar algo juntos?
-
-[PAUSA REAL · 20 s — escribir cómo se lo vas a presentar]
-
-[RÓTULO: 5 · El estado — ¿Desde dónde voy a entrar?]
-
-Cinco. ¿Desde dónde vas a entrar a esa conversación?
-
-¿Qué vas a hacer en los sesenta segundos de antes? ¿Dónde?
-
-[PAUSA REAL · 20 s — escribir qué harás antes de entrar]
-
-[RÓTULO: 6 · El objetivo — ¿Qué acuerdo quiero al salir?]
-
-Y seis. ¿Con qué acuerdo concreto quieres salir?
-
-En positivo, comprobable, con día.
-
-Y la pregunta de ecología: ¿qué le podría costar a la otra persona ese acuerdo? ¿Y a ti?
-
-[PAUSA REAL · 30 s — escribir el acuerdo y su costo]
-
-[A CÁMARA]
-
-Mira tu hoja.
-
-Tienes la conversación preparada en seis líneas.
-
-No es un guion para repetir de memoria. Es un mapa para no perderte.
-
-[PAUSA]
-
-Y te recuerdo el segundo que más importa, el que viste en el caso de este módulo:
-
-cuando la otra persona se defienda, no contraataques.
-
-Respira, reconoce lo que dijo, y vuelve al dato.
-
-Te pongo un ejemplo de cómo suena.
-
-La otra persona te dice: «¡Pues tú también llegas tarde a las reuniones!»
-
-Y tú, en lugar de defenderte: «Puede ser, y si quieres lo hablamos también. Ahora quiero hablar de las entregas: las últimas tres llegaron el mismo día.»
-
-[PAUSA]
-
-Pruébalo tú, en voz alta, con tu conversación.
-
-Imagina lo que te va a contestar para defenderse, y responde así: reconoces, y vuelves al dato.
-
-[PAUSA REAL · 15 s — responder en voz alta sin contraatacar]
-
-En todo lo demás hay margen. En ese segundo, no.
-
-[A CÁMARA]
-
-Ahora, la rutina diaria. Ya la conoces. Hoy decides cuándo.
-
-Te la recuerdo en tres frases.
-
-Por la mañana: tres exhalaciones largas y una pregunta, ¿qué estado necesito hoy, y para qué momento?
-
-Durante el día: tres paradas de un minuto. Revisar el cuerpo, abrir la mirada, observar un cambio en alguien.
-
-Por la noche: tres preguntas cortas. ¿Qué estado predominó? ¿Qué lo disparó? ¿Qué frase mía fue una generalización?
-
-[RÓTULO: Mañana · durante el día · noche]
-
-¿Después de qué cosa que ya haces cada mañana vas a hacer tus minutos de la mañana?
-
-Después de lavarte los dientes. Antes del primer café. Algo que ya exista.
-
-[PAUSA REAL · 15 s — escribir el momento de la mañana]
-
-¿Y los de la noche? ¿Pegados a qué?
-
-[PAUSA REAL · 15 s — escribir el momento de la noche]
-
-Una rutina pegada a algo que ya haces sobrevive.
-
-Una rutina que depende de que te acuerdes, no. Y lo que no se practica en las próximas dos semanas, se olvida.
-
-Y la regla de siempre: nunca dos días seguidos sin hacerla.
-
-[A CÁMARA]
-
-Última decisión: por dónde sigues.
-
-Escribe qué curso haces después de este, y por qué ese.
-
-No por orden. Por lo que te esté doliendo.
-
-[PAUSA REAL · 20 s — escribir el siguiente curso y por qué]
-
-Y si esto te enganchó tanto que quieres formarte en serio, un consejo honesto.
-
-Antes de pagar cualquier formación, haz tres preguntas.
-
-¿Cuántas horas son de práctica supervisada, con personas de verdad?
-
-¿Quién certifica, y qué vale eso fuera de esa escuela?
-
-¿Se habla también de los límites de la PNL, o solo de sus milagros?
-
-La tercera respuesta te dice casi todo.
-
-[A CÁMARA]
-
-Y antes de despedirme, una pregunta que vengo repitiendo desde el módulo uno.
-
-Cuando te descubras pensando algo sobre ti, o sobre otra persona,
-
-pregúntate: esto que estoy pensando, ¿me deja hacer algo, o me deja sin salida?
-
-[PAUSA]
-
-Si te deja sin salida, ya sabes qué hacer.
-
-Revisar el mapa. Buscar la intención. Mover el cuerpo. Formular lo que quieres.
-
-No hace falta que lo hagas perfecto. Hace falta que lo hagas.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas:
-
-mañana por la mañana, haz los minutos de la rutina en el momento que elegiste.
-
-Y copia las seis preguntas donde las veas: en el espejo, en el teléfono, en la nevera.
-
-[PAUSA]
-
-En el siguiente video vas a ver una conversación difícil entera, sin cortes,
-
-y después repetida con las seis piezas señaladas.
-
-Mírala con tu hoja al lado.
+En el próximo video, el caso Una conversación difícil, de principio a fin, vas a ver una conversación así completa, y después desarmada pieza por pieza. Mírala con tu hoja al lado.
 
 Seguimos creciendo juntos.

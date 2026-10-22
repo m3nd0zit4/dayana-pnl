@@ -1,119 +1,86 @@
 # Audio guiado · Hablar con la parte que lo hace
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 11-13 min · Audio guiado**
-Voz lenta y cálida, fondo musical suave. Las pausas reales se respetan en la edición: la cadena necesita silencio para subir.
+El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 12-15 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
-
-[PAUSA]
-
-Este audio es para trabajar con una conducta tuya que vuelve, por más que te prometas dejarla.
-
-Algo cotidiano. Revisar el celular sin parar. Comer a deshoras. Dejar todo para el final. Callarte cuando querías hablar.
+Este audio es para trabajar con una conducta tuya que vuelve, por más que te prometas dejarla. Algo cotidiano. Revisar el celular sin parar. Comer a deshoras. Dejar todo para el final. Callarte cuando querías hablar.
 
 Si la conducta en la que piensas te está haciendo daño serio, como una adicción o algo que pone en riesgo tu salud, este audio no es el lugar. Ahí lo que corresponde es pedir ayuda profesional.
 
-[PAUSA LARGA]
+Siéntate o recuéstate en un lugar cómodo. Deja que el cuerpo se apoye.
 
-Busca un lugar cómodo y tranquilo.
+Si quieres, cierra los ojos.
 
-Deja que el cuerpo se apoye. Y si quieres, cierra los ojos.
+Toma aire despacio por la nariz… y suéltalo largo.
 
-[PAUSA]
+Otra vez. Toma aire… y suéltalo.
 
-Toma aire despacio por la nariz.
+Una vez más… despacio.
 
-Y suéltalo largo.
-
-[PAUSA]
-
-Otra vez.
-
-[PAUSA]
-
-Una vez más.
-
-[PAUSA REAL · 15 s — respirar despacio]
-
-Deja que la respiración siga sola.
+Ahora deja que la respiración siga sola, a su ritmo.
 
 Afloja la frente. La mandíbula. Los hombros.
 
-[PAUSA LARGA]
+Nota los puntos donde tu cuerpo se apoya. La espalda. Las piernas. Los pies.
 
-Ahora trae la conducta.
+Quédate ahí unos momentos.
 
-Recuerda la última vez que apareció. Como si fuera una escena.
+Ahora trae la conducta. Recuerda la última vez que apareció, como si fuera una escena.
 
 Dónde estabas. Qué hora era. Qué pasó justo antes.
 
 Y qué hiciste exactamente.
 
-[PAUSA REAL · 25 s — ver la última vez que apareció la conducta]
+Mira esa escena unos momentos.
 
-Fíjate en lo que sueles decirte después. «Otra vez.» «No tengo remedio.»
+Fíjate en lo que sueles decirte después. Quizá «otra vez», o «no tengo remedio».
 
 Por hoy, deja esa frase a un lado. No vamos a pelear con la conducta. Vamos a escucharla.
 
-[PAUSA LARGA]
+Imagina que esa conducta la hace una parte de ti. No eres tú por completo. Es una parte que aprendió a hacer eso.
 
-Imagina que esa conducta la hace una parte de ti. No eres tú por completo. Es una parte, que ha aprendido a hacer eso.
+Quizá puedes notar dónde vive esa parte en tu cuerpo. En el pecho, en las manos, en el estómago. Si no notas nada, también está bien. Solo imagina que está ahí, contigo.
 
 Y esa parte, aunque te cueste creerlo, está intentando conseguir algo para ti.
 
-[PAUSA]
-
-Pregúntale, por dentro, con curiosidad. Sin látigo.
+Pregúntale por dentro, con curiosidad. Sin regaño.
 
 ¿Qué intentas conseguir para mí con esto?
 
-[PAUSA REAL · 25 s — preguntarle y esperar la respuesta]
+Espera la respuesta. Tómate el tiempo que necesites.
 
 Si la primera respuesta es «nada», no es cierta. Solo es la primera.
 
-Pregúntale otra vez, con más calma.
+Pregúntale otra vez, con más calma. ¿Qué consigo cuando hago esto? ¿O qué me evita?
 
-¿Qué consigo cuando hago esto? ¿O qué me evita?
-
-[PAUSA REAL · 25 s — preguntar otra vez y escuchar]
+Escucha lo que aparezca.
 
 Lo que haya aparecido, tómalo. Aunque sea pequeño.
 
-[PAUSA]
+Ahora sube un escalón. Pregúntale: ¿y eso qué me da?
 
-Y ahora sube un escalón. Pregunta:
+Espera… y escucha.
 
-¿Y eso qué me da?
+Y otra vez. ¿Y eso?
 
-[PAUSA REAL · 25 s — preguntar «¿y eso qué me da?» y escuchar]
-
-Y otra vez.
-
-¿Y eso?
-
-[PAUSA REAL · 25 s — preguntar «¿y eso?» y escuchar]
+Tómate el tiempo que necesites.
 
 Sigue subiendo a tu ritmo, hasta que aparezca una palabra grande. Seguridad. Libertad. Calma. Descanso. Pertenencia. Valor. Control. Que no vuelva a doler.
 
-[PAUSA REAL · 30 s — seguir subiendo hasta la palabra grande]
+Si todavía no aparece, pregunta una vez más: ¿y eso qué me da?
 
 Cuando aparezca, quédate con ella.
 
-Fíjate cómo se siente en el cuerpo esa palabra. Lo que esa parte de ti lleva tanto tiempo buscando.
+Fíjate cómo se siente esa palabra en el cuerpo. Es lo que esa parte de ti lleva tanto tiempo buscando.
 
-[PAUSA LARGA]
+Respira… y quédate ahí unos momentos.
 
-Ahora vas a decirlo en voz alta. Despacio.
+Ahora vas a decirlo en voz alta, despacio. «Tiene sentido que quiera…», tu palabra. «Es legítimo.»
 
-«Tiene sentido que quiera…», tu palabra. «Es legítimo.»
-
-[PAUSA REAL · 15 s — decir en voz alta la frase de reconocimiento]
+Dilo ahora.
 
 Dilo una vez más, todavía más despacio.
-
-[PAUSA REAL · 15 s — repetir la frase]
 
 Quizá esa parte lleva años haciendo lo mejor que sabía, con lo que tenía a mano. Torpe, a veces. Costosa, a veces. Pero intentando cuidarte.
 
@@ -121,76 +88,60 @@ Nota qué pasa con esa parte cuando la reconoces en lugar de pelearte con ella.
 
 A veces se afloja algo. A veces aparece emoción. A veces no pasa nada todavía. Todo está bien.
 
-[PAUSA LARGA]
-
-Ahora pregúntale a esa parte algo nuevo.
-
-Si encontráramos otras formas de conseguir esto mismo, que te cuesten menos, ¿estarías dispuesta a probarlas?
+Ahora pregúntale a esa parte algo nuevo. Si encontráramos otras formas de conseguir esto mismo, que te cuesten menos, ¿aceptarías probarlas?
 
 No hace falta que diga que sí del todo. Basta con que no diga que no.
 
-[PAUSA REAL · 20 s — preguntarle si está dispuesta a probar]
+Escucha su respuesta.
 
-Busquemos esas formas. Sin prisa.
+Busquemos esas formas, sin prisa. ¿Qué otra cosa podría darte eso mismo? Algo concreto. Algo que se pueda hacer.
 
-¿Qué otra cosa podría darte eso mismo? Algo concreto. Que se pueda hacer.
+Piensa en algo que podrías hacer esta misma semana y que te daría un poco de eso mismo.
 
-[PAUSA REAL · 20 s — encontrar una primera forma]
+Tómate el tiempo que necesites para encontrar una primera forma.
 
-Otra.
+Ahora busca otra. Quizá algo que puedes pedirle a alguien. Quizá algo que puedes cambiar en tu entorno.
 
-[PAUSA REAL · 20 s — encontrar una segunda forma]
-
-Y una más.
-
-[PAUSA REAL · 20 s — encontrar una tercera forma]
+Y una más. Quizá algo pequeño, que se pueda hacer en cinco minutos.
 
 No hace falta que sean perfectas. Basta con que sean posibles, y que den algo parecido a lo que la conducta daba.
 
 De las tres, elige la que esa parte acepta mejor.
 
-[PAUSA REAL · 10 s — elegir una]
-
-[PAUSA LARGA]
-
-Ahora imagina la próxima vez que aparezca la situación.
-
-Lo que pasa justo antes. La hora. El lugar.
+Ahora imagina la próxima vez que aparezca la situación. Lo que pasa justo antes. La hora. El lugar.
 
 Y mírate eligiendo ese otro camino. Consiguiendo lo mismo, de otra forma.
 
-[PAUSA REAL · 25 s — imaginar la próxima vez con el nuevo camino]
+Quédate en esa escena unos momentos.
 
 Fíjate si alguna parte de ti protesta. Si algo dice «eso no».
 
 Si protesta, no pasa nada. Pregúntale qué necesita para aceptarlo, y ajusta el camino.
 
-[PAUSA REAL · 20 s — notar si algo protesta y ajustar]
+Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
+Antes de terminar, dale las gracias a esa parte. Por haberte escuchado. Y por todo lo que ha intentado hacer por ti, aunque haya sido por un camino costoso.
 
-Vamos a volver.
+Respira… y deja que la escena se aleje despacio.
+
+Vamos a volver. Voy a contar del uno al cinco. Con cada número vuelves un poco más al lugar donde estás.
 
 Uno. Notas el peso del cuerpo.
 
-[PAUSA]
-
 Dos. La respiración, a su ritmo.
 
-[PAUSA]
-
-Tres. Los sonidos alrededor.
-
-[PAUSA]
+Tres. Los sonidos de alrededor.
 
 Cuatro. Mueves las manos, los pies, el cuello.
 
-[PAUSA]
-
 Cinco. Abres los ojos.
 
-[PAUSA LARGA]
+Tómate un momento antes de levantarte.
 
-Antes de seguir, escribe tres cosas: la palabra grande, tu frase de reconocimiento y el camino que vas a probar, con día.
+Antes de seguir con tu día, escribe tres cosas. La palabra grande. Tu frase de reconocimiento. Y el camino que vas a probar, con el día.
+
+Si al escribir la palabra grande vuelve algo de emoción, está bien. Es parte del trabajo. Hoy escuchaste en lugar de pelear, y eso ya cambia algo.
 
 Y si la conducta vuelve, no te castigues. Solo falta otro camino.
+
+En el material de lectura en PDF tienes los cinco pasos completos, y el ejercicio opcional te ayuda a dejar tu cadena por escrito. Cuando quieras, te espero en el último módulo del curso, Comunicación consciente en la vida diaria.

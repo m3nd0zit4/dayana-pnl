@@ -1,203 +1,63 @@
 # Clase 2 · La intención en los demás y en los hábitos
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 9-12 min · Clase**
-Taller aplicado. Las conductas para calibrar van en pantalla; la intención aparece después de la pausa. La tabla de traducción, en pantalla fila a fila. El bucle del hábito, en rótulo. Sin invitado.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 6 · 9-11 min
 
 Líderes, bendiciones.
 
-Piensa en alguien cercano que hace algo que te molesta.
+Bienvenidos a la segunda clase. En la anterior subiste la cadena con una conducta tuya. Hoy la llevamos afuera, en dos direcciones. Primero, a las personas con las que convives. Después, a los hábitos de todos los días. Al terminar esta clase vas a tener preparada una pregunta para alguien cuya conducta te molesta. Y vas a tener un plan para cambiar un hábito sin perder lo que te daba.
 
-Tu pareja que llega tarde. Tu hijo pegado al celular. Una compañera que nunca pide ayuda y después se queja de que está sobrecargada.
+Empezamos con algo tuyo. Piensa en alguien cercano que hace algo que te molesta. Tu pareja que llega tarde. Tu hijo pegado al celular. Una compañera que nunca pide ayuda y después se queja de que está sobrecargada. Ahora di en voz alta lo que le sueles decir, con el tono de siempre. Tómate unos segundos.
 
-Ahora di en voz alta lo que le sueles decir. Con el tono de siempre.
+¿Lo dijiste? Guárdalo. Más adelante en esta clase lo vamos a cambiar.
 
-[PAUSA REAL · 10 s — decir en voz alta lo que le sueles decir]
+Primero vamos a entrenar el ojo. Te digo una conducta muy común y tú dices en voz alta qué intención suele haber debajo. Después te digo lo que aparece a menudo.
 
-Guárdalo. Al final de la clase lo vamos a cambiar.
+Llegar tarde siempre. ¿Qué podría haber debajo? Dilo. Muchas veces es «que no me manden», decidir yo cuándo llego.
 
-En la clase uno subimos la cadena con una conducta tuya. Hoy la llevamos afuera: a otras personas y a los hábitos.
+Trabajar de más, quedarse siempre hasta tarde. ¿Qué podría buscar? A menudo es «que no me puedan reprochar nada».
 
-[A CÁMARA]
+No pedir ayuda nunca. ¿Y aquí? Muchas veces es «no deberle nada a nadie».
 
-Primero, calibrar el ojo.
+Discutir por todo. A menudo es «que se me tenga en cuenta».
 
-Te digo una conducta muy común y tú dices en voz alta qué intención suele haber debajo. Después te digo lo que aparece a menudo.
+Una más: callar siempre en las reuniones. Muchas veces es «no exponerme a que me corrijan delante de todos».
 
-[EN PANTALLA: Llegar tarde siempre]
+Ahora un aviso importante. Esto son hipótesis, no diagnósticos. No sabes la intención de otra persona hasta que se la preguntas, y a veces ni ella la sabe. Si le dices a tu pareja «tú llegas tarde porque no quieres que te manden», eso es lectura de mente, lo que viste en el módulo dos. Y no le va a gustar nada. Lo que sí puedes hacer es preguntar.
 
-Llegar tarde siempre.
+Aquí está el cambio de fondo. No está en las palabras que eliges. Está en dejar de discutir con la conducta y empezar a preguntar por lo que hay debajo. Te doy cuatro ejemplos.
 
-[PAUSA REAL · 10 s — decir la intención que suele haber debajo]
+En vez de «deja de gritar», prueba con «¿qué necesitas que no estás consiguiendo?». En vez de «eres un vago», prueba con «¿qué te está pesando de esto?». En vez de «no me cuentas nada», prueba con «¿qué pasa si me lo cuentas?». Y en vez de «siempre te enojas», prueba con «¿qué sientes que no estoy viendo?».
 
-Muchas veces es «que no me manden». Decidir yo cuándo llego.
+Fíjate en algo. Ninguna de esas preguntas aprueba la conducta. Ninguna dice «está bien que grites». Todas preguntan por lo que hay debajo. Y una conversación que empieza así rara vez termina como la otra.
 
-[EN PANTALLA: Trabajar de más]
+Mira un caso muy típico: una madre y su hijo adolescente. Primera versión: «eres un vago, todo el día con el celular». Y el hijo se pone los audífonos. Segunda versión, otro día, sin prisa: «¿qué te está pesando del colegio estos días?». Silencio. «Nada.» Más silencio. «Bueno, matemáticas. Voy perdiendo.» Ahí empezó la conversación que hacía falta. Con «eres un vago», no habría empezado nunca.
 
-Trabajar de más, quedarse siempre hasta tarde.
+Marshall Rosenberg, el creador de la Comunicación No Violenta, lo planteaba con otras palabras: detrás de cada conducta hay una necesidad que se está intentando atender. Es la misma idea, vista desde otra escuela.
 
-[PAUSA REAL · 10 s — decir la intención que suele haber debajo]
+Ahora vuelve a la frase del principio, la que le dices a esa persona que te molesta. Conviértela en una pregunta por lo que hay debajo. Una sola. Y dila en voz alta. Pausa el video si lo necesitas.
 
-A menudo: «que no me puedan reprochar nada».
-
-[EN PANTALLA: No pedir ayuda]
-
-No pedir ayuda nunca.
-
-[PAUSA REAL · 10 s — decir la intención que suele haber debajo]
-
-Muchas veces: «no deberle nada a nadie».
-
-[EN PANTALLA: Discutir por todo]
-
-Discutir por todo.
-
-[PAUSA REAL · 10 s — decir la intención que suele haber debajo]
-
-A menudo: «que se me tenga en cuenta».
-
-[EN PANTALLA: Callar en las reuniones]
-
-Una más. Callar siempre en las reuniones.
-
-[PAUSA REAL · 10 s — decir la intención que suele haber debajo]
-
-Muchas veces: «no exponerme a que me corrijan delante de todos».
-
-[A CÁMARA]
-
-Un aviso importante. Esto son hipótesis, no diagnósticos.
-
-No sabes la intención de otra persona hasta que se la preguntas. Y a veces ni ella la sabe.
-
-Si le dices a tu pareja «tú llegas tarde porque no quieres que te manden», eso es lectura de mente, módulo dos. Y no le va a gustar nada.
-
-Lo que sí puedes hacer es preguntar.
-
-[A CÁMARA]
-
-[RÓTULO: Dejar de discutir con la conducta]
-
-Aquí está el cambio. No está en lo que dices. Está en dejar de discutir con la conducta, y preguntar por lo que hay debajo.
-
-[TABLA EN PANTALLA]
-
-| En vez de | Prueba con |
-|---|---|
-| «Deja de gritar» | «¿Qué necesitas que no estás consiguiendo?» |
-| «Eres un vago» | «¿Qué te está pesando de esto?» |
-| «No me cuentas nada» | «¿Qué pasa si me lo cuentas?» |
-| «Siempre te enojas» | «¿Qué sientes que no estoy viendo?» |
-
-«Deja de gritar» pasa a «¿qué necesitas que no estás consiguiendo?».
-
-«Eres un vago» pasa a «¿qué te está pesando de esto?».
-
-«No me cuentas nada» pasa a «¿qué pasa si me lo cuentas?».
-
-«Siempre te enojas» pasa a «¿qué sientes que no estoy viendo?».
-
-Fíjate en algo: ninguna de las de la derecha aprueba la conducta. No dice «está bien que grites».
-
-Todas preguntan por lo que hay debajo. Y una conversación que empieza así rara vez termina como la otra.
-
-Mira un caso muy típico. Una mamá y su hijo adolescente.
-
-Primera versión: «Eres un vago, todo el día con el celular». Y el hijo se pone los audífonos.
-
-Segunda versión, otro día, sin prisa: «¿Qué te está pesando del colegio estos días?». Silencio. «Nada…» Más silencio. «Bueno, matemáticas. Voy perdiendo.»
-
-Ahí empezó la conversación que hacía falta. Con «eres un vago», no habría empezado nunca.
-
-[RÓTULO: Marshall Rosenberg · «detrás de toda conducta hay una necesidad»]
-
-Marshall Rosenberg, el de la Comunicación No Violenta, lo dice con otras palabras: detrás de cada conducta hay una necesidad. Es la misma idea, vista desde otra escuela.
-
-[A CÁMARA]
-
-Ahora vuelve a la frase del principio. La que le dices a esa persona que te molesta.
-
-Conviértela en una pregunta por lo que hay debajo. Una sola. Dila en voz alta.
-
-[PAUSA REAL · 20 s — convertir tu frase en una pregunta por la necesidad]
-
-Y escucha cómo suena con tu voz.
-
-Dos reglas para cuando la uses de verdad.
-
-Una pregunta. Preparada antes, no improvisada en plena pelea.
-
-Y sin añadir el reproche después. Si dices «¿qué te está pesando de esto? Porque la verdad es que eres un vago», la pregunta no existió.
+¿Cómo sonó con tu voz? Para cuando la uses de verdad, hay dos reglas. La primera: una sola pregunta, preparada antes, no improvisada en plena pelea. La segunda: sin añadir el reproche después. Si dices «¿qué te está pesando de esto? Porque la verdad es que eres un vago», la pregunta no existió.
 
 ¿Cuál es el reproche que a ti se te suele escapar después? Reconócelo ahora, para verlo venir.
 
-[PAUSA REAL · 8 s — reconocer el reproche que se te suele escapar]
+Con esto claro, pasemos a los hábitos. Charles Duhigg, en su libro El poder de los hábitos, describe un bucle muy sencillo con tres partes. Una señal, que es lo que dispara el hábito: las cuatro de la tarde, el cansancio, una discusión. Una rutina, que es lo que haces: ir por un dulce, abrir el celular, encerrarte sin hablar. Y una recompensa, que es lo que consigues: una pausa, desconectar, que no duela más.
 
-[A CÁMARA]
+Esa recompensa es exactamente lo que en PNL llamamos intención positiva. Dos escuelas, la misma cosa. Y la regla que propone Duhigg para cambiar un hábito es el paso cinco de la clase anterior: conserva la señal y la recompensa, y cambia la rutina.
 
-Ahora, los hábitos.
+Vamos a hacerlo con la conducta de la clase anterior, o con un hábito que quieras cambiar. Primera pregunta: ¿cuál es la señal? ¿Qué pasa justo antes? Segunda pregunta: ¿cuál es la recompensa? ¿Qué consigues de verdad? Y la tercera: ¿qué otra rutina te daría esa misma recompensa? Pausa el video y responde las tres.
 
-[RÓTULO: Señal → rutina → recompensa · Charles Duhigg]
+¿Las tienes? Te doy algunos ejemplos para comparar. Si el dulce de las cuatro te da una pausa, quizá lo que necesitas es la pausa. Cinco minutos fuera del escritorio pueden darte lo mismo. Si al llegar a casa abres el celular para desconectar, diez minutos de caminata o de música pueden darte esa desconexión. Y si en una discusión te encierras para que no duela más, puedes pedir un tiempo y volver a hablar en una hora.
 
-Charles Duhigg, en «El poder de los hábitos», describe un bucle muy sencillo.
+Ahora escribe tu nueva rutina en un papel y ponlo justo donde aparece la señal. En el escritorio, en la mesa de noche, en la puerta de la nevera. Que el entorno te la recuerde cuando la cabeza no pueda.
 
-Una señal: algo que dispara. Las cuatro de la tarde, el cansancio, una discusión.
+Esto tiene una razón. La psicóloga Wendy Wood ha estudiado los hábitos durante décadas. Y insiste en algo que a mucha gente le quita un peso de encima: la fuerza de voluntad sola no sostiene un cambio. Lo que lo sostiene es cambiar el entorno y repetir. Y a eso súmale lo de este módulo: si quitas una conducta sin sustituir lo que te daba, la conducta vuelve. No porque seas débil, sino porque la necesidad sigue ahí.
 
-Una rutina: lo que haces. Ir por el dulce, abrir el celular, encender un cigarrillo.
+Y el límite, otra vez, porque aquí importa todavía más. Preguntar por la necesidad de otra persona sirve en una relación entre iguales, con conflictos normales. Si hay violencia, amenazas o control, eso no es un problema de comunicación. No se arregla con una buena pregunta. Ahí lo que corresponde es protegerte y buscar ayuda.
 
-Y una recompensa: lo que consigues. Un descanso, una distracción, un momento solo para ti.
+Hagamos un resumen. Las intenciones de los demás son hipótesis: se preguntan, no se adivinan. El cambio está en dejar de discutir con la conducta y preguntar por la necesidad, con una pregunta preparada y sin reproche después. Y un hábito cambia cuando conservas la señal y la recompensa, y cambias solo la rutina, con ayuda del entorno.
 
-Esa recompensa es exactamente lo que en PNL llamamos intención positiva. Dos escuelas, la misma cosa.
+Tu tarea para las próximas veinticuatro horas: elige un momento tranquilo, no en plena discusión, y hazle a esa persona la pregunta que preparaste hoy. Una sola. Sin reproche después. Y escucha qué contesta.
 
-Y la regla que propone Duhigg es el paso cinco de la clase uno: conserva la señal y la recompensa, cambia la rutina.
-
-Vamos a hacerlo con la conducta de tu clase uno, o con un hábito que quieras cambiar.
-
-¿Cuál es la señal? ¿Qué pasa justo antes?
-
-[PAUSA REAL · 15 s — encontrar la señal]
-
-¿Cuál es la recompensa? ¿Qué consigues de verdad?
-
-[PAUSA REAL · 15 s — encontrar la recompensa]
-
-¿Qué otra rutina te daría esa misma recompensa?
-
-[PAUSA REAL · 20 s — encontrar otra rutina que dé lo mismo]
-
-Por ejemplo: si el dulce de las cuatro te da una pausa, quizá lo que necesitas es la pausa. Cinco minutos fuera del escritorio pueden darte lo mismo.
-
-Escribe tu nueva rutina en un papel, y ponlo justo donde aparece la señal. En el escritorio, en la mesa de noche, en la puerta de la nevera. Que el entorno te la recuerde cuando la cabeza no pueda.
-
-[PAUSA REAL · 15 s — escribir la nueva rutina y decidir dónde la vas a poner]
-
-[RÓTULO: La fuerza de voluntad sola no alcanza · Wendy Wood]
-
-La psicóloga Wendy Wood, que ha estudiado los hábitos durante años, insiste en algo que a mucha gente le quita un peso de encima: la fuerza de voluntad sola no sostiene un cambio. Lo que lo sostiene es cambiar el entorno y repetir.
-
-Y a eso súmale lo de este módulo: si quitas la conducta y no sustituyes lo que te daba, la conducta vuelve. No porque seas débil. Porque la necesidad sigue ahí.
-
-[A CÁMARA]
-
-Y el límite, otra vez, porque aquí importa todavía más.
-
-Preguntar por la necesidad de otra persona sirve en una relación entre iguales, con conflictos normales.
-
-Si hay violencia, amenazas o control, eso no es un problema de comunicación. No se arregla con una buena pregunta.
-
-Ahí lo que corresponde es protegerte y buscar ayuda.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Elige un momento tranquilo, no en plena discusión, y hazle a esa persona la pregunta que preparaste hoy.
-
-Una sola. Sin reproche después. Y escucha qué contesta.
-
-En el caso de este módulo vas a ver la cadena completa con una persona real, con sus silencios y su «nada, es que soy así».
+En el siguiente video, Subir la cadena con una persona real, vas a ver los cinco pasos completos con alguien que se ofreció a hacerlos conmigo. Con sus silencios, y con su «nada, es que soy así».
 
 Seguimos creciendo juntos.

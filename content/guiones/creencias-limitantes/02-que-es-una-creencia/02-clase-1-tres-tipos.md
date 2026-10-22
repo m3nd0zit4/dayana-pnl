@@ -1,361 +1,73 @@
 # Clase 1 · Los tres tipos de creencia
 
-**Creencias limitantes y potenciadoras · Módulo 2 · 11-13 min · Clase**
-Pizarra con tres columnas que se van llenando: Mundo, Capacidad, Identidad.
-El traductor de identidad a capacidad aparece como tabla en pantalla. El alumno
-necesita su cuaderno y el «yo soy» que anotó en la presentación.
-
----
-
-[A CÁMARA]
+Creencias limitantes y potenciadoras · Módulo 2 · 12-14 min
 
 Líderes, bendiciones.
 
-Hoy empezamos con tres frases para completar. En voz alta, sin pensarlas.
+Hoy vamos a ver por qué unas creencias se caen con un argumento y otras aguantan treinta años. Al terminar esta clase vas a saber distinguir los tres tipos de creencia. Vas a saber traducir una frase de identidad a una de capacidad. Y vas a saber por qué puerta entró tu «yo soy». Ten a mano tu cuaderno y la frase que anotaste en la presentación.
 
-No te corrijas. Lo primero que salga es lo que nos interesa.
+Empezamos con tres frases para completar en voz alta, sin pensarlas. No te corrijas. Lo primero que salga es lo que nos interesa. La primera: «La gente es…». Dila ahora. La segunda: «Yo no sé…» o «yo no puedo…». Dila. Y la tercera, que ya hiciste en la presentación: «Yo soy…». Ahora anota las tres, tal como salieron. Pausa el video si lo necesitas.
 
-[PAUSA]
+¿Las tienes? Acabas de sacar una creencia de cada tipo. Y no por casualidad: cada una de esas frases abre una puerta distinta.
 
-La primera: «La gente es…».
+Antes de verlas, una definición corta, para que la tengamos. Una creencia es una generalización sobre cómo son las cosas que se da por hecha. No se discute. Se pisa, como el suelo. Mira la diferencia con una opinión en un caso muy cotidiano. Si yo digo «creo que esta tarde va a llover» y tú me dices que no, discutimos un rato. Es una opinión. Pero si digo «el que pide ayuda es porque no puede solo», casi nadie me lo discute. Ni siquiera yo me doy cuenta de que lo estoy diciendo. Está debajo de la frase, sosteniéndola. Así viven las creencias: no en lo que afirmas, sino en lo que das por supuesto mientras afirmas otra cosa.
 
-[PAUSA REAL · 5 s — el alumno completa en voz alta «la gente es…»]
+Vamos con el primer tipo: las creencias sobre el mundo. Tu frase de «la gente es…» vive aquí. Suenan así: «La gente se aprovecha si te muestras débil». «El dinero es difícil de ganar». «Las cosas buenas duran poco». Son las más fáciles de revisar. ¿Sabes por qué? Porque se pueden contrastar con la realidad.
 
-La segunda: «Yo no sé…» o «yo no puedo…».
+Te lo demuestro con la tuya. Mira tu frase de «la gente es…». Y busca una persona concreta, con nombre, que no sea así. Tómate unos segundos.
 
-[PAUSA REAL · 5 s — el alumno completa en voz alta «yo no sé / no puedo…»]
+¿La encontraste? Si encontraste una, la frase ya no es una ley. Es una tendencia que tú has notado. Y una tendencia se puede mirar con calma, sin que te gobierne.
 
-Y la tercera, que ya hiciste en la presentación: «Yo soy…».
+Ahora pasemos al segundo tipo: las creencias sobre tu capacidad. Tu «no sé» o «no puedo» vive aquí. Suenan así: «No sirvo para los números». «No sé poner límites». «Hablar en público no es lo mío». Estas cuestan más, porque se cumplen solas. Si crees que no sirves para algo, no lo practicas. Si no lo practicas, no mejoras. Y si no mejoras, ya tienes la prueba de que no servías. Es el mismo bucle del módulo uno, en pequeño.
 
-[PAUSA REAL · 5 s — el alumno completa en voz alta «yo soy…»]
+Un caso muy típico. Imagina a Sofía, que cree que no sirve para los números. En el trabajo le piden que revise un presupuesto, y se lo pasa a un compañero «porque él es mejor en eso». En casa, las cuentas las lleva su pareja. Pasan los años y nunca revisa un presupuesto. Y cada vez que ve uno, le parece más difícil. Claro: no lo ha practicado nunca.
 
-Anota las tres, tal como salieron.
+¿Qué cosa no practicas tú porque crees que no sirves para ella? Piénsalo unos segundos.
 
-[PAUSA REAL · 20 s — el alumno anota las tres frases]
+¿La tienes? Fíjate que estas creencias tienen una puerta abierta. Siguen hablando de lo que haces. Y lo que haces se puede aprender.
 
-[A CÁMARA]
+Y llegamos al tercer tipo: las creencias de identidad. Tu «yo soy». Suenan así: «No soy suficiente». «Soy un desastre». «Hay algo mal en mí». Estas son las más profundas y las que más cuesta mover. Porque no hablan de lo que haces. Hablan de lo que eres. La señal para reconocerlas es muy simple: empiezan por «soy» o por «no soy».
 
-Acabas de sacar una creencia de cada tipo.
+Y tienen un efecto muy curioso: contra una creencia de identidad, los logros no sirven. La persona consigue algo extraordinario y a los dos días concluye: «tuve suerte». O peor: «todavía no se han dado cuenta».
 
-Y no por casualidad: cada una de esas frases abre una puerta distinta.
+Imagina a Julián. Le dan el ascenso por el que lleva tres años trabajando. Llega a casa y su pareja le dice: «¡Felicidades! Te lo merecías». Y Julián contesta: «Bah, es que no había nadie más para el puesto». ¿Lo ves? El logro entra por la puerta y la creencia lo saca por la ventana. No es modestia. Es que el logro no encaja con «no soy suficiente». Y cuando algo no encaja con una creencia de identidad, el que pierde es el logro.
 
-[RÓTULO: Una creencia es una generalización que se da por hecha]
+¿Te ha pasado? ¿Lograr algo y quitarle el valor en menos de una semana? Piensa en una vez concreta.
 
-Antes de verlas, una definición corta, para que la tengamos.
+¿Apareció una? Si apareció, ahí hay una creencia de identidad trabajando. Para resumir los tres tipos: las del mundo son las más fáciles de mover, las de capacidad cuestan más, y las de identidad son las que más cuestan.
 
-Una creencia es una generalización sobre cómo son las cosas que se da por hecha.
+Ahora viene lo más útil de esta clase. Una maniobra que se llama bajar de identidad a capacidad. La idea es esta: una frase de identidad solo se puede sufrir. Una frase de capacidad se puede resolver. Así que traducimos.
 
-No se discute. Se pisa.
+Te doy cuatro ejemplos. «Soy un desastre» se traduce como «todavía no tengo un sistema para organizarme». «No tengo disciplina» se traduce como «no he encontrado un horario que aguante». «No sirvo para los números» se traduce como «no aprendí bien la base y nunca volví sobre ella». Y «no sirvo para hablar en público» se traduce como «no he practicado hablar en público con acompañamiento».
 
-[PAUSA]
+¿Ves la palabra que hace el trabajo? «Todavía». «Soy un desastre» no tiene salida. «Todavía no tengo un sistema» tiene una salida evidente: conseguir un sistema.
 
-Mira la diferencia con una opinión en un caso muy cotidiano.
+Ahora tú. Toma tu «yo soy», si es de los que limitan, y tradúcelo. La pregunta que traduce es esta: ¿qué es lo que todavía no sé hacer, o no tengo, o no he practicado, para que esto sea así? Escribe tu versión con «todavía» dentro. Pausa el video y tómate tu tiempo.
 
-Si yo digo «creo que esta tarde va a llover», y tú me dices que no, discutimos un rato. Es una opinión.
+¿La tienes? Ahora dilas las dos en voz alta. Primero la vieja. Después la nueva. Y fíjate cuál de las dos te deja hacer algo mañana.
 
-Pero si digo «el que pide ayuda es porque no puede solo», casi nadie me lo discute.
+Con esto claro, pasemos a la siguiente pregunta: ¿cómo entraron estas frases? Hay tres puertas.
 
-Ni siquiera yo me doy cuenta de que lo estoy diciendo. Está debajo de la frase, sosteniéndola.
+La primera puerta es una experiencia intensa, una sola vez. Un despido. Una humillación. Una traición. Un accidente. La emoción es lo que graba. Por eso hay gente que puede señalar el día exacto en que empezó a creer algo sobre sí.
 
-Así viven las creencias: no en lo que afirmas, sino en lo que das por supuesto mientras afirmas otra cosa.
+La segunda puerta es la repetición. Mil gotas pequeñas, sin ninguna intensidad. «Tú eres el distraído de la casa», dicho en broma quinientas veces. Nadie recuerda la primera vez. Todo el mundo recuerda la conclusión.
 
-[A CÁMARA]
+La tercera puerta es la autoridad. Lo que dice alguien con peso para ti entra sin pasar por el filtro. Un padre, una maestra, un médico, un jefe, alguien a quien admiras. Un niño de seis años no tiene forma de discutir a su madre. Cuando ella dice «qué torpe eres», eso no le llega como opinión. Le llega como información.
 
-[RÓTULO: 1 · Sobre el mundo]
+Vuelve a tu «yo soy». ¿Por qué puerta crees que entró? Y si fue por repetición o por autoridad, ¿de quién era la voz? Anota la puerta y, si la hay, la voz.
 
-El primer tipo: creencias sobre el mundo.
+¿Lo anotaste? Queda una pregunta: ¿por qué las que entraron en la infancia pesan tanto? Hay tres razones. Y antes de oírlas, fíjate en esto: ninguna tiene que ver con que sean ciertas.
 
-Tu frase de «la gente es…» vive aquí.
+La primera razón es que no había filtro. La capacidad de cuestionar lo que te dicen se desarrolla con los años. Antes de eso, lo que entra, entra. La segunda razón es que no había alternativas. Un adulto tiene veinte explicaciones posibles para lo mismo. Un niño tiene una. Y la tercera razón es que han tenido más tiempo para confirmarse. Treinta años de bucle, juntando pruebas a su favor.
 
-«La gente se aprovecha si te muestras débil.»
+Que una creencia sea antigua no la hace verdadera. La hace practicada. Y lo practicado se puede practicar de otra manera.
 
-«El dinero es difícil de ganar.»
+Y aquí está la buena noticia. Las tres puertas se pueden cruzar en sentido contrario. Se puede crear una experiencia nueva, con carga emocional. Se puede repetir. Y se puede elegir a qué autoridad hacerle caso, empezando por la tuya. En el módulo cuatro, Lenguaje limitante y potenciador, vas a trabajar la repetición: lo que te dices todos los días. En el módulo seis, Reencuadre y transformación de creencias, la experiencia: volver a mirar el momento donde algo se instaló, con lo que sabes hoy. Y en el módulo siete, Instalar una creencia nueva, las tres cosas juntas.
 
-«Las cosas buenas duran poco.»
+Hagamos un resumen. Una creencia es una generalización que se da por hecha. Hay tres tipos: sobre el mundo, sobre tu capacidad y sobre tu identidad, de menos a más difícil de mover. Las de identidad se traducen a capacidad con la palabra «todavía». Y todas entran por tres puertas: experiencia intensa, repetición y autoridad. La puerta por la que entró algo es también la puerta por la que puede entrar otra cosa.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas: escribe tu frase traducida, la del «todavía», en una tarjeta o en una nota del celular. Y ponla donde la veas mañana al despertar. No tienes que creértela. Solo verla.
 
-Son las más fáciles de revisar. ¿Sabes por qué?
-
-Porque se pueden contrastar con la realidad.
-
-Te lo demuestro con la tuya.
-
-Mira tu frase de «la gente es…». Y busca una persona concreta, con nombre, que no sea así.
-
-[PAUSA REAL · 15 s — el alumno busca un contraejemplo con nombre]
-
-Si encontraste una, la frase ya no es una ley. Es una tendencia que tú has notado.
-
-Y una tendencia se puede mirar con calma.
-
-[A CÁMARA]
-
-[RÓTULO: 2 · Sobre tu capacidad]
-
-El segundo tipo: creencias sobre tu capacidad.
-
-Tu «no sé» o «no puedo» vive aquí.
-
-«No sirvo para los números.»
-
-«No sé poner límites.»
-
-«Hablar en público no es lo mío.»
-
-[PAUSA]
-
-Estas cuestan más. Porque se cumplen solas.
-
-Si crees que no sirves para algo, no lo practicas.
-
-Si no lo practicas, no mejoras.
-
-Y si no mejoras, ya tienes la prueba de que no servías.
-
-[EN PANTALLA: no sirvo · no practico · no mejoro · «¿ves?, no sirvo»]
-
-Es el mismo bucle del módulo uno, en pequeño.
-
-[PAUSA]
-
-Un caso muy típico. Sofía cree que no sirve para los números.
-
-En el trabajo le piden que revise un presupuesto. Se lo pasa a un compañero «porque él es mejor en eso».
-
-Pasan los años. Nunca revisa un presupuesto.
-
-Y cada vez que ve uno, le parece más difícil. Claro: no lo ha practicado nunca.
-
-[PAUSA]
-
-¿Qué cosa no practicas tú porque crees que no sirves para ella?
-
-[PAUSA REAL · 10 s — el alumno encuentra algo que evita practicar]
-
-[PAUSA]
-
-Pero tienen una puerta abierta. Siguen hablando de lo que haces.
-
-Y lo que haces se puede aprender.
-
-[A CÁMARA]
-
-[RÓTULO: 3 · Sobre tu identidad]
-
-El tercer tipo: creencias de identidad. Tu «yo soy».
-
-«No soy suficiente.»
-
-«Soy un desastre.»
-
-«Hay algo mal en mí.»
-
-[PAUSA]
-
-Estas son las más profundas y las que más cuesta mover.
-
-Porque no hablan de lo que haces. Hablan de lo que eres.
-
-Y fíjate en un efecto muy curioso.
-
-Contra una creencia de identidad, los logros no sirven.
-
-La persona consigue algo extraordinario, y a los dos días concluye: «tuve suerte».
-
-O peor: «todavía no se han dado cuenta».
-
-[PAUSA]
-
-Imagina a Julián. Le dan el ascenso por el que lleva tres años trabajando.
-
-Llega a casa y su pareja le dice: «¡Felicidades! Te lo merecías».
-
-Y Julián contesta: «Bah, es que no había nadie más para el puesto».
-
-[PAUSA]
-
-¿Lo ves? El logro entra por la puerta y la creencia lo saca por la ventana.
-
-No es modestia. Es que el logro no encaja con «no soy suficiente», y cuando algo no encaja con una creencia de identidad, pierde el logro.
-
-[PAUSA]
-
-¿Te ha pasado? ¿Lograr algo y quitarle el valor en menos de una semana?
-
-Piensa en una vez concreta.
-
-[PAUSA REAL · 15 s — el alumno recuerda un logro al que le quitó valor]
-
-Si apareció una, ahí hay una creencia de identidad trabajando.
-
-[TABLA EN PANTALLA]
-
-| Tipo | Cómo suena | Dificultad |
-|---|---|---|
-| Mundo | «La gente es…» | Baja |
-| Capacidad | «No sé / no puedo…» | Media |
-| Identidad | «Soy / no soy…» | Alta |
-
-La señal para reconocer las de identidad es muy simple: empiezan por «soy» o «no soy».
-
-[A CÁMARA]
-
-Ahora viene lo más útil de esta clase. Una maniobra.
-
-Se llama bajar de identidad a capacidad.
-
-[RÓTULO: El traductor]
-
-La idea es esta. Una frase de identidad solo se puede sufrir.
-
-Una frase de capacidad se puede resolver.
-
-Así que traducimos.
-
-[TABLA EN PANTALLA]
-
-| Identidad (cerrada) | Capacidad (abierta) |
-|---|---|
-| «Soy un desastre» | «Todavía no tengo un sistema para organizarme» |
-| «No soy disciplinado» | «No he encontrado un horario que aguante» |
-| «Soy mala para los números» | «No aprendí bien la base y nunca volví sobre ella» |
-| «No sirvo para hablar en público» | «No he practicado hablar en público con acompañamiento» |
-
-[SUBRAYAR: todavía]
-
-¿Ves la palabra que hace el trabajo? «Todavía».
-
-«Soy un desastre» no tiene salida.
-
-«Todavía no tengo un sistema» tiene una salida evidente: conseguir un sistema.
-
-[PAUSA]
-
-Ahora tú. Toma tu «yo soy», si es de los que limitan, y tradúcelo.
-
-Pregúntate: ¿qué es lo que todavía no sé hacer, o no tengo, o no he practicado?
-
-[PAUSA REAL · 30 s — el alumno escribe su versión de capacidad con «todavía»]
-
-Y ahora dilas las dos en voz alta. Primero la vieja. Después la nueva.
-
-[PAUSA REAL · 10 s — el alumno dice las dos versiones en voz alta]
-
-Fíjate cuál de las dos te deja hacer algo mañana.
-
-[A CÁMARA]
-
-Ahora, ¿cómo entraron estas frases? Hay tres puertas.
-
-[RÓTULO: Puerta 1 · Experiencia intensa]
-
-La primera: una experiencia intensa, una sola vez.
-
-Un despido. Una humillación. Una traición.
-
-La emoción es lo que graba. Por eso hay gente que puede señalar el día exacto en que empezó a creer algo sobre sí.
-
-[RÓTULO: Puerta 2 · Repetición]
-
-La segunda: la repetición.
-
-Mil gotas pequeñas, sin ninguna intensidad.
-
-«Tú eres el distraído de la casa», dicho en broma quinientas veces.
-
-Nadie recuerda la primera vez. Todo el mundo recuerda la conclusión.
-
-[RÓTULO: Puerta 3 · Autoridad]
-
-Y la tercera: la autoridad.
-
-Lo que dice alguien con peso para ti entra sin pasar por el filtro.
-
-Un padre, una maestra, un médico, un jefe, alguien a quien admiras.
-
-Un niño de seis años no tiene forma de discutir a su madre.
-
-Cuando ella dice «qué torpe eres», eso no le llega como opinión. Le llega como información.
-
-[PAUSA]
-
-Vuelve a tu «yo soy». ¿Por qué puerta crees que entró?
-
-Y si fue por repetición o por autoridad, ¿de quién era la voz?
-
-[PAUSA REAL · 20 s — el alumno anota la puerta y, si la hay, la voz]
-
-[A CÁMARA]
-
-Queda una pregunta. ¿Por qué las que entraron en la infancia pesan tanto?
-
-Hay tres razones. Y fíjate en esto antes de oírlas: ninguna tiene que ver con que sean ciertas.
-
-[RÓTULO: 1 · No había filtro]
-
-Una: no había filtro.
-
-La capacidad de cuestionar lo que te dicen se desarrolla con los años. Antes de eso, lo que entra, entra.
-
-[RÓTULO: 2 · No había alternativas]
-
-Dos: no había alternativas.
-
-Un adulto tiene veinte explicaciones posibles para lo mismo. Un niño tiene una.
-
-[RÓTULO: 3 · Han tenido más tiempo para confirmarse]
-
-Tres: han tenido más tiempo.
-
-Treinta años de bucle, juntando pruebas a su favor.
-
-[PAUSA]
-
-[SUBRAYAR: antigua no es verdadera · antigua es practicada]
-
-Que una creencia sea antigua no la hace verdadera.
-
-La hace practicada.
-
-Y lo practicado se puede practicar de otra manera.
-
-[A CÁMARA]
-
-Y aquí está la buena noticia.
-
-Las tres puertas se pueden cruzar en sentido contrario.
-
-Se puede crear una experiencia nueva, con carga emocional.
-
-Se puede repetir.
-
-Y se puede elegir a qué autoridad hacerle caso. Empezando por la tuya.
-
-[PAUSA]
-
-En el módulo cuatro vas a trabajar la repetición: lo que te dices todos los días.
-
-En el seis, la experiencia: volver a mirar el momento donde algo se instaló, con lo que sabes hoy.
-
-Y en el siete, las tres cosas juntas, para instalar una creencia nueva que te sirva.
-
-Hoy solo necesitas quedarte con una idea: la puerta por la que entró algo es también la puerta por la que puede entrar otra cosa.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Escribe tu frase traducida, la de «todavía», en una tarjeta o en una nota del teléfono.
-
-Y ponla donde la veas mañana al despertar.
-
-No tienes que creértela. Solo verla.
-
-[PAUSA]
-
-En la clase dos vamos a descubrir en qué nivel vive tu frase,
-
-y vamos a diseñar una primera prueba pequeña para empezar a moverla.
+En la próxima clase, En qué nivel vive tu creencia, vamos a descubrir dónde está colocada tu frase y vamos a diseñar una primera prueba pequeña para empezar a moverla.
 
 Seguimos creciendo juntos.

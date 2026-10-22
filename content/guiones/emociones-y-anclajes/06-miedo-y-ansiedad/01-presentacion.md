@@ -1,91 +1,29 @@
 # Presentación · Miedo y ansiedad
 
-**Emociones, anclajes y estados de recurso · Módulo 6 · 3-4 min · Presentación**
-Cámara fija, plano medio, tono sereno y directo. Rótulo con la distinción miedo / ansiedad y con el aviso de que el módulo no trata trastornos.
-Sin música.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 6 · 4-5 min
 
 Líderes, bendiciones.
 
-Este es el módulo que más honestidad me pide. Así que empiezo por lo más importante.
+Este es el módulo que más honestidad me pide. Así que empiezo con una experiencia corta, y después te digo con claridad qué puede hacer este módulo por ti y qué no.
 
-[PAUSA]
+Te propongo dos cosas, una detrás de otra. Primero, imagina que vas bajando una escalera y ves que el siguiente escalón está roto. Tómate unos segundos para verlo. Ahora, otra cosa. Piensa en esa sensación de que algo podría salir mal con el trabajo, con la plata o con la salud. Sin nada concreto. Solo esa sensación de fondo.
 
-Te propongo dos cosas, una detrás de otra.
+¿Notas la diferencia? En la primera había algo delante de ti, presente y concreto. Podías hacer algo: frenar, agarrarte de la baranda, pasar por encima. En la segunda no hay nada delante. Todavía no ha pasado nada, y no hay a qué responder.
 
-Primero, imagina que vas bajando una escalera y ves que el siguiente escalón está roto.
+Esa es la distinción de este módulo. El miedo tiene objeto. La ansiedad no. Y por eso lo que sirve para uno no sirve para la otra. Confundirlos es una de las razones por las que muchas técnicas no ayudan.
 
-[PAUSA REAL · 5 s — imaginar el escalón roto]
+Ahora el aviso, dicho claro. Este módulo no trata trastornos de ansiedad. No trata ataques de pánico repetidos ni fobias que te limitan la vida. La PNL no trata un trastorno de ansiedad: puede acompañar a quien lo está tratando con un profesional, pero no lo reemplaza. Tampoco te voy a prometer que la ansiedad desaparezca. Sentir ansiedad es parte de la vida de cualquier persona. Lo que vas a encontrar aquí sirve para la ansiedad de todos los días: los nervios antes de algo, la activación alta, un miedo concreto y proporcionado.
 
-Ahora, otra cosa: piensa en esa sensación de que algo podría salir mal con el trabajo, con la plata o con la salud. Sin nada concreto. Solo esa sensación.
+Al terminar el módulo vas a poder distinguir si lo que sientes es miedo, ansiedad o pánico. Vas a tener un kit para el momento en que la ansiedad sube. Vas a saber armar una escalera para dejar de evitar, poco a poco, algo que hoy evitas. Y vas a saber cuándo esto ya no se trabaja a solas. No con un «consulta a un especialista» dicho en general, sino con criterios concretos, uno por uno. También vas a ver lo que suena bien y no ayuda: evitar, ordenarte calma, buscar la causa en plena crisis.
 
-[PAUSA REAL · 5 s — notar esa sensación difusa]
+Así funciona el módulo. Tienes dos clases. En la primera separamos miedo, ansiedad y pánico, vemos lo que ayuda, lo que no, y los criterios para buscar ayuda profesional. En la segunda armas tu escalera de exposición. Después, una práctica con el kit del momento agudo, para usarla tal cual cuando haga falta. Un audio guiado para los minutos antes de enfrentar algo que vienes evitando. El material de lectura en PDF. Y un ejercicio opcional.
 
-¿Notas la diferencia?
+Ahora una prueba rápida, sin teoría. Nombra, por dentro o en voz alta, tres cosas que ves ahora mismo. Despacio. Y ahora dos cosas que oyes.
 
-En la primera había algo delante de ti. Presente, concreto. Podías hacer algo: frenar, agarrarte de la baranda, pasar por encima.
+¿Dónde estuvo tu atención esos segundos? Afuera. No en el pecho, no en lo que podría pasar. Afuera. Esa es una de las herramientas más útiles del módulo, y la vamos a usar mucho.
 
-En la segunda no hay nada delante. Todavía no ha pasado nada. Y no hay a qué responder.
+Tu tarea para las próximas veinticuatro horas: cuenta cuántos cafés tomas en el día. Incluye el té negro, el mate y las bebidas energéticas. Te va a servir más de lo que imaginas.
 
-[RÓTULO: El miedo tiene objeto. La ansiedad no.]
-
-El miedo tiene objeto. La ansiedad no.
-
-Y por eso lo que sirve para uno no sirve para la otra. Confundirlos es la razón por la que muchas técnicas fallan.
-
-[A CÁMARA]
-
-Ahora el aviso, dicho claro.
-
-[RÓTULO: Este módulo no trata trastornos de ansiedad]
-
-Este módulo no trata trastornos de ansiedad. Ni ataques de pánico repetidos, ni fobias que te limitan la vida.
-
-La PNL no trata un trastorno de ansiedad. Puede acompañar a quien lo está tratando con un profesional.
-
-Lo que sí vas a encontrar aquí sirve para la ansiedad de todos los días: los nervios antes de algo, la activación alta, un miedo concreto y proporcionado.
-
-[PAUSA]
-
-Vas a ver lo que sí ayuda: el ancla, la respiración con un matiz, la atención afuera, la exposición gradual.
-
-Y lo que suena bien y no ayuda: evitar, ordenarte calma, buscar la causa en plena crisis.
-
-[A CÁMARA]
-
-Y te hago un compromiso.
-
-Al final de la primera clase no te voy a decir «consulta a un especialista» así, en general.
-
-Te voy a dar criterios concretos, uno por uno, para que sepas cuándo esto ya no se trabaja a solas.
-
-[RÓTULO: Clase 1 · Clase 2 · Práctica · Audio guiado · Material en PDF]
-
-Tienes dos clases, una práctica para el momento agudo que puedes usar tal cual cuando haga falta, un audio para antes de enfrentar algo que evitas, el material en PDF y un ejercicio opcional.
-
-[A CÁMARA]
-
-Una prueba rápida antes de irte. Sin teoría.
-
-Nombra, por dentro o en voz alta, tres cosas que ves ahora mismo.
-
-[PAUSA REAL · 8 s — nombrar tres cosas que ves]
-
-Y dos cosas que oyes.
-
-[PAUSA REAL · 8 s — nombrar dos cosas que oyes]
-
-Fíjate dónde estuvo tu atención esos segundos. Afuera. Esa es una de las herramientas más útiles del módulo.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para mañana: cuenta cuántos cafés tomas en el día. Incluye el té negro, el mate y las bebidas energéticas.
-
-Te va a servir más de lo que imaginas.
-
-En la primera clase separamos miedo, ansiedad y pánico, y vemos qué pide cada uno.
+En la primera clase, Miedo, ansiedad y pánico, separamos las tres cosas y vemos qué pide cada una.
 
 Seguimos creciendo juntos.

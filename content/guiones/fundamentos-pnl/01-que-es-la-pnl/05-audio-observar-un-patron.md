@@ -1,242 +1,111 @@
 # Audio guiado · Observar un patrón
 
-**Fundamentos de la PNL · Módulo 1 · 11-14 min · Audio guiado**
-Solo voz, más baja y más lenta que en los videos. Sin música, o una muy suave y sin ritmo marcado. Las pausas reales se respetan enteras en la edición.
+Fundamentos de la PNL · Módulo 1 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-No escuches este audio mientras conduces ni operando maquinaria.
+En este audio vamos a mirar algo que se repite en tu vida. Lo vamos a mirar de lejos y con calma, como quien mira una película. Y después vamos a hacer por dentro lo mismo que hiciste en el video del caso: modelar a alguien que lo hace distinto.
 
-[PAUSA]
+Si tienes el teléfono en la mano, déjalo boca abajo. Ten cerca papel y algo con qué escribir, para el final.
 
-Busca un lugar donde nadie te interrumpa durante unos doce minutos.
+Siéntate con los dos pies apoyados en el suelo. La espalda apoyada. Las manos sueltas, sobre las piernas.
 
-Si estás con el teléfono en la mano, déjalo boca abajo.
+Puedes cerrar los ojos. O dejar la mirada baja, en un punto del suelo, sin fijarla.
 
-[PAUSA REAL · 10 s — acomodarse en el lugar]
-
-Siéntate con los dos pies apoyados en el suelo.
-
-La espalda apoyada. Las manos sueltas, sobre las piernas.
-
-[PAUSA]
-
-Puedes cerrar los ojos.
-
-O dejar la mirada baja, en un punto del suelo, sin fijarla.
-
-[PAUSA LARGA]
-
-Vamos a soltar el aire tres veces, más despacio de lo que entra.
-
-Inhala por la nariz, sin forzar.
-
-Y suelta despacio, como si soplaras una vela sin apagarla.
-
-[PAUSA REAL · 8 s — primera exhalación larga]
+Vamos a soltar el aire tres veces, más despacio de lo que entra. Inhala por la nariz, sin forzar… y suelta despacio, como si soplaras una vela sin apagarla.
 
 Otra vez. Entra el aire… y sale despacio.
 
-[PAUSA REAL · 8 s — segunda exhalación larga]
-
-Y una más.
-
-[PAUSA REAL · 8 s — tercera exhalación larga]
+Y una más… tómate tu tiempo.
 
 Ahora deja que la respiración vaya sola. No tienes que hacer nada con ella.
 
-[PAUSA LARGA]
+Nota el peso de tu cuerpo en el asiento. Nota los pies en el suelo.
 
-Nota el peso de tu cuerpo en el asiento.
+Nota el aire, un poco más fresco cuando entra… y un poco más tibio cuando sale. Quédate ahí unos momentos.
 
-Nota los pies en el suelo.
+Ahora elige algo pequeño que te pase una y otra vez. Si escribiste un patrón en la clase dos, usa ese.
 
-Nota el aire un poco más fresco cuando entra, y un poco más tibio cuando sale.
+Si no, piensa en algo cotidiano. Una discusión que termina igual. Una tarea que siempre dejas para después. Un «sí» que dices cuando querías decir «no».
 
-[PAUSA LARGA]
+Algo pequeño. Si lo primero que aparece es algo que duele mucho, déjalo para otro día y elige algo más liviano. Tómate unos segundos para elegir.
 
-En este audio vamos a mirar algo que se repite en tu vida.
+Ahora trae la última vez que pasó. Una vez concreta.
 
-Lo vamos a mirar de lejos, con calma, como quien mira una película.
+¿Dónde estabas? ¿Era de día o de noche? ¿Quién más estaba ahí? Deja que la escena aparezca sola, sin esfuerzo.
 
-[PAUSA]
+Imagina que esa escena aparece en una pantalla, un poco lejos de ti. Tú estás en una butaca cómoda, mirándola.
 
-Si escribiste un patrón en la clase dos, usa ese.
+Te ves en la pantalla. Desde fuera, como verías a otra persona.
 
-Si no, elige ahora algo pequeño que te pase una y otra vez.
+Deja que la escena avance despacio. Mira qué pasa justo antes. Qué es lo primero que cambia.
 
-Una discusión que termina igual. Una tarea que siempre dejas para después.
+Mira qué haces después. Y después. Como si fuera una receta: primero esto, luego esto, luego aquello. Tómate el tiempo que necesites para ver la secuencia completa.
 
-Un «sí» que dices cuando querías decir «no».
+Ahora fíjate en la persona de la pantalla. En su cuerpo. ¿Cómo está su postura? ¿Cómo respira? ¿Qué hacen sus hombros, su cara?
 
-[PAUSA]
+Míralo unos momentos, con curiosidad.
 
-Algo pequeño. Si lo primero que aparece es algo que duele mucho, déjalo para otro día y elige algo más liviano.
+Y si ahora, aquí donde estás, notas algo en tu propio cuerpo, está bien. Solo nótalo. Deja que el aire salga largo una vez más.
 
-[PAUSA REAL · 15 s — elegir el patrón]
+Escucha ahora lo que esa persona de la pantalla se dice por dentro. La frase, tal como suena.
 
-Ahora trae la última vez que pasó.
+Fíjate en el tono. ¿Es rápido o lento? ¿Alto o bajito? Escúchala una vez… sin discutirla.
 
-Una vez concreta.
+Muy bien. Deja que esa escena se quede quieta un momento. Y que la pantalla se apague despacio.
 
-¿Dónde estabas? ¿Era de día o de noche? ¿Quién más estaba ahí?
+Respira… y quédate ahí unos momentos, con la pantalla apagada.
 
-[PAUSA REAL · 15 s — ubicar la escena]
+Ahora piensa en alguien que, en una situación parecida, actúa distinto. Alguien que conoces, o alguien que viste alguna vez.
 
-Imagina que esa escena aparece en una pantalla, un poco lejos de ti.
+No tiene que ser una persona perfecta. Solo que eso, en particular, lo haga bien. Tómate unos segundos para encontrarla.
 
-Tú estás en una butaca, con comodidad, mirándola.
+Ponla en la misma escena, en la pantalla. El mismo lugar, la misma situación. Pero ahora está esa persona.
 
-Te ves a ti en la pantalla. Desde fuera.
+Mírala con curiosidad, como si la estudiaras. ¿Qué es lo primero que hace?
 
-[PAUSA LARGA]
+Mira bien… tómate tu tiempo.
 
-Deja que la escena avance despacio.
+¿Cómo está su cuerpo? ¿Cómo respira? ¿Qué ritmo tiene?
 
-Mira qué pasa justo antes. Qué es lo primero que cambia.
+¿Qué dice? ¿O qué no dice? ¿Dónde hace una pausa que tú no harías?
 
-[PAUSA LARGA]
+No le preguntes por qué lo hace. Solo mira qué hace, y en qué orden.
 
-Mira qué haces después. Y después.
+Ahora busca la diferencia más pequeña entre lo que hace esa persona y lo que haces tú. No la más grande. La más pequeña.
 
-Como si fuera una receta: primero esto, luego esto, luego aquello.
-
-[PAUSA REAL · 20 s — ver la secuencia completa]
-
-Ahora fíjate en la persona de la pantalla. En su cuerpo.
-
-¿Cómo está su postura? ¿Cómo respira? ¿Qué hacen sus hombros, su cara?
-
-[PAUSA REAL · 15 s — observar el cuerpo en la escena]
-
-Y si ahora, aquí donde estás, notas algo en tu propio cuerpo, está bien.
-
-Solo nótalo. Deja que el aire salga largo una vez más.
-
-[PAUSA LARGA]
-
-Escucha ahora lo que esa persona se dice por dentro.
-
-La frase. Tal como suena.
-
-Fíjate en el tono. ¿Es rápido o lento? ¿Alto o bajito?
-
-[PAUSA REAL · 15 s — escuchar la frase interna]
-
-Bien.
-
-Deja que esa escena se quede quieta un momento.
-
-Y que la pantalla se apague despacio.
-
-[PAUSA LARGA]
-
-Ahora piensa en alguien que, en una situación parecida, actúa distinto.
-
-Alguien que conoces, o alguien que viste alguna vez.
-
-No tiene que ser perfecto. Solo que eso, en particular, lo haga bien.
-
-[PAUSA REAL · 15 s — encontrar a esa persona]
-
-Ponlo en la misma escena. En la pantalla.
-
-El mismo lugar, la misma situación. Pero ahora está esa persona.
-
-[PAUSA LARGA]
-
-Mírala con curiosidad, como si la estudiaras.
-
-¿Qué es lo primero que hace?
-
-[PAUSA REAL · 15 s — observar lo primero que hace]
-
-¿Cómo está su cuerpo? ¿Su respiración? ¿Su ritmo?
-
-[PAUSA REAL · 15 s — observar el cuerpo del modelo]
-
-¿Qué dice? ¿O qué no dice?
-
-¿Dónde hace una pausa que tú no harías?
-
-[PAUSA REAL · 15 s — escuchar al modelo]
-
-No le preguntes por qué lo hace. Solo mira qué hace.
-
-[PAUSA LARGA]
-
-Ahora busca la diferencia más pequeña entre lo que hace esa persona y lo que haces tú.
-
-No la más grande. La más pequeña.
-
-Una pausa antes de contestar. Un hombro que baja. Una frase distinta.
-
-[PAUSA REAL · 20 s — encontrar la diferencia más pequeña]
+Una pausa antes de contestar. Un hombro que baja. Una primera frase distinta. Deja que aparezca… sin prisa.
 
 Quédate con esa. Solo con esa.
 
-[PAUSA]
-
 Ahora vuelve a ponerte a ti en la pantalla. En tu escena.
 
-Y mira cómo sería si hicieras esa sola cosa distinta.
+Y mira cómo sería si hicieras esa sola cosa distinta. Solo esa. Todo lo demás igual.
 
-Solo esa. Todo lo demás igual.
+Mira cómo avanza la escena con ese pequeño cambio. Tómate el tiempo que necesites.
 
-[PAUSA REAL · 20 s — ver la escena con la diferencia]
+Fíjate cómo cambia lo que viene después. Aunque sea un poco.
 
-Mira cómo cambia lo que viene después. Aunque sea un poco.
+Y nota cómo está tu cuerpo, aquí, mientras lo miras. Quédate ahí unos momentos.
 
-[PAUSA LARGA]
+Muy bien. Deja que la pantalla se apague. Y guarda esa diferencia pequeña, como quien guarda una nota en el bolsillo.
 
-Y fíjate cómo está tu cuerpo, aquí, mientras lo miras.
-
-[PAUSA REAL · 10 s — notar el cuerpo ahora]
-
-Muy bien.
-
-Deja que la pantalla se apague.
-
-Y guarda esa diferencia pequeña, como quien guarda una nota en el bolsillo.
-
-[PAUSA LARGA]
-
-Ahora vamos a volver, despacio.
-
-Voy a contar del uno al cinco. Con cada número vuelves un poco más a este lugar.
-
-[PAUSA]
+Ahora vamos a volver, despacio. Voy a contar del uno al cinco. Con cada número vuelves un poco más a este lugar.
 
 Uno. Notas otra vez el peso del cuerpo en el asiento.
 
-[PAUSA]
-
 Dos. Notas los pies en el suelo.
-
-[PAUSA]
 
 Tres. La respiración se hace un poco más profunda, y escuchas los sonidos del lugar donde estás.
 
-[PAUSA]
-
 Cuatro. Mueves los dedos de las manos y de los pies.
 
-[PAUSA]
+Cinco. Abres los ojos, y miras a tu alrededor. Estás aquí.
 
-Cinco. Abres los ojos, y miras a tu alrededor. Aquí.
+Antes de levantarte, escribe una sola línea. La diferencia pequeña que viste, y en qué momento de esta semana la vas a probar. Con día. Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
+Eso que acabas de hacer por dentro es modelar. Mirar qué hace quien lo hace bien, y quedarte con lo que sí puedes repetir.
 
-Antes de levantarte, escribe una sola línea:
+En el material del módulo, en PDF, tienes las reglas del modelado para volver a ellas cuando quieras. Y en el ejercicio «Tu primer modelado» puedes hacerlo por escrito, con una persona real.
 
-la diferencia pequeña que viste, y en qué momento de esta semana la vas a probar.
-
-[PAUSA REAL · 30 s — escribir la diferencia y cuándo probarla]
-
-Eso que acabas de hacer por dentro es modelar.
-
-Mirar qué hace quien lo hace bien, y quedarte con lo que sí puedes repetir.
-
-[PAUSA]
-
-En el material del módulo tienes la guía para hacerlo también por fuera, con una persona real.
+Y cuando quieras seguir, te espero en el siguiente módulo, «El mapa no es el territorio».

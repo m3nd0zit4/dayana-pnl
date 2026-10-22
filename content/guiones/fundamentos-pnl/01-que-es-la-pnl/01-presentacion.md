@@ -1,85 +1,25 @@
 # Presentación · Qué es la PNL
 
-**Fundamentos de la PNL · Módulo 1 · 3-4 min · Presentación de módulo**
-Cámara fija, plano medio. Se graba en la sesión de presentaciones: misma ropa,
-mismo encuadre que las demás.
-
----
-
-[A CÁMARA. Sin prisa.]
+Fundamentos de la PNL · Módulo 1 · 4-5 min
 
 Líderes, bendiciones.
 
-Bienvenidos al primer módulo del curso de Fundamentos.
+Bienvenidos al primer módulo del curso Fundamentos de la PNL. Quiero empezar con una pregunta. ¿Te ha pasado que te prometes reaccionar distinto y, cuando llega el momento, reaccionas igual que siempre? La misma discusión con la misma persona. El mismo «sí» cuando querías decir «no». La misma tarea guardada para el último día. Si te ha pasado, este curso es para ti. No necesitas saber nada de psicología. Solo ganas de mirar cómo funcionan tus reacciones.
 
-Y quiero empezar por la palabra, porque la palabra asusta.
+Empiezo por el nombre, porque el nombre asusta. Programación Neurolingüística suena a laboratorio, a algo que alguien te va a hacer desde fuera. Y significa algo bastante más simple. Programación quiere decir que tenemos patrones que se repiten: formas de reaccionar, de decidir y de hablarnos por dentro. Neuro quiere decir que esos patrones no viven solo en las ideas. Viven en el cuerpo, en cómo se te acorta la respiración antes de una conversación difícil. Y lingüística quiere decir que el lenguaje es la herramienta. Con palabras se construyeron esos patrones, y con palabras se pueden cambiar.
 
-Programación Neurolingüística.
+¿De dónde salió todo esto? De un sitio curioso: de mirar. En los años setenta, Richard Bandler y John Grinder se pusieron a observar a terapeutas que conseguían resultados extraordinarios. Y se preguntaron qué hacían exactamente. No qué teoría tenían, sino qué hacían, paso a paso. A eso se le llama modelar, y es el método del que sale todo lo demás.
 
-Suena a laboratorio. Suena a algo que te van a hacer.
+¿Qué vas a poder hacer al terminar este módulo? Tres cosas. Vas a poder explicar con tus palabras qué es la PNL y qué puedes esperar de ella de verdad. Vas a poder mirar un patrón tuyo en tres capas: lo que haces, lo que siente tu cuerpo y lo que te dices. Y vas a poder hacer tu primer modelado: observar a alguien que hace bien algo que a ti te cuesta, y convertirlo en pasos que puedas repetir.
 
-Y significa algo bastante más simple.
+También te voy a decir lo que la PNL no es. Hay mucho vendido de más, y aquí vas a saber qué tiene respaldo y qué no. No lo hago porque sea agradable. Lo hago porque si te vendo de más, la primera vez que algo no funcione vas a tirarlo todo. Y aquí hay herramientas que sirven mucho.
 
-[PAUSA]
+Así funciona el módulo. Hay dos clases: en la primera vemos qué es la PNL y de dónde salió, y en la segunda buscamos tu punto de partida. Después hay un video donde me vas a ver modelar una habilidad en directo. Hay un audio guiado para hacer ese mismo trabajo por dentro, con calma. Tienes el material de lectura en PDF para repasar cuando quieras. Y hay un ejercicio opcional para hacer tu primer modelado por escrito. Al final del módulo, además, vas a saber qué curso del catálogo te conviene después de este.
 
-Programación. Tenemos patrones que se repiten.
+Ahora, una primera experiencia de treinta segundos. Piensa en algo pequeño que te pasa una y otra vez. Algo cotidiano, nada grave. Cuando eso pasa, ¿qué notas primero? ¿Algo que haces, algo en el cuerpo o una frase que te dices? Tómate unos segundos y responde por dentro.
 
-Formas de reaccionar. Formas de decidir. Formas de hablarnos por dentro.
+¿Lo tienes? Lo que acabas de hacer es mirar un patrón con las tres palabras del nombre. No hizo falta ninguna teoría. Solo mirar con un poco más de atención.
 
-No los elegimos uno por uno. Se fueron instalando.
-
-Neuro. Esos patrones no están solo en las ideas.
-
-Están en el cuerpo. En cómo respiras cuando te ponen nerviosa.
-
-En lo que hace tu mandíbula cuando alguien dice cierta frase.
-
-Lingüística. El lenguaje es la herramienta.
-
-Con lenguaje se construyeron. Y con lenguaje se cambian.
-
-[PAUSA]
-
-Eso es todo. Tres palabras, tres ideas.
-
-[A CÁMARA]
-
-En este módulo vamos a ver de dónde salió esto.
-
-Y salió de un sitio curioso: de mirar.
-
-Dos personas se pusieron a observar a terapeutas que conseguían resultados
-
-y se preguntaron qué hacían exactamente. No qué teoría tenían: qué hacían.
-
-Eso se llama modelar, y es el método del que sale todo lo demás.
-
-[PAUSA]
-
-También vamos a hablar de lo que la PNL no es.
-
-Porque hay mucho vendido de más.
-
-Yo te voy a decir en este módulo qué tiene respaldo y qué no.
-
-No porque sea agradable decirlo, sino porque si te vendo de más,
-
-la primera vez que algo no funcione vas a tirar todo a la basura.
-
-Y hay cosas aquí que sirven mucho.
-
-[PAUSA]
-
-Al final del módulo vas a tener el mapa completo del catálogo.
-
-Vas a saber qué curso te toca después de este, según lo que te esté doliendo.
-
-[A CÁMARA. Cierre.]
-
-Cómo estudiarlo: lee la clase, mira los videos, y haz la guía de trabajo.
-
-La guía no es opcional. Es donde esto pasa de ser información a ser tuyo.
-
-Nos vemos dentro.
+En la clase uno, «Qué es la PNL», vamos a ver de dónde salió todo esto, qué método usa, para qué sirve y para qué no. Te espero ahí.
 
 Seguimos creciendo juntos.

@@ -1,117 +1,60 @@
 # Audio guiado · Escuchar cómo te hablas
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 1 · 10-12 min · Audio guiado**
-Voz lenta y baja. Fondo musical muy suave o ninguno. Las pausas reales se respetan en la edición: son parte del audio.
+El poder del lenguaje: metamodelo y reencuadre · Módulo 1 · 12-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
-
-[PAUSA]
-
-Busca un lugar donde puedas estar unos minutos sin interrupciones.
-
-Puedes sentarte o recostarte. Lo que te resulte cómodo.
-
-[PAUSA]
+En este audio vamos a escuchar, con calma, una frase que te dijiste esta semana. Vas a notar qué hace en tu cuerpo, le vas a poner nombre a lo que sientes y vas a probar a decirla de otra forma.
 
 En algunos momentos te voy a pedir que hables en voz baja. Si hay gente cerca, dilo por dentro. También sirve.
 
-[PAUSA]
-
-Deja que la espalda se apoye.
-
-Los pies, en contacto con el suelo.
-
-Las manos, donde caigan.
-
-[PAUSA LARGA]
+Puedes sentarte o recostarte, lo que te resulte más cómodo. Deja que la espalda se apoye. Los pies, en contacto con el suelo. Las manos, donde caigan.
 
 Si quieres, cierra los ojos. Si prefieres dejarlos abiertos, baja la mirada a un punto fijo.
 
-[PAUSA]
+Toma aire por la nariz, sin forzar. Y suéltalo despacio, un poco más largo de lo que entró.
 
-Toma aire por la nariz, sin forzar.
+Otra vez. Entra el aire… y sale, despacio.
 
-Y suéltalo despacio, un poco más largo de lo que entró.
+Una vez más, a tu ritmo. Respira… y quédate ahí unos momentos.
 
-[PAUSA]
-
-Otra vez. Entra el aire.
-
-Y sale, despacio.
-
-[PAUSA LARGA]
-
-Una vez más, a tu ritmo.
-
-[PAUSA REAL · 15 s — respirar con la exhalación más larga]
-
-Ahora deja la respiración tranquila. Ya no hace falta dirigirla.
-
-[PAUSA]
+Ahora deja la respiración tranquila. Ya no hace falta dirigirla. Tu cuerpo sabe hacerlo solo.
 
 Lleva la atención a la frente. Si hay algo apretado, deja que se suelte un poco.
 
-[PAUSA]
-
 La mandíbula. Los dientes no necesitan tocarse.
-
-[PAUSA]
 
 Los hombros. Deja que bajen, aunque sea un centímetro.
 
-[PAUSA]
-
 Y la barriga. Que se mueva sola con el aire.
 
-[PAUSA LARGA]
+Quédate así unos momentos, sin hacer nada más que notar cómo respiras.
 
-Vamos a escuchar algo que oyes todo el día y casi nunca escuchas.
+Ahora vamos a escuchar algo que oyes todo el día y casi nunca escuchas: tu voz interna.
 
-Tu voz interna.
+Trae a la memoria un momento de esta semana en que te dijiste algo duro. No lo peor que te ha pasado. Algo de tamaño medio.
 
-[PAUSA]
+Puede ser que se te olvidó algo. Que algo salió peor de lo que querías. Que alguien no contestó un mensaje.
 
-Trae a la memoria un momento de esta semana en que te dijiste algo duro.
+Tómate el tiempo que necesites para elegir ese momento.
 
-No lo peor que te ha pasado. Algo de tamaño medio.
+Ahora vuelve a él como si estuviera pasando en este instante. Dónde estabas. Qué hora era. Qué acababa de pasar.
 
-Se te olvidó algo. Algo salió peor de lo que querías. Alguien no contestó.
+Y escucha la frase que te dijiste. Exactamente como te la dijiste. Con sus palabras y con su tono.
 
-[PAUSA REAL · 20 s — elegir un momento de esta semana]
+Escúchala una vez más… sin discutir con ella. Solo escúchala.
 
-Vuelve a ese momento como si estuviera pasando ahora.
+Ahora fíjate dónde cae esa frase en tu cuerpo. Puede ser el pecho. El estómago. La garganta. Los hombros.
 
-Dónde estabas. Qué hora era. Qué acababa de pasar.
+No hace falta cambiar nada. Solo notarlo. Tómate unos momentos.
 
-[PAUSA LARGA]
+Ponle nombre a lo que sientes ahí. Una palabra exacta. No «mal». Algo más preciso: decepción, cansancio, vergüenza, rabia, tristeza.
 
-Y escucha la frase que te dijiste. Exactamente como te la dijiste.
+Dilo en voz baja: «siento», y la palabra.
 
-Con sus palabras. Con su tono.
+Muy bien. Quédate un momento con esa palabra. Fíjate si al nombrarla cambia algo, aunque sea muy poco.
 
-[PAUSA REAL · 15 s — escuchar por dentro la frase original]
-
-Ahora fíjate dónde cae esa frase en el cuerpo.
-
-Puede ser el pecho. El estómago. La garganta. Los hombros.
-
-No hace falta cambiar nada. Solo notarlo.
-
-[PAUSA REAL · 15 s — notar dónde se siente la frase en el cuerpo]
-
-Ponle nombre a lo que sientes ahí. Una palabra exacta.
-
-En voz baja: «siento…», y la palabra.
-
-[PAUSA REAL · 15 s — nombrar en voz baja la emoción exacta]
-
-Muy bien.
-
-[PAUSA LARGA]
-
-Vuelve a escuchar la frase. Y busca dentro de ella alguna de las cuatro palabras.
+Ahora vuelve a escuchar la frase que te dijiste. Y busca dentro de ella alguna de las cuatro palabras que vimos en este módulo.
 
 ¿Hay un «siempre» o un «nunca»?
 
@@ -121,7 +64,7 @@ Vuelve a escuchar la frase. Y busca dentro de ella alguna de las cuatro palabras
 
 ¿Hay un «pero»?
 
-[PAUSA REAL · 15 s — buscar en tu frase alguna de las cuatro palabras]
+Tómate unos segundos para buscarla.
 
 Si encontraste un «siempre» o un «nunca», di lo que pasó esta vez. Solo esta vez.
 
@@ -131,88 +74,70 @@ Si encontraste un «es que yo soy», dilo con lo que haces, y con la palabra «t
 
 Si encontraste un «pero», cámbialo por «y».
 
-Y si no había ninguna, di solo lo que pasó, con palabras exactas y sin adjetivos.
+Y si no había ninguna de las cuatro, di solo lo que pasó, con palabras exactas y sin adjetivos.
 
-Dila ahora en voz baja.
+Dila ahora en voz baja, la frase nueva. Tómate el tiempo que necesites.
 
-[PAUSA REAL · 20 s — decir en voz baja la frase nueva]
+Vuelve al cuerpo, al mismo lugar de antes.
 
-Vuelve al cuerpo. Al mismo lugar de antes.
+¿Cambió algo? Un poco, mucho, nada. Cualquier respuesta vale.
 
-¿Cambió algo? Un poco, mucho, nada.
-
-Cualquier respuesta vale.
-
-[PAUSA REAL · 15 s — notar qué cambió en el cuerpo]
-
-[PAUSA LARGA]
+Respira… y quédate ahí unos momentos.
 
 Ahora vamos a probar otra cosa.
 
 Imagina que esto que te pasó le pasó a alguien a quien quieres mucho.
 
-Mira a esa persona. Lo que hizo. Lo que le salió mal.
+Mira a esa persona. Lo que hizo. Lo que le salió mal. Cómo se siente ahora.
 
-¿Qué le dirías?
+¿Qué le dirías? Escúchalo por dentro, sin prisa.
 
-[PAUSA REAL · 15 s — escuchar por dentro lo que le dirías]
+Fíjate en el tono con el que se lo dirías. Seguramente es más suave… y también más claro.
 
-Y ahora dítelo a ti. Con tu nombre.
+Ahora dítelo a ti. Con tu nombre.
 
-Tu nombre, y después lo que le dirías a esa persona.
+Tu nombre, y después lo que le dirías a esa persona. Con el mismo tono. En voz baja.
 
-Con el mismo tono. En voz baja.
-
-[PAUSA REAL · 20 s — decirte la frase en voz baja, con tu nombre]
+Tómate el tiempo que necesites.
 
 Escucha cómo suena tu nombre dicho así.
 
-[PAUSA LARGA]
+Si quieres, dilo una vez más, despacio, y termina con una pregunta. Algo como: «¿qué es lo primero que puedes hacer?».
+
+Quédate unos momentos con lo que aparezca.
 
 Si apareció emoción, está bien. Deja que esté.
 
 Si no apareció nada, también está bien. Esto se afina con la práctica.
 
-Y si lo que vino es muy grande, algo que te pesa desde hace mucho, no hace falta trabajarlo con un audio. Ahí lo que corresponde es hablarlo con un profesional.
-
-[PAUSA]
+Y si lo que vino es muy grande, algo que te pesa desde hace mucho tiempo, no hace falta trabajarlo con un audio. Ahí lo que corresponde es hablarlo con un profesional.
 
 Vamos a guardar una sola cosa de este rato.
 
 De todo lo que dijiste hoy, elige una frase para mañana. La que te gustaría oírte decir la próxima vez que algo salga mal.
 
-[PAUSA REAL · 20 s — elegir la frase para mañana]
+Tómate el tiempo que necesites para elegirla.
 
 Dila una vez más, en voz baja. Despacio.
 
-[PAUSA REAL · 10 s — repetir la frase elegida]
-
-[PAUSA LARGA]
+Y una vez más… como si ya fuera tuya.
 
 Ahora vamos a volver.
 
-Voy a contar del uno al cinco. Con cada número, vuelves un poco más al lugar donde estás.
+Voy a contar del uno al cinco. Con cada número vuelves un poco más al lugar donde estás.
 
-Uno. Notas el peso del cuerpo apoyado.
-
-[PAUSA]
+Uno. Notas el peso de tu cuerpo apoyado.
 
 Dos. Notas el aire entrando y saliendo.
 
-[PAUSA]
-
 Tres. Escuchas los sonidos de alrededor.
-
-[PAUSA]
 
 Cuatro. Mueves un poco los dedos de las manos y de los pies.
 
-[PAUSA]
-
 Cinco. Abres los ojos, despacio, y miras a tu alrededor.
 
-[PAUSA LARGA]
-
-Antes de seguir con tu día, si puedes, escribe la frase que elegiste. En un papel, en el teléfono, donde la vayas a ver mañana.
+Antes de seguir con tu día, si puedes, escribe la frase que elegiste. En un papel o en el celular, donde la vayas a ver mañana.
 
 Y cuando mañana algo no salga como querías, ya sabes qué decirte.
+
+Con este audio cierras el primer módulo. En el material en PDF tienes las cuatro palabras y la lista de vocabulario emocional. Y en el ejercicio opcional puedes elegir qué palabra vas a vigilar estos días. Cuando quieras seguir, te espero en el módulo dos, Omisiones, distorsiones y generalizaciones.

@@ -1,216 +1,111 @@
 # Audio guiado · Una escena desde tres lugares
 
-**Fundamentos de la PNL · Módulo 2 · 11-14 min · Audio guiado**
-Solo voz, lenta. Sin música, o una muy suave. Los cambios de lugar se marcan con una pausa larga antes de cada uno: no recortarlas.
+Fundamentos de la PNL · Módulo 2 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-No escuches este audio mientras conduces ni operando maquinaria.
+En este audio vamos a hacer dos cosas. Primero vas a notar lo que tu atención deja fuera sin que te des cuenta. Después vas a mirar un desacuerdo reciente desde tres lugares: desde tus ojos, desde una cámara y desde la otra persona. Ten cerca papel y algo con qué escribir, para el final.
 
-[PAUSA]
-
-Busca un lugar donde puedas estar unos doce minutos sin interrupciones.
-
-Siéntate con los pies en el suelo y la espalda apoyada.
-
-[PAUSA REAL · 10 s — acomodarse]
+Siéntate con los pies en el suelo y la espalda apoyada. Deja que las manos descansen.
 
 Puedes cerrar los ojos, o dejar la mirada baja y suave.
 
-[PAUSA]
-
 Suelta el aire una vez, despacio. Más despacio de lo que entró.
 
-[PAUSA REAL · 8 s — exhalación larga]
+Y otra vez… tómate tu tiempo.
 
-Y otra.
+Ahora deja que la respiración siga sola. No tienes que hacer nada con ella.
 
-[PAUSA REAL · 8 s — exhalación larga]
+Vamos a empezar por algo sencillo. Escucha los sonidos que hay ahora mismo a tu alrededor.
 
-Ahora deja que la respiración siga sola.
+Los más lejanos primero. Fuera del cuarto. Fuera del edificio, si los hay. Escucha… y quédate ahí unos momentos.
 
-[PAUSA LARGA]
-
-Vamos a empezar por algo sencillo.
-
-Escucha los sonidos que hay ahora mismo a tu alrededor.
-
-Los más lejanos primero. Fuera del cuarto. Fuera del edificio, si los hay.
-
-[PAUSA REAL · 15 s — escuchar los sonidos lejanos]
-
-Ahora los más cercanos. Dentro del cuarto. Tu propia respiración.
-
-[PAUSA REAL · 15 s — escuchar los sonidos cercanos]
+Ahora los más cercanos. Dentro del cuarto. El roce de la ropa. Tu propia respiración.
 
 Nota ahora el contacto de la ropa con tu piel. En los hombros. En las piernas.
 
-La temperatura del aire en la cara.
+Nota la temperatura del aire en la cara. Tómate unos segundos.
 
-[PAUSA REAL · 15 s — notar el contacto y la temperatura]
+Todo esto estaba aquí hace un minuto. Tu atención lo había dejado fuera.
 
-Todo esto estaba aquí hace un minuto.
+Eso es un filtro. No es un error. Es lo que te permite funcionar. Solo que, a veces, lo que dejamos fuera es justo lo que hacía falta ver.
 
-Tu atención lo había dejado fuera.
+Respira… y deja que los sonidos sigan ahí, de fondo.
 
-[PAUSA]
+Ahora trae a tu mente un desacuerdo reciente. Algo pequeño. Una discusión de todos los días, con alguien de tu casa, de tu trabajo o de tu familia.
 
-Eso es un filtro. No es un error. Es lo que te permite funcionar.
+Si lo primero que aparece es una situación en la que alguien te hizo daño de verdad, déjala a un lado. Hoy no es para eso. Elige algo más liviano. Tómate el tiempo que necesites para elegir.
 
-Solo que, a veces, lo que dejamos fuera es justo lo que hacía falta ver.
+Primer lugar: el tuyo.
 
-[PAUSA LARGA]
+Vuelve a esa escena desde tus propios ojos. Mira lo que veías. Escucha lo que oías. Nota lo que sentías.
 
-Ahora trae a tu mente un desacuerdo reciente.
+Quédate ahí unos momentos, dentro de la escena.
 
-Algo pequeño. Una discusión de todos los días, con alguien de tu casa, de tu trabajo, de tu familia.
-
-Si lo primero que aparece es una situación en la que alguien te hizo daño de verdad, déjala a un lado. Hoy no es para eso. Elige algo más liviano.
-
-[PAUSA REAL · 15 s — elegir el desacuerdo]
-
-Primer lugar. El tuyo.
-
-Vuelve a esa escena desde tus propios ojos.
-
-Mira lo que veías. Escucha lo que oías. Nota lo que sentías.
-
-[PAUSA REAL · 20 s — revivir la escena desde tus ojos]
-
-Escucha también lo que pensabas de la otra persona en ese momento.
-
-La frase. Tal cual. Quizá con un «siempre» o un «nunca» dentro.
-
-[PAUSA REAL · 15 s — escuchar tu frase sobre la otra persona]
+Escucha también lo que pensabas de la otra persona en ese momento. La frase, tal cual. Quizá con un «siempre» o un «nunca» dentro.
 
 Bien. Esa es tu versión. Tu mapa.
 
-[PAUSA LARGA]
+Respira una vez, largo.
 
-Ahora vas a salir de ahí, despacio.
+Ahora vas a salir de ahí, despacio. Imagina que te levantas de tu lugar en la escena y te vas a una esquina de la habitación.
 
-Imagina que te levantas de tu lugar en la escena
+Desde esa esquina puedes ver a las dos personas: a la otra, y a ti.
 
-y te vas a una esquina de la habitación.
+Este es el segundo lugar: el de una cámara. Una cámara no opina. No sabe quién tiene razón. Solo graba lo que se ve y lo que se oye.
 
-Desde ahí puedes ver a las dos personas: a la otra, y a ti.
+Desde esa esquina, mira la escena otra vez. ¿Qué palabras se dijeron, exactamente? ¿Qué tono tenía cada voz?
 
-[PAUSA LARGA]
+¿Qué hacía cada cuerpo? Los brazos, la cara, la distancia entre los dos. Mira con calma… tómate tu tiempo.
 
-Este es el segundo lugar. El de una cámara.
+Fíjate si hay algo que desde aquí se ve, y que desde tus ojos no veías. Un gesto. Un cansancio. Un momento en que la otra persona intentó algo.
 
-Una cámara no opina. No sabe quién tiene razón.
+No hace falta que encuentres mucho. Una sola cosa basta. Deja que aparezca… sin prisa.
 
-Solo graba lo que se ve y lo que se oye.
+Respira… y quédate un momento en la esquina.
 
-[PAUSA]
+Ahora, si te sientes con ganas, vamos al tercer lugar: el de la otra persona. Si prefieres quedarte en la esquina, quédate. También está bien.
 
-Desde esa esquina, mira la escena otra vez.
+Imagina que te acercas a donde estaba la otra persona. Y que, por un momento, miras la escena desde sus ojos.
 
-¿Qué palabras se dijeron, exactamente?
+Desde aquí, mira hacia donde estabas tú. ¿Qué ves? ¿Cómo se te ve desde aquí? ¿Qué cara tienes? ¿Qué tono tiene tu voz?
 
-¿Qué tono tenía cada voz?
+Quédate ahí unos momentos, mirando.
 
-¿Qué hacía cada cuerpo? ¿Los brazos, la cara, la distancia entre los dos?
+Y pregúntate, sin buscar tener razón: ¿qué podía estar necesitando esta persona en ese momento? ¿Qué le estaba pesando?
 
-[PAUSA REAL · 25 s — mirar la escena como una cámara]
+Deja que llegue una respuesta. Tómate el tiempo que necesites.
 
-Fíjate si hay algo que desde aquí se ve, y que desde tus ojos no veías.
+No sabes si es así. Es una hipótesis. Pero es una hipótesis distinta de la que tenías.
 
-Un gesto. Un cansancio. Un momento en que la otra persona intentó algo.
+Ahora vuelve a tu propio lugar. Sal de ahí, pasa un momento por la esquina de la cámara, y regresa a tus propios ojos, a tu propio cuerpo.
 
-[PAUSA REAL · 20 s — notar lo que tu mapa había dejado fuera]
+Respira… y siente que estás otra vez en tu lugar.
 
-No hace falta que encuentres mucho. Una sola cosa basta.
+Mira la escena una vez más, desde ti. Con lo que trajiste de los otros dos lugares.
 
-[PAUSA LARGA]
+¿Cambió algo en cómo la ves? ¿En cómo la sientes? Quédate ahí unos momentos.
 
-Ahora, si te sientes con ganas, vamos al tercer lugar. El de la otra persona.
+Muy bien. Deja que la escena se apague despacio.
 
-Si no te sientes con ganas, quédate en la esquina. También está bien.
-
-[PAUSA]
-
-Imagina que te acercas a donde estaba la otra persona.
-
-Y que, por un momento, miras la escena desde sus ojos.
-
-[PAUSA LARGA]
-
-Desde aquí, mira hacia donde estabas tú.
-
-¿Qué ves? ¿Cómo se te ve desde aquí? ¿Qué cara tienes? ¿Qué tono tiene tu voz?
-
-[PAUSA REAL · 20 s — mirarte desde el lugar del otro]
-
-Y pregúntate, sin buscar tener razón:
-
-¿Qué podía estar necesitando esta persona en ese momento?
-
-¿Qué le estaba pesando?
-
-[PAUSA REAL · 20 s — imaginar qué necesitaba la otra persona]
-
-No sabes si es así. Es una hipótesis.
-
-Pero es una hipótesis distinta de la que tenías.
-
-[PAUSA LARGA]
-
-Ahora vuelve a tu propio lugar.
-
-Sal de ahí, pasa un momento por la esquina de la cámara,
-
-y regresa a tus propios ojos, a tu propio cuerpo.
-
-[PAUSA LARGA]
-
-Mira la escena una vez más, desde ti.
-
-Con lo que trajiste de los otros dos lugares.
-
-¿Cambió algo en cómo la ves? ¿En cómo la sientes?
-
-[PAUSA REAL · 20 s — mirar la escena otra vez desde ti]
-
-Deja que la escena se apague despacio.
-
-[PAUSA LARGA]
-
-Vamos a volver. Cuento del uno al cinco.
-
-[PAUSA]
+Ahora vamos a volver. Voy a contar del uno al cinco. Con cada número vuelves un poco más a este lugar.
 
 Uno. Notas el peso de tu cuerpo, aquí.
 
-[PAUSA]
-
 Dos. Notas los pies en el suelo.
-
-[PAUSA]
 
 Tres. Vuelves a escuchar los sonidos del lugar donde estás.
 
-[PAUSA]
-
 Cuatro. Respiras un poco más hondo y mueves las manos.
-
-[PAUSA]
 
 Cinco. Abres los ojos. Estás aquí.
 
-[PAUSA LARGA]
+Antes de seguir con tu día, escribe una sola cosa: una pregunta que podrías hacerle a esa persona sobre su mapa. No para tener razón. Para entender qué vio. Tómate el tiempo que necesites.
 
-Antes de seguir con tu día, escribe una sola cosa:
+Por ejemplo: «¿Qué fue lo que más te molestó de esa conversación?». O: «¿Cómo lo viviste tú?».
 
-una pregunta que podrías hacerle a esa persona sobre su mapa.
+Si te animas, hazle esa pregunta esta semana. Y escucha la respuesta sin defender la tuya.
 
-No para tener razón. Para entender qué vio.
+En el material del módulo, en PDF, tienes los tres filtros y las preguntas que abren cada uno, para tenerlos a mano. En el ejercicio «Desmonta tu frase» puedes trabajar por escrito una frase que te repites.
 
-[PAUSA REAL · 30 s — escribir la pregunta]
-
-Si te animas, hazla esta semana.
-
-[PAUSA]
-
-En el material del módulo tienes los tres filtros y las preguntas que abren cada uno, para tenerlos a mano.
+Y cuando quieras seguir, te espero en el siguiente módulo, «Las presuposiciones de la PNL».

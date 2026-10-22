@@ -1,81 +1,27 @@
 # Presentación · Ancla de recurso
 
-**Emociones, anclajes y estados de recurso · Módulo 4 · 3-4 min · Presentación**
-Cámara fija, plano medio. Rótulo con los tres recursos y con la frase «El ancla rescata, no fabrica».
-Sin música.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 4 · 4-5 min
 
 Líderes, bendiciones.
 
-Ya sabes instalar un ancla. Ahora viene la parte difícil.
+Ya sabes instalar un ancla. Ahora viene la parte difícil, y no es la técnica. Es elegir qué anclas. Te hago una pregunta. Si pudieras tener a mano un estado, uno solo, en el momento justo, ¿cuál sería? Tómate unos segundos para elegirlo.
 
-Y no es la técnica. Es elegir qué anclas.
+¿Lo tienes? Ahora la segunda pregunta, que es la importante. ¿Cuándo fue la última vez que lo sentiste de verdad? Busca un momento concreto. Si apareció algo, perfecto: esa es tu materia prima. Y si no apareció nada, también es perfecto, porque este módulo es justo para ti.
 
-[PAUSA]
+El error más común en este punto es querer anclar un estado que nunca se tuvo. «Quiero anclar la seguridad de una presidenta de empresa.» «Quiero anclar la calma de un monje.» Y no se puede. Un ancla no fabrica lo que nunca viviste. Es como buscar en tu álbum la foto de un viaje que nunca hiciste. Puedes mirar el álbum todo el día, y esa foto no va a estar. Pero en ese mismo álbum hay muchas fotos que no miras hace años. Y ahí está lo que buscamos. El ancla rescata lo que ya viviste y tienes archivado.
 
-Te hago una pregunta. Si pudieras tener a mano un estado, uno solo, en el momento justo, ¿cuál sería?
+Y aquí aparece la objeción de siempre: «es que yo nunca he sentido seguridad». Te adelanto algo: casi siempre es falso. No porque mientas, sino porque estás buscando en el archivo equivocado. En este módulo te explico por qué pasa, y te doy tres formas de encontrar la escena aunque creas que no existe.
 
-[PAUSA REAL · 5 s — elegir el estado que más te gustaría tener a mano]
+Al terminar el módulo vas a poder hacer tres cosas. Elegir cuál de los tres recursos base necesitas de verdad: la calma, la confianza o la seguridad, que no siempre es el que crees. Apilar los tres en un mismo gesto, para que tu ancla sea más fuerte y te sirva en más situaciones. Y llevarla a tu semana, con un plan escrito de dónde y cuándo la vas a usar.
 
-Ahora la segunda pregunta, que es la importante.
+Así funciona el módulo. En la primera clase eliges tu recurso, encuentras tus escenas y aprendes a apilarlas. En la segunda clase armamos tu plan para la semana. Después hay un video de caso, con una persona a la que le cuesta encontrar un recuerdo, para que veas en directo cómo aparece la escena. Luego un audio guiado para apilar tus tres recursos. Y además tienes el material de lectura en PDF y un ejercicio opcional.
 
-¿Cuándo fue la última vez que lo sentiste de verdad?
+Hagamos una prueba de treinta segundos. Vuelve al estado que elegiste al principio. Ahora no busques el mejor día de tu vida. Busca un momento pequeño, de treinta segundos, en que lo sentiste aunque fuera un poco. Un «no» que dijiste. Algo que te salió bien. Un café sin prisa. Tómate unos segundos.
 
-[PAUSA REAL · 10 s — buscar la última vez que lo sentiste]
+¿Apareció algo distinto que antes? Si bajaste el listón y apareció algo, acabas de usar la primera de las tres salidas.
 
-Si apareció algo, perfecto. Esa es tu materia prima.
+Tu tarea para las próximas veinticuatro horas: busca un momento de cada recurso, calma, confianza y seguridad. Treinta segundos bastan. Y anota cuál te costó más.
 
-Si no apareció nada, también es perfecto. Este módulo es para ti.
-
-[A CÁMARA]
-
-El error más común en este punto es querer anclar un estado que nunca se tuvo.
-
-«Quiero anclar la seguridad de una presidenta de empresa.» «Quiero anclar la calma de un monje.»
-
-Y no se puede. Un ancla no fabrica lo que nunca viviste.
-
-Es como buscar en tu álbum la foto de un viaje que nunca hiciste. Puedes mirar el álbum todo el día: esa foto no está.
-
-Pero en ese álbum hay muchas fotos que no miras hace años. Y ahí está lo que buscamos.
-
-[RÓTULO: El ancla rescata, no fabrica]
-
-El ancla rescata. Rescata lo que ya viviste y tienes archivado.
-
-[PAUSA]
-
-Y aquí aparece la objeción de siempre: «es que yo nunca he sentido seguridad».
-
-Te adelanto algo: casi siempre es falso.
-
-No porque mientas. Porque estás buscando en el archivo equivocado. En este módulo te explico por qué, y te doy tres formas de encontrar la escena aunque creas que no existe.
-
-[RÓTULO: Calma · Confianza · Seguridad]
-
-Vamos a trabajar los tres recursos base: calma, confianza y seguridad.
-
-Vas a descubrir cuál necesitas de verdad, que no siempre es el que crees.
-
-Y vas a aprender a apilarlos: tres escenas distintas en un mismo gesto, para que el ancla sea más fuerte.
-
-[PAUSA]
-
-Al terminar el módulo te llevas dos cosas: un ancla apilada, y un plan escrito de dónde y cuándo la vas a usar esta semana.
-
-[RÓTULO: Clase 1 · Clase 2 · Caso · Audio guiado · Material en PDF]
-
-Tienes dos clases, un caso real con alguien que empieza diciendo «no se me ocurre nada», un audio para apilar tus tres recursos, el material en PDF y un ejercicio opcional.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para mañana: busca un momento de cada recurso. Calma, confianza y seguridad.
-
-Treinta segundos bastan. Y anota cuál te costó más.
-
-En la primera clase vas a ver por qué ese, el que más te costó, suele ser el que más falta te hace.
+En la primera clase, «Elegir y apilar el recurso», vas a ver por qué ese, el que más te costó, suele ser el que más falta te hace.
 
 Seguimos creciendo juntos.

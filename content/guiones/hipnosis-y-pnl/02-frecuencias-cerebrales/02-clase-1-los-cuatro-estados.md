@@ -1,317 +1,75 @@
 # Clase 1 · Los cuatro estados
 
-**Hipnosis y PNL: reprogramación mental · Módulo 2 · 11-14 min · Clase**
-Cámara fija. Cada estado entra con un rótulo (nombre, Hz y respiración). Dayana
-hace en cámara la práctica de 30 segundos, respirando de verdad. Tabla resumen
-en pantalla al final de los cuatro estados.
-
----
-
-[A CÁMARA]
+Hipnosis y PNL: reprogramación mental · Módulo 2 · 11-13 min
 
 Líderes, bendiciones.
 
-Hoy no te voy a explicar los estados del cerebro.
+Hoy no te voy a explicar los estados del cerebro desde lejos. Te los voy a hacer visitar, uno por uno. Al terminar esta clase vas a poder nombrar los cuatro estados con los que trabajamos en el curso. Vas a reconocer la respiración de cada uno y a leer en diez segundos en qué estado estás. Y vas a saber qué tiene respaldo en este tema y qué es humo.
 
-Te los voy a hacer visitar. Uno por uno.
+Primero, de dónde salen estos nombres. Cuando se ponen sensores en la cabeza de una persona, lo que se llama un electroencefalograma, se ve la actividad eléctrica del cerebro en forma de ondas. Hay ondas más rápidas y ondas más lentas. A cada rango de velocidad los investigadores le dieron un nombre: Beta, Alfa, Theta y Delta. Según lo que estés haciendo, unas predominan más que otras.
 
-[PAUSA]
+Empecemos por uno que conoces muy bien. Recuerda el último problema urgente que tuviste. Una cuenta que no cuadraba. Una discusión. Una entrega para ayer. Tráelo sin entrar demasiado, solo lo suficiente para recordarlo. Y mientras lo recuerdas, fíjate cómo estás respirando.
 
-Empecemos por uno que conoces muy bien.
+¿Lo notaste? Seguramente más rápido, más corto y más arriba, en el pecho. Suéltalo ya. Sacude un poco los hombros.
 
-Recuerda el último problema urgente que tuviste. Una cuenta que no cuadraba. Una discusión. Una entrega para ayer.
+Eso es Beta, el estado de alerta y de actividad consciente. Es pensamiento lógico, análisis, planear y resolver. Es donde estás cuando trabajas, cuando estudias y cuando tomas decisiones. Y su respiración es esa que acabas de sentir: rápida, superficial y alta.
 
-Tráelo. Sin entrar demasiado. Solo lo suficiente para recordarlo.
+Que quede claro desde ya: Beta no es malo. Beta es el estado donde se hace la vida. El problema no es pasar por Beta. El problema es vivir ahí todo el día, sin bajar nunca. De eso hablamos en la próxima clase.
 
-[PAUSA REAL · 15 s — recordar el problema urgente]
+Ahora vamos al segundo estado, y a este vamos a ir juntos. Durante treinta segundos vamos a respirar lento y profundo. Por la nariz, dejando que el aire baje hasta el abdomen. Y soltándolo más largo de lo que entró. Empezamos. Respira conmigo, a tu ritmo.
 
-Y mientras lo recuerdas, fíjate: ¿cómo estás respirando?
+Ahora fíjate qué cambió. Los hombros, ¿están más abajo? La mandíbula, ¿se aflojó un poco? Y el ritmo de tus pensamientos, ¿va igual de rápido que antes? Tómate unos segundos para notarlo.
 
-[PAUSA REAL · 5 s — notar la respiración]
+A esto le llamamos Alfa: calma con la mente despierta. Aparece cuando escuchas una música tranquila, cuando miras un paisaje o en esos minutos después de una ducha caliente. En los registros, las ondas Alfa se ven sobre todo cuando una persona está despierta, en reposo y con los ojos cerrados. Su respiración es más lenta, más profunda y más consciente. Y acabas de comprobar que no solo aparece sola: también la puedes buscar a voluntad, en treinta segundos.
 
-Seguramente más rápido. Más corto. Más arriba, en el pecho.
+Para este curso, Alfa es la puerta, el punto desde donde empieza todo lo que vamos a hacer. Y tiene una ventaja práctica: desde la calma se piensa con más claridad. Por eso estudiar o decidir en plena tensión rinde tan poco.
 
-Suéltalo ya. Sacude un poco los hombros.
+El tercer estado no lo podemos visitar en medio de una clase, pero lo puedes recordar. Piensa en esta mañana, en el momento justo al despertar, antes de abrir los ojos del todo. ¿Qué había en tu cabeza? Tómate unos segundos.
 
-[PAUSA]
+Quizá restos de un sueño. Imágenes. Una sensación de estar lejos. El cuerpo pesado y ninguna prisa por pensar. Eso es lo que llamamos Theta. Cuando una persona se está quedando dormida, en los registros aparecen más ondas lentas de este tipo. Lo visitas dos veces al día sin proponértelo: al dormirte y al despertar.
 
-[RÓTULO: BETA · 14 a 30 Hz · respiración rápida y alta]
+La respiración en ese estado es profunda, lenta y rítmica. Y hay una sensación de desconexión parcial del entorno: oyes lo que pasa, pero de lejos.
 
-Eso es Beta.
+Ahora, una aclaración honesta, porque aquí circula mucha exageración. Vas a leer que Theta es una «ventana» que abre el inconsciente, o que en Theta se puede programar la mente. Eso no está demostrado. Y los estudios con personas en hipnosis no encuentran un único tipo de onda que la defina.
 
-El estado de alerta y de actividad consciente.
+Lo que sí sabemos es que en estos estados la atención está más hacia adentro, las imágenes son más vivas y el análisis se relaja. Eso se parece mucho a lo que buscamos en hipnosis. Por eso en este curso usamos el nombre Theta para hablar de ese estado más profundo, hacia adentro. Pero no hay un botón que se abra en el cerebro.
 
-Pensamiento lógico. Análisis. Planear. Resolver problemas.
+Y el cuarto estado. Delta es el sueño profundo. Descanso físico, recuperación, casi ninguna actividad consciente. Su respiración es muy lenta y automática. En Delta no se trabaja: es donde el cuerpo descansa y se repara. Y un detalle práctico: si en un audio de este curso te duermes, no hiciste nada mal. Tu cuerpo necesitaba descanso, y lo tomó.
 
-Es donde estás cuando trabajas, cuando estudias, cuando tomas decisiones.
+Vamos a ver si quedó claro, con un juego rápido. Te digo una escena y tú me dices el estado, en voz alta o por dentro.
 
-Y su respiración es esa que acabas de sentir: rápida, superficial, alta.
+Vas tarde a una reunión y el tráfico no se mueve. ¿Qué estado es? Beta, y probablemente Beta alto. Miras el mar sin pensar en nada en particular. Alfa.
 
-[PAUSA]
+Es domingo, ya te despertaste, pero no abres los ojos y las imágenes siguen llegando. Theta. Son las tres de la mañana y no oyes ni el despertador del vecino. Delta.
 
-Y que quede claro desde ya: Beta no es malo.
+Ahora, cómo se usa este mapa en una inducción. En este curso lo pensamos como un camino. De Beta a Alfa, con la respiración. Y de Alfa hacia ese estado más profundo que llamamos Theta, con lo que se llama profundización: soltar el cuerpo, contar hacia atrás, imaginar. Eso lo vas a hacer completo en el módulo cinco.
 
-Beta es el estado donde se hace la vida.
+A medida que el cuerpo se relaja, suelen pasar cuatro cosas. Baja el diálogo interno. Baja la tensión muscular. La atención se enfoca. Y se hace más fácil imaginar.
 
-El problema no es pasar por Beta. Es vivir ahí todo el día. De eso hablamos en la próxima clase.
+Compruébalo ahora. Otra vez, unos veinte segundos de respiración lenta. Y esta vez fíjate solo en una cosa: el volumen de tu voz interior. ¿Habla igual de alto que al principio de la clase? Para mucha gente, no. Baja un poco.
 
-[A CÁMARA]
+Aquí está la clave de todo el módulo. Esto funciona en las dos direcciones. Tu estado cambia tu respiración: eso lo viste con el problema urgente. Pero tu respiración también cambia tu estado: eso lo viste en treinta segundos.
 
-Ahora vamos al segundo estado. Y a este vamos a ir juntos, ahora.
-
-Durante treinta segundos vamos a respirar lento y profundo.
-
-Por la nariz. Dejando que el aire baje hasta el abdomen. Y soltándolo más largo de lo que entró.
-
-[HACERLO]
-
-Empezamos.
-
-[PAUSA REAL · 30 s — respirar lento y profundo, con Dayana]
-
-Ahora fíjate qué cambió.
-
-Los hombros, ¿están más abajo?
-
-[PAUSA]
-
-La mandíbula, ¿se aflojó un poco?
-
-[PAUSA]
-
-Y el ritmo de tus pensamientos… ¿va igual de rápido que antes?
-
-[PAUSA REAL · 10 s — notar los cambios]
-
-[RÓTULO: ALFA · 8 a 13 Hz · respiración lenta y profunda]
-
-Eso es Alfa.
-
-Relajación consciente. Calma mental. Más creatividad, más imaginación.
-
-Y un aprendizaje más receptivo. Por eso estudiar en tensión rinde tan poco.
-
-[PAUSA]
-
-Alfa aparece sola cuando escuchas una música tranquila, cuando miras un paisaje, en esos minutos después de una ducha caliente.
-
-Y acabas de comprobar que también aparece a voluntad. En treinta segundos.
-
-[SUBRAYAR: Alfa es la puerta]
-
-Alfa es la puerta. Es donde empieza el acceso a todo lo que vamos a hacer en este curso.
-
-[A CÁMARA]
-
-El tercer estado no lo podemos visitar en una clase, pero lo puedes recordar.
-
-Piensa en esta mañana. En el momento justo al despertar, antes de abrir los ojos del todo.
-
-¿Qué había en tu cabeza?
-
-[PAUSA REAL · 10 s — recordar el momento de despertar]
-
-Quizá restos de un sueño. Imágenes. Una sensación de estar lejos.
-
-El cuerpo pesado. Ninguna prisa por pensar.
-
-[RÓTULO: THETA · 4 a 7 Hz · respiración profunda, lenta y rítmica]
-
-Eso es Theta.
-
-Lo visitas dos veces al día sin proponértelo: al dormirte y al despertar.
-
-Y también en una visualización profunda, o en hipnosis.
-
-[PAUSA]
-
-En Theta la receptividad es alta. Las imágenes son intensas. Las emociones se conectan más fácil. Aparecen recuerdos y recursos que en Beta no encuentras.
-
-La respiración es profunda, lenta, rítmica. Y hay una sensación de desconexión parcial del entorno.
-
-[PAUSA]
-
-Y aquí está lo importante para este curso.
-
-En este estado el filtro de la mente consciente baja la guardia.
-
-Por eso la mayor parte del trabajo de hipnosis ocurre aquí. Ese filtro tiene nombre, y es el tema del próximo módulo.
-
-[A CÁMARA]
-
-Y el cuarto.
-
-[RÓTULO: DELTA · 0,5 a 3 Hz · respiración muy lenta y automática]
-
-Delta. El sueño profundo.
-
-Descanso físico. Recuperación. Casi ninguna actividad consciente.
-
-En Delta no se trabaja. Es donde el cuerpo se repara.
-
-Y una cosa práctica: si en un audio de este curso te duermes, pasaste de Theta a Delta. No pasa nada. Tu cuerpo necesitaba descanso, y lo tomó.
-
-[TABLA EN PANTALLA]
-
-| Estado | Hz | Cuándo | Respiración |
-|---|---|---|---|
-| Beta | 14–30 | Trabajo, análisis, estrés | Rápida y superficial |
-| Alfa | 8–13 | Relajación consciente | Lenta y profunda |
-| Theta | 4–7 | Antes de dormir, al despertar, hipnosis | Profunda, lenta, rítmica |
-| Delta | 0,5–3 | Sueño profundo | Muy lenta, automática |
-
-[A CÁMARA]
-
-Vamos a ver si quedó. Un juego rápido.
-
-Te digo una escena. Tú me dices el estado.
-
-Vas tarde a una reunión y el tráfico no se mueve.
-
-[PAUSA REAL · 5 s — decir el estado]
-
-Beta. Y probablemente Beta alto.
-
-[PAUSA]
-
-Miras el mar sin pensar en nada en particular.
-
-[PAUSA REAL · 5 s — decir el estado]
-
-Alfa.
-
-[PAUSA]
-
-Es domingo, ya te despertaste, pero no abres los ojos y las imágenes siguen llegando.
-
-[PAUSA REAL · 5 s — decir el estado]
-
-Theta.
-
-[PAUSA]
-
-Son las tres de la mañana y no oyes ni el despertador del vecino.
-
-[PAUSA REAL · 5 s — decir el estado]
-
-Delta.
-
-[A CÁMARA]
-
-Ahora, cómo se usa esto en una inducción.
-
-[EN PANTALLA: Beta → (respiración larga) → Alfa → (profundización) → Theta]
-
-Una inducción hipnótica recorre siempre el mismo camino.
-
-De Beta a Alfa, con la respiración.
-
-Y de Alfa a Theta, con lo que llamamos profundización: soltar el cuerpo, contar hacia atrás, imaginar. Eso lo vas a hacer completo en el módulo cinco.
-
-[PAUSA]
-
-Y a medida que el cuerpo se relaja, pasan cuatro cosas.
-
-Baja el diálogo interno. Baja la tensión muscular. Sube la concentración. Y se facilita el aprendizaje.
-
-Compruébalo. Otra vez, veinte segundos de respiración lenta. Y esta vez fíjate solo en una cosa: el volumen de tu voz interior.
-
-[HACERLO]
-
-[PAUSA REAL · 20 s — respirar lento y escuchar la voz interior]
-
-¿Habla igual de alto que al principio de la clase?
-
-[PAUSA]
-
-Para casi todo el mundo, no.
-
-[A CÁMARA]
-
-Aquí está la clave de todo el módulo.
-
-Esto funciona en las dos direcciones.
-
-Tu estado cambia tu respiración. Eso lo viste con el problema urgente.
-
-Pero tu respiración también cambia tu estado. Eso lo viste en treinta segundos.
-
-[SUBRAYAR: la respiración es la palanca que sí controlas]
-
-Y de todo ese sistema, la respiración es lo único que puedes mover a voluntad.
-
-El detalle que más importa: la exhalación más larga que la inhalación. Eso es lo que activa la respuesta de calma del cuerpo.
-
-[A CÁMARA]
+Y de todo ese sistema, la respiración es lo único que puedes mover a voluntad. El detalle que más importa es la exhalación más larga que la inhalación. Esa salida lenta del aire es la que ayuda al cuerpo a calmarse, y es de lo poco en este tema que está bien estudiado.
 
 Entonces, ¿cómo lees en qué estado estás? Con tres preguntas. Las vamos a hacer ahora mismo, sobre tu respiración de este momento.
 
-[RÓTULO: 1 · ¿Dónde?]
+La primera: ¿dónde se mueve el aire? ¿Arriba, en el pecho, o abajo, en el abdomen? Tómate unos segundos.
 
-La primera: ¿dónde se mueve el aire? ¿Arriba, en el pecho, o abajo, en el abdomen?
+La segunda: ¿qué tan rápido va? No cuentes. Solo nota si va con prisa o sin prisa. Y la tercera: ¿qué dura más, la entrada del aire o la salida? Nótalo un momento.
 
-[PAUSA REAL · 10 s — notar dónde se mueve el aire]
+¿Lo tienes? Si el aire está arriba, va rápido y entra más de lo que sale, estás en Beta. Si está abajo, va lento y sale más largo de lo que entra, vas camino de Alfa. No necesitas ningún aparato: tu respiración te lo dice en diez segundos. Y fíjate en algo curioso. Con solo hacerte las preguntas, tu respiración ya empezó a cambiar.
 
-[RÓTULO: 2 · ¿Qué tan rápido?]
+Dos notas de honestidad antes de terminar. La primera: estos cuatro nombres son una simplificación útil. El cerebro real nunca está en un solo estado a la vez, y los rangos exactos cambian un poco según el libro. Lo que sí sabemos es que hay estados distintos, que se reconocen y que se puede pasar de uno a otro. Para este curso, con eso basta.
 
-La segunda: ¿qué tan rápido? No cuentes. Solo nota si va con prisa o sin prisa.
+La segunda: en internet vas a encontrar audios con frecuencias «milagrosas». Quinientos veintiocho hercios para atraer dinero. Cuatrocientos treinta y dos hercios para sanar. Eso es afinación musical, no ondas cerebrales, y son cosas completamente distintas.
 
-[PAUSA REAL · 10 s — notar la velocidad]
+Los ritmos binaurales sí tienen algo de investigación, con resultados modestos y mezclados. Pueden ayudarte a relajarte, como cualquier música tranquila. Milagros, no. El criterio es simple: si promete un resultado grande, rápido y sin esfuerzo, desconfía.
 
-[RÓTULO: 3 · ¿Qué es más largo?]
+Hagamos un resumen. Trabajamos con cuatro estados. Beta para la alerta. Alfa para la calma despierta. Theta para ese estado hacia adentro de antes de dormir. Y Delta para el sueño profundo. Cada uno tiene su respiración, y como la respiración se puede mover a voluntad, es tu palanca para cambiar de estado.
 
-Y la tercera: ¿qué dura más, la entrada del aire o la salida?
+Tu tarea para las próximas veinticuatro horas: tres veces en el día, para un minuto y pregúntate en qué estado estás. Mira tu respiración para contestarte. Después respira treinta segundos, lento, con la exhalación larga, y vuelve a preguntarte.
 
-[PAUSA REAL · 10 s — comparar la entrada y la salida]
-
-Si el aire está arriba, rápido, y entra más de lo que sale, estás en Beta.
-
-Si está abajo, lento, y sale más largo de lo que entra, vas camino de Alfa.
-
-[PAUSA]
-
-No necesitas ningún aparato. Tu respiración te lo dice en diez segundos.
-
-Y fíjate en algo curioso: con solo hacerte las preguntas, tu respiración ya empezó a cambiar. Mirarla ya la calma un poco.
-
-[A CÁMARA]
-
-Dos notas de honestidad antes de terminar.
-
-[PAUSA]
-
-La primera. Los rangos de hercios son una simplificación útil.
-
-El cerebro real nunca está en un solo estado a la vez. Lo que sí sabemos es que hay estados distintos, que se reconocen, y que se puede pasar de uno a otro.
-
-Para este curso, con eso basta.
-
-[PAUSA]
-
-La segunda. En internet vas a encontrar audios con frecuencias «milagrosas».
-
-528 hercios para atraer dinero. 432 hercios para sanar.
-
-Eso es afinación musical, no ondas cerebrales. Son cosas completamente distintas.
-
-Los ritmos binaurales sí tienen algo de investigación, con resultados modestos y mezclados. Pueden ayudarte a relajar, como cualquier música tranquila. Milagros, no.
-
-[RÓTULO: Grande, rápido y sin esfuerzo = no]
-
-El criterio es simple. Si promete un resultado grande, rápido y sin esfuerzo, no lo es.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Tres veces en el día, para un minuto y pregúntate: ¿en qué estado estoy?
-
-Mira tu respiración para contestarte.
-
-Después respira treinta segundos, lento, con la exhalación larga. Y vuelve a preguntarte.
-
-[PAUSA]
-
-En la segunda clase vas a dibujar tu día entero en estados. Y vas a descubrir algo que casi nadie espera.
+En la segunda clase, Tu día en estados y la ventana Theta, vas a dibujar tu día entero en estados. Y vas a descubrir algo que casi nadie espera.
 
 Seguimos creciendo juntos.

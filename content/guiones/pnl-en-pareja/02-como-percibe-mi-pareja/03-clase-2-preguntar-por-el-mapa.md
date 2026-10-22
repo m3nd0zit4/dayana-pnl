@@ -1,231 +1,65 @@
 # Clase 2 · Preguntar por el mapa del otro
 
-**PNL para relaciones y pareja · Módulo 2 · 10-12 min · Clase**
-Taller a cámara. La tabla «en vez de / prueba» aparece fila a fila. Dayana dice
-cada pregunta de las dos formas, con tono de fiscal y con tono de curiosidad.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 2 · 9-11 min
 
 Líderes, bendiciones.
 
-En la clase anterior vimos que cada uno vive en su propio mapa.
+En la clase anterior vimos que cada persona vive en su propio mapa. Hoy vamos a aprender a preguntar por el mapa de tu pareja. Y te adelanto algo: la clave no está solo en la pregunta. Está en el tono.
 
-Hoy vamos a aprender a preguntar por el mapa del otro.
+Al terminar esta clase vas a tener cuatro preguntas que abren la conversación en lugar de cerrarla, dichas por ti en voz alta. Vas a saber qué responder cuando tu pareja entendió algo distinto de lo que dijiste. Vas a haber probado un ejercicio muy revelador, el de las dos versiones. Y vas a saber cuándo todo esto ya no basta.
 
-Y la clave no está en la pregunta. Está en el tono.
+Empecemos con tu voz. Di en voz alta esta pregunta: «¿Por qué te pusiste así?». Hazlo ahora, como te sale normalmente.
 
-[A CÁMARA]
+¿Cómo sonó? Seamos honestos: casi siempre suena a juicio. Suena a «te pusiste mal y quiero que me expliques tu error». Ahora escucha la misma pregunta dicha con curiosidad de verdad, más despacio: «¿Por qué… te pusiste así?». La segunda suena mejor. Pero aun con buen tono, esa pregunta empuja a la otra persona a defenderse. Por eso hay preguntas que lo hacen más fácil.
 
-Haz esto conmigo. Di en voz alta: «¿Por qué te pusiste así?»
+Te las voy a dar de dos en dos: lo que solemos decir, y lo que puedes probar en su lugar. Y cada una la vas a decir tú en voz alta, después de mí.
 
-[PAUSA REAL · 10 s — el alumno la dice en voz alta]
+En vez de «eso no fue así», prueba: «¿Cómo lo viviste tú?». Dila ahora.
 
-¿Cómo sonó?
+En vez de «¿por qué te pusiste así?», prueba: «¿Qué fue lo que más te dolió de eso?». Dila ahora.
 
-Seamos honestos: casi siempre suena a juicio. A «te pusiste mal y quiero que me expliques tu error».
+En vez de «siempre exageras», prueba: «Cuéntame qué pasó desde tu lado». Dila ahora.
 
-[HACERLO: Dayana la dice dos veces, primero con tono de fiscal y después con curiosidad real]
+Y en vez de «yo no dije eso», prueba: «¿Qué entendiste tú de lo que dije?». Dila ahora.
 
-«¿Por qué te pusiste así?»
+¿Notaste cómo cambia tu propia voz con las segundas? Es difícil decirlas con tono de fiscal. Por eso son útiles.
 
-«¿Por qué… te pusiste así?»
+Ahora vamos a detenernos en la última, que es mi favorita. Muchísimas discusiones de pareja no son sobre lo que pasó. Son sobre lo que se entendió. Te pongo un ejemplo muy típico. Lucía le pregunta a Daniel si pueden ir el domingo a casa de su hermana. Daniel está cansado y responde: «Haz lo que quieras».
 
-[PAUSA]
+Lo que Daniel quiso decir era: «Decide tú, confío en ti, a mí me parece bien cualquier cosa». Lo que Lucía entendió fue: «No me importa nada de lo tuyo». Y la discusión que viene después es sobre si él dijo o no dijo algo malo. Cuando el problema estaba en el puente entre lo dicho y lo entendido. La pregunta «¿qué entendiste tú de lo que dije?» va directo a ese puente.
 
-La segunda es mejor. Pero aun con buen tono, la pregunta empuja hacia una defensa.
+Pero esa pregunta tiene una segunda parte, y es donde casi todos fallamos. Cuando tu pareja te responda, no corrijas de inmediato. Hay dos pasos. Primero, devuélvele lo que entendió, con sus palabras: «Entendiste que no me importa». Y solo después aclaras: «Lo que quise decir era que confío en ti para decidir».
 
-Por eso hay preguntas que lo hacen más fácil.
+Si te saltas el primer paso y vas directo a «no, yo no quise decir eso», la otra persona siente que su versión no cuenta. Y vuelven a la discusión de quién tiene razón.
 
-[TABLA EN PANTALLA]
+Vamos a practicarlo. Imagina que tu pareja te dice: «Entendí que te da igual lo que yo quiera». Responde en voz alta con los dos pasos. Primero, lo que entendió. Después, lo que quisiste decir. Tómate el tiempo que necesites.
 
-Te las voy a dar en parejas. Lo que solemos decir, y lo que puedes probar en su lugar.
+¿Notaste que el primer paso cuesta? Cuesta porque sientes que estás aceptando algo injusto. No lo estás aceptando. Solo estás mostrando que escuchaste. Y eso abre la puerta para que tu aclaración entre.
 
-Y cada una la vas a decir tú en voz alta.
+Ahora busca en tu casa. ¿Hay alguna frase tuya que tu pareja suele entender distinto de como la dices? Un «haz lo que quieras», un «ya veremos», un «está bien». Tómate unos segundos. Si la encontraste, ya tienes una pista de dónde empiezan algunas de sus discusiones.
 
-[RÓTULO: «Eso no fue así» → «¿Cómo lo viviste tú?»]
+Con esto claro, pasemos a un ejercicio incómodo y muy revelador: el de las dos versiones. Si tu pareja quiere hacerlo contigo, es así. Eligen una escena reciente y pequeña. Cada uno la cuenta, por turnos, sin que el otro interrumpa. Ni una palabra, ni un gesto de «eso no fue así». Y después cada uno responde una sola pregunta: «¿Qué de lo que dijo no sabía?».
 
-En vez de «eso no fue así»: «¿Cómo lo viviste tú?»
+No se trata de acordar una versión. Se trata de descubrir que había dos, y que las dos tienen sentido desde dentro.
 
-[PAUSA REAL · 5 s — el alumno la dice en voz alta]
+Si lo vas a hacer a solas, que es lo más frecuente, se hace por escrito. Primero escribes la escena desde tu lado: qué pasó, qué sentiste, qué creías que sentía tu pareja. Después la escribes desde su lado, en primera persona, como si fueras tu pareja: «Yo llegué y vi que…». Y al final, la misma pregunta: ¿qué apareció en su versión que no había considerado?
 
-[RÓTULO: «¿Por qué te pusiste así?» → «¿Qué fue lo que más te dolió de eso?»]
+Vamos a hacer un minuto de esto ahora mismo. Recupera la escena que elegiste en la clase anterior, la que recuerdan distinto. Cierra los ojos y cuéntala por dentro en primera persona, como si fueras tu pareja. Empieza con «yo». Tómate un minuto, o el tiempo que necesites.
 
-En vez de «¿por qué te pusiste así?»: «¿Qué fue lo que más te dolió de eso?»
+¿Apareció algo nuevo? ¿Algo que tu pareja podía estar sintiendo y que tú no habías visto? Eso es el mapa del otro. Y fíjate en algo: no te quita la razón. Te da información.
 
-[PAUSA REAL · 5 s — el alumno la dice en voz alta]
+Hay un concepto de John Gottman que encaja perfecto aquí: el mapa del amor. Es cuánto sabe cada uno del mundo interno del otro: qué le preocupa, qué le ilusiona, cómo está con su familia esta semana. Te hago tres preguntas rápidas, y respondes para ti. ¿Qué es lo que más le preocupa a tu pareja estos días? ¿Qué le ilusiona ahora mismo? ¿Quién le cae mal en su trabajo?
 
-[RÓTULO: «Siempre exageras» → «Cuéntame qué pasó desde tu lado»]
+¿Pudiste responder las tres? Si alguna te costó, no es un reproche. Es una dirección para preguntar esta semana. El mapa del amor no se adivina: se actualiza preguntando.
 
-En vez de «siempre exageras»: «Cuéntame qué pasó desde tu lado».
+Ahora lo que tengo que decirte, aunque no sea agradable. Hay situaciones donde esto no basta. A veces la diferencia de mapas se convirtió en desprecio: ironía constante, ojos en blanco, hablar de la otra persona como de alguien tonto. Si es así, ya no es un problema de mapas. En la investigación de Gottman, el desprecio es la señal de alarma más fuerte para una pareja. Ahí lo que corresponde es terapia de pareja, no una técnica.
 
-[PAUSA REAL · 5 s — el alumno la dice en voz alta]
+Y si en tu relación hay miedo, amenazas o control, tampoco hablamos de mapas distintos. Ahí lo que toca es buscar ayuda profesional y ponerte a salvo.
 
-[RÓTULO: «Yo no dije eso» → «¿Qué entendiste tú de lo que dije?»]
+Hagamos un resumen. La pregunta importa, pero el tono importa más. Tienes cuatro preguntas para abrir en lugar de cerrar. Cuando alguien entendió algo distinto, primero devuelves lo que entendió y después aclaras. El ejercicio de las dos versiones muestra que había dos historias coherentes. Y el mapa del amor se mantiene preguntando.
 
-Y en vez de «yo no dije eso»: «¿Qué entendiste tú de lo que dije?»
+Tu tarea para las próximas veinticuatro horas. Elige una de las cuatro preguntas y úsala una vez, con curiosidad de verdad. Mi recomendación es «¿qué entendiste tú de lo que dije?». Y anota qué pasó.
 
-[PAUSA REAL · 5 s — el alumno la dice en voz alta]
-
-[A CÁMARA]
-
-Esta última es mi favorita. Y te explico por qué.
-
-Muchísimas discusiones de pareja no son sobre lo que pasó. Son sobre lo que se entendió.
-
-Te pongo un ejemplo muy típico.
-
-Lucía le pregunta a Daniel si pueden ir el domingo a casa de su hermana.
-
-Daniel está cansado y responde: «haz lo que quieras».
-
-[PAUSA]
-
-Lo que Daniel quiso decir: «decide tú, a mí me da igual, confío en ti».
-
-Lo que Lucía entendió: «no me importa nada de lo tuyo».
-
-[PAUSA]
-
-Y la discusión que viene después es sobre si él dijo o no dijo algo malo. Cuando el problema estaba en el puente entre lo dicho y lo entendido.
-
-«¿Qué entendiste tú de lo que dije?» va directo a ese puente.
-
-[A CÁMARA]
-
-Pero ojo, porque la pregunta tiene una segunda parte. Y es donde casi todos fallamos.
-
-Cuando tu pareja te responda, no corrijas de inmediato.
-
-Primero devuélvele lo que entendió, con sus palabras: «Entendiste que no me importa».
-
-Solo después aclaras: «Lo que quise decir era que confío en ti para decidir».
-
-[PAUSA]
-
-Si te saltas el primer paso y vas directo a «no, yo no quise decir eso», la otra persona siente que su versión no cuenta. Y volvemos a la discusión de quién tiene razón.
-
-Practícalo. Imagina que tu pareja te dice: «Entendí que te da igual lo que yo quiera».
-
-Responde en voz alta con los dos pasos. Primero lo que entendió. Después lo que quisiste decir.
-
-[PAUSA REAL · 20 s — el alumno responde en voz alta con los dos pasos]
-
-¿Notaste que el primer paso cuesta? Cuesta porque sientes que estás aceptando algo injusto.
-
-No lo estás aceptando. Solo estás mostrando que escuchaste. Y eso abre la puerta para que tu aclaración entre.
-
-[A CÁMARA]
-
-Ahora busca tú. ¿Hay alguna frase tuya que tu pareja suele entender distinto de como la dices?
-
-Un «haz lo que quieras», un «ya veremos», un «está bien».
-
-[PAUSA REAL · 15 s — el alumno busca una frase suya que se entiende distinto]
-
-Si la encontraste, ya tienes una pista de dónde empiezan algunas discusiones.
-
-[A CÁMARA]
-
-Ahora quiero proponerte un ejercicio incómodo. Y muy revelador.
-
-[RÓTULO: Las dos versiones]
-
-Si tu pareja quiere hacerlo contigo, es así:
-
-Eligen una escena reciente, pequeña.
-
-Cada uno la cuenta, por turnos, sin que el otro interrumpa. Ni una palabra. Ni un gesto de «eso no fue así».
-
-Y después cada uno responde una sola pregunta:
-
-[RÓTULO: ¿Qué de lo que dijo no sabía?]
-
-«¿Qué de lo que dijo el otro no sabía?»
-
-[PAUSA]
-
-No se trata de acordar una versión. Se trata de descubrir que había dos. Y que las dos tienen sentido desde dentro.
-
-[A CÁMARA]
-
-Y si lo vas a hacer a solas, que es lo más frecuente, se hace por escrito.
-
-Primero escribes la escena desde tu lado. Qué pasó, qué sentiste, qué creías que sentía tu pareja.
-
-Después la escribes desde su lado. En primera persona, como si fueras tu pareja: «yo llegué y vi que…».
-
-Y al final, la misma pregunta: ¿qué apareció en su versión que no había considerado?
-
-[PAUSA]
-
-Vamos a hacer un minuto de esto ahora, de forma muy breve.
-
-Piensa en la escena que elegiste al inicio de la clase anterior.
-
-Ahora, en tu cabeza, cuéntala en primera persona como si fueras tu pareja. Empieza con «yo».
-
-[PAUSA REAL · 45 s — el alumno cuenta mentalmente la escena desde el lado de su pareja]
-
-¿Apareció algo nuevo? ¿Algo que tu pareja podía estar sintiendo y que tú no habías visto?
-
-[PAUSA REAL · 10 s — el alumno nota qué apareció]
-
-Eso es el mapa del otro. Y no te quita la razón: te da información.
-
-[A CÁMARA]
-
-Hay un concepto de John Gottman que encaja perfecto aquí: el mapa del amor.
-
-Es cuánto sabe cada uno del mundo interno del otro. Qué le preocupa, qué le ilusiona, cómo está su relación con su familia esta semana.
-
-Te hago tres preguntas rápidas. Responde para ti.
-
-¿Qué es lo que más le preocupa a tu pareja estos días?
-
-[PAUSA REAL · 5 s — el alumno responde]
-
-¿Qué le ilusiona ahora mismo?
-
-[PAUSA REAL · 5 s — el alumno responde]
-
-¿Quién le cae mal en su trabajo?
-
-[PAUSA REAL · 5 s — el alumno responde]
-
-Si alguna te costó, no es un reproche. Es una dirección para preguntar esta semana.
-
-[A CÁMARA]
-
-Y ahora lo que tengo que decirte, aunque no sea agradable.
-
-Hay situaciones donde esto no basta.
-
-Si la diferencia de mapas se convirtió en desprecio: ironía constante, poner los ojos en blanco, hablar del otro como de alguien tonto…
-
-eso ya no es un problema de mapas.
-
-El desprecio es la señal de alarma más fuerte que se conoce en la investigación de pareja, y ahí lo que corresponde es terapia de pareja, no una técnica.
-
-[PAUSA]
-
-Y si en tu relación hay miedo, amenazas o control, tampoco estamos hablando de mapas distintos.
-
-Ahí lo que toca es buscar ayuda profesional y ponerte a salvo.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Elige una de las cuatro preguntas y úsala una vez, con curiosidad de verdad.
-
-Mi recomendación: «¿Qué entendiste tú de lo que dije?».
-
-Y anota qué pasó.
-
-[PAUSA]
-
-En la práctica vas a ver a dos personas contando la misma escena por turnos. Te va a sorprender cuánto cambia.
+En el video de práctica, «La misma escena, contada por los dos», vas a ver a dos personas contar la misma escena por turnos. Te va a sorprender cuánto cambia. Y después vas a contar la tuya.
 
 Seguimos creciendo juntos.

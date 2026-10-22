@@ -1,164 +1,53 @@
 # Caso · Modelar en directo
 
-**Fundamentos de la PNL · Módulo 1 · 10-12 min · Caso**
-Se necesita a alguien que haga bien algo cotidiano. Si no hay invitado, Dayana
-modela a alguien conocido reconstruyendo la observación. Al final, el patrón
-escrito en pantalla.
+Fundamentos de la PNL · Módulo 1 · 8-10 min
 
----
+Líderes, bendiciones.
 
-[A CÁMARA]
+En la primera clase dijimos que la PNL nace de modelar. Modelar es observar a alguien que hace algo muy bien, y convertir lo que hace en pasos que otra persona pueda seguir. Hoy lo vamos a hacer, para que no tengas que creerme. Primero me vas a ver modelar una habilidad cotidiana, de principio a fin. Después vas a hacer lo mismo con la persona que elegiste en la primera clase. Al terminar este video vas a tener una habilidad escrita en pasos, y la diferencia más pequeña que puedes probar tú.
 
-En la clase dijimos que la PNL nace de modelar.
+La habilidad que elijo es esta: calmar a un niño que está llorando. Todos conocemos a alguien que lo consigue en treinta segundos. Y todos conocemos a alguien que lo intenta durante veinte minutos y lo empeora. Los dos quieren lo mismo. Uno hace algo distinto. Lo que vamos a buscar es exactamente qué.
 
-Ahora lo vamos a hacer, para que dejes de tener que creerme.
+Antes de mirar, la regla número uno del modelado: no le preguntes a la persona por qué lo hace. Si le preguntas por qué, te va a dar una teoría. Te va a decir «es que hay que tener paciencia». Eso no se puede seguir, porque no es un paso. Lo que se pregunta es qué hace. Y sobre todo, en qué orden lo hace.
 
-[PAUSA]
+Vamos con la observación. Imagina a una abuela en un parque. Su nieto se cae y empieza a llorar fuerte. Lo primero que hace, y es lo que más se nota, es agacharse. Se pone a la altura del niño, y a veces hasta se sienta en el suelo. Fíjate que todavía no ha dicho nada.
 
-Voy a tomar una habilidad pequeña y cotidiana,
+Segundo paso: baja el volumen. No lo sube, lo baja. Habla más bajo de lo que está llorando el niño, y más lento.
 
-y la voy a desmenuzar hasta que quede en pasos que tú puedas seguir.
+Tercer paso: su primera frase no es una instrucción. No dice «no llores». No dice «no pasa nada». Dice lo que ve: «Estás llorando muy fuerte». O nombra lo que pasó: «Te caíste».
 
-[A CÁMARA]
+Cuarto paso: espera. Deja un silencio que a los demás nos parece larguísimo. Y en ese silencio, el niño suele bajar un poco el llanto.
 
-Elijo esta: calmar a un niño que está llorando.
+Quinto paso, y solo entonces: ofrece algo. Un abrazo, una idea, una salida. «¿Vamos a lavarte la rodilla?»
 
-Todos conocemos a alguien que lo hace en treinta segundos.
+Ahora comparemos con lo que hace la persona que no lo consigue. Se queda de pie. Sube el volumen para que el niño la oiga. Su primera frase es una orden: «no llores, ya está, no es para tanto». Y no espera. Va encadenando frases, porque el silencio le incomoda.
 
-Y todos conocemos a alguien que lo intenta veinte minutos y empeora.
+¿Ves lo que pasó? No es que la abuela tenga más paciencia. Es que la abuela acompaña primero y propone después, y la otra persona propone de entrada. En la PNL esto tiene nombre: acompasar y liderar. Y no lo inventó nadie en una pizarra. Se sacó de observar a gente que ya lo hacía, sin saber cómo se llamaba.
 
-Los dos quieren lo mismo. Uno hace algo distinto.
+Ahora el patrón escrito, en cinco pasos. Uno: ponte a su altura, físicamente. Dos: habla más bajo y más lento que la otra persona. Tres: tu primera frase describe lo que ves, no ordena nada. Cuatro: haz silencio y espera de verdad. Cinco: solo entonces, propón.
 
-[PAUSA]
+Son cinco pasos que puede seguir cualquiera. Y funcionan con un niño de tres años. También con un compañero de trabajo que llega enojado, y con tu pareja cuando entra por la puerta con la cara torcida. Con tu pareja sería algo así. Te sientas a su lado en vez de hablarle desde la cocina. Bajas la voz. Dices lo que ves: «te veo con un día pesado». Esperas. Y solo después preguntas qué necesita.
 
-Regla número uno del modelado:
+Ahora te toca a ti. Ten a mano una hoja. Vamos a modelar a la persona que elegiste en la primera clase: alguien de tu entorno que hace muy bien algo cotidiano. Si no elegiste a nadie, hazlo ahora. Alguien que dice que no sin culpa. Alguien que cobra sin incomodidad. Alguien que mantiene la calma cuando algo sale mal. Escribe arriba su nombre y la habilidad. Pausa el video si necesitas pensarlo.
 
-no le preguntes a la persona por qué lo hace.
+¿Lo tienes? Ahora trae una vez concreta en que viste a esa persona hacerlo. Un día, un lugar. Cierra los ojos un momento y vuelve a esa escena, como si la estuvieras viendo otra vez.
 
-Te va a dar una teoría, y la teoría casi nunca es lo que hace.
+Primera pregunta: ¿qué es lo primero que hace? No lo que crees que siente, sino lo que vería una cámara si la grabara. ¿Se acerca, se aleja, se sienta, respira, hace una pausa? Escríbelo como paso uno. Tómate unos segundos.
 
-Te va a decir «es que hay que tener paciencia».
+Segunda pregunta: ¿qué hace con el cuerpo y con la voz? ¿Cómo está su postura? ¿Habla rápido o despacio? ¿Mira a los ojos? Por ejemplo, quien dice que no sin culpa muchas veces mira a la otra persona, dice el «no» al principio y da una sola razón, corta. Anota lo que tú viste en tu persona.
 
-Eso no se puede seguir. Eso no es un paso.
+Tercera pregunta: ¿qué dice, y en qué orden? Muchas veces la diferencia no está en qué se hace, sino en qué va primero. Escribe la secuencia completa: primero esto, después esto, después aquello. Pausa el video y escríbela con calma.
 
-[RÓTULO: Qué hace, no por qué lo hace]
+¿Ya tienes tu receta? Léela una vez. Si otra persona pudiera seguirla sin conocer a quien la hace, vas bien. Si dice cosas como «tiene seguridad» o «es muy tranquila», cámbialas por conducta. No «tiene seguridad», sino «mira a los ojos y hace una pausa antes de responder».
 
-Lo que se pregunta es qué hace.
+Ahora el último paso, y el más importante. Compara esa receta con lo que haces tú en la misma situación. Vas a ver muchas diferencias. No te quedes con la más grande. Quédate con la más pequeña: una pausa antes de contestar, una primera frase distinta, sentarte en vez de quedarte de pie. La más pequeña es la única que puedes reproducir mañana. Escríbela abajo y subráyala.
 
-Y sobre todo: en qué orden.
+¿La tienes? Eso es modelar. No hizo falta ninguna técnica ni ningún vocabulario especial. Solo mirar qué hace quien lo hace bien, en qué orden, y quedarte con la diferencia que sí puedes probar.
 
-[A CÁMARA]
+Hagamos un resumen. Modelar tiene cuatro reglas. Pregunta qué hace, no por qué. Descríbelo en conducta que se pueda ver. Fíjate en el orden. Y busca la diferencia más pequeña.
 
-Vamos con la observación.
+Tu tarea para las próximas veinticuatro horas: si puedes, observa a esa persona en vivo, sin decirle nada, y comprueba tu receta. Y si tienes la oportunidad, pregúntale qué mira o en qué se fija primero. No le preguntes por qué.
 
-Primero, y esto es lo que más se nota, se agacha.
-
-Se pone a la altura del niño. A veces se sienta en el suelo.
-
-Fíjate que todavía no ha dicho nada.
-
-[PAUSA]
-
-Segundo: baja el volumen. No sube: baja.
-
-Habla más bajo de lo que está hablando el niño.
-
-Y más lento.
-
-[PAUSA]
-
-Tercero: la primera frase que dice no es una instrucción.
-
-No dice «no llores». No dice «no pasa nada».
-
-Dice lo que ve. «Estás llorando muy fuerte.»
-
-O nombra lo que pasó. «Se te cayó.»
-
-[PAUSA]
-
-Cuarto: espera. Deja un silencio que a los demás nos parece larguísimo.
-
-Y en ese silencio el niño suele bajar un poco.
-
-Quinto, y solo entonces: ofrece algo. Un abrazo, una idea, una salida.
-
-[A CÁMARA]
-
-Ahora comparemos con lo que hace la persona que no lo consigue.
-
-Se queda de pie. Sube el volumen para que la oigan.
-
-Su primera frase es una orden: no llores, ya está, no es para tanto.
-
-Y no espera. Va enlazando frases porque el silencio le incomoda.
-
-[PAUSA]
-
-¿Ves lo que pasó?
-
-No es que uno tenga más paciencia que el otro.
-
-Es que uno acompaña primero y propone después.
-
-Y el otro propone de entrada.
-
-[RÓTULO: Acompasar y liderar]
-
-Eso tiene nombre en la PNL. Se llama acompasar y liderar.
-
-Y no lo inventó nadie en una pizarra: se sacó de observar
-
-a gente que ya lo hacía sin saber cómo se llamaba.
-
-[A CÁMARA]
-
-Vamos a escribir el patrón.
-
-[RÓTULO EN PANTALLA: los cinco pasos, apareciendo uno a uno]
-
-Uno. Ponte a su altura, físicamente.
-
-Dos. Habla más bajo y más lento que la otra persona.
-
-Tres. La primera frase describe lo que ves, no ordena nada.
-
-Cuatro. Silencio. Espera de verdad.
-
-Cinco. Solo entonces, propón.
-
-[PAUSA]
-
-Cinco pasos. Los puede seguir cualquiera.
-
-Y funcionan con un niño de tres años, con alguien enfadado en el trabajo,
-
-y con tu pareja cuando entra por la puerta con la cara torcida.
-
-Es el mismo patrón.
-
-[A CÁMARA]
-
-Hazlo tú esta semana.
-
-Elige a alguien que haga bien algo pequeño.
-
-Míralo tres veces sin decirle nada.
-
-Y después escribe la secuencia: qué hace primero, qué hace después.
-
-No le preguntes por qué. Pregúntale qué mira, en qué se fija,
-
-qué es lo primero que hace.
-
-[PAUSA]
-
-Eso es modelar. Y es de lo más útil que te vas a llevar de este curso,
-
-porque lo puedes usar con cualquier habilidad que veas en alguien
-
-y quieras para ti.
-
-[A CÁMARA]
+En el audio guiado, «Observar un patrón», vas a hacer este mismo modelado por dentro, con calma, sobre un patrón tuyo.
 
 Seguimos creciendo juntos.

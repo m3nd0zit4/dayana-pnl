@@ -1,127 +1,33 @@
 # Presentación · Qué es un estado emocional
 
-**Emociones, anclajes y estados de recurso · Módulo 1 · 3-4 min · Presentación**
-Cámara fija, plano medio, silla con respaldo para que se vea el cambio de postura del final.
-Rótulo con las tres piezas cuando se nombran. Sin música.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 1 · 4-5 min
 
 Líderes, bendiciones.
 
-Antes de explicarte nada, te hago una pregunta.
+Bienvenidos a este curso. Antes de explicarte nada, te quiero hacer una pregunta. Piensa en algo que normalmente te sale bien. Explicarle una tarea a tu hijo, atender a un cliente difícil, cocinar para seis personas. Elige una sola cosa. Tómate unos segundos.
 
-Piensa en algo que te sale bien.
+¿La tienes? Ahora piensa en un día en que eso mismo no te salió. Sabías lo mismo. Tenías la misma capacidad. Eras la misma persona. Y no te salió. ¿Qué cambió? No cambió lo que sabes. Cambió el estado desde el que lo hacías.
 
-Explicarle algo a tu hijo. Atender a un cliente. Cocinar para seis personas.
+Imagina a Laura. Un martes, después de dormir bien, le explica a su hija la tarea de matemáticas y todo fluye. Tiene paciencia, encuentra ejemplos, hasta se ríen juntas. El jueves llega tarde, sin almorzar y con el teléfono sonando. Y la misma explicación termina en gritos. El jueves Laura sabía explicar igual que el martes. Lo que no tenía era acceso a eso que sabe.
 
-[PAUSA REAL · 5 s — elige una cosa que te sale bien]
+Eso es un estado. No es falta de motivación. Es que en un estado tienes a mano recursos que en otro sencillamente no aparecen. Y lo interesante es que un estado no es algo que te cae del cielo, como el clima. Está hecho de piezas concretas. Y lo que tiene piezas se puede trabajar.
 
-Ahora piensa en un día en que eso mismo no te salió.
+Te dejo un aviso desde ya, para que nadie se lleve una idea equivocada. Este curso no te va a enseñar a estar siempre bien. La tristeza, el enojo y el miedo tienen una función, y no los vamos a borrar. Lo que vas a aprender es a que no te atrapen cuando ya cumplieron su función, y a entrar en otro estado cuando la situación lo pide.
 
-Mismo conocimiento. Misma capacidad. La misma persona.
+En este primer módulo vas a ver de qué está hecho un estado. Son tres piezas: lo que hace tu cuerpo, a qué le prestas atención y lo que te dices por dentro. Al terminar el módulo vas a poder reconocer esas tres piezas en ti mientras pasan. Vas a saber qué enciende tus estados. Y vas a tener tres recuerdos tuyos: uno de calma, uno de confianza y uno de seguridad.
 
-Y no te salió.
+Esos tres recuerdos son la materia prima de lo que construimos en todo el curso: el ancla. Un gesto pequeño que te devuelve a la calma, a la confianza o a la seguridad justo cuando hacen falta.
 
-[PAUSA]
+Así funciona el módulo. Tiene dos clases. Después viene un video de práctica, donde revisamos lo básico pregunta por pregunta. Luego un audio guiado para hacer con los ojos cerrados. Y además tienes el material de lectura en PDF y un ejercicio opcional para escribir tu propio mapa de estados.
 
-¿Qué cambió?
+Una advertencia de estudio. Este es el curso con más práctica corporal de toda la academia. Si solo lo ves, no te lo llevas. Hay que hacerlo. Así que empezamos ahora mismo.
 
-No cambió lo que sabes. Cambió el estado desde el que lo hacías.
+Sin cambiar nada todavía, fíjate en cómo está tu espalda en este momento. Y en tus hombros. No los corrijas, solo nótalos. Ahora apoya bien la espalda, deja caer los hombros y suelta el aire despacio, más largo de lo que entró. Hazlo una vez más. Tómate unos segundos.
 
-[PAUSA]
+¿Cambió algo en lo que estabas pensando, aunque sea un poco? Si cambió algo, acabas de mover un estado desde el cuerpo. Y si no notaste nada, también es un dato. Lo vamos a afinar juntos.
 
-Imagina a Laura.
+Tu tarea para las próximas veinticuatro horas es muy pequeña. Una vez en el día, cuando notes que cambia tu humor, pregúntate: «¿Qué está haciendo mi cuerpo ahora?». Solo eso, una vez.
 
-Un martes, descansada, le explica a su hija la tarea de matemáticas y todo fluye.
-
-El jueves llega tarde, sin almorzar, con el teléfono sonando.
-
-Y la misma explicación termina en gritos.
-
-[PAUSA]
-
-El jueves Laura sabía explicar igual que el martes.
-
-Lo que no tenía era acceso.
-
-Eso es un estado. No es motivación.
-
-Es que en un estado tienes a mano recursos que en otro, sencillamente, no están.
-
-[A CÁMARA]
-
-Y un aviso desde ya, para que nadie se lleve una idea equivocada.
-
-Este curso no te va a enseñar a estar siempre bien.
-
-La tristeza, el enojo y el miedo tienen su función. No los vamos a borrar.
-
-Lo que vas a aprender es a que no te atrapen cuando ya cumplieron su función.
-
-[PAUSA]
-
-[RÓTULO: Cuerpo · Foco · Lenguaje interno]
-
-En este módulo vas a ver de qué está hecho un estado.
-
-Tres piezas: lo que hace tu cuerpo, a qué le prestas atención y lo que te dices por dentro.
-
-Al terminar, vas a poder reconocer esas tres piezas en ti mientras pasan.
-
-Vas a saber qué enciende tus estados.
-
-Y vas a tener tres recuerdos tuyos: uno de calma, uno de confianza y uno de seguridad.
-
-[PAUSA]
-
-Esos tres recuerdos son la materia prima del destino de este curso: el ancla.
-
-Un gesto pequeño que te devuelve a la calma, a la confianza o a la seguridad justo cuando hacen falta.
-
-[RÓTULO: Clase 1 · Clase 2 · Práctica · Audio guiado · Material en PDF]
-
-El módulo tiene dos clases, una práctica de cinco preguntas, un audio guiado para hacer con los ojos cerrados, el material en PDF y un ejercicio opcional.
-
-Y una advertencia de estudio.
-
-Este es el curso con más práctica corporal de toda la academia.
-
-Si solo lo ves, no te lo llevas. Hay que hacerlo.
-
-Así que empezamos ahora.
-
-[A CÁMARA]
-
-Sin cambiar nada todavía, fíjate en cómo está tu espalda en este momento.
-
-[PAUSA REAL · 5 s — nota tu postura sin corregirla]
-
-Ahora apoya bien la espalda. Suelta los hombros.
-
-Y deja salir el aire despacio, más largo de lo que entró.
-
-[HACERLO]
-
-[PAUSA REAL · 15 s — espalda apoyada, hombros abajo, una exhalación larga]
-
-¿Cambió algo en lo que estabas pensando? Aunque sea un poco.
-
-[PAUSA REAL · 5 s — nota si cambió algo en tu atención]
-
-Si cambió algo, acabas de mover un estado desde el cuerpo.
-
-Si no notaste nada, también es un dato. Lo vamos a afinar.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para mañana es muy pequeña.
-
-Una vez en el día, cuando notes que cambia tu humor, pregúntate: ¿qué está haciendo mi cuerpo ahora?
-
-Solo eso. Una vez.
-
-En la primera clase vamos a desarmar un estado pieza por pieza.
+En la primera clase, «De qué está hecho un estado», vamos a desarmar un estado pieza por pieza.
 
 Seguimos creciendo juntos.

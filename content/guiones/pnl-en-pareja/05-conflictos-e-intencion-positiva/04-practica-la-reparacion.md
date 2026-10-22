@@ -1,177 +1,53 @@
 # Práctica · Un intento de reparación, aceptado y rechazado
 
-**PNL para relaciones y pareja · Módulo 5 · 12-15 min · Práctica**
-Necesita dos personas invitadas en cámara, que representan una discusión doméstica
-pequeña. Es una representación y se dice a cámara. No se les escriben diálogos: se
-les da la situación y el momento del intento de reparación. Plano a dos; en el
-análisis, rótulo con el segundo exacto.
-
----
-
-[A CÁMARA]
+PNL para relaciones y pareja · Módulo 5 · 9-11 min
 
 Líderes, bendiciones.
 
-Antes de la práctica, un recuerdo.
+Esta es la práctica del módulo, y la vamos a hacer juntos, paso a paso. Primero vas a recordar un intento de reparación que viviste. Después te voy a contar una misma discusión dos veces, con el mismo intento de reparación: en una se rechaza y en la otra se acepta. Y al final vas a encontrar los intentos de reparación de tu pareja y vas a entrenar en voz alta cómo aceptarlos. Ten papel y lápiz a mano.
 
-Piensa en una discusión con tu pareja, o con alguien cercano, en la que alguien hizo un chiste en medio de la pelea.
+Empecemos por un recuerdo. Piensa en una discusión con tu pareja, o con alguien cercano, en la que alguien hizo un chiste en medio de la pelea. O dijo «espera, empecemos otra vez». O te tocó el brazo. Cierra los ojos un momento y trae ese momento. ¿Qué pasó después de ese gesto? ¿La pelea bajó, o subió?
 
-O dijo «espera, empecemos otra vez». O te tocó el brazo.
+¿Lo tienes? Ese gesto tiene nombre. Gottman lo llama intento de reparación. Y es probablemente el hallazgo más esperanzador de la investigación en pareja. Las parejas que duran no discuten menos. Discuten parecido. Lo que hacen distinto es reparar: en medio de la discusión, alguien hace un gesto que baja la temperatura, y el otro lo acepta.
 
-[PAUSA REAL · 15 s — el alumno trae ese momento]
+Fíjate en esto: lo decisivo no es hacer bien el intento. Es aceptarlo. Una pareja donde el chiste malo se recibe con media sonrisa está a salvo. Una donde se responde «no es momento para chistes» está en problemas, aunque discutan exactamente lo mismo. Ahora lo vas a comprobar.
 
-¿Qué pasó después de ese gesto? ¿La pelea bajó, o subió?
+Te voy a contar una escena dos veces. Mientras escuchas, tu tarea es encontrar el momento exacto del intento de reparación, y fijarte en qué cambia justo después. Imagina a Lucía y a Andrés. Es sábado por la mañana. Andrés quedó en comprar lo del almuerzo con la familia de Lucía, y se le olvidó. Lucía se da cuenta a las once, y la familia llega a la una.
 
-[PAUSA REAL · 10 s — el alumno lo recuerda]
+Primera versión. Lucía abre la nevera y dice: «No compraste nada. Te lo dije tres veces». Andrés responde: «Se me pasó, estuve toda la mañana con lo del carro». Lucía sube el tono: «Siempre hay algo más importante que lo que te pido». Andrés nota que la cosa se está calentando. Sonríe y dice: «Soy un desastre con las listas, deberían prohibirme entrar al supermercado». Lucía lo mira seria y le dice: «No es momento para chistes». Andrés se cruza de brazos: «Pues entonces ve tú, si yo todo lo hago mal».
 
-[A CÁMARA]
+A partir de ahí ya no se habla del almuerzo. Se habla de quién hace más en la casa, de lo que pasó el mes pasado, y de que «tú siempre». A la una llega la familia. No hay almuerzo, pero sí hay un silencio que se nota.
 
-Ese gesto tiene nombre.
+Ahora la segunda versión. La misma mañana, el mismo olvido, las mismas frases al principio. «No compraste nada. Te lo dije tres veces.» «Se me pasó, estuve toda la mañana con lo del carro.» «Siempre hay algo más importante que lo que te pido.» Y Andrés hace el mismo chiste malo: «Soy un desastre con las listas, deberían prohibirme entrar al supermercado». Esta vez Lucía suelta media sonrisa, aunque sigue molesta, y dice: «Ya, ya. Pero esto hay que resolverlo». Andrés responde: «Tienes razón. Voy ahora mismo. ¿Me mandas la lista por mensaje?».
 
-[RÓTULO: Intento de reparación]
+La discusión no desapareció. Lucía sigue molesta, y tiene derecho a estarlo. Pero la conversación siguió a otra temperatura, y a la una hay almuerzo.
 
-Gottman lo llama intento de reparación.
+Pausa el video un momento. ¿En qué momento exacto estuvo el intento de reparación? ¿Y qué fue lo que cambió entre las dos versiones? Escríbelo.
 
-Y es, probablemente, el hallazgo más esperanzador de toda la investigación en pareja.
+¿Lo tienes? Mira lo que pasó. El mismo tema, el mismo olvido, el mismo chiste malo, dicho en el mismo momento. Lo único que cambió fue la respuesta de Lucía. Y con eso cambió todo lo que vino después. Esto no quiere decir que Lucía tuviera la culpa en la primera versión. El olvido fue de Andrés. Quiere decir que aceptar una reparación es una decisión, y que esa decisión tiene mucho poder.
 
-Las parejas que duran no discuten menos. Discuten parecido.
+Hay otro dato de Gottman que acompaña a este. En las parejas estables, durante un conflicto, hay alrededor de cinco interacciones positivas por cada negativa. Fuera del conflicto, muchas más. No se trata de contar. Se trata de entender que un conflicto en un contexto de aprecio se digiere. Y el mismo conflicto, en un contexto de aspereza acumulada, no.
 
-Lo que hacen distinto es reparar: en medio de la discusión, alguien hace un gesto que baja la temperatura… y el otro lo acepta.
+Ahora tu parte. Escribe dos intentos de reparación que hace tu pareja. Su chiste, su frase, su gesto. Casi todo el mundo los hace, y casi nadie los ve cuando está con rabia. Si no se te ocurre ninguno, piensa en cómo suele terminar una discusión entre ustedes: ¿quién da el primer paso, y cómo lo da? Pausa el video y escríbelos.
 
-[PAUSA]
+¿Los tienes? Ahora pregúntate con honestidad: cuando estás con rabia, ¿los aceptas? ¿Casi siempre, a veces o casi nunca? Respóndete en silencio.
 
-Y fíjate en esto: lo decisivo no es hacer bien el intento. Es aceptarlo.
+Y ahora escribe los tuyos. ¿Qué haces tú para reparar? Puede ser un chiste, un «perdón, empecé mal», un abrazo, traer un café. Tómate unos segundos.
 
-Una pareja donde el chiste malo se recibe con media sonrisa está a salvo.
+¿Ya están? Ahora vamos a entrenar la aceptación, porque es lo que más cuesta. Imagina que estás en mitad de una pelea, y tu pareja hace su intento de siempre. Tu respuesta automática sería «no es momento para chistes». En lugar de eso, di en voz alta: «Ya, está bien. Empecemos otra vez». Hazlo ahora.
 
-Una donde se responde «no es momento para chistes» está en problemas. Aunque discutan exactamente lo mismo.
+Otra vez. Ahora con media sonrisa, aunque sea forzada: «Ya, está bien. Empecemos otra vez».
 
-[A CÁMARA]
+¿Cómo se sintió? Se siente raro aquí, sin pelea. Justamente por eso se entrena aquí, en frío. El día de la discusión, tu cuerpo ya conocerá el camino.
 
-Hoy lo vas a ver.
+Un paso más, si tu pareja quiere hacerlo contigo. Acuerden en frío una señal de reparación. Una palabra, un gesto, una frase tonta que sea solo de ustedes. Por ejemplo, decir «pausa de café», o tocarse la nariz. Y el compromiso es este: cuando uno la use, el otro la recibe, aunque siga con rabia. Recibirla no es darle la razón. Es aceptar bajar la temperatura para poder seguir hablando.
 
-Conmigo están [nombres de las personas invitadas]. Van a representar una pequeña discusión de casa. Es una representación, no es su relación.
+Y un límite claro. Todo esto es para discusiones entre dos personas que se respetan. Si en tu casa una discusión trae miedo, amenazas o golpes, eso no es un problema de comunicación. Un chiste no es una reparación, y aceptarlo no es tu tarea. Ahí lo que corresponde es ponerte a salvo y buscar ayuda de fuera.
 
-La van a hacer dos veces. Con el mismo intento de reparación.
+Hagamos un resumen. Las parejas que duran reparan más, y sobre todo aceptan la reparación del otro. El contenido de la pelea puede ser idéntico. Lo que cambia todo es la respuesta al intento. Y la aceptación se entrena en frío, para que salga en caliente.
 
-En la primera, se rechaza. En la segunda, se acepta.
+Tu tarea para las próximas veinticuatro horas: si surge una discusión, busca el intento de reparación de tu pareja, y acéptalo aunque te cueste. Si no hay discusión, dile hoy a tu pareja una cosa que aprecias. Eso también construye el fondo de aprecio del que hablamos.
 
-Tu tarea mientras miras: encontrar el segundo exacto del intento. Y ver qué cambia justo después.
-
-## Guion de conducción
-
-### Antes de grabar, con las personas invitadas (fuera de cámara)
-
-- La situación, la misma en las dos versiones: un sábado por la mañana, una de las dos personas quedó en comprar algo para el almuerzo con la familia y se le olvidó. La otra se da cuenta a las once.
-- No se escriben frases. Se les pide discutir como discutirían de verdad, con intensidad media, sin insultos ni gritos fuertes.
-- Se acuerda el intento de reparación y quién lo hace: la persona que olvidó, a mitad de la discusión, cuando la temperatura ya subió un poco. Puede ser un chiste malo sobre sí misma («soy un desastre con las listas, deberían prohibirme el supermercado») o un «espera, espera, empecemos otra vez».
-- Versión 1: la otra persona rechaza el intento («no es momento para chistes», «no cambies el tema»). Versión 2: lo acepta con media sonrisa o con un «ya, ya» y la discusión sigue, pero sin subir.
-- Se acuerda una señal para cortar cada versión (Dayana levanta la mano), y que pueden parar cuando quieran.
-
-### Versión 1 · El intento se rechaza
-
-- Dejar que la discusión arranque y suba un poco antes del intento.
-- Tras el rechazo, dejar correr unos treinta segundos para que se vea la escalada.
-- Cortar con la señal.
-
-[A CÁMARA]
-
-Pausa un momento.
-
-¿En qué segundo estuvo el intento? ¿Y qué pasó justo después?
-
-[PAUSA REAL · 15 s — el alumno anota el segundo y lo que pasó después]
-
-### Versión 2 · El intento se acepta
-
-- La misma situación, el mismo arranque, el mismo intento en el mismo momento.
-- La otra persona lo acepta. La discusión no termina: sigue, pero a otra temperatura.
-- Dejar correr hasta que se resuelva algo práctico (quién va a comprar, a qué hora).
-- Cortar con la señal.
-
-### Preguntas a las personas invitadas
-
-- A quien hizo el intento: «¿Qué sentiste cuando te lo rechazaron? ¿Y cuando te lo aceptaron?».
-- A quien lo recibió: «En la primera, ¿por qué lo rechazaste? ¿Qué te costó aceptarlo en la segunda?».
-- A las dos: «¿El contenido de la discusión cambió entre las dos versiones?». Normalmente responden que no: eso es lo que se quiere mostrar.
-
-### Lo que se señala después, a cámara
-
-- Se repiten los dos intentos, uno detrás del otro, con [RÓTULO: el mismo intento].
-- Señalar que el contenido de la pelea era idéntico. Lo único distinto fue la respuesta al intento.
-- Señalar el segundo exacto después del rechazo en que sube la temperatura, y el segundo después de la aceptación en que baja.
-- Si en la grabación la segunda versión también subió, se deja así y se dice: aceptar cuesta, y por eso se practica en frío.
-
-[A CÁMARA]
-
-¿Viste la diferencia?
-
-Mismo tema. Mismo olvido. Mismo chiste malo.
-
-Lo único que cambió fue la respuesta. Y con eso cambió todo lo que vino después.
-
-[A CÁMARA]
-
-Hay otro dato de Gottman que acompaña a este.
-
-En las parejas estables, durante un conflicto, hay alrededor de cinco interacciones positivas por cada negativa. Fuera del conflicto, muchas más.
-
-No se trata de contar. Se trata de entender que un conflicto en un contexto de aprecio se digiere. Y el mismo conflicto, en un contexto de aspereza acumulada, no.
-
-[A CÁMARA]
-
-Ahora tu parte.
-
-Escribe dos intentos de reparación que hace tu pareja. Su chiste, su frase, su gesto.
-
-Casi todo el mundo los hace. Y casi nadie los ve cuando está con rabia.
-
-[PAUSA REAL · 30 s — el alumno escribe los intentos de su pareja]
-
-Ahora pregúntate con honestidad: cuando estás con rabia, ¿los aceptas? ¿Casi siempre, a veces, casi nunca?
-
-[PAUSA REAL · 10 s — el alumno responde para sí]
-
-Y ahora los tuyos. ¿Qué haces tú para reparar?
-
-[PAUSA REAL · 20 s — el alumno escribe sus propios intentos]
-
-[A CÁMARA]
-
-Vamos a entrenar la aceptación. Porque es lo que más cuesta.
-
-Imagina que estás en mitad de una pelea, y tu pareja hace su chiste malo de siempre.
-
-Tu respuesta automática es «no es momento para chistes».
-
-En lugar de eso, di en voz alta: «Ya… está bien. Empecemos otra vez».
-
-[PAUSA REAL · 10 s — el alumno lo dice en voz alta]
-
-Otra vez, ahora con media sonrisa, aunque sea forzada.
-
-[PAUSA REAL · 10 s — el alumno lo repite]
-
-Se siente raro aquí, sin pelea. Justamente por eso se entrena aquí.
-
-[A CÁMARA]
-
-Si tu pareja quiere hacer esto contigo, acuerden en frío una señal de reparación.
-
-Una palabra, un gesto, una frase tonta que sea solo de ustedes.
-
-Y el compromiso: cuando uno la use, el otro la recibe. Aunque siga con rabia.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Si surge una discusión, busca el intento de reparación de tu pareja. Y acéptalo, aunque te cueste.
-
-Si no hay discusión, dile hoy a tu pareja una cosa que aprecias. Eso también es construir el cinco a uno.
-
-[PAUSA]
-
-En el audio guiado te voy a acompañar durante los veinte minutos de una pausa, para que el cuerpo baje y vuelvas a la conversación desde otro lugar.
+En el audio guiado, «Los veinte minutos de la pausa», te voy a acompañar durante una pausa. Es para que el cuerpo baje, y vuelvas a la conversación desde otro lugar.
 
 Seguimos creciendo juntos.

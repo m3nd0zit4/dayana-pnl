@@ -1,49 +1,24 @@
 # Audio guiado · Cerrar el día con tres preguntas
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 4 · 10-12 min · Audio guiado**
-Pensado para la noche. Voz muy lenta y baja, fondo musical suave. Las pausas reales se respetan en la edición. El final ofrece dos salidas: volver para seguir con la noche o quedarse a dormir.
+El poder del lenguaje: metamodelo y reencuadre · Módulo 4 · 12-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
+Este audio es para el final del día. Vas a soltar el día con la respiración, lo vas a repasar como una película corta y te vas a hacer tres preguntas sencillas. Al final te vas a llevar una sola cosa para mañana. No hace falta que el día haya sido bueno para hacer esto. Sirve igual un día tranquilo que un día difícil.
 
-[PAUSA]
+Puedes escucharlo en la cama o en un sillón, donde tengas comodidad. Si quieres, ten cerca un cuaderno, porque al final te voy a pedir que escribas una línea.
 
-Este audio es para el final del día.
-
-Puedes escucharlo en la cama, en un sillón, donde tengas comodidad y nadie te vaya a interrumpir.
-
-Si quieres, ten cerca un cuaderno. Al final te voy a pedir que escribas una línea.
-
-[PAUSA LARGA]
-
-Acomoda el cuerpo.
-
-Que la espalda se apoye. Que la cabeza descanse.
-
-[PAUSA]
+Acomoda el cuerpo. Que la espalda se apoye. Que la cabeza descanse.
 
 Y si quieres, cierra los ojos.
 
-[PAUSA]
+Toma aire por la nariz, despacio. Y suéltalo por la boca, como un suspiro largo.
 
-Toma aire por la nariz, despacio.
+Otra vez… y deja que con el aire salga un poco del día.
 
-Y suéltalo por la boca, como un suspiro largo.
-
-[PAUSA]
-
-Otra vez. Y deja que con el aire salga un poco del día.
-
-[PAUSA]
-
-Y una vez más.
-
-[PAUSA REAL · 15 s — respirar soltando el día con el aire]
+Y una vez más. Respira… y quédate ahí unos momentos.
 
 Deja que la respiración vuelva a su ritmo.
-
-[PAUSA LARGA]
 
 Nota el peso de las piernas.
 
@@ -53,81 +28,67 @@ El peso de la cabeza.
 
 Todo lo que hoy estuvo sosteniendo algo, ahora puede apoyarse.
 
-[PAUSA]
-
 Los ojos, detrás de los párpados, pueden descansar también. Hoy ya miraron mucho.
 
-[PAUSA LARGA]
+La mandíbula se afloja. Los hombros bajan un poco.
 
-Vamos a repasar el día. Como si fuera una película corta, sin detenerte en ninguna escena.
+Quédate así unos momentos, sin hacer nada.
+
+Si hay algo del día que todavía tira de ti, una conversación, una tarea, una preocupación, no hace falta resolverlo ahora. Imagina que lo dejas sobre una mesa, a tu lado. Va a seguir ahí mañana. Por ahora, puedes soltarlo.
+
+Ahora vamos a repasar el día. Como si fuera una película corta, sin detenerte en ninguna escena.
 
 Empieza por la mañana. Cómo te despertaste. Qué fue lo primero que hiciste.
 
-[PAUSA REAL · 15 s — recordar la mañana]
+Tómate unos momentos.
 
 El mediodía. Dónde estabas. Con quién.
 
-[PAUSA REAL · 15 s — recordar el mediodía]
-
-La tarde.
-
-[PAUSA REAL · 15 s — recordar la tarde]
+La tarde. Qué hiciste. Qué te ocupó la cabeza.
 
 Y este último rato, hasta ahora.
 
-[PAUSA REAL · 10 s — recordar el último rato]
-
 No hace falta juzgar nada de lo que viste. Solo pasó.
 
-[PAUSA LARGA]
+Respira… y deja que la película termine.
 
 Ahora te voy a hacer tres preguntas. Una por una, con tiempo.
 
 No busques la respuesta correcta. Deja que aparezca la verdadera.
 
-[PAUSA]
-
 La primera.
 
 ¿Qué hiciste hoy que volverías a hacer?
 
-[PAUSA]
-
 Puede ser algo muy pequeño. Un mensaje que mandaste. Algo que dijiste a tiempo. Un rato en que paraste.
 
-[PAUSA REAL · 25 s — encontrar algo de hoy que volverías a hacer]
+Tómate el tiempo que necesites.
 
 Quédate un momento con eso. Eso ya lo sabes hacer.
 
 Y lo que ya sabes hacer, mañana lo puedes volver a hacer a propósito.
 
-[PAUSA LARGA]
+Si quieres, nota cómo se siente el cuerpo al recordarlo. A veces aparece un poco de calma, o un orgullo pequeño. Deja que esté.
 
-La segunda pregunta. Y esta pide un poco de valentía.
+La segunda pregunta. Esta pide un poco de valentía.
 
 ¿Qué dijiste hoy que no era verdad?
 
-[PAUSA]
-
 No hablo de grandes mentiras. Hablo de un «estoy bien» que no era cierto. Un «sí, claro» que era un no. Un «no me importa» que sí importaba.
 
-[PAUSA REAL · 30 s — encontrar algo que dijiste hoy y no era verdad]
+Tómate el tiempo que necesites.
 
 No hace falta castigarte por eso. Solo verlo.
 
 Casi todos decimos alguna frase así cada día, por costumbre o por no complicar las cosas. Verla es el primer paso para elegir cuándo decirla y cuándo no.
 
-Y si quieres, pregúntate qué habrías dicho si fuera verdad.
+Y si quieres, pregúntate qué habrías dicho si hubieras dicho la verdad.
 
-[PAUSA REAL · 20 s — escuchar lo que habrías dicho de verdad]
+Escúchalo por dentro, sin prisa.
 
-[PAUSA LARGA]
-
-La tercera.
+La tercera pregunta.
 
 ¿Con quién estuviste de verdad hoy?
-
-[PAUSA]
 
 No con quién estuviste cerca. Con quién estuviste de verdad. Escuchando, mirando, sin el celular en la mano.
 
@@ -135,62 +96,42 @@ Puede ser una persona. Puede ser un animal. Puede ser un rato contigo.
 
 Y puede que la respuesta sea «con nadie». También vale. Es información.
 
-[PAUSA REAL · 30 s — encontrar con quién estuviste de verdad hoy]
+Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
+Si encontraste a alguien, recuerda un momento concreto de ese rato. Su cara, su voz, algo que te dijo. Y si la respuesta fue «con nadie», pregúntate con quién te gustaría estar de verdad mañana, aunque sea diez minutos.
 
-Ahora mira las tres respuestas juntas.
+Respira… y quédate ahí unos momentos.
 
-Lo que volverías a hacer. Lo que no era verdad. Con quién estuviste de verdad.
+Ahora mira las tres respuestas juntas. Lo que volverías a hacer. Lo que no era verdad. Con quién estuviste de verdad.
 
-[PAUSA]
-
-Y hazte la pregunta que cierra siempre.
-
-¿Qué hago con esto mañana?
+Y hazte la pregunta que cierra siempre: ¿qué hago con esto mañana?
 
 Una sola cosa. Pequeña. Que se pueda hacer.
 
 Repetir lo que salió bien. Decir la verdad en lo que hoy no dijiste. Estar de verdad con alguien un rato.
 
-[PAUSA REAL · 30 s — elegir una sola cosa para mañana]
+Tómate unos momentos para elegirla.
 
 Dila en voz baja, una vez, para que se quede.
 
-[PAUSA REAL · 10 s — decir en voz baja lo que harás mañana]
-
-[PAUSA LARGA]
+Y una vez más, despacio… como si ya estuviera hecha. Mañana no tiene que ser perfecto. Basta con esa sola cosa.
 
 Ahora el día ya está cerrado. Lo que quedó pendiente puede esperar a mañana.
 
-[PAUSA]
+Si vas a dormir, puedes quedarte así. Deja que la respiración se haga cada vez más lenta, y que el cuerpo se hunda un poco más en el apoyo. No hace falta hacer nada más. Buenas noches.
 
-Si vas a dormir, puedes quedarte así. Deja que la respiración se haga cada vez más lenta, y que el cuerpo se hunda un poco más en el apoyo. No hace falta hacer nada más.
-
-[PAUSA LARGA]
-
-Si todavía no vas a dormir, vamos a volver con calma.
+Si todavía no vas a dormir, vamos a volver con calma. Voy a contar del uno al cinco.
 
 Uno. Notas el cuerpo apoyado.
 
-[PAUSA]
-
-Dos. La respiración.
-
-[PAUSA]
+Dos. La respiración, a su ritmo.
 
 Tres. Los sonidos de la casa.
 
-[PAUSA]
-
 Cuatro. Mueves un poco las manos y los pies.
 
-[PAUSA]
+Cinco. Abres los ojos, despacio.
 
-Cinco. Abres los ojos.
+Si tienes el cuaderno cerca, escribe una línea: la cosa que vas a hacer mañana. Y mañana por la noche, si vuelves a este audio, empieza por ahí.
 
-[PAUSA]
-
-Si tienes el cuaderno cerca, escribe una línea: la cosa que vas a hacer mañana.
-
-Y mañana por la noche, cuando vuelvas a este audio, empieza por ahí.
+Con este audio cierras el módulo cuatro. En el material en PDF tienes el repertorio completo de preguntas, y el ejercicio opcional te propone siete días con siete preguntas. Cuando quieras seguir, te espero en el módulo cinco, Reencuadre de contenido y de contexto.

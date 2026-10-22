@@ -1,143 +1,63 @@
 # Práctica · La rutina de la mañana, en tiempo real
 
-**Emociones, anclajes y estados de recurso · Módulo 7 · 4-6 min · Práctica**
-Sin explicación: se entra directo. Voz tranquila y clara de mañana, ni de clase ni de relajación. Ritmo real de los ciclos, sin acelerar.
-Plano medio fijo. Pensado para ponerse cada mañana la primera semana.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 7 · 7-9 min
 
 Líderes, bendiciones.
 
-Buenos días. Cuatro minutos, y empezamos ya.
+Buenos días. Esta es la rutina de la mañana, completa y en tiempo real. Son cuatro minutos y tres partes: ocho ciclos de respiración cuatro, cuatro, seis; un minuto con tu ancla; y la pregunta del día. Al terminar vas a tener hecha tu mañana y vas a saber qué estado necesitas hoy, y para qué momento. Ponte este video cada mañana la primera semana. La segunda ya no deberías necesitarlo.
 
-Apoya la espalda. Pies en el piso. Suelta la mandíbula.
+Siéntate con la espalda apoyada. Los pies en el piso, con el peso repartido. Suelta la mandíbula: que los dientes no se toquen. Deja caer los hombros. Y apoya las manos sobre las piernas. Si tienes el celular en la mano, déjalo boca abajo. Estos cuatro minutos son tuyos.
 
-[PAUSA]
+Empezamos con la respiración. Son ocho ciclos. Inhalas en cuatro tiempos, sostienes cuatro y exhalas en seis. Yo cuento; tú solo sigues. Si sostener el aire te incomoda, no lo sostengas: inhala y exhala largo, a tu ritmo.
 
-Ocho ciclos de 4-4-6. Yo cuento.
+Uno. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-[HACERLO]
+Dos. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Uno.
+Tres. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Inhala… dos… tres… cuatro.
+Cuatro. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Sostén… dos… tres… cuatro.
+Vas por la mitad. Si la mente se fue a la lista de pendientes, no pasa nada. Tráela de vuelta al conteo.
 
-Exhala… dos… tres… cuatro… cinco… seis.
+Cinco. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-[PAUSA]
+Seis. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Dos.
+Siete. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Inhala… dos… tres… cuatro.
+Y ocho. Inhala… dos… tres… cuatro. Sostén… dos… tres… cuatro. Exhala… dos… tres… cuatro… cinco… seis.
 
-Sostén… dos… tres… cuatro.
+Ahora respira normal. Nota cómo quedó el cuerpo. ¿Cambió algo en el pecho, en los hombros, en la cara? Solo nótalo. Si amaneciste con prisa, quizás el cuerpo va ahora un poco más lento. Si amaneciste con sueño, quizás un poco más despierto. Cualquiera de las dos está bien.
 
-Exhala… dos… tres… cuatro… cinco… seis.
+Ahora tu ancla. Cierra los ojos si quieres. Trae tu escena de recurso, la que usaste para instalar tu ancla. ¿Dónde estás? ¿Qué ves alrededor? Tómate unos segundos para verla. Si hoy la escena no aparece clara, no pasa nada. Quédate con un detalle: un color, una voz, la sensación de los pies en ese lugar.
 
-[PAUSA]
+¿Qué se oye en esa escena? ¿Qué te dices, o qué te dicen? Y tu cuerpo: ¿cómo está tu postura? ¿Cómo respiras ahí?
 
-Tres.
+Deja que el estado suba. Que la imagen se acerque, que tenga más luz, que los sonidos estén más cerca. Y cuando sientas que está arriba, haz el gesto. El mismo punto, la misma presión. Sostenlo unos segundos.
 
-Inhala… dos… tres… cuatro.
+Suelta. Abre los ojos. Mira alrededor.
 
-Sostén… dos… tres… cuatro.
+Una vez más, más corta. Cierra los ojos. Vuelve a la escena, directo al momento en que te sentías mejor. Deja que suba. Y en lo alto, el gesto. El mismo punto, la misma presión.
 
-Exhala… dos… tres… cuatro… cinco… seis.
+Suelta. Abre los ojos. Fíjate qué quedó en el cuerpo. Un poco más de calma, un poco más de firmeza, o casi nada. Todo cuenta. Cada mañana que lo haces, el ancla se mantiene fuerte.
 
-[PAUSA]
+Ahora la pregunta del día: ¿qué estado necesito hoy, y para qué momento? Recorre tu día, en orden. Empieza por la mañana: ¿qué tienes antes del almuerzo? Una reunión, una llamada, un trámite. Ahora la tarde: ¿qué te espera? Quizás una conversación pendiente, el tráfico de vuelta, la hora de las tareas con los niños. Y la noche: ¿hay algo ahí? Ahora fíjate cuál de esos momentos te va a pedir algo. ¿Calma, confianza, seguridad, paciencia? Tómate tu tiempo, y pausa el video si lo necesitas.
 
-Cuatro.
+¿Lo tienes? Dilo en voz alta, en una sola frase. Por ejemplo: «hoy necesito calma para la reunión de las tres». O: «hoy necesito paciencia para la hora de las tareas».
 
-Inhala… dos… tres… cuatro.
+Ahora decide qué vas a hacer un minuto antes de ese momento. Puedes hacer el protocolo de sesenta segundos: pies en el piso, tres exhalaciones largas, mandíbula suelta, mirada abierta y tu frase. O puedes hacer solo tu gesto. Elige ahora cuál de los dos vas a usar.
 
-Sostén… dos… tres… cuatro.
+Ahora ensáyalo unos segundos, con los ojos cerrados si quieres. Te ves un minuto antes de ese momento. Dónde estás, qué hora es. Te ves haciendo tu protocolo o tu gesto. Y te ves entrando a ese momento desde el estado que elegiste. Tómate unos segundos.
 
-Exhala… dos… tres… cuatro… cinco… seis.
+Abre los ojos. Ese momento ya no te va a tomar por sorpresa.
 
-[PAUSA]
+Y si hoy no aparece ningún momento especial, también está bien. Entonces la pregunta te sirve para elegir el estado con el que quieres empezar el día.
 
-Cinco.
+Eso es todo. Cuatro minutos. Respiraste, activaste tu ancla y miraste tu día antes de que empiece. Lo hiciste antes de que el día empezara a decidir por ti. Mañana, después del mismo enganche, lo hacemos otra vez. Si algún día solo tienes un minuto, haz tu versión mínima: tres exhalaciones largas y el gesto. Lo importante es no fallar dos días seguidos.
 
-Inhala… dos… tres… cuatro.
+Tu tarea para las próximas veinticuatro horas: marca la casilla de la mañana en tu registro, y acuérdate del momento que elegiste. Cuando llegue, un minuto antes, haz lo que decidiste.
 
-Sostén… dos… tres… cuatro.
-
-Exhala… dos… tres… cuatro… cinco… seis.
-
-[PAUSA]
-
-Seis.
-
-Inhala… dos… tres… cuatro.
-
-Sostén… dos… tres… cuatro.
-
-Exhala… dos… tres… cuatro… cinco… seis.
-
-[PAUSA]
-
-Siete.
-
-Inhala… dos… tres… cuatro.
-
-Sostén… dos… tres… cuatro.
-
-Exhala… dos… tres… cuatro… cinco… seis.
-
-[PAUSA]
-
-Y ocho.
-
-Inhala… dos… tres… cuatro.
-
-Sostén… dos… tres… cuatro.
-
-Exhala… dos… tres… cuatro… cinco… seis.
-
-[PAUSA]
-
-Respira normal.
-
-[A CÁMARA]
-
-Ahora tu ancla.
-
-Cierra los ojos si quieres. Trae tu escena de recurso. El lugar, el sonido, el cuerpo.
-
-[PAUSA REAL · 20 s — traer la escena de recurso]
-
-Deja que suba. Y cuando esté arriba, el gesto.
-
-[PAUSA REAL · 10 s — gesto en el pico]
-
-Suelta. Abre los ojos.
-
-[PAUSA]
-
-[A CÁMARA]
-
-Y la pregunta del día.
-
-[RÓTULO: ¿Qué estado necesito hoy, y para qué momento?]
-
-¿Qué estado necesito hoy, y para qué momento?
-
-Piensa en tu día. La reunión, la llamada, la conversación, la tarde con los niños.
-
-[PAUSA REAL · 30 s — contestar qué estado necesitas hoy y para qué momento]
-
-Si tienes la respuesta, ya sabes qué vas a hacer un minuto antes de ese momento: el protocolo de sesenta segundos, o tu gesto.
-
-[A CÁMARA. Cierre.]
-
-Eso es todo. Cuatro minutos.
-
-Marca la casilla de la mañana en tu registro. Tu tarea para hoy es esa: marcarla, y acordarte del momento que elegiste.
-
-Esta noche te espera el audio de la revisión de la noche.
+Esta noche te espera el audio guiado La revisión de la noche, que es también el cierre del curso.
 
 Seguimos creciendo juntos.

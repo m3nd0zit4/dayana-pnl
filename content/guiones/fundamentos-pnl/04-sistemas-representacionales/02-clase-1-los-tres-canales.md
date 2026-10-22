@@ -1,237 +1,61 @@
 # Clase 1 · Los tres canales
 
-**Fundamentos de la PNL · Módulo 4 · 15-18 min · Clase**
-La tabla de traducción va en pantalla. El bloque honesto sobre los ojos y el
-canal fijo no se recorta: es la mitad del valor de la clase.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 4 · 11-13 min
 
 Líderes, bendiciones.
 
-Vamos a empezar haciendo, no explicando.
+En esta clase vamos a ver los tres canales con los que representamos la experiencia: el visual, el auditivo y el kinestésico. Vamos a ver cómo suena cada uno en las palabras de la gente. Vamos a ver cómo traducir un mensaje de un canal a otro. Y vamos a ver por qué tantas discusiones de pareja son, en el fondo, un problema de traducción. Y al final vamos a ver la parte honesta: qué de esta teoría se sostiene y qué hay que soltar. Al terminar vas a poder escuchar una frase, reconocer su canal y responder de una forma que llegue mejor.
 
-[PAUSA]
+Vamos a empezar haciendo, no explicando. Cierra los ojos un momento y acuérdate de tus últimas vacaciones. O de un día bueno del año pasado, cualquiera. Quédate ahí unos segundos. Ahora fíjate en qué apareció primero. ¿Una imagen? ¿Un sonido, una voz, una canción? ¿O una sensación en el cuerpo, como calor o un cansancio bueno?
 
-Cierra los ojos un segundo y acuérdate de tus últimas vacaciones.
+¿Lo notaste? Sea lo que sea que apareció primero, eso es una pista. No sobre quién eres, sino sobre por dónde entraste a ese recuerdo.
 
-O de un día bueno del verano pasado. Cualquiera.
+Representamos la experiencia por tres canales. Visual, lo que vemos. Auditivo, lo que oímos. Y kinestésico, lo que sentimos. Aquí sentir incluye dos cosas: las sensaciones del cuerpo y las emociones. Usamos los tres, siempre, y eso quiero que quede claro desde el principio. Pero cuando algo importa, cuando hay emoción o cuando hay prisa, uno de los tres suele llevar la voz cantante.
 
-[PAUSA LARGA]
+¿Y cómo se nota? Por las palabras. Alguien que en ese momento tira a lo visual dice cosas como «lo veo claro», «no le veo salida» o «esto no pinta bien». También dice «a simple vista» o «me imagino que…». Muchas veces habla rápido, porque las imágenes van más rápido que las palabras, y va corriendo detrás de lo que está viendo por dentro. También suele mover las manos a la altura de la cara.
 
-Ahora fíjate en qué apareció primero.
+Alguien que tira a lo auditivo dice «me suena bien», «me dijo que…», «no me cuadra», «se me quedó grabado» o «tengo que hablarlo». Suele hablar con un ritmo más parejo. Cuida más cómo suena lo que dice. Y muchas veces le molesta el ruido más que a los demás.
 
-¿Apareció una imagen? ¿Apareció un sonido, una voz, una canción?
+Y alguien que tira a lo kinestésico dice «lo siento así», «me pesa» o «me da mala espina». También dice «se me hizo un nudo» o «no le agarro la mano a esto». Suele hablar más despacio y hacer pausas. A veces la gente cree que duda, cuando lo que está haciendo es comprobar por dentro qué siente.
 
-¿O apareció una sensación en el cuerpo, calor, cansancio bueno?
+Hagamos una prueba contigo. De estas tres frases, ¿cuál dirías tú con más naturalidad cuando algo te preocupa? «No le veo salida.» «No me suena nada bien.» «Me pesa muchísimo.» Dila en voz alta.
 
-[PAUSA]
+¿Cuál elegiste? Guárdala. No te dice tu tipo, porque no hay tipos. Te dice hacia dónde tira tu lenguaje cuando algo te preocupa, y eso te va a servir para escucharte.
 
-Sea lo que sea lo que apareció primero, eso es una pista.
+Ahora, ¿para qué sirve todo esto? Para algo muy concreto: para que lo que dices llegue. Mira esta traducción. Quiero explicarte un plan para organizar los gastos de la casa. La versión visual sería: «Mira, te lo muestro en una hoja. ¿Ves cómo encaja esta parte con esta?». La versión auditiva: «Te cuento cómo va, y me dices si algo te suena raro». Y la versión kinestésica: «Vamos paso a paso. Prueba esta parte este mes y me dices cómo te sentiste».
 
-[RÓTULO: Visual · Auditivo · Kinestésico]
+Es la misma información, con tres puertas distintas. Y si le entras a alguien por la puerta equivocada, pasa algo muy común. Tú crees que lo explicaste bien, y la otra persona cree que no entendió nada. ¿Cuál de las tres versiones te habría convencido a ti? Piénsalo un segundo.
 
-[A CÁMARA]
+En el trabajo pasa igual. Un jefe que dice «no lo veo» no necesita que le repitas el argumento más fuerte. Necesita verlo: un gráfico, una lista, un ejemplo en papel. Y un compañero que dice «esto no me cuadra» quizá necesita que se lo cuentes en otro orden, conversando con calma.
 
-Representamos la experiencia por tres canales.
+Esto pasa mucho en pareja, y es el ejemplo que más ayuda a verlo. Imagina a Marta y a Andrés. Marta dice: «Es que tú nunca me dices nada». Andrés contesta: «Pero si te acabo de arreglar el carro». Los dos tienen razón, y los dos están hablando idiomas distintos. Andrés demostró cariño en su canal: haciendo algo, con las manos. Marta lo esperaba en el suyo: oyéndolo.
 
-Visual, lo que vemos. Auditivo, lo que oímos. Kinestésico, lo que sentimos.
+Y entonces aparece la frase que hace mucho daño: «no me quiere como yo lo quiero». Muchas veces es falsa. Lo que pasa es que no la quiere en su idioma. Y eso sí se puede traducir. Esto se trabaja a fondo en el curso «PNL para relaciones y pareja», en el módulo «Cómo percibe mi pareja».
 
-Y aquí «sentir» incluye dos cosas: las sensaciones del cuerpo
+Tómate unos segundos para esta pregunta. ¿En qué idioma das cariño tú? ¿Con palabras, con gestos, con cosas que haces? ¿Y en qué idioma lo esperan las personas que quieres?
 
-y las emociones.
+¿Encontraste alguna diferencia? Si la encontraste, ya tienes una pista de por qué a veces das mucho y no se nota.
 
-[PAUSA]
+Con esto claro, pasemos a la parte honesta, que para mí es de las más importantes del curso. En la PNL clásica se afirmaron dos cosas sobre los canales que hay que corregir.
 
-Usamos los tres, siempre. Eso quiero que quede claro desde el principio.
+La primera: que cada persona tiene un canal fijo. Que tú «eres visual», y punto. Eso no se sostiene. En los años ochenta, varios investigadores revisaron los estudios sobre el canal preferente, entre ellos Christopher Sharpley y Michael Heap. Y no encontraron el respaldo que la PNL afirmaba. La gente cambia de canal según el tema, el momento y la persona con quien habla. Recordar una canción es auditivo y recordar una cara es visual, en la misma persona y el mismo día.
 
-Pero cuando algo importa, cuando hay emoción, cuando hay prisa,
+La segunda, y esta es la más famosa: que hacia dónde miran los ojos revela qué está haciendo la mente. Que si miras hacia un lado recuerdas, y si miras hacia el otro inventas. Es decir, que se puede saber si alguien miente por los ojos. Eso no funciona. En el año dos mil doce, el psicólogo Richard Wiseman y su equipo lo pusieron a prueba en tres estudios, y no encontraron esa relación. Y me parece grave, porque es de las cosas que más se enseñan y que más daño hacen. Lleva a acusar a alguien de mentir por hacia dónde miró.
 
-uno de los tres suele llevar la voz cantante.
+Soltar estas dos ideas no le quita valor a lo demás. Una herramienta que usas sabiendo lo que es te sirve más que una que te vendieron como magia.
 
-[A CÁMARA]
+Entonces, si eso no vale, ¿qué queda? Queda algo más pequeño y bastante útil. Escucha las palabras que usa la otra persona cuando habla de lo que le importa, y devuélvele esas mismas palabras. Si alguien te dice «me siento sola», no le contestes «entiendo que te sientas desatendida». Le acabas de cambiar la palabra por la tuya, y eso se recibe como una corrección. Repetir su palabra exacta suena a «te entendí».
 
-¿Y cómo se nota? Por las palabras.
+Y después, comprueba. Cuando devuelves una frase con la palabra del otro, mira qué pasa. Si algo se afloja, si la respiración baja, si asiente, vas bien. Si no pasa nada, prueba otra puerta. Eso se afina con la calibración, que vas a ver en el módulo cinco.
 
-[RÓTULO: Visual]
+Y para explicar algo importante, no lo digas de una sola forma. Dilo en las tres. Muéstralo, cuéntalo y déjale probarlo. Así entra por donde entre, y no dependes de adivinar el canal de nadie.
 
-Alguien que tira a visual dice cosas como:
+¿Por qué funciona esto, si no hay canales fijos? Por dos razones con más respaldo. La primera: hay investigación que muestra que las personas que se acercan a la forma de hablar del otro tienden a conectar mejor. Esos estudios miden sobre todo palabras pequeñas, no los verbos de los sentidos, pero apuntan en la misma dirección. La segunda: una idea que llega por varios caminos, con palabras y con imágenes, se recuerda mejor que la que llega por uno solo.
 
-lo veo claro, no le veo salida, me imagino que, esto no pinta bien,
+Hagamos un resumen. Representamos la experiencia por tres canales: ver, oír y sentir. Usamos los tres, y cuando algo importa uno suele llevar la voz cantante, y se nota en las palabras. Nadie tiene un canal fijo, y los ojos no delatan a nadie. Lo que sí funciona es escuchar las palabras del otro, devolverle las suyas y explicar lo importante en los tres canales.
 
-a simple vista, se me ilumina.
+Tu tarea para las próximas veinticuatro horas: elige a una persona cercana y anota tres expresiones exactas que use cuando habla de algo que le importa. Solo las palabras, tal cual. No intentes clasificarla.
 
-Y suele hablar rápido. Porque las imágenes van más rápido que las palabras,
-
-y va corriendo detrás de lo que está viendo por dentro.
-
-También suele gesticular arriba, a la altura de la cara.
-
-[RÓTULO: Auditivo]
-
-Alguien que tira a auditivo dice:
-
-suena bien, me dijo que, no me cuadra, se me quedó grabado,
-
-que no te entra en la cabeza, tengo que hablarlo.
-
-Habla a un ritmo más parejo. Cuida más las palabras.
-
-Y le molesta más el ruido que a los demás.
-
-[RÓTULO: Kinestésico]
-
-Y alguien que tira a kinestésico dice:
-
-lo siento así, me pesa, no me da buena espina, se me hizo un nudo,
-
-no lo termino de agarrar, necesito tomármelo con calma.
-
-Habla más despacio. Hace pausas. Y a veces la gente cree que duda,
-
-cuando lo que está haciendo es comprobar por dentro qué siente.
-
-[A CÁMARA]
-
-Ahora, ¿para qué sirve esto?
-
-Para una cosa muy concreta: para que lo que dices llegue.
-
-[TABLA EN PANTALLA]
-
-Mira esta traducción. Es la misma idea, tres veces.
-
-Quiero explicarte un plan.
-
-Versión visual: «Mira, te lo enseño. ¿Ves cómo encaja esta parte con esta?»
-
-Versión auditiva: «Te cuento cómo va. Dime si te suena raro algo.»
-
-Versión kinestésica: «Vamos paso a paso. Prueba esta parte y me dices qué tal.»
-
-[PAUSA]
-
-La misma información. Tres puertas distintas.
-
-Y si le entras a alguien por la puerta equivocada,
-
-tú crees que lo explicaste bien y la otra persona cree que no entendió nada.
-
-[A CÁMARA]
-
-Esto pasa mucho en pareja. Y es el ejemplo que siempre pongo.
-
-[PAUSA]
-
-Ella dice: «es que tú nunca me dices nada».
-
-Él contesta: «pero si te acabo de arreglar el coche».
-
-[PAUSA]
-
-Los dos tienen razón, y los dos están hablando idiomas distintos.
-
-Él demostró cariño en su canal: haciendo algo, con las manos.
-
-Ella lo esperaba en el suyo: oyéndolo.
-
-[PAUSA]
-
-Y entonces aparece la frase que hace mucho daño:
-
-«es que no me quiere como yo lo quiero a él».
-
-Casi siempre es falsa. Lo que pasa es que no te quiere en tu idioma.
-
-Y eso sí se puede traducir.
-
-[A CÁMARA]
-
-Ahora la parte honesta, que para mí es la más importante de esta clase.
-
-[RÓTULO: Lo que NO se sostiene]
-
-En la PNL clásica se dicen dos cosas sobre esto que hay que corregir.
-
-[PAUSA]
-
-La primera: que cada persona tiene un canal fijo.
-
-Que tú «eres visual» y punto. Eso no se sostiene.
-
-Los estudios que intentaron demostrar que emparejar el canal
-
-mejoraba los resultados dieron resultados pobres.
-
-La gente cambia de canal según el tema, según el momento, según con quién habla.
-
-[PAUSA]
-
-La segunda, y esta es la más famosa:
-
-que hacia dónde miran los ojos revela qué está haciendo la mente.
-
-Y que si miras a un lado recuerdas y si miras al otro inventas.
-
-Es decir, que se puede saber si alguien miente por los ojos.
-
-[PAUSA]
-
-Eso no funciona.
-
-Se ha puesto a prueba y no funciona. Y me parece grave, porque es de las cosas
-
-que más se enseñan y que más daño hacen: acusar a alguien
-
-de mentir por hacia dónde miró.
-
-[A CÁMARA]
-
-Entonces, si eso no vale, ¿qué queda?
-
-Queda algo más pequeño y bastante útil.
-
-[RÓTULO: Usa sus palabras, no las tuyas traducidas]
-
-Queda esto: escucha las palabras que usa la otra persona
-
-cuando habla de lo que le importa, y devuélvele esas mismas palabras.
-
-[PAUSA]
-
-Si te dice «me siento sola», no le contestes «entiendo que te sientas
-
-desatendida».
-
-Le acabas de cambiar la palabra por la tuya. Y eso se recibe como corrección.
-
-[PAUSA]
-
-Y para explicar algo importante, no lo digas de una sola forma.
-
-Dilo en las tres. Enséñalo, cuéntalo y déjale probarlo.
-
-Así entra por donde entre.
-
-[A CÁMARA]
-
-Eso no es tipología. Eso es escuchar y ser flexible.
-
-Y es lo que sí se sostiene.
-
-[PAUSA]
-
-En la guía de trabajo tienes la tabla de traducción para imprimir.
-
-Y una tarea muy simple: durante tres días, anota las palabras exactas
-
-que usa una persona de tu entorno cuando algo le importa.
-
-Solo eso. Las palabras exactas.
-
-[PAUSA]
-
-Nos vemos en el módulo cinco, donde entramos al cuerpo.
+En la próxima clase, «Entrenar el oído y traducir», vamos a practicar en voz alta con frases reales. Y vas a preparar una explicación que abra las tres puertas.
 
 Seguimos creciendo juntos.

@@ -1,207 +1,51 @@
 # Clase 2 · Llevar el ancla a tu semana
 
-**Emociones, anclajes y estados de recurso · Módulo 4 · 10-12 min · Clase**
-Taller. El alumno necesita papel y lápiz: se pide al empezar. La tabla del plan de despliegue y las frases del juego «situación o estado» van en pantalla.
-En el ensayo mental, Dayana baja el ritmo y la voz como en un audio.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 4 · 10-12 min
 
 Líderes, bendiciones.
 
-Empiezo con una pregunta un poco incómoda.
+Empiezo con una pregunta un poco incómoda. Piensa en algo que aprendiste en un curso, un taller o un libro, que te pareció buenísimo y que nunca usaste. Tómate unos segundos.
 
-Piensa en algo que aprendiste en un curso, un taller o un libro, que te pareció buenísimo… y que nunca usaste.
+¿Lo tienes? Casi todo el mundo tiene uno, a veces varios. Eso le pasa a la mayoría de las anclas. Se instalan con mucho cuidado y nadie decide dónde usarlas. Y un ancla instalada y no usada se apaga. Esta clase es un taller para que eso no te pase. Vas a escribir tres situaciones reales en las que vas a usar tu ancla. Vas a dejar escrito un plan para la primera y la vas a ensayar con los ojos cerrados. Y vas a saber cómo reforzarla. Ten papel y lápiz a mano. Si no los tienes, pausa el video y ve a buscarlos.
 
-[PAUSA REAL · 10 s — recordar algo que aprendiste y nunca usaste]
+Primero, un juego rápido. Te digo una frase, y tú dices en voz alta si es una situación o un estado. «Cuando me den nervios.» ¿Situación o estado? Es un estado. No dice dónde ni cuándo.
 
-Casi todo el mundo tiene uno. A veces varios.
+«El jueves a las tres, en la llamada con el banco.» ¿Situación o estado? Es una situación. Tiene día, hora y lugar.
 
-Eso le pasa a la mayoría de las anclas. Se instalan con mucho cuidado y nadie decide dónde usarlas.
-
-Y un ancla instalada y no usada se apaga.
-
-Hoy armamos tu plan para que eso no pase. Ten papel a mano.
-
-[PAUSA REAL · 10 s — buscar papel y lápiz]
-
-[A CÁMARA]
-
-Primero, un juego rápido. Te digo una frase y tú dices en voz alta si es una situación o un estado.
-
-[RÓTULO: «Cuando me den nervios»]
-
-«Cuando me den nervios.»
-
-[PAUSA REAL · 5 s — decir situación o estado]
-
-Estado. No dice dónde ni cuándo.
-
-[RÓTULO: «El jueves a las tres, en la llamada con el banco»]
-
-«El jueves a las tres, en la llamada con el banco.»
-
-[PAUSA REAL · 5 s — decir situación o estado]
-
-Situación. Tiene día, hora y lugar.
-
-[RÓTULO: «Cuando esté mal con mi pareja»]
-
-«Cuando esté mal con mi pareja.»
-
-[PAUSA REAL · 5 s — decir situación o estado]
-
-Estado otra vez.
-
-[RÓTULO: «El domingo en el almuerzo, cuando mi suegra saque el tema del trabajo»]
-
-«El domingo en el almuerzo, cuando mi suegra saque el tema del trabajo.»
-
-[PAUSA REAL · 5 s — decir situación o estado]
-
-Situación. Y fíjate que hasta tiene el momento exacto: cuando saque el tema.
-
-[PAUSA]
+«Cuando esté mal con mi pareja.» ¿Situación o estado? Estado otra vez. «El domingo en el almuerzo, cuando mi suegra saque el tema del trabajo.» Situación. Y fíjate que hasta tiene el momento exacto: cuando saque el tema.
 
 ¿Por qué importa tanto? Porque el cerebro no puede preparar un «cuando». Sí puede preparar un martes a las diez.
 
-[A CÁMARA]
+Ahora las tuyas. Escribe tres situaciones de esta semana o de la próxima en las que te vendría bien tu ancla. Cada una con su día y su hora. Y para cada una, decide en qué momento vas a usar el ancla. Puede ser antes: en la sala de espera, en el carro estacionado, en el baño antes de entrar. Puede ser durante: en la reunión o en la conversación, con la mano debajo de la mesa. O puede ser después: para recuperarte, si la situación te dejó el cuerpo revuelto. ¿Cómo eliges? Si lo difícil es entrar, el ancla va antes. Si lo difícil es un momento concreto dentro de la situación, va durante. Y si lo que te cuesta es lo que te queda en el cuerpo al salir, va después. No hay una respuesta correcta para todo el mundo: depende de dónde se te cae a ti. Pausa el video y escríbelas con calma.
 
-Ahora las tuyas.
+¿Las tienes? Mira lo que escribiste. ¿Alguna dice «cuando me sienta…»? Si es así, conviértela en una situación con día y hora.
 
-[TABLA EN PANTALLA]
+Con esto claro, tomamos la primera situación y la convertimos en una frase muy concreta, con esta forma: «Si estoy en tal situación, entonces hago el gesto». Por ejemplo: «Si estoy esperando mi turno en la reunión del martes, entonces hago el gesto». Esta forma de escribir un plan la estudió el psicólogo Peter Gollwitzer, con el nombre de intenciones de implementación. Está entre lo que mejor funciona para que un propósito se cumpla. Funciona porque el disparador ya queda elegido. No tienes que acordarte: la situación te lo recuerda.
 
-| Situación concreta | Día y hora | ¿Antes, durante o después? |
-|---|---|---|
-| | | |
-| | | |
-| | | |
+Y sirve para los tres momentos. Antes: «Si estoy en el carro frente al consultorio, entonces hago el gesto antes de bajarme». Durante: «Si mi suegra saca el tema del trabajo, entonces hago el gesto debajo de la mesa y exhalo largo». Después: «Si salgo de la llamada con el banco, entonces hago el gesto y camino cinco minutos». Imagina a Carolina. Su situación es la reunión de los lunes a las nueve, cuando su jefa pide resultados. Su recurso es la confianza. Su plan dice: «Si estoy en el pasillo antes de entrar a la reunión del lunes, entonces hago el gesto y exhalo largo dos veces». No tiene que acordarse de nada más. El pasillo le recuerda el plan.
 
-Escribe tres situaciones de esta semana o la próxima en las que te vendría bien tu ancla.
+Ahora escribe la tuya para tu primera situación. Tómate el tiempo que necesites.
 
-Y para cada una, decide cuándo la usas.
+Ahora la vamos a ensayar, con los ojos cerrados. En el deporte se usa mucho el ensayo mental, y hay investigación que respalda que ensayar por dentro facilita después hacerlo por fuera. Cierra los ojos.
 
-Antes: en la sala de espera, en el carro estacionado, en el baño antes de entrar.
+Imagina que es el día de tu primera situación, unos minutos antes. ¿Dónde estás? ¿Qué ves? ¿Quién está alrededor? Tómate unos momentos para verlo.
 
-Durante: en la reunión, en la conversación, con la mano debajo de la mesa.
+Ahora, dentro de esa escena, haz el gesto. De verdad, con tu mano real. Y deja que llegue lo que tu ancla trae, aunque sea un poco. Nota qué cambia en tu cuerpo cuando entra.
 
-Después: para recuperarte, si la situación te dejó el cuerpo revuelto.
+Ahora la situación empieza. Mírala avanzar. No perfecta: razonablemente bien. Y en algún momento hay un tropiezo. Una pregunta que no esperabas. Un tono que te pica. Ahí, otra vez el gesto. Y una exhalación larga. Mira cómo sigues desde ahí. Tómate el tiempo que necesites.
 
-[PAUSA REAL · 60 s — escribir tres situaciones con día, hora y momento de uso]
+Y cuando quieras, abre los ojos. ¿Por qué incluí un tropiezo? Porque si solo ensayas la versión perfecta, el primer imprevisto te saca del plan. Si ensayaste el tropiezo, el tropiezo ya es parte del plan.
 
-Mira lo que escribiste. ¿Alguna dice «cuando me sienta…»? Si es así, conviértela en una situación.
+Pasemos al refuerzo. El ancla se fortalece usándola cuando el estado ya está presente. Cada vez que estás en calma de verdad y haces el gesto, el ancla se hace más fuerte. Si solo la usas en emergencias, se desgasta. Escribe dos momentos de tu semana en que ese estado suele aparecer solo. Una caminata, un rato con alguien que te hace bien, el café de la mañana. Ahí también haces el gesto. Esas son las repeticiones que más cuentan.
 
-[PAUSA REAL · 10 s — revisar que sean situaciones y no estados]
+Ahora una pregunta sobre tus escenas. ¿Alguna de las tres es prestada? ¿Es de alguien que admiras, y no tuya? Revísalo un momento. Te explico por qué importa. El psicólogo Albert Bandura estudió de dónde sale la sensación de «yo puedo». Y encontró que la fuente más potente es la experiencia propia: haberlo hecho tú. Ver a otra persona hacerlo también ayuda, pero menos, porque es de segunda mano. Por eso una escena prestada se cambia por una propia en cuanto la vida te dé una. Y te la va a dar, si usas el ancla esta semana.
 
-[A CÁMARA]
+Y lo último: cómo saber si el ancla no basta. Si después de dos semanas de usarla la misma situación se te sigue cayendo igual, pregúntate qué hay debajo. Si hay una frase como «no valgo» o «no tengo derecho a pedir», eso es una creencia, y ese trabajo se hace en el curso «Creencias limitantes y potenciadoras». Y si lo que hay es una ansiedad que te impide hacer tu vida, ataques de pánico o algo que viene de una experiencia traumática, el ancla no es la herramienta. Ahí corresponde buscar a un profesional de la salud mental.
 
-Ahora tomamos la primera y la convertimos en una frase muy concreta.
+Hagamos un resumen. Un ancla se usa en situaciones, no en estados: con día, hora y lugar. Para cada situación decides si la usas antes, durante o después. La primera la escribes como un plan de «si pasa esto, entonces hago el gesto», y la ensayas con un tropiezo incluido. Y la refuerzas usándola cuando el estado ya está presente.
 
-[RÓTULO: Si estoy en ___, entonces hago el gesto]
+Tu tarea para las próximas veinticuatro horas: pon tu frase de «si pasa esto, entonces hago el gesto» donde la vayas a ver. Un papel en la billetera, o una alarma en el celular con la frase escrita. Y cuando pase la primera situación, anota en una línea qué ocurrió y qué cambiarías del plan para la próxima vez.
 
-«Si estoy esperando mi turno en la reunión del martes, entonces hago el gesto.»
-
-Esta forma de escribir un plan se llama intención de implementación. La estudió el psicólogo Peter Gollwitzer, y es de lo que mejor funciona para que un propósito se cumpla.
-
-Funciona porque el disparador ya queda elegido. No tienes que acordarte: la situación te lo recuerda.
-
-Y sirve para los tres momentos.
-
-Antes: «Si estoy en el carro frente al consultorio, entonces hago el gesto antes de bajarme».
-
-Durante: «Si mi suegra saca el tema del trabajo, entonces hago el gesto debajo de la mesa y exhalo largo».
-
-Después: «Si salgo de la llamada con el banco, entonces hago el gesto y camino cinco minutos».
-
-Escribe la tuya.
-
-[PAUSA REAL · 20 s — escribir tu si-entonces para la primera situación]
-
-[A CÁMARA]
-
-Y ahora la vamos a ensayar. Con los ojos cerrados.
-
-En el deporte se usa mucho el ensayo mental, y hay investigación que respalda que ensayar por dentro facilita después hacerlo por fuera.
-
-Cierra los ojos.
-
-[PAUSA]
-
-Imagina que es el día de tu primera situación. Unos minutos antes.
-
-¿Dónde estás? ¿Qué ves? ¿Quién está alrededor?
-
-[PAUSA REAL · 15 s — ver la escena unos minutos antes de la situación]
-
-Ahora, en la escena, haz el gesto. De verdad, con tu mano real.
-
-Y deja que llegue lo que tu ancla trae. Aunque sea un poco.
-
-[PAUSA REAL · 15 s — hacer el gesto dentro de la escena imaginada]
-
-Ahora la situación empieza. Mírala avanzar, no perfecta: razonablemente bien.
-
-[PAUSA REAL · 15 s — ver la situación avanzar]
-
-Y en algún momento hay un tropiezo. Una pregunta que no esperabas. Un tono que te pica.
-
-Ahí, otra vez el gesto. Y una exhalación larga.
-
-[PAUSA REAL · 15 s — usar el gesto en el tropiezo]
-
-Mira cómo sigues desde ahí.
-
-[PAUSA REAL · 10 s — ver cómo sigue la situación]
-
-Y abre los ojos.
-
-[PAUSA]
-
-¿Por qué incluí un tropiezo? Porque si solo ensayas la versión perfecta, el primer imprevisto te saca del plan. Ensayado el tropiezo, el tropiezo es parte del plan.
-
-[A CÁMARA]
-
-Ahora, el refuerzo.
-
-El ancla se fortalece usándola cuando el estado ya está presente. Cada vez que estás en calma de verdad y haces el gesto, el ancla se hace más fuerte.
-
-Solo usarla en emergencias la desgasta.
-
-Escribe dos momentos de tu semana en que ese estado suele estar presente solo. Una caminata, un rato con alguien que te hace bien, el café de la mañana.
-
-[PAUSA REAL · 20 s — escribir dos momentos en que el estado ya suele estar presente]
-
-Ahí también haces el gesto. Esas son las repeticiones que más cuentan.
-
-[A CÁMARA]
-
-Una pregunta sobre tus escenas. ¿Alguna de las tres es prestada? ¿De alguien que admiras, y no tuya?
-
-[PAUSA REAL · 5 s — revisar si alguna escena es prestada]
-
-Te explico por qué importa.
-
-El psicólogo Albert Bandura estudió de dónde sale la sensación de «yo puedo». Y la fuente más potente es la experiencia propia: haberlo hecho tú.
-
-Ver a otro hacerlo también ayuda, pero menos. Es de segunda mano.
-
-Por eso una escena prestada se cambia por una propia en cuanto la vida te dé una. Y te la va a dar, si usas el ancla esta semana.
-
-[A CÁMARA]
-
-Y lo último: cómo saber si el ancla no basta.
-
-Si después de dos semanas de usarla, la misma situación se te sigue cayendo igual, pregúntate qué hay debajo.
-
-Si hay una frase como «no valgo» o «no tengo derecho a pedir», eso es una creencia. Ahí el trabajo es el curso de Creencias limitantes.
-
-Y si lo que hay es una ansiedad que te impide hacer tu vida, ataques de pánico, o algo que viene de una experiencia traumática, el ancla no es la herramienta. Ahí corresponde un profesional.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas: pon tu «si-entonces» donde lo vayas a ver. Un papel en la billetera, una alarma en el teléfono con la frase escrita.
-
-En el caso que sigue vas a ver cómo se encuentra una escena cuando alguien jura que no la tiene.
+En el video de caso, «Encontrar la escena cuando dices que no hay ninguna», vas a ver cómo aparece una escena cuando alguien cree que no la tiene.
 
 Seguimos creciendo juntos.

@@ -1,107 +1,51 @@
 # Caso · La misma conversación, dos veces
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 7 · 12-15 min · Caso**
-Necesita una segunda persona en cámara. Es un juego de roles sobre una situación cotidiana: Dayana reclama y la invitada recibe la reclamación y reacciona como lo haría de verdad. Plano a dos y plano cerrado de la invitada. Entre versiones, corte a Dayana sola para la pausa del alumno.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 7 · 12-15 min
 
 Líderes, bendiciones.
 
-Hoy vas a ver una misma conversación dos veces.
+Hoy vas a ver una misma conversación dos veces. Conmigo está una persona que se ofreció a hacer este ejercicio conmigo. Vamos a hacer un juego de roles con una situación muy cotidiana: un reparto de tareas en casa que no se está cumpliendo.
 
-Conmigo está una persona invitada. Vamos a hacer un juego de roles con una situación muy cotidiana: un reparto de tareas en casa que no se está cumpliendo.
+La situación es esta. Acordamos que los martes, los jueves y los sábados los platos de la cena le tocan a esta persona. Esta semana no los ha lavado ninguno de esos días. Yo voy a ser quien reclama. Le he pedido una sola cosa: que reaccione como reaccionaría de verdad en su casa, sin exagerar y sin actuar.
 
-Yo voy a ser quien reclama. Ella va a recibir la reclamación, y le he pedido una sola cosa: que reaccione como reaccionaría de verdad.
+La primera vez, la reclamación va a salir como sale en casa, sin preparar. Las nueve de la noche, cansancio, el fregadero lleno. Voy a usar a propósito los errores típicos: una generalización, un adjetivo de identidad, algo del pasado, más de un tema y ninguna petición. La segunda vez, la misma reclamación va a salir con las cuatro partes, escritas antes.
 
-La primera vez, la reclamación va a salir como sale en casa, sin preparar. La segunda, con las cuatro partes escritas antes.
+Tu trabajo es encontrar el segundo exacto. En la primera versión, fíjate en la frase en la que se pone a la defensiva, y anótala palabra por palabra. Ten papel a mano.
 
-[A CÁMARA]
+Y una cosa más. Cuando paremos la primera versión, antes de ver la segunda, pausa el video. Escribe las cuatro partes que usarías tú en esta situación de los platos: observación, efecto, necesidad y petición. Después las comparas con las mías.
 
-Tu trabajo es encontrar el segundo exacto.
+Si en la segunda versión también se defiende, voy a usar lo que vimos en la clase anterior. Voy a reconocer lo que siente sin cambiar la petición, o a pedir que terminemos este tema antes de abrir otro.
 
-En la primera versión, fíjate en la frase en la que ella se pone a la defensiva. Anótala, palabra por palabra.
+## Conversación
 
-[PAUSA REAL · 10 s — preparar papel para anotar]
+1. Otra vez los platos sin lavar. ¿Es que a ti nunca te toca nada?
+2. Es que eres un desastre. ¿O ya se te olvidó lo de la ropa del mes pasado?
+3. Y la basura tampoco la sacaste, ¿verdad?
+4. Paremos aquí y salgamos del papel. ¿En qué frase te cerraste, y qué sentiste en el cuerpo?
+5. Esta semana, el martes, el jueves y hoy, los platos se quedaron sin lavar.
+6. Llego a la noche, me toca a mí, y termino sin energía.
+7. Necesito que el reparto que hicimos funcione.
+8. ¿Puedes lavarlos esta noche y, si algún día no puedes, avisarme antes?
+9. Ya fuera del papel: ¿qué cambió en la segunda versión? ¿En qué momento?
+10. ¿Te dieron ganas de defenderte en la segunda? ¿De qué?
+11. Si esto te pasara de verdad, ¿cuál de las dos versiones haría que lavaras los platos mañana?
 
-Empezamos.
+## Cierre
 
-## Guion de conducción
+Vamos a mirar lo que acabamos de ver. En la primera versión hubo un segundo exacto en que la conversación se torció. Muy a menudo es la frase del «nunca» o la del «eres». Mira la frase que anotaste. ¿Fue un «siempre», un «nunca», un «eres» o algo del pasado? Tómate unos segundos.
 
-### Antes de grabar
+Fíjate también en esto. En la primera versión terminamos hablando de la ropa del mes pasado y de la basura, y no de los platos de hoy. El archivo histórico y los temas añadidos se comieron la conversación. Y como no hubo ninguna petición, aunque la otra persona hubiera querido arreglarlo, no sabía qué se le estaba pidiendo.
 
-- Acordar la situación con la invitada. Propuesta: los platos de la cena. Lo acordado era que ella los lava los días pares, y esta semana no lo ha hecho tres veces. Puede ser otra situación cotidiana parecida (un plazo incumplido en el trabajo, la compra del mercado), siempre algo pequeño y sin carga real entre las dos.
-- Explicarle el juego: en la primera versión Dayana va a reclamar «mal» a propósito. Ella no tiene que actuar ni exagerar: solo responder como respondería en su casa si le hablaran así.
-- No ensayar sus respuestas. Lo que importa es su reacción real.
-- Acordar una señal para parar el juego en cualquier momento.
+La segunda versión no fue más blanda. Pidió exactamente lo mismo, pero con más claridad. Y empezó con una observación que no se podía discutir: el martes, el jueves y hoy, los platos se quedaron sin lavar. Eso es un hecho. No hay de qué defenderse. Por eso la conversación tuvo dónde apoyarse.
 
-### Versión 1 · Como sale sola (3 a 4 minutos)
+Ahora mira tus cuatro partes, las que escribiste entre las dos versiones. ¿Se parecen a las mías? ¿Tu observación se podía discutir? Si se podía, ajústala ahora. Pausa el video si lo necesitas.
 
-Dayana entra en el papel cansada, a las nueve de la noche, con el fregadero lleno. Su reclamación incluye, de forma natural y sin caricatura:
+Lo que acabas de ver no es magia. La segunda versión también puede salir mal. Pero empieza con algo que no se puede discutir, y eso le da una oportunidad que la primera no tenía.
 
-- una generalización de arranque: «otra vez los platos, nunca te toca nada»;
-- un adjetivo de identidad: «es que eres una despreocupada»;
-- el archivo histórico: «y como lo de la ropa del mes pasado»;
-- más de un tema a la vez;
-- ninguna petición concreta: solo descarga.
+Cuando lo hagas a solas, prepara las cuatro partes por escrito antes de hablar. Revisa tu primera frase buscando un «siempre», un «nunca» o un «eres». Y elige el momento: a solas, en frío y con tiempo.
 
-Mientras tanto:
+Tu tarea para las próximas veinticuatro horas: busca en tu memoria la última discusión que se torció y encuentra la frase exacta donde pasó. Escríbela. Y debajo escribe cómo sería como observación.
 
-- Dejar que la invitada se defienda, busque el contraejemplo («el lunes sí los lavé») o contraataque. No cortarla.
-- Seguir la discusión un par de turnos más, hasta que se note que no va a ningún sitio.
-- Parar con una señal acordada, sin cerrar el conflicto.
-
-### Corte a cámara · Dayana sola
-
-Dayana, a cámara, pide al alumno dos cosas:
-
-- que mire la frase que anotó: ¿fue un «siempre», un «nunca», un «eres» o algo del pasado?
-- que antes de ver la segunda versión escriba las cuatro partes que usaría en su lugar en esta situación de los platos. Observación, efecto, necesidad, petición.
-
-[PAUSA REAL · 60 s — escribir las cuatro partes para la situación de los platos]
-
-### Versión 2 · Con las cuatro partes (3 a 4 minutos)
-
-- Se muestra en pantalla el papel donde Dayana escribió antes sus cuatro partes. Por ejemplo:
-  - Observación: «Esta semana, el martes, el jueves y hoy, los platos se quedaron sin lavar».
-  - Efecto: «Llego a la noche y me toca a mí, y termino muy cansada».
-  - Necesidad: «Necesito que el reparto que hicimos funcione».
-  - Petición: «¿Puedes lavarlos esta noche, y si un día no puedes, avisarme antes?».
-- Mismo lugar, misma hora. Dayana lo dice a solas, sin prisa, sin adjetivos y sin historia.
-- Dejar que la invitada responda como le salga. Si se defiende igual, aplicar la tabla de la clase dos: reconocer la emoción sin cambiar la petición, o «de eso hablamos, pero terminemos con esto primero».
-- Cerrar cuando haya un acuerdo concreto o un «lo hablamos mañana» en frío.
-
-### Cierre con la invitada (2 a 3 minutos)
-
-Ya fuera del papel:
-
-- ¿En qué frase de la primera versión te cerraste? ¿Qué sentiste en el cuerpo?
-- ¿Qué cambió en la segunda? ¿En qué momento?
-- ¿Te dieron ganas de defenderte en la segunda? ¿De qué?
-- Si esto te pasara de verdad, ¿cuál de las dos versiones haría que lavaras los platos mañana?
-
-### Qué señalar después, a cámara
-
-- El segundo exacto en que la primera versión se torció, con la frase en pantalla. Muy a menudo es la del «nunca» o la del «eres».
-- Que en la primera versión se acabó discutiendo sobre el mes pasado y no sobre los platos de hoy.
-- Que la segunda versión no fue más blanda: pidió lo mismo, con más claridad.
-- Que la observación de la segunda versión no se podía discutir, y por eso no hubo de qué defenderse.
-
-## Cierre a cámara
-
-[A CÁMARA. Cierre.]
-
-Mira la frase que anotaste en la primera versión. Y mira tus cuatro partes.
-
-¿Se parecen a las mías? ¿Tu observación se podía discutir?
-
-[PAUSA REAL · 15 s — comparar tus cuatro partes con las del video]
-
-Lo que acabas de ver no es magia. La segunda versión también puede salir mal. Pero empieza con algo que no se puede discutir, y eso le da una oportunidad.
-
-Tu tarea para las próximas veinticuatro horas: busca en tu memoria la última discusión que se torció y encuentra la frase exacta. Escríbela, y debajo escribe cómo sería como observación.
-
-Después viene el audio guiado, para ensayar tu conversación pendiente en calma, antes de tenerla.
+Después viene el audio guiado de este módulo, Ensayar la conversación pendiente. Ahí vas a ensayar tu propia conversación con calma, antes de tenerla.
 
 Seguimos creciendo juntos.

@@ -1,277 +1,73 @@
 # Clase 1 · Las cuatro herramientas
 
-**Creencias limitantes y potenciadoras · Módulo 6 · 11-13 min · Clase**
-Pizarra con las cuatro herramientas numeradas en el orden en que se aplican.
-Las tablas de ejemplos aparecen en pantalla. El alumno necesita su frase del
-módulo 3 y una situación pequeña de esta semana.
-
----
-
-[A CÁMARA]
+Creencias limitantes y potenciadoras · Módulo 6 · 11-13 min
 
 Líderes, bendiciones.
 
-Antes de las herramientas, un experimento corto.
+Hoy vamos a ver cómo se transforma una creencia sin discutir con ella. Primero vas a entender por qué discutir no funciona. Después vamos a recorrer cuatro herramientas, una por una, con ejemplos. Y al final vas a saber en qué orden se usan y por qué ese orden importa. Al terminar esta clase vas a poder aplicar la primera herramienta a tu propia frase. Ten a mano tu cuaderno y la frase que encontraste en el módulo tres.
 
-Piensa en algo pequeño que te salió mal esta semana. No lo más grave. Algo de tamaño mediano.
+Antes de las herramientas, un experimento corto. Piensa en algo pequeño que te salió mal esta semana. No lo más grave: algo de tamaño mediano. Una conversación que se torció, un trabajo que entregaste tarde, un plan que no salió. Ahora contesta por dentro: ¿qué significa eso de ti? La primera respuesta que aparezca.
 
-Una conversación que se torció. Un trabajo que entregaste tarde. Un plan que no salió.
+Ahora intenta convencerte de lo contrario. Discute con esa respuesta. Dale argumentos. Tómate unos segundos.
 
-[PAUSA REAL · 10 s — el alumno elige algo pequeño que le salió mal]
+¿Cómo fue? Para la mayoría de la gente es como empujar una pared. Por cada argumento que das, una parte de ti tiene la respuesta preparada: «sí, pero…».
 
-Ahora dime: ¿qué significa eso de ti? La primera respuesta.
+Eso pasa porque una creencia no se sostiene en argumentos. Se sostiene en una experiencia con carga emocional y en años de repetirla y confirmarla. Llevar un argumento de hoy contra eso es como pelear con una mano contra treinta años de práctica. Lo que sí funciona es otra cosa: cambiar el marco desde el que se mira el mismo hecho. Para eso hay cuatro herramientas, y te las voy a dar en el orden en que se usan.
 
-[PAUSA REAL · 5 s — el alumno contesta por dentro]
+La primera herramienta es cuestionar la evidencia. Toda creencia limitante tiene tres huecos, y se buscan en orden. El primer hueco es el contraejemplo. La pregunta es: ¿alguna vez, aunque fuera una sola, no fue así? Si crees «nunca me salen las cosas», basta una vez que sí te salió. Con una sola excepción, la ley deja de ser ley. No hace falta demoler la creencia. Basta con agrietarla.
 
-Y ahora, intenta convencerte de lo contrario. Discute con esa respuesta. Dale argumentos.
+El segundo hueco es la fuente. Las preguntas son: ¿quién dijo eso primero? ¿Y le sigo dando esa autoridad hoy? Mucha gente descubre que vive según el criterio de alguien a quien hoy no le pediría consejo para nada.
 
-[PAUSA REAL · 15 s — el alumno intenta discutir con su respuesta]
+Un caso muy típico: alguien que cree que no sirve para los idiomas. ¿Quién lo dijo primero? Una maestra de primaria, delante de toda la clase. ¿Le pediría hoy consejo a esa maestra sobre su carrera? Ni en broma. Y sin embargo, lleva treinta años obedeciendo su diagnóstico.
 
-[PAUSA]
+El tercer hueco es la utilidad. La pregunta es: ¿qué me ha costado creer esto? Fíjate que no pregunto si es verdad. Pregunto qué te ha costado.
 
-¿Cómo fue? Para la mayoría, es como empujar una pared.
+Imagina a Sergio, que cree que «si pido ayuda, molesto». ¿Qué le ha costado? Una mudanza entera hecha sin ayuda. Un ascenso que no pidió. Dos años con dolor de espalda sin ir al médico, «para no molestar». Cuando Sergio escribe esa lista, no hace falta que nadie le discuta la creencia. La lista lo hace sola.
 
-Cada argumento que das, una parte de ti tiene preparada la respuesta. «Sí, pero…»
+Ahora prueba el primer hueco con tu situación pequeña de antes. ¿Alguna vez, aunque fuera una, no fue así? Busca un caso concreto. Tómate unos segundos.
 
-[A CÁMARA]
+¿Lo encontraste? Si apareció uno, tu frase acaba de pasar de ley a tendencia. Y eso ya es otro marco.
 
-Eso pasa porque una creencia no se sostiene en argumentos.
+Con la evidencia agrietada, pasemos a la segunda herramienta: el reencuadre de contenido. Esta herramienta cambia qué significa lo que pasó. Los hechos no se tocan. El significado, sí.
 
-Se sostiene en una experiencia con carga emocional, y en años de bucle confirmándola.
+Te doy tres ejemplos. Me despidieron. El marco actual dice «no servía». Otro marco posible: «ese puesto no era para mí, y tardé tres años en verlo».
 
-Llevar un argumento de hoy contra eso es pelear con una mano contra treinta años de práctica.
+Se acabó la relación. El marco actual dice «fracasé». Otro posible: «aprendí qué no quiero volver a aceptar».
 
-Lo que sí funciona es otra cosa: cambiar el marco desde el que se mira el mismo hecho.
+Me temblaba la voz al hablar en público. El marco actual dice «hice el ridículo». Otro posible: «me expuse por primera vez en años».
 
-Y para eso hay cuatro herramientas. Te las doy en el orden en que se usan.
+La pregunta que abre esta herramienta es: ¿qué otra cosa podría significar esto? ¿Y por qué funciona? Acuérdate del circuito del módulo uno. La emoción no viene del hecho. Viene de la interpretación del hecho. Si cambia lo que significa, cambia lo que sientes. Y con lo que sientes, cambia lo que haces después.
 
-[RÓTULO: 1 · Cuestionar la evidencia · agrieta]
+Pruébala con tu situación pequeña. Busca una sola respuesta distinta a la que te diste al principio, y dila en voz alta.
 
-[A CÁMARA]
+¿La tienes? Ahora una advertencia, porque esta herramienta se usa muy mal. Reencuadrar no es decirle a alguien «todo pasa por algo» cuando acaba de perder algo importante. Eso no es reencuadre. Es no querer sostener el dolor del otro.
 
-La primera: cuestionar la evidencia.
+Un reencuadre honesto incluye lo que dolió, no lo tapa. Por ejemplo: «me despidieron, me dolió mucho, y ese puesto no era para mí». Las tres cosas a la vez. Si después de un reencuadre alguien siente que no se le escuchó, no era reencuadre.
 
-Toda creencia limitante tiene tres huecos. Se buscan en orden.
+Ahora vamos con la tercera herramienta: el reencuadre de contexto. Esta no cambia el significado. Cambia el lugar. Busca dónde esa misma característica que no te gusta de ti sí sirve. Empieza completando en voz alta esta frase: «soy demasiado…».
 
-[RÓTULO: El contraejemplo]
+¿Qué salió? Mira estos ejemplos. El exceso de detalle es un defecto en una fiesta y una virtud revisando un contrato. La impaciencia es un problema en la fila del banco y una ventaja cuando algo urgente hay que resolverlo hoy. La sensibilidad incomoda en una reunión dura y es imprescindible acompañando a alguien que se está rompiendo. Y la terquedad agota en una discusión, pero es valiosísima sosteniendo un proyecto que todos abandonaron.
 
-El primero: el contraejemplo.
+Ahora tú. ¿En qué situación tu «demasiado» sería exactamente lo que hace falta? Y una pregunta más: ¿quién agradece esa característica tuya? Piensa en una persona concreta. Pausa el video si lo necesitas.
 
-¿Alguna vez, aunque fuera una sola, no fue así?
+¿Ya pensaste en alguien? Esta herramienta hace algo importante: quita el juicio de identidad. No eres «demasiado» nada. Eres alguien con una característica que en unos contextos suma y en otros estorba. Y eso ya se puede administrar.
 
-Con una excepción, la ley deja de ser ley. No hace falta demolerla. Basta con agrietarla.
+Llegamos a la cuarta herramienta, la más potente y la que conviene hacer con más calma: volver a la experiencia original. Vuelves al momento en que la creencia se instaló, el que encontraste en el módulo uno. Y le haces tres preguntas. La primera: ¿qué edad tenía quien sacó esa conclusión? La segunda: ¿qué información no tenía entonces, que sí tengo ahora? Y la tercera: si hoy vieras a otra persona en esa misma situación, ¿qué le dirías?
 
-[RÓTULO: La fuente]
+La tercera pregunta es la que suele romper algo. Nadie le diría a una niña de ocho años que se equivocó leyendo en voz alta que no vale. Pero hay quien lleva treinta años diciéndoselo por dentro. Esta herramienta no la vamos a hacer hoy. La vas a hacer completa en el video de práctica, con tiempo y con silencio.
 
-El segundo: la fuente.
+¿Y por qué funciona volver a un recuerdo, si ya pasó? Porque un recuerdo no es una grabación. Cada vez que lo traes, tu memoria lo vuelve a construir. Y durante un rato, mientras está abierto, puede admitir información nueva antes de volver a guardarse. Este fenómeno se llama reconsolidación. Un estudio muy citado, publicado en la revista Nature en el año dos mil por el equipo de Joseph LeDoux, lo mostró con recuerdos de miedo en animales.
 
-¿Quién dijo eso primero? ¿Y le sigo dando esa autoridad hoy?
+Después, el psicoterapeuta Bruce Ecker y sus colegas propusieron cómo aprovecharlo en terapia. Si mientras el recuerdo está abierto aparece una experiencia que lo contradice, el aprendizaje viejo puede perder fuerza. Por eso este trabajo mueve cosas que un argumento no mueve. El argumento va por fuera. El recuerdo abierto se toca por dentro.
 
-Mucha gente descubre que está viviendo según el criterio de alguien a quien hoy no le pediría consejo para nada.
+Con las cuatro herramientas vistas, repasemos el orden. Primero agrietas, cuestionando la evidencia. Después abres otros significados, con el reencuadre de contenido. Después quitas el juicio de identidad, con el reencuadre de contexto. Y al final vas a la raíz, con la experiencia original.
 
-Un caso muy típico. Alguien cree que es malo para los idiomas.
+¿Por qué en ese orden? Porque si propones un significado nuevo sobre una creencia intacta, suena a autoengaño, y la creencia lo rechaza, igual que rechazaba las afirmaciones del módulo cuatro. En cambio, si primero la agrietas con un contraejemplo, el significado nuevo encuentra por dónde entrar. Y aun así falta algo, que es lo que vas a ver en el último módulo del curso: reencuadrar abre la puerta, pero sin repetición el marco viejo vuelve.
 
-¿Quién lo dijo primero? Una maestra de primaria, delante de toda la clase.
+Hagamos un resumen. Con una creencia no se discute, porque tiene años de pruebas a su favor. Lo que funciona es cambiar el marco. Para eso hay cuatro herramientas. Cuestionar la evidencia, con el contraejemplo, la fuente y la utilidad. El reencuadre de contenido, que cambia el significado sin negar lo que dolió. El reencuadre de contexto, que busca dónde tu rasgo sí sirve. Y volver a la experiencia original, que trabaja la raíz.
 
-¿Le pedirías hoy a esa maestra consejo sobre tu carrera? «Ni en broma.»
+Tu tarea para las próximas veinticuatro horas: toma tu frase del módulo tres y pásala solo por una pregunta. ¿Alguna vez, aunque fuera una, no fue así? Escribe la respuesta con fecha y con detalle. Un contraejemplo real.
 
-Y sin embargo, lleva treinta años obedeciendo su diagnóstico.
-
-[RÓTULO: La utilidad]
-
-Y el tercero: la utilidad.
-
-¿Qué me ha costado creer esto?
-
-Fíjate que no pregunto si es verdad. Pregunto qué te ha costado.
-
-Suele ser una lista larga. Y esa lista mueve más que cualquier argumento.
-
-Imagina a Sergio, que cree que «si pido ayuda, molesto».
-
-¿Qué le ha costado? Una mudanza entera hecha sin ayuda. Un ascenso que no pidió. Dos años con dolor de espalda sin ir al médico, «para no molestar».
-
-Cuando Sergio escribe la lista, no necesita que nadie le discuta la creencia. La lista lo hace sola.
-
-[PAUSA]
-
-Prueba solo el primero, con la respuesta de antes, la de tu situación pequeña.
-
-¿Alguna vez, aunque fuera una, no fue así?
-
-[PAUSA REAL · 15 s — el alumno busca un contraejemplo]
-
-Si encontraste uno, la frase acaba de pasar de ley a tendencia. Eso ya es otro marco.
-
-[RÓTULO: 2 · Reencuadre de contenido · otro significado]
-
-[A CÁMARA]
-
-La segunda herramienta: el reencuadre de contenido.
-
-Cambia qué significa lo que pasó. Los hechos no se tocan. El significado, sí.
-
-[TABLA EN PANTALLA]
-
-| El hecho | Marco actual | Otro marco posible |
-|---|---|---|
-| Me despidieron | «No servía» | «Ese puesto no era para mí y tardé tres años en verlo» |
-| Se acabó la relación | «Fracasé» | «Aprendí qué no quiero volver a aceptar» |
-| Me puse nerviosa al hablar | «Hice el ridículo» | «Me expuse por primera vez en años» |
-
-Me despidieron. Marco actual: «no servía». Otro marco posible: «ese puesto no era para mí, y tardé tres años en verlo».
-
-Se acabó la relación. Marco actual: «fracasé». Otro: «aprendí qué no quiero volver a aceptar».
-
-Me puse nerviosa al hablar en público. Marco actual: «hice el ridículo». Otro: «me expuse por primera vez en años».
-
-[PAUSA]
-
-La pregunta que lo abre es: ¿qué otra cosa podría significar esto?
-
-¿Por qué funciona? Acuérdate del circuito del módulo uno.
-
-La emoción no viene del hecho. Viene de la interpretación del hecho.
-
-Si cambia lo que significa, cambia lo que sientes. Y con lo que sientes, cambia lo que haces después.
-
-Pruébala con tu situación pequeña. Una sola respuesta distinta.
-
-[PAUSA REAL · 15 s — el alumno busca otro significado posible]
-
-[A CÁMARA]
-
-Y aquí tengo que hacerte una advertencia, porque esta herramienta se usa muy mal.
-
-[SUBRAYAR: el reencuadre honesto incluye lo que dolió]
-
-Reencuadrar no es decirle a alguien «todo pasa por algo» cuando acaba de perder algo importante.
-
-Eso no es reencuadre. Es no querer sostener el dolor del otro.
-
-Un reencuadre honesto incluye lo que dolió. No lo tapa.
-
-«Me despidieron, me dolió mucho, y ese puesto no era para mí.» Las tres cosas a la vez.
-
-Si después del reencuadre alguien siente que no se le escuchó, no era reencuadre.
-
-[RÓTULO: 3 · Reencuadre de contexto · quita el juicio]
-
-[A CÁMARA]
-
-La tercera herramienta: el reencuadre de contexto.
-
-Esta no cambia el significado. Cambia dónde esa misma característica sí sirve.
-
-Completa en voz alta: «soy demasiado…».
-
-[PAUSA REAL · 5 s — el alumno completa «soy demasiado…» en voz alta]
-
-[TABLA EN PANTALLA]
-
-| «Soy demasiado…» | ¿Dónde eso es una ventaja? |
-|---|---|
-| Detallista | Revisando un contrato, un diagnóstico, un cierre contable |
-| Impaciente | Cuando algo urgente hay que resolverlo hoy |
-| Sensible | Acompañando a alguien que se está rompiendo |
-| Terco | Sosteniendo un proyecto que todos abandonaron |
-
-Detallista: un defecto en una fiesta, una virtud revisando un contrato.
-
-Impaciente: un problema en una cola, una ventaja cuando algo urgente hay que resolverlo hoy.
-
-Sensible: incómodo en una reunión dura, imprescindible acompañando a alguien que se está rompiendo.
-
-Terco: agotador en una discusión, valiosísimo sosteniendo un proyecto que todos abandonaron.
-
-[PAUSA]
-
-¿En qué situación tu «demasiado» sería exactamente lo que hace falta?
-
-[PAUSA REAL · 15 s — el alumno encuentra un contexto donde su rasgo sirve]
-
-Esta herramienta hace algo importante: quita el juicio de identidad.
-
-No eres «demasiado» nada. Eres alguien con una característica que en unos contextos suma y en otros estorba.
-
-Una pregunta más, para rematarla: ¿quién agradece esa característica tuya? Piensa en una persona concreta.
-
-[PAUSA REAL · 10 s — el alumno piensa en alguien que agradece su rasgo]
-
-Y eso ya se puede administrar.
-
-[RÓTULO: 4 · Volver a la experiencia original · cambia la raíz]
-
-[A CÁMARA]
-
-La cuarta herramienta es la más potente. Y la que conviene hacer con calma.
-
-Vuelves al momento donde la creencia se instaló. El que encontraste en el módulo uno.
-
-Y le haces tres preguntas.
-
-[EN PANTALLA: ¿Qué edad tenía quien sacó esa conclusión? · ¿Qué información no tenía entonces, que sí tengo ahora? · Si hoy vieras a otra persona en esa situación, ¿qué le dirías?]
-
-¿Qué edad tenía quien sacó esa conclusión?
-
-¿Qué información no tenía entonces, que sí tengo ahora?
-
-Y la tercera: si hoy vieras a otra persona en esa misma situación, ¿qué le dirías?
-
-[PAUSA]
-
-La tercera es la que suele romper algo.
-
-Nadie le diría a una niña de ocho años que se equivocó leyendo en voz alta que no vale.
-
-Pero hay quien lleva treinta años diciéndoselo por dentro.
-
-Esta herramienta la vas a hacer completa en la práctica del módulo. Con tiempo y con silencio.
-
-[A CÁMARA]
-
-¿Y por qué funciona volver a un recuerdo? Si ya pasó.
-
-[RÓTULO: Reconsolidación]
-
-Porque un recuerdo no es una grabación. Se reconstruye cada vez que lo traes.
-
-Y mientras está abierto, admite información nueva antes de volver a guardarse.
-
-Esto tiene nombre: reconsolidación. Lo estableció un estudio publicado en la revista Nature en el año 2000, del equipo de Joseph LeDoux.
-
-Y el psicoterapeuta Bruce Ecker lo ha llevado a la práctica clínica: si mientras el recuerdo está abierto aparece una experiencia que lo contradice, el aprendizaje viejo puede perder fuerza.
-
-Por eso este trabajo produce cambios que un argumento no produce. El argumento va por fuera. El recuerdo abierto se toca por dentro.
-
-[A CÁMARA]
-
-Repasemos el orden.
-
-[EN PANTALLA: 1 · Cuestionar la evidencia: agrieta · 2 · Reencuadre de contenido: otro significado · 3 · Reencuadre de contexto: quita el juicio · 4 · Experiencia original: cambia la raíz]
-
-Primero agrietas. Después abres otros significados. Después quitas el juicio de identidad. Y al final vas a la raíz.
-
-¿Por qué en este orden? Porque si intentas un significado nuevo sobre una creencia intacta, suena a autoengaño. La creencia lo rechaza como rechazaba las afirmaciones del módulo cuatro.
-
-En cambio, si primero la agrietas con un contraejemplo, el significado nuevo encuentra por dónde entrar.
-
-Y después de todo eso, el módulo siete: instalar la creencia nueva. Porque reencuadrar abre la puerta, pero sin repetición el marco viejo vuelve.
-
-[PAUSA]
-
-No se trata de convencerte de lo contrario. Se trata de que la creencia deje de ser el único marco posible.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Toma la frase que encontraste en el módulo tres y pásala solo por una pregunta: ¿alguna vez, aunque fuera una, no fue así?
-
-Escribe la respuesta con fecha y detalle. Un contraejemplo real.
-
-[PAUSA]
-
-En la clase dos lo hacemos completo: tu frase, por las tres primeras herramientas, en vivo.
+En la próxima clase, «Agrietar tu creencia en vivo», vamos a hacerlo completo: tu frase, pasando por las tres primeras herramientas, una detrás de otra.
 
 Seguimos creciendo juntos.

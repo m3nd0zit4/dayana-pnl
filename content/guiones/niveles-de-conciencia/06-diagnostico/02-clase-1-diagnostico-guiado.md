@@ -1,483 +1,69 @@
 # Clase 1 · Diagnóstico guiado
 
-**Los 8 Niveles de Conciencia · Módulo 6 · 25-30 min · Clase guiada**
-El vídeo más largo del curso. Se hace con cuaderno y las pausas son de verdad:
-hay bloques de escritura de más de un minuto que NO se recortan en montaje.
-
----
-
-[A CÁMARA. Tono tranquilo, ritmo lento desde el principio.]
+Los 8 Niveles de Conciencia · Módulo 6 · 11-13 min
 
 Líderes, bendiciones.
 
-Este video es distinto a todos los demás del curso.
+Esta clase es distinta a todas las demás del curso. No es una explicación. Es un diagnóstico guiado, y lo vamos a hacer juntos, aquí y ahora. Al terminar vas a tener escritas cinco respuestas: tu valor, tu fortaleza, tu sombra, tu mapa por áreas y tu recurso de evolución. Y vas a saber qué hacer si esas respuestas no coinciden entre sí.
 
-[PAUSA]
+Necesitas tu cuaderno y algo con qué escribir. Si no lo tienes, pausa el video y ve por él. Y necesitas media hora sin interrupciones. Si no la tienes ahora, es mejor dejarlo para otro momento, porque hacer esto a medias no sirve.
 
-No es una clase. Es un diagnóstico guiado,
+Antes de empezar, tres reglas. Primera: escribe la primera respuesta que aparezca, aunque no te guste. Segunda: no busques la respuesta correcta, porque no la hay. Y tercera: no te juzgues mientras escribes. Ya habrá tiempo de mirarlo con calma después.
 
-y lo vamos a hacer juntas, aquí, ahora.
+Empezamos por el paso uno: tus valores. Un valor no es lo que dices que valoras. Es lo que decide cuando algo cuesta. Por eso no te voy a pedir una lista de palabras bonitas. Te voy a hacer cuatro preguntas sobre hechos.
 
-[PAUSA]
+Primera pregunta. Piensa en la última decisión difícil que tomaste. Difícil de verdad, de las que te quitaron el sueño. Puede ser cambiar de trabajo, terminar una relación, prestar dinero o mudarte. ¿Qué fue lo que finalmente inclinó la balanza? Pausa el video y escríbelo.
 
-Necesitas cuaderno y algo con qué escribir.
+Segunda pregunta. ¿Qué es lo que no soportarías nunca? De una persona, de una situación, de un trabajo. Escríbelo.
 
-Si no lo tienes, para el video y ve a buscarlo.
+Tercera pregunta. ¿En qué cediste alguna vez y te quedaste mal durante semanas? Esta es la que más información da, así que tómate tu tiempo.
 
-[PAUSA LARGA]
+Y cuarta pregunta. Si tuvieras que renunciar a una de estas dos cosas, ¿a cuál renunciarías: a tu libertad o a tu seguridad? Escribe cuál, y escribe qué sentiste al elegir.
 
-[PAUSA]
+¿Ya tienes las cuatro? Ahora léelas juntas y busca de qué hablan. Te leo las pistas, nivel por nivel. Si hablan de no perder lo que tienes, de estabilidad, de protegerte: nivel uno. Si hablan de pertenecer, de no fallarles a los tuyos, de la familia: nivel dos. Si hablan de decidir tú, de que no te manden, de libertad: nivel tres. Si hablan de lo correcto, del deber, de cumplir: nivel cuatro.
 
-Y necesitas media hora sin interrupciones.
+Si hablan de conseguir, de avanzar, de que valga la pena: nivel cinco. Si hablan de que todos estén bien, del vínculo, de no hacer daño: nivel seis. Si hablan de comprender, de que todo depende del contexto: nivel siete. Y si hablan de propósito, de contribuir a algo más grande que tú: nivel ocho. Escribe el número. Puede ser más de uno.
 
-Si no la tienes ahora, mejor déjalo para otro momento.
+Un ejemplo para que lo veas claro. Imagina que tu última decisión difícil fue rechazar un trabajo mejor pagado en otra ciudad. Y que lo que inclinó la balanza fue no dejar a tu mamá sola. Eso habla de pertenencia: nivel dos. Aunque en la cuarta pregunta hayas elegido la libertad, los hechos dicen otra cosa, y los hechos pesan más.
 
-Hacer esto a medias no sirve de nada.
+Un truco para no engañarte: no elijas el valor que admiras. Elige el que aparece cuando tienes que decidir rápido y nadie te está viendo.
 
-[PAUSA]
+Con eso, pasemos al paso dos: tus fortalezas. Aquí la pregunta no es qué haces bien. Es qué haces bien sin esfuerzo, porque eso es lo que delata desde dónde funcionas. Escribe tres cosas que te salen fácil y que a otras personas les cuestan.
 
-Antes de empezar, tres reglas.
+¿Las tienes? Ahora, al lado de cada una, escribe lo que te dice la gente sobre ti. Los elogios que te repiten. No los que te gustaría oír, sino los que de verdad oyes.
 
-[PAUSA]
+Te leo los más comunes. «Aguantas lo que nadie aguanta»: nivel uno. «Eres muy familiar, cuidas mucho»: nivel dos. «Tienes mucho carácter, no te dejas»: nivel tres. «Eres muy responsable»: nivel cuatro. «Eres una máquina, no paras»: nivel cinco. «Siempre estás para todos»: nivel seis. «Tienes una cabeza increíble, lo ves todo»: nivel siete. Y «ves más allá»: nivel ocho. Escribe el número.
 
-Primera: escribe la primera respuesta que aparezca, aunque no te guste.
+Ahora vamos al paso tres: tu sombra. Esto ya lo trabajaste en los módulos cuatro y cinco. Si guardaste lo que escribiste ahí, búscalo ahora. Si no, te doy un atajo. Responde esta pregunta: ¿de qué se queja la gente que te quiere? No de qué te acusan las personas con las que chocas. De qué se queja quien te quiere.
 
-[PAUSA]
+Te leo las quejas más comunes. «Nunca te relajas»: nivel uno. «Estás demasiado pendiente de la familia»: nivel dos. «Decides sin contar con nadie»: nivel tres. «No sueltas el control»: nivel cuatro. «No descansas nunca»: nivel cinco. «No dices que no»: nivel seis. «Analizas todo y nunca te comprometes»: nivel siete. Y «nunca te enojas, y eso resulta raro»: nivel ocho. Escribe el número. Si te salieron dos, escribe los dos.
 
-Segunda: no busques la respuesta correcta. No la hay.
+¿Lo tienes? Llevamos tres pasos. Respira un momento antes de seguir.
 
-[PAUSA]
+Pasemos al paso cuatro, el que más sorprende a la gente: tu vida por áreas. Haz una lista con estas cinco áreas y ponle a cada una el número del nivel desde el que estás operando ahí. El dinero. La familia. El trabajo. La pareja, si la tienes. Y tu relación contigo. Pausa el video y tómate el tiempo que necesites para cada una.
 
-Y tercera: no te juzgues mientras escribes. Ya tendrás tiempo después.
+Ahora míralas. ¿Son todas iguales? Casi seguro que no, y eso es lo normal. Lo interesante es la distancia. Imagina a alguien que en el trabajo opera desde el cinco: decide rápido, negocia, lidera un equipo. Y que en la familia opera desde el dos: no se atreve a decir que este domingo no va al almuerzo. Esa distancia explica muchas tensiones internas. Es como ser dos personas distintas según con quién estés, y eso cansa.
 
-[PAUSA]
+Escribe cuál es tu área más alta y cuál la más baja. Y una pregunta más: ¿cuál de las cinco te está costando más ahora mismo? Escríbela.
 
----
+Y llegamos al paso cinco: tu recurso de evolución. Es lo que le falta a tu nivel actual para dar el siguiente paso. No es una meta. Es una pieza. Te los leo por nivel, cada uno con su primer paso concreto. Fíjate en el que corresponde al número que más se repite en tu hoja, o al del área que más te cuesta.
 
-## Paso 1 · Tus valores
+Nivel uno: tu recurso es confiar, construir seguridad por dentro. El primer paso es preguntarte, antes de decidir, si la alarma que sientes es de hoy o de antes. Nivel dos: pertenecer sin perder tu identidad. El primer paso es tomar una decisión pequeña sin consultarla, y sostenerla. Nivel tres: liderar sin imponer. El primer paso es comprometerte con algo y cumplirlo, aunque ya no tengas ganas. Nivel cuatro: la flexibilidad. El primer paso es preguntarte si una regla tuya todavía sirve, y probar a hacer algo de otra manera.
 
-[RÓTULO: Paso 1 — Qué decide cuando algo cuesta]
+Nivel cinco: disfrutar el proceso. El primer paso es darte un tiempo sin producir nada, a propósito. Nivel seis: ayudar sin sacrificarte. El primer paso es un no esta semana, sin explicaciones largas. Nivel siete: convertir lo que sabes en acción. El primer paso es decidir algo con información incompleta. Y nivel ocho: llevar tu propósito a lo diario. El primer paso es ocuparte de algo concreto, pequeño y aburrido.
 
-[A CÁMARA]
+Escribe el tuyo. Uno solo por ahora.
 
-Un valor no es lo que dices que valoras.
+¿Ya lo tienes? Entonces terminaste los cinco pasos. Tienes cinco respuestas escritas, y probablemente no coinciden entre sí. Antes de que pienses que lo hiciste mal, te explico en pocas palabras cómo se lee eso.
 
-Es lo que decide cuando algo cuesta.
+Si todo coincide, funcionas de forma estable desde ese nivel. Hay coherencia, pero poca tensión para moverte, así que tu tarea es el recurso de ese nivel, sin excusas. Si tu valor y tu sombra están en niveles distintos, estás en tránsito: tus valores ya se movieron y tus reflejos todavía no. Ahí conviene trabajar la sombra del nivel de abajo. Y si tus áreas están muy separadas, empieza por el área más baja, con la decisión más pequeña posible. Ninguna combinación está mal. Todas dicen algo. En el video de caso de este módulo vamos a leer cada combinación con calma.
 
-[PAUSA]
+Antes de cerrar, una cosa importante. Guarda esta hoja. Ponle la fecha de hoy y guárdala donde la puedas encontrar. El valor de este diagnóstico no está solo en el resultado de hoy. Está en repetirlo dentro de seis meses, sin mirar el anterior, y comparar. Ahí vas a ver qué se movió de verdad.
 
-Y por eso no te voy a pedir una lista.
+Hagamos un resumen. Hoy miraste tus valores por lo que decide cuando algo cuesta. Tus fortalezas, por lo que haces sin esfuerzo. Tu sombra, por lo que se queja quien te quiere. Tu vida, área por área. Y encontraste tu recurso de evolución, la pieza que te falta.
 
-Te voy a hacer cuatro preguntas.
+Tu tarea para las próximas veinticuatro horas: relee tu hoja una sola vez, con calma, y subraya la respuesta que más te sorprendió. No la corrijas. Solo subráyala.
 
-[PAUSA]
-
-**Primera.** Piensa en la última decisión difícil que tomaste.
-
-Difícil de verdad, de las que te costaron dormir.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-¿Qué fue lo que finalmente inclinó la balanza?
-
-[PAUSA LARGA]
-
-Escríbelo.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-**Segunda.** ¿Qué es lo que no soportarías nunca?
-
-De alguien, de una situación, de un trabajo.
-
-[PAUSA LARGA]
-
-Escríbelo.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-**Tercera.** ¿En qué has cedido y te dejó mal cuerpo semanas después?
-
-[PAUSA LARGA]
-
-Esa es la que más información da. Tómate tiempo.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-**Y cuarta.** Si tuvieras que renunciar a una de estas dos cosas,
-
-¿a cuál renunciarías?
-
-[PAUSA]
-
-A sentirte libre, o a sentirte segura.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-Escribe cuál, y escribe qué sentiste al elegir.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-[A CÁMARA]
-
-Ahora mira tus cuatro respuestas juntas.
-
-[PAUSA]
-
-Y busca de qué hablan.
-
-[PAUSA]
-
-Si hablan de pertenecer, de no fallar a los tuyos, de la familia:
-
-apunta **nivel dos**.
-
-[PAUSA]
-
-Si hablan de decidir tú, de que no te manden, de libertad:
-
-**nivel tres**.
-
-[PAUSA]
-
-Si hablan de lo correcto, del deber, de cumplir:
-
-**nivel cuatro**.
-
-[PAUSA]
-
-Si hablan de conseguir, de avanzar, de que valga la pena:
-
-**nivel cinco**.
-
-[PAUSA]
-
-Si hablan de que todos estén bien, del vínculo, de no hacer daño:
-
-**nivel seis**.
-
-[PAUSA]
-
-Y si hablan de que depende, de contexto, de que todo encaja:
-
-**siete u ocho**.
-
-[PAUSA]
-
-Escribe el número. Puede ser más de uno.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
----
-
-## Paso 2 · Tus fortalezas
-
-[RÓTULO: Paso 2 — Qué se te da bien sin esfuerzo]
-
-[A CÁMARA]
-
-Ahora las fortalezas. Y aquí la pregunta no es qué haces bien.
-
-Es qué haces bien **sin esfuerzo**.
-
-[PAUSA]
-
-Porque eso es lo que delata desde dónde funcionas.
-
-[PAUSA]
-
-Escribe tres cosas que se te dan bien y que a otras personas les cuestan.
-
-[PAUSA LARGA]
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-Y ahora, al lado de cada una, escribe qué te dice la gente sobre ti.
-
-Los elogios que te repiten.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-Que eres muy responsable. Nivel cuatro.
-
-Que eres una máquina, que no paras. Nivel cinco.
-
-Que siempre estás para todos. Nivel seis.
-
-Que tienes mucho carácter, que no te dejas. Nivel tres.
-
-Que eres muy familiar, que cuidas mucho. Nivel dos.
-
-Que tienes una cabeza increíble, que lo ves todo. Nivel siete.
-
-[PAUSA]
-
-Escribe el número.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
----
-
-## Paso 3 · Tu sombra
-
-[RÓTULO: Paso 3 — La fortaleza usada de más]
-
-[A CÁMARA]
-
-Esto ya lo trabajaste en los módulos cuatro y cinco.
-
-Ve a buscar lo que escribiste allí.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-Si no lo hiciste, te doy el atajo.
-
-[PAUSA]
-
-Responde esto: ¿de qué se queja la gente que te quiere?
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-No de qué te acusan tus enemigos. De qué se queja quien te quiere.
-
-[PAUSA]
-
-Que no descansas nunca. Cinco.
-
-Que no dices que no. Seis.
-
-Que no sueltas el control. Cuatro.
-
-Que decides sin contar con nadie. Tres.
-
-Que estás demasiado pendiente de la familia. Dos.
-
-Que analizas todo y no te mojas. Siete.
-
-Que nunca te enfadas y eso resulta raro. Ocho.
-
-[PAUSA]
-
-Escribe el número.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
----
-
-## Paso 4 · Por áreas
-
-[RÓTULO: Paso 4 — Casi nadie está en el mismo sitio en todo]
-
-[A CÁMARA]
-
-Este paso es el que más sorprende a la gente.
-
-[PAUSA]
-
-Haz una lista con estas cinco áreas y ponle un número a cada una.
-
-[PAUSA]
-
-El dinero.
-
-[PAUSA LARGA]
-
-La familia.
-
-[PAUSA LARGA]
-
-El trabajo.
-
-[PAUSA LARGA]
-
-La pareja, si la tienes.
-
-[PAUSA LARGA]
-
-Y tú contigo misma.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-[A CÁMARA]
-
-Ahora míralas.
-
-[PAUSA]
-
-¿Son todas iguales?
-
-[PAUSA]
-
-Casi seguro que no. Y eso es lo normal.
-
-[PAUSA]
-
-Lo interesante es la distancia.
-
-Si en el trabajo estás en el cinco y en la familia en el dos,
-
-esa distancia explica una cantidad enorme de tensiones internas.
-
-[PAUSA]
-
-Escribe cuál es tu área más alta y cuál la más baja.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-Y una pregunta más:
-
-¿cuál de las cinco te está costando más ahora mismo?
-
-[PAUSA LARGA]
-
-[PAUSA]
-
----
-
-## Paso 5 · Tu recurso de evolución
-
-[RÓTULO: Paso 5 — La pieza que falta]
-
-[A CÁMARA]
-
-Y llegamos al último.
-
-[PAUSA]
-
-El recurso de evolución es lo que le falta a tu nivel actual
-
-para dar el siguiente paso.
-
-No es una meta. Es una pieza.
-
-[PAUSA]
-
-Y va por niveles. Te los leo. Fíjate en el tuyo.
-
-[PAUSA]
-
-Si estás en el **dos**, tu recurso es **poder elegir sin permiso**.
-
-Tomar una decisión pequeña sin consultarla, y sostenerla.
-
-[PAUSA]
-
-Si estás en el **tres**, tu recurso es **la palabra dada**.
-
-Comprometerte con algo y cumplirlo aunque ya no te apetezca.
-
-[PAUSA]
-
-Si estás en el **cuatro**, tu recurso es **preguntarte si esa regla sirve**.
-
-Y probar a hacer una cosa de otra manera, a ver qué pasa.
-
-[PAUSA]
-
-Si estás en el **cinco**, tu recurso es **parar sin culpa**.
-
-Un tiempo sin producir nada, a propósito.
-
-[PAUSA]
-
-Si estás en el **seis**, tu recurso es **decir que no**.
-
-Un no, esta semana, sostenido sin explicaciones largas.
-
-[PAUSA]
-
-Si estás en el **siete**, tu recurso es **decidir con información incompleta**.
-
-Mover ficha antes de tenerlo todo claro.
-
-[PAUSA]
-
-Y si estás en el **ocho**, tu recurso es **bajar al detalle**.
-
-Ocuparte de algo concreto, pequeño y aburrido.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
-Escribe el tuyo.
-
-[PAUSA LARGA]
-
-[PAUSA]
-
----
-
-[A CÁMARA]
-
-Ya está. Cinco pasos.
-
-[PAUSA]
-
-Ahora tienes cuatro o cinco números escritos,
-
-y probablemente no coinciden entre sí.
-
-[PAUSA]
-
-No pasa nada. En el otro video de este módulo
-
-te explico cómo se leen las combinaciones,
-
-y qué recurso trabajar primero cuando salen varios.
-
-[PAUSA]
-
-Y antes de cerrar, una cosa.
-
-[PAUSA]
-
-Guarda esta hoja.
-
-[PAUSA]
-
-Ponle la fecha de hoy y guárdala en algún sitio donde la encuentres.
-
-[PAUSA]
-
-Porque el valor de esto no está en el resultado de hoy.
-
-Está en repetirlo dentro de seis meses y comparar.
-
-[PAUSA]
-
-Ahí es donde se ve si algo se movió.
-
-[PAUSA]
+En la próxima clase, «Tu punto ciego y tu siguiente paso», vamos a revisar tus respuestas, a preguntarles a tres personas cómo te ven y a convertir tu recurso en una acción con día y hora. Ten el celular a mano, porque vas a escribir un mensaje.
 
 Seguimos creciendo juntos.

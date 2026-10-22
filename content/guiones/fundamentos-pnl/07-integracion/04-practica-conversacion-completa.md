@@ -1,120 +1,57 @@
 # Caso · Una conversación difícil, de principio a fin
 
-**Fundamentos de la PNL · Módulo 7 · 15-18 min · Caso**
-Dos bloques: la conversación entera sin cortes, y después la misma con
-anotaciones en pantalla señalando la pieza usada. Se puede grabar con
-invitado o representada.
+Fundamentos de la PNL · Módulo 7 · 12-15 min
 
----
+Líderes, bendiciones.
 
-[A CÁMARA]
+Lo que vas a ver ahora es una conversación difícil, completa, sin cortes. Me acompaña una persona que se ofreció a hacer este ejercicio conmigo. Va a hacer el papel de alguien de un equipo de trabajo que lleva tres veces entregando tarde algo que acordamos. No le di un guion. Le pedí una sola cosa: que no me lo pusiera fácil, y que se defendiera como se defendería cualquiera en esa situación.
 
-Esto que vas a ver es una conversación difícil, entera.
+La conversación es representada, pero lo que pasa en ella es muy real. Casi todo el mundo ha estado de un lado o del otro de una conversación así. En el trabajo, con una entrega. En la casa, con un reparto de tareas. Con un socio, con un horario.
 
-Sin cortes y sin explicación.
+Te propongo que la mires dos veces. La primera, entera, sin intentar ponerle nombre a nada. Solo fíjate en lo que puedas. Y después de la conversación te voy a explicar, momento por momento, qué pieza del curso usé en cada parte. Si quieres, ten al lado la hoja con las seis preguntas que preparaste en la clase anterior.
 
-[PAUSA]
+Hay un momento que quiero que esperes con atención: cuando la otra persona se defienda. Fíjate en lo que hago justo después, y en lo que no hago.
 
-Después la vamos a repetir con anotaciones,
+## Conversación
 
-señalando qué pieza del curso se usó en cada momento.
+1. Gracias por sentarte conmigo. ¿Tienes unos minutos para que hablemos de las entregas?
+2. Las últimas tres veces me avisaste el mismo día que la entrega no iba a llegar, y yo me quedo sin poder organizarme. ¿Cómo lo ves tú?
+3. Puede ser, y si quieres eso también lo hablamos. Ahora quiero que hablemos de las entregas. ¿Te parece?
+4. ¿Qué te está pesando de esto?
+5. ¿Qué más?
+6. A ver si te entendí bien, con tus palabras: lo que me dices es que… ¿Es así?
+7. ¿Qué necesitarías para poder avisarme con tiempo?
+8. ¿Qué te parece si, el día antes de cada entrega, me cuentas cómo va, aunque vaya bien?
+9. ¿Qué te costaría a ti cumplir esto?
+10. ¿Cómo vamos a saber el viernes si funcionó?
+11. ¿Hay algo más que quieras decirme antes de cerrar?
 
-[PAUSA]
+## Cierre
 
-Míralo primero sin las anotaciones. Fíjate en lo que puedas.
+Ahora vamos a mirarla otra vez, pieza por pieza.
 
-Y después compara.
+Antes de la primera frase, el estado. Antes de sentarme hice el protocolo de sesenta segundos, y respiré antes de hablar. Si hubiera entrado con la activación alta, todo lo demás se habría caído.
 
-[PAUSA]
+En la primera frase, el mapa. No dije «nunca cumples». Dije un dato: las últimas tres veces me avisaste el mismo día. Y después el efecto en primera persona, sin culpar: me quedo sin poder organizarme.
 
-La situación es esta: un acuerdo incumplido tres veces.
+Cuando la otra persona se defendió, las presuposiciones. Asumí que había una intención detrás de lo que hacía. Por eso no contraataqué. Reconocí lo que dijo y volví al dato. Y luego pregunté, con curiosidad: ¿qué te está pesando de esto?
 
-Un plazo, un reparto de tareas, algo así.
+Mientras me respondía, calibrar. No interpreté nada: miré qué cambiaba en su cara, en su voz, en sus hombros. Y en lugar de llenar los silencios, pregunté «¿qué más?».
 
-Yo entro a hablarlo.
+Cuando repetí lo que había entendido, los canales. Usé sus palabras, no las mías. Así la otra persona se siente escuchada de verdad, y no traducida.
 
-[PAUSA]
+Al final, el objetivo. Un acuerdo concreto, en positivo, comprobable y con día. Y la pregunta de ecología: ¿qué te costaría cumplir esto? Esa pregunta suele sacar lo que llevaba semanas sin decirse.
 
-Empieza.
+Fíjate en dos cosas más. La primera: ninguna de las seis piezas se nota mientras pasa. No hay ningún momento en el que yo anuncie una técnica. Se nota en el resultado, no en la forma. La segunda: la conversación no fue cómoda. Hubo tensión, y eso es normal. Lo que cambió no es que no hubiera tensión. Es que la tensión no escaló.
 
----
+Y si tuviera que señalarte un solo segundo, sería este: cuando la otra persona se defiende y yo no contraataco. Ahí se decide una conversación difícil.
 
-## Bloque 1 · La conversación, sin cortes
+Y la pieza que falta, modelar, te toca a ti. Mira esta conversación y pregúntate qué la hizo funcionar. Eso es lo que vas a copiar.
 
-**Cómo se graba.** Una sola toma. Sin cortes de montaje. Si algo sale
-torcido, se repite entera — porque parte de lo que hay que ver es el ritmo
-real, incluidos los silencios y los momentos en que hay que rectificar.
+Toma la conversación que preparaste en la clase anterior. Repasa tus seis líneas, y sobre todo tu primera frase: el dato.
 
-**Lo que tiene que aparecer, en este orden:**
+Tu tarea para las próximas veinticuatro horas: escribe tu primera frase tal como la vas a decir, y ponle fecha a esa conversación. Un día concreto de esta semana o de la próxima.
 
-1. Dayana entra ya en estado. Se ve que respira antes de hablar.
-2. **Arranque suave.** Primera frase = hecho observable, no juicio.
-   «Las últimas tres veces me avisaste el mismo día.»
-3. El efecto en primera persona, sin culpar.
-   «Me quedo sin poder organizarme.»
-4. **La otra persona se defiende.** Esto tiene que pasar: si no pasa, la
-   escena no sirve como material de estudio. Aquí es donde se ve el trabajo.
-5. Dayana **no contraataca**. Reconoce y devuelve al hecho.
-6. Una pregunta abierta, con tono de curiosidad:
-   «¿Qué te está pesando de esto?»
-7. Aparece algo que Dayana no sabía. **Se calla y escucha.**
-8. Reformulación con las palabras del otro, no con las suyas.
-9. El acuerdo: concreto, en positivo, comprobable, con día.
-10. Cierre corto. Sin sermón final.
-
----
-
-## Bloque 2 · La misma conversación, anotada
-
-Se repite el vídeo con rótulos que van apareciendo. Cada rótulo señala la
-pieza y por qué ahí.
-
-| Momento | Rótulo |
-|---|---|
-| Antes de la primera frase | **Pieza 5 · Estado** — respira antes de entrar |
-| «Las últimas tres veces…» | **Pieza 2 · El mapa** — dato, no «nunca cumples» |
-| Cuando el otro se defiende | **Pieza 3 · Presuposiciones** — hay una intención detrás |
-| «¿Qué te está pesando?» | **Pieza 3 + 6** — preguntar, no acusar |
-| El silencio después | **Pieza 5 · Calibrar** — mirar qué cambia |
-| «Entonces lo que pasa es…» | **Pieza 4 · Canales** — sus palabras, no las mías |
-| El acuerdo del final | **Pieza 6 · Objetivo bien formulado** |
-
----
-
-[A CÁMARA, después de las dos pasadas]
-
-Fíjate en una cosa.
-
-[PAUSA]
-
-Ninguna de las seis piezas se nota mientras pasa.
-
-No hay ningún momento donde yo diga «voy a aplicar el metamodelo».
-
-Se nota en el resultado, no en la forma.
-
-[PAUSA]
-
-Y fíjate en otra: la conversación no fue cómoda.
-
-Hubo un momento en que se puso tensa. Eso es normal.
-
-Lo que cambió no es que no hubiera tensión.
-
-Es que la tensión no escaló.
-
-[A CÁMARA]
-
-Y si tuviera que señalarte un solo segundo, sería este:
-
-cuando el otro se defiende y yo no contraataco.
-
-[PAUSA]
-
-Ahí es donde se decide una conversación difícil.
-
-En todo lo demás hay margen. En ese segundo, no.
-
-[PAUSA]
+Lo que sigue es el audio guiado Ensayar una conversación difícil. Ahí vas a ensayar por dentro tu propia conversación, con las seis piezas, antes de tenerla.
 
 Seguimos creciendo juntos.

@@ -1,299 +1,71 @@
 # Clase 1 · Estados y calibración
 
-**Fundamentos de la PNL · Módulo 5 · 15-18 min · Clase**
-Las cuatro palancas se demuestran en cámara una a una. El bloque del 93 % es
-una corrección, no una anécdota: no recortarlo.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 5 · 13-15 min
 
 Líderes, bendiciones.
 
-Vamos con el triángulo, que es la idea que sostiene el módulo.
+En esta clase vamos a ver de qué está hecho un estado, cómo se cambia y cómo leer el de otra persona. Al terminar vas a saber tres cosas. Cuáles son las tres partes de un estado. Cuáles son las cuatro palancas del cuerpo para moverlo, y las vas a haber probado. Y qué diferencia hay entre observar a alguien e interpretarlo, que es justo lo que separa calibrar de adivinar.
 
-[DIAGRAMA EN PANTALLA]
+Empecemos por la pregunta de base: qué es un estado. Un estado es la suma de lo que está pasando en ti en un momento dado. Lo que piensas, lo que sientes, cómo respiras, cómo está tu postura, qué te dices por dentro. No es simplemente estar de buen o de mal humor. Es algo más concreto que eso, y por eso es más útil.
 
-Un estado son tres cosas ocurriendo a la vez.
+Un estado tiene tres partes que ocurren a la vez. Me gusta pensarlas como un triángulo. La primera es la fisiología: tu postura, tu respiración, la tensión de tus músculos, el ritmo al que te mueves. La segunda es el foco: a qué le estás prestando atención. A lo que falta, a lo que puede salir mal, o a lo que sí está funcionando. Y la tercera es el lenguaje interno: qué te estás diciendo y con qué tono. «No llego.» «Esto se me da.» «Otra vez lo mismo.»
 
-Fisiología: postura, respiración, tensión, ritmo.
+Lo importante es esto: ninguna de las tres manda sobre las otras dos. Se sostienen entre ellas. Piensa en un lunes en que vas tarde al trabajo. El cuerpo va acelerado y la respiración se te sube al pecho. El foco está en todo lo que no vas a alcanzar. Y por dentro te dices «hoy no me sale nada». Las tres se alimentan entre sí. Y la buena noticia es que basta con mover una para que el triángulo entero empiece a cambiar.
 
-Foco: a qué estás atendiendo.
+Ahora, ¿por cuál de las tres conviene entrar? Vamos a comprobarlo con un ejercicio. Piensa en algo que te preocupa, algo de esta semana. Y ahora intenta dejar de pensar en eso. Inténtalo de verdad durante unos segundos.
 
-Lenguaje interno: qué te estás diciendo.
+¿Pudiste? Casi nadie puede, o cuesta muchísimo. El foco no obedece a la orden de cambiar de foco. Y con el lenguaje interno pasa algo parecido: decirte «cálmate» rara vez te calma.
 
-[PAUSA]
+Ahora haz otra cosa. Endereza la espalda, baja los hombros y suelta el aire tres veces, más despacio de lo que entró. Hazlo conmigo. Una. Dos. Tres. Eso sí se puede. Tarda unos quince segundos. Y muchas veces el pensamiento se mueve detrás. Esa es la razón práctica por la que entramos por el cuerpo: de las tres partes, es la única que responde a voluntad y de inmediato. Que tu estado mental cambia tu cuerpo ya lo sabes. Pero tu cuerpo también cambia tu estado mental. Y esa segunda dirección está bajo tu control.
 
-Y ninguna manda sobre las otras dos. Se sostienen entre ellas.
+Con esto claro, pasemos a las cuatro palancas del cuerpo. Vamos a probarlas una por una.
 
-Si cambias una, las otras dos se mueven detrás.
+La primera palanca es la respiración. Y la regla es una sola: exhalar más largo que inhalar. Ojo, no se trata de respirar hondo. Respirar hondo y rápido sube la activación en lugar de bajarla. Lo que calma es la salida larga del aire. ¿Por qué funciona? El corazón se acelera un poco cada vez que inhalas y se frena un poco cada vez que exhalas. Si alargas la exhalación, inclinas el equilibrio hacia el freno. No puedes bajarte las pulsaciones queriendo. Pero sí puedes exhalar más largo, y las pulsaciones bajan detrás. Tarda más o menos medio minuto.
 
-[A CÁMARA]
+La segunda palanca es la postura: espalda apoyada, pecho abierto, hombros abajo. Pruébalo ahora. Primero deja caer el cuerpo hacia adelante, con los hombros hacia dentro y la mirada al piso. Quédate así unos segundos y nota qué te pasa por dentro. Ahora apoya la espalda, abre el pecho y deja caer los hombros. ¿Notas la diferencia? Una aclaración importante: abrir no es endurecerse. Mucha gente, cuando le dicen «enderézate», se pone tiesa como un palo. Eso no es abrir el pecho. Es cambiar una tensión por otra. Se trata de soltar, no de apretar en otro lugar.
 
-¿Por qué entramos siempre por el cuerpo?
+Te debo un matiz honesto sobre la postura. Hace unos años se hicieron famosas las llamadas posturas de poder, con la promesa de que cambiaban tus hormonas en un par de minutos. Ese efecto hormonal no se confirmó en estudios posteriores. Lo que tiene más respaldo es algo más modesto: la postura cambia cómo te sientes tú. Y para lo que buscamos aquí, basta.
 
-Por una razón práctica, no filosófica.
+La tercera palanca es el ritmo: bajar la velocidad al hablar y al moverte. Cuando vas con prisa por dentro, todo se acelera. Hablas rápido, caminas rápido, contestas antes de que el otro termine. Si bajas la velocidad a propósito, la urgencia interna baja con ella. En unos quince segundos ya se nota. Y tiene un efecto secundario muy útil: la otra persona suele bajar contigo. Piensa en una discusión de pareja. Si uno de los dos empieza a hablar más despacio, la conversación entera cambia de temperatura.
 
-[PAUSA]
+La cuarta palanca es la mirada, la menos conocida de todas. Cuando algo te asusta, los ojos se clavan en un punto. Fijar la vista acompaña al estado de alerta. Y mucha gente nota que, al abrir el campo visual, esa alerta afloja. Vamos a probarlo. No muevas los ojos. Solo deja de enfocar el punto donde estás mirando y nota los bordes de lo que ves. Lo que hay a los lados, arriba y abajo, sin girar la cabeza. Quédate así unos segundos.
 
-Intenta ahora mismo dejar de pensar en algo que te preocupa.
+¿Qué notaste? Compruébalo en ti, porque eso es lo que vale. Lo bueno de esta palanca es que se puede usar en mitad de una reunión y nadie se da cuenta.
 
-Inténtalo de verdad. Deja de pensar en eso.
+Te añado una zona que no está entre las cuatro, pero que merece mención: la mandíbula. Es donde más gente acumula tensión sin saberlo. Fíjate ahora en la tuya. ¿Los dientes se tocan? Sepáralos apenas y deja la lengua descansando abajo. Eso cambia la voz y baja la activación general.
 
-[PAUSA]
+Ahora vamos a la segunda parte de la clase: calibrar. Calibrar es leer el estado de alguien por lo que se ve, no por lo que se supone. Y para entenderlo hay que separar dos cosas que casi siempre mezclamos: interpretar y observar.
 
-No se puede. O cuesta muchísimo.
+Te voy a dar tres ejemplos. Primero la interpretación y después la observación. «Está enojada.» Esa es la interpretación. La observación sería: «habla más rápido, no me mira y tiene la mandíbula tensa». Segundo ejemplo. «Le dio igual.» La observación: «se calló tres segundos y cambió de tema». Tercero. «Está convencido.» La observación: «se inclinó hacia adelante y asintió dos veces».
 
-El foco no obedece a la orden de cambiar de foco.
+¿Ves la diferencia? La interpretación es una conclusión. La observación es un dato, lo que grabaría una cámara. Y las técnicas trabajan con datos, por una razón muy práctica. Si te equivocas con un dato, preguntas y corriges. Si te equivocas con una conclusión, la defiendes.
 
-[PAUSA]
+¿Y qué se observa? Cinco cosas. La cara: el color de la piel, la tensión de la mandíbula, los labios, las arrugas alrededor de los ojos. La respiración: si ocurre en el pecho o en el abdomen, y a qué ritmo. La postura: abierta o cerrada, y hacia dónde apuntan los pies. La voz: el ritmo, el tono, el volumen y dónde hace las pausas. Por teléfono es lo único que tienes, y muchas veces basta. Y los micromovimientos: tragar saliva, un parpadeo largo, una mano que se cierra.
 
-Y ahora endereza la espalda, baja los hombros
+Para que esto no se convierta en adivinación, hay tres reglas.
 
-y haz tres exhalaciones largas.
+La primera regla es la línea base primero. Antes de leer un cambio, hay que saber cómo está esa persona en calma. Sin línea base, «tiene la mandíbula tensa» no significa nada. Puede ser su cara de siempre.
 
-[HACERLO]
+La segunda regla es que importa el cambio, no el gesto. Un gesto aislado no dice nada fijo. Lo que informa es qué se movió y justo después de qué. Si un compañero de trabajo cruza los brazos, eso no te dice mucho. Pero si los cruza justo cuando mencionas el presupuesto, y antes no los tenía cruzados, ahí hay un dato.
 
-Eso sí se puede. Tarda quince segundos.
+La tercera regla es comprobar siempre. Calibrar te da hipótesis, no certezas. La certeza viene de preguntar. Y se pregunta con curiosidad, no con acusación. Algo así: «Te noté algo distinto cuando salió ese tema. ¿Me equivoco?». Si la respuesta es «no, nada», se respeta. Ya tienes un dato.
 
-Y el pensamiento cambia detrás.
+Vamos a practicarlo un momento. Piensa en la última vez que concluiste algo sobre alguien por su cara. «Se molestó.» «No le gustó.» «Está cansado de mí.» Tómate unos segundos y conviértelo en observación. ¿Qué viste exactamente?
 
-[RÓTULO: El cuerpo es el único de los tres que obedece a voluntad]
+¿Lo tienes? Si te costó encontrar el dato, es normal. Solemos recordar la conclusión y olvidar lo que vimos.
 
-[A CÁMARA]
+Para terminar, tres cosas que no se hacen.
 
-Vamos con las cuatro palancas.
+La primera es deducir mentiras de un gesto. No hay ningún gesto que indique mentira. Ni tocarse la nariz, ni cruzar los brazos, ni mirar hacia un lado. Nada de eso se sostiene. Y acusar a alguien por un gesto hace daño.
 
-[RÓTULO: 1 · Respiración]
+La segunda es repetir que el noventa y tres por ciento de la comunicación es no verbal. Ese número sale de unos estudios de Albert Mehrabian de finales de los años sesenta, y esos estudios no decían eso. Medían algo muy concreto: qué pasa cuando alguien dice una sola palabra sobre lo que siente y el tono de voz la contradice. En esa situación, la gente le hace más caso al tono. Eso es todo. El propio Mehrabian ha aclarado muchas veces que sus resultados no se pueden generalizar así. Lo no verbal importa muchísimo. Pero el número es falso, y usarlo te resta credibilidad.
 
-Palanca uno: la respiración.
+La tercera es decirle a alguien lo que siente. «Tú estás enojado, se te nota.» Eso no se hace. Se pregunta, siempre.
 
-La regla es una sola: exhalar más largo que inhalar.
+Hagamos un resumen. Un estado tiene tres partes: fisiología, foco y lenguaje interno. Si mueves una, se mueven las otras. El cuerpo es la entrada más rápida, con cuatro palancas: respiración, postura, ritmo y mirada, y además la mandíbula. Calibrar es leer lo que se ve, no lo que se supone. Y tiene tres reglas: línea base primero, importa el cambio, y comprobar siempre preguntando.
 
-No respirar hondo, ojo. Exhalar largo.
+Tu tarea para las próximas veinticuatro horas tiene dos partes. Elige la palanca que más te movió hoy y úsala tres veces, en frío, sin esperar a sentirte mal. Y en una conversación cualquiera, dedica treinta segundos a mirar solo la respiración de la otra persona. Es aburrido, y así se entrena.
 
-Respirar hondo y rápido sube la activación, no la baja.
-
-[PAUSA]
-
-¿Por qué funciona? Sin misterio:
-
-el corazón acelera un poco al inhalar y frena al exhalar.
-
-Si alargas la exhalación, desplazas el equilibrio hacia el freno.
-
-No puedes bajarte las pulsaciones queriendo.
-
-Sí puedes exhalar más largo. Y las pulsaciones bajan detrás.
-
-[RÓTULO: 2 · Postura]
-
-Palanca dos: la postura.
-
-Espalda apoyada, pecho abierto, hombros abajo.
-
-[DEMOSTRAR LAS DOS: HUNDIDA Y ABIERTA]
-
-Y aquí una corrección importante.
-
-Abrir no es ponerse rígida.
-
-Mucha gente cuando le dices «ponte derecha» se pone tensa como un palo.
-
-Eso no es abrir el pecho, es cambiar una tensión por otra.
-
-[RÓTULO: 3 · Ritmo]
-
-Palanca tres: el ritmo.
-
-Bajar la velocidad al hablar y al moverse.
-
-Quince segundos y ya se nota.
-
-Y tiene un efecto secundario bueno: la otra persona baja contigo.
-
-[RÓTULO: 4 · Mirada]
-
-Y palanca cuatro, la menos conocida y la más útil en un momento de nervios.
-
-La mirada.
-
-[PAUSA]
-
-Cuando algo te asusta, los ojos se clavan en un punto.
-
-Fijación visual y estado de alerta van juntos.
-
-Y funciona en las dos direcciones: si sueltas la fijación,
-
-si dejas de mirar un punto y abres la visión periférica,
-
-la alerta afloja.
-
-[DEMOSTRAR: SIN MOVER LOS OJOS, ENSANCHAR EL CAMPO]
-
-Pruébalo ahora. No muevas los ojos.
-
-Solo deja de enfocar y nota los bordes de lo que ves.
-
-[PAUSA]
-
-Se puede hacer en mitad de una reunión y nadie lo nota.
-
-[A CÁMARA]
-
-Añado una que no está en las cuatro y que merece mención: la mandíbula.
-
-Es donde más gente acumula tensión sin saberlo.
-
-Sepárala apenas. Que los dientes no se toquen. La lengua abajo.
-
-[HACERLO]
-
-Cambia la voz, y baja la activación general.
-
-[A CÁMARA]
-
-Segunda mitad de la clase. Calibrar.
-
-[RÓTULO: Calibrar]
-
-Calibrar es leer el estado de alguien por lo que se ve, no por lo que se supone.
-
-Y hay una diferencia enorme entre estas dos columnas.
-
-[TABLA EN PANTALLA]
-
-«Está enfadada» — o — «habla más rápido, no me mira, tiene la mandíbula tensa».
-
-«Le dio igual» — o — «se calló tres segundos y cambió de tema».
-
-«Está convencido» — o — «se inclinó hacia adelante y asintió dos veces».
-
-[PAUSA]
-
-La columna de la izquierda es una conclusión.
-
-La de la derecha es un dato.
-
-Y las técnicas trabajan con datos.
-
-[A CÁMARA]
-
-¿Qué se observa? Cinco cosas.
-
-La cara: color de la piel, mandíbula, labios, las arrugas de los ojos.
-
-La respiración: dónde ocurre y a qué ritmo.
-
-La postura: abierta o cerrada, hacia dónde apuntan los pies.
-
-La voz: ritmo, tono, volumen, y dónde hace las pausas.
-
-Y los micromovimientos: un tragar saliva, un parpadeo largo, una mano que se cierra.
-
-[A CÁMARA]
-
-Y ahora las tres reglas, que son lo que hace que esto no se convierta
-
-en adivinación.
-
-[RÓTULO: 1 · Línea base primero]
-
-Uno: línea base primero.
-
-Antes de leer un cambio hay que saber cómo está esa persona en calma.
-
-Sin línea base, «tiene la mandíbula tensa» no significa nada:
-
-puede ser su cara normal.
-
-[RÓTULO: 2 · Importa el cambio, no el gesto]
-
-Dos: lo que importa no es el gesto. Es el cambio.
-
-Qué se movió, y justo después de qué.
-
-[RÓTULO: 3 · Siempre comprobar]
-
-Y tres: siempre comprobar.
-
-Calibrar da hipótesis, no certezas.
-
-La certeza viene de preguntar.
-
-«Te noté distinta cuando salió ese tema, ¿me equivoco?»
-
-[A CÁMARA]
-
-Y ahora tres cosas que no hay que hacer nunca.
-
-[PAUSA]
-
-La primera: deducir mentiras de un gesto.
-
-No hay ningún gesto que indique mentira. Ninguno.
-
-Ni tocarse la nariz, ni cruzar los brazos, ni mirar a un lado.
-
-Nada de eso se sostiene, y acusar a alguien basándose en eso hace daño.
-
-[PAUSA]
-
-La segunda: repetir aquello de que el noventa y tres por ciento
-
-de la comunicación es no verbal.
-
-[RÓTULO: El mito del 93 %]
-
-Ese número sale de un estudio de mil novecientos sesenta y siete,
-
-de Albert Mehrabian.
-
-Y el estudio no decía eso.
-
-Medía algo muy concreto: qué pasa cuando alguien dice una palabra suelta
-
-sobre sus sentimientos y el tono contradice la palabra.
-
-En esas condiciones, la gente hace más caso al tono.
-
-Eso es todo.
-
-El propio Mehrabian lleva décadas pidiendo que dejen de citarlo así.
-
-[PAUSA]
-
-Lo no verbal importa. Muchísimo.
-
-Pero el número es falso, y usarlo te resta credibilidad delante
-
-de quien sepa de dónde salió.
-
-[PAUSA]
-
-Y la tercera cosa que no se hace: decirle a alguien lo que siente.
-
-Se pregunta. Siempre.
-
-[A CÁMARA]
-
-Cierro con esto.
-
-Calibrar no es saber lo que el otro piensa.
-
-Es notar cuándo algo cambió, y tener la humildad de preguntar qué fue.
-
-[PAUSA]
-
-En la guía tienes la hoja de observación:
-
-eliges a una persona, apuntas su línea base, y durante una semana
-
-anotas qué cambió y justo después de qué.
-
-Hazlo. Es de las cosas que más te van a servir de todo el curso.
-
-[PAUSA]
+En la próxima clase, Calibrar sin adivinar, vamos a entrenar esta mirada en ti, en una escena y en alguien cercano.
 
 Seguimos creciendo juntos.

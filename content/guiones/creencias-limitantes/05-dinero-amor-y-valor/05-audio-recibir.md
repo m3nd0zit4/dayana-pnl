@@ -1,220 +1,147 @@
 # Audio guiado · Recibir sin rebajarlo
 
-**Creencias limitantes y potenciadoras · Módulo 5 · 9-12 min · Audio guiado**
-Solo voz, grabada en silencio, muy cálida y sin prisa. Fondo musical suave
-opcional, sin letra. Los silencios largos son el ejercicio de descansar: no
-acortarlos.
+Creencias limitantes y potenciadoras · Módulo 5 · 12-15 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
-
-[PAUSA]
-
-Durante los próximos diez minutos no tienes que producir nada.
+Durante este rato no tienes que producir nada.
 
 No tienes que hacerlo bien. No tienes que aprender nada. No tienes que sacarle provecho.
 
 Solo estar.
 
-[PAUSA LARGA]
+Busca una postura cómoda. En una silla, en un sofá o en la cama.
 
-Busca una postura cómoda. En una silla, en un sofá, en la cama.
+Deja que el cuerpo se apoye del todo. Que lo que tienes debajo sostenga tu peso.
 
-Deja que el cuerpo se apoye del todo.
+Si quieres, cierra los ojos.
 
-[PAUSA]
+Respira. Deja que el aire entre por la nariz… y que salga despacio, por la boca.
 
-Cierra los ojos, si quieres.
+Otra vez. Entra el aire… y sale, despacio.
 
-[PAUSA]
-
-Respira. Entra el aire por la nariz.
-
-[PAUSA]
-
-Y sale despacio, por la boca.
-
-[PAUSA]
-
-Otra vez.
-
-[PAUSA]
-
-Y otra, a tu ritmo.
-
-[PAUSA LARGA]
+Y otra más, a tu ritmo. Quédate ahí unos momentos, solo respirando.
 
 Quizá aparezca una voz que dice que deberías estar haciendo otra cosa. Contestando algo. Adelantando algo.
 
-Si aparece, no le discutas. Solo nota que está ahí.
-
-Y vuelve a la respiración.
-
-[PAUSA LARGA]
+Si aparece, no le discutas. Solo nota que está ahí. Y vuelve a la respiración.
 
 Este rato no se gana. Ya es tuyo.
 
-[PAUSA LARGA]
+Nota tu cara. Deja que la frente se suelte. Que la mandíbula se afloje un poco.
 
-Nota la cara. Deja que la frente se suelte.
+Nota tus hombros. Deja que bajen un poco, como si soltaran algo que llevan cargando todo el día.
 
-[PAUSA]
+Nota tu pecho. Cómo sube y baja sin que tengas que hacer nada.
 
-Nota el pecho. Cómo sube y baja sin que hagas nada.
-
-[PAUSA]
-
-Nota las manos. Deja que se abran un poco, con las palmas sueltas, como quien se prepara para recibir algo.
-
-[PAUSA]
+Nota tus manos. Deja que se abran un poco, con las palmas sueltas, como quien se prepara para recibir algo.
 
 Así, con las manos abiertas, vamos a practicar.
 
-[PAUSA LARGA]
+Trae a la memoria una vez en que alguien te reconoció algo. Un elogio. Un «gracias, de verdad». Un «qué bien lo hiciste».
 
-Ahora trae a la memoria una vez en que alguien te reconoció algo.
+Y en lugar de recibirlo, lo rebajaste. Dijiste «bah, no fue nada». O «tú también». O «eso lo hace cualquiera».
 
-Un elogio. Un «gracias, de verdad». Un «qué bien lo hiciste».
+Tómate el tiempo que necesites para encontrar ese momento. No hace falta que sea el más importante. Basta con uno que recuerdes bien.
 
-Y en lugar de recibirlo, lo rebajaste. «Bah, no fue nada.» «Tú también.» «Lo hace cualquiera.»
+Cuando lo tengas, mira la escena. Dónde estabas. Quién te lo dijo. Cómo te miraba.
 
-[PAUSA REAL · 15 s — el alumno encuentra un elogio que rebajó]
+Escucha otra vez lo que te dijo. Con su voz. Con su tono.
 
-Mira la escena. Dónde estabas. Quién te lo dijo. Cómo te miraba.
+Y nota qué pasa en tu cuerpo. Quizá incomodidad. Ganas de apartar la mirada. Ganas de contestar rápido, de devolver algo enseguida.
 
-[PAUSA]
+Solo nótalo. No tienes que cambiarlo todavía.
 
-Escucha otra vez lo que te dijo. Con su voz.
-
-[PAUSA REAL · 10 s — el alumno escucha el elogio]
-
-Y nota qué pasa en tu cuerpo. Quizá incomodidad. Ganas de apartar la mirada, de contestar rápido.
-
-[PAUSA REAL · 10 s — el alumno nota la incomodidad]
+Y fíjate en la frase que usaste para rebajarlo. Esa frase no la inventaste ese día. La aprendiste en algún lugar, hace mucho.
 
 Ahora vamos a repetir la escena. Pero esta vez la vas a vivir de otra manera.
 
-La persona te dice lo mismo.
+La persona te dice lo mismo, con las mismas palabras.
 
-Y tú no contestas nada todavía.
-
-Solo dejas que entre.
-
-[PAUSA]
+Y tú no contestas nada todavía. Solo dejas que entre.
 
 Una respiración, con esas palabras dentro.
 
-[PAUSA]
+Dos respiraciones.
 
-Dos.
-
-[PAUSA]
-
-Tres.
-
-[PAUSA LARGA]
+Tres. Despacio.
 
 Y ahora, en la escena, dices una sola palabra: «gracias».
 
 Sin explicar. Sin devolver. Sin rebajar.
 
-[PAUSA REAL · 10 s — el alumno dice «gracias» en la escena]
-
 Nota cómo te mira la otra persona cuando recibes lo que te dio.
 
-Recibir también es una forma de dar: le dejas a la otra persona el gusto de haberte dado algo.
+Recibir también es una forma de dar. Le dejas a la otra persona el gusto de haberte dado algo.
 
-[PAUSA LARGA]
+Quédate ahí unos momentos, con esa palabra y con esa mirada.
 
-Ahora deja que la escena se vaya.
+Ahora deja que la escena se vaya, despacio.
 
 Y quédate con una pregunta. No para responderla con la cabeza. Para escuchar qué hace el cuerpo con ella.
 
-[PAUSA]
-
 ¿Cuánto creo que merezco?
 
-[PAUSA REAL · 15 s — el alumno escucha la pregunta en el cuerpo]
+Escúchala otra vez, por dentro. ¿Cuánto creo que merezco?
 
-Nota si algo se encoge o algo se abre.
+Nota si algo se encoge, o si algo se abre. En el pecho, en el estómago, en la garganta.
 
-No hace falta que te guste la respuesta. Solo nótala.
+No hace falta que te guste la respuesta. Solo nótala. Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
+Respira… y deja que esa sensación se quede como está.
 
-Ahora trae la acción que elegiste para esta semana.
+Ahora trae la acción que elegiste para esta semana. La que escribiste con día.
 
-Subir una tarifa. Cobrar algo pendiente. Pedir algo. Aceptar un elogio. Descansar una tarde.
+Quizá es subir una tarifa. Cobrar algo pendiente. Pedir algo. Aceptar un elogio. Descansar una tarde sin justificarlo.
 
-[PAUSA]
+Si todavía no elegiste ninguna, elige ahora la primera que aparezca.
 
-Imagina el momento en que la haces. Dónde estás. Con quién.
-
-[PAUSA REAL · 15 s — el alumno imagina el momento de su acción]
+Imagina el momento en que la haces. Dónde estás. Con quién. Qué hora es.
 
 Y mientras lo imaginas, respira largo. Deja que los hombros bajen.
 
-[PAUSA]
+Si notas que la respiración se acelera, suelta el aire despacio, más largo de lo que entró. Y sigue mirando la escena.
 
 Imagina que dices lo que tienes que decir. La cifra. La petición. El «gracias».
 
 Y que después te quedas en silencio, con los pies en el suelo, sin añadir nada.
 
-[PAUSA REAL · 15 s — el alumno ensaya la acción en silencio]
+Quédate ahí unos momentos.
 
-Nota que se puede. Que el cuerpo puede estar ahí, con calma, mientras pide o recibe.
+Nota que se puede. Que el cuerpo puede estar ahí, con calma, mientras pide o mientras recibe.
 
 Si apareció un nudo, está bien. No tiene que desaparecer para que lo hagas. Puedes hacerlo con el nudo.
-
-[PAUSA LARGA]
 
 Antes de volver, una frase. Dila por dentro, despacio.
 
 «Lo que hago y lo que valgo son dos cosas distintas.»
 
-[PAUSA REAL · 10 s — el alumno la dice por dentro]
+Otra vez, más despacio todavía.
 
-Otra vez, más despacio.
+«Lo que hago… y lo que valgo… son dos cosas distintas.»
 
-[PAUSA REAL · 10 s — el alumno la repite]
+Respira… y deja que la frase se quede ahí, aunque todavía no te la creas del todo.
 
-[PAUSA LARGA]
-
-Vamos a volver. Cuento del uno al cinco.
-
-[PAUSA]
+Ahora vamos a volver. Voy a contar del uno al cinco.
 
 Uno. Nota tu respiración.
 
-[PAUSA]
-
-Dos. Nota el apoyo del cuerpo.
-
-[PAUSA]
+Dos. Nota el apoyo de tu cuerpo, el peso que descansa.
 
 Tres. Mueve un poco las manos y los pies.
 
-[PAUSA]
-
-Cuatro. Respira hondo, y estírate si te apetece.
-
-[PAUSA]
+Cuatro. Respira hondo, y estírate si quieres.
 
 Cinco. Abre los ojos.
 
-[PAUSA]
-
 Estás aquí.
 
-[PAUSA LARGA]
+Antes de seguir con tu día, escribe dos líneas en tu cuaderno. La primera: cómo fue decir «gracias» sin rebajar. La segunda: el día y la hora de tu acción de esta semana.
 
-Antes de seguir, escribe dos líneas en tu cuaderno.
+Tómate el tiempo que necesites para escribirlas.
 
-Cómo fue decir «gracias» sin rebajar.
+Puedes volver a este audio cuando quieras, sobre todo antes de hacer tu acción.
 
-Y el día y la hora de tu acción de esta semana.
+Para completar este módulo tienes el material de lectura en PDF, con las preguntas para tu cuaderno. Y tienes un ejercicio corto, opcional, para dejar escrita tu frase heredada y tu acción. Y cuando quieras, te espero en el próximo módulo, «Reencuadre y transformación de creencias».
 
-[PAUSA REAL · 30 s — el alumno escribe sus dos líneas]
-
-Acabas de pasar diez minutos sin producir nada. Y sigues valiendo exactamente lo mismo.
+Acabas de pasar un rato sin producir nada. Y sigues valiendo exactamente lo mismo.

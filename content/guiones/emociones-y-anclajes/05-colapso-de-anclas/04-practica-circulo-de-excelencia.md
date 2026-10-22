@@ -1,275 +1,61 @@
 # Práctica · El círculo de excelencia, guiado
 
-**Emociones, anclajes y estados de recurso · Módulo 5 · 12-14 min · Práctica**
-Práctica guiada de pie. Se graba de cuerpo entero: Dayana hace cada paso con su propio círculo (cinta de color en el suelo) para que se vea el entrar y salir.
-Voz más lenta que en una clase. Las pausas de la reviviscencia son reales: no recortarlas, y la tercera repetición no se acelera.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 5 · 9-11 min
 
 Líderes, bendiciones.
 
-Esto es una práctica. Se hace de pie, con espacio y a solas.
+Esta es una práctica, y la vamos a hacer juntos, en tiempo real. Vas a montar tu círculo de excelencia en ocho pasos. Vas a entrar en él tres veces, lo vas a probar sin preparar nada y al final lo vas a llevar al lugar donde lo vas a necesitar. Al terminar vas a tener un círculo propio, ensayado y listo para tu evento.
 
-Si ahora no tienes una habitación donde moverte sin que te interrumpan, pausa el video y vuelve cuando la tengas.
+Se hace de pie, con espacio y a solas. Si ahora no tienes una habitación donde moverte sin que te interrumpan, pausa el video y vuelve cuando la tengas.
 
-[PAUSA LARGA]
+¿Ya estás? Bien. Quítate los zapatos si te resulta más cómodo, y deja libre un espacio de un par de pasos delante de ti. Ponte de pie, con los pies separados más o menos al ancho de las caderas. Deja que el peso se reparta entre los dos pies. Suelta las rodillas, que no estén trabadas. Ahora una exhalación larga, más larga de lo que entró el aire. Y otra.
 
-Bien. Quítate los zapatos si te resulta más cómodo, y deja libre un espacio de un par de pasos delante de ti.
+Ten a mano tu evento, el que escribiste en la segunda clase. La presentación, la entrevista, la conversación importante. Y elige un recuerdo de tu mejor estado: un momento en que estuviste en tu mejor versión para algo parecido, con calma, con confianza, con presencia. Puede ser pequeño. Lo importante es que sea real. Tómate unos segundos para elegirlo.
 
-Ponte de pie, con los pies separados más o menos al ancho de las caderas.
+¿Lo tienes? Empezamos.
 
-Deja que el peso se reparta entre los dos pies. Suelta las rodillas, que no estén trabadas.
+Paso uno: el círculo. Mira el suelo delante de ti. Imagina un círculo, lo bastante grande para que quepas de pie dentro. Ponle un color, el que te salga. El mío es dorado. Ahora fíjate en los detalles. ¿Tiene un borde marcado? ¿Brilla? ¿Hace algún sonido? Deja que se vuelva nítido. Tómate unos segundos.
 
-Una exhalación larga. Y otra.
+Paso dos: fuera del círculo, el recuerdo. Todavía no entres. Quédate afuera. Cierra los ojos si quieres, y vuelve a ese momento de tu mejor estado. ¿Dónde estás? ¿Qué ves a tu alrededor? Quédate ahí unos segundos. ¿Qué se oye? ¿Qué te dices, o qué te dicen? Y ahora, ¿cómo está tu cuerpo en ese momento? ¿Cómo estás de pie? ¿Cómo respiras? Deja que el cuerpo lo recuerde.
 
-[PAUSA REAL · 15 s — pararse con los pies firmes y dos exhalaciones largas]
+Paso tres: entrar. Cuando sientas que el estado sube, da un paso adelante y entra al círculo.
 
-Ten a mano tu evento, el que escribiste en la clase dos. La presentación, la entrevista, la conversación.
+Paso cuatro: amplificar adentro. Ya adentro, deja que tu cuerpo tome la postura de ese momento. La espalda. Los hombros. Dónde apoyas el peso. Respira como respirabas ahí. Y di por dentro la frase de ese momento. Si no había frase, usa la tuya, la frase corta que elegiste en el módulo dos. Deja que el estado suba un poco más. Que la imagen se acerque, que tenga más luz. Quédate unos segundos en lo más alto.
 
-[PAUSA]
+Paso cinco: salir en el pico. Ahora, en lo alto, sal del círculo con un paso atrás. Y rompe el estado: abre los ojos, sacude las manos, mira la habitación. Dime en voz alta qué hora crees que es.
 
-Y elige un recuerdo de tu mejor estado. Un momento en que estuviste en tu mejor versión para algo parecido: con calma, con confianza, con presencia.
+Muy bien. Esa fue la primera vez.
 
-Pequeño vale. Real, sí.
+Paso seis: repetir. Vamos con la segunda vez. Estás afuera del círculo. Si tienes otro recuerdo de tu mejor estado, puedes usarlo ahora. Si no, el mismo. Cierra los ojos y vuelve a entrar en él. El lugar. El sonido. El cuerpo. Tómate el tiempo que necesites para que suba.
 
-[PAUSA REAL · 15 s — elegir un recuerdo de tu mejor estado]
+Cuando suba, al círculo. Un paso adelante. Postura. Respiración. Frase. Deja que llegue arriba.
 
----
+Y sal, con un paso atrás. Rompe el estado: ojos abiertos, sacude las manos. Cuenta en voz alta los objetos azules que veas en la habitación.
 
-**Paso uno. El círculo.**
+Ahora la tercera vez. Y esta la hacemos igual de lenta que la primera, sin apurarnos porque ya sabemos. Afuera del círculo. Ojos cerrados. ¿Dónde estás? ¿Qué ves? Quédate ahí. ¿Qué se oye? ¿Cómo está tu cuerpo?
 
-[A CÁMARA]
+Cuando suba, entra al círculo. La postura de ese momento. La respiración de ese momento. La frase. Que suba todo lo que pueda subir.
 
-[HACERLO]
+Y sal. Rompe el estado. Ojos abiertos, mira la habitación, sacude el cuerpo entero.
 
-Mira el suelo delante de ti. Imagina un círculo, lo bastante grande para que quepas de pie.
+Paso siete: la prueba. Ahora sin preparar nada. Sin recuerdo y sin cerrar los ojos. Solo da un paso y entra al círculo. Quédate ahí unos segundos y observa.
 
-Ponle un color. El que te salga. El mío es dorado.
-
-[PAUSA REAL · 10 s — imaginar el círculo y darle color]
-
-¿Tiene borde? ¿Brilla? ¿Hace algún sonido? Deja que se vuelva nítido.
-
-[PAUSA REAL · 10 s — hacer nítido el círculo]
-
----
-
-**Paso dos. Fuera del círculo, el recuerdo.**
-
-Todavía no entres. Quédate afuera.
-
-Cierra los ojos si quieres, y vuelve a ese momento de tu mejor estado.
-
-¿Dónde estás? ¿Qué ves alrededor?
-
-[PAUSA REAL · 15 s — ver el recuerdo]
-
-¿Qué se oye? ¿Qué te dices, o qué te dicen?
-
-[PAUSA REAL · 10 s — escuchar el recuerdo]
-
-¿Cómo está tu cuerpo ahí? ¿Cómo estás de pie? ¿Cómo respiras?
-
-[PAUSA REAL · 15 s — sentir el cuerpo del recuerdo]
-
----
-
-**Paso tres. Entrar.**
-
-Cuando sientas que el estado sube, da un paso adelante y entra al círculo.
-
-[HACERLO]
-
-[PAUSA REAL · 5 s — entrar al círculo]
-
----
-
-**Paso cuatro. Amplificar adentro.**
-
-Ya adentro, deja que tu cuerpo tome la postura de ese momento.
-
-La espalda. Los hombros. Dónde apoyas el peso.
-
-[PAUSA REAL · 10 s — tomar la postura del recuerdo]
-
-Respira como respirabas ahí.
-
-[PAUSA REAL · 10 s — respirar como en el recuerdo]
-
-Y di por dentro la frase de ese momento. Si no había frase, la tuya: la del protocolo.
-
-[PAUSA REAL · 10 s — decir la frase por dentro]
-
-Deja que suba un poco más. Más luz, más cerca.
-
-[PAUSA REAL · 10 s — dejar que suba]
-
----
-
-**Paso cinco. Salir en el pico.**
-
-Ahora, en lo alto, sal del círculo. Un paso atrás.
-
-[HACERLO]
-
-Y rompe el estado. Abre los ojos, sacude las manos, mira la habitación.
-
-[PAUSA REAL · 10 s — salir del círculo y romper el estado]
-
-Dime en voz alta qué hora crees que es.
-
-[PAUSA REAL · 5 s — decir la hora en voz alta]
-
----
-
-**Paso seis. Repetir.**
-
-[A CÁMARA]
-
-Vamos con la segunda vez. Afuera del círculo.
-
-Si tienes otro recuerdo de tu mejor estado, puedes usarlo ahora. Si no, el mismo.
-
-Cierra los ojos y vuelve a entrar en él. El lugar. El sonido. El cuerpo.
-
-[PAUSA REAL · 20 s — entrar en el recuerdo, fuera del círculo]
-
-Cuando suba, al círculo.
-
-[PAUSA REAL · 5 s — entrar al círculo]
-
-Postura. Respiración. Frase.
-
-[PAUSA REAL · 20 s — amplificar el estado adentro]
-
-Deja que llegue arriba.
-
-[PAUSA REAL · 5 s — llegar al pico]
-
-Y sal. Un paso atrás. Rompe: ojos abiertos, sacude las manos.
-
-[PAUSA REAL · 10 s — salir y romper el estado]
-
-Cuenta en voz alta los objetos azules que veas.
-
-[PAUSA REAL · 8 s — contar objetos azules]
-
-[PAUSA]
-
-Tercera vez. Y esta la hacemos igual de lenta que la primera. Sin apurarnos porque ya sabemos.
-
-Afuera. Ojos cerrados.
-
-¿Dónde estás? ¿Qué ves?
-
-[PAUSA REAL · 15 s — ver el recuerdo]
-
-¿Qué se oye?
-
-[PAUSA REAL · 10 s — escuchar el recuerdo]
-
-¿Cómo está tu cuerpo?
-
-[PAUSA REAL · 15 s — sentir el cuerpo del recuerdo]
-
-Cuando suba, al círculo.
-
-[PAUSA REAL · 5 s — entrar al círculo]
-
-La postura de ese momento.
-
-[PAUSA REAL · 10 s — tomar la postura]
-
-La respiración de ese momento.
-
-[PAUSA REAL · 10 s — respirar como en el recuerdo]
-
-La frase.
-
-[PAUSA REAL · 10 s — decir la frase por dentro]
-
-Que suba todo lo que pueda subir.
-
-[PAUSA REAL · 10 s — dejar que suba]
-
-Y sal. Rompe. Ojos abiertos, mira la habitación, sacude el cuerpo entero.
-
-[PAUSA REAL · 15 s — salir y romper el estado]
-
----
-
-**Paso siete. La prueba.**
-
-[A CÁMARA]
-
-Ahora sin preparar nada. Sin recuerdo, sin cerrar los ojos.
-
-Solo da un paso y entra al círculo.
-
-[HACERLO]
-
-[PAUSA REAL · 10 s — entrar al círculo sin preparar nada]
-
-¿Qué aparece? Del cero al diez.
-
-[PAUSA REAL · 5 s — puntuar del 0 al 10]
-
-Si apareció algo, aunque sea un tres o un cuatro, el círculo está empezando a funcionar.
-
-Fíjate también en qué apareció primero. A veces es la postura, que se acomoda sola. A veces la respiración. A veces la frase.
-
-Eso que aparece primero es tu puerta de entrada al estado.
-
-Si no apareció nada, no pasa nada. Repite esta práctica otro día, y busca un recuerdo más vivo.
+¿Qué aparece? Ponle un número del cero al diez. Si apareció algo, aunque sea un tres o un cuatro, el círculo está empezando a funcionar. Fíjate también en qué apareció primero. A veces es la postura, que se acomoda sola. A veces la respiración. A veces la frase. Eso que aparece primero es tu puerta de entrada al estado. Si no apareció nada, no pasa nada: repite esta práctica otro día, con un recuerdo más vivo.
 
 Sal del círculo.
 
-[PAUSA]
+Paso ocho: llevarlo a donde hace falta. Este es el paso que vuelve útil todo lo anterior. Piensa en tu evento, y en el lugar exacto donde va a empezar. La puerta de la sala, el borde del escenario, la silla de la entrevista. Míralo con detalle.
 
----
+Ahora toma tu círculo del suelo, con la imaginación, y llévalo hasta ahí. Déjalo justo en la entrada. Imagina que es el día. Llegas a esa puerta. Ves tu círculo, con su color.
 
-**Paso ocho. Llevarlo a donde hace falta.**
+Y entras. Aquí, en tu habitación, da el paso de verdad. Postura. Respiración. Frase. Y desde ahí, mira cómo empieza tu evento: las personas, el lugar, tus primeras palabras. Tómate unos segundos.
 
-[A CÁMARA]
+Sal del círculo y vuelve a la habitación. Mira a tu alrededor.
 
-Este es el paso que vuelve útil todo lo anterior.
+Hagamos un resumen de lo que acabas de hacer. Montaste tu círculo, entraste tres veces desde tu mejor estado, lo probaste sin preparar nada y lo llevaste a la entrada de tu evento. El día del evento, cuando llegues a esa puerta, vas a ver tu círculo. Lo vas a tener ensayado. Entras mentalmente durante veinte segundos, con postura, respiración y frase. Y después entras de verdad.
 
-Piensa en tu evento. Y en el lugar exacto donde va a empezar: la puerta de la sala, el borde del escenario, la silla de la entrevista.
+Tu tarea para las próximas veinticuatro horas: entra al círculo una vez sin preparar nada, en tu habitación, y anota el número del cero al diez.
 
-[PAUSA REAL · 10 s — ver el lugar donde empieza tu evento]
-
-Ahora toma tu círculo del suelo, con la imaginación, y llévalo hasta ahí. Déjalo justo en la entrada.
-
-[PAUSA REAL · 10 s — llevar el círculo a la entrada del evento]
-
-Imagina que es el día. Llegas a esa puerta. Ves tu círculo, con su color.
-
-Y entras. Aquí, en tu habitación, da el paso de verdad.
-
-[HACERLO]
-
-[PAUSA REAL · 15 s — entrar al círculo imaginando la puerta del evento]
-
-Postura. Respiración. Frase.
-
-Y desde ahí, mira cómo empieza tu evento.
-
-[PAUSA REAL · 20 s — ver el comienzo del evento desde el estado]
-
-Sal del círculo, y vuelve a la habitación.
-
-[PAUSA]
-
-[A CÁMARA. Cierre.]
-
-El día del evento, cuando llegues a esa puerta, vas a ver tu círculo. Lo vas a tener ensayado.
-
-Entras mentalmente, veinte segundos: postura, respiración, frase. Y después entras de verdad.
-
-Tu tarea para las próximas veinticuatro horas: entra al círculo una vez sin preparar nada, en tu habitación, y anota el número.
-
-Y en el audio guiado de este módulo vas a ensayar el evento completo en una silla, con los ojos cerrados, desde dentro de tu círculo.
+En el audio guiado de este módulo, El círculo en el lugar donde lo vas a necesitar, vas a ensayar tu evento completo. Lo vas a hacer en una silla, con los ojos cerrados, desde dentro de tu círculo.
 
 Seguimos creciendo juntos.

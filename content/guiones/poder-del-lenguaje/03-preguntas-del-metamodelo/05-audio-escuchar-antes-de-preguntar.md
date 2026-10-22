@@ -1,43 +1,22 @@
 # Audio guiado · Escuchar antes de preguntar
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 3 · 10-12 min · Audio guiado**
-Voz lenta, cálida. Sin música o con un fondo muy suave. Las pausas reales se respetan en la edición: son el entrenamiento.
+El poder del lenguaje: metamodelo y reencuadre · Módulo 3 · 12-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
-
-[PAUSA]
-
-Este audio entrena algo que dura un segundo. El segundo antes de contestar.
-
-Busca un lugar cómodo, donde nadie te interrumpa unos minutos.
-
-[PAUSA]
+Este audio entrena algo que dura un segundo: el segundo antes de contestar. Vas a imaginar a alguien cercano contándote una preocupación. Vas a notar las ganas de aconsejar y dejarlas pasar. Y vas a ensayar una sola pregunta, con calma y con curiosidad.
 
 Siéntate con la espalda apoyada. Los pies en el suelo. Las manos sueltas.
 
-Si quieres, cierra los ojos.
+Si quieres, cierra los ojos. Si prefieres dejarlos abiertos, baja la mirada a un punto fijo.
 
-[PAUSA LARGA]
+Toma aire despacio por la nariz. Y suéltalo largo, como si soplaras una vela sin apagarla.
 
-Toma aire despacio por la nariz.
+Otra vez… entra el aire… y sale, largo y lento.
 
-Y suéltalo largo, como si soplaras una vela sin apagarla.
+Y una más, a tu ritmo. Respira… y quédate ahí unos momentos.
 
-[PAUSA]
-
-Otra vez.
-
-[PAUSA]
-
-Y una más.
-
-[PAUSA REAL · 15 s — respirar soltando el aire largo]
-
-Deja que la respiración siga sola.
-
-[PAUSA]
+Deja que la respiración siga sola. Ya no hace falta dirigirla.
 
 Suelta un poco la mandíbula.
 
@@ -45,47 +24,43 @@ Deja caer los hombros.
 
 Y afloja las manos, como si acabaras de soltar algo que llevabas cargando.
 
-[PAUSA LARGA]
+Lleva la atención a la frente y a los ojos. Deja que se suavicen un poco.
 
-Ahora piensa en alguien cercano. Alguien que a veces te cuenta sus problemas.
+Y nota el apoyo de tu cuerpo. La silla, el suelo, la cama. Algo te sostiene, y no tienes que hacer nada para que siga ahí.
 
-Una amiga, tu pareja, un hermano, alguien del trabajo.
+Quédate así unos momentos, sin hacer nada más.
+
+Ahora piensa en alguien cercano. Alguien que a veces te cuenta sus problemas. Una amiga, tu pareja, un hermano, alguien del trabajo.
 
 Elige a una persona con la que tengas una relación tranquila. No la más difícil.
 
-[PAUSA REAL · 15 s — elegir a la persona]
+Tómate el tiempo que necesites para elegirla.
 
-Imagina que está contigo. Dónde están. Si es en persona, si es una llamada, si es en la cocina.
-
-[PAUSA LARGA]
+Imagina que está contigo. Dónde están. Si es en persona o en una llamada. Si es en la cocina, en el carro, en una oficina.
 
 Y ahora escucha cómo te cuenta algo que le preocupa. Algo que de verdad podría contarte.
 
 Escucha su voz. Sus palabras. Su tono.
 
-[PAUSA REAL · 20 s — escuchar por dentro lo que te cuenta]
+Deja que hable un rato, por dentro, sin interrumpir.
 
 Fíjate en lo que pasa en ti mientras habla.
 
-Quizá aparecen ganas de decirle qué hacer.
+Quizás aparecen ganas de decirle qué hacer.
 
-Quizá ganas de contarle que a ti te pasó algo parecido.
+Quizás ganas de contarle que a ti te pasó algo parecido.
 
-Quizá ganas de decirle que no se preocupe.
-
-[PAUSA]
+Quizás ganas de decirle que no se preocupe.
 
 ¿Dónde notas esas ganas en el cuerpo? En el pecho, en la garganta, en las manos, en la boca.
 
-[PAUSA REAL · 15 s — notar dónde están las ganas de contestar]
+Tómate unos momentos para encontrarlas.
 
 No hagas nada con ellas. No hace falta quitarlas.
 
 Solo nótalas. Y deja que se queden ahí, sin salir.
 
-Respira una vez, despacio.
-
-[PAUSA LARGA]
+Respira una vez, despacio… y suelta el aire largo.
 
 Vuelve a escuchar la última frase que te dijo esa persona.
 
@@ -93,7 +68,7 @@ Y busca en ella lo que falta.
 
 ¿Hay un «siempre», un «nunca», un «nadie»? ¿Una conclusión sin hechos? ¿Un «tengo que», un «no puedo»?
 
-[PAUSA REAL · 20 s — encontrar lo que falta en su frase]
+Tómate el tiempo que necesites.
 
 Ahora elige una sola pregunta. Una de las tres.
 
@@ -103,55 +78,47 @@ Ahora elige una sola pregunta. Una de las tres.
 
 ¿Qué pasaría si…?
 
-[PAUSA REAL · 10 s — elegir una pregunta]
-
 Antes de decirla, ponle delante un suavizador. «Tengo curiosidad.» «A ver si te entiendo.»
 
 Y prepara el tono. Más bajo. Más lento. Como quien de verdad quiere saber.
 
-[PAUSA]
-
 Dila ahora en voz baja, como si esa persona estuviera delante.
-
-[PAUSA REAL · 15 s — decir en voz baja la pregunta con su suavizador]
 
 Imagina su cara al oírla.
 
-Y deja que conteste. No la interrumpas. No la completes por ella.
+Y deja que conteste. No la interrumpas. No completes la frase por ella.
 
 Solo escucha qué dice.
 
-[PAUSA REAL · 20 s — imaginar su respuesta sin interrumpir]
-
 Si su respuesta trae algo nuevo, algo que no había dicho antes, quédate con eso.
 
-Y si lo que te sale es otra pregunta, espera. Una por turno.
+Y si te sale otra pregunta, espera. Una por turno.
 
-[PAUSA LARGA]
+Respira… y quédate ahí unos momentos.
 
 Ahora vamos a hacer lo mismo contigo.
 
 Piensa en una frase que te dices cuando algo te preocupa. Una frase corta.
 
-[PAUSA REAL · 15 s — escuchar una frase que te dices]
+Escúchala por dentro.
 
 Y hazte la misma pregunta que le hiciste a esa persona. Con el mismo suavizador. Con el mismo tono.
 
-No el tono con el que te sueles hablar. El que usaste con ella.
+No el tono con el que sueles hablarte. El que usaste con ella.
 
-[PAUSA REAL · 15 s — hacerte la pregunta en voz baja]
+Hazte la pregunta en voz baja.
 
 Y deja que conteste una parte de ti. Sin prisa.
 
-[PAUSA REAL · 25 s — escuchar tu propia respuesta]
+Tómate el tiempo que necesites para escuchar la respuesta.
 
-[PAUSA LARGA]
+Si la respuesta trae algo nuevo, quédate con eso. Si no trae nada, también está bien. A veces la respuesta llega más tarde, cuando ya no la estás buscando.
 
 Para terminar, piensa en una conversación de los próximos días donde vas a probar esto.
 
 Con quién. Dónde. Y cuál de las tres preguntas vas a llevar.
 
-[PAUSA REAL · 20 s — elegir la conversación y la pregunta]
+Tómate unos momentos para elegirla.
 
 Recuerda lo único que de verdad importa: primero escuchar. Después, una pregunta. Después, silencio.
 
@@ -159,30 +126,24 @@ Y si en esa conversación se te escapa un consejo, no pasa nada. Lo notas, respi
 
 Esto no se aprende haciéndolo perfecto. Se aprende notando cada vez un poco antes.
 
-[PAUSA LARGA]
+Y cada vez que lo notes, aunque sea tarde, ya estás entrenando. Ese segundo de espera es el que le deja espacio a la otra persona para encontrar su propia respuesta.
 
 Ahora vamos a volver.
 
-Uno. Notas el cuerpo apoyado.
+Voy a contar del uno al cinco. Con cada número vuelves un poco más al lugar donde estás.
 
-[PAUSA]
+Uno. Notas el cuerpo apoyado.
 
 Dos. La respiración, a su ritmo.
 
-[PAUSA]
-
 Tres. Los sonidos del lugar donde estás.
-
-[PAUSA]
 
 Cuatro. Mueves las manos, los pies, el cuello.
 
-[PAUSA]
+Cinco. Abres los ojos, despacio.
 
-Cinco. Abres los ojos.
+Si quieres, escribe ahora la pregunta que vas a llevar, con su suavizador y con el nombre de la persona. Cuando llegue el momento, ya no la vas a tener que inventar.
 
-[PAUSA LARGA]
+Con este audio cierras el módulo tres. En el material en PDF tienes las doce preguntas, las reglas del tono y el entrenamiento de una semana. Y en el ejercicio opcional puedes preparar por escrito la pregunta de esta semana.
 
-Si quieres, escribe ahora la pregunta que vas a llevar. Con su suavizador. Y el nombre de la persona.
-
-Cuando llegue el momento, ya no la vas a tener que inventar.
+Y cuando quieras seguir, te espero en el próximo módulo, Preguntas poderosas para el autoconocimiento. Ahí vamos a pasar de las preguntas que recuperan información a las preguntas que abren algo nuevo en ti.

@@ -1,235 +1,73 @@
 # Clase 1 · Colapso de anclas y círculo de excelencia
 
-**Emociones, anclajes y estados de recurso · Módulo 5 · 10-13 min · Clase**
-Cámara fija y pizarra con el diagrama de las dos anclas (mano izquierda, mano derecha). Los siete pasos en rótulo.
-Para el círculo, plano de cuerpo entero con espacio en el suelo; marcar el círculo con cinta de color para que se vea en cámara.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 5 · 13-15 min
 
 Líderes, bendiciones.
 
-Esta clase no empieza con la técnica. Empieza con cuándo no se hace.
+En esta clase vas a aprender dos técnicas completas: el colapso de anclas y el círculo de excelencia. Al terminar vas a saber tres cosas. Cuándo no se hacen. Cómo se hace un colapso, en siete pasos. Y cómo se monta un círculo de excelencia. Al final vamos a practicar algo que necesitas para las dos: cómo parar a tiempo.
 
-Y te pido que lo apliques a ti, ahora, no en general.
+Esta clase no empieza con la técnica. Empieza con cuándo no se hace. Y te pido que lo apliques a ti, ahora, no en general. Piensa en algo que te gustaría desactivar, un estado que se te dispara y que no quieres. Puede ser la rabia cuando alguien te interrumpe, el nudo en el estómago cuando abres un correo de tu jefe, o la vergüenza cuando hablas en una reunión. Tómate unos segundos para elegir uno.
 
-Piensa en algo que te gustaría desactivar. Un estado que se te dispara y no quieres.
+¿Lo tienes? Ahora te hago cuatro preguntas sobre ese tema. Contesta sí o no, por dentro. Primera: ¿ese tema es un recuerdo traumático, algo que te hizo mucho daño y que te desborda cuando aparece? Segunda: ¿es una crisis de esta semana, como un duelo reciente, una ruptura o un despido de ayer? Tercera: ¿tu ancla de recurso dispara claro en frío? Recuerda el número de la prueba que hiciste después de la presentación. Cuarta: ¿estarías a solas, y el tema es grande?
 
-[PAUSA REAL · 10 s — pensar en un estado que te gustaría desactivar]
+Si alguna respuesta te frena, hoy no toca hacer el colapso con ese tema. Es decir: si es traumático, si es de esta semana, si tu ancla no dispara claro o si estarías a solas con algo grande. Puedes seguir la clase para aprender la técnica, y más adelante elegir un tema más pequeño para practicarla.
 
-Ahora cuatro preguntas. Contesta sí o no, por dentro.
+Y te explico por qué, porque no es una formalidad. Un colapso casero sobre un recuerdo traumático puede reactivarlo sin nadie que sostenga lo que sale. Eso es trabajo clínico, con un profesional formado en trauma. Una crisis de esta semana todavía está en carne viva: primero se atraviesa, y no se colapsa. Y un recurso que no dispara claro pierde contra el problema. En un momento vas a ver por qué.
 
-[RÓTULO: Hoy no toca si…]
+Con los límites claros, vamos a la primera técnica. ¿Qué es un colapso de anclas? Son dos anclas disparadas a la vez. Imagina tus dos manos. En el nudillo de la mano izquierda queda anclado el estado problema. En el nudillo de la mano derecha, un estado de recurso, como la calma, la confianza o la seguridad. Cuando tocas los dos nudillos al mismo tiempo, se encienden los dos estados juntos.
 
-¿Ese tema es un recuerdo traumático? Algo que te hizo mucho daño, que te desborda cuando aparece.
+En la presentación lo viste con la cara: sonreír y fruncir el ceño a la vez da una mezcla. Con estados completos pasa algo parecido. Hay un momento de confusión, la respiración se vuelve irregular y la cara cambia sola. De ahí sale un tercer estado, distinto de los dos anteriores.
 
-[PAUSA REAL · 5 s — contestar sí o no]
+Después, el disparador original ya no dispara limpio. Fíjate en las palabras: no desaparece, pierde fuerza. Si tu jefe te vuelve a hablar en ese tono, lo vas a notar, pero más lejos y con menos golpe.
 
-¿Es una crisis de esta semana? Un duelo reciente, una ruptura, un despido de ayer.
+Ahora la regla que decide el resultado: el recurso tiene que ser más fuerte que el problema. Piénsalo como el juego de tirar de la cuerda. Si el problema tira con fuerza ocho y el recurso con fuerza cinco, gana el problema. No colapsas nada. El problema se lleva por delante al recurso, y la sesión termina reforzando justo lo que querías desmontar.
 
-[PAUSA REAL · 5 s — contestar sí o no]
+Por eso se hacen dos cosas. La primera: se apilan dos o tres recursos contra un solo problema, como aprendiste en el módulo cuatro. Calma, confianza y seguridad en el mismo gesto tiran más fuerte que una sola. La segunda: se elige un problema de intensidad media, un cinco o un seis. No el peor recuerdo de tu vida.
 
-¿Tu ancla de recurso dispara claro en frío? La prueba que te pedí en la presentación.
+Haz la cuenta con tus números. Del cero al diez, ¿cuánto pesa el estado que elegiste al principio? ¿Y cuánto dio tu ancla en la prueba en frío? Pausa el video si lo necesitas y escribe los dos números, uno al lado del otro.
 
-[PAUSA REAL · 5 s — recordar el número de tu prueba en frío]
+¿Ya los tienes? Si el recurso gana con claridad, vas bien. Si empatan, o gana el problema, todavía no es momento. Primero se refuerza el recurso, y en la próxima clase te digo cómo.
 
-¿Estarías a solas, y el tema es grande?
+Ahora sí, los siete pasos del colapso. Me voy a detener en dos, porque son los que deciden si funciona.
 
-[PAUSA REAL · 5 s — contestar sí o no]
+Paso uno: elige el problema. Concreto y de intensidad media. Algo como «cuando mi jefe me habla en ese tono delante de otros», y no «mi infancia» ni «mi inseguridad». Una situación se puede colapsar. Un rasgo, no.
 
-Si contestaste que es traumático, que es de esta semana, que tu ancla no dispara, o que estás a solas con algo grande: hoy no toca.
+Paso dos: instala el recurso en una mano, por ejemplo en el nudillo de la mano derecha. Apilas dos o tres estados, con cinco a siete repeticiones cada uno, y rompes el estado entre una repetición y otra, como en el módulo cuatro.
 
-[PAUSA]
+Paso tres: prueba el recurso en frío. Aquí me quiero quedar un momento, porque es el paso que casi todo el mundo se salta. Probar en frío significa tocar el nudillo sin preparar nada, sin recordar nada a propósito, y ver qué aparece. Si el recurso no dispara claro, no sigas. Este es el punto donde se para y se vuelve atrás. Cuando un colapso sale mal, muchas veces es porque se saltó esta comprobación. La persona tenía ganas de llegar a la parte interesante y fue directo al problema con un recurso tibio.
 
-Y te explico por qué, porque no es una formalidad.
+Paso cuatro: instala el problema en la otra mano, en el nudillo izquierdo. Y aquí, cuidado: se entra en el recuerdo lo justo para que aparezca. No hace falta revivir la escena entera. Una o dos repeticiones bastan.
 
-Un colapso casero sobre un trauma puede reactivarlo sin nadie que sostenga lo que sale. Eso es trabajo clínico, con un profesional formado en trauma.
+Paso cinco: dispara las dos anclas a la vez, y mantenlas entre quince y treinta segundos. Vas a notar confusión, la respiración cambia y la cara se mueve. Es lo esperado. No significa que lo estés haciendo mal.
 
-Una crisis de esta semana primero se atraviesa. No se colapsa.
+Paso seis: suelta primero la del problema, y sostén la del recurso cinco segundos más. Este es el segundo paso en el que me detengo. El orden importa, porque lo último que queda activo es lo que te llevas. Si sueltas al revés, lo último que queda encendido es el problema, y eso es lo que se refuerza.
 
-Y un recurso que no dispara claro pierde contra el problema. Ahora vas a ver por qué.
+Paso siete: prueba. Piensa en la situación original. Debería sentirse distinta: más lejos, más neutra. Si sigue igual, el recurso no era suficiente. Se refuerza y se repite otro día, no en la misma sesión.
 
-[A CÁMARA]
+Vamos a ensayar el orden de las manos, sin contenido, para que te quede en el cuerpo. Hazlo conmigo. Toca el nudillo de la mano izquierda: ese sería el problema. Suelta. Toca el nudillo de la mano derecha: ese sería el recurso. Suelta. Ahora toca los dos a la vez, y quédate así unos segundos.
 
-¿Qué es un colapso de anclas?
+Suelta la izquierda. La derecha se queda: uno, dos, tres, cuatro, cinco. Y suelta. Una vez más. Los dos a la vez. Primero sueltas la izquierda. La derecha se queda: uno, dos, tres, cuatro, cinco. Suelta. ¿Lo notaste? Ese es el orden. Cuando lo hagas con contenido, no vas a tener que pensarlo.
 
-[SUBRAYAR: el diagrama en la pizarra · mano izquierda, problema · mano derecha, recurso]
+Con el colapso claro, pasemos a la segunda técnica: el círculo de excelencia. Tiene la misma lógica que un ancla, con una diferencia. El ancla no es un gesto: es un lugar en el suelo. Te lo muestro de pie. Si tienes espacio, levántate y hazlo conmigo. Si no, solo mira.
 
-Dos anclas disparadas a la vez. Una con el estado problema y otra con un estado de recurso.
+Imagino un círculo en el suelo, delante de mí, lo bastante grande para caber de pie. Le pongo un color. El mío es dorado. Fuera del círculo, recuerdo un momento en el que estuve en mi mejor estado. Lo veo, lo escucho y lo siento en el cuerpo. Cuando el estado sube, doy un paso y entro al círculo. Adentro, amplifico: tomo la postura de ese momento, respiro como respiraba en ese momento y me digo la frase de ese momento. En el pico, salgo del círculo y rompo el estado. Miro alrededor y me sacudo las manos.
 
-En la presentación lo hiciste con la cara: sonreír y fruncir el ceño al mismo tiempo. No se pueden sostener las dos cosas. Sale una mezcla.
+Eso se repite de tres a cinco veces. Después viene la prueba: entrar al círculo sin preparar nada, y ver si el estado aparece solo. Y el último paso, el que lo vuelve útil, es imaginar el círculo en el lugar donde lo vas a necesitar. La puerta de la sala de reuniones, el borde del escenario, la silla de la entrevista. Y entrar ahí mentalmente antes de entrar de verdad.
 
-Con estados completos pasa lo mismo. Hay un momento de confusión, la respiración se vuelve irregular, la cara cambia.
+Sirve sobre todo para actuaciones concretas: hablar en público, una entrevista, una competencia. Sirve menos para estados difusos, como «estar bien en general». Su ventaja es que participa el cuerpo entero, y eso lo hace más intenso. Su inconveniente es que necesitas espacio y un momento a solas. En la práctica de este módulo lo hacemos completo, contigo.
 
-Y de ahí sale un tercer estado, distinto de los dos anteriores.
+Antes de cerrar, las señales para parar. Valen para las dos técnicas, y sobre todo para el colapso. La primera es un llanto que no cede. La segunda, una sensación de desconexión, como si las cosas no fueran reales. La tercera, el cuerpo que se bloquea, que se queda rígido o sin respuesta.
 
-Después, el disparador original ya no dispara limpio. Ojo con la palabra: no desaparece. Pierde fuerza.
+Si aparece cualquiera de las tres, se suelta todo, las dos anclas. Se abren los ojos, se mira alrededor y se nombran en voz alta cinco cosas de la habitación. Después, un vaso de agua, y se deja para otro día. Si el tema te desbordó, ese tema se trabaja con acompañamiento profesional.
 
-[A CÁMARA]
+Lo practicamos ahora, para que exista cuando haga falta. Mira a tu alrededor y nombra en voz alta cinco cosas que ves. Dilas despacio, una por una.
 
-Ahora la regla que decide el resultado.
+¿Cómo estás ahora? Fíjate que para nombrar esas cinco cosas tu atención tuvo que salir afuera. Eso es lo que hace este protocolo de parada: te saca del recuerdo y te devuelve a la habitación.
 
-[RÓTULO: El recurso tiene que ser más fuerte que el problema]
+Hagamos un resumen. En el colapso, el problema y el recurso se disparan juntos, y el disparador pierde fuerza. El recurso tiene que ganar: por eso se apila y se elige un problema mediano. La prueba en frío no se salta, y al final se suelta primero el problema. El círculo monta tu mejor estado en un lugar del suelo y lo lleva adonde hace falta. Y ante una señal para parar, se para. La técnica no es la parte difícil. La parte difícil es saber cuándo no usarla.
 
-[EN PANTALLA: Problema 8 · Recurso 5 → el problema gana]
+Tu tarea para las próximas veinticuatro horas: no hagas todavía el colapso. Elige tu problema candidato, ponle un número del cero al diez y compáralo con el número de tu recurso en frío.
 
-Si el problema pesa ocho y el recurso cinco, no colapsas nada.
-
-El problema se lleva por delante al recurso. Y la sesión termina reforzando el problema.
-
-Por eso se hacen dos cosas.
-
-Se apilan dos o tres recursos contra un solo problema. Lo que aprendiste en el módulo cuatro.
-
-Y se elige un problema de intensidad media. Un cinco o un seis. No el peor recuerdo de tu vida.
-
-[PAUSA]
-
-Haz la cuenta con tus números.
-
-¿Cuánto pesa, del cero al diez, el estado que pensaste al principio? ¿Y cuánto dio tu ancla en frío?
-
-[PAUSA REAL · 10 s — comparar el número del problema con el de tu recurso]
-
-Si el recurso no gana con claridad, todavía no. Primero se refuerza el recurso.
-
-[A CÁMARA]
-
-Vamos con los siete pasos.
-
-[RÓTULO: Los siete pasos]
-
-Uno. Elige el problema. Concreto y de intensidad media. «Cuando me hablan en ese tono», no «mi infancia».
-
-Dos. Instala el recurso en una mano. Por ejemplo, el nudillo de la mano derecha. Apilando dos o tres estados, cinco a siete repeticiones cada uno, rompiendo entre medias.
-
-Tres. Prueba el recurso en frío.
-
-[SUBRAYAR: paso 3]
-
-Aquí me quiero quedar un momento, porque este es el paso que se salta todo el mundo.
-
-Si el recurso no dispara claro, no sigas. Este es el punto donde hay que parar y volver atrás.
-
-Casi todos los colapsos que salen mal se saltaron esta comprobación. La persona tenía ganas de llegar a la parte interesante y fue directo al problema con un recurso tibio.
-
-[PAUSA]
-
-Cuatro. Instala el problema en la otra mano.
-
-Y aquí cuidado: se entra en el recuerdo lo justo para que aparezca. No se revuelca uno dentro. Una o dos repeticiones bastan.
-
-Cinco. Dispara las dos a la vez. Entre quince y treinta segundos.
-
-Vas a notar confusión, la respiración cambia, la cara se mueve. Es lo esperado.
-
-Seis. Suelta primero la del problema. Y sostén la del recurso cinco segundos más.
-
-[SUBRAYAR: paso 6 · lo último que queda activo es lo que se lleva]
-
-El orden importa. Lo último que queda activo es lo que se lleva.
-
-Si sueltas al revés, lo último que queda encendido es el problema.
-
-Y siete. Prueba. Piensa en la situación original. Debería sentirse distinta: más lejos, más neutra.
-
-Si sigue igual, el recurso no era suficiente. Se refuerza y se repite otro día. No en la misma sesión.
-
-[A CÁMARA]
-
-Vamos a ensayar la coreografía, sin contenido. Solo las manos, para que el orden te quede en el cuerpo.
-
-[HACERLO]
-
-Toca el nudillo de la mano izquierda. Ese sería el problema. Suelta.
-
-Toca el nudillo de la mano derecha. Ese sería el recurso. Suelta.
-
-Ahora las dos a la vez.
-
-[PAUSA REAL · 5 s — tocar los dos nudillos a la vez]
-
-Suelta la izquierda. Sostén la derecha… tres, cuatro, cinco. Y suelta.
-
-[PAUSA]
-
-Una vez más, para que quede. Las dos a la vez.
-
-[PAUSA REAL · 5 s — tocar los dos nudillos a la vez]
-
-Primero la izquierda. La derecha se queda… tres, cuatro, cinco. Suelta.
-
-Ese es el orden. Cuando lo hagas con contenido, no vas a tener que pensarlo.
-
-[A CÁMARA]
-
-Ahora la segunda técnica, que es la misma lógica con una diferencia: el ancla no es un gesto. Es un lugar en el suelo.
-
-[EN PANTALLA: plano de cuerpo entero, círculo de cinta en el suelo]
-
-[HACERLO]
-
-Dibujo un círculo en el suelo, delante de mí. Le pongo un color. El mío es dorado.
-
-Fuera del círculo, recuerdo un momento en el que estuve en mi mejor estado.
-
-[PAUSA]
-
-Cuando el estado sube, entro al círculo caminando.
-
-Adentro, amplifico: la postura de ese momento, la respiración de ese momento, la frase de ese momento.
-
-En el pico, salgo del círculo. Y rompo el estado: miro alrededor, me sacudo las manos.
-
-[PAUSA]
-
-Se repite de tres a cinco veces. Después, la prueba: entrar sin preparar nada, y ver si el estado aparece.
-
-Y el último paso, el que lo vuelve útil: imaginar el círculo en el lugar donde lo vas a necesitar. La puerta de la oficina. El escenario. La sala de la entrevista. Y entrar ahí mentalmente antes de entrar de verdad.
-
-[PAUSA]
-
-Funciona bien para actuaciones concretas: hablar en público, una entrevista, una competencia.
-
-Menos bien para estados difusos, como «estar bien en general».
-
-La ventaja sobre el gesto: participa el cuerpo entero, y eso lo hace más intenso.
-
-El inconveniente: necesitas espacio y un momento a solas. No sirve en mitad de una reunión.
-
-En la práctica de este módulo lo hacemos completo, de pie, contigo.
-
-[A CÁMARA]
-
-Y antes de cerrar, las señales para parar. Valen para las dos técnicas, y sobre todo para el colapso.
-
-[RÓTULO: Llanto que no cede · Desconexión o sensación de irrealidad · El cuerpo se bloquea]
-
-Si aparece llanto que no cede. Si sientes desconexión, como si las cosas no fueran reales. O si el cuerpo se bloquea.
-
-Ahí se suelta todo. Las dos anclas.
-
-Se abren los ojos. Se mira alrededor. Y se nombran en voz alta cinco cosas de la habitación.
-
-Lo practicamos ahora, para que exista cuando haga falta.
-
-Mira a tu alrededor y nombra en voz alta cinco cosas que ves.
-
-[PAUSA REAL · 15 s — nombrar en voz alta cinco cosas de la habitación]
-
-Después de eso: agua, y se deja para otro día. Y si el tema te desbordó, ese tema se trabaja con acompañamiento profesional.
-
-[RÓTULO: La técnica no es la parte difícil. La parte difícil es saber cuándo no usarla.]
-
-La técnica no es la parte difícil. La parte difícil es saber cuándo no usarla.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas: no hagas todavía el colapso.
-
-Elige el problema candidato, ponle un número, y compáralo con el número de tu recurso en frío.
-
-En la clase dos hacemos la comprobación completa, paso a paso, y te enseño qué hacer con cada resultado.
+En la próxima clase, Antes, durante y después de un colapso, hacemos la comprobación completa con tu tema real, paso a paso, y te enseño qué hacer con cada resultado. Ten papel y lápiz a mano.
 
 Seguimos creciendo juntos.

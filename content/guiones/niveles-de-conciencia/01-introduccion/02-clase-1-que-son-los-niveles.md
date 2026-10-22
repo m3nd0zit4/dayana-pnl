@@ -1,301 +1,79 @@
 # Clase 1 · Qué son los niveles de conciencia
 
-**Los 8 Niveles de Conciencia · Módulo 1 · 12-15 min · Clase**
-La espiral se dibuja en pantalla y se van encendiendo los niveles a medida
-que se nombran.
-
----
-
-[A CÁMARA]
+Los 8 Niveles de Conciencia · Módulo 1 · 13-15 min
 
 Líderes, bendiciones.
 
-Vamos con el modelo. Y voy a empezar por de dónde salió,
+Bienvenidos a la primera clase del curso. Hoy vamos a ver el mapa completo antes de entrar nivel por nivel. Al terminar esta clase vas a saber de dónde salió este modelo, qué es exactamente un nivel de conciencia, cuáles son los tres principios que lo sostienen y cómo se ven los ocho niveles. Y, sobre todo, vas a saber qué no es, para que no lo uses mal desde el primer día.
 
-porque eso ya explica bastante.
+Empecemos por de dónde salió, porque eso ya explica bastante. Clare Graves era profesor de psicología en Union College, en el estado de Nueva York. Y tenía un problema muy concreto en clase. Sus estudiantes le preguntaban cuál de todas las teorías de la personalidad era la correcta. Y él no encontraba una respuesta honesta, porque cada teoría describía bien a un tipo de persona y fallaba con las demás.
 
-[RÓTULO: Clare W. Graves]
+Entonces hizo algo distinto. En lugar de defender una teoría, les pidió a sus estudiantes, durante varios años, que describieran cómo era para ellos un adulto sano y maduro. Después analizó todas esas descripciones. Y ahí apareció lo interesante. Las respuestas no eran infinitas: se agrupaban en unas pocas formas de pensar. Y esas formas aparecían en un orden. Cada una surgía cuando la vida planteaba problemas que la anterior ya no podía resolver.
 
-Clare Graves era profesor de psicología en Estados Unidos.
+Graves llamó a su propuesta teoría de los niveles de existencia emergentes y cíclicos. Años después, Don Beck y Christopher Cowan, que habían trabajado con él, la difundieron en un libro llamado Spiral Dynamics y le pusieron un color a cada nivel. Si alguna vez viste este modelo explicado con colores, es el mismo mapa. Aquí vamos a usar números, del uno al ocho, y nombres, que son más claros.
 
-Y tenía un problema muy concreto en clase.
+Y una aclaración honesta. La investigación de base es de Graves. Los colores son de Beck y Cowan. Y la forma en que este curso ordena los ocho niveles, con sus valores, sus fortalezas, sus sombras y sus recursos, es el modelo con el que yo lo enseño, construido a partir de esa investigación para usarlo en la vida diaria. Te lo digo para que sepas de dónde viene cada cosa.
 
-[PAUSA]
+Ahora vamos a ver qué es un nivel. Un nivel de conciencia es desde dónde estás mirando una situación. Incluye qué consideras importante ahí, qué problema estás viendo y con qué lo intentas resolver. Por ejemplo, llega una factura que no esperabas. Una persona piensa «¿cómo salgo de esto?». Otra piensa «¿qué va a decir mi familia?». Otra piensa «¿cómo lo organizo para que no vuelva a pasar?». Es la misma factura, mirada desde tres lugares distintos.
 
-Sus alumnos le preguntaban cuál de todas las teorías de la personalidad
+Piensa ahora en una persona con la que discutes a menudo. Tu pareja, tu mamá, alguien del trabajo. Piensa en el último tema en que no se pusieron de acuerdo. Tómate unos segundos y pregúntate: ¿qué era lo importante para mí ahí, y qué era lo importante para esa persona?
 
-era la correcta. Y él no sabía qué contestar.
+¿Lo tienes? Muy probablemente no estaban discutiendo solo por el tema. Estaban mirando desde lugares distintos. Guarda ese ejemplo, porque al final de esta clase lo vas a mirar con otros ojos.
 
-Porque cada teoría describía bien a un tipo de persona
+Con esto claro, pasemos a los tres principios. Son la parte que sostiene todo el curso.
 
-y fallaba con las demás.
+El primer principio dice que ningún nivel es mejor que otro. Cada uno apareció para resolver un problema real, y sigue siendo útil cuando ese problema vuelve. Piensa en esto. Si se te incendia la cocina, no quieres a alguien reflexionando sobre el propósito de la humanidad. Quieres a alguien que actúe ya. La pregunta correcta nunca es cuál nivel es más alto. Es si este nivel responde al problema que tengo delante.
 
-[PAUSA]
+El segundo principio dice que los niveles no se abandonan: se integran. Quien pasa a un nivel nuevo conserva el anterior y lo usa cuando hace falta. Crecer es sumar opciones, no despreciar las que tenías. Por eso, en una emergencia, una persona muy reflexiva puede resolver desde el instinto, y hace bien. Y quien sube despreciando lo anterior, en realidad no subió. Se mudó, y dejó la mitad de sus recursos en la casa vieja.
 
-Entonces hizo algo distinto. En lugar de defender una teoría,
+El tercer principio dice que los niveles conviven. Puedes ser muy estratégico en tu trabajo, decidir en familia por miedo al qué dirán y llevar tu dinero desde el susto. Todo al mismo tiempo, en la misma persona. Eso no es incoherencia. Es lo normal. Por eso este curso no te va a dar un número. Te va a dar un mapa por áreas.
 
-les pidió a sus alumnos, durante años, que describieran
+Hagamos una prueba rápida. Piensa en tu trabajo y en tu familia. ¿Decides igual en los dos lugares? ¿O en uno eres una persona y en el otro casi otra? Tómate unos segundos.
 
-qué era para ellos una persona sana y madura.
+¿Lo notaste? Casi todo el mundo descubre que decide distinto según el área. Eso es el tercer principio en acción.
 
-Y después ordenó las respuestas.
+Ahora vamos a ver por qué el modelo se dibuja como una espiral y no como una escalera. Graves observó que los niveles se van turnando entre dos polos. Unos se centran en el yo: expresarse, conseguir, avanzar. Otros se centran en el nosotros: pertenecer, ordenar, cuidar. Los niveles impares miran hacia el yo y los pares miran hacia el nosotros. Por eso la vida a veces se siente como un péndulo. Hay temporadas de empuje personal y temporadas de volver al grupo. No estás fallando. Estás recorriendo la espiral.
 
-[PAUSA]
+Con esto claro, vamos con el mapa. Te presento los ocho de forma rápida, porque en los módulos dos y tres los vamos a ver uno por uno. Escucha cada uno y fíjate cuál te suena.
 
-Y ahí apareció lo interesante:
+El nivel uno es la supervivencia. Busca seguridad: comer, dormir, estar a salvo hoy. Casi nadie vive aquí todo el tiempo, pero todos hemos pasado por aquí. Una noche en urgencias, un despido, los primeros meses con un bebé. Su frase por dentro es «necesito salir de esto».
 
-las respuestas se agrupaban. No infinitas. Unas pocas.
+El nivel dos es la tribu. Busca pertenencia: el grupo, la familia, la tradición. Aquí la pregunta no es si algo es lo mejor, sino si es lo nuestro. Su frase por dentro es «así nos enseñaron».
 
-Y esos grupos aparecían en un orden.
+El nivel tres es el poder. Aquí aparece el yo con fuerza. Busca libertad y reconocimiento. De este nivel sale la iniciativa, la valentía de arrancar sin permiso, y también el atropello. Su frase por dentro es «nadie me dice qué hacer».
 
-[A CÁMARA]
+El nivel cuatro es el orden. Busca estabilidad. Hay una forma correcta de hacer las cosas: reglas, deber, palabra dada. Es el nivel que construye instituciones, y también el que se vuelve rígido. Su frase por dentro es «hay que hacerlo bien».
 
-De ahí sale esto.
+El nivel cinco es el logro. Busca resultados: estrategia, objetivos, crecimiento. Es el aire que respira nuestra cultura, y vamos a volver mucho sobre él. Su frase por dentro es «¿cómo lo mejoro?».
 
-[RÓTULO: Sistemas de valores emergentes]
+El nivel seis es el servicio y el vínculo. Busca conexión. Aquí la pregunta cambia: cómo se siente cada uno con esto. Cuidado, comunidad, escuchar a todos. Su frase por dentro es «¿cómo crecemos juntos?».
 
-Graves lo llamó sistemas de valores emergentes.
+El nivel siete es el de los sistemas. Busca comprensión. Entiende que cada nivel tiene su lugar y usa el que la situación pide. Es el primero que puede mirar a los otros sin despreciar a ninguno. Su frase por dentro es «todo está conectado».
 
-Más tarde, dos de sus estudiantes, Don Beck y Christopher Cowan,
+Y el nivel ocho es la unidad. Busca propósito. La escala se vuelve muy grande y muy larga en el tiempo: el planeta, las generaciones que vienen. Su frase por dentro es «¿a qué sirvo?». Y es el nivel donde más fácil es confundirse, así que lo vamos a mirar con cuidado en el módulo tres.
 
-lo divulgaron con el nombre de Espiral Dinámica
+De esos ocho, ¿cuáles dos te sonaron más a ti en esta etapa de tu vida? No el que te gustaría. El que reconoces. Pausa el video si lo necesitas y anótalos en tu cuaderno.
 
-y le pusieron colores, que es como lo has visto si lo has visto por ahí.
+¿Los tienes? No les pongas nota. Solo son una primera pista, y en el módulo seis vas a volver sobre ella.
 
-[PAUSA]
+Ahora la parte que para mí es igual de importante: lo que este modelo no es.
 
-Nosotros vamos a usar los números, del uno al ocho,
+No es un test de personalidad. Nadie es un nivel. Una persona opera desde un nivel en un área concreta y en una etapa concreta de su vida. En el trabajo desde el cinco, en la familia desde el dos, con el dinero desde el cuatro. Eso es lo normal.
 
-y los nombres, que son más claros.
+Tampoco es una medida del valor de una persona. Alguien que decide desde el cuatro y cumple su palabra no vale menos que alguien que habla mucho del ocho y no aparece cuando se le necesita. Los niveles no miden bondad. Miden desde dónde se resuelve.
 
-[A CÁMARA]
+Y no es un arma. Decirle a alguien «es que tú estás en el tres» es una forma nueva de decirle que es inferior, y se recibe exactamente así. Usar el mapa para ganar una discusión no tiene nada de evolucionado. El modelo es un espejo para ti, no una etiqueta para los demás.
 
-Antes de ver los ocho, los tres principios. Son la parte que sostiene todo.
+Lo que sí te va a dar, y lo vas a notar rápido, es otra forma de leer las diferencias. Tu suegra no es una persona cerrada. Está organizando su vida alrededor de la lealtad a la familia, que es una forma legítima de organizarla. Tu jefe no es un obsesivo. Está protegiendo un orden que le costó construir. No tienes que estar de acuerdo con ellos. Pero ya no estás discutiendo con un defecto de carácter, sino con una forma distinta de resolver la vida. Y eso sí se puede hablar.
 
-[RÓTULO: Principio 1 — Emerge de las condiciones de vida]
+Vuelve un momento a la persona con la que discutes a menudo. Mírala desde aquí. ¿Desde qué lugar crees que estaba mirando esa persona en esa discusión? Tómate unos segundos.
 
-Principio uno: cada nivel emerge como respuesta a unas condiciones de vida.
+¿Cambia algo? A veces basta con eso para que la próxima conversación empiece distinto.
 
-[PAUSA]
+Hagamos un resumen de lo que vimos hoy. Este modelo parte de la investigación de Clare Graves sobre cómo cambia lo que las personas consideran importante. Un nivel es desde dónde estás mirando. Tiene tres principios: ninguno es mejor, no se abandonan sino que se integran, y conviven en la misma persona. Se alternan entre el yo y el nosotros, y por eso es una espiral. Son ocho, desde la supervivencia hasta la unidad. Y no es un test, ni una medida de valor, ni un arma.
 
-Esto es importante. Un nivel no aparece porque alguien decida ser mejor persona.
+Tu tarea para las próximas veinticuatro horas es sencilla. Elige dos áreas de tu vida, por ejemplo el trabajo y la familia. Y escribe en una línea qué estás buscando hoy en cada una. Sin corregirte. Lo primero que salga.
 
-Aparece porque las condiciones cambiaron
-
-y lo que servía antes dejó de servir.
-
-[PAUSA]
-
-Por eso a nadie se le puede convencer de subir de nivel.
-
-Se sube cuando la vida deja de funcionar desde donde estás.
-
-Una pérdida. Un límite. Un agotamiento. Un fracaso que no se puede explicar
-
-con las herramientas de siempre.
-
-[RÓTULO: Principio 2 — Se incluye, no se sustituye]
-
-Principio dos: los niveles se incluyen, no se sustituyen.
-
-[PAUSA]
-
-Cuando alguien pasa al cinco no borra el cuatro.
-
-Lo conserva y lo usa cuando hace falta.
-
-Y por eso, en una emergencia, alguien muy evolucionado
-
-puede resolver desde el tres. Y hace bien.
-
-[PAUSA]
-
-Los niveles altos no son mejores personas. Son más opciones disponibles.
-
-[RÓTULO: Principio 3 — Es una espiral, no una escalera]
-
-Y principio tres: es una espiral, no una escalera.
-
-[PAUSA]
-
-Fíjate en cómo se alternan.
-
-Hay niveles que miran hacia dentro, hacia el individuo:
-
-qué necesito yo, qué quiero yo, qué consigo yo.
-
-Y hay niveles que miran hacia fuera, hacia el grupo:
-
-qué necesitamos, qué es lo correcto, qué nos sostiene.
-
-[PAUSA]
-
-Y van alternando. Uno hacia dentro, uno hacia fuera, uno hacia dentro.
-
-Esa alternancia es lo que hace que sea una espiral.
-
-[A CÁMARA]
-
-Vamos con el mapa. Los ocho, rápido, que en los módulos dos y tres
-
-los vamos a ver uno a uno.
-
-[RÓTULO Y ESPIRAL: se enciende cada nivel al nombrarlo]
-
-Nivel uno. **Supervivencia.**
-
-Lo básico: comer, dormir, estar a salvo hoy.
-
-Casi nadie vive aquí de forma permanente,
-
-pero todos hemos estado en una noche de urgencias, y ahí solo existe esto.
-
-[PAUSA]
-
-Nivel dos. **La tribu.**
-
-El grupo, la tradición, lo que siempre se ha hecho.
-
-Aquí la pregunta no es «¿esto es lo mejor?»
-
-sino «¿esto es lo nuestro?».
-
-[PAUSA]
-
-Nivel tres. **El poder.**
-
-Aquí aparece el yo. Nadie me dice lo que tengo que hacer.
-
-Es el nivel del que sale la fuerza, la iniciativa y también el atropello.
-
-[PAUSA]
-
-Nivel cuatro. **El orden.**
-
-Hay una forma correcta de hacer las cosas.
-
-Reglas, deber, responsabilidad, palabra dada.
-
-Es el nivel que construye instituciones, y también el que rigidiza.
-
-[PAUSA]
-
-Nivel cinco. **El logro.**
-
-Si funciona, sirve. Resultado, estrategia, objetivos, crecimiento.
-
-Es el aire que respira nuestra cultura, y volveremos mucho sobre él.
-
-[PAUSA]
-
-Nivel seis. **El servicio y el vínculo.**
-
-Aquí la pregunta cambia: ¿y cómo se siente cada uno con esto?
-
-Igualdad, cuidado, comunidad, escuchar a todos.
-
-[PAUSA]
-
-Nivel siete. **Los sistemas.**
-
-Depende del contexto. Aquí se ve que cada nivel tiene su lugar
-
-y se usa el que la situación pide.
-
-Es el primer nivel que puede mirar los otros siete sin despreciarlos.
-
-[PAUSA]
-
-Y nivel ocho. **La unidad.**
-
-Todo está conectado. La escala se hace muy grande, muy larga en el tiempo.
-
-Y aquí hay que tener cuidado, porque es el nivel
-
-donde es más fácil confundirse.
-
-[A CÁMARA]
-
-Y ahora las tres advertencias con las que quiero que estudies este curso.
-
-[RÓTULO: 1 · No es un test de personalidad]
-
-Una: esto no es un test de personalidad.
-
-Nadie «es» un nivel. Una persona funciona desde niveles distintos
-
-según el área de su vida.
-
-En el trabajo desde el cinco, en su familia desde el dos,
-
-con el dinero desde el cuatro. Eso es lo normal.
-
-[RÓTULO: 2 · No hay niveles mejores]
-
-Dos: no hay niveles mejores.
-
-Y sé que suena a corrección política, y no lo es.
-
-Si se te incendia la cocina, no quieres a alguien del ocho
-
-reflexionando sobre la interconexión de todo.
-
-Quieres a alguien del uno, que actúe ya.
-
-[RÓTULO: 3 · No es un arma]
-
-Y tres, la más importante para lo que viene:
-
-esto no se usa para clasificar a las personas que tienes al lado.
-
-[PAUSA]
-
-Decirle a alguien «es que tú estás en el tres»
-
-es una forma nueva de decirle que es inferior.
-
-Y se recibe exactamente así.
-
-[PAUSA]
-
-El modelo es para entender. Nunca para ganar una discusión.
-
-[A CÁMARA]
-
-Lo que sí te va a dar, y esto lo vas a notar rápido,
-
-es que vas a dejar de leer ciertas diferencias como defectos morales.
-
-[PAUSA]
-
-Tu suegra no es una persona cerrada. Está organizando la vida
-
-alrededor de la lealtad al grupo, que es una forma legítima de organizarla.
-
-Tu jefe no es un obsesivo. Está protegiendo un orden
-
-que a él le costó construir.
-
-[PAUSA]
-
-Eso no significa que tengas que estar de acuerdo.
-
-Significa que ya no estás discutiendo con un defecto de carácter,
-
-sino con una forma distinta de resolver la vida.
-
-Y eso sí se puede hablar.
-
-[A CÁMARA]
-
-En el video de este módulo vas a ver tres conversaciones cortas,
-
-y en cada una te voy a señalar la frase exacta que delata el nivel.
-
-Porque se delata siempre en una frase.
-
-[PAUSA]
-
-Nos vemos ahí.
+En la próxima clase, Cómo se forma y cómo cambia un nivel, vamos a usar este mapa con una decisión tuya de esta semana. Ten el cuaderno abierto y algo con qué escribir.
 
 Seguimos creciendo juntos.

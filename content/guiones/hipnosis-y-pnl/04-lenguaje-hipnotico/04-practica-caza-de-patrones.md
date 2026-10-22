@@ -1,254 +1,67 @@
 # Práctica · Caza de patrones en la publicidad
 
-**Hipnosis y PNL: reprogramación mental · Módulo 4 · 10-12 min · Práctica**
-Las cuatro piezas son textos compuestos, escritos para este video, que imitan
-lo que se ve a diario; no son anuncios ni discursos reales y no nombran marcas
-ni personas. Cada pieza aparece completa en pantalla mientras Dayana la lee con
-la voz del género (locutor, coach, vendedor, mitin). Después, los patrones se
-subrayan uno a uno sobre el mismo texto. Si Dayana prefiere usar piezas reales,
-se cambian respetando la misma estructura de pausas y revisando los derechos
-de uso.
-
----
-
-[A CÁMARA]
+Hipnosis y PNL: reprogramación mental · Módulo 4 · 9-11 min
 
 Líderes, bendiciones.
 
-Hoy cambiamos de lado.
+Hoy cambiamos de lado. En las clases aprendiste a usar estos patrones. Hoy vas a aprender a verlos cuando los usan contigo. Al terminar vas a poder reconocer los patrones más comunes en un anuncio, en un video de redes, en una venta y en un discurso. Y te vas a llevar tres preguntas que funcionan como vacuna.
 
-En las clases aprendiste a usar estos patrones. Hoy vas a aprender a verlos cuando los usan contigo.
+Te voy a leer cuatro piezas: un anuncio, un video de alguien que vende en redes, un vendedor en una tienda y un fragmento de discurso. No son reales: las escribí para este video. Pero te van a sonar muchísimo, porque así suena lo que te llega todos los días.
 
-[PAUSA]
+Ten papel a mano. Con cada pieza vas a hacer lo mismo. La escuchas, anotas las frases que te llamen la atención y cazas todos los patrones que puedas antes de que yo los señale. Si necesitas oírla otra vez, regresa el video.
 
-Te voy a mostrar cuatro piezas. Un anuncio. Un video de coach en redes. Un vendedor en una tienda. Y un fragmento de discurso.
+Para cazar, recuerda lo que buscas. Verdades dichas antes de pedir algo, que es acompasar. Cosas que se dan por hecho. Dos opciones que llevan al mismo lugar. Palabras tan generales que cada uno pone lo suyo. Verbos convertidos en cosas, como «el cambio». Y conectores como «mientras» o «significa que».
 
-No son reales: las escribí para este video. Pero te van a sonar muchísimo, porque así suena lo que te llega todos los días.
+La primera pieza es un anuncio de colchones. Escucha.
 
-Con cada una vas a hacer lo mismo. La escuchas, la lees en pantalla, y cazas todos los patrones que puedas antes de que yo los señale.
+«Son las once de la noche. Por fin te acuestas. Sientes el peso del día en la espalda. Y sabes que mereces descansar de verdad. Cuando pruebes el colchón Nube, vas a descubrir lo que es dormir. ¿Lo prefieres firme o suave? Llama hoy, y empieza a despertar como siempre quisiste.»
 
-Ten a mano la tabla de los siete. Y si necesitas más tiempo, pausa el video.
+Tu turno. ¿Cuántos patrones encuentras? Pausa el video y anótalos.
 
-[A CÁMARA]
+Vamos a ver. Las tres primeras frases son acompasamiento: «son las once», «por fin te acuestas», «sientes el peso del día». Para quien lo ve a esa hora, todo eso es verdad. Son tres «sí» seguidos.
 
-[RÓTULO: Pieza 1 · El anuncio]
+Después viene «cuando pruebes», que es una presuposición. No dice «si lo pruebas»: ya da por hecho que lo vas a probar. «¿Lo prefieres firme o suave?» es un doble vínculo, porque firme o suave, en los dos casos ya lo compraste. Y hay vaguedad: ¿qué es «descansar de verdad»? ¿Cómo quisiste siempre despertar? Eso lo pones tú. Si encontraste tres, vas muy bien.
 
-La primera. Un anuncio de colchones.
+La segunda pieza es un video corto, de esos que salen entre dos videos de recetas. Escucha.
 
-[EN PANTALLA: texto completo de la pieza 1]
+«Si estás viendo este video, no es casualidad. Una parte de ti ya sabe que mereces más. Tal vez llevas tiempo sintiendo que algo tiene que cambiar. Y mientras sigues viendo esto, puedes empezar a notar cuánto deseas ese cambio. La pregunta no es si vas a transformar tu vida. La pregunta es si empiezas hoy o dentro de un año. El enlace está abajo.»
 
-«Son las once de la noche. Por fin te acuestas. Sientes el peso del día en la espalda.
+Esta tiene muchos. Tómate tu tiempo y pausa el video si quieres.
 
-Y sabes que mereces descansar de verdad.
+La primera frase, «si estás viendo este video, no es casualidad», es un conector de los fuertes: que lo estés viendo «significa» algo. En realidad significa que el algoritmo te lo puso delante. «Una parte de ti» y «algo tiene que cambiar» son vaguedad: cada persona pone lo suyo, y por eso parece que te habla a ti. «Tal vez» y «puedes empezar a notar» son sugerencias permisivas: no te ordena nada, te invita.
 
-Cuando pruebes el colchón Nube, vas a descubrir lo que es dormir.
+«Mientras sigues viendo esto» es otro conector, que une lo que estás haciendo con lo que quiere que sientas. «Ese cambio» es una nominalización: suena concreto, y no lo es. Y el cierre junta dos patrones. Una presuposición, que ya da por hecho la transformación. Y un doble vínculo: hoy o dentro de un año.
 
-¿Lo prefieres firme o suave?
+Falta una opción, ¿verdad? ¿Cuál? Piénsalo un segundo. «Ninguna de las dos.» Esa nunca aparece.
 
-Llama hoy, y empieza a despertar como siempre quisiste.»
+La tercera pieza es un vendedor de celulares. Dos líneas, nada más. Escucha.
 
-[PAUSA]
+«Veo que estás mirando los de gama alta… se nota que te gusta tomar buenas fotos. Este tiene la mejor cámara de la tienda. ¿Te lo llevas en negro o en azul? Y cuando lo estrenes, vuelves y me cuentas.» Tómate unos segundos para cazar.
 
-Tu turno. ¿Cuántos patrones encuentras?
+«Veo que estás mirando los de gama alta» es acompasamiento: es verdad, estabas mirando esos. «Se nota que te gusta tomar buenas fotos» es un salto, de algo que vio a algo que supone, montado sobre el primer «sí». «¿En negro o en azul?» es un doble vínculo. Y «cuando lo estrenes» es una presuposición. En dos líneas ya te lo vendió.
 
-[PAUSA REAL · 40 s — cazar los patrones de la pieza 1]
+No hace falta pensar mal del vendedor. Es su trabajo, y muchas veces ni sabe que lo hace. Lo que importa es que tú sí lo sepas.
 
-Vamos a ver.
+La cuarta pieza es un fragmento de discurso, sin partido y sin país, porque suena igual en todos. Escucha.
 
-[SUBRAYAR: «Son las once de la noche. Por fin te acuestas. Sientes el peso del día en la espalda.»]
+«Ustedes, que se levantan cada mañana antes que el sol. Que trabajan duro. Que quieren lo mejor para sus hijos. Ustedes saben que esta tierra merece algo mejor. Y el hecho de que estén aquí hoy significa que el cambio ya empezó. Cuando llegue ese día, vamos a mirar atrás y vamos a recordar este momento.» Caza los patrones.
 
-Las tres primeras frases son acompasamiento. Para quien lo ve a esa hora, todo eso es verdad. Tres síes seguidos.
+Las tres primeras frases son acompasamiento a una plaza entera: ¿quién no se reconoce ahí? «Algo mejor» es vaguedad: cada persona de la plaza imagina su «mejor», y todos aplauden lo mismo aunque cada uno piense algo distinto. «El hecho de que estén aquí significa que el cambio ya empezó» trae el conector más fuerte de la escala y una nominalización, «el cambio». Y «cuando llegue ese día» es una presuposición. No dice «si ganamos». Dice «cuando llegue».
 
-[SUBRAYAR: «Cuando pruebes»]
+Ahora lo importante: ¿cómo te vacunas? No hace falta desconfiar de todo el mundo. Basta con tres preguntas.
 
-«Cuando pruebes.» Presuposición. No dice «si lo pruebas». Ya da por hecho que lo vas a probar.
+La primera: ¿qué me están dando por hecho? Ahí está la presuposición. La segunda: ¿me están dando dos opciones que llevan al mismo sitio, y dónde está la tercera, la de «ninguna»? Y la tercera: ¿qué verdades me dijeron justo antes de pedirme algo? Ahí está el acompasamiento.
 
-[SUBRAYAR: «¿Lo prefieres firme o suave?»]
-
-Doble vínculo. Firme o suave, en los dos casos ya lo compraste.
-
-[SUBRAYAR: «descansar de verdad» · «como siempre quisiste»]
-
-Y vaguedad. ¿Qué es descansar de verdad? ¿Cómo quisiste siempre despertar? Eso lo pones tú.
-
-[PAUSA]
-
-¿Cuántos tenías? Si encontraste tres, vas muy bien.
-
-[A CÁMARA]
-
-[RÓTULO: Pieza 2 · El coach en redes]
-
-La segunda. Un video corto, de esos que salen entre dos videos de recetas.
-
-[EN PANTALLA: texto completo de la pieza 2]
-
-«Si estás viendo este video, no es casualidad.
-
-Una parte de ti ya sabe que mereces más.
-
-Tal vez llevas tiempo sintiendo que algo tiene que cambiar.
-
-Y mientras sigues viendo esto, puedes empezar a notar cuánto deseas ese cambio.
-
-La pregunta no es si vas a transformar tu vida. La pregunta es si empiezas hoy o dentro de un año.
-
-El enlace está abajo.»
-
-[PAUSA]
-
-Esta tiene muchos. Tómate tu tiempo.
-
-[PAUSA REAL · 45 s — cazar los patrones de la pieza 2]
-
-[SUBRAYAR: «Si estás viendo este video, no es casualidad»]
-
-Primera frase: un conector de los fuertes. Que lo estés viendo «significa» algo. En realidad significa que el algoritmo te lo puso delante.
-
-[SUBRAYAR: «Una parte de ti» · «algo tiene que cambiar»]
-
-Vaguedad. ¿Qué parte? ¿Qué algo? Cada persona pone lo suyo, y por eso parece que te habla a ti.
-
-[SUBRAYAR: «Tal vez» · «puedes empezar a notar»]
-
-Sugerencias permisivas. No te ordena nada. Te invita.
-
-[SUBRAYAR: «mientras sigues viendo esto»]
-
-Otro conector. Une lo que estás haciendo con lo que quiere que sientas.
-
-[SUBRAYAR: «ese cambio»]
-
-Nominalización. «El cambio.» Suena concreto y no lo es.
-
-[SUBRAYAR: «La pregunta no es si vas a transformar tu vida. La pregunta es si empiezas hoy o dentro de un año.»]
-
-Y el cierre. Una presuposición, que ya da por hecho la transformación, y un doble vínculo: hoy o dentro de un año. Falta una opción, ¿verdad?
-
-[PAUSA]
-
-¿Cuál?
-
-[PAUSA REAL · 5 s — encontrar la opción que falta]
-
-«Ninguna de las dos.» Esa nunca aparece.
-
-[A CÁMARA]
-
-[RÓTULO: Pieza 3 · La tienda]
-
-La tercera. Un vendedor de celulares. Dos líneas, nada más.
-
-[EN PANTALLA: texto completo de la pieza 3]
-
-«Veo que estás mirando los de gama alta… se nota que te gusta tomar buenas fotos. Este tiene la mejor cámara de la tienda.
-
-¿Te lo llevas en negro o en azul? Y cuando lo estrenes, vuelves y me cuentas.»
-
-[PAUSA REAL · 30 s — cazar los patrones de la pieza 3]
-
-[SUBRAYAR: «Veo que estás mirando los de gama alta»]
-
-Acompasamiento. Es verdad: estabas mirando esos.
-
-[SUBRAYAR: «se nota que te gusta tomar buenas fotos»]
-
-Y aquí da un salto. De algo que vio a algo que supone. Montado sobre el primer sí.
-
-[SUBRAYAR: «¿Te lo llevas en negro o en azul?»]
-
-Doble vínculo.
-
-[SUBRAYAR: «cuando lo estrenes»]
-
-Y presuposición. En dos líneas ya te lo vendió.
-
-[PAUSA]
-
-No hace falta pensar mal del vendedor. Es su trabajo, y muchas veces ni sabe que lo hace.
-
-Lo que importa es que tú sí lo sepas.
-
-[A CÁMARA]
-
-[RÓTULO: Pieza 4 · El discurso]
-
-La cuarta. Un fragmento de discurso. Sin partido y sin país: suena igual en todos.
-
-[EN PANTALLA: texto completo de la pieza 4]
-
-«Ustedes, que se levantan cada mañana antes que el sol. Que trabajan duro. Que quieren lo mejor para sus hijos.
-
-Ustedes saben que esta tierra merece algo mejor.
-
-Y el hecho de que estén aquí hoy significa que el cambio ya empezó.
-
-Cuando llegue ese día, vamos a mirar atrás y vamos a recordar este momento.»
-
-[PAUSA REAL · 40 s — cazar los patrones de la pieza 4]
-
-[SUBRAYAR: «se levantan cada mañana antes que el sol. Que trabajan duro. Que quieren lo mejor para sus hijos.»]
-
-Acompasamiento a una plaza entera. ¿Quién no se reconoce ahí?
-
-[SUBRAYAR: «algo mejor»]
-
-Vaguedad. Cada persona de la plaza imagina su «mejor». Y todos aplauden lo mismo, aunque cada uno piense algo distinto.
-
-[SUBRAYAR: «el hecho de que estén aquí hoy significa que el cambio ya empezó»]
-
-El conector más fuerte de la escala, y una nominalización: «el cambio».
-
-[SUBRAYAR: «Cuando llegue ese día»]
-
-Y presuposición. No «si ganamos». «Cuando llegue.»
-
-[A CÁMARA]
-
-Ahora lo importante. ¿Cómo te vacunas?
-
-No hace falta desconfiar de todo el mundo. Basta con tres preguntas.
-
-[RÓTULO: La vacuna · 1 · ¿Qué me están dando por hecho?]
-
-Una. ¿Qué me están dando por hecho? Ahí está la presuposición.
-
-[RÓTULO: La vacuna · 2 · ¿Me dan dos opciones que llevan al mismo lugar?]
-
-Dos. ¿Me están dando dos opciones que llevan al mismo sitio? ¿Dónde está la tercera, la de «ninguna»?
-
-[RÓTULO: La vacuna · 3 · ¿Qué verdades me dijeron antes de pedirme algo?]
-
-Y tres. ¿Qué verdades me dijeron justo antes de pedirme algo? Ahí está el acompasamiento.
-
-[PAUSA]
-
-Piensa en la última compra que hiciste y de la que te arrepentiste un poco.
-
-¿Te acuerdas de qué te dijeron justo antes?
-
-[PAUSA REAL · 15 s — recordar esa compra y lo que te dijeron]
+Pruébalo con tu vida. Piensa en la última compra que hiciste y de la que te arrepentiste un poco. ¿Te acuerdas de qué te dijeron justo antes? Tómate unos segundos para recordarlo.
 
 No es para culparte. Es para que la próxima vez te des cuenta un segundo antes.
 
-[A CÁMARA]
+Y una cosa más, para que no salgas de aquí desconfiando de todo. Los patrones no son malos: son lenguaje. Los usa el vendedor y el político, y los usa una mamá cuando acompaña a su hijo que tiene miedo. La diferencia no está en el patrón. Está en si la persona sabe lo que pasa, y en para quién es el beneficio.
 
-Y una cosa más, para que no salgas de aquí desconfiando de todo.
+Recapitulando: en las cuatro piezas aparecieron los mismos patrones. Verdades antes de pedir algo, cosas dadas por hecho, opciones que llevan al mismo lugar, palabras vagas y conectores. Y tres preguntas te ayudan a verlos a tiempo.
 
-Los patrones no son malos. Son lenguaje. Los usa el vendedor, el político, y los usa una madre cuando acompaña a su hijo que tiene miedo.
+Tu tarea para las próximas veinticuatro horas: elige un anuncio real, de la televisión, de la radio o de tus redes. Escribe tres frases, marca el patrón de cada una y hazle las tres preguntas de la vacuna.
 
-La diferencia no está en el patrón. Está en si la persona sabe lo que pasa, y en para quién es el beneficio.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas.
-
-Elige un anuncio real. De la tele, de la radio o de tus redes.
-
-Transcribe tres frases, marca el patrón de cada una y hazle las tres preguntas de la vacuna.
-
-[PAUSA]
-
-Y cuando tengas un cuarto de hora tranquilo, te espera el audio del módulo: una relajación hecha solo con estos patrones, para que los sientas desde adentro.
+Y cuando tengas un cuarto de hora tranquilo, te espera el audio del módulo, Una calma que no se ordena. Es una relajación hecha solo con estos patrones, para que los sientas desde adentro.
 
 Seguimos creciendo juntos.

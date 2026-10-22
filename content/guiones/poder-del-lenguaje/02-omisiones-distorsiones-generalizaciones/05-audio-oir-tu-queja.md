@@ -1,196 +1,143 @@
 # Audio guiado · Oír tu propia queja
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 2 · 10-12 min · Audio guiado**
-Voz lenta y baja, sin música o con un fondo muy suave. Las pausas reales se respetan en la edición.
+El poder del lenguaje: metamodelo y reencuadre · Módulo 2 · 12-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces ni operando maquinaria.
-
-[PAUSA]
-
-Busca un lugar donde puedas estar unos minutos sin interrupciones.
-
-Siéntate con la espalda apoyada, o recuéstate si lo prefieres.
-
-[PAUSA]
+En este audio vas a escuchar, con calma, una queja que repites. Vas a notar qué le falta, qué das por hecho y qué caso convertiste en ley. Y al final la vas a decir otra vez, con lo que sí sabes. No para consolarte. Para precisarla.
 
 En algunos momentos te voy a pedir que digas una frase en voz baja. Si hay gente cerca, puedes decirla por dentro.
 
-[PAUSA LARGA]
+Siéntate con la espalda apoyada, o recuéstate si lo prefieres.
 
-Deja que los pies sientan el suelo.
+Deja que los pies sientan el suelo. Que las manos descansen. Y si quieres, cierra los ojos.
 
-Que las manos descansen.
+Toma aire por la nariz, despacio. Y suéltalo por la boca, más despacio todavía.
 
-Y si quieres, cierra los ojos.
+Otra vez… entra el aire… y sale, despacio.
 
-[PAUSA]
+Y una más, a tu ritmo. Respira… y quédate ahí unos momentos.
 
-Toma aire por la nariz, despacio.
+Ahora deja que la respiración siga sola. No hace falta dirigirla.
 
-Y suéltalo por la boca, más despacio todavía.
+Fíjate en el peso de tu cuerpo. Dónde se apoya. Qué partes están más sueltas y cuáles más apretadas.
 
-[PAUSA]
+No hay que cambiar nada. Solo notarlo. Tómate unos momentos.
 
-Otra vez.
+Lleva la atención a la cara. A la frente, a los ojos, a la mandíbula. Si encuentras algo apretado, deja que se suelte un poco.
 
-[PAUSA]
+Ahora los hombros. Deja que bajen, aunque sea un centímetro.
 
-Y una más, a tu ritmo.
+Y el pecho y la barriga. Que se muevan solos con el aire, sin que tengas que hacer nada.
 
-[PAUSA REAL · 15 s — respirar soltando el aire despacio]
-
-Deja que la respiración siga sola.
-
-[PAUSA LARGA]
-
-Fíjate en el peso del cuerpo. Dónde se apoya. Qué partes están más sueltas y cuáles más apretadas.
-
-No hay que cambiar nada. Solo notarlo.
-
-[PAUSA REAL · 15 s — notar el cuerpo tal como está]
-
-[PAUSA LARGA]
+Quédate así unos momentos, solo respirando.
 
 Ahora vamos a escuchar una queja tuya.
 
-Una que repitas. De esas que salen casi solas, con las mismas palabras.
+Una que repitas. De esas que salen casi solas, siempre con las mismas palabras.
 
-Del trabajo, de la casa, del dinero, de alguien cercano.
+Puede ser del trabajo, de la casa, del dinero o de alguien cercano.
 
 No la más grande que tengas. Una de tamaño medio.
 
-[PAUSA REAL · 20 s — elegir una queja que repites]
+Tómate el tiempo que necesites para elegirla.
 
-Escúchala por dentro, entera. Con las palabras exactas con las que te la dices.
+Escúchala por dentro, entera. Con las palabras exactas con las que te la dices. Con su tono y con su ritmo.
 
-Con su tono. Con su ritmo.
-
-[PAUSA REAL · 15 s — escuchar la queja por dentro]
+Escúchala una vez más… sin discutir con ella.
 
 Ahora dila en voz baja. Tal como es.
 
-[PAUSA REAL · 10 s — decir la queja en voz baja]
+Y fíjate dónde queda en el cuerpo. El pecho. La garganta. El estómago. Los hombros.
 
-Y fíjate dónde queda en el cuerpo.
+Quédate unos momentos con eso.
 
-El pecho. La garganta. El estómago. Los hombros.
-
-[PAUSA REAL · 15 s — notar dónde queda la queja en el cuerpo]
-
-Muy bien. Deja eso ahí. No hay que quitarlo.
-
-[PAUSA LARGA]
+Muy bien. Deja eso ahí. No hace falta quitarlo.
 
 Ahora vamos a mirar la queja con tres preguntas. Despacio. Sin prisa por contestar.
 
-La primera.
-
-¿Qué falta?
+La primera pregunta: ¿qué falta?
 
 ¿Quién, exactamente? ¿Cuándo pasó la última vez? ¿Qué pasó, con todos sus detalles?
 
-Si en tu queja hay un «nadie», un «todo el mundo», un «la gente», ponle nombre.
+Si en tu queja hay un «nadie», un «todo el mundo» o un «la gente», ponle nombre.
 
-Por ejemplo, «mi hermano nunca ayuda» puede volverse: mi hermano no vino a llevar a mamá al médico el martes.
+Por ejemplo, «mi hermano nunca ayuda» puede volverse: «mi hermano no vino a llevar a mamá al médico el martes».
 
 Busca así, con calma, el caso concreto que está debajo de tu queja.
 
-[PAUSA REAL · 25 s — encontrar lo que falta en tu queja]
+Tómate el tiempo que necesites.
 
-[PAUSA]
+La segunda pregunta: ¿qué estás dando por hecho, sin haberlo comprobado?
 
-La segunda pregunta.
+Quizás algo que crees que la otra persona piensa. «Seguro cree que exagero.» «Seguro ni se acuerda.»
 
-¿Qué estás dando por hecho, sin haberlo comprobado?
-
-Quizá algo que piensas que la otra persona piensa. «Seguro cree que exagero.» «Seguro ni se acuerda.»
-
-Quizá un «esto significa que…». «Si no llamó, es que no le importa.»
+Quizás un «esto significa que…». «Si no llamó, es que no le importa.»
 
 Míralo con calma. ¿Lo viste, o lo supusiste?
 
-[PAUSA REAL · 25 s — encontrar lo que das por hecho]
+Respira… y quédate ahí unos momentos.
 
-[PAUSA]
+Y la tercera pregunta: ¿qué caso concreto convertiste en ley?
 
-Y la tercera.
+Si en tu queja hay un «siempre» o un «nunca», busca una vez, aunque sea una sola, en que fue distinto.
 
-¿Qué caso concreto convertiste en ley?
+Tómate el tiempo que necesites para encontrarla.
 
-Si en tu queja hay un «siempre» o un «nunca», busca una vez, aunque sea una, en que fue distinto.
-
-[PAUSA REAL · 25 s — buscar una excepción]
-
-[PAUSA LARGA]
-
-Ahora vas a decir la misma queja otra vez. Pero con lo que acabas de recuperar.
+Ahora vas a decir la misma queja otra vez, pero con lo que acabas de recuperar.
 
 Quién. Qué. Cuándo. Lo que viste, no lo que supusiste.
 
 No tiene que ser más amable. Solo más exacta.
 
-Prepárala por dentro primero.
+Prepárala primero por dentro, sin prisa.
 
-[PAUSA REAL · 20 s — preparar la queja exacta por dentro]
+Y cuando la tengas, dila en voz baja.
 
-Y dila en voz baja.
-
-[PAUSA REAL · 15 s — decir la queja exacta en voz baja]
-
-Vuelve al cuerpo. Al mismo lugar donde estaba antes.
+Vuelve al cuerpo, al mismo lugar donde estaba antes.
 
 ¿Está igual? ¿Pesa distinto? ¿Cambió de tamaño?
-
-[PAUSA REAL · 15 s — notar qué cambió en el cuerpo]
 
 Cualquier respuesta sirve.
 
 A veces la versión exacta sigue doliendo, y está bien. Lo que suele cambiar es que ahora se ve por dónde empezar.
 
-[PAUSA LARGA]
+Respira… y deja que eso se asiente.
 
 Una última pregunta, para llevarte.
 
 En tu versión exacta, ¿hay algo que te falta saber? Algo que tendrías que preguntarle a alguien.
 
-¿Qué es? ¿Y a quién?
+¿Qué es? ¿Y a quién se lo preguntarías?
 
-[PAUSA REAL · 20 s — encontrar qué te falta saber y a quién preguntarlo]
+Tómate unos momentos.
 
 No tienes que preguntarlo hoy. Solo saber que esa pregunta existe.
 
 Fíjate que una queja exacta casi siempre termina en una pregunta. Y una pregunta se puede hacer. La queja de siempre, en cambio, solo se puede repetir.
 
-En el próximo módulo vas a aprender a hacerla bien.
-
-[PAUSA LARGA]
+Y si lo que apareció en este rato es algo muy grande, algo que te pesa desde hace mucho tiempo, está bien. No hace falta resolverlo con un audio. Hablarlo con un profesional también es una forma de cuidarte.
 
 Ahora vamos a volver.
 
-Voy a contar del uno al cinco.
+Voy a contar del uno al cinco. Con cada número vuelves un poco más al lugar donde estás.
 
-Uno. Vuelves a notar el peso del cuerpo.
-
-[PAUSA]
+Uno. Vuelves a notar el peso de tu cuerpo.
 
 Dos. La respiración, entrando y saliendo.
 
-[PAUSA]
-
 Tres. Los sonidos del lugar donde estás.
-
-[PAUSA]
 
 Cuatro. Mueves los dedos, los hombros, el cuello.
 
-[PAUSA]
+Cinco. Abres los ojos, despacio.
 
-Cinco. Abres los ojos.
-
-[PAUSA LARGA]
-
-Si puedes, antes de seguir, escribe las dos versiones de tu queja: la de siempre y la exacta. Una debajo de la otra.
+Si puedes, antes de seguir, escribe las dos versiones de tu queja: la de siempre y la exacta, una debajo de la otra.
 
 Mañana léelas otra vez. Vas a notar cuál de las dos te deja hacer algo.
+
+Y durante el día, cuando te oigas empezar la queja de siempre, haz una pausa pequeña. Pregúntate qué falta, qué das por hecho y qué caso convertiste en ley. Con una sola de esas preguntas basta.
+
+Con este audio cierras el módulo dos. En el material en PDF tienes las diez formas de los filtros y la guía para desarmar una queja. Y si te gusta escribir, el ejercicio opcional te propone hacerlo con una queja tuya.
+
+En el próximo módulo, Las preguntas del metamodelo, vas a aprender a hacer esa pregunta que encontraste. Y a hacerla bien.

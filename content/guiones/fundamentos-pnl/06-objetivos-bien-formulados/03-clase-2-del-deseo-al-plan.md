@@ -1,246 +1,57 @@
 # Clase 2 · Del deseo al plan
 
-**Fundamentos de la PNL · Módulo 6 · 10-13 min · Clase**
-Taller. La plantilla se va construyendo en pantalla, línea a línea, al ritmo del alumno. Los nombres (Oettingen, Gollwitzer) van en rótulo cuando se mencionan.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 6 · 10-13 min
 
 Líderes, bendiciones.
 
-Antes de explicar nada, un experimento con tu imaginación. Dura un minuto.
+En esta clase vas a salir con tu objetivo escrito. No un deseo, sino un plan que tu mente pueda ejecutar. Vamos a hacer tres cosas. Primero, un experimento con tu imaginación que dura un minuto. Después te muestro un objetivo completo de ejemplo. Y al final escribimos el tuyo, línea por línea, en siete líneas. Necesitas una hoja y algo con qué escribir. Si no lo tienes cerca, pausa el video y ve por ello.
 
-Piensa en algo que quieres conseguir. Un objetivo tuyo, de verdad.
+Empezamos con el experimento. Piensa en algo que quieres conseguir. Un objetivo tuyo, de verdad. Puede ser el que trabajaste en la clase anterior.
 
-[PAUSA REAL · 10 s — elegir un objetivo]
+Primera versión. Imagínalo cumplido. El día en que ya está. Lo bien que te sientes, lo que te dicen, cómo lo celebras. Tómate unos segundos para disfrutarlo. Y nota cómo queda tu cuerpo, cuánta energía tienes.
 
-Primera versión. Imagínalo cumplido.
+Segunda versión. Ahora imagina el primer paso. Un día concreto, a una hora concreta. Estás empezando. Y de pronto aparece lo que siempre te frena. El cansancio. El teléfono. Esa vocecita que dice «mañana». Mírate en ese momento y fíjate qué haces. Tómate unos segundos. ¿Cómo quedó tu cuerpo ahora?
 
-El día en que ya está. Lo bien que te sientes. Lo que te dicen. Cómo lo celebras.
+Casi todo el mundo nota lo mismo. La primera versión es más agradable. Relaja. La segunda es menos cómoda, pero deja el cuerpo más despierto, con más ganas de hacer algo.
 
-[PAUSA REAL · 15 s — imaginar el objetivo cumplido]
+La psicóloga Gabriele Oettingen ha estudiado esto durante años. En sus investigaciones, las personas que más fantaseaban con el resultado ideal solían avanzar menos que las que lo imaginaban junto con sus dificultades. Es como si el cerebro cobrara parte del premio por adelantado. Esto no quiere decir que imaginar el resultado esté mal. Lo que no sirve es quedarse ahí. Lo que sirve es imaginar el resultado y, justo después, el obstáculo, y tener un plan para cuando aparezca.
 
-¿Cómo quedó tu cuerpo? Nota la energía.
+Ahora te muestro un objetivo terminado, para que veas hacia dónde vamos. Es un ejemplo inventado, pero muy típico. Imagina a Laura. Lleva dos años diciendo «tengo que hacer ejercicio». Su versión con plan dice así. Quiere caminar treinta minutos los lunes, miércoles y viernes, antes de entrar al trabajo. Lo va a saber porque en un mes sube las escaleras de la oficina sin quedarse sin aire. El primer paso es el lunes a las seis y media, con la ropa lista desde la noche anterior. Lo que más probablemente la va a frenar es el frío de la mañana y las ganas de quedarse cinco minutos más en la cama. Cuando suene la alarma y quiera quedarse, se va a sentar en el borde de la cama y se va a poner los zapatos para caminar. Y si lo consigue, podría perder el desayuno sin prisa con su hija, así que los martes y jueves van a desayunar juntas con calma.
 
-[PAUSA REAL · 5 s — notar la energía]
+Fíjate en esa última parte. Sin ella, ese plan probablemente se caía en tres semanas, porque una parte de Laura iba a extrañar ese desayuno.
 
-Segunda versión. Ahora imagina el primer paso.
+Ahora te toca a ti. Lo vamos a construir línea por línea. Después de cada línea, pausa el video si necesitas más tiempo.
 
-Un día concreto, a una hora concreta. Estás empezando.
+Línea uno: qué quieres, en positivo. Hacia dónde vas, no de qué huyes. Si te sale «dejar de», pregúntate: y en lugar de eso, ¿qué quiero? Escríbelo.
 
-Y de pronto aparece lo que siempre te frena. El cansancio. El teléfono. La vocecita que dice «mañana».
+Línea dos: dónde, cuándo y con quién. No «ser más paciente», sino «responder sin levantar la voz cuando mi hijo no quiere apagar la tele». Escríbelo.
 
-Mírate en ese momento. ¿Qué haces?
+Línea tres: cómo lo vas a saber. ¿Qué vas a ver, oír o sentir que hoy no ves, no oyes, no sientes? Esa es tu señal de llegada. Por ejemplo: «el domingo en la noche me siento con energía para la semana», o «mi hermana me cuenta sus cosas sin que yo le pregunte». Si no tienes esa señal, puedes pasar por delante y no enterarte. Escríbela.
 
-[PAUSA REAL · 20 s — imaginar el primer paso y el obstáculo]
+Línea cuatro: el primer paso, con día y con hora. No «empezar a ahorrar», sino «el viernes a las seis abro una cuenta aparte y paso la primera cantidad». Y aquí haz la prueba del tamaño: ¿lo puedes hacer esta semana? Si no, pártelo. Si es tan pequeño que da pereza, júntalo con otro. Escríbelo.
 
-¿Y ahora? ¿Cómo quedó tu cuerpo?
+Hasta aquí, lo que ya conocías de la clase anterior. Ahora viene lo nuevo.
 
-[PAUSA REAL · 5 s — notar la diferencia]
+Línea cinco: el obstáculo. Pero no el de afuera. No el tráfico, no tu jefe. El de adentro. ¿Qué es lo que, en ti, más probablemente te va a frenar? El cansancio de las siete de la noche. Las ganas de revisar el teléfono primero. El miedo a que no salga perfecto. Tómate tu tiempo y escríbelo con honestidad.
 
-[A CÁMARA]
+Si escribiste algo que te da un poco de vergüenza, vas bien. Ese suele ser el de verdad. Los obstáculos que nos dan vergüenza son justo los que nunca planeamos.
 
-Casi todo el mundo nota lo mismo.
+Línea seis: el plan para ese momento. Se escribe con una forma muy precisa: «cuando pase esto, voy a hacer esto otro». Esta forma la estudió el psicólogo Peter Gollwitzer, que la llamó intenciones de implementación. Es una de las herramientas más estudiadas en la investigación sobre objetivos. Y funciona por algo muy sencillo: decides en frío lo que vas a hacer en caliente. Te doy dos ejemplos. «Cuando suene la alarma y quiera quedarme en la cama, me siento en el borde y me pongo las medias.» «Cuando abra el correo y quiera contestarlo todo, primero escribo veinte minutos en mi proyecto.» Ahora escribe el tuyo, para el obstáculo de la línea cinco.
 
-La primera versión es más agradable. Relaja.
+¿Lo tienes? Revisa que sea concreto. «Cuando me dé pereza, voy a esforzarme» no sirve, porque no dice qué vas a hacer con el cuerpo. «Cuando me dé pereza, me pongo los zapatos y salgo a la puerta» sí sirve.
 
-La segunda es menos cómoda, y deja el cuerpo más despierto.
+Línea siete: lo que quieres conservar. Viene de la ecología, de la clase anterior. Se escribe así: «si lo consigo podría perder esto, así que además voy a hacer esto otro». Lo que te cuesta, y cómo lo vas a cuidar. Por ejemplo: «si lo consigo podría perder las noches de series con mi pareja, así que los viernes las mantenemos sin falta». Escríbelo.
 
-[PAUSA]
+Ya está. Ahora léelo entero, en voz alta, de principio a fin. Y mientras lo lees, fíjate en tu cuerpo.
 
-[RÓTULO: Gabriele Oettingen]
+¿Cómo te fue? Si en algún momento algo se tensó, el estómago, la garganta o los hombros, vuelve a esa línea. Muchas veces es la siete, la del costo, y eso significa que hay algo que todavía no está resuelto. Eso no es un problema. Es información, y es justo lo que vas a ver trabajado en el próximo video.
 
-Una psicóloga, Gabriele Oettingen, lleva años estudiando esto.
+Mira lo que tienes en la hoja. No es un deseo. Es un plan que tu mente puede ejecutar. Sabe hacia dónde va, dónde y cuándo, cómo darse cuenta de que llegó, qué hacer el primer día y qué hacer cuando aparezca lo de siempre. Parece largo. Se escribe una vez y ahorra meses.
 
-En sus investigaciones, quienes más fantaseaban con el resultado ideal
+Hagamos un resumen. Imaginar el resultado no basta: hay que imaginar también el obstáculo. Un objetivo completo tiene siete líneas. Qué quiero. Dónde y cuándo. Cómo lo voy a saber. El primer paso. El obstáculo de adentro. El plan, con la forma «cuando pase esto, voy a hacer esto otro». Y lo que quiero conservar.
 
-solían avanzar menos que quienes lo imaginaban junto con sus dificultades.
+Tu tarea para las próximas veinticuatro horas: copia tu línea seis en un papel pequeño y ponlo donde va a pasar el obstáculo. En la mesa de noche, en el escritorio, en la puerta de la nevera.
 
-Como si el cerebro cobrara parte del premio por adelantado.
-
-[PAUSA]
-
-No es que imaginar el resultado esté mal.
-
-Lo que no sirve es quedarse ahí.
-
-Lo que sirve es imaginar el resultado y, justo después, el obstáculo.
-
-Y tener un plan para cuando aparezca.
-
-[A CÁMARA]
-
-En la clase uno viste las cinco condiciones.
-
-Hoy vamos a escribir tu objetivo completo, con un paso más.
-
-Antes de que escribas el tuyo, te muestro uno terminado. Es inventado, pero es muy típico.
-
-[EN PANTALLA: el objetivo de Laura, completo, en siete líneas]
-
-Imagina a Laura. Lleva dos años diciendo «tengo que hacer ejercicio».
-
-Su versión con plan dice así:
-
-«Quiero caminar treinta minutos, lunes, miércoles y viernes, antes de entrar al trabajo.
-
-Lo voy a saber porque en un mes subo las escaleras de la oficina sin quedarme sin aire.
-
-El primer paso es el lunes a las seis y media, con la ropa preparada desde la noche anterior.
-
-Lo que me va a frenar es el frío de la mañana y las ganas de quedarme cinco minutos más.
-
-Cuando suene la alarma y quiera quedarme, me siento en el borde de la cama y me pongo los zapatos para caminar.
-
-Si lo consigo podría perder el desayuno tranquilo con mi hija, así que los martes y jueves desayunamos juntas sin prisa.»
-
-[PAUSA]
-
-Fíjate en la última línea. Sin ella, el plan se caía en tres semanas.
-
-Ahora te toca. Necesitas una hoja. Lo vamos a construir línea por línea.
-
-[RÓTULO: 1 · Qué quieres, en positivo]
-
-Línea uno. Qué quieres. En positivo.
-
-Hacia dónde vas, no de qué huyes.
-
-Si te sale «dejar de…», pregúntate: y en lugar de eso, ¿qué quiero?
-
-[PAUSA REAL · 30 s — escribir el objetivo en positivo]
-
-[RÓTULO: 2 · Dónde y cuándo]
-
-Línea dos. Dónde, cuándo, con quién.
-
-No «ser más paciente». «Responder sin levantar la voz cuando mi hijo no quiere apagar la tele.»
-
-[PAUSA REAL · 30 s — escribir dónde y cuándo]
-
-[RÓTULO: 3 · Cómo lo vas a saber]
-
-Línea tres. ¿Qué vas a ver, oír o sentir que hoy no ves, no oyes, no sientes?
-
-La señal de llegada. Si no la tienes, puedes pasar por delante y no enterarte.
-
-[PAUSA REAL · 30 s — escribir la evidencia]
-
-[RÓTULO: 4 · El primer paso, con día]
-
-Línea cuatro. El primer paso. Con día y con hora.
-
-Y aquí la prueba del tamaño: ¿lo puedes hacer esta semana?
-
-Si no, pártelo. Si es tan pequeño que da pereza, júntalo con otro.
-
-[PAUSA REAL · 30 s — escribir el primer paso con día]
-
-[A CÁMARA]
-
-Hasta aquí, lo que ya conocías. Ahora lo nuevo.
-
-[RÓTULO: 5 · El obstáculo de dentro]
-
-Línea cinco. El obstáculo.
-
-Pero no el de fuera: no «el tráfico», no «mi jefe».
-
-El de dentro. ¿Qué es lo que, en ti, más probablemente te va a frenar?
-
-El cansancio de las siete de la tarde. Las ganas de revisar el teléfono primero.
-
-El miedo a que no salga perfecto.
-
-[PAUSA REAL · 30 s — escribir el obstáculo interno]
-
-Si escribiste algo que te da un poco de vergüenza, vas bien.
-
-Ese suele ser el de verdad. Los obstáculos que nos dan vergüenza son los que nunca planeamos.
-
-[RÓTULO: 6 · Cuando pase… voy a…]
-
-Línea seis. El plan para ese momento.
-
-Se escribe con una forma muy precisa: «cuando pase esto, voy a hacer esto otro».
-
-[RÓTULO: Peter Gollwitzer · intenciones de implementación]
-
-Esta forma la estudió Peter Gollwitzer, y es de las herramientas más estudiadas
-
-en la investigación sobre objetivos.
-
-Funciona porque decides antes, en frío, lo que vas a hacer en caliente.
-
-[PAUSA]
-
-Te doy dos ejemplos.
-
-«Cuando suene la alarma y quiera quedarme en la cama, me siento en el borde y me pongo las medias.»
-
-«Cuando abra el correo y quiera contestarlo todo, primero escribo veinte minutos en mi proyecto.»
-
-[PAUSA]
-
-Ahora escribe el tuyo, para tu obstáculo.
-
-[PAUSA REAL · 40 s — escribir el plan «cuando… voy a…»]
-
-[RÓTULO: 7 · Lo que quieres conservar]
-
-Y línea siete, que viene de la ecología.
-
-«Si lo consigo podría perder… así que además voy a…»
-
-Lo que te cuesta, y cómo lo vas a cuidar.
-
-[PAUSA REAL · 40 s — escribir el costo y cómo conservarlo]
-
-[A CÁMARA]
-
-Ya está. Ahora léelo entero, en voz alta, de principio a fin.
-
-[PAUSA REAL · 30 s — leer el objetivo completo en voz alta]
-
-Y fíjate en el cuerpo mientras lo lees.
-
-[PAUSA REAL · 10 s — notar el cuerpo]
-
-Si en algún momento algo se tensó, vuelve a esa línea.
-
-Muchas veces es la siete, la del costo, y significa que hay algo que todavía no está resuelto.
-
-Eso es justo lo que vas a ver en el siguiente video.
-
-[A CÁMARA]
-
-Fíjate en lo que tienes en la hoja.
-
-No es un deseo. Es un plan que tu mente puede ejecutar.
-
-Sabe hacia dónde va, sabe dónde y cuándo, sabe cómo darse cuenta de que llegó,
-
-sabe qué hacer el primer día, y sabe qué hacer cuando aparezca lo de siempre.
-
-[PAUSA]
-
-Se ve largo. Se escribe una vez y ahorra meses.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas:
-
-copia tu línea seis, la de «cuando… voy a…», en un papel pequeño,
-
-y ponlo donde vaya a pasar el obstáculo.
-
-En la mesita de noche, en la pantalla, en la puerta de la nevera.
-
-[PAUSA]
-
-En el siguiente video vas a ver la ecología trabajada con una persona real,
-
-y un objetivo que lleva años sin moverse.
+En el próximo video, el caso Lo que te cuesta conseguirlo, vas a ver las preguntas de ecología trabajadas con una persona real. Es un objetivo que lleva años sin moverse.
 
 Seguimos creciendo juntos.

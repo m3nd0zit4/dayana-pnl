@@ -1,251 +1,65 @@
 # Caso · Reconocer el nivel en una conversación
 
-**Los 8 Niveles de Conciencia · Módulo 1 · 10-12 min · Caso**
-Tres casos cortos. La frase que delata el nivel aparece escrita en pantalla y
-se subraya al señalarla.
+Los 8 Niveles de Conciencia · Módulo 1 · 8-10 min
 
----
+Líderes, bendiciones.
 
-[A CÁMARA]
+En las clases vimos el mapa y lo usamos con una decisión tuya. Ahora vamos a entrenar el oído. Vas a escuchar tres situaciones de las que pasan cualquier día: una decisión de trabajo, una discusión de pareja y una duda con el dinero. En cada una te voy a leer varias reacciones, y vamos a buscar la frase exacta que delata desde qué nivel habla cada persona. Al terminar vas a poder hacer lo mismo en tus propias conversaciones.
 
-En la clase vimos el mapa.
+Te propongo un juego. Antes de que yo te diga el nivel, intenta adivinarlo tú. Anótalo en el cuaderno o dilo en voz alta. Y un aviso: la frase que delata el nivel casi nunca es la más larga. Suele ser una palabra o una forma pequeña de decir las cosas.
 
-Ahora vamos a escuchar tres conversaciones cortas,
+Empezamos con el primer caso, una oferta de trabajo. A una persona le ofrecen un puesto mejor pagado en otra ciudad. Vamos a escuchar cuatro reacciones distintas a esa misma oferta.
 
-de las que pasan cualquier día.
+La primera reacción dice: «¿Y qué va a decir mi mamá? Nosotros nunca nos hemos ido de aquí». ¿Desde qué nivel habla? Tómate un segundo.
 
-[PAUSA]
+Ahí está la palabra clave: «nosotros». No dijo «yo no quiero irme». Dijo «nosotros no nos vamos». La decisión no es individual: pertenece al grupo. Eso es el nivel dos, la tribu.
 
-Y en cada una te voy a señalar la frase exacta que delata el nivel.
+La segunda reacción dice: «Si me pagan eso, me voy mañana. Que se aguanten». ¿Qué nivel escuchas?
 
-Porque siempre hay una. Casi nunca es la más larga.
+«Que se aguanten.» Los demás no aparecen como alguien a quien considerar. Aparecen como un obstáculo que se supera. Eso es el nivel tres, el poder.
 
-[RÓTULO: Caso 1 — Una decisión de trabajo]
+La tercera reacción dice: «Yo firmé un contrato hasta diciembre. No se deja a la gente tirada». Fíjate en cómo está construida la frase antes de responder.
 
----
+La frase es impersonal: «no se deja». No dice «yo no quiero dejarlos». Dice que eso no se hace. Hay una regla por encima de la persona. Eso es el nivel cuatro, el orden.
 
-**Caso uno. Una oferta de trabajo.**
+Y la cuarta reacción dice: «Si en dos años me sirve para llegar a donde quiero, me voy». ¿Cuál es?
 
-[A CÁMARA]
+Aquí la decisión se mide por el resultado. Es un cálculo. Y ojo, eso no es frialdad. Es una forma legítima de decidir, y muy eficaz en muchos contextos. Eso es el nivel cinco, el logro.
 
-A la misma persona le ofrecen un puesto mejor pagado en otra ciudad.
+¿Cuántas acertaste? No importa el número. Importa que ya empezaste a escuchar dónde está puesto el valor en cada frase.
 
-Y vamos a escuchar cuatro reacciones distintas.
+Ahora vamos con el segundo caso, una discusión de pareja. El tema es el de siempre: uno de los dos trabaja demasiado. Escucha las dos frases.
 
-[PAUSA]
+Él dice: «Yo todo esto lo hago por nosotros. ¿Qué más quieres que haga?». Y ella responde: «Yo no quiero que hagas más. Quiero que estés». Antes de seguir, piensa: ¿desde qué nivel habla cada uno?
 
-La primera dice:
+Fíjate dónde pone él el valor: en hacer, en producir. Para él, el amor se demuestra con resultados, y los está entregando. Eso es el nivel cinco. Ella pone el valor en el vínculo, no en el resultado. Quiere presencia. Eso es el nivel seis.
 
-«¿Y qué va a decir mi mamá? Nosotros nunca nos hemos ido de aquí.»
+Este choque es muy frecuente, en parejas y también entre padres e hijos. Los dos se quieren. Los dos están dando lo que para ellos es amor. Y ninguno lo está recibiendo, porque le llega en otra moneda. Él siente que entrega todo y nadie lo valora. Ella siente que tiene al lado a alguien que nunca está.
 
-[EN PANTALLA. SUBRAYAR: «nosotros nunca nos hemos ido»]
+Piensa un momento en tu propia vida. ¿Hay alguien que te demuestra cariño en una moneda distinta a la tuya? Alguien que te resuelve cosas cuando tú querías que te escuchara, o que te escucha cuando tú querías que te resolviera. Tómate unos segundos.
 
-[PAUSA]
+¿Apareció alguien? Ver la moneda del otro no resuelve la discusión de inmediato. Pero cambia la pregunta: ya no es quién tiene la razón, sino qué necesita cada uno para sentirse querido.
 
-Ahí está. «Nosotros.»
+Y vamos con el tercer caso, una duda con el dinero. A alguien le proponen invertir en un negocio. Otra vez, cuatro reacciones. Esta vez intenta identificar el nivel antes de que yo termine de explicarlo.
 
-No dijo «yo no quiero irme». Dijo «nosotros no nos vamos».
+La primera dice: «¿Y si lo pierdo todo? Mejor me quedo quieto, que ya tengo para comer». Ahí no hay un cálculo de riesgo. Hay una alarma de supervivencia: «ya tengo para comer». Es el nivel uno asomando.
 
-La decisión no es individual. Pertenece al grupo.
+La segunda dice: «En mi familia nunca hemos hecho negocios raros». Otra vez el grupo decidiendo: «en mi familia nunca». Nivel dos.
 
-Eso es nivel dos: la tribu.
+La tercera dice: «¿Cuánto rinde? Si en tres años dobla, entro». La pregunta es por el rendimiento. Nivel cinco, sin dudarlo.
 
-[PAUSA]
+Y la cuarta dice: «¿A quién le hace daño ese negocio? Porque si es a costa de alguien, no». Aquí aparece una pregunta que no estaba en ninguna de las otras: cómo afecta a los demás. Nivel seis.
 
-La segunda dice:
+Fíjate en algo. Ninguna de esas cuatro respuestas es la correcta por sí sola. La del nivel uno puede salvarte de una estafa. La del nivel dos te recuerda que tu dinero también afecta a tu casa. La del nivel cinco puede hacer crecer tus ahorros. La del nivel seis puede evitar que ganes dinero a costa de alguien. Cada una ve algo que las otras no ven.
 
-«Si me pagan eso, me voy mañana. Que se aguanten.»
+Antes de cerrar, piensa en la última conversación de dinero que tuviste en tu casa. ¿Cuál de esas cuatro frases se parece más a la que dijiste tú? Tómate unos segundos.
 
-[EN PANTALLA. SUBRAYAR: «que se aguanten»]
+¿La tienes? No tienes que cambiarla. Solo nota que había otras tres formas de mirar la misma decisión.
 
-[PAUSA]
+Hagamos un resumen. Tres conversaciones normales, y en cada una, una frase que delata dónde está puesto el valor. «Nosotros» suele hablar del nivel dos. «Que se aguanten», del tres. «No se hace», del cuatro. «¿Cuánto rinde?» o «si me sirve», del cinco. «¿A quién le hace daño?» o «quiero que estés», del seis.
 
-«Que se aguanten.» El otro no aparece como alguien a considerar.
+Tu tarea para las próximas veinticuatro horas es de escucha, no de análisis. En una conversación cualquiera, escucha una sola cosa: ¿la persona está hablando desde el yo o desde el nosotros? Solo eso. Es la mitad del mapa y suele oírse en la primera frase. Anótalo en tu cuaderno y no se lo digas a nadie. Es entrenamiento para tu oído, no material para opinar sobre los demás.
 
-Aparece como un obstáculo que se supera.
-
-Eso es nivel tres: el poder.
-
-[PAUSA]
-
-La tercera dice:
-
-«Yo firmé un contrato hasta diciembre. No se deja a la gente tirada.»
-
-[EN PANTALLA. SUBRAYAR: «no se deja a la gente tirada»]
-
-[PAUSA]
-
-Fíjate en la construcción. Impersonal: «no se deja».
-
-No dice «yo no quiero dejarlos». Dice que eso no se hace.
-
-Hay una regla por encima de él.
-
-Eso es nivel cuatro: el orden.
-
-[PAUSA]
-
-Y la cuarta dice:
-
-«Si en dos años me sirve para llegar a donde quiero, me voy.»
-
-[EN PANTALLA. SUBRAYAR: «si me sirve para llegar»]
-
-[PAUSA]
-
-La decisión se mide por el resultado. Es un cálculo.
-
-Y ojo: eso no es frialdad. Es una forma legítima de decidir,
-
-y muy eficaz en según qué contextos.
-
-Eso es nivel cinco: el logro.
-
-[RÓTULO: Caso 2 — Una discusión de pareja]
-
----
-
-**Caso dos. Una discusión de pareja.**
-
-[A CÁMARA]
-
-El tema es el de siempre: uno trabaja demasiado.
-
-Escucha las dos frases.
-
-[PAUSA]
-
-Él dice:
-
-«Yo todo esto lo hago por nosotros. ¿Qué más quieres que haga?»
-
-[EN PANTALLA. SUBRAYAR: «¿qué más quieres que haga?»]
-
-[PAUSA]
-
-Fíjate en dónde está puesto el valor: en hacer. En producir.
-
-Para él, el amor se demuestra con resultados. Y los está entregando.
-
-Nivel cinco.
-
-[PAUSA]
-
-Y ella dice:
-
-«Yo no quiero que hagas más. Quiero que estés.»
-
-[EN PANTALLA. SUBRAYAR: «quiero que estés»]
-
-[PAUSA]
-
-Ahí el valor está en el vínculo, no en el resultado.
-
-Nivel seis.
-
-[PAUSA]
-
-Y este es el choque más común en parejas de mediana edad
-
-que te vas a encontrar. Tan común que casi es un guion.
-
-[PAUSA]
-
-Los dos se quieren. Los dos están dando lo que para ellos es amor.
-
-Y ninguno lo está recibiendo, porque llega en otra moneda.
-
-[RÓTULO: Caso 3 — Una duda con el dinero]
-
----
-
-**Caso tres. Una duda con el dinero.**
-
-[A CÁMARA]
-
-La situación: le proponen invertir en algo.
-
-[PAUSA]
-
-Primera reacción:
-
-«¿Y si lo pierdo todo? Mejor quieto, que ya tengo para comer.»
-
-[EN PANTALLA. SUBRAYAR: «ya tengo para comer»]
-
-[PAUSA]
-
-Ahí no hay cálculo de riesgo. Hay una alarma de supervivencia.
-
-Nivel uno asomando.
-
-[PAUSA]
-
-Segunda:
-
-«En mi familia nunca hemos hecho negocios raros.»
-
-[EN PANTALLA. SUBRAYAR: «en mi familia nunca»]
-
-[PAUSA]
-
-Otra vez el grupo decidiendo. Nivel dos.
-
-[PAUSA]
-
-Tercera:
-
-«¿Cuánto rinde? Si en tres años dobla, entro.»
-
-[EN PANTALLA. SUBRAYAR: «¿cuánto rinde?»]
-
-[PAUSA]
-
-Nivel cinco, sin dudarlo.
-
-[PAUSA]
-
-Y cuarta:
-
-«¿A quién le hace daño ese negocio? Porque si es a costa de alguien, no.»
-
-[EN PANTALLA. SUBRAYAR: «¿a quién le hace daño?»]
-
-[PAUSA]
-
-Nivel seis. Aparece una pregunta que en los otros no estaba.
-
----
-
-[A CÁMARA]
-
-Tres conversaciones normales. Y en cada una,
-
-la frase que delata dónde está puesto el valor.
-
-[PAUSA]
-
-Ahora tu tarea, y es de escucha, no de análisis.
-
-[PAUSA]
-
-Esta semana, en una conversación, escucha una sola cosa:
-
-¿la persona está hablando desde el yo, o desde el nosotros?
-
-[PAUSA]
-
-Solo eso. Yo o nosotros.
-
-Es la mitad del mapa y se oye en la primera frase.
-
-[PAUSA]
-
-Y no se lo digas a nadie.
-
-Escucha, apunta, y guárdatelo para tu cuaderno.
-
-[A CÁMARA]
+En el siguiente paso de este módulo tienes el audio guiado, Desde dónde estoy mirando. Es una pausa para sentir en el cuerpo, no solo en la cabeza, desde qué nivel tomaste una decisión reciente. Escúchalo con calma, en un lugar donde nadie te interrumpa.
 
 Seguimos creciendo juntos.

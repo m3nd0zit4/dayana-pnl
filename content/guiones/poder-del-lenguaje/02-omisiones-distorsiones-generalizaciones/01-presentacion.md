@@ -1,112 +1,29 @@
 # Presentación · Omisiones, distorsiones y generalizaciones
 
-**El poder del lenguaje: metamodelo y reencuadre · Módulo 2 · 3-4 min · Presentación**
-Cámara fija. La frase de ejemplo va en pantalla y se subraya por partes. Los tres nombres de los filtros, en rótulo. Sin invitado.
-
----
-
-[A CÁMARA]
+El poder del lenguaje: metamodelo y reencuadre · Módulo 2 · 4-5 min
 
 Líderes, bendiciones.
 
-Te hago una pregunta sencilla. ¿Cómo estuvo tu mañana?
+Te hago una pregunta sencilla: ¿cómo estuvo tu mañana? Contéstame en una sola frase, en voz alta.
 
-Contéstame en una frase, en voz alta.
+Ahora piensa en todo lo que dejaste fuera. Lo que viste, lo que oíste, lo que sentiste, la gente con la que hablaste, lo que pensaste mientras te bañabas. Fueron horas, y las metiste en diez palabras. Eso no es mentir. Es hablar. Si contaras un solo minuto de tu experiencia con todos sus detalles, te llevaría una hora.
 
-[PAUSA REAL · 8 s — contar tu mañana en una frase]
+Así que todo el tiempo filtramos, y lo hacemos de tres maneras. La omisión: algo se deja fuera. La distorsión: algo cambia de significado. Y la generalización: un caso se convierte en ley. De eso trata este módulo.
 
-Ahora piensa en todo lo que dejaste fuera.
+Te muestro los tres dentro de una frase muy normal: «mi jefe nunca me escucha». Antes de que yo te diga nada, ¿qué falta en esa frase? Dilo en voz alta. Tómate unos segundos.
 
-Lo que viste, lo que oíste, lo que sentiste, la gente con la que hablaste, lo que pensaste en el baño.
+¿Lo tienes? Empecemos por «nunca». Eso es una generalización. ¿Nunca? ¿Ni una sola vez? Después, «me escucha». ¿Escuchar qué? ¿En qué reunión? Ahí hay una omisión: falta el caso concreto. Y probablemente hay una distorsión debajo. Puede que «no hizo lo que le propuse» se haya convertido en «no me escucha». Son dos cosas distintas, pegadas como si fueran una sola. Cinco palabras, y tres filtros trabajando a la vez.
 
-[PAUSA]
+El problema no es filtrar. Sin filtros no podrías hablar. El problema es no darte cuenta de que filtraste, y tratar el resumen como si fuera lo que pasó. Cuando le dices a tu pareja «nunca me ayudas», o te dices «nadie me valora en el trabajo», estás hablando desde un resumen. Y desde un resumen es muy difícil resolver nada.
 
-Fueron horas. Y las metiste en diez palabras.
+¿Qué vas a poder hacer al terminar este módulo? Vas a oír lo que falta en una frase. En la de otra persona y, lo que cuesta más, en la tuya. Aquí no vas a aprender a hablar más bonito. Vas a aprender a oír.
 
-Eso no es mentir. Es hablar.
+Te cuento cómo funciona el módulo. La primera clase te presenta los tres filtros, forma por forma, y termina con un juego: cinco frases y tú adivinas el filtro. La segunda clase va a fondo con el filtro más útil de todos, cuando un proceso se convierte en una cosa. En el video de práctica desarmamos juntos una queja larga, pieza por pieza. El audio guiado te lleva a escuchar con calma una queja tuya. Y además tienes el material de lectura en PDF, con las diez formas de los filtros, y un ejercicio opcional.
 
-Si contaras un minuto de experiencia con todos sus detalles, te llevaría una hora.
+Todo esto prepara el módulo tres, Las preguntas del metamodelo, donde lo que hoy aprendes a oír se convierte en preguntas. Pero primero hay que oír.
 
-Así que todo el tiempo filtramos. Y lo hacemos de tres maneras.
+Tu tarea para las próximas veinticuatro horas es de campo. Elige una conversación entera, la que sea: una llamada, un almuerzo, una reunión. Y escúchala con una sola pregunta en la cabeza: ¿qué falta en lo que acaba de decir? No digas nada y no corrijas a nadie. Solo escucha. Piensa ahora con quién va a ser. Tómate unos segundos para elegirla.
 
-[RÓTULO: Omisión · Distorsión · Generalización]
-
-Omisión: algo se deja fuera.
-
-Distorsión: algo cambia de significado.
-
-Generalización: un caso se convierte en ley.
-
-[A CÁMARA]
-
-Te muestro los tres dentro de una frase muy normal.
-
-[EN PANTALLA: «Mi jefe nunca me escucha.»]
-
-«Mi jefe nunca me escucha.»
-
-Antes de que te diga nada: ¿qué falta en esa frase? Dilo en voz alta.
-
-[PAUSA REAL · 10 s — decir qué falta en la frase]
-
-[SUBRAYAR: nunca]
-
-«Nunca». Eso es una generalización. ¿Nunca? ¿Ni una vez?
-
-[SUBRAYAR: me escucha]
-
-«Me escucha». ¿Escuchar qué? ¿En qué reunión? Ahí hay una omisión: falta el caso concreto.
-
-Y probablemente hay una distorsión debajo: que «no hizo lo que propuse» se convirtió en «no me escucha». Dos cosas distintas pegadas como si fueran una.
-
-[PAUSA]
-
-¿Ves? Diez palabras, y tres filtros trabajando a la vez.
-
-[A CÁMARA]
-
-El problema no es filtrar. Sin filtros no podrías hablar.
-
-El problema es no darte cuenta de que filtraste, y tratar el resumen como si fuera lo que pasó.
-
-[A CÁMARA]
-
-¿Qué vas a poder hacer al terminar este módulo?
-
-Vas a oír lo que falta en una frase. En la de otra persona y, lo que cuesta más, en la tuya.
-
-No vas a aprender a hablar más bonito. Vas a aprender a oír.
-
-[A CÁMARA]
-
-Así funciona el módulo.
-
-La primera clase te presenta los tres filtros, forma por forma, y termina con un juego: cinco frases y tú adivinas el filtro.
-
-La segunda clase va a fondo con el filtro más útil de todos: cuando un proceso se convierte en una cosa.
-
-En la práctica desarmamos juntos una queja larga, pieza por pieza.
-
-El audio guiado te lleva a escuchar con calma una queja tuya.
-
-Y tienes el material en PDF, con la tabla de las diez formas, y un ejercicio opcional.
-
-En el módulo tres, todo esto se convierte en preguntas. Pero primero hay que oír.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para las próximas veinticuatro horas es de campo.
-
-Elige una conversación entera, la que sea. Una llamada, un almuerzo, una reunión.
-
-Y escúchala con una sola pregunta en la cabeza: ¿qué falta en lo que acaba de decir?
-
-No digas nada. Solo escucha.
-
-Piensa ahora con quién va a ser.
-
-[PAUSA REAL · 10 s — elegir la conversación de mañana que vas a escuchar]
-
-Nos vemos en la primera clase.
+¿Ya sabes con quién? Nos vemos en la primera clase, Los tres filtros.
 
 Seguimos creciendo juntos.

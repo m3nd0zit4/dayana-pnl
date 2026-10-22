@@ -1,493 +1,69 @@
 # Clase 1 · Los choques entre niveles y el plan de 30 días
 
-**Los 8 Niveles de Conciencia · Módulo 7 · 20-25 min · Clase**
-Cierre del curso. Cada choque con su ficha en pantalla. El plan de 30 días se
-queda fijo al final para que se pueda pausar y copiar.
-
----
-
-[A CÁMARA]
+Los 8 Niveles de Conciencia · Módulo 7 · 13-15 min
 
 Líderes, bendiciones.
 
-Última clase del curso.
+En esta clase vamos a sacar los niveles del cuaderno y llevarlos a tus conversaciones. Primero vamos a ver tres choques muy frecuentes entre niveles: uno en la familia, uno en el trabajo y uno en la pareja. Después, cómo hablarle a cada nivel. Luego, las dos trampas más comunes con el dinero. Y al final, un plan de treinta días. Al terminar vas a poder identificar un choque tuyo y saber qué decir distinto. Ten el cuaderno abierto.
 
-[PAUSA]
+Antes de empezar, una idea que vale para todo lo que sigue. En cada choque pasa lo mismo: lo que dice una persona no se parece en nada a lo que oye la otra. Cada una habla desde su nivel y escucha desde su nivel. Por eso vamos a mirar cada choque en cuatro partes: qué dice uno, qué oye el otro, qué dice el otro y qué oye el primero.
 
-Y vamos a hacer algo muy práctico: sacar los niveles del cuaderno.
+Empecemos por el choque del dos contra el tres. Es el de la casa. Uno organiza la vida alrededor de la lealtad al grupo. El otro, alrededor de decidir por sí mismo. El nivel dos dice: «Es tu familia, hay que ir.» Y el nivel tres oye: «Da igual lo que yo quiera.» El nivel tres dice: «Yo no le debo nada a nadie.» Y el nivel dos oye: «No le importamos.»
 
-[RÓTULO: Choque 2 vs 3 — La familia]
+Aparece en las fiestas de diciembre, en los préstamos familiares, en las mudanzas, y sobre todo cuando alguien decide algo sin consultarlo. Hay una escena típica. Alguien anuncia que se va a vivir a otra ciudad. Y la respuesta de la familia no es sobre la ciudad. Es «¿y nosotros qué?». Quien se va lo oye como chantaje. Y no es chantaje: es alguien del nivel dos viendo que el grupo se rompe, que es justo lo que su nivel no puede tolerar.
 
----
+¿Qué funciona ahí? Con el dos, incluirlo en lugar de dejarlo por fuera. No «es mi vida y yo decido», que es cierto pero no sirve. Sino «quiero que esto también funcione para ustedes, ¿cómo lo hacemos?». Y con el tres, nunca dar una orden. «Deberías llamar más a tu mamá» garantiza que no llame. Prueba con «tú decides, y yo te cuento lo que me pasa cuando no llamas».
 
-## El choque del dos contra el tres
+Haz una pausa aquí. ¿Tienes un choque así en tu familia? ¿Quién hace de dos y quién hace de tres? Escribe los nombres y la frase que más se repite entre ustedes.
 
-[A CÁMARA]
+¿Lo tienes? Pasemos al choque del cuatro contra el cinco. Es el de la oficina. Uno necesita que las cosas se hagan de la forma correcta. El otro necesita que salgan. El cuatro dice: «Las cosas se hacen bien o no se hacen.» Y el cinco oye: «Nunca es suficiente, siempre hay un pero.» El cinco dice: «Lo importante es que salga.» Y el cuatro oye: «Le da igual la calidad, y el problema me va a quedar a mí.»
 
-Este es el de casa.
+Aparece en toda empresa que creció. También en la remodelación de la casa, en la organización de un matrimonio, y en la crianza, cuando uno de los padres pone las normas y el otro va por los resultados.
 
-[PAUSA]
+¿Qué funciona? Con el cuatro, no le digas que se relaje. Dile «hagámoslo bien, y acordemos entre los dos cuál es el estándar». Lo que necesita no es controlarlo todo. Es que haya una regla, y que no cambie cada semana. Con el cinco, no le hables de la forma. Háblale de costos: «Si lo hacemos así, lo vamos a tener que repetir dos veces.» Eso lo entiende de inmediato.
 
-Uno organiza la vida alrededor de la lealtad al grupo.
+Y llegamos al choque del cinco contra el seis. Es el de la pareja, y es el más triste de los tres, porque los dos están dando y ninguno está recibiendo. El cinco dice: «Todo esto lo hago por nosotros.» Y el seis oye: «Nunca estás.» El seis dice: «Yo solo quiero que estemos bien.» Y el cinco oye: «No valora nada de lo que construyo.»
 
-El otro, alrededor de decidir por sí mismo.
+Fíjate en lo que pasa de verdad. Uno está entregando amor en forma de resultados: la casa, los ahorros, el futuro. El otro lo está esperando en forma de presencia: una cena sin celular, una conversación sin prisa. Los dos dan, y a los dos les llega vacío. Es el choque de las rupturas silenciosas, las de «no pasó nada, simplemente nos fuimos separando».
 
-[PAUSA]
+En el módulo tres vimos el momento que puede cambiar esta historia: cuando el cinco cruza al seis. Cuando consigue lo que buscaba, mira alrededor y se da cuenta de que el vacío sigue ahí. El problema es que a veces ese cruce llega tarde.
 
-Y lo que dice cada uno no se parece en nada a lo que oye el otro.
+¿Qué funciona antes de que llegue tarde? Con el cinco, hablar en su moneda: «Esto también es un resultado que quiero cuidar.» No suena romántico, pero funciona. Y con el seis, no reducir todo a lo emocional: «Entiendo cómo te sientes, y además tenemos que decidir esto.» Las dos partes, porque el seis solo con la emoción no cierra nada.
 
-[TABLA EN PANTALLA]
+Tómate unos segundos. ¿Cuál de los tres choques se parece más a uno que estás viviendo hoy? No importa si es en la familia, en el trabajo o en la pareja. Escribe cuál es y con quién.
 
-El nivel dos dice: «es tu familia, hay que ir».
+¿Ya lo escribiste? Guárdalo, porque lo vamos a usar en el plan de treinta días.
 
-Y el nivel tres oye: «da igual lo que yo quiera».
+Ahora vamos al trabajo, con una traducción rápida de cómo hablarle a cada nivel. Al dos le hablas del equipo, de los que dependen de esto, de no dejar a nadie solo. Al tres le hablas del reto y del reconocimiento, y le das espacio para decidir. Al cuatro le hablas con claridad: criterios, procesos y reglas del juego que no cambien cada semana. Al cinco le hablas de la meta, del indicador y del beneficio. Al seis le hablas del impacto en las personas y de cómo lo vive el equipo. Y al siete le das el problema completo, no la tarea suelta.
 
-[PAUSA]
+Imagina que necesitas que alguien de tu equipo se quede a terminar un informe urgente. A una persona que opera desde el dos le dices: «El equipo cuenta contigo para esto.» A una que opera desde el cinco: «Si sale hoy, cerramos el trimestre en la meta.» Es el mismo pedido. Lo que cambia es el idioma.
 
-El nivel tres dice: «yo no le debo nada a nadie».
+Y esto no es manipulación. Manipular es decir algo que no es verdad para conseguir algo. Esto es decir lo mismo que ibas a decir, en el idioma en que la otra persona lo entiende.
 
-Y el nivel dos oye: «no le importamos».
+Con esto claro, pasemos al dinero, que es el área que más delata el nivel real. Hay dos trampas que se ven todo el tiempo.
 
-[PAUSA]
+La primera es la trampa del dos y del cuatro: el dinero como algo sobre lo que no se decide. Se gana lo que se puede y se gasta lo que hay. Y subir el precio, pedir un aumento o cobrar lo que uno vale se siente casi indecente. Sus frases son: «Uno no puede cobrar eso.» «Bastante suerte tengo con lo que tengo.» «No es el momento de pedir nada.» Lo que hay debajo no es economía. Es lealtad: no ganar más que las personas de las que vienes. Y eso, dicho en voz alta, suele sorprender a quien lo dice.
 
-[A CÁMARA]
+La segunda es la trampa del cinco: el dinero como marcador. Nunca es suficiente. Cada cifra que se alcanza se convierte en la nueva línea de partida. Sus frases son: «Cuando llegue a tanto, ahí sí.» «Todavía no es momento de parar.» Y la señal más clara es que no sabe cuánto sería suficiente. Si le preguntas la cifra, no la tiene. Y no la tiene porque no existe.
 
-Dónde aparece: navidades, préstamos familiares, mudanzas,
+Las dos trampas son opuestas y tienen el mismo remedio inicial: poner un número concreto. A quien está en la trampa del dos y del cuatro le cuesta porque le parece codicioso. A quien está en la del cinco le cuesta porque sería cerrarle la puerta a más. Y los dos necesitan exactamente eso. ¿Cuál de las dos se parece más a ti? Escribe ahora tu número: cuánto necesitas cobrar, o cuánto sería suficiente.
 
-y sobre todo, decidir algo sin consultarlo.
+¿Lo escribiste? Aunque te haya dado vergüenza, ese número ya es un avance.
 
-[PAUSA]
+Y terminamos la clase con el plan de treinta días. Son cuatro semanas, con una sola cosa por semana.
 
-Y hay una escena típica que seguro reconoces.
+Semana uno: solo escuchar. En cada conversación, una sola pregunta para ti: ¿esta persona está hablando desde el yo o desde el nosotros? No hagas nada más. No lo apliques todavía. Solo escucha.
 
-[PAUSA]
+Semana dos: un choque. Elige uno de tus choques, el que escribiste hace un momento, y escríbelo completo: qué digo yo, qué oye el otro, qué dice el otro y qué oigo yo. Esa hoja, hecha con honestidad, ya cambia cosas por sí sola.
 
-Alguien anuncia que se va a vivir a otra ciudad.
+Semana tres: una traducción. Toma algo que quieras pedirle a esa persona y díselo en su moneda. Una sola vez. Y observa qué pasa, sin esperar milagros.
 
-Y la respuesta de la familia no es sobre la ciudad.
+Semana cuatro: tu recurso. El que salió en tu diagnóstico del módulo seis. Una acción concreta, solo una.
 
-Es «¿y nosotros qué?».
+Hagamos un resumen. En los choques, lo que uno dice no es lo que el otro oye. El dos y el tres chocan por pertenencia contra libertad. El cuatro y el cinco, por la forma contra el resultado. El cinco y el seis, por los logros contra la presencia. Hablarle a cada nivel en su idioma no es manipular. En el dinero, la trampa del dos y del cuatro es no decidir, la del cinco es no llegar nunca, y las dos empiezan a resolverse con un número. Y el plan de treinta días tiene cuatro pasos: escuchar, escribir un choque, traducir y practicar tu recurso.
 
-[PAUSA]
+Tu tarea para las próximas veinticuatro horas: empieza hoy la semana uno. En tus próximas tres conversaciones, pregúntate en silencio si la otra persona está hablando desde el yo o desde el nosotros. Solo observa.
 
-El que se va lo oye como chantaje.
-
-Y no es chantaje: es alguien del dos viendo que el grupo se rompe,
-
-que es exactamente lo que su nivel no puede tolerar.
-
-[PAUSA]
-
-¿Qué funciona ahí?
-
-[PAUSA]
-
-Con el dos, meterlo dentro en vez de dejarlo fuera.
-
-No «es mi vida y yo decido», que es cierto y no sirve.
-
-Sino «quiero que esto también funcione para ustedes,
-
-¿cómo lo hacemos?».
-
-[PAUSA]
-
-Y con el tres, nunca dar una orden.
-
-«Deberías llamar más a tu madre» garantiza que no llame.
-
-Prueba con «tú decides, y yo te digo lo que me pasa cuando no llamas».
-
-[RÓTULO: Choque 4 vs 5 — El trabajo]
-
----
-
-## El choque del cuatro contra el cinco
-
-[A CÁMARA]
-
-Este es el de la oficina.
-
-[PAUSA]
-
-Uno necesita que las cosas se hagan de la forma correcta.
-
-El otro necesita que salgan.
-
-[TABLA EN PANTALLA]
-
-El cuatro dice: «las cosas se hacen bien o no se hacen».
-
-Y el cinco oye: «nunca es suficiente, siempre hay una pega».
-
-[PAUSA]
-
-El cinco dice: «lo importante es que salga».
-
-Y el cuatro oye: «le da igual la calidad, y el marrón me lo como yo».
-
-[PAUSA]
-
-[A CÁMARA]
-
-Dónde aparece: en toda empresa que creció.
-
-En la reforma de la casa. En cómo se organiza una boda.
-
-Y en la crianza, cuando uno de los dos padres pone las normas
-
-y el otro va a resultados.
-
-[PAUSA]
-
-¿Qué funciona?
-
-[PAUSA]
-
-Con el cuatro, no le digas que se relaje.
-
-Dile «hagámoslo bien, pero acordemos entre los dos cuál es el estándar».
-
-Porque lo que él necesita no es control: es que haya una regla,
-
-y que no cambie cada semana.
-
-[PAUSA]
-
-Con el cinco, no le hables de forma. Háblale de coste.
-
-«Si lo hacemos así, lo vamos a repetir dos veces.»
-
-Eso lo entiende inmediatamente.
-
-[RÓTULO: Choque 5 vs 6 — La pareja]
-
----
-
-## El choque del cinco contra el seis
-
-[A CÁMARA]
-
-Y este es el más triste de los tres,
-
-porque los dos están dando y ninguno está recibiendo.
-
-[TABLA EN PANTALLA]
-
-El cinco dice: «todo esto lo hago por nosotros».
-
-Y el seis oye: «nunca estás».
-
-[PAUSA]
-
-El seis dice: «yo solo quiero que estemos bien».
-
-Y el cinco oye: «no valora nada de lo que construyo».
-
-[PAUSA]
-
-[A CÁMARA]
-
-Y fíjate en lo que está pasando de verdad.
-
-[PAUSA]
-
-Él está entregando amor en forma de resultados.
-
-Ella lo está esperando en forma de presencia.
-
-[PAUSA]
-
-Los dos están dando. Y a los dos les llega vacío.
-
-[PAUSA]
-
-Este es el choque que produce las rupturas silenciosas,
-
-las de «no pasó nada, simplemente nos fuimos separando».
-
-[PAUSA]
-
-Y hay un momento que cambia esta historia,
-
-y lo vimos en el módulo tres: cuando el cinco cruza al seis.
-
-[PAUSA]
-
-Cuando consigue todo y mira alrededor.
-
-[PAUSA]
-
-El problema es que a veces ese cruce llega tarde.
-
-[PAUSA]
-
-¿Qué funciona antes de que llegue tarde?
-
-[PAUSA]
-
-Con el cinco, ponerlo en su moneda:
-
-«esto también es un resultado que quiero cuidar».
-
-No suena romántico. Funciona.
-
-[PAUSA]
-
-Y con el seis, no reducir todo a lo emocional.
-
-«Entiendo cómo te sientes, y además tenemos que decidir esto.»
-
-Las dos partes. Porque el seis solo con la emoción no cierra nada.
-
-[RÓTULO: Cómo hablarle a cada nivel]
-
----
-
-## En el trabajo, en una frase
-
-[A CÁMARA]
-
-Te dejo la traducción rápida, para que la apuntes.
-
-[TABLA EN PANTALLA, fila a fila]
-
-Al **dos** le hablas de equipo. De los nuestros. De no dejar a nadie tirado.
-
-[PAUSA]
-
-Al **tres** le hablas de que decide él. Y de resultados visibles.
-
-[PAUSA]
-
-Al **cuatro** le hablas de estándar, de proceso y de que se cumple lo acordado.
-
-[PAUSA]
-
-Al **cinco** le hablas de impacto, de números y de crecimiento.
-
-[PAUSA]
-
-Al **seis** le hablas de personas, de cómo lo vive el equipo y de propósito.
-
-[PAUSA]
-
-Y al **siete** le hablas de contexto: qué pide esta situación en concreto.
-
-[PAUSA]
-
-Seis frases. Y no es manipulación.
-
-[PAUSA]
-
-Manipular es decir algo que no es verdad para conseguir algo.
-
-Esto es decir lo mismo que ibas a decir, en el idioma en que se entiende.
-
-[RÓTULO: Las dos trampas del dinero]
-
----
-
-## Las dos trampas del dinero
-
-[A CÁMARA]
-
-Y ahora las dos que más veo.
-
-[PAUSA]
-
-**La primera es la trampa del dos y del cuatro.**
-
-[PAUSA]
-
-Es el dinero como algo sobre lo que no se decide.
-
-[PAUSA]
-
-Se gana lo que se puede. Se gasta lo que hay.
-
-Y subir el precio, pedir un aumento o cobrar lo que uno vale
-
-se siente casi indecente.
-
-[PAUSA]
-
-Sus frases: «no está el horno para bollos».
-
-«Uno no puede cobrar eso.» «Bastante suerte tengo con lo que tengo.»
-
-[PAUSA]
-
-Lo que hay debajo no es economía. Es lealtad.
-
-Es no ganar más que aquellos de los que vienes.
-
-Y eso, dicho en voz alta, suele sorprender a quien lo dice.
-
-[PAUSA]
-
-**Y la segunda es la trampa del cinco.**
-
-[PAUSA]
-
-Es el dinero como marcador.
-
-[PAUSA]
-
-Nunca es suficiente. Cada cifra que se alcanza
-
-se convierte en la nueva línea de partida.
-
-[PAUSA]
-
-Sus frases: «cuando llegue a tanto, ahí sí».
-
-«Todavía no es el momento de parar.»
-
-[PAUSA]
-
-Y la señal más clara: no sabe cuánto sería suficiente.
-
-Si le preguntas la cifra, no la tiene.
-
-[PAUSA]
-
-Y no la tiene porque no existe.
-
-[PAUSA]
-
-Las dos trampas son opuestas y tienen el mismo remedio inicial:
-
-poner un número. Concreto.
-
-[PAUSA]
-
-Al del dos y del cuatro le cuesta porque le parece codicioso.
-
-Al del cinco le cuesta porque cerraría la puerta a más.
-
-[PAUSA]
-
-Y los dos necesitan exactamente eso.
-
-[RÓTULO: Plan de 30 días]
-
----
-
-## El plan de treinta días
-
-[A CÁMARA]
-
-Cerramos con esto. Cuatro semanas, una cosa por semana.
-
-[PAUSA]
-
-**Semana uno. Solo escuchar.**
-
-[PAUSA]
-
-En cada conversación, una sola pregunta para ti:
-
-¿esta persona está hablando desde el yo o desde el nosotros?
-
-[PAUSA]
-
-No hagas nada más. No lo apliques. Escucha.
-
-[PAUSA]
-
-**Semana dos. Un choque.**
-
-[PAUSA]
-
-Elige **uno** de tus choques y escríbelo entero:
-
-qué digo yo, qué oye el otro, qué dice el otro, qué oigo yo.
-
-[PAUSA]
-
-Esa tabla, hecha honestamente, ya cambia cosas por sí sola.
-
-[PAUSA]
-
-**Semana tres. Una traducción.**
-
-[PAUSA]
-
-Coge algo que quieras pedirle a esa persona
-
-y dilo en su moneda. Una vez.
-
-[PAUSA]
-
-Y observa qué pasa, sin esperar milagros.
-
-[PAUSA]
-
-**Y semana cuatro. Tu recurso.**
-
-[PAUSA]
-
-El que salió en el diagnóstico. Una acción concreta.
-
-Solo una.
-
-[A CÁMARA]
-
----
-
-[A CÁMARA. Más cálida.]
-
-Y con eso cerramos el curso.
-
-[PAUSA]
-
-Te doy las gracias, de verdad. Este es el curso más largo del catálogo
-
-y llegar hasta aquí no es poca cosa.
-
-[PAUSA]
-
-Y quiero dejarte con lo que más me importa de todo lo que hemos visto.
-
-[PAUSA]
-
-Este modelo no sirve para clasificar a nadie.
-
-[PAUSA]
-
-Si sales de aquí sabiendo en qué nivel está tu cuñado,
-
-no te llevaste nada. Te llevaste una etiqueta nueva.
-
-[PAUSA]
-
-Lo que sí vale es otra cosa.
-
-[PAUSA]
-
-Es dejar de leer una diferencia como un defecto de carácter.
-
-[PAUSA]
-
-Tu madre no es una persona cerrada.
-
-Tu jefe no es un obsesivo.
-
-Tu pareja no es fría.
-
-[PAUSA]
-
-Están resolviendo la vida desde otro sitio.
-
-Y eso ya no es una discusión sobre quién es mejor persona.
-
-Es una diferencia que se puede hablar.
-
-[PAUSA]
-
-Con eso basta para cambiar bastantes conversaciones.
-
-[PAUSA]
+En la próxima clase, «Amor, crianza y dinero en el mapa», vamos a hacer un taller sobre tres terrenos donde los niveles se juegan en silencio. Ten el cuaderno a mano.
 
 Seguimos creciendo juntos.

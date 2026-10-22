@@ -1,265 +1,69 @@
 # Clase 1 · Las seis piezas, juntas
 
-**Fundamentos de la PNL · Módulo 7 · 15-18 min · Clase**
-Cierre del curso. Las seis piezas van apareciendo en pantalla y se quedan; al
-final están las seis a la vez.
-
----
-
-[A CÁMARA]
+Fundamentos de la PNL · Módulo 7 · 12-14 min
 
 Líderes, bendiciones.
 
-Última clase de Fundamentos.
+En esta clase vamos a juntar todo lo que viste en el curso. Al terminar vas a poder hacer tres cosas. Nombrar las seis piezas y la pregunta que activa cada una. Usarlas juntas, en orden, en una conversación difícil. Y mantenerlas vivas con una práctica de diez minutos al día. Al final te muestro también los caminos para seguir después de este curso.
 
-Vamos a repasar, a juntar y a decidir qué haces con esto a partir del lunes.
+Empecemos por el repaso. Seis piezas, una frase para cada una, y una pregunta para cada pieza. Las preguntas son lo más importante, porque son las que vas a usar en la vida real.
 
-[A CÁMARA]
+La primera pieza es modelar. Si alguien hace algo bien, se puede describir en pasos, y lo que se describe en pasos se puede aprender. La pregunta es: ¿quién hace bien esto que a mí me cuesta, y qué hace primero?
 
-Las seis piezas, una frase cada una.
+La segunda es el mapa y el territorio. Lo que cuentas de algo pasó por tres filtros: lo que omites, lo que distorsionas y lo que generalizas. Y esos filtros se pueden revisar. La pregunta es: ¿qué me estoy inventando de lo que pasó?
 
-[RÓTULO 1: Modelar]
+La tercera son las presuposiciones. No son verdades, son gafas. La pregunta no es si son ciertas, sino qué te dejan hacer. La que más usamos es la de la intención positiva, y su pregunta es: ¿qué está consiguiendo esta persona con eso?
 
-Uno: modelar. Si alguien hace algo bien, se puede describir en pasos,
+La cuarta son los tres canales: ver, oír y sentir. No sirven para clasificar a nadie. Sirven para explicar de tres formas y para escuchar mejor. La pregunta es: ¿en qué idioma me está hablando?
 
-y lo que se describe en pasos se puede aprender.
+La quinta es el estado y la calibración. El estado lo sostiene el cuerpo, y el cuerpo responde a voluntad. Y calibrar es leer lo que se ve, no lo que se supone. La pregunta es: ¿desde dónde estoy entrando a esta conversación?
 
-[RÓTULO 2: El mapa no es el territorio]
+Y la sexta son los objetivos y la ecología. Un objetivo en positivo, que dependa de ti, con contexto, comprobable y con un primer paso de esta semana. Y la pregunta de qué te cuesta conseguirlo. Aquí las preguntas son dos: ¿qué acuerdo quiero?, y ¿qué me costaría conseguirlo?
 
-Dos: el mapa no es el territorio.
+Vamos a hacer una pausa rápida. De las seis, ¿cuál recuerdas mejor? ¿Y cuál se te había olvidado? Dilo en voz alta.
 
-Lo que cuentas de algo pasó por tres filtros. Y los filtros se pueden revisar.
+¿Lo tienes? La que se te había olvidado es una buena pista. Es probable que sea la que más necesitas practicar.
 
-[RÓTULO 3: Las presuposiciones]
+Ahora vamos a ver las seis trabajando juntas. Porque no son seis herramientas sueltas. Juntas, son una forma de mirar y de actuar. Y donde mejor se ve eso es en una conversación difícil.
 
-Tres: las presuposiciones. No son verdades, son gafas.
+La situación es esta. Alguien de tu equipo, o de tu casa, lleva tres veces incumpliendo algo que acordaron. Una entrega, un reparto de tareas, un horario. Y tienes que hablarlo hoy.
 
-Y la pregunta no es si son ciertas, sino qué te dejan hacer.
+Lo primero, antes de entrar, es el estado. Sesenta segundos: pies en el suelo, tres exhalaciones largas, mandíbula suelta, mirada abierta y tu frase. ¿Por qué va primero? Porque si entras con la activación alta, las otras cinco piezas no te sirven de nada. Vas a decir lo que ibas a decir de todos modos.
 
-[RÓTULO 4: Los tres canales]
+Lo segundo, antes de hablar, es el mapa. Revisa tu propia frase. Si en tu cabeza suena «es que nunca cumple», eso es una generalización. En cuanto salga por tu boca, la otra persona va a buscar el contraejemplo. Lo va a encontrar, y habrás perdido la conversación en la primera frase. Por eso conviertes la conclusión en un dato: «Las últimas tres veces me avisaste el mismo día». Eso no se puede discutir. Y después dices el efecto en primera persona, sin culpar: «Me quedo sin poder organizarme».
 
-Cuatro: los tres canales.
+Lo tercero, al entrar, son las presuposiciones. Entras asumiendo que hay una intención detrás de lo que hace esa persona. No para justificarla. Para poder preguntar en vez de acusar. Y eso se nota en tu tono antes que en tus palabras.
 
-No para clasificar a nadie. Para explicar de tres formas y escuchar mejor.
+Lo cuarto, para explicarte, son los canales. Fíjate en cómo le llegan mejor las cosas a esa persona en esta situación. Si le ayuda ver, llévale algo escrito, las fechas, el calendario. Si necesita hablarlo, no le mandes un correo. Y cuando repitas lo que te dijo, usa sus palabras, no las tuyas.
 
-[RÓTULO 5: Estado y calibración]
+Lo quinto, mientras habla, es calibrar. No le lees la mente. Notas qué cambia y cuándo. Si al mencionar algo se le tensa la cara, no interpretas. Preguntas: «Te noté algo cuando dije lo del viernes. ¿Me equivoco?».
 
-Cinco: el estado lo sostiene el cuerpo, y el cuerpo obedece.
+Lo sexto, al cerrar, es el objetivo. No sales de esa conversación sin un acuerdo concreto. En positivo: qué va a pasar, no qué va a dejar de pasar. Comprobable: que los dos puedan decir el domingo si se cumplió. Con un primer paso de esta semana. Y con la pregunta de ecología: «¿Qué te costaría a ti cumplir esto?». De ahí suele salir lo que llevaba semanas sin decirse.
 
-Y calibrar es leer lo que se ve, no lo que se supone.
+Y después, cuando ya pasó, vuelve la primera pieza: modelar. ¿Qué hizo que esta conversación funcionara y la anterior no? Eso es lo que repites la próxima vez.
 
-[RÓTULO 6: Objetivos y ecología]
+Hay un momento en toda conversación difícil que merece atención aparte. Es el momento en que la otra persona se defiende. Si eso no pasa, casi nunca era una conversación difícil. Ese es el segundo que decide. Y lo que hay que hacer ahí es no contraatacar. Respirar, reconocer lo que dijo y volver al dato. Algo así. Te dicen: «¡Pues tú también llegas tarde a las reuniones!». Y tú respondes: «Puede ser, y si quieres lo hablamos también. Ahora quiero hablar de las entregas: las últimas tres llegaron el mismo día». En todo lo demás hay margen. En ese segundo, no.
 
-Y seis: un objetivo en positivo, tuyo, comprobable, con contexto
+Pruébalo un momento. Piensa en alguien que te haya incumplido algo hace poco. ¿Cuál es la frase que tienes en la cabeza sobre esa persona? Ahora conviértela en un dato, en algo que grabaría una cámara. Dilo en voz alta.
 
-y con un primer paso de esta semana. Más la pregunta de qué te cuesta.
+¿Cómo sonó? Fíjate que el dato no necesita volumen ni un tono duro. Se sostiene solo.
 
-[A CÁMARA]
+Con esto claro, pasemos a lo que hace que todo esto no se olvide: la práctica diaria de diez minutos. Repartidos en tres momentos del día.
 
-Ahora vamos a verlas trabajando juntas.
+Por la mañana, unos cuatro minutos, pegados a algo que ya haces. Después de lavarte los dientes, o antes del primer café. Pies en el suelo, tres exhalaciones largas, mandíbula suelta, mirada abierta. Y una pregunta: ¿qué estado necesito hoy, y para qué momento? Esa pregunta es la que convierte la rutina en algo útil. Si a las cinco tienes una conversación difícil, ya sabes que un minuto antes de las cinco toca el protocolo de sesenta segundos.
 
-[RÓTULO: Una conversación difícil]
+Durante el día, tres paradas de un minuto. A media mañana, una revisión del cuerpo: mandíbula, hombros, respiración. Antes de comer, tres exhalaciones y abrir la mirada. Y a media tarde, una observación: eliges a una persona y anotas un cambio que notaste en ella, y justo después de qué. Hay además dos cosas que no te quitan tiempo. En una conversación, escucha las palabras de ver, oír o sentir que usa la otra persona. Y cuando te oigas decir «siempre» o «nunca», busca una excepción.
 
-Situación: alguien de tu equipo, o de tu casa, lleva tres veces
+Por la noche, unos tres minutos, pegados a meterte en la cama. Tres preguntas, contestadas en dos líneas, no en una página. ¿Qué estado predominó hoy? ¿Qué lo disparó? ¿Qué frase mía de hoy era una generalización?
 
-incumpliendo algo que acordasteis.
+Y la regla que hace que esto sobreviva: nunca dos días seguidos sin hacerla. Fallar un día no es nada. Fallar dos días seguidos es la forma en que mueren las rutinas. Y cuando falles uno, retomas donde te quedaste. No reinicias la cuenta.
 
-Y tienes que hablarlo hoy.
+Ahora, los caminos para después de este curso. No hay un orden obligatorio. Se elige por lo que esté doliendo. Si lo tuyo es comunicar mejor y discutir menos, el curso que sigue es El poder del lenguaje. Si hay un techo que se repite, algo que siempre te frena en el mismo punto, Creencias limitantes y potenciadoras. Si el problema no es la información sino el estado, los nervios, el miedo, la reactividad, Emociones, anclajes y estados de recurso. Si quieres trabajar directamente con el inconsciente, Hipnosis y PNL. Si quieres entender desde dónde decides y por qué chocas con ciertas personas, Los ocho niveles de conciencia. Y si lo que te mueve es tu relación, PNL para relaciones y pareja. En la próxima clase vas a elegir el tuyo.
 
-[PAUSA]
+Hagamos un resumen. Seis piezas, con seis preguntas. Juntas resuelven una conversación difícil en orden: estado, mapa, intención, canales, calibrar y acuerdo, y después modelar lo que funcionó. El segundo que decide es cuando la otra persona se defiende: no contraatacas, reconoces y vuelves al dato. Y todo esto se mantiene vivo con diez minutos al día, repartidos en tres momentos.
 
-Pieza cinco, primero. **El estado.**
+Tu tarea para las próximas veinticuatro horas: elige una sola pieza, la que más te haya movido en el curso. Y úsala una vez, a propósito, en una situación real. Solo una vez. Con eso basta para empezar.
 
-Antes de entrar, sesenta segundos.
-
-Pies, tres exhalaciones largas, mandíbula, mirada abierta, tu frase.
-
-[PAUSA]
-
-Porque si entras activada, las otras cinco piezas no te sirven de nada.
-
-Vas a decir lo que ibas a decir de todos modos.
-
-[PAUSA]
-
-Pieza dos. **El mapa.**
-
-Antes de hablar, revisa tu propia frase.
-
-Si en tu cabeza suena «es que nunca cumple», eso es una generalización
-
-y en cuanto salga por tu boca, la otra persona va a buscar el contraejemplo.
-
-Y lo va a encontrar. Y habrás perdido la conversación en la primera frase.
-
-[PAUSA]
-
-Convierte tu conclusión en un dato.
-
-«Las últimas tres veces me avisaste el mismo día.»
-
-Eso no se puede discutir.
-
-[PAUSA]
-
-Pieza tres. **Las presuposiciones.**
-
-Entra asumiendo que hay una intención detrás.
-
-No para justificarle nada. Para poder preguntar en vez de acusar.
-
-Y eso se nota en el tono antes que en las palabras.
-
-[PAUSA]
-
-Pieza cuatro. **Los canales.**
-
-Si la otra persona es de las que necesita ver, llévale algo escrito.
-
-Si es de las que necesita hablarlo, no le mandes un correo.
-
-Pequeño detalle, gran diferencia.
-
-[PAUSA]
-
-Y ya en la conversación, pieza cinco otra vez. **Calibrar.**
-
-No leerle la mente. Notar qué cambia y cuándo.
-
-Si al mencionar cierta parte se le tensa algo,
-
-no interpretes. Pregunta.
-
-«Te noté algo cuando dije lo del viernes, ¿me equivoco?»
-
-[PAUSA]
-
-Y pieza seis. **El objetivo.**
-
-No salgas de esa conversación sin un acuerdo concreto.
-
-En positivo: qué va a pasar, no qué va a dejar de pasar.
-
-Comprobable: que los dos podáis decir el domingo si se cumplió.
-
-Y con un primer paso de esta semana.
-
-[A CÁMARA]
-
-Seis piezas. Una conversación.
-
-Y ninguna de las seis es complicada por separado.
-
-[PAUSA]
-
-En el video de este módulo la vas a ver entera, sin cortes,
-
-y después repetida con anotaciones señalando qué pieza se usó en cada momento.
-
-[A CÁMARA]
-
-Ahora la rutina.
-
-[RÓTULO: Diez minutos]
-
-Diez minutos al día, repartidos en tres momentos.
-
-[PAUSA]
-
-**Mañana, cuatro minutos.** Enganchada a algo que ya haces:
-
-después de lavarte los dientes, antes del primer café.
-
-Tres exhalaciones largas y una pregunta:
-
-¿qué estado necesito hoy, y para qué momento?
-
-[PAUSA]
-
-Esa pregunta es la que convierte esto en algo útil.
-
-Porque si hoy tienes una conversación difícil a las cinco,
-
-ya sabes que a las cinco menos uno toca el protocolo de sesenta segundos.
-
-[PAUSA]
-
-**Durante el día, tres minutos.** Pero no seguidos: tres paradas de un minuto.
-
-Una revisión de cuerpo a media mañana: mandíbula, hombros, respiración.
-
-Antes de comer: tres exhalaciones y abrir la mirada.
-
-Y a media tarde, una observación: elige a una persona
-
-y anota un cambio que hayas notado, y justo después de qué.
-
-[PAUSA]
-
-**Noche, tres minutos.** Enganchada a meterte en la cama.
-
-Tres preguntas, contestadas en dos líneas, no en una página:
-
-¿qué estado predominó hoy? ¿qué lo disparó?
-
-¿qué frase mía de hoy era una generalización?
-
-[A CÁMARA]
-
-Y la regla que hace que esto sobreviva:
-
-[RÓTULO: Nunca dos días seguidos]
-
-Fallar un día no es nada. Fallar dos seguidos es cómo mueren las rutinas.
-
-Y al fallar uno, se retoma donde se quedó. No se reinicia la cuenta.
-
-[A CÁMARA]
-
-Última cosa. Qué curso hacer después.
-
-[PAUSA]
-
-Y no hay orden obligatorio. Elige por lo que te esté doliendo.
-
-[TABLA EN PANTALLA]
-
-Si lo tuyo es comunicar mejor y discutir menos: **El poder del lenguaje**.
-
-Si hay un techo que se repite, algo que siempre te frena en el mismo punto:
-
-**Creencias limitantes**.
-
-Si el problema no es la información sino el estado, si te desbordas:
-
-**Emociones y anclajes**.
-
-Si quieres trabajar directamente con el inconsciente: **Hipnosis y PNL**.
-
-Si lo que buscas es entender desde dónde decides, y por qué chocas
-
-con según qué personas: **Los ocho niveles de conciencia**.
-
-Y si es la relación: **PNL en pareja**.
-
-[PAUSA]
-
-[A CÁMARA. Más cálida.]
-
-Te doy las gracias por llegar hasta aquí.
-
-[PAUSA]
-
-Y te dejo con lo único que de verdad hace la diferencia:
-
-lo que no se practica en las próximas dos semanas, se olvida.
-
-Elige una sola pieza. La que más te haya movido.
-
-Y úsala esta semana, aunque sea una vez.
-
-[PAUSA]
-
-Con eso basta para empezar.
+En la próxima clase, Tu plan de aplicación, vas a preparar por escrito una conversación que tienes pendiente y vas a decidir cuándo practicas y por dónde sigues. Ten a mano la hoja que escribiste en el módulo uno, si la guardaste, y una hoja nueva.
 
 Seguimos creciendo juntos.

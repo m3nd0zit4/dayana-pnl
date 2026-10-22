@@ -1,257 +1,135 @@
 # Audio guiado · Volver al presente
 
-**Los 8 Niveles de Conciencia · Módulo 5 · 10-13 min · Audio guiado**
-Solo voz, tono bajo. Los dos silencios largos son el centro del audio: no se
-rellenan con música ni se acortan en la edición.
+Los 8 Niveles de Conciencia · Módulo 5 · 13-16 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-Antes de empezar: no escuches este audio mientras conduces
+Te aviso que este audio es distinto. Durante unos minutos no vamos a conseguir nada. A propósito.
 
-ni mientras operas maquinaria.
+Vas a practicar algo muy sencillo y muy difícil a la vez: estar aquí. Sin producir, sin ayudar a nadie, sin analizar y sin escaparte a las ideas grandes.
 
-[PAUSA]
-
-Este audio es raro, te aviso.
-
-Durante unos minutos no vamos a conseguir nada. A propósito.
-
-[PAUSA]
-
-Si en algún momento la inquietud se vuelve muy fuerte,
-
-abre los ojos, mira a tu alrededor y respira. Puedes retomarlo otro día.
-
-[PAUSA LARGA]
+Si en algún momento la inquietud se vuelve muy fuerte, abre los ojos, mira a tu alrededor y respira. Puedes retomarlo otro día. Eso también está bien.
 
 Siéntate de forma cómoda. La espalda apoyada, los pies en el suelo.
 
-Deja el celular lejos, boca abajo, en silencio.
+Deja el celular lejos, boca abajo y en silencio.
 
-[PAUSA]
+Cierra los ojos, o deja la mirada baja, descansando en un punto del piso.
 
-Cierra los ojos, o deja la mirada baja.
+Toma aire por la nariz… y suéltalo despacio.
 
-[PAUSA]
+Otra vez. Entra… y sale, un poco más largo.
 
-Toma aire por la nariz…
+Una vez más, a tu ritmo.
 
-y suéltalo despacio.
-
-[PAUSA]
-
-Otra vez. Entra…
-
-y sale, un poco más largo.
-
-[PAUSA]
-
-Una vez más.
-
-[PAUSA LARGA]
-
-Ahora escucha los sonidos que hay alrededor.
-
-Los cercanos. Los lejanos.
+Ahora escucha los sonidos que hay a tu alrededor. Los cercanos. Los lejanos.
 
 No tienes que hacer nada con ellos. Solo escucharlos.
 
-[PAUSA LARGA]
-
-Nota el contacto del cuerpo con la silla.
-
-La temperatura del aire en la cara.
-
-[PAUSA LARGA]
+Nota el contacto de tu cuerpo con la silla. La temperatura del aire en la cara.
 
 Recorre el cuerpo despacio, sin cambiar nada.
 
 La frente. Si está fruncida, deja que se suavice.
 
-[PAUSA]
+La mandíbula. Deja que se suelte un poco.
 
-La mandíbula. Los hombros. Si están arriba, deja que bajen.
+Los hombros. Si están arriba, deja que bajen.
 
-[PAUSA LARGA]
-
-El pecho, que sube y baja solo.
-
-El abdomen. Las manos, quietas.
-
-[PAUSA LARGA]
+El pecho, que sube y baja solo. El abdomen. Las manos, quietas.
 
 Las piernas. Los pies apoyados.
 
 Todo tu cuerpo, aquí, sin tener que hacer nada.
 
-[PAUSA LARGA]
+Respira… y quédate ahí unos momentos.
 
-En un momento te voy a dejar en silencio.
+En un momento te voy a dejar en silencio. Durante ese rato solo vas a estar aquí, sin hacer nada.
 
-Mientras tanto, solo vas a estar aquí. Sin hacer nada.
+Y casi seguro va a aparecer algo que te saque. Un pendiente. Una preocupación por alguien. Una idea. Una reflexión profunda.
 
-[PAUSA]
+Cuando aparezca, no pelees con eso. Solo nótalo, y vuelve a los sonidos o a la respiración.
 
-Y casi seguro va a aparecer algo que te saque.
+Irte y volver es el ejercicio. No hay forma de hacerlo mal.
 
-Un pendiente. Una preocupación por alguien. Una idea. Una reflexión profunda.
+Te dejo un minuto en silencio. Yo te vuelvo a hablar cuando termine.
 
-[PAUSA]
+Muy bien. Aquí estoy otra vez.
 
-Cuando aparezca, no pelees con eso.
+Sin abrir los ojos, fíjate qué fue lo que más te sacó.
 
-Solo nótalo, y vuelve a los sonidos o a la respiración.
+¿Fue un pendiente? ¿Algo que tenías que hacer, terminar o resolver? Esa es la huida hacia la meta. La del nivel cinco.
 
-[PAUSA REAL · 60 s — quédate aquí, sin hacer nada; cada vez que te vayas, vuelve a los sonidos]
+¿Fue alguien? Cómo estará, si le contestaste el mensaje, qué necesitará de ti. Esa es la huida hacia el otro. La del nivel seis.
 
-Muy bien.
+¿Fue una idea? Un análisis, una explicación, un «por qué me pasa esto». Esa es la huida hacia la cabeza. La del nivel siete.
 
-[PAUSA]
+¿Fue algo grande? El sentido de todo, una reflexión sobre la vida. Esa es la huida hacia lo trascendente. La del nivel ocho.
 
-Ahora fíjate qué fue lo que más te sacó.
+Ninguna es mala. Todas son lugares conocidos. Solo que ninguna está aquí.
 
-[PAUSA]
+Y fíjate en algo más. Cuando apareció esa huida, ¿dónde la sentiste en el cuerpo? Quizás una inquietud en las piernas. Una presión en el pecho. Unas ganas de abrir los ojos.
 
-¿Fue un pendiente? ¿Algo que tenías que hacer, terminar, resolver?
-
-Esa es la huida hacia la meta. La del nivel cinco.
-
-[PAUSA LARGA]
-
-¿Fue alguien? ¿Cómo estará, si le habrás contestado, qué necesitará?
-
-Esa es la huida hacia el otro. La del nivel seis.
-
-[PAUSA LARGA]
-
-¿Fue una idea? ¿Un análisis, una explicación, un «por qué me pasa esto»?
-
-Esa es la huida hacia la cabeza. La del nivel siete.
-
-[PAUSA LARGA]
-
-¿Fue algo grande? ¿El sentido de todo, una reflexión sobre la vida?
-
-Esa es la huida hacia lo trascendente. La del nivel ocho.
-
-[PAUSA LARGA]
-
-Ninguna es mala. Todas son lugares conocidos.
-
-Solo que ninguna está aquí.
-
-[PAUSA]
+No tienes que cambiarla. Solo saber dónde vive.
 
 Vamos a hacerlo una vez más, con una pequeña ayuda.
 
-[PAUSA]
+Esta vez, cada vez que algo te saque, ponle nombre con una sola palabra. Si es un pendiente, «meta». Si es alguien, «otro». Si es un análisis, «idea». Si es algo grande, «todo».
 
-Esta vez, cada vez que algo te saque, ponle nombre con una sola palabra.
+Y después de nombrarlo, vuelve a la respiración.
 
-«Meta.» «Otro.» «Idea.» «Todo.»
+No hace falta hacerlo bien. Nombrar y volver. Nombrar y volver.
 
-Y vuelve a la respiración.
+Otro minuto en silencio. Yo te aviso cuando termine.
 
-[PAUSA]
+Muy bien. Aquí estoy.
 
-No hace falta hacerlo bien. Irte y volver es el ejercicio.
+Ahora nota cómo está tu cuerpo. Los hombros. Las manos. La respiración.
 
-[PAUSA REAL · 60 s — sin hacer nada; nombra cada huida con una palabra y vuelve]
+Nota que no pasó nada malo por no producir. El mundo siguió. Nadie se cayó. Nada se rompió.
 
-Muy bien.
+Tal vez notaste que una de las palabras se repitió más que las otras. «Meta», «otro», «idea» o «todo». Esa es tu huida más frecuente. Solo tómala como información.
 
-[PAUSA]
-
-Ahora nota cómo está tu cuerpo.
-
-Los hombros. Las manos. La respiración.
-
-[PAUSA LARGA]
-
-Nota que no pasó nada malo por no producir.
-
-El mundo siguió. Nadie se cayó. Nada se rompió.
-
-[PAUSA LARGA]
-
-Y desde aquí, una pregunta.
-
-No la contestes con la cabeza. Deja que la conteste el cuerpo.
-
-[PAUSA]
+Y desde aquí, una pregunta. No la contestes con la cabeza. Deja que la conteste el cuerpo.
 
 ¿Quién eres cuando no estás haciendo nada?
 
-[PAUSA REAL · 20 s — quédate con la pregunta, sin buscar una respuesta inteligente]
+Quédate con la pregunta unos momentos, sin buscar una respuesta inteligente.
 
-Si dio vértigo, está bien. Es información.
+Si dio vértigo, está bien. Es información. Si apareció algo de calma, quédate un momento con ella.
 
-Si apareció algo de calma, quédate un momento con ella.
+Respira… y quédate ahí.
 
-[PAUSA LARGA]
+Antes de volver, imagina el resto de tu día. Las cosas que vas a hacer. Las personas que vas a ver.
 
-Antes de volver, imagina el resto de tu día.
+Y elige un momento, uno solo, en el que vas a hacer lo mismo que hiciste aquí: parar unos segundos, notar adónde te fuiste y volver.
 
-Las cosas que vas a hacer, las personas que vas a ver.
+Puede ser antes de abrir el correo. Al sentarte a comer. Al llegar a la casa.
 
-[PAUSA]
+Tómate el tiempo que necesites para elegirlo.
 
-Y elige un momento, uno solo, en el que vas a hacer lo mismo que hiciste aquí:
+¿Lo tienes? Imagínate en ese momento, parando tres segundos y respirando una vez. Así de sencillo.
 
-parar unos segundos, notar adónde te fuiste, y volver.
-
-[PAUSA REAL · 15 s — elige ese momento del día]
-
-[PAUSA LARGA]
-
-Vamos a volver.
-
-Voy a contar del uno al cinco. Al cinco abres los ojos.
-
-[PAUSA]
+Vamos a volver. Voy a contar del uno al cinco. Al cinco abres los ojos.
 
 Uno. Nota los sonidos otra vez.
 
-[PAUSA]
-
 Dos. Nota los pies en el suelo.
-
-[PAUSA]
 
 Tres. Mueve las manos y los hombros.
 
-[PAUSA]
-
 Cuatro. Toma una respiración profunda.
 
-[PAUSA]
+Cinco. Abre los ojos y mira a tu alrededor.
 
-Cinco. Abre los ojos.
+Antes de tomar el celular, escribe en tu cuaderno dos cosas. Cuál fue tu huida más frecuente. Y un acto pequeño para hoy que te traiga de vuelta a lo concreto.
 
-[PAUSA LARGA]
+Puede ser comer sin pantalla. Caminar diez minutos sin audífonos. Decir un no que tenías pendiente. Pagar algo que venías aplazando.
 
-Antes de tomar el celular, escribe en el cuaderno dos cosas.
+Tómate el tiempo que necesites para escribirlo.
 
-Cuál fue tu huida más frecuente.
+Volver al presente no es un estado especial. Es volver, una y otra vez, a lo que está pasando aquí.
 
-Y un acto pequeño para hoy que te traiga de vuelta a lo concreto.
+Con este audio cierras el módulo. En el material en PDF tienes las cuatro sombras con sus frases y las preguntas para tu cuaderno. Y en el ejercicio opcional puedes dejar por escrito tu sombra, el precio que pagas por ella y tu acción de esta semana.
 
-[PAUSA REAL · 40 s — escribe la huida y el acto]
-
-Puede ser comer sin pantalla.
-
-Caminar diez minutos sin auriculares.
-
-Decir un no que tenías pendiente.
-
-Pagar algo que venías aplazando.
-
-[PAUSA]
-
-Volver al presente no es un estado especial.
-
-Es volver, una y otra vez, a lo que está pasando aquí.
-
-[PAUSA]
-
-Seguimos creciendo juntos.
+En el próximo módulo, «Diagnóstico personal y recursos de evolución», todo lo que has visto en el curso se vuelve tuyo. Ten a mano lo que escribiste en el ejercicio del módulo uno, porque lo vas a necesitar.

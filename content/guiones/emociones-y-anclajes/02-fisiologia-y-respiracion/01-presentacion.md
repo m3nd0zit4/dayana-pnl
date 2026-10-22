@@ -1,105 +1,29 @@
 # Presentación · Fisiología, postura y respiración
 
-**Emociones, anclajes y estados de recurso · Módulo 2 · 3-4 min · Presentación**
-Cámara fija, plano medio. Dayana respira en cámara con el espectador desde el primer minuto: no cortar las exhalaciones en montaje.
-Rótulo con las cuatro palancas cuando se nombran.
-
----
-
-[A CÁMARA]
+Emociones, anclajes y estados de recurso · Módulo 2 · 4-5 min
 
 Líderes, bendiciones.
 
-Hoy no te explico nada antes de hacerlo. Respiramos primero.
+¿Te ha pasado que antes de una reunión importante te dices «cálmate», y no pasa nada? O peor: los nervios suben. Hay una razón, y en este módulo vamos a trabajar justo eso. Este es el módulo más físico del curso, así que hoy no te explico nada antes de hacerlo. Primero respiramos juntos, y después te cuento qué pasó.
 
-Apoya la espalda. Deja los pies en el piso.
+Apoya la espalda y deja los pies en el piso. Vamos a hacer seis exhalaciones largas, tú y yo al mismo tiempo. El aire entra normal, por la nariz. Y sale despacio, más largo de lo que entró. Vamos con la primera.
 
-Vamos a hacer seis exhalaciones largas, tú y yo al mismo tiempo.
+Una… Dos… Tres… Cuatro… Cinco… Y seis, la más larga de todas.
 
-El aire entra normal, por la nariz. Y sale despacio, más largo de lo que entró.
+Ahora fíjate en tu cuerpo. Los hombros, la cara, la velocidad de tu cabeza. Tómate unos segundos para notarlo. ¿Algo bajó, aunque sea un poco? Eso es lo que vamos a estudiar en este módulo.
 
-[HACERLO]
+La respiración tiene una rareza que casi nada más tiene en tu cuerpo. Es automática: respiras toda la noche sin decidirlo. Y también es voluntaria: ahora mismo la acabas de conducir a mano. Piensa en esto. No puedes ordenarle a tu corazón que vaya más despacio. No puedes decidir dejar de sudar antes de una entrevista. Pero sí puedes decidir cómo exhalas, y eso arrastra a lo demás.
 
-Una.
+Esa rareza es la puerta. Por ahí se entra al sistema nervioso sin pedirle permiso al pensamiento. Por eso decirte «cálmate» no funciona, y exhalar largo sí ayuda. En la primera clase te explico por qué, sin misticismo.
 
-[PAUSA]
+Al terminar este módulo vas a poder hacer tres cosas. Bajar tu propia activación en menos de un minuto, con un protocolo de sesenta segundos que puedes hacer en un ascensor o frente a la otra persona sin que nadie lo note. Medir lo que haces del cero al diez, para no depender de si te parece que funcionó. Y descubrir cuál de las cuatro palancas del cuerpo te funciona mejor a ti: la respiración, la postura, el ritmo o la mirada. No es la misma para todo el mundo.
 
-Dos.
+Así funciona el módulo. En la primera clase te enseño las cuatro palancas y el protocolo. En la segunda clase medimos, armamos tu plan de práctica y escribes tu frase para el protocolo. Después tienes un video de práctica con ocho ciclos de respiración contados al ritmo real, para usarlo cuando lo necesites. Luego un audio guiado para soltar el cuerpo con la exhalación. Y además, el material de lectura en PDF y un ejercicio opcional de siete días.
 
-[PAUSA]
+Un aviso importante: este módulo se hace, no se ve. Si lo miras como quien mira una serie, no te va a servir. Cada vez que yo respire en cámara, respiras conmigo.
 
-Tres.
+Tu tarea para las próximas veinticuatro horas: repite las seis exhalaciones de hoy dos veces. Una al despertar y otra antes de dormir. En calma, no cuando estés mal. Ya vas a ver por qué.
 
-[PAUSA]
-
-Cuatro.
-
-[PAUSA]
-
-Cinco.
-
-[PAUSA]
-
-Y seis. La más larga de todas.
-
-[PAUSA REAL · 5 s — terminar la sexta exhalación]
-
-Ahora fíjate en tu cuerpo. Los hombros, la cara, la velocidad de tu cabeza.
-
-[PAUSA REAL · 10 s — notar qué cambió después de seis exhalaciones]
-
-Si algo bajó, aunque sea un poco, eso es lo que vamos a estudiar en este módulo.
-
-[A CÁMARA]
-
-La respiración tiene una rareza que no tiene casi nada más en tu cuerpo.
-
-Es automática: respiras toda la noche sin decidirlo.
-
-Y también es voluntaria: ahora mismo la acabas de conducir a mano.
-
-[PAUSA]
-
-No puedes ordenarle a tu corazón que vaya más despacio.
-
-No puedes decidir dejar de sudar antes de una entrevista.
-
-Pero sí puedes decidir cómo exhalas. Y eso arrastra a lo demás.
-
-Esa rareza es la puerta. Por ahí se entra al sistema nervioso sin pedirle permiso al pensamiento.
-
-[A CÁMARA]
-
-Un aviso importante: este módulo se hace, no se ve.
-
-Si lo miras como quien mira una serie, no te va a servir de nada.
-
-Cada vez que respire en cámara, respiras conmigo.
-
-[RÓTULO: Respiración · Postura · Ritmo · Mirada]
-
-Vas a aprender cuatro palancas del cuerpo: la respiración, la postura, el ritmo y la mirada.
-
-Y un protocolo de sesenta segundos que puedes hacer antes de una conversación difícil, en un ascensor o frente a la otra persona, sin que nadie lo note.
-
-[PAUSA]
-
-Al terminar el módulo vas a poder bajar tu propia activación en menos de un minuto.
-
-Y vas a saber medirlo, del cero al diez, para no depender de si te parece que funcionó.
-
-Y vas a descubrir cuál de las cuatro palancas te funciona mejor a ti, que no es la misma para todo el mundo.
-
-[RÓTULO: Clase 1 · Clase 2 · Práctica · Audio guiado · Material en PDF]
-
-Tienes dos clases, una práctica de respiración en tiempo real para usar cuando la necesites, un audio para soltar el cuerpo, el material en PDF y un ejercicio de siete días.
-
-[A CÁMARA. Cierre.]
-
-Tu tarea para mañana: repite las seis exhalaciones de hoy dos veces. Una al despertar y otra antes de dormir.
-
-En calma, no cuando estés mal. Ya vas a ver por qué.
-
-En la primera clase te explico por qué funciona, y te enseño los tres patrones que sirven.
+En la primera clase, «Las cuatro palancas», te explico por qué funciona lo que acabas de hacer y te enseño los tres patrones de respiración que sirven.
 
 Seguimos creciendo juntos.

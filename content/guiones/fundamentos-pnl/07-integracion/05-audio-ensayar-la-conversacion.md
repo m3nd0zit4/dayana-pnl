@@ -1,232 +1,143 @@
 # Audio guiado · Ensayar una conversación difícil
 
-**Fundamentos de la PNL · Módulo 7 · 11-14 min · Audio guiado**
-Solo voz, lenta, algo más cálida que en los demás audios: es el último del curso. Sin música, o una muy suave. El momento en que la otra persona se defiende lleva una pausa larga real: no recortarla.
+Fundamentos de la PNL · Módulo 7 · 11-14 min
 
----
+Antes de empezar: no escuches este audio mientras conduces ni mientras operas maquinaria. Busca un lugar donde puedas estar sin interrupciones durante los próximos minutos.
 
-No escuches este audio mientras conduces ni operando maquinaria.
+Este audio sirve para ensayar por dentro una conversación que tienes pendiente. Puede ser la que preparaste en la clase Tu plan de aplicación, u otra que tengas en mente.
 
-[PAUSA]
-
-Este audio sirve para ensayar por dentro una conversación que tienes pendiente.
-
-Si esa conversación es con alguien que te da miedo, o si en esa relación hay violencia o control, este ensayo no es la herramienta. Ahí lo que corresponde es buscar ayuda, y pedirla no es un fracaso.
-
-[PAUSA]
+Una aclaración antes de seguir. Si esa conversación es con alguien que te da miedo, o si en esa relación hay violencia o control, este ensayo no es la herramienta. Ahí lo que corresponde es buscar ayuda profesional, y pedirla no es un fracaso.
 
 Si es una conversación difícil pero segura, adelante.
 
-[PAUSA]
+Siéntate con la espalda apoyada y los pies en el suelo. Tómate un momento para acomodarte.
 
-Busca un lugar donde puedas estar unos quince minutos sin interrupciones.
-
-Siéntate con la espalda apoyada y los pies en el suelo.
-
-[PAUSA REAL · 10 s — acomodarse]
-
-Cierra los ojos, o deja la mirada baja.
-
-[PAUSA LARGA]
+Cuando quieras, cierra los ojos. O, si lo prefieres, deja la mirada baja.
 
 Trae a la mente la conversación. Con quién es. De qué trata.
 
 No la ensayes todavía. Solo tráela.
 
-[PAUSA REAL · 15 s — traer la conversación]
+Nota qué hace tu cuerpo solo con pensarla. La respiración. Los hombros. El estómago.
 
-Nota qué hace tu cuerpo solo con pensarla.
-
-[PAUSA REAL · 10 s — notar el cuerpo]
-
-Eso es lo primero que vamos a atender. El estado.
-
-[PAUSA]
+Eso es lo primero que vamos a atender: el estado.
 
 Los pies en el suelo. El peso repartido entre los dos.
 
-[PAUSA REAL · 5 s — sentir los pies]
-
-Tres exhalaciones largas.
+Ahora tres exhalaciones largas.
 
 Inhala… y suelta despacio.
 
-[PAUSA REAL · 8 s — primera exhalación]
+Otra vez. Inhala… y suelta, más largo.
 
-Otra vez.
+Y una más. Inhala… y suelta, todavía más despacio.
 
-[PAUSA REAL · 8 s — segunda exhalación]
+Suelta la mandíbula. Los dientes apenas separados. La lengua, descansando abajo.
 
-Y una más.
+Y elige una frase corta, para ti. Algo que hoy te puedas creer. «Voy despacio.» «Puedo con esta conversación.»
 
-[PAUSA REAL · 8 s — tercera exhalación]
+Tómate unos momentos para encontrarla.
 
-Suelta la mandíbula. Los dientes apenas separados.
+Ahora, el mapa.
 
-[PAUSA REAL · 5 s — soltar la mandíbula]
+Escucha cómo te cuentas a ti lo que pasó con esa persona. Seguramente hay una conclusión. Un «siempre», un «nunca», un «no le importa».
 
-Y elige una frase corta, para ti. Algo que hoy te puedas creer.
+Escúchala sin discutir con ella.
 
-«Voy despacio.» «Puedo con esta conversación.»
+Ahora conviértela en un dato. Lo que grabaría una cámara. «Las últimas tres veces…» «El martes, cuando…»
 
-[PAUSA REAL · 10 s — elegir la frase]
+Tómate el tiempo que necesites.
 
-[PAUSA LARGA]
-
-Ahora el mapa.
-
-Escucha cómo te cuentas a ti lo que pasó con esa persona.
-
-Seguramente hay una conclusión. Un «siempre», un «nunca», un «no le importa».
-
-[PAUSA REAL · 15 s — escuchar tu conclusión]
-
-Conviértela en un dato. Lo que grabaría una cámara.
-
-«Las últimas tres veces…» «El martes, cuando…»
-
-[PAUSA REAL · 20 s — convertir la conclusión en un dato]
-
-Esa va a ser tu primera frase.
-
-[PAUSA LARGA]
+Ese dato va a ser tu primera frase.
 
 Ahora entra en la escena.
 
-¿Dónde va a ser la conversación? ¿A qué hora? ¿De pie, en una mesa, caminando?
+¿Dónde va a ser la conversación? ¿A qué hora? ¿Sentados a una mesa, de pie, caminando?
 
-Mira el lugar con tus propios ojos.
+Mira el lugar con tus propios ojos. Escucha los sonidos que habría.
 
-[PAUSA REAL · 15 s — entrar en la escena]
+La otra persona está ahí. Mira su cara. Escucha cómo respira. Antes de hablar, nota cómo está en calma. Su línea base.
 
-La otra persona está ahí. Mira su cara. Escucha cómo respira.
+Quédate ahí unos momentos.
 
-Antes de hablar, nota cómo está en calma. Su línea base.
+Ahora empiezas. Dices tu primera frase, el dato.
 
-[PAUSA REAL · 15 s — observar a la otra persona]
+Y después, cómo te afecta a ti. En primera persona, sin culpar.
 
-Ahora empiezas.
+Y ahora deja que pase lo que suele pasar.
 
-Dices tu primera frase. El dato.
-
-Y después, cómo te afecta a ti, en primera persona, sin culpar.
-
-[PAUSA REAL · 20 s — decir por dentro el dato y cómo te afecta]
-
-Y ahora, deja que pase lo que suele pasar.
-
-La otra persona se defiende. Dice algo que te molesta. Quizá te devuelve un reproche.
+La otra persona se defiende. Dice algo que te molesta. Quizás te devuelve un reproche.
 
 Escúchalo.
 
-[PAUSA LARGA]
+Nota qué pasa en tu cuerpo cuando lo escuchas. Quizás sube el calor a la cara, o se tensan los hombros. Es normal. Para eso estamos ensayando.
 
 Este es el segundo que importa.
 
 Nota tu cuerpo. Suelta el aire, largo.
 
-[PAUSA REAL · 10 s — soltar el aire]
-
 No contraatacas.
 
 Reconoces lo que dijo, y vuelves al dato.
 
-Mírate haciéndolo.
+Mírate haciéndolo. Escucha tu voz, tranquila, firme.
 
-[PAUSA REAL · 20 s — reconocer y volver al dato]
+Tómate el tiempo que necesites.
 
-Ahora una pregunta, con curiosidad. Como quien quiere entender:
+Ahora una pregunta, con curiosidad. Como quien de verdad quiere entender: «¿Qué te está pesando de esto?».
 
-«¿Qué te está pesando de esto?»
-
-[PAUSA]
-
-Y supón que hay una intención detrás de lo que hace. Algo que intenta conseguir o proteger.
+Y mientras esperas la respuesta, supón que hay una intención detrás de lo que hace. Algo que intenta conseguir o proteger.
 
 Escucha lo que responde. Déjale terminar.
-
-[PAUSA REAL · 20 s — escuchar la respuesta]
 
 Mientras habla, mira qué cambia. En su cara, en su voz, en sus hombros.
 
 No lo interpretes. Solo nótalo.
 
-[PAUSA REAL · 15 s — calibrar los cambios]
-
 Cuando termine, repite lo que entendiste, con sus palabras. No con las tuyas.
 
-[PAUSA REAL · 15 s — reformular con sus palabras]
+Ahora, el acuerdo. Algo concreto. En positivo. Que los dos puedan comprobar. Con día.
 
-Ahora, el acuerdo.
+Y una pregunta más: «¿Qué te costaría a ti cumplir esto?».
 
-Algo concreto. En positivo. Que los dos puedan comprobar. Con día.
-
-Y una pregunta más: «¿Qué te costaría a ti cumplir esto?»
-
-[PAUSA REAL · 20 s — llegar al acuerdo y preguntar por su costo]
+Escucha la respuesta.
 
 Cierras corto. Sin sermón final.
 
-[PAUSA LARGA]
+Respira… y quédate ahí unos momentos.
 
-Ahora sal de la escena. Mírala desde fuera, como si la vieras en una pantalla.
-
-Las dos personas. La conversación entera.
+Ahora sal de la escena. Mírala desde fuera, como si la vieras en una pantalla. Las dos personas. La conversación entera.
 
 ¿Qué fue lo que hizo que funcionara? ¿Qué momento fue el decisivo?
 
-[PAUSA REAL · 20 s — mirar desde fuera qué funcionó]
+Tómate el tiempo que necesites.
 
-Eso es modelar. Esta vez, a ti, en tu mejor versión.
-
-[PAUSA LARGA]
+Eso es modelar. Esta vez, a ti, en tu mejor versión. Ya sabes cómo se hace, porque acabas de verlo.
 
 Deja que la escena se apague despacio.
 
-[PAUSA]
-
-Vamos a volver. Cuento del uno al cinco.
-
-[PAUSA]
+Vamos a volver. Voy a contar del uno al cinco. Con cada número vas a estar un poco más aquí.
 
 Uno. Notas el peso del cuerpo.
 
-[PAUSA]
-
 Dos. Notas los pies en el suelo.
-
-[PAUSA]
 
 Tres. Escuchas los sonidos del lugar.
 
-[PAUSA]
-
 Cuatro. Respiras un poco más hondo y mueves las manos.
-
-[PAUSA]
 
 Cinco. Abres los ojos.
 
-[PAUSA LARGA]
+Antes de levantarte, escribe dos cosas. Tu primera frase, el dato, tal como la vas a decir. Y el día en que vas a tener esa conversación.
 
-Antes de levantarte, escribe dos cosas.
+La conversación real no va a salir igual que el ensayo. Nunca sale igual. Pero tu cuerpo ya pasó una vez por el momento difícil, y ya sabe qué hacer en ese segundo.
 
-Tu primera frase, el dato, tal como la vas a decir.
+Con este audio llegamos al final del curso Fundamentos de la PNL.
 
-Y el día en que vas a tener esa conversación.
+Lo que acabas de hacer, juntar las seis piezas en una conversación de verdad, es justo lo que el curso quería dejarte. No técnicas sueltas, sino una forma de mirar. Que lo que ves es tu mapa. Que detrás de cada conducta hay una intención. Que el estado se puede elegir desde el cuerpo. Y que lo que quieres se puede formular de manera que tu mente sepa qué hacer con ello.
 
-[PAUSA REAL · 30 s — escribir la primera frase y el día]
+En el material en PDF del módulo tienes la rutina de diez minutos, un registro para tres semanas y la tabla para preparar cualquier conversación pendiente. Y en el ejercicio final, Tu plan de aplicación, puedes dejarlo todo por escrito. La pieza que más te sirvió, cuándo vas a practicar, tu objetivo para el próximo mes y el curso que eliges para seguir.
 
-La conversación real no va a salir igual que el ensayo. Nunca sale igual.
+Mañana empieza la rutina. Diez minutos. Y nunca dos días seguidos sin hacerla. Si un día fallas, no pasa nada: al día siguiente retomas donde te quedaste.
 
-Pero tu cuerpo ya pasó una vez por el momento difícil, y ya sabe qué hacer en ese segundo.
-
-Eso es lo que te llevas.
-
-[PAUSA]
-
-Hasta aquí el curso de Fundamentos.
-
-Lo que acabas de hacer, juntar las seis piezas en una conversación de verdad, es lo que el curso quería dejarte.
-
-Gracias por llegar hasta aquí.
+Gracias por hacer este recorrido conmigo.
