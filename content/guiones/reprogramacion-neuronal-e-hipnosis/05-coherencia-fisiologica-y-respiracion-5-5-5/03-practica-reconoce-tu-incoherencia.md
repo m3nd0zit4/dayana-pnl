@@ -8,7 +8,7 @@ Toma tu cuaderno y un lápiz. Busca un lugar tranquilo. Respira profundo por la 
 
 Primera parte. Piensa en una situación reciente donde sentiste que perdiste la calma. Un mensaje que te molestó, una persona que no cumplió, un momento donde querías responder con calma y respondiste gritando. Escríbela en pocas líneas. Solo lo que pasó, sin juzgar.
 
-Segunda parte. Observa tu cuerpo. Cierra los ojos y vuelve a esa situación un momento. ¿Qué siente tu cuerpo? ¿Se acelera tu respiración? ¿Sientes tensión? ¿Hombros encogidos, manos apretadas, presión en el pecho, la mandíbula dura? Yo me observo: si tengo los hombros muy encogidos, si estoy apretando las manos, estoy en alerta. Abre los ojos y escribe lo que notaste. Eso es lo que yo llamo reconocer lo que sientes.
+Segunda parte. Observa tu cuerpo. Cierra los ojos y vuelve a esa situación un momento. ¿Qué siente tu cuerpo? ¿Se acelera tu respiración? ¿Sientes tensión? ¿Hombros encogidos, manos apretadas, la mandíbula dura? Yo me observo: si tengo los hombros muy encogidos, si estoy apretando las manos, estoy en alerta. Abre los ojos y escribe lo que notaste. Eso es lo que yo llamo reconocer lo que sientes.
 
 Tercera parte. Tu interpretación. Pregúntate lo que yo les pregunto en clase. ¿Qué interpretación hice de lo que pasó? ¿Lo tomé como una falta de respeto, como un ataque? ¿Qué significado le di? Escríbelo.
 
@@ -26,7 +26,6 @@ Octava parte. Una pregunta para tu límite. Si la situación fue que alguien no 
 
 Novena parte. Piensa en alguien que te regula. Una persona, un lugar, una canción, una oración. Escribe qué experiencias de amor, aprecio, cariño y cuidado tienes a la mano. Porque cuando las vives, tu sistema nervioso se empieza a regular. Hazlas más seguido.
 
-Ahora, algo muy importante. Una incoherencia no es lo mismo que cansancio. Si estás con sueño y sin ánimo, eso no es el sistema nervioso activado. Es otra cosa. No lo confundas.
 
 Y si lo que apareció al hacer este ejercicio es muy fuerte, un trauma, una crisis, un ataque de pánico, eso se trabaja con un profesional o con una terapia personalizada, no solo con este curso.
 

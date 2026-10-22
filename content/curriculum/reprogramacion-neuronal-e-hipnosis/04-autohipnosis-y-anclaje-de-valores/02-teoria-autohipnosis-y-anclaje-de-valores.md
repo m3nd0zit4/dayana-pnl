@@ -65,7 +65,7 @@ Es el texto que vas a decir en la hipnosis. Cada frase es una cadena de causa a 
 
 ### El soporte teórico
 Las reglas que Dayana da al corregir los textos:
-1. **Empieza con tu nombre completo** y el contexto: «Para mí, [tu nombre completo], en el contexto personal, es muy importante…». «Para que tu identidad quede hasta en tu ADN.»
+1. **Empieza con tu nombre completo** y el contexto: «Para mí, [tu nombre completo], en el contexto personal, es muy importante…».
 2. **Todo en positivo.** La mente no entiende el «no». Nada de problemas, dificultades, «superar los momentos difíciles», «retos», «proceso», «heridas», «perdonar». Si dices «abrazo mi proceso», la mente entiende que el proceso continúa y manda más procesos. Si pones «resiliente», la mente va a que se ponga resiliente: no para el anclaje.
 3. **Sin «por qué».** El porqué tiende a ser una pregunta cuestionable: mejor quítalo.
 4. **En presente**, al finalizar.
@@ -75,7 +75,7 @@ Las reglas que Dayana da al corregir los textos:
 
 ### Ejemplos que lo desglosan
 - «Para mí, Dayana Beltrán, es muy importante estar enfocada en mis deseos, en mis metas, en mis objetivos.»
-- Una cadena: «Si estoy bien y feliz y en plenitud, mi salud es perfecta. Y si mi salud es perfecta, me siento bien, me siento realizada. Y si me siento realizada, pongo límites, y cuando pongo límites, me cuido.»
+- Una cadena: «Si estoy bien y feliz y en plenitud, me siento bien, me siento realizada. Y si me siento realizada, pongo límites, y cuando pongo límites, me cuido.»
 - Sanar, corregido: «Es muy importante en el contexto personal sanar. Si yo sano, tengo una alineación emocional, mental y espiritual. Esto hace que esté enfocada y tenga un crecimiento. Y si tengo un crecimiento, tengo armonía y paz interior. Todo positivo.»
 - Compromiso, corregido: «Tengo compromiso, y al tener compromiso obtengo el liderazgo. El liderazgo hace que tenga fortaleza. Y cuando tengo fortaleza, soy ilimitada y me expando.»
 - Una persona decía «yo soy lenta». Es una creencia limitante que se toma como identidad. Dayana dice: no somos esto que decimos; somos más. Hay que reprogramarlo, y se instala con repetición, por ejemplo «entiendo, comprendo, soluciono».

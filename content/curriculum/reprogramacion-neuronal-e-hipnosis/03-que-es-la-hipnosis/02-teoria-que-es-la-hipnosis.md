@@ -47,7 +47,7 @@ Reconoce en tu día cuándo entras en esos estados. Esa es la misma puerta que s
 Mito: una idea errónea que se repite. Aquí, la idea de que en la hipnosis la persona se duerme profundamente, queda inconsciente y pierde el control.
 
 ### El soporte teórico
-Dayana dice que eso es una idea errónea y equivocada. Cuando tenemos estados hipnóticos no significa que no sepamos qué estamos haciendo. La persona es la que decide. En la hipnosis, la persona está consciente: sabe lo que le están diciendo. «La hipnosis no es para manipular ni para controlar a alguien. Es para dejar anclajes de información en tu cerebro.» Y: según los estudios neuronales, nosotros no podemos gobernar la mente de nadie.
+Dayana dice que eso es una idea errónea y equivocada. Cuando tenemos estados hipnóticos no significa que no sepamos qué estamos haciendo. La persona es la que decide. En la hipnosis, la persona está consciente: sabe lo que le están diciendo. «La hipnosis no es para manipular ni para controlar a alguien. Es para dejar anclajes de información en tu cerebro.»
 
 ### Ejemplos que lo desglosan
 - Los programas de televisión donde dicen «agáchese, mueva el brazo, gire como un perrito». Dayana dice que la persona es completamente consciente de lo que hace, y que eso se presenta de manera amarillista, como un espectáculo.
@@ -82,7 +82,7 @@ La hipnosis se relaciona con las frecuencias cerebrales que viste en el módulo 
 ### El soporte teórico
 La hipnosis busca llevar a la persona de beta a alfa y a theta. Theta es el estado más utilizado en hipnosis, en reprogramación y en visualización: es el de la relajación profunda, la meditación, la atención interna, la imaginación. Beta, dice ella, no es para hacer hipnosis. Delta es sueño profundo y no sirve para hacer los anclajes.
 
-Pero hay una aclaración: la hipnosis no corresponde a una única frecuencia. No es obligatorio que esté en un nivel de frecuencia específico: por lo general, que esté semisomnoliento, para bajar y regular el sistema nervioso. Y hay que conocer a la persona. Con las niñas gemelas de una cliente, que son activas y se aburren, ella tiene que usar una frecuencia especial y reprogramarlas con los ojos abiertos.
+Pero hay una aclaración: la hipnosis no corresponde a una única frecuencia. No es obligatorio que esté en un nivel de frecuencia específico: por lo general, que esté semisomnoliento, para bajar y regular el sistema nervioso. Y hay que conocer a la persona. Con niñas que son activas y se aburren, hay que usar una frecuencia especial y reprogramarlas con los ojos abiertos.
 
 Las condiciones: no pueden haber niños corriendo ni televisor prendido, porque eso altera la frecuencia.
 

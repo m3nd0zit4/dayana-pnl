@@ -32,7 +32,7 @@ Y ahora, cómo se redacta. En presente, no en futuro. Si dices «ganaré», «al
 
 Ahora GROW. GROW significa crecer. Tiene cuatro partes.
 
-La G: la meta. Ya la tienes. La meta te da enfoque. Y para que tu meta se haga realidad necesitas gasolina, necesitas dopamina, o sea, motivación, energía. Y tu activo más valioso es tu mente: invierte en tu mente, porque tu mente llena tus bolsillos.
+La G: la meta. Ya la tienes. La meta te da enfoque. Y para que tu meta se haga realidad necesitas gasolina, necesitas motivación, energía. Y tu activo más valioso es tu mente: invierte en tu mente, porque tu mente llena tus bolsillos.
 
 La R: la realidad. Tu realidad. ¿Qué hay hoy en tu mente? Tu realidad la direcciona tu mente. Ahí están tus creencias limitantes, tus emociones. ¿Cuáles de esas emociones se están manifestando en tu vida? Si crees que todo es caro, que todo es difícil, tus filtros de información eliminan la opción de conseguir el dinero, la opción de sanar, la opción de avanzar.
 
@@ -40,11 +40,11 @@ La O: las opciones. Tres opciones realistas que te acerquen a tu meta. Concretas
 
 Y la W, el Will, la voluntad: el cuándo. Para cada opción, qué día, a qué hora, qué fecha. Eso es la evidencia. Porque tu mente funciona así, programando. Si no ponemos esta estructura, sigue pasando el tiempo y seguimos igual. Hoy de siete a diez de la noche la investigación, mañana tal cosa. Con día, hora y fecha.
 
-Y aquí viene lo más importante. En el medio de todo esto, la pregunta: ¿qué te impide tomar acción? Ahí aparecen el «no puedo», el «no soy capaz», la duda, el miedo. Y eso es lo que reprogramamos. Una persona me dijo: «mi opción es sumar pensamientos positivos». Y yo le dije: si te digo no pienses en un elefante rosado, ¿qué piensas? La mente subconsciente no distingue entre sí y no. Por más repeticiones positivas que digas, eso no quita el programa ni el anclaje. Hay que ir a la raíz y reprogramar.
+Y aquí viene lo más importante. En el medio de todo esto, la pregunta: ¿qué te impide tomar acción? Ahí aparecen el «no puedo», el «no soy capaz», la duda, el miedo. Y eso es lo que reprogramamos. Alguien podría decir: «mi opción es sumar pensamientos positivos». Y yo le diría: si te digo no pienses en un elefante rosado, ¿qué piensas? La mente subconsciente no distingue entre sí y no. Por más repeticiones positivas que digas, eso no quita el programa ni el anclaje. Hay que ir a la raíz y reprogramar.
 
-Otra persona perdió la energía y las ventas por una infidelidad. Su meta: sanar. Sus opciones: terapias, curso, conocerse, deporte. Su cuándo: abrir una cuenta el lunes a las 9, llamar a la 1. Esto es GROW.
+Imagina a una persona que perdió la energía y las ventas por una infidelidad. Su meta: sanar. Sus opciones: terapias, curso, conocerse, deporte. Su cuándo: abrir una cuenta el lunes a las 9, llamar a la 1. Esto es GROW.
 
-Te cuento otro caso. Una persona quería salir adelante en sus ventas y su pareja le decía «no, no, no». Si tu pareja te dice no, no, no, vas a entrar en esa vibración y a atraer clientes que te digan no, no, no. Para tener excelentes clientes necesitas sanar. Entonces yo entro a tu mente y reprogramo el programa del no, no, no, que es lo que te impide vender. Y la rabia es una energía de frecuencia baja. Si se reprograma, mejora tu energía, mejora tu enfoque y vendes. Y si vendes, tienes dinero.
+Imagina otro caso. Una persona quiere salir adelante en sus ventas y su pareja le dice «no, no, no». Si tu pareja te dice no, no, no, vas a entrar en esa vibración y a atraer clientes que te digan no, no, no. Para tener excelentes clientes necesitas sanar. Entonces yo entro a tu mente y reprogramo el programa del no, no, no, que es lo que te impide vender. Y la rabia es una energía de frecuencia baja. Si se reprograma, mejora tu energía, mejora tu enfoque y vendes. Y si vendes, tienes dinero.
 
 Otra cosa. Cuando una meta está difícil, no es que seas flojo. Quizás vienes con un programa de que no eres capaz, y tus filtros de información eliminan las opciones. O vives en el «es difícil», «es carísimo», «todo es una brega». Eso lo aprendiste de tu mamá, de tu papá, de lo que escuchaste. Hay que revisar de dónde viene.
 

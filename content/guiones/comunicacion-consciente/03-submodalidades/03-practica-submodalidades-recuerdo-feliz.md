@@ -38,6 +38,6 @@ Recuerda lo que no hace esta técnica. No borra el recuerdo y no reprograma la e
 
 Una pregunta para tu cuaderno: ¿en qué momento de mi semana puedo usar esto? ¿Antes de una reunión, de una conversación difícil, al acostarme?
 
-Y mira que una persona me contó que sonrió para pasar de la cólera a otro estado en su trabajo: es verdad que la fisiología ayuda. Pero ojo, eso son pañitos de agua tibia. Te calman un momento; la solución de raíz es reprogramarte.
+Y mira que alguien puede sonreír para pasar de la cólera a otro estado en su trabajo: es verdad que la fisiología ayuda. Pero ojo, eso son pañitos de agua tibia. Te calman un momento; la solución de raíz es reprogramarte.
 
 Practícalo y cuéntame cómo te va. Sigamos creciendo juntos. Bendiciones.

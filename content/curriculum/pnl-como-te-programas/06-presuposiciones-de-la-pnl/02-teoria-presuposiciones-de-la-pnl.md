@@ -139,7 +139,7 @@ Es uno de los fundamentos más importantes de la PNL. Dayana dice que los fundad
 
 **Los modelos que ella presenta:**
 - **Virginia Satir:** reconocida por su capacidad de generar confianza; comunicación asertiva y conexión emocional.
-- **Milton Erickson:** psiquiatra e hipnoterapeuta; estudió que el lenguaje etiqueta, forma identidad y se vuelve verdad, y creó metáforas y preguntas para influir en el inconsciente.
+- **Milton Erickson:** psiquiatra e hipnoterapeuta; usó metáforas y preguntas para influir en el inconsciente.
 - **Fritz Perls:** terapeuta gestalt; ayudar a asumir responsabilidad sobre las experiencias. De ahí nace la fórmula del empoderamiento (módulo 2).
 - **Tony Robbins:** liderazgo; *los problemas son oportunidades para crecer* y *la calidad de tu vida depende de la calidad de tus preguntas.*
 - **Michael Jordan:** rechazado por el equipo principal de su escuela, usó ese dolor para entrenar más fuerte; las derrotas son oportunidades de mejora; mentalidad de crecimiento.
@@ -166,8 +166,8 @@ Gestionar tu estado emocional con el lenguaje corporal eleva tu energía. Dayana
 
 ### Ejemplos que lo desglosan
 - **Postura de ganador (Superman o la mujer maravilla):** de pie, manos en la cintura, piernas abiertas en triángulo, mirando arriba, respirando profundo, y visualiza el momento en que te sentiste más seguro, aprobado y ganador. Dayana lo hace siempre antes de un live.
-- **Sonreír un minuto:** cambia el estado de ánimo. Ella lo usó manejando enojada con su hijo, también enojado: en minuto y medio ya se les había olvidado.
-- **Cambiar la fisiología:** si estás cansado, báñate, maquíllate, hazte algo en el cabello; si estás deprimido, abre las cortinas y pon música; si estás de mal ánimo, sal a trotar o a la naturaleza.
+- **Sonreír un minuto:** cambia el estado de ánimo. Ella lo usó estando enojada: en minuto y medio ya se le había olvidado.
+- **Cambiar la fisiología:** si estás cansado, báñate, maquíllate, hazte algo en el cabello; si estás de bajo ánimo, abre las cortinas y pon música; si estás de mal ánimo, sal a trotar o a la naturaleza.
 - **Tony Robbins** salta antes de entrar a un evento: el movimiento es energía.
 - **Gratitud y visualización de resultados:** agradece, enfócate en lo hermoso que está pasando y visualiza tu mejor versión.
 

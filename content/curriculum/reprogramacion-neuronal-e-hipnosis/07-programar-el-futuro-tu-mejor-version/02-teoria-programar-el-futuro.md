@@ -40,7 +40,7 @@ Dayana dice que la mente quiere que estemos postergando, procrastinando, queján
 ### Ejemplos que lo desglosan
 - **La postura de poder.** Te pones de pie, las manos en la cintura, las piernas abiertas en forma de triángulo, miras hacia arriba. «Es una posición de ganador, una posición de victoria.» Tony Robbins, antes de un evento, se pone a saltar, porque el movimiento es energía.
 - **La sonrisa.** Sonreír por un minuto cambia tu estado de ánimo.
-- **El cuidado personal:** si estás cansada, báñate, maquíllate, hazte algo en el cabello, mascarillas; son actos de amor propio. Si estás deprimido, abre las cortinas, las ventanas, pon una música que te guste.
+- **El cuidado personal:** si estás cansada, báñate, maquíllate, hazte algo en el cabello, mascarillas; son actos de amor propio. Si estás sin ánimo, abre las cortinas, las ventanas, pon una música que te guste.
 - **Dayana manejando enojada** con su hijo, también enojado: sonrieron, se miraron y en uno o dos minutos se les olvidó.
 - **Caminar** mientras hace una llamada cuando está agotada.
 - **Preguntas ante el espejo:** ¿qué puedo hacer para mejorar?, ¿estoy sin ánimo? Voy y me baño.

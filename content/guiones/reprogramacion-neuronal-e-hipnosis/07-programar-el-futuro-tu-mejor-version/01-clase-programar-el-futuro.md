@@ -16,7 +16,7 @@ Michael Jordan nos enseña que las derrotas son oportunidades de mejora. Los err
 
 Ahora, lo segundo: gestionar tu estado emocional. La mente quiere que estemos postergando, quejándonos, perdiendo el tiempo. Por eso hay que entrar al curso así no tengas ganas. Y tu cuerpo te ayuda. Te enseño la postura de poder, la de Superman o la mujer maravilla. Te pones de pie, las manos en la cintura, las piernas abiertas como un triángulo, miras hacia arriba. Es una posición de ganador, de victoria. Cierras los ojos y visualizas el momento donde te sentiste más empoderado, más seguro, donde te respetaron. Le pones color y brillo. Y la haces un minuto, minuto y medio. Yo la hago siempre antes de un live. Si no puedes en ese momento, hazla en la ducha.
 
-La sonrisa: sonríe por un minuto. Cambia tu estado de ánimo. Yo iba manejando enojada y mi hijo también estaba enojado. Sonreímos, nos miramos, y al minuto y medio se nos olvidó. Si estás cansado, báñate, maquíllate, ponte algo bonito, actos de amor propio. Si estás deprimido, abre las cortinas, pon una música que te guste. Cambiar la fisiología sí ayuda.
+La sonrisa: sonríe por un minuto. Cambia tu estado de ánimo. Yo iba manejando enojada y mi hijo también estaba enojado. Sonreímos, nos miramos, y al minuto y medio se nos olvidó. Si estás cansado, báñate, maquíllate, ponte algo bonito, actos de amor propio. Si estás sin ánimo, abre las cortinas, pon una música que te guste. Cambiar la fisiología sí ayuda.
 
 Y la gratitud. Agradece. Enfócate en lo hermoso que está pasando. Por respirar, por estar vivo, por tener agua.
 

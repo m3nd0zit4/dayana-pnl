@@ -32,7 +32,7 @@ Dayana cuenta que la PNL nació de la unión de varias personas:
 Con la psicología, la lingüística y el estudio de las neuronas nace la PNL.
 
 ### Ejemplos que lo desglosan
-Dayana lo cuenta como una conversación entre amigos: «¿cómo vamos a hacer para ayudar a la humanidad?». Quitar el miedo, los traumas, los vicios, los lutos. Y deciden guiarse por lo que a ella le daba resultado.
+Dayana lo cuenta como una conversación entre amigos: «¿cómo vamos a hacer para ayudar a la humanidad?». Ayudar a las personas a sentirse mejor. Y deciden guiarse por lo que a ella le daba resultado.
 
 ### Cómo se aplica
 Quédate con esta idea: la PNL no parte de la teoría sola, parte de observar a las personas y ver qué las libera. Por eso en este curso aprendes y practicas.
@@ -112,7 +112,7 @@ Las etiquetas se dan en contextos: personal, pareja, familia y dinero.
 - **Etiquetas negativas:** «este es bien bruto», «usted no sirve para nada», «usted solo estorba».
 - **En la familia:** el hermano mayor es el mejor, el lento y el inteligente.
 - **La etiqueta del vaso:** un vaso con la etiqueta de una marca: cada persona tiene ya una representación de esa etiqueta. Esa etiqueta es la lingüística que recibimos.
-- **La clienta del «tú no sabes nada»:** su esposo se lo decía todo el tiempo. Al buscar la raíz había un patrón lingüístico: su mamá le decía «tonta». Ahora ella le decía lo mismo a su hijo. Detrás de la frase «tú no sabes nada» hay una imagen. Al reprogramar, cambió su forma de hablar.
+- **«Tú no sabes nada»:** imagina a una persona a quien se lo dicen todo el tiempo. Al buscar la raíz puede aparecer un patrón lingüístico: alguien de su infancia le decía «tonta», y ahora ella le dice lo mismo a otra persona. Detrás de la frase «tú no sabes nada» hay una imagen. Al reprogramar, cambia la forma de hablar.
 
 ### Cómo se aplica
 Escucha lo que dices y lo que te dicen. Pregúntate: ¿qué etiquetas me pusieron? ¿Cuáles repito yo?

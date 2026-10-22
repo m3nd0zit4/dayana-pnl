@@ -75,7 +75,7 @@ Para aplicar el rapport necesitas tener claros los filtros de información y las
 
 ### Ejemplos que lo desglosan
 - **Visual.** «Déjame ver. ¿De qué color es? Si es bonito, yo quiero ver si es bonito.»
-- **Kinestésica.** Ante un peluche, Dayana dijo «yo quiero sentir». Y una clienta que compra collares necesita saber si pica o rasca.
+- **Kinestésica.** Ante un peluche, Dayana dijo «yo quiero sentir». Y quien compra collares necesita saber si pica o rasca.
 - **Las mismas palabras.** Si piden un jean, no digas pantalón. Si dicen aretes, argollas o aro, hablas igual que el cliente. Si dicen camisa, no corriges con camiseta.
 - **Cólera, rabia e ira.** Hay personas y países que entienden cada palabra de manera distinta; usa la que usa la persona.
 - **Proceso y estructura.** No es lo mismo decir «la estructura de este proyecto es así» que preguntar «¿cómo es el proceso?». Si usas otras palabras, cortas la conexión.

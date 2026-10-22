@@ -16,7 +16,7 @@ Si mi valor es cuidarme, cuidarme es descansar, pero también es arreglarme el c
 
 Y si mi valor es valorarme, la evidencia es hablarme bien, organizar, permitirme descansar, tratarme con respeto. Si es la valentía, la evidencia es respirar, sacar la valentía, decir no cuando es no y sí cuando es sí.
 
-Nota algo importante: en el contexto personal, tus cosas son tus cosas. Si el valor es organizar, empieza por tu ropa, tus zapatos, tu cuarto, tu baño. No las cosas de los cuatro hijos. Porque como es adentro es afuera: si adentro hay muchas cosas pendientes, afuera se ve el desorden. Si abres tu clóset y está patas arriba, no te acostumbres a eso: organízalo. Y suelta lo que ya no uses. Eso tiene tu energía; al soltar, la energía fluye y da paz.
+Nota algo importante: en el contexto personal, tus cosas son tus cosas. Si el valor es organizar, empieza por tu ropa, tus zapatos, tu cuarto, tu baño. No las cosas de los hijos. Porque como es adentro es afuera: si adentro hay muchas cosas pendientes, afuera se ve el desorden. Si abres tu clóset y está patas arriba, no te acostumbres a eso: organízalo. Y suelta lo que ya no uses. Eso tiene tu energía; al soltar, la energía fluye y da paz.
 
 Y los valores que son proyectos, como cumplir metas o enfocarte, son afuera. En lo personal son escucharte, atenderte, descansar, premiarte.
 

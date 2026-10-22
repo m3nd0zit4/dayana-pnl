@@ -32,7 +32,7 @@ Ahora, algo muy importante. Uno mismo puede ser todos. Puedes ser visual en un m
 
 Y fíjate: no siempre el verbo «ver» significa visual. Hay personas que usan «ver» para sentir. Un visual ve un collar y se lo compra porque es lindo. Una persona kinestésica que ve un paisaje, o una carta, o una frase, lo ve para sentir. Una persona que te dice que lo que más le gustó fue un detalle, una flor, un chocolate, un globo: eso es kinestésico. Si sales con alguien que dice «qué paisaje tan lindo», háblale de paisajes, de naturaleza, de arcoíris, para que sienta que lo entiendes.
 
-Te doy otros ejemplos de nuestras clases. Una persona contó un recuerdo de un paseo con un río. Nunca dijo «me siento»; decía «aún somos amigas». Cuando hablamos de amigos, estamos hablando de hablar, de compartir, de reír. Y el detalle del río me dio el dato: le gusta la calma, los sonidos, el agua. Es auditiva. Por eso una meditación con lluvia le va a conectar.
+Te doy otro ejemplo. Imagina a una persona que cuenta un recuerdo de un paseo con un río. Nunca dice «me siento»; dice «aún somos amigas». Cuando hablamos de amigos, estamos hablando de hablar, de compartir, de reír. Y el detalle del río da el dato: le gusta la calma, los sonidos, el agua. Es auditiva. Por eso una meditación con lluvia le va a conectar.
 
 Otro ejemplo, el de la copa. Yo la vi sola, muy simple, y le puse una cinta y una campanita, porque soy visual. Pero una persona que ve para sentir no compra la copa porque sea linda. La compra para una cena romántica, para generar un sentimiento. Eso es kinestésico.
 

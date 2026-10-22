@@ -59,7 +59,7 @@ Si te llega alguien acelerado, o si tú estás acelerado, no empieces con lengua
 ### El soporte teórico
 Para Dayana, alfa es el estado donde se activan la creatividad y los recursos internos. En alfa la persona se conecta con su interior, entra al observador y encuentra una respuesta. Alfa nos ayuda a tener discernimiento y a tener intuición. Dice que cuando estamos en alfa nos conectamos con el todo, empezamos a subir y a cambiar nuestro nivel de conciencia.
 
-Aclara algo importante: relajarse no significa guardarse las cosas. Hay que expresar lo que se siente, porque de lo contrario el cuerpo, tarde que temprano, va a explotar de alguna manera cuando callamos todo. Y tampoco significa ser despacioso: es una relajación interna.
+Aclara algo importante: relajarse no significa guardarse las cosas. Hay que expresar lo que se siente. Y tampoco significa ser despacioso: es una relajación interna.
 
 ### Ejemplos que lo desglosan
 - Estudiar: «¿estudias con la música a todo volumen? No». Para aprender información debemos estar más relajados. Usted estudiando con el televisor, la cocina, el arroz, el perro, la novela: así no se puede concentrar.

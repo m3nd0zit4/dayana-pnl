@@ -79,7 +79,7 @@ Redacta tu meta **en presente**, no en futuro. Ni «ganaré», ni «algún día�
 - **W:** el *Will*, la voluntad: el cuándo, con día, fecha y hora.
 
 ### El soporte teórico
-**G · Meta.** Se saca con «¿qué es lo más importante para ti en este momento?». Y hace falta dopamina: energía, gasolina, motivación. «Para que tu meta se haga realidad necesitas gasolina.» Y dice que el activo más valioso es tu mente: «invierte en tu mente, porque tu mente llena tus bolsillos».
+**G · Meta.** Se saca con «¿qué es lo más importante para ti en este momento?». Y hace falta energía, gasolina, motivación. «Para que tu meta se haga realidad necesitas gasolina.» Y dice que el activo más valioso es tu mente: «invierte en tu mente, porque tu mente llena tus bolsillos».
 
 **R · Realidad.** ¿Qué hay hoy en tu mente? Tu realidad la direcciona tu mente: creencias limitantes, emociones, traumas. ¿Cuáles de esas emociones se manifiestan en tu vida? Si se programa que «todo es caro» o que «no soy capaz», los filtros de información eliminan la opción de conseguir el dinero, de sanar, de avanzar.
 

@@ -2,7 +2,7 @@
 
 Comunicación consciente: metamodelo, rapport y submodalidades · Módulo 2 · 10-12 min
 
-Hola, chicos, bienvenidos. Te bendigo. Hoy vamos a hablar de una técnica muy, pero muy poderosa: el rapport.
+Hola, chicos, bienvenidos. Hoy vamos a hablar de una técnica muy, pero muy poderosa: el rapport.
 
 ¿Has notado que hay personas con las que sientes que te entienden, y otras con las que parece que hablas en otro idioma? Eso tiene que ver con la conexión. Hoy vas a aprender qué es el rapport, para qué sirve y cuáles son sus claves prácticas. Escribe en tu cuaderno.
 

@@ -62,7 +62,7 @@ Al visual lo proyectas y le muestras. Con él puedes hablar rápido. Un visual n
 
 ### Ejemplos que lo desglosan
 - Un negocio con mucho ruido: aunque tenga la mejor promoción, la persona auditiva no entra.
-- Una persona que contó un recuerdo de un río, sin decir «me siento»: «aún somos amigas». Hablar de amigos es hablar de compartir y reír; el detalle del río mostró que le gustan la calma y los sonidos del agua. Una meditación con lluvia conectaría con ella.
+- Imagina a una persona que cuenta un recuerdo de un río, sin decir «me siento»: «aún somos amigas». Hablar de amigos es hablar de compartir y reír; el detalle del río muestra que le gustan la calma y los sonidos del agua. Una meditación con lluvia conectaría con ella.
 - «Las orejas destapadas» como señal de un oído muy desarrollado.
 
 ### Cómo se aplica

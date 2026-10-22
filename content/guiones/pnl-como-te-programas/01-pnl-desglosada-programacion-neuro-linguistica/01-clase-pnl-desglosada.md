@@ -16,7 +16,7 @@ Primero estuvo una mujer, Virginia Satir. Ella no se quedaba en la teoría. Entr
 
 Entonces un psicólogo, Richard Bandler, se dio cuenta de lo que ella lograba. Y se preguntó: ¿cómo lo hace? En su universidad había un profesor de lingüística, John Grinder, que estudiaba todo lo que tiene que ver con el lenguaje: los tonos, la velocidad, el volumen con que habla una persona.
 
-Piensa en ellos como en dos amigos tomándose un tintico y diciendo: ¿cómo hacemos para ayudar a la humanidad? Quitar el miedo, los traumas, los vicios, los lutos. Y decidieron guiarse por las técnicas de ella, porque le daban resultado. Ahí pusieron los estudios de la psicología y los de la lingüística.
+Piensa en ellos como en dos amigos tomándose un tintico y diciendo: ¿cómo hacemos para ayudar a la humanidad? Ayudar a las personas a sentirse mejor. Y decidieron guiarse por las técnicas de ella, porque le daban resultado. Ahí pusieron los estudios de la psicología y los de la lingüística.
 
 Y falta una pieza: entender cómo funcionan las neuronas, cómo se queda grabado en ellas todo lo que vemos, escuchamos y sentimos. Con la psicología, la lingüística y el estudio de las neuronas nace la PNL.
 
@@ -52,7 +52,7 @@ Hay una cadena que te quiero dejar clara. Si recibo un lenguaje de mamá o de pa
 
 No hay una palabra que digas que no haya sido programada. Cómo te vistes, cómo hablas, cómo comes, cómo piensas, qué sientes. Todo.
 
-Voy a darte un caso. Una clienta mía tenía un esposo que le decía todo el tiempo «tú no sabes nada». Fuimos más atrás, a buscar la raíz, y apareció un patrón lingüístico: su mamá le decía «tonta». Y ella, sin darse cuenta, ahora le decía lo mismo a su hijo pequeño. Todo el mundo la estaba programando. Al hacerlo consciente, empezó a hablar diferente. Cuando una persona dice «tú no sabes nada», hay una imagen detrás.
+Imagina a una persona a la que le dicen todo el tiempo «tú no sabes nada». Si vamos más atrás, a buscar la raíz, puede aparecer un patrón lingüístico: alguien de su infancia le decía «tonta». Y ella, sin darse cuenta, ahora le dice lo mismo a otra persona. Todo el mundo la estaba programando. Al hacerlo consciente, empieza a hablar diferente. Cuando una persona dice «tú no sabes nada», hay una imagen detrás.
 
 Te dejo otra forma de verlo, la que dibujo en el tablero. Primero hay una experiencia, algo del pasado. Cada persona la interpreta a su manera. De esa interpretación nace un pensamiento. Del pensamiento nace una emoción. La emoción se expresa en tu fisiología, en tu cuerpo. Y de ahí salen tus resultados y tus acciones.
 

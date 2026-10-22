@@ -22,7 +22,6 @@ La próxima vez puedes reconocer lo que sientes, hacer una pausa y elegir cómo 
 
 El sistema simpático, en cambio, es cuando tenemos el sistema nervioso activado. Nos estresamos, gritamos, no podemos respirar, nos da miedo, nos da ansiedad. ¿Y qué lo activa? Nuestra mente, nuestra programación, las experiencias dolorosas pendientes por reprogramar. Por eso te lo digo: el deber ser es reprogramar. Alinear nuestro sistema nervioso.
 
-Ojo con algo. Si estás cansado, con sueño y con desánimo, eso no es el sistema nervioso activado. Eso es el parasimpático muy llevado. No es lo mismo.
 
 Ahora, el patrón de coherencia y de incoherencia. Cuando tenemos coherencia entre lo que pensamos y lo que sentimos, la gráfica está tranquilita. Pero cuando tenemos una incoherencia, la gráfica está así, agitada. La incoherencia es cuando yo quiero estar tranquilo y no estoy tranquilo. Cuando quiero respirar bien y no puedo respirar bien. Cuando quiero responder con calma y respondo gritando.
 
@@ -42,7 +41,7 @@ Mira cómo se conecta todo esto con lo que ya viste. En el módulo uno aprendist
 
 Por eso te digo: la próxima vez que algo te altere, no respondas de una. Reconoce lo que sientes. Haz una pausa. Respira. Y elige cómo responder. Eso es entrenar tu sistema nervioso. Y es algo que yo hago todo el tiempo, porque yo también tengo mis incoherencias.
 
-Y si eres de los que van a reprogramar a otros, tres cosas. Una: para eso se necesita experiencia. Está bien que queramos reprogramar, pero si tenemos clientes con eventos muy traumáticos, permitámonos seguir aprendiendo, entrenándonos. Porque se activan muchos anclajes y la persona puede quedar más afectada. Dos: los reprogramadores tenemos que estar muy sanos y reprogramándonos mucho, porque recibimos de todo. Y tres: se sigue reprogramando hasta que el cliente esté completamente bien. Y un solo evento. Una imagen en específico. Si se pone a mirar toda la vida, se altera. Si en la hipnosis le aparecen varias imágenes, te enfocas en una. Y si hay tiempo, después vas a la otra.
+Y si eres de los que van a reprogramar a otros, tres cosas. Una: para eso se necesita experiencia. Está bien que queramos reprogramar, pero si tenemos clientes con eventos muy traumáticos, permitámonos seguir aprendiendo, entrenándonos. Porque se activan muchos anclajes y la persona puede quedar más afectada. Dos: los reprogramadores tenemos que estar muy sanos y reprogramándonos mucho, porque recibimos de todo. Y tres: un solo evento. Una imagen en específico. Si se pone a mirar toda la vida, se altera. Si en la hipnosis le aparecen varias imágenes, te enfocas en una. Y si hay tiempo, después vas a la otra.
 
 Una advertencia importante. Si lo que sientes es muy fuerte, una crisis, un trauma, un ataque de pánico, eso se trabaja con un profesional o en terapia personalizada, no solo con este curso.
 

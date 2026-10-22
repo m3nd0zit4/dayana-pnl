@@ -32,7 +32,7 @@ Esa programación queda en tu mente subconsciente. Por eso ella dice que cada co
 - Un niño que escucha «hoy no hable», «hoy no coma», «es bruto». Esas frases generan una carga emocional, y esa carga emocional genera un anclaje neuronal inconsciente.
 - La mesa: si a todos les sirven comida y a ti no, aunque nadie te diga nada te sientes insuficiente, rechazado, no valorado.
 - Padres presentes pero ausentes: te dieron comida pero no abrazos ni besos. Eso deja un programa de insuficiencia.
-- La clienta a quien su esposo le decía «tú no sabes nada». Detrás de esa frase había una imagen: su mamá le decía «tonta». Y ahora ella le decía lo mismo a su hijo de cinco años. Todo el mundo la estaba programando.
+- Imagina a una mujer a quien su esposo le dice «tú no sabes nada». Detrás de esa frase puede haber una imagen: su mamá le decía «tonta». Y ahora ella le dice lo mismo a su hijo pequeño. Todo el mundo la está programando.
 - La etiqueta del vaso: un vaso de Coca-Cola tiene una etiqueta, y cada persona tiene una representación distinta de esa etiqueta. Así también el lenguaje que recibimos nos etiqueta, y esa etiqueta forma identidad.
 
 ### Cómo se aplica
@@ -63,7 +63,7 @@ Dayana llama **mamás de las emociones** a las seis principales: **cólera, tris
 
 ### El soporte teórico
 - **Cólera:** para ella es la primera emoción que siente el ser humano. Sus hijas: la ira, el mal humor.
-- **Tristeza:** sus hijas son la depresión y el decaimiento. Una persona que no quiere tener una meta, medio achandada, en realidad tiene tristeza.
+- **Tristeza:** su hija es el decaimiento. Una persona que no quiere tener una meta, medio achandada, en realidad tiene tristeza.
 - **Miedo:** sus hijas son la vergüenza y la duda. Y el miedo es el papá de la ansiedad.
 - **Ansiedad:** es una de las emociones del futuro. «Y si no vendo, y si no me va bien, y si me rechazan, y si me juzgan.»
 - **Culpa:** va aliada con la vergüenza, el no merecimiento y el bloqueo. Quien tiene culpa tiende a la apatía: no quiere salir, no quiere hacer las cosas.

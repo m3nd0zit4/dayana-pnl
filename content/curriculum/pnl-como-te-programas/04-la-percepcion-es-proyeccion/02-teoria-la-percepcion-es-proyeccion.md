@@ -27,7 +27,7 @@ Esta ley es el paso siguiente a «el mapa no es el territorio»: si tu percepci�
 
 ### Ejemplos que lo desglosan
 - **Una persona habla con seguridad frente a otros.** Uno dice «es muy creída», otro «es segura y me inspira», otro «yo nunca podría ser así». El hecho es el mismo; la percepción cambia.
-- **Una dinámica en clase.** Cada persona describió a su pareja de ejercicio. Quien habló de cabello cuidado, quien vio tristeza, quien vio «carácter fuerte» descubrió que algo de eso resuena en sí misma. Cada persona lo que ve es su mapa.
+- **Una dinámica en clase.** Imagina que cada persona describe a su pareja de ejercicio. Quien habla de cabello cuidado, quien ve tristeza, quien ve «carácter fuerte» puede descubrir que algo de eso resuena en sí misma. Cada persona lo que ve es su mapa.
 
 ### Cómo se aplica
 Dayana pide un comportamiento antes de empezar: respirar, auto observarte, analizar y aprender con apertura total, sin que el orgullo o el ego quiera ganar. Y se aplica con una pregunta: *¿qué es lo que más me molesta de otras personas?*

@@ -2,7 +2,7 @@
 
 Comunicación consciente: metamodelo, rapport y submodalidades · Módulo 1 · 11-13 min
 
-Hola, chicos, bienvenidos. Te bendigo. Hoy es una clase de teoría, en el tablero, despacito, pausadito y lo más clarito que se pueda.
+Hola, chicos, bienvenidos. Hoy es una clase de teoría, en el tablero, despacito, pausadito y lo más clarito que se pueda.
 
 Hoy vamos a aprender el metamodelo del lenguaje. Vas a entender qué es, cómo funciona tu mente para que lo necesites, cuáles son los tres filtros de información y cuáles son las preguntas poderosas que te llevan a la raíz. Escribe en tu cuaderno, porque esto lo vas a usar toda la vida.
 

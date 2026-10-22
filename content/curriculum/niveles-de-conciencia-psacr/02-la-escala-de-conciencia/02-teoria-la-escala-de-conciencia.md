@@ -143,7 +143,7 @@ Pregúntate: ¿qué acción puedo tomar hoy, con lo que tengo, en mis terapias, 
 
 - **Neutralidad:** le llega a Dayana un comparendo por exceso de velocidad. Podría estresarse, culparse, pelear. Se dice: «está bien, yo no tengo el control», respira y paga.
 - **Aceptación:** «esta hoja es morada». Una infidelidad es lo que es; y entonces: ¿mejoro la relación, perdono, tomo distancia?
-- **Razón:** quien quiere ofrecer un servicio se pregunta qué paquetes, cuánto cobrar y a qué público.
+- **Razón:** quien quiere ofrecer un servicio se pregunta qué ofrecer, cuánto cobrar y a qué público.
 
 ### Cómo se aplica
 

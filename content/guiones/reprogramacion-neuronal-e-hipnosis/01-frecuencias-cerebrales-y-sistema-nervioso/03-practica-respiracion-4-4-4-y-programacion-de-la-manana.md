@@ -30,7 +30,7 @@ Y para cerrar, la gratitud. Una maestra me enseñó esta técnica, y me encanta.
 
 Ahora una cuarta herramienta, para cuando tengas una situación complicada o tengas que tomar una decisión. Colócate en alfa. Respira con calma, 4-4-4. Y pregúntate: ¿cómo puedo solucionar esto? ¿Qué enseñanza, qué aprendizaje me deja esto? Yo la utilizo cuando me voy a levantar y cuando tengo que tomar decisiones. Si es una decisión de números, ahí sí necesitas beta, analizar. Pero si es con tus hijos o contigo mismo, necesitas alfa.
 
-Acuérdate de algo importante. Relajarte no significa guardarte lo que sientes. Hay que expresar lo que se siente, porque si callamos todo, el cuerpo tarde que temprano va a explotar. Y tampoco significa quedarte despacioso. Es una relajación interna.
+Acuérdate de algo importante. Relajarte no significa guardarte lo que sientes. Hay que expresar lo que se siente. Y tampoco significa quedarte despacioso. Es una relajación interna.
 
 Y fíjate en algo. Si hoy te da pereza hacer esta práctica, si tu mente te dice «para qué», «mañana lo hago», «ahorita no», eso es la mente que quiere que no avances. Tu mente quiere que estés relajadito, que no te esfuerces. Todo requiere compromiso y esfuerzo. Y no está mal soltar y atenderse hasta cierto punto, pero ponle una fecha límite. Hazlo igual. Aunque no tengas ganas.
 

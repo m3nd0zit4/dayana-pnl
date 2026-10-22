@@ -79,7 +79,7 @@ Lo más importante para ti **en el contexto de pareja**, y lo que significa. Day
 - **Presencia.** Una dice «te voy a hacer videollamadas»; para la otra persona presencia es estar físicamente en la casa. Por eso hay que decirlo de forma específica.
 - **Proveer frente a estar en casa.** Para él lo más importante es proveer; para ella, que esté en casa. Ahí empiezan las transgresiones.
 - **Hoy blanco, mañana negro:** mentiras pequeñas que rompen la confianza.
-- **Una pareja en terapia:** ella quiere presencia y ternura; él quiere paz y dar el dinero. «Él va para un bus y ella va para otro.» Se hace una alineación de valores.
+- **Una pareja que busca alinearse:** imagina que ella quiere presencia y ternura; él quiere paz y dar el dinero. «Él va para un bus y ella va para otro.» Se hace una alineación de valores.
 - **Padre ausente.** Dayana explica que quien necesita presencia posiblemente viene de un papá ausente; quien no la necesita, quizá no la tuvo de niña.
 - **La persona callada.** Si para ti la comunicación es lo más importante y la otra persona casi no habla (puede venir con eventos fuertes), hay dos pasos: comentarle tu valor y conocer sus valores. Mira si él negocia también algo por ti. Si no hay negociación, no va a funcionar. Cuando hay trauma o abandono, la persona necesita acompañamiento de un profesional.
 - **Primera bandera roja:** te gusta salir al río y la persona dice que no le gusta salir; pregúntalo desde el inicio.

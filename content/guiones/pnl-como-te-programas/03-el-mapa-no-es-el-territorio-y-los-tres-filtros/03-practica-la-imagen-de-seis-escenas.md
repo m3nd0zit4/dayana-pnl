@@ -14,7 +14,7 @@ Hazlo con cada una de las escenas. Recuerda: la imagen es el territorio, y lo qu
 
 Muy bien. Ahora, si hiciste la dinámica con otra persona, comparen. Y fíjense en las diferencias. Una persona dijo «la mujer» y otra dijo «la profesora». Unos ven una joven y otros una anciana en la misma escena. Ante una niña llorando, una persona imaginó que la regañaron, y otra dijo que no tenía idea.
 
-Mira lo que pasó en uno de mis grupos con la misma imagen. Una alumna dijo: están en una reunión ejecutiva, porque no están sentados en pupitres. Otra dijo que a la niña la regañaron porque se portó mal. Y otra dijo que la imagen estaba muy bien hecha, porque ella estaba intentando hacer videos. Entonces le pregunté: ¿y qué hace que tú pienses eso? Y dijo: es que yo estoy intentando hacer videos.
+Imagina lo que puede pasar en un grupo con la misma imagen. Una persona dice: están en una reunión ejecutiva, porque no están sentados en pupitres. Otra dice que a la niña la regañaron porque se portó mal. Y otra dice que la imagen está muy bien hecha, porque ella está intentando hacer videos. Entonces uno le pregunta: ¿y qué hace que tú pienses eso? Y responde: es que yo estoy intentando hacer videos.
 
 ¿Ves? Cada persona habla según su mapa.
 

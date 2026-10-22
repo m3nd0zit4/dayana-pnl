@@ -64,6 +64,6 @@ Antes de volver, una última tanda de tres respiraciones, esta vez con una frase
 
 Y ahora vamos a regresar. Poco a poco vuelves a tu respiración natural. Empiezas a sentir tu cuerpo, el lugar donde estás, los sonidos a tu alrededor. Mueve suavemente tus dedos, tus pies, tu cuello. Y cuando estés listo, abres los ojos, regresando aquí y ahora.
 
-Recuerda: si estás cansado, con sueño y con desánimo, eso no es el sistema nervioso activado, y este ejercicio no tiene que ser para eso. Y si lo que sientes es muy fuerte, una crisis, un ataque de pánico, no lo trabajes solo con este audio. Busca a un profesional o una terapia personalizada.
+Recuerda: si lo que sientes es muy fuerte, una crisis, un ataque de pánico, no lo trabajes solo con este audio. Busca a un profesional o una terapia personalizada.
 
 Muchas gracias por estar aquí. Hazlo cada vez que lo necesites. Bendiciones.

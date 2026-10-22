@@ -44,7 +44,7 @@ Y si en algún evento ves oscuridad, observa qué raíz hay ahí. Qué creencia 
 
 Tómate unos momentos.
 
-Ahora ve todavía más atrás. Al jardín. A los primeros años. Y si puedes, llega hasta el vientre de tu mamá. Si hay oscuridad, solo obsérvala. Tú eres el observador. Eres conciencia. Todo lo que has visto está en tu programación, y desde aquí arriba lo estás mirando con otros ojos.
+Ahora ve todavía más atrás. Al jardín. A los primeros años. Si hay oscuridad, solo obsérvala. Tú eres el observador. Eres conciencia. Todo lo que has visto está en tu programación, y desde aquí arriba lo estás mirando con otros ojos.
 
 Tómate unos momentos.
 
@@ -86,7 +86,7 @@ Ahora toma tu cuaderno y tu esfero. Vas a escribir todos los eventos en los que 
 
 Y hazte estas preguntas. ¿Qué hay que reprogramar en mi vida? ¿Qué hay que sanar? ¿Y qué hay que cambiar? La vibración.
 
-Si al hacer el ejercicio te dolió la cabeza o no lograste ver muchas imágenes, no pasa nada. Cuando estamos en la parte lógica y analítica, es difícil visualizar. Y el dolor puede aparecer porque se levantan anclajes. Puedes repetirlo otro día.
+Si al hacer el ejercicio no lograste ver muchas imágenes, no pasa nada. Cuando estamos en la parte lógica y analítica, es difícil visualizar. Puedes repetirlo otro día.
 
 Una recomendación: recorre tu vida por partes. Esta semana puedes hacer solo cuatro años. Tómate ese tiempo para ti, lo mereces.
 

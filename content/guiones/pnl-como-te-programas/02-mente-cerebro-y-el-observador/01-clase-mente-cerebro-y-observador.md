@@ -48,7 +48,7 @@ Te dejo una frase: yo decido si me conecto o me desconecto. Cuando hay queja y r
 
 Ahora, algo muy importante para el audio que sigue. Hay una regla: observar es solo mirar. No entrar al evento, no asociarte. Si nos asociamos, abrimos un montón de canales neuronales y salimos muy conflictuados. El observador mira desde arriba.
 
-Si tienes dolor de cabeza o te cuesta ver imágenes, no te preocupes. Cuando estamos en la parte lógica y analítica no se puede visualizar. Y el dolor puede aparecer porque se levantan anclajes que están ahí, y el cerebro pregunta: ¿qué está pasando?
+Si te cuesta ver imágenes, no te preocupes. Cuando estamos en la parte lógica y analítica no se puede visualizar.
 
 Cuidado: si lo que aparece es un trauma, un ataque de pánico o una crisis, eso se trabaja con un profesional o en terapia personalizada, no solo con el curso.
 

@@ -65,7 +65,7 @@ Además influye la **repetición**: la voz que más recuerdas es la que más has
 - **Lo positivo.** Un concierto de música filarmónica que te hace llorar de emoción, o tu luna de miel: el vestido blanco, la temperatura, el lugar.
 - **El amor.** Dayana dice que es tan poderoso porque genera intensidad, temperatura y ubicación.
 - **Las voces de mamá y papá.** No es lo mismo «te amo, te quiero mucho» que «búsquese y verá que encuentra».
-- **Una frase de hace años.** Una persona recuerda una frase de su madre sobre los estudios desde que tenía once años, y hoy tiene cuarenta y ocho. Dayana: miren cuántos años lleva un ser humano con un anclaje por lo que escuchó.
+- **Una frase de hace años.** Imagina a una persona que recuerda desde los once años una frase de su madre sobre los estudios. Dayana: miren cuántos años puede llevar un ser humano con un anclaje por lo que escuchó.
 
 ### Cómo se aplica
 Observa qué recuerdos tienen más tamaño, más volumen o más intensidad en ti. Eso te indica dónde hay más carga emocional.

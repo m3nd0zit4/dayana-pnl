@@ -36,13 +36,13 @@ Ahora, la herramienta: la respiración 4-4-4. Inhalo en cuatro tiempos, sostengo
 
 Yo la uso todas las mañanas. Cuando me levanto estoy entre theta y alfa. Respiro 4-4-4 unas cuatro veces para programarme y empezar el día. Me lleno de luz, visualizo mi familia feliz, mis clientes bien, que estoy bien de salud. Y doy gracias: por respirar, por estar viva, por tener agua. Gratitud infinita. Lo hago en la noche y en la mañana. Y también la uso cuando tengo que tomar una decisión.
 
-Una aclaración. Relajarte no significa guardarte lo que sientes. Hay que expresarlo, porque si callamos todo, el cuerpo tarde que temprano va a explotar. Y no significa ser despacioso. Es una relajación interna.
+Una aclaración. Relajarte no significa guardarte lo que sientes. Hay que expresarlo. Y no significa ser despacioso. Es una relajación interna.
 
 Una última pregunta: ¿por qué a veces una persona no se deja reprogramar? Primero, porque está en beta, con la parte consciente completamente activa. Segundo, porque las personas se reprograman por dos cosas: por dolor o por placer. A quien no se reprograma le hace falta más dolor, o no siente suficiente placer. Es como cuando usted ya no aguanta la vejiga y se va al hospital. Tercero, por la victimización. Y cuarto, por falta de despertar de conciencia. Por eso, si alguien te dice que no, pues no. No podemos obligar. Si es tu pareja o tu hijo, póngase en usted. Cuando tú cambias tu frecuencia, ellos van a cambiar, o van a decir: ¿qué pasó?
 
 Esto es lo que debes recordar: el estado en que estás decide si te puedes reprogramar. Se reprograma de alfa a theta. Y para llegar ahí, se respira.
 
-Ahora te cuento algo que vas a notar en ti. Tu mente quiere que no hagas nada. Está programada para que postergues todo, para que te quejes, para que te dé sueño, para que te dé pereza. Yo ayer estuve en el sauna del gimnasio, casi me desmayo, y al día siguiente mi cuerpo quería seguir en spa, seguir durmiendo, seguir relajado. La mente quiere que uno esté como una morsa, echada, y no haga nada. Por eso necesitamos un despertar de conciencia. Y a esa mente hay que decirle: qué pena, pero acá se hace lo que yo diga, con permiso. Descansar sí hay que descansar, pero todo tiene que ser mesurado. Y hay personas que se sienten culpables por descansar. Ni lo uno ni lo otro.
+Ahora te cuento algo que vas a notar en ti. Tu mente quiere que no hagas nada. Está programada para que postergues todo, para que te quejes, para que te dé sueño, para que te dé pereza. La mente quiere que uno esté como una morsa, echada, y no haga nada. Por eso necesitamos un despertar de conciencia. Y a esa mente hay que decirle: qué pena, pero acá se hace lo que yo diga, con permiso. Descansar sí hay que descansar, pero todo tiene que ser mesurado. Y hay personas que se sienten culpables por descansar. Ni lo uno ni lo otro.
 
 Y pensar en uno mismo no es egoísmo. Es un acto de amor propio. Primero tú, tu sanidad, tus metas, tus proyectos, tus objetivos. Si das mucha agua y tú tienes sed y no te dan agua, necesitas poner límites. La gente llega hasta donde uno lo permita.
 

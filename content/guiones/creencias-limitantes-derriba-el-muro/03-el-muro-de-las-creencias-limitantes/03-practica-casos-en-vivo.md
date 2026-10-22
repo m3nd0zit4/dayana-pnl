@@ -4,7 +4,7 @@ Creencias limitantes: derriba el muro · Módulo 3 · 6-8 min
 
 Chicos, bienvenidos a la práctica. Hoy vamos a derribar un muro. Tu cuaderno, un lápiz y un lugar tranquilo. Ya viste la técnica; ahora se hace.
 
-Yo te voy a guiar como lo hago con las personas en clase. En clase, una persona decía: «para mí es difícil conseguir cierta cantidad de dinero». Y yo le preguntaba: ¿cuándo decidiste creer que es difícil? Ve a tu línea del pasado. Busca qué viste, qué escuchaste y qué sentiste que te dijera que es difícil. Y ¿qué emoción sientes ahí? Hazlo tú con tu creencia.
+Yo te voy a guiar como lo hago con las personas en clase. Imagina a alguien que dice: «para mí es difícil conseguir cierta cantidad de dinero». Y yo le pregunto: ¿cuándo decidiste creer que es difícil? Ve a tu línea del pasado. Busca qué viste, qué escuchaste y qué sentiste que te dijera que es difícil. Y ¿qué emoción sientes ahí? Hazlo tú con tu creencia.
 
 Paso uno. Identifica tu nudo. Escribe tu creencia limitante. Una sola, la que más se repita. Por ejemplo: soy fea, no soy capaz, no tengo dinero, me da miedo hacer un live. Escribe también qué quieres: qué necesitas, qué quieres tener, qué quieres destruir.
 

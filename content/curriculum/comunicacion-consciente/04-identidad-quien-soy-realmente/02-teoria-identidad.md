@@ -43,7 +43,7 @@ Dayana los presenta como grupos neuronales en tu subconsciente y aclara que esto
 Cada persona tiene su propia verdad; no existe una sola. Según estos niveles, dice Dayana, nuestra identidad nace en nuestro entorno, en lo que hacemos y en lo que consideramos verdad. Y empieza a cambiar cuando tienes otros resultados, cuando dejas de victimizarte.
 
 ### Ejemplos que lo desglosan
-- **Cambiar de entorno.** Una persona del curso cuenta que cambió de entorno (trabajo, familia) para cambiar de identidad. Dayana responde: «sigamos cambiando de identidad, de entorno; sí se puede». También dice que educar la mente es un proceso.
+- **Cambiar de entorno.** Imagina a una persona que cambia de entorno (trabajo, familia) para cambiar de identidad. Dayana diría: «sigamos cambiando de identidad, de entorno; sí se puede». También dice que educar la mente es un proceso.
 
 ### Cómo se aplica
 Mira tus seis niveles. ¿En qué entorno estás? ¿Qué haces? ¿Qué sabes hacer? ¿Qué crees? ¿Quién crees ser? ¿Para qué existes?
@@ -62,7 +62,6 @@ Según Dayana, la identidad se forma en tu infancia: lo que pasó con papá, con
 - **El fracaso:** si fracasaste en una carrera o un negocio, concluyes «yo soy un fracasado».
 - **La comparación:** «uy, usted sí vio a su prima, ya se compró el carro, ya estudió la carrera».
 - **El entorno que te calla:** aguantas y callas por miedo a desagradar. El globo se llena y explota, y te dicen de mal carácter. Dayana pregunta: ¿cuándo decidiste creer que no puedes salir de ese entorno? Y señala que eso también es una etiqueta.
-- **El tartamudeo:** si en tu entorno te dicen que no sabes hablar, empiezas a tartamudear sin darte cuenta. ¿Tu identidad es tartamudear? No.
 - **Cómo te ve la gente:** Dayana cuenta que le decían que tenía mal genio por su cara de brava; aprendió a levantar la ceja porque venía de un entorno de pelea y le tocaba formar el personaje.
 
 ### Cómo se aplica

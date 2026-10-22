@@ -2,7 +2,7 @@
 
 Comunicación consciente: metamodelo, rapport y submodalidades · Módulo 4 · 10-12 min
 
-Hola, chicos, bienvenidos. Te bendigo. Hoy es una clase sumamente importante y sumamente interesante. Se llama «Identidad de la PNL: ¿quién soy realmente?».
+Hola, chicos, bienvenidos. Hoy es una clase sumamente importante y sumamente interesante. Se llama «Identidad de la PNL: ¿quién soy realmente?».
 
 Quiero empezar con una pregunta, y quiero que la respondas en tu cuaderno, con honestidad. ¿Quién eres tú? Escríbela ahora. Tómate unos momentos.
 
@@ -27,8 +27,6 @@ Una botella. Si en tu entorno te dicen: usted no es ni siquiera capaz de destapa
 Un fracaso. Invertiste mucho dinero en algo, no se pudo, pagaste cursos y tampoco se pudo. Y concluyes: yo soy un fracaso. Una comparación: uy, usted sí vio a su prima, ya se compró el carro, ya estudió la carrera. Y te pregunto qué te hace sentir eso, inconscientemente.
 
 Y hay algo más. Tu entorno te puede programar a callarte. Aguantas, aguantas, y el globo se llena, y se llena, y explota. Y entonces dicen que tienes mal carácter. Pero detrás hay una programación: aguantarte y callarte. Esa es tu programación; no es tu identidad. Y yo te pregunto: ¿cuándo decidiste creer que no puedes salir de ese entorno?
-
-Y mira cómo funciona en el cerebro. Si en el entorno te dicen que no sabes hablar y que todo lo haces mal, empiezas a tartamudear sin darte cuenta. Pregunta: ¿tu identidad es tartamudear? No.
 
 También importa cómo te ve la gente. A mí me decían que yo era de un mal genio terrible, por mi cara de brava. Yo aprendí a levantar la ceja y a mirar mal a todo el mundo, porque venía de un entorno de pelea y me tocaba formar el personaje. Pero eso no era mi esencia.
 

@@ -10,7 +10,7 @@ Primera parte. Entra a YouTube en tu celular y busca «frecuencia theta». Es la
 
 Ahora busca «frecuencia alfa». Escúchala con los ojos cerrados. ¿Qué hace esto? Que entres a tu interior. Que te conectes con tu interior. Que entres al observador. Anota qué sentiste.
 
-Ahora, con cuidado, busca «frecuencia beta». Escúchala un momento. Fíjate cómo te presiona ese ruido, cómo te pone en alerta. Nuestro cerebro es electricidad. Esta es para activar tu mente consciente, para estudiar, para analizar, para tener lógica. Es como cuando tienes que entregar un pedido, qué venta tengo que lograr. No es para reprogramar ni para hacer hipnosis. Escribe cómo te sentiste, y baja el volumen si te estresa.
+Ahora, con cuidado, busca «frecuencia beta». Escúchala un momento. Fíjate cómo te presiona ese ruido, cómo te pone en alerta. Esta es para activar tu mente consciente, para estudiar, para analizar, para tener lógica. Es como cuando tienes que entregar un pedido, qué venta tengo que lograr. No es para reprogramar ni para hacer hipnosis. Escribe cómo te sentiste, y baja el volumen si te estresa.
 
 Y por último, «frecuencia gamma». Esta hace que estés más como en integración de la información: tocar el árbol, ver el árbol, oler la rosa. Usa todas las modalidades. Activa la imaginación. Anota qué sentiste.
 

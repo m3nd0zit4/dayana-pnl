@@ -30,9 +30,9 @@ Hay más ejemplos de nuestras clases. En una dinámica, una persona dijo de otra
 
 Otro: a mí me decían que todas las mujeres con mi apellido éramos bravas, de carácter fuerte, las que mandamos. Esa era una etiqueta. Y yo decidí reprogramarla: ni mi nombre ni mi apellido me definen. Yo creo mi propia realidad.
 
-Otra persona nos preguntó: me molesta que mi pareja coma con la boca abierta, ¿cómo se refleja eso en mí? Y le pregunté: ¿qué sentías? ¿Dónde te sentiste más presionada, regañada o incomodada? Y apareció una regla muy estricta de su infancia. Se generó ese programa. Entonces observamos qué eventos hay pendientes donde nos señalaban.
+Imagina que alguien pregunta: me molesta que mi pareja coma con la boca abierta, ¿cómo se refleja eso en mí? Y uno le pregunta: ¿qué sentías? ¿Dónde te sentiste más presionada, regañada o incomodada? Y puede aparecer una regla muy estricta de la infancia. Se generó ese programa. Entonces observamos qué eventos hay pendientes donde nos señalaban.
 
-Y otra persona nos dijo que le afectan los jefes que gritan. Me imagino que serán eventos con figura masculina y figura femenina, con papá y con mamá. Esos eventos se identifican, y cuando tengamos la técnica, se reprograman. Si no se reprograman, el patrón vuelve, y quizá más fuerte.
+Y si alguien dice que le afectan los jefes que gritan, pueden ser eventos con figura masculina y figura femenina, con papá y con mamá. Esos eventos se identifican, y cuando tengamos la técnica, se reprograman. Si no se reprograman, el patrón vuelve, y quizá más fuerte.
 
 Y quiero contarte lo que me pasó a mí, para que veas que esto es de verdad. Fui a un banco. La cajera me entregó el dinero con los billetes desordenados. Conté, faltaba dinero. Ella contó varias veces y las contó mal. Yo respiré, activé el observador. Pero aun así empecé a vibrar bajo: sentía crítica, ganas de señalar, de juzgar, ansiedad. Y escuché a mi subconsciente: ese rostro que ves al frente es el tuyo. Me di cuenta de que cuando tengo la agenda muy llena, con clases, cursos, terapias, casa, también tengo cosas desorganizadas y empiezo con desespero.
 

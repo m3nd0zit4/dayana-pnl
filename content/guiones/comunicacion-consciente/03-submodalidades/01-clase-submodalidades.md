@@ -2,7 +2,7 @@
 
 Comunicación consciente: metamodelo, rapport y submodalidades · Módulo 3 · 10-12 min
 
-Hola, chicos, bienvenidos. Te bendigo. Hoy vamos a responder una pregunta que yo creo que te has hecho: ¿por qué un recuerdo duele y otro no, si los dos ya pasaron?
+Hola, chicos, bienvenidos. Hoy vamos a responder una pregunta que yo creo que te has hecho: ¿por qué un recuerdo duele y otro no, si los dos ya pasaron?
 
 Y la idea clave es esta: no es el hecho. Es cómo lo representas internamente. Hoy vas a aprender qué son las submodalidades, cuáles son, por qué un recuerdo duele más que otro y cómo cambiarles el volumen, el tamaño y la distancia a las cosas leves. Escribe en tu cuaderno.
 

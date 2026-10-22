@@ -18,7 +18,7 @@ Luego ordenas los cinco de manera jerárquica, del primero al quinto. El primer 
 
 Ahora, la frase de alineación. Escríbela conmigo.
 
-Primera regla: empieza con tu nombre completo y con el contexto. «Para mí, tu nombre completo, en el contexto personal, es muy importante…». Tu nombre completo, para que tu identidad quede hasta en tu ADN.
+Primera regla: empieza con tu nombre completo y con el contexto. «Para mí, tu nombre completo, en el contexto personal, es muy importante…».
 
 Segunda regla: todo en positivo. Recuerda que la mente no entiende el no. Si dices «superar los retos», ya estás diciendo que van a llegar problemitas. Si dices «abrazo mi proceso», la mente entiende que el proceso continúa y te manda más procesos. Si dices «resiliente», la mente va a que te pongas resiliente. Nada de perdonar, nada de heridas, nada de dificultades. Solo positivo. Mejor dices: «tengo compromiso, y al tener compromiso obtengo liderazgo. El liderazgo hace que tenga fortaleza. Y cuando tengo fortaleza, soy ilimitada y me expando».
 
@@ -28,7 +28,7 @@ Cuarta: no mezcles contextos. Si estás en el personal, no hables de redes ni de
 
 Quinta: los valores van al comienzo, porque lo que más relevancia tiene que tener es el valor. Y al finalizar lo pones en presente.
 
-Cada frase es una cadena de causa a efecto. Yo digo: «si estoy bien y feliz y en plenitud, mi salud es perfecta. Y si mi salud es perfecta, me siento realizada. Y si me siento realizada, pongo límites. Y cuando pongo límites, me cuido».
+Cada frase es una cadena de causa a efecto. Yo digo: «si estoy bien y feliz y en plenitud, me siento realizada. Y si me siento realizada, pongo límites. Y cuando pongo límites, me cuido».
 
 Ahora, en el contexto de pareja, de hija o de mamá, algo importante: no es lo que ellos hagan para mí, es lo que yo tengo que hacer para ellos. Porque cada persona tiene su albedrío. Pregúntate: ¿qué valor tengo que alinear yo para que mi relación mejore? Como hija: «es muy importante dar amor y cariño, ya que si pongo este amor y este cariño, la relación puede mejorar». Si yo doy amor, posiblemente mi mamá me dé amor. Tú estás cambiando tu frecuencia, y tu mamá lo va a sentir. Después se integran los valores: de los cinco, uno de ella, uno tuyo y uno que los dos acuerden.
 

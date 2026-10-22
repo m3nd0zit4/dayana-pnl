@@ -113,7 +113,7 @@ Hazte las preguntas de Dayana: ¿qué estoy haciendo para salir de ahí? ¿De qu
 **Observar** es mirar desde arriba sin entrar al evento. **Asociarse** es entrar a revivirlo.
 
 ### El soporte teórico
-Si nos asociamos, se abren muchos canales neuronales y salimos muy conflictuados. El objetivo es desarrollar el observador para tener un despertar de conciencia y ver qué sanar, cambiar y reprogramar. Si no ves imágenes es porque estás en la parte lógica. Si te duele la cabeza, Dayana lo explica como que se levantan anclajes neuronales y el cerebro pregunta qué está pasando.
+Si nos asociamos, se abren muchos canales neuronales y salimos muy conflictuados. El objetivo es desarrollar el observador para tener un despertar de conciencia y ver qué sanar, cambiar y reprogramar. Si no ves imágenes es porque estás en la parte lógica.
 
 ### Ejemplos que lo desglosan
 Al observar desde el observador, a veces uno dice «wow, de pronto no le estoy dedicando tiempo a mis hijos» o «estoy todo el día en la cama triste, y antes lo disfrutaba».

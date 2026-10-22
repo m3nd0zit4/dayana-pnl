@@ -48,13 +48,12 @@ Reconoce la activación, para, respira, y después responde.
 ### El soporte teórico
 Lo que activa el simpático, dice Dayana, es nuestra mente, nuestra programación y las experiencias dolorosas pendientes por reprogramar. «El deber ser es reprogramar. Alinear nuestro sistema nervioso.» Y la manera de regular el sistema nervioso es con el parasimpático: se activa cuando tenemos experiencias de amor, aprecio, cariño, gratitud y cuidado.
 
-Una aclaración suya: si estás cansado, con sueño y con desánimo, eso no es el sistema nervioso activado. Es el parasimpático muy llevado.
 
 ### Ejemplos que lo desglosan
-Cuando se está en alerta: irritabilidad, no poder respirar, presión en el pecho, ahogo, ansiedad, miedo.
+Cuando se está en alerta: irritabilidad, no poder respirar, ansiedad, miedo.
 
 ### Cómo se aplica
-Pregúntate: ¿estoy activado o estoy cansado? Si estás activado, regula. Si estás cansado, no es lo mismo.
+Pregúntate: ¿estoy activado? Si lo estás, regula.
 
 ## Coherencia e incoherencia
 
@@ -119,7 +118,7 @@ Antes de responder desde la rabia, para, respira y hazte la pregunta «¿para qu
 Dayana insiste en tres cosas:
 - Para reprogramar hace falta experiencia. Si los clientes tienen eventos muy traumáticos, hay que seguir aprendiendo y entrenándose, porque se activan muchos anclajes y la persona puede quedar más afectada.
 - Los reprogramadores tenemos que estar muy sanos y reprogramándonos mucho.
-- Y se sigue reprogramando hasta que el cliente esté completamente bien. Se trabaja un solo evento, una imagen específica. Si se mira toda la vida, se alteran. Si en la hipnosis aparecen varias imágenes, se enfoca en una, y si hay tiempo, después se va a la otra.
+- Se trabaja un solo evento, una imagen específica. Si se mira toda la vida, se alteran. Si en la hipnosis aparecen varias imágenes, se enfoca en una, y si hay tiempo, después se va a la otra.
 
 Y una línea de seguridad: lo que altera tu sistema nervioso con mucha fuerza, una crisis, un trauma o un ataque de pánico, se trabaja con un profesional o en terapia personalizada, no solo con este curso.
 

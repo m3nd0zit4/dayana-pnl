@@ -18,7 +18,7 @@ Listo. Ahora mira lo que escribiste. Hazte esta pregunta: ¿qué me estoy dicien
 
 Recuerda lo que vimos: el diálogo auditivo digital es la raíz de tu programación. Lo que acabas de escribir te muestra qué programas tienes.
 
-Vamos con la segunda parte: las etiquetas. Te voy a pedir que busques en tu memoria, con tu mente. Imagina que vas al principio, a la barriguita de tu mamá, y vienes hacia ahora.
+Vamos con la segunda parte: las etiquetas. Te voy a pedir que busques en tu memoria, con tu mente. Imagina que vas al principio de tu vida y vienes hacia ahora.
 
 Y pregúntate: ¿qué etiquetas me pusieron mi papá? Escríbelas. ¿Qué etiquetas me puso mi mamá? Escríbelas. ¿Mis tíos? ¿Mis primos? ¿Mis hermanos? ¿El colegio? ¿El jardín? ¿El trabajo? ¿Mi pareja?
 
