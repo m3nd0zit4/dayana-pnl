@@ -1,22 +1,13 @@
 import { prisma } from "@/lib/db";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { sureFirstName } from "@/lib/sure-name";
-import { getOperationalTimezone } from "../operational-timezone";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { ensureTemplatesSubmitted } from "../whatsapp-templates";
-import { personZoneFor } from "./booking-time";
 import { chatNameInfo } from "./chat-name";
-import {
-  followUpDue,
-  followUpText,
-  QUOTE_FOLLOW_UP_SOURCE,
-  QUOTE_STATE_LABEL,
-  quoteSituation,
-  type QuoteLine,
-  type QuoteSituation,
-} from "./quote-follow-up-rules";
+import { followUpDue, followUpText, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteSituation } from "./quote-follow-up-rules";
+import { quoteLinesFor, quoteZoneFor } from "./quote-follow-up-view";
 import { computeSegment } from "./segment-store";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
 
@@ -40,46 +31,6 @@ export const QUOTE_TEMPLATE_KEY = "seguimiento_proceso";
 /** Un mensaje de Dayana ella misma con cómo pagar, para buscar los chats (el detalle lo decide `quoteSituation`). */
 const PAYMENT_HINTS = ["/pagar/", "comprobante", "western", "nequi", "bancolombia", "cuenta", "usd", "cop", "$"];
 
-const messagesFor = (conversationId: string, since: Date) =>
-  prisma.conversationMessage.findMany({
-    where: { conversationId, sentAt: { gte: since }, status: { not: "FAILED" } },
-    orderBy: { sentAt: "asc" },
-    take: 400,
-    select: { direction: true, body: true, sentAt: true, isAutoReply: true, source: true, clientKey: true, kind: true },
-  });
-
-/** Las líneas del chat para las reglas (`QuoteLine`). */
-export const quoteLinesFor = async (conversationId: string, lookbackDays: number, now = new Date()): Promise<QuoteLine[]> =>
-  (await messagesFor(conversationId, new Date(now.getTime() - (lookbackDays + 1) * DAY))).map((m) => ({
-    direction: m.direction === "INBOUND" ? "INBOUND" : "OUTBOUND",
-    body: m.body,
-    sentAt: m.sentAt,
-    isAutoReply: m.isAutoReply,
-    source: m.source,
-    clientKey: m.clientKey,
-    kind: m.kind,
-  }));
-
-/** En qué va su cierre, para el chat del CRM (null: Dayana no le mandó cómo pagar en los últimos días). */
-export const quoteFollowUpFor = async (
-  conversationId: string,
-  config: WhatsAppAiConfig,
-  now = new Date()
-): Promise<{ situation: QuoteSituation; tz: string } | null> => {
-  const conv = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    select: { externalThreadId: true, contact: { select: { timezone: true, countryIso: true, phoneCountryIso: true } }, dossier: { select: { timezone: true } } },
-  });
-  if (!conv) return null;
-  const tz = personZoneFor({ dossierTz: conv.dossier?.timezone, contact: conv.contact, phone: conv.externalThreadId }) ?? (await getOperationalTimezone());
-  const situation = quoteSituation(await quoteLinesFor(conversationId, config.quoteFollowUp.lookbackDays, now), {
-    now,
-    tz,
-    lookbackDays: config.quoteFollowUp.lookbackDays,
-  });
-  return situation ? { situation, tz } : null;
-};
-
 type Outcome = "sent" | "not_due" | "blocked" | "not_after_call" | "no_quote" | "no_phone" | "needs_template" | "failed";
 
 type Send = typeof sendWhatsAppToRecipient;
@@ -102,7 +53,7 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   // Un comprobante sin revisar: Dayana lo tiene que ver, no se le pide el pago otra vez.
   if (await prisma.whatsAppPaymentReceipt.count({ where: { conversationId, status: "pending" } })) return "blocked";
 
-  const tz = personZoneFor({ dossierTz: conv.dossier?.timezone, contact: conv.contact, phone: conv.externalThreadId }) ?? (await getOperationalTimezone());
+  const tz = await quoteZoneFor(conv);
   const lines = await quoteLinesFor(conversationId, config.quoteFollowUp.lookbackDays, now);
   const s = quoteSituation(lines, { now, tz, lookbackDays: config.quoteFollowUp.lookbackDays });
   if (!s) return "no_quote";

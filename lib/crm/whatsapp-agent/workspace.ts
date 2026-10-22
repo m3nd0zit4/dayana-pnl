@@ -3,7 +3,7 @@ import { Prisma, type WhatsAppAiMode } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { getWhatsAppAiConfig } from "../whatsapp-ai-config";
-import { quoteFollowUpFor } from "./quote-follow-up";
+import { quoteFollowUpFor } from "./quote-follow-up-view";
 import { nextFollowUp, quoteStateText } from "./quote-follow-up-rules";
 import { getWhatsAppProviderSummary } from "@/lib/meta/whatsapp-provider";
 import { isPushConfigured } from "@/lib/notifications/channels/push";
