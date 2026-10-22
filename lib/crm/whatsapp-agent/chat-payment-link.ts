@@ -135,7 +135,8 @@ const PAYMENT_DATA = [
   /\bpaypal\.me\b|\bpaypal\b[^\n]{0,30}\b[\w.+-]+@[\w-]+\.[\w.]+|\bmpago\.la\b|\blink\.mercadopago\b/,
   // El número justo después de «cuenta», «ahorros», «CLABE»… No «ten en cuenta
   // que es de 10:00 - 10:15» (revisión 22-oct): ni «en/de cuenta», ni guiones con espacios.
-  /(?<!\b(?:en|de|di|doy|da|das|dio|dar|darme|darte)\s)\b(cuenta( de ahorros| corriente| bancaria)?|ahorros|corriente|clabe|cbu|cvu|cci|iban)\b\s*(no\.?|nro\.?|n°|#|:)?\s*[a-z]{0,2}\d(?:[ .-]?\d){6,}/,
+  // Empieza con 4 cifras seguidas: «cuenta 1 2 3 4 5 6 7, respira» no es una cuenta (un IBAN, «ES12 3456…»).
+  /(?<!\b(?:en|de|di|doy|da|das|dio|dar|darme|darte)\s)\b(cuenta( de ahorros| corriente| bancaria)?|ahorros|corriente|clabe|cbu|cvu|cci|iban)\b\s*(es|no\.?|nro\.?|n°|#|:)?\s*(?:[a-z]{2}\d{2} ?)?(?=\d{4})(?:\d[ .-]?){7,}/,
 ];
 /** «Envíame el comprobante»: ya hablaron de pagar. */
 const RECEIPT_TALK =

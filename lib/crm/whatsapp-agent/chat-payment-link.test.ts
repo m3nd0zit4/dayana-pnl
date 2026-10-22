@@ -132,6 +132,7 @@ describe("isPaymentInfo / dayanaPaymentInfo", () => {
       "https://www.paypal.me/JuliannMB",
       "Yape 987 654 321",
       "Ahorros 1546041574 a mi nombre",
+      "Mi cuenta es 0173 0000 1234 5678",
       "IBAN ES12 3456 7890 1234 5678",
       "CLABE 012180001234567891",
       "Banco Santander, a tu nombre",
@@ -152,6 +153,7 @@ describe("isPaymentInfo / dayanaPaymentInfo", () => {
       "Tenlo en cuenta: 10:30 - 10:45",
       "Ten en cuenta que te llamo del 300 456 7890",
       "Ten en cuenta que es el 22 - 23 de octubre",
+      "🎤 Cierra los ojos y cuenta 1 2 3 4 5 6 7, respira",
       // PayPal y Mercado Pago son los rieles de la web: nombrarlos no son datos.
       "Puedes pagar con tarjeta o PayPal en la página",
       "El curso lo pagas por Mercado Pago en la web",

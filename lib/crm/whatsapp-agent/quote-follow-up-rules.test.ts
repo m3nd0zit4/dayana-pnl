@@ -129,11 +129,13 @@ describe("stateFromReply", () => {
     ["No me interesa, mi hija empieza el colegio en enero", "no_quiere"],
     ["Quedamos así, mañana te confirmo", "lo_piensa"],
     ["Desde enero estoy sin trabajo, no me alcanza", "sin_dinero"],
+    ["Mañana inicio el trabajo nuevo, después te aviso", "lo_piensa"],
+    ["Empiezo el lunes, te mando el comprobante", "pagara"],
   ])("«%s» → %s (no una promesa de hoy o mañana, ni un pago que aún no hizo)", (text, state) => {
     expect(stateFromReply(text, WED, BOG)?.state).toBe(state as never);
   });
 
-  test.each(["Gracias 😊", "Igualmente", "Si gracias", "ok", "Mañana inicio un trabajo nuevo, ahí te cuento"])("«%s» no dice nada de pagar", (text) => {
+  test.each(["Gracias 😊", "Igualmente", "Si gracias", "ok", "Mañana inicio un trabajo nuevo, ahí te cuento", "El lunes inicio la quimio, no sé cómo voy a estar"])("«%s» no dice nada de pagar", (text) => {
     expect(stateFromReply(text, WED, BOG)).toBeNull();
   });
 });
@@ -173,6 +175,8 @@ describe("isQuote: qué cuenta como cotización", () => {
     expect(isQuoteLine(ai2("Puedes hacer el pago por el enlace que te envió Dayana.\n\nhttps://www.dayanabeltran.com/pagar/p/therapy-3"))).toBe(true);
     expect(isQuoteLine(ai2("Cuando hagas el pago por Nequi, me mandas el comprobante por aquí"))).toBe(false);
     expect(isQuoteLine(ai2("¿Prefieres pagar por enlace con tarjeta o PayPal, o por transferencia a Bancolombia o Nequi?"))).toBe(false);
+    expect(isQuoteLine(ai2("Claro, el lunes 2026-10-26 Dayana te escribe por Nequi"))).toBe(false);
+    expect(isQuoteLine(ai2("Te comparto los datos:\n\nPayPal: pagos.dayana@ejemplo.com"))).toBe(true);
   });
 });
 

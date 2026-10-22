@@ -45,7 +45,10 @@ const PAYMENT_HINTS = [
  * código (`isQuoteLine`): pistas angostas y en su propia consulta, para que sus
  * respuestas (casi todas dicen «pago») no ocupen el cupo de las de Dayana.
  */
-const ASSISTANT_HINTS = ["/pagar/", "cuenta", "nequi", "daviplata", "western", "clabe", "iban", "zelle", "yape", "plin", "paypal.me"];
+const ASSISTANT_HINTS = [
+  "/pagar/", "cuenta", "ahorros", "banco", "bancolombia", "davivienda", "titular", "nombre de", "nequi", "daviplata", "western", "clabe",
+  "iban", "zelle", "yape", "plin", "paypal", "mpago", "@",
+];
 
 type Outcome = "sent" | "not_due" | "blocked" | "not_after_call" | "no_quote" | "no_phone" | "needs_template" | "failed";
 

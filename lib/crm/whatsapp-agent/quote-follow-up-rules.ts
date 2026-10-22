@@ -165,7 +165,9 @@ export const isQuoteLine = (l: QuoteLine): boolean => (byDayana(l) && isQuote(l.
 const assistantSentData = (body: string | null | undefined): boolean => {
   const text = body ?? "";
   if (paymentInfoKind(text) !== "data" || /\/pagar\/p\/course-|chat\.whatsapp\.com/i.test(text)) return false;
-  return /\/pagar\//i.test(text) || /\d(?:[ .-]?\d){6,}/.test(text);
+  // Una fecha («2026-10-26») no es un número de cuenta; un correo (PayPal, Zelle) o su enlace sí son datos.
+  const noDates = text.replace(/\b\d{4}-\d{2}-\d{2}\b/g, "");
+  return /\/pagar\/|paypal\.me|mpago\.la|[\w.+-]+@[\w-]+\.[a-z]{2,}/i.test(noDates) || /\d(?:[ .-]?\d){6,}/.test(noDates);
 };
 
 const METHODS: [string, RegExp][] = [
@@ -371,7 +373,11 @@ const PAY_WORD = /\b(pag|envi|mand|transfer|deposit|consign)\w*/;
  * primer semana de noviembre» (Carmen). No «quedamos así», «empiezo a
  * trabajar», «mi hija empieza el colegio» (revisión 22-oct).
  */
-const START_ON = /\b(quedamos (para|en) (el|la|los|las|esta|este|\d)|(empiezo|inicio|comienzo|arranco|empezamos|iniciamos|comenzamos) (el|la|esta|este|en (el|la|\d|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)|a partir del?))\b/;
+const START_ON = new RegExp(
+  `\\b(quedamos (para|en) (el|la|los|las|esta|este|\\d)|(empiezo|inicio|comienzo|arranco|empezamos|iniciamos|comenzamos) ` +
+    // «empiezo el lunes», «inicio la otra semana», «comienzo en noviembre», «empiezo el proceso»; no «inicio el trabajo nuevo», «inicio la quimio».
+    `(el (${WEEKDAYS.join("|")}|\\d+)|la (otra|proxima|siguiente|primera|segunda) semana|la semana que viene|en (\\d+|${MONTHS.join("|")})|a partir del?|(el|la|mi) (proceso|terapia|terapias|sesion|sesiones|tratamiento)))\\b`
+);
 
 /**
  * El estado que dice un mensaje suyo (null: no dice nada de pagar, «gracias»,
