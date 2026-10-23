@@ -1996,10 +1996,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         if (asked && !byPack) return null;
         const wantsBank = asksForBankDetails(lastInbound);
         // Datos de verdad (no solo un enlace) que Dayana le mandó ella misma.
-        const dayanaData = dayanaPaymentDataBodies(input.transcript, now).filter((b) => isPaymentData(b.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "")));
-        // La cuenta de Ajustes que ya le llegó en este chat (de Dayana, o el bloque que pegó el código).
-        const sent = input.transcript.filter((l) => l.direction === "OUTBOUND" && l.body).map((l) => l.body as string);
-        const sameMethod = methods.find((m) => sent.some((b) => sharesAccount(m.details, b))) ?? null;
+        const withoutLinks = (b: string) => b.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "");
+        const dayanaData = dayanaPaymentDataBodies(input.transcript, now).filter((b) => isPaymentData(withoutLinks(b)));
+        // Los últimos datos que le llegaron (de Dayana, o el bloque que pegó el código):
+        // si son una cuenta de Ajustes, esa. Unos de Dayana más nuevos ganan a un
+        // bloque viejo de la asistente (Raquel: Western Union de Dayana después).
+        const lastData =
+          [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && l.body && isPaymentData(withoutLinks(l.body)))?.body ?? null;
+        const sameMethod = lastData ? (methods.find((m) => sharesAccount(m.details, lastData)) ?? null) : null;
         if (!wantsBank) {
           // Un enlace del CRM: el paquete no se sabe por el enlace del chat.
           const crm = asked ? null : await activePaymentLinkFor(input.contactId).catch(() => null);
