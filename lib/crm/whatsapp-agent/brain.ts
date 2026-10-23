@@ -1058,7 +1058,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             }),
             execute: async ({ cual }) => {
               const link = await activePaymentLinkFor(input.contactId).catch(() => null);
-              const fromChat = pickPaymentLink(chatLinks, cual);
+              // Sin `cual`, el que nombran las notas de Dayana (Joselyn: primero el de 3).
+              const fromChat = pickPaymentLink(chatLinks, cual ?? input.memory);
               if (!link && fromChat) {
                 state.paymentLink = fromChat.url;
                 return log("send_payment_link", { cual }, {
@@ -2210,11 +2211,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (!chatLink || state.urgentSession) return text;
     const copied = withoutPayUrls(text);
     // «Puedes pagar por el enlace que te envió Dayana» sin la herramienta: se le vuelve a poner.
-    // Con otro enlace ya pegado (el curso, la comunidad) no se agrega el de Dayana.
-    if (!copied.had && (state.links.length > 0 || !(/\b(enlace|link)\b/i.test(text) && /\bpag/i.test(text)))) return text;
+    // Después de la cotización también «el pago del paquete de tres sesiones que te
+    // envió» (Joselyn, eval 23-oct). Con otro enlace ya pegado (el curso, la
+    // comunidad) no se agrega el de Dayana.
+    const folded = foldForSearch(text);
+    const talksOfDayanaLink =
+      /\bpag/.test(folded) && (/\b(enlace|link)\b/.test(folded) || (Boolean(quoteSit) && (/\bque te (envio|mando|compartio|paso)\b/.test(folded) || askedPackage(text) !== null)));
+    if (!copied.had && (state.links.length > 0 || !talksOfDayanaLink)) return text;
     if (!state.paymentLink) {
-      state.paymentLink = chatLink.url;
-      log("send_payment_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta hablaba del enlace de Dayana sin la herramienta." });
+      // El que copió, el del paquete que nombra, el de las notas de Dayana o el último.
+      const pick =
+        chatLinks.find((l) => text.includes(l.url)) ?? pickPaymentLink(chatLinks, askedPackage(text) !== null ? text : input.memory) ?? chatLink;
+      state.paymentLink = pick.url;
+      log("send_payment_link", { auto: true, cual: pick.label }, { ok: true, note: "Lo pegó el código: la respuesta hablaba del enlace de Dayana sin la herramienta." });
     }
     // Y sin «*(El enlace de pago aparecerá aquí)*» ni «[Enlace]» inventados al lado del de verdad.
     const clean = copied.had ? copied.text || text : text;
