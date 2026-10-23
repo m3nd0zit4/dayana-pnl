@@ -103,6 +103,12 @@ describe("askedPackage / dayanaPaymentDataBodies", () => {
     expect(askedPackage("Mejor quiero el paquete de 3 sesiones, me envías el link")).toBe(3);
     expect(askedPackage("las seis sesiones")).toBe(6);
     expect(askedPackage("me envías la forma de pago")).toBeNull();
+    // Revisión 23-oct: sin «sesiones».
+    expect(askedPackage("Mejor el paquete de 6, me pasas el link")).toBe(6);
+    expect(askedPackage("Quiero el de 6")).toBe(6);
+    expect(askedPackage("el link del paquete de seis")).toBe(6);
+    expect(askedPackage("el de 3:00 me queda bien")).toBeNull();
+    expect(askedPackage("el de 3 de la tarde")).toBeNull();
   });
   test("solo los datos que Dayana mandó ella misma en los últimos 30 días", () => {
     const now = new Date("2026-10-23T12:00:00Z");

@@ -596,6 +596,29 @@ const packPhrase = (pack: string) => (pack === "1 sesión" ? "una sesión" : `el
 
 const COMPROBANTE = "Cuando hagas el pago, me mandas el comprobante por aquí y Dayana te agenda el día y la hora para iniciar.";
 
+/** Abreviaturas que terminan en punto sin terminar la frase («10:00 a. m.», «Dra. Dayana»). */
+const ABBREVIATION = /(?:^|[\s(])(?:a|p|m|dra|dr|sra|sr|srta|ud|uds|n°|no|pág|aprox|etc)\.$/i;
+
+/**
+ * Dónde termina la primera frase (índice justo después, con el espacio o el
+ * salto de línea), o null si es una sola: un salto de línea termina la frase;
+ * un punto, solo si no es de una abreviatura y sigue más texto.
+ */
+const firstSentenceEnd = (text: string): number | null => {
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "\n") return text.slice(i + 1).trim() ? i + 1 : null;
+    if (".!?".includes(c) && /[ \t]/.test(text[i + 1] ?? "") && text.slice(i + 1).trim()) {
+      const before = text.slice(0, i + 1);
+      // «…a las 10:00 a. m. Aquí tienes…»: la «m.» de la hora sí cierra la frase si sigue una mayúscula.
+      const endsTime = /[ap]\.\s?m\.$/i.test(before) && /^[\p{Lu}¿¡]/u.test(text.slice(i + 1).trimStart());
+      if (c === "." && ABBREVIATION.test(before) && !endsTime) continue;
+      return i + 1;
+    }
+  }
+  return null;
+};
+
 /**
  * Pidió cómo pagar después de la cotización y la respuesta lleva el enlace o
  * los datos, pero no le recuerda en qué quedó con Dayana ni le pide el
@@ -608,8 +631,13 @@ export const withQuoteReminder = (text: string, pack: string | null): string => 
   const t = foldForSearch(out);
   if (pack && !t.includes("quedaron en") && !t.includes(foldForSearch(packPhrase(pack)))) {
     const reminder = `Recuerda que con Dayana quedaron en ${packPhrase(pack)}.`;
-    const first = out.match(/^[^.!?\n]{1,200}[.!?][ \t]+(?=\S)/)?.[0];
-    out = first ? `${first}${reminder} ${out.slice(first.length)}` : `${reminder} ${out}`;
+    const at = firstSentenceEnd(out);
+    out =
+      at === null
+        ? `${reminder} ${out}`
+        : out[at - 1] === "\n"
+          ? `${out.slice(0, at)}${reminder}${out[at] === "\n" ? "" : " "}${out.slice(at)}`
+          : `${out.slice(0, at)} ${reminder} ${out.slice(at).trimStart()}`;
   }
   if (!/\bcomprobante\b/.test(t)) {
     const body = out.replace(/[\s:]+$/, "");

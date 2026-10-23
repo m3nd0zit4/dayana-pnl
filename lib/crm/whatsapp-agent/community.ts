@@ -35,7 +35,11 @@ export const COMMUNITY_REPLY = "Claro, aquí puedes unirte a la comunidad de Day
  */
 export const asksToJoinCommunity = (texts: string[]): boolean => {
   const t = foldForSearch(texts.join(" "));
-  return /\b(comunidad|grupo)\b/.test(t) && /\b(unir\w*|me uno|entrar|entro|ingres\w*|agreg\w*|meter\w*|link|enlace|acceso|no (pude|puedo|me deja))\b/.test(t);
+  // «Grupo» solo si es el de Dayana: «me agregan al grupo del curso», «¿el taller es en
+  // grupo?», «sáquenme del grupo» no son la comunidad gratis (revisión 23-oct).
+  const community = /\bcomunidad\b/.test(t) || /\bgrupo (de dayana|de whatsapp|gratis|gratuito|de superacion|de mensajes)\b/.test(t);
+  const other = /\b(curso|taller|clase|clases|meet|zoom|grabacion\w*|pague|compre|sac\w*|salir|no quiero)\b/.test(t);
+  return community && !other && /\b(unir\w*|me uno|entrar|entro|ingres\w*|agreg\w*|meter\w*|link|enlace|acceso|no (pude|puedo|me deja))\b/.test(t);
 };
 
 /** Las reglas del prompt (nada si no hay comunidad ni opciones). */

@@ -497,6 +497,16 @@ describe("asksHowToPay / quotePayReply (ENNY, 23-oct)", () => {
     expect(withQuoteReminder("Aquí tienes el enlace y me mandas el comprobante", "1 sesión")).toBe(
       "Recuerda que con Dayana quedaron en una sesión. Aquí tienes el enlace y me mandas el comprobante"
     );
+    // Ni en «a. m.» ni antes del saludo (revisión 23-oct).
+    expect(withQuoteReminder("Claro, Enny, Dayana te agenda a las 10:00 a. m. Aquí tienes el enlace y me mandas el comprobante", "1 sesión")).toBe(
+      "Claro, Enny, Dayana te agenda a las 10:00 a. m. Recuerda que con Dayana quedaron en una sesión. Aquí tienes el enlace y me mandas el comprobante"
+    );
+    expect(withQuoteReminder("Claro, Enny 😊\nAquí tienes el enlace de pago, me mandas el comprobante:", "1 sesión")).toBe(
+      "Claro, Enny 😊\nRecuerda que con Dayana quedaron en una sesión. Aquí tienes el enlace de pago, me mandas el comprobante:"
+    );
+    expect(withQuoteReminder("Hola, Dra. Dayana te envió el enlace. Me mandas el comprobante", "1 sesión")).toBe(
+      "Hola, Dra. Dayana te envió el enlace. Recuerda que con Dayana quedaron en una sesión. Me mandas el comprobante"
+    );
     const said = "Claro, Enny. Recuerda que con Dayana quedaron en una sesión. Me mandas el comprobante por aquí.";
     expect(withQuoteReminder(said, "1 sesión")).toBe(said);
     expect(withQuoteReminder("Claro. Me mandas el comprobante.", null)).toBe("Claro. Me mandas el comprobante.");

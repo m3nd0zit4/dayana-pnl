@@ -181,6 +181,7 @@ describe("withoutInventedUrls (Ruth, 23-oct)", () => {
       removed: ["dayanabeltran.com/comunidad"],
     });
     expect(withoutInventedUrls("Horarios:\n- lunes\nMira https://x.co/inventado", known).text).toBe("Horarios:\n- lunes\nMira");
+    expect(withoutInventedUrls("Mira dayanabeltran.com/comunidad o www.dayanabeltran.com/comunidad.", known, ["dayanabeltran.com"]).text).toBe("Mira.");
   });
   test("la ruta distingue mayúsculas (un token de /pagar/)", () => {
     const pay = urlKeys("https://www.dayanabeltran.com/pagar/AbC123");
@@ -224,6 +225,13 @@ describe("typedPaymentData (ENNY, 23-oct)", () => {
     expect(
       typedPaymentData("Claro.\nBanco: Davivienda\nCuenta: 3105833188\nTitular: Julian Mendoza", [{ details: dayana, exact: false }])
     ).toEqual({ text: "Claro.", block: "Nequi es 310 583 3188 a nombre de Dayana Beltrán" });
+  });
+  test("el titular, la ciudad o el correo que escribió el modelo tampoco quedan encima del bloque de verdad", () => {
+    const dayana = "Hola bella, mi Nequi es 310 583 3188 a nombre de Dayana Beltrán";
+    expect(
+      typedPaymentData("Claro, Ana.\nNequi: 3105833188\nA nombre de: Julian Mendoza\nCiudad: Bogotá", [{ details: dayana, exact: false }])?.text
+    ).toBe("Claro, Ana.");
+    expect(typedPaymentData("Claro.\nN° Cuenta: 15460415745\nA nombre de Juan Pérez", [{ details: bancolombia, exact: true }])?.text).toBe("Claro.");
   });
   test("frases que no son datos se quedan", () => {
     expect(

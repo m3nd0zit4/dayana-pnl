@@ -184,11 +184,17 @@ export const dayanaPaymentDataBodies = (lines: Line[], now: Date = new Date()): 
   return lines.filter((l) => byDayana(l) && (!l.sentAt || l.sentAt.getTime() >= oldest) && isPaymentData(l.body)).map((l) => l.body as string);
 };
 
-/** El paquete que nombra («el link del paquete de 3», «las 6 sesiones»); null si no nombra ninguno. */
+/**
+ * El paquete que nombra («las 6 sesiones», «el paquete de seis», «quiero el de
+ * 6»); null si no nombra ninguno. «El de 3:00» es una hora.
+ */
 export const askedPackage = (text: string): number | null => {
   const w = foldForSearch(text);
   const words = Object.keys(NUMBER_WORDS).join("|");
-  const m = w.match(new RegExp(`\\b(\\d{1,2}|${words})\\s+(sesion|sesiones|seciones|secciones)\\b`));
+  const m =
+    w.match(new RegExp(`\\b(\\d{1,2}|${words})\\s+(sesion|sesiones|seciones|secciones)\\b`)) ??
+    w.match(new RegExp(`\\b(?:paquete|plan) de (\\d{1,2}|${words})\\b(?![:.]\\d)`)) ??
+    w.match(new RegExp(`\\bel de (\\d{1,2}|${words})\\b(?![:.]\\d|\\s?(?:am|pm|a\\.|p\\.|de la|del|hora))`));
   if (!m) return null;
   const n = /^\d+$/.test(m[1]) ? Number(m[1]) : NUMBER_WORDS[m[1]];
   return n ?? null;

@@ -30,6 +30,7 @@ import {
   askedPackage,
   asksForBankDetails,
   CHAT_LINK_REPLY,
+  isPaymentData,
   dayanaPaymentDataBodies,
   dayanaPaymentInfo,
   dayanaPaymentLinks,
@@ -1942,9 +1943,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ["other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent" &&
     asksToJoinCommunity(lastInbound);
-  if (communityOnly && community && !state.links.includes(community)) {
-    addLink(community);
-    log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió entrar a la comunidad y el modelo escaló." });
+  if (communityOnly && modelOutcome.kind === "escalate") {
+    if (community && !state.links.includes(community)) {
+      addLink(community);
+      log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió entrar a la comunidad y el modelo escaló." });
+    }
+    // Dayana igual se entera de lo que el modelo quería pasarle (la persona no lo ve).
+    state.silentEscalation = {
+      category: modelOutcome.category,
+      severity: "normal",
+      reason: `${modelOutcome.reason} (La asistente le mandó el enlace de la comunidad.)`.slice(0, 300),
+    };
   }
   // Pidió la cuenta, la herramienta pegó los datos y aun así escaló («Déjame
   // consultarlo con Dayana», eval ENNY 21-oct): la persona recibe los datos.
@@ -1986,12 +1995,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         const byPack = asked ? (chatLinks.find((l) => new RegExp(`/therapy-${asked}\\b`, "i").test(l.url)) ?? null) : quoteLink;
         if (asked && !byPack) return null;
         const wantsBank = asksForBankDetails(lastInbound);
-        const dayanaData = dayanaPaymentDataBodies(input.transcript, now);
-        const sameMethod = methods.find((m) => dayanaData.some((d) => sharesAccount(m.details, d))) ?? null;
+        // Datos de verdad (no solo un enlace) que Dayana le mandó ella misma.
+        const dayanaData = dayanaPaymentDataBodies(input.transcript, now).filter((b) => isPaymentData(b.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "")));
+        // La cuenta de Ajustes que ya le llegó en este chat (de Dayana, o el bloque que pegó el código).
+        const sent = input.transcript.filter((l) => l.direction === "OUTBOUND" && l.body).map((l) => l.body as string);
+        const sameMethod = methods.find((m) => sent.some((b) => sharesAccount(m.details, b))) ?? null;
         if (!wantsBank) {
+          // Un enlace del CRM: el paquete no se sabe por el enlace del chat.
           const crm = asked ? null : await activePaymentLinkFor(input.contactId).catch(() => null);
-          if (crm) return { what: "link" as const, url: crm.url, pack: quotePack, method: null };
-          if (byPack) return { what: "link" as const, url: byPack.url, pack: /\/therapy-\d+/i.test(byPack.url) ? byPack.label : quotePack, method: null };
+          if (crm) return { what: "link" as const, url: crm.url, pack: null, method: null };
+          // Si pide otro paquete no es «en lo que quedaron».
+          if (byPack) return { what: "link" as const, url: byPack.url, pack: asked ? null : /\/therapy-\d+/i.test(byPack.url) ? byPack.label : quotePack, method: null };
         }
         if (sameMethod) return { what: "data" as const, url: null, pack: quotePack, method: sameMethod };
         if (dayanaData.length) return { what: "dayana_data" as const, url: null, pack: quotePack, method: null };
@@ -2116,6 +2130,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       log("send_urgent_session_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta ofrecía la sesión sin la herramienta." });
     }
   }
+  // El enlace de pago que Dayana le creó en el CRM: si el modelo lo vuelve a escribir, no es inventado.
+  const crmPayUrl = input.contactId ? ((await activePaymentLinkFor(input.contactId).catch(() => null))?.url ?? null) : null;
   const replyText = (message: string) => {
     let text = state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message;
     // La comunidad o el curso ofrecidos sin su herramienta (eval 21-oct: «aquí puedes
@@ -2142,6 +2158,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       text = COMMUNITY_REPLY;
       addLink(community);
       log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió entrar a la comunidad y la respuesta solo decía que lo consultaba." });
+      // La respuesta prometía pasárselo a Dayana: se entera igual, sin que la persona lo vea.
+      state.silentEscalation ??= {
+        category: "other",
+        severity: "normal",
+        reason: `Pidió entrar a la comunidad («${lastInbound.join(" ").slice(0, 120)}»); la asistente le mandó el enlace.`,
+      };
     }
     // Ningún enlace que no leyó en una fuente de verdad (Ruth, 23-oct: «…/comunidad»,
     // que no existe): las reglas, los DATOS, las notas, lo que escribieron Dayana o
@@ -2157,7 +2179,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         ...trusted,
         ...state.links,
         state.paymentLink,
-        ...chatLinks.map((l) => l.url)
+        ...chatLinks.map((l) => l.url),
+        // Los que el código pega (de Ajustes y del CRM), aunque la IA los haya mandado antes.
+        community,
+        ...options.map((o) => absoluteUrl(o.url)),
+        urgentPath ? absoluteUrl(urgentPath) : null,
+        crmPayUrl
       ),
       siteHosts()
     );
@@ -2214,9 +2241,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // Después de la cotización también «el pago del paquete de tres sesiones que te
     // envió» (Joselyn, eval 23-oct). Con otro enlace ya pegado (el curso, la
     // comunidad) no se agrega el de Dayana.
+    // Nunca debajo del aviso de un comprobante («Dayana revisa el pago de tus 3 sesiones»): pagaría dos veces.
     const folded = foldForSearch(text);
     const talksOfDayanaLink =
-      /\bpag/.test(folded) && (/\b(enlace|link)\b/.test(folded) || (Boolean(quoteSit) && (/\bque te (envio|mando|compartio|paso)\b/.test(folded) || askedPackage(text) !== null)));
+      !state.receipt &&
+      !lastInboundMedia &&
+      /\bpag/.test(folded) &&
+      (/\b(enlace|link)\b/.test(folded) || (Boolean(quoteSit) && (/\bque te (envio|mando|compartio|paso)\b/.test(folded) || askedPackage(text) !== null)));
     if (!copied.had && (state.links.length > 0 || !talksOfDayanaLink)) return text;
     if (!state.paymentLink) {
       // El que copió, el del paquete que nombra, el de las notas de Dayana o el último.
@@ -2233,10 +2264,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
   // Pidió cómo pagar lo cotizado y va el enlace o los datos: con «Recuerda que con
   // Dayana quedaron en…» y el comprobante (dueña, 23-oct). No si pide otro paquete.
-  const reminded = (text: string) =>
-    quoteSit && asksHowToPay(lastInbound) && askedPackage(lastInbound.join(" ")) === null && (state.paymentLink || state.paymentDetails.length > 0)
-      ? withQuoteReminder(text, quotePack)
-      : text;
+  // El paquete del enlace que de verdad va debajo (si es de Dayana), si no el de las notas.
+  const reminded = (text: string) => {
+    if (!quoteSit || !asksHowToPay(lastInbound) || askedPackage(lastInbound.join(" ")) !== null) return text;
+    if (!state.paymentLink && state.paymentDetails.length === 0) return text;
+    const attached = state.paymentLink ? chatLinks.find((l) => l.url === state.paymentLink) : null;
+    const pack = attached ? (/\/therapy-\d+/i.test(attached.url) ? attached.label : null) : state.paymentLink ? null : quotePack;
+    return withQuoteReminder(text, pack);
+  };
   // Agendada o movida: la confirmación del código, con la hora de la reserva.
   // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
   // (No se vuelve a listar horas si en esta vuelta agendar dijo que ya tiene

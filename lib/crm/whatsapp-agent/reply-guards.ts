@@ -248,7 +248,7 @@ export const sharesAccount = (details: string, other: string): boolean => {
 
 /** Una línea de un bloque de datos: el banco solo, o «Titular: …», «N° Cuenta: …». */
 const DATA_LABEL =
-  /^(banco\w*( [a-z]+)?|bancolombia|nequi|daviplata|davivienda|bbva|western union)$|^(banco|nombre( del titular)?|titular|tipo de cuenta|n[°º.o]* ?(de )?cuenta|numero de cuenta|cuenta( de ahorros| corriente| bancaria)?|documento|c\.?c\.?|cedula|nit|clabe|iban|alias)\s*:/;
+  /^(banco\w*( [a-z]+)?|bancolombia|nequi|daviplata|davivienda|bbva|western union)$|^(banco|nombre( del titular| del beneficiario)?|titular|beneficiario|a nombre de|tipo de cuenta|n[°º.o]* ?(de )?cuenta|numero de cuenta|cuenta( de ahorros| corriente| bancaria)?|documento|c\.?c\.?|cedula|nit|clabe|iban|swift|codigo swift|alias|ciudad|pais|telefono|celular|correo|e-?mail)\s*:|^(a nombre de|titular|beneficiario)\s/;
 const PAY_WORD = /\b(nequi|daviplata|bancolombia|davivienda|bbva|western|banco|cuenta|titular|a nombre)\b/;
 
 /**
@@ -355,6 +355,9 @@ export const withoutInventedUrls = (text: string, known: Set<string>, siteHosts:
       out
         // El «*» que abría un enlace en negrita.
         .replace(/(^|\s)[*_~`]+(?=\s|[.!?…]|$)/g, "$1")
+        .replace(/[ \t]{2,}/g, " ")
+        // «Mira <enlace> o <enlace>.» → «Mira.»: la «o» / «y» que quedó colgando.
+        .replace(/\s+(?:o|y|u|e)(?=\s*[.,;:!?…]|\s*$)/gi, "")
         .replace(/[ \t]+$/, "")
         .replace(/\s+([.,;:!?])/g, "$1")
         // «Aquí está: <enlace>. Te bendigo» → «Aquí está. Te bendigo».
