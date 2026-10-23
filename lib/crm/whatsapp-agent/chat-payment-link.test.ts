@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { asksForBankDetails, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, paymentInfoKind, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { askedPackage, asksForBankDetails, dayanaPaymentDataBodies, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, paymentInfoKind, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
 
 const now = new Date("2026-10-21T15:20:00Z");
 const at = (iso: string) => new Date(iso);
@@ -92,9 +92,47 @@ describe("isPaymentInfo con { amounts: false } (lo viejo, de más de 30 días)",
     ).toBe(true);
     expect(isPaymentInfo("https://www.dayanabeltran.com/pagar/p/therapy-3", { amounts: false })).toBe(true);
   });
-  test("un precio suelto de hace meses (un taller) no", () => {
-    expect(isPaymentInfo("El taller del sábado cuesta $50.000", { amounts: false })).toBe(false);
-    expect(isPaymentInfo("El taller del sábado cuesta $50.000")).toBe(true);
+  test("un precio suelto de hace meses no; el de una sesión reciente sí", () => {
+    expect(isPaymentInfo("La sesión está en $50.000", { amounts: false })).toBe(false);
+    expect(isPaymentInfo("La sesión está en $50.000")).toBe(true);
+  });
+});
+
+describe("askedPackage / dayanaPaymentDataBodies", () => {
+  test("el paquete que nombra", () => {
+    expect(askedPackage("Mejor quiero el paquete de 3 sesiones, me envías el link")).toBe(3);
+    expect(askedPackage("las seis sesiones")).toBe(6);
+    expect(askedPackage("me envías la forma de pago")).toBeNull();
+  });
+  test("solo los datos que Dayana mandó ella misma en los últimos 30 días", () => {
+    const now = new Date("2026-10-23T12:00:00Z");
+    const lines = [
+      { direction: "OUTBOUND" as const, body: "Nequi 3001112233", sentAt: new Date("2026-08-01T12:00:00Z") },
+      { direction: "OUTBOUND" as const, body: "Bancolombia ahorros 15460415745", sentAt: new Date("2026-10-14T12:00:00Z") },
+      { direction: "OUTBOUND" as const, body: "Nequi 3004445566", sentAt: new Date("2026-10-15T12:00:00Z"), isAutoReply: true },
+    ];
+    expect(dayanaPaymentDataBodies(lines, now)).toEqual(["Bancolombia ahorros 15460415745"]);
+  });
+});
+
+describe("isPaymentInfo: el precio de un curso o el de antes de la llamada no es «ya hablaron» (Patricia, Montoya, 23-oct)", () => {
+  test("un curso, un taller, un evento: no", () => {
+    expect(isPaymentInfo("El taller del sábado cuesta $50.000")).toBe(false);
+    expect(
+      isPaymentInfo("🎤 Tenemos un curso los días miércoles y viernes, acá vas a tener capacitación y entrenamiento en horas de la noche, esa está en $60 si quisieses aprender")
+    ).toBe(false);
+  });
+  test("lo que cuesta una sesión dicho para invitarla a la llamada: no", () => {
+    expect(
+      isPaymentInfo(
+        "🎤 Ah, ok, te entiendo. Bueno, la llamada es básicamente para poder sacar un diagnóstico y saber cuántas sesiones de reprogramación necesitas. Una sola sesión está en 190.000 pesos, dura una hora."
+      )
+    ).toBe(false);
+  });
+  test("con datos o «mándame el comprobante» sí, aunque hable del curso", () => {
+    expect(isPaymentInfo("Mi Nequi es 3105833188 para el curso")).toBe(true);
+    expect(isPaymentInfo("El curso queda en $60, me mandas el comprobante")).toBe(true);
+    expect(isPaymentInfo("El paquete de tres sesiones te queda en 510.000")).toBe(true);
   });
 });
 

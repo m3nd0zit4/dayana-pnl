@@ -9,6 +9,16 @@ test("«De nada» se vuelve «Con gusto»", () => {
   expect(withDayanaWording("No te preocupes de nada")).toBe("No te preocupes de nada");
 });
 
+test("un enlace o un correo nunca va con mayúscula (Ruth, 23-oct: «Https://…» no abre)", () => {
+  expect(polishReply("Puedes ingresar por aquí\n\nhttps://chat.whatsapp.com/GXPARCB8Ur0Fd0I78g2eYl")).toBe(
+    "Puedes ingresar por aquí\n\nhttps://chat.whatsapp.com/GXPARCB8Ur0Fd0I78g2eYl"
+  );
+  expect(polishReply("Es este\n\nhttps://meet.google.com/ahn-ecia-uyh")).toBe("Es este\n\nhttps://meet.google.com/ahn-ecia-uyh");
+  expect(polishReply("Listo. www.dayanabeltran.com/eventos-gratuitos")).toBe("Listo. www.dayanabeltran.com/eventos-gratuitos");
+  expect(polishReply("Escríbele aquí. pagos@ejemplo.com")).toBe("Escríbele aquí. pagos@ejemplo.com");
+  expect(polishReply("listo. te espero")).toBe("Listo. Te espero");
+});
+
 describe("frases que Dayana no usa", () => {
   test("¿Qué te trae por aquí?", () => {
     expect(polishReply("Hola Aida, te bendigo. ¿Qué te trae por aquí?")).toBe("Hola Aida, te bendigo.");

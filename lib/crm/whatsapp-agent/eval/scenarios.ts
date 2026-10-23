@@ -896,4 +896,88 @@ export const SCENARIOS: Scenario[] = [
     },
     goal: "Contesta con calidez que qué bien, que Dayana queda muy atenta y que cuando haga el pago (por el enlace que le mandó Dayana) le mande el comprobante por aquí para que Dayana le agende. Corto. No escala ni dice que lo consulta con Dayana, no ofrece otra llamada gratis ni da precios. Sin género.",
   },
+  {
+    id: "enny-forma-de-pago-tras-seguimiento",
+    origin:
+      "ENNY (+57), 23-oct: al seguimiento del cierre contestó «me encantaría iniciar la próxima semana» y «Pon la fecha y el día y me emvias la forma de pago»; el modelo copió a mano la cuenta de Bancolombia del chat, el freno la paró y le llegó «Déjame confirmarlo con Dayana» (dueña: recordarle el paquete y mandarle el enlace o los datos, sin equivocarse)",
+    name: "ENNY jose",
+    gender: "m",
+    stage: "tuvo_llamada",
+    personTimezone: "America/Bogota",
+    transcript: [
+      person("🎤 Dra. Agradezco que se haya tomado el tiempo para llamarme. Soy una persona que por las cosas que ya he vivido, soy muy desconfiado.", "audio"),
+      dayana("Si deseas una terapia personalizada Virtual, aquí te envío el valor de la inversión. Tan pronto hagas el pago, agendamos un día y ahora que tú me digas"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-1"),
+      person("🎤 Ok, entonces serían 190.000 pesos. ¿Me indica a qué cuentas se lo puedo transferir? Si es cuenta Nequi u otro tipo de cuenta.", "audio"),
+      dayana(
+        "Claro, Enny, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise:\n\nBancolombia\nNombre: Prueba Uno\nTipo de cuenta: Ahorros\nN° Cuenta: 00000000001"
+      ),
+      person("Yo pensé que el dinero iba dirigido a su cuenta"),
+      ai("Hola Enny, te bendigo. Soy la asistente de Dayana. La cuenta está a nombre de su equipo de confianza para la gestión de los pagos de las terapias. Cuando realices la transferencia, me compartes el comprobante por aquí para que ella lo revise."),
+      {
+        direction: "OUTBOUND",
+        isAutoReply: true,
+        source: "recordatorio:cotizacion:1:1",
+        body: "Hola Enny, te escribo de parte de Dayana. Ella queda muy atenta para iniciar tu proceso personalizado. ¿Cuándo te gustaría empezar? Si tienes alguna duda o dificultad con el pago, me cuentas por aquí.",
+      },
+      person("Buenas tarde! Corazón me encantaría inicial, la próxima semana, que estoy más desocupado ya qué tengo mucho trabajo"),
+      person("Pon la fecha y el día y me emvias la forma de pago"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["send_payment_link", "send_payment_info"],
+      noTool: ["escalate", "offer_free_call_slots", "book_free_call"],
+      mustMatch: [/comprobante/i, /pagar\/p\/therapy-1|00000000001/],
+      mustNotMatch: [/consult|le paso|le aviso|d[eé]jame confirmarlo/i],
+    },
+    goal: "Le recuerda en qué quedó con Dayana (una sesión), le vuelve a mandar cómo pagar (el enlace de Dayana o los datos de Bancolombia, que van debajo) y le dice que cuando haga el pago le mande el comprobante por aquí y Dayana le agenda el día y la hora (puede decir que la próxima semana). No escala, no pone él mismo una fecha ni una hora, no da precios. Él habla en masculino («desocupado»).",
+  },
+  {
+    id: "mildred-precio-consulta-webinar",
+    origin:
+      "Mildred Ramos (+57), 23-oct: inscrita al webinar, preguntó «¿Qué precio tiene la consulta o cómo trabajas?»; la IA le ofrecía la consulta gratis y el código lo cambió por «Hola Mildred, te bendigo» (la regla del webinar no lo reconoció). Dayana tuvo que escribirle 40 min después",
+    name: "📪",
+    contactName: "Mildred Ramos",
+    gender: "unknown",
+    stage: "nueva",
+    personTimezone: "America/Bogota",
+    client: WEBINAR_CLIENT("Mildred Ramos"),
+    freeEvent: WEBINAR,
+    transcript: [webinarConfirmation("Mildred"), person("Hola Dra Dayana muchas gracias \nQué precio tiene la consulta o cómo trabajas ?")],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/llamada|consulta|15 minutos|proceso/i],
+      mustNotMatch: [/\$|\b\d{2,3}[.,]\d{3}\b/, /^(hola,? mildred,? te bendigo\.?)$/i],
+    },
+    goal: "Pregunta el precio de la consulta y cómo trabaja Dayana (no del webinar): la asistente le contesta como asistente de Dayana que cada proceso es personalizado y que Dayana le explica las opciones y los valores en una llamada gratis de 15 minutos, y la invita o sigue el flujo de persona nueva. Sin precios. No le contesta solo con un saludo ni solo con la bienvenida al webinar.",
+  },
+  {
+    id: "ruth-enlace-de-la-comunidad",
+    origin:
+      "Ruth (+593), 23-oct: inscrita al webinar, «Quise ingresar al link de Comunidad y no pude»; le llegó «Https://www.dayanabeltran.com/comunidad:» (una página que no existe, con mayúscula y dos puntos) encima del enlace de verdad",
+    name: "Ruth",
+    contactName: "Ruth Suárez",
+    gender: "unknown",
+    stage: "nueva",
+    personTimezone: "America/Guayaquil",
+    client: WEBINAR_CLIENT("Ruth Suárez"),
+    freeEvent: WEBINAR,
+    transcript: [
+      webinarConfirmation("Ruth"),
+      person("Buenas noches. Si puedo asistir al Webinar"),
+      ai(
+        "Con gusto, Ruth. Te damos la bienvenida: te esperamos en el Webinar Gratuito el domingo, 18 de octubre. Te bendigo 🙏\n\nSi en algún momento quieres un proceso personalizado con Dayana, me escribes por aquí."
+      ),
+      person("Gracias"),
+      ai("Con gusto 🙏"),
+      person("Quise ingresar al link  de Comunidad y no pude"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["send_community_link"],
+      mustMatch: [/https:\/\/chat\.whatsapp\.com\/GXPARCB8Ur0Fd0I78g2eYl/],
+      mustNotMatch: [/dayanabeltran\.com\/comunidad/i, /Https:/, /chat\.whatsapp\.com\/\S+:/],
+    },
+    goal: "Le manda el enlace de verdad de la comunidad de Dayana (va debajo) en un mensaje corto para que entre. Ningún otro enlace inventado, nada de «Https» con mayúscula. No escala ni dice que Dayana la agrega.",
+  },
 ];

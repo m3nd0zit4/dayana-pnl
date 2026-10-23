@@ -81,9 +81,42 @@ const ASKS_FOR_PROCESS = new RegExp(
 const ASKS_FOR_HELP = /\b(necesito|quiero|busco|pido|requiero|quisiera) (de )?(tu |su )?ayuda\b/;
 const TECH_HELP = /\b(enlace|link|meet|zoom|inscri\w*|registr\w*|entrar|conectar\w*|correo|pagina|formulario|clave)\b/;
 
+/**
+ * Mildred (23-oct), inscrita al webinar: «¿Qué precio tiene la consulta o cómo
+ * trabajas?» y «Quiero quitarme creencias limitantes, pena, rabia, dolor,
+ * tristeza». La IA le contestaba la consulta gratis y el código se lo cambió
+ * por «Hola Mildred, te bendigo»: Dayana tuvo que escribirle 40 min después.
+ * - El valor de lo de Dayana dicho de cualquier forma («qué precio tiene la
+ *   consulta», «cuánto vale una sesión»), en la misma frase y sin hablar del
+ *   evento («¿la sesión del domingo tiene costo?» es el webinar).
+ * - Cómo trabaja Dayana o en qué consiste su terapia.
+ * - Lo que quiere sanar o soltar ella («quiero quitarme…», «necesito sanar»).
+ */
+const PRICE = /\b(precio|precios|costo|costos|valor|valores|tarifa|tarifas|inversion|cuanto (cuesta|cuestan|vale|valen|sale|salen|cobra|cobras|cobran))\b/;
+const SERVICE = /\b(consulta|consultas|sesion|sesiones|terapia|terapias|proceso|procesos|paquete|paquetes|servicio|servicios|cita|citas|tratamiento|tratamientos|atencion|acompanamiento)\b/;
+/**
+ * Lo del evento: nuestros mensajes le dicen «la sesión» al webinar («¿la sesión
+ * del sábado tiene costo?», «¿tiene algún costo la sesión?», «¿cuánto dura la
+ * sesión?», «gracias por el valor de esta sesión»: revisión 23-oct).
+ */
+const EVENT =
+  /\b(webinar|evento|masterclass|clase|taller|curso|inscripcion|registro|en vivo|lunes|martes|miercoles|jueves|viernes|sabado|domingo|hoy|manana|esta|este|gratis|gratuit\w*|grabad\w*|hora|horario|dura|duracion|link|enlace|algun (costo|valor|precio))\b/;
+const HOW_SHE_WORKS =
+  /\bcomo (trabajas|trabaja (usted|dayana|ella)|atiendes|atiende (usted|dayana|ella)|son (tus|sus) (terapias|consultas|sesiones)|es (tu|su) (trabajo|metodo|terapia|consulta|tratamiento)|funciona (tu|su) (terapia|consulta|reprogramacion|metodo|trabajo)|funcionan (tus|sus) (terapias|consultas|sesiones))\b|\ben que consiste (tu|su) (terapia|consulta|reprogramacion|trabajo|metodo|tratamiento)\b/;
+const WANTS_TO_HEAL =
+  /\b(quiero|quisiera|necesito|me gustaria|deseo|busco|ayudame a|ayudeme a) (quitarme|sanar|sanarme|liberar|liberarme|superar|soltar|sacarme|eliminar|reprogramar|reprogramarme|trabajar (mis|mi|en mi)|sentirme mejor|cambiar mi vida|salir de (la|mi|esta|este|esa|ese) (depresion|ansiedad|tristeza|angustia|situacion|relacion|dolor|miedo|crisis|duelo|adiccion|bloqueo|soledad))\b/;
+/** En la misma frase y sin nada del evento. */
+const aboutService = (t: string, ok: (sentence: string) => boolean) => t.split(/[.?!\n]+/).some((s) => ok(s) && !EVENT.test(s));
+
 export const asksForProcess = (text: string): boolean => {
   const t = foldForSearch(text);
-  return ASKS_FOR_PROCESS.test(t) || (ASKS_FOR_HELP.test(t) && !TECH_HELP.test(t));
+  return (
+    ASKS_FOR_PROCESS.test(t) ||
+    (ASKS_FOR_HELP.test(t) && !TECH_HELP.test(t)) ||
+    aboutService(t, (s) => PRICE.test(s) && SERVICE.test(s)) ||
+    aboutService(t, (s) => HOW_SHE_WORKS.test(s)) ||
+    WANTS_TO_HEAL.test(t)
+  );
 };
 
 /** Lo nuestro que la invita: la llamada gratis o «te agendo con Dayana». Un «sí» después es un sí. */

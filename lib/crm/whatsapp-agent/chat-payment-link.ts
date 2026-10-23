@@ -150,13 +150,48 @@ export const isPaymentData = (text: string | null | undefined): boolean => {
   return Boolean(t) && PAYMENT_DATA.some((re) => re.test(t));
 };
 
+/**
+ * Un valor suelto que no es el de su proceso: el precio de un curso o un
+ * evento (Patricia, 20-oct: «el curso… está en $60»), o lo que cuesta una
+ * sesión dicho antes de la llamada («la llamada es para eso…», Montoya, 9-oct).
+ * Ninguno de los dos tuvo la llamada, y los dos quedaron en «tuvo la llamada»
+ * y recibieron el seguimiento del cierre (23-oct).
+ */
+const NOT_THERAPY = /\b(curso|cursos|taller|talleres|evento|webinar|clase|clases|diplomado|formacion|certificacion|capacitacion|entrenamiento|membresia|mensualidad)\b/;
+const THERAPY = /\b(sesion|sesiones|terapia|terapias|reprogramacion|proceso personalizado|paquete)\b/;
+const BEFORE_CALL =
+  /\bla llamada es\b[^.\n]{0,25}\bpara\b|\bpara eso es la llamada\b|\ben la llamada (te|se te) (digo|explico|cuento|doy|da)\b|\bagendar (la|una|tu) llamada\b/;
+const otherPrice = (t: string) => BEFORE_CALL.test(t) || (NOT_THERAPY.test(t) && !THERAPY.test(t));
+
 /** ¿Este mensaje de Dayana dice que ya hablaron de pagar (datos, un valor, «mándame el comprobante»)? */
 export const isPaymentInfo = (text: string | null | undefined, opts: { amounts?: boolean } = {}): boolean => {
   const t = foldForSearch(text ?? "");
+  if (!t) return false;
+  if (PAYMENT_DATA.some((re) => re.test(t)) || RECEIPT_TALK.test(t)) return true;
   // Sin `amounts`, un monto suelto no cuenta (un precio de un taller de hace
   // meses no dice que tuvo su llamada): solo datos o «mándame el comprobante».
-  const talk = opts.amounts === false ? PRICE_TALK.slice(0, 1) : PRICE_TALK;
-  return Boolean(t) && (PAYMENT_DATA.some((re) => re.test(t)) || talk.some((re) => re.test(t)));
+  if (opts.amounts === false) return false;
+  return PRICE_TALK.slice(1).some((re) => re.test(t)) && !otherPrice(t);
+};
+
+/**
+ * Los mensajes con datos para pagar que Dayana escribió ella misma en los
+ * últimos 30 días (para comprobar una cuenta copiada): una cuenta de hace meses
+ * puede ya no ser la que usa.
+ */
+export const dayanaPaymentDataBodies = (lines: Line[], now: Date = new Date()): string[] => {
+  const oldest = now.getTime() - CHAT_LINK_MAX_AGE_DAYS * 24 * 3600_000;
+  return lines.filter((l) => byDayana(l) && (!l.sentAt || l.sentAt.getTime() >= oldest) && isPaymentData(l.body)).map((l) => l.body as string);
+};
+
+/** El paquete que nombra («el link del paquete de 3», «las 6 sesiones»); null si no nombra ninguno. */
+export const askedPackage = (text: string): number | null => {
+  const w = foldForSearch(text);
+  const words = Object.keys(NUMBER_WORDS).join("|");
+  const m = w.match(new RegExp(`\\b(\\d{1,2}|${words})\\s+(sesion|sesiones|seciones|secciones)\\b`));
+  if (!m) return null;
+  const n = /^\d+$/.test(m[1]) ? Number(m[1]) : NUMBER_WORDS[m[1]];
+  return n ?? null;
 };
 
 /** Qué trae un mensaje de pago: datos (enlace, cuenta, Nequi…), «mándame el comprobante» o solo un valor. */

@@ -1,5 +1,6 @@
 import { getSiteUrl } from "@/lib/site-url";
 
+import { foldForSearch } from "../search-normalize";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 
 /**
@@ -23,6 +24,19 @@ export const communityLink = (config: WhatsAppAiConfig): string | null =>
 
 export const affordableOptions = (config: WhatsAppAiConfig): AffordableOption[] =>
   config.affordable.enabled ? config.affordable.options.filter((o) => o.enabled && o.url.trim()) : [];
+
+/** Lo que recibe quien pide entrar a la comunidad si el modelo no le mandó el enlace (va debajo). */
+export const COMMUNITY_REPLY = "Claro, aquí puedes unirte a la comunidad de Dayana";
+
+/**
+ * Pide entrar a la comunidad o al grupo, o no pudo con el enlace («Quise
+ * ingresar al link de Comunidad y no pude», Ruth, 23-oct: una de cada 3 veces
+ * el modelo contestaba «Déjame consultarlo con Dayana»).
+ */
+export const asksToJoinCommunity = (texts: string[]): boolean => {
+  const t = foldForSearch(texts.join(" "));
+  return /\b(comunidad|grupo)\b/.test(t) && /\b(unir\w*|me uno|entrar|entro|ingres\w*|agreg\w*|meter\w*|link|enlace|acceso|no (pude|puedo|me deja))\b/.test(t);
+};
 
 /** Las reglas del prompt (nada si no hay comunidad ni opciones). */
 export const communityRules = (config: WhatsAppAiConfig): string => {

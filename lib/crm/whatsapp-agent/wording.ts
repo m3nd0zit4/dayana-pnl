@@ -62,9 +62,13 @@ const tidy = (text: string): string =>
         .replace(/,{2,}/g, ",")
         .replace(/^[\s,.;:]+/, "")
         .replace(/[\s,;:]+$/, "")
-        // Mayúscula al empezar y después de un punto (no en «3:00 p. m.»).
+        // Mayúscula al empezar y después de un punto (no en «3:00 p. m.», ni en un
+        // enlace o un correo: «Https://…» no abre, Ruth, 23-oct).
         .replace(/(^|[.!?]\s+)([¿¡]?)(\p{Ll})/gu, (full: string, a: string, b: string, c: string, offset: number, whole: string) =>
-          /(?:(?:^|[\s(\d])[ap]\.|[ap]\.\s?m\.)\s+$/i.test(whole.slice(0, offset + a.length)) ? full : `${a}${b}${c.toUpperCase()}`
+          /(?:(?:^|[\s(\d])[ap]\.|[ap]\.\s?m\.)\s+$/i.test(whole.slice(0, offset + a.length)) ||
+          /^(?:https?:|www\.)|^[^\s@]+@/i.test(whole.slice(offset + a.length + b.length))
+            ? full
+            : `${a}${b}${c.toUpperCase()}`
         )
         .trim()
     )

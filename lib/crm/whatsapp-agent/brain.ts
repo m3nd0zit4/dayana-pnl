@@ -24,12 +24,21 @@ import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRI
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
-import { absoluteUrl, affordableOptions, communityLink, communityRules } from "./community";
+import { absoluteUrl, affordableOptions, asksToJoinCommunity, COMMUNITY_REPLY, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
-import { asksForBankDetails, CHAT_LINK_REPLY, dayanaPaymentInfo, dayanaPaymentLinks, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import {
+  askedPackage,
+  asksForBankDetails,
+  CHAT_LINK_REPLY,
+  dayanaPaymentDataBodies,
+  dayanaPaymentInfo,
+  dayanaPaymentLinks,
+  pickPaymentLink,
+  withoutPayUrls,
+} from "./chat-payment-link";
 import { hasRiskSigns } from "./pause-rules";
 import { asksForMoreHelp, seriousReply } from "./serious-reply";
-import { answeringDayana } from "./reply-guards";
+import { answeringDayana, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -47,7 +56,7 @@ import { fixNameInReply, resolvePersonName, sureFirstName, type NameMessage, typ
 import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
 import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
-import { quotePromptLine, quoteSituation } from "./quote-follow-up-rules";
+import { asksHowToPay, quotePayReply, quotePromptLine, quoteSituation, withQuoteReminder } from "./quote-follow-up-rules";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
@@ -262,6 +271,15 @@ const google = geminiProvider();
 const FREE_CALL_SERVICE = /gratis|gratuit|15\s*min/i;
 /** Lo que pide para ya: «hoy», «hoy mismo», «ahora», «esta tarde». */
 const SOON_WORDS = /\bhoy\b|\bahora\b|ya mismo|en un rato|esta (tarde|noche|mañana)/i;
+
+/** La portada del sitio («dayanabeltran.com»): un enlace a ella nunca es inventado. */
+const siteHosts = (): string[] => {
+  try {
+    return [new URL(getSiteUrl()).host.toLowerCase().replace(/^www\./, "")];
+  } catch {
+    return [];
+  }
+};
 
 export const businessFacts = async (
   config: WhatsAppAiConfig,
@@ -1755,6 +1773,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
 
   const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeLabelInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;
 
+  const dossierPart = input.dossier
+    ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona). Si la ficha escribe en femenino o masculino, eso NO dice su género: guíate solo por «Habla de sí en…». Lo que la ficha dice que «se le indicó» lo dijo la asistente y puede estar mal: los DATOS mandan:\n${input.dossier}`
+    : null;
+  const snippetsPart = input.olderSnippets?.length
+    ? `LO QUE SE HABLÓ ANTES SOBRE ESTO (mensajes viejos de este mismo chat que coinciden con lo que acaba de escribir):\n${transcriptText(input.olderSnippets, timezone)}`
+    : null;
+  const examplesPart = examplesBlock(examples);
+  const transcriptPart = `${transcriptHeader(input.transcript, timezone)}. Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`;
+  // El paquete que le toca: el enlace de Dayana que nombran sus notas (Joselyn:
+  // 3 y 6, primero el de 3) o el último; si no hay enlace, el de la cotización.
+  const quoteLink = quoteSit && chatLinks.length ? pickPaymentLink(chatLinks, input.memory) : null;
+  const quotePack = quoteLink && /\/therapy-\d+/i.test(quoteLink.url) ? quoteLink.label : (quoteSit?.how.pack ?? null);
+
   const promptText = [
       // Primero la hora (como cuando iba en las reglas): fuera de las reglas
       // para que la caché de Gemini cubra reglas y herramientas.
@@ -1775,14 +1806,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       toDayana && !input.clientMode
         ? "LA PERSONA LE ESTÁ RESPONDIENDO A DAYANA (lo último antes de sus mensajes lo escribió Dayana): no te metas en esa conversación. Si solo agradece, saluda, comenta o le contesta algo a Dayana, usa no_reply y no escribas nada. Contesta solo si pregunta algo que puedes responder con los DATOS o si quedó algo pendiente que tú resuelves (cómo pagar, recibir su comprobante, las horas de la llamada gratis)."
         : null,
-      input.dossier
-        ? `FICHA DE LA PERSONA (armada con TODO su chat, también lo anterior a lo que lees abajo; es la misma persona). Si la ficha escribe en femenino o masculino, eso NO dice su género: guíate solo por «Habla de sí en…». Lo que la ficha dice que «se le indicó» lo dijo la asistente y puede estar mal: los DATOS mandan:\n${input.dossier}`
-        : null,
+      dossierPart,
       input.memory ? `MEMORIA (lo que sabemos de esta persona):\n${input.memory}` : null,
-      input.olderSnippets?.length
-        ? `LO QUE SE HABLÓ ANTES SOBRE ESTO (mensajes viejos de este mismo chat que coinciden con lo que acaba de escribir):\n${transcriptText(input.olderSnippets, timezone)}`
-        : null,
-      examplesBlock(examples),
+      snippetsPart,
+      examplesPart,
       stickers.length > 0
         ? `STICKERS DE DAYANA (usa send_sticker con el número; cuándo los manda ella):\n${stickers
             .map((st, i) => `${i + 1}. usado ${st.uses} veces; lo manda después de: ${st.contexts.map((c) => `«${c}»`).join(" / ") || "(sin texto antes)"}`)
@@ -1795,7 +1822,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .filter(Boolean)
             .join("\n")
         : null,
-      quoteSit ? quotePromptLine(quoteSit, input.freeCall?.personTimezone ?? timezone) : null,
+      quoteSit ? quotePromptLine(quoteSit, input.freeCall?.personTimezone ?? timezone, quotePack) : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
         : salesOn
@@ -1809,7 +1836,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       nameLine(nameInfo),
       `Su número: +${input.phone}.`,
       countryHint(input.phone),
-      `${transcriptHeader(input.transcript, timezone)}. Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`,
+      transcriptPart,
       input.images?.length
         ? `IMÁGENES: van adjuntas las ${input.images.length} últimas fotos o stickers que mandó la persona (la más reciente primero). Míralas.`
         : null,
@@ -1834,9 +1861,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? { ...tools, no_reply: noReplyTool }
       : tools;
 
+  const system = systemPrompt(config, { salesFlow: salesOn && !input.clientMode, autoBook, clientMode: input.clientMode });
   const result = await generateText({
     model: google(modelId()),
-    system: systemPrompt(config, { salesFlow: salesOn && !input.clientMode, autoBook, clientMode: input.clientMode }),
+    system,
     ...(input.images?.length
       ? {
           messages: [
@@ -1903,16 +1931,87 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     chatLinks.some((l) => l.url === state.paymentLink) &&
     ["other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
+  // Pidió entrar a la comunidad y el modelo escaló («Déjame consultarlo con
+  // Dayana», Ruth, 23-oct): entra con el enlace (dueña, 14-oct: no se escala).
+  const communityOnly =
+    !agendaOnly &&
+    !chatLinkOnly &&
+    modelOutcome.kind === "escalate" &&
+    Boolean(community) &&
+    ["other", "unknown"].includes(modelOutcome.category) &&
+    modelOutcome.severity !== "urgent" &&
+    asksToJoinCommunity(lastInbound);
+  if (communityOnly && community && !state.links.includes(community)) {
+    addLink(community);
+    log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió entrar a la comunidad y el modelo escaló." });
+  }
   // Pidió la cuenta, la herramienta pegó los datos y aun así escaló («Déjame
   // consultarlo con Dayana», eval ENNY 21-oct): la persona recibe los datos.
   const paymentDataOnly =
     !agendaOnly &&
     !chatLinkOnly &&
+    !communityOnly &&
     modelOutcome.kind === "escalate" &&
     state.paymentDetails.length > 0 &&
     asksForBankDetails(lastInbound) &&
     ["payment", "other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
+  // Después de la cotización pide cómo pagar («me envías la forma de pago»,
+  // ENNY, 23-oct) y el modelo escaló igual: en qué quedó con Dayana y, debajo,
+  // solo lo seguro (nunca escrito por el modelo): el enlace de Dayana (el del
+  // paquete que pide o el de sus notas) o el del CRM; los datos de Ajustes si
+  // son, cifra por cifra, los que mandó Dayana; si no, «con los datos que te
+  // envió Dayana». Lo demás (otro paquete, cuotas, «ya pagué», el Meet) sigue
+  // escalando. Dayana recibe el aviso del modelo sin que la persona lo vea.
+  const quotePayCandidate =
+    !agendaOnly &&
+    !chatLinkOnly &&
+    !communityOnly &&
+    !paymentDataOnly &&
+    modelOutcome.kind === "escalate" &&
+    modelOutcome.severity !== "urgent" &&
+    ["payment", "other", "unknown"].includes(modelOutcome.category) &&
+    Boolean(quoteSit) &&
+    quoteSit?.state !== "pago_enviado" &&
+    quoteSit?.state !== "no_quiere" &&
+    !input.clientMode &&
+    !state.receipt &&
+    !lastInboundMedia &&
+    asksHowToPay(lastInbound) &&
+    !hasRiskSigns(lastInbound);
+  const quotePay = quotePayCandidate
+    ? await (async () => {
+        const asked = askedPackage(lastInbound.join(" "));
+        const byPack = asked ? (chatLinks.find((l) => new RegExp(`/therapy-${asked}\\b`, "i").test(l.url)) ?? null) : quoteLink;
+        if (asked && !byPack) return null;
+        const wantsBank = asksForBankDetails(lastInbound);
+        const dayanaData = dayanaPaymentDataBodies(input.transcript, now);
+        const sameMethod = methods.find((m) => dayanaData.some((d) => sharesAccount(m.details, d))) ?? null;
+        if (!wantsBank) {
+          const crm = asked ? null : await activePaymentLinkFor(input.contactId).catch(() => null);
+          if (crm) return { what: "link" as const, url: crm.url, pack: quotePack, method: null };
+          if (byPack) return { what: "link" as const, url: byPack.url, pack: /\/therapy-\d+/i.test(byPack.url) ? byPack.label : quotePack, method: null };
+        }
+        if (sameMethod) return { what: "data" as const, url: null, pack: quotePack, method: sameMethod };
+        if (dayanaData.length) return { what: "dayana_data" as const, url: null, pack: quotePack, method: null };
+        return null;
+      })()
+    : null;
+  if (quotePay && modelOutcome.kind === "escalate") {
+    if (quotePay.url) {
+      state.paymentLink = quotePay.url;
+      log("send_payment_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió cómo pagar lo que le cotizó Dayana." });
+    }
+    if (quotePay.method && !state.paymentDetails.includes(quotePay.method.details)) {
+      state.paymentDetails.push(quotePay.method.details);
+      log("send_payment_info", { auto: true, method: quotePay.method.key }, { ok: true, label: quotePay.method.label, note: "Lo pegó el código: son los mismos datos que le mandó Dayana." });
+    }
+    state.silentEscalation = {
+      category: modelOutcome.category,
+      severity: "normal",
+      reason: `${modelOutcome.reason} (La asistente le volvió a mandar cómo pagar lo que le cotizaste.)`.slice(0, 300),
+    };
+  }
   // Nunca deja de responder (dueño, 21-oct; `serious-reply.ts`): lo delicado
   // recibe una respuesta y Dayana un aviso que la persona no ve.
   // - Un riesgo en lo que escribió ahora (aunque el modelo haya contestado otra
@@ -1923,7 +2022,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   //   sesión: el paso del pago (sin aviso: no es delicado).
   // Un enlace que no abre, una factura, un precio, una queja: siguen escalando.
   const escalated =
-    modelOutcome.kind === "escalate" && !agendaOnly && !chatLinkOnly && !paymentDataOnly && !input.clientMode && !state.receipt;
+    modelOutcome.kind === "escalate" &&
+    !agendaOnly &&
+    !chatLinkOnly &&
+    !communityOnly &&
+    !paymentDataOnly &&
+    !quotePay &&
+    !input.clientMode &&
+    !state.receipt;
   const riskNow = !input.clientMode && hasRiskSigns(lastInbound);
   const risk = riskNow || (escalated && hasRiskSigns([modelOutcome.reason, ...recentInbound]));
   const clinical = escalated && modelOutcome.category === "clinical";
@@ -1984,13 +2090,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
     : chatLinkOnly
       ? { kind: "reply", message: CHAT_LINK_REPLY }
-      : paymentDataOnly
-        ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
-        : serious
-          ? { kind: "reply", message: serious }
-          : guestFix
-            ? { kind: "reply", message: guestFix }
-            : modelOutcome;
+      : communityOnly
+        ? { kind: "reply", message: COMMUNITY_REPLY }
+        : paymentDataOnly
+          ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
+          : quotePay
+            ? { kind: "reply", message: quotePayReply({ name: sureFirstName(nameInfo), pack: quotePay.pack, what: quotePay.what }) }
+            : serious
+              ? { kind: "reply", message: serious }
+              : guestFix
+                ? { kind: "reply", message: guestFix }
+                : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
@@ -2020,7 +2130,52 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const typedGroup = /https?:\/\/chat\.whatsapp\.com\/[^\s)]*/gi;
     if (typedGroup.test(text)) {
       text = text.replace(typedGroup, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-      if (community) addLink(community);
+      if (community && !state.links.includes(community)) {
+        addLink(community);
+        log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: el modelo escribió el enlace del grupo a mano." });
+      }
+    }
+    // Pidió entrar a la comunidad y la respuesta es «Déjame consultarlo con Dayana»
+    // (Ruth, 23-oct): entra con el enlace.
+    if (community && !state.links.includes(community) && asksToJoinCommunity(lastInbound) && promisesHandoff(text)) {
+      text = COMMUNITY_REPLY;
+      addLink(community);
+      log("send_community_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió entrar a la comunidad y la respuesta solo decía que lo consultaba." });
+    }
+    // Ningún enlace que no leyó en una fuente de verdad (Ruth, 23-oct: «…/comunidad»,
+    // que no existe): las reglas, los DATOS, las notas, lo que escribieron Dayana o
+    // la persona y los envíos automáticos. No lo que escribió antes la IA (ahí está
+    // el de Ruth), ni la ficha, ni los ejemplos de otros chats.
+    const aiWrote = (l: TranscriptLine) => l.direction === "OUTBOUND" && ((Boolean(l.isAutoReply) && !l.source) || l.source === "approval");
+    const trusted = [...input.transcript, ...(input.olderSnippets ?? [])].filter((l) => !aiWrote(l)).map((l) => l.body);
+    const invented = withoutInventedUrls(
+      text,
+      urlKeys(
+        system,
+        [dossierPart, snippetsPart, examplesPart, transcriptPart].reduce<string>((t, part) => (part ? t.split(part).join("") : t), promptText),
+        ...trusted,
+        ...state.links,
+        state.paymentLink,
+        ...chatLinks.map((l) => l.url)
+      ),
+      siteHosts()
+    );
+    if (invented.removed.length) {
+      text = invented.text;
+      log("invented_link", { auto: true }, { ok: true, removed: invented.removed, note: "El modelo escribió un enlace que no existe en ninguna parte: no salió." });
+    }
+    // La cuenta copiada a mano del chat (ENNY, 23-oct): si cada número es el de
+    // unos datos de verdad, va el bloque; si no, el freno de run.ts la para.
+    if (!state.urgentSession) {
+      const typed = typedPaymentData(text, [
+        ...methods.map((m) => ({ details: m.details, exact: true })),
+        ...dayanaPaymentDataBodies(input.transcript, now).map((details) => ({ details, exact: false })),
+      ]);
+      if (typed) {
+        text = typed.text;
+        if (!state.paymentDetails.includes(typed.block)) state.paymentDetails.push(typed.block);
+        log("send_payment_info", { auto: true }, { ok: true, note: "Lo pegó el código: el modelo copió a mano los datos del chat y cada número es el de verdad." });
+      }
     }
     const offers = foldForSearch(text);
     if (community && !state.links.includes(community) && /\bcomunidad\b/.test(offers) && (wantsGroup || cantAfford)) {
@@ -2057,13 +2212,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // «Puedes pagar por el enlace que te envió Dayana» sin la herramienta: se le vuelve a poner.
     // Con otro enlace ya pegado (el curso, la comunidad) no se agrega el de Dayana.
     if (!copied.had && (state.links.length > 0 || !(/\b(enlace|link)\b/i.test(text) && /\bpag/i.test(text)))) return text;
-    state.paymentLink ??= chatLink.url;
+    if (!state.paymentLink) {
+      state.paymentLink = chatLink.url;
+      log("send_payment_link", { auto: true }, { ok: true, note: "Lo pegó el código: la respuesta hablaba del enlace de Dayana sin la herramienta." });
+    }
     // Y sin «*(El enlace de pago aparecerá aquí)*» ni «[Enlace]» inventados al lado del de verdad.
     const clean = copied.had ? copied.text || text : text;
     return withoutFakeLinks(clean) || clean;
   };
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
+  // Pidió cómo pagar lo cotizado y va el enlace o los datos: con «Recuerda que con
+  // Dayana quedaron en…» y el comprobante (dueña, 23-oct). No si pide otro paquete.
+  const reminded = (text: string) =>
+    quoteSit && asksHowToPay(lastInbound) && askedPackage(lastInbound.join(" ")) === null && (state.paymentLink || state.paymentDetails.length > 0)
+      ? withQuoteReminder(text, quotePack)
+      : text;
   // Agendada o movida: la confirmación del código, con la hora de la reserva.
   // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
   // (No se vuelve a listar horas si en esta vuelta agendar dijo que ya tiene
@@ -2077,7 +2241,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
   const shaped: BrainOutcome =
     outcome.kind === "reply"
-      ? { ...outcome, message: serious ? outcome.message : withAgenda(named(replyText(outcome.message))!) }
+      ? { ...outcome, message: serious ? outcome.message : withAgenda(reminded(named(replyText(outcome.message))!)) }
       : outcome;
   // Dayana le escribió hace un momento y la persona le contesta a ella: esa
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de

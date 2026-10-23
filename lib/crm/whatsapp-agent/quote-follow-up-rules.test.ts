@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  asksHowToPay,
   followUpDue,
   followUpText,
   isQuote,
@@ -10,9 +11,11 @@ import {
   QUOTE_FOLLOW_UP_SOURCE,
   quoteHow,
   quoteHowText,
+  quotePayReply,
   quotePromptLine,
   quoteSituation,
   stateFromReply,
+  withQuoteReminder,
   type QuoteLine,
 } from "./quote-follow-up-rules";
 
@@ -433,5 +436,81 @@ describe("followUpText / quotePromptLine", () => {
     expect(line).not.toContain("Datos del banco");
     expect(line).not.toContain("175 USD");
     expect(line).toContain("no escales");
+  });
+
+  test("si pide el enlace o los datos: le recuerda el paquete y se lo manda con la herramienta (ENNY, 23-oct)", () => {
+    const enny = [
+      dayana("Si deseas una terapia personalizada Virtual, aquí te envío el valor de la inversión.", "2026-10-14T14:45:00Z"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-1", "2026-10-14T14:45:10Z"),
+      person("Buenas tarde! me encantaría iniciar la próxima semana", "2026-10-23T17:56:00Z"),
+    ];
+    const s = quoteSituation(enny, { now: at("2026-10-23T17:58:00Z"), tz: BOG, lookbackDays: 30 })!;
+    const line = quotePromptLine(s, BOG);
+    expect(line).toContain("«Recuerda que con Dayana quedaron en una sesión»");
+    expect(line).toContain("send_payment_link o send_payment_info");
+    expect(line).toContain("los agenda Dayana cuando reciba el comprobante");
+    // El de las notas de Dayana manda (Joselyn: 3 y 6 sesiones, primero el de 3).
+    expect(quotePromptLine(s, BOG, "paquete de 3 sesiones")).toContain("quedaron en el paquete de 3 sesiones");
+  });
+});
+
+describe("asksHowToPay / quotePayReply (ENNY, 23-oct)", () => {
+  test.each([
+    "Pon la fecha y el día y me emvias la forma de pago",
+    "Me envías el link por favor",
+    "Pásame los datos para pagar",
+    "¿Cómo te pago?",
+    "Regálame el número de cuenta",
+    "Mándame el enlace",
+  ])("pide cómo pagar: %s", (text) => {
+    expect(asksHowToPay([text])).toBe(true);
+  });
+
+  test.each([
+    "El link no me abre",
+    "Me sale error en el enlace",
+    "¿Me puedes enviar la factura del pago?",
+    "Gracias, la otra semana pago",
+    "¿En cuánto sale cada sesión?",
+    // Revisión 23-oct: el enlace de otra cosa, o lo que tiene que ver Dayana.
+    "Me envías el enlace de la sesión de mañana",
+    "¿Me mandas el link de la clase del domingo?",
+    "¿Cuál es el link del Meet?",
+    "¿Me pasas el link del grupo?",
+    "Ya pagué, ¿te mando los datos de la transferencia?",
+    "¿Puedo pagar en dos cuotas? Me pasas los datos",
+    "¿Me das un descuento? y me pasas el link",
+    "Me mandas el link para pagar en dólares",
+    "No tengo Nequi, ¿hay otra forma de pago?",
+  ])("no (lo ve Dayana o no pide cómo pagar): %s", (text) => {
+    expect(asksHowToPay([text])).toBe(false);
+  });
+
+  test("withQuoteReminder: el paquete y el comprobante si la respuesta no los dice (eval 23-oct)", () => {
+    expect(withQuoteReminder("Entiendo, Enny. Te comparto nuevamente el enlace:", "1 sesión")).toBe(
+      "Entiendo, Enny. Recuerda que con Dayana quedaron en una sesión. Te comparto nuevamente el enlace. Cuando hagas el pago, me mandas el comprobante por aquí y Dayana te agenda el día y la hora para iniciar."
+    );
+    expect(withQuoteReminder("Claro. Cuando lo hagas, me mandas el comprobante por aquí", "paquete de 3 sesiones")).toBe(
+      "Claro. Recuerda que con Dayana quedaron en el paquete de 3 sesiones. Cuando lo hagas, me mandas el comprobante por aquí"
+    );
+    // Una sola frase: al principio. Ya lo dice: igual.
+    expect(withQuoteReminder("Aquí tienes el enlace y me mandas el comprobante", "1 sesión")).toBe(
+      "Recuerda que con Dayana quedaron en una sesión. Aquí tienes el enlace y me mandas el comprobante"
+    );
+    const said = "Claro, Enny. Recuerda que con Dayana quedaron en una sesión. Me mandas el comprobante por aquí.";
+    expect(withQuoteReminder(said, "1 sesión")).toBe(said);
+    expect(withQuoteReminder("Claro. Me mandas el comprobante.", null)).toBe("Claro. Me mandas el comprobante.");
+  });
+
+  test("en qué quedó con Dayana y lo que va debajo, sin precios", () => {
+    expect(quotePayReply({ name: "Enny", pack: "1 sesión", what: "link" })).toBe(
+      "Claro, Enny. Recuerda que con Dayana quedaron en una sesión. Cuando hagas el pago, me mandas el comprobante por aquí y Dayana te agenda el día y la hora para iniciar. Aquí tienes el enlace de pago"
+    );
+    expect(quotePayReply({ name: null, pack: "paquete de 24 sesiones", what: "data" })).toContain(
+      "Claro. Recuerda que con Dayana quedaron en el paquete de 24 sesiones."
+    );
+    expect(quotePayReply({ name: null, pack: null, what: "dayana_data" })).toBe(
+      "Claro. Recuerda que Dayana ya te envió cómo hacer el pago. Cuando hagas el pago, me mandas el comprobante por aquí y Dayana te agenda el día y la hora para iniciar. Puedes hacer el pago con los datos que te envió Dayana."
+    );
   });
 });

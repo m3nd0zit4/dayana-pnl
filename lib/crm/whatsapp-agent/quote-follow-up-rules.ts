@@ -130,22 +130,11 @@ const byAssistant = (l: QuoteLine) => l.direction === "OUTBOUND" && (Boolean(l.i
 // --- Qué es una cotización y de qué tipo -----------------------------------
 
 /**
- * Un valor suelto que no es la cotización de su proceso: el precio de un curso
- * o un evento (Patricia, 20-oct: «el curso… está en $60»), o lo que cuesta una
- * sesión dicho antes de la llamada («la llamada es para eso…», Montoya, 9-oct).
+ * ¿Este mensaje de Dayana es una cotización (cómo pagar su proceso)? Es
+ * `isPaymentInfo`, que ya deja fuera el precio de un curso o un evento y el
+ * de una sesión dicho antes de la llamada (Patricia, Montoya).
  */
-const NOT_THERAPY = /\b(curso|cursos|taller|talleres|evento|webinar|clase|clases|diplomado|formacion|certificacion|capacitacion|entrenamiento|membresia|mensualidad)\b/;
-const THERAPY = /\b(sesion|sesiones|terapia|terapias|reprogramacion|proceso personalizado|paquete)\b/;
-const BEFORE_CALL =
-  /\bla llamada es\b[^.\n]{0,25}\bpara\b|\bpara eso es la llamada\b|\ben la llamada (te|se te) (digo|explico|cuento|doy|da)\b|\bagendar (la|una|tu) llamada\b/;
-
-/** ¿Este mensaje de Dayana es una cotización (cómo pagar su proceso)? */
-export const isQuote = (text: string | null | undefined): boolean => {
-  if (!isPaymentInfo(text)) return false;
-  if (paymentInfoKind(text) !== "amount") return true;
-  const t = foldForSearch(text ?? "");
-  return !BEFORE_CALL.test(t) && !(NOT_THERAPY.test(t) && !THERAPY.test(t));
-};
+export const isQuote = (text: string | null | undefined): boolean => isPaymentInfo(text);
 
 /**
  * Un mensaje con la cotización: de Dayana (`isQuote`) o los datos para pagar
@@ -587,10 +576,75 @@ export const quoteStateText = (s: QuoteSituation, tz: string): string =>
  * a «estoy decidida, pago la otra semana» (Raquel, 22-oct) el modelo no supo
  * qué decir y salió «Déjame consultarlo con Dayana».
  */
-export const quotePromptLine = (s: QuoteSituation, tz: string): string =>
+/**
+ * `pack`: el paquete que le corresponde según las notas de Dayana (Joselyn:
+ * le mandó 3 y 6 sesiones y la nota dice que primero el de 3); si no, el de la
+ * cotización.
+ */
+export const quotePromptLine = (s: QuoteSituation, tz: string, pack: string | null = s.how.pack): string =>
   [
     `SEGUIMIENTO DEL CIERRE: ${s.quoteBy === "dayana" ? "Dayana le mandó" : "Ya le mandaste"} cómo pagar el ${dayLabel(s.quoteAt, tz)}. Ahora: ${quoteStateText(s, tz)}${s.said ? `; dijo: «${s.said.slice(0, 160)}»` : ""}.`,
     "- Si dice cuándo va a pagar, que está decidida o que espera un dinero: no escales. Dile con calidez que Dayana queda muy atenta y que, cuando haga el pago, te mande el comprobante por aquí para que Dayana le agende el inicio.",
+    // ENNY (23-oct): «pon la fecha y el día y me envías la forma de pago» al seguimiento.
+    `- Si pide el enlace, los datos o la forma de pago, o no recuerda qué le mandó Dayana: empieza recordándole en qué quedó${pack ? ` («Recuerda que con Dayana quedaron en ${packPhrase(pack)}»)` : ""} y vuelve a mandárselo con send_payment_link o send_payment_info, sin escribir a mano una cuenta ni un enlace. El día y la hora de inicio los agenda Dayana cuando reciba el comprobante: no escales por eso.`,
     "- Si dice que lo está pensando: respétalo y ofrécele resolver dudas, sin presionar.",
     "- Si dice que no le alcanza: mira COMUNIDAD Y OPCIONES MÁS ECONÓMICAS. Si dice que ya pagó o manda el comprobante: register_payment_receipt.",
   ].join("\n");
+
+/** «1 sesión» → «una sesión»; «paquete de 6 sesiones» → «el paquete de 6 sesiones». */
+const packPhrase = (pack: string) => (pack === "1 sesión" ? "una sesión" : `el ${pack}`);
+
+const COMPROBANTE = "Cuando hagas el pago, me mandas el comprobante por aquí y Dayana te agenda el día y la hora para iniciar.";
+
+/**
+ * Pidió cómo pagar después de la cotización y la respuesta lleva el enlace o
+ * los datos, pero no le recuerda en qué quedó con Dayana ni le pide el
+ * comprobante (dueña, 23-oct: «Recuerda que habían quedado en este paquete»;
+ * en la evaluación el modelo no lo dijo ninguna de 3 veces): se agrega después
+ * de la primera frase («Claro, Enny.») o, si solo hay una, al principio.
+ */
+export const withQuoteReminder = (text: string, pack: string | null): string => {
+  let out = text.trim();
+  const t = foldForSearch(out);
+  if (pack && !t.includes("quedaron en") && !t.includes(foldForSearch(packPhrase(pack)))) {
+    const reminder = `Recuerda que con Dayana quedaron en ${packPhrase(pack)}.`;
+    const first = out.match(/^[^.!?\n]{1,200}[.!?][ \t]+(?=\S)/)?.[0];
+    out = first ? `${first}${reminder} ${out.slice(first.length)}` : `${reminder} ${out}`;
+  }
+  if (!/\bcomprobante\b/.test(t)) {
+    const body = out.replace(/[\s:]+$/, "");
+    out = `${body}${/[.!?]$/.test(body) ? "" : "."} ${COMPROBANTE}`;
+  }
+  return out;
+};
+
+/**
+ * Pide cómo pagar: el enlace, los datos, la forma de pago, «¿cómo te pago?»
+ * («me emvias la forma de pago», ENNY). No el enlace de otra cosa (el Meet, la
+ * clase, el grupo), ni lo que tiene que ver Dayana: un enlace que no abre, una
+ * factura, cuotas, un descuento, otra moneda u otro medio, ni «ya pagué» (revisión 23-oct).
+ */
+const ASKS_HOW_TO_PAY =
+  /\b(forma|formas|medio|medios|metodo|metodos|datos|link|enlace|informacion) (de|del|para el|para) pago\b|\b(link|enlace) (para|de) pagar\b|\b(los|tus|sus) datos\b|\bnumero de cuenta\b|\bcomo (te |le )?(pago|puedo pagar|hago el pago|realizo el pago|hago la transferencia)\b|\b(enviame|envieme|emviame|mandame|mandeme|pasame|paseme|regalame|me envias|me emvias|me envia|me mandas|me manda|me pasas|me pasa|me das|me da)\b[^.?!\n]{0,30}\b(pago|pagar|link|enlace|datos|cuenta)\b/;
+const NOT_JUST_PAY =
+  /\b(no (me )?(abre|funciona|sirve|deja|carga|sale|aparece|acepta)|error|rechaz\w*|fall\w*|factura|recibo|cuotas?|descuento|rebaja|dolares|usd|euros|otra forma|otro medio|otra manera|otro banco|otra cuenta|ya (te )?(pague|transferi|deposite|consigne|envie|mande|hice))\b/;
+const OTHER_LINK = /\b(meet|zoom|clase|grupo|comunidad|webinar|curso|taller|evento|reunion|llamada|live|directo|video|sesion de (hoy|manana))\b/;
+export const asksHowToPay = (texts: string[]): boolean => {
+  const t = foldForSearch(texts.join(" "));
+  if (!ASKS_HOW_TO_PAY.test(t) || NOT_JUST_PAY.test(t)) return false;
+  return !OTHER_LINK.test(t) || /\b(de pago|para pagar)\b/.test(t);
+};
+
+/**
+ * Lo que recibe quien pide cómo pagar después de la cotización si el modelo
+ * escaló igual (ENNY, 23-oct: «Déjame confirmarlo con Dayana»): en qué quedó
+ * con Dayana y, debajo, su enlace o los datos (los pega el código).
+ */
+export const quotePayReply = (opts: { name: string | null; pack: string | null; what: "link" | "data" | "dayana_data" }): string => {
+  return [
+    `Claro${opts.name ? `, ${opts.name}` : ""}.`,
+    opts.pack ? `Recuerda que con Dayana quedaron en ${packPhrase(opts.pack)}.` : "Recuerda que Dayana ya te envió cómo hacer el pago.",
+    COMPROBANTE,
+    opts.what === "link" ? "Aquí tienes el enlace de pago" : opts.what === "data" ? "Aquí tienes los datos para el pago" : "Puedes hacer el pago con los datos que te envió Dayana.",
+  ].join(" ");
+};

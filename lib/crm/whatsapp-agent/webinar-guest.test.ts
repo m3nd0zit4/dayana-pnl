@@ -45,6 +45,14 @@ describe("asksForProcess", () => {
     "Quisiera info del acompañamiento",
     "¿Cuánto cuesta una sesión?",
     "¿Me puedes atender?",
+    // Mildred, 23-oct: el código le cambió la respuesta por «Hola Mildred, te bendigo».
+    "Hola Dra Dayana muchas gracias \nQué precio tiene la consulta o cómo trabajas ?",
+    "Quiero quítarme creencias limitantes, pena, rabia, dolor, tristeza.",
+    "¿Cuánto vale la consulta?",
+    "Qué valor tienen las sesiones",
+    "¿Cómo trabaja Dayana?",
+    "¿En qué consiste tu método?",
+    "Necesito sanar la relación con mi madre",
   ])("pide algo personal: %s", (text) => {
     expect(asksForProcess(text)).toBe(true);
   });
@@ -70,6 +78,21 @@ describe("asksForProcess", () => {
     "¿Cómo puedo seguir el proceso del webinar?",
     "No me llega el enlace, necesito ayuda",
     "Vengo de la página del webinar, me inscribí",
+    // Revisión 23-oct: el valor del evento no es el de una sesión con Dayana.
+    "¿La sesión del domingo tiene costo?",
+    "¿Cuánto cuesta el webinar?",
+    "Quiero aprender mucho en el webinar",
+    "¿Cómo funciona el evento?",
+    // Nuestros mensajes le dicen «la sesión» al webinar (revisión 23-oct).
+    "¿La sesión del sábado tiene costo?",
+    "¿La sesión de hoy tiene algún costo?",
+    "¿Tiene algún costo la sesión?",
+    "¿La sesión de mañana es gratis o tiene costo?",
+    "¿Cuánto es la duración de la sesión?",
+    "¿Cómo funciona la sesión del domingo?",
+    "¿En qué consiste la sesión?",
+    "Gracias por el valor de esta sesión tan linda",
+    "Quiero salir de la duda, ¿a qué hora es?",
   ])("no pide nada personal: %s", (text) => {
     expect(asksForProcess(text)).toBe(false);
   });
@@ -130,6 +153,17 @@ describe("wantsProcess", () => {
   test("un «sí quiero» a una pregunta del evento no es un proceso", () => {
     expect(wantsProcess([out(CONFIRMATION), inb("No encuentro el enlace"), out("¿Quieres que te reenvíe el enlace?"), inb("Sí quiero")], NOW)).toBe(false);
     expect(wantsProcess([out(CONFIRMATION), inb("Gracias"), out("¿Te esperamos el domingo en la sesión?"), inb("Sí")], NOW)).toBe(false);
+  });
+
+  test("preguntó el precio de la consulta y cómo trabaja Dayana (Mildred, 23-oct): sí", () => {
+    const lines = [
+      out(CONFIRMATION),
+      inb("Hola Dra Dayana muchas gracias \nQué precio tiene la consulta o cómo trabajas ?"),
+      out("Hola Mildred, te bendigo."),
+      inb("Quiero quítarme creencias limitantes, pena, rabia, dolor, tristeza."),
+    ];
+    expect(wantsProcess(lines, NOW)).toBe(true);
+    expect(wantsProcess(lines.slice(0, 2), NOW)).toBe(true);
   });
 
   test("lo que pidió hace más de un mes ya no cuenta", () => {

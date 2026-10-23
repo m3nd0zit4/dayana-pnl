@@ -229,6 +229,152 @@ export const withoutToolText = (text: string): { text: string; had: boolean } =>
 export const writesAccountNumber = (text: string): boolean => /\b\d[\d\s-]{8,}\d\b/.test(text);
 
 /**
+ * Los números largos de un texto (cuenta, cédula, teléfono), solo las cifras.
+ * Un valor («1.860.000») no; una cédula con puntos de 10 cifras sí.
+ */
+const longNumbers = (text: string): string[] =>
+  [...text.matchAll(/\d[\d \t.-]{5,}\d/g)]
+    .map((m) => m[0].trim())
+    .filter((n) => !(/^\d{1,3}(\.\d{3})+$/.test(n) && n.replace(/\D/g, "").length <= 9))
+    .map((n) => n.replace(/\D/g, ""))
+    .filter((d) => d.length >= 7);
+
+/** ¿Son la misma cuenta? Cada número largo de `details` está en `other` (y hay alguno). */
+export const sharesAccount = (details: string, other: string): boolean => {
+  const mine = longNumbers(details);
+  const theirs = new Set(longNumbers(other));
+  return mine.length > 0 && mine.every((d) => theirs.has(d));
+};
+
+/** Una línea de un bloque de datos: el banco solo, o «Titular: …», «N° Cuenta: …». */
+const DATA_LABEL =
+  /^(banco\w*( [a-z]+)?|bancolombia|nequi|daviplata|davivienda|bbva|western union)$|^(banco|nombre( del titular)?|titular|tipo de cuenta|n[°º.o]* ?(de )?cuenta|numero de cuenta|cuenta( de ahorros| corriente| bancaria)?|documento|c\.?c\.?|cedula|nit|clabe|iban|alias)\s*:/;
+const PAY_WORD = /\b(nequi|daviplata|bancolombia|davivienda|bbva|western|banco|cuenta|titular|a nombre)\b/;
+
+/**
+ * Los datos de pago copiados a mano (ENNY, 23-oct: al seguimiento contestó
+ * «me envías la forma de pago» y el modelo copió la cuenta de Bancolombia que
+ * estaba más arriba en el chat; el freno de arriba la paró y le llegó «Déjame
+ * confirmarlo con Dayana»). Si cada número que escribió está, cifra por cifra,
+ * en unos datos de verdad, sus líneas salen de su texto y va el bloque de
+ * verdad: el de Ajustes tal cual (`exact`), o las líneas de Dayana con esos
+ * números (nunca las del modelo: el banco o el titular pueden estar mal). Un
+ * número que no está en ninguno sigue frenado (puede ser inventado).
+ */
+export const typedPaymentData = (text: string, sources: { details: string; exact: boolean }[]): { text: string; block: string } | null => {
+  const typed = longNumbers(text);
+  if (!typed.length) return null;
+  const source = sources.find((s) => {
+    const real = new Set(longNumbers(s.details));
+    return typed.every((d) => real.has(d));
+  });
+  if (!source) return null;
+  const sourceLines = source.details.split("\n").map((l) => l.trim()).filter(Boolean);
+  const sourceFolded = new Set(sourceLines.map((l) => foldForSearch(l)));
+  const bare = (line: string) => foldForSearch(line).replace(/^[\s*_•-]+/, "").replace(/[\s*_]+$/, "").trim();
+  const isData = (line: string) => longNumbers(line).length > 0 || sourceFolded.has(bare(line)) || DATA_LABEL.test(bare(line));
+  // De Dayana: sus líneas con esos números y sus etiquetas; en una sola línea
+  // («Hola bella, mi Nequi es 310…»), desde donde empiezan los datos.
+  const fromDayana = sourceLines
+    .filter((l) => longNumbers(l).some((d) => typed.includes(d)) || DATA_LABEL.test(bare(l)))
+    .map((l) => {
+      const at = foldForSearch(l).search(PAY_WORD);
+      const cut = at > 0 && longNumbers(l.slice(0, at)).length === 0 ? l.slice(at) : l;
+      return cut.charAt(0).toUpperCase() + cut.slice(1);
+    });
+  // Lo que queda del texto; «…los datos para el pago:» seguido de otra frase queda en punto.
+  const kept: string[] = [];
+  let dropped = false;
+  for (const line of text.split("\n")) {
+    if (isData(line)) {
+      dropped = true;
+      continue;
+    }
+    if (dropped && line.trim()) {
+      const last = kept.findLastIndex((l) => l.trim());
+      if (last >= 0) kept[last] = kept[last].replace(/:\s*$/, ".");
+      dropped = false;
+    }
+    kept.push(line);
+  }
+  return {
+    text: kept.join("\n").replace(/\n{3,}/g, "\n\n").trim().replace(/:$/, ""),
+    block: source.exact ? source.details.trim() : fromDayana.join("\n"),
+  };
+};
+
+const URL_CHARS = "[^\\s<>()[\\]\"'«»]+";
+const URL_IN_TEXT = new RegExp(`(?:https?:\\/\\/|www\\.)${URL_CHARS}`, "gi");
+/** Para lo conocido basta con parecer una dirección («dayanabeltran.com/eventos»). */
+const ANY_URL = new RegExp(`(?:https?:\\/\\/|www\\.)${URL_CHARS}|\\b[a-z0-9-]+(?:\\.[a-z0-9-]+)+\\/${URL_CHARS}`, "gi");
+/** «*https://x.co/a*.» → el enlace y lo que lo envuelve o cierra la frase. */
+const splitUrl = (raw: string) => {
+  const m = raw.match(/^(.*?)([*_~`.,;:!?…]*)$/) ?? [raw, raw, ""];
+  return { url: m[1], tail: m[2] };
+};
+/** Como se comparan: sin http ni www, el dominio en minúscula, sin «?…», «#…» ni la barra final (la ruta se respeta: un token de /pagar/ distingue mayúsculas). */
+const urlKey = (raw: string) => {
+  const [hostPath] = splitUrl(raw).url.replace(/^https?:\/\//i, "").replace(/^www\./i, "").split(/[?#]/);
+  const slash = hostPath.indexOf("/");
+  const host = (slash < 0 ? hostPath : hostPath.slice(0, slash)).toLowerCase();
+  return host + (slash < 0 ? "" : hostPath.slice(slash).replace(/\/+$/, ""));
+};
+
+/** Las direcciones de unos textos, como se comparan. */
+export const urlKeys = (...texts: (string | null | undefined)[]): Set<string> =>
+  new Set(texts.flatMap((t) => [...(t ?? "").matchAll(ANY_URL)].map((m) => urlKey(m[0]))));
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Un enlace que el modelo escribió sin haberlo leído en una fuente de verdad
+ * (las reglas, los DATOS, lo que escribieron Dayana o la persona, los envíos
+ * automáticos; no lo que escribió antes la IA): Ruth (23-oct) pidió el de la
+ * comunidad y le llegó «Https://www.dayanabeltran.com/comunidad:», una página
+ * que no existe, encima del enlace de verdad. No sale; el de verdad lo pega el
+ * código. La portada del sitio (`siteHosts`) sí vale, y una ruta del sitio
+ * escrita sin «https» («dayanabeltran.com/comunidad») también se mira. Los
+ * que quedan salen con «https» en minúscula.
+ */
+export const withoutInventedUrls = (text: string, known: Set<string>, siteHosts: string[] = []): { text: string; removed: string[] } => {
+  const removed: string[] = [];
+  const bareSite = siteHosts.length ? `|\\b(?:www\\.)?(?:${siteHosts.map(escapeRe).join("|")})\\/${URL_CHARS}` : "";
+  const pattern = new RegExp(`${URL_IN_TEXT.source}${bareSite}`, "gi");
+  const lines = text.split("\n").map((line) => {
+    let hit = false;
+    const out = line.replace(pattern, (raw) => {
+      const key = urlKey(raw);
+      if (known.has(key) || siteHosts.includes(key)) return raw.replace(/^https?:/i, (s) => s.toLowerCase());
+      hit = true;
+      removed.push(splitUrl(raw).url);
+      // La puntuación que cerraba la frase se queda; el «*» o los dos puntos no.
+      return splitUrl(raw).tail.replace(/[^.!?…]/g, "");
+    });
+    if (!hit) return out;
+    return (
+      out
+        // El «*» que abría un enlace en negrita.
+        .replace(/(^|\s)[*_~`]+(?=\s|[.!?…]|$)/g, "$1")
+        .replace(/[ \t]+$/, "")
+        .replace(/\s+([.,;:!?])/g, "$1")
+        // «Aquí está: <enlace>. Te bendigo» → «Aquí está. Te bendigo».
+        .replace(/:([.!?…])/g, "$1")
+        .replace(/:$/, "")
+    );
+  });
+  if (!removed.length) return { text: lines.join("\n"), removed };
+  return {
+    text: lines
+      .filter((l, i, all) => l.trim() || (i > 0 && all[i - 1].trim()))
+      .join("\n")
+      .replace(/^[\s:]+$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
+    removed,
+  };
+};
+
+/**
  * «Le paso tu mensaje a Dayana», «ya le aviso», «déjame consultarlo con
  * Dayana»: una promesa de que Dayana se entera. Si la IA no escaló, el código
  * le avisa igual (Ricky, 17-oct: «Le paso tu mensaje a Dayana para que lo

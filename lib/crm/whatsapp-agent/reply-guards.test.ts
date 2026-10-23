@@ -1,6 +1,20 @@
 import { describe, expect, test } from "bun:test";
 
-import { answeringDayana, closingNotNeeded, findPseudoToolCall, isClosingLine, PSEUDO_HOLDING, promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
+import {
+  answeringDayana,
+  closingNotNeeded,
+  findPseudoToolCall,
+  isClosingLine,
+  PSEUDO_HOLDING,
+  promisesHandoff,
+  pseudoEscalation,
+  sharesAccount,
+  typedPaymentData,
+  urlKeys,
+  withoutInventedUrls,
+  withoutToolText,
+  writesAccountNumber,
+} from "./reply-guards";
 
 const ai = (body: string, extra = {}) => ({ direction: "OUTBOUND", body, isAutoReply: true, kind: "message", status: "DELIVERED", ...extra });
 const dayana = (body: string) => ({ direction: "OUTBOUND", body, isAutoReply: false, kind: "message", status: "DELIVERED" });
@@ -134,6 +148,97 @@ describe("promisesHandoff", () => {
   test("lo demás no", () => {
     expect(promisesHandoff("Dayana te llama por WhatsApp a este número.")).toBe(false);
     expect(promisesHandoff("Con gusto 🙏")).toBe(false);
+  });
+});
+
+describe("withoutInventedUrls (Ruth, 23-oct)", () => {
+  const known = urlKeys("DATOS: inscripción https://www.dayanabeltran.com/eventos-gratuitos", "Enlace para ingresar: https://meet.google.com/mwy-ootz-hge");
+  test("un enlace que no leyó en ninguna parte no sale", () => {
+    expect(
+      withoutInventedUrls("Claro, Ruth. Para unirte a la comunidad de Dayana, puedes ingresar por aquí\n\nHttps://www.dayanabeltran.com/comunidad:", known, ["dayanabeltran.com"])
+    ).toEqual({
+      text: "Claro, Ruth. Para unirte a la comunidad de Dayana, puedes ingresar por aquí",
+      removed: ["Https://www.dayanabeltran.com/comunidad"],
+    });
+    expect(withoutInventedUrls("Aquí está: https://chat.whatsapp.com/ExemploComunidad. Te bendigo", known).text).toBe("Aquí está. Te bendigo");
+  });
+  test("los que están en las reglas, los DATOS o el chat sí (con o sin www, http o barra final)", () => {
+    const text = "Inscríbete aquí: https://www.dayanabeltran.com/eventos-gratuitos/ y entra por https://meet.google.com/mwy-ootz-hge.";
+    expect(withoutInventedUrls(text, known)).toEqual({ text, removed: [] });
+    expect(withoutInventedUrls("Mira dayanabeltran.com o www.dayanabeltran.com", known, ["dayanabeltran.com"]).removed).toEqual([]);
+  });
+  test("en negrita, con «?…» o con «Https» sigue siendo el mismo (revisión 23-oct); sale con https en minúscula", () => {
+    expect(withoutInventedUrls("Aquí tienes: *https://www.dayanabeltran.com/eventos-gratuitos*", known).text).toBe(
+      "Aquí tienes: *https://www.dayanabeltran.com/eventos-gratuitos*"
+    );
+    expect(withoutInventedUrls("Entra aquí: https://meet.google.com/mwy-ootz-hge?authuser=0", known).removed).toEqual([]);
+    expect(withoutInventedUrls("Es este\n\nHttps://meet.google.com/mwy-ootz-hge", known).text).toBe("Es este\n\nhttps://meet.google.com/mwy-ootz-hge");
+  });
+  test("uno inventado en negrita o sin https también sale; los dos puntos de otras líneas se quedan", () => {
+    expect(withoutInventedUrls("Aquí: *https://x.co/inventado*", known).text).toBe("Aquí");
+    expect(withoutInventedUrls("Únete en dayanabeltran.com/comunidad.", known, ["dayanabeltran.com"])).toEqual({
+      text: "Únete en.",
+      removed: ["dayanabeltran.com/comunidad"],
+    });
+    expect(withoutInventedUrls("Horarios:\n- lunes\nMira https://x.co/inventado", known).text).toBe("Horarios:\n- lunes\nMira");
+  });
+  test("la ruta distingue mayúsculas (un token de /pagar/)", () => {
+    const pay = urlKeys("https://www.dayanabeltran.com/pagar/AbC123");
+    expect(withoutInventedUrls("https://www.dayanabeltran.com/pagar/abc123", pay).removed).toEqual(["https://www.dayanabeltran.com/pagar/abc123"]);
+    expect(withoutInventedUrls("HTTPS://WWW.DAYANABELTRAN.COM/pagar/AbC123", pay).removed).toEqual([]);
+  });
+});
+
+describe("sharesAccount", () => {
+  test("los mismos números, aunque con otro formato", () => {
+    expect(sharesAccount("Nequi 3105833188", "mi Nequi es 310 583 3188 a nombre de Dayana")).toBe(true);
+    expect(sharesAccount("Bancolombia\nN° Cuenta: 00000000001", "Western Union\nNúmero de cuenta: 00000000002")).toBe(false);
+    expect(sharesAccount("Bancolombia (sin número)", "Bancolombia 00000000001")).toBe(false);
+  });
+});
+
+describe("typedPaymentData (ENNY, 23-oct)", () => {
+  const bancolombia = "Bancolombia\nNombre: Julian Mendoza\nTipo de cuenta: Ahorros\nN° Cuenta: 15460415745\nDocumento CC: 1029145651";
+  test("la cuenta de Ajustes copiada a mano: sale de su texto y va el bloque tal cual", () => {
+    const typed =
+      "Claro, Enny. Aquí tienes los datos para el pago:\n\nBancolombia\nNombre: Julian Mendoza\nTipo de cuenta: Ahorros\nN° Cuenta: 15460415745\nDocumento CC: 1029145651\n\nCuando lo hagas, me mandas el comprobante por aquí.";
+    // Los datos van al final (`withPaymentBlocks`): «…para el pago:» seguido de otra frase queda en punto.
+    expect(typedPaymentData(typed, [{ details: bancolombia, exact: true }])).toEqual({
+      text: "Claro, Enny. Aquí tienes los datos para el pago.\n\nCuando lo hagas, me mandas el comprobante por aquí.",
+      block: bancolombia,
+    });
+    expect(typedPaymentData("Claro, Enny. Te comparto los datos:\nN° Cuenta: 15460415745", [{ details: bancolombia, exact: true }])).toEqual({
+      text: "Claro, Enny. Te comparto los datos",
+      block: bancolombia,
+    });
+  });
+  test("los datos que Dayana mandó ella misma: van SUS líneas, nunca las del modelo (revisión 23-oct)", () => {
+    const dayana = "Hola bella, mi Nequi es 310 583 3188 a nombre de Dayana Beltrán";
+    expect(
+      typedPaymentData("Claro, Ana.\nPuedes pagar al Nequi 3105833188 a nombre de Dayana Beltrán", [{ details: dayana, exact: false }])
+    ).toEqual({
+      text: "Claro, Ana.",
+      block: "Nequi es 310 583 3188 a nombre de Dayana Beltrán",
+    });
+    // Otro banco y otro titular escritos por el modelo: no salen.
+    expect(
+      typedPaymentData("Claro.\nBanco: Davivienda\nCuenta: 3105833188\nTitular: Julian Mendoza", [{ details: dayana, exact: false }])
+    ).toEqual({ text: "Claro.", block: "Nequi es 310 583 3188 a nombre de Dayana Beltrán" });
+  });
+  test("frases que no son datos se quedan", () => {
+    expect(
+      typedPaymentData("Cuenta conmigo para lo que necesites.\nNúmero de sesiones: 3\nN° Cuenta: 15460415745", [{ details: bancolombia, exact: true }])?.text
+    ).toBe("Cuenta conmigo para lo que necesites.\nNúmero de sesiones: 3");
+  });
+  test("un número que no está en ningún dato de verdad: nada (lo para el freno)", () => {
+    expect(typedPaymentData("Número de cuenta: 123-456789-00", [{ details: bancolombia, exact: true }])).toBeNull();
+    expect(typedPaymentData("Cuenta 15460415745, cédula 99999999", [{ details: bancolombia, exact: true }])).toBeNull();
+    expect(typedPaymentData("Claro, te comparto los datos para el pago.", [{ details: bancolombia, exact: true }])).toBeNull();
+  });
+  test("un valor no es un número de cuenta", () => {
+    expect(
+      typedPaymentData("El paquete de 12 sesiones queda en 1.860.000.\nN° Cuenta: 15460415745", [{ details: bancolombia, exact: true }])?.text
+    ).toBe("El paquete de 12 sesiones queda en 1.860.000.");
   });
 });
 
