@@ -192,6 +192,7 @@ describe("funnelsGuest", () => {
     "¿De qué ciudad de México me escribes?",
     "¿Cuánto tiempo más quieres seguir así?",
     "¿Te gustaría que revisemos una fecha para esa llamada?",
+    "Caicedo, el «Webinar Gratuito» es el domingo, 18 de octubre. ¿Te gustaría que veamos una cita?", // eval 23-oct
   ])("la mete en el embudo: %s", (reply) => {
     expect(funnelsGuest(reply, ["Gracias"])).toBe(true);
   });

@@ -216,6 +216,8 @@ const FUNNEL = [
   // El evento no es una llamada: «una / la / esa llamada» es la gratis («¿revisemos una
   // fecha para esa llamada?», eval 22-oct); «no es una llamada» habla del evento.
   /(?<!\bno es )\b(una|la|tu|esa|otra|tus|las) llamadas?\b|\bllamada (gratis|gratuita)|\b(consulta|sesion) (gratis|gratuita)|\b15 minutos\b/,
+  // «¿Te gustaría que veamos una cita?» (Caicedo, eval 23-oct).
+  /\b(una|la|tu|esa|otra) cita\b/,
   /\b(te |la |lo )?agend(o|e|amos|emos|ar|arte|arla|arlo)\b|\bun espacio (con|para hablar)\b/,
   /\bcomo (estas|te sientes|te has sentido|te encuentras|vas)\b/,
   /\bque te (motiva|motivo|llevo|trae|trajo|impulso|animo|gustaria (trabajar|sanar|transformar|cambiar|mejorar))\b/,
