@@ -110,7 +110,7 @@ const blockedPrompt = async (res: Response): Promise<{ body: Record<string, unkn
     .clone()
     .json()
     .catch(() => null);
-  if (!body || typeof body !== "object" || Array.isArray(body.candidates)) return null;
+  if (!body || typeof body !== "object" || (Array.isArray(body.candidates) && body.candidates.length > 0)) return null;
   if (!("promptFeedback" in body) && !("usageMetadata" in body)) return null;
   const reason = (body.promptFeedback as { blockReason?: unknown } | undefined)?.blockReason;
   return { body, reason: typeof reason === "string" && reason ? reason : "OTHER" };
@@ -142,13 +142,16 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
     const body = init?.body;
     if (other && (body == null || typeof body === "string")) {
       const retry = await keyed(other, init);
+      // Un error pasajero (cuota, caída) llega tal cual: el SDK reintenta.
+      if (retry.status === 429 || retry.status >= 500) return retry;
       if (retry.ok && !(await blockedPrompt(retry))) return retry;
       console.warn(`[gemini] también bloqueado con el modelo completo (${retry.status})`);
     }
-    return new Response(JSON.stringify({ ...blocked.body, candidates: [{ content: { parts: [] }, finishReason: blocked.reason }] }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    const promptFeedback = { ...(blocked.body.promptFeedback as object | undefined), blockReason: blocked.reason };
+    return new Response(
+      JSON.stringify({ ...blocked.body, promptFeedback, candidates: [{ content: { parts: [] }, finishReason: blocked.reason }] }),
+      { status: 200, headers: { "content-type": "application/json" } }
+    );
   };
 };
 

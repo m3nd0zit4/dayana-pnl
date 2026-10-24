@@ -143,6 +143,25 @@ describe("pedido bloqueado por Google (200 sin candidates)", () => {
     expect(body.promptFeedback.blockReason).toBe("OTHER");
   });
 
+  test("el modelo completo da un error pasajero (503, 429): llega ese error (el SDK reintenta), no «bloqueado»", async () => {
+    for (const status of [503, 429]) {
+      resetGeminiKeyState();
+      const f = byModel({ "gemini-3.5-flash-lite": blocked, "gemini-3.5-flash": () => new Response("{}", { status }) });
+      expect((await createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn })(URL_, init)).status).toBe(status);
+    }
+  });
+
+  test("también con «candidates: []» y el motivo; sin motivo, queda «OTHER» en la respuesta", async () => {
+    const empty = () => new Response(JSON.stringify({ candidates: [], promptFeedback: { blockReason: "SAFETY" } }), { status: 200 });
+    const f1 = byModel({ "gemini-3.5-flash-lite": empty, "gemini-3.5-flash": empty });
+    const b1 = await (await createGeminiFetch({ keys: () => ["A"], baseFetch: f1.fn })(URL_, init)).json();
+    expect(b1.candidates).toEqual([{ content: { parts: [] }, finishReason: "SAFETY" }]);
+    const noReason = () => new Response(JSON.stringify({ usageMetadata: { promptTokenCount: 5 } }), { status: 200 });
+    const f2 = byModel({ "gemini-3.5-flash-lite": noReason, "gemini-3.5-flash": noReason });
+    const b2 = await (await createGeminiFetch({ keys: () => ["A"], baseFetch: f2.fn })(URL_, init)).json();
+    expect(b2.promptFeedback.blockReason).toBe("OTHER");
+  });
+
   test("una respuesta normal y lo que no es generateContent (embeddings) pasan tal cual", async () => {
     const f = byModel({ "gemini-3.5-flash-lite": answer("ok"), "gemini-embedding-001": () => new Response('{"embedding":{"values":[1]}}', { status: 200 }) });
     const gfetch = createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn });
