@@ -281,6 +281,10 @@ describe("givesEmergencyAdvice: la asistente nunca da consejos de emergencia (du
       "Aquí tienes el enlace de la sesión urgente. Tan pronto hagas el pago, Dayana te agenda la sesión para hoy o mañana por Google Meet.",
       "Francy, te entiendo perfectamente. Si las llamadas de afuera se cortan, estate muy atenta a tu teléfono a la hora programada.",
       "Dayana te llama el lunes a las 9:15 a. m.",
+      // Revisión 24-oct: lo de ventas y agenda.
+      "Si el pago no pasa, escríbele a la línea de atención de tu banco.",
+      "Puedes escribir a la línea de ayuda de PayPal.",
+      "Entiendo que tuviste una emergencia, ¿reagendamos la llamada?",
       null,
     ]) {
       expect([t, givesEmergencyAdvice(t)]).toEqual([t, false]);

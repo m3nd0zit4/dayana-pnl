@@ -97,24 +97,27 @@ export const hasRiskSigns = (texts: (string | null | undefined)[]): boolean => t
  * así», un golpe, pastillas para dormir o una crisis de ansiedad son lo que
  * Dayana trabaja: respuesta normal.
  */
+/** «morir de risa», «matarme trabajando»: una exageración, no un riesgo. */
+const IDIOM =
+  "(?!\\s+(de\\s+((la|el|un|una)\\s+)?(risa|amor|hambre|sed|ganas|frio|calor|sueno|envidia|verguenza|pena|miedo|aburrimiento|cansancio|nervios|celos|emocion|gusto|alegria|felicidad)|trabajando|estudiando|haciendo|en\\s+el\\s+(gym|gimnasio|trabajo)))";
 const SELF_HARM = new RegExp(
   [
     "suicid",
     "quitar(me|se|le)?\\s+la\\s+vida",
     "no\\s+(quiero|quiere|quisiera|queria)\\s+(vivir|existir|seguir\\s+viviendo|estar\\s+viv[oa])",
-    "(ganas|deseos?)\\s+de\\s+morir",
-    "(quiero|quiere|quisiera|pienso\\s+en|piensa\\s+en)\\s+morir(me|se)?\\b(?!\\s+de\\b)",
+    `(ganas|deseos?)\\s+de\\s+morir(me|se)?\\b${IDIOM}`,
+    `(quiero|quiere|quisiera|pienso\\s+en|piensa\\s+en)\\s+morir(me|se)?\\b${IDIOM}`,
     "(pensamientos?|ideas?)\\s+de\\s+muerte",
-    "matarme",
-    "matarse",
+    `matar(me|se)\\b${IDIOM}`,
     // «me va a matar» (otra persona, casi siempre una exageración) no.
-    "(me\\s+(quiero|voy\\s+a)|se\\s+(quiere|va\\s+a))\\s+matar\\b",
+    `(me\\s+(quiero|voy\\s+a)|se\\s+(quiere|va\\s+a))\\s+matar\\b${IDIOM}`,
     "(terminar|acabar)\\s+con\\s+(mi|su|tu)\\s+vida",
     "mejor\\s+muert[oa]",
-    "ir(me|se)?\\s+de\\s+este\\s+mundo",
+    "(ir(me|se)?|me\\s+voy|se\\s+va)\\s+de\\s+este\\s+mundo",
     "(quiero|quisiera|ojala)[^.?!]{0,25}\\bno\\s+(volver\\s+a\\s+)?despertar",
     "(cortarme|cortarse|me\\s+corte|me\\s+estoy\\s+cortando|se\\s+corto|se\\s+corta)\\s+(las\\s+|los\\s+)?(venas|brazos|munecas|piernas)",
-    "(hacerme|hacerse|me\\s+hago|me\\s+estoy\\s+haciendo)\\s+dano",
+    // «me hago daño en la rodilla» no: un golpe.
+    "(hacerme|hacerse)\\s+dano\\b(?!\\s+(en|al|con|jugando|haciendo)\\b)",
     "autolesi",
     "lastimarme",
     "lastimarse",

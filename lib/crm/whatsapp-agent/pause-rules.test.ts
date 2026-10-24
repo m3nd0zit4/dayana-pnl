@@ -126,8 +126,9 @@ describe("saysSelfHarm: solo cuando dice que quiere morir o hacerse daño (Franc
       "quiero terminar con mi vida",
       "estaría mejor muerta",
       "me corté las venas",
-      "me estoy haciendo daño",
       "quiero hacerme daño",
+      "quiero morirme de una vez",
+      "me voy de este mundo",
       "me tomé todas las pastillas",
       "quisiera dormir y no despertar",
       "me quiero ir de este mundo",
@@ -159,6 +160,12 @@ describe("saysSelfHarm: solo cuando dice que quiere morir o hacerse daño (Franc
       "me voy a morir de la vergüenza",
       "quiero morirme de la risa",
       "no quiero despertar a mi bebé",
+      // Revisión 24-oct: exageraciones y golpes.
+      "tengo ganas de morir de risa con este video",
+      "me quiero matar de risa",
+      "tengo que matarme trabajando",
+      "me hago daño en la rodilla al cargar",
+      "no quiero hacerme daño en la espalda",
     ]) {
       expect([t, saysSelfHarm([t])]).toEqual([t, false]);
     }

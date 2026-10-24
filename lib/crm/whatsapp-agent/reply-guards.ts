@@ -396,10 +396,11 @@ export const promisesHandoff = (text: string): boolean => HANDOFF.test(foldForSe
  */
 const EMERGENCY_ADVICE = new RegExp(
   [
-    "lineas?\\s+(de\\s+)?(emergencias?|prevencion|crisis|ayuda|atencion|apoyo)",
-    "servicios?\\s+de\\s+(emergencias?|urgencias)",
+    // No «la línea de atención de tu banco» ni «tuviste una emergencia, ¿reagendamos?».
+    "lineas?\\s+(de\\s+)?(emergencias?|prevencion|crisis)",
+    "lineas?\\s+de\\s+(ayuda|apoyo|atencion)\\s+(emocional|psicologica|en\\s+salud\\s+mental)",
+    "(servicios?|numeros?|telefonos?)\\s+de\\s+(emergencias?|urgencias)",
     "\\burgencias\\b",
-    "\\bemergencias?\\b",
     "llam(a|ar|es)\\s+al\\s+\\d{3}\\b",
     "(busca|buscar|busques|pide|pedir|pidas|acude|acudir|acudas)\\s+(a\\s+)?(ayuda|atencion|apoyo)\\s+(profesional|medica|psicologica|psiquiatrica|inmediata|urgente|ya|ahora)",
   ].join("|")

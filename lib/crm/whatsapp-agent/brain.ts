@@ -2062,11 +2062,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     input.stage === "tuvo_llamada" &&
     ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
     asksForMoreHelp(lastInbound);
+  // Lo que ya decidió otra respuesta (la sesión urgente, el enlace, la comunidad, los datos, la cotización) va primero.
+  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay);
+  // Solo lo que de verdad le llegaría: su respuesta, o el aviso de una escalada (no un comprobante recibido).
   const emergencyTalk =
-    !input.clientMode && givesEmergencyAdvice(modelOutcome.kind === "reply" ? modelOutcome.message : state.holdingReply);
+    !input.clientMode &&
+    !state.receipt &&
+    !otherFallback &&
+    givesEmergencyAdvice(modelOutcome.kind === "reply" ? modelOutcome.message : escalated ? state.holdingReply : null);
   if (emergencyTalk) log("emergency_advice", { auto: true }, { ok: true, note: "El modelo escribió una línea de emergencias o «urgencias»: no sale." });
   const serious =
-    risk || clinical || afterCallAsk || emergencyTalk
+    (risk || clinical || afterCallAsk || emergencyTalk) && !otherFallback
       ? (() => {
           const link = pickPaymentLink(chatLinks, input.memory);
           const reply = seriousReply({
@@ -2084,10 +2090,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           return reply.text;
         })()
       : null;
-  // Dayana se entera de lo delicado; la persona no recibe «le aviso a Dayana».
-  if (serious && (risk || clinical)) {
+  // Dayana se entera de lo delicado, y de lo que el modelo le quería pasar cuando
+  // su aviso traía emergencias; la persona no recibe «le aviso a Dayana».
+  if (serious && (risk || clinical || (emergencyTalk && escalated))) {
     state.silentEscalation = {
-      category: "clinical",
+      category: risk || clinical || modelOutcome.kind !== "escalate" ? "clinical" : modelOutcome.category,
       severity: "normal",
       reason:
         modelOutcome.kind === "escalate"
