@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { MANUAL_PAUSE_REASON } from "../whatsapp-attention-rules";
-import { escalationPauses, hasRiskSigns, isCrisis, pauseHolds } from "./pause-rules";
+import { escalationPauses, hasRiskSigns, isCrisis, pauseHolds, saysSelfHarm } from "./pause-rules";
 
 const off = { onHumanReply: false, onEscalation: false };
 const on = { onHumanReply: true, onEscalation: true };
@@ -97,8 +97,70 @@ describe("isCrisis: solo un riesgo de verdad (Joselyn, 21-oct)", () => {
     ]) {
       expect([t, hasRiskSigns([t])]).toEqual([t, true]);
     }
-    for (const t of ["Hola llevate", "Todo los miedos que tengo", "Por favor", "Quítame la angustia de mi hermana", "tengo insomnio y ansiedad", "mi hermana tiene cáncer"]) {
+    for (const t of [
+      "Hola llevate",
+      "Todo los miedos que tengo",
+      "Por favor",
+      "Quítame la angustia de mi hermana",
+      "tengo insomnio y ansiedad",
+      "mi hermana tiene cáncer",
+      // Francy, 24-oct: la llamada «se cortó».
+      "yo intenté contestar y se cortó y ella no intenta otra vez",
+    ]) {
       expect([t, hasRiskSigns([t])]).toEqual([t, false]);
+    }
+  });
+});
+
+describe("saysSelfHarm: solo cuando dice que quiere morir o hacerse daño (Francy, 24-oct)", () => {
+  test("lo que sí es: quitarse la vida, morir, matarse, hacerse daño (ella, otra persona o el motivo del modelo)", () => {
+    for (const t of [
+      "quiero quitarme la vida",
+      "me quiero morir",
+      "tengo ganas de morir",
+      "pienso en suicidarme",
+      "no quiero vivir",
+      "ya no quiero seguir viviendo",
+      "me quiero matar",
+      "mi hija se quiere matar",
+      "quiero terminar con mi vida",
+      "estaría mejor muerta",
+      "me corté las venas",
+      "me estoy haciendo daño",
+      "quiero hacerme daño",
+      "me tomé todas las pastillas",
+      "quisiera dormir y no despertar",
+      "me quiero ir de este mundo",
+      "Expresa ideas suicidas",
+      "Tiene pensamientos de muerte",
+      "Expresa deseos de morir",
+      "Habla de acabar con su vida",
+    ]) {
+      expect([t, saysSelfHarm([t])]).toEqual([t, true]);
+    }
+  });
+  test("lo que no: una llamada que se corta, «ya no puedo más», pastillas para dormir, un golpe, una crisis de ansiedad", () => {
+    for (const t of [
+      "🎤 La programación fue para el lunes en la mañana y no no entró la llamada, entonces no sé cuándo me puedas agendar porque porque sí, yo intenté contestar y se cortó y ella no intenta otra vez",
+      "yo contesto y se cortan las llamadas",
+      "ya no puedo más con esta ansiedad",
+      "no quiero seguir así",
+      "no quiero seguir sintiéndome así",
+      "ya no aguanto el dolor de espalda",
+      "tomo pastillas para dormir",
+      "me tomé unas pastillas para el dolor de cabeza",
+      "fue un golpe muy duro",
+      "sufrí abuso de niña",
+      "mi mamá me va a matar si no llego",
+      "es una emergencia, necesito hablar con Dayana hoy",
+      "estoy en crisis de ansiedad",
+      "quiero desaparecer esta tristeza",
+      "me corté el pelo",
+      "me voy a morir de la vergüenza",
+      "quiero morirme de la risa",
+      "no quiero despertar a mi bebé",
+    ]) {
+      expect([t, saysSelfHarm([t])]).toEqual([t, false]);
     }
   });
   test("urgente siempre; clínico sin motivo (no se sabe): sí", () => {

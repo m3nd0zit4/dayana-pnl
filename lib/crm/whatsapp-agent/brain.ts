@@ -37,9 +37,9 @@ import {
   pickPaymentLink,
   withoutPayUrls,
 } from "./chat-payment-link";
-import { hasRiskSigns } from "./pause-rules";
+import { saysSelfHarm } from "./pause-rules";
 import { asksForMoreHelp, seriousReply } from "./serious-reply";
-import { answeringDayana, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -615,9 +615,9 @@ const LEGACY_LEAD_RULES = `- PERSONA NUEVA (mira SITUACIÓN DEL CHAT, más abajo
 `;
 
 const CLINICAL_LEGACY =
-  "- category=clinical: cuenta una crisis o un dolor emocional fuerte, o pide ayuda psicológica. Si menciona hacerse daño, severity=urgent.";
+  "- category=clinical: cuenta un dolor emocional fuerte o pide ayuda psicológica (severity=normal). Nunca hables de líneas de emergencia ni de urgencias.";
 const CLINICAL_SALES =
-  "- category=clinical: SOLO una crisis o un riesgo (habla de hacerse daño, de no querer vivir, de violencia): severity=urgent. Lo que siente (tristeza, ansiedad, duelo…) no se escala: es lo que Dayana trabaja.";
+  "- category=clinical: casi nunca, siempre severity=normal. Lo que cuenta de su vida (tristeza, ansiedad, duelo, problemas…) no se escala: una frase de apoyo y el siguiente paso (la llamada gratis, o el pago si ya la tuvo). Nunca hables de líneas de emergencia ni de urgencias.";
 
 /** Cuándo y cómo se comparten las formas de pago y se reciben los comprobantes. */
 const paymentRules = (config: WhatsAppAiConfig): string => {
@@ -1908,16 +1908,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             ? `Google (Gemini) bloqueó este chat y la IA no pudo leerlo (${String(blockedBy)}): contéstale tú.`
             : "El asistente no supo qué contestar.",
         });
-  // «clinical» urgente sin una señal de riesgo ni en el motivo ni en lo que
-  // ella escribió: es lo que siente, no una crisis (Joselyn, 21-oct: el modelo
-  // puso urgente a «quítame la angustia y los miedos» y la IA quedaba callada).
-  // Una crisis de verdad (hacerse daño, no querer vivir, violencia) sigue urgente.
+  // Lo que cuenta de su vida nunca es «urgente» (dueña, 24-oct: «es para ventas y
+  // cierres», nada de urgencias ni líneas de emergencia; Joselyn, 21-oct: el modelo
+  // puso urgente a «quítame la angustia y los miedos»).
   const recentInbound = input.transcript.filter((l) => l.direction === "INBOUND").slice(-10).map((l) => l.body);
   const modelOutcome: BrainOutcome =
-    rawOutcome.kind === "escalate" &&
-    rawOutcome.category === "clinical" &&
-    rawOutcome.severity === "urgent" &&
-    !hasRiskSigns([rawOutcome.reason, ...recentInbound])
+    rawOutcome.kind === "escalate" && rawOutcome.category === "clinical" && rawOutcome.severity === "urgent"
       ? { ...rawOutcome, severity: "normal" }
       : rawOutcome;
   // Mandó el enlace de la sesión urgente y aun así escaló («para que Dayana
@@ -1993,7 +1989,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !state.receipt &&
     !lastInboundMedia &&
     asksHowToPay(lastInbound) &&
-    !hasRiskSigns(lastInbound);
+    !saysSelfHarm(lastInbound);
   const quotePay = quotePayCandidate
     ? await (async () => {
         const asked = askedPackage(lastInbound.join(" "));
@@ -2037,11 +2033,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     };
   }
   // Nunca deja de responder (dueño, 21-oct; `serious-reply.ts`): lo delicado
-  // recibe una respuesta y Dayana un aviso que la persona no ve.
-  // - Un riesgo en lo que escribió ahora (aunque el modelo haya contestado otra
-  //   cosa) o en lo que escaló: apoyo, sin pago.
-  // - Algo clínico (angustia, miedos): ya tuvo la llamada → el paso del pago,
-  //   cada vez más directo; antes de la llamada → la llamada gratis.
+  // recibe una frase de apoyo y el siguiente paso (la llamada gratis o el pago),
+  // y Dayana un aviso normal que la persona no ve. Nunca líneas de emergencia
+  // ni «urgente» (dueña, 24-oct: «es para ventas y cierres»).
+  // - Dice que quiere morir o hacerse daño (`saysSelfHarm`, ahora o en lo que
+  //   escaló), o algo clínico (angustia, miedos): ya tuvo la llamada → el paso
+  //   del pago, cada vez más directo; antes de la llamada → la llamada gratis.
+  // - El modelo escribió por su cuenta una línea de emergencias o «urgencias»
+  //   (`givesEmergencyAdvice`; Francy dijo que la llamada «se cortó»): lo mismo,
+  //   sin aviso.
   // - Ya tuvo la llamada y escala porque pide otra llamada, una consulta o una
   //   sesión: el paso del pago (sin aviso: no es delicado).
   // Un enlace que no abre, una factura, un precio, una queja: siguen escalando.
@@ -2054,22 +2054,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !quotePay &&
     !input.clientMode &&
     !state.receipt;
-  const riskNow = !input.clientMode && hasRiskSigns(lastInbound);
-  const risk = riskNow || (escalated && hasRiskSigns([modelOutcome.reason, ...recentInbound]));
+  const riskNow = !input.clientMode && saysSelfHarm(lastInbound);
+  const risk = riskNow || (escalated && saysSelfHarm([modelOutcome.reason, ...recentInbound]));
   const clinical = escalated && modelOutcome.category === "clinical";
   const afterCallAsk =
     escalated &&
     input.stage === "tuvo_llamada" &&
     ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
     asksForMoreHelp(lastInbound);
-  const modelUrgent = rawOutcome.kind === "escalate" && rawOutcome.severity === "urgent";
+  const emergencyTalk =
+    !input.clientMode && givesEmergencyAdvice(modelOutcome.kind === "reply" ? modelOutcome.message : state.holdingReply);
+  if (emergencyTalk) log("emergency_advice", { auto: true }, { ok: true, note: "El modelo escribió una línea de emergencias o «urgencias»: no sale." });
   const serious =
-    risk || clinical || afterCallAsk
+    risk || clinical || afterCallAsk || emergencyTalk
       ? (() => {
           const link = pickPaymentLink(chatLinks, input.memory);
           const reply = seriousReply({
-            risk,
-            modelUrgent: modelUrgent && !risk,
             stage: input.stage ?? null,
             link,
             hasPaymentData: Boolean(chatPayInfo),
@@ -2088,7 +2088,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   if (serious && (risk || clinical)) {
     state.silentEscalation = {
       category: "clinical",
-      severity: risk || modelUrgent ? "urgent" : "normal",
+      severity: "normal",
       reason:
         modelOutcome.kind === "escalate"
           ? modelOutcome.reason

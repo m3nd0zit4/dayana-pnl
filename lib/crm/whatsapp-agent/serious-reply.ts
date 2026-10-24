@@ -7,8 +7,10 @@ import type { ChatPaymentLink } from "./chat-payment-link";
  * ya tuvo su llamada y sigue pidiendo) ahora recibe una respuesta, y Dayana un
  * aviso que la persona no ve. Joselyn llevaba 6 días sin respuesta.
  *
- * - Un riesgo de verdad (hacerse daño, no querer vivir, violencia): apoyo y la
- *   línea de emergencias, sin pago (no se le vende a alguien en peligro).
+ * Nunca líneas de emergencia ni «urgente» (dueña, 24-oct: «es para ventas y
+ * cierres»; Francy contó que la llamada se cortó y recibió el mensaje de
+ * emergencias): si cuenta algo de su vida, por duro que sea, una frase de apoyo
+ * y el siguiente paso.
  * - Ya tuvo su llamada gratis: el paso es el pago, cada vez más directo si
  *   insiste (dueño: «muchas personas ya están en sus sesiones… si no da el
  *   paso, no se está ayudando»).
@@ -17,21 +19,12 @@ import type { ChatPaymentLink } from "./chat-payment-link";
  * Puro: `brain.ts` decide cuándo y pega el enlace.
  */
 
-export const SUPPORT_FIRST =
-  "Lo que me cuentas es muy importante. Si sientes que puedes hacerte daño o que estás en peligro, busca ayuda ahora mismo: llama a la línea de emergencias de tu país o ve a urgencias. No tienes que pasar por esto sin ayuda.";
-const SUPPORT_AGAIN = "Sigo aquí. Si estás en peligro ahora mismo, llama a la línea de emergencias de tu país o ve a urgencias.";
-const SAFETY_LINE = "Si en algún momento sientes que estás en peligro, llama a la línea de emergencias de tu país.";
-
 /** Lo que marca que ya se le dijo el paso del pago (la escalera sube con cada vez). */
 export const PAY_MARKER = "el siguiente paso es el pago";
 const DIRECT_MARKER = "te lo digo de forma directa";
 const ASK_HOW = "¿Prefieres que te mande el enlace de pago o los datos para transferencia?";
 
 export type SeriousInput = {
-  /** Señales de riesgo en lo que escribió o en el motivo (`hasRiskSigns`). */
-  risk: boolean;
-  /** El modelo lo marcó urgente sin señales de riesgo: se agrega una línea de seguridad. */
-  modelUrgent: boolean;
   stage: string | null;
   /** El enlace de pago que le mandó Dayana (el que dice su nota), si hay. */
   link: ChatPaymentLink | null;
@@ -66,24 +59,20 @@ const payLadder = (input: SeriousInput): string => {
 };
 
 export const seriousReply = (input: SeriousInput): { text: string; attachLink: boolean } => {
-  if (input.risk) {
-    return { text: said(input.priorAi, SUPPORT_FIRST) > 0 ? SUPPORT_AGAIN : SUPPORT_FIRST, attachLink: false };
-  }
-  const safety = input.modelUrgent ? ` ${SAFETY_LINE}` : "";
-  if (input.stage === "tuvo_llamada") return { text: `${payLadder(input)}${safety}`, attachLink: Boolean(input.link) };
+  if (input.stage === "tuvo_llamada") return { text: payLadder(input), attachLink: Boolean(input.link) };
   if (input.upcomingLabel) {
     return {
-      text: `Te entiendo. En tu llamada gratis con Dayana (${input.upcomingLabel}) puedes contarle todo esto: ella te escucha y te dice cómo te puede ayudar.${safety}`,
+      text: `Te entiendo. En tu llamada gratis con Dayana (${input.upcomingLabel}) puedes contarle todo esto: ella te escucha y te dice cómo te puede ayudar.`,
       attachLink: false,
     };
   }
   if (input.canOfferFreeCall) {
     return {
-      text: `Te entiendo. Lo que sientes es justo lo que Dayana trabaja. Si quieres, te agendo una llamada gratis de 15 minutos con ella para que te escuche y te diga cómo te puede ayudar.${safety}`,
+      text: "Te entiendo. Lo que sientes es justo lo que Dayana trabaja. Si quieres, te agendo una llamada gratis de 15 minutos con ella para que te escuche y te diga cómo te puede ayudar.",
       attachLink: false,
     };
   }
-  return { text: `Te entiendo. Lo que me cuentas es justo lo que Dayana trabaja en sus sesiones personalizadas.${safety}`, attachLink: false };
+  return { text: "Te entiendo. Lo que me cuentas es justo lo que Dayana trabaja en sus sesiones personalizadas.", attachLink: false };
 };
 
 /**

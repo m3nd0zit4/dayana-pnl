@@ -386,3 +386,22 @@ export const withoutInventedUrls = (text: string, known: Set<string>, siteHosts:
 const HANDOFF =
   /\b(le (paso|comento|aviso|cuento|consulto|transmito|hago llegar|dejo) (tu|su|el|este|esto|a dayana)|ya le (aviso|paso|comento)|dejame (consultarlo|avisarle|preguntarle|confirmarlo|comentarselo|pasarle)|dayana (te|le) (confirma|escribe|responde|contesta))/;
 export const promisesHandoff = (text: string): boolean => HANDOFF.test(foldForSearch(text));
+
+/**
+ * Consejos de emergencia que la asistente nunca da (dueña, 24-oct: «es para
+ * ventas y cierres»; Francy recibió «llama a la línea de emergencias de tu
+ * país» porque la llamada «se cortó»): línea de emergencias, de prevención o de
+ * crisis, urgencias, «llama al 123», «busca ayuda profesional inmediata». Si el
+ * modelo lo escribe por su cuenta, sale la frase de apoyo y el siguiente paso.
+ */
+const EMERGENCY_ADVICE = new RegExp(
+  [
+    "lineas?\\s+(de\\s+)?(emergencias?|prevencion|crisis|ayuda|atencion|apoyo)",
+    "servicios?\\s+de\\s+(emergencias?|urgencias)",
+    "\\burgencias\\b",
+    "\\bemergencias?\\b",
+    "llam(a|ar|es)\\s+al\\s+\\d{3}\\b",
+    "(busca|buscar|busques|pide|pedir|pidas|acude|acudir|acudas)\\s+(a\\s+)?(ayuda|atencion|apoyo)\\s+(profesional|medica|psicologica|psiquiatrica|inmediata|urgente|ya|ahora)",
+  ].join("|")
+);
+export const givesEmergencyAdvice = (text: string | null | undefined): boolean => Boolean(text) && EMERGENCY_ADVICE.test(foldForSearch(text!));

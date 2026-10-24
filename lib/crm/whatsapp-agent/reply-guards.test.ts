@@ -4,6 +4,7 @@ import {
   answeringDayana,
   closingNotNeeded,
   findPseudoToolCall,
+  givesEmergencyAdvice,
   isClosingLine,
   PSEUDO_HOLDING,
   promisesHandoff,
@@ -258,5 +259,31 @@ describe("writesAccountNumber", () => {
   test("horas, fechas cortas y valores no", () => {
     expect(writesAccountNumber("el jueves 22 de octubre a las 12:30 p. m.")).toBe(false);
     expect(writesAccountNumber("Claro, te comparto los datos para el pago.")).toBe(false);
+  });
+});
+
+describe("givesEmergencyAdvice: la asistente nunca da consejos de emergencia (dueña, 24-oct)", () => {
+  test("lo que el modelo escribe por su cuenta y no sale", () => {
+    for (const t of [
+      "Lo que me cuentas es muy importante. Si sientes que puedes hacerte daño o que estás en peligro, busca ayuda ahora mismo: llama a la línea de emergencias de tu país o ve a urgencias.",
+      "Te recomiendo comunicarte con una línea de prevención del suicidio.",
+      "Por favor llama al 123 si lo necesitas.",
+      "Busca ayuda profesional inmediata.",
+      "Puedes acudir a los servicios de emergencia de tu ciudad.",
+      "Hay líneas de apoyo emocional gratuitas.",
+    ]) {
+      expect([t, givesEmergencyAdvice(t)]).toEqual([t, true]);
+    }
+  });
+  test("lo de siempre sí sale: la sesión urgente, la llamada, el pago", () => {
+    for (const t of [
+      "Te entiendo. Si quieres, te agendo una llamada gratis de 15 minutos con Dayana.",
+      "Aquí tienes el enlace de la sesión urgente. Tan pronto hagas el pago, Dayana te agenda la sesión para hoy o mañana por Google Meet.",
+      "Francy, te entiendo perfectamente. Si las llamadas de afuera se cortan, estate muy atenta a tu teléfono a la hora programada.",
+      "Dayana te llama el lunes a las 9:15 a. m.",
+      null,
+    ]) {
+      expect([t, givesEmergencyAdvice(t)]).toEqual([t, false]);
+    }
   });
 });

@@ -121,7 +121,7 @@ export const salesFlowRules = (config: WhatsAppAiConfig, opts: { autoBook: boole
   PREGUNTAS CLAVE (según lo que la mueve):
 ${keyQuestions}
   Si lo que la mueve no está en la lista, usa «¿Cuánto tiempo más quieres seguir así?».
-- Lo emocional (tristeza, ansiedad, duelo, autoestima, soledad…) NO es motivo para pasarle el chat a Dayana: es justo lo que Dayana trabaja. Escucha y sigue el flujo. Solo escala como clinical si hay una crisis, riesgo, o habla de hacerse daño (severity=urgent).
+- Lo emocional y lo que cuente de su vida (tristeza, ansiedad, duelo, autoestima, soledad…) NO es motivo para pasarle el chat a Dayana: es justo lo que Dayana trabaja. Una frase de apoyo y sigue el flujo hacia la llamada gratis.
 - PERSONA CON CONVERSACIÓN PREVIA: lee el hilo y la FICHA y sigue donde quedó: no la saludes como nueva ni repitas preguntas que ya respondió. Si ya se la invitó y no agendó, retoma con suavidad desde lo que le pasaba. Si quiere agendar la llamada gratis: offer_free_call_slots y book_free_call. Si quiere cambiar o cancelar una cita que ya tiene, escala con category=reschedule. Si no sabes qué decir, escala con category=unknown.
 `;
 };

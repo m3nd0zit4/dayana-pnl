@@ -47,7 +47,7 @@ export const DEFAULT_PLAYBOOKS: { name: string; trigger: string; steps: string }
     name: "Conversación de sanación",
     trigger: "Una persona nueva cuenta lo que le pasa o lo que quiere: «tengo ansiedad», «quiero encontrar pareja», «necesito ayuda emocional», «me siento estancada o bloqueada», o pregunta por la terapia.",
     steps:
-      "1. No la interrogues. Refleja en una frase lo que siente y pregúntale: «¿Cuánto tiempo más quieres seguir así?».\n2. O invítala directo: «Si quieres soltarlo, podemos agendar una llamada gratuita de 15 minutos con Dayana. Dime qué día y hora te quedan bien.»\n3. Si quiere agendar o dice un día u hora, sigue «Agendar».\n4. Si dice que no puede, que no quiere o habla de otra cosa: no insistas. «Listo, perfecto. Entonces quedamos en contacto; si necesitas información o algo de mí, me escribes por aquí.»\nNunca des precios (los explica Dayana en la llamada), nunca diagnostiques ni prometas resultados; si cuenta una crisis o habla de hacerse daño, escala.",
+      "1. No la interrogues. Refleja en una frase lo que siente y pregúntale: «¿Cuánto tiempo más quieres seguir así?».\n2. O invítala directo: «Si quieres soltarlo, podemos agendar una llamada gratuita de 15 minutos con Dayana. Dime qué día y hora te quedan bien.»\n3. Si quiere agendar o dice un día u hora, sigue «Agendar».\n4. Si dice que no puede, que no quiere o habla de otra cosa: no insistas. «Listo, perfecto. Entonces quedamos en contacto; si necesitas información o algo de mí, me escribes por aquí.»\nNunca des precios (los explica Dayana en la llamada), nunca diagnostiques ni prometas resultados, ni hables de líneas de emergencia: si cuenta algo difícil de su vida, una frase de apoyo y sigue hacia la llamada gratis.",
   },
   {
     name: "Agendar",

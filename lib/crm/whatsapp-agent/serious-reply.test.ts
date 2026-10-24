@@ -1,20 +1,18 @@
 import { describe, expect, test } from "bun:test";
 
 import type { ChatPaymentLink } from "./chat-payment-link";
-import { asksForMoreHelp, PAY_MARKER, seriousReply, SUPPORT_FIRST } from "./serious-reply";
+import { asksForMoreHelp, PAY_MARKER, seriousReply } from "./serious-reply";
 
 const link: ChatPaymentLink = { url: "https://www.dayanabeltran.com/pagar/p/therapy-3", sentAt: null, label: "paquete de 3 sesiones" };
-const base = { risk: false, modelUrgent: false, stage: "tuvo_llamada", link, hasPaymentData: false, priorAi: [] as string[], canOfferFreeCall: false, upcomingLabel: null };
+const base = { risk: false, stage: "tuvo_llamada", link, hasPaymentData: false, priorAi: [] as string[], canOfferFreeCall: false, upcomingLabel: null };
 
 describe("seriousReply: nunca deja de responder (dueño, 21-oct)", () => {
-  test("riesgo de verdad: apoyo, sin pago y sin decir que Dayana se enteró", () => {
-    const first = seriousReply({ ...base, risk: true });
-    expect(first.text).toBe(SUPPORT_FIRST);
-    expect(first.attachLink).toBe(false);
-    expect(first.text).not.toMatch(/dayana|pago/i);
-    const second = seriousReply({ ...base, risk: true, priorAi: [SUPPORT_FIRST] });
-    expect(second.text).not.toBe(SUPPORT_FIRST);
-    expect(second.text).toMatch(/emergencias/);
+  test("lo que cuenta de su vida, por duro que sea: una frase de apoyo y la llamada gratis, sin emergencias ni «le aviso a Dayana» (dueña, 24-oct)", () => {
+    const r = seriousReply({ ...base, stage: "conversando", canOfferFreeCall: true });
+    expect(r.text).toMatch(/^Te entiendo\./);
+    expect(r.text).toMatch(/llamada gratis de 15 minutos/);
+    expect(r.text).not.toMatch(/emergencia|urgencias|peligro|le aviso|le paso/i);
+    expect(r.attachLink).toBe(false);
   });
 
   test("Joselyn: tras la llamada, la escalera del pago: primero, directo, corto", () => {
@@ -44,10 +42,14 @@ describe("seriousReply: nunca deja de responder (dueño, 21-oct)", () => {
     expect(r.text).toMatch(/enlace de pago o los datos para transferencia\?$/);
   });
 
-  test("el modelo dijo urgente sin señales de riesgo: el paso del pago y una línea de seguridad", () => {
-    const r = seriousReply({ ...base, modelUrgent: true });
+  test("sin que ella hable de hacerse daño, nunca una línea de emergencias (dueña, 24-oct; Joselyn la recibió con el pago)", () => {
+    const r = seriousReply(base);
     expect(r.text).toContain(PAY_MARKER);
-    expect(r.text).toMatch(/línea de emergencias de tu país\.$/);
+    expect(r.text).not.toMatch(/emergencia|peligro|urgencias/i);
+    for (const stage of ["llamada_agendada", "conversando", "por_revisar"]) {
+      const other = seriousReply({ ...base, stage, canOfferFreeCall: stage === "conversando", upcomingLabel: stage === "llamada_agendada" ? "lunes, 26 de octubre, 9:15 a. m." : null });
+      expect(other.text).not.toMatch(/emergencia|peligro|urgencias/i);
+    }
   });
 
   test("antes de la llamada: la invita a la llamada gratis, o le recuerda la que tiene", () => {

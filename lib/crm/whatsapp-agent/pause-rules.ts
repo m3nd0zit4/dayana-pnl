@@ -52,7 +52,8 @@ const RISK = new RegExp(
     "no\\s+despertar",
     "ya\\s+no\\s+aguanta",
     "me\\s+(corte|estoy\\s+cortando|hice\\s+dano|lastime)",
-    "se\\s+(corto|hizo\\s+dano|lastimo)",
+    // «se cortó» solo no: es la llamada (Francy, 24-oct).
+    "se\\s+(corto\\s+(las\\s+)?(venas|brazos|munecas)|hizo\\s+dano|lastimo)",
     // Sin «la pega» (en Chile, «el trabajo»).
     "(me|le|lo|te)\\s+(pega|pego|pegaba|golpea|golpeo|golpeaba|viola|violo)",
     "violad[oa]",
@@ -86,6 +87,44 @@ const RISK = new RegExp(
 
 /** ¿Algún texto (lo que escribió ella, el motivo de la escalada) trae un riesgo de verdad? */
 export const hasRiskSigns = (texts: (string | null | undefined)[]): boolean => texts.some((t) => Boolean(t) && RISK.test(foldForSearch(t!)));
+
+/**
+ * Más estricto que `RISK`: solo dice que quiere morir, quitarse la vida o
+ * hacerse daño (ella, otra persona o el motivo del modelo). Es lo único que
+ * cambia lo que la persona recibe (`serious-reply.ts`). Francy (24-oct) contó
+ * que la llamada «se cortó» y recibió el mensaje de emergencias; dueña: nada
+ * de líneas de emergencia sin sentido. «Ya no puedo más», «no quiero seguir
+ * así», un golpe, pastillas para dormir o una crisis de ansiedad son lo que
+ * Dayana trabaja: respuesta normal.
+ */
+const SELF_HARM = new RegExp(
+  [
+    "suicid",
+    "quitar(me|se|le)?\\s+la\\s+vida",
+    "no\\s+(quiero|quiere|quisiera|queria)\\s+(vivir|existir|seguir\\s+viviendo|estar\\s+viv[oa])",
+    "(ganas|deseos?)\\s+de\\s+morir",
+    "(quiero|quiere|quisiera|pienso\\s+en|piensa\\s+en)\\s+morir(me|se)?\\b(?!\\s+de\\b)",
+    "(pensamientos?|ideas?)\\s+de\\s+muerte",
+    "matarme",
+    "matarse",
+    // «me va a matar» (otra persona, casi siempre una exageración) no.
+    "(me\\s+(quiero|voy\\s+a)|se\\s+(quiere|va\\s+a))\\s+matar\\b",
+    "(terminar|acabar)\\s+con\\s+(mi|su|tu)\\s+vida",
+    "mejor\\s+muert[oa]",
+    "ir(me|se)?\\s+de\\s+este\\s+mundo",
+    "(quiero|quisiera|ojala)[^.?!]{0,25}\\bno\\s+(volver\\s+a\\s+)?despertar",
+    "(cortarme|cortarse|me\\s+corte|me\\s+estoy\\s+cortando|se\\s+corto|se\\s+corta)\\s+(las\\s+|los\\s+)?(venas|brazos|munecas|piernas)",
+    "(hacerme|hacerse|me\\s+hago|me\\s+estoy\\s+haciendo)\\s+dano",
+    "autolesi",
+    "lastimarme",
+    "lastimarse",
+    "sobredosis",
+    "(todas\\s+las|un\\s+frasco\\s+de|un\\s+monton\\s+de)\\s+pastillas",
+  ].join("|")
+);
+
+/** ¿Algún texto dice de verdad que quiere morir o hacerse daño? (`SELF_HARM`) */
+export const saysSelfHarm = (texts: (string | null | undefined)[]): boolean => texts.some((t) => Boolean(t) && SELF_HARM.test(foldForSearch(t!)));
 
 /**
  * ¿Es una crisis (la IA se calla hasta que Dayana la suelte)? Algo urgente, o
