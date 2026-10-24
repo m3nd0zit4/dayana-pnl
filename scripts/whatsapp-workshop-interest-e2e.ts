@@ -68,6 +68,10 @@ const main = async () => {
       { body: "El taller", at: ago(3.99) },
     ]);
     const f = await chat("6", [{ body: "¿cuánto cuesta la sanación con el dinero?", at: ago(5) }]);
+    const g = await chat("7", [
+      { body: "Mi pregunta es ,para el 15 de noviembre", at: ago(6) },
+      { body: "¿cuánto cuesta?", at: ago(5.99) },
+    ]);
 
     const first = await syncWorkshopInterests(forSync);
     const rows = (await listWorkshopInterests(edition.id)).filter((r) => ids.includes(r.conversationId));
@@ -78,7 +82,7 @@ const main = async () => {
     check("3. otro taller y hace 5 días: no entran", !rows.some((r) => r.conversationId === b || r.conversationId === d), rows);
     check(
       "   la pregunta en dos mensajes y sin la palabra «taller» (el título): entran",
-      rows.some((r) => r.conversationId === e) && rows.some((r) => r.conversationId === f),
+      rows.some((r) => r.conversationId === e) && rows.some((r) => r.conversationId === f) && rows.some((r) => r.conversationId === g),
       rows.map((r) => r.firstMessage)
     );
     check("   nombre y número del chat, sin llamada ni pago", rowA?.name === "Prueba Taller 1" && rowA.phone.endsWith("1") && !rowA.paid && rowA.nextCallAt === null, rowA);

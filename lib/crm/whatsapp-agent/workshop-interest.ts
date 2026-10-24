@@ -70,7 +70,7 @@ export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop):
     // Sin «taller»: el título entero («¿cuánto cuesta la sanación con el dinero?»)
     // o la fecha con una pregunta y nada de su proceso. Una palabra sola no
     // («no tengo dinero para la terapia»).
-    return (words.length >= 2 && words.every(has)) || (date && INTEREST.test(t) && !HER_PROCESS.test(t));
+    return !HER_PROCESS.test(t) && ((words.length >= 2 && words.every(has)) || (date && INTEREST.test(t)));
   }
   // «taller de X» con una X que no es de este taller: es otro.
   const of = /\btaller(?:es)? de (?:la |el |los |las )?([a-z0-9ñ]+)/.exec(t);
@@ -96,32 +96,45 @@ export const workshopAskedRecently = (lines: Line[], w: OpenWorkshop, now = Date
   return tail.length > 1 && isWorkshopAsk(tail.join("\n"), w);
 };
 
-/** Lo nuestro que sigue el agendamiento del taller: la oferta de la llamada para inscribirse o la lista de horas. */
-const FLOW = /\b(taller|inscri\w*|te la separe|separartela|separarte|cual te queda mejor|responderme con el numero)\b/;
+/** Un mensaje nuestro que habla del taller: «taller», la inscripción, el título o la fecha. */
+const namesWorkshop = (text: string, w: OpenWorkshop): boolean => {
+  const t = foldForSearch(text);
+  const dm = dayMonth(w);
+  return (
+    /\b(taller|inscri\w*)\b/.test(t) ||
+    titleWords(w.title).some((x) => new RegExp(`\\b${x}\\b`).test(t)) ||
+    Boolean(dm && new RegExp(`\\b${dm.day}\\b[^.?!]{0,8}\\b${dm.month}\\b`).test(t))
+  );
+};
+/** La lista de horas que pinta el código (`offerMessage`). */
+const SLOT_LIST = /\b(cual te queda mejor|responderme con el numero)\b/;
 
 /**
  * La llamada para el taller (aunque ya haya tenido su llamada gratis) solo
  * mientras habla del taller: lo pregunta ahora, o lo último que le escribimos
- * es la oferta de la llamada o la lista de horas (revisión 24-oct: durante 24
- * h, un «gracias» o una pregunta de su sesión abría el embudo de la llamada).
+ * habla del taller (la oferta de la llamada para inscribirse), o es la lista de
+ * horas justo después de esa oferta. Revisión 24-oct: durante 24 h, un
+ * «gracias» o una pregunta de su sesión abría el embudo de la llamada; y un
+ * «¿te la separo?» o una lista de horas que no eran del taller lo reabrían.
  */
 export const workshopFlowActive = (lines: (Line & { isAutoReply?: boolean })[], w: OpenWorkshop, now = Date.now()): boolean => {
   if (!workshopAskedRecently(lines, w, now)) return false;
   const tail: string[] = [];
-  let lastOut: Line | null = null;
+  const outs: Line[] = [];
   for (const l of [...lines].reverse()) {
-    if (l.direction === "INBOUND" && lastOut === null) {
-      if (l.body) tail.unshift(l.body);
+    if (l.direction === "INBOUND") {
+      if (outs.length === 0 && l.body) tail.unshift(l.body);
       continue;
     }
-    if (l.direction === "OUTBOUND") {
-      lastOut = l;
-      break;
-    }
+    outs.push(l);
+    if (outs.length === 2) break;
   }
   if (isWorkshopAsk(tail.join("\n"), w)) return true;
-  const fresh = lastOut && (!lastOut.sentAt || lastOut.sentAt.getTime() >= now - 24 * 3600_000);
-  return Boolean(fresh && FLOW.test(foldForSearch(lastOut!.body ?? "")));
+  const [last, before] = outs;
+  const fresh = (l: Line | undefined) => Boolean(l && (!l.sentAt || l.sentAt.getTime() >= now - 24 * 3600_000));
+  if (!fresh(last)) return false;
+  if (namesWorkshop(last.body ?? "", w)) return true;
+  return SLOT_LIST.test(foldForSearch(last.body ?? "")) && fresh(before) && namesWorkshop(before!.body ?? "", w);
 };
 
 /** «8:30 a.m. – 4:30 p.m. · virtual» → «8:30 a. m. – 4:30 p. m., virtual». */

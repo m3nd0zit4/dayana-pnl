@@ -54,6 +54,8 @@ describe("isWorkshopAsk: quién pregunta por el taller abierto (24-oct)", () => 
       // Una palabra del título sola no: «dinero» es de todos los días.
       "no tengo dinero para la terapia, ¿cuánto cuesta?",
       "Me llego el 15 de noviembre la quincena",
+      // Su proceso, aunque nombre el tema (revisión 24-oct).
+      "¿cuánto cuesta la sesión de sanación con el dinero?",
       null,
     ]) {
       expect([t, isWorkshopAsk(t, W)]).toEqual([t, false]);
@@ -116,6 +118,19 @@ describe("workshopFlowActive: la llamada para el taller solo mientras habla del 
     ];
     expect(workshopFlowActive(later, W, now)).toBe(false);
     expect(workshopFlowActive([{ direction: "INBOUND", body: "Gracias", sentAt: at(5) }], W, now)).toBe(false);
+  });
+  test("una lista de horas o un «¿te la separo?» que no es del taller no reabre la llamada (revisión 24-oct)", () => {
+    const otherList = [
+      ask,
+      { direction: "OUTBOUND", isAutoReply: true, body: "Sí, está abierto. La inscripción es con una llamada con Dayana.", sentAt: at(25) },
+      { direction: "INBOUND", body: "Lo pienso", sentAt: at(24) },
+      { direction: "OUTBOUND", isAutoReply: true, body: "Claro, cuando quieras.", sentAt: at(23) },
+      { direction: "OUTBOUND", isAutoReply: true, body: "Estas son las horas\n1. Lunes\n¿Cuál te queda mejor?", sentAt: at(22) },
+      { direction: "INBOUND", body: "1", sentAt: at(21) },
+    ];
+    expect(workshopFlowActive(otherList, W, now)).toBe(false);
+    const separe = [ask, { direction: "OUTBOUND", isAutoReply: true, body: "¿Quieres que te la separe?", sentAt: at(20) }, { direction: "INBOUND", body: "sí", sentAt: at(19) }];
+    expect(workshopFlowActive(separe, W, now)).toBe(false);
   });
 });
 

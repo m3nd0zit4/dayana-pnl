@@ -49,8 +49,8 @@ export const openWorkshopForAi = async (now = new Date()): Promise<OpenWorkshop 
 const cursorKey = (editionId: string) => `workshop.interests.cursor.${editionId}`;
 /** Dayana anuncia antes de crear el taller: se lee desde 3 días antes de crearlo. */
 const ANNOUNCED_BEFORE_MS = 3 * 24 * 3600_000;
-/** Cada pasada vuelve a mirar las últimas 2 h (un mensaje que llegó tarde); la fila no suma dos veces. */
-const OVERLAP_MS = 2 * 3600_000;
+/** Cada pasada vuelve a mirar las últimas 6 h (un mensaje que llegó tarde); la fila no suma dos veces. */
+const OVERLAP_MS = 6 * 3600_000;
 /** Cuántos mensajes se leen por pasada (lo que quede, la próxima vez). */
 const BATCH = 500;
 
@@ -78,8 +78,16 @@ export const enrolledInWorkshop = async (contactId: string, editionId: string): 
  */
 export const syncWorkshopInterests = async (edition: OpenWorkshop & { createdAt: Date }): Promise<{ scanned: number; changed: number }> => {
   const startedAt = new Date();
+  // «<fecha>» (pasada completa: se vuelve a mirar el margen) o «<fecha>|lote» (lote lleno: se sigue justo ahí).
   const raw = await getSiteSetting(cursorKey(edition.id)).catch(() => null);
-  const since = raw ? new Date(new Date(raw).getTime() - OVERLAP_MS) : new Date(edition.createdAt.getTime() - ANNOUNCED_BEFORE_MS);
+  const [at, kind] = (raw ?? "").split("|");
+  const since = !raw
+    ? new Date(edition.createdAt.getTime() - ANNOUNCED_BEFORE_MS)
+    : kind === "lote"
+      ? new Date(at)
+      : new Date(new Date(at).getTime() - OVERLAP_MS);
+  const pattern = candidatePattern(edition);
+  // `>=`: volver a leer el último mensaje no suma (la fila solo cambia con uno más nuevo).
   const rows = await prisma.$queryRaw<{ conversation_id: string; body: string; sent_at: Date; prev_body: string | null }[]>`
     SELECT m.conversation_id, m.body, m.sent_at,
            (SELECT p.body FROM conversation_messages p
@@ -88,14 +96,23 @@ export const syncWorkshopInterests = async (edition: OpenWorkshop & { createdAt:
              ORDER BY p.sent_at DESC LIMIT 1) AS prev_body
     FROM conversation_messages m
     WHERE m.direction = 'INBOUND'
-      AND m.sent_at > ${since}
+      AND m.sent_at >= ${since}
       AND m.body IS NOT NULL
-      AND m.body ~* ${candidatePattern(edition)}
+      AND (
+        m.body ~* ${pattern}
+        -- «Mi pregunta es, para el 15 de noviembre» + «¿cuánto cuesta?»: el segundo no nombra nada.
+        OR EXISTS (SELECT 1 FROM conversation_messages p
+          WHERE p.conversation_id = m.conversation_id AND p.direction = 'INBOUND'
+            AND p.sent_at < m.sent_at AND p.sent_at > m.sent_at - INTERVAL '10 minutes'
+            AND p.body ~* ${pattern})
+      )
     ORDER BY m.sent_at ASC
     LIMIT ${BATCH}`;
   let changed = 0;
   for (const r of rows) {
-    if (!isWorkshopAsk(r.body, edition) && !(r.prev_body && isWorkshopAsk(`${r.prev_body}\n${r.body}`, edition))) continue;
+    // Junto con el anterior solo si de verdad está partida: «Perú» después de una pregunta ya contada no es otra.
+    const split = r.prev_body && !isWorkshopAsk(r.prev_body, edition) && isWorkshopAsk(`${r.prev_body}\n${r.body}`, edition);
+    if (!isWorkshopAsk(r.body, edition) && !split) continue;
     // Un mensaje ya contado (el mismo instante) no suma otra vez.
     changed += await prisma.$executeRaw`
       INSERT INTO workshop_interests (id, edition_id, conversation_id, first_message, first_asked_at, last_asked_at, asks, status, updated_at)
@@ -106,9 +123,10 @@ export const syncWorkshopInterests = async (edition: OpenWorkshop & { createdAt:
             updated_at = NOW()
         WHERE EXCLUDED.last_asked_at > workshop_interests.last_asked_at`;
   }
-  // Lote lleno: hasta el último leído (el resto, la próxima vez). Si no, hasta ahora.
-  const next = rows.length >= BATCH ? rows.at(-1)!.sent_at : startedAt;
-  await setSiteSetting(cursorKey(edition.id), next.toISOString()).catch(() => undefined);
+  // Lote lleno: se sigue desde el último leído, sin margen (si no, con muchos mensajes
+  // en el margen no avanzaría nunca). Si no, hasta ahora.
+  const next = rows.length >= BATCH ? `${rows.at(-1)!.sent_at.toISOString()}|lote` : startedAt.toISOString();
+  await setSiteSetting(cursorKey(edition.id), next).catch(() => undefined);
   return { scanned: rows.length, changed };
 };
 
