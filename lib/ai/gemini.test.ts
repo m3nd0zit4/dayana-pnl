@@ -156,6 +156,31 @@ describe("pedido bloqueado por Google (200 sin candidates)", () => {
     expect(calls).toEqual(["A:gemini-3.5-flash-lite", "A:gemini-3.5-flash", "B:gemini-3.5-flash-lite"]);
   });
 
+  test("la principal sin créditos y la segunda bloquea: modelo completo con la segunda, luego la tercera (la apartada no)", async () => {
+    const calls: string[] = [];
+    const fn = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const key = new Headers(init?.headers).get("x-goog-api-key");
+      calls.push(`${key}:${/models\/([^:]+):/.exec(String(input))?.[1]}`);
+      if (key === "A") return new Response("{}", { status: 402 });
+      return key === "C" ? answer("Hola")() : blocked();
+    }) as GeminiFetch;
+    const res = await createGeminiFetch({ keys: () => ["A", "B", "C"], baseFetch: fn })(URL_, init);
+    expect((await res.json()).candidates[0].content.parts[0].text).toBe("Hola");
+    expect(calls).toEqual(["A:gemini-3.5-flash-lite", "B:gemini-3.5-flash-lite", "B:gemini-3.5-flash", "C:gemini-3.5-flash-lite"]);
+  });
+
+  test("un pedido que llega como Request no se reintenta (no hay cómo repetir su cuerpo): respuesta vacía con el motivo", async () => {
+    const calls: string[] = [];
+    const fn = (async (input: RequestInfo | URL) => {
+      calls.push(String(input instanceof Request ? input.url : input));
+      return blocked();
+    }) as GeminiFetch;
+    const req = new Request(URL_, { method: "POST", body: '{"contents":[]}' });
+    const body = await (await createGeminiFetch({ keys: () => ["A", "B"], baseFetch: fn })(req)).json();
+    expect(calls).toHaveLength(1);
+    expect(body.candidates[0].finishReason).toBe("OTHER");
+  });
+
   test("el modelo completo da un error pasajero (503, 429): llega ese error (el SDK reintenta), no «bloqueado»", async () => {
     for (const status of [503, 429]) {
       resetGeminiKeyState();

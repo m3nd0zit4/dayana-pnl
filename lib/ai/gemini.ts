@@ -66,36 +66,39 @@ type GeminiFetchOptions = { keys?: () => string[]; baseFetch?: GeminiFetch; now?
  * `fetch` para el proveedor de Google: prueba las claves en orden (primero las
  * que no están de lado) y se queda con la primera respuesta que no sea de
  * créditos/cuota/clave. Si todas fallan, devuelve la última respuesta (el
- * error de siempre llega a quien llamó).
+ * error de siempre llega a quien llamó). Dice también con qué clave salió.
  */
 const createKeyedFetch =
-  (opts: GeminiFetchOptions): GeminiFetch =>
-  async (input, init) => {
+  (opts: GeminiFetchOptions) =>
+  async (input: RequestInfo | URL, init?: RequestInit): Promise<{ res: Response; key: string | null }> => {
     const keys = (opts.keys ?? geminiKeys)();
     const baseFetch: GeminiFetch = opts.baseFetch ?? ((i, o) => fetch(i, o));
     const now = (opts.now ?? Date.now)();
     // Un cuerpo que no se puede volver a leer (un stream) no se reintenta.
     const body = init?.body;
     const retryable = body == null || typeof body === "string";
-    if (keys.length <= 1 || !retryable) return baseFetch(input, init);
+    if (keys.length <= 1 || !retryable) return { res: await baseFetch(input, init), key: keys[0] ?? null };
 
     const fresh = keys.filter((k) => (benchedUntil.get(k) ?? 0) <= now);
     const order = fresh.length ? [...fresh, ...keys.filter((k) => !fresh.includes(k))] : keys;
-    let last: Response | null = null;
+    let last: { res: Response; key: string } | null = null;
     for (const [i, key] of order.entries()) {
       const res = await baseFetch(input, { ...init, headers: withKey(init?.headers, key) });
       if (!(await switchable(res))) {
         benchedUntil.delete(key);
-        return res;
+        return { res, key };
       }
       benchedUntil.set(key, now + (COOLDOWN_MS[res.status] ?? 60_000));
       if (i < order.length - 1) {
         console.warn(`[gemini] la clave ${i + 1} de ${order.length} falló (${res.status}): pruebo la siguiente`);
       }
-      last = res;
+      last = { res, key };
     }
-    return last as Response;
+    return last as { res: Response; key: string };
   };
+
+/** Suelta una respuesta que no se va a usar (si no, la conexión queda tomada). */
+const discard = (res: Response) => res.body?.cancel().catch(() => undefined);
 
 /**
  * Google a veces bloquea el pedido entero: contesta 200 sin `candidates`, solo
@@ -124,43 +127,51 @@ const fullModelUrl = (url: string): string | null => {
 
 /**
  * Con las claves de respaldo y, si Google bloquea el pedido, otra vuelta con el
- * modelo completo y después con cada una de las otras claves (otro proyecto de
- * Google: en dev, con la misma config, Google nunca lo bloqueó). Si todo sale
- * bloqueado, el SDK recibe una respuesta vacía con el motivo (`finishReason` y
- * `promptFeedback`): quien llamó ve que no hubo texto, en lugar de un error.
+ * modelo completo (la misma clave) y después con cada una de las otras claves
+ * que no estén de lado (otro proyecto de Google: en dev, con la misma config,
+ * Google nunca lo bloqueó). Si todo sale bloqueado, el SDK recibe una respuesta
+ * vacía con el motivo (`finishReason` y `promptFeedback`): quien llamó ve que
+ * no hubo texto, en lugar de un error.
  */
 export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch => {
   const keyed = createKeyedFetch(opts);
   return async (input, init) => {
-    const res = await keyed(input, init);
+    const { res, key } = await keyed(input, init);
     const url = input instanceof Request ? input.url : String(input);
     if (!url.includes(":generateContent")) return res;
     const blocked = await blockedPrompt(res);
     if (!blocked) return res;
+    void discard(res);
     console.warn(`[gemini] Google bloqueó el pedido (${blocked.reason}): ${JSON.stringify(blocked.body).slice(0, 800)}`);
 
+    // Solo se repite lo que se puede repetir igual: URL + cuerpo de texto.
     const body = init?.body;
+    const retryable = !(input instanceof Request) && (body == null || typeof body === "string");
     const baseFetch: GeminiFetch = opts.baseFetch ?? ((i, o) => fetch(i, o));
+    const now = (opts.now ?? Date.now)();
+    const keys = (opts.keys ?? geminiKeys)();
+    const send = (u: string, k: string | null) => baseFetch(u, k ? { ...init, headers: withKey(init?.headers, k) } : init);
     const other = fullModelUrl(url);
-    const retries: { label: string; run: () => Promise<Response> }[] =
-      body == null || typeof body === "string"
-        ? [
-            ...(other ? [{ label: "el modelo completo", run: () => keyed(other, init) }] : []),
-            ...(opts.keys ?? geminiKeys)()
-              .slice(1)
-              .map((key, i) => ({ label: `la clave ${i + 2}`, run: () => baseFetch(url, { ...init, headers: withKey(init?.headers, key) }) })),
-          ]
-        : [];
+    const retries: { label: string; run: () => Promise<Response> }[] = retryable
+      ? [
+          ...(other ? [{ label: "el modelo completo", run: () => send(other, key) }] : []),
+          ...keys
+            .filter((k) => k !== key && (benchedUntil.get(k) ?? 0) <= now)
+            .map((k) => ({ label: `la clave ${keys.indexOf(k) + 1}`, run: () => send(url, k) })),
+        ]
+      : [];
     // Un error pasajero (cuota, caída) llega tal cual si nada contestó: el SDK reintenta.
     let transient: Response | null = null;
     for (const retry of retries) {
       const r = await retry.run();
       if (r.ok && !(await blockedPrompt(r))) {
         console.warn(`[gemini] contestó con ${retry.label}`);
+        if (transient) void discard(transient);
         return r;
       }
-      if (r.status === 429 || r.status >= 500) transient = r;
       console.warn(`[gemini] tampoco con ${retry.label} (${r.status})`);
+      if ((r.status === 429 || r.status >= 500) && !transient) transient = r;
+      else void discard(r);
     }
     if (transient) return transient;
     const promptFeedback = { ...(blocked.body.promptFeedback as object | undefined), blockReason: blocked.reason };
