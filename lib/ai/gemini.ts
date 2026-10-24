@@ -123,10 +123,11 @@ const fullModelUrl = (url: string): string | null => {
 };
 
 /**
- * Con las claves de respaldo y, si Google bloquea el pedido, una vuelta con el
- * modelo completo. Si también lo bloquea, el SDK recibe una respuesta vacía con
- * el motivo (`finishReason` y `promptFeedback`): quien llamó ve que no hubo
- * texto, en lugar de un error.
+ * Con las claves de respaldo y, si Google bloquea el pedido, otra vuelta con el
+ * modelo completo y después con cada una de las otras claves (otro proyecto de
+ * Google: en dev, con la misma config, Google nunca lo bloqueó). Si todo sale
+ * bloqueado, el SDK recibe una respuesta vacía con el motivo (`finishReason` y
+ * `promptFeedback`): quien llamó ve que no hubo texto, en lugar de un error.
  */
 export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch => {
   const keyed = createKeyedFetch(opts);
@@ -138,15 +139,30 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
     if (!blocked) return res;
     console.warn(`[gemini] Google bloqueó el pedido (${blocked.reason}): ${JSON.stringify(blocked.body).slice(0, 800)}`);
 
-    const other = fullModelUrl(url);
     const body = init?.body;
-    if (other && (body == null || typeof body === "string")) {
-      const retry = await keyed(other, init);
-      // Un error pasajero (cuota, caída) llega tal cual: el SDK reintenta.
-      if (retry.status === 429 || retry.status >= 500) return retry;
-      if (retry.ok && !(await blockedPrompt(retry))) return retry;
-      console.warn(`[gemini] también bloqueado con el modelo completo (${retry.status})`);
+    const baseFetch: GeminiFetch = opts.baseFetch ?? ((i, o) => fetch(i, o));
+    const other = fullModelUrl(url);
+    const retries: { label: string; run: () => Promise<Response> }[] =
+      body == null || typeof body === "string"
+        ? [
+            ...(other ? [{ label: "el modelo completo", run: () => keyed(other, init) }] : []),
+            ...(opts.keys ?? geminiKeys)()
+              .slice(1)
+              .map((key, i) => ({ label: `la clave ${i + 2}`, run: () => baseFetch(url, { ...init, headers: withKey(init?.headers, key) }) })),
+          ]
+        : [];
+    // Un error pasajero (cuota, caída) llega tal cual si nada contestó: el SDK reintenta.
+    let transient: Response | null = null;
+    for (const retry of retries) {
+      const r = await retry.run();
+      if (r.ok && !(await blockedPrompt(r))) {
+        console.warn(`[gemini] contestó con ${retry.label}`);
+        return r;
+      }
+      if (r.status === 429 || r.status >= 500) transient = r;
+      console.warn(`[gemini] tampoco con ${retry.label} (${r.status})`);
     }
+    if (transient) return transient;
     const promptFeedback = { ...(blocked.body.promptFeedback as object | undefined), blockReason: blocked.reason };
     return new Response(
       JSON.stringify({ ...blocked.body, promptFeedback, candidates: [{ content: { parts: [] }, finishReason: blocked.reason }] }),
