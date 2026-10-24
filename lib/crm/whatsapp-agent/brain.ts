@@ -57,6 +57,16 @@ import { fixNameInReply, resolvePersonName, sureFirstName, type NameMessage, typ
 import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
 import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
+import {
+  isWorkshopAsk,
+  saysNoWorkshop,
+  withWorkshopCall,
+  workshopAskedRecently,
+  workshopLine,
+  workshopReply,
+  type OpenWorkshop,
+} from "./workshop-interest";
+import { openWorkshopForAi } from "../workshop-interests";
 import { asksHowToPay, quotePayReply, quotePromptLine, quoteSituation, withQuoteReminder } from "./quote-follow-up-rules";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
@@ -681,7 +691,7 @@ Cómo conversas (así trabaja Dayana):
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
-- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción. Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción (de un taller no: la inscripción es con una llamada con Dayana). Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Grabaciones y grupos: los eventos gratuitos (webinars, masterclasses) NO se graban: si preguntan por la grabación de uno, dile con calidez que no queda grabado: «te esperamos en vivo» (o en el próximo). Nunca digas que hay o habrá una grabación, que se la mandas, que algo está «en el grupo» ni que la persona está en un grupo: quien no ha pagado no tiene grabaciones ni grupo de clases. Si pregunta por grabaciones de clases de un curso o taller, escala con category=unknown (Dayana sabe si pagó y dónde están). Si agradece «por aceptarme» o «en su grupo», contesta solo algo corto como «Con gusto 🙏», sin hablar de grupos (ni que está ni que no está, ni que no hay) y sin ofrecerle nada más en ese mensaje.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
@@ -849,6 +859,12 @@ export type BrainInput = {
    * al evento y nada de la llamada gratis (`webinar-guest.ts`).
    */
   freeEvent?: GuestEvent | null;
+  /**
+   * El taller con inscripciones abiertas (`openWorkshopForAi`). Sin pasarlo se
+   * busca; `null` = no hay. Quien pregunta por él recibe la información y la
+   * llamada con Dayana para inscribirse (`workshop-interest.ts`).
+   */
+  workshop?: OpenWorkshop | null;
 };
 
 /** Qué tan cerca de lo que pidió quedan las horas que se le ofrecen (`relaxedWishes`). */
@@ -933,7 +949,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // El flujo de venta (persona nueva → llamada gratis) y las horas de la llamada ofrecidas en esta vuelta.
   // Nunca a quien ya tuvo la llamada, a una clienta (o posible clienta) ni a un chat personal.
   // Ya fue clienta, ya tuvo la llamada o está por revisar: sin llamada gratis.
-  const noFreeCall = Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage));
+  // Salvo el taller (dueña, 24-oct: «para inscribirse toca con llamada a
+  // Dayana»): quien ya tuvo su llamada o ya fue clienta y pregunta por el taller
+  // abierto (en las últimas 24 h) sí puede separarla.
+  const workshop = input.workshop !== undefined ? input.workshop : await openWorkshopForAi(now).catch(() => null);
+  const workshopLead = Boolean(workshop) && !input.clientMode && workshopAskedRecently(input.transcript, workshop!, now.getTime());
+  const noFreeCall =
+    Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)) &&
+    !(workshopLead && (input.stage === "tuvo_llamada" || input.stage === "clienta_pasada"));
   const salesOn = config.salesFlow.enabled && config.booking.enabled && !noFreeCall;
   const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
   const offeredNow = new Set<string>();
@@ -953,7 +976,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !upcomingCall &&
     input.freeEvent &&
     guestEventCounts(input.freeEvent, now.getTime()) &&
-    !wantsProcess(input.transcript, now.getTime())
+    !wantsProcess(input.transcript, now.getTime()) &&
+    // Preguntar por el taller es pedir algo (Sergio, 24-oct: inscrito al webinar).
+    !workshopLead
       ? input.freeEvent
       : null;
 
@@ -969,6 +994,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (m.body?.trim()) lastInbound.unshift(m.body.trim());
     if (m.attachment) lastInboundMedia = true;
   }
+  // Pregunta por el taller en lo que escribió ahora («Mi pregunta es, para el 15 de noviembre» + «El taller»: juntos).
+  const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!);
+  const upcomingLabelText = upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null;
   const examples = config.learning.enabled
     ? await findSimilarExamples(lastInbound.join("\n"), spendLimits(config).examples).catch(
         (e) => {
@@ -1792,7 +1820,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       // Primero la hora (como cuando iba en las reglas): fuera de las reglas
       // para que la caché de Gemini cubra reglas y herramientas.
       `AHORA: ${nowLabel}.`,
-      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall: Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)), guest: Boolean(guestEvent) })}`,
+      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall, guest: Boolean(guestEvent) })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       chatLink
@@ -1825,6 +1853,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .join("\n")
         : null,
       quoteSit ? quotePromptLine(quoteSit, input.freeCall?.personTimezone ?? timezone, quotePack) : null,
+      // Preguntó por el taller ahora: la información y la llamada para inscribirse.
+      // Después (el país, la hora, el «sí»): seguir con el agendamiento.
+      workshop && workshopAskNow
+        ? workshopLine(workshop, { upcomingLabel: upcomingLabelText })
+        : workshop && workshopLead && !upcomingCall
+          ? `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${workshop.title}». Sigue el agendamiento de siempre (país, horas con offer_free_call_slots, book_free_call); no le des el valor ni enlaces de pago.`
+          : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
         : salesOn
@@ -2032,6 +2067,34 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       reason: `${modelOutcome.reason} (La asistente le volvió a mandar cómo pagar lo que le cotizaste.)`.slice(0, 300),
     };
   }
+  // Preguntó por el taller abierto y el modelo dijo que no hay ninguno (Noralma,
+  // 24-oct), le mandó cómo pagar su proceso (Naty) o se lo pasó a Dayana: sale
+  // la respuesta del código (abierto, cuándo es y la llamada para inscribirse).
+  const workshopOnly =
+    Boolean(workshop) &&
+    workshopAskNow &&
+    !input.clientMode &&
+    !state.receipt &&
+    !agendaOnly &&
+    !chatLinkOnly &&
+    !communityOnly &&
+    !paymentDataOnly &&
+    !quotePay &&
+    ((modelOutcome.kind === "reply" &&
+      (saysNoWorkshop(modelOutcome.message) || Boolean(state.paymentLink) || state.paymentDetails.length > 0)) ||
+      (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)));
+  if (workshopOnly) {
+    state.paymentLink = null;
+    state.paymentDetails = [];
+    log("workshop_reply", { auto: true }, { ok: true, note: "Lo puso el código: preguntó por el taller abierto." });
+    if (modelOutcome.kind === "escalate") {
+      state.silentEscalation ??= {
+        category: modelOutcome.category,
+        severity: "normal",
+        reason: `${modelOutcome.reason} (La asistente le contó del taller y le ofreció la llamada para inscribirse.)`.slice(0, 300),
+      };
+    }
+  }
   // Nunca deja de responder (dueño, 21-oct; `serious-reply.ts`): lo delicado
   // recibe una frase de apoyo y el siguiente paso (la llamada gratis o el pago),
   // y Dayana un aviso normal que la persona no ve. Nunca líneas de emergencia
@@ -2052,6 +2115,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !communityOnly &&
     !paymentDataOnly &&
     !quotePay &&
+    !workshopOnly &&
     !input.clientMode &&
     !state.receipt;
   const riskNow = !input.clientMode && saysSelfHarm(lastInbound);
@@ -2063,7 +2127,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
     asksForMoreHelp(lastInbound);
   // Lo que ya decidió otra respuesta (la sesión urgente, el enlace, la comunidad, los datos, la cotización) va primero.
-  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay);
+  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay) || workshopOnly;
   // Solo lo que de verdad le llegaría: su respuesta, o el aviso de una escalada (no un comprobante recibido).
   const emergencyTalk =
     !input.clientMode &&
@@ -2127,11 +2191,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
           : quotePay
             ? { kind: "reply", message: quotePayReply({ name: sureFirstName(nameInfo), pack: quotePay.pack, what: quotePay.what }) }
-            : serious
-              ? { kind: "reply", message: serious }
-              : guestFix
-                ? { kind: "reply", message: guestFix }
-                : modelOutcome;
+            : workshopOnly && workshop
+              ? { kind: "reply", message: workshopReply(workshop, { upcomingLabel: upcomingLabelText }) }
+              : serious
+                ? { kind: "reply", message: serious }
+                : guestFix
+                  ? { kind: "reply", message: guestFix }
+                  : modelOutcome;
   // La sesión urgente escrita sin la herramienta (flash-lite copia el ejemplo
   // del prompt y se inventa «[Enlace de pago]»): si de verdad insistió, el
   // código pega el enlace como si la hubiera usado. Y nunca sale un enlace
@@ -2298,10 +2364,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
         ? offerMessage(text, state.slotOffer.options, state.slotOffer.matchedWish)
         : text;
+  // Preguntó por el taller y contesta el modelo: siempre «abierto» y la llamada
+  // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba).
+  const withWorkshop = (text: string) =>
+    workshop && workshopAskNow && outcome === modelOutcome && !state.bookingNotice
+      ? withWorkshopCall(text, { upcomingLabel: upcomingLabelText })
+      : text;
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
   const shaped: BrainOutcome =
     outcome.kind === "reply"
-      ? { ...outcome, message: serious ? outcome.message : withAgenda(reminded(named(replyText(outcome.message))!)) }
+      ? { ...outcome, message: serious ? outcome.message : withAgenda(withWorkshop(reminded(named(replyText(outcome.message))!))) }
       : outcome;
   // Dayana le escribió hace un momento y la persona le contesta a ella: esa
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de

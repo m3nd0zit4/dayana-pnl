@@ -39,6 +39,8 @@ import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
 import { segmentOrSafe } from "./segment-store";
 import { isStage, NO_FREE_CALL_STAGES } from "./stage";
+import { workshopAskedRecently } from "./workshop-interest";
+import { openWorkshopForAi } from "../workshop-interests";
 import { spendLimits } from "./spend";
 import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
@@ -585,6 +587,12 @@ export const runWhatsAppAi = async (input: {
       segmentResult && segmentResult.review && segmentResult.segment !== "client"
         ? "por_revisar"
         : (segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null));
+    // El taller abierto: quien preguntó por él (24 h) separa la llamada con
+    // Dayana para inscribirse aunque ya haya tenido la suya o ya haya sido
+    // clienta (dueña, 24-oct: «para inscribirse toca con llamada a Dayana»).
+    const workshop = await openWorkshopForAi().catch(() => null);
+    const workshopLead = Boolean(workshop) && !clientMode && workshopAskedRecently(history, workshop!);
+    const workshopCall = workshopLead && (stage === "tuvo_llamada" || stage === "clienta_pasada");
     // La llamada gratis: agenda sola solo con el enrutador, a una persona que
     // aún no es clienta, en modo IA. La zona horaria: la que dijo en el chat.
     const autoBook =
@@ -592,9 +600,13 @@ export const runWhatsAppAi = async (input: {
       route.routerEnabled &&
       route.mode === "AUTO" &&
       // Con la llamada ya agendada, solo para moverla a otra hora que se le ofreció.
-      (route.segment === "new_lead" || route.segment === "returning_lead" || route.segment === "free_call_booked");
+      (route.segment === "new_lead" ||
+        route.segment === "returning_lead" ||
+        route.segment === "free_call_booked" ||
+        (workshopCall && route.segment === "after_call"));
     const nameInfo = await chatNameInfo(conversationId);
-    const freeCallOn = config.salesFlow.enabled && config.booking.enabled && !(stage && NO_FREE_CALL_STAGES.has(stage));
+    const freeCallOn =
+      config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);
     // Contesta la lista de horas con una opción clara («2», «hoy a las 12:45»):
     // la agenda el código, sin el modelo (`booking-turn.ts`). Si no, el modelo.
     // Antes de agendar sin el modelo, que el chat siga siendo de la IA: Dayana
@@ -661,6 +673,7 @@ export const runWhatsAppAi = async (input: {
         freeCall: { autoBook, personTimezone: personTz },
         clientMode,
         freeEvent,
+        workshop,
       }));
 
     const meta = {

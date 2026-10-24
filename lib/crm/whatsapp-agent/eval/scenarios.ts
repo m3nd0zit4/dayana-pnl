@@ -1001,4 +1001,90 @@ export const SCENARIOS: Scenario[] = [
     },
     goal: "Le manda el enlace de verdad de la comunidad de Dayana (va debajo) en un mensaje corto para que entre. Ningún otro enlace inventado, nada de «Https» con mayúscula. No escala ni dice que Dayana la agrega.",
   },
+  // El taller abierto (dueña, 24-oct: «para inscribirse toca con llamada a Dayana»). La BD de pruebas
+  // tiene «Tu Sanacion con el Dinero» abierto (15 de noviembre), como producción.
+  {
+    id: "fely-costo-del-taller",
+    origin: "Fely (Perú), 24-oct: preguntó el costo del taller del 15 de noviembre minutos después del anuncio",
+    name: "Fely",
+    stage: "nueva",
+    personTimezone: "America/Lima",
+    transcript: [person("Buenas  tardes el costo  del taller  15 noviembre  xf me puede información")],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/abiert[oa]s?/i, /llamada/i],
+      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /https?:\/\//i],
+    },
+    goal: "Le dice que el taller sí está abierto, cuándo es (domingo 15 de noviembre) y que para inscribirse es con una llamada con Dayana, y le ofrece separarla (o le pregunta desde qué país escribe para darle horas). Sin el valor ni enlaces.",
+  },
+  {
+    id: "naty-taller-tras-la-llamada",
+    origin:
+      "Naty (Perú), 24-oct: ya habló con Dayana (le mandó el enlace del paquete de 3); preguntó por el taller del 15 de noviembre y la IA le reenvió el enlace de su proceso, y luego le dijo que no había ningún taller",
+    name: "Natividad",
+    stage: "tuvo_llamada",
+    personTimezone: "America/Lima",
+    transcript: [
+      dayana("Te bendigo Natividad, aquí te envío el link del paquete de 3 sesiones"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      person("Gracias, lo reviso"),
+      person("El costo del taller del 15 de noviembre?"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/abiert[oa]s?/i, /llamada/i],
+      mustNotMatch: [/pagar\/p\/therapy/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
+    },
+    goal: "El taller es otra cosa distinta a su proceso: le dice que sí está abierto, cuándo es y que para inscribirse es con una llamada con Dayana, y se la ofrece (aunque ya tuvo su llamada gratis). No le manda el enlace de su paquete ni el valor.",
+  },
+  {
+    id: "naty-taller-dice-que-si",
+    origin: "Naty (Perú), 24-oct: ya tuvo su llamada; tras la información del taller dice que sí a separar la llamada para inscribirse",
+    name: "Natividad",
+    stage: "tuvo_llamada",
+    personTimezone: "America/Lima",
+    transcript: [
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      person("El costo del taller del 15 de noviembre?"),
+      ai(
+        "Natividad, el taller «Tu Sanación con el Dinero» es el domingo 15 de noviembre, de 8:30 a. m. a 4:30 p. m. (hora de Colombia), virtual. Las inscripciones están abiertas y son con una llamada con Dayana, donde te explica todo. ¿Quieres que te la separe?"
+      ),
+      person("Sí, por favor"),
+    ],
+    expect: { outcome: "reply", anyTool: ["offer_free_call_slots", "book_free_call"], mustNotMatch: [/pagar\/p\/therapy/i, /ya tuviste tu llamada/i] },
+    goal: "Le da horas reales para la llamada con Dayana (aunque ya tuvo su llamada gratis: esta es para inscribirse al taller). Nada del pago de su proceso.",
+  },
+  {
+    id: "sergio-webinar-pregunta-taller",
+    origin: "Sergio (México), 24-oct: inscrito al webinar del día siguiente, preguntó el costo y los horarios del taller de sanación del dinero",
+    name: "Sergio",
+    stage: "conversando",
+    personTimezone: "America/Mexico_City",
+    client: WEBINAR_CLIENT("Sergio Bañuelos"),
+    freeEvent: WEBINAR,
+    transcript: [
+      webinarConfirmation("Sergio"),
+      person("Mañana nos vemos en el webinar, gracias.\nQuiero saber el costo de el taller de sanación de el dinero ( 15 de noviembre ) y horarios"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/llamada/i],
+      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
+    },
+    goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y que para inscribirse es con una llamada con Dayana; se la ofrece. Puede saludarle por el webinar. Sin el valor.",
+  },
+  {
+    id: "boton-inscribirme-al-taller",
+    origin: "El botón «Inscribirme por WhatsApp» de la página del taller manda este texto",
+    name: "Gloria",
+    stage: "nueva",
+    personTimezone: "America/Bogota",
+    transcript: [person('Hola Dayana, me interesa inscribirme al taller "Tu Sanacion con el Dinero".')],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/llamada/i],
+      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i, /https?:\/\//i],
+    },
+    goal: "Le da la bienvenida, le confirma el taller (cuándo es) y que la inscripción es con una llamada con Dayana; se la ofrece o le pregunta desde qué país escribe para darle horas.",
+  },
 ];

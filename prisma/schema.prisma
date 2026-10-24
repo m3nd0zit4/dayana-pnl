@@ -542,8 +542,36 @@ model WorkshopEdition {
   documents             WorkshopDocument[]
   whatsAppSends         WhatsAppSend[]
   activities            WorkshopEditionActivity[]
+  interests             WorkshopInterest[]
 
   @@map("workshop_editions")
+}
+
+/// Quien preguntó por un taller por WhatsApp (dueña, 24-oct: «una lista de las
+/// personas que preguntaron por el taller para hacerles un seguimiento
+/// especial»). Una fila por chat y edición; la llena `syncWorkshopInterests`
+/// leyendo los mensajes (`isWorkshopAsk`), también los de antes de crear el
+/// taller en el CRM.
+model WorkshopInterest {
+  id             String   @id @default(cuid())
+  editionId      String   @map("edition_id")
+  conversationId String   @map("conversation_id")
+  /// Lo que escribió la primera vez.
+  firstMessage   String   @map("first_message") @db.Text
+  firstAskedAt   DateTime @map("first_asked_at")
+  lastAskedAt    DateTime @map("last_asked_at")
+  asks           Int      @default(1)
+  /// El seguimiento de Dayana: nuevo | contactada | inscrita | descartada.
+  status         String   @default("nuevo")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  edition      WorkshopEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  conversation Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([editionId, conversationId])
+  @@index([editionId, lastAskedAt])
+  @@map("workshop_interests")
 }
 
 /// La historia de una edicion de taller, como `FreeEventActivity`: creada,
@@ -1261,6 +1289,7 @@ model Conversation {
   aiBookings      WhatsAppBooking[]
   dossier         WhatsAppDossier?
   paymentReceipts WhatsAppPaymentReceipt[]
+  workshopInterests WorkshopInterest[]
 
   /// «Te toca»: desde cuándo este chat necesita a Dayana (el mensaje que lo
   /// abrió). Nulo = no le toca. Lo abren una escalada de la IA o un mensaje que

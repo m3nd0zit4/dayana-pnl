@@ -13,6 +13,7 @@ import WorkshopDocumentsPanel from "@/app/components/admin/crm/workshops/Worksho
 import WorkshopEmailNotifyButton from "@/app/components/admin/crm/workshops/WorkshopEmailNotifyButton";
 import WorkshopEnrollmentsPanel from "@/app/components/admin/crm/workshops/WorkshopEnrollmentsPanel";
 import WorkshopHistory from "@/app/components/admin/crm/workshops/WorkshopHistory";
+import WorkshopInterestsPanel from "@/app/components/admin/crm/workshops/WorkshopInterestsPanel";
 import WorkshopPageEditor from "@/app/components/admin/crm/workshops/WorkshopPageEditor";
 import WorkshopPriceEditor from "@/app/components/admin/crm/workshops/WorkshopPriceEditor";
 import { parseWorkshopTab, workshopTabSpecs, type WorkshopTab } from "@/app/components/admin/crm/workshops/tabs";
@@ -23,6 +24,7 @@ import { getStaffSession } from "@/lib/auth/staff-session";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { currentSlugForPrevious, listWorkshopDocuments } from "@/lib/crm/workshop-editions";
+import { listWorkshopInterests, syncWorkshopInterests } from "@/lib/crm/workshop-interests";
 import { getWorkshopPublishBlockers } from "@/lib/crm/workshop-lifecycle";
 import {
   isWorkshopEnded,
@@ -80,6 +82,37 @@ const EnrollmentsTab = async ({ edition, blockedReason }: { edition: WorkshopFor
       stats={stats}
       whatsApp={{ enabled: waEnabled, templateStatus, templateKey }}
       blockedReason={blockedReason}
+    />
+  );
+};
+
+/**
+ * «Preguntaron por el taller» (dueña, 24-oct): quien escribió por WhatsApp
+ * preguntando por esta edición, para el seguimiento. Mientras está abierta, al
+ * abrir la pestaña se leen los mensajes nuevos (`syncWorkshopInterests`).
+ */
+const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
+  if (edition.status === "OPEN" && !isWorkshopEnded(edition)) {
+    await syncWorkshopInterests(edition).catch((e: unknown) => console.warn("[talleres] no se pudieron leer las interesadas", e));
+  }
+  const rows = await listWorkshopInterests(edition.id).catch(() => []);
+  return (
+    <WorkshopInterestsPanel
+      key={edition.id}
+      slug={edition.slug}
+      timeZone={tz}
+      rows={rows.map((r) => ({
+        id: r.id,
+        conversationId: r.conversationId,
+        name: r.name,
+        phone: r.phone,
+        firstMessage: r.firstMessage,
+        lastAskedAtIso: r.lastAskedAt.toISOString(),
+        asks: r.asks,
+        status: r.status,
+        nextCallAtIso: r.nextCallAt?.toISOString() ?? null,
+        paid: r.paid,
+      }))}
     />
   );
 };
@@ -290,7 +323,12 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
       />
     );
   } else if (tab === "inscritas") {
-    content = <EnrollmentsTab edition={edition} blockedReason={reminderGap} />;
+    content = (
+      <div className="flex flex-col gap-6">
+        <InterestsSection edition={edition} tz={tz} />
+        <EnrollmentsTab edition={edition} blockedReason={reminderGap} />
+      </div>
+    );
   } else if (tab === "documentos") {
     const documents = await listWorkshopDocuments(edition.id);
     content = (
