@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { PROXIMO_WORKSHOP_SLUG } from "@/lib/workshops";
 
 import { getSiteSetting, setSiteSetting } from "./site-settings";
-import { isWorkshopAsk, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
+import { isWorkshopAsk, titleWords, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
 
 /**
  * Las interesadas en un taller (dueña, 24-oct: «en la sección de taller, una
@@ -49,31 +49,53 @@ export const openWorkshopForAi = async (now = new Date()): Promise<OpenWorkshop 
 const cursorKey = (editionId: string) => `workshop.interests.cursor.${editionId}`;
 /** Dayana anuncia antes de crear el taller: se lee desde 3 días antes de crearlo. */
 const ANNOUNCED_BEFORE_MS = 3 * 24 * 3600_000;
-/** Cuántos mensajes con «taller» se leen por pasada (lo que quede, la próxima vez). */
+/** Cada pasada vuelve a mirar las últimas 2 h (un mensaje que llegó tarde); la fila no suma dos veces. */
+const OVERLAP_MS = 2 * 3600_000;
+/** Cuántos mensajes se leen por pasada (lo que quede, la próxima vez). */
 const BATCH = 500;
 
+/** «sanacion» → «sanaci[oóò]n»: el mensaje viene con tildes. */
+const accentless = (word: string) =>
+  word.replace(/[aeiou]/g, (v) => ({ a: "[aáà]", e: "[eéè]", i: "[iíì]", o: "[oóò]", u: "[uúü]" })[v as "a"]);
+
+/** Lo que puede ser una pregunta por el taller: «taller», una palabra del título o el mes (lo decide `isWorkshopAsk`). */
+const candidatePattern = (edition: OpenWorkshop) => {
+  const month = edition.startsAt
+    ? new Intl.DateTimeFormat("es-CO", { timeZone: edition.timezone, month: "long" }).format(edition.startsAt).toLowerCase()
+    : null;
+  return ["taller", "workshop", ...titleWords(edition.title), ...(month ? [month] : [])].map(accentless).join("|");
+};
+
+/** ¿Ya pagó esta edición? Quien pagó no es interesada (la IA no la invita a inscribirse). */
+export const enrolledInWorkshop = async (contactId: string, editionId: string): Promise<boolean> =>
+  (await prisma.enrollment.count({ where: { contactId, workshopEditionId: editionId, status: { in: ["ACTIVE", "COMPLETED"] } } })) > 0;
+
 /**
- * Lee los mensajes nuevos de las personas que mencionan el taller y anota a
- * quien pregunta por él. Idempotente: una fila por chat; si vuelve a
- * preguntar, sube `asks` y `last_asked_at`. Avanza el cursor hasta el último
- * mensaje leído.
+ * Lee los mensajes nuevos de las personas que pueden hablar del taller y anota
+ * a quien pregunta por él (también en dos mensajes seguidos: «para el 15 de
+ * noviembre» + «El taller»). Idempotente: una fila por chat; si vuelve a
+ * preguntar, sube `asks` y `last_asked_at`. El cursor avanza aunque no haya nada.
  */
 export const syncWorkshopInterests = async (edition: OpenWorkshop & { createdAt: Date }): Promise<{ scanned: number; changed: number }> => {
+  const startedAt = new Date();
   const raw = await getSiteSetting(cursorKey(edition.id)).catch(() => null);
-  const since = raw ? new Date(raw) : new Date(edition.createdAt.getTime() - ANNOUNCED_BEFORE_MS);
-  const rows = await prisma.$queryRaw<{ conversation_id: string; body: string; sent_at: Date }[]>`
-    SELECT m.conversation_id, m.body, m.sent_at
+  const since = raw ? new Date(new Date(raw).getTime() - OVERLAP_MS) : new Date(edition.createdAt.getTime() - ANNOUNCED_BEFORE_MS);
+  const rows = await prisma.$queryRaw<{ conversation_id: string; body: string; sent_at: Date; prev_body: string | null }[]>`
+    SELECT m.conversation_id, m.body, m.sent_at,
+           (SELECT p.body FROM conversation_messages p
+             WHERE p.conversation_id = m.conversation_id AND p.direction = 'INBOUND'
+               AND p.sent_at < m.sent_at AND p.sent_at > m.sent_at - INTERVAL '10 minutes'
+             ORDER BY p.sent_at DESC LIMIT 1) AS prev_body
     FROM conversation_messages m
-    JOIN conversations c ON c.id = m.conversation_id
     WHERE m.direction = 'INBOUND'
       AND m.sent_at > ${since}
       AND m.body IS NOT NULL
-      AND (m.body ILIKE '%taller%' OR m.body ILIKE '%workshop%')
+      AND m.body ~* ${candidatePattern(edition)}
     ORDER BY m.sent_at ASC
     LIMIT ${BATCH}`;
   let changed = 0;
   for (const r of rows) {
-    if (!isWorkshopAsk(r.body, edition)) continue;
+    if (!isWorkshopAsk(r.body, edition) && !(r.prev_body && isWorkshopAsk(`${r.prev_body}\n${r.body}`, edition))) continue;
     // Un mensaje ya contado (el mismo instante) no suma otra vez.
     changed += await prisma.$executeRaw`
       INSERT INTO workshop_interests (id, edition_id, conversation_id, first_message, first_asked_at, last_asked_at, asks, status, updated_at)
@@ -84,8 +106,9 @@ export const syncWorkshopInterests = async (edition: OpenWorkshop & { createdAt:
             updated_at = NOW()
         WHERE EXCLUDED.last_asked_at > workshop_interests.last_asked_at`;
   }
-  const last = rows.at(-1)?.sent_at;
-  if (last) await setSiteSetting(cursorKey(edition.id), last.toISOString()).catch(() => undefined);
+  // Lote lleno: hasta el último leído (el resto, la próxima vez). Si no, hasta ahora.
+  const next = rows.length >= BATCH ? rows.at(-1)!.sent_at : startedAt;
+  await setSiteSetting(cursorKey(edition.id), next.toISOString()).catch(() => undefined);
   return { scanned: rows.length, changed };
 };
 

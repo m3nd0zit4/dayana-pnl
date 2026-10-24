@@ -39,8 +39,8 @@ import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
 import { segmentOrSafe } from "./segment-store";
 import { isStage, NO_FREE_CALL_STAGES } from "./stage";
-import { workshopAskedRecently } from "./workshop-interest";
-import { openWorkshopForAi } from "../workshop-interests";
+import { workshopFlowActive } from "./workshop-interest";
+import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
 import { spendLimits } from "./spend";
 import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
@@ -590,9 +590,18 @@ export const runWhatsAppAi = async (input: {
     // El taller abierto: quien preguntó por él (24 h) separa la llamada con
     // Dayana para inscribirse aunque ya haya tenido la suya o ya haya sido
     // clienta (dueña, 24-oct: «para inscribirse toca con llamada a Dayana»).
-    const workshop = await openWorkshopForAi().catch(() => null);
-    const workshopLead = Boolean(workshop) && !clientMode && workshopAskedRecently(history, workshop!);
-    const workshopCall = workshopLead && (stage === "tuvo_llamada" || stage === "clienta_pasada");
+    // Quien ya pagó el taller no es interesada; la llamada, solo mientras habla de él.
+    const openWorkshop = await openWorkshopForAi().catch(() => null);
+    const workshop =
+      openWorkshop &&
+      !(conversation.contactId && (await enrolledInWorkshop(conversation.contactId, openWorkshop.id).catch(() => false)))
+        ? openWorkshop
+        : null;
+    const workshopCall =
+      Boolean(workshop) &&
+      !clientMode &&
+      (stage === "tuvo_llamada" || stage === "clienta_pasada") &&
+      workshopFlowActive(history, workshop!);
     // La llamada gratis: agenda sola solo con el enrutador, a una persona que
     // aún no es clienta, en modo IA. La zona horaria: la que dijo en el chat.
     const autoBook =

@@ -8,6 +8,7 @@
  * 1. Preguntó el costo (y luego el horario): una fila, 2 veces.
  * 2. Preguntó por el botón de la página dos días ANTES de crear el taller: entra.
  * 3. «Son del taller de jabones?»: no entra. Hace 5 días: tampoco (se lee desde 3 días antes de crearlo).
+ *    En dos mensajes («para el 15 de noviembre» + «El taller») y sin «taller» («la sanación con el dinero»): entran.
  * 4. Leer otra vez no suma nada (cursor).
  * 5. Marcar el seguimiento; otra edición no puede.
  */
@@ -62,6 +63,11 @@ const main = async () => {
     const c = await chat("2", [{ body: 'Hola Dayana, me interesa inscribirme al taller "Tu Sanacion con el Dinero".', at: ago(48) }]);
     const b = await chat("3", [{ body: "Son del taller de jabones  ?", at: ago(3) }]);
     const d = await chat("4", [{ body: "¿Cuánto cuesta el taller del 15 de noviembre?", at: ago(24 * 5) }]);
+    const e = await chat("5", [
+      { body: "Mi pregunta es ,para el 15 de noviembre", at: ago(4) },
+      { body: "El taller", at: ago(3.99) },
+    ]);
+    const f = await chat("6", [{ body: "¿cuánto cuesta la sanación con el dinero?", at: ago(5) }]);
 
     const first = await syncWorkshopInterests(forSync);
     const rows = (await listWorkshopInterests(edition.id)).filter((r) => ids.includes(r.conversationId));
@@ -70,6 +76,11 @@ const main = async () => {
     check("1. preguntó dos veces: una fila, 2 veces, con lo que escribió primero", rowA?.asks === 2 && rowA.firstMessage.startsWith("El costo del taller"), rowA);
     check("2. preguntó antes de crear el taller (botón de la página): entra", Boolean(rowC) && rowC?.status === "nuevo", rowC);
     check("3. otro taller y hace 5 días: no entran", !rows.some((r) => r.conversationId === b || r.conversationId === d), rows);
+    check(
+      "   la pregunta en dos mensajes y sin la palabra «taller» (el título): entran",
+      rows.some((r) => r.conversationId === e) && rows.some((r) => r.conversationId === f),
+      rows.map((r) => r.firstMessage)
+    );
     check("   nombre y número del chat, sin llamada ni pago", rowA?.name === "Prueba Taller 1" && rowA.phone.endsWith("1") && !rowA.paid && rowA.nextCallAt === null, rowA);
 
     const again = await syncWorkshopInterests(forSync);

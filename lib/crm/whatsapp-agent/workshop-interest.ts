@@ -57,16 +57,25 @@ const INTEREST =
  * el mes, una palabra del título). No «son del taller de jabones» (otro
  * taller) ni «trato de hacer los talleres» (una clienta del curso).
  */
+/** Lo de su proceso, no del taller («¿puedo pagar la terapia el 15 de noviembre?»). */
+const HER_PROCESS = /\b(sesion|sesiones|terapia|terapias|cita|llamada|paquete|pago|pagar|pague|comprobante)\b/;
+
 export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop): boolean => {
   const t = foldForSearch(text ?? "");
-  if (!/\b(taller|talleres|workshop)\b/.test(t)) return false;
   const words = titleWords(w.title);
+  const has = (x: string) => new RegExp(`\\b${x}\\b`).test(t);
   const dm = dayMonth(w);
+  const date = Boolean(dm && new RegExp(`\\b${dm.day}\\b[^.?!]{0,8}\\b${dm.month}\\b`).test(t));
+  if (!/\b(taller|talleres|workshop)\b/.test(t)) {
+    // Sin «taller»: el título entero («¿cuánto cuesta la sanación con el dinero?»)
+    // o la fecha con una pregunta y nada de su proceso. Una palabra sola no
+    // («no tengo dinero para la terapia»).
+    return (words.length >= 2 && words.every(has)) || (date && INTEREST.test(t) && !HER_PROCESS.test(t));
+  }
   // «taller de X» con una X que no es de este taller: es otro.
   const of = /\btaller(?:es)? de (?:la |el |los |las )?([a-z0-9ñ]+)/.exec(t);
   if (of && !words.includes(of[1]) && !MONTHS.includes(of[1]) && !/^\d/.test(of[1]) && !["dayana", "pnl"].includes(of[1])) return false;
-  const specific = words.some((x) => t.includes(x)) || Boolean(dm && new RegExp(`\\b${dm.day}\\b[^.?!]{0,8}\\b${dm.month}\\b`).test(t));
-  return specific || INTEREST.test(t);
+  return words.some(has) || date || INTEREST.test(t);
 };
 
 type Line = { direction: string; body: string | null; sentAt?: Date | null };
@@ -85,6 +94,34 @@ export const workshopAskedRecently = (lines: Line[], w: OpenWorkshop, now = Date
     if (recent(l) && l.body) tail.unshift(l.body);
   }
   return tail.length > 1 && isWorkshopAsk(tail.join("\n"), w);
+};
+
+/** Lo nuestro que sigue el agendamiento del taller: la oferta de la llamada para inscribirse o la lista de horas. */
+const FLOW = /\b(taller|inscri\w*|te la separe|separartela|separarte|cual te queda mejor|responderme con el numero)\b/;
+
+/**
+ * La llamada para el taller (aunque ya haya tenido su llamada gratis) solo
+ * mientras habla del taller: lo pregunta ahora, o lo último que le escribimos
+ * es la oferta de la llamada o la lista de horas (revisión 24-oct: durante 24
+ * h, un «gracias» o una pregunta de su sesión abría el embudo de la llamada).
+ */
+export const workshopFlowActive = (lines: (Line & { isAutoReply?: boolean })[], w: OpenWorkshop, now = Date.now()): boolean => {
+  if (!workshopAskedRecently(lines, w, now)) return false;
+  const tail: string[] = [];
+  let lastOut: Line | null = null;
+  for (const l of [...lines].reverse()) {
+    if (l.direction === "INBOUND" && lastOut === null) {
+      if (l.body) tail.unshift(l.body);
+      continue;
+    }
+    if (l.direction === "OUTBOUND") {
+      lastOut = l;
+      break;
+    }
+  }
+  if (isWorkshopAsk(tail.join("\n"), w)) return true;
+  const fresh = lastOut && (!lastOut.sentAt || lastOut.sentAt.getTime() >= now - 24 * 3600_000);
+  return Boolean(fresh && FLOW.test(foldForSearch(lastOut!.body ?? "")));
 };
 
 /** «8:30 a.m. – 4:30 p.m. · virtual» → «8:30 a. m. – 4:30 p. m., virtual». */
@@ -132,7 +169,8 @@ export const workshopReply = (w: OpenWorkshop, opts: { upcomingLabel: string | n
 export const withWorkshopCall = (text: string, opts: { upcomingLabel: string | null }): string => {
   const t = foldForSearch(text);
   const saysOpen = /\babiert[oa]s?\b/.test(t);
-  const saysCall = /\bllamada\b/.test(t);
+  // «Te agendo una llamada gratis» sin decir que es para inscribirse no basta.
+  const saysCall = /\bllamada\b/.test(t) && /\binscri(b|p)/.test(t);
   if (saysOpen && saysCall) return text;
   const call = opts.upcomingLabel
     ? `En tu llamada con Dayana (${opts.upcomingLabel}) ella te explica todo y te inscribe.`
@@ -153,7 +191,8 @@ export const withWorkshopCall = (text: string, opts: { upcomingLabel: string | n
     return `${before}${sep}${add} ${body.slice(q)}`;
   }
   const sep = /[.!?]$/.test(body) ? " " : ". ";
-  return `${body}${sep}${add}${call || saysCall ? "" : " ¿Quieres que te la separe?"}`;
+  // Si ya le ofrece una llamada («te agendo una llamada gratis»), sin otra pregunta.
+  return `${body}${sep}${add}${call || /\bllamada\b/.test(t) ? "" : " ¿Quieres que te la separe?"}`;
 };
 
 /** «No hay ningún taller programado» cuando sí lo hay (Noralma y Naty, 24-oct). */

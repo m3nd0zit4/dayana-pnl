@@ -7,7 +7,7 @@ import CrmPageHeader from "@/app/components/admin/crm/CrmPageHeader";
 import CrmPageShell from "@/app/components/admin/crm/CrmPageShell";
 import EditionStatusBadge from "@/app/components/admin/crm/editions/EditionStatusBadge";
 import EditionTabs from "@/app/components/admin/crm/editions/EditionTabs";
-import { CrmEmptyState, CrmPublicLink } from "@/app/components/admin/crm/ui";
+import { CrmEmptyState, CrmErrorState, CrmPublicLink } from "@/app/components/admin/crm/ui";
 import WorkshopDetailActions from "@/app/components/admin/crm/workshops/WorkshopDetailActions";
 import WorkshopDocumentsPanel from "@/app/components/admin/crm/workshops/WorkshopDocumentsPanel";
 import WorkshopEmailNotifyButton from "@/app/components/admin/crm/workshops/WorkshopEmailNotifyButton";
@@ -95,7 +95,18 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
   if (edition.status === "OPEN" && !isWorkshopEnded(edition)) {
     await syncWorkshopInterests(edition).catch((e: unknown) => console.warn("[talleres] no se pudieron leer las interesadas", e));
   }
-  const rows = await listWorkshopInterests(edition.id).catch(() => []);
+  const rows = await listWorkshopInterests(edition.id).catch((e: unknown) => {
+    console.error("[talleres] no se pudo cargar la lista de interesadas", e);
+    return null;
+  });
+  if (!rows) {
+    return (
+      <CrmErrorState
+        title="No se pudo cargar quién preguntó por el taller"
+        message="Recarga la página en un momento; las inscritas siguen abajo."
+      />
+    );
+  }
   return (
     <WorkshopInterestsPanel
       key={edition.id}

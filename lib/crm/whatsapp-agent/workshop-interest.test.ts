@@ -6,6 +6,7 @@ import {
   titleWords,
   withWorkshopCall,
   workshopAskedRecently,
+  workshopFlowActive,
   workshopFacts,
   workshopLine,
   workshopReply,
@@ -36,6 +37,9 @@ describe("isWorkshopAsk: quién pregunta por el taller abierto (24-oct)", () => 
       'Hola Dayana, me interesa inscribirme al taller "Tu Sanacion con el Dinero".',
       "quiero el taller",
       "¿el taller es virtual?",
+      // Revisión 24-oct: sin la palabra «taller».
+      "¿cuánto cuesta la sanación con el dinero?",
+      "¿cuándo es lo del 15 de noviembre?",
     ]) {
       expect([t, isWorkshopAsk(t, W)]).toEqual([t, true]);
     }
@@ -47,6 +51,9 @@ describe("isWorkshopAsk: quién pregunta por el taller abierto (24-oct)", () => 
       "y en Dios confío que si pueda estar en alguno de tus talleres, no te perderé de vista",
       "¿Cuánto cuesta la terapia?",
       "Mi pregunta es ,para el 15 de noviembre",
+      // Una palabra del título sola no: «dinero» es de todos los días.
+      "no tengo dinero para la terapia, ¿cuánto cuesta?",
+      "Me llego el 15 de noviembre la quincena",
       null,
     ]) {
       expect([t, isWorkshopAsk(t, W)]).toEqual([t, false]);
@@ -77,6 +84,38 @@ describe("workshopAskedRecently: el «sí», el país y la hora llegan después"
     ];
     expect(workshopAskedRecently(lines, W, now)).toBe(true);
     expect(workshopAskedRecently(lines.slice(0, 2), W, now)).toBe(false);
+  });
+});
+
+describe("workshopFlowActive: la llamada para el taller solo mientras habla del taller (revisión 24-oct)", () => {
+  const now = new Date("2026-10-24T21:00:00Z").getTime();
+  const at = (m: number) => new Date(now - m * 60_000);
+  const ask = { direction: "INBOUND", body: "El costo del taller del 15 de noviembre?", sentAt: at(30) };
+  test("pregunta ahora, o le ofrecimos la llamada / las horas para el taller: sí", () => {
+    expect(workshopFlowActive([ask], W, now)).toBe(true);
+    const offered = [
+      ask,
+      { direction: "OUTBOUND", isAutoReply: true, body: "Las inscripciones están abiertas y son con una llamada con Dayana. ¿Quieres que te la separe?", sentAt: at(29) },
+      { direction: "INBOUND", body: "Sí", sentAt: at(28) },
+    ];
+    expect(workshopFlowActive(offered, W, now)).toBe(true);
+    const slots = [
+      ...offered,
+      { direction: "OUTBOUND", isAutoReply: true, body: "Estas son las horas\n1. Lunes 3:00 p. m.\n¿Cuál te queda mejor? Puedes responderme con el número.", sentAt: at(27) },
+      { direction: "INBOUND", body: "2", sentAt: at(26) },
+    ];
+    expect(workshopFlowActive(slots, W, now)).toBe(true);
+  });
+  test("ya pasó a otra cosa: no", () => {
+    const later = [
+      ask,
+      { direction: "OUTBOUND", isAutoReply: true, body: "Tu llamada con Dayana quedó para el lunes.", sentAt: at(20) },
+      { direction: "INBOUND", body: "Gracias", sentAt: at(19) },
+      { direction: "OUTBOUND", isAutoReply: true, body: "Con gusto 🙏", sentAt: at(18) },
+      { direction: "INBOUND", body: "¿Cómo pago mi sesión?", sentAt: at(5) },
+    ];
+    expect(workshopFlowActive(later, W, now)).toBe(false);
+    expect(workshopFlowActive([{ direction: "INBOUND", body: "Gracias", sentAt: at(5) }], W, now)).toBe(false);
   });
 });
 
@@ -113,6 +152,10 @@ describe("lo que dice", () => {
     );
     const done = "Sí, está abierto y la inscripción es con una llamada con Dayana. ¿Quieres que te la separe?";
     expect(withWorkshopCall(done, { upcomingLabel: null })).toBe(done);
+    // «Llamada» sin la inscripción no basta (revisión 24-oct).
+    expect(withWorkshopCall("El taller está abierto. Si quieres, te agendo una llamada gratis.", { upcomingLabel: null })).toBe(
+      "El taller está abierto. Si quieres, te agendo una llamada gratis. La inscripción es con una llamada con Dayana, donde te explica todo."
+    );
     expect(withWorkshopCall("El taller es el 15 de noviembre.", { upcomingLabel: "domingo, 25 de octubre, 1:00 p. m." })).toBe(
       "El taller es el 15 de noviembre. Las inscripciones están abiertas. En tu llamada con Dayana (domingo, 25 de octubre, 1:00 p. m.) ella te explica todo y te inscribe."
     );
