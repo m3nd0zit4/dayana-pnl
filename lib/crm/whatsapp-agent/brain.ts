@@ -1888,8 +1888,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // un «no hace falta contestar», no «no supo qué contestar» (Raquel, 22-oct:
   // a su audio para Dayana le llegó «Déjame consultarlo con Dayana»).
   // Una pregunta («¿cuánto cuesta?») sigue el camino de siempre (revisión 22-oct).
+  // Google bloqueó el pedido, también con el modelo completo (`lib/ai/gemini.ts`):
+  // el modelo ni lo leyó. Pasa a Dayana con ese motivo (Andrea y Sil, 23/24-oct).
+  const blockedBy = (result.providerMetadata?.google?.promptFeedback as { blockReason?: unknown } | null | undefined)?.blockReason;
   const askedSomething = lastInbound.some((t) => /[?¿]/.test(t));
-  if (toDayana && !askedSomething && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
+  if (toDayana && !blockedBy && !askedSomething && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
     state.noReply = "Le estaba respondiendo a Dayana; no hacía falta que la asistente escribiera.";
   }
   const rawOutcome: BrainOutcome =
@@ -1901,7 +1904,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           kind: "escalate",
           category: "unknown",
           severity: "normal",
-          reason: "El asistente no supo qué contestar.",
+          reason: blockedBy
+            ? `Google (Gemini) bloqueó este chat y la IA no pudo leerlo (${String(blockedBy)}): contéstale tú.`
+            : "El asistente no supo qué contestar.",
         });
   // «clinical» urgente sin una señal de riesgo ni en el motivo ni en lo que
   // ella escribió: es lo que siente, no una crisis (Joselyn, 21-oct: el modelo

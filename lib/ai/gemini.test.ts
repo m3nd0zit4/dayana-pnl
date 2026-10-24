@@ -1,3 +1,5 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateText } from "ai";
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import { createGeminiFetch, geminiKeys, resetGeminiKeyState, type GeminiFetch } from "./gemini";
@@ -89,5 +91,64 @@ describe("respaldo de claves", () => {
     const res = await createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn })(URL_, init);
     expect(res.status).toBe(402);
     expect(f.calls).toHaveLength(1);
+  });
+});
+
+describe("pedido bloqueado por Google (200 sin candidates)", () => {
+  // Andrea y Sil, 23/24-oct: Google contestó 200 solo con `promptFeedback` y el
+  // SDK lanzaba «Invalid JSON response»; la IA no contestaba y se reintentaba sin fin.
+  const blocked = () =>
+    new Response(JSON.stringify({ promptFeedback: { blockReason: "OTHER" }, usageMetadata: { promptTokenCount: 900, totalTokenCount: 900 } }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  const answer = (text: string) => () =>
+    new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text }], role: "model" }, finishReason: "STOP" }] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  /** Responde por modelo (lo que va en la URL). */
+  const byModel = (models: Record<string, () => Response>) => {
+    const calls: string[] = [];
+    const fn = (async (input: RequestInfo | URL) => {
+      const model = /models\/([^:]+):/.exec(String(input))?.[1] ?? "";
+      calls.push(model);
+      return (models[model] ?? (() => new Response("{}", { status: 404 })))();
+    }) as GeminiFetch;
+    return { fn, calls };
+  };
+
+  test("se repite con el modelo sin «-lite» y llega esa respuesta", async () => {
+    const f = byModel({ "gemini-3.5-flash-lite": blocked, "gemini-3.5-flash": answer("Hola, te bendigo") });
+    const res = await createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn })(URL_, init);
+    expect(f.calls).toEqual(["gemini-3.5-flash-lite", "gemini-3.5-flash"]);
+    expect((await res.json()).candidates[0].content.parts[0].text).toBe("Hola, te bendigo");
+  });
+
+  test("bloqueado también con el otro modelo: el SDK recibe una respuesta vacía con el motivo, no un error", async () => {
+    const f = byModel({ "gemini-3.5-flash-lite": blocked, "gemini-3.5-flash": blocked });
+    const google = createGoogleGenerativeAI({ apiKey: "A", fetch: createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn }) as typeof fetch });
+    const result = await generateText({ model: google("gemini-3.5-flash-lite"), prompt: "Si" });
+    expect(result.text).toBe("");
+    expect((result.providerMetadata?.google?.promptFeedback as { blockReason?: string } | null)?.blockReason).toBe("OTHER");
+    expect(f.calls).toEqual(["gemini-3.5-flash-lite", "gemini-3.5-flash"]);
+  });
+
+  test("sin «-lite» no hay otro modelo: llega la respuesta vacía con el motivo", async () => {
+    const f = byModel({ "gemini-3.5-flash": blocked });
+    const url = URL_.replace("gemini-3.5-flash-lite", "gemini-3.5-flash");
+    const body = await (await createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn })(url, init)).json();
+    expect(f.calls).toEqual(["gemini-3.5-flash"]);
+    expect(body.candidates).toEqual([{ content: { parts: [] }, finishReason: "OTHER" }]);
+    expect(body.promptFeedback.blockReason).toBe("OTHER");
+  });
+
+  test("una respuesta normal y lo que no es generateContent (embeddings) pasan tal cual", async () => {
+    const f = byModel({ "gemini-3.5-flash-lite": answer("ok"), "gemini-embedding-001": () => new Response('{"embedding":{"values":[1]}}', { status: 200 }) });
+    const gfetch = createGeminiFetch({ keys: () => ["A"], baseFetch: f.fn });
+    expect((await (await gfetch(URL_, init)).json()).candidates[0].content.parts[0].text).toBe("ok");
+    const embed = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent";
+    expect(await (await gfetch(embed, init)).json()).toEqual({ embedding: { values: [1] } });
+    expect(f.calls).toEqual(["gemini-3.5-flash-lite", "gemini-embedding-001"]);
   });
 });

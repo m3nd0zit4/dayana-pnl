@@ -60,14 +60,16 @@ const switchable = async (res: Response): Promise<boolean> => {
   return /API_KEY_INVALID|API key not valid|API key expired/i.test(text);
 };
 
+type GeminiFetchOptions = { keys?: () => string[]; baseFetch?: GeminiFetch; now?: () => number };
+
 /**
  * `fetch` para el proveedor de Google: prueba las claves en orden (primero las
  * que no están de lado) y se queda con la primera respuesta que no sea de
  * créditos/cuota/clave. Si todas fallan, devuelve la última respuesta (el
  * error de siempre llega a quien llamó).
  */
-export const createGeminiFetch =
-  (opts: { keys?: () => string[]; baseFetch?: GeminiFetch; now?: () => number } = {}): GeminiFetch =>
+const createKeyedFetch =
+  (opts: GeminiFetchOptions): GeminiFetch =>
   async (input, init) => {
     const keys = (opts.keys ?? geminiKeys)();
     const baseFetch: GeminiFetch = opts.baseFetch ?? ((i, o) => fetch(i, o));
@@ -94,6 +96,61 @@ export const createGeminiFetch =
     }
     return last as Response;
   };
+
+/**
+ * Google a veces bloquea el pedido entero: contesta 200 sin `candidates`, solo
+ * con `promptFeedback.blockReason`. Este SDK (@ai-sdk/google 4.0.29) no lo
+ * entiende y lanza «Invalid JSON response» (Andrea y Sil, 23/24-oct: la IA no
+ * contestaba y el mismo pedido se repetía cada vez). Devuelve el cuerpo y el
+ * motivo, o null si no es eso.
+ */
+const blockedPrompt = async (res: Response): Promise<{ body: Record<string, unknown>; reason: string } | null> => {
+  if (res.status !== 200) return null;
+  const body = await res
+    .clone()
+    .json()
+    .catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body.candidates)) return null;
+  if (!("promptFeedback" in body) && !("usageMetadata" in body)) return null;
+  const reason = (body.promptFeedback as { blockReason?: unknown } | undefined)?.blockReason;
+  return { body, reason: typeof reason === "string" && reason ? reason : "OTHER" };
+};
+
+/** El mismo pedido con el modelo completo en vez del «-lite» (o null si no hay otro). */
+const fullModelUrl = (url: string): string | null => {
+  const m = /\/models\/([^/:]+)-lite:generateContent/.exec(url);
+  return m ? url.replace(`/models/${m[1]}-lite:`, `/models/${m[1]}:`) : null;
+};
+
+/**
+ * Con las claves de respaldo y, si Google bloquea el pedido, una vuelta con el
+ * modelo completo. Si también lo bloquea, el SDK recibe una respuesta vacía con
+ * el motivo (`finishReason` y `promptFeedback`): quien llamó ve que no hubo
+ * texto, en lugar de un error.
+ */
+export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch => {
+  const keyed = createKeyedFetch(opts);
+  return async (input, init) => {
+    const res = await keyed(input, init);
+    const url = input instanceof Request ? input.url : String(input);
+    if (!url.includes(":generateContent")) return res;
+    const blocked = await blockedPrompt(res);
+    if (!blocked) return res;
+    console.warn(`[gemini] Google bloqueó el pedido (${blocked.reason}): ${JSON.stringify(blocked.body).slice(0, 800)}`);
+
+    const other = fullModelUrl(url);
+    const body = init?.body;
+    if (other && (body == null || typeof body === "string")) {
+      const retry = await keyed(other, init);
+      if (retry.ok && !(await blockedPrompt(retry))) return retry;
+      console.warn(`[gemini] también bloqueado con el modelo completo (${retry.status})`);
+    }
+    return new Response(JSON.stringify({ ...blocked.body, candidates: [{ content: { parts: [] }, finishReason: blocked.reason }] }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  };
+};
 
 const geminiFetch = createGeminiFetch();
 
