@@ -39,7 +39,7 @@ import {
 } from "./chat-payment-link";
 import { saysSelfHarm } from "./pause-rules";
 import { asksForMoreHelp, seriousReply } from "./serious-reply";
-import { answeringDayana, givesEmergencyAdvice, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, withoutToolText } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -1201,6 +1201,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
               // Solo a quien habla del taller (no es el enlace de pago de su proceso).
               if (!workshopLead) return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
+              // Pregunta por el taller y todavía no eligió (eval 25-oct: a «¿el costo del taller?» le mandaba el enlace sin preguntar).
+              if (workshopAskNow && !workshopSpot) {
+                return log("send_workshop_link", {}, {
+                  ok: false,
+                  reason: "Todavía no eligió: pregúntale si quiere separar su cupo ya con el enlace de pago o agendar primero una llamada con Dayana.",
+                });
+              }
               addLink(workshopPay);
               return log("send_workshop_link", {}, { ok: true, note: "El enlace va debajo de tu mensaje: no lo escribas ni digas el precio." });
             },
@@ -2325,21 +2332,24 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // Eligió el cupo y el modelo le ofreció horas (eval 25-oct: «La primera» → horas
     // de la llamada): van el enlace y la respuesta del cupo, sin la lista.
     const spotOverSlots = workshopSpot && Boolean(state.slotOffer);
+    // Al preguntar por primera vez, el enlace solo si ya eligió el cupo (si no, va la pregunta).
+    const mayLink = workshopSpot || (workshopFlow && !workshopAskNow);
     if (
       workshop &&
       workshopPay &&
+      mayLink &&
       !state.links.includes(workshopPay) &&
       (!state.slotOffer || spotOverSlots) &&
       !state.booking &&
       !state.pendingBooking &&
       !state.bookingNotice &&
-      (typedWorkshop.had || workshopSpot || ((workshopAskNow || workshopFlow) && promisesWorkshopLink(text)))
+      (typedWorkshop.had || workshopSpot || promisesWorkshopLink(text))
     ) {
       addLink(workshopPay);
       log("send_workshop_link", { auto: true }, { ok: true, note: "Lo pegó el código: eligió separar su cupo o la respuesta hablaba del enlace sin la herramienta." });
       // Si su texto ya habla del enlace, sale tal cual; si contesta otra cosa («¿es en
-      // pesos?»), se suma la frase del enlace; si pregunta algo (el país) o ofrecía horas, la del cupo.
-      const asksBack = /\?\s*$/.test(text.trim());
+      // pesos?»), se suma la frase del enlace; si pregunta algo (el país, «¿te refieres a…?») u ofrecía horas, la del cupo.
+      const asksBack = /\?/.test(text);
       if (spotOverSlots) state.slotOffer = null;
       text = spotOverSlots
         ? workshopLinkReply(workshop)
@@ -2348,6 +2358,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           : asksBack || !text.trim()
             ? workshopLinkReply(workshop)
             : `${text.trim()}${/[.!]$/.test(text.trim()) ? "" : "."} Aquí tienes el enlace para separar tu cupo; ahí ves el valor y puedes pagar en línea.`;
+    }
+    // Eligió el cupo, va el enlace y el texto le vuelve a preguntar (eval 25-oct: «La
+    // primera» + el enlace + «¿desde qué país me escribes?»): la respuesta del cupo.
+    // Y si escribió la herramienta como texto («default_api:send_workshop_link{}», eval 25-oct),
+    // run.ts lo quitaría todo y llegaría solo el enlace: la respuesta del cupo.
+    if (workshop && workshopPay && state.links.includes(workshopPay) && ((workshopSpot && /\?/.test(text)) || withoutToolText(text).had)) {
+      text = workshopLinkReply(workshop);
     }
     // Ningún enlace que no leyó en una fuente de verdad (Ruth, 23-oct: «…/comunidad»,
     // que no existe): las reglas, los DATOS, las notas, lo que escribieron Dayana o
@@ -2433,7 +2450,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       !lastInboundMedia &&
       /\bpag/.test(folded) &&
       (/\b(enlace|link)\b/.test(folded) || (Boolean(quoteSit) && (/\bque te (envio|mando|compartio|paso)\b/.test(folded) || askedPackage(text) !== null)));
-    if (!copied.had && (state.links.length > 0 || !talksOfDayanaLink)) return text;
+    // Hablando del taller, «el enlace de pago» es el del taller (eval 25-oct: a la pregunta
+    // del cupo o la llamada se le pegaba el enlace del paquete de Naty).
+    const workshopTalk = Boolean(workshop) && (workshopAskNow || workshopFlow);
+    if (!copied.had && (state.links.length > 0 || !talksOfDayanaLink || workshopTalk)) return text;
     if (!state.paymentLink) {
       // El que copió, el del paquete que nombra, el de las notas de Dayana o el último.
       const pick =
