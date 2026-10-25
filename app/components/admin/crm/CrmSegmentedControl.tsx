@@ -21,7 +21,7 @@ type Props<T extends string> = {
   "aria-label"?: string;
   /**
    * En un teléfono las pestañas ocupan todo el ancho, una celda por pestaña
-   * con su icono encima de la etiqueta corta: así caben seis en 390 px sin
+   * con su icono encima de la etiqueta corta: así caben siete en 390 px sin
    * cortar ninguna. Desde `sm`, la fila de siempre.
    */
   mobileGrid?: boolean;

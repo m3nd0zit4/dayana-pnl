@@ -1055,6 +1055,55 @@ export const SCENARIOS: Scenario[] = [
     goal: "Le da horas reales para la llamada con Dayana (aunque ya tuvo su llamada gratis: esta es para inscribirse al taller). Nada del pago de su proceso.",
   },
   {
+    id: "naty-contesta-a-la-lista-de-interesadas",
+    origin:
+      "La lista de interesadas (24-oct): Naty preguntó por el taller hace días; Dayana tocó «Ofrecerle la llamada» y salió la plantilla. Contesta que sí (ya tuvo su llamada gratis)",
+    name: "Natividad",
+    stage: "tuvo_llamada",
+    personTimezone: "America/Lima",
+    transcript: [
+      { ...ai("¿Desde qué país me escribes?"), sentAt: new Date("2026-10-05T15:00:00Z") },
+      { ...person("Perú"), sentAt: new Date("2026-10-05T15:05:00Z") },
+      { ...dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"), sentAt: new Date("2026-10-08T16:00:00Z") },
+      { ...person("El costo del taller del 15 de noviembre?"), sentAt: new Date("2026-10-11T20:00:00Z") },
+      {
+        ...ai(
+          "Hola 😊, te bendigo 💛 Te escribo para retomar nuestra conversación. Sobre el taller «Tu Sanación con el Dinero» por el que preguntaste: está abierto y es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). La inscripción es con una llamada con Dayana, donde te explica todo. ¿Quieres que te la separe? Quedo atenta a tu respuesta por aquí."
+        ),
+        // El taller copiado en la base de desarrollo (`workshopOutreachSource`).
+        source: "asistente:taller:devws-sanacion-dinero",
+        sentAt: new Date("2026-10-13T20:00:00Z"),
+      },
+      { ...person("Sí, me interesa"), sentAt: new Date("2026-10-14T18:55:00Z") },
+    ],
+    expect: { outcome: "reply", anyTool: ["offer_free_call_slots", "book_free_call"], mustNotMatch: [/pagar\/p\/therapy/i, /ya tuviste tu llamada/i, /\$|\bcop\b|\busd\b/i] },
+    goal: "Preguntó hace 3 días, así que sin el mensaje de la lista ya no estaría en lo del taller: le da horas reales para la llamada con Dayana (para inscribirse, aunque ya tuvo su llamada gratis). Nada del pago de su proceso ni el valor.",
+  },
+  {
+    id: "lista-de-interesadas-dice-su-pais",
+    origin:
+      "Revisión 24-oct: tras el mensaje de la lista de interesadas, dice que sí, la IA pregunta el país y contesta «Perú» (con solo los dos últimos mensajes, el paso del país cerraba lo del taller)",
+    name: "Natividad",
+    stage: "tuvo_llamada",
+    personTimezone: "America/Lima",
+    transcript: [
+      { ...dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"), sentAt: new Date("2026-10-08T16:00:00Z") },
+      { ...person("El costo del taller del 15 de noviembre?"), sentAt: new Date("2026-10-11T20:00:00Z") },
+      {
+        ...ai(
+          "Hola 😊, te bendigo 💛 Te escribo para retomar nuestra conversación. Sobre el taller «Tu Sanación con el Dinero» por el que preguntaste: está abierto y es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). La inscripción es con una llamada con Dayana, donde te explica todo. ¿Quieres que te la separe? Quedo atenta a tu respuesta por aquí."
+        ),
+        source: "asistente:taller:devws-sanacion-dinero",
+        sentAt: new Date("2026-10-13T20:00:00Z"),
+      },
+      { ...person("Sí"), sentAt: new Date("2026-10-14T18:40:00Z") },
+      { ...ai("Con gusto. ¿Desde qué país me escribes?"), sentAt: new Date("2026-10-14T18:41:00Z") },
+      { ...person("Perú"), sentAt: new Date("2026-10-14T18:55:00Z") },
+    ],
+    expect: { outcome: "reply", anyTool: ["offer_free_call_slots", "book_free_call"], mustNotMatch: [/pagar\/p\/therapy/i, /ya tuviste tu llamada/i, /\$|\bcop\b|\busd\b/i] },
+    goal: "Sigue lo del taller: guarda el país y le da horas reales para la llamada con Dayana. Nada del pago de su proceso.",
+  },
+  {
     id: "sergio-webinar-pregunta-taller",
     origin: "Sergio (México), 24-oct: inscrito al webinar del día siguiente, preguntó el costo y los horarios del taller de sanación del dinero",
     name: "Sergio",

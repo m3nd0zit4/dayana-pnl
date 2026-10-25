@@ -563,6 +563,10 @@ model WorkshopInterest {
   asks           Int      @default(1)
   /// El seguimiento de Dayana: nuevo | contactada | inscrita | descartada.
   status         String   @default("nuevo")
+  /// La IA le ofreció la llamada desde la lista (Dayana tocó «Ofrecerle la llamada»).
+  offeredAt      DateTime? @map("offered_at")
+  /// text (dentro de las 24 h, con horas) | template (fuera, `retomar_conversacion`).
+  offeredVia     String?   @map("offered_via")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

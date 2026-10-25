@@ -9,6 +9,15 @@ test("«De nada» se vuelve «Con gusto»", () => {
   expect(withDayanaWording("No te preocupes de nada")).toBe("No te preocupes de nada");
 });
 
+test("la asistente no va al evento: «nos vemos en el webinar» → «te esperamos» (Sergio, 24-oct)", () => {
+  expect(withDayanaWording("Con gusto nos vemos mañana en el webinar.")).toBe("Con gusto te esperamos mañana en el webinar.");
+  expect(withDayanaWording("Nos vemos el domingo en el taller 🙏")).toBe("Te esperamos el domingo en el taller 🙏");
+  // Otra cosa no se toca.
+  expect(withDayanaWording("Nos vemos pronto")).toBe("Nos vemos pronto");
+  expect(withDayanaWording("Nos vemos obligados a mover el taller")).toBe("Nos vemos obligados a mover el taller");
+  expect(withDayanaWording("No nos vemos en la clase de hoy")).toBe("No nos vemos en la clase de hoy");
+});
+
 test("un enlace o un correo nunca va con mayúscula (Ruth, 23-oct: «Https://…» no abre)", () => {
   expect(polishReply("Puedes ingresar por aquí\n\nhttps://chat.whatsapp.com/GXPARCB8Ur0Fd0I78g2eYl")).toBe(
     "Puedes ingresar por aquí\n\nhttps://chat.whatsapp.com/GXPARCB8Ur0Fd0I78g2eYl"

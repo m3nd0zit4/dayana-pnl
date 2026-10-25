@@ -78,7 +78,22 @@ export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop):
   return words.some(has) || date || INTEREST.test(t);
 };
 
-type Line = { direction: string; body: string | null; sentAt?: Date | null };
+type Line = { direction: string; body: string | null; sentAt?: Date | null; source?: string | null };
+
+/**
+ * El mensaje que la IA le manda cuando Dayana toca «Ofrecerle la llamada» en
+ * la lista de interesadas (`offerWorkshopCall`). Lleva su `source` para que la
+ * respuesta («sí», «la 2») siga el agendamiento aunque haya preguntado hace días.
+ */
+// No empieza por «taller:»: eso es un envío masivo (`isAutoSend`); este lo escribe la asistente a una persona.
+export const workshopOutreachSource = (w: Pick<OpenWorkshop, "id">): string => `asistente:taller:${w.id}`;
+/** Contesta a ese mensaje hasta 3 días después (lo que duran las horas ofrecidas). */
+const OUTREACH_FRESH_MS = 72 * 3600_000;
+const isOutreach = (l: Line, w: OpenWorkshop) => l.direction === "OUTBOUND" && l.source === workshopOutreachSource(w);
+
+/** Le escribimos por el taller desde la lista de interesadas en los últimos 3 días. */
+export const workshopOutreachRecent = (lines: Line[], w: OpenWorkshop, now = Date.now()): boolean =>
+  lines.some((l) => isOutreach(l, w) && (!l.sentAt || l.sentAt.getTime() >= now - OUTREACH_FRESH_MS));
 
 /**
  * Preguntó por el taller en las últimas 24 h (el país, la hora elegida y el
@@ -96,6 +111,10 @@ export const workshopAskedRecently = (lines: Line[], w: OpenWorkshop, now = Date
   return tail.length > 1 && isWorkshopAsk(tail.join("\n"), w);
 };
 
+/** Está en lo del taller: preguntó (24 h) o le escribimos desde la lista de interesadas (3 días). */
+export const workshopLeadActive = (lines: Line[], w: OpenWorkshop, now = Date.now()): boolean =>
+  workshopAskedRecently(lines, w, now) || workshopOutreachRecent(lines, w, now);
+
 /** Un mensaje nuestro que habla del taller: «taller», la inscripción, el título o la fecha. */
 const namesWorkshop = (text: string, w: OpenWorkshop): boolean => {
   const t = foldForSearch(text);
@@ -106,19 +125,39 @@ const namesWorkshop = (text: string, w: OpenWorkshop): boolean => {
     Boolean(dm && new RegExp(`\\b${dm.day}\\b[^.?!]{0,8}\\b${dm.month}\\b`).test(t))
   );
 };
-/** La lista de horas que pinta el código (`offerMessage`). */
-const SLOT_LIST = /\b(cual te queda mejor|responderme con el numero)\b/;
+/**
+ * Los pasos del agendamiento entre la oferta y la hora elegida: el país, la
+ * ciudad, la lista de horas (`offerMessage`), «¿Cuál de estas?», «Esa hora ya
+ * no está libre».
+ */
+const FLOW_STEP = /\b(desde que pais|en que ciudad|cual te queda mejor|responderme con el numero|cual de estas|ya no esta libre|horas libres)\b/;
+/** Lo de su propio proceso («¿a qué cuenta pago mi terapia?»): esa respuesta no sigue lo del taller. */
+const OWN_PROCESS = /\b(sesion|sesiones|terapia|terapias|paquete|proceso|comprobante|transferi\w*)\b/;
+/** Cuántos mensajes nuestros se miran hacia atrás buscando la oferta (país, ciudad, horas, «¿cuál de estas?»…). */
+const MAX_STEPS = 6;
+const DAY_MS = 24 * 3600_000;
+
+/** Nuestra oferta de la llamada para inscribirse: el mensaje de la lista de interesadas, o uno que habla del taller y de la inscripción por llamada. */
+export const isWorkshopOffer = (l: Line, w: OpenWorkshop): boolean => {
+  if (l.direction !== "OUTBOUND") return false;
+  if (isOutreach(l, w)) return true;
+  const t = foldForSearch(l.body ?? "");
+  return namesWorkshop(t, w) && /\bllamada\b/.test(t) && /\binscri(b|p)/.test(t);
+};
 
 /**
  * La llamada para el taller (aunque ya haya tenido su llamada gratis) solo
  * mientras habla del taller: lo pregunta ahora, o lo último que le escribimos
- * habla del taller (la oferta de la llamada para inscribirse), o es la lista de
- * horas justo después de esa oferta. Revisión 24-oct: durante 24 h, un
- * «gracias» o una pregunta de su sesión abría el embudo de la llamada; y un
- * «¿te la separo?» o una lista de horas que no eran del taller lo reabrían.
+ * habla del taller (la oferta de la llamada para inscribirse), quizá seguido de
+ * los pasos del agendamiento (país, ciudad, listas de horas). Revisión 24-oct:
+ * durante 24 h, un «gracias» o una pregunta de su sesión abría el embudo de la
+ * llamada; y un «¿te la separo?» o una lista de horas que no eran del taller lo
+ * reabrían. El mensaje de la lista de interesadas cuenta como la oferta durante
+ * 3 días; tras él, «¿desde qué país?» y «Perú» siguen en el taller (revisión:
+ * con solo los dos últimos mensajes, el paso del país lo cerraba).
  */
 export const workshopFlowActive = (lines: (Line & { isAutoReply?: boolean })[], w: OpenWorkshop, now = Date.now()): boolean => {
-  if (!workshopAskedRecently(lines, w, now)) return false;
+  if (!workshopLeadActive(lines, w, now)) return false;
   const tail: string[] = [];
   const outs: Line[] = [];
   for (const l of [...lines].reverse()) {
@@ -127,14 +166,18 @@ export const workshopFlowActive = (lines: (Line & { isAutoReply?: boolean })[], 
       continue;
     }
     outs.push(l);
-    if (outs.length === 2) break;
+    if (outs.length === MAX_STEPS) break;
   }
-  if (isWorkshopAsk(tail.join("\n"), w)) return true;
-  const [last, before] = outs;
-  const fresh = (l: Line | undefined) => Boolean(l && (!l.sentAt || l.sentAt.getTime() >= now - 24 * 3600_000));
-  if (!fresh(last)) return false;
-  if (namesWorkshop(last.body ?? "", w)) return true;
-  return SLOT_LIST.test(foldForSearch(last.body ?? "")) && fresh(before) && namesWorkshop(before!.body ?? "", w);
+  const said = tail.join("\n");
+  if (isWorkshopAsk(said, w)) return true;
+  if (OWN_PROCESS.test(foldForSearch(said))) return false;
+  const within = (l: Line, ms: number) => !l.sentAt || l.sentAt.getTime() >= now - ms;
+  for (const o of outs) {
+    const body = o.body ?? "";
+    if (namesWorkshop(body, w)) return within(o, isOutreach(o, w) ? OUTREACH_FRESH_MS : DAY_MS);
+    if (!FLOW_STEP.test(foldForSearch(body)) || !within(o, DAY_MS)) return false;
+  }
+  return false;
 };
 
 /** «8:30 a.m. – 4:30 p.m. · virtual» → «8:30 a. m. – 4:30 p. m., virtual». */
@@ -146,11 +189,54 @@ const tidySchedule = (s: string) =>
 
 /** «el taller «Tu Sanación con el Dinero» es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia)». */
 export const workshopFacts = (w: OpenWorkshop): string => {
+  const when = workshopWhen(w);
+  return `el taller «${w.title}»${when ? ` es el ${when} (hora de Colombia)` : ""}`;
+};
+
+/** «domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual»; sin el horario con `withSchedule: false`. */
+const workshopWhen = (w: OpenWorkshop, withSchedule = true): string => {
   const date = w.startsAt
     ? new Intl.DateTimeFormat("es-CO", { timeZone: w.timezone, weekday: "long", day: "numeric", month: "long" }).format(w.startsAt).replace(",", "")
     : (w.dateLabel ?? "").trim();
-  const when = [date, w.scheduleLabel ? tidySchedule(w.scheduleLabel) : null].filter(Boolean).join(", ");
-  return `el taller «${w.title}»${when ? ` es el ${when} (hora de Colombia)` : ""}`;
+  return [date, withSchedule && w.scheduleLabel ? tidySchedule(w.scheduleLabel) : null].filter(Boolean).join(", ");
+};
+
+/** Lo que cabe en la variable de la plantilla `retomar_conversacion` (`MENSAJE_MAX`). */
+const TEMPLATE_MAX = 300;
+const ENROLL = "La inscripción es con una llamada con Dayana, donde te explica todo.";
+const aboutWorkshop = (w: OpenWorkshop, withSchedule: boolean): string => {
+  const when = workshopWhen(w, withSchedule);
+  return `Sobre el taller «${w.title}» por el que preguntaste: está abierto${when ? ` y es el ${when} (hora de Colombia)` : ""}.`;
+};
+
+/**
+ * Lo que la IA le escribe cuando Dayana toca «Ofrecerle la llamada» en la lista
+ * de interesadas (dueña, 24-oct: «para que Dayana sepa cuáles son y llamarles o
+ * agendarles por el modelo»). Dentro de las 24 h: el taller y la lista de horas
+ * que pinta el código (`offerList`), así «la 2» la agenda sola; sin horas, la
+ * pregunta. Solo un nombre seguro.
+ */
+export const workshopOfferText = (w: OpenWorkshop, opts: { firstName: string | null; slotList: string | null }): string => {
+  const hi = opts.firstName ? `Hola ${opts.firstName} 🙏` : "Hola 🙏";
+  const ask = opts.slotList ? ` Estas son las horas libres de Dayana para la llamada:\n\n${opts.slotList}` : " ¿Quieres que te la separe?";
+  return `${hi} ${aboutWorkshop(w, true)} ${ENROLL}${ask}`;
+};
+
+/**
+ * Fuera de las 24 h va en la plantilla `retomar_conversacion` («Hola {{nombre}},
+ * te bendigo 💛 Te escribo para retomar nuestra conversación. {{mensaje}} Quedo
+ * atenta…»): una sola línea, sin horas (pueden no seguir libres cuando conteste).
+ */
+export const workshopOfferTemplateMessage = (w: OpenWorkshop): string => {
+  const ask = "¿Quieres que te la separe?";
+  // Si no cabe, sin el horario; luego sin la fecha: la pregunta del final nunca se corta.
+  const short = (title: string) => `Sobre el taller «${title}»: está abierto. La inscripción es con una llamada con Dayana. ${ask}`;
+  const options = [`${aboutWorkshop(w, true)} ${ENROLL} ${ask}`, `${aboutWorkshop(w, false)} ${ENROLL} ${ask}`, short(w.title)];
+  const fits = options.find((m) => m.length <= TEMPLATE_MAX);
+  if (fits) return fits;
+  // Un título larguísimo: se acorta el título, no la pregunta.
+  const room = TEMPLATE_MAX - short("").length - 1;
+  return short(`${w.title.slice(0, Math.max(room, 0)).trimEnd()}…`);
 };
 
 /** La línea del prompt cuando pregunta por el taller (solo entonces: el prompt fijo no cambia). */
@@ -183,7 +269,8 @@ export const withWorkshopCall = (text: string, opts: { upcomingLabel: string | n
   const t = foldForSearch(text);
   const saysOpen = /\babiert[oa]s?\b/.test(t);
   // «Te agendo una llamada gratis» sin decir que es para inscribirse no basta.
-  const saysCall = /\bllamada\b/.test(t) && /\binscri(b|p)/.test(t);
+  // «Separar tu cupo» con la llamada también es inscribirse (evaluación: se repetía la frase).
+  const saysCall = /\bllamada\b/.test(t) && /\binscri(b|p)|\bcupo\b/.test(t);
   if (saysOpen && saysCall) return text;
   const call = opts.upcomingLabel
     ? `En tu llamada con Dayana (${opts.upcomingLabel}) ella te explica todo y te inscribe.`

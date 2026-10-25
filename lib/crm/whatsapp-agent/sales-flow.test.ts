@@ -56,6 +56,20 @@ describe("flowState / nextStep", () => {
     expect(flowState([...declined, inb("S,i deseo la llamada")]).declined).toBe(false);
     expect(flowState([...declined, inb("gracias")]).declined).toBe(true);
   });
+
+  test("isInvite (la llamada del taller): invita desde ese mensaje y deja atrás un «no» de antes (revisión 24-oct)", () => {
+    const offer = out("El taller está abierto. La inscripción es con una llamada con Dayana. ¿Quieres que te la separe?");
+    const isInvite = (l: FlowLine) => l === offer;
+    const lines = [out("Hola"), out("¿Desde qué país me escribes?"), out("¿Te agendo la llamada gratis de 15 minutos?"), inb("más adelante"), offer, inb("Me interesa")];
+    const s = flowState(lines, { isInvite });
+    expect(s.invited).toBe(true);
+    expect(s.declined).toBe(false);
+    expect(nextStep(s)).toContain("offer_free_call_slots");
+    // Un «más adelante» de antes de cualquier invitación no cuenta como «no».
+    expect(flowState([inb("más adelante te escribo para pagar"), offer, inb("Me interesa")], { isInvite }).declined).toBe(false);
+    // Sin la oferta del taller, nada cambia.
+    expect(flowState([out("Hola"), inb("Me interesa")], { isInvite }).invited).toBe(false);
+  });
 });
 
 describe("salesFlowRules", () => {

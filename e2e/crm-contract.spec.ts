@@ -264,12 +264,12 @@ test.describe("CRM · navegación", () => {
 /**
  * R10 — las pestañas de una edición (evento o taller) caben en un teléfono.
  *
- * Un taller tiene seis: en 390 px una fila de texto se cortaba o se iba de
+ * Un taller tiene siete: en 390 px una fila de texto se cortaba o se iba de
  * lado. En el móvil son una rejilla (icono y etiqueta corta): cada pestaña
  * tiene que verse entera, sin recortes y sin salirse de la pantalla.
  */
 const EDITION_TAB_ROUTES = [
-  { path: "/admin/workshops/preview-workshop", tabs: 6 },
+  { path: "/admin/workshops/preview-workshop", tabs: 7 },
   { path: "/admin/eventos/preview-event", tabs: 4 },
 ];
 

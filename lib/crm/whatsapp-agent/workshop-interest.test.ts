@@ -2,13 +2,18 @@ import { describe, expect, test } from "bun:test";
 
 import {
   isWorkshopAsk,
+  isWorkshopOffer,
   saysNoWorkshop,
   titleWords,
   withWorkshopCall,
   workshopAskedRecently,
   workshopFlowActive,
   workshopFacts,
+  workshopLeadActive,
   workshopLine,
+  workshopOfferTemplateMessage,
+  workshopOfferText,
+  workshopOutreachSource,
   workshopReply,
   type OpenWorkshop,
 } from "./workshop-interest";
@@ -134,6 +139,100 @@ describe("workshopFlowActive: la llamada para el taller solo mientras habla del 
   });
 });
 
+describe("la lista de interesadas: Dayana toca «Ofrecerle la llamada» (24-oct)", () => {
+  const now = new Date("2026-10-27T21:00:00Z").getTime();
+  const hoursAgo = (h: number) => new Date(now - h * 3600_000);
+  // Preguntó el 24 (hace 3 días): sin el mensaje de la lista ya no cuenta.
+  const oldAsk = { direction: "INBOUND", body: "El costo del taller del 15 de noviembre?", sentAt: hoursAgo(72) };
+  const outreach = (h: number, body = "Hola 🙏 Sobre el taller «Tu Sanacion con el Dinero» por el que preguntaste: está abierto. ¿Quieres que te la separe?") => ({
+    direction: "OUTBOUND",
+    isAutoReply: true,
+    source: workshopOutreachSource(W),
+    body,
+    sentAt: hoursAgo(h),
+  });
+  test("su respuesta sigue lo del taller hasta 3 días después", () => {
+    expect(workshopFlowActive([oldAsk, { direction: "INBOUND", body: "sí", sentAt: hoursAgo(1) }], W, now)).toBe(false);
+    for (const h of [2, 30, 70]) {
+      const lines = [oldAsk, outreach(h), { direction: "INBOUND", body: "sí", sentAt: hoursAgo(h - 1) }];
+      expect(workshopLeadActive(lines, W, now)).toBe(true);
+      expect(workshopFlowActive(lines, W, now)).toBe(true);
+    }
+    const stale = [oldAsk, outreach(80), { direction: "INBOUND", body: "sí", sentAt: hoursAgo(1) }];
+    expect(workshopFlowActive(stale, W, now)).toBe(false);
+  });
+  test("después del «sí» la IA manda las horas: elegir una sigue en lo del taller", () => {
+    const lines = [
+      outreach(30),
+      { direction: "INBOUND", body: "sí", sentAt: hoursAgo(2) },
+      { direction: "OUTBOUND", isAutoReply: true, body: "Estas son las horas\n1. Lunes 3:00 p. m.\n¿Cuál te queda mejor? Puedes responderme con el número.", sentAt: hoursAgo(1.9) },
+      { direction: "INBOUND", body: "1", sentAt: hoursAgo(1.8) },
+    ];
+    expect(workshopFlowActive(lines, W, now)).toBe(true);
+  });
+  test("el país, la ciudad, «¿Cuál de estas?» entre la oferta y la hora no cierran lo del taller (revisión 24-oct)", () => {
+    const step = (body: string, h: number) => ({ direction: "OUTBOUND", isAutoReply: true, body, sentAt: hoursAgo(h) });
+    const said = (body: string, h: number) => ({ direction: "INBOUND", body, sentAt: hoursAgo(h) });
+    const country = [outreach(30), said("Sí", 3), step("Con gusto. ¿Desde qué país me escribes?", 2.9), said("Perú", 2.8)];
+    expect(workshopFlowActive(country, W, now)).toBe(true);
+    const narrowed = [
+      ...country,
+      step("Estas son las horas libres de Dayana\n1. Lunes 3:00 p. m.\n2. Martes 9:00 a. m.\n\n¿Cuál te queda mejor? Puedes responderme con el número.", 2.7),
+      said("el lunes", 2.6),
+      step("¿Cuál de estas?\n\n1. Lunes 3:00 p. m.", 2.5),
+      said("la 1", 2.4),
+    ];
+    expect(workshopFlowActive(narrowed, W, now)).toBe(true);
+    // Agendada (la confirmación no es un paso): se acabó.
+    const booked = [...narrowed, step("Listo. Tu llamada gratis con Dayana quedó para el lunes 3:00 p. m.", 2.3), said("Gracias", 2.2)];
+    expect(workshopFlowActive(booked, W, now)).toBe(false);
+  });
+  test("una pregunta de su proceso después de la oferta no sigue lo del taller (revisión 24-oct)", () => {
+    const lines = [outreach(30), { direction: "INBOUND", body: "¿a qué cuenta pago mi terapia?", sentAt: hoursAgo(1) }];
+    expect(workshopFlowActive(lines, W, now)).toBe(false);
+    // Del taller sí.
+    const workshopPrice = [outreach(30), { direction: "INBOUND", body: "¿y cuánto cuesta el taller?", sentAt: hoursAgo(1) }];
+    expect(workshopFlowActive(workshopPrice, W, now)).toBe(true);
+  });
+  test("isWorkshopOffer: el mensaje de la lista o uno que habla del taller y la inscripción por llamada", () => {
+    expect(isWorkshopOffer(outreach(1), W)).toBe(true);
+    expect(isWorkshopOffer({ direction: "OUTBOUND", body: "El taller está abierto. La inscripción es con una llamada con Dayana." }, W)).toBe(true);
+    expect(isWorkshopOffer({ direction: "OUTBOUND", body: "Te agendo una llamada gratis" }, W)).toBe(false);
+    expect(isWorkshopOffer({ direction: "INBOUND", body: "La inscripción del taller es con llamada?" }, W)).toBe(false);
+  });
+  test("otro taller o un mensaje sin esa marca no cuentan", () => {
+    const other = { ...outreach(2), source: workshopOutreachSource({ id: "otro" }) };
+    expect(workshopLeadActive([other], W, now)).toBe(false);
+    const plain = { ...outreach(2), source: null };
+    expect(workshopLeadActive([plain], W, now)).toBe(false);
+  });
+  test("el mensaje: el taller, abierto, la llamada para inscribirse y las horas del código (o la pregunta)", () => {
+    const list = "1. Lunes 27 de octubre, 3:00 p. m.\n\n¿Cuál te queda mejor? Puedes responderme con el número.";
+    const withSlots = workshopOfferText(W, { firstName: "Naty", slotList: list });
+    expect(withSlots.startsWith("Hola Naty 🙏 Sobre el taller «Tu Sanacion con el Dinero» por el que preguntaste: está abierto y es el domingo 15 de noviembre")).toBe(true);
+    expect(withSlots).toContain("La inscripción es con una llamada con Dayana");
+    expect(withSlots.endsWith(list)).toBe(true);
+    expect(withSlots).not.toMatch(/\$|USD|COP|https?:/);
+    const noSlots = workshopOfferText(W, { firstName: null, slotList: null });
+    expect(noSlots.startsWith("Hola 🙏 Sobre")).toBe(true);
+    expect(noSlots.endsWith("¿Quieres que te la separe?")).toBe(true);
+  });
+  test("la plantilla: una línea, cabe en la variable (300) y pregunta al final", () => {
+    const m = workshopOfferTemplateMessage(W);
+    expect(m).not.toContain("\n");
+    expect(m.length).toBeLessThanOrEqual(300);
+    expect(m.endsWith("¿Quieres que te la separe?")).toBe(true);
+    const long = workshopOfferTemplateMessage({ ...W, title: "Un título muy largo ".repeat(6).trim(), scheduleLabel: "8:30 a.m. – 4:30 p.m. · virtual por Google Meet con descansos" });
+    expect(long.length).toBeLessThanOrEqual(300);
+    expect(long).not.toContain("8:30");
+    // Un título larguísimo se acorta; la pregunta del final queda entera.
+    const huge = workshopOfferTemplateMessage({ ...W, title: "Palabra ".repeat(60).trim() });
+    expect(huge.length).toBeLessThanOrEqual(300);
+    expect(huge.endsWith("¿Quieres que te la separe?")).toBe(true);
+    expect(huge).toContain("…»");
+  });
+});
+
 describe("lo que dice", () => {
   test("los datos: el día en su zona, el horario con a. m./p. m., hora de Colombia", () => {
     expect(workshopFacts(W)).toBe("el taller «Tu Sanacion con el Dinero» es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia)");
@@ -170,6 +269,10 @@ describe("lo que dice", () => {
     // «Llamada» sin la inscripción no basta (revisión 24-oct).
     expect(withWorkshopCall("El taller está abierto. Si quieres, te agendo una llamada gratis.", { upcomingLabel: null })).toBe(
       "El taller está abierto. Si quieres, te agendo una llamada gratis. La inscripción es con una llamada con Dayana, donde te explica todo."
+    );
+    // «Separar tu cupo… llamada con Dayana» ya dice cómo inscribirse: no se repite.
+    expect(withWorkshopCall("Para separar tu cupo agendamos una llamada corta con Dayana. ¿Desde qué país me escribes?", { upcomingLabel: null })).toBe(
+      "Para separar tu cupo agendamos una llamada corta con Dayana. Las inscripciones están abiertas. ¿Desde qué país me escribes?"
     );
     expect(withWorkshopCall("El taller es el 15 de noviembre.", { upcomingLabel: "domingo, 25 de octubre, 1:00 p. m." })).toBe(
       "El taller es el 15 de noviembre. Las inscripciones están abiertas. En tu llamada con Dayana (domingo, 25 de octubre, 1:00 p. m.) ella te explica todo y te inscribe."

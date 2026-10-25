@@ -10,7 +10,14 @@
  */
 
 export const withDayanaWording = (text: string): string =>
-  text.replace(/(^|[.!?¡¿\n]\s*)de nada\b/gi, "$1Con gusto");
+  text
+    .replace(/(^|[.!?¡¿\n]\s*)de nada\b/gi, "$1Con gusto")
+    // La asistente no va al evento (Sergio, 24-oct: «Con gusto nos vemos mañana en el webinar»).
+    // No «no nos vemos…» ni «nos vemos obligados a mover el taller» (revisión 24-oct).
+    .replace(
+      /(?<!\b[Nn]o\s)\b([Nn])os vemos\b(?!\s+(?:obligad|forzad|en la necesidad))(?=[^.!?\n]{0,25}\b(?:webinar|evento|clase|taller|en vivo)\b)/g,
+      (_m, n: string) => (n === "N" ? "Te esperamos" : "te esperamos")
+    );
 
 const BANNED: RegExp[] = [
   // «Cuéntame, ¿qué te trae por aquí (hoy)?» / «¿Y qué la trae por acá?»

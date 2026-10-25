@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   FileText,
+  HandHeart,
   History,
   MessageCircle,
   Paperclip,
@@ -21,6 +22,7 @@ const ICONS: Record<string, LucideIcon> = {
   pagina: FileText,
   precio: Tag,
   inscritas: Users,
+  interesadas: HandHeart,
   documentos: Paperclip,
   whatsapp: MessageCircle,
   historia: History,

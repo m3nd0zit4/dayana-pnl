@@ -24,7 +24,8 @@ import { getStaffSession } from "@/lib/auth/staff-session";
 import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { currentSlugForPrevious, listWorkshopDocuments } from "@/lib/crm/workshop-editions";
-import { listWorkshopInterests, syncWorkshopInterests } from "@/lib/crm/workshop-interests";
+import { countWorkshopInterests, listWorkshopInterests, syncWorkshopInterests } from "@/lib/crm/workshop-interests";
+import { resolveWindow } from "@/lib/meta/window";
 import { getWorkshopPublishBlockers } from "@/lib/crm/workshop-lifecycle";
 import {
   isWorkshopEnded,
@@ -91,10 +92,20 @@ const EnrollmentsTab = async ({ edition, blockedReason }: { edition: WorkshopFor
  * preguntando por esta edición, para el seguimiento. Mientras está abierta, al
  * abrir la pestaña se leen los mensajes nuevos (`syncWorkshopInterests`).
  */
-const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
+/** Las interesadas al día (lee los mensajes nuevos) mientras el taller está abierto; devuelve cuántas hay. */
+const syncedInterestCount = async (edition: WorkshopForPanel): Promise<number> => {
   if (edition.status === "OPEN" && !isWorkshopEnded(edition)) {
     await syncWorkshopInterests(edition).catch((e: unknown) => console.warn("[talleres] no se pudieron leer las interesadas", e));
   }
+  return countWorkshopInterests(edition.id).catch(() => 0);
+};
+
+/**
+ * «Interesadas»: el registro de interés (dueña, 24-oct: «una pestaña… un
+ * registro pero de interés, no de pago, o sea sin acceso, para que Dayana sepa
+ * cuáles son y llamarles o agendarles por el modelo»). La página ya las puso al día.
+ */
+const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
   const rows = await listWorkshopInterests(edition.id).catch((e: unknown) => {
     console.error("[talleres] no se pudo cargar la lista de interesadas", e);
     return null;
@@ -103,7 +114,7 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
     return (
       <CrmErrorState
         title="No se pudo cargar quién preguntó por el taller"
-        message="Recarga la página en un momento; las inscritas siguen abajo."
+        message="Recarga la página en un momento."
       />
     );
   }
@@ -112,6 +123,7 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
       key={edition.id}
       slug={edition.slug}
       timeZone={tz}
+      open={edition.status === "OPEN" && !isWorkshopEnded(edition)}
       rows={rows.map((r) => ({
         id: r.id,
         conversationId: r.conversationId,
@@ -123,6 +135,9 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
         status: r.status,
         nextCallAtIso: r.nextCallAt?.toISOString() ?? null,
         paid: r.paid,
+        offeredAtIso: r.offeredAt?.toISOString() ?? null,
+        offeredVia: r.offeredVia,
+        windowOpen: resolveWindow("WHATSAPP", r.lastInboundAt).isOpen,
       }))}
     />
   );
@@ -229,7 +244,8 @@ const WhatsAppTab = async ({ edition, tz }: { edition: WorkshopForPanel; tz: str
 
 /**
  * Un taller, igual que un evento gratuito: su página, su precio, sus inscritas,
- * sus documentos, WhatsApp y su historia, cada uno en su pestaña (`?tab=`). El
+ * sus interesadas, sus documentos, WhatsApp y su historia, cada uno en su
+ * pestaña (`?tab=`). El
  * paso que le toca (publicar, cerrar inscripciones, terminar, reabrir) va en la
  * cabecera.
  */
@@ -251,7 +267,7 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
             <EditionTabs
               basePath={`/admin/workshops/${slug}`}
               value={tab}
-              tabs={workshopTabSpecs({ paid: 0, documents: 0 })}
+              tabs={workshopTabSpecs({ paid: 0, interested: 0, documents: 0 })}
               ariaLabel="Secciones del taller"
             />
           }
@@ -274,11 +290,12 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
     notFound();
   }
 
-  const [tz, openWorkshop, blockers, staff] = await Promise.all([
+  const [tz, openWorkshop, blockers, staff, interestedCount] = await Promise.all([
     getOperationalTimezone(),
     getOpenWorkshop(),
     getWorkshopPublishBlockers(edition),
     getStaffSession().catch(() => null),
+    syncedInterestCount(edition),
   ]);
   const ended = isWorkshopEnded(edition);
   const status = ended ? "COMPLETED" : edition.status;
@@ -334,12 +351,9 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
       />
     );
   } else if (tab === "inscritas") {
-    content = (
-      <div className="flex flex-col gap-6">
-        <InterestsSection edition={edition} tz={tz} />
-        <EnrollmentsTab edition={edition} blockedReason={reminderGap} />
-      </div>
-    );
+    content = <EnrollmentsTab edition={edition} blockedReason={reminderGap} />;
+  } else if (tab === "interesadas") {
+    content = <InterestsSection edition={edition} tz={tz} />;
   } else if (tab === "documentos") {
     const documents = await listWorkshopDocuments(edition.id);
     content = (
@@ -398,7 +412,7 @@ const WorkshopDetailPage = async ({ params, searchParams }: PageProps) => {
             key={tab}
             basePath={`/admin/workshops/${encodeURIComponent(edition.slug)}`}
             value={tab}
-            tabs={workshopTabSpecs({ paid: edition.paidCount, documents: edition.documentsCount })}
+            tabs={workshopTabSpecs({ paid: edition.paidCount, interested: interestedCount, documents: edition.documentsCount })}
             ariaLabel="Secciones del taller"
           />
         }

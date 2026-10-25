@@ -59,10 +59,11 @@ import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-reg
 import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
 import {
   isWorkshopAsk,
+  isWorkshopOffer,
   saysNoWorkshop,
   withWorkshopCall,
-  workshopAskedRecently,
   workshopFlowActive,
+  workshopLeadActive,
   workshopLine,
   workshopReply,
   type OpenWorkshop,
@@ -957,7 +958,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const openWorkshop = input.workshop !== undefined ? input.workshop : await openWorkshopForAi(now).catch(() => null);
   const workshop =
     openWorkshop && !(input.contactId && (await enrolledInWorkshop(input.contactId, openWorkshop.id).catch(() => false))) ? openWorkshop : null;
-  const workshopLead = Boolean(workshop) && !input.clientMode && workshopAskedRecently(input.transcript, workshop!, now.getTime());
+  // También si le escribimos desde la lista de interesadas (Dayana tocó «Ofrecerle la llamada»).
+  const workshopLead = Boolean(workshop) && !input.clientMode && workshopLeadActive(input.transcript, workshop!, now.getTime());
   // La llamada para el taller solo mientras habla de él (no 24 h abierta a cualquier mensaje).
   const workshopFlow = workshopLead && workshopFlowActive(input.transcript, workshop!, now.getTime());
   const noFreeCall =
@@ -1868,7 +1870,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       workshop && workshopAskNow
         ? workshopLine(workshop, { upcomingLabel: upcomingLabelText })
         : workshop && workshopFlow && !workshopCall
-          ? `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${workshop.title}». Sigue el agendamiento de siempre (país, horas con offer_free_call_slots, book_free_call); no le des el valor ni enlaces de pago.`
+          ? `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${workshop.title}» (ya se la ofrecimos). Si dice que sí, dale horas ya con offer_free_call_slots (sin preguntarle qué día prefiere; si no sabes desde qué país escribe, pregúntalo primero) y, cuando elija una, book_free_call. No le des el valor ni enlaces de pago.`
           : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
@@ -1877,6 +1879,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             flowState(input.transcript, {
               keyQuestions: config.salesFlow.buyButtons.map((b) => b.keyQuestion),
               offeredSlots: offeredBefore.length > 0,
+              // La oferta de la llamada para el taller no dice «gratis»: también es la invitación
+              // (desde ese mensaje; si pregunta ahora, la ofrece este).
+              isInvite: workshop && workshopFlow && !workshopAskNow ? (l) => isWorkshopOffer(l, workshop) : undefined,
             })
           )
         : null,

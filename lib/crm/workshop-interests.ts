@@ -144,6 +144,11 @@ export type WorkshopInterestRow = {
   nextCallAt: Date | null;
   /** Pagó este taller. */
   paid: boolean;
+  /** Cuándo la IA le ofreció la llamada desde la lista, y cómo (`workshop-interest-offer.ts`). */
+  offeredAt: Date | null;
+  offeredVia: "text" | "template" | null;
+  /** Su último mensaje: dentro de las 24 h la IA le manda horas; fuera, la plantilla. */
+  lastInboundAt: Date | null;
 };
 
 /** Las interesadas de la edición, la más reciente primero, con su próxima llamada y si ya pagó. */
@@ -161,12 +166,16 @@ export const listWorkshopInterests = async (editionId: string): Promise<Workshop
       status: string;
       next_call_at: Date | null;
       paid: boolean;
+      offered_at: Date | null;
+      offered_via: string | null;
+      last_inbound_at: Date | null;
     }[]
   >`
     SELECT i.id, i.conversation_id,
            COALESCE(NULLIF(TRIM(CONCAT(ct.first_name, ' ', ct.last_name)), ''), c.participant_name) AS name,
            c.external_thread_id AS phone,
            i.first_message, i.first_asked_at, i.last_asked_at, i.asks, i.status,
+           i.offered_at, i.offered_via, c.last_inbound_at,
            (SELECT MIN(a.starts_at) FROM calendar_appointments a
              WHERE a.conversation_id = c.id AND a.status = 'active' AND a.starts_at > NOW() - INTERVAL '1 hour') AS next_call_at,
            EXISTS (SELECT 1 FROM enrollments e
@@ -190,7 +199,17 @@ export const listWorkshopInterests = async (editionId: string): Promise<Workshop
     status: isInterestStatus(r.status) ? r.status : "nuevo",
     nextCallAt: r.next_call_at,
     paid: r.paid,
+    offeredAt: r.offered_at,
+    offeredVia: r.offered_via === "text" || r.offered_via === "template" ? r.offered_via : null,
+    lastInboundAt: r.last_inbound_at,
   }));
+};
+
+/** Cuántas hay registradas (el número de la pestaña «Interesadas»). */
+export const countWorkshopInterests = async (editionId: string): Promise<number> => {
+  const [row] = await prisma.$queryRaw<{ n: number }[]>`
+    SELECT COUNT(*)::int AS n FROM workshop_interests WHERE edition_id = ${editionId}`;
+  return row?.n ?? 0;
 };
 
 /** Dayana marca el seguimiento. Devuelve false si la fila no es de esa edición. */

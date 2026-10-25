@@ -41,7 +41,16 @@ const DECLINE = new RegExp(
 /** Después de decir que no (o de que se leyera así), un «sí» a la llamada lo deshace. */
 const ACCEPT = /^(si|sii+|claro|dale|de una|ok|okay|bueno|listo)\b|\b(si (quiero|deseo|me gustaria)|(quiero|deseo|me gustaria) (la llamada|agendar|que me llame)|si,? (por favor|claro))\b/;
 
-export const flowState = (lines: FlowLine[], opts: { keyQuestions?: string[]; offeredSlots?: boolean } = {}): FlowState => {
+export const flowState = (
+  lines: FlowLine[],
+  /**
+   * `isInvite`: otro mensaje nuestro que también la invita a la llamada (la del
+   * taller, que no dice «gratis»). Cuenta desde ese mensaje y deja atrás un «no»
+   * de antes (revisión 24-oct: marcado desde el principio, un «más adelante» viejo
+   * se leía como «no» a esta invitación).
+   */
+  opts: { keyQuestions?: string[]; offeredSlots?: boolean; isInvite?: (line: FlowLine) => boolean } = {}
+): FlowState => {
   const keys = (opts.keyQuestions ?? []).map((q) => foldForSearch(q).slice(0, 30)).filter((q) => q.length >= 12);
   const state: FlowState = {
     greeted: false,
@@ -61,6 +70,10 @@ export const flowState = (lines: FlowLine[], opts: { keyQuestions?: string[]; of
       if (COUNTRY.test(text)) state.askedCountry = true;
       if (KEY_QUESTION.test(text) || keys.some((k) => text.includes(k))) state.keyQuestion = true;
       if (INVITE.test(text)) state.invited = true;
+      if (opts.isInvite?.(line)) {
+        state.invited = true;
+        state.declined = false;
+      }
       if (SLOTS.test(text)) state.offeredSlots = true;
     } else if (state.invited && DECLINE.test(text)) {
       state.declined = true;
