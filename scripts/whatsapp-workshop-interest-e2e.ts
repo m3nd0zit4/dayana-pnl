@@ -11,12 +11,14 @@
  *    En dos mensajes («para el 15 de noviembre» + «El taller») y sin «taller» («la sanación con el dinero»): entran.
  * 4. Leer otra vez no suma nada (cursor).
  * 5. Marcar el seguimiento; otra edición no puede.
- * 6. «Ofrecerle la llamada» dentro de las 24 h: el taller y 2 horas numeradas,
- *    guardadas como ofrecidas; su «2» es respuesta a esa lista.
- * 7. Otra vez el mismo día: no sale otra lista.
- * 8. Fuera de las 24 h: la plantilla `retomar_conversacion` (sin horas).
+ * 6. «Que la IA le escriba» dentro de las 24 h: el taller y la pregunta del
+ *    cupo (el enlace de pago) o la llamada (25-oct), sin horas ni enlace; su
+ *    «Quiero separar mi cupo» sigue lo del taller y es elegir el cupo.
+ * 7. Otra vez el mismo día: no sale otra vez.
+ * 8. Fuera de las 24 h: la plantilla `retomar_conversacion` con esa pregunta.
+ *    Sin precio (producto apagado): solo la llamada, como antes.
  * 9. Con el taller sin publicar, no.
- * Calendario y envío de mentira: no sale nada a WhatsApp.
+ * Envío de mentira: no sale nada a WhatsApp.
  */
 export {};
 
@@ -25,10 +27,7 @@ const main = async () => {
   const { prisma } = await import("@/lib/db");
   const { listWorkshopInterests, setWorkshopInterestStatus, syncWorkshopInterests } = await import("@/lib/crm/workshop-interests");
   const { offerWorkshopCall } = await import("@/lib/crm/workshop-interest-offer");
-  const { latestFreeCallOffer, setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
-  const { replyToOffer } = await import("@/lib/crm/whatsapp-agent/slot-choice");
-  const { workshopFlowActive } = await import("@/lib/crm/whatsapp-agent/workshop-interest");
-  const { getDateKeyInTz, zonedDateTimeToUtc } = await import("@/lib/datetime/zoned-time");
+  const { WORKSHOP_CHOICE, wantsWorkshopSpot, workshopFlowActive, workshopFollowLine } = await import("@/lib/crm/whatsapp-agent/workshop-interest");
 
   const failures: string[] = [];
   const check = (name: string, ok: boolean, detail?: unknown) => {
@@ -39,8 +38,21 @@ const main = async () => {
   const run = Date.now().toString().slice(-6);
   const now = Date.now();
   const ago = (h: number) => new Date(now - h * 3600_000);
+  // Su producto con precio: el enlace de pago (`/pagar/p/taller-<slug>`).
+  const productId = `taller-e2e-taller-${run}`;
+  await prisma.product.create({
+    data: {
+      id: productId,
+      kind: "WORKSHOP",
+      title: "Tu Sanacion con el Dinero",
+      sessionsLabel: "Taller en vivo",
+      isActive: true,
+      prices: { create: [{ currency: "COP", amountMinor: 190000 }, { currency: "USD", amountMinor: 6000 }] },
+    },
+  });
   const edition = await prisma.workshopEdition.create({
     data: {
+      productId,
       slug: `e2e-taller-${run}`,
       title: "Tu Sanacion con el Dinero",
       status: "DRAFT",
@@ -107,7 +119,7 @@ const main = async () => {
     const rowA3 = (await listWorkshopInterests(edition.id)).find((r) => r.conversationId === a);
     check("5. marcar «contactada»; otra edición no puede", ok && !wrong && rowA3?.status === "contactada", { ok, wrong, rowA3 });
 
-    // 6–9. «Ofrecerle la llamada»: calendario y envío de mentira (no sale nada a WhatsApp).
+    // 6–9. «Que la IA le escriba»: envío de mentira (no sale nada a WhatsApp).
     const sent: { conversationId: string; body: string; source?: string | null; template?: unknown }[] = [];
     const fakeSend = async (input: { conversationId: string; body: string; source?: string | null; isAutoReply?: boolean; clientKey?: string | null; template?: unknown }) => {
       sent.push(input);
@@ -125,10 +137,6 @@ const main = async () => {
       });
       return { messageId: m.id, externalMessageId: null, dryRun: true };
     };
-    const TZ = "America/Bogota";
-    const slotAt = (daysAhead: number, hhmm: string) => zonedDateTimeToUtc(getDateKeyInTz(new Date(now + daysAhead * 86_400_000), TZ), hhmm, TZ);
-    const fakeSlot = (d: Date) => ({ startIso: d.toISOString(), endIso: new Date(d.getTime() + 15 * 60_000).toISOString(), dateKey: getDateKeyInTz(d, TZ), time: "" });
-    setFreeCallCalendarForTests({ available: async () => [fakeSlot(slotAt(2, "10:00")), fakeSlot(slotAt(3, "15:00"))] });
     await prisma.workshopEdition.update({ where: { id: edition.id }, data: { status: "OPEN" } });
     // A escribió hace 1 h (dentro de las 24 h); C, hace 2 días.
     await prisma.conversation.update({ where: { id: a }, data: { lastInboundAt: ago(1) } });
@@ -136,40 +144,40 @@ const main = async () => {
 
     const offerA = await offerWorkshopCall({ editionId: edition.id, interestId: rowA!.id }, { send: fakeSend });
     const msgA = sent.find((s) => s.conversationId === a);
-    const offerRun = await latestFreeCallOffer(a);
     const rowA4 = (await listWorkshopInterests(edition.id)).find((r) => r.conversationId === a);
     check(
-      "6. dentro de las 24 h: el taller, abierto, la llamada y 2 horas numeradas, marcadas como ofrecidas",
+      "6. dentro de las 24 h: el taller, abierto y la pregunta del cupo o la llamada (sin horas ni enlace)",
       offerA.status === "sent" &&
         offerA.via === "text" &&
-        offerA.slots === 2 &&
         Boolean(msgA?.body.includes("Sobre el taller «Tu Sanacion con el Dinero»")) &&
         Boolean(msgA?.body.includes("está abierto")) &&
-        Boolean(msgA?.body.includes("llamada con Dayana")) &&
-        Boolean(msgA?.body.includes("1. ") && msgA.body.includes("2. ") && msgA.body.includes("¿Cuál te queda mejor?")) &&
+        Boolean(msgA?.body.endsWith(WORKSHOP_CHOICE)) &&
+        !msgA!.body.includes("1. ") &&
+        !/https?:/.test(msgA!.body) &&
         msgA?.source === `asistente:taller:${edition.id}` &&
-        offerRun?.options.length === 2 &&
         rowA4?.offeredVia === "text" &&
         rowA4.offeredAt !== null,
-      { offerA, msgA, offerRun, rowA4 }
+      { offerA, msgA, rowA4 }
     );
 
-    // Contesta «2»: lo agenda el código (la lista es lo último que recibió) y sigue en lo del taller.
+    // Contesta «Quiero separar mi cupo»: sigue lo del taller y es elegir el cupo (va el enlace).
     await prisma.conversationMessage.create({
-      data: { conversationId: a, direction: "INBOUND", kind: "message", body: "2", sentAt: new Date(), status: "RECEIVED" },
+      data: { conversationId: a, direction: "INBOUND", kind: "message", body: "Quiero separar mi cupo", sentAt: new Date(), status: "RECEIVED" },
     });
     const thread = await prisma.conversationMessage.findMany({
       where: { conversationId: a },
       orderBy: { sentAt: "desc" },
       take: 10,
-      select: { direction: true, body: true, sentAt: true, kind: true, status: true, attachments: true, source: true, isAutoReply: true },
+      select: { direction: true, body: true, sentAt: true, source: true, isAutoReply: true },
     });
-    const choice = offerRun ? replyToOffer(thread, offerRun) : null;
-    const flow = workshopFlowActive([...thread].reverse(), { ...edition, cardSummary: null }, Date.now());
-    check("   «2»: es respuesta a esa lista y sigue lo del taller", choice === "2" && flow, { choice, flow });
+    const ws = { ...edition, cardSummary: null, payUrl: `https://www.dayanabeltran.com/pagar/p/${productId}` };
+    const flow = workshopFlowActive([...thread].reverse(), ws, Date.now());
+    const spot = wantsWorkshopSpot("Quiero separar mi cupo", { afterChoice: true });
+    const line = workshopFollowLine([...thread].reverse(), ws, Date.now());
+    check("   «Quiero separar mi cupo»: sigue lo del taller y va el enlace", flow && spot && line.includes("send_workshop_link"), { flow, spot, line });
 
     const twice = await offerWorkshopCall({ editionId: edition.id, interestId: rowA!.id }, { send: fakeSend });
-    check("7. otra vez el mismo día: no sale otra lista", twice.status === "skipped" && twice.reason === "already", twice);
+    check("7. otra vez el mismo día: no sale otra vez", twice.status === "skipped" && twice.reason === "already", twice);
 
     // Fuera de las 24 h: la plantilla «Retomar la conversación» (en desarrollo no existe: se crea un momento).
     const rowC2 = (await listWorkshopInterests(edition.id)).find((r) => r.conversationId === c)!;
@@ -194,19 +202,32 @@ const main = async () => {
       const msgC = sent.find((s) => s.conversationId === c);
       const tpl = msgC?.template as { name?: string; variables?: string[] } | undefined;
       check(
-        "8. fuera de las 24 h: la plantilla, sin horas, sin nombre que no sea seguro, «¿Quieres que te la separe?»",
+        "8. fuera de las 24 h: la plantilla, sin nombre que no sea seguro, con la pregunta del cupo o la llamada",
         (hadTemplate || (noTemplate.status === "skipped" && noTemplate.reason === "needs_template")) &&
           offerC.status === "sent" &&
           offerC.via === "template" &&
           tpl?.name === "retomar_conversacion" &&
           tpl.variables?.[0] === "😊" &&
-          Boolean(tpl.variables?.[1]?.endsWith("¿Quieres que te la separe?")) &&
+          Boolean(tpl.variables?.[1]?.endsWith(WORKSHOP_CHOICE)) &&
           !msgC!.body.includes("1. "),
         { noTemplate, offerC, msgC }
       );
     } finally {
       if (tmp) await prisma.messageTemplate.delete({ where: { id: tmp.id } });
     }
+
+    // Sin precio (el producto apagado): la página de pago no abre, así que solo la llamada.
+    await prisma.product.update({ where: { id: productId }, data: { isActive: false } });
+    const rowG = (await listWorkshopInterests(edition.id)).find((r) => r.conversationId === g)!;
+    await prisma.conversation.update({ where: { id: g }, data: { lastInboundAt: ago(1) } });
+    const offerG = await offerWorkshopCall({ editionId: edition.id, interestId: rowG.id }, { send: fakeSend });
+    const msgG = sent.find((s) => s.conversationId === g);
+    check(
+      "   sin precio: solo la llamada para inscribirse",
+      offerG.status === "sent" && Boolean(msgG?.body.endsWith("¿Quieres que te la separe?")) && !msgG!.body.includes("cupo"),
+      { offerG, msgG }
+    );
+    await prisma.product.update({ where: { id: productId }, data: { isActive: true } });
 
     // Un chat asignado a alguien del equipo: la IA no le contestaría, así que no le escribe.
     const staffer = await prisma.staffUser.findFirst({ select: { id: true } });
@@ -222,13 +243,14 @@ const main = async () => {
     const closed = await offerWorkshopCall({ editionId: edition.id, interestId: rowE.id }, { send: fakeSend });
     check("9. con el taller sin publicar no le escribe", closed.status === "skipped" && closed.reason === "closed", closed);
   } finally {
-    setFreeCallCalendarForTests({});
     await prisma.whatsAppAiRun.deleteMany({ where: { conversationId: { in: ids } } });
     await prisma.$executeRaw`DELETE FROM workshop_interests WHERE edition_id = ${edition.id}`;
     await prisma.conversationMessage.deleteMany({ where: { conversationId: { in: ids } } });
     await prisma.conversation.deleteMany({ where: { id: { in: ids } } });
     await prisma.siteSetting.deleteMany({ where: { key: `workshop.interests.cursor.${edition.id}` } });
     await prisma.workshopEdition.delete({ where: { id: edition.id } });
+    await prisma.productPrice.deleteMany({ where: { productId } });
+    await prisma.product.delete({ where: { id: productId } });
     await prisma.$disconnect();
   }
   console.log(failures.length ? `\n❌ ${failures.length} fallaron: ${failures.join(", ")}` : "\n✅ Todo bien");

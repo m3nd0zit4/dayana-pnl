@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { prisma } from "@/lib/db";
+import { getSiteUrl } from "@/lib/site-url";
 import { PROXIMO_WORKSHOP_SLUG } from "@/lib/workshops";
 
 import { getSiteSetting, setSiteSetting } from "./site-settings";
@@ -32,9 +33,17 @@ const workshopSelect = {
   cardSummary: true,
 } as const;
 
-/** El taller con inscripciones abiertas que todavía no pasó (el más próximo). Para la IA. */
-export const openWorkshopForAi = async (now = new Date()): Promise<OpenWorkshop | null> =>
-  prisma.workshopEdition.findFirst({
+/**
+ * El enlace de pago fijo de la edición (`/pagar/p/taller-<slug>`, el mismo de
+ * la página del taller): solo si su producto está activo y tiene precio, si no
+ * la página da 404 (`resolveDefaultProductLink`).
+ */
+export const workshopPayUrl = (product: { id: string; isActive: boolean; prices: unknown[] } | null): string | null =>
+  product?.isActive && product.prices.length > 0 ? `${getSiteUrl()}/pagar/p/${product.id}` : null;
+
+/** El taller con inscripciones abiertas que todavía no pasó (el más próximo), con su enlace de pago. Para la IA. */
+export const openWorkshopForAi = async (now = new Date()): Promise<OpenWorkshop | null> => {
+  const edition = await prisma.workshopEdition.findFirst({
     where: {
       status: "OPEN",
       endedAt: null,
@@ -42,8 +51,12 @@ export const openWorkshopForAi = async (now = new Date()): Promise<OpenWorkshop 
       OR: [{ startsAt: null }, { startsAt: { gte: new Date(now.getTime() - 24 * 3600_000) } }],
     },
     orderBy: { startsAt: "asc" },
-    select: workshopSelect,
+    select: { ...workshopSelect, product: { select: { id: true, isActive: true, prices: { select: { id: true }, take: 1 } } } },
   });
+  if (!edition) return null;
+  const { product, ...rest } = edition;
+  return { ...rest, payUrl: workshopPayUrl(product) };
+};
 
 /** Hasta dónde se leyeron los mensajes para esta edición. */
 const cursorKey = (editionId: string) => `workshop.interests.cursor.${editionId}`;

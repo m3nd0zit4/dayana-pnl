@@ -124,6 +124,7 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
       slug={edition.slug}
       timeZone={tz}
       open={edition.status === "OPEN" && !isWorkshopEnded(edition)}
+      payable={Boolean(edition.productId) && (edition.prices.cop != null || edition.prices.usd != null)}
       rows={rows.map((r) => ({
         id: r.id,
         conversationId: r.conversationId,

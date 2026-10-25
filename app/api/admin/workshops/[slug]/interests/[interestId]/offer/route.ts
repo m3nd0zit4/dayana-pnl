@@ -10,9 +10,9 @@ export const maxDuration = 60;
 type Params = { slug: string; interestId: string };
 
 /**
- * «Ofrecerle la llamada»: la IA le escribe por el taller con horas para la
- * llamada con Dayana (o la plantilla, fuera de las 24 h). Devuelve si salió y,
- * si no, por qué.
+ * «Que la IA le escriba»: la IA le escribe por el taller y le pregunta si separa
+ * su cupo (el enlace de pago) o agenda la llamada con Dayana (la plantilla,
+ * fuera de las 24 h). Devuelve si salió y, si no, por qué.
  */
 export const POST = withStaff<Params>("write", async ({ staff, params }) => {
   const { slug, interestId } = params;
@@ -31,13 +31,13 @@ export const POST = withStaff<Params>("write", async ({ staff, params }) => {
       workshopEditionId: edition.id,
       source: "asistente:taller",
       status: result.status,
-      ...(result.status === "sent" ? { via: result.via, slots: result.slots } : {}),
+      ...(result.status === "sent" ? { via: result.via } : {}),
       ...(result.status === "skipped" ? { reason: result.reason } : {}),
     },
   });
   return NextResponse.json(
     result.status === "sent"
-      ? { ok: true, via: result.via, slots: result.slots, offeredAt: result.at.toISOString() }
+      ? { ok: true, via: result.via, offeredAt: result.at.toISOString() }
       : result.status === "skipped"
         ? { ok: false, reason: result.reason, detail: result.detail ?? null }
         : { ok: false, reason: "failed", detail: result.error },

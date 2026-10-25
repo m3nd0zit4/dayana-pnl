@@ -1,5 +1,3 @@
-import { Prisma } from "@prisma/client";
-
 import { prisma } from "@/lib/db";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
@@ -11,27 +9,25 @@ import { isWhatsAppAutoReplyEnabled } from "./whatsapp-autoreply";
 import { fillVars, templateParams } from "./whatsapp-outbound-plan";
 import { approvedTemplateFor } from "./whatsapp-templates";
 import { sanitizeMensaje } from "./event-template-vars";
-import { personZoneFor } from "./whatsapp-agent/booking-time";
 import { chatNameInfo } from "./whatsapp-agent/chat-name";
-import { offerFreeCallSlots, upcomingFreeCall } from "./whatsapp-agent/free-call";
-import { slotLabel } from "./whatsapp-agent/free-call-rules";
+import { upcomingFreeCall } from "./whatsapp-agent/free-call";
 import { computeSegment } from "./whatsapp-agent/segment-store";
-import { offerList } from "./whatsapp-agent/slot-choice";
 import { NO_FREE_CALL_STAGES } from "./whatsapp-agent/stage";
 import { GUARD_SELECT, waitingRoomBlocked } from "./whatsapp-agent/waiting-room";
 import { workshopOfferTemplateMessage, workshopOfferText, workshopOutreachSource } from "./whatsapp-agent/workshop-interest";
-import { enrolledInWorkshop } from "./workshop-interests";
+import { enrolledInWorkshop, workshopPayUrl } from "./workshop-interests";
 
 /**
- * «Ofrecerle la llamada» en la lista de interesadas (dueña, 24-oct: «para que
+ * «Que la IA le escriba» en la lista de interesadas (dueña, 24-oct: «para que
  * Dayana sepa cuáles son y llamarles o agendarles por el modelo»). La IA le
- * escribe a esa persona por el taller:
+ * escribe a esa persona por el taller: que está abierto, cuándo es y si quiere
+ * separar su cupo de una vez (el enlace de pago) o agendar primero la llamada
+ * con Dayana (25-oct: «que pregunte si para separar su cupo o agendar»; sin
+ * enlace de pago, solo la llamada). Lo que conteste lo sigue la IA: el enlace
+ * o las horas.
  *
- * - dentro de las 24 h de WhatsApp: el taller y 2–3 horas libres de verdad en
- *   la lista numerada del código; las horas quedan como ofrecidas (como el
- *   mensaje de reagendar), así «la 2» la agenda el código (`booking-turn.ts`);
- * - fuera: la plantilla aprobada `retomar_conversacion` con el taller y «¿Quieres
- *   que te la separe?»; si dice que sí, la IA sigue el agendamiento.
+ * - dentro de las 24 h de WhatsApp: un mensaje de texto;
+ * - fuera: la plantilla aprobada `retomar_conversacion` con ese texto.
  *
  * El mensaje lleva `source` `asistente:taller:<edición>`: durante 3 días su
  * respuesta sigue lo del taller aunque ya haya tenido su llamada gratis
@@ -44,7 +40,7 @@ import { enrolledInWorkshop } from "./workshop-interests";
 export type OfferSkip = "not_found" | "closed" | "paid" | "has_call" | "ai_off" | "needs_template" | "already";
 
 export type OfferResult =
-  | { status: "sent"; via: "text" | "template"; slots: number; at: Date }
+  | { status: "sent"; via: "text" | "template"; at: Date }
   | { status: "skipped"; reason: OfferSkip; detail?: string }
   | { status: "failed"; error: string };
 
@@ -87,6 +83,7 @@ export const offerWorkshopCall = async (
       dateLabel: true,
       scheduleLabel: true,
       cardSummary: true,
+      product: { select: { id: true, isActive: true, prices: { select: { id: true }, take: 1 } } },
     },
   });
   if (!edition || edition.status !== "OPEN" || edition.endedAt || (edition.startsAt && edition.startsAt.getTime() < now.getTime())) {
@@ -126,11 +123,12 @@ export const offerWorkshopCall = async (
   if (appt) return { status: "skipped", reason: "has_call" };
 
   const firstName = sureFirstName(await chatNameInfo(conv.id));
+  const workshop = { ...edition, payUrl: workshopPayUrl(edition.product) };
   const source = workshopOutreachSource(edition);
   // Un toque por día: el doble clic o el reintento devuelve el mismo mensaje.
   const dayanaTz = await getOperationalTimezone();
   const clientKey = `taller-interes:${interest.id}:${getDateKeyInTz(now, dayanaTz)}`;
-  // Ya salió hoy: otra lista con otras horas no cuadraría con la que tiene.
+  // Ya salió hoy: no se le repite.
   const sentToday = await prisma.conversationMessage.findFirst({
     where: { clientKey, status: { not: "FAILED" } },
     select: { id: true },
@@ -139,17 +137,11 @@ export const offerWorkshopCall = async (
   const windowOpen = resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen;
 
   let via: "text" | "template";
-  let options: { startIso: string; label: string }[] = [];
   try {
     if (windowOpen) {
-      const personTz = personZoneFor({ dossierTz: conv.dossier?.timezone, contact: conv.contact, phone: conv.externalThreadId });
-      options = (await offerFreeCallSlots({ config, personTz: personTz ?? dayanaTz, dayanaTz, now }).catch(() => [])).map((o) => ({
-        ...o,
-        label: slotLabel(o.startIso, personTz, dayanaTz),
-      }));
       await send({
         conversationId: conv.id,
-        body: workshopOfferText(edition, { firstName, slotList: options.length ? offerList(options) : null }),
+        body: workshopOfferText(workshop, { firstName }),
         source,
         isAutoReply: true,
         clientKey,
@@ -161,7 +153,7 @@ export const offerWorkshopCall = async (
         return { status: "skipped", reason: "needs_template", detail: "Pasaron más de 24 h y la plantilla «Retomar la conversación» no está aprobada." };
       }
       // Sin nombre seguro, «Hola 😊,» como los recordatorios (WhatsApp no acepta el parámetro vacío).
-      const vars = { nombre: firstName ?? "😊", mensaje: sanitizeMensaje(workshopOfferTemplateMessage(edition)) };
+      const vars = { nombre: firstName ?? "😊", mensaje: sanitizeMensaje(workshopOfferTemplateMessage(workshop)) };
       await send({
         conversationId: conv.id,
         body: fillVars(template.body, vars),
@@ -180,28 +172,12 @@ export const offerWorkshopCall = async (
     return { status: "failed", error: e instanceof Error ? e.message : String(e) };
   }
 
-  // Ya salió: lo que sigue no lo deshace (si falla, queda en el registro y se avisa como enviado).
-  // Las horas quedan como ofrecidas: si elige una, se agenda (`latestFreeCallOffer`).
-  if (via === "text" && options.length) {
-    await prisma.whatsAppAiRun
-      .create({
-        data: {
-          conversationId: conv.id,
-          status: "REPLIED",
-          reason: "workshop_offer",
-          toolCalls: [{ tool: "offer_free_call_slots", input: {}, output: { ok: true, options } }] as unknown as Prisma.InputJsonValue,
-          finishedAt: new Date(),
-          latencyMs: 0,
-        },
-      })
-      .catch((e: unknown) => console.warn("[talleres] no se guardaron las horas ofrecidas", e));
-  }
+  // Ya salió: si no se marca, queda en el registro y se avisa como enviado.
   await prisma.$executeRaw`
     UPDATE workshop_interests
     SET offered_at = ${now}, offered_via = ${via},
         status = CASE WHEN status = 'nuevo' THEN 'contactada' ELSE status END,
         updated_at = NOW()
     WHERE id = ${interest.id}`.catch((e: unknown) => console.warn("[talleres] no se marcó la oferta", e));
-  const slots = options.length;
-  return { status: "sent", via, slots, at: now };
+  return { status: "sent", via, at: now };
 };

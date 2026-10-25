@@ -59,12 +59,18 @@ import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-reg
 import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
 import {
   isWorkshopAsk,
+  isWorkshopChoice,
   isWorkshopOffer,
+  promisesWorkshopLink,
   saysNoWorkshop,
-  withWorkshopCall,
+  wantsWorkshopSpot,
+  withoutWorkshopPayUrls,
+  withWorkshopStep,
   workshopFlowActive,
+  workshopFollowLine,
   workshopLeadActive,
   workshopLine,
+  workshopLinkReply,
   workshopReply,
   type OpenWorkshop,
 } from "./workshop-interest";
@@ -693,7 +699,7 @@ Cómo conversas (así trabaja Dayana):
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
-- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción (de un taller no: la inscripción es con una llamada con Dayana). Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción (de un taller no: pregúntale si separa su cupo de una vez con el enlace de pago, que mandas con send_workshop_link, o agenda primero una llamada con Dayana). Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Grabaciones y grupos: los eventos gratuitos (webinars, masterclasses) NO se graban: si preguntan por la grabación de uno, dile con calidez que no queda grabado: «te esperamos en vivo» (o en el próximo). Nunca digas que hay o habrá una grabación, que se la mandas, que algo está «en el grupo» ni que la persona está en un grupo: quien no ha pagado no tiene grabaciones ni grupo de clases. Si pregunta por grabaciones de clases de un curso o taller, escala con category=unknown (Dayana sabe si pagó y dónde están). Si agradece «por aceptarme» o «en su grupo», contesta solo algo corto como «Con gusto 🙏», sin hablar de grupos (ni que está ni que no está, ni que no hay) y sin ofrecerle nada más en ese mensaje.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
@@ -1004,6 +1010,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   }
   // Pregunta por el taller en lo que escribió ahora («Mi pregunta es, para el 15 de noviembre» + «El taller»: juntos).
   const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!);
+  // El enlace de pago del taller (dueña, 25-oct: «que pregunte si para separar su cupo o agendar»).
+  const workshopPay = workshop?.payUrl ?? null;
+  // Elige separar su cupo ya («quiero separar mi cupo», «el enlace», «la primera» tras la pregunta): va el enlace.
+  const lastOutbound = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND");
+  const workshopSpot =
+    Boolean(workshopPay) &&
+    (workshopAskNow || workshopFlow) &&
+    !lastInboundMedia &&
+    wantsWorkshopSpot(lastInbound.join("\n"), { afterChoice: isWorkshopChoice(lastOutbound?.body) });
   // Su llamada ya agendada (también sin agenda automática), para decirle que ahí la inscribe Dayana.
   const workshopCall =
     upcomingCall ??
@@ -1176,6 +1191,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (!state.links.includes(url)) state.links.push(url);
   };
   const linkTools = {
+    // Con el taller abierto la herramienta está para todos (la lista no cambia por chat: caché de Gemini).
+    ...(openWorkshop?.payUrl
+      ? {
+          send_workshop_link: tool({
+            description: `Manda, debajo de tu mensaje, el enlace de pago del taller «${openWorkshop.title}» para separar su cupo. Úsalo cuando elige separar su cupo, quiere pagar o inscribirse ya, o pide el enlace del taller. Nunca escribas el enlace ni digas el precio: lo ve en el enlace.`,
+            inputSchema: z.object({}),
+            execute: async () => {
+              if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
+              // Solo a quien habla del taller (no es el enlace de pago de su proceso).
+              if (!workshopLead) return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
+              addLink(workshopPay);
+              return log("send_workshop_link", {}, { ok: true, note: "El enlace va debajo de tu mensaje: no lo escribas ni digas el precio." });
+            },
+          }),
+        }
+      : {}),
     ...(community
       ? {
           send_community_link: tool({
@@ -1870,7 +1901,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       workshop && workshopAskNow
         ? workshopLine(workshop, { upcomingLabel: upcomingLabelText })
         : workshop && workshopFlow && !workshopCall
-          ? `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${workshop.title}» (ya se la ofrecimos). Si dice que sí, dale horas ya con offer_free_call_slots (sin preguntarle qué día prefiere; si no sabes desde qué país escribe, pregúntalo primero) y, cuando elija una, book_free_call. No le des el valor ni enlaces de pago.`
+          ? workshopFollowLine(input.transcript, workshop, now.getTime())
           : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
@@ -2086,9 +2117,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // 24-oct), le mandó cómo pagar su proceso (Naty) o se lo pasó a Dayana: sale
   // la respuesta del código (abierto, cuándo es y la llamada para inscribirse).
   // Nunca encima de algo grave (sigue `serious`) ni de un pago («ya pagué el taller»: escala).
-  const workshopOnly =
+  // Si eligió separar su cupo (25-oct) y el modelo le mandó lo de su proceso o
+  // lo escaló, también como pago: el enlace del taller.
+  const workshopGuard =
     Boolean(workshop) &&
-    workshopAskNow &&
     !input.clientMode &&
     !state.receipt &&
     !saysSelfHarm([...lastInbound, modelOutcome.kind === "escalate" ? modelOutcome.reason : null]) &&
@@ -2096,19 +2128,37 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !chatLinkOnly &&
     !communityOnly &&
     !paymentDataOnly &&
-    !quotePay &&
-    ((modelOutcome.kind === "reply" &&
-      (saysNoWorkshop(modelOutcome.message) || Boolean(state.paymentLink) || state.paymentDetails.length > 0)) ||
-      (modelOutcome.kind === "escalate" && ["other", "unknown"].includes(modelOutcome.category)));
+    !quotePay;
+  const wrongWorkshopReply =
+    modelOutcome.kind === "reply" && (saysNoWorkshop(modelOutcome.message) || Boolean(state.paymentLink) || state.paymentDetails.length > 0);
+  const workshopFix: "link" | "info" | null = !workshopGuard
+    ? null
+    : workshopSpot && (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)))
+      ? "link"
+      : workshopAskNow && (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown"].includes(modelOutcome.category)))
+        ? "info"
+        : null;
+  const workshopOnly = workshopFix !== null;
   if (workshopOnly) {
     state.paymentLink = null;
     state.paymentDetails = [];
-    log("workshop_reply", { auto: true }, { ok: true, note: "Lo puso el código: preguntó por el taller abierto." });
+    if (workshopFix === "link" && workshopPay) {
+      addLink(workshopPay);
+      log("send_workshop_link", { auto: true }, { ok: true, note: "Lo pegó el código: eligió separar su cupo en el taller." });
+    } else {
+      log("workshop_reply", { auto: true }, { ok: true, note: "Lo puso el código: preguntó por el taller abierto." });
+    }
     if (modelOutcome.kind === "escalate") {
       state.silentEscalation ??= {
         category: modelOutcome.category,
         severity: "normal",
-        reason: `${modelOutcome.reason} (La asistente le contó del taller y le ofreció la llamada para inscribirse.)`.slice(0, 300),
+        reason: `${modelOutcome.reason} (${
+          workshopFix === "link"
+            ? "La asistente le mandó el enlace de pago del taller para separar su cupo."
+            : workshopPay
+              ? "La asistente le contó del taller y le preguntó si separa su cupo o agenda la llamada."
+              : "La asistente le contó del taller y le ofreció la llamada para inscribirse."
+        })`.slice(0, 300),
       };
     }
   }
@@ -2209,7 +2259,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           : quotePay
             ? { kind: "reply", message: quotePayReply({ name: sureFirstName(nameInfo), pack: quotePay.pack, what: quotePay.what }) }
             : workshopOnly && workshop
-              ? { kind: "reply", message: workshopReply(workshop, { upcomingLabel: upcomingLabelText }) }
+              ? {
+                  kind: "reply",
+                  message: workshopFix === "link" ? workshopLinkReply(workshop) : workshopReply(workshop, { upcomingLabel: upcomingLabelText }),
+                }
               : serious
                 ? { kind: "reply", message: serious }
                 : guestFix
@@ -2264,6 +2317,38 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         reason: `Pidió entrar a la comunidad («${lastInbound.join(" ").slice(0, 120)}»); la asistente le mandó el enlace.`,
       };
     }
+    // El enlace del taller (dueña, 25-oct): escrito a mano por el modelo, o eligió
+    // separar su cupo (o el modelo dice «aquí tienes el enlace») sin la herramienta.
+    // Lo pega el código; sin la palabra «enlace» en el texto, va la respuesta del cupo.
+    const typedWorkshop = withoutWorkshopPayUrls(text);
+    if (typedWorkshop.had) text = typedWorkshop.text || text;
+    // Eligió el cupo y el modelo le ofreció horas (eval 25-oct: «La primera» → horas
+    // de la llamada): van el enlace y la respuesta del cupo, sin la lista.
+    const spotOverSlots = workshopSpot && Boolean(state.slotOffer);
+    if (
+      workshop &&
+      workshopPay &&
+      !state.links.includes(workshopPay) &&
+      (!state.slotOffer || spotOverSlots) &&
+      !state.booking &&
+      !state.pendingBooking &&
+      !state.bookingNotice &&
+      (typedWorkshop.had || workshopSpot || ((workshopAskNow || workshopFlow) && promisesWorkshopLink(text)))
+    ) {
+      addLink(workshopPay);
+      log("send_workshop_link", { auto: true }, { ok: true, note: "Lo pegó el código: eligió separar su cupo o la respuesta hablaba del enlace sin la herramienta." });
+      // Si su texto ya habla del enlace, sale tal cual; si contesta otra cosa («¿es en
+      // pesos?»), se suma la frase del enlace; si pregunta algo (el país) o ofrecía horas, la del cupo.
+      const asksBack = /\?\s*$/.test(text.trim());
+      if (spotOverSlots) state.slotOffer = null;
+      text = spotOverSlots
+        ? workshopLinkReply(workshop)
+        : /\b(enlace|link)\b/.test(foldForSearch(text))
+          ? withoutFakeLinks(text) || text
+          : asksBack || !text.trim()
+            ? workshopLinkReply(workshop)
+            : `${text.trim()}${/[.!]$/.test(text.trim()) ? "" : "."} Aquí tienes el enlace para separar tu cupo; ahí ves el valor y puedes pagar en línea.`;
+    }
     // Ningún enlace que no leyó en una fuente de verdad (Ruth, 23-oct: «…/comunidad»,
     // que no existe): las reglas, los DATOS, las notas, lo que escribieron Dayana o
     // la persona y los envíos automáticos. No lo que escribió antes la IA (ahí está
@@ -2283,7 +2368,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         community,
         ...options.map((o) => absoluteUrl(o.url)),
         urgentPath ? absoluteUrl(urgentPath) : null,
-        crmPayUrl
+        crmPayUrl,
+        workshopPay
       ),
       siteHosts()
     );
@@ -2382,10 +2468,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         ? offerMessage(text, state.slotOffer.options, state.slotOffer.matchedWish)
         : text;
   // Preguntó por el taller y contesta el modelo: siempre «abierto» y la llamada
-  // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba).
+  // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba);
+  // con enlace de pago, la pregunta del cupo o la llamada (25-oct). No encima de
+  // las horas o la cita que ya le dio (eligió la llamada).
   const withWorkshop = (text: string) =>
-    workshop && workshopAskNow && outcome === modelOutcome && !state.bookingNotice
-      ? withWorkshopCall(text, { upcomingLabel: upcomingLabelText })
+    workshop &&
+    workshopAskNow &&
+    outcome === modelOutcome &&
+    !state.bookingNotice &&
+    (!workshopPay || (!state.slotOffer && !state.booking && !state.pendingBooking))
+      ? withWorkshopStep(text, workshop, { upcomingLabel: upcomingLabelText, linkSent: Boolean(workshopPay && state.links.includes(workshopPay)) })
       : text;
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
   const shaped: BrainOutcome =

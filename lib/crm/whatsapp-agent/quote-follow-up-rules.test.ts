@@ -180,6 +180,10 @@ describe("isQuote: qué cuenta como cotización", () => {
     expect(isQuoteLine(ai2("¿Prefieres pagar por enlace con tarjeta o PayPal, o por transferencia a Bancolombia o Nequi?"))).toBe(false);
     expect(isQuoteLine(ai2("Claro, el lunes 2026-10-26 Dayana te escribe por Nequi"))).toBe(false);
     expect(isQuoteLine(ai2("Te comparto los datos:\n\nPayPal: pagos.dayana@ejemplo.com"))).toBe(true);
+    // El enlace del taller (25-oct) no es la cotización de su proceso, ni de la asistente ni de Dayana.
+    const taller = "Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller.\n\nhttps://www.dayanabeltran.com/pagar/p/taller-tu-sanacion-con-el-dinero";
+    expect(isQuoteLine(ai2(taller))).toBe(false);
+    expect(isQuoteLine({ direction: "OUTBOUND", body: taller, sentAt: at("2026-10-20T15:00:00Z") })).toBe(false);
   });
 });
 

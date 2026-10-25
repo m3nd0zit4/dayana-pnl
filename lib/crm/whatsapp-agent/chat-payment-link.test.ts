@@ -271,3 +271,19 @@ describe("asksForBankDetails", () => {
     expect(asksForBankDetails(["No pude pagar"])).toBe(true);
   });
 });
+
+describe("el enlace de un taller no es cómo pagar su proceso (25-oct)", () => {
+  const taller = "https://www.dayanabeltran.com/pagar/p/taller-tu-sanacion-con-el-dinero";
+  test("no son datos de pago ni «ya hablaron»; con otro dato sí", () => {
+    expect(isPaymentData(`Aquí puedes separar tu cupo en el taller: ${taller}`)).toBe(false);
+    expect(isPaymentInfo(`Aquí puedes separar tu cupo en el taller: ${taller}`)).toBe(false);
+    expect(paymentInfoKind(taller)).toBe(null);
+    expect(isPaymentData(`${taller}\nY tu sesión: https://www.dayanabeltran.com/pagar/p/therapy-3`)).toBe(true);
+  });
+  test("no es «el enlace que te mandó Dayana»: se sigue buscando el de su proceso", () => {
+    const lines = [dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", at("2026-10-20T13:00:00Z")), dayana(taller)];
+    expect(dayanaPaymentLink(lines, now)?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
+    expect(dayanaPaymentLinks(lines, now).map((l) => l.url)).toEqual(["https://www.dayanabeltran.com/pagar/p/therapy-3"]);
+    expect(dayanaPaymentLink([dayana(taller)], now)).toBe(null);
+  });
+});

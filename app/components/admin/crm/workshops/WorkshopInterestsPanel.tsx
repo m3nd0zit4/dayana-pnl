@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CalendarPlus, HandHeart, PhoneCall } from "lucide-react";
+import { HandHeart, MessageCircleHeart, PhoneCall } from "lucide-react";
 import { Badge } from "@/app/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { useCrm } from "../CrmProvider";
@@ -21,10 +21,10 @@ export type InterestRowView = {
   status: InterestStatus;
   nextCallAtIso: string | null;
   paid: boolean;
-  /** Cuándo la IA le ofreció la llamada desde aquí, y cómo. */
+  /** Cuándo la IA le escribió desde aquí, y cómo. */
   offeredAtIso: string | null;
   offeredVia: "text" | "template" | null;
-  /** Escribió en las últimas 24 h: la IA le manda horas; si no, va la plantilla. */
+  /** Escribió en las últimas 24 h: la IA le escribe un mensaje; si no, va la plantilla. */
   windowOpen: boolean;
 };
 
@@ -51,21 +51,24 @@ const SKIP_MESSAGE: Record<string, string> = {
 /**
  * «Interesadas»: el registro de interés del taller (dueña, 24-oct). Quien
  * preguntó por WhatsApp por esta edición; no es una inscripción (no pagó, no
- * tiene acceso). Dayana las llama ella misma o toca «Que la IA le ofrezca la
- * llamada» y la IA le escribe con horas para la llamada de inscripción. La fila
- * lleva al chat; el seguimiento se marca a la derecha.
+ * tiene acceso). Dayana las llama ella misma o toca «Que la IA le escriba»: la
+ * IA le pregunta si separa su cupo (el enlace de pago) o agenda la llamada con
+ * Dayana (25-oct). La fila lleva al chat; el seguimiento se marca a la derecha.
  */
 const WorkshopInterestsPanel = ({
   slug,
   rows: initialRows,
   timeZone,
   open,
+  payable,
 }: {
   slug: string;
   rows: InterestRowView[];
   timeZone: string;
   /** El taller tiene inscripciones abiertas: solo entonces la IA les escribe. */
   open: boolean;
+  /** Tiene precio (enlace de pago): la IA pregunta cupo o llamada; si no, solo la llamada. */
+  payable: boolean;
 }) => {
   const { toast, confirm } = useCrm();
   const [rows, setRows] = useState(initialRows);
@@ -97,7 +100,7 @@ const WorkshopInterestsPanel = ({
       method: "POST",
     }).catch(() => null);
     const data = (await res?.json().catch(() => null)) as
-      | { ok: true; via: "text" | "template"; slots: number; offeredAt: string }
+      | { ok: true; via: "text" | "template"; offeredAt: string }
       | { ok: false; reason: string; detail: string | null }
       | null;
     setBusy(null);
@@ -115,21 +118,17 @@ const WorkshopInterestsPanel = ({
         x.id === r.id ? { ...x, offeredAtIso: data.offeredAt, offeredVia: data.via, status: x.status === "nuevo" ? "contactada" : x.status } : x
       )
     );
-    toast(
-      data.via === "text"
-        ? data.slots > 0
-          ? `La IA le mandó ${data.slots} horas a ${nameOf(r)}.`
-          : `La IA le escribió a ${nameOf(r)}.`
-        : `La IA le escribió a ${nameOf(r)} con la plantilla.`
-    );
+    toast(data.via === "text" ? `La IA le escribió a ${nameOf(r)}.` : `La IA le escribió a ${nameOf(r)} con la plantilla.`);
   };
 
   const askOffer = (r: InterestRowView) =>
     confirm({
       title: `¿Le escribe la IA a ${nameOf(r)}?`,
-      message: r.windowOpen
-        ? "Le cuenta del taller y le manda horas libres para la llamada con Dayana. Si elige una, queda agendada."
-        : "Pasaron más de 24 h desde su último mensaje: va con la plantilla «Retomar la conversación» (Meta la cobra) y le pregunta si quiere separar la llamada.",
+      message: `${
+        payable
+          ? "Le cuenta del taller y le pregunta si quiere separar su cupo de una vez (le manda el enlace de pago) o agendar primero una llamada con Dayana."
+          : "Le cuenta del taller y le pregunta si quiere separar la llamada con Dayana para inscribirse."
+      }${r.windowOpen ? "" : " Pasaron más de 24 h desde su último mensaje: va con la plantilla «Retomar la conversación» (Meta la cobra)."}`,
       confirmLabel: "Escribirle",
       onConfirm: () => offer(r),
     });
@@ -144,7 +143,9 @@ const WorkshopInterestsPanel = ({
         <h2 className="text-sm font-medium">Interesadas ({rows.length.toLocaleString("es-CO")})</h2>
         <p className="text-xs text-muted-foreground">
           Registro de interés: preguntaron por este taller por WhatsApp. No es una inscripción: no han pagado y no tienen acceso.
-          Llámalas tú o deja que la IA les ofrezca horas para la llamada con Dayana.
+          {payable
+            ? "Llámalas tú o deja que la IA les escriba: les pregunta si separan su cupo con el enlace de pago o agendan una llamada con Dayana."
+            : "Llámalas tú o deja que la IA les ofrezca la llamada con Dayana para inscribirse."}
         </p>
       </div>
       {rows.length === 0 ? (
@@ -170,8 +171,8 @@ const WorkshopInterestsPanel = ({
                       />
                     ) : null}
                     <CrmRowAction
-                      icon={CalendarPlus}
-                      label={blocked ?? (busy === r.id ? "Escribiéndole…" : `Que la IA le ofrezca la llamada a ${nameOf(r)}`)}
+                      icon={MessageCircleHeart}
+                      label={blocked ?? (busy === r.id ? "Escribiéndole…" : `Que la IA le escriba a ${nameOf(r)} por el taller`)}
                       disabled={Boolean(blocked) || busy !== null}
                       onClick={() => askOffer(r)}
                     />
@@ -197,7 +198,7 @@ const WorkshopInterestsPanel = ({
                     )}
                     {r.offeredAtIso ? (
                       <Badge variant="outline">
-                        {r.offeredVia === "template" ? "La IA le escribió" : "La IA le ofreció horas"} · {when(r.offeredAtIso)}
+                        La IA le escribió · {when(r.offeredAtIso)}
                       </Badge>
                     ) : null}
                   </p>

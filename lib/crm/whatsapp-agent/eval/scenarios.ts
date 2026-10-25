@@ -1012,10 +1012,10 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person("Buenas  tardes el costo  del taller  15 noviembre  xf me puede información")],
     expect: {
       outcome: "reply",
-      mustMatch: [/abiert[oa]s?/i, /llamada/i],
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /cupo/i],
       mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /https?:\/\//i],
     },
-    goal: "Le dice que el taller sí está abierto, cuándo es (domingo 15 de noviembre) y que para inscribirse es con una llamada con Dayana, y le ofrece separarla (o le pregunta desde qué país escribe para darle horas). Sin el valor ni enlaces.",
+    goal: "Le dice que el taller sí está abierto, cuándo es (domingo 15 de noviembre) y le pregunta si quiere separar su cupo de una vez (le manda el enlace de pago, donde ve el valor) o prefiere agendar primero una llamada con Dayana (dueña, 25-oct). Todavía no le manda el enlace: no ha elegido. Sin el valor.",
   },
   {
     id: "naty-taller-tras-la-llamada",
@@ -1032,10 +1032,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/abiert[oa]s?/i, /llamada/i],
-      mustNotMatch: [/pagar\/p\/therapy/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /cupo/i],
+      mustNotMatch: [/pagar\/p\/therapy/i, /pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "El taller es otra cosa distinta a su proceso: le dice que sí está abierto, cuándo es y que para inscribirse es con una llamada con Dayana, y se la ofrece (aunque ya tuvo su llamada gratis). No le manda el enlace de su paquete ni el valor.",
+    goal: "El taller es otra cosa distinta a su proceso: le dice que sí está abierto, cuándo es y le pregunta si separa su cupo de una vez (el enlace de pago) o agenda primero una llamada con Dayana (aunque ya tuvo su llamada gratis). No le manda el enlace de su paquete ni el valor.",
   },
   {
     id: "naty-taller-dice-que-si",
@@ -1117,10 +1117,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/llamada/i],
+      mustMatch: [/llamada/i, /cupo/i],
       mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y que para inscribirse es con una llamada con Dayana; se la ofrece. Puede saludarle por el webinar. Sin el valor.",
+    goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y le pregunta si separa su cupo de una vez (el enlace de pago, donde ve el valor) o agenda primero una llamada con Dayana. Puede saludarle por el webinar. Sin el valor.",
   },
   {
     id: "boton-inscribirme-al-taller",
@@ -1131,9 +1131,86 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person('Hola Dayana, me interesa inscribirme al taller "Tu Sanacion con el Dinero".')],
     expect: {
       outcome: "reply",
-      mustMatch: [/llamada/i],
+      mustMatch: [/llamada/i, /cupo/i],
       mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i, /https?:\/\//i],
     },
-    goal: "Le da la bienvenida, le confirma el taller (cuándo es) y que la inscripción es con una llamada con Dayana; se la ofrece o le pregunta desde qué país escribe para darle horas.",
+    goal: "Le da la bienvenida, le confirma el taller (cuándo es) y le pregunta si quiere separar su cupo de una vez (le manda el enlace de pago) o agendar primero una llamada con Dayana. Todavía no le manda el enlace.",
+  },
+  // El cupo o la llamada (dueña, 25-oct: «que el modelo envíe el enlace de pago pero que pregunte si para
+  // separar su cupo o agendar, ya que algunos pueden querer separar su cupo ya»).
+  {
+    id: "taller-elige-separar-cupo",
+    origin: "25-oct: tras la información del taller y la pregunta del cupo o la llamada, elige separar su cupo",
+    name: "Fely",
+    stage: "nueva",
+    personTimezone: "America/Lima",
+    transcript: [
+      person("Buenas tardes el costo del taller 15 noviembre xf me puede información"),
+      ai(
+        "Hola 🙏 Sí, el taller «Tu Sanación con el Dinero» está abierto: es el domingo 15 de noviembre, de 8:30 a. m. a 4:30 p. m. (hora de Colombia), virtual. ¿Quieres separar tu cupo ya con el enlace de pago (ahí ves el valor) o agendar primero una llamada con Dayana?"
+      ),
+      person("Quiero separar mi cupo"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
+      mustNotMatch: [/\$|\bcop\b|\busd\b|190|dólares/i, /pagar\/p\/therapy/i, /offer_free_call|¿desde qué país/i],
+    },
+    goal: "Le manda el enlace de pago del taller (va debajo) en un mensaje corto: ahí ve el valor y paga, y con eso queda su cupo. No le ofrece horas ni le pregunta el país. Sin el valor.",
+  },
+  {
+    id: "taller-elige-la-llamada",
+    origin: "25-oct: tras la pregunta del cupo o la llamada, prefiere hablar antes con Dayana (ya dijo que es de Perú)",
+    name: "Fely",
+    stage: "nueva",
+    personTimezone: "America/Lima",
+    transcript: [
+      person("Buenas tardes, soy de Perú. El costo del taller 15 noviembre xf me puede información"),
+      ai(
+        "Hola 🙏 Sí, el taller «Tu Sanación con el Dinero» está abierto: es el domingo 15 de noviembre, de 8:30 a. m. a 4:30 p. m. (hora de Colombia), virtual. ¿Quieres separar tu cupo ya con el enlace de pago (ahí ves el valor) o agendar primero una llamada con Dayana?"
+      ),
+      person("Prefiero hablar primero con Dayana"),
+    ],
+    expect: { outcome: "reply", anyTool: ["offer_free_call_slots", "book_free_call"], mustNotMatch: [/pagar\/p\/taller/i, /\$|\bcop\b|\busd\b|190/i] },
+    goal: "Eligió la llamada: le da horas reales para la llamada con Dayana (sin preguntarle qué día prefiere). Sin el enlace de pago ni el valor.",
+  },
+  {
+    id: "taller-pide-el-enlace-de-una",
+    origin: "25-oct: alguien que ya decidió y pide pagar el taller de una vez",
+    name: "Gloria",
+    stage: "nueva",
+    personTimezone: "America/Bogota",
+    transcript: [person("Hola! Quiero pagar el taller del 15 de noviembre, me pasas el link?")],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
+      mustNotMatch: [/\$|\bcop\b|\busd\b|190/i, /no (hay|tenemos)[^.]{0,20}taller/i],
+    },
+    goal: "Ya eligió: le manda el enlace de pago del taller (va debajo) sin preguntarle si prefiere la llamada. Puede decirle en una frase cuándo es el taller. Sin el valor.",
+  },
+  {
+    id: "lista-de-interesadas-elige-la-primera",
+    origin: "25-oct: Dayana tocó «Que la IA le escriba» (plantilla con la pregunta del cupo o la llamada) y contesta «La primera»",
+    name: "Natividad",
+    stage: "tuvo_llamada",
+    personTimezone: "America/Lima",
+    transcript: [
+      { ...dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"), sentAt: new Date("2026-10-08T16:00:00Z") },
+      { ...person("El costo del taller del 15 de noviembre?"), sentAt: new Date("2026-10-11T20:00:00Z") },
+      {
+        ...ai(
+          "Hola 😊, te bendigo 💛 Te escribo para retomar nuestra conversación. Sobre el taller «Tu Sanación con el Dinero» por el que preguntaste: está abierto y es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). ¿Quieres separar tu cupo ya con el enlace de pago (ahí ves el valor) o agendar primero una llamada con Dayana? Quedo atenta a tu respuesta por aquí."
+        ),
+        source: "asistente:taller:devws-sanacion-dinero",
+        sentAt: new Date("2026-10-13T20:00:00Z"),
+      },
+      { ...person("La primera"), sentAt: new Date("2026-10-14T18:55:00Z") },
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
+      mustNotMatch: [/pagar\/p\/therapy/i, /\$|\bcop\b|\busd\b|190/i],
+    },
+    goal: "«La primera» es separar su cupo: le manda el enlace de pago del taller (no el de su paquete de sesiones). Sin horas ni el valor.",
   },
 ];

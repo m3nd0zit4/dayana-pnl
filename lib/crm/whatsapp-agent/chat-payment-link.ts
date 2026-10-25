@@ -30,6 +30,15 @@ const byDayana = (l: Line) => l.direction === "OUTBOUND" && !l.isAutoReply && l.
 
 /** `https://www.dayanabeltran.com/pagar/p/therapy-24`, `…/pagar/<token>`. */
 const PAY_URL = /https?:\/\/[^\s<>"')\]]+\/pagar\/[^\s<>"')\]]+/gi;
+/**
+ * El enlace de pago de un taller (`/pagar/p/taller-<slug>`, dueña 25-oct: la
+ * asistente lo manda a quien quiere separar su cupo). No es cómo pagar su
+ * proceso: no dice que ya tuvo la llamada, no es una cotización y no es «el
+ * enlace que te mandó Dayana».
+ */
+const WORKSHOP_PAY = /\S*\/pagar\/p\/taller-\S*/gi;
+const withoutWorkshopLinks = (text: string) => text.replace(WORKSHOP_PAY, " ");
+const isWorkshopLink = (url: string) => /\/pagar\/p\/taller-/i.test(url);
 
 /** Lo que recibe la persona si el modelo volvió a poner el enlace y aun así escaló (el enlace va debajo). */
 export const CHAT_LINK_REPLY =
@@ -49,7 +58,7 @@ export const dayanaPaymentLink = (lines: Line[], now: Date = new Date()): { url:
     const l = lines[i];
     if (!byDayana(l) || !l.body) continue;
     if (l.sentAt && l.sentAt.getTime() < oldest) break;
-    const urls = l.body.match(PAY_URL);
+    const urls = l.body.match(PAY_URL)?.filter((u) => !isWorkshopLink(u));
     if (urls?.length) return { url: urls[urls.length - 1].replace(/[.,;:!?]+$/, ""), sentAt: l.sentAt ?? null };
   }
   return null;
@@ -80,6 +89,7 @@ export const dayanaPaymentLinks = (lines: Line[], now: Date = new Date()): ChatP
     if (!byDayana(l) || !l.body) continue;
     if (l.sentAt && l.sentAt.getTime() < oldest) break;
     for (const raw of [...(l.body.match(PAY_URL) ?? [])].reverse()) {
+      if (isWorkshopLink(raw)) continue;
       const url = raw.replace(/[.,;:!?]+$/, "");
       if (!out.some((o) => o.url === url)) out.push({ url, sentAt: l.sentAt ?? null, label: linkLabel(url) });
     }
@@ -146,7 +156,7 @@ const PRICE_TALK = [RECEIPT_TALK, /\$\s?\d/, /\b\d{2,3}(\.\d{3})+\b/, /\b\d+(\.\
 
 /** ¿Este mensaje de Dayana trae datos para pagar (enlace, cuenta, Nequi, Western Union)? */
 export const isPaymentData = (text: string | null | undefined): boolean => {
-  const t = foldForSearch(text ?? "");
+  const t = foldForSearch(withoutWorkshopLinks(text ?? ""));
   return Boolean(t) && PAYMENT_DATA.some((re) => re.test(t));
 };
 
@@ -165,7 +175,7 @@ const otherPrice = (t: string) => BEFORE_CALL.test(t) || (NOT_THERAPY.test(t) &&
 
 /** ¿Este mensaje de Dayana dice que ya hablaron de pagar (datos, un valor, «mándame el comprobante»)? */
 export const isPaymentInfo = (text: string | null | undefined, opts: { amounts?: boolean } = {}): boolean => {
-  const t = foldForSearch(text ?? "");
+  const t = foldForSearch(withoutWorkshopLinks(text ?? ""));
   if (!t) return false;
   if (PAYMENT_DATA.some((re) => re.test(t)) || RECEIPT_TALK.test(t)) return true;
   // Sin `amounts`, un monto suelto no cuenta (un precio de un taller de hace
@@ -202,7 +212,7 @@ export const askedPackage = (text: string): number | null => {
 
 /** Qué trae un mensaje de pago: datos (enlace, cuenta, Nequi…), «mándame el comprobante» o solo un valor. */
 export const paymentInfoKind = (text: string | null | undefined): "data" | "receipt" | "amount" | null => {
-  const t = foldForSearch(text ?? "");
+  const t = foldForSearch(withoutWorkshopLinks(text ?? ""));
   if (!t) return null;
   if (PAYMENT_DATA.some((re) => re.test(t))) return "data";
   if (RECEIPT_TALK.test(t)) return "receipt";
