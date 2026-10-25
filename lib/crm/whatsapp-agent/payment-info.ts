@@ -4,6 +4,7 @@ import { fireNotification } from "@/lib/notifications/platform/emit";
 import { getSiteUrl } from "@/lib/site-url";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { openAttention } from "./attention";
+import { providerLabel, webPaymentForReceipt } from "./receipt-web-payment";
 
 /**
  * Pagos por fuera de la web, en WhatsApp (pedido de la dueña, 2026-10-14):
@@ -177,6 +178,11 @@ export type ReceiptView = {
   dayanaReplied: boolean;
   /** La foto del comprobante (si llegó como imagen o PDF). */
   attachment: { kind: string; url: string | null; mimeType: string | null; caption: string | null; mediaId?: string } | null;
+  /**
+   * Por confirmar, pero el pago ya entró solo por la página (misma referencia en
+   * Mercado Pago o PayPal): confirmar vincula el chat a esa ficha y no pide registrarlo.
+   */
+  webPayment: { provider: string; amountMinor: number; currency: string; paidAt: string; product: string | null } | null;
 };
 
 /**
@@ -218,6 +224,14 @@ export const listReceipts = async (conversationId: string): Promise<ReceiptView[
         select: { sentAt: true },
       })
     : null;
+  // Por confirmar: ¿ya entró por la página? (Gina, 25-oct.)
+  const web = new Map(
+    await Promise.all(
+      rows
+        .filter((r) => r.status === "pending" && r.reference)
+        .map(async (r) => [r.id, await webPaymentForReceipt(r).catch(() => null)] as const)
+    )
+  );
   return rows
     .sort((a, b) => Number(b.status === "pending") - Number(a.status === "pending"))
     .map((r) => ({
@@ -241,5 +255,9 @@ export const listReceipts = async (conversationId: string): Promise<ReceiptView[
       needsPayment: r.status === "confirmed" && !r.paymentId && !r.paymentDismissedAt,
       dayanaReplied: Boolean(lastHuman && lastHuman.sentAt > r.createdAt),
       attachment: (r.messageId && attachmentOf.get(r.messageId)) || null,
+      webPayment: (() => {
+        const w = web.get(r.id);
+        return w ? { provider: providerLabel(w.provider), amountMinor: w.amountMinor, currency: w.currency, paidAt: w.paidAt.toISOString(), product: w.product } : null;
+      })(),
     }));
 };

@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/db";
 import { fireNotification } from "@/lib/notifications/platform/emit";
+import { personFullName } from "@/lib/person-name";
 import { writeAuditLog } from "../audit";
 import { setManualCategory } from "../chat-category";
-import { replyToConversation } from "../conversations";
+import { linkConversationToContact, replyToConversation } from "../conversations";
 import { ClientContactError, ensureConversationContact } from "../whatsapp-client-contact";
 import { closeAttention } from "./attention";
 import { isPaymentAck } from "./receipt-ack";
+import { webPaymentForReceipt } from "./receipt-web-payment";
 
 /**
  * Dayana confirma o descarta un comprobante de pago que llegó por WhatsApp
@@ -15,6 +17,13 @@ import { isPaymentAck } from "./receipt-ack";
  */
 
 export class ReceiptError extends Error {}
+
+/** «Gina Catalina Sánchez Delgado» → nombre «Gina», apellido «Catalina Sánchez Delgado» (como `ensureConversationContact`). */
+const payerNameParts = (payerName: string | null): { firstName: string; lastName?: string } | null => {
+  const words = (personFullName(payerName) ?? "").split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  return { firstName: words[0], ...(words.length > 1 ? { lastName: words.slice(1).join(" ") } : {}) };
+};
 
 /**
  * Dayana confirma o descarta un comprobante.
@@ -35,7 +44,7 @@ export const decideReceipt = async (input: {
   /** Lo que se le envía a la persona (vacío = nada). */
   message?: string | null;
   via?: "button" | "chat";
-}): Promise<{ contactId: string | null; contactName: string | null; sent: boolean }> => {
+}): Promise<{ contactId: string | null; contactName: string | null; sent: boolean; alreadyRegistered: boolean }> => {
   const via = input.via ?? "button";
   const receipt = await prisma.whatsAppPaymentReceipt.findUnique({
     where: { id: input.receiptId },
@@ -63,7 +72,25 @@ export const decideReceipt = async (input: {
 
   let contactId = conversation.contactId;
   let contactName: string | null = null;
-  if (input.decision === "confirm") {
+  // El pago ya entró solo por la página (Gina, 25-oct): el chat se vincula a esa ficha
+  // (también sin número) y el comprobante queda enlazado a ese pago: no se registra otra vez.
+  const web = input.decision === "confirm" ? await webPaymentForReceipt(receipt).catch(() => null) : null;
+  if (web) {
+    try {
+      if (!conversation.contactId) await linkConversationToContact(conversation.id, web.contactId, input.staffUserId);
+      contactId = conversation.contactId ?? web.contactId;
+      // La ficha temporal del checkout («Pendiente») toma el nombre del comprobante.
+      const name = web.placeholder ? payerNameParts(receipt.payerName) : null;
+      if (name && contactId === web.contactId) await prisma.contact.update({ where: { id: web.contactId }, data: name });
+      const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { firstName: true, lastName: true } });
+      contactName = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ") || null;
+      await setManualCategory(conversation.id, "cliente", input.staffUserId);
+      await prisma.whatsAppPaymentReceipt.update({ where: { id: receipt.id }, data: { paymentId: web.paymentId } });
+    } catch (e) {
+      await release();
+      throw e;
+    }
+  } else if (input.decision === "confirm") {
     try {
       contactId = (
         await ensureConversationContact({
@@ -106,9 +133,9 @@ export const decideReceipt = async (input: {
     action: input.decision === "confirm" ? "whatsapp.receipt.confirm" : "whatsapp.receipt.reject",
     entityType: "WhatsAppPaymentReceipt",
     entityId: receipt.id,
-    changes: { conversationId: conversation.id, contactId, sent, via },
+    changes: { conversationId: conversation.id, contactId, sent, via, ...(web ? { webPaymentId: web.paymentId } : {}) },
   });
-  return { contactId, contactName, sent };
+  return { contactId, contactName, sent, alreadyRegistered: Boolean(web) };
 };
 
 /** Cuánto después del comprobante cuenta un «recibido» de Dayana. */

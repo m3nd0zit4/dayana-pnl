@@ -83,8 +83,10 @@ const ReceiptBar = ({
     setBusy(null);
     if (result.ok && action === "confirm") {
       const contactId = result.data.contactId as string | null;
-      // Enseguida el pago, con el monto que leyó la IA y el código de Dayana.
-      if (contactId) setRegister({ receipt: r, contact: { id: contactId, name: (result.data.contactName as string | null) ?? chatName } });
+      // Enseguida el pago, con el monto que leyó la IA y el código de Dayana (no si ya entró por la página).
+      if (contactId && !result.data.alreadyRegistered) {
+        setRegister({ receipt: r, contact: { id: contactId, name: (result.data.contactName as string | null) ?? chatName } });
+      }
     }
     onChanged();
   };
@@ -151,10 +153,23 @@ const ReceiptBar = ({
               <Receipt className="mt-0.5 size-5 shrink-0 text-(--wa-attention)" />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="text-sm font-semibold text-(--wa-text)">Comprobante de pago por confirmar</div>
-                <div className="text-xs text-(--wa-meta)">
-                  Verifica en tu cuenta que el dinero llegó. Al confirmar, la persona queda como contacto en el CRM y como clienta (la IA deja de
-                  atenderla, salvo pagos) y registras el pago con el código que llega a tu correo.
-                </div>
+                {r.webPayment ? (
+                  // Ya entró solo por la página (Gina, 25-oct): nada que verificar ni registrar.
+                  <div className="flex items-start gap-1.5 rounded-lg bg-(--wa-green-soft) px-2 py-1.5 text-xs text-(--wa-text)">
+                    <Check className="mt-0.5 size-3.5 shrink-0 text-(--wa-accent)" />
+                    <span>
+                      Este pago ya entró por la página ({r.webPayment.provider} ·{" "}
+                      {formatMoneyMinor(r.webPayment.amountMinor, r.webPayment.currency)}
+                      {r.webPayment.product ? ` · ${r.webPayment.product}` : ""}) y ya está registrado. Al confirmar, este chat queda vinculado a
+                      su ficha como clienta; no hay que registrarlo otra vez.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-(--wa-meta)">
+                    Verifica en tu cuenta que el dinero llegó. Al confirmar, la persona queda como contacto en el CRM y como clienta (la IA deja de
+                    atenderla, salvo pagos) y registras el pago con el código que llega a tu correo.
+                  </div>
+                )}
                 {r.summary && <div className="text-sm text-(--wa-text)">{r.summary}</div>}
                 {facts.length > 0 && <div className="text-xs text-(--wa-icon)">{facts.join(" · ")}</div>}
                 {r.problem && (
